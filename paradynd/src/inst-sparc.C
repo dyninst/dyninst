@@ -1,31 +1,51 @@
 /*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * Copyright (c) 1996 Barton P. Miller
  * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
- *
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
-
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
-  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
-  Tia Newhall, Mark Callaghan.  All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.38 1996/07/18 19:37:46 naim Exp $";
-#endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.39  1996/08/16 21:18:59  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.38  1996/07/18 19:37:46  naim
  * Changing the "frequency" value from 250 to 100 - naim
  *
@@ -50,174 +70,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * Revision 1.33  1996/03/20  17:02:46  mjrg
  * Added multiple arguments to calls.
  * Instrument pvm_send instead of pvm_recv to get tags.
- *
- * Revision 1.32  1995/12/19 01:04:50  hollings
- * Moved the implementation of registerSpace::readOnlyRegister to processor
- *   specific files (since it is).
- * Fixed a bug in Power relOps cases.
- *
- * Revision 1.31  1995/12/11  15:06:46  naim
- * Implementing >, >=, < and <= operators - naim
- *
- * Revision 1.30  1995/11/29  18:43:42  krisna
- * deleted orphan code
- *
- * Revision 1.29  1995/10/19 22:30:54  mjrg
- * Fixed code generation for constants in the range 1024 to 4096.
- *
- * Revision 1.28  1995/09/26  20:34:42  naim
- * Minor fix: change all msg char[100] by string msg everywhere, since this can
- * cause serious troubles. Adding some error messages too.
- *
- * Revision 1.27  1995/08/24  15:04:01  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.26  1995/08/05  17:14:46  krisna
- * read the code to find out why
- *
- * Revision 1.25  1995/05/25  20:39:02  markc
- * Classify indirect calls as "unknown" user functions
- *
- * Revision 1.24  1995/05/18  10:36:08  markc
- * Prevent reference null call point
- *
- * Revision 1.23  1995/03/10  19:33:47  hollings
- * Fixed several aspects realted to the cost model:
- *     track the cost of the base tramp not just mini-tramps
- *     correctly handle inst cost greater than an imm format on sparc
- *     print starts at end of pvm apps.
- *     added option to read a file with more accurate data for predicted cost.
- *
- * Revision 1.22  1995/02/24  04:42:04  markc
- * Check if an address could be for an instruction before checking to see if it
- * is delayed, since we should not be checking instructions that are out of range.
- *
- * Revision 1.21  1995/02/16  08:53:22  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.20  1995/02/16  08:33:26  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.19  1994/11/02  19:01:24  hollings
- * Made the observed cost model use a normal variable rather than a reserved
- * register.
- *
- * Revision 1.18  1994/11/02  11:07:09  markc
- * Attempted to reduce the number of types used to represent addresses
- * to 1.  Move sparc-independent routines to symtab.C.
- *
- * Revision 1.16  1994/10/13  07:24:42  krisna
- * solaris porting and updates
- *
- * Revision 1.15  1994/09/22  01:58:17  markc
- * made getStrOp() return const char*
- * changed *allocs to news
- * enter funcFrequencyTable handles into stringPool
- * cast args to ptrace, PCptrace
- *
- * Revision 1.14  1994/08/08  20:13:37  hollings
- * Added suppress instrumentation command.
- *
- * Revision 1.13  1994/07/28  22:40:38  krisna
- * changed definitions/declarations of xalloc functions to conform to alloc.
- *
- * Revision 1.12  1994/07/26  19:57:31  hollings
- * moved instruction definitions to seperate header file.
- *
- * Revision 1.11  1994/07/20  23:23:35  hollings
- * added insn generated metric.
- *
- * Revision 1.10  1994/07/14  23:30:24  hollings
- * Hybrid cost model added.
- *
- * Revision 1.9  1994/07/12  20:09:06  jcargill
- * Added warning if a function's code appears to be a valid insn.
- *
- * Revision 1.8  1994/07/06  00:35:44  hollings
- * Added code to handle SPARC ABI aggregate return type calling convention
- * of using the instruction after the call's delay slot to indicate aggregate
- * size.  We treat this as an extra delay slot and relocate it to the
- * base tramp as needed.
- *
- * Revision 1.7  1994/07/05  03:26:03  hollings
- * observed cost model
- *
- * Revision 1.6  1994/06/30  18:01:35  jcargill
- * Fixed MAX_BRANCH definition (offset is in words, not bytes).
- *
- * Revision 1.5  1994/06/29  22:37:19  hollings
- * Changed heap bound brack error to warning if we can reach some of the inst
- * heap.  The firewall will catch if this is a real error.
- *
- * Revision 1.4  1994/06/29  02:52:28  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.3  1994/06/27  18:56:47  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.2  1994/06/22  01:43:15  markc
- * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
- * reference to proc->status to use proc->heap->status.
- *
- * Revision 1.1  1994/01/27  20:31:22  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.11  1993/12/15  21:02:42  hollings
- * added PVM support.
- *
- * Revision 1.10  1993/12/13  19:54:03  hollings
- * count internal operations and recognize invalid instructions.
- *
- * Revision 1.9  1993/10/19  15:27:54  hollings
- * AST based mini-tramp code generator.
- *
- * Revision 1.9  1993/10/19  15:27:54  hollings
- * AST based mini-tramp code generator.
- *
- * Revision 1.8  1993/08/20  21:59:32  hollings
- * added generateNoOp.
- *
- * Revision 1.7  1993/08/17  22:29:59  hollings
- * corrected definition of call indirect to not include jmp %x (used in case).
- *
- * Revision 1.6  1993/08/11  01:54:12  hollings
- * added predicated cost model
- *
- * Revision 1.5  1993/07/13  18:27:37  hollings
- * changed return insn pattern to check consider any jmp through %i7 as a
- * return insn.
- *
- * Revision 1.4  1993/06/24  16:18:06  hollings
- * global fixes.
- *
- * Revision 1.3  1993/06/22  19:00:01  hollings
- * global inst state.
- *
- * Revision 1.2  1993/06/08  20:14:34  hollings
- * state prior to bc net ptrace replacement.
- *
- * Revision 1.1  1993/03/19  22:45:45  hollings
- * Initial revision
- *
  *
  */
 

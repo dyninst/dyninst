@@ -1,6 +1,42 @@
 /*
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
- *
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 #ifndef SYMTAB_HDR
@@ -10,6 +46,9 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.25  1996/08/16 21:20:01  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.24  1996/07/09 04:06:53  lzheng
  * Add infomation of unwind table to assist the stack walking on HPUX.
  *
@@ -35,93 +74,6 @@
  *
  * Revision 1.19  1996/03/25 22:58:18  hollings
  * Support functions that have multiple exit points.
- *
- * Revision 1.18  1995/11/29  18:45:26  krisna
- * added inlines for compiler. added templates
- *
- * Revision 1.17  1995/08/24 15:04:38  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.16  1995/05/30  05:05:08  krisna
- * upgrade from solaris-2.3 to solaris-2.4.
- * architecture-os based include protection of header files.
- * removed architecture-os dependencies in generic sources.
- * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
- *
- * Revision 1.15  1995/05/18  10:42:42  markc
- * Added code to build procedure lists for the mdl
- *
- * Revision 1.14  1995/02/24  04:42:01  markc
- * Check if an address could be for an instruction before checking to see if it
- * is delayed, since we should not be checking instructions that are out of range.
- *
- * Revision 1.13  1995/02/21  22:03:36  markc
- * Added slightly better error recovery, with messages!  Paradynd reports back
- * when it attempts to run an unusable executable.  It no longer aborts.
- *
- * Revision 1.12  1995/02/16  08:54:25  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.11  1995/02/16  08:35:00  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.10  1994/11/09  18:40:40  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.9  1994/11/02  11:17:46  markc
- * Added class support for image, module, function.
- *
- * Revision 1.7  1994/09/30  19:47:17  rbi
- * Basic instrumentation for CMFortran
- *
- * Revision 1.6  1994/09/22  02:26:56  markc
- * Made structs classes
- *
- * Revision 1.5  1994/08/02  18:25:08  hollings
- * fixed modules to use list template for lists of functions.
- *
- * Revision 1.4  1994/07/22  19:21:11  hollings
- * removed mistaken divid by 1Meg for predicted cost.
- *
- * Revision 1.3  1994/07/20  23:23:43  hollings
- * added insn generated metric.
- *
- * Revision 1.2  1994/06/29  02:52:52  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.1  1994/01/27  20:31:46  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.4  1993/12/13  19:58:12  hollings
- * added sibling filed for functions that occur multiple times in the same
- * binary image (statics, and c++ template classes for example).
- *
- * Revision 1.3  1993/07/13  18:33:11  hollings
- * new include file syntax.
- *
- * Revision 1.2  1993/06/08  20:14:34  hollings
- * state prior to bc net ptrace replacement.
- *
- * Revision 1.1  1993/03/19  22:51:05  hollings
- * Initial revision
- *
  *
  */
 

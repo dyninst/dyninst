@@ -1,5 +1,42 @@
 /*
- *
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 /*
@@ -30,43 +67,6 @@
  *
  * Revision 1.11  1996/03/20  20:40:31  hollings
  * Fixed bug in register save/restore for function calls and conditionals
- *
- * Revision 1.10  1996/02/12  16:43:17  naim
- * Minor change to cost model - naim
- *
- * Revision 1.9  1996/01/30  23:44:21  hollings
- * Added the cost model to the POWER version of Paradyn
- *
- * Revision 1.7  1995/12/19  01:18:43  hollings
- * Fixed a couple of ADDISop that should be ADDIop's.
- *
- * Revision 1.6  1995/12/19  01:04:48  hollings
- * Moved the implementation of registerSpace::readOnlyRegister to processor
- *   specific files (since it is).
- * Fixed a bug in Power relOps cases.
- *
- * Revision 1.5  1995/12/11  15:06:43  naim
- * Implementing >, >=, < and <= operators - naim
- *
- * Revision 1.4  1995/12/10  23:21:09  hollings
- * Fixed relops and if to generate the correct branch instructions.
- *
- * Revision 1.3  1995/11/29  18:43:41  krisna
- * deleted orphan code
- *
- * Revision 1.2  1995/09/26 20:34:40  naim
- * Minor fix: change all msg char[100] by string msg everywhere, since this can
- * cause serious troubles. Adding some error messages too.
- *
- * Revision 1.1  1995/08/24  15:03:57  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
  *
  */
 

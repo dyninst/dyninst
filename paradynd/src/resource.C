@@ -1,19 +1,51 @@
 /*
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
- *
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
-
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
-    All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.19 1996/06/01 00:04:10 tamches Exp $";
-#endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.20  1996/08/16 21:19:46  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.19  1996/06/01 00:04:10  tamches
  * const and refs added in appropriate places to enhance speed and compile
  * time error checking
@@ -31,70 +63,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * Revision 1.15  1995/05/18  10:41:49  markc
  * Cache global ids supplied by paradyn
  * have a canonical form for the resource list
- *
- * Revision 1.14  1995/02/16  08:54:13  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.13  1995/02/16  08:34:43  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.12  1994/11/06  09:53:14  jcargill
- * Fixed early paradynd startup problem; resources sent by paradyn were
- * being added incorrectly at the root level.
- *
- * Revision 1.11  1994/11/02  11:16:57  markc
- * REplaced container classes.
- *
- * Revision 1.10  1994/09/22  02:24:46  markc
- * cast stringHandles
- *
- * Revision 1.9  1994/08/08  20:13:46  hollings
- * Added suppress instrumentation command.
- *
- * Revision 1.8  1994/07/28  22:40:45  krisna
- * changed definitions/declarations of xalloc functions to conform to alloc.
- *
- * Revision 1.7  1994/06/27  21:28:20  rbi
- * Abstraction-specific resources and mapping info
- *
- * Revision 1.6  1994/06/27  18:57:08  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.5  1994/06/02  23:28:00  markc
- * Replaced references to igen generated class to a new class derived from
- * this class to implement error handling for igen code.
- *
- * Revision 1.4  1994/05/16  22:31:54  hollings
- * added way to request unique resource name.
- *
- * Revision 1.3  1994/02/24  04:32:36  markc
- * Changed header files to reflect igen changes.  main.C does not look at the number of command line arguments now.
- *
- * Revision 1.2  1994/02/01  18:46:55  hollings
- * Changes for adding perfConsult thread.
- *
- * Revision 1.1  1994/01/27  20:31:41  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.3  1993/07/13  18:30:02  hollings
- * new include file syntax.
- * expanded tempName to 255 chars for c++ support.
- *
- * Revision 1.2  1993/06/08  20:14:34  hollings
- * state prior to bc net ptrace replacement.
- *
- * Revision 1.1  1993/03/19  22:45:45  hollings
- * Initial revision
- *
  *
  */
 

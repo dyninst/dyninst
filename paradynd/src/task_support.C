@@ -1,3 +1,43 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
 
 /*
  * task_support.C : code that enables paradyndPVM to function as tasker process
@@ -17,9 +57,12 @@
 
 
 /* $Log: task_support.C,v $
-/* Revision 1.3  1996/03/11 19:04:14  mjrg
-/* commented out an error message that is not needed.
+/* Revision 1.4  1996/08/16 21:20:03  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.3  1996/03/11 19:04:14  mjrg
+ * commented out an error message that is not needed.
+ *
  * Revision 1.2  1996/02/09 22:13:55  mjrg
  * metric inheritance now works in all cases
  * paradynd now always reports to paradyn when a process is ready to run
@@ -38,51 +81,7 @@
  * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
  * Fixed bug in my previous commit
  *
- * Revision 1.16  1995/10/26 21:08:22  tamches
- * removed some warnings
- *
- * Revision 1.15  1995/09/20 22:43:43  mjrg
- * added directory command.
- *
- * Revision 1.14  1995/05/18  11:06:06  markc
- * added mdl source
- *
- * cleaned up pvm exports
- *
- * Revision 1.13  1995/02/26  22:43:19  markc
- * Updated to compile under new build system.
- * Updated interfaces to use strings.
- *
- * Revision 1.12  1994/11/01  16:25:52  markc
- * Removed compiler warnings.
- * Compiles on solaris
- *
- * Revision 1.11  1994/09/22  02:59:15  markc
- * Added stronger compiler warnings
- * Removed compiler warnings
- *
- * Revision 1.10  1994/08/22  16:15:04  markc
- * Catch "pvmgs" starts and don't instrument these.  "pvmgs" is the group server
- * that should be treated the same as a pvm daemon.
- *
- * Revision 1.9  1994/06/30  17:22:19  markc
- * Changed rsh to use "rsh" rather than "/usr/ucb/rsh".  The users path must
- * have the kerberos path in front of /usr/ucb if they want kerberos to be
- * used.  Added suport to prepend $HOME to the path name of the file to
- * be started if a relative path name is given.
- *
- * Revision 1.8  1994/06/22  03:46:58  markc
- * Removed compiler warnings.
- *
- * Revision 1.7  1994/06/02  23:31:00  markc
- * Modifications to support new interfaces for libutil calls.
- *
- * Revision 1.6  1994/05/11  15:53:07  markc
- * Added include files.
- *
- * Revision 1.5  1994/05/03  05:27:52  markc
- * Added log.
- * */
+ */
 
 extern "C" {
 #include <malloc.h>

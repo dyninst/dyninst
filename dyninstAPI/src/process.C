@@ -1,19 +1,51 @@
 /*
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
- *
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
-
-#ifndef lint
-char process_Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
-    All rights reserved.";
-
-char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.26 1995/05/18 10:41:09 markc Exp";
-#endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.59  1996/08/16 21:19:39  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.58  1996/07/09 04:11:58  lzheng
  * Implentented the stack walking on HPUX machine
  *
@@ -43,89 +75,6 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
  * removed warnings
- *
- * Revision 1.50  1996/05/08 19:46:44  naim
- * inferiorFreeDefered does not execute on the CM-5 - naim
- *
- * Revision 1.49  1996/05/08  19:36:19  naim
- * Yet another fix to my previous fix! - naim
- *
- * Revision 1.48  1996/05/08  19:30:51  naim
- * Minor fix - naim
- *
- * Revision 1.47  1996/05/08  18:25:58  naim
- * Eliminating warning messages - naim
- *
- * Revision 1.46  1996/05/08  18:24:32  naim
- * Eliminating some minor warning messages - naim
- *
- * Revision 1.45  1996/05/06  13:48:47  naim
- * Fixing problem with deletion of instrumentation and adding procedure to
- * compact memory when we run out of space to insert more instrumentation - naim
- *
- * Revision 1.44  1996/05/01  19:04:31  naim
- * Adding debugging information during the deletion of instrumentation - naim
- *
- * Revision 1.43  1996/04/24  15:00:34  naim
- * Fixing misspelling error - naim
- *
- * Revision 1.42  1996/04/22  16:10:25  naim
- * Fixing bug: making sure that application was running before calling
- * continueProc in procedure walkStack - naim
- *
- * Revision 1.41  1996/04/18  22:06:07  naim
- * Adding parameters that control and delay (when necessary) the deletion
- * of instrumentation. Also, some minor misspelling fixes - naim
- *
- * Revision 1.40  1996/04/08  21:25:18  lzheng
- * inferiorFreeDefered is not called for HP, since it's not yet
- * implemented for HP.
- *
- * Revision 1.39  1996/04/06 21:25:28  hollings
- * Fixed inst free to work on AIX (really any platform with split I/D heaps).
- * Removed the Line class.
- * Removed a debugging printf for multiple function returns.
- *
- * Revision 1.38  1996/04/03  14:27:52  naim
- * Implementation of deallocation of instrumentation for solaris and sunos - naim
- *
- * Revision 1.37  1996/03/14  14:23:42  naim
- * Minor change - naim
- *
- * Revision 1.36  1996/03/12  20:48:36  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.35  1996/03/05 18:53:22  mjrg
- * Replaced socketpair with pipe.
- * Removed compiler warning.
- *
- * Revision 1.34  1996/03/01 22:37:19  mjrg
- * Added a type to resources.
- * Added function handleProcessExit to handle exiting processes.
- *
- * Revision 1.33  1996/02/13 06:17:34  newhall
- * changes to how cost metrics are computed. added a new costMetric class.
- *
- * Revision 1.32  1995/12/15  22:26:57  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Changed syntax of MDL resource lists
- *
- * Revision 1.31  1995/11/28 15:56:56  naim
- * Minor fix. Changing char[number] by string - naim
- *
- * Revision 1.30  1995/10/19  22:36:44  mjrg
- * Added callback function for paradynd's to report change in status of application.
- * Added Exited status for applications.
- * Removed breakpoints from CM5 applications.
- * Added search for executables in a given directory.
- *
- * Revision 1.29  1995/09/26  20:17:51  naim
- * Adding error messages using showErrorCallback function for paradynd
  *
  */
 

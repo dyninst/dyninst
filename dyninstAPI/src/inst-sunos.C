@@ -1,8 +1,51 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
 
 /*
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
+ * Revision 1.40  1996/08/16 21:19:03  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.39  1996/08/12 16:27:12  mjrg
  * Code cleanup: removed cm5 kludges and some unused code
  *
@@ -37,133 +80,7 @@
  * Removed breakpoints from CM5 applications.
  * Added search for executables in a given directory.
  *
- * Revision 1.30  1995/09/26  20:17:46  naim
- * Adding error messages using showErrorCallback function for paradynd
- *
- * Revision 1.29  1995/08/24  15:04:03  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.28  1995/05/30  05:04:58  krisna
- * upgrade from solaris-2.3 to solaris-2.4.
- * architecture-os based include protection of header files.
- * removed architecture-os dependencies in generic sources.
- * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
- *
- * Revision 1.27  1995/05/18  10:35:25  markc
- * Removed tag dictionary
- *
- * Revision 1.26  1995/03/10  19:33:49  hollings
- * Fixed several aspects realted to the cost model:
- *     track the cost of the base tramp not just mini-tramps
- *     correctly handle inst cost greater than an imm format on sparc
- *     print starts at end of pvm apps.
- *     added option to read a file with more accurate data for predicted cost.
- *
- * Revision 1.25  1995/02/16  08:53:29  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.24  1995/02/16  08:33:28  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.23  1995/01/26  18:12:00  jcargill
- * Updated igen-generated includes to new naming convention
- *
- * Revision 1.22  1994/11/11  10:44:03  markc
- * Remove non-emergency prints
- * Changed others to use statusLine
- *
- * Revision 1.21  1994/11/11  10:11:40  markc
- * Used correct arg order for RPC_make_arg_list
- *
- * Revision 1.20  1994/11/11  07:04:55  markc
- * Added code to bundle extra command line argument.
- *
- * Revision 1.19  1994/11/10  18:58:02  jcargill
- * The "Don't Blame Me Either" commit
- *
- * Revision 1.18  1994/11/09  18:40:10  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.17  1994/11/02  11:06:19  markc
- * Removed redundant code into inst.C
- * Provide "tag" dictionary for known functions.
- *
- * Revision 1.16  1994/10/13  07:24:45  krisna
- * solaris porting and updates
- *
- * Revision 1.15  1994/09/30  19:47:05  rbi
- * Basic instrumentation for CMFortran
- *
- * Revision 1.14  1994/09/22  01:58:53  markc
- * Enter handles for primitiveCosts into stringPool
- * changed libraryList to List<libraryFunc*>
- *
- * Revision 1.13  1994/09/20  18:18:25  hollings
- * added code to use actual clock speed for cost model numbers.
- *
- * Revision 1.12  1994/08/17  18:11:59  markc
- * Changed the execv to execvp.
- * Changed arglist in forkProcess.
- *
- * Revision 1.11  1994/07/22  19:16:36  hollings
- * moved computePauseTimeMetric here, and added lib func calls for cmmd routines.
- *
- * Revision 1.10  1994/07/15  20:22:03  hollings
- * fixed 64 bit record to be 32 bits.
- *
- * Revision 1.9  1994/07/14  23:30:26  hollings
- * Hybrid cost model added.
- *
- * Revision 1.8  1994/07/12  19:46:57  jcargill
- * Removed old code, added ability for fork paradyndCM5 when nodes start.
- *
- * Revision 1.7  1994/07/05  03:26:04  hollings
- * observed cost model
- *
- * Revision 1.6  1994/06/29  02:52:29  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.5  1994/06/27  18:56:49  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.4  1994/03/26  20:50:47  jcargill
- * Changed the pause/continue code.  Now it really stops, instead of
- * spin looping.
- *
- * Revision 1.3  1994/03/22  21:03:14  hollings
- * Made it possible to add new processes (& paradynd's) via addExecutable.
- *
- * Revision 1.2  1994/03/20  01:53:07  markc
- * Added a buffer to each process structure to allow for multiple writers on the
- * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
- * int.
- *
- * Revision 1.1  1994/02/07  17:38:48  hollings
- * Added inst-sunos to split cm-5 code from standard sunos code.
- *
- *
- *
  */
-char inst_sunos_ident[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-sunos.C,v 1.28 1995/05/30 05:04:58 krisna Exp";
 
 #include "os.h"
 #include "metric.h"

@@ -1,6 +1,42 @@
 /*
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
- *
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 /*
@@ -10,6 +46,9 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.40  1996/08/16 21:19:41  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.39  1996/08/12 16:32:43  mjrg
  * Code cleanup: removed cm5 kludges and unused code
  *
@@ -36,150 +75,6 @@
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
  * removed warnings
- *
- * Revision 1.32  1996/04/18 22:06:10  naim
- * Adding parameters that control and delay (when necessary) the deletion
- * of instrumentation. Also, some minor misspelling fixes - naim
- *
- * Revision 1.31  1996/04/06  21:25:31  hollings
- * Fixed inst free to work on AIX (really any platform with split I/D heaps).
- * Removed the Line class.
- * Removed a debugging printf for multiple function returns.
- *
- * Revision 1.30  1996/04/03  14:27:54  naim
- * Implementation of deallocation of instrumentation for solaris and sunos - naim
- *
- * Revision 1.29  1996/03/12  20:48:37  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.28  1996/03/01 22:37:20  mjrg
- * Added a type to resources.
- * Added function handleProcessExit to handle exiting processes.
- *
- * Revision 1.27  1996/02/13 06:17:36  newhall
- * changes to how cost metrics are computed. added a new costMetric class.
- *
- * Revision 1.26  1995/12/15  14:40:58  naim
- * Changing "hybrid_cost" by "smooth_obs_cost" - naim
- *
- * Revision 1.25  1995/11/29  18:45:24  krisna
- * added inlines for compiler. added templates
- *
- * Revision 1.24  1995/10/26 21:07:09  tamches
- * corrected constructor for heapItem(), which had been mysteriously
- * named heap() by mistake
- *
- * Revision 1.23  1995/10/19 22:36:46  mjrg
- * Added callback function for paradynd's to report change in status of application.
- * Added Exited status for applications.
- * Removed breakpoints from CM5 applications.
- * Added search for executables in a given directory.
- *
- * Revision 1.22  1995/09/18  22:41:38  mjrg
- * added directory command.
- *
- * Revision 1.21  1995/09/05  23:11:36  mjrg
- * Initialize splitHeaps.
- *
- * Revision 1.20  1995/08/29  21:47:24  mjrg
- * added third argument to declaration of initInferiorHeap.
- *
- * Revision 1.19  1995/08/24  15:04:31  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.18  1995/08/05  17:16:47  krisna
- * (const T *) vs (T * const)
- *
- * Revision 1.17  1995/05/18  10:41:11  markc
- * Changed process dict to process map
- *
- * Revision 1.16  1995/02/16  08:54:04  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.15  1995/02/16  08:34:37  markc
- * Changed igen interfaces to use strings/vectors rather than charigen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.14  1994/11/10  18:58:17  jcargill
- * The "Don't Blame Me Either" commit
- *
- * Revision 1.13  1994/11/09  18:40:35  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.12  1994/11/02  11:15:38  markc
- * Added prototypes.
- *
- * Revision 1.11  1994/09/22  02:23:44  markc
- * Changed structs to classes
- *
- * Revision 1.10  1994/08/17  18:18:07  markc
- * Added reachedFirstBreak variable.
- *
- * Revision 1.9  1994/07/26  20:02:08  hollings
- * fixed heap allocation to use hash tables.
- *
- * Revision 1.8  1994/07/22  19:20:40  hollings
- * added pauseTime and wallTime.
- *
- * Revision 1.7  1994/07/20  23:23:40  hollings
- * added insn generated metric.
- *
- * Revision 1.6  1994/07/14  23:30:32  hollings
- * Hybrid cost model added.
- *
- * Revision 1.5  1994/07/12  19:43:18  jcargill
- * Changed order of processState defn, so that initial (==0) state is neonatal.
- * Otherwise there is a small time-window at startup when it looks like it's
- * running, but hasn't been initialized.
- *
- * Revision 1.4  1994/05/18  00:52:32  hollings
- * added ability to gather IO from application processes and forward it to
- * the paradyn proces.
- *
- * Revision 1.3  1994/03/31  01:58:33  markc
- * Extended arguments to createProcess.
- *
- * Revision 1.2  1994/03/20  01:53:11  markc
- * Added a buffer to each process structure to allow for multiple writers on the
- * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
- * int.
- *
- * Revision 1.1  1994/01/27  20:31:39  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.6  1993/08/11  01:46:24  hollings
- * added defs for baseMap.
- *
- * Revision 1.5  1993/07/13  18:29:49  hollings
- * new include file syntax.
- *
- * Revision 1.4  1993/06/25  22:23:28  hollings
- * added parent field to process.h
- *
- * Revision 1.3  1993/06/22  19:00:01  hollings
- * global inst state.
- *
- * Revision 1.2  1993/06/08  20:14:34  hollings
- * state prior to bc net ptrace replacement.
- *
- * Revision 1.1  1993/03/19  22:51:05  hollings
- * Initial revision
- *
  *
  */
 

@@ -1,19 +1,51 @@
 /*
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
- *
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
-
-#ifndef lint
-char Copyright_metric[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
-    All rights reserved.";
-
-char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52 1995/05/18 10:38:42 markc Exp";
-#endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.103  1996/08/16 21:19:21  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.102  1996/08/12 16:27:07  mjrg
  * Code cleanup: removed cm5 kludges and some unused code
  *
@@ -35,45 +67,6 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * Revision 1.96  1996/05/10 22:36:35  naim
  * Bug fix and some improvements passing a reference instead of copying a
  * structure - naim
- *
- * Revision 1.95  1996/05/09  15:36:57  naim
- * Making change in disable routine to avoid resize problem - naim
- *
- * Revision 1.94  1996/05/08  23:54:55  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.93  1996/05/08 17:05:30  tamches
- * the bucket_width internal metric is now reported using currSamplingRate
- * instead of the ostensible value in the internalMetric enabled-instance
- * structure.
- *
- * Revision 1.92  1996/05/08 15:26:22  naim
- * Changing buffer size to 1K - naim
- *
- * Revision 1.91  1996/05/01  14:08:41  naim
- * Making sure that gettimeofday does not go backwards - naim
- *
- * Revision 1.90  1996/04/29  03:41:29  tamches
- * overhaul of how internal metrics are used, to correspond to the
- * greatly updated internalMetrics class
- *
- * Revision 1.89  1996/04/25 22:45:13  hollings
- * Fixed a bug with $globalId on metric inherit.
- *
- * Revision 1.88  1996/04/18  22:03:49  naim
- * Changing maximum buffer size to 2K to write messages from paradynd to paradyn
- * - naim
- *
- * Revision 1.87  1996/04/03  16:52:01  naim
- * Minor change to some test messages - naim
- *
- * Revision 1.86  1996/04/03  14:27:44  naim
- * Implementation of deallocation of instrumentation for solaris and sunos - naim
- *
- * Revision 1.85  1996/03/25  20:23:01  tamches
- * the reduce-mem-leaks-in-paradynd commit
  *
  */
 

@@ -1,7 +1,51 @@
-/* $Log: main.C,v $
-/* Revision 1.44  1996/08/05 07:33:03  tamches
-/* update for tcl 7.5
 /*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+/* $Log: main.C,v $
+/* Revision 1.45  1996/08/16 21:13:02  tamches
+/* updated copyright for release 1.1
+/*
+ * Revision 1.44  1996/08/05 07:33:03  tamches
+ * update for tcl 7.5
+ *
  * Revision 1.43  1996/05/30 21:56:50  tamches
  * made UIStack bigger for aix 4.1 too (had been just 3.2)
  *
@@ -26,147 +70,7 @@
  * the application stops only after it starts the CM5 daemon)
  * Added -default_host option to paradyn
  *
- * Revision 1.37  1996/01/09 01:08:27  tamches
- * added develModeCallback
- *
- * Revision 1.36  1995/12/20 20:18:35  newhall
- * removed matherr.h
- *
- * Revision 1.35  1995/12/03  21:33:11  newhall
- * changes to support new sampleDataCallbackFunc
- *
- * Revision 1.34  1995/11/21  15:24:39  naim
- * Exiting if there is an unrecoverable parse error - naim
- *
- * Revision 1.33  1995/11/13  19:59:02  naim
- * Adding error flag that is turned on when there is an error reading the
- * paradyn configuration file. The called to showError had to be moved some-
- * where else because uiMgr has not been initialized yet at this point - naim
- *
- * Revision 1.32  1995/11/13  14:54:49  naim
- * Adding error message #85 - naim
- *
- * Revision 1.31  1995/11/08  21:17:31  naim
- * Adding matherr exception handler function to avoid error message when
- * computing the "not a number" (NaN) value - naim
- *
- * Revision 1.30  1995/11/06  02:48:59  tamches
- * used tkTools.h
- * removed code to pass args to UIthread (no longer used)
- * changed hysteresisRange to a developer mode TC
- *
- * Revision 1.29  1995/10/30 23:08:03  naim
- * Taking the comment out of Tcl_DeleteInterp call - naim
- *
- * Revision 1.28  1995/10/19  22:43:04  mjrg
- * Read both -s and -f files.
- *
- * Revision 1.27  1995/08/24  15:02:55  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.26  1995/08/23  21:03:21  mjrg
- * moved call to readStartUpFile() to after commands in configuration
- * file are executed.
- *
- * Revision 1.25  1995/08/20  03:42:02  newhall
- * changed arguments to DM_sequential_init
- *
- * Revision 1.24  1995/08/18  22:00:16  mjrg
- * Added calls to metDoProcess, metDoDaemon, metDoTunable.
- *
- * Revision 1.23  1995/08/16  15:17:40  krisna
- * double-bug fix.
- *   * do not pass addresses of stack variables into thread functions
- *   * do not use the first item of a struct as a scalar
- *
- * Revision 1.22  1995/08/14 22:49:49  tamches
- * Removed the TC thread.
- * The main tunable constant dictionaries are global variables
- * (in TCthread/TCmain.C); their constructors automatically
- * initialize the TC registry before main() even starts.  Hence,
- * no problems declaring any tunable constants after main starts.
- * But, don't declare any tunable constants as global variables.
- *
- * Revision 1.21  1995/08/13  23:22:26  tamches
- * Moved tcl/tk initialization code here from UImain.
- * tcl/tk initialization is now the very first thing done
- * in main()
- *
- * Revision 1.20  1995/08/12  22:27:51  newhall
- * added calls to DM and VM sequential initialization routines
- *
- * Revision 1.19  1995/08/11  21:51:16  newhall
- * Parsing of PDL files is done before thread creation
- * Removed call to dataManager kludge method function
- *
- * Revision 1.18  1995/06/02  20:55:58  newhall
- * made code compatable with new DM interface
- *
- * Revision 1.17  1995/05/18  11:00:31  markc
- * added mdl hooks
- *
- * Revision 1.16  1995/02/27  19:13:49  tamches
- * Many changes to reflect changes in tunable constants.
- * First change: TCthread is launched
- * other changes: Many tunable constants are declared here (within
- * main()) since they may no longer be declared globally in any
- * module.
- *
- * Revision 1.15  1995/02/16  08:25:09  markc
- * Removed system includes
- * Added includes of posix interfaces
- *
- * Revision 1.14  1994/11/02  04:39:01  karavan
- * added -s commandline option for a tcl script
- *
- * Revision 1.13  1994/11/01  22:27:22  karavan
- * Changed debugging printfs to PARADYN_DEBUG calls.
- *
- * Revision 1.12  1994/09/22  01:22:48  markc
- * Gave correct signature for signal
- *
- * Revision 1.11  1994/08/22  15:54:49  markc
- * Added command line argument to specify application config file.
- *
- * Revision 1.10  1994/07/28  22:31:42  krisna
- * proper prototypes and starting code for thread main functions
- *
- * Revision 1.9  1994/07/19  23:52:58  markc
- * Moved "include "metricExt.h"" to main.C from paradyn.h to remove false
- * dependencies.
- *
- * Revision 1.8  1994/07/07  03:26:24  markc
- * Added calls to parser routines.
- *
- * Revision 1.7  1994/05/18  00:51:03  hollings
- * We don't want SIGPIPEs to kill us.
- *
- * Revision 1.6  1994/05/10  03:57:54  hollings
- * Changed data upcall to return array of buckets.
- *
- * Revision 1.5  1994/04/28  22:07:39  newhall
- * added PARADYN_DEBUG macro: prints debug message if PARADYNDEBUG
- * environment variable has value >= 1
- *
- * Revision 1.4  1994/04/21  23:25:19  hollings
- * changed to no initial paradynd being defined.
- *
- * Revision 1.3  1994/04/10  19:08:48  newhall
- * added visualization manager thread create
- *
- * Revision 1.2  1994/04/05  04:36:48  karavan
- * Changed order of thread initialization to avoid deadlock.  Added global
- * user variables for data manager, uim, and performance consultant.
- *
- * Revision 1.1  1994/03/29  20:20:54  karavan
- * initial version for testing
- * */
+ */
 
 /*
  * main.C - main routine for paradyn.  

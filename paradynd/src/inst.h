@@ -1,6 +1,42 @@
 /*
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
- *
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 #ifndef INST_HDR
@@ -11,6 +47,9 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.24  1996/08/16 21:19:07  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.23  1996/08/12 16:27:09  mjrg
  * Code cleanup: removed cm5 kludges and some unused code
  *
@@ -38,94 +77,6 @@
  *
  * Revision 1.16  1996/03/25  20:21:08  tamches
  * the reduce-mem-leaks-in-paradynd commit
- *
- * Revision 1.15  1996/03/20 17:02:49  mjrg
- * Added multiple arguments to calls.
- * Instrument pvm_send instead of pvm_recv to get tags.
- *
- * Revision 1.14  1995/11/29 18:45:21  krisna
- * added inlines for compiler. added templates
- *
- * Revision 1.13  1995/08/24 15:04:07  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.12  1995/05/18  10:37:04  markc
- * removed tag dictionary
- *
- * Revision 1.11  1995/03/10  19:30:21  hollings
- * Added getPointCost and getInsnCost.
- *
- * Revision 1.10  1995/02/16  08:53:35  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.9  1995/02/16  08:33:32  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.8  1994/11/02  11:08:52  markc
- * Added prototypes.
- *
- * Revision 1.7  1994/09/22  02:29:18  markc
- * Removed compiler warnings
- *
- * Revision 1.6  1994/08/08  20:13:39  hollings
- * Added suppress instrumentation command.
- *
- * Revision 1.5  1994/07/28  22:40:41  krisna
- * changed definitions/declarations of xalloc functions to conform to alloc.
- *
- * Revision 1.4  1994/07/20  23:23:38  hollings
- * added insn generated metric.
- *
- * Revision 1.3  1994/07/05  03:26:06  hollings
- * observed cost model
- *
- * Revision 1.2  1994/06/29  02:52:31  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.1  1994/01/27  20:31:25  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.8  1993/10/19  15:29:19  hollings
- * AST based mini-tramp code generator.
- *
- * Revision 1.7  1993/10/01  21:29:41  hollings
- * Added resource discovery and filters.
- *
- * Revision 1.6  1993/08/20  21:59:49  hollings
- * changed typedef to have seperate structs to get around gdb bug.
- *
- * Revision 1.5  1993/08/11  01:32:24  hollings
- * added prototypes for predicated cost model.
- *
- * Revision 1.4  1993/06/22  19:00:01  hollings
- * global inst state.
- *
- * Revision 1.3  1993/06/08  20:14:34  hollings
- * state prior to bc net ptrace replacement.
- *
- * Revision 1.2  1993/04/27  14:39:21  hollings
- * signal forwarding and args tramp.
- *
- * Revision 1.1  1993/03/19  22:51:05  hollings
- * Initial revision
- *
  *
  */
 

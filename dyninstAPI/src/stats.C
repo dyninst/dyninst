@@ -1,7 +1,51 @@
 /*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+/*
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
+ * Revision 1.16  1996/08/16 21:19:52  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.15  1995/08/24 15:04:32  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -32,40 +76,6 @@
  *
  * Revision 1.10  1994/09/20  18:18:31  hollings
  * added code to use actual clock speed for cost model numbers.
- *
- * Revision 1.9  1994/08/02  18:24:34  hollings
- * added clock speed argument to stats.
- *
- * Revision 1.8  1994/07/22  19:21:08  hollings
- * removed mistaken divid by 1Meg for predicted cost.
- *
- * Revision 1.7  1994/07/20  23:29:46  hollings
- * made time in code gen stat stadard.
- *
- * Revision 1.6  1994/07/20  23:23:40  hollings
- * added insn generated metric.
- *
- * Revision 1.5  1994/07/16  03:38:50  hollings
- * fixed stats to not devidi by 1meg, fixed negative time problem.
- *
- * Revision 1.4  1994/07/15  04:19:13  hollings
- * moved dyninst stats to stats.C
- *
- * Revision 1.3  1994/07/14  23:30:32  hollings
- * Hybrid cost model added.
- *
- * Revision 1.2  1994/07/05  03:26:18  hollings
- * observed cost model
- *
- * Revision 1.1  1994/01/27  20:31:42  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.2  1993/12/14  23:00:54  jcargill
- * Nothing important -- just typos
- *
- * Revision 1.1  1993/12/13  19:55:59  hollings
- * Initial revision
- *
  *
  */
 

@@ -1,12 +1,51 @@
 /*
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
- *
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 /*
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.12  1996/08/16 21:20:15  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.11  1996/06/01 00:01:18  tamches
  * addrHash --> addrHash16
  *
@@ -29,31 +68,8 @@
  * Removed almost all compiler warnings.
  * Use "posix" like library to remove compiler warnings
  *
- * Revision 1.6  1994/11/09  18:40:44  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.5  1994/11/02  11:18:52  markc
- * Remove old malloc wrappers.
- *
- * Revision 1.4  1994/09/22  02:27:52  markc
- * Change signature to intComp
- *
- * Revision 1.3  1994/07/28  22:40:50  krisna
- * changed definitions/declarations of xalloc functions to conform to alloc.
- *
- * Revision 1.2  1994/06/27  18:57:20  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.1  1994/01/27  20:31:49  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.1  1993/03/19  22:51:05  hollings
- * Initial revision
- *
- *
  */
+
 #ifndef UTIL_H
 #define UTIL_H
 

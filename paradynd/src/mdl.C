@@ -1,8 +1,51 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
 
 
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.32  1996/08/16 21:19:17  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.31  1996/07/25 23:24:11  mjrg
  * Added sharing of metric components
  *
@@ -27,92 +70,6 @@
  * fixed a problem w/ prev commit by adding the line
  *       mn->addInst(p, code, cwhen, corder);
  * back in.
- *
- * Revision 1.24  1996/03/25 22:58:10  hollings
- * Support functions that have multiple exit points.
- *
- * Revision 1.23  1996/03/25  20:22:21  tamches
- * the reduce-mem-leaks-in-paradynd commit
- *
- * Revision 1.22  1996/03/20 17:02:51  mjrg
- * Added multiple arguments to calls.
- * Instrument pvm_send instead of pvm_recv to get tags.
- *
- * Revision 1.21  1996/03/12 20:48:22  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.20  1996/03/01 22:35:56  mjrg
- * Added a type to resources.
- * Changes to the MDL to handle the resource hierarchy better.
- *
- * Revision 1.19  1996/02/02 14:31:30  naim
- * Eliminating old definition for observed cost - naim
- *
- * Revision 1.18  1996/02/01  17:42:26  naim
- * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
- * and adding a new definition for observed_cost - naim
- *
- * Revision 1.17  1996/01/29  22:09:26  mjrg
- * Added metric propagation when new processes start
- * Adjust time to account for clock differences between machines
- * Daemons don't enable internal metrics when they are not running any 
- * processes
- * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
- * the application stops only after it starts the CM5 daemon)
- *
- * Revision 1.16  1995/12/26 23:04:16  zhichen
- * Introduced START_NAME macro; usually set to "main", but paradyndCM5_blz
- * sets it to init_blk_acc.
- *
- * Revision 1.15  1995/12/18  23:27:02  newhall
- * changed metric's units type to have one of three values (normalized,
- * unnormalized, or sampled)
- *
- * Revision 1.14  1995/12/15 22:26:54  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Changed syntax of MDL resource lists
- *
- * Revision 1.13  1995/11/30 16:54:11  naim
- * Minor fix - naim
- *
- * Revision 1.12  1995/11/28  15:55:45  naim
- * Minor fix - naim
- *
- * Revision 1.11  1995/11/22  00:10:05  mjrg
- * Fixed "constrained" feature of MDL (fixed by Jeff, commited by mjrg)
- *
- * Revision 1.10  1995/11/21 15:14:27  naim
- * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
- * can specify all elements in any order). Additionally, the option "fold"
- * has been removed - naim
- *
- * Revision 1.9  1995/11/17  17:24:26  newhall
- * support for MDL "unitsType" option, added normalized member to metric class
- *
- * Revision 1.8  1995/11/13  14:52:55  naim
- * Adding "mode" option to the Metric Description Language to allow specificacion
- * of developer mode for metrics (default mode is "normal") - naim
- *
- * Revision 1.7  1995/09/26  20:28:47  naim
- * Minor warning fixes and some other minor error messages fixes
- *
- * Revision 1.6  1995/09/18  18:31:01  newhall
- * fixed switch stmt. scope problem
- *
- * Revision 1.5  1995/08/24  15:04:14  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
  *
  */
 

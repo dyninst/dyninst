@@ -1,8 +1,51 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
 
 /*
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
+ * Revision 1.23  1996/08/16 21:18:57  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.22  1996/04/29 03:36:22  tamches
  * computePauseTimeMetric now takes in a metric (but doesn't use it)
  *
@@ -41,59 +84,7 @@
  * Removed redundant code into inst.C
  * Provide "tag" dictionary for known functions.
  *
- * Revision 1.13  1994/09/22  01:56:17  markc
- * Changed libraryList to List<libraryFunc*>
- * make system includes extern "C"
- *
- * Revision 1.12  1994/08/17  18:10:59  markc
- * Added pvm_getrbuf and pvm_getsbuf to initLibraryFuncs for pvm since these
- * functions are used for message accounting.
- *
- * Revision 1.11  1994/08/01  00:24:13  markc
- * Added computePauseTimeMetric to allow paradyndPVM to compile.
- *
- * Revision 1.10  1994/07/12  20:11:06  jcargill
- * Removed some old/dead code
- *
- * Revision 1.9  1994/07/05  03:53:42  hollings
- * fixed return type of getPrimtiveCost().
- *
- * Revision 1.8  1994/06/29  02:52:27  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.7  1994/06/27  18:56:44  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.6  1994/05/31  18:10:12  markc
- * Added default instrumentation requests and modified the library functions
- * that get are instrumented.
- *
- * Revision 1.5  1994/04/13  03:08:59  markc
- * Turned off pause_metric reporting for paradyndPVM because the metricDefNode is
- * not setup properly.  Updated inst-pvm.C and metricDefs-pvm.C to reflect changes
- * in cm5 versions.
- *
- * Revision 1.4  1994/03/31  01:49:34  markc
- * Duplicated changes in inst-sunos.C.
- *
- * Revision 1.3  1994/03/26  20:50:45  jcargill
- * Changed the pause/continue code.  Now it really stops, instead of
- * spin looping.
- *
- * Revision 1.2  1994/03/20  01:53:06  markc
- * Added a buffer to each process structure to allow for multiple writers on the
- * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
- * int.
- *
- *
  */
-char inst_sunos_ident[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-pvm.C,v 1.20 1995/05/18 10:35:23 markc Exp";
 
 extern "C" {
 #include "pvm3.h"

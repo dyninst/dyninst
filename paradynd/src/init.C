@@ -1,6 +1,49 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
 
 /*
  * $Log: init.C,v $
+ * Revision 1.34  1996/08/16 21:18:45  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.33  1996/05/31 23:54:37  tamches
  * minor change to string usage
  *
@@ -26,96 +69,6 @@
  * Updating the way we compute number_of_cpus. On solaris we will return the
  * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
  * which should be equal to the number of cpus - naim
- *
- * Revision 1.26  1996/02/10  21:01:42  naim
- * Changing name of metric number_of_nodes by number_of_cpus - naim
- *
- * Revision 1.25  1996/02/09  23:53:39  naim
- * Adding new internal metric number_of_nodes - naim
- *
- * Revision 1.24  1996/02/02  14:31:25  naim
- * Eliminating old definition for observed cost - naim
- *
- * Revision 1.23  1996/02/01  17:42:20  naim
- * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
- * and adding a new definition for observed_cost - naim
- *
- * Revision 1.22  1996/01/29  20:16:29  newhall
- * added enum type "daemon_MetUnitsType" for internal metric definition
- * changed bucketWidth internal metric to EventCounter
- *
- * Revision 1.21  1995/12/27  20:16:41  naim
- * Minor change to internal metric definition - naim
- *
- * Revision 1.20  1995/12/19  20:18:43  newhall
- * changed param to newInternalMetric from bool to int
- *
- * Revision 1.19  1995/12/18 15:03:07  naim
- * Eliminating all "daemon" metrics - naim
- *
- * Revision 1.18  1995/12/15  14:40:51  naim
- * Changing "hybrid_cost" by "smooth_obs_cost" - naim
- *
- * Revision 1.17  1995/11/30  23:09:03  naim
- * Changed the units of bucket_width - naim
- *
- * Revision 1.16  1995/11/30  22:01:10  naim
- * Minor change to bucket_width metric - naim
- *
- * Revision 1.15  1995/11/30  16:53:50  naim
- * Adding bucket_width metric - naim
- *
- * Revision 1.14  1995/11/28  15:55:24  naim
- * Changing metrics observed_cost, predicted_cost and pause_time back to
- * normal mode - naim
- *
- * Revision 1.13  1995/11/17  17:24:21  newhall
- * support for MDL "unitsType" option, added normalized member to metric class
- *
- * Revision 1.12  1995/11/13  16:28:24  naim
- * Making observed_cost, predicted_cost, active_processes and pause_time "normal"
- * metrics and not "developer" mode metrics - naim
- *
- * Revision 1.11  1995/11/13  14:56:31  naim
- * Making all internal metrics "developer mode" metrics - naim
- *
- * Revision 1.10  1995/09/26  20:28:46  naim
- * Minor warning fixes and some other minor error messages fixes
- *
- * Revision 1.9  1995/07/24  03:52:34  tamches
- * The Procedure -- > Code commit
- *
- * Revision 1.8  1995/05/18  10:34:38  markc
- * Removed resource definitions
- *
- * Revision 1.7  1995/03/10  19:33:46  hollings
- * Fixed several aspects realted to the cost model:
- *     track the cost of the base tramp not just mini-tramps
- *     correctly handle inst cost greater than an imm format on sparc
- *     print starts at end of pvm apps.
- *     added option to read a file with more accurate data for predicted cost.
- *
- * Revision 1.6  1995/02/16  08:53:12  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.5  1995/02/16  08:33:19  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.4  1994/11/10  18:57:57  jcargill
- * The "Don't Blame Me Either" commit
- *
- * Revision 1.3  1994/11/09  18:40:01  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.1  1994/11/01  16:56:42  markc
- * Environment code that is shared by all environs (pvm, cm5, sunos)
  *
  */
 
