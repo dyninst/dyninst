@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.234 2002/11/25 23:52:48 schendel Exp $
+// $Id: metricFocusNode.C,v 1.235 2002/12/14 16:37:53 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -362,173 +362,6 @@ void metricFocusNode::handleDeletedThread(pd_process *proc, pd_thread *thr) {
    }
 }
 
-/* *************************************************************************** */
-
-// called when a process forks (by handleFork(), below). "this" is a
-// (component) mi in the parent process. Duplicate it for the child, with
-// appropriate changes (i.e. the pid of the component focus name differs),
-// and return the newly created child mi.  "map" maps all instInstance's of
-// the parent to those copied into the child.
-// 
-// Note how beautifully everything falls into place.  Consider the case of
-// alarm sampling with cpu/whole program.  Then comes the fork.  The parent
-// process has (0) a tTimer structure allocated in a specific location in the
-// inferior heap, (1) instrumentation @ main to call startTimer on that ptr,
-// (2) instrumentation in DYNINSTsampleValues() to call DYNINSTreportTimer on
-// that ptr.  The child process of fork will have ALL of these things in the
-// exact same locations, which is correct.  We want the timer to be located
-// in the same spot; we want DYNINSTreportTimer to be called on the same
-// pointer; and main() hasn't moved.
-//
-// So there's not much to do here.  We create a new component mi (with same
-// flat name as in the parent, except for a different pid), and call
-// "forkProcess" for all dataReqNodes and instReqNodes, none of which have to
-// do anything titanic.
-
-// duplicate the dataReqNodes and duplicate the instReqNodes: only for
-// non-threaded
-
-//before
-//metricFocusNode *metricFocusNode::forkProcess(process *child,
-//			const dictionary_hash<instInstance*,instInstance*> &map) const {
-metricFocusNode *metricFocusNode::forkProcess(process *,
-		   const dictionary_hash<instInstance*,instInstance*> &) const
-{
-    // The "focus_" member vrble stays the same, because it was always for the
-    // metric as a whole, and not for some component.
-    //
-    // But two things must change, because they were component-specific (and the
-    // component has changed processes):
-    // (1) the flat name
-    // (2) the component focus (not to be confused with plain focus_)
-    //
-    // For example, instead of
-    // "/Code/foo.c/myfunc, /Process/100, ...", we should have
-    // "/Code/foo.c/myfunc, /Process/101, ...", because the pid of the child
-    // differs from that of the parent.
-
-    // The resource structure of a given process is found in the "rid"
-    // field of class process.
-  /*
-    const resource *parentResource = child->getParent()->rid;
-    const string &parentPartName = parentResource->part_name();
-
-    const resource *childResource = child->rid;
-    const string &childPartName = childResource->part_name();
-
-    vector< vector<string> > newComponentFocus = this->component_focus;
-       // we'll change the process, but not the machine name.
-    bool foundProcess = false;
-
-    for (unsigned hier=0; hier < component_focus.size(); hier++) {
-       if (component_focus[hier][0] == "Machine") {
-	  foundProcess = true;
-	  assert(component_focus[hier].size() >= 3);
-	     // since a component focus is by definition specific to some process
-
-	  //assert(component_focus[hier][2] == parentPartName); -- DAN
-	  if( component_focus[hier][2] != parentPartName )
-		  return NULL;
-
-	  // change the process:
-	  newComponentFocus[hier][2] = childPartName;
-
-	  break;
-       }
-    }
-    assert(foundProcess);
-    
-    string newComponentFlatName = metricAndCanonFocus2FlatName(met_, newComponentFocus);
-
-    processMetFocusNode *mi = new processMetFocusNode(child,
-			 newComponentFocus, // this is a change
-			 aggregateOp(aggOp));
-    assert(mi);
-
-
-    //  need to reimplement, in instrDataNode
-    //incrementCounterId();
-
-    forkexec_cerr << "metricFocusNode::forkProcess -- component flat name for parent is " << flat_name_ << "; for child is " << mi->flat_name_ << endl;
-
-    // not attempt to register all names
-    assert(! isKeyDef_processMetFocusBuf(newComponentFlatName));
-    setVal_processMetFocusBuf(newComponentFlatName, mi);
-
-    // Duplicate the dataReqNodes:
-    // If it's going to duplicate the dataReqNodes, these are members only of
-    // the threadMetFocusNode.  So it would have to go through all of mi's
-    // threadMetFocusNodes and duplicate all of it's data request nodes.
-    // Then I suppose it would assign those duplicated dataRequestNodes to be
-    // used by this metricFocusNode's threadMetFocusNodes.
-
-    for (unsigned u1 = 0; u1 < dataRequests.size(); u1++) {
-       // must add to drnIdToMdnMap[] before dup() to avoid some assert fails
-       const int newCounterId = incrementCounterId();
-          // no relation to mi->getMetricID();
-       forkexec_cerr << "forked dataReqNode going into drnIdToMdnMap with id " << newCounterId << endl;
-       assert(!drnIdToMdnMap.defines(newCounterId));
-       drnIdToMdnMap[newCounterId] = static_cast<metricFocusNode*>(mi);
-       
-       dataReqNode *newNode = dataRequests[u1]->dup(child, 
-                   static_cast<metricFocusNode*>(mi), newCounterId, map);
-         // remember, dup() is a virtual fn, so the right dup() and hence the
-         // right fork-ctor is called.
-       assert(newNode);
-
-       mi->dataRequests += newNode;
-    }
-
-    // Duplicate the instReqNodes:
-    for (unsigned u2 = 0; u2 < instRequests.size(); u2++) {
-      mi->instRequests += instReqNode::forkProcess(instRequests[u2], map);
-    }
-
-    mi->instrLoaded_ = true;
-    return static_cast<metricFocusNode*>(mi);
-  */
-  return NULL;  // just while function body is commented out
-}
-
-// unforkInstRequests and unforkDataRequests only for non-threaded
-
-//bool metricFocusNode::unFork(dictionary_hash<instInstance*, instInstance*> &map,
-//				  bool unForkInstRequests,
-//				  bool unForkDataRequests) {
-bool metricFocusNode::unFork(dictionary_hash<instInstance*, instInstance*> &,
-				  bool, bool) {
-   // see below handleFork() for explanation of why this routine is needed.
-   // "this" is a component mi for the parent process; we need to remove copied
-   // instrumentation from the _child_ process.
-   // Returns true iff the instrumentation was removed in the child (would be false
-   // if it's not safe to remove the instrumentation in the child because it was
-   // active.)
-
-   // "map" maps instInstances from the parent process to instInstances in the child
-   // process.
-
-   // We loop thru the instReqNodes of the parent process, unforking each.
-   // In addition, we need to unfork the dataReqNodes, because the alarm-sampled
-   // ones instrument DYNINSTsampleValues.
-
-   bool result = true;
-   /*
-   unsigned lcv;
-   // Needs to be implemented
-   if (unForkInstRequests)
-      for (lcv=0; lcv < instRequests.size(); lcv++)
-         if (!instRequests[lcv].unFork(map))
-	    result = false; // failure
-
-   if (unForkDataRequests)
-      for (lcv=0; lcv < dataRequests.size(); lcv++)
-         if (!dataRequests[lcv]->unFork(map))
-	    result = false; // failure
-
-   */
-   return result;
-}
-
 // called by forkProcess of context.C, just after the fork-constructor was
 // called for the child process.
 void metricFocusNode::handleFork(const pd_process *parent, pd_process *child)
@@ -543,90 +376,21 @@ void metricFocusNode::handleFork(const pd_process *parent, pd_process *child)
       curNode->propagateToForkedProcess(parent, child, &procNodesToUnfork);
    }
    for(unsigned k=0; k<procNodesToUnfork.size(); k++) {
+      // don't want to use machineMetFocusNode::deleteProcNode because
+      // this procNode hasn't been registered yet with a machineMetFocusNode
       procNodesToUnfork[k]->unFork();
    }
 }
 
 
-void metricFocusNode::handleExec(process *) {
-   // a static member fn.  handling exec is tricky.  At the time this routine
-   // is called, the "new" process has been bootstrapped and is ready for
-   // stuff to get inserted.  No mi's have yet been propagated, and the data
-   // structures (allMIs, allMIComponents, etc.) are still in their old,
-   // pre-exec state, so they show component mi's enabled for this process,
-   // even though they're not (at least not yet).  This routines brings
-   // things up-to-date.
-   //
-   // Algorithm: loop thru all component mi's for this process.  If it is
-   // possible to propagate it to the "new" (post-exec) process, then do so.
-   // If not, fry the component mi.  An example where a component mi can no
-   // longer fit is an mi specific to, say, function foo(), which (thanks to
-   // the exec syscall) no longer exists in this process.  Note that the exec
-   // syscall changed the addr space enough so even if a given routine foo()
-   // is present in both the pre-exec and post-exec process, we must assume
-   // that it has MOVED TO A NEW LOCATION, thus making the component mi's
-   // instReqNode's instPoint out-of-date.  Ick.
+void metricFocusNode::handleExec(pd_process *pd_proc) {
+   vector<machineMetFocusNode *> allMachNodes;
+   machineMetFocusNode::getMachineNodes(&allMachNodes);
 
-   // note the two loops; we can't safely combine into one since the second
-   // loop modifies the dictionary.
-  /*
-   vector<metricFocusNode*> allcomps;
-   dictionary_hash_iter<string,metricFocusNode*> iter =
-                                             getIter_processMetFocusBuf();
-   for (; iter; iter++)
-      allcomps += iter.currval();
-   
-   for (unsigned i=0; i < allcomps.size(); i++) {
-      processMetFocusNode* procnode = dynamic_cast<processMetFocusNode*>(
-                                                                allcomps[i]);
-      if (procnode->proc() != proc)
-	 continue;
-
-      forkexec_cerr << "calling handleExec for component "
-	            << procnode->flat_name_ << endl;
-
-      processMetFocusNode *replaceWithComponentMI = procnode->handleExec();
-      
-      if (replaceWithComponentMI == NULL) {
-	 forkexec_cerr << "handleExec for component " << procnode->flat_name_
-	               << " failed, so not propagating it" << endl;
-         procnode->removeThisInstance(); // propagation failed; fry component mi
-      }
-      else {
-	 forkexec_cerr << "handleExec for component " << procnode->flat_name_
-	               << " succeeded...it has been propagated" << endl;
-	 // new component mi has already been inserted in place of old
-	 // component mi in all of its aggregate's component lists.  So, not
-	 // much left to do, except to update allMIComponents.
-
-#if defined(MT_THREAD)
-	 for (unsigned u1=0; u1<procnode->comp_flat_names.size(); u1++)
-	    if (isKeyDef_processMetFocusBuf(procnode->comp_flat_names[u1]))
-	       undefKey_processMetFocusBuf(procnode->comp_flat_names[u1]);
-
-	 for (unsigned u2=0; u2<procnode->components.size(); u2++)
-	    procnode->removeComponent(procnode->components[u2]);
-	 procnode->components.resize(0);
-#else
-	 assert(replaceWithComponentMI->flat_name_ == procnode->flat_name_);
-#endif
-	 delete procnode; // old component mi (dtor removes it from allMIComponents)
-	 // This is redundant, see mdl.C, apply_to_process
-	 // assert(!allMIComponents.defines(replaceWithComponentMI->flat_name_));
-#if defined(MT_THREAD)
-	 for (unsigned u=0; u<replaceWithComponentMI->comp_flat_names.size(); 
-	      u++) 
-	 {
-	    string &key = replaceWithComponentMI->comp_flat_names[u];
-	    setVal_processMetFocusBuf(key, replaceWithComponentMI);
-	 }
-#else
-	 setVal_processMetFocusBuf(replaceWithComponentMI->flat_name_,
-				   replaceWithComponentMI);
-#endif
-      }
+   for (unsigned j=0; j < allMachNodes.size(); j++) {
+      machineMetFocusNode *curNode = allMachNodes[j];
+      curNode->adjustForExecedProcess(pd_proc);
    }
-  */
 }
 
 // startCollecting is called by dynRPC::enableDataCollection 
