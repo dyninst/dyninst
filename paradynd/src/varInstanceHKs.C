@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.5 2002/07/11 19:45:46 bernat Exp $
+// $Id: varInstanceHKs.C,v 1.6 2002/08/12 04:22:07 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -160,8 +160,15 @@ wallTimerHK &wallTimerHK::operator=(const wallTimerHK &src) {
    return *this;
 }
 
-static rawTime64 calcTimeValueToUse(int count, rawTime64 start,rawTime64 total,
-				    rawTime64 currentTime) {
+void wallTimerHK::initializeAfterFork(rawType *curElem, rawTime64 curRawTime)
+{
+  // if it's an active timer, than reset the start field
+  curElem->start = curRawTime;
+  curElem->total = 0;
+}
+
+static rawTime64 calcTimeValueToUse(int count, rawTime64 start,
+				    rawTime64 total, rawTime64 currentTime) {
   sampleVal_cerr << "calcTimeValueToUse-  count:" << count << ", start: " 
 		 << start << ", total: " << total 
 		 << ", currentTime: " << currentTime;
@@ -257,14 +264,16 @@ bool wallTimerHK::perform(const tTimer *theTimer, process *) {
    // this is where conversion from native units to real time units is done
    timeLength timeValueToUse = 
                 getWallTimeMgr().units2timeLength(rawTimeValueToUse);
-   sampleVal_cerr << "timeValueToUse: " << timeValueToUse << "\n";
+   sampleVal_cerr << "timeValueToUse: " << timeValueToUse
+		  << ", lastTime: " << lastTimeValueUsed << "\n";
+
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
    if (timeValueToUse < lastTimeValueUsed) {
       // Timer rollback!  An assert failure.
       const char bell = 07;
       cerr << "wallTimerHK::perform(): wall timer rollback ("
-          << timeValueToUse << "," << lastTimeValueUsed << ")"
-          << bell << endl;
+	   << timeValueToUse << "," << lastTimeValueUsed << ")"
+	   << bell << endl;
       cerr << "timer was " << (count > 0 ? "active" : "inactive") << endl;
 
       assert(false);
@@ -300,6 +309,26 @@ processTimerHK &processTimerHK::operator=(const processTimerHK &src) {
    genericHK::operator=(src);
 
    return *this;
+}
+
+
+//  When the fork occurs, we copy the counter and timer instrumentation
+//  variables that are in the parent process to the child process.  However,
+//  cpu time queried in the child process begins at zero again, so for cpu
+//  timers, total fields needs to be reset to zero and start fields need to be
+//  reset to the child cpu time at the time of the fork.  Otherwise, errors
+//  about time rollbacks will occur.  Because wall time queried in the child
+//  process continues to increase (from the last queried time in the parent
+//  process), I don't believe these fields are required to be reset, but I'm
+//  doing it anyways for simplicity.
+
+void processTimerHK::initializeAfterFork(rawType *curElem, 
+					 rawTime64 curRawTime) {
+  // if it's an active timer, than reset the start field
+  // the process is stopped at this time, so we don't need to do an
+  // atomic read (ie. with the protector variables)
+  curElem->start = curRawTime;
+  curElem->total = 0;
 }
 
 bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
@@ -378,7 +407,7 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
 						    inferiorCPUtime);
    // this is where conversion from native units to real time units is done
    timeLength timeValueToUse=inferiorProc->units2timeLength(rawTimeValueToUse);
-   sampleVal_cerr << "raw-total: " << total << ", timeValueToUse: " 
+   sampleVal_cerr << "raw-total: " << total << ", timeValToUse: " 
 		  << timeValueToUse << "\n";
    
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
