@@ -39,99 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: rpcUtil.C,v $
- * Revision 1.60  1998/05/22 15:52:56  tamches
- * fixed 2 purify FMM hits in execCommand
- *
- * Revision 1.59  1998/03/01 03:24:43  ssuen
- * Stopped using obsolete -v option to paradynd
- *
- * Revision 1.58  1998/02/02 23:12:07  wylie
- * Conditional use of NT-specific WSAETIMEDOUT instead of ETIMEDOUT timeout error.
- *
- * Revision 1.57  1998/01/30 18:29:56  ssuen
- * Fixed front-end memory leak.  Paradynds retry if connection with front-end
- * fails.
- *
- * Revision 1.56  1997/10/23 16:02:08  nash
- * Removed previous changes for Linux.  A better way to include the '-F' command
- * line argument for 'rsh' is to put a script in the PATH.
- *
- * Revision 1.55  1997/10/17 00:26:59  nash
- * Added "-F" option to execlp(rsh...) from rshCommand (temporarily?) for the Linux development machines to work.
- *
- * Revision 1.54  1997/06/16 18:45:31  tamches
- * delete rpcBuffers[j];   to remove a memory leak
- *
- * Revision 1.53  1997/05/30 16:29:26  hseom
- * fixed some memory-related bug
- *
- * Revision 1.52  1997/05/23 22:59:18  mjrg
- * Windows NT port
- *
- * Revision 1.51  1997/05/20 15:18:57  lzheng
- * Changes made to handle the comminication between different types of
- * machines
- *
- * Revision 1.50  1997/05/17 20:01:30  lzheng
- * Changes made for nonblocking write
- *
- * Revision 1.49  1997/04/21 16:57:56  hseom
- * added support for trace data (in a byte array)
- *
- * Revision 1.48  1997/02/26 23:49:54  mjrg
- * First part of WindowsNT commit: changes for compiling with VisualC++;
- * moved includes to platform header files
- *
- * Revision 1.47  1997/01/21 20:09:59  mjrg
- * Added support for unix domain sockets.
- * Added getHostName function
- *
- * Revision 1.46  1997/01/16 20:52:21  tamches
- * removed RPC_undo_arg_list (to paradynd)
- *
- * Revision 1.45  1996/11/26 16:09:37  naim
- * Fixing asserts - naim
- *
- * Revision 1.44  1996/11/12 17:50:16  mjrg
- * Removed warnings, changes for compiling with Visual C++ and xlc
- *
- * Revision 1.43  1996/08/16 21:32:02  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.42  1996/05/31 23:43:10  tamches
- * removed pid from XDRrpc.  Modified handleRemoteConnect appropriately.
- * Now paradynd doesn't try to send pid to paradyn (it wasn't being used
- * and was one cause of paradyn UI freezing on UI startup).
- *
- * Revision 1.41  1995/11/22 00:06:20  mjrg
- * Updates for paradyndPVM on solaris
- * Fixed problem with wrong daemon getting connection to paradyn
- * Removed -f and -t arguments to paradyn
- * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
- * Fixed bug in my previous commit
- *
- * Revision 1.40  1995/11/12 00:44:28  newhall
- * fix to execCmd: forked process closes it's copy of parent's file descriptors
- *
- * Revision 1.39  1995/08/24  15:14:29  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.38  1995/05/18  11:12:15  markc
- * Added flavor arg to RPC_undo_g_list
- *
-*/
-
 //
 // This file defines a set of utility routines for RPC services.
-//
+// $Id: rpcUtil.C,v 1.61 1998/09/02 21:13:22 wylie Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -252,7 +162,7 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
 	seq_no = ntohs(seq_no);
 	header = (0x0fff&header);
 	
-	if (header <= is_left) {
+	if (header <= (unsigned)is_left) {
 	    P_memcpy(tail, buffer+sizeof(int), header);
 
 	    counter_2[i] = ((counter_2[i]+1)%SHRT_MAX);
@@ -760,7 +670,7 @@ bool_t xdr_string_pd(XDR *xdrs, string *str)
       if (!P_xdr_u_int(xdrs, &length))
 	return FALSE;
       else {
-	char *buffer = (char*) str->string_of(); 
+	char *buffer = const_cast<char*> (str->string_of()); 
 	bool_t res = P_xdr_string (xdrs, &buffer, str->length() + 1);
 	return res;
       }
@@ -817,11 +727,12 @@ bool_t xdr_byteArray_pd(XDR *xdrs, byteArray *bArray)
   // if XDR_FREE, str's memory is freed
   switch (xdrs->x_op) {
   case XDR_ENCODE:
-    if (length = bArray->length()) {
+    length = bArray->length();
+    if (length > 0) {
       if (!P_xdr_u_int(xdrs, &length))
         return FALSE;
       else {
-        char *buffer = (char*) bArray->getArray();
+        char *buffer = static_cast<char*> (const_cast<void*> (bArray->getArray()));
         bool_t res = P_xdr_byteArray (xdrs, &buffer, &length, (bArray->length()));
         return res;
       }
