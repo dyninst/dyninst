@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.42 1999/05/25 22:35:59 nash Exp $
+// $Id: rpcUtil.h,v 1.43 1999/12/17 16:11:14 pcroth Exp $
 
 #include "util/h/headers.h"
 #include "util/h/pdsocket.h"
@@ -147,8 +147,7 @@ inline bool_t P_xdr_Boolean(XDR *x, bool *b) {
 extern PDSOCKET RPCprocessCreate(const string hostName, const string userName,
 			    const string commandLine, const string remote_shell,
 			    const vector<string> &arg_list,
-			    int wellKnownPort = 0,
-			    const bool useRexec=false);
+			    int wellKnownPort = 0);
 
 extern bool RPC_make_arg_list (vector<string> &list, const int port, 
 			       const int flag, const int firstPVM,
