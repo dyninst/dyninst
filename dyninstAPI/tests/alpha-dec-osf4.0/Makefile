@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.17 2001/10/26 22:45:31 hollings Exp $
+# $Id: Makefile,v 1.18 2002/02/12 15:29:45 hollings Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -21,6 +21,10 @@ CFLAGS += -g
 NATIVE_CC = cc
 NATIVE_CXX = cxx
 GNU_CXX = g++
+
+MINI_PLATFORM = alpha
+TEST6_ASFLAGS = -P 
+TEST6_ASSUFFIX = s
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
