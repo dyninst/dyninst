@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.6 2001/02/19 15:36:59 wxd Exp $
+// $Id: callGraphDisplay.C,v 1.7 2001/06/20 20:38:03 schendel Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -1105,7 +1105,7 @@ void callGraphDisplay::notify_shadow(resourceHandle select_handle,bool isHighlig
 		primary_node->highlight();
 	else primary_node->unhighlight();
 
-	for (int i=0;i<shadow_nodes.size();i++)
+	for (unsigned int i=0; i<shadow_nodes.size(); i++)
 	{
 		where4tree<callGraphRootNode> *shadow_node=shadow_nodes[i];
 		if (isHighlight)
