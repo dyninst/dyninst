@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.87 2001/07/05 16:53:23 tikir Exp $
+// $Id: symtab.h,v 1.88 2001/07/12 21:35:22 shergali Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -148,13 +148,21 @@ class module;
 
 class function_base {
 public:
-    function_base(const string symbol, const string &pretty,
+    function_base(const string &symbol, const string &pretty,
 		Address adr, const unsigned size):
-		symTabName_(symbol),prettyName_(pretty),line_(0),
-		addr_(adr),size_(size) { }
+		line_(0), addr_(adr),size_(size) { 
+		symTabName_.push_back(symbol); prettyName_.push_back(pretty); }
     virtual ~function_base() { /* TODO */ }
-    const string &symTabName() const { return symTabName_;}
-    const string &prettyName() const { return prettyName_;}
+    const string &symTabName() const { 
+ 	if (symTabName_.size() > 0) return symTabName_[0];
+	else assert(0 && "symtab name"); return string(); }
+    const string &prettyName() const {
+ 	if (prettyName_.size() > 0) return prettyName_[0];
+	else assert(0 && "pretty name"); return string(); } 
+    vector<string> symTabNameVector() { return symTabName_; }
+    vector<string> prettyNameVector() { return prettyName_; }
+    void addSymTabName(string name) { symTabName_.push_back(name); }
+    void addPrettyName(string name) { prettyName_.push_back(name); }
     unsigned size() const {return size_;}
     Address addr() const {return addr_;}
 
@@ -175,8 +183,8 @@ public:
     ostream & operator<<(ostream &s) const;
     friend ostream &operator<<(ostream &os, function_base &f);
 private:
-    string symTabName_;		/* name as it appears in the symbol table */
-    string prettyName_;		/* user's view of name (i.e. de-mangled) */
+    vector<string> symTabName_;	/* name as it appears in the symbol table */
+    vector<string> prettyName_;	/* user's view of name (i.e. de-mangled) */
     int line_;			/* first line of function */
     Address addr_;		/* address of the start of the func */
     unsigned size_;             /* the function size, in bytes, used to
@@ -830,6 +838,9 @@ void image::findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
 
   bool addOneFunction(vector<Symbol> &mods,
 		      const Symbol &lookUp);
+
+  void addMultipleFunctionNames(vector<Symbol> &mods,
+				const Symbol &lookUp);
 
   //
   //  ****  PRIVATE MEMBERS FUNCTIONS  ****

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.121 2001/06/15 20:47:50 hollings Exp $
+// $Id: symtab.C,v 1.122 2001/07/12 21:35:21 shergali Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,10 +99,19 @@ bool function_base::match(function_base *fb)
   Debuggering info for function_base....
  */
 ostream & function_base::operator<<(ostream &s) const {
-    s << "symTabName_ = " << symTabName_ << " prettyName_ = "
-      << prettyName_
-      << " line_ = " << line_ << " addr_ = "<< addr_ << " size_ = " << size_
-      << endl;
+  
+    s << "Mangled name(s): " << symTabName_[0];
+    for(int i = 1; i < symTabName_.size(); i++) {
+        s << ", " << symTabName_[i];
+    }
+
+    s << "\nPretty name(s): " << prettyName_[0];
+    for(int i = 1; i < prettyName_.size(); i++) {
+        s << ", " << prettyName_[i];
+    }
+      s << "\nline_ = " << line_ << " addr_ = "<< addr_ << " size_ = ";
+      s << size_ << endl;
+  
     return s;
 }
 
@@ -345,6 +354,59 @@ bool image::addOneFunction(vector<Symbol> &mods,
 }
 
 /*
+ * Add another name for the current function to the names vector in
+ * the function object.  We also need to add the extra names to the
+ * lookup hash tables
+ */
+void image::addMultipleFunctionNames(vector<Symbol> &mods,
+					const Symbol &lookUp)
+{
+  pd_Function *func = findFunction(lookUp.addr(), TRUE);
+
+  /* sanity check, make sure we have actually seen this address before */
+  assert(func);
+
+  /* build the mangeled and pretty names so that we can add those to the
+   * lookup tables
+   */
+  string name = lookUp.name();
+  string mangled_name = name;
+  const char *p = P_strchr(name.string_of(), ':');
+  if (p) {
+     unsigned nchars = p - name.string_of();
+     mangled_name = string(name.string_of(), nchars);
+  }
+
+  string demangled;
+  if (!buildDemangledName(mangled_name, demangled)) 
+    demangled = mangled_name;
+
+  /* add the names to the vectors in the function object */
+  func->addSymTabName(mangled_name);
+  func->addPrettyName(demangled);
+
+  /* now we add the names and the function object to the hash tables */
+  vector<pd_Function*> *funcsByPrettyEntry = NULL;
+  vector<pd_Function*> *funcsByMangledEntry = NULL;
+
+  if(!funcsByPretty.find(demangled, funcsByPrettyEntry)) {
+    funcsByPrettyEntry = new vector<pd_Function*>;
+    funcsByPretty[demangled] = funcsByPrettyEntry;
+  }
+    
+  assert(funcsByPrettyEntry);
+  (*funcsByPrettyEntry).push_back(func);
+
+  if (!funcsByMangled.find(mangled_name, funcsByMangledEntry)) {
+    funcsByMangledEntry = new vector<pd_Function*>;
+    funcsByMangled[mangled_name] = funcsByMangledEntry;
+  }
+
+  assert(funcsByMangledEntry);
+  (*funcsByMangledEntry).push_back(func);
+}
+
+/*
  * Add all the functions (*) in the list of symbols to our data
  * structures. (*) -- currently we only keep one name per address.
  * This should be fixed.
@@ -386,9 +448,12 @@ bool image::addAllFunctions(vector<Symbol> &mods)
   // find the real functions -- those with the correct type in the symbol table
   for(SymbolIter symIter(linkedFile); symIter;symIter++) {
     const Symbol &lookUp = symIter.currval();
-    if (funcsByAddr.defines(lookUp.addr()))
-      // We have already seen a function at this addr. Skip it.
+    if (funcsByAddr.defines(lookUp.addr())) {
+      // We have already seen a function at this addr. add a second name
+      // for this function.
+      addMultipleFunctionNames(mods, lookUp);
       continue;
+    }
     if (is_a_out && 
 	(lookUp.addr() == mainFuncSymbol.addr()) &&
 	(lookUp.name() != mainFuncSymbol.name()))
