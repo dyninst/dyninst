@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.65 1999/07/08 19:25:12 pcroth Exp $
+// $Id: rpcUtil.C,v 1.66 1999/07/13 17:12:15 pcroth Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -66,7 +66,7 @@ const char *RSH_COMMAND_ENV="PARADYN_RSH";
 // prototypes of utility functions used in this file
 //---------------------------------------------------------------------------
 #if defined(i386_unknown_nt4_0)
-bool CreateSocketPair( PDSOCKET socks[2] );
+bool CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock );
 #endif // defined(i386_unknown_nt4_0)
 
 
@@ -860,7 +860,7 @@ execCmd(const string command, const vector<string> &arg_list, int /*portFd*/)
 	// Paradyn front end and a Paradyn daemon is implemented
 	// using a socket to support communication with daemons
 	// on remote machines
-	if( !CreateSocketPair( sv ) )
+	if( !CreateSocketPair( sv[0], sv[1] ) )
 	{
 		return INVALID_PDSOCKET;
 	}
@@ -1317,18 +1317,38 @@ string getHostName() {
 
 #if defined(i386_unknown_nt4_0)
 
+
+//
+// CreateSocketPair
+//
+// Creates a connected pair of TCP/IP sockets.  The
+// intended use of the function is to mimic the
+// socketpair call available from Berkeley sockets,
+// so that a "child" process created by this process can
+// inherit one endpoint of the socket pair and 
+// thus be connected to the "parent" process.
+//
+// The sockets are distinguished as local and remote
+// because we need to make sure that the socket handle
+// intended to be kept at the parent process must not
+// be inherited by the child.  (If it were inherited,
+// the child couldn't tell when the parent closed
+// the socket, because the child would inherit both
+// endpoints of the connection and thus the connection
+// would stay open even though the parent closed its end.)
+//
 bool
-CreateSocketPair( PDSOCKET socks[2] )
+CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock )
 {
 	PDSOCKET sockListen = INVALID_PDSOCKET;
 	bool bCreated = false;
 	
 
 	// create sockets
-	socks[0] = socket( AF_INET, SOCK_STREAM, PF_UNSPEC );
-	socks[1] = INVALID_PDSOCKET;
+	localSock = socket( AF_INET, SOCK_STREAM, PF_UNSPEC );
+	remoteSock = INVALID_PDSOCKET;
 	sockListen = socket( AF_INET, SOCK_STREAM, PF_UNSPEC );
-	if( (sockListen != INVALID_PDSOCKET) && (socks[0] != INVALID_PDSOCKET) )
+	if( (sockListen != INVALID_PDSOCKET) && (localSock != INVALID_PDSOCKET) )
 	{
 		// connect sockets...
 
@@ -1351,11 +1371,11 @@ CreateSocketPair( PDSOCKET socks[2] )
 				{
 					// issue a "deferred" connect for socket 0
 					sin.sin_port = sain.sin_port;
-					if( connect( socks[0], (SOCKADDR*)&sin, sizeof(sin) ) != PDSOCKET_ERROR )
+					if( connect( localSock, (SOCKADDR*)&sin, sizeof(sin) ) != PDSOCKET_ERROR )
 					{
 						// accept the connection
-						socks[1] = accept( sockListen, NULL, NULL );
-						if( socks[1] != INVALID_PDSOCKET )
+						remoteSock = accept( sockListen, NULL, NULL );
+						if( remoteSock != INVALID_PDSOCKET )
 						{
 							// verify the sockets are connected -
 							// socket 0 should now be writable
@@ -1365,7 +1385,7 @@ CreateSocketPair( PDSOCKET socks[2] )
 							tv.tv_sec = 0;
 							tv.tv_usec = 0;
 							FD_ZERO( &wrset );
-							FD_SET( socks[0], &wrset );
+							FD_SET( localSock, &wrset );
 							if( select( 0, NULL, &wrset, NULL, &tv ) == 1 )
 							{
 								bCreated = true;
@@ -1377,12 +1397,37 @@ CreateSocketPair( PDSOCKET socks[2] )
 		}
 	}
 
-	if( !bCreated )
+	if( bCreated )
+    {
+        // make sure that the remote endpoint handle
+        // is not inheritable
+        HANDLE hDup;
+        if( DuplicateHandle( GetCurrentProcess(),
+                (HANDLE)localSock,
+                GetCurrentProcess(),
+                &hDup,
+                0,
+                FALSE,
+                DUPLICATE_SAME_ACCESS ) )
+        {
+            // we made the duplication,
+            // so close the inheritable handle
+            // and return the noninheritable one
+            CLOSEPDSOCKET( localSock );
+            localSock = (SOCKET)hDup;
+        }
+        else
+        {
+            bCreated = false;
+        }
+    }
+
+    if( !bCreated )
 	{
-		CLOSEPDSOCKET( socks[0] );
-		socks[0] = INVALID_PDSOCKET;
-		CLOSEPDSOCKET( socks[1] );
-		socks[1] = INVALID_PDSOCKET;
+		CLOSEPDSOCKET( localSock );
+		localSock = INVALID_PDSOCKET;
+		CLOSEPDSOCKET( remoteSock );
+		remoteSock = INVALID_PDSOCKET;
 	}
 
 	CLOSEPDSOCKET( sockListen );

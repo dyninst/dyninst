@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.101 1999/07/08 00:26:24 nash Exp $
+// $Id: perfStream.C,v 1.102 1999/07/13 17:12:26 pcroth Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -788,10 +788,32 @@ void controllerMainLoop(bool check_buffer_first)
 		}
 	    }
 
+#if !defined(i386_unknown_nt4_0)
 	    if (FD_ISSET(tp->get_sock(), &errorSet)) {
 		// paradyn is gone so we go too.
 	        cleanUpAndExit(-1);
 	    }
+#else // !defined(i386_unknown_nt4_0)
+
+        // WinSock indicates the socket closed
+        // as a read event.  When reading on
+        // the socket, the number of bytes available
+        // is zero.
+
+        if( FD_ISSET( tp->get_sock(), &readSet ))
+        {
+            int junk;
+            int nbytes = recv( tp->get_sock(),
+                                (char*)&junk,
+                                sizeof(junk),
+                                MSG_PEEK );
+            if( nbytes == 0 )
+            {
+                // paradyn is gone so we go too
+                cleanUpAndExit(-1);
+            }
+        }
+#endif // !defined(i386_unknown_nt4_0)
 
             bool delayIGENrequests=false;
 	    for (unsigned u1=0; u1<p_size; u1++) {
