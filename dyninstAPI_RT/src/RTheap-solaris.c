@@ -39,26 +39,26 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-solaris.c,v 1.3 1999/11/11 00:55:03 wylie Exp $ */
+/* $Id: RTheap-solaris.c,v 1.4 2000/02/15 19:20:32 zandy Exp $ */
 /* RTheap-solaris.c: Solaris-specific heap components */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <sys/types.h>
+#include <sys/uio.h>                  /* read() */
 #include <sys/stat.h>                 /* open() */
 #include <fcntl.h>                    /* open() */
-#include <sys/procfs.h>               /* ioctl() */
-#include <unistd.h>                   /* ioctl(), sbrk() */
+#include <procfs.h>
+#include <unistd.h>                   /* ioctl(), sbrk(), read() */
 #include <sys/mman.h>                 /* mmap() */
 #include "dyninstAPI_RT/src/RTheap.h"
 
 
 int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 
-/* avoid kernel, zero page, and stack */
-Address DYNINSTheap_loAddr = (Address)0x00000000;
-Address DYNINSTheap_hiAddr = (Address)0xefffffff;
+Address DYNINSTheap_loAddr;
+Address DYNINSTheap_hiAddr;
 
 int     DYNINSTheap_mmapFlags = MAP_FIXED | MAP_SHARED;
 
@@ -84,3 +84,44 @@ void DYNINSTheap_mmapFdClose(int fd)
   close(fd);
 }
 
+/* 
+   [NOTE: This is currently not called on x86 because x86 does not yet
+   use dynamic heaps.  When it does, make sure this is called from
+   RTsolaris.c.]
+
+   Set the bounds for heap allocations.  Currently we ensure that heap
+   space is not allocated ON the stack on x86, or ABOVE the stack on
+   SPARC.  */
+void DYNINSTheap_setbounds()
+{
+     int fd;
+     pstatus_t ps;
+     ssize_t ret;
+
+     fd = open("/proc/self/status", O_RDONLY);
+     if (0 > fd) {
+	  perror("open /proc/self/status");
+	  return;
+     }
+     ret = read(fd, &ps, sizeof(ps));
+     if (0 > ret) {
+	  perror("read /proc/self/status");
+	  return;
+     }
+     if (ret != sizeof(ps)) {
+	  fprintf(stderr, "Unexpected structure size in /proc/self/status\n");
+	  return;
+     }
+     close(fd);
+
+#if defined(sparc_sun_solaris2_4)
+     DYNINSTheap_loAddr = 0;
+     DYNINSTheap_hiAddr = (Address)ps.pr_stkbase;
+#elif defined(i386_unknown_solaris2_5)
+     DYNINSTheap_loAddr = (Address)ps.pr_stkbase;
+     DYNINSTheap_hiAddr = (Address)0xefffffff;
+#else
+/* To date these bounds work on 32-bit x86 and SPARC Solaris through 2.7. */
+#error unknown architecture
+#endif
+}

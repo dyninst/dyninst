@@ -62,6 +62,9 @@ extern void perror(const char *);
 
 
 
+#if defined(sparc_sun_solaris2_4)
+extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
+#endif
 
 /************************************************************************
  * symbolic constants.
@@ -78,7 +81,6 @@ static int procfd = -1;
 void DYNINSTgetCPUtimeInitialize(void) {
    /* This stuff is done just once */
    char str[20];
-
    sprintf(str, "/proc/%d", (int)getpid());
    /* have to use syscall here for applications that have their own
       versions of open, poll...In these cases there is no guarentee that
@@ -120,6 +122,9 @@ DYNINSTos_init(int calledByFork, int calledByAttach) {
     }
 #endif
 
+#if defined(sparc_sun_solaris2_4)
+    DYNINSTheap_setbounds();
+#endif
     /* It is necessary to call DYNINSTgetCPUtimeInitialize here to make sure
        that it is called again for a child process during a fork - naim */
     DYNINSTgetCPUtimeInitialize();

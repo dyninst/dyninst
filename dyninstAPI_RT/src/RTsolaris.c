@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.8 1999/11/11 00:55:03 wylie Exp $
+ * $Id: RTsolaris.c,v 1.9 2000/02/15 19:20:32 zandy Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -62,6 +62,10 @@
  * os initialization function
 ************************************************************************/
 
+#if defined(sparc_sun_solaris2_4)
+extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
+#endif
+
 void
 DYNINSTos_init(int calledByFork, int calledByAttach)
 {
@@ -82,7 +86,9 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
     }
 #endif
 
-
+#if defined(sparc_sun_solaris2_4)
+    DYNINSTheap_setbounds();
+#endif
 }
 
 
