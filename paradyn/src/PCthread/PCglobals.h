@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCglobals.h,v $
- * Revision 1.6  1995/02/16 08:19:09  markc
+ * Revision 1.7  1995/06/02 20:50:07  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.6  1995/02/16  08:19:09  markc
  * Changed Boolean to bool
  *
  * Revision 1.5  1994/09/05  20:00:57  jcargill
@@ -50,7 +53,7 @@ extern int traceRead;
 extern double bucket_size;
 
 extern bool genHist;
-extern applicationContext *context;
+// extern applicationContext *context;
 
 
 // update the SHG during the search?

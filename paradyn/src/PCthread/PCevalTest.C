@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.36  1995/02/27 19:17:26  tamches
+ * Revision 1.37  1995/06/02 20:50:06  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.36  1995/02/27  19:17:26  tamches
  * Changes to code having to do with tunable constants.
  * First, header files have moved from util lib to TCthread.
  * Second, tunable constants may no longer be declared globally.
@@ -203,14 +206,6 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
-  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
-  Tia Newhall, Mark Callaghan.  All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.36 1995/02/27 19:17:26 tamches Exp $";
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -345,8 +340,11 @@ void testValue::addHint(focus *f, const char* message)
 
     limit = f->data ? f->data->getCount() : 0;
     for (i=0; i < limit; i++) {
-	res = f->data->getNth(i);
-	addHint(res, message);
+	resourceHandle *r_handle;
+	if(f->data->getNth(i,r_handle)){
+	    res = resource::handle_to_resource(*r_handle);
+	    addHint(res, message);
+	}
     }
 }
 
@@ -367,7 +365,11 @@ void testValue::addHint(resource *res, const char* message)
 	    if (!hints) hints = new(hintList);
 	    hints->add(f, newM);
 	}
-	res = res->getParent();
+	resourceHandle parent = res->getParent();
+	if(parent)
+	    res = resource::handle_to_resource(parent);
+        else
+	    res = NULL;
     }
 }
 
@@ -459,7 +461,7 @@ void configureTests()
     searchHistoryNodeList currNode;
     testResultList prevTestResults;
 
-    dataMgr->pauseApplication(context);
+    dataMgr->pauseApplication();
 
     // make sure we know who to compensate for data.
     enabledGroup = new(List<datum*>);
@@ -497,7 +499,7 @@ void configureTests()
     currentFocus = prevFocus;
 
     // delete(prevTestResults);
-    dataMgr->continueApplication(context);
+    dataMgr->continueApplication();
 }
 
 //
@@ -807,7 +809,7 @@ bool verifyPreviousRefinements()
     // verify that the refinement path we took is still true;
     for (i=0; i < PCpathDepth; i++) {
 	if (!PCrefinementPath[i]->getStatus()) {
-	    // pauseApplication(context);
+	    // pauseApplication();
 
 	  PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, 
 	   "The bottleneck we were refining changed\nThe bottleneck was:");
@@ -899,13 +901,13 @@ void PCevaluateWorld()
 	    }
 	} else if (changed) {
 	    if (verifyPreviousRefinements()) {
-		dataMgr->pauseApplication(context);
+		dataMgr->pauseApplication();
 		PCsearchPaused = true;
 		PCstatusDisplay->updateStatusDisplay 
 		  (PC_STATUSDISPLAY, "application paused\n");
 	    } else {
 		// previous refinement now false.
-		dataMgr->pauseApplication(context);
+		dataMgr->pauseApplication();
 	    }
 	}
     }
@@ -922,7 +924,7 @@ void performanceConsultant::search(bool stopOnChange, int limit)
     char buffer[100];
     sprintf(buffer, "Setting PC start search time to %f\n", PCstartTransTime);
     PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY, buffer);
-    if (!dataMgr->applicationDefined(context)) {
+    if (!dataMgr->applicationDefined()) {
       PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY,
 					   "must specify application to run first\n");
       return;
@@ -943,7 +945,7 @@ void performanceConsultant::search(bool stopOnChange, int limit)
     PCsearchPaused = false;
     PCautoRefinementLimit = limit;
     autoSelectRefinements();
-    dataMgr->continueApplication(context);
+    dataMgr->continueApplication();
 }
 
 void performanceConsultant::pauseSearch()

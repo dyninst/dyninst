@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCwhen.C,v $
- * Revision 1.9  1995/02/16 08:19:23  markc
+ * Revision 1.10  1995/06/02 20:50:17  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.9  1995/02/16  08:19:23  markc
  * Changed Boolean to bool
  *
  * Revision 1.8  1995/01/26  17:58:45  jcargill
@@ -71,14 +74,6 @@
  * Implementation of then when axis (temporal).
  *
  */
-
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
-  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
-  Tia Newhall, Mark Callaghan.  All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.9 1995/02/16 08:19:23 markc Exp $";
-#endif
 
 
 #include <assert.h> 

@@ -1,8 +1,11 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.15  1995/02/16 08:20:46  markc
-/* Changed Boolean to bool
-/* Changed wait loop code for igen messages
+/* Revision 1.16  1995/06/02 20:50:34  newhall
+/* made code compatable with new DM interface
 /*
+ * Revision 1.15  1995/02/16  08:20:46  markc
+ * Changed Boolean to bool
+ * Changed wait loop code for igen messages
+ *
  * Revision 1.14  1995/01/26  17:58:53  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
@@ -49,7 +52,7 @@
  * Revision 1.2  1994/04/06  17:39:00  karavan
  * changed interp to global
  *
- * Revision 1.1  1994/04/05  04:42:34  karavan
+/ * Revision 1.1  1994/04/05  04:42:34  karavan
  * initial version of UI thread code and tcl paradyn command
  * */
 
@@ -65,6 +68,7 @@
 #include "performanceConsultant.thread.CLNT.h"
 #include "UI.thread.SRVR.h"
 #include "thread/h/thread.h"
+#include "paradyn/src/DMthread/DMinclude.h"
 extern "C" {
  #include "tk.h"
 }
@@ -75,6 +79,14 @@ extern "C" {
 #define DISPLAYED 0
 #define ICONIFIED 1
 #define INACTIVE 2
+
+typedef unsigned nodeIdType;
+typedef vector<nodeIdType> numlist;
+nodeIdType StrToNodeIdType (char *instring); 
+char *NodeIdTypeToStr (nodeIdType intoken);
+
+//** remove this once defined in DMinclude.h
+typedef unsigned abstractHandle;
 
 class dag;
 
@@ -88,13 +100,16 @@ class resourceDisplayObj {
   resourceDisplayObj (int baseflag, int &success);
   resourceDisplayObj (int baseflag, int &success, const char *pwin);
   resourceDisplayObj copy (char *pwin);
-  void addResource (resource *newres, resource *parent, char *name, 
-		    stringHandle abs);
-  dag *addAbstraction (stringHandle newabs);
+  void addResource (resourceHandle newres, resourceHandle parent, 
+		    char *name, char *abs);
+  dag *addAbstraction (char *abs);
   int cycle (char *abs);
   void print ();
-  friend void resourceAddedCB (performanceStream *ps , resource *parent, 
-			       resource *newResource, char *name);
+  friend void resourceAddedCB (perfStreamHandle handle , 
+			       resourceHandle parent, 
+			       resourceHandle newResource, 
+			       const char *rname,
+			       const char *aname);
   friend int switchRDOdagCmd (ClientData clientData, Tcl_Interp *interp, 
                 int argc, char *argv[]);
   friend int processVisiSelectionCmd(ClientData clientData, Tcl_Interp *interp, 
@@ -102,7 +117,8 @@ class resourceDisplayObj {
   friend int clearResourceSelectionCmd (ClientData clientData, 
                       Tcl_Interp *interp, int argc, char *argv[]);
   friend void UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
-		      metrespair *pairList, int numElements);
+		      vector<metric_focus_pair> *pairList);
+
  private: 
   int token;
   dag *topdag;
@@ -110,8 +126,8 @@ class resourceDisplayObj {
   char parentwin[15];
   int status;
   int base;
-  List<dag *> dags;
   static List<resourceDisplayObj *> allRDOs;
+  List<dag *> dags;
   static int rdoCount;
   char tbuf[300];
 };
@@ -148,8 +164,8 @@ class tokenHandler {
 // used by paradyn enable command
 extern int                       uim_eid;
 
-extern List<metricInstance*>     uim_enabled;
-extern performanceStream         *uim_defaultStream;
+extern List<metricInstInfo *>    uim_enabled;
+extern perfStreamHandle          uim_ps_handle;
 extern UIM                       *uim_server;
 
 // callback pointers stored here for lookup after return from tcl/tk routines
@@ -173,18 +189,16 @@ extern int uim_maxError;
 extern dag *ActiveDags[MAXNUMACTIVEDAGS];
 
 // where axes display
-extern resource                  *uim_rootRes;
+extern resourceHandle   uim_rootRes;
 extern dag *baseWhere;  /*** get rid of this from uimpd, UImain,UIpublic */
 extern List<stringHandle> uim_knownAbstractions;
 
 // metric-resource selection 
 extern int uim_ResourceSelectionStatus;
-extern List<resourceList *> uim_CurrentResourceSelections;
-extern metrespair *uim_VisiSelections;
-extern int uim_VisiSelectionsSize;
-extern String_Array uim_AvailMets;
-extern resourceList *uim_SelectedFocus;
-
+extern vector<metric_focus_pair> *uim_VisiSelections;
+extern char **uim_AvailMets;
+extern int uim_AvailMetsSize;
+extern metricHandle *uim_AvailMetHandles;
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
                       int argc, char **argv);
 

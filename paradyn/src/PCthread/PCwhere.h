@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.9  1995/02/16 08:19:26  markc
+ * Revision 1.10  1995/06/02 20:50:19  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.9  1995/02/16  08:19:26  markc
  * Changed Boolean to bool
  *
  * Revision 1.8  1995/01/26  17:58:47  jcargill
@@ -79,6 +82,10 @@
 #include "util/h/list.h"
 #include "util/h/stringPool.h"
 #include "dataManager.thread.CLNT.h"
+// TODO: this should be removed
+#include "paradyn/src/DMthread/DMmetric.h"
+#include "paradyn/src/DMthread/DMresource.h"
+// ******************************
 
 class PCmetric;
 class testValue;
@@ -93,7 +100,7 @@ class focus {
 	friend class testValue;
 	friend ostream& operator <<(ostream &os, focus& f);
     public:
-	focus();		
+	// focus();		
 	focus(resourceList*);
 	focusList magnify(resource *param);
 	focusList enumerateRefinements();

@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.15  1995/02/16 08:19:15  markc
+ * Revision 1.16  1995/06/02 20:50:11  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.15  1995/02/16  08:19:15  markc
  * Changed Boolean to bool
  *
  * Revision 1.14  1995/01/26  17:58:41  jcargill
@@ -108,6 +111,12 @@
 #include "PCwhere.h"
 #include "PCwhen.h"
 
+#include "paradyn/src/DMthread/DMinclude.h"
+//TEMP until remove all ptrs from interface then include DMinclue.h
+#include "paradyn/src/DMthread/DMmetric.h"
+#include "paradyn/src/DMthread/DMresource.h"
+// ************************
+
 extern dataManagerUser *dataMgr;
 
 typedef enum { 
@@ -151,6 +160,7 @@ class datum {
 	bool		enabled;
 	int		refCount;
 	metricInstance	*mi;			// when enabled.
+	metricInstanceHandle mi_id;   		// for disable
 
 	Histogram	*hist;
 	stringHandle	metName;
@@ -162,7 +172,12 @@ class performanceConsultant;
 //
 class PCmetric {
 	friend void printMetric(char *, focus*, timeStamp, timeStamp);
-	friend void PCmetricFunc(performanceStream *ps, metric *met);
+	friend void PCmetricFunc(perfStreamHandle handle,
+				 const char *name,
+				 int style,
+			   	 int aggregate,
+			         const char *units,
+			         metricHandle m_handle);
 	friend void printStats();
 	friend void globalCost();
 	friend ostream& operator <<(ostream &os, PCmetric& );
@@ -171,12 +186,10 @@ class PCmetric {
 
 	stringHandle getName() { return(name); }
 	const char *getUnits() { 
-	    T_dyninstRPC::metricInfo *info;
-
-	    info = dataMgr->getMetricInfo(met);
-	    return(info->units.string_of()); 
+	    return(met->getUnits());
 	}
 	datum *findDatum(focus *f) {
+	  assert(f);
 	  return(samples.find(f->getName()));
 	}
 	void addDatum(datum *d) { 

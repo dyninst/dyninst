@@ -16,12 +16,15 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.29  1995/02/27 19:17:31  tamches
-/* Changes to code having to do with tunable constants.
-/* First, header files have moved from util lib to TCthread.
-/* Second, tunable constants may no longer be declared globally.
-/* Third, accessing tunable constants is different.
+/* Revision 1.30  1995/06/02 20:50:09  newhall
+/* made code compatable with new DM interface
 /*
+ * Revision 1.29  1995/02/27  19:17:31  tamches
+ * Changes to code having to do with tunable constants.
+ * First, header files have moved from util lib to TCthread.
+ * Second, tunable constants may no longer be declared globally.
+ * Third, accessing tunable constants is different.
+ *
  * Revision 1.28  1995/02/16  08:19:11  markc
  * Changed Boolean to bool
  *
@@ -110,14 +113,6 @@
  * First log message.
  * */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
-  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
-  Tia Newhall, Mark Callaghan.  All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.29 1995/02/27 19:17:31 tamches Exp $";
-#endif
-
 #include <assert.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -134,7 +129,15 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "../src/UIthread/UIstatDisp.h"
 #include "../src/DMthread/DMresource.h"
 
-performanceStream *pcStream;
+#include "../src/DMthread/DMinclude.h"
+
+// TEMP until remove all ptrs from interface then include DMinclue.h
+#include "paradyn/src/DMthread/DMmetric.h"
+#include "paradyn/src/DMthread/DMresource.h"
+// ***********************************
+
+
+perfStreamHandle pc_ps_handle;
 extern void initResources();
 extern void PCevaluateWorld();
 extern thread_t MAINtid;
@@ -146,14 +149,14 @@ statusDisplayObj *PCstatusDisplay;   // token needed for PC status calls
 int SHGid;             // id needed for Search History Graph uim dag calls
 static float PCbucketWidth;
 
-void PCfold(performanceStream *ps,
+void PCfold(perfStreamHandle handle,
 	    timeStamp newWidth)
 {
     PCbucketWidth = newWidth;
 }
 
-void PCnewData(performanceStream *ps,
-	       metricInstance *mi,
+void PCnewData(perfStreamHandle handle,
+	       metricInstanceHandle m_handle,
 	       sampleValue *buckets,
 	       int count, 
 	       int first)
@@ -162,6 +165,11 @@ void PCnewData(performanceStream *ps,
     datum *dp;
     sampleValue total;
     timeStamp start, end;
+
+    // TODO: this should be removed and PC thread should not be accessing
+    // metricInstance objects directly
+    metricInstance *mi = metricInstance::getMI(m_handle);
+    if(!mi)  return;
 
     for (i=0, total = 0.0; i < count; i++) {
 	// printf("mi %x = bin %d == %f\n", mi, i+first, buckets[i]);
@@ -176,7 +184,7 @@ void PCnewData(performanceStream *ps,
 
     tunableBooleanConstant pcEvalPrint = tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
     if (pcEvalPrint.getValue()) {
-	cout << "AR: " << (char*)dp->metName << (char*)dp->resList->getCanonicalName();
+	cout << "AR: " << (char*)dp->metName << (char*)dp->resList->getName();
 	cout << " = " << total;
 	cout << " from " << start << " to " << end << "\n";
     }
@@ -197,23 +205,32 @@ void PCnewInfo()
 {
 }
 
-
-
-void PCmetricFunc(performanceStream *ps, metric *met)
+void PCmetricFunc(perfStreamHandle handle, 
+		  const char *name,
+		  int style,
+		  int aggregate,
+		  const char *units,
+		  metricHandle m_handle)
 {
     PCmetric *pcMet;
-    stringHandle name;
+    stringHandle s_name;
     extern stringPool PCmetricStrings;
 
-    name = PCmetricStrings.findAndAdd((char*)dataMgr->getMetricName(met));
-    pcMet = (PCmetric *) allMetrics.find(name);
+    // TODO: this should be removed and PC thread should not be accessing
+    // metric objects directly
+    metric *met = metric::getMetric(m_handle);
+    if(!met) return;
+
+    char *newName = strdup(name);
+    s_name = PCmetricStrings.findAndAdd(newName);
+    pcMet = (PCmetric *) allMetrics.find((char *)s_name);
     if (!pcMet) {
 	// This warning was intended to make it easy to catch typos in metric
 	//   names between paradynd and the PC.  However, there are now several
 	//   metrics that paradynd defines that the PC doesn't need.
 	//   - jkh 6/25/94
         // printf("WARNING performance consultant has no use for %s\n", name);
-        pcMet = new PCmetric((char*)name);
+        pcMet = new PCmetric((char*)s_name);
     }
     pcMet->met = met;
 }
@@ -224,9 +241,7 @@ void PCmain(void* varg)
 
     int i;
     int from;
-    metric *met;
     unsigned int tag;
-    String_Array mets;
     performanceConsultant *pc;
     union dataCallback dataHandlers;
     struct controlCallback controlHandlers;
@@ -241,6 +256,7 @@ void PCmain(void* varg)
     msg_send (MAINtid, MSG_TAG_PC_READY, (char *) NULL, 0);
     tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&tag, PCbuff, &msgSize);
+    // why are static resources initialized here?
     initResources();
 
     // make sure memory is clear.
@@ -249,16 +265,25 @@ void PCmain(void* varg)
     controlHandlers.fFunc = PCfold;
 
     dataHandlers.sample = PCnewData;
-    pcStream = dataMgr->createPerformanceStream(context, Sample,
+    pc_ps_handle = dataMgr->createPerformanceStream(Sample,
 	dataHandlers, controlHandlers);
+
     PCbucketWidth = dataMgr->getCurrentBucketWidth();
 
     // now find about existing metrics.
-    mets = dataMgr->getAvailableMetrics(context);
-    for (i=0; i < mets.count; i++) {
-	assert(mets.data[i]);
-	met = dataMgr->findMetric(context, mets.data[i]);
-	PCmetricFunc(pcStream, met);
+    vector<string> *mets = dataMgr->getAvailableMetrics();
+    for (i=0; i < mets->size(); i++) {
+	metricHandle *m_handle = dataMgr->findMetric((*mets)[i].string_of());
+	if (m_handle) {
+	    metric *met = metric::getMetric(*m_handle);
+	    if(met) 
+		PCmetricFunc(pc_ps_handle, 
+			     met->getName(),
+			     met->getStyle(),
+			     met->getAggregate(),
+			     met->getUnits(),
+			     met->getHandle());
+        }
     }
 
     // initialize PC status display object

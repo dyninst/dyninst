@@ -3,9 +3,8 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.9  1995/04/01 22:21:40  karavan
-/* removed call to dm->enableResourceCreationNotification, which was being
-/* made on every resource notification.
+/* Revision 1.10  1995/06/02 20:50:38  newhall
+/* made code compatable with new DM interface
 /*
  * Revision 1.8  1995/02/16  08:20:50  markc
  * Changed Boolean to bool
@@ -58,7 +57,7 @@
 #include "string.h"
 #include "UIglobals.h"
 #include "dataManager.thread.h"
-#include "../DMthread/DMresource.h"
+#include "paradyn/src/DMthread/DMinclude.h"
 #include "../pdMain/paradyn.h"
 #include "dag.h"
 
@@ -66,7 +65,6 @@ List<resourceDisplayObj *> resourceDisplayObj::allRDOs;
 tokenHandler tokenClerk; 
 int resourceDisplayObj::rdoCount = 0;
 List<stringHandle> uim_knownAbstractions;
-class abstraction;
 
 /* 
  *  resourceAddedCB
@@ -74,22 +72,25 @@ class abstraction;
  *  resource has been defined.  Maintains where axis display.
  *  Creates dag for abstraction if none exists.
 */
-void resourceAddedCB (performanceStream *ps , 
-		      resource *parent, 
-		      resource *newResource, 
-		      char *name)
+void resourceAddedCB (perfStreamHandle handle, 
+		      resourceHandle parent, 
+		      resourceHandle newResource, 
+		      const char *name,
+		      const char *abs)
 {
-  stringHandle rname;
   List<resourceDisplayObj *> tmp;
-
-  rname = newResource->getAbstraction()->getName();
 #if UIM_DEBUG
   printf ("resourceAddedCB %s\n", name);
 #endif
+  
+  char *aname = new char[strlen(abs)+1];
+  strcpy (aname, abs);
+  char *rname = new char[strlen(name)+1];
+  strcpy (rname, name);
   // add this abstraction to all existing resourceDisplayObjs
   tmp = resourceDisplayObj::allRDOs;
   while (*tmp) {    
-    (*tmp)->addResource (newResource, parent, name, rname);
+    (*tmp)->addResource (newResource, parent, rname, aname);
     tmp++;
   }
 }
@@ -131,15 +132,22 @@ int initWhereAxis (dag *wheredag, stringHandle abs, int rdoToken,
 }
 
 dag * 
-resourceDisplayObj::addAbstraction (stringHandle newabs) 
+resourceDisplayObj::addAbstraction (char *newabs) 
 {
   List<dag *> tptr;
   int retVal, dagToken;
   dag *newdag;
-  tptr = dags;
-  if (tptr.find (newabs))
-    return (dag *) NULL;
+
+  dag *tempdata;
+  for(tptr = dags; tempdata = *tptr; tptr++){
+      if(strcmp(newabs,tempdata->getAbstraction())){
+          return 0;
+      }
+  }
+  //  if (tptr.find ((void *) ah))
+  //    return (dag *) NULL;
   newdag = new dag(interp);
+  newdag->setAbstraction(newabs);
   numdags++;
   dagToken = tokenClerk.getToken (newdag);
 #if UIM_DEBUG
@@ -156,7 +164,8 @@ resourceDisplayObj::addAbstraction (stringHandle newabs)
     return (dag *)NULL;
   }
   newdag->setRowSpacing(40);
-  dags.add (newdag, newabs);
+  //  dags.add (newdag, (void *) ah);
+  dags.add (newdag);
   if (numdags == 1) 
     topdag = newdag;
   uim_knownAbstractions.add (newabs);
@@ -212,33 +221,47 @@ resourceDisplayObj::resourceDisplayObj (int baseflag, int &success)
  * creating the dag if none found for the resource's abstraction
 */
 void
-resourceDisplayObj::addResource (resource *newres, resource *parent, 
-				 char *name, stringHandle abs)
+resourceDisplayObj::addResource (resourceHandle newres, resourceHandle parent, 
+				 char *name, char *abs)
 { 
-  int nodeID;
+  nodeIdType nodeID;
   dag *adag;
-  char *label;
-  stringHandle parname;
+  char *label, *nptr;
   List<dag *> tptr;
+  // tptr = dags;
 
+  bool found = false;
   // find dag for this abstraction; if none, create one
-  tptr = dags;
-  adag = tptr.find (abs);
-  if (adag == NULL) {
+  for(tptr = dags; adag = *tptr; tptr++){
+      if(strcmp(abs,adag->getAbstraction()) == 0){
+          found = true;
+	  break;
+      }
+  }
+  if (!found) {
     adag = this->addAbstraction(abs);
+  }
+
+/*
+   adag = tptr.find ((void *) ah);
+  if (adag == NULL) {
+    adag = this->addAbstraction(abs, ah);
 #if UIM_DEBUG
     printf ("addResource: abs name %s not found, added\n", (char *)abs);
 #endif
   }
-  nodeID = (int) Tk_GetUid(name);
-  label = P_strrchr(name, '/'); label++; 
+*/
+
+  nodeID = (nodeIdType) newres;
+  nptr = P_strrchr(name, '/'); nptr++;
+  label = new char[strlen(nptr)+1];
+  strcpy (label, nptr);
   if (parent == uim_rootRes) {
-    adag->CreateNode (nodeID, 1, label, 1, (void *)newres);
+    adag->CreateNode (nodeID, 1, label, 1, (void *)NULL);
   }
   else {
-    adag->CreateNode (nodeID, 0, label, 1, (void *)newres);
-    parname = parent->getFullName();
-    adag->AddEdge ((int) Tk_GetUid((char *) parname), nodeID, 1);
+    adag->CreateNode (nodeID, 0, label, 1, (void *)NULL);
+    adag->AddEdge ((nodeIdType) parent, nodeID, 1);
   }
 }
 

@@ -79,7 +79,7 @@ struct _node {
   rNode leftNext;		/* leftmost relative child */
   
   int root;		/* root of application node */
-  int aNode;		/* token for application node */
+  unsigned int aNode;		/* token for application node */
   void *aObject;        /* storage for application-specific data */
   char string[DAGNODEMAXSTR];	/* string to be displayed */
   StringType strType;		/* default is ABBREVIATED */

@@ -5,7 +5,10 @@
 
 #include <stdio.h>
 #include "util/h/list.h"
+#include "util/h/Vector.h"
+#include "util/h/String.h"
 #include "dagCompute.h"
+#include "../pdMain/paradyn.h"
 
 class resourceList;
 
@@ -18,6 +21,9 @@ class dagNode;
 typedef int (dagNode::*dagTestFunc) ();
 
 class dag;         // forward declaration for displaySubgraphOption
+
+typedef unsigned nodeIdType;
+typedef vector<nodeIdType> numlist;
 
 typedef enum {
   ONLY, EXCEPT, ADD, SUBTRACT
@@ -111,6 +117,7 @@ class dag {
     int		expose_enable;	/* True allows GraphExpose */
     int		radioGraph;	/* Can only one node be selected */
     int		row_arg;
+    string      abstr;
 
     int displayActive;      // set if dag currently displayed onscreen 
     Tcl_Interp *interp;			      
@@ -133,7 +140,11 @@ class dag {
     void scheduleRedraw();
     void tagExceptSubgraph (rNode root);
     void PaintDag();
-    rNode getNodePtr (int nodeID);
+    rNode getNodePtr (unsigned nodeID);
+    // returns list of nodeID's for all highlighted nodes within a 
+    // subtree; uses dfs
+    void listHighlightedNodes (rNode curr, vector<unsigned> *tokenlist);
+
 
   public:
     dag(Tcl_Interp *nterp);
@@ -143,31 +154,34 @@ class dag {
     void destroyDisplay ();
     void PrintGraph(FILE *f);
     int AddEStyle (int styleID, int arrow, int ashape1, int ashape2, 
-		   int ashape3, const char *stipple, const char *fill, 
+		   int ashape3, char *stipple, char *fill, 
 		   char capstyle, float width);
     int AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
 		   const char *font, const char *text, char shape, float width);
-    int CreateNode (int nodeID, int root, char *nodeLabel, int style,
+    int CreateNode (unsigned nodeID, int root, char *nodeLabel, int style,
 		    void *appRecPtr);
-    int AddEdge (int src, int dst, int edge_style);
+    int AddEdge (unsigned src, unsigned dst, int edge_style);
     eStyle *getEStyle (int style);
     nStyle *getNStyle (int style);
-    int configureNode (int nodeID, char *label, int styleID);
+    int configureNode (unsigned nodeID, char *label, int styleID);
     int configureNode (rNode me, char *label, int styleID);
-    int configureEdge (int srcID, int dstID, int styleID);
-    int highlightNode (int nodeID);
-    int unhighlightNode (int nodeID);
+    int configureEdge (unsigned srcID, unsigned dstID, int styleID);
+    int highlightNode (unsigned nodeID);
+    int unhighlightNode (unsigned nodeID);
     int highlightNode (rNode me);
     int unhighlightNode (rNode me);
     int clearAllHighlighting();
     int highlightAllRootNodes();
     int addTkBinding (char *bindCmd);
-    int addDisplayOption (optionType opt, int rootID);
+    int addDisplayOption (optionType opt, unsigned rootID);
     void clearAllDisplayOptions ();
+    const char *getAbstraction(){ return(abstr.string_of()); }
+    void setAbstraction(const char *name){ abstr = name; }
     char *getCanvasName ();
     int isHighlighted (rNode curr);
-    int constrHighlightNode (int nodeID);
+    int constrHighlightNode (unsigned nodeID);
     void unHighlightchildren (rNode curr); 
+    vector<numlist> *listAllHighlightedNodes ();
   };
 
 /*

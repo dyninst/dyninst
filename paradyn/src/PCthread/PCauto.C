@@ -19,7 +19,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.21  1995/02/27 19:17:24  tamches
+ * Revision 1.22  1995/06/02 20:50:04  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.21  1995/02/27  19:17:24  tamches
  * Changes to code having to do with tunable constants.
  * First, header files have moved from util lib to TCthread.
  * Second, tunable constants may no longer be declared globally.
@@ -139,13 +142,6 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
-  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
-  Tia Newhall, Mark Callaghan.  All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.21 1995/02/27 19:17:24 tamches Exp $";
-#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -302,7 +298,7 @@ void autoChangeRefineList()
        cout << "TRYING: " << endl;
 
     UIM_BatchMode++;
-    totalCost = dataMgr->getCurrentHybridCost(context);
+    totalCost = dataMgr->getCurrentHybridCost();
 
     if (currentRefinementBase) {
 	// some number of tests just expired.
@@ -351,7 +347,7 @@ void autoChangeRefineList()
 
     // see if there was any thing to test.
     if (currentRefinementBase >= refineCount) {
-	dataMgr->pauseApplication(context);
+	dataMgr->pauseApplication();
 	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY, 
 	    "all refinements considered...application paused\n");
 	// prevent any further auto refinement.
@@ -362,7 +358,7 @@ void autoChangeRefineList()
     }
 
     if (i == currentRefinementBase) {
-	dataMgr->pauseApplication(context);
+	dataMgr->pauseApplication();
 	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY,
 	    "unable to consider further refinements within cost limits\n");
 	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY,

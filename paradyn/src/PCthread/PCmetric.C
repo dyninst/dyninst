@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.27  1995/02/27 19:17:33  tamches
+ * Revision 1.28  1995/06/02 20:50:10  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.27  1995/02/27  19:17:33  tamches
  * Changes to code having to do with tunable constants.
  * First, header files have moved from util lib to TCthread.
  * Second, tunable constants may no longer be declared globally.
@@ -165,13 +168,6 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
-  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
-  Tia Newhall, Mark Callaghan.  All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.27 1995/02/27 19:17:33 tamches Exp $";
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,7 +202,7 @@ extern List<datum *> *enabledGroup;
 extern float globalPredicatedCost;
 
 warningLevel noDataWarning = wNever;
-extern performanceStream *pcStream;
+extern perfStreamHandle pc_ps_handle;
 extern searchHistoryNode *currentSHGNode;
 extern bool doAutoRefinement(searchHistoryNode *, int);
 
@@ -343,12 +339,14 @@ bool PCmetric::changeCollection(focus *f, collectMode newMode)
 	if (!met) return(false);
 
 	assert(f->data);
-	predictedCost = dataMgr->getPredictedDataCost(context, f->data, met);
+	predictedCost = dataMgr->getPredictedDataCost(f->data->getHandle(),
+						      met->getHandle());
 
 	globalPredicatedCost += predictedCost;
 
 	return(true);
     } else if (newMode == enableCollection) {
+	if (!met) return(false);
 	if (!val) {
 	    val = new(datum);
 	    val->f = f;
@@ -365,9 +363,18 @@ bool PCmetric::changeCollection(focus *f, collectMode newMode)
 	    val->lastSampleTime = 0.0;
 	    val->firstSampleTime = 0.0;
 	    val->used = true;
-	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList,
-						    met);
+
+	    // TEMP until store handle rather than ptr to performanceStream
+	    vector<resourceHandle> *r_handles = 
+		 resourceList::getResourceHandles(val->resList->getHandle());
+            metricInstInfo *enabled_mi = dataMgr->enableDataCollection(
+							pc_ps_handle,
+						        r_handles,
+						        met->getHandle());
+            if(!enabled_mi) return(false);
+            val->mi = metricInstance::getMI(enabled_mi->mi_id); 
 	    if (val->mi) {
+		val->mi_id = enabled_mi->mi_id;
 		// only the data that really exists gets enabled.
 		miToDatumMap.add(val, val->mi);
 		val->enabled = true;
@@ -383,13 +390,16 @@ bool PCmetric::changeCollection(focus *f, collectMode newMode)
 	    return(false);
 	}
     } else if (newMode == disableCollection) {
-	assert(val);
+	if(!val){
+            return(true);
+	}
 	val->refCount--;
 	if (val->refCount == 0) {
 	    val->enabled = false;
 
 	    if (val->mi) {
-		dataMgr->disableDataCollection(pcStream, val->mi);
+		dataMgr->disableDataCollection(pc_ps_handle, 
+					       val->mi_id);
 		val->totalUsed += val->lastUsed - val->firstSampleTime;
 	    }
 	}
@@ -496,6 +506,7 @@ datum::datum()
     hist = NULL;
     refCount = 0;
     metName = NULL;
+    mi = NULL;
 }
 
 //

@@ -30,10 +30,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.21  1995/01/26 17:59:00  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.22  1995/06/02 20:50:37  newhall
+/* made code compatable with new DM interface
 /*
+ * Revision 1.21  1995/01/26  17:59:00  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.20  1994/11/08  07:50:47  karavan
  * Purified code; narrowed side margins for dag nodes.
  *
@@ -124,9 +127,10 @@ extern void initSHGStyles();
 char *SHGwinName = (char *) NULL;
 
  /* globals for metric resource selection */
-metrespair *uim_VisiSelections;
-int uim_VisiSelectionsSize;
-String_Array uim_AvailMets;
+vector<metric_focus_pair> *uim_VisiSelections;
+char **uim_AvailMets;
+int uim_AvailMetsSize;
+metricHandle *uim_AvailMetHandles;
 
 void 
 UIMUser::chooseMenuItemREPLY(chooseMenuItemCBFunc cb, int userChoice)
@@ -143,10 +147,9 @@ UIMUser::msgChoice(showMsgCBFunc cb, int userChoice)
 void
 UIMUser::chosenMetricsandResources
           (chooseMandRCBFunc cb,
-	   metrespair *pairList,
-	   int numElements)
+	   vector<metric_focus_pair> *pairList)
 {
-  (cb) (pairList, numElements);
+  (cb) (pairList);
 }
 	
 void 
@@ -398,8 +401,7 @@ UIM::showMsgWait(char *displayMsg,
 
 void 
 UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
-			       metrespair *pairList,
-			       int numElements)
+			       vector<metric_focus_pair> *pairList)
 {
   char *ml;
   int retVal;
@@ -427,11 +429,18 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   }
 
      // initialize metric menu 
-  uim_AvailMets = dataMgr->getAvailableMetrics(context);
-
-  ml = Tcl_Merge (uim_AvailMets.count, uim_AvailMets.data);
+  vector<met_name_id> *amets = dataMgr->getAvailableMetInfo();
+  uim_AvailMetsSize = amets->size();
+  uim_AvailMets = new (char *) [uim_AvailMetsSize];
+  for (int j = 0; j < uim_AvailMetsSize; j++) 
+    uim_AvailMets[j] = strdup(((*amets)[j]).name.string_of());
+  uim_AvailMetHandles = new metricHandle [uim_AvailMetsSize];
+  for (int i = 0; i < uim_AvailMetsSize; i++) 
+    uim_AvailMetHandles[i] = (*amets)[i].id;
+  delete amets;
+  ml = Tcl_Merge (uim_AvailMetsSize, uim_AvailMets);
   ml = Tcl_SetVar (interp, "metList", ml, 0);
-  sprintf (ctr, "%d", uim_AvailMets.count);
+  sprintf (ctr, "%d", uim_AvailMetsSize);
   Tcl_SetVar (interp, "metCount", ctr, 0);
 
   // set global tcl variable to list of currently defined where axes
@@ -459,6 +468,23 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 // ****************************************************************
 //  DAG/SHG Display Service Routines
 // ****************************************************************
+
+nodeIdType
+StrToNodeIdType (char *instring) 
+{
+  nodeIdType retval;
+  if ((sscanf (instring, "%u", &retval)) <= 0)
+    abort(); 
+  return retval;
+}
+
+char *
+NodeIdTypeToStr (nodeIdType intoken)
+{
+  char *retval = new char[10];
+  sprintf(retval, "%u", intoken); 
+  return retval;
+}
 
 int getDagToken () 
 {
@@ -526,11 +552,11 @@ UIM::initSHG()
  */
 
 int 
-UIM::DAGaddNode(int dagID, int nodeID, int styleID, 
+UIM::DAGaddNode(int dagID, nodeIdType nodeID, int styleID, 
 			char *label, char *shgname, int flags)
 {
   dag *dagName;
-  char tcommand[200];
+  char *nodeIDstr;
   Tcl_HashEntry *entryPtr;
   Tk_Uid token;
   int added, retVal;
@@ -545,18 +571,19 @@ UIM::DAGaddNode(int dagID, int nodeID, int styleID,
     printf ("ERROR in UIM::DAGaddNode\n");
 
      // store pointer to full node pathname and use last piece as label
-  sprintf (tcommand, "%d", nodeID);
-  token = Tk_GetUid (tcommand);
+  nodeIDstr = NodeIdTypeToStr(nodeID);
+  token = Tk_GetUid (nodeIDstr);
   entryPtr = Tcl_CreateHashEntry (&shgNamesTbl, token, &added);
   if (added) {
     Tcl_SetHashValue (entryPtr, shgname);
   }
+  delete nodeIDstr;
   return 1;
 }
 
 int 
-UIM::DAGaddEdge (int dagID, int srcID, 
-		 int dstID, int styleID)
+UIM::DAGaddEdge (int dagID, nodeIdType srcID, 
+		 nodeIdType dstID, int styleID)
 {
   dag *dagName;
   dagName = ActiveDags[dagID];
@@ -568,12 +595,12 @@ UIM::DAGaddEdge (int dagID, int srcID,
 
   
 int 
-UIM::DAGconfigNode (int dagID, int nodeID, int styleID)
+UIM::DAGconfigNode (int dagID, nodeIdType nodeID, int styleID)
 {
   dag *dagName;
 
   dagName = ActiveDags[dagID];
-    int configureNode (int nodeID, char *label, int styleID);
+  int configureNode (nodeIdType nodeID, char *label, int styleID);
   if (dagName->configureNode (nodeID, NULL, styleID) != AOK)
     return 0;
   else
@@ -582,7 +609,6 @@ UIM::DAGconfigNode (int dagID, int nodeID, int styleID)
   
 int 
 UIM::DAGcreateNodeStyle(int dagID, int styleID, char *options)
-
 {
   char *dagName;
   char tcommand[200];
@@ -599,7 +625,6 @@ UIM::DAGcreateNodeStyle(int dagID, int styleID, char *options)
 
 int 
 UIM::DAGcreateEdgeStyle(int dagID, int styleID, char *options)
-
 {
   char *dagName;
   char tcommand[200];
@@ -613,5 +638,8 @@ UIM::DAGcreateEdgeStyle(int dagID, int styleID, char *options)
   else
     return 1;
 }
+
+
+
 
 

@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.16  1995/03/03 18:12:16  krisna
+ * Revision 1.17  1995/06/02 20:50:18  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.16  1995/03/03  18:12:16  krisna
  * the _correct_ prototype for strCompare
  *
  * Revision 1.15  1995/02/16  08:19:25  markc
@@ -115,15 +118,6 @@
  *
  *
  */
-
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
-  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
-  Tia Newhall, Mark Callaghan.  All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.16 1995/03/03 18:12:16 krisna Exp $";
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -155,9 +149,12 @@ focus::focus(resourceList *val)
 
     suppress = false;
     limit = val->getCount();
+    resourceHandle r_handle;
     for (i=0; i < limit; i++) {
-	r = val->getNth(i);
-	if (r->getSuppress()) suppress = true;
+	if(val->getNth(i,&r_handle)){
+	    r = resource::handle_to_resource(r_handle);
+	    if (r->getSuppress()) suppress = true;
+	}
     }
 
     data = val;
@@ -188,9 +185,13 @@ void focus::updateName()
 	names = (stringHandle *) malloc(sizeof(stringHandle) * limit);
 	suppress = false;
 	for (i=0; i < limit; i++) {
-	    res = data->getNth(i);
-	    names[i] = res->getFullName();
-	    if (res->getSuppress()) suppress = true;
+	    resourceHandle r_handle;
+	    if(data->getNth(i,&r_handle)){
+                res = resource::handle_to_resource(r_handle);
+		// TODO check that this conversion is okay
+	        names[i] = (void *)res->getFullName();
+	        if (res->getSuppress()) suppress = true;
+	    }
 	}
 	/* make sure we get a canocial form by sorting the name */
 	qsort((char *) names, limit, sizeof(char *), stringCompare);
@@ -204,11 +205,13 @@ void focus::updateName()
     name = strSpace.findAndAdd(temp);
 }
 
+/*
 focus::focus()
 {
     data = new resourceList;
     name = NULL;
 }
+*/
 
 bool focus::operator ==(focus *f)
 {
@@ -266,60 +269,68 @@ void printCurrentFocus()
 /* ARGSUSED */
 focusList focus::magnify(resource *param)
 {
-    int inner;
-    int count = 0;
-    int oLimit;
-    int iLimit;
-    focus *curr;
-    focus *ret;
-    resource *fc;
-    resource *tc;
-    focus *parent;
-    resourceList *c;
-    focusList *result;
-    resourceList *resList;
-    bool conflicts;
-
     // see if we have done this one before.
-    result = findMagnifyCache(param);
+    focusList *result = findMagnifyCache(param);
     if (result) return(*result);
     result = new(focusList);
 
-    parent = moreSpecific(param, conflicts);
+    bool conflicts;
+    focus *parent = moreSpecific(param, conflicts);
     // our current focus is more specific.
+    unsigned count = 0;
     if (!parent) {
-      if (!conflicts) {
-	result->add(this, (void *) this);
-	count = 1;
-      }
-      // do nothing if conflicts = true
+        if (!conflicts) {
+	    result->add(this, (void *) this);
+	    count = 1;
+        }
+        // do nothing if conflicts = true
     } else {
 	// for each known focus cell.
-	c = param->getChildren();
-	oLimit = c->getCount();
-	for (count = 0; count < oLimit; count++) {
-	    fc = c->getNth(count);
-	    resList = new resourceList;
-	    iLimit = data->getCount();
-	    for (inner=0; inner < iLimit; inner++) {
-		tc = data->getNth(inner);
-		if (tc->isDescendent(fc)) {
-		    resList->add(fc);
-		} else {
-		    resList->add(tc);
-		}
-	    }
-	    // generate a new name for it.
-	    curr = new focus(resList);
-	    ret = allFoci.find(curr);
-	    if (!ret) {
-		allFoci.addUnique(curr);
-		result->add(curr, (void *) curr);
-	    } else {
-		// add to resulting focus.
-		result->add(ret, (void *) ret);
-		free(curr->data);
-		delete(curr);
+	resourceHandle r_handle;
+	vector<resourceHandle> *c_handles = param->getChildren();
+	for (count = 0; count < c_handles->size(); count++) {
+	    resource *fc = resource::handle_to_resource((*c_handles)[count]);
+	    if (fc) {
+	        string *name = new string;
+		vector<resourceHandle> *handles = new vector<resourceHandle>;
+	        for (unsigned inner=0; inner < data->getCount(); inner++) {
+		    if(data->getNth(inner,&r_handle)){
+		        resource *tc = resource::handle_to_resource(r_handle); 
+		        if(tc->isDescendent(fc->getHandle())){
+                            *name += fc->getName();
+			    *handles += (*c_handles)[count];
+			    if(inner < (data->getCount() - 1))
+			        *name += ",";
+		        }
+		        else{
+			    *name += tc->getName();
+			    *handles += r_handle; 
+			    if(inner < (data->getCount() - 1))
+			        *name += ",";
+                        }
+		    }
+	        }
+	        // create a new resource List if one doesn't already exist
+		resourceList *resList;
+	        if(!(resList = resourceList::findRL(name->string_of()))){
+	            resList = resourceList::getFocus(
+			       resourceList::getResourceList(*handles));
+	        }
+
+	        // generate a new name for it.
+	        focus *curr = new focus(resList);
+	        focus *ret = allFoci.find(curr);
+	        if (!ret) {
+		    allFoci.addUnique(curr);
+		    result->add(curr, (void *) curr);
+	        } else {
+		    // add to resulting focus.
+		    result->add(ret, (void *) ret);
+		    free(curr->data);
+		    delete(curr);
+	        }
+	        delete name;
+		delete handles;
 	    }
 	}
     }
@@ -333,45 +344,57 @@ focusList focus::magnify(resource *param)
 
 focusList focus::enumerateRefinements()
 {
-    focus *f;
-    int limit;
-    int i, j, k;
-    resource *res;
-    int childCount;
-    focus *realFocus;
     focusList returnList;
-    resourceList *children;
-    resourceList *destList;
+    resourceHandle r_handle;
+    resourceHandle next_rh;
+    for(unsigned i=0; i < data->getCount(); i++){
+        if(data->getNth(i, &r_handle)){
+	    resource *res = resource::handle_to_resource(r_handle); 
+            vector<resourceHandle> *c_handles = res->getChildren();
 
-
-    limit = data->getCount();
-    for (i=0; i < limit; i++) {
-	res = data->getNth(i);
-	children = res->getChildren();
-	childCount = children->getCount();
-	for (j=0; j < childCount; j++) {
-	    destList = new resourceList;
-	    f = new focus(destList);
-	    for (k=0; k < limit; k++) {
-		if (k == i) {
-		    destList->add(children->getNth(j));
-		} else {
-		    destList->add(data->getNth(k));
+	    for(unsigned j=0; j < c_handles->size(); j++){
+	        string *name = new string;
+		vector<resourceHandle> *handles = new vector<resourceHandle>;
+                for(unsigned k=0; k < data->getCount(); k++){
+		    resource *next_res = NULL;
+                    if(k==i){
+                       next_res = 
+			    resource::handle_to_resource((*c_handles)[j]); 
+		    }
+		    else {
+                       if(data->getNth(k,&next_rh)){
+			   next_res = resource::handle_to_resource(next_rh);
+		       } 
+		    }
+		    if(next_res){
+                        *name += next_res->getName();
+			*handles += next_res->getHandle();
+			if(k < (data->getCount() - 1))
+			    *name += ",";
+		    }
 		}
+		// find this resourceList or create new one
+		resourceList *destList = NULL;
+		if(!(destList = resourceList::findRL(name->string_of()))){ 
+		    destList = resourceList::getFocus(
+				    resourceList::getResourceList(*handles));
+		}
+	        focus *f = new focus(destList);    
+	        // generate a new name for it.
+		f->updateName();
+		focus *realFocus = allFoci.find(f);
+		if (!realFocus) {
+                    allFoci.addUnique(f);
+		    realFocus = f;
+		}
+		else{
+		    // already been defined
+                    delete(f);
+		}
+		returnList.addUnique(realFocus);
+	        delete name;
+		delete handles;
 	    }
-
-	    // generate a new name for it.
-	    f->updateName();
-	    realFocus = allFoci.find(f);
-	    if (!realFocus) {
-		allFoci.addUnique(f);
-		realFocus = f;
-	    } else {
-		// already been defined.
-		free(destList);
-		delete(f);
-	    }
-	    returnList.addUnique(realFocus);
 	}
     }
     return(returnList);
@@ -380,38 +403,50 @@ focusList focus::enumerateRefinements()
 /* ARGSUSED */
 focus *focus::constrain(resource *param)
 {
-    int i;
-    focus *nf;
-    focus *ret;
-    bool found;
-    resource *curr;
-    resourceList *newCellList;
-
     // see if we have done this one before.
-    ret = findConstrainCache(param);
+    focus *ret = findConstrainCache(param);
     if (ret) return(ret);
 
-    found = false;
+    bool found = false;
     ret = NULL;
-    newCellList = new resourceList;
-    for (i=0; i < data->getCount(); i++) {
-	curr = data->getNth(i);
-	if (curr->isDescendent(param)) {
-	    newCellList->add(param);
-	    found = true;
-	} else {
-	    newCellList->add(curr);
+    resourceHandle r_handle;
+    string *name = new string;
+    vector<resourceHandle> *handles = new vector<resourceHandle>;
+    for (unsigned i=0; i < data->getCount(); i++) {
+        if (data->getNth(i,&r_handle)) {
+            resource *curr = resource::handle_to_resource(r_handle);
+	    if(curr){
+                if(curr->isDescendent(param->getHandle())){
+                    *name += param->getName();
+		    *handles += param->getHandle();
+                    found = true;
+		}
+		else {
+                    *name += curr->getName();
+		    *handles += curr->getHandle();
+		}
+		if(i < data->getCount())
+		    *name += ",";
+	    }
 	}
     }
     if (found) {
-	nf = new focus(newCellList);
+        // check to see if a resourceList with this name already exists
+        resourceList *newCellList;
+        if(!(newCellList = resourceList::findRL(name->string_of()))){
+	    newCellList = resourceList::getFocus(
+				resourceList::getResourceList(*handles));
+        }
+	focus *nf = new focus(newCellList);
 	ret = allFoci.find(nf);
 	addConstrainCache(param, ret);
 	delete(nf);
+	delete(name);
 	return(ret);
     } else {
 	addConstrainCache(param, this);
 	return(this);
+	delete(name);
     }
 }
 
@@ -422,77 +457,108 @@ focus *focus::constrain(resource *param)
 //
 focus *focus::moreSpecific(resource *parm, bool &conflicts)
 {
-    int i;
-    focus *nf;
-    int limit;
-    focus *ret;
-    resource *curr;
-    bool found;
-    resourceList *newList;
-
     assert(data);
     conflicts = false;
-    limit = data->getCount();
-    newList = new resourceList;
-    found = false;
-    for (i=0; i < limit; i++) {
-	curr = data->getNth(i);
-	if (curr->isDescendent(parm)) {
-	  newList->add(parm);
-	  found = true;
-	} else if (parm->isDescendent(curr)) {
-          // the current focus is more specific - it will be reused
-	  found = false;
-	  break;
-	} else if (strcmp((char *) curr->getName(), (char *) parm->getName()) &&
-		   (curr->sameRoot(parm))) {
-	  // if the resource and param have the same root, but
-	  // one is not a descendant of the other,
-	  // and they are not the same, then this
-	  // magnification conflicts with the current focus
-	    conflicts = true;
-	    found = false;
-	    break;
-	} else {
-	    newList->add(curr);
+    bool found = false;
+    resourceHandle r_handle;
+    string *name = new string;
+    vector<resourceHandle> *handles = new vector<resourceHandle>;
+    for (unsigned i=0; i < data->getCount(); i++) {
+	if(data->getNth(i,&r_handle)){
+	    resource *curr = resource::handle_to_resource(r_handle);
+	    if(curr){
+                if(curr->isDescendent(parm->getHandle())){
+		    *name += parm->getName();
+		    *handles += parm->getHandle();
+		    if(i < data->getCount())  
+			*name += ",";
+		    found = true;
+		}
+		else if(parm->isDescendent(curr->getHandle())){
+		// the current focus is more specific - it will be reused
+		found = false;
+		break;
+	        } else if (strcmp((char *) curr->getName(), 
+		           (char *) parm->getName()) && 
+		           (curr->sameRoot(parm->getHandle()))) {
+	            // if the resource and param have the same root, but
+	            // one is not a descendant of the other,
+	            // and they are not the same, then this
+	            // magnification conflicts with the current focus
+	            conflicts = true;
+	            found = false;
+	            break;
+	        } else {
+		    *name += curr->getName();
+		    *handles += curr->getHandle();
+		    if(i < data->getCount())  
+			*name += ",";
+                }
+	    }    
 	}
     }
     if (found) {
-	nf = new focus(newList);
-	ret = allFoci.find(nf);
+	// check to see if a resourceList with this name already exists
+	resourceList *newList;
+	if(!(newList = resourceList::findRL(name->string_of()))){
+	    newList = resourceList::getFocus(
+				resourceList::getResourceList(*handles)); 
+	}
+	focus *nf = new focus(newList);
+	focus *ret = allFoci.find(nf);
 	if (ret) {
-	    free(newList);
 	    delete(nf);
+	    delete name;
+	    delete handles;
 	    return(ret);
 	} else {
 	    allFoci.addUnique(nf);
+	    delete name;
+	    delete handles;
 	    return(nf);
 	}
     } else {
 	// not more specific.
-	free(newList);
+	delete name;
+	delete handles;
 	return(NULL);
     }
 }
 
 void initResources()
 {
-    resource *root;
+    resourceHandle *h = dataMgr->getRootResource();
+    if(!h) return;
 
-    root = dataMgr->getRootResource();
-    SyncObject = dataMgr->newResource(context, root, "SyncObject");
-    Procedures = dataMgr->newResource(context, root, "Procedure");
-    Processes = dataMgr->newResource(context, root, "Process");
-    Machines = dataMgr->newResource(context, root, "Machine");
-    Locks = dataMgr->newResource(context, SyncObject, "SpinLock");
-    Barriers = dataMgr->newResource(context, SyncObject, "Barrier");
-    Semaphores = dataMgr->newResource(context, SyncObject, "Semaphore");
-    MsgTags = dataMgr->newResource(context, SyncObject, "MsgTag");
+    resourceHandle handle = *h; 
+    resourceHandle temp = dataMgr->newResource(handle, "SyncObject");
+    SyncObject = resource::handle_to_resource(temp);
+    temp = dataMgr->newResource(handle, "Procedure");
+    Procedures = resource::handle_to_resource(temp);
+    temp = dataMgr->newResource(handle, "Process");
+    Processes = resource::handle_to_resource(temp);
+    temp = dataMgr->newResource(handle, "Machine");
+    Machines = resource::handle_to_resource(temp);
 
-    whereAxis = new focus(dataMgr->getRootResources());
+    handle = SyncObject->getHandle(); 
+    temp = dataMgr->newResource(handle,"SpinLock");
+    Locks = resource::handle_to_resource(temp);
+    temp = dataMgr->newResource(handle, "Barrier");
+    Barriers = resource::handle_to_resource(temp);
+    temp = dataMgr->newResource(handle, "Semaphore");
+    Semaphores = resource::handle_to_resource(temp);
+    temp = dataMgr->newResource(handle,"MsgTag");
+    MsgTags = resource::handle_to_resource(temp);
+
+    // whereAxis = new focus(dataMgr->getRootResources());
+    vector<resourceHandle> *children = resource::rootResource->getChildren();
+    // get handle for existing rl or creates a new one
+    resourceListHandle rl_handle = resourceList::getResourceList(*children);
+    resourceList *rl = resourceList::getFocus(rl_handle);
+    whereAxis = new focus(rl);
+
     globalFocus.addUnique(whereAxis);
     allFoci.addUnique(whereAxis);
-
 }
 
 // common string pool

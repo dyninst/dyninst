@@ -1,7 +1,6 @@
 /* $Log: UImain.C,v $
-/* Revision 1.44  1995/04/01 22:20:08  karavan
-/* removed unnecessary library function declarations leftover from Tk.
-/* removed call to dm->enableResourceCreationNotification.
+/* Revision 1.45  1995/06/02 20:50:35  newhall
+/* made code compatable with new DM interface
 /*
  * Revision 1.43  1995/02/27  18:55:43  tamches
  * Minor include change to placate compiler.
@@ -170,8 +169,11 @@
 #include <sys/param.h>
 
 #include "UIglobals.h" 
-#include "../DMthread/DMresource.h"
-#include "../DMthread/DMabstractions.h"
+
+// TEMP until remove all ptrs from DM interface then include DMinclude
+//TEMP until remove all ptrs from interface then include DMinclue.h
+#include "paradyn/src/DMthread/DMinclude.h"
+
 #include "dataManager.thread.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
@@ -194,14 +196,13 @@ static int tty;			/* Non-zero means standard input is a
 				 * terminal-like device.  Zero means it's
 				 * a file. */
 
-resource                  *uim_rootRes;
+resourceHandle            uim_rootRes;
 int                       uim_eid;
-List<metricInstance*>     uim_enabled;
-performanceStream         *uim_defaultStream;
+List<metricInstInfo *> uim_enabled;
+perfStreamHandle          uim_ps_handle;
 UIM                       *uim_server;
 int uim_maxError;
 int uim_ResourceSelectionStatus;
-List<resourceList *> uim_CurrentResourceSelections;
 int UIM_BatchMode = 0;
 Tcl_HashTable UIMMsgReplyTbl;
 Tcl_HashTable UIMwhereDagTbl;
@@ -219,9 +220,20 @@ static char *name = NULL;
 static char *display = NULL;
 static char *geometry = NULL;
 
-// External Declarations  
+/*
+ * Declarations for various library procedures and variables 
+ */
 
 extern "C" {
+  // "Type qualifiers conflict with previous declaration:", so I commented it out -AT 1/23/95
+  // (besides, why not just #include <stdlib.h>?)
+//  void		exit _ANSI_ARGS_((int status));
+
+  char *	strrchr _ANSI_ARGS_((CONST char *string, int c));
+
+  /* void		exit _ANSI_ARGS_((int status)); */
+  /* char *	strrchr _ANSI_ARGS_((CONST char *string, int c)); */
+
   int Tk_DagCmd _ANSI_ARGS_((ClientData clientData,
         Tcl_Interp *interp, int argc, char **argv));
 }
@@ -235,10 +247,11 @@ extern int ParadynCmd(ClientData clientData,
 		int argc, 
 		char *argv[]);
 extern int getDagToken ();
-extern void resourceAddedCB (performanceStream *ps , 
-		      resource *parent, 
-		      resource *newResource, 
-		      char *name);
+extern void resourceAddedCB (perfStreamHandle handle, 
+		      resourceHandle parent, 
+		      resourceHandle newResource, 
+		      const char *name,
+		      const char *abstraction);
 extern int initMainWhereDisplay ();
 
 /*
@@ -273,7 +286,7 @@ void reaper()
 // batch of draw requests.  If UIM_BatchMode is set, the UI thread 
 // will not examine idle event queue.
  
-void resourceBatchChanged(performanceStream *ps, batchMode mode)
+void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
 {
     if (mode == batchStart) {
       UIM_BatchMode++;
@@ -284,7 +297,7 @@ void resourceBatchChanged(performanceStream *ps, batchMode mode)
 }
 
 void
-applicStateChanged (performanceStream*, appState state) 
+applicStateChanged (perfStreamHandle handle, appState state) 
 {
 	static status_line app_status("Application status");
 
@@ -339,7 +352,6 @@ UImain(void* vargs)
     char *temp;
     controlCallback controlFuncs;
     dataCallback dataFunc;
-    char *tclscript = NULL;
 
     interp = Tcl_CreateInterp();
 #ifdef TCL_MEM_DEBUG
@@ -475,17 +487,21 @@ UImain(void* vargs)
     PARADYN_DEBUG(("UIM thread past barrier\n"));
 
    // subscribe to DM new resource notification service
-
-    uim_rootRes = dataMgr->getRootResource();
-    if (!uim_rootRes) abort();
+    resourceHandle *rhptr = dataMgr->getRootResource();
+    if (rhptr == (resourceHandle *)NULL) 
+      abort();
+    uim_rootRes = *rhptr;
     controlFuncs.rFunc = resourceAddedCB;
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = NULL;
     controlFuncs.sFunc = applicStateChanged;
     controlFuncs.bFunc = resourceBatchChanged;
+    controlFuncs.pFunc = NULL;
     dataFunc.sample = NULL;
-    uim_defaultStream = dataMgr->createPerformanceStream
-      (context, Sample, dataFunc, controlFuncs);
+
+    uim_ps_handle = dataMgr->createPerformanceStream
+      (Sample, dataFunc, controlFuncs);
+    
     uim_ResourceSelectionStatus = 0;    // no selection in progress
     Tcl_LinkVar (interp, "resourceSelectionStatus", 
 		 (char *) &uim_ResourceSelectionStatus, TCL_LINK_INT);    

@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.40  1995/02/27 18:56:48  tamches
-/* Changes to reflect the new TCthread.
+/* Revision 1.41  1995/06/02 20:50:43  newhall
+/* made code compatable with new DM interface
 /*
+ * Revision 1.40  1995/02/27  18:56:48  tamches
+ * Changes to reflect the new TCthread.
+ *
  * Revision 1.39  1995/02/16  08:20:52  markc
  * Changed Boolean to bool
  * Changed wait loop code for igen messages
@@ -151,7 +154,7 @@
 
 #include <string.h>
 #include "UIglobals.h"
-#include "../DMthread/DMresource.h"
+#include "paradyn/src/DMthread/DMinclude.h"
 #include "../TCthread/tunableConst.h"
 #include "VM.thread.CLNT.h"
 #include "thread/h/thread.h"
@@ -161,14 +164,14 @@
 
 #include "Status.h"
 
-extern bool detachApplication(applicationContext,bool);
+extern bool detachApplication(bool);
 
 int ParadynPauseCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
 		int argc, 
 		char *argv[])
 {
-  dataMgr->pauseApplication(context);
+  dataMgr->pauseApplication();
   return TCL_OK;
 }
 
@@ -178,7 +181,7 @@ int ParadynContCmd(ClientData clientData,
 		int argc, 
 		char *argv[])
 {
-  dataMgr->continueApplication(context);
+  dataMgr->continueApplication();
   return TCL_OK;
 }
 
@@ -187,7 +190,7 @@ int ParadynStatusCmd(ClientData clientData,
 		int argc, 
 		char *argv[])
 {
-  dataMgr->printStatus(context);
+  dataMgr->printStatus();
   return TCL_OK;
 }
 
@@ -196,12 +199,13 @@ int ParadynMetricsCmd(ClientData clientData,
 			int argc, 
 			char *argv[])
 {
-  String_Array ml;
+  vector<string> *ml;
   int i;
   
-  ml = dataMgr->getAvailableMetrics(context);
-  for (i=0; i < ml.count; i++)
-    Tcl_AppendElement(interp, ml.data[i]);
+  ml = dataMgr->getAvailableMetrics();
+  for (i=0; i < ml->size(); i++)
+    Tcl_AppendElement(interp, (char *)((*ml)[i]).string_of());
+  delete ml;
   return TCL_OK;
 }
 
@@ -211,12 +215,12 @@ int ParadynDaemonsCmd(ClientData clientData,
 		      int argc, 
 		      char *argv[])
 {
-  String_Array dl;
-  int i;
+  vector<string> *dl;
   
-  dl = dataMgr->getAvailableDaemons(context);
-  for (i=0; i < dl.count; i++)
-    Tcl_AppendElement(interp, dl.data[i]);
+  dl = dataMgr->getAvailableDaemons();
+  for (int i=0; i < dl->size(); i++)
+    Tcl_AppendElement(interp, (char *)((*dl)[i]).string_of());
+  delete dl;
   return TCL_OK;
 }
 
@@ -226,31 +230,7 @@ int ParadynResourcesCmd(ClientData clientData,
 			int argc, 
 			char *argv[])
 {
-  stringHandle name;
-  resource *parent, *child;
-  resourceList *resList, *children;
-  int i, j, count, count2;
-
-  parent = uim_rootRes;
-  resList = parent->getChildren();
-
-  count = resList->getCount();
-
-  for (i = 0; i < count; i++) {
-    parent = resList->getNth(i);
-
-    name = parent->getFullName();
-    Tcl_AppendElement(interp, (char *) name);
-
-    children = parent->getChildren();
-    count2 = children->getCount();
-
-    for (j = 0; j < count2; j++) {
-      child = children->getNth(j);
-      name = child->getFullName();
-      Tcl_AppendElement(interp, (char *) name);
-    }
-  }
+  dataMgr->printResources();
   return TCL_OK;
 }
 
@@ -259,16 +239,16 @@ int ParadynListCmd(ClientData clientData,
 		int argc, 
 		char *argv[])
 {
-  String_Array ml;
+  vector<string> *ml;
   int i;
 
   dataMgr->printResources();
-  ml = dataMgr->getAvailableMetrics(context);
-  for (i=0; i < ml.count; i++) {
-    printf("%s\n", ml.data[i]);
+  ml = dataMgr->getAvailableMetrics();
+  for (i=0; i < ml->size(); i++) {
+    cout << ((*ml)[i]).string_of() << endl;
   }
 
-  printf("CONSTANTS\n");
+  cout << "CONSTANTS" << endl;
 
   vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
   for (int boollcv = 0; boollcv < allBoolConstants.size(); boollcv++) {
@@ -282,9 +262,9 @@ int ParadynListCmd(ClientData clientData,
      tfc.print();
   }
 
-  printf("bucketWidth %f\n", dataMgr->getCurrentBucketWidth());
-  printf("number of buckets = %d\n", dataMgr->getMaxBins());
-  dataMgr->printDaemons(context);
+  cout << "bucketWidth " << dataMgr->getCurrentBucketWidth() << endl;
+  cout << "number of buckets = " << dataMgr->getMaxBins() << endl;
+  dataMgr->printDaemons();
   return TCL_OK;
 }
 
@@ -293,8 +273,27 @@ int ParadynDetachCmd (ClientData clientData,
 		      int argc,
 		      char *argv[])
 {
-  dataMgr->detachApplication(context, true);
+  dataMgr->detachApplication(true);
   return TCL_OK;
+}
+
+metricHandle *
+StrToMetHandle (char *mstr)
+{
+  metricHandle *mh = new metricHandle;
+  if (sscanf (mstr, "%u", mh) <= 0) {
+    delete mh;
+    return (metricHandle *) NULL;
+  }
+  else return mh;
+}
+
+char *
+MetHandleToStr (metricHandle mh)
+{
+  char *result = new char[12];
+  sprintf (result, "%u", mh);
+  return result;
 }
 
 int ParadynGetTotalCmd (ClientData clientData,
@@ -302,8 +301,8 @@ int ParadynGetTotalCmd (ClientData clientData,
 		     int argc,
 		     char *argv[])
 {
-  int met;
-  metricInstance *mi;
+  metricHandle *met;
+  metricInstInfo *mi;
   float val;
 
   if (argc < 2) {
@@ -311,22 +310,23 @@ int ParadynGetTotalCmd (ClientData clientData,
     return TCL_ERROR;
   }
 
-  if (Tcl_GetInt(interp, argv[1], &met) == TCL_ERROR) {
-    sprintf(interp->result, "Could not parse '%s' as an integer", argv[1]);
+  if (!(met = dataMgr->findMetric (argv[1]))) {
+    Tcl_AppendElement (interp, "invalid metric identifier");
     return TCL_ERROR;
   }
-
-  mi = uim_enabled.find((void *) met);
-
+  
+  mi = uim_enabled.find((void *) *met);
   if (!mi) {
-    sprintf (interp->result, "unable to find metric %d\n", met); 
+    Tcl_AppendResult (interp, "unable to find metric ", MetHandleToStr(*met),
+		      (char *)NULL);
+    delete met;
     return TCL_ERROR;
   }
   else {
-    val = dataMgr->getTotValue(mi);
+    val = dataMgr->getTotValue(mi->mi_id);
     sprintf(interp->result, "%g", val);
-  }
-
+    delete met;
+  }  
   return TCL_OK;
 }
 
@@ -337,19 +337,24 @@ int ParadynPrintCmd (ClientData clientData,
 {
   if (argv[1][0] == 'm') {   // print metric
     float val;
-    metricInstance *mi;
-    int met;
+    metricInstInfo *mi;
+    metricHandle *met;
 
-    if (Tcl_GetInt(interp, argv[2], &met) == TCL_ERROR) 
+    if (! (met = dataMgr->findMetric (argv[2]))) {
+      Tcl_AppendElement (interp, "Invalid metric");
       return TCL_ERROR;
-    mi = uim_enabled.find((void *) met);
+    }
+    mi = uim_enabled.find((void *) *met);
+
     if (!mi) {
-      sprintf (interp->result, "unable to find metric %d\n", met); 
+      sprintf (interp->result, "unable to find metric %s\n", 
+	       argv[2]);
+      delete met;
       return TCL_ERROR;
      } else {
-      val = dataMgr->getMetricValue(mi);
+      val = dataMgr->getMetricValue(mi->mi_id);
       printf ("metric %s, val = %f\n", 
-	       (char*)dataMgr->getMetricName(dataMgr->getMetric(mi)), val);
+	       (char*)dataMgr->getMetricName(*met), val);
     }
   } else if (argv[1][0] == 's') {     //print shg
       perfConsult->printSHGList();
@@ -388,101 +393,56 @@ int ParadynProcessCmd(ClientData clientData,
 		      int argc,
 		      char *argv[])
 {
-    int i;
-    char *user = NULL;
-    char *machine = NULL;
-    char *paradynd = NULL;
-
-    for (i=1; i < argc-1; i++) {
-	if (!strcmp("-user", argv[i])) {
-	    if (i+1 == argc) {
-		processUsage();
-		return TCL_ERROR;
-	    }
-	    user = argv[++i];
-	} else if (!strcmp("-machine", argv[i])) {
-	    if (i+1 == argc) {
-		processUsage();
-		return TCL_ERROR;
-	    }
-	    machine = argv[++i];
-	} else if (!strcmp("-daemon", argv[i])) {
-	    if (i+1 == argc) {
-		processUsage();
-		return TCL_ERROR;
-	    }
-	    paradynd = argv[++i];
-	} else if (argv[i][0] != '-') {
-	    break;
-	} else {
-	    processUsage();
-	    return TCL_ERROR;
-	}
-    }
-
-    static status_line app_name("Application name");
-    static char tmp_buf[1024];
-    sprintf(tmp_buf, "program: %s, machine: %s, user: %s, daemon: %s",
-	argv[i], machine?machine:"(local)", user?user:"(self)",
-	paradynd?paradynd:"(default)");
-    app_name.message(tmp_buf);
-
-    vector<string> av;
-    unsigned ve=i;
-    while (argv[ve]) {
-      av += argv[ve];
-      ve++;
-    }
-    if (dataMgr->addExecutable(context, machine, user, paradynd, (char*)0,
-			       &av) == false)
-      return TCL_ERROR;
-    else
-      return TCL_OK;
-  }
-
-/*
- * build_resource_list
- * parses string of form <aaa/bbb/ccc,ddd/eee>, building up a 
- * list of resources which is returned.
- * returns NULL if any resource not defined or if argument does not 
- * match regular expression for the string.
- */
-resourceList *build_resource_list (Tcl_Interp *interp, char *list)
-{
-  char **argv1, **argv2;
-  int argc1, argc2;
-  resourceList *ret;
-  resource *parent, *child;
-  int res, el;
-
-  ret = new resourceList;
-
-  if (Tcl_SplitList(interp, list, &argc1, &argv1) != TCL_OK) {
-    printf("Could not split list '%s'", list);
-    return NULL;
-  }
-
-  for (res = 0; res < argc1; res++) {
-    if (Tcl_SplitList(interp, argv1[res], &argc2, &argv2) != TCL_OK) {
-      printf("Could not split list '%s'", argv1[res]);
-      return NULL;
-    }
-    parent = uim_rootRes;
-    for (el = 0; el < argc2; el++) {
-      child = parent->findChild(argv2[el]);
-      if (!child) {
-	printf ("Resource %s (child of %s) not defined\n", argv2[el], 
-		((el == 0) ? "/" : argv2[el-1]) );
-	return NULL;
+  int i;
+  char *user = NULL;
+  char *machine = NULL;
+  char *paradynd = NULL;
+  
+  for (i=1; i < argc-1; i++) {
+    if (!strcmp("-user", argv[i])) {
+      if (i+1 == argc) {
+	processUsage();
+	return TCL_ERROR;
       }
-      parent = child;
+      user = argv[++i];
+    } else if (!strcmp("-machine", argv[i])) {
+      if (i+1 == argc) {
+	processUsage();
+	return TCL_ERROR;
+      }
+      machine = argv[++i];
+    } else if (!strcmp("-daemon", argv[i])) {
+      if (i+1 == argc) {
+	processUsage();
+	return TCL_ERROR;
+      }
+      paradynd = argv[++i];
+    } else if (argv[i][0] != '-') {
+      break;
+    } else {
+      processUsage();
+      return TCL_ERROR;
     }
-    ret->add(child);
-    free(argv2);
   }
 
-  free(argv1);
-  return ret;
+  static status_line app_name("Application name");
+  static char tmp_buf[1024];
+  sprintf(tmp_buf, "program: %s, machine: %s, user: %s, daemon: %s",
+	  argv[i], machine?machine:"(local)", user?user:"(self)",
+	  paradynd?paradynd:"(default)");
+  app_name.message(tmp_buf);
+  
+  vector<string> av;
+  unsigned ve=i;
+  while (argv[ve]) {
+    av += argv[ve];
+    ve++;
+  }
+  if (dataMgr->addExecutable(machine, user, paradynd, (char*)0,
+			     &av) == false)
+    return TCL_ERROR;
+  else
+    return TCL_OK;
 }
 
 //
@@ -493,32 +453,34 @@ int ParadynDisableCmd (ClientData clientData,
 		      int argc,
 		      char *argv[])
 {
-  int met;
-  metricInstance *mi;
+  metricHandle *met;
+  metricInstInfo *mi;
 
   // Hold Everything!
-  dataMgr->pauseApplication (context);
+  dataMgr->pauseApplication ();
 
   if (argc < 2) {
     sprintf(interp->result, "USAGE: disable <metid>");
     return TCL_ERROR;
   }
 
-  if (Tcl_GetInt(interp, argv[1], &met) == TCL_ERROR) {
-    sprintf(interp->result, "Could not parse '%s' as an integer", argv[1]);
+  if (! (met = dataMgr->findMetric(argv[1]))) {
+    sprintf(interp->result, "Invalid metric %s", argv[1]);
     return TCL_ERROR;
   }
 
-  mi = uim_enabled.find((void *) met);
+  mi = uim_enabled.find((void *) *met);
 
   if (!mi) {
-    sprintf (interp->result, "unable to find metric %d\n", met); 
+    sprintf (interp->result, "unable to find metric %s\n", 
+	     MetHandleToStr(*met)); 
+    delete met;
     return TCL_ERROR;
   }
   else {
-    dataMgr->disableDataCollection (uim_defaultStream, mi);
+    dataMgr->disableDataCollection (uim_ps_handle, mi->mi_id);
+    delete met;
   }
-
   return TCL_OK;
 }
 
@@ -531,51 +493,56 @@ int ParadynEnableCmd (ClientData clientData,
 		      int argc,
 		      char *argv[])
 {
-  metric *met;
-  stringHandle name;
-  metricInstance *mi;
-  resourceList *resList;
+  metricHandle *met;
+  metricInstInfo *mi;
+  vector<resourceHandle> *resList;
 
   // Hold Everything!
-  dataMgr->pauseApplication (context);
+  dataMgr->pauseApplication ();
 
   // Build a resource list from the tcl list
   if (argc == 2)
     resList = dataMgr->getRootResources();
   else {
-    resList = build_resource_list (interp, argv[2]);
-    if (resList == NULL) {
-      sprintf (interp->result, "unable to build resource list for %s",
-	       argv[2]);
+    char **argsv;
+    int argsc;
+    resourceHandle *res;
+
+    if (Tcl_SplitList(interp, argv[2], &argsc, &argsv) != TCL_OK) {
+      printf("Error parsing resource list '%s'", argv[2]);
       return TCL_ERROR;
     }
+
+    resList = new vector<resourceHandle>;
+    cout << "enable request for ";
+    for (int i = 0; i < argsc; i++) {
+      res = dataMgr->findResource(argsv[i]);
+      cout << argsv[i] << " ";
+      resList += *res;
+    }
+    cout << endl;
+    free(argsv);
   }
 
-  // DEBUG
-  name = resList->getCanonicalName();
-  printf ("enable request for %s\n", (char*) name);
-
-  // Now check the metric 
-  met = dataMgr->findMetric (context, argv[1]);
+  // Now check the metric
+  met = dataMgr->findMetric (argv[1]);
   if (!met) {
     sprintf (interp->result, "metric %s is not defined\n", argv[1]);
+    delete resList;
     return TCL_ERROR;
   }
   else {
     // Finally enable the data collection
-    mi = dataMgr->enableDataCollection (uim_defaultStream, resList,
-					met);
+    mi = dataMgr->enableDataCollection (uim_ps_handle, resList, *met);
     if (mi) {
-      uim_enabled.add(mi, (void *) uim_eid);
-      sprintf(interp->result,"%d",uim_eid);
-      printf ("metric %s, id = %d\n", (char*) dataMgr->getMetricName(met), uim_eid);
-      uim_eid++;
+      uim_enabled.add(mi, (void *)mi->mi_id);
+      sprintf(interp->result, MetHandleToStr (mi->mi_id));
+      printf ("metric %s, id = %s\n", argv[1], MetHandleToStr(mi->mi_id));
     } else {
       sprintf (interp->result, "can't enable metric %s for focus \n", argv[1]);
       return TCL_ERROR;
     }
   }
-
   return TCL_OK;
 }
 
@@ -595,7 +562,7 @@ int ParadynCoreCmd (ClientData clientData,
     return TCL_ERROR;
   }
 
-  dataMgr->coreProcess(context, pid);
+  dataMgr->coreProcess(pid);
   return TCL_OK;
 }
 
@@ -604,14 +571,6 @@ int ParadynSetCmd (ClientData clientData,
 		    int argc,
 		    char *argv[])
 {
-//  int val;
-//  stringHandle sp;
-//  tunableConstant *curr;
-//  tunableFloatConstant *fConst;
-//  tunableBooleanConstant *bConst;
-//  float f;
-//  double d;
-
   if (argc != 3) {
     sprintf(interp->result,"USAGE: %s <variable> <value>", argv[0]);
     return TCL_ERROR;
@@ -628,11 +587,6 @@ int ParadynSetCmd (ClientData clientData,
         return TCL_ERROR;
      else {
         tunableConstantRegistry::setBoolTunableConstant(argv[1], (bool)boolVal);
-//
-//   these printfs were preventing the demonstation of vital computer
-//   science research.  i was ordered to remove them, and i have done so.
-//                                     -rbi  11/10/94
-//
         cout << "tunable boolean constant " << argv[1] << " set to " << boolVal << endl;
      }
   }
@@ -671,7 +625,7 @@ int ParadynSearchCmd (ClientData clientData,
     return TCL_ERROR;
   }
 
-  if (dataMgr->applicationDefined(context) != true) {
+  if (dataMgr->applicationDefined() != true) {
     sprintf (interp->result, "no program defined, can't search\n");
     return TCL_ERROR;
   } else {
@@ -718,59 +672,53 @@ int ParadynSuppressCmd (ClientData clientData,
 		       int argc,
 		       char *argv[])
 {
-    int i;
-    int limit;
-    resource *r;
-    stringHandle name;
-    bool suppressInst, suppressChildren;
-    resourceList *resList;
+  bool suppressInst, suppressChildren;
 
-    if (argc != 3) {
-	printf("Usage: paradyn suppress <search|inst|searchChildren> <resource list>\n");
-	return TCL_ERROR;
-    }
-    resList = build_resource_list (interp, argv[2]);
-    if (resList == NULL) {
-      sprintf (interp->result, "unable to build resource list for %s",
-	       argv[2]);
+  if (argc != 3) {
+    printf("Usage: paradyn suppress <search|inst|searchChildren> <resource list>\n");
+    return TCL_ERROR;
+  }
+  if (!strcmp(argv[1], "search")) {
+    suppressInst = false;
+    suppressChildren = false;
+  } else if (!strcmp(argv[1], "inst")) {
+    suppressInst = true;
+  } else if (!strcmp(argv[1], "searchChildren")) {
+    suppressInst = false;
+    suppressChildren = true;
+  } else {
+    printf("Usage: paradyn suppress <search|inst|searchChildren> <resource list>\n");
+    return TCL_ERROR;
+  }
+
+  {
+    char **argsv;
+    int argsc;
+    resourceHandle *res;
+    
+    if (Tcl_SplitList(interp, argv[2], &argsc, &argsv) != TCL_OK) {
+      printf("Error parsing resource list '%s'", argv[2]);
       return TCL_ERROR;
     }
-
-    if (!strcmp(argv[1], "search")) {
-	suppressInst = false;
-	suppressChildren = false;
-    } else if (!strcmp(argv[1], "inst")) {
-	suppressInst = true;
-    } else if (!strcmp(argv[1], "searchChildren")) {
-	suppressInst = false;
-	suppressChildren = true;
-    } else {
-	sprintf (interp->result, "suppress option (%s) not search or inst",
-	    argv[1]);
-      return TCL_ERROR;
+    
+    cout << "suppress request for ";
+    for (int i = 0; i < argsc; i++) {
+      res = dataMgr->findResource (argsv[i]);
+      cout << argsv[i];
+      if (suppressInst) {
+	dataMgr->setResourceInstSuppress(*res, true);
+      } else {
+	if (suppressChildren)
+	  dataMgr->setResourceSearchChildrenSuppress(*res, true);
+	else
+	  dataMgr->setResourceSearchSuppress(*res, true);
+      }
+      delete res;
     }
-
-    for (i = 0, limit = resList->getCount(); i < limit; i++) {
-	// DEBUG
-	r = resList->getNth(i);
-	name = r->getName();
-//
-//   this printf just pushed me over the edge.  it too stood in the way
-//   of demonstrating vital computer science research.  i was ordered
-//   to remove it, and i have done so.  it may be my last.
-//                                     -rbi  11/10/94
-//	printf ("suppress request for %s\n", (char*)name);
-
-	if (suppressInst) {
-	    dataMgr->setResourceInstSuppress(context, r, true);
-	} else {
-	    if (suppressChildren)
-	        dataMgr->setResourceSearchChildrenSuppress(context, r, true);
-	    else
-	        dataMgr->setResourceSearchSuppress(context, r, true);
-	}
-    }
+    cout << endl;
+    free(argsv);
     return TCL_OK;
+  }
 }
 
 int ParadynVisiCmd (ClientData clientData,
@@ -790,32 +738,32 @@ int ParadynVisiCmd (ClientData clientData,
     return TCL_ERROR;
   }
   if (argv[1][0] == 'a') {
-    VM_activeVisiInfo_Array temp;
-    int i;
+    vector<VM_activeVisiInfo> *temp;
 
     temp = vmMgr->VMActiveVisis();
-    for(i=0;i<temp.count;i++){
+    for(int i=0; i < temp->size(); i++){
       printf("active_info %d: name %s TypeId %d visiNum = %d\n",i,
-	     temp.data[i].name,temp.data[i].visiTypeId,temp.data[i].visiNum);
+	     ((*temp)[i]).name.string_of(),
+	     ((*temp)[i]).visiTypeId,((*temp)[i]).visiNum);
     }
-    free (temp.data);
+    delete temp;
   }
   else if (argv[1][0] == 'i') {
-      VM_visiInfo_Array visi_info;
-      int i;
+      vector<VM_visiInfo> *visi_info;
 
       visi_info = vmMgr->VMAvailableVisis();
-      for(i=0;i<visi_info.count;i++){
+      for(int i=0; i < visi_info->size();i++){
 	printf("visi %d: name %s visiTypeId %d\n",i,
-	       visi_info.data[i].name,visi_info.data[i].visiTypeId);
+	       ((*visi_info)[i]).name.string_of(), 
+	       ((*visi_info)[i]).visiTypeId);
       }
-      free (visi_info.data);
+      delete visi_info;
     } 
   else if (argv[1][0] == 'c') {
     int ok, i;
     if (Tcl_GetInt (interp, argv[2], &i) != TCL_OK) 
       return TCL_ERROR;
-    ok = vmMgr->VMCreateVisi(1,-1,i,NULL,0); 
+    ok = vmMgr->VMCreateVisi(1,-1,i,NULL); 
   } 
   else if (argv[1][0] == 'k') {
     int i;

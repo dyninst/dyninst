@@ -7,6 +7,7 @@ extern "C" {
 }
 #include "dagCompute.h"
 #include "dag.h"
+#include "paradyn/src/DMthread/DMresource.h"
 
 char *defaultNStyleArgs[] = 
 {};
@@ -46,6 +47,7 @@ dag::dag (Tcl_Interp *nterp)
   graph->row_ratio = 0;
   ClearHash (graph->hash);
   graph->row = NULL;
+  abstr = NULL;
 
   // initialize hash tables for eStyle and nStyle 
     
@@ -71,11 +73,11 @@ inline static void FreeNull(void *p) {
 	delete p;
 }
 
-inline static int HashValue(int node) {
+inline static int HashValue(unsigned node) {
     return((unsigned)node % HASH_SIZE);
 }
 
-static rNode FindHash(rNode ht[HASH_SIZE], int node) {
+static rNode FindHash(rNode ht[HASH_SIZE], unsigned node) {
 rNode h;
     for (h = ht[HashValue(node)]; h != NULL; h = h->hash)
 	if (h->aNode == node)
@@ -378,7 +380,7 @@ dag::tagExceptSubgraph (rNode root)
 }
 
 rNode 
-dag::getNodePtr (int nodeID) 
+dag::getNodePtr (unsigned nodeID) 
 {
   return FindHash(graph->hash, nodeID);
 }    
@@ -390,7 +392,7 @@ class displayOption;
  * addDisplayOptions
  */
 int
-dag::addDisplayOption (optionType opt, int rootID)
+dag::addDisplayOption (optionType opt, unsigned rootID)
 {
   displayOption *currOpt;
   rNode root;
@@ -481,7 +483,7 @@ dag::getNStyle (int style)
  *  Returns errorcode or AOK
  */
 int
-dag::CreateNode (int nodeID, int root, char *nodeLabel, int style, 
+dag::CreateNode (unsigned nodeID, int root, char *nodeLabel, int style, 
 		 void *appRecPtr)
 {
   rNode me;
@@ -554,7 +556,7 @@ dag::getEStyle (int style)
  *      ERR_ADDE_BADDST      requested dest'n node not found
  */
 int 
-dag::AddEdge(int src, int dst, int styleID)
+dag::AddEdge(unsigned src, unsigned dst, int styleID)
 {
   rNode srcNode, dstNode;
   eStyle *style;
@@ -590,7 +592,7 @@ dag::AddEdge(int src, int dst, int styleID)
  */
 int 
 dag::AddEStyle (int styleID, int arrow, int ashape1, int ashape2, int ashape3,
-		const char *stipple, const char *fill, char capstyle, float width)
+		char *stipple, char *fill, char capstyle, float width)
 {
   eStyle *eStylePtr;
   pRec *newEntry;
@@ -846,7 +848,7 @@ dag::calcLabelSize (_node *node)
  */
 
 int
-dag::configureNode (int nodeID, char *label, int styleID)
+dag::configureNode (unsigned nodeID, char *label, int styleID)
 {
   rNode me;
   nStyle *newStyle;
@@ -933,12 +935,57 @@ dag::isHighlighted (rNode curr)
     return 0;
 }
 
+void
+dag::listHighlightedNodes (rNode curr, vector<unsigned> *tokenlist)
+{
+  if (isHighlighted (curr)) {
+    *tokenlist += curr->aNode;
+  }
+  for (int i = 0; i < curr->downSize; i++)
+    listHighlightedNodes (curr->downList[i].dest, tokenlist);
+}
+
+vector<numlist> *
+dag::listAllHighlightedNodes ()
+{
+  vector<numlist> *result;
+  vector<unsigned> *buildup;
+  result = new vector<numlist>;
+  rNode me = graph->row[0].first;
+
+  while (me != NULL) {
+      buildup = new vector<unsigned>;
+      // get all highlighted child nodes of current parent node 
+      listHighlightedNodes (me, buildup); 
+
+      // add the curr parent node if no nodes have been highlighted 
+      if (buildup->size() == 0){
+          *buildup += me->aNode;   
+	  *result += *buildup;
+      }
+      // add all hightlighted nodes
+      else {  
+          *result += *buildup;
+      }
+      /*
+      for(unsigned i=0; i < buildup->size(); i++){
+           printf("resource %d: %d %s\n",i,(*buildup)[i],
+			resource::getName((*buildup)[i]));
+      }
+      */
+      buildup = 0;
+      me = me->forw;
+  }
+  buildup = 0;
+  return result;
+}
+    
 int
-dag::highlightNode (int nodeID)
+dag::highlightNode (unsigned nodeID)
 {
   rNode me;
   nStyle *newStyle;
-  int newStyleID;
+  unsigned newStyleID;
 
      /* verify valid nodeID */
   me = FindHash(graph->hash, nodeID);
@@ -967,7 +1014,7 @@ int
 dag::highlightNode (rNode me)
 {
   nStyle *newStyle;
-  int newStyleID;
+  unsigned newStyleID;
 
   /* store new style in node record */
   if (me->nodeStyle->styleID < 1000)  
@@ -988,7 +1035,7 @@ dag::highlightNode (rNode me)
 }
  
 int
-dag::unhighlightNode (int nodeID)
+dag::unhighlightNode (unsigned nodeID)
 {
   rNode me;
   nStyle *newStyle;
@@ -1057,7 +1104,7 @@ dag::unHighlightchildren (rNode curr)
 }
 
 int
-dag::constrHighlightNode (int nodeID)
+dag::constrHighlightNode (unsigned nodeID)
 {
   rNode hnode, rnode;
   if ( (hnode = getNodePtr(nodeID)) == NULL)
@@ -1072,7 +1119,7 @@ dag::constrHighlightNode (int nodeID)
 }
 
 int
-dag::configureEdge (int srcID, int dstID, int styleID)
+dag::configureEdge (unsigned srcID, unsigned dstID, int styleID)
 {
   rNode me;
   eStyle *newStyle;

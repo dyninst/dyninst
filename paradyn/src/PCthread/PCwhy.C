@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCwhy.C,v $
- * Revision 1.7  1995/02/16 08:19:27  markc
+ * Revision 1.8  1995/06/02 20:50:20  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.7  1995/02/16  08:19:27  markc
  * Changed Boolean to bool
  *
  * Revision 1.6  1994/12/21  00:46:37  tamches
@@ -69,14 +72,6 @@
  * Initial revision
  *
  */
-
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
-  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
-  Tia Newhall, Mark Callaghan.  All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCwhy.C,v 1.7 1995/02/16 08:19:27 markc Exp $";
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
