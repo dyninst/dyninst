@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.7 2003/02/04 22:25:51 bernat Exp $
+// $Id: sol_proc.C,v 1.8 2003/02/19 23:30:39 schendel Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -184,7 +184,7 @@ bool dyn_lwp::isRunning() const {
 
 bool dyn_lwp::clearSignal() {
     long command[2];
-    fprintf(stderr, "Clearing signal from process\n");
+    //fprintf(stderr, "Clearing signal from process\n");
     command[0] = PCRUN; command[1] = PRSTOP | PRCSIG;
     if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
         perror("clearSignal: PCRUN");
@@ -703,17 +703,15 @@ bool process::setProcfsFlags()
         if (SYSSET_MAP(SYS_fork1, getPid()) != -1)
             praddsysset (exitset, SYSSET_MAP(SYS_fork1, getPid()));
     }
-    /*
     if (BPatch::bpatch->execCallback) {
         if (SYSSET_MAP(SYS_exec, getPid()) != -1)
-            praddsysset (exitset, SYSSET_MAP(SYS_exec, getPid()));
+           praddsysset (exitset, SYSSET_MAP(SYS_exec, getPid()));
         if (SYSSET_MAP(SYS_execve, getPid()) != -1)
-            praddsysset (exitset, SYSSET_MAP(SYS_execve, getPid()));
+           praddsysset (exitset, SYSSET_MAP(SYS_execve, getPid()));
     }
-    */
     if (BPatch::bpatch->exitCallback) {
         if (SYSSET_MAP(SYS_exit, getPid()) != -1)
-            praddsysset (exitset, SYSSET_MAP(SYS_exit, getPid()));
+            praddsysset (entryset, SYSSET_MAP(SYS_exit, getPid()));
     }
     
     if (BPatch::bpatch->preForkCallback) {
@@ -1187,7 +1185,7 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
                                                              p->getPid())));
         //int result = (int) GETREG_GPR(procstatus.pr_reg, 3);
         int result = procstatus.pr_reg[R_O0];
-        
+
         if (p->isAnyIRPCwaitingForSyscall()) {
            // reset PIOCSEXIT mask
            // inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
@@ -1253,20 +1251,39 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
            // exec calls above. 
            process *proc = currProc;
            proc->execFilePath = proc->tryToFindExecutable("", proc->getPid());
-           
-           // only handle if this is in the child - is this right??? jkh
+
            // As of Solaris 2.8, we get multiple exec signals per exec.
            // My best guess is that the daemon reads the trap into the
            // kernel as an exec call, since the process is paused
            // and PR_SYSEXIT is set. We want to ignore all traps 
            // but the last one.
-           if (proc->reachedBootstrapState(initialized)) {
-              // Otherwise known as "an exec we care about", if
-              // we haven't reached the first break then this
-              // exec is likely the process being created.
-              
-              // Flag unix.C to handle an exec
-              proc->inExec = true;
+           bool isThisAnExecInTheRunningProgram = 
+              proc->reachedBootstrapState(initialized);
+           bool areWeInTheProcessOfHandlingAnExec = proc->wasExeced();
+           if(isThisAnExecInTheRunningProgram || 
+              areWeInTheProcessOfHandlingAnExec)
+           {
+              // since Solaris causes multiple traps associated with trapping
+              // on exit of exec syscall, we do proper exec handling
+              // (eg. cause process::handleExec to be called) for each trap
+              // so when "real" exec trap occurs, will handle correctly.  I'm
+              // considering the "real" exec trap as the one that occurs when
+              // the execed process has been created and we're paused at the
+              // end of "exec".  The other execs seem to occur at some other
+              // point in the exec process syscall an the "execed" process
+              // hasn't been created yet.
+
+              // because of these multiple exec exit notices, the sequence
+              // of the process status goes something like this
+              // false exec notice:  boostrapped    =>  unstarted (handleExec)
+              // handleSigChild:     unstarted      =>  begun (trap at main)
+              // false exec notice:  begun          =>  unstarted (handleExec)
+              // handleSigChild:     unstarted      =>  begun (trap at main)
+              // real exec notice:   begun          =>  unstarted (handleExec)
+              // handleSigChild:     unstarted      =>  begun (trap at main)
+              // trap at main:       begun          =>  initialized
+
+              proc->inExec = true;         // Flag unix.C to handle an exec
               proc->status_ = stopped;
               pdvector<heapItem *> emptyHeap;
               proc->heap.bufferPool = emptyHeap;
@@ -1285,13 +1302,14 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
      case PR_SYSENTRY: {
         bool alreadyCont = false;
         process *p = currProc;
-        
+
         if ((procstatus.pr_what == SYSSET_MAP(SYS_fork, 
                                               p->getPid())) 
             || (procstatus.pr_what == SYSSET_MAP(SYS_vfork, 
                                                  p->getPid()))
             || (procstatus.pr_what == SYSSET_MAP(SYS_fork1, 
                                                  p->getPid()))) {
+           currProc->status_ = stopped;
            BPatchForkCallback preForkCB = process::getPreForkCallback();
            if(preForkCB) {
               assert(p->thread);
@@ -1338,8 +1356,9 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
               }
            }
         } else if (procstatus.pr_what == SYSSET_MAP(SYS_exit, p->getPid())) {
-           int code = GETREG_GPR(procstatus.pr_reg, 3);
-           
+           //int code = GETREG_GPR(procstatus.pr_reg, 3);
+           int code = procstatus.pr_reg[R_O0];           
+
            process *proc = currProc;
            
            proc->status_ = stopped;
@@ -1355,6 +1374,7 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
         }
         // changed from continueProc_ 2/1/03
         if (!alreadyCont) (void) currProc->continueProc();
+
         break;
      }
 #endif
@@ -1609,7 +1629,7 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
        return "";
    //cerr << "Argv 0: " << argv0 << " cwd: " << cwdenv << " path: " << pathenv << endl;
    
-   if (executableFromArgv0AndPathAndCwd(result, argv0, pathenv, cwdenv)) {       
+   if (executableFromArgv0AndPathAndCwd(result, argv0, pathenv, cwdenv)) {
        return result;
    }
    return "";
