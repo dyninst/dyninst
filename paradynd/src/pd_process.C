@@ -1723,8 +1723,8 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
     // Can't figure it out if we don't know where we are
     if (!range) {
       if (frame.getPC()) // 0 PC is uninteresting
-	fprintf(stderr, "ERROR: can't find owner for pc 0x%x, failing catchup\n",
-		frame.getPC());
+	fprintf(stderr, "ERROR: can't find owner for pc 0x%lx in pid %d, failing catchup\n",
+		frame.getPC(), frame.getPID());
       return false;
     }
 
