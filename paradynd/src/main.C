@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.66  1997/06/06 22:01:38  mjrg
+ * added option for manual daemon start-up
+ *
  * Revision 1.65  1997/05/23 23:02:17  mjrg
  * Windows NT port
  *
@@ -408,6 +411,17 @@ int main(int argc, char *argv[]) {
       assert(tp);
 
       tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
+    } else if (pd_flag == 2) {
+       // manual startup
+	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, 
+		       NULL, NULL, 2);
+	assert(tp);
+	tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
+
+	if (pvm_running
+	    && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1))
+	    cleanUpAndExit(-1);
+
     } else if (!pd_flag) {
       // not started by pvm_spawn; rather, started via rsh/rexec --> use socket
       int pid = fork();
@@ -460,6 +474,13 @@ int main(int argc, char *argv[]) {
     if(pd_flavor == string("mpi")) {
       // not put here, only up above since PARADYND_PVM is always set
       assert(0);
+    } else if (pd_flag == 2) {
+       // manual startup
+	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, 
+		       NULL, NULL, 2);
+	assert(tp);
+	tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
+
     } else if (!pd_flag) {
 #if !defined(i386_unknown_nt4_0)
       int pid = fork();
@@ -477,6 +498,7 @@ int main(int argc, char *argv[]) {
 	if (cmdLine.size()) {
 	    tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
 	}
+    } else if (!pd_flag) {
       } else if (pid > 0) {
 	P__exit(-1);
       } else {
