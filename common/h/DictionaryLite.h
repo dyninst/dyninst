@@ -43,6 +43,9 @@
 
 /*
  * $Log: DictionaryLite.h,v $
+ * Revision 1.7  1996/10/31 07:36:15  tamches
+ * new interface for locate()
+ *
  * Revision 1.6  1996/08/16 21:29:59  tamches
  * updated copyright for release 1.1
  *
@@ -109,7 +112,6 @@ static const unsigned DEFAULT_LITE_CHAIN_SIZE = 32;
 
 template<class K, class V>
 class dictionary_lite {
-
 public:
     DO_INLINE_F  dictionary_lite (unsigned (*)(const K &));
     DO_INLINE_F  dictionary_lite (unsigned (*)(const K &), unsigned);
@@ -129,7 +131,8 @@ public:
 
 private:
     DO_INLINE_P unsigned chain_of (unsigned)                                      const;
-    DO_INLINE_P bool       locate (const K &, unsigned &, unsigned &, unsigned &) const;
+    DO_INLINE_P V*         locate (const K &, unsigned &, unsigned &, unsigned &) const;
+       // returns ptr to value if found; else, returns NULL.
     DO_INLINE_P V&         insert (const K &, unsigned, unsigned);
     DO_INLINE_P void       remove (unsigned, unsigned);
     DO_INLINE_P void        split ();
@@ -156,6 +159,31 @@ private:
     vector<unsigned>   llevel_;
     unsigned           glevel_;
     unsigned           next_;
+};
+
+// See Stroustrup, The Design and Evolution of C++, pp. 347 for inspiration
+// Use when V is a pointer type
+template <class K, class V>
+class pdictionary_lite : dictionary_lite<K, void *> {
+ typedef dictionary_lite<K, void *> inherited;
+
+ public:
+   inline pdictionary_lite(unsigned (*iHashf)(const K&)) : inherited(iHashf) {}
+   inline pdictionary_lite(unsigned (*iHashf)(const K&), unsigned iNChains) : inherited(iHashf, iNChains) {}
+   inline pdictionary_lite(const pdictionary_lite<K,V> &src) : inherited(src) {}
+   inline ~pdictionary_lite() {} // inherited destructor called automatically
+
+   inline pdictionary_lite<K,V>& operator=(const pdictionary_lite<K,V> &src) {
+      dictionary_lite<K,void *> &result = inherited::operator=(src);
+      return (pdictionary_lite<K,V> &)result;
+         // dangerous looking! (converting from base to derived class)
+   }
+   inline unsigned size() {return inherited::size();}
+   inline V &operator[](const K &theKey) {return (V&)inherited::operator[](theKey);}
+   inline bool find(const K &theKey, V &val) const {return inherited::find(theKey, (void*&)val);}
+   inline bool defines(const K &theKey) const {return inherited::defines(theKey);}
+   inline void undef(const K &theKey) {inherited::undef(theKey);}
+//   pvector<V> values() const {return (pvector<V>)inherited::values();}
 };
 
 #endif /* !defined(_Dictionary_h_) */
