@@ -154,10 +154,10 @@ class dictionary_hash {
       }
    };
 
-   // The actual elements, in one big vector (certain operations are more efficient
-   // this way, and it's a clean approach to storage).  Since we use
-   // vector<>::operator+= on this, we're glad that class vector<> preallocates some
-   // extra stuff when growing.
+   // The actual elements, in one big vector (certain operations, such as rehashing
+   // the entire dictionary) are made more efficient this way, and it's a clean
+   // approach to storage).  Since we use vector<>::operator+= on this, we're glad that
+   // class vector<> preallocates some extra stuff when growing.
    vector<entry> all_elems;
 
    // The bins.  Note: since the number of bins doesn't change often (only when
@@ -173,10 +173,10 @@ class dictionary_hash {
    
    // Notes:
    // 1) At any given time, all_elems.size()-num_removed_items gives us the
-   //    total # of items
-   // 2) At any given time, bins.size() gives us the total # of bins
+   //    total # of items in the dictionary.
+   // 2) At any given time, bins.size() gives us the total # of bins in the dictionary.
    // 3) We keep the invariant #bins * max_bin_load >= total # items,
-   //    incrementing #bins (by a factor of bin_grow_factor) when needed.
+   //    incrementing #bins (by a factor of bin_grow_factor) if needed to maintain it.
 
    float max_bin_load, bin_grow_factor;
 };
@@ -245,8 +245,8 @@ class dictionary_hash_iter {
    dictionary_hash_iter &operator=(const dictionary_hash_iter &);
 
    const dictionary_hash<K,V> &dict;
-   dictionary_hash<K,V>::entry *curr;
-   dictionary_hash<K,V>::entry *last; // one past the last elem, a la STL style
+   const dictionary_hash<K,V>::entry *curr;
+   const dictionary_hash<K,V>::entry *last; // one past the last elem, a la STL style
 };
 
 #endif
