@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.56 2002/09/07 16:15:30 schendel Exp $
+# $Id: errorList.tcl,v 1.57 2003/04/27 04:17:34 schendel Exp $
 
 #
 # Error message format:
@@ -876,12 +876,12 @@ running programs and provides facilities for helping to automatically\
 find performance problems in parallel programs. Paradyn operates on\
 executable (a.out or .exe) files by dynamically inserting measurement\
 code while the program is running. Paradyn can measure programs running\
-on Solaris (SPARC and x86), Linux (x86), Irix (MIPS), WindowsNT (x86),\
-AIX (Power2) and SP2, or heterogeneous combinations of these systems.\
+on Solaris (SPARC), Linux (x86), AIX (Power), and Windows (x86),\
+or heterogeneous combinations of these systems.\
 Paradyn can also handle MPI applications on these platforms.
 
 For further information go to our Web pages at:
-        http://www.cs.wisc.edu/~paradyn/
+        http://www.paradyn.org/
 
 If you have any problems with installing or running Paradyn, or wish to\
 report a bug, please contact us at paradyn@cs.wisc.edu. The information\
@@ -893,7 +893,7 @@ set pdError(105) {
 {Paradyn License Information}
 {paradyn}
 {information}
-{Copyright (c) 1996-2000 Barton P. Miller (University of Wisconsin-Madison)
+{Copyright (c) 1996-2003 Barton P. Miller (University of Wisconsin-Madison)
 
 We provide the Paradyn Parallel Performance Tools (below described as\
 "Paradyn") on an AS IS basis, and do not warrant its validity or\
@@ -933,9 +933,10 @@ set pdError(106) {
 {Paradyn Release Information}
 {paradyn}
 {information}
-{This Paradyn release includes support for new platforms (Linux and Irix),\
-MPI on Irix, dynamic library linking and shared-memory sampling,\
-and many user interface, robustness and efficiency improvements. 
+{This Paradyn release has thorough multi-threaded support for AIX and\
+Solaris, a front-end that now uses a premptively multithreaded thread \
+package, and resurrected Paradyn support for handling of application fork and \
+exec calls and many other improvements. 
 
 Full release details are included in the Paradyn User's Guide.
 
@@ -1125,6 +1126,14 @@ set pdError(126) {
 {serious error}
 {An instrumentation insertion request failed because instrumentation failed
 to load into the inferior application.}
+}
+
+set pdError(127) {
+{Unimplemented feature}
+{paradynd}
+{fatal error}
+{You have attempted to use a feature that has not been implemented for\
+this platform.}
 }
 
 
