@@ -44,19 +44,20 @@
 ************************************************************************/
 
 #include <signal.h>
-//#include <sys/ucontext.h>
+#include <stdlib.h>
 #include <sys/times.h>
 #include <sys/resource.h>
 #include <assert.h>
 #include <sys/syscall.h>
-#include <asm/unistd.h>
+#include <sys/ptrace.h>
+#include <unistd.h>
+#include <math.h>
 
 #include <sys/procfs.h> /* /proc PIOCUSAGE */
 #include <stdio.h>
 #include <fcntl.h> /* O_RDONLY */
 #include <sigcontext.h>
 #include <unistd.h> /* getpid() */
-#include <sys/ptrace.h>
 
 #include "rtinst/h/rtinst.h"
 
@@ -270,42 +271,44 @@ static unsigned long long mul10000(unsigned long long in) {
 
 time64
 DYNINSTgetCPUtime(void) {
-  static time64 previous=0;
+	static time64 previous=0;
+	time64 now = 0;
+	FILE *tmp;
+	static int realMul = 0;
+	double realHZ;
+	double uptimeReal;
+	int uptimeJiffies;
+	struct tms tm;
 
-/* gethrvtime()/1000 doesn't work right any more with shm sampling because it
- * returns values that are out of sync with /proc's PIOCUSAGE, so when a fudge
- * factor needs to be added by paradynd's shm sampling of an active timer,
- * things don't work.  getrusage() does seem to work okay, but we'd like to not use
- * getrusage() because it's obsolete in solaris and slower; so we use /proc PIOCUSAGE...
- *
- * This is too bad; we'd prefer the (presumably fast) gethrvtime().  But, again,
- * it simply won't work with shm sampling.  If you are thinking of changing things
- * back to gethrvtime(), please check with me first. --ari
- *
- * Some day........in an ideal world, we'll use the %TICK register......
- */
+	// Determine the number of jiffies/sec by checking the clock idle time in
+	// /proc/uptime against the jiffies idle time in /proc/stat
+	if( realMul == 0 ) {
+		tmp = fopen( "/proc/uptime", "r" );
+		assert( tmp );
+		assert( 1 == fscanf( tmp, "%*f %lf", &uptimeReal ) );
+		fclose( tmp );
+		tmp = fopen( "/proc/stat", "r" );
+		assert( tmp );
+		assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
+		fclose( tmp );
+		realHZ = (double)uptimeJiffies / uptimeReal;
+		realMul = (int)floor( 1000000.0L / realHZ + 0.5 );
+#ifndef notdef
+		fprintf( stderr, "Determined usec/jiffy as %d\n", realMul );
+#endif
+	}
 
-/* Well, I guess we'll use times() in Linux for now.  Project for the future:
- * write high-performance linux kernel timers which keep track of more exact
- * process times.  Presumedly, something similar to gethrvtime (and gethrtime)
- * in addition to something for the daemon to use on the inferior.
- * I'll just base these kernel functions on the TICK register (or equivalent),
- * and we'll have nearly an ideal world :) - DAN
- */
+	times( &tm );
 
-/*     time64 now = (time64)gethrvtime()/(time64)1000; */
-  //assert( CLK_TCK == 100 );
-  struct tms ptime;
-  time64 now;
-  if( times( &ptime ) == -1 ) {
-    perror( "process::DYNINSTgetCPUtime" );
-    return 0;
-  }
-  now = mul10000( ptime.tms_stime + ptime.tms_utime );
-  
-  assert( now >= previous );
-  previous = now;
-  return now;
+	now = (time64)tm.tms_utime + (time64)tm.tms_stime;
+	now = now * (time64)realMul;
+
+	if( now < previous )
+		now = previous;
+	else
+		previous = now;
+
+	return now;
 }
 
 
@@ -322,7 +325,7 @@ DYNINSTgetWalltime(void) {
   static time64 previous=0;
   time64 now;
 
-  while (1) {
+  while(1) {
     struct timeval tv;
     if (gettimeofday(&tv,NULL) == -1) {
         perror("gettimeofday");
@@ -330,8 +333,8 @@ DYNINSTgetWalltime(void) {
         abort();
     }
 
-    now = mulMillion(tv.tv_sec) + tv.tv_usec;
-    /*    now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec; */
+    now = mulMillion( (time64)tv.tv_sec );
+	now += (time64)tv.tv_usec;
 
     if (now < previous) continue;
     previous = now;
