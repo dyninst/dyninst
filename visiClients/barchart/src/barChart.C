@@ -3,9 +3,12 @@
 // programmed in tk/tcl in barChart.tcl.
 
 /* $Log: barChart.C,v $
-/* Revision 1.4  1994/10/04 19:01:05  tamches
-/* Cleaned up the resource bar color choices
+/* Revision 1.5  1994/10/04 22:11:31  tamches
+/* moved color codes to barChart.tcl variable
 /*
+ * Revision 1.4  1994/10/04  19:01:05  tamches
+ * Cleaned up the resource bar color choices
+ *
  * Revision 1.3  1994/09/30  23:13:41  tamches
  * reads resource width from tcl as "currResourceWidth", to accomodate
  * new barChart.tcl code which adjusts this variable when resources
@@ -213,7 +216,7 @@ void BarChart::processExposeWindow() {
    if (!TryFirstGoodWid())
       return; // our window is still invalid
 
-   cout << "Welcome to BarChart::processExposeWindow" << endl;
+   // cout << "Welcome to BarChart::processExposeWindow" << endl;
    if (drawMode == NoFlicker)
       ResetPrevBarHeights();
 
@@ -221,28 +224,34 @@ void BarChart::processExposeWindow() {
 }
 
 char *gimmeColorName(const int metriclcv) {
-   static char *theNames[] = {
-      "blue",
-      "red",
-      "purple",
-      "orange",
-      "yellow",
-      "aquamarine",
-      "darkGreen",
-      "lightBlue",
-      "navyBlue",
-   };
+   // look in the tcl array "barColors"
 
-   // it's safe to return a pointer to a local variable in this case,
-   // because it (the array and its contents) is statically allocated.
-   return theNames[metriclcv % 8];
+   char *numColorsString = Tcl_GetVar(MainInterp, "numBarColors", TCL_GLOBAL_ONLY);
+   if (NULL==numColorsString) {
+      cerr << "gimmeColorName: could not read tcl variable numBarColors." << endl;
+      exit(5);
+   }
+   int numColors = atoi(numColorsString);
+
+   const int index = metriclcv % numColors;
+   char buffer[10];
+   sprintf(buffer, "%d", index);
+
+   char *resultString = Tcl_GetVar2(MainInterp, "barColors", buffer, TCL_GLOBAL_ONLY);
+   if (NULL==resultString) {
+      cerr << "gimmeColorName: could not read tcl variable barColors()." << endl;
+      exit(5);
+   }
+
+   return resultString;
 }
 
 void BarChart::RethinkMetricColors() {
    metricColors.reallocate(numMetrics);
 
    for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
-      XColor *theColor = Tk_GetColor(MainInterp, theWindow, None, Tk_GetUid(gimmeColorName(metriclcv)));
+      XColor *theColor = Tk_GetColor(MainInterp, theWindow, None,
+				     Tk_GetUid(gimmeColorName(metriclcv)));
 
       metricColors[metriclcv] = theColor;
    }
@@ -286,7 +295,7 @@ void BarChart::RethinkMetricsAndResources() {
    numMetrics   = dataGrid.NumMetrics();
    numResources = dataGrid.NumResources();
 
-   cout << "Welcome to BarChart::RethinkMetricsAndResources; m=" << numMetrics << "; r=" << numResources << endl;
+   // cout << "Welcome to BarChart::RethinkMetricsAndResources; m=" << numMetrics << "; r=" << numResources << endl;
 
    // the following is very unfortunate for existing metric/resource pairs;
    // their values do not change and so should not be reset.  This is
