@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.23  1995/10/17 03:16:16  karavan
+ * Revision 1.24  1995/10/17 04:31:56  karavan
+ * corrected call to updateStatusDisplay() in printStats().
+ *
+ * Revision 1.23  1995/10/17  03:16:16  karavan
  * new function endSearch added to igen interface.
  *
  * Revision 1.22  1995/10/05  04:41:44  karavan
@@ -477,7 +480,7 @@ void printStats()
     }
     char buffer[100];
     sprintf(buffer, "%d metric/focus pairs used\n", count);
-    uiMgr->updateStatusDisplay(PC_STATUSDISPLAY, buffer);
+    uiMgr->updateStatusDisplay(SHGid, buffer);
 }
 
 
