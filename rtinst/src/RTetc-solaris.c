@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.45 2003/04/27 04:17:31 schendel Exp $
+ * $Id: RTetc-solaris.c,v 1.46 2003/05/01 17:54:28 bernat Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -150,8 +150,8 @@ DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
               perror("Failure to get LWP cpu time");
               return 0;
           }
-          now = (theUsage.pr_utime.tv_sec) * I64_C(1000000000); /* sec to nsec */
-          now += theUsage.pr_utime.tv_nsec;
+          now = (theUsage.pr_utime.tv_sec + theUsage.pr_stime.tv_sec) * 1000000000LL; /* sec to nsec */
+          now += (theUsage.pr_utime.tv_nsec+ theUsage.pr_stime.tv_nsec);
       }
   } else {
       lwpTime = gethrvtime();
