@@ -53,7 +53,9 @@ class Frame;
 class baseVarInstance {
  public:
   virtual ~baseVarInstance() { }
-  virtual void allocateThreadVars(const vector<unsigned> &thrPosBuf) = 0;
+  virtual void allocateVar() = 0;
+  virtual void *getBaseAddressInDaemon() = 0;
+  virtual void *getBaseAddressInApplic() = 0;
   virtual void *elementAddressInDaemon(unsigned thrPos) = 0;
   virtual void *elementAddressInApplic(unsigned thrPos) = 0;
   virtual bool doMajorSample() = 0;
@@ -61,8 +63,7 @@ class baseVarInstance {
   virtual void markVarAsSampled(unsigned thrPos, 
 				threadMetFocusNode_Val *thrNval) = 0;
   virtual void markVarAsNotSampled(unsigned thrPos) = 0;
-  virtual void makePendingFree(unsigned thrPos, 
-			       const vector<Address> &trampsUsing) = 0;
+  virtual void makePendingFree(const vector<Address> &trampsUsing) = 0;
   virtual bool attemptToFree(const vector<Frame> &stackWalk) = 0;
   virtual void deleteThread(unsigned thrPos) = 0;
 };
@@ -71,6 +72,10 @@ class variableMgr;
 class process;
 class shmMgr;
 
+struct trampRange {
+  Address startAddr;
+  Address endAddr;
+};
 
 template <class HK>
 class varInstance : public baseVarInstance {
@@ -86,22 +91,21 @@ class varInstance : public baseVarInstance {
   RAWTYPE  initValue;
   shmMgr &theShmMgr;
 
+  // Needed for GC use:
+  vector<trampRange> trampsUsingMe;
+
   vector<unsigned> permanentSamplingSet;
   vector<unsigned> currentSamplingSet;
-  vector<element_state> elemStates;
+  element_state varState;
   void createHKifNotPresent(unsigned thrPos);
-  void setElemState(unsigned thrPos, element_state st);
-  element_state getElemState(unsigned thrPos) {
-    if(thrPos+1 > elemStates.size()) {
-      return elemFree;
-    }
-    return elemStates[thrPos];
-  }
   bool removeFromSamplingSet(vector<unsigned> *set, unsigned thrPosToRemove);
+  bool tryGarbageCollect(const vector<Frame> &stackWalk);
 
  public:
   varInstance(variableMgr &varMgr, const RAWTYPE &initValue);
-  void allocateThreadVars(const vector<unsigned> &thrPosBuf);
+  void allocateVar() {
+    varState = varAllocated;
+  }
   void *elementAddressInDaemon(unsigned thrPos) {
     RAWTYPE *baseAddr = static_cast<RAWTYPE *>(baseAddrInDaemon);
     return static_cast<void*>(baseAddr + thrPos);  // ptr arith
@@ -109,6 +113,12 @@ class varInstance : public baseVarInstance {
   void *elementAddressInApplic(unsigned thrPos) {
     RAWTYPE *baseAddr = static_cast<RAWTYPE *>(baseAddrInApplic);
     return static_cast<void*>(baseAddr + thrPos);  // ptr arith
+  }
+  void *getBaseAddressInDaemon() {
+    return baseAddrInDaemon;
+  }
+  void *getBaseAddressInApplic() {
+    return baseAddrInApplic;
   }
   bool doMajorSample() {
     if(permanentSamplingSet.size() == 0) return true;
@@ -120,7 +130,7 @@ class varInstance : public baseVarInstance {
   bool doMinorSample();
   void markVarAsSampled(unsigned thrPos, threadMetFocusNode_Val *thrNval);
   void markVarAsNotSampled(unsigned thrPos);
-  void makePendingFree(unsigned thrPos, const vector<Address> &trampsUsing);
+  void makePendingFree(const vector<Address> &trampsUsing);
   bool attemptToFree(const vector<Frame> &stackWalk);
   void deleteThread(unsigned thrPos);
 };
