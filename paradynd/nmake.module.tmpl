@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.12 2002/04/05 19:38:55 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.13 2002/04/09 18:05:41 mjbrim Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -113,6 +113,7 @@ OBJS      = $(OBJS) association.obj \
 		sharedobject.obj \
 		dyninstRPC.xdr.SRVR.obj \
 		dyninstRPC.xdr.obj \
+		templatesIGEN.obj \
 		templates-nt.obj
 
 !ifdef USES_SHM_SAMPLING
@@ -146,5 +147,4 @@ dyninstRPC.xdr.SRVR.C: ..\..\paradyn\h\dyninstRPC.I
 
 {..\..\dyninstAPI\src\}.C.obj:
 	$(CXX) $(CXXFLAGS) -c $<
-
 

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.39 2002/03/08 22:59:04 willb Exp $
+# $Id: make.module.tmpl,v 1.40 2002/04/09 18:05:38 mjbrim Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -95,8 +95,10 @@ IGEN_GEN_SRCS =	dataManager.thread.C \
 		performanceConsultant.thread.SRVR.C \
 		dyninstRPC.xdr.C \
 		dyninstRPC.xdr.CLNT.C \
-		visi.xdr.CLNT.C \
+		dyninstRPC.xdr.temp.C \
 		visi.xdr.C \
+		visi.xdr.CLNT.C \
+		visi.xdr.temp.C \
 		VISIthread.thread.C \
 		VISIthread.thread.SRVR.C \
 		VISIthread.thread.CLNT.C \
@@ -107,7 +109,8 @@ IGEN_GEN_SRCS =	dataManager.thread.C \
 		VM.thread.SRVR.C \
 		VM.thread.CLNT.C \
 		termWin.xdr.C \
-		termWin.xdr.CLNT.C
+		termWin.xdr.CLNT.C \
+		termWin.xdr.temp.C
 
 	
 

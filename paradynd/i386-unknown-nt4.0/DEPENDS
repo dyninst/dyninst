@@ -1552,3 +1552,4 @@ superVector.obj: ../src/superVector.C ../../common/h/Types.h \
  ../../dyninstAPI/src/ntDL.h
 shmSegment-nt.obj: ../src/shmSegment-nt.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h ../src/shmSegment.h
+templatesIGEN.obj: ../../pdutil/h/xdr_send_recv.h dyninstRPC.xdr.h
