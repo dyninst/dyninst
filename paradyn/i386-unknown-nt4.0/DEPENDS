@@ -1,0 +1,1342 @@
+DMpublic.obj: ../src/DMthread/DMpublic.C dataManager.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.SRVR.h \
+ dataManager.thread.CLNT.h dyninstRPC.xdr.CLNT.h \
+ ../../util/h/makenan.h ../src/DMthread/DMmetric.h ../../util/h/hist.h \
+ ../../paradyn/src/UIthread/Status.h \
+ ../../util/h/aggregateSample.h ../src/DMthread/DMinclude.h \
+ ../src/DMthread/DMdaemon.h ../../util/h/machineType.h \
+ ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMresource.h \
+ ../src/DMthread/DMabstractions.h ../src/DMthread/DMperfstream.h \
+ ../src/DMthread/DMphase.h ../../paradyn/src/TCthread/tunableConst.h \
+ ../../paradyn/src/pdMain/paradyn.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/VMthread/VMinclude.h \
+ VM.thread.CLNT.h VM.thread.h
+DMdaemon.obj: ../src/DMthread/DMdaemon.C ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ ../../paradyn/src/pdMain/paradyn.h dataManager.thread.CLNT.h \
+ dataManager.thread.h ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ dyninstRPC.xdr.CLNT.h ../src/DMthread/DMdaemon.h \
+ ../../util/h/machineType.h dataManager.thread.SRVR.h \
+ ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMinclude.h \
+ ../src/DMthread/DMresource.h ../src/DMthread/DMabstractions.h \
+ ../src/DMthread/DMperfstream.h ../../util/h/aggregateSample.h \
+ ../../util/h/hist.h ../../util/h/makenan.h ../src/DMthread/DMphase.h \
+ ../../paradyn/src/TCthread/tunableConst.h ../src/DMthread/DMmetric.h \
+ ../../paradyn/src/met/metricExt.h ../src/DMthread/DMtime.h
+DMmetric.obj: ../src/DMthread/DMmetric.C ../src/DMthread/DMmetric.h \
+ ../../util/h/sys.h ../../util/h/hist.h ../../util/h/Vector.h \
+ ../../util/h/makenan.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/vectorSet.h ../../util/h/list.h dyninstRPC.xdr.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.SRVR.h \
+ ../../paradyn/src/UIthread/Status.h \
+ ../../util/h/aggregateSample.h ../src/DMthread/DMinclude.h \
+ ../src/DMthread/DMdaemon.h ../../util/h/machineType.h \
+ dyninstRPC.xdr.CLNT.h ../src/DMthread/../UIthread/Status.h \
+ ../src/DMthread/DMresource.h ../src/DMthread/DMabstractions.h \
+ ../src/DMthread/DMperfstream.h ../src/DMthread/DMphase.h \
+ ../../paradyn/src/TCthread/tunableConst.h
+DMmain.obj: ../src/DMthread/DMmain.C ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ ../../paradyn/src/TCthread/tunableConst.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../../util/h/Dictionary.h ../../util/h/Vector.h \
+ dataManager.thread.SRVR.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h dyninstRPC.xdr.CLNT.h \
+ ../src/DMthread/DMdaemon.h ../../util/h/machineType.h \
+ ../src/DMthread/../UIthread/Status.h \
+ ../src/DMthread/DMinclude.h ../src/DMthread/DMresource.h \
+ ../src/DMthread/DMabstractions.h ../src/DMthread/DMperfstream.h \
+ ../../util/h/aggregateSample.h ../../util/h/hist.h \
+ ../../util/h/makenan.h ../../paradyn/src/UIthread/Status.h \
+ ../src/DMthread/DMphase.h ../src/DMthread/DMmetric.h \
+ ../../paradyn/src/pdMain/paradyn.h dataManager.thread.CLNT.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/VMthread/VMinclude.h \
+ VM.thread.CLNT.h VM.thread.h ../../util/h/Ident.h
+DMperfstream.obj: ../src/DMthread/DMperfstream.C \
+ ../src/DMthread/DMperfstream.h ../../util/h/sys.h \
+ dataManager.thread.h ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/list.h dyninstRPC.xdr.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.SRVR.h \
+ ../../util/h/aggregateSample.h ../../util/h/hist.h \
+ ../../util/h/makenan.h ../../paradyn/src/UIthread/Status.h \
+ ../src/DMthread/DMphase.h ../src/DMthread/DMinclude.h \
+ ../src/DMthread/DMmetric.h ../src/DMthread/DMdaemon.h \
+ ../../util/h/machineType.h dyninstRPC.xdr.CLNT.h \
+ ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMresource.h \
+ ../src/DMthread/DMabstractions.h \
+ ../../paradyn/src/TCthread/tunableConst.h
+DMresource.obj: ../src/DMthread/DMresource.C dataManager.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h ../src/DMthread/DMresource.h \
+ dataManager.thread.SRVR.h ../src/DMthread/DMabstractions.h \
+ ../src/DMthread/DMinclude.h ../../paradyn/src/met/metricExt.h \
+ dyninstRPC.xdr.CLNT.h
+DMabstractions.obj: ../src/DMthread/DMabstractions.C \
+ dataManager.thread.h ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ ../src/DMthread/DMabstractions.h ../src/DMthread/DMresource.h \
+ dataManager.thread.SRVR.h ../src/DMthread/DMinclude.h
+DMcritPath.obj: ../src/DMthread/DMcritPath.C ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.SRVR.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h dyninstRPC.xdr.CLNT.h \
+ ../src/DMthread/DMmetric.h ../../util/h/hist.h ../../util/h/makenan.h \
+ ../../paradyn/src/UIthread/Status.h \
+ ../../util/h/aggregateSample.h ../src/DMthread/DMinclude.h \
+ ../src/DMthread/DMdaemon.h ../../util/h/machineType.h \
+ ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMresource.h \
+ ../src/DMthread/DMabstractions.h ../src/DMthread/DMperfstream.h \
+ ../src/DMthread/DMphase.h ../../paradyn/src/TCthread/tunableConst.h \
+ ../src/DMthread/../pdMain/paradyn.h dataManager.thread.CLNT.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/VMthread/VMinclude.h \
+ VM.thread.CLNT.h VM.thread.h
+DMphase.obj: ../src/DMthread/DMphase.C ../src/DMthread/DMphase.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/refCounter.h ../../util/h/sys.h ../../util/h/Vector.h \
+ visi.xdr.h ../../util/h/rpcUtil.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../src/DMthread/DMinclude.h ../src/DMthread/DMperfstream.h \
+ dataManager.thread.h ../../util/h/list.h dyninstRPC.xdr.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h ../../util/h/stringPool.h \
+ ../../util/h/stringDecl.h ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.SRVR.h \
+ ../../util/h/aggregateSample.h ../../util/h/hist.h \
+ ../../util/h/makenan.h ../../paradyn/src/UIthread/Status.h \
+ ../src/DMthread/DMmetric.h ../src/DMthread/DMdaemon.h \
+ ../../util/h/machineType.h dyninstRPC.xdr.CLNT.h \
+ ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMresource.h \
+ ../src/DMthread/DMabstractions.h \
+ ../../paradyn/src/TCthread/tunableConst.h
+DMtime-nt.obj: ../src/DMthread/DMtime-nt.C \
+ ../src/DMthread/DMinclude.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h ../../util/h/sys.h \
+ ../src/DMthread/DMtime.h
+main.obj: ../src/pdMain/main.C ../src/pdMain/../TCthread/tunableConst.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/refCounter.h ../../util/h/Dictionary.h \
+ ../../util/h/Vector.h ../src/pdMain/paradyn.h ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ dataManager.thread.SRVR.h VM.thread.SRVR.h \
+ ../src/pdMain/../UIthread/tkTools.h \
+ ../../util/h/makenan.h
+VMmain.obj: ../src/VMthread/VMmain.C ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h VM.thread.SRVR.h \
+ VM.thread.h ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
+ ../../util/h/sys.h ../../paradyn/src/VMthread/VMinclude.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ performanceConsultant.thread.h dataManager.thread.h \
+ ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h VISIthread.thread.CLNT.h \
+ VISIthread.thread.h ../src/VMthread/VMtypes.h dyninstRPC.xdr.CLNT.h \
+ ../../paradyn/src/pdMain/paradyn.h dataManager.thread.CLNT.h \
+ VM.thread.CLNT.h ../../paradyn/src/met/metParse.h \
+ ../../util/h/machineType.h ../../paradyn/src/met/globals.h
+VISIthreadmain.obj: ../src/VISIthread/VISIthreadmain.C \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/sys.h \
+ ../../paradyn/src/VMthread/VMtypes.h VISIthread.thread.CLNT.h \
+ VISIthread.thread.h dyninstRPC.xdr.CLNT.h dyninstRPC.xdr.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h \
+ ../../paradyn/src/DMthread/DMinclude.h VISIthread.thread.SRVR.h \
+ ../src/VISIthread/VISIthreadTypes.h VM.thread.CLNT.h VM.thread.h \
+ ../../paradyn/src/VMthread/VMinclude.h UI.thread.CLNT.h UI.thread.h \
+ ../../paradyn/src/UIthread/Status.h \
+ performanceConsultant.thread.h dataManager.thread.h \
+ ../../util/h/list.h visi.xdr.h ../../util/h/stringPool.h \
+ ../../util/h/stringDecl.h ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.CLNT.h \
+ visi.xdr.CLNT.h ../src/VISIthread/../pdMain/paradyn.h \
+ performanceConsultant.thread.CLNT.h ../../util/h/makenan.h \
+ ../../paradyn/src/pdMain/paradyn.h \
+ ../../paradyn/src/TCthread/tunableConst.h \
+ ../../paradyn/src/UIthread/minmax.h
+VISIthreadpublic.obj: ../src/VISIthread/VISIthreadpublic.C \
+ ../../thread/h/thread.h ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ ../../util/h/list.h ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h VM.thread.CLNT.h VM.thread.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/sys.h \
+ ../../paradyn/src/VMthread/VMinclude.h UI.thread.CLNT.h UI.thread.h \
+ ../../paradyn/src/UIthread/Status.h \
+ performanceConsultant.thread.h dataManager.thread.h dyninstRPC.xdr.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.CLNT.h \
+ visi.xdr.CLNT.h VISIthread.thread.SRVR.h VISIthread.thread.h \
+ ../src/VISIthread/../VMthread/VMtypes.h VISIthread.thread.CLNT.h \
+ dyninstRPC.xdr.CLNT.h ../src/VISIthread/VISIthreadTypes.h \
+ ../src/VISIthread/../pdMain/paradyn.h \
+ performanceConsultant.thread.CLNT.h ../../util/h/makenan.h \
+ ../src/VISIthread/../DMthread/DMinclude.h
+PCdata.obj: ../src/PCthread/PCdata.C ../src/PCthread/PCintern.h \
+ ../../util/h/sys.h ../src/PCthread/../pdMain/paradyn.h \
+ ../../thread/h/thread.h ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCdata.h
+PCfocus.obj: ../src/PCthread/PCfocus.C ../src/PCthread/PCintern.h \
+ ../../util/h/sys.h ../src/PCthread/../pdMain/paradyn.h \
+ ../../thread/h/thread.h ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h
+PCsearch.obj: ../src/PCthread/PCsearch.C ../src/PCthread/PCintern.h \
+ ../../util/h/sys.h ../src/PCthread/../pdMain/paradyn.h \
+ ../../thread/h/thread.h ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCsearch.h \
+ ../src/PCthread/PCmetricInst.h ../src/PCthread/PCfilter.h \
+ ../src/PCthread/PCdata.h ../src/PCthread/PCmetric.h \
+ ../../util/h/CircularBuffer.h ../src/PCthread/PCshg.h \
+ ../src/PCthread/PCwhy.h
+PCpublic.obj: ../src/PCthread/PCpublic.C ../src/PCthread/PCintern.h \
+ ../../util/h/sys.h ../src/PCthread/../pdMain/paradyn.h \
+ ../../thread/h/thread.h ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCsearch.h \
+ ../src/PCthread/PCmetricInst.h ../src/PCthread/PCfilter.h \
+ ../src/PCthread/PCdata.h ../src/PCthread/PCmetric.h \
+ ../../util/h/CircularBuffer.h ../src/PCthread/PCshg.h \
+ ../src/PCthread/PCwhy.h
+PCmain.obj: ../src/PCthread/PCmain.C ../src/PCthread/PCintern.h \
+ ../../util/h/sys.h ../src/PCthread/../pdMain/paradyn.h \
+ ../../thread/h/thread.h ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCsearch.h \
+ ../src/PCthread/PCmetricInst.h ../src/PCthread/PCfilter.h \
+ ../src/PCthread/PCdata.h ../src/PCthread/PCmetric.h \
+ ../../util/h/CircularBuffer.h ../src/PCthread/PCshg.h \
+ ../src/PCthread/PCwhy.h ../src/PCthread/PCcostServer.h
+PCconstants.obj: ../src/PCthread/PCconstants.C \
+ ../src/PCthread/PCintern.h ../../util/h/sys.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h
+PCfilter.obj: ../src/PCthread/PCfilter.C ../src/PCthread/PCfilter.h \
+ ../src/PCthread/PCintern.h ../../util/h/sys.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCdata.h \
+ ../src/PCthread/PCmetricInst.h ../src/PCthread/PCmetric.h \
+ ../../util/h/CircularBuffer.h
+PCmetric.obj: ../src/PCthread/PCmetric.C ../src/PCthread/PCintern.h \
+ ../../util/h/sys.h ../src/PCthread/../pdMain/paradyn.h \
+ ../../thread/h/thread.h ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCmetric.h \
+ ../src/PCthread/PCfilter.h ../src/PCthread/PCdata.h
+PCwhy.obj: ../src/PCthread/PCwhy.C ../src/PCthread/PCwhy.h \
+ ../src/PCthread/PCintern.h ../../util/h/sys.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCmetric.h \
+ ../src/PCthread/PCfilter.h ../src/PCthread/PCdata.h
+PCexperiment.obj: ../src/PCthread/PCexperiment.C \
+ ../src/PCthread/PCintern.h ../../util/h/sys.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCexperiment.h \
+ ../src/PCthread/PCwhy.h ../src/PCthread/PCmetric.h \
+ ../src/PCthread/PCfilter.h ../src/PCthread/PCdata.h \
+ ../src/PCthread/PCmetricInst.h ../../util/h/CircularBuffer.h \
+ ../src/PCthread/PCsearch.h ../src/PCthread/PCshg.h
+PCrules.obj: ../src/PCthread/PCrules.C ../src/PCthread/PCintern.h \
+ ../../util/h/sys.h ../src/PCthread/../pdMain/paradyn.h \
+ ../../thread/h/thread.h ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCwhy.h \
+ ../src/PCthread/PCmetric.h ../src/PCthread/PCfilter.h \
+ ../src/PCthread/PCdata.h
+PCshg.obj: ../src/PCthread/PCshg.C ../src/PCthread/PCintern.h \
+ ../../util/h/sys.h ../src/PCthread/../pdMain/paradyn.h \
+ ../../thread/h/thread.h ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCshg.h \
+ ../src/PCthread/PCwhy.h ../src/PCthread/PCmetric.h \
+ ../src/PCthread/PCfilter.h ../src/PCthread/PCdata.h \
+ ../src/PCthread/PCexperiment.h ../src/PCthread/PCmetricInst.h \
+ ../../util/h/CircularBuffer.h ../src/PCthread/PCsearch.h
+PCmetricInst.obj: ../src/PCthread/PCmetricInst.C \
+ ../src/PCthread/PCintern.h ../../util/h/sys.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCmetric.h \
+ ../src/PCthread/PCfilter.h ../src/PCthread/PCdata.h \
+ ../src/PCthread/PCexperiment.h ../src/PCthread/PCwhy.h \
+ ../src/PCthread/PCmetricInst.h ../../util/h/CircularBuffer.h \
+ ../src/PCthread/PCcostServer.h
+PCcostServer.obj: ../src/PCthread/PCcostServer.C \
+ ../src/PCthread/PCintern.h ../../util/h/sys.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h ../src/PCthread/../DMthread/DMinclude.h \
+ ../src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h ../src/PCthread/PCmetricInst.h \
+ ../src/PCthread/PCfilter.h ../src/PCthread/PCdata.h \
+ ../src/PCthread/PCmetric.h ../../util/h/CircularBuffer.h \
+ ../src/PCthread/PCcostServer.h
+tclTunable.obj: ../src/UIthread/tclTunable.C ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h \
+ ../src/UIthread/../TCthread/tunableConst.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/Dictionary.h ../../util/h/Vector.h \
+ ../src/UIthread/tclTunable.h
+Status.obj: ../src/UIthread/Status.C ../src/UIthread/Status.h
+uimpd.tcl.obj: ../src/UIthread/uimpd.tcl.C ../../util/h/odometer.h \
+ ../../util/h/Vector.h ../src/UIthread/UIglobals.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.SRVR.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h \
+ ../src/UIthread/Status.h ../src/UIthread/../pdMain/paradyn.h \
+ UI.thread.CLNT.h VM.thread.CLNT.h VM.thread.h \
+ ../src/UIthread/../DMthread/DMinclude.h \
+ ../src/UIthread/abstractions.h ../src/UIthread/whereAxis.h \
+ ../src/UIthread/where4treeConstants.h ../src/UIthread/where4tree.h \
+ ../src/UIthread/simpSeq.h ../src/UIthread/scrollbar.h \
+ ../src/UIthread/rootNode.h ../src/UIthread/graphicalPath.h \
+ ../src/UIthread/tkTools.h
+UImain.obj: ../src/UIthread/UImain.C ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../src/UIthread/UIglobals.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.SRVR.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h \
+ ../src/UIthread/Status.h ../src/UIthread/../pdMain/paradyn.h \
+ UI.thread.CLNT.h VM.thread.CLNT.h VM.thread.h \
+ ../../paradyn/src/TCthread/tunableConst.h \
+ ../src/UIthread/abstractions.h ../src/UIthread/whereAxis.h \
+ ../src/UIthread/where4treeConstants.h ../src/UIthread/where4tree.h \
+ ../src/UIthread/simpSeq.h ../src/UIthread/scrollbar.h \
+ ../src/UIthread/rootNode.h ../src/UIthread/graphicalPath.h \
+ ../src/UIthread/tkTools.h ../src/UIthread/whereAxisTcl.h \
+ ../src/UIthread/shgPhases.h ../src/UIthread/shg.h \
+ ../src/UIthread/shgConsts.h ../src/UIthread/shgRootNode.h \
+ ../src/UIthread/shgTcl.h ../src/UIthread/pdLogo.h \
+ ../../paradyn/xbm/logo.xbm ../../paradyn/xbm/dont.xbm \
+ ../../util/h/Ident.h
+UIpublic.obj: ../src/UIthread/UIpublic.C UI.thread.CLNT.h UI.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
+ ../../util/h/sys.h ../../paradyn/src/UIthread/Status.h \
+ performanceConsultant.thread.h dataManager.thread.h \
+ ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ ../../paradyn/src/VMthread/VMinclude.h UI.thread.SRVR.h \
+ ../src/UIthread/UIglobals.h dataManager.thread.CLNT.h \
+ performanceConsultant.thread.CLNT.h \
+ ../src/UIthread/Status.h ../src/UIthread/../pdMain/paradyn.h \
+ VM.thread.CLNT.h VM.thread.h ../src/UIthread/shgPhases.h \
+ ../src/UIthread/tkTools.h ../src/UIthread/shg.h \
+ ../src/UIthread/where4tree.h ../src/UIthread/simpSeq.h \
+ ../src/UIthread/where4treeConstants.h ../src/UIthread/scrollbar.h \
+ ../src/UIthread/graphicalPath.h ../src/UIthread/shgConsts.h \
+ ../src/UIthread/shgRootNode.h ../src/UIthread/shgTcl.h
+UIwhere.obj: ../src/UIthread/UIwhere.C ../src/UIthread/UIglobals.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.SRVR.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h \
+ ../src/UIthread/Status.h ../src/UIthread/whereAxis.h \
+ ../src/UIthread/where4treeConstants.h ../src/UIthread/where4tree.h \
+ ../src/UIthread/simpSeq.h ../src/UIthread/scrollbar.h \
+ ../src/UIthread/rootNode.h ../src/UIthread/graphicalPath.h \
+ ../src/UIthread/abstractions.h ../src/UIthread/tkTools.h \
+ ../src/UIthread/whereAxisTcl.h
+paradyn.tcl.obj: ../src/UIthread/paradyn.tcl.C ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../src/UIthread/UIglobals.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.SRVR.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h \
+ ../src/UIthread/Status.h ../src/UIthread/../TCthread/tunableConst.h \
+ VM.thread.CLNT.h VM.thread.h ../src/UIthread/../pdMain/paradyn.h \
+ UI.thread.CLNT.h ../src/UIthread/abstractions.h \
+ ../src/UIthread/whereAxis.h ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/where4tree.h ../src/UIthread/simpSeq.h \
+ ../src/UIthread/scrollbar.h ../src/UIthread/rootNode.h \
+ ../src/UIthread/graphicalPath.h ../src/UIthread/tkTools.h \
+ ../src/UIthread/whereAxisTcl.h ../src/UIthread/shgPhases.h \
+ ../src/UIthread/shg.h ../src/UIthread/shgConsts.h \
+ ../src/UIthread/shgRootNode.h ../../util/h/pathName.h
+whereAxis.obj: ../src/UIthread/whereAxis.C ../src/UIthread/minmax.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h ../../util/h/sys.h \
+ ../src/UIthread/whereAxis.h ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/where4tree.h ../src/UIthread/simpSeq.h \
+ ../src/UIthread/scrollbar.h ../src/UIthread/rootNode.h \
+ ../src/UIthread/graphicalPath.h ../../util/h/Dictionary.h \
+ ../src/UIthread/tkTools.h
+abstractions.obj: ../src/UIthread/abstractions.C \
+ ../src/UIthread/abstractions.h ../../util/h/Vector.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/refCounter.h ../src/UIthread/whereAxis.h \
+ ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/where4tree.h ../src/UIthread/simpSeq.h \
+ ../src/UIthread/scrollbar.h ../src/UIthread/rootNode.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/ByteArray.h \
+ ../../util/h/sys.h ../src/UIthread/graphicalPath.h \
+ ../../util/h/Dictionary.h ../src/UIthread/tkTools.h
+where4treeConstants.obj: ../src/UIthread/where4treeConstants.C \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/tkTools.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h
+rootNode.obj: ../src/UIthread/rootNode.C ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../src/UIthread/whereAxis.h \
+ ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/where4tree.h ../../util/h/Vector.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../src/UIthread/simpSeq.h \
+ ../src/UIthread/scrollbar.h ../src/UIthread/rootNode.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/ByteArray.h \
+ ../../util/h/sys.h ../src/UIthread/graphicalPath.h \
+ ../../util/h/Dictionary.h
+scrollbar.obj: ../src/UIthread/scrollbar.C ../src/UIthread/minmax.h \
+ ../src/UIthread/scrollbar.h
+whereAxisTcl.obj: ../src/UIthread/whereAxisTcl.C \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h ../../util/h/sys.h \
+ ../src/UIthread/abstractions.h ../src/UIthread/whereAxis.h \
+ ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/where4tree.h ../src/UIthread/simpSeq.h \
+ ../src/UIthread/scrollbar.h ../src/UIthread/rootNode.h \
+ ../src/UIthread/graphicalPath.h ../../util/h/Dictionary.h \
+ ../src/UIthread/tkTools.h ../src/UIthread/whereAxisTcl.h
+shg.obj: ../src/UIthread/shg.C ../src/UIthread/shg.h \
+ ../../util/h/Dictionary.h ../../util/h/Vector.h \
+ performanceConsultant.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h ../src/UIthread/where4tree.h \
+ ../src/UIthread/simpSeq.h ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/scrollbar.h ../src/UIthread/graphicalPath.h \
+ ../src/UIthread/shgConsts.h ../src/UIthread/shgRootNode.h \
+ performanceConsultant.thread.CLNT.h ../src/UIthread/tkTools.h
+shgRootNode.obj: ../src/UIthread/shgRootNode.C ../src/UIthread/shg.h \
+ ../../util/h/Dictionary.h ../../util/h/Vector.h \
+ performanceConsultant.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h ../src/UIthread/where4tree.h \
+ ../src/UIthread/simpSeq.h ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/scrollbar.h ../src/UIthread/graphicalPath.h \
+ ../src/UIthread/shgConsts.h ../src/UIthread/shgRootNode.h
+shgPhases.obj: ../src/UIthread/shgPhases.C ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../src/UIthread/tkTools.h \
+ ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../src/UIthread/shgPhases.h ../../util/h/Vector.h \
+ ../src/UIthread/shg.h ../../util/h/Dictionary.h \
+ performanceConsultant.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ dataManager.thread.h ../../util/h/list.h ../../util/h/sys.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h ../src/UIthread/where4tree.h \
+ ../src/UIthread/simpSeq.h ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/scrollbar.h ../src/UIthread/graphicalPath.h \
+ ../src/UIthread/shgConsts.h ../src/UIthread/shgRootNode.h \
+ ../../paradyn/src/TCthread/tunableConst.h \
+ performanceConsultant.thread.CLNT.h
+shgConsts.obj: ../src/UIthread/shgConsts.C ../src/UIthread/shgConsts.h \
+ ../../util/h/Vector.h 
+shgTcl.obj: ../src/UIthread/shgTcl.C ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../src/UIthread/tkTools.h \
+ ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/sys.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h ../src/UIthread/shgPhases.h \
+ ../src/UIthread/shg.h ../src/UIthread/where4tree.h \
+ ../src/UIthread/simpSeq.h ../src/UIthread/where4treeConstants.h \
+ ../src/UIthread/scrollbar.h ../src/UIthread/graphicalPath.h \
+ ../src/UIthread/shgConsts.h ../src/UIthread/shgRootNode.h \
+ ../src/UIthread/shgTcl.h
+tkTools.obj: ../src/UIthread/tkTools.C ../src/UIthread/minmax.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../src/UIthread/tkTools.h \
+ ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h
+pdLogo.obj: ../src/UIthread/pdLogo.C ../src/UIthread/pdLogo.h \
+ ../../util/h/Dictionary.h ../../util/h/Vector.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../src/UIthread/tkTools.h
+TCmain.obj: ../src/TCthread/TCmain.C ../../thread/h/thread.h \
+ ../../util/h/pdsocket.h ../../util/h/pddesc.h \
+ ../src/TCthread/../pdMain/paradyn.h dataManager.thread.CLNT.h \
+ dataManager.thread.h ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../src/TCthread/tunableConst.h
+tunableConst.obj: ../src/TCthread/tunableConst.C \
+ ../src/TCthread/tunableConst.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../../util/h/Dictionary.h ../../util/h/Vector.h
+metMain.obj: ../src/met/metMain.C ../../paradyn/src/met/metParse.h \
+ ../../util/h/machineType.h ../../util/h/Vector.h dyninstRPC.xdr.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h ../../paradyn/src/met/globals.h \
+ ../src/met/../TCthread/tunableConst.h \
+ ../../paradyn/src/met/metricExt.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/sys.h \
+ dyninstRPC.xdr.CLNT.h ../../paradyn/src/pdMain/paradyn.h \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/list.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/pathName.h ../../paradyn/src/DMthread/DMdaemon.h \
+ dataManager.thread.SRVR.h \
+ ../../paradyn/src/DMthread/../UIthread/Status.h \
+ ../../paradyn/src/DMthread/DMresource.h \
+ ../../paradyn/src/DMthread/DMabstractions.h \
+ ../../paradyn/src/DMthread/DMperfstream.h \
+ ../../util/h/aggregateSample.h ../../util/h/hist.h \
+ ../../util/h/makenan.h ../../paradyn/src/DMthread/DMphase.h
+metParser.obj: metParser.C ../../paradyn/src/met/metParse.h \
+ ../../util/h/machineType.h ../../util/h/Vector.h dyninstRPC.xdr.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h ../../paradyn/src/met/globals.h \
+ ../../util/h/hist.h ../../util/h/sys.h ../../util/h/makenan.h
+metScanner.obj: metScanner.C y.tab.h ../../paradyn/src/met/metParse.h \
+ ../../util/h/machineType.h ../../util/h/Vector.h dyninstRPC.xdr.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h ../../paradyn/src/met/globals.h
+metClass.obj: ../src/met/metClass.C ../src/met/metParse.h \
+ ../../util/h/machineType.h ../../util/h/Vector.h dyninstRPC.xdr.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h ../../paradyn/src/met/globals.h
+templatesIGENMDL.obj: ../src/templatesIGENMDL.C ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../../util/h/Vector.h ../../util/src/Dictionary.C \
+ ../../util/h/Dictionary.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../paradyn/src/met/metParse.h \
+ ../../util/h/machineType.h ../../paradyn/src/met/globals.h
+templatesDM.obj: ../src/templatesDM.C ../../util/h/list.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/refCounter.h ../../util/h/Vector.h \
+ ../../paradyn/src/DMthread/BufferPool.h ../../util/src/Dictionary.C \
+ ../../util/h/Dictionary.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h dataManager.thread.h ../../util/h/sys.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h dyninstRPC.xdr.CLNT.h \
+ ../../paradyn/src/DMthread/DMdaemon.h ../../util/h/machineType.h \
+ dataManager.thread.SRVR.h \
+ ../../paradyn/src/DMthread/../UIthread/Status.h \
+ ../../paradyn/src/DMthread/DMresource.h \
+ ../../paradyn/src/DMthread/DMabstractions.h \
+ ../../paradyn/src/DMthread/DMperfstream.h \
+ ../../util/h/aggregateSample.h ../../util/h/hist.h \
+ ../../util/h/makenan.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/DMthread/DMphase.h \
+ ../../paradyn/src/DMthread/DMmetric.h \
+ ../../paradyn/src/TCthread/tunableConst.h
+templatesPCV.obj: ../src/templatesPCV.C ../../util/h/list.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/refCounter.h ../../util/h/Vector.h \
+ ../../paradyn/src/DMthread/BufferPool.h ../../util/src/Dictionary.C \
+ ../../util/h/Dictionary.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../paradyn/src/PCthread/PCintern.h ../../util/h/sys.h \
+ ../../paradyn/src/PCthread/../pdMain/paradyn.h \
+ dataManager.thread.CLNT.h dataManager.thread.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/PriorityQueue.h \
+ ../../paradyn/src/PCthread/../DMthread/DMinclude.h \
+ ../../paradyn/src/PCthread/../TCthread/tunableConst.h \
+ performanceConsultant.thread.SRVR.h \
+ ../../paradyn/src/PCthread/PCsearch.h \
+ ../../paradyn/src/PCthread/PCmetricInst.h \
+ ../../paradyn/src/PCthread/PCfilter.h \
+ ../../paradyn/src/PCthread/PCdata.h \
+ ../../paradyn/src/PCthread/PCmetric.h ../../util/h/CircularBuffer.h \
+ ../../paradyn/src/PCthread/PCshg.h ../../paradyn/src/PCthread/PCwhy.h \
+ ../../paradyn/src/PCthread/PCcostServer.h \
+ ../../util/src/PriorityQueue.C ../../util/src/CircularBuffer.C \
+ ../../paradyn/src/VMthread/VMtypes.h VISIthread.thread.CLNT.h \
+ VISIthread.thread.h dyninstRPC.xdr.CLNT.h
+templatesUI.obj: ../src/templatesUI.C ../../util/h/list.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/refCounter.h ../../util/h/Vector.h \
+ ../../util/src/Dictionary.C ../../util/h/Dictionary.h \
+ ../../paradyn/src/TCthread/tunableConst.h VM.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/sys.h \
+ ../../paradyn/src/VMthread/VMinclude.h \
+ ../src/../src/UIthread/UIglobals.h dataManager.thread.CLNT.h \
+ dataManager.thread.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ UI.thread.SRVR.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
+ ../src/../src/UIthread/Status.h ../../paradyn/src/UIthread/pdLogo.h \
+ ../../paradyn/src/UIthread/tkTools.h \
+ ../../paradyn/src/UIthread/minmax.C \
+ ../../paradyn/src/UIthread/minmax.h
+templatesUIWASHG.obj: ../src/templatesUIWASHG.C ../../util/h/Vector.h \
+ ../../util/src/Dictionary.C ../../util/h/Dictionary.h \
+ ../../paradyn/src/UIthread/where4tree.C \
+ ../../paradyn/src/UIthread/minmax.h \
+ ../../paradyn/src/UIthread/where4tree.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../../paradyn/src/UIthread/simpSeq.h \
+ ../../paradyn/src/UIthread/where4treeConstants.h \
+ ../../paradyn/src/UIthread/scrollbar.h \
+ ../../paradyn/src/UIthread/rootNode.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/ByteArray.h \
+ ../../util/h/sys.h ../../paradyn/src/UIthread/graphicalPath.C \
+ ../../paradyn/src/UIthread/graphicalPath.h \
+ ../../paradyn/src/UIthread/simpSeq.C \
+ ../../paradyn/src/UIthread/abstractions.h \
+ ../../paradyn/src/UIthread/whereAxis.h \
+ ../../paradyn/src/UIthread/tkTools.h \
+ ../../paradyn/src/UIthread/shgRootNode.h \
+ ../../paradyn/src/UIthread/shgPhases.h \
+ ../../paradyn/src/UIthread/shg.h performanceConsultant.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ ../../paradyn/src/UIthread/shgConsts.h
+mdl.obj: ../src/met/mdl.C dyninstRPC.xdr.CLNT.h dyninstRPC.xdr.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ ../../paradyn/src/met/globals.h ../../paradyn/src/met/metricExt.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/sys.h
+tcl2c.obj: tcl2c.C 
+dataManager.thread.obj: dataManager.thread.C dataManager.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
+ dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h
+dataManager.thread.CLNT.obj: dataManager.thread.CLNT.C \
+ dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h
+dataManager.thread.SRVR.obj: dataManager.thread.SRVR.C \
+ dataManager.thread.SRVR.h dataManager.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h
+performanceConsultant.thread.obj: performanceConsultant.thread.C \
+ performanceConsultant.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h dataManager.thread.h \
+ ../../util/h/list.h ../../util/h/sys.h dyninstRPC.xdr.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
+ ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h
+performanceConsultant.thread.CLNT.obj: \
+ performanceConsultant.thread.CLNT.C \
+ performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h
+performanceConsultant.thread.SRVR.obj: \
+ performanceConsultant.thread.SRVR.C \
+ performanceConsultant.thread.SRVR.h performanceConsultant.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
+ ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h
+dyninstRPC.xdr.obj: dyninstRPC.xdr.C dyninstRPC.xdr.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h
+dyninstRPC.xdr.CLNT.obj: dyninstRPC.xdr.CLNT.C dyninstRPC.xdr.CLNT.h \
+ dyninstRPC.xdr.h ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h
+visi.xdr.CLNT.obj: visi.xdr.CLNT.C visi.xdr.CLNT.h visi.xdr.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h
+visi.xdr.obj: visi.xdr.C visi.xdr.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h
+VISIthread.thread.obj: VISIthread.thread.C VISIthread.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h
+VISIthread.thread.SRVR.obj: VISIthread.thread.SRVR.C \
+ VISIthread.thread.SRVR.h VISIthread.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h
+VISIthread.thread.CLNT.obj: VISIthread.thread.CLNT.C \
+ VISIthread.thread.CLNT.h VISIthread.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h
+UI.thread.obj: UI.thread.C UI.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/sys.h \
+ ../../paradyn/src/UIthread/Status.h \
+ performanceConsultant.thread.h dataManager.thread.h \
+ ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ ../../paradyn/src/VMthread/VMinclude.h
+UI.thread.CLNT.obj: UI.thread.CLNT.C UI.thread.CLNT.h UI.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
+ ../../util/h/sys.h ../../paradyn/src/UIthread/Status.h \
+ performanceConsultant.thread.h dataManager.thread.h \
+ ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ ../../paradyn/src/VMthread/VMinclude.h
+UI.thread.SRVR.obj: UI.thread.SRVR.C UI.thread.SRVR.h UI.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
+ ../../util/h/sys.h ../../paradyn/src/UIthread/Status.h \
+ performanceConsultant.thread.h dataManager.thread.h \
+ ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
+ ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h \
+ ../../paradyn/src/DMthread/BufferPool.h \
+ ../../paradyn/src/VMthread/VMinclude.h
+VM.thread.obj: VM.thread.C VM.thread.h ../../util/h/rpcUtil.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Vector.h ../../util/h/vectorSet.h \
+ ../../paradyn/src/DMthread/DMinclude.h ../../util/h/sys.h \
+ ../../paradyn/src/VMthread/VMinclude.h
+VM.thread.SRVR.obj: VM.thread.SRVR.C VM.thread.SRVR.h VM.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
+ ../../util/h/sys.h ../../paradyn/src/VMthread/VMinclude.h
+VM.thread.CLNT.obj: VM.thread.CLNT.C VM.thread.CLNT.h VM.thread.h \
+ ../../util/h/rpcUtil.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Vector.h \
+ ../../util/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
+ ../../util/h/sys.h ../../paradyn/src/VMthread/VMinclude.h
