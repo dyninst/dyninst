@@ -17,9 +17,14 @@ typedef unsigned phaseHandle;
 typedef enum {GlobalPhase, CurrentPhase} phaseType;
 typedef enum {UnNormalized, Normalized, Sampled} dm_MetUnitsType;
 
-struct metfocusType{
+struct metfocusType {
     vector<resourceHandle> res;
     metricHandle  met;
+
+    metfocusType(metricHandle iMet,
+		 const vector<resourceHandle> &iRes) :
+		   res(iRes), met(iMet) {}
+    metfocusType() {}
 };
 typedef struct metfocusType metric_focus_pair;
 
