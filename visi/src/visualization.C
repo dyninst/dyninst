@@ -14,11 +14,18 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.15  1994/08/13 20:34:50  newhall
-/* removed all code associated with class visi_MRList
-/* removed mrlist src and obj
-/* removed
+/* Revision 1.16  1994/09/22 03:14:41  markc
+/* declared arrays at start
+/* incremented version number
 /*
+/* Added stronger compiler warnings
+/* removed compiler warnings
+/*
+ * Revision 1.15  1994/08/13  20:34:50  newhall
+ * removed all code associated with class visi_MRList
+ * removed mrlist src and obj
+ * removed
+ *
  * Revision 1.14  1994/08/11  02:52:11  newhall
  * removed calls to grid cell Deleted member functions
  *
@@ -530,7 +537,7 @@ int met = -1, res = -1;
 ///////////////////////////////////////////////////////////
 void visualization::Phase(double begin,
 			  double end,
-			  String name){
+			  char *name){
 
 int size,ok;
 
