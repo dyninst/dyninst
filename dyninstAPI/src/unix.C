@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.124 2004/04/08 21:15:47 legendre Exp $
+// $Id: unix.C,v 1.125 2004/04/09 18:03:02 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -609,12 +609,8 @@ int handleSigStopNInt(const procevent &event) {
       * See waitUntilStoppedGeneral() for details on why we gotta
       * do this.
       **/
-     if (proc->multithread_capable())
-     {
-       proc->continueProc();
-       return 1;
-     }
-     else
+      proc->continueProc();
+      return 1;
 #endif
        signal_cerr << "unhandled SIGSTOP for pid " << proc->getPid() 
                    << " so just leaving process in paused state.\n" 
