@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.12 2004/03/23 01:12:09 eli Exp $
+// $Id: solarisMT.C,v 1.13 2004/04/06 16:37:19 bernat Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -69,8 +69,8 @@ Frame dyn_thread::getActiveFrameMT() {
   updateLWP();
   if (lwp) {
     Frame lwpFrame = lwp->getActiveFrame();
-    newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
-		     lwpFrame.getPID(), this, lwp, true);
+    newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(), 0, // unused
+                     lwpFrame.getPID(), this, lwp, true);
   }
   else {
     resumestate_t rs ;
@@ -80,7 +80,7 @@ Frame dyn_thread::getActiveFrameMT() {
       fp = rs.sp;
       pc = rs.pc;
     } 
-    newFrame = Frame(pc, fp, proc->getPid(), this, 0, true);
+    newFrame = Frame(pc, fp, 0, proc->getPid(), this, 0, true);
   }
   return newFrame;
 }  

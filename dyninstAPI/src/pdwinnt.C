@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.124 2004/03/23 01:12:06 eli Exp $
+// $Id: pdwinnt.C,v 1.125 2004/04/06 16:37:14 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -383,7 +383,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
              pc = saved_sf.AddrReturn.Offset;
           }
           
-          stackWalk.push_back(Frame(pc, 0, getPid(), 
+          stackWalk.push_back(Frame(pc, 0, 0, getPid(), 
                                     currentFrame.getThread(), 
                                     currentFrame.getLWP(), 
                                     false));
@@ -1282,10 +1282,10 @@ Frame Frame::getCallerFrame(process *p) const
     {
         Frame ret;
         ret.fp_ = addrs.fp;
-	ret.pc_ = addrs.rtn;
-	return ret;
+        ret.pc_ = addrs.rtn;
+        return ret;
     }
-
+    
     return Frame(); // zero frame
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.66 2004/04/02 06:34:13 jaw Exp $
+// $Id: osf.C,v 1.67 2004/04/06 16:37:13 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -166,7 +166,7 @@ Frame dyn_lwp::getActiveFrame()
   if (ioctl(fd_, PIOCGREG, &theIntRegs) != -1) {
     fp = theIntRegs.regs[SP_REGNUM];  
     pc = theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
-    theFrame = Frame(pc, fp, proc_->getPid(), NULL, this, true);
+    theFrame = Frame(pc, fp, 0, proc_->getPid(), NULL, this, true);
   }
   return theFrame;
 }

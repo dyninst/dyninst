@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.51 2004/04/02 06:34:15 jaw Exp $
+// $Id: sol_proc.C,v 1.52 2004/04/06 16:37:17 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -445,12 +445,12 @@ Frame dyn_lwp::getActiveFrame()
    struct dyn_saved_regs regs;
    bool status = getRegisters(&regs);
    if(status == false)
-      return Frame();
-  
+      return Frame();  
+
    Frame newFrame = Frame(GETREG_PC(regs.theIntRegs),
                           GETREG_FP(regs.theIntRegs), 
+                          0, // SP unused
                           proc_->getPid(), NULL, this, true);
-
    return newFrame;
 }
 
