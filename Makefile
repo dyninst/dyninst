@@ -10,8 +10,8 @@
 #
 # Subsystems is the list of all other pieces which should be built.
 #
-buildfirst	= igen util thread
-subsystems	= igen bininst util rtinst thread paradyn paradynd paradyndSIM
+buildfirst	= igen util thread visi dag
+subsystems	= bininst rtinst paradyn paradynd paradyndSIM
 
 
 # This rule makes most of the normal recursive stuff.  Just about any
@@ -23,7 +23,7 @@ subsystems	= igen bininst util rtinst thread paradyn paradynd paradyndSIM
 # target before all!
 
 all clean install:
-	+for subsystem in $(subsystems); do 			\
+	+for subsystem in $(buildfirst) $(subsystems); do 	\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
 	       $(MAKE) -C $$subsystem/$(PLATFORM) $@;		\
 	    else						\
@@ -35,8 +35,8 @@ all clean install:
 # lower-level Makefiles in the individual "docs" directories.
 
 docs install-man:
-	+for subsystem in $(subsystems); do 			\
-	    if [ -f $$subsystem/docs/Makefile ]; then	\
+	+for subsystem in $(buildfirst) $(subsystems); do	\
+	    if [ -f $$subsystem/docs/Makefile ]; then		\
 	       $(MAKE) -C $$subsystem/docs $@;			\
 	    else						\
 		true;						\
