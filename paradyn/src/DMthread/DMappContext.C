@@ -2,7 +2,14 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.5  1994/02/09 22:35:29  hollings
+ * Revision 1.6  1994/02/24 04:36:29  markc
+ * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
+ * startup.  Added a data member to the class that igen generates.
+ * Make depend differences due to new header files that igen produces.
+ * Added support to allow asynchronous starts of paradynd's.  The dataManager has
+ * an advertised port that new paradynd's can connect to.
+ *
+ * Revision 1.5  1994/02/09  22:35:29  hollings
  * added debugging code to print Hash table.
  *
  * Revision 1.4  1994/02/08  21:05:54  hollings
@@ -29,6 +36,7 @@ double   quiet_nan(int unused);
 }
 
 #include "dataManager.h"
+#include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
 
 List<performanceStream*> applicationContext::streams;
@@ -45,6 +53,27 @@ String_Array convertResourceList(resourceList *rl)
     ret.data = rl->convertToStringList();
     return(ret);
 }
+
+//
+// add a new paradyn daemon
+// called when a new paradynd contacts the advertised socket
+//
+int applicationContext::addDaemon (int new_fd)
+{
+  paradynDaemon *new_daemon;
+
+  new_daemon = new paradynDaemon (new_fd, NULL, NULL);
+  // TODO - setup machine, program, login?
+
+  msg_bind (new_daemon->fd, TRUE);
+
+  // TODO - do I need the pid for this ?
+  // The pid is reported later in an upcall
+  // paradynDdebug (new_daemon->pid);
+
+  return (0);
+}
+
 
 //
 // add a new executable (binary) to a program.

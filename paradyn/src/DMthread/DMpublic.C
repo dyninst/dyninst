@@ -4,7 +4,14 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.3  1994/02/08 17:20:29  hollings
+ * Revision 1.4  1994/02/24 04:36:32  markc
+ * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
+ * startup.  Added a data member to the class that igen generates.
+ * Make depend differences due to new header files that igen produces.
+ * Added support to allow asynchronous starts of paradynd's.  The dataManager has
+ * an advertised port that new paradynd's can connect to.
+ *
+ * Revision 1.3  1994/02/08  17:20:29  hollings
  * Fix to not core dump when parent is null.
  *
  * Revision 1.2  1994/02/03  23:26:59  hollings
@@ -23,12 +30,15 @@ extern "C" {
 #include <malloc.h>
 }
 
-#include "dataManager.h"
+#include "dataManager.SRVR.h"
+#include "dataManager.CLNT.h"
+#include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
 
 applicationContext *dataManager::createApplicationContext(errorHandler foo)
 {
-    return(new applicationContext(foo));
+  appContext = new applicationContext(foo);
+  return appContext;
 }
 
 Boolean dataManager::addExecutable(applicationContext *app,

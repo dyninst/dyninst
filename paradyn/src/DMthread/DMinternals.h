@@ -3,7 +3,14 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.3  1994/02/03 23:26:57  hollings
+ * Revision 1.4  1994/02/24 04:36:30  markc
+ * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
+ * startup.  Added a data member to the class that igen generates.
+ * Make depend differences due to new header files that igen produces.
+ * Added support to allow asynchronous starts of paradynd's.  The dataManager has
+ * an advertised port that new paradynd's can connect to.
+ *
+ * Revision 1.3  1994/02/03  23:26:57  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.2  1994/02/02  00:42:32  hollings
@@ -15,6 +22,7 @@
 #include "util/h/list.h"
 #include "util/h/hist.h"
 #include "DMresource.h"
+#include <string.h>
 
 //
 // A handle to a running paradynd* somewhere.
@@ -22,16 +30,30 @@
 class paradynDaemon: public dynRPCUser {
     public:
 	paradynDaemon(char *m, char *u, char *p, xdrIOFunc r, xdrIOFunc w):
-	    dynRPCUser(m, u, p, r, w) {
+	    dynRPCUser(m, u, p, r, w, args) {
 		machine = m;
 		login = u;
 		program = p;
 
 		allDaemons.add(this);
 	}
+	// TODO setup machine, login, program
+	paradynDaemon(int f, xdrIOFunc r, xdrIOFunc w):
+	    dynRPCUser(f, r, w) {
+	      // machine = m;
+	      // login = u;
+	      // program = p;
+
+		allDaemons.add(this);
+	}
+	void reportSelf (String m, String p, int pd);
         char *machine;
         char *login;
  	char *program;
+	// these args are passed to the paradynd when started
+        // for paradyndPVM these args contain the info to connect to the
+        // "well known" socket for new paradynd's
+	static char **args;
 	static List<paradynDaemon*> allDaemons;
 };
 
@@ -64,6 +86,7 @@ class applicationContext {
 	applicationContext(errorHandler ef)	{
  	    errorFunc = ef;
 	}
+        addDaemon (int new_fd);
 	addExecutable(char  *machine,
                       char *login,
                       char *name,
@@ -146,7 +169,11 @@ class component {
 
 class metric {
     public:
-	metric(metricInfo i) { info = i; }
+	metric(metricInfo i) {
+	  info.style = i.style;
+	  info.units = strdup (i.units);
+	  info.name = strdup (i.name);
+	}
 	metricInfo *getInfo() { return(&info); }
 	String getName() { return(info.name); }
 	metricStyle getStyle() { return((metricStyle) info.style); }
