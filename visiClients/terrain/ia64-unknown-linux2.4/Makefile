@@ -1,5 +1,8 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2005/01/14 20:57:57  tlmiller
+# Allow cross-compiling to function properly.
+#
 # Revision 1.1  2002/02/11 22:01:45  tlmiller
 # introduce IA-64 port  - - - - - - - - - - - - - - - - - - - - - - - - - -
 # the IA-64 Makefile(s)
@@ -35,7 +38,10 @@ CXXFLAGS	+= $(TCLFRIENDLYWARNINGS)
 TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
 SYSLIBS		+= -ldl
-#SYSLIBS		= -lsocket -lnsl
+
+ifdef CROSS_TARGET
+	SYSLIBS += -lSM -lICE -lXpm
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
