@@ -1,1 +1,1 @@
-*.obj *.lib V_libpdthread.c
+*.obj *.lib V_libpdthread.c *.d

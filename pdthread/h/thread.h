@@ -38,35 +38,15 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-
-
-
-
-
 /************************************************************************
- * threads.h:
+ * $Id: thread.h,v 1.12 2003/10/28 17:49:46 pcroth Exp $
 ************************************************************************/
-
-#if USE_PTHREADS
-#include <pthread.h>
-#endif
-
-
-
-
 #if !defined(_thread_h_thread_h_)
 #define _thread_h_thread_h_
-
-
-
-
 
 #if defined(__cplusplus)
 extern "C" {
 #endif /* defined(__cplusplus) */
-
-
-
 
 
 /************************************************************************
@@ -76,6 +56,8 @@ extern "C" {
 #if !defined(i386_unknown_nt4_0)
 #include <sys/param.h>
 #else
+#include <winsock2.h>
+#include <windows.h>
 #include <wtypes.h>
 #endif /* !defined(i386_unknown_nt4_0) */
 
@@ -83,9 +65,6 @@ extern "C" {
 #include "pdutil/h/pddesc.h"
 
     
-
-
-
 /************************************************************************
  * constants.
 ************************************************************************/
@@ -107,8 +86,6 @@ extern "C" {
 
 /* special thread ID values */
 #define	THR_TID_UNSPEC	0
-
-
 
 
 /************************************************************************
@@ -141,20 +118,12 @@ typedef enum {
         rwlock_favor_write
 }       pref_t;
 
-class pthread_sync;
-class rwlock;
 
 typedef unsigned thread_t;
 typedef unsigned tag_t;
-typedef pthread_sync* thread_monitor_t;
-typedef rwlock* thread_rwlock_t;    
-
-#if USE_PTHREADS
-typedef pthread_key_t thread_key_t;
-#else
-typedef unsigned thread_key_t;
-#endif
-
+typedef void* thread_monitor_t;
+typedef void* thread_rwlock_t;    
+typedef void* thread_key_t;
 
 
 /************************************************************************
@@ -176,7 +145,7 @@ int			thr_suspend(thread_t tid);
 int			thr_continue(thread_t tid);
 
 /* thread-local storage functions */
-int			thr_keycreate(thread_key_t* key, void (*dtor)(void *));
+int			thr_keycreate(thread_key_t* key);
 int			thr_setspecific(thread_key_t key, void* value);
 int			thr_getspecific(thread_key_t, void** value);
 
@@ -222,8 +191,9 @@ void	clear_ready_file( PDDESC sock );
 
 void thr_library_cleanup(void);
     
-#if !defined(i386_unknown_nt4_0)
     
+#if DO_LIBPDTHREAD_MEASUREMENTS == 1
+
 struct thr_perf_data_t {
     unsigned long long num_lock_acquires;
     unsigned long long num_lock_blocks;
@@ -248,14 +218,12 @@ void thr_collect_measurements (int);
 #define THR_MSG_TIMER_START 30
 #define THR_MSG_TIMER_STOP 31
     
-#if DO_LIBPDTHREAD_MEASUREMENTS == 1
 #define COLLECT_MEASUREMENT(x) thr_collect_measurements(x)
+
 #else
 #define COLLECT_MEASUREMENT(x) while(0)
 #endif
 
-#endif /* NT */
-
     
 /* synchronization primitives */
 
@@ -267,6 +235,7 @@ int thr_monitor_leave(thread_monitor_t mon);
 int thr_cond_register(thread_monitor_t mon, unsigned cond_no);
 int thr_cond_wait(thread_monitor_t mon, unsigned cond_no);
 int thr_cond_signal(thread_monitor_t mon, unsigned cond_no);
+int thr_cond_broadcast(thread_monitor_t mon, unsigned cond_no);
 
 thread_rwlock_t thr_rwlock_create(pref_t pref);
 int thr_rwlock_destroy(thread_rwlock_t rw);

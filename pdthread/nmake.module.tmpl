@@ -1,0 +1,57 @@
+# 
+# Common makefile template for thread library.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: nmake.module.tmpl,v 1.1 2003/10/28 17:49:45 pcroth Exp $
+#
+
+#TARGET	      = libpdthread.dll
+TARGET	      = libpdthread.lib
+
+#UNCOMMON_LINK       = true
+#UNCOMMON_INSTALL    = true
+
+SRCS	     = $(SRCS) ../src/file_q.C \
+		../src/hash.C \
+		../src/io_entity.C \
+		../src/io_mailbox.C \
+		../src/io_message.C \
+		../src/lwp.C \
+		../src/mailbox.C \
+		../src/message.C \
+		../src/msg.C \
+		../src/predicate.C \
+		../src/refarray.C \
+		../src/rwlock.C \
+		../src/socket_q.C \
+		../src/sync.C \
+		../src/thr_mailbox.C \
+		../src/thread.C \
+		../src/thrtab.C \
+        ../src/MsgAvailablePipe-win.C \
+        ../src/WaitSet-win.C \
+        ../src/win_thr_mailbox.C
+
+OBJS	     = $(OBJS) file_q.obj \
+		hash.obj \
+		io_entity.obj \
+		io_mailbox.obj \
+		io_message.obj \
+		lwp.obj \
+		mailbox.obj \
+		message.obj \
+		msg.obj \
+		predicate.obj \
+		refarray.obj \
+		rwlock.obj \
+		socket_q.obj \
+		sync.obj \
+		thr_mailbox.obj \
+		thread.obj \
+		thrtab.obj \
+        MsgAvailablePipe-win.obj \
+        WaitSet-win.obj \
+        win_thr_mailbox.obj
+
+all:	$(TARGET)
