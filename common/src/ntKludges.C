@@ -42,6 +42,9 @@
 // Contains definitions for functions which NT does not give you
 // The argument given is returned here
 
+#include <stdio.h>
+#include "common/h/headers.h"
+
 char *optarg;
 int P_getopt(int argc, char *argv[], const char *optstring)
 {
@@ -53,7 +56,7 @@ int P_getopt(int argc, char *argv[], const char *optstring)
     int opt_index = 0;
     char *nextArg = argv[i];
     if (nextArg[0] != '-') continue;
-    for (opt_index = 0; opt_index < strlen(optstring); opt_index++)
+    for (opt_index = 0; opt_index < P_strlen(optstring); opt_index++)
       if (optstring[opt_index] == nextArg[1]) {
 	arg_found = optstring[opt_index];
 	// We may have an argument value
@@ -69,7 +72,7 @@ int P_getopt(int argc, char *argv[], const char *optstring)
 	      optarg = argv[i + 1];
 	    }
 	    else {
-	      optarg = NULL;
+	      optarg = (char *)0;
 	    }
 	} // argument found
 	break;
