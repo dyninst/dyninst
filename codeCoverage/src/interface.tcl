@@ -44,33 +44,38 @@ proc DisplayCoverage { canvasPanel globalFrequency } {
 			set codemax $value 
 		}
 	}
+	set xp 10
+	set yp 190
 	if { $linemax > 0  && $codemax > 0 } {
-		set linetotal 0
 		set codetotal 0
 		for {set i 1} { $i <= $gfsize } { incr i } {
 			set x [expr 10 + [expr int([expr $gridsize * $i ])]]
-			set linetotal [expr $linetotal + [lindex $localgf($i) 0]]
-			set codetotal [expr $codetotal + [lindex $localgf($i) 1]]
+
 			set liney [expr int([expr [expr [lindex $localgf($i) 0] \
 							* 180.0] / $linemax])]
-			set codey [expr int([expr [expr [lindex $localgf($i) 1] \
-							* 180.0] / $codemax])]
-			$canvasPanel.line create line $x 190 $x \
+			$canvasPanel.line create line $xp $yp $x \
 				[expr 190 - $liney] -fill purple \
 				-tag temporary -width 2
+			set xp $x
+			set yp [expr 190 - $liney]
+
+			set codetotal [expr $codetotal + [lindex $localgf($i) 1]]
+			set codey [expr int([expr [expr [lindex $localgf($i) 1] \
+							* 180.0] / $codemax])]
 			$canvasPanel.code create line $x 190 $x \
 				[expr 190 - $codey] -fill purple \
 				-tag temporary -width 2
 		}
-		set str "max:"
-		append str $linemax " total:" $linetotal
-		set strid [$canvasPanel.line create text 120 198 \
+
+		set str "total: "
+		append str $linemax
+		set strid [$canvasPanel.line create text 110 198 \
 				-font comic8 -tag temporary] 
 		$canvasPanel.line insert $strid insert $str
 		
-		set str "max:"
-		append str $codemax " total:" $codetotal
-		set strid [$canvasPanel.code create text 120 198 \
+		set str "max: "
+		append str $codemax " total: " $codetotal
+		set strid [$canvasPanel.code create text 110 198 \
 				-font comic8 -tag temporary]
 		$canvasPanel.code insert $strid insert $str
 	}
@@ -580,10 +585,10 @@ if { $deletionInterval >  0 } {
 # when ther will be no update
 
 label	.menuFrame.listFrame.graphPanel.lineLabel \
-	-text "# Lines Covered" -pady 2 -bg orange \
+	-text "Line Coverage" -pady 2 -bg orange \
 	-fg black -font comic10bold -relief ridge
 label	.menuFrame.listFrame.graphPanel.codeLabel \
-	-text "# Code Covered" -pady 2 -bg orange \
+	-text "Intrumentation Coverage" -pady 2 -bg orange \
 	-fg black -font comic10bold -relief ridge
 
 canvas	.menuFrame.listFrame.graphPanel.line \

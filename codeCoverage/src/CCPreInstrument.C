@@ -100,11 +100,16 @@ int CCPreInstrument::run(){
 	/** wait untill the breakpoint at exithandle is reached */
 	bPatch.waitUntilStopped(appThread);
 
+	whichInterval++;
+	totalDeletions = 0;
+
 	/** coverage results are printed into a binary file */
 	errorCode = printCoverageInformation();
 	if(errorCode < Error_OK)
 		return errorPrint(Error_PrintResult);
 	
+	addTclTkFrequency();
+
 	/** the mutatee is let to run to terminate */
 	appThread->continueExecution();
 
@@ -115,7 +120,7 @@ int CCPreInstrument::run(){
 	if(globalInterp && statusBarName){
 		char tclBuffer[256];
 		sprintf(tclBuffer,"%s configure -text \
-			\"Execution of mutatee started...\"",
+			\"Execution of mutatee ended...\"",
 			statusBarName);
 		Tcl_Eval(globalInterp,tclBuffer);
 	}
@@ -144,10 +149,16 @@ int CCPreInstrument::deletionIntervalCallback(){
 		appThread->stopExecution();
 	else already = true;
 
-	extern unsigned totalDeletions;
+	whichInterval++;
         totalDeletions = 0;
-	extern unsigned totalCoveredLines;
-	totalCoveredLines = 0;
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+		\"Interval %d has started...\"",
+		statusBarName,whichInterval);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
 
 	cout << endl 
 	     << "information: mutatee stopped and deletion occurs..."
@@ -156,6 +167,17 @@ int CCPreInstrument::deletionIntervalCallback(){
 	/** update the execution counts of the basic blocks */
         updateFCObjectInfo();
 
+	addTclTkFrequency();
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Interval %d has ended...\"",
+			statusBarName,whichInterval);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
+
+	/** assign the alarm interval call back and continue exec */
 	/** continue execution */
 	if(!already)
 		appThread->continueExecution();

@@ -6,6 +6,8 @@
 #include <fstream.h>
 #include <limits.h>
 #include <pthread.h>
+#include <tcl.h>
+#include <tk.h>
 
 #include "common/h/Vector.h"
 #include "common/src/Dictionary.C"
@@ -15,6 +17,7 @@
 #include "common/h/String.h"
 
 #include <CCcommon.h>
+#include <CodeCoverage.h>
 #include <FunctionCoverage.h>
 
 /** constructor */
@@ -388,8 +391,7 @@ int FunctionCoverage::updateExecutionCounts(){
 		  */
 		
 		if(instrumentationCode[i]){
-			extern unsigned totalDeletions;
-			totalDeletions++;
+			CodeCoverage::globalObject->totalDeletions++;
 			appThread->deleteSnippet(instrumentationCode[i]);
 		}
 
@@ -422,9 +424,8 @@ int FunctionCoverage::updateLinesCovered(BPatch_sourceBlock* sb)
 		BPatch_Vector<unsigned short> lines;
 		sb->getLines(lines);
 		for(unsigned int j=0;j<lines.size();j++){
-			extern unsigned totalCoveredLines;
 			if(!executedLines.contains(lines[j]))
-				totalCoveredLines++;
+				CodeCoverage::globalObject->totalCoveredLines++;
 			executedLines += lines[j];
 			unExecutedLines.remove(lines[j]);
 		}

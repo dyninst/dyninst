@@ -81,10 +81,12 @@ void* codeCoverageThread(void* arg){
 void exitCodeCoverage(ClientData clientData){
 	CodeCoverage* codeCoverage = ((ARGS*)clientData)->codeCoverage;
 	codeCoverage->terminate();
+	delete codeCoverage;
 	cerr << "information: terminating code coverage execution ..." << endl;
 }
 
 void startButtonHandler(ClientData clientData,XEvent* eventPtr){
+	sigset_t sigs_to_block;
 	if(!eventPtr)
 		return;
 
@@ -101,6 +103,9 @@ void startButtonHandler(ClientData clientData,XEvent* eventPtr){
 			exit(-1);
 		}
 		executionStarted = true;
+		sigemptyset(&sigs_to_block);
+		sigaddset(&sigs_to_block,SIGALRM);
+		pthread_sigmask(SIG_BLOCK,&sigs_to_block,NULL);
 	}
 }
 
@@ -162,6 +167,8 @@ int Tcl_AppInit(Tcl_Interp* interp){
 Tcl_Interp* initTclTk(CodeCoverage* codeCoverage,int interval){
 
 	Tcl_Interp* interp = Tcl_CreateInterp();
+	if(!interp)
+		return NULL;
 
 	if(Tcl_Init(interp) == TCL_ERROR)
 		return NULL;
@@ -190,8 +197,6 @@ Tcl_Interp* initTclTk(CodeCoverage* codeCoverage,int interval){
 		exit(-1);
 	}
 
-	cout << "FILE is " << tcktkFilePath << endl;
-
 	mainWindow = Tk_MainWindow(interp);
 	textMessage = Tk_NameToWindow(interp,
 			        ".fileFrame.message",mainWindow);
@@ -216,12 +221,16 @@ Tcl_Interp* initTclTk(CodeCoverage* codeCoverage,int interval){
 		exit(-1);
 	}
 
+	codeCoverage->setTclTkSupport(interp,".fileFrame.status");
+
 	return interp;
 }
 
 Tcl_Interp* initTclTkForView(){
 
 	Tcl_Interp* interp = Tcl_CreateInterp();
+	if(!interp)
+		return NULL;
 
 	if(Tcl_Init(interp) == TCL_ERROR)
 		return NULL;
@@ -422,7 +431,6 @@ int main(int argc,char* argv[]){
 			     << " can not be created..." << endl; 
 			exit(-1);
 		}
-		codeCoverage->setTclTkSupport(interp,".fileFrame.status");
 	}
 
 	ARGS* passedArguments = new ARGS;

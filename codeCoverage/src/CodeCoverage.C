@@ -22,10 +22,9 @@
 #include <FCUseDominator.h>
 #include <CodeCoverage.h>
 
-unsigned whichInterval = 0;
-unsigned totalDeletions = 0;
-unsigned totalCoveredLines = 0;
-float totalPercentage = 0.0;
+BPatch_function* exitHandle = NULL;
+BPatch_Vector<unsigned short> frequencyCode;
+BPatch_Vector<unsigned short> frequencyLine;
 
 /** a linked list definition of functions to be used in hash structure */
 class BPFunctionList {
@@ -56,7 +55,8 @@ CodeCoverage::CodeCoverage()
 	: appThread(NULL),appImage(NULL),coverageFileName(NULL),
 	  deletionInterval(0),appModules(NULL),
 	  instrumentedFunctions(NULL),instrumentedFunctionCount(0),
-	  useDominator(false),globalInterp(NULL),statusBarName(NULL)
+	  useDominator(false),globalInterp(NULL),statusBarName(NULL),
+	  whichInterval(0),totalDeletions(0),totalCoveredLines(0)
 {
 	pthread_mutex_init(&updateLock,NULL);
 }
@@ -144,6 +144,11 @@ int CodeCoverage::initialize(char* mutatee[],unsigned short interval,
 					new BPFunctionList(f,m);
 		}
 		delete fs;
+	}
+
+	if(allFunctionsHash->defines(string("_exithandle"))){
+		BPFunctionList* fl = (*allFunctionsHash)[string("_exithandle")];
+		exitHandle = fl->f;
 	}
 				
 	/** set the base trampoline deletion to true to delete
@@ -387,7 +392,7 @@ int CodeCoverage::instrumentExitHandle()
         BPatchSnippetHandle* ret = NULL;
 
 	/** _exithandle is the exit function to be called for sparc*/
-        breakPoints = appImage->findProcedurePoint("_exithandle",BPatch_entry);
+        breakPoints = exitHandle->findPoint(BPatch_entry);
 
 	if(!breakPoints)
 		return errorPrint(Error_ProcedurePoint,"Entry to _exithandle");
@@ -553,35 +558,16 @@ void intervalCallback(int signalNo){
 	if(signalNo != SIGALRM)
 		return;
 	
-	Tcl_Interp* globalInterp = 
-		CodeCoverage::globalObject->globalInterp;
-	const char* statusBarName = 
-		CodeCoverage::globalObject->statusBarName;
-	
-	whichInterval++;
-
-	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
-			\"Interval %d has started...\"",
-			statusBarName,whichInterval);
-		Tcl_Eval(globalInterp,tclBuffer);
-	}
-
 	/** wait untill the breakpoint at exithandle is reached */
 	CodeCoverage::globalObject->deletionIntervalCallback();
 
-	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
-			\"Interval %d has ended with %d deletions...\"",
-			statusBarName,whichInterval,totalDeletions);
-		Tcl_Eval(globalInterp,tclBuffer);
-
-		sprintf(tclBuffer,"set globalFrequencyMap(%d) [list %d %d ]",
-				  whichInterval,totalCoveredLines,
-				  totalDeletions);
-		Tcl_Eval(globalInterp,tclBuffer);
+}
+void CodeCoverage::addTclTkFrequency(){
+	if(deletionInterval && globalInterp && statusBarName){
+		pthread_mutex_lock(&updateLock);
+		frequencyCode.push_back(totalDeletions);
+		frequencyLine.push_back(totalCoveredLines);
+		pthread_mutex_unlock(&updateLock);
 	}
 }
 
@@ -598,7 +584,7 @@ void CodeCoverage::getTclTkExecutedLines(ofstream& file){
 
 	pthread_mutex_lock(&updateLock);
 
-	for(int i=0;i<fileCount;i++){
+	for(unsigned int i=0;i<fileCount;i++){
 		file << "set globalExecutionMap(" << i << ") \\" << endl;
 		file << "\t[list \\" << endl
 		     << "\t\t[list \\" << endl;
@@ -643,6 +629,10 @@ void CodeCoverage::getTclTkExecutedLines(ofstream& file){
 		     << "\t\t" << percentage << " \\" << endl
 		     << "\t\t" << fileLineCount[i] << " \\" << endl
 		     << "\t]" << endl;
+	}
+	for(unsigned int i=0;i<frequencyCode.size();i++){
+		file << "set globalFrequencyMap(" << i+1 << ") [list "
+		     << frequencyLine[i] << " " << frequencyCode[i] << " ]" << endl;
 	}
 
 	pthread_mutex_unlock(&updateLock);

@@ -99,7 +99,7 @@ int CCOnDemandInstrument::run(){
 	if(globalInterp && statusBarName){
 		char tclBuffer[256];
 		sprintf(tclBuffer,"%s configure -text \
-			\"Execution of mutatee ended...\"",
+			\"Execution of mutatee started...\"",
 			statusBarName);
 		Tcl_Eval(globalInterp,tclBuffer);
 	}
@@ -166,6 +166,9 @@ int CCOnDemandInstrument::run(){
 		if((deletionInterval > 0) && alreadyStopped){
 			appThread->stopExecution();
 
+			whichInterval++;
+			totalDeletions = 0;
+
 			cout << endl
 			     << "information: mutatee stopped and "
 			     << "deletion occurs..." << endl << endl;
@@ -175,23 +178,15 @@ int CCOnDemandInstrument::run(){
 
 			alreadyStopped = false;
 
+			addTclTkFrequency();
+
 			if(globalInterp && statusBarName){
-				extern unsigned totalDeletions;
-				extern unsigned totalCoveredLines;
-				extern unsigned whichInterval;
 				char tclBuffer[256];
 				sprintf(tclBuffer,"%s configure -text \
-					\"Interval %d has ended with %d deletions...\"",
-					statusBarName,whichInterval,
-				        totalDeletions);
-				Tcl_Eval(globalInterp,tclBuffer);
-
-				sprintf(tclBuffer,"set globalFrequencyMap(%d) [list %d %d ]",
-						   whichInterval,totalCoveredLines,
-						   totalDeletions);
+					\"Interval %d has ended...\"",
+					statusBarName,whichInterval);
 				Tcl_Eval(globalInterp,tclBuffer);
 			}
-
 
 			/** assign the handler to the alarm signal and continue
 			  * execution
@@ -210,10 +205,15 @@ int CCOnDemandInstrument::run(){
 		return Error_OK;
 	}
 
+	whichInterval++;
+	totalDeletions = 0;
+	
 	/** coverage results are printed into a binary file */
 	errorCode = printCoverageInformation();
 	if(errorCode < Error_OK)
 		return errorPrint(Error_PrintResult);
+
+	addTclTkFrequency();
 
 	/** let the mutatee terminate */
 	appThread->continueExecution();
@@ -225,7 +225,7 @@ int CCOnDemandInstrument::run(){
 	if(globalInterp && statusBarName){
 		char tclBuffer[256];
 		sprintf(tclBuffer,"%s configure -text \
-			\"Execution of mutatee started...\"",
+			\"Execution of mutatee ended...\"",
 			statusBarName);
 		Tcl_Eval(globalInterp,tclBuffer);
 	}
@@ -254,23 +254,41 @@ int CCOnDemandInstrument::deletionIntervalCallback(){
 	  * mutatee
 	  */
 
-	extern unsigned totalDeletions;
-	extern unsigned totalCoveredLines;
-	totalDeletions = 0;
-	totalCoveredLines = 0;
 
 	if(appThread->isStopped()){
 		alreadyStopped = true;
 		return Error_OK;
 	}
+
 	appThread->stopExecution();
 	
+	whichInterval++;
+	totalDeletions = 0;
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+		\"Interval %d has started...\"",
+		statusBarName,whichInterval);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
+
 	cout << endl
 	     << "information: mutatee stopped and "
 	     << "deletion occurs..." << endl << endl;
 
 	/** update the execution counts of the basic blocks */
 	updateFCObjectInfo();
+	
+	addTclTkFrequency();
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Interval %d has ended...\"",
+			statusBarName,whichInterval);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
 
 	/** assign the alarm interval call back and continue exec */
 	signal(SIGALRM,intervalCallback);

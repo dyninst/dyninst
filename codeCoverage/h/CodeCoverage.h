@@ -77,9 +77,14 @@ protected:
 	Tcl_Interp* globalInterp;
 	const char* statusBarName;
 
+	unsigned short whichInterval;
+	unsigned short totalDeletions;
+	unsigned short totalCoveredLines;
+
 protected:
 	/** interval callback function is defined to be friend*/
 	friend void intervalCallback(int signalNo);
+	friend class FunctionCoverage;
 
 	/** method to validate whether function has its 
 	  * source code line information available or not
@@ -177,6 +182,10 @@ public:
 	/** method that retrieves all executed line information
 	  */
 	void getTclTkExecutedLines(ofstream& file);
+
+	/** method that prints deletions and executed lines to a file
+	  */
+	void addTclTkFrequency();
 
 	/** method to set tcl/tk related things to CodeCoverage */
 	void setTclTkSupport(Tcl_Interp* interp,const char* statusBar);
