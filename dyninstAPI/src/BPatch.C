@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.30 2000/07/28 20:30:14 hollings Exp $
+// $Id: BPatch.C,v 1.31 2000/08/01 02:32:16 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -313,7 +313,8 @@ BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
 
 #if !defined(sparc_sun_solaris2_4) && \
     !defined(i386_unknown_solaris2_5) && \
-    !defined(alpha_dec_osf4_0)
+    !defined(alpha_dec_osf4_0) && \
+    !defined(mips_sgi_irix6_4)
     reportError(BPatchWarning, 0,
 	"fork callbacks not implemented on this platform");
     return NULL;
@@ -339,7 +340,8 @@ BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
 {
 #if !defined(sparc_sun_solaris2_4) && \
     !defined(i386_unknown_solaris2_5) &&\
-    !defined(alpha_dec_osf4_0)
+    !defined(alpha_dec_osf4_0) && \
+    !defined(mips_sgi_irix6_4)
     reportError(BPatchWarning, 0,
 	"fork callbacks not implemented on this platform");
     return NULL;
@@ -366,7 +368,8 @@ BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
 
 #if !defined(sparc_sun_solaris2_4) && \
     !defined(i386_unknown_solaris2_5) &&\
-    !defined(alpha_dec_osf4_0)
+    !defined(alpha_dec_osf4_0) && \
+    !defined(mips_sgi_irix6_4)
     reportError(BPatchWarning, 0,
 	"exec callbacks not implemented on this platform");
     return NULL;
@@ -393,7 +396,8 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
 
 #if !defined(sparc_sun_solaris2_4) && \
     !defined(i386_unknown_solaris2_5) &&\
-    !defined(alpha_dec_osf4_0)
+    !defined(alpha_dec_osf4_0) && \
+    !defined(mips_sgi_irix6_4)
     reportError(BPatchWarning, 0,
 	"exec callbacks not implemented on this platform");
     return NULL;

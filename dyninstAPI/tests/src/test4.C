@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.5 2000/07/11 18:31:47 hollings Exp $
+// $Id: test4.C,v 1.6 2000/08/01 02:32:18 hollings Exp $
 //
 
 #include <stdio.h>
@@ -323,7 +323,7 @@ void contAndWaitForAllThreads(BPatch_thread *appThread)
 
 void mutatorTest1(char *pathname)
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(alpha_dec_osf4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(alpha_dec_osf4_0) && !defined(mips_sgi_irix6_4)
     printf("Skipping test #1 (exit callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[1] = true;
@@ -356,7 +356,8 @@ void mutatorTest1(char *pathname)
 
 void mutatorTest2(char *pathname)
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(alpha_dec_osf4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(alpha_dec_osf4_0) && !defined(mips_sgi_irix6_4)
+
     printf("Skipping test #2 (fork callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[2] = true;
@@ -388,7 +389,7 @@ void mutatorTest2(char *pathname)
 
 void mutatorTest3(char *pathname)
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(alpha_dec_osf4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(alpha_dec_osf4_0) && !defined(mips_sgi_irix6_4)
     printf("Skipping test #3 (exec callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[3] = true;
@@ -420,7 +421,7 @@ void mutatorTest3(char *pathname)
 
 void mutatorTest4(char *pathname)
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(alpha_dec_osf4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(alpha_dec_osf4_0) && !defined(mips_sgi_irix6_4)
     printf("Skipping test #4 (fork callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[4] = true;

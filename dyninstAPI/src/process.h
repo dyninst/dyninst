@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.144 2000/07/28 17:21:16 pcroth Exp $
+/* $Id: process.h,v 1.145 2000/08/01 02:32:17 hollings Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -525,6 +525,7 @@ class process {
 #ifdef BPATCH_LIBRARY
   bool setProcfsFlags();
   bool dumpImage(string outFile);
+  string execPathArg;	// path exec is trying - used when process calls exec
 #else
   bool dumpImage();
 #endif
@@ -1071,7 +1072,7 @@ class process {
   bool cleanUpInstrumentation(bool wasRunning); // called on exit (also exec?)
   bool inExec;
 
-  string execFilePath;
+  string execFilePath;		// full path of process
 
   int getProcFileDescriptor(){ return proc_fd;}
 

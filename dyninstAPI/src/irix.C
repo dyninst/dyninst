@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.17 2000/07/28 17:21:15 pcroth Exp $
+// $Id: irix.C,v 1.18 2000/08/01 02:32:16 hollings Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -373,7 +373,6 @@ void OS::osTraceMe(void)
   /* set a breakpoint at the exit of execv/execve */
   sysset_t exitSet;
   premptyset(&exitSet);
-  (void)praddset(&exitSet, SYS_execv);
   (void)praddset(&exitSet, SYS_execve);
   if (ioctl(fd, PIOCSEXIT, &exitSet) < 0) {
     fprintf(stderr, "osTraceMe: PIOCSEXIT failed: %s\n", sys_errlist[errno]); 
@@ -424,28 +423,27 @@ bool process::attach()
   // c) turn off run-on-last-close flag (on by default)
   // Also, any child of this process will stop at the exit of an exec
   // call, Paradyn only.
+
+  proc_fd = fd;
+
+#ifdef BPATCH_LIBRARY
+  setProcfsFlags();
+#else
   long flags = 0;
-  /* FIXME: When fork/exec callbacks are implemented for Dyninst, set
-     PR_FORK for Dyninst, too.  It is not set now because otherwise
-     the child would inherit trap-on-exit from exec.  With no way for
-     a mutator to handle this stop, the child process would remain
-     stopped indefinitely. */
-#ifndef BPATCH_LIBRARY
+
   flags = PR_KLC | PR_FORK;
-#endif
-  if (ioctl (fd, PIOCSET, &flags) < 0) {
+  if (ioctl (proc_fd, PIOCSET, &flags) < 0) {
     perror("process::attach(PIOCSET)");
-    close(fd);
+    close(proc_fd);
     return false;
   }
   flags = PR_RLC;
-  if (ioctl (fd, PIOCRESET, &flags) < 0) {
+  if (ioctl (proc_fd, PIOCRESET, &flags) < 0) {
     perror("process::attach(PIOCRESET)");
-    close(fd);
+    close(proc_fd);
     return false;
   }
-
-  proc_fd = fd;
+#endif
 
   // environment variables
   prpsinfo_t info;
@@ -466,6 +464,16 @@ bool process::attach()
   return true;
 }
 
+/*
+   execResult: return the result of an exec system call - true if succesful.
+   The traced processes will stop on exit of an exec system call, just before
+   returning to user code. At this point the return value (errno) is already
+   written to a register, and we need to check if the return value is zero.
+ */
+static inline bool execResult(prstatus_t stat) {
+  return (stat.pr_reg[PROC_REG_RV] == 0);
+}
+
 #ifdef BPATCH_LIBRARY
 int process::waitProcs(int *status, bool block)
 #else
@@ -479,14 +487,16 @@ int process::waitProcs(int *status)
   static struct pollfd fds[OPEN_MAX];  // argument for poll
   static int selected_fds;             // number of selected
   static int curr;                     // the current element of fds
-
-  int processCount;	               // the current number of fds, > processVec.size (IRIX MPI)
   prstatus_t stat;
+
+#ifndef BPATCH_LIBRARY
+  int processCount;	               // the current number of fds, > processVec.size (IRIX MPI)
 
   if ( masterMPIfd != -1 )
     processCount = processVec.size() + 1;
   else
     processCount = processVec.size();
+#endif
   
 #ifdef BPATCH_LIBRARY
   do {
@@ -683,16 +693,123 @@ int process::waitProcs(int *status)
 	      delete [] p->save_exitset_ptr;
 	      p->save_exitset_ptr = NULL;
 	      // fall through on purpose (so status, ret get set)
-	    }
-	    else if (stat.pr_reg[PROC_REG_RV] != 0) {
+	    } else if ((stat.pr_what == SYS_execve) && !execResult(stat)) {
 	      // a failed exec; continue the process
 	      p->continueProc_();
 	      break;
 	    }          
-	    *status = SIGTRAP << 8 | 0177;
-	    ret = p->getPid();
-	    break;
+
+#ifdef BPATCH_LIBRARY
+	    if (stat.pr_what == SYS_fork) { 
+		int i;
+
+	        int childPid = stat.pr_reg[PROC_REG_RV];
+
+		if (childPid > 0)  {
+		  for (i=0; i < processVec.size(); i++) {
+		     if (processVec[i]->getPid() == childPid) break;
+		  }
+		  if (i== processVec.size()) {
+		     // this is a new child, register it with dyninst
+		     int parentPid = processVec[curr]->getPid();
+		     process *theParent = processVec[curr];
+		     process *theChild = new process(*theParent, (int)childPid, -1);
+		     // the parent loaded it!
+		     theChild->hasLoadedDyninstLib = true;
+
+		     processVec += theChild;
+		     activeProcesses++;
+
+		     // it's really stopped, but we need to mark it running so
+		     //   it can report to us that it is stopped - jkh 1/5/00
+		     // or should this be exited???
+		     theChild->status_ = neonatal;
+
+		     // parent is stopped too (on exit fork event)
+		     theParent->status_ = stopped;
+
+		     theChild->execFilePath = 
+			 theChild->tryToFindExecutable("", childPid);
+		     theChild->inExec = false;
+		     BPatch::bpatch->registerForkedThread(parentPid,
+			 childPid, theChild);
+		  }
+		}
+	     } else if ((stat.pr_what == SYS_execve) && execResult(stat)) {
+		 process *proc = processVec[curr];
+		 proc->execFilePath = 
+		     proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
+
+	         // only handle if this is in the child - is this right??? jkh
+	         if (proc->reachedFirstBreak) {
+		     // mark this for the sig TRAP that will occur soon
+		     proc->inExec = true;
+
+		     // leave process stopped until signal handler runs
+		     // mark it running so we get the stop signal
+		     proc->status_ = stopped;
+
+		     // reset buffer pool to empty (exec clears old mappings)
+		     vector<heapItem *> emptyHeap;
+		     proc->heap.bufferPool = emptyHeap;
+	         }
+	     } else {
+		 printf("got unexpected PIOCSEXIT\n");
+		 printf("  call is return from syscall #%d\n", stat.pr_what);
+	     }
+#endif
+	     *status = SIGTRAP << 8 | 0177;
+	     ret = p->getPid();
+	     break;
 	  }
+
+#ifdef BPATCH_LIBRARY
+       case PR_SYSENTRY: {
+	 bool alreadyCont = false;
+	 process *p = processVec[curr];
+
+	 if (stat.pr_what == SYS_fork) {
+	     if (BPatch::bpatch->preForkCallback) {
+		 assert(p->thread);
+		 p->setProcfsFlags();
+		 BPatch::bpatch->preForkCallback(p->thread, NULL);
+	     }
+	 } else if (stat.pr_what == SYS_exit) {
+	     // get the parameter to exit to see the exit code
+	     int code = stat.pr_reg[REG_A0];
+
+	     process *proc = processVec[curr];
+
+	     proc->status_ = stopped;
+
+	     BPatch::bpatch->registerExit(proc->thread, code);
+
+	     proc->continueProc();
+	     alreadyCont = true;
+	 } else if (stat.pr_what == SYS_execve) {
+	     process *proc = processVec[curr];
+
+	     Address pathStr = stat.pr_reg[REG_A0];
+	     char name[512];
+
+	     if (!(proc->readDataSpace_((void *)pathStr, sizeof(name), name))) {
+		 logLine("execve entry: unable to read path argument\n");
+		 proc->execPathArg = "";
+	     } else {
+		 proc->execPathArg = name;
+	     }
+
+	     proc->continueProc_();
+	     alreadyCont = true;
+	 } else {
+	     printf("got PR_SYSENTRY\n");
+	     printf("    unhandeled sys call #%d\n", stat.pr_what);
+	 }
+	 if (!alreadyCont) (void) processVec[curr]->continueProc_();
+	 break;
+       }
+#endif
+
 	  case PR_REQUESTED:
 	    // TODO: this has been reached
 	    fprintf(stderr, ">>> process::waitProcs(fd %i): PR_REQUESTED\n", curr);
@@ -731,7 +848,7 @@ bool process::detach_()
 {
   //fprintf(stderr, ">>> process::detach_()\n");
   if (close(proc_fd) == -1) {
-    perror("process::detach_(close)");
+    logLine("process::detach_(close)\n");
     return false;
   }
   return true;
@@ -1085,6 +1202,77 @@ bool process::dumpImage() {
   
   return true;
 }
+
+#ifdef BPATCH_LIBRARY
+/*
+ * Use by dyninst to set events we care about from procfs
+ *
+ */
+bool process::setProcfsFlags()
+{
+
+  long flags = PR_KLC | PR_FORK;
+  if (BPatch::bpatch->postForkCallback) {
+      // cause the child to inherit trap-on-exit from exec and other traps
+      // so we can learn of the child (if the user cares)
+      flags = PR_FORK | PR_RLC;
+  }
+
+  if (ioctl (proc_fd, PIOCSET, &flags) < 0) {
+    fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  // cause a stop on the exit from fork
+  sysset_t sysset;
+
+  if (ioctl(proc_fd, PIOCGEXIT, &sysset) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  if (BPatch::bpatch->postForkCallback) {
+      praddset (&sysset, SYS_fork);
+      praddset (&sysset, SYS_execve);
+  }
+  
+  if (ioctl(proc_fd, PIOCSEXIT, &sysset) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  // now worry about entry too
+  if (ioctl(proc_fd, PIOCGENTRY, &sysset) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  if (BPatch::bpatch->exitCallback) {
+      praddset (&sysset, SYS_exit);
+  }
+
+  if (BPatch::bpatch->preForkCallback) {
+      praddset (&sysset, SYS_fork);
+  }
+
+  praddset (&sysset, SYS_execve);
+
+  // should these be for exec callback??
+  // prdelset (&sysset, SYS_execve);
+  
+  if (ioctl(proc_fd, PIOCSENTRY, &sysset) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  return true;
+}
+#endif
 
 // getActiveFrame(): populate Frame object using toplevel frame
 void Frame::getActiveFrame(process *p)
