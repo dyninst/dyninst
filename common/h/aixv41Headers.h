@@ -57,6 +57,7 @@ extern "C" {
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <errno.h>
 #include <assert.h>
 #include <fcntl.h>
@@ -88,10 +89,6 @@ extern "C" {
 #include <strstream.h>
 #endif
     
-extern "C" { 
-  void bzero(char *b, int length);
-}
-
 extern int fork();
 extern int vfork();
 
@@ -101,7 +98,7 @@ extern int vfork();
 };
 #endif /* defined(__cplusplus) */
 
-extern const char *sys_errlist[];
+extern char *sys_errlist[];
 
 /* POSIX */
 extern int P_getopt(int argc, char *argv[], const char *optstring);

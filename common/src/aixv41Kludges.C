@@ -44,7 +44,6 @@
 extern "C" {
 //extern int accept(int, struct sockaddr *addr, int *);
 //extern int accept(int, struct sockaddr *addr, size_t *);
-extern void bzero(char *b, int length);
 extern int getrusage(int, struct rusage*);
 //extern int getsockname(int, struct sockaddr*, int *);
 //extern int getsockname(int, struct sockaddr*, size_t *);
@@ -57,8 +56,6 @@ extern int socketpair(int, int, int, int sv[2]);
 extern int pipe(int fd[2]);
 extern int vfork();
 extern int fork();
-extern int strcasecmp(char *s1, char *s2);
-extern int strncasecmp(char *s1, char *s2, int n);
 
 /* 
  * Warning this next ifdef may not be correct on all platforms.  We have
