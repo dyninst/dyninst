@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.78 2004/08/16 04:34:49 rchen Exp $
+ * $Id: Object-elf.C,v 1.79 2004/08/23 19:08:19 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -983,7 +983,7 @@ void Object::load_shared_object()
     }
 
     // short module name
-    pdstring module = extract_pathname_tail(file_);
+    pdstring module = file;
     pdstring name   = "DEFAULT_NAME";
 
 #if defined(os_linux) && defined(arch_x86)
@@ -1233,11 +1233,11 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
       
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
-	  (shared) && (sname == smodule)) 
+          (shared) && (sname == extract_pathname_tail(smodule))) 
       {
-	symbols_[sname] = newsym; // special case
+         symbols_[sname] = newsym; // special case
       } else {
-	allsymbols.push_back(newsym); // normal case
+         allsymbols.push_back(newsym); // normal case
       }   
     }
 #endif
@@ -1272,7 +1272,7 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
       
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
-	  (shared) && (sname == smodule)) 
+	  (shared) && (sname == extract_pathname_tail(smodule))) 
       {
 	symbols_[sname] = newsym; // special case
       } else {
