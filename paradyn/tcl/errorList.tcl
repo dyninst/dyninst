@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.12  1995/11/30 22:00:36  naim
+# Revision 1.13  1995/12/15 20:13:48  naim
+# Adding error msg #87: max. number of curves in Histogram has been exceeded.
+#
+# Revision 1.12  1995/11/30  22:00:36  naim
 # Changed error message 33 - Cannot find instrumentation version in executable
 # file - naim
 #
@@ -885,4 +888,13 @@ constraints in the definition of the metric (e.g. the metric is restricted
 to the whole program and we have selected a particular process).
 }}
 
-set numPdErrors 86
+set pdError(87) {
+{Maximum number of curves that can be displayed has been exceeded. 
+} {vi
+} {information
+} {
+Some visis have a maximum number of curves that can be displayed. For this
+particular one, no more curves can be added to the display.
+}}
+
+set numPdErrors 87
