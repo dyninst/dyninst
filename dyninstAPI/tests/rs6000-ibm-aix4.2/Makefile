@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2001/06/08 19:42:52 schendel Exp $
+# $Id: Makefile,v 1.16 2001/08/28 19:39:39 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -52,7 +52,11 @@ endif
 
 EMPTY:=
 BLANK:=$(EMPTY) $(EMPTY)
-COMPILER = $(subst $(BLANK),_,$(COMPILERT))
+LPAREN:=(
+RPAREN:=)
+COMPILER1 = $(subst $(BLANK),_,$(COMPILERT))
+COMPILER2 = $(subst $(LPAREN),_,$(COMPILER1))
+COMPILER = $(subst $(RPAREN),_,$(COMPILER2))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 $(TARGET2): $(MUTATEE_SRC)
