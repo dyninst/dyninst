@@ -50,7 +50,7 @@ IA64_bundle generateTrapBundle() {
 	   a SIGILL, (0x40000) because SIGTRAP does silly things. */
 
 	return IA64_bundle( MIIstop, TRAP_M, NOP_I, NOP_I );
-	} /* end generateBreakBundle() */
+	} /* end generateTrapBundle() */
 
 /* dyn_lwp::getRegisters()
  * 
@@ -94,7 +94,7 @@ bool changePC( int pid, Address loc ) {
 	   getting their destinations from code we didn't generate. */
 	assert( loc % 16 == 0 );
 
-	return P_ptrace( PTRACE_POKEUSER, pid, PT_CR_IIP, loc );
+	return (P_ptrace( PTRACE_POKEUSER, pid, PT_CR_IIP, loc ) == 0);
 	} /* end changePC() */
 
 bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
@@ -199,11 +199,23 @@ Address getPC( int pid ) {
 	} /* end getPC() */
 
 bool process::handleTrapAtEntryPointOfMain() {
-	function_base *f_main = findOneFunction("main");
-	assert(f_main);
-	Address addr = f_main->addr();
+	/* Try to find main(). */
+	function_base * f_main = NULL;
+
+	pdvector<pd_Function *> * pdfv = NULL;
+	if( NULL == ( pdfv = symbols->findFuncVectorByPretty("main") ) || pdfv->size() == 0 ) {
+		return false;
+  		}
+  
+	if (pdfv->size() > 1) {
+		cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
+		}
 	
-	/* See comment below in iTAEPOM(). */
+	f_main = (function_base *)(* pdfv)[0];
+	assert( f_main );
+
+	/* Replace the original code. */
+	Address addr = f_main->addr();	
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.writeMyBundleFrom( savedCodeBuffer );
 
@@ -212,16 +224,22 @@ bool process::handleTrapAtEntryPointOfMain() {
 } /* end handleTrapAtEntryPointOfMain() */
 
 bool process::insertTrapAtEntryPointOfMain() {
-	function_base * f_main = 0;
-	f_main = findOneFunction( "main" );
+	/* Try to find main(). */
+	function_base * f_main = NULL;
 
-	if ( ! f_main ) {     // we can't instrument main - naim
-		showErrorCallback( 108, "main() uninstrumentable" );
+	pdvector<pd_Function *> * pdfv = NULL;
+	if( NULL == ( pdfv = symbols->findFuncVectorByPretty("main") ) || pdfv->size() == 0 ) {
 		return false;
-	}
+  		}
+  
+	if (pdfv->size() > 1) {
+		cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
+		}
 	
+	f_main = (function_base *)(* pdfv)[0];
 	assert( f_main );
 	
+	/* Save the original code and replace it with a trap bundle. */
 	Address addr = f_main->addr();
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.saveMyBundleTo( savedCodeBuffer );
@@ -232,12 +250,56 @@ bool process::insertTrapAtEntryPointOfMain() {
 	return true;
 } /* end insertTrapAtEntryPointOfMain() */
 
-Address dyn_lwp::readRegister( Register ) {
-	assert( 0 );
-	return 0;
+#define BIT_8_3		0x1F8
+
+/* private refactoring function; account for the RNAT slots. */
+Address calculateRSEOffsetFromBySlots( Address addr, int slots ) {
+	/* Whenever bits 8:3 of BSPSTORE are all ones, the RSE stores 64 RNAT bits.
+	   We'll just do this in the stupidest possible way. */
+
+	if( slots == 0 ) { return addr; }
+	int adjust = slots < 0 ? -1 : 1;
+
+	for( int i = 0; i < abs( slots ); i++ ) {
+		addr += adjust * 8;
+		if( (addr & BIT_8_3) >> 3 == 0x111111 ) {
+			addr += adjust * 8;
+			} /* end if we ran into a NaT collection */
+		} /* end iteration over addresses */
+
+	return addr;
+	} /* end calculateRSEOffsetFromBySlots() */
+
+/* Fixme: from inst-ia64.C; stash in a common header. */
+#define BIT_0_6		0x000000007F
+
+Address dyn_lwp::readRegister( Register reg ) {
+	/* I can't find anything in the docs saying that ptrace()d
+	   programs will always have a flushrs executed in their
+	   context before the debugger gains control, but GDB seems
+	   to think that this is the case, and we can't do anything
+	   else to read registers anyway. */
+
+	/* Acquire the BSP. */
+	errno = 0;
+	Address bsp = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_AR_BSP, 0 );
+	assert( ! errno );
+
+	/* Acquire the CFM. */
+	uint64_t currentFrameMarker = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 );
+	assert( ! errno );
+
+	/* Extract the SOF. */
+	int soFrame = (currentFrameMarker & BIT_0_6 );
+
+	/* Calculate the address of the register. */
+	Address addressOfReg = calculateRSEOffsetFromBySlots( bsp, (-1 * soFrame) + (reg - 32) );
+
+	/* Acquire and return the value of the register. */
+	return P_ptrace( PTRACE_PEEKTEXT, proc_->getPid(), addressOfReg, 0 );
 	} /* end readRegister */
 
-/* Ye flipping bits only knows if this actually works. */
+/* FIXME: Ye flipping bits only knows if this actually works. */
 Frame dyn_lwp::getActiveFrame() {
   Address pc, fp, sp, tp;
   
@@ -261,7 +323,13 @@ const char DYNINST_LOAD_HIJACK_FUNCTIONS[][15] = {
 const int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 3;
 
 /* Defined in process.C; not sure why it isn't in a header. */
-extern debug_ostream attach_cerr;
+extern unsigned enable_pd_attach_detach_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define attach_cerr if (enable_pd_attach_detach_debug) cerr
+#else
+#define attach_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 Address findFunctionToHijack( image * symbols, process * p ) {
 	for( int i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
@@ -300,8 +368,7 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            string msg = string("Environment variable " + string("DYNINSTAPI_RT_
-LIB")
+            string msg = string("Environment variable " + string( "DYNINSTAPI_RT_LIB" )
                                 + " has not been defined for process ") + string
             (pid);
             showErrorCallback(101, msg);
@@ -457,10 +524,11 @@ bool process::loadDYNINSTlibCleanup() {
 	} /* end loadDYNINSTlibCleanup() */
 
 Frame Frame::getCallerFrame( process * /* p */ ) const {
-	assert( 0 );
-	
+	/* FIXME: stackwalks! */
+	// assert( 0 );
+
 	return Frame(); // zero frame
-} /* end getCallerFrame() */
+	} /* end getCallerFrame() */
 
 syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     syscallTrap *trappedSyscall = NULL;
@@ -470,7 +538,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     // and return
 
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-        if (syscallTraps_[iter]->syscall_id == (int) syscall) {
+        if (syscallTraps_[iter]->syscall_id == syscall) {
             trappedSyscall = syscallTraps_[iter];
             break;
         }
@@ -492,7 +560,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         trappedSyscall->syscall_id = (int) syscall;
 
         uint64_t codeBase;
-        uint64_t *savedBundle = (uint64_t *)trappedSyscall->saved_insn;
+        uint64_t * savedBundle = (uint64_t *)trappedSyscall->saved_insn;
         int64_t ipsr_ri;
         IA64_bundle trapBundle;
         IA64_instruction newInst;
@@ -518,7 +586,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         return trappedSyscall;
     }
     return NULL;
-}
+} /* trapSyscallExitInternal() */
 
 bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     // Decrement the reference count, and if it's 0 remove the trapped
@@ -531,40 +599,40 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
                 trappedSyscall->refcount);
         return true;
     }
-    fprintf(stderr, "Removing trapped syscall at %d\n",
+    fprintf(stderr, "Removing trapped syscall at %ld\n",
             trappedSyscall->syscall_id);
     if (!writeDataSpace((void *)getPC(pid), 16, trappedSyscall->saved_insn))
         return false;
         
     // Now that we've reset the original behavior, remove this
     // entry from the vector
+    pdvector<syscallTrap *> newSyscallTraps;
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-        if (trappedSyscall == syscallTraps_[iter]) {
-            syscallTraps_.removeByIndex(iter);
-            break;
-        }
+        if (trappedSyscall != syscallTraps_[iter])
+            newSyscallTraps.push_back(syscallTraps_[iter]);
     }
-    delete trappedSyscall;
-    
-    return true;
-}
+    syscallTraps_ = newSyscallTraps;
 
-Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
-    Frame active = getActiveFrame();
-    return active.getPC();
-}
+    delete trappedSyscall;
+    return true;
+} /* end clearSyscallTrapInternal() */
+
+Address dyn_lwp::getCurrentSyscall( Address /* ignored */ ) {
+	Frame active = getActiveFrame();
+	return active.getPC();
+	}
 
 bool dyn_lwp::stepPastSyscallTrap() {
-    // Shouldn't be necessary yet
-    assert(0 && "Unimplemented");
-    return false;
-}
+	// Shouldn't be necessary yet
+	assert(0 && "Unimplemented");
+	return false;
+	} /* end stepPastSyscallTrap() */
 
 int dyn_lwp::hasReachedSyscallTrap() {
-    if (!trappedSyscall_) return false;
-    Frame active = getActiveFrame();
-    return active.getPC() == trappedSyscall_->syscall_id;
-}
+	if (!trappedSyscall_) return false;
+	Frame active = getActiveFrame();
+	return active.getPC() == trappedSyscall_->syscall_id;
+	} /* end hasReachedSyscallTrap() */
 
 /* Required by linux.C */
 bool process::hasBeenBound( const relocationEntry /* entry */, pd_Function * & /* target_pdf */, Address /* base_addr */ ) {
