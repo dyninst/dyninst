@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.286 2002/01/16 23:24:56 jaw Exp $
+// $Id: process.C,v 1.287 2002/01/25 00:05:43 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3030,9 +3030,9 @@ void handleProcessExit(process *proc, int exitStatus) {
   if (proc->status() == exited)
     return;
 
-  proc->Exited(); // updates status line
-
   --activeProcesses;
+
+  proc->Exited(); // updates status line
 
 #ifndef BPATCH_LIBRARY
   if (activeProcesses == 0)
@@ -6562,7 +6562,9 @@ void process::Exited() {
 #ifdef SHM_SAMPLING
   (void)doMajorShmSample();
 #endif
-
+  status_ = exited;  // referenced in a callee of reportInternalMetrics,
+                     // so needs to occur before call to reportInternalMetrics
+  reportInternalMetrics(true);
 #ifndef BPATCH_LIBRARY
   // close down the trace stream:
   if (traceLink >= 0) {
@@ -6588,8 +6590,6 @@ void process::Exited() {
   // Also removes this proc from all cost metrics (but what about internal metrics?)
   removeFromMetricInstances(this);
 #endif
-
-  status_ = exited;
 
   detach(false);
      // the process will continue to run (presumably, it will finish _very_ soon)
