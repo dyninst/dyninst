@@ -21,6 +21,9 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.32  1996/02/22 18:26:14  karavan
+ * added some plums.
+ *
  * Revision 1.31  1996/02/08 19:52:46  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -159,14 +162,18 @@ sampleValue SyncRegionGetThresholdFunc (const char *, focus)
 void initPChypos()
 {
   bool flag;
+  string *plum;
+  stringList plumList;
 
+  plum = new string ("/Machine");
+  plumList += plum;
   flag = PCWhyAxis->
     addHypothesis ("ExcessiveSyncWaitingTime", (const char *)NULL, 
 		   "SyncToCPURatio",
 		   "highSyncThreshold", 
 		   "PC_SyncThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, (stringList *)NULL);
+		   gt, (void *)NULL, &plumList);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveSyncWaitingTime" 
@@ -177,16 +184,19 @@ void initPChypos()
 		   "",
 		   "PC_SyncThreshold",
 		   SyncRegionGetThresholdFunc,
-		   lt, (void *)NULL, (stringList *)NULL);
+		   lt, (void *)NULL, &plumList);
   if (!flag)
     cout << "hypothesis constructor failed for SyncRegionTooSmall" << endl;
 
+  plum = new string ("/SyncObject");
+  stringList plumList2;
+  plumList2 += plum;
   flag = PCWhyAxis->
     addHypothesis ("ExcessiveIOBlockingTime", (const char *)NULL, "IoWait",
 		   "highIOthreshold", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, (stringList *)NULL);
+		   gt, (void *)NULL, &plumList2);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveIOBlockingTime" << endl;
@@ -197,22 +207,22 @@ void initPChypos()
 		   "diskBlockSize", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, (stringList *)NULL);
+		   gt, (void *)NULL, &plumList2);
 
   if (!flag)
     cout << "hypothesis constructor failed for TooManySmallIOOps" << endl;
-  string *plum = new string ("/SyncObject");
-  stringList plumList;
-  plumList += plum;
+  plum = new string ("/SyncObject");
+  stringList plumList3;
+  plumList3 += plum;
   plum = new string ("/Process");
-  plumList += plum;
+  plumList3 += plum;
   flag = PCWhyAxis->
     addHypothesis ("CPUbound", (const char *)NULL, 
 		   "NormalizedCPUtime",
 		   "highCPUtoSyncRatioThreshold",
 		   "PC_CPUThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, &plumList);
+		   gt, (void *)NULL, &plumList3);
 
   if (!flag)
     cout << "hypothesis constructor failed for normCPUtimeTester" << endl;
