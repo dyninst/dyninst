@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.C,v 1.11 2005/01/21 23:44:07 bernat Exp $
+// $Id: LocalAlteration.C,v 1.12 2005/03/01 23:07:39 bernat Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/symtab.h"
@@ -109,7 +109,7 @@ LocalAlterationSet::~LocalAlterationSet() {
   //    Flush();
 }
 
-LocalAlteration *LocalAlterationSet::getAlterationAtOffset(int byte_offset) {
+LocalAlteration *LocalAlterationSet::getAlterationAtOffset(int byte_offset) const {
    for(unsigned i=0; i<alterations.size(); i++) {
       LocalAlteration *cur_alter = alterations[i];
       if(cur_alter->getOffset() == byte_offset)
