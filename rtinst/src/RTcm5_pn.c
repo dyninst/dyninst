@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.1  1993/07/02 21:49:35  hollings
+ * Revision 1.2  1993/07/02 21:53:33  hollings
+ * removed unnecessary include files
+ *
+ * Revision 1.1  1993/07/02  21:49:35  hollings
  * Initial revision
  *
  *
@@ -23,9 +26,6 @@
 #include <cm/cmmd/cmmd_constants.h>
 #include <cm/cmmd.h>
 #include <cm/cmna.h>
-#ifdef notdef
-#include <cmsys/cm_signal.h>
-#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -46,8 +46,6 @@
 #include <fcntl.h>
 #include <sys/filio.h>
 #include <math.h>
-
-#include "cmmd-io-imp.h"
 
 #define NI_CLK_USEC 33
 #define MILLION 1000000
