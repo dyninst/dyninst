@@ -2,7 +2,14 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.69  1995/08/12 22:28:22  newhall
+ * Revision 1.70  1995/08/18 21:47:46  mjrg
+ * uncommented defineDaemon
+ *
+ * Removed calls to metDoTunable, metDoDaemon, and metDoProcess from
+ * DM_post_thread_create_init.
+ * Fixed dataManager::defineDaemon.
+ *
+ * Revision 1.69  1995/08/12  22:28:22  newhall
  * Added DM_post_thread_create_init, DM_sequential_init. Changes to DMmain
  *
  * Revision 1.68  1995/08/11  21:50:31  newhall
@@ -550,11 +557,6 @@ void DM_eFunction(int errno, char *message)
     abort();
 }
 
-extern bool metDoDaemon();
-extern bool metDoProcess();
-extern bool metDoTunable();
-
-
 int dataManager::DM_sequential_init(init_struct* init){
    // parse PDL file
    string fname = init->met_file;
@@ -584,10 +586,6 @@ int dataManager::DM_post_thread_create_init(int tid) {
     unsigned int tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&tag, DMbuff, &msgSize);
 
-    // get the parsed PDL file stuff
-    bool ok = metDoDaemon();
-    ok = metDoProcess();
-    ok = metDoTunable();
     return 1;
 }
 
