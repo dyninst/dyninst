@@ -1,6 +1,8 @@
-
 #
 # $Log: errorList.tcl,v $
+# Revision 1.25  1996/04/29 03:29:53  tamches
+# Removed newlines from description of error msgs
+#
 # Revision 1.24  1996/04/04 21:56:40  newhall
 # added error 97
 #
@@ -18,40 +20,6 @@
 # New version of aggregateSample to support adding and removing components
 # dynamically.
 # Added error messages.
-#
-# Revision 1.19  1996/03/01 22:50:40  mjrg
-# Added MDL error messages
-#
-# Revision 1.18  1996/02/21 22:29:48  tamches
-# slight change in the format or errors, to change the location
-# of newline characters to match new implementation of showError
-# in uimProcs.tcl
-#
-# Revision 1.17  1996/02/16 16:32:38  naim
-# Adding errors 89, 90 and 91 - naim
-#
-# Revision 1.16  1996/02/15  23:02:03  tamches
-# added error 88
-#
-# Revision 1.15  1995/12/21 22:17:46  naim
-# Changing "Paradyn Error #" by "Paradyn Message #", since not every message
-# is an error message - naim
-#
-# Revision 1.14  1995/12/18  17:19:50  naim
-# Minor change to error message 87 - naim
-#
-# Revision 1.13  1995/12/15  20:13:48  naim
-# Adding error msg #87: max. number of curves in Histogram has been exceeded.
-#
-# Revision 1.12  1995/11/30  22:00:36  naim
-# Changed error message 33 - Cannot find instrumentation version in executable
-# file - naim
-#
-# Revision 1.11  1995/11/21  15:16:24  naim
-# Adding error #86: Cannot enable metric - naim
-#
-# Revision 1.10  1995/11/13  21:13:34  naim
-# Minor change to the display of error message 85 - naim
 #
 
 #
@@ -80,89 +48,73 @@
 # 	showErrorCallback(27, "Executable file /p/paradyn/weird not found");
 #
 
+# Note that the default explanations should generally _not_ have a newline in them.
+# The tk text widget will word wrap just fine on its own.  Putting in newlines forces
+# a newline at certain points in the text widget---and who's to say that it will be in
+# the right place since the user can resize the error dialog box to different widths?
+
 set pdError(1) {
 {Application Process found for machine without paradynd
 } {paradynd
 } {serious error
 } {
-An application process was found to be running on a machine that had no
-paradynd process running.  This is a serious error that indicates either a
-paradynd process could not be started, or that it might have died.  This 
-error should be considered an indication of a bug in the tool.
+An application process was found to be running on a machine that had no paradynd process running.  This is a serious error that indicates either a paradynd process could not be started, or that it might have died.  This error should be considered an indication of a bug in the tool.
 }} 
 
 set pdError(2) {
 {Data for unknown metric id}
 {dm}
 {serious error}
-{Data has arrived from a paradynd process for an unknown metric id.  This is
-a serious error that indicates a bug in the paradyn/paradynd interface.}
+{Data has arrived from a paradynd process for an unknown metric id.  This is a serious error that indicates a bug in the paradyn/paradynd interface.}
 } 
 
 set pdError(3) {
 {Unable to find metric component for sample.}
 {dm}
 {serious error}
-{A sample value has arrive for a metric from a paradynd, but the paradyn 
-process was not expecting a value from this process.  This is a serious internal
-consistency failure of the paradyn/paradynd interface.}
+{A sample value has arrive for a metric from a paradynd, but the paradyn process was not expecting a value from this process.  This is a serious internal consistency failure of the paradyn/paradynd interface.}
 } 
 
 set pdError(4) {
 {Unable to connect to new paradyn daemon process.}
 {paradynd}
 {serious error}
-{A request had arrived to start a new paradyn daemon process on a remote 
-machine (either from the user or the system based on adding new hosts), and
-the paradyn user process was unable to rendezvous with the paradynd process.
-This could indicate a network failure, the paradynd process not being 
-installed on the remote machine, or a file permission problem.}
+{A request had arrived to start a new paradyn daemon process on a remote machine (either from the user or the system based on adding new hosts), and the paradyn user process was unable to rendezvous with the paradynd process.  This could indicate a network failure, the paradynd process not being installed on the remote machine, or a file permission problem.}
 } 
 
 set pdError(5) {
 {paradynd process has died}
 {paradynd}
 {information}
-{A paradynd process has died somewhere in the system.  This indicates either
-a network failure, a host failure, or a bug in the paradynd process.}
+{A paradynd process has died somewhere in the system.  This indicates either a network failure, a host failure, or a bug in the paradynd process.}
 } 
 
 set pdError(6) {
 {Unable to start paradynd}
 {dm}
 {information}
-{A request to start a new application process on a machine required that a new
-paradyn daemon process be started on that machine.  The attempt to start that
-new paradynd process failed.  This is a continuable error, but does mean that
-the request application process will NOT be started.  This error can happen
-if the path for the paradynd is incorrect, if the paradynd binary is not
-installed on that machine, or if the machine or network is down.}
+{A request to start a new application process on a machine required that a new paradyn daemon process be started on that machine.  The attempt to start that new paradynd process failed.  This is a continuable error, but does mean that the request application process will NOT be started.  This error can happen if the path for the paradynd is incorrect, if the paradynd binary is not installed on that machine, or if the machine or network is down.}
 } 
 
 set pdError(7) {
 {Auto refinement already enabled}
 {pc}
 {serious error}
-{An attempt to enable automatic refinement was made will automated refinement
-was already being attempted.}
+{An attempt to enable automatic refinement was made will automated refinement was already being attempted.}
 } 
 
 set pdError(8) {
 {Unable to find search history graph node}
 {pc}
 {information}
-{An attempt to lookup a search history graph node failed.  The passed integer
-name of the node was not found in the list of nodes.}
+{An attempt to lookup a search history graph node failed.  The passed integer name of the node was not found in the list of nodes.}
 } 
 
 set pdError(9) {
 {Search history graph ancestor not true}
 {pc}
 {information}
-{An attempt to set the current refinement to a node failed because one of the
-ancestors of that node is false.  To manually select a SHG node, you must
-select a node which is true.  In addition, all of it's ancestors back to
-the root must also be true.}
+{An attempt to set the current refinement to a node failed because one of the ancestors of that node is false.  To manually select a SHG node, you must select a node which is true.  In addition, all of its ancestors back to the root must also be true.}
 } 
 
 set pdError(10) {
@@ -244,16 +196,14 @@ set pdError(20) {
 {Internal error}
 {vm}
 {fatal error}
-{An unrecoverable error occurred within a visi manager function. Please, 
-report this error to paradyn@cs.wisc.edu}
+{An unrecoverable error occurred within a visi manager function. Please, report this error to paradyn@cs.wisc.edu}
 } 
 
 set pdError(21) {
 {Tcl Command Failure}
 {ui}
 {fatal error}
-{The tcl interpreter has failed. Bad pointer "newptr". Please, report
-this error to paradyn@cs.wisc.edu}
+{The tcl interpreter has failed. Bad pointer "newptr". Please, report this error to paradyn@cs.wisc.edu}
 } 
 
 set pdError(22) {
@@ -274,8 +224,7 @@ set pdError(24) {
 {Unable to read tcl start-up script}
 {ui}
 {information}
-{A tcl error occurred finding or reading the tcl script specified on the 
-paradyn command line with the -s option.}
+{A tcl error occurred finding or reading the tcl script specified on the paradyn command line with the -s option.}
 } 
 
 set pdError(25) {
@@ -296,8 +245,7 @@ set pdError(27) {
 {Executable not found.}
 {paradynd}
 {information}
-{The executable you are trying to run does not exist. Check out your filename
-and path again!}
+{The executable you are trying to run does not exist. Check out your filename and path again!}
 }
 
 set pdError(28) {
@@ -325,8 +273,7 @@ set pdError(31) {
 {Internal symbol DYNINSTfirst not found.}
 {paradynd}
 {serious error}
-{You have not properly linked your application with the paradyn dyninst library.
-Please, refer to the manual pages in order to check how to do this.}
+{You have not properly linked your application with the paradyn dyninst library.  Please, refer to the manual pages in order to check how to do this.}
 }
 
 set pdError(32) {
@@ -340,8 +287,7 @@ set pdError(33) {
 {Could not find version number in instrumentation.}
 {paradynd}
 {information}
-{Your program might has been linked with the wrong version of the paradyn 
-dyninst library, or it could be a non executable binary file.}
+{Your program might has been linked with the wrong version of the paradyn dyninst library, or it could be a non executable binary file.}
 }
 
 set pdError(34) {
@@ -454,9 +400,7 @@ set pdError(47) {
 {Dump core failed.}
 {paradynd}
 {information}
-{A paradyn daemon could not dump the core image of a process. This problem
-can happen because paradyn could not open the file, or it could not write
-to the file.}
+{A paradyn daemon could not dump the core image of a process. This problem can happen because paradyn could not open the file, or it could not write to the file.}
 }
 
 set pdError(48) {
@@ -736,9 +680,7 @@ set pdError(86) {
 {Cannot enable metric}
 {dm}
 {information}
-{Paradyn cannot enable this particular metric. This might be due to 
-constraints in the definition of the metric (e.g. the metric is restricted
-to the whole program and we have selected a particular process).}
+{Paradyn cannot enable this particular metric. This might be due to constraints in the definition of the metric (e.g. the metric is restricted to the whole program and we have selected a particular process).}
 }
 
 set pdError(87) {
@@ -781,8 +723,7 @@ set pdError(92) {
 {Error while evaluating metric.}
 {paradynd}
 {information}
-{A error was found while evaluating a metric for a focus.
-The metric cannot be enabled for this focus.
+{A error was found while evaluating a metric for a focus.  The metric cannot be enabled for this focus.
 }
 } 
 
@@ -790,19 +731,14 @@ set pdError(93) {
 {Metric has no constraint that matches focus.}
 {paradynd}
 {information}
-{You tried to enable a metric for a focus, but the
-metric has no constraint for this focus. Check your
-focus selection from the where axis.
-}
+{You tried to enable a metric for a focus, but the metric has no constraint for this focus. Check your focus selection from the where axis.}
 }
 
 set pdError(94) {
 {Too many arguments to function call in instrumentation code.}
 {paradynd}
 {serious error}
-{An instrumentation request includes a function call with too many arguments.
-The maximum number of arguments that can be passed to a function is platform 
-dependent.
+{An instrumentation request includes a function call with too many arguments.  The maximum number of arguments that can be passed to a function is platform dependent.
 }
 }
 
@@ -810,10 +746,7 @@ set pdError(95) {
 {Unable to find symbol for metric definition.}
 {paradynd}
 {information}
-{Paradyn could not enable a metric because the metric definition has a 
-function call or tries to read the value of a symbol with readSymbol, 
-but paradyn could not find the symbol in the application symbol
-tables.
+{Paradyn could not enable a metric because the metric definition has a function call or tries to read the value of a symbol with readSymbol, but paradyn could not find the symbol in the application symbol tables.
 }
 }
 
@@ -828,10 +761,7 @@ set pdError(97) {
 {Maximum number of metric/focus pairs have been enabled by this client}
 {dm}
 {information}
-{Paradyn cannot enable any more metric/focus pairs for this client.
-This is due to a upper bound on the number of pairs the client can 
-enable at one time.  Typically, visualization processes have an upper
-bound on enabled pairs.
+{Paradyn cannot enable any more metric/focus pairs for this client.  This is due to a upper bound on the number of pairs the client can enable at one time.  Typically, visualization processes have an upper bound on enabled pairs.
 }
 }
 
