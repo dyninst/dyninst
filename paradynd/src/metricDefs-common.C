@@ -19,12 +19,15 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.6 1994/08/08 20:13:45 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.7 1994/09/22 02:18:08 markc Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.6  1994/08/08 20:13:45  hollings
+ * Revision 1.7  1994/09/22 02:18:08  markc
+ * Changed name of class function pdFunction
+ *
+ * Revision 1.6  1994/08/08  20:13:45  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.5  1994/08/02  18:23:43  hollings
@@ -57,10 +60,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * pvm and a process timer in cm5 because of this.
  */
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+}
 
 #include "symtab.h"
 #include "process.h"
@@ -73,7 +78,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "rtinst/h/trace.h"
 
 void createDefaultFuncPred(metricDefinitionNode *mn,
-			   function *func, 
+			   pdFunction *func, 
 			   dataReqNode *dataPtr, 
 			   AstNode *pred)
 {
@@ -106,7 +111,7 @@ void createDefaultFuncPred(metricDefinitionNode *mn,
 AstNode *defaultProcedurePredicate(metricDefinitionNode *mn, char *funcName,
     AstNode *pred)
 {
-    function *func;
+    pdFunction *func;
     dataReqNode *dataPtr;
 
     func = findFunction(mn->proc->symbols, funcName);
@@ -127,10 +132,10 @@ AstNode *defaultModulePredicate(metricDefinitionNode *mn, char *constraint,
     AstNode *pred)
 {
     module *mod;
-    function *func;
+    pdFunction *func;
     char *funcName;
     dataReqNode *dataPtr;
-    List<function *> curr;
+    List<pdFunction *> curr;
 
     if (funcName = strchr(constraint, '/')) {
 	funcName++;
@@ -161,7 +166,7 @@ AstNode *defaultProcessPredicate(metricDefinitionNode *mn, char *process,
 
 void createProcCalls(metricDefinitionNode *mn, AstNode *pred)
 {
-    function *func;
+    pdFunction *func;
     AstNode *newCall;
     dataReqNode *counter;
 
@@ -181,7 +186,7 @@ void instAllFunctions(metricDefinitionNode *nm,
 		      AstNode *enterAst,
 		      AstNode *leaveAst)
 {
-    function *func;
+    pdFunction *func;
 
     for (func = nm->proc->symbols->funcs; func; func=func->next) {
 	if (func->tag & tag) {
@@ -199,7 +204,7 @@ void instAllFunctions(metricDefinitionNode *nm,
 
 dataReqNode *createObservedCost(metricDefinitionNode *mn, AstNode *pred)
 {
-    function *sampler;
+    pdFunction *sampler;
     AstNode *reportNode;
     dataReqNode *dataPtr;
 
@@ -210,11 +215,12 @@ dataReqNode *createObservedCost(metricDefinitionNode *mn, AstNode *pred)
     reportNode = new AstNode("DYNINSTreportCost", 
 		 new AstNode(DataPtr, dataPtr), new AstNode(Constant, 0));
     mn->addInst(sampler->funcEntry, reportNode, callPreInsn, orderLastAtPoint);
+    return (dataPtr);
 }
 
 dataReqNode *createCPUTime(metricDefinitionNode *mn, AstNode *pred)
 {
-    function *func;
+    pdFunction *func;
     dataReqNode *dataPtr;
     AstNode *stopNode, *startNode;
 
@@ -246,7 +252,7 @@ dataReqNode *createCPUTime(metricDefinitionNode *mn, AstNode *pred)
 
 void createExecTime(metricDefinitionNode *mn, AstNode *pred)
 {
-    function *func;
+    pdFunction *func;
     dataReqNode *dataPtr;
     AstNode *startNode, *stopNode;
 
@@ -318,7 +324,7 @@ void perProcedureWallTime(metricDefinitionNode *mn,
 			  Boolean skipSiblings)
 {
     int i;
-    function *func;
+    pdFunction *func;
     AstNode *startNode, *stopNode;
 
     if (!dataPtr) dataPtr = mn->addTimer(wallTime);
@@ -354,10 +360,10 @@ void perModuleWallTime(metricDefinitionNode *mn,
 			  AstNode *pred)
 {
     module *mod;
-    function *func;
+    pdFunction *func;
     char *funcName;
     dataReqNode *result;
-    List<function *> curr;
+    List<pdFunction *> curr;
 
     if (funcName = strchr(constraint, '/')) {
 	funcName++;
@@ -371,7 +377,7 @@ void perModuleWallTime(metricDefinitionNode *mn,
 
 	result = mn->addTimer(wallTime);
 	for (curr = mod->funcs; func = *curr; curr++) {
-	    perProcedureWallTime(mn, func->prettyName, pred, result, TRUE);
+	    perProcedureWallTime(mn, (char*)func->prettyName, pred, result, TRUE);
 	}
 
 	return;
@@ -386,7 +392,7 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
 {
 
     int i;
-    function *func;
+    pdFunction *func;
     AstNode *startNode, *stopNode;
 
     func = findFunction(mn->proc->symbols, funcName);
@@ -430,10 +436,10 @@ void perModuleCPUTime(metricDefinitionNode *mn,
 		      AstNode *trigger)
 {
     module *mod;
-    function *func;
+    pdFunction *func;
     char *funcName;
     dataReqNode *result;
-    List<function *> curr;
+    List<pdFunction *> curr;
 
     if (funcName = strchr(constraint, '/')) {
 	funcName++;
@@ -447,7 +453,7 @@ void perModuleCPUTime(metricDefinitionNode *mn,
 
 	result = mn->addTimer(processTime);
 	for (curr = mod->funcs; func = *curr; curr++) {
-	    perProcedureCPUTime(mn, func->prettyName, trigger, result, TRUE);
+	    perProcedureCPUTime(mn, (char*)func->prettyName, trigger, result, TRUE);
 	}
     }
 }
@@ -456,7 +462,7 @@ void perProcedureCalls(metricDefinitionNode *mn,
 		       char *funcName, 
 		       AstNode *trigger)
 {
-    function *func;
+    pdFunction *func;
     AstNode *newCall;
     dataReqNode *counter;
 
@@ -483,10 +489,10 @@ void perModuleCalls(metricDefinitionNode *mn,
 {
     module *mod;
     char *funcName;
-    function *func;
+    pdFunction *func;
     AstNode *newCall;
     dataReqNode *counter;
-    List<function *> curr;
+    List<pdFunction *> curr;
 
     if (funcName = strchr(constraint, '/')) {
 	funcName++;
