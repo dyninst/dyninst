@@ -21,6 +21,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.6  1996/03/18 07:10:35  karavan
+ * added new tunable constant, PCcollectInstrTimings.
+ *
  * Revision 1.5  1996/03/05 16:12:55  naim
  * Minor changes for debugging purposes - naim
  *
@@ -278,17 +281,22 @@ void
 filteredDataServer::resubscribeAllData() 
 {
   metricInstanceHandle *curr;
+  double t1 = 0.0;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->isActive()) {
 #ifdef PCDEBUG
-      double t1=TESTgetTime(); 
+      if (performanceConsultant::collectInstrTimings) {
+	t1=TESTgetTime(); 
+      }
 #endif
       curr = dataMgr->enableDataCollection2(filteredDataServer::pstream, 
 					    AllDataFilters[i]->getFocus(), 
 					    AllDataFilters[i]->getMetric(),
 					    pht, 1, 0);
 #ifdef PCDEBUG
-      fprintf(TESTfp,"==> TEST <== PCfilter 1, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
+      if (performanceConsultant::collectInstrTimings) {
+	fprintf(TESTfp,"==> TEST <== PCfilter 1, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
+      }
 #endif
       delete curr;
     }
@@ -301,15 +309,20 @@ filteredDataServer::resubscribeAllData()
 void
 filteredDataServer::unsubscribeAllData() 
 {
+  double t1 = 0.0;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->isActive()) {
 #ifdef PCDEBUG
-      double t1=TESTgetTime(); 
+      if (performanceConsultant::collectInstrTimings) {
+	t1=TESTgetTime(); 
+    }
 #endif
       dataMgr->disableDataCollection(filteredDataServer::pstream, 
 				     AllDataFilters[i]->getMI(), pht);
 #ifdef PCDEBUG
-      fprintf(TESTfp,"==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
+      if (performanceConsultant::collectInstrTimings) {
+	fprintf(TESTfp,"==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
+      }
 #endif
     }
   }
@@ -333,14 +346,19 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   metricInstanceHandle *index;
   metricInstanceHandle indexCopy;
   *errFlag = false;
+  double t1 = 0.0;
   // does filter already exist?
 #ifdef PCDEBUG
-  double t1=TESTgetTime(); 
+  if (performanceConsultant::collectInstrTimings) {
+    t1=TESTgetTime(); 
+  }
 #endif
   index = dataMgr->enableDataCollection2 (filteredDataServer::pstream, 
 					  f, mh, pht, 1, 0);
 #ifdef PCDEBUG
-  fprintf(TESTfp,"==> TEST <== PCfilter 2, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
+  if (performanceConsultant::collectInstrTimings) {
+    fprintf(TESTfp,"==> TEST <== PCfilter 2, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
+  }
 #endif
   if (index == NULL) {
     // unable to collect this data
@@ -363,6 +381,8 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
     cout << "FDS: " << sub << " subscribed to " << indexCopy << " met=" 
       << dataMgr->getMetricNameFromMI(indexCopy) << " methandle=" << mh << endl
 	<< "foc=" << dataMgr->getFocusNameFromMI(indexCopy) << endl;
+  }
+  if (performanceConsultant::collectInstrTimings) {
     fprintf(TESTfp,"==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(indexCopy),dataMgr->getFocusNameFromMI(indexCopy)); 
   }
 #endif
@@ -392,18 +412,23 @@ void
 filteredDataServer::endSubscription(fdsSubscriber sub, 
 				    fdsDataID subID)
 {
+  double t1 = 0.0;
   // find filter by subID
   int subsLeft;
   if (DataFilters.defines((unsigned)subID)) { 
     subsLeft = DataFilters[(unsigned)subID]->rmConsumer(sub);
     if (subsLeft == 0) {
 #ifdef PCDEBUG
-      double t1=TESTgetTime();
+      if (performanceConsultant::collectInstrTimings) {
+	t1=TESTgetTime();
+      }
 #endif
       dataMgr->clearPersistentData(subID);
       dataMgr->disableDataCollection (pstream, subID, pht);
 #ifdef PCDEBUG
-      fprintf(TESTfp,"==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
+      if (performanceConsultant::collectInstrTimings) {
+	fprintf(TESTfp,"==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
+      }
 #endif
     }
   }

@@ -20,6 +20,9 @@
  * All tunable Constants used by hypotheses.
  *
  * $Log: PCconstants.C,v $
+ * Revision 1.3  1996/03/18 07:10:28  karavan
+ * added new tunable constant, PCcollectInstrTimings.
+ *
  * Revision 1.2  1996/02/08 19:52:34  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -73,6 +76,10 @@ void TCprintDataCollectionCB (bool newval)
 {
   performanceConsultant::printDataCollection = newval;
 }
+void TCcollectInstrTimingsCB (bool newval)
+{
+  performanceConsultant::collectInstrTimings = newval;
+}
 void TCuseIndividualThresholdsCB (bool newval)
 {
   performanceConsultant::useIndividualThresholds = newval;
@@ -87,7 +94,7 @@ void initPCconstants ()
   // user-level TCs used by the PC
   //
 
-  floatInitializer = 20.0;
+  floatInitializer = 0.10;
   tunableConstantRegistry::createFloatTunableConstant
     ("predictedCostLimit",
      "Max. allowable perturbation of the application.",
@@ -95,7 +102,7 @@ void initPCconstants ()
      userConstant,
      floatInitializer, // initial value
      0.0,  // min
-     100.0); // max
+     1.0); // max
   TCpredictedCostLimitCB(floatInitializer);
 
   floatInitializer = 0.15;
@@ -170,6 +177,15 @@ void initPCconstants ()
      developerConstant, 
      boolInitializer);
   TCprintDataCollectionCB (boolInitializer);
+
+  boolInitializer = false;
+  tunableConstantRegistry::createBoolTunableConstant 
+    ("PCcollectInstrTimings", 
+     "Time all instrumentation requests and save results in file TESTresult.out",
+     TCcollectInstrTimingsCB, 
+     developerConstant, 
+     boolInitializer);
+  TCcollectInstrTimingsCB (boolInitializer);
 
   //
   // thresholds used in experiments
