@@ -44,6 +44,10 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
+ * Revision 1.13  2000/02/09 19:46:14  pcroth
+ * Fixed problem in which the table visi does not show values when switching
+ * between current, average, and total values after the process has exited.
+ *
  * Revision 1.12  1999/07/13 17:16:13  pcroth
  * Fixed ordering problem of destroying GUI and destructing static variable
  * pdLogo::all_logos.  On NT, the static variable is destroyed before the
@@ -562,6 +566,7 @@ int formatChangedCommand(ClientData, Tcl_Interp *interp,
    }
 
    Dg2AddMetricsCallback(0);
+   Dg2NewDataCallback(0);
 
    return TCL_OK;
 }
