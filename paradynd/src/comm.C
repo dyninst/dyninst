@@ -43,6 +43,10 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
+ * Revision 1.16  2002/10/15 17:11:34  schendel
+ * create Paradyn specific pd_process and pd_thread classes  - - - - - - - -
+ * fixed include problem
+ *
  * Revision 1.15  2000/07/28 17:22:10  pcroth
  * Updated #includes to reflect util library split
  *
@@ -106,6 +110,9 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/main.h"
+#include "paradynd/src/resource.h"
+
+extern resource *machineResource;
 
 void dump_profile(pdRPC *pdr) {
   delete pdr;
