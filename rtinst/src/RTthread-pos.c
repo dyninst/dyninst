@@ -108,8 +108,6 @@ unsigned DYNINST_alloc_pos(int tid)
   }
   /* next_free_pos is free */
 
-  _VirtualTimerDestroy(&(RTsharedData.virtualTimers[next_free_pos]));
-
   RTsharedData.posToThread[next_free_pos] = tid;
   DYNINST_num_pos_free--;
   DYNINST_next_free_pos = next_free_pos+1;
