@@ -54,6 +54,7 @@ pid_t P_waitpid(pid_t pid, int *statusp, int options) {
   return (waitpid(pid, statusp, options));}
 size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
+int P_chdir(const char *path) { return (chdir(path)); }
 
 /* ANSI */
 void P_exit (int STATUS) { exit(STATUS);}
