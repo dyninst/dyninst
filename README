@@ -1,13 +1,3 @@
-#
-# README - Description of the "core" directory of the paradyn system.
-#
-# $Log: README,v $
-# Revision 1.2  1994/03/24 17:27:02  hollings
-# Fixed log variable
-#
-#
-#
-
 This directory contains the "core" source code for the paradyn performance 
 tools.  It is divided into subdirectories that represent major functional
 units of the system:
@@ -15,13 +5,11 @@ units of the system:
 Each of these directories contain source code that gets compiled into a single
 UNIX executable:
 
-	bininst		- binary instrumentor
 	igen		- interface generator
 	paradyn		- paradyn GUI/controller
 	paradynd	- paradynd (i.e. instrumentation manager)
-	paradyndIPS2	- paradynd for processing IPS-2 trace files
-	paradyndPVM	- paradynd for PVM (Parallel Virtual Machine)
-	paradyndSIM	- paradynd to generate simulated data (used in testing).
+	rthist		- real-time histogram visualization
+	visiClients	- tclVisi, barchart, phaseTable, and tableVisi visis
 
 There are also several libraries that get used in building the executables:
 
@@ -29,6 +17,7 @@ There are also several libraries that get used in building the executables:
 	thread		- a thread package used by paradyn
 	util		- utility library
 	visi		- external visualization interface
+	hist		- histogram library used by rthist
 
 There are also two Makefile's at this level:
 	
