@@ -6,11 +6,15 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.2  1995/07/18 03:41:16  tamches
-/* Added ctrl-double-click feature for selecting/unselecting an entire
-/* subtree (nonrecursive).  Added a "clear all selections" option.
-/* Selecting the root node now selects the entire program.
+/* Revision 1.3  1995/07/24 21:32:47  tamches
+/* Added getTkWindow(), get*SBName(), and change(string) member
+/* functions.
 /*
+ * Revision 1.2  1995/07/18  03:41:16  tamches
+ * Added ctrl-double-click feature for selecting/unselecting an entire
+ * subtree (nonrecursive).  Added a "clear all selections" option.
+ * Selecting the root node now selects the entire program.
+ *
  * Revision 1.1  1995/07/17  04:58:52  tamches
  * First version of the new where axis
  *
@@ -64,6 +68,10 @@ class abstractions {
    string findName;
 
  public:
+   Tk_Window getTkWindow() const {return theTkWindow;}
+   const string &getHorizSBName() const {return horizSBName;}
+   const string &getVertSBName() const {return vertSBName;}
+
    abstractions(const string &iabsMenuName, const string &iNavMenuName,
 		const string &iHorizSBName, const string &iVertSBName,
 		const string &iFindName,
@@ -88,6 +96,7 @@ class abstractions {
    whereAxis<USERNODEDATA> &operator[](string &absName);
 
    bool change(unsigned newindex);
+   bool change(string &newName);
 
    bool existsCurrent() {
       return currAbstractionIndex < theAbstractions.size();

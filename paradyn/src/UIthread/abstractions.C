@@ -2,11 +2,15 @@
 // Ariel Tamches
 
 /* $Log: abstractions.C,v $
-/* Revision 1.2  1995/07/18 03:41:17  tamches
-/* Added ctrl-double-click feature for selecting/unselecting an entire
-/* subtree (nonrecursive).  Added a "clear all selections" option.
-/* Selecting the root node now selects the entire program.
+/* Revision 1.3  1995/07/24 21:32:48  tamches
+/* Added getTkWindow(), get*SBName(), and change(string) member
+/* functions.
 /*
+ * Revision 1.2  1995/07/18  03:41:17  tamches
+ * Added ctrl-double-click feature for selecting/unselecting an entire
+ * subtree (nonrecursive).  Added a "clear all selections" option.
+ * Selecting the root node now selects the entire program.
+ *
  * Revision 1.1  1995/07/17  04:58:54  tamches
  * First version of the new where axis
  *
@@ -71,6 +75,22 @@ whereAxis<USERNODEDATA> &abstractions<USERNODEDATA>::operator[](string &absName)
 
    add(theNewWhereAxis, absName);
    return *theNewWhereAxis;
+}
+
+template <class USERNODEDATA>
+bool abstractions<USERNODEDATA>::change(string &newName) {
+   // unlike change(unsigned), we return true if successful (as opposed
+   // to if any changes were made)
+
+   for (int i=0; i < theAbstractions.size(); i++) {
+      whereAxisStruct &was = theAbstractions[i];
+      if (was.abstractionName == newName) {
+         (void)change(i);
+         return true; // success         
+      }
+   }
+
+   return false; // could not find any abstraction with that name
 }
 
 template <class USERNODEDATA>
