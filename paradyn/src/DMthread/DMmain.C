@@ -2,7 +2,12 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.60  1995/02/26 02:14:03  newhall
+ * Revision 1.61  1995/02/27 18:43:03  tamches
+ * Changes to reflect the new TCthread; syntax for creating/declaring
+ * tunable constants, as well as syntax for obtaining current
+ * value of tunable constants has changed.
+ *
+ * Revision 1.60  1995/02/26  02:14:03  newhall
  * added some of the phase interface support
  *
  * Revision 1.59  1995/02/16  19:10:41  markc
@@ -218,18 +223,15 @@ double   quiet_nan(int unused);
 }
 
 #include "thread/h/thread.h"
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 #include "dataManager.thread.SRVR.h"
 #include "dyninstRPC.xdr.CLNT.h"
 #include "DMinternals.h"
 #include "../pdMain/paradyn.h"
 #include "../UIthread/Status.h"
+
 #include "util/h/Vector.h"
 #include "DMphase.h"
-
-tunableBooleanConstant printSampleArrival(false, NULL, developerConstant,
-    "printSampleArrival", 
-    "Print out status lines to show the arrival of samples");
 
 static int wellKnownPortFd;
 static dataManager *dm;
@@ -237,16 +239,12 @@ stringPool metric::names;
 HTable<metric *> metric::allMetrics;
 List<paradynDaemon*> paradynDaemon::allDaemons;
 
+void newSampleRate(float rate); // callback routine for float TC "samplingRate"
+
 // TEMPORARY
 vector<performanceStream *> phase_notify_list;
 vector<phaseInfo *> dm_phases; 
 
-
-void newSampleRate(float rate);
-
-tunableFloatConstant samplingRate(0.5, 0.0, 1000.0, newSampleRate, userConstant,
-    "samplingRate",
-    "how often to sample intermediate performance data (in seconds)");
 
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
 							metric *m)
@@ -588,6 +586,9 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     startTimeStamp -= getEarliestFirstTime();
     endTimeStamp -= getEarliestFirstTime();
 
+    // get a fresh version of the TC "printSampleArrival" for use in this routine
+    tunableBooleanConstant printSampleArrival = tunableConstantRegistry::findBoolTunableConstant("printSampleArrival");
+
     if (printSampleArrival.getValue()) {
       cout << "mid " << mid << " " << value << " from " 
 	<< startTimeStamp << " to " << endTimeStamp << "\n";
@@ -834,6 +835,33 @@ void DMremovePhaseNotify(performanceStream *p){
 //
 void *DMmain(void* varg)
 {
+    // We declare the "printChangeCollection" tunable constant here; it will
+    // last for the lifetime of this function, which is pretty much forever.
+    // (used to be declared as global in DMappContext.C.  Globally declared
+    //  tunables are now a no-no).  Note that the variable name (printCC) is
+    // unimportant.   -AT
+    tunableBooleanConstantDeclarator printCC("printChangeCollection", 
+			   "Print the name of metric/focus when enabled or disabled",
+			   false, // initial value
+			   NULL, // callback
+			   developerConstant);
+
+    // Now the same for "printSampleArrival"
+    tunableBooleanConstantDeclarator printSA("printSampleArrival", 
+                                             "Print out status lines to show the arrival of samples",
+					     false, // initial value
+					     NULL, // callback
+					     developerConstant);
+
+    // Now for the float TC "samplingRate"
+    tunableFloatConstantDeclarator sampR ("samplingRate",
+					  "how often to sample intermediate performance data (in seconds)",
+					  0.5, // initial value
+					  0.0, // min
+					  1000.0, // max
+					  newSampleRate, // callback
+					  userConstant);
+
     int arg; memcpy((void *) &arg, varg, sizeof arg);
 
     int ret;
@@ -1067,6 +1095,3 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
   else
     return ret;
 }
-
-
-
