@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.7 1994/04/01 20:06:42 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.8 1994/04/07 00:37:53 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.7  1994/04/01 20:06:42  hollings
+ * Revision 1.8  1994/04/07 00:37:53  markc
+ * Checked for NULL metric instance returned from createMetricInstance.
+ *
+ * Revision 1.7  1994/04/01  20:06:42  hollings
  * Added ability to start remote paradynd's
  *
  * Revision 1.6  1994/03/26  19:31:36  hollings
@@ -384,6 +387,7 @@ metricInstance createMetricInstance(resourceList l, metric m)
 
     // not found, build it.
     mi = buildMetricInstRequest(l, m);
+    if (!mi) return mi;
     mi->id = ++MICount;
     if (mi) allMIs.add(mi, (void *) mi->id);
     return(mi);
