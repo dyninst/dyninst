@@ -328,7 +328,7 @@ int CodeCoverage::selectFunctions(){
 
 				/** check whether stab record matches the dyninst records */
 				BPatch_function* currFunc = 
-					validateFunction(funcN->string_of(),min);
+					validateFunction(funcN->c_str(),min);
 
 				if(!currFunc)
 					continue;
@@ -341,8 +341,8 @@ int CodeCoverage::selectFunctions(){
 					FunctionCoverage* fc =
 						newFunctionCoverage(
 							currFunc,
-							funcN->string_of(),
-							fileN->string_of());
+							funcN->c_str(),
+							fileN->c_str());
 
 					initializeLineSets(fc,funcI,fInfo);
 
