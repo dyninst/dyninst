@@ -1387,7 +1387,8 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
    assert(r);
    p = r->parent();
    assert(p);
-   mod = img->get_dyn_image()->findModule(p->name());
+
+   mod = findModule(p->name(), true);
    if(!mod) {
       //Must be the weird case where main() isn't in the executable
       pd_Function *entry_pdf = (pd_Function *)findOnlyOneFunction("main");
