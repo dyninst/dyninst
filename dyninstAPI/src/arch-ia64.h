@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.11 2002/09/27 19:38:12 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.12 2002/11/06 22:44:20 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -170,14 +170,14 @@ inline bool isAligned( const Address address ) {
 
 /* Required by linux.C to find the address bounds
    of new dynamic heap segments. */
-inline Address region_lo( const Address x ) {
+inline Address region_lo( const Address /* x */ ) {
 	/* We're guessing the shared memory region. */
 	return 0x2000000000000000;
 	} /* end region_lo */
 
 /* Required by linux.C to find the address bounds
    of new dynamic heap segments. */
-inline Address region_hi( const Address x ) {
+inline Address region_hi( const Address /* x */ ) {
 	/* We're guessing the shared memory region. */
 	return 0x3FFFFFFFFFFFFFFF;
 	} /* end region_hi */

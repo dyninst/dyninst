@@ -6,6 +6,7 @@
 #include "inst-ia64.h"
 #include "linux.h"
 #include "process.h"
+#include "dyn_lwp.h"
 
 #include <sys/ptrace.h>
 #include <asm/ptrace.h>
@@ -57,7 +58,7 @@ void *dyn_lwp::getRegisters()
     void *membuf;
 
     // Bad things happen if you use ptrace on a running process.
-    assert(status_ == stopped);
+    assert(proc_->status_ == stopped);
 
     //
     // Insure the structure sizes are multiples of 8 bytes.
@@ -85,19 +86,29 @@ void *dyn_lwp::getRegisters()
 } /* end getRegisters() */
 
 
-bool changePC( int pid, Address loc ) {
+bool changePC( int pid, Address loc ) { 
 	/* We assume until further notice that all of our jumps
 	   are properly (bundle) aligned, because we should be
 	   getting their destinations from code we didn't generate. */
 	assert( loc % 16 == 0 );
+
 	return P_ptrace( PTRACE_POKEUSER, pid, PT_CR_IIP, loc );
+	} /* end changePC() */
+
+bool dyn_lwp::changePC( Address loc, const void * regs ) {
+	/* FIXME: we cast away const-ness here to avoid changing
+	   the global headers until we've got something more worthwhile
+	   for which to test across so many platforms. */
+	if( regs != NULL ) { restoreRegisters( (void *)regs ); }
+
+	return ::changePC( proc_->getPid(), loc );
 	} /* end changePC() */
 
 void printRegs( void * /* save */ ) {
 	assert( 0 );
 	} /* end printReg[isters, should be]() */
 
-/* process::executingSystemCall()
+/* dyn_lwp::executingSystemCall()
  *
  * For now, this function simply reads the previous instruction
  * (in the previous bundle if necessary) and returns true if
@@ -106,7 +117,7 @@ void printRegs( void * /* save */ ) {
  * This is a slow and terrible hack, so if there is a better way, please
  * re-write this function.  Otherwise, it seems to work pretty well.
  */
-bool process::executingSystemCall( unsigned /* lwp */ )
+bool dyn_lwp::executingSystemCall()
 {
     const uint64_t SYSCALL_MASK = 0x01000000000 >> 5;
     uint64_t iip, instruction, rawBundle[2];
@@ -114,12 +125,12 @@ bool process::executingSystemCall( unsigned /* lwp */ )
     IA64_bundle origBundle;
 
     // Bad things happen if you use ptrace on a running process.
-    assert(status_ == stopped);
+    assert(proc_->status_ == stopped);
     errno = 0;
 
     // Find the correct bundle.
-    iip = getPC(pid);
-    ipsr_ri = P_ptrace(PTRACE_PEEKUSER, pid, PT_CR_IPSR, 0);
+    iip = getPC(proc_->getPid());
+    ipsr_ri = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0);
     if (errno && (ipsr_ri == -1)) {
 	// Error reading process information.  Should we assert here?
 	assert(0);
@@ -128,7 +139,7 @@ bool process::executingSystemCall( unsigned /* lwp */ )
     if (ipsr_ri == 0) iip -= 16;  // Get previous bundle, if necessary.
 
     // Read bundle data
-    if (!readDataSpace((void *)iip, 16, (void *)rawBundle, true)) {
+    if (!proc_->readDataSpace((void *)iip, 16, (void *)rawBundle, true)) {
 	// Could have gotten here because the mutatee stopped right
 	// after a jump to the beginning of a memory segment (aka,
 	// no previous bundle).  But, that can't happen from a syscall.
@@ -142,7 +153,7 @@ bool process::executingSystemCall( unsigned /* lwp */ )
     instruction = instruction >> ALIGN_RIGHT_SHIFT;
 
     // Determine predicate register and remove it from instruction.
-    pr = P_ptrace(PTRACE_PEEKUSER, pid, PT_PR, 0);
+    pr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), PT_PR, 0);
     if (errno && pr == -1) assert(0);
     pr = (pr >> (0x1F & instruction)) & 0x1;
     instruction = instruction >> 5;
@@ -150,28 +161,26 @@ bool process::executingSystemCall( unsigned /* lwp */ )
     return (pr && instruction == SYSCALL_MASK);
 } /* end executingSystemCall() */
 
-bool process::restoreRegisters( void *buffer, unsigned /* lwp */ )
+bool dyn_lwp::restoreRegisters( void * buffer )
 {
     int i;
-    long int *memptr;
+    const long int *memptr;
 
     // Bad things happen if you use ptrace on a running process.
-    assert(status_ == stopped);
+    assert(proc_->status_ == stopped);
 
-    memptr = (long int *)buffer;
+    memptr = (const long int *)buffer;
     for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
-	P_ptrace(PTRACE_POKEUSER, pid, i, *memptr);
+	P_ptrace(PTRACE_POKEUSER, proc_->getPid(), i, *memptr);
 	++memptr;
     }
     for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
-	P_ptrace(PTRACE_POKEUSER, pid, i, *memptr);
+	P_ptrace(PTRACE_POKEUSER, proc_->getPid(), i, *memptr);
 	++memptr;
     }
-    free(buffer);
 
-bool dyn_lwp::restoreRegisters( void * /* buffer */) {
     return true;
-} /* end restoreRegisters() */
+}
 
 Address getPC( int pid ) {
 	
@@ -221,27 +230,23 @@ void process::insertTrapAtEntryPointOfMain() {
 	fprintf( stderr, "*** Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
 	} /* end insertTrapAtEntryPointOfMain() */
 
-Address process::readRegister(unsigned /*lwp*/, Register) {
+Address dyn_lwp::readRegister( Register ) {
 	assert( 0 );
 	return 0;
 	} /* end readRegister */
 
+/* Ye flipping bits only knows if this actually works. */
 Frame dyn_lwp::getActiveFrame() {
   Address pc, fp, sp, tp;
-  dyn_thread *threadPtr = NULL;                  /* [1] */
   
   /* FIXME: check for errors (errno) */
   pid_t pid = proc_->getPid();
   pc = P_ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
-  //	fp = P_ptrace( PTRACE_PEEKUSER, pid, , 0);
   sp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R12, 0 );
   tp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R13, 0 );
   
   return Frame( pc, fp, sp, proc_->getPid(), NULL, this, true );
 } /* end getActiveFrame() */
-
-/* 1: This was OK in the x86 version.  Ye flipping bits only know why. */
-
 
 #define DLOPEN_MODE		(RTLD_NOW | RTLD_GLOBAL)
 #define DLOPEN_CALL_LENGTH	4
@@ -358,7 +363,7 @@ bool process::dlopenDYNINSTlib() {
 	/* We need three output registers. */
 	InsnAddr allocAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 
-	IA64_instruction integerNOP( NOP_I );	
+	IA64_instruction integerNOP( NOP_I );
 	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
 	assert( extractAllocatedRegisters( * allocAddr, & allocatedLocal, & allocatedOutput, & allocatedRotate ) );
 	IA64_instruction alteredAlloc = generateAlteredAlloc( * allocAddr, 0, 3, 0 );
@@ -411,7 +416,7 @@ void process::handleIfDueToDyninstLib() {
 	dyn->handleDYNINSTlibLoad( this );
 
 	/* Continue execution at the entry point. */
-	changePC( entry );
+	changePC( pid, entry );
 
 	fprintf( stderr, "*** Handled trap due to dyninstLib.\n" );
 	} /* end handleIfDueToDyninstLib() */

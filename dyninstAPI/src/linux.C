@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.79 2002/10/14 21:02:23 bernat Exp $
+// $Id: linux.C,v 1.80 2002/11/06 22:44:20 tlmiller Exp $
 
 #include <fstream.h>
 
@@ -1664,6 +1664,7 @@ bool dyn_lwp::openFD(void)
   sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
   fd_ = P_open(procName, O_RDWR, 0);
   if (fd_ < 0) return false;
+  return true;
 }
 
 void dyn_lwp::closeFD()
