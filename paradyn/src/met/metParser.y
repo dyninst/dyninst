@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.31 1999/05/25 22:35:52 nash Exp $
+// $Id: metParser.y,v 1.32 1999/06/03 07:16:15 nash Exp $
 
 #include "paradyn/src/met/metParse.h"
 #include "util/h/hist.h"
@@ -253,6 +253,7 @@ exlibItem: tLITERAL tSEMI
 	{
 		metParseError = ERR_NO_ERROR;
 		mdl_data::lib_constraints += *$1.sp;
+		mdl_data::lib_constraint_flags += LIB_CONSTRAINT_NOCASE_FLAG;
 	}
 	;
 

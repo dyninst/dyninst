@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.15 1999/05/24 17:01:54 cain Exp $
+// $Id: templatesDM.C,v 1.16 1999/06/03 07:15:52 nash Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -120,6 +120,7 @@ template class vector<executable*>;
 template class vector<component*>;
 template class vector<sampleInfo*>;
 template class vector<bool>;
+template class vector< vector<bool> >;
 template class vector<metric_focus_pair>;
 template class vector<metricInstInfo>;
 template class vector<met_name_id>;

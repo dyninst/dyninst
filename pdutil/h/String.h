@@ -41,6 +41,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
+ * $Id: String.h,v 1.18 1999/06/03 07:16:16 nash Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -59,6 +60,9 @@
 /************************************************************************
  * class string
 ************************************************************************/
+
+const char WILDCARD_CHAR = '?';
+const char MULTIPLE_WILDCARD_CHAR = '*';
 
 class string_ll {
 public:
@@ -104,7 +108,25 @@ public:
     bool prefixed_by (const char *s)          const {return prefixed_by(s, STRLEN(s));};
     bool prefixed_by (const string_ll &)         const;
 
+    bool suffix_of (const char *, unsigned) const;
+    bool suffix_of (const char *s)          const {return suffix_of(s, STRLEN(s));};
+    bool suffix_of (const string_ll &)         const;
+
+    bool suffixed_by (const char *, unsigned) const;
+    bool suffixed_by (const char *s)          const {return suffixed_by(s, STRLEN(s));};
+    bool suffixed_by (const string_ll &)         const;
+
 	string_ll substr (unsigned, unsigned) const;
+
+    bool wildcardEquiv( const string_ll &, bool ) const;
+	bool wildcardEquiv( const char *ptr, bool checkCase ) const {
+		return pattern_match( str_, ptr, checkCase );
+	}
+
+    bool regexEquiv( const string_ll &them, bool checkCase ) const {
+		return regexEquiv( them.str_, checkCase );
+	}
+	bool regexEquiv( const char *, bool ) const;
 
     const char*   string_of () const {return str_;}
     unsigned         length () const {return len_;}
@@ -136,6 +158,9 @@ private:
     static bool          STRLE (const char *, const char *);
     static bool          STRGT (const char *, const char *);
     static bool          STRGE (const char *, const char *);
+	static const char*  STRCHR (const char *, char);
+
+	static bool  pattern_match ( const char *, const char *, bool );
 
     char*    str_;
     unsigned len_;
@@ -311,6 +336,26 @@ class string {
 	   string_ll newstr = data.getData().substr( pos, len );
 	   result.data = newstr;
 	   return result;
+   }
+
+   bool wildcardEquiv( const string &src, bool checkCase = true ) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return me.wildcardEquiv( them, checkCase );
+   }
+   bool wildcardEquiv( const char *ptr, bool checkCase = true ) const {
+      const string_ll &me = data.getData();
+      return me.wildcardEquiv( ptr, checkCase );
+   }
+
+   bool regexEquiv( const string &src, bool checkCase = true ) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return me.regexEquiv( them, checkCase );
+   }
+   bool regexEquiv( const char *ptr, bool checkCase = true ) const {
+      const string_ll &me = data.getData();
+      return me.regexEquiv( ptr, checkCase );
    }
 
    static unsigned hash(const string &s) {

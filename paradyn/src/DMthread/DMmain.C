@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.121 1999/05/24 16:56:34 cain Exp $
+// $Id: DMmain.C,v 1.122 1999/06/03 07:16:14 nash Exp $
 
 #include <assert.h>
 extern "C" {
@@ -102,7 +102,9 @@ dictionary_hash<string,resourceList *> resourceList::allFoci(string::hash);
 
 dictionary_hash<unsigned, resource*>resource::resources(uiHash);
 vector<string> resource::lib_constraints;
+vector<unsigned> resource::lib_constraint_flags;
 vector< vector<string> > resource::func_constraints;
+vector<unsigned> resource::func_constraint_flags;
 bool resource::func_constraints_built = false;
 bool resource::lib_constraints_built = false;
 
@@ -1166,12 +1168,34 @@ resourceHandle createResource(unsigned res_id, vector<string>& resource_name,
     // check to see if the suppressMagnify option should be set...if
     // this resource is specifed in the mdl exclude_lib option
     vector<string> shared_lib_constraints;
-    if(resource::get_lib_constraints(shared_lib_constraints) &&
+	vector<unsigned> constraint_flags;
+    if(resource::get_lib_constraints(shared_lib_constraints, constraint_flags) &&
        (string(parent->getFullName()) == "/Code")) {
 	    for(u_int i=0; i < shared_lib_constraints.size(); i++){
-                if(shared_lib_constraints[i] == ret->getName()){
-		    ret->setSuppressMagnify();
-		}
+
+			// grab the exclude flags
+			bool checkCase = ( constraint_flags[i] & LIB_CONSTRAINT_NOCASE_FLAG ) == 0;
+			bool regex = ( constraint_flags[i] & LIB_CONSTRAINT_REGEX_FLAG ) != 0;
+
+			// A regular expression will match any location within the string,
+			// unless otherwise specified with ^ and $
+			if( regex )
+				shared_lib_constraints[i] = "^" + shared_lib_constraints[i] + "$";
+
+			// By default (!regex), check using wildcardEquiv, if the REGEX flag is
+			// set, then use regexEquiv, passing the NOCASE flag as needed
+
+			if( ( regex && shared_lib_constraints[i].regexEquiv( ret->getName(), checkCase ) )
+				|| ( !regex && shared_lib_constraints[i].wildcardEquiv( ret->getName() ) ) )
+			{
+				ret->setSuppressMagnify();
+#ifdef notdef
+				cerr << '\"' << ret->getName() << "\" hit against exclude \""
+				     << shared_lib_constraints[i] << '\"';
+				if( regex ) cerr << " using regex";
+				cerr << endl;
+#endif
+			}
 	    }
     }
 
@@ -1186,13 +1210,41 @@ resourceHandle createResource(unsigned res_id, vector<string>& resource_name,
 	  resource *ppr = resource::handle_to_resource(pph);
 	  if( ppr && (string(ppr->getFullName()) == "/Code")) {
 	      vector< vector<string> > libs;
-	      if(resource::get_func_constraints(libs)) {
-	        for(u_int i=0; i < libs.size(); i++){
-		    if(((libs[i])[0] == parent->getName()) && 
-		       ((libs[i])[1] == ret->getName())) { 
-		       ret->setSuppressMagnify(); 
-		    }
-		} 
+		  constraint_flags.resize( 0 );
+	      if(resource::get_func_constraints(libs, constraint_flags)) {
+			  for(u_int i=0; i < libs.size(); i++){
+
+				  // grab the exclude flags
+				  bool checkCase = ( constraint_flags[i] & LIB_CONSTRAINT_NOCASE_FLAG ) == 0;
+				  bool regex = ( constraint_flags[i] & LIB_CONSTRAINT_REGEX_FLAG ) != 0;
+
+				  // By default (!regex), check using wildcardEquiv, if the REGEX flag is
+				  // set, then use regexEquiv, passing the NOCASE flag as needed
+
+				  if( regex ) {
+					  // A regular expression will match any location within the string,
+					  // unless otherwise specified with ^ and $
+					  (libs[i])[0] = "^" + (libs[i])[0] + "$";
+					  (libs[i])[1] = "^" + (libs[i])[1] + "$";
+				  }
+
+				  if(  ( regex && 
+						 ( (libs[i])[0].regexEquiv( parent->getName(), checkCase )) && 
+						 ( (libs[i])[1].regexEquiv( ret->getName(), checkCase )) )
+					|| ( !regex &&
+						 ( (libs[i])[0].wildcardEquiv( parent->getName() )) && 
+						 ( (libs[i])[1].wildcardEquiv( ret->getName() )) ) )
+				  {
+					  ret->setSuppressMagnify(); 
+#ifdef notdef
+					  cerr << '\"' << parent->getName() << '/' << ret->getName()
+					       << "\" hit against exclude \""
+					       << (libs[i])[0] << '/' << (libs[i])[1] << '\"';
+					  if( regex ) cerr << " using regex";
+					  cerr << endl;
+#endif
+				  }
+			  } 
 	      } 
 	  }
       }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.46 1999/05/24 16:56:37 cain Exp $
+// $Id: DMresource.C,v 1.47 1999/06/03 07:16:14 nash Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -317,12 +317,13 @@ resource *resource::string_to_resource(const string &res) {
 // get_lib_constraints: returns true if there is a list of lib constraints
 // specified by the mdl exclude_lib option.  If the list has not yet been 
 // created, this routine creates the list from the mdl_data list
-bool resource::get_lib_constraints(vector<string> &list){
+bool resource::get_lib_constraints(vector<string> &list, vector<unsigned> &flags){
  
     if(!lib_constraints_built) {
         vector<string> temp;
+		vector<unsigned> tmp_flags;
 	// create list
-        if(mdl_get_lib_constraints(temp)){
+        if(mdl_get_lib_constraints(temp, tmp_flags)){
 
 	    for(u_int i=0; i < temp.size(); i++) {
                 // if the string is of the form "blah/blah" then this
@@ -332,6 +333,7 @@ bool resource::get_lib_constraints(vector<string> &list){
 		char *blah=0; 
 		if(next && (!(blah = P_strrchr(next, '/')))){
 		    lib_constraints += string(next);
+			lib_constraint_flags += tmp_flags[i];
 		}
 		delete next;
 	    }
@@ -339,6 +341,7 @@ bool resource::get_lib_constraints(vector<string> &list){
     }
     for(u_int i=0; i < lib_constraints.size(); i++){
             list += lib_constraints[i];
+			flags += lib_constraint_flags[i];
     }
     lib_constraints_built = true;
     return lib_constraints.size();
@@ -348,12 +351,13 @@ bool resource::get_lib_constraints(vector<string> &list){
 // get_func_constraints: returns true if there is a list of func constraints
 // specified by the mdl exclude_func option.  If the list has not yet been 
 // created, this routine creates the list from the mdl_data list
-bool resource::get_func_constraints(vector< vector<string> > &list){
+bool resource::get_func_constraints(vector< vector<string> > &list, vector<unsigned> &flags){
  
     if(!func_constraints_built) {
         vector< string > temp;
+		vector<unsigned> tmp_flags;
 	// create list
-        if(mdl_get_lib_constraints(temp)){
+        if(mdl_get_lib_constraints(temp, tmp_flags)){
 	    for(u_int i=0; i < temp.size(); i++){
                 // if the string is of the form "blah/blah" then this
 	        // is a function constraint so add it to the list 
@@ -383,6 +387,9 @@ bool resource::get_func_constraints(vector< vector<string> > &list){
 		    func_consts += string(&(next[where])); 
 		    assert(func_consts.size() == 2);
 		    func_constraints += func_consts; 
+
+			// constraint flags
+			func_constraint_flags += tmp_flags[i];
 		  }
 	          delete [] temp_str;	
                 }
@@ -392,6 +399,7 @@ bool resource::get_func_constraints(vector< vector<string> > &list){
     }
     for(u_int i=0; i < func_constraints.size(); i++){
             list += func_constraints[i];
+			flags += func_constraint_flags[i];
     }
     func_constraints_built = true;
 

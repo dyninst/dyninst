@@ -41,6 +41,12 @@
 
 /*
  * $Log: metricExt.h,v $
+ * Revision 1.10  1999/06/03 07:16:16  nash
+ * Changed mdl exclude to check both libraries and functions using a simple
+ * pattern matching system.  The '*' and '?' characters have their normal
+ * meanings.  Also added underlying support for using POSIX regular
+ * expressions in the same place, but it is not currently accessable.
+ *
  * Revision 1.9  1997/06/07 21:01:27  newhall
  * replaced exclude_func and exclude_lib with exclude_node
  *
@@ -86,6 +92,6 @@ extern void mdl_destroy();
 extern bool mdl_apply();
 extern bool mdl_check_node_constraints();
 
-extern bool mdl_get_lib_constraints(vector<string> &);
+extern bool mdl_get_lib_constraints(vector<string> &, vector<unsigned> &);
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMinclude.h,v 1.12 1999/05/24 16:56:34 cain Exp $
+// $Id: DMinclude.h,v 1.13 1999/06/03 07:16:13 nash Exp $
 
 #ifndef dminclude_H
 #define dminclude_H
@@ -55,6 +55,9 @@
 // this is an upper limit for data buffering between DM and client threads
 // and between VISIthread and visis
 #define DM_DATABUF_LIMIT	50	
+
+const unsigned LIB_CONSTRAINT_REGEX_FLAG = 1;
+const unsigned LIB_CONSTRAINT_NOCASE_FLAG = 2;
 
 typedef unsigned metricHandle;
 typedef unsigned resourceListHandle;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.40 1999/05/24 16:56:37 cain Exp $
+// $Id: DMresource.h,v 1.41 1999/06/03 07:16:14 nash Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -118,8 +118,8 @@ class resource {
     static const char *getName(resourceHandle);
     static const char *getFullName(resourceHandle);
     const vector<string>& getParts() const {return fullName;}
-    static bool get_lib_constraints(vector<string>&);
-    static bool get_func_constraints(vector< vector<string> >&);
+    static bool get_lib_constraints(vector<string>&, vector<unsigned>&);
+    static bool get_func_constraints(vector< vector<string> >&, vector<unsigned>&);
     static void saveHierarchiesToFile (ofstream& foo);
     void saveHierarchyToFile (ofstream& foo);
 
@@ -166,8 +166,10 @@ class resource {
     static dictionary_hash<unsigned, resource*> resources;  // indexed by resourceHandle
     static resource *rootResource;
     static vector<string> lib_constraints;
+	static vector<unsigned> lib_constraint_flags;
     // each element is a module string and a function string
     static vector< vector<string> > func_constraints;
+    static vector<unsigned> func_constraint_flags;
     static bool func_constraints_built;
     static bool lib_constraints_built;
 

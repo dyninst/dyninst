@@ -39,10 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// String.C
+// $Id: String.C,v 1.13 1999/06/03 07:16:17 nash Exp $
 
 #include <assert.h>
 #include "util/h/headers.h"
+
+#ifndef i386_unknown_nt4_0
+#include <regex.h>
+#endif
+
 #include "util/h/String.h"
 
 // Declare static member vrbles:
@@ -275,6 +280,26 @@ string_ll::prefixed_by(const string_ll& s) const {
     return ((&s == this) || prefixed_by(s.str_, s.len_));
 }
 
+bool
+string_ll::suffix_of(const char* s, unsigned sl) const {
+    return ((len_ > sl) ? false : STREQN(str_, s + strlen( s ) - len_, len_));
+}
+
+bool
+string_ll::suffix_of(const string_ll& s) const {
+    return ((&s == this) || suffix_of(s.str_, s.len_));
+}
+
+bool
+string_ll::suffixed_by(const char* s, unsigned sl) const {
+    return ((sl > len_) ? false : STREQN(str_ + len_ - sl, s, sl));
+}
+
+bool
+string_ll::suffixed_by(const string_ll& s) const {
+    return ((&s == this) || suffixed_by(s.str_, s.len_));
+}
+
 unsigned
 string_ll::hashs(const char* str) {
     if (!str)
@@ -341,6 +366,11 @@ string_ll::STRGE(const char* s1, const char* s2) {
     return ((s1&&s2)?(P_strcmp(s1,s2)>=0):(!(s1||s2)));
 }
 
+const char *
+string_ll::STRCHR(const char* s, char c) {
+    return (s?(P_strchr(s,c)):(NULL));
+}
+
 string_ll
 string_ll::substr(unsigned pos, unsigned len) const {
 	if( pos >= len_ )
@@ -348,6 +378,113 @@ string_ll::substr(unsigned pos, unsigned len) const {
 	else
 		return string_ll( str_ + pos, len );
 }
+
+bool
+string_ll::wildcardEquiv( const string_ll &them, bool checkCase ) const {
+	if( *this == them )
+		return true;
+	else
+		return pattern_match( str_, them.str_, checkCase );
+}
+
+
+// This function will match string s against pattern p.
+// Asterisks match 0 or more wild characters, and a question
+// mark matches exactly one wild character.  In other words,
+// the asterisk is the equivalent of the regex ".*" and the
+// question mark is the equivalent of "."
+
+bool
+string_ll::pattern_match( const char *p, const char *s, bool checkCase ) {
+	//const char *p = ptrn;
+	//char *s = str;
+
+	while ( true ) {
+		// If at the end of the pattern, it matches if also at the end of the string
+		if( *p == '\0' )
+			return ( *s == '\0' );
+
+		// Process a '*'
+		if( *p == MULTIPLE_WILDCARD_CHAR ) {
+			++p;
+			
+			// If at the end of the pattern, it matches
+			if( *p == '\0' )
+				return true;
+
+			// Try to match the remaining pattern for each remaining substring of s
+			for(; *s != '\0'; ++s )
+				if( pattern_match( p, s, checkCase ) )
+					return true;
+			// Failed
+			return false;
+		}
+
+		// If at the end of the string (and at this point, not of the pattern), it fails
+		if( *s == '\0' )
+			return false;
+
+		// Check if this character matches
+		bool matchChar = false;
+		if( *p == WILDCARD_CHAR || *p == *s )
+			matchChar = true;
+		else if( !checkCase ) {
+			if( *p >= 'A' && *p <= 'Z' && *s == ( *p + ( 'a' - 'A' ) ) )
+				matchChar = true;
+			else if( *p >= 'a' && *p <= 'z' && *s == ( *p - ( 'a' - 'A' ) ) )
+				matchChar = true;
+		}
+
+		if( matchChar ) {
+			++p;
+			++s;
+			continue;
+		}
+
+		// Did not match
+		return false;
+	}
+}
+
+
+// Use POSIX regular expression pattern matching to check if string s matches
+// the pattern in this string
+bool
+string_ll::regexEquiv( const char *s, bool checkCase ) const {
+// Would this work under NT?  I don't know.
+#if !defined(i386_unknown_nt4_0)
+	regex_t r;
+	int err;
+	bool match = false;
+	int cflags = REG_NOSUB;
+	if( !checkCase )
+		cflags |= REG_ICASE;
+
+	// Regular expressions must be compiled first, see 'man regexec'
+	err = regcomp( &r, str_, cflags );
+
+	if( err == 0 ) {
+		// Now we can check for a match
+		err = regexec( &r, s, 0, NULL, 0 );
+		if( err == 0 )
+			match = true;
+	}
+
+	// Deal with errors
+	if( err != 0 && err != REG_NOMATCH ) {
+		char errbuf[80];
+		regerror( err, &r, errbuf, 80 );
+		cerr << "string_ll::regexEquiv -- " << errbuf << endl;
+	}
+
+	// Free the pattern buffer
+	regfree( &r );
+	return match;
+#else
+	return false;
+#endif
+}
+
 
 ostream& operator<< (ostream &os, const string_ll &s) {
    return os << s.str_;

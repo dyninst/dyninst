@@ -39,10 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: globals.h,v 1.12 1999/06/03 07:16:15 nash Exp $
+
 #ifndef _MDL_GLOBALS_H
 #define _MDL_GLOBALS_H
 
 #include "dyninstRPC.xdr.h"
+#include "../DMthread/DMinclude.h"
 
 class mdl_data {
 public:
@@ -51,6 +54,7 @@ public:
   static vector<T_dyninstRPC::mdl_stmt*> stmts;
   static vector<T_dyninstRPC::mdl_constraint*> all_constraints;
   static vector<string> lib_constraints;
+  static vector<unsigned> lib_constraint_flags;
 
   static T_dyninstRPC::mdl_constraint *new_constraint(string id, vector<string> *path,
 					       vector<T_dyninstRPC::mdl_stmt*> *stmts,

@@ -39,106 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: mdl.C,v $
- * Revision 1.38  1999/03/12 23:00:51  pcroth
- * Fixed poor handling of RCS logs by last CVS checkin
- *
- * Revision 1.37  1999/03/03 18:16:52  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.36  1998/03/26 07:12:20  czhang
- * In mdl_v_expr::apply(), check for (var_=="$return") in the case of
- * MDL_EXPR_VAR.
- *
- * Revision 1.35  1998/01/30 21:14:08  czhang
- * In mdl_v_expr::apply, MDL_EXPR_VAR processing, "switch (get_drn.type())"
- * missed two cases: MDL_T_PROC_TIMER and MDL_T_WALL_TIMER.  Added them.
- *
- * Revision 1.34  1998/01/21 15:00:56  czhang
- * In line 1378 (this will certainly change in the future), a wrong variable
- * was used.  Changed "if (!left_val.get(v1))" to "if (!left_val.get(i1))".
- *
- * Revision 1.33  1998/01/19 21:05:47  czhang
- * Massive changes for MDL expression.
- * Changes to tokens are in metScanner.l.  This includes adding of new
- * operators.  Some obsolete keywords are removed.
- * Changes to the mdl expression are in metParser.y.  Rules associated with
- * the instrumentation expression (obsolete) are removed and the mdl expression
- * is expanded.
- * Other files, mdl.C, mdl.h, metParse.h contain changes due to the grammer,
- * this includes support for new mdl expression types, etc.
- *
- * Revision 1.32  1997/12/03 20:38:27  mcheyney
- * Fixed problem bwylie found with mdl.C for fully optimized code.
- *
- * Revision 1.31  1997/11/26 21:47:49  mcheyney
- * Changed syntax of exclude statement:
- * Old:
- *   exclude "function"  or
- *   exclude "module/function"
- * New:
- *   exclude "/Code/module" or
- *   exclude "/Code/module/function"
- * Also some small mdl changes to make syntax a bit more transparent in
- *  a few places & get rid of a few warnings.
- *
- * Revision 1.30  1997/06/27 18:21:20  tamches
- * removed some warnings
- *
- * Revision 1.29  1997/06/24 19:57:25  tamches
- * dummy mk_list()
- *
- * Revision 1.28  1997/06/07 21:01:22  newhall
- * replaced exclude_func and exclude_lib with exclude_node
- *
- * Revision 1.27  1997/06/05 04:29:44  newhall
- * added exclude_func mdl option to exclude shared object functions
- *
- * Revision 1.26  1997/04/14 20:01:52  zhichen
- * Added MDL_T_RECORD and fixed a bug.
- *
- * Revision 1.25  1997/04/02 22:34:52  zhichen
- * added 'Memory'
- *
- * Revision 1.24  1997/03/29 02:06:06  sec
- * Changed /MsgTag to /Message
- * Added environment variables $constraint[0], $constraint[1], etc.
- * instead of $constraint
- *
- * Revision 1.23  1997/02/21 20:20:35  naim
- * Eliminating references to dataReqNode from the ast class - Pre-dyninstAPI
- * commit - naim
- *
- * Revision 1.22  1997/01/15 00:14:29  tamches
- * extra bool arg to apply
- *
- * Revision 1.21  1996/11/14 14:19:33  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.20  1996/10/08 21:52:14  mjrg
- * changed the evaluation of resource lists
- * removed warnings
- *
- * Revision 1.19  1996/09/26 19:03:25  newhall
- * added "exclude_lib" mdl option
- *
- * Revision 1.18  1996/08/16 21:12:16  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.17  1996/03/25 20:18:37  tamches
- * the reduce-mem-leaks-in-paradynd commit
- *
- * Revision 1.16  1996/03/20 17:04:16  mjrg
- * Changed mdl to support calls with multiple arguments.
- *
- * Revision 1.15  1996/03/09 19:53:16  hollings
- * Fixed a call to apply that was passing NULL where a vector was expected.
- *
- *
- */
+// $Id: mdl.C,v 1.39 1999/06/03 07:16:15 nash Exp $
+
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
 #include "paradyn/src/met/metricExt.h"
@@ -156,6 +58,7 @@ dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
 vector<mdl_focus_element> mdl_data::foci;
 vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 vector<string> mdl_data::lib_constraints;
+vector<unsigned> mdl_data::lib_constraint_flags;
 
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
 static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool is_preop);
@@ -1340,9 +1243,10 @@ bool mdl_send(dynRPCUser *remote) {
 }
 
 
-bool mdl_get_lib_constraints(vector<string> &lc){
+bool mdl_get_lib_constraints(vector<string> &lc, vector<unsigned> &lcf){
     for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
         lc += mdl_data::lib_constraints[i];
+		lcf += mdl_data::lib_constraint_flags[i];
     }
     return (lc.size()>0);
 }
