@@ -57,6 +57,9 @@ metricFocusReq_Val::metricFocusReq_Val(metricInstance *mi_, int num_daemons_) :
    cur_overall_state(inst_insert_unknown), dmn_state_buf(ui_hash_),
    error_msg(""), request_sent_to_daemon(false)
 {
+   have_reported_state[inst_insert_deferred] = false;
+   have_reported_state[inst_insert_success]  = false;   
+   have_reported_state[inst_insert_failure]  = false;   
    metricFocusReq_Val::allMetricFocusReqVals[mi->getHandle()] = this;
 }
 
@@ -167,7 +170,7 @@ void metricFocusReq_Val::addParent(metricFocusReq *mfReq) {
    if(cur_state != inst_insert_unknown) {
       // update the new metricFocusReq with the current state
       metricInstInfo cur_mi_info;
-      makeMetricInstInfo(&cur_mi_info);
+      makeMetricInstInfo(cur_state, &cur_mi_info);
       parent_bundle->accumulatePerfStreamMsgs(cur_mi_info);
    }
 }
@@ -184,6 +187,42 @@ void metricFocusReq_Val::removeParent(metricFocusReq *mfReq) {
    }
 }
 
+bool metricFocusReq_Val::should_report_new_state(
+                                       inst_insert_result_t new_overall_state)
+{
+   bool ret = false;
+   switch(new_overall_state) {
+     case inst_insert_failure:
+        if(have_reported_state[inst_insert_failure] ||
+           have_reported_state[inst_insert_success])
+           ret = false;
+        else
+           ret = true;
+        break;
+     case inst_insert_success:
+        if(have_reported_state[inst_insert_failure] ||
+           have_reported_state[inst_insert_success])
+           ret = false;
+        else
+           ret = true;
+        break;
+     case inst_insert_deferred:
+        if(have_reported_state[inst_insert_failure] ||
+           have_reported_state[inst_insert_success] ||
+           have_reported_state[inst_insert_deferred])
+        {
+           ret = false;
+        } else
+           ret = true;
+        break;
+     case inst_insert_unknown:
+        // don't ever want to report this state
+        ret = false;
+        break;
+   }
+   return ret;
+}
+
 void metricFocusReq_Val::readyMetricInstanceForSampling() {
    pdvector<metricFocusReqBundle *> bundleClients;
    getBundleClients(&bundleClients);
@@ -193,8 +232,10 @@ void metricFocusReq_Val::readyMetricInstanceForSampling() {
    }
 }
 
-void metricFocusReq_Val::makeMetricInstInfo(metricInstInfo *mi_response) {
-   inst_insert_result_t currentState = getOverallState();
+void metricFocusReq_Val::makeMetricInstInfo(inst_insert_result_t currentState,
+                                            metricInstInfo *mi_response) {
+   // should be impossible to make a performance stream message
+   // that indicates an unknown state
    assert(currentState != inst_insert_unknown);
 
    metric *metricptr = metric::getMetric(mi->getMetricHandle());
@@ -226,8 +267,11 @@ void metricFocusReq_Val::makeMetricInstInfo(metricInstInfo *mi_response) {
 }
 
 void metricFocusReq_Val::accumulatePerfStreamMsgs() {
+   inst_insert_result_t currentState = getOverallState();
+   have_reported_state[currentState] = true;
+
    metricInstInfo cur_mi_info;
-   makeMetricInstInfo(&cur_mi_info);
+   makeMetricInstInfo(currentState, &cur_mi_info);
 
    pdvector<metricFocusReqBundle *> bundleClients;
    getBundleClients(&bundleClients);
@@ -306,11 +350,13 @@ void metricFocusReq_Val::cancelOutstandingMetricFocusesInCurrentPhase() {
       if(cur_state == inst_insert_deferred ||
          cur_state == inst_insert_unknown)
       {
+         // a more graceful way of reporting the failure to the visi
+         // would probably be to send the cancel to the daemon
+         // and wait to get the callback from the daemon about the change
+         // in state in metricFocusReqBundle::updateWithEnableCallback()
          metricInstInfo cur_mi_info;
-         mfReqVal->makeMetricInstInfo(&cur_mi_info);
+         mfReqVal->makeMetricInstInfo(inst_insert_failure, &cur_mi_info);
          // mark this metric-focus as failed
-         cur_mi_info.deferred = false;
-         cur_mi_info.successfully_enabled = false;
          cur_mi_info.emsg = "cancelled since starting new phase";
          
          pdvector<metricFocusReqBundle *> bundleClients;      

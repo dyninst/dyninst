@@ -92,7 +92,7 @@ class metricFocusReqBundle {
 
    metricFocusReq *getMetricFocusReq(unsigned handle);
    void update_mfReq_states(const T_dyninstRPC::instResponse &resp,
-                            pdvector<metricFocusReq *> *mfReqsThatChanged);
+                            pdvector<metricFocusReq *> *mfReqsToReport);
    bool isBundleComplete() const;
    pdvector<metricInstInfo *> makePerfStreamMsgPacket();
 

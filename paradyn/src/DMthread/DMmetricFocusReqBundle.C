@@ -282,9 +282,89 @@ void metricFocusReqBundle::flushPerfStreamMsgs() {
    }
 }
 
+typedef enum {  unset, report_transition, dont_report_transition,
+                unexpected_transition } state_response_t;
+
+state_response_t state_transition_response(inst_insert_result_t old_state,
+                                           inst_insert_result_t new_state)
+{
+   state_response_t resp = unset;
+
+   switch(new_state) {
+     case inst_insert_failure:
+        switch(old_state) {
+          case inst_insert_failure:
+             resp = dont_report_transition;  break;
+          case inst_insert_success:
+             resp = unexpected_transition;   break;
+          case inst_insert_deferred:
+             resp = report_transition;       break;
+          case inst_insert_unknown:
+             resp = report_transition;       break;
+        }
+        break;
+     case inst_insert_success:
+        switch(old_state) {
+          case inst_insert_failure:
+             resp = unexpected_transition;   break;
+          case inst_insert_success:
+             resp = dont_report_transition;  break;
+          case inst_insert_deferred:
+             resp = report_transition;       break;
+          case inst_insert_unknown:
+             resp = report_transition;       break;
+        }
+        break;
+     case inst_insert_deferred:
+        switch(old_state) {
+          case inst_insert_failure:
+             resp = unexpected_transition;   break;
+          case inst_insert_success:
+             resp = unexpected_transition;   break;
+          case inst_insert_deferred:
+             resp = dont_report_transition;  break;
+          case inst_insert_unknown:
+             resp = report_transition;       break;
+        }
+        break;
+     case inst_insert_unknown:
+        switch(old_state) {
+          case inst_insert_failure:
+             resp = unexpected_transition;   break;
+          case inst_insert_success:
+             resp = unexpected_transition;   break;
+          case inst_insert_deferred:
+             resp = unexpected_transition;   break;
+          case inst_insert_unknown:
+             resp = dont_report_transition;  break;
+        }
+   }
+
+   assert(resp != unset);
+   return resp;
+}
+
+void warn_unexpected_individual_state_transition(
+                                             metricFocusReq *cur_mfReq,
+                                             inst_insert_result_t prior_state,
+                                             inst_insert_result_t new_state,
+                                             unsigned daemon_id)
+{
+   paradynDaemon *pd = paradynDaemon::getDaemonById(daemon_id);
+   cerr << " PARADYN: unexpected state transition ("
+        << state_str(prior_state) << " -> "
+        << state_str(new_state) << ")\n"
+        << "          for metric-focus "
+        << cur_mfReq->getMetricInst()->getMetricName() << " / "
+        << cur_mfReq->getMetricInst()->getFocusName() << endl;
+   if(pd) 
+      cerr << "          from response from machine: " 
+           << pd->getMachineName() << endl;   
+}
+
 void metricFocusReqBundle::update_mfReq_states(
                          const T_dyninstRPC::instResponse &resp,
-                         pdvector<metricFocusReq *> *mfReqsThatChanged)
+                         pdvector<metricFocusReq *> *mfReqsToReport)
 {
    // update this request's responses with the new response
    for(unsigned i = 0; i < resp.rinfo.size(); i++)
@@ -293,43 +373,50 @@ void metricFocusReqBundle::update_mfReq_states(
       metricInstanceHandle mh = curMI_resp.mi_id;
       metricFocusReq *cur_mfReq = getMetricFocusReq(mh);
       assert(cur_mfReq != NULL);
-      inst_insert_result_t prior_overall_state =
-         cur_mfReq->getOverallState();
+      //inst_insert_result_t prior_overall_state =
+      //   cur_mfReq->getOverallState();
 
       inst_insert_result_t current_dmn_state =
          cur_mfReq->getCurrentDmnState(resp.daemon_id);
       inst_insert_result_t new_dmn_state =
          inst_insert_result_t(curMI_resp.status);
 
-      if(current_dmn_state == new_dmn_state) {
-         //cerr << "    skipping this response since already handled\n";
+      unsigned daemon_id = resp.daemon_id;
+      state_response_t trans_resp =
+         state_transition_response(current_dmn_state, new_dmn_state);
+
+      if(trans_resp == dont_report_transition)
+         continue;  // this response must have been already handled
+      else if(trans_resp == unexpected_transition) {
+         warn_unexpected_individual_state_transition(cur_mfReq,
+                               current_dmn_state, new_dmn_state, daemon_id);
          continue;
       }
-      cur_mfReq->setNewDmnState(resp.daemon_id, new_dmn_state,curMI_resp.emsg);
+
+      cur_mfReq->setNewDmnState(daemon_id, new_dmn_state,curMI_resp.emsg);
       inst_insert_result_t new_overall_state = cur_mfReq->getOverallState();
 
-      if(new_overall_state != prior_overall_state) {
-         (*mfReqsThatChanged).push_back(cur_mfReq);            
-      }
+      if(cur_mfReq->should_report_new_state(new_overall_state))
+         (*mfReqsToReport).push_back(cur_mfReq);
    }
 }
 
 void metricFocusReqBundle::updateWithEnableCallback(
                                      const T_dyninstRPC::instResponse &resp)
 {
-   pdvector<metricFocusReq *> mfReqsThatChanged;
-   update_mfReq_states(resp, &mfReqsThatChanged);
+   pdvector<metricFocusReq *> mfReqsToReport;
+   update_mfReq_states(resp, &mfReqsToReport);
 
-   for(unsigned i=0; i<mfReqsThatChanged.size(); i++) {
-      metricFocusReq *cur_mfReq = mfReqsThatChanged[i];
+   for(unsigned i=0; i<mfReqsToReport.size(); i++) {
+      metricFocusReq *cur_mfReq = mfReqsToReport[i];
       if(cur_mfReq->getOverallState() == inst_insert_success)
          cur_mfReq->readyMetricInstanceForSampling();
 
       cur_mfReq->accumulatePerfStreamMsgs();
    }
 
-   for(unsigned j=0; j<mfReqsThatChanged.size(); j++) {
-      metricFocusReq *cur_mfReq = mfReqsThatChanged[j];
+   for(unsigned j=0; j<mfReqsToReport.size(); j++) {
+      metricFocusReq *cur_mfReq = mfReqsToReport[j];
       cur_mfReq->flushPerfStreamMsgs();
    }
 

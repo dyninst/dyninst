@@ -82,10 +82,12 @@ class metricFocusReq_Val {
    mutable dictionary_hash<unsigned, inst_insert_result_t> dmn_state_buf;
    string error_msg;  // only valid if in failure state
    bool request_sent_to_daemon;
+   bool have_reported_state[4];
 
    inst_insert_result_t calculateNewOverallState() const;
    void getBundleClients(pdvector<metricFocusReqBundle *> *bundleClnts) const;
-   void makeMetricInstInfo(metricInstInfo *mi_response);
+   void makeMetricInstInfo(inst_insert_result_t currentState,
+                           metricInstInfo *mi_response);
    void propagateToDaemon(paradynDaemon *dmn);
 
  public:
@@ -117,6 +119,7 @@ class metricFocusReq_Val {
       return cur_overall_state;
    }
 
+   bool should_report_new_state(inst_insert_result_t new_overall_state);
    bool isEachDaemonComplete( void ) const;
 
    inst_insert_result_t getCurrentDmnState(unsigned daemon_id) const {
@@ -159,6 +162,10 @@ class metricFocusReq {
 
    bool requestSentToDaemon()    { return V.requestSentToDaemon(); }
    void setRequestSentToDaemon() { V.setRequestSentToDaemon(); }
+
+   bool should_report_new_state(inst_insert_result_t new_overall_state) {
+      return V.should_report_new_state(new_overall_state);
+   }
 
    inst_insert_result_t getOverallState() const {
       return V.getOverallState();
