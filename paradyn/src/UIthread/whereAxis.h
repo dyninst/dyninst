@@ -4,9 +4,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.7  1995/11/06 19:28:44  tamches
-/* dictionary_hash --> dictionary_lite
+/* Revision 1.8  1995/12/09 04:07:58  tamches
+/* added const qualifier to hashFunc
 /*
+ * Revision 1.7  1995/11/06 19:28:44  tamches
+ * dictionary_hash --> dictionary_lite
+ *
  * Revision 1.6  1995/10/17 22:18:46  tamches
  * whereAxis is no longer a templated type; it used where4tree
  * with a template of whereAxisRootNode.
@@ -131,7 +134,7 @@ class whereAxis {
  protected:
    void rethink_nominal_centerx();
 
-   static unsigned hashFunc(resourceHandle &uniqueId) {return uniqueId;}
+   static unsigned hashFunc(const resourceHandle &uniqueId) {return uniqueId;}
       // needed for hash table class...
 
 #ifndef PARADYN
