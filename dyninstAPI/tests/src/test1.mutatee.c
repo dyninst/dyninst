@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.105 2004/02/12 20:47:01 tlmiller Exp $ */
+/* $Id: test1.mutatee.c,v 1.106 2004/02/24 16:51:04 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1935,7 +1935,7 @@ void func31_4( int value )
 
 int func31_1()
 {
-#if defined(alpha_dec_osf4_0) || defined( ia64_unknown_linux2_4 )
+#if defined(alpha_dec_osf4_0)
     printf( "Skipped test #31 (non-recursive base tramp guard)\n" );
     printf( "\t- not implemented on this platform\n" );
     passedTest[ 31 ] = TRUE;
