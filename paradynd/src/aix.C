@@ -102,7 +102,6 @@ extern "C" {
 extern int ioctl(int, int, ...);
 };
 
-
 unsigned AIX_TEXT_OFFSET_HACK;
 unsigned AIX_DATA_OFFSET_HACK;
 
@@ -129,8 +128,8 @@ bool ptraceKludge::haltProcess(process *p) {
 static int firstFrame;
 
 //
-// return the current frame pointer (fp) and program counter (pc). 
-//    returns true if we are able to read the regsiters.
+// returns the current frame pointer (fp) and program counter (pc). 
+// returns true if we are able to read the registers.
 //
 bool process::getActiveFrame(int *fp, int *pc)
 {
@@ -562,7 +561,6 @@ bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
   bool halted;
   bool ret;
   
-  
   if (req != PT_DETACH) halted = haltProcess(p);
   if (ptrace(req, p->getPid(), (int *)addr, data, (int *)addr2) == -1) // aix 4.1 likes int *
     ret = false;
@@ -582,10 +580,11 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
 #if !defined(PTRACE_ATTACH_DETACH)
     if (ptrace(PT_CONTINUE, p->pid, (int *) 1, SIGCONT, NULL) == -1) {
 #else
+    //if (ptrace(PT_DETACH, p->pid, (int *) 1, SIGCONT, NULL) == -1) {
     if (ptrace(PT_DETACH, p->pid, (int *) 1, SIGCONT, NULL) == -1) { 
     // aix 4.1 likes int *
 #endif
-      cerr << "error in continueProcess\n";
+      logLine("Error in continueProcess\n");
       assert(0);
     }
   }
@@ -630,7 +629,7 @@ bool process::continueWithForwardSignal(int sig) {
 #endif
 }
 
-void OS::osTraceMe(void) { ptrace(PT_TRACE_ME, 0, 0, 0, 0); }
+void OS::osTraceMe(void) { ptrace(PT_TRACE_ME, 0, (int *)0, 0, 0); }
 
 
 // wait for a process to terminate or stop
@@ -674,7 +673,7 @@ bool process::continueProc_() {
   // switch these to not detach after every call.
   ret = ptrace(PT_CONTINUE, pid, (int *)1, 0, NULL);
 #else
-  ret = ptrace(PT_DETACH, pid, (int *)1, SIGCONT, NULL);
+  ret = ptrace(PT_DETACH, pid, (int *)1, 0, NULL);
 #endif
 
   return (ret != -1);
@@ -695,7 +694,8 @@ bool process::pause_() {
 bool process::detach_() {
   if (checkStatus()) {
       ptraceOps++; ptraceOtherOps++;
-      if (!ptraceKludge::deliverPtrace(this,PT_DETACH,(char*)1,SIGSTOP, NULL)) {
+      if (!ptraceKludge::deliverPtrace(this,PT_DETACH,(char*)1,SIGSTOP, NULL))
+      {
 	  sprintf(errorLine, "Unable to detach %d\n", getPid());
 	  logLine(errorLine);
 	  showErrorCallback(40, (const char *) errorLine);
@@ -834,7 +834,7 @@ bool process::dumpImage() {
     }
     length = statBuf.st_size;
     sprintf(outFile, "%s.real", imageFileName.string_of());
-    sprintf(errorLine, "saving program to %s\n", outFile);
+    sprintf(errorLine, "Saving program to %s\n", outFile);
     logLine(errorLine);
 
     ofd = open(outFile, O_WRONLY|O_CREAT, 0777);
@@ -857,7 +857,7 @@ bool process::dumpImage() {
     sectHdr = (struct scnhdr *) calloc(sizeof(struct scnhdr), hdr.f_nscns);
     cnt = read(ifd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
     if ((unsigned) cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
-	sprintf(errorLine, "section headers\n");
+	sprintf(errorLine, "Section headers\n");
 	logLine(errorLine);
 	return false;
     }
@@ -1248,7 +1248,6 @@ bool establishBaseAddrs(int pid, int &status)
 
     // wait for the TRAP point.
     waitpid(pid, &status, WUNTRACED);
-
 
     ret = ptrace(PT_LDINFO, pid, (int *) &info, sizeof(info), (int *) &info);
     if (ret != 0) {

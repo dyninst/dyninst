@@ -44,6 +44,9 @@
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.68  1996/11/14 14:28:03  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.67  1996/11/11 01:44:27  lzheng
  * Moved the instructions which is used to caculate the observed cost
  * from the miniTramps to baseTramp
@@ -229,7 +232,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
   assert(ptr);
 
 #ifdef FREEDEBUG1
-  sprintf(errorLine, "IS ok called on 0x%x\n", ptr->addr);
+  sprintf(errorLine, "isFreeOK  called on 0x%x\n", ptr->addr);
   logLine(errorLine);
 #endif
 
@@ -239,8 +242,11 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
   for (unsigned int j=0;j<disItemNumPoints;j++) {
     for (unsigned int k=0;k<disItemPoints[j].size();k++) {
       unsigned pointer = disItemPoints[j][k];
-#ifdef FREEDEBUG1
-      sprintf(errorLine, "checking 0x%x\n", pointer);
+#ifdef FREEDEBUG_ON
+      if (disItemHeap == dataHeap)
+        sprintf(errorLine, "checking DATA pointer 0x%x\n", pointer);
+      else
+        sprintf(errorLine, "checking TEXT pointer 0x%x\n", pointer);
       logLine(errorLine);
 #endif
 
@@ -266,13 +272,14 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
 	// need to make sure we check the next item too 
 	k--;
       } else {
+        // Condition 1
         assert(np);
         if ( (ptr->addr >= np->addr) && 
              (ptr->addr <= (np->addr + np->length)) )
         {
 
-#ifdef FREEDEBUG1
-          sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: we found 0x%x in our inst. range!\n",proc->getPid(),ptr->addr);
+#ifdef FREEDEBUG_ON
+          sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (1) we found 0x%x in our inst. range!\n",proc->pid,ptr->addr);
           logLine(errorLine);
 #endif
 
@@ -280,22 +287,24 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
         }
 
         for (unsigned int l=0;l<pcs.size();l++) {
+          // Condition 2
           if ((pcs[l] >= ptr->addr) && 
               (pcs[l] <= (ptr->addr + ptr->length))) 
           {
 
-#ifdef FREEDEBUG1
-    sprintf(errorLine,"      IN isFreeOK: we found 0x%x in our inst. range!\n",ptr->addr);
+#ifdef FREEDEBUG_ON
+    sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (2) we found 0x%x in our inst. range!\n",proc->pid,ptr->addr);
     logLine(errorLine);
 #endif
 
             return(false);
           }
+          // Condition 3
           if ( ((pcs[l] >= np->addr) && (pcs[l] <= (np->addr + np->length))) )
           {
 
-#ifdef FREEDEBUG1
-    sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (2) we found PC in our inst. range!\n",proc->getPid());
+#ifdef FREEDEBUG_ON
+    sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (3) we found PC in our inst. range!\n",proc->pid);
     logLine(errorLine);
 #endif
 
@@ -413,7 +422,7 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
       // remove from active list.
       hp->heapActive.undef(pointer);
 
-#ifdef FREEDEBUG1
+#ifdef FREEDEBUG_ON
    sprintf(errorLine,"inferiorFreeDefered: deleting 0x%x from heap\n",pointer);
    logLine(errorLine);
 #endif
@@ -583,7 +592,6 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 	newEntry->length = np->length - size;
 	newEntry->addr = np->addr + size;
         hp->totalFreeMemAvailable -= size;
-	
 	// overwrite the old entry
 	hp->heapFree[foundIndex] = newEntry;
 
@@ -717,7 +725,6 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     symbols = iImage;
 
     status_ = neonatal;
-    thread = 0;
 
     struct utsname un;
     P_uname(&un);
@@ -827,7 +834,7 @@ process::process(const process &parentProc, int iPid
     ioLink = -1;
 
     status_ = neonatal;
-    pid = iPid; thread = 0;
+    pid = iPid; 
 
     struct utsname un;
     P_uname(&un);
@@ -1938,7 +1945,7 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
         instW->cleanUp(this, pc);
 	instWList.remove(instW);
 
-	// we'll be returning true
+        // we'll be returning true
 	if (wasRunning)
 	   continueProc();
 
@@ -1949,7 +1956,7 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
     }
 }
 
-void process::postRPCtoDo(const AstNode &action, bool noCost,
+void process::postRPCtoDo(AstNode *action, bool noCost,
 			  void (*callbackFunc)(process *, void *),
 			  void *userData) {
    // posts an RPC, but does NOT make any effort to launch it.
@@ -2086,7 +2093,7 @@ return false;
    return true; // success
 }
 
-unsigned process::createRPCtempTramp(const AstNode &action,
+unsigned process::createRPCtempTramp(AstNode *action,
 				     bool noCost,
 				     unsigned &firstPossibBreakAddr,
 				     unsigned &lastPossibBreakAddr) {
@@ -2118,9 +2125,9 @@ unsigned process::createRPCtempTramp(const AstNode &action,
       return NULL;
    }
 
-   reg resultReg = action.generateCode(this, regSpace,
-				       (char*)insnBuffer,
-				       count, noCost);
+   reg resultReg = action->generateCode(this, regSpace,
+				        (char*)insnBuffer,
+				        count, noCost);
    // do we need to use the result register?
    regSpace->freeRegister(resultReg);
 

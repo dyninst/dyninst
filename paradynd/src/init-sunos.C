@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.13  1996/11/14 14:27:00  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.12  1996/10/31 08:44:32  tamches
  * in initOS(), main no longer calls DYNINSTinit
  *
@@ -92,9 +95,9 @@
 #include "os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
-static AstNode tagArg(AstNode::Param, (void *) 1);
-static AstNode cmdArg(AstNode::Param, (void *) 4);
-static AstNode tidArg(AstNode::Param, (void *) 0);
+static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
+static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
+static AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
 
 bool initOS() {
 
@@ -107,9 +110,10 @@ bool initOS() {
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   initialRequests += new instMapping("fork", "DYNINSTfork", 
-				     FUNC_EXIT|FUNC_ARG, &tidArg);
+				     FUNC_EXIT|FUNC_ARG, tidArg);
+
   initialRequests += new instMapping("execve", "DYNINSTexec",
-				     FUNC_ENTRY|FUNC_ARG, &tidArg);
+				     FUNC_ENTRY|FUNC_ARG, tidArg);
   initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
 
 #ifndef SHM_SAMPLING
@@ -118,7 +122,7 @@ bool initOS() {
 #endif
 
   initialRequests += new instMapping("rexec", "DYNINSTrexec",
-				 FUNC_ENTRY|FUNC_ARG, &cmdArg);
+				 FUNC_ENTRY|FUNC_ARG, cmdArg);
 //   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
 
 
@@ -126,7 +130,7 @@ bool initOS() {
   char *doPiggy;
 
   initialRequests += new instMapping("pvm_send", "DYNINSTrecordTag",
-				 FUNC_ENTRY|FUNC_ARG, &tagArg);
+				 FUNC_ENTRY|FUNC_ARG, tagArg);
 
   // kludge to get Critical Path to work.
   // XXX - should be tunable constant.
@@ -134,10 +138,10 @@ bool initOS() {
   if (doPiggy) {
       initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
       initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
-                           FUNC_ENTRY|FUNC_ARG, &tidArg);
+                           FUNC_ENTRY|FUNC_ARG, tidArg);
       initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
       initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
-                           FUNC_ENTRY|FUNC_ARG, &tidArg);
+                           FUNC_ENTRY|FUNC_ARG, tidArg);
   }
 #endif
 

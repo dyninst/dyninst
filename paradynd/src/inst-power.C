@@ -795,7 +795,7 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *iPtr, unsigned &base, 
-		      const vector<AstNode> &operands, 
+		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc, bool noCost)
 {
     unsigned dest;
@@ -816,7 +816,7 @@ unsigned emitFuncCall(opCode op,
     }
 	
     for (unsigned u = 0; u < operands.size(); u++)
-	srcs += operands[u].generateCode(proc, rs, iPtr, base, false);
+	srcs += operands[u]->generateCode(proc, rs, iPtr, base, false);
 
     // TODO cast
     instruction *insn = (instruction *) ((void*)&iPtr[base]);

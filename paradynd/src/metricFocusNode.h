@@ -43,6 +43,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.40  1996/11/14 14:28:01  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.39  1996/10/31 09:25:59  tamches
  * the shm-sampling commit; completely redesigned dataReqNode; designed
  * a handful of derived classes of dataReqNode, which replaces a lot of
@@ -367,20 +370,21 @@ class sampledShmProcTimerReqNode : public dataReqNode {
 
 class instReqNode {
 public:
-  instReqNode(instPoint*, const AstNode &, callWhen, callOrder order,
+  instReqNode(instPoint*, AstNode *, callWhen, callOrder order,
               bool iManuallyTrigger);
  ~instReqNode();
 
   instReqNode() {
      // needed by Vector class
-     point=NULL; instance = NULL; manuallyTrigger = false;
+     ast = NULL; point=NULL; instance = NULL; manuallyTrigger = false;
   }
 
-  instReqNode(const instReqNode &src) : ast(src.ast) {
+  instReqNode(const instReqNode &src) {
      point = src.point;
      when = src.when;
      order = src.order;
      instance = src.instance;
+     ast = assignAst(src.ast);
      manuallyTrigger = src.manuallyTrigger;
   }
   instReqNode &operator=(const instReqNode &src) {
@@ -388,7 +392,7 @@ public:
         return *this;
 
      point = src.point;
-     ast = src.ast;
+     ast = assignAst(src.ast);
      when = src.when;
      order = src.order;
      instance = src.instance;
@@ -412,7 +416,7 @@ public:
 
 private:
   instPoint	*point;
-  AstNode	ast;
+  AstNode	*ast;
   callWhen	when;
   callOrder	order;
   instInstance	*instance;
@@ -447,7 +451,8 @@ friend int startCollecting(string&, vector<u_int>&, int id,
 
 public:
   // styles are enumerated in util/h/aggregation.h
-  metricDefinitionNode(process *p, string& metric_name, vector< vector<string> >& foc,
+  metricDefinitionNode(process *p, string& metric_name, 
+                       vector< vector<string> >& foc,
 		       string& cat_name, int agg_style = aggSum);
   metricDefinitionNode(string& metric_name, vector< vector<string> >& foc,
 		       string& cat_name, vector<metricDefinitionNode*>& parts,
@@ -480,7 +485,8 @@ public:
   dataReqNode *addUnSampledIntCounter(int initialValue);
   dataReqNode *addWallTimer();
   dataReqNode *addProcessTimer();
-  inline void addInst(instPoint *point, const AstNode &, callWhen when, callOrder o,
+  inline void addInst(instPoint *point, AstNode *, callWhen when, 
+                      callOrder o,
 		      bool manuallyTrigger);
 
   // propagate this metric instance to process p
@@ -546,7 +552,7 @@ private:
 
 };
 
-inline void metricDefinitionNode::addInst(instPoint *point, const AstNode &ast,
+inline void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
 					  callWhen when,
 					  callOrder o,
                                           bool manuallyTrigger) {

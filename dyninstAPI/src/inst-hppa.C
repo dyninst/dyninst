@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.29  1996/11/14 14:27:01  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.28  1996/11/12 17:48:38  mjrg
  * Moved the computation of cost to the basetramp in the x86 platform,
  * and changed other platform to keep code consistent.
@@ -1247,7 +1250,7 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *i, unsigned &base, 
-		      const vector<AstNode> &operands, 
+		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 		      bool noCost)
 {
@@ -1261,7 +1264,7 @@ unsigned emitFuncCall(opCode op,
                  showErrorCallback(94,msg);
                  cleanUpAndExit(-1);
             }  
-	    srcs = operands[u].generateCode(proc, rs, i, base, noCost);
+	    srcs = operands[u]->generateCode(proc, rs, i, base, noCost);
 	    emit(storeMemOp, srcs, 30, -36-4*u, i, base, noCost);
 	    rs->freeRegister(srcs);
         }
@@ -1346,14 +1349,14 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
 //   baseInstruc++;
 
    // Call DYNINSTbreakPoint, with no arguments
-   vector<AstNode> args; // no arguments to DYNINSTbreakPoint
-   AstNode ast("DYNINSTbreakPoint", args);
+   vector<AstNode *> args; // no arguments to DYNINSTbreakPoint
+   AstNode *ast = new AstNode("DYNINSTbreakPoint", args);
 
    initTramps();
    extern registerSpace *regSpace;
    regSpace->resetSpace();
 
-   reg resultReg = ast.generateCode(this, regSpace, (char*)insnPtr, baseBytes, false);
+   reg resultReg = ast->generateCode(this, regSpace, (char*)insnPtr, baseBytes, false);
    regSpace->freeRegister(resultReg);
 
    instruction *insn = (instruction *)insnPtr;

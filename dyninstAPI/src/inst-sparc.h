@@ -48,6 +48,9 @@
 
 /*
  * $Log: inst-sparc.h,v $
+ * Revision 1.8  1996/11/14 14:27:08  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.7  1996/09/12 15:08:23  naim
  * This commit move all saves and restores from the mini-tramps to the base
  * tramp. It also add jumps to skip instrumentation in the base-tramp when
@@ -71,6 +74,9 @@
  * inst-sparc.h - Common definitions to the SPARC specific instrumentation code.
  *
  * $Log: inst-sparc.h,v $
+ * Revision 1.8  1996/11/14 14:27:08  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.7  1996/09/12 15:08:23  naim
  * This commit move all saves and restores from the mini-tramps to the base
  * tramp. It also add jumps to skip instrumentation in the base-tramp when
@@ -119,12 +125,9 @@ extern trampTemplate baseTemplate;
 extern trampTemplate noArgsTemplate;
 extern trampTemplate withArgsTemplate;
 
-#if defined(MT_THREAD)
-extern bool isPowerOf2(int value, int &result);
 #define REG_L7          23        /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread.                      */
-#endif
 
 #define NUM_INSN_MT_PREAMBLE 9    /* number of instructions required for   */
                                   /* the MT preamble.                      */ 

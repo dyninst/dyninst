@@ -48,6 +48,9 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.30  1996/11/14 14:27:12  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.29  1996/11/12 17:48:32  mjrg
  * Moved the computation of cost to the basetramp in the x86 platform,
  * and changed other platform to keep code consistent.
@@ -120,7 +123,6 @@ typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 extern void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck);
    // in inst.C
 extern vector<unsigned> getAllTrampsAtPoint(instInstance *);
-   // in inst.C
 
 class AstNode;
 class returnInstance;
@@ -131,14 +133,14 @@ class returnInstance;
  */
 instInstance *addInstFunc(process *proc,
 			  instPoint *location,
-			  AstNode &ast, // ast could change (sysFlag stuff)
+			  AstNode *&ast, // ast could change (sysFlag stuff)
 			  callWhen when,
 			  callOrder order,
 			  bool noCost);
 
 instInstance *addInstFunc(process *proc,
 			  instPoint *location,
-			  AstNode &ast, // ast could change (sysFlag stuff)
+			  AstNode *&ast, // ast could change (sysFlag stuff)
 			  callWhen when,
 			  callOrder order,
 			  bool noCost,
@@ -171,15 +173,18 @@ pdFunction *getFunction(instPoint *point);
 #define FUNC_CALL       0x4             /* subroutines called from func */
 #define FUNC_ARG  	0x8             /* use arg as argument */
 
+extern AstNode *assignAst(AstNode *);
+extern void removeAst(AstNode *&);
+
 class instMapping {
  public:
   instMapping(const string f, const string i, const int w, AstNode *a=NULL)
-	: func(f), inst(i), where(w), arg(a) { }
-
+	: func(f), inst(i), where(w) { arg = assignAst(a); }
+  ~instMapping() { removeAst(arg); }
   string func;         /* function to instrument */
   string inst;         /* inst. function to place at func */
-  int where;          /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
-  AstNode *arg;	      /* what to pass as arg0 */
+  int where;           /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
+  AstNode *arg;	       /* what to pass as arg0 */
 };
 
 /*
@@ -230,7 +235,8 @@ typedef enum { plusOp,
 	       getSysRetValOp,
 	       getParamOp,
 	       getSysParamOp,	   
-               shiftOp,
+	       loadIndirOp,
+	       storeIndirOp,
 	       saveRegOp,
 	       updateCostOp } opCode;
 
@@ -238,13 +244,10 @@ typedef enum { plusOp,
  * Generate an instruction.
  *
  */
-unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, unsigned &base,
-	      bool noCost);
+unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, 
+              unsigned &base, bool noCost);
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
                  unsigned &base, bool noCost);
-//unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
-//		      vector<AstNode> operands, string func, process *proc);
-
 int getInsnCost(opCode t);
 
 /*

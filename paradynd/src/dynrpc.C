@@ -43,6 +43,9 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.56  1996/11/14 14:26:59  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.55  1996/11/05 20:31:18  tamches
  * no more call to process::continueProcessIfWaiting
  *
@@ -107,7 +110,7 @@ float samplingRate = 1.0;
 float currSamplingRate = BASEBUCKETWIDTH;
 
 #ifdef TIMINGDEBUG
-#define EVERY 100
+#define EVERY 1
 #endif
 
 void dynRPC::printStats(void)
@@ -162,7 +165,7 @@ void dynRPC::getPredictedDataCost(u_int id,
       getPredictedDataCostCallback(id, req_id, 0.0,clientID);
     else{
 
-#ifdef TIMINGDEBUG
+#ifdef TIMINGDEBUG_OFF
   timeStamp t1,t2,current;
   static timeStamp total=0.0;
   static int counter=0;
@@ -172,7 +175,7 @@ void dynRPC::getPredictedDataCost(u_int id,
 
       float cost = guessCost(metName, focus);
 
-#ifdef TIMINGDEBUG
+#ifdef TIMINGDEBUG_OFF
   t2=getCurrentTime(false);
   current=t2-t1;
   if (current > worst) worst=current;
@@ -198,6 +201,7 @@ void dynRPC::disableDataCollection(int mid)
   static timeStamp total=0.0;
   static int counter=0;
   static timeStamp worst=0.0;
+  static timeStamp min=999.9;
   t1=getCurrentTime(false);
 #endif
 
@@ -227,10 +231,11 @@ void dynRPC::disableDataCollection(int mid)
   t2=getCurrentTime(false);
   current=t2-t1;
   if (current > worst) worst=current;
+  if (current < min) min=current;
   total += current;
   counter++;
   if (!(counter%EVERY)) {
-    sprintf(errorLine,"*********** TIMING disableDataCollection: current=%5.2f, avg=%5.2f, worst=%5.2f\n",current,total/counter,worst);
+    sprintf(errorLine,"TIMING disableDataCollection: current=%5.2f, avg=%5.2f, worst=%5.2f, min=%5.2f, total=%5.2f\n",current,total/counter,worst,min,total);
     logLine(errorLine);
   }
 #endif
@@ -277,6 +282,15 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
 			      vector<u_int> mi_ids, 
 		 	      u_int daemon_id,
 			      u_int request_id){
+#ifdef TIMINGDEBUG
+  timeStamp t1,t2,current;
+  static timeStamp total=0.0;
+  static int counter=0;
+  static int anotherCounter=0;
+  static timeStamp worst=0.0;
+  static timeStamp min=999.9;
+  static string metricName;
+#endif
     vector<int> return_id;
     assert(focus.size() == metric.size());
     return_id.resize(metric.size());
@@ -285,8 +299,24 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
     vector<process *>procsToContinue;
 
     for (u_int i=0;i<metric.size();i++) {
-        return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i],
-				       procsToContinue);
+#ifdef TIMINGDEBUG
+  t1=getCurrentTime(false);
+#endif
+        return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i],                                       procsToContinue);
+#ifdef TIMINGDEBUG
+  t2=getCurrentTime(false);
+  current=t2-t1;
+  if (current > worst) {
+    worst=current;
+    metricName=metric[i];
+  }
+  if (current < min) {
+    min=current;
+    metricName=metric[i];
+  }
+  total += current;
+  counter++;
+#endif
     }
 
     // continue the processes that were stopped in start collecting
@@ -294,6 +324,15 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
       procsToContinue[u]->continueProc();
 
     totalInstTime.stop();
+
+#ifdef TIMINGDEBUG
+  if (!(anotherCounter%EVERY)) {
+    sprintf(errorLine,"TIMING enableDataCollection (did=%d): current=%5.2f, avg=%5.2f, worst=%5.2f, min=%5.2f, metric=%s, total=%5.2f\n",daemon_id,current,total/counter,worst,min,metricName.string_of(),total);
+    logLine(errorLine);
+  }
+  anotherCounter++;
+#endif
+
     enableDataCallback(daemon_id,return_id,mi_ids,request_id);
 }
 
@@ -301,9 +340,31 @@ int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)
 {
   int id;
 
+#ifdef TIMINGDEBUG
+  timeStamp t1,t2,current;
+  static timeStamp total=0.0;
+  static int counter=0;
+  static timeStamp worst=0.0;
+  t1=getCurrentTime(false);
+#endif
+
   totalInstTime.start();
   vector<process *>procsToContinue;
   id = startCollecting(met, focus, gid, procsToContinue);
+
+#ifdef TIMINGDEBUG
+  t2=getCurrentTime(false);
+  current=t2-t1;
+  if (current > worst) worst=current;
+  total += current;
+  counter++;
+  if (!(counter%EVERY)) {
+    sprintf(errorLine,"************* TIMING enableDataCollection2: current=%5.2f
+, avg=%5.2f, worst=%5.2f\n",current,total/counter,worst);
+    logLine(errorLine);
+  }
+#endif
+
   for (unsigned u = 0; u < procsToContinue.size(); u++)
     procsToContinue[u]->continueProc();
   totalInstTime.stop();

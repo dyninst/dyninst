@@ -860,7 +860,7 @@ T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name, vector<mdl
 
 T_dyninstRPC::mdl_instr_rand::~mdl_instr_rand() { } 
 
-bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
+bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
   pdFunction *pdf;
   mdl_var get_drn;
 
@@ -876,17 +876,17 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 	  fflush(stderr);
 	  return false;
       } else {
-	  ast = AstNode(AstNode::Constant, (void*) value);
+	  ast = new AstNode(AstNode::Constant, (void*) value);
       }
     } else {
-      ast = AstNode(AstNode::Constant, (void*) val_);
+      ast = new AstNode(AstNode::Constant, (void*) val_);
     }
     break;
   case MDL_ARG:
-    ast = AstNode(AstNode::Param, (void*) val_);
+    ast = new AstNode(AstNode::Param, (void*) val_);
     break;
   case MDL_RETURN:
-    ast = AstNode(AstNode::ReturnVal, 0);
+    ast = new AstNode(AstNode::ReturnVal, (void*)0);
     break;
   case MDL_READ_SYMBOL:
     // TODO -- I am relying on global_proc to be set in mdl_metric::apply
@@ -894,7 +894,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
       Symbol info;
       if (global_proc->getSymbolInfo(name_, info)) {
 	Address adr = info.addr();
-	ast = AstNode(AstNode::DataAddr, (void*) adr);
+	ast = new AstNode(AstNode::DataAddr, (void*) adr);
       } else {
 	string msg = string("In metric '") + currentMetric + string("': ") +
 	  string("unable to find symbol '") + name_ + string("'");
@@ -905,17 +905,20 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
     break;
   case MDL_READ_ADDRESS:
     // TODO -- check on the range of this address!
-    ast = AstNode(AstNode::DataAddr, (void*) val_);
+    ast = new AstNode(AstNode::DataAddr, (void*) val_);
     break;
   case MDL_CALL_FUNC: {
     // don't confuse 'args' with 'args_' here!
-    vector<AstNode> args;
+    vector<AstNode *> args;
     for (unsigned u = 0; u < args_.size(); u++) {
-      AstNode arg;
-      if (!args_[u]->apply(arg)) // fills in 'arg'
+      AstNode *arg=NULL;
+      if (!args_[u]->apply(arg)) { 
+        // fills in 'arg'
+        removeAst(arg);
 	return false;
-
-      args += arg;
+      }
+      args += assignAst(arg);
+      removeAst(arg);
     }
     string temp = string(name_);
     pdf = global_proc->findOneFunction(temp);
@@ -925,7 +928,8 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 	showErrorCallback(95, msg);
 	return false;
     }
-    ast = AstNode(name_, args);
+    ast = new AstNode(name_, args);
+    for (unsigned i=0;i<args.size();i++) removeAst(args[i]);
     break;
   }
   case MDL_T_COUNTER_PTR:
@@ -938,7 +942,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 	return false;
       }
       assert(get_drn.get(drn));
-      ast = AstNode(AstNode::DataPtr, drn);      
+      ast = new AstNode(AstNode::DataPtr, drn);      
     }
     break;
   case MDL_T_COUNTER:
@@ -963,7 +967,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 		  fflush(stderr);
 		  return false;
 	      } else {
-		  ast = AstNode(AstNode::Constant, (void*) value);
+		  ast = new AstNode(AstNode::Constant, (void*) value);
 	      }
 	      break;
 	  case MDL_T_COUNTER:	// is MDL_T_COUNTER used here ??? jkh 7/31/95
@@ -974,7 +978,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 		  fflush(stderr);
 		  return false;
 	      } else {
-		  ast = AstNode(AstNode::DataValue, (void*) drn);
+		  ast = new AstNode(AstNode::DataValue, (void*) drn);
 	      }
 	      break;
 	  default:
@@ -1007,12 +1011,12 @@ T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type,
 T_dyninstRPC::mdl_instr_req::mdl_instr_req() : type_(0) { }
 T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 
-bool T_dyninstRPC::mdl_instr_req::apply(AstNode &mn, const AstNode *pred,
+bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred,
                                         bool mn_initialized) {
   // a return value of true implies that "mn" was written to
-  AstNode ast_arg;
+  AstNode *ast_arg=NULL;
 
-  vector<AstNode> ast_args;
+  vector<AstNode *> ast_args;
   string timer_fun;
 
   switch (type_) {
@@ -1043,24 +1047,27 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode &mn, const AstNode *pred,
       assert(get_drn.get(drn));
   }
 
-  AstNode code;
+  AstNode *code=NULL, *tmp=NULL;
 
   switch (type_) {
   case MDL_SET_COUNTER:
-    code = createCall("setCounter", drn, ast_arg);
+    code = createCounter("setCounter", drn, ast_arg);
     break;
   case MDL_ADD_COUNTER:
-    code = createCall("addCounter", drn, ast_arg);
+    code = createCounter("addCounter", drn, ast_arg);
     break;
   case MDL_SUB_COUNTER:
-    code = createCall("subCounter", drn, ast_arg);
+    code = createCounter("subCounter", drn, ast_arg);
     break;
   case MDL_START_WALL_TIMER:
   case MDL_STOP_WALL_TIMER:
   case MDL_START_PROC_TIMER:
   case MDL_STOP_PROC_TIMER:
-    ast_args += AstNode(AstNode::DataPtr, (void *) drn);
-    code = AstNode(timer_fun, ast_args);
+    tmp = new AstNode(AstNode::DataPtr, (void *) drn);
+    ast_args += assignAst(tmp);
+    removeAst(tmp);
+    code = new AstNode(timer_fun, ast_args);
+    for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);
     break;
   case MDL_CALL_FUNC:
     if (! rand_->apply(code))
@@ -1069,15 +1076,24 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode &mn, const AstNode *pred,
   default:
     return false;
   }
+  if (pred) {
+    // Note: we don't use assignAst on purpose here
+    AstNode *tmp=code;
+    code = createIf(pred, tmp);
+    removeAst(tmp);
+  }
 
-  if (pred)
-    code = createIf(*pred, code);
+  if (mn_initialized) {
+    // Note: we don't use assignAst on purpose here
+    AstNode *tmp=mn;
+    mn = new AstNode(tmp, code);
+    removeAst(tmp);
+  } else {
+    mn = assignAst(code);
+  }
 
-  if (mn_initialized)
-    mn = AstNode(mn, code);
-  else
-    mn = code;
-
+  removeAst(ast_arg);
+  removeAst(code);
   return true;
 }
 
@@ -1126,17 +1142,21 @@ T_dyninstRPC::mdl_icode::mdl_icode(T_dyninstRPC::mdl_instr_rand *iop1,
   bin_op_(bin_op), use_if_(use_if), req_(ireq) { }
 T_dyninstRPC::mdl_icode::~mdl_icode() { delete req_; }
 
-static AstNode do_rel_op(opCode op, T_dyninstRPC::mdl_instr_rand *if_op2,
-                         const AstNode &ast_left) {
+static AstNode *do_rel_op(opCode op, T_dyninstRPC::mdl_instr_rand *if_op2,
+                          AstNode *ast_left) {
    // NOTE: ast_left _must_ be defined
-   AstNode ast_right;
-   if (!if_op2->apply(ast_right))
-      return AstNode(); // ???
-
-   return AstNode(op, ast_left, ast_right);
+   AstNode *ast_right=NULL;
+   AstNode *tmp=NULL;
+   if (!if_op2->apply(ast_right)) {
+      removeAst(ast_right);
+      return(new AstNode());
+   }
+   tmp = new AstNode(op, ast_left, ast_right);
+   removeAst(ast_right);
+   return(tmp);;
 }
 
-bool T_dyninstRPC::mdl_icode::apply(AstNode &mn, bool mn_initialized) {
+bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized) {
   // a return value of true implies that "mn" has been written to
   // TODO -- handle the if case here
   // TODO -- call req_->apply() after building if
@@ -1144,14 +1164,13 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode &mn, bool mn_initialized) {
   if (!req_)
      return false;
 
-  AstNode pred;
-  AstNode *pred_ptr;
+  AstNode *pred=NULL;
+  AstNode *pred_ptr=NULL;
 
   if (use_if_) {
-    AstNode ast1;
+    AstNode *ast1=NULL;
     if (!if_op1_->apply(ast1))
        return false;
-
     switch (bin_op_) {
     case MDL_LT:
       pred = do_rel_op(lessOp, if_op2_, ast1);
@@ -1176,7 +1195,7 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode &mn, bool mn_initialized) {
       break;
     default: return false;
     }
-
+    removeAst(ast1);
     pred_ptr = new AstNode(pred);
   } // if ()
   else
@@ -1186,9 +1205,8 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode &mn, bool mn_initialized) {
      // note: a result of true implies that "mn" was written to
      // Hence, a result of true from this routine means the same.
 
-  if (pred_ptr)
-     delete pred_ptr;
-
+  removeAst(pred);
+  removeAst(pred_ptr);
   return result;
 }
 
@@ -1473,20 +1491,33 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 
   // Let's generate the code now (we used to calculate it in the loop below,
   // which was a waste since the code is the same for all points).
-  AstNode code;
+  AstNode *code = NULL;
   unsigned size = icode_reqs_->size();
-  for (unsigned u=0; u<size; u++)
-    if (!(*icode_reqs_)[u]->apply(code, u>0)) // when u is 0, code is un-initialized
+  for (unsigned u=0; u<size; u++) {
+    if (!(*icode_reqs_)[u]->apply(code, u>0)) {
+      // when u is 0, code is un-initialized
+      removeAst(code);
       return false;
+    }
+  }
 
   // Instantiate all constraints (flags) here (if any)
   // (if !constrained_ then don't do the following)
   if (constrained_) {
      unsigned fsize = inFlags.size();
      for (int fi=fsize-1; fi>=0; fi--) { // any reason why we go backwards?
-        AstNode temp(AstNode::DataValue, inFlags[fi]);
-	code = createIf(temp, code);
+        AstNode *temp1 = new AstNode(AstNode::DataValue, inFlags[fi]);
+        // Note: we don't use assignAst on purpose here
+        AstNode *temp2 = code;
+        code = createIf(temp1, temp2);
+        removeAst(temp1);
+        removeAst(temp2);
      }
+  }
+
+  if (!code) {
+    // we are probably defining an empty metric
+    code = new AstNode();
   }
 
   enum callOrder corder;
@@ -1550,10 +1581,11 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   for (unsigned i = 0; i < points.size(); i++) {
       mn->addInst(points[i], code, cwhen, corder,
 		  manuallyTrigger && (i==0)); // manually trigger at most once
-         // appends an instReqNode to mn's instRequests; actual instrumentation only
+         // appends an instReqNode to mn's instRequests; actual 
+         // instrumentation only
          // takes place when mn->insertInstrumentation() is later called.
   }
-
+  removeAst(code); 
   return true;
 }
 
@@ -1567,8 +1599,10 @@ bool mdl_can_do(string& met_name) {
   return false;
 }
 
-metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus, string& met_name,
-			     string& flat_name, vector<process *> procs) {
+metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus, 
+                             string& met_name,
+			     string& flat_name, vector<process *> procs) 
+{
   currentMetric = met_name;
   unsigned size = mdl_data::all_metrics.size();
   // NOTE: We can do better if there's a dictionary of <metric-name> to <metric>

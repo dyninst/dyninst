@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.4  1996/11/14 14:27:09  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.3  1996/11/12 17:48:28  mjrg
  * Moved the computation of cost to the basetramp in the x86 platform,
  * and changed other platform to keep code consistent.
@@ -1371,7 +1374,7 @@ void emitEnter(short imm16, unsigned char *&insn) {
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *i, unsigned &base,
-		      const vector<AstNode> &operands, 
+		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 	              bool noCost)
 {
@@ -1394,7 +1397,7 @@ unsigned emitFuncCall(opCode op,
   }
 
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs += operands[u].generateCode(proc, rs, i, base, noCost);
+    srcs += operands[u]->generateCode(proc, rs, i, base, noCost);
 
   unsigned char *insn = (unsigned char *) ((void*)&i[base]);
   unsigned char *first = insn;

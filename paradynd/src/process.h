@@ -260,7 +260,7 @@ class process {
      // which have been launched and which we're waiting to finish.  Don't confuse
      // the two.
 
-     AstNode action;
+     AstNode *action;
      bool noCost; // if true, cost model isn't updated by generated code.
      void (*callbackFunc)(process *, void *userData);
      void *userData;
@@ -290,7 +290,7 @@ class process {
       // see para above for reason why this 'vector' can have at most 1 elem!
 
  public:
-  void postRPCtoDo(const AstNode &, bool noCost, void (*)(process *, void *), void *);
+  void postRPCtoDo(AstNode *, bool noCost, void (*)(process *, void *), void *);
   bool existsRPCreadyToLaunch() const;
   bool launchRPCifAppropriate(bool wasRunning);
      // returns true iff anything was launched.
@@ -312,7 +312,7 @@ class process {
                               unsigned &firstPossibBreakOffset,
                               unsigned &lastPossibBreakOffset);
 
-  unsigned createRPCtempTramp(const AstNode &action,
+  unsigned createRPCtempTramp(AstNode *action,
 			      bool noCost,
                               unsigned &firstPossibBreakAddr,
                               unsigned &lastPossibleBreakAddr);
@@ -329,12 +329,11 @@ class process {
   // These member vrbles should be made private!
   int traceLink;		/* pipe to transfer traces data over */
   int ioLink;			/* pipe to transfer stdout/stderr over */
-  processState status_;	/* running, stopped, etc. */
-  int thread;			/* thread id for thread */
+  processState status_;	        /* running, stopped, etc. */
   // on some platforms we use one heap for text and data so textHeapFree is not
   // used.
   bool splitHeaps;		/* are the inferior heap split I/D ? */
-  inferiorHeap	heaps[2];	// the heaps text and data
+  inferiorHeap	heaps[2];	/* the heaps text and data */
   resource *rid;		/* handle to resource for this process */
 
   dictionary_hash<instPoint*, trampTemplate *> baseMap;	/* map and inst point to its base tramp */

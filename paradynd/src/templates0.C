@@ -46,6 +46,9 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.11  1996/11/14 14:28:06  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.10  1996/10/31 08:53:12  tamches
  * split; moved half to templates05.C
  *
@@ -109,10 +112,13 @@
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
-template class vector<functionName*>;
-template class vector<sampleInfo*>;
-template class vector<bool>;
+template class  vector<reg>;
+template class  vector<Thread *>;
+template class  vector<functionName*>;
+template class  vector<sampleInfo*>;
+template class  vector<bool>;
 template class  vector<AstNode>;
+template class  vector<AstNode *>;
 template class  vector<Symbol*>;
 template class  vector<Symbol>;
 template class  vector<T_dyninstRPC::mdl_rand *>;

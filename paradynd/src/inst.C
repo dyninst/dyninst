@@ -133,18 +133,18 @@ void clearBaseBranch(process *proc, instInstance *inst)
 
     int trampCost;
     if (inst->when == callPreInsn) {
-      fromAddr = (unsigned)inst->baseInstance->baseAddr
-	         + inst->baseInstance->skipPreInsOffset;
-      toAddr = (unsigned)inst->baseInstance->baseAddr
-	         + inst->baseInstance->updateCostOffset;
+      fromAddr = inst->baseInstance->baseAddr + 
+                 (unsigned)inst->baseInstance->skipPreInsOffset;
+      toAddr = inst->baseInstance->baseAddr + 
+               (unsigned)inst->baseInstance->updateCostOffset;
       inst->baseInstance->prevInstru = false;
       trampCost = -(inst->baseInstance->prevBaseCost);
     }
     else {
-      fromAddr = (unsigned)inst->baseInstance->baseAddr 
-	         + inst->baseInstance->skipPostInsOffset; 
-      toAddr = (unsigned)inst->baseInstance->baseAddr 
-                 + inst->baseInstance->returnInsOffset;
+      fromAddr = inst->baseInstance->baseAddr + 
+                 (unsigned)inst->baseInstance->skipPostInsOffset; 
+      toAddr = inst->baseInstance->baseAddr + 
+               (unsigned)inst->baseInstance->returnInsOffset;
       inst->baseInstance->postInstru = false;
       trampCost = -(inst->baseInstance->postBaseCost);
     }
@@ -166,7 +166,7 @@ List<instWaitingList *> instWList;
 
 // Shouldn't this be a member fn of class process?
 instInstance *addInstFunc(process *proc, instPoint *location,
-			  AstNode &ast, // ast may change (sysFlag stuff)
+			  AstNode *&ast, // ast may change (sysFlag stuff)
 			  callWhen when, callOrder order,
 			  bool noCost)
 {
@@ -185,7 +185,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 
 // Shouldn't this be a member fn of class process?
 instInstance *addInstFunc(process *proc, instPoint *location,
-			  AstNode &ast, // the ast could be changed (sysFlag stuff)
+			  AstNode *&ast, // the ast could be changed (sysFlag stuff)
 			  callWhen when, callOrder order,
 			  bool noCost,
 			  returnInstance *&retInstance)
@@ -247,17 +247,19 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     // return value is offset of return stmnt.
     //
 
+#if defined(MEMSET)
     // clear out old stuff - for debugging.
     memset(insn, 0x00, 65536);
+#endif
 
     count = 0;
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)     
-    ast.sysFlag(location);  
+    ast->sysFlag(location);  
 #endif
 
     int trampCost = 0;
-    ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost, noCost);
+    ret->returnAddr = ast->generateTramp(proc, insn, count, trampCost, noCost);
 
     if (!noCost) {
 	ret->cost = trampCost; 
@@ -558,12 +560,11 @@ void installBootstrapInst(process *proc) {
    // Build an ast saying: "call DYNINSTinit() with the following args:
    // (key base, total num bytes)
 
-   vector<AstNode> the_args;
+   vector<AstNode *> the_args;
 
 #ifdef SHM_SAMPLING
-   the_args += AstNode(AstNode::Constant,
-		       (void*)(proc->getShmKeyUsed())
-		       );
+   the_args += new AstNode(AstNode::Constant,
+		           (void*)(proc->getShmKeyUsed()));
    const unsigned shmHeapTotalNumBytes = proc->getShmHeapTotalNumBytes();
 
 #ifdef SHM_SAMPLING_DEBUG
@@ -571,16 +572,16 @@ void installBootstrapInst(process *proc) {
         << (proc->getShmKeyUsed()) << " and #bytes=" << shmHeapTotalNumBytes
         << endl;
 #endif
-
-   the_args += AstNode(AstNode::Constant, (void*)shmHeapTotalNumBytes);
+   the_args += new AstNode(AstNode::Constant, (void*)shmHeapTotalNumBytes);
 #else
-   /* 2 dummy args when not shm sampling -- just make sure they're not -1, which
-      tells DYNINSTinit() that it's being called by DYNINSTfork */
-   the_args += AstNode(AstNode::Constant, NULL);
-   the_args += AstNode(AstNode::Constant, NULL);
+   // 2 dummy args when not shm sampling -- just make sure they're not -1, 
+   // which tells DYNINSTinit() that it's being called by DYNINSTfork
+   the_args += new AstNode(AstNode::Constant, NULL);
+   the_args += new AstNode(AstNode::Constant, NULL);
 #endif
 
-   AstNode ast("DYNINSTinit", the_args);
+   AstNode *ast = new AstNode("DYNINSTinit", the_args);
+   for (unsigned i=0;i<the_args.size();i++) removeAst(the_args[i]);
 
    pdFunction *func = proc->findOneFunction("main");
    assert(func);
@@ -589,6 +590,7 @@ void installBootstrapInst(process *proc) {
 	       orderFirstAtPoint,
 	       true // true --> don't try to have tramp code update the cost
 	       );
+   removeAst(ast);
       // returns an "instInstance", which we ignore (but should we?)
 }
 
@@ -611,11 +613,14 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
       }
       assert(func);
 
-      AstNode ast;
-      if (item->where & FUNC_ARG)
-	ast = AstNode(item->inst, *(item->arg));
-      else
-	ast = AstNode(item->inst, AstNode(AstNode::Constant, 0));
+      AstNode *ast, *tmp;
+      if (item->where & FUNC_ARG) {
+	ast = new AstNode(item->inst, item->arg);
+      } else {
+        tmp = new AstNode(AstNode::Constant, (void *)0);
+	ast = new AstNode(item->inst, tmp);
+        removeAst(tmp);
+      }
 
       if (item->where & FUNC_EXIT) {
 	  for (unsigned i = 0; i < func->funcReturns.size(); i++) {
@@ -643,6 +648,7 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 	  }
 	}
       }
+      removeAst(ast);
     }
 
 }

@@ -44,6 +44,9 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.19  1996/11/14 14:26:58  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.18  1996/11/11 01:44:56  lzheng
  * Moved the instructions which is used to caculate the observed cost
  * from the miniTramps to baseTramp
@@ -124,23 +127,28 @@ class registerSpace {
 	int getRegisterCount() { return numRegisters; }
 	registerSlot *getRegSlot(int i) { return (&registers[i]); }
 	bool readOnlyRegister(reg reg_number);
+        void keep_register(reg k);
+        void unkeep_register(reg k);
+        bool is_keep_register(reg k);
     private:
 	int numRegisters;
 	int highWaterRegister;
 	registerSlot *registers;
+        vector<reg> keep_list;
 };
 
 class AstNode {
     public:
         enum nodeType { sequenceNode, opCodeNode, operandNode, callNode };
-        enum operandType { Constant, ConstantPtr, DataValue, DataPtr, Param,
-			     ReturnVal, DataAddr };
+        enum operandType { Constant, ConstantPtr, DataValue, DataPtr, 
+                           DataId, DataIndir, DataReg,
+			   Param, ReturnVal, DataAddr };
 
         AstNode(); // mdl.C
-	AstNode(const string &func, const AstNode &l, const AstNode &r);
-        AstNode(const string &func, const AstNode &l); // needed by inst.C
+	AstNode(const string &func, AstNode *l, AstNode *r);
+        AstNode(const string &func, AstNode *l); // needed by inst.C
 	AstNode(operandType ot, void *arg);
-	AstNode(const AstNode &l, const AstNode &r);
+	AstNode(AstNode *l, AstNode *r);
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
     public:	
@@ -149,35 +157,53 @@ class AstNode {
 #endif
 
     private:
-        AstNode(opCode); // like AstNode(opCode, const AstNode &, const AstNode &)
+        AstNode(opCode); // like AstNode(opCode, const AstNode &, 
+                         //              const AstNode &)
                          // but assumes "NULL" for both child ptrs
     public:
-        AstNode(opCode, const AstNode &left); // assumes "NULL" for right child ptr
-           // needed by inst.C and stuff in ast.C
+        AstNode(opCode, AstNode *left); 
+        // assumes "NULL" for right child ptr
+        // needed by inst.C and stuff in ast.C
 
     public:
-	AstNode(opCode ot, const AstNode &l, const AstNode &r);
-        AstNode(const string &func, vector<AstNode> &ast_args);
+        AstNode(operandType ot, AstNode *l);
+	AstNode(opCode ot, AstNode *l, AstNode *r);
+        AstNode(const string &func, vector<AstNode *> &ast_args);
 
-        AstNode(const AstNode &src);
+        AstNode(AstNode *src);
         AstNode &operator=(const AstNode &src);
 
        ~AstNode();
 
 	int generateTramp(process *proc, char *i, unsigned &base,
-			  int &trampCost, bool noCost) const;
+			  int &trampCost, bool noCost);
 	reg generateCode(process *proc, registerSpace *rs, char *i, 
-			 unsigned &base, bool noCost) const;
+			 unsigned &base, bool noCost);
+	reg generateCode_phase2(process *proc, registerSpace *rs, char *i, 
+			        unsigned &base, bool noCost);
+
 	int cost() const;	// return the # of instruction times in the ast.
 	void print() const;
+        int referenceCount;     // Reference count for freeing memory
+        int useCount;           // Reference count for generating code
+        void setUseCount(void); // Set values for useCount
+        void cleanUseCount(void);
+        void printUseCount(void);
+        reg kept_register;      // Use when generating code for shared nodes
+        void updateOperandsRC(bool flag); // Update operand's referenceCount
+                                          // if "flag" is true, increments the
+                                          // counter, otherwise it decrements 
+                                          // the counter.
+        void printRC(void);
     private:
 	nodeType type;
-	opCode op;		// only for opCode nodes
-	string callee;		// only for call nodes
-	vector<AstNode> operands; // only for call nodes
-	operandType oType;	// for operand nodes
-	dataReqNode *dValue;	// for operand nodes with type DataPtr or DataValue
-	void *oValue;		// for operand nodes with other type
+	opCode op;		    // only for opCode nodes
+	string callee;		    // only for call nodes
+	vector<AstNode *> operands; // only for call nodes
+	operandType oType;	    // for operand nodes
+	dataReqNode *dValue;	    // for operand nodes with type DataPtr 
+                                    // or DataValue
+	void *oValue;		    // for operand nodes with other type
 
         // These 2 vrbles must be pointers; otherwise, we'd have a recursive
         // data structure with an infinite size.
@@ -187,18 +213,20 @@ class AstNode {
 	AstNode *loperand;
 	AstNode *roperand;
 
-
 	int firstInsn;
 	int lastInsn;
 };
 
-AstNode createPrimitiveCall(const string &func, dataReqNode *, int param2);
-AstNode createIf(const AstNode &expression, const AstNode &action);
-AstNode createCall(const string &func, dataReqNode *, const AstNode &arg);
+AstNode *assignAst(AstNode *src);
+void removeAst(AstNode *&ast);
+void terminateAst(AstNode *&ast);
+AstNode *createPrimitiveCall(const string &func, dataReqNode *dataPtr, 
+                             int param2);
+AstNode *createIf(AstNode *expression, AstNode *action);
+AstNode *createCounter(const string &func, dataReqNode *, AstNode *arg);
 
 unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
-		      const vector<AstNode> &operands, const string &func,
+		      const vector<AstNode *> &operands, const string &func,
 		      process *proc, bool noCost);
-
 
 #endif

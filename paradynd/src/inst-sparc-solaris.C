@@ -43,6 +43,9 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc-solaris.C,v $
+ * Revision 1.11  1996/11/14 14:27:05  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.10  1996/11/12 17:48:40  mjrg
  * Moved the computation of cost to the basetramp in the x86 platform,
  * and changed other platform to keep code consistent.
@@ -976,8 +979,31 @@ void initTramps()
 
     initATramp(&baseTemplate, (instruction *) baseTramp);
 
-    regSpace = new registerSpace(sizeof(deadList)/sizeof(int), deadList,
-				 0, NULL);
+    regSpace = new registerSpace(sizeof(deadList)/sizeof(int), deadList,					 0, NULL);
+    assert(regSpace);
+}
+
+void generateMTpreamble(char *insn, unsigned &base, process *proc)
+{
+  AstNode *t1,*t2,*t3;
+  vector<AstNode *> dummy;
+  unsigned tableAddr;
+  int value; 
+  bool err;
+  reg src = -1;
+
+  /* t3=DYNINSTthreadTable[thr_self()] */
+  t1 = new AstNode(string("DYNINSTthreadPos"), dummy);
+  value = sizeof(unsigned);
+  t2 = new AstNode(timesOp, t1, new AstNode(AstNode::Constant,(void *)value));
+
+  tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+  assert(!err);
+  t3 = new AstNode(plusOp, t2, new AstNode(AstNode::Constant, (void *)tableAddr));
+  src = t3->generateCode(proc, regSpace, insn, base, false);
+  removeAst(t3);
+  (void) emit(orOp, src, 0, REG_L7, insn, base, false);
+  regSpace->freeRegister(src);
 }
 
 /*
@@ -1022,10 +1048,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	    // point is from a shared object image
 	    Address baseAddress = 0;
 	    if(proc->getBaseAddress(location->image_ptr,baseAddress)){
-// printf("in installBaseTramp: currAddr = %x fromAddr = %x baseAddr = %x"
-// 	,currAddr, fromAddr,baseAddress); 
 		fromAddr += baseAddress;		
-//		printf(" newAddr = %x\n",fromAddr); 
             }
 
             // If the instruction is a call instruction to a location somewhere 
@@ -1329,8 +1352,9 @@ void AstNode::sysFlag(instPoint *location)
     if (roperand)
 	roperand->sysFlag(location); 
 
-    for (unsigned u = 0; u < operands.size(); u++)
-	operands[u].sysFlag(location);
+    for (unsigned u = 0; u < operands.size(); u++) {
+	operands[u]->sysFlag(location);
+    }
 }
 
 
@@ -1530,8 +1554,7 @@ int callsTrackedFuncP(instPoint *point)
 #ifdef notdef
         // TODO this won't compile now
 	// it's rare to call a library function as a parameter.
-        sprintf(errorLine, "*** Warning call indirect\n from %s %s (addr %d)\n",
-            point->func->file->fullName, point->func->prettyName, point->addr);
+        sprintf(errorLine, "*** Warning call indirect\n from %s %s (addr %d)\n",point->func->file->fullName, point->func->prettyName, point->addr);
 	logLine(errorLine);
 #endif
         return(true);
@@ -1561,7 +1584,7 @@ pdFunction *getFunction(instPoint *point)
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *i, unsigned &base, 
-		      const vector<AstNode> &operands, 
+		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 		      bool noCost)
 {
@@ -1585,7 +1608,8 @@ unsigned emitFuncCall(opCode op,
 	}
 	
 	for (unsigned u = 0; u < operands.size(); u++)
-	    srcs += operands[u].generateCode(proc, rs, i, base, noCost);
+	    srcs += operands[u]->generateCode(proc, rs, i, base, noCost);
+
 	// TODO cast
 	instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -1680,20 +1704,15 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 
 	    case timesOp:
 		op3 = SMULop3;
-                if (isPowerOf2(src2,result))
+                if (isPowerOf2(src2,result) && (result<32))
                   generateLShift(insn, src1, (reg)result, dest);           
                 else 
                   genImmInsn(insn, op3, src1, src2, dest);
 		break;
 
-	    case shiftOp:
-		op3 = SLLop3;
-                generateLShift(insn, src1, src2, dest);           
-		break;
-
 	    case divOp:
 		op3 = SDIVop3;
-                if (isPowerOf2(src2,result))
+                if (isPowerOf2(src2,result) && (result<32))
                   generateRShift(insn, src1, (reg)result, dest);           
                 else 
                   genImmInsn(insn, op3, src1, src2, dest);
@@ -1745,7 +1764,11 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
                 break;
 
 	    default:
-		abort();
+                reg dest2 = regSpace->allocateRegister(i, base, noCost);
+                (void) emit(loadConstOp, src2, dest2, dest2, i, base, noCost);
+                (void) emit(op, src1, dest2, dest, i, base, noCost);
+                regSpace->freeRegister(dest2);
+                return(0);
 		break;
 	}
 	base += sizeof(instruction);
@@ -1788,9 +1811,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateLoad(insn, dest, LOW10(src1), dest);
 
 	base += sizeof(instruction)*2;
-    } else if (op ==  shiftOp) {
-        generateLShift(insn, src1, src2, dest);
-        base += sizeof(instruction);
+    } else if (op ==  loadIndirOp) {
+	generateLoad(insn, src1, 0, dest);
+	base += sizeof(instruction);
     } else if (op ==  storeOp) {
 	insn->sethi.op = FMT2op;
 	insn->sethi.rd = src2;
@@ -1801,6 +1824,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateStore(insn, src1, src2, LOW10(dest));
 
 	base += sizeof(instruction)*2;
+    } else if (op ==  storeIndirOp) {
+	generateStore(insn, src1, dest, 0);
+	base += sizeof(instruction);
     } else if (op ==  ifOp) {
 	// cmp src1,0
 	genSimpleInsn(insn, SUBop3cc, src1, 0, 0); insn++;
@@ -2047,13 +2073,15 @@ int getInsnCost(opCode op)
     } else if (op ==  loadOp) {
 	// sethi + load single
 	return(1+1);
-    } else if (op ==  shiftOp) {
+    } else if (op ==  loadIndirOp) {
 	return(1);
     } else if (op ==  storeOp) {
 	// sethi + store single
 	// return(1+3); 
 	// for SS-5 ?
 	return(1+2); 
+    } else if (op ==  storeIndirOp) {
+	return(2); 
     } else if (op ==  ifOp) {
 	// subcc
 	// be
@@ -2966,6 +2994,7 @@ void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
 
 bool doNotOverflow(int value)
 {
+  // we are assuming that we have 13 bits to store the immediate operand.
   if ( (value <= 16383) && (value >= -16384) ) return(true);
   else return(false);
 }

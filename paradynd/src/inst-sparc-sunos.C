@@ -858,6 +858,7 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 }
 
 registerSpace *regSpace;
+
 int deadList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
 
 void initTramps()
@@ -869,9 +870,31 @@ void initTramps()
 
     initATramp(&baseTemplate, (instruction *) baseTramp);
 
-    regSpace = new registerSpace(sizeof(deadList)/sizeof(int), deadList,
-				 0, NULL);
+    regSpace = new registerSpace(sizeof(deadList)/sizeof(int), deadList,					 0, NULL);
     assert(regSpace);
+}
+
+void generateMTpreamble(char *insn, unsigned &base, process *proc)
+{
+  AstNode *t1,*t2,*t3;
+  vector<AstNode *> dummy;
+  unsigned tableAddr;
+  int value; 
+  bool err;
+  reg src = -1;
+
+  /* t3=DYNINSTthreadTable[thr_self()] */
+  t1 = new AstNode(string("DYNINSTthreadPos"), dummy);
+  value = sizeof(unsigned);
+  t2 = new AstNode(timesOp, t1, new AstNode(AstNode::Constant,(void *)value));
+
+  tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+  assert(!err);
+  t3 = new AstNode(plusOp, t2, new AstNode(AstNode::Constant, (void *)tableAddr));
+  src = t3->generateCode(proc, regSpace, insn, base, false);
+  removeAst(t3);  
+  (void) emit(orOp, src, 0, REG_L7, insn, base, false);
+  regSpace->freeRegister(src);
 }
 
 /*
@@ -1147,7 +1170,7 @@ void AstNode::sysFlag(instPoint *location)
 	roperand->sysFlag(location); 
 
     for (unsigned u = 0; u < operands.size(); u++)
-	operands[u].sysFlag(location);
+	operands[u]->sysFlag(location);
 }
 
 
@@ -1357,7 +1380,7 @@ pdFunction *getFunction(instPoint *point)
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *i, unsigned &base, 
-		      const vector<AstNode> &operands, 
+		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 		      bool noCost)
 {
@@ -1381,7 +1404,8 @@ unsigned emitFuncCall(opCode op,
 	}
 
 	for (unsigned u = 0; u < operands.size(); u++)
-	    srcs += operands[u].generateCode(proc, rs, i, base, noCost);
+	    srcs += operands[u]->generateCode(proc, rs, i, base, noCost);
+
 	// TODO cast
 	instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -1456,7 +1480,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
 }
 
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
-                 unsigned &base, bool)
+                 unsigned &base, bool noCost)
 {
         instruction *insn = (instruction *) ((void*)&i[base]);
         int op3=-1;
@@ -1475,20 +1499,15 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 
 	    case timesOp:
 		op3 = SMULop3;
-                if (isPowerOf2(src2,result))
+                if (isPowerOf2(src2,result) && (result<32))
                   generateLShift(insn, src1, (reg)result, dest);           
                 else 
                   genImmInsn(insn, op3, src1, src2, dest);
 		break;
 
-	    case shiftOp:
-		op3 = SLLop3;
-                generateLShift(insn, src1, src2, dest);           
-		break;
-
 	    case divOp:
 		op3 = SDIVop3;
-                if (isPowerOf2(src2,result))
+                if (isPowerOf2(src2,result) && (result<32))
                   generateRShift(insn, src1, (reg)result, dest);           
                 else 
                   genImmInsn(insn, op3, src1, src2, dest);
@@ -1540,7 +1559,11 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
                 break;
 
 	    default:
-		abort();
+                reg dest2 = regSpace->allocateRegister(i, base, noCost);
+                (void) emit(loadConstOp, src2, dest2, dest2, i, base, noCost);
+                (void) emit(op, src1, dest2, dest, i, base, noCost);
+                regSpace->freeRegister(dest2);
+                return(0);
 		break;
 	}
 	base += sizeof(instruction);
@@ -1583,9 +1606,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateLoad(insn, dest, LOW10(src1), dest);
 
 	base += sizeof(instruction)*2;
-    } else if (op ==  shiftOp) {
-        generateLShift(insn, src1, src2, dest);
-        base += sizeof(instruction);
+    } else if (op ==  loadIndirOp) {
+	generateLoad(insn, src1, 0, dest);
+	base += sizeof(instruction);
     } else if (op ==  storeOp) {
         generateSetHi(insn, dest, src2);
 	insn++;
@@ -1593,6 +1616,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateStore(insn, src1, src2, LOW10(dest));
 
 	base += sizeof(instruction)*2;
+    } else if (op ==  storeIndirOp) {
+	generateStore(insn, src1, dest, 0);
+	base += sizeof(instruction);
     } else if (op ==  ifOp) {
 	// cmp src1,0
 	genSimpleInsn(insn, SUBop3cc, src1, 0, 0); insn++;
@@ -1833,13 +1859,15 @@ int getInsnCost(opCode op)
     } else if (op ==  loadOp) {
 	// sethi + load single
 	return(1+1);
-    } else if (op ==  shiftOp) {
+    } else if (op ==  loadIndirOp) {
 	return(1);
     } else if (op ==  storeOp) {
 	// sethi + store single
 	// return(1+3); 
 	// for SS-5 ?
 	return(1+2);
+    } else if (op ==  storeIndirOp) {
+	return(2); 
     } else if (op ==  ifOp) {
 	// subcc
 	// be
@@ -2528,6 +2556,7 @@ void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
 
 bool doNotOverflow(int value)
 {
+  // we are assuming that we have 13 bits to store the immediate operand.
   if ( (value <= 16383) && (value >= -16384) ) return(true);
   else return(false);
 }

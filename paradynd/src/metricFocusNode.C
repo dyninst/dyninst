@@ -43,6 +43,9 @@
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.110  1996/11/14 14:27:59  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.109  1996/10/31 09:28:23  tamches
  * the shm-sampling commit; completely redesigned dataReqNode; designed
  * a handful of derived classes of dataReqNode, which replaces a lot of
@@ -278,7 +281,8 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
  *
  */
 
-metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& focus,
+metricDefinitionNode *createMetricInstance(string& metric_name, 
+                                           vector<u_int>& focus,
                                            bool enable, bool& internal)
 {
     metricDefinitionNode *mi= NULL;
@@ -988,8 +992,14 @@ void flush_batch_buffer() {
    // vector.  This solution has the downside of calling new but is not too bad
    // and is clean.
    vector<T_dyninstRPC::batch_buffer_entry> copyBatchBuffer(batch_buffer_next);
-   for (unsigned i=0; i< batch_buffer_next; i++)
+   assert(copyBatchBuffer.size() <= theBatchBuffer.size());
+   for (unsigned i=0; i< batch_buffer_next; i++) {
       copyBatchBuffer[i] = theBatchBuffer[i];
+   }
+
+   //char myLogBuffer[120] ;
+   //sprintf(myLogBuffer, "in metric.C batch size about to send = %d\n", batch_buffer_next) ;
+   //logLine(myLogBuffer) ;
 
    // Now let's do the actual igen call!
 
@@ -1195,15 +1205,15 @@ void processSample(traceHeader *h, traceSample *s)
  *
  */
 instReqNode::instReqNode(instPoint *iPoint,
-                         const AstNode &iAst,
+                         AstNode *iAst,
                          callWhen  iWhen,
-                         callOrder o, bool iManuallyTrigger) : ast(iAst) {
+                         callOrder o, bool iManuallyTrigger) {
     point = iPoint;
     when = iWhen;
     order = o;
     instance = NULL;
+    ast = assignAst(iAst);
     manuallyTrigger = iManuallyTrigger;
-
     assert(point);
 }
 
@@ -1243,7 +1253,8 @@ void instReqNode::disable(const vector<unsigned> &pointsToCheck)
 
 instReqNode::~instReqNode()
 {
-    instance = NULL; // should we call 'delete'?
+    instance = NULL;
+    removeAst(ast);
 }
 
 float instReqNode::cost(process *theProc) const
@@ -1253,8 +1264,8 @@ float instReqNode::cost(process *theProc) const
     float frequency;
     int unitCostInCycles;
 
-    unitCostInCycles = ast.cost() + getPointCost(theProc, point) +
-        getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
+    unitCostInCycles = ast->cost() + getPointCost(theProc, point) +
+                       getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
     // printf("unit cost = %d cycles\n", unitCostInCycles);
     unitCost = unitCostInCycles/ cyclesPerSecond;
     frequency = getPointFrequency(point);
@@ -1309,8 +1320,11 @@ dataReqNode *sampledIntCounterReqNode::dup(process *childProc,
 					   int iCounterId) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new sampledIntCounterReqNode(*this, childProc, iCounterId);
+   sampledIntCounterReqNode *tmp;
+   tmp = new sampledIntCounterReqNode(*this, childProc, iCounterId);
       // fork ctor
+  
+   return tmp;
 }
 
 bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
@@ -1331,11 +1345,14 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
    pdFunction *sampleFunction = theProc->findOneFunction("DYNINSTsampleValues");
    assert(sampleFunction);
 
-   AstNode ast("DYNINSTreportCounter",
-	       AstNode(AstNode::Constant, counterPtr));
+   AstNode *ast, *tmp;
+   tmp = new AstNode(AstNode::Constant, counterPtr);
+   ast = new AstNode("DYNINSTreportCounter", tmp);
+   removeAst(tmp);
 
    sampler = addInstFunc(theProc, sampleFunction->funcEntry(),
 			 ast, callPreInsn, orderLastAtPoint, false);
+   removeAst(ast);
 
    return true; // success
 }
@@ -1410,8 +1427,11 @@ dataReqNode *sampledShmIntCounterReqNode::dup(process *childProc,
 					      int iCounterId) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new sampledShmIntCounterReqNode(*this, childProc, iCounterId);
+   sampledShmIntCounterReqNode *tmp;
+   tmp = new sampledShmIntCounterReqNode(*this, childProc, iCounterId);
       // fork ctor
+
+   return tmp;
 }
 
 bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
@@ -1491,8 +1511,11 @@ dataReqNode *nonSampledIntCounterReqNode::dup(process *childProc,
 					      int iCounterId) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new nonSampledIntCounterReqNode(*this, childProc, iCounterId);
+   nonSampledIntCounterReqNode *tmp;
+   tmp = new nonSampledIntCounterReqNode(*this, childProc, iCounterId);
       // fork ctor
+
+   return tmp;
 }
 
 bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
@@ -1594,11 +1617,14 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
    pdFunction *sampleFunction = theProc->findOneFunction("DYNINSTsampleValues");
    assert(sampleFunction);
 
-   AstNode ast ("DYNINSTreportTimer",
-		AstNode(AstNode::Constant, timerPtr));
+   AstNode *ast, *tmp;
+   tmp = new AstNode(AstNode::Constant, timerPtr);
+   ast = new AstNode("DYNINSTreportTimer", tmp);
+   removeAst(tmp);
 
    sampler = addInstFunc(theProc, sampleFunction->funcEntry(), ast,
 			 callPreInsn, orderLastAtPoint, false);
+   removeAst(ast);
 
    return true; // successful
 }
@@ -1675,8 +1701,11 @@ sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
 dataReqNode *sampledShmWallTimerReqNode::dup(process *childProc, int iCounterId) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new sampledShmWallTimerReqNode(*this, childProc, iCounterId);
+   sampledShmWallTimerReqNode *tmp;
+   tmp = new sampledShmWallTimerReqNode(*this, childProc, iCounterId);
       // fork constructor
+
+   return tmp;
 }
 
 bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
@@ -1775,8 +1804,11 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
 dataReqNode *sampledShmProcTimerReqNode::dup(process *childProc, int iCounterId) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new sampledShmProcTimerReqNode(*this, childProc, iCounterId);
+   sampledShmProcTimerReqNode *tmp;
+   tmp = new sampledShmProcTimerReqNode(*this, childProc, iCounterId);
       // fork constructor
+
+   return tmp;
 }
 
 bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
