@@ -10,11 +10,8 @@ extern int gethostname(char*, int);
 extern int getrusage(int, struct rusage*);
 extern int getsockname(int, struct sockaddr*, int *);
 extern int listen(int, int);
-extern int munmap(caddr_t, int);
-extern int ptrace(enum ptracereq, int, char*, int, char*);
 extern int rexec(char **ahost, u_short inport, char *user, char *passwd,
 		 char *cmd, int *fd2p);
-extern int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
 extern int socket(int, int, int);
 extern int socketpair(int, int, int, int sv[2]);
 extern int vfork();
@@ -34,8 +31,8 @@ int P_dup2 (int OLD, int NEW) { return (dup2(OLD, NEW));}
 int P_execvp (const char *FILENAME, char *const ARGV[]) {
   return (execvp(FILENAME, ARGV));}
 void P__exit (int STATUS) { _exit(STATUS);}
-int P_fcntl (int FILEDES, int COMMAND, int ARG2) {
-  return (fcntl(FILEDES, COMMAND, ARG2));}
+int P_fcntl (int filedes, int command, int arg2) {
+  return (fcntl(filedes, command, arg2));}
 FILE * P_fdopen (int FILEDES, const char *OPENTYPE) {
   return (fdopen(FILEDES, OPENTYPE));}
 FILE * P_fopen (const char *FILENAME, const char *OPENTYPE) {
@@ -147,9 +144,6 @@ int P_strcasecmp(const char *s1, const char *s2) {
 int P_strncasecmp (const char *S1, const char *S2, size_t N) {
   return (strncasecmp((char*)S1, (char*)S2, N));}
 
-/* SunOS */
-int P_ptrace(enum ptracereq req, int pid, char *addr, int data, char *addr2) {
-  return (ptrace(req, pid, addr, data, addr2));}
 int P_rexec(char **ahost, u_short inport, char *user,
 	    char *passwd, char *cmd, int *fd2p){
   return (rexec(ahost, inport, user, passwd, cmd, fd2p));}
@@ -165,7 +159,6 @@ bool_t P_xdr_string(XDR *x, char **c, const u_int maxsize) {
   return (xdr_string(x, c, maxsize));}
 bool_t P_xdrrec_endofrecord(XDR *x, int now) {return (xdrrec_endofrecord(x, now));}
 bool_t P_xdrrec_skiprecord(XDR*x) { return (xdrrec_skiprecord(x));}
-bool_t P_xdrrec_eof(XDR*x) { return (xdrrec_eof(x));}
 void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
 		     caddr_t handle, 
 		     xdr_rd_func readit, xdr_wr_func writeit) {

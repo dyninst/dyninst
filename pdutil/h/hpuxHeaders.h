@@ -176,7 +176,7 @@ inline void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
   xdrrec_create(x, send_sz, rec_sz, handle, read_r, write_f);}
 inline bool_t P_xdrrec_endofrecord(XDR *x, int now) { 
   return (xdrrec_endofrecord(x, now));}
-inline bool_t P_xdrrec_eof(XDR *x) { return xdrrec_eof(x); }
 inline bool_t P_xdrrec_skiprecord(XDR *x) { return (xdrrec_skiprecord(x));}
+inline bool_t P_xdrrec_eof(XDR *x) { return (xdrrec_eof(x)); }
 
 #endif

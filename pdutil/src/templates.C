@@ -2,8 +2,8 @@
 /*
  * Generate code for template classes used by libutil
  *
- * $Log: templates.C,v $
- * Revision 1.2  1995/06/02 21:00:09  newhall
+ * templates.C,v
+ * Revision 1.2  1995/06/02  21:00:09  newhall
  * added a NaN value generator
  * fixed memory leaks in Histogram class
  * added newValue member with a vector<sampleInfo *> to class sampleInfo
@@ -14,6 +14,8 @@
  */
 
 #pragma implementation "list.h"
+#include "util/h/Vector.h"
+#include "util/h/String.h"
 #include "util/h/list.h"
 #include "util/h/tunableConst.h"
 #include "util/h/aggregateSample.h"

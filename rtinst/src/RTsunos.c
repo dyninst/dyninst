@@ -19,10 +19,19 @@
 
 
 /************************************************************************
- * RTsunos.c: SunOs-4.1.3 specific clock functions.
+ * RTsunos.c: SunOs-4.1.3 specific functions.
  *
  * $Log: RTsunos.c,v $
- * Revision 1.3  1995/03/10 19:38:03  hollings
+ * Revision 1.4  1995/08/24 15:12:44  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.3  1995/03/10  19:38:03  hollings
  * Removed use of floating point to compute times. This speed up
  * the timer routines by a factor of 2-3.
  *
@@ -114,6 +123,8 @@ DYNINSTprobeUarea(void) {
 int DYNINSTmappedUarea = 0;
 volatile unsigned* DYNINSTuareaTimeSec = 0;
 volatile unsigned* DYNINSTuareaTimeUsec = 0;
+struct rusage *DYNINSTrusagePtr;
+struct user *DYNINSTuareaPtr;
 
 static void
 DYNINSTmapUarea(void) {
@@ -146,6 +157,7 @@ DYNINSTmapUarea(void) {
         return;
     }
 
+    DYNINSTuareaPtr = (struct user *) ret;
     u = (struct user *) ret;
     DYNINSTmappedUarea = 1;
 
@@ -239,4 +251,45 @@ DYNINSTgetWalltime(void) {
         abort();
     }
     return (time64) ((tv.tv_sec*(time64) 1000000) + tv.tv_usec);
+}
+
+/*
+ * DYNINSTgetRusage(id) - Return the value of various OS stats.
+ *
+ *    The id is an integer, and when they are changed, any metric that uses
+ *        DYNINSTgetRusage will also need to be updated.
+ *
+ */
+int DYNINSTgetRusage(int id)
+{
+    int value;
+    struct rusage rusage;
+
+    if (!DYNINSTmappedUarea) {
+	getrusage(0, &rusage);
+	DYNINSTrusagePtr = &rusage;
+    } else {
+	DYNINSTrusagePtr = &DYNINSTuareaPtr->u_ru;
+    }
+    switch (id) {
+	case 0:	/* page faults */
+	    value = DYNINSTrusagePtr->ru_minflt+DYNINSTrusagePtr->ru_majflt;
+	    break;
+	case 1:	/* swaps */
+	    value = DYNINSTrusagePtr->ru_nswap;
+	    break;
+	case 2: /* signals received */
+	    value = DYNINSTrusagePtr->ru_nsignals;
+	    break;
+	case 3: /* max rss */
+	    value = DYNINSTrusagePtr->ru_maxrss;
+	    break;
+	case 4: /* context switches */
+	    value = DYNINSTrusagePtr->ru_nvcsw + DYNINSTrusagePtr->ru_nivcsw;
+	    break;
+	default:
+	    value = 0;
+	    break;
+    }
+    return value;
 }

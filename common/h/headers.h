@@ -41,6 +41,9 @@ typedef int (*xdr_wr_func)(const void *, const char *, const int);
 #elif defined(sparc_tmc_cmost7_3)
 #include "util/h/sunosHeaders.h"
 
+#elif defined(rs6000_ibm_aix3_2)
+#include "util/h/aixHeaders.h"
+
 #endif  /* architecture specific */
 
 #endif /* KLUDGES_H */

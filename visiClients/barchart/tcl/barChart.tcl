@@ -2,8 +2,17 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.20  1995/08/06 22:10:17  tamches
-#  Procedure calls metric default changed to 100
+#  Revision 1.21  1995/08/24 15:15:08  hollings
+#  AIX/SP-2 port (including option for split instruction/data heaps)
+#  Tracing of rexec (correctly spawns a paradynd if needed)
+#  Added rtinst function to read getrusage stats (can now be used in metrics)
+#  Critical Path
+#  Improved Error reporting in MDL sematic checks
+#  Fixed MDL Function call statement
+#  Fixed bugs in TK usage (strings passed where UID expected)
+#
+# Revision 1.20  1995/08/06  22:10:17  tamches
+# Procedure calls metric default changed to 100
 #
 # Revision 1.19  1995/07/06  18:54:59  tamches
 # Update for tk4.0
@@ -176,7 +185,7 @@ pack $W.top.left -side left -fill both -expand true
 # #################### Paradyn logo #################
 
 label $W.top.logo -relief raised \
-                  -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
+		  -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
                   -foreground #b3331e1b53c7
 
 pack $W.top.logo -side right -expand false

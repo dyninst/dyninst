@@ -140,7 +140,9 @@ private:
     unsigned           next_;
 
     friend class dictionary_hash_iter<K,V>;
-};
+
+}
+;
 
 template<class K, class V>
 DO_INLINE_F

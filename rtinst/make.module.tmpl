@@ -5,7 +5,16 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.4  1995/05/30 05:16:03  krisna
+# Revision 1.5  1995/08/24 15:12:04  hollings
+# AIX/SP-2 port (including option for split instruction/data heaps)
+# Tracing of rexec (correctly spawns a paradynd if needed)
+# Added rtinst function to read getrusage stats (can now be used in metrics)
+# Critical Path
+# Improved Error reporting in MDL sematic checks
+# Fixed MDL Function call statement
+# Fixed bugs in TK usage (strings passed where UID expected)
+#
+# Revision 1.4  1995/05/30  05:16:03  krisna
 # moved declaration of LIBS to SunOs Makefile.  we do not use libkvm.a
 # on Solaris, and it is non-existent on HPUX.
 #
@@ -23,8 +32,8 @@
 
 ifndef TARGET
 TARGET	      = libdyninstRT.a
+ALT_TARGET    = DYNINSTstartCode.o DYNINSTendCode.o RTpvmPiggy.o RTcriticalPath.o
 endif
-ALT_TARGET    = DYNINSTstartCode.o DYNINSTendCode.o
 
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
@@ -37,6 +46,7 @@ DYNSRCS	      = ../src/DYNINSTstartCode.c \
 
 all: $(TARGET) $(TARGET2) $(ALT_TARGET)
 
+AR		= gcc
 #
 # override standard link rule; libdyninst is not really a library or a program.
 #
@@ -45,6 +55,7 @@ UNCOMMON_LINK= true
 OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
 		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
+		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
 $(TARGET): $(OBJS) $(LIBS)
@@ -57,12 +68,13 @@ ifndef DEST
 DEST		= $(TO_CORE)/../lib/$(PLATFORM)
 endif
 
-UNCOMMON_INSTALL= true
-install: $(DEST)/$(TARGET) $(DEST)/$(TARGET2) $(DEST)/DYNINSTstartCode.o \
-	$(DEST)/DYNINSTendCode.o
+install: $(DEST)/$(TARGET) \
+	 $(DEST)/DYNINSTstartCode.o \
+	 $(DEST)/DYNINSTendCode.o \
+	 $(DEST)/RTpvmPiggy.o
 
-$(DEST)/libdyninstRT.a:	libdyninstRT.a
-	cp libdyninstRT.a ../../../lib/$(PLATFORM)
+$(DEST)/RTpvmPiggy.o: RTpvmPiggy.o
+	cp RTpvmPiggy.o ../../../lib/$(PLATFORM)
 
 $(DEST)/DYNINSTstartCode.o: DYNINSTstartCode.o
 	cp DYNINSTstartCode.o ../../../lib/$(PLATFORM)

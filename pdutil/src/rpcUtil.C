@@ -1,6 +1,15 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.38  1995/05/18 11:12:15  markc
+ * Revision 1.39  1995/08/24 15:14:29  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.38  1995/05/18  11:12:15  markc
  * Added flavor arg to RPC_undo_g_list
  *
  * Revision 1.37  1995/02/16  09:28:10  markc
@@ -231,6 +240,9 @@ RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
 
   for (loop=0; loop < argc; ++loop)
     {
+      // stop at the -runme argument since the rest are for the application
+      //   process we are about to spawn
+      if (!strcmp(arg_list[loop], "-runme")) break;
       if (!P_strncmp(arg_list[loop], "-p", 2))
 	{
 	  well_known_socket = P_strtol (arg_list[loop] + 2, &ptr, 10);

@@ -6,8 +6,8 @@
 /*
  * list.h - list ADT
  *
- * $Log: List.h,v $
- * Revision 1.22  1995/02/16 09:27:07  markc
+ * list.h,v
+ * Revision 1.22  1995/02/16  09:27:07  markc
  * Modified code to remove compiler warnings.
  * Added #defines to simplify inlining.
  * Cleaned up Object file classes.
@@ -125,7 +125,7 @@ template <class Type> class ListItem {
 template <class Type> class List {
     public:
         List() { head = NULL; }
-	int  empty() { return (head == NULL);}
+	DO_INLINE_F int  empty();
 	friend ostream &operator<<(ostream &os, List<Type> &data) {
 	  List<Type> curr;
 	  for (curr= data; *curr; ++curr) {
@@ -198,6 +198,11 @@ template <class Type> class List {
     protected:
 	ListItem<Type>	*head;
 };
+
+template <class Type> DO_INLINE_F int List<Type>::empty()
+{ 
+    return (head == NULL);
+}
 
 template <class Type> DO_INLINE_F void List<Type>::add(Type data, void *key)
 {
@@ -303,15 +308,7 @@ template <class Type> class HTable {
 	}
 	DO_INLINE_F Type find(void *key);
 	DO_INLINE_F bool remove(void *key);
-        HTable<Type> operator =(HTable<Type> arg) {
-	    table = arg.table;
-	    tableSize = arg.tableSize;
-
-	    // find the first item.
-	    currHid = -1;
-	    ++(*this);
-	    return(*this);
-	}
+        DO_INLINE_F HTable<Type> operator =(HTable<Type> arg); 
         Type operator *() {
             return(*currList);
         }
@@ -366,6 +363,16 @@ template <class Type> class HTable {
 	int tableSize;
 };
 
+
+template <class Type> DO_INLINE_F HTable<Type> HTable<Type>::operator =(HTable<Type> arg) {
+    table = arg.table;
+    tableSize = arg.tableSize;
+
+    // find the first item.
+    currHid = -1;
+    ++(*this);
+    return(*this);
+}
 
 template <class Type> DO_INLINE_F  HTable<Type>::HTable()
 { 

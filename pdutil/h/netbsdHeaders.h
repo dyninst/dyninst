@@ -162,11 +162,11 @@ inline bool_t P_xdr_char(XDR *x, char *c) {
   return (xdr_char(x, c));}
 inline bool_t P_xdr_string(XDR *x, char **h, const u_int maxsize) {
   return (xdr_string(x, h, maxsize));}
-inline bool_t P_xdrrec_eof(XDR *x) { return xdrrec_eof(x); }
 extern void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
 			    const caddr_t handle, 
 			    xdr_rd_func read_r, xdr_wr_func write_f);
 			    extern bool_t P_xdrrec_endofrecord(XDR *x, int now);
 			    extern bool_t P_xdrrec_skiprecord(XDR *x);
+inline bool_t P_xdrrec_eof(XDR *x) { return (xdrrec_eof(x)); }
 
 #endif

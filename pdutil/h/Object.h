@@ -217,6 +217,11 @@ AObject::data_len() const {
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_tmc_cmost7_3) */
 
+#if defined(rs6000_ibm_aix3_2)
+#include <util/h/Object-aix.h>
+#define HAVE_SPECIFIC_OBJECT
+#endif /* defined(sparc_tmc_cmost7_3) */
+
 #if !defined(HAVE_SPECIFIC_OBJECT)
 #error "unable to locate system-specific object files"
 #endif /* !defined(HAVE_SPECIFIC_OBJECT) */

@@ -8,6 +8,9 @@
 #ifndef _RTINST_H
 #define _RTINST_H
 
+/* We sometimes include this into assembly files, so guard the struct defs. */
+#if !defined(__ASSEMBLER__)
+
 /* If we must make up a boolean type, we should make it unique */
 #define RT_Boolean unsigned char
 #define RT_TRUE 1
@@ -76,6 +79,8 @@ struct tTimerRec {
 
 typedef int (*filterFunc)(void *cdata, parameters *params);
 typedef int traceStream;
+
+#endif
 
 /*
  * Define the size of the per process data area.

@@ -16,9 +16,18 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.10  1995/06/02 21:01:56  newhall
-/* changed type of metric and focus handles to u_int
+/* Revision 1.11  1995/08/24 15:14:41  hollings
+/* AIX/SP-2 port (including option for split instruction/data heaps)
+/* Tracing of rexec (correctly spawns a paradynd if needed)
+/* Added rtinst function to read getrusage stats (can now be used in metrics)
+/* Critical Path
+/* Improved Error reporting in MDL sematic checks
+/* Fixed MDL Function call statement
+/* Fixed bugs in TK usage (strings passed where UID expected)
 /*
+ * Revision 1.10  1995/06/02  21:01:56  newhall
+ * changed type of metric and focus handles to u_int
+ *
  * Revision 1.9  1995/02/26  01:59:29  newhall
  * added phase interface functions
  *
@@ -54,7 +63,7 @@
 #include <math.h>
 // TODO -- nan.h is a non-standard header file -- there has to be a portable
 // way to do this -- mdc -- I am not sure if this works, but it compiles
-#if !defined(i386_unknown_netbsd1_0) && !defined(hppa1_1_hp_hpux)
+#if !defined(i386_unknown_netbsd1_0) && !defined(hppa1_1_hp_hpux) && !defined(rs6000_ibm_aix3_2)
 #include <nan.h>
 #endif /* !defined(i386_unknown_netbsd1_0) */
 #include "util/h/String.h"
@@ -79,7 +88,7 @@ static float f_visi_nan = 0;
 static nan_created = false;
 // TODO -- NaN is a non standard macro -- it is not portable
 // TODO -- should a float or a double be used here
-#if !defined(i386_unknown_netbsd1_0) && !defined(hppa1_1_hp_hpux)
+#if !defined(i386_unknown_netbsd1_0) && !defined(hppa1_1_hp_hpux) && !defined(rs6000_ibm_aix3_2)
 #define ERROR (NaN(visi_nan),visi_nan)
 #else
 #include <assert.h>
