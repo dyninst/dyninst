@@ -43,6 +43,9 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.6  1997/01/16 20:55:45  tamches
+ * params to DYNINSTos_init
+ *
  * Revision 1.5  1996/08/16 21:27:27  tamches
  * updated copyright for release 1.1
  *
@@ -73,7 +76,7 @@ static const long int MILLION       = 1000000;
 ************************************************************************/
 
 void
-DYNINSTos_init(void) {
+DYNINSTos_init(int, int) {
 }
 
 
