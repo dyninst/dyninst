@@ -43,25 +43,20 @@
 #define HIST
 
 #include "common/h/Vector.h"
-#include "pdutil/h/sys.h"
-#include "pdutil/h/makenan.h"
+#include "common/h/Time.h"
+#include "pdutil/h/pdSample.h"
+
+#define BASEBUCKETWIDTH_SECS  0.2   /* .2 seconds  */
 
 typedef enum { EventCounter, SampledFunction } metricStyle;
-
-// We are currently using the Histogram code out of pdutilOld.  The histogram
-// code here relies on the old timeStamp and sampleValue types.  It will be
-// reactivated after it has been converted (along with the front end) to use
-// the new time and sample value types.
-#ifdef notdef
-
-typedef enum { HistInterval, HistBucket } histType;
 typedef enum { HistNewValue, HistNewTimeBase } callType;
-typedef sampleValue Bin;
+typedef pdSample Bin;
 
-typedef void (*foldCallBack)(timeStamp, void* userData, bool globalFlag);
+typedef void (*foldCallBack)(const timeLength*, void* userData,
+			     bool globalFlag);
 
-typedef void (*dataCallBack)(sampleValue *buckets,
-			     timeStamp start_time,
+typedef void (*dataCallBack)(pdSample *buckets,
+			     relTimeStamp start_time,
 			     int numberOfBuckets,
 			     int first,
 			     void *userData,
@@ -74,66 +69,59 @@ typedef enum { histSum, histAverage } histCompact;
 typedef enum { histSplit, histSet } histAddMode;
 
 class Histogram {
-	void newDataFunc(callType type, timeStamp time, void* userData);
+	void newDataFunc(callType type, relTimeStamp time, void* userData);
     public:
 	~Histogram();
-	// constructors for base start time and bucket width
-	Histogram(metricStyle, dataCallBack, foldCallBack, void* , bool);
-	Histogram(Bin *buckets, metricStyle, dataCallBack, foldCallBack, void*, bool);
-	// constructors for specified start time
-	Histogram(timeStamp, metricStyle, dataCallBack, foldCallBack, void*, bool );
+	Histogram(relTimeStamp, metricStyle, dataCallBack, foldCallBack, void*, bool );
 	Histogram(Bin *buckets,  
-		  timeStamp start,  // binWidth is computed by this value 
+		  relTimeStamp start,  // binWidth is computed by this value 
 		  metricStyle, 
 		  dataCallBack, 
 		  foldCallBack, 
 		  void*,
 		  bool);
-	sampleValue getValue();
-	sampleValue getValue(timeStamp start, timeStamp end);
-	sampleValue getBinValue(int i){
+	pdSample getValue();
+	pdSample getValue(relTimeStamp start, relTimeStamp end);
+	pdSample getBinValue(int i){
 	    if(i <= lastBin){
-	       return(dataPtr.buckets[i]);
+	       return buckets[i];
 	    }
 	    else
-	       return(PARADYN_NaN);
+	       return pdSample::NaN();
 	}
-	int getBuckets(sampleValue *buckets, int numberOfBuckets, int first);
+	int getBuckets(pdSample *saveBuckets, int numberOfBuckets, int first);
 	int getCurrBin(){return(lastBin);}
-	timeStamp getStartTime(){return(startTime);}
-	timeStamp getBucketWidth(){ return(bucketWidth);}
+	relTimeStamp getStartTime(){ return(startTime);}
+	timeLength getBucketWidth(){ return(bucketWidth);}
 	void setActive(){ active = true;}
 	void clearActive(){ active = false;}
 	void setFoldOnInactive(){fold_on_inactive = true;}
 	void clearFoldOnInactive(){fold_on_inactive = false;}
 	bool isActive(){ return active;}
 	bool foldOnInactive(){ return fold_on_inactive;}
-	void addInterval(timeStamp start, timeStamp end, 
-	    sampleValue value, bool smooth);
-	void addPoint(timeStamp start, sampleValue value) {
-	    addInterval(start, start, value, false);
+	void addInterval(relTimeStamp start, relTimeStamp end, pdSample value);
+	void addPoint(relTimeStamp start, pdSample value) {
+	    addInterval(start, start, value);
 	}
-	static timeStamp currentTime() { 
-		return((timeStamp)(lastGlobalBin*globalBucketSize)); 
+	static relTimeStamp currentTime() { 
+		return relTimeStamp(lastGlobalBin*globalBucketSize); 
 	}
-	static timeStamp getGlobalBucketWidth(){ return(globalBucketSize); }
-	static timeStamp getMinBucketWidth(){ return(baseBucketSize);}
+	static timeLength getGlobalBucketWidth(){ return(globalBucketSize); }
+	static timeLength getMinBucketWidth(){ return(baseBucketSize);}
 	static int getNumBins(){ return(numBins);}
 	void flushUnsentBuckets();
     private:
 	void foldAllHist();
-	void convertToBins();
-	void bucketValue(timeStamp start, timeStamp end, 
-		sampleValue value, bool smooth);
+	void bucketValue(relTimeStamp start, relTimeStamp end, pdSample value);
 
 	static int numBins;		/* max bins to use */
 
 	// used to compute the current Time
-	static timeStamp baseBucketSize;  // min. bucket size for all hists.
-	static timeStamp globalBucketSize; // largest curr. bucket width 
+	static timeLength baseBucketSize;  // min. bucket size for all hists.
+	static timeLength globalBucketSize; // largest curr. bucket width 
 	static int lastGlobalBin;  // for all hists. with global bins 
 
-	timeStamp total_time;	/* numBins * baseBucketSize */
+
 
 	// static Histogram *allHist;	/* linked list of all histograms */
 	// Histogram *next;		/* linked list of all histograms */
@@ -146,26 +134,19 @@ class Histogram {
 	int lastBin;			/* current (for this hist) last bin */
 	int curBinFilling;
 	int lastBinSent;
-	timeStamp bucketWidth;		// bucket width of this histogram 
-	timeStamp startTime;		// not all histograms start at time 0
+	timeLength bucketWidth;		// bucket width of this histogram 
+	relTimeStamp startTime;		// not all histograms start at time 0
+	relTimeStamp endTime;	        /* numBins * baseBucketSize */
 	bool active;			// if clear, don't add values 
 	bool fold_on_inactive;		// if set, fold inactive histograms 
 
-	histType storageType;	
-	bool smooth;		/* prevent values greater than binWidth */
 	metricStyle metricType; /* sampled function or event counter */
-	int intervalCount;	/* # of intervals in use */
-	int intervalLimit;	/* # of intervals in use */
-	union {
-	    Bin *buckets;
-	    Interval *intervals;
-	} dataPtr; 
+	Bin *buckets;
 	dataCallBack dataFunc;
 	foldCallBack foldFunc;
 	void *cData;
 	bool globalData;    /* true if this histogram stores global phase data */
 };
-#endif // notdef
 
 #endif
 
