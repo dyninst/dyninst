@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.27 2000/03/06 21:30:44 zandy Exp $
+ * $Id: RTinst.c,v 1.28 2000/03/17 21:57:44 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -221,6 +221,12 @@ static int          DYNINSTnumSampled        = 0;
 static int          DYNINSTtotalAlarmExpires = 0;
 #endif
 
+/* Written to by daemon just before launching an inferior RPC */
+rpcInfo curRPC = { 0, 0, 0 };
+unsigned pcAtLastIRPC;  /* just used to check for errors */
+/* 1 = a trap was ignored and needs to be regenerated
+   0 = there is not a trap that hasn't been processed */
+int trapNotHandled = 0;
 
 /************************************************************************
  * void DYNINSTstartProcessTimer(tTimer* timer)

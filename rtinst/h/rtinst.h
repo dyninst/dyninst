@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.41 2000/03/12 22:11:40 wylie Exp $
+ * $Id: rtinst.h,v 1.42 2000/03/17 21:57:38 schendel Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the instrumentation layer.
  */
@@ -179,6 +179,17 @@ struct trampTableEntryStruct {
   unsigned key;
   unsigned val;
 };
+
+
+struct rpcInfoStruct {
+  int runningInferiorRPC;  /* 1 running irpc, 0 not running */
+  unsigned begRPCAddr;
+  unsigned endRPCAddr;
+};
+typedef struct rpcInfoStruct rpcInfo;
+extern rpcInfo curRPC;
+extern unsigned pcAtLastIRPC;
+extern int trapNotHandled;  /* 1 a trap hasn't been handled, 0 traps handled */
 
 #endif
 

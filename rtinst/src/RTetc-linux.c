@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.8 1999/11/10 22:36:26 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.9 2000/03/17 21:57:45 schendel Exp $ */
 
 /************************************************************************
  * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
@@ -430,7 +430,52 @@ static unsigned lookup(unsigned key) {
 
 void DYNINSTtrapHandler(int sig, struct sigcontext uap ) {
     unsigned pc = uap.eip;
-    unsigned nextpc = lookup(pc);
+    unsigned nextpc;
+
+    /* If we're in the process of running an inferior RPC, we'll
+       ignore the trap here and have the daemon rerun the trap
+       instruction when the inferior rpc is done.  Because the default
+       behavior is for the daemon to reset the PC to it's previous
+       value and the PC is still at the trap instruction, we don't
+       need to make any additional adjustments to the PC in the
+       daemon.
+
+       This is used only on x86 platforms, so if multithreading is
+       ever extended to x86 platforms, then perhaps this would need to
+       be modified for that.
+
+       I haven't seen the irpc trap bug with linux version.  This is
+       probably because on linux we have the application's traps sent
+       to the daemon and forwarded back to the application.  However,
+       if trap signals are ever changed to be handled locally by the
+       application, we'll be ready for it.  */
+
+    if(curRPC.runningInferiorRPC == 1) {
+      /* If the current PC is somewhere in the RPC then it's a trap that
+	 occurred just before the RPC and is just now getting delivered.
+	 That is we want to ignore it here and regenerate it later. */
+      if(curRPC.begRPCAddr <= pc && pc <= curRPC.endRPCAddr) {
+      /* If a previous trap didn't get handled on this next irpc (assumes one 
+	 trap per irpc) then we have a bug, a trap didn't get regenerated */
+	assert(trapNotHandled==0);
+	trapNotHandled = 1; 
+	return;
+      }
+      else  ;   /* a trap occurred as a result of a function call within the */ 
+	        /* irpc, these traps we want to handle */
+    }
+    else { /* not in an irpc */
+      if(trapNotHandled == 1) {
+	/* Ok good, the trap got regenerated.
+	   Check to make sure that this trap is the one corresponding to the one
+	   that needs to get regenerated.
+	*/
+	assert(pcAtLastIRPC == pc);
+	trapNotHandled = 0;
+	/* we'll then continue to process the trap */
+      }
+    }
+    nextpc = lookup(pc);
 
     if (!nextpc) {
       /* kludge: maybe the PC was not automatically adjusted after the trap */
