@@ -43,6 +43,9 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.18  1999/12/08 20:23:08  bernat
+ * Returning microseconds instead of nanoseconds in GetWallTime
+ *
  * Revision 1.17  1999/11/29 16:55:11  bernat
  * Fix to walltime rollback problems
  *
@@ -282,8 +285,11 @@ time64 DYNINSTgetWalltime(void)
   } while(timeSec != timeSec2);
 
   now = (time64) timeSec;
+  /* Bump seconds into billions of nanoseconds */
   now *= (time64) 1000000000;
   now += (time64) timeNano;
+  /* But we want to return microseconds, so divide back out */
+  now /= 1000;
 
   /*
   read_real_time(&timestruct, TIMEBASE_SZ);
