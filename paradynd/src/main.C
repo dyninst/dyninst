@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.23  1994/09/20 18:18:26  hollings
+ * Revision 1.24  1994/09/22 02:10:45  markc
+ * access metricList using method
+ *
+ * Revision 1.23  1994/09/20  18:18:26  hollings
  * added code to use actual clock speed for cost model numbers.
  *
  * Revision 1.22  1994/08/17  18:14:03  markc
@@ -121,6 +124,7 @@ pdRPC *tp;
 extern int controllerMainLoop();
 extern void initLibraryFunctions();
 
+stringPool pool;
 
 #ifdef PARADYND_PVM
 static pdRPC *init_pvm_code(char *argv[], char *machine, int family,
@@ -164,7 +168,7 @@ void configStdIO(Boolean closeStdIn)
 main(int argc, char *argv[])
 {
     int i;
-    metricList stuff;
+    metricListRec *stuff;
     extern float cyclesPerSecond;
     extern float getCyclesPerSecond();
 
@@ -222,7 +226,7 @@ main(int argc, char *argv[])
     //
     stuff = getMetricList();
     for (i=0; i < stuff->count; i++) {
-	tp->newMetricCallback(stuff->elements[i].info);
+	tp->newMetricCallback(stuff->elements[i].getMetInfo());
     }
 
     controllerMainLoop();
@@ -242,15 +246,15 @@ init_pvm_code(char *argv[], char *machine, int family,
   assert(!gethostname(machine_name, 99));
 
   // connect to paradyn
-  if (flag == 1)
+  if (flag == 1) {
     temp = new pdRPC(0, NULL, NULL);
-  else
-    {
-      temp = new pdRPC(family, well_known_socket, type, machine, NULL, NULL);
-      temp->reportSelf (machine_name, argv[0], getpid(), metPVM);
-    }
+  }
+  else {
+    temp = new pdRPC(family, well_known_socket, type, machine, NULL, NULL);
+    temp->reportSelf (machine_name, argv[0], getpid(), metPVM);
+  }
 
-    return temp;
+  return temp;
 }
 
 int
