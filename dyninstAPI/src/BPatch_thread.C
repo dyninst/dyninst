@@ -78,10 +78,9 @@ int BPatch_thread::getPid()
  *              copied and passed to the child.
  */
 BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
-    : lastSignal(-1), mutationsActive(true), createdViaAttach(false),
-      detached(false), proc(NULL), image(NULL),
-      unreportedStop(false), unreportedTermination(false),
-      waitingForOneTimeCode(false)
+  : proc(NULL), image(NULL), lastSignal(-1), mutationsActive(true), 
+    createdViaAttach(false), detached(false), waitingForOneTimeCode(false),
+    unreportedStop(false), unreportedTermination(false)
 {
     vector<string> argv_vec;
     vector<string> envp_vec;
@@ -125,10 +124,9 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
  * pid		Process ID of the target process.
  */
 BPatch_thread::BPatch_thread(char *path, int pid)
-    : lastSignal(-1), mutationsActive(true), createdViaAttach(true),
-      detached(false), proc(NULL), image(NULL),
-      unreportedStop(false), unreportedTermination(false),
-      waitingForOneTimeCode(false)
+  : proc(NULL), image(NULL), lastSignal(-1), mutationsActive(true), 
+    createdViaAttach(true), detached(false), waitingForOneTimeCode(false),
+    unreportedStop(false), unreportedTermination(false)
 {
     if (!attachProcess(path, pid, 1, proc)) {
     	// XXX Should do something more sensible
@@ -488,9 +486,9 @@ BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
  */
 void BPatch_thread::free(const BPatch_variableExpr &ptr)
 {
-    vector<unsigVecType> pointsToCheck;	// We'll leave this empty
+    vector<addrVecType> pointsToCheck;	// We'll leave this empty
 
-    inferiorFree(proc, (unsigned)ptr.getBaseAddr(), dataHeap, pointsToCheck);
+    inferiorFree(proc, (Address)ptr.getBaseAddr(), dataHeap, pointsToCheck);
 }
 
 
@@ -511,7 +509,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 {
     BPatch_Vector<BPatch_point *> point_vec;
 
-    point_vec.push_back((BPatch_point *)&point);
+    point_vec.push_back(const_cast<BPatch_point *>(&point));
 
     return insertSnippet(expr, point_vec, when, order);
 }
@@ -716,7 +714,7 @@ bool BPatch_thread::removeFunctionCall(BPatch_point &point)
  */
 void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
 						void *userData,
-						unsigned returnValue)
+						void *returnValue)
 {
     assert(BPatch::bpatch != NULL);
 
@@ -739,7 +737,7 @@ void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
  *		and which will be returned to us in this callback.
  * returnValue	The value returned by the RPC.
  */
-void BPatch_thread::oneTimeCodeCallback(void * /*userData*/, unsigned returnValue)
+void BPatch_thread::oneTimeCodeCallback(void * /*userData*/, void *returnValue)
 {
     assert(waitingForOneTimeCode);
 
@@ -756,10 +754,10 @@ void BPatch_thread::oneTimeCodeCallback(void * /*userData*/, unsigned returnValu
  *
  * snippet	The snippet to evaluate.
  */
-int BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
+void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
 {
     if (!statusIsStopped())
-	return -1;
+	return NULL;
 
     proc->postRPCtoDo(expr.ast,
 		      false, // XXX = calculate cost - is this what we want?
