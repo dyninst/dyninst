@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: stringPool.h,v $
- * Revision 1.3  1994/09/02 10:43:58  markc
+ * Revision 1.4  1994/09/22 03:17:00  markc
+ * Changed private pointers to char* from void* since void* math is
+ * illegal for ANSI
+ *
+ * Revision 1.3  1994/09/02  10:43:58  markc
  * Moved typedef for stringHandle outside of stringPool.h
  *
  * Revision 1.2  1994/08/05  16:01:54  hollings
@@ -25,21 +29,20 @@
 #define PAGE_SIZE 4090
 
 typedef struct _stringEntry {
-    stringHandle data;
+    char *data;
     struct _stringEntry *next;
 } stringEntry;
 
 class stringPool {
     public:
 	stringPool();
-	stringHandle find(char *);
-	stringHandle findAndAdd(char *);
+	stringHandle find(const char *);
+	stringHandle findAndAdd(const char *);
     private:
 	stringEntry *table[TAB_SIZE];
-	stringHandle head;
-	stringHandle currPage;
-	stringHandle currPos;
-	stringHandle getSpace(int);
+	char *currPage;
+	char *currPos;
+	char *getSpace(int);
 };
 
 #endif /* STRINGPOOL_H */
