@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.22  1994/07/11 22:09:02  newhall
+# Revision 1.23  1994/07/11 22:22:11  newhall
+# created error #17
+#
+# Revision 1.22  1994/07/11  22:09:02  newhall
 # created error #16
 #
 # Revision 1.21  1994/07/11  21:35:42  newhall
@@ -222,4 +225,13 @@ failed.
 %S serious
 %X
 
+%Y
+
+%N 17
+%E Adding new metrics and/or foci failed 
+%A vi
+%S information
+%X
+An incomplete or invalid metric or focus list was returned as a
+result of attempting to add metrics and/or foci to a visualization.
 %Y
