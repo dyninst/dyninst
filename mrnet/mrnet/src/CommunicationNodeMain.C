@@ -6,8 +6,8 @@
 
 #include <list>
 
-#include "mrnet/src/MC_Message.h"
-#include "mrnet/src/MC_InternalNode.h"
+#include "mrnet/src/Message.h"
+#include "mrnet/src/InternalNode.h"
 #include "mrnet/src/utils.h"
 
 int main(int argc, char **argv)

@@ -1,8 +1,8 @@
 #include <stdio.h>
 
-#include "mrnet/src/MC_BackEndNode.h"
-#include "mrnet/src/MC_RemoteNode.h"
-#include "mrnet/src/MC_StreamImpl.h"
+#include "mrnet/src/BackEndNode.h"
+#include "mrnet/src/RemoteNode.h"
+#include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
 
 /*=====================================================*/

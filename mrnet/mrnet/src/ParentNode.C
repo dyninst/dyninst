@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#include "mrnet/src/MC_ParentNode.h"
-#include "mrnet/src/MC_NetworkGraph.h"
+#include "mrnet/src/ParentNode.h"
+#include "mrnet/src/NetworkGraph.h"
 #include "mrnet/src/utils.h"
 
 /*====================================================*/
@@ -24,7 +24,7 @@ MC_ParentNode::MC_ParentNode(bool _threaded, std::string _hostname,
              port);
   if( bind_to_port(&listening_sock_fd, &port) == -1){
     mc_printf(MCFL, stderr, "bind_to_port() failed\n");
-    //mc_errno = MC_ECANNOTBINDPORT;
+    //errno = MC_ECANNOTBINDPORT;
     return;
   }
   subtreereport_sync.register_cond(MC_ALLNODESREPORTED);
@@ -185,7 +185,7 @@ int MC_ParentNode::proc_newSubTree(MC_Packet * packet)
   MC_SerialGraph sg(byte_array);
   std::string application((appl == NULL) ? "" : appl);
 
-  //mc_printf(MCFL, stderr, "sg.root:%s:%d, local:%s:%d\n", sg.get_RootName().c_str(),
+  //printf(MCFL, stderr, "sg.root:%s:%d, local:%s:%d\n", sg.get_RootName().c_str(),
 	     //sg.get_RootPort(), hostname.c_str(), port);
   //assert(getNetworkName(sg.get_RootName()) == hostname);
 
@@ -393,11 +393,11 @@ MC_ParentNode::proc_newStream(MC_Packet * packet)
   }
   childnodebybackendid_sync.unlock();
   
-  //mc_printf(MCFL, stderr, "nodeset_size:%d\n", node_set.size());
+  //printf(MCFL, stderr, "nodeset_size:%d\n", node_set.size());
   //  node_set.sort(lt_RemoteNodePtr);      //sort the set of nodes (by ptr value)
-  //mc_printf(MCFL, stderr, "nodeset_size:%d\n", node_set.size());
+  //printf(MCFL, stderr, "nodeset_size:%d\n", node_set.size());
   //  node_set.unique(equal_RemoteNodePtr); //remove duplicates
-  //mc_printf(MCFL, stderr, "nodeset_size:%d\n", node_set.size());
+  //printf(MCFL, stderr, "nodeset_size:%d\n", node_set.size());
   node_set.sort();
   node_set.unique();
 
@@ -435,14 +435,14 @@ MC_ParentNode::send_newStream(MC_Packet * packet, MC_StreamManager * stream_mgr)
 
   for(i=0,iter = node_set.begin(); iter != node_set.end(); iter++, i++){
     if( (*iter)->is_internal() ){ //only pass on to internal nodes
-      //mc_printf(MCFL, stderr, "Calling node_set[%d].send() ...\n", i);
+      //printf(MCFL, stderr, "Calling node_set[%d].send() ...\n", i);
       if( (*iter)->send(packet) == -1){
         mc_printf(MCFL, stderr, "node_set.send() failed\n");
         retval = -1;
         continue;
       }
     }
-    //mc_printf(MCFL, stderr, "node_set.send() succeeded\n");
+    //printf(MCFL, stderr, "node_set.send() succeeded\n");
   }
 
   mc_printf(MCFL, stderr, "internal.procNewStream() succeeded\n");

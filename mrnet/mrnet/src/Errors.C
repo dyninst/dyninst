@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 
-#include "mrnet/src/MC_Errors.h"
+#include "mrnet/src/Errors.h"
 
 static struct MC_ErrorDefs errors[]= {
    { MC_ENONE, MC_INFO, MC_IGNORE, "No Error"},

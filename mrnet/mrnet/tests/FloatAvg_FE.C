@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "mrnet/h/MC_Network.h"
+#include "mrnet/h/MR_Network.h"
 #include "mrnet/tests/FloatAvg.h"
 
 int main(int argc, char **argv){

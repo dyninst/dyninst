@@ -5,13 +5,13 @@
 #include <string>
 
 
-#include "mrnet/src/MC_Errors.h"
-#include "mrnet/src/MC_Message.h"
-#include "mrnet/src/MC_NetworkGraph.h"
-#include "mrnet/src/MC_BackEndNode.h"
-#include "mrnet/src/MC_FrontEndNode.h"
+#include "mrnet/src/Errors.h"
+#include "mrnet/src/Message.h"
+#include "mrnet/src/NetworkGraph.h"
+#include "mrnet/src/BackEndNode.h"
+#include "mrnet/src/FrontEndNode.h"
 
-#include "mrnet/h/MC_Network.h"
+#include "mrnet/h/MR_Network.h"
 
 class MC_NetworkImpl: public MC_Error {
   friend class MC_NetworkGraph;

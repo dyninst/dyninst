@@ -1,4 +1,4 @@
-#include "mrnet/src/MC_CommunicationNode.h"
+#include "mrnet/src/CommunicationNode.h"
 #include "mrnet/src/utils.h"
 
 /*===========================================================*/

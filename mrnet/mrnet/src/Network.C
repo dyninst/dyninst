@@ -8,14 +8,14 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include "mrnet/h/MC_Network.h"
+#include "mrnet/h/MR_Network.h"
 #include "mrnet/src/utils.h"
 #include "mrnet/src/config.h"
-#include "mrnet/src/MC_NetworkImpl.h"
-#include "mrnet/src/MC_BackEndNode.h"
-#include "mrnet/src/MC_StreamImpl.h"
-#include "mrnet/src/MC_CommunicatorImpl.h"
-#include "mrnet/src/MC_EndPointImpl.h"
+#include "mrnet/src/NetworkImpl.h"
+#include "mrnet/src/BackEndNode.h"
+#include "mrnet/src/StreamImpl.h"
+#include "mrnet/src/CommunicatorImpl.h"
+#include "mrnet/src/EndPointImpl.h"
 
 MC_NetworkImpl * MC_Network::network = NULL;
 MC_BackEndNode * MC_Network::back_end = NULL;
@@ -158,9 +158,9 @@ void MC_Network::error_str(const char *s)
 /*================================================*/
 MC_Stream * MC_Stream::new_Stream(MC_Communicator *comm, int _filter_id)
 {
-  //mc_printf(MCFL, stderr, "comm(%p) size:%d\n",
+  //printf(MCFL, stderr, "comm(%p) size:%d\n",
 	     //comm, ((MC_CommunicatorImpl*)(comm))->get_EndPoints()->size());
-  //mc_printf(MCFL, stderr, "comm's endpoint: %p\n", ((MC_CommunicatorImpl*)(comm))->get_EndPoints());
+  //printf(MCFL, stderr, "comm's endpoint: %p\n", ((MC_CommunicatorImpl*)(comm))->get_EndPoints());
   return new MC_StreamImpl(comm, _filter_id);
 }
 

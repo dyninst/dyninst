@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "mrnet/src/MC_Message.h"
-#include "mrnet/src/MC_RemoteNode.h"
+#include "mrnet/src/Message.h"
+#include "mrnet/src/RemoteNode.h"
 
 class MC_ChildNode{
  protected:

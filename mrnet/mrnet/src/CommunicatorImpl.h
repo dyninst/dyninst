@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "mrnet/h/MC_Network.h"
+#include "mrnet/h/MR_Network.h"
 
 class MC_RemoteNode;
 class MC_CommunicatorImpl: public MC_Communicator{

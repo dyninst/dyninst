@@ -1,7 +1,7 @@
 %{
 #include <list>
 
-#include "mrnet/src/MC_NetworkGraph.h"
+#include "mrnet/src/NetworkGraph.h"
 #include "mrnet/src/utils.h"
 
 std::list <MC_NetworkNode *> hostlist;

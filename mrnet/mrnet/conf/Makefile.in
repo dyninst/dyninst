@@ -62,23 +62,23 @@ TESTS   = $(BINDIR)/test1_FE $(BINDIR)/test1_BE \
 MC_OBJS = $(LIBMC_OBJS) $(COMMNODE_OBJS)
 
 LIBMC_SRCS = \
-             $(MRNET_ROOT)/src/MC_EndPointImpl.C \
-             $(MRNET_ROOT)/src/MC_CommunicatorImpl.C \
-             $(MRNET_ROOT)/src/MC_StreamImpl.C \
-             $(MRNET_ROOT)/src/MC_NetworkImpl.C \
-             $(MRNET_ROOT)/src/MC_Network.C \
-             $(MRNET_ROOT)/src/MC_StreamManager.C \
-             $(MRNET_ROOT)/src/MC_Filter.C \
-             $(MRNET_ROOT)/src/MC_Message.C \
-             $(MRNET_ROOT)/src/MC_Errors.C \
-             $(MRNET_ROOT)/src/MC_NetworkGraph.C \
-             $(MRNET_ROOT)/src/MC_CommunicationNode.C \
-             $(MRNET_ROOT)/src/MC_RemoteNode.C \
-             $(MRNET_ROOT)/src/MC_ParentNode.C \
-             $(MRNET_ROOT)/src/MC_FrontEndNode.C \
-             $(MRNET_ROOT)/src/MC_ChildNode.C \
-             $(MRNET_ROOT)/src/MC_BackEndNode.C \
-             $(MRNET_ROOT)/src/MC_InternalNode.C \
+             $(MRNET_ROOT)/src/EndPointImpl.C \
+             $(MRNET_ROOT)/src/CommunicatorImpl.C \
+             $(MRNET_ROOT)/src/StreamImpl.C \
+             $(MRNET_ROOT)/src/NetworkImpl.C \
+             $(MRNET_ROOT)/src/Network.C \
+             $(MRNET_ROOT)/src/StreamManager.C \
+             $(MRNET_ROOT)/src/Filter.C \
+             $(MRNET_ROOT)/src/Message.C \
+             $(MRNET_ROOT)/src/Errors.C \
+             $(MRNET_ROOT)/src/NetworkGraph.C \
+             $(MRNET_ROOT)/src/CommunicationNode.C \
+             $(MRNET_ROOT)/src/RemoteNode.C \
+             $(MRNET_ROOT)/src/ParentNode.C \
+             $(MRNET_ROOT)/src/FrontEndNode.C \
+             $(MRNET_ROOT)/src/ChildNode.C \
+             $(MRNET_ROOT)/src/BackEndNode.C \
+             $(MRNET_ROOT)/src/InternalNode.C \
              $(MRNET_ROOT)/src/utils.C \
              $(MRNET_ROOT)/src/pthread_sync.C \
              $(MRNET_ROOT)/src/pdr.c \
@@ -90,7 +90,7 @@ LIBMC_SRCS = \
 
 LIBMC_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(LIBMC_SRCS)))))
  
-COMMNODE_SRCS = $(MRNET_ROOT)/src/MC_CommunicationNodeMain.C
+COMMNODE_SRCS = $(MRNET_ROOT)/src/CommunicationNodeMain.C
 COMMNODE_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(COMMNODE_SRCS)))))
 
 PDR_SRCS = $(MRNET_ROOT)/src/pdr.c \
@@ -160,7 +160,7 @@ $(MRNET_ROOT)/src/parser.tab.c: parser.y $(FRC)
 	$(BISON) -d -o $@ $<
 
 parser: src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS) \
-        src/MC_Network.o
+        src/Network.o
 	echo Building $@
 	$(CXX) $(CXXFLAGS) -o $@ src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS)
 
@@ -202,25 +202,25 @@ tar:
 	cd ..; tar czf mrnet.`date +"%d_%b_%H-%M"`.tgz $(files)
 
 files2 = conf/Makefile.in  \
-         $(MRNET_ROOT)/src/MC_CommunicatorImpl.C \
-         $(MRNET_ROOT)/src/MC_CommunicatorImpl.h \
-         $(MRNET_ROOT)/src/MC_StreamImpl.C \
-         $(MRNET_ROOT)/src/MC_StreamImpl.h \
-         $(MRNET_ROOT)/src/MC_NetworkImpl.C \
-         $(MRNET_ROOT)/src/MC_NetworkImpl.h \
-         $(MRNET_ROOT)/src/MC_Network.C \
-         $(MRNET_ROOT)/h/MC_Network.h \
-         $(MRNET_ROOT)/src/MC_StreamManager.C \
-         $(MRNET_ROOT)/src/MC_StreamManager.h \
-         $(MRNET_ROOT)/src/MC_Filter.C \
-         $(MRNET_ROOT)/src/MC_Filter.h \
-         $(MRNET_ROOT)/src/MC_Message.C \
-         $(MRNET_ROOT)/src/MC_Message.h \
-         $(MRNET_ROOT)/src/MC_NetworkGraph.C \
-         $(MRNET_ROOT)/src/MC_NetworkGraph.h \
-         $(MRNET_ROOT)/src/MC_CommunicationNode.C \
-         $(MRNET_ROOT)/src/MC_CommunicationNode.h \
-         $(MRNET_ROOT)/src/MC_CommunicationNodeMain.C
+         $(MRNET_ROOT)/src/CommunicatorImpl.C \
+         $(MRNET_ROOT)/src/CommunicatorImpl.h \
+         $(MRNET_ROOT)/src/StreamImpl.C \
+         $(MRNET_ROOT)/src/StreamImpl.h \
+         $(MRNET_ROOT)/src/NetworkImpl.C \
+         $(MRNET_ROOT)/src/NetworkImpl.h \
+         $(MRNET_ROOT)/src/Network.C \
+         $(MRNET_ROOT)/h/Network.h \
+         $(MRNET_ROOT)/src/StreamManager.C \
+         $(MRNET_ROOT)/src/StreamManager.h \
+         $(MRNET_ROOT)/src/Filter.C \
+         $(MRNET_ROOT)/src/Filter.h \
+         $(MRNET_ROOT)/src/Message.C \
+         $(MRNET_ROOT)/src/Message.h \
+         $(MRNET_ROOT)/src/NetworkGraph.C \
+         $(MRNET_ROOT)/src/NetworkGraph.h \
+         $(MRNET_ROOT)/src/CommunicationNode.C \
+         $(MRNET_ROOT)/src/CommunicationNode.h \
+         $(MRNET_ROOT)/src/CommunicationNodeMain.C
 
 edit:
 	echo Editing $(files2) ...

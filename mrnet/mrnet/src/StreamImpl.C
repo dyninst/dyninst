@@ -3,8 +3,8 @@
 /*===========================================================*/
 
 #include <stdarg.h>
-#include "mrnet/src/MC_StreamImpl.h"
-#include "mrnet/src/MC_NetworkImpl.h"
+#include "mrnet/src/StreamImpl.h"
+#include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/utils.h"
 
 unsigned int MC_StreamImpl::cur_stream_idx=0;
@@ -15,7 +15,7 @@ MC_StreamImpl::MC_StreamImpl(MC_Communicator *_comm, int _filter_id)
   :filter_id(_filter_id)
 {
   communicator = new MC_CommunicatorImpl(*_comm); //copy the comm.
-  //mc_printf(MCFL, stderr, "old comm(%p) endpoint:%p, new comm(%p) endpoint:%p\n",
+  //printf(MCFL, stderr, "old comm(%p) endpoint:%p, new comm(%p) endpoint:%p\n",
 	     //_comm, ((MC_CommunicatorImpl*)(_comm))->get_EndPoints(),
 	     //communicator, communicator->get_EndPoints());
 

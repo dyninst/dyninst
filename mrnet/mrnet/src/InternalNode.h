@@ -4,10 +4,10 @@
 #include <string>
 #include <list>
 
-#include "mrnet/src/MC_CommunicationNode.h"
-#include "mrnet/src/MC_ParentNode.h"
-#include "mrnet/src/MC_ChildNode.h"
-#include "mrnet/src/MC_Message.h"
+#include "mrnet/src/CommunicationNode.h"
+#include "mrnet/src/ParentNode.h"
+#include "mrnet/src/ChildNode.h"
+#include "mrnet/src/Message.h"
 
 class MC_InternalNode: public MC_ParentNode, public MC_ChildNode,
 		       public MC_CommunicationNode

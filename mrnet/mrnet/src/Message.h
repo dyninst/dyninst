@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <stdarg.h>
 
-#include "mrnet/src/MC_Errors.h"
+#include "mrnet/src/Errors.h"
 #include "mrnet/src/pdr.h"
 
 class MC_RemoteNode;

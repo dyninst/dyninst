@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "mrnet/src/MC_ChildNode.h"
+#include "mrnet/src/ChildNode.h"
 #include "mrnet/src/utils.h"
 
 /*===================================================*/

@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <errno.h>
 
-#include "mrnet/src/MC_Message.h"
+#include "mrnet/src/Message.h"
 #include "mrnet/src/utils.h"
 
 void MC_Message::add_Packet(MC_Packet *packet)
@@ -403,26 +403,26 @@ bool_t MC_Packet::pdr_packet(PDR * pdrs, MC_Packet * pkt){
     | streamid | tag | srcstr |  fmtstr | packed_data |
     ---------------------------------------------------
 *******************************************************************************/
-  //mc_printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
-  //mc_printf(MCFL, stderr, "Calling pdr_uint16()\n");
+  //printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
+  //printf(MCFL, stderr, "Calling pdr_uint16()\n");
   if( pdr_uint16(pdrs, &(pkt->stream_id)) == FALSE){
     mc_printf(MCFL, stderr, "pdr_uint16() failed\n");
     return FALSE;
   }
-  //mc_printf(MCFL, stderr, "Calling pdr_uint32()\n");
-  //mc_printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
+  //printf(MCFL, stderr, "Calling pdr_uint32()\n");
+  //printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
   if( pdr_int32(pdrs, &(pkt->tag)) == FALSE){
     mc_printf(MCFL, stderr, "pdr_uint32() failed\n");
     return FALSE;
   }
-  //mc_printf(MCFL, stderr, "Calling pdr_wrapstring(%s)\n", pkt->src);
-  //mc_printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
+  //printf(MCFL, stderr, "Calling pdr_wrapstring(%s)\n", pkt->src);
+  //printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
   if( pdr_wrapstring(pdrs, &(pkt->src)) == FALSE){
     mc_printf(MCFL, stderr, "pdr_wrapstring() failed\n");
     return FALSE;
   }
-  //mc_printf(MCFL, stderr, "Calling pdr_wrapstring(%s)\n", pkt->fmt_str);
-  //mc_printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
+  //printf(MCFL, stderr, "Calling pdr_wrapstring(%s)\n", pkt->fmt_str);
+  //printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
   if( pdr_wrapstring(pdrs, &(pkt->fmt_str)) == FALSE){
     mc_printf(MCFL, stderr, "pdr_wrapstring() failed\n");
     return FALSE;
@@ -535,8 +535,8 @@ bool_t MC_Packet::pdr_packet(PDR * pdrs, MC_Packet * pkt){
 	cur_elem->val.p = NULL;
       }
       else{
-	//mc_printf(MCFL, stderr, "ENCODING string %s (%p)\n", (char*)cur_elem->val.p, cur_elem->val.p);
-  //mc_printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
+	//printf(MCFL, stderr, "ENCODING string %s (%p)\n", (char*)cur_elem->val.p, cur_elem->val.p);
+  //printf(MCFL, stderr, "pdrs->space: %d\n", pdrs->space);
       }
       retval = pdr_wrapstring(pdrs, (char**)&(cur_elem->val.p));
       break;
@@ -694,7 +694,7 @@ void MC_Packet::DataElementArray2ArgList(va_list arg_list)
 
     cur_elem = data_elements[i];
     assert(cur_elem->type == Fmt2Type(cur_fmt));
-    //mc_printf(MCFL, stderr, "packet[%d], cur_fmt: \"%s\", cur_type: %d\n",
+    //printf(MCFL, stderr, "packet[%d], cur_fmt: \"%s\", cur_type: %d\n",
                //i, cur_fmt, cur_elem->type);
     switch(cur_elem->type){
     case UNKNOWN_T:
@@ -761,7 +761,7 @@ void MC_Packet::DataElementArray2ArgList(va_list arg_list)
       *((int *)tmp_ptr) = cur_elem->array_len;
       break;
     case STRING_T:
-      //mc_printf(MCFL, stderr, "Extracting %s\n", (char *)cur_elem->val.p);
+      //printf(MCFL, stderr, "Extracting %s\n", (char *)cur_elem->val.p);
       tmp_ptr = (void *)va_arg(arg_list, char **);
       *((char **)tmp_ptr) = (char *)cur_elem->val.p;
       break;

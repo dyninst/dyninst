@@ -1,7 +1,7 @@
 #if !defined(mc_endpointimpl_h)
 #define mc_endpointimpl_h 1
 
-#include "mrnet/h/MC_Network.h"
+#include "mrnet/h/MR_Network.h"
 #include <string>
 
 class MC_NetworkNode;

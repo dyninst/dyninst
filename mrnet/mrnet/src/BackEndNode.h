@@ -3,9 +3,9 @@
 
 #include <string>
 
-#include "mrnet/src/MC_CommunicationNode.h"
-#include "mrnet/src/MC_ChildNode.h"
-#include "mrnet/src/MC_Message.h"
+#include "mrnet/src/CommunicationNode.h"
+#include "mrnet/src/ChildNode.h"
+#include "mrnet/src/Message.h"
 
 class MC_BackEndNode: public MC_ChildNode, public MC_CommunicationNode {
  public:

@@ -1,4 +1,4 @@
-#include "mrnet/h/MC_Network.h"
+#include "mrnet/h/MR_Network.h"
 #include "test1.h"
 #include "timer.h"
 

@@ -4,7 +4,7 @@
 #include <string>
 #include <list>
 #include <map>
-#include "mrnet/src/MC_Message.h"
+#include "mrnet/src/Message.h"
 
 class MC_Filter{
  protected:

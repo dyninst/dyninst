@@ -1,7 +1,7 @@
 /*==========================================================*/
 /*      MC_EndPointImpl CLASS METHOD DEFINITIONS            */
 /*==========================================================*/
-#include "mrnet/src/MC_EndPointImpl.h"
+#include "mrnet/src/EndPointImpl.h"
 
 MC_EndPointImpl::MC_EndPointImpl(int _id, const char * _hostname,
                                  unsigned short _port)

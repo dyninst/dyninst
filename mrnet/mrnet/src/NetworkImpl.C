@@ -3,8 +3,8 @@
 /*===========================================================*/
 #include <stdio.h>
 
-#include "mrnet/src/MC_NetworkImpl.h"
-#include "mrnet/src/MC_CommunicatorImpl.h"
+#include "mrnet/src/NetworkImpl.h"
+#include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/utils.h"
 
 extern MC_NetworkGraph * parsed_graph;
@@ -80,21 +80,21 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
   return;
 }
 
-extern FILE * mrn_yyin;
-int mrn_yyparse();
-extern int mrn_yydebug;
+extern FILE * yyin;
+int yyparse();
+extern int yydebug;
 
 int MC_NetworkImpl::parse_configfile()
 {
-  // mrn_yydebug=1;
-  mrn_yyin = fopen(filename.c_str(), "r");
-  if( mrn_yyin == NULL){
+  // yydebug=1;
+  yyin = fopen(filename.c_str(), "r");
+  if( yyin == NULL){
     mc_errno = MC_EBADCONFIG_IO;
     _fail = true;
     return -1;
   }
 
-  if( mrn_yyparse() != 0 ){
+  if( yyparse() != 0 ){
     mc_errno = MC_EBADCONFIG_FMT;
     _fail = true;
     return -1;

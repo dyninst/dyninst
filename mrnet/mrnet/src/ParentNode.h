@@ -5,10 +5,10 @@
 #include <list>
 #include <string>
 
-#include "mrnet/src/MC_Message.h"
-#include "mrnet/src/MC_StreamManager.h"
-#include "mrnet/src/MC_Filter.h"
-#include "mrnet/src/MC_RemoteNode.h"
+#include "mrnet/src/Message.h"
+#include "mrnet/src/StreamManager.h"
+#include "mrnet/src/Filter.h"
+#include "mrnet/src/RemoteNode.h"
 #include "mrnet/src/pthread_sync.h"
 
 class MC_ParentNode{

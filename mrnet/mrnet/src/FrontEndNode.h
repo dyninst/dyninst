@@ -1,9 +1,9 @@
 #if !defined(__mc_frontendnode_h)
 #define __mc_frontendnode_h 1
 
-#include "mrnet/src/MC_CommunicationNode.h"
-#include "mrnet/src/MC_ParentNode.h"
-#include "mrnet/src/MC_Message.h"
+#include "mrnet/src/CommunicationNode.h"
+#include "mrnet/src/ParentNode.h"
+#include "mrnet/src/Message.h"
 
 class MC_FrontEndNode: public MC_ParentNode, public MC_CommunicationNode{
  private:

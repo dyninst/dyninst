@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "mrnet/src/MC_FrontEndNode.h"
-#include "mrnet/src/MC_StreamImpl.h"
+#include "mrnet/src/FrontEndNode.h"
+#include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
 /*======================================================*/
 /*  MC_FrontEndNode CLASS METHOD DEFINITIONS            */
@@ -61,12 +61,12 @@ int MC_FrontEndNode::proc_PacketsFromDownStream(std::list <MC_Packet *> &packet_
     cur_packet = (*iter);
     switch(cur_packet->get_Tag()){
     case MC_RPT_SUBTREE_PROT:
-      //mc_printf(MCFL, stderr, "Calling proc_newSubTreeReport()\n");
+      //printf(MCFL, stderr, "Calling proc_newSubTreeReport()\n");
       if(proc_newSubTreeReport(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_newSubTreeReport() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
+      //printf(MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
       break;
 
     case MC_GET_LEAF_INFO_PROT:
@@ -87,13 +87,13 @@ int MC_FrontEndNode::proc_PacketsFromDownStream(std::list <MC_Packet *> &packet_
 
     default:
       //Any unrecognized tag is assumed to be data
-      //mc_printf(MCFL, stderr, "Calling proc_DataFromDownStream(). Tag: %d\n",
+      //printf(MCFL, stderr, "Calling proc_DataFromDownStream(). Tag: %d\n",
                  //cur_packet->get_Tag());
       if(proc_DataFromDownStream(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_DataFromDownStream() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_DataFromDownStream() succeeded\n");
+      //printf(MCFL, stderr, "proc_DataFromDownStream() succeeded\n");
     }
   }
 

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "mrnet/src/MC_RemoteNode.h"
+#include "mrnet/src/RemoteNode.h"
 #include "mrnet/src/utils.h"
 #include "mrnet/src/config.h"
 

@@ -2,7 +2,7 @@
 #define __mc_streammanager_h
 
 #include <list>
-#include "mrnet/src/MC_Filter.h"
+#include "mrnet/src/Filter.h"
 
 class MC_RemoteNode;
 class MC_StreamManager{

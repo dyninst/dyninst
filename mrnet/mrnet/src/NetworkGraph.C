@@ -1,8 +1,8 @@
 #include <stdio.h>
 
 
-#include "MC_NetworkGraph.h"
-#include "mrnet/src/MC_CommunicationNode.h"
+#include "mrnet/src/NetworkGraph.h"
+#include "mrnet/src/CommunicationNode.h"
 #include "mrnet/src/utils.h"
 #include "mrnet/src/config.h"
 
@@ -26,7 +26,7 @@ std::string MC_NetworkNode::get_HostName()
 
 void MC_NetworkNode::add_Child(MC_NetworkNode * child)
 {
-  //mc_printf(MCFL, stderr, "Adding %s:%d as child %d of Node %s:%d(%p)\n", 
+  //printf(MCFL, stderr, "Adding %s:%d as child %d of Node %s:%d(%p)\n", 
 	     //child->hostname.c_str(), child->port, children.size(),
              //hostname.c_str(), port, this);
   children.push_back(child);
@@ -108,16 +108,16 @@ bool MC_NetworkGraph::has_cycle(){
 void MC_NetworkGraph::preorder_traversal(MC_NetworkNode * node){
   static int next_leaf_id=0;
 
-  //mc_printf(MCFL, stderr, "Preorder_traversing node %s:%d (%p) ...\n",
+  //printf(MCFL, stderr, "Preorder_traversing node %s:%d (%p) ...\n",
              //node->get_HostName().c_str(), node->get_Port(), node );
 
   if( node->visited() == true ){
-    //mc_printf(MCFL, stderr, "Node already visited\n");
+    //printf(MCFL, stderr, "Node already visited\n");
     //Should I stop here?
     _has_cycle=true;
   }
   else{
-    //mc_printf(MCFL, stderr, "Node's 1st visit\n");
+    //printf(MCFL, stderr, "Node's 1st visit\n");
     node->visit();
     visited_nodes++;
 
@@ -153,7 +153,7 @@ bool MC_NetworkGraph::fully_connected()
     graph_checked=true;
   }
 
-  //mc_printf(MCFL, stderr, "In fully_connected(). visited %d, exist %d\n",
+  //printf(MCFL, stderr, "In fully_connected(). visited %d, exist %d\n",
              //visited_nodes, nodes.size() );
   return ( visited_nodes == nodes.size() ) ;
 }
@@ -215,9 +215,9 @@ void MC_SerialGraph::set_ToFirstChild()
   buf_idx++;
 
 
-  //mc_printf(MCFL, stderr, "In set_tofirstchild():\n");
-  //mc_printf(MCFL, stderr, "byte_array: %s\n", byte_array.c_str());
-  //mc_printf(MCFL, stderr, "1st child : ");
+  //printf(MCFL, stderr, "In set_tofirstchild():\n");
+  //printf(MCFL, stderr, "byte_array: %s\n", byte_array.c_str());
+  //printf(MCFL, stderr, "1st child : ");
   //for(i=0; i<buf_idx; i++){
     //_fprintf((stderr, " "));
   //}
@@ -231,15 +231,15 @@ MC_SerialGraph * MC_SerialGraph::get_NextChild()
   const char * buf = byte_array.c_str();
   bool leaf_node=false;
 
-  //mc_printf(MCFL, stderr, "In get_nextchild():\n");
-  //mc_printf(MCFL, stderr, "byte_array: %s\n", byte_array.c_str());
-  //mc_printf(MCFL, stderr, "    child : ");
+  //printf(MCFL, stderr, "In get_nextchild():\n");
+  //printf(MCFL, stderr, "byte_array: %s\n", byte_array.c_str());
+  //printf(MCFL, stderr, "    child : ");
   //for(i=0; i<buf_idx; i++){
     //_fprintf((stderr, " "));
   //}
   //_fprintf((stderr, "^\n"));
 
-  //mc_printf(MCFL, stderr, "buf_idx: %d, array_len: %d\n", buf_idx, byte_array.length());
+  //printf(MCFL, stderr, "buf_idx: %d, array_len: %d\n", buf_idx, byte_array.length());
   if(buf_idx >= byte_array.length()-2){
     return NULL;
   }
@@ -272,7 +272,7 @@ MC_SerialGraph * MC_SerialGraph::get_NextChild()
     retval = new MC_SerialGraph("[ " + byte_array.substr(begin, end) + " ]");
   }
 
-  //mc_printf(MCFL, stderr, "get_nextchild() returning:");  retval->print();
+  //printf(MCFL, stderr, "get_nextchild() returning:");  retval->print();
   return retval;
 }
 
@@ -308,7 +308,7 @@ std::string MC_SerialGraph::get_RootName()
   //}
 
   retval = byte_array.substr(begin, end-begin);
-  //mc_printf(MCFL, stderr, "In get_rootname(). array: %s, root %s\n",
+  //printf(MCFL, stderr, "In get_rootname(). array: %s, root %s\n",
 	     //byte_array.c_str(), retval.c_str());
 
   return retval;
@@ -325,7 +325,7 @@ unsigned short MC_SerialGraph::get_RootPort()
   end = byte_array.find(' ', begin);
   std::string port_string = byte_array.substr(begin, end-begin);
   retval = atoi(port_string.c_str());
-  //mc_printf(MCFL, stderr, "In get_port(). array: %s, port: %d\n",
+  //printf(MCFL, stderr, "In get_port(). array: %s, port: %d\n",
 	     //byte_array.c_str(), retval);
   return retval;
 }
@@ -359,7 +359,7 @@ int MC_SerialGraph::get_Id(){
   std::string idstring = byte_array.substr(begin, end-begin);
 
   retval = atoi(idstring.c_str());
-  //mc_printf(MCFL, stderr, "In get_Id(). byte_array: %s, id: %s, %d\n",
+  //printf(MCFL, stderr, "In get_Id(). byte_array: %s, id: %s, %d\n",
              //byte_array.c_str(), idstring.c_str(), retval);
 
   return retval;

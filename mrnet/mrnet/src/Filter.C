@@ -1,6 +1,6 @@
-#include "mrnet/src/MC_Filter.h"
-#include "mrnet/src/MC_CommunicationNode.h"
-#include "mrnet/src/MC_ParentNode.h"
+#include "mrnet/src/Filter.h"
+#include "mrnet/src/CommunicationNode.h"
+#include "mrnet/src/ParentNode.h"
 #include "mrnet/src/utils.h"
 
 /*======================================*

@@ -3,8 +3,8 @@
 /*===========================================================*/
 
 #include <stdio.h>
-#include "mrnet/src/MC_CommunicatorImpl.h"
-#include "mrnet/src/MC_NetworkImpl.h"
+#include "mrnet/src/CommunicatorImpl.h"
+#include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/utils.h"
 
 MC_CommunicatorImpl * MC_CommunicatorImpl::comm_Broadcast=NULL;

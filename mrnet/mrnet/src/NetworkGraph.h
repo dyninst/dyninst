@@ -7,9 +7,9 @@
 #include <string>
 
 
-#include "mrnet/src/MC_Errors.h"
-#include "mrnet/src/MC_Message.h"
-#include "mrnet/h/MC_Network.h"
+#include "mrnet/src/Errors.h"
+#include "mrnet/src/Message.h"
+#include "mrnet/h/MR_Network.h"
 
 class MC_NetworkGraph;
 class MC_EndPoint;

@@ -2,7 +2,7 @@
 #define __communication_node_h 1
 
 #include <string>
-#include "mrnet/src/MC_Errors.h"
+#include "mrnet/src/Errors.h"
 
 enum MC_ProtocolTags{MC_NEW_SUBTREE_PROT=200, MC_DEL_SUBTREE_PROT,
                      MC_RPT_SUBTREE_PROT,

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "mrnet/src/MC_InternalNode.h"
+#include "mrnet/src/InternalNode.h"
 #include "mrnet/src/utils.h"
 
 /*======================================================*/
@@ -21,7 +21,7 @@ MC_InternalNode::MC_InternalNode(std::string _hostname, unsigned short _port,
   MC_RemoteNode::local_child_node = this;
   MC_RemoteNode::local_parent_node = this;
 
-  //mc_printf(MCFL, stderr, "Calling connect() ...\n");
+  //printf(MCFL, stderr, "Calling connect() ...\n");
   upstream_node->connect();
   upstream_node->_is_upstream = true;
   if(upstream_node->fail() ){
@@ -30,13 +30,13 @@ MC_InternalNode::MC_InternalNode(std::string _hostname, unsigned short _port,
     return;
   }
 
-  //mc_printf(MCFL, stderr, "connect() succeeded. Call bind_to_port(%d)...\n", port);
+  //printf(MCFL, stderr, "connect() succeeded. Call bind_to_port(%d)...\n", port);
   //if( bind_to_port(&listening_sock_fd, &(this->MC_CommunicationNode::port) ) == -1){
-    //mc_printf(MCFL, stderr, "bind_to_port() failed\n");
-    //mc_errno = MC_ECANNOTBINDPORT;
+    //printf(MCFL, stderr, "bind_to_port() failed\n");
+    //errno = MC_ECANNOTBINDPORT;
     //return;
   //}
-  //mc_printf(MCFL, stderr, "Bound to port %d, via socket: %d\n",
+  //printf(MCFL, stderr, "Bound to port %d, via socket: %d\n",
              //this->MC_CommunicationNode::port, listening_sock_fd);
 
   mc_printf(MCFL, stderr, "Creating Upstream recv thread ...\n");
@@ -193,7 +193,7 @@ int MC_InternalNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
     cur_packet = (*iter);
     switch(cur_packet->get_Tag()){
     case MC_NEW_SUBTREE_PROT:
-      //mc_printf(MCFL, stderr, "Calling proc_newSubTree()\n");
+      //printf(MCFL, stderr, "Calling proc_newSubTree()\n");
       if(proc_newSubTree(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_newSubTree() failed\n");
 	retval=-1;
@@ -204,34 +204,34 @@ int MC_InternalNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
           mc_printf(MCFL, stderr, "send_newSubTreeReport() failed\n");
           retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_newsubtree() succeded\n");
+      //printf(MCFL, stderr, "proc_newsubtree() succeded\n");
       break;
     case MC_DEL_SUBTREE_PROT:
-      //mc_printf(MCFL, stderr, "Calling proc_delSubTree()\n");
+      //printf(MCFL, stderr, "Calling proc_delSubTree()\n");
       if(proc_delSubTree(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_delSubTree() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_delSubTree() succeded\n");
+      //printf(MCFL, stderr, "proc_delSubTree() succeded\n");
       break;
     case MC_NEW_APPLICATION_PROT:
-      //mc_printf(MCFL, stderr, "Calling proc_newApplication()\n");
+      //printf(MCFL, stderr, "Calling proc_newApplication()\n");
       if(proc_newApplication(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_newApplication() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_newApplication() succeded\n");
+      //printf(MCFL, stderr, "proc_newApplication() succeded\n");
       break;
     case MC_DEL_APPLICATION_PROT:
-      //mc_printf(MCFL, stderr, "Calling proc_delApplication()\n");
+      //printf(MCFL, stderr, "Calling proc_delApplication()\n");
       if(proc_delApplication(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_delApplication() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_delApplication() succeded\n");
+      //printf(MCFL, stderr, "proc_delApplication() succeded\n");
       break;
     case MC_NEW_STREAM_PROT:
-      //mc_printf(MCFL, stderr, "Calling proc_newStream()\n");
+      //printf(MCFL, stderr, "Calling proc_newStream()\n");
         stream_mgr = proc_newStream(cur_packet);
         if(stream_mgr == NULL){
             mc_printf(MCFL, stderr, "proc_newStream() failed\n");
@@ -246,22 +246,22 @@ int MC_InternalNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
         }
         break;
     case MC_DEL_STREAM_PROT:
-      //mc_printf(MCFL, stderr, "Calling proc_delStream()\n");
+      //printf(MCFL, stderr, "Calling proc_delStream()\n");
       if(proc_delStream(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_delStream() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_delStream() succeded\n");
+      //printf(MCFL, stderr, "proc_delStream() succeded\n");
       break;
 
     case MC_GET_LEAF_INFO_PROT:
-        //mc_printf(MCFL, stderr, "Calling proc_getLeafInfo()\n");
+        //printf(MCFL, stderr, "Calling proc_getLeafInfo()\n");
         if( proc_getLeafInfo(cur_packet) == -1)
         {
             mc_printf(MCFL, stderr, "proc_getLeafInfo() failed\n");
             retval=-1;
         }
-        //mc_printf(MCFL, stderr, "proc_getLeafInfo() succeded\n");
+        //printf(MCFL, stderr, "proc_getLeafInfo() succeded\n");
         break;
 
     case MC_CONNECT_LEAVES_PROT:
@@ -274,12 +274,12 @@ int MC_InternalNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
 
     default:
       //Any Unrecognized tag is assumed to be data
-      //mc_printf(MCFL, stderr, "Calling proc_DataFromUpStream(). Tag: %d\n",cur_packet->get_Tag());
+      //printf(MCFL, stderr, "Calling proc_DataFromUpStream(). Tag: %d\n",cur_packet->get_Tag());
       if(proc_DataFromUpStream(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_DataFromUpStream() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_DataFromUpStream() succeded\n");
+      //printf(MCFL, stderr, "proc_DataFromUpStream() succeded\n");
       break;
     }
   }
@@ -302,12 +302,12 @@ int MC_InternalNode::proc_PacketsFromDownStream(std::list <MC_Packet *> &packet_
     cur_packet = (*iter);
     switch(cur_packet->get_Tag()){
     case MC_RPT_SUBTREE_PROT:
-      //mc_printf(MCFL, stderr, "Calling proc_newSubTreeReport()\n");
+      //printf(MCFL, stderr, "Calling proc_newSubTreeReport()\n");
       if(proc_newSubTreeReport(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_newSubTreeReport() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
+      //printf(MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
       break;
 
     case MC_GET_LEAF_INFO_PROT:
@@ -328,13 +328,13 @@ int MC_InternalNode::proc_PacketsFromDownStream(std::list <MC_Packet *> &packet_
 
     default:
       //Any unrecognized tag is assumed to be data
-      //mc_printf(MCFL, stderr, "Calling proc_DataFromDownStream(). Tag: %d\n",
+      //printf(MCFL, stderr, "Calling proc_DataFromDownStream(). Tag: %d\n",
                  //cur_packet->get_Tag());
       if(proc_DataFromDownStream(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_DataFromDownStream() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_DataFromDownStream() succeeded\n");
+      //printf(MCFL, stderr, "proc_DataFromDownStream() succeeded\n");
     }
   }
 

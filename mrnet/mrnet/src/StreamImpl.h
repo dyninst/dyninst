@@ -6,9 +6,9 @@
 
 #include <map>
 
-#include "mrnet/h/MC_Network.h"
-#include "mrnet/src/MC_Message.h"
-#include "mrnet/src/MC_CommunicatorImpl.h"
+#include "mrnet/h/MR_Network.h"
+#include "mrnet/src/Message.h"
+#include "mrnet/src/CommunicatorImpl.h"
 
 class MC_StreamImpl: public MC_Stream {
   friend class MC_Network;

@@ -1,5 +1,5 @@
-#include "mrnet/src/MC_StreamManager.h"
-#include "mrnet/src/MC_StreamImpl.h"
+#include "mrnet/src/StreamManager.h"
+#include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
 
 MC_StreamManager::MC_StreamManager(int sid, int fid,
