@@ -79,7 +79,6 @@ proc drawToolBar {} {
     mkButtonBar .parent.buttons {} retval { \
 	    {RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} \
-	    {VISI "drawVisiMenu"} \
 	    {SAVE "drawSaveMenu"} \
 	    {EXIT "procExit"}}
 
@@ -121,6 +120,9 @@ proc drawToolBar {} {
 
     menubutton .parent.menub.left.men.b6 -text "Phase" \
 	    -menu .parent.menub.left.men.b6.m 
+
+    button .parent.menub.left.men.b8 -text "Visi" \
+	    -command "drawVisiMenu" -relief flat -highlightthickness 0
 
     menubutton .parent.menub.left.men.b7 -text "Help" -state disabled
 
@@ -177,7 +179,7 @@ proc drawToolBar {} {
 
     pack .parent.menub.left.men.b7 -side right -padx 10
     pack .parent.menub.left.men.b0 .parent.menub.left.men.b1 \
-	    .parent.menub.left.men.b6 \
+	    .parent.menub.left.men.b6 .parent.menub.left.men.b8 \
 	    -side left -padx 10
 
     makeLogo .parent.menub.logobox paradynLogo raised 2 #b3331e1b53c7
