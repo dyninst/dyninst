@@ -44,6 +44,13 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.15  2002/05/09 21:42:55  schendel
+ * improve handling of focus in daemon  - - - - - - - - - - - - - - - - - -
+ * add header file that should have been there, was previously being included
+ *    by files which were including resource.h;
+ * fixed findResource(unsigned) argument, because it wasn't getting called
+ *    appropriately
+ *
  * Revision 1.14  2000/10/17 17:42:38  schendel
  * Update of the sample value pipeline with changes in pdutil, paradynd, rtinst,
  * dyninstAPI_RT, and dyninstAPI.  The sample value and general time types have
@@ -115,6 +122,7 @@
  */
 
 #include "common/h/Time.h"
+#include "common/h/Dictionary.h"
 
 class resource;
 
@@ -194,7 +202,7 @@ public:
   static void make_canonical(const vector< vector<string> >& focus,
 			     vector< vector<string> >& ret);
   inline static resource *findResource(const string& name);
-  inline static resource *findResource(unsigned& name);
+  inline static resource *findResource(unsigned name);
   inline static resource *findResource(vector<string>& name);
 
   inline bool isResourceDescendent(resource *is_a_parent);
@@ -230,7 +238,7 @@ private:
   resource *parent_;
   unsigned id_;
   unsigned type_;  // the mdl type of this resource
-  
+
   static dictionary_hash<string, resource*> allResources;
   static dictionary_hash<unsigned, resource*> res_dict;
 };
@@ -259,13 +267,13 @@ inline resource::resource(const string& abstraction, const string& self_name,
   creation_(creat), handle_(hand), suppressed_(supp), parent_(par),
   type_(type) { }
 
-inline resource *resource::findResource(unsigned& name) {
+inline resource *resource::findResource(unsigned name) {
    // why is the param call-by-reference?
    resource *result;
    if (!res_dict.find(name, result))
-      return NULL;
+     return NULL;
    else
-      return result;
+     return result;
 }
 
 inline resource *resource::findResource(const string &name) {
@@ -288,7 +296,7 @@ inline resource *resource::findResource(vector<string>& name) {
 
   resource *result;
   if (!allResources.find(flat, result)) {
-    cout << "Cannot find " << flat << endl;
+    cerr << "Cannot find " << flat << endl;
     return (NULL);
   }
   else
