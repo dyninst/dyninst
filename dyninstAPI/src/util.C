@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.22 1999/08/26 20:02:29 hollings Exp $
+/* $Id: util.C,v 1.23 1999/10/27 21:51:42 schendel Exp $
  * util.C - support functions.
  */
 
@@ -70,6 +70,11 @@ int TIMINGcounter[MAX_N_TIMERS];
 
 #endif
 
+#if defined(i386_unknown_solaris2_5) || defined(sparc_sun_solaris2_4)
+#include <sys/time.h>  // for gethrtime()
+#endif
+
+
 // TIMING code
 
 time64 firstRecordTime = 0; // time64 = long long int (rtinst/h/rtinst.h)
@@ -79,7 +84,27 @@ timeStamp getCurrentTime(bool firstRecordRelative)
 
     double result = 0.0;
 
-#if !defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0)
+    static double freq=0.0; // the counter frequency
+    LARGE_INTEGER time;
+
+    if (freq == 0.0)
+      if (QueryPerformanceFrequency(&time))
+        freq = (double)time.QuadPart;
+      else
+        assert(0);
+
+    if (QueryPerformanceCounter(&time))
+       result = (double)time.QuadPart/freq;
+    else
+       assert(0);
+#elif defined(i386_unknown_solaris2_5) || defined(sparc_sun_solaris2_4)
+    result = (double)gethrtime() / 1000000000.0F;    
+             // converts nanoseconds to seconds
+
+    if (result < previousTime)  result = previousTime;
+    else  previousTime = result;
+#else
     do {
        struct timeval tv;
        if (-1 == gettimeofday(&tv, NULL)) {
@@ -96,21 +121,6 @@ timeStamp getCurrentTime(bool firstRecordRelative)
     } while (result < previousTime); // retry if we've gone backwards
 
     previousTime = result;
-
-#else
-    static double freq=0.0; // the counter frequency
-    LARGE_INTEGER time;
-
-    if (freq == 0.0)
-      if (QueryPerformanceFrequency(&time))
-        freq = (double)time.QuadPart;
-      else
-        assert(0);
-
-    if (QueryPerformanceCounter(&time))
-       result = (double)time.QuadPart/freq;
-    else
-       assert(0);
 #endif
 
     if (firstRecordRelative)
@@ -127,22 +137,8 @@ time64 getCurrWallTime() {
  
    static time64 previousTime = 0;
    time64 result;
-    
-#if !defined(i386_unknown_nt4_0)
-   do {
-      struct timeval tv;
-      if (-1 == gettimeofday(&tv, NULL)) {
-	 perror("getCurrWallTime gettimeofday()");
-	 return 0;
-      }
 
-      result = tv.tv_sec;
-      result *= 1000000;
-      result += tv.tv_usec;
-   } while (result < previousTime);
-
-   previousTime = result;
-#else
+#if defined(i386_unknown_nt4_0)
     static double freq=0.0; // the counter frequency
     LARGE_INTEGER time;
 
@@ -156,6 +152,25 @@ time64 getCurrWallTime() {
        result = (time64)(((double)time.QuadPart/freq)*1000000.0);
     else
        assert(0);
+#elif defined(i386_unknown_solaris2_5) || defined(sparc_sun_solaris2_4)
+    result = gethrtime() / 1000;    // converts nanoseconds to microseconds
+
+    if (result < previousTime)  result = previousTime;
+    else  previousTime = result;
+#else
+   do {
+     struct timeval tv;
+     if (-1 == gettimeofday(&tv, NULL)) {
+       perror("getCurrWallTime gettimeofday()");
+       return 0;
+     }
+
+     result = tv.tv_sec;
+     result *= 1000000;
+     result += tv.tv_usec;
+   } while (result < previousTime);
+
+   previousTime = result;
 #endif
 
    return result;

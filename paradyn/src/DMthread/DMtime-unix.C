@@ -40,22 +40,34 @@
  */
 
 /*
- * $Id: DMtime-unix.C,v 1.1 1999/03/03 17:29:42 pcroth Exp $
+ * $Id: DMtime-unix.C,v 1.2 1999/10/27 21:51:55 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "DMinclude.h"
 #include "DMtime.h"
 
+#if defined(i386_unknown_solaris2_5) || defined(sparc_sun_solaris2_4)
+#include <sys/time.h>
+#endif
 
 timeStamp getCurrentTime(void) {
     static double previousTime=0.0;
+    double seconds_dbl;
+
+#if defined(i386_unknown_solaris2_5) || defined(sparc_sun_solaris2_4)
+    seconds_dbl = (double)gethrtime() / 1000000000.0F;    
+    // converts nanoseconds to seconds
+
+    if (seconds_dbl < previousTime)  seconds_dbl = previousTime;
+    else  previousTime = seconds_dbl;
+#else
     struct timeval tv;
   retry:
     bool aflag;
     aflag=(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
     assert(aflag);
 
-    double seconds_dbl = tv.tv_sec * 1.0;
+    seconds_dbl = tv.tv_sec * 1.0;
     assert(tv.tv_usec < 1000000);
     double useconds_dbl = tv.tv_usec * 1.0;
 
@@ -63,6 +75,7 @@ timeStamp getCurrentTime(void) {
 
     if (seconds_dbl < previousTime) goto retry;
     previousTime = seconds_dbl;
+#endif
 
     return seconds_dbl;
 }
