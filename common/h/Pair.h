@@ -43,11 +43,9 @@
  * Pair.h: definition of pairs for dictionaries and sets.
 ************************************************************************/
 
-
 #if defined(external_templates)
 #pragma interface
 #endif
-
 
 #if !defined(_Pair_h_)
 #define _Pair_h_
@@ -56,29 +54,43 @@
 #include <stl.h>
 #else
 
-
-
-
 /************************************************************************
- * template<class K, class V> struct pair
+ * template<class T1, class T2> struct pair
 ************************************************************************/
 
-template<class K, class V>
+// Note that paired classes must provide operator== and operator<
+
+template<class T1, class T2>
 struct pair {
-    K key;
-    V value;
+ public: //needed so nt build doesn't think members are private
+  T1 first;
+  T2 second;
 
-    bool operator== (const pair<K,V>& p) const {
-        return ((key == p.key) && (value == p.value));
-    }
-
-    pair ()                                          {}
-    pair (const K& k) : key(k), value(0)             {}
-    pair (const K& k, const V& v) : key(k), value(v) {}
+  bool operator==(const pair<T1, T2>& p) {
+    return (first == p.first) && (second == p.second); 
+  }
+  bool operator!=(const pair<T1, T2>& p) {
+    return !((first == p.first) && (second == p.second));
+  }
+  /*
+  bool operator<(const pair<T1, T2>& p) { 
+    return (first < p.first) || (!(p.first < first) && second < p.second); 
+  }
+  bool operator>(const pair<T1, T2>& p) {
+    return (p.first < first) || (!(first < p.first) && p.second < second);
+  }
+  */
+  pair () : first(), second()                                    {}
+  pair (const T1& k) : first(k), second(0)                       {}
+  pair (const T1& k, const T2& v) : first(k), second(v)          {}
+  pair(const pair<T1, T2>& p) : first(p.first), second(p.second) {}
 };
 
-
-
+template <class T1, class T2>
+pair<T1, T2> make_pair(const T1& x, const T2& y)
+{
+  return pair<T1, T2>(x, y);
+}
 
 #endif
 
