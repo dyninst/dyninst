@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.163 2004/03/02 22:46:07 bernat Exp $
+// $Id: solaris.C,v 1.164 2004/03/05 16:51:42 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -759,15 +759,6 @@ bool process::loadDYNINSTlibCleanup()
   delete savedRegs;
   savedRegs = NULL;
   return true;
-}
-
-
-
-Address process::get_dlopen_addr() const {
-  if (dyn != NULL)
-    return(dyn->get_dlopen_addr());
-  else 
-    return(0);
 }
 
 fileDescriptor *getExecFileDescriptor(pdstring filename, int &, bool)
