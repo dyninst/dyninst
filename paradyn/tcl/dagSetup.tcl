@@ -2,7 +2,10 @@
 # plain vanilla script to setup frames and scrollbars for the dag widget
 
 # $Log: dagSetup.tcl,v $
-# Revision 1.5  1994/10/25 17:55:08  karavan
+# Revision 1.6  1995/07/01 22:34:42  rbi
+# mindbending fixes for tk 4.0
+#
+# Revision 1.5  1994/10/25  17:55:08  karavan
 # Implemented Resource Display Objects, which manage display of multiple
 # resource Abstractions.
 #
@@ -56,8 +59,8 @@ proc setupDAG parentw {
     pack $parentw._c_ -side top -expand yes -fill both
 	 
     $parentw._c_ config \
-	    -xscroll "$parentw._hscroll_ set" \
-	    -yscroll "$parentw._vscroll_ set"
+	    -xscrollcommand "$parentw._hscroll_ set" \
+	    -yscrollcommand "$parentw._vscroll_ set"
 
     update
 }
