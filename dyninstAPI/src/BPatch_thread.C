@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.84 2003/04/17 20:55:53 jaw Exp $
+// $Id: BPatch_thread.C,v 1.85 2003/04/20 01:00:19 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1247,7 +1247,6 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
                                    false, // XXX = calculate cost - is this what we want?
                                    BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
                                    (void *)info, // User data
-                                   -1,   // This isn't a metric definition
                                    false,
                                    NULL, NULL); // Process-wide  
     

@@ -725,10 +725,10 @@ bool processMetFocusNode::postCatchupRPCs()
       }
       catchupPosted = true;
 
-      unsigned rpc_id = proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
-                                           getMetricID(), false,  // lowmem parameter
-                                           catchupASTList[i].thread,
-                                           NULL);
+      unsigned rpc_id =
+         proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
+                            false,  // lowmem parameter
+                            catchupASTList[i].thread, NULL);
       rpc_id_buf.push_back(rpc_id);
    }
    

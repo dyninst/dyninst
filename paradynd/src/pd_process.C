@@ -467,7 +467,7 @@ bool pd_process::loadParadynLib() {
     postRPCtoDo(loadLib, true, // Don't update cost
                 pd_process::paradynLibLoadCallback,
                 (void *)this, // User data
-                -1, false,
+                false,
                 NULL, NULL); // Not metric definition
 
     setLibState(paradynRTState, libLoading);
@@ -757,7 +757,7 @@ bool pd_process::iRPCParadynInit() {
     postRPCtoDo(paradyn_init, false, // noCost
                 pd_process::paradynInitCompletionCallback,
                 (void *)this, // User data
-                -1, false,
+                false,
                 NULL, NULL); // Not metric definition
 
     // And force a flush...
@@ -885,7 +885,7 @@ bool pd_process::loadAuxiliaryLibrary(string libname) {
     postRPCtoDo(loadLib, true, // Don't update cost
                 pd_process::loadAuxiliaryLibraryCallback,
                 (void *)this, // User data
-                -1, false,
+                false,
                 NULL, NULL);
 
     setLibState(auxLibState, libLoading);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.138 2003/04/16 21:07:03 bernat Exp $
+// $Id: aix.C,v 1.139 2003/04/20 01:00:20 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -2048,7 +2048,8 @@ unsigned recognize_thread(process *proc, unsigned lwp_id) {
    pdvector<AstNode *> ast_args;
    AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
 
-   return proc->getRpcMgr()->postRPCtoDo(ast, true, NULL, (void *)lwp_id, -1, true, NULL, lwp);
+   return proc->getRpcMgr()->postRPCtoDo(ast, true, NULL, (void *)lwp_id,
+                                         true, NULL, lwp);
 }
 
 // run rpcs on each lwp in the child process that will start the virtual

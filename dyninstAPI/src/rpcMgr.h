@@ -80,7 +80,6 @@ struct inferiorRPCtoDo {
     bool noCost; // if true, cost model isn't updated by generated code.
     inferiorRPCcallbackFunc callbackFunc;
     void *userData; /* Good 'ol callback/void * pair */
-    int mid;
     bool lowmem; /* Steers allocation of memory for the RPC to run in */
     int id;
     dyn_thread *thr;
@@ -158,7 +157,6 @@ class rpcThr {
     
     // Remove a pending IRPC
     bool deleteThrIRPC(int id);
-    bool deleteThrRPCbyMID(int mid);
     
     // Handle completion states
     bool handleCompletedIRPC();
@@ -221,7 +219,6 @@ class rpcLWP {
     
     // Remove a pending IRPC
     bool deleteLWPIRPC(int id);
-    bool deleteLWPRPCbyMID(int mid);
     
     // Handle completion states
     bool handleCompletedIRPC();
@@ -308,13 +305,10 @@ class rpcMgr {
    // IRPC running
    bool existsRunningIRPC() const;
    
-   void deleteRPCbyMID(int mid);
-   
    // posting RPC on a process
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
-                        void *userData, int mid, bool lowmem,
-                        dyn_thread *thr,
+                        void *userData, bool lowmem, dyn_thread *thr,
                         dyn_lwp *lwp);
 
    // Create the body of the IRPC

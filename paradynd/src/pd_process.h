@@ -158,10 +158,6 @@ class pd_process {
        return dyninst_process->getRpcMgr()->launchRPCs(wasRunning);
    }
 
-   void deleteRPCbyMID(int mid) {
-       dyninst_process->getRpcMgr()->deleteRPCbyMID(mid);
-   }
-   
    bool isPARADYNBootstrappedYet() const {
        // Good enough approximation (should use a flag here)
        return reachedLibState(paradynRTState, libReady);       
@@ -179,11 +175,11 @@ class pd_process {
 
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
-                        void *userData, int mid, bool lowmem,
+                        void *userData, bool lowmem,
                         dyn_thread *thr, dyn_lwp *lwp) {
        return dyninst_process->getRpcMgr()->postRPCtoDo(action, noCost,
                                                         callbackFunc, userData,
-                                                        mid, lowmem,
+                                                        lowmem,
                                                         thr, lwp);
    }
    
