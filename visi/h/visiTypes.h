@@ -16,16 +16,21 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.2  1994/05/23 20:55:19  newhall
-/* To visi_GridCellHisto class: added deleted flag, SumValue
-/* method function, and fixed AggregateValue method function
+/* Revision 1.3  1994/07/28 22:23:19  krisna
+/* changed definition of ERROR to use NaN(X)
 /*
+ * Revision 1.2  1994/05/23  20:55:19  newhall
+ * To visi_GridCellHisto class: added deleted flag, SumValue
+ * method function, and fixed AggregateValue method function
+ *
  * Revision 1.1  1994/05/11  17:11:08  newhall
  * changed data values from double to float
  * */
 
 #include <stdio.h>
 #include <math.h>
+#include <nan.h>
+
 #define INVALID            0
 #define VALID              1
 #define NOVALUE           -1
@@ -40,7 +45,9 @@
 #define ERROR_STRNCPY     -26
 #define ERROR_INIT        -27
 #define VISI_ERROR_MAX    -27
-#define ERROR            ((float) quiet_nan())
+
+static double visi_nan = 0;
+#define ERROR (NaN(visi_nan),visi_nan)
 
 //
 // event types associated with events from Paradyn to a visualization
