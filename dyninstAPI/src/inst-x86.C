@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.184 2005/01/17 20:10:28 rutar Exp $
+ * $Id: inst-x86.C,v 1.185 2005/01/18 23:57:12 rutar Exp $
  */
 #include <iomanip>
 
@@ -6393,4 +6393,5 @@ bool registerSpace::clobberRegister(Register reg)
 
 unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
 {
+  return 0;
 }
