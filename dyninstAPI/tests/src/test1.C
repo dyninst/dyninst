@@ -4298,7 +4298,7 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
     char *fn = "call35_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed** test #34 (loop information)\n");
+      fprintf(stderr, "**Failed** test #35 (function relocation)\n");
       fprintf(stderr, "    Unable to find function %s\n", fn);
       exit(1);
     }
@@ -4803,7 +4803,7 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
     //   regex "^fucn12" should match all functions that begin with "func12"
     if (NULL == appImage->findFunction("^func12", bpmv) || (bpmv.size() != 2)) {
 
-         fprintf(stderr, "**Failed test #21 (regex function search)\n");
+         fprintf(stderr, "**Failed test #39 (regex function search)\n");
          fprintf(stderr, "  Expected 2 functions matching ^func12, got %d\n",
                             bpmv.size());
         char buf[128];
@@ -4816,7 +4816,7 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
     bpmv.clear();
     if (NULL == appImage->findFunction("^func12_1", bpmv) 
        || (bpmv.size() != 1)) {
-         fprintf(stderr, "**Failed test #21 (regex function search)\n");
+         fprintf(stderr, "**Failed test #39 (regex function search)\n");
          fprintf(stderr, "  Expected 1 function matching ^func12_1, got %d\n",
                             bpmv.size());
          exit(1);
@@ -4832,7 +4832,7 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
     const char *libc_regex = "^sp";
     if (NULL == appImage->findFunction(libc_regex, bpmv) 
        || (!bpmv.size())) {
-         fprintf(stderr, "**Failed test #21 (regex function search)\n");
+         fprintf(stderr, "**Failed test #39 (regex function search)\n");
          fprintf(stderr, "  Expected function(s) matching %s\n",libc_regex);
          exit(1);
     }

@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.113 2005/02/24 10:17:34 rchen Exp $ */
+/* $Id: test1.mutatee.c,v 1.114 2005/03/19 19:07:04 jodom Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -278,7 +278,7 @@ void call2_1(int arg1, int arg2, char *arg3, void *arg4)
 	if (strcmp(arg3, "testString2_1"))
 	    printf("    arg3 = %s, should be \"testString2_1\"\n", arg3);
 	if (arg4 != TEST_PTR)
-	    printf("    arg4 = 0x%p, should be 0x%p\n", arg4, TEST_PTR);
+	    printf("    arg4 = %p, should be %p\n", arg4, TEST_PTR);
     }
 }
 
