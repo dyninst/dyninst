@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.95 2000/08/06 23:01:03 wylie Exp $
+ * $Id: DMdaemon.C,v 1.96 2000/08/31 20:27:59 mirg Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -1148,23 +1148,23 @@ static bool startIrixMPI(const string     &machine, const string         &login,
 #endif // !defined(i386_unknown_nt4_0)
 }
 
-static vector<string> wrappers;
 /*
-  Pick a unique name for the wrapper and remember it for further cleanup
+  Pick a unique name for the wrapper
 */
 const char *mpichNameWrapper(const char *dir)
 {
 	char *rv;
 
 	if ((rv = tempnam(dir, "pdd.")) == 0) {
-		perror("mpichNameWrapper");
+		uiMgr->showError(113, "Failed to create a unique file name");
 		return 0;
 	}
-	wrappers += string(rv);
 	
 	return rv;
 }
 
+
+static vector<string> wrappers;
 /*
   Perform a cleanup when the frontend exits
 */
@@ -1184,6 +1184,7 @@ bool mpichUnlinkWrappers()
 }
 				
 #if !defined(i386_unknown_nt4_0)
+
 /*
   Create a script file which will start paradynd with appropriate
   parameters in a given directory. MPICH hides the user cmdline from
@@ -1222,9 +1223,10 @@ bool mpichCreateWrapper(const char           *script,
 	    fputs (buffer.string_of(), f) < 0 ||
 	    fclose (f) < 0 ||
 	    chmod (script, S_IRWXU) < 0) {
-		perror ("mpichCreateWrapper: I/O error");
+		uiMgr->showError(113, "mpichCreateWrapper: I/O error");
 		return false;
-	}	
+	}
+	wrappers += string(script);  // remember the name for later cleanup
 
 	return true;
 }
@@ -1269,13 +1271,12 @@ struct known_arguments {
 bool mpichParseCmdline(const char *script, const vector<string> &argv,
 		       string& app_name, vector<string> &params)
 {
-	const unsigned int NKEYS = 35;
+	const unsigned int NKEYS = 34;
 	struct known_arguments known[NKEYS] = {
 		{"-arch", true, true},
 		{"-h", false, false},
 		{"-machine", true, true},
 		{"-machinefile", true, true},
-		{"mpirun", false, true},
 		{"-np", true, true},
 		{"-nolocal", false, true},
 		{"-stdin", true, true},
@@ -1307,9 +1308,17 @@ bool mpichParseCmdline(const char *script, const vector<string> &argv,
 		{"-paragonname", true, true},
 		{"-paragonpn", true, true}
 	};
-	bool app = false;
+	bool app = false, found_mpirun = false;
 	unsigned int i = 0, k;
 
+	while (i < argv.size() && !found_mpirun) {
+	        found_mpirun = (strstr(argv[i].string_of(), "mpirun") != 0);
+		params += argv[i++];
+	}
+	if (!found_mpirun) {
+	        uiMgr->showError(113, "Expected: \"mpirun <command>\"");
+	        return false;
+	}
 	while (!app && i < argv.size()) {
 		app = true;
 
@@ -1319,9 +1328,11 @@ bool mpichParseCmdline(const char *script, const vector<string> &argv,
 				app = false;
 
 				if (!known[k].supported) {
-					cerr << "The argument " 
-					     << known[k].name 
-					     << " is not supported\n";
+				        string msg = string("Argument \"") +
+					        string(known[k].name) + 
+					        string("\" is not supported");
+					uiMgr->showError(113, strdup(msg.
+							      string_of()));
 					return false;
 				}
 
@@ -1330,8 +1341,8 @@ bool mpichParseCmdline(const char *script, const vector<string> &argv,
 				if (known[k].has_value) {
 					// Skip the next arg
 					if (i >= argv.size()) {
-						cerr << "MPICH command line "
-							"parse error\n";
+					        uiMgr->showError(113, "MPICH "
+					           "command line parse error");
 						return false;
 					}
 					params += argv[i++];
@@ -1341,7 +1352,7 @@ bool mpichParseCmdline(const char *script, const vector<string> &argv,
 		}
 	}
 	if (!app) {
-		cerr << "MPICH command line parse error\n";
+	        uiMgr->showError(113, "MPICH command line parse error");
 		return false;
 	}
 
@@ -1393,7 +1404,7 @@ static bool startMPICH(const string &machine, const string &login,
 		return false;
 	}
 	if ((s = (char **)malloc((params.size() + 1) * sizeof(char *))) == 0) {
-		cerr << "Out of memory\n";
+		uiMgr->showError(113, "Out of memory");
 		return false;
 	}
 
@@ -1412,7 +1423,7 @@ static bool startMPICH(const string &machine, const string &login,
 	close(xfd);
 
 	if (execvp(s[0], s) < 0) {
-		cerr << "Could not start MPICH\n";
+	        uiMgr->showError(113, "Failed to start MPICH");
 	}
 	return false;
 }
