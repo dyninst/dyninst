@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.C,v 1.35 2004/03/23 01:12:26 eli Exp $
+// $Id: DMperfstream.C,v 1.36 2004/07/14 18:24:01 eli Exp $
 
 #include <assert.h>
 #include <limits.h>     // UINT_MAX
@@ -237,13 +237,12 @@ void performanceStream::callResourceFunc(resourceHandle parent,
 }
 
 void performanceStream::callResourceRetireFunc(resourceHandle uniqueID,
-                                               const char *name,
-                                               const char *abstr)
+                                               const char *name)
 {
     if (controlFunc.retireFunc) {
 	dataManager::dm->setTid(threadId);
 	dataManager::dm->retireResource_(controlFunc.retireFunc, handle,
-                                         uniqueID, name, abstr);
+                                         uniqueID, name);
     }
 }
 
