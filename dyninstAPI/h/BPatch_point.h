@@ -54,6 +54,7 @@ class BPatch_image;
 class BPatch_function;
 class BPatch_memoryAccess;
 class BPatchSnippetHandle;
+class BPatch_basicBlockLoop;
 
 /*
  * Used to specify whether a snippet is to be called before the instructions
