@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2002/07/31 22:06:53 bernat Exp $
+# $Id: Makefile,v 1.12 2002/08/31 16:53:27 mikem Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,7 +17,7 @@ NO_IMPLICIT_TEMPLATES = true
 #  be adjusted in ../../make.config.  You'll need to remake DEPENDS if
 #  this path is adjusted.
 #USES_LIBHRTIME = true
-
+#USES_PAPI = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -68,6 +68,14 @@ TFLAGS		+= $(MYFLAGS)
 
 ifdef USES_LIBHRTIME
 LIBS	+= $(HRTIME_LIB)
+endif
+
+ifdef USES_PAPI
+LIBS	+= $(PAPI_LIB)
+endif
+
+ifdef USES_LIBPERFCTR
+LIBS    += $(PERFCTR_LIB)
 endif
 
 # no support for elf64_XXX() functions
