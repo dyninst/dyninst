@@ -62,6 +62,11 @@ extern int fork();
 extern int strcasecmp(char *s1, char *s2);
 extern int strncasecmp(char *s1, char *s2, int n);
 extern int pipe(int fd[2]);
+
+extern int shmget(key_t, int, int);
+char *shmat(int, char *, int);
+int shmdt(char *);
+int shmctl(int, int, struct shmid_ds *);
 };
 
 /* Non standard (even from sunos4 to sunos5 -- blech */
@@ -99,6 +104,13 @@ pid_t P_waitpid(pid_t pid, int *statusp, int options) {
 size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
 int P_chdir(const char *path) { return (chdir(path)); }
+int P_putenv(const char *item) { return putenv((char *)item); }
+
+/* SYSTEM-V shared memory */
+int P_shmget(key_t theKey, int size, int flags) {return shmget(theKey, size, flags);}
+void *P_shmat(int shmid, void *addr, int flags) {return shmat(shmid, (char*)addr, flags);}
+int P_shmdt(void *addr) {return shmdt((char*)addr);}
+int P_shmctl(int shmid, int cmd, struct shmid_ds *buf) {return shmctl(shmid, cmd, buf);}
 
 /* ANSI */
 void P_exit (int STATUS) { exit(STATUS);}
@@ -161,6 +173,14 @@ struct servent *P_getservbyname (const char *NAME, const char *PROTO) {
 
 int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
   return (getsockname(SOCKET, ADDR, (int*) LENGTH_PTR));}
+
+int P_getsockopt(int fd, int level, int optname, void *optval, int *optlen) {
+   return getsockopt(fd, level, optname, optval, optlen);
+}
+
+int P_setsockopt(int fd, int level, int optname, void *optval, int optlen) {
+   return setsockopt(fd, level, optname, optval, optlen);
+}
 
 /* int P_gettimeofday (struct timeval *TP, struct timezone *TZP) {
   return (gettimeofday(TP, TZP));} */
