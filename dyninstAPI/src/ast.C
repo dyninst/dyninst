@@ -41,6 +41,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.51  1998/05/15 23:17:19  czhang
+ * Added initTramps() to registerSpace::registerSpace().
+ *
  * Revision 1.50  1998/04/22 02:30:12  buck
  * Moved showerror.h from paradynd directory to dyninstAPI directory.
  *
@@ -215,6 +218,10 @@ extern bool doNotOverflow(int value);
 
 registerSpace::registerSpace(int deadCount, int *dead, int liveCount, int *live)
 {
+#if defined(i386_unknown_solaris2_5)
+  initTramps();
+#endif
+
     int i;
 
     numRegisters = deadCount + liveCount;
