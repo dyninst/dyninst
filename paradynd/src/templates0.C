@@ -46,6 +46,9 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.12  1996/11/14 14:59:09  naim
+ * Minor fix to my previous commit - naim
+ *
  * Revision 1.11  1996/11/14 14:28:06  naim
  * Changing AstNodes back to pointers to improve performance - naim
  *
@@ -113,7 +116,6 @@
 #include "util/h/Object.h"
 
 template class  vector<reg>;
-template class  vector<Thread *>;
 template class  vector<functionName*>;
 template class  vector<sampleInfo*>;
 template class  vector<bool>;
