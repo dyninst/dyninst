@@ -113,6 +113,7 @@ public:
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
+    ,instructionPointers(bpFunction->iptrs)
     {
       init();
 #else
