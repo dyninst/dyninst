@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.339 2002/07/03 22:18:38 bernat Exp $
+// $Id: process.C,v 1.340 2002/07/06 14:35:46 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1567,18 +1567,18 @@ void process::initInferiorHeap()
 
 bool process::initTrampGuard()
 {
-  // We allocate space for an integer flag (PARADYN: for each thread)
-  // in the inferior heap. This is then used by the base tramp guard code.
-  // So: allocate sizeof(unsigned)*MAX_NUMBER_OF_THREADS, set all to 1 (default value)
-  
-  bool err = false;
-  unsigned initArray[MAX_NUMBER_OF_THREADS];
-  for (unsigned i = 0; i < MAX_NUMBER_OF_THREADS; i++)
-    initArray[i] = 1;
-  trampGuardAddr_ = inferiorMalloc(sizeof(unsigned)*MAX_NUMBER_OF_THREADS,
-				   dataHeap);
-  writeDataSpace((void *)trampGuardAddr_, sizeof(unsigned)*MAX_NUMBER_OF_THREADS,
-		 (void *)initArray);
+  // This is slightly funky. Dyninst does not currently support
+  // multiple threads -- so it uses a single tramp guard flag, 
+  // which resides in the runtime library. However, this is not
+  // enough for MT paradyn. So Paradyn overrides this setting as 
+  // part of its initialization.
+
+  const string vrbleName = "DYNINSTtrampGuard";
+  internalSym sym;
+  bool flag = findInternalSymbol(vrbleName, true, sym);
+  assert(flag);
+  trampGuardAddr_ = sym.getAddr();
+  //fprintf(stderr, "Found tramp guard at addr %x\n", (unsigned) trampGuardAddr_);
   return true;
 }
   
@@ -3144,7 +3144,6 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
   }
 #endif
   theProc->initDyninstLib();
-  
 #ifndef BPATCH_LIBRARY
   if (!costMetric::addProcessToAll(theProc))
     assert(false);
@@ -4062,7 +4061,6 @@ bool process::handleIfDueToSharedObjectMapping(){
 
               if(addASharedObject(*((*changed_objects)[i]))){
                 (*shared_objects).push_back((*changed_objects)[i]);
-
 	        if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
 	          hasLoadedDyninstLib = true;
 	          isLoadingDyninstLib = false;
