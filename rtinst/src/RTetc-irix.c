@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-irix.c,v 1.1 1999/06/16 21:20:21 csserra Exp $ */
+/* $Id: RTetc-irix.c,v 1.2 1999/07/13 04:33:41 csserra Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -55,10 +55,9 @@
 #include <sys/procfs.h>               /* procfs */
 #include <dlfcn.h>                    /* dlopen() */
 #include <invent.h>                   /* getinvent() */
-#include <sys/hwperftypes.h>          /* HW performance counters */
-#include <sys/hwperfmacros.h>         /* HW performance counters */
 #include <sys/syssgi.h>               /* free running cycle counter */
 #include <time.h>                     /* clock(), clock_getres() */
+#include <sys/timers.h>               /* PTIMER macros */
 
 
 /*
@@ -87,113 +86,54 @@ static unsigned long long mulMillion(unsigned long long in) {
    return result;
 }
 
+/* shared timer state */
+char       DYNINSTos_wallCtr_use = 0;
+/* local timer state */
+static int ctr_procFd            = -1;
 
-/* hardward performance counter state */
-#define HW_CTR_NUM (0)
-
-char       DYNINSTos_CPUctr_use    = 0;
-int        DYNINSTos_CPUctr_gen    = 0;
-uint64_t   DYNINSTos_CPUctr_cycles = 0; // cycles per usec
-char       DYNINSTos_wallCtr_use   = 0;
-static int ctr_procFd        = -1;
-
-void DYNINSTos_initCPUtime(void)
-{
-  char namebuf[64];
-  inventory_t *inv;
-  hwperf_profevctrarg_t ev;
-  
-  static int inited = 0;
-  if (inited) return;
-  inited = 1;
-  /*fprintf(stderr, "*** DYNINSTinitCPUtime()\n");*/  
-  
-  sprintf(namebuf, "/proc/%i", getpid());
-  /* TODO: avoid conflict with alternate versions of open() - necessary? */
-  if ((ctr_procFd = open(namebuf, O_RDWR)) == -1) {
-    perror("DYNINSTinitCPUtime - open()");
-    abort();
-  }
-  
-  /* check if all CPU (board) clock speeds are consistent;
-   * if so, we can use the HW performance counters (PIOCGETEVCTRS);
-   * if not, we have to use the slow clock (PIOCUSAGE) 
-   */
-  if (setinvent() == -1) {
-    perror("DYNINSTinitCPUtime - setinvent()");
-    abort();
-  }
-  DYNINSTos_CPUctr_use = 1;
-  for (inv = getinvent(); inv != NULL; inv = getinvent()) {
-    /* only need PROCESSOR/CPUBOARD inventory entries */
-    if (inv->inv_class != INV_PROCESSOR) continue;
-    if (inv->inv_type != INV_CPUBOARD) continue;
-    /* check for clock speed mismatch */
-    if (DYNINSTos_CPUctr_cycles == 0) DYNINSTos_CPUctr_cycles = inv->inv_controller;
-    if (inv->inv_controller != DYNINSTos_CPUctr_cycles) {
-      fprintf(stderr, "!!! inconsistent CPU speeds - cycle counter unusable\n");
-      DYNINSTos_CPUctr_use = 0;
-      break;
-    }
-  }
-  endinvent();
-
-  /* initialize HW performance counters (for CPU time) */
-  if (DYNINSTos_CPUctr_use) {
-    /* define cycle counter "event" */
-    hwperf_ctrl_t *evctrl;
-    memset(&ev, 0, sizeof(hwperf_profevctrarg_t)); /* important */
-    evctrl = &ev.hwp_evctrargs.hwp_evctrl[HW_CTR_NUM];
-    evctrl->hwperf_spec = 0;
-    evctrl->hwperf_creg.hwp_ev = HWPERF_C0PRFCNT0_CYCLES;
-    evctrl->hwperf_creg.hwp_ie = 0;
-    evctrl->hwperf_creg.hwp_mode = HWPERF_CNTEN_U | HWPERF_CNTEN_K;
-    /* enable event counters */
-    /* (this will fail if not running as root) */
-    if ((DYNINSTos_CPUctr_gen = ioctl(ctr_procFd, PIOCENEVCTRS, &ev)) == -1) {
-      DYNINSTos_CPUctr_use = 0;
-      return;
-    }
-  }
-}
-
-/* TODO: trap handler needed? */
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
+  char fname[128];
   /*fprintf(stderr, "*** DYNINSTos_init()\n");*/
-  DYNINSTos_initCPUtime();
+  sprintf(fname, "/proc/%i", getpid());
+  /* TODO: avoid conflict with alternate versions of open() - necessary? */
+  if ((ctr_procFd = open(fname, O_RDWR)) == -1) {
+    perror("DYNINSTinitCPUtime - open()");
+    abort();
+  }  
 }
+
+
+/*
+ * CPU timers 
+ */
 
 /* return (user+sys) CPU time in microseconds (us) */
 time64 DYNINSTgetCPUtime(void)
 {
   time64 ret;
-  if (DYNINSTos_CPUctr_use) {
-    hwperf_cntr_t count;
-    int gen;
-    if ((gen = ioctl(ctr_procFd, PIOCGETEVCTRS, &count)) == -1) {
-      perror("DYNINSTgetCPUtime - PIOCGETEVCTRS");
-      abort();
-    }
-    ret = count.hwp_evctr[HW_CTR_NUM] / DYNINSTos_CPUctr_cycles;
-    /* counter generation numbers - see r10k_counters(5) */
-    if (gen != DYNINSTos_CPUctr_gen) {
-      fprintf(stderr, "!!! rtinst: hwperf counters generation number change\n");
-      DYNINSTos_CPUctr_gen = gen;
-    }
-    /*fprintf(stderr, "*** DYNINSTgetCPUtime(cycles)\n");*/
-  } else {
-    prusage_t usage;
-    if (ioctl(ctr_procFd, PIOCUSAGE, &usage) == -1) {
-      perror("DYNINSTgetCPUtime - PIOCUSAGE");
-      abort();
-    }
-    ret = mulMillion(usage.pu_utime.tv_sec + usage.pu_stime.tv_sec);
-    ret += div1000(usage.pu_utime.tv_nsec + usage.pu_stime.tv_nsec);
-    /*fprintf(stderr, "*** DYNINSTgetCPUtime(10ns)\n");*/
+
+  /*
+  pracinfo_t t;
+  ioctl(ctr_procFd, PIOCACINFO, &t);
+  ret = div1000(t.pr_timers.ac_utime + t.pr_timers.ac_stime);
+  */
+
+  timespec_t t[MAX_PROCTIMER];
+  if (ioctl(ctr_procFd, PIOCGETPTIMER, t) == -1) {
+    perror("getInferiorProcessCPUtime - PIOCGETPTIMER");
+    abort();
   }
+  ret = mulMillion(t[AS_USR_RUN].tv_sec + t[AS_SYS_RUN].tv_sec);
+  ret += div1000(t[AS_USR_RUN].tv_nsec + t[AS_SYS_RUN].tv_nsec);
+
   return ret;
 }
+
+
+/* 
+ * wall timers 
+ */
 
 static uint64_t ctr_gcd(uint64_t a, uint64_t b)
 {
@@ -230,7 +170,7 @@ static int ctr_mapCycleCounter(uint64_t **ctr_addr,
   close(mmap_fd);
   if (vaddr_page == MAP_FAILED) return -1;
   vaddr_timer = ((uint64_t)vaddr_page) + (paddr_timer & pageoffmask);
-  (*ctr_addr) = (uint64_t *)vaddr_timer;
+  (*ctr_addr) = (uint64_t *)(ulong_t)vaddr_timer;
       
   /* simplify conversion ratio */
   (*ctr_numer) = res_psec;
@@ -280,6 +220,11 @@ time64 DYNINSTgetWalltime(void)
   /*fprintf(stderr, "*** 0x%016llx us: DYNINSTgetWalltime()\n", ret);*/
   return ret;
 }
+
+
+/* 
+ * multithreading 
+ */
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 /* TODO: implement */
