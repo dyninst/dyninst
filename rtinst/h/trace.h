@@ -109,6 +109,7 @@ typedef struct _traceHeader traceHeader;
 #define TR_CP_SAMPLE		10 /* critical path */
 #define TR_EXEC_FAILED          12
 #define TR_ERROR                13
+#define TR_DYNAMIC_CALLEE_FOUND 14
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #define TR_THR_CREATE        100
@@ -227,6 +228,14 @@ struct _cpSample {
     float share;
 };
 typedef struct _cpSample cpSample;
+
+/*This data structure is used when sending trace messages
+  which notify the daemon about a dynamic caller-callee
+  relationship*/
+struct callercalleeStruct{
+  unsigned int caller;
+  unsigned int callee;
+};
 
 struct DYNINST_bootstrapStruct {
    int event; /* "event" values:

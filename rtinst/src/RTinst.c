@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.18 1999/10/27 21:49:52 schendel Exp $
+ * $Id: RTinst.c,v 1.19 1999/11/09 19:17:39 cain Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -110,6 +110,7 @@ extern void *DYNINST_shm_init(int, int, int *);
 void DYNINSTprintCost(void);
 int DYNINSTTGroup_CreateUniqueId(int);
 
+int DYNINSTCalleeSearch(unsigned int callSiteAddr,                                                        unsigned int calleeAddr);
 /************************************************************************/
 
 static float  DYNINSTsamplingRate   = 0;
@@ -1024,7 +1025,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     DYNINSTlaunchRPCthread();
   }
 #endif
-  
+
   /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
      it will read from DYNINST_bootstrap_info */
   
@@ -1812,4 +1813,91 @@ int DYNINSTMult(int num1, int num2)
 int DYNINSTArrayField(int* array, int index)
 {
   return(array[index]);
+}
+
+struct callee{
+  unsigned address;
+  struct callee *next;
+};
+
+struct call_site_info{
+  unsigned address;
+  struct callee *next_callee;
+  struct call_site_info *next;
+};
+
+struct call_site_info *callSiteList = NULL;
+
+void DYNINSTRegisterCallee(unsigned int calleeAddress,
+			   unsigned callSiteAddress){
+  if(DYNINSTCalleeSearch(callSiteAddress, calleeAddress) == 0){
+    struct callercalleeStruct c;
+    c.caller = callSiteAddress;
+    c.callee = calleeAddress;
+    DYNINSTgenerateTraceRecord(0, TR_DYNAMIC_CALLEE_FOUND,
+			       sizeof(struct callercalleeStruct), 
+			       &c, 1, DYNINSTgetWalltime(), 
+			       DYNINSTgetCPUtime());
+  }
+}
+
+/*Needs to return 1 if the call site has been seen, 0 otherwise*/
+int DYNINSTCalleeSearch(unsigned int callSiteAddr,
+			unsigned int calleeAddr){
+  
+  if(callSiteList == NULL){
+    callSiteList = (struct call_site_info *) 
+      malloc(sizeof(struct call_site_info));
+    callSiteList->address = callSiteAddr;
+    callSiteList->next = NULL;
+    callSiteList->next_callee = (struct callee *) 
+      malloc(sizeof(struct callee));
+    callSiteList->next_callee->next = NULL;
+    callSiteList->next_callee->address = calleeAddr;
+    return 0;
+  }
+  else {
+    struct call_site_info *curr = callSiteList;
+    while(curr != NULL){
+      if(curr->address == callSiteAddr)
+        break;
+      else curr = curr->next;
+    }
+    
+    if(curr == NULL){
+      /*need to create new call_site_info, add link to new callee_struct,
+	and send message back to the daemon*/
+      curr = callSiteList;
+      while(curr->next != NULL)
+	curr = curr->next;
+      curr->next = (struct call_site_info *) 
+	malloc(sizeof(struct call_site_info));
+      curr = curr->next;
+      curr->address = callSiteAddr;
+      curr->next = NULL;
+      curr->next_callee = (struct callee *) 
+	malloc(sizeof(struct callee));
+      curr->next_callee->next = NULL;
+      curr->next_callee->address = calleeAddr;
+      return 0;
+    }
+    else {
+      /*in any event, curr should now point to the appropriate call
+	site struct, so we should do a search in the callee list*/
+      struct callee *curr_callee = curr->next_callee;
+      while(curr_callee != NULL){
+	if(curr_callee->address == calleeAddr){
+	  return 1;
+	}
+	curr_callee = curr_callee->next;
+      }
+      
+      curr_callee = (struct callee *)
+	malloc(sizeof(struct callee));
+      curr_callee->next = curr->next_callee;
+      curr_callee->address = calleeAddr;
+      curr->next_callee = curr_callee;
+      return 0;
+    }
+  }
 }
