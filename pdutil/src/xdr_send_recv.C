@@ -259,7 +259,7 @@ bool P_xdr_recv(XDR *xdr, string &s) {
 }
 
 //------------------------------------------------------------
-/*
+
 bool read1_bool(XDR *xdr) {
    bool result;
    if (!P_xdr_recv(xdr, result))
@@ -268,6 +268,7 @@ bool read1_bool(XDR *xdr) {
       return result;
 }
 
+#if !defined(i386_unknown_nt4_0)
 uint16_t read1_uint16(XDR *xdr) {
    uint16_t result;
    if (!P_xdr_recv(xdr, result))
@@ -275,6 +276,7 @@ uint16_t read1_uint16(XDR *xdr) {
    else
       return result;
 }
+#endif
 
 uint32_t read1_uint32(XDR *xdr) {
    uint32_t result;
@@ -300,4 +302,4 @@ string read1_string(XDR *xdr) {
       throw xdr_recv_fail();
    
    return result;
-}*/
+}
