@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.61  1996/02/02 02:17:54  karavan
+ * Changes for new performance consultant.
+ *
  * Revision 1.60  1995/12/18 23:21:07  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -349,7 +352,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 32;
+    $version 33;
 
     //
     // Start a paradyn daemon
@@ -498,7 +501,7 @@ $remote dataManager {
     // each child of resource rh with the remaining resources that make up rlh
     // if the resource rh is a component of the focus rlh, otherwise returns 0
     //
-    vector<resourceListHandle> *magnify(resourceHandle rh, 
+    vector<rlNameId> *magnify(resourceHandle rh, 
 					resourceListHandle rlh);
 
     //
@@ -627,7 +630,6 @@ $remote dataManager {
     // returns full name of a resource  ie. "/Code/blah.c/foo" 
     //
     const char *getResourceName(resourceHandle);
-
 
     //
     // converts from a focus name to a resourceListHandle 
@@ -790,7 +792,7 @@ $remote dataManager {
 // 				    int bucketNum,
 // 				    sampleValue value,
 // 				    phaseType type);
-
+// 
     $upcall $async void newPerfData(sampleDataCallbackFunc, 
 				    vector<dataValueType> *data,
 				    u_int num_data_values);

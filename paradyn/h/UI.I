@@ -2,13 +2,16 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.19  1996/01/31 19:51:54  newhall
-/* added a weight value and an internal metric flag to batch_buffer_entry
+/* Revision 1.20  1996/02/02 02:17:50  karavan
+/* Changes for new performance consultant.
 /*
-# Revision 1.18  1996/01/23  06:51:29  tamches
-# added "label" arg to add-edge; needed for effective use of shadow
-# nodes.
-#
+ * Revision 1.19  1996/01/31 19:51:54  newhall
+ * added a weight value and an internal metric flag to batch_buffer_entry
+ *
+ * Revision 1.18  1996/01/23  06:51:29  tamches
+ * added "label" arg to add-edge; needed for effective use of shadow
+ * nodes.
+ *
  * Revision 1.17  1995/11/08 23:41:36  tamches
  * removed obsolete igen calls showMsg, msgChoice, showMsgWait,
  * chooseMenuItem, and chooseMenuItemREPLY
@@ -122,7 +125,7 @@ typedef int (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 10;
+	$version 11;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -148,20 +151,14 @@ $remote UIM {
 	int initSHG (const char *phasename, int phaseID);
 
 	// add string to end of PC (scrolling) status display box
-	$async void updateStatusDisplay (int token, const char *item);
+	void updateStatusDisplay (int token, const char *item);
 
 	int DAGaddNode(int dagID, unsigned nodeID, int styleID, 
-			char *label, char *shgname, int root);
+			const char *label, const char *shgname, int root);
 	int DAGaddEdge (int dagID, unsigned srcID, 
 			unsigned dstID, int styleID,
 			const char *label // only used for shadow nodes; else NULL
 			);
 	int DAGconfigNode (int dagID, unsigned nodeID, int styleID);
 
-// some DAG services are on holiday until further notice.  stay tuned  
-//	int DAGconfigEdges (int dagID, int numEntries, int edgeID, 
-//                            int styleID);
-//	int DAGdestroy (int dagID);
-//
-	
 };

@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.18  1996/02/02 02:17:52  karavan
+ * Changes for new performance consultant.
+ *
  * Revision 1.17  1996/01/09 21:43:17  tamches
  * incremented version number to 7
  *
@@ -74,17 +77,11 @@
 // Forward decl of classes that are passed out the interface.
 //
 class searchHistoryNode;
-typedef searchHistoryNode *SHNptr;
 
 typedef struct int_Array {
   int count;
   int *data;
 } int_Array;
-
-typedef struct SHNptr_Array {
-  int count;
-  SHNptr *data;
-} SHNptr_Array;
 
 // Note: the following structure (used by the "getNodeInfo" igen call) is
 //       subject to fairly frequent change, as we thing of more goodies.
@@ -102,52 +99,23 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 7;
-
-    // for all of the configured tests print their status.
-    //  This is intended for debugging only.
-    void printTestStatus();
-
-    // enumerate all of the refinements.
-    SHNptr_Array getWhyRefinements(searchHistoryNode *);
-    SHNptr_Array getWhenRefinements(searchHistoryNode *);
-    SHNptr_Array getWhereRefinements(searchHistoryNode *);
-    SHNptr_Array getAllRefinements(searchHistoryNode *);
-
-    // return the current refinement node.
-    searchHistoryNode *getCurrentRefinement();
-    int getCurrentNodeId();
+    $version 8;
 
     // all initialization for new search; checks first if search already
     // active for specified phase, to enforce 1 search/phase rule
-    // this calls ui->initSHG which opens new display
+    // initializes root node and messages in search display
     $async void newSearch(phaseType pt);
 
-    void printSHGNode(searchHistoryNode *);
-    void printSHGList();
-
     // try to make automated refinements.  Up to limit number of steps.
-    $async void search(bool, int limit, int phaseID);
+    $async void activateSearch(unsigned phaseID);
 
     // stop the automated search process in its tracks.
-    $async void pauseSearch(int phaseID);
+    $async void pauseSearch(unsigned phaseID);
 
     // Completely terminate a search; remove all instrumentation.
-    void endSearch(int phaseID);
-
-    // change the current refinement node.
-    //  NOTE:  The node must be true and an ancestral path to the root must
-    //         also be true or set will fail.
-    //         As a side effect, searching is paused!!
-    int setCurrentSHGnode(int node);
-
-    // This doesn't work yet !!
-    void doRefine(int_Array ids);
-
-    // Really just setCurrentSHGnode(id of root node).
-    $async void resetRefinement();
+    $async void endSearch(unsigned phaseID);
 
     // Get loads of information about a node:
-    bool getNodeInfo(int phaseID, int nodeID, shg_node_info *theInfo);
-       // "theInfo" gets filled in for you.  Returns true iff successful.
+    // client's responsibility to provide valid shg_node_info struct pointer
+    bool getNodeInfo(unsigned phaseID, int nodeID, shg_node_info *theInfo);
 };
