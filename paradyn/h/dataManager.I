@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.8  1994/04/01 20:44:59  hollings
+ * Revision 1.9  1994/04/19 22:08:06  rbi
+ * Added GetTotValue method to get non-normalized metric data.
+ *
+ * Revision 1.8  1994/04/01  20:44:59  hollings
  * Added calls to query bucketWidth and max number of bins.
  *
  * Revision 1.7  1994/03/31  01:37:21  markc
@@ -348,6 +351,12 @@ $remote dataManager {
     // Get the value of a metric.
     //
     sampleValue getMetricValue(metricInstance*);
+
+    //
+    // Get the total value of a metric. 
+    //  (ie. do not divide by time enabled)
+    //
+    sampleValue getTotValue(metricInstance*);
 
     //
     // Debugger style calls.
