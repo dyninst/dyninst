@@ -61,7 +61,7 @@ typedef enum {
 class instPoint {
 public:
   instPoint(pd_Function *f, const instruction &instr, const image *owner,
-	    Address &adr, const bool delayOK, bool isLeaf,
+	    Address &adr, const bool delayOK,
 	    instPointType ipt);
   instPoint(pd_Function *f, const instruction &instr, const image *owner,
             Address &adr, const bool delayOK, instPointType ipt,   
@@ -87,6 +87,14 @@ public:
 
       Address ta = (originalInstruction.call.disp30 << 2); 
       return ( addr+ta ); 
+  }
+
+  bool hasNoStackFrame() const {
+     // formerly "isLeaf()", but the term leaf fn is confusing since people use it
+     // for two different characteristics: (1) has not stack frame, (2) makes no call.
+     // By renaming the fn, we make clear what it's returning.
+     assert(func);
+     return func->hasNoStackFrame();
   }
 
   // These are the instructions corresponding to different instrumentation
@@ -132,7 +140,6 @@ public:
   bool isBranchOut;             // true if this point is a conditional branch, 
 				// that may branch out of the function
   int branchTarget;             // the original target of the branch
-  bool leaf;                    // true if the procedure is a leaf
   instPointType ipType;
   int instId;                   // id of inst in this function
   int size;                     // size of multiple instruction sequences
@@ -142,6 +149,10 @@ public:
 
   bool isLongJump;              // true if it turned out the branch from this 
                                 // point to baseTramp needs long jump.   
+
+ private:
+
+
 };
 
 
