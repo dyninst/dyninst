@@ -26,6 +26,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.12  1996/05/09 19:24:18  lzheng
+ * Minor changes for the return value of procedure findInstPoint
+ *
  * Revision 1.11  1996/04/29 22:18:42  mjrg
  * Added size to functions (get size from symbol table)
  * Use size to define function boundary
@@ -525,8 +528,7 @@ void pdFunction::checkCallPoints() {
 // because the called function may not have been seen.
 //
 Address pdFunction::newCallPoint(const Address adr, const instruction instr,
-				 const image *owner, bool &err,
-                                 instPointType pointType)
+				 const image *owner, bool &err)
 {
     Address ret=adr;
     instPoint *point;
@@ -537,7 +539,7 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
     //   same reason as in the inst-sparc.C
     // bool err = true;
 
-    point = new instPoint(this, instr, owner, adr, false, err, pointType);
+    point = new instPoint(this, instr, owner, adr, false, err, callSite);
 
     if (!isCallInsn(instr)) {
 	logLine("what is a non-call (jump) doing in newCallPoint\n");
@@ -1309,8 +1311,8 @@ bool pdFunction::findInstPoints(const image *owner) {
   Address retAdr;
 
   funcEntry_ = new instPoint(this, instr, owner, adr, true, err, functionEntry);
-  if (err)
-    return false;
+  //if (err)
+  //  return true;
   assert(funcEntry_);
   entryPoint = instr;
 
@@ -1350,7 +1352,7 @@ bool pdFunction::findInstPoints(const image *owner) {
       assert(funcReturns[funcReturns.size()-1]);
       return true;
     } else if (isCallInsnTest(instr, adr, entryAdr, retAdr)) {
-       adr = newCallPoint(adr, instr, owner, err, callSite);
+       adr = newCallPoint(adr, instr, owner, err);
        if (err)
 	 return false;
     }
