@@ -36,7 +36,6 @@
 
 class AObject {
 public:
-    virtual ~AObject () =0;
 
     unsigned          nsymbols ()                         const;
     unsigned            nlines ()                         const;
@@ -92,10 +91,6 @@ AObject::AObject(const AObject& obj)
     data_ptr_(obj.data_ptr_), data_off_(obj.data_off_),
     data_len_(obj.data_len_),
     err_func_(obj.err_func_) {
-}
-
-inline
-AObject::~AObject() {
 }
 
 inline
