@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.64 2000/05/11 04:52:27 zandy Exp $ */
+/* $Id: context.C,v 1.65 2000/06/02 17:25:43 mirg Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -436,12 +436,9 @@ void processNewTSConnection(int tracesocket_fd) {
 //#endif
 	  }
 	  else {
-#ifdef DETACH_ON_THE_FLY
-	       if (!curr->detachAndContinue())
-#else
-	       if (!curr->continueProc())
-#endif
+		  if (!curr->continueProc()) {
 		    assert(false);
+		  }
 	  }
 
 #if defined(rs6000_ibm_aix4_1)
@@ -483,11 +480,7 @@ void processNewTSConnection(int tracesocket_fd) {
 		  if (sig == SIGTRAP || sig == SIGSTOP)
 		  {
 			  curr->status_ = stopped;
-#ifdef DETACH_ON_THE_FLY
-			  if (!curr->detachAndContinue())
-#else
 			  if (!curr->continueProc())
-#endif
 				  assert(false);
 		  }
 	  }
