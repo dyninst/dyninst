@@ -46,9 +46,12 @@
  */
  
 /* $Log: UIpublic.C,v $
-/* Revision 1.58  1996/08/16 21:06:48  tamches
-/* updated copyright for release 1.1
+/* Revision 1.59  1996/10/31 08:19:16  tamches
+/* UIM::enablePauseOrRun()
 /*
+ * Revision 1.58  1996/08/16 21:06:48  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.57  1996/05/07 18:05:56  newhall
  * added threadExiting routine
  *
@@ -151,6 +154,11 @@ void
 UIM::updateStatus(status_line *status, const char *msg)
 {
   status->message(msg);
+}
+
+void UIM::enablePauseOrRun() {
+   extern void enablePAUSEorRUN(); // paradyn.tcl.C
+   enablePAUSEorRUN();
 }
 
 // ****************************************************************
