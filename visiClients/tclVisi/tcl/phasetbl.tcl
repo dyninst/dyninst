@@ -2,7 +2,7 @@
 #  default display options
 #
 
-if {[string match [tk colormodel .] color] == 1} {
+if {[string match [winfo depth .] color] == 1} {
   # always defaults to bisque so reset it to grey
   . config -bg grey
    option add *Background grey
@@ -104,8 +104,8 @@ menubutton $W.top.left.menubar.help -text "Help" -menu $W.top.left.menubar.help.
 menu $W.top.left.menubar.help.m
 $W.top.left.menubar.help.m add command -label "General" -command "NotImpl"
 $W.top.left.menubar.help.m add command -label "Context" -command "NotImpl"
-$W.top.left.menubar.help.m disable 0
-$W.top.left.menubar.help.m disable 1
+#$W.top.left.menubar.help.m disable 0
+#$W.top.left.menubar.help.m disable 1
 
 #
 #  Build the menu bar and add to display
@@ -116,7 +116,7 @@ pack $W.top.left.menubar.help -side right
 #
 #  Organize all menu buttons into a menubar
 #
-tk_menuBar $W.top.left.menubar $W.top.left.menubar.file $W.top.left.menubar.acts $W.top.left.menubar.help 
+#tk_menuBar $W.top.left.menubar $W.top.left.menubar.file $W.top.left.menubar.acts $W.top.left.menubar.help 
 
 #
 #  Build the logo 
