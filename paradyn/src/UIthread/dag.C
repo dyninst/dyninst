@@ -9,6 +9,9 @@ extern "C" {
 #include "dag.h"
 #include "paradyn/src/DMthread/DMresource.h"
 
+unsigned dag::nextID = 0;
+dictionary_hash<unsigned, dag*> dag::ActiveDags(dag::daghash);
+
 char *defaultNStyleArgs[] = 
 {};
 
@@ -23,6 +26,10 @@ void RePaintDag (dag *dagInst);
 dag::dag (Tcl_Interp *nterp) 
 {
   int retval;
+
+  dagID = nextID;
+  nextID++;
+  ActiveDags[dagID] = this;
 
   flags = 0;
   mode = ALL;

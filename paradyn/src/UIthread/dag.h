@@ -84,12 +84,16 @@ public:
 };
 
 class dag {
+private:
     // from dagLayout
     rGraph graph;
 
     // from dag display
     int flags;			/* Various flags;  see below for */
 
+    // token used for finding this dag across tcl boundary
+    unsigned dagID;
+    static unsigned nextID;
     char *dcanvas;	        /* canvas used for drawing the dag. */
     char *dframe;               /* frame which contains the dag */
 
@@ -123,22 +127,42 @@ class dag {
     Tcl_Interp *interp;			      
     Tk_Window tkwin;
 
+    // recalculates all layout information and paints graph to screen
+    // using tk canvas widget
     friend void RePaintDag (dag *dagInst);
+
+    // implements the processVisiSelection tcl command, which parses 
+    // user selections for a visualization request and forwards the 
+    // the selections to the requesting visi thread
     friend int processVisiSelectionCmd (ClientData clientData, 
 					Tcl_Interp *interp, 
 					int argc, 
 					char *argv[]);
+    // traverses the subtree rooted at curr and builds a list of pointers
+    // to all selected nodes
     friend void getSubtreeSelections (rNode curr, resourceList *selection);
+
     int centeringOffset (); 
+
+    // paints (to display) all edges with source == me using tk canvas widget
     void PaintEdges(rNode me, int offset); 
+    // paints node to display at given coordinates
     int PaintNode(nStyle *styleRec, 
 		  rNode node,  
 		  int x, int y, 
 		  int width, int height); 
+    // updates canvas size info so that scrollbars stay in sync with the 
+    // canvas (only needed if node added to graph)
     void AdjustSize(int width, int height); 
+    // use x font info to calculate the pixel size of label given the 
+    // text and the font, and store in node structure
     void calcLabelSize (rNode node);
+    // queues up a canvas redraw as a tk idle task if none already queued
     void scheduleRedraw();
+    // set selected field for all nodes in graph except subgraph with  
+    // specified root, clearing any previous values for selected
     void tagExceptSubgraph (rNode root);
+    // paint entire graph to display
     void PaintDag();
     rNode getNodePtr (unsigned nodeID);
     // returns list of nodeID's for all highlighted nodes within a 
@@ -149,10 +173,28 @@ class dag {
   public:
     dag(Tcl_Interp *nterp);
     ~dag();
+
+    // for dagID lookups
+    static unsigned daghash(const unsigned &val) {return val;}
+    unsigned getToken() {return dagID;}
+    static dictionary_hash<unsigned, dag*> ActiveDags;
+
     void setRowSpacing (int newspace); 
+    // creates and initializes canvas with scrollbars as children of 
+    // the specified parent window
     int createDisplay (char *parentWindow);
+    // canvas is destroyed but all internal graph data is retained
     void destroyDisplay ();
+
+    // debugging dump
     void PrintGraph(FILE *f);
+
+    // add graph data
+    int CreateNode (int nodeID, int root, char *nodeLabel, int style,
+		    void *appRecPtr);
+    int AddEdge (int src, int dst, int edge_style);
+
+    // display styles
     int AddEStyle (int styleID, int arrow, int ashape1, int ashape2, 
 		   int ashape3, char *stipple, char *fill, 
 		   char capstyle, float width);
@@ -163,6 +205,9 @@ class dag {
     int AddEdge (unsigned src, unsigned dst, int edge_style);
     eStyle *getEStyle (int style);
     nStyle *getNStyle (int style);
+
+    // change options for existing graph node; first routine looks up node 
+    // pointer using node id  
     int configureNode (unsigned nodeID, char *label, int styleID);
     int configureNode (rNode me, char *label, int styleID);
     int configureEdge (unsigned srcID, unsigned dstID, int styleID);
