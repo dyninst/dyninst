@@ -11,8 +11,7 @@ pdwinnt.obj: ../src/pdwinnt.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/dyninst.h ../../common/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
- ../../dyninstAPI/src/dyn_lwp.h ../../rtinst/h/rtinst.h \
- ../../rtinst/h/../src/RTconst.h ../../rtinst/h/tc-lock.h \
+ ../../dyninstAPI/src/dyn_lwp.h \
  ../../dyninstAPI/src/process.h ../../dyninstAPI/src/dyn_thread.h \
  ../../dyninstAPI/src/stats.h ../../common/h/Timer.h \
  ../../dyninstAPI/src/instPoint.h ../../dyninstAPI/src/instPoint-x86.h \
@@ -29,8 +28,7 @@ inst-winnt.obj: ../src/inst-winnt.C ../../dyninstAPI/src/dyninstP.h \
 inst-x86.obj: ../src/inst-x86.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../dyninstAPI/src/process.h ../../dyninstAPI/src/dyn_lwp.h \
- ../../rtinst/h/rtinst.h ../../rtinst/h/../src/RTconst.h \
- ../../rtinst/h/tc-lock.h ../../dyninstAPI/src/instP.h \
+ ../../dyninstAPI/src/instP.h \
  ../../dyninstAPI/src/stats.h ../../common/h/Timer.h \
  ../../dyninstAPI/src/arch-x86.h ../../dyninstAPI/src/inst-x86.h \
  ../../dyninstAPI/src/instPoint.h ../../dyninstAPI/src/instPoint-x86.h \
@@ -49,8 +47,7 @@ func-reloc.obj: ../src/func-reloc.C ../../dyninstAPI/src/func-reloc.h \
  ../../dyninstAPI/src/arch-x86.h ../../dyninstAPI/src/inst-x86.h \
  ../../dyninstAPI/src/instPoint-x86.h \
  ../../dyninstAPI/src/LocalAlteration-x86.h \
- ../../dyninstAPI/src/dyn_lwp.h ../../rtinst/h/rtinst.h \
- ../../rtinst/h/../src/RTconst.h ../../rtinst/h/tc-lock.h
+ ../../dyninstAPI/src/dyn_lwp.h
 LocalAlteration.obj: ../src/LocalAlteration.C \
  ../../dyninstAPI/src/LocalAlteration.h ../../dyninstAPI/src/symtab.h \
  ../../common/h/Vector.h ../../common/h/language.h \
@@ -387,8 +384,7 @@ Object-nt.obj: ../src/Object-nt.C ../../common/h/String.h \
 process.obj: ../src/process.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../dyninstAPI/src/dyn_thread.h ../../dyninstAPI/src/process.h \
- ../../dyninstAPI/src/dyn_lwp.h ../../rtinst/h/rtinst.h \
- ../../rtinst/h/../src/RTconst.h ../../rtinst/h/tc-lock.h \
+ ../../dyninstAPI/src/dyn_lwp.h \
  ../../dyninstAPI/src/instP.h ../../dyninstAPI/src/instPoint.h \
  ../../dyninstAPI/src/instPoint-x86.h ../../dyninstAPI/src/dyninstP.h \
  ../../common/h/Vector.h ../../common/h/String.h \
@@ -427,13 +423,11 @@ dyn_thread.obj: ../src/dyn_thread.C ../../dyninstAPI/src/dyn_thread.h \
  ../../dyninstAPI/src/imageUpdate.h \
  ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../dyninstAPI/src/dyn_lwp.h ../../rtinst/h/rtinst.h \
- ../../rtinst/h/../src/RTconst.h ../../rtinst/h/tc-lock.h \
+ ../../dyninstAPI/src/dyn_lwp.h \
  ../../dyninstAPI/src/rpcMgr.h
 dyn_lwp.obj: ../src/dyn_lwp.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h ../src/dyn_lwp.h \
- ../src/os.h ../src/frame.h ../../rtinst/h/rtinst.h \
- ../../rtinst/h/../src/RTconst.h ../../rtinst/h/tc-lock.h \
+ ../src/os.h ../src/frame.h \
  ../src/syscalltrap.h
 rpcMgr.obj: ../src/rpcMgr.C ../../dyninstAPI/src/rpcMgr.h \
  ../../common/h/vectorSet.h ../../common/h/Vector.h \
@@ -470,9 +464,7 @@ rpcMgr.obj: ../src/rpcMgr.C ../../dyninstAPI/src/rpcMgr.h \
  ../../dyninstAPI/src/imageUpdate.h \
  ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../dyninstAPI/src/dyn_thread.h ../../dyninstAPI/src/dyn_lwp.h \
- ../../rtinst/h/rtinst.h ../../rtinst/h/../src/RTconst.h \
- ../../rtinst/h/tc-lock.h
+ ../../dyninstAPI/src/dyn_thread.h ../../dyninstAPI/src/dyn_lwp.h
 installed_miniTramps_list.obj: ../src/installed_miniTramps_list.C \
  ../../dyninstAPI/src/installed_miniTramps_list.h \
  ../../common/h/List.h ../../common/h/language.h \
@@ -579,6 +571,5 @@ templates-nt.obj: ../src/templates-nt.C ../../common/src/vectorSet.C \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/process.h ../../common/src/List.C \
  ../../dyninstAPI/h/BPatch_thread.h ../src/dyn_lwp.h ../src/os.h \
- ../src/frame.h ../../rtinst/h/rtinst.h \
- ../../rtinst/h/../src/RTconst.h ../../rtinst/h/tc-lock.h \
+ ../src/frame.h \
  ../src/syscalltrap.h
