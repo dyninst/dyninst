@@ -14,18 +14,18 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.48  1996/05/08 19:30:51  naim
+ * Revision 1.49  1996/05/08 19:36:19  naim
+ * Yet another fix to my previous fix! - naim
+ *
+ * Revision 1.48  1996/05/08  19:30:51  naim
  * Minor fix - naim
  *
  * Revision 1.47  1996/05/08  18:25:58  naim
  * Eliminating warning messages - naim
  *
-<<<<<<< 1.46
-=======
  * Revision 1.46  1996/05/08  18:24:32  naim
  * Eliminating some minor warning messages - naim
  *
->>>>>>> /tmp/T4a12600
  * Revision 1.45  1996/05/06  13:48:47  naim
  * Fixing problem with deletion of instrumentation and adding procedure to
  * compact memory when we run out of space to insert more instrumentation - naim
@@ -421,11 +421,7 @@ void inferiorFreeCompact(inferiorHeap *hp)
           hp->heapFree.resize(size-1);
           size = hp->heapFree.size();
 #ifdef FREEDEBUG
-<<<<<<< 1.46
-          sprintf(errorLine,"***** Compacting free memory (%d bytes, i=%d, j=%d)\n",np->length,i,j);
-=======
           sprintf(errorLine,"***** Compacting free memory (%d bytes, i=%d, j=%d, heapFree.size=%d)\n",np->length,i,j,size);
->>>>>>> /tmp/T4a12600
           logLine(errorLine);
 #endif
           break;
@@ -476,11 +472,7 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
       np = hp->heapActive[pointer];
 
       if (np->status != HEAPallocated) {
-<<<<<<< 1.46
-        sprintf(errorLine,"Attempt to free already free heap entry %x\n", pointer);
-=======
         sprintf(errorLine,"Attempt to free already freed heap entry %x\n", pointer);
->>>>>>> /tmp/T4a12600
         logLine(errorLine);
         showErrorCallback(67, (const char *)errorLine); 
         return;
