@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.390 2003/03/04 19:16:04 willb Exp $
+// $Id: process.C,v 1.391 2003/03/06 20:16:16 jodom Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2978,16 +2978,17 @@ bool process::loadDyninstLib() {
             assert(0 && "Dyninst RT lib not defined!");
         }
     }
-// Anyone know a Windows equivalent for this?
 #if !defined(i386_unknown_nt4_0)
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {
+#else
+    if (_access(dyninstRT_name.c_str(), 04)) {
+#endif
         string msg = string("Runtime library ") + dyninstRT_name
         + string(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         assert(0 && "Dyninst RT lib cannot be accessed!");
     }
-#endif
     // Set up a callback to be run when dyninst lib is loaded
     // NT has some odd naming problems, so we only use the root
 #if defined(i386_unknown_nt4_0)
