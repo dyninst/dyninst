@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2004/03/15 18:45:56 tlmiller Exp $
+# $Id: Makefile,v 1.16 2004/04/28 20:20:54 rchen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -9,14 +9,11 @@ NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_UNWIND_LIB = true
 
+# Turns off optimization, and enables debugging.
+# NO_OPT_FLAG = true
+
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
-
-# It's not clear what, if anything, this actually does.
-NO_OPT_FLAG = true
-# OPT_FLAG = -02
-OPT_FLAG = 
-
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:

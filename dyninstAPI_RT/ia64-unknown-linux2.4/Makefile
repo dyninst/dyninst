@@ -1,25 +1,24 @@
 #
-# $Id: Makefile,v 1.6 2004/03/31 20:37:27 tlmiller Exp $
+# $Id: Makefile,v 1.7 2004/04/28 20:21:00 rchen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 USES_UNWIND_LIB = true
-DEBUG_FLAG = -g
+
+# Turns off optimization, and enables debugging.
+# NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
-
 include ../../make.config 
 
 # Set platform-specific variables for this build.
-LD				= $(GCC)
+LD			= $(GCC)
 LDFLAGS			+= -static -nostdlib -Xlinker -r
 
-CFLAGS			+= -O2 
-
-CC				= $(GCC)
-LD				= $(GCC)
+CC			= $(GCC)
+LD			= $(GCC)
 CFLAGS			+= -I. -I../.. -fpic
 LDFLAGS			= -shared -ldl -Wl,-init,_start \
 				  -L$(LIBUNWINDDIR)/lib \
@@ -27,7 +26,7 @@ LDFLAGS			= -shared -ldl -Wl,-init,_start \
 
 ASFLAGS			= 
 
-SRCS		+= \
+SRCS			+= \
 			../src/RTposix.c \
 			../src/RTlinux.c \
 			../src/RTsig.c \
