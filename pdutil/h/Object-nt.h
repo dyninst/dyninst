@@ -40,7 +40,8 @@
  */
 
 /************************************************************************
- * Object-nt.h: Windows NT object files.
+ * Windows NT/2000 object files.
+ * $Id: Object-nt.h,v 1.4 1998/12/25 21:49:43 wylie Exp $
 ************************************************************************/
 
 
@@ -78,7 +79,8 @@ class Object : public AObject {
 public:
              Object (const string, void (*)(const char *) = log_msg);
              Object (const Object &);
-	     Object (const string, u_int, void (*)(const char *) = log_msg);
+	     Object (const string, const Address baseAddr,
+                void (*)(const char *) = log_msg);
 
     virtual ~Object ();
 
@@ -98,13 +100,6 @@ private:
     //DWORD ptr_to_rdata;
      
 };
-
-static int symbol_compare(const void *x, const void *y) {
-    Symbol *s1 = (Symbol *)x;
-    Symbol *s2 = (Symbol *)y;
-    return (s1->addr() - s2->addr());
-}
-
 
 
 /* break fullName into name and path parts */
@@ -317,7 +312,7 @@ Object::load_object() {
 	printf("BD: %x\n", ntHdrs->OptionalHeader.BaseOfData);
 #endif
 
-        isDll = header->Characteristics & IMAGE_FILE_DLL;
+        isDll = (header->Characteristics & IMAGE_FILE_DLL)!=0;
 
 #ifdef DEBUG_LOAD_OBJECT
 	if (isDll) printf("Object is a dll.\n");
@@ -326,7 +321,7 @@ Object::load_object() {
 
 	imageBase = ntHdrs->OptionalHeader.ImageBase;
 #ifdef DEBUG_LOAD_OBJECT
-	printf("Image base: %lx\n", (unsigned long)imageBase);
+	printf("Image base: 0x%lx\n", (unsigned long)imageBase);
 #endif
 
 	/* read the sections */
@@ -697,7 +692,8 @@ Object::Object(const string file, void (*err_func)(const char *))
 
 // for shared object files
 inline
-Object::Object(const string file,u_int,void (*err_func)(const char *))
+Object::Object(const string file, const Address /*baseAddr*/,
+        void (*err_func)(const char *))
     : AObject(file, err_func) {
    load_object();
 }

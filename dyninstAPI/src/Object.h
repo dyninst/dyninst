@@ -40,6 +40,7 @@
  */
 
 /************************************************************************
+ * $Id: Object.h,v 1.25 1998/12/25 21:49:43 wylie Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -59,6 +60,8 @@
 #include "util/h/Types.h"
 #include "util/h/Vector.h"
 #include "util/h/lprintf.h"
+
+extern int symbol_compare(const void *x, const void *y);
 
 // relocation information for calls to functions not in this image
 // on sparc-solaris: target_addr_ = rel_addr_ = PLT entry addr
@@ -178,11 +181,6 @@ private:
 
 #undef HAVE_SPECIFIC_OBJECT
 
-#if defined(hppa1_1_hp_hpux)
-#include "util/h/Object-hpux.h"
-#define HAVE_SPECIFIC_OBJECT
-#endif /* defined(hppa1_1_hp_hpux) */
-
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include "util/h/Object-elf32.h"
 #define HAVE_SPECIFIC_OBJECT
@@ -198,15 +196,10 @@ private:
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_sun_sunos4_1_3) */
 
-#if defined(sparc_tmc_cmost7_3)
-#include "util/h/Object-cm5.h"
-#define HAVE_SPECIFIC_OBJECT
-#endif /* defined(sparc_tmc_cmost7_3) */
-
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1)
 #include "util/h/Object-aix.h"
 #define HAVE_SPECIFIC_OBJECT
-#endif /* defined(sparc_tmc_cmost7_3) */
+#endif /* defined(rs6000_ibm_aix4_1) */
 
 #if defined(i386_unknown_nt4_0)
 #include "util/h/Object-nt.h"
@@ -214,9 +207,9 @@ private:
 #endif /* defined(i386_unknown_nt4_0) */
 
 #if defined(alpha_dec_osf4_0)
-#include <util/h/Object-coff.h>
+#include "util/h/Object-coff.h"
 #define HAVE_SPECIFIC_OBJECT
-#endif /* defined (alpha-dec-osf4.0)) */
+#endif /* defined(alpha_dec_osf4_0) */
 
 #if !defined(HAVE_SPECIFIC_OBJECT)
 #error "unable to locate system-specific object files"
