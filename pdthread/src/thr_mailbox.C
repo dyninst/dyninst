@@ -1,3 +1,6 @@
+#include <pthread.h>
+#include <errno.h>
+
 #include "thr_mailbox.h"
 #include "thrtab.h"
 #include "message.h"
@@ -10,7 +13,9 @@
 #include <sys/time.h>
 #include <sys/poll.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "mailbox_defs.h"
+
 
 #include <strings.h>
 
@@ -54,15 +59,24 @@ struct fd_set_populator
 bool
 fd_set_populator::visit(PDSOCKET desc)
 {
-	if(!mbox->ready_socks->contains(desc))
-	{
-		thr_debug_msg(CURRENT_FUNCTION, "ADDING %d to wait set\n", (unsigned)desc);
-
-		FD_SET(desc, fds);
-		if( desc + 1 > max_fd )
-		{
-			max_fd = desc + 1;
-		}
+	if(!mbox->ready_socks->contains(desc)) {
+       
+       // check to see if desc is a valid file descriptor by 
+       // using the GETFL fcntl; if not, don't select on it
+       if(fcntl(desc, F_GETFL) != -1) {
+           
+           thr_debug_msg(CURRENT_FUNCTION, "ADDING %d to wait set\n", (unsigned)desc);
+           
+           FD_SET(desc, fds);
+           if( desc + 1 > max_fd ) {
+               max_fd = desc + 1;
+           }
+       } else {
+           if (errno == EBADF) {
+               fprintf(stderr, "thread library: %d is a bogus file descriptor, unbinding\n", desc);
+               mbox->unbind_sock(desc);
+           }   
+       }
 	}
 	else
 	{
@@ -117,7 +131,6 @@ ready_socks_populator::visit(PDSOCKET desc)
 	}
 	return true;	// we always want to continue visiting list items
 }
-    
 
 
 
@@ -159,8 +172,7 @@ thr_mailbox::wait_for_input( void )
 										NULL);	// block until something ready
         thr_debug_msg(CURRENT_FUNCTION, "SELECT RETURNING for mailbox owned by %d; status = %d\n", owned_by, select_status);
 
-        if(select_status == -1)
-		{
+        if(select_status == -1) {
             perror("select thread");
         }
 		else if( select_status > 0 )
@@ -571,13 +583,16 @@ void thr_mailbox::bind_sock(PDSOCKET sock, unsigned special, int
 void thr_mailbox::unbind_sock(PDSOCKET sock)
 {
     entity* s = (entity*)(socket_q::socket_from_desc(sock));
-    thread_t to_remove = thrtab::get_tid(s);
-
-    sock_monitor->lock();
-    bound_socks->yank(sock);    
-    sock_monitor->unlock();
-
-    thrtab::remove(to_remove);
+    if (s) {
+        
+        thread_t to_remove = thrtab::get_tid(s);
+        
+        sock_monitor->lock();
+        bound_socks->yank(sock);    
+        sock_monitor->unlock();
+        
+        thrtab::remove(to_remove);
+    }
 }
 
 bool thr_mailbox::is_sock_bound(PDSOCKET sock)
