@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.57 2000/11/20 23:15:26 schendel Exp $
+// $Id: init.C,v 1.58 2000/11/21 21:14:26 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -433,7 +433,7 @@ bool yesFunc() { return true; }
 
 bool bForceSoftwareLevelWallTimer() {
   char *evar;
-  evar = getenv("SOFTWARE_LEVEL_WALL_TIMER");
+  evar = getenv("PD_SOFTWARE_LEVEL_WALL_TIMER");
   if( evar  )
     return true;
   else
@@ -442,7 +442,7 @@ bool bForceSoftwareLevelWallTimer() {
 
 bool bShowTimerInfo() {
   char *evar;
-  evar = getenv("SHOW_TIMER_INFO");
+  evar = getenv("PD_SHOW_TIMER_INFO");
   if( evar  )
     return true;
   else

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.238 2000/11/20 23:14:00 schendel Exp $
+// $Id: process.C,v 1.239 2000/11/21 21:14:22 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6219,16 +6219,16 @@ void process::MonitorDynamicCallSites(string function_name){
 }
 #endif
 
+#ifndef BPATCH_LIBRARY
 bool bForceSoftwareLevelCpuTimer() {
   char *pdkill;
-  pdkill = getenv("SOFTWARE_LEVEL_CPU_TIMER");
+  pdkill = getenv("PD_SOFTWARE_LEVEL_CPU_TIMER");
   if( pdkill )
     return true;
   else
     return false;
 }
 
-#ifndef BPATCH_LIBRARY
 void process::initCpuTimeMgr() {
   if(cpuTimeMgr != NULL)  delete cpuTimeMgr;
   cpuTimeMgr = new cpuTimeMgr_t();
