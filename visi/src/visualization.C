@@ -14,9 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.42  1996/02/23 17:47:16  tamches
-/* added 2 bool params to visi_DefinePhase
+/* Revision 1.43  1996/03/11 17:42:21  newhall
+/* changed bool to int params in visi_DefinePhase, changed some params to
+/* unsigned
 /*
+ * Revision 1.42  1996/02/23  17:47:16  tamches
+ * added 2 bool params to visi_DefinePhase
+ *
  * Revision 1.41  1996/01/26 19:24:26  newhall
  * changes so that visiLib can be used by C visis
  *
@@ -310,11 +314,24 @@ void visi_StopMetRes(int metricIndex,
 // invokes upcall to paradyn.  Visualization sends phase
 // definition to paradyn.  
 ///////////////////////////////////////////////////////////
-void visi_DefinePhase(char *name, bool withPerfConsult,
-		      bool withVisis) {
+void visi_DefinePhase(char *name, unsigned withPerfConsult,
+		      unsigned withVisis) {
   if(!visi_initDone)
     visi_Init();
-  visi_vp->StartPhase((double)-1.0, name, withPerfConsult, withVisis);
+  if(withPerfConsult){
+      if(withVisis){
+          visi_vp->StartPhase((double)-1.0,name,true,true);
+      }
+      else {
+	  visi_vp->StartPhase((double)-1.0,name,true,false);
+      }
+  }
+  else if(withVisis) {
+      visi_vp->StartPhase((double)-1.0,name,false,true);
+  }
+  else {
+      visi_vp->StartPhase((double)-1.0,name,false,false);
+  }
 }
 
 ///////////////////////////////////////////////////////////
@@ -788,7 +805,7 @@ int visi_NumResources(){
 //
 //  returns the number of phases currently defined in the system
 //
-u_int visi_NumPhases(){
+unsigned visi_NumPhases(){
     return visi_dataGrid.NumPhases();
 }
 
@@ -819,7 +836,7 @@ int visi_GetMyPhaseHandle(){
 // returns the handle of the phase for which this visi is defined or
 // -1 on error
 //
-int visi_GetPhaseHandle(u_int phase_num){
+int visi_GetPhaseHandle(unsigned phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
@@ -831,7 +848,7 @@ int visi_GetPhaseHandle(u_int phase_num){
 //
 // returns phase name for the ith phase, or returns 0 on error
 //
-const char *visi_GetPhaseName(u_int phase_num){
+const char *visi_GetPhaseName(unsigned phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
@@ -843,7 +860,7 @@ const char *visi_GetPhaseName(u_int phase_num){
 //
 // returns phase start time for the ith phase, or returns -1.0 on error
 //
-visi_timeType visi_GetPhaseStartTime(u_int phase_num){
+visi_timeType visi_GetPhaseStartTime(unsigned phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
@@ -855,7 +872,7 @@ visi_timeType visi_GetPhaseStartTime(u_int phase_num){
 //
 // returns phase end time for the ith phase, or returns -1.0 on error
 //
-visi_timeType visi_GetPhaseEndTime(u_int phase_num){
+visi_timeType visi_GetPhaseEndTime(unsigned phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
@@ -867,7 +884,7 @@ visi_timeType visi_GetPhaseEndTime(u_int phase_num){
 //
 // returns phase bucket width for the ith phase, or returns -1.0 on error
 //
-visi_timeType visi_GetPhaseBucketWidth(u_int phase_num){
+visi_timeType visi_GetPhaseBucketWidth(unsigned phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
@@ -998,4 +1015,26 @@ int visi_SetUserData(int metric_num, int resource_num, void *data){
     }
     return 0;
 }
+
+#ifdef ndef
+void PrintDataBuckets(int step){
+
+    int noMetrics = visi_dataGrid.NumMetrics();
+    int noResources = visi_dataGrid.NumResources();
+    int noBuckets = visi_dataGrid.NumBins();
+    for(int i = 0; i < noMetrics; i++){
+	for(int j=0; j < noResources; j++){
+            if (visi_dataGrid[i][j].Valid()){
+		cerr << visi_dataGrid.MetricName(i) << "/" 
+		     << visi_dataGrid.ResourceName(j) << endl;
+		for(int k=0; k < noBuckets; k+=step){
+		    cerr << "value(" << k << ") = " << visi_dataGrid[i][j][k]
+			 << endl;
+		}
+	    }
+	}
+    }
+
+}
+#endif
 
