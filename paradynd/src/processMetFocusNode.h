@@ -46,6 +46,8 @@
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/frame.h"
 #include "paradynd/src/focus.h"
+#include "paradynd/src/pd_thread.h"
+#include "common/h/Vector.h"
 
 class machineMetFocusNode;
 class instrCodeNode;
@@ -55,6 +57,7 @@ class instrDataNode;
 class catchupReq;
 class AstNode;
 class dyn_thread;
+class pd_thread;
 class instReqNode;
 class dyn_lwp;
 
@@ -85,27 +88,38 @@ class processMetFocusNode : public metricFocusNode {
   const Focus focus;
 
   bool dontInsertData_;
-  bool catchupNotDoneYet_;
   bool currentlyPaused;
   vector<catchup_t >   catchupASTList;
   vector<sideEffect_t> sideEffectFrameList;
 
-  int insertionAttempts;
-  pd_Function *function_not_inserted;
+  dictionary_hash<unsigned, int> thridsCatchuped;
 
-  processMetFocusNode(pd_process *p, const string &metname,
-		      const Focus &component_foc, aggregateOp agg_op, 
-		      bool arg_dontInsertData);
-
-  bool catchupNotDoneYet() { return catchupNotDoneYet_; }
-  void manuallyTrigger(int mid);
-  bool catchupInstrNeeded() const;
+  // remember the threads that need catchup separately than the threads in
+  // the process because pd_process could gain more threads independently
+  // of procMetFocusNode being informed
+  vector<pd_thread *> threadsNeedingCatchup;
+  bool hasBeenCatchuped_;
 
   // don't have a hash indexed by pid because can have multiple procNodes
   // with same pid
   static vector<processMetFocusNode*> allProcNodes;
 
   bool isBeingDeleted_;
+
+  processMetFocusNode(pd_process *p, const string &metname,
+		      const Focus &component_foc, aggregateOp agg_op, 
+		      bool arg_dontInsertData);
+
+  void manuallyTrigger(int mid);
+  bool catchupInstrNeeded() const;
+  void prepareCatchupInstr(pd_thread *thr);  // do catchup on given thread
+
+  // returns true if any instrumentation was added for codeNodes
+  bool updateCodeNodes(pd_thread *thr);
+  void markAsCatchuped(const pd_thread *thr) {
+     thridsCatchuped[thr->get_tid()] = 1;
+  }
+
 
  public:
   bool isBeingDeleted() {return isBeingDeleted_; };
@@ -170,9 +184,16 @@ class processMetFocusNode : public metricFocusNode {
   bool insertJumpsToTramps();
   bool trampsHookedUp();
   bool instrLoaded();
+  bool hasBeenCatchuped() { return hasBeenCatchuped_; }
+
+  // considers the passed thread
+  bool hasBeenCatchuped(const pd_thread *thr) {
+     return thridsCatchuped.defines(thr->get_tid());
+  }
+
   bool instrInserted() { return (instrLoaded() && trampsHookedUp()
-				 && !catchupNotDoneYet()); }
-  instr_insert_result_t loadInstrIntoApp(pd_Function **func);
+				 && hasBeenCatchuped()); }
+  instr_insert_result_t loadInstrIntoApp();
   void doCatchupInstrumentation();
   instr_insert_result_t insertInstrumentation();
   
@@ -184,7 +205,7 @@ class processMetFocusNode : public metricFocusNode {
 
   timeStamp getStartTime() { return procStartTime; }
 
-  void prepareCatchupInstr();
+  void prepareCatchupInstr();  // on all threads
   void postCatchupRPCs();
 
   void pauseProcess();
