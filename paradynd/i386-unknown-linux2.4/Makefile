@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2002/12/14 16:37:46 schendel Exp $
+# $Id: Makefile,v 1.14 2003/05/14 18:32:34 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,7 +8,8 @@ USES_LIBERTY = true
 USES_SHM_SAMPLING = true
 USES_PVM = true
 NO_IMPLICIT_TEMPLATES = true
-#DEBUG_FLAG = -ggdb
+USES_DWARF_DEBUG = true
+# DEBUG_FLAG = -g
 
 #If libhrtime is not installed on your computer and you have no interest
 #  in using it, then comment out the following line (with a #), remove
@@ -46,9 +47,11 @@ SRCS =		../../dyninstAPI/src/linux.C \
 
 MYFLAGS		+= -I/usr/include/libelf
 MYFLAGS		+= -DNO_MDL_PRINT
+MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR)
 
 SYSLIBS  = -ldl -lelf
 #SYSLIBS = -lelf -lsocket -lnsl
+LIBS = -L$(LIBDWARFDIR)/lib -ldwarf
 
 AS		= /usr/bin/as
 
