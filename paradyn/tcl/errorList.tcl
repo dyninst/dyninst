@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.9  1995/11/13 14:54:43  naim
+# Revision 1.10  1995/11/13 21:13:34  naim
+# Minor change to the display of error message 85 - naim
+#
+# Revision 1.9  1995/11/13  14:54:43  naim
 # Adding error message #85 - naim
 #
 # Revision 1.8  1995/11/03  21:15:48  naim
@@ -861,8 +864,8 @@ set pdError(85) {
 } {pdMain
 } {information
 } {
-An error was detected when Paradyn was reading the metrics described in the
-Paradyn configuration file.
+An error was detected when Paradyn was reading the metrics described in 
+the Paradyn configuration file.
 }}
 
 set numPdErrors 85
