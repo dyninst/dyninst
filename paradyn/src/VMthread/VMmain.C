@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.16  1994/08/16 16:35:53  markc
-/* Removed uses of old string iterators.  Added new VMAddNewVisualization function to support config language.
+/* Revision 1.17  1994/08/17 01:09:03  markc
+/* VMAddNewVisualization now strdup's the strings passed to it.
 /*
+ * Revision 1.16  1994/08/16  16:35:53  markc
+ * Removed uses of old string iterators.  Added new VMAddNewVisualization function to support config language.
+ *
  * Revision 1.15  1994/08/13  20:54:26  newhall
  * visi_thread_args def. changed
  * VMCreateVisi arguments changed
@@ -177,16 +180,48 @@ int VM::VMAddNewVisualization(char *name,
     id = visiList.count();
     id++;
 
+    if (!argv || argc < 1) {
+      perror("bad args in VM::AddNewVisualization");
+      ERROR_MSG(18, "malloc in VM::VMAddNewVisualization");
+      return (VMERROR);
+    }
+
     if (!(temp = new VMvisis)) {
       perror("malloc in VM::VMAddNewVisualization");
       ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
       return(VMERROR);
     }
-    // don't strdup, use the args directly
-    temp->argv = argv;
+
     temp->argc = argc;
-    temp->name = name;
     temp->Id = id;
+    temp->name = strdup(name);
+    if (!temp->name) {
+      perror("malloc in VM::VMAddNewVisualization");
+      ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
+      return(VMERROR);
+    }
+    temp->argv = new char*[argv];
+    if (!temp->argv) {
+      perror("malloc in VM::VMAddNewVisualization");
+      ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
+      return(VMERROR);
+    }
+    int ct;
+    temp->argv[argc] = 0;
+    for (ct=0; ct<argc; ct++) {
+      if (!argv[ct]) {
+	perror("malloc in VM::VMAddNewVisualization");
+	ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
+	return(VMERROR);
+      }
+      temp->argv[ct] = argv[ct];
+      if (!temp->argv[ct]) {
+	perror("malloc in VM::VMAddNewVisualization");
+	ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
+	return(VMERROR);
+      }
+    }
+
     visiList.add(temp,(void *)id);
   } else {
     // redefine an existing entry
