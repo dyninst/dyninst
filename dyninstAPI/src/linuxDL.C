@@ -389,8 +389,8 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
       // kludge: ignore the entry if it has the same name as the
       // executable file...this seems to be the first link-map entry
       if(obj_name != p->getImage()->file() && 
-         obj_name != p->getImage()->name() &&
-         obj_name != p->getArgv0()) {
+         obj_name != p->getImage()->name()) {
+          
          sharedobj_cerr << "file name doesn't match image, so not ignoring "
                         << "it...firsttime=" << (int)first_time << endl;
          

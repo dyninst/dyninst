@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.22 2004/02/07 18:34:02 schendel Exp $
+// $Id: irixDL.C,v 1.23 2004/03/02 22:46:08 bernat Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -168,6 +168,13 @@ dynamic_linking::dynamic_linking()
   //fprintf(stderr, ">>> dynamic_linking::dynamic_linking()\n");
 }
 
+dynamic_linking::~dynamic_linking()
+{
+    // TODO: write this. We never had a destructor before,
+    // but I'm not sure what it should do -- bernat, 2MAR04
+}
+
+
 bool dynamic_linking::isDynamic() {
   //if (dynlinked) fprintf(stderr, ">>> dynamic_linking::isDynamic()\n");
   return dynlinked;
@@ -243,7 +250,6 @@ static bool is_a_out(process *p, const pdstring &dso_name)
 {
   if (dso_name == p->getImage()->file()) return true;
   if (dso_name == p->getImage()->name()) return true;
-  if (dso_name == p->getArgv0()) return true;
   return false;
 }
 
