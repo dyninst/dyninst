@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/misc.c,v 1.1 1997/05/12 20:15:32 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/misc.c,v 1.2 1997/05/14 19:14:57 naim Exp $";
 #endif
 
 /*
  * misc.c - misc utility routines.
  *
  * $Log: misc.c,v $
+ * Revision 1.2  1997/05/14 19:14:57  naim
+ * Minor changes for sunos version of terrain - naim
+ *
  * Revision 1.1  1997/05/12 20:15:32  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -39,7 +42,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  */
 
 #include <stdio.h>
-#include <strings.h>
+/* #include <strings.h> */
 
 #include "misc.h"
 #include "plot.h"

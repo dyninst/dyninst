@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.1 1997/05/12 20:15:23 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.2 1997/05/14 19:14:55 naim Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.2  1997/05/14 19:14:55  naim
+ * Minor changes for sunos version of terrain - naim
+ *
  * Revision 1.1  1997/05/12 20:15:23  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -64,7 +67,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 
 #include <stdio.h>
 #include <math.h>
-#include <strings.h>
+/* #include <strings.h> */
 
 #include "plot.h"
 #include "setshow.h"

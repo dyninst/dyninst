@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/form.c,v 1.1 1997/05/12 20:15:26 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/form.c,v 1.2 1997/05/14 19:14:57 naim Exp $";
 #endif
 
 /*
@@ -25,6 +25,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *          scroll bars and menu routines.
  *
  * $Log: form.c,v $
+ * Revision 1.2  1997/05/14 19:14:57  naim
+ * Minor changes for sunos version of terrain - naim
+ *
  * Revision 1.1  1997/05/12 20:15:26  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -166,7 +169,7 @@ int h, w;			/* How big should the form be initially */
     Widget mainWin, infoH, infoV, titleBar, logo;
     Arg arg[30];
     Pixmap *logobitmap;
-    int depth;
+    /* int depth; */
     char line[160];
     Display *dpy;
     int i;
@@ -308,9 +311,9 @@ int h, w;			/* How big should the form be initially */
 
     /* Main window */
 
-    XtSetArg(arg[0], XtNdepth, 0);
-    XtGetValues(toplevel, arg, (Cardinal)1);
-    depth = (int)(arg[0].value);
+    /* XtSetArg(arg[0], XtNdepth, 0);
+    XtGetValues(toplevel, arg, (Cardinal)1); 
+    depth = (int)(arg[0].value); */
 
     i=0;
     XtSetArg(arg[i], XtNvertDistance, TITLE_H * 2 + INFO_H); i++;
@@ -324,7 +327,7 @@ int h, w;			/* How big should the form be initially */
     XtSetArg(arg[i], XtNtop, XtChainTop); i++;
     XtSetArg(arg[i], XtNbottom, XtChainBottom); i++;
 
-    sprintf(line, "Depth = %d", depth);
+    /* sprintf(line, "Depth = %d", depth); */
     XtSetArg(arg[i], XtNlabel, line); i++;
 
     mainWin = XtCreateManagedWidget("label1", labelWidgetClass, form,
