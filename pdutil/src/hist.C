@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.2  1994/01/26 04:53:42  hollings
+ * Revision 1.3  1994/02/08 00:30:39  hollings
+ * Make libutil more compatable with ATT CC.
+ *
+ * Revision 1.2  1994/01/26  04:53:42  hollings
  * Change to using <module>/h/*.h
  *
  * Revision 1.1  1994/01/25  20:50:25  hollings
@@ -75,7 +78,7 @@ Histogram::Histogram(metricStyle type)
 Histogram::Histogram(Bin *buckets, metricStyle type)
 {
     // First call default constructor.
-    Histogram(type);
+    (void) Histogram(type);
 
     storageType = HistBucket;
     dataPtr.buckets = (Bin *) calloc(sizeof(Bin), numBins);

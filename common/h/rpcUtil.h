@@ -3,6 +3,7 @@
 #define RPC_UTIL
 
 extern "C" {
+#include <rpc/types.h>
 #include <rpc/xdr.h>
 }
 

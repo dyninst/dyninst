@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.9  1994/02/03 23:30:43  hollings
+ * Revision 1.10  1994/02/08 00:30:32  hollings
+ * Make libutil more compatable with ATT CC.
+ *
+ * Revision 1.9  1994/02/03  23:30:43  hollings
  * changed listHash to a macro to work with g++ 2.5.2.
  *
  * Revision 1.8  1994/01/25  20:49:40  hollings
@@ -56,6 +59,7 @@ typedef int Boolean;
 #define ListHash(ptr, size) (((int)(ptr) % (int)(size)))
 
 template <class Type> class List;
+template <class Type> class StringList;
 
 template <class Type> class ListItem {
     friend class List<Type>;
@@ -70,8 +74,8 @@ template <class Type> class List {
     public:
 	List() { head = NULL; }
 	void add(Type data, void *key);
-	void add(Type data) { add(data, (void *) data); }
-	Boolean addUnique(Type data) { return(addUnique(data, (void *) data)); }
+	void add(Type data);
+	Boolean addUnique(Type data);
 	Boolean addUnique(Type data, void *key) {
 	    Type temp;
 
@@ -127,6 +131,16 @@ template <class Type> void List<Type>::add(Type data, void *key)
 
     ni->next = head;
     head = ni;
+}
+
+template <class Type> void List<Type>::add(Type data) 
+{ 
+    add(data, (void *) data); 
+}
+
+template <class Type> Boolean List<Type>::addUnique(Type data) 
+{ 
+    return(addUnique(data, (void *) data)); 
 }
 
 template <class Type> Boolean List<Type>::remove(void *key)
