@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.53 2001/10/29 16:19:00 zandy Exp $
+// $Id: linux.C,v 1.54 2001/12/18 22:54:04 zandy Exp $
 
 #include <fstream.h>
 
@@ -573,7 +573,10 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 	  assert(0);
      }
 
-     /* Reattach, which should stop the process. */
+     /* Synchronize with the SIGSTOP sent by inferior sigill handler */
+     waitForInferiorSigillStop(p->getPid());
+
+     /* Reattach, which will leave a pending SIGSTOP. */
      p->reattach();
      if (! p->isRunningRPC())
 	  /* If we got this signal when the inferior was not in an RPC,
@@ -581,12 +584,13 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 	     FIXME: Why have we released the process for RPCs anyway? */
 	  p->needsDetach = true;
 
-     /* Synchronize with the SIGSTOP sent by inferior sigill handler */
-     waitForInferiorSigillStop(p->getPid());
-
      /* Resume the process.  We expect it to re-execute the code that
         generated the SIGILL.  Now that we are attached, we'll get the
         SIGILL event and handle it with handleSigChild as usual. */
+     /* clear pending stop left by reattach */
+     P_ptrace(PTRACE_CONT, p->getPid(), 0, 0);
+     if (0 > waitpid(p->getPid(), NULL, 0))
+	     perror("waitpid");
      if (!p->continueProc())
 	  assert(0);
 }
