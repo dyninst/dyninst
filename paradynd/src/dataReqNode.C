@@ -46,44 +46,93 @@
 #include "dyninstAPI/src/pdThread.h"
 #include "paradynd/src/init.h"
 
-int sampledShmIntCounterReqNode::getThreadId() const {
-  assert(thr_);
-  return(thr_->get_tid());
+
+inst_var_index dataReqNode::allocateForInstVar(process *proc, 
+					       inst_var_type varType) {
+  superTable &theTable = proc->getTable();
+  return theTable.allocateForInstVar(varType);
 }
 
-sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(
-                                pdThread *thr, rawTime64 iValue, 
-				int iCounterId, process *proc,
-				bool dontInsertData, bool doNotSample,
-				unsigned p_allocatedIndex,
-				unsigned p_allocatedLevel)
+void dataReqNode::markAsSampled() {
+  superTable &theTable = proc->getTable();
+  theTable.markVarAsSampled(varType, varIndex, threadPos);
+}
+
+void dataReqNode::markAsNotSampled() {
+  superTable &theTable = proc->getTable();
+  theTable.markVarAsNotSampled(varType, varIndex, threadPos);
+}
+
+void dataReqNode::disable(const vector<addrVecType> &pointsToCheck) {
+  // Remove from inferior heap; make sure we won't be sampled any more:
+  vector<Address> trampsMaybeUsing;
+  for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
+    for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); 
+	 tramplcv++) {
+      trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
+    }
+
+  superTable &theTable = proc->getTable();
+  theTable.makePendingFree(varType, varIndex, threadPos, trampsMaybeUsing);
+
+  //if (MT && theProc->numOfActCounters_is>0) theProc->numOfActCounters_is--;
+}
+
+Address dataReqNode::getInferiorPtr() const {
+  // counterPtr could be NULL if we are building AstNodes just to compute
+  // the cost - naim 2/18/97
+  // NOTE:
+  // this routine will dissapear because we can't compute the address
+  // of the counter/timer without knowing the thread id - naim 3/17/97
+  //
+  Address varAddr;
+  if(getDontInsertData()) {
+    varAddr = 0;
+  } else {
+    superTable &theTable = proc->getTable();
+    // we assume there is only one thread
+    varAddr = (Address)theTable.index2InferiorAddr(varType, varIndex, 
+						   threadPos);
+  }
+  return varAddr;
+}
+
+void dataReqNode::setThrNodeClient(threadMetFocusNode_Val *thrNval) {
+  superTable &theTable = proc->getTable();
+  void *ptr = theTable.getHouseKeeping(varType, varIndex, threadPos);
+  intCounterHK *hkPtr = reinterpret_cast<intCounterHK*>(ptr);
+  hkPtr->setThrClient(thrNval);
+}
+
+/* ************************************************************************* */
+
+
+sampledIntCounterReqNode::
+sampledIntCounterReqNode(process *proc, inst_var_index varIndex,
+			 pdThread *thr, rawTime64 iValue, 
+			 int iCounterId, bool dontInsertData_) :
+  dataReqNode(proc, Counter, varIndex, ((thr==NULL) ? 0 : thr->get_pd_pos()),
+	      iCounterId, dontInsertData_),
+  initialValue(iValue)
 {
-   theSampleId = iCounterId;
-   initialValue = iValue;
-   thr_ = thr;
+  if (getDontInsertData()) return;
 
-   // The following fields are NULL until loadInstrIntoApp()
-   if(proc->is_multithreaded()) {
-     allocatedIndex = p_allocatedIndex;
-     allocatedLevel = p_allocatedLevel;
-   } else {
-     allocatedIndex = UI32_MAX;
-     allocatedLevel = UI32_MAX;
-   }
+  intCounter iValueRaw;
+  iValueRaw.id.id = iCounterId;
+  iValueRaw.value = initialValue;
+  
+  intCounterHK iHKValue(iCounterId, NULL);
+  superTable &theTable = proc->getTable();
 
-   position_ = 0;
-
-   if (!dontInsertData) {
-     bool isOk = false;
-     isOk = insertShmVar(thr, proc, doNotSample);
-     assert(isOk); 
-   }
+  theTable.createCounterVar(Counter, varIndex, getThreadPos(), iValueRaw,
+			    iHKValue);
 }
 
-sampledShmIntCounterReqNode::
-sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
-			    process *childProc,
-			    int iCounterId, const process *parentProc)
+sampledIntCounterReqNode::
+sampledIntCounterReqNode(const sampledIntCounterReqNode &src,
+			 process */*childProc*/,
+			 int /*iCounterId*/, const process */*parentProc*/) :
+  dataReqNode(src)
 {
    // a dup() routine (call after a fork()) Assumes that "childProc" has been
    // copied already (e.g., the shm seg was copied).
@@ -97,6 +146,7 @@ sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
    // copied the actual data; we need to fill in new meta-data (new
    // houseKeeping entries).
 
+  /*
    this->allocatedIndex = src.allocatedIndex;
    this->allocatedLevel = src.allocatedLevel;
 
@@ -124,106 +174,51 @@ sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
       // the mi differs from the mi of the parent; theSampleId differs too.
    theTable.initializeHKAfterForkIntCounter(allocatedIndex, allocatedLevel, 
 					    iHKValue);
-   position_=0;
+   //position_=0;
+   */
 }
 
 dataReqNode *
-sampledShmIntCounterReqNode::dup(process *childProc, int iCounterId,
+sampledIntCounterReqNode::dup(process *childProc, int iCounterId,
 	                  const dictionary_hash<instInstance*,instInstance*> &)
   const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   sampledShmIntCounterReqNode *tmp;
-   tmp = new sampledShmIntCounterReqNode(*this, childProc,
-					 iCounterId, childProc->getParent());
+   sampledIntCounterReqNode *tmp;
+   tmp = new sampledIntCounterReqNode(*this, childProc,
+				      iCounterId, childProc->getParent());
       // fork ctor
 
    return tmp;
 }
 
-bool sampledShmIntCounterReqNode::insertShmVar(pdThread *thr, process *theProc,
-					       bool doNotSample)
-{
-   // Remember counterPtr is NULL until this routine gets called.
-   // WARNING: there will be an assert failure if the applic hasn't yet attached to the
-   //          shm segment!!!
-
-   // initialize the intCounter in the inferior heap
-   intCounter iValue;
-   iValue.id.id = this->theSampleId;
-   iValue.value = this->initialValue;
-
-   intCounterHK iHKValue(this->theSampleId, NULL);
-
-   superTable &theTable = theProc->getTable();
-   int thr_pos = 0;
-   if(theProc->is_multithreaded()) {
-     if (thr==NULL) thr = theProc->threads[0]; // default value for thread
-     assert(thr!=NULL);
-     thr_pos = thr->get_pd_pos();
-   }
-
-   if(!theTable.allocIntCounter(iValue, iHKValue, &this->allocatedIndex, 
-				&this->allocatedLevel, doNotSample, thr_pos))
-     return false;  // failure
-
-
-   return true; // success
-}
-
-void sampledShmIntCounterReqNode::disable(process *theProc,
-				    const vector<addrVecType> &pointsToCheck) {
-  superTable &theTable = theProc->getTable();
-  
-  // Remove from inferior heap; make sure we won't be sampled any more:
-  vector<Address> trampsMaybeUsing;
-  for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
-    for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); 
-	 tramplcv++) {
-      trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
-    }
-
-  theTable.makePendingFree(thr_, 0, allocatedIndex, allocatedLevel,
-			   trampsMaybeUsing);
-
-  if(theProc->is_multithreaded()) {
-    if (theProc->numOfActCounters_is>0) theProc->numOfActCounters_is--;
-  }
-}
 
 /* ************************************************************************* */
 
-sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(
-                                pdThread *thr, int iCounterId,
-				process *proc, bool dontInsertData,
-				unsigned p_allocatedIndex,
-				unsigned p_allocatedLevel)
+sampledWallTimerReqNode::
+sampledWallTimerReqNode(process *proc, inst_var_index varIndex,
+			pdThread *thr, int iCounterId, bool dontInsertData_) :
+  dataReqNode(proc, WallTimer, varIndex, ((thr==NULL) ? 0 : thr->get_pd_pos()),
+	      iCounterId, dontInsertData_)
 {
-   theSampleId = iCounterId;
+  if(getDontInsertData()) return;
 
-   // The following fields are NULL until insertShmVar():
-   if(proc->is_multithreaded()) {
-     thr_ = thr;
-     allocatedIndex = p_allocatedIndex;
-     allocatedLevel = p_allocatedLevel;
-   } else {
-     allocatedIndex = UI32_MAX;
-     allocatedLevel = UI32_MAX;
-   }
+  tTimer iValue;
+  P_memset(&iValue, '\0', sizeof(tTimer));
+  iValue.id.id = iCounterId;
+  
+  wallTimerHK iHKValue(iCounterId, NULL, timeLength::Zero());
+  superTable &theTable = proc->getTable();
 
-   position_=0;
-
-   if (!dontInsertData) {
-     bool isOk = false;
-     isOk = insertShmVar(thr, proc);
-     assert(isOk); 
-   }
+  theTable.createWallTimerVar(WallTimer, varIndex, getThreadPos(), iValue,
+			      iHKValue);
 }
 
-sampledShmWallTimerReqNode::
-sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
-			   process *childProc, int iCounterId, 
-			   const process *parentProc)
+sampledWallTimerReqNode::
+sampledWallTimerReqNode(const sampledWallTimerReqNode &src,
+			process */*childProc*/, int /*iCounterId*/, 
+			const process */*parentProc*/) :
+  dataReqNode(src)
 {
    // a dup()-like routine; call after a fork().
    // Assumes that the "childProc" has been duplicated already
@@ -237,6 +232,7 @@ sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
    // copied the actual data; we need to fill in new meta-data (new
    // houseKeeping entries).
 
+  /*
    allocatedIndex = src.allocatedIndex;
    allocatedLevel = src.allocatedLevel;
 
@@ -250,13 +246,15 @@ sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
    const superTable &theParentTable = parentProc->getTable();
    assert(theTable.index2InferiorAddr(1,childProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel)==theParentTable.index2InferiorAddr(1,parentProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel));
 
-   // Write new raw value in the inferior heap:
-   // we set localTimerPtr as follows: protector1 and procetor2 should be copied from
-   //    src. total should be reset to 0.  start should be set to now if active else 0.
-   //    counter should be copied from the source.
-   // NOTE: SINCE WE COPY FROM THE SOURCE, IT'S IMPORTANT THAT ON A FORK, BOTH THE
-   //       PARENT AND CHILD ARE PAUSED UNTIL WE COPY THINGS OVER.  THAT THE CHILD IS
-   //       PAUSED IS NOTHING NEW; THAT THE PARENT SHOULD BE PAUSED IS NEW NEWS!
+   // Write new raw value in the inferior heap: we set localTimerPtr as
+   // follows: protector1 and procetor2 should be copied from src. total
+   // should be reset to 0.  start should be set to now if active else 0.
+   // counter should be copied from the source.
+
+   // NOTE: SINCE WE COPY FROM THE SOURCE, IT'S IMPORTANT THAT ON A FORK,
+   // BOTH THE PARENT AND CHILD ARE PAUSED UNTIL WE COPY THINGS OVER.  THAT
+   // THE CHILD IS PAUSED IS NOTHING NEW; THAT THE PARENT SHOULD BE PAUSED IS
+   // NEW NEWS!
 
    for (unsigned i=0; i<childProc->threads.size(); i++) {
      tTimer *localTimerPtr = (tTimer *) theTable.index2LocalAddr(1,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
@@ -276,125 +274,62 @@ sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
         localTimerPtr->start = getRawWallTime();
    }
 
-   // write new HK for this tTimer: 
-   // Note: we don't assert anything about dataNode->getMetricID(), because that id
-   // has no relation to the ids we work with (theSampleId).  In fact, we
-   // (the sampling code) just don't ever care what dataNode->getMetricID() is.
+   // write new HK for this tTimer: Note: we don't assert anything about
+   // dataNode->getMetricID(), because that id has no relation to the ids we
+   // work with (theSampleId).  In fact, we (the sampling code) just don't
+   // ever care what dataNode->getMetricID() is.
    assert(theSampleId >= 0);
    // the NULL below should probably be the threadNode of the dup'd HK node
    wallTimerHK iHKValue(theSampleId, NULL, timeLength::Zero()); 
    // the mi should differ from the mi of the parent; theSampleId differs too.
-   theTable.initializeHKAfterForkWallTimer(allocatedIndex, allocatedLevel, 
+   theTable.initializeHKAfterForkWallTimer(allocatedLevel, allocatedIndex, 
 					   iHKValue);
-
-   position_=0;
+  */
+   //position_=0;
 }
 
 dataReqNode *
-sampledShmWallTimerReqNode::dup(process *childProc,
-				int iCounterId,
-				const dictionary_hash<instInstance*,
-				instInstance*> &) const
+sampledWallTimerReqNode::dup(process *childProc,
+			     int iCounterId,
+			     const dictionary_hash<instInstance*,
+			     instInstance*> &) const
 {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   sampledShmWallTimerReqNode *tmp;
-   tmp = new sampledShmWallTimerReqNode(*this, childProc, iCounterId,
+   sampledWallTimerReqNode *tmp;
+   tmp = new sampledWallTimerReqNode(*this, childProc, iCounterId,
 					childProc->getParent());
       // fork constructor
 
    return tmp;
 }
 
-bool sampledShmWallTimerReqNode::insertShmVar(pdThread *thr, process *theProc,
-					      bool)
-{
-   // Remember inferiorTimerPtr is NULL until this routine gets called.
-   // WARNING: there will be an assert failure if the applic hasn't yet
-   // attached to the shm segment!!!
-
-   // initialize the tTimer in the inferior heap
-   tTimer iValue;
-   P_memset(&iValue, '\0', sizeof(tTimer));
-   iValue.id.id = this->theSampleId;
-
-   wallTimerHK iHKValue(this->theSampleId, NULL, timeLength::Zero());
-
-   superTable &theTable = theProc->getTable();
-
-   int thr_pos = 0;
-   if(theProc->is_multithreaded()) {
-     thr_ = thr;
-     if (thr==NULL) thr = theProc->threads[0]; // default value for thread
-     assert(thr!=NULL);
-     thr_pos = thr->get_pd_pos();
-   }
-
-   if(!theTable.allocWallTimer(iValue, iHKValue, &this->allocatedIndex, 
-			       &this->allocatedLevel, thr_pos))
-     return false;  // failure
-
-   return true;
-}
-
-void sampledShmWallTimerReqNode::disable(process *theProc,
-				    const vector<addrVecType> &pointsToCheck) {
-  superTable &theTable = theProc->getTable();
-  
-  // Remove from inferior heap; make sure we won't be sampled any more:
-  vector<Address> trampsMaybeUsing;
-  for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
-    for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); 
-	 tramplcv++) {
-      trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
-    }
-
-  theTable.makePendingFree(thr_, 1, allocatedIndex, allocatedLevel,
-			   trampsMaybeUsing);
-
-  if(theProc->is_multithreaded()) {
-    if (theProc->numOfActWallTimers_is>0) theProc->numOfActWallTimers_is--;
-  }
-}
-
 /* ****************************************************************** */
 
-int sampledShmProcTimerReqNode::getThreadId() const {
-  assert(thr_);
-  return(thr_->get_tid());
+sampledProcTimerReqNode::
+sampledProcTimerReqNode(process *proc, inst_var_index varIndex,
+			pdThread *thr, int iCounterId, bool dontInsertData_) :
+  dataReqNode(proc, ProcTimer, varIndex, ((thr==NULL) ? 0 : thr->get_pd_pos()),
+	      iCounterId, dontInsertData_)
+{
+  if(getDontInsertData()) return;
+
+  tTimer iValue;
+  P_memset(&iValue, '\0', sizeof(tTimer));
+  iValue.id.id = iCounterId;
+  
+  processTimerHK iHKValue(iCounterId, NULL, timeLength::Zero());
+  superTable &theTable = proc->getTable();
+
+  theTable.createProcTimerVar(ProcTimer, varIndex, getThreadPos(), iValue, 
+			      iHKValue);
 }
 
-
-sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(
-                              pdThread *thr, int iCounterId,
-			      process *proc, bool dontInsertData,
-			      unsigned p_allocatedIndex,
-			      unsigned p_allocatedLevel) {
-   theSampleId = iCounterId;
-
-   // The following fields are NULL until insertInstrumentatoin():
-   if(proc->is_multithreaded()) {
-     thr_ = thr;
-     allocatedIndex = p_allocatedIndex;
-     allocatedLevel = p_allocatedLevel;
-   } else {
-     allocatedIndex = UI32_MAX;
-     allocatedLevel = UI32_MAX;
-   }
-
-   position_ = 0;
-
-   if (!dontInsertData) {
-     bool isOk=false;
-     isOk = insertShmVar(thr, proc);
-     assert(isOk); 
-   }
-}
-
-sampledShmProcTimerReqNode::
-sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
-			   process *childProc, int iCounterId, 
-			   const process *parentProc)
+sampledProcTimerReqNode::
+sampledProcTimerReqNode(const sampledProcTimerReqNode &src,
+			process */*childProc*/, int /*iCounterId*/, 
+			const process */*parentProc*/) :
+  dataReqNode(src)
 {
    // a dup()-like routine; call after a fork()
    // Assumes that the "childProc" has been duplicated already
@@ -408,6 +343,7 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
    // copied the actual data; we need to fill in new meta-data (new
    // houseKeeping entries).
 
+  /*
    allocatedIndex = src.allocatedIndex;
    allocatedLevel = src.allocatedLevel;
    theSampleId = iCounterId;
@@ -420,13 +356,14 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
    const superTable &theParentTable = parentProc->getTable();
    assert(theTable.index2InferiorAddr(2,childProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel)==theParentTable.index2InferiorAddr(2,parentProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel));
 
-   // Write new raw value:
-   // we set localTimerPtr as follows: protector1 and procetor2 should be copied from
-   //    src. total should be reset to 0.  start should be set to now if active else 0.
-   //    counter should be copied from the source.
-   // NOTE: SINCE WE COPY FROM THE SOURCE, IT'S IMPORTANT THAT ON A FORK, BOTH THE
-   //       PARENT AND CHILD ARE PAUSED UNTIL WE COPY THINGS OVER.  THAT THE CHILD IS
-   //       PAUSED IS NOTHING NEW; THAT THE PARENT SHOULD BE PAUSED IS NEW NEWS!
+   // Write new raw value: we set localTimerPtr as follows: protector1 and
+   // procetor2 should be copied from src. total should be reset to 0.  start
+   // should be set to now if active else 0.  counter should be copied from
+   // the source.
+   // NOTE: SINCE WE COPY FROM THE SOURCE, IT'S IMPORTANT THAT ON A FORK,
+   // BOTH THE PARENT AND CHILD ARE PAUSED UNTIL WE COPY THINGS OVER.  THAT
+   // THE CHILD IS PAUSED IS NOTHING NEW; THAT THE PARENT SHOULD BE PAUSED IS
+   // NEW NEWS!
 
    for (unsigned i=0; i<childProc->threads.size(); i++) {
      tTimer *localTimerPtr = (tTimer *) theTable.index2LocalAddr(2,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
@@ -444,175 +381,41 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
      } else {
         // active timer...don't copy the start time from the source...make it 'now'
 #if defined(MT_THREAD)
-	 localTimerPtr->start =childProc->getRawCpuTime(localTimerPtr->lwp_id);
+       localTimerPtr->start =childProc->getRawCpuTime(localTimerPtr->lwp_id);
 #else
-	 localTimerPtr->start = childProc->getRawCpuTime(-1);
+       localTimerPtr->start = childProc->getRawCpuTime(-1);
 #endif
      }
    }
 
    // Write new HK for this tTimer:
 
-   // Note: we don't assert anything about dataNode->getMetricID(), because that id
-   // has no relation to the ids we work with (theSampleId).  In fact, we
-   // (the sampling code) just don't ever care what dataNode->getMetricID() is.
+   // Note: we don't assert anything about dataNode->getMetricID(), because
+   // that id has no relation to the ids we work with (theSampleId).  In
+   // fact, we (the sampling code) just don't ever care what
+   // dataNode->getMetricID() is.
+
    assert(theSampleId >= 0);
    // the NULL below should probably be the threadNode of the dup'd HK node
    processTimerHK iHKValue(theSampleId, NULL, timeLength::Zero());
       // the mi differs from the mi of the parent; theSampleId differs too.
-   theTable.initializeHKAfterForkProcTimer(allocatedIndex, allocatedLevel, 
+   theTable.initializeHKAfterForkProcTimer(allocatedLevel, allocatedIndex, 
 					   iHKValue);
-
-   position_=0;
+  */
+   //position_=0;
 }
 
-dataReqNode *sampledShmProcTimerReqNode::dup(
+dataReqNode *sampledProcTimerReqNode::dup(
                 process *childProc, int iCounterId,
 		const dictionary_hash<instInstance*,instInstance*> &) const
 {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   sampledShmProcTimerReqNode *tmp;
-   tmp = new sampledShmProcTimerReqNode(*this, childProc, iCounterId,
-					childProc->getParent());
+   sampledProcTimerReqNode *tmp;
+   tmp = new sampledProcTimerReqNode(*this, childProc, iCounterId,
+				     childProc->getParent());
       // fork constructor
 
    return tmp;
 }
 
-bool sampledShmProcTimerReqNode::insertShmVar(pdThread *thr, process *theProc,
-					      bool)
-{
-   // Remember inferiorTimerPtr is NULL until this routine gets called.
-   // WARNING: there will be an assert failure if the applic hasn't yet attached to the
-   //          shm segment!!!
-
-   // initialize the tTimer in the inferior heap
-   tTimer iValue;
-   P_memset(&iValue, '\0', sizeof(tTimer));
-   iValue.id.id = this->theSampleId;
-
-   processTimerHK iHKValue(this->theSampleId, NULL, timeLength::Zero());
-
-   superTable &theTable = theProc->getTable();
-   
-   int thr_pos = 0;
-   if(theProc->is_multithreaded()) {
-     if (thr==NULL)  thr = theProc->threads[0]; // default value for thread
-     assert(thr!=NULL);
-     thr_pos = thr->get_pd_pos();
-   }
-
-   if(!theTable.allocProcTimer(iValue, iHKValue, &this->allocatedIndex, 
-			       &this->allocatedLevel, thr_pos)) {
-     return false; // failure
-   }
-   return true;
-}
-
-void sampledShmProcTimerReqNode::disable(process *theProc,
-				    const vector<addrVecType> &pointsToCheck) {
-  superTable &theTable = theProc->getTable();
-  
-  // Remove from inferior heap; make sure we won't be sampled any more:
-  vector<Address> trampsMaybeUsing;
-  for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
-    for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); 
-	 tramplcv++) {
-      trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
-    }
-
-  theTable.makePendingFree(thr_, 2, allocatedIndex, allocatedLevel,
-			   trampsMaybeUsing);
-
-  if(theProc->is_multithreaded()) {
-    if(theProc->numOfActProcTimers_is>0) theProc->numOfActProcTimers_is--;
-  }
-}
-
-
-int sampledShmWallTimerReqNode::getThreadId() const {
-  assert(thr_);
-  return(thr_->get_tid());
-}
-
-Address sampledShmIntCounterReqNode::getInferiorPtr(process *proc) const {
-    // counterPtr could be NULL if we are building AstNodes just to compute
-    // the cost - naim 2/18/97
-    // NOTE:
-    // this routine will dissapear because we can't compute the address
-    // of the counter/timer without knowing the thread id - naim 3/17/97
-    //
-    if (allocatedIndex == UI32_MAX || allocatedLevel == UI32_MAX) {
-      return 0;
-    }    
-    assert(proc != NULL);
-    superTable &theTable = proc->getTable();
-    // we assume there is only one thread
-    return((Address) theTable.index2InferiorAddr(0,0,allocatedIndex,allocatedLevel));
-}
-
-Address sampledShmWallTimerReqNode::getInferiorPtr(process *proc) const {
-    // counterPtr could be NULL if we are building AstNodes just to compute
-    // the cost - naim 2/18/97
-    // NOTE:
-    // this routine will dissapear because we can't compute the address
-    // of the counter/timer without knowing the thread id - naim 3/17/97
-    //
-    if (allocatedIndex == UI32_MAX || allocatedLevel == UI32_MAX) {
-      return 0;
-    }
-    assert(proc != NULL);
-    superTable &theTable = proc->getTable();
-    // we assume there is only one thread
-    return((Address) theTable.index2InferiorAddr(1,0,allocatedIndex,allocatedLevel));
-}
-
-Address sampledShmProcTimerReqNode::getInferiorPtr(process *proc) const {
-    // counterPtr could be NULL if we are building AstNodes just to compute
-    // the cost - naim 2/18/97
-    // NOTE:
-    // this routine will dissapear because we can't compute the address
-    // of the counter/timer without knowing the thread id - naim 3/17/97
-    //
-    if (allocatedIndex == UI32_MAX || allocatedLevel == UI32_MAX) {
-      return 0;
-    }
-    assert(proc != NULL);
-    superTable &theTable = proc->getTable();
-    // we assume there is only one thread
-    return((Address) theTable.index2InferiorAddr(2,0,allocatedIndex,allocatedLevel));
-}
-
-void sampledShmIntCounterReqNode::setThrNodeClient(
-					      threadMetFocusNode_Val *thrNval,
-					      process *proc)
-{
-  superTable &theTable = proc->getTable();
-  void *ptr = theTable.getHouseKeeping(0, getThread(), allocatedIndex, 
-				       allocatedLevel);
-  intCounterHK *hkPtr = reinterpret_cast<intCounterHK*>(ptr);
-  hkPtr->setThrClient(thrNval);
-}
-
-void sampledShmWallTimerReqNode::setThrNodeClient(
-					      threadMetFocusNode_Val *thrNval, 
-					      process *proc)
-{
-  superTable &theTable = proc->getTable();
-  void *ptr = theTable.getHouseKeeping(1, getThread(), allocatedIndex, 
-				       allocatedLevel);
-  wallTimerHK *hkPtr = reinterpret_cast<wallTimerHK*>(ptr);
-  hkPtr->setThrClient(thrNval);
-}
-
-void sampledShmProcTimerReqNode::setThrNodeClient(
-                                               threadMetFocusNode_Val *thrNval,
-					       process *proc)
-{
-  superTable &theTable = proc->getTable();
-  void *ptr = theTable.getHouseKeeping(2, getThread(), allocatedIndex, 
-				       allocatedLevel);
-  processTimerHK *hkPtr = reinterpret_cast<processTimerHK*>(ptr);
-  hkPtr->setThrClient(thrNval);
-}
