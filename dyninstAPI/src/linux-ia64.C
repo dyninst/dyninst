@@ -446,14 +446,12 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
         if (syscallTraps_[iter]->syscall_id == (int) syscall) {
             trappedSyscall = syscallTraps_[iter];
-            cerr << "Found previously trapped syscall at slot " << iter << endl;
             break;
         }
     }
     if (trappedSyscall) {
         // That was easy...
         trappedSyscall->refcount++;
-        cerr << "Syscall refcount = " << trappedSyscall->refcount;
         return trappedSyscall;
     }
     else {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.28 2003/03/04 19:16:04 willb Exp $
+// $Id: osfDL.C,v 1.29 2003/03/08 01:23:31 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -713,9 +713,6 @@ bool process::loadDYNINSTlib()
   assert(ret);
 
   dyninstlib_brk_addr = trapAddr;
-  fprintf(stderr, "DLOPEN starting at 0x%x, trap at 0x%x\n",
-          codeAddr, trapAddr);
-  
   setBootstrapState(loadingRT);
   
   return true;

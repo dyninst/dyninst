@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-aix.C,v 1.6 2003/02/04 14:59:19 bernat Exp $
+// $Id: timing-aix.C,v 1.7 2003/03/08 01:23:29 bernat Exp $
 #include "common/h/timing.h"
 #include <stdio.h>
 #ifdef USES_PMAPI
@@ -71,12 +71,9 @@ double calcCyclesPerSecondOS()
 {
   double cps;
   cps = calcCyclesPerSecond_sys();
-  cerr << "Return from system: " << cps << endl;
   if(cps == cpsMethodNotAvailable) {
-      cerr << "Using default" << endl;
     cps = calcCyclesPerSecond_default();
   }
-  cerr << "Returning " << cps << endl;
   return cps;
 }
 
