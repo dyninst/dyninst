@@ -50,7 +50,7 @@
 #include "process.h"
 
 extern bool dyninstAPI_init();
-extern int dyninstAPI_handleSigChild(int pid, int status);
+extern int handleSigChild(int pid, int status);
 
 
 BPatch *BPatch::bpatch = NULL;
@@ -112,6 +112,8 @@ BPatch::~BPatch()
     delete type_Untyped;
 
     delete stdTypes;
+
+    bpatch = NULL;
 }
 
 
@@ -270,6 +272,8 @@ BPatch_Vector<BPatch_thread *> *BPatch::getThreads()
  */
 bool pollForStatusChange()
 {
+    assert(BPatch::bpatch != NULL);
+
     bool	result = false;
     int		pid, status;
 
@@ -289,7 +293,7 @@ bool pollForStatusChange()
 	    else if (WIFEXITED(status))
 		thread->lastSignal = 0; /* XXX Make into some constant */
 	}
-	dyninstAPI_handleSigChild(pid, status);
+	handleSigChild(pid, status);
     }
     return result;
 }

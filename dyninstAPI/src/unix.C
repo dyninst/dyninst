@@ -100,6 +100,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 		    int &pid, int & /*tid*/, 
 		    int & /*procHandle*/, int & /*thrHandle*/) {
 
+#ifndef BPATCH_LIBRARY
     // Strange, but using socketpair here doesn't seem to work OK on SunOS.
     // Pipe works fine.
     // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
@@ -126,6 +127,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	showErrorCallback(68, msg);
 	return false;
     }
+#endif
 
     //
     // WARNING This code assumes that vfork is used, and a failed exec will
@@ -153,6 +155,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	    return false;
 	}
 
+#ifndef BPATCH_LIBRARY
 	close(tracePipe[1]);
 	   // parent never writes trace records; it only receives them.
 
@@ -165,6 +168,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 
 	traceLink = tracePipe[0];
 	ioLink = ioPipe[0];
+#endif
 	return true;
 
     } else if (pid == 0) {
@@ -175,6 +179,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	  pvmendtask(); 
 #endif   
 
+#ifndef BPATCH_LIBRARY
 	// handle stdio.
 
         // We only write to ioPipe.  Hence we close ioPipe[0], the read end.  Then we
@@ -248,6 +253,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 		P_close(fd); // not using descriptor fd any more; close it.
 	    }
 	}
+#endif
 
 	/* indicate our desire to be traced */
 	errno = 0;
@@ -266,6 +272,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	    pvmputenv(envp[ep].string_of());
 	  }
 #endif
+#ifndef BPATCH_LIBRARY
         // hand off info about how to start a paradynd to the application.
 	//   used to catch rexec calls, and poe events.
 	//
@@ -283,6 +290,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	    strcat(paradynInfo, " ");
 	}
 	P_putenv(paradynInfo);
+#endif
 
 	char **args;
 	args = new char*[argv.size()+1];
@@ -524,6 +532,7 @@ int handleSigChild(int pid, int status)
 		   inferiorrpc_cerr << "processed RPC response in SIGSTOP" << endl;
 		   break; // don't want to execute ->Stopped() which changes status line
 		}
+#ifndef BPATCH_LIBRARY
 		else if (curr->handleStopDueToExecEntry()) {
 		   // grabs data from DYNINST_bootstrap_info
 		   forkexec_cerr << "fork/exec -- handled stop before exec" << endl;
@@ -538,10 +547,10 @@ int handleSigChild(int pid, int status)
 
 		   break; // don't want to change status line in conventional way
 		}
+#endif /* BPATCH_LIBRARY */
 		else {
 		   forkexec_cerr << "unhandled SIGSTOP for pid " << curr->getPid() << " so just leaving process in paused state." << endl << flush;
 		}
-
 		curr->status_ = prevStatus; // so Stopped() below won't be a nop
 		curr->Stopped();
 

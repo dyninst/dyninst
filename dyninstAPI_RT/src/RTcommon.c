@@ -38,10 +38,36 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-#include "rtinst/h/rtinst.h"
+#include <unistd.h>
+#include "dyninstAPI_RT/h/rtinst.h"
+#include "dyninstAPI_RT/h/trace.h"
+
+extern void DYNINSTbreakPoint();
+extern void DYNINSTos_init(int calledByFork, int calledByAttach);
 
 unsigned int DYNINSTversion = 1;
 unsigned int DYNINSTobsCostLow;
 
+struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+
 char DYNINSTdata[SYN_INST_BUF_SIZE];
 char DYNINSTglobalData[SYN_INST_BUF_SIZE];
+
+/*
+ * The Dyninst API arranges for this function to be called at the entry to
+ * main().
+ */
+void DYNINSTinit(int cause, int pid)
+{
+    int calledByFork = 0, calledByAttach = 0;
+
+    if (cause == 2) calledByFork = 1;
+    else if (cause == 3) calledByAttach = 1;
+
+    DYNINSTos_init(calledByFork, calledByAttach);
+
+    DYNINST_bootstrap_info.pid = getpid();
+    DYNINST_bootstrap_info.event = cause;
+
+    DYNINSTbreakPoint();
+}

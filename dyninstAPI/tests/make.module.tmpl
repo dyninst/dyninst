@@ -4,6 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.4  1997/07/08 19:15:27  buck
+# Added support for the x86 Solaris platform and dynamically linked
+# executables to the dyninst API library.
+#
 # Revision 1.3  1997/06/23 19:16:07  buck
 # Added features to the dyninst API library, including an optional "else"
 # in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
@@ -36,8 +40,8 @@ SRCS	     += ../src/test1.C
 
 APP_DIR       = '"$(PARADYN_ROOT)/bin/$(PLATFORM)"'
 
-CXXFLAGS     += -I../../h -DTEST_APP_DIR=$(APP_DIR)
-CFLAGS       += -I../../h -DTEST_APP_DIR=$(APP_DIR)
+CXXFLAGS     += -I../../h
+CFLAGS       += -I../../h
 #LDFLAGS      += -static $(TO_CORE)/../lib/$(PLATFORM)/libdyninstAPI_RT.o
 
 LIBS         += -ldyninstAPI -lpdutil

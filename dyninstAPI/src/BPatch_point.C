@@ -65,11 +65,14 @@ BPatch_function *BPatch_point::getCalledFunction()
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     if (point->ipLoc != ipFuncCallPoint)
 	return NULL;
+#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0)
+    if (!point->insnAtPoint().isCall())
+	return NULL;
 #endif
 
     function_base *func;
     if (!proc->findCallee(*point, func))
-	return NULL;
+    	return NULL;
 
     if (func != NULL)
     	return new BPatch_function(func);

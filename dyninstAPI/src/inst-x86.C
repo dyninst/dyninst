@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.24  1997/07/08 19:15:13  buck
+ * Added support for the x86 Solaris platform and dynamically linked
+ * executables to the dyninst API library.
+ *
  * Revision 1.23  1997/06/23 17:09:29  tamches
  * include of instPoint.h is new
  *
@@ -183,6 +187,8 @@ extern bool isPowerOf2(int value, int &result);
 // Size of a jump rel32 instruction
 #define JUMP_REL32_SZ (5)
 #define JUMP_SZ (5)
+// Size of a call rel32 instruction
+#define CALL_REL32_SZ (5)
 
 #define PUSH_RM_OPC1 (0xFF)
 #define PUSH_RM_OPC2 (6)
@@ -874,6 +880,7 @@ void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
 void emitOpRegImm(int opcode, reg dest, int imm, unsigned char *&insn);
 void emitMovRegToRM(reg base, int disp, reg src, unsigned char *&insn);
 void emitMovRMToReg(reg dest, reg base, int disp, unsigned char *&insn);
+void emitCallRel32(unsigned disp32, unsigned char *&insn);
 
 void generateMTpreamble(char *insn, unsigned &base, process *proc)
 {
@@ -1625,6 +1632,12 @@ void emitJump(unsigned disp32, unsigned char *&insn) {
   insn += sizeof(int);
 } 
 
+// emit CALL rel32
+void emitCallRel32(unsigned disp32, unsigned char *&insn) {
+  *insn++ = 0xE8;
+  *((int *)insn) = disp32;
+  insn += sizeof(int);
+}
 
 // set dest=1 if src1 op src2, otherwise dest = 0
 void emitRelOp(unsigned op, reg dest, reg src1, reg src2, unsigned char *&insn) {
@@ -1811,6 +1824,10 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &bas
       base += insn-first;
       return base;
 
+    } else if (op == branchOp) { 
+	emitJump(dest - JUMP_REL32_SZ, insn); 
+	base += JUMP_REL32_SZ;
+	return(base - JUMP_REL32_SZ);
     } else if (op ==  trampPreamble) {
       // no code is needed here
       
@@ -2047,6 +2064,8 @@ int getInsnCost(opCode op)
 	return(3);
     } else if (op ==  ifOp) {
 	return(1+2+1);
+    } else if (op == branchOp) {
+	return(1);	/* XXX Need to find out what value this should be. */
     } else if (op ==  callOp) {
         // cost of call only
         return(1+2+1+1);
@@ -2152,7 +2171,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     ghb = UINFERIOR_HEAP_BASE;
     if (!getSymbolInfo(ghb, sym, baseAddr)) {
       string msg;
-      msg = string("Cannot find ") + str + string(". Cannot use this application");
+      msg = string("Cannot find ") + ghb + string(". Cannot use this application");
       statusLine(msg.string_of());
       showErrorCallback(50, msg);
       return false;
@@ -2164,7 +2183,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   string tt = "DYNINSTtrampTable";
   if (!getSymbolInfo(tt, sym, baseAddr)) {
       string msg;
-      msg = string("Cannot find ") + str + string(". Cannot use this application");
+      msg = string("Cannot find ") + tt + string(". Cannot use this application");
       statusLine(msg.string_of());
       showErrorCallback(50, msg);
       return false;
@@ -2371,4 +2390,45 @@ bool process::emitInferiorRPCtrailer(void *void_insnPtr, unsigned &base,
    base += 2;
 
    return true;
+}
+
+// process::replaceFunctionCall
+//
+// Replace the function call at the given instrumentation point with a call to
+// a different function, or with a NOOP.  In order to replace the call with a
+// NOOP, pass NULL as the parameter "func."
+// Returns true if sucessful, false if not.  Fails if the site is not a call
+// site, or if the site has already been instrumented using a base tramp.
+//
+// Note that right now we can only replace a call instruction that is five
+// bytes long (like a call to a 32-bit relative address).
+bool process::replaceFunctionCall(const instPoint *point,
+                                  const function_base *func) {
+    // Must be a call site
+    if (!point->insnAtPoint().isCall())
+	return false;
+
+    // Cannot already be instrumented with a base tramp
+    if (baseMap.defines(point))
+	return false;
+
+    // Replace the call
+    if (func == NULL) {	// Replace with NOOPs
+	unsigned char *newInsn = new unsigned char[point->insnAtPoint().size()];
+	unsigned char *p = newInsn;
+	for (int i = 0; i < point->insnAtPoint().size(); i++)
+	    emitSimpleInsn(NOP, p);
+	writeTextSpace((void *)point->iPgetAddress(),
+		       point->insnAtPoint().size(), newInsn);
+    } else { // Replace with a call to a different function
+	// XXX Right only, call has to be 5 bytes -- sometime, we should make
+	// it work for other calls as well.
+	assert(point->insnAtPoint().size() == CALL_REL32_SZ);
+	unsigned char *newInsn = new unsigned char[CALL_REL32_SZ];
+	unsigned char *p = newInsn;
+	emitCallRel32(func->addr() - (point->iPgetAddress()+CALL_REL32_SZ), p);
+	writeTextSpace((void *)point->iPgetAddress(), CALL_REL32_SZ, newInsn);
+    }
+
+    return true;
 }

@@ -650,7 +650,9 @@ void pdmodule::define() {
 #endif
   }
 
+#ifndef BPATCH_LIBRARY
   resource::send_now();
+#endif
 }
 
 static inline bool findStartSymbol(Object &lf, Address &adr) {

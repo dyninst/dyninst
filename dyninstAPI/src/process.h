@@ -924,7 +924,11 @@ private:
 };
 
 process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir);
-bool attachProcess(const string &progpath, int pid, int afterAttach);
+bool attachProcess(const string &progpath, int pid, int afterAttach
+#ifdef BPATCH_LIBRARY
+		   , process *&newProcess
+#endif
+		  );
 
 void handleProcessExit(process *p, int exitStatus);
 

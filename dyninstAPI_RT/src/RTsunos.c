@@ -39,61 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _BPatch_h_
-#define _BPatch_h_
+/************************************************************************
+ * RTsunos.c: mutatee-side library function specific to SunOS
+************************************************************************/
 
-#include "BPatch_Vector.h"
-#include "BPatch_thread.h"
 
-class BPatch_typeCollection;
-class BPatch_type;
-class BPatch_libInfo;
+/************************************************************************
+ * void DYNINSTos_init(void)
+ *
+ * os initialization function
+************************************************************************/
 
-typedef enum BPatchErrorLevel {
-    BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
-};
-
-typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
-				    int number,
-				    const char **params);
-
-class BPatch {
-    friend bool pollForStatusChange();
-
-    BPatch_libInfo	*info;
-
-    BPatchErrorCallback	errorHandler;
-    bool		typeCheckOn;
-
-    BPatch_thread *pidToThread(int pid);
-
-public:
-    static BPatch		*bpatch;
-
-    BPatch_typeCollection	*stdTypes;
-    BPatch_type			*type_Error;
-    BPatch_type			*type_Untyped;
-
-    BPatch();
-    ~BPatch();
-
-    static const char *getEnglishErrorString(int number);
-    static void formatErrorString(char *dst, int size,
-				  const char *fmt, const char **params);
-    BPatchErrorCallback registerErrorCallback(BPatchErrorCallback function);
-    BPatch_Vector<BPatch_thread*> *getThreads();
-
-    void setTypeChecking(bool x) { typeCheckOn = x; }
-
-    // The following are only to be called by the library:
-    bool isTypeChecked() { return typeCheckOn; }
-
-    void registerThread(BPatch_thread *thread);
-    void unRegisterThread(int pid);
-
-    void reportError(BPatchErrorLevel severity, int number, const char *str);
-};
-
-extern bool pollForStatusChange();
-
-#endif /* _BPatch_h_ */
+void
+DYNINSTos_init(int calledByFork, int calledByAttach)
+{
+}

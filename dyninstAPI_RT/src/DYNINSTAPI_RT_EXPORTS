@@ -4,3 +4,5 @@ DYNINSTobsCostLow
 DYNINSTdata
 DYNINSTtext
 DYNINSTglobalData
+DYNINSTinit
+DYNINSTos_init

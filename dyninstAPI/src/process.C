@@ -1206,7 +1206,6 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 #endif
 
 
-#ifndef BPATCH_LIBRARY
 extern bool forkNewProcess(string file, string dir, vector<string> argv, 
 		    vector<string>envp, string inputFile, string outputFile,
 		    int &traceLink, int &ioLink, 
@@ -1225,6 +1224,10 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     if (!file.prefixed_by("/") && dir.length() > 0)
       file = dir + "/" + file;
 
+#ifdef BPATCH_LIBRARY
+    string inputFile;
+    string outputFile;
+#else
     // check for I/O redirection in arg list.
     string inputFile;
     for (unsigned i1=0; i1<argv.size(); i1++) {
@@ -1245,6 +1248,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	argv.resize(argv.size()-2);
       }
     }
+#endif /* BPATCH_LIBRARY */
 
     int traceLink;
     int ioLink;
@@ -1259,7 +1263,6 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
       return NULL;
     }
 
-
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	extern bool establishBaseAddrs(int pid, int &status, bool waitForTrap);
 	int status;
@@ -1269,11 +1272,13 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	}
 #endif
 
+#ifndef BPATCH_LIBRARY
 // NEW: We bump up batch mode here; the matching bump-down occurs after shared objects
 //      are processed (after receiving the SIGSTOP indicating the end of running
 //      DYNINSTinit; more specifically, procStopFromDYNINSTinit().
 //      Prevents a diabolical w/w deadlock on solaris --ari
 tp->resourceBatchMode(true);
+#endif /* BPATCH_LIBRARY */
 
 	image *img = image::parseImage(file);
 	if (!img) {
@@ -1318,9 +1323,10 @@ tp->resourceBatchMode(true);
 	processVec += ret;
 	activeProcesses++;
 
+#ifndef BPATCH_LIBRARY
 	if (!costMetric::addProcessToAll(ret))
 	   assert(false);
-
+#endif
         // find the signal handler function
 	ret->findSignalHandler(); // should this be in the ctor?
 
@@ -1364,8 +1370,6 @@ tp->resourceBatchMode(true);
 }
 
 
-
-
 void process::DYNINSTinitCompletionCallback(process *theProc,
 					    void *, // user data
 					    unsigned // return value from DYNINSTinit
@@ -1374,7 +1378,12 @@ void process::DYNINSTinitCompletionCallback(process *theProc,
    theProc->handleCompletionOfDYNINSTinit(true);
 }
 
-bool attachProcess(const string &progpath, int pid, int afterAttach) {
+
+bool attachProcess(const string &progpath, int pid, int afterAttach
+#ifdef BPATCH_LIBRARY
+		   , process *&newProcess
+#endif
+		   ) {
    // implementation of dynRPC::attach() (the igen call)
    // This is meant to be "the other way" to start a process (competes w/ createProcess)
 
@@ -1460,6 +1469,14 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
    string buffer = string("PID=") + string(pid) + ", running DYNINSTinit()...";
    statusLine(buffer.string_of());
 
+#ifdef BPATCH_LIBRARY
+   newProcess = theProc;
+
+   vector<AstNode*> the_args(2);
+
+   the_args[0] = new AstNode(AstNode::Constant, (void*)3);
+   the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
+#else /* BPATCH_LIBRARY */
    attach_cerr << "calling DYNINSTinit with args:" << endl;
 
    vector<AstNode*> the_args(3);
@@ -1490,13 +1507,9 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
       
       This socket is set up in controllerMainLoop (perfStream.C).
    */
-#ifdef BPATCH_LIBRARY
-   // Unused by dyninstAPI library
-   the_args[2] = new AstNode(AstNode::Constant, (void*)0);
-#else
    the_args[2] = new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
    attach_cerr << (-1* getpid()) << endl;
-#endif
+#endif /* BPATCH_LIBRARY */
 
    AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
    for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
@@ -1555,8 +1568,6 @@ bool process::doMinorShmSample() {
 
    return result;
 }
-#endif
-
 #endif
 
 extern void removeFromMetricInstances(process *);
@@ -3226,6 +3237,14 @@ void process::installBootstrapInst() {
    // We build an ast saying: "call DYNINSTinit() with args
    // key_base, nbytes, paradynd_pid"
 
+#ifdef BPATCH_LIBRARY
+   vector<AstNode *> the_args(2);
+
+   the_args[0] = new AstNode(AstNode::Constant, (void*)1);
+   the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
+
+   AstNode *ast = new AstNode("DYNINSTinit", the_args);
+#else
    vector<AstNode *> the_args(3);
 
    // 2 dummy args when not shm sampling (just don't use -1, which is reserved
@@ -3257,6 +3276,7 @@ void process::installBootstrapInst() {
    for (unsigned j=0; j<the_args.size(); j++) {
        removeAst(the_args[j]);
    }
+#endif /* BPATCH_LIBRARY */
 
    function_base *func = getMainFunction();
    assert(func);

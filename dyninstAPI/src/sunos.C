@@ -41,6 +41,10 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.30  1997/07/08 19:15:18  buck
+ * Added support for the x86 Solaris platform and dynamically linked
+ * executables to the dyninst API library.
+ *
  * Revision 1.29  1997/07/01 16:54:56  tamches
  * dummy set_breakpoint_for_syscall_completion
  *
@@ -771,13 +775,8 @@ bool process::loopUntilStopped() {
       if (sig == SIGSTOP) {
         break; // success
       } else {
-#ifdef BPATCH_LIBRARY
-        extern int dyninstAPI_handleSigChild(int, int);
-        dyninstAPI_handleSigChild(pid, waitStatus);
-#else
         extern int handleSigChild(int, int);
         handleSigChild(pid, waitStatus);
-#endif
       }
     }
     else {

@@ -46,11 +46,11 @@
 #include "BPatch.h"
 #include "BPatch_thread.h"
 
-extern process *dyninstAPI_createProcess(const string File,
+/*
+extern process *createProcess(const string File,
 	vector<string> argv, vector<string> envp, const string dir = "");
-extern process *dyninstAPI_attachProcess(const string &progpath, int pid,
-	int afterAttach);
-
+extern process *attachProcess(const string &progpath, int pid, int afterAttach);
+*/
 
 /*
  * BPatch_thread::getPid
@@ -95,7 +95,7 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
     	    envp_vec += envp[i];
     }
 
-    proc = dyninstAPI_createProcess(path, argv_vec, envp_vec, "");
+    proc = createProcess(path, argv_vec, envp_vec, "");
 
     // XXX Should do something more sensible.
     if (proc == NULL) return;
@@ -106,6 +106,9 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
     BPatch::bpatch->registerThread(this);
 
     image = new BPatch_image(proc);
+
+    while (!proc->isBootstrappedYet())
+	pollForStatusChange();
 }
 
 
@@ -122,16 +125,22 @@ BPatch_thread::BPatch_thread(char *path, int pid)
     : lastSignal(-1), mutationsActive(true), createdViaAttach(true),
       detached(false)
 {
-    proc = dyninstAPI_attachProcess(path, pid, 1);
-
-    // XXX Should do something more sensible
-    if (proc == NULL) return;
+    if (!attachProcess(path, pid, 1, proc)) {
+    	// XXX Should do something more sensible
+	proc = NULL;
+	return;
+    }
 
     // Add this object to the list of threads
     assert(BPatch::bpatch != NULL);
     BPatch::bpatch->registerThread(this);
 
     image = new BPatch_image(proc);
+
+    while (!proc->isBootstrappedYet()) {
+	pollForStatusChange();
+	proc->launchRPCifAppropriate(false, false);
+    }
 }
 
 
@@ -209,7 +218,7 @@ bool BPatch_thread::isStopped()
 {
     pollForStatusChange();
 
-    return proc->status() == neonatal || proc->status() == stopped;
+    return proc->status() == stopped;
 }
 
 
@@ -235,7 +244,6 @@ int BPatch_thread::stopSignal()
 bool BPatch_thread::isTerminated()
 {
     if (proc == NULL) return true;
-
     pollForStatusChange();
 
     return proc->status() == exited;
