@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.8 2005/03/07 21:18:34 bernat Exp $
+// $Id: frame.C,v 1.9 2005/03/16 22:02:21 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -137,6 +137,13 @@ void Frame::calcFrameType()
    // Without a process pointer, we're not going to get far.
    assert(getProc());
 
+   // Checking for a signal handler must go before the vsyscall check
+   // since (on Linux) the signal handler is _inside_ the vsyscall page.
+   if (getProc()->isInSignalHandler(pc_)) {
+     frameType_ = FRAME_signalhandler;
+     return;
+   }
+
    // Better to have one function that has platform-specific IFDEFs
    // than a stack of 90% equivalent functions
 #if defined(os_linux) && defined(arch_x86)
@@ -145,12 +152,7 @@ void Frame::calcFrameType()
      frameType_ = FRAME_syscall;
      return;
    }
-#endif
-   
-   if (getProc()->isInSignalHandler(pc_)) {
-     frameType_ = FRAME_signalhandler;
-     return;
-   }
+#endif   
    
    codeRange *range = getRange();
 
