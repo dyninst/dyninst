@@ -47,6 +47,7 @@ bool runAllTests = true;
 const unsigned int MAX_TEST = 35;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
+int saveWorld = 0;
 
 template class BPatch_Vector<BPatch_variableExpr*>;
 template class BPatch_Set<int>;
@@ -3729,6 +3730,31 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     if( runTest[ 35 ] ) mutatorTest35( appThread, appImage );
 
+/* the following bit of code saves the mutatee in its mutated state to the
+	file "originalmutateename"_mutated
+
+	test cases 12, 15, 19 fail on the saved mutatee because they 
+	expect the mutator to be there to wait for the mutatee and change
+	things as the mutatee runs.
+
+	test cases 18, 27, 29 fail on the saved mutatee because they
+	require the mutator to writeValue() data into the mutatee.  If you
+	want these to pass you need to set saveWorld to true in the writeValue()
+	call in the mutator then save the mutatee.
+
+	test case 22 fails on the saved mutatee because it deals with shared
+	libraries.
+*/
+
+#ifdef sparc_sun_solaris2_4 /* this is only supported on sparc solaris */
+
+    	if( saveWorld ) {
+        	char *mutatedName = new char[strlen(pathname) + strlen("_mutated") +1];
+        	strcpy(mutatedName, pathname);
+        	strcat(mutatedName, "_mutated");
+        	appThread->dumpPatchedImage(mutatedName);
+	}
+#endif
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
 
@@ -3790,6 +3816,10 @@ main(unsigned int argc, char *argv[])
         if (strncmp(argv[i], "-v++", 4) == 0)   errorPrint++;
 	if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
+#ifdef sparc_sun_solaris2_4
+	}else if (!strcmp(argv[i], "-saveworld")) {
+		saveWorld = 1;
+#endif
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
             if (libRTname[0])
@@ -3854,6 +3884,9 @@ main(unsigned int argc, char *argv[])
 #if defined(mips_sgi_irix6_4)
 		    "[-n32] "
 #endif
+#if defined(sparc_sun_solaris2_4)
+		    "[-saveworld] "
+#endif 
                     "[-mutatee <test1.mutatee>] "
 		    "[-run <test#> <test#> ...] "
 		    "[-skip <test#> <test#> ...]\n");
