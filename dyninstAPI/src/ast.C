@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.100 2002/05/28 14:36:06 bernat Exp $
+// $Id: ast.C,v 1.101 2002/05/29 00:16:54 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -625,7 +625,6 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
-    cerr << "Building opCode/astNode/astNode/(astNode) AST" << endl;
    referenceCount = 1;
    useCount = 0;
    kept_register = Null_Register;
