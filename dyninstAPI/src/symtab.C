@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.91 1999/03/19 18:01:48 csserra Exp $
+// $Id: symtab.C,v 1.92 1999/04/26 17:30:39 buck Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1517,7 +1517,11 @@ void image::initialize(const string &fileName, bool &err,
         msg += "\n";
         logLine(msg.string_of());
         err = true;
+#if defined(BPATCH_LIBRARY)
+        BPatch_reportError(BPatchWarning, 27, msg.string_of()); 
+#else
         showErrorCallback(27, msg); 
+#endif
         return;
     }
 

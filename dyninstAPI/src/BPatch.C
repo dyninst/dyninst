@@ -188,11 +188,13 @@ const char *BPatch::getEnglishErrorString(int /* number */)
  */
 void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
-    if (severity != BPatchInfo)
-	lastError = number;
+    assert(bpatch != NULL);
 
-    if (errorHandler != NULL) {
-	errorHandler(severity, number, &str);
+    if (severity != BPatchInfo)
+	bpatch->lastError = number;
+
+    if (bpatch->errorHandler != NULL) {
+	bpatch->errorHandler(severity, number, &str);
     }
 }
 

@@ -46,7 +46,6 @@
 
 void showErrorCallback(int num, string msg)
 {
-    assert(BPatch::bpatch != NULL);
-    BPatch::bpatch->reportError(BPatchSerious, num, msg.string_of());
+    BPatch::reportError(BPatchSerious, num, msg.string_of());
 }
 

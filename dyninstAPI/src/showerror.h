@@ -46,4 +46,9 @@
 
 extern void showErrorCallback(int num, string msg);
 
+#ifdef BPATCH_LIBRARY
+#include "BPatch.h"
+#define BPatch_reportError(a,b,c) BPatch::reportError(a,b,c)
+#endif
+
 #endif /* SHOWERROR_H */
