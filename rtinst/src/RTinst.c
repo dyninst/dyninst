@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.15 1999/09/09 15:36:34 zhichen Exp $
+ * $Id: RTinst.c,v 1.16 1999/10/13 18:18:15 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -335,18 +335,52 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 }
 
 
-
-
-
 /************************************************************************
  * void DYNINSTstartWallTimer(tTimer* timer)
-************************************************************************/
+ ************************************************************************/
+
+/* TODO: FIX THIS!!!! */
+
+#ifdef BERNAT_HORRIBLE_HACK
+
+static int DYNINST_local_write = 0;
+
+static void walltime_printf(const char *fmt, ...) {
+   va_list args;
+   DYNINST_local_write = 1;
+
+   va_start(args, fmt);
+
+   vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+   DYNINST_local_write = 0;
+}
+
+#define LOCAL_WRITE_printf(x) {walltime_printf(x);}
+#define LOCAL_WRITE_assert(x) {DYNINST_local_write = 1; assert(x); DYNINST_local_write = 0;}
+
+#else
+#define LOCAL_WRITE_printf(x) {printf(x);}
+#define LOCAL_WRITE_assert(x) {assert(x);}
+#endif
+
 void
 DYNINSTstartWallTimer(tTimer* timer) {
-    /* WARNING: write() could be instrumented to call this routine, so to avoid
-       some serious infinite recursion, avoid calling anything that might directly
-       or indirectly call write() in this routine; e.g. printf()!!!!! */
-
+  /* WARNING: write() could be instrumented to call this routine, so to avoid
+     some serious infinite recursion, avoid calling anything that might directly
+     or indirectly call write() in this routine; e.g. printf()!!!!! */
+  /* In addition, avoid assert() which makes a printf call. If you use assert,
+     wrap it with a (DYNINST_local_write = 1; assert(); DYNINST_local_write = 0) */
+     
+#ifdef BERNAT_HORRIBLE_HACK
+  /* Return directly -- this is the horrible hack. It should be handled at the
+     base tramp level */
+  if (DYNINST_local_write) return;
+#endif
+  
 #ifndef SHM_SAMPLING
     /* if "write" is instrumented to start/stop timers, then a timer could be
        (incorrectly) started/stopped every time a sample is written back */
@@ -357,7 +391,7 @@ DYNINSTstartWallTimer(tTimer* timer) {
 #endif
 
 #ifdef SHM_SAMPLING
-    assert(timer->protector1 == timer->protector2);
+    LOCAL_WRITE_assert(timer->protector1 == timer->protector2);
     timer->protector1++;
 #endif
 
@@ -366,16 +400,17 @@ DYNINSTstartWallTimer(tTimer* timer) {
        sampling where count is 1 yet start is undefined (or using an old value) when
        read, which usually leads to a rollback.  --ari */
     if (timer->counter == 0) {
-        timer->start     = DYNINSTgetWalltime();
+        timer->start = DYNINSTgetWalltime();
     }
     timer->counter++;
 
 #ifdef SHM_SAMPLING
     timer->protector2++; /* or, timer->protector2 = timer->protector1 */
-    assert(timer->protector1 == timer->protector2);
+    LOCAL_WRITE_assert(timer->protector1 == timer->protector2);
 #else
     timer->normalize = MILLION; /* I think this vrble is obsolete & can be removed */
 #endif
+
 }
 
 
@@ -384,33 +419,39 @@ DYNINSTstartWallTimer(tTimer* timer) {
 ************************************************************************/
 void
 DYNINSTstopWallTimer(tTimer* timer) {
-#ifndef SHM_SAMPLING
-    /* if "write" is instrumented to start timers, a timer could be started */
-    /* when samples are being written back */
 
-    if (DYNINSTin_sample)
-       return;
+#ifndef SHM_SAMPLING
+  /* if "write" is instrumented to start timers, a timer could be started */
+  /* when samples are being written back */
+  
+  if (DYNINSTin_sample)
+    return;
+#endif
+
+#ifdef BERNAT_HORRIBLE_HACK
+  if (DYNINST_local_write) return;
 #endif
 
 #ifdef SHM_SAMPLING
-    assert(timer->protector1 == timer->protector2);
+    LOCAL_WRITE_assert(timer->protector1 == timer->protector2);
     timer->protector1++;
 
     if (timer->counter == 0)
-       ; /* a strange condition; should we make it an assert fail? */
+      /* a strange condition; should we make it an assert fail? */
+      walltime_printf("Timer counter 0 in stopWallTimer\n");
     else if (--timer->counter == 0) {
        const time64 now = DYNINSTgetWalltime();
 
+       if (now < timer->start) {
+	  walltime_printf("rtinst wall timer rollback.\n");
+	  LOCAL_WRITE_assert(0);
+       }
        timer->total += (now - timer->start);
 
-       if (now < timer->start) {
-	  fprintf(stderr, "rtinst wall timer rollback.\n");
-	  abort();
-       }
     }
     
     timer->protector2++; /* or, timer->protector2 = timer->protector1 */
-    assert(timer->protector1 == timer->protector2);
+    LOCAL_WRITE_assert(timer->protector1 == timer->protector2);
 #else
     if (timer->counter == 0)
        ; /* a strange condition; should we make it an assert fail? */
@@ -428,13 +469,12 @@ DYNINSTstopWallTimer(tTimer* timer) {
          */
         timer->total    = DYNINSTgetWalltime() - timer->start + timer->total;
         if (now < timer->start) {
-            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
+            walltime_printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
                    timer->id.id, (double)timer->snapShot,
                    (double)timer->total, 
                    (double)timer->start, (double)now);
             printf("wall timer rollback\n"); 
             fflush(stdout);
-
             abort();
         }
         timer->counter  = 0;
@@ -444,6 +484,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
         timer->counter--;
     }
 #endif
+
 }
 
 
