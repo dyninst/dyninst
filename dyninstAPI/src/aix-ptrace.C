@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.1 2003/06/11 20:05:54 bernat Exp $
+// $Id: aix-ptrace.C,v 1.2 2003/06/17 20:31:26 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -94,7 +94,6 @@
 #if !defined(BPATCH_LIBRARY)
 #ifdef USES_PMAPI
 #include <pmapi.h>
-#include "rtinst/h/rthwctr-aix.h"
 #endif
 #endif
 
