@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.83 2000/03/27 02:02:13 nick Exp $
+// $Id: main.C,v 1.84 2000/04/27 21:55:35 bernat Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -322,20 +322,26 @@ int main(unsigned argc, char *argv[]) {
     //
     // See if we should fork an app process now.
     //
+
+    // We want to find two things
+    // First, get the current working dir (PWD)
+    dir = new string(getenv("PWD"));
+    // Quick check :)
+    cerr << "Dir read from environment = " << *dir << endl;
+
+    // Second, put the inferior application and its command line
+    // arguments into cmdLine. Basically, loop through argv until
+    // we find -runme, and put everything after it into cmdLine.
     vector<string> cmdLine;
-    for (int i=0; argv[i]; i++) {
-      //find working directory of process
-      if(strstr(argv[i],"PWD=")){
-	dir = new string(strdup(argv[i]+(4*sizeof(char))));
-      }
-      if (!strcmp(argv[i], "-runme")) {
-	// next arg is the command to run.
-	int j;
-	for (j=0,i++; argv[i]; i++,j++) {
-	  cmdLine += argv[i];
-	}
-      }
-    }
+    unsigned int argNum = 0;
+    while ((argNum < argc) && (strcmp(argv[argNum], "-runme")))
+      argNum++;
+    // Okay, argNum is the command line argument which is "-runme"
+    argNum++;
+    // Copy everything from argNum to < argc
+    for (unsigned int i = argNum; i < argc; i++)
+      cmdLine += argv[i];
+
 #ifdef PARADYND_PVM
     // There are 3 ways to get here
     //     started by pvm_spawn from first paradynd -- must report back
@@ -539,3 +545,4 @@ int main(unsigned argc, char *argv[]) {
     controllerMainLoop(true);
     return(0);
 }
+
