@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.10 2002/05/21 17:40:31 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.11 2002/07/01 18:50:43 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -7,7 +7,7 @@
 #define MALLOC 0 
 #define DYNAMIC 1 
 
-unsigned int elf_version(unsigned int);
+//unsigned int elf_version(unsigned int);
 
 void writeBackElf::setHeapAddr(unsigned int heapAddr){
 	newHeapAddr = heapAddr;
