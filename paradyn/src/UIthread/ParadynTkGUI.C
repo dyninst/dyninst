@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.1 2003/09/05 19:14:20 pcroth Exp $
+// $Id: ParadynTkGUI.C,v 1.2 2003/10/28 22:06:50 pcroth Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -351,8 +351,8 @@ ParadynTkGUI::HandleEvent( thread_t mtid, tag_t mtag )
         DoPendingTkEvents();
         ret = true;
 
-        // we needn't let the thread library know we've handled the event,
-        // because Windows messages are not delivered via a socket
+        // consume the message
+        msg_recv( &mtid, &mtag, NULL, 0 );
     }
 #endif // defined(i386_unknown_nt4_0)
 
