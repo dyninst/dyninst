@@ -43,6 +43,8 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "util/h/debugOstream.h"
 
+#include "dyninstAPI/src/FunctionExpansionRecord.h"
+
 // Another constructor for the class instPoint. This one is called
 // for the define the instPoints for regular functions which means
 // multiple instructions is going to be moved to based trampoline.
@@ -1967,9 +1969,11 @@ bool pd_Function::findNewInstPoints(const image *owner,
 				Address newAdr,
 				process *proc,
 				vector<instruction> &callInstrs,
-				relocatedFuncInfo *reloc_info) {
+				relocatedFuncInfo *reloc_info, 
+				FunctionExpansionRecord *fer, 
+				int size_change) {
 
-   int i, orig_call_insn;
+   int i, extra_offset, disp;
    if (size() == 0) {
        cerr << "WARN : attempting to relocate function " \
        	    << prettyName().string_of() << " with size 0, unable to instrument" \
@@ -1978,11 +1982,20 @@ bool pd_Function::findNewInstPoints(const image *owner,
    }
    assert(reloc_info);
 
-   // Note : newInstr defined as array 1024 long in inst-sparc.h
-   //  bad things (tm) can happen if thats not true....
-   assert((size() + RELOCATED_FUNC_EXTRA_SPACE) <= NEW_INSTR_ARRAY_LEN);
+   // Note : newInstr defined as static array 1024 long in inst-sparc.h
+   //  for some reason. (why static????)????
+   if (size() + size_change > NEW_INSTR_ARRAY_LEN) {
+       cerr << "WARN : attempting to relocate function " \
+       	    << prettyName().string_of() << " with size " \
+	    << " > NEW_INSTR_ARRAY_LEN, unable to instrument";
+       cerr << " size = " << size() << " , size_change = " \
+	    << size_change << endl;
+       return FALSE;
+   }
+
 
    Address adr = getAddress(0);
+   Address start_adr = adr;
    instruction instr;
    instr.raw = owner->get_instruction(adr);
    if (!IS_VALID_INSN(instr)) {
@@ -2038,14 +2051,21 @@ bool pd_Function::findNewInstPoints(const image *owner,
        reloc_info->addFuncReturn(point);
      } else if (instr.branch.op == 0 
 		&& (instr.branch.op2 == 2 || instr.branch.op2 == 6)) {
+       // --- If the instruction being relocated is a branch instruction ---
+
        // find if this branch is going out of the function
-       int disp = instr.branch.disp22;
+       disp = instr.branch.disp22;
        Address target = adr + baseAddress + (disp << 2);
 
        // getAddress(0) gives the addr of the fn before it's relocated
        if ((target < (getAddress(0) + baseAddress)) 
 	   || (target >= (getAddress(0) + baseAddress + size()))) {
-	   // the original branch went out of the function...
+	   // If the branch was to a target outside of the function
+	   //  then mark the point as an exit point, and patch the
+	   //  jump target - the jump target needs to be patched because
+	   //  the jump target is NOT REALLY AN ABSOLUTE ADDRESS.  It is 
+	   //  actually a PC relative offset - and the relocated function
+	   //  will have a different PC. -matt
 
 	   relocateInstruction(&newInstr[i],adr+baseAddress,newAdr,proc);
 	   instPoint *point = new instPoint(this, newInstr[i], owner, 
@@ -2063,6 +2083,39 @@ bool pd_Function::findNewInstPoints(const image *owner,
            }
            retId++;
            reloc_info->addFuncReturn(point);
+       } else {
+	   // If the branch was to a target INSIDE the function, then
+	   // the branch target also needs to be updated. 
+	   // a. it should point to the relocated function
+	   // - because the branch is PC relative, the target DOESN'T
+	   //  need to be updated for this (it will be the same relative 
+           //  to the PC location inside the relocated function as it was
+	   //  to the PC location inside the non-relocated function.)
+	   // b. however, it may need to point to a slightly different location
+	   //  inside the relocated function - this is because pieces of the 
+	   //  function code may be expanded during the instrumentation 
+           //  process....
+	   // -matt
+
+	   //  branch how far....
+	   disp = newInstr[i].branch.disp22;
+	   //  by how many instructions is code between the src and 
+           //   destination expanded....
+	   extra_offset = fer->GetShift(adr - start_adr + \
+		 disp * sizeof(instruction)) - \
+	         fer->GetShift(adr - start_adr);
+	   
+	   //if (extra_offset != 0) {
+	   //    cerr << "WARNING : function " << prettyName().string_of() \
+	   //	  << " using addition FER offset of " << extra_offset \
+	   //	  << " at instruction " << adr - start_adr << endl;
+	   //}
+
+	   //  Dont want to use relocateInstruction function here, as
+	   //   the branching is PC-relative, and thus not changed by
+	   //   relocation....
+	   assert(extra_offset % 4 == 0);
+	   newInstr[i].branch.disp22 += extra_offset >> 2;
        }
 
      } else if (isCallInsn(instr)) {
@@ -2081,50 +2134,41 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    // is relocated. Here is an example:
 	    //   before:          --->             after
 	    // ---------------------------------------------------
-	    //   call  %reg                       mov %reg %g1
-	    //   restore                          restore    
-	    //                                    st  %i0, [ %fp + 0x44 ]
-	    //                                    mov %o7 %i0
-	    //                                    call %g1 
+	    //                                    mov %reg %g1
+	    //   call  %reg                       mov %i0 %o0
+	    //   restore                          mov %i1 %o1
+	    //                                    mov %i2 %o2
+	    //                                    mov %i3 %o3
+	    //                                    mov %i4 %o4
+	    //                                    mov %i5 %o5
+	    //                                    call %g1
 	    //                                    nop
-	    //                                    mov %i0,%o7
-	    //                                    st  [ %fp + 0x44 ], %i0
-	    //         			          retl
-            //                                    nop
-	    //  ********    OR (NOT USED)    ********
+	    //                                    mov %o0 %i0
+	    //                                    mov %o1 %i1
+	    //                                    mov %i2 %o2
+	    //                                    mov %i3 %o3
+	    //                                    mov %i4 %o4
+	    //                                    mov %i5 %o5
+	    //                                    ret
+	    //                                    restore
 	    //   before:          --->             after
 	    // ---------------------------------------------------
-	    //   call  PC_REL_ADDR                want : move ABS_ADD,
-	    //                                     convert PC_REL_ADDR to ABS_ADDR
-	    //                                     sethi ADDR', %g1
-	    //                                     or %g1, ADDR'', g1
-	    //                                     where ADDR' is high-22 bits of 
-	    //                                     ABS_ADDR, and ADDR'' is low 10 
-	    //                                     bits
-	    //   restore                          restore    
-	    //                                    st  %i0, [ %fp + 0x44 ]
-	    //                                    mov %o7 %i0
-	    //                                    call %g1 
+	    //   call  PC_REL_ADDR                mov %i0 %o0
+	    //   restore                          mov %i1 %o1
+	    //                                    mov %i2 %o2
+	    //                                    mov %i3 %o3
+	    //                                    mov %i4 %o4
+	    //                                    mov %i5 %o5
+	    //                                    call PC_REL_ADDR'
 	    //                                    nop
-	    //                                    mov %i0,%o7
-	    //                                    st  [ %fp + 0x44 ], %i0
-	    //         			          retl
-            //                                    nop
-	    //  ********    OR (USED)   ********
-	    //   before:          --->             after
-	    // ---------------------------------------------------
-	    //   call  PC_REL_ADDR                 ADDR' = PC_REL_ADDR - diff
-	    //                                     between instruction addresses
-	    //                                     (orig call and new call).... 
-	    //   restore                          restore    
-	    //                                    st  %i0, [ %fp + 0x44 ]
-	    //                                    mov %o7 %i0
-	    //                                    call PC_REL_ADDR' 
-	    //                                    nop
-	    //                                    mov %i0,%o7
-	    //                                    st  [ %fp + 0x44 ], %i0
-	    //         			          retl
-            //                                    nop
+	    //                                    mov %o0 %i0
+	    //                                    mov %o1 %i1
+	    //                                    mov %i2 %o2
+	    //                                    mov %i3 %o3
+	    //                                    mov %i4 %o4
+	    //                                    mov %i5 %o5
+	    //                                    ret
+	    //                                    restore
 	 //    Note : Assuming that %g1 is safe to use, since g1 is scratch
 	 //     register that is defined to be volatile across procedure
 	 //     calls.
@@ -2147,17 +2191,9 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //      let me know.                         --ling )
 	    bool true_call = isTrueCallInsn(instr);
 	    bool jmpl_call = isJmplCallInsn(instr);
-	    
-	    if (true_call) {
-	        //cerr << "tail-call opt undo : found CALL call pattern for sym " <<
-		//        prettyName().string_of() << endl;
-	    } else {
-	        //cerr << "tail-call opt undo : found JMPL call pattern for sym" <<
-		//        prettyName().string_of() << endl;
-	    }
 
 	    if (!true_call && !jmpl_call) {
-	        cerr << "WARN : attempting to unwind tail-call optimization, call instruction appears to be neither TRUE call nor JMPL call, bailing...." << endl;
+	        cerr << "WARN : attempting to unwind tail-call optimization, call instruction appears to be neither TRUE call nor JMPL call, bailing.  Function is : " << prettyName().string_of() << endl;
 	        return FALSE;
 	    }
 
@@ -2168,13 +2204,17 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	        // translation : mv inst %1 %2 is synthetic inst. implemented as
 	        //  orI %1, 0, %2  
 	        genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
-	    } else {
-	        orig_call_insn = i;
 	    }
 
-	    genSimpleInsn(&newInstr[i++], RESTOREop3, 0, 0, 0);
-	    generateStore(&newInstr[i++], 24, REG_FP, 0x44);
-	    genImmInsn(&newInstr[i++], ORop3, 15, 0, 24); 
+	    // generate mov i0 ... i5 ==> O0 ... 05 instructions....
+	    // as noted above, mv inst %1 %2 is synthetic inst. implemented as
+	    //  orI %1, 0, %2  
+	    genImmInsn(&newInstr[i++], ORop3, REG_I(0), 0, REG_O(0));
+	    genImmInsn(&newInstr[i++], ORop3, REG_I(1), 0, REG_O(1));
+	    genImmInsn(&newInstr[i++], ORop3, REG_I(2), 0, REG_O(2));
+	    genImmInsn(&newInstr[i++], ORop3, REG_I(3), 0, REG_O(3));
+	    genImmInsn(&newInstr[i++], ORop3, REG_I(4), 0, REG_O(4));
+	    genImmInsn(&newInstr[i++], ORop3, REG_I(5), 0, REG_O(5));
 
 	    // if origional call instruction was call to a register, that
 	    //  register should have been pushed into g0, so generate a call
@@ -2187,40 +2227,56 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	        // new is :
 	        //  generate <call %g1>
 	        generateJmplInsn(&newInstr[i++], 1, 0, 15);
+		// in the case of a jmpl call, 17 instructions are generated
+	        // and used to replace origional 2 (call, restore), resulting
+	        // in a new addition of 17 instructions....
+	        newAdr += 15 * sizeof(instruction);
 	    } else {
 	        // if the origional call was a call to an ADDRESS, then want
 	        //  to copy the origional call.  There is, however, a potential
 	        //  caveat:  The sparc- CALL instruction is apparently PC
 	        //  relative (even though disassemblers like that in gdb will
-	        //  show a call to an absolute address.
+	        //  show a call to an absolute address).
 	        //  As such, want to change the call target to account for 
-	        //  the difference is PCs.
+	        //  the difference in PCs.
 
 	        newInstr[i].raw = owner->get_instruction(adr);
 	        relocateInstruction(&newInstr[i],
 		        adr+baseAddress,
-		        newAdr + (i - orig_call_insn) * 4, proc);
+		        newAdr + 6 * sizeof(instruction), \
+			proc);
 		//cerr << "adr+baseAddress = " << adr+baseAddress << \
 		//  " (i - orig_call_insn) = " << (i - orig_call_insn) << \
 		//  " newAdr = " << newAdr << endl;
 		i++;
-
-	        // newInstr[i].raw = owner->get_instruction(adr);
-		// WRONG!!!!
-		//  let old.a be address of orig instr
-		//  want to branch to old.a (absolute).
-		//  what this is relative needs to take into account
-		//  the location of this new code.
-		//  newInstr[i].call.disp30 -= (i - orig_call_insn);
-		// i++;
+		// in the case of a "true" call, 16 instructions are generated
+	        //  + replace origional 2, resulting in addition of 18 instrs.
+		//  this addition of 14 here should make newAdr point to
+		//  the retl instruction 2nd to last in unwound tail-call 
+		//  opt. sequence....
+	        newAdr += 14 * sizeof(instruction);
 	    }
 
+	    // generate NOP following call instruction (for delay slot)
+	    //  ....
 	    generateNOOP(&newInstr[i++]);
-	    genImmInsn(&newInstr[i++], ORop3, 24, 0, 15);
-	    generateLoad(&newInstr[i++], REG_FP, 0x44, 24);  	    
-	    generateJmplInsn(&newInstr[i++], 15, 8 ,0);
-	    newAdr += 28;
-	    generateNOOP(&newInstr[i]);
+
+	    // generate mov instructions moving %o0 ... %o7 ==> 
+	    //     %i0 ... %i7.  
+            genImmInsn(&newInstr[i++], ORop3, REG_O(0), 0, REG_I(0));
+	    genImmInsn(&newInstr[i++], ORop3, REG_O(1), 0, REG_I(1));
+	    genImmInsn(&newInstr[i++], ORop3, REG_O(2), 0, REG_I(2));
+	    genImmInsn(&newInstr[i++], ORop3, REG_O(3), 0, REG_I(3));
+	    genImmInsn(&newInstr[i++], ORop3, REG_O(4), 0, REG_I(4));
+	    genImmInsn(&newInstr[i++], ORop3, REG_O(5), 0, REG_I(5));
+	    
+	    // generate ret instruction
+            generateJmplInsn(&newInstr[i++], REG_I(7), 8 ,0);
+
+	    // generate restore operation....
+	    genSimpleInsn(&newInstr[i], RESTOREop3, 0, 0, 0);
+
+	    // and note retl location as return point....
 	    instPoint *point = new instPoint(this, instr, owner, newAdr, false,
 				      functionExit, adr);
 	    point-> originalInstruction = newInstr[i-1];
@@ -2233,6 +2289,10 @@ bool pd_Function::findNewInstPoints(const image *owner,
             }
             retId++;
             reloc_info->addFuncReturn(point);
+
+	    // skip the restore instruction (in nexti)....
+	    adr += 4;
+	    newAdr += 4;
        } else {
 	 // if the second instruction in the function is a call instruction
          // then this cannot go in the delay slot of the branch to the
@@ -2261,25 +2321,53 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	 // the location of the call instruction back to the relocated
 	 // function.  This way the 07 register will contain the address
 	 // of the original call instruction
+         //
+	 // Assumes call is "true" call, NOT jmpl call....
 	 Address call_target = adr + (instr.call.disp30 << 2);
          if((call_target >= getAddress(0)) 
 		&& (call_target <= (getAddress(0) + size()))){ 
 	    assert((newInstr[i].call.disp30 << 2) == 8);
 
 	    // generating call instruction to orginal function address
-	    // after the SAVE call RESTORE instr.s that call the relocated
+	    // after the SAVE, CALL, RESTORE instr.s that call the relocated
 	    // function 
+	    disp = newInstr[i].call.disp30;
             newInstr[i].call.disp30 = ((call_start_addr -newAdr) >> 2); 
+
 
 	    // generate call to relocated function from original function 
 	    // (this will get almost correct value for register 07)
+	    // NOTE - also want to keep track of any code expansion which
+	    //  occurs in function between origional call location and 
+	    //  target, and patch call targets appropriately....
             instruction new_inst;
+	    extra_offset = fer->GetShift((i + disp) * sizeof(instruction)) - \
+	      fer->GetShift(i * sizeof(instruction));
+	    
+	    //if (extra_offset != 0) {
+	    //    cerr << "WARNING : function " << prettyName().string_of() \
+	    //	    << " using addition FER offset of " << extra_offset \
+	    //	    << " at instruction " << i * 4 << endl;
+	    //}
+
+	    // the call (stuck in the origional function) should go to
+	    // 2 instructions after newAdr (which will be a call back to 
+	    // the patched call instruction).  Call to newAdr + 2 (instead
+	    // of newAdr + 1) because the call at newAdr has a delay slot,
+	    // calling to newAdr + 1 would end up executing the instruction
+	    // in the delay slot twice.
 	    generateCallInsn(&new_inst,call_start_addr,
-			     newAdr+sizeof(instruction));
+			     newAdr + 2 * sizeof(instruction) + extra_offset);
             callInstrs += new_inst;
 	   
+
 	    // generate add isntruction to get correct value for 07 register 
 	    // this will go in delay slot of previous call instr.
+	    // NOTE 1 - looks to me like this will be correct ONLY when 
+	    //  this trick of generating a call to the same place in the 
+	    //  function to set the 07 register is done from the beginning
+	    //  of the function (2nd instruction)????
+	    //  -matt
 	    genImmInsn(&new_inst,ADDop3,REG_O7,
 		       (adr+baseAddress-call_start_addr),REG_O7);
             callInstrs += new_inst;
@@ -2353,4 +2441,89 @@ of doing this, we just check the
    
    return true;
 }
+
+// Take an (empty) FunctionExpansionRecord, and fill it with data describing
+//  how blocks of instructions inside function are shifted around by expansion
+//  or contraction of rewritten code blocks.
+// Also fills in a variable describing the total amount by which function size 
+//  changes.... 
+// return value - boolean indicating whether operations could be successfully
+//  performed.  Shoudl return TRU2E unless something is foudn to indicate that
+//  function cannot be successfully relocated given current impl. of relocation
+//  and instrumentation code.
+//  Currently, in the solaris implementation, logical code blocks are expanded
+//   when a function is relocated in the following cases:
+//   1. when unwinding tail-call optimizations (call, restore sequence).
+//   2. when the 2nd instruction in the function is a call instruction.
+bool pd_Function::calcRelocationExpansions(const image *owner, \
+ FunctionExpansionRecord *fer, int *size_change) {
+
+
+    int i, total_shift = 0;
+    Address adr = getAddress(0);
+    instruction instr, nexti;
+
+    for(i=0; adr < getAddress(0) + size(); adr += 4, i++) {
+        instr.raw = owner->get_instruction(adr);
+	nexti.raw = owner->get_instruction(adr+4);
+
+	if (isCallInsn(instr)) {
+	    // if 2nd instruction is call instruction, code adds 1 extra
+	    //  nop instruction in the delay slot....
+   	    if (i == 1) {
+	        // add 1 instruction (4 bytes long) of offset to address of any
+	        // logical block of function starting *after* that origional call....
+	        fer->AddExpansion(8, 4);
+	        total_shift += 4 * sizeof(instruction);
+	    }
+
+	    // if next instruction is "restore", then sequence is recognised as
+	    //  a tail-call optimization, and unwound....
+	    if (nexti.rest.op == 2 
+	       && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
+	          || nexti.rest.op3 == RESTOREop3)) {
+	        // adds either 7 or 8 extra instructions, depending on which type
+	        // of call the call instruction is (e.g. call %REGISTER, call ADDRESS,
+	        // etc....)....
+
+	        // call %REGISTER is actually a "JMPL" instruction in SPARC arch, 
+                //  although gdb's "disass" will show "call %REGISTER"....
+	        //  This current manner in which this is unwound results in 17 instructions
+	        //  where the origional had 2 (call + restore)....
+	        if (isJmplCallInsn(instr)) {
+		    fer->AddExpansion(i*sizeof(instruction) + 8, \
+				      15 * sizeof(instruction));
+		    total_shift += 15 * sizeof(instruction);
+	        } else if (isTrueCallInsn(instr)) {
+		    // call ADDR results in 16 instructions where origional code
+		    //  had 2 (net increase of 14 instructions).... 
+	 	    fer->AddExpansion(i*sizeof(instruction) + 8, \
+				      14 * sizeof(instruction));
+		    total_shift += 14 * sizeof(instruction);
+	        } else {
+		    // relocation code currently does NOT deal with other types of
+		    //  call ; restore sequence (e.g. call %REGISTER + OFFSET; restore).
+		    //   signal dont know how much rewriting of such code sequence will
+		    //  expand it....
+		    return FALSE;
+	        }
+    	    }
+	}
+    }
+
+    *size_change = total_shift;
+    return TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
