@@ -149,6 +149,8 @@ T_dyninstRPC::metricInfo internalMetric::getInfo() {
     return ret;
 }
 
+extern vector<process*> processVec;
+
 bool internalMetric::legalToInst(const vector< vector<string> >& focus) const {
   // returns true iff this internal metric may be enabled for the given focus.
   if (processVec.size()==0) {
