@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.13  1994/11/01 22:27:22  karavan
-/* Changed debugging printfs to PARADYN_DEBUG calls.
+/* Revision 1.14  1994/11/02 04:39:01  karavan
+/* added -s commandline option for a tcl script
 /*
+ * Revision 1.13  1994/11/01  22:27:22  karavan
+ * Changed debugging printfs to PARADYN_DEBUG calls.
+ *
  * Revision 1.12  1994/09/22  01:22:48  markc
  * Gave correct signature for signal
  *
@@ -124,8 +127,8 @@ main (int argc, char *argv[])
   //
   signal(SIGPIPE, SIG_IGN);
 
-  if (argc != 1 && argc != 3) {
-    printf("usage: %s [-f <filename>]\n", argv[0]);
+  if (argc != 1 && argc != 3 && argc != 5) {
+    printf("usage: %s [-f <filename>] [-s <tclscriptname>]\n", argv[0]);
     exit(-1);
   }
 
@@ -138,16 +141,22 @@ main (int argc, char *argv[])
     paradyn_debug = 0;
   }
 
-// parse the configuration files
+// parse the command line arguments
   int parseResult, a_ct=0;
-  char *fname=0;
+  char *fname=0, *sname=0;
   while (argv[a_ct + 1]) {
     if (!strcmp(argv[a_ct], "-f")) {
       fname = argv[a_ct+1];
       break;
+    } else {
+      if (!strcmp(argv[a_ct], "-s")) {
+	sname = argv[a_ct+1];
+	break;
+      }
     }
     a_ct++;
   }
+// parse the configuration files
   parseResult = metMain(fname);
 
 
@@ -178,10 +187,11 @@ main (int argc, char *argv[])
     return -1;
   }
   clargs->clargc = argc;	
-  clargs->clargv = argv; // this is still dangerous, argv lives on
-			 // main's stack
+  clargs->clargv = argv; 
 
-  if (thr_create (UIStack, sizeof(UIStack), &UImain, (void *) clargs, 0, &UIMtid) == THR_ERR) 
+
+  if (thr_create (UIStack, sizeof(UIStack), &UImain, (void *) clargs, 
+		  0, &UIMtid) == THR_ERR) 
     exit(1);
   PARADYN_DEBUG (("UI thread created\n"));
 
@@ -190,7 +200,6 @@ main (int argc, char *argv[])
   msg_recv(&mtag, mbuf, &msgsize);
   msg_send (UIMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   uiMgr = new UIMUser (UIMtid);
-
 
 // initialize PC
 
@@ -224,6 +233,12 @@ main (int argc, char *argv[])
   metDoVisi();
   PARADYN_DEBUG (("past metric parsing\n"));
 
+  // keep this here to prevent UI from starting up till everything's 
+  // been initialized properly!!
+  //  -OR-
+  // move this elsewhere to create a race condition
+  if (sname)
+    uiMgr->readStartupFile (sname);
 
 // wait for UIM thread to exit 
 
