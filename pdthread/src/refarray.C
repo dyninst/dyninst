@@ -47,12 +47,13 @@
  * 
  * A refarray is a templated array of references.  It
  * does bounds-checking, is resizable and is optionally 
- * protectable by a newly-allocated or preexisting lock.
+ * protectable by a newly-allocated or preexisting rwlock.
  *
  ***************************************************/
 
 #include <stdio.h>
 #include "refarray.h"
+#include "rwlock.h"
 #include <assert.h>
 
 namespace pdthr
@@ -68,8 +69,8 @@ REFOBJ *refarray<REFOBJ>::operator[](unsigned index) {
            and refarray<REFOBJ,1>, we "specialize" by using an if block,
            which should be optimized out as dead in the <REFOBJ,0> case */
     
-    if(use_lock)
-        lock->Lock();
+    if(use_rwlock)
+        lock->acquire(rwlock::read);
     
     if(index >= _size) {
 #if LIBTHREAD_DEBUG
@@ -80,8 +81,8 @@ REFOBJ *refarray<REFOBJ>::operator[](unsigned index) {
         rv = items[index];
     }
    
-    if(use_lock)
-        lock->Unlock();
+    if(use_rwlock)
+        lock->release(rwlock::read);
 
     return rv;
 
@@ -95,8 +96,8 @@ void refarray<REFOBJ>::resize() {
 template<class REFOBJ>
 void refarray<REFOBJ>::resize(REFOBJ* default_value) {
     
-    if(use_lock)
-        lock->Lock();
+    if(use_rwlock)
+        lock->acquire(rwlock::write);
 
     unsigned new_size;
     unsigned old_size;
@@ -126,8 +127,8 @@ void refarray<REFOBJ>::resize(REFOBJ* default_value) {
         delete [] new_items;        
     }
 
-    if(use_lock)
-        lock->Unlock();
+    if(use_rwlock)
+        lock->release(rwlock::write);
 
     return;
 }
@@ -135,9 +136,9 @@ void refarray<REFOBJ>::resize(REFOBJ* default_value) {
 template<class REFOBJ>
 void refarray<REFOBJ>::set_elem_at(unsigned index, REFOBJ* value) {
     
-    if(use_lock) {
+    if(use_rwlock) {
         assert(lock);
-        lock->Lock();
+        lock->acquire(rwlock::write);
     }
 
     if(index < _size) {
@@ -147,9 +148,9 @@ void refarray<REFOBJ>::set_elem_at(unsigned index, REFOBJ* value) {
         items[index] = value;
     }
     
-    if(use_lock) {
+    if(use_rwlock) {
         assert(lock);
-        lock->Unlock();
+        lock->release(rwlock::write);
     }
 
 }
@@ -159,8 +160,8 @@ template<class REFOBJ>
 unsigned refarray<REFOBJ>::push_back(REFOBJ* value) {
     unsigned retval;
     
-    if(use_lock)
-        lock->Lock();
+    if(use_rwlock)
+        lock->acquire(rwlock::write);        
 
     if(_last >= _size) _resize(NULL);
 
@@ -173,8 +174,8 @@ unsigned refarray<REFOBJ>::push_back(REFOBJ* value) {
 
     _last++;
 
-    if(use_lock)
-        lock->Unlock();
+    if(use_rwlock)
+        lock->release(rwlock::write);
 
     return retval;
 }

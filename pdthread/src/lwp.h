@@ -48,7 +48,6 @@
 
 #include "xplat/Thread.h"
 #include "xplat/TLSKey.h"
-#include "xplat/Mutex.h"
 #include "xplat/Once.h"
 
 namespace pdthr
@@ -129,10 +128,10 @@ class lwp : public entity {
     unsigned _joined;
     unsigned _reaped;
 
-    XPlat::Mutex _running_lk;
-    XPlat::Mutex _completed_lk;
-    XPlat::Mutex _joined_lk;
-    XPlat::Mutex _reaped_lk;
+    rwlock_t _running_lk;
+    rwlock_t _completed_lk;
+    rwlock_t _joined_lk;
+    rwlock_t _reaped_lk;
     
 #ifdef DO_LIBPDTHREAD_MEASUREMENTS
 
@@ -147,7 +146,11 @@ class lwp : public entity {
     
   public:
     lwp() : _running(0), _completed(0),
-        _joined(0), _reaped(0)
+        _joined(0), _reaped(0),
+        _running_lk(rwlock::favor_writers),
+        _completed_lk(rwlock::favor_writers),
+        _joined_lk(rwlock::favor_writers),
+        _reaped_lk(rwlock::favor_writers)
         {
 #ifdef DO_LIBPDTHREAD_MEASUREMENTS
             _perf_data.num_lock_acquires = 0;
