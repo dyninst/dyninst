@@ -143,7 +143,7 @@ public:
   
 			      
   const char *getName() { return fieldname; } 
-  const BPatch_type *getType() { return type; }
+  BPatch_type *getType() { return type; }
   int getValue() { return value;}
 }; 
 
@@ -235,7 +235,7 @@ public:
   const char *getLow() { return low; }
   const char *getHigh() { return hi; }
   BPatch_type *getConstituentType() { return ptr; }
-  bool isCompatible(const BPatch_type &otype);
+  bool isCompatible(BPatch_type *otype);
   BPatch_dataClass getDataClass() { return type_; }
   BPatch_Vector<BPatch_field *> *getComponents() { 
       return &fieldList; }
