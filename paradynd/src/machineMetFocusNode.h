@@ -110,7 +110,8 @@ class machineMetFocusNode : public metricFocusNode {
   void sendInitialActualValue(pdSample s);
   bool sentInitialActualValue() {  return _sentInitialActualValue; }
   bool isEnabled() { return enable; }
-  void deleteProcNode(processMetFocusNode *procNode);
+  void deleteProcNode(processMetFocusNode *procNode, 
+                      bool auto_delete_mach_node = true);
   instr_insert_result_t insertInstrumentation();
   void initializeForSampling(timeStamp timeOfCont, pdSample initValue);
   bool hasDeferredInstr();
@@ -131,6 +132,7 @@ class machineMetFocusNode : public metricFocusNode {
   void propagateToForkedProcess(const pd_process *parentProc, 
 				pd_process *childProcess,
 			     vector<processMetFocusNode *> *procNodesToUnfork);
+  void adjustForExecedProcess(pd_process *proc);
 };
 
 
