@@ -69,7 +69,7 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
 {
     extern bool init();
     extern double cyclesPerSecond;
-    extern double timing_loop(const unsigned, const unsigned);
+    extern unsigned long long getCyclesPerSecond();
 
     // Save a pointer to the one-and-only bpatch object.
     if (bpatch == NULL)
@@ -80,7 +80,8 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
 
     // XXX dyninstAPI_init returns success/failure -- should pass on somehow
     dyninstAPI_init();
-    cyclesPerSecond = timing_loop(1, 100000) * 1000000;
+    extern unsigned long long getCyclesPerSecond();
+    cyclesPerSecond = (double)getCyclesPerSecond();
 
     /*
      * Create the library private info object.

@@ -39,57 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include <invent.h>
-#include <stdio.h>
-#include <assert.h>
-
-
-// "cyclesPerSecond" function prototype
-typedef int (*cpsFunc_t)(unsigned long long &);
-
-
-int cyclesPerSecond_invent(unsigned long long &cps)
-{
-  if (setinvent() == -1) {
-    return -1;
-  }
-
-  unsigned long long raw = 0;
-  for (inventory_t *inv = getinvent(); inv != NULL; inv = getinvent()) {
-    /* only need PROCESSOR/CPUBOARD inventory entries */
-    if (inv->inv_class != INV_PROCESSOR) continue;
-    if (inv->inv_type != INV_CPUBOARD) continue;
-    /* check for clock speed mismatch */
-    if (raw == 0) raw = inv->inv_controller;
-    if (inv->inv_controller != raw) {
-      fprintf(stderr, "!!! non-uniform CPU speeds\n");
-      endinvent();
-      return -1;
-    }
-  }
-  endinvent();
-
-  cps = raw * 1000000; // convert MHz to Hz
-  return 0;
-}
-
 extern int cyclesPerSecond_default(unsigned long long &);
 
-cpsFunc_t cpsFuncs[] = 
-{
-  cyclesPerSecond_invent,
-  cyclesPerSecond_default  // "default" should be last
-};
-
+// TODO: replace body with (better) platform-specific code
 unsigned long long getCyclesPerSecond()
 {
   unsigned long long cps = 0;
-  int nfuncs = sizeof(cpsFuncs) / sizeof(cpsFunc_t);
-  int ret = -1;
-  for (int i = 0; i < nfuncs; i++) {
-    ret = (*cpsFuncs[i])(cps);
-    if (ret == 0) break;
-  }
-  assert(ret == 0); // "default" should never fail
+  cyclesPerSecond_default(cps);
   return cps;
 }

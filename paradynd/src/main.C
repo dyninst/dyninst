@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.73 1999/03/03 18:01:09 pcroth Exp $
+// $Id: main.C,v 1.74 1999/06/08 06:03:37 csserra Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -66,7 +66,6 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "util/h/machineType.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/perfStream.h"
-#include "dyninstAPI/src/clock.h"
 #include "paradynd/src/mdld.h"
 
 pdRPC *tp;
@@ -419,7 +418,8 @@ int main(unsigned argc, char *argv[]) {
 
     statusLine(V_paradynd);
 
-    cyclesPerSecond = timing_loop() * 1000000;
+    extern unsigned long long getCyclesPerSecond();
+    cyclesPerSecond = (double)getCyclesPerSecond();
 
     // Note -- it is important that this daemon receives all mdl info
     // before starting a process
