@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.5 1994/03/26 20:50:49 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.6 1994/03/31 02:03:21 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.5  1994/03/26 20:50:49  jcargill
+ * Revision 1.6  1994/03/31 02:03:21  markc
+ * paradyndPVM keeps a process at neonatal until the first breakpoint is
+ * reached.  Moved PDYN_reportSIGCHLD to correct location.
+ *
+ * Revision 1.5  1994/03/26  20:50:49  jcargill
  * Changed the pause/continue code.  Now it really stops, instead of
  * spin looping.
  *
@@ -275,11 +279,15 @@ int handleSigChild(int pid, int status)
 		 */
 		printf("passed trap at start of program\n");
 		ptrace(PTRACE_CONT, pid, (char*)1, 0, 0);
+#ifdef PARADYND_PVM
+		curr->status = neonatal;
+#else
 		curr->status = running;
+#endif
 		break;
 
 	    case SIGSTOP:
-		printf("CONTROLLER: Breakpoint reached\n");
+		printf("CONTROLLER: Breakpoint reached %d\n", pid);
 		curr->status = stopped;
 
 		// The Unix process should be stopped already, 
@@ -303,10 +311,6 @@ int handleSigChild(int pid, int status)
 		break;
 
 	    case SIGCHLD:
-#ifdef PARADYND_PVM
-		PDYN_reportSIGCHLD (pid, status);
-		break;
-#endif
 	    case SIGUSR1:
 	    case SIGUSR2:
 	    case SIGALRM:
@@ -316,6 +320,9 @@ int handleSigChild(int pid, int status)
 		break;
 	}
     } else if (WIFEXITED(status)) {
+#ifdef PARADYND_PVM
+		PDYN_reportSIGCHLD (pid, status);
+#endif
 	printf("process %d has terminated\n", curr->pid);
 	curr->status = exited;
     } else if (WIFSIGNALED(status)) {
@@ -326,6 +333,34 @@ int handleSigChild(int pid, int status)
     }
     return(0);
 }
+
+#ifdef PARADYND_PVM
+int PDYN_cs()
+{
+  struct timeval pollTime;
+  int width;
+  fd_set readSet;
+  int *fd_ptr;
+  int res, ct, fdnum;
+
+  fdnum = pvm_getfds(&fd_ptr);
+
+  FD_ZERO(&readSet);
+  FD_SET(fd_ptr[0], &readSet);
+  width = 0;
+
+  width = fd_ptr[0];
+  pollTime.tv_sec = 0;
+  pollTime.tv_usec = 50000;
+  ct = select(width+1, &readSet, NULL, NULL, &pollTime);
+  res = FD_ISSET(fd_ptr[0], &readSet);
+  printf("\nIN PDYN_cs() PID=%d sel=%d, res=%d fdnum=%d fd=%d\n", getpid(), ct, res, fdnum, fd_ptr[0]);
+  if (ct <= 0) return ct;
+  return res;
+}
+#endif
+
+
 
 /*
  * Wait for a data from one of the inferriors or a request to come in.
@@ -345,7 +380,13 @@ void controllerMainLoop()
 
 #ifdef PARADYND_PVM
     int fd_num, *fd_ptr, i;
+    if (pvm_mytid() < 0)
+      {
+	printf("pvm not working\n");
+	_exit(-1);
+      }
     fd_num = pvm_getfds(&fd_ptr);
+    assert(fd_num == 1);
 #endif
     
     while (1) {
@@ -361,12 +402,11 @@ void controllerMainLoop()
 	if (tp->fd > width) width = tp->fd;
 
 #ifdef PARADYND_PVM
-	for (i=0; i < fd_num; i++)
-	  {
-	    FD_SET(fd_ptr[i], &readSet);
-	    if (fd_ptr[i] > width)
-	      width = fd_ptr[i];
-	  }
+	fd_num = pvm_getfds(&fd_ptr);
+	assert(fd_num == 1);
+	FD_SET(fd_ptr[0], &readSet);
+	if (fd_ptr[0] > width)
+	  width = fd_ptr[0];
 #endif
 	pollTime.tv_sec = 0;
 	pollTime.tv_usec = 50000;
@@ -389,23 +429,17 @@ void controllerMainLoop()
 	      }
 #ifdef PARADYND_PVM
 	    // message on pvmd channel
-	    int msg_there = 0;
 	    int res;
             fd_num = pvm_getfds(&fd_ptr);
-	    for (i=0; (i < fd_num) && !msg_there; i++)
+	    assert(fd_num == 1);
+	    if (FD_ISSET(fd_ptr[0], &readSet))
 	      {
-		if (FD_ISSET(fd_ptr[i], &readSet))
-		  {
-		    msg_there = 1;
-		    // res == -1 --> error
-		    res = PDYN_handle_pvmd_message();
-		    // handle pvm message
-		  }
+		// res == -1 --> error
+		res = PDYN_handle_pvmd_message();
+		// handle pvm message
 	      }
 #endif
 	  }
-
-
 
 	/* check for status change on inferrior processes */
 	pid = wait3(&status, WNOHANG, NULL);
@@ -414,6 +448,7 @@ void controllerMainLoop()
 	}
     }
 }
+
 
 void createResource(traceHeader *header, struct _newresource *r)
 {
