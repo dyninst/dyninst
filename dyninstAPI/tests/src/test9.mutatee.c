@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.2 2003/08/11 17:32:05 chadd Exp $ */
+/* $Id: test9.mutatee.c,v 1.3 2003/08/11 18:22:52 chadd Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -54,7 +54,8 @@ extern void func6_2(); /*this is in libInstMe.so */
  
 void func6_1(){
 
-#if 1 || !defined(sparc_sun_solaris2_4) &&  !defined(i386_unknown_linux2_0) 
+#if !defined(i386_unknown_linux2_0) 
+	/* !defined(sparc_sun_solaris2_4) && */
     printf("Skipped test #6 (instrument a shared library and save the world)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[6] = TRUE;

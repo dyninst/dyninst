@@ -1,4 +1,4 @@
-// $Id: test9.C,v 1.3 2003/08/11 17:32:04 chadd Exp $
+// $Id: test9.C,v 1.4 2003/08/11 18:22:52 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -666,8 +666,8 @@ void mutatorTest5(char *pathname, char** child_argv)
 //
 void mutatorTest6(char *pathname, char** child_argv)
 {
-#if  0 
-//&& defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) 
+#if defined(i386_unknown_linux2_0) 	
+//	 defined(sparc_sun_solaris2_4) ||
 	int testNo = 6;
 	char *testName = "instrument a shared library and save the world";
 	BPatch_image *appImage;
