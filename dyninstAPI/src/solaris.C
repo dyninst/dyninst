@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.167 2004/04/06 16:37:18 bernat Exp $
+// $Id: solaris.C,v 1.168 2004/05/11 19:01:45 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -920,7 +920,7 @@ Frame Frame::getCallerFrame(process *p) const
 }
 
 
-#ifdef SHM_SAMPLING
+#if !defined(BPATCH_LIBRARY)
 rawTime64 dyn_lwp::getRawCpuTime_hw()
 {
   return 0;
@@ -980,7 +980,7 @@ bool process::catchupSideEffect(Frame & /*frame*/, instReqNode * /*inst*/)
 {
   return true;
 }
-#endif // SHM_SAMPLING
+#endif // BPATCH_LIBRARY
 
 #if 0
 // needToAddALeafFrame: returns true if the between the current frame 
