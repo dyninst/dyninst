@@ -3,11 +3,11 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.9 2000/04/11 18:59:38 buck Exp $
+# $Id: make.module.tmpl,v 1.10 2000/08/23 00:29:09 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_NUM	= 1.0
+RELEASE_NUM	= 1.1
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 TARGET		= dyner
@@ -33,7 +33,7 @@ else
 TEST_CC = $(CXX)
 endif
 
-SYSLIBS      += -liberty -L$(TCLTK_DIR) $(TCLTK_LIBS)
+SYSLIBS      += -liberty -L$(TCLTK_DIR) -ltcl
 
 all: $(TARGET) $(TEST_TARGET)
 
