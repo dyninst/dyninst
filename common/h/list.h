@@ -171,7 +171,7 @@ template <class Type> class List {
 	    }
 	}
 	// postfix - the beauty of c++ 
-	Type operator ++(int i) { 
+	Type operator ++(int) { 
 	    Type ret = (Type) NULL;
 	    if (head) {
 		ret = head->data;
@@ -313,7 +313,7 @@ template <class Type> class HTable {
             return(*currList);
         }
 	// postfix
-	Type operator ++(int i) {
+	Type operator ++(int) {
 	  Type curr;
 	  
 	  ++currList;
