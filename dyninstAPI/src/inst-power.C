@@ -1096,7 +1096,7 @@ unsigned emitFuncCall(opCode /* ocode */,
 	if(reg->number == srcs[u]) break;
       }
       // since the register should be free
-      assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
+      // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
       if(u == srcs.size()) {
 	saveRegister(insn,base,reg->number,8+(46*4));
 	savedRegs += reg->number;
@@ -1132,10 +1132,13 @@ unsigned emitFuncCall(opCode /* ocode */,
   
   // Now load the parameters into registers.
   for (unsigned u=0; u<srcs.size(); u++){
-    assert(regSpace->isFreeRegister(u+3));
-
     // check that is is not already in the register
-    if (srcs[u] == (int) u+3) continue;
+    if (srcs[u] == (int) u+3) {
+      regSpace->freeRegister(srcs[u]);
+      continue;
+    }
+
+    assert(regSpace->isFreeRegister(u+3));
 
     // internal error we expect this register to be free here
     // if (!regSpace->isFreeRegister(u+3)) abort();
