@@ -33,7 +33,7 @@
 
 #if defined(os_solaris)
 #include <sys/sockio.h>         //only for solaris
-#endif // defined(os_windows)
+#endif // defined(os_solaris)
 
 
 
