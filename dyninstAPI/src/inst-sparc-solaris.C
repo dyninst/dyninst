@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.94 2001/09/28 14:28:28 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.95 2001/11/08 00:43:38 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3446,7 +3446,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
     LocalAlterationSet alteration_set(this);
 
     instruction *oldInstructions = NULL, *newCode = NULL;
-    
+
 
     const image* owner = location->iPgetOwner();
 
@@ -3506,14 +3506,21 @@ bool pd_Function::fillInRelocInstPoints(
     //  Add inst point corresponding to func entry....
     //   Assumes function has single entry point  
     if (funcEntry_ != NULL) {
-        //  figure out how far entry inst point is from beginning of function....
-        CALC_OFFSETS(funcEntry_)
+
+        //  figure out how far entry inst point is from beginning of function
+        originalOffset = ((funcEntry_->iPgetAddress() + imageBaseAddr) - 
+                                                              mutatee);
+        arrayOffset = originalOffset / sizeof(instruction); 
+        tmp         = newAdr + originalOffset;
+        tmp2        = funcEntry_->iPgetAddress();
+
         point = new instPoint(this, newCode, arrayOffset, owner, 
 	                         tmp, true, functionEntry, tmp2);
 #ifdef DEBUG_PA_INST
         cerr << " added entry point at originalOffset " << originalOffset
-	     << " newOffset " << newOffset << endl;
+	     << " newOffset " << originalOffset << endl;
 #endif
+
 	assert(point != NULL);
 
 	if (location == funcEntry_) {
