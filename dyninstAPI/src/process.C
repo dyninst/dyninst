@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.222 2000/06/14 23:03:21 wylie Exp $
+// $Id: process.C,v 1.223 2000/07/07 20:20:55 paradyn Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2781,9 +2781,10 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
   bool res = readDataSpace_(inTracedProcess, size, inSelf);
   if (!res) {
     if (displayErrMsg) {
-      sprintf(errorLine, 
-	  "System error: unable to read from process data space: %s (pid = %d)",
-	  sys_errlist[errno], getPid());
+      sprintf(errorLine, "System error: "
+          "unable to read %d@%s from process data space: %s (pid=%d)",
+	  size, Address_str((Address)inTracedProcess), 
+          sys_errlist[errno], getPid());
       string msg(errorLine);
       showErrorCallback(38, msg);
     }
@@ -2961,9 +2962,10 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 
   bool res = readTextSpace_(const_cast<void*>(inTracedProcess), amount, inSelf);
   if (!res) {
-    sprintf(errorLine, 
-	  "System error: unable to read from process data space: %s (pid = %d)",
-	  sys_errlist[errno], getPid());
+    sprintf(errorLine, "System error: "
+          "unable to read %d@%s from process text space: %s (pid=%d)",
+	  amount, Address_str((Address)inTracedProcess),
+          sys_errlist[errno], getPid());
     string msg(errorLine);
     showErrorCallback(38, msg);
     return false;
