@@ -4,6 +4,9 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.9  1995/12/08 05:51:16  tamches
+# added PriorityQueue
+#
 # Revision 1.8  1995/11/06 19:21:43  tamches
 # added dictionaryLite
 #
@@ -42,11 +45,13 @@ SRCS	     += ../src/String.C \
 		../src/aggregateSample.C \
 		../src/stringPool.C \
 		../src/hist.C \
-		../src/timing.C 
+		../src/timing.C \
+		../src/PriorityQueue.C
 
 OBJS         += String.o DictionaryLite.o \
 		lprintf.o rpcUtil.o aggregateSample.o \
- 		stringPool.o hist.o timing.o
+ 		stringPool.o hist.o timing.o \
+		PriorityQueue.C
 
 SRCS2	     += rpcUtilPVM.C
 OBJS2	     += rpcUtilPVM.o
