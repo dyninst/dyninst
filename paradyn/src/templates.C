@@ -5,7 +5,11 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.1  1994/09/22 00:49:12  markc
+ * Revision 1.2  1994/10/09 01:29:13  karavan
+ * added UIM templates connected with change to new UIM/visiThread metric-res
+ * selection interface.
+ *
+ * Revision 1.1  1994/09/22  00:49:12  markc
  * Paradyn now uses one template code generating file.  All threads should use
  * this file to generate template code.
  *
@@ -68,8 +72,15 @@ typedef List<timeInterval *> p13;
 /* *************************************
  * UIthread stuff
  */
+#include "paradyn/src/VMthread/metrespair.h"
+class resourceList;
 class pRec;
+class resHierarchy;
+
 typedef HTable<pRec *> h1; 
+typedef List<resHierarchy *> h2;
+typedef List<resourceList *> h3;
+typedef List<metrespair *> h4;
 
 /* ************************************
  * VMthread stuff
