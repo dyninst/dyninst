@@ -21,6 +21,7 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../src/aix.C \
+		../src/aixMT.C \
 		../src/aixDL.C \
 		../src/sol_proc.C \
 		../src/inst-power.C \
