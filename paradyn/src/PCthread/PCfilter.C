@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.8  1996/04/18 22:01:52  naim
+ * Revision 1.9  1996/04/21 21:45:38  newhall
+ * changed getPredictedDataCostAsync
+ *
+ * Revision 1.8  1996/04/18  22:01:52  naim
  * Changes to make getPredictedDataCost asynchronous - naim
  *
  * Revision 1.7  1996/04/07  21:24:36  karavan
@@ -61,6 +64,7 @@
 #include "PCfilter.h"
 #include "PCintern.h"
 #include "PCmetricInst.h"
+#include "dataManager.thread.h"
 
 #ifdef PCDEBUG
 #include <sys/time.h>
@@ -96,57 +100,39 @@ ostream& operator <<(ostream &os, filter& f)
   return os;
 }
 
-float getPredictedDataCostAsync(resourceListHandle foc, metricHandle metric)
-{
-  float result=0.0;
+float getPredictedDataCostAsync(perfStreamHandle pstream, 
+				resourceListHandle foc, 
+				metricHandle metric) {
 
-#ifdef PCDEBUG
-  double t1,t2;
-  if (performanceConsultant::collectInstrTimings) {
-    t1=TESTgetTime();
-  }
-#endif
+  dataMgr->getPredictedDataCost(pstream,metric,foc);
 
-  dataMgr->getPredictedDataCost(foc, metric);
-  T_performanceConsultant::message_tags tagPC = T_performanceConsultant::getPredictedDataCostCallbackPC_REQ;
-  T_performanceConsultant::msg_buf buffer;
-  T_performanceConsultant::message_tags waitTag;
+  // KLUDGE: make the PC wait for the async response from the DM
+  T_dataManager::message_tags tagPC = T_dataManager::predictedDataCost_REQ;
+  T_dataManager::msg_buf buffer;
+  T_dataManager::message_tags waitTag;
   bool ready=false;
-  int from;
-  unsigned int tag;
+  float result=0.0;
   while (!ready) {
-    tag = (unsigned int) T_performanceConsultant::getPredictedDataCostCallbackPC_REQ;
-    from = msg_poll(&tag, true);
-    assert(from != THR_ERR);
-    if (pc->isValidTag((T_performanceConsultant::message_tags)tag)) {
-      waitTag=pc->waitLoop(true,(T_performanceConsultant::message_tags)tag,&buffer);
-      if (waitTag==T_performanceConsultant::error) {
-        cerr << "Error in PCfilter.C, needs to be handled\n";
-        assert(0);
-      }
-      if (waitTag==tagPC) {
-        ready=true;
-        result = buffer.getPredictedDataCostCallbackPC_call.val;
+      u_int tag = (u_int) T_dataManager::predictedDataCost_REQ;
+      int from = msg_poll(&tag, true);
+      assert(from != THR_ERR);
+      if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
+          waitTag = dataMgr->waitLoop(true,
+		    (T_dataManager::message_tags)tag,&buffer);
+          if (waitTag==tagPC) {
+              ready=true;
+              result = buffer.predictedDataCost_call.var_115;
+          }
+          else {
+	      cerr << "Error in PCfilter.C, tag not valid\n";
+              assert(0);
+          }
       }
       else {
-	cerr << "Error in PCfilter.C, tag not valid\n";
-        assert(0);
+          cerr << "Error in PCfilter.C, tag not valid\n";
+          assert(0);
       }
-    }
-    else {
-      cerr << "Error in PCfilter.C, tag not valid\n";
-      assert(0);
-    }
   }
-
-#ifdef PCDEBUG
-  if (performanceConsultant::collectInstrTimings) {
-    t2=TESTgetTime();
-    if ((t2-t1) > 1.0) 
-      printf("==> TEST <== getPredictedDataCost took %5.2f secs\n",t2-t1);
-  }
-#endif
-
   return(result);
 }
 
@@ -156,7 +142,8 @@ filter::filter(filteredDataServer *keeper,
   lastDataSeen(0), partialIntervalStartTime(0.0), workingValue(0), 
   workingInterval(0), server(keeper)
 { 
-  estimatedCost = getPredictedDataCostAsync(foc,metric);
+  estimatedCost = getPredictedDataCostAsync(filteredDataServer::pstream,
+					    foc,metric);
 }
 
 filter::~filter() {
@@ -166,7 +153,8 @@ filter::~filter() {
 float
 filter::getNewEstimatedCost()
 {
-  estimatedCost = getPredictedDataCostAsync(foc, metric);
+  estimatedCost = getPredictedDataCostAsync(filteredDataServer::pstream,
+					    foc, metric);
   return estimatedCost;
 }
 
@@ -464,7 +452,7 @@ float
 filteredDataServer::getEstimatedCost(metricHandle mh,
 				     focus f)
 {
-  return(getPredictedDataCostAsync(f, mh));
+  return(getPredictedDataCostAsync(filteredDataServer::pstream,f, mh));
 }
 
 float
