@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.92  1996/03/14 14:21:57  naim
+ * Revision 1.93  1996/04/03 14:24:18  naim
+ * Making call to getPredictedDataCost between paradyn and paradynd
+ * asynchronous - naim
+ *
+ * Revision 1.92  1996/03/14  14:21:57  naim
  * Batching enable data requests for better performance - naim
  *
  * Revision 1.91  1996/03/05  16:12:20  naim
@@ -517,6 +521,14 @@ void dynRPCUser::enableDataCallback(int daemon_id, int return_id)
 }
 
 void dynRPCUser::enableDataCallbackBatch(int daemon_id, vector<int> return_id)
+{
+}
+
+//
+// Upcall to tell paradyn that all daemons are ready after computing the
+// value for predicted data cost.
+//
+void dynRPCUser::getPredictedDataCostCallback(int dummy, float val)
 {
 }
 

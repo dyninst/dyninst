@@ -587,7 +587,32 @@ float paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
     paradynDaemon *pd;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
-	val = pd->getPredictedDataCost(focus, metName);
+	pd->getPredictedDataCost(focus, metName);
+    }
+
+    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+	T_dyninstRPC::message_tags tag1 = T_dyninstRPC::getPredictedDataCostCallback_REQ;
+	unsigned tag2 = MSG_TAG_FILE;
+        int ready_fd;
+        T_dyninstRPC::T_getPredictedDataCostCallback buffer;
+
+        //
+        // Since getPredictedDataCost is now async, we have to wait until
+        // every daemon is finished with its enable request
+        //
+        bool foundDaemon;
+        do {
+          foundDaemon=false;
+          ready_fd = msg_poll(&tag2, true);
+          for(unsigned j = 0; j < paradynDaemon::allDaemons.size(); j++) {
+            pd = paradynDaemon::allDaemons[j];
+            if (pd->get_fd() == ready_fd) {
+              foundDaemon=true;
+              break;
+	    }
+	  }
+        } while (!foundDaemon || !pd->wait_for_and_read(tag1,&buffer));
+        val = buffer.val;
 	if(val > max) max = val;
     }
     return(max);
