@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-mips.S,v 1.9 2003/10/21 17:22:35 bernat Exp $ */
+/* $Id: tramp-mips.S,v 1.10 2003/10/29 22:41:57 rchen Exp $ */
 
 /*  base trampoline template layout: 
  *
@@ -654,6 +654,8 @@ _baseNonRecursiveTramp_guardOnPre_begin:
 	nop			/* lui $t1, bits 31-16 of address      */
 	nop			/* ori $t1, $t1, bits 15- 0 of address */
 	dsll32 $12, $12, 0	/* dsll32 $t0, $t0, 0		       */
+	dsll32 $13, $13, 0      /* Clear possible sign extention of    */
+	dsrl32 $13, $13, 0      /*    lower 32 bits                    */
 	or $13, $12, $13	/* or $t1, $t0, $t1                    */
 	lw $12, 0($13)		/* lw $t0, 0($t1)                      */
 	nop			/* beq $t0, $zero, guardOffPre_end     */
@@ -683,6 +685,8 @@ _baseNonRecursiveTramp_guardOffPre_begin:
 	nop			/* lui $t1, bits 31-16 of address      */
 	nop			/* ori $t1, $t1, bits 15- 0 of address */
 	dsll32 $12, $12, 0	/* dsll32 $t0, $t0, 0                  */
+	dsll32 $13, $13, 0      /* Clear possible sign extention of    */
+	dsrl32 $13, $13, 0      /*    lower 32 bits                    */
 	or $13, $12, $13	/* or $t1, $t0, $t1                    */
 	addi $12, $0, 1		/* addi $t0, $zero, 1                  */
 	sw $12, 0($13)		/* sw $zero, 0($t1)                    */
@@ -864,6 +868,8 @@ _baseNonRecursiveTramp_guardOnPost_begin:
 	nop			/* lui $t1,      bits 31-16 of address */
 	nop			/* ori $t1, $t1, bits 15- 0 of address */
 	dsll32 $12, $12, 0	/* dsll32 $t0, $t0, 0                  */
+	dsll32 $13, $13, 0      /* Clear possible sign extention of    */
+	dsrl32 $13, $13, 0      /*    lower 32 bits                    */
 	or $13, $12, $13	/* or $t1, $t0, $t1                    */
 	lw $12, 0($13)		/* lw $t0, 0($t1)                      */
 	nop			/* beq $t0, $zero, guardOffPost_end    */
@@ -893,6 +899,8 @@ _baseNonRecursiveTramp_guardOffPost_begin:
 	nop			/* lui $t1,      bits 31-16 of address */
 	nop			/* ori $t1, $t1, bits 15- 0 of address */
 	dsll32 $12, $12, 0	/* dsll32 $t0, $t0, 0                  */
+	dsll32 $13, $13, 0      /* Clear possible sign extention of    */
+	dsrl32 $13, $13, 0      /*    lower 32 bits                    */
 	or $13, $12, $13	/* or $t1, $t0, $t1                    */
 	addi $12, $0, 1		/* addi $t0, $zero, 1                  */
 	sw $12, 0($13)		/* sw 1, 0($t1)                        */

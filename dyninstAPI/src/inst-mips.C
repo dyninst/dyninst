@@ -3692,7 +3692,10 @@ void generate_base_tramp_recursive_guard_code( process * p,
 
   /* populate guardOnPre section */
   instruction * guardOnInsn = ( instruction * )( code + templ->recursiveGuardPreOnOffset );
-  offset = 7;//ccw 24 oct 2000 : 28 mar 2001
+  offset = 9; // Make sure this reflects the number of instructions between
+	      // baseNonRecursiveTramp_guardOn*_begin and the beq instruction
+	      // baseNonRecursiveTramp_guardOff*_end in tramp-mips.S
+	      // RSC (10/2003)
 
 #ifndef mips_unknown_ce2_11 //ccw 24 oct 2000 : 28 mar 2001
   genItype ( guardOnInsn     , LUIop,  0, 12, chunk_A );
@@ -3707,9 +3710,8 @@ void generate_base_tramp_recursive_guard_code( process * p,
 
   int pre_offset = (templ->updateCostOffset - templ->recursiveGuardPreOnOffset);
   pre_offset /= sizeof(instruction);
-  pre_offset += 7; // 4 to build addr, dsl, or, load
-  genItype ( guardOnInsn + 7 , BEQop, 12, 0, //ccw 24 oct 2000 : offset was 7 : 28 mar 2001
-             pre_offset);
+  pre_offset += offset;
+  genItype ( guardOnInsn + offset, BEQop, 12, 0, pre_offset );
 
   /* populate guardOffPre section */
   instruction * guardOffInsn = ( instruction * )( code + templ->recursiveGuardPreOffOffset);
@@ -3737,11 +3739,10 @@ void generate_base_tramp_recursive_guard_code( process * p,
 #endif
   int post_offset = (templ->restorePostInsOffset - templ->recursiveGuardPostOnOffset);
   post_offset /= sizeof(instruction);
-  post_offset += 7; // 4 to build addr, dsl, or, load
+  post_offset += offset;
   fprintf(stderr, "Pre-branch: %d, post-branch: %d\n",
           pre_offset, post_offset);
-  genItype ( guardOnInsn + 7 , BEQop, 12, 0,//ccw 24 oct 2000 : offset was 7 : 28 mar 2001
-             post_offset);
+  genItype ( guardOnInsn + offset, BEQop, 12, 0, post_offset );
   
   /* populate guardOffPost section */
   guardOffInsn = ( instruction * )( code + templ->recursiveGuardPostOffOffset );
