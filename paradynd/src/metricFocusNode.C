@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.73  1996/02/09 23:34:44  mjrg
+ * put back a line that has been accidentally deleted
+ *
  * Revision 1.72  1996/02/09 22:13:49  mjrg
  * metric inheritance now works in all cases
  * paradynd now always reports to paradyn when a process is ready to run
@@ -1422,6 +1425,7 @@ void reportInternalMetrics()
         } else if (imp->style() == EventCounter) {
           value = imp->getValue();
           // assert((value + 0.0001)  >= imp->cumulativeValue);
+          value -= imp->cumulativeValue;
           imp->cumulativeValue += value;
         } else if (imp->style() == SampledFunction) {
           value = imp->getValue();
