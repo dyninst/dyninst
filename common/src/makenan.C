@@ -1,14 +1,15 @@
 #include "util/h/makenan.h"
 #include "util/h/headers.h"
 
-float f_paradyn_nan = 0;
+float f_paradyn_nan = 0.0;
 bool nan_created = false;
 bool matherr_flag = false;
 
 float make_Nan() {
     if(!nan_created){
     matherr_flag = true;
-    f_paradyn_nan = sqrt(-3);
+    double temp = -3.0;
+    f_paradyn_nan = (float)sqrt(temp);
     matherr_flag = false;
     nan_created = true;
     }

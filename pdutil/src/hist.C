@@ -16,7 +16,11 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.25  1996/05/07 17:25:39  newhall
+ * Revision 1.26  1996/05/15 18:20:49  newhall
+ * bug fix to foldAllHist to correctly handle folding buckets where one or
+ * both have NaN values
+ *
+ * Revision 1.25  1996/05/07  17:25:39  newhall
  * fix to bug caused by my previous commit
  *
  * Revision 1.24  1996/05/06  17:14:54  newhall
@@ -346,6 +350,9 @@ void Histogram::foldAllHist()
 	globalBucketSize *= 2.0;
         lastGlobalBin = numBins/2 - 1;
     }
+    fprintf(stderr,"startTime: %f\n",startTime);
+    bool curr = false;
+    if(startTime != 0.0) curr = true;
 
     // fold all histograms with the same time base
     for(unsigned i = 0; i < allHist.size(); i++){
@@ -355,17 +362,37 @@ void Histogram::foldAllHist()
 	    (allHist[i])->bucketWidth *= 2.0;
 	    if((allHist[i])->storageType == HistBucket){
                 Bin *bins = (allHist[i])->dataPtr.buckets;
+		int last_bin = -1;
 		int j=0;
 		for(; j < numBins/2; j++){
-                    bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0;
+		    if(!isnan(bins[j*2+1])){   // both are not NaN
+                        bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0;
+                    }
+		    else if(!isnan(bins[j*2])){  // one is NaN
+		        bins[j] = (bins[j*2])/2.0;	
+			if(last_bin == -1) last_bin = j;
+		    }
+		    else {  // both are NaN
+			bins[j] = PARADYN_NaN;
+			if(last_bin == -1) last_bin = j;
+		    }
 		}
-	        (allHist[i])->lastBin = j - 1; 
+		if(last_bin == -1) last_bin = j-1;
+	        (allHist[i])->lastBin = last_bin; 
 		for(int k=numBins/2; k<numBins; k++){
 		    bins[k] = PARADYN_NaN;
 		}
 	    }
 	    (allHist[i])->total_time = startTime + 
 				       numBins*(allHist[i])->bucketWidth;
+            if(curr && (allHist[i])->globalData){
+	       fprintf(stderr,"curr fold for global hist\n");
+            }
+            else if(!curr && !((allHist[i])->globalData)){
+	       fprintf(stderr,"global fold for curr hist starttime = %f\n",
+			startTime);
+            }
+
 	    if((allHist[i])->foldFunc) 
 		((allHist[i])->foldFunc)((allHist[i])->bucketWidth, 
 					(allHist[i])->cData,
