@@ -14,7 +14,10 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.99  1996/06/09 18:55:33  newhall
+ * Revision 1.100  1996/06/20 21:34:01  naim
+ * Minor change - naim
+ *
+ * Revision 1.99  1996/06/09  18:55:33  newhall
  * removed debug output
  *
  * Revision 1.98  1996/05/15  18:32:49  naim
@@ -572,8 +575,7 @@ bool metricDefinitionNode::insertInstrumentation()
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
         if (!(data[u]->insertInstrumentation(this))) return(false);
-      size = requests.size();
-      for (unsigned u1=0; u1<size; u1++)
+      for (unsigned u1=0; u1<requests.size(); u1++)
         requests[u1].insertInstrumentation();
       if (needToCont) proc_->continueProc();
     }
@@ -594,8 +596,7 @@ float metricDefinitionNode::cost()
           if (nc > ret) ret = nc;
         }
     } else {
-      unsigned size = requests.size();
-      for (unsigned u=0; u<size; u++)
+      for (unsigned u=0; u<requests.size(); u++)
         ret += requests[u].cost();
     }
     return(ret);
