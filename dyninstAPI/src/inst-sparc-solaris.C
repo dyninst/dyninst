@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.123 2003/03/10 18:47:49 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.124 2003/03/13 17:00:14 jodom Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2275,7 +2275,7 @@ bool pd_Function::findInstPoints(const image *owner) {
   // For determining if function needs relocation to be instrumented
   relocatable_ = false;
   mayNeedRelocation_ = false;
-  bool canBeRelocated = true;
+  canBeRelocated_ = true;
 
   // Initially assume function has no stack frame 
   noStackFrame = true;
@@ -2389,19 +2389,19 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   // FUNCTION TOO SMALL
   if (size() <= 3*sizeof(instruction)) {
-    canBeRelocated = false;
+    canBeRelocated_ = false;
   }
 
 
   // Can't handle function
-  if (canBeRelocated == false && relocatable_ == true) {
+  if (canBeRelocated_ == false && relocatable_ == true) {
     return false;
   }
 
 
 #ifdef BPATCH_LIBRARY
   if (BPatch::bpatch->hasForcedRelocation_NP()) {
-    if (canBeRelocated == true) {
+    if (canBeRelocated_ == true) {
       relocatable_ = true;
     }
   }
@@ -2683,7 +2683,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   bool checkPoints = checkInstPoints(owner);
 
-  if ( (checkPoints == false) || (!canBeRelocated && relocatable_) ){
+  if ( (checkPoints == false) || (!canBeRelocated_ && relocatable_) ){
     return false;
   }
 
@@ -3176,6 +3176,55 @@ bool pd_Function::PA_attachBranchOverlaps(
 
     return true;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *p,
+						 Address baseAddress,
+						 Address firstAddress,
+						 process *proc) {
+#ifdef BPATCH_LIBRARY
+
+  BPatch_function *bpfunc = proc->findOrCreateBPFunc(this);
+
+  BPatch_flowGraph *cfg = bpfunc->getCFG();
+  BPatch_Set<BPatch_basicBlock*> allBlocks;
+  cfg->getAllBasicBlocks(allBlocks);
+
+  BPatch_basicBlock** belements =
+    new BPatch_basicBlock*[allBlocks.size()];
+  allBlocks.elements(belements);
+
+  BPatch_Set<Address> blockEnds;
+  for (int i = 0; i < allBlocks.size(); i++) {
+    void *bbsa, *bbea;
+    belements[i]->getAddressRange(bbsa, bbea);
+    blockEnds.insert((Address) bbea);
+  }
+  delete[] belements;
+
+  pdvector<instPoint*> ips;
+  sorted_ips_vector(ips);
+
+  for (unsigned i = 0; i < ips.size(); i++) {
+    if (blockEnds.contains(ips[i]->iPgetAddress())) {
+
+      InsertNops *blockNop = 
+	new InsertNops(this, ips[i]->iPgetAddress() + baseAddress +
+		       sizeof(instruction) - firstAddress, 
+		       sizeof(instruction));
+      p->AddAlteration(blockNop);
+
+    }
+  }
+
+#endif BPATCH_LIBRARY
+  return true;
+}
+
+
 
 /****************************************************************************/
 /****************************************************************************/

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.39 2003/01/02 19:51:50 schendel Exp $
+ * $Id: func-reloc.C,v 1.40 2003/03/13 17:00:14 jodom Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -350,7 +350,8 @@ bool expanded = true;
                               normalized_alteration_set, 
                               baseAddress, mutator, mutatee, 
                               oldInstructions, 
-                              numberOfInstructions); 
+                              numberOfInstructions,
+			      proc); 
 
   if (expanded) { 
   // Check if the expansions discovered in expandInstPoints would require
@@ -498,10 +499,11 @@ bool pd_Function::expandInstPoints(const image *owner,
                                LocalAlterationSet &normalized_alteration_set, 
                                Address baseAddress, Address mutator,
                                Address mutatee, instruction oldInstructions[], 
-                               unsigned num_instructions) {
+                               unsigned num_instructions,
+			       process *proc) {
 
-  bool combined1, combined2, combined3, combined4;
-  bool attach1 = true, attach2 = true, attach3 = true, attach4 = true;
+  bool combined1, combined2, combined3, combined4, combined5;
+  bool attach1 = true, attach2 = true, attach3 = true, attach4 = true, attach5 = true;
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::expandInstPoints called "<< endl;
@@ -514,6 +516,7 @@ bool pd_Function::expandInstPoints(const image *owner,
   LocalAlterationSet tmp_alt_set1(this);
   LocalAlterationSet tmp_alt_set2(this);
   LocalAlterationSet tmp_alt_set3(this);
+  LocalAlterationSet tmp_alt_set4(this);
 
   // Perform three passes looking for instPoints that need expansion
 
@@ -525,6 +528,8 @@ bool pd_Function::expandInstPoints(const image *owner,
                            oldInstructions, num_instructions, size());
 #if defined (sparc_sun_solaris2_4)
   attach4 = PA_attachTailCalls(&tmp_alt_set3);
+  attach5 = PA_attachBasicBlockEndRewrites(&tmp_alt_set4, baseAddress, mutatee,
+					   proc);
 #endif
 
   if (!attach1 || !attach2 || !attach3 || !attach4) {
@@ -537,9 +542,10 @@ bool pd_Function::expandInstPoints(const image *owner,
   combined1 = combineAlterationSets(temp_alteration_set, &tmp_alt_set1);
   combined2 = combineAlterationSets(temp_alteration_set, &tmp_alt_set2);
   combined3 = combineAlterationSets(temp_alteration_set, &tmp_alt_set3);
-  combined4 = combineAlterationSets(&normalized_alteration_set, temp_alteration_set);    
+  combined4 = combineAlterationSets(temp_alteration_set, &tmp_alt_set4);
+  combined5 = combineAlterationSets(&normalized_alteration_set, temp_alteration_set);    
 
-  if (!combined1 || !combined2 || !combined3 || !combined4) {
+  if (!combined1 || !combined2 || !combined3 || !combined4 || !combined5) {
     return false;
   }
 
@@ -1082,6 +1088,15 @@ bool pd_Function::relocateFunction(process *proc,
     cerr << " size() = " << size() << endl;
     cerr << " this = " << *this << endl;
 #endif
+
+#ifdef BPATCH_LIBRARY
+    if (BPatch::bpatch->autoRelocationOn() == false) {
+      BPatch_reportError(BPatchSerious, 125,
+			 "Function required relocation but auto-relocation disabled.\n");
+      return false;
+    }
+#endif
+
 
     // check if this process already has a relocation record for this 
     // function, meaning that the.function has already been relocated

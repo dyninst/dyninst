@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.117 2003/01/29 23:01:22 jodom Exp $
+// $Id: symtab.h,v 1.118 2003/03/13 17:00:15 jodom Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -339,6 +339,7 @@ class pd_Function : public function_base {
     bool needsRelocation() {return relocatable_;}
     bool mayNeedRelocation() {return mayNeedRelocation_;}
     void setRelocatable(bool value) { relocatable_ = value; }
+    bool canBeRelocated() { return canBeRelocated_; }
 
     bool isInstrumentable() { return isInstrumentable_; }
     
@@ -365,6 +366,10 @@ class pd_Function : public function_base {
 
     bool PA_attachTailCalls(LocalAlterationSet *temp_alteration_set);
 
+    bool PA_attachBasicBlockEndRewrites(LocalAlterationSet *temp_alteration_set,
+					Address baseAddress,
+					Address firstAddress,
+					process *proc);
     //
     // NEW routines for function code rewrites using peephole alterations....
     //
@@ -475,7 +480,8 @@ class pd_Function : public function_base {
                           LocalAlterationSet &normalized_alteration_set, 
                           Address baseAddress, Address mutator, 
                           Address mutatee, instruction oldCode[], 
-                          unsigned numberOfInstructions);
+                          unsigned numberOfInstructions,
+			  process *proc);
 
     bool PA_attachGeneralRewrites(const image *owner, 
                                   LocalAlterationSet *temp_alteration_set, 
@@ -572,6 +578,8 @@ class pd_Function : public function_base {
     bool mayNeedRelocation_;       // True if func needs to be relocated to
                                    // enable call sequence transfers to
                                    // base trampolines 
+    bool canBeRelocated_;           // True if nothing prevents us from
+                                   // relocating function
 
     unsigned char *relocatedCode;  // points to copy of rewritten function    
     unsigned char *originalCode;   // points to copy of original function

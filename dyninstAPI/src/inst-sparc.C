@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.138 2003/03/10 18:47:49 tikir Exp $
+// $Id: inst-sparc.C,v 1.139 2003/03/13 17:00:15 jodom Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1996,6 +1996,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     unsigned i;
     Address begin_addr,end_addr,curr_addr;
     bool dontUseCallHere = false;
+    bool needsRelocate = false;
 
     //the method to check whether conservative base tramp can be installed
     //or not since it contains condition code instructions which is
@@ -2027,7 +2028,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
 
     BPatch_function *bpfunc = proc->findOrCreateBPFunc((pd_Function*)func);
-
+    
     BPatch_flowGraph *cfg = bpfunc->getCFG();
     BPatch_Set<BPatch_basicBlock*> allBlocks;
     cfg->getAllBasicBlocks(allBlocks);
@@ -2041,10 +2042,14 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 	if (belements[i]->getAddressRange(bbsa,bbea)) {
 	    begin_addr = (Address)bbsa;
 	    if ((begin_addr - INSN_SIZE) == curr_addr) {
+	      if (pointFunction->canBeRelocated())
+		needsRelocate = true;
+	      else {
 		delete[] belements;
 		BPatch_reportError(BPatchSerious, 118,
 				   "point uninstrumentable (0)");
 		return NULL;
+	      }
 	    }
 	}
     }
@@ -2187,6 +2192,9 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
       address = (void*)((Address)address - INSN_SIZE);
       curr_addr -= INSN_SIZE;
     }
+
+    if (needsRelocate == true)
+      pointFunction->setRelocatable(true);
 
     instruction instr;
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
