@@ -1,7 +1,10 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.2  1994/02/03 23:27:03  hollings
+ * Revision 1.3  1994/04/21 04:58:08  karavan
+ * Added changeStatus and changeActive member functions to searchHistoryNode.
+ *
+ * Revision 1.2  1994/02/03  23:27:03  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.1  1994/02/02  00:38:20  hollings
@@ -71,6 +74,8 @@ class searchHistoryNode {
 	char *shortName;		// name of this node.
 	hintList *hints;
 	static stringPool shgNames;
+	void changeStatus(Boolean newstat);
+	void changeActive(Boolean newact);
 };
 
 searchHistoryNode *findAndAddSHG(searchHistoryNode *parent,
