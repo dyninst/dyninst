@@ -44,7 +44,7 @@ InternalNode::InternalNode( std::string _hostname, Port _port,
     if( retval != 0 ) {
         //Call childnode's error here, because we want to record event
         //locally as well as send upstream
-        ChildNode::error( ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
+        ChildNode::error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                           strerror(errno) );
         mrn_printf( 1, MCFL, stderr, "Upstream recv thread creation failed\n" );
     }
@@ -56,7 +56,7 @@ InternalNode::InternalNode( std::string _hostname, Port _port,
     if( retval != 0 ) {
         //Call childnode's error here, because we want to record event
         //locally as well as send upstream
-        ChildNode::error( ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
+        ChildNode::error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                           strerror(errno) );
         mrn_printf( 1, MCFL, stderr, "Upstream send thread creation failed\n" );
     }

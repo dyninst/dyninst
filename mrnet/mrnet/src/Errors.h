@@ -14,22 +14,24 @@
 namespace MRN
 {
 
-enum ErrorCodes{
+enum ErrorCode{
     MRN_ENONE=0,
     MRN_EBADCONFIG_IO,
     MRN_EBADCONFIG_FMT,
-    MRN_ENETWORK_CYCLE,
-    MRN_ENETWORK_NOTCONNECTED,
+    MRN_EBADCONFIG_CYCLE,
+    MRN_EBADCONFIG_NOTCONNECTED,
     MRN_ENETWORK_FAILURE,
     MRN_EOUTOFMEMORY,
-    MRN_EFMTSTR_MISMATCH,
+    MRN_EFMTSTR,
     MRN_ECREATPROCFAILURE,
     MRN_ECANNOTBINDPORT,
     MRN_ESOCKETCONNECT,
-    MRN_EPACKING
+    MRN_EPACKING,
+    MRN_EINTERNAL,
+    MRN_ESYSTEM
 };
 
-enum ErrorLevels{
+enum ErrorLevel{
     MRN_INFO=0,
     MRN_WARN,
     MRN_ERR,
@@ -43,20 +45,19 @@ enum ErrorResponse{
     MRN_ABORT
 };
 
-struct ErrorDefs
+struct ErrorDef
 {
-    enum ErrorCodes code;
-    enum ErrorLevels level;
+    enum ErrorCode code;
+    enum ErrorLevel level;
     enum ErrorResponse response;
     const char *msg;
 };
 
-extern struct ErrorDefs errors[];
+extern struct ErrorDef errors[];
 
 class Error{
  protected:
-    bool _fail;
-    enum ErrorCodes MRN_errno;
+    enum ErrorCode MRN_errno;
 
  public:
     Error() :MRN_errno(MRN_ENONE) { }
@@ -75,7 +76,7 @@ class Error{
         return;
     }
 
-    virtual void error( EventType, const char *, ... );
+    virtual void error( ErrorCode, const char *, ... );
 };
 
 } // namespace MRN

@@ -45,8 +45,9 @@ NetworkImpl::NetworkImpl( Network * _network, const char *_filename,
 }
 
 
+//TODO: use unused? //quiet compiler for now
 NetworkImpl::NetworkImpl( Network * _network, const char *_config,
-                          bool unused, const char *_application )
+                          bool /* unused */, const char *_application )
     : application( ( _application == NULL ) ? "" : _application ),
       front_end( NULL ), back_end( NULL )
 {
@@ -85,15 +86,16 @@ NetworkImpl::NetworkImpl( Network *_network,
     local_data->thread_name = strdup( name.c_str(  ) );
     if( ( status = tsd_key.Set( local_data ) ) != 0 ) {
         //TODO: add event to notify upstream
-        error(ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
+        error(MRN_ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
         mrn_printf( 1, MCFL, stderr, "XPlat::TLSKey::Set(): %s\n",
                     strerror( status ) );
     }
+    tsd_initialized = true;
 
     back_end = new BackEndNode( _network, host, port, myrank, phost, pport );
 
     if( back_end->fail() ){
-        error( ESYSTEM, "Failed to initialize via BackEndNode()\n" );
+        error( MRN_ESYSTEM, "Failed to initialize via BackEndNode()\n" );
     }
     is_backend = true;
 }
@@ -130,9 +132,10 @@ void NetworkImpl::InitFE( Network * _network, const char* _config )
     status = tsd_key.Set( local_data );
 
     if( status != 0 ) {
-        error( ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
+        error( MRN_ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
         return;
     }
+    tsd_initialized = true;
 
     endpoints = graph->get_EndPoints( );
     comm_Broadcast = _network->new_Communicator( endpoints );
@@ -153,7 +156,7 @@ void NetworkImpl::InitFE( Network * _network, const char* _config )
     Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s", sg_str.c_str( ),
                    mrn_commnode_path, application.c_str( ) );
     if( front_end->proc_newSubTree( packet ) == -1 ) {
-        _fail = true;
+        error( MRN_EINTERNAL, "");
         return;
     }
 
@@ -162,6 +165,7 @@ void NetworkImpl::InitFE( Network * _network, const char* _config )
 
 int NetworkImpl::parse_configfile( const char* cfg )
 {
+    int status;
     // mrndebug=1;
 
     if( cfg != NULL )
@@ -178,16 +182,18 @@ int NetworkImpl::parse_configfile( const char* cfg )
         if( mrnin == NULL ) {
             mrn_printf( 1, MCFL, stderr, "fopen() failed: %s: %s",
                         filename.c_str(), strerror( errno ) );
-            error( EBADCONFIG, "fopen() failed: %s: %s", filename.c_str(),
+            error( MRN_EBADCONFIG_IO, "fopen() failed: %s: %s", filename.c_str(),
                    strerror( errno ) );
             return -1;
         }
     }
 
-    if( mrnparse( ) != 0 ) {
-        mrn_printf( 1, MCFL, stderr, "mrnparse() failed: %s: Parse Error",
+    status = mrnparse( );
+
+    if( status != 0 ) {
+        mrn_printf( 1, MCFL, stderr, "mrnparse() failed: %s: Parse Error\n",
                     filename.c_str() );
-        error( EBADCONFIG, "mrnparse() failed: %s: Parse Error",
+        error( MRN_EBADCONFIG_FMT, "mrnparse() failed: %s: Parse Error",
                filename.c_str() );
         return -1;
     }

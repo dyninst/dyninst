@@ -51,8 +51,7 @@ Network::Network( const char *cfgFileName, Network::LeafInfo *** leafInfo,
         else
         {
             // indicate the error
-            network->error( ESYSTEM, "invalid argument" );
-            network->MRN_errno = MRN_ENETWORK_FAILURE;
+            network->error( MRN_EINTERNAL, "invalid argument" );
         }
     }
 }
@@ -75,8 +74,7 @@ Network::Network( const char* _configBuffer, bool /* unused */,
         }
         else {
             // TODO is this the right error?
-            network->error( ESYSTEM, "invalid argument" );
-            network->MRN_errno = MRN_ENETWORK_FAILURE;
+            network->error( MRN_EINTERNAL, "invalid argument" );
         }
     }
 }

@@ -54,7 +54,7 @@ int FrontEndNode::proc_DataFromDownStream( Packet& packet )
             else {
                 mrn_printf( 1, MCFL, stderr, "Packet from unknown stream %d\n",
                             cur_packet.get_StreamId(  ) );
-                error( EPROTOCOL, "Packet with unknown stream id: %d\n",
+                error( MRN_EINTERNAL, "Packet with unknown stream id: %d\n",
                        cur_packet.get_StreamId() );
                 return -1;
             }

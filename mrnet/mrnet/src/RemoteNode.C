@@ -78,6 +78,7 @@ void * RemoteNode::recv_thread_main(void * args)
                    strerror(status)); 
         XPlat::Thread::Exit(args);
     }
+    tsd_initialized = true;
 
     mrn_printf(3, MCFL, stderr, "In recv_thread_main()\n");
     while(1){
@@ -159,6 +160,7 @@ void * RemoteNode::send_thread_main(void * args)
                    strerror(status)); 
         XPlat::Thread::Exit(args);
     }
+    tsd_initialized = true;
 
     while(1){
         remote_node->msg_out_sync.Lock();
@@ -196,7 +198,7 @@ int RemoteNode::connect()
                hostname.c_str(), port);
     if(connectHost(&sock_fd, hostname.c_str(), port) == -1){
         mrn_printf(1, MCFL, stderr, "connect_to_host() failed\n");
-        error( ESYSTEM, "connect(): %s\n", strerror(errno) );
+        error( MRN_ESYSTEM, "connect(): %s\n", strerror(errno) );
         return -1;
     }
     
@@ -212,7 +214,7 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
     if( do_connect ) {
         if( (sock_fd = getSocketConnection(lsock_fd)) == -1){
             mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n");
-            error( ESYSTEM, "getSocketConnection(): %s\n",
+            error( MRN_ESYSTEM, "getSocketConnection(): %s\n",
                    strerror(errno) );
             return -1;
         }
@@ -229,7 +231,7 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
                                         (void *) this,
                                         &recv_thread_id );
         if(retval != 0){
-            error( ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
+            error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                     strerror(errno) );
             mrn_printf(1, MCFL, stderr, "Downstream recv thread creation failed...\n");
         }
@@ -238,7 +240,7 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
                                         (void *) this,
                                         &send_thread_id );
         if(retval != 0){
-            error( ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
+            error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                     strerror(errno) );
             mrn_printf(1, MCFL, stderr, "Downstream send thread creation failed...\n");
         }
@@ -272,14 +274,20 @@ int RemoteNode::new_InternalNode(int listening_sock_fd,
     if( XPlat::Process::Create( hostname, commnode_cmd, args ) != 0 ){
         int err = XPlat::Process::GetLastError();
 
-        error( ESYSTEM, "XPlat::Process::Create(%s %s): %s\n",
+        error( MRN_ESYSTEM, "XPlat::Process::Create(%s %s): %s\n",
                hostname.c_str(), commnode_cmd.c_str(),
                XPlat::Error::GetErrorString( err ).c_str() );
+        mrn_printf(1, MCFL, stderr,
+                   "XPlat::Process::Create(%s %s): %s\n",
+                   hostname.c_str(), commnode_cmd.c_str(),
+                   XPlat::Error::GetErrorString( err ).c_str() );
         return -1;
     }
 
     if( accept_Connection( listening_sock_fd ) == -1 ){
-        error( ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
+        error( MRN_ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
+        mrn_printf(1, MCFL, stderr,"accept_Connection(): %s\n",
+                   strerror(errno) );
         return -1;
     }
     return 0;
@@ -312,7 +320,7 @@ int RemoteNode::new_Application(int listening_sock_fd,
     if( XPlat::Process::Create( hostname, cmd, args ) != 0 ){
         mrn_printf(1, MCFL, stderr, "XPlat::Process::Create() failed\n"); 
         int err = XPlat::Process::GetLastError();
-        error( ESYSTEM, "XPlat::Process::Create(%s %s): %s\n",
+        error( MRN_ESYSTEM, "XPlat::Process::Create(%s %s): %s\n",
                hostname.c_str(), cmd.c_str(),
                XPlat::Error::GetErrorString( err ).c_str() );
         return -1;
@@ -331,7 +339,7 @@ int RemoteNode::new_Application(int listening_sock_fd,
 
     // finalize the connection
     if( accept_Connection( sock_fd, false ) != 0 ) {
-        error( ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
+        error( MRN_ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
         return -1;
     }
     return 0;
@@ -413,7 +421,7 @@ int RemoteNode::connect_to_leaf( Rank myRank )
         mrn_printf(1, MCFL, stderr, 
             "leaf handshake failed: send failed: %d: %s \n", 
             errno, strerror(errno) );
-        error( ESYSTEM, "send(): %s\n", strerror( errno ) );
+        error( MRN_ESYSTEM, "send(): %s\n", strerror( errno ) );
         XPlat::SocketUtils::Close( sock_fd );
         sock_fd = -1;
         return -1;

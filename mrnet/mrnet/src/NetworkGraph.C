@@ -73,7 +73,7 @@ void NetworkGraph::preorder_traversal(NetworkNode * node){
     static int next_leaf_id=0;
 
     if( node->visited() == true ){
-        error( EBADCONFIG, "%s:%u: Node is own ancestor",
+        error( MRN_EBADCONFIG_CYCLE, "%s:%u: Node is own ancestor",
                node->hostname.c_str(), node->port );
         _has_cycle=true;
         return;
