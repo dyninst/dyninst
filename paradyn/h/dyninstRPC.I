@@ -16,7 +16,10 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.14  1994/07/02 01:45:24  markc
+ * Revision 1.15  1994/07/05 03:26:54  hollings
+ * added stat printing command.
+ *
+ * Revision 1.14  1994/07/02  01:45:24  markc
  * Removed aggregation operator from enableDataCollection call.
  * Remove aggregation operator definitions, which are provided by
  * util/h/aggregation.H
@@ -208,6 +211,11 @@ $remote dynRPC {
     $virtual $upcall $async void reportSelf(String machine, 
 					    String program, 
 					    int pid);
+
+    //
+    // For timing and other measurements of paradynd
+    //
+    void printStats();
 
     $cmember int my_pid;
 };
