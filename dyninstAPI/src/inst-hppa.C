@@ -19,13 +19,16 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-hppa.C,v 1.4 1995/12/21 16:43:09 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-hppa.C,v 1.5 1996/01/24 20:40:47 lzheng Exp $";
 #endif
 
 /*
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.5  1996/01/24 20:40:47  lzheng
+ * Minor buf fixed - lzheng
+ *
  * Revision 1.4  1995/12/21 16:43:09  naim
  * Implementing rel operators <,<=,>,>= for the hp - naim
  *
@@ -206,7 +209,7 @@ inline void generateLoadConst(instruction *insn, int src1, int dest,
 	insn->mr.ls.tr = dest;
 	insn->mr.ls.s = 0;
 	insn->mr.ls.im14 = src1 & 0x7ff;
-
+  
 	base += 2*sizeof(instruction);
       }
       else {
@@ -322,7 +325,12 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
 {
     Address ret=adr;
     instPoint *point;
-    bool err = true;
+
+    err = true;
+
+    // modified 1/16/95 3:45pm
+    //   same reason as in the inst-sparc.C
+    // bool err = true;
 
     point = new instPoint(this, instr, owner, adr, false);
 
@@ -538,8 +546,8 @@ void installBaseTramp(unsigned baseAddr,
 	temp++, currAddr += sizeof(instruction)) {
 	if (temp->raw == EMULATE_INSN) {
 	    *temp = location->originalInstruction;
-	    relocateInstruction(temp, location->addr, currAddr);
-	    if (location->isDelayed) {
+            relocateInstruction(temp, location->addr, currAddr);
+       	    if (location->isDelayed) {
 		/* copy delay slot instruction into tramp instance */
 		*(temp+1) = location->delaySlotInsn;
 	    }
@@ -772,7 +780,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 		ext7 = ANDext7;
 		break;
 
-	    // rel ops
+	    // relops
 	    case eqOp:
 		genCmpOp(insn, COMCLR_EQ_C, COMCLR_EQ_F, src1, src2, dest);
 		base += sizeof(instruction);
