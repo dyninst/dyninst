@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.2  1994/04/05 23:49:25  rbi
-/* Fixed a bunch of tcl related stuff.
+/* Revision 1.3  1994/04/06 22:40:15  markc
+/* Included assert.h.
 /*
+ * Revision 1.2  1994/04/05  23:49:25  rbi
+ * Fixed a bunch of tcl related stuff.
+ *
  * Revision 1.1  1994/04/05  04:42:38  karavan
  * initial version of UI thread code and tcl paradyn command
  * */
@@ -23,6 +26,7 @@ extern "C" {
 #include "thread/h/thread.h"
 #include "paradyn.h"
 #include "UIglobals.h"
+#include <assert.h>
 
 extern Boolean detachApplication(applicationContext,Boolean);
 
