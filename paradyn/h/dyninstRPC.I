@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.100 2002/08/31 16:53:17 mikem Exp $
+/* $Id: dyninstRPC.I,v 1.101 2002/10/15 17:11:25 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -164,7 +164,7 @@ $ignore
 public:
   mdl_icode(mdl_expr *if_expr, mdl_expr *expr);
   ~mdl_icode();
-  bool apply(AstNode *&mn, bool mn_initialized, void *proc);
+  bool apply(AstNode *&mn, bool mn_initialized, pd_process *proc);
 $ignore
 };
 
@@ -292,7 +292,7 @@ public:
 		 bool& error);
   ~mdl_constraint();
   bool apply(instrCodeNode *codeNode, instrDataNode **dataNode,
-             const Hierarchy &resource, process *proc, bool dontInsertData);
+             const Hierarchy &resource, pd_process *proc, bool dontInsertData);
   bool mk_list(vector<string> &funcs);
   bool replace();
   string id();
@@ -371,7 +371,7 @@ public:
 #endif
 
   bool apply(vector<processMetFocusNode *> *createdProcNodes,
-             const Focus &focus, vector<process *> procs,
+             const Focus &focus, vector<pd_process *> procs,
 	     bool replace_components_if_present, bool dontInsertData);
 $ignore
 };

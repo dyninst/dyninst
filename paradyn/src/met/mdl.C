@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.52 2002/08/31 16:53:18 mikem Exp $
+// $Id: mdl.C,v 1.53 2002/10/15 17:11:26 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -166,7 +166,7 @@ bool mdl_data::new_metric(string id, string name, string units,
 }
 
 bool T_dyninstRPC::mdl_metric::apply(vector<processMetFocusNode *> *,
-				     const Focus &, vector<process *>,
+				     const Focus &, vector<pd_process *>,
 				     bool, bool) {
   mdl_env::push();
   if (!mdl_env::add(id_, true, type_)) return false;
@@ -308,7 +308,7 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *,
 					 instrDataNode **,
 					 const Hierarchy &,
-					 process *, 
+					 pd_process *, 
 					 bool)
 {
   mdl_env::push();
@@ -444,7 +444,7 @@ T_dyninstRPC::mdl_icode::mdl_icode(T_dyninstRPC::mdl_expr *expr1,
 
 T_dyninstRPC::mdl_icode::~mdl_icode() { delete if_expr_; delete expr_; }
 
-bool T_dyninstRPC::mdl_icode::apply(AstNode *&, bool, void *)
+bool T_dyninstRPC::mdl_icode::apply(AstNode *&, bool, pd_process *)
 {
   if (!expr_) return false;
   AstNode* ast = NULL;
@@ -1269,7 +1269,7 @@ bool mdl_apply() {
   //
   Focus focus;
   string empty;
-  vector<process*> emptyP;
+  vector<pd_process*> emptyP;
 
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
