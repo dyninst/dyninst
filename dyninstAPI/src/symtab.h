@@ -139,8 +139,8 @@ public:
 		symTabName_(symbol),prettyName_(pretty),line_(0),
 		addr_(adr),size_(size),tag_(tg) { }
     virtual ~function_base() { /* TODO */ }
-    string symTabName() const { return symTabName_;}
-    string prettyName() const { return prettyName_;}
+    const string &symTabName() const { return symTabName_;}
+    const string &prettyName() const { return prettyName_;}
     unsigned size() const {return size_;}
     unsigned addr() const {return addr_;}
     unsigned tag() const { return tag_;}
@@ -167,7 +167,7 @@ private:
 
 class pd_Function : public function_base {
  public:
-    pd_Function(const string symbol, const string &pretty, pdmodule *f, 
+    pd_Function(const string &symbol, const string &pretty, pdmodule *f, 
 		Address adr, const unsigned size, const unsigned tg, 
 		const image *owner, bool &err);
     ~pd_Function() { /* TODO */ }
