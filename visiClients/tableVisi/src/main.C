@@ -3,6 +3,9 @@
 
 /*
  * $Log: main.C,v $
+ * Revision 1.6  1995/12/20 18:37:16  newhall
+ * matherr.h does not need to be included by visis
+ *
  * Revision 1.5  1995/11/29 00:43:33  tamches
  * paradyn logo is now hard-coded
  *
@@ -37,8 +40,6 @@
 
 #include "tableVisi.h"
 #include "tableVisiTcl.h"
-
-#include "util/h/matherr.h"
 
 Tcl_Interp *mainInterp;
 Tk_Window   mainTkWindow;

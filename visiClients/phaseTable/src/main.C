@@ -1,5 +1,8 @@
 /*
  * $Log: main.C,v $
+ * Revision 1.2  1995/12/20 18:38:25  newhall
+ * matherr.h does not need to be included by visis
+ *
  * Revision 1.1  1995/12/15 22:01:54  tamches
  * first version of phaseTable
  *
@@ -14,8 +17,6 @@
 
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
-
-#include "util/h/matherr.h"
 
 extern Dg_Init(Tcl_Interp *interp);
 

@@ -1,10 +1,13 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.10  1995/11/29 00:39:48  tamches
-/* now include tkTools.h, pdLogo.h
-/* Now hardcode the pdLogo
+/* Revision 1.11  1995/12/20 18:37:59  newhall
+/* matherr.h does not need to be included by visis
 /*
+ * Revision 1.10  1995/11/29 00:39:48  tamches
+ * now include tkTools.h, pdLogo.h
+ * Now hardcode the pdLogo
+ *
  * Revision 1.9  1995/11/08 21:17:12  naim
  * Adding matherr exception handler function to avoid error message when
  * computing the "not a number" (NaN) value - naim
@@ -53,7 +56,6 @@
 
 #include "dg2.h"
 #include "barChartTcl.h"
-#include "util/h/matherr.h"
 
 void panic(const char *msg) {
    cerr << msg << endl;

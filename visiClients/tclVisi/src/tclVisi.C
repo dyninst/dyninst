@@ -4,6 +4,9 @@
  *        Tcl_AppInit() function.
  *
  *  $Log: tclVisi.C,v $
+ *  Revision 1.6  1995/12/20 18:37:00  newhall
+ *  matherr.h does not need to be included by visis
+ *
  *  Revision 1.5  1995/12/01 06:42:56  tamches
  *  removed warnings (tclclean.h; tkclean.h)
  *  included new logo code (pdLogo.h)
@@ -30,8 +33,6 @@
 
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
-
-#include "util/h/matherr.h"
 
 extern Dg_Init(Tcl_Interp *interp);
 
