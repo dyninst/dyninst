@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.109 2003/07/29 20:12:49 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.110 2003/07/30 14:47:12 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -142,13 +142,6 @@ void dynRPC::printStats(void)
   printDyninstStats();
 }
 
-// TODO -- use a different creation time
-void dynRPC::addResource(u_int parent_id, u_int id, pdstring name, u_int type)
-{
-  resource *parent = resource::findResource(parent_id);
-  if (!parent) return;
-  resource::newResource(parent, name, id, type);
-}
 
 void dynRPC::coreProcess(int id)
 {

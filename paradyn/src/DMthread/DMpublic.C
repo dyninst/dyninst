@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.138 2003/07/18 15:44:25 schendel Exp $
+// $Id: DMpublic.C,v 1.139 2003/07/30 14:47:11 pcroth Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -1297,63 +1297,6 @@ T_dyninstRPC::metricInfo *dataManager::getMetricInfo(metricHandle m_handle) {
     return 0;
 }
 
-#ifdef n_def
-resourceHandle dataManager::newResource(resourceHandle parent, 
-					const char *newResource) {
-    // rbi: kludge 
-    // calls to this method should specify an abstraction,
-    // but that involves a bunch of other changes that I don't want 
-    // to make right now.
-    // the kludge works because we know that all calls to this method 
-    // are for BASE abstraction resources.  
-
-    // TEMP: until this routine is called with pdvector of strings for new res
-    pdstring res = resource::resources[parent]->getFullName();
-    res += pdstring("/");
-    res += pdstring(newResource);
-    char *word = strdup(res.c_str());
-    pdstring next;
-    pdvector<pdstring> temp;
-    unsigned j=1;
-    for(unsigned i=1; i < res.length(); i++){
-	if(word[i] == '/'){
-	    word[i] = '\0';
-	    next = &word[j];
-	    temp += next;
-	    j = i+1;
-        }
-    }
-    next = &word[j];
-    temp += next;
-    pdstring base = pdstring("BASE");
-    resourceHandle r = resource::createResource(parent, temp, res, base);  
-    paradynDaemon::tellDaemonsOfResource(res.c_str(),newResource);
-    return(r);
-}
-#endif
-
-resourceHandle dataManager::newResource(resourceHandle parent,
-			                const char *name, u_int type)
-{
-
-    // rbi: kludge
-    // calls to this method should specify an abstraction,
-    // but that involves a bunch of other changes that I don't want
-    // to make right now.
-    // the kludge works because we know that all calls to this method
-    // are for BASE abstraction resources.
-    
-    pdstring abs = "BASE";
-    resource *parent_res = resource::handle_to_resource(parent);
-    pdvector<pdstring> res_name = parent_res->getParts();
-    res_name += name;
-    resourceHandle child = resource::createResource(0, res_name, abs, type);
-    paradynDaemon::tellDaemonsOfResource(parent_res->getHandle(), 
-			       		 child, 
-			                 name, type);
-    return(child);
-
-}
 
 timeLength*
 dataManager::getBucketWidth( metricInstanceHandle mih, phaseType ptype )

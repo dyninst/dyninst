@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.111 2003/07/15 22:45:17 schendel Exp $
+ * $Id: dataManager.I,v 1.112 2003/07/30 14:47:02 pcroth Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -175,7 +175,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 58;
+    $version 59;
 
     //
     // Start a paradyn daemon
@@ -468,12 +468,6 @@ $remote dataManager {
     //
     pdvector<resourceHandle> *getRootResources();
 
-    //
-    // create a new resource and return it's handle
-    //
-    resourceHandle newResource(resourceHandle parent, 
-			       const char *name, 
-			       u_int type);
 
     //
     // converts from a vector of resourceHandles to a resourceListHandle

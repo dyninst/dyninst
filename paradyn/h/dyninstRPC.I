@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.111 2003/07/18 15:44:22 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.112 2003/07/30 14:47:02 pcroth Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -537,7 +537,7 @@ int createDaemon(pdstring machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 62;
+    $version 63;
 
     //
     // Define a program to run. 
@@ -814,11 +814,6 @@ $remote dynRPC {
    // Get the static configuration information.
    //
    pdvector<metricInfo> getAvailableMetrics();
-
-   //
-   // Create a new resource.
-   //
-   void addResource(u_int parent, u_int id, pdstring name, u_int type);
 
    // should be removed for output redirection
    // left untouched for paradynd log info use

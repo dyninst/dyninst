@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.136 2003/07/15 22:45:28 schendel Exp $
+ * $Id: DMdaemon.C,v 1.137 2003/07/30 14:47:11 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -665,15 +665,6 @@ daemonEntry *paradynDaemon::findEntry(const pdstring &,
 
 }
 
-void paradynDaemon::tellDaemonsOfResource(u_int parent, u_int my_id, 
-					  const char *name, unsigned type) {
-    paradynDaemon *pd;
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-        pd = paradynDaemon::allDaemons[i];
-	pd->addResource(parent,my_id,name, type);
-    }
-
-}
 
 void paradynDaemon::printEntries()
 {

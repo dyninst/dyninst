@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.64 2003/07/15 22:45:29 schendel Exp $
+// $Id: DMdaemon.h,v 1.65 2003/07/30 14:47:11 pcroth Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -311,8 +311,6 @@ class paradynDaemon: public dynRPCUser {
    static void getMatchingDaemons(pdvector<metricInstance *> *miVec,
                                   pdvector<paradynDaemon *> *matching_daemons);
 
-   static void tellDaemonsOfResource(u_int parent,
-				     u_int res,const char *name, u_int type);
    // sets the name of the daemon to use
    static bool setDefaultArgs(char *&name);
    
