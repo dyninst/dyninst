@@ -10,6 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.36  1996/05/17 16:49:34  mjrg
+ * added a test to continueProc to catch a case where we might try to continue
+ * an exited process.
+ *
  * Revision 1.35  1996/05/11 23:14:54  tamches
  * inferiorHeap uses addrHash instead of uiHash; performs better.
  *
@@ -448,6 +452,8 @@ inline bool process::pause() {
 
 inline bool process::continueProc() {
   if (waitingForNodeDaemon) return true; // CM5 kludge
+
+  if (status_ == exited) return false;
 
   if (status_ != stopped && status_ != neonatal) {
     showErrorCallback(38, "Internal paradynd error in process::continueProc");
