@@ -42,6 +42,7 @@
 #include <stdio.h>
 
 #include "symtab.h"
+#include "showerror.h"
 #include "BPatch_module.h"
 #include "BPatch_snippet.h" // For BPatch_function; remove if we move it
 
@@ -80,4 +81,32 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
     }
 
     return proclist;
+}
+
+
+/*
+ * BPatch_module::findFunction
+ *
+ * Returns a BPatch_function* representing the named function within
+ * this module upon success, and NULL upon failure.
+ *
+ * name The name of function to look up.
+ */
+BPatch_function *BPatch_module::findFunction(const char *name)
+{
+    function_base *func = mod->findFunction(name);
+    if (func == NULL) {
+	string fullname = string("_") + string(name);
+	func = mod->findFunction(fullname);
+    }
+
+    if (func == NULL) {
+	char buf[1024];
+	string msg = string("Unable to find function ") + string(name);
+	msg += string(" in module ") + mod->fileName();
+	BPatch_reportError(BPatchWarning, 109, msg.string_of());
+	return NULL;
+    }
+
+    return new BPatch_function(proc, func);
 }

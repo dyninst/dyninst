@@ -61,6 +61,8 @@ public:
     char *getName(char *buffer, int length);
 
     BPatch_Vector<BPatch_function *> *getProcedures();
+
+    BPatch_function *findFunction(const char *name);
 };
 
 #endif /* _BPatch_module_h_ */
