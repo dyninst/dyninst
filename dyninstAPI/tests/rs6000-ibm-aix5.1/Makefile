@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2005/02/09 03:27:48 jaw Exp $
+# $Id: Makefile,v 1.10 2005/03/03 16:49:07 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -18,8 +18,8 @@ include $(TO_CORE)/make.config
 #MODCC = g++
 #CXX   = g++
 
-CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5
-CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5
+CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5 -Wa,-many
+CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5 -Wa,-many
 
 MUTATEE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX5
 
