@@ -106,7 +106,7 @@ int machineHierarchy::getThreadID() const {
       for(const char *fs = begNum; isdigit(*fs) || *fs == '-'; fs++, ts++) 
          *ts = *fs;
       *ts = 0;
-      thr_id = atoi(tempBuf);
+      thr_id = strtoul(tempBuf, NULL, 10);
    }
    return thr_id;
 }
