@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.20  1994/03/31 22:57:52  hollings
+ * Revision 1.21  1994/04/01 04:57:50  markc
+ * Added checks in bundlers.  Fixed xdrrec_endofrecord.
+ *
+ * Revision 1.20  1994/03/31  22:57:52  hollings
  * Fixed xdr_endofrecord bug and added wellKnownScoket parameter.
  *
  * Revision 1.19  1994/03/31  02:12:18  markc
@@ -1138,7 +1141,8 @@ void typeDefn::genBundler()
 	    {
 	      printf("        int i;\n");
 	      printf("        for (i=0; i<__ptr__->count; ++i)\n");
-	      printf("            xdr_%s(__xdrs__, &(__ptr__->data[i]));\n", type);
+	      printf("            if (!xdr_%s(__xdrs__, &(__ptr__->data[i])))\n", type);
+	      printf("              return FALSE;\n");
 	    }
 	  printf("        free ((char*) __ptr__->data);\n");
 	  printf("        __ptr__->data = 0;\n");
