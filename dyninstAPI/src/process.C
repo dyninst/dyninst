@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.227 2000/07/20 19:53:42 schendel Exp $
+// $Id: process.C,v 1.228 2000/07/27 14:01:18 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -984,10 +984,151 @@ void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
   }
 }
 
+// Get inferior heaps from every library currently loaded.
+// This is done at startup by initInferiorHeap().
+// There's also another one which takes a shared library and
+// only looks in there for the heaps
+
+bool process::getInfHeapList(vector<heapDescriptor> &infHeaps)
+{
+  bool foundHeap = false;
+  // First check the program (without shared libs)
+  foundHeap = getInfHeapList(symbols, infHeaps);
+
+  // Now iterate through shared libs
+  if (shared_objects)
+    for(u_int j=0; j < shared_objects->size(); j++)
+      {
+	if (foundHeap || getInfHeapList(((*shared_objects)[j])->getImage(), infHeaps))
+	  foundHeap = true;
+      }
+  return foundHeap;
+}
+
+bool process::getInfHeapList(const image *theImage, // okay, boring name
+			     vector<heapDescriptor> &infHeaps)
+{
+
+  // First we get the list of symbols we're interested in, then
+  // we go through and add them to the heap list. This is done
+  // for two reasons: first, the symbol address might be off (depends
+  // on the image), and this lets us do some post-processing.
+  bool foundHeap = false;
+  vector<Symbol> heapSymbols;
+  Address baseAddr = 0;
+
+  // For maximum flexibility the findInternalByPrefix function
+  // returns a list of symbols
+
+  foundHeap = theImage->findInternalByPrefix(string("DYNINSTstaticHeap"),
+					     heapSymbols);
+  if (!foundHeap)
+    // Some platforms preface with an underscore
+    foundHeap = theImage->findInternalByPrefix(string("_DYNINSTstaticHeap"),
+					       heapSymbols);
+
+  // The address in the symbol isn't necessarily absolute
+  getBaseAddress(theImage, baseAddr);
+  for (u_int j = 0; j < heapSymbols.size(); j++)
+    {
+      // The string layout is: DYNINSTstaticHeap_size_type_unique
+      // Can't allocate a variable-size array on NT, so malloc
+      // that sucker
+      char *temp_str = (char *)malloc(strlen(heapSymbols[j].name().string_of())+1);
+      strcpy(temp_str, heapSymbols[j].name().string_of());
+      char *garbage_str = strtok(temp_str, "_"); // Don't care about beginning
+      assert(!strcmp("DYNINSTstaticHeap", garbage_str));
+      // Name is as is.
+      // Address is as is
+      // Size needs to be parsed out (second item)
+      // Just to make life difficult, the heap can have an optional
+      // trailing letter (k,K,m,M,g,G) which indicates that it's in
+      // kilobytes, megabytes, or gigabytes. Why gigs? I was bored.
+      char *heap_size_str = strtok(NULL, "_"); // Second element, null-terminated
+      unsigned heap_size = (unsigned) atol(heap_size_str);
+      if (heap_size == 0)
+	/* Zero size or error, either way this makes no sense for a heap */
+	{
+	  free(temp_str);
+	  continue;
+	}
+      switch (heap_size_str[strlen(heap_size_str)-1])
+	{
+	case 'g':
+	case 'G':
+	  heap_size *= 1024;
+	case 'm':
+	case 'M':
+	  heap_size *= 1024;
+	case 'k':
+	case 'K':
+	  heap_size *= 1024;
+	default:
+	  break;
+	}
+
+      // Type needs to be parsed out. Can someone clean this up?
+      inferiorHeapType heap_type;
+      char *heap_type_str = strtok(NULL, "_");
+
+      if (!strcmp(heap_type_str, "anyHeap"))
+	heap_type = anyHeap;
+      else if (!strcmp(heap_type_str, "lowmemHeap"))
+	heap_type = lowmemHeap;
+      else if (!strcmp(heap_type_str, "dataHeap"))
+	heap_type = dataHeap;
+      else if (!strcmp(heap_type_str, "textHeap"))
+	heap_type = textHeap;
+      else
+	{
+	  cerr << "Unknown heap string " << heap_type_str << " read from file!" << endl;
+	  free(temp_str);
+	  continue;
+	}
+
+      infHeaps += heapDescriptor(heapSymbols[j].name(),
+				 heapSymbols[j].addr()+baseAddr,
+				 heap_size, heap_type);
+      free(temp_str);
+    }
+  return foundHeap;
+}
+
+/*
+ * Given an image, add all static heaps inside it
+ * (DYNINSTstaticHeap...) to the buffer pool.
+ */
+
+void process::addInferiorHeap(const image *theImage)
+{
+  vector<heapDescriptor> infHeaps;
+
+  /* Get a list of inferior heaps in the new image */
+  if (getInfHeapList(theImage, infHeaps))
+    {
+      /* Add the vector to the inferior heap structure */
+      for (u_int j=0; j < infHeaps.size(); j++)
+	{
+	  heapItem *h = new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
+				      infHeaps[j].type(), false);
+	  heap.bufferPool += h;
+	  heapItem *h2 = new heapItem(h);
+	  heap.heapFree += h2;
+	}
+    }
+}
+
+
+/*
+ * Called to (re)initialize the static inferior heap structure.
+ * To incrementally add a static inferior heap (in a dlopen()d module,
+ * for example), use addInferiorHeap(image *)
+ */
 void process::initInferiorHeap()
 {
   assert(this->symbols);
   inferiorHeap *hp = &heap;
+  vector<heapDescriptor> infHeaps;
 
   // first initialization: add static heaps to pool
   if (hp->bufferPool.size() == 0) {
@@ -995,29 +1136,42 @@ void process::initInferiorHeap()
     Address heapAddr=0;
     int staticHeapSize = alignAddress(SYN_INST_BUF_SIZE, 32);
 
-    /* Reserve the last LOWMEM_HEAP_SIZE bytes of the
-       INFERIOR_HEAP_BASE for the low mem heap.  The low mem heap
-       should only be used on inferior RPCs made to allocate
-       additional dynamic memory in the inferior process. */
-    assert(!(LOWMEM_HEAP_SIZE % 32));
-    if (splitHeaps) {
-      heapAddr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
-      assert(heapAddr);
-      hp->bufferPool += new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
-                                     dataHeap, false);
-      hp->bufferPool += new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
-                                     LOWMEM_HEAP_SIZE, lowmemHeap, false);
-      heapAddr = findInternalAddress("DYNINSTtext", true, err);
-      assert(heapAddr);
-      hp->bufferPool += new heapItem(heapAddr, staticHeapSize, textHeap, false);
-    } else {
-      heapAddr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
-      assert(heapAddr);
-      hp->bufferPool += new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
-                                     anyHeap, false);
-      hp->bufferPool += new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
-                                     LOWMEM_HEAP_SIZE, lowmemHeap, false);
-    }
+    // Get the inferior heap list
+    getInfHeapList(infHeaps);
+    
+    bool lowmemHeapAdded = false;
+    bool heapAdded = false;
+    
+    for (u_int j=0; j < infHeaps.size(); j++)
+      {
+	hp->bufferPool += new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
+					infHeaps[j].type(), false);
+	fprintf(stderr, "new heapItem(%x, %d, %d, false)\n",
+		infHeaps[j].addr(), infHeaps[j].size(),
+		infHeaps[j].type());
+	heapAdded = true;
+	if (infHeaps[j].type() == lowmemHeap)
+	  lowmemHeapAdded = true;
+      }
+    if (!heapAdded)
+      {
+	// No heap added. Check for the old DYNINSTdata heap
+	unsigned LOWMEM_HEAP_SIZE=(32*1024);
+	cerr << "No heap found of the form DYNINSTstaticHeap_<size>_<type>_<unique>." << endl;
+	cerr << "Attempting to use old DYNINSTdata inferior heap..." << endl;
+	heapAddr = findInternalAddress(string("DYNINSTdata"), true, err);
+	assert(heapAddr);
+	hp->bufferPool += new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
+				       anyHeap, false);
+	hp->bufferPool += new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
+				       LOWMEM_HEAP_SIZE, lowmemHeap, false);
+      }
+    if (!lowmemHeapAdded)
+      {
+	// Didn't find the low memory heap. 
+	// Handle better?
+      }
+    
   }
 
   // (re)initialize everything 
@@ -1544,6 +1698,13 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
                    + string(pid);
       showErrorCallback(26, msg.string_of());
    }
+/*
+// A test. Let's see if my symbol-print-out works
+   fprintf(stderr, "Attempting to find DYNINST internal symbols\n");
+   vector<heapDescriptor*> inferiorHeaps;
+   symbols->getDYNINSTHeaps(inferiorHeaps);
+   fprintf(stderr, "Done\n");
+*/
 }
 
 //
@@ -3166,6 +3327,13 @@ bool process::addASharedObject(shared_object &new_obj){
     new_obj.addImage(img);
     // TODO: check for "is_elf64" consistency (Object)
 
+    // If the static inferior heap has been initialized, then 
+    // add whatever heaps might be in this guy to the known heap space.
+    if (heap.bufferPool.size() != 0)
+      // Need to search/add heaps here, instead of waiting for
+      // initInferiorHeap.
+      addInferiorHeap(img);
+
 #if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
     /* If we're not currently trying to load the runtime library,
        check whether this shared object is the runtime lib. */
@@ -3829,6 +3997,7 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
        //return baseAddr;
      }
 #endif
+
      if (getSymbolInfo(name, sym, baseAddr)
          || getSymbolInfo(underscore+name, sym, baseAddr)) {
         err = false;

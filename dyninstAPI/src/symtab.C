@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.109 2000/06/27 23:14:43 bernat Exp $
+// $Id: symtab.C,v 1.110 2000/07/27 14:01:20 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -290,7 +290,7 @@ static FILE *timeOut=0;
 image *image::parseImage(const string file)
 {
   /*
-   * Check to see if we have parsed this image at this offeset before.
+   * Check to see if we have parsed this image at this offset before.
    */
   // TODO -- better method to detect same image/offset --> offset only for CM5
 
@@ -2020,4 +2020,24 @@ void image::insert_function_internal_dynamic(vector<Symbol> &mods,
     } else {
         addOneFunction(mods, lib, dyn, lookUp, pdf);
     }
+}
+
+bool image::findInternalByPrefix(const string &prefix, 
+				 vector<Symbol> &found) const
+{
+  bool flag = false;
+  /*
+    Go through all defined symbols and return those which
+    match the prefix given 
+  */
+  for(SymbolIter symIter(linkedFile); symIter;symIter++) {
+    const Symbol &lookUp = symIter.currval();
+    if (!strncmp(prefix.string_of(), lookUp.name().string_of(),
+		 strlen(prefix.string_of())))
+      {
+	found += lookUp;
+	flag = true;
+      }
+  }
+  return flag;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.68 2000/07/18 19:55:14 bernat Exp $
+// $Id: aix.C,v 1.69 2000/07/27 14:01:16 bernat Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1442,14 +1442,10 @@ void Object::load_object()
          }
 
          //dump << "name \"" << name << "\" in module \"" << modName << "\" value=" << (void*)value << endl;
-	 /*
-	 if (!strncmp(name.string_of(), "DYNINSTtext", 11))
-	   fprintf(stderr, "Found DYNINST internal symbol %s, value %x", name.string_of(), value);
-	 if (!strncmp(name.string_of(), "DYNINSTdata", 11))
-	   fprintf(stderr, "Found DYNINST internal symbol %s, value %x", name.string_of(), value);
-	 */            
+
          //fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
 	 //	 name.string_of(), modName.string_of(), value);
+
 
 	 unsigned int size = 0;
          if (type == Symbol::PDST_FUNCTION) {

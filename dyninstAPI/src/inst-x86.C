@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.64 2000/07/13 18:00:06 zandy Exp $
+ * $Id: inst-x86.C,v 1.65 2000/07/27 14:01:17 bernat Exp $
  */
 
 #include <iomanip.h>
@@ -2539,6 +2539,8 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
 //  Address instHeapEnd = sym.addr()+baseAddr;
 //  addInternalSymbol(ghb, instHeapEnd);
 
+#if 0
+  /* Not needed anymore (handled by initInferiorHeap, process.C) */
   string ghb = INFERIOR_HEAP_BASE;
   if (!getSymbolInfo(ghb, sym, baseAddr)) {
     ghb = UINFERIOR_HEAP_BASE;
@@ -2551,8 +2553,11 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     }
   }
 #if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
+  /*
   Address currAddr = sym.addr()+baseAddr;
+  */
 #endif
+#endif /* #if 0 */
 
 #if !defined(i386_unknown_nt4_0)
   string tt = "DYNINSTtrampTable";
@@ -2565,7 +2570,9 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   }
 #endif
 
-#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
+#if 0
+  //#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
+  /* Don't get this anymore, unfortunately */
   // Check that we can patch up user code to jump to our base trampolines:
   const Address instHeapStart = currAddr;
   const Address instHeapEnd = instHeapStart + SYN_INST_BUF_SIZE - 1;
@@ -2577,6 +2584,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     logLine(errorLine);
     return false;
   }
+  
 #endif
   return true;
 }

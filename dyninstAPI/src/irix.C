@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.15 2000/07/18 19:55:15 bernat Exp $
+// $Id: irix.C,v 1.16 2000/07/27 14:01:18 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -780,19 +780,16 @@ bool process::heapIsOk(const vector<sym_data>&findUs)
 
   for (unsigned i = 0; i < findUs.size(); i++) {
     const string &name = findUs[i].name;
+    cerr << "Looking up symbol " << name << endl;
+    /*
     Address addr = lookup_fn(this, name);
     if (!addr && findUs[i].must_find) {
       fprintf(stderr, "process::heapIsOk(): failed to find \"%s\"\n", name.string_of());
       return false;
     }
+    */
   }
 
-  string heap_name = INFERIOR_HEAP_BASE;
-  Address heap_addr = lookup_fn(this, heap_name);
-  if (!heap_addr) {
-    fprintf(stderr, "process::heapIsOk(): failed to find \"%s\"\n", heap_name.string_of());
-    return false;
-  }
 
   return true;
 }

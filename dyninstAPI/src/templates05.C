@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates05.C,v 1.8 2000/02/15 23:48:01 hollings Exp $
+// $Id: templates05.C,v 1.9 2000/07/27 14:01:20 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -62,3 +62,4 @@ template class vector<instWaitingList *>;
 
 template class refCounter<string_ll>;
 
+template class vector<heapDescriptor>;

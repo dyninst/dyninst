@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.142 2000/07/18 19:55:17 bernat Exp $
+/* $Id: process.h,v 1.143 2000/07/27 14:01:19 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -217,6 +217,40 @@ class disabledItem {
   inferiorHeapType getHeapType() const {return block.type;}
   const vector<addrVecType> &getPointsToCheck() const {return pointsToCheck;}
   vector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
+};
+
+/* Dyninst heap class */
+/*
+  This needs a better name. Contains a name, and address, and a size.
+  Any ideas?
+*/
+class heapDescriptor {
+ public:
+  heapDescriptor(const string name,
+		 Address addr,
+		 unsigned int size,
+		 const inferiorHeapType type):
+    name_(name),addr_(addr),size_(size), type_(type) {}
+  heapDescriptor():
+    name_(string("")),addr_(0),size_(0),type_(anyHeap) {}
+  ~heapDescriptor() {}
+  heapDescriptor &operator=(const heapDescriptor& h)
+    {
+      name_ = h.name();
+      addr_ = h.addr();
+      size_ = h.size();
+      type_ = h.type();
+      return *this;
+    }
+  const string &name() const {return name_;}
+  const Address &addr() const {return addr_;}
+  const unsigned &size() const {return size_;}
+  const inferiorHeapType &type() const {return type_;}
+ private:
+  string name_;
+  Address addr_;
+  unsigned size_;
+  inferiorHeapType type_;
 };
 
 
@@ -572,6 +606,13 @@ class process {
 
   bool heapIsOk(const vector<sym_data>&);
   bool initDyninstLib();
+
+  // Get the list of inferior heaps from:
+  bool getInfHeapList(vector<heapDescriptor> &infHeaps); // Whole process
+  bool getInfHeapList(const image *theImage,
+		      vector<heapDescriptor> &infHeaps); // Single image
+
+  void addInferiorHeap(const image *theImage);
 
   void initInferiorHeap();
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.72 2000/05/12 17:30:25 chambrea Exp $
+// $Id: symtab.h,v 1.73 2000/07/27 14:01:20 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -137,6 +137,7 @@ private:
     vector<instPoint*> funcReturns_;    // return point(s)
     vector<instPoint*> calls_;          // pointer to the calls
 };
+
 
 class pdmodule;
 class module;
@@ -468,6 +469,7 @@ public:
   vector<function_base *> *getIncludedFunctions();
   function_base *findFunction (const string &name);
 
+
 private:
 #ifndef BPATCH_LIBRARY
   resource *modResource;
@@ -497,6 +499,7 @@ bool filter_excluded_functions(vector<pd_Function*> all_funcs,
     vector<pd_Function*>& some_funcs, string module_name);
 bool function_is_excluded(pd_Function *func, string module_name);
 bool module_is_excluded(pdmodule *module);
+
 
 /*
  * symbols we need to find from our RTinst library.  This is how we know
@@ -562,8 +565,10 @@ public:
   // True if symbol can be found, regardless of whether it is
   // excluded!!!! 
   bool findInternalSymbol(const string &name, const bool warn, internalSym &iSym);
+  // True if symbols are returned, false otherwise
+  bool findInternalByPrefix(const string &prefix, vector<Symbol> &found) const;
   // Non-NULL if symbol can be found, even if it it is excluded!!!!
-  Address findInternalAddress(const string &name, const bool warn, bool &err);
+  Address findInternalAddress (const string &name, const bool warn, bool &err);
 
   // find the named module  
   pdmodule *findModule(const string &name, bool find_if_excluded = FALSE);

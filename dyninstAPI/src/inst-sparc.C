@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.90 2000/07/12 17:56:00 buck Exp $
+// $Id: inst-sparc.C,v 1.91 2000/07/27 14:01:17 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1193,6 +1193,10 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
 //  Address instHeapEnd = sym.addr()+baseAddr;
 //  addInternalSymbol(ghb, instHeapEnd);
 
+
+#ifdef ndef
+  /* Not needed with the new heap type system */
+
   string ihb = INFERIOR_HEAP_BASE;
   if (!getSymbolInfo(ihb, sym, baseAddr)) {
     ihb = UINFERIOR_HEAP_BASE;
@@ -1205,7 +1209,6 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     }
   }
 
-#ifdef ndef
   Address curr = sym.addr()+baseAddr;
   // Check that we can patch up user code to jump to our base trampolines
   // (Perhaps this code is no longer needed for sparc platforms, since we use full
