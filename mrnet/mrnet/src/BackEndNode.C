@@ -26,22 +26,22 @@ BackEndNode::BackEndNode(Network * _network,
      rank( _my_rank )
 {
     RemoteNode::local_child_node = this;
-    mrn_printf(3, MCFL, stderr, "In BackEndNode() cnstr.\n");
-    mrn_printf(4, MCFL, stderr,
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In BackEndNode() cnstr.\n"));
+    mrn_dbg(4, mrn_printf(FLF, stderr,
                "host=%s, port=%u, rank=%u, parHost=%s, parPort=%u\n",
                _my_hostname.c_str(), _my_port, rank,
-               _parent_hostname.c_str(), _parent_port );
+               _parent_hostname.c_str(), _parent_port ));
     upstream_node = new RemoteNode(false, _parent_hostname, _parent_port);
     upstream_node->_is_upstream = true;
 
 
     if( upstream_node->connect_to_leaf( rank ) == -1 )
     {
-        mrn_printf( 1, MCFL, stderr, "connect_to_leaf() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "connect_to_leaf() failed\n" ));
         return;
     }
 
-    mrn_printf(3, MCFL, stderr, "Leaving BackEndNode()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving BackEndNode()\n"));
 }
 
 BackEndNode::~BackEndNode(void)
@@ -54,7 +54,7 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
     int retval=0;
     Packet cur_packet;
 
-    mrn_printf(3, MCFL, stderr, "In proc_PacketsFromUpStream()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In proc_PacketsFromUpStream()\n"));
 
     std::list<Packet>::iterator iter=packets.begin();
     for(; iter != packets.end(); iter++){
@@ -70,14 +70,14 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
         case PROT_GET_LEAF_INFO:
         case PROT_CONNECT_LEAVES:
             //these protocol tags should never reach backend
-            mrn_printf(1, MCFL,stderr,"BackEndNode::proc_DataFromUpStream(): "
-                       "poison tag: %d\n", cur_packet.get_Tag());
+            mrn_dbg(1, mrn_printf(FLF,stderr,"BackEndNode::proc_DataFromUpStream(): "
+                       "poison tag: %d\n", cur_packet.get_Tag()));
             assert(0);
             break;
 
         case PROT_NEW_STREAM:
             if(proc_newStream(cur_packet) == -1){
-                mrn_printf(1, MCFL, stderr, "proc_newStream() failed\n");
+                mrn_dbg(1, mrn_printf(FLF, stderr, "proc_newStream() failed\n"));
                 retval = -1;
             }
             break;
@@ -85,7 +85,7 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
         default:
             //Any Unrecognized tag is assumed to be data
             if(proc_DataFromUpStream(cur_packet) == -1){
-                mrn_printf(1, MCFL, stderr, "proc_DataFromUpStream() failed\n");
+                mrn_dbg(1, mrn_printf(FLF, stderr, "proc_DataFromUpStream() failed\n"));
                 retval=-1;
             }
             break;
@@ -93,8 +93,8 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
     }
 
     packets.clear();
-    mrn_printf(3, MCFL, stderr, "proc_PacketsFromUpStream() %s",
-               (retval == -1 ? "failed\n" : "succeeded\n"));
+    mrn_dbg(3, mrn_printf(FLF, stderr, "proc_PacketsFromUpStream() %s",
+               (retval == -1 ? "failed\n" : "succeeded\n")));
     return retval;
 }
 
@@ -102,64 +102,71 @@ int BackEndNode::proc_DataFromUpStream(Packet& packet)
 {
     Stream * stream;
 
-    mrn_printf(3, MCFL, stderr, "In proc_DataFromUpStream():stream id %d, packet:%p\n", packet.get_StreamId(), &packet );
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In proc_DataFromUpStream():stream id %d, packet:%p\n", packet.get_StreamId(), &packet ));
 
     stream = network->get_Stream( packet.get_StreamId() );
 
     if( stream ){
-        stream->stream->add_IncomingPacket(packet);
+        stream->get_StreamImpl()->add_IncomingPacket(packet);
     }
     else{
-        mrn_printf(3, MCFL, stderr, "DCA BE::proc_datafromupstream() creating new stream ...\n");
         stream = network->new_Stream( packet.get_StreamId() );
-        mrn_printf(3, MCFL, stderr, "DCA BE::proc_datafromupstream() created stream %p\n", stream);
-        stream->stream->add_IncomingPacket(packet);
+        stream->get_StreamImpl()->add_IncomingPacket(packet);
     }
-    mrn_printf(3, MCFL, stderr, "Leaving proc_DataFromUpStream()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving proc_DataFromUpStream()\n"));
     return 0;
 }
 
 int BackEndNode::send(Packet& packet)
 {
-    mrn_printf(3, MCFL, stderr, "In backend.send(). Calling sendUpStream()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.send(). Calling sendUpStream()\n"));
     return send_PacketUpStream(packet);
 }
 
 int BackEndNode::flush()
 {
-    mrn_printf(3, MCFL, stderr, "In backend.flush(). Calling flushUpStream()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.flush(). Calling flushUpStream()\n"));
     return flush_PacketsUpStream();
 }
 
-//TODO: use blocking? Quiet warnings for now
-int BackEndNode::recv( bool /* blocking */ )
+int BackEndNode::recv( bool iblocking )
 {
     std::list <Packet> packet_list;
-    mrn_printf(3, MCFL, stderr, "In backend.recv(). Calling recvfromUpStream()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.recv(%s)...\n",
+                          (iblocking? "blocking" : "non-blocking") ));
 
-    if(recv_PacketsFromUpStream(packet_list) == -1){
-        mrn_printf(1, MCFL, stderr, "recv_packetsfromUpStream() failed\n");
-        return -1;
+    // recv_PacketsFromUpStream() blocks.
+    // Only call if blocking or data is available.
+    if( iblocking || this->has_data() ){
+        mrn_dbg(3, mrn_printf(FLF, stderr, "Calling recv_packetsfromUpStream()\n"));
+        if(recv_PacketsFromUpStream(packet_list) == -1){
+            mrn_dbg(1, mrn_printf(FLF, stderr, "recv_packetsfromUpStream() failed\n"));
+            return -1;
+        }
+
+        if(packet_list.size() == 0){
+            mrn_dbg(3, mrn_printf(FLF, stderr, "No packets read!\n"));
+            return 0;
+        }
+
+        mrn_dbg(3, mrn_printf(FLF, stderr, "Calling proc_packetsfromUpStream()\n"));
+        if(proc_PacketsFromUpStream(packet_list) == -1){
+            mrn_dbg(1, mrn_printf(FLF, stderr, "proc_packetsfromUpStream() failed\n"));
+            return -1;
+        }
+
+        //if we get here, we have found data to return
+        return 1;
     }
 
-    if(packet_list.size() == 0){
-        mrn_printf(3, MCFL, stderr, "No packets read!\n");
-        return 0;
-    }
-
-    if(proc_PacketsFromUpStream(packet_list) == -1){
-        mrn_printf(1, MCFL, stderr, "proc_packetsfromUpStream() failed\n");
-        return -1;
-    }
-
-    mrn_printf(3, MCFL, stderr, "Leaving backend.recv().\n");
-    return 1;
+    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving backend.recv().\n"));
+    return 0;
 }
 
 
 int BackEndNode::proc_newStream(Packet& pkt)
 {
-    mrn_printf( 3, MCFL, stderr, "In proc_newStream()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_newStream()\n" ));
 
     // extract the info needed to build the stream
     int stream_id = -1;
@@ -175,7 +182,7 @@ int BackEndNode::proc_newStream(Packet& pkt)
                                     &ds_filter_id,
                                     &us_filter_id );
     if( uret == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList() failed\n" ));
         return -1;
     }
 
@@ -184,7 +191,7 @@ int BackEndNode::proc_newStream(Packet& pkt)
     (void)network->new_Stream( stream_id, backends, num_backends,
                                us_filter_id, sync_id, ds_filter_id );
 
-    mrn_printf( 3, MCFL, stderr, "procNewStream() succeeded\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "procNewStream() succeeded\n" ));
     return 1;
 }
 
