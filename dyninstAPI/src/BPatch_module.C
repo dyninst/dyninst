@@ -489,43 +489,7 @@ char * BPatch_module::parseStabStringSymbol(int line, char * stabstr, void *ptr)
 
 	fp = this->findFunction( name );
 	if ( !fp ) {
-#ifdef notdef
-	  abort();
-	  /*printf(" Can't find local function in BPatch_function vector: %s\n",
-		 current_func_name);*/
-	  // Try to find function!!
-	  string f_name = strdup(current_func_name);
-	  fb = mod->findFunction(f_name);
-	  if (!fb) {
-	    /*printf(" Can't find local function %s in module\n",
-		   current_func_name);*/
-	    vector<module *> *mods = proc->getAllModules();
-	    for (unsigned int m = 0; m < mods->size(); m++) {
-	      pdmodule *curr = (pdmodule *) (*mods)[m];
-	      //cout <<"MODULE NAME: "<<&(curr->fullName())<<"\t"<<&(curr->fileName)<<endl;
-	      fb = curr->findFunction(name);
-	      if (fb){
-		//printf("FOUND FUNCTION BY SEARCHING ALL THE MODULES!!!!!\n");
-		// found function_base, create new BPatch_function
-		fp = new BPatch_function(proc, fb, ptrType, NULL);
-		// add BPatch_function to BPfuncs
-		//cout<<"BPfuncs address: "<< &(this->BPfuncs)<<endl;
-		//cout<<"Module address: "<< this <<endl;
-
-		this->BPfuncs->push_back(fp);
-
-		break;
-	      } else {
-		//printf("FUNCTION IS NO WHERE TO BE FOUND!!!\n");
-	      }
-	    }
-	  } else {
-	    // found function_base, create new BPatch_function
-	    fp = new BPatch_function(proc, fb, ptrType, this);
-	    // add BPatch_function to BPfuncs
-	    this->BPfuncs->push_back(fp);
-	  }
-#endif
+	    logLine("missing local function");
 	} else {
 	  // set return type.
 	  fp->setReturnType(ptrType);
@@ -558,48 +522,14 @@ char * BPatch_module::parseStabStringSymbol(int line, char * stabstr, void *ptr)
 
       }
       ptrType = moduleTypes->findType(funcReturnID);
-      if( !ptrType) ptrType = BPatch::bpatch->type_Untyped;
+      if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
       fp = this->findFunction( name );
-      if( !fp ){
-	abort();
-	/*printf(" Can't find function in BPatch_function vector: %s\n",
-	       current_func_name);*/
-	// Try to find function!!
-	string f_name = strdup(current_func_name);
-	fb = mod->findFunction(f_name);
-	if(!fb){
-	  //printf(" Can't find function %s in module\n", current_func_name);
-	  vector<module *> *mods = proc->getAllModules();
-	 
-	  for (unsigned int m = 0; m < mods->size(); m++) {
-	    pdmodule *curr = (pdmodule *) (*mods)[m];
-	    //cout <<"MODULE NAME: "<<&(curr->fullName())<<"\t"<<&(curr->fileName)<<endl;
-	    fb = curr->findFunction(name);
-	    if (fb) {
-	      printf("FOUND FUNCTION BY SEARCHING ALL THE MODULES!!!!!\n");
-	      // found function_base, create new BPatch_function
-	      fp = new BPatch_function(proc, fb, ptrType, NULL);
-	      // add BPatch_function to BPfuncs
-	      //cout<<"BPfuncs address: "<< &(this->BPfuncs)<<endl;
-	      //cout<<"Module address: "<< this <<endl;
-	      
-	      this->BPfuncs->push_back(fp);
-	      break;
-	    }
-	    else{
-	      //printf("FUNCTION IS NO WHERE TO BE FOUND!!!\n");
-	    }
-	  }
-	} else {
-	  // found function_base, create new BPatch_function
-	  fp = new BPatch_function(proc, fb, ptrType, this);
-	  // add BPatch_function to BPfuncs
-	  this->BPfuncs->push_back(fp);
-	}
+      if ( !fp ) {
+	  logLine("missing local function");
       } else {
-	// set return type.
-	fp->setReturnType(ptrType);
+	  // set return type.
+	  fp->setReturnType(ptrType);
       }
       /*printf("\tGlobal Function:%d -  %s with return type %d\n", symdescr,
 	     name, funcReturnID);*/
@@ -671,28 +601,7 @@ char * BPatch_module::parseStabStringSymbol(int line, char * stabstr, void *ptr)
       if( current_func_name)
 	fp = this->findFunction( current_func_name );
       if( !fp ) {
-	//printf(" Can't find function %s\n", current_func_name);
-	// Try to find function!!
-	abort();
-	string f_name = strdup(current_func_name);
-	fb = mod->findFunction(f_name);
-	if(!fb){
-	  //printf(" Can't find function %s in module\n", current_func_name);
-	  /*function_base * ffb = findFunction(current_func_name);
-	  if(!ffb){
-	    printf(" Can't find function %s with image\n", current_func_name);
-	  }*/
-	} else {
-	  // found function_base, create new BPatch_function
-	  fp = new BPatch_function(proc, fb, this);
-	  // add BPatch_function to BPfuncs
-	  this->BPfuncs->push_back(fp);
-	  fp->funcParameters->addLocalVar(param);
-	  // adds to the parameter vector
-	  //printf(" function pointer %x\n", fp);
-	  fp->addParam(name, ptrType, linenum, framePtr);
-	  
-	}
+	logLine("missing local function");
       } else{ // found function, add parameter
 	// printf("Adding parameter %s to function %s\n",name,current_func_name);
 	fp->funcParameters->addLocalVar(param);
