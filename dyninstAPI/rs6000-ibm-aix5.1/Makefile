@@ -59,7 +59,7 @@ TARGET3_SO	= libdyninstAPI.a
 # Install rule: install withOUT world-readable permissions
 # 
 install: $(TARGET3_SO)
-	-xlC -bnoobjreorder -bexpall -bnoentry -o libdemangle.so.1 -ldemangle -u functionName -u demangle -lc 
+	-xlC -bnoobjreorder -bexpall -bnoentry -o libdemangle.so.1 -ldemangle -u functionName -u demangle -u kind -u varName -u text -lc 
 	-$(CP) libdemangle.so.1 $(DEST)
 	-$(CP) $(TARGET3_SO) $(DEST)
 	-chmod 750 $(DEST)/$(TARGET3_SO)
