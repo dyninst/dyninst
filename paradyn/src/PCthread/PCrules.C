@@ -21,6 +21,9 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.38  1996/07/22 18:56:21  karavan
+ * part one of two-part commit
+ *
  * Revision 1.37  1996/05/17 16:19:49  karavan
  * commented out debug print
  *
@@ -90,7 +93,9 @@ typedef vector<string*> stringList;
 whyAxis *PCWhyAxis = new whyAxis();
 hypothesis *const topLevelHypothesis = PCWhyAxis->getRoot();
 
-// metric-specific evaluation functions
+//
+// general metric evaluation functions
+//
 sampleValue
 CostTrackerEval (focus, sampleValue *data, int dataSize)
 {
@@ -104,51 +109,38 @@ CostTrackerEval (focus, sampleValue *data, int dataSize)
 sampleValue 
 DivideEval (focus, sampleValue *data, int dataSize)
 {
-  assert (dataSize >= 2);
-  if (dataSize == 3) {
-    if (data[2] > 0.0)
-      return data[1]/data[2];
-    else
-      return 0.0;
-  } else {
-    if (data[1] > 0.0)
-      return data[0]/data[1];
-    else
-      return 0.0;
-  }
+  assert (dataSize == 2);
+  if (data[1] > 0.0)
+    return data[0]/data[1];
+  else
+    return 0.0;
 }
 
 sampleValue 
 MultiplyEval (focus, sampleValue *data, int dataSize)
 {
-  assert (dataSize >= 2);
-  if (dataSize == 3) {
-    return data[1] * data[2];
-  } else {
-    return data[0] * data[1];
-  }
+  assert (dataSize == 2);
+  return data[0] * data[1];
 }
 
 sampleValue 
 AddEval (focus, sampleValue *data, int dataSize)
 {
   assert (dataSize >= 2);
-  if (dataSize == 3) {
-    return data[1] + data[2];
-  } else {
-    return data[0] + data[1];
+  sampleValue *curr = data;
+  sampleValue ansr = 0.0;
+  for (int i = 0; i < dataSize; i++) {
+    ansr = ansr + *curr;
+    curr++;
   }
+  return ansr;
 }
 
 sampleValue 
 SubtractEval (focus, sampleValue *data, int dataSize)
 {
-  assert (dataSize >= 2);
-  if (dataSize == 3) {
-    return data[1] - data[2];
-  } else {
-    return data[0] - data[1];
-  }
+  assert (dataSize == 2);
+  return data[0] - data[1];
 }
 
 //
@@ -160,17 +152,15 @@ void initPCmetrics()
   // note: the PCmetric constructor stores a copy of the address in 
   // its dictionary, accessed by string name
   PCmetric *temp;
-  metNameFocus *specs = new metNameFocus;
-  metNameFocus *specs2 = new metNameFocus[2];
-  metNameFocus *specs3 = new metNameFocus[3];
-
-  specs2[0].mname = "cpu";
-  specs2[0].whichFocus = cf;
-  specs2[0].ft = averaging;
-  specs2[1].mname = "active_processes";
-  specs2[1].whichFocus = cf;
-  specs2[1].ft = averaging;
-  temp = new PCmetric ("NormalizedCPUtime", specs2, 2, NULL, 
+  metNameFocus specs[10];
+  
+  specs[0].mname = "cpu";
+  specs[0].whichFocus = cf;
+  specs[0].ft = averaging;
+  specs[1].mname = "active_processes";
+  specs[1].whichFocus = cf;
+  specs[1].ft = averaging;
+  temp = new PCmetric ("NormalizedCPUtime", specs, 2, NULL, 
 		       DivideEval, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
@@ -182,13 +172,13 @@ void initPCmetrics()
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
   
-  specs2[0].mname = "sync_wait";
-  specs2[0].whichFocus = cf;
-  specs2[0].ft = averaging;
-  specs2[1].mname = "active_processes";
-  specs2[1].whichFocus = cf;
-  specs2[1].ft = averaging;
-  temp = new PCmetric ("NormSyncToCPURatio", specs2, 2, NULL, DivideEval, 1);
+  specs[0].mname = "sync_wait";
+  specs[0].whichFocus = cf;
+  specs[0].ft = averaging;
+  specs[1].mname = "active_processes";
+  specs[1].whichFocus = cf;
+  specs[1].ft = averaging;
+  temp = new PCmetric ("NormSyncToCPURatio", specs, 2, NULL, DivideEval, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
@@ -199,43 +189,43 @@ void initPCmetrics()
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
-  specs2[0].mname = "io_ops";
-  specs2[0].whichFocus = cf;
-  specs2[0].ft = averaging;
-  specs2[1].mname = "io_bytes";
-  specs2[1].whichFocus = cf;
-  specs2[1].ft = averaging;
-  temp = new PCmetric ("IOAvgSize", specs2, 2, NULL, DivideEval, 1);
+  specs[0].mname = "io_ops";
+  specs[0].whichFocus = cf;
+  specs[0].ft = averaging;
+  specs[1].mname = "io_bytes";
+  specs[1].whichFocus = cf;
+  specs[1].ft = averaging;
+  temp = new PCmetric ("IOAvgSize", specs, 2, NULL, DivideEval, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
-  specs2[0].mname = "locks_held";
-  specs2[0].whichFocus = cf;
-  specs2[0].ft = averaging;
-  specs2[1].mname = "sync_ops";
-  specs2[1].whichFocus = cf;
-  specs2[1].ft = averaging;
-  temp = new PCmetric ("SyncRegionSize", specs2, 2, NULL, DivideEval, 1);
+  specs[0].mname = "locks_held";
+  specs[0].whichFocus = cf;
+  specs[0].ft = averaging;
+  specs[1].mname = "sync_ops";
+  specs[1].whichFocus = cf;
+  specs[1].ft = averaging;
+  temp = new PCmetric ("SyncRegionSize", specs, 2, NULL, DivideEval, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
-  specs->mname = "io_wait";
-  specs->whichFocus = cf;
-  specs->ft = averaging;
+  specs[0].mname = "io_wait";
+  specs[0].whichFocus = cf;
+  specs[0].ft = averaging;
   temp = new PCmetric ("IoWait", specs, 1, NULL, NULL, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
-  specs3[0].mname = "observed_cost";
-  specs3[0].whichFocus = tlf;
-  specs3[0].ft = nonfiltering;
-  specs3[1].mname = "number_of_cpus";
-  specs3[1].whichFocus = tlf;
-  specs3[1].ft = averaging;
-  specs3[2].mname = "active_processes";
-  specs3[2].whichFocus = tlf;
-  specs3[2].ft = averaging;
-  temp = new PCmetric("normSmoothCost", specs3, 3, NULL, CostTrackerEval, 0);
+  specs[0].mname = "observed_cost";
+  specs[0].whichFocus = tlf;
+  specs[0].ft = nonfiltering;
+  specs[1].mname = "number_of_cpus";
+  specs[1].whichFocus = tlf;
+  specs[1].ft = averaging;
+  specs[2].mname = "active_processes";
+  specs[2].whichFocus = tlf;
+  specs[2].ft = averaging;
+  temp = new PCmetric("normSmoothCost", specs, 3, NULL, CostTrackerEval, 0);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 }

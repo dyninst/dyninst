@@ -20,6 +20,9 @@
  * All tunable Constants used by hypotheses.
  *
  * $Log: PCconstants.C,v $
+ * Revision 1.5  1996/07/22 18:56:20  karavan
+ * part one of two-part commit
+ *
  * Revision 1.4  1996/04/18 02:27:13  tamches
  * tunable "predictedCostLimit" renamed to "costLimit"; also, its initial
  * value now 0.2
@@ -109,7 +112,7 @@ void initPCconstants ()
      1.0); // max
   TCpredictedCostLimitCB(floatInitializer);
 
-  floatInitializer = 0.15;
+  floatInitializer = 0.05;
   tunableConstantRegistry::createFloatTunableConstant
     ("hysteresisRange",
      "Fraction above and below threshold that a test should use.",
