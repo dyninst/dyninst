@@ -230,6 +230,8 @@ void metricFocusReq_Val::flushPerfStreamMsgs() {
 void metricFocusReq_Val::cancelOutstandingMetricFocusesInCurrentPhase() {
    dictionary_hash<unsigned, metricFocusReq_Val*>::iterator mfIter =
       metricFocusReq_Val::allMetricFocusReqVals.begin();
+
+   pdvector<metricFocusReq_Val *> deletedMFRVs;
    
    while(mfIter != metricFocusReq_Val::allMetricFocusReqVals.end())
    {
@@ -262,13 +264,24 @@ void metricFocusReq_Val::cancelOutstandingMetricFocusesInCurrentPhase() {
          if(! activeOnAnyGlobalPhase) {
             for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++) {
                paradynDaemon *pd = paradynDaemon::allDaemons[i];
+
+               // This code clones that in the component destructor in DMmetric.h
+               // 1) tell the daemon to disable data collection
+               // 2) add the MID (mfReqVal->getMetricInst()->getHandle()) to the disabledMids list
+               // 3) remove the MID from active -- note: this can be skipped, since it's not
+               //    there yet (since the instru never went in)
                pd->disableDataCollection(
                                        mfReqVal->getMetricInst()->getHandle());
+               pd->disabledMids += mfReqVal->getMetricInst()->getHandle();
             }
+            deletedMFRVs.push_back(mfReqVal);
          }
       }
       mfIter++;
    }
+
+   for (unsigned i = 0; i < deletedMFRVs.size(); i++)
+       delete deletedMFRVs[i];
 }
 
 
