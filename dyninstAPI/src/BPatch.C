@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.63 2003/07/31 19:01:43 schendel Exp $
+// $Id: BPatch.C,v 1.64 2003/09/05 16:28:46 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -686,7 +686,7 @@ void BPatch::registerExec(BPatch_thread *thread)
     thread->image = new BPatch_image(thread->proc);
 
     if (execCallback) {
-	execCallback(thread);
+       execCallback(thread);
     }
 }
 

@@ -214,7 +214,7 @@ void sharedMetaData::saveOffsetsIntoRTstructure(sharedMetaOffsetData
 }
 
 sharedMetaOffsetData::sharedMetaOffsetData(shmMgr &shmMgrToUse, 
-					   int maxNumThreads)
+                                           int maxNumThreads)
   : theShmMgr(shmMgrToUse)
 {
    rtData = (RTsharedData_t *)theShmMgr.malloc(sizeof(RTsharedData_t));
