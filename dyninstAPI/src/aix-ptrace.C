@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.15 2003/12/18 17:15:32 schendel Exp $
+// $Id: aix-ptrace.C,v 1.16 2004/01/19 21:53:37 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -427,7 +427,7 @@ bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs *)
       }
       if (spr_doublecheck.pt_iar != loc) {
           fprintf(stderr, "Doublecheck failed! PC at 0x%x instead of 0x%x!\n",
-                  spr_doublecheck.pt_iar, loc);
+                  (int)spr_doublecheck.pt_iar, (int)loc);
       }
       
    }
@@ -486,7 +486,7 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
        getRpcMgr()->launchRPCs(false);
        if(hasExited())
            return;
-       decodeAndHandleProcessEvent(false);
+       getSH()->checkForAndHandleProcessEvents(false);
        
        irpcState_t rpc_state = getRpcMgr()->getRPCState(rpc_id);
        if(rpc_state == irpcWaitingForSignal) {
@@ -503,7 +503,7 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
 }
 
 
-
+/*
 static bool executeDummyTrap(process *theProc) {
    assert(theProc->status() == stopped);
    
@@ -554,7 +554,7 @@ static bool executeDummyTrap(process *theProc) {
 
    return true;
 }
-
+*/
 
 bool dyn_lwp::executingSystemCall() 
 {
@@ -621,19 +621,6 @@ bool dyn_lwp::stop_() {
 	return (P_kill(getPid(), SIGSTOP) != -1); 
 }
 
-bool process::continueWithForwardSignal(int sig) {
-#if defined(PTRACE_ATTACH_DETACH)
-  if (sig != 0) {
-      ptrace(PT_DETACH, pid, (int*)1, stat, 0);
-      return (true);
-  } else {
-      return (ptrace(PT_CONTINUE, pid, (int*)1, 0, 0) != -1);
-  }
-#else
-  return (ptrace(PT_CONTINUE, pid, (int*)1, sig, NULL) != -1);
-#endif
-}
-
 void OS::osTraceMe(void)
 {
   int ret;
@@ -683,7 +670,7 @@ bool process::isRunning_() const {
 }
 
 // TODO is this safe here ?
-bool dyn_lwp::continueLWP_() {
+bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    // has to be representative LWP
    assert(this == proc_->getRepresentativeLWP());
 
@@ -691,9 +678,14 @@ bool dyn_lwp::continueLWP_() {
    ptraceOps++; 
    ptraceOtherOps++;
 
+   int arg4 = 0;
+   if(signalToContinueWith != dyn_lwp::NoSignal) {
+      arg4 = signalToContinueWith;
+   }
+
    bool ret;
    // aix 4.1 likes int *
-   if( ptrace(PT_CONTINUE, getPid(), (int *)1, 0, (int *)NULL) == -1)
+   if( ptrace(PT_CONTINUE, getPid(), (int *)1, arg4, (int *)NULL) == -1)
       ret = false;
    else
       ret = true;
@@ -703,18 +695,15 @@ bool dyn_lwp::continueLWP_() {
 
 bool process::terminateProc_()
 {
-  if (!checkStatus())
-    return false;
-
-  if (P_ptrace(PT_KILL, pid, NULL, 0, NULL) != 0) {
-    // For some unknown reason, the above ptrace sometimes fails with a "no
-    // such process" error, even when there is such a process and the process
-    // is runnable.  So, if the above fails, we try killing it another way.
-    if (kill(pid, SIGKILL) != 0)
-    	return false;
-  }
-
-  return true;
+   if (P_ptrace(PT_KILL, pid, NULL, 0, NULL) != 0) {
+      // For some unknown reason, the above ptrace sometimes fails with a "no
+      // such process" error, even when there is such a process and the process
+      // is runnable.  So, if the above fails, we try killing it another way.
+      if (kill(pid, SIGKILL) != 0)
+         return false;
+   }
+   
+   return true;
 }
 
 void dyn_lwp::realLWP_detach_() {
@@ -807,7 +796,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
                       const_cast<void*>(inSelf)))
    {
       fprintf(stderr, "Write of %d bytes from 0x%x to 0x%x\n",
-              amount, inSelf, inTraced);      
+              amount, (int)inSelf, (int)inTraced);
       perror("Failed write2");
       while(1);
       
@@ -843,7 +832,6 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf)
 bool dyn_lwp::waitUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
    bool isStopped = false;
-   int waitStatus;
    int loops = 0;
    while (!isStopped) {
       if(proc_->hasExited()) return false;
@@ -873,26 +861,31 @@ bool dyn_lwp::waitUntilStopped() {
          stop_();
          loops = 0;
       }
-      
-      procSignalWhy_t why;
-      procSignalWhat_t what;
-      procSignalInfo_t info;
-      dyn_lwp *selectedLWP;
-      process *proc = decodeProcessEvent(&selectedLWP, getPid(), why, what,
-                                         info, false);
-      assert(proc == NULL || proc == proc_);
-      
-      if (proc == NULL) {
+
+      pdvector<procevent *> foundEvents;      
+      bool gotEvent = getSH()->checkForProcessEvents(&foundEvents, getPid(),
+                                                     false);
+      getSH()->beginEventHandling(foundEvents.size());
+      procevent *ev = NULL;
+      if(gotEvent) {
+         if(foundEvents.size()) {
+            assert(foundEvents.size() == 1);
+            ev = foundEvents[0];
+         }
+         assert(proc_ == ev->proc);
+      } else {      
          loops++;
          usleep(10);
          continue;
-      }
-      
-      if (didProcReceiveSignal(why) && what == SIGSTOP) {
+      }      
+
+      if (didProcReceiveSignal(ev->why) && ev->what == SIGSTOP) {
          isStopped = true;
       }
       else {
-         handleProcessEvent(proc_, selectedLWP, why, what, info);
+         if(!getSH()->handleProcessEventWithUnlock(*ev))
+            fprintf(stderr, "handleProcessEvent failed!\n");
+         delete ev;
          // if handleProcessEvent left the proc stopped, continue
          // it so we that we will get the SIGSTOP signal we sent the proc
          if(proc_->status() == stopped) {
@@ -903,84 +896,6 @@ bool dyn_lwp::waitUntilStopped() {
    }
    return true;
 }
-
-
-// Can this be unified with linux' version?
-// Maybe, but it can be unified with decodeProcessEvent
-// if we add a "pid" parameter to decodeProcessEvent. 
-#ifdef notdef
-bool process::loopUntilStopped() {
-  /* make sure the process is stopped in the eyes of ptrace */
-   if (hasExited()) {
-      return false;
-   }
-   
-   getRepresentativeLWP()->stop_();     //Send the process a SIGSTOP
-
-   bool isStopped = false;
-   int waitStatus;
-   int loops = 0;
-   while (!isStopped) {
-        if(hasExited()) return false;
-        if (loops == 2000) {
-            // Resend sigstop...
-           if(multithread_capable()) {
-              // We see the process stopped, but we think it is running
-              // Check to see if the process is stopped, and if so set status
-              struct procsinfo procInfoBuf;
-              const int procsinfoSize = sizeof(struct procsinfo);
-              struct fdsinfo fdsInfoBuf;
-              const int fdsinfoSize = sizeof(struct fdsinfo);
-              int pidVar = getPid();
-              int numProcs = getprocs(&procInfoBuf,
-                                      procsinfoSize,
-                                      &fdsInfoBuf,
-                                      fdsinfoSize,
-                                      &pidVar,
-                                      1);
-              if (numProcs == 1) {
-                 if (procInfoBuf.pi_state == SSTOP) {
-                    set_status(stopped);
-                    return true;
-                 }
-              }
-           }
-           getRepresentativeLWP()->stop_();
-           loops = 0;
-        }
-
-        procSignalWhy_t why;
-        procSignalWhat_t what;
-        procSignalInfo_t info;
-        dyn_lwp *selectedLWP;
-        process *proc = decodeProcessEvent(&selectedLWP, pid, why, what, info,
-                                           false);
-        assert(proc == NULL ||
-               proc == this);
-
-        if (proc == NULL) {
-            loops++;
-            usleep(10);
-            continue;
-        }
-        
-        if (didProcReceiveSignal(why) &&
-            what == SIGSTOP) {
-            isStopped = true;
-        }
-        else {
-            handleProcessEvent(this, selectedLWP, why, what, info);
-            // if handleProcessEvent left the proc stopped, continue
-            // it so we that we will get the SIGSTOP signal we sent the proc
-            if(status() == stopped) {
-                continueProc();
-            }
-            loops = 0;
-        }
-    }
-    return true;
-}
-#endif
 
 //
 // Write out the current contents of the text segment to disk.  This is useful
@@ -1184,22 +1099,22 @@ fileDescriptor *getExecFileDescriptor(pdstring filename,
 		 (int *) ptr, 1024 * sizeof(struct ld_info), (int *)ptr);
 
     if (ret != 0) {
-      // Two possible problems here -- one, the process didn't exist. We
-      // need to handle this. Second, we haven't attached yet. Work around
-      if (0) { // Proc doesn't exist
-	return NULL;
-      }
-      else {
-	ptr->ldinfo_textorg = (void *) -1; // illegal flag value
-	ptr->ldinfo_dataorg = (void *) -1; // illegal flag value
-	// attempt to continue and patch up later
-      }	
-      /*
-	perror("failed to get loader information about process");
-	statusLine("Unable to get loader info about process, application aborted");
-	showErrorCallback(43, "Unable to get loader info about process, application aborted");
-	return NULL;
-      */
+       // Two possible problems here -- one, the process didn't exist. We
+       // need to handle this. Second, we haven't attached yet. Work around
+       if (0) { // Proc doesn't exist
+          return NULL;
+       }
+       else {
+          ptr->ldinfo_textorg = (void *) -1; // illegal flag value
+          ptr->ldinfo_dataorg = (void *) -1; // illegal flag value
+          // attempt to continue and patch up later
+       }	
+       /*
+         perror("failed to get loader information about process");
+         statusLine("Unable to get loader info about process, application aborted");
+         showErrorCallback(43, "Unable to get loader info about process, application aborted");
+         return NULL;
+       */
     }
 
     // Set up and return the file descriptor. In this case we actually
@@ -1209,9 +1124,8 @@ fileDescriptor *getExecFileDescriptor(pdstring filename,
     Address data_org = (Address) ptr->ldinfo_dataorg;
 
     fileDescriptor *desc = 
-      (fileDescriptor *) new fileDescriptor_AIX(filename, member,
-						text_org, data_org,
-						pid, true);
+      (fileDescriptor *) new fileDescriptor_AIX(filename, member, text_org,
+                                                data_org, pid, true);
 
     return desc;
 }
@@ -1291,7 +1205,9 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
 Address dyn_lwp::getCurrentSyscall(Address aixHACK) {
     // We've been given the address of a return point in the function.
     // Get and return the return address
-    if (!aixHACK || aixHACK == -1) return 0;
+    if (!aixHACK || aixHACK == -1) {
+       return 0;
+    }
 
     pd_Function *func = proc_->findFuncByAddr(aixHACK);
     if (!func) {
@@ -1358,7 +1274,7 @@ bool dyn_lwp::stepPastSyscallTrap() {
 int dyn_lwp::hasReachedSyscallTrap() {
     
     Frame frame = getActiveFrame();
-    if (frame.getPC() == -1)
+    if ((int)frame.getPC() == -1)
         return 0;
     if (trappedSyscall_ && frame.getPC() == trappedSyscall_->syscall_id) {
         return 2;
@@ -1445,27 +1361,27 @@ bool process::installSyscallTracing() {
 
 
 
-procSyscall_t decodeSyscall(process *p, procSignalWhat_t what)
+procSyscall_t decodeSyscall(process *, procSignalWhat_t what)
 {
-    switch (what) {
-  case SYS_fork:
-      return procSysFork;
-      break;
-  case SYS_exec:
-      return procSysExec;
-      break;
-  case SYS_load:
-      return procSysLoad;
-      break;
-  case SYS_exit:
-      return procSysExit;
-      break;
-  default:
-      return procSysOther;
-      break;
-    }
-    assert(0);
-    return procSysOther;
+   switch (what) {
+     case SYS_fork:
+        return procSysFork;
+        break;
+     case SYS_exec:
+        return procSysExec;
+        break;
+     case SYS_load:
+        return procSysLoad;
+        break;
+     case SYS_exit:
+        return procSysExit;
+        break;
+     default:
+        return procSysOther;
+        break;
+   }
+   assert(0);
+   return procSysOther;
 }
 
 int decodeRTSignal(process *proc,
@@ -1551,24 +1467,22 @@ int decodeRTSignal(process *proc,
 
 // the pertinantLWP and wait_options are ignored on Solaris, AIX
 
-process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
-                            procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block) 
+bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
+                                          int wait_arg, bool block)
 {
     int options;
     if (block) options = 0;
     else options = WNOHANG;
     process *proc = NULL;
-    why = procUndefined;
-    what = 0;
-    info = 0;
     int result = 0;
-    int sig = 0;
-    bool ignore;
     int status;
 
     result = waitpid( wait_arg, &status, options );
-    
+
+    procSignalWhy_t  why  = procUndefined;
+    procSignalWhat_t what = 0;
+    procSignalInfo_t info = 0;
+
     // Translate the signal into a why/what combo.
     // We can fake results here as well: translate a stop in fork
     // to a (SYSEXIT,fork) pair. Don't do that yet.
@@ -1658,13 +1572,11 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
                           recurse_level++;
                           // Allow the process a bit of time
                           usleep(500);
-                          dyn_lwp *selectedLWP;
-                          return decodeProcessEvent(&selectedLWP, wait_arg,
-                                                    why, what, info, block);
+                          return checkForProcessEvents(events, wait_arg,block);
                       }
                       else {
                           recurse_level = 0;
-                          return NULL;
+                          return false;
                       }
                   }
                   else if (in_trap_loop) {
@@ -1705,7 +1617,7 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
                       if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
                           == -1) {
                           assert(false);
-                          return NULL;
+                          return false;
                       }
                       
                       assert((pid_t)psinfo.pi_pid == result);
@@ -1754,7 +1666,19 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
             perror("waitpid");
     }
 
-    return proc;
+    if(proc == NULL) {
+       return false;
+    }
+    
+    procevent *new_event = new procevent;
+    new_event->proc = proc;
+    new_event->lwps.push_back(proc->getRepresentativeLWP());
+    new_event->why  = why;
+    new_event->what = what;
+    new_event->info = info;
+    (*events).push_back(new_event);
+
+    return true;
 }
 
 
