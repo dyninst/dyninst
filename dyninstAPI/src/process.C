@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.220 2000/05/12 20:54:21 zandy Exp $
+// $Id: process.C,v 1.221 2000/06/02 17:25:17 mirg Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1818,7 +1818,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   sigill_waiting = 0;
   use_sigill_pc = 0;
   sigill_pc = 0;
-  sigill_inferiorPCaddr = 0;
+  sigill_inferiorPCaddr = parentProc.sigill_inferiorPCaddr;
 #endif /* DETACH_ON_THE_FLY */
 
     // This is the "fork" ctor
@@ -5476,12 +5476,19 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       // (i.e. the fork syscall executed but that's it).  We can continue it now.
       process *parentProcess = findProcess(bs_record.ppid);
       if (parentProcess) {
+#ifdef DETACH_ON_THE_FLY
+         if (kill(parentProcess->getPid(), SIGCONT) < 0) {
+            perror("kill error");
+	    assert(false);
+	 }
+#else
          if (parentProcess->status() == stopped) {
             if (!parentProcess->continueProc())
                assert(false);
          }
          else
             parentProcess->continueAfterNextStop();
+#endif
       }
    }
 
