@@ -526,7 +526,7 @@ BPatch_flowGraph::createLoops()
 }
 
 // this methods returns the loop objects that exist in the control flow
-// grap. It retuns a set. And if ther is no loop then it returns empty
+// grap. It returns a set. And if there are no loops, then it returns the empty
 // set. not NULL. 
 void 
 BPatch_flowGraph::getLoopsByNestingLevel(BPatch_Vector<BPatch_loop*>& lbb,
