@@ -1,10 +1,13 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.4  1994/10/13 00:52:36  tamches
-/* Minor additions to support a new command related to sorting
-/* of resources
+/* Revision 1.5  1995/07/06 18:55:31  tamches
+/* Now contains a main program suitable for tk4.0
 /*
+ * Revision 1.4  1994/10/13  00:52:36  tamches
+ * Minor additions to support a new command related to sorting
+ * of resources
+ *
  * Revision 1.3  1994/10/10  23:08:43  tamches
  * preliminary changes on the way to swapping the x and y axes
  *
@@ -19,6 +22,7 @@
  *
 */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <iostream.h>
 
@@ -32,73 +36,87 @@ void panic(char *msg) {
    exit(5);
 }
 
-extern "C" {
-   int Blt_Init(Tcl_Interp *);
-}
+Tcl_Interp *MainInterp = NULL; // needed by Dg
 
-Tcl_Interp *MainInterp;
+int main(int argc, char **argv) {
+   // argc should be 3.  The first argv is of course the program name.
+   // The second is "-f".  The third is a full-path-name to the barchart tcl file.
+   if (argc != 3)
+      panic("barChart: argc should be 3");
 
-int Tcl_AppInit(Tcl_Interp *interp) {
-   // tk library's main() will call this routine for us.  We must perform all
-   // needed initializations here...
+   char *tclFileName = argv[2];
 
-   MainInterp = interp; // needed by Dg
+   MainInterp = Tcl_CreateInterp();
+   assert(MainInterp);
 
-   if (TCL_ERROR == Tcl_Init(interp))
-      return TCL_ERROR;
+   Tk_Window mainTkWindow = Tk_CreateMainWindow(MainInterp, NULL,
+						"barChart",
+						"BarChart"
+						);
+   if (mainTkWindow == NULL) {
+      cerr << "Could not Tk_CreateMainWindow()!" << endl;
+      cerr << MainInterp->result << endl;
+      exit(5);
+   }
 
-   if (TCL_ERROR == Tk_Init(interp))
-      return TCL_ERROR;
+   if (TCL_OK != Tcl_Init(MainInterp)) {
+      cerr << "Could not Tcl_Init: " << MainInterp->result << endl;
+      exit(5);
+   }
 
-//   if (TCL_ERROR == Blt_Init(interp))
-//      // for blt_drag n' drop
-//      return TCL_ERROR;
+   if (TCL_OK != Tk_Init(MainInterp)) {
+      cerr << "Could not Tk_Init: " << MainInterp->result << endl;
+      exit(5);
+   }
 
-   if (TCL_ERROR == Dg2_Init(interp))
-      // installs lots of tcl and C++ callbacks
-      return TCL_ERROR;
+   if (TCL_OK != Dg2_Init(MainInterp)) {
+      cerr << "Could not Dg2_Init: " << MainInterp->result << endl;
+      exit(5);
+   }
 
    tcl_RcFileName = "~/.wishrc";
+   Tcl_SetVar(MainInterp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
 
    // Install our new tcl commands
-   Tcl_CreateCommand(interp, "resizeCallback", resizeCallbackCommand,
+   Tcl_CreateCommand(MainInterp, "resizeCallback", resizeCallbackCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
-   Tcl_CreateCommand(interp, "exposeCallback", exposeCallbackCommand,
+   Tcl_CreateCommand(MainInterp, "exposeCallback", exposeCallbackCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
-   Tcl_CreateCommand(interp, "resourcesAxisHasChanged", resourcesAxisHasChangedCommand,
+   Tcl_CreateCommand(MainInterp, "resourcesAxisHasChanged", resourcesAxisHasChangedCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
-   Tcl_CreateCommand(interp, "metricsAxisHasChanged", metricsAxisHasChangedCommand,
+   Tcl_CreateCommand(MainInterp, "metricsAxisHasChanged", metricsAxisHasChangedCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
-   Tcl_CreateCommand(interp, "newScrollPosition", newScrollPositionCommand,
+   Tcl_CreateCommand(MainInterp, "newScrollPosition", newScrollPositionCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
-   Tcl_CreateCommand(interp, "dataFormatHasChanged", dataFormatHasChangedCommand,
+   Tcl_CreateCommand(MainInterp, "dataFormatHasChanged", dataFormatHasChangedCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
-   Tcl_CreateCommand(interp, "rethinkIndirectResourcesCallback", rethinkIndirectResourcesCommand,
+   Tcl_CreateCommand(MainInterp, "rethinkIndirectResourcesCallback", rethinkIndirectResourcesCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
-   Tcl_CreateCommand(interp, "launchBarChart", launchBarChartCommand,
+   Tcl_CreateCommand(MainInterp, "launchBarChart", launchBarChartCommand,
 		     NULL, // ClientData
 		     deleteLaunchBarChartCommand);
 
-   return TCL_OK;
+   if (TCL_ERROR == Tcl_EvalFile(MainInterp, tclFileName)) {
+      cerr << "barChart: Tcl_EvalFile() on \"" << tclFileName << "\" failed." << endl;
+      cerr << MainInterp->result << endl;
+      exit(5);
+   }
+
+   Tk_MainLoop(); // returns when all tk windows are closed
+
+   
 }
-
-// we use main() from the tk library, which is rigged to call
-// int Tcl_AppInit(Tcl_Interp *) which gives us a change to install
-// new tcl commands.
-
-extern int main(int argc, char **argv);
-int (*dummy)(int, char**) = main; // make use of main() to ensure it gets linked in...
