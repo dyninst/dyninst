@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.11 2004/04/02 06:34:11 jaw Exp $
+// $Id: api_showerror.C,v 1.12 2004/04/02 21:56:47 jaw Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -71,18 +71,20 @@ void statusLine(char const *line)
     BPatch::reportError(BPatchInfo, 0, line);
 }
 
+#endif
 //  bpfatal, bpsevere, bpwarn, and bpinfo are intended as drop-in 
 //  replacements for printf.
+#define ERR_BUF_SIZE 2048 // egad -- 1024 is not large enough
 
-int bpfatal(const char *format ...)
+int bpfatal(const char *format, ...)
 {
   if (NULL == format) return -1;
 
-  char errbuf[1024];
+  static char errbuf[ERR_BUF_SIZE];
 
   va_list va;
   va_start(va, format);
-  vsprintf(errbuf, format, va);
+  vsnprintf(errbuf, ERR_BUF_SIZE,format, va);
   va_end(va);
 
   BPatch::reportError(BPatchFatal, 0, errbuf);
@@ -90,36 +92,42 @@ int bpfatal(const char *format ...)
   return 0;
 }
 
-int bperr(const char *format ...)
+int bperr(const char *format, ...)
 {
   if (NULL == format) return -1;
 
-  char errbuf[1024];
+  static char errbuf[ERR_BUF_SIZE];
 
   va_list va;
   va_start(va, format);
-  vsprintf(errbuf, format, va);
+  int errbuflen = vsnprintf(errbuf, ERR_BUF_SIZE, format, va);
   va_end(va);
 
   char syserr[128];
   if (errno) {
-   sprintf(syserr, " [%d: %s]", errno, strerror(errno));
-   strcat(errbuf, syserr);
+    int syserrlen = snprintf(syserr, 128," [%d: %s]", errno, strerror(errno));
+    if ((errbuflen + syserrlen) < ERR_BUF_SIZE)
+      strcat(errbuf, syserr);
+    else {
+      BPatch::reportError(BPatchSerious, 0, errbuf);
+      BPatch::reportError(BPatchSerious, 0, syserr);
+      return 0;
+    }
   }
   BPatch::reportError(BPatchSerious, 0, errbuf);
 
   return 0;
 }
 
-int bpwarn(const char *format ...)
+int bpwarn(const char *format, ...)
 {
   if (NULL == format) return -1;
 
-  char errbuf[1024];
+  static char errbuf[ERR_BUF_SIZE];
 
   va_list va;
   va_start(va, format);
-  vsprintf(errbuf, format, va);
+  vsnprintf(errbuf, ERR_BUF_SIZE,format, va);
   va_end(va);
 
   BPatch::reportError(BPatchWarning, 0, errbuf);
@@ -127,15 +135,15 @@ int bpwarn(const char *format ...)
   return 0;
 }
 
-int bpinfo(const char *format ...)
+int bpinfo(const char *format, ...)
 {
   if (NULL == format) return -1;
 
-  char errbuf[1024];
+  static char errbuf[ERR_BUF_SIZE];
 
   va_list va;
   va_start(va, format);
-  vsprintf(errbuf, format, va);
+  vsnprintf(errbuf, ERR_BUF_SIZE, format, va);
   va_end(va);
 
   BPatch::reportError(BPatchInfo, 0, errbuf);
@@ -143,4 +151,3 @@ int bpinfo(const char *format ...)
   return 0;
 }
 
-#endif
