@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.173 2003/10/07 19:05:58 schendel Exp $
+// $Id: aix.C,v 1.174 2003/10/21 17:21:54 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -57,7 +57,7 @@
 #include "common/h/Types.h"
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
-#include "dyninstAPI/src/instP.h" // class instInstance
+#include "dyninstAPI/src/instP.h" // class miniTrampHandle
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
@@ -182,19 +182,21 @@ Frame Frame::getCallerFrame(process *p) const
   Frame ret; // zero frame
 
   // Are we in a leaf function?
-  pd_Function *func = p->findFuncByAddr(pc_);
   bool isLeaf = false;
   bool noFrame = false;
+
+  if (uppermost_) {
+      codeRange *range = p->findCodeRangeByAddress(pc_);
+      pd_Function *func = range->function_ptr;
+      if (func) {
+          isLeaf = func->makesNoCalls();
+          noFrame = func->hasNoStackFrame();
+      }
+  }
   ret.pid_ = pid_;
   ret.thread_ = thread_;
   ret.lwp_ = lwp_;
-  
-  if (func && uppermost_) {
-      isLeaf = func->makesNoCalls();
-      noFrame = func->hasNoStackFrame();
-  }
-
-
+ 
   // Get current stack frame link area
   if (!p->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
                         (caddr_t)&thisStackFrame, false))
@@ -224,7 +226,6 @@ Frame Frame::getCallerFrame(process *p) const
   }
   else if (isLeaf) {
       // isLeaf: get the LR from the register instead of saved location on the stack
-      struct ptsprs spr_contents;
       if (lwp_ && lwp_->get_lwp_id()) {
 #if defined(AIX_PROC)
           dyn_saved_regs *regs = lwp_->getRegisters();
@@ -234,6 +235,7 @@ Frame Frame::getCallerFrame(process *p) const
           ret.pc_ = regs->theIntRegs.__lr;
           delete regs;
 #else
+          struct ptsprs spr_contents;
           if (P_ptrace(PTT_READ_SPRS, lwp_->get_lwp_id(), (int *)&spr_contents,
                        0, 0) == -1) {
               perror("Failed to read SPR data in getCallerFrameLWP");
@@ -370,8 +372,6 @@ int getNumberOfCPUs()
 }
 
 // #include "paradynd/src/costmetrics.h"
-
-class instInstance;
 
 #if defined(duplicated_in_process_c_because_linux_ia64_needs_it)
 Address process::getTOCoffsetInfo(Address dest)
@@ -632,48 +632,6 @@ unsigned get_childproc_lwp(process *proc) {
    return static_cast<unsigned>(found_lwp);
 }
 
-unsigned recognize_thread(process *proc, unsigned lwp_id) {
-   dyn_lwp *lwp = proc->getLWP(lwp_id);
-
-   pdvector<AstNode *> ast_args;
-   AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
-
-   return proc->getRpcMgr()->postRPCtoDo(ast, true, NULL, (void *)lwp_id,
-                                         true, NULL, lwp);
-}
-
-// run rpcs on each lwp in the child process that will start the virtual
-// timer of each thread and cause the rtinst library to notify the daemon of
-// a new thread.  For pthreads though, which AIX uses, there should only be
-// one thread in the child process (ie. the thread which initiated the fork).
-
-void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
-   unsigned found_lwp = get_childproc_lwp(this);
-   //cerr << "chosen lwp = " << found_lwp << endl;
-
-   unsigned rpc_id = recognize_thread(this, found_lwp);
-   bool cancelled = false;
-
-   do {
-       getRpcMgr()->launchRPCs(false);
-       if(hasExited())
-           return;
-       decodeAndHandleProcessEvent(false);
-       
-       irpcState_t rpc_state = getRpcMgr()->getRPCState(rpc_id);
-       if(rpc_state == irpcWaitingForSignal) {
-           //cerr << "rpc_id: " << rpc_id << " is in syscall, cancelling rpc\n";
-           getRpcMgr()->cancelRPC(rpc_id);
-           cancelled = true;
-           break;
-       }
-   } while(getRpcMgr()->getRPCState(rpc_id) != irpcNotValid); // Loop rpc is done
-   
-   if(! cancelled) {
-      (*completed_lwps).push_back(found_lwp);
-   }
-}
-
 #endif
 
 #if defined(USES_DYNAMIC_INF_HEAP)
@@ -764,6 +722,8 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
   // an entry or exit tramp, at which point we don't need to fix anything.
   // 27FEB03: if we're before the function _or at the first instruction_ there
   // is no need to fix anything, as we will jump into the base tramp normally
+  // 10OCT03: fix up to include in-function call sites as well -- collapse
+  // address before checking
   if ((frame.getPC() <= instFunc->addr()) || (frame.getPC() > instFunc->addr() + instFunc->size()))
     return true;
 
@@ -844,33 +804,31 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
       }
   }
   else {    
-      // Here's the fun bit. We actually store the LR in the parent's frame. So 
-      // we need to backtrace a bit.
-      readDataSpace((void *)(parentFrame.getFP()+8), sizeof(Address), &oldReturnAddr, false);
+      // The LR is stored in the parent's frame to allow functions to
+      // store the LR without creating a stack frame. 
+      readDataSpace((void *)(parentFrame.getFP()+8), sizeof(Address), 
+                    &oldReturnAddr, false);
       if (oldReturnAddr == exitTrampAddr) {
           // We must've already overwritten the link register, so we're fine 
           return true;
       }
       else { 
           // Write it into the save slot
-          writeDataSpace((void*)(parentFrame.getFP()+8), sizeof(Address), &exitTrampAddr);
+          writeDataSpace((void*)(parentFrame.getFP()+8), sizeof(Address), 
+                         &exitTrampAddr);
       }
   }
   // And write the actual LR into an unused word.
-  // If the function has made a stack frame, we store it "up" one. Otherwise we use
-  // the current frame.
-  if (!noFrame) {
-      writeDataSpace((void*)(parentFrame.getFP()+12), sizeof(Address), &oldReturnAddr);
-      // And write the "we've modified the LR" trigger value"
-      Address trigger = MODIFIED_LR;
-      writeDataSpace((void*)(parentFrame.getFP()+16), sizeof(Address), &trigger);
-  }
-  else {
-      writeDataSpace((void*)(frame.getFP()+12), sizeof(Address), &oldReturnAddr);
-      // And write the "we've modified the LR" trigger value"
-      Address trigger = MODIFIED_LR;
-      writeDataSpace((void*)(frame.getFP()+16), sizeof(Address), &trigger);
-  }
+
+  // We can always use the "parent" stack frame -- if the current function
+  // has not made a frame yet, then the two stack pointers will be
+  // identical.
+  
+  writeDataSpace((void*)(parentFrame.getFP()+12), sizeof(Address), &oldReturnAddr);
+  // And write the "we've modified the LR" trigger value
+  Address trigger = MODIFIED_LR;
+  writeDataSpace((void*)(parentFrame.getFP()+16), sizeof(Address), &trigger);
+
   return true;
   
 }
@@ -1553,7 +1511,6 @@ int SYSSET_MAP(int syscall, int pid)
     for (unsigned int j = 0; j < sysent.pr_nsyscalls; j++) {
         lseek(fd, syscalls[j].pr_nameoff, SEEK_SET);
         read(fd, syscallname, 256);
-
         // Now comes the interesting part. We're interested in a list of
         // system calls. Compare the freshly read name to the list, and if
         // there is a match then set the syscall mapping.
@@ -1593,7 +1550,7 @@ sysset_t *SYSSET_ALLOC(int pid)
         fd = open(filename, O_RDONLY, 0);
         if (read(fd, &sysent,
                  sizeof(sysent) - sizeof(prsyscall_t))
-            != sizeof(sysent) - sizeof(prsyscall_t))
+            != (int) (sizeof(sysent) - sizeof(prsyscall_t)))
             perror("AIX syscall_alloc: read");
         num_calls = sysent.pr_nsyscalls;
         init = true;
@@ -1621,12 +1578,12 @@ bool process::get_entry_syscalls(pstatus_t *status,
    else {
       // The entry member of the status vrble is a pointer
       // to the sysset_t array.
-      if(pread(getProcessLWP()->status_fd(), entry, 
-               SYSSET_SIZE(entry), status->pr_sysentry_offset)
-          != SYSSET_SIZE(entry)) {
-         perror("get_entry_syscalls: read");
-         return false;
-      }
+       if(pread(getProcessLWP()->status_fd(), entry, 
+                SYSSET_SIZE(entry), status->pr_sysentry_offset)
+          != (int) SYSSET_SIZE(entry)) {
+           perror("get_entry_syscalls: read");
+           return false;
+       }
    }
    return true;
 }
@@ -1641,7 +1598,7 @@ bool process::get_exit_syscalls(pstatus_t *status,
    else {
       if(pread(getProcessLWP()->status_fd(), exit, 
                SYSSET_SIZE(exit), status->pr_sysexit_offset)
-         != SYSSET_SIZE(exit)) {
+         != (int) SYSSET_SIZE(exit)) {
          perror("get_exit_syscalls: read");
            return false;
       }
@@ -1822,9 +1779,6 @@ fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitF
 
     if (map_fd <= 0)
         return NULL;
-
-    Address text_org = -1;
-    Address data_org = -1;
 
     prmap_t text_map;
     char text_name[512];
