@@ -3,6 +3,10 @@
 
 #
 # $Log: whereAxis.tcl,v $
+# Revision 1.5  1995/10/17 22:25:57  tamches
+# A few command names have "whereAxis" prepended to them, to differentiate
+# them from shg tcl code.  Added tip4.
+#
 # Revision 1.4  1995/09/20 01:37:11  tamches
 # Stupid hack to ensure middle-mouse-button can move scrollbars
 # within the where axis.
@@ -126,13 +130,13 @@ proc whereAxisInitialize {} {
    
    scrollbar .whereAxis.nontop.main.leftsb -orient vertical -width 16 -background gray \
    	-activebackground gray \
-   	-command "newVertScrollPosition"
+   	-command "whereAxisNewVertScrollPosition"
    
    pack .whereAxis.nontop.main.leftsb -side left -fill y -expand false
    
    scrollbar .whereAxis.nontop.main.bottsb -orient horizontal -width 16 \
    	-activebackground gray \
-   	-command "newHorizScrollPosition"
+   	-command "whereAxisNewHorizScrollPosition"
    
    pack .whereAxis.nontop.main.bottsb -side bottom -fill x -expand false
    
@@ -165,6 +169,12 @@ proc whereAxisInitialize {} {
    pack  .whereAxis.nontop.tip3 -side top -fill both -expand false
       # fill both (instead of just x) seems needed to prevent from shrinking
       # when window made shorter
+
+   label .whereAxis.nontop.tip4 -relief sunken \
+	   -text "Hold down Alt and move the mouse to scroll freely" \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack  .whereAxis.nontop.tip4 -side top -fill both -expand false
+
    
    # -----------------------------------------------------------
    
@@ -177,20 +187,20 @@ proc whereAxisInitialize {} {
    entry .whereAxis.nontop.find.entry -relief sunken -font "*-Helvetica-*-r-*-12-*"
    pack  .whereAxis.nontop.find.entry -side left -fill x -expand true
    
-   bind  .whereAxis.nontop.find.entry <Return> {findHook [.whereAxis.nontop.find.entry get]}
+   bind  .whereAxis.nontop.find.entry <Return> {whereAxisFindHook [.whereAxis.nontop.find.entry get]}
    
    # -----------------------------------------------------------
    
    # install resize, expose, and button event hooks for .whereAxis.nontop.main.all
-   bind .whereAxis.nontop.main.all <Configure> {configureHook %w %h}
-   bind .whereAxis.nontop.main.all <Expose>    {exposeHook %c}
-   bind .whereAxis.nontop.main.all <Button-1>  {singleClickHook %x %y}
-   bind .whereAxis.nontop.main.all <Button-2>  {singleClickHook %x %y}
-   bind .whereAxis.nontop.main.all <Double-Button-1> {doubleClickHook %x %y}
-   bind .whereAxis.nontop.main.all <Shift-Double-Button-1> {shiftDoubleClickHook %x %y}
-   bind .whereAxis.nontop.main.all <Control-Double-Button-1> {ctrlDoubleClickHook %x %y}
-   bind .whereAxis.nontop.main.all <Alt-Motion> {altPressHook %x %y}
-   bind .whereAxis.nontop.main.all <Motion> {altReleaseHook}
+   bind .whereAxis.nontop.main.all <Configure> {whereAxisConfigureHook}
+   bind .whereAxis.nontop.main.all <Expose>    {whereAxisExposeHook %c}
+   bind .whereAxis.nontop.main.all <Button-1>  {whereAxisSingleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Button-2>  {whereAxisSingleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Double-Button-1> {whereAxisDoubleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Shift-Double-Button-1> {whereAxisShiftDoubleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Control-Double-Button-1> {whereAxisCtrlDoubleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Alt-Motion> {whereAxisAltPressHook %x %y}
+   bind .whereAxis.nontop.main.all <Motion> {whereAxisAltReleaseHook}
    
    set currMenuAbstraction 1
 }
