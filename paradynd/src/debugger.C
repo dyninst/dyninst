@@ -41,6 +41,9 @@
 
 /*
  * $Log: debugger.C,v $
+ * Revision 1.13  1996/10/31 08:38:34  tamches
+ * changed call interface to osDumpImage
+ *
  * Revision 1.12  1996/08/16 21:18:26  tamches
  * updated copyright for release 1.1
  *
@@ -130,5 +133,6 @@ process *getDefaultProcess()
 }
 
 void dumpProcessImage(process *proc, bool stopped) {
-  OS::osDumpImage(proc->symbols->file(), proc->pid, proc->symbols->codeOffset());
+  proc->osDumpImage();
+//  OS::osDumpImage(proc->symbols->file(), proc->getPid(), proc->symbols->codeOffset());
 }
