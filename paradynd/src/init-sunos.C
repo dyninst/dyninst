@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.31 2000/10/17 17:42:34 schendel Exp $ */
+/* $Id: init-sunos.C,v 1.32 2001/08/23 14:44:06 schendel Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/metric.h"
@@ -50,7 +50,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
 #include "common/h/timing.h"
-
+#include "dyninstAPI/src/process.h"
 
 // NOTE - the tagArg integer number starting with 0.  
 bool initOS() {
