@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.1  1994/05/05 19:54:03  karavan
-/* initial version.
-/* */
+/* Revision 1.2  1994/05/07 23:26:48  karavan
+/* added short explanation feature to shg.
+/*
+ * Revision 1.1  1994/05/05  19:54:03  karavan
+ * initial version.
+ * */
  
 extern "C" {
   #include "/usr/home/paradyn/packages/tk3.6/src/tk.h"
@@ -58,8 +61,43 @@ int gotMetricsCmd(ClientData clientData,
   uim_server->chosenMetricsandResources(mcb, chosenMets, numMetrics, focus);
   return TCL_OK;
 }
-  
 
+/*
+  shgShortExplain
+  called from tcl procedure shgFullName.
+  looks up and displays full pathname for node.
+  arguments: 0 - cmd name
+             1 - nodeID
+*/  
+int shgShortExplainCmd (ClientData clientData, 
+                Tcl_Interp *interp, 
+                int argc, 
+                char *argv[])
+{
+  Tcl_HashEntry *entry;
+  Tk_Uid nodeID;
+  char *nodeExplain;
+
+  // get string for this nodeID
+  nodeID = Tk_GetUid (argv[1]);
+  if (!(entry = Tcl_FindHashEntry (&shgNamesTbl, nodeID))) {
+    Tcl_AppendResult (interp, "invalid message ID!", (char *) NULL);
+    return TCL_ERROR;
+  }
+  nodeExplain = (char *) Tcl_GetHashValue(entry);
+    // change variable linked to display window; display window will be 
+    //  updated automatically
+  Tcl_SetVar (interp, "shgExplainStr", nodeExplain, 0);
+  return TCL_OK;
+}
+
+/* 
+   drawStartVisiMenuCmd
+   gets list of currently available visualizations from visi manager
+   and displays menu which allows 0 or more selections.
+   Tcl command "drawVisiMenu" will return selections to the requesting
+   visi thread
+*/
 int compare_visi_names (void *viptr1, void *viptr2) {
   const VM_visiInfo *p1 = (VM_visiInfo *)viptr1;
   const VM_visiInfo *p2 = (VM_visiInfo *)viptr2;
@@ -111,6 +149,7 @@ int drawStartVisiMenuCmd (ClientData clientData,
 static struct cmdTabEntry uimpd_Cmds[] = {
   {"drawStartVisiMenu", drawStartVisiMenuCmd},
   {"gotMetrics", gotMetricsCmd},
+  {"shgShortExplain", shgShortExplainCmd},
   {NULL, NULL}
 };
 
