@@ -182,17 +182,21 @@ BPatch_variableExpr *instrDataNode::getVariableExpr()
 */
   base_type = new BPatch_typeScalar(getSize(), type_str);
 
-  sprintf(type_str_ptr_name, "%sPtr", type_str);
-
-  //  make a new type that is an array of intCounter (or tTimer, etc)
-  BPatch_type *base_type_ptr_type = new BPatch_typeArray(base_type, 0, 1024,
-                                                          type_str_ptr_name);
-
   // get address of counter/timer:
   void *counterAddr = (void *) getInferiorPtr();
 
   char counterName[128];
   sprintf(counterName, "%s-%p", type_str, counterAddr);
+  
+  if( ! proc->multithread_capable() ) {
+    varExpr = new BPatch_variableExpr( counterName, proc->get_dyn_process(), counterAddr, base_type );
+    return varExpr;
+    }
+
+  sprintf(type_str_ptr_name, "%sPtr", type_str);
+  //  make a new type that is an array of intCounter (or tTimer, etc)
+  BPatch_type *base_type_ptr_type = new BPatch_typeArray(base_type, 0, 1024,
+                                                          type_str_ptr_name);
 
   // "create" a variable at the counter address.
   varExpr = new BPatch_variableExpr(counterName, proc->get_dyn_process(),
