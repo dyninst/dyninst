@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.6 2002/07/25 19:22:57 willb Exp $
+// $Id: main.C,v 1.7 2002/09/03 15:47:21 willb Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -153,6 +153,8 @@ void print_data(char *buffer,int num, int from_paradynd)
 
 int main(int argc, char **argv) {
 //sigpause(0);
+    (void)setsid();
+    
    if (argc == 1)
    	return -1;
    serv_sock = atoi(argv[1]);
