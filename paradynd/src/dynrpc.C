@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.71 1999/04/27 16:04:32 nash Exp $ */
+/* $Id: dynrpc.C,v 1.72 1999/11/09 19:18:45 cain Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -476,6 +476,18 @@ bool dynRPC::startProgram(int )
     statusLine("starting application");
     continueAllProcesses();
     return(false);
+}
+
+//
+// Monitor the dynamic call sites contained in function <function_name>
+//
+void dynRPC::MonitorDynamicCallSites(string function_name){
+  unsigned i;
+  process *p;
+  for(i = 0; i < processVec.size(); i++){
+    p = processVec[i];
+    p->MonitorDynamicCallSites(function_name);
+  }
 }
 
 //

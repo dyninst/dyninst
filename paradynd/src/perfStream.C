@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.103 1999/10/27 21:52:15 schendel Exp $
+// $Id: perfStream.C,v 1.104 1999/11/09 19:18:45 cain Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -205,7 +205,7 @@ void processTraceStream(process *curr)
 	//statusLine(P_strdup(buffer.string_of()));
 	//showErrorCallback(11, P_strdup(buffer.string_of()));
 	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
-	statusLine(msg.string_of());
+	statusLine(msg.string_of()); 
 	P_close(curr->traceLink);
   	curr->traceLink = -1;
 	handleProcessExit(curr,0);
@@ -231,9 +231,9 @@ void processTraceStream(process *curr)
 
 	curr->bufStart = ALIGN_TO_WORDSIZE(curr->bufStart);
 	if (header.length % WORDSIZE != 0) {
-	    sprintf(errorLine, "Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
-	    logLine(errorLine);
-	    showErrorCallback(36,(const char *) errorLine);
+	  sprintf(errorLine, "Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
+	  logLine(errorLine);
+	  showErrorCallback(36,(const char *) errorLine);
 	}
 	    
 	if (curr->bufEnd - curr->bufStart < (unsigned)header.length) {
@@ -278,7 +278,7 @@ void processTraceStream(process *curr)
 	        break;
 #endif
 	    case TR_NEW_RESOURCE:
-//		cerr << "paradynd: received a new resource from pid " << curr->getPid() << "; processing now" << endl;
+	      //cerr << "paradynd: received a new resource from pid " << curr->getPid() << "; processing now" << endl;
 		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
 		   // createResource() is in this file, below
 		break;
@@ -337,6 +337,40 @@ void processTraceStream(process *curr)
 		}
 		break;
 
+	     case TR_DYNAMIC_CALLEE_FOUND:
+	       {
+		 pd_Function *caller, *callee;
+		 resource *caller_res, *callee_res;
+		 image *symbols;
+		 callercalleeStruct *c = (struct callercalleeStruct *) 
+		   ((void*)recordData);
+		 //		 cerr << "DYNAMIC trace record received!!, caller = " << hex 
+		 //   << c->caller << " callee = " << c->callee << dec << endl;
+		 symbols = curr->getImage();
+		 assert(symbols);	
+		 caller = symbols->findPossiblyRelocatedFunctionIn(c->caller, 
+								   curr);
+		 assert(caller);
+		 callee = symbols->findPossiblyRelocatedFunctionIn(c->callee, 
+								   curr);
+		 assert(callee);
+
+		 /*If the callee's FuncResource isn't set, then
+		   the callee must be uninstrumentable, so we don't
+		   notify the front end.*/
+		 if(callee->FuncResourceSet() && caller->FuncResourceSet()){
+		   callee_res =  
+		     resource::findResource(callee->ResourceFullName());
+		   caller_res =
+		     resource::findResource(caller->ResourceFullName());
+		   assert(callee_res);
+		   assert(caller_res);
+		   tp->AddCallGraphDynamicChildCallback(symbols->file(),
+						      caller_res->full_name(), 
+						      callee_res->full_name());
+		 }
+		 break;
+	       }
             case TR_DATA:
                 extern void batchTraceData(int, int, int, char *);
                 batchTraceData(0, sid, header.length, recordData);
