@@ -3,9 +3,12 @@
 // programmed in tk/tcl in barChart.tcl.
 
 /* $Log: barChart.C,v $
-/* Revision 1.6  1994/10/07 22:07:03  tamches
-/* Fixed some resize bugs
+/* Revision 1.7  1994/10/10 23:08:37  tamches
+/* preliminary changes on the way to swapping the x and y axes
 /*
+ * Revision 1.6  1994/10/07  22:07:03  tamches
+ * Fixed some resize bugs
+ *
  * Revision 1.5  1994/10/04  22:11:31  tamches
  * moved color codes to barChart.tcl variable
  *
@@ -55,12 +58,13 @@
 #include "dg2.h"
 #include "barChartTcl.h"
 
+// g++ stuff for efficient template memory management:
 #pragma implementation "array2d.h"
 
 #include "barChart.h"
 
  // main data structure; holds bar information.  Does not
- // hold x axis or y axis information (or contents), because
+ // hold resources axis or metrics axis information (or contents), because
  // they are managed just fine from tcl (barChart.tcl) at present.
  // Created dynamically in DrawBarsInstallCommand.  Cannot be
  // created before then since necessary constructor arguments
@@ -83,7 +87,7 @@ BarChart::BarChart(char *tkWindowName,
             barWidths  (initNumMetrics, initNumResources),
 	    barHeights (initNumMetrics, initNumResources),
 	    barValues  (initNumMetrics, initNumResources),
-            metricCurrMaxYs(initNumMetrics),
+            metricCurrMaxVals(initNumMetrics),
 	    flushFlag (initFlushFlag)
              {
 
@@ -115,7 +119,7 @@ BarChart::BarChart(char *tkWindowName,
 
    RethinkMetricsAndResources();
       // sets numMetrics, numResources, barXoffets, barWidths,
-      // barHeights, prevBarHeights, barValues, metricCurrMaxYs
+      // barHeights, prevBarHeights, barValues, metricCurrMaxVals
 }
 
 BarChart::~BarChart() {
@@ -285,7 +289,7 @@ void BarChart::ResetPrevBarHeights() {
 
 void BarChart::RethinkMetricsAndResources() {
    // clear window, erase and reallocate barXoffsets, barWidths,
-   // prevBarHeights, barHeights, metricCurrMaxYs; set numMetrics,
+   // prevBarHeights, barHeights, metricCurrMaxVals; set numMetrics,
    // numResources -- all based on a complete re-reading from dataGrid[][].
    // (If visi had provided more fine-grained callbacks than
    // ADDMETRICSRESOURCES, such a crude routine would not be necessary.)
@@ -302,14 +306,14 @@ void BarChart::RethinkMetricsAndResources() {
 
    // the following is very unfortunate for existing metric/resource pairs;
    // their values do not change and so should not be reset.  This is
-   // particularly troublesome for metricCurrMaxYs[], where resetting their
+   // particularly troublesome for metricCurrMaxVals[], where resetting their
    // values (as we do here) can be considered a bug.
    barXoffsets.reallocate(numMetrics, numResources);
    barWidths  .reallocate(numMetrics, numResources);
    barHeights .reallocate(numMetrics, numResources);
    prevBarHeights.reallocate(numMetrics, numResources);
    barValues  .reallocate(numMetrics, numResources);
-   metricCurrMaxYs.reallocate(numMetrics);
+   metricCurrMaxVals.reallocate(numMetrics);
 
    // reset bar values (very unfortunate for existing pairs)
    for (int metriclcv=0; metriclcv<numMetrics; metriclcv++)
@@ -324,7 +328,7 @@ void BarChart::RethinkMetricsAndResources() {
       if (str == NULL)
          panic("BarChart::RethinkMetricsAndResources() -- could not read 'metricMaxValues'");
 
-      metricCurrMaxYs[metriclcv] = atof(str);
+      metricCurrMaxVals[metriclcv] = atof(str);
    }
 
    RethinkMetricColors(); // reallocates and rethinks metricColors[]
@@ -340,7 +344,7 @@ void BarChart::RethinkMetricsAndResources() {
 void BarChart::processNewData(int newBucketIndex) {
    // assuming new data has arrived at the given bucket index for all
    // metric/rsrc pairs, read the new information from dataGrid[][],
-   // update barHeights[][], barValues[][], and metricCurrMaxYs[] (if needed),
+   // update barHeights[][], barValues[][], and metricCurrMaxVals[] (if needed),
    // and call lowLevelDrawBars()
    
    // PASS 1: Update barValues[][] and check for y-axis overflow, calling
@@ -373,9 +377,9 @@ void BarChart::processNewData(int newBucketIndex) {
 
          // the dreaded check for y-axis overflow (slows things down greatly if there
          // is indeed overflow)
-         double currMaxY = metricCurrMaxYs[metriclcv];
+         double currMaxY = metricCurrMaxVals[metriclcv];
          if (newVal > currMaxY)
-            setMetricNewMaxY(metriclcv, newVal);
+            setMetricNewMax(metriclcv, newVal);
       }
    }
 
@@ -386,14 +390,14 @@ void BarChart::processNewData(int newBucketIndex) {
    RethinkBarHeights();
 }
 
-double BarChart::nicelyRoundedMetricNewYMaxValue(int metricindex, double newmaxval) {
+double BarChart::nicelyRoundedMetricNewMaxValue(int metricindex, double newmaxval) {
    assert(0<=metricindex && metricindex<numMetrics);
 
    char buffer[256];
    sprintf(buffer, "lindex [getMetricHints %s] 3", dataGrid.MetricName(metricindex));
 
    if (TCL_OK != Tcl_Eval(MainInterp, buffer))
-      panic("BarChart::nicelyRoundedMetricNewYMaxValue() -- could not eval");
+      panic("BarChart::nicelyRoundedMetricNewMaxValue() -- could not eval");
 
    double hintedStep = atof(MainInterp->result);
 
@@ -403,7 +407,7 @@ double BarChart::nicelyRoundedMetricNewYMaxValue(int metricindex, double newmaxv
    return result;
 }
 
-void BarChart::setMetricNewMaxY(int metricindex, double newmaxval) {
+void BarChart::setMetricNewMax(int metricindex, double newmaxval) {
    // given an actual bar value (newmaxval) that overflows the current
    // y-axis maximum value for the given metric, rethink what the
    // y-axis maximum value for the given metric should be.
@@ -412,20 +416,20 @@ void BarChart::setMetricNewMaxY(int metricindex, double newmaxval) {
 
    assert(0<=metricindex && metricindex<numMetrics);
 
-   newmaxval = nicelyRoundedMetricNewYMaxValue(metricindex, newmaxval);
-   metricCurrMaxYs[metricindex] = newmaxval;
+   newmaxval = nicelyRoundedMetricNewMaxValue(metricindex, newmaxval);
+   metricCurrMaxVals[metricindex] = newmaxval;
 
    char buffer[256];
    sprintf(buffer, "processNewMetricMax %d %g", metricindex, newmaxval);
    if (TCL_OK != Tcl_Eval(MainInterp, buffer))
-      cerr << "warning -- BarChart::setMetricNewMaxY() could not inform barChart.tcl of new-max-y-value (no script processNewMetricMax?)" << endl;
+      cerr << "warning -- BarChart::setMetricNewMax() could not inform barChart.tcl of new-max-y-value (no script processNewMetricMax?)" << endl;
 }
 
 void BarChart::RethinkBarLayouts() {
    // assuming a complete resize (but not an added or deleted metric
    // or resource or even new data values), fill in barXoffsets, barWidths, etc.
 
-   // does not touch metricCurrMaxYs or barValues
+   // does not touch metricCurrMaxVals or barValues
 
    // note: the following loop starts with resources, then does metrics.  should not
    // cause any big problems, and more intuitive in this case...
@@ -460,7 +464,7 @@ void BarChart::RethinkBarHeights() {
    for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
       for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
          double theHeight = barValues[metriclcv][resourcelcv] /
-                            metricCurrMaxYs[metriclcv];
+                            metricCurrMaxVals[metriclcv];
          theHeight *= this->height; // scale by window height (excluding border pixels)
          barHeights[metriclcv][resourcelcv] = (int)theHeight;
       }

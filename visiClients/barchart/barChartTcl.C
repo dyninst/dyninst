@@ -1,9 +1,12 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.3  1994/10/10 14:36:17  tamches
-/* fixed some resizing bugs
+/* Revision 1.4  1994/10/10 23:08:44  tamches
+/* preliminary changes on the way to swapping the x and y axes
 /*
+ * Revision 1.3  1994/10/10  14:36:17  tamches
+ * fixed some resizing bugs
+ *
  * Revision 1.2  1994/09/29  20:05:37  tamches
  * minor cvs fixes
  *
@@ -60,7 +63,7 @@ int exposeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **ar
       return TCL_ERROR;
 }
 
-int xAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
+int resourcesAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
    // called from barChart.tcl when the x-axis layout has changed due to resize,
    // insertion/deletion, etc; gives our C++ code a chance to update its
    // internal structures.
@@ -76,7 +79,7 @@ int xAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **a
       return TCL_ERROR;
 }
 
-int yAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
+int metricsAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
    // called from barChart.tcl when the y-axis layout has changed due to resize,
    // insertion/deletion, etc; gives our C++ code a chance to update its
    // internal structures.
@@ -127,16 +130,16 @@ int launchBarChartCommand(ClientData cd, Tcl_Interp *interp, int argc, char **ar
    // 5) initial numResources
    // 6) flush flag (0 or 1); use 1 during debugging only
 
-   cout << "Welcome to launchBarChartCommand()" << endl;
+   // cout << "Welcome to launchBarChartCommand()" << endl;
    
    if (argc != 7)
       panic("launchBarChartCommand() -- cannot create barchart (incorrect #args)");
 
    char *wname = argv[1];
-   const int iNumMetrics = atoi(argv[4]);
+   const int iNumMetrics   = atoi(argv[4]);
    const int iNumResources = atoi(argv[5]);
    const bool iFlushFlag = (0==strcmp("1", argv[6]));
-   cout << "iFlushFlag is " << iFlushFlag << endl;
+
    theBarChart = new BarChart(wname,
 			      0==strcmp("doublebuffer", argv[2]),
 			      0==strcmp("noflicker", argv[3]),

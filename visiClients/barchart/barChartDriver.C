@@ -1,9 +1,12 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.2  1994/09/29 20:05:36  tamches
-/* minor cvs fixes
+/* Revision 1.3  1994/10/10 23:08:43  tamches
+/* preliminary changes on the way to swapping the x and y axes
 /*
+ * Revision 1.2  1994/09/29  20:05:36  tamches
+ * minor cvs fixes
+ *
  * Revision 1.1  1994/09/29  19:50:51  tamches
  * initial implementation.
  * entrypoint for barchart C++ program.  we create new tcl
@@ -62,11 +65,11 @@ int Tcl_AppInit(Tcl_Interp *interp) {
 		     NULL, // ClientData
 		     deleteDummyProc);
 
-   Tcl_CreateCommand(interp, "xAxisHasChanged", xAxisHasChangedCommand,
+   Tcl_CreateCommand(interp, "resourcesAxisHasChanged", resourcesAxisHasChangedCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
-   Tcl_CreateCommand(interp, "yAxisHasChanged", yAxisHasChangedCommand,
+   Tcl_CreateCommand(interp, "metricsAxisHasChanged", metricsAxisHasChangedCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 

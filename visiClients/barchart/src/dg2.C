@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.3  1994/10/10 14:36:18  tamches
-/* fixed some resizing bugs
+/* Revision 1.4  1994/10/10 23:08:47  tamches
+/* preliminary changes on the way to swapping the x and y axes
 /*
+ * Revision 1.3  1994/10/10  14:36:18  tamches
+ * fixed some resizing bugs
+ *
  * Revision 1.2  1994/09/29  20:05:39  tamches
  * minor cvs fixes
  *
@@ -28,8 +31,8 @@
 #include "barChart.h"
 
 void my_visi_callback(void* arg0, int* arg1, long unsigned int* arg2) {
-    if (visi_callback() == -1)
-       exit(0);
+   if (visi_callback() == -1)
+      exit(0);
 }
 
 int Dg2AddMetricsCallback(int dummy) {
@@ -43,55 +46,6 @@ int Dg2AddMetricsCallback(int dummy) {
 
   return(retval);
 }
-
-//int Dg2NewDataCallbackGeneral(int dummy) {
-//   // A fairly general new-data handler; is smart enough to
-//   // know when and if a **range** of values needs to be redrawn
-//   // (perhaps because we've fallen behind?) as opposed to just
-//   // the latest value --- the histogram would need this, for
-//   // example (to avoid gaps), but the barchart can always just use
-//   // the most recent value and not care if it's fallen behind...
-//
-//   // A more specific one is actually in use at the moment; it
-//   // is Dg2NewDataCallback().  I haven't deleted the source code for
-//   // this guy since it's potentially useful for visis other than
-//   // the barchart.
-//
-//   // I have, however, removed the "DgValidCallback" from the original
-//   // DGclient.C
-//
-//   static LastBucket = 0; // this very important STATIC variable keeps
-//                          // track of the last bucket number we've processed.
-//                          // We'll be sending a data-callback on range
-//                          // LastBucket+1 thru what we see as the latest bucket
-//                          // which has been filled with data.  Presumably, if
-//                          // we keep up, this'll always be the range
-//                          // (LastBucket+1, LastBucket+1).
-//
-//   // set "thislast" to dataGrid[m][r].LastBucketFilled() for the first
-//   // datagrid element we find with the Valid bit set to true...
-//   int thislast = findMostRecentBucket();
-//
-//   // There are no more "DgValidCallback" calls, since barchart never
-//   // seemed to use them in the first place...
-//
-//   if (thislast < LastBucket)
-//      LastBucket = thislast-1; // will rarely if ever happen; just to avoid sending
-//                               // an empty range...
-//
-//   if (thislast >= 0) {
-//      // send a data-callback on range (LastBucket+1, thislast)
-//      // This is where the previous version of Dg would invoke
-//      // the tcl script DgDataCallback.  Now that we're C++, we don't
-//      // do that.
-//
-//      UsersNewDataCallbackRoutine(LastBucket+1, thislast);
-//
-//      LastBucket = thislast;
-//   }
-//
-//   return TCL_OK;
-//}
 
 int Dg2Fold(int dummy) {
   int retval = Tcl_Eval(MainInterp, "DgFoldCallback");
@@ -136,17 +90,16 @@ int Dg2PhaseNameCallback(int dummy) {
 #define   LASTBUCKET       16
 #define   FIRSTBUCKET      18
 
-struct cmdTabEntry 
-{
-  char *cmdname;
-  int index;
-  int numargs;
+struct cmdTabEntry {
+   char *cmdname;
+   int index;
+   int numargs;
 };
 
 static struct cmdTabEntry Dg_Cmds[] = {
   {"aggregate",    AGGREGATE,       2},
   {"binwidth",     BINWIDTH,        0},
-  {"firstbucket",  FIRSTBUCKET,      2},
+  {"firstbucket",  FIRSTBUCKET,     2},
   {"foldmethod",   FOLDMETHOD,      2},
   {"lastbucket",   LASTBUCKET,      2},
   {"metricname",   METRICNAME,      1},

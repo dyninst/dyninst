@@ -1,9 +1,12 @@
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.3  1994/10/10 14:36:14  tamches
-/* fixed some resizing bugs
+/* Revision 1.4  1994/10/10 23:08:39  tamches
+/* preliminary changes on the way to swapping the x and y axes
 /*
+ * Revision 1.3  1994/10/10  14:36:14  tamches
+ * fixed some resizing bugs
+ *
  * Revision 1.2  1994/09/29  20:05:34  tamches
  * minor cvs fixes
  *
@@ -15,8 +18,6 @@
 #ifndef _BARCHART_H_
 #define _BARCHART_H_
 
-// for g++; related to -fexternal-templates:
-// #pragma implementation "array2d.h"
 #include <array2d.h>
 
 typedef dynamic1dArray<double> dynamic1dArrayDouble;
@@ -68,7 +69,7 @@ class BarChart {
       // needs to be saved for the case of expose events...
    dynamic2dArrayDouble barValues;
       // array [metric][rsrc] of numerical (not pixel) bar values
-   dynamic1dArrayDouble metricCurrMaxYs;
+   dynamic1dArrayDouble metricCurrMaxVals;
       // array [metric] of the current y-axis high value for each metric.
       // When new data comes in that is higher than this, I give the command
       // to rethink the y axis.
@@ -101,11 +102,11 @@ class BarChart {
       // barWidths, resourceCurrMaxY, etc, 
 
    void RethinkBarHeights();
-      // assuming given new bar values and/or new metric ymax values and/or change
+      // assuming given new bar values and/or new metric max values and/or change
       // in window height, recalculate barHeights[][].
 
-   void setMetricNewMaxY(int metricindex, double newmaxval);
-   double nicelyRoundedMetricNewYMaxValue(int metricindex, double newmaxval);
+   void setMetricNewMax(const int metricindex, const double newmaxval);
+   double nicelyRoundedMetricNewMaxValue(const int metricindex, const double newmaxval);
 
   public:
    BarChart(char *tkWindowName, const bool dblBuffer, const bool noFlicker,
