@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.4 2000/10/17 17:42:15 schendel Exp $
+// $Id: inst-linux.C,v 1.5 2000/10/27 23:04:18 zandy Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -114,7 +114,6 @@ void initPrimitiveCost()
     // 240 ns
     primitiveCosts["DYNINSTdecrementCounter"] = 16;
 
-    logLine("x86-Linux platform\n");   
     // sparc_sun_sunos4_1_3 - default
     // The same values are used for sparc_tmc_cmost7_2 and 
     // sparc_wwt_cm5tempest1_2_3 platforms.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.42 2000/10/17 17:42:19 schendel Exp $
+// $Id: linux.C,v 1.43 2000/10/27 23:04:19 zandy Exp $
 
 #include <fstream.h>
 
@@ -2117,7 +2117,6 @@ timeUnit calcJiffyUnit() {
   int intJiffiesPerSec = static_cast<int>( static_cast<double>(uptimeJiffies) 
 					   / uptimeReal + 0.5 );
   timeUnit jiffy(fraction(1000000000LL, intJiffiesPerSec));
-  cerr << "Determined jiffies/sec as " << jiffy << "\n";
   return jiffy;
 }
 

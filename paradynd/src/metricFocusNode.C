@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.180 2000/10/26 17:03:14 schendel Exp $
+// $Id: metricFocusNode.C,v 1.181 2000/10/27 23:04:37 zandy Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -1394,9 +1394,6 @@ void metricDefinitionNode::adjustManuallyTrigger()
 	}
       }
       prettyName += string(">");
-      cerr << "metricDefinitionNode::adjustManuallyTrigger() called. "
-    	   << prettyName << ", instRequests.size = "
-    	   << instRequests.size() << endl;
     }
     assert(proc_); // proc_ should always be correct for non-aggregates
     const function_base *mainFunc = proc_->getMainFunction();
@@ -1487,9 +1484,6 @@ void metricDefinitionNode::adjustManuallyTrigger()
 	for(k=0;k<instRequests.size();k++) {
 	  if (point == instRequests[k].Point()) {
 	    if (instRequests[k].Ast()->accessesParam()) {
-	      cerr << "AdjustManuallyTrigger -- instrumentation accesses "
-		   << "parameter, not manually triggering for this stack "
-		   << "frame." << endl;
 	      break;
 	    }
 	    if (instRequests[k].triggeredInStackFrame(stack_func, stack_pc, proc_))

@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.77 2000/07/28 17:22:35 pcroth Exp $
+// $Id: rpcUtil.C,v 1.78 2000/10/27 23:04:38 zandy Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -331,8 +331,6 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
 
             if (ret != -1) {
                 assert(ret < rpcBuffers[i]->len);
-                fprintf(stderr, "RPCasyncXDRWrite partial message sent"
-                        " [%d]:%d<%d\n", i, ret, rpcBuffers[i]->len);
                 P_memcpy(rpcBuffers[i]->buf, rpcBuffers[i]->buf+ret,
                          rpcBuffers[i]->len-ret);
                 rpcBuffers[i]->len -= ret;
@@ -396,8 +394,6 @@ doDeferedRPCasyncXDRWrite() {
 
             if (ret != -1) {
                 assert(ret < rpcBuffers[i]->len);
-                fprintf(stderr, "doDeferedRPCasyncXDRWrite partial message sent"
-                        " [%d]:%d<%d\n", i, ret, rpcBuffers[i]->len);
                 P_memcpy(rpcBuffers[i]->buf, rpcBuffers[i]->buf+ret,
                          rpcBuffers[i]->len-ret);
                 rpcBuffers[i]->len -= ret;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.78 2000/10/17 17:42:32 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.79 2000/10/27 23:04:36 zandy Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -349,7 +349,6 @@ void dynRPC::setSampleRate(double sampleInterval)
         }
 
         currSamplingRate = sampleInterval;
-	cerr << "dynrpc: currSamplingRate set to " << currSamplingRate << endl;
     }
     return;
 }
