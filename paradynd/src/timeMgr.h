@@ -188,7 +188,7 @@ inline void timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 installLevel(timeMechLevel l, MECH_T::timeAvailFunc_t taf,
 	     MECH_T::nsCvtFunc_t cvtToNsFunc, const timeBase b, 
 	     MECH_T::timeQueryFunc_t dmTimerFunc,const char *rtTimerFunc,
-	     MECH_T::timeDestroyFunc_t destroyFunc = NULL) {
+	     MECH_T::timeDestroyFunc_t destroyFunc) {
   MECH_T *curMech = new MECH_T(taf, cvtToNsFunc, b, dmTimerFunc, rtTimerFunc,
 			       destroyFunc);
   installMechLevel(l, curMech);
