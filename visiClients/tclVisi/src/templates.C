@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -49,7 +49,7 @@ template class vector<PhaseInfo *>;
 
 // logo stuff:
 #include "paradyn/src/UIthread/minmax.C"
-template float max(float, float);
+template float max(const float, const float);
 
 #include "util/h/String.h"
 #include "util/src/Dictionary.C"

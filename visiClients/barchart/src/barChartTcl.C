@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,9 +42,12 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.15  1996/08/16 21:35:25  tamches
-/* updated copyright for release 1.1
+/* Revision 1.16  1999/03/13 15:23:51  pcroth
+/* Added support for building under Windows NT
 /*
+ * Revision 1.15  1996/08/16 21:35:25  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.14  1996/05/15 18:03:48  tamches
  * added newMetricMaxValCallbackCommand
  *
@@ -70,14 +73,18 @@
 
 #include <iostream.h>
 
-#include "Vector.h"
-#include "String.h"
+#include "util/h/Vector.h"
+#include "util/h/String.h"
+
+#include "util/h/headers.h"
+#include "util/h/pdsocket.h"
 
 #include "tcl.h"
 #include "tk.h"
 #include "dg2.h" // for dataGrid[][]
 #include "visi/h/visualization.h"
 #include "barChart.h"
+#include "barChartUtil.h"
 
 bool barChartIsValid = false;
    // set to true ** after ** barChart::barChart
@@ -258,6 +265,7 @@ int getMetricColorNameCommand(ClientData, Tcl_Interp *interp,
 }
 
 int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
+	unsigned componentlcv;
    assert(argc==2);
    char *longName = argv[1];
 
@@ -292,7 +300,7 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **
 
    // Step 2: for each component, strip off all upto and including
    //         the last '/'
-   for (unsigned componentlcv=0; componentlcv < components.size(); componentlcv++) {
+   for (componentlcv=0; componentlcv < components.size(); componentlcv++) {
       const string &oldComponentString = components[componentlcv];
 
       char *ptr = strrchr(oldComponentString.string_of(), '/');
@@ -306,7 +314,7 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **
 
    // Step 3: combine the components
    string theShortName;
-   for (unsigned componentlcv=0; componentlcv < components.size(); componentlcv++)
+   for (componentlcv=0; componentlcv < components.size(); componentlcv++)
       theShortName += components[componentlcv];
 
    // Step 4: pull it all together:

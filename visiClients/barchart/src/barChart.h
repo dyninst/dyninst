@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,9 +42,12 @@
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.12  1996/08/16 21:35:21  tamches
-/* updated copyright for release 1.1
+/* Revision 1.13  1999/03/13 15:23:51  pcroth
+/* Added support for building under Windows NT
 /*
+ * Revision 1.12  1996/08/16 21:35:21  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.11  1996/05/15 18:01:22  tamches
  * added setMetricNewMaxLL
  *
@@ -76,8 +79,8 @@
 
 // Note: we should make an effort to keep this class as tk-independent as possible.
 
-#include "Vector.h"
-#include "String.h"
+#include "util/h/Vector.h"
+#include "util/h/String.h"
 #include "tcl.h"
 #include "tk.h"
 #include "tkTools.h"

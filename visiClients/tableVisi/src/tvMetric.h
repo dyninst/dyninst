@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,7 +45,7 @@
 #ifndef _TV_METRIC_H_
 #define _TV_METRIC_H_
 
-#include "String.h"
+#include "util/h/String.h"
 #include "tk.h"
 
 class tvMetric {
@@ -62,9 +62,9 @@ class tvMetric {
    tvMetric() {} // needed by class Vector (nuts)
    tvMetric(unsigned iVisiLibId,
 	    const string &iName, const string &iUnitsName,
-	    XFontStruct *nameFontStruct,
-	    XFontStruct *unitsNameFontStruct,
-	    XFontStruct *valuesFontStruct,
+	    Tk_Font nameFont,
+	    Tk_Font unitsNameFont,
+	    Tk_Font valuesFont,
 	    unsigned numSigFigs);
    tvMetric(const tvMetric &src) : name(src.name), unitsName(src.unitsName) {
       visiLibId = src.visiLibId;
@@ -91,7 +91,7 @@ class tvMetric {
       unitsName = newunitsname;
    }
 
-   void changeNumSigFigs(unsigned newSigFigs, XFontStruct *valuesFontStruct);
+   void changeNumSigFigs(unsigned newSigFigs, Tk_Font valuesFont);
    
    unsigned getNamePixWidth() const {return namePixWidth;}
    unsigned getUnitsPixWidth() const {return unitsPixWidth;}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
+ * Revision 1.11  1999/03/13 15:24:05  pcroth
+ * Added support for building under Windows NT
+ *
  * Revision 1.10  1996/08/16 21:37:00  tamches
  * updated copyright for release 1.1
  *
@@ -71,12 +74,15 @@
 
 #include <iostream.h>
 
+#include "util/h/headers.h"
+#include "util/h/pdsocket.h"
+#include "visi/h/visualization.h"
+
 #include "tcl.h"
 #include "tk.h"
 #include "tkTools.h"
 
 #include "tableVisi.h"
-#include "visi/h/visualization.h"
 
 #include "tableVisiTcl.h"
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,9 @@
 
 /*
  * $Log: tvFocus.h,v $
+ * Revision 1.6  1999/03/13 15:24:07  pcroth
+ * Added support for building under Windows NT
+ *
  * Revision 1.5  1996/08/16 21:37:06  tamches
  * updated copyright for release 1.1
  *
@@ -75,7 +78,7 @@ class tvFocus {
 
  public:
    tvFocus(){} // needed by class Vector (nuts)
-   tvFocus(unsigned iVisiLibId, const string &iLongName, XFontStruct *nameFontStruct);
+   tvFocus(unsigned iVisiLibId, const string &iLongName, Tk_Font nameFont);
 
    tvFocus(const tvFocus &src) : longName(src.longName), shortName(src.shortName) {
       visiLibId = src.visiLibId;

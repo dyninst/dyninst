@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,9 +45,9 @@
 #include "visi/h/visiTypes.h"
 #include "util/h/makenan.h"
 
-#define ERROR PARADYN_NaN
-#define ERROR_INT -1
-#define OK 0
+#define VISI_ERROR PARADYN_NaN
+#define VISI_ERROR_INT -1
+#define VISI_OK 0
 
 // trace data streams
 #include "util/h/ByteArray.h"

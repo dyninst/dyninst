@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,9 @@
 
 /*
  * $Log: dg2.C,v $
+ * Revision 1.8  1999/03/13 15:24:04  pcroth
+ * Added support for building under Windows NT
+ *
  * Revision 1.7  1996/08/16 21:36:52  tamches
  * updated copyright for release 1.1
  *
@@ -70,14 +73,18 @@
 #include <stdlib.h> // exit()
 #include <iostream.h>
 
+
+#include "util/h/headers.h"
+#include "util/h/pdsocket.h"
+#include "visi/h/visualization.h"
+
 #include "tcl.h"
 #include "tk.h"
 #include "tkTools.h"
 
-#include "tableVisiTcl.h"
-
-#include "visi/h/visualization.h"
 #include "dg2.h"
+
+#include "tableVisiTcl.h"
 
 #define   AGGREGATE        0
 #define   BINWIDTH         1

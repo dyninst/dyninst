@@ -46,7 +46,7 @@
 
 class visi_visualization : public visualization {
     public:
-        visi_visualization(int fd) : visualization(fd, NULL, NULL, false) {;};
+        visi_visualization(PDSOCKET sock) : visualization(sock, NULL, NULL, false) {;};
         virtual void handle_error();
 };
 #endif

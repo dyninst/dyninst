@@ -101,7 +101,7 @@ extern void visi_showErrorVisiCallback(const char *msg);
  * This routine should be called before entering the visualization's
  * main loop, and before calling any other visi-interface routines.
  */
-extern int visi_Init();
+extern PDSOCKET visi_Init();
 
 /* callback associated with paradyn-visualization interface routines
  */

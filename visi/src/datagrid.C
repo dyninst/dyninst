@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: datagrid.C,v 1.25 1998/08/16 23:41:17 wylie Exp $
+// $Id: datagrid.C,v 1.26 1999/03/13 15:23:41 pcroth Exp $
 
 ///////////////////////////////////////////////
 // Member functions for the following classes:
@@ -119,7 +119,7 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
  if(numElements > 0){  
    value = new visi_sampleType[numElements];
    for(i = 0; i < numElements; i++)
-     value[i] = ERROR;
+     value[i] = VISI_ERROR;
    valid      = 1;
  }
  enabled = 0;
@@ -169,7 +169,7 @@ visi_GridHistoArray::~visi_GridHistoArray(){
 int visi_GridHistoArray::Valid(int i){
 
   if ((i< 0) || (i>= size)){
-    return(ERROR_INT);  
+    return(VISI_ERROR_INT);  
   }
   return(values[i].Valid());
 
@@ -182,10 +182,10 @@ int visi_GridHistoArray::Valid(int i){
 int visi_GridHistoArray::Invalidate(int i){
 
   if ((i< 0) || (i>= size)){
-    return(ERROR_INT);  
+    return(VISI_ERROR_INT);  
   }
   values[i].Invalidate();
-  return(OK);
+  return(VISI_OK);
 }
 
 
@@ -205,8 +205,8 @@ visi_GridCellHisto *temp = 0;
 				  temp[i].LastBucketFilled(),
 				  temp[i].userdata,
 				  temp[i].Valid(),
-				  temp[i].Enabled()) != OK){
-	 return(ERROR_INT);
+				  temp[i].Enabled()) != VISI_OK){
+	 return(VISI_ERROR_INT);
        }
        temp[i].userdata = 0;
     }
@@ -214,7 +214,7 @@ visi_GridCellHisto *temp = 0;
     
   }
   delete[] temp;
-  return(OK);
+  return(VISI_OK);
 
 }
 
@@ -227,7 +227,7 @@ int visi_GridHistoArray::AddNewValues(visi_GridCellHisto *rarray,int howmany){
   values = rarray;
   size   = howmany;
   rarray = 0;
-  return(OK);
+  return(VISI_OK);
 
 }
 
@@ -407,7 +407,7 @@ int  visi_DataGrid::FoldMethod(int i){
 
   if((i < numMetrics) && (i >= 0))
     return(metrics[i].Aggregate());
-  return(ERROR_INT);
+  return(VISI_ERROR_INT);
 
 }
 
@@ -445,7 +445,7 @@ int visi_DataGrid::Valid(int metric,
 			 int resource){
 
   if((metric < 0) || (metric >= numMetrics)){
-    return(ERROR_INT);
+    return(VISI_ERROR_INT);
   }
   return(data_values[metric].Valid(resource));
 
@@ -459,7 +459,7 @@ int visi_DataGrid::Invalidate(int metric,
 			      int resource){
 
   if((metric < 0) || (metric >= numMetrics)){
-    return(ERROR_INT);
+    return(VISI_ERROR_INT);
   }
   return(data_values[metric].Invalidate(resource));
 
@@ -490,7 +490,7 @@ int i,ok;
 
   // add space to data grid for new resources
   for(i = 0; i < numMetrics; i++){
-      if((ok = data_values[i].AddNewResources(howmany)) != OK){
+      if((ok = data_values[i].AddNewResources(howmany)) != VISI_OK){
           delete[] temp;
           temp = 0;
           return(ok); 
@@ -499,7 +499,7 @@ int i,ok;
 
   delete[] temp;
   temp = 0;
-  return(OK);
+  return(VISI_OK);
 }
 
 
@@ -535,8 +535,8 @@ int i;
 
   for(i=0; i < numMetrics; i++){
     if(data_values[i].AddNewValues(tempdata[i].Value(),tempdata[i].Size())
-       != OK){
-       return(ERROR_INT); 
+       != VISI_OK){
+       return(VISI_ERROR_INT); 
     }
   }
 
@@ -549,7 +549,7 @@ int i;
   numMetrics += howmany;
   tempdata = 0;
   temp = 0;
-  return(OK);
+  return(VISI_OK);
 
 }
 

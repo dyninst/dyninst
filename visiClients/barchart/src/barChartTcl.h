@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -60,7 +60,7 @@ int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv);
 void deleteLaunchBarChartCommand(ClientData);
 void deleteDummyProc(ClientData);
 
-int Dg2NewDataCallback(const int lastBucket);
+int Dg2NewDataCallback(int lastBucket);
 int Dg2PhaseNameCallback(int);
 int Dg2InvalidMetricsOrResources(int);
 int Dg2Fold(int);

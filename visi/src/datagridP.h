@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.6 1998/08/16 23:29:51 wylie Exp $
+// $Id: datagridP.h,v 1.7 1999/03/13 15:23:42 pcroth Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -50,7 +50,9 @@
 
 #include <string.h>
 #include <math.h>
+#if !defined(i386_unknown_nt4_0)
 #include <values.h>
+#endif // !defined(i386_unknown_nt4_0)
 #include "visi/src/visiTypesP.h"
 #include "util/h/Vector.h"
 #include "util/h/String.h"
@@ -176,7 +178,7 @@ class visi_GridCellHisto {
 
      visi_sampleType  Value(int i) { 
 	    if((i < 0) || (i >= size)){
-	     return(ERROR);
+	     return(VISI_ERROR);
             }
 	    return(value[i]);
      }
@@ -212,14 +214,14 @@ class visi_GridCellHisto {
 	         firstValidBucket = i;
             }
 	    else
-	      value[i] = ERROR; 
+	      value[i] = VISI_ERROR; 
 	  }
 	}
 	lastBucketFilled = lbf;
 	userdata = ud;
 	valid = v;
 	enabled = e;
-	return(OK);
+	return(VISI_OK);
      }
 
      void   Fold(){
@@ -236,13 +238,13 @@ class visi_GridCellHisto {
              }
 	   }
            else{
-	     value[i] = ERROR;
+	     value[i] = VISI_ERROR;
            }
-	   if((value[i] != ERROR))
+	   if((value[i] != VISI_ERROR))
 	     value[i] = value[i]/2; 
 	 }
 	 for(i=(lastBucketFilled+1)/2; i < size; i++){
-           value[i] = ERROR;
+           value[i] = VISI_ERROR;
 	 }
 	 lastBucketFilled = ((lastBucketFilled+1)/2)-1;
        }
@@ -261,7 +263,7 @@ class visi_GridCellHisto {
 	   return(sum*width);
 	}
 	else{
-	  return(ERROR);
+	  return(VISI_ERROR);
 	}
      }
 
@@ -281,11 +283,11 @@ class visi_GridCellHisto {
 	     return(sum/(1.0*num));
 	   }
 	   else{
-	     return(ERROR);
+	     return(VISI_ERROR);
            }
 	}
 	else{
-	  return(ERROR);
+	  return(VISI_ERROR);
 	}
      }
 
@@ -306,7 +308,7 @@ class visi_GridCellHisto {
        int j;
 
        if (!enabled){ // if this cell has not been enabled don't add values
-         return(OK);
+         return(VISI_OK);
        }
        if (!valid){ // if this is the first value create a histo cell array 
 	 if(value == NULL)
@@ -315,22 +317,22 @@ class visi_GridCellHisto {
 	 valid = 1;
 	 enabled = 1;
 	 for(j=0;j<size;j++){
-	   value[j] = ERROR;
+	   value[j] = VISI_ERROR;
          }
        }
        if((i < 0) || (i >= size))
-	 return(ERROR_INT);
+	 return(VISI_ERROR_INT);
        value[i] = x;
        if(i > lastBucketFilled)
         lastBucketFilled = i;
        if(firstValidBucket == -1)
 	 firstValidBucket = i;
-       return(OK);
+       return(VISI_OK);
      }
 
      visi_sampleType  operator[](int i){
        if((i >= size) || (i < 0)){
-	 return(ERROR);
+	 return(VISI_ERROR);
        }
        return(value[i]);
      }
@@ -354,7 +356,7 @@ class  visi_GridHistoArray {
 
       int LastBucketFilled(int resource){
          if((resource < 0) || (resource >= size))
-	   return(ERROR_INT);
+	   return(VISI_ERROR_INT);
          else
 	   return(values[resource].LastBucketFilled());
       }
@@ -373,7 +375,7 @@ class  visi_GridHistoArray {
 	           int numBuckets){
 
 	 if((resource < 0) || (resource >= size))
-	   return(ERROR_INT);
+	   return(VISI_ERROR_INT);
 	 return(values[resource].AddValue(x,bucketNum,numBuckets));
       }
       int   Size(){ return(size);}
@@ -393,13 +395,13 @@ class  visi_GridHistoArray {
 	if((i>=0)&&(i<size))
 	  return(values[i].AggregateValue());
         else
-	  return(ERROR);
+	  return(VISI_ERROR);
       }
       visi_sampleType  SumValue(int i,visi_timeType width){
 	if((i>=0)&&(i<size))
 	  return(values[i].SumValue(width));
         else
-	  return(ERROR);
+	  return(VISI_ERROR);
       }
 
       // returns true if histogram in element "which" contains invalid
@@ -456,7 +458,9 @@ class visi_DataGrid {
      }
      visi_DataGrid& operator= (const visi_DataGrid& v) { // copy assignment
         if (this != &v) {       // beware of self-assignment!
-          delete[] metrics;
+          unsigned int p;
+
+		  delete[] metrics;
 
           numMetrics = v.numMetrics;
           metrics = new Metric[numMetrics];
@@ -480,10 +484,10 @@ class visi_DataGrid {
           start_time = v.start_time;
           phase_handle = v.phase_handle;
 
-          for (unsigned int p=0; p < phases.size(); p++)
+          for (p=0; p < phases.size(); p++)
              delete phases[p];
           phases.resize(v.phases.size());
-          for (unsigned int p=0; p < phases.size(); p++) {
+          for (p=0; p < phases.size(); p++) {
              const PhaseInfo *src_phase = v.phases[p];
              phases[p] = new PhaseInfo(*src_phase); // copy-ctor for PhaseInfo
           }
@@ -562,14 +566,14 @@ class visi_DataGrid {
        if((i>=0)&&(i<numMetrics))
 	 return(data_values[i].AggregateValue(j)); 
        else
-	 return(ERROR);
+	 return(VISI_ERROR);
      }
 
      visi_sampleType  SumValue(int i,int j){
        if((i>=0)&&(i<numMetrics))
 	 return(data_values[i].SumValue(j,binWidth)); 
        else
-	 return(ERROR);
+	 return(VISI_ERROR);
      }
 
      void  Fold(visi_timeType width){
@@ -584,7 +588,7 @@ class visi_DataGrid {
 		  int bucket,
 		  visi_sampleType value){
 	if((metric < 0) || (metric >= numMetrics))
-	   return(ERROR_INT);
+	   return(VISI_ERROR_INT);
 	return(data_values[metric].AddValue(value,resource,bucket,numBins));
      }
 
@@ -597,7 +601,7 @@ class visi_DataGrid {
 
      int LastBucketFilled(int metric,int resource){
         if((metric < 0) || (metric >= numMetrics))
-	  return(ERROR_INT);
+	  return(VISI_ERROR_INT);
         return(data_values[metric].LastBucketFilled(resource));
      }
 

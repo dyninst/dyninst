@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.9  1999/03/13 15:24:06  pcroth
+ * Added support for building under Windows NT
+ *
  * Revision 1.8  1999/02/08 14:08:15  nash
  * - Fixes for error/warnings in egcs 1.1
  *
@@ -70,7 +73,7 @@
  *
  */
 
-#include "Vector.h"
+#include "util/h/Vector.h"
 
 template class vector<unsigned>;
 
@@ -85,12 +88,12 @@ template class vector<tvCell>;
 template class vector< vector<tvCell> >;
 
 #include "../../../paradyn/src/UIthread/minmax.C"
-template unsigned max(unsigned, unsigned);
-template float max(float, float);
-template void ipmax(unsigned&, unsigned);
-template void ipmin(int&, int);
-template int min(int, int);
-template int max(int, int);
+template unsigned max(const unsigned, const unsigned);
+template float max(const float, const float);
+template void ipmax(unsigned&, const unsigned);
+template void ipmin(int&, const int);
+template int min(const int, const int);
+template int max(const int, const int);
 
 #include "util/src/Dictionary.C"
 #include "paradyn/src/UIthread/pdLogo.h"

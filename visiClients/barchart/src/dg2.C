@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,9 +43,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.20  1997/09/24 19:31:22  tamches
-/* Tcl_GetFile() no longer used in tcl 8.0
+/* Revision 1.21  1999/03/13 15:23:52  pcroth
+/* Added support for building under Windows NT
 /*
+ * Revision 1.20  1997/09/24 19:31:22  tamches
+ * Tcl_GetFile() no longer used in tcl 8.0
+ *
  * Revision 1.19  1996/08/16 21:35:27  tamches
  * updated copyright for release 1.1
  *
@@ -75,6 +78,10 @@
 #include <stdlib.h> // exit()
 #include <iostream.h>
 
+#include "util/h/headers.h"
+#include "util/h/pdsocket.h"
+#include "util/h/pddesc.h"
+
 #include "tcl.h"
 #include "tk.h"
 #include "tkTools.h" // myTclEval()
@@ -83,8 +90,36 @@
 #include "visi/h/visualization.h"
 #include "barChartTcl.h"
 #include "barChart.h"
+#include "barChartUtil.h"
 
 void my_visi_callback(void*, int*, long unsigned int*) {
+
+#if defined(i386_unknown_nt4_0)
+#if READY
+	why are we being notified of input on stdin?
+// #else
+	PDSOCKET s = (PDSOCKET)_get_osfhandle(0);
+	FD_SET readset;
+
+	FD_ZERO( &readset );
+	FD_SET( s, &readset );
+
+	// blocking till input arrives - 
+	// if we are here, we should have input
+	// (but experiments show we don't)
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+	int ret = select( 0, &readset, NULL, NULL, &tv );
+	if( ret != 1 )
+	{
+		// we were notified incorrectly - return
+		return;
+	}
+
+#endif // READY
+#endif // defined(i386_unknown_nt4_0)
+
    if (visi_callback() == -1)
       exit(0);
 }
@@ -285,8 +320,8 @@ void (*UsersNewDataCallbackRoutine)(int firstBucket, int lastBucket);
 
 int Dg2_Init(Tcl_Interp *interp) {
    // initialize with the visi lib
-   int fd = visi_Init();
-   if (fd < 0) {
+   PDSOCKET visi_sock = visi_Init();
+   if (visi_sock == PDSOCKET_ERROR) {
       cerr << "Dg2_Init() -- could not initialize with the visi lib" << endl;
       exit(5);
    }
@@ -318,9 +353,12 @@ int Dg2_Init(Tcl_Interp *interp) {
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);
  
    // Arrange for my_visi_callback() to be called whenever data is waiting
-   // to be read off of descriptor "fd".
-   Tcl_CreateFileHandler(fd, TCL_READABLE, (Tk_FileProc *) my_visi_callback, 0);
-      // tcl 8.0 gets rid of the Tcl_File structure
+   // to be read from visi socket
+   Tcl_Channel visi_chan = Tcl_MakeTcpClientChannel( (PDDESC)visi_sock );
+   Tcl_CreateChannelHandler( visi_chan,
+							TCL_READABLE,
+							(Tcl_FileProc*)my_visi_callback,
+							0);
 
    return TCL_OK;
 }

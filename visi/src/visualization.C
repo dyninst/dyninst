@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#if !defined(i386_unknown_nt4_0)
 #include <stream.h> 
+#endif // !defined(i386_unknown_nt4_0)
+
 #include "visi/src/visualizationP.h"
 #include "visi/src/datagridP.h"
 #include "visi/src/visiTypesP.h"
@@ -53,7 +56,7 @@ static visi_DataGrid  visi_dataGrid;
 // trace data streams
 static visi_TraceData visi_traceData;
 static int            visi_LastBucketSent = -1;
-static int visi_fileDesc;
+static PDSOCKET visi_fileDesc;
 static int (*visi_fileDescCallbacks)();
 static int (*visi_eventCallbacks[EVENTSIZE])(int);
 static int visi_initDone = 0;
@@ -69,18 +72,24 @@ int visi_callback(){
 // and registers the visualization::mainLoop routine as 
 // callback on events on fileDesc[0]
 ///////////////////////////////////////////////////////////
-int visi_Init(){
+PDSOCKET visi_Init(){
 
 int i;
 
   visi_fileDescCallbacks = NULL;
-  visi_fileDesc = -1;
+  visi_fileDesc = INVALID_PDSOCKET;
   for(i=0;i<EVENTSIZE;i++){
     visi_eventCallbacks[i] = NULL;
   }
 
-  visi_vp = new visi_visualization(0);
-  visi_fileDesc = 0;
+#if !defined(i386_unknown_nt4_0)
+  PDSOCKET sock = 0;
+#else
+  PDSOCKET sock = _get_osfhandle(0);
+#endif
+
+  visi_vp = new visi_visualization(sock);
+  visi_fileDesc = sock;
   visi_fileDescCallbacks = visi_callback;
   visi_initDone = 1;
  
@@ -107,7 +116,7 @@ int visi_StartVisi(int argc,
    visi_vp->GetMetricResource(argv[1],(int)argv[2],0);
   else
    visi_vp->GetMetricResource("",0,0);
-  return(OK);
+  return(VISI_OK);
 
 }
 
@@ -146,9 +155,9 @@ int visi_RegistrationCallback(visi_msgTag event,
 
   if((event < EVENTSIZE)){
     visi_eventCallbacks[event] = callBack;
-    return(OK);
+    return(VISI_OK);
   }
-  return(ERROR_INT);
+  return(VISI_ERROR_INT);
 }
 
 ///////////////////////////////////////////////////////////

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,6 +43,9 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
+ * Revision 1.19  1999/03/13 15:24:15  pcroth
+ * Added support for building under Windows NT
+ *
  * Revision 1.18  1997/09/24 19:32:49  tamches
  * Tcl_GetFile() no longer used in tcl 8.0
  *
@@ -71,9 +74,14 @@
 
 #include <stdlib.h>
 #include <iostream.h>
-#include <tcl.h>
-#include <tk.h>
+
+#include "util/h/headers.h"
+#include "util/h/pdsocket.h"
+#include "util/h/pddesc.h"
 #include "visi/h/visualization.h"
+
+#include "tcl.h"
+#include "tk.h"
 
 extern Tcl_Interp *MainInterp;
 
@@ -409,8 +417,8 @@ int Dg_TclCommand(ClientData,
 }
 
 int Dg_Init(Tcl_Interp *interp) {
-   int fd=visi_Init();
-   if (fd < 0) {
+   PDSOCKET visi_sock=visi_Init();
+   if (visi_sock == INVALID_PDSOCKET) {
       cerr << "tclVisi: could not initialize visilib" << endl;
       exit(-1);
    }
@@ -427,11 +435,13 @@ int Dg_Init(Tcl_Interp *interp) {
   Tcl_CreateCommand(interp, "Dg", Dg_TclCommand, 
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);
  
-  // Arrange for my_visi_callback() to be called whenever data is waiting
-  // to be read off of descriptor "fd".
-  
-  Tcl_CreateFileHandler(fd, TK_READABLE, (Tk_FileProc *) my_visi_callback, 0);
-     // tcl 8.0 removes Tcl_File
+	// Arrange for my_visi_callback() to be called whenever data is waiting
+	// to be read off of descriptor "visi_sock".
+	Tcl_Channel visi_chan = Tcl_MakeTcpClientChannel( (PDDESC)visi_sock );
+	Tcl_CreateChannelHandler( visi_chan,
+								TCL_READABLE,
+								(Tcl_FileProc*)my_visi_callback,
+								0);
 
   return TCL_OK;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,9 @@
 
 /*
  * $Log: tvFocus.C,v $
+ * Revision 1.6  1999/03/13 15:24:07  pcroth
+ * Added support for building under Windows NT
+ *
  * Revision 1.5  1996/08/16 21:37:06  tamches
  * updated copyright for release 1.1
  *
@@ -61,15 +64,15 @@
  *
  */
 
-#include "Vector.h"
+#include "util/h/Vector.h"
 #include "tvFocus.h"
 
 tvFocus::tvFocus(unsigned iVisiLibId,
-		 const string &iLongName, XFontStruct *nameFontStruct) :
+		 const string &iLongName, Tk_Font nameFont) :
                                                    longName(iLongName) {
    visiLibId = iVisiLibId;
 
-   longNamePixWidth = XTextWidth(nameFontStruct, longName.string_of(),
+   longNamePixWidth = Tk_TextWidth(nameFont, longName.string_of(),
 				 longName.length());
    
    // Calculate the short name as follows:
@@ -86,6 +89,7 @@ tvFocus::tvFocus(unsigned iVisiLibId,
    else {
       // Step 1: split up into components; 1 per resource hierarchy
       vector<string> components;
+		unsigned componentlcv;
 
       const char *ptr = longName.string_of();
       while (*ptr != '\0') {
@@ -106,7 +110,7 @@ tvFocus::tvFocus(unsigned iVisiLibId,
 
       // Step 2: for each component, strip off all upto and including
       //         the last '/'
-      for (unsigned componentlcv=0; componentlcv < components.size(); componentlcv++) {
+      for (componentlcv=0; componentlcv < components.size(); componentlcv++) {
          const string &oldComponentString = components[componentlcv];
 
          char *ptr = strrchr(oldComponentString.string_of(), '/');
@@ -120,13 +124,13 @@ tvFocus::tvFocus(unsigned iVisiLibId,
 
       // Step 3: combine the components
       string theShortName;
-      for (unsigned componentlcv=0; componentlcv < components.size(); componentlcv++)
+      for (componentlcv=0; componentlcv < components.size(); componentlcv++)
          theShortName += components[componentlcv];
 
       // Step 4: pull it all together:
       this->shortName = theShortName;
    }
    
-   shortNamePixWidth = XTextWidth(nameFontStruct, shortName.string_of(),
+   shortNamePixWidth = Tk_TextWidth(nameFont, shortName.string_of(),
 				  shortName.length());
 }

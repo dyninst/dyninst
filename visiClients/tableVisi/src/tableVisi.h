@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.7  1999/03/13 15:24:05  pcroth
+ * Added support for building under Windows NT
+ *
  * Revision 1.6  1996/08/16 21:36:58  tamches
  * updated copyright for release 1.1
  *
@@ -69,8 +72,8 @@
 #ifndef _TABLE_VISI_H_
 #define _TABLE_VISI_H_
 
-#include "String.h"
-#include "Vector.h"
+#include "util/h/String.h"
+#include "util/h/Vector.h"
 #include "minmax.h"
 
 #include "tcl.h"
@@ -114,7 +117,14 @@ class tableVisi {
    int offset_x, offset_y; // <= 0
    int all_cells_width, all_cells_height; // # pixels needed in horiz, vert sb's
 
-   XFontStruct *metricNameFont, *metricUnitsFont, *focusNameFont, *cellFont;
+   Tk_Font	metricNameFont;
+   Tk_Font	metricUnitsFont;
+   Tk_Font	focusNameFont;
+   Tk_Font	cellFont;
+   Tk_FontMetrics	metricNameFontMetrics;
+   Tk_FontMetrics	metricUnitsFontMetrics;
+   Tk_FontMetrics	focusNameFontMetrics;
+   Tk_FontMetrics	cellFontMetrics;
    unsigned maxFocusNamePixWidth; // max of foci[].getNamePixWidth()
 
    XColor *lineColor; GC lineColorGC;
@@ -128,7 +138,7 @@ class tableVisi {
    void updateConversionString();
    void double2string(char *, double) const;
 
-   XFontStruct *myXLoadQueryFont(const string &fontName) const;
+   Tk_Font myTkGetFont(Tcl_Interp*, const string &fontName) const;
    XColor *myTkGetColor(Tcl_Interp *, const string &colorName) const;
    void resizeScrollbars(Tcl_Interp *);
    bool adjustHorizSBOffset(Tcl_Interp *interp);

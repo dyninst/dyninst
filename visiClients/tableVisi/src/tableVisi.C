@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.10  1999/03/13 15:24:04  pcroth
+ * Added support for building under Windows NT
+ *
  * Revision 1.9  1996/08/16 21:36:56  tamches
  * updated copyright for release 1.1
  *
@@ -72,13 +75,14 @@
 
 #include <iostream.h>
 
+#include "util/h/headers.h"
 #include "minmax.h"
 #include "tkTools.h"
 #include "tableVisi.h"
 
 /* ************************************************************* */
 
-extern "C" {bool isnan(double);}
+extern "C" {int isnan(double);}
 
 void tableVisi::updateConversionString() {
    sprintf(conversionString, "%%.%dg", numSigFigs);
@@ -152,8 +156,9 @@ void tableVisi::double2string(char *buffer, double val) const {
 
 /* ************************************************************* */
 
-XFontStruct *tableVisi::myXLoadQueryFont(const string &fontName) const {
-   XFontStruct *result = XLoadQueryFont(Tk_Display(theTkWindow),
+Tk_Font tableVisi::myTkGetFont(Tcl_Interp* interp, const string &fontName) const {
+   Tk_Font result = Tk_GetFont(interp,
+					theTkWindow,
 					fontName.string_of());
    if (result == NULL) {
       cerr << "could not find font " << fontName << endl;
@@ -195,7 +200,7 @@ tableVisi::tableVisi(Tcl_Interp *interp,
    theDisplay = Tk_Display(theTkWindow);
 
    offscreenPixmap = (Pixmap)NULL;
-      // sorry, can't XCreatePixmap() until the window becomes mapped.
+      // sorry, can't create a pixmap until the window becomes mapped.
 
    backgroundColor = myTkGetColor(interp, backgroundColorName);
    highlightedBackgroundColor = myTkGetColor(interp, highlightedBackgroundColorName);
@@ -203,10 +208,18 @@ tableVisi::tableVisi(Tcl_Interp *interp,
    offset_x = offset_y = 0;
    all_cells_width = all_cells_height = 0;
 
-   metricNameFont = myXLoadQueryFont(metricFontName);
-   metricUnitsFont = myXLoadQueryFont(metricUnitsFontName);
-   focusNameFont = myXLoadQueryFont(focusFontName);
-   cellFont = myXLoadQueryFont(cellFontName);
+   // access fonts and font metrics
+   metricNameFont = myTkGetFont(interp, metricFontName);
+   Tk_GetFontMetrics( metricNameFont, &metricNameFontMetrics );
+
+   metricUnitsFont = myTkGetFont(interp, metricUnitsFontName);
+   Tk_GetFontMetrics( metricUnitsFont, &metricUnitsFontMetrics );
+
+   focusNameFont = myTkGetFont(interp, focusFontName);
+   Tk_GetFontMetrics( focusNameFont, &focusNameFontMetrics );
+
+   cellFont = myTkGetFont(interp, cellFontName);
+   Tk_GetFontMetrics( cellFont, &cellFontMetrics );
 
    focusLongNameMode = true;
    numSigFigs = iSigFigs;
@@ -247,10 +260,10 @@ tableVisi::~tableVisi() {
    Tk_FreeColor(backgroundColor);
    Tk_FreeColor(highlightedBackgroundColor);
 
-   XFreeFont(theDisplay, cellFont);
-   XFreeFont(theDisplay, focusNameFont);
-   XFreeFont(theDisplay, metricUnitsFont);
-   XFreeFont(theDisplay, metricNameFont);
+   Tk_FreeFont(cellFont);
+   Tk_FreeFont(focusNameFont);
+   Tk_FreeFont(metricUnitsFont);
+   Tk_FreeFont(metricNameFont);
 
    if (!offscreenPixmap)
       // the offscreen pixmap was never allocated(!)...so, we never
@@ -265,7 +278,7 @@ tableVisi::~tableVisi() {
    XFreeGC(theDisplay, backgroundGC);
    XFreeGC(theDisplay, highlightedBackgroundGC);
 
-   XFreePixmap(theDisplay, offscreenPixmap);
+   Tk_FreePixmap(theDisplay, offscreenPixmap);
 }
 
 bool tableVisi::tryFirst() {
@@ -282,7 +295,7 @@ bool tableVisi::tryFirst() {
       return false; // nuts; not ready yet
 
    // Ready to allocate graphical structures now!
-   offscreenPixmap = XCreatePixmap(Tk_Display(theTkWindow),
+   offscreenPixmap = Tk_GetPixmap(Tk_Display(theTkWindow),
 				   Tk_WindowId(theTkWindow),
 				   1, 1, // dummy width, height
 				   Tk_Depth(theTkWindow));
@@ -301,22 +314,22 @@ bool tableVisi::tryFirst() {
 			   GCForeground, &values);
 
    values.foreground = metricNameColor->pixel;
-   values.font = metricNameFont->fid;
+   values.font = Tk_FontId( metricNameFont );
    metricNameGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
 			    GCForeground | GCFont, &values);
 
    values.foreground = metricUnitsColor->pixel;
-   values.font = metricUnitsFont->fid;
+   values.font = Tk_FontId( metricUnitsFont );
    metricUnitsGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
 			     GCForeground | GCFont, &values);
 
    values.foreground = focusNameColor->pixel;
-   values.font = focusNameFont->fid;
+   values.font = Tk_FontId( focusNameFont );
    focusNameGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
 			   GCForeground | GCFont, &values);
 
    values.foreground = cellColor->pixel;
-   values.font = cellFont->fid;
+   values.font = Tk_FontId( cellFont );
    cellGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
 		      GCForeground | GCFont, &values);
 
@@ -355,9 +368,9 @@ void tableVisi::resize(Tcl_Interp *interp) {
    // does not redraw.  Does things like resize the offscreen pixmap
    if (tryFirst()) {
       if (offscreenPixmap) {
-         XFreePixmap(Tk_Display(theTkWindow), offscreenPixmap);
+         Tk_FreePixmap(Tk_Display(theTkWindow), offscreenPixmap);
 
-         offscreenPixmap = XCreatePixmap(Tk_Display(theTkWindow),
+         offscreenPixmap = Tk_GetPixmap(Tk_Display(theTkWindow),
 					 Tk_WindowId(theTkWindow),
 					 Tk_Width(theTkWindow), Tk_Height(theTkWindow),
 					 Tk_Depth(theTkWindow));
@@ -467,10 +480,12 @@ void tableVisi::drawMetricNames(Drawable theDrawable) const {
    clipRect.width = Tk_Width(theTkWindow) - clipRect.x + 1;
    clipRect.height = Tk_Height(theTkWindow);
 
+#if READY
    XSetClipRectangles(Tk_Display(theTkWindow), metricNameGC,
 		      0, 0, &clipRect, 1, YXBanded);
    XSetClipRectangles(Tk_Display(theTkWindow), metricUnitsGC,
 		      0, 0, &clipRect, 1, YXBanded);
+#endif // READY
 
    for (unsigned metriclcv=0; metriclcv < indirectMetrics.size(); metriclcv++) {
       if (curr_x > maxVisibleX)
@@ -492,18 +507,20 @@ void tableVisi::drawMetricNames(Drawable theDrawable) const {
       // draw the metric name:
       int metric_name_left = curr_middle_x - theMetric.getNamePixWidth() / 2;
       const string &metricNameStr = theMetric.getName();
-      XDrawString(Tk_Display(theTkWindow), theDrawable,
+      Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  metricNameGC,
-		  metric_name_left, metric_name_baseline,
-		  metricNameStr.string_of(), metricNameStr.length());
+		  metricNameFont,
+		  metricNameStr.string_of(), metricNameStr.length(),
+		  metric_name_left, metric_name_baseline);
 
       // draw the metric units:
       int metric_units_left = curr_middle_x - theMetric.getUnitsPixWidth() / 2;
       const string &metricUnitsNameStr = theMetric.getUnitsName();
-      XDrawString(Tk_Display(theTkWindow), theDrawable,
+      Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  metricUnitsGC,
-		  metric_units_left, metric_units_baseline,
-		  metricUnitsNameStr.string_of(), metricUnitsNameStr.length());
+		  metricUnitsFont,
+		  metricUnitsNameStr.string_of(), metricUnitsNameStr.length(),
+		  metric_units_left, metric_units_baseline);
 
       curr_x = next_x;
    }
@@ -525,17 +542,17 @@ void tableVisi::drawMetricVertLine(Drawable theDrawable, int x) const {
 }
 
 unsigned tableVisi::getMetricAreaPixHeight() const {
-   return 3 + metricNameFont->ascent + metricNameFont->descent + 3 +
-              metricUnitsFont->ascent + metricUnitsFont->descent + 3;
+   return 3 + metricNameFontMetrics.linespace + 3 +
+              metricUnitsFontMetrics.linespace + 3;
 }
 
 unsigned tableVisi::getMetricNameBaseline() const {
-   return 3 + metricNameFont->ascent - 1;
+   return 3 + metricNameFontMetrics.ascent - 1;
 }
 
 unsigned tableVisi::getMetricUnitsBaseline() const {
-   return 3 + metricNameFont->ascent + metricNameFont->descent + 3 +
-              metricUnitsFont->ascent - 1;
+   return 3 + metricNameFontMetrics.linespace + 3 +
+              metricUnitsFontMetrics.ascent - 1;
 }
 
 bool tableVisi::xpix2col(int x, unsigned &theCol) const {
@@ -591,8 +608,10 @@ void tableVisi::drawFocusNames(Drawable theDrawable) const {
    clipRect.width = Tk_Width(theTkWindow);
    clipRect.height = Tk_Height(theTkWindow) - clipRect.y + 1;
 
+#if READY
    XSetClipRectangles(Tk_Display(theTkWindow), focusNameGC,
 		      0, 0, &clipRect, 1, YXBanded);
+#endif // READY
 
    for (unsigned focuslcv = 0; focuslcv < indirectFoci.size(); focuslcv++) {
       if (curr_y > maxVisibleY)
@@ -613,11 +632,11 @@ void tableVisi::drawFocusNames(Drawable theDrawable) const {
       const string &theString = focusLongNameMode ? theFocus.getLongName() :
                                                     theFocus.getShortName();
 
-      XDrawString(Tk_Display(theTkWindow), theDrawable,
+      Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  focusNameGC,
-		  getHorizPixBeforeFocusName(),
-		  curr_y_baseline,
-		  theString.string_of(), theString.length());
+		  focusNameFont,
+		  theString.string_of(), theString.length(),
+		  getHorizPixBeforeFocusName(), curr_y_baseline);
 
       curr_y = next_y;
    }
@@ -638,11 +657,11 @@ void tableVisi::drawFocusHorizLine(Drawable theDrawable, int y) const {
 }
 
 unsigned tableVisi::getFocusLinePixHeight() const {
-   return 2 + focusNameFont->ascent + focusNameFont->descent + 2;
+   return 2 + focusNameFontMetrics.linespace + 2;
 }
 
 unsigned tableVisi::getVertPixFocusTop2Baseline() const {
-   return 2 + focusNameFont->ascent;
+   return 2 + focusNameFontMetrics.ascent;
 }
 
 unsigned tableVisi::getFocusAreaPixWidth() const {
@@ -696,9 +715,11 @@ void tableVisi::drawCells(Drawable theDrawable) const {
    clipRect.width = Tk_Width(theTkWindow) - clipRect.x + 1;
    clipRect.height = Tk_Height(theTkWindow) - clipRect.y + 1;
 
+#if READY
    XSetClipRectangles(Tk_Display(theTkWindow), cellGC,
 		      0, 0, &clipRect, 1, YXBanded);
-   
+#endif // READY
+
    for (unsigned metriclcv = 0; metriclcv < indirectMetrics.size(); metriclcv++) {
       if (curr_x > maxVisibleX)
          break;
@@ -752,20 +773,21 @@ void tableVisi::drawCells1Col(Drawable theDrawable, int middle_x, int top_y,
       double2string(buffer, theCell.getData());
 
       int buffer_len = strlen(buffer);
-      int string_pix_width = XTextWidth(cellFont, buffer, buffer_len);
+      int string_pix_width = Tk_TextWidth(cellFont, buffer, buffer_len);
  
-      XDrawString(Tk_Display(theTkWindow), theDrawable,
+      Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  cellGC,
+		  cellFont,
+		  buffer, buffer_len,
 		  middle_x - string_pix_width / 2,
-		  curr_y + getVertPixCellTop2Baseline(),
-		  buffer, buffer_len);
+		  curr_y + getVertPixCellTop2Baseline());
 
       curr_y = next_y;
    }
 }
 
 unsigned tableVisi::getVertPixCellTop2Baseline() const {
-   return 2 + cellFont->ascent;
+   return 2 + cellFontMetrics.ascent;
 }
 
 /* *************************************************************** */
@@ -800,8 +822,11 @@ void tableVisi::clearFoci(Tcl_Interp *interp) {
 void tableVisi::addMetric(unsigned iVisiLibMetId,
 			  const string &metricName, const string &metricUnits) {
    tvMetric newTvMetric(iVisiLibMetId,
-			metricName, metricUnits, metricNameFont, metricUnitsFont,
-			cellFont, numSigFigs);
+			metricName, metricUnits,
+			metricNameFont,
+			metricUnitsFont,
+			cellFont,
+			numSigFigs);
    metrics += newTvMetric;
    indirectMetrics += (metrics.size()-1);
    cells += vector<tvCell>();
@@ -841,6 +866,8 @@ void tableVisi::addFocus(unsigned iVisiLibFocusId, const string &focusName) {
 }
 
 void tableVisi::deleteMetric(unsigned theColumn) {
+	unsigned metriclcv;
+
    // fry selection, if necessary
    if (theSelection == cell || theSelection == colOnly)
       if (selectedCol == theColumn)
@@ -852,20 +879,20 @@ void tableVisi::deleteMetric(unsigned theColumn) {
    all_cells_width -= metrics[actualMetricIndex].getColPixWidth();
 
    unsigned newNumMetrics = indirectMetrics.size()-1;
-   for (unsigned metriclcv=theColumn; metriclcv < newNumMetrics; metriclcv++)
+   for (metriclcv=theColumn; metriclcv < newNumMetrics; metriclcv++)
       indirectMetrics[metriclcv] = indirectMetrics[metriclcv+1];
    indirectMetrics.resize(newNumMetrics);
 
-   for (unsigned metriclcv=actualMetricIndex; metriclcv < newNumMetrics; metriclcv++)
+   for (metriclcv=actualMetricIndex; metriclcv < newNumMetrics; metriclcv++)
       metrics[metriclcv] = metrics[metriclcv+1];
    metrics.resize(newNumMetrics);
 
-   for (unsigned metriclcv=actualMetricIndex; metriclcv < newNumMetrics; metriclcv++)
+   for (metriclcv=actualMetricIndex; metriclcv < newNumMetrics; metriclcv++)
       cells[metriclcv] = cells[metriclcv+1];
    cells.resize(newNumMetrics);
 
    // now look for items whose index need to be 1 lower
-   for (unsigned metriclcv=0; metriclcv < newNumMetrics; metriclcv++)
+   for (metriclcv=0; metriclcv < newNumMetrics; metriclcv++)
       if (indirectMetrics[metriclcv] > actualMetricIndex)
          indirectMetrics[metriclcv]--;
       else if (indirectMetrics[metriclcv] == actualMetricIndex)
@@ -879,13 +906,16 @@ void tableVisi::deleteMetric(unsigned theColumn) {
    // a little sanity checking
    assert(indirectMetrics.size() == metrics.size());
    assert(cells.size() == metrics.size());
-   for (unsigned metriclcv=0; metriclcv < newNumMetrics; metriclcv++)
+   for (metriclcv=0; metriclcv < newNumMetrics; metriclcv++)
       assert(indirectMetrics[metriclcv] < newNumMetrics);
    if (theSelection == cell || theSelection == colOnly)
       assert(selectedCol < newNumMetrics);
 }
 
 void tableVisi::deleteFocus(unsigned theRow) {
+	unsigned focuslcv;
+	unsigned metriclcv;
+
    // A shameless carbon copy of the routine "deleteMetric"
 
    // fry selection, if necessary
@@ -899,25 +929,25 @@ void tableVisi::deleteFocus(unsigned theRow) {
    all_cells_height -= getFocusLinePixHeight();
    
    unsigned newNumFoci = indirectFoci.size()-1;
-   for (unsigned focuslcv=theRow; focuslcv < newNumFoci; focuslcv++)
+   for (focuslcv=theRow; focuslcv < newNumFoci; focuslcv++)
       indirectFoci[focuslcv] = indirectFoci[focuslcv+1];
    indirectFoci.resize(newNumFoci);
 
-   for (unsigned focuslcv=actualFocusIndex; focuslcv < newNumFoci; focuslcv++)
+   for (focuslcv=actualFocusIndex; focuslcv < newNumFoci; focuslcv++)
       foci[focuslcv] = foci[focuslcv+1];
    foci.resize(newNumFoci);
 
-   for (unsigned metriclcv=0; metriclcv < metrics.size(); metriclcv++) {
+   for (metriclcv=0; metriclcv < metrics.size(); metriclcv++) {
       vector<tvCell> &theColumn = cells[metriclcv];
 
-      for (unsigned focuslcv=actualFocusIndex; focuslcv < newNumFoci; focuslcv++)
+      for (focuslcv=actualFocusIndex; focuslcv < newNumFoci; focuslcv++)
          theColumn[focuslcv] = theColumn[focuslcv+1];
 
       theColumn.resize(newNumFoci);
    }
 
    // now look for items whose index need to be 1 lower
-   for (unsigned focuslcv=0; focuslcv < newNumFoci; focuslcv++)
+   for (focuslcv=0; focuslcv < newNumFoci; focuslcv++)
       if (indirectFoci[focuslcv] > actualFocusIndex)
          indirectFoci[focuslcv]--;
       else if (indirectFoci[focuslcv] == actualFocusIndex)
@@ -930,14 +960,14 @@ void tableVisi::deleteFocus(unsigned theRow) {
 
    // a little sanity checking
    assert(indirectFoci.size() == foci.size());
-   for (unsigned focuslcv = 0; focuslcv < newNumFoci; focuslcv++)
+   for (focuslcv = 0; focuslcv < newNumFoci; focuslcv++)
       assert(indirectFoci[focuslcv] < newNumFoci);
    if (theSelection == cell || theSelection == rowOnly)
       assert(selectedRow < newNumFoci);
 
    // Finish updating some internal gfx vrbles:
    maxFocusNamePixWidth = 0;
-   for (unsigned focuslcv=0; focuslcv < newNumFoci; focuslcv++)
+   for (focuslcv=0; focuslcv < newNumFoci; focuslcv++)
       if (focusLongNameMode)
          ipmax(maxFocusNamePixWidth, foci[focuslcv].getLongNamePixWidth());
       else

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,11 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.12 1998/04/06 04:27:14 wylie Exp $
+// $Id: main.C,v 1.13 1999/03/13 15:24:04 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
 #include <iostream.h>
+
+#include "util/h/headers.h"
+#include "util/h/pdsocket.h"
+#include "util/h/pddesc.h"
+#include "visi/h/visualization.h"
+
 #include "tcl.h"
 #include "tk.h"
 #include "tkTools.h"
@@ -51,7 +57,6 @@
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
 
-#include "visi/h/visualization.h"
 #include "dg2.h"
 
 #include "tableVisi.h"
@@ -87,7 +92,9 @@ int main(int argc, char **argv) {
    if (argc==2 && 0==strcmp(argv[1], "--debug")) {
       xsynch_flag = true;
       cout << "tableVisi at sigpause...pid=" << getpid() << endl;
+#if READY
       sigpause(0);
+#endif // READY
       argc = 1;
    }
 
@@ -101,10 +108,12 @@ int main(int argc, char **argv) {
    mainInterp = Tcl_CreateInterp();
    assert(mainInterp);
 
+#if READY
    if (xsynch_flag) {
       cout << "xsynching..." << endl;
       XSynchronize(Tk_Display(Tk_MainWindow(mainInterp)), 1);
    }
+#endif // READY
 
    if (TCL_OK != Tcl_Init(mainInterp))
       tclpanic(mainInterp, "Could not Tcl_Init");
@@ -115,8 +124,8 @@ int main(int argc, char **argv) {
    if (TCL_OK != Dg2_Init(mainInterp))
       tclpanic(mainInterp, "Could not Dg2_Init");
 
-   int fd = visi_Init();
-   if (fd < 0)
+   PDSOCKET visi_sock = visi_Init();
+   if (visi_sock < 0)
       panic("failed to initialize w/ visi lib");
 
    Tcl_SetVar(mainInterp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
@@ -133,8 +142,12 @@ int main(int argc, char **argv) {
 //   if (visi_RegistrationCallback(PHASEDATA, Dg2PhaseDataCallback) != 0)
 //      panic("Dg2_Init() -- couldn't install PHASEINFO callback");
 
-   // new with tcl 7.5: the Tcl_File type instead of int is passed to Tk_CreateFileHandler
-   Tcl_CreateFileHandler(fd, TCL_READABLE, visiFdReadableHandler, 0);
+	// install a handler to notify us when there is data to be read
+	Tcl_Channel visi_chan = Tcl_MakeTcpClientChannel( (PDDESC)visi_sock );
+	Tcl_CreateChannelHandler( visi_chan,
+								TCL_READABLE,
+								(Tcl_FileProc*)visiFdReadableHandler,
+								0);
 
    // Krishna's tcl2c stuff:
    extern int initialize_tcl_sources(Tcl_Interp *);
@@ -172,4 +185,6 @@ int main(int argc, char **argv) {
    Tk_MainLoop(); // returns when all tk windows are closed
 
    delete theTableVisi;
+
+   return 0;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,9 @@
 
 /*
  * $Log: tvMetric.C,v $
+ * Revision 1.5  1999/03/13 15:24:07  pcroth
+ * Added support for building under Windows NT
+ *
  * Revision 1.4  1996/08/16 21:37:07  tamches
  * updated copyright for release 1.1
  *
@@ -65,26 +68,26 @@
 
 tvMetric::tvMetric(unsigned iVisiLibId,
 		   const string &iName, const string &iUnitsName,
-		   XFontStruct *nameFontStruct, XFontStruct *unitsNameFontStruct,
-		   XFontStruct *valuesFontStruct,
+		   Tk_Font nameFont, Tk_Font unitsNameFont,
+		   Tk_Font valuesFont,
 		   unsigned iNumSigFigs) :
 		      name(iName), unitsName(iUnitsName) {
    visiLibId = iVisiLibId;
-   namePixWidth = XTextWidth(nameFontStruct, name.string_of(), name.length());
-   unitsPixWidth = XTextWidth(unitsNameFontStruct, iUnitsName.string_of(),
+   namePixWidth = Tk_TextWidth(nameFont, name.string_of(), name.length());
+   unitsPixWidth = Tk_TextWidth(unitsNameFont, iUnitsName.string_of(),
 			      iUnitsName.length());
-   changeNumSigFigs(iNumSigFigs, valuesFontStruct); // updates valuesPixWidth, too
+   changeNumSigFigs(iNumSigFigs, valuesFont); // updates valuesPixWidth, too
 }
 
-void tvMetric::changeNumSigFigs(unsigned newNumSigFigs, XFontStruct *valuesFontStruct) {
+void tvMetric::changeNumSigFigs(unsigned newNumSigFigs, Tk_Font valuesFont) {
    numSigFigs = newNumSigFigs;
    
    // need to recalculate valuesPixWidth
 
    // for values, include a decimal point and numSigFigs characters.
-   valuesPixWidth = XTextWidth(valuesFontStruct, ".", 1);
-   valuesPixWidth += numSigFigs * XTextWidth(valuesFontStruct, "0", 1); // a typical digit
-   valuesPixWidth += XTextWidth(valuesFontStruct, "0", 1);
+   valuesPixWidth = Tk_TextWidth(valuesFont, ".", 1);
+   valuesPixWidth += numSigFigs * Tk_TextWidth(valuesFont, "0", 1); // a typical digit
+   valuesPixWidth += Tk_TextWidth(valuesFont, "0", 1);
       // ... and a possible leading 0 not counted against the num of sig figs
 }
 

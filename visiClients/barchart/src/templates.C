@@ -41,12 +41,15 @@
 
 // templates.C
 
+#include "pdLogo.h"
+#include "util/h/Vector.h"
+#include "util/h/String.h"
+#include "util/src/Dictionary.C"
 #include <X11/Xlib.h> // XColor
 
 #include "minmax.C"
-template float max(float, float);
+template float max(const float, const float);
 
-#include "Vector.h"
 template class vector<unsigned>;
 template class vector< vector<double> >;
 template class vector< vector<int> >;
@@ -55,9 +58,6 @@ template class vector<bool>;
 template class vector<double>;
 template class vector<int>;
 
-#include "pdLogo.h"
-#include "String.h"
-#include "util/src/Dictionary.C"
 template class dictionary_hash<string, pdLogo *>;
 template class vector<dictionary_hash<string, pdLogo *>::entry>;
 template class vector<string>;

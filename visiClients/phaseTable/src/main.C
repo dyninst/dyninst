@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,10 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.5 1998/04/06 04:27:12 wylie Exp $
+// $Id: main.C,v 1.6 1999/03/13 15:23:58 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
+
+#include "util/h/headers.h"
 
 #include "tcl.h"
 #include "tk.h"
@@ -99,4 +101,6 @@ int main(int, char **) {
       tclpanic(MainInterp, "PhaseTable: app_init() failed");
 
    Tk_MainLoop(); // returns when all tk windows are closed
+
+   return 0;
 }

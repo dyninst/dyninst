@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -48,9 +48,12 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.22  1996/08/16 21:35:19  tamches
-/* updated copyright for release 1.1
+/* Revision 1.23  1999/03/13 15:23:50  pcroth
+/* Added support for building under Windows NT
 /*
+ * Revision 1.22  1996/08/16 21:35:19  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.21  1996/05/15 18:02:12  tamches
  * added setMetricNewMaxLL; adjusted setMetricNewMax accordingly
  *
@@ -96,14 +99,18 @@
 #include <iostream.h>
 #include <math.h>
 
+#include "util/h/headers.h"
+#include "util/h/pdsocket.h"
+#include "visi/h/visualization.h"
+
+#include "barChart.h"
+#include "barChartUtil.h"
+
 #include "tcl.h"
 #include "tk.h"
 
-#include "visi/h/visualization.h"
 #include "dg2.h"
 #include "barChartTcl.h"
-
-#include "barChart.h"
 
  // main data structure; holds bar information.  Does not
  // hold resources axis or metrics axis information (or contents), because
@@ -176,7 +183,7 @@ BarChart::~BarChart() {
    for (unsigned metriclcv=0; metriclcv<metricColors.size(); metriclcv++)
       Tk_FreeColor(metricColors[metriclcv]);
 
-   XFreePixmap(display, doubleBufferPixmap);
+   Tk_FreePixmap(display, doubleBufferPixmap);
 }
 
 void BarChart::changeDoubleBuffering() {
@@ -187,12 +194,12 @@ void BarChart::changeDoubleBuffering() {
       return;
 
    // erase offscreen pixmap and reallocate with new size
-   XFreePixmap(display, doubleBufferPixmap);
+   Tk_FreePixmap(display, doubleBufferPixmap);
 
-   doubleBufferPixmap = XCreatePixmap(display, Tk_WindowId(theWindow),
-				      Tk_Width(theWindow),
-				      Tk_Height(theWindow),
-				      Tk_Depth(theWindow));
+   doubleBufferPixmap = Tk_GetPixmap(display, Tk_WindowId(theWindow),
+						Tk_Width(theWindow),
+						Tk_Height(theWindow),
+						Tk_Depth(theWindow));
          // note that we use Tk_Width and Tk_Height instead of width and height.
          // these values differ by (borderPix) in each dimension.
 }
@@ -221,7 +228,7 @@ bool BarChart::TryFirstGoodWid() {
       panic("BarChart constructor: XCreateGC() failed!");
 
    // initialize offscreen pixmap
-   doubleBufferPixmap = XCreatePixmap(display, Tk_WindowId(theWindow),
+   doubleBufferPixmap = Tk_GetPixmap(display, Tk_WindowId(theWindow),
 				      1, 1, 1); // temporary
    changeDoubleBuffering();
 					 
@@ -318,7 +325,7 @@ void BarChart::rethinkMetricMaxValues() {
       char buffer[64];
       sprintf(buffer, "%d", metriclcv);
       char *str = Tcl_GetVar2(MainInterp, "metricMaxValues",
-			      visi_MetricLabel(metriclcv), // units
+			      (char*)visi_MetricLabel(metriclcv), // units
 			      TCL_GLOBAL_ONLY);
       if (str == NULL)
          panic("BarChart::RethinkMetricMaxValues() -- could not read 'metricMaxValues'");
