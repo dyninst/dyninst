@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.26 2004/03/12 20:07:56 rchen Exp $
+// $Id: arch-ia64.C,v 1.27 2004/03/15 18:46:00 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -55,8 +55,13 @@
 #define INSTRUCTION1_HIGH_MASK	0x00000000007FFFFF	/* bits 00 - 20 */
 #define INSTRUCTION2_MASK	0xFFFFFFFFFF800000	/* bits 21 - 63 */
 
-#define MEMORY_X3_MASK		0x0700000000000000	/* bits 33 - 35 */
-#define MEMORY_R1_MASK		0x0000000FE0000000	/* bits 06 - 12 */
+#define BITS_30_35		0x07E0000000000000	/* bits 30 - 35 */
+#define BITS_33_35		0x0700000000000000	/* bits 33 - 35 */
+#define BITS_27_32		0x00FC000000000000	/* bits 27 - 32 */
+#define BITS_06_12		0x0000000FE0000000	/* bits 06 - 12 */
+
+#define BIT_36			0x0800000000000000	/* bit 36 */
+#define BIT_27			0x0004000000000000	/* bit 27 */
 
 #define ALLOC_SOR		0x003C000000000000	/* bits 27 - 30 */
 #define ALLOC_SOL		0x0003F80000000000	/* bits 20 - 26 */
@@ -96,12 +101,6 @@
 #define RIGHT_IMM41		0x7FFFFFFFFFC00000	/* bits 22 - 62 */
 #define RIGHT_IMM20		0x00000000000FFFFF	/* bits 00 - 19 */
 #define RIGHT_IMM39		0x07FFFFFFFFF00000	/* bits 20 - 58 */
-
-/* for type() */
-#define X3_MASK	MEMORY_X3_MASK
-#define X6_MASK	IBRANCH_X6
-#define M_MASK	MOVL_I
-#define X_MASK	0x0004000000000000
 
 IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3] = { 
 	IA64_instruction::M, IA64_instruction::I, IA64_instruction::I,
@@ -177,73 +176,104 @@ IA64_instruction::insnType IA64_instruction::getType() const {
 	unitType iUnitType = getUnitType();
 
 	uint8_t opCode = (instruction & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
-	uint8_t x6 = (instruction & X6_MASK) >> (ALIGN_RIGHT_SHIFT + 27); // 27 - 32
-	uint8_t x3 = (instruction & X3_MASK) >> (ALIGN_RIGHT_SHIFT + 33); // 33 - 35
-	uint8_t m = (instruction & M_MASK) >> (ALIGN_RIGHT_SHIFT + 36); // 36
-	uint8_t x = (instruction & X_MASK) >> (ALIGN_RIGHT_SHIFT + 27); // 27
 	switch( iUnitType ) {
-		case M:
-			if(	( opCode == 0x01 && x3 == 0x01 ) || 
-				( opCode == 0x01 && x3 == 0x03 ) ||
-				( opCode == 0x00 && x3 >= 0x04 && x3 <= 0x07 ) ) { return CHECK; }
-			else if( opCode == 0x01 && x3 == 0x06 ) { return ALLOC; }
-			else if( opCode == 0x04 && ( m == 0x00 || m == 0x01 ) && x == 0x00 && 
-					 ( ( x6 <= 0x17 ) || x6 == 0x1b || ( x6 >= 0x20 && x6 <= 0x2b ) ) ) { return INTEGER_LOAD; }
-			else if( opCode == 0x05 && 
-					 ( ( x6 <= 0x17 ) || x6 == 0x1b || ( x6 >= 0x20 && x6 <= 0x2b ) ) ) { return INTEGER_LOAD; }
-			else if( opCode == 0x04 && m == 0 && x == 0 && ( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3b ) ) { return INTEGER_STORE; }
-			else if( opCode == 0x05 && ( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3b ) ) { return INTEGER_STORE; }
-			else if( opCode == 0x06 && ( m == 0 || m == 1 ) && x == 0 && 
-					( ( x6 <= 0x0F ) || x6 == 0x1b || ( x6 >= 0x20 && x6 <= 0x27 ) ) ) { return FP_LOAD; }
-			else if( opCode == 0x07 && 
-					( ( x6 <= 0x0F ) || x6 == 0x1b || ( x6 >= 0x20 && x6 <= 0x27 ) ) ) { return FP_LOAD; }
-			else if( opCode == 0x06 && m == 0 && x == 0 && ( ( x6 >= 0x30 && x6 <= 0x33 ) || x6 == 0x3b ) ) { return FP_STORE; }
-			else if( opCode == 0x07 && ( ( x6 >= 0x30 && x6 <= 0x33 ) || x6 == 0x3b ) ) { return FP_STORE; }
-			else if( opCode == 0x06 && x == 1 && ( m == 0x00 || m == 0x01 ) &&
-					( x6 == 0x01 || x6 == 0x02 || x6 == 0x03 || x6 == 0x05 || x6 == 0x06 || x6 == 0x07 || 
-					  x6 == 0x09 || x6 == 0x0A || x6 == 0x0B || x6 == 0x0D || x6 == 0x0E || x6 == 0x0F ||
-					  x6 == 0x21 || x6 == 0x22 || x6 == 0x23 || x6 == 0x25 || x6 == 0x26 || x6 == 0x27 ) ) { return FP_LOAD; }
-			else { return OTHER; }
-			break;
+		case M: {
+			/* Note that we do NOT recognize advance load instructions (see also isLoadOrStore()),
+			   though this can be added without too much trouble. */
+			uint8_t x6 = (instruction & BITS_30_35) >> (ALIGN_RIGHT_SHIFT + 30);
+			uint8_t x3 = (instruction & BITS_33_35) >> (ALIGN_RIGHT_SHIFT + 33);
+			uint8_t x = (instruction & BIT_27) >> (ALIGN_RIGHT_SHIFT + 27);
+		
+			switch( opCode ) {
+				case 0x04:
+					if( x == 0x00 && ( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3B ) ) { return INTEGER_STORE; }
+					else if( x == 0x00 && ( ( x6 <= 0x17 ) || x6 == 0x1B || ( x6 >= 0x20 && x6 <= 0x2B ) ) ) { return INTEGER_LOAD; }
+					else { return OTHER; }
+					break;
+					
+				case 0x05:
+					if( ( x6 <= 0x17 ) || x6 == 0x1B || ( x6 >= 0x20 && x6 <= 0x2B ) ) { return INTEGER_LOAD; }
+					else if( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3B ) { return INTEGER_STORE; }
+					break;
+					
+				case 0x06:
+					if ( x == 0x00 && ( ( x6 <= 0x0F ) || x6 == 0x1B || ( x6 >= 0x20 && x6 <= 0x27 ) ) ) { return FP_LOAD; }
+					else if( x == 0x00 && ( ( x6 >= 0x30 && x6 <= 0x32 ) || x6 == 0x3B ) ) { return FP_STORE; }
+					else if( x == 0x01 && ( ( x6 >= 0x01 && x6 <= 0x27 ) && x6 != 0x04 && x6 != 0x08 && x6 != 0x0C && x6 != 0x20 && x6 != 0x24 ) ) { 
+						if( x6 && 0x3 == 0x01 ) { return INTEGER_PAIR_LOAD; } else { return FP_PAIR_LOAD; }
+						}
+					else if( x == 0x00 && ( x6 == 0x2C || x6 == 0x2D || x6 == 0x2E || x6 == 0x2F ) ) { return PREFETCH; }
+					else { return OTHER; }
+					break;
+				
+				case 0x07:
+					if ( x6 <= 0x0F || x6 == 0x1B || ( x6 >= 0x20 && x6 <= 0x27 ) ) { return FP_LOAD; }
+					else if( ( x6 >= 0x30 && x6 <= 0x32 ) || x6 == 0x3B ) { return FP_STORE; }
+					else if( x6 == 0x2C || x6 == 0x2D || x6 == 0x2E || x6 == 0x2F ) { return PREFETCH; }
+					else { return OTHER; }
+					break;
+					
+				case 0x01:
+					if( x3 == 0x01 || x3 == 0x03 ) { return CHECK; }
+					else if( x3 == 0x06 ) { return ALLOC; }
+					else { return OTHER; }
+					break;
+					
+				case 0x00:
+					if( x3 >= 0x04 && x3 <= 0x07 ) { return CHECK; }
+					else { return OTHER; }
+					break;
+					
+				default:
+					return OTHER;
+				} /* end memory-unit opcode switch */
+			} break;
 
-		case I:
+		case I: {
+			uint8_t x6 = (instruction & BITS_27_32) >> (ALIGN_RIGHT_SHIFT + 27);
+			uint8_t x3 = (instruction & BITS_33_35) >> (ALIGN_RIGHT_SHIFT + 27);
+		
 			if( opCode == 0x00 && x6 == 0x30 ) { return MOVE_FROM_IP; }
 			else if( opCode == 0x00 && x3 == 0x01 ) { return CHECK; }
 			else { return OTHER; }
-			break;
+			} break;
 
-		case B:
+		case B: {
 			switch( opCode ) {
 				case 0x05:
 					return DIRECT_CALL;
-
+				
 				case 0x01:
 					return INDIRECT_CALL;
-
+					
 				case 0x04:
 					return DIRECT_BRANCH;
-
+				
 				case 0x00: {
 					/* Is it a return or an indirect branch or something else? */
+					uint8_t x6 = (instruction & IBRANCH_X6) >> (ALIGN_RIGHT_SHIFT + 27);
 					uint8_t btype = (instruction & IBRANCH_BTYPE) >> (ALIGN_RIGHT_SHIFT + 6);
+					
 					if( x6 == 0x21 && btype == 0x04 ) { return RETURN; }
 					else if( x6 == 0x20 && btype == 0x00 ) { return INDIRECT_BRANCH; }
 					else if( x6 == 0x20 && btype == 0x01 ) { return BRANCH_IA; }
 					else { return OTHER; }
-					break;
-					}
-
+					} break;
+				
 				case 0x07:
 					return BRANCH_PREDICT;
-
-				case 0x02:
-					if( x6 == 0x10 || x6 == 0x11 ) { return BRANCH_PREDICT; }
+					
+				case 0x02: {
+					uint8_t x6 = (instruction & IBRANCH_X6) >> (ALIGN_RIGHT_SHIFT + 27);
+				
+					if ( x6 == 0x10 || x6 == 0x11 ) { return BRANCH_PREDICT; }
 					else { return OTHER; }
-
+					} break;
+				
 				default:
 					return OTHER;
 				} /* end branch-unit opcode switch */
-			break; 
+			} break; 
 
 		case F:
 			return OTHER;
@@ -378,7 +408,7 @@ bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, u
 
 	// GCC didn't seem to want to compile this the right way inline...
 	uint64_t majorOpCode = allocInsn & MAJOR_OPCODE_MASK;
-	uint64_t x3 = allocInsn & X3_MASK;
+	uint64_t x3 = allocInsn & BITS_33_35;
 	uint64_t opcodeOne = ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT);
 	uint64_t x3six = ((uint64_t)0x06) << (33 + ALIGN_RIGHT_SHIFT); 
 
@@ -400,7 +430,7 @@ IA64_instruction generateAllocInstructionFor( registerSpace * rs, int locals, in
 	uint64_t sizeOfLocals = rs->getRegSlot( 0 )->number - 32 + locals;
 	uint64_t sizeOfFrame = sizeOfLocals + outputs;
 	uint64_t sizeOfRotates = rotates >> 3;
-	uint64_t ar_pfs = rs->getRegSlot( 0 )->number;
+	uint64_t ar_pfs = rs->getRegSlot( 0 )->number - NUM_PRESERVED;
 
 	uint64_t rawInsn = 0x0000000000000000 |
 		    ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
@@ -420,7 +450,7 @@ IA64_instruction generateOriginalAllocFor( registerSpace * rs ) {
 	uint64_t sizeOfOutputs = rs->originalOutputs + 1;
 	uint64_t sizeOfRotates = rs->originalRotates >> 3;
 	uint64_t sizeOfFrame = sizeOfLocals + sizeOfOutputs;
-	uint64_t ar_pfs = rs->getRegSlot( 0 )->number;
+	uint64_t ar_pfs = 32 + sizeOfFrame - 1;
 
 	uint64_t rawInsn = 0x0000000000000000 |
 		    ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
@@ -592,7 +622,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 			/* Since we cannot know the current frame without static analysis,
 			   create ours after the largest frame possible (8 local, 0 output). */
 			for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-				deadRegisterList[i] = 32 + 8 + i;
+				deadRegisterList[i] = 32 + 8 + i + NUM_PRESERVED;
 				}
 
 			/* Construct the registerSpace reflecting the desired frame. */
@@ -622,7 +652,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 			/* ... and construct a deadRegisterList and regSpace above the
 			   registers the application's using. */
 			for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-				deadRegisterList[i] = 32 + sizeOfFrame + i;
+				deadRegisterList[i] = 32 + sizeOfFrame + i + NUM_PRESERVED;
 				}
 
 			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
