@@ -6,9 +6,13 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.5  1995/09/20 01:15:47  tamches
-/* minor change; some usages of int --> unsigned
+/* Revision 1.6  1995/10/17 20:51:06  tamches
+/* class abstractions is no longer templated.
+/* class whereAxis is no longer templated either.
 /*
+ * Revision 1.5  1995/09/20 01:15:47  tamches
+ * minor change; some usages of int --> unsigned
+ *
  * Revision 1.4  1995/08/07  00:00:51  tamches
  * Added name2index(), getAbsMenuName()
  *
@@ -31,8 +35,8 @@
 
 #include <limits.h>
 
-#include <tclclean.h>
-#include <tkclean.h>
+#include "tclclean.h"
+#include "tkclean.h"
 
 #include "String.h"
 
@@ -44,13 +48,12 @@
 #endif
 
 #include "whereAxis.h"
-#include "whereAxisMisc.h" // myTclEval
+#include "tkTools.h" // myTclEval
 
-template <class USERNODEDATA>
 class abstractions {
  private:
    struct whereAxisStruct {
-      whereAxis<USERNODEDATA> *theWhereAxis;
+      whereAxis *theWhereAxis;
       string abstractionName; // what's used in the menu
 
       // These values save where axis state when changing abstractions.
@@ -86,7 +89,7 @@ class abstractions {
                absMenuName(iabsMenuName), navigateMenuName(iNavMenuName),
 	       horizSBName(iHorizSBName), vertSBName(iVertSBName),
 	       findName(iFindName) {
-      currAbstractionIndex = ULONG_MAX;
+      currAbstractionIndex = UINT_MAX;
       interp = iInterp;
       theTkWindow = iTkWindow;
    }
@@ -94,41 +97,41 @@ class abstractions {
       for (unsigned i=0; i < theAbstractions.size(); i++)
          delete theAbstractions[i].theWhereAxis;
  
-      currAbstractionIndex = ULONG_MAX;
+      currAbstractionIndex = UINT_MAX;
    }
 
-   void add(whereAxis<USERNODEDATA> *theNewAbstraction,
+   void add(whereAxis *theNewAbstraction,
 	    const string &whereAxisName);
 
-   whereAxis<USERNODEDATA> &operator[](string &absName);
+   whereAxis &operator[](const string &absName);
 
    int name2index(const string &name) const;
       // returns -1 if found found
 
    bool change(unsigned newindex);
-   bool change(string &newName);
+   bool change(const string &newName);
 
-   bool existsCurrent() {
+   bool existsCurrent() const {
       return currAbstractionIndex < theAbstractions.size();
    }
 
-   whereAxis<USERNODEDATA> &getCurrent() {
-      assert(existsCurrent);
-      whereAxis<USERNODEDATA> *result = theAbstractions[currAbstractionIndex].theWhereAxis;
+   whereAxis &getCurrent() {
+      assert(existsCurrent());
+      whereAxis *result = theAbstractions[currAbstractionIndex].theWhereAxis;
       assert(result);
       
       return *result;
    }
 
-   const whereAxis<USERNODEDATA> &getCurrent() const {
-      assert(existsCurrent);
-      whereAxis<USERNODEDATA> *result = theAbstractions[currAbstractionIndex].theWhereAxis;
+   const whereAxis &getCurrent() const {
+      assert(existsCurrent());
+      whereAxis *result = theAbstractions[currAbstractionIndex].theWhereAxis;
       assert(result);
       
       return *result;
    }
 
-   vector< vector<USERNODEDATA> > getCurrAbstractionSelections() const {
+   vector< vector<resourceHandle> > getCurrAbstractionSelections() const {
       // returns a vector[num-hierarchies] of vector of selections.
       // The number of hierarchies is defined as the number of children of the
       // root node.
@@ -140,7 +143,8 @@ class abstractions {
          return;
 
       for (unsigned i=0; i < theAbstractions.size(); i++) {
-         theAbstractions[i].theWhereAxis->recursiveDoneAddingChildren();
+         theAbstractions[i].theWhereAxis->recursiveDoneAddingChildren(false);
+            // false --> don't resort
          theAbstractions[i].theWhereAxis->resize(i==currAbstractionIndex);
       }
    }
