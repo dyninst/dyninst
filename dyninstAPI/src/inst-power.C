@@ -499,7 +499,7 @@ void initTramps()
 				 sizeof(liveRegList)/sizeof(int), liveRegList);
 }
 
-void saveRegister(instruction *&insn, unsigned &base, int reg,
+static void saveRegister(instruction *&insn, unsigned &base, int reg,
 		  int offset)
 {
   assert(reg >= 0);
@@ -508,7 +508,7 @@ void saveRegister(instruction *&insn, unsigned &base, int reg,
   base += sizeof(instruction);
 }
 
-void restoreRegister(instruction *&insn, unsigned &base, int reg, int dest,
+static void restoreRegister(instruction *&insn, unsigned &base, int reg, int dest,
 		     int offset)
 {
   assert(reg >= 0);
@@ -517,10 +517,34 @@ void restoreRegister(instruction *&insn, unsigned &base, int reg, int dest,
   base += sizeof(instruction);
 }
 
-void restoreRegister(instruction *&insn, unsigned &base, int reg,
+static void restoreRegister(instruction *&insn, unsigned &base, int reg,
 		     int offset)
 {
   restoreRegister(insn, base, reg, reg, offset);
+}	
+
+static void saveFPRegister(instruction *&insn, unsigned &base, int reg,
+		    int offset)
+{
+  assert(reg >= 0);
+  genImmInsn(insn, STFDop, reg, 1, -1*((reg+1)*8 + offset));
+  insn++;
+  base += sizeof(instruction);
+}
+
+static void restoreFPRegister(instruction *&insn, unsigned &base, int reg, int dest,
+		       int offset)
+{
+  assert(reg >= 0);
+  genImmInsn(insn, LFDop, dest, 1, -1*((reg+1)*8 + offset));
+  insn++;
+  base += sizeof(instruction);
+}
+
+static void restoreFPRegister(instruction *&insn, unsigned &base, int reg,
+		       int offset)
+{
+  restoreFPRegister(insn, base, reg, reg, offset);
 }	
 
 void saveAllRegistersThatNeedsSaving(instruction *insn, unsigned &base)
@@ -529,7 +553,7 @@ void saveAllRegistersThatNeedsSaving(instruction *insn, unsigned &base)
    for (int i = 0; i < regSpace->getRegisterCount(); i++) {
      registerSlot *reg = regSpace->getRegSlot(i);
      if (reg->startsLive) {
-       saveRegister(insn,numInsn,reg->number,4);
+       saveRegister(insn,numInsn,reg->number,8);
      }
    }
    base += numInsn/sizeof(instruction);
@@ -541,7 +565,7 @@ void restoreAllRegistersThatNeededSaving(instruction *insn, unsigned &base)
    for (int i = 0; i < regSpace->getRegisterCount(); i++) {
      registerSlot *reg = regSpace->getRegSlot(i);
      if (reg->startsLive) {
-       restoreRegister(insn,numInsn,reg->number,4);
+       restoreRegister(insn,numInsn,reg->number,8);
      }
    }
    base += numInsn/sizeof(instruction);
@@ -651,20 +675,28 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 	} else if ((temp->raw == SAVE_PRE_INSN) || 
                    (temp->raw == SAVE_POST_INSN)) {
             unsigned numInsn=0;
-            for (int i = 0; i < regSpace->getRegisterCount(); i++) {
+            for(int i = 0; i < regSpace->getRegisterCount(); i++) {
 	      registerSlot *reg = regSpace->getRegSlot(i);
               if (reg->startsLive) {
                 numInsn = 0;
-                saveRegister(temp,numInsn,reg->number,4);
+                saveRegister(temp,numInsn,reg->number,8);
+		assert(numInsn > 0);
                 currAddr += numInsn;
 	      }
 	    }
+	    // Also save the floating point registers which could
+	    // be modified, f0-r13
+	    for(int i=0; i <= 13; i++) {
+	      numInsn = 0;
+	      saveFPRegister(temp,numInsn,i,8+(32*4));
+	      currAddr += numInsn;
+	    }
+	    
             // if there is more than one instruction, we need this
             if (numInsn>0) {
               temp--;
               currAddr -= sizeof(instruction);
 	    }
-
 	} else if ((temp->raw == RESTORE_PRE_INSN) || 
                    (temp->raw == RESTORE_POST_INSN)) {
             unsigned numInsn=0;
@@ -672,16 +704,24 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 	      registerSlot *reg = regSpace->getRegSlot(i);
               if (reg->startsLive) {
                 numInsn = 0;
-                restoreRegister(temp,numInsn,reg->number,4);
+                restoreRegister(temp,numInsn,reg->number,8);
+		assert(numInsn > 0);
                 currAddr += numInsn;
 	      }
 	    }
+	    // Also load the floating point registers which were save
+	    // since they could have been modified, f0-r13
+	    for(int i=0; i <= 13; i++) {
+	      numInsn = 0;
+	      restoreFPRegister(temp,numInsn,i,8+(32*4));
+	      currAddr += numInsn;
+	    }
+
             // if there is more than one instruction, we need this 
             if (numInsn>0) {
               temp--;
               currAddr -= sizeof(instruction);
 	    }
-
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
 		   (temp->raw == GLOBAL_PRE_BRANCH) ||
 		   (temp->raw == LOCAL_POST_BRANCH) ||
@@ -693,12 +733,15 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
                 unsigned numIns=0;
                 generateMTpreamble((char *)temp, numIns, proc);
                 numIns = numIns/sizeof(instruction);
-                assert(numIns==NUM_INSN_MT_PREAMBLE);
+		if(numIns != NUM_INSN_MT_PREAMBLE) {
+		  cerr << "numIns = " << numIns << endl;
+		  assert(numIns==NUM_INSN_MT_PREAMBLE);
+		}
                 // if numIns!=NUM_INSN_MT_PREAMBLE then we should update the
                 // space reserved for generateMTpreamble in the base-tramp
                 // template file (tramp-power.S) - naim
                 temp += NUM_INSN_MT_PREAMBLE;
-            }
+	    }
 #endif
 	    /* fill with no-op */
 	    generateNOOP(temp);
@@ -868,10 +911,16 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 	    // integer ops
 	    case plusOp:
 		iop = CALop;
+		genImmInsn(insn, iop, dest, src1, src2);
+		base += sizeof(instruction);
+		return(0);
 		break;
 
 	    case minusOp:
 		iop = SIop;
+		genImmInsn(insn, iop, dest, src1, src2);
+		base += sizeof(instruction);
+		return(0);
 		break;
 
 	    case timesOp:
@@ -907,10 +956,18 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 	    // Bool ops
 	    case orOp:
 		iop = ORILop;
+		// For some reason, the destField is 2nd for ORILop and ANDILop
+		genImmInsn(insn, iop, src1, dest, src2);
+		base += sizeof(instruction);
+		return(0);
 		break;
 
 	    case andOp:
 		iop = ANDILop;
+		// For some reason, the destField is 2nd for ORILop and ANDILop
+		genImmInsn(insn, iop, src1, dest, src2);
+		base += sizeof(instruction);
+		return(0);
 		break;
 
 	    default:
@@ -921,9 +978,6 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
                 return(0);
 		break;
 	}
-        genImmInsn(insn, iop, dest, src1, src2);
-        base += sizeof(instruction);
-        return(0);
 }
 
 
@@ -939,7 +993,6 @@ initTocOffset(int toc_offset) {
 
     //  oril    r2, r2,0x0000   ;0x6042efgh
     dummy[2] = (0x60420000 | (toc_offset & 0x0000ffff));
-
 }
 
 
@@ -968,216 +1021,230 @@ unsigned emitFuncCall(opCode /* ocode */,
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc, bool noCost)
 {
-    unsigned dest;
-    bool err;
-    vector <reg> srcs;
-    int i;
-    unsigned ui;
-
-    dest = proc->findInternalAddress(callee, false, err);
-    if (err) {
-	pdFunction *func = proc->findOneFunction(callee);
-        if (!func) {
-	    ostrstream os(errorLine, 1024, ios::out);
-            os << "Internal error: unable to find addr of " << callee << endl;
-           logLine(errorLine);
-            showErrorCallback(80, (const char *) errorLine);
-            P_abort();
-	}
-	dest = func->getAddress(0);
+  unsigned dest;
+  bool err;
+  vector <reg> srcs;
+  int i;
+  unsigned ui;
+  
+  dest = proc->findInternalAddress(callee, false, err);
+  if (err) {
+    pdFunction *func = proc->findOneFunction(callee);
+    if (!func) {
+      ostrstream os(errorLine, 1024, ios::out);
+      os << "Internal error: unable to find addr of " << callee << endl;
+      logLine(errorLine);
+      showErrorCallback(80, (const char *) errorLine);
+      P_abort();
     }
+    dest = func->getAddress(0);
+  }
 	
-    // If this code tries to save registers, it might save them in the
-    // wrong area; there was a conflict with where the base trampoline saved
-    // registers and the function, so now the function is saving the registers
-    // above the location where the base trampoline did
-    for (unsigned u = 0; u < operands.size(); u++) {
-      srcs += operands[u]->generateCode(proc, rs, iPtr, base, false);
-    }
-
-    // TODO cast
-    instruction *insn = (instruction *) ((void*)&iPtr[base]);
-    vector<int> savedRegs;
-
-    //     Save the link register.
-    // mflr r0
-    insn->raw = MFLR0raw;
-    insn++;
-    base += sizeof(instruction);
-
-    // st r0, (r1)
-    saveRegister(insn,base,0,4+(32*4));
-    savedRegs += 0;
-
+  // If this code tries to save registers, it might save them in the
+  // wrong area; there was a conflict with where the base trampoline saved
+  // registers and the function, so now the function is saving the registers
+  // above the location where the base trampoline did
+  for (unsigned u = 0; u < operands.size(); u++) {
+    srcs += operands[u]->generateCode(proc, rs, iPtr, base, false);
+  }
+  
+  // TODO cast
+  instruction *insn = (instruction *) ((void*)&iPtr[base]);
+  vector<int> savedRegs;
+  
+  //     Save the link register.
+  // mflr r0
+  insn->raw = MFLR0raw;
+  insn++;
+  base += sizeof(instruction);
+  
+  // st r0, (r1)
+  saveRegister(insn,base,0,8+(46*4));
+  savedRegs += 0;
+  
 #if defined(MT_THREAD)
-    // save REG_MT
-    saveRegister(insn,base,REG_MT,4+(32*4));
-    savedRegs += REG_MT;
+  // save REG_MT
+  saveRegister(insn,base,REG_MT,8+(46*4));
+  savedRegs += REG_MT;
 #endif
+  
+  // see what others we need to save.
+  for (i = 0; i < regSpace->getRegisterCount(); i++) {
+    registerSlot *reg = regSpace->getRegSlot(i);
+    if (reg->needsSaving) {
+      // needsSaving -> caller saves register
+      // we MUST save restore this and the end of the function call
+      //     rather than delay it to the end of the tramp due to:
+      //        (1) we could be in a conditional & the restores would
+      //            be unconditional (i.e. restore bad data)
+      //        (2) $arg[n] code depends on paramters being in registers
+      //
+      // MT_AIX: we are not saving registers on demand on the power
+      // architecture anymore - naim
+      // saveRegister(insn,base,reg->number,8+(46*4));
+      // savedRegs += reg->number;
+    } else if (reg->inUse && !reg->mustRestore) {
+      // inUse && !mustRestore -> in use scratch register 
+      //		(i.e. part of an expression being evaluated).
 
-    // see what others we need to save.
-    for (i = 0; i < regSpace->getRegisterCount(); i++) {
-	registerSlot *reg = regSpace->getRegSlot(i);
-	if (reg->needsSaving) {
-	    // needsSaving -> caller saves register
-	    // we MUST save restore this and the end of the function call
-	    //     rather than delay it to the end of the tramp due to:
-	    //        (1) we could be in a conditional & the restores would
-	    //            be unconditional (i.e. restore bad data)
-	    //        (2) $arg[n] code depends on paramters being in registers
-	    //
-            // MT_AIX: we are not saving registers on demand on the power
-            // architecture anymore - naim
-	    // saveRegister(insn,base,reg->number,4+(32*4));
-	    // savedRegs += reg->number;
-	} else if (reg->inUse && !reg->mustRestore) {
-	    // inUse && !mustRestore -> in use scratch register 
-	    //		(i.e. part of an expression being evaluated).
-	    saveRegister(insn,base,reg->number,4+(32*4));
-	    savedRegs += reg->number;
-	} else if (reg->inUse) {
-	    // only inuse registers permitted here are the parameters.
-	    unsigned u;
-	    for (u=0; u<srcs.size(); u++){
-		if (reg->number == srcs[u]) break;
-	    }
-	    if (u == srcs.size()) {
-		// XXXX - caller saves register that is in use.  We have no
-		//    place to save this, but we must save it!!!.  Should
-		//    find a place to push this on the stack - jkh 7/31/95
-	        string msg = "Too many registers required for MDL expression\n";
-	        fprintf(stderr, msg.string_of());
-	        showErrorCallback(94,msg);
-	        cleanUpAndExit(-1);
-	    }
-	}
+      // no reason to save the register if we are going to free it in a bit
+      // we should keep it free, otherwise we might overwrite the register
+      // we allocate for the return value -- we can't request that register
+      // before, since we then might run out of registers
+      unsigned u;
+      for(u=0; u < srcs.size(); u++) {
+	if(reg->number == srcs[u]) break;
+      }
+      // since the register should be free
+      assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
+      if(u == srcs.size()) {
+	saveRegister(insn,base,reg->number,8+(46*4));
+	savedRegs += reg->number;
+      }
+    } else if (reg->inUse) {
+      // only inuse registers permitted here are the parameters.
+      unsigned u;
+      for (u=0; u<srcs.size(); u++){
+	if (reg->number == srcs[u]) break;
+      }
+      if (u == srcs.size()) {
+	// XXXX - caller saves register that is in use.  We have no
+	//    place to save this, but we must save it!!!.  Should
+	//    find a place to push this on the stack - jkh 7/31/95
+	string msg = "Too many registers required for MDL expression\n";
+	fprintf(stderr, msg.string_of());
+	showErrorCallback(94,msg);
+	cleanUpAndExit(-1);
+      }
     }
+  }
+  
+  
+  if(srcs.size() > 8) {
+    // This is not necessarily true; more then 8 arguments could be passed,
+    // the first 8 need to be in registers while the others need to be on
+    // the stack, -- sec 3/1/97
+    string msg = "Too many arguments to function call in instrumentation code: only 8 arguments can be passed on the power architecture.\n";
+    fprintf(stderr, msg.string_of());
+    showErrorCallback(94,msg);
+    cleanUpAndExit(-1);
+  }
+  
+  // Now load the parameters into registers.
+  for (unsigned u=0; u<srcs.size(); u++){
+    assert(regSpace->isFreeRegister(u+3));
 
+    // check that is is not already in the register
+    if (srcs[u] == (int) u+3) continue;
 
-    if(srcs.size() > 8) {
-      // This is not necessarily true; more then 8 arguments could be passed,
-      // the first 8 need to be in registers while the others need to be on
-      // the stack, -- sec 3/1/97
-      string msg = "Too many arguments to function call in instrumentation code: only 8 arguments can be passed on the power architecture.\n";
-      fprintf(stderr, msg.string_of());
-      showErrorCallback(94,msg);
-      cleanUpAndExit(-1);
-    }
-
-    // Now load the parameters into registers.
-    for (unsigned u=0; u<srcs.size(); u++){
-	// check that is is not already in the register
-	if (srcs[u] == (int) u+3) {
-	    continue;
-	}
-
-	if (!regSpace->isFreeRegister(u+3)) {
-	     // internal error we expect this register to be free here
-	     abort();
-	}
-
-	genImmInsn(insn, ORILop, srcs[u], u+3, 0);
-	insn++;
-	base += sizeof(instruction);
-
-        // source register is now free.
-        regSpace->freeRegister(srcs[u]);
-    }
-
-    // get a register to keep the return value in.
-    // must allocate this register here or it will save the dead value of
-    //  the register left from the procedure call rather than the original
-    //  value - jkh 1/10/97
-    reg retReg = regSpace->allocateRegister(iPtr, base, noCost);
-    // This next line is a hack! - jkh 6/27/96
-    // It is required since allocateRegister can generate code.
-    insn = (instruction *) ((void*)&iPtr[base]);
-
-    // 
-    // Update the stack pointer
-    //   argarea  =  32 bytes (8 registers)
-    //   linkarea =  24 bytes (6 registers)
-    //   ???      =  1  word  (one extra word was added on for ....)
-    //   ngprs    =  32 words (area we use when saving the registers above the
-    //                         stack pointer, at the beginning of the base
-    //                         trampoline
-    //   nfuncrs  =  32 words (area we use when saving the registers above 
-    //                         ngprs at the beginning of this function call; 
-    //                         this area saves the registers already being
-    //                         used in the mini trampoline, registers which
-    //                         need to be accessed after this function call;
-    //                         this area is used in emitFuncCall)
-    //   szdsa    =  4*(ngprs+nfuncrs+???)+linkarea+argarea  = 316 
-    //   (this value used to be 184, when ??? and nfuncrs did not exist)
-    //
-    // Note:  ngprs and nfuncrs are a 
-    // 
-    //   Decrement stack ptr and save back chain.
-
-    //  stu r1, -316(r1)  (AKA STWU)
-    genImmInsn(insn, STUop, 1, 1, -316);
+    // internal error we expect this register to be free here
+    // if (!regSpace->isFreeRegister(u+3)) abort();
+    
+    genImmInsn(insn, ORILop, srcs[u], u+3, 0);
     insn++;
     base += sizeof(instruction);
+    
+    // source register is now free.
+    regSpace->freeRegister(srcs[u]);
+  }
+  
+  // 
+  // Update the stack pointer
+  //   argarea  =  8 words  (8 registers)
+  //   linkarea =  6 words  (6 registers)
+  //   nfuncrs  =  32 words (area we use when saving the registers above 
+  //                         ngprs at the beginning of this function call; 
+  //                         this area saves the registers already being
+  //                         used in the mini trampoline, registers which
+  //                         need to be accessed after this function call;
+  //                         this area is used in emitFuncCall--not all the
+  //                         registers are being saved, only the necessary
+  //                         ones)
+  //   nfprs    =  14 words (area we use to save the floatpoing registers,
+  //                         not all the fprs, only the volatile ones 0-13)
+  //   ngprs    =  32 words (area we use when saving the registers above the
+  //                         stack pointer, at the beginning of the base
+  //                         trampoline--not all the gprs are saved, only the
+  //   ???      =  2  words  (two extra word was added on for extra space, 
+  //                          and to make sure the floatpings are aligned)
+  // OLD STACK POINTER
+  //   szdsa    =  4*(argarea+linkarea+nfuncrs+nfprs+ngprs) = 368 + 8 = 376
 
-    // save and reset the value of TOC 
-    insn->raw = dummy[0]; insn++; base += sizeof(instruction);
-    insn->raw = dummy[1]; insn++; base += sizeof(instruction);
-    insn->raw = dummy[2]; insn++; base += sizeof(instruction);
-    // 0x90410014 0x3c402000 0x6042fd7c 
-    // cout << "Dummy" << dummy[0] << "\t" << dummy[1]<< "\t" << dummy[2]<<endl;
+  //  Decrement stack ptr
+  genImmInsn(insn, STUop, 1, 1, -376);
+  insn++;
+  base += sizeof(instruction);
+    
+  // save and reset the value of TOC 
+  insn->raw = dummy[0]; insn++; base += sizeof(instruction);
+  insn->raw = dummy[1]; insn++; base += sizeof(instruction);
+  insn->raw = dummy[2]; insn++; base += sizeof(instruction);
+  // 0x90410014 0x3c402000 0x6042fd7c 
+  // cout << "Dummy" << dummy[0] << "\t" << dummy[1]<< "\t" << dummy[2]<<endl;
 
-    // generate a to the subroutine to be called.
-    // load r0 with address, then move to link reg and branch and link.
+  // generate a to the subroutine to be called.
+  // load r0 with address, then move to link reg and branch and link.
+  
+  // really addis 0,dest,HIGH(dest) aka lis dest, HIGH(dest)
+  genImmInsn(insn, CAUop, 0, 0, HIGH(dest));
+  insn++;
+  base += sizeof(instruction);
+  
+  // ori dest,dest,LOW(src1)
+  genImmInsn(insn, ORILop, 0, 0, LOW(dest));
+  insn++;
+  base += sizeof(instruction);
+  
+  // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
+  insn->raw = MTLR0raw;
+  insn++;
+  base += sizeof(instruction);
+  
+  // brl - branch and link through the link reg.
+  insn->raw = BRLraw;
+  insn++;
+  base += sizeof(instruction);
+  
+  // should their be a nop of some sort here?, sec
+  // insn->raw = 0x4ffffb82;  // nop
+  // insn++;
+  // base += sizeof(instruction);
+  
+  // now cleanup.
+  genImmInsn(insn, CALop, 1, 1, 376);
+  insn++;
+  base += sizeof(instruction);
+  
+  // sec
+  //  // restore TOC
+  //  genImmInsn(insn, Lop, 2, 1, 20);
+  //  insn++;
+  //  base += sizeof(instruction);
 
-    // really addis 0,dest,HIGH(dest) aka lis dest, HIGH(dest)
-    genImmInsn(insn, CAUop, 0, 0, HIGH(dest));
-    insn++;
-    base += sizeof(instruction);
+  // get a register to keep the return value in.
+  reg retReg = regSpace->allocateRegister(iPtr, base, noCost);
+  // This next line is a hack! - jkh 6/27/96
+  // It is required since allocateRegister can generate code.
+  insn = (instruction *) ((void*)&iPtr[base]);
 
-    // ori dest,dest,LOW(src1)
-    genImmInsn(insn, ORILop, 0, 0, LOW(dest));
-    insn++;
-    base += sizeof(instruction);
-
-    // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
-    insn->raw = MTLR0raw;
-    insn++;
-    base += sizeof(instruction);
-
-    // brl - branch and link through the link reg.
-    insn->raw = BRLraw;
-    insn++;
-    base += sizeof(instruction);
-
-    // should their be a nop of some sort here?, sec
-    // insn->raw = 0x4ffffb82;  // nop
-    // insn++;
-    // base += sizeof(instruction);
-
-    // now cleanup.
-    //  ai r1, r1, 316
-    genImmInsn(insn, CALop, 1, 1, 316);	
-    insn++;
-    base += sizeof(instruction);
-
-    // put the return value from register 3 to the newly allocated register.
-    genImmInsn(insn, ORILop, 3, retReg, 0);
-    insn++;
-    base += sizeof(instruction);
-
-    // restore saved registers.
-    for (ui = 0; ui < savedRegs.size(); ui++) {
-      restoreRegister(insn,base,savedRegs[ui],4+(32*4));
-    }
-
-    // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
-    insn->raw = MTLR0raw;
-    insn++;
-    base += sizeof(instruction);
-
-    // return value is the register with the return value from the
-    //   called function.
-    return(retReg);
+  // put the return value from register 3 to the newly allocated register.
+  genImmInsn(insn, ORILop, 3, retReg, 0);
+  insn++;
+  base += sizeof(instruction);
+  
+  // restore saved registers.
+  for (ui = 0; ui < savedRegs.size(); ui++) {
+    restoreRegister(insn,base,savedRegs[ui],8+(46*4));
+  }
+  
+  // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
+  insn->raw = MTLR0raw;
+  insn++;
+  base += sizeof(instruction);
+  
+  // return value is the register with the return value from the
+  //   called function.
+  return(retReg);
 }
 
  
@@ -1384,7 +1451,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 		reg->needsSaving = true;
 		reg->mustRestore = false;
 		// actually restore the register.
-		restoreRegister(insn,base,reg->number,4);
+		restoreRegister(insn,base,reg->number,8);
 	    }
 	}
 */
@@ -1418,7 +1485,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 
 	if (regSlot->mustRestore) {
 	  // its on the stack so load it.
-	  restoreRegister(insn, base, reg, dest, 4);
+	  restoreRegister(insn, base, reg, dest, 8);
 	  return(dest);
 	} else {
 	    // its still in a register so return the register it is in.
@@ -1434,7 +1501,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
       // src1 is the argument number 0..X, the first 8 are stored in registers
       // r3 and 
       if(src1 < 8) {
-	restoreRegister(insn, base, src1+3, dest, 4);
+	restoreRegister(insn, base, src1+3, dest, 8);
 	return(dest);
       } else {
         genImmInsn(insn, Lop, dest, 1, (src1+6)*4);
@@ -1443,7 +1510,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
         return(dest);
       }
     } else if (op == saveRegOp) {
-	saveRegister(insn,base,src1,4);
+	saveRegister(insn,base,src1,8);
     } else {
         int instXop=-1;
 	int instOp=-1;
@@ -1598,7 +1665,7 @@ int getInsnCost(opCode op)
 
 	// clr r5
 	// clr r6
-	//  stu r1, -316(r1)		(AKA STWU)
+	// decrement stack pointer -- STUop
 	// load r0 with address, then move to link reg and branch and link.
 	// ori dest,dest,LOW(src1)
 	// mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
@@ -1607,7 +1674,7 @@ int getInsnCost(opCode op)
 	
 	// now cleanup.
 
-	//  ai r1, r1, 316
+	// increment stack pointer -- CALop
 	// restore the saved register 0.
 	cost += 2;
 
