@@ -58,6 +58,7 @@ bool paradynDaemon::addRunningProgram (int pid,
 {
     executable *exec = new executable (pid, argv, daemon);
     programs += exec;
+    ++procRunning;
     return true;
 }
 
@@ -79,15 +80,7 @@ bool paradynDaemon::addDaemon (int new_fd)
 
   msg_bind_buffered (new_daemon->get_fd(), true, (int(*)(void*)) xdrrec_eof,
 		     (void*)new_daemon->net_obj());
-
   assert(new_daemon);
-  // Send the initial metrics, constraints, and other neato things
-  mdl_send(new_daemon);
-  vector<T_dyninstRPC::metricInfo> info = new_daemon->getAvailableMetrics();
-  unsigned size = info.size();
-  for (unsigned u=0; u<size; u++)
-      addMetric(info[u]);
-
   // The pid is reported later in an upcall
   return (true);
 }
@@ -352,7 +345,7 @@ bool paradynDaemon::newExecutable(const string &machine,
       return false;
 
   performanceStream::ResourceBatchMode(batchStart);
-  int pid = daemon->addExecutable(argv, dir);
+  int pid = daemon->addExecutable(argv, dir, true);
   performanceStream::ResourceBatchMode(batchEnd);
 
   // did the application get started ok?
@@ -363,6 +356,7 @@ bool paradynDaemon::newExecutable(const string &machine,
 
       executable *exec = new executable(pid, argv, daemon);
       paradynDaemon::programs += exec;
+      ++procRunning;
       return (true);
   } else {
       return(false);
@@ -392,7 +386,6 @@ bool paradynDaemon::pauseAll()
         pd = paradynDaemon::allDaemons[i];
 	pd->pauseApplication();
     }
-
     // tell perf streams about change.
     performanceStream::notifyAllChange(appPaused);
     return(true);
@@ -423,6 +416,11 @@ bool paradynDaemon::pauseProcess(unsigned pid)
 bool paradynDaemon::continueAll()
 {
     paradynDaemon *pd;
+
+    if (programs.size() == 0 || procRunning == 0)
+	// no program to continue
+       return false;
+
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
 	pd->continueApplication();
@@ -591,7 +589,8 @@ bool paradynDaemon::enableData(resourceListHandle r_handle,
 		mi->addPart(&comp->sample);
             }
 	    else {
-               cout << "error in paradynDaemon::enableData" << endl;
+               cout << "internal error in paradynDaemon::enableData" << endl;
+	       abort();
 	    } 
 	    foundOne = true;
 	}
@@ -864,6 +863,14 @@ paradynDaemon::reportSelf (string m, string p, int pd, string flav)
     else
 	  name = flavor;
     }
+
+  // Send the initial metrics, constraints, and other neato things
+  mdl_send(this);
+  vector<T_dyninstRPC::metricInfo> info = this->getAvailableMetrics();
+  unsigned size = info.size();
+  for (unsigned u=0; u<size; u++)
+      addMetric(info[u]);
+
   return;
 }
 
@@ -875,4 +882,48 @@ paradynDaemon::reportStatus (string line)
 {
   if (status)
     status->message(line.string_of());
+}
+
+/***
+ This call is used by a daemon to report a change in the status of a process
+ such as when the process exits, or stops.
+ If one process stops (due to a breakpoint, for example) we stop the application.
+ When one process exits, we just decrement procRunning, a counter of the number
+ of processes running. If procRunning is zero, there are no more processes running,
+ and the status of the application is set to appExited.
+***/
+void
+paradynDaemon::processStatus(int pid, u_int stat) {
+  if (stat == procPaused) { // process stoped
+    // if one process stops, we stop the application
+    pauseAll();
+  } else if (stat == procExited) { // process exited
+    for(unsigned i=0; i < programs.size(); i++) {
+        if ((programs[i]->pid == (unsigned)pid) && programs[i]->controlPath == this) {
+	  programs[i]->exited = true;
+	  if (--procRunning == 0)
+	    performanceStream::notifyAllChange(appExited);
+	  break;
+        }
+    }
+  }
+}
+
+/*** 
+ This call is made by paradyndCM5 when it is ready to run an
+ application. ParadyndCM5 is started by paradynd, when the application
+ writes a MULTI_FORK. The application must then stop until the daemon
+ is ready. After paradyndCM5 has read the symbol table and installed
+ the initial instrumentation, the daemon calls
+ nodeDaemonReadyCallback, and paradyn notifies all other daemons so that
+ they can resume a procss that was waiting for the node daemon.
+***/
+void
+paradynDaemon::nodeDaemonReadyCallback(void) {
+    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
+      paradynDaemon *pd = paradynDaemon::allDaemons[i];
+      if (pd != this) {
+	pd->nodeDaemonReady();
+      }
+    }
 }

@@ -92,6 +92,13 @@
 #include "util/h/aggregation.h"
 #include "paradyn/src/met/mdl.h"
 
+
+/* used by paradynd to inform a change in the status of an application. */
+// typedef enum { procPaused, procExited } processStatus_t;
+#define procPaused 0
+#define procExited 1
+typedef u_int processStatus_t;
+
 $remote
 abstract class mdl_expr {
 $ignore
@@ -420,7 +427,11 @@ $remote dynRPC {
 
     //
     // Define a program to run. 
-    int addExecutable(vector<string> argv, string dir);
+    // argv: the command and arguments
+    // dir: working directory where program will run.
+    // stopAtFirstBreak: if true, the program will stops before it executes its
+    //			 first instruction.
+    int addExecutable(vector<string> argv, string dir, bool stopAtFirstBreak);
 
     //
     // Connect up with a running program (not possible on all platforms).
@@ -605,6 +616,22 @@ $remote dynRPC {
 					    string program, 
 					    int pid,
 					    string flavor);
+
+    //
+    // this call is used by paradynd to inform paradyn of a change in
+    // the status of a process -- the process stops (due to a signal), 
+    // or the process exits
+    //
+    $virtual $upcall $async void processStatus(int pid, u_int procstat);
+
+    // this call is used by the paradyndCM5 daemon to notify paradyn
+    // that it is ready, so that the application can be restarted.
+    $virtual $upcall $async void nodeDaemonReadyCallback();
+
+    // this call is used to notify all daemons that the CM5 node daemon is ready.
+    // Daemons that have a process waiting for the CM5 node daemon can then 
+    // resume the application.
+    $async void nodeDaemonReady();
 
     //
     // For timing and other measurements of paradynd

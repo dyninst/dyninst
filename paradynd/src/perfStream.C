@@ -15,7 +15,13 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/perfStream.C,v
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.42  1995/09/26 22:01:21  naim
+ * Revision 1.43  1995/10/19 22:36:43  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ * Removed breakpoints from CM5 applications.
+ * Added search for executables in a given directory.
+ *
+ * Revision 1.42  1995/09/26  22:01:21  naim
  * Minor comment added about function bzero.
  *
  * Revision 1.41  1995/09/26  20:28:49  naim
@@ -255,6 +261,7 @@ extern "C" {
 #include "os.h"
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
+#include "main.h"
 
 // TODO: this eliminates a warning but creates a conflict when compiling
 // paradyndCM5.
@@ -332,10 +339,10 @@ void processTraceStream(process *curr)
     } else if (ret == 0) {
 	/* end of file */
 	sprintf(buffer, "got EOF on link %d", curr->traceLink);
-	statusLine(errorLine);
+	statusLine(buffer);
 	showErrorCallback(11, buffer);
 	curr->traceLink = -1;
-	curr->status_ = exited;
+	curr->Exited();
 	return;
     }
 
@@ -410,6 +417,10 @@ void processTraceStream(process *curr)
 		CMMDhostless = true;
 		forkNodeProcesses(curr, &header, (traceFork *) ((void*)recordData));
 		statusLine("node daemon started");
+		// the process stops itself after writing this trace record
+		// and must wait until the daemon is ready.
+		curr->waitingForNodeDaemon = true;
+		curr->status_ = stopped;
 		break;
 
 	    case TR_SAMPLE:
@@ -426,8 +437,7 @@ void processTraceStream(process *curr)
 		printAppStats((struct endStatsRec *) ((void*)recordData),
 			      cyclesPerSecond);
 		printDyninstStats();
-
-		curr->status_ = exited;
+		curr->Exited();
 		break;
 
 	    case TR_COST_UPDATE:
@@ -470,7 +480,7 @@ int handleSigChild(int pid, int status)
 	    case SIGTSTP:
 		sprintf(buffer, "process %d got SIGTSTP", pid);
 		statusLine(errorLine);
-		curr->status_ = stopped;
+		curr->Stopped();
 		break;
 
 	    case SIGTRAP:
@@ -490,6 +500,14 @@ int handleSigChild(int pid, int status)
 		    statusLine(buffer);
 		    installDefaultInst(curr, initialRequests);
 		    curr->reachedFirstBreak = 1;
+		    if (! curr->stopAtFirstBreak) {
+		      // don't stop here when processes are spawned by other processes
+		      if (!OS::osForwardSignal(pid,0)) {
+			P_abort();
+		      }
+		      curr->status_ = running;
+		      statusLine("Application running");
+		    }
 		}
 
 #ifdef notdef
@@ -507,7 +525,12 @@ int handleSigChild(int pid, int status)
 
 	    case SIGSTOP:
 	    case SIGINT:
-		curr->status_ = stopped;
+		if (curr->waitingForNodeDaemon) {
+		  // no need to update status here
+		  break;
+		}
+
+		curr->Stopped();
 		curr->reachedFirstBreak = 1;
 
 		// The Unix process should be stopped already, 
@@ -515,6 +538,8 @@ int handleSigChild(int pid, int status)
 		// received the SIGSTOP...
 		// But we need to pause the rest of the application
 		pauseAllProcesses(); 
+		sprintf(buffer, "PID=%d received SIGSTOP/SIGINT. Application stopped.\n", pid);
+		statusLine(buffer);
 		break;
 
 	    case SIGIOT:
@@ -523,7 +548,7 @@ int handleSigChild(int pid, int status)
 		curr->status_ = stopped;
 		dumpProcessImage(curr, true);
 		OS::osDumpCore(pid, "core.real");
-		curr->status_ = exited;
+		curr->Exited();
 		// ???
 		// should really log this to the error reporting system.
 		// jkh - 6/25/96
@@ -547,6 +572,16 @@ int handleSigChild(int pid, int status)
                 }
 		break;
 
+#ifdef CM5_SIGXCPU_KLUDGE
+	      // don't forward SIGXCPU so that applications may run for more
+	      // than the max CPUtime limit
+	      case SIGXCPU:
+		sprintf(errorLine,"Process %d received signal SIGXCPU. Not forwarded.\n",pid);
+		logLine(errorLine);
+		OS::osForwardSignal(pid,0);
+		break;
+#endif
+
 #ifdef notdef
 	    // XXXX for debugging
 	    case SIGSEGV:	// treadmarks needs this signal
@@ -567,11 +602,15 @@ int handleSigChild(int pid, int status)
 	logLine(errorLine);
 
 	printDyninstStats();
-	curr->status_ = exited;
+	curr->Exited();
+        sprintf(buffer,"Process %d has terminated\n", curr->pid);
+	statusLine(buffer);
     } else if (WIFSIGNALED(status)) {
 	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->pid,
 	    WTERMSIG(status));
 	logLine(errorLine);
+	curr->Exited();
+	statusLine(errorLine);
     } else {
 	sprintf(errorLine, "Unknown state %d from process %d\n", status, curr->pid);
 	logLine(errorLine);

@@ -10,7 +10,13 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.22  1995/09/18 22:41:38  mjrg
+ * Revision 1.23  1995/10/19 22:36:46  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ * Removed breakpoints from CM5 applications.
+ * Added search for executables in a given directory.
+ *
+ * Revision 1.22  1995/09/18  22:41:38  mjrg
  * added directory command.
  *
  * Revision 1.21  1995/09/05  23:11:36  mjrg
@@ -124,6 +130,8 @@
 #include "util/h/Dictionary.h"
 #include "util/h/Types.h"
 #include "os.h"
+#include "main.h"
+#include "dyninstRPC.xdr.h"
 #include <stdio.h>
 
 class resource;
@@ -189,13 +197,17 @@ friend class ptraceKludge;
     aggregate = false; rid = 0; parent = NULL;
     bufStart = 0; bufEnd = 0; pauseTime = 0.0;
     freed = 0; reachedFirstBreak = 0; 
+    stopAtFirstBreak = false;
     splitHeaps = false;
+    waitingForNodeDaemon = false;
   }
 
   static string programName;
   static vector<string> arg_list;
 
   processState status() const { return status_;}
+  inline void Exited();
+  inline void Stopped();
 
   image *symbols;		/* information related to the process */
   int traceLink;		/* pipe to transfer traces data over */
@@ -222,6 +234,11 @@ friend class ptraceKludge;
 				   jkh 7/21/94 */
   int freed;
   int reachedFirstBreak;
+  bool stopAtFirstBreak;      // true if the process must stop when it reaches the
+                              // ptrace trap at the start of the program.
+
+  bool waitingForNodeDaemon;  // CM5 process only: if true, this process is stopped,
+			      // waiting for a node daemon (paradyndCM5) to start.
 
   time64 getFirstRecordTime() const { return firstRecordTime;}
   void setFirstRecordTime(time64 to) { firstRecordTime = to;}
@@ -238,12 +255,13 @@ friend class ptraceKludge;
   inline bool dumpCore(const string coreFile);
   inline bool detach(const bool paused);
   string getProcessStatus() const;
-
+  
   // this is required because of the ugly implementation of PCptrace for the cm5
   // when that is cleaned up, this will go away
   void kludgeStatus(const processState stat) { status_ = stat;}
 
 private:
+
   time64 firstRecordTime;
 
   // deal with system differences for ptrace
@@ -288,6 +306,8 @@ bool process::checkStatus() {
 }
 
 bool process::pause() {
+  if (waitingForNodeDaemon)
+    return true;
   if (status_ == running && reachedFirstBreak) {
     bool res;
     assert (res = pause_());
@@ -299,6 +319,8 @@ bool process::pause() {
 }
 
 bool process::continueProc() {
+  if (waitingForNodeDaemon)
+    return true;
   if (status_ == stopped) {
     bool res;
     assert (res = continueProc_());
@@ -308,6 +330,8 @@ bool process::continueProc() {
   }
   return true;
 }
+
+
 
 bool process::dumpCore(const string fileOut) {
   bool res;
@@ -354,5 +378,25 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type);
 void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type);
 
 extern resource *machineResource;
+
+/*
+ *  The process has exited. Update its status and notify Paradyn.
+ */
+void process::Exited(void) {
+  if (status_ != exited) {
+    status_ = exited;
+    tp->processStatus(pid, procExited);
+  }
+}
+
+/*
+ * The process was stopped by a signal. Update its status and notify Paradyn.
+ */
+void process::Stopped(void) {
+  if (status_ != stopped) {
+    status_ = stopped;
+    tp->processStatus(pid, procPaused);
+  }
+}
 
 #endif

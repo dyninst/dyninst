@@ -2,7 +2,13 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.50  1995/10/13 22:05:53  newhall
+ * Revision 1.51  1995/10/19 22:39:53  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ * Removed breakpoints from CM5 applications.
+ * Added search for executables in a given directory.
+ *
+ * Revision 1.50  1995/10/13  22:05:53  newhall
  * added interface routines: getResourceLabelName, getResourceName
  * added phaseType parameter to sampleDataCallbackFunc
  *
@@ -283,7 +289,7 @@ typedef void (*resourceBatchModeCallback)(perfStreamHandle, batchMode mode);
 
 typedef void (*histFoldCallback)(perfStreamHandle, timeStamp width, phaseType);
 
-typedef enum appState { appRunning, appPaused };
+typedef enum appState { appRunning, appPaused, appExited };
 
 typedef void (*appStateChangeCallback)(perfStreamHandle, appState state);
 

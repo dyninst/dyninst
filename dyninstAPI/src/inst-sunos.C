@@ -3,7 +3,13 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.30  1995/09/26 20:17:46  naim
+ * Revision 1.31  1995/10/19 22:36:41  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ * Removed breakpoints from CM5 applications.
+ * Added search for executables in a given directory.
+ *
+ * Revision 1.30  1995/09/26  20:17:46  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
  * Revision 1.29  1995/08/24  15:04:03  hollings
@@ -238,7 +244,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     char application[256];
     char app_pid[20];
     char num_nodes[20];	
-
+ 
     process *parent = findProcess(fr->ppid);
     if (!parent) {
       sprintf(errorLine, "In forkNodeProcesses, parent id %d unknown", fr->ppid);
@@ -286,12 +292,15 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
       statusLine(errorLine);
     }
 
-    for (int di=4; di<10; di++)
+    for (int di=4; di<=10; di++)
       delete argv[di];
+
+    // There is no need to stop the process here, since the process stops itself
+    // after calling forkNodeProcess.
 
     /* Mark the cm-process as running now */
     // curr->status = running;
-    pauseAllProcesses();
+    //    pauseAllProcesses();
 }
 
 

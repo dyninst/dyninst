@@ -14,7 +14,13 @@
  * This file will be empty during the restructuring of the paradyn daemon
  *
  * $Log: dyninstP.h,v $
- * Revision 1.10  1995/09/18 22:41:32  mjrg
+ * Revision 1.11  1995/10/19 22:36:37  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ * Removed breakpoints from CM5 applications.
+ * Added search for executables in a given directory.
+ *
+ * Revision 1.10  1995/09/18  22:41:32  mjrg
  * added directory command.
  *
  * Revision 1.9  1995/05/18  10:31:57  markc
@@ -92,8 +98,11 @@ typedef int (*errorHandler)(int errno, char *message);
  *   argv - arguments to command
  *   envp - environment args, for pvm
  *   dir  - the directory where the program will run
+ *   stopAtFirstbrk - if true, the process pauses when it reaches the trap at the start
+ *                      of the program. If false, paradynd will start running the process
+ *                      automatically.
  */
-int addProcess(vector<string> &argv, vector<string> &envp, string dir);
+int addProcess(vector<string> &argv, vector<string> &envp, string dir = "", bool stopAtFirstBrk = false);
 
 /*
  * Find out if an application has been.defines yet.
@@ -123,6 +132,10 @@ bool pauseAllProcesses();
  */
 bool continueAllProcesses();
 
+/*
+ * Continue process that is waiting for the CM5 node daemon. Used by CM5 processes only.
+ */
+void continueProcWaitingForDaemon();
 
 /*
  * Disconnect the tool from the process.

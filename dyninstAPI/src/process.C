@@ -14,7 +14,13 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.29  1995/09/26 20:17:51  naim
+ * Revision 1.30  1995/10/19 22:36:44  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ * Removed breakpoints from CM5 applications.
+ * Added search for executables in a given directory.
+ *
+ * Revision 1.29  1995/09/26  20:17:51  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
  * Revision 1.28  1995/09/18  22:41:36  mjrg
@@ -380,7 +386,7 @@ process *allocateProcess(int pid, const string name)
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir)
+process *createProcess(const string File, vector<string> argv, vector<string> envp, const string dir = "")
 {
     int r;
     int fd;
@@ -392,6 +398,11 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
     int tracePipe[2];
     FILE *childError;
     string inputFile, outputFile;
+    string file = File;
+
+    if ((!file.prefixed_by("/")) && (dir.length() > 0)) {
+      file = dir + "/" + file;
+    }
 
     // check for I/O redirection in arg list.
     for (i=0; i<argv.size(); i++) {
@@ -574,7 +585,7 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	char paradynInfo[1024];
 	sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
 	for (i=0; i < process::arg_list.size(); i++) {
-	    char *str;
+	    const char *str;
 
 	    str = P_strdup(process::arg_list[i].string_of());
 	    if (!strcmp(str, "-l1")) {

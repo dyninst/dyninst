@@ -27,7 +27,13 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.21  1995/09/26 20:17:44  naim
+ * Revision 1.22  1995/10/19 22:36:39  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ * Removed breakpoints from CM5 applications.
+ * Added search for executables in a given directory.
+ *
+ * Revision 1.21  1995/09/26  20:17:44  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
  * Revision 1.20  1995/09/18  22:41:33  mjrg
@@ -327,8 +333,16 @@ bool dynRPC::attachProgram(int id)
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(vector<string> argv, string dir)
+int dynRPC::addExecutable(vector<string> argv, string dir, bool stopAtFirstBreak)
 {
   vector<string> envp;
-  return(addProcess(argv, envp, dir));
+  return(addProcess(argv, envp, dir, stopAtFirstBreak));
+}
+
+//
+// CM5 processes only: continue the process that is stopped waiting for the CM5 node
+// daemon to start.
+//
+void dynRPC::nodeDaemonReady() {
+  continueProcWaitingForDaemon();
 }

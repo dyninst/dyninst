@@ -7,14 +7,20 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.32 1995/09/26 20:17:42 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.33 1995/10/19 22:36:35 mjrg Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.32  1995/09/26 20:17:42  naim
+ * Revision 1.33  1995/10/19 22:36:35  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ * Removed breakpoints from CM5 applications.
+ * Added search for executables in a given directory.
+ *
+ * Revision 1.32  1995/09/26  20:17:42  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
  * Revision 1.31  1995/09/18  22:41:30  mjrg
@@ -232,9 +238,11 @@ void forkProcess(traceHeader *hr, traceFork *fr)
 }
 
 // TODO mdc
-int addProcess(vector<string> &argv, vector<string> &envp, string dir)
+int addProcess(vector<string> &argv, vector<string> &envp, string dir, bool stopAtFirstBrk)
 {
     process *proc = createProcess(argv[0], argv, envp, dir);
+
+    proc->stopAtFirstBreak = stopAtFirstBrk;
 
     if (proc)
       return(proc->pid);
@@ -286,7 +294,7 @@ bool continueAllProcesses()
 {
     unsigned p_size = processVec.size();
     for (unsigned u=0; u<p_size; u++)
-      processVec[u]->continueProc();
+	processVec[u]->continueProc();
 
     if (!appPause) return(false);
 
@@ -309,10 +317,30 @@ bool pauseAllProcesses()
 
     unsigned p_size = processVec.size();
     for (unsigned u=0; u<p_size; u++)
-      processVec[u]->pause();
+         processVec[u]->pause();
 
-    statusLine("application paused");
+    if (changed)
+      statusLine("application paused");
     return(changed);
 }
 
 
+//
+// This function is used for CM5 processes only. The process must stop after the 
+// CM5 node daemon is started. When the node daemon is ready, it sends a
+// nodeDaemonReady message to paradyn, which calls the continueProcWaitingForDaemon 
+// to resume the application.
+//
+void continueProcWaitingForDaemon(void) {
+  for (unsigned u = 0; u < processVec.size(); u++) {
+    process *p = processVec[u];
+    if (p->waitingForNodeDaemon) {
+      p->waitingForNodeDaemon = false;
+      if (!appPause) {
+        // application is running. Continue the process that is waiting.
+	statusLine("Application running");
+	p->continueProc();
+      }
+    }
+  }
+}

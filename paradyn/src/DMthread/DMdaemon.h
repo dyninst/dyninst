@@ -79,10 +79,11 @@ private:
 class executable {
     public:
 	executable(unsigned id, const vector<string> &av, paradynDaemon *p)
-		 : pid(id), argv(av), controlPath(p) { }
+		 : pid(id), argv(av), controlPath(p) { exited = false; }
 	unsigned pid;
         vector<string> argv;
         paradynDaemon *controlPath;
+	bool exited; // true if this process has exited
 };
 
 //
@@ -119,7 +120,9 @@ class paradynDaemon: public dynRPCUser {
 	virtual void handle_error();
 	virtual void firstSampleCallback(int program, double firstTime);
         virtual void reportStatus(string);
-
+	virtual void processStatus(int pid, u_int stat);
+	virtual void nodeDaemonReadyCallback(void);
+	
 	virtual void reportSelf (string m, string p, int pd, string flav);
 	virtual void sampleDataCallbackFunc(int, int, double, 
 					    double, double);
@@ -197,6 +200,7 @@ class paradynDaemon: public dynRPCUser {
         static vector<executable*>  programs;
 	// list of all active daemons: one for each unique name/machine pair 
         static vector<paradynDaemon*>  allDaemons;
+        static unsigned procRunning; // how many processes are running or ready to run.
 
         // these args are passed to the paradynd when started
         // for paradyndPVM these args contain the info to connect to the

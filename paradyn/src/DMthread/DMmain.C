@@ -2,7 +2,13 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.76  1995/10/13 22:06:38  newhall
+ * Revision 1.77  1995/10/19 22:41:57  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ * Removed breakpoints from CM5 applications.
+ * Added search for executables in a given directory.
+ *
+ * Revision 1.76  1995/10/13  22:06:38  newhall
  * Added code to change sampling rate as bucket width changes (this is not
  * completely implemented in daemon code yet, so now it has no effect).
  * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
@@ -335,6 +341,7 @@ vector<metric*> metric::metrics;
 vector<paradynDaemon*> paradynDaemon::allDaemons;
 vector<daemonEntry*> paradynDaemon::allEntries;
 vector<executable*> paradynDaemon::programs;
+unsigned paradynDaemon::procRunning;
 vector<resourceList *> resourceList::foci;
 vector<phaseInfo *> phaseInfo::dm_phases;
 vector<bool> metricInstance::nextId;
@@ -589,6 +596,19 @@ dynRPCUser::reportStatus (string line)
 {
     assert(0 && "Invalid virtual function");
 }
+
+void
+dynRPCUser::processStatus(int pid, u_int stat)
+{
+    assert(0 && "Invalid virtual function");
+}
+
+void
+dynRPCUser::nodeDaemonReadyCallback(void)
+{
+    assert(0 && "Invalid virtual function");
+}
+
 
 // 
 // establish socket that will be advertised to paradynd's
