@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.14  1994/05/18 00:49:46  hollings
+ * Revision 1.15  1994/05/31 19:07:46  hollings
+ * Changes to make access to resources and resourceLists direct not via
+ * the dataManager thread.
+ *
+ * Revision 1.14  1994/05/18  00:49:46  hollings
  * Bad Jeff didn't advance the version number on the last commit.
  *
  * Revision 1.13  1994/05/10  03:57:28  hollings
@@ -172,7 +176,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 7;
+    $version 8;
 
     //
     // Create an applicationContext (an application to be studied)
@@ -314,34 +318,9 @@ $remote dataManager {
 
     resourceList *getRootResources();
 
-    char *getResourceName(resource*);
-
-    resource *getResourceParent(resource*);
-
     resource *newResource(applicationContext *app,
-			  resource *parent, 
-			  char *name);
-
-    resourceList *getResourceChildren(resource*);
-
-    Boolean isResourceDescendent(resource *parent, resource *child);
-
-    resource *findChildResource(resource *parent, char *name);
-
-    int getResourceCount(resourceList*);
-
-    resource *getNthResource(resourceList*, int n);
-
-    resourceList *createResourceList();
-
-    void addResourceList(resourceList*, resource*);
-
-    //
-    // get the canonical name of a resource list.
-    //   WARNING: The returned pointer is allocated in the heap via new
-    //      and should be freed using delete when the caller is done with it.
-    //   
-    char *getResourceListName(resourceList*);
+     			  resource *parent, 
+     			  char *name);
 
     // Get the static config. information for the passed applicationContext.
     //
