@@ -272,7 +272,10 @@ vector<Address> process::walkStack(bool noPause)
 }
 #endif
 
-bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) {
+        // disItem is generally unchanged and was previously declared const,
+        // however, the heap management occasionally deletes such items
+        // so it's now no longer const'd
+bool isFreeOK(process *proc, disabledItem &disItem, vector<Address> &pcs) {
   const unsigned disItemPointer = disItem.getPointer();
   const inferiorHeapType disItemHeap = disItem.getHeapType();
 
@@ -282,7 +285,10 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
 
   heapItem *ptr=NULL;
   if (!proc->heaps[disItemHeap].heapActive.find(disItemPointer, ptr)) {
-    sprintf(errorLine,"Warning: attempt to free not defined heap entry %x (pid=%d, heapActive.size()=%d)\n", disItemPointer, proc->getPid(), proc->heaps[disItemHeap].heapActive.size());
+    sprintf(errorLine,"Warning: attempt to free not defined heap entry "
+                      "%x (pid=%d, heapActive.size()=%d)\n", 
+        disItemPointer, proc->getPid(), 
+        proc->heaps[disItemHeap].heapActive.size());
     logLine(errorLine);
     //showErrorCallback(67, (const char *)errorLine);
     return(false);
@@ -294,7 +300,9 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
   logLine(errorLine);
 #endif
 
-  vector<unsigVecType> &disItemPoints = disItem.getPointsToCheck(); // can't be const; we're gonna change it
+  // the following can't be const; we're sometimes gonna change it
+  vector<unsigVecType> &disItemPoints = disItem.getPointsToCheck(); 
+
   const unsigned disItemNumPoints = disItemPoints.size();
 
   for (unsigned int j=0;j<disItemNumPoints;j++) {
@@ -2539,8 +2547,8 @@ vector<module *> *process::getAllModules(){
 // TODO: what to do about duplicate function names?
 vector<function_base *> *process::getIncludedFunctions(){
 
-    //cerr << "process " << programName << " :: getIncludedFunctions() called" \
-	 << endl;
+    //cerr << "process " << programName << " :: getIncludedFunctions() called"
+    //     << endl;
     // if this list has already been created, return it
     if(some_functions) 
 	return some_functions;
