@@ -1,5 +1,9 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
+# Revision 1.10  1995/11/29 00:23:12  tamches
+# removed mkLogo; removed references to PdBitmapDir; added call
+# to makeLogo
+#
 # Revision 1.9  1994/11/05 01:52:00  karavan
 # small improvements to min window sizes, resizing effects, button names,
 # and change pack command in mkLogo to new version.
@@ -46,17 +50,6 @@ proc mkMessage {w {text ""} {pack {top fillx}} args} {
         eval message $w -text \"$text\" $args
         pack append [winfo parent $w] $w $pack
         return $w
-}
-
-# display paradyn logo in a raised box.  w = name for new widget.
-# pack = pack instruction
-proc mkLogo {w packside} {
-    global PdBitmapDir
-
-    eval label $w -bitmap @$PdBitmapDir/logo.xbm -foreground #b3331e1b53c7 \
-	    -relief raised
-    pack $w -side $packside
-    return $w
 }
 
 #----------------------------------------------------------------------------
@@ -146,7 +139,8 @@ proc showErrorHistory {} {
 #  errorCode: error ID from paradyn error database
 #
 proc showError {errorCode errorStr} {
-    global pdError pdErrorHistory PdBitmapDir
+    global pdError pdErrorHistory
+    global PdBitmapDir
     set buttonfg red
     set buttonbg white
     set retval [catch {set errRec $pdError($errorCode)}]
@@ -171,13 +165,18 @@ proc showError {errorCode errorStr} {
     # Error screen header: bitmap, title and Error Number
     frame $w.out.top
     pack $w.out.top -padx 5 -pady 5
-    label $w.out.top.exclaim -bitmap @$PdBitmapDir/dont.xbm \
-	    -fg red -height 40 -width 40
+
+    makeLogo $w.out.top.exclaim dont flat 0 red
+
+#    label $w.out.top.exclaim -bitmap @$PdBitmapDir/dont.xbm \
+#	    -fg red -height 40 -width 40
+
     ## **** don't forget to use class for this font!!!!
     label $w.out.top.title -text "Paradyn Error \#\ $errorCode" \
 	    -anchor center \
 	    -fg red -font "-Adobe-times-bold-r-normal--*-120*"
     pack $w.out.top.exclaim $w.out.top.title -side left -pady 5 -padx 10
+
     pack $w.out.top -expand yes -fill both
 
     # specific error message text
