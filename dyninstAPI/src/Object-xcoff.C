@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.19 2002/08/19 19:19:59 bernat Exp $
+// $Id: Object-xcoff.C,v 1.20 2003/05/07 19:10:45 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -524,7 +524,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
 	 fprintf(stderr, "PTRACE_READ 2: from %x (in_traced) to %x (in_self)\n",
 		 (int) in_traced, (int) in_self);
 	 perror("Reading data segment of inferior process");
-#endif DEBUG
+#endif /* DEBUG */
 	 PARSE_AOUT_DIE("Reading data segment", 49);
        }
      // data_off_ is the value subtracted from an (absolute) address to
