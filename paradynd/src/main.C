@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.61  1997/03/29 02:08:53  sec
+ * Changed the daemon poe to mpi
+ *
  * Revision 1.60  1997/03/23 16:57:48  zhichen
  * added code to set process:pdFlavor
  *
@@ -369,8 +372,8 @@ int main(int argc, char *argv[]) {
       assert(tp);
 
       tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
-    } else if(pd_flavor == string("poe")) {
-      // the executables which are started by poe must report to paradyn
+    } else if(pd_flavor == string("mpi")) {
+      // the executables which are started by poe (for mpi daemon) must report to paradyn
       // the pdRPC is allocated and reportSelf is called
       assert(pd_flag == 0);
 
@@ -378,7 +381,7 @@ int main(int argc, char *argv[]) {
 		     pd_machine, NULL, NULL, 0);
       assert(tp);
 
-      tp->reportSelf(machine_name, argv[0], getpid(), "poe");
+      tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
     } else if (!pd_flag) {
       // not started by pvm_spawn; rather, started via rsh/rexec --> use socket
       int pid = fork();
@@ -428,7 +431,7 @@ int main(int argc, char *argv[]) {
     assert(tp);
 #else
 
-    if(pd_flavor == string("poe")) {
+    if(pd_flavor == string("mpi")) {
       // not put here, only up above since PARADYND_PVM is always set
       assert(0);
     } else if (!pd_flag) {
