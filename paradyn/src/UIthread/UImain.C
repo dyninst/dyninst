@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.75  1996/02/15 23:06:27  tamches
-/* added support for phase 0, the initial current phase
+/* Revision 1.76  1996/02/21 18:15:50  tamches
+/* cleanup of applicStateChanged related to commit of paradyn.tcl.C
 /*
+ * Revision 1.75  1996/02/15 23:06:27  tamches
+ * added support for phase 0, the initial current phase
+ *
  * Revision 1.74  1996/02/08 01:00:03  tamches
  * implementing starting a phase w/ pc
  *
@@ -213,30 +216,31 @@ void resourceBatchChanged(perfStreamHandle, batchMode mode)
     assert(UIM_BatchMode >= 0);
 }
 
-void
-applicStateChanged (perfStreamHandle, appState state) 
-{
+void applicStateChanged (perfStreamHandle, appState newstate) {
   if (! app_status) {
     app_status = new status_line("Application status");
   }
  
-  if ((state == appRunning) && (PDapplicState == appPaused)) { 
-    if (Tcl_VarEval (interp, "changeApplicState 1", 0) == TCL_ERROR) {
-      printf ("changeApplicStateERROR: %s\n", interp->result);
-    }
+  if (newstate == appRunning && PDapplicState == appPaused) {
+    myTclEval(interp, "changeApplicState 1");
     app_status->state(status_line::NORMAL);
     app_status->message("RUNNING");
-  } else if ((state == appPaused) && (PDapplicState == appRunning)) {
-    if (Tcl_VarEval (interp, "changeApplicState 0", 0) == TCL_ERROR) {
-      printf ("changeApplicStateERROR: %s\n", interp->result);
-    }
+  } else if (newstate == appPaused && PDapplicState == appRunning) {
+    myTclEval(interp, "changeApplicState 0");
     app_status->state(status_line::URGENT);
     app_status->message("PAUSED");
-  } else if ((state == appExited)) {
+  } else if (newstate == appExited) {
     app_status->state(status_line::URGENT);
     app_status->message("EXITED");
   }
-  PDapplicState = state;
+  else if (newstate == PDapplicState) {
+    // no state change
+  }
+  else {
+    // state changed, but UI buttons didn't need updating?
+  }
+
+  PDapplicState = newstate;
 }
 
 // The following two variables tell the shg which phase to try to
