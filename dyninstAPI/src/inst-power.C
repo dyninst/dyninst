@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.173 2003/05/20 21:53:48 bernat Exp $
+ * $Id: inst-power.C,v 1.174 2003/05/21 20:06:25 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1933,7 +1933,7 @@ void generateIllegalInsn(instruction &insn) { // instP.h
 
 bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) 
 {
-/*
+
   // We save daemon-side...
   instruction *tmp = (instruction *)insnPtr;
   // A miracle of casting...
@@ -1942,7 +1942,7 @@ bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes)
   // Make a stack frame
   genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
   insn++; baseBytes += sizeof(instruction);
-  
+/*  
   // Save registers
   saveGPRegisters(insn, baseBytes, TRAMP_GPR_OFFSET, conservativeRegSpace);
 */
@@ -1972,11 +1972,11 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 /*
   // We save daemon-side...
   restoreGPRegisters(insn, baseBytes, TRAMP_GPR_OFFSET, conservativeRegSpace);
-  
+*/
   // Pop the stack
   genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
   insn++; baseBytes += sizeof(instruction);
-*/
+
   // but the code doesn't like justAfter == breakOffset. Insert
   // a noop
   generateNOOP(insn);
