@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.2  1994/03/24 16:42:01  hollings
+ * Revision 1.3  1994/03/26 19:31:37  hollings
+ * Changed sample time to be consistant.
+ *
+ * Revision 1.2  1994/03/24  16:42:01  hollings
  * Moved sample aggregation to lib/util (so paradyn could use it).
  *
  * Revision 1.1  1994/01/27  20:31:29  hollings
@@ -104,16 +107,6 @@ class instReqNode {
 	instInstance	*instance;
 };
 
-#ifdef notdef
-struct sampleInfo {
-    Boolean firstSampleReceived;	/* has first sample been recoreded */
-    sampleValue	value;			/* cumlative value */
-    timeStamp	lastSampleStart;	/* start time for last sample */
-    timeStamp	lastSampleEnd;		/* end time for last sample */
-    sampleValue	lastSample;		/* what was the last sample increment */
-};
-#endif
-
 class metricDefinitionNode {
     public:
 	metricDefinitionNode(process *p);
@@ -159,7 +152,8 @@ class metricDefinitionNode {
 	process			*proc;
     private:
 	void updateAggregateComponent(metricDefinitionNode *,
-				      time64 time, sampleValue value);
+				      timeStamp time, 
+				      sampleValue value);
 
 	Boolean			aggregate;
 	Boolean			inserted;
@@ -174,9 +168,6 @@ class metricDefinitionNode {
 	// which metricDefinitionNode depend on this value.
 	List<metricDefinitionNode*>   aggregators;	
 
-#ifdef notdef
-	struct sampleInfo 	sampleData;	/* actual data */
-#endif
 	List<sampleInfo*>	valueList;	// actual data for comp.
 	sampleInfo sample;
 };

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.5 1994/03/24 16:41:59 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.6 1994/03/26 19:31:36 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.5  1994/03/24 16:41:59  hollings
+ * Revision 1.6  1994/03/26 19:31:36  hollings
+ * Changed sample time to be consistant.
+ *
+ * Revision 1.5  1994/03/24  16:41:59  hollings
  * Moved sample aggregation to lib/util (so paradyn could use it).
  *
  * Revision 1.4  1994/03/01  21:23:58  hollings
@@ -537,7 +540,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     ret = sample.newValue(valueList, sampleTime, value);
 
     for (curr = aggregators; *curr; curr++) {
-	(*curr)->updateAggregateComponent(this, wallTime, value);
+	(*curr)->updateAggregateComponent(this, sampleTime, value);
     }
 
     /* 
@@ -550,67 +553,13 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     }
 }
 
-#ifdef notdef
 void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
-						    time64 wallTime, 
-						    sampleValue value)
-{
-    double fract;
-    sampleValue component;
-    timeStamp earlyestTime;
-    sampleValue aggregateVal;
-    List<metricDefinitionNode*> cp;
-
-    earlyestTime = (*components)->sampleData.lastSampleEnd;
-    for (cp=components; curr = *cp; cp++) {
-	if (curr->sampleData.lastSampleEnd < earlyestTime) {
-	    earlyestTime = curr->sampleData.lastSampleEnd;
-	}
-    }
-    if (earlyestTime > sampleData.lastSampleEnd + 0.0001) {
-	aggregateVal = 0.0;
-	for (cp=components; curr=*cp; cp++) {
-	    // assert(earlyestTime >= curr->sampleData.lastSampleStart);
-
-	    fract = (earlyestTime - sampleData.lastSampleEnd)/
-		(curr->sampleData.lastSampleEnd - curr->sampleData.lastSampleStart);
-	    component = (curr->sampleData.lastSample) * fract;
-
-	    assert(fract > 0.0);
-	    assert(fract <= 1.0);
-	    assert(component >= -0.01);
-
-	    curr->sampleData.lastSample -= component;
-	    aggregateVal += component;
-	    /* move forward our time of our earliest sample */
-	    curr->sampleData.lastSampleStart = earlyestTime;
-	}
-
-	/* eat the first one to get a good interval basis */
-	if (!sampleData.firstSampleReceived) {
-	    sampleData.firstSampleReceived = True;
-	} else {
-	    /* inform higher levels of a new sample */
-	    tp->sampleDataCallbackFunc(0,
-			id,
-			sampleData.lastSampleEnd,
-			earlyestTime,
-			aggregateVal);
-	}
-
-	sampleData.lastSampleStart = sampleData.lastSampleEnd;
-	sampleData.lastSampleEnd = earlyestTime;
-    }
-}
-#endif
-
-void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
-						    time64 wallTime, 
+						    timeStamp sampleTime, 
 						    sampleValue value)
 {
     struct sampleInterval ret;
 
-    ret = sample.newValue(valueList, wallTime, value);
+    ret = sample.newValue(valueList, sampleTime, value);
     if (ret.valid) {
 	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
     }
