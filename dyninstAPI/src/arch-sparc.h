@@ -48,6 +48,9 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.15  1996/10/31 08:35:36  tamches
+ * removed LOW and HIGH; added a few opcodes
+ *
  * Revision 1.14  1996/10/18 23:51:21  mjrg
  * Added function to test for alignment
  *
@@ -173,7 +176,10 @@ typedef union instructUnion instruction;
  */
 #define SetCC		16
 #define ADDop3		0
+#define ADDop3cc	16
 #define ANDop3		1
+#define ANDop3cc        17
+#define ANDNop3cc       21
 #define ORop3		2
 #define SUBop3		4
 #define SUBop3cc	SetCC|SUBop3
@@ -288,10 +294,8 @@ typedef union instructUnion instruction;
 /* If these bits are non-zero an op2 instruction is a non-annuled branch */
 #define ANNUL_BIT	0x40000000
 
-#define LOW(x)	((x)%1024)
-#define HIGH(x)	((x)/1024)
-
 #define BREAK_POINT_INSN 0x91d02001   /* ta 1 */
+
 
 inline bool isInsnType(const instruction i,
 		       const unsigned mask,
