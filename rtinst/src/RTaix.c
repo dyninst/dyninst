@@ -43,6 +43,9 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTaix.c,v $
+ * Revision 1.17  1999/11/29 16:55:11  bernat
+ * Fix to walltime rollback problems
+ *
  * Revision 1.16  1999/11/10 22:36:26  schendel
  * modify so run time library reports all rollbacks to the daemon
  * useful for time being to determine extent of rollback problems
@@ -264,58 +267,28 @@ time64 DYNINSTgetWalltime(void)
   static time64 wallPrevious = 0;
   static int wallRollbackOccurred = 0;
   time64        now;
-#ifdef BERNAT_LIBCALL_FOR_TIME
-  timebasestruct_t timestruct;
-#else
   register unsigned int timeSec asm("5");
   register unsigned int timeNano asm("6");
   register unsigned int timeSec2 asm("7");
-
-  static unsigned int old_timeSec = 0;
-  static unsigned int old_timeNano = 0;
-#endif
   
   /* Need to read the first value twice to make sure it doesn't roll
    *   over while we are reading it.
    */
-  /* This code was disabled, since there are library routines that 
-     do the same thing and are safer (in general, I don't like
-     register reads) -- bernat
-  */
-  /* I'm back to it since it seems the library routines are "fuzzy". I don't
-     know why */
 
-#ifndef BERNAT_LIBCALL_FOR_TIME
   do {
     asm("mfspr   5,4");		/* read high into register 5 - timeSec */
     asm("mfspr   6,5");		/* read low into register 6 - timeNano */
     asm("mfspr   7,4");		/* read high into register 7 - timeSec2 */
   } while(timeSec != timeSec2);
 
-  /* Check to be sure there isn't rollback. Quick check: if nano < old_nano and
-     sec !> old_sec, there was a rollback */
-
-#ifdef BERNAT_TEST_TO_DESTRUCTION
-  if ((timeNano < old_timeNano) && (timeSec <= old_timeSec))
-    /* Unfortunately, printing anything here will cause the app to die, so
-       exit (not even assert) */
-    abort();
-#endif
-
   now = (time64) timeSec;
-  now *= (time64) MILLION;
+  now *= (time64) 1000000000;
   now += (time64) timeNano;
 
-#else
-
+  /*
   read_real_time(&timestruct, TIMEBASE_SZ);
   time_base_to_time(&timestruct, TIMEBASE_SZ);
-
-  /* convert to correct form. */
-  now = (time64) timestruct.tb_high;
-  now *= (time64) MILLION;
-  now += (time64) timestruct.tb_low;
-#endif
+  */
 
   if (now < wallPrevious) {
     if(wallRollbackOccurred < MaxRollbackReport) {
@@ -330,7 +303,7 @@ time64 DYNINSTgetWalltime(void)
     wallRollbackOccurred++;
     now = wallPrevious;
   }
-  else  wallPrevious = now;
+  else wallPrevious = now;
 
   return now;
 }
