@@ -11,6 +11,9 @@ class BackEndNode;
 #include "mrnet/src/FilterDefinitions.h"
 namespace MRN
 {
+const int FIRST_CTL_TAG=100;
+const int FIRST_APPL_TAG=200;
+
 class Network{
  public:
     class LeafInfo
@@ -80,6 +83,7 @@ class Stream{
   virtual int send(int tag, const char * format_str, ...)=NULL;
   virtual int flush()=NULL;
   virtual int recv(int *tag, void **buf, bool blocking=true)=NULL;
+  virtual unsigned int get_NumEndPoints()=NULL;
 
   //static Stream * get_Stream(int stream_id);
   //static Stream * new_Stream(int stream_id, int * backends=NULL,

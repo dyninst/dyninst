@@ -3,8 +3,9 @@
 
 #include <string>
 #include "mrnet/src/Errors.h"
+#include "mrnet/h/MR_Network.h"
 
-enum ProtocolTags{MRN_NEW_SUBTREE_PROT=200, MRN_DEL_SUBTREE_PROT,
+enum ProtocolTags{MRN_NEW_SUBTREE_PROT=MRN::FIRST_CTL_TAG, MRN_DEL_SUBTREE_PROT,
                      MRN_RPT_SUBTREE_PROT,
                      MRN_NEW_APPLICATION_PROT, MRN_DEL_APPLICATION_PROT,
                      MRN_NEW_STREAM_PROT, MRN_DEL_STREAM_PROT,
