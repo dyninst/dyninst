@@ -2,10 +2,13 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.10  1995/11/17 17:32:27  newhall
-/* changed Dg start command to take no arguments, replaced call to MetricUnits
-/* with call to MetricLabel
+/* Revision 1.11  1995/11/17 17:39:32  newhall
+/* changed Dg start command, and call to GetMetsRes
 /*
+ * Revision 1.10  1995/11/17  17:32:27  newhall
+ * changed Dg start command to take no arguments, replaced call to MetricUnits
+ * with call to MetricLabel
+ *
  * Revision 1.9  1995/09/22  19:23:41  tamches
  * removed warnings under g++ 2.7.0
  *
@@ -128,7 +131,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"numresources", NUMRESOURCES,    0},
   {"phase",        DEFINEPHASE,     3},
   {"resourcename", RESOURCENAME,    1},
-  {"start",        STARTSTREAM,     2},
+  {"start",        STARTSTREAM,     0},
   {"stop",         STOPSTREAM,      2},
   {"sum",          DGSUM,           2},
   {"valid",        DGVALID,         2},
@@ -235,8 +238,7 @@ int Dg_TclCommand(ClientData,
     return TCL_OK;
 
   case STARTSTREAM:       
-    GetMetsRes(argv[2], atoi(argv[3]), 0); // 0-->histogram (1-->scalar)
-                                           // argv[3] is num
+    GetMetsRes(); 
     return TCL_OK;
 
   case STOPSTREAM:
