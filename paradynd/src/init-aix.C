@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-aix.C,v $
+ * Revision 1.13  1998/08/28 01:38:09  zhichen
+ * Make sure the useCount of the DAG generated are correct
+ *
  * Revision 1.12  1997/04/17 19:44:18  sec
  * Did some automatic instrumented of the MPI collective calls, to make sure
  * the message groups and tags are recorded.
@@ -110,7 +113,6 @@
 static AstNode tagArg(AstNode::Param, (void *) 1);
 static AstNode argvArg(AstNode::Param, (void *) 1);
 static AstNode cmdArg(AstNode::Param, (void *) 4);
-static AstNode tidArg(AstNode::Param, (void *) 0);
 
 static AstNode mpiNormTagArg(AstNode::Param, (void *) 4);
 static AstNode mpiNormCommArg(AstNode::Param, (void *) 5);
@@ -150,15 +152,17 @@ bool initOS()
 
   // we need to instrument __fork instead of fork. fork makes a tail call
   // to __fork, and we can't get the correct return value from fork.
+  AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
   initialRequests += new instMapping("__fork", "DYNINSTfork", 
-				     FUNC_EXIT|FUNC_ARG, &tidArg);
+				     FUNC_EXIT|FUNC_ARG, tidArg);
 
   // None of the execs work very well on AIX, this needs to be looked
   // into.
   // initialRequests += new instMapping("rexec", "DYNINSTrexec",
   //                                    FUNC_ENTRY|FUNC_ARG, &cmdArg);
+  tidArg = new AstNode(AstNode::Param, (void *) 0);
   initialRequests += new instMapping("execve", "DYNINSTexec", 
-                                     FUNC_ENTRY|FUNC_ARG, &tidArg);
+                                     FUNC_ENTRY|FUNC_ARG, tidArg);
   // Instrumenting DYNINSTexecFailed at the end of execve is not working
   // well on the aix version, this needs to be looked into more seriously
   // to find out if DYNINSTexecFailed should really be instrumented at the
@@ -233,11 +237,13 @@ bool initOS()
   doPiggy = getenv("DYNINSTdoPiggy");
   if (doPiggy) {
       initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
+      tidArg = new AstNode(AstNode::Param, (void *) 0);
       initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
-                           FUNC_ENTRY|FUNC_ARG, &tidArg);
+                           FUNC_ENTRY|FUNC_ARG, tidArg);
       initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
+      tidArg = new AstNode(AstNode::Param, (void *) 0);
       initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
-                           FUNC_ENTRY|FUNC_ARG, &tidArg);
+                           FUNC_ENTRY|FUNC_ARG, tidArg);
   }
 #endif
 

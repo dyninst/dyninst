@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-winnt.C,v $
+ * Revision 1.2  1998/08/28 01:38:10  zhichen
+ * Make sure the useCount of the DAG generated are correct
+ *
  * Revision 1.1  1997/05/23 23:02:15  mjrg
  * Windows NT port
  *
@@ -58,7 +61,6 @@
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
 static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
-static AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
 static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
 #if defined(MT_THREAD)
 static AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
@@ -75,6 +77,7 @@ bool initOS() {
 #endif
 
 
+  AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
   initialRequests += new instMapping("execve", "DYNINSTexec",
 				     FUNC_ENTRY|FUNC_ARG, tidArg);
   initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
@@ -95,9 +98,11 @@ bool initOS() {
   doPiggy = getenv("DYNINSTdoPiggy");
   if (doPiggy) {
       initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
+      tidArg = new AstNode(AstNode::Param, (void *) 0);
       initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
                            FUNC_ENTRY|FUNC_ARG, tidArg);
       initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
+      tidArg = new AstNode(AstNode::Param, (void *) 0);
       initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
                            FUNC_ENTRY|FUNC_ARG, tidArg);
   }

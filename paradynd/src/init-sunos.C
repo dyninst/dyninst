@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.23  1998/08/28 01:38:10  zhichen
+ * Make sure the useCount of the DAG generated are correct
+ *
  * Revision 1.22  1997/12/01 02:15:45  tung
  * modified for Linux/X86 Platform
  *
@@ -130,14 +133,6 @@
 #include "dyninstAPI/src/os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
-static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
-static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
-static AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-static AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
-#endif
-
 bool initOS() {
 
 //  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
@@ -150,17 +145,21 @@ bool initOS() {
   if(process::pdFlavor != string("cow"))
   {
 #if defined(i386_unknown_solaris2_5) || defined(sparc_sun_sunos4_1_3) || defined(i386_unknown_linux2_0)
+	AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
   	initialRequests += new instMapping("_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
 #else
+	AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
   	initialRequests += new instMapping("fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
 
+	retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
       	initialRequests += new instMapping("_libc_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
 #endif
   }
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
+  AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
   initialRequests += new instMapping("MY_thr_create", "DYNINSTthreadCreate", 
                                      FUNC_EXIT|FUNC_ARG, THRidArg);
 #endif
@@ -170,6 +169,7 @@ bool initOS() {
     //initialRequests += new instMapping("execve", "DYNINSTexec",
     //			     FUNC_ENTRY|FUNC_ARG, tidArg);
     //initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
+    AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
     initialRequests += new instMapping("_execve", "DYNINSTexec",
 				     FUNC_ENTRY|FUNC_ARG, tidArg);
     initialRequests += new instMapping("_execve", "DYNINSTexecFailed", FUNC_EXIT);
@@ -182,6 +182,7 @@ bool initOS() {
 
   if(process::pdFlavor != string("cow"))
   {
+        AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
   	initialRequests += new instMapping("rexec", "DYNINSTrexec",
 				 FUNC_ENTRY|FUNC_ARG, cmdArg);
   }
@@ -191,6 +192,7 @@ bool initOS() {
 #ifdef PARADYND_PVM
   char *doPiggy;
 
+  AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
   initialRequests += new instMapping("pvm_send", "DYNINSTrecordTag",
 				 FUNC_ENTRY|FUNC_ARG, tagArg);
 
@@ -199,9 +201,11 @@ bool initOS() {
   doPiggy = getenv("DYNINSTdoPiggy");
   if (doPiggy) {
       initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
+      AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
       initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
                            FUNC_ENTRY|FUNC_ARG, tidArg);
       initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
+      tidArg = new AstNode(AstNode::Param, (void *) 0);
       initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
                            FUNC_ENTRY|FUNC_ARG, tidArg);
   }

@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-pvm.C,v $
+ * Revision 1.11  1998/08/28 01:38:09  zhichen
+ * Make sure the useCount of the DAG generated are correct
+ *
  * Revision 1.10  1997/02/21 20:15:46  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -85,7 +88,6 @@
 #include "dyninstAPI/src/os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
-static AstNode tidArg(Param, (void *) 0);
 static AstNode tagArg(Param, (void *) 1);
 static AstNode cmdArg(Param, (void *) 4);
 
@@ -122,11 +124,13 @@ bool initOS() {
   doPiggy = getenv("DYNINSTdoPiggy");
   if (doPiggy) {
       initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
+      AstNode *tidArg = new AstNode(Param, (void *) 0);
       initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
-                           FUNC_ENTRY|FUNC_ARG, &tidArg);
+                           FUNC_ENTRY|FUNC_ARG, tidArg);
       initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
+      tidArg = new AstNode(Param, (void *) 0);
       initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
-                           FUNC_ENTRY|FUNC_ARG, &tidArg);
+                           FUNC_ENTRY|FUNC_ARG, tidArg);
   }
   return true;
 };
