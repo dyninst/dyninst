@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.95 2003/05/19 03:03:03 schendel Exp $ */
+/* $Id: context.C,v 1.96 2003/05/21 20:12:45 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -500,11 +500,21 @@ void processNewTSConnection(int tracesocket_fd) {
    statusLine("ready");
 }
 
+// The below vector is a kludge put in as a "safer" method of handling this
+// issue just before the release.  After the release, this method shouldn't
+// be used.  We're using this to delete the pd_process when Paradyn exits.
+// The better appoach would be to delete the pd_process when the process
+// actually exits, as we find out in paradyn_handleProcessExit.  We don't
+// have opportunity so close to the release to flush out any bugs related to
+// this, so that's why we're deleting all pd_processes when Paradyn exits.
+extern pdvector<pd_process *> already_exited_pdprocesses;
+
 void paradyn_handleProcessExit(process *proc, int exitStatus) {
    pd_process *pd_proc = getProcMgr().find_pd_process(proc);
    if(pd_proc) {
       pd_proc->handleExit(exitStatus);
       getProcMgr().removeProcess(pd_proc);
+      already_exited_pdprocesses.push_back(pd_proc);
    }
 }
 
