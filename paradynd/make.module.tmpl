@@ -52,9 +52,10 @@ SRCS	     += ../src/association.C \
 		../../dyninstAPI/src/util.C \
  		../src/mdl.C \
 		../src/showerror.C \
-		../src/templates0.C \
-		../src/templates05.C \
-		../src/templates1.C \
+		../../dyninstAPI/src/templates0.C \
+		../../dyninstAPI/src/templates05.C \
+		../../dyninstAPI/src/templates1.C \
+		../src/templatesPD.C \
 		../src/templatesIGEN.C
 
 
@@ -94,14 +95,17 @@ IFLAGS       += -I../$(PLATFORM) -I../src
 
 all:    $(TARGET)
 
-templates0.o: ../src/templates0.C
-	$(CXX) $(TFLAGS) -c ../src/templates0.C
+templates0.o: ../../dyninstAPI/src/templates0.C
+	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates0.C
 
-templates05.o: ../src/templates05.C
-	$(CXX) $(TFLAGS) -c ../src/templates05.C
+templates05.o: ../../dyninstAPI/src/templates05.C
+	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates05.C
 
-templates1.o: ../src/templates1.C
-	$(CXX) $(TFLAGS) -c ../src/templates1.C
+templates1.o: ../../dyninstAPI/src/templates1.C
+	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates1.C
+
+templatesPD.o: ../src/templatesPD.C
+	$(CXX) $(TFLAGS) -c ../src/templatesPD.C
 
 templatesIGEN.o: ../src/templatesIGEN.C
 	$(CXX) $(TFLAGS) -c ../src/templatesIGEN.C
