@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.232 2000/08/09 17:00:25 bernat Exp $
+// $Id: process.C,v 1.233 2000/08/17 19:43:28 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4179,6 +4179,16 @@ void process::handleExec() {
 
     // see if new image contains the signal handler function
     this->findSignalHandler();
+
+	// release our info about the heaps that exist in the process
+	// (we will eventually call initInferiorHeap to rebuild the list and
+	// reset our notion of which are available and which are in use)
+	unsigned int heapIdx;
+	for( heapIdx = 0; heapIdx < heap.bufferPool.size(); heapIdx++ )
+	{
+		delete heap.bufferPool[heapIdx];
+	}
+	heap.bufferPool.resize(0);
 
     // initInferiorHeap can only be called after symbols is set!
 #if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
