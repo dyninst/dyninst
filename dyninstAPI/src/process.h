@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.230 2002/12/20 07:49:58 jaw Exp $
+/* $Id: process.h,v 1.231 2003/01/02 19:51:39 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -815,11 +815,6 @@ void saveWorldData(Address address, int size, const void* src);
   /* map an address to an instPoint (that's not at entry, call or exit) */
   dictionary_hash<Address, BPatch_point *> instPointMap;
 #endif
-
-  // the following 3 are used in perfStream.C
-  char buffer[2048];
-  unsigned bufStart;
-  unsigned bufEnd;
 
   bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
   bool reachedVeryFirstTrap; 
