@@ -710,26 +710,7 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 
     errno = 0;
 
-    if (DYNINSTtraceFp == NULL) {
-       /* a process started via attach or fork should have set this vrble
-	  to non-null in its call to connectToDaemon().  So, this should
-	  only happen for a process started "normally", in which case
-	  we can use the hard-coded fd of 3 for the trace stream. */
-       assert(DYNINST_trace_fd == -1);
-       DYNINST_trace_fd = 3;
-          /* hard-coded value.  pipe was created by paradynd before it forked this
-	     process, so it can guarantee this hardcoded value.  Note that there's
-	     really no reason to have this kludge (if you think it is a kludge) -- why
-	     not call connectToDaemon() in DYNINSTinit, which we currently only do for
-	     a process started via attach or via a forked process? */
-    }
-
-    if (DYNINSTtraceFp==NULL || type == TR_EXIT) {
-	assert(DYNINST_trace_fd != -1);
-
-        DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); // why the dup()?
-	assert(DYNINSTtraceFp);
-    }
+    assert(DYNINSTtraceFp);
 
     while (1) {
       errno=0;
@@ -1261,7 +1242,20 @@ DYNINSTinit(int theKey, int shmSegNumBytes, int portnum, unsigned hostaddr) {
 #endif
       fflush(DYNINSTtraceFp);
    }
+   else if (!calledFromFork) {
+      /* either normal startup or startup via a process having exec'd */
+      DYNINST_trace_fd = 3;
+      DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); // why the dup()?
+   }
+   else
+      /* calledByFork -- DYNINST_trace_fd and DYNINSTtraceFp are already set by the
+         call to connectToDaemon() */
+      ;
 
+   /* Verify that the trace stream was set up okay */
+   assert(DYNINST_trace_fd != -1);
+   assert(DYNINSTtraceFp);
+				   
    /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
       it will read from DYNINST_bootstrap_info */
 
