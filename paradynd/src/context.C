@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.74 2002/05/02 21:28:54 schendel Exp $ */
+/* $Id: context.C,v 1.75 2002/05/10 18:37:09 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -52,7 +52,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "paradynd/src/metric.h"
+#include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/showerror.h"
@@ -201,7 +201,7 @@ void forkProcess(int pid, int ppid, int trace_fd, key_t theKey,
    //       meta-data for the conventional inferior heap has already been copied by the
    //       fork-ctor, when we detect code that shouldn't have been copied, we manually
    //       delete it with deleteInst().  "map" is helpful in this context.
-   metricDefinitionNode::handleFork(parentProc, childProc, map);
+   metricFocusNode::handleFork(parentProc, childProc, map);
 
    // The following routines perform some assertion checks.
    //   childProc->getTable().forkHasCompleted();
@@ -479,7 +479,7 @@ void processNewTSConnection(int tracesocket_fd) {
    process *curr = NULL;
 
    if (calledFromFork) {
-      // the following will (1) call fork ctor (2) call metricDefinitionNode::handleFork
+      // the following will (1) call fork ctor (2) call metricFocusNode::handleFork
       // (3) continue the parent process, who has been waiting to avoid race conditions.
       forkProcess(pid, ppid, fd, theKey, applAttachedAtPtr);
 
