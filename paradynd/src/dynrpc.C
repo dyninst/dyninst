@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.95 2003/02/05 17:06:21 pcroth Exp $ */
+/* $Id: dynrpc.C,v 1.96 2003/02/21 20:06:15 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -179,26 +179,18 @@ void dynRPC::disableDataCollection(int mid)
     pdvector<pd_process *> procsToCont;
     processMgr::procIter itr = getProcMgr().begin();
     while(itr != getProcMgr().end()) {
-       pd_process *proc = *itr++;
-       if (proc->status()==running) {
-#ifdef DETACH_ON_THE_FLY
-	  proc->reattachAndPause();
-#else
-	  proc->pause();
-#endif
-	  procsToCont += proc;
-       }
-       if (proc->existsRPCreadyToLaunch()) {
-	  proc->cleanRPCreadyToLaunch(mid);
-       }
+        pd_process *proc = *itr++;
+        if (proc->status()==running) {
+            proc->pause();
+            procsToCont += proc;
+        }
+        if (proc->existsRPCPending()) {
+            proc->cleanRPCreadyToLaunch(mid);
+        }
     }
-
+    
     for (unsigned i=0; i<procsToCont.size(); i++) {
-#ifdef DETACH_ON_THE_FLY
-      procsToCont[i]->detachAndContinue();
-#else
       procsToCont[i]->continueProc();
-#endif
     }
     delete mi;
 
@@ -361,22 +353,20 @@ void dynRPC::continueProgram(int program)
       return;
    }
    if (proc->existsRPCinProgress())  {
+       cerr << "RPC in progress, deferring in dynRPC::continueProgram" << endl;
       // An RPC is in progress, so we delay the continueProc until the RPC
       // finishes - naim
       proc->get_dyn_process()->deferredContinueProc = true;
    } else {
-      if( proc->status() != running ) {
-#ifdef DETACH_ON_THE_FLY
-	 proc->detachAndContinue();
-#else
-	 proc->continueProc();
-#endif
-      }
-      // we are no longer paused, are we?
-      statusLine("application running");
-      if (!markApplicationRunning()) {
-	 return;
-      }
+       if( proc->status() != running ) {
+           cerr << "Process status is not running, continuing..." << endl;
+           proc->continueProc();
+       }
+       // we are no longer paused, are we?
+       statusLine("application running");
+       if (!markApplicationRunning()) {
+           return;
+       }
    }
 }
 
@@ -402,11 +392,7 @@ bool dynRPC::pauseProgram(int program)
 		        machineResource->part_name());
       return false;
    }
-#ifdef DETACH_ON_THE_FLY
-   return proc->reattachAndPause();
-#else
    return proc->pause();
-#endif
 }
 
 bool dynRPC::startProgram(int )
@@ -434,6 +420,7 @@ int dynRPC::addExecutable(pdvector<string> argv, string dir)
 {
   pdvector<string> envp;
   pd_process *p = pd_createProcess(argv, envp, dir);
+
   if (p)
       return 1;
   return -1;
@@ -462,19 +449,21 @@ bool dynRPC::attach(string progpath, int pid, int afterAttach)
 #endif
 
     pd_process *p = pd_attachProcess(progpath, pid);
-    
     if (!p) return false;
     
     if (afterAttach == 0) {
+        cerr << "afterAttach: leave as is" << endl;
         if (p->get_dyn_process()->wasRunningWhenAttached())
             p->continueProc();
         else
             p->pause();
     }
     else if (afterAttach == 1) {
+        cerr << "afterAttach: pause" << endl;
         p->pause();
     }
     else if (afterAttach == 2) {
+        cerr << "afterAttach: run" << endl;
         p->continueProc();
     }
     else
