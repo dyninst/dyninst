@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.2  1994/06/27 18:57:17  hollings
+ * Revision 1.3  1994/07/20 23:23:44  hollings
+ * added insn generated metric.
+ *
+ * Revision 1.2  1994/06/27  18:57:17  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -44,5 +47,7 @@ typedef HTable<metricDefinitionNode *>;
 typedef HTable<_metricRec *>;
 typedef HTable<_resourceRec *>;
 typedef HTable<_resourceListRec *>;
+
+typedef HTable<pointRec *>;
 
 typedef StringList<int>;

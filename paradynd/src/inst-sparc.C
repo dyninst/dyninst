@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.10 1994/07/14 23:30:24 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.11 1994/07/20 23:23:35 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.10  1994/07/14 23:30:24  hollings
+ * Revision 1.11  1994/07/20 23:23:35  hollings
+ * added insn generated metric.
+ *
+ * Revision 1.10  1994/07/14  23:30:24  hollings
  * Hybrid cost model added.
  *
  * Revision 1.9  1994/07/12  20:09:06  jcargill
@@ -316,6 +319,7 @@ struct instPointRec {
                            (insn.branch.op2 == 7)))
 
 extern int errno;
+extern int insnGenerated;
 extern int totalMiniTramps;
 
 #define	REG_G5		5
@@ -809,6 +813,8 @@ void *findAndInstallBaseTramp(process *proc, instPoint *location)
 void installTramp(instInstance *inst, char *code, int codeSize) 
 {
     totalMiniTramps++;
+    insnGenerated += codeSize/sizeof(int);
+
     errno = 0;
     (void) PCptrace(PTRACE_WRITEDATA, inst->proc, (char *)inst->trampBase, 
 	codeSize, (char *) code);

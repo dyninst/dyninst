@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.5  1994/07/16 03:38:50  hollings
+ * Revision 1.6  1994/07/20 23:23:40  hollings
+ * added insn generated metric.
+ *
+ * Revision 1.5  1994/07/16  03:38:50  hollings
  * fixed stats to not devidi by 1meg, fixed negative time problem.
  *
  * Revision 1.4  1994/07/15  04:19:13  hollings
@@ -41,6 +44,7 @@
 int trampBytes;
 int pointsUsed;
 int samplesDelivered;
+int insnGenerated;
 int totalMiniTramps;
 int metResPairsEnabled;
 double timeCostLastChanged;
@@ -49,61 +53,76 @@ HTable<metric> metricsUsed;
 extern internalMetric totalPredictedCost;
 int ptraceOtherOps, ptraceOps, ptraceBytes;
 
+
+
+#ifdef TIME_INST
+time64 totalInstTime;
+#endif
+
 void printDyninstStats()
 {
     float now;
 
     now = getCurrentTime(FALSE);
-    sprintf(errorLine, "totalPredictedCost = %f\n", 
+    sprintf(errorLine, "    totalPredictedCost = %f\n", 
 	totalPredictedCost.getValue()/1000000.0);
     logLine(errorLine);
 
-    sprintf(errorLine, "%d total points used\n", pointsUsed);
+    sprintf(errorLine, "    %d total points used\n", pointsUsed);
     logLine(errorLine);
-    sprintf(errorLine, "%d mini-tramps used\n", totalMiniTramps);
+    sprintf(errorLine, "    %d mini-tramps used\n", totalMiniTramps);
     logLine(errorLine);
-    sprintf(errorLine, "%d metric/resource pairs enabled\n",metResPairsEnabled);
+    sprintf(errorLine, "    %d metric/resource pairs enabled\n",metResPairsEnabled);
     logLine(errorLine);
-    sprintf(errorLine, "%d metrics used\n", metricsUsed.count());
+    sprintf(errorLine, "    %d metrics used\n", metricsUsed.count());
     logLine(errorLine);
-    sprintf(errorLine, "%d foci used\n", fociUsed.count());
+    sprintf(errorLine, "    %d foci used\n", fociUsed.count());
     logLine(errorLine);
-    sprintf(errorLine, "%d tramp bytes\n", trampBytes);
+    sprintf(errorLine, "    %d tramp bytes\n", trampBytes);
     logLine(errorLine);
-    sprintf(errorLine, "%d samples delivered\n", samplesDelivered);
+    sprintf(errorLine, "    %d samples delivered\n", samplesDelivered);
     logLine(errorLine);
-    sprintf(errorLine, "%d ptrace other calls\n", ptraceOtherOps);
+    sprintf(errorLine, "    %d ptrace other calls\n", ptraceOtherOps);
     logLine(errorLine);
-    sprintf(errorLine, "%d ptrace write calls\n", ptraceOps-ptraceOtherOps);
+    sprintf(errorLine, "    %d ptrace write calls\n", ptraceOps-ptraceOtherOps);
     logLine(errorLine);
-    sprintf(errorLine, "%d ptrace bytes written\n", ptraceBytes);
+    sprintf(errorLine, "    %d ptrace bytes written\n", ptraceBytes);
     logLine(errorLine);
+    sprintf(errorLine, "    %d instructions generated\n", insnGenerated);
+    logLine(errorLine);
+#ifdef TIME_INST
+    sprintf(errorLine, "    %f time used to generate instrumentation\n",
+((double) totalInstTime)/1000000.0);
+    logLine(errorLine);
+#endif
+
+
 }
 
 void printAppStats(struct endStatsRec *stats)
 {
-    sprintf(errorLine, "DYNINSTtotalAlaramExpires %d\n", stats->alarms);
+    sprintf(errorLine, "    DYNINSTtotalAlaramExpires %d\n", stats->alarms);
     logLine(errorLine);
 #ifdef notdef
-    sprintf(errorLine, "DYNINSTnumReported %d\n", stats->numReported);
+    sprintf(errorLine, "    DYNINSTnumReported %d\n", stats->numReported);
     logLine(errorLine);
 #endif
-    sprintf(errorLine,"Raw cycle count = %f\n", (double) stats->instCycles);
+    sprintf(errorLine,"    Raw cycle count = %f\n", (double) stats->instCycles);
     logLine(errorLine);
 
     // for ss-10 use 60 MHZ clock.
-    sprintf(errorLine,"Total instrumentation (60Mhz clock) cost = %f\n", 
+    sprintf(errorLine,"    Total instrumentation (60Mhz clock) cost = %f\n", 
 	stats->instCycles/60000000.0);
     logLine(errorLine);
-    sprintf(errorLine,"Total handler cost = %f\n", stats->handlerCost);
+    sprintf(errorLine,"    Total handler cost = %f\n", stats->handlerCost);
     logLine(errorLine);
-    sprintf(errorLine,"Total cpu time of program %f\n", stats->totalCpuTime);
+    sprintf(errorLine,"    Total cpu time of program %f\n", stats->totalCpuTime);
     logLine(errorLine);
-    sprintf(errorLine,"Elapsed wall time of program %f\n",stats->totalWallTime);
+    sprintf(errorLine,"    Elapsed wall time of program %f\n",stats->totalWallTime);
     logLine(errorLine);
-    sprintf(errorLine,"total data samples %d\n", stats->samplesReported);
+    sprintf(errorLine,"    total data samples %d\n", stats->samplesReported);
     logLine(errorLine);
-    sprintf(errorLine,"sampling rate %f\n", stats->samplingRate);
+    sprintf(errorLine,"    sampling rate %f\n", stats->samplingRate);
     logLine(errorLine);
 }
 

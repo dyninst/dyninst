@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.14 1994/07/14 23:29:03 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.15 1994/07/20 23:23:39 hollings Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.14  1994/07/14 23:29:03  hollings
+ * Revision 1.15  1994/07/20 23:23:39  hollings
+ * added insn generated metric.
+ *
+ * Revision 1.14  1994/07/14  23:29:03  hollings
  * Corrected file mask on io redirection.
  *
  * Revision 1.13  1994/06/29  02:52:47  hollings
@@ -152,6 +155,7 @@ void initInferiorHeap(process *proc, Boolean globalHeap)
     proc->heap->length = SYN_INST_BUF_SIZE;
     proc->heap->next = NULL;
     proc->heap->status = HEAPfree;
+    proc->heapFreePtr = proc->heap;
 }
 
 void copyInferriorHeap(process *from, process *to)
@@ -183,8 +187,13 @@ int inferriorMalloc(process *proc, int size)
     /* round to next cache line size */
     /* 32 bytes on a SPARC */
     size = (size + 0x1f) & ~0x1f; 
-    for (curr=proc->heap; curr; curr=curr->next) {
-	if ((curr->status == HEAPfree) && (curr->length >= size)) break;
+
+    // see if we can use the current free pointer.
+    curr = proc->heapFreePtr;
+    if (!curr || (curr->status != HEAPfree)) {
+	for (curr=proc->heap; curr; curr=curr->next) {
+	    if ((curr->status == HEAPfree) && (curr->length >= size)) break;
+	}
     }
 
     if (!curr) {
@@ -198,11 +207,14 @@ int inferriorMalloc(process *proc, int size)
 	newEntry->addr = curr->addr + size;
 	newEntry->next = curr->next;
 	newEntry->status = HEAPfree;
+	proc->heapFreePtr = newEntry;
 
 	/* now split curr */
 	curr->status = HEAPallocated;
 	curr->length = size;
 	curr->next = newEntry;
+    } else {
+	proc->heapFreePtr = NULL;
     }
     return(curr->addr);
 }

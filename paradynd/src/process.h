@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.6  1994/07/14 23:30:32  hollings
+ * Revision 1.7  1994/07/20 23:23:40  hollings
+ * added insn generated metric.
+ *
+ * Revision 1.6  1994/07/14  23:30:32  hollings
  * Hybrid cost model added.
  *
  * Revision 1.5  1994/07/12  19:43:18  jcargill
@@ -97,6 +100,7 @@ struct processRec {
     int thread;			/* thread id for thread */
     Boolean aggregate;		/* is this process a pseudo process ??? */
     freeListEntry *heap;	/* inferior heap */
+    freeListEntry *heapFreePtr;	/* first free block heap */
     resource rid;		/* handle to resource for this process */
     process *parent;		/* parent of this proces */
     List<void *> baseMap;	/* map and inst point to its base tramp */

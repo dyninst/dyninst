@@ -7,7 +7,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.2  1994/06/29 02:52:52  hollings
+ * Revision 1.3  1994/07/20 23:23:43  hollings
+ * added insn generated metric.
+ *
+ * Revision 1.2  1994/06/29  02:52:52  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -127,6 +130,7 @@ struct imageRec {
     void *code;			/* pointer to code */
     unsigned int textOffset;	/* base of where code is loaded */
     int offset;			/* offset of a.out in file */
+    HTable<function*> funcAddrHash; /* hash table to find functions by address */
     image *next;		/* next in our list of images */
 };
 

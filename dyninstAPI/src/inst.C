@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.5 1994/07/12 19:48:46 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.6 1994/07/20 23:23:36 hollings Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.5  1994/07/12 19:48:46  jcargill
+ * Revision 1.6  1994/07/20 23:23:36  hollings
+ * added insn generated metric.
+ *
+ * Revision 1.5  1994/07/12  19:48:46  jcargill
  * Added warning for functions not found in initialRequests set
  *
  * Revision 1.4  1994/06/29  02:52:30  hollings
@@ -99,8 +102,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
 #include "util.h"
 #include "internalMetrics.h"
 
-static instInstance *instList;
-
 extern int trampBytes;
 extern trampTemplate baseTemplate;
 extern trampTemplate noArgsTemplate;
@@ -140,11 +141,14 @@ void clearBaseBranch(process *proc, instInstance *inst)
 // implicit assumption that tramps generate to less than 64K bytes!!!
 static char insn[65536];
 
+static HTable<pointRec*> activePoints;
+
 instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     callWhen when, callOrder order)
 {
     int count;
     int fromAddr;
+    pointRec *point;
     instInstance *ret;
     instInstance *lastAtPoint;
     instInstance *firstAtPoint;
@@ -157,10 +161,14 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
        at the same pre/post mode */
     firstAtPoint = NULL;
     lastAtPoint = NULL;
-    for (ret=instList; ret; ret = ret->next) {
-	if ((ret->location == location) && 
-	    (ret->proc == proc) &&
-	    (ret->when == when)) {
+
+    point = activePoints.find(location);
+    if (!point) {
+	point = (pointRec *) calloc(sizeof(pointRec), 1);
+	activePoints.add(point, location);
+    }
+    for (ret= point->inst; ret; ret = ret->next) {
+	if ((ret->proc == proc) && (ret->when == when)) {
 	    if (!ret->nextAtPoint) lastAtPoint = ret;
 	    if (!ret->prevAtPoint) firstAtPoint = ret;
 	}
@@ -187,10 +195,10 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     ret->when = when;
     ret->location = location;
 
-    ret->next = instList;
+    ret->next = point->inst;
     ret->prev = NULL;
-    if (instList) instList->prev = ret;
-    instList = ret;
+    if (point->inst) point->inst->prev = ret;
+    point->inst = ret;
 
     /* first inst. at this point so install the tramp */
     fromAddr = (int) ret->baseAddr;
@@ -251,6 +259,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
  */
 void deleteInst(instInstance *old)
 {
+    pointRec *point;
     instInstance *lag;
     instInstance *left;
     instInstance *right;
@@ -259,7 +268,11 @@ void deleteInst(instInstance *old)
     /* check if there are other inst points at this location. */
     othersAtPoint = NULL;
     left = right = NULL;
-    for (lag=instList; lag; lag = lag->next) {
+
+    point = activePoints.find(old->location);
+    assert(point);
+
+    for (lag= point->inst; lag; lag = lag->next) {
 	if ((lag->location == old->location) && 
 	    (lag->proc == old->proc) &&
 	    (lag->when == old->when)) {
@@ -310,7 +323,7 @@ void deleteInst(instInstance *old)
 	lag->next = old->next;
 	if (old->next) old->next->prev = lag;
     } else {
-	instList = old->next;
+	point->inst = old->next;
 	if (old->next) old->next->prev = NULL;
     }
     free(old);

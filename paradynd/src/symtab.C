@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.6 1994/07/12 19:26:15 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.7 1994/07/20 23:23:41 hollings Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.6  1994/07/12 19:26:15  jcargill
+ * Revision 1.7  1994/07/20 23:23:41  hollings
+ * added insn generated metric.
+ *
+ * Revision 1.6  1994/07/12  19:26:15  jcargill
  * Added internal prefix for TRACELIB
  *
  * Revision 1.5  1994/06/29  02:52:51  hollings
@@ -195,6 +198,9 @@ function *newFunc(image *exec, module *mod, char *name, int addr)
 	logLine("Error function without module\n");
     }
     func = (function *) xcalloc(sizeof(function),1);
+
+    exec->funcAddrHash.add(func, (void *) addr);
+
     p = strchr(name, ':');
     if (p) *p = '\0';
     func->symTabName = pool.findAndAdd(name);
@@ -416,12 +422,16 @@ function *findFunctionByAddr(image *i, caddr_t addr)
 {
     function *func;
 
+    func = i->funcAddrHash.find((void *) addr);
+#ifdef notdef
     for (func = i->funcs; func; func=func->next) {
 	if (addr == func->addr) {
 	     return(func);
 	}
     }
     return(NULL);
+#endif
+    return(func);
 }
 
 int intComp(int *i, int *j)

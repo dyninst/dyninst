@@ -8,7 +8,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.3  1994/07/05 03:26:06  hollings
+ * Revision 1.4  1994/07/20 23:23:38  hollings
+ * added insn generated metric.
+ *
+ * Revision 1.3  1994/07/05  03:26:06  hollings
  * observed cost model
  *
  * Revision 1.2  1994/06/29  02:52:31  hollings
@@ -205,4 +208,8 @@ reg getParameter(reg dest, int param);
 #define INFERRIOR_HEAP_BASE     "DYNINSTdata"
 #define GLOBAL_HEAP_BASE        "DYNINSTglobalData"
 
+struct _pointRec {
+    instInstance *inst;
+};
 
+typedef struct _pointRec pointRec;
