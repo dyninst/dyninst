@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.2  1993/07/02 21:53:33  hollings
+ * Revision 1.3  1993/08/26 23:07:34  hollings
+ * made initTraceLibPN called from DYNINSTinitTraceLib.
+ *
+ * Revision 1.2  1993/07/02  21:53:33  hollings
  * removed unnecessary include files
  *
  * Revision 1.1  1993/07/02  21:49:35  hollings
@@ -14,9 +17,11 @@
  */
 #include <signal.h>
 #include <assert.h>
-#include "rtinst.h"
-#include "trace.h"
-#include "traceio.h"
+
+/* our include files */
+#include <h/rtinst.h>
+#include <h/trace.h>
+#include <rtinst/traceio.h>
 
 #include <cm/cmmd/amx.h>
 #include <cm/cmmd/mp.h>
@@ -102,7 +107,9 @@ void DYNINSTstopProcessTimer(tTimer *timer)
 	 CMOS_get_NI_time(&ni_end);
 	 timer->total += (end - timer->start);
 	 timer->total -= (ni_end - timer->ni_start);
+#ifdef notdef
 	 if (timer->total < 0) abort();
+#endif
     }
     /* this must be last to prevent race conditions with the sampler */
     timer->counter--;
@@ -171,8 +178,19 @@ void DYNINSTinit()
 
     startWall -= startNItime;
 
-    initTraceLibPN();
+/*     initTraceLibPN(); */
 }
+
+/*
+ * DYNINSTinitTraceLib - call initTraceLibPN & trap back.
+ *
+ */
+asm(".global _DYNINSTinitTraceLib");
+asm("_DYNINSTinitTraceLib:");
+asm("	call	_initTraceLibPN");
+asm("	nop	");
+asm("	ta 0x1");
+asm("	nop	");
 
 void DYNINSTexit()
 {
