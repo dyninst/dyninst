@@ -4,9 +4,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.2  1996/01/09 01:06:17  tamches
-/* changes due to moving phaseId to the shg class
+/* Revision 1.3  1996/01/09 01:40:14  tamches
+/* added existsById
 /*
+ * Revision 1.2  1996/01/09 01:06:17  tamches
+ * changes due to moving phaseId to the shg class
+ *
  * Revision 1.1  1995/10/17 22:08:35  tamches
  * initial version, for the new search history graph
  *
@@ -65,7 +68,6 @@ class shgPhases {
    const string &getVertSBName() const {return vertSBName;}
    const string &getCurrItemLabelName() const {return currItemLabelName;}
 
-   //void add(shg *theNewShg, int phaseID, const string &theNewShgPhaseName);
    void add(shg *theNewShg, const string &theNewShgPhaseName);
    
    shg &getByID(int phaseID);
@@ -80,6 +82,7 @@ class shgPhases {
       // returns true iff successful
 
    bool existsCurrent() const {return currShgPhaseIndex < theShgPhases.size();}
+   bool existsById(int phaseId) const;
    shg &getCurrent();
    const shg &getCurrent() const;
    int getCurrentId() const {

@@ -4,9 +4,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.3  1996/01/09 01:06:43  tamches
-/* changes to reflect moving phase id to shg class
+/* Revision 1.4  1996/01/09 01:40:26  tamches
+/* added existsById
 /*
+ * Revision 1.3  1996/01/09 01:06:43  tamches
+ * changes to reflect moving phase id to shg class
+ *
  * Revision 1.2  1995/11/29 00:20:05  tamches
  * removed some warnings
  *
@@ -151,6 +154,17 @@ shg &shgPhases::getCurrent() {
    assert(existsCurrent());
    assert(theShgPhases[currShgPhaseIndex].theShg);
    return *(theShgPhases[currShgPhaseIndex].theShg);
+}
+
+bool shgPhases::existsById(int id) const {
+   for (unsigned lcv=0; lcv < theShgPhases.size(); lcv++) {
+      const shgStruct &theStruct = theShgPhases[lcv];
+
+      if (theStruct.getPhaseId() == id)
+         return true;
+   }
+
+   return false;
 }
 
 const shg &shgPhases::getCurrent() const {
