@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.121 2005/02/24 10:15:35 rchen Exp $
+// $Id: BPatch_thread.C,v 1.122 2005/02/24 20:06:08 tlmiller Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1626,7 +1626,8 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
                 // Check if we're in a base or minitramp
                 trampTemplate *bt = range->is_basetramp();
                 miniTrampHandle *mt = range->is_minitramp();
-                if (bt || mt) isInstrumentation = true;
+                multitrampTemplate *mtt = range->is_multitramp();
+                if (bt || mt || mtt) isInstrumentation = true;
             }
         }
 
@@ -1641,10 +1642,18 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
                 // Get the minitramp -> base tramp -> location
                 trampTemplate *bt = range->is_basetramp();
                 miniTrampHandle *mt = range->is_minitramp();
-                if (!bt && mt)
+                multitrampTemplate *mtt = range->is_multitramp();
+                
+                Address ipAddr = 0;                
+                if( !bt && !mt && mtt ) {
+                	ipAddr = mtt->location->absPointAddr(proc);
+                	}
+                if( !bt && mt )
                     bt = mt->baseTramp;
-                if (bt) {
-                    Address ipAddr = bt->location->absPointAddr(proc);
+                if( bt ) {
+                    ipAddr = bt->location->absPointAddr(proc);
+                    }
+                if( ipAddr != 0 ) {
                     stack.push_back(BPatch_frame(this,
                                                  (void *)ipAddr,
                                                  // Fake this
