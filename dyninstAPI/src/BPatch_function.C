@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.38 2003/08/25 19:22:27 jaw Exp $
+// $Id: BPatch_function.C,v 1.39 2003/09/05 16:27:31 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -74,7 +74,7 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
 	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
 {
   // there should be at most one BPatch_func for each function_base per process
-  assert(proc->thread && !proc->PDFuncToBPFuncMap[func]);
+  assert(proc->bpatch_thread && !proc->PDFuncToBPFuncMap[func]);
 
   _srcType = BPatch_sourceFunction;
 
