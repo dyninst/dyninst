@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.90 2002/02/21 21:47:46 bernat Exp $
+// $Id: ast.C,v 1.91 2002/03/18 20:22:43 tlmiller Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -221,10 +221,14 @@ bool registerSpace::isFreeRegister(Register reg) {
 
 void registerSpace::resetSpace() {
     for (u_int i=0; i < numRegisters; i++) {
-        if (registers[i].inUse && (registers[i].number != REG_MT_BASE)) {
+
+// Drew, do you still want this for anything?  -- TLM ( 03/18/2002 )
+// (Should be #if defined(MT_THREAD) - protected, if you do.)
+//        if (registers[i].inUse && (registers[i].number != REG_MT_BASE)) {
           //sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
           //logLine(errorLine);
-        }
+//        }
+
 	registers[i].inUse = false;
 	registers[i].mustRestore = false;
 	registers[i].needsSaving = registers[i].startsLive;
