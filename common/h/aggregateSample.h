@@ -25,10 +25,19 @@ struct sampleInterval {
 
 class sampleInfo {
   public:
+ 
+    bool firstValueReceived() { return firstSampleReceived; }
+
+    struct sampleInterval startTime(timeStamp startTime_);
+
+    struct sampleInterval firstValue(timeStamp startTime, timeStamp endTime, 
+                                     sampleValue value);
+
     struct sampleInterval newValue(timeStamp wallTime, sampleValue value);
-    struct sampleInterval newValue(List<sampleInfo *> peers, 
-				   timeStamp wallTime, 
-				   sampleValue value);
+
+    //struct sampleInterval newValue(List<sampleInfo *> peers, 
+    //				   timeStamp wallTime, 
+    //				   sampleValue value);
     struct sampleInterval newValue(vector<sampleInfo *> peers, 
 				   timeStamp wallTime, 
 				   sampleValue value);
@@ -43,6 +52,7 @@ class sampleInfo {
 	lastSampleEnd = 0.0;
 	lastSample = 0.0;
 	aggOp = aOp;
+        nparts = 0;
     }
     bool firstSampleReceived;        // has first sample been recorded
     sampleValue value;                  // cumlative value
@@ -50,6 +60,11 @@ class sampleInfo {
     timeStamp   lastSampleEnd;          // end time for last sample
     sampleValue lastSample;             // what was the last sample increment
     int aggOp;
+
+private:
+
+    unsigned nparts;                    // number of parts for an aggregate value
+
 };
 
 #endif
