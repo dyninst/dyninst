@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.21  1994/08/05 16:04:12  hollings
-/* more consistant use of stringHandle vs. char *.
+/* Revision 1.22  1994/08/22 15:55:58  markc
+/* Cast stringHandles to char* for printing.
 /*
+ * Revision 1.21  1994/08/05  16:04:12  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
  * Revision 1.20  1994/08/03  19:09:49  hollings
  * split tunable constant into float and boolean types
  *
@@ -87,7 +90,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.21 1994/08/05 16:04:12 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.22 1994/08/22 15:55:58 markc Exp $";
 #endif
 
 #include <assert.h>
@@ -148,7 +151,7 @@ void PCnewData(performanceStream *ps,
     end = PCbucketWidth * (first + count);
 
     if (pcEvalPrint.getValue()) {
-	cout << "AR: " << dp->metName << dp->resList->getCanonicalName();
+	cout << "AR: " << (char*)dp->metName << (char*)dp->resList->getCanonicalName();
 	cout << " = " << total;
 	cout << " from " << start << " to " << end << "\n";
     }
