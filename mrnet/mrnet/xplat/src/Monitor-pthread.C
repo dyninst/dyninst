@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Monitor-pthread.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: Monitor-pthread.C,v 1.3 2004/08/12 19:25:27 darnold Exp $
 #include <assert.h>
 #include "xplat/src/Monitor-pthread.h"
 
@@ -104,6 +104,8 @@ PthreadMonitorData::WaitOnCondition( unsigned int cvid )
         pthread_cond_t* cv = cvmap[cvid]; 
         assert( cv != NULL );
         ret = pthread_cond_wait( cv, &mutex );
+        locked=true; //ensuring we know lock is set, a 2nd threads unlock allows
+                   //us to proceed so the bool is set to false
     }
     else
     {
