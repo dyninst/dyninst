@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.2  1993/07/01 17:02:36  hollings
+ * Revision 1.3  1993/08/02 22:46:37  hollings
+ * added remove which was missing.
+ *
+ * Revision 1.2  1993/07/01  17:02:36  hollings
  * ansi endif comments
  *
  * Revision 1.1  1993/05/07  20:21:15  hollings
@@ -22,6 +25,8 @@
 #define LIST_H
 #include <stdio.h>
 
+typedef char Boolean;
+
 #define FALSE 0
 #define TRUE  1
 
@@ -30,7 +35,7 @@ inline static int ListHash(void *ptr, int size)
     return(((int)(ptr) % (int)(size)));
 }
 
-class List;
+template <class Type> class List;
 
 template <class Type> class ListItem {
     friend class List<Type>;
@@ -158,7 +163,7 @@ template <class Type> class HTable {
 	    }
 	}
 	Type find(void *key);
-	// void remove(Type data);
+	void remove(Type data);
 	Type operator *() {
 	    Type curr;
 
@@ -232,4 +237,17 @@ template <class Type> void HTable<Type>::add(Type data, void *key)
     }
     table[hid]->add(data, key);
 }
+
+
+template <class Type> void HTable<Type>::remove(Type data)
+{
+    int hid;
+
+    for (hid = 0; hid < tableSize; hid++) {
+	if (table[hid]) {
+	    table[hid]->remove(data);
+	}
+    }
+}
+
 #endif /* LIST_H */
