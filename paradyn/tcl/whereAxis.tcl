@@ -3,6 +3,9 @@
 
 #
 # $Log: whereAxis.tcl,v $
+# Revision 1.8  1996/04/01 22:36:13  tamches
+# added a bind to Visibility event
+#
 # Revision 1.7  1996/01/11 00:54:46  tamches
 # removed resize1ScrollBar (moved to generic.tcl)
 # removed iconify menu
@@ -109,6 +112,7 @@ proc whereAxisInitialize {} {
    # install resize, expose, and button event hooks for .whereAxis.nontop.main.all
    bind .whereAxis.nontop.main.all <Configure> {whereAxisConfigureHook}
    bind .whereAxis.nontop.main.all <Expose>    {whereAxisExposeHook %c}
+   bind .whereAxis.nontop.main.all <Visibility> {whereAxisVisibilityHook %s}
    bind .whereAxis.nontop.main.all <Button-1>  {whereAxisSingleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Button-2>  {whereAxisSingleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Double-Button-1> {whereAxisDoubleClickHook %x %y}
