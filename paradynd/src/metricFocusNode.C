@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.64  1995/12/20 23:48:43  mjrg
+ * Stopped delivery of values from internal metrics when the application is paused.
+ *
  * Revision 1.63  1995/12/18 23:27:04  newhall
  * changed metric's units type to have one of three values (normalized,
  * unnormalized, or sampled)
@@ -1114,7 +1117,8 @@ void reportInternalMetrics()
     now = getCurrentTime(false);
 
     //  check if it is time for a sample
-    if (now < end + samplingRate) 
+    // We don't deliver a sample if the application is paused
+    if (isApplicationPaused() || now < end + samplingRate) 
 	return;
 
     start = end;
