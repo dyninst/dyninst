@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.48 2002/03/07 23:49:20 schendel Exp $
+// $Id: DMdaemon.h,v 1.49 2002/04/17 16:06:56 willb Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -412,7 +412,7 @@ class paradynDaemon: public dynRPCUser {
 		u_int id;
 		thread_t	stid;	// tid assigned to our RPC socket
 
-        status_line *status;
+        const char *status;
 
         timeLength time_factor; // for adjusting the time to account for 
                                // clock differences between daemons.
