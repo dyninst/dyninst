@@ -43,6 +43,9 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.58  1997/01/16 22:03:46  tamches
+ * extra params to attach() for dir and cmd name
+ *
  * Revision 1.57  1997/01/15 00:21:08  tamches
  * added attach()
  *
@@ -64,28 +67,6 @@
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
  *
- * Revision 1.51  1996/08/16 21:18:31  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.50  1996/08/12 16:27:18  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.49  1996/05/15 18:32:42  naim
- * Fixing bug in inferiorMalloc and adding some debugging information - naim
- *
- * Revision 1.48  1996/05/10  13:52:58  naim
- * Inserting temporal timing information collection - naim
- *
- * Revision 1.47  1996/05/08  17:04:14  tamches
- * added comments regarding how we are kludging the internal metric bucket_width
- * for now
- *
- * Revision 1.46  1996/05/01 18:07:21  newhall
- * added parameter to predicted cost call
- *
- * Revision 1.45  1996/04/30  18:58:38  newhall
- * changes to enableDataCollection calls and upcalls
- *
  */
 
 #include "symtab.h"
@@ -106,6 +87,15 @@
 #include "paradynd/src/costmetrics.h"
 #include "showerror.h"
 #include "util/h/sys.h" 
+#include "util/h/debugOstream.h"
+
+// The following were defined in process.C
+extern debug_ostream attach_cerr;
+extern debug_ostream inferiorrpc_cerr;
+extern debug_ostream shmsample_cerr;
+extern debug_ostream forkexec_cerr;
+extern debug_ostream metric_cerr;
+extern debug_ostream signal_cerr;
 
 #define ONEMILLION 1000000
 // default to once a second.
@@ -541,10 +531,22 @@ int dynRPC::addExecutable(vector<string> argv, string dir)
 
 //
 // Attach is the other way to start a process (application?)
+// dir + cmd are used _only_ to read the symbol table off disk.
 //
-bool dynRPC::attach(int pid)
+bool dynRPC::attach(string dir, string cmd, int pid)
 {
-    return attachProcess(pid); // process.C
+    attach_cerr << "WELCOME to dynRPC::attach" << endl;
+    attach_cerr << "dir=" << dir << endl;
+    attach_cerr << "cmd=" << cmd << endl;
+    attach_cerr << "pid=" << pid << endl;
+
+    char *str = getenv("PARADYND_ATTACH_DEBUG");
+    if (str != NULL) {
+       cerr << "pausing paradynd pid " << getpid() << " before attachProcess()" << endl;
+       kill(getpid(), SIGSTOP);
+    }
+
+    return attachProcess(dir, cmd, pid); // process.C
 }
 
 //
