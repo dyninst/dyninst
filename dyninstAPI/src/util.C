@@ -43,6 +43,9 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.17  1997/06/23 17:13:52  tamches
+ * some additional hash functions
+ *
  * Revision 1.16  1997/04/29 23:16:33  mjrg
  * Changes for WindowsNT port
  * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
@@ -229,18 +232,12 @@ time64 userAndSysTime2uSecs(const timeval &uTime,
 }
 #endif
 
-unsigned addrHash16(const unsigned &iaddr) {
+static unsigned addrHashCommon(unsigned addr) {
    // inspired by hashs of string class
-   // NOTE: this particular hash fn assumes that "addr" is divisible by 16
 
-   unsigned addr = iaddr >> 4;
-      // since the address is divisible by 16, the low 4 bits are always the same
-      // for each address and hence contribute nothing to an even hash distribution.
-      // Hence, we zap those bits right now.
+   register unsigned result = 5381;
 
-   unsigned result = 5381;
-
-   unsigned accumulator = addr;
+   register unsigned accumulator = addr;
    while (accumulator > 0) {
       // We use 3 bits at a time from the address
       result = (result << 4) + result + (accumulator & 0x07);
@@ -248,6 +245,22 @@ unsigned addrHash16(const unsigned &iaddr) {
    }
 
    return result;
+}
+
+unsigned addrHash(const unsigned iaddr) {
+   return addrHashCommon(iaddr);
+}
+
+unsigned addrHash4(const unsigned &iaddr) {
+   // call when you know that the low 2 bits are 0 (meaning they contribute
+   // nothing to an even hash distribution)
+   return addrHashCommon(iaddr >> 2);
+}
+
+unsigned addrHash16(const unsigned &iaddr) {
+   // call when you know that the low 4 bits are 0 (meaning they contribute
+   // nothing to an even hash distribution)
+   return addrHashCommon(iaddr >> 4);
 }
 
 #ifdef notdef

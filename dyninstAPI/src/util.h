@@ -43,6 +43,9 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.18  1997/06/23 17:13:40  tamches
+ * some additional hash functions
+ *
  * Revision 1.17  1997/04/29 23:16:35  mjrg
  * Changes for WindowsNT port
  * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
@@ -98,6 +101,7 @@
 
 #include "rtinst/h/rtinst.h" // for time64
 #include "util/h/String.h"
+#include <sys/time.h> // for timeval
 
 typedef double timeStamp;
 timeStamp getCurrentTime(bool firstRecordRelative);
@@ -124,7 +128,12 @@ inline unsigned CThash(const unsigned &val) {
   return val % 1048573;
 }
 
+unsigned addrHash4(const unsigned &addr);
+   // use when you know the address is divisible by 4 (lo 2 bits 0)
 unsigned addrHash16(const unsigned &addr);
+   // use when you know the address is divisible by 16 (lo 4 bits 0)
+unsigned addrHash(const unsigned &addr);
+   // use when you cannot assume anything about the address
 
 inline unsigned intHash(const int &val) {
   return val;
