@@ -1,5 +1,18 @@
 #
 # $Log: Makefile,v $
+# Revision 1.3  2004/10/19 00:17:21  pack
+#  Modified Files:
+#  	Makefile
+# ----------------------------------------------------------------------
+# File changed to include mrnet
+#
+# Revision 1.2  2004/10/16 02:18:01  pack
+# Modified Files:
+#  	make.config make.library.tmpl make.program.tmpl
+#  	nmake.library.tmpl nmake.program.tmpl
+#  ----------------------------------------------------------------------
+# Make files set up
+#
 # Revision 1.2  2000/07/18 17:02:25  schendel
 # add optional flag to turn on printing of sample value trace lines
 #
@@ -32,6 +45,8 @@ CXXFLAGS	+=  -DSHG_ADD_ON_EVAL
 TFLAGS		+=  -DSHG_ADD_ON_EVAL
 SYSLIBS		+=  -ldl
 #SYSLIBS		+= -lresolv -lsocket -lnsl
+
+IFLAGS		+= -I../../mrnet/mrnet/h/mrnet -I../../mrnet/mrnet
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
