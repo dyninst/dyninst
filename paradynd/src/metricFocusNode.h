@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.85 2002/02/05 18:33:16 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.86 2002/02/12 23:50:27 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -78,7 +78,7 @@ class dataReqNode {
   dataReqNode (const dataReqNode &src);
 
  protected:
-  dataReqNode() {}
+  dataReqNode() { }
 
  public:
   virtual ~dataReqNode() {};
@@ -91,9 +91,6 @@ class dataReqNode {
 
 #if defined(MT_THREAD)
   virtual int getThreadId() const = 0;
-  virtual bool insertInstrumentation(pdThread *, process *, metricDefinitionNode *, bool) = 0;
-#else 
-  virtual bool insertInstrumentation(process *, metricDefinitionNode *, bool) = 0;
 #endif
      // Allocates stuff from inferior heap, instrumenting DYNINSTreportCounter
      // as appropriate.  
@@ -101,10 +98,10 @@ class dataReqNode {
 
   virtual void disable(process *,
 		       const vector< vector<Address> > &pointsToCheck) = 0;
-     // the opposite of insertInstrumentation.  Deinstruments, deallocates
+     // the opposite of insertShmVar.  Deinstruments, deallocates
      // from inferior heap, etc.
 
-  virtual dataReqNode *dup(process *childProc, metricDefinitionNode *,
+  virtual dataReqNode *dup(process *childProc, threadMetFocusNode *,
 			   int iCounterId,
 			   const dictionary_hash<instInstance*,instInstance*> &map
 			   ) const = 0;
@@ -180,7 +177,7 @@ class sampledShmIntCounterReqNode : public dataReqNode {
 
    rawTime64 initialValue; // needed when dup()'ing
 
-   // The following fields are NULL until insertInstrumentation() called:
+   // The following fields are NULL until insertShmVar() called:
    unsigned allocatedIndex;
    unsigned allocatedLevel;
 
@@ -192,33 +189,32 @@ class sampledShmIntCounterReqNode : public dataReqNode {
 
    // private fork-ctor called by dup():
    sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
-                               process *childProc, metricDefinitionNode *,
+                               process *childProc, threadMetFocusNode *thrmf,
 			       int iCounterId, const process *parentProc);
+   // allocates from inferior heap; initializes it, etc.
+#if defined(MT_THREAD)
+   bool insertShmVar(pdThread *, process *, threadMetFocusNode *thrmf, bool);
+#else
+   bool insertShmVar(process *, threadMetFocusNode *thrmf, bool);
+#endif
 
  public:
 #if defined(MT_THREAD)
    sampledShmIntCounterReqNode(pdThread *thr, rawTime64 iValue, int iCounterId,
-                               metricDefinitionNode *iMi, bool computingCost,
+			       threadMetFocusNode *thrmf, bool computingCost,
                                bool doNotSample, unsigned, unsigned);
 #else
    sampledShmIntCounterReqNode(rawTime64 iValue, int iCounterId,
-                                metricDefinitionNode *iMi, bool computingCost,
-                                bool doNotSample);
+			       threadMetFocusNode *thrmf, bool computingCost,
+			       bool doNotSample);
 #endif
   ~sampledShmIntCounterReqNode() {}
       // Hopefully, disable() has already been called.
       // A bit of a complication since disable() needs an
       // arg passed, which we can't do here.  Too bad.
 
-   dataReqNode *dup(process *, metricDefinitionNode *, int iCounterId,
-                    const dictionary_hash<instInstance*,instInstance*> &) const;
-
-#if defined(MT_THREAD)
-   bool insertInstrumentation(pdThread *, process *, metricDefinitionNode *, bool);
-#else
-   bool insertInstrumentation(process *, metricDefinitionNode *, bool);
-#endif
-      // allocates from inferior heap; initializes it, etc.
+   dataReqNode *dup(process *, threadMetFocusNode *, int iCounterId,
+                   const dictionary_hash<instInstance*,instInstance*> &) const;
 
    void disable(process *, const vector< vector<Address> > &);
 
@@ -238,66 +234,6 @@ class sampledShmIntCounterReqNode : public dataReqNode {
 };
 #endif
 
-class nonSampledIntCounterReqNode : public dataReqNode {
- // intCounter for predicates (because they don't need to be sampled).
- // Allocated in the conventional heap with inferiorMalloc().
- private:
-   // The following fields are always properly initialized in ctor:
-   int theSampleId;
-   rawTime64 initialValue; // needed when dup()'ing
-
-   // The following is NULL until insertInstrumentation() called:   
-   intCounter *counterPtr;		/* NOT in our address space !!!! */
-
-   // Since we don't use these, disallow:
-   nonSampledIntCounterReqNode &operator=(const nonSampledIntCounterReqNode &);
-   nonSampledIntCounterReqNode(const nonSampledIntCounterReqNode &);
-
-   // private fork-ctor called by dup():
-   nonSampledIntCounterReqNode(const nonSampledIntCounterReqNode &src,
-                               process *childProc, metricDefinitionNode *,
-			       int iCounterId);
-
-   void writeToInferiorHeap(process *theProc, const intCounter &src) const;
-
- public:
-   nonSampledIntCounterReqNode(rawTime64 iValue, int iCounterId,
-                               metricDefinitionNode *iMi, bool computingCost);
-  ~nonSampledIntCounterReqNode() {}
-      // Hopefully, disable() has already been called.
-      // A bit of a complication since disable() needs an
-      // arg passed, which we can't do here.  Too bad.
-
-   dataReqNode *dup(process *, metricDefinitionNode *, int iCounterId,
-                    const dictionary_hash<instInstance*,instInstance*> &) const;
-
-#if defined(MT_THREAD)
-   bool insertInstrumentation(pdThread *, process *, metricDefinitionNode *, bool doNotSample=false);
-#else
-   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
-#endif
-      // allocates from inferior heap; initializes it
-
-   void disable(process *, const vector< vector<Address> > &);
-
-   Address getInferiorPtr(process *) const {
-      //assert(counterPtr != NULL); // NULL until insertInstrumentation()
-      // counterPtr could be NULL if we are building AstNodes just to compute
-      // the cost - naim 2/18/97
-      return (Address)counterPtr;
-   }
-
-   unsigned getAllocatedIndex() const {assert(0); return 0;}
-   unsigned getAllocatedLevel() const {assert(0); return 0;}
-
-   int getSampleId() const {return theSampleId;}
-#if defined(MT_THREAD)
-   int getThreadId() const {assert(0); return 0;}
-#endif
-
-   bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
-};
-
 #ifdef SHM_SAMPLING
 class sampledShmWallTimerReqNode : public dataReqNode {
  // wall tTimer for use when shm sampling.  Allocated in the shm segment heap.
@@ -309,7 +245,7 @@ class sampledShmWallTimerReqNode : public dataReqNode {
    pdThread *thr_;
 #endif
 
-   // The following fields are NULL until insertInstrumentatoin():
+   // The following fields are NULL until insertShmVar():
    unsigned allocatedIndex;
    unsigned allocatedLevel;
 
@@ -322,31 +258,32 @@ class sampledShmWallTimerReqNode : public dataReqNode {
    // fork ctor:
    sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src, 
 			      process *childProc,
-			      metricDefinitionNode *, int iCounterId,
+			      threadMetFocusNode *, int iCounterId,
 			      const process *parentProc);
+#if defined(MT_THREAD)
+   bool insertShmVar(pdThread *, process *, threadMetFocusNode *thrmf,
+		     bool doNotSample = false);
+#else
+   bool insertShmVar(process *, threadMetFocusNode *thrmf, 
+		     bool doNotSample = false);
+#endif
 
  public:
 #if defined(MT_THREAD)
    sampledShmWallTimerReqNode(pdThread *thr, int iCounterId,
-                              metricDefinitionNode *iMi, bool computingCost,
+                              threadMetFocusNode *thrmf, bool computingCost,
 			      unsigned, unsigned);
 #else
    sampledShmWallTimerReqNode(int iCounterId,
-                              metricDefinitionNode *iMi, bool computingCost);
+                              threadMetFocusNode *thrmf, bool computingCost);
 #endif
   ~sampledShmWallTimerReqNode() {}
       // hopefully, freeInInferior() has already been called
       // a bit of a complication since freeInInferior() needs an
       // arg passed, which we can't do here.  Too bad.
 
-   dataReqNode *dup(process *childProc, metricDefinitionNode *, int iCounterId,
-                    const dictionary_hash<instInstance*,instInstance*> &) const;
-
-#if defined(MT_THREAD)
-   bool insertInstrumentation(pdThread *, process *, metricDefinitionNode *, bool doNotSample=false);
-#else
-   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
-#endif
+   dataReqNode *dup(process *childProc, threadMetFocusNode *, int iCounterId,
+                   const dictionary_hash<instInstance*,instInstance*> &) const;
    void disable(process *, const vector< vector<Address> > &);
 
    Address getInferiorPtr(process *) const;
@@ -375,7 +312,7 @@ class sampledShmProcTimerReqNode : public dataReqNode {
    pdThread *thr_;
 #endif
 
-   // The following fields are NULL until insertInstrumentatoin():
+   // The following fields are NULL until insertShmVar():
    unsigned allocatedIndex;
    unsigned allocatedLevel;
 
@@ -388,31 +325,33 @@ class sampledShmProcTimerReqNode : public dataReqNode {
    // fork ctor:
    sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src, 
 			      process *childProc,
-			      metricDefinitionNode *, int iCounterId,
+			      threadMetFocusNode *thrmf, int iCounterId,
 			      const process *parentProc);
+#if defined(MT_THREAD)
+   bool insertShmVar(pdThread *, process *, threadMetFocusNode *thrmf,
+		     bool doNotSample = false);
+#else
+   bool insertShmVar(process *, threadMetFocusNode *thrmf, 
+		     bool doNotSample = false);
+#endif
 
  public:
 #if defined(MT_THREAD)
    sampledShmProcTimerReqNode(pdThread *thr, int iCounterId,
-			      metricDefinitionNode *iMi, bool computingCost,
+			      threadMetFocusNode *thrmf, bool computingCost,
 			      unsigned, unsigned);
 #else
    sampledShmProcTimerReqNode(int iCounterId,
-                             metricDefinitionNode *iMi, bool computingCost);
+                              threadMetFocusNode *thrmf, bool computingCost);
 #endif
   ~sampledShmProcTimerReqNode() {}
       // hopefully, freeInInferior() has already been called
       // a bit of a complication since freeInInferior() needs an
       // arg passed, which we can't do here.  Too bad.
 
-   dataReqNode *dup(process *childProc, metricDefinitionNode *, int iCounterId,
-                    const dictionary_hash<instInstance*,instInstance*> &) const;
-
-#if defined(MT_THREAD)
-   bool insertInstrumentation(pdThread *, process *, metricDefinitionNode *, bool doNotSample=false);
-#else
-   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
-#endif
+   dataReqNode *dup(process *childProc, threadMetFocusNode *thrmf, 
+		    int iCounterId,
+		   const dictionary_hash<instInstance*,instInstance*> &) const;
    void disable(process *, const vector< vector<Address> > &);
 
    Address getInferiorPtr(process *) const;
@@ -435,8 +374,6 @@ class sampledShmProcTimerReqNode : public dataReqNode {
 /* ************************************************************************ */
 
 class instReqNode {
-friend bool toDeletePrimitiveMDN(metricDefinitionNode *prim);
-
 public:
   instReqNode(instPoint*, AstNode *, callWhen, callOrder order);
  ~instReqNode();
@@ -687,7 +624,6 @@ friend timeLength guessCost(string& metric_name, vector<u_int>& focus) ;
 
 friend int startCollecting(string&, vector<u_int>&, int id, 
 			   vector<process *> &procsToContinue); // called by dynrpc.C
-friend bool toDeletePrimitiveMDN(metricDefinitionNode *prim); // used in mdl.C
 #if defined(MT_THREAD)
 friend bool checkMetricMIPrimitives(string metric_flat_name, 
 				    sampleMetFocusNode *& metric_prim,
@@ -701,7 +637,7 @@ private:
  static int counterId;
 
 public:
-
+  int incrementCounterId() const {  return ++counterId;  }
   // styles are enumerated in aggregation.h
   metricDefinitionNode(process *p, const string& metric_name, 
                        const vector< vector<string> >& foc,
@@ -726,10 +662,7 @@ public:
   // for aggregate (not component) mdn's
 
   virtual ~metricDefinitionNode();
-  void disable();
-  void cleanup_drn();
-  bool isReadyForUpdates();
-  void updateValue(timeStamp, pdSample);
+  virtual void disable();
   void forwardSimpleValue(timeStamp, timeStamp, pdSample);
 
   sampleAggregator getAggregator() {  return aggregator; }
@@ -747,31 +680,17 @@ public:
 
   process *proc() const { return proc_; }
   aggregateOp getAggOp() { return aggOp; }
-  vector<dataReqNode *> getDataRequests();
   vector<metricDefinitionNode *>& getComponents() { 
     return components; 
   }
+  int unhookParent(metricDefinitionNode *parent);
+  unsigned numParents() { return aggregators.size(); }
   void addPart(metricDefinitionNode* part);
   void addPartDummySample(metricDefinitionNode* part);  // special purpose
 #if defined(MT_THREAD)
   void addParts(vector<threadMetFocusNode*>& parts);
 
   //AGG_LEVEL getLevel() { return aggLevel; }
-  // vector<dataReqNode *> getDataRequests() { return dataRequests; }      
-  void duplicateInst(metricDefinitionNode *from, metricDefinitionNode *to);
-  void duplicateInst(metricDefinitionNode *mn) ;
-  
-  void setMetricRelated(unsigned type, bool computingCost, vector<string> * temp_ctr, 
-			vector<T_dyninstRPC::mdl_constraint*> flag_cons,
-			vector<T_dyninstRPC::mdl_constraint*> base_use) {
-    assert(COMP_MDN == mdn_type_);
-
-    type_thr          = type;
-    computingCost_thr = computingCost;
-    temp_ctr_thr      = temp_ctr;
-    flag_cons_thr     = flag_cons;
-    base_use_thr      = base_use;
-  }
   //AGG_LEVEL getMdnType(void) const { return aggLevel; }
 #endif
 
@@ -783,10 +702,8 @@ public:
   // careful in use!
   // NON_MT_THREAD version:  only for PRIM mdn
   // MT_THREAD version:  only for PROC_PRIM or THR_LEV
-  bool nonNull() const { return (instRequests.size() || dataRequests.size()); }
-  int getSizeOfInstRequests() const { return instRequests.size(); }
   void setStartTime(timeStamp t);
-  bool insertInstrumentation(pd_Function **func);
+  virtual bool insertInstrumentation(pd_Function **func);
 
   void setInitialActualValue(pdSample s);
   void sendInitialActualValue(pdSample s);
@@ -798,7 +715,7 @@ public:
   }
   void removePrimAggComps();
   // needed
-  timeLength cost() const;
+  virtual timeLength cost() const;
   bool checkAndInstallInstrumentation();
 
   bool childrenMdnNeedingInitializing() { return partsNeedingInitializing; }
@@ -807,30 +724,8 @@ public:
 
   timeLength originalCost() const { return originalCost_; }
 
-  // The following routines are (from the outside world's viewpoint)
-  // the heart of it all.  They append to dataRequets or instRequests, so that
-  // a future call to metricDefinitionNode::insertInstrumentation() will
-  // "do their thing".  The MDL calls these routines.
-#if defined(MT_THREAD)
-  dataReqNode *addSampledIntCounter(pdThread *thr, rawTime64 initialValue, 
-                                    bool computingCost,
-                                    bool doNotSample=false);
-#else
-  dataReqNode *addSampledIntCounter(rawTime64 initialValue, bool computingCost,
-				     bool doNotSample=false);
-#endif
-
-#if defined(MT_THREAD)
-  dataReqNode *addWallTimer(bool computingCost, pdThread *thr=NULL);
-  dataReqNode *addProcessTimer(bool computingCost, pdThread *thr=NULL);
-#else
-  dataReqNode *addWallTimer(bool computingCost);
-  dataReqNode *addProcessTimer(bool computingCost);
-#endif
   // inline void addInst(instPoint *point, AstNode *, callWhen when, 
   //                     callOrder o);
-  void addInst(instPoint *point, AstNode *, callWhen when, 
-	       callOrder o);
 
   // propagate this aggregate mi to a newly started process p (not for processes
   // started via fork or exec, just for those started "normally")
@@ -873,29 +768,19 @@ public:
 
   void adjustManuallyTrigger();
 #if defined(MT_THREAD)
-  void adjustManuallyTrigger0(int tid);
+  virtual void adjustManuallyTrigger0(int tid);
 #endif
   void manuallyTrigger(int);
 
 #if defined(MT_THREAD)
-  void reUseIndexAndLevel(unsigned &p_allocatedIndex, 
-			  unsigned &p_allocatedLevel);  
   void propagateId(int);
   bool& needData(void) { return needData_; }
 #endif
-  bool inserted(void)     { return inserted_; }
+  bool instrInserted(void);
   void setInserted(bool inserted) { inserted_ = inserted; }
   bool hasDeferredInstr();
   bool installed(void)    { return installed_; }
   void setInstalled(bool installed) { installed_ = installed; } 
-  void markAsDeferred() {  
-    assert(getMdnType()==PRIM_MDN);
-    instrDeferred_ = true;
-  }
-  void unmarkAsDeferred() {
-    assert(getMdnType()==PRIM_MDN);
-    instrDeferred_ = false;
-  }
   bool isInitialActualValueSet() { return !mdnInitActualVal.isNaN(); }
   bool isStartTimeSet()    { return mdnStartTime.isInitialized(); }
   timeStamp getStartTime() { return mdnStartTime; }
@@ -952,7 +837,7 @@ protected:
 
   // this function checks if we need to do stack walk
   // if all returnInstance's overwrite only 1 instruction, no stack walk necessary
-  bool needToWalkStack() const;
+  virtual bool needToWalkStack() const;
 
   metricStyle metStyle() { return EventCounter; }
 
@@ -993,10 +878,6 @@ protected:
   pdSample mdnInitActualVal;  // the initial actual value for this mdn
 
   // for component (non-aggregate) and primitive metrics
-  vector<dataReqNode*>	dataRequests;  //  for THR_LEV only
-
-  vector<instReqNode> instRequests;    //  for PROC_PRIM only
-  vector<returnInstance *> returnInsts;//  for PROC_PRIM only, follow instRequests
 
   vector<instReqNode *> manuallyTriggerNodes;
                                        //  for PROC_PRIM only, follow instRequests
@@ -1019,6 +900,7 @@ protected:
   // samples[i] is the sample of aggregators[i].
 
   bool partsNeedingInitializing;
+
 #if defined(MT_THREAD)
                                        //  following 5 memorizing stuff --- for PROC_COMP only
   // data required to add threads - naim
@@ -1054,8 +936,6 @@ protected:
   
   // called by static void handleExec(process *), for each component mi
   // returns new component mi if propagation succeeded; NULL if not.
-  void oldCatchUp(int tid);
-  bool checkAndInstallInstrumentation(vector<Address>& pc);
 };
 
 class machineMetFocusNode : public metricDefinitionNode {
@@ -1082,19 +962,25 @@ class processMetFocusNode : public metricDefinitionNode {
 
   void addThread(pdThread *thr);
   void deleteThread(pdThread *thr);
-};
-
-class threadMetFocusNode : public metricDefinitionNode {
- public:
-  // styles are enumerated in aggregation.h
-  threadMetFocusNode(process *p, const string& metric_name, 
-                       const vector< vector<string> >& foc,
-                       const vector< vector<string> >& component_foc,
-                       const string& component_flat_name, 
-		       aggregateOp agg_op);
+#if defined(MT_THREAD)
+  void setMetricRelated(unsigned type, bool computingCost, 
+			vector<string> * temp_ctr, 
+			vector<T_dyninstRPC::mdl_constraint*> flag_cons,
+			vector<T_dyninstRPC::mdl_constraint*> base_use) {
+    type_thr          = type;
+    computingCost_thr = computingCost;
+    temp_ctr_thr      = temp_ctr;
+    flag_cons_thr     = flag_cons;
+    base_use_thr      = base_use;
+  }
+#endif
 };
 
 class sampleMetFocusNode : public metricDefinitionNode {
+ private:
+  vector<instReqNode> instRequests;
+  vector<returnInstance *> returnInsts;
+
  public:
   // styles are enumerated in aggregation.h
   sampleMetFocusNode(process *p, const string& metric_name, 
@@ -1105,8 +991,92 @@ class sampleMetFocusNode : public metricDefinitionNode {
   sampleMetFocusNode* matchInMIPrimitives();
   bool condMatch(sampleMetFocusNode *mn, vector<dataReqNode*> &data_tuple1,
 		 vector<dataReqNode*> &data_tuple2);
+  vector<dataReqNode *> getDataRequests();
+  bool insertInstrumentation(pd_Function **func);
   // should make it private
+#if defined(MT_THREAD)
+  void adjustManuallyTrigger0(int tid);
+#endif
+  void markAsDeferred() {
+    instrDeferred_ = true;
+  }
+  void unmarkAsDeferred() {
+    instrDeferred_ = false;
+  }
+  bool needToWalkStack() const;
+  bool checkAndInstallInstrumentation(vector<Address>& pc);
+  void addInst(instPoint *point, AstNode *, callWhen when, callOrder o);
+  void oldCatchUp(int tid);
+  timeLength cost() const;
+  void disable();
+  void cleanup_drn();
   void adjustManuallyTrigger(vector<Address> stack_pcs, int tid); 
+  bool nonNull() const { return (instRequests.size() > 0);  }
+};
+
+class threadMetFocusNode : public metricDefinitionNode {
+ private:
+  vector<dataReqNode*> dataRequests;
+
+ public:
+  // styles are enumerated in aggregation.h
+  threadMetFocusNode(process *p, const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op);
+  ~threadMetFocusNode();
+
+#if defined(MT_THREAD)
+  void reUseIndexAndLevel(unsigned &p_allocatedIndex, 
+			  unsigned &p_allocatedLevel);
+#endif
+
+  vector<dataReqNode *> getDataRequests() { return dataRequests; }      
+  bool nonNull() const { return (dataRequests.size() > 0);  }
+  void disable(vector< vector<Address> > pointsToCheck);
+  void cleanup_drn();
+  sampleMetFocusNode *getPrimParent() {
+    return dynamic_cast<sampleMetFocusNode*>(aggregators[0]);
+  }
+  void updateValue(timeStamp, pdSample);
+  bool isReadyForUpdates();
+
+  // The following routines are (from the outside world's viewpoint) the
+  // heart of it all.  They append to dataRequets.  The MDL calls these
+  // routines.
+#if defined(MT_THREAD)
+  dataReqNode *addSampledIntCounter(pdThread *thr, rawTime64 initialValue, 
+                                    bool computingCost,
+                                    bool doNotSample=false);
+  dataReqNode *addWallTimer(bool computingCost, pdThread *thr=NULL);
+  dataReqNode *addProcessTimer(bool computingCost, pdThread *thr=NULL);
+#else
+  dataReqNode *addSampledIntCounter(rawTime64 initialValue, bool computingCost,
+				     bool doNotSample=false);
+  dataReqNode *addWallTimer(bool computingCost);
+  dataReqNode *addProcessTimer(bool computingCost);
+#endif
+};
+
+/* a collective threadMetFocusNode */
+class collectThreadMetFocusNode : public threadMetFocusNode {
+ public:
+  collectThreadMetFocusNode(process *p, const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op);
+};
+
+/* an individual threadMetFocusNode */
+class indivThreadMetFocusNode : public threadMetFocusNode {
+ public:
+  indivThreadMetFocusNode(process *p, const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op);
 };
 
 
@@ -1153,15 +1123,6 @@ ostream& operator<<(ostream&s, const metricDefinitionNode &m);
 //  u_int rid_;
 //};
 
-// inline void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
-//					  callWhen when,
-//					  callOrder o) {
-//  if (!point) return;
-//
-//  instReqNode temp(point, ast, when, o);
-//  instRequests += temp;
-// };
-
 // allMIs: all aggregate (as opposed to component) metricDefinitionNodes
 extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
 
@@ -1193,8 +1154,6 @@ inline void subCurrentPredictedCost(const timeLength &tl) {
 }
 
 extern void reportInternalMetrics(bool force);
-
-bool toDeletePrimitiveMDN(metricDefinitionNode *prim);
 
 /*
  * Routines to control data collection.
