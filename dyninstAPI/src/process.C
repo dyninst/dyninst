@@ -139,9 +139,9 @@ process *findProcess(int pid) { // make a public static member fn of class proce
 }
 
 #ifdef SHM_SAMPLING
-static unsigned numIntCounters=100000; // rather arbitrary; can we do better?
-static unsigned numWallTimers =100000; // rather arbitrary; can we do better?
-static unsigned numProcTimers =100000; // rather arbitrary; can we do better?
+static unsigned numIntCounters=10000; // rather arbitrary; can we do better?
+static unsigned numWallTimers =10000; // rather arbitrary; can we do better?
+static unsigned numProcTimers =10000; // rather arbitrary; can we do better?
 #endif
 
 bool waitingPeriodIsOver()
