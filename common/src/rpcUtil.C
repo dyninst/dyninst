@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.64 1999/05/25 22:36:05 nash Exp $
+// $Id: rpcUtil.C,v 1.65 1999/07/08 19:25:12 pcroth Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -875,10 +875,16 @@ execCmd(const string command, const vector<string> &arg_list, int /*portFd*/)
 	}
 
 	// set up the standard input of the new process to 
-	// be connected to our shared socket
+	// be connected to our shared socket, and make sure
+    // that the new process inherits our standard
+    // output and standard error
 	STARTUPINFO startInfo;
-	GetStartupInfo( &startInfo );
+	ZeroMemory( &startInfo, sizeof(startInfo) );
+    startInfo.cb = sizeof( startInfo );
+
 	startInfo.hStdInput = (HANDLE)sv[1];
+    startInfo.hStdOutput = GetStdHandle( STD_OUTPUT_HANDLE );
+    startInfo.hStdError = GetStdHandle( STD_ERROR_HANDLE );
 	startInfo.dwFlags |= STARTF_USESTDHANDLES;
 
 	// actually create the process
@@ -896,8 +902,25 @@ execCmd(const string command, const vector<string> &arg_list, int /*portFd*/)
 
 	if( bCreated )
 	{
-		// delay till child has started
-		// TODO - how can we tell this?
+		// We want to close our end of the connected socket
+        // pair, but we have a race condition between our 
+        // closing of the socket and the initialization of
+        // the process we just created.  We need to ensure
+        // that the other process is far enough along that
+        // our closing of the socket won't break the
+        // connection completely.
+        bool bOKToContinue = false;
+        while( !bOKToContinue )
+        {
+            HANDLE hProc = OpenProcess( PROCESS_QUERY_INFORMATION,
+                NULL,
+                procInfo.dwProcessId );
+            if( hProc != NULL )
+            {
+                CloseHandle( hProc );
+                bOKToContinue = true;
+            }
+        }
 
 		// release our hold on the child socket endpoint
 		// and keep hold of our own endpoint
