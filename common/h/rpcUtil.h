@@ -14,9 +14,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <errno.h>
 #include <memory.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
