@@ -31,8 +31,7 @@ proc status_create {id title} {
 
     text $widget -relief raised
 
-    $widget insert end $title
-    $widget insert end ": "
+    $widget insert end " $title:"
 
     set tmark [expr [string length $title] + 1]
 
@@ -61,9 +60,9 @@ proc status_create {id title} {
 
     pack $widget -in $status_parent -side top -fill x
 
-    #update
+    update
     #
-    # All the "update" commands have been commented because they
+    # Need to use  "update" commands sparingly because they
     # seem to produce a problem (or make it worse as Ari mentioned) when  
     # the user "grab" the main window for long enough, making some widgets
     # "invisibles" (e.g. status line). We also had to add the command
@@ -99,7 +98,7 @@ proc status_message {id message} {
     # At such times, it is advantageous for us to ensure that every
     # status line is updated before the freeze.  When paradyn stops freezing,
     # we can remove this line, which slows things down quite a bit.
-    update
+    #update
 }
 
 

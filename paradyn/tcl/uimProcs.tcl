@@ -1,5 +1,8 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
+# Revision 1.18  1997/06/03 15:33:31  karavan
+# small cleanup to handle new button size
+#
 # Revision 1.17  1996/08/05 07:34:15  tamches
 # update for tcl 7.5
 #
@@ -63,9 +66,9 @@ proc mkButtonBar {w every retval blist} {
 
         set i 1
         foreach arg [lrange $blist 0 end] {
-            button $w.$i -text [lindex $arg 0] -width 10 -height 1\
+            button $w.$i -text [lindex $arg 0]  -height 1 \
                     -command "$every; [lindex $arg 1]"
-            pack append $w $w.$i {left expand padx 20 pady 4}
+            pack append $w $w.$i {left expand padx 15 pady 4}
             set i [expr $i+1]
         }
 }
@@ -90,13 +93,16 @@ proc mkDialogWindow {w} {
 
 proc mkDialogWindowTitle {w theTitle} {
     catch {destroy $w}
-    toplevel $w -class Dialog -bd 0
+    toplevel $w -class Dialog -bd 0 
     wm title $w $theTitle
     wm iconname $w $theTitle
-    wm geometry $w +425+300
-# Under 7.5/4.1, the tkwait causes the window to "flicker"
-# noticably.
-#    tkwait visibility $w
+    label $w.la -text $theTitle \
+	    -foreground white -anchor c \
+	    -font *-New*Century*Schoolbook-Bold-R-*-14-* \
+	    -relief raised \
+	    -background red \
+	    -width 40
+    pack $w.la -side top -fill x 
     catch {grab $w}
     focus $w
     return $w
@@ -269,14 +275,13 @@ proc errorExit {oldwin} {
     set w .exerror
 
     mkDialogWindowTitle $w "Exit Paradyn"
-    $w configure -bg red
     label $w.l -text "Generate Core File (Y/N)?"
     frame $w.buttons
     mkButtonBar $w.buttons {} retval {{YES ""} {NO ""}}
     $w.buttons.1 configure -command "paradyn core -1; destroy ."
     $w.buttons.2 configure -command "destroy ."
     destroy $oldwin
-    pack $w.l $w.buttons -side top 
+    pack $w.l $w.buttons -side top -padx 10 -pady 10 
     focus $w
 }
 
@@ -285,16 +290,16 @@ proc errorExit {oldwin} {
 proc procExit {} {
     set w .exitWindow
     mkDialogWindowTitle $w "Exit Paradyn"
+    frame $w.fr -borderwidth 2
+    pack $w.fr -side top
+    label $w.fr.l -text "Are you sure (Y/N)?"
+    pack $w.fr.l -side top -pady 10
 
-    $w configure -bg red
-    label $w.l -text "Are you sure (Y/N)?"
-    pack $w.l -side top
-
-    frame $w.buttons
-    mkButtonBar $w.buttons {} retval {{YES ""} {NO ""}}
-    $w.buttons.1 configure -command "paradyn exit"
-    $w.buttons.2 configure -command "destroy $w"
-    pack $w.buttons -side top 
+    frame $w.fr.buttons
+    mkButtonBar $w.fr.buttons {} retval {{YES ""} {NO ""}}
+    $w.fr.buttons.1 configure -command "paradyn exit"
+    $w.fr.buttons.2 configure -command "destroy $w"
+    pack $w.fr.buttons -side top -fill both
 
     focus $w
 }
