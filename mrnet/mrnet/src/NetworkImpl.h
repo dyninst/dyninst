@@ -84,7 +84,7 @@ public:
                     const char * _application);
   ~MC_NetworkImpl();
 
-    std::vector<MC_Network::LeafInfo*> get_LeafInfo( void );
+    int get_LeafInfo( MC_Network::LeafInfo*** linfo, unsigned int* nLeaves );
     int connect_Backends( void );
 
     int getConnections( int** conns, unsigned int* nConns )

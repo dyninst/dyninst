@@ -27,7 +27,8 @@ class MC_Network{
                             const char * _backend);
   static int new_NetworkNoBE(const char * _filename,
                             const char * _commnode,
-                            const char* leafInfoFile );
+                            LeafInfo*** leafInfo,
+                            unsigned int* nLeaves );
   static int connect_Backends( void );
   static void delete_Network();
 

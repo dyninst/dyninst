@@ -41,52 +41,27 @@ int MC_Network::new_Network(const char * _filename,
 }
 
 
-bool
-leafInfoCompare( const MC_Network::LeafInfo* a,
-                    const MC_Network::LeafInfo* b )
-{
-    assert( a != NULL );
-    assert( b != NULL );
-    return (a->get_Id() < b->get_Id());
-}
-
-
 int MC_Network::new_NetworkNoBE( const char* cfgFileName,
                                 const char* commNodeExe,
-                                const char* leafInfoFile )
+                                MC_Network::LeafInfo*** leafInfo,
+                                unsigned int* nLeaves )
 {
-    int ret = 0;
+    int ret = -1;
 
     // build the network
     MC_Network::network = new MC_NetworkImpl( cfgFileName, commNodeExe, NULL );
-
     if( !MC_Network::network->fail() )
     {
-        // collect leaf information
-        std::vector<MC_Network::LeafInfo*> linfo = 
-            MC_Network::network->get_LeafInfo();
-
-        // sort leaf info according to backend rank
-        std::sort(linfo.begin(), linfo.end(), leafInfoCompare);
-
-        // deliver the requested information
-        std::ofstream ofs( leafInfoFile );
-        for( unsigned int i = 0; i < linfo.size(); i++ )
+        if( (leafInfo != NULL) && (nLeaves != NULL) )
         {
-            assert( linfo[i] != NULL );
-            ofs << linfo[i]->get_Id()
-                << ' ' << linfo[i]->get_Host()
-                << ' ' << linfo[i]->get_Rank()
-                << ' ' << linfo[i]->get_ParHost()
-                << ' ' << linfo[i]->get_ParPort()
-                << ' ' << linfo[i]->get_ParRank()
-                << std::endl;
+            MC_Network::network->get_LeafInfo( leafInfo, nLeaves );
+            ret = 0;
         }
-        ofs.close();
-    }
-    else
-    {
-        ret = -1;
+        else
+        {
+            // TODO is this the right error?
+            ret = MC_ENETWORK_FAILURE;
+        }
     }
 
     return ret;

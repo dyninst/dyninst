@@ -154,11 +154,27 @@ int MC_NetworkImpl::send(MC_Packet *packet)
 }
 
 
-std::vector<MC_Network::LeafInfo*>
-MC_NetworkImpl::get_LeafInfo( void )
-{
-    std::vector<MC_Network::LeafInfo*> ret;
 
+static
+bool
+leafInfoCompare( const MC_Network::LeafInfo* a,
+                    const MC_Network::LeafInfo* b )
+{
+    assert( a != NULL );
+    assert( b != NULL );
+    return (a->get_Id() < b->get_Id());
+}
+
+
+int
+MC_NetworkImpl::get_LeafInfo( MC_Network::LeafInfo*** linfo,
+                                unsigned int* nLeaves )
+{
+    int ret = -1;
+
+    // these should've been checked by our caller
+    assert( linfo != NULL );
+    assert( nLeaves != NULL );
 
     // request that our leaves give us their leaf info
     MC_Packet* pkt = new MC_Packet( MC_GET_LEAF_INFO_PROT, "" );
@@ -218,17 +234,32 @@ MC_NetworkImpl::get_LeafInfo( void )
                     (nHosts == nPPorts) &&
                     (nHosts == nPRanks) )
                 {
+                    // build un-ordered leaf info vector
+                    std::vector<MC_Network::LeafInfo*> linfov;
                     for( unsigned int i = 0; i < nHosts; i++ )
                     {
-                        MC_NetworkImpl::LeafInfoImpl* li =
+                        MC_Network::LeafInfo* li = 
                             new MC_NetworkImpl::LeafInfoImpl( ids[i],
                                                                 hosts[i],
                                                                 ranks[i],
                                                                 phosts[i],
                                                                 pports[i],
                                                                 pranks[i] );
-                        ret.push_back( li );
+                        linfov.push_back( li );
                     }
+
+                    // sort the leaf info array by backend id
+                    std::sort( linfov.begin(), linfov.end(), leafInfoCompare );
+
+                    // copy sorted vector to output array
+                    *linfo = new MC_Network::LeafInfo*[nHosts];
+                    for( unsigned int i = 0; i < nHosts; i++ )
+                    {
+                        (*linfo)[i] = linfov[i];
+                    }
+                    *nLeaves = linfov.size();
+
+                    ret = 0;
                 }
                 else
                 {
@@ -249,6 +280,7 @@ MC_NetworkImpl::get_LeafInfo( void )
 
     return ret;
 }
+
 
 
 int
