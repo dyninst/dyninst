@@ -18,6 +18,7 @@
 #define DO_DEBUG_LIBPDTHREAD 0
 #endif
 
+#define CURRENT_FILE thr_mailbox_C
 #include "thr_debug.h"
 
 #undef DO_DEBUG_LIBPDTHREAD
@@ -388,7 +389,7 @@ monitor->lock();
 		}
 	}
 
-monitor->unlock();
+    monitor->unlock();
     
     actual_sender = criterion.actual_sender;
     actual_type = criterion.actual_type;
@@ -397,7 +398,7 @@ monitor->unlock();
 
         if(do_yank && m && (yank_from != NULL) ) {
 
-monitor->lock();
+            monitor->lock();
             unsigned oldsize = 
                 yank_from->get_size();
             unsigned newsize;
@@ -464,7 +465,7 @@ int thr_mailbox::put_sock(message* m) {
     sock_messages->put(m);
 
     assert(sock_messages->get_size() == (old_size + 1));
-	raise_msg_avail();    
+    raise_msg_avail();    
     monitor->unlock();
 
     return THR_OKAY;
@@ -472,12 +473,12 @@ int thr_mailbox::put_sock(message* m) {
 
 int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp) {
     int retval = THR_OKAY;
-
+    
 //    monitor->lock();
     thr_debug_msg(CURRENT_FUNCTION, "RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
     message* to_recv;
     bool did_recv;
-
+    
     did_recv = check_for(sender, tagp, true, true, &to_recv);
 
     thr_debug_msg(CURRENT_FUNCTION, "DONE RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
