@@ -21,17 +21,13 @@ pdwinnt.obj: ../../dyninstAPI/src/pdwinnt.C \
  ../../common/h/vectorSet.h ../../common/h/Timer.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -59,14 +55,10 @@ init-winnt.obj: ../src/init-winnt.C ../../paradynd/src/metric.h \
  ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
  ../../dyninstAPI/src/inst.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
+ ../../pdutil/h/xdr_send_recv.h ../../pdutil/h/ByteArray.h \
  ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
- ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h \
  ../../paradynd/src/internalMetrics.h ../../paradynd/src/im_preds.h \
  ../../paradynd/src/init.h ../../paradynd/src/timeMgr.h \
  ../../paradynd/src/timeMechanism.h ../../dyninstAPI/src/os.h \
@@ -96,18 +88,14 @@ inst-winnt.obj: ../../dyninstAPI/src/inst-winnt.C \
  ../../paradynd/src/timeMechanism.h ../../common/h/vectorSet.h \
  ../../common/h/Timer.h ../../dyninstAPI/src/frame.h \
  ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/imageUpdate.h \
- ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmSegment.h ../../paradynd/src/shmMgr.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -138,17 +126,13 @@ inst-x86.obj: ../../dyninstAPI/src/inst-x86.C ../../common/h/headers.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -182,17 +166,13 @@ func-reloc.obj: ../../dyninstAPI/src/func-reloc.C \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -252,9 +232,8 @@ pvm_support.obj: ../src/pvm_support.C ../../common/h/String.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../common/h/Vector.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
- ../../common/h/Pair.h ../src/pvm_support.h
+ ../../common/h/Vector.h ../../pdutil/h/ByteArray.h \
+ ../src/pvm_support.h
 host_support.obj: ../src/host_support.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h
 task_support.obj: ../src/task_support.C ../../dyninstAPI/src/dyninstP.h \
@@ -288,17 +267,13 @@ association.obj: ../src/association.C ../../common/h/headers.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -326,17 +301,13 @@ ast.obj: ../../dyninstAPI/src/ast.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -352,11 +323,10 @@ comm.obj: ../src/comm.C ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../../common/h/Vector.h ../../common/h/vectorSet.h \
- ../../pdutil/h/ByteArray.h ../../common/h/Pair.h \
- ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/refCounter.h ../../common/h/Vector.h \
+ ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
+ ../../common/h/Dictionary.h ../../common/h/Pair.h \
  ../../pdutil/h/aggregationDefines.h ../../dyninstAPI/src/util.h \
  ../../common/h/Time.h ../../common/h/fraction.h \
  ../../dyninstAPI/src/showerror.h ../../paradynd/src/main.h \
@@ -365,26 +335,23 @@ comm.obj: ../src/comm.C ../../common/h/headers.h ../../common/h/Types.h \
  ../../paradynd/src/timeMechanism.h ../../dyninstAPI/src/Object.h \
  ../../common/h/Symbol.h ../../common/h/lprintf.h \
  ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/CodeView.h \
- ../../common/h/Timer.h ../../dyninstAPI/src/ast.h \
- ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
- ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
- ../../common/h/stringDecl.h ../../dyninstAPI/src/arch.h \
- ../../dyninstAPI/src/arch-x86.h ../../paradynd/src/resource.h \
- ../../dyninstAPI/src/inst.h ../../pdutil/h/pdSample.h \
+ ../../common/h/vectorSet.h ../../common/h/Timer.h \
+ ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
+ ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/symtab.h \
+ ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
+ ../../rtinst/h/trace.h ../../common/h/stringDecl.h \
+ ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
+ ../../paradynd/src/resource.h ../../dyninstAPI/src/inst.h \
+ ../../pdutil/h/pdSample.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/PriorityQueue.h \
- ../../pdutil/h/metricStyle.h ../../dyninstAPI/src/dynamiclinking.h \
- ../../dyninstAPI/src/ntDL.h
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/PriorityQueue.h ../../pdutil/h/metricStyle.h \
+ ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h
 context.obj: ../src/context.C ../../dyninstAPI/src/symtab.h \
  ../../common/h/Vector.h ../../common/h/Dictionary.h \
  ../../common/h/Pair.h ../../common/h/list.h \
@@ -408,18 +375,14 @@ context.obj: ../src/context.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
  ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
  ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/imageUpdate.h \
- ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmSegment.h ../../paradynd/src/shmMgr.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -450,17 +413,13 @@ debugger.obj: ../src/debugger.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -488,17 +447,13 @@ dynrpc.obj: ../src/dynrpc.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -522,35 +477,31 @@ init.obj: ../src/init.C ../../dyninstAPI/src/dyninstP.h \
  ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
  ../../dyninstAPI/src/inst.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
+ ../../pdutil/h/xdr_send_recv.h ../../pdutil/h/ByteArray.h \
  ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
- ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/im_preds.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/im_preds.h \
  ../../paradynd/src/costmetrics.h ../../dyninstAPI/src/process.h \
  ../../paradynd/src/timeMgr.h ../../paradynd/src/timeMechanism.h \
  ../../dyninstAPI/src/Object.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
- ../../dyninstAPI/src/CodeView.h ../../common/h/Timer.h \
- ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
- ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
- ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
- ../../common/h/stringDecl.h ../../dyninstAPI/src/arch.h \
- ../../dyninstAPI/src/arch-x86.h ../../paradynd/src/resource.h \
+ ../../dyninstAPI/src/CodeView.h ../../common/h/vectorSet.h \
+ ../../common/h/Timer.h ../../dyninstAPI/src/os.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
+ ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
+ ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
+ ../../dyninstAPI/src/dyninst.h ../../common/h/stringDecl.h \
+ ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
+ ../../paradynd/src/resource.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/comm.h \
- ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../paradynd/src/machineMetFocusNode.h ../../paradynd/src/init.h \
- ../../common/h/timing.h ../../pdutil/h/pdDebugOstream.h \
- ../../paradynd/src/perfStream.h ../../paradynd/src/context.h \
- ../../paradynd/src/dynrpc.h
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
+ ../../dyninstAPI/src/ntDL.h ../../paradynd/src/machineMetFocusNode.h \
+ ../../paradynd/src/init.h ../../common/h/timing.h \
+ ../../pdutil/h/pdDebugOstream.h ../../paradynd/src/perfStream.h \
+ ../../paradynd/src/context.h ../../paradynd/src/dynrpc.h
 inst.obj: ../../dyninstAPI/src/inst.C ../../dyninstAPI/src/symtab.h \
  ../../common/h/Vector.h ../../common/h/Dictionary.h \
  ../../common/h/Pair.h ../../common/h/list.h \
@@ -574,17 +525,13 @@ inst.obj: ../../dyninstAPI/src/inst.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -614,17 +561,13 @@ main.obj: ../src/main.C ../../common/h/headers.h ../../common/h/Types.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -656,17 +599,13 @@ metric.obj: ../src/metric.C ../../common/h/headers.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
  ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
  ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/imageUpdate.h \
- ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
- ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../pdutil/h/ByteArray.h \
+ ../../paradynd/src/shmSegment.h ../../paradynd/src/shmMgr.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
+ ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
+ ../../pdutil/h/xdr_send_recv.h ../../pdutil/h/ByteArray.h \
  ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
  ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
@@ -695,13 +634,9 @@ machineMetFocusNode.obj: ../src/machineMetFocusNode.C \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../dyninstAPI/src/inst.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../common/h/vectorSet.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
- ../../pdutil/h/metricStyle.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h \
+ ../../pdutil/h/metricStyle.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h \
  ../../paradynd/src/machineMetFocusNode.h \
  ../../paradynd/src/processMetFocusNode.h ../../paradynd/src/dynrpc.h \
  ../../paradynd/src/comm.h ../../dyninstAPI/src/symtab.h \
@@ -715,11 +650,11 @@ machineMetFocusNode.obj: ../src/machineMetFocusNode.C \
  ../../paradynd/src/internalMetrics.h ../../paradynd/src/im_preds.h \
  ../../paradynd/src/costmetrics.h ../../dyninstAPI/src/process.h \
  ../../paradynd/src/timeMgr.h ../../paradynd/src/timeMechanism.h \
- ../../common/h/Timer.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
- ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
- ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
+ ../../common/h/vectorSet.h ../../common/h/Timer.h \
+ ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
+ ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/imageUpdate.h \
+ ../../paradynd/src/shmSegment.h ../../paradynd/src/shmMgr.h \
  ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
  ../../paradynd/src/mdld.h ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../../pdutil/h/pdDebugOstream.h
@@ -737,14 +672,10 @@ processMetFocusNode.obj: ../src/processMetFocusNode.C \
  ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
  ../../dyninstAPI/src/inst.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
+ ../../pdutil/h/xdr_send_recv.h ../../pdutil/h/ByteArray.h \
  ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
- ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h \
  ../../paradynd/src/processMetFocusNode.h \
  ../../paradynd/src/threadMetFocusNode.h \
  ../../paradynd/src/instrCodeNode.h ../../paradynd/src/instReqNode.h \
@@ -753,20 +684,20 @@ processMetFocusNode.obj: ../src/processMetFocusNode.C \
  ../../paradynd/src/timeMgr.h ../../paradynd/src/timeMechanism.h \
  ../../dyninstAPI/src/Object.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
- ../../dyninstAPI/src/CodeView.h ../../common/h/Timer.h \
- ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/showerror.h \
- ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../common/h/stringDecl.h \
- ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
- ../../paradynd/src/resource.h \
+ ../../dyninstAPI/src/CodeView.h ../../common/h/vectorSet.h \
+ ../../common/h/Timer.h ../../dyninstAPI/src/os.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
+ ../../common/h/stringDecl.h ../../dyninstAPI/src/arch.h \
+ ../../dyninstAPI/src/arch-x86.h ../../paradynd/src/resource.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/comm.h \
- ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../pdutil/h/pdDebugOstream.h ../../dyninstAPI/src/pdThread.h
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
+ ../../dyninstAPI/src/ntDL.h ../../pdutil/h/pdDebugOstream.h \
+ ../../dyninstAPI/src/pdThread.h
 threadMetFocusNode.obj: ../src/threadMetFocusNode.C \
  ../../paradynd/src/threadMetFocusNode.h ../../paradynd/src/metric.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -781,14 +712,10 @@ threadMetFocusNode.obj: ../src/threadMetFocusNode.C \
  ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
  ../../dyninstAPI/src/inst.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
+ ../../pdutil/h/xdr_send_recv.h ../../pdutil/h/ByteArray.h \
  ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
- ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h \
  ../../paradynd/src/processMetFocusNode.h \
  ../../pdutil/h/pdDebugOstream.h
 instrCodeNode.obj: ../src/instrCodeNode.C \
@@ -805,35 +732,33 @@ instrCodeNode.obj: ../src/instrCodeNode.C \
  ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
  ../../dyninstAPI/src/inst.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
+ ../../pdutil/h/xdr_send_recv.h ../../pdutil/h/ByteArray.h \
  ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
- ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/instReqNode.h \
- ../../dyninstAPI/src/frame.h ../../paradynd/src/instrThrDataNode.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h \
+ ../../paradynd/src/instReqNode.h ../../dyninstAPI/src/frame.h \
+ ../../paradynd/src/instrThrDataNode.h \
  ../../paradynd/src/processMetFocusNode.h \
  ../../paradynd/src/threadMetFocusNode.h \
  ../../dyninstAPI/src/process.h ../../paradynd/src/timeMgr.h \
  ../../paradynd/src/timeMechanism.h ../../dyninstAPI/src/Object.h \
  ../../common/h/Symbol.h ../../common/h/lprintf.h \
  ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/CodeView.h \
- ../../common/h/Timer.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
- ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
- ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
- ../../common/h/stringDecl.h ../../dyninstAPI/src/arch.h \
- ../../dyninstAPI/src/arch-x86.h ../../paradynd/src/resource.h \
+ ../../common/h/vectorSet.h ../../common/h/Timer.h \
+ ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
+ ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/showerror.h \
+ ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
+ ../../dyninstAPI/src/dyninst.h ../../common/h/stringDecl.h \
+ ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
+ ../../paradynd/src/resource.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/comm.h \
- ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../dyninstAPI/src/instP.h ../../dyninstAPI/src/instPoint.h \
- ../../dyninstAPI/src/instPoint-x86.h ../../pdutil/h/pdDebugOstream.h
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
+ ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
+ ../../dyninstAPI/src/instPoint.h ../../dyninstAPI/src/instPoint-x86.h \
+ ../../pdutil/h/pdDebugOstream.h ../../dyninstAPI/src/pdThread.h
 instrThrDataNode.obj: ../src/instrThrDataNode.C ../../common/h/Types.h \
  ../../paradynd/src/instrThrDataNode.h ../../paradynd/src/metric.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -848,38 +773,33 @@ instrThrDataNode.obj: ../src/instrThrDataNode.C ../../common/h/Types.h \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../dyninstAPI/src/inst.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../common/h/vectorSet.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
- ../../pdutil/h/metricStyle.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h \
+ ../../pdutil/h/metricStyle.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h \
  ../../paradynd/src/instrCodeNode.h ../../paradynd/src/instReqNode.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/process.h \
  ../../paradynd/src/timeMgr.h ../../paradynd/src/timeMechanism.h \
  ../../dyninstAPI/src/Object.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
- ../../dyninstAPI/src/CodeView.h ../../common/h/Timer.h \
- ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/showerror.h \
- ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../common/h/stringDecl.h \
- ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
- ../../paradynd/src/resource.h \
+ ../../dyninstAPI/src/CodeView.h ../../common/h/vectorSet.h \
+ ../../common/h/Timer.h ../../dyninstAPI/src/os.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
+ ../../common/h/stringDecl.h ../../dyninstAPI/src/arch.h \
+ ../../dyninstAPI/src/arch-x86.h ../../paradynd/src/resource.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/comm.h \
- ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../pdutil/h/pdDebugOstream.h ../../dyninstAPI/src/pdThread.h \
- ../../paradynd/src/dataReqNode.h
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
+ ../../dyninstAPI/src/ntDL.h ../../pdutil/h/pdDebugOstream.h \
+ ../../dyninstAPI/src/pdThread.h ../../paradynd/src/dataReqNode.h
 dataReqNode.obj: ../src/dataReqNode.C ../../paradynd/src/dataReqNode.h \
  ../../common/h/Types.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/Pair.h \
  ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
- ../../paradynd/src/superTableTypes.h ../../dyninstAPI/src/process.h \
+ ../../paradynd/src/variableMgrTypes.h ../../dyninstAPI/src/process.h \
  ../../paradynd/src/timeMgr.h ../../common/h/Time.h \
  ../../common/h/fraction.h ../../paradynd/src/timeMechanism.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -899,20 +819,17 @@ dataReqNode.obj: ../src/dataReqNode.C ../../paradynd/src/dataReqNode.h \
  ../../pdutil/h/pdSample.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
  ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
  ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
  ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
  ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
- ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
- ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../dyninstAPI/src/pdThread.h ../../paradynd/src/init.h
+ ../../pdutil/h/xdr_send_recv.h ../../pdutil/h/ByteArray.h \
+ ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
+ ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
+ ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/pdThread.h \
+ ../../paradynd/src/init.h
 instReqNode.obj: ../src/instReqNode.C ../../paradynd/src/instReqNode.h \
  ../../common/h/Vector.h ../../dyninstAPI/src/inst.h \
  ../../common/h/Dictionary.h ../../common/h/Pair.h \
@@ -937,17 +854,13 @@ instReqNode.obj: ../src/instReqNode.C ../../paradynd/src/instReqNode.h \
  ../../paradynd/src/resource.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -975,17 +888,13 @@ internalMetrics.obj: ../src/internalMetrics.C \
  ../../dyninstAPI/src/inst.h ../../pdutil/h/pdSample.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -1005,30 +914,27 @@ costmetrics.obj: ../src/costmetrics.C ../../common/h/Types.h \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../dyninstAPI/src/inst.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../common/h/vectorSet.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
- ../../pdutil/h/metricStyle.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../dyninstAPI/src/process.h \
+ ../../pdutil/h/metricStyle.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../dyninstAPI/src/process.h \
  ../../paradynd/src/timeMgr.h ../../paradynd/src/timeMechanism.h \
  ../../dyninstAPI/src/Object.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
- ../../dyninstAPI/src/CodeView.h ../../common/h/Timer.h \
- ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
- ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
- ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
- ../../common/h/stringDecl.h ../../dyninstAPI/src/arch.h \
- ../../dyninstAPI/src/arch-x86.h ../../paradynd/src/resource.h \
+ ../../dyninstAPI/src/CodeView.h ../../common/h/vectorSet.h \
+ ../../common/h/Timer.h ../../dyninstAPI/src/os.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
+ ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
+ ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
+ ../../dyninstAPI/src/dyninst.h ../../common/h/stringDecl.h \
+ ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
+ ../../paradynd/src/resource.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/comm.h \
- ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../paradynd/src/im_preds.h ../../paradynd/src/internalMetrics.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
+ ../../dyninstAPI/src/ntDL.h ../../paradynd/src/im_preds.h \
+ ../../paradynd/src/internalMetrics.h \
  ../../paradynd/src/machineMetFocusNode.h \
  ../../pdutil/h/pdDebugOstream.h ../../paradynd/src/dynrpc.h
 metricDefs-critPath.obj: ../src/metricDefs-critPath.C \
@@ -1054,17 +960,13 @@ metricDefs-critPath.obj: ../src/metricDefs-critPath.C \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -1103,17 +1005,13 @@ resource.obj: ../src/resource.C ../../common/h/Types.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -1141,17 +1039,13 @@ stats.obj: ../../dyninstAPI/src/stats.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -1185,17 +1079,13 @@ symtab.obj: ../../dyninstAPI/src/symtab.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
  ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -1210,11 +1100,10 @@ mdl.obj: ../src/mdl.C dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../../common/h/Vector.h ../../common/h/vectorSet.h \
- ../../pdutil/h/ByteArray.h ../../common/h/Pair.h \
- ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/refCounter.h ../../common/h/Vector.h \
+ ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
+ ../../common/h/Dictionary.h ../../common/h/Pair.h \
  ../../pdutil/h/aggregationDefines.h ../../paradyn/src/met/mdl_data.h \
  ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
  ../../common/h/Time.h ../../common/h/fraction.h \
@@ -1222,11 +1111,8 @@ mdl.obj: ../src/mdl.C dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/util.h \
  ../../rtinst/h/trace.h ../../rtinst/h/rtinst.h \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../dyninstAPI/src/inst.h \
- ../../pdutil/h/metricStyle.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h \
+ ../../pdutil/h/metricStyle.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h \
  ../../paradynd/src/machineMetFocusNode.h \
  ../../paradynd/src/processMetFocusNode.h \
  ../../paradynd/src/threadMetFocusNode.h \
@@ -1237,30 +1123,30 @@ mdl.obj: ../src/mdl.C dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../paradynd/src/timeMechanism.h ../../dyninstAPI/src/Object.h \
  ../../common/h/Symbol.h ../../common/h/lprintf.h \
  ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/CodeView.h \
- ../../common/h/Timer.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
- ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
- ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
- ../../common/h/stringDecl.h ../../dyninstAPI/src/arch.h \
- ../../dyninstAPI/src/arch-x86.h ../../paradynd/src/resource.h \
+ ../../common/h/vectorSet.h ../../common/h/Timer.h \
+ ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
+ ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/showerror.h \
+ ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
+ ../../dyninstAPI/src/dyninst.h ../../common/h/stringDecl.h \
+ ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
+ ../../paradynd/src/resource.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../dyninstAPI/src/dynamiclinking.h \
- ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/pdThread.h \
- ../../pdutil/h/pdDebugOstream.h ../../dyninstAPI/src/instPoint.h \
- ../../dyninstAPI/src/instPoint-x86.h ../../paradynd/src/dataReqNode.h
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
+ ../../dyninstAPI/src/pdThread.h ../../pdutil/h/pdDebugOstream.h \
+ ../../dyninstAPI/src/instPoint.h ../../dyninstAPI/src/instPoint-x86.h \
+ ../../paradynd/src/dataReqNode.h
 showerror.obj: ../src/showerror.C ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/refCounter.h ../../common/h/Vector.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
- ../../common/h/Pair.h ../../paradyn/src/met/mdl.h \
- ../../common/h/Dictionary.h ../../pdutil/h/aggregationDefines.h \
+ ../../pdutil/h/xdr_send_recv.h ../../common/h/String.h \
+ ../../common/h/debugOstream.h ../../common/h/refCounter.h \
+ ../../common/h/Vector.h ../../pdutil/h/ByteArray.h \
+ ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
+ ../../common/h/Pair.h ../../pdutil/h/aggregationDefines.h \
  ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
  ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
  ../../common/h/stringDecl.h ../../paradynd/src/resource.h \
@@ -1289,17 +1175,13 @@ perfStream.obj: ../src/perfStream.C ../../common/h/headers.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
  ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -1333,18 +1215,14 @@ process.obj: ../../dyninstAPI/src/process.C ../../common/h/headers.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
  ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
  ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/imageUpdate.h \
- ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmSegment.h ../../paradynd/src/shmMgr.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
@@ -1378,94 +1256,37 @@ sharedobject.obj: ../../dyninstAPI/src/sharedobject.C \
  ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
  ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
+ ../../pdutil/h/xdr_send_recv.h ../../pdutil/h/ByteArray.h \
  ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
- ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/comm.h
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/comm.h
 dyninstRPC.xdr.SRVR.obj: dyninstRPC.xdr.SRVR.C dyninstRPC.xdr.SRVR.h \
  dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../../common/h/Vector.h ../../common/h/vectorSet.h \
- ../../pdutil/h/ByteArray.h ../../common/h/Pair.h \
- ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/refCounter.h ../../common/h/Vector.h \
+ ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
+ ../../common/h/Dictionary.h ../../common/h/Pair.h \
  ../../pdutil/h/aggregationDefines.h
 dyninstRPC.xdr.obj: dyninstRPC.xdr.C dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../../common/h/Vector.h ../../common/h/vectorSet.h \
- ../../pdutil/h/ByteArray.h ../../common/h/Pair.h \
- ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/refCounter.h ../../common/h/Vector.h \
+ ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
+ ../../common/h/Dictionary.h ../../common/h/Pair.h \
  ../../pdutil/h/aggregationDefines.h
 templatesIGEN.obj: ../src/templatesIGEN.C ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/Types.h \
- ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../common/h/refCounter.h ../../common/h/Vector.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
- ../../common/h/Pair.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
- ../../pdutil/h/pdsocket.h ../../paradyn/src/met/mdl.h \
- ../../common/h/Dictionary.h ../../pdutil/h/aggregationDefines.h
-templates-nt.obj: ../../dyninstAPI/src/templates-nt.C \
- ../../common/src/vectorSet.C ../../common/h/vectorSet.h \
- ../../common/h/Vector.h ../../common/src/Dictionary.C \
- ../../common/h/Dictionary.h ../../common/h/Pair.h \
- ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
- ../../dyninstAPI/src/Object.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/Types.h \
- ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../common/h/refCounter.h ../../common/h/Symbol.h \
- ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
- ../../dyninstAPI/src/CodeView.h ../../dyninstAPI/src/dyninst.h \
- ../../rtinst/h/trace.h ../../rtinst/h/rtinst.h \
- ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/stringDecl.h \
- ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
- ../../dyninstAPI/src/util.h ../../common/h/Time.h \
- ../../common/h/fraction.h ../../paradynd/src/resource.h \
- ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/ast.h \
- ../../pdutil/h/pdSample.h \
- ../../dyninstAPI/src/FunctionExpansionRecord.h \
- ../../dyninstAPI/src/process.h ../../paradynd/src/timeMgr.h \
- ../../paradynd/src/timeMechanism.h ../../common/h/Timer.h \
- ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
- ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/imageUpdate.h \
- ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/Types.h ../../common/h/headers.h \
+ ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
+ ../../common/h/Vector.h ../../pdutil/h/ByteArray.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
- ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
- ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../paradynd/src/machineMetFocusNode.h \
- ../../paradynd/src/instrCodeNode.h ../../paradynd/src/instReqNode.h \
- ../../paradynd/src/threadMetFocusNode.h \
- ../../paradynd/src/baseTable.C ../../paradynd/src/superVector.C \
- ../../dyninstAPI/src/pdThread.h ../../paradynd/src/fastInferiorHeap.C \
- ../../pdutil/h/pdDebugOstream.h
-fastInferiorHeap.obj: ../src/fastInferiorHeap.C ../../common/h/Types.h \
- ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../src/fastInferiorHeap.h ../src/superTableTypes.h \
- ../../common/h/Vector.h ../../rtinst/h/rtinst.h \
- ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../pdutil/h/pdDebugOstream.h
-fastInferiorHeapHKs.obj: ../src/fastInferiorHeapHKs.C \
+ ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
+ ../../common/h/Pair.h ../../pdutil/h/aggregationDefines.h
+varInstanceHKs.obj: ../src/varInstanceHKs.C \
  ../../dyninstAPI/src/process.h ../../rtinst/h/rtinst.h \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/Types.h \
  ../../paradynd/src/timeMgr.h ../../common/h/Time.h \
@@ -1488,116 +1309,66 @@ fastInferiorHeapHKs.obj: ../src/fastInferiorHeapHKs.C \
  ../../dyninstAPI/src/inst.h ../../pdutil/h/pdSample.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
  ../../dyninstAPI/src/pdThread.h ../src/metric.h \
- ../../paradynd/src/threadMetFocusNode.h ../src/fastInferiorHeapHKs.h \
- ../../paradynd/src/init.h ../../pdutil/h/pdDebugOstream.h \
- ../../common/h/int64iostream.h
-fastInferiorHeapMgr.obj: ../src/fastInferiorHeapMgr.C \
- ../../common/h/headers.h ../../common/h/Types.h \
- ../../common/h/ntHeaders.h ../src/shmSegment.h \
- ../src/fastInferiorHeapMgr.h ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../common/h/Vector.h \
- ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
- ../../dyninstAPI/src/showerror.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../src/main.h ../src/comm.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
- ../../common/h/vectorSet.h ../../pdutil/h/ByteArray.h \
- ../../common/h/Pair.h ../../paradyn/src/met/mdl.h \
- ../../common/h/Dictionary.h ../../pdutil/h/aggregationDefines.h \
- ../../dyninstAPI/src/process.h ../../paradynd/src/timeMgr.h \
+ ../../paradynd/src/threadMetFocusNode.h \
+ ../../paradynd/src/varInstanceHKs.h ../../paradynd/src/init.h \
+ ../../pdutil/h/pdDebugOstream.h ../../common/h/int64iostream.h
+varInstance.obj: ../src/varInstance.C ../../paradynd/src/varInstance.h \
+ ../../common/h/Types.h ../../common/h/Vector.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/shmMgr.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
+ ../../dyninstAPI/src/process.h ../../rtinst/h/rtinst.h \
+ ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../paradynd/src/timeMgr.h \
  ../../common/h/Time.h ../../common/h/fraction.h \
- ../../paradynd/src/timeMechanism.h ../../dyninstAPI/src/Object.h \
- ../../common/h/Symbol.h ../../common/h/lprintf.h \
- ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/CodeView.h \
- ../../dyninstAPI/src/util.h ../../common/h/Timer.h \
+ ../../paradynd/src/timeMechanism.h ../../common/h/String.h \
+ ../../common/h/debugOstream.h ../../common/h/refCounter.h \
+ ../../dyninstAPI/src/Object.h ../../common/h/Dictionary.h \
+ ../../common/h/Pair.h ../../common/h/Symbol.h \
+ ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
+ ../../dyninstAPI/src/CodeView.h ../../dyninstAPI/src/util.h \
+ ../../common/h/vectorSet.h ../../common/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/w32CONTEXT.h \
- ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/symtab.h \
- ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
- ../../rtinst/h/trace.h ../../common/h/stringDecl.h \
- ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
- ../../paradynd/src/resource.h ../../dyninstAPI/src/inst.h \
- ../../pdutil/h/pdSample.h \
+ ../../dyninstAPI/src/frame.h ../../dyninstAPI/src/showerror.h \
+ ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
+ ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
+ ../../common/h/stringDecl.h ../../dyninstAPI/src/arch.h \
+ ../../dyninstAPI/src/arch-x86.h ../../paradynd/src/resource.h \
+ ../../dyninstAPI/src/inst.h ../../pdutil/h/pdSample.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/superVector.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/PriorityQueue.h \
- ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
- ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h
-baseTable.obj: ../src/baseTable.C ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h ../src/baseTable.h \
- ../../common/h/Vector.h ../../paradynd/src/superVector.h \
- ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h
-superTable.obj: ../src/superTable.C ../../common/h/Types.h \
- ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../paradynd/src/superTable.h ../../common/h/Vector.h \
- ../../paradynd/src/fastInferiorHeapHKs.h ../../rtinst/h/rtinst.h \
- ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/Time.h \
- ../../common/h/fraction.h ../../paradynd/src/baseTable.h \
- ../../paradynd/src/superVector.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../dyninstAPI/src/process.h \
- ../../paradynd/src/timeMgr.h ../../paradynd/src/timeMechanism.h \
- ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/refCounter.h ../../dyninstAPI/src/Object.h \
- ../../common/h/Dictionary.h ../../common/h/Pair.h \
- ../../common/h/Symbol.h ../../common/h/lprintf.h \
- ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/CodeView.h \
- ../../dyninstAPI/src/util.h ../../common/h/vectorSet.h \
- ../../common/h/Timer.h ../../dyninstAPI/src/ast.h \
- ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
- ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
- ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
- ../../rtinst/h/trace.h ../../common/h/stringDecl.h \
- ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
- ../../paradynd/src/resource.h ../../dyninstAPI/src/inst.h \
- ../../pdutil/h/pdSample.h \
- ../../dyninstAPI/src/FunctionExpansionRecord.h \
- ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../common/h/triple.h \
+ ../../paradynd/src/variableMgr.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
  ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
- ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
- ../../dyninstAPI/src/pdThread.h \
- ../../paradynd/src/processMetFocusNode.h
-superVector.obj: ../src/superVector.C ../../common/h/Types.h \
- ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../paradynd/src/superVector.h ../../common/h/Vector.h \
+ ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h
+shmMgr.obj: ../src/shmMgr.C ../src/shmMgr.h ../../common/h/headers.h \
+ ../../common/h/Types.h ../../common/h/ntHeaders.h ../src/shmSegment.h
+varTable.obj: ../src/varTable.C ../../common/h/headers.h \
+ ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
- ../../paradynd/src/fastInferiorHeap.h \
- ../../paradynd/src/superTableTypes.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/fastInferiorHeapMgr.h \
- ../../dyninstAPI/src/pdThread.h ../../dyninstAPI/src/process.h \
+ ../../paradynd/src/varTable.h ../../common/h/Vector.h \
+ ../../paradynd/src/variableMgrTypes.h \
+ ../../paradynd/src/varInstance.h
+variableMgr.obj: ../src/variableMgr.C ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
+ ../../paradynd/src/variableMgr.h ../../common/h/Vector.h \
+ ../../paradynd/src/variableMgrTypes.h ../../rtinst/h/rtinst.h \
+ ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../dyninstAPI/src/process.h \
  ../../paradynd/src/timeMgr.h ../../common/h/Time.h \
  ../../common/h/fraction.h ../../paradynd/src/timeMechanism.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -1616,17 +1387,19 @@ superVector.obj: ../src/superVector.C ../../common/h/Types.h \
  ../../paradynd/src/resource.h ../../dyninstAPI/src/inst.h \
  ../../pdutil/h/pdSample.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
- ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/superTable.h \
- ../../paradynd/src/fastInferiorHeapHKs.h \
- ../../paradynd/src/baseTable.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/hashTable.h \
  ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
  ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
  ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
- ../../common/h/triple.h ../../pdutil/h/ByteArray.h \
- ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
- ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
- ../../dyninstAPI/src/ntDL.h
+ ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
+ ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
+ ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
+ ../../dyninstAPI/src/pdThread.h ../../paradynd/src/varTable.h \
+ ../../paradynd/src/varInstanceHKs.h \
+ ../../paradynd/src/processMetFocusNode.h \
+ ../../paradynd/src/varInstance.h
 shmSegment-nt.obj: ../src/shmSegment-nt.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h ../src/shmSegment.h
