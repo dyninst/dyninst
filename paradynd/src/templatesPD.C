@@ -39,13 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.22 2002/04/09 18:05:59 mjbrim Exp $
+// $Id: templatesPD.C,v 1.23 2002/04/22 20:52:53 mjbrim Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
-
-#pragma implementation "list.h"
-#include "common/h/list.h"
 
 #include "common/h/String.h"
 
@@ -78,14 +75,6 @@ template class vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry>
 
 template class vector<functionName*>;
 
-template class vector<T_dyninstRPC::buf_struct*>;
-template class vector<T_dyninstRPC::mdl_constraint *>;
-template class vector<T_dyninstRPC::mdl_expr *>;
-template class vector<T_dyninstRPC::mdl_icode *>;
-template class vector<T_dyninstRPC::mdl_metric *>;
-template class vector<T_dyninstRPC::mdl_stmt *>;
-template class vector<T_dyninstRPC::metricInfo>;
-template class vector<T_dyninstRPC::focusStruct>;
 template class vector<dataReqNode*>;
 template class vector<const dataReqNode*>;
 template class vector<aggComponent*>;
@@ -130,14 +119,12 @@ template class  vector<dataInstHandle>;
 template class dictionary_hash <unsigned, cpSample*>;
 template class vector<dictionary_hash <unsigned, cpSample*>::entry>;
 
-//template class dictionary_hash<string, Symbol>;
-//template class vector<dictionary_hash<string, Symbol>::entry>;
+template class dictionary_hash<string, Symbol>;
+template class vector<dictionary_hash<string, Symbol>::entry>;
 
 template class dictionary_hash<string, string>;
 template class vector<dictionary_hash<string, string>::entry>;
 
-//template class vector<dictionary_hash<unsigned int, unsigned int>::entry>;
-//template class vector<dictionary_hash<unsigned int, unsigned int>::entry>;
 template class vector<dictionary_hash<unsigned int, resource *>::entry>;
 
 template class vector<timeStamp>;
