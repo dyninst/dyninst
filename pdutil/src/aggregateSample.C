@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aggregateSample.C,v 1.25 2001/07/06 21:34:29 schendel Exp $
+// $Id: aggregateSample.C,v 1.26 2001/07/18 16:45:21 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -359,6 +359,6 @@ void metricAggInfo::init() {
   aggSample_doProportionCalc[EventCounter] = true;
   sampleInfo_updateStyle[EventCounter] = sampleInfo::add;
 
-  aggSample_doProportionCalc[SampledFunction] = true;
+  aggSample_doProportionCalc[SampledFunction] = false;
   sampleInfo_updateStyle[SampledFunction] = sampleInfo::assign;
 }
