@@ -1,4 +1,4 @@
-/* $Id: addLibrary.C,v 1.5 2002/05/21 17:40:30 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.6 2002/06/19 18:18:34 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 #include "addLibrary.h"
@@ -308,13 +308,28 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 	unsigned int hashOffset, dynsymOffset, dynstrOffsetNEW;
 	unsigned int hashAlign, dynsymAlign, dynstrAlign;
 
-	hashOffset = newElfFileSec[findSection(".hash")].sec_hdr->sh_offset;
-	dynsymOffset = newElfFileSec[findSection(".dynsym")].sec_hdr->sh_offset;
-	dynstrOffsetNEW = newElfFileSec[findSection(".dynstr")].sec_hdr->sh_offset;
-	hashAlign =  newElfFileSec[findSection(".hash")].sec_hdr->sh_addralign;
+	int symTabIndex, strTabIndex, dynamicIndex, dynsymIndex, dynstrIndex, hashIndex;
+	dynsymIndex = findSection(".dynsym");
+	dynstrIndex = findSection(".dynstr");
+	hashIndex = findSection(".hash");
 
-	dynsymAlign =  newElfFileSec[findSection(".dynsym")].sec_hdr->sh_addralign;
-	dynstrAlign =  newElfFileSec[findSection(".dynstr")].sec_hdr->sh_addralign;
+	if( dynsymIndex == -1 || dynstrIndex == -1 ){
+		printf(" Dynamic symbol table missing...cannot save world\n");
+		return 0;
+	}
+
+	if( hashIndex == -1 ){
+		printf(" Hash table not found...cannot save world\n");
+		return 0;
+	}
+
+	hashOffset = newElfFileSec[hashIndex].sec_hdr->sh_offset;
+	dynsymOffset = newElfFileSec[dynsymIndex].sec_hdr->sh_offset;
+	dynstrOffsetNEW = newElfFileSec[dynstrIndex].sec_hdr->sh_offset;
+	hashAlign =  newElfFileSec[hashIndex].sec_hdr->sh_addralign;
+
+	dynsymAlign =  newElfFileSec[dynsymIndex].sec_hdr->sh_addralign;
+	dynstrAlign =  newElfFileSec[dynstrIndex].sec_hdr->sh_addralign;
 
 	dynstrOffsetNEW -= libnameLen;
 	while(dynstrOffsetNEW % dynstrAlign){
@@ -336,12 +351,19 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 	//.interp has align of 1
 
 	unsigned int foundExtraSegment=0, extraSegmentPad=0;
+	
+	dynamicIndex = findSection(".dynamic");
 
-	updateSymbols(newElfFileSec[findSection(".dynsym")].sec_data,newElfFileSec[findSection(".dynstr")].sec_data,
-		newElfFileSec[findSection(".dynamic")].sec_hdr->sh_addr );
+	updateSymbols(newElfFileSec[dynsymIndex].sec_data,newElfFileSec[dynstrIndex].sec_data,
+		newElfFileSec[dynamicIndex].sec_hdr->sh_addr );
 
-	updateSymbols(newElfFileSec[findSection(".symtab")].sec_data,newElfFileSec[findSection(".strtab")].sec_data,
-		newElfFileSec[findSection(".dynamic")].sec_hdr->sh_addr );
+	symTabIndex = findSection(".symtab");
+	strTabIndex = findSection(".strtab");
+
+	if(symTabIndex != -1 && strTabIndex!= -1&&dynamicIndex!= -1){
+		updateSymbols(newElfFileSec[symTabIndex].sec_data,newElfFileSec[strTabIndex].sec_data,
+		newElfFileSec[dynamicIndex].sec_hdr->sh_addr );
+	}
 
 
 	
