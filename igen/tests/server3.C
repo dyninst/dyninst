@@ -28,7 +28,17 @@ main(int argc, char *argv[])
     }
 }
 
+int test::classArrayTest(sStruct_Array sArr)
+{
+  int i, sum = 0;
 
+  for (i=0; i<sArr.count; ++i)
+    {
+      sum += sArr.data[i].computer;
+      assert (!strcmp(sArr.data[i].name, "happy"));
+    }
+  return sum;
+}
 void test::nullNull()
 {
     return;

@@ -36,6 +36,7 @@ $remote test {
     $virtual int VintString(String);
     int add(int, int);
     int sumVector($array int);
+    int classArrayTest($array sStruct);
     $array int retVector(int len, int start);
     String stringString(String);
     void triggerSyncUpcall(int val);

@@ -45,6 +45,24 @@ main()
     assert((fret.fval == pracF) && (fret.dval == pracD));
     remote->nullStruct(is);
 
+    sStruct_Array sArr;
+    sArr.count = 5;
+    sArr.data = new sStruct[5];
+    int j, sum1, sum2;
+    sum1 = 0;
+    for (j=0; j<sArr.count; ++j)
+      {
+	 sArr.data[j].computer = j;
+	 sArr.data[j].name = strdup("happy");
+         sum1 += sArr.data[j].computer;
+      }
+
+    sum2 = remote->classArrayTest(sArr);
+    assert(sum1 == sum2);
+    for (j=0; j<sArr.count; ++j)
+       free( sArr.data[j].name);
+    delete [] sArr.data;
+
     assert(strlen(str1) == remote->intString(str1));
 
     str2 = remote->stringString(str1);

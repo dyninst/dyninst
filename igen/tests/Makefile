@@ -81,10 +81,10 @@ serverPVM_pure: $(S_OBJSPVM)
 
 
 client3: $(C_OBJS3) 
-	$(CC) $(CFLAGS) -o client3 $(C_OBJS3) $(LIBDIR) -lutil
+	$(CC) $(CFLAGS) -static -o client3 $(C_OBJS3) $(LIBDIR) -lutil
 
 server3: $(S_OBJS3) 
-	$(CC) $(CFLAGS) -o server3 $(S_OBJS3) $(LIBDIR) -lutil
+	$(CC) $(CFLAGS) -static -o server3 $(S_OBJS3) $(LIBDIR) -lutil
 
 client1: $(C_OBJS1) 
 	$(CC) $(CFLAGS) -o client1 $(C_OBJS1) $(LIBDIR) -lutil
@@ -99,10 +99,10 @@ program4: $(OBJS4)
 	$(CC) $(CFLAGS) -o program4 $(OBJS4) $(LIBDIR) -lthread -lutil
 
 clientPVM: $(C_OBJSPVM) 
-	$(CC) $(CFLAGS) -o clientPVM $(C_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
+	$(CC) $(CFLAGS) -static -o clientPVM $(C_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
 
 serverPVM: $(S_OBJSPVM) 
-	$(CC) $(CFLAGS) -o serverPVM $(S_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
+	$(CC) $(CFLAGS) -static -o serverPVM $(S_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
 
 server_xdr: $(S_OBJSXDR) 
 	$(CC) $(CFLAGS) -o server_xdr $(S_OBJSXDR) $(LIBDIR) -lutil
