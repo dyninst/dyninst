@@ -1,9 +1,13 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.11  1995/12/20 18:37:59  newhall
-/* matherr.h does not need to be included by visis
+/* Revision 1.12  1996/01/10 02:25:34  tamches
+/* added --xsynch and --debug command-line options
+/* installed getMetricColorNameCommand
 /*
+ * Revision 1.11  1995/12/20 18:37:59  newhall
+ * matherr.h does not need to be included by visis
+ *
  * Revision 1.10  1995/11/29 00:39:48  tamches
  * now include tkTools.h, pdLogo.h
  * Now hardcode the pdLogo
@@ -63,17 +67,27 @@ void panic(const char *msg) {
 }
 
 Tcl_Interp *MainInterp = NULL; // needed by Dg
+bool xsynchFlag = false;
 
-int main(int argc, char **) {
+int main(int argc, char **argv) {
+   // Loop through the arguments:
+   for (argc--, argv++; argc > 0; argc--, argv++) {
+      if (0==strcmp(*argv, "--xsynch"))
+         xsynchFlag = true;
+      else if (0==strcmp(*argv, "--debug")) {
+         xsynchFlag = true;
+	 cout << "barChart pid " << getpid() << " at sigpause..." << endl;
+	 sigpause(0);
+      }
+      else {
+         cerr << "barChart: unrecognized argument \"" << *argv << "\"" << endl;
+         return 5;
+      }
+   }
+
    // barChart no longer requires any arguments, thanks to tcl2c.
    if (argc == 2)
       panic("barChart: argc should be 1");
-
-   if (argc > 3)
-      panic("barChart: argc should be at most 3");
-
-   if (argc == 3)
-      cout << "barChart notice: due to tcl2c, argc should be just 1 (was 3)...ignoring parameters" << endl;
 
    MainInterp = Tcl_CreateInterp();
    assert(MainInterp);
@@ -123,6 +137,11 @@ int main(int argc, char **) {
 
    Tcl_CreateCommand(MainInterp, "rethinkIndirectResourcesCallback",
 		     rethinkIndirectResourcesCommand,
+		     NULL, // ClientData
+		     deleteDummyProc);
+
+   Tcl_CreateCommand(MainInterp, "getMetricColorName",
+		     getMetricColorNameCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
