@@ -40,10 +40,13 @@
  */
 
 /* $Log: UImain.C,v $
-/* Revision 1.83  1996/10/16 16:12:32  tamches
-/* changes to accomodate new abstractions::resizeEverything fixes a
-/* sorting bug
+/* Revision 1.84  1997/01/15 00:11:43  tamches
+/* added calls to abstraction::start and end batch mode
 /*
+ * Revision 1.83  1996/10/16 16:12:32  tamches
+ * changes to accomodate new abstractions::resizeEverything fixes a
+ * sorting bug
+ *
  * Revision 1.82  1996/08/16 21:06:46  tamches
  * updated copyright for release 1.1
  *
@@ -189,10 +192,14 @@ void resourceBatchChanged(perfStreamHandle, batchMode mode)
       ui_status->message("receiving where axis items [batch mode]");
 
       UIM_BatchMode++;
-      // cout << "+" << endl; cout.flush();
+
+      extern abstractions *theAbstractions;
+      assert(theAbstractions);
+
+      theAbstractions->startBatchMode();
     } else {
       UIM_BatchMode--;
-      // cout << "-" << endl; cout.flush();
+
       if (UIM_BatchMode == 0) {
          // Batch mode is done with.  We need to update the where axis'
          // spatial graphications...
@@ -201,9 +208,8 @@ void resourceBatchChanged(perfStreamHandle, batchMode mode)
          extern abstractions *theAbstractions;
          assert(theAbstractions);
 
-         theAbstractions->resizeEverything(true);
-	    // true --> resort, too.
-            // super-expensive
+	 theAbstractions->endBatchMode();
+	    // does: resizeEverything(true); (resorts, rethinks layout.  expensive)
 
          initiateWhereAxisRedraw(interp, true); // true--> double buffer
 
