@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.22 2003/03/21 21:29:09 tikir Exp $
+// $Id: BPatch_templates.C,v 1.23 2003/07/29 00:32:29 eli Exp $
 
 #include <sys/types.h>
 
@@ -61,9 +61,7 @@
 #include "common/h/refCounter.h"
 #include "common/h/String.h"
 #include "common/h/Types.h"
-#if defined(rs6000_ibm_aix4_1)
-#include "LineInformation.h"
-#endif
+#include "common/h/Pair.h"
 
 // VG(09/19/01): I don't think one can forward a typedefed enum (BPatch_opCode)
 //               so this must be included...
@@ -101,9 +99,6 @@ template class BPatch_Vector<miniTrampHandle *>;
 template class BPatch_Vector<int>;
 template class BPatch_Vector<unsigned long>;
 //#endif
-#if defined(rs6000_ibm_aix4_1)
-template class BPatch_Vector<IncludeFileInfo>;
-#endif
 
 template struct comparison<unsigned short>;
 template class BPatch_Set<unsigned short>;
@@ -132,3 +127,9 @@ template class BPatch_Set<BPatch_basicBlockLoop*>;
 class BPatch_sourceBlock;
 
 template class BPatch_Vector<BPatch_sourceBlock*>;
+
+template class pdpair<unsigned short, unsigned short>;
+
+template pdpair<unsigned short, unsigned short> make_pdpair<unsigned short, unsigned short>(const unsigned short &, const unsigned short &);
+
+template pdpair<unsigned short, unsigned short> min_max_pdpair<unsigned short>(const BPatch_Vector<unsigned short>&);
