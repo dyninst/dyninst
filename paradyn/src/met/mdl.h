@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.29 2002/02/05 18:33:27 schendel Exp $
+// $Id: mdl.h,v 1.30 2002/02/12 23:50:35 schendel Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -265,6 +265,8 @@ class instPoint { };
 class dataReqNode { };
 class metricDefinitionNode { };
 class machineMetFocusNode { };
+class sampleMetFocusNode { };
+class threadMetFocusNode { };
 class AstNode { };
 #else
 class process;
@@ -275,6 +277,8 @@ class instPoint;
 class dataReqNode;
 class metricDefinitionNode;
 class machineMetFocusNode;
+class sampleMetFocusNode;
+class threadMetFocusNode;
 class AstNode;
 #endif
 

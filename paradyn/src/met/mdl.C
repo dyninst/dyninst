@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.43 2002/02/05 18:33:25 schendel Exp $
+// $Id: mdl.C,v 1.44 2002/02/12 23:50:33 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -301,7 +301,7 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
   }
 }
   
-bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode * , 
+bool T_dyninstRPC::mdl_constraint::apply(threadMetFocusNode * , 
 					 dataReqNode *& ,
 					 vector<string>& , process *, pdThread*,  bool ) {
   mdl_env::push();
@@ -373,8 +373,8 @@ T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt() {
   delete list_expr_;
 }
 
-bool T_dyninstRPC::mdl_for_stmt::apply(metricDefinitionNode *mn,
-					 vector<dataReqNode*>& flags) {
+bool T_dyninstRPC::mdl_for_stmt::apply(sampleMetFocusNode *mn,
+				       vector<dataReqNode*>& flags) {
   mdl_env::push();
 
   if (!mdl_env::add(index_name_, false)) return false;
@@ -396,8 +396,8 @@ T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
 
-bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * ,
-					 vector<dataReqNode*>& ) {
+bool T_dyninstRPC::mdl_list_stmt::apply(sampleMetFocusNode * ,
+					vector<dataReqNode*>& ) {
   if (!elements_)
     return false;
   unsigned list_type = MDL_T_NONE;
@@ -906,7 +906,7 @@ T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
   delete expr_; delete body_;
 }
 
-bool T_dyninstRPC::mdl_if_stmt::apply(metricDefinitionNode * ,
+bool T_dyninstRPC::mdl_if_stmt::apply(sampleMetFocusNode * ,
 				      vector<dataReqNode*>& flags) {
   mdl_var res(false); int iv;
   if (!expr_->apply(res))
@@ -934,7 +934,7 @@ T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
   }
 }
  
-bool T_dyninstRPC::mdl_seq_stmt::apply(metricDefinitionNode * ,
+bool T_dyninstRPC::mdl_seq_stmt::apply(sampleMetFocusNode * ,
 				       vector<dataReqNode*>& flags) {
   if (!stmts_)
     return true;
@@ -961,7 +961,7 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
   }
 }
 
-bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode * ,
+bool T_dyninstRPC::mdl_instr_stmt::apply(sampleMetFocusNode * ,
 					 vector<dataReqNode*>& ) {
   mdl_var temp(false);
   if (!icode_reqs_)
