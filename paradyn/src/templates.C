@@ -5,6 +5,11 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.20  1995/11/06 19:31:06  tamches
+ * dictionary --> dictionary_lite changes in many classes used in the UI; results
+ * in fewer necessary instantiations.
+ * Got rid of some obsolete UI classes like pRec, resourceList, resource**
+ *
  * Revision 1.19  1995/10/17 20:42:07  tamches
  * Commented out references to the now-obsolete classes dag & shgDisplay.
  * Added stuff for where axis changes (e.g. where4tree<whereAxisRootNode>
@@ -90,7 +95,6 @@
 #include "util/h/list.h"
 
 #include "util/h/String.h"
-//#include "util/h/tunableConst.h"
 
 // Igen includes
 #pragma implementation "Vector.h"
@@ -100,6 +104,9 @@
 
 #pragma implementation "Dictionary.h"
 #include "util/h/Dictionary.h"
+
+#pragma implementation "DictionaryLite.h"
+#include "util/src/DictionaryLite.C"
 
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"
@@ -125,6 +132,7 @@ class cpContext;
 
 template class vector<cpContext*>;
 template class vector<unsigned>;
+template class vector< vector<unsigned> >;
 template class vector<int>;
 template class vector< vector<string> >;
 template class vector<phaseInfo *>;
@@ -240,18 +248,14 @@ template class ListItem<timeInterval *>;
  */
 template class vector<tunableBooleanConstant>;
 template class vector<tunableFloatConstant>;
-template class dictionary<string, tunableBooleanConstant>;
-template class dictionary<string, tunableFloatConstant>;
-template class dictionary_hash<string, tunableBooleanConstant>;
-template class dictionary_hash<string, tunableFloatConstant>;
+template class dictionary_lite<string, tunableBooleanConstant>;
+template class dictionary_lite<string, tunableFloatConstant>;
 template class pair<string, tunableBooleanConstant>;
 template class pair<string, tunableFloatConstant>;
-template class vector< pair<string, tunableBooleanConstant> >;
-template class vector< pair<string, tunableFloatConstant> >;
-template class vector< dictionary_hash<string, tunableBooleanConstant> :: hash_pair >;
-template class vector< dictionary_hash<string, tunableFloatConstant> :: hash_pair >;
-template class vector< vector< dictionary_hash<string, tunableBooleanConstant>::hash_pair > >;
-template class vector< vector< dictionary_hash<string, tunableFloatConstant>::hash_pair > >;
+template class vector< dictionary_lite<string, tunableBooleanConstant> :: hash_pair >;
+template class vector< dictionary_lite<string, tunableFloatConstant> :: hash_pair >;
+template class vector< vector< dictionary_lite<string, tunableBooleanConstant>::hash_pair > >;
+template class vector< vector< dictionary_lite<string, tunableFloatConstant>::hash_pair > >;
 
 
 /* *************************************
@@ -261,28 +265,11 @@ template class vector< vector< dictionary_hash<string, tunableFloatConstant>::ha
 #include "VM.thread.h"
 #include "../src/UIthread/UIglobals.h"
 class resourceList;
-class pRec;
 
-template class HTable<pRec *>;
-template class List<pRec *>;
-template class ListItem<pRec *>;
-template class List<resourceList *>;
-template class ListItem<resourceList *>;
 template class List<metricInstInfo *>;
 template class ListItem<metricInstInfo *>;
-template class List<stringHandle>;
-template class ListItem<stringHandle>;
-//template class List<dag *>;
-//template class ListItem<dag *>;
-template class List<resource **>;
-template class ListItem<resource **>;
-template class vector<numlist>;
 template class vector<VM_activeVisiInfo>;
-//template class vector<dag*>;
-//template class vector<shgDisplay*>;
 template class vector<string*>;
-//template class dictionary_hash<unsigned, dag*>;
-//template class dictionary_hash<unsigned, shgDisplay*>;
 template class dictionary_hash<unsigned, string*>;
 
 /* *************************************
@@ -294,13 +281,10 @@ template class dictionary_hash<unsigned, string*>;
 template class where4tree<whereAxisRootNode>;
 template class vector<whereAxisRootNode *>;
 template class vector<where4tree<whereAxisRootNode>::childstruct>;
-template class dictionary<resourceHandle, where4tree<whereAxisRootNode> *>;
-template class dictionary_hash< resourceHandle, where4tree<whereAxisRootNode> * >;
-//template class vector<resourceHandle>; [vector<unsigned> was already explicitly instantiated above]
+template class dictionary_lite< resourceHandle, where4tree<whereAxisRootNode> * >;
 template class vector<where4tree<whereAxisRootNode> *>;
-template class vector< pair<resourceHandle, where4tree<whereAxisRootNode>*> >;
-template class vector<dictionary_hash<resourceHandle,where4tree<whereAxisRootNode>*>::hash_pair>;
-template class vector< vector< dictionary_hash<resourceHandle,where4tree<whereAxisRootNode>*>::hash_pair> >;
+template class vector<dictionary_lite<resourceHandle,where4tree<whereAxisRootNode>*>::hash_pair>;
+template class vector< vector< dictionary_lite<resourceHandle,where4tree<whereAxisRootNode>*>::hash_pair> >;
 template class pair<resourceHandle, where4tree<whereAxisRootNode>* >;
 
 #include "paradyn/src/UIthread/graphicalPath.C"
@@ -308,9 +292,6 @@ template class whereNodeGraphicalPath<whereAxisRootNode>;
 
 #include "paradyn/src/UIthread/simpSeq.C"
 template class simpSeq<unsigned>;
-
-#include "paradyn/src/UIthread/whereAxis.h"
-template class vector<whereAxis *>;
 
 #include "paradyn/src/UIthread/abstractions.h"
 template class vector<abstractions::whereAxisStruct>;
@@ -322,25 +303,20 @@ template class vector<abstractions::whereAxisStruct>;
 #include "paradyn/src/UIthread/shgRootNode.h"
 template class where4tree<shgRootNode>;
 template class vector<where4tree<shgRootNode>::childstruct>;
-template class vector<shgRootNode *>;
 template class whereNodeGraphicalPath<shgRootNode>;
 
 #include "paradyn/src/UIthread/shgPhases.h"
 template class vector<shgPhases::shgStruct>;
 
-template class dictionary<unsigned, where4tree<shgRootNode> *>;
-template class dictionary_hash<unsigned, where4tree<shgRootNode> *>;
+template class dictionary_lite<unsigned, where4tree<shgRootNode> *>;
 template class vector<where4tree<shgRootNode> *>;
-template class vector< pair<unsigned, where4tree<shgRootNode> *> >;
-template class vector<dictionary_hash<unsigned, where4tree<shgRootNode> *>::hash_pair>;
-template class vector< vector< dictionary_hash<unsigned, where4tree<shgRootNode> *>::hash_pair> >;
+template class vector<dictionary_lite<unsigned, where4tree<shgRootNode> *>::hash_pair>;
+template class vector< vector< dictionary_lite<unsigned, where4tree<shgRootNode> *>::hash_pair> >;
 template class pair<unsigned, where4tree<shgRootNode> *>;
 
-template class dictionary<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
-template class dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
-template class vector< pair<where4tree<shgRootNode> *, where4tree<shgRootNode> *> >;
-template class vector<dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair>;
-template class vector< vector< dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair> >;
+template class dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
+template class vector<dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair>;
+template class vector< vector< dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair> >;
 template class pair<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
 
 template class vector<Tk_3DBorder>; // shg consts
