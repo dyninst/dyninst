@@ -3,7 +3,11 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.26  1994/08/17 17:56:20  markc
+ * Revision 1.27  1994/08/22 15:58:06  markc
+ * Support config language version 2
+ * Add daemon dictionary
+ *
+ * Revision 1.26  1994/08/17  17:56:20  markc
  * Added flavor paramater to paradyn daemon data structure.
  * Added flavor parameter to reportSelf function call.
  *
@@ -102,38 +106,70 @@
 #include <string.h>
 #include "util/h/machineType.h"
 
+
+// an entry in the daemon dictionary
+class daemonEntry {
+public:
+  char *command;
+  char *name;
+  char *login;
+  char *dir;
+  char *machine;
+  int flavor;
+
+  daemonEntry () : machine(0), command(0), name(0), login(0), dir(0) {;}
+  daemonEntry (char *m, char *c, char *n, char *l, char *d, int f)
+    { setAll(m, c, n, l, d, f);}
+  ~daemonEntry() { freeAll(); }
+  Boolean remove();
+  Boolean freeAll();
+  Boolean setAll(char *m, char *c, char *n, char *l, char *d, int f);
+  void print();
+};
+
 //
 // A handle to a running paradynd* somewhere.
 //
+// the machine field should have a value EXCEPT
+// if the paradynDaemon has been started via the second
+// constructor, and has not called reportSelf yet (pvm daemons)
+// 
 class paradynDaemon: public dynRPCUser {
     public:
-	paradynDaemon(char *m, char *u, char *p, xdrIOFunc r, xdrIOFunc w):
-	    dynRPCUser(m, u, p, r, w, args) {
+	paradynDaemon(char *m, char *u, char *c, char *n,
+		      xdrIOFunc r, xdrIOFunc w, int f):
+	    dynRPCUser(m, u, c, r, w, args) {
 	        char *loc;
 		char *newm;
 
-		if (!m) m = "";
-		if (!u) u = "";
-		
-		// if p includes a pathname, lose the pathname
-		loc = strrchr(p, '/');
-		if (loc)
-		  {
-		    loc = loc + 1;
-		    newm = strdup (loc);
-		    free (m);
-		    m = newm;
-		  }
+		assert(m);
+		assert(c);
+		assert(n);
+
+		// if c includes a pathname, lose the pathname
+		loc = strrchr(c, '/');
+		if (loc) {
+		  loc = loc + 1;
+		  newm = strdup (loc);
+		  free (c);
+		  c = newm;
+		}
 		
 		machine = m;
+		command = c;
+		name = n;
 		login = u;
-		program = p;
+		flavor = f;
 
 		allDaemons.add(this);
 	}
-	// machine, program, and login are set via a callback
+	// machine, name, command, flavor and login are set via a callback
 	paradynDaemon(int f, xdrIOFunc r, xdrIOFunc w):
 	    dynRPCUser(f, r, w) {
+	        machine = 0;
+		login = 0;
+                command = 0;
+		name = 0;
 		allDaemons.add(this);
 	}
 
@@ -143,7 +179,8 @@ class paradynDaemon: public dynRPCUser {
 	void reportSelf (String m, String p, int pd, int flav);
         char *machine;
         char *login;
- 	char *program;
+ 	char *command;
+	char *name;
 	int flavor;
 	// these args are passed to the paradynd when started
         // for paradyndPVM these args contain the info to connect to the
@@ -201,20 +238,28 @@ class applicationContext {
         Boolean addDaemon (int new_fd);
         void removeDaemon(paradynDaemon *d, Boolean informUser);
 
-	// start a daemon on a specific machine, if the daemon
-	// is not currently running on that machine
-	paradynDaemon *getDaemonHelper (char *machine,
-					char *login,
-					char *program);
+        // print the daemon dictionary
+        void printDaemons();
+
+        // search the daemon dictionary
+        daemonEntry *findEntry (char *machine, char *name);
 
 	// start a daemon on a specific machine, if the daemon
 	// is not currently running on that machine
         Boolean getDaemon (char *machine,
 			   char *login,
-			   char *program);
+			   char *name);
+        // add to the daemon dictionary
+        Boolean defineDaemon (char *command,
+                              char *dir,
+                              char *login,
+                              char *name,
+                              char *machine,
+                              int flavor);
 	Boolean addExecutable(char  *machine,
 			      char *login,
 			      char *name,
+                              char *dir,
 			      int argc,
 			      char **argv);
 	Boolean addRunningProgram(int pid,
@@ -238,10 +283,22 @@ class applicationContext {
 	void disableDataCollection(metricInstance*);
 
 	static List<performanceStream*> streams;
+
+        // the dictionary of daemons
+        List<daemonEntry*> allEntries;
+
     private:
 	List<executable*>	 programs;
 	List<paradynDaemon*>	 daemons;
 	errorHandler             errorFunc;
+
+	// start a daemon on a specific machine, if the daemon
+	// is not currently running on that machine
+	paradynDaemon *getDaemonHelper (char *machine,
+					char *login,
+					char *name);
+        // sets the name of the daemon to use
+        Boolean setDefaultArgs(char *&name);
 };
 
 //
