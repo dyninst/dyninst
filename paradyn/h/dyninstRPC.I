@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.101 2002/10/15 17:11:25 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.102 2002/10/28 04:54:09 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -94,6 +94,7 @@ public:
   virtual bool apply(mdl_var &ret) = 0;
   virtual bool apply(AstNode*& ast) = 0;
   virtual bool mk_list(vector<string> &funcs) = 0;
+  virtual bool isThreadStartPoint() = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
 #endif
@@ -138,6 +139,7 @@ public:
   bool apply(AstNode*& mn); // code-gen version
 
   bool mk_list(vector<string> &funcs);
+  bool isThreadStartPoint();
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) 
   {
@@ -568,7 +570,8 @@ $remote dynRPC {
 	                                              vector<string> children);
    //Specify the root node if CallGraph "exe_name"
    $virtual $upcall $async void CallGraphSetEntryFuncCallback(string exe_name,
-                                                            string entry_func);
+                                                            string entry_func,
+							      int tid);
     
    //Notify the DM that all static info for a given call graph has been
    //reported.
