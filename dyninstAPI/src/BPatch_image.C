@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.39 2003/04/02 07:12:23 jaw Exp $
+// $Id: BPatch_image.C,v 1.40 2003/04/09 17:36:19 chadd Exp $
 
 #define BPATCH_FILE
 
@@ -315,8 +315,9 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
 	func = proc->findFuncByAddr((Address)address);
 
     // If it's in an uninstrumentable function, just return an error.
-    if (!((pd_Function*)func)->isInstrumentable())
+    if ( !func || !((pd_Function*)func)->isInstrumentable()){ 
 	return NULL;
+    }
 
     pd_Function* pointFunction = (pd_Function*)func;
     Address pointImageBase = 0;
