@@ -1563,7 +1563,7 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	name = (char *) calloc(len + 1, sizeof(char));
 	strncpy(name, n, len);
     } else {
-	name = (char *) mangledName;
+	name = const_cast<char *>(mangledName);
     }
 
     //Create new type
