@@ -10,7 +10,11 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.13  1995/02/21 22:03:36  markc
+ * Revision 1.14  1995/02/24 04:42:01  markc
+ * Check if an address could be for an instruction before checking to see if it
+ * is delayed, since we should not be checking instructions that are out of range.
+ *
+ * Revision 1.13  1995/02/21  22:03:36  markc
  * Added slightly better error recovery, with messages!  Paradynd reports back
  * when it attempts to run an unusable executable.  It no longer aborts.
  *
@@ -304,6 +308,8 @@ public:
   // functions by address for all modules
   dictionary_hash <Address, pdFunction*> funcsByAddr;
 
+  inline bool isValidAddress(const Address &where) const;
+
 private:
   string file_;		/* image file name */
   string name_;		/* filename part of file, no slashes */
@@ -358,7 +364,6 @@ private:
   bool defineFunction(module *lib, const Symbol &sym,
 		      const string &modName, const Address modAdr);
 
-  inline bool isValidAddress(const Address &where) const;
   inline bool isCode(const Address &where) const;
   inline bool isData(const Address &where) const;
   bool heapIsOk(const vector<sym_data>&);

@@ -19,14 +19,18 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.21 1995/02/16 08:53:22 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.22 1995/02/24 04:42:04 markc Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.21  1995/02/16 08:53:22  markc
+ * Revision 1.22  1995/02/24 04:42:04  markc
+ * Check if an address could be for an instruction before checking to see if it
+ * is delayed, since we should not be checking instructions that are out of range.
+ *
+ * Revision 1.21  1995/02/16  08:53:22  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.20  1995/02/16  08:33:26  markc
@@ -327,15 +331,17 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
   if (IS_DELAYED_INST(instr))
     isDelayed = true;
 
-  instruction iplus1;
-  iplus1.raw = owner->get_instruction(adr-4);
-  if (IS_DELAYED_INST(iplus1) && !delayOK) {
-    // ostrstream os(errorLine, 1024, ios::out);
-    // os << "** inst point " << func->file->fullName << "/"
-    //  << func->prettyName() << " at addr " << addr <<
-    //	" in a delay slot\n";
-    // logLine(errorLine);
-    inDelaySlot = true;
+  if (owner->isValidAddress(adr-4)) {
+    instruction iplus1;
+    iplus1.raw = owner->get_instruction(adr-4);
+    if (IS_DELAYED_INST(iplus1) && !delayOK) {
+      // ostrstream os(errorLine, 1024, ios::out);
+      // os << "** inst point " << func->file->fullName << "/"
+      //  << func->prettyName() << " at addr " << addr <<
+      //	" in a delay slot\n";
+      // logLine(errorLine);
+      inDelaySlot = true;
+    }
   }
 }
 
