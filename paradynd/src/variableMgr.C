@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.4 2002/06/10 19:25:10 bernat Exp $
+// $Id: variableMgr.C,v 1.5 2002/06/25 20:26:21 bernat Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -74,8 +74,13 @@ variableMgr::variableMgr(process *proc, shmMgr *shmMgr_,
 
   // Preallocate for the varTables
   // What's a good number? Well... start with 200 and see?
+#if defined(MT_THREAD)
+  int prealloc_size = 50;
+#else
+  int prealloc_size = 200;
+#endif
   for (unsigned i = 0; i < varTables.size(); i++)
-    theShmMgr.preMalloc(varTables[i]->getVarSize()*maxNumberOfThreads, 200);
+    theShmMgr.preMalloc(varTables[i]->getVarSize()*maxNumberOfThreads, prealloc_size);
 
 }
 
