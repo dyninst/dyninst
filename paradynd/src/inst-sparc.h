@@ -76,8 +76,15 @@
 #define LOW10(x) ((x) & 0x3ff)
 #define LOW13(x) ((x) & 0x1fff)
 #define HIGH22(x) ((x) >> 10)
-#define ABS(x)		((x) > 0 ? x : -x)
-#define MAX_BRANCH	(0x1<<23)
+
+inline unsigned ABS(int x) {
+   if (x < 0) return -x;
+   return x;
+}
+//#define ABS(x)		((x) > 0 ? x : -x)
+
+//#define MAX_BRANCH	(0x1<<23)
+
 #define MAX_IMM13       (4095)
 #define MIN_IMM13       (-4096)
 
@@ -145,7 +152,22 @@ public:
   bool relocated_;	        // true if instPoint is from a relocated func
 };
 
-inline unsigned getMaxBranch() { return MAX_BRANCH; }
+inline unsigned getMaxBranch3Insn() {
+   // The length we can branch using 3 instructions
+   // isn't limited.
+   unsigned result = 1;
+   result <<= 31;
+   return result;
+
+   // probably returning ~0 would be better, since there's no limit
+}
+
+inline unsigned getMaxBranch1Insn() {
+   // The length we can branch using just 1 instruction is dictated by the
+   // sparc instruction set.
+   return (0x1 << 23);
+}
+
 
 inline void generateNOOP(instruction *insn)
 {
@@ -158,7 +180,7 @@ inline void generateNOOP(instruction *insn)
 
 inline void generateBranchInsn(instruction *insn, int offset)
 {
-    if (ABS(offset) > MAX_BRANCH) {
+    if (ABS(offset) > getMaxBranch1Insn()) {
 	logLine("a Ranch too far\n");
 	//showErrorCallback(52, "");
 	//abort();
@@ -195,7 +217,7 @@ inline void generateJmplInsn(instruction *insn, int rs1, int offset, int rd)
 
 inline void genBranch(instruction *insn, int offset, unsigned condition, bool annul)
 {
-    if (ABS(offset) > MAX_BRANCH) {
+    if (ABS(offset) > getMaxBranch1Insn()) {
 	logLine("a branch too far\n");
 	showErrorCallback(52, "");
 	abort();

@@ -307,7 +307,7 @@ void relocateInstruction(instruction *insn, u_int origAddr, u_int targetAddr,
 	// heap for a call instruction to branch target.  The base tramp 
 	// will branch to this new inferior heap code, which will call the
 	// target of the branch
-	if (ABS(newOffset) > MAX_BRANCH) {
+	if (ABS(newOffset) > getMaxBranch1Insn()) {
 	    int ret = inferiorMalloc(proc,3*sizeof(instruction), textHeap);
 	    u_int old_offset = insn->branch.disp22 << 2;
 	    insn->branch.disp22  = (ret - targetAddr)>>2;
