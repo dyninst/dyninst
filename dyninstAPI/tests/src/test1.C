@@ -3584,6 +3584,7 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 int mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
+	char *dirName;
 
     // Create an instance of the BPatch library
     bpatch = new BPatch;
@@ -3638,6 +3639,14 @@ int mutatorMAIN(char *pathname, bool useAttach)
 	fprintf(stderr, "Unable to run test program.\n");
 	exit(1);
     }
+#if defined(sparc_sun_solaris2_4) /* this is only supported on sparc solaris */
+	/* this call tells the process to collect data for the 
+	save the world functionality
+	*/	
+	if(saveWorld){
+		appThread->startSaveWorld();
+	}	
+#endif
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
@@ -3754,7 +3763,13 @@ int mutatorMAIN(char *pathname, bool useAttach)
         	char *mutatedName = new char[strlen(pathname) + strlen("_mutated") +1];
         	strcpy(mutatedName, pathname);
         	strcat(mutatedName, "_mutated");
-        	appThread->dumpPatchedImage(mutatedName);
+        	dirName = appThread->dumpPatchedImage(mutatedName);
+		if(dirName){
+			printf(" The mutated binary is stored in: %s\n",dirName);
+			delete [] dirName;
+		}else{
+			printf("Error: No directory name returned\n");
+		}
 	}
 #endif
     // Start of code to continue the process.  All mutations made

@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.3 2002/01/31 22:17:42 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.4 2002/02/05 17:01:39 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 
@@ -280,10 +280,9 @@ void writeBackElf::patchMain(Elf_Data*textData){
         }
 }
 
-//This method remakes the Hash, elf_update(ELF_C_NULL)
-//must be called before calling this
-void writeBackElf::remakeHash(){
 
+void writeBackElf::remakeHash(){
+//Elf_Data* hashData, Elf_Data* dynsymData, Elf_Data* dynstrData){
         Elf32_Sym* symPtr=(Elf32_Sym*) dynsymData->d_buf;
         int nbucket= *((Elf32_Word*) hashData->d_buf), nchain, symSize= dynsymData->d_size/(sizeof(Elf32_Sym)) ;
         nchain = ((Elf32_Word*) hashData->d_buf)[1];
@@ -299,39 +298,31 @@ void writeBackElf::remakeHash(){
                 symPtr++;
                 counter++;
         }
-        int hashValue;
+        int oldhashValue, hashValue;
         char *currentName=NULL;
-
-        if(DEBUG_MSG){
-                printf(" HASH TABLE\n");
-        }
         while(counter<symSize){
                 currentName = (char*) dynStrData->d_buf+ symPtr->st_name;
                 hashValue = elf_hash(currentName) % nbucket;
-                if(DEBUG_MSG){
-                        printf("\n %s %d-->%lx", currentName,hashValue , bucket[hashValue]);
-                }
                 if(bucket[hashValue]==0){
                         /* success, we can put it here*/
                         bucket[hashValue] = counter;
                 }else{
                         /* fail, cant put it here */
-                        hashValue = bucket[hashValue];
-                        while(chain[hashValue]){
-                                if(DEBUG_MSG){
-                                        printf(" %d-->%lx ",hashValue,chain[hashValue]);
-                                }
+                        oldhashValue = hashValue;
+                        hashValue = bucket[oldhashValue];
+                        while(((unsigned int) hashValue) <= ((unsigned int) symSize) && chain[hashValue]){
+                                oldhashValue = hashValue;
                                 hashValue = chain[hashValue];
+
                         }
-                        if(DEBUG_MSG){
-                                printf(" %d-->%lx ",hashValue,chain[hashValue]);
+                        if((unsigned int) hashValue > symSize){
+                                hashValue = oldhashValue;
                         }
                         chain[hashValue]=counter;
                 }
                 counter++;
                 symPtr++;
         }
-
 }
 
 //This method updates the symbol table,
@@ -705,7 +696,7 @@ void writeBackElf::createSections(Elf32_Shdr *bssSh, Elf_Data* bssData){
 	        	newsh->sh_type = SHT_PROGBITS;//newSections[i].type; 
 		}else{
 			newsh->sh_flags = 0;
-			newsh->sh_type = SHT_NOTE;
+			newsh->sh_type = SHT_PROGBITS; //SHT_NOTE
 		}
 		if(MALLOC){
 			(char*) newdata->d_buf = (char*)malloc(newSections[i].dataSize);

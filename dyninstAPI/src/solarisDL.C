@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.19 2001/10/30 21:02:46 gaburici Exp $
+// $Id: solarisDL.C,v 1.20 2002/02/05 17:01:38 chadd Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -576,6 +576,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
   if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
     // is the trap instr at r_brk_addr?
     if(regs[R_PC] == (int)r_brk_addr){ 
+	
 	// find out what has changed in the link map
 	// and process it
 	r_debug debug_elm;
@@ -600,6 +601,24 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 	    if(change_type == 0) change_type = 1;
 	    *changed_objects = findChangeToLinkMaps(proc, change_type,
 						  error_occured);
+
+#if defined(BPATCH_LIBRARY)
+#if defined(sparc_sun_solaris2_4)
+		if(change_type == 1) { // RT_ADD
+			for(int index = 0; index < (*changed_objects)->size(); index++){
+				char *tmpStr = new char[
+					strlen(1+(*(*changed_objects))[index]->getName().string_of())];
+				strcpy(tmpStr,(*(*changed_objects))[index]->getName().string_of());
+				if( !strstr(tmpStr, "libdyninstAPI_RT.so.1") && 
+			    		!strstr(tmpStr, "libelf.so.1")){
+					//printf(" dlopen: %s \n", tmpStr);
+					(*(*changed_objects))[index]->openedWithdlopen();
+				}
+				delete [] tmpStr;	
+			}	
+		}
+#endif
+#endif
 	} 
 
 #if defined(sparc_sun_solaris2_4)

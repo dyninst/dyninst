@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.42 2001/10/22 19:35:43 buck Exp $
+// $Id: BPatch.C,v 1.43 2002/02/05 17:01:37 chadd Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -731,6 +731,9 @@ BPatch_thread *BPatch::createProcess(char *path, char *argv[],
 	delete ret;
 	return NULL;
     }
+	ret->proc->collectSaveWorldData = false;//ccw 23 jan 2002 : this forces the user
+		// to call BPatch_thread::startSaveWorld() if they want to use the
+		// save the world functionality.  
 
     return ret;
 }

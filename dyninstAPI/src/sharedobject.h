@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.25 2002/01/08 22:16:32 pcroth Exp $
+// $Id: sharedobject.h,v 1.26 2002/02/05 17:01:38 chadd Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -69,21 +69,23 @@ public:
       base_addr(0),
       processed(false),
       mapped(false),include_funcs(true), 
-      objs_image(0),included_funcs(0){}
+      objs_image(0),included_funcs(0),dlopenUsed(false){}
     shared_object(string &n, Address b, bool p,bool m, bool i, image *d):
       name(n), base_addr(b),
       processed(p),mapped(m),
       include_funcs(i), objs_image(d),included_funcs(0){ 
       desc = new fileDescriptor(n, b);
       set_short_name();
-    }
+	dirty_=false; 
+   }
     shared_object(fileDescriptor *f,
 		  bool p, bool m, bool i, image *d):
       desc(f),
       name(f->file()), base_addr(0),
       processed(p),mapped(m),
-      include_funcs(i), objs_image(d),included_funcs(0){ 
+      include_funcs(i), objs_image(d),included_funcs(0),dlopenUsed(false){ 
       set_short_name();
+	dirty_=false;
     }
 
 
@@ -96,6 +98,8 @@ public:
       include_funcs = s_obj.include_funcs;
       objs_image = s_obj.objs_image;
       included_funcs = s_obj.included_funcs;
+	dirty_=s_obj.dirty_;
+	dlopenUsed = s_obj.dlopenUsed;
     }
     ~shared_object(){ objs_image = 0;}
 
@@ -111,6 +115,17 @@ public:
 
     void  unMapped(){ mapped = false; }
     void  setBaseAddress(Address new_ba){ base_addr = new_ba; }
+
+#if defined(BPATCH_LIBRARY)
+#if defined(sparc_sun_solaris2_4)
+	bool isinText(Address addr){ 
+		return objs_image->getObject().isinText(addr, base_addr);
+	}
+
+	void openedWithdlopen() { dlopenUsed = true; }; 
+	bool isopenedWithdlopen() { return dlopenUsed; };
+#endif
+#endif
 
     bool  getSymbolInfo(const string &n,Symbol &info) {
         if(objs_image) {
@@ -237,6 +252,14 @@ public:
         return ret;
     }
 
+#if defined(BPATCH_LIBRARY)
+#if defined(sparc_sun_solaris2_4)
+	void setDirty(){ dirty_=true;}
+	bool isDirty() { return dirty_; }
+	//this marks the shared object as dirty, mutated
+	//so it needs saved back to disk during saveworld 
+#endif
+#endif
 
     //
     //     PRIVATE DATA MEMBERS
@@ -262,6 +285,8 @@ private:
 				       // exclude_func option
 
     void set_short_name();
+	bool dirty_; // marks the shared object as dirty 
+	bool dlopenUsed; //mark this shared object as opened by dlopen
 };
 
 #endif

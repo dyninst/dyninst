@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.106 2002/01/30 17:48:41 hollings Exp $
+// $Id: solaris.C,v 1.107 2002/02/05 17:01:38 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -166,8 +166,9 @@ bool process::continueWithForwardSignal(int) {
    return true;
 }
 
+
 #ifdef BPATCH_LIBRARY
-bool process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
+char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 
 	writeBackElf *newElf;
 	addLibrary *addLibraryElf;
@@ -178,14 +179,99 @@ bool process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	vector<imageUpdate*> compactedHighmemUpdates;
 	Address guardFlagAddr= getTrampGuardFlagAddr();
 	unsigned int lastCompactedUpdateAddress;
+	char *mutatedSharedObjects=0;
+	int mutatedSharedObjectsSize = 0, mutatedSharedObjectsIndex=0;
+	int dirNo =0;
+	char *directoryName = 0;
+	char *directoryNameExt = "_dyninstsaved";
+	bool dlopenUsed = false;	
+	if(!collectSaveWorldData){
+		BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::startSaveWorld() not called.  No mutated binary saved\n");
+		return NULL;
+	}
 
-	newElf = new writeBackElf(( char*) getImage()->file().string_of(),"/tmp/dyninstMutatee",errFlag);
+	directoryName = new char[strlen(( char*) getImage()->file().string_of()) +
+			 strlen(directoryNameExt) + 3+1+1];
+
+	sprintf(directoryName,"%s%s%0*3x",(char*)getImage()->file().string_of(), directoryNameExt,dirNo);
+	while(dirNo < 0x1000 && mkdir(directoryName, S_IRWXU) ){
+		if(errno == EEXIST){
+			dirNo ++;
+		}else{
+			BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
+			delete [] directoryName;
+			return NULL;
+		}
+		sprintf(directoryName, "%s%s%0*3x",(char*)getImage()->file().string_of(),
+			 directoryNameExt,dirNo);
+	}
+
+	if(dirNo == 0x1000){
+		BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
+		delete [] directoryName;
+		return NULL;
+	}
+
+	strcat(directoryName, "/");
+
+	shared_object *sh_obj;
+	for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
+		sh_obj = (*shared_objects)[i];
+		if(sh_obj->isDirty()){
+			if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
+				BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
+				dlopenUsed = true;
+			}			
+			//printf(" %s is DIRTY!\n", sh_obj->getName().string_of());
+		
+			Address textAddr, textSize;
+			char *file, *newName = new char[strlen(sh_obj->getName().string_of()) + 
+					strlen(directoryName) + 1];
+			memcpy(newName, directoryName, strlen(directoryName)+1);
+      			file = strrchr( sh_obj->getName().string_of(), '/');
+			strcat(newName,file);
+ 	
+	  		saveSharedLibrary *sharedObj = new saveSharedLibrary(
+				sh_obj->getBaseAddress(), sh_obj->getName().string_of(),
+				newName);
+                	sharedObj->writeLibrary();
+
+                	sharedObj->getTextInfo(textAddr, textSize);
+
+                	char *textSection = new char[textSize];
+                	readDataSpace((void*) (textAddr+ sh_obj->getBaseAddress()),
+				textSize,(void*)textSection, true);
+
+                	sharedObj->saveMutations(textSection);
+                	sharedObj->closeLibrary();
+
+			mutatedSharedObjectsSize += strlen(sh_obj->getName().string_of()) +1 ;
+			delete [] textSection;
+			delete [] newName;
+		}
+	}
+	if(mutatedSharedObjectsSize){
+		mutatedSharedObjects = new char[mutatedSharedObjectsSize ];
+		for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
+			sh_obj = (*shared_objects)[i];
+			if(sh_obj->isDirty()){
+				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
+					sh_obj->getName().string_of(),
+					strlen(sh_obj->getName().string_of())+1);
+				mutatedSharedObjectsIndex += strlen(
+					sh_obj->getName().string_of())+1;
+			}
+		}	
+	}
+
+	newElf = new writeBackElf(( char*) getImage()->file().string_of(),
+		"/tmp/dyninstMutatee",errFlag);
 	newElf->registerProcess(this);
 
-	VECTOR_SORT(imageUpdates, imageUpdate::imageUpdateSort);// imageUpdate::mysort ); 
+	imageUpdates.sort(imageUpdate::imageUpdateSort);// imageUpdate::mysort ); 
 	newElf->compactSections(imageUpdates,compactedUpdates);
 
-	VECTOR_SORT(highmemUpdates, imageUpdate::imageUpdateSort);
+	highmemUpdates.sort( imageUpdate::imageUpdateSort);
 	newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
 	newElf->alignHighMem(compactedHighmemUpdates);
@@ -292,7 +378,7 @@ bool process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 			memcpy(ptr, dataUpdates[k]->value, dataUpdates[k]->size);
 			ptr+=dataUpdates[k]->size;
 			//printf(" DATA UPDATE : from: %x to %x , value %x\n", dataUpdates[k]->address,
-		//		dataUpdates[k]->address+ dataUpdates[k]->size, (unsigned int) dataUpdates[k]->value);
+		//	dataUpdates[k]->address+ dataUpdates[k]->size, (unsigned int) dataUpdates[k]->value);
 
 		}
 		*(int*) ptr=0;
@@ -303,6 +389,10 @@ bool process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 		delete [] (char*) dataUpdatesData;
 	}
 
+	if(mutatedSharedObjectsSize){
+		newElf->addSection(0 ,mutatedSharedObjects, 
+			mutatedSharedObjectsSize, "dyninstAPI_mutatedSO", false);
+	}
 	unsigned int k;
 	
 	for( k=0;k<imageUpdates.size();k++){
@@ -322,7 +412,16 @@ bool process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 
 	newElf->createElf();
 	addLibraryElf = new addLibrary(newElf->getElf(),"libdyninstAPI_RT.so.1",errFlag);
-	addLibraryElf->outputElf((char*)imageFileName.string_of());
+	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.string_of())+1];
+	strcpy(fullName, directoryName);
+	strcat(fullName, (char*)imageFileName.string_of());
+	addLibraryElf->outputElf(fullName);
+	delete [] fullName;
+	//delete [] directoryName;
+	if(mutatedSharedObjects){
+		delete [] mutatedSharedObjects;
+	}
+	return directoryName;
 }
 #endif
 
@@ -1850,6 +1949,26 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
   ptraceOps++; ptraceBytes += amount;
 
 //  cerr << "process::writeDataSpace_ pid " << getPid() << " writing " << amount << " bytes at loc " << inTraced << endl;
+
+#if defined(BPATCH_LIBRARY)
+#if defined (sparc_sun_solaris2_4)
+	if(collectSaveWorldData &&  ((Address) inTraced) > getDyn()->getlowestSObaseaddr() ){
+		shared_object *sh_obj;
+		bool result = false;
+		for(int i = 0; shared_objects && !result && i<shared_objects->size();i++){
+			sh_obj = (*shared_objects)[i];
+			result = sh_obj->isinText((Address) inTraced);
+		}
+		if( result  ){
+		/*	printf(" write at %lx in %s amount %x insn: %x \n", 
+				(off_t)inTraced, sh_obj->getName().string_of(), amount,
+				 *(unsigned int*) inSelf);
+		*/	
+			sh_obj->setDirty();	
+		}
+	}
+#endif
+#endif
 
   if (lseek(proc_fd, (off_t)inTraced, SEEK_SET) != (off_t)inTraced) {
     perror("lseek");

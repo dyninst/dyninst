@@ -1,4 +1,4 @@
-/* $Id: addLibrary.C,v 1.1 2001/12/11 20:22:22 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.2 2002/02/05 17:01:37 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 
@@ -37,7 +37,7 @@ void addLibrary::remakeHash(Elf_Data* hashData, Elf_Data* dynsymData, Elf_Data* 
                 symPtr++;
                 counter++;
         }
-        int hashValue;
+        int oldhashValue, hashValue;
         char *currentName=NULL;
         while(counter<symSize){
                 currentName = (char*) dynstrData->d_buf+ symPtr->st_name;
@@ -50,15 +50,22 @@ void addLibrary::remakeHash(Elf_Data* hashData, Elf_Data* dynsymData, Elf_Data* 
                         bucket[hashValue] = counter;
                 }else{
                         /* fail, cant put it here */
-                        hashValue = bucket[hashValue];
-                        while(chain[hashValue]){
+			oldhashValue = hashValue;
+                        hashValue = bucket[oldhashValue];
+                        while(((unsigned int) hashValue) <= ((unsigned int) symSize) && chain[hashValue]){
                                 if(debugFlag){
-                                        printf(" %d-->%lx ",hashValue,chain[hashValue]);
+                                        printf("inWHILE %d-->%lx ",hashValue,chain[hashValue]);
+					fflush(stdout);
                                 }
-                                hashValue = chain[hashValue];
-                        }
-                        if(debugFlag){
-                                printf(" %d-->%lx ",hashValue,chain[hashValue]);
+                      		oldhashValue = hashValue; 
+		        	hashValue = chain[hashValue];
+                        
+			}
+                        if((unsigned int) hashValue > symSize){
+				hashValue = oldhashValue;
+			}
+			if(debugFlag){
+                                printf("outWHILE %d-->%lx ",hashValue,chain[hashValue]);
                         }
                         chain[hashValue]=counter;
                 }
@@ -401,7 +408,7 @@ void addLibrary::driver(){
                         dynstrData = data;
                         dynstrShdr = shdr;
                         newShdr->sh_name=0;
-                        newShdr->sh_type= SHT_NOTE;
+                        newShdr->sh_type= SHT_PROGBITS;//  SHT_NOTE;
                         memset(newData->d_buf, '\0',newData->d_size);
                         dynstrOffset= newData->d_size;
                 }
@@ -490,7 +497,7 @@ void addLibrary::driver(){
                                 relocData.newdynstrAddr = shdr->sh_addr + shdr->sh_size;
                                 newShdr->sh_addr = relocData.newdynstrAddr;
                                 dynstrData = newData;
-                                dynstrShdr->sh_type  = SHT_NOTE;
+                                dynstrShdr->sh_type  = SHT_PROGBITS ;// SHT_NOTE;
 
 
 
@@ -515,7 +522,7 @@ void addLibrary::driver(){
                                 newEhdr->e_shnum++;
                                 newShdr->sh_addr = relocData.newdynsymAddr;
                                 newShdr->sh_link = relocData.newdynstrIndx;
-                                dynsymShdr->sh_type =SHT_NOTE ;
+                                dynsymShdr->sh_type = SHT_PROGBITS;// SHT_NOTE ;
                                 dynsymShdr->sh_flags = 1;
 
                                 newData->d_buf = malloc(dynsymData->d_size + 3*(sizeof(Elf32_Sym)));

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.46 2001/12/11 20:22:22 chadd Exp $
+// $Id: BPatch_thread.C,v 1.47 2002/02/05 17:01:37 chadd Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -512,10 +512,10 @@ bool BPatch_thread::dumpCore(const char *file, bool terminate)
  *
  *
  */
-bool BPatch_thread::dumpPatchedImage(const char* file){ //ccw 28 oct 2001
+char* BPatch_thread::dumpPatchedImage(const char* file){ //ccw 28 oct 2001
 
 #if !defined(sparc_sun_solaris2_4)
-	return false;
+	return NULL;
 #else
     bool was_stopped;
     bool had_unreportedStop = unreportedStop;
@@ -524,7 +524,7 @@ bool BPatch_thread::dumpPatchedImage(const char* file){ //ccw 28 oct 2001
 
     stopExecution();
 
-    bool ret = proc->dumpPatchedImage(file);
+    char* ret = proc->dumpPatchedImage(file);
     if (was_stopped) {
         unreportedStop = had_unreportedStop;
     } else {
@@ -1201,6 +1201,13 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 		}
 	}
 	return false;
+}
+/* 
+	this function sets a flag in process that 
+	forces the collection of data for saveworld. //ccw 23 jan 2002
+*/
+void BPatch_thread::startSaveWorld(){
+	proc->collectSaveWorldData=true;
 }
 
 /***************************************************************************

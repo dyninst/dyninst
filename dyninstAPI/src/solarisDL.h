@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.h,v 1.11 2000/07/28 17:21:18 pcroth Exp $
+// $Id: solarisDL.h,v 1.12 2002/02/05 17:01:39 chadd Exp $
 
 #if !defined(solaris_dl_hdr)
 #define solaris_dl_hdr
@@ -58,7 +58,7 @@ class dynamic_linking {
 public:
 
     dynamic_linking(): dynlinked(false),r_debug_addr(0),dlopen_addr(0),
-		       r_brk_addr(0),r_state(0), brkpoint_set(false) {} 
+		       r_brk_addr(0),r_state(0), brkpoint_set(false),lowestSObaseaddr(0)  {}
     ~dynamic_linking(){}
     
     // getProcessSharedObjects: This routine is called after attaching to
@@ -95,6 +95,7 @@ public:
    bool unset_r_brk_point(process *proc);
 #endif
 
+	Address getlowestSObaseaddr(){ return lowestSObaseaddr; } 
 private:
    bool  dynlinked;
    Address r_debug_addr;
@@ -104,6 +105,18 @@ private:
    u_int r_state;  // either 0 (RT_CONSISTENT), 1 (RT_ADD), or 2 (RT_DELETE)
    bool brkpoint_set; // true if brkpoint set in r_brk
    instPoint *r_brk_instPoint; // used to instrument r_brk
+
+	Address lowestSObaseaddr; 
+
+	void setlowestSObaseaddr(Address baseaddr){ 
+		if(lowestSObaseaddr ==0 || baseaddr < lowestSObaseaddr){
+			lowestSObaseaddr = baseaddr;
+		}
+	}
+
+	bool dlopenUsed; 
+
+
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_solaris2_5)
    static const u_int R_BRK_SAVE_BYTES = 4;

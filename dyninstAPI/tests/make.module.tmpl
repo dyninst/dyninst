@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.38 2001/12/20 21:14:11 buck Exp $
+# $Id: make.module.tmpl,v 1.39 2002/02/05 17:01:39 chadd Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -159,6 +159,7 @@ endif
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test5
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test6 TARGET2=test6.mutatee_gcc
 	$(MAKE) testlibs MUTATEE_CC=gcc
+
 ifneq ($(NATIVE_CC),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC)
@@ -203,7 +204,7 @@ pc:
 
 aTest:	$(TARGET) $(TARGET2)
 
-testlibs: libtestA.so libtestB.so
+testlibs: libtestA.so libtestB.so 
 
 # test1.mutatee uses dlopen for replaceFunction tests
 # (currently only implemented on SPARC/Solaris and Alpha/Tru64)

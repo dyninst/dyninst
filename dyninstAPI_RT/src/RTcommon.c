@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.18 2001/12/11 20:24:41 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.19 2002/02/05 17:01:40 chadd Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -62,6 +62,20 @@
 #include  <libelf.h>
 #include <sys/mman.h>
 #include <dlfcn.h>
+#include <link.h> /* ccw 23 jan 2002 */
+#include <sys/link.h>
+#include <limits.h>
+extern void* _DYNAMIC;
+
+typedef struct {
+      Elf32_Sword d_tag;
+      union {
+          Elf32_Sword d_val;
+          Elf32_Addr d_ptr;
+      } d_un;
+  } __Elf32_Dyn;
+
+
 #endif
 
 extern void DYNINSTbreakPoint();
@@ -117,6 +131,44 @@ int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; /*ccw 
 #if defined(sparc_sun_solaris2_4)
 
 unsigned int checkAddr;
+
+int checkSO(char* soName){
+	Elf32_Shdr *shdr;
+        Elf32_Ehdr *   ehdr;
+        Elf *          elf;
+        int       fd;
+        Elf_Data *strData;
+        Elf_Scn *scn;
+	int result = 0;
+
+ 	if((fd = (int) open(soName, O_RDONLY)) == -1){
+                RTprintf("cannot open : %s\n",soName);
+    		fflush(stdout); 
+		return;
+        }
+        if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
+                RTprintf("%s %s \n",soName, elf_errmsg(elf_errno()));
+                RTprintf("cannot elf_begin\n");
+		fflush(stdout);
+                close(fd);
+                return;
+        }
+
+        ehdr = elf32_getehdr(elf);
+        scn = elf_getscn(elf, ehdr->e_shstrndx);
+        strData = elf_getdata(scn,NULL);
+   	for( scn = NULL; !result && (scn = elf_nextscn(elf, scn)); ){
+                shdr = elf32_getshdr(scn);
+		if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".dyninst_mutated")) {
+			result = 1;
+		}
+	}
+        elf_end(elf);
+        close(fd);
+
+	return result;
+}
+
 int checkElfFile(){
 
 
@@ -137,7 +189,8 @@ int checkElfFile(){
         unsigned int *dataPtr;
  	unsigned int numberUpdates,i ;
 	char* oldPageData;
-	Dl_info dlip; 
+	Dl_info dlip;
+	int soError = 0; 
 	elf_version(EV_CURRENT);
 
         sprintf(execStr,"/proc/%d/object/a.out",getpid());
@@ -159,7 +212,7 @@ int checkElfFile(){
         scn = elf_getscn(elf, ehdr->e_shstrndx);
         strData = elf_getdata(scn,NULL);
 	pageSize =  getpagesize();
-   	for(cnt = 0, scn = NULL; scn = elf_nextscn(elf, scn);cnt++){
+   	for(cnt = 0, scn = NULL; !soError &&  (scn = elf_nextscn(elf, scn));cnt++){
                 shdr = elf32_getshdr(scn);
 		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
 			elfData = elf_getdata(scn, NULL);
@@ -179,7 +232,54 @@ int checkElfFile(){
 		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_",11)){
 			retVal = 1; /* this is a restored run */
 		}
-		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPIhighmem_",18)){
+		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_mutatedSO")){
+			/* make sure the mutated SOs are loaded, not the original ones */
+			char *soNames;
+			int totallen=0;
+			__Elf32_Dyn *_dyn = (__Elf32_Dyn*)& _DYNAMIC;	
+			Link_map *lmap=0;
+			struct r_debug *_r_debug;
+			char *loadedname, *dyninstname;
+
+			elfData = elf_getdata(scn, NULL);
+
+			while(_dyn && _dyn->d_tag != 0 && _dyn->d_tag != 21){
+				_dyn ++;
+			}
+			if(_dyn && _dyn->d_tag != 0){
+				_r_debug = _dyn->d_un.d_ptr;
+				lmap = _r_debug->r_map;
+		
+				for(soNames = (char*) elfData->d_buf ; totallen<elfData->d_size; 
+					soNames = &((char*) elfData->d_buf)[strlen(soNames)+1] ){
+					totallen += strlen(soNames) + 1;
+					lmap = _r_debug->r_map;
+					while(lmap){
+						loadedname = strrchr(lmap->l_name,'/');
+						dyninstname =  strrchr(soNames,'/');
+						if(loadedname == 0){
+							loadedname = lmap->l_name;
+						}
+						if(dyninstname == 0){
+							dyninstname = soNames;
+						}	
+						if(!strcmp(loadedname, dyninstname)) {
+							if(!checkSO(lmap->l_name)){
+			printf("ERROR: %s was mutated during saveworld and",lmap->l_name);
+			printf(" the currently loaded %s has not been mutated\n", lmap->l_name);
+			printf(" check your LD path to be sure the mutated %s is visible\n", soNames);
+								soError = 1;
+			
+							}
+			
+						}
+						lmap = lmap->l_next;
+					}
+				}
+
+			}
+
+		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPIhighmem_",18)){
 			/*the layout of dyninstAPIhighmem_ is:
 			pageData
 			address of update
@@ -201,21 +301,6 @@ int checkElfFile(){
 			oldPageData = (char*) malloc(shdr->sh_size-((2*numberUpdates+1)*
 				sizeof(unsigned int)) );	
 			/*copy old page data */
-
-			/** TEST 
-			dataPtr =(unsigned int*) &(((char*)  elfData->d_buf)[sizeof(oldPageData)]);
-                        for(i = 0; i<= numberUpdates; i++){
-                                updateAddress = *dataPtr;
-                                updateSize = *(++dataPtr);
-
-                                updateOffset = updateAddress - shdr->sh_addr;
-                      		printf(" TOUCHING ADDESS %x\n", updateAddress);
-				fflush(stdout);
-			        memcpy(&( oldPageData[updateOffset]),
-                                        updateAddress,updateSize);
-		        }
-			 end test */
-
 
 			/* probe memory to see if we own it */
 			checkAddr = dladdr((void*)shdr->sh_addr, &dlip); 
@@ -259,9 +344,11 @@ int checkElfFile(){
         elf_end(elf);
         close(fd);
 
+	if(soError){
+		exit(2);
+	}
 	return retVal;
 }
-
 
 #endif
 

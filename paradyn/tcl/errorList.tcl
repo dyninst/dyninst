@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.51 2001/11/27 16:44:08 pcroth Exp $
+# $Id: errorList.tcl,v 1.52 2002/02/05 17:01:40 chadd Exp $
 
 #
 # Error message format:
@@ -1086,9 +1086,26 @@ termWin program is in your PATH and that you have permissions to run \
 the program.}
 }
 
+set pdError(122) {
+{dumpPatchedImage failed}
+{paradynd}
+{serious error}
+{BPatch_thread::startSaveWorld() was not called and no save world \
+data was collected or the directory could not be created.}
+}
+
+set pdError(123) {
+{dumpPatchedImage: mutatee used dlopen, the mutated binary may fail.}
+{paradynd}
+{warning}
+{The mutatee used dlopen, the mutated binary may not load the shared \
+library into the correct place and may fail.}
+}
+
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 121
+    return 123
 }

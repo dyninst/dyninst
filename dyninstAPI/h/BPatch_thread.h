@@ -176,7 +176,7 @@ public:
 
     bool	dumpCore(const char *file, bool terminate);
     bool	dumpImage(const char *file);
-    bool	dumpPatchedImage(const char* file);//ccw 28 oct 2001
+    char*	dumpPatchedImage(const char* file);//ccw 28 oct 2001
 
     BPatch_variableExpr	*malloc(int n);
     BPatch_variableExpr	*malloc(const BPatch_type &type);
@@ -226,6 +226,7 @@ public:
     bool getLineAndFile(unsigned long addr,unsigned short& lineNo,
 			char* fileName,int length);
 
+	void startSaveWorld();//ccw 23 jan 2002
 #ifdef IBM_BPATCH_COMPAT
     bool isThreaded() { return false; }
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.291 2002/01/31 17:06:17 cortes Exp $
+// $Id: process.C,v 1.292 2002/02/05 17:01:38 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1704,6 +1704,10 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 	// create imageUpdate here:
 	// imageUpdate(h->addr,size)
 #ifdef BPATCH_LIBRARY
+#if defined(i386_unknown_linux2_2)
+	printf(" ALLOCATED MEMORY AT: %x , %d bytes\n", h->addr, size);
+#endif
+
 #ifdef sparc_sun_solaris2_4 
 	if(h->addr < 0xF0000000){
 		imageUpdate *imagePatch=new imageUpdate; 
@@ -1872,7 +1876,8 @@ process::process(int iPid, image *iImage, int iTraceLink
 #endif
 #endif
              ,callBeforeContinue(NULL),
-             curr_lwp(0)
+             curr_lwp(0),
+		collectSaveWorldData(true) 
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2059,7 +2064,8 @@ process::process(int iPid, image *iSymbols,
 #endif
 #endif
              ,callBeforeContinue(NULL),
-             curr_lwp(0)
+             curr_lwp(0),
+		collectSaveWorldData(true) 
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2308,7 +2314,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                   theShmKey, iShmHeapStats, iPid),
   theSuperTable(parentProc.getTable(), this)
 #endif
-  ,callBeforeContinue(parentProc.callBeforeContinue), curr_lwp(0)
+  ,callBeforeContinue(parentProc.callBeforeContinue), curr_lwp(0),
+collectSaveWorldData(true) 
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2536,10 +2543,22 @@ process *createProcess(const string File, vector<string> argv,
 	if( dir.length() > 0 )
 	{
 #if !defined(i386_unknown_nt4_0)
-		if( !file.prefixed_by("/") )
+		if( !file.prefixed_by("/") && !dir.suffixed_by("/") ) // neither string has a / in it. 
+		{
+			file = dir + "/" + file;
+		}else if( (!file.prefixed_by("/") && dir.suffixed_by("/"))  || ( !dir.suffixed_by("/") && file.prefixed_by("/")) ) { //only one has a / in it
+			file = dir + file;
+		}else{ //both have a / so take it off the dir.
+			file = dir.substr(0, dir.length() -1)  + file;
+		}
+
+
+/*		if( !file.prefixed_by("/") )
 		{
 			file = dir + "/" + file;
 		}
+*/
+
 #else // !defined(i386_unknown_nt4_0)
 		if( (file.length() < 2) ||	// file is too short to be a drive specifier
 			!isalpha( file[0] ) ||	// first character in file is not a letter

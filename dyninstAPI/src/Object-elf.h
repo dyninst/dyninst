@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.44 2001/12/18 16:21:17 pcroth Exp $
+ * $Id: Object-elf.h,v 1.45 2002/02/05 17:01:37 chadd Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -149,12 +149,25 @@ class Object : public AObject {
   const ostream &dump_state_info(ostream &s);
   bool isEEL() { return EEL; }
 
+	//to determine if a mutation falls in the text section of
+	// a shared library
+	bool isinText(Address addr, Address baseaddr) const { 
+		if(addr > text_addr_ + baseaddr     &&
+		   addr < text_addr_ + baseaddr + text_size_ ) {
+			return true;
+		}
+		return false;
+	} 
+
  private:
   static void log_elferror (void (*)(const char *), const char *);
     
   int       file_fd_;            // mapped ELF file
   unsigned  file_size_;          // mapped ELF file
   char     *file_ptr_;           // mapped ELF file
+
+	Address text_addr_; //.text section 
+	Address text_size_; //.text section size
 
   Address   dynsym_addr_;        // .dynsym section
   Address   dynstr_addr_;        // .dynstr section

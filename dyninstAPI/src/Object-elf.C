@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.35 2002/01/17 01:09:28 jaw Exp $
+ * $Id: Object-elf.C,v 1.36 2002/02/05 17:01:37 chadd Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -213,6 +213,12 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   const char* RO_DATA_NAME     = ".ro_data";  // mips
 
   // initialize Object members
+
+	text_addr_ = 0; //ccw 23 jan 2002
+	text_size_ = 0; //for determining if a mutation
+			//falls within the text section 
+			//of a shared library
+
   dynsym_addr_ = 0;
   dynstr_addr_ = 0;
   got_addr_ = 0;
@@ -264,6 +270,9 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
       code_len_ = (pd_shdrp->pd_size + EXTRA_SPACE) / sizeof(Word);
     }
     if (strcmp(name, TEXT_NAME) == 0) {
+	text_addr_ = pd_shdrp->pd_addr;
+	text_size_ = pd_shdrp->pd_size; 
+
       if (txtaddr == 0)
 	txtaddr = pd_shdrp->pd_addr;
     }
