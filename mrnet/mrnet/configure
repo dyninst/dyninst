@@ -2912,7 +2912,6 @@ LIBS="$LIBS $FLEX_LIB"
 if test "$CXX" = "g++" ; then
     GXX=yes
     C_AS_CPLUSPLUS="-x c++"
-    LDFLAGS="-Wl,-E"
     SOFLAGS=" -fPIC -shared -rdynamic"
 elif test "$CXX" = "xlC" ; then
     CXXFLAGS="$CXXFLAGS -O2"
