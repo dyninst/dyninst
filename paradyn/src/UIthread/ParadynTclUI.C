@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTclUI.C,v 1.4 2004/06/21 19:37:42 pcroth Exp $
+// $Id: ParadynTclUI.C,v 1.5 2004/06/24 22:27:51 legendre Exp $
 #include "tcl.h"
 #include "tkTools.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -137,9 +137,10 @@ ParadynTclUI::Init( void )
 
     // set argv0 before we do any other program initialization because
     // Tk takes the main window's class and instance name from argv0
+    char argv0[] = "argv0";
     Tcl_SetVar( interp,
-                "argv0", 
-                GetProgramName().c_str(),
+                argv0, 
+                (TCLCONST char *) GetProgramName().c_str(),
                 TCL_GLOBAL_ONLY );
 
 
