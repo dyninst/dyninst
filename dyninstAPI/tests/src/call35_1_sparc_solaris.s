@@ -1,6 +1,6 @@
-	.file	"call35_1.c"
+	.file	"call35_1_sparc_solaris.s"
 .stabs "/p/paradyn/development/gurari/core/dyninstAPI/tests/src/",100,0,0,.LLtext0
-.stabs "call35_1.c",100,0,0,.LLtext0
+.stabs "call35_1_sparc_solaris.s",100,0,0,.LLtext0
 .section	".text"
 .LLtext0:
 	.stabs	"gcc2_compiled.", 0x3c, 0, 0, 0

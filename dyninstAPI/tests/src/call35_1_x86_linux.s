@@ -1,7 +1,7 @@
-	.file	"call35_1.c"
+	.file	"call35_1_x86_linux.s"
 	.version	"01.01"
 .stabs "/p/paradyn/development/gurari/core/dyninstAPI/tests/src/",100,0,0,.Ltext0
-.stabs "call35_1.c",100,0,0,.Ltext0
+.stabs "call35_1_x86_linux.s",100,0,0,.Ltext0
 .text
 .Ltext0:
 	.stabs	"gcc2_compiled.", 0x3c, 0, 0, 0
