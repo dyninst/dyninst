@@ -40,7 +40,7 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.41 2001/08/23 14:44:38 schendel Exp $
+// $Id: hist.C,v 1.42 2001/09/04 17:02:31 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/hist.h"
@@ -53,8 +53,6 @@
 
 int Histogram::numBins = 1000;
 int Histogram::lastGlobalBin = 0;
-timeLength Histogram::baseBucketSize = timeLength(BASEBUCKETWIDTH_SECS,
-						  timeUnit::sec());
 timeLength Histogram::globalBucketSize = timeLength(BASEBUCKETWIDTH_SECS,
 						    timeUnit::sec());
 vector<Histogram *> Histogram::allHist;
@@ -96,7 +94,7 @@ Histogram::Histogram(relTimeStamp start, dataCallBack d,
       // compute bucketwidth based on start time
       timeLength spanLen = globalBucketSize * lastGlobalBin - startTime;
       timeLength minBucketWidth = spanLen / numBins;
-      timeLength i2 = baseBucketSize;
+      timeLength i2 = getMinBucketWidth();
       for(; i2 < minBucketWidth; i2 *= 2.0) ; 
       bucketWidth = i2; 
     }
@@ -416,6 +414,15 @@ pdSample Histogram::getValue(relTimeStamp begin, relTimeStamp end)
 pdSample Histogram::getValue()
 {		
     return(getValue(startTime, endTime));
+}
+
+timeLength Histogram::getMinBucketWidth() { 
+  // once this is setup this way to avoid initialization dependency problems
+  // between non-local static objects
+  // this will be initialized only since it's static
+  static timeLength baseBucketSize = timeLength(BASEBUCKETWIDTH_SECS,
+						timeUnit::sec());
+  return baseBucketSize;
 }
 
 int Histogram::getBuckets(pdSample *saveBuckets, int numberOfBuckets,int first)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: hist.h,v 1.24 2001/08/23 14:44:31 schendel Exp $
+// $Id: hist.h,v 1.25 2001/09/04 17:02:26 schendel Exp $
 
 #ifndef HIST
 #define HIST
@@ -109,7 +109,7 @@ class Histogram {
 		return relTimeStamp(lastGlobalBin*globalBucketSize); 
 	}
 	static timeLength getGlobalBucketWidth(){ return(globalBucketSize); }
-	static timeLength getMinBucketWidth(){ return(baseBucketSize);}
+	static timeLength getMinBucketWidth();
 	static int getNumBins(){ return(numBins);}
 	void flushUnsentBuckets();
     private:
@@ -119,11 +119,8 @@ class Histogram {
 	static int numBins;		/* max bins to use */
 
 	// used to compute the current Time
-	static timeLength baseBucketSize;  // min. bucket size for all hists.
 	static timeLength globalBucketSize; // largest curr. bucket width 
 	static int lastGlobalBin;  // for all hists. with global bins 
-
-
 
 	// static Histogram *allHist;	/* linked list of all histograms */
 	// Histogram *next;		/* linked list of all histograms */
