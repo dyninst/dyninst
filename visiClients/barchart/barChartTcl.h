@@ -7,6 +7,7 @@ int metricsAxisHasChangedCommand  (ClientData, Tcl_Interp *, int argc, char **ar
 int newScrollPositionCommand   (ClientData, Tcl_Interp *, int argc, char **argv);
 int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **argv);
 int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int argc, char **argv);
+int getMetricColorNameCommand(ClientData, Tcl_Interp *, int, char **);
 
 int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv);
 
