@@ -1,11 +1,12 @@
 #
-# $Id: Makefile,v 1.7 2003/04/18 22:35:18 tlmiller Exp $
+# $Id: Makefile,v 1.8 2003/06/10 17:45:34 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
+USES_DWARF_DEBUG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -40,20 +41,21 @@ SRCS =          ../src/linux.C \
                 ../src/InstrucIter-ia64.C \
 		../src/parseDwarf.C \
 		../../common/src/linuxKludges.C \
-		../../common/src/timing-linux.C
+		../../common/src/timing-linux.C \
+		../src/ia64-template.s
 
 
-MYFLAGS          += -I/usr/include/libelf -DUSES_DWARF_DEBUG -I/u/t/l/tlmiller/libdwarf
+MYFLAGS		+= -I/usr/include/libelf -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR)
 
-CXXFLAGS         += $(MYFLAGS)
-CFLAGS           += $(MYFLAGS)
-TFLAGS           += $(MYFLAGS)
+CXXFLAGS	+= $(MYFLAGS)
+CFLAGS		+= $(MYFLAGS)
+TFLAGS		+= $(MYFLAGS)
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS           += -g
 
-SYSLIBS = -lelf -ldl
-LIBS = /u/t/l/tlmiller/libdwarf/ia64-unknown-linux2.4/libdwarf.a
+SYSLIBS		= -lelf -ldl
+LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf
 
 AS		= /usr/bin/as
 
