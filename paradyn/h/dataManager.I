@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.13  1994/05/10 03:57:28  hollings
+ * Revision 1.14  1994/05/18 00:49:46  hollings
+ * Bad Jeff didn't advance the version number on the last commit.
+ *
+ * Revision 1.13  1994/05/10  03:57:28  hollings
  * Changed data upcall to return array of buckets.
  *
  * Revision 1.12  1994/05/09  20:53:35  hollings
@@ -169,7 +172,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 6;
+    $version 7;
 
     //
     // Create an applicationContext (an application to be studied)
