@@ -1,7 +1,10 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
-# Revision 1.11  1995/02/27 18:38:28  tamches
+# Revision 1.12  1995/07/02 20:01:08  tamches
+# port to tk4.0
+#
+# Revision 1.11  1995/02/27  18:38:28  tamches
 # Changes to reflect the new TCthread and, as a result, the extensively
 # revised tclTunable.C
 #
@@ -101,10 +104,9 @@ proc tunableInitialize {} {
    option add *Data*font *-Helvetica-*-r-*-12-*
    option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
-   if {[string match [tk colormodel .] color] == 1} {
+   if {[winfo depth .] > 1} {
       # You have a color monitor...
       # change primary background color from 'bisque' to 'grey'
-      .tune config -bg grey
       option add *tune*Background grey
       option add *tune*activeBackground LightGrey
       option add *tune*activeForeground black
@@ -184,12 +186,12 @@ proc tunableInitialize {} {
       # expand is true; we want extra width & height if the window is resized
 
    scrollbar .tune.middle.scrollbar -orient vertical -width 16 \
-   	-foreground gray -activeforeground gray -relief sunken \
-   	-command procNewScrollPosition
+   	-background gray -activebackground gray -relief sunken \
+   	-command ".tune.middle.canvas yview"
    pack      .tune.middle.scrollbar -side left -fill y -expand false
       # expand is false; if the window is made wider, we don't want the extra width
    
-   canvas .tune.middle.canvas -relief flat -yscrollcommand myScroll -scrollincrement 1
+   canvas .tune.middle.canvas -relief flat -yscrollcommand myScroll -yscrollincrement 1
    pack   .tune.middle.canvas -side left -fill both -expand true
 
    frame .tune.middle.canvas.names
@@ -204,39 +206,11 @@ proc tunableInitialize {} {
       # expand is true; we want extra height & width is the window is resized
 }
 
-proc procNewScrollPosition {newTop} {
-   # invoked to change the view of the canvas associated with this scrollbar.
-   # called when the scrollbar is repositioned.
-   # Interestingly, the screen is not yet updated with the new scrollbar position!
-   # That happens in "myScroll" (below) which is invoked as a result of the canvas
-   # view change that we do here (...canvas.yview $newTop)
-   if {$newTop < 0} {
-      set newTop 0
-   }
-
-   set currSettings [.tune.middle.scrollbar get]
-   set totalSize    [lindex $currSettings 0]
-   set visibleSize  [lindex $currSettings 1]
-
-   if {$visibleSize > $totalSize} {
-      set newTop 0
-   } elseif {[expr $newTop + $visibleSize] > $totalSize} {
-      set newTop [expr $totalSize - $visibleSize]
-   }
-
-   # update the canvas
-   # will automatically generate a canvas-yscroll command.  Only then does the
-   # scrollbar setting actually change.
-   .tune.middle.canvas yview $newTop
-}
-
-proc myScroll {totalSize visibleSize left right} {
+proc myScroll {left right} {
    # gets called whenever the canvas view changes or gets resized.
    # This includes every scroll the user makes (yikes)
    # Gives us a chance to rethink the bounds of the scrollbar
    global lastVisibleHeight lastVisibleWidth
-
-#   puts stderr "Welcome to myScroll; total=$totalSize, visible=$visibleSize, left=$left, right=$right"
 
    set newWidth  [getWindowWidth  .tune.middle.canvas]
    set newHeight [getWindowHeight .tune.middle.canvas]
@@ -247,7 +221,7 @@ proc myScroll {totalSize visibleSize left right} {
 
       drawTunables $newWidth $newHeight
    } else {
-      .tune.middle.scrollbar set $totalSize $visibleSize $left $right
+      .tune.middle.scrollbar set $left $right
    }
 
    set lastVisibleWidth $newWidth
@@ -256,12 +230,12 @@ proc myScroll {totalSize visibleSize left right} {
 
 proc tunableBoolLabelEnter {lcv} {
    set buttonLabelWin .tune.middle.canvas.names.tunable$lcv.label
-   set dummyLabelWin .tune.middle.canvas.values.tunable$lcv.dummy
+   set dummyLabelWin  .tune.middle.canvas.values.tunable$lcv.dummy
    set valuesLabelWin .tune.middle.canvas.values.tunable$lcv.box
 
-   $buttonLabelWin configure -state active
-   $dummyLabelWin configure -state active
-   $valuesLabelWin configure -state active
+   $buttonLabelWin configure -background lightGray 
+   $dummyLabelWin  configure -background lightGray
+   $valuesLabelWin configure -background lightGray
 }
 
 proc tunableBoolLabelLeave {lcv} {
@@ -269,9 +243,9 @@ proc tunableBoolLabelLeave {lcv} {
    set dummyLabelWin .tune.middle.canvas.values.tunable$lcv.dummy
    set valuesLabelWin .tune.middle.canvas.values.tunable$lcv.box
 
-   $buttonLabelWin configure -state normal
-   $dummyLabelWin configure -state normal
-   $valuesLabelWin configure -state normal
+   $buttonLabelWin configure -background gray
+   $dummyLabelWin  configure -background gray
+   $valuesLabelWin configure -background gray
 }
 
 proc tunableBoolLabelPress {lcv} {
@@ -279,9 +253,9 @@ proc tunableBoolLabelPress {lcv} {
    set dummyLabelWin .tune.middle.canvas.values.tunable$lcv.dummy
    set valuesLabelWin .tune.middle.canvas.values.tunable$lcv.box
 
-   $buttonLabelWin configure -relief sunken
+#   $buttonLabelWin configure -relief sunken
 #   $dummyLabelWin configure -relief sunken
-#   $valuesLabelWin configure -relief sunken
+   $valuesLabelWin configure -relief sunken
 }
 
 proc tunableBoolLabelRelease {lcv} {
@@ -289,8 +263,8 @@ proc tunableBoolLabelRelease {lcv} {
    set dummyLabelWin .tune.middle.canvas.values.tunable$lcv.dummy
    set valuesLabelWin .tune.middle.canvas.values.tunable$lcv.box
 
-   $buttonLabelWin invoke
-   $dummyLabelWin invoke
+#   $buttonLabelWin invoke
+#   $dummyLabelWin  invoke
    $valuesLabelWin invoke
 
    $buttonLabelWin configure -relief flat
@@ -298,9 +272,12 @@ proc tunableBoolLabelRelease {lcv} {
    $valuesLabelWin configure -relief flat
 }
 
-proc buttonBind {theButton lcv} {
+proc buttonBindJustHighlight {theButton lcv} {
    bind $theButton <Enter> "tunableBoolLabelEnter $lcv"
    bind $theButton <Leave> "tunableBoolLabelLeave $lcv"
+}
+proc buttonBind {theButton lcv} {
+   buttonBindJustHighlight $theButton $lcv
    bind $theButton <ButtonPress-1> "tunableBoolLabelPress $lcv"
    bind $theButton <ButtonRelease-1> "tunableBoolLabelRelease $lcv"
 }
@@ -327,22 +304,22 @@ proc drawBoolTunable {theName} {
    
    set labelFont *-Helvetica-*-r-*-14-*
 
-   # dummy label widget
-   checkbutton $valuesWin.dummy -relief flat -font $labelFont -relief flat -selector ""
-   pack $valuesWin.dummy -side left -fill y
+   # dummy label.  At first, I used a checkbutton to guarantee that
+   # all 3 widgets would have the same height.  But using
+   # -highlightthickness 0 for the realcheckbutton made them all the
+   # same anyway in tk 4.0
+   label $valuesWin.dummy -relief flat -font $labelFont 
+   pack  $valuesWin.dummy -side left -fill y
 
    # In order to get the appearance of a checkbutton with the on/off red square
-   # on the right instead of on the left, we use 3 checkbuttons: the leftmost
-   # one has the title but has -selector "" to turn off the square; the second
-   # one (to the right) has a square but no text.  A third is used for padding
-   # in the middle
-   # why not a label plus a square?  Because labels cannot be highlighted
-   # as checkbuttons can be.
+   # on the right instead of on the left, we use 2 labels & a checkbutton.
+   # The second one is the checkbutton, it has an indicator but no text.
 
-   checkbutton $buttonLabelWin -text $theName -anchor w -relief flat -selector "" -font $labelFont
+   label $buttonLabelWin -text $theName -anchor w -relief flat -font $labelFont
    pack  $buttonLabelWin -side left -fill x -expand true
 
-   checkbutton $valuesLabelWin -variable boolTunableNewValues($theName) -anchor w -relief flat -font $labelFont
+   checkbutton $valuesLabelWin -variable boolTunableNewValues($theName) -anchor w \
+	   -relief flat -font $labelFont -highlightthickness 0 -selectcolor blue
    pack $valuesLabelWin -side left -fill both -expand true
 
    # now make the label and the checkbutton appear as 1; we play some bind tricks
@@ -353,7 +330,7 @@ proc drawBoolTunable {theName} {
 
    buttonBind $leftButton $numTunablesDrawn
    buttonBind $dummyButton $numTunablesDrawn
-   buttonBind $rightButton $numTunablesDrawn
+   buttonBindJustHighlight $rightButton $numTunablesDrawn
 
    set namesWidth  [max $namesWidth [getWindowWidth $leftButton]]
    set namesWidth  [max $namesWidth [getWindowWidth $namesWin]]
@@ -489,7 +466,7 @@ proc drawFloatTunable {theName leftTickWidth rightTickWidth} {
    
    # entry widget
    set entryWin $valuesWin.right.top.entry
-   entry $entryWin -relief sunken -textvariable floatTunableNewValues($theName) -width 8 -font $labelFont
+   entry $entryWin -relief sunken -textvariable floatTunableNewValues($theName) -width 8 -font $labelFont -highlightthickness 0
 
    # turn off some useless characters (such as "return" key)
 #   bind $entryWin <Key> {puts stderr "hello %K"}
@@ -528,7 +505,8 @@ proc drawFloatTunable {theName leftTickWidth rightTickWidth} {
 	      -command "everyChangeCommand $theName" \
 	      -from [expr $integerScaleFactor * $tunableMin] \
 	      -to   [expr $integerScaleFactor * $tunableMax] \
-	      -showvalue false
+	      -showvalue false \
+	      -highlightthickness 0
 
 #	      -width [winfo reqheight $entryWin] (makes it too tall for some reason)
 
@@ -556,7 +534,10 @@ proc drawFloatTunable {theName leftTickWidth rightTickWidth} {
    valueBind $namesWin.label $numTunablesDrawn
 
    set paddingHeight [expr $valuesWinHeight - [getWindowHeight $namesWin.label]]
-#   puts stderr "paddingHeight=$paddingHeight"
+   if {$tunableMin==0 && $tunableMax==0} {
+      incr paddingHeight
+   }
+#   puts stderr "paddingHeight for $theName is $paddingHeight"
    if {$paddingHeight > 0} {
       frame $namesWin.padding -height $paddingHeight
       pack  $namesWin.padding -side bottom -fill both
@@ -683,7 +664,7 @@ proc drawTunables {newWidth newHeight} {
 	   -window .tune.middle.canvas.values \
 	   -width $valuesWidth
 
-   set goodMinWidth [expr $namesWidth + [getWindowWidth .tune.middle.scrollbar] + 240]
+   set goodMinWidth [expr $namesWidth + [getWindowWidth .tune.middle.scrollbar] + 260]
    wm minsize .tune $goodMinWidth $tunableMinHeight
 
    set oldGeometry [wm geometry .tune]
@@ -860,14 +841,14 @@ proc processShowTunableDescriptions {} {
       # expand is true; if the window is made taller, we want the extra height
 
    scrollbar .tunableDescriptions.top.scrollbar -orient vertical -width 16 \
-	   -foreground gray -activeforeground gray -relief sunken \
-	   -command tunableDescriptionsNewScrollPosition
+	   -background gray -activebackground gray -relief sunken \
+	   -command ".tunableDescriptions.top.canvas yview"
    pack      .tunableDescriptions.top.scrollbar -side left -fill y -expand false
       # expand is false; if the window is made wider, we don't want the extra width
 
    canvas .tunableDescriptions.top.canvas \
    	-yscrollcommand myDescriptionsScroll \
-	-scrollincrement 1 \
+	-yscrollincrement 1 \
 	-width 4i -height 3i
    pack propagate .tunableDescriptions.top.canvas false
    pack   .tunableDescriptions.top.canvas -side left -fill both -expand true
@@ -1015,7 +996,7 @@ proc rethinkTunableDescriptionsScrollbarRegion {} {
 	   $firstUnit $lastUnit
 }
 
-proc myDescriptionsScroll {totalSize visibleSize left right} {
+proc myDescriptionsScroll {left right} {
    # gets called whenever the canvas view changes or gets resized.
    # gets called on each movement of scrollbar (ack!)
    # we are supposed to rethink the scrollbar settings now.
@@ -1028,38 +1009,11 @@ proc myDescriptionsScroll {totalSize visibleSize left right} {
    if {$lastVisibleDescriptionsHeight != $newHeight || $lastVisibleDescriptionsWidth != $newWidth} {
       drawTunableDescriptions
    } else {
-      .tunableDescriptions.top.scrollbar set $totalSize $visibleSize $left $right
+      .tunableDescriptions.top.scrollbar set $left $right
    }
 
    set lastVisibleDescriptionsHeight $newHeight
    set lastVisibleDescriptionsWidth $newWidth
-}
-
-proc tunableDescriptionsNewScrollPosition {newTop} {
-   # invoked to change the view of the canvas associated with this scrollbar.
-   # called when the scrollbar is repositioned.
-   # interestingly, the screen is not yet updated with the new scrollbar position!
-   # that happens in "myScroll" (below) which is invoked as a result of the canvas
-   # view change that we do here (...canvas.yview $newTop)
-
-   if {$newTop < 0} {
-      set newTop 0
-   }
-
-   set currSettings [.tunableDescriptions.top.scrollbar get]
-   set totalSize    [lindex $currSettings 0]
-   set visibleSize  [lindex $currSettings 1]
-
-   if {$visibleSize > $totalSize} {
-      set newTop 0
-   } elseif {[expr $newTop + $visibleSize] > $totalSize} {
-      set newTop [expr $totalSize - $visibleSize]
-   }
-
-   # update the canvas
-   # will automatically generate a canvas-yscroll command.  Only then does the
-   # scrollbar setting actually change.
-   .tunableDescriptions.top.canvas yview $newTop
 }
 
 proc closeTunableDescriptions {} {
