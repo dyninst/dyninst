@@ -2,7 +2,7 @@
  * Copyright (c) 1996 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,9 +39,46 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+/*
+ * $Id: templates-nt.C,v 1.2 1997/11/05 01:01:13 wylie Exp $
+ */
+
+/* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
+ * "template class specialization XXXX is already instantiated"
+ * however when linking the executable, the linker is unfortunately not
+ * able to resolve these external symbols and produces error LNK2001's,
+ * therefore the compiler warning is being disabled for this template file.
+ */
+#pragma warning (disable: 4660)
+
 #include "util/src/vectorSet.C"
+#include "util/src/Dictionary.C"
+#include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 
 template class vectorSet<process::inferiorRPCtoDo>;
 template class vectorSet<process::inferiorRPCinProgress>;
+
+template class dictionary_hash<unsigned int, unsigned int>;
+template class dictionary_hash<unsigned int, resource *>;
+template class dictionary_hash<unsigned int, heapItem *>;
+template class dictionary_hash<unsigned int, _cpSample *>;
+template class dictionary_hash<unsigned int, pd_Function *>;
+template class dictionary_hash<unsigned int, metricDefinitionNode *>;
+template class dictionary_hash<unsigned int, vector<mdl_type_desc> >;
+
+template class dictionary_hash<string, unsigned int>;
+template class dictionary_hash<string, Symbol>;
+template class dictionary_hash<string, resource *>;
+template class dictionary_hash<string, pdmodule *>;
+template class dictionary_hash<string, internalSym *>;
+template class dictionary_hash<string, metricDefinitionNode *>;
+template class dictionary_hash<string, vector<string> *>;
+template class dictionary_hash<string, vector<pd_Function *> *>;
+
+template class dictionary_hash<instPoint const *, point *>;
+template class dictionary_hash<instPoint const *, trampTemplate *>;
+template class dictionary_hash<instInstance *, instInstance *>;
+
+
 
