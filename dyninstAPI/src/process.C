@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.349 2002/08/12 04:21:24 schendel Exp $
+// $Id: process.C,v 1.350 2002/08/15 20:06:33 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2222,7 +2222,6 @@ process::process(int iPid, image *iImage, int iTraceLink
    inSyscall_ = false;
    runningRPC_ = false;
    stoppedInSyscall = false;
-
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
       string msg = string("Warning: unable to attach to specified process :")
@@ -2416,7 +2415,6 @@ process::process(int iPid, image *iSymbols,
    // running status is anything except paused. (How to deal with this?)
    // Note that solaris in particular seems able to attach even if the process
    // is running.
-
    if (!attach()) {
       string msg = string("Warning: unable to attach to specified process: ")
                    + string(pid);
@@ -2739,7 +2737,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #if defined(SHM_SAMPLING) && defined(sparc_sun_sunos4_1_3)
    childUareaPtr = NULL;
 #endif
-
    if (!attach()) {     // moved from ::forkProcess
       showErrorCallback(69, "Error in fork: cannot attach to child process");
       status_ = exited;
@@ -7062,6 +7059,7 @@ void process::pDYNINSTinitCompletionCallback(process* theProc,
 void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
    // 'event' values: (1) DYNINSTinit was started normally via paradynd
    // or via exec, (2) called from fork, (3) called from attach.
+  fprintf(stderr, "pDYNINSTinit completing...\n");
    inferiorrpc_cerr << "handleCompletionOfpDYNINSTinit..." << endl ;
 	// now PARADYN_bootstrapStruct contains all the
 	// DYNINST_bootstrapStruct info
@@ -7098,9 +7096,8 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
    // Override the tramp guard address
    // Note: the pointers are all from the POV of the runtime library.
-   trampGuardAddr_ = 
-      reinterpret_cast<Address>(theSharedMemMgr->getAddressInApplic(
-                    reinterpret_cast<void *>(shmMetaData.getTrampGuards())));
+   
+   trampGuardAddr_ = (Address) bs_struct.tramp_guard_base;
 
    // handleStartProcess gets shared objects, so no need to do it again after a fork.
    // (question: do we need to do this after an exec???)
