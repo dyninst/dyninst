@@ -20,6 +20,9 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.3  1996/02/22 18:32:00  karavan
+ * Changed data storage from queue to circular buffer
+ *
  * Revision 1.2  1996/02/08 19:52:44  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -55,9 +58,7 @@ typedef experiment* PCmiSubscriber;
 
 ostream& operator <<(ostream &os, PCmetricInst &pcm)
 {
-  vector<resourceHandle>* bigFocusRep = dataMgr->getResourceHandles(pcm.foc);
-  const char *fname = dataMgr->getFocusName(bigFocusRep);
-  delete bigFocusRep;
+  const char *fname = dataMgr->getFocusNameFromHandle(pcm.foc);
   os << "PCMETRICINST " << pcm.met->getName() << ":" << endl
     << " focus: " << pcm.foc << " " << fname << endl;
   os << " start: " << pcm.startTime << " end: " << pcm.endTime 
@@ -68,12 +69,18 @@ ostream& operator <<(ostream &os, PCmetricInst &pcm)
     currPort = pcm.AllData[i];
     os << " Port# " << currPort->portID << " mih: " << currPort->mih 
       << " mh: " << currPort->met << " foc: " << currPort->foc 
-	<< " size: " << (currPort->indataQ).getQsize() << endl;
+	<< " size: " << (currPort->indataQ).getSize() << endl;
     (currPort->indataQ).print();
   }
   return os;
 }
 
+ostream& operator <<(ostream &os, Interval &i)
+{
+  os << "Value: " << i.value << "\tStart: " << i.start << "\tEnd: " 
+    << i.end << endl;
+  return os;
+}
 
 PCmetricInst::PCmetricInst (PCmetric *pcMet, focus f, 
 			    filteredDataServer *db, bool *err):
@@ -100,6 +107,7 @@ TimesAligned(0), active(false), db(db)
     metricHandle *tmpmh = dataMgr->findMetric("pause_time");
     assert (tmpmh);
     newRec->met = *tmpmh;
+    delete tmpmh;
     newRec->foc = topLevelFocus;
     AllData += newRec;
     pauseOffset = 1;
@@ -225,15 +233,15 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
 
   bool found = false;
   bool queueGrew;
+  Interval newInterval;
+  newInterval.value = newVal;
+  newInterval.start = start;
+  newInterval.end = end;
+
   // find queue for this metricInstanceHandle
   for (unsigned k = 0; k < AllData.size(); k++)
     if (AllData[k]->mih == whichData) {
-      queueGrew = (AllData[k]->indataQ).enqueue(start, end, newVal);
-      if (queueGrew) {
-	cout << "PC::DATA QUEUE OVERFLOW OCCURRED" << endl;
-	cout << "================================" << endl;
-	cout << *this << endl;
-      }
+      queueGrew = (AllData[k]->indataQ).add(&newInterval);
       portNum = AllData[k]->portID;
       found = true;
       break;
@@ -261,17 +269,16 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
     }
     // if we reach this point, then we have new time-aligned piece of 
     // data for everything
-    sampleValue v;
-    timeStamp s, e;
     inPort *curr;
+    Interval thisInt;
     for (int m = 0; m < numInPorts; m++) {
       curr = AllData[m];
-      (curr->indataQ).dequeue (&s, &e, &v);
+      thisInt = (curr->indataQ).remove ();
       // reset DataStatus
       if ((curr->indataQ).isEmpty()) {
 	clearDataReady(curr->portID);
       }	     
-      AllCurrentValues[m] = v;
+      AllCurrentValues[m] = thisInt.value;
     }
     endTime = end;
     sampleValue newguy;
@@ -299,24 +306,30 @@ PCmetricInst::alignTimes()
 {
   bool allLinedUp = true;
   bool needSecondPass = false;
-  bool moreData = true;
-  timeStamp intervalEnd, s, e;
-  sampleValue v;
-  (AllData[0]->indataQ).seeNextItem (&s, &intervalEnd, &v);
+  timeStamp intervalEnd;
+  const Interval *thisInt;
+  Interval toss;
+
+  thisInt = (AllData[0]->indataQ).peek ();
+  assert (thisInt);
+  intervalEnd = thisInt->end;
+
   for (int i = 1; i < numInPorts; i++) {
-      moreData = (AllData[i]->indataQ).seeNextItem (&s, &e, &v);
-      if (e > intervalEnd) {
+      thisInt = (AllData[i]->indataQ).peek ();
+      if (thisInt->end > intervalEnd) {
 	// we're changing intervalEnd to later time and we've already
-	// processed some queues, so need a second pass
-	intervalEnd = e;
+	// processed some queues, so we will need a second pass to 
+	// reprocess those
+	intervalEnd = thisInt->end;
 	needSecondPass = true;
       }	
-      while ((e < intervalEnd) && moreData) {
+      while (!(AllData[i]->indataQ).isEmpty() 
+	     && (thisInt->end < intervalEnd)) {
 	// toss old data like smelly garbage
-	moreData = (AllData[i]->indataQ).dequeue (&s, &e, &v);
-      	moreData = (AllData[i]->indataQ).seeNextItem (&s, &e, &v);
+	toss = (AllData[i]->indataQ).remove ();
+      	thisInt = (AllData[i]->indataQ).peek ();
       }
-      if (e < intervalEnd) {
+      if (thisInt && (thisInt->end < intervalEnd)) {
 	// we ran out of data before we got this one aligned; align 
 	// whatever else possible but return false
 	allLinedUp = false;
@@ -325,13 +338,14 @@ PCmetricInst::alignTimes()
     }
   if (needSecondPass && allLinedUp) 
     for (int j = 0; j < numInPorts; j++) {
-      moreData = (AllData[j]->indataQ).seeNextItem (&s, &e, &v);
-      while ((e < intervalEnd) && moreData) {
+      thisInt = (AllData[j]->indataQ).peek ();
+      while ((!(AllData[j]->indataQ).isEmpty()) &&
+	     (thisInt->end < intervalEnd)) {
 	// toss old data like smelly garbage
-	moreData = (AllData[j]->indataQ).dequeue (&s, &e, &v);
-      	moreData = (AllData[j]->indataQ).seeNextItem (&s, &e, &v);
+	toss = (AllData[j]->indataQ).remove ();
+      	thisInt = (AllData[j]->indataQ).peek ();
       }
-      if (e < intervalEnd) {
+      if (thisInt && (thisInt->end < intervalEnd)) {
 	// we ran out of data before we got this one aligned; align 
 	// whatever else possible but return false
 	allLinedUp = false;

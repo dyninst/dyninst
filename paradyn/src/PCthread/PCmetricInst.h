@@ -20,6 +20,9 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.2  1996/02/22 18:32:01  karavan
+ * Changed data storage from queue to circular buffer
+ *
  * Revision 1.1  1996/02/02 02:07:32  karavan
  * A baby Performance Consultant is born!
  *
@@ -31,23 +34,15 @@
 #include "PCintern.h"
 #include "PCfilter.h"
 #include "PCmetric.h"
-#include "PCdataQ.h"
 #include "PCdata.h"
+#include "util/h/CircularBuffer.h"
 
-//sys.h defines the following:
-//  typedef double timeStamp;
-//  typedef float sampleValue;
-//  typedef struct {
-//     timeStamp start;
-//     timeStamp end;
-//      sampleValue value;
-//  } Interval;
-
+typedef circularBuffer<Interval, PCdataQSize> dataQ;
 typedef PCmetricInst* PCmetInstHandle;
 class experiment;
 
 #define PCMETINSTARTNUMCONSUMERS 20
-#define PCMAXDATAQSIZE 20
+
 typedef struct {
   unsigned portID;
   metricInstanceHandle mih;
