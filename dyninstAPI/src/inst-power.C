@@ -500,6 +500,27 @@ void initTramps()
 }
 
 
+	///////////////////////////////////////////////////////////////////////
+	//Our base trampolines save and restore registers onto the stack using
+	//  negative offsets from the stack pointer.  These offsets were
+	//  colliding with offsets used by instructions in the application.
+	//  STKPAD is an extra offset to translate our offsets further down
+	//  the stack to reduce the chance of collision.
+	//
+	//  -24 to -248    We were colliding in this zone.  STKPAD used here.
+	//
+	//    -24  to -52    Saves GPR 3 - 10
+	//    -56            Saves LR.  STKLR is set to this offset.
+	//    -144 to -248   Saves FPR 0 - 13
+	//
+	//  Above -248     Used by mini trampolines.  STKPAD avoids this zone.
+	//
+	//  STKPAD values of 0.5KB, 1KB, 2KB, and 4KB were too small.
+	//
+#define STKPAD  (8 * 1024)
+#define STKLR  -(8 + (11+1)*4)
+
+
            ////////////////////////////////////////////////////////////////////
 	   //Generates instructions to save link register onto stack.
 	   //  Returns the number of bytes needed to store the generated
@@ -522,7 +543,7 @@ static int saveLR(instruction *&insn,       //Instruction storage pointer
   insn->dform.op      = 36;
   insn->dform.rt      = scratchReg;
   insn->dform.ra      = 1;
-  insn->dform.d_or_si = stkOffset;
+  insn->dform.d_or_si = stkOffset - STKPAD;
   insn++;
 
   return 2 * sizeof(instruction);
@@ -543,7 +564,7 @@ static int restoreLR(instruction *&insn,       //Instruction storage pointer
   insn->dform.op      = 32;
   insn->dform.rt      = scratchReg;
   insn->dform.ra      = 1;
-  insn->dform.d_or_si = stkOffset;
+  insn->dform.d_or_si = stkOffset - STKPAD;
   insn++;
 
   insn->raw = 0;                    //mtspr:  mtlr scratchReg
@@ -633,7 +654,7 @@ static void saveRegister(instruction *&insn, unsigned &base, int reg,
 		  int offset)
 {
   assert(reg >= 0);
-  genImmInsn(insn, STop, reg, 1, -1*((reg+1)*4 + offset));
+  genImmInsn(insn, STop, reg, 1, -1*((reg+1)*4 + offset + STKPAD));
   insn++;
   base += sizeof(instruction);
 }
@@ -642,7 +663,7 @@ static void restoreRegister(instruction *&insn, unsigned &base, int reg, int des
 		     int offset)
 {
   assert(reg >= 0);
-  genImmInsn(insn, Lop, dest, 1, -1*((reg+1)*4 + offset));
+  genImmInsn(insn, Lop, dest, 1, -1*((reg+1)*4 + offset + STKPAD));
   insn++;
   base += sizeof(instruction);
 }
@@ -657,7 +678,7 @@ static void saveFPRegister(instruction *&insn, unsigned &base, int reg,
 		    int offset)
 {
   assert(reg >= 0);
-  genImmInsn(insn, STFDop, reg, 1, -1*((reg+1)*8 + offset));
+  genImmInsn(insn, STFDop, reg, 1, -1*((reg+1)*8 + offset + STKPAD));
   insn++;
   base += sizeof(instruction);
 }
@@ -666,7 +687,7 @@ static void restoreFPRegister(instruction *&insn, unsigned &base, int reg, int d
 		       int offset)
 {
   assert(reg >= 0);
-  genImmInsn(insn, LFDop, dest, 1, -1*((reg+1)*8 + offset));
+  genImmInsn(insn, LFDop, dest, 1, -1*((reg+1)*8 + offset + STKPAD));
   insn++;
   base += sizeof(instruction);
 }
@@ -818,7 +839,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 	      }
 	    }
 
-	    currAddr += saveLR(temp, 10, -56);  //Save link register on stack
+	    currAddr += saveLR(temp, 10, STKLR);   //Save link register on stack
 
 	    // Also save the floating point registers which could
 	    // be modified, f0-r13
@@ -836,8 +857,8 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 	} else if ((temp->raw == RESTORE_PRE_INSN) || 
                    (temp->raw == RESTORE_POST_INSN)) {
 
-            currAddr += restoreLR(temp, 10, -56); //Restore link register from
-						  //  stack
+            currAddr += restoreLR(temp, 10, STKLR); //Restore link register from
+						    //  stack
             unsigned numInsn=0;
             for (int i = 0; i < regSpace->getRegisterCount(); i++) {
 	      registerSlot *reg = regSpace->getRegSlot(i);
@@ -1287,12 +1308,12 @@ unsigned emitFuncCall(opCode /* ocode */,
   base += sizeof(instruction);
   
   // st r0, (r1)
-  saveRegister(insn,base,0,8+(46*4));
+  saveRegister(insn,base,0,8+(32*4)+(14*8));
   savedRegs += 0;
   
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   // save REG_MT
-  saveRegister(insn,base,REG_MT,8+(46*4));
+  saveRegister(insn,base,REG_MT,8+(32*4)+(14*8));
   savedRegs += REG_MT;
 #endif
   
@@ -1326,7 +1347,7 @@ unsigned emitFuncCall(opCode /* ocode */,
       // since the register should be free
       // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
       if(u == srcs.size()) {
-	saveRegister(insn,base,reg->number,8+(46*4));
+	saveRegister(insn,base,reg->number,8+(32*4)+(14*8));
 	savedRegs += reg->number;
       }
     } else if (reg->inUse) {
@@ -1467,7 +1488,7 @@ unsigned emitFuncCall(opCode /* ocode */,
   
   // restore saved registers.
   for (ui = 0; ui < savedRegs.size(); ui++) {
-    restoreRegister(insn,base,savedRegs[ui],8+(46*4));
+    restoreRegister(insn,base,savedRegs[ui],8+(32*4)+(14*8));
   }
   
   // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
