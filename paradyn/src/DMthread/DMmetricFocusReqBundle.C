@@ -408,15 +408,13 @@ void metricFocusReqBundle::updateWithEnableCallback(
    pdvector<metricFocusReq *> mfReqsToReport;
    update_mfReq_states(resp, &mfReqsToReport);
 
-   for(unsigned i=0; i<mfReqsThatChanged.size(); i++) {
-      metricFocusReq *cur_mfReq = mfReqsThatChanged[i];
-
+   for(unsigned i=0; i<mfReqsToReport.size(); i++) {
+      metricFocusReq *cur_mfReq = mfReqsToReport[i];
       if(cur_mfReq->getOverallState() == inst_insert_success)
          cur_mfReq->readyMetricInstanceForSampling();
 
       cur_mfReq->accumulatePerfStreamMsgs();
    }
-
    for(unsigned j=0; j<mfReqsToReport.size(); j++) {
       metricFocusReq *cur_mfReq = mfReqsToReport[j];
       cur_mfReq->flushPerfStreamMsgs();
