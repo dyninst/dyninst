@@ -39,18 +39,83 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.1 2005/01/19 17:41:04 bernat Exp $
+// $Id: function.C,v 1.2 2005/01/21 23:43:45 bernat Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
 #include "func-reloc.h"
 #include "process.h"
+#include "instPoint.h"
 
-pdstring function_base::emptyString("");
+pdstring int_function::emptyString("");
+
+
+// Verify that this is code
+// Find the call points
+// Find the return address
+// TODO -- use an instruction object to remove
+// Sets err to false on error, true on success
+//
+// Note - this must define funcEntry and funcReturn
+// 
+int_function::int_function(const pdstring &symbol,
+			   Address offset, 
+			   const unsigned size,
+			   pdmodule *f) :
+  line_(0),
+  offset_(offset),
+  size_(size),
+  file_(f),
+  blockList(NULL),
+  flowGraph(NULL),
+  noStackFrame(false),
+  makesNoCalls_(false),
+  savesFP_(false),
+  call_points_have_been_checked(false),
+  funcEntry_(NULL),
+  isTrap(false),
+  isInstrumentable_(false),
+  has_jump_to_first_five_bytes(false),
+#if defined(arch_ia64)
+  framePointerCalculator(NULL),
+  usedFPregs(NULL),
+#endif
+  needs_relocation_(false),
+  mayNeedRelocation_(false),
+  canBeRelocated_(false),
+  relocatedCode(NULL),
+  originalCode(NULL),
+  numInstructions(0),
+  instructions(NULL),
+#if !defined(BPATCH_LIBRARY)
+  funcResource(NULL),
+#endif
+  o7_live(false)
+{
+  symTabName_.push_back(symbol);
+  blockList = new pdvector<BPatch_basicBlock *>;
+#ifdef BPATCH_LIBRARY
+  if (BPatch::bpatch->hasForcedRelocation_NP()) 
+    {
+      needs_relocation_ = true;
+    }
+#endif
+}
+
+
+int_function::~int_function() { 
+  // delete the rewritten version of the function if it was relocated
+  if (blockList) delete blockList;
+  if (relocatedCode) delete relocatedCode;  
+  if (originalCode) delete originalCode;   
+  if (instructions) delete instructions;   
+  /* TODO */ 
+}
+
 
 // coming to dyninstAPI/src/symtab.hC
 // needed in metric.C
-bool function_base::match(function_base *fb)
+bool int_function::match(int_function *fb)
 {
   if (this == fb)
     return true;
@@ -58,15 +123,15 @@ bool function_base::match(function_base *fb)
     return ((symTabName_ == fb->symTabName_) &&
 	    (prettyName_ == fb->prettyName_) &&
 	    (line_       == fb->line_) &&
-	    (addr_       == fb->addr_) &&
+	    (offset_     == fb->offset_) &&
 	    (size_       == fb->size_));
 }
 
 #ifdef DEBUG
 /*
-  Debuggering info for function_base....
+  Debuggering info for function_prototype....
  */
-ostream & function_base::operator<<(ostream &s) const {
+ostream & function_prototype::operator<<(ostream &s) const {
   
     unsigned i=0;
     s << "Mangled name(s): " << symTabName_[0];
@@ -84,119 +149,172 @@ ostream & function_base::operator<<(ostream &s) const {
     return s;
 }
 
-ostream &operator<<(ostream &os, function_base &f) {
+ostream &operator<<(ostream &os, function_prototype &f) {
     return f.operator<<(os);
 }
 
 #endif
 
-/*
- * function_base::getMangledName
- *
- * Copies the mangled name of the function into a buffer, up to a given maximum
- * length.  Returns a pointer to the beginning of the buffer that was
- * passed in.
- *
- * s            The buffer into which the name will be copied.
- * len          The size of the buffer.
- */
-char *function_base::getMangledName(char *s, int len) const
-{
-    pdstring name = symTabName();
-    strncpy(s, name.c_str(), len);
-
-    return s;
-}
-
 
 BPatch_flowGraph *
-function_base::getCFG(process * proc)
+int_function::getCFG(process * proc)
 {
     if (!flowGraph) { 
 	bool valid;
-	flowGraph = new BPatch_flowGraph(this, proc, file(), valid);
+	flowGraph = new BPatch_flowGraph((int_function *)this, proc, file(), valid);
 	assert (valid);
     }
     return flowGraph;
 }
 
 BPatch_loopTreeNode * 
-function_base::getLoopTree(process * proc)
+int_function::getLoopTree(process * proc)
 {
    BPatch_flowGraph *fg = getCFG(proc);
    return fg->getLoopTree();
 }
 
-
-void print_func_vector_by_pretty_name(pdstring prefix,
-				      pdvector<function_base *>*funcs) {
-    unsigned int i;
-    function_base *func;
-    for(i=0;i<funcs->size();i++) {
-      func = ((*funcs)[i]);
-      cerr << prefix << func->prettyName() << endl;
-    }
-}
-
-
-// Verify that this is code
-// Find the call points
-// Find the return address
-// TODO -- use an instruction object to remove
-// Sets err to false on error, true on success
-//
-// Note - this must define funcEntry and funcReturn
-// 
-pd_Function::pd_Function(const pdstring &symbol,
-			 pdmodule *f, Address adr, const unsigned size) :
-  function_base(symbol, adr, size, f),
-  //  file_(f),
-  funcEntry_(0),
-#ifndef BPATCH_LIBRARY
-  funcResource(0),
-#endif
-  needs_relocation_(false),
-  call_points_have_been_checked(false),
-  has_jump_to_first_five_bytes(false)
+bool int_function::isInstrumentableByFunctionName()
 {
-  //  We used to call findInstPoints here, but since this function sometimes makes
-  //  use of a pretty name to determine if the function should not be instrumented
-  //  it had to be relocated to a later point in the parsing process...  after 
-  //  names have been demangled.  
-#ifdef NOTDEF 
- err = findInstPoints(owner) == false;
+#if defined(i386_unknown_solaris2_5)
+    /* On Solaris, this function is called when a signal handler
+       returns.  If it requires trap-based instrumentation, it can foul
+       the handler return mechanism.  So, better exclude it.  */
+    if (prettyName() == "_setcontext" || prettyName() == "setcontext")
+        return false;
+#endif /* i386_unknown_solaris2_5 */
+    
+    if( prettyName() == "__libc_free" )
+        return false;
+    
+    // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
+    // they can't be instrumented or we would have an infinite loop
+    if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
+        || prettyName() == "GetProcessTimes")
+        return false;
+    return true;
+}
 
-  isInstrumentable_ = !err;
+void int_function::addArbitraryPoint(instPoint* insp, process* p) {
+  if (insp) arbitraryPoints.push_back(insp);
+
+#if defined(cap_relocation)
+  if(insp && p && needs_relocation_)
+    for(u_int i=0; i < relocatedByProcess.size(); i++)
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p) {
+	addArbitraryPoint(insp, p, relocatedByProcess[i]);
+	return;
+      }
 #endif
-  relocatedCode = NULL;
-  originalCode = NULL;
-  instructions = NULL;
+}
+
+// passing in a value of 0 for p will return the original address
+// otherwise, if the process is relocated it will return the new address
+Address int_function::getAddress(const process *p) const{
+  if(p && needs_relocation_) { 
+    for(u_int i=0; i < relocatedByProcess.size(); i++){
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p)
+	return (relocatedByProcess[i])->get_address();
+    } }
+  return get_address();
+}
+
+// This method returns the address at which this function resides
+// in the process P, even if it is dynamic, even if it has been
+// relocated.  getAddress() (see symtab.h) does not always do this:
+// If the function is in a shlib and it has not been relocated,
+// getAddress() only returns the relative offset of the function
+// within its shlib.  We think that getAddress() should be fixed
+// to always return the effective address, but we are not sure
+// whether that would boggle any of its 75 callers.  Until that is
+// cleared up, call this method. -zandy, Apr-26-1999
+Address int_function::getEffectiveAddress(const process *p) const {
+     assert(p);
+     // Even if the function has been relocated, call it at its
+     // original address since the call will be redirected to the
+     // right place anyway.
+     Address base;
+     if (!p->getBaseAddress(file()->exec(), base)) {
+         cerr << "Error: couldn't find base address for func "
+              << prettyName();
+     }
+     return base + get_address();
+}
+
+instPoint *int_function::funcEntry(const process *p) const {
+  if(p && needs_relocation_) { 
+    for(u_int i=0; i < relocatedByProcess.size(); i++){
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p) {
+	return (relocatedByProcess[i])->funcEntry();
+      }
+    }       
+  }
+  return funcEntry_;
+}
+
+const pdvector<instPoint*> &int_function::funcExits(const process *p) const {
+  if(p && needs_relocation_) {
+    for(u_int i=0; i < relocatedByProcess.size(); i++){
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p)
+	return (relocatedByProcess[i])->funcReturns();
+    } 
+  }
+  return funcReturns;
+}
+const pdvector<instPoint*> &int_function::funcArbitraryPoints(const process *p) const {
+  if(p && needs_relocation_) {
+    for(u_int i=0; i < relocatedByProcess.size(); i++){
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p)
+	return (relocatedByProcess[i])->funcArbitraryPoints();
+    } }
+  return arbitraryPoints;
+}
+
+const pdvector<instPoint*> &int_function::funcCalls(const process *p) {
+  if (!call_points_have_been_checked) checkCallPoints();  
+
+  if(p && needs_relocation_) {
+    for(u_int i=0; i < relocatedByProcess.size(); i++){
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p)
+	return (relocatedByProcess[i])->funcCallSites();
+    } }
+  return calls;
+}
+
+bool int_function::hasBeenRelocated(const process *p) const{
+  if(p && needs_relocation_) {
+    for(u_int i=0; i < relocatedByProcess.size(); i++) {
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p)
+	return true;
+    }
+  }
+  return false;
 }
 
 
-pd_Function::~pd_Function() { 
-  // delete the rewritten version of the function if it was relocated
-  if (relocatedCode) delete relocatedCode;  
-  if (originalCode) delete originalCode;   
-  if (instructions) delete instructions;   
-  /* TODO */ 
+
+codeRange *int_function::copy() const { 
+  return new int_function(*this);
 }
 
-codeRange *pd_Function::copy() const { 
-  return new pd_Function(*this); 
-}
-
-bool pd_Function::is_on_stack(process *proc,
+bool int_function::is_on_stack(process *proc,
                               const pdvector<pdvector<Frame> > &stackWalks) {
    // for every vectors of frame, ie. thread stack walk, make sure can do
    // relocation
    for (unsigned walk_itr = 0; walk_itr < stackWalks.size(); walk_itr++) {
-      pdvector<pd_Function *> stack_funcs =
+      pdvector<int_function *> stack_funcs =
          proc->pcsToFuncs(stackWalks[walk_itr]);
 
       // for every frame in thread stack walk
       for(unsigned i=0; i<stack_funcs.size(); i++) {
-         pd_Function *stack_func = stack_funcs[i];
+         int_function *stack_func = stack_funcs[i];
           
          if( stack_func == this ) {
             return true;
@@ -207,17 +325,17 @@ bool pd_Function::is_on_stack(process *proc,
    return false;
 }
 
-bool loop_above_func(process *proc, pd_Function *instrumented_func,
+bool loop_above_func(process *proc, int_function *instrumented_func,
                      const pdvector<Frame> &stackwalk)
 {
    bool in_a_loop = false;
    bool func_on_stack = false;
 
-   pdvector<pd_Function *> stack_funcs = proc->pcsToFuncs(stackwalk);
+   pdvector<int_function *> stack_funcs = proc->pcsToFuncs(stackwalk);
 
    // for every frame in thread stack walk
    for(unsigned i=0; i<stack_funcs.size(); i++) {
-      pd_Function *stack_func = stack_funcs[i];
+      int_function *stack_func = stack_funcs[i];
       
       Address pc = stackwalk[i].getPC();
       
@@ -296,7 +414,7 @@ bool loop_above_func(process *proc, pd_Function *instrumented_func,
 // looked into after the release sometime when the changes needed wouldn't
 // cause such a disruption.
 
-bool pd_Function::think_is_long_running(process *proc,
+bool int_function::think_is_long_running(process *proc,
                            const pdvector<pdvector<Frame> > &stackWalks)
 {
    // for every vectors of frame, ie. thread stack walk
@@ -314,7 +432,7 @@ bool pd_Function::think_is_long_running(process *proc,
    return true;
 }
 
-void pd_Function::updateForFork(process *childProcess, 
+void int_function::updateForFork(process *childProcess, 
 				const process *parentProcess) {
   if(needs_relocation_) {
     for(u_int i=0; i < relocatedByProcess.size(); i++) {
@@ -331,30 +449,7 @@ void pd_Function::updateForFork(process *childProcess,
   }
 }
 
-
-
-void pd_Function::addArbitraryPoint(instPoint* insp, process* p) {
-    if(insp) arbitraryPoints.push_back(insp);
-    
-    // Cheesy get-rid-of-compiler-warning
-    process *unused = p;
-    unused = 0;
-    
-#if defined(i386_unknown_nt4_0) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(sparc_sun_solaris2_4)
-    
-    if(insp && p && needs_relocation_)
-	for(u_int i=0; i < relocatedByProcess.size(); i++)
-	  if(relocatedByProcess[i] &&
-	     (relocatedByProcess[i])->getProcess() == p) {
-		addArbitraryPoint(insp, p, relocatedByProcess[i]);
-		return;
-            }
-#endif
-}
-
-void pd_Function::cleanProcessSpecific(process *p) {
+void int_function::cleanProcessSpecific(process *p) {
   // Relocated func info needs to go
   for (unsigned i = 0; i < relocatedByProcess.size(); i++) {
     if (relocatedByProcess[i] && 
@@ -366,92 +461,14 @@ void pd_Function::cleanProcessSpecific(process *p) {
 }
 
 
-// passing in a value of 0 for p will return the original address
-// otherwise, if the process is relocated it will return the new address
-Address pd_Function::getAddress(const process *p) const{
-  if(p && needs_relocation_) { 
-    for(u_int i=0; i < relocatedByProcess.size(); i++){
-      if(relocatedByProcess[i] &&
-	 (relocatedByProcess[i])->getProcess() == p)
-	return (relocatedByProcess[i])->get_address();
-    } }
-  return get_address();
-}
 
-// This method returns the address at which this function resides
-// in the process P, even if it is dynamic, even if it has been
-// relocated.  getAddress() (see symtab.h) does not always do this:
-// If the function is in a shlib and it has not been relocated,
-// getAddress() only returns the relative offset of the function
-// within its shlib.  We think that getAddress() should be fixed
-// to always return the effective address, but we are not sure
-// whether that would boggle any of its 75 callers.  Until that is
-// cleared up, call this method. -zandy, Apr-26-1999
-Address pd_Function::getEffectiveAddress(const process *p) const {
-     assert(p);
-     // Even if the function has been relocated, call it at its
-     // original address since the call will be redirected to the
-     // right place anyway.
-     Address base;
-     if (!p->getBaseAddress(file()->exec(), base)) {
-         cerr << "Error: couldn't find base address for func "
-              << prettyName();
-     }
-     return base + get_address();
-}
-
-instPoint *pd_Function::funcEntry(const process *p) const {
-  if(p && needs_relocation_) { 
-    for(u_int i=0; i < relocatedByProcess.size(); i++){
-      if(relocatedByProcess[i] &&
-	 (relocatedByProcess[i])->getProcess() == p) {
-	return (relocatedByProcess[i])->funcEntry();
-      }
-    }       
-  }
-  return funcEntry_;
-}
-
-const pdvector<instPoint*> &pd_Function::funcExits(const process *p) const {
-  if(p && needs_relocation_) {
-    for(u_int i=0; i < relocatedByProcess.size(); i++){
-      if(relocatedByProcess[i] &&
-	 (relocatedByProcess[i])->getProcess() == p)
-	return (relocatedByProcess[i])->funcReturns();
-    } 
-  }
-  return funcReturns;
-}
-const pdvector<instPoint*> &pd_Function::funcArbitraryPoints(const process *p) const {
-  if(p && needs_relocation_) {
-    for(u_int i=0; i < relocatedByProcess.size(); i++){
-      if(relocatedByProcess[i] &&
-	 (relocatedByProcess[i])->getProcess() == p)
-	return (relocatedByProcess[i])->funcArbitraryPoints();
-    } }
-  return arbitraryPoints;
-}
-
-const pdvector<instPoint*> &pd_Function::funcCalls(const process *p) {
-  if (!call_points_have_been_checked) checkCallPoints();  
-
-  if(p && needs_relocation_) {
-    for(u_int i=0; i < relocatedByProcess.size(); i++){
-      if(relocatedByProcess[i] &&
-	 (relocatedByProcess[i])->getProcess() == p)
-	return (relocatedByProcess[i])->funcCallSites();
-    } }
-  return calls;
-}
-
-bool pd_Function::hasBeenRelocated(const process *p) const{
-  if(p && needs_relocation_) {
-    for(u_int i=0; i < relocatedByProcess.size(); i++) {
-      if(relocatedByProcess[i] &&
-	 (relocatedByProcess[i])->getProcess() == p)
-	return true;
+void print_func_vector_by_pretty_name(pdstring prefix,
+				      pdvector<int_function *>*funcs) {
+    unsigned int i;
+    int_function *func;
+    for(i=0;i<funcs->size();i++) {
+      func = ((*funcs)[i]);
+      cerr << prefix << func->prettyName() << endl;
     }
-  }
-  return false;
 }
 
