@@ -467,7 +467,7 @@ private:
   vector <pd_Function *> notInstruFunction;
   // The functions that we are not going to instrument 
 
-  bool newFunc(pdmodule *, const string name, const Address addr, 
+  bool newFunc(pdmodule *, const string &name, const Address addr, 
 	       const unsigned size, const unsigned tags, pd_Function *&retFunc);
 
   void checkAllCallPoints();
