@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.48 2004/04/02 06:34:13 jaw Exp $
+// $Id: linux-x86.C,v 1.49 2004/04/06 21:47:23 legendre Exp $
 
 #include <fstream>
 
@@ -58,6 +58,8 @@
 #include <elf.h>
 #include <libelf.h>
 
+#include "dyninstAPI/src/miniTrampHandle.h"
+#include "dyninstAPI/src/trampTemplate.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/h/headers.h"
@@ -69,6 +71,7 @@
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/InstrucIter.h"
 
 #ifndef BPATCH_LIBRARY
 #include "common/h/Time.h"
@@ -447,6 +450,7 @@ void emitCallRel32(unsigned disp32, unsigned char *&insn);
 #define NO_USE_FP        0x5  //Function doesn't allocate a frame and doesn't
                               // use the frame pointer (also result of gcc's
                               // -fomit-frame-pointer)
+#define TRAMP            0x6  //Trampoline
 
 extern bool isFramePush(instruction &i);
 void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p);
@@ -469,7 +473,7 @@ static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
   Elf32_Ehdr *ehdr;
   Elf32_Sym *syms;
   unsigned i;
-  size_t dynstr, shstr;
+  size_t dynstr = 0, shstr;
 
   Elf *elf = elf_memory(buffer, dso_size);
   if (elf == NULL)
@@ -482,7 +486,7 @@ static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
   {
     shdr = elf32_getshdr(elf_getscn(elf, i));
     if (shdr != NULL && shdr->sh_type == SHT_STRTAB && 	
-	strcmp(elf_strptr(elf, shstr, shdr->sh_name), ".dynstr") == 0)
+        strcmp(elf_strptr(elf, shstr, shdr->sh_name), ".dynstr") == 0)
     {
       dynstr = i;
       break;
@@ -521,7 +525,7 @@ err_handler:
     elf_end(elf);
 }
 
-static void calcVSyscallFrame(process *p)
+void calcVSyscallFrame(process *p)
 {
   void *result;
   unsigned dso_size;
@@ -555,13 +559,15 @@ static void calcVSyscallFrame(process *p)
   if (!p->readDataSpace((caddr_t) p->getVsyscallStart(), dso_size, buffer,
 			false))
   {
-    //Linux 2.6.0 - Linux 2.6.2 has a  bug where ptrace 
-    // can't read from the DSO.  The process can read the memory, 
-    // it's just ptrace that's acting stubborn.  
-    //Solution: Upgrade to 2.6.3
-    pdstring msg = pdstring("Could not read from vsyscall page.\n");
-    showErrorCallback(129, msg);
-    goto err_handler;
+     //Linux 2.6.0 - Linux 2.6.2 has a  bug where ptrace 
+     // can't read from the DSO.  The process can read the memory, 
+     // it's just ptrace that's acting stubborn.  
+     //Solution: (Bad hack) Making an RPC isn't safe, it could restart the
+     // process.  Instead we'll read the DSO out of paradynd's
+     // address space.  On Linux 2.6.0-2.6.2 the DSO doesn't change
+     // within kernel versions, so one process' DSO should be as good
+     // as any others.
+     memcpy(buffer, (void *) p->getVsyscallStart(), dso_size);
   }
 
   getVSyscallSignalSyms(buffer, dso_size, p);
@@ -569,18 +575,17 @@ static void calcVSyscallFrame(process *p)
   p->setVsyscallData(result);
   
   return;
-
-err_handler:
-  if (buffer != NULL)
-    free(buffer);
-  p->setVsyscallData(NULL);
-  return;
 }
 
 static int getFrameStatus(process *p, unsigned pc)
 {
-   pd_Function *this_func;
-   
+   codeRange *range;
+
+   pd_Function *func;
+   relocatedFuncInfo *reloc;
+   miniTrampHandle *mini;
+   trampTemplate *base;
+
    calcVSyscallFrame(p);
 
    if (p->isInSignalHandler(pc))
@@ -588,12 +593,22 @@ static int getFrameStatus(process *p, unsigned pc)
    else if (pc >= p->getVsyscallStart() && pc < p->getVsyscallEnd())
       return VSYSCALL_PAGE;
 
-   this_func = p->findFuncByAddr(pc);   
-   if (this_func == NULL)
+   range = p->findCodeRangeByAddress(pc);
+   func = range->is_pd_Function();
+   base = range->is_basetramp();
+   mini = range->is_minitramp();
+   reloc = range->is_relocated_func();
+
+   if (base != NULL || mini != NULL)
+      return TRAMP;
+   if (reloc != NULL && func == NULL)
+      func = reloc->func();
+      
+   if (func == NULL)
       return UNKNOWN;
-   else if (!this_func->hasNoStackFrame())
+   else if (!func->hasNoStackFrame()) 
       return ALLOCATES_FRAME;   
-   else if (this_func->savesFramePointer())
+   else if (func->savesFramePointer())
      return SAVES_FP_NOFRAME;
    else
      return NO_USE_FP;
@@ -630,6 +645,66 @@ static bool isPrevInstrACall(Address addr, process *p, pd_Function **callee)
    return false; 
 }
 
+/**
+ * Sometimes a function that uses a stack frame may not yet have put up its
+ * frame or have already taken it down by the time we reach it during a stack
+ * walk.  This function returns true in this case.  offset is the distance
+ * from the top of the stack to the return value for the caller.
+ **/
+static bool hasAllocatedFrame(Address addr, process *p, int &offset)
+{
+   image *img = p->getImage();
+   if (img->isValidAddress(addr))
+   {
+      InstrucIter ii(addr, addr, img, false);
+      if (ii.isAReturnInstruction() ||
+          ii.isStackFramePreamble())
+      {
+         offset = 0;
+         return false;
+      }
+      if (ii.isFrameSetup())
+      {
+         offset = 4;
+         return false;
+      }
+   }
+   return true;       
+}
+
+/**
+ * If frame 'f' is a trampoline frame, this function returns true
+ * if the trampoline was called by function entry or exit
+ * instrumentation.
+ **/
+static bool isEntryExitInstrumentation(process *p, Frame f)
+{
+
+   Address pc = f.getPC();
+   codeRange *range = p->findCodeRangeByAddress(pc);
+   miniTrampHandle *mini = range->is_minitramp();
+   trampTemplate *base = range->is_basetramp();
+
+   if (base == NULL)
+   {
+      if (mini == NULL)
+         return false;
+      base = mini->baseTramp;
+   }
+   const instPoint *instp = base->location;
+   if (instp == NULL) 
+      return false;
+
+   if (instp->getPointType() == functionEntry || 
+       instp->getPointType() == functionExit)
+      return true;
+
+   return false;
+}
+
+
+extern int tramp_pre_frame_size;
+
 //The estimated maximum frame size when having to do an 
 // exhaustive search for a frame.
 #define MAX_STACK_FRAME 8192
@@ -644,6 +719,13 @@ static bool isPrevInstrACall(Address addr, process *p, pd_Function **callee)
 Frame Frame::getCallerFrame(process *p) const
 {
    /**
+    * These two variables are only valid when this function is
+    * called recursively.
+    **/
+   static Frame prevFrame;
+   static bool prevFrameValid = false;
+
+   /**
     * for the x86, the frame-pointer (EBP) points to the previous 
     * frame-pointer, and the saved return address is in EBP-4.
     **/
@@ -653,15 +735,13 @@ Frame Frame::getCallerFrame(process *p) const
    } addrs;
 
    int status;
+   Frame ret(*this);
 
    status = getFrameStatus(p, pc_);
 
    if (status == VSYSCALL_PAGE)
    {
-      Frame ret(*this);
       void *vsys_data;
-
-      ret.uppermost_ = false;
 
       if ((vsys_data = p->getVsyscallData()) == NULL)
       {
@@ -676,6 +756,7 @@ Frame Frame::getCallerFrame(process *p) const
         ret.fp_ = fp_;
         ret.pc_ = addrs.rtn;
         ret.sp_ = sp_ + 4;	
+        goto done;
       }
       else
       {
@@ -699,7 +780,7 @@ Frame Frame::getCallerFrame(process *p) const
                                  p, &error);
         if (error) return Frame();
 
-	//Calc registers values.
+        //Calc registers values.
         ret.pc_ = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, p, 
 				     &error);
         if (error) return Frame();
@@ -707,10 +788,10 @@ Frame Frame::getCallerFrame(process *p) const
 				     &error);
         if (error) return Frame();
         ret.sp_ = reg_map[DW_CFA];	
+        goto done;
       }
-      return ret;
    }
-   if (status == SIG_HANDLER &&
+   else if (status == SIG_HANDLER &&
        p->readDataSpace((caddr_t)(sp_+28), sizeof(int),
 			(caddr_t)&addrs.fp, true) &&
        p->readDataSpace((caddr_t)(sp_+60), sizeof(int),
@@ -722,30 +803,44 @@ Frame Frame::getCallerFrame(process *p) const
        * to read the information about the next frame from the data saved by 
        * the signal handling mechanism.
        **/
-      Frame ret(*this);
       ret.fp_ = addrs.fp;
       ret.pc_ = addrs.rtn;
       ret.sp_ = sp_ + 64;
-      ret.uppermost_ = false;
-      return ret;
+      goto done;
    }   
-   if (status == ALLOCATES_FRAME &&
-       p->readDataSpace((caddr_t) fp_, 2*sizeof(int), 
-			(caddr_t) &addrs, true))
+   else if ((status == ALLOCATES_FRAME || status == TRAMP))
    {
       /**
        * The function that created this frame uses the standard 
        * prolog: push %ebp; mov %esp->ebp .  We can read the 
        * appropriate data from the frame pointer.
        **/
-      Frame ret(*this);
-      ret.fp_ = addrs.fp;
-      ret.pc_ = addrs.rtn;
-      ret.sp_ = fp_+8;
-      ret.uppermost_ = false;
-      return ret;
+      int offset = 0;
+      if (!hasAllocatedFrame(pc_, p, offset) || 
+          (prevFrameValid && isEntryExitInstrumentation(p, prevFrame)))
+      {
+         addrs.fp = offset + sp_;
+         if (!p->readDataSpace((caddr_t) addrs.fp, sizeof(int), 
+                               (caddr_t) &addrs.rtn, true))
+            return Frame();
+         ret.pc_ = addrs.rtn;
+         ret.fp_ = fp_;
+         ret.sp_ = addrs.fp+4;
+      }
+      else
+      {
+         if (!p->readDataSpace((caddr_t) fp_, 2*sizeof(int), (caddr_t) &addrs, 
+                               true))
+            return Frame();
+         ret.fp_ = addrs.fp;
+         ret.pc_ = addrs.rtn;
+         ret.sp_ = fp_+8;
+      }
+      if (status == TRAMP)
+         ret.sp_ += tramp_pre_frame_size;
+      goto done;
    }
-   if (status == SAVES_FP_NOFRAME || status == NO_USE_FP)
+   else if (status == SAVES_FP_NOFRAME || status == NO_USE_FP)
    {
       /**
        * The evil case.  We don't have a valid frame pointer.  We'll
@@ -758,9 +853,6 @@ Frame Frame::getCallerFrame(process *p) const
        *  - Peek ahead.  If the stack trace from following the address doesn't
        *     end with the top of the stack, we probably shouldn't follow it.
        **/
-      Frame ret(*this);
-      ret.uppermost_ = false;
-      
       unsigned int estimated_sp;
       unsigned int estimated_ip;
       unsigned int estimated_fp;
@@ -801,8 +893,8 @@ Frame Frame::getCallerFrame(process *p) const
 
          //If the instruction that preceeds this address isn't a call
          // instruction, then we'll go ahead and look for another address.
-	 if (!isPrevInstrACall(estimated_ip, p, &callee))
-	   continue;
+         if (!isPrevInstrACall(estimated_ip, p, &callee))
+            continue;
 
          //Given this point for the top of our stack frame, calculate the 
          // frame pointer         
@@ -827,7 +919,7 @@ Frame Frame::getCallerFrame(process *p) const
             ret.pc_ = estimated_ip;
             ret.fp_ = estimated_fp;
             ret.sp_ = estimated_sp+4;
-            return ret;
+            goto done;
          }
          
          //Check the validity of the frame pointer.  It's possible the
@@ -855,12 +947,38 @@ Frame Frame::getCallerFrame(process *p) const
          ret.pc_ = estimated_ip;
          ret.fp_ = estimated_fp;
          ret.sp_ = estimated_sp+4;
-
-         return ret;
+         goto done;
       }
    }
 
    return Frame();
+
+ done:
+   ret.uppermost_ = false;
+
+   status = getFrameStatus(p, ret.pc_);         
+   if (status == TRAMP)
+      ret.frameType_ = FRAME_instrumentation;
+   else if (status == SIG_HANDLER)
+      ret.frameType_ = FRAME_signalhandler;
+   else
+      ret.frameType_ = FRAME_normal;
+      
+   if (frameType_ == FRAME_instrumentation) 
+   {
+      /**
+       * On other architectures a trampoline shares a stack frame with the
+       * function it's in (is implemented with a jump).  On the x86 the
+       * tramp has its own frame (is implemented with a call).  We'll 
+       * immate this behavior by not returning the frame that follows
+       * a trampoline
+       **/
+      prevFrameValid = true;
+      prevFrame = *this;
+      ret = ret.getCallerFrame(p);
+      prevFrameValid = false;
+   }
+   return ret;
 }
 
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002 
