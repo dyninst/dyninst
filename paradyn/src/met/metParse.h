@@ -1,7 +1,10 @@
 
 /*
  * $Log: metParse.h,v $
- * Revision 1.7  1995/11/21 15:15:36  naim
+ * Revision 1.8  1995/11/21 21:06:53  naim
+ * Fixing unitsType definition for MDL grammar - naim
+ *
+ * Revision 1.7  1995/11/21  15:15:36  naim
  * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
  * can specify all elements in any order). Additionally, the option "fold"
  * has been removed - naim
@@ -44,7 +47,7 @@
 #define SET_FORCE 8
 
 typedef enum {SET_MNAME, SET_UNITS, SET_AGG, SET_STYLE,
-	      SET_MFLAVOR, SET_MODE, SET_CONSTRAINT, SET_TEMPS,
+	      SET_MFLAVOR, SET_MODE, SET_UNITTYPE, SET_CONSTRAINT, SET_TEMPS,
 	      SET_BASE} setType;
 
 typedef struct metricFld {
@@ -55,6 +58,7 @@ typedef struct metricFld {
   unsigned style;
   vector<string> *flavor;
   bool mode;
+  bool unittype;
   T_dyninstRPC::mdl_constraint *constraint;
   string temps;
   unsigned base_type;
@@ -105,6 +109,9 @@ public:
 	break;
       case SET_MODE:
 	this->setMode(f.mode);
+	break;
+      case SET_UNITTYPE:
+	this->setUnittype(f.unittype);
 	break;
       case SET_CONSTRAINT:
 	this->setConstraintList(f.constraint);

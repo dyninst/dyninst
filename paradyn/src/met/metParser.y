@@ -3,7 +3,10 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.12  1995/11/21 15:15:37  naim
+ * Revision 1.13  1995/11/21 21:07:11  naim
+ * Fixing unitsType definition for MDL grammar - naim
+ *
+ * Revision 1.12  1995/11/21  15:15:37  naim
  * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
  * can specify all elements in any order). Additionally, the option "fold"
  * has been removed - naim
@@ -538,7 +541,8 @@ metric_elem_list: met_name {$$.mfld.name = *$1.sp; $$.mfld.spec = SET_MNAME;
                 | met_base {$$.mfld.base_type = $1.base.type;
                             $$.mfld.base_m_stmt_v = $1.base.m_stmt_v;
                             $$.mfld.spec = SET_BASE;}
-		| met_unittype { $$.b = $1.b; };
+		| met_unittype { $$.mfld.unittype = $1.b; 
+				 $$.mfld.spec = SET_UNITTYPE; };
 
 metric_definition: tMETRIC tIDENT metric_struct {
   if (!($3.mde->addNewMetricDef(*$2.sp)))
