@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.93 2002/05/13 19:53:35 mjbrim Exp $
+// $Id: VISIthreadmain.C,v 1.94 2002/05/15 21:53:07 mjbrim Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -837,7 +837,8 @@ bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 	  T_visi::visi_matrix matrix;
           matrix.met.Id = ptr->mrlist[i].m_id;
 	  matrix.met.name = ptr->mrlist[i].metric_name; 
-	  matrix.met.units = ptr->mrlist[i].metric_units;
+	  matrix.met.curr_units = ptr->mrlist[i].metric_units;
+	  matrix.met.tot_units = ""; // let visilib figure out total units
 	  if(ptr->mrlist[i].units_type == UnNormalized){
 	      matrix.met.unitstype = 0;
 	  }
