@@ -83,15 +83,22 @@ timeUnit calcJiffyUnit() {
    assert( tmp );
    /* On IA-64, signed ints overflow in a month or so. */
    unsigned long uptimeJiffies;
-   status = fscanf( tmp, "%*s %*d %*d %*d %lu", &uptimeJiffies );
+
+   char line[80];
+   fgets(line, 80, tmp);
+   status = sscanf( line, "%*s %*d %*d %*d %lu", &uptimeJiffies );;
+
    assert( status == 1 );
    
    if (sysconf(_SC_NPROCESSORS_CONF) > 1) {
       // on SMP boxes, the first line is cumulative jiffies, the second line
       // is jiffies for cpu0 - on uniprocessors, this fscanf will fail as
       // there is only a single cpu line
-      status = fscanf( tmp, "\ncpu0 %*d %*d %*d %lu", & uptimeJiffies );
-      assert( status == 1 );
+
+       fgets(line, 80, tmp);
+       status = sscanf( line, "\ncpu0 %*d %*d %*d %lu", &uptimeJiffies );
+
+       assert( status == 1 );
    }
    
    fclose( tmp );
