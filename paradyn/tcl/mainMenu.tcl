@@ -1,7 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.20  1994/11/03 00:04:27  karavan
+# Revision 1.21  1994/11/03 06:17:56  karavan
+# Status display lines and where axis display pasted into the main window, and
+# the look cleaned up some.
+#
+# Revision 1.20  1994/11/03  00:04:27  karavan
 # added frame for status line service.
 #
 # Revision 1.19  1994/11/01  05:49:15  karavan
@@ -147,12 +151,13 @@ proc drawToolBar {} {
 
     bind Entry <2> { %W insert insert [selection get] }
 
-    wm minsize . 517 400
+    wm minsize . 600 600
 
     frame .menub -relief raised -borderwidth 2
-    frame .where -height 312
-    frame .status 
-    frame .buttons
+    frame .where  -background "#d04b8b3edcab" -borderwidth 4
+    frame .status  -relief raised -borderwidth 4
+    frame .main
+    frame .buttons -relief raised -borderwidth 4
     mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {REPORT "paradyn status"} {SAVE ""} \
 	    {EXIT "destroy ."}}
@@ -200,8 +205,8 @@ proc drawToolBar {} {
     wm title . "Paradyn"
 
     pack .menub -side top -fill x
-    pack .status -side top -fill both -expand 1
     pack .where -side top -fill both -expand 1
+    pack .status -side top -fill x -expand 0
     pack .buttons -side bottom -fill x 
 
     pack .menub.left.men.b6 -side right -padx 10
@@ -219,6 +224,4 @@ proc drawToolBar {} {
     
     InitApplicDefnScreen 
 
-    puts "tests here (5)"
-    uimpd showError 5 "this is a test.  this is only test.  if..."
 }

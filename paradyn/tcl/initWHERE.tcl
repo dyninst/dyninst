@@ -3,7 +3,11 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.12  1994/11/02 21:23:36  tamches
+# Revision 1.13  1994/11/03 06:17:52  karavan
+# Status display lines and where axis display pasted into the main window, and
+# the look cleaned up some.
+#
+# Revision 1.12  1994/11/02  21:23:36  tamches
 # changed centering of buttons at bottom from 30/70 center-based to
 # 45/55 east/west based
 #
@@ -111,13 +115,13 @@ proc mapRDOdag {rdoID dagID wwindow abs} {
     global currentSelection$dagID tclSelectionState
     set currentSelection$dagID -1    
 #    puts "mapRDOdag $wwindow.dag.dag$abs"
-    $wwindow.sbutts.b2 configure  \
+    $wwindow.sbutts.1 configure  \
 	    -command "uimpd clearResourceSelection dag $dagID" \
 	    -state normal
-    $wwindow.sbutts.b4 configure \
+    $wwindow.sbutts.2 configure \
 	    -command "uimpd switchRDOdag $rdoID $abs" \
 	    -state normal
-    $wwindow.dag.title configure -text "Paradyn $abs Where Axis"
+    $wwindow.title configure -text "Paradyn $abs Where Axis"
     if $tclSelectionState {
 	uimpd clearResourceSelection dag $dagID
     }
@@ -134,43 +138,30 @@ proc unmapRDOdag {wwindow abs} {
     pack forget $wwindow.dag.dag$abs
 }
 
-proc initRDO {rdoID wwindow wtitle} {
+proc initRDO {rdoID wwindow wtitle toplvlflag} {
     set mprompt "Select Visualization Metric(s) and press ACCEPT"
     set dtitle " "
 #    puts "initRDO:  $rdoID"
 
+if {$toplvlflag == 1} {
     toplevel $wwindow
     #allow interactive sizing
     wm minsize $wwindow 200 200      
-    wm title $wwindow " $wtitle Where Axis"
+    wm title $wwindow "$wtitle"
+}
     frame $wwindow.dag -class Dag -geometry 200x100
-    label $wwindow.dag.title -text "  " -fg black \
+    label $wwindow.title -text "  " -fg black \
 	-font *-New*Century*Schoolbook-Bold-R-*-14-* \
 	-relief raised
 
-    # selection button window allocated but packed only at time of 
-    #  metric/resource selection
-    frame $wwindow.sbutts 
-    button $wwindow.sbutts.b2 -text "CLEAR" \
-	    -state disabled
-#    button $wwindow.sbutts.b3 -text "CLOSE" -width 10 -height 1 \
-#	    -command "uimpd closeRDO $rdoID; destroy $wwindow"
-    button $wwindow.sbutts.b4 -text "SWITCH" \
-	    -state disabled
+    # selection buttons enabled only at time of metric/resource selection
+    frame $wwindow.sbutts
+    mkButtonBar $wwindow.sbutts {} retval \
+	    {{CLEAR ""} {SWITCH ""}}
+    $wwindow.sbutts.1 configure -state disabled
+    $wwindow.sbutts.2 configure -state disabled
 
-    # place b2 and b4 in the center of their parent window
-    place $wwindow.sbutts.b2 -relx 0.45 -rely 0.5 -anchor e
-    place $wwindow.sbutts.b4 -relx 0.55 -rely 0.5 -anchor w
-
-    # pack (not place) a dummy frame, so that the parent grows.  needed since the
-    # above place's don't make any attempt to resize the parent window
-    frame  $wwindow.sbutts.bdummy -height [getWindowHeight $wwindow.sbutts.b2] -width 1
-    pack $wwindow.sbutts.bdummy -side left -fill y -expand true
-
-#    pack $wwindow.sbutts.b2 -side left -padx 5
-#    pack $wwindow.sbutts.b4 -side left -padx 5
-
-    pack $wwindow.dag.title -side top -fill x -expand 1 
+    pack $wwindow.title -side top -fill x -expand 0 
     pack $wwindow.dag -side top -fill both -expand 1
     pack $wwindow.sbutts -side top -fill x -expand 0
 }
