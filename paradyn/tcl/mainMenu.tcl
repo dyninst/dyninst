@@ -1,7 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.37  1995/08/01 02:18:59  newhall
+# Revision 1.38  1995/08/30 05:01:06  tamches
+# The main window is no longer manually resizable (because it has
+# no reason to)
+#
+# Revision 1.37  1995/08/01  02:18:59  newhall
 # changes to support phase interface
 #
 # Revision 1.36  1995/07/19 23:03:00  tamches
@@ -207,7 +211,9 @@ proc drawToolBar {} {
 
 #    bind Entry <2> { %W insert insert [selection get] }
 
-    wm minsize . 400 300
+#    wm minsize . 400 300
+    wm resizable . 1 0
+
     frame .parent 
     frame .parent.menub -relief raised -borderwidth 2
     frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4 
