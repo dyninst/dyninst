@@ -1,8 +1,8 @@
 #!/bin/tcsh
 
 set index = 0
-if($# != 1) then
-	echo "usage: " $0 " [ijpeg|cc1]"
+if($# != 2) then
+	echo "usage: " $0 " [ijpeg|cc1] <parallel n>"
 	exit
 endif
 
@@ -16,13 +16,12 @@ if($1 == "cc1") then
 else if($1 == "ijpeg") then
 	set ARG = '--run ./ijpeg -image_file specmun.ppm -compression.quality 90 -compression.optimize_coding 0 -compression.smoothing_factor 90 -difference.image 1 -difference.x_stride 10 -difference.y_stride 10 -verbose 1 -GO.findoptcomp'
 else
-	echo "usage: " $0 " [ijpeg|cc1]"
+	echo "usage: " $0 " [ijpeg|cc1] <parallel n>"
 	exit
 endif
 
 cd $DYNINST_ROOT/core/codeCoverage/$PLATFORM/tests/$1
 
-set BACK = "&"
 set EXECPATH = ../..
 
 set FILE = "$1.runs.sh"
@@ -45,15 +44,12 @@ foreach i ( "" "--ond" )
 			echo "" >> $index.out
 
 
-			echo "$EXECPATH/dyncov $i $j $k --suffix .dyncov$index $ARG >>&! $index.out $BACK" >> $FILE
+			echo "$EXECPATH/dyncov $i $j $k --suffix .dyncov$index $ARG >>&! $index.out &" >> $FILE
 
 			@ index++
 
-			if($index == 4) then
-				set BACK = ""
-			endif
-			if($index == 5) then
-				set BACK = "&"
+			if(($index % $2) == 0) then
+				echo "wait" >> $FILE
 			endif
 		end
 	end
