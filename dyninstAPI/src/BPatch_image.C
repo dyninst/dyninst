@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.41 2003/04/17 20:55:52 jaw Exp $
+// $Id: BPatch_image.C,v 1.42 2003/04/18 22:35:21 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -392,8 +392,12 @@ void BPatch_image::findFunctionInImage(
     if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
 	assert(pdfv->size() > 0);
 
-	for (unsigned int i = 0; i < pdfv->size(); i++)
-	    funcs->push_back(proc->findOrCreateBPFunc((*pdfv)[i]));
+	for (unsigned int i = 0; i < pdfv->size(); i++) {
+		BPatch_function * foo = proc->findOrCreateBPFunc((*pdfv)[i]);
+	  	funcs->push_back( foo );
+		}
+
+	
     } else {
 
 	if ((pdf = img->findFuncByMangled(name)) != NULL)
@@ -621,6 +625,8 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError
 	    return NULL;
 	}
     }
+
+    /* FIXME: this will probably cause DWARF to explode. */
     if( syminfo.type() == Symbol::PDST_FUNCTION)
       return NULL;
     
@@ -679,7 +685,30 @@ BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
     }
 
     // finally check the global scope.
-    return findVariable(name);
+    // return findVariable(name);
+
+    /* If we have something else to try, don't report errors on this failure. */
+    bool reportErrors = true;
+    char mangledName[100];
+    func->getName( mangledName, 100 );
+    char * lastScoping = NULL;      
+    if( strrchr( mangledName, ':' ) != NULL ) { reportErrors = false; }
+    BPatch_variableExpr * gsVar = findVariable( name, reportErrors );
+
+    if( gsVar == NULL ) {
+      /* Try finding it with the function's scope prefixed. */
+
+      if( (lastScoping = strrchr( mangledName, ':' )) != NULL ) {
+        * (lastScoping + sizeof(char)) = '\0';
+	char scopedName[200];
+	memmove( scopedName, mangledName, strlen( mangledName ) );
+	memmove( scopedName + strlen( mangledName ), name, strlen( name ) );
+	scopedName[ strlen( mangledName ) + strlen( name ) ] = '\0';
+	fprintf( stderr, "Searching for scoped name '%s'\n", scopedName );
+	gsVar = findVariable( scopedName ); 
+        }
+      }
+    return gsVar;
 }
 
 /*
