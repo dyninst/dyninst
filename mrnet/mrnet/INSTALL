@@ -1,0 +1,73 @@
+MRNet: A Multicast/Reduction Network
+http://www.paradyn.org/mrnet/
+Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
+
+LICENSE contains the usage terms for MRNet.
+
+For this discussion, $MRNET_ROOT is the location of the top-level directory
+of the MRNet distribution and $MRNET_ARCH is a string describing the platform
+(OS and architecture) as discovered by autoconf. For all instructions, it is
+assumed that the current working directory is $MRNET_ROOT. Complete updated
+documentation may be found at http://www.paradyn.org/mrnet.
+
+1. SUPPORTED PLATFORMS
+
+  MRNet is designed to be a highly-portable system. This first version should
+  build cleanly with GNU v3 compilers. We have built and successfully tested
+  all MRNet components on:
+    - Linux 2.4
+    - Aix 5.1
+    - Solaris 8
+
+  We are currently upgrading our build system to allow the use of native
+  compilers where appropriate, for instance, xlc and xlC in AIX environments. 
+
+2. SYSTEM REQUIREMENTS
+
+  The third party tools that MRNet uses and needs for proper installation are: 
+    - GNU make
+    - flex
+    - bison
+
+3. Build Configuration
+
+  MRNet uses GNU autoconf to discover the platform specific configuration
+  parameters. The script that does this auto-configuration is called configure. 
+
+    UNIX>  ./configure --help
+
+  shows all possible options of the command. Below, we display the MRNet-specific
+  ones: 
+
+    --with-libfl                Link line for flex library
+    --with-outputlevel          output level (0=>off, *1=>error*, 2=>info, 3=>lo-debug, 4=>mid-debug, 5=>hi-debug)
+
+  ./configure without any options should give reasonable results, but the user
+  may specify certain options. For example, 
+
+    UNIX> ./configure CXX=g++ CXXFLAGS=-O3 -with-outputlevel=5 \
+          --with-libfl=/usr/local/lib/libfl.a
+
+  instructs the configure script to use g++ for the C++ compiler with level 3
+  optimization, very verbose output and /usr/local/lib/libfl.a as the location of
+  the flex library. 
+
+4. Compilation and Installation
+
+  To build the MRNet toolkit by type: 
+
+    UNIX>  make
+
+  After a successful build, the following files will be present: 
+  $MRNET_ROOT/lib/$MRNET_ARCH/libmrnet.a: MRNet API library
+  $MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode: MRNet internal communcation node (used internally)
+  $MRNET_ROOT/bin/$MRNET_ARCH/mrnet_topgen: MRNet topology file generator
+  $MRNET_ROOT/bin/$MRNET_ARCH/*_[FE,BE]: MRNet test front-end and back-end programs
+
+5. Bugs, Questions and Comments
+
+  MRNet is maintained by the Paradyn Project, University of Wisconsin-Madison.
+  Comments and other feedback whether positive or negative are welcome. 
+
+  Please report bugs to darnold@cs.wisc.edu. 
+  The MRNet webpage is http://www.paradyn.org/mrnet/ 
