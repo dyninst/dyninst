@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.16 2003/04/10 19:01:17 rchen Exp $
+// $Id: Object-coff.C,v 1.17 2003/06/22 22:40:19 rchen Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -49,213 +49,83 @@
 bool GCC_COMPILED=false; //Used to detect compiler type. True if mutatee is 
 			 //compiled with a GNU compiler. parseCoff.C needs this
 
-char *ScName(int sc) {
-static char scBuf[20];
+/* ScName() and StName() used for debugging only.
 
-	switch(sc) {
-	case scNil:
-		strcpy(scBuf, "scNil");
-		break;
-	case scText:
-		strcpy(scBuf, "scText");
-		break;
-	case scData:
-		strcpy(scBuf, "scData");
-		break;
-	case scBss:
-		strcpy(scBuf, "scBss");
-		break;
-	case scRegister:
-		strcpy(scBuf, "scRegister");
-		break;
-	case scAbs:
-		strcpy(scBuf, "scAbs");
-		break;
-	case scUndefined:
-		strcpy(scBuf, "scUndefined");
-		break;
-	case scUnallocated:
-		strcpy(scBuf, "scUnallocated");
-		break;
-	case scBits:
-		strcpy(scBuf, "scBits");
-		break;
-	case scTlsUndefined:
-		strcpy(scBuf, "scTlsUndefined");
-		break;
-	case scRegImage:
-		strcpy(scBuf, "scRegImage");
-		break;
-	case scInfo:
-		strcpy(scBuf, "scInfo");
-		break;
-	case scUserStruct:
-		strcpy(scBuf, "scUserStruct");
-		break;
-	case scSData:
-		strcpy(scBuf, "scSData");
-		break;
-	case scSBss:
-		strcpy(scBuf, "scSBss");
-		break;
-	case scRData:
-		strcpy(scBuf, "scRData");
-		break;
-	case scVar:
-		strcpy(scBuf, "scVar");
-		break;
-	case scCommon:
-		strcpy(scBuf, "scCommon");
-		break;
-	case scSCommon:
-		strcpy(scBuf, "scSCommon");
-		break;
-	case scVarRegister:
-		strcpy(scBuf, "scVarRegister");
-		break;
-	case scVariant:
-		strcpy(scBuf, "scVariant");
-		break;
-	case scSUndefined:
-		strcpy(scBuf, "scSUndefined");
-		break;
-	case scInit:
-		strcpy(scBuf, "scInit");
-		break;
-	case scBasedVar:
-		strcpy(scBuf, "scBasedVar");
-		break;
-	case scXData:
-		strcpy(scBuf, "scXData");
-		break;
-	case scPData:
-		strcpy(scBuf, "scPData");
-		break;
-	case scFini:
-		strcpy(scBuf, "scFini");
-		break;
-	case scRConst:
-		strcpy(scBuf, "scRConst");
-		break;
-	case scSymRef:
-		strcpy(scBuf, "scSymRef");
-		break;
-	case scTlsCommon:
-		strcpy(scBuf, "scTlsCommon");
-		break;
-	case scTlsData:
-		strcpy(scBuf, "scTlsData");
-		break;
-	case scTlsBss:
-		strcpy(scBuf, "scTlsBss");
-		break;
-	default:
-		strcpy(scBuf,"Wrong Sc");
-		break;
+const char *StName(int st)
+{
+	switch (st) {
+	case stNil:		return "stNil";
+	case stGlobal:		return "stGlobal";
+	case stStatic:		return "stStatic";
+	case stParam:		return "stParam";
+	case stLocal:		return "stLocal";
+	case stLabel:		return "stLabel";
+	case stProc:		return "stProc";
+	case stBlock:		return "stBlock";
+	case stEnd:		return "stEnd";
+	case stMember:		return "stMember";
+	case stTypedef:		return "stTypedef";
+	case stFile:		return "stFile";
+	case stRegReloc:	return "stRegReloc";
+	case stForward:		return "stForward";
+	case stStaticProc:	return "stStaticProc";
+	case stConstant:	return "stConstant";
+	case stStaParam:	return "stStaParam";
+	case stBase:		return "stBase";
+	case stVirtBase:	return "stVirtBase";
+	case stTag:		return "stTag";
+	case stInter:		return "stInter";
+	case stSplit:		return "stSplit";
+	case stModule:		return "stModule";
+	case stModview:		return "stModview";
+	case stAlias:		return "stAlias";
+	case stStr:		return "stStr";
+	case stNumber:		return "stNumber";
+	case stExpr:		return "stExpr";
+	case stType:		return "stType";
 	}
-
-	return scBuf;
+	return "Bad St";
 }
 
-char *StName(int st) {
-static char stBuf[20];
-
-	switch(st) {
-	case stNil:
-		strcpy(stBuf, "stNil");
-		break;
-	case stGlobal:
-		strcpy(stBuf, "stGlobal");
-		break;
-	case stStatic:
-		strcpy(stBuf, "stStatic");
-		break;
-	case stParam:
-		strcpy(stBuf, "stParam");
-		break;
-	case stLocal:
-		strcpy(stBuf, "stLocal");
-		break;
-	case stLabel:
-		strcpy(stBuf, "stLabel");
-		break;
-	case stProc:
-		strcpy(stBuf, "stProc");
-		break;
-	case stBlock:
-		strcpy(stBuf, "stBlock");
-		break;
-	case stEnd:
-		strcpy(stBuf, "stEnd");
-		break;
-	case stMember:
-		strcpy(stBuf, "stMember");
-		break;
-	case stTypedef:
-		strcpy(stBuf, "stTypedef");
-		break;
-	case stFile:
-		strcpy(stBuf, "stFile");
-		break;
-	case stRegReloc:
-		strcpy(stBuf, "stRegReloc");
-		break;
-	case stForward:
-		strcpy(stBuf, "stForward");
-		break;
-	case stStaticProc:
-		strcpy(stBuf, "stStaticProc");
-		break;
-	case stConstant:
-		strcpy(stBuf, "stConstant");
-		break;
-	case stStaParam:
-		strcpy(stBuf, "stStaParam");
-		break;
-	case stBase:
-		strcpy(stBuf, "stBase");
-		break;
-	case stVirtBase:
-		strcpy(stBuf, "stVirtBase");
-		break;
-	case stTag:
-		strcpy(stBuf, "stTag");
-		break;
-	case stInter:
-		strcpy(stBuf, "stInter");
-		break;
-	case stSplit:
-		strcpy(stBuf, "stSplit");
-		break;
-	case stModule:
-		strcpy(stBuf, "stModule");
-		break;
-	case stModview:
-		strcpy(stBuf, "stModview");
-		break;
-	case stAlias:
-		strcpy(stBuf, "stAlias");
-		break;
-	case stStr:
-		strcpy(stBuf, "stStr");
-		break;
-	case stNumber:
-		strcpy(stBuf, "stNumber");
-		break;
-	case stExpr:
-		strcpy(stBuf, "stExpr");
-		break;
-	case stType:
-		strcpy(stBuf, "stType");
-		break;
-	default:
-		strcpy(stBuf, "Wrong st");
-		break;
+const char *ScName(int sc)
+{
+	switch (sc) {
+	case scNil:		return "scNil";
+	case scText:		return "scText";
+	case scData:		return "scData";
+	case scBss:		return "scBss";
+	case scRegister:	return "scRegister";
+	case scAbs:		return "scAbs";
+	case scUndefined:	return "scUndefined";
+	case scUnallocated:	return "scUnallocated";
+	case scBits:		return "scBits";
+	case scTlsUndefined:	return "scTlsUndefined";
+	case scRegImage:	return "scRegImage";
+	case scInfo:		return "scInfo";
+	case scUserStruct:	return "scUserStruct";
+	case scSData:		return "scSData";
+	case scSBss:		return "scSBss";
+	case scRData:		return "scRData";
+	case scVar:		return "scVar";
+	case scCommon:		return "scCommon";
+	case scSCommon:		return "scSCommon";
+	case scVarRegister:	return "scVarRegister";
+	case scVariant:		return "scVariant";
+	case scSUndefined:	return "scSUndefined";
+	case scInit:		return "scInit";
+	case scBasedVar:	return "scBasedVar";
+	case scXData:		return "scXData";
+	case scPData:		return "scPData";
+	case scFini:		return "scFini";
+	case scRConst:		return "scRConst";
+	case scSymRef:		return "scSymRef";
+	case scTlsCommon:	return "scTlsCommon";
+	case scTlsData:		return "scTlsData";
+	case scTlsBss:		return "scTlsBss";
 	}
-
-	return stBuf;
+	return "Bad Sc";
 }
-
+*/
 
 static inline bool obj_read_section(SCNHDR& secthead, LDFILE *ldptr,
 				    Word *buffer) {

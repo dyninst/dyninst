@@ -2,6 +2,7 @@
 #include <filehdr.h>
 #include <syms.h>
 #include <cmplrs/demangle_string.h>  // For native C++ (cxx) name demangling.
+#include <ctype.h>
 
 #include "BPatch.h"
 #include "BPatch_module.h"
@@ -746,9 +747,9 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 
     case btLong32:
 	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -4, BPatch_built_inType, sizeof(long));
+	    result = new BPatch_type(symbol.name.c_str(), -4, BPatch_built_inType, 4);
 	else
-	    result = new BPatch_type("long", -4, BPatch_built_inType, sizeof(long));
+	    result = new BPatch_type("long", -4, BPatch_built_inType, 4);
 	break;
 
     case btULong32:
@@ -1012,6 +1013,29 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 		}
 		break;
 
+	    case stStatic:
+		if (symbol.sym->sc == scCommon) {
+		    BPatch_image *img = (BPatch_image *)mod->getObjParent();
+		    BPatch_Vector<BPatch_field *> *fields;
+		    long baseAddr;
+
+		    typePtr = eCoffParseType(mod, symbol);
+		    baseAddr = (long)img->findVariable(symbol.name.c_str())->getBaseAddr();
+		    if (typePtr) {
+			fields = typePtr->getComponents();
+			for (unsigned int i = 0; i < fields->size(); ++i) {
+			    int offset = (*fields)[i]->getOffset() / 8;
+			    local = new BPatch_localVar((*fields)[i]->getName(),
+							(*fields)[i]->getType(),
+							-1,
+							baseAddr + offset,
+							scCommon,
+							false);
+			    fp->localVariables->addLocalVar(local);
+			}
+		    }
+		}
+
 	    case stProc:
 	    case stStaticProc:
 		if (symbol.aux->isym == indexNil) {
@@ -1037,11 +1061,14 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
 {
     int endIndex;
     BPatch_type *result, *field;
+    BPatch_dataClass dataType = BPatch_unknownType;
     bool isKnown = false, isEnum = false, isStruct = false;
 
     // Sanity checks.
-    if ( symbol.sym->st != stTag &&
-	(symbol.sym->st != stBlock && symbol.sym->sc != scInfo))
+    if (! ((symbol.sym->st == stTag) ||
+           (symbol.sym->st == stBlock && (symbol.sym->sc == scInfo ||
+                                          symbol.sym->sc == scCommon ||
+                                          symbol.sym->sc == scSCommon))))
 	return NULL;
 
     // Block already parsed.  Skip to end.
@@ -1053,7 +1080,6 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
 
     // Determine data class.
     if (symbol.sym->st == stTag) {
-	BPatch_dataClass dataType = BPatch_unknownType;
 
 	// C++ structure, union, or enumeration.
 	switch (symbol.aux->ti.bt) {
@@ -1062,19 +1088,29 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
 	case btEnum:	dataType = BPatch_enumerated; break;
 	case btClass:	dataType = BPatch_typeClass; break;
 	}
-	if (dataType != BPatch_unknownType) {
-	    result = new BPatch_type(symbol.name.c_str(), symbol.id(),
-				     dataType, symbol.sym->value);
+	if (dataType != BPatch_unknownType)
 	    isKnown = true;
-	}
+
 	++symbol;
+
+    } else if (symbol.sym->sc == scCommon ||
+               symbol.sym->sc == scSCommon) {
+
+        // Fortran common block.
+        dataType = BPatch_dataCommon;
+        isKnown = true;
+
+    } else {
+
+        // C style structure, union, or enumeration.
+        // Assume enumeration for now.
+        dataType = BPatch_enumerated;
     }
 
+    result = new BPatch_type(symbol.name.c_str(), symbol.id(),
+                             dataType, symbol.sym->value);
+
     if (!isKnown) {
-	// C style structure, union, or enumeration.
-	// Assume enumeration for now.
-	result = new BPatch_type(symbol.name.c_str(), symbol.id(),
-				 BPatch_enumerated, symbol.sym->value);
 	isEnum = true;
 	isStruct = false;
     }
@@ -1083,6 +1119,14 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
     while (symbol.index() < endIndex) {
 	string fieldName = symbol.name;
 	long fieldOffset = symbol.sym->value;
+
+        // Terrible capitalization hack (Fortran only).
+        if (dataType == BPatch_dataCommon) {
+            fieldName = "";
+            for (int i = 0; i < symbol.name.length(); ++i)
+                fieldName += string((char)tolower(symbol.name[i]));
+            symbol.name = fieldName;
+        }
 
 	if (symbol.sym->st == stMember) {
 
