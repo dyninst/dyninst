@@ -47,9 +47,13 @@
 */
 
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.81  1997/12/18 17:07:46  newhall
-/* add trace perfStreamHandle to disableData calls
+/* Revision 1.82  1998/03/03 23:40:26  wylie
+/* Revised interface to tcl for additional information display functions and
+/* modifided display/printDaemonStartInfo().
 /*
+ * Revision 1.81  1997/12/18 17:07:46  newhall
+ * add trace perfStreamHandle to disableData calls
+ *
  * Revision 1.80  1997/06/06 22:02:48  mjrg
  * Added option for manual daemon start-up
  *
@@ -1025,7 +1029,27 @@ int ParadynExitCmd (ClientData,
 
 
 int ParadynDaemonStartInfoCmd(ClientData, Tcl_Interp *, int, char **) {
-  dataMgr->printDaemonStartInfo();
+  dataMgr->displayDaemonStartInfo();
+  return TCL_OK;
+}
+
+int ParadynGeneralInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+  dataMgr->displayParadynGeneralInfo();
+  return TCL_OK;
+}
+
+int ParadynLicenseInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+  dataMgr->displayParadynLicenseInfo();
+  return TCL_OK;
+}
+
+int ParadynReleaseInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+  dataMgr->displayParadynReleaseInfo();
+  return TCL_OK;
+}
+
+int ParadynVersionInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+  dataMgr->displayParadynVersionInfo();
   return TCL_OK;
 }
 
@@ -1055,6 +1079,10 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"waUnselect", ParadynWaUnSelect},
   {"exit",ParadynExitCmd},
   {"daemonStartInfo", ParadynDaemonStartInfoCmd},
+  {"generalInfo", ParadynGeneralInfoCmd},
+  {"licenseInfo", ParadynLicenseInfoCmd},
+  {"releaseInfo", ParadynReleaseInfoCmd},
+  {"versionInfo", ParadynVersionInfoCmd},
   {NULL, NULL}
 };
 
