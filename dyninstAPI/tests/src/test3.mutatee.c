@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.2 1999/06/18 23:28:59 wylie Exp $ */
+/* $Id: test3.mutatee.c,v 1.3 1999/06/18 23:49:54 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -77,6 +77,7 @@ void test4()
 
 int main(int argc, char *argv[])
 {
+    int i;
 #ifndef i386_unknown_nt4_0
     int pfd;
 #endif
@@ -84,6 +85,9 @@ int main(int argc, char *argv[])
     int testNum;
     if ((argc!=2) || (testNum=atoi(argv[1]))==0) {
 	printf("usage: %s <num>\n", argv[0]);
+        printf("given: \"%s", argv[0]);
+        for (i=1; i<argc; i++) printf(" %s", argv[i]);
+        printf("\"\n");
 	exit(-1);
     }
 
