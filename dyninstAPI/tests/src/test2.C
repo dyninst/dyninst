@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.43 2001/02/01 16:24:44 pcroth Exp $
+// $Id: test2.C,v 1.44 2001/02/26 21:35:55 bernat Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -217,7 +217,8 @@ void test6(BPatch_thread *thread, BPatch_image *img)
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_linux2_0) \
  && !defined(mips_sgi_irix6_4) \
- && !defined(alpha_dec_osf4_0)
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(rs6000_ibm_aix4_1)
     printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
     printf("    feature not implemented on this platform\n");
     passedTest[6] = true;
@@ -233,6 +234,9 @@ void test6(BPatch_thread *thread, BPatch_image *img)
 	    char name[80];
 	    (*m)[i]->getName(name, sizeof(name));
 	    if (strcmp(name, TEST_DYNAMIC_LIB) == 0 ||
+#ifdef rs6000_ibm_aix4_1
+		strcmp(name, TEST_DYNAMIC_LIB_NOPATH) == 0 ||
+#endif
 		strcmp(name, match2) == 0) {
 		found = true;
 		break;
@@ -259,7 +263,8 @@ void test7(BPatch_thread *thread, BPatch_image *img)
 #if !defined(sparc_sun_solaris2_4) \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_linux2_0) \
- && !defined(mips_sgi_irix6_4)
+ && !defined(mips_sgi_irix6_4) \
+ && !defined(rs6000_ibm_aix4_1)
     printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     printf("    feature not implemented on this platform\n");
     passedTest[7] = true;
@@ -278,6 +283,9 @@ void test7(BPatch_thread *thread, BPatch_image *img)
 		char name[80];
 		(*m)[i]->getName(name, sizeof(name));
 		if (strcmp(name, TEST_DYNAMIC_LIB2) == 0 ||
+#ifdef rs6000_ibm_aix4_1
+		    strcmp(name, TEST_DYNAMIC_LIB2_NOPATH) == 0 ||
+#endif
 		    strcmp(name, match2) == 0) {
 		    found = true;
 		    break;
