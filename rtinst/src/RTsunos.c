@@ -20,7 +20,17 @@
 
 /************************************************************************
  * RTsunos.c: SunOs-4.1.3 specific clock functions.
-************************************************************************/
+ *
+ * $Log: RTsunos.c,v $
+ * Revision 1.3  1995/03/10 19:38:03  hollings
+ * Removed use of floating point to compute times. This speed up
+ * the timer routines by a factor of 2-3.
+ *
+ * Added DYNINSTuseGetrusage environment variable to force use of getrusage over
+ * the mmaped uarea.
+ *
+ *
+ ************************************************************************/
 
 
 
@@ -62,9 +72,7 @@
 
 static caddr_t
 DYNINSTprobeUarea(void) {
-    char*        cmd;
     kvm_t*       kd;
-    char**       args;
     struct user* u;
     struct proc* p;
 
@@ -83,14 +91,6 @@ DYNINSTprobeUarea(void) {
         return 0;
     }
 
-    kvm_getcmd(kd, p, u, &args, 0);
-    if ((cmd = (char *) strrchr(*args, '/'))) {
-        cmd++;
-    }
-    else {
-        cmd = *args;
-    }
-
     kvm_close(kd);
     return (caddr_t) (p->p_uarea);
 }
@@ -107,9 +107,13 @@ DYNINSTprobeUarea(void) {
  * else use slower system calls.
 ************************************************************************/
 
-static          int       DYNINSTmappedUarea = 0;
-static volatile unsigned* _p_1               = 0;
-static volatile unsigned* _p_2               = 0;
+/*
+ * NOTE: This could be made static, but gdb has trouble finding them if
+ *   they are static.  jkh 3/8/95
+ */
+int DYNINSTmappedUarea = 0;
+volatile unsigned* DYNINSTuareaTimeSec = 0;
+volatile unsigned* DYNINSTuareaTimeUsec = 0;
 
 static void
 DYNINSTmapUarea(void) {
@@ -118,17 +122,17 @@ DYNINSTmapUarea(void) {
     caddr_t uAddr;
     static struct user* u;
 
-    if (!(uAddr = DYNINSTprobeUarea())) {
-/*
- *  commented out to avoid dirty looks during SC94   -rbi 11/11/94
- *
- *   printf("WARNING: program compiled for wrong version of SPARC chip.\n");
- *   printf(" using getrusage for times, this may slow your program down\n");
- *   printf(" by a factor of ten or more.\n");
- *   printf("\n"); 
- *   fflush(stdout);
- */
-       return;
+    if (getenv("DYNINSTuseGetrusage")) {
+        printf("Using getrusage\n");
+        return;
+    }
+
+    uAddr = DYNINSTprobeUarea();
+    if (!uAddr) {
+	printf("WARNING: unable to map uarea, using getrusage.\n");
+	printf(" This may slow your program down quite a bit.\n");
+	fflush(stdout);
+	return;
     }
 
     if ((kmem = open("/dev/kmem", O_RDONLY, 0)) == -1) {
@@ -145,8 +149,8 @@ DYNINSTmapUarea(void) {
     u = (struct user *) ret;
     DYNINSTmappedUarea = 1;
 
-    _p_1 = (int *) &(u->u_ru.ru_utime.tv_sec);
-    _p_2 = (int *) &(u->u_ru.ru_utime.tv_usec);
+    DYNINSTuareaTimeSec = (int *) &(u->u_ru.ru_utime.tv_sec);
+    DYNINSTuareaTimeUsec = (int *) &(u->u_ru.ru_utime.tv_usec);
 }
 
 
@@ -199,10 +203,11 @@ DYNINSTgetCPUtime(void) {
 
     if (DYNINSTmappedUarea) {
 retry:
-        p1 = *_p_1;
-        tm = (p1*MILLION + *_p_2);
+        p1 = *DYNINSTuareaTimeSec;
+	/* This MUST not use float constant MILLION - jkh 2/8/95 */
+        tm = ((p1*(time64)1000000) + *DYNINSTuareaTimeUsec);
 
-        if (p1 != (*_p_1)) {
+        if (p1 != (*DYNINSTuareaTimeSec)) {
             goto retry;
         }
         return tm;
@@ -233,5 +238,5 @@ DYNINSTgetWalltime(void) {
         perror("gettimeofday");
         abort();
     }
-    return (time64) (tv.tv_sec*MILLION + tv.tv_usec);
+    return (time64) ((tv.tv_sec*(time64) 1000000) + tv.tv_usec);
 }
