@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.125 2003/04/09 20:25:05 jaw Exp $
+// $Id: mdl.C,v 1.126 2003/04/09 22:05:06 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -132,7 +132,6 @@ pdvector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
 pdvector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 pdvector<string> mdl_data::lib_constraints;
 pdvector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
-
 
 /*
 #if defined(MT_THREAD)
@@ -227,75 +226,78 @@ public:
 
   ~list_closure() { }
 
-  bool next() 
-  {
-    string s;
-    function_base *pdf; module *m;
-    pdvector<function_base *> fbv;
-
-    float f; int i;
-    instPoint *ip;
-
-    if (index >= max_index) return false;
-    switch(element_type) 
-    {
-      case MDL_T_INT:
-        i = (*int_list)[index++];
-        return (mdl_env::set(i, index_name));
-      case MDL_T_FLOAT:
-        f = (*float_list)[index++];
-        return (mdl_env::set(f, index_name));
-      case MDL_T_STRING:
-        s = (*string_list)[index++];
-        return (mdl_env::set(s, index_name));
-      case MDL_T_PROCEDURE_NAME: {
-        // lookup-up the functions defined in resource lists
-        // the function may not exist in the image, in which case we get the
-        // next one
-	pdf = NULL;
-        do 
-        {
-          functionName *fn = (*funcName_list)[index++];
-	  if (!global_proc->findAllFuncsByName(fn->get(), fbv)) {
-	    //string msg = string("unable to find procedure '") + fn->get() + string("'");
-	    //showErrorCallback(95, msg);
-	    continue;
-	  }
-	  else if (fbv.size() > 1) {
-	    string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
-	      + fn->get() + string("'") + string(".  Using the first.(1)");
-	    showErrorCallback(95, msg);
-	  }
-	  pdf = fbv[0];
-	} while (pdf == NULL && index < max_index);
-	
-        if (pdf == NULL) 
-          return false;
-
-        pdvector<function_base *> *func_buf = new pdvector<function_base*>;
-        (*func_buf).push_back(pdf);
-        return (mdl_env::set(func_buf, index_name));
+   bool next() 
+   {
+      string s;
+      function_base *pdf; module *m;
+      pdvector<function_base *> fbv;
+      
+      float f; int i;
+      instPoint *ip;
+      
+      if (index >= max_index) return false;
+      switch(element_type) 
+      {
+        case MDL_T_INT:
+           i = (*int_list)[index++];
+           return (mdl_env::set(i, index_name));
+        case MDL_T_FLOAT:
+           f = (*float_list)[index++];
+           return (mdl_env::set(f, index_name));
+        case MDL_T_STRING:
+           s = (*string_list)[index++];
+           return (mdl_env::set(s, index_name));
+        case MDL_T_PROCEDURE_NAME: {
+           // lookup-up the functions defined in resource lists
+           // the function may not exist in the image, in which case we get the
+           // next one
+           pdf = NULL;
+           do 
+           {
+              functionName *fn = (*funcName_list)[index++];
+              if (!global_proc->findAllFuncsByName(fn->get(), fbv)) {
+                 //string msg = string("unable to find procedure '") + 
+                 //             fn->get() + string("'");
+                 //showErrorCallback(95, msg);
+                 continue;
+              }
+              else if (fbv.size() > 1) {
+                 string msg = string("WARNING:  found ") + string(fbv.size()) +
+                              string(" records of function '") + fn->get() +
+                              string("'") + string(".  Using the first.(1)");
+                 //showErrorCallback(95, msg);
+                 cerr << msg << endl;
+              }
+              pdf = fbv[0];
+           } while (pdf == NULL && index < max_index);
+           
+           if (pdf == NULL) 
+              return false;
+           
+           pdvector<function_base *> *func_buf = new pdvector<function_base*>;
+           (*func_buf).push_back(pdf);
+           return (mdl_env::set(func_buf, index_name));
+        }
+        case MDL_T_PROCEDURE: {
+           pdf = (*func_list)[index++];
+           pdvector<function_base *> *func_buf = new pdvector<function_base*>;
+           (*func_buf).push_back(pdf);
+           assert(pdf);
+           return (mdl_env::set(func_buf, index_name));
+        }
+        case MDL_T_MODULE: 
+           m = (*mod_list)[index++];
+           assert (m);
+           return (mdl_env::set(m, index_name));
+        case MDL_T_POINT:
+           ip = (*point_list)[index++];
+           assert (ip);
+           return (mdl_env::set(ip, index_name));
+        default:
+           assert(0);
       }
-      case MDL_T_PROCEDURE: {
-        pdf = (*func_list)[index++];
-        pdvector<function_base *> *func_buf = new pdvector<function_base*>;
-        (*func_buf).push_back(pdf);
-        assert(pdf);
-        return (mdl_env::set(func_buf, index_name));
-      }
-      case MDL_T_MODULE: 
-        m = (*mod_list)[index++];
-        assert (m);
-        return (mdl_env::set(m, index_name));
-      case MDL_T_POINT:
-        ip = (*point_list)[index++];
-        assert (ip);
-        return (mdl_env::set(ip, index_name));
-      default:
-        assert(0);
-    }
-    return false;
-  }
+      return false;
+   }
 
 private:
   string index_name;
@@ -493,55 +495,61 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    pd_process *proc = codeNode->proc();
    function_base *pdf = NULL;
    pdvector<function_base *> fbv;
-
+   
    if(proc->multithread_ready()) {
-     if (!proc->findAllFuncsByName("_pthread_body", fbv)) {
-	string msg = string("unable to find procedure '") + string("_pthread_body") + string("'");
-	//showErrorCallback(95, msg);
-	cerr <<msg << endl;
-     }
-     else {
-       if (fbv.size() > 1) {
-	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
-	   + string("_pthread_body") + string("'") + string(".  Using the first.");
-	 //showErrorCallback(95, msg);
-	 cerr <<msg << endl;
-       }
-       pdf = fbv[0];
-     }
-
-     if(pdf)  (*start_func_buf).push_back(pdf);
-     fbv.clear();
-     pdf = NULL;
-
-    if (!proc->findAllFuncsByName("_thread_start", fbv)) {
-	string msg = string("unable to find procedure '") + string("_thread_start") + string("'");
-	//showErrorCallback(95, msg);
-	cerr <<msg << endl;;
-     }
-     else {
-       if (fbv.size() > 1) {
-	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
-	   + string("_thread_start") + string("'") + string(".  Using the first.");
-	 //showErrorCallback(95, msg);
-	 cerr <<msg << endl;;
-       }
-       pdf = fbv[0];
-     }
+      if (!proc->findAllFuncsByName("_pthread_body", fbv)) {
+         string msg = string("unable to find procedure '") + 
+                      string("_pthread_body") + string("'");
+         //showErrorCallback(95, msg);
+         cerr << msg << endl;
+      }
+      else {
+         if (fbv.size() > 1) {
+            string msg =
+               string("WARNING:  found ") + string(fbv.size()) + 
+               string(" records of function '") + string("_pthread_body") + 
+               string("'") + string(".  Using the first.");
+            //showErrorCallback(95, msg);
+            cerr << msg << endl;
+         }
+         pdf = fbv[0];
+      }
+      
+      if(pdf)  (*start_func_buf).push_back(pdf);
+      fbv.clear();
+      pdf = NULL;
+      
+      if (!proc->findAllFuncsByName("_thread_start", fbv)) {
+         string msg = string("unable to find procedure '") + 
+                      string("_thread_start") + string("'");
+         //showErrorCallback(95, msg);
+         cerr << msg << endl;;
+      }
+      else {
+         if (fbv.size() > 1) {
+            string msg = string("WARNING:  found ") + string(fbv.size()) +
+                         string(" records of function '") +
+                         string("_thread_start") + string("'") +
+                         string(".  Using the first.");
+            //showErrorCallback(95, msg);
+            cerr << msg << endl;;
+         }
+         pdf = fbv[0];
+      }
    }
    
    if (NULL != (pdf = proc->getMainFunction())) {
-     (*start_func_buf).push_back(pdf);      
+      (*start_func_buf).push_back(pdf);      
    }
    else {
-     cerr << __FILE__ << __LINE__ << "getMainFunction() returned NULL!" << endl;
+      cerr << __FILE__ << __LINE__ << "getMainFunction() returned NULL!"<<endl;
    }
 
    if (start_func_buf->size()) {
-     string vname = "$start";
-     // change this to MDL_T_LIST_PROCEDURE
-     mdl_env::add(vname, false, MDL_T_PROCEDURE);
-     mdl_env::set(start_func_buf, vname);
+      string vname = "$start";
+      // change this to MDL_T_LIST_PROCEDURE
+      mdl_env::add(vname, false, MDL_T_PROCEDURE);
+      mdl_env::set(start_func_buf, vname);
    }
    return true;
 }
@@ -555,56 +563,60 @@ static bool update_environment(pd_process *proc) {
    pdvector<function_base *> *exit_func_buf = new pdvector<function_base*>;
    pdvector<function_base *> fbv;
    function_base *pdf = NULL;
-
+   
    proc->findAllFuncsByName(string(EXIT_NAME), *exit_func_buf); // JAW 04-03
    if (exit_func_buf->size() > 1) {
-     string msg = string("WARNING:  found ") + string(exit_func_buf->size()) 
-       + string(" records of function '") 
-       + string(EXIT_NAME) + string("'") + string(".  Using the first.(2)");
-     //showErrorCallback(95, msg);
-     cerr << msg << endl;      
-     
-     // findAllFuncs found more than one function, clear all but one
-     pdf = (*exit_func_buf)[0];
-     exit_func_buf->clear();
-     exit_func_buf->push_back(pdf);
+      string msg = string("WARNING:  found ") + string(exit_func_buf->size()) +
+                   string(" records of function '") + string(EXIT_NAME) +
+                   string("'") + string(".  Using the first.(2)");
+      //showErrorCallback(95, msg);
+      cerr << msg << endl;      
+      
+      // findAllFuncs found more than one function, clear all but one
+      pdf = (*exit_func_buf)[0];
+      exit_func_buf->clear();
+      exit_func_buf->push_back(pdf);
    }
-
+   
    pdf = NULL;
    if (!proc->findAllFuncsByName("pthread_exit", fbv)) {
-	string msg = string("unable to find procedure '") + string("pthread_exit") + string("'");
-	//showErrorCallback(95, msg);
-	cerr << msg << endl;      
-     }
-     else {
-       if (fbv.size() > 1) {
-	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
-	   + string("pthread_exit") + string("'") + string(".  Using the first.");
-	 //showErrorCallback(95, msg);
-	 cerr << msg << endl;;      
-       }
-       pdf = fbv[0];
-     }
-
+      string msg = string("unable to find procedure '") + 
+                   string("pthread_exit") + string("'");
+      //showErrorCallback(95, msg);
+      cerr << msg << endl;      
+   }
+   else {
+      if (fbv.size() > 1) {
+         string msg = string("WARNING:  found ") + string(fbv.size()) +
+                      string(" records of function '") +string("pthread_exit")+
+                      string("'") + string(".  Using the first.");
+         //showErrorCallback(95, msg);
+         cerr << msg << endl;;      
+      }
+      pdf = fbv[0];
+   }
+   
    if(pdf)  (*exit_func_buf).push_back(pdf);
    fbv.clear();
    pdf = NULL;
-
-  if (!proc->findAllFuncsByName("thr_exit", fbv)) {
-	string msg = string("unable to find procedure '") + string("thr_exit") + string("'");
-	//showErrorCallback(95, msg);
-	cerr << msg << endl;;      
-     }
-     else {
-       if (fbv.size() > 1) {
-	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
-	   + string("thr_exit") + string("'") + string(".  Using the first.");
-	 //showErrorCallback(95, msg);
-	 cerr << msg << endl;      
-       }
-       pdf = fbv[0];
-     }
-
+   
+   if (!proc->findAllFuncsByName("thr_exit", fbv)) {
+      string msg = string("unable to find procedure '") + string("thr_exit") +
+                   string("'");
+      //showErrorCallback(95, msg);
+      cerr << msg << endl;;      
+   }
+   else {
+      if (fbv.size() > 1) {
+         string msg = string("WARNING:  found ") + string(fbv.size()) +
+                      string(" records of function '") + string("thr_exit") +
+                      string("'") + string(".  Using the first.");
+         //showErrorCallback(95, msg);
+         cerr << msg << endl;      
+      }
+      pdf = fbv[0];
+   }
+   
    if(pdf) (*exit_func_buf).push_back(pdf);
 
    if ((*exit_func_buf).size() > 0) { 
@@ -617,7 +629,7 @@ static bool update_environment(pd_process *proc) {
    // only get the functions that are not excluded by exclude_lib or 
    // exclude_func
    mdl_env::set(proc->getIncludedFunctions(), vname);
-
+   
    vname = "$modules";
    mdl_env::add(vname, false, MDL_T_LIST_MODULE);
    // only get functions that are not excluded by exclude_lib or exclude_func
@@ -1054,99 +1066,100 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 static bool do_trailing_resources(const pdvector<string>& resource_,
 				  pd_process *proc)
 {
-  pdvector<string>  resPath;
+   pdvector<string>  resPath;
 
-  for(unsigned pLen = 0; pLen < resource_.size(); pLen++) {
-    string   caStr = string("$constraint") + 
-                     string(resource_.size()-pLen-1);
-    string   trailingRes = resource_[pLen];
-    resPath += resource_[pLen];
-    assert(resPath.size() == (pLen+1));
-
-    resource *r = resource::findResource(resPath);
-    if (!r) assert(0);
-
-    switch (r->type()) {
-    case MDL_T_INT: {
-      const char* p = trailingRes.c_str();
-      char*       q = NULL;
-      int         val = (int) strtol(p, &q, 0);
-
-      if (p == q) {
-	string msg = string("unable to convert resource '") + trailingRes + 
-                     string("' to integer.");
-	showErrorCallback(92,msg.c_str());
-	return(false);
+   for(unsigned pLen = 0; pLen < resource_.size(); pLen++) {
+      string   caStr = string("$constraint") + 
+                       string(resource_.size()-pLen-1);
+      string   trailingRes = resource_[pLen];
+      resPath += resource_[pLen];
+      assert(resPath.size() == (pLen+1));
+      
+      resource *r = resource::findResource(resPath);
+      if (!r) assert(0);
+      
+      switch (r->type()) {
+        case MDL_T_INT: {
+           const char* p = trailingRes.c_str();
+           char*       q = NULL;
+           int         val = (int) strtol(p, &q, 0);
+           
+           if (p == q) {
+              string msg = string("unable to convert resource '") +
+                           trailingRes + string("' to integer.");
+              showErrorCallback(92,msg.c_str());
+              return(false);
+           }
+           mdl_env::add(caStr, false, MDL_T_INT);
+           mdl_env::set(val, caStr);
+           break;
+        }
+        case MDL_T_STRING:
+           mdl_env::add(caStr, false, MDL_T_STRING);
+           mdl_env::set(trailingRes, caStr);
+           break;
+        case MDL_T_PROCEDURE: {
+           // find the resource corresponding to this function's module 
+           pdvector<string> m_vec;
+           for(u_int i=0; i < resPath.size()-1; i++){
+              m_vec += resPath[i];
+           }
+           assert(m_vec.size());
+           assert(m_vec.size() == (resPath.size()-1));
+           resource *m_resource = resource::findResource(m_vec);
+           if(!m_resource) {
+              return(false);
+           }
+           
+           function_base *pdf = proc->findOnlyOneFunction(r, m_resource);
+           if (NULL == pdf) {
+              const pdvector<string> &f_names = r->names();
+              const pdvector<string> &m_names = m_resource->names();
+              string func_name = f_names[f_names.size() -1]; 
+              string mod_name = m_names[m_names.size() -1]; 
+              
+              string msg = string("For requested metric-focus, ") +
+                           string("unable to find only one function ") +
+                           func_name;
+              showErrorCallback(95, msg);
+              return false;
+           }
+           pdvector<function_base *> *func_buf = new pdvector<function_base*>;
+           (*func_buf).push_back(pdf);
+           
+           mdl_env::add(caStr, false, MDL_T_PROCEDURE);
+           mdl_env::set(func_buf, caStr);
+           break;
+        }
+        case MDL_T_MODULE: {
+           module *mod = proc->findModule(trailingRes, true);
+           if (!mod) {
+              string msg = string("For requested metric-focus, ") + 
+                 string("unable to find module ") + trailingRes;
+              showErrorCallback(95, msg);
+              
+              /*
+                image *img = proc->getImage();
+                pdvector<pdmodule *> mods = img->getExcludedModules();
+                for(unsigned i=0; i<mods.size(); i++) {
+                cerr << "  i: " << i << ", filenm: " << mods[i]->fileName()
+                << ", fullnm: " << mods[i]->fullName() << "\n";
+                }
+              */
+              return(false);
+           }
+           mdl_env::add(caStr, false, MDL_T_MODULE);
+           mdl_env::set(mod, caStr);
+           break;
+        }
+        case MDL_T_MEMORY:
+           break ;
+        default:
+           assert(0);
+           break;
       }
-      mdl_env::add(caStr, false, MDL_T_INT);
-      mdl_env::set(val, caStr);
-      break;
-    }
-    case MDL_T_STRING:
-      mdl_env::add(caStr, false, MDL_T_STRING);
-      mdl_env::set(trailingRes, caStr);
-      break;
-    case MDL_T_PROCEDURE: {
-      // find the resource corresponding to this function's module 
-      pdvector<string> m_vec;
-      for(u_int i=0; i < resPath.size()-1; i++){
-	m_vec += resPath[i];
-      }
-      assert(m_vec.size());
-      assert(m_vec.size() == (resPath.size()-1));
-      resource *m_resource = resource::findResource(m_vec);
-      if(!m_resource) {
-	return(false);
-      }
-
-      function_base *pdf = proc->findOnlyOneFunction(r, m_resource);
-      if (NULL == pdf) {
-         const pdvector<string> &f_names = r->names();
-         const pdvector<string> &m_names = m_resource->names();
-         string func_name = f_names[f_names.size() -1]; 
-         string mod_name = m_names[m_names.size() -1]; 
-
-         string msg = string("For requested metric-focus, ") +
-                      string("unable to find only one function ") + func_name;
-	showErrorCallback(95, msg);
-	return false;
-      }
-      pdvector<function_base *> *func_buf = new pdvector<function_base*>;
-      (*func_buf).push_back(pdf);
-  
-      mdl_env::add(caStr, false, MDL_T_PROCEDURE);
-      mdl_env::set(func_buf, caStr);
-      break;
-    }
-    case MDL_T_MODULE: {
-      module *mod = proc->findModule(trailingRes, true);
-      if (!mod) {
-         string msg = string("For requested metric-focus, ") + 
-                      string("unable to find module ") + trailingRes;
-         showErrorCallback(95, msg);
-
-         /*
-         image *img = proc->getImage();
-         pdvector<pdmodule *> mods = img->getExcludedModules();
-         for(unsigned i=0; i<mods.size(); i++) {
-            cerr << "  i: " << i << ", filenm: " << mods[i]->fileName()
-                 << ", fullnm: " << mods[i]->fullName() << "\n";
-         }
-         */
-         return(false);
-      }
-      mdl_env::add(caStr, false, MDL_T_MODULE);
-      mdl_env::set(mod, caStr);
-      break;
-    }
-    case MDL_T_MEMORY:
-      break ;
-    default:
-      assert(0);
-      break;
-    }
-  }
-  return(true);
+   }
+   return(true);
 }
 
 // Flag constraints need to return a handle to a data request node -- the flag
@@ -1420,624 +1433,632 @@ T_dyninstRPC::mdl_v_expr::~mdl_v_expr()
 
 bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
 {
-  switch (type_) 
-  {
-    case MDL_EXPR_INT: 
-    {
-      ast = new AstNode(AstNode::Constant, (void*)int_literal_);
-      return true;
-    }
-    case MDL_EXPR_STRING:
-    {
-        // create another string here and pass it to AstNode(), instead
-        // of using str_literal_.c_str() directly, just to get rid
-        // of the compiler warning of "cast discards const". --chun
-        //
-        char* tmp_str = new char[strlen(str_literal_.c_str())+1];
-        strcpy (tmp_str, str_literal_.c_str());
-        ast = new AstNode(AstNode::ConstantString, tmp_str);
-        delete[] tmp_str;
-        return true;
-    }
-    case MDL_EXPR_INDEX:
-    {
-      mdl_var index_var;
-      if (!left_->apply (index_var))
-        return false;
-      int index_value;
-      if (!index_var.get(index_value))
-        return false;
-
-      if (var_ == string ("$arg"))
-        ast = new AstNode (AstNode::Param, (void*)index_value);
-      else if (var_ == string ("$constraint"))
-      {
-        string tmp = string("$constraint") + string(index_value);
-        mdl_var int_var;
-        assert (mdl_env::get(int_var, tmp));
-        int value;
-        if (!int_var.get(value))
+   switch (type_) 
+   {
+     case MDL_EXPR_INT: 
         {
-            fflush(stderr);
-            return false;
+           ast = new AstNode(AstNode::Constant, (void*)int_literal_);
+           return true;
         }
-        ast = new AstNode(AstNode::Constant, (void*)value);
-      }
-      else
-      {
-        mdl_var array_var;
-        if (!mdl_env::get(array_var, var_)) return false;
-        if (!array_var.is_list()) return false;  
-        mdl_var element;
-        assert (array_var.get_ith_element(element, index_value));
-        switch (element.get_type())
+     case MDL_EXPR_STRING:
         {
-          case MDL_T_INT:
-          {
-            int value;
-            assert (element.get(value));
-            ast = new AstNode(AstNode::Constant, (void*)value);
-            break;
-          }
-          case MDL_T_STRING:
-          {
-            string value;
-            assert (element.get(value));
-            //
-            // create another string here and pass it to AstNode(), instead
-            // of using value.c_str() directly, just to get rid of the 
-            // compiler warning of "cast discards const".  --chun
-            //
-            char* tmp_str = new char[strlen(value.c_str())+1];
-            strcpy (tmp_str, value.c_str());
-            ast = new AstNode(AstNode::ConstantString, tmp_str);
-            delete[] tmp_str;
+           // create another string here and pass it to AstNode(), instead
+           // of using str_literal_.c_str() directly, just to get rid
+           // of the compiler warning of "cast discards const". --chun
+           //
+           char* tmp_str = new char[strlen(str_literal_.c_str())+1];
+           strcpy (tmp_str, str_literal_.c_str());
+           ast = new AstNode(AstNode::ConstantString, tmp_str);
+           delete[] tmp_str;
+           return true;
+        }
+     case MDL_EXPR_INDEX:
+        {
+           mdl_var index_var;
+           if (!left_->apply (index_var))
+              return false;
+           int index_value;
+           if (!index_var.get(index_value))
+              return false;
 
-            break;
-          }
+           if (var_ == string ("$arg"))
+              ast = new AstNode (AstNode::Param, (void*)index_value);
+           else if (var_ == string ("$constraint"))
+           {
+              string tmp = string("$constraint") + string(index_value);
+              mdl_var int_var;
+              assert (mdl_env::get(int_var, tmp));
+              int value;
+              if (!int_var.get(value))
+              {
+                 fflush(stderr);
+                 return false;
+              }
+              ast = new AstNode(AstNode::Constant, (void*)value);
+           }
+           else
+           {
+              mdl_var array_var;
+              if (!mdl_env::get(array_var, var_)) return false;
+              if (!array_var.is_list()) return false;  
+              mdl_var element;
+              assert (array_var.get_ith_element(element, index_value));
+              switch (element.get_type())
+              {
+                case MDL_T_INT:
+                   {
+                      int value;
+                      assert (element.get(value));
+                      ast = new AstNode(AstNode::Constant, (void*)value);
+                      break;
+                   }
+                case MDL_T_STRING:
+                   {
+                      string value;
+                      assert (element.get(value));
+                      //
+                      // create another string here and pass it to AstNode(), instead
+                      // of using value.c_str() directly, just to get rid of the 
+                      // compiler warning of "cast discards const".  --chun
+                      //
+                      char* tmp_str = new char[strlen(value.c_str())+1];
+                      strcpy (tmp_str, value.c_str());
+                      ast = new AstNode(AstNode::ConstantString, tmp_str);
+                      delete[] tmp_str;
+
+                      break;
+                   }
+                default: return false;
+              }
+           }
+           return true;
+        }
+     case MDL_EXPR_BINOP:
+        {
+           AstNode* lnode;
+           AstNode* rnode;
+           if (!left_->apply (lnode)) return false;
+           if (!right_->apply (rnode)) return false;
+           switch (bin_op_) 
+           {
+             case MDL_PLUS:
+                ast = new AstNode(plusOp, lnode, rnode);
+                break;
+             case MDL_MINUS:
+                ast = new AstNode(minusOp, lnode, rnode);
+                break;
+             case MDL_DIV:
+                ast = new AstNode(divOp, lnode, rnode);
+                break;
+             case MDL_MULT:
+                ast = new AstNode(timesOp, lnode, rnode);
+                break;
+             case MDL_LT:
+                ast = new AstNode(lessOp, lnode, rnode);
+                break;
+             case MDL_GT:
+                ast = new AstNode(greaterOp, lnode, rnode);
+                break;
+             case MDL_LE:
+                ast = new AstNode(leOp, lnode, rnode);
+                break;
+             case MDL_GE:
+                ast = new AstNode(geOp, lnode, rnode);
+                break;
+             case MDL_EQ:
+                ast = new AstNode(eqOp, lnode, rnode);
+                break;
+             case MDL_NE:
+                ast = new AstNode(neOp, lnode, rnode);
+                break;
+             case MDL_AND:
+                ast = new AstNode(andOp, lnode, rnode);
+                break;
+             case MDL_OR:
+                ast = new AstNode(orOp, lnode, rnode);
+                break;
+             default: return false;
+           }
+           return true;
+        }
+     case MDL_EXPR_FUNC:
+        {
+           if (var_ == "startWallTimer" || var_ == "stopWallTimer"
+#if defined(MT_THREAD)
+               || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
+               || var_ == "startProcessTimer_lwp" || var_ == "destroyProcessTimer")
+#else
+              || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
+#endif
+           {
+              if (!args_) return false;
+              unsigned size = args_->size();
+              if (size != 1) return false;
+
+              mdl_var timer(false);
+              instrDataNode* dn;
+              if (!(*args_)[0]->apply(timer)) return false;
+              if (!timer.get(dn)) return false;
+
+              string timer_func;
+              if (var_ == "startWallTimer")
+                 timer_func = START_WALL_TIMER;
+              else if (var_ == "stopWallTimer")
+                 timer_func = STOP_WALL_TIMER;
+              else if (var_ == "startProcessTimer")
+                 timer_func = START_PROC_TIMER;
+              else if (var_ == "stopProcessTimer")
+                 timer_func = STOP_PROC_TIMER;
+#if defined(MT_THREAD)
+              else if (var_ == "startProcessTimer_lwp")
+                 timer_func = START_PROC_TIMER_LWP;
+              else if (var_ == "destroyProcessTimer")
+                 timer_func = DESTROY_PROC_TIMER;
+#endif
+              pdvector<AstNode *> ast_args;
+              ast = createTimer(timer_func, (void*)(dn->getInferiorPtr()),
+                                ast_args);
+           }
+           else if (var_ == "sampleHwCounter" || var_ == "startHwTimer" || var_ == "stopHwTimer") {
+
+              if (!args_) return false;
+              unsigned size = args_->size();
+              if (size != 1) return false;
+
+              mdl_var timer(false);
+              instrDataNode* dn;
+              if (!(*args_)[0]->apply(timer)) return false;
+              if (!timer.get(dn)) return false;
+
+              string timer_func;
+ 
+              if (var_ == "startHwTimer")
+                 timer_func = "DYNINSTstartHwTimer";
+              else if (var_ == "stopHwTimer")
+                 timer_func = "DYNINSTstopHwTimer";
+              else if (var_ == "sampleHwCounter")
+                 timer_func = "DYNINSTsampleHwCounter";
+
+              pdvector<AstNode *> ast_args;
+
+              /* hwCounter can be treated the same way as a hwTimer because
+                 both types need to invoke a DYNINST* method 
+              */
+
+              HwEvent* hw = dn->getHwEvent();
+              assert(hw != NULL);
+              int hwCntrIndex = hw->getIndex();  /* temp */
+
+              ast = createHwTimer(timer_func, (void*)(dn->getInferiorPtr()),
+                                  ast_args, hwCntrIndex);
+
+           }
+      
+           else if (var_ == "readSymbol")
+           {
+              mdl_var symbol_var;
+              if (!(*args_)[0]->apply(symbol_var))
+                 return false;
+              string symbol_name;
+              if (!symbol_var.get(symbol_name))
+              {
+                 fprintf (stderr, "Unable to get symbol name for readSymbol()\n");
+                 fflush(stderr);
+                 return false;
+              }
+
+              // relying on global_proc to be set in mdl_metric::apply
+              if (global_proc) 
+              {
+                 Symbol info;
+                 Address baseAddr;
+                 if (global_proc->getSymbolInfo(symbol_name, info, baseAddr)) 
+                 {
+                    Address adr = info.addr();
+                    ast = new AstNode(AstNode::DataAddr, (void*)adr);
+                 } 
+                 else 
+                 {
+                    string msg = string("In metric '") + currentMetric + string("': ")
+                       + string("unable to find symbol '") + symbol_name + string("'");
+                    showErrorCallback(95, msg);
+                    return false;
+                 }
+              }
+           }
+           else if (var_ == "readAddress")
+           {
+              mdl_var addr_var;
+              if (!(*args_)[0]->apply (addr_var))
+                 return false;
+              int addr;
+              if (!addr_var.get(addr))
+              {
+                 fflush(stderr);
+                 return false;
+              }
+              ast = new AstNode(AstNode::DataAddr, (void*)addr);
+           }
+           else
+           {
+              pdvector<AstNode *> astargs;
+              for (unsigned u = 0; u < args_->size(); u++) 
+              {
+                 AstNode *tmparg=NULL;
+                 if (!(*args_)[u]->apply(tmparg)) 
+                 {
+                    removeAst(tmparg);
+                    return false;
+                 }
+                 astargs += assignAst(tmparg);
+                 removeAst(tmparg);
+              }
+
+              pdvector<function_base *> fbv;
+              function_base *pdf = NULL;
+
+              if (!global_proc->findAllFuncsByName(var_, fbv)) {
+                 string msg = string("In metric '") + currentMetric + string("': ")
+                    + string("unable to find procedure '") + var_ + string("'");
+                 //showErrorCallback(95, msg);
+                 cerr << msg;
+                 return false;
+              }
+              else {
+                 if (fbv.size() > 1) {
+                    string msg = 
+                       string("WARNING:  found ") + string(fbv.size()) +
+                       string(" records of function '") + var_ + string("'") +
+                       string(".  Using the first.(3)");
+                    //showErrorCallback(95, msg);
+                    cerr << msg;
+                 }
+                 pdf = fbv[0];
+              }
+
+              if (!pdf) 
+              {
+                 string msg = string("In metric '") + currentMetric + string("': ")
+                    + string("unable to find procedure '") + var_ + string("'");
+                 //showErrorCallback(95, msg);
+                 cerr << msg;
+                 return false;
+              }
+              ast = new AstNode(var_, astargs); //Cannot use simple assignment here!
+              for (unsigned i=0;i<astargs.size();i++)
+                 removeAst(astargs[i]);
+              break;
+           }
+        return true;
+   }
+  case MDL_EXPR_DOT:
+     {
+        //??? only allow left hand of DOT to be "$constraint[i]"?
+
+        mdl_var dot_var;
+        if (!left_->apply(dot_var))
+        {
+           fprintf (stderr, "Invalid expression on the left of DOT.\n");
+           fflush(stderr);
+           return false;
+        }
+        return true;
+     }
+  case MDL_EXPR_ASSIGN:
+     {
+        mdl_var get_dn;
+        instrDataNode* dn;
+        if (!mdl_env::get(get_dn, var_)) return false;
+        if (!get_dn.get(dn)) return false;
+        AstNode* ast_arg;
+        if (!left_->apply(ast_arg)) return false;
+
+        string func_str;
+        switch (bin_op_)
+        {
+          case MDL_ASSIGN: func_str = "setCounter"; break;
+          case MDL_PLUSASSIGN: func_str = "addCounter"; break;
+          case MDL_MINUSASSIGN: func_str = "subCounter"; break;
           default: return false;
         }
-      }
-      return true;
-    }
-    case MDL_EXPR_BINOP:
-    {
-      AstNode* lnode;
-      AstNode* rnode;
-      if (!left_->apply (lnode)) return false;
-      if (!right_->apply (rnode)) return false;
-      switch (bin_op_) 
-      {
-        case MDL_PLUS:
-          ast = new AstNode(plusOp, lnode, rnode);
-          break;
-        case MDL_MINUS:
-          ast = new AstNode(minusOp, lnode, rnode);
-          break;
-        case MDL_DIV:
-          ast = new AstNode(divOp, lnode, rnode);
-          break;
-        case MDL_MULT:
-          ast = new AstNode(timesOp, lnode, rnode);
-          break;
-        case MDL_LT:
-          ast = new AstNode(lessOp, lnode, rnode);
-          break;
-        case MDL_GT:
-          ast = new AstNode(greaterOp, lnode, rnode);
-          break;
-        case MDL_LE:
-          ast = new AstNode(leOp, lnode, rnode);
-          break;
-        case MDL_GE:
-          ast = new AstNode(geOp, lnode, rnode);
-          break;
-        case MDL_EQ:
-          ast = new AstNode(eqOp, lnode, rnode);
-          break;
-        case MDL_NE:
-          ast = new AstNode(neOp, lnode, rnode);
-          break;
-        case MDL_AND:
-          ast = new AstNode(andOp, lnode, rnode);
-          break;
-        case MDL_OR:
-          ast = new AstNode(orOp, lnode, rnode);
-          break;
-        default: return false;
-      }
-      return true;
-    }
-    case MDL_EXPR_FUNC:
-    {
-      if (var_ == "startWallTimer" || var_ == "stopWallTimer"
-#if defined(MT_THREAD)
-      || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
-      || var_ == "startProcessTimer_lwp" || var_ == "destroyProcessTimer")
-#else
-      || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
-#endif
-      {
-        if (!args_) return false;
-        unsigned size = args_->size();
-        if (size != 1) return false;
-
-        mdl_var timer(false);
-        instrDataNode* dn;
-        if (!(*args_)[0]->apply(timer)) return false;
-        if (!timer.get(dn)) return false;
-
-        string timer_func;
-        if (var_ == "startWallTimer")
-          timer_func = START_WALL_TIMER;
-        else if (var_ == "stopWallTimer")
-          timer_func = STOP_WALL_TIMER;
-        else if (var_ == "startProcessTimer")
-          timer_func = START_PROC_TIMER;
-        else if (var_ == "stopProcessTimer")
-          timer_func = STOP_PROC_TIMER;
-#if defined(MT_THREAD)
-        else if (var_ == "startProcessTimer_lwp")
-          timer_func = START_PROC_TIMER_LWP;
-	else if (var_ == "destroyProcessTimer")
-	  timer_func = DESTROY_PROC_TIMER;
-#endif
-        pdvector<AstNode *> ast_args;
-        ast = createTimer(timer_func, (void*)(dn->getInferiorPtr()),
-			  ast_args);
-      }
-      else if (var_ == "sampleHwCounter" || var_ == "startHwTimer" || var_ == "stopHwTimer") {
-
-        if (!args_) return false;
-        unsigned size = args_->size();
-        if (size != 1) return false;
-
-        mdl_var timer(false);
-	instrDataNode* dn;
-        if (!(*args_)[0]->apply(timer)) return false;
-        if (!timer.get(dn)) return false;
-
-        string timer_func;
- 
-        if (var_ == "startHwTimer")
-          timer_func = "DYNINSTstartHwTimer";
-        else if (var_ == "stopHwTimer")
-          timer_func = "DYNINSTstopHwTimer";
-        else if (var_ == "sampleHwCounter")
-          timer_func = "DYNINSTsampleHwCounter";
-
-        pdvector<AstNode *> ast_args;
-
-        /* hwCounter can be treated the same way as a hwTimer because
-           both types need to invoke a DYNINST* method 
-         */
-
-        HwEvent* hw = dn->getHwEvent();
-        assert(hw != NULL);
-        int hwCntrIndex = hw->getIndex();  /* temp */
-
-        ast = createHwTimer(timer_func, (void*)(dn->getInferiorPtr()),
-			  ast_args, hwCntrIndex);
-
-      }
-      
-      else if (var_ == "readSymbol")
-      {
-        mdl_var symbol_var;
-        if (!(*args_)[0]->apply(symbol_var))
-          return false;
-        string symbol_name;
-        if (!symbol_var.get(symbol_name))
-        {
-          fprintf (stderr, "Unable to get symbol name for readSymbol()\n");
-          fflush(stderr);
-          return false;
-        }
-
-        // relying on global_proc to be set in mdl_metric::apply
-        if (global_proc) 
-        {
-          Symbol info;
-          Address baseAddr;
-          if (global_proc->getSymbolInfo(symbol_name, info, baseAddr)) 
-          {
-            Address adr = info.addr();
-            ast = new AstNode(AstNode::DataAddr, (void*)adr);
-          } 
-          else 
-          {
-            string msg = string("In metric '") + currentMetric + string("': ")
-              + string("unable to find symbol '") + symbol_name + string("'");
-            showErrorCallback(95, msg);
-            return false;
-          }
-        }
-      }
-      else if (var_ == "readAddress")
-      {
-        mdl_var addr_var;
-        if (!(*args_)[0]->apply (addr_var))
-          return false;
-        int addr;
-        if (!addr_var.get(addr))
-        {
-          fflush(stderr);
-          return false;
-        }
-        ast = new AstNode(AstNode::DataAddr, (void*)addr);
-      }
-      else
-      {
-        pdvector<AstNode *> astargs;
-        for (unsigned u = 0; u < args_->size(); u++) 
-        {
-          AstNode *tmparg=NULL;
-          if (!(*args_)[u]->apply(tmparg)) 
-          {
-            removeAst(tmparg);
-            return false;
-          }
-          astargs += assignAst(tmparg);
-          removeAst(tmparg);
-        }
-
-	pdvector<function_base *> fbv;
-	function_base *pdf = NULL;
-	if (!global_proc->findAllFuncsByName(var_, fbv)) {
-	  string msg = string("In metric '") + currentMetric + string("': ")
-            + string("unable to find procedure '") + var_ + string("'");
-	  //showErrorCallback(95, msg);
-	  cerr << msg;
-	  return false;
-	}
-	else {
-	  if (fbv.size() > 1) {
-	    string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
-	      + var_ + string("'") + string(".  Using the first.(3)");
-	    //showErrorCallback(95, msg);
-	    cerr << msg;
-	  }
-	  pdf = fbv[0];
-	}
-
-	if (!pdf) 
-	  {
-          string msg = string("In metric '") + currentMetric + string("': ")
-            + string("unable to find procedure '") + var_ + string("'");
-          //showErrorCallback(95, msg);
-	  cerr << msg;
-          return false;
-        }
-        ast = new AstNode(var_, astargs); //Cannot use simple assignment here!
-        for (unsigned i=0;i<astargs.size();i++)
-          removeAst(astargs[i]);
-        break;
-      }
-      return true;
-    }
-    case MDL_EXPR_DOT:
-    {
-      //??? only allow left hand of DOT to be "$constraint[i]"?
-
-      mdl_var dot_var;
-      if (!left_->apply(dot_var))
-      {
-        fprintf (stderr, "Invalid expression on the left of DOT.\n");
-        fflush(stderr);
-        return false;
-      }
-      return true;
-    }
-    case MDL_EXPR_ASSIGN:
-    {
-      mdl_var get_dn;
-      instrDataNode* dn;
-      if (!mdl_env::get(get_dn, var_)) return false;
-      if (!get_dn.get(dn)) return false;
-      AstNode* ast_arg;
-      if (!left_->apply(ast_arg)) return false;
-
-      string func_str;
-      switch (bin_op_)
-      {
-        case MDL_ASSIGN: func_str = "setCounter"; break;
-        case MDL_PLUSASSIGN: func_str = "addCounter"; break;
-        case MDL_MINUSASSIGN: func_str = "subCounter"; break;
-        default: return false;
-      }
-      ast = createCounter(func_str, 
-        (void*)(dn->getInferiorPtr()), ast_arg);
-      removeAst (ast_arg);
-      return true;
-    }
-    case MDL_EXPR_VAR:
-    {
-      if (var_ == "$return") {
-        ast = new AstNode(AstNode::ReturnVal, (void*)0);
+        ast = createCounter(func_str, 
+                            (void*)(dn->getInferiorPtr()), ast_arg);
+        removeAst (ast_arg);
         return true;
-      }
-      mdl_var get_dn;
-      assert (mdl_env::get(get_dn, var_));
-      switch (get_dn.type())
-      {
-        case MDL_T_INT:
-        {
-          int value;
-          if (!get_dn.get(value)) 
-          {
-            fprintf(stderr, "Unable to get value for %s\n", var_.c_str());
-            fflush(stderr);
-            return false;
-          }
-          else 
-            ast = new AstNode(AstNode::Constant, (void*)value);
-          return true;
+     }
+  case MDL_EXPR_VAR:
+     {
+        if (var_ == "$return") {
+           ast = new AstNode(AstNode::ReturnVal, (void*)0);
+           return true;
         }
-        //case MDL_T_COUNTER:
-        case MDL_T_DATANODE:
+        mdl_var get_dn;
+        assert (mdl_env::get(get_dn, var_));
+        switch (get_dn.type())
         {
-          instrDataNode* dn;
-          if (!get_dn.get(dn))
-          {
-            fprintf(stderr, "Unable to get value for %s\n", var_.c_str());
-            fflush(stderr);
-            return false;
-          }
+          case MDL_T_INT:
+             {
+                int value;
+                if (!get_dn.get(value)) 
+                {
+                   fprintf(stderr, "Unable to get value for %s\n", var_.c_str());
+                   fflush(stderr);
+                   return false;
+                }
+                else 
+                   ast = new AstNode(AstNode::Constant, (void*)value);
+                return true;
+             }
+             //case MDL_T_COUNTER:
+          case MDL_T_DATANODE:
+             {
+                instrDataNode* dn;
+                if (!get_dn.get(dn))
+                {
+                   fprintf(stderr, "Unable to get value for %s\n", var_.c_str());
+                   fflush(stderr);
+                   return false;
+                }
 #if defined(MT_THREAD)
-          AstNode *tmp_ast;
-          tmp_ast = getCounterAddress((void *)(dn->getInferiorPtr()), dn->getSize());
-          // First we get the address, and now we get the value...
-          ast = new AstNode(AstNode::DataIndir,tmp_ast);
-          removeAst(tmp_ast);
+                AstNode *tmp_ast;
+                tmp_ast = getCounterAddress((void *)(dn->getInferiorPtr()), dn->getSize());
+                // First we get the address, and now we get the value...
+                ast = new AstNode(AstNode::DataIndir,tmp_ast);
+                removeAst(tmp_ast);
 #else
-       // ast = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
-	  ast = new AstNode(AstNode::DataAddr,
-                    (void*)(dn->getInferiorPtr()));
+                // ast = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
+                ast = new AstNode(AstNode::DataAddr,
+                                  (void*)(dn->getInferiorPtr()));
 #endif
-          return true;
+                return true;
+             }
+          default:
+             fprintf(stderr, "type of variable %s is not known\n", 
+                     var_.c_str());
+             fflush(stderr);
+             return false;
         }
-        default:
-          fprintf(stderr, "type of variable %s is not known\n", 
-            var_.c_str());
-          fflush(stderr);
-          return false;
-      }
-    }
-    case MDL_EXPR_PREUOP:
-    {
-      switch (u_op_)
-      {
-        case MDL_ADDRESS:
+     }
+  case MDL_EXPR_PREUOP:
+     {
+        switch (u_op_)
         {
-          mdl_var get_dn;
-          if (!left_->apply(get_dn))
-          {
-            string msg = string("In metric '") + currentMetric 
-              + string("' : ") + string("error in operand of address operator");
-            showErrorCallback(92, msg);
-            return false;
-          }
-          instrDataNode *dn;
-          assert (get_dn.get(dn));
-  #if defined(MT_THREAD)
-          ast = getTimerAddress((void *)(dn->getInferiorPtr()), dn->getSize());
-  #else
-          // ast = new AstNode(AstNode::Constant,  // was AstNode::DataPtr
-          ast = new AstNode(AstNode::DataPtr,  // restore AstNode::DataPtr
-			    (void*)(dn->getInferiorPtr()));
-  #endif
-          break;
+          case MDL_ADDRESS:
+             {
+                mdl_var get_dn;
+                if (!left_->apply(get_dn))
+                {
+                   string msg = string("In metric '") + currentMetric 
+                      + string("' : ") + string("error in operand of address operator");
+                   showErrorCallback(92, msg);
+                   return false;
+                }
+                instrDataNode *dn;
+                assert (get_dn.get(dn));
+#if defined(MT_THREAD)
+                ast = getTimerAddress((void *)(dn->getInferiorPtr()), dn->getSize());
+#else
+                // ast = new AstNode(AstNode::Constant,  // was AstNode::DataPtr
+                ast = new AstNode(AstNode::DataPtr,  // restore AstNode::DataPtr
+                                  (void*)(dn->getInferiorPtr()));
+#endif
+                break;
+             }
+          case MDL_MINUS:
+             {
+                mdl_var tmp;
+                if (!left_->apply (tmp)) return false;
+                int value;
+                if (!tmp.get(value)) return false;
+                ast = new AstNode(AstNode::Constant, (void*)(-value));
+                break;
+             }
+          default:
+             return false;
         }
-        case MDL_MINUS:
+        return true;
+     }
+  case MDL_EXPR_POSTUOP:
+     {
+        switch (u_op_)
         {
-          mdl_var tmp;
-          if (!left_->apply (tmp)) return false;
-          int value;
-          if (!tmp.get(value)) return false;
-          ast = new AstNode(AstNode::Constant, (void*)(-value));
-          break;
-        }
-        default:
-          return false;
-      }
-      return true;
-    }
-    case MDL_EXPR_POSTUOP:
-    {
-      switch (u_op_)
-      {
-        case MDL_PLUSPLUS:
-        {
-          instrDataNode* dn;
-          mdl_var dn_var;
-          if (!left_->apply(dn_var)) return false;
-          if (!dn_var.get(dn)) return false;
+          case MDL_PLUSPLUS:
+             {
+                instrDataNode* dn;
+                mdl_var dn_var;
+                if (!left_->apply(dn_var)) return false;
+                if (!dn_var.get(dn)) return false;
 
-          int value = 1;
-          AstNode* ast_arg = new AstNode(AstNode::Constant, (void*)value);
+                int value = 1;
+                AstNode* ast_arg = new AstNode(AstNode::Constant, (void*)value);
 
-          ast = createCounter("addCounter", 
-            (void*)(dn->getInferiorPtr()), ast_arg);
-          removeAst(ast_arg);       
-          break;
+                ast = createCounter("addCounter", 
+                                    (void*)(dn->getInferiorPtr()), ast_arg);
+                removeAst(ast_arg);       
+                break;
+             }
+          default: return false;
         }
-        default: return false;
-      }
-      return true;
-    }
-    default:
-      return false;
-  }
-  return true;
+        return true;
+     }
+  default:
+     return false;
+}
+return true;
 }
 
 bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) 
 {
-  switch (type_) 
-  {
-    case MDL_EXPR_INT: 
-      return (ret.set(int_literal_));
-    case MDL_EXPR_STRING:
-      return (ret.set(str_literal_));
-    case MDL_EXPR_INDEX:
-    {
-      if (var_ == string ("$arg"))
-      {
-        // we only allow $arg to appear inside icode (is this right?),
-        // and therefore, the other mdl_v_expr::apply() should be used for
-        // $arg, and not this one. --chun
-        assert (0);
-      }
-      if (var_ == string ("$constraint"))
-      {
-        mdl_var ndx(false);
-        if (!left_->apply(ndx)) return false;
-        int x;
-        if (!ndx.get(x)) return false;
-        return (mdl_env::get(ret, var_+string(x)));
-      }
-      mdl_var array(false);
-      if (!mdl_env::get(array, var_)) return false;
-      if (!array.is_list()) return false;  
-      mdl_var index_var;
-      if (!left_->apply(index_var)) return false;
-      int index_value;
-      if (!index_var.get(index_value)) return false;
-      if (index_value >= (int)array.list_size()) return false;
-      return (array.get_ith_element(ret, index_value));
-    }
-    case MDL_EXPR_BINOP:
-    {
-      mdl_var left_val(false), right_val(false);
-      if (!left_ || !right_) return false;
-      if (!left_->apply(left_val)) return false;
-      if (!right_->apply(right_val)) return false;
-      return (do_operation(ret, left_val, right_val, bin_op_));
-    }
-    case MDL_EXPR_FUNC:
-    {
-      if (var_ == "startWallTimer" || var_ == "stopWallTimer"
+   switch (type_) 
+   {
+     case MDL_EXPR_INT: 
+        return (ret.set(int_literal_));
+     case MDL_EXPR_STRING:
+        return (ret.set(str_literal_));
+     case MDL_EXPR_INDEX: 
+        {
+           if (var_ == string ("$arg"))
+           {
+              // we only allow $arg to appear inside icode (is this right?),
+              // and therefore, the other mdl_v_expr::apply() should be used for
+              // $arg, and not this one. --chun
+              assert (0);
+           }
+           if (var_ == string ("$constraint"))
+           {
+              mdl_var ndx(false);
+              if (!left_->apply(ndx)) return false;
+              int x;
+              if (!ndx.get(x)) return false;
+              return (mdl_env::get(ret, var_+string(x)));
+           }
+           mdl_var array(false);
+           if (!mdl_env::get(array, var_)) return false;
+           if (!array.is_list()) return false;  
+           mdl_var index_var;
+           if (!left_->apply(index_var)) return false;
+           int index_value;
+           if (!index_var.get(index_value)) return false;
+           if (index_value >= (int)array.list_size()) return false;
+           return (array.get_ith_element(ret, index_value));
+        }
+     case MDL_EXPR_BINOP:
+        {
+           mdl_var left_val(false), right_val(false);
+           if (!left_ || !right_) return false;
+           if (!left_->apply(left_val)) return false;
+           if (!right_->apply(right_val)) return false;
+           return (do_operation(ret, left_val, right_val, bin_op_));
+        }
+     case MDL_EXPR_FUNC:
+        {
+        if (var_ == "startWallTimer" || var_ == "stopWallTimer"
 #if defined(MT_THREAD)
-      || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
-      || var_ == "startProcessTimer_lwp")
+            || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
+            || var_ == "startProcessTimer_lwp"
 #else
-      || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
+            || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
 #endif
-      {
-        // this mdl_v_expr::apply() is for expressions outside
-        // instrumentation blocks.  these timer functions are not
-        // supposed to be used here
-        return false;
-      }
-      else
-      {
-        mdl_var arg0(false);
-        if (!(*args_)[0]->apply(arg0)) return false;
-        string func_name;
-        if (!arg0.get(func_name)) return false;
-        if (global_proc)
+            )
         {
-// TODO -- what if the function is not found ?
-          pdvector<function_base *> fbv;
-          function_base *pdf;
- 
-          if (!global_proc->findAllFuncsByName(func_name, fbv)) {
-	  string msg = string("In metric '") + currentMetric + string("': ")
-            + string("unable to find procedure '") + func_name + string("'");
-	  showErrorCallback(95, msg);
-          assert(0);
-	}
-	else {
-	  if (fbv.size() > 1) {
-	    string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
-	      + func_name + string("'") + string(".  Using the first.");
-	    showErrorCallback(95, msg);
-	  }
-	  pdf = fbv[0];
-	}
-          if (!pdf) { assert(0); return false; }
-          return (ret.set(pdf));
+           // this mdl_v_expr::apply() is for expressions outside
+           // instrumentation blocks.  these timer functions are not
+           // supposed to be used here
+           return false;
         }
-        else { assert(0); return false; }
-      }
-    }
-    case MDL_EXPR_DOT:
-    {
-      if (!left_->apply(ret)) return false;
+        else
+        {
+           mdl_var arg0(false);
+           if (!(*args_)[0]->apply(arg0)) return false;
+           string func_name;
+           if (!arg0.get(func_name)) return false;
+           if (global_proc)
+           {
+              // TODO -- what if the function is not found ?
+              pdvector<function_base *> fbv;
+              function_base *pdf;
+              
+              if (!global_proc->findAllFuncsByName(func_name, fbv)) {
+                 string msg = string("In metric '") + currentMetric +
+                              string("': ") + 
+                              string("unable to find procedure '") +
+                              func_name + string("'");
+                 showErrorCallback(95, msg);
+                 assert(0);
+              }
+              else {
+                 if (fbv.size() > 1) {
+                    string msg = string("WARNING:  found ") +string(fbv.size())
+                               + string(" records of function '") + func_name +
+                                 string("'") + string(".  Using the first.");
+                    //showErrorCallback(95, msg);
+                    cerr << msg << endl;
+                 }
+                 pdf = fbv[0];
+              }
+              if (!pdf) { assert(0); return false; }
+              return (ret.set(pdf));
+           }
+           else { assert(0); return false; }
+        }
+     }
+  case MDL_EXPR_DOT:
+     {
+        if (!left_->apply(ret)) return false;
 
-      if (!do_type_walk_)
-        return true;
-      else
-      { // do_type_walk and type_walk are set in paradyn's mdl.C
-         return walk_deref(ret, type_walk);
-      }
-    }
-    case MDL_EXPR_ASSIGN:
-    {
-      mdl_var lval(false), rval(false);
-      if (!mdl_env::get(lval, var_)) return false;
-      if (!left_ || !left_->apply(rval))
-        return false;
-      if (rval.type() == MDL_T_NONE)
-      {
-        ok_ = true;
+        if (!do_type_walk_)
+           return true;
+        else
+        { // do_type_walk and type_walk are set in paradyn's mdl.C
+           return walk_deref(ret, type_walk);
+        }
+     }
+  case MDL_EXPR_ASSIGN:
+     {
+        mdl_var lval(false), rval(false);
+        if (!mdl_env::get(lval, var_)) return false;
+        if (!left_ || !left_->apply(rval))
+           return false;
+        if (rval.type() == MDL_T_NONE)
+        {
+           ok_ = true;
+           return ok_;
+        }
+        switch (bin_op_)
+        {
+          case MDL_ASSIGN:
+             {
+                int x;
+                if (!rval.get(x)) return false;
+                ok_ = ret.set(x);
+                return ok_;
+             }
+          case MDL_PLUSASSIGN:
+             {
+                //chun-- a hack for $arg[i]
+                if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
+                   ok_ = do_operation(ret, lval, rval, MDL_MINUS);
+                else
+                   ok_ = true;
+                return ok_;
+             }
+          case MDL_MINUSASSIGN:
+             {
+                //chun-- a hack for $arg[i]
+                if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
+                   ok_ = do_operation(ret, lval, rval, MDL_PLUS);
+                else
+                   ok_ = true;
+                return ok_;
+             }
+        }
+     }
+  case MDL_EXPR_VAR:
+     {
+        if (var_ == string("$cmin") || var_ == string("$cmax"))
+           ok_ = true;
+        else
+           ok_ = mdl_env::get (ret, var_);
         return ok_;
-      }
-      switch (bin_op_)
-      {
-        case MDL_ASSIGN:
-        {
-          int x;
-          if (!rval.get(x)) return false;
-          ok_ = ret.set(x);
-          return ok_;
-        }
-        case MDL_PLUSASSIGN:
-        {
-          //chun-- a hack for $arg[i]
-          if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
-            ok_ = do_operation(ret, lval, rval, MDL_MINUS);
-          else
-            ok_ = true;
-          return ok_;
-        }
-        case MDL_MINUSASSIGN:
-        {
-          //chun-- a hack for $arg[i]
-          if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
-            ok_ = do_operation(ret, lval, rval, MDL_PLUS);
-          else
-            ok_ = true;
-          return ok_;
-        }
-      }
-    }
-    case MDL_EXPR_VAR:
-    {
-      if (var_ == string("$cmin") || var_ == string("$cmax"))
-        ok_ = true;
-      else
-        ok_ = mdl_env::get (ret, var_);
-      return ok_;
-    }
-    case MDL_EXPR_PREUOP:
-    {
-      mdl_var lval(false);
-      if (!left_ || !left_->apply (lval)) return false;
-      ok_ = do_operation(ret, lval, u_op_, true);
-      return ok_;
-    }
-    case MDL_EXPR_POSTUOP:
-    {
-      mdl_var lval(false);
-      if (!left_ || !left_->apply (lval)) return false;
-      ok_ = do_operation(ret, lval, u_op_, false);
-      return ok_;
-    }
-    default:
-      return false;
-  }
-  return true;
+     }
+  case MDL_EXPR_PREUOP:
+     {
+        mdl_var lval(false);
+        if (!left_ || !left_->apply (lval)) return false;
+        ok_ = do_operation(ret, lval, u_op_, true);
+        return ok_;
+     }
+  case MDL_EXPR_POSTUOP:
+     {
+        mdl_var lval(false);
+        if (!left_ || !left_->apply (lval)) return false;
+        ok_ = do_operation(ret, lval, u_op_, false);
+        return ok_;
+     }
+  default:
+     return false;
+}
+return true;
 }
 
 T_dyninstRPC::mdl_if_stmt::mdl_if_stmt(T_dyninstRPC::mdl_expr *expr, T_dyninstRPC::mdl_stmt *body)
