@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.6  1994/05/11 21:32:26  newhall
-/* changed location of VMconfig.file
+/* Revision 1.7  1994/05/22 01:58:53  newhall
+/* fixed problem with thr_create arguments in VMCreateVisi
 /*
+ * Revision 1.6  1994/05/11  21:32:26  newhall
+ * changed location of VMconfig.file
+ *
  * Revision 1.5  1994/05/11  17:28:25  newhall
  * test version 3
  *
@@ -188,7 +191,7 @@ int id;
 int  VM::VMCreateVisi(int visiTypeId){
 
 thread_t  tid;
-visi_thread_args temp;
+visi_thread_args *temp;
 VMactiveVisi  *temp2;
 VMvisis *visitemp;
 
@@ -199,15 +202,17 @@ VMvisis *visitemp;
     printf("error # : serious???\n");
     return(VMERROR_VISINOTFOUND);
   }
-  temp.argc = visitemp->argc;
-  temp.argv = visitemp->argv;
-  temp.parent_tid = thr_self();
+
+  temp = (visi_thread_args *)malloc(sizeof(visi_thread_args));
+  temp->argc = visitemp->argc;
+  temp->argv = (char **)visitemp->argv;
+  temp->parent_tid = thr_self();
 
   printf("before thread create: temp.arv[0] = %s visitemp->argv[0] = %s\n",
 	 temp.argv[0],visitemp->argv[0]);
 
   // create a visi thread  
-  thr_create(0,0,&VISIthreadmain,&temp,0,&tid);
+  thr_create(0,0,&VISIthreadmain,temp,0,&tid);
 
   // create a new visipointer
   if((temp2 = (VMactiveVisi  *)malloc(sizeof(VMactiveVisi))) == NULL){
