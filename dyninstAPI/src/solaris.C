@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.134 2003/03/04 19:16:05 willb Exp $
+// $Id: solaris.C,v 1.135 2003/03/08 01:23:47 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -374,9 +374,6 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 }
 #endif
 
-#ifndef BPATCH_LIBRARY
-bool process::dumpImage() {return false;}
-#else
 bool process::dumpImage(string imageFileName) 
 {
     int newFd;
@@ -447,7 +444,6 @@ bool process::dumpImage(string imageFileName)
 
     return true;
 }
-#endif
 
 /* Auxiliary function */
 bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
@@ -472,6 +468,7 @@ bool process::trapAtEntryPointOfMain(Address)
 void process::handleTrapAtEntryPointOfMain()
 {
     assert(main_brk_addr);
+    
   // restore original instruction 
 #if defined(sparc_sun_solaris2_4)
   writeDataSpace((void *)main_brk_addr, 
@@ -495,9 +492,8 @@ void process::insertTrapAtEntryPointOfMain()
     return;
   }
   assert(f_main);
-  Address addr = f_main->addr();
-
-  // save original instruction first
+  Address addr = f_main->addr(); 
+ // save original instruction first
 #if defined(sparc_sun_solaris2_4)
   readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
 #else // x86
@@ -507,6 +503,7 @@ void process::insertTrapAtEntryPointOfMain()
   // and now, insert trap
   instruction insnTrap;
   generateBreakPoint(insnTrap);
+
 #if defined(sparc_sun_solaris2_4)
   writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
 #else //x86. have to use SIGILL instead of SIGTRAP

@@ -228,7 +228,6 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
    // First, idiot check. If there aren't any RPCs to run, then
    // don't do anything. Reason: launchRPCs is called several times
    // a second in the daemon main loop
-   processState state_before_paused = proc->status();
 
    unsigned thr_iter; // Useful iterator
    bool RPCwasLaunched = false;
@@ -307,9 +306,10 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
    // Hrm... we thought there was an RPC ready, but there wasn't.
    // Most likely cause: we're in a system call, and so while there
    // is an RPC pending it isn't launchable. Revert the process
-   // to the previous state.
-    
-   if (state_before_paused == running) {
+   // to the previous state. We'll try and catch the RPC later.
+
+
+   if (wasRunning) {
       proc->continueProc();
    }
 
@@ -363,7 +363,7 @@ irpcLaunchState_t rpcMgr::launchProcessIRPC(bool wasRunning) {
    currRunningIRPC.seq_num = todo.seq_num;
     
    currRunningIRPC.wasRunning = wasRunning;
-    
+
    Address RPCImage = createRPCImage(todo.action,
                                      todo.noCost,
                                      (currRunningIRPC.callbackFunc != NULL),
