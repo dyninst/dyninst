@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.17 2001/02/01 01:10:01 schendel Exp $
+// $Id: timing.C,v 1.18 2001/08/01 15:39:51 chadd Exp $
 
 #include <iostream.h>
 #include "common/h/Timer.h"
@@ -49,7 +49,7 @@
 
 #if defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
-#elif defined(i386_unknown_nt4_0)
+#elif defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 1 aug 2000 : 29 mar 2001
 #define NOPS_4 { __asm nop __asm nop __asm nop __asm nop }
 #elif defined(mips_sgi_irix6_4)
 #  ifndef USES_NATIVE_CC
@@ -157,7 +157,8 @@ timeStamp getCurrentTime() {
   return timeStamp(getRawTime1970(), timeUnit::us(), timeBase::b1970());
 }
 
-#ifndef i386_unknown_nt4_0
+#if !(defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11)) //ccw 6 apr 2001
+
 // returns us since 1970
 int64_t getRawTime1970() {
   struct timeval tv;

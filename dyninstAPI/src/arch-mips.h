@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#if !defined(mips_sgi_irix6_4)
+#if !defined(mips_sgi_irix6_4) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000
 #error "invalid architecture-os inclusion"
 #endif
 
@@ -47,7 +47,7 @@
 #define _ARCH_MIPS_H_
 
 /*
- * $Id: arch-mips.h,v 1.7 2000/07/28 17:21:13 pcroth Exp $
+ * $Id: arch-mips.h,v 1.8 2001/08/01 15:39:54 chadd Exp $
  */
 
 #include "common/h/Types.h" // for "Address"
@@ -59,6 +59,58 @@
  * Define MIPS instruction information.
  *
  */
+
+// ccw 9 aug 2000 : 28 mar 2001
+// WinCE puts the MIPS chip into little-endian mode! how nice.
+// the following instruction masks are for little-endian mode.
+#ifdef mips_unknown_ce2_11
+struct fmt_decode {
+  // unsigned op:6; //ccw 9 aug 2000
+  unsigned rest:26;
+  unsigned op:6; //ccw 9 aug 2000 : see comment for fmt_jtype
+};
+
+struct fmt_itype {
+  signed   simm16:16;
+  unsigned rt:5;
+  unsigned rs:5;
+  unsigned op:6;
+};
+
+/* all regimm insns have primary opcode "REGIMM" */
+struct fmt_regimm {
+  signed   simm16:16;
+  unsigned opr:5;
+  unsigned rs:5;
+  unsigned op:6; // op == REGIMMop
+};
+
+struct fmt_jtype {
+  //unsigned op:6; //ccw 9 aug 2000
+  unsigned imm26:26;
+  unsigned op:6; //ccw 9 aug 2000 : this was moved down b/c WINCE is little endian
+};
+
+/* all R-Type insns have primary opcode "SPECIAL" */
+struct fmt_rtype {
+  unsigned ops:6;
+  unsigned sa:5;
+  unsigned rd:5;
+  unsigned rt:5;
+  unsigned rs:5;
+  unsigned op:6; // op == SPECIALop
+};
+
+struct fmt_except {
+  unsigned ops:6;
+  unsigned code:20;
+  unsigned op:6; // op == SPECIALop
+};
+
+#else
+
+	//ccw 9 aug 2000 : big-endian mode!
+
 struct fmt_decode {
   unsigned op:6;
   unsigned rest:26;
@@ -99,6 +151,7 @@ struct fmt_except {
   unsigned code:20;
   unsigned ops:6;
 };
+#endif
 
 union instructUnion {
   unsigned int        raw;    // make this field first to allow initialization
@@ -247,7 +300,15 @@ typedef union instructUnion instruction;
 #define XORIop 14
 
 #define NOP_INSN     (0x00000000)
+
+#ifdef mips_unknown_ce2_11 //ccw 13 feb 2001 : 28 mar 2001
+//on wince 0x00000034 causes a print string debug exeception to be thrown,
+//without telling what address or instruction threw it, so it is useless
+#define TRAP_INSN    (0x0000000D)
+#else
 #define TRAP_INSN    (0x00000034)
+#endif
+
 #define ILLEGAL_INSN (0x70000000)
 
 
@@ -273,9 +334,20 @@ typedef union instructUnion instruction;
 #define PROC_REG_T3 (CTX_T3)
 #define PROC_REG_T9 (CTX_T9)
 #define PROC_REG_RA (CTX_RA)
+
 /* calling conventions */
+#ifdef mips_unknown_ce2_11 //ccw 10 jan 2001 : 28 mar 2001
+  // ccw  10 jan 2001 mips on the CE devices
+  // uses the o32 calling convention, only allowing 
+  // 4 arguments to be passed in registers.
+#define NUM_ARG_REGS (4)
+//ccw 10 jan 2001 : ce is 32 bit!
+#define BYTES_PER_ARG (4) 
+
+#else
 #define NUM_ARG_REGS (8)
 #define BYTES_PER_ARG (8)
+#endif
 
 extern char *reg_names[];
 

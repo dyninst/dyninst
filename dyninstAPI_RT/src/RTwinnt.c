@@ -40,16 +40,19 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.4 2000/08/07 01:00:21 wylie Exp $
+ * $Id: RTwinnt.c,v 1.5 2001/08/01 15:39:59 chadd Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
-
+#ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
 #include <assert.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
 #include <mmsystem.h>
 #include <errno.h>
+#endif
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /************************************************************************
@@ -67,5 +70,7 @@ DYNINSTbreakPoint(void) {
 
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
+#ifndef mips_unknown_ce2_11 //ccw 23 july 2001
   RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
+#endif
 }

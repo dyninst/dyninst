@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.259 2001/07/27 21:02:49 gurari Exp $
+// $Id: process.C,v 1.260 2001/08/01 15:39:56 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -276,7 +276,54 @@ pdSample computeStackwalkTimeMetric(const metricDefinitionNode *) {
 }
 #endif
 
-#if !defined(i386_unknown_nt4_0)
+#if defined(mips_unknown_ce2_11) //ccw 6 feb 2001 : 29 mar 2001
+//ccw 6 feb 2001 : windows CE does not have the NT walkStack function
+//so we use this one.
+
+vector<Address> process::walkStack(bool noPause)
+{
+  vector<Address> pcs;
+  bool needToCont = noPause ? false : (status() == running);
+
+  if (pause()) {
+    Frame currentFrame(this);
+    Address spOld = 0xffffffff;
+    while (!currentFrame.isLastFrame()) {
+      Address spNew = currentFrame.getSP(); // ccw 6 feb 2001 : should get SP?
+      // successive frame pointers might be the same (e.g. leaf functions)
+      if (spOld < spNew) {
+        // not moving up stack
+        if (!noPause && needToCont && !continueProc())
+			  cerr << "walkStack: continueProc failed" << endl;
+	       vector<Address> ev; // empty vector
+		   return ev;
+      }
+      spOld = spNew;
+
+      Address next_pc = currentFrame.getPC();
+      // printf("currentFrame pc = %p\n",next_pc);
+      pcs.push_back(next_pc);
+
+	  //ccw 6 feb 2001 : at this point, i need to use the 
+	  //list of functions parsed from the debug symbols to
+	  //determine the frame size for each function and find the 
+	  //return value for each (which is the previous fir value)
+      currentFrame = currentFrame.getCallerFrame(this); 
+
+    }
+    pcs.push_back(currentFrame.getPC());
+  }
+
+  if (!noPause && needToCont) {
+     if (!continueProc()){
+        cerr << "walkStack: continueProc failed" << endl;
+     }
+  }  
+
+  return pcs;
+
+}
+#elif !defined(i386_unknown_nt4_0)
 // Windows NT has its own version of the walkStack function in pdwinnt.C
 // Note: it may not always be possible to do a correct stack walk.
 // If it can't do a complete walk, the function should return an empty
@@ -687,7 +734,7 @@ bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
     //    is preInsn and the pc points to the return address of the call,
     //    the instrumentation should be triggered as any postInsn instrumentation
     //    will be executed.
-#if defined(mips_sgi_irix6_4)
+#if defined(mips_sgi_irix6_4) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     if (point->ipType_ == IPT_ENTRY) {
       if ( pd_debug_catchup )
         cerr << "  pc not in instrumentation, requested instrumentation for function entry, returning true." << endl;
@@ -941,8 +988,7 @@ void inferiorFreeCompact(inferiorHeap *hp)
 void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
 {
   vector<Address> pcs = proc->walkStack();
-
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   // if walkStack() fails, assume not safe to delete anything
   if (pcs.size() == 0) return;
 #endif
@@ -1016,9 +1062,16 @@ bool process::getInfHeapList(vector<heapDescriptor> &infHeaps)
   if (shared_objects)
     for(u_int j=0; j < shared_objects->size(); j++)
       {
-	if (getInfHeapList(((*shared_objects)[j])->getImage(), infHeaps))
-	  foundHeap = true;
-      }
+#ifdef mips_unknown_ce2_11 //ccw 24 apr 2001
+	if(((*shared_objects)[j]->getImage())){
+#endif
+		if (getInfHeapList(((*shared_objects)[j])->getImage(), infHeaps))
+		  foundHeap = true;
+	      }
+#ifdef mips_unknown_ce2_11 //ccw 24 apr 2001
+	}
+#endif
+
   return foundHeap;
 }
 
@@ -1110,7 +1163,11 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
 	}
 
       infHeaps.push_back(heapDescriptor(heapSymbols[j].name(),
-				 heapSymbols[j].addr()+baseAddr,
+#ifdef mips_unknown_ce2_11 //ccw 13 apr 2001
+				 heapSymbols[j].addr(), 
+#else
+				 heapSymbols[j].addr()+baseAddr, 
+#endif
 				 heap_size, heap_type));
 #ifdef DEBUG
       fprintf(stderr, "Added heap %s at %x to %x\n",
@@ -1539,7 +1596,7 @@ extern void initDetachOnTheFly();
 // the DYNINST lib can be dynamically linked (currently it is only dynamically
 // linked on Windows NT)
 bool process::initDyninstLib() {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
    /***
      Kludge for Windows NT: we need to call waitProcs here so that
      we can load libdyninstRT when we attach to an already running
@@ -1667,7 +1724,7 @@ process::process(int iPid, image *iImage, int iTraceLink
     hasLoadedDyninstLib = false;
     isLoadingDyninstLib = false;
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
@@ -1841,7 +1898,7 @@ process::process(int iPid, image *iSymbols,
    save_exitset_ptr = NULL;
    stoppedInSyscall = false;
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
@@ -2010,7 +2067,8 @@ process::process(int iPid, image *iSymbols,
    status_ = running;
 #endif
 
-#ifdef i386_unknown_nt4_0 // Except we still pause on NT.
+#if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+// Except we still pause on NT.
     if (!pause())
         assert(false);
 #endif
@@ -2139,7 +2197,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     bufStart = 0;
     bufEnd = 0;
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
@@ -2396,6 +2454,15 @@ tp->resourceBatchMode(true);
            // change this to a ctor that takes in more args
 
         assert(ret);
+#ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
+		//the MIPS instruction generator needs the Gp register value to
+		//correctly calculate the jumps.  In order to get it there it needs
+		//to be visible in Object-nt, and must be taken from process.
+		void *cont;
+		//DebugBreak();
+		cont = ret->GetRegisters(thrHandle); //ccw 10 aug 2000 : ADD thrHandle HERE!
+		img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
+#endif
 
         processVec.push_back(ret);
         activeProcesses++;
@@ -2411,7 +2478,7 @@ tp->resourceBatchMode(true);
         // same process
 
 #ifndef BPATCH_LIBRARY
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
         ret->threads += new pdThread(ret, tid, (handleT)thrHandle);
 #else
         ret->threads += new pdThread(ret);
@@ -2545,7 +2612,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    theProc->threads += new pdThread(theProc);
 #endif
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
    // we now need to dynamically load libdyninstRT.so.1 - naim
    if (!theProc->pause()) {
      logLine("WARNING: pause failed\n");
@@ -3384,7 +3451,7 @@ bool process::handleStartProcess(){
     // get shared objects, parse them, and define new resources 
     // For WindowsNT we don't call getSharedObjects here, instead
     // addASharedObject will be called directly by pdwinnt.C
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     this->getSharedObjects();
 #endif
 
@@ -3470,7 +3537,7 @@ bool process::addASharedObject(shared_object &new_obj){
       // initInferiorHeap.
       addInferiorHeap(img);
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     /* If we're not currently trying to load the runtime library,
        check whether this shared object is the runtime lib. */
     if (!isLoadingDyninstLib
@@ -4229,7 +4296,11 @@ bool process::findInternalSymbol(const string &name, bool warn,
 
      if (getSymbolInfo(name, sym, baseAddr)
          || getSymbolInfo(underscore+name, sym, baseAddr)) {
+#ifdef mips_unknown_ce2_11 //ccw 29 mar 2001
+        ret_sym = internalSym(sym.addr(), name);
+#else
         ret_sym = internalSym(baseAddr+sym.addr(), name);
+#endif
         return true;
      }
 
@@ -4250,7 +4321,8 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      static const string underscore = "_";
 #if !defined(i386_unknown_linux2_0) \
  && !defined(alpha_dec_osf4_0) \
- && !defined(i386_unknown_nt4_0)
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(mips_unknown_ce2_11) //ccw 20 july 2000
      // we use "dlopen" because we took out the leading "_"'s from the name
      if (name==string("dlopen")) {
        // if the function is dlopen, we use the address in ld.so.1 directly
@@ -4271,7 +4343,11 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      if (getSymbolInfo(name, sym, baseAddr)
          || getSymbolInfo(underscore+name, sym, baseAddr)) {
         err = false;
+#ifdef mips_unknown_ce2_11 //ccw 29 mar 2001
+        return sym.addr();//+baseAddr; ///ccw 28 oct 2000 THIS ADDS TOO MUCH TO THE LIBDYNINSTAPI.DLL!
+#else
         return sym.addr()+baseAddr;
+#endif
      }
      if (warn) {
         string msg;
@@ -4437,7 +4513,7 @@ void process::handleExec() {
 	heap.bufferPool.resize(0);
 
     // initInferiorHeap can only be called after symbols is set!
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     initInferiorHeap();
 #endif
 
@@ -4891,7 +4967,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
    currRunningRPCs += inProgStruct;
 
-#ifndef i386_unknown_nt4_0
+#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
    Address curPC = currentPC();
 #endif
 
@@ -4921,7 +4997,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       instrumentation traps aren't relocated, since they're what
       replaces the relocated instructions. */
 
-#ifndef i386_unknown_nt4_0
+#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
    if (pd_debug_infrpc)
      inferiorrpc_cerr << "setting the running RPC flag.\n";
    SendAppIRPCInfo(1, inProgStruct.firstInstrAddr, inProgStruct.breakAddr);
@@ -5433,8 +5509,8 @@ bool process::handleTrapIfDueToRPC() {
 
    assert(match_type == 2);
 
-#ifndef i386_unknown_nt4_0
-   /* If the application was paused when it was at a trap, reset the rt library
+#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+/* If the application was paused when it was at a trap, reset the rt library
       flag which indicated this. */
    SendAppIRPCInfo(0, 0, 0);
 #endif
@@ -5488,7 +5564,7 @@ bool process::handleTrapIfDueToRPC() {
    void* resultValue = theStruct.resultValue;
 
    // release the RPC struct
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
    delete    theStruct.savedRegs;       // not an array on WindowsNT
 #else
    delete [] static_cast<char *>(theStruct.savedRegs);
@@ -5731,9 +5807,9 @@ bool process::handleStopDueToExecEntry() {
 
    if (bs_record.event != 4)
       return false;
-
+#ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
    assert(getPid() == bs_record.pid);
-
+#endif
    // for now, we just set aside the following information, 
    // to be used after the exec actually happens 
    // (we'll get a SIGTRAP for that).
@@ -5790,8 +5866,9 @@ int process::procStopFromDYNINSTinit() {
    forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; got rec" << endl;
 
    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
+#ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
    assert(bs_record.pid == getPid());
-
+#endif
 #ifndef BPATCH_LIBRARY
    if (bs_record.event != 3 || (process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
 #else
@@ -5912,9 +5989,9 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
    if (!fromAttach) // reset to 0 already if attaching, but other fields (attachedAtPtr) ok
       assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
-
+#ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
    assert(bs_record.pid == getPid());
-
+#endif
    // Note: the process isn't necessarily paused at this moment.  In particular,
    // if we had attached to the process, then it will be running even as we speak.
    // While we're parsing the shared libraries, we should pause.  So do that now.
@@ -5956,7 +6033,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       string str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
       statusLine(str.string_of());
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
       if (!handleStartProcess()) {
         // reads in shared libraries...can take a while
         logLine("WARNING: handleStartProcess failed\n");

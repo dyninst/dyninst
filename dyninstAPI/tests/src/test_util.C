@@ -1,13 +1,15 @@
 //
-// $Id: test_util.C,v 1.13 2000/10/25 17:34:55 willb Exp $
+// $Id: test_util.C,v 1.14 2001/08/01 15:39:59 chadd Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
 #include <stdio.h>
 #include <signal.h>
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
+#ifndef mips_unknown_ce2_11 //ccw 10 apr 2001
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <Windows.h>
 #else
 #include <unistd.h>
@@ -31,7 +33,7 @@ void waitUntilStopped(BPatch *bpatch,
 	printf("    process did not signal mutator via stop\n");
 	exit(-1);
     }
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
     else if (appThread->stopSignal() != SIGTRAP && appThread->stopSignal() != -1) {
 	printf("**Failed test #%d (%s)\n", testnum, testname);
 	printf("    process stopped on signal %d, not SIGTRAP\n", 
@@ -86,7 +88,7 @@ void signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
 //
 int startNewProcessForAttach(char *pathname, char *argv[])
 {
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
     char child_args[1024];
     strcpy(child_args, "");
     if (argv[0] != NULL) {

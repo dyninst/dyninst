@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.h,v 1.12 1999/03/19 18:07:15 csserra Exp $
+// $Id: arch.h,v 1.13 2001/08/01 15:39:55 chadd Exp $
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "arch-sparc.h"
@@ -57,6 +57,6 @@
 #include "arch-x86.h"
 #endif
 
-#if defined(mips_sgi_irix6_4)
+#if defined(mips_sgi_irix6_4) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "arch-mips.h"
 #endif

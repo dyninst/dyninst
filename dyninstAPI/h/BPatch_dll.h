@@ -41,7 +41,7 @@
 #ifndef _BPatch_dll_h_
 #define _BPatch_dll_h_
 
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
 // we are building for a Windows target
 
 // we get numerous spurious warnings about having some template classes

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.36 2001/07/11 21:19:57 gurari Exp $
+// $Id: BPatch.C,v 1.37 2001/08/01 15:39:54 chadd Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -52,7 +52,7 @@
 #include "BPatch_collections.h"
 #include "common/h/timing.h"
 
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "nt_signal_emul.h"
 #endif
 
@@ -85,8 +85,13 @@ BPatch::BPatch()
     extern bool init();
 
     // Save a pointer to the one-and-only bpatch object.
-    if (bpatch == NULL)
+    if (bpatch == NULL){
 	bpatch = this;
+#ifdef mips_unknown_ce2_11 //ccw 10 aug 2000 : 28 mar 2001
+	rDevice = new remoteDevice(); //ccw 8 aug 2000
+#endif
+	}
+
     /* XXX else
      * 	(indicate an error somehow)
      */
@@ -791,7 +796,7 @@ bool BPatch::getThreadEvent(bool block)
 		thread->lastSignal = WTERMSIG(status);
 		thread->setUnreportedTermination(true);
 	    } else if (WIFEXITED(status)) {
-#ifndef i386_unknown_nt4_0
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
                 thread->proc->exitCode_ = WEXITSTATUS(status);
 #endif
                 thread->exitCode = thread->proc->exitCode();
@@ -799,7 +804,7 @@ bool BPatch::getThreadEvent(bool block)
 		thread->setUnreportedTermination(true);
 	    }
 	}
-#ifndef i386_unknown_nt4_0
+#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 	handleSigChild(pid, status);
 #ifdef notdef
 	if (thread->lastSignal == SIGSTOP) {
@@ -830,7 +835,7 @@ bool BPatch::getThreadEvent(bool block)
  */
 bool BPatch::havePendingEvent()
 {
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2001 : 28 mar 2001
     // On NT, we need to poll for events as often as possible, so that we can
     // handle traps.
     if (getThreadEvent(false))

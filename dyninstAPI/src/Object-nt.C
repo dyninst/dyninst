@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.8 2001/06/15 20:47:49 hollings Exp $
+// $Id: Object-nt.C,v 1.9 2001/08/01 15:39:54 chadd Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -106,20 +106,69 @@ Object::ParseDebugInfo( void )
         // parse the symbols, if available
         // (note that we prefer CodeView over COFF)
         //
-        if( pDebugInfo->CodeViewSymbols != NULL )
+        if( pDebugInfo->CodeViewSymbols != NULL && //ccw 27 apr 2001 
+		strncmp((char*)pDebugInfo->CodeViewSymbols, "NB10",4))//ccw 27 apr 2001 
+			//ccw 17 july 2000
+			//ccw 8 aug 2000 added the strncmp section 
+			//ccw 28 mar 2001
         {
             // we have CodeView debug information
             ParseCodeViewSymbols( pDebugInfo );
         }
-        else if( pDebugInfo->CoffSymbols != NULL )
+#ifndef mips_unknown_ce2_11 //ccw 20 mar 2001 : 28 mar 2001
+       else if( pDebugInfo->CoffSymbols != NULL )
         {
             // we have COFF debug information
             ParseCOFFSymbols( pDebugInfo );
         }
+#endif
         else
         {
             // TODO - what to do when there's no debug information?
-        }
+ 		//ccw 28 mar 2001 : the following
+ 		//ccw 19 july 2000 -- begin
+		//cout << "COFF SYMBOLS! " << file_.string_of() <<endl; 
+		char *start;
+		char tmpStr[1024];
+		strcpy(tmpStr, file_.string_of());
+
+		start = strstr(tmpStr, ".exe");
+		if(!start){
+			start = strstr(tmpStr, ".dll");
+		}
+//		DebugBreak();
+		if(start){
+			strcpy(start, ".map");
+			//cout << "USING MAP! "<< tmpStr << endl;
+			
+			if(!ParseMapSymbols(pDebugInfo,tmpStr)){
+				//ccw 14 aug 2000
+				char tmp[256], *ext;
+
+				strcpy(tmp, file_.string_of());
+				ext = strstr(tmp, ".dll");
+				if(ext){
+					strcpy(ext,".lib");
+					pDebugInfo = MapDebugInformation(NULL, (LPTSTR)file_.string_of(), NULL, 0);
+					if( pDebugInfo->CoffSymbols != NULL )
+					{
+						// we have COFF debug information
+						ParseCOFFSymbols( pDebugInfo ); 
+					}else{
+						//cout << " NO DEBUG INFO IN LIB" <<endl;
+					}
+				}else{
+					//cout << " NO DEBUG INFO " <<endl;
+				}
+				// TODO - what to do when there's no debug information?
+			}
+
+		}else{
+			//cout << " WHAT FILE IS THIS? " <<endl;
+			// TODO - what to do when there's no debug information?
+		}
+		//ccw 19 july 2000 -- end
+       }
     }
     else
     {
@@ -1089,4 +1138,108 @@ Object::FindModuleByOffset( unsigned int offset,
 
     return retval;
 }
+///////////  ccw 30 mar 2001
+//// 19 july 2000
+#include "MapSymbols.h"
 
+bool Object::ParseMapSymbols(IMAGE_DEBUG_INFORMATION *pDebugInfo, char *mapFile){
+
+	MapSymbols mapSym(mapFile);
+	//MapSymbols *dllSymbols;
+	//int numberOfDLL;
+	char symName[1024];
+	Address address, baseAddress;
+	bool function;
+	unsigned long len;
+	bool staticN;
+	bool result, isDll;
+	unsigned int u, v;//, size;
+
+	/** from ParseCOFFSymbols */
+
+	vector<Symbol> allSymbols;
+	//bool gcc_compiled = false;
+	bool isDLL = ((pDebugInfo->Characteristics & IMAGE_FILE_DLL) != 0 ); //ccw 27 apr 2001
+
+	//DebugBreak();//ccw 4 mar 2001
+	/***/
+	if(!mapSym.parseSymbols()){
+		return false;
+	}
+	//unsigned long code_off_ = 0, baseAddr = 0, code_len_ = 0;
+	if(isDLL){
+		allSymbols.push_back(Symbol(pDebugInfo->ImageFileName, "", Symbol::PDST_MODULE, 
+			Symbol::SL_GLOBAL, code_off_, false));
+		baseAddress = baseAddr; //ccw 10 apr 2001
+	}else{
+		baseAddress = mapSym.getPreferredLoadAddress();
+	}
+
+	result = mapSym.getFirstSymbol(symName, &address, &function, &len, &staticN);	
+	while(result){
+		
+		if(function){
+
+			allSymbols.push_back(Symbol(symName, "DEFAULT_MODULE", 
+				Symbol::PDST_FUNCTION, staticN ? Symbol::SL_LOCAL: Symbol::SL_GLOBAL, address+ baseAddress, false,0 ));
+		}else{
+			allSymbols.push_back(Symbol(symName, "DEFAULT_MODULE",
+				Symbol::PDST_OBJECT, staticN ? Symbol::SL_LOCAL: Symbol::SL_GLOBAL, address+ baseAddress, false,0));
+		}
+
+		result = mapSym.getNextSymbol(symName, &address, &function, &len, &staticN);
+	}
+
+	/** do size/length fix up here **/
+	allSymbols.sort(sym_offset_compare);
+
+	/* from Object-nt.C */
+	// find the function boundaries
+
+    for( u = 0; u < allSymbols.size(); u++ )
+    {
+        unsigned int size = 0;
+        if( allSymbols[u].type() == Symbol::PDST_FUNCTION )
+        {
+            // find the function boundary
+            v = u+1;
+            while(v < allSymbols.size())
+            {
+                // The .ef below is a special symbol that gcc puts in to
+                // mark the end of a function.
+                if(allSymbols[v].addr() != allSymbols[u].addr() &&
+                    allSymbols[v].type() == Symbol::PDST_FUNCTION )
+                {
+                    break;
+                }
+                v++;
+            }
+            if(v < allSymbols.size())
+            {
+                size = (unsigned)allSymbols[v].addr() 
+                        - (unsigned)allSymbols[u].addr();
+            }
+            else
+            {
+                size = (unsigned)(code_off_ + code_len_*sizeof(Word))
+                         - (unsigned)allSymbols[u].addr();
+            }
+       }
+
+        // save the information about this symbol
+        if(allSymbols[u].name() != "")
+        {
+            symbols_[allSymbols[u].name()] =
+                Symbol(allSymbols[u].name(), 
+                    isDll ? allSymbols[u].module() : "DEFAULT_MODULE", 
+                    allSymbols[u].type(), allSymbols[u].linkage(),
+                    allSymbols[u].addr(), allSymbols[u].kludge(),
+                    size);
+			//cout << symbols_[allSymbols[u].name()];
+        }
+    }
+	
+
+	//delete [] dllSymbols;
+	return true;	
+}

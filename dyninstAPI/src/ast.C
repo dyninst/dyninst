@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.83 2001/06/12 15:43:29 hollings Exp $
+// $Id: ast.C,v 1.84 2001/08/01 15:39:55 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -70,7 +70,7 @@
 #include "dyninstAPI/src/inst-x86.h"
 #elif defined(alpha_dec_osf4_0)
 #include "dyninstAPI/src/inst-alpha.h"
-#elif defined(mips_sgi_irix6_4)
+#elif defined(mips_sgi_irix6_4) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "dyninstAPI/src/inst-mips.h"
 #else
 #endif

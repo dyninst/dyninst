@@ -49,7 +49,7 @@ struct comparison {
   * structure has to overload () for comparison of two elements as explained above
   */
 
-#if defined i386_unknown_nt4_0
+#if defined i386_unknown_nt4_0 || defined mips_unknown_ce2_11 //ccw 6 apr 2001
 
 static const bool RED = true;
 static const bool BLACK = false;
@@ -60,7 +60,7 @@ template<class T,class Compare = comparison<T> >
 class BPATCH_DLL_EXPORT BPatch_Set {
 private:
 
-#ifndef i386_unknown_nt4_0
+#if ! (defined i386_unknown_nt4_0 || defined mips_unknown_ce2_11) //ccw 6 apr 2001
 	/** color variable used for red-black tree */
 	static const bool RED = true;
 

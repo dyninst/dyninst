@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.41 2001/07/13 19:33:58 buck Exp $
+// $Id: BPatch_thread.C,v 1.42 2001/08/01 15:39:54 chadd Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -73,7 +73,7 @@ static void insertVForkInst(BPatch_thread *thread)
     BPatch_image *appImage = thread->getImage();
     if (!appImage) return;
 
-#ifndef i386_unknown_nt4_0
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
     BPatch_function *vforkFunc = appImage->findFunction("DYNINSTvfork");
     BPatch_Vector<BPatch_point *> *points =
       appImage->findProcedurePoint("vfork", BPatch_exit);
@@ -235,7 +235,7 @@ BPatch_thread::~BPatch_thread()
     if (!proc) return;
 
     if (!detached) {
-#ifndef i386_unknown_nt4_0
+#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
     	if (createdViaAttach && !statusIsTerminated())
     	    proc->API_detach(true);
 	else
@@ -501,7 +501,7 @@ bool BPatch_thread::dumpCore(const char *file, bool terminate)
  */
 bool BPatch_thread::dumpImage(const char *file)
 {
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
     return false;
 #else
     bool was_stopped;

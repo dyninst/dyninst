@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.45 2001/05/12 21:29:36 ning Exp $
+// $Id: ast.h,v 1.46 2001/08/01 15:39:55 chadd Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -247,6 +247,12 @@ class AstNode {
 	AstNode *eoperand;
 
     public:
+
+	//ccw 18 jan 2001 : 28 mar 2001
+	//this is used by inst-mips.C emitFuncCall to determine
+	//how much stack space to allocate before calling the function
+	int getSize() { return size; }
+
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
 #ifdef BPATCH_LIBRARY

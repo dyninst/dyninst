@@ -48,6 +48,10 @@
 #include "BPatch_thread.h"
 #include "BPatch_type.h"
 
+#ifdef mips_unknown_ce2_11 //ccw 28 july 2000
+#include "remoteDevice.h"
+#endif
+
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
@@ -102,7 +106,12 @@ public:
     BPatch_typeCollection        *APITypes; //API/User defined types
     BPatch_type			 *type_Error;
     BPatch_type			 *type_Untyped;
-    
+#ifdef mips_unknown_ce2_11 //ccw 28 july 2000
+	remoteDevice *rDevice;	//the ctor sets up the connection here and
+				//gets the tramptemplate from the CE device.
+#endif
+
+ 
     bool isTypeChecked() { return typeCheckOn; }
     bool parseDebugInfo() { return debugParseOn; }
     bool isTrampRecursive() { return trampRecursiveOn; }

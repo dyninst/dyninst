@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.7 2001/02/23 08:03:47 schendel Exp $
+// $Id: inst-winnt.C,v 1.8 2001/08/01 15:39:56 chadd Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -61,6 +61,9 @@
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/showerror.h"
 #endif
+
+#ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
+//defined in inst-mips.C
 
 string process::getProcessStatus() const {
    char ret[80];
@@ -84,6 +87,10 @@ string process::getProcessStatus() const {
     }
     return(ret);
 }
+#endif
+
+#ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
+//defined in inst-mips.C
 
 //
 // All costs are based on Measurements on a SPARC station 10/40.
@@ -135,6 +142,7 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportCost"] = 1350;
     primitiveCosts["DYNINSTreportNewTags"] = 837;
 }
+#endif
 
 /*
  * Define the various classes of library functions to inst. 
@@ -151,6 +159,9 @@ bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
     return false;
 }
 
+#ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
+//defined in inst-mips.C
+
 // findCallee: returns false unless callee is already set in instPoint
 // dynamic linking not implemented on this platform
 bool process::findCallee(instPoint &instr, function_base *&target){
@@ -160,3 +171,4 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     }
     return false;
 }
+#endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: headers.h,v 1.15 2000/08/14 19:23:01 schendel Exp $
+// $Id: headers.h,v 1.16 2001/08/01 15:39:50 chadd Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
@@ -48,12 +48,15 @@
  * Kludges to handle broken system includes and such...
  */
 
+#ifndef mips_unknown_ce2_11 //ccw 8 apr 2001
+
 extern "C" {
 typedef int (*xdr_rd_func)(void *, char *, int);
 typedef int (*xdr_wr_func)(void *, char *, int);
 typedef int (*const_xdr_rd_func)(const void *, char *, const int);
 typedef int (*const_xdr_wr_func)(const void *, const char *, const int);
 }
+#endif
 
 #include "common/h/Types.h"
 
@@ -72,7 +75,7 @@ typedef int (*const_xdr_wr_func)(const void *, const char *, const int);
 #elif defined(alpha_dec_osf4_0)
 #include "common/h/osfHeaders.h"
 
-#elif defined(i386_unknown_nt4_0)
+#elif defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #include "common/h/ntHeaders.h"
 
 #elif defined(mips_sgi_irix6_4)

@@ -41,10 +41,10 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.25 2000/10/17 17:42:22 schendel Exp $
+ * $Id: stats.C,v 1.26 2001/08/01 15:39:57 chadd Exp $
  */
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11) //ccw 6 apr 2001
 #include <strstrea.h>
 #else
 #include <strstream.h>

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.h,v 1.6 2000/12/13 19:57:47 tikir Exp $
+// $Id: CodeView.h,v 1.7 2001/08/01 15:39:54 chadd Exp $
 
 //
 // This file contains the declaration of the CodeView class.
@@ -67,6 +67,10 @@
 //
 #ifndef CODEVIEW_H
 #define CODEVIEW_H
+
+#ifdef mips_unknown_ce2_11 
+#include <windows.h> //ccw 7 apr 2001
+#endif
 
 #ifdef BPATCH_LIBRARY
 #include "BPatch.h"

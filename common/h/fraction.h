@@ -45,8 +45,9 @@
 #include <iostream.h>
 #include "common/h/Types.h"
 
-#ifdef i386_unknown_nt4_0            // exception SPECIFICATIONS aren't
-#pragma warning( disable : 4290 )   // implemented yet on NT
+#if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 30 mar 2001
+        				// exception SPECIFICATIONS aren't
+#pragma warning( disable : 4290 )   	// implemented yet on NT
 #endif
 
 

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Timer.C,v 1.10 2000/07/28 20:30:14 hollings Exp $
+// $Id: Timer.C,v 1.11 2001/08/01 15:39:51 chadd Exp $
 
 #include "common/h/Timer.h"
 
 timer::timer()
 : usecs_(0), ssecs_(0), wsecs_(0), cu_(0), cs_(0), cw_(0),
   state_(STOPPED),
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   CYCLES_PER_SEC_(CLK_TCK), // TODO: is this right?
 #else
   CYCLES_PER_SEC_(sysconf(_SC_CLK_TCK)), 
@@ -173,7 +173,7 @@ timer::print(ostream& os) {
 
 
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #if !defined(HAVE_GET_CURRENT_DEFINITION)
 #define HAVE_GET_CURRENT_DEFINITION
 

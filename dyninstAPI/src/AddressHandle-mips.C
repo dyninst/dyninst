@@ -497,7 +497,12 @@ void AddressHandle::getMultipleJumpTargets(BPatch_Set<Address>& result){
 #endif
 
     const Object &elf = ah.getImage()->getObject();
-    bool is_elf64 = elf.is_elf64();
+    bool is_elf64 = 
+#ifndef mips_unknown_ce2_11 //ccw 10 apr 2001
+	elf.is_elf64();
+#else
+	false;
+#endif
 
     Address addr = elf.get_gp_value() + baseOffset;
 

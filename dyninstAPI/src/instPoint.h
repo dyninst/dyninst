@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.5 1999/05/25 16:38:13 wylie Exp $
+// $Id: instPoint.h,v 1.6 2001/08/01 15:39:56 chadd Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -58,7 +58,7 @@
 #include "instPoint-alpha.h"
 #elif defined(i386_unknown_linux2_0)
 #include "instPoint-x86.h"
-#elif defined(mips_sgi_irix6_4)
+#elif defined(mips_sgi_irix6_4)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #include "instPoint-mips.h"
 #else
 #error unknown architecture

@@ -185,7 +185,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 
 	Address effectiveAddress = (Address) (bpFunction->getBaseAddr());
 	Address relativeAddress = (Address) (bpFunction->getBaseAddrRelative());
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
 	long diffAddress = effectiveAddress;
 #else
 	long long diffAddress = effectiveAddress;

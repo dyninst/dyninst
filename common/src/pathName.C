@@ -45,7 +45,7 @@
 #include "common/h/pathName.h"
 #include "common/h/headers.h"  // P_strrchr()
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 
 #define S_ISDIR(x) ((x) & _S_IFDIR)
 
@@ -252,7 +252,7 @@ bool executableFromArgv0AndPathAndCwd(string &result,
 }
 
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #define PATH_SEP ('\\')
 #else
 #define PATH_SEP ('/')

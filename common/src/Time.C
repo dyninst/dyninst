@@ -366,7 +366,7 @@ ostream& operator<<(ostream&s, timeStamp z) {
     timeLength tl(z - timeStamp(0, timeUnit::year(), timeBase::b1970()));
     // setting the oct flag is just a hack to tell the timeLength ostream<<
     // to print the time compressed
-#if !defined(mips_sgi_irix6_4) && !defined(i386_unknown_nt4_0)
+#if !defined(mips_sgi_irix6_4) && !defined(i386_unknown_nt4_0)  &&!defined(mips_unknown_ce2_11) //ccw 10 apr 2001
     ostream::fmtflags oldflags;
 #else
     long oldflags;  // irix,nt environment doesn't define ostream::fmtflags

@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.14 2000/07/28 17:20:39 pcroth Exp $
+// $Id: String.C,v 1.15 2001/08/01 15:39:51 chadd Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
 
-#ifndef i386_unknown_nt4_0
+#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #include <regex.h>
 #endif
 
@@ -452,7 +452,7 @@ string_ll::pattern_match( const char *p, const char *s, bool checkCase ) {
 bool
 string_ll::regexEquiv( const char *s, bool checkCase ) const {
 // Would this work under NT?  I don't know.
-#if !defined(i386_unknown_nt4_0)
+#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 	regex_t r;
 	int err;
 	bool match = false;

@@ -59,13 +59,13 @@
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/aixDL.h"
 
-#elif defined(i386_unknown_nt4_0)
+#elif defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "dyninstAPI/src/ntDL.h"
 
 #elif defined(i386_unknown_linux2_0)
 #include "dyninstAPI/src/linuxDL.h"
 
-#elif defined(mips_sgi_irix6_4)
+#elif defined(mips_sgi_irix6_4) 
 #include "dyninstAPI/src/irixDL.h"
 
 #endif

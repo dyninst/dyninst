@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.20 2000/07/28 17:21:16 pcroth Exp $
+// $Id: os.h,v 1.21 2001/08/01 15:39:56 chadd Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -61,7 +61,7 @@
 #include "dyninstAPI/src/alpha.h"
 #elif defined(hppa1_1_hp_hpux)
 #include "dyninstAPI/src/hpux.h"
-#elif defined(i386_unknown_nt4_0)
+#elif defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #include "dyninstAPI/src/pdwinnt.h"
 #elif defined(i386_unknown_linux2_0)
 #include "dyninstAPI/src/linux.h"

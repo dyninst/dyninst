@@ -39,16 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.12 2001/02/27 15:18:40 pcroth Exp $ */
+/* $Id: RTheap.c,v 1.13 2001/08/01 15:39:59 chadd Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
 #include <stdio.h>
+#if !defined(mips_unknown_ce2_11) // ccw 15 may 2000 : 29 mar 2001
+	// wince 2.11 does not have these header files.  it appears the only
+	//one that is used assert.h anyway.
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>                 /* open() */
 #include <fcntl.h>                    /* open() */
 #include <sys/mman.h>                 /* mmap() */
+#endif
 #include "dyninstAPI_RT/src/RTheap.h"
 
 
@@ -177,8 +181,10 @@ constrained_mmap(size_t len, Address lo, Address hi,
 	  len = len & ~(psize-1);
      }
 
-     assert(lo < hi);
-
+#if !defined(mips_unknown_ce2_11) // ccw 15 may 2000 : 29 mar 2001
+	 //sorry, no assert in wince 2.11
+    assert(lo < hi);
+#endif
      /* Find lowest (mlo) and highest (mhi) segments between lo and
 	hi.  If either lo or hi occurs within a segment, they are
 	shifted out of it toward the other bound. */
@@ -223,8 +229,10 @@ constrained_mmap(size_t len, Address lo, Address hi,
      if (BEG(mlo) >= hi || END(mhi) <= lo)
 	  return trymmap(len, lo, hi, psize, fd);
 
-     assert(lo < BEG(mlo) && hi > END(mhi));
-
+#if !defined(mips_unknown_ce2_11) // ccw 15 may 2000 : 29 mar 2001
+	 //sorry, no assert in wince 2.11
+    assert(lo < BEG(mlo) && hi > END(mhi));
+#endif
      /* Try to mmap in space before mlo */
      try = trymmap(len, lo, BEG(mlo), psize, fd);
      if (try)

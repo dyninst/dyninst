@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.124 2001/07/23 15:40:17 gurari Exp $
+// $Id: symtab.C,v 1.125 2001/08/01 15:39:57 chadd Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,7 +75,7 @@ extern debug_ostream sharedobj_cerr;
 
 vector<image*> image::allImages;
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 extern char *cplus_demangle(char *, int);
 #else
 extern "C" char *cplus_demangle(char *, int);
@@ -499,7 +499,7 @@ bool image::addAllVariables()
 /* Eventually we'll have to do this on all platforms (because we'll retrieve
  * the type information here).
  */
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   string mangledName; 
   Symbol symInfo;
 
@@ -1597,10 +1597,13 @@ image::image(fileDescriptor *desc, bool &err)
     msg += "\n";
     logLine(msg.string_of());
     err = true;
+#ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
+
 #if defined(BPATCH_LIBRARY)
     BPatch_reportError(BPatchWarning, 27, msg.string_of()); 
 #else
     showErrorCallback(27, msg); 
+#endif
 #endif
     return;
   }

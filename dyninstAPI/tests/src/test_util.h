@@ -5,7 +5,8 @@
 #include "BPatch_thread.h"
 #include "BPatch_image.h"
 
-#ifdef i386_unknown_nt4_0
+
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
 #define P_sleep(sec) Sleep(1000*(sec))
 #else
 #define P_sleep(sec) sleep(sec)

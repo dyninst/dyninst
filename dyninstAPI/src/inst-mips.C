@@ -51,7 +51,9 @@
 #include "dyninstAPI/src/instP.h"     // instWaitingList
 #include "dyninstAPI/src/stats.h"     // accounting
 #include "common/h/debugOstream.h"
+#ifndef mips_unknown_ce2_11 //ccw 28 mar 2001
 #include <disassembler.h>
+#endif
 
 #ifdef BPATCH_LIBRARY
 #include "BPatch_basicBlock.h"
@@ -314,6 +316,86 @@ FILE *Stderr = stderr; // hack for debugging
 /****************************************************************************/
 /****************************************************************************/
 
+#ifdef mips_unknown_ce2_11 //ccw 2 aug 2000 : 28 mar 2001
+//in order to get the mips assembly code on the NT box 
+//where it needs to be to produce the trampolines,
+//the assembly is loaded by the CE client, and passed back
+//up to the NT box.  In that case, the assembly functions are
+//just defined as Addresses, set when the system initializes.
+//
+//these values are set by remoteDevice::remoteDevice in file remoteDevice.C
+//
+//baseTrampTemplate.h defines the externs for these so that the rest
+//of the world can see them.
+//baseTrampTemplate.h defines externs for the actual assembly functions
+//for non-CE platforms, since the assembly can be linked w/libdyninst.[lib|a]
+char *baseTrampMem; //where the allocated memory will go.
+char *baseNonRecursiveTrampMem;//the the NonRecursive code goes.
+
+Address baseTramp;
+
+Address baseTemplate_savePreInsOffset;
+Address baseTemplate_skipPreInsOffset;
+Address baseTemplate_globalPreOffset;
+Address baseTemplate_localPreOffset;
+Address baseTemplate_localPreReturnOffset;
+Address baseTemplate_updateCostOffset;
+Address baseTemplate_restorePreInsOffset;
+Address baseTemplate_emulateInsOffset;
+Address baseTemplate_skipPostInsOffset;
+Address baseTemplate_savePostInsOffset;
+Address baseTemplate_globalPostOffset;
+Address baseTemplate_localPostOffset;
+Address baseTemplate_localPostReturnOffset;
+Address baseTemplate_restorePostInsOffset;
+Address baseTemplate_returnInsOffset;
+
+Address baseTemplate_trampTemp;
+Address baseTemplate_size;
+Address baseTemplate_cost;
+Address baseTemplate_prevBaseCost;
+Address baseTemplate_postBaseCost;
+Address baseTemplate_prevInstru;
+Address baseTemplate_postInstru;
+Address baseTramp_endTramp;
+
+
+/////nonRecursive!
+Address baseNonRecursiveTramp;
+
+Address nonRecursiveBaseTemplate_savePreInsOffset;
+Address nonRecursiveBaseTemplate_skipPreInsOffset;
+Address nonRecursiveBaseTemplate_globalPreOffset ;
+Address nonRecursiveBaseTemplate_localPreOffset;
+Address nonRecursiveBaseTemplate_localPreReturnOffset;
+Address nonRecursiveBaseTemplate_updateCostOffset;
+Address nonRecursiveBaseTemplate_restorePreInsOffset;
+Address nonRecursiveBaseTemplate_emulateInsOffset;
+Address nonRecursiveBaseTemplate_skipPostInsOffset;
+Address nonRecursiveBaseTemplate_savePostInsOffset;
+Address nonRecursiveBaseTemplate_globalPostOffset;
+Address nonRecursiveBaseTemplate_localPostOffset;
+Address nonRecursiveBaseTemplate_localPostReturnOffset;
+Address nonRecursiveBaseTemplate_restorePostInsOffset;
+Address nonRecursiveBaseTemplate_returnInsOffset;
+Address nonRecursiveBaseTemplate_guardOnPre_beginOffset;
+Address nonRecursiveBaseTemplate_guardOffPre_beginOffset;
+Address nonRecursiveBaseTemplate_guardOnPost_beginOffset;
+Address nonRecursiveBaseTemplate_guardOffPost_beginOffset;
+Address nonRecursiveBaseTemplate_guardOnPre_endOffset;
+Address nonRecursiveBaseTemplate_guardOffPre_endOffset;
+Address nonRecursiveBaseTemplate_guardOnPost_endOffset;
+Address nonRecursiveBaseTemplate_guardOffPost_endOffset;
+Address nonRecursiveBaseTemplate_trampTemp;
+Address nonRecursiveBaseTemplate_size;
+Address nonRecursiveBaseTemplate_cost;
+Address nonRecursiveBaseTemplate_prevBaseCost;
+Address nonRecursiveBaseTemplate_postBaseCost;
+Address nonRecursiveBaseTemplate_prevInstru;
+Address nonRecursiveBaseTemplate_postInstru;
+#endif
+
+
 void print_inst_pts(const vector<instPoint*> &pts, pd_Function *fn) 
 {
   TRACE_B( "print_inst_pts" );
@@ -393,7 +475,12 @@ void disDataSpace(process *p, void *addr_, int ninsns,
   assert(isAligned((Address)addr));
   instruction insn;
   char buf[64];
-  static bool is_elf64 = p->getImage()->getObject().is_elf64();
+  static bool is_elf64 =
+#if !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+  p->getImage()->getObject().is_elf64();
+#else
+  false;
+#endif
 
   for (int i = 0; i < ninsns; i++) {
     void *inTraced = addr + i;
@@ -728,7 +815,11 @@ static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &s
       }
     }
     fprintf(stderr, "  vars :");
-    for (unsigned i = 0; i < locals.size(); i++) {
+    for (
+#if !defined(mips_unknown_ce2_11)  //ccw 20 july 2000 : 28 mar 2001
+		unsigned
+#endif 
+	i = 0; i < locals.size(); i++) {
       fprintf(stderr, " %3i", locals[i]);
     }
     fprintf(stderr, "\n");
@@ -766,7 +857,11 @@ Address pd_Function::findStackFrame(const image *owner)
 
   // register aliasing
   int aliases[NUM_REGS];
-  for (int i = 0; i < NUM_REGS; i++) {
+  for (
+#ifndef mips_unknown_ce2_11 //ccw 17 july 2001
+int
+#endif
+ i = 0; i < NUM_REGS; i++) {
     aliases[i] = i;
   }
 
@@ -989,11 +1084,14 @@ Address pd_Function::findStackFrame(const image *owner)
 void pd_Function::setVectorIds()
 {
   TRACE_B( "pd_Function::setVectorIds" );
-
   //fprintf(stderr, ">>> pd_Function::setIDS()\n");
   for (unsigned i = 0; i < calls.size(); i++) 
     calls[i]->vectorId = i;
-  for (unsigned i = 0; i < funcReturns.size(); i++) 
+  for (
+#ifndef mips_unknown_ce2_11 //ccw 17 july 2001
+unsigned
+#endif
+ i = 0; i < funcReturns.size(); i++) 
     funcReturns[i]->vectorId = i;
 
   TRACE_E( "pd_Function::setVectorIds" );
@@ -1070,10 +1168,14 @@ bool pd_Function::checkInstPoints()
   /* sort all instPoints by address */
   vector<instPoint*> pts;
   if (funcEntry_) pts.push_back(funcEntry_);
-  for (unsigned i = 0; i < funcReturns.size(); i++) {
+  for(unsigned  i = 0; i < funcReturns.size(); i++) {
     pts.push_back(funcReturns[i]);
   }
-  for (unsigned i = 0; i < calls.size(); i++) {
+  for (
+#ifndef mips_unknown_ce2_11 //ccw 17 july 2001
+unsigned
+#endif
+    i = 0; i < calls.size(); i++) {
     pts.push_back(calls[i]);
   }
   VECTOR_SORT(pts, cmpByAddr);
@@ -1086,7 +1188,11 @@ bool pd_Function::checkInstPoints()
   }
 
   /* check for overlapping instPoints */
-  for (unsigned i = 0; i < pts.size() - 1; i++) {
+  for (
+#ifndef mips_unknown_ce2_11 //ccw 17 july 2001
+unsigned
+#endif
+	 i = 0; i < pts.size() - 1; i++) {
     instPoint *p = pts[i];
     instPoint *p2 = pts[i+1];
     if (p2->offset() < p->offset() + p->size()) {
@@ -1468,7 +1574,12 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   }
 
   Address obj_base = elf.get_base_addr();
-  bool is_elf64 = elf.is_elf64();
+  bool is_elf64= 
+#ifndef mips_unknown_ce2_11 //ccw 26 july 2000 : 28 mar 2001
+	  elf.is_elf64();
+#else
+  false;
+#endif
 
   // special case: function call via GOT entry
   if (baseRegs.size() == 1 && 
@@ -1479,6 +1590,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
        entry may appear to resolve to a local symbol, it can be
        preempted at runtime.  The Fortran function "MAIN__" is one
        such case. */
+#ifndef mips_unknown_ce2_11 //ccw 26 july 2000 : 28 mar 2001
 
     Address got_entry_off = target + baseAdjusts[0] - obj_base;    
 
@@ -1491,6 +1603,11 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
     // wait for runtime value of GOT entry
     ip->hint_got_ = got_entry_off;
     return 0;
+#else
+	cerr << "FAILURE: pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i) wants GOT"<<endl;
+	exit(-1);
+#endif 
+
   }
   
   // debug: target arithmetic
@@ -1503,15 +1620,15 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   */
 
   // calculate jump target
-  for (int i = baseRegs.size()-1; i >= 0; i--) {
-    Address vaddr = target + baseAdjusts[i];
+ for(int ii = baseRegs.size()-1; ii >= 0; ii--) {
+    Address vaddr = target + baseAdjusts[ii];
     Address vaddr_rel = vaddr - obj_base;
     // address-in-memory
     Address addr_in_mem = (is_elf64)
       ? (get_dword(elf, vaddr_rel))
       : (get_word(elf, vaddr_rel));
     if (addr_in_mem == 0) return 0;
-    target = addr_in_mem + adjusts[i];
+    target = addr_in_mem + adjusts[ii];
   }
   target -= obj_base; // relative addressing
 
@@ -1840,7 +1957,11 @@ void genLoadNegConst(reg dst, Address imm, char *code, Address &base, bool /*noC
   instruction *insn = (instruction *)(code + base);
   switch (signbit) {
   case 0:
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+    genItype(insn, ADDIUop, REG_ZERO, dst, imm); //ccw 5 nov 2000
+#else
     genItype(insn, DADDIUop, REG_ZERO, dst, imm);
+#endif
     base += INSN_SIZE;
     break;
   default:
@@ -1852,7 +1973,11 @@ void genLoadNegConst(reg dst, Address imm, char *code, Address &base, bool /*noC
     }
     for (i = signbit-2; i >= 0; i--) {
       insn = (instruction *)(code + base);
+#ifdef mips_unknown_ce2_11 //ccw 12 jan 2001 : 28 mar 2001
+      genRtype(insn, SLLops, 0, dst, dst, IMM_NBITS);
+#else
       genRtype(insn, DSLLops, 0, dst, dst, IMM_NBITS);
+#endif
       base += INSN_SIZE;
       if (getImmField(imm, i) != 0) {
 	genItype(insn+1, ORIop, dst, dst, getImmField(imm, i));
@@ -1915,7 +2040,11 @@ void genLoadConst(reg dst, RegValue imm, char *code, Address &base, bool noCost)
 	// => ori, dsll
 	genItype(insn, ORIop, REG_ZERO, dst, field);
 	base += INSN_SIZE;
+#ifdef mips_unknown_ce2_11 //ccw 12 jan 2001 : 28 mar 2001
+	genRtype(insn+1, SLLops, 0, dst, dst, IMM_NBITS);
+#else
 	genRtype(insn+1, DSLLops, 0, dst, dst, IMM_NBITS);
+#endif
 	base += INSN_SIZE;
       } else {
 	// MSB of first nonzero field is zero
@@ -1931,7 +2060,11 @@ void genLoadConst(reg dst, RegValue imm, char *code, Address &base, bool noCost)
       // load remaining fields
       for (int i = nonzero-2; i >= 0; i--) {
 	insn = (instruction *)(code + base);
+#ifdef mips_unknown_ce2_11 //ccw 12 jan 2001 : 28 mar 2001
+	genRtype(insn, SLLops, 0, dst, dst, IMM_NBITS);
+#else
 	genRtype(insn, DSLLops, 0, dst, dst, IMM_NBITS);
+#endif
 	base += INSN_SIZE;
 	if (getImmField(imm, i) != IMM_ZERO) {
 	  genItype(insn+1, ORIop, dst, dst, getImmField(imm, i));
@@ -1969,6 +2102,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dst,
   instruction *insn = (instruction *)(code + base);
   RegValue word_off_;
   SignedImm word_off;
+	int i;//ccw 10 apr 2001
 
   switch (op) {
 
@@ -2016,7 +2150,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dst,
     //fprintf(stderr, ">>> emit(trampTrailer)\n");
     // allocate enough space for indirect jump (just in case)
     ret = base;
-    for (int i = 0; i < 8; i++) genNop(insn+i);
+    for ( i = 0; i < 8; i++) genNop(insn+i);
     base += 8*INSN_SIZE;
     break;
 
@@ -2051,19 +2185,44 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dst,
     // return val : argument register
     // TODO: extract >8 parameters from stack (need to know stack frame size)
     //fprintf(stderr, ">>> emit(getParamOp): %i\n", src1);
-    if ( src1 < 8 )
-    {
+	if ( src1 <  //ccw 28 mar 2001
+#ifdef mips_unknown_ce2_11 //ccw 22 jan 2001 : ce only passes 4 args on the registers
+		4
+#else
+		8 
+#endif
+    ){
       ret = dst;
-      frame_off = 216 - (BYTES_PER_ARG * src1); // see tramp-mips.S
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : 28 mar 2001
+	  frame_off = 108 - (BYTES_PER_ARG * src1); // see tramp-mips.S
+	  // 108 comes from the position in the stack where register 4 is stored!
+#else
+	  frame_off = 216 - (BYTES_PER_ARG * src1); // see tramp-mips.S
+#endif
+
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : 28 mar 2001
+      genItype((instruction *)(code + base), LWop, REG_SP, ret, frame_off);
+#else
       genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
-      base += INSN_SIZE;
+#endif
+     base += INSN_SIZE;
     }
     else
     {
       ret = dst;
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : 28 mar 2001
+	  frame_off = 128 ;//ccw 24 jan 2001 + (BYTES_PER_ARG * (src1-4)); 
+	  //128 is 32 registers * 4 bytes each
+#else
       frame_off = 512 + (BYTES_PER_ARG * (src1-8)); 
+#endif
+
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : 28 mar 2001
+      genItype((instruction *)(code + base), LWop, REG_SP, ret, frame_off);
+#else
       genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
-      base += INSN_SIZE;
+#endif
+     base += INSN_SIZE;
     }
     break;
 
@@ -2075,9 +2234,20 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dst,
     //fprintf(stderr, ">>> emit(getSysParamOp)\n");
     assert(src1 < 8);
     ret = dst;
-    frame_off = 216 - (BYTES_PER_ARG * src1); // see tramp-mips.S
-    genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
-    base += INSN_SIZE;
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : 28 mar 2001
+	  frame_off = 108 - (BYTES_PER_ARG * src1); // see tramp-mips.S
+	  //see above comment
+#else
+	  frame_off = 216 - (BYTES_PER_ARG * src1); // see tramp-mips.S
+#endif
+
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : 28 mar 2001
+	//DebugBreak();
+      genItype((instruction *)(code + base), LWop, REG_SP, ret, frame_off);
+#else
+      genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
+#endif
+   base += INSN_SIZE;
     break;
 
   case getRetValOp:
@@ -2085,9 +2255,20 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dst,
     // return val : return value register
     //fprintf(stderr, ">>> emit(getRetValOp)\n");
     ret = dst;
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : ccw 28 mar 2001
+    frame_off = 116; // see tramp-mips.S
+	// position of register 2
+#else
     frame_off = 232; // see tramp-mips.S
-    genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
-    base += INSN_SIZE;
+#endif
+
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : 28 mar 2001
+//	DebugBreak();
+      genItype((instruction *)(code + base), LWop, REG_SP, ret, frame_off);
+#else
+      genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
+#endif
+   base += INSN_SIZE;
     break;
 
   case getSysRetValOp:
@@ -2095,9 +2276,19 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dst,
     // return val : return value register
     //fprintf(stderr, ">>> emit(getSysRetValOp)\n");
     ret = dst;
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : 28 mar 2001
+    frame_off = 116; // see tramp-mips.S
+	// position of register 2
+#else
     frame_off = 232; // see tramp-mips.S
-    genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
-    base += INSN_SIZE;
+#endif
+
+#ifdef mips_unknown_ce2_11 //ccw 15 jan 2001 : 28 mar 2001
+      genItype((instruction *)(code + base), LWop, REG_SP, ret, frame_off);
+#else
+      genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
+#endif
+   base += INSN_SIZE;
     break;
 
   default:
@@ -2159,12 +2350,20 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
 
   case plusOp:
     //fprintf(stderr, ">>> emit(plusOp)\n");
-    genRtype(insn, DADDUops, src1, src2, dst);
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+    genRtype(insn, ADDUops, src1, src2, dst); //ccw 5 nov 2000
+#else
+	genRtype(insn, DADDUops, src1, src2, dst);
+#endif
     base += INSN_SIZE;
     break;
   case minusOp:
     //fprintf(stderr, ">>> emit(minusOp)\n");
-    genRtype(insn, DSUBUops, src1, src2, dst);
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+	genRtype(insn, SUBUops, src1, src2, dst);
+#else
+	genRtype(insn, DSUBUops, src1, src2, dst);
+#endif
     base += INSN_SIZE;
     break;
   case timesOp:
@@ -2175,7 +2374,11 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
        nop           # padding for "mflo"
     */
     //fprintf(stderr, ">>> emit(timesOp)\n");
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+    genRtype(insn, MULTUops, src1, src2, 0);
+#else
     genRtype(insn, DMULTUops, src1, src2, 0);
+#endif
     genRtype(insn+1, MFLOops, 0, 0, dst);
     genNop(insn+2);
     genNop(insn+3);
@@ -2189,7 +2392,11 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
        nop           # padding for "mflo"
     */
     //fprintf(stderr, ">>> emit(divOp)\n");
-    genRtype(insn, DDIVUops, src1, src2, 0);
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+	genRtype(insn, DIVUops, src1, src2, 0);
+#else
+	genRtype(insn, DDIVUops, src1, src2, 0);
+#endif
     genRtype(insn+1, MFLOops, 0, 0, dst);
     genNop(insn+2);
     genNop(insn+3);
@@ -2288,6 +2495,10 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dst,
       emitV(loadIndirOp, dst, 0, dst, code, base, noCost);
     } else if (size == sizeof(uint64_t)) {
       // 64-bit load
+ 		//ccw 15 jan 2001 : 28 mar 2001
+		// this is a 64 bit load. when is it used? 
+		// it will need to be split...
+		// TODO
       genItype((instruction *)(code + base), LDop, dst, dst, 0);
       base += INSN_SIZE;
     } else {
@@ -2414,7 +2625,11 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
     
   case plusOp:
     if (!doNotOverflow(imm)) break;
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+    genItype(insn, ADDIUop, src, dst, imm); //ccw 5 nov 2000
+#else
     genItype(insn, DADDIUop, src, dst, imm);
+#endif
     base += INSN_SIZE;
 
     TRACE_E( "emitImm" );
@@ -2422,7 +2637,11 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
     return;
   case minusOp:
     if (!doNotOverflow(-imm)) break;
-    genItype(insn, DADDIUop, src, dst, -imm);
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+	genItype(insn, ADDIUop, src, dst, -imm); //ccw 5 nov 2000
+#else
+	genItype(insn, DADDIUop, src, dst, -imm);
+#endif
     base += INSN_SIZE;
 
     TRACE_E( "emitImm" );
@@ -2431,8 +2650,23 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
   case timesOp:
     if (!isPowerOf2(imm, n) || (n >= 64)) break;
     // use left shift for powers of 2
-    if (n < 32) genRtype(insn, DSLLops, 0, src, dst, n);
-    else genRtype(insn, DSLL32ops, 0, src, dst, n-32);
+     if (n < 32){
+
+#ifdef mips_unknown_ce2_11 //ccw 12 jan 2001 : 28 mar 2001
+		//ce does not support DSLL!
+		genRtype(insn, SLLops, 0, src, dst, n);
+#else
+		genRtype(insn, DSLLops, 0, src, dst, n);
+#endif
+
+	}else{
+
+#ifdef mips_unknown_ce2_11 //ccw 12 jan 2001
+		exit(-1);		
+#else
+		genRtype(insn, DSLL32ops, 0, src, dst, n-32);
+#endif
+	}
     base += INSN_SIZE;
 
     TRACE_E( "emitImm" );
@@ -2462,7 +2696,11 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
   case eqOp:
     if (!doNotOverflow(-imm)) break;
     // saves one register over emitV()
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+    genItype(insn, ADDIUop, src, dst, -imm); //ccw 5 nov 2000
+#else
     genItype(insn, DADDIUop, src, dst, -imm);
+#endif
     genItype(insn+1, BEQLop, dst, REG_ZERO, 0x2);
     genItype(insn+2, ORIop, REG_ZERO, dst, 0x1);
     genItype(insn+3, ORIop, REG_ZERO, dst, 0x0);
@@ -2474,7 +2712,11 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
   case neOp:
     if (!doNotOverflow(-imm)) break;
     // saves one register over emitV()
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+    genItype(insn, ADDIUop, src, dst, -imm); //ccw 5 nov 2000
+#else
     genItype(insn, DADDIUop, src, dst, -imm);
+#endif
     genItype(insn+1, BNELop, dst, REG_ZERO, 0x2);
     genItype(insn+2, ORIop, REG_ZERO, dst, 0x1);
     genItype(insn+3, ORIop, REG_ZERO, dst, 0x0);
@@ -2537,7 +2779,12 @@ bool process::emitInferiorRPCheader(void *code_, Address &base)
   instruction *insn = (instruction *)(code + base);
 
   // TODO: why 512 bytes? not using basetramp code, right?
-  genItype(insn, DADDIUop, REG_SP, REG_SP, -512); // daddiu sp,sp,-512
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+	//DebugBreak(); //ccw 16 jan 2001
+     	genItype(insn, ADDIUop, REG_SP, REG_SP, -512); //ccw 5 nov 2000 : was 512
+#else
+	genItype(insn, DADDIUop, REG_SP, REG_SP, -512); // daddiu sp,sp,-512
+#endif
   base += INSN_SIZE;
 
   TRACE_E( "process::emitInferiorRPCheader" );
@@ -2573,7 +2820,11 @@ bool process::emitInferiorRPCtrailer(void *code_, Address &base,
   // mandatory RPC trailer: restore, trap, illegal
   instruction *insn = (instruction *)(code + base);
   // daddiu sp,sp,512
-  genItype(insn, DADDIUop, REG_SP, REG_SP, 512);
+#ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
+	genItype(insn, ADDIUop, REG_SP, REG_SP, 512); //ccw 5 nov 2000 : was 512
+#else
+	genItype(insn, DADDIUop, REG_SP, REG_SP, 512);
+#endif
   base += INSN_SIZE;
   // trap insn
   genTrap(insn+1);
@@ -2727,6 +2978,7 @@ int getInsnCost(opCode op)
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+#ifndef mips_unknown_ce2_11 //ccw 13 apr 2001
 
 // baseTramp assembly code symbols
 extern "C" void baseTramp();
@@ -2790,6 +3042,7 @@ extern "C" void conservativeTramp_localPostReturn();
 extern "C" void conservativeTramp_restorePostInsn();
 extern "C" void conservativeTramp_returnInsn();
 extern "C" void conservativeTramp_endTramp();
+#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -2811,6 +3064,67 @@ void initTramps()
   // register space
   regSpace = new registerSpace(nDead, Dead, 0, NULL);
   assert(regSpace);
+#ifdef mips_unknown_ce2_11 //ccw 3 aug 2000 : 28 mar 2001
+	baseTemplate.savePreInsOffset = baseTemplate_savePreInsOffset;
+	baseTemplate.skipPreInsOffset = baseTemplate_skipPreInsOffset;
+	baseTemplate.globalPreOffset = baseTemplate_globalPreOffset;
+	baseTemplate.localPreOffset = baseTemplate_localPreOffset;
+	baseTemplate.localPreReturnOffset = baseTemplate_localPreReturnOffset;
+	baseTemplate.updateCostOffset = baseTemplate_updateCostOffset;
+	baseTemplate.restorePreInsOffset = baseTemplate_restorePreInsOffset;
+	baseTemplate.emulateInsOffset = baseTemplate_emulateInsOffset;
+	baseTemplate.skipPostInsOffset = baseTemplate_skipPostInsOffset;
+	baseTemplate.savePostInsOffset = baseTemplate_savePostInsOffset;
+	baseTemplate.globalPostOffset = baseTemplate_globalPostOffset;
+	baseTemplate.localPostOffset = baseTemplate_localPostOffset;
+	baseTemplate.localPostReturnOffset = baseTemplate_localPostReturnOffset;
+	baseTemplate.restorePostInsOffset = baseTemplate_restorePostInsOffset;
+	baseTemplate.returnInsOffset = baseTemplate_returnInsOffset;
+
+	baseTemplate.trampTemp = (void*)baseTemplate_trampTemp;
+	baseTemplate.size = baseTemplate_size;
+	baseTemplate.cost = baseTemplate_cost;
+	baseTemplate.prevBaseCost = baseTemplate_prevBaseCost;
+	baseTemplate.postBaseCost = baseTemplate_postBaseCost;
+	baseTemplate.prevInstru = baseTemplate_prevInstru;
+	baseTemplate.postInstru = baseTemplate_postInstru;
+	//baseTemplate.endTramp = baseTemplate_endTramp;
+
+	nonRecursiveBaseTemplate.guardOffPost_beginOffset = nonRecursiveBaseTemplate_guardOffPost_beginOffset;
+	nonRecursiveBaseTemplate.savePreInsOffset = nonRecursiveBaseTemplate_savePreInsOffset;
+	nonRecursiveBaseTemplate.skipPreInsOffset = nonRecursiveBaseTemplate_skipPreInsOffset;
+	nonRecursiveBaseTemplate.globalPreOffset  = nonRecursiveBaseTemplate_globalPreOffset;
+	nonRecursiveBaseTemplate.localPreOffset = nonRecursiveBaseTemplate_localPreOffset;
+	nonRecursiveBaseTemplate.localPreReturnOffset = nonRecursiveBaseTemplate_localPreReturnOffset;
+	nonRecursiveBaseTemplate.updateCostOffset = nonRecursiveBaseTemplate_updateCostOffset;
+	nonRecursiveBaseTemplate.restorePreInsOffset = nonRecursiveBaseTemplate_restorePreInsOffset;
+	nonRecursiveBaseTemplate.emulateInsOffset = nonRecursiveBaseTemplate_emulateInsOffset;
+	nonRecursiveBaseTemplate.skipPostInsOffset = nonRecursiveBaseTemplate_skipPostInsOffset;
+	nonRecursiveBaseTemplate.savePostInsOffset = nonRecursiveBaseTemplate_savePostInsOffset;
+	nonRecursiveBaseTemplate.globalPostOffset = nonRecursiveBaseTemplate_globalPostOffset;
+	nonRecursiveBaseTemplate.localPostOffset = nonRecursiveBaseTemplate_localPostOffset;
+	nonRecursiveBaseTemplate.localPostReturnOffset = nonRecursiveBaseTemplate_localPostReturnOffset;
+	nonRecursiveBaseTemplate.restorePostInsOffset = nonRecursiveBaseTemplate_restorePostInsOffset;
+	nonRecursiveBaseTemplate.returnInsOffset = nonRecursiveBaseTemplate_returnInsOffset;
+	nonRecursiveBaseTemplate.guardOnPre_beginOffset = nonRecursiveBaseTemplate_guardOnPre_beginOffset;
+	nonRecursiveBaseTemplate.guardOffPre_beginOffset = nonRecursiveBaseTemplate_guardOffPre_beginOffset;
+	nonRecursiveBaseTemplate.guardOnPost_beginOffset = nonRecursiveBaseTemplate_guardOnPost_beginOffset;
+	nonRecursiveBaseTemplate.guardOffPost_beginOffset = nonRecursiveBaseTemplate_guardOffPost_beginOffset;
+	nonRecursiveBaseTemplate.guardOnPre_endOffset = nonRecursiveBaseTemplate_guardOnPre_endOffset;
+	nonRecursiveBaseTemplate.guardOffPre_endOffset = nonRecursiveBaseTemplate_guardOffPre_endOffset;
+	nonRecursiveBaseTemplate.guardOnPost_endOffset = nonRecursiveBaseTemplate_guardOnPost_endOffset;
+	nonRecursiveBaseTemplate.guardOffPost_endOffset = nonRecursiveBaseTemplate_guardOffPost_endOffset;
+	//ccw 20 aug 2000 added the &
+	nonRecursiveBaseTemplate.trampTemp =  (void*) baseNonRecursiveTramp; //ccw 17 oct 2000
+
+	nonRecursiveBaseTemplate.size = nonRecursiveBaseTemplate_size;
+	nonRecursiveBaseTemplate.cost = nonRecursiveBaseTemplate_cost;
+	nonRecursiveBaseTemplate.prevBaseCost = nonRecursiveBaseTemplate_prevBaseCost;
+	nonRecursiveBaseTemplate.postBaseCost = nonRecursiveBaseTemplate_postBaseCost;
+	nonRecursiveBaseTemplate.prevInstru = nonRecursiveBaseTemplate_prevInstru;
+	nonRecursiveBaseTemplate.postInstru = nonRecursiveBaseTemplate_postInstru;
+
+#else
 
   // base trampoline template
   Address i, base = (Address)baseTramp;
@@ -3031,7 +3345,7 @@ void initTramps()
   conservativeTemplate.postBaseCost = 134;
   conservativeTemplate.prevInstru = false;
   conservativeTemplate.postInstru = false;
-
+#endif
   TRACE_E( "initTramps" );
 }
 
@@ -3056,8 +3370,55 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
   
   // generate argument values
   vector<reg> args;
+#ifdef mips_unknown_ce2_11 //ccw 22 jan 2001 : 28 mar 2001
+  
+	//add to the stack HACK
+	//Windows CE forces you to have already allocated space
+	//on the stack for the called function to use to store
+	//parameters from the registers (a0-a3) to memory.
+
+	//ccw 18 jan 2001 : RIGHT HERE generate stack grow!
+	int argSize=24; //ccw 18 jan 2001
+	for (unsigned ii = 0; ii < params.size(); ii++) {
+		argSize += params[ii]->getSize(); //ccw 18 jan 2001
+	}
+	//ccw 18 jan 2001
+	//allocate extra room on the stack for the args!
+
+	insn = (instruction *)(code + base);
+	genItype(insn, ADDIUop, REG_SP, REG_SP, -1*argSize); 
+	base += INSN_SIZE;
+
+	unsigned int offsetMask= 0x0000FFFF;
+	unsigned int newInsn = 0x00000000;
+	unsigned int newOffset = 0;
+#endif
+
   for (unsigned i = 0; i < params.size(); i++) {
     args.push_back(params[i]->generateCode(p, rs, code, base, noCost, false));
+#ifdef mips_unknown_ce2_11 //ccw 22 jan 2001 : 28 mar 2001
+		//since we allocted extra memory on the stack for the
+		//parameters, we need to fix up the 'lw XX, XX(sp)' that is
+		//generated above to add the amount of stack space we
+		//just generated to the offset.
+		//ONLY do this when the instruction is a 'lw XX, XX(sp)'
+		//sometimes a constant is loaded or something is loaded
+		//from another memory location
+		newInsn = *((unsigned int*) (code + (base - INSN_SIZE)));
+		struct fmt_itype *tmpInsn = (struct fmt_itype*) ((code + (base - INSN_SIZE)));
+		if( (tmpInsn->op == 35) && // ls
+			(tmpInsn->rs == 29) ) { // XX(sp) 
+
+			newOffset = (offsetMask & *((unsigned int*) (code + (base - INSN_SIZE))))+ argSize;
+			if(i>3) { //5th parameter, not in register.
+				newOffset +=  (i*4) ;
+			}
+			newInsn = newInsn & 0xFFFF0000;
+			newInsn = newInsn | newOffset;
+			*((unsigned int*) (code + (base - INSN_SIZE)))= newInsn;
+
+		}
+#endif
   }
   
   unsigned nargs = args.size();
@@ -3065,7 +3426,14 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
   int stackBytes = 0;
 
   // put parameters 0-7 in argument registers
-  for (unsigned i = 0; i < nargs && i < NUM_ARG_REGS; i++) {
+  // ccw  10 jan 2001 mips on the CE devices
+  // uses the o32 calling convention, only allowing 
+  // 4 arguments to be passed in registers.
+  for (
+#ifndef mips_unknown_ce2_11 //ccw 17 july 2001
+unsigned
+#endif
+	i = 0; i < nargs && i < NUM_ARG_REGS; i++) {
     insn = (instruction *)(code + base);
     genMove(insn, args[i], REG_A0 + i);
     base += INSN_SIZE;
@@ -3074,23 +3442,39 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
 
   // put parameters 8+ on the stack
   if (stackArgs) {
+#ifndef mips_unknown_ce2_11 //ccw 10 jan 2001 : 28 mar 2001
+	//dont grow the stack if you are on mips, use o32
+	// also removes the addiu sp,sp,stackBytes below
+
     // grow stack frame
     stackBytes = (nargs - NUM_ARG_REGS) * BYTES_PER_ARG; // 8 bytes per parameter
     insn = (instruction *)(code + base);
+
     genItype (insn, DADDIUop, REG_SP, REG_SP, -stackBytes);
     base += INSN_SIZE;
+#endif
+
     /* NOTE: the size of the stack frame has been temporarily
        increased; its size is restored by the "addiu sp,sp,stackBytes"
        generated below */
-
     // store parameters in stack frame
     for (unsigned i = NUM_ARG_REGS; i < nargs; i++) {
+#ifdef mips_unknown_ce2_11 //ccw 10 jan 2001 : 28 mar 2001
+      int stackOff = (i - NUM_ARG_REGS) * BYTES_PER_ARG + 16; //ccw 10 jan 2001 added + 16
+#else
       int stackOff = (i - NUM_ARG_REGS) * BYTES_PER_ARG;
+#endif
       insn = (instruction *)(code + base);
+#ifdef mips_unknown_ce2_11 //ccw 10 jan 2001 : 28 mar 2001
+	  // ce does not have SDop 
+      genItype(insn, SWop, REG_SP, args[i], stackOff);
+#else
       genItype(insn, SDop, REG_SP, args[i], stackOff);
+#endif
       base += INSN_SIZE;
       rs->freeRegister(args[i]);
     }
+
   }
 
   // call function
@@ -3101,11 +3485,24 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
   base += 2*INSN_SIZE;
 
   // restore stack frame (if necessary)
+#ifndef mips_unknown_ce2_11 //ccw 18 jan 2001 : 28 mar 2001
+
   if (stackArgs) {
     insn = (instruction *)(code + base);
     genItype(insn, DADDIUop, REG_SP, REG_SP, stackBytes);
     base += INSN_SIZE;
   }
+#else
+ //ccw 18 jan 2001 : RIGHT HERE generate stack shrink!
+
+  //ccw 18 jan 2001
+  //de-allocate extra room on the stack for the args!
+
+  insn = (instruction *)(code + base);
+  genItype(insn, ADDIUop, REG_SP, REG_SP, argSize); 
+  base += INSN_SIZE;
+
+#endif
 
   // debug
   //fprintf(stderr, "  emitFuncCall code:\n");
@@ -3268,6 +3665,8 @@ void generate_base_tramp_recursive_guard_code( process * p,
 					       NonRecursiveTrampTemplate * templ )
 {
   TRACE_B( "generate_base_tramp_recursive_guard_code" );
+  int offset = 0;//ccw 24 oct 2000 : 28 mar 2001 used to calculate offset of BEQ
+
 
   /* prepare guard flag memory, if needed */
   Address guardFlagAddress = p->getTrampGuardFlagAddr();
@@ -3287,6 +3686,9 @@ void generate_base_tramp_recursive_guard_code( process * p,
 
   /* The 64-bit address is split into 4 16-bit chunks: A, B, C, D */
   /* A is the most significant chunk, D the least significant.    */
+#ifndef mips_unknown_ce2_11 //ccw 24 oct 2000 : 28 mar 2001
+  //if we are not on CE then use a 64 bit address
+  //if we are on CE use a 32 bit address
 
   unsigned short int chunk_A = ( guardFlagAddress >> 48 ) & 0x000000000000FFFF;
   unsigned short int chunk_B = ( guardFlagAddress >> 32 ) & 0x000000000000FFFF;
@@ -3301,42 +3703,74 @@ void generate_base_tramp_recursive_guard_code( process * p,
 	 << "0x" << setfill('0') << setw(4) << setbase(16) << chunk_C << " "
 	 << "0x" << setfill('0') << setw(4) << setbase(16) << chunk_D
 	 << dec << "." );
+#else
+
+  unsigned short int chunk_A = ( guardFlagAddress >> 16 ) & 0x0000FFFF;
+  unsigned short int chunk_B = ( guardFlagAddress       ) & 0x0000FFFF;
+
+#endif
 
   /* populate guardOnPre section */
   instruction * guardOnInsn = ( instruction * )( code + templ->guardOnPre_beginOffset );
+  offset = 7;//ccw 24 oct 2000 : 28 mar 2001
+
+#ifndef mips_unknown_ce2_11 //ccw 24 oct 2000 : 28 mar 2001
   genItype ( guardOnInsn     , LUIop,  0, 12, chunk_A );
   genItype ( guardOnInsn + 1 , ORIop, 12, 12, chunk_B );
   genItype ( guardOnInsn + 2 , LUIop,  0, 13, chunk_C );
   genItype ( guardOnInsn + 3 , ORIop, 13, 13, chunk_D );
+  //offset -=2;//ccw 24 oct 2000
+#else
+  genItype ( guardOnInsn     , LUIop,  0, 13, chunk_A );
+  genItype ( guardOnInsn + 1 , ORIop, 13, 13, chunk_B );
 
-  genItype ( guardOnInsn + 7 , BEQop, 12, 0,
+#endif
+
+  genItype ( guardOnInsn + offset , BEQop, 12, 0, //ccw 24 oct 2000 : offset was 7 : 28 mar 2001
 	     ( templ->guardOffPre_endOffset -
 	       ( templ->guardOnPre_beginOffset + ( 7 + 1 ) * INSN_SIZE ) ) / INSN_SIZE );
 
   /* populate guardOffPre section */
   instruction * guardOffInsn = ( instruction * )( code + templ->guardOffPre_beginOffset );
+#ifndef mips_unknown_ce2_11 //ccw 24 oct 2000 : 28 mar 2001
   genItype ( guardOffInsn     , LUIop,  0, 12, chunk_A );
   genItype ( guardOffInsn + 1 , ORIop, 12, 12, chunk_B );
   genItype ( guardOffInsn + 2 , LUIop,  0, 13, chunk_C );
   genItype ( guardOffInsn + 3 , ORIop, 13, 13, chunk_D );
+#else
+  genItype ( guardOffInsn     , LUIop,  0, 13, chunk_A );
+  genItype ( guardOffInsn + 1 , ORIop, 13, 13, chunk_B );
+
+#endif
 
   /* populate guardOnPost section */
   guardOnInsn = ( instruction * )( code + templ->guardOnPost_beginOffset );
+#ifndef mips_unknown_ce2_11 //ccw 24 oct 2000 : 28 mar 2001
   genItype ( guardOnInsn     , LUIop,  0, 12, chunk_A );
   genItype ( guardOnInsn + 1 , ORIop, 12, 12, chunk_B );
   genItype ( guardOnInsn + 2 , LUIop,  0, 13, chunk_C );
   genItype ( guardOnInsn + 3 , ORIop, 13, 13, chunk_D );
+#else
+  genItype ( guardOnInsn     , LUIop,  0, 13, chunk_A );
+  genItype ( guardOnInsn + 1 , ORIop, 13, 13, chunk_B );
+#endif
 
-  genItype ( guardOnInsn + 7 , BEQop, 12, 0,
+  genItype ( guardOnInsn + offset , BEQop, 12, 0,//ccw 24 oct 2000 : offset was 7 : 28 mar 2001
 	     ( templ->guardOffPost_endOffset -
 	       ( templ->guardOnPost_beginOffset + ( 7 + 1 ) * INSN_SIZE ) ) / INSN_SIZE );
 
   /* populate guardOffPost section */
   guardOffInsn = ( instruction * )( code + templ->guardOffPost_beginOffset );
+#ifndef mips_unknown_ce2_11 //ccw 24 oct 2000
   genItype ( guardOffInsn     , LUIop,  0, 12, chunk_A );
   genItype ( guardOffInsn + 1 , ORIop, 12, 12, chunk_B );
   genItype ( guardOffInsn + 2 , LUIop,  0, 13, chunk_C );
   genItype ( guardOffInsn + 3 , ORIop, 13, 13, chunk_D );
+#else
+  genItype ( guardOffInsn     , LUIop,  0, 13, chunk_A );
+  genItype ( guardOffInsn + 1 , ORIop, 13, 13, chunk_B );
+
+#endif
 
   TRACE_E( "generate_base_tramp_recursive_guard_code" );
 }
@@ -3729,12 +4163,17 @@ bool process::replaceFunctionCall(const instPoint *ip,
   pd_Function *ip_pdf = (pd_Function *)ip->iPgetFunction();
   // parse backwards to check for "ld RR,-XX(gp)" insn
   Address fn_start = ip_pdf->getAddress(0);
+#ifndef mips_unknown_ce2_11 //ccw 26 july 2000 : 28 mar 2001
   int ld_off = got_ld_off(owner, fn_start, ip->offset()+INSN_SIZE, jump_reg);
+#else
+  int ld_off = -1;
+#endif
   Address ld_addr;
   instruction ld_insn;
   int gp_disp1, gp_disp2 = -1;
   if (ld_off != -1) {
-    // fetch "ld RR,-XX(gp)" insn
+#ifndef mips_unknown_ce2_11 //ccw 26 juy 2000 : 28 mar 2001
+   // fetch "ld RR,-XX(gp)" insn
     ld_addr = pt_base + fn_start + ld_off;
     ld_insn.raw = owner->get_instruction(fn_start + ld_off);
     assert(ld_insn.itype.op == LDop ||
@@ -3745,7 +4184,11 @@ bool process::replaceFunctionCall(const instPoint *ip,
     // new GOT entry (modify insn)
     gp_disp2 = elf.got_gp_disp(dst2_pdf->prettyName().string_of());
     ld_insn.itype.simm16 = gp_disp2;
-  }
+#else
+	cerr<<"FAILURE: process::replaceFunctionCall wants GOT"<<endl;
+	exit(-1);
+#endif
+ }
 
   /* NOTE: At this point, things differ depending on whether this is a
      direct or indirect function call. */
@@ -3816,7 +4259,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
        old callee */
     bool use_got_ld = false;
     if (ld_off != -1) {
-
+#ifndef mips_unknown_ce2_11 //ccw 26 july 2000 : 28 mar 2001
       // resolve old callee
       function_base *dst1_fn;
       instPoint *ip2 = const_cast<instPoint *>(ip);
@@ -3843,6 +4286,11 @@ bool process::replaceFunctionCall(const instPoint *ip,
 	  }
 	use_got_ld = true;
       }
+#else
+	cerr<<"FAILURE: process::replaceFunctionCall(2) wants GOT"<<endl;
+	exit(-1);
+#endif
+
     }
     
     // generate call 
@@ -4012,6 +4460,8 @@ bool process::findCallee(instPoint &ip, function_base *&target)
      we find the runtime address of the GOT entry, read the entry
      value, and figure out which function it corresponds to . */
   if (ip.hint_got_) {
+#ifndef mips_unknown_ce2_11 //ccw 26 july 2000
+
     const image *owner = ip.iPgetOwner();
     const Object &elf = owner->getObject();
 
@@ -4068,6 +4518,11 @@ bool process::findCallee(instPoint &ip, function_base *&target)
 	}
       }
     }
+#else
+	cerr<<"FAILURE: findCallee wants GOT"<<endl;
+	exit(-1);
+#endif
+
   }
 
   /* TODO: We're hosed if we get to this point.  Likely reasons for
@@ -4407,6 +4862,9 @@ float getPointFrequency(instPoint *point)
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+#ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 28 mar 2001
+//defined in inst-winnt.C, does not seem to do much in either case
+
 
 /*
  * Define the various classes of library functions to inst. 
@@ -4456,7 +4914,7 @@ void initLibraryFunctions()
 
   TRACE_E( "initLibraryFunctions" );
 }
-
+#endif
 
 #ifdef BPATCH_LIBRARY
 /*

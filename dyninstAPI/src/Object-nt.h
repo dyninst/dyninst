@@ -41,17 +41,15 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.12 2000/11/20 16:54:40 pcroth Exp $
+ * $Id: Object-nt.h,v 1.13 2001/08/01 15:39:54 chadd Exp $
 ************************************************************************/
 
 
-
 
 
 #if !defined(_Object_nt_h_)
 #define _Object_nt_h_
 
-
 
 
 /************************************************************************
@@ -67,9 +65,12 @@
 
 #include <stdlib.h>
 #include <winnt.h>
+#ifdef mips_unknown_ce2_11
+#include <imagehlp.h> //ccw 7 apr 2001
+#endif
 
 
-
+
 
 
 /************************************************************************
@@ -89,6 +90,12 @@ public:
 	virtual ~Object( void );
 
 	Object&   operator=(const Object &);
+
+#if defined(mips_unknown_ce2_11) //ccw 28 mar 2001
+	Address get_base_addr() const { return baseAddr;} //ccw 20 july 2000
+	bool set_gp_value(Address addr) {  gp_value = addr; return true;} //ccw 27 july 2000
+	Address get_gp_value() const { return gp_value;} //ccw 20 july 2000
+#endif
 
 private:
     // struct defining information we keep about a Paradyn module
@@ -156,6 +163,8 @@ private:
     void    ParseDebugInfo( void );
 	void	ParseSectionMap( IMAGE_DEBUG_INFORMATION* pDebugInfo );
 	void	ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
+	bool	ParseMapSymbols(IMAGE_DEBUG_INFORMATION *pDebugInfo, char *mapFile); //ccw 19 july 2000 : 28 mar 2001
+
 
     bool	ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
     void    CVPatchSymbolSizes( vector<Symbol>& allSymbols );
@@ -165,12 +174,18 @@ private:
                               vector<Symbol>& allSymbols );
 
 
-	Address	baseAddr;						// location of this object in 
-											// mutatee address space
+	Address	baseAddr;					// location of this object in 
+								// mutatee address space
+
+#if defined(mips_unknown_ce2_11)
+	Address gp_value;				//pointer to global area 
+							//ccw 20 july 2000 : 28 mar 2001
+#endif
+
 	IMAGE_DEBUG_INFORMATION* pDebugInfo;	// debugging information 
-											// mapped into our address space
-	unsigned int textSectionId;				// id of .text segment (section)
-	unsigned int dataSectionId;				// id of .data segment (section)
+						// mapped into our address space
+	unsigned int textSectionId;		// id of .text segment (section)
+	unsigned int dataSectionId;		// id of .data segment (section)
 };
 
 

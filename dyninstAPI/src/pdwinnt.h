@@ -39,14 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.4 2000/02/22 23:10:01 pcroth Exp $
+// $Id: pdwinnt.h,v 1.5 2001/08/01 15:39:56 chadd Exp $
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #error "invalid architecture-os inclusion"
 #endif
 
 #ifndef PDWINNT_HDR
 #define PDWINNT_HDR
+#include "w32CONTEXT.h" //ccw 30 mar 2001
 
 typedef HANDLE handleT;
 

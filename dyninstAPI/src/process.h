@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.160 2001/07/09 19:34:51 chadd Exp $
+/* $Id: process.h,v 1.161 2001/08/01 15:39:56 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -354,6 +354,9 @@ class Frame {
 
     Address getPC() const { return pc_; }
     Address getFP() const { return fp_; }
+#ifdef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
+    Address getSP() const { return sp_; }
+#endif
 
     // check for zero frame
     bool isLastFrame() const { 
@@ -665,6 +668,14 @@ class process {
   bool isDynamicCallSite(instPoint *callSite); 
 #endif
 
+#ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
+	 //void* GetRegisters() { return getRegisters(); }
+	 //ccw 10 aug 2000
+	 void* GetRegisters(unsigned int thrHandle) { return getRegisters(thrHandle); }
+	 void* getRegisters(unsigned int thrHandle);
+	 //bool FlushInstructionCache(); //ccw 29 sep 2000 implemented in pdwinnt.C
+#endif
+
   // Trampoline guard get/set functions
   unsigned long getTrampGuardFlagAddr(void) { return trampGuardFlagAddr; }
   void setTrampGuardFlagAddr(unsigned long t) { trampGuardFlagAddr = t;  }
@@ -808,7 +819,7 @@ class process {
   //  PRIVATE DATA MEMBERS (and structure definitions)....
   //
  private:
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
   unsigned char savedStackFrame[BYTES_TO_SAVE];
@@ -938,7 +949,7 @@ class process {
 
  public:
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   Address get_dlopen_addr() const;
   Address dyninstlib_brk_addr;
   Address main_brk_addr;

@@ -831,7 +831,7 @@ void BPatch_module::parseTypes()
 
 
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
 
 // Parsing symbol table for NT platform
 // Mehmet 7/24/00

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.92 2001/07/23 18:27:44 shergali Exp $
+// $Id: symtab.h,v 1.93 2001/08/01 15:39:57 chadd Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -69,9 +69,10 @@ extern "C" {
 #include "common/h/Symbol.h"
 #include "dyninstAPI/src/inst.h"
 
+#ifndef mips_unknown_ce2_11 //ccw 8 apr 2001
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
-
 class LocalAlterationSet;
+#endif
 
 #define RH_SEPERATOR '/'
 
@@ -339,7 +340,7 @@ class pd_Function : public function_base {
     bool readFunctionCode(const image *owner, instruction *into);
     int moveOutOfDelaySlot(int offset, instruction loadedCode[],
 	  int codeSize);
-#elif defined(mips_sgi_irix6_4)
+#elif defined(mips_sgi_irix6_4)  || defined(mips_unknown_ce2_11) //ccw 29 mar 2001
     bool    checkInstPoints();
     Address findTarget(instPoint *p);
     Address findBranchTarget(instPoint *p, instruction i);
@@ -772,6 +773,9 @@ void image::findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
   Address dataLength() { return (dataLen_ << 2);} 
   Address codeLength() { return (codeLen_ << 2);} 
   const Object &getObject() const { return linkedFile; }
+
+  Object &getObjectNC() { return linkedFile; } //ccw 27 july 2000 : this is a TERRIBLE hack : 29 mar 2001
+
   bool isDyninstRTLib() const { return is_libdyninstRT; }
   bool isAOut() const { return is_a_out; }
 
