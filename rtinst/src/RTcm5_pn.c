@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.34  1996/02/01 22:09:34  naim
+ * Revision 1.35  1996/02/15 14:55:42  naim
+ * Minor changes to timers and cost model - naim
+ *
+ * Revision 1.34  1996/02/01  22:09:34  naim
  * Minor change - naim
  *
  * Revision 1.33  1996/02/01  17:47:54  naim
@@ -172,6 +175,10 @@
 #define NI_CLK_USEC 33
 #define MILLION 1000000
 
+#ifdef COSTTEST
+time64 DYNINSTtest[10]={0,0,0,0,0,0,0,0,0,0};
+int DYNINSTtestN[10]={0,0,0,0,0,0,0,0,0,0};
+#endif
 
 char *TRACELIBcurrPtr;		/* current pointer in buffer  */
 char *TRACELIBfreePtr;		/* pointer to next free byte in buffer */
@@ -247,6 +254,7 @@ inline time64 getProcessTime()
     time64 ret;
     timeParts end;
     time64 ni_end;
+    static time64 previous=0;
 
 retry:
     timerBuffer.sync = 1;
@@ -263,6 +271,14 @@ retry:
 
     ret = end.value-ni_end;
     if (ret < 0) goto retry;
+
+    if (ret<previous) {
+      printf("RTcm5_pn: wall time going backwards\n");
+      printf("current = %f, previous = %f\n",(double)ret,(double)previous);
+      printf("retrying...\n");
+      goto retry;
+    }
+    previous=ret;
 
     return(ret);
 }
@@ -281,6 +297,7 @@ time64 DYNINSTgetCPUtime()
 inline time64 getWallTime()
 {
     timeParts end;
+    static time64 previous=0;
 
 retry:
     timerBuffer.sync = 1;
@@ -292,6 +309,13 @@ retry:
     /* check for three way race of start/stop & sample & wrap. */
     /* if (end.parts.high != timerBuffer.high) goto retry;     */
 
+    if (end.value < previous) {
+      printf("RTcm5_pn: wall time going backwards\n");
+      printf("current = %f, previous = %f\n",(double)end.value,(double)previous);
+      printf("retrying...\n");
+      goto retry;
+    }
+    previous = end.value;
     return(end.value);
 }
 
@@ -304,74 +328,33 @@ inline time64 DYNINSTgetWallTime()
     return(now);
 }
 
-void DYNINSTstartWallTimer(tTimer *timer)
+void DYNINSTstartProcessTimer(tTimer *timer)
 {
     /* events that trigger timer starts during trace flushes are to be 
        ignored */
+
+#ifdef COSTTEST
+    time64 startT,endT;
+#endif
+
     if (DYNINSTin_sample) return;
 
-    if (timer->counter == 0) {
-	 timer->start = getWallTime();
-	 timer->normalize = NI_CLK_USEC * MILLION;
-    }
-    /* this must be last to prevent race conditions with the sampler */
-    timer->counter++;
-}
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
 
-void DYNINSTstopWallTimer(tTimer *timer)
-{
-    time64 now;
-
-    /* events that trigger timer stops during trace flushes are to be 
-       ignored */
-    if (DYNINSTin_sample) return;
-
-    /* don't stop a counter that is not running */
-    if (!timer->counter) return;
-
-    /* Warning - there is a window between setting now, and mutex that
-       can cause time to go backwards by the time to execute the
-       instructions between these two points.  This is not a cummlative error
-       and should not affect samples.  This was done (rather than re-sampling
-       now because the cost of computing now is so high).
-    */
-    if (timer->counter == 1) {
-	now = getWallTime();
-	timer->snapShot = now - timer->start + timer->total;
-	timer->mutex = 1;
-        /*                 
-         * The reason why we do the following line in that way is because
-         * a small race condition: If the sampling alarm goes off
-         * at this point (before timer->mutex=1), then time will go backwards 
-         * the next time a sample is take (if the {wall,process} timer has not
-         * been restarted).
-         */
-	timer->total = getWallTime() - timer->start + timer->total;
-	timer->counter = 0;
-	timer->mutex = 0;
-	if (now < timer->start) {
-            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
-                   timer->id.id, (double)timer->snapShot,
-                   (double)timer->total, 
-                   (double)timer->start, (double)now);
-            printf("wall timer rollback\n"); fflush(stdout);
-            abort();
-	}
-    } else {
-	timer->counter--;
-    }
-}
-
-void DYNINSTstartProcessTimer(tTimer *timer)
-{
-    /* events that trigger timer starts during trace flushes are to be ignored */
-    if (DYNINSTin_sample) return;
     if (timer->counter == 0) {
 	 timer->start = getProcessTime();
 	 timer->normalize = NI_CLK_USEC * MILLION;
     }
     /* this must be last to prevent race conditions with the sampler */
     timer->counter++;
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[0]+=endT-startT;
+    DYNINSTtestN[0]++;
+#endif
 }
 
 
@@ -381,7 +364,16 @@ void DYNINSTstopProcessTimer(tTimer *timer)
 
     /* events that trigger timer stops during trace flushes are to be 
        ignored */
+
+#ifdef COSTTEST
+    time64 startT,endT;
+#endif
+
     if (DYNINSTin_sample) return;
+
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
 
     /* don't stop a counter that is not running */
     if (!timer->counter) return;
@@ -411,12 +403,106 @@ void DYNINSTstopProcessTimer(tTimer *timer)
                    timer->id.id, (double)timer->snapShot,
                    (double)timer->total, 
                    (double)timer->start, (double)now);
-            printf("process timer rollback\n"); fflush(stdout);
+            printf("RTcm5_pn: process timer rollback\n"); fflush(stdout);
             abort();
 	}
     } else {
 	timer->counter--;
     }
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[1]+=endT-startT;
+    DYNINSTtestN[1]++;
+#endif
+}
+
+void DYNINSTstartWallTimer(tTimer *timer)
+{
+    /* events that trigger timer starts during trace flushes are to be 
+       ignored */
+
+#ifdef COSTTEST
+    time64 startT, endT;
+#endif
+
+    if (DYNINSTin_sample) return;
+
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
+
+    if (timer->counter == 0) {
+	 timer->start = getWallTime();
+	 timer->normalize = NI_CLK_USEC * MILLION;
+    }
+    /* this must be last to prevent race conditions with the sampler */
+    timer->counter++;
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[2]+=endT-startT;
+    DYNINSTtestN[2]++;
+#endif
+}
+
+void DYNINSTstopWallTimer(tTimer *timer)
+{
+    time64 now;
+
+    /* events that trigger timer stops during trace flushes are to be 
+       ignored */
+
+#ifdef COSTTEST
+    time64 startT, endT;
+#endif
+
+    if (DYNINSTin_sample) return;       
+
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
+
+    /* don't stop a counter that is not running */
+    if (!timer->counter) return;
+
+    /* Warning - there is a window between setting now, and mutex that
+       can cause time to go backwards by the time to execute the
+       instructions between these two points.  This is not a cummlative error
+       and should not affect samples.  This was done (rather than re-sampling
+       now because the cost of computing now is so high).
+    */
+    if (timer->counter == 1) {
+	now = getWallTime();
+	timer->snapShot = now - timer->start + timer->total;
+	timer->mutex = 1;
+        /*                 
+         * The reason why we do the following line in that way is because
+         * a small race condition: If the sampling alarm goes off
+         * at this point (before timer->mutex=1), then time will go backwards 
+         * the next time a sample is take (if the {wall,process} timer has not
+         * been restarted).
+         */
+	timer->total = getWallTime() - timer->start + timer->total;
+	timer->counter = 0;
+	timer->mutex = 0;
+	if (now < timer->start) {
+            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
+                   timer->id.id, (double)timer->snapShot,
+                   (double)timer->total, 
+                   (double)timer->start, (double)now);
+            printf("RTcm5_pn: wall timer rollback\n"); fflush(stdout);
+            abort();
+	}
+    } else {
+	timer->counter--;
+    }
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[3]+=endT-startT;
+    DYNINSTtestN[3]++;
+#endif
 }
 
 /* CMMD programs use set_timer_buf, as usual.
@@ -446,6 +532,11 @@ void DYNINSTreportTimer(tTimer *timer)
     time64 total;
     traceSample sample;
 
+#ifdef COSTTEST
+    time64 startT, endT;
+    startT = DYNINSTgetCPUtime();
+#endif
+
     if (timer->mutex) {
 	total = timer->snapShot;
     } else if (timer->counter) {
@@ -468,7 +559,7 @@ void DYNINSTreportTimer(tTimer *timer)
 	} else {
 	    printf("wall ");
 	}
-	printf("time regressed timer %d, total = %f, last = %f\n",
+	printf("RTcm5_pn: time regressed timer %d, total = %f, last = %f\n",
 	       timer->id.id, (float) total, (float) timer->lastValue);
 	if (timer->counter) {
 	    printf("timer was active\n");
@@ -490,6 +581,12 @@ void DYNINSTreportTimer(tTimer *timer)
     sample.id = timer->id;
     DYNINSTtotalSamples++;
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample),&sample,RT_FALSE);
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[5]+=endT-startT;
+    DYNINSTtestN[5]++;
+#endif
 }
 
 

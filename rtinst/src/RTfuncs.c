@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.25  1996/02/13 21:36:24  naim
+ * Revision 1.26  1996/02/15 14:55:46  naim
+ * Minor changes to timers and cost model - naim
+ *
+ * Revision 1.25  1996/02/13  21:36:24  naim
  * Minor change related to the cost model for the CM-5 - naim
  *
  * Revision 1.24  1996/02/01  17:47:57  naim
@@ -105,6 +108,11 @@
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
 
+#ifdef COSTTEST
+extern time64 *DYNINSTtest;
+extern int *DYNINSTtestN;
+#endif
+
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWallTime(void);
 /* zxu added the following */
@@ -141,11 +149,22 @@ void DYNINSTreportCounter(intCounter *counter)
 {
     traceSample sample;
 
+#ifdef COSTTEST
+    time64 startT, endT;
+    startT=DYNINSTgetCPUtime();
+#endif
+
     /* printf("DYNINSTreportCounter ...\n") ;  */
     sample.value = counter->value;
     sample.id = counter->id;
     DYNINSTtotalSamples++;
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[6]+=endT-startT;
+    DYNINSTtestN[6]++;
+#endif 
 }
 
 void DYNINSTsimplePrint()
@@ -244,12 +263,12 @@ void DYNINSTreportBaseTramps()
 
     sample.slotsExecuted = 0;
 
-    //
+    /*
     // Adding the cost corresponding to the alarm when it goes off.
     // This value includes the time spent inside the routine (DYNINSTtotal-
     // sampleTime) plus the time spent during the context switch (106 usecs
     // for monona, CM-5)
-    //
+    */
 
     sample.obsCostIdeal  = ((((double) DYNINSTgetObservedCycles(1) *
                               (double)DYNINSTcyclesToUsec) + 
@@ -280,6 +299,11 @@ void DYNINSTreportCost(intCounter *counter)
     static double prevCost;
     traceSample sample;
 
+#ifdef COSTTEST
+    time64 startT, endT;
+    startT=DYNINSTgetCPUtime();
+#endif
+
     value = DYNINSTgetObservedCycles(1);
 
     cost = ((double) value) * (DYNINSTcyclesToUsec / 1000000.0);
@@ -287,7 +311,7 @@ void DYNINSTreportCost(intCounter *counter)
     if (cost < prevCost) {
 	fprintf(stderr, "Fatal Error Cost counter went backwards\n");
 	fflush(stderr);
-	sigpause(0xffff);
+	abort();
     }
 
     prevCost = cost;
@@ -300,6 +324,12 @@ void DYNINSTreportCost(intCounter *counter)
     DYNINSTtotalSamples++;
 
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[7]+=endT-startT;
+    DYNINSTtestN[7]++;
+#endif 
 }
 
 /*
@@ -313,11 +343,18 @@ void DYNINSTalarmExpire()
     time64 start, end;
     float fp_context[33];	/* space to store fp context */
 
+#ifdef COSTTEST
+    time64 startT, endT;
+#endif
 
     /* printf ("DYNINSTalarmExpired\n");       */
     /* should use atomic test and set for this */
     if (DYNINSTin_sample) return;
     DYNINSTin_sample = 1;
+
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
 
     /* only sample every DYNINSTsampleMultiple calls */
     DYNINSTtotalAlaramExpires++;
@@ -348,4 +385,10 @@ void DYNINSTalarmExpire()
     }
 
     DYNINSTin_sample = 0;
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[4]+=endT-startT;
+    DYNINSTtestN[4]++;
+#endif
 }

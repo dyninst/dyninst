@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.27  1996/02/01 17:49:54  naim
+ * Revision 1.28  1996/02/15 14:55:51  naim
+ * Minor changes to timers and cost model - naim
+ *
+ * Revision 1.27  1996/02/01  17:49:54  naim
  * Fixing some problems related to timers and race conditions. I also tried to
  * make a more standard definition of certain procedures (e.g. reportTimer)
  * across all platforms - naim
@@ -301,7 +304,7 @@ void DYNINSTstopProcessTimer(tTimer *timer)
                    timer->id.id, (double)timer->snapShot,
                    (double)timer->total, 
                    (double)timer->start, (double)now);
-            printf("process timer rollback\n"); fflush(stdout);
+            printf("RTunix: process timer rollback\n"); fflush(stdout);
             abort();
 	}
     } else {
@@ -353,7 +356,7 @@ void DYNINSTstopWallTimer(tTimer *timer)
                    timer->id.id, (double)timer->snapShot,
                    (double)timer->total, 
                    (double)timer->start, (double)now);
-            printf("wall timer rollback\n");
+            printf("RTunix: wall timer rollback\n");
             fflush(stdout);
             abort();
         }
@@ -582,7 +585,7 @@ void DYNINSTreportTimer(tTimer *timer)
 	} else {
 	    printf("wall ");
 	}
-	printf("time regressed timer %d, total = %f, last = %f\n",
+	printf("RTunix: time regressed timer %d, total = %f, last = %f\n",
 	       timer->id.id, (float) total, (float) timer->lastValue);
 	if (timer->counter) {
 	    printf("timer was active\n");
