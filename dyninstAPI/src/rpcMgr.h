@@ -48,21 +48,64 @@
 
 #include "common/h/vectorSet.h"
 #include "dyninstAPI/src/inferiorRPC.h"
+#include "common/h/Dictionary.h"
 
 class process;
-
-
-class rpcRequest {
-
-
-};
-
+class dyn_lwp;
 
 class rpcLwp {
+   dyn_lwp *lwp;
+   vectorSet<inferiorRPCtoDo> thrRPCsWaitingToStart;
+   inferiorRPCinProgress thrCurrRunningRPC;
+   irpcState_t irpcState_;
+   bool wasRunningBeforeSyscall_;
 
+ public:
 
+   rpcLwp(dyn_lwp *lwp_) : lwp(lwp_), irpcState_(irpcNotValid)  { }
+   
+   dyn_lwp *get_lwp() { return lwp; }
 
+  // Add an iRPC to the list of work to do
+  void postIRPC(inferiorRPCtoDo todo);
+  // Returns true iff
+  // 1) There is an inferior RPC to run
+  // 2) We're not currently running an inferior RPC
+  // 3) We're not waiting for a syscall trap
+  bool readyIRPC() const;
+  // Returns true iff
+  // 1) An RPC is running, or
+  // 2) We're waiting for a trap to be reached
+  bool isRunningIRPC() const;
+  // Returns true if we're waiting for a trap
+  bool isWaitingForTrap() const;
+  // Launch an iRPC.
+  irpcLaunchState_t launchThreadIRPC(bool wasRunning);
+  // After a syscall completes, launch an RPC. Special case
+  // of launchThreadIRPC
+  irpcLaunchState_t launchPendingIRPC();
+
+  // Clear/query whether we're waiting for a trap (for signal handling)
+  bool isIRPCwaitingForSyscall() { return irpcState_ == irpcWaitingForTrap; }
+
+  // Handle completing IRPCs
+  Address getIRPCRetValAddr();
+  bool handleRetValIRPC();
+  Address getIRPCFinishedAddr();
+  bool handleCompletedIRPC();
+
+  irpcState_t getLastIRPCState() { return irpcState_; }
 };
+
+static inline unsigned rpcLwpHash(dyn_lwp * const &lwp_addr)
+{
+  // assume all addresses are 4-byte aligned
+  unsigned result = (unsigned)(Address)lwp_addr;
+  result >>= 2;
+  return result;
+  // how about %'ing by a huge prime number?  Nah, x % y == x when x < y 
+  // so we don't want the number to be huge.
+}
 
 class rpcMgr {
    process *proc;
@@ -78,20 +121,38 @@ class rpcMgr {
   inferiorRPCinProgress currRunningIRPC;
   bool wasRunningBeforeSyscall_;   
 
+  dictionary_hash<dyn_lwp *, rpcLwp *> rpcLwpBuf;
+
  private:
-   bool distributeRPCsOverThreads();
+   bool distributeRPCsOverLwps();
 
    // Placeholder function to handle the split between
    // Paradyn and Dyninst IRPC-wise
    bool thr_IRPC();
 
  public:
-   rpcMgr(process *proc_) : proc(proc_), irpcState_(irpcNotValid) { }
+   rpcMgr(process *proc_) : proc(proc_), irpcState_(irpcNotValid),
+      rpcLwpBuf(rpcLwpHash) { };
+
+   void newLwpFound(dyn_lwp *lwp);
+   void deleteLwp(dyn_lwp *lwp);
+   
+   rpcLwp *createRpcLwp(dyn_lwp *lwp) {
+      rpcLwp *rpc_lwp = new rpcLwp(lwp);
+      rpcLwpBuf.set(lwp, rpc_lwp);
+      return rpc_lwp;
+   }
+
+   rpcLwp *findRpcLwp(dyn_lwp *lwp) {
+      rpcLwp *rpc_lwp;
+      if(rpcLwpBuf.find(lwp, rpc_lwp))
+         return rpc_lwp;
+      else
+         return NULL;
+   }
 
    bool launchRPCs(bool wasRunning);
    bool handleCompletedIRPC();
-   irpcLaunchState_t launchPendingIRPC();
-   irpcLaunchState_t launchProcessIRPC(bool wasRunning);
    Address getIRPCRetValAddr();
    bool handleRetValIRPC();
    Address getIRPCFinishedAddr();
@@ -110,9 +171,20 @@ class rpcMgr {
 
    void cleanRPCreadyToLaunch(int mid);
 
+   // posting RPC on a process
+   void postRPCtoDo(AstNode *action, bool noCost,
+                    inferiorRPCcallbackFunc callbackFunc,
+                    void *userData, int mid, bool lowmem);
+
+   // posting RPC on a thread
+   void postRPCtoDo(AstNode *action, bool noCost,
+                    inferiorRPCcallbackFunc callbackFunc,
+                    void *userData, int mid, dyn_thread *thr, bool lowmem);
+
+   // posting RPC on a lwp
    void postRPCtoDo(AstNode *action, bool noCost,
                     inferiorRPCcallbackFunc callbackFunc, void *userData,
-                    int mid,  dyn_thread *thr, dyn_lwp *lwp, bool lowmem);
+                    int mid,  dyn_lwp *lwp, bool lowmem);
 
 
    Address createRPCImage(AstNode *action, bool noCost,
@@ -120,8 +192,7 @@ class rpcMgr {
                           Address &stopForResultAddr,
                           Address &justAfter_stopForResultAddr,
                           Register &resultReg, bool lowmem, 
-                          dyn_thread * /*thr*/, dyn_lwp * /*lwp*/,
-                          bool isFunclet);
+                          dyn_lwp * /*lwp*/, bool isFunclet);
 
    bool emitInferiorRPCheader(void *, Address &baseBytes, bool isFunclet);
 
