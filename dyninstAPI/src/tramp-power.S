@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-power.S,v 1.17 2001/11/06 19:20:21 bernat Exp $ */
+/* $Id: tramp-power.S,v 1.18 2002/01/31 02:44:55 bernat Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -100,6 +100,8 @@ _baseTramp:
 	nop                                                     /* FPR13 */
 /* Attempt 1 to avoid reentering dyninst instructions from
 	within a dyninst instruction */
+/* Fix this for multiple threads */
+#ifndef MT_THREAD
 	.long REENTRANT_GUARD_ADDR	/* cau 6,0,HIGH(baseAddr) */
 	nop				/* oril 6,6,LOW(baseAddr) */
 	.long REENTRANT_GUARD_LOAD	/* l 5,0,(6)              */
@@ -107,6 +109,7 @@ _baseTramp:
 	nop				/* bc 12,2,<offset>R_PRE_INSN */
 	.long REENTRANT_GUARD_INC	/* cal 5,1(0)             */
 	.long REENTRANT_GUARD_STORE	/* stw 5,0(6)             */
+#endif
 	.long	GLOBAL_PRE_BRANCH	/* cau   */
 	nop				/* oril  */
 	nop				/* mtspr */
@@ -168,10 +171,12 @@ _baseTramp:
 	nop
 	nop
 	/* Decrease the counter protector */
+#ifndef MT_THREAD
 	.long REENTRANT_GUARD_ADDR      /* cau 6,0,HIGH(baseAddr) */
 	nop				/* oril 6,6,LOW(baseAddr) */
 	.long REENTRANT_GUARD_DEC	/* cal 5,0(0)             */
 	.long REENTRANT_GUARD_STORE	/* stw 5,0(6)             */
+#endif
 	.long	RESTORE_PRE_INSN	/* restore registers *//* l     LR   */
 	nop                                                    /* mtspr ""   */
 	nop				                       /* l CTR      */
@@ -229,6 +234,7 @@ _baseTramp:
 	nop                                                     /* FPR11 */
 	nop                                                     /* FPR12 */
 	nop                                                     /* FPR13 */
+#ifndef MT_THREAD
 	.long REENTRANT_GUARD_ADDR	/* cau 6,0,HIGH(baseAddr) */
 	nop				/* oril 6,6,LOW(baseAddr) */
         .long REENTRANT_GUARD_LOAD	/* l 5,0,(6)              */
@@ -236,6 +242,7 @@ _baseTramp:
 	nop				/* bc 12,2,<offset>R_PRE_INSN */
 	.long REENTRANT_GUARD_INC	/* cal 5,1(0)             */
 	.long REENTRANT_GUARD_STORE	/* stw 5,0(6)             */
+#endif
 	.long	GLOBAL_POST_BRANCH	/* cau   */
 	nop				/* oril  */
 	nop				/* mtspr */
@@ -291,10 +298,12 @@ _baseTramp:
 	nop				/* mtspr */
 	nop				/* bcrl  */
 	/* Decrease the counter protector */
+#ifndef MT_THREAD
 	.long REENTRANT_GUARD_ADDR      /* cau 6,0,HIGH(baseAddr) */
 	nop				/* oril 6,6,LOW(baseAddr) */
 	.long REENTRANT_GUARD_DEC	/* cal 5,0(0)             */
 	.long REENTRANT_GUARD_STORE	/* stw 5,0(6)             */
+#endif
         .long RESTORE_POST_INSN         /* restore registers *//* l     LR   */
 	nop                                                    /* mtspr ""   */
 	nop				                       /* l CTR      */
