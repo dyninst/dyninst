@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.7 2000/04/24 00:47:40 paradyn Exp $
+# $Id: Makefile,v 1.8 2000/04/24 03:18:48 wylie Exp $
 #
 # Makefile for dyninstAPI test programs on Compaq Alpha
 #
@@ -43,11 +43,11 @@ endif
 
 ifdef USES_LIBDYNINSTRT_SO
 $(TARGET2): $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $(TARGET2) 
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $(TARGET2) $(MUTLIBS)
 else
 $(TARGET2): $(MUTATEE_SRC)
 	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $(TARGET2) \
-		$(DYNINSTAPI_RT_LIB)
+		$(MUTLIBS) $(DYNINSTAPI_RT_LIB)
 endif
 
 libtestA.o:
