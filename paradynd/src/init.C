@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.24  1996/02/02 14:31:25  naim
+ * Revision 1.25  1996/02/09 23:53:39  naim
+ * Adding new internal metric number_of_nodes - naim
+ *
+ * Revision 1.24  1996/02/02  14:31:25  naim
  * Eliminating old definition for observed cost - naim
  *
  * Revision 1.23  1996/02/01  17:42:20  naim
@@ -101,6 +104,7 @@ internalMetric *totalPredictedCost= NULL;
 internalMetric *smooth_obs_cost = NULL;
 internalMetric *observed_cost = NULL;
 internalMetric *bucket_width = NULL;
+internalMetric *number_of_nodes = NULL;
 
 vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
@@ -145,6 +149,15 @@ bool init() {
 						   EventCounter,
 						   aggMax,
 						   "seconds",
+						   NULL,
+						   default_im_preds,
+						   true,
+						   Sampled);
+
+  number_of_nodes = internalMetric::newInternalMetric("number_of_nodes", 
+						   EventCounter,
+						   aggSum,
+						   "nodes",
 						   NULL,
 						   default_im_preds,
 						   true,

@@ -1,7 +1,10 @@
 
 /* 
  * $Log: aix.C,v $
- * Revision 1.3  1995/12/20 16:38:46  naim
+ * Revision 1.4  1996/02/09 23:53:35  naim
+ * Adding new internal metric number_of_nodes - naim
+ *
+ * Revision 1.3  1995/12/20  16:38:46  naim
  * Minor changes in status_line messages - naim
  *
  * Revision 1.2  1995/09/26  20:17:36  naim
@@ -693,3 +696,9 @@ float OS::compute_rusage_sigs() { return(0.0); }
 float OS::compute_rusage_vol_cs() { return(0.0); }
 float OS::compute_rusage_inv_cs() { return(0.0); }
 float OS::compute_rusage_msg_recv() { return(0.0); }
+
+int getNumberOfNodes()
+{
+  return(1);
+}
+

@@ -1,7 +1,10 @@
 
 /*
  * $Log: cm5.C,v $
- * Revision 1.6  1995/09/26 20:17:40  naim
+ * Revision 1.7  1996/02/09 23:53:37  naim
+ * Adding new internal metric number_of_nodes - naim
+ *
+ * Revision 1.6  1995/09/26  20:17:40  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
  * Revision 1.5  1995/05/18  10:30:23  markc
@@ -437,3 +440,9 @@ float OS::compute_rusage_vol_cs() {
 float OS::compute_rusage_inv_cs() {
     return 0;
 }
+
+int getNumberOfNodes()
+{
+  return(1);
+}
+

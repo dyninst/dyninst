@@ -1,7 +1,10 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.10  1995/11/22 00:02:23  mjrg
+ * Revision 1.11  1996/02/09 23:53:48  naim
+ * Adding new internal metric number_of_nodes - naim
+ *
+ * Revision 1.10  1995/11/22  00:02:23  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
  * Removed -f and -t arguments to paradyn
@@ -478,4 +481,9 @@ float OS::compute_rusage_inv_cs() {
     return ((float) ru->ru_nivcsw);
   } else
     return 0;
+}
+
+int getNumberOfNodes()
+{
+  return(1);
 }

@@ -1,7 +1,10 @@
 
 /* 
  * $Log: solaris.C,v $
- * Revision 1.5  1995/09/26 20:17:52  naim
+ * Revision 1.6  1996/02/09 23:53:46  naim
+ * Adding new internal metric number_of_nodes - naim
+ *
+ * Revision 1.5  1995/09/26  20:17:52  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
  * Revision 1.4  1995/05/25  17:17:27  markc
@@ -393,3 +396,9 @@ float OS::compute_rusage_inv_cs() {
     return 0;
 #endif
 }
+
+int getNumberOfNodes()
+{
+  return(1);
+}  
+

@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.13  1996/02/02 14:31:27  naim
+ * Revision 1.14  1996/02/09 23:53:40  naim
+ * Adding new internal metric number_of_nodes - naim
+ *
+ * Revision 1.13  1996/02/02  14:31:27  naim
  * Eliminating old definition for observed cost - naim
  *
  * Revision 1.12  1996/02/01  17:42:24  naim
@@ -64,6 +67,7 @@ extern internalMetric *totalPredictedCost;
 extern internalMetric *observed_cost;
 extern internalMetric *smooth_obs_cost;
 extern internalMetric *bucket_width;
+extern internalMetric *number_of_nodes;
 
 extern bool init();
 extern bool initOS();
