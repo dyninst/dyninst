@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.36 2004/03/23 01:12:16 eli Exp $ */
+/* $Id: RTcommon.c,v 1.37 2004/05/11 19:01:48 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -192,7 +192,8 @@ void DYNINSTinit(int cause, int pid)
     DYNINST_bootstrap_info.ppid = pid;
     
     DYNINST_bootstrap_info.event = cause;
-    
+
+    DYNINST_bootstrap_info.obsCostAddr = &DYNINSTobsCostLow;
 }
 
 /* These variables are used to pass arguments into DYNINSTinit
