@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.48 2001/11/28 05:44:10 gaburici Exp $
+// $Id: ast.h,v 1.49 2001/12/06 20:57:43 schendel Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -174,7 +174,7 @@ class AstNode {
        ~AstNode();
 
         Address generateTramp(process *proc, const instPoint *location, char *i,
-			      Address &base, int &trampCost, bool noCost);
+			      Address &base, int *trampCost, bool noCost);
 	Address generateCode(process *proc, registerSpace *rs, char *i, 
 			     Address &base, bool noCost, bool root,
 			     const instPoint *location = NULL);
@@ -182,7 +182,13 @@ class AstNode {
 				    Address &base, bool noCost,
 				    const instPoint *location = NULL);
 
-	int cost() const;	// return the # of instruction times in the ast.
+	enum CostStyleType { Min, Avg, Max };
+	int AstNode::minCost() const {  return costHelper(Min);  }
+	int AstNode::avgCost() const {  return costHelper(Avg);  }
+	int AstNode::maxCost() const {  return costHelper(Max);  }
+
+	// return the # of instruction times in the ast.
+	int costHelper(enum CostStyleType costStyle) const;	
 	void print() const;
         int referenceCount;     // Reference count for freeing memory
         int useCount;           // Reference count for generating code
@@ -208,7 +214,7 @@ class AstNode {
 
 	void optRetVal(AstNode *opt);
 #endif
-
+	void setOValue(void *arg) { oValue = (void *) arg; }
 	// only function that's defined in metric.C (only used in metri.C)
 	bool condMatch(AstNode* a,
 		       vector<dataReqNode*> &data_tuple1,
@@ -265,7 +271,7 @@ class AstNode {
 AstNode *assignAst(AstNode *src);
 void removeAst(AstNode *&ast);
 void terminateAst(AstNode *&ast);
-AstNode *createIf(AstNode *expression, AstNode *action);
+AstNode *createIf(AstNode *expression, AstNode *action, process *proc=NULL);
 #if defined(MT_THREAD)
 AstNode *createCounter(const string &func, void *, void *, AstNode *arg);
 AstNode *createTimer(const string &func, void *, void *, 
