@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.23 2002/04/22 20:52:46 mjbrim Exp $
+// $Id: templatesDM.C,v 1.24 2002/05/14 19:00:45 schendel Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -114,6 +114,7 @@ template class vector<paradynDaemon*>;
 template class vector<executable*>;
 template class vector<component*>;
 template class vector<aggComponent*>;
+template class vector<processMetFocusNode *>;
 template class vector<metric_focus_pair>;
 template class vector<metricInstInfo>;
 template class vector<met_name_id>;
