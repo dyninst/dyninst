@@ -5,6 +5,12 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
+# Revision 1.15  1995/11/15 21:27:51  tamches
+# Better remembering of which metrics were selected "last time", in order
+# to properly initialize the dialog box (a change in "developerMode" had
+# previously confused the dialog box).  New assoc array "selectedMetricNames"
+# is the key.
+#
 # Revision 1.14  1995/11/07 23:13:57  newhall
 # ACCEPT CLEAR CANCEL, ACCEPT CANCEL
 #
@@ -151,11 +157,18 @@ proc clearMetSelects {} {
 
 proc metSelectedProc {i w} {
     global metSelected metmenuCB
-    if {[expr $metmenuCB($i)]>0} {
+    global selectedMetricNames metList
+
+    set metricName [lindex $metList $i]
+
+    if {$metmenuCB($i)>0} {
       incr metSelected
+      set selectedMetricNames($metricName) 1
     } else {
       incr metSelected -1
+      set selectedMetricNames($metricName) 0
     }
+
     if {$metSelected>0} {
       $w.bot.b0 configure -state normal 
     } else {
@@ -203,13 +216,22 @@ proc getMetsAndRes {metsAndResID rdo} {
 	}
 	set colNum 1
 	set cCnt 1
+
 	for {set i 0} {$i < $metCount} {incr i} {
+            set metricName [lindex $metList $i]
+            global selectedMetricNames
+            if {[array names selectedMetricNames $metricName] == ""} {
+               set selectedMetricNames($metricName) 0
+	    }
+            set initiallySet $selectedMetricNames($metricName)
+            set metmenuCB($i) $initiallySet
+
 	    checkbutton $w.top.$colNum.cb$i  -width 20 -anchor w -padx 2 \
-		    -variable metmenuCB([expr $i]) \
-		    -text [lindex $metList [expr $i]] \
+		    -variable metmenuCB($i) \
+		    -text $metricName \
 		    -command "metSelectedProc $i $w"
 
-            if {[expr $metmenuCB($i)]>0} {
+            if {$metmenuCB($i) > 0} {
 	      incr metSelected
 	    }
 
@@ -226,19 +248,6 @@ proc getMetsAndRes {metsAndResID rdo} {
 
     # buttons
     mkFrame $w.bot {bottom fill expand} -relief raised -borderwidth 4
-
-#    button $w.bot.b0 -text "CLEAR" -width 12 \
-#	    -command "clearMetSelects"
-#
-#    button $w.bot.b1 -text "CANCEL" -width 12 \
-#	    -command "endSelection $metsAndResID $rdo 1 $w"
-#
-#    button $w.bot.b2 -text "DONE" -width 12 \
-#	    -command "endSelection $metsAndResID $rdo 0 $w"
-#
-#    if {$metSelected==0} {
-#      $w.bot.b2 configure -state disabled
-#    } 
 
     button $w.bot.b0 -text "ACCEPT" -width 12 \
 	    -command "endSelection $metsAndResID $rdo 0 $w" 
