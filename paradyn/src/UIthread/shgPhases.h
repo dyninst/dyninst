@@ -4,14 +4,17 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.6  1996/02/07 19:11:26  tamches
-/* former globals currInstalledAltMoveHandler, ignoreNextShgAltMove,
-/* shgAltAnchorX/Y added
-/* getCurrent() made private
-/* added draw, resize, single/middle/doubleClick, scrollPosition, and
-/* altPress/Release routines.
-/* activateSearch --> activateCurrSearch(); similar for pause, resume
+/* Revision 1.7  1996/02/07 21:51:04  tamches
+/* defineNewSearch now returns bool
 /*
+ * Revision 1.6  1996/02/07 19:11:26  tamches
+ * former globals currInstalledAltMoveHandler, ignoreNextShgAltMove,
+ * shgAltAnchorX/Y added
+ * getCurrent() made private
+ * added draw, resize, single/middle/doubleClick, scrollPosition, and
+ * altPress/Release routines.
+ * activateSearch --> activateCurrSearch(); similar for pause, resume
+ *
  * Revision 1.5  1996/02/02 18:50:26  tamches
  * better multiple phase support
  * currSearching, everSearched flags are new
@@ -184,7 +187,7 @@ class shgPhases {
    bool altPress(int x, int y);
    void altRelease();
 
-   void defineNewSearch(int phaseId, const string &phaseName);
+   bool defineNewSearch(int phaseId, const string &phaseName);
    bool activateCurrSearch();
       // returns true iff search successfully started
    bool pauseCurrSearch();
