@@ -594,7 +594,8 @@ void FindLineInfo(BPatch_module *mod, LDFILE *ldptr,
 }
 
 //Main function to parse stab strings
-extern char *parseStabString(BPatch_module *, int linenum, char *str, int fPtr);
+extern char *parseStabString(BPatch_module *, int linenum, char *str, 
+	  int fPtr, BPatch_type *commonBlock = NULL);
 extern char *current_func_name;
 
 //Stab definitions (from gdb)
