@@ -15,7 +15,10 @@ int DYNINSTthreadPos ()
     return 0;
   tid = P_thread_self();
   if (tid <= 0) {
-    abort();
+     /* P_thread_self isn't returning unexpected values at times after a fork
+        so return 0 in this case. */
+     /* abort(); */
+     return 0;
   }
 
   /* Quick method. Could we get away with a logical AND? */
