@@ -41,7 +41,7 @@ class Histogram {
 		  void*);
 	sampleValue getValue();
 	sampleValue getValue(timeStamp start, timeStamp end);
-	sampleValue getBinValue(unsigned i){
+	sampleValue getBinValue(int i){
 	    if(i <= lastBin){
 	       return(dataPtr.buckets[i]);
 	    }
