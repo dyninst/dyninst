@@ -58,10 +58,10 @@
  * header files.
 ************************************************************************/
 
-#include <util/h/String.h>
+#include "util/h/String.h"
 // trace data streams
-#include <util/h/ByteArray.h>
-#include <util/h/Types.h>
+#include "util/h/ByteArray.h"
+#include "util/h/Types.h"
 
 
 
@@ -95,7 +95,7 @@ public:
         TAG_INTERNAL
     };
 
-     Symbol ();
+   Symbol (); // note: this ctor is called surprisingly often!
      Symbol (unsigned);
      Symbol (const string &, const string &, SymbolType, SymbolLinkage,
              Address, const bool, unsigned size = 0);
@@ -144,14 +144,16 @@ private:
 
 inline
 Symbol::Symbol()
-    : name_("*bad-symbol*"), module_("*bad-module*"),
+   : //name_("*bad-symbol*"), module_("*bad-module*"),
     type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), size_(0),
     tag_(TAG_UNKNOWN), kludge_(false) {
+   // note: this ctor is called surprisingly often (when we have
+   // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
 }
 
 inline
 Symbol::Symbol(unsigned)
-    : name_("*bad-symbol*"), module_("*bad-module*"),
+   : //name_("*bad-symbol*"), module_("*bad-module*"),
     type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), size_(0),
     tag_(TAG_UNKNOWN), kludge_(false) {
 }
