@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.54 2002/12/20 07:49:57 jaw Exp $
+// $Id: inst-sparc.h,v 1.55 2003/02/26 21:27:49 schendel Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -483,7 +483,8 @@ extern Register emitFuncCall(opCode op, registerSpace *rs, char *i,
 extern void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
                     char *i, Address &base, bool noCost);
 
-extern Register emitOptReturn(instruction, Register, char *, Address &, bool);
+extern Register emitOptReturn(instruction, Register, char *, Address &, bool,
+                              const instPoint *);
 
 extern int getInsnCost(opCode op);
 extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne, 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.57 2003/02/04 15:18:56 bernat Exp $
+// $Id: inst-alpha.C,v 1.58 2003/02/26 21:27:44 schendel Exp $
 
 #include "common/h/headers.h"
 
@@ -1230,7 +1230,8 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
-	     char *i, Address &base, bool /*noCost*/) {
+               char *i, Address &base, bool /*noCost*/,
+               const instPoint * /* location */ ) {
 
   //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 

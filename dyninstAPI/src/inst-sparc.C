@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.133 2003/01/29 23:00:16 jodom Exp $
+// $Id: inst-sparc.C,v 1.134 2003/02/26 21:27:48 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -659,7 +659,8 @@ processOptimaRet(instPoint *location, AstNode *&ast) {
 /****************************************************************************/
 
 Register
-emitOptReturn(instruction i, Register src, char *insn, Address &base, bool noCost) {
+emitOptReturn(instruction i, Register src, char *insn, Address &base, 
+              bool noCost, const instPoint *location) {
     
     unsigned instr = i.raw;
 
@@ -674,7 +675,7 @@ emitOptReturn(instruction i, Register src, char *insn, Address &base, bool noCos
         (void) emitV(plusOp, (instr&0x07c000)>>14, instr&0x01fff,
              ((instr&0x3e000000)>>25)+16, insn, base, noCost);
     
-    return emitR(getSysRetValOp, 0, 0, src, insn, base, noCost);
+    return emitR(getSysRetValOp, 0, 0, src, insn, base, noCost, location);
 }
 
 /****************************************************************************/

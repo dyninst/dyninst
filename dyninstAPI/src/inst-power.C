@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.157 2003/01/23 17:55:50 tlmiller Exp $
+ * $Id: inst-power.C,v 1.158 2003/02/26 21:27:47 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -2350,7 +2350,8 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
-	      char *baseInsn, Address &base, bool /*noCost*/)
+               char *baseInsn, Address &base, bool /*noCost*/,
+               const instPoint * /* location */ )
 {
     //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 

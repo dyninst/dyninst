@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.22 2003/02/25 21:11:08 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.23 2003/02/26 21:27:45 schendel Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -1225,7 +1225,8 @@ void generateMTpreamble(char *, Address &, process *) {
 
 /* Required by ast.C */
 Register emitR( opCode op, Register src1, Register src2, Register dest,
-			char * ibuf, Address & base, bool noCost ) {
+					 char * ibuf, Address & base, bool noCost,
+					 const instPoint * /* location */ ) {
 	/* FIXME: handle noCost */
 	switch( op ) {
 		case getParamOp: {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.74 2003/01/23 17:55:49 tlmiller Exp $
+// $Id: inst.h,v 1.75 2003/02/26 21:27:43 schendel Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -222,7 +222,8 @@ Address  emitA(opCode op, Register src1, Register src2, Register dst,
 // for operations requiring a Register to be returned
 // (e.g., getRetValOp, getParamOp, getSysRetValOp, getSysParamOp)
 Register emitR(opCode op, Register src1, Register src2, Register dst, 
-                char *insn, Address &base, bool noCost);
+               char *insn, Address &base, bool noCost, 
+               const instPoint *location);
 
 // for general arithmetic and logic operations which return nothing
 void     emitV(opCode op, Register src1, Register src2, Register dst, 

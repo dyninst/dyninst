@@ -2173,7 +2173,8 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dst,
 // return Register
 // [getParamOp, getSysParamOp, getRetValOp, getSysRetValOp]
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dst, 
-	       char *code, Address &base, bool /*noCost*/)
+               char *code, Address &base, bool /*noCost*/,
+               const instPoint * /* location */ )
 {
   TRACE_B( "emitR" );
 

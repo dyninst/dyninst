@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.121 2003/01/28 16:37:22 jodom Exp $
+// $Id: inst-sparc-solaris.C,v 1.122 2003/02/26 21:27:50 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1522,7 +1522,8 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 /****************************************************************************/
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest, 
-              char *i, Address &base, bool /*noCost*/)
+               char *i, Address &base, bool /*noCost*/,
+               const instPoint * /* location */ )
 {
     //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
 
