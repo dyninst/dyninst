@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.30  1994/11/02 23:41:51  karavan
+# Revision 1.31  1994/11/02 23:47:17  karavan
+# created error #25
+#
+# Revision 1.30  1994/11/02  23:41:51  karavan
 # created error #24
 #
 # Revision 1.29  1994/09/13  20:50:58  karavan
@@ -315,4 +318,12 @@ this error needs to be diagnosed.
 %X
 A tcl error occurred finding or reading the tcl script specified on the 
 paradyn command line with the -s option.
+%Y
+
+%N 25
+%E Unable to define specified process
+%A ui
+%S information
+%X
+An error occurred while attempting to define an application.
 %Y
