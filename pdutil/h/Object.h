@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.27 1999/05/15 20:24:42 wylie Exp $
+ * $Id: Object.h,v 1.28 1999/07/13 04:22:38 csserra Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -161,12 +161,12 @@ protected:
     string                          file_;
     dictionary_hash<string, Symbol> symbols_;
 
-    Word*    code_ptr_;
+    Word*   code_ptr_;
     Address code_off_;
     Address code_len_;
 
-    Word*    data_ptr_;
-    Address  data_off_;
+    Word*   data_ptr_;
+    Address data_off_;
     Address data_len_;
 
     void (*err_func_)(const char*);
@@ -179,41 +179,30 @@ private:
  * include the architecture-operating system specific object files.
 ************************************************************************/
 
-#undef HAVE_SPECIFIC_OBJECT
+#if defined(sparc_sun_solaris2_4)
+#include "util/h/Object-elf.h"
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-#include "util/h/Object-elf32.h"
-#define HAVE_SPECIFIC_OBJECT
-#endif /* defined(sparc_sun_solaris2_4) */
+#elif defined(i386_unknown_solaris2_5)
+#include "util/h/Object-elf.h"
 
-#if defined(i386_unknown_linux2_0)
-#include "util/h/Object-elf32.h"
-#define HAVE_SPECIFIC_OBJECT
-#endif /* defined(i386_unknown_linux2_0) */
+#elif defined(i386_unknown_linux2_0)
+#include "util/h/Object-elf.h"
 
-#if defined(mips_sgi_irix6_4)
-#include "util/h/Object-elf32.h"
-#define HAVE_SPECIFIC_OBJECT
-#endif /* defined(mips_sgi_irix6_4) */
+#elif defined(mips_sgi_irix6_4)
+#include "util/h/Object-elf.h"
 
-#if defined(rs6000_ibm_aix4_1)
+#elif defined(rs6000_ibm_aix4_1)
 #include "util/h/Object-aix.h"
-#define HAVE_SPECIFIC_OBJECT
-#endif /* defined(rs6000_ibm_aix4_1) */
 
-#if defined(i386_unknown_nt4_0)
+#elif defined(i386_unknown_nt4_0)
 #include "util/h/Object-nt.h"
-#define HAVE_SPECIFIC_OBJECT
-#endif /* defined(i386_unknown_nt4_0) */
 
-#if defined(alpha_dec_osf4_0)
+#elif defined(alpha_dec_osf4_0)
 #include "util/h/Object-coff.h"
-#define HAVE_SPECIFIC_OBJECT
-#endif /* defined(alpha_dec_osf4_0) */
 
-#if !defined(HAVE_SPECIFIC_OBJECT)
-#error "unable to locate system-specific object files"
-#endif /* !defined(HAVE_SPECIFIC_OBJECT) */
+#else
+#error "unknown platform"
+#endif
 
 /************************************************************************
  * class SymbolIter
