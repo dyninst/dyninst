@@ -500,7 +500,7 @@ int getNetworkName( std::string & network_name, const std::string & in_hostname 
             hp->h_length );
     delete_hostent( hp );
 
-#if defined(os_solaris) || defined(os_windows)
+#if defined(os_windows)
     hp = gethostbyaddr_r( ( const char * )&in, sizeof( in ), AF_INET );
 #else
     hp = mrnet_gethostbyaddr( ( const char * )&in, sizeof( in ), AF_INET );

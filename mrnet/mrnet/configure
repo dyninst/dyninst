@@ -2067,11 +2067,11 @@ case "$host_os" in
     esac
     ;;
   *aix4*)
-    LIBS="$LIBS $FLEX_LIB -lm -ldl"
+    LIBS="$LIBS $FLEX_LIB -lm -ldl -lpthread"
     CXXFLAGS="$CXXFLAGS -Dos_aix=4"
     ;;
   *aix5*)
-    LIBS="$LIBS $FLEX_LIB -lm -ldl"
+    LIBS="$LIBS $FLEX_LIB -lm -ldl -lpthread"
     CXXFLAGS="$CXXFLAGS -Dos_aix=5"
     ;;
   *solaris2.8*)
@@ -2252,7 +2252,7 @@ fi
 
 else
     LIBS_HOLD=$LIBS
-    LIBS="-L $FLEX_LIBDIR"
+    LIBS="-L$FLEX_LIBDIR"
     echo "$as_me:$LINENO: checking for yywrap in -lfl" >&5
 echo $ECHO_N "checking for yywrap in -lfl... $ECHO_C" >&6
 if test "${ac_cv_lib_fl_yywrap+set}" = set; then
@@ -2318,7 +2318,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_fl_yywrap" >&5
 echo "${ECHO_T}$ac_cv_lib_fl_yywrap" >&6
 if test $ac_cv_lib_fl_yywrap = yes; then
-  LIBS="-L $FLEX_LIBDIR $LIBS_HOLD"
+  LIBS="-L$FLEX_LIBDIR $LIBS_HOLD"
 else
   { { echo "$as_me:$LINENO: error: No/invalid flex library found in ${FLEX_LIBDIR}" >&5
 echo "$as_me: error: No/invalid flex library found in ${FLEX_LIBDIR}" >&2;}

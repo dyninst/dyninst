@@ -87,11 +87,11 @@ case "$host_os" in
     esac
     ;;
   *aix4*)
-    LIBS="$LIBS $FLEX_LIB -lm -ldl"
+    LIBS="$LIBS $FLEX_LIB -lm -ldl -lpthread"
     CXXFLAGS="$CXXFLAGS -Dos_aix=4"
     ;;
   *aix5*)
-    LIBS="$LIBS $FLEX_LIB -lm -ldl"
+    LIBS="$LIBS $FLEX_LIB -lm -ldl -lpthread"
     CXXFLAGS="$CXXFLAGS -Dos_aix=5"
     ;;
   *solaris2.8*)
@@ -142,8 +142,8 @@ if test "$FLEX_LIBDIR" = "" ; then
     AC_CHECK_LIB(fl, [yywrap], [], [AC_MSG_ERROR(Can't find flex library libfl. Must specify with --with-libfl)])
 else
     LIBS_HOLD=$LIBS
-    LIBS="-L $FLEX_LIBDIR"
-    AC_CHECK_LIB(fl, [yywrap], [LIBS="-L $FLEX_LIBDIR $LIBS_HOLD]", [AC_MSG_ERROR(No/invalid flex library found in ${FLEX_LIBDIR})])
+    LIBS="-L$FLEX_LIBDIR"
+    AC_CHECK_LIB(fl, [yywrap], [LIBS="-L$FLEX_LIBDIR $LIBS_HOLD]", [AC_MSG_ERROR(No/invalid flex library found in ${FLEX_LIBDIR})])
 fi
 
 AC_MSG_CHECKING(whether we can compile/link with \"$CXX $CXXFLAGS $LIBS\".)
