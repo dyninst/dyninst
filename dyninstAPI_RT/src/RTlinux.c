@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.25 2005/02/09 03:27:50 jaw Exp $
+ * $Id: RTlinux.c,v 1.26 2005/02/22 20:03:23 mirg Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -55,6 +55,7 @@
 #include <dlfcn.h>
 #include <link.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <sys/ptrace.h>
 
@@ -66,7 +67,6 @@ extern struct sigaction DYNINSTactTrapApp;
 #else
 #include <errno.h>
 #include <sys/mman.h>
-#include <unistd.h>
 
 extern double DYNINSTstaticHeap_32K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_4M_anyHeap_1[];
@@ -293,6 +293,9 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
 }
 #endif /* !ia64_unknown_linux2_4 */
 
+void *DYNINSTdlopen_fake_ret(const char *filename, int flag,
+			     const char *fake_ret);
+
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
 {
@@ -302,13 +305,46 @@ int DYNINSTloadLibrary(char *libname)
 
   if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
     // An error has occurred
-    perror( "DYNINSTloadLibrary -- dlopen" );
-    
     if (NULL != (err_str = dlerror()))
       strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
     else 
       sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
-    
+#ifdef i386_unknown_linux2_0
+    if (strstr(gLoadLibraryErrorString, "invalid caller") != NULL) {
+	/* dlopen on Suse 9.1 has a "security" check in it so that
+	   only registered modules can call it. We fool this check
+	   around by calling _dl_open and pretending it was called
+	   from libc. */
+	unsigned char *fake_ret;
+	int i, scan_bytes = (intptr_t)&getuid - (intptr_t)&getpid;
+
+	/* Scan from getpid to getuid (hopefully in libc) looking for
+	   a ret instruction (or a byte in another instruction that
+	   just looks like a ret). We will pretend that _dl_open was
+	   called from that address. */
+	if (scan_bytes >= 0) {
+	    fake_ret = (unsigned char *)&getpid;
+	}
+	else {
+            fake_ret = (unsigned char *)&getuid;
+	    scan_bytes = -scan_bytes;
+	}
+	for (i=0; i<scan_bytes; i++) {
+	    if (fake_ret[i] == 0xC3) { /* ret instruction */
+		DYNINSTdlopen_fake_ret(libname, RTLD_NOW | RTLD_GLOBAL,
+				       fake_ret);
+		/* If an error happens in _dl_open, we would never
+		   return here -- _dl_open would abort the process. It
+		   is unfortunate, but creating a proper context so
+		   that _dl_open can tolerate errors is a harder problem */
+		return 1;
+	    }
+	}
+	strcpy(gLoadLibraryErrorString, "No suitable ret instruction found");
+	return 0;
+    }
+#endif
+    perror( "DYNINSTloadLibrary -- dlopen" );
     //fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
     return 0;  
   } else
