@@ -1,6 +1,10 @@
 /*
  * $Log: PCshg.C,v $
- * Revision 1.1  1994/02/02 00:38:19  hollings
+ * Revision 1.2  1994/04/21 04:58:53  karavan
+ * updated shgInit() to include display initialization; added changeStatus
+ * and changeActive member functions to searchHistoryNode.
+ *
+ * Revision 1.1  1994/02/02  00:38:19  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.10  1993/09/03  19:04:12  hollings
@@ -40,7 +44,7 @@
 static char Copyright[] = 
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.1 1994/02/02 00:38:19 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.2 1994/04/21 04:58:53 karavan Exp $";
 #endif
 
 #include <stdio.h>
@@ -49,6 +53,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 #include "PCshg.h"
 #include "PCglobals.h"
+#include "paradyn.h"
 
 // ugly global to relate back cost of collecting data for a given test.
 float globalPredicatedCost;
@@ -79,7 +84,7 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t)
     children = new(searchHistoryNodeList);
     sprintf(tempName, "%s %s %s", h->name, f->getName(), t->getName());
     name= shgNames.findAndAdd(tempName);
-    shortName = (char *) malloc(8);
+    shortName = (char *) malloc(16);
     sprintf(shortName, " %d ", nodeId);
 };
 
@@ -148,11 +153,40 @@ Boolean searchHistoryNode::print(int parent, FILE *fp)
     return(False);
 }
 
+void 
+searchHistoryNode::changeActive(Boolean newact)
+{
+  printf ("SHN::changeActive\n");
+  active = newact;
+  if (newact == TRUE) {
+    if (status == TRUE) 
+      uiMgr->DAGconfigNode(SHGid, nodeId, ACTIVETRUENODESTYLE);
+    else
+      uiMgr->DAGconfigNode(SHGid, nodeId, ACTIVEFALSENODESTYLE);
+  }
+  else
+    uiMgr->DAGconfigNode (SHGid, nodeId, INACTIVENODESTYLE);
+}    
+
+void 
+searchHistoryNode::changeStatus(Boolean newstat)
+{
+  printf ("SHN::changeStatus\n");
+  status = newstat;
+  if (newstat == TRUE) {
+    uiMgr->DAGconfigNode(SHGid, nodeId, ACTIVETRUENODESTYLE);
+  }
+  else {
+    uiMgr->DAGconfigNode(SHGid, nodeId, ACTIVEFALSENODESTYLE);
+  }
+}
+    
 void searchHistoryNode::resetStatus()
 {
     searchHistoryNodeList curr;
 
-    status = FALSE;
+    changeStatus(FALSE);
+//    
     if (children) {
 	for (curr = *children; *curr; curr++) {
 	    (*curr)->resetStatus();
@@ -180,7 +214,7 @@ Boolean searchHistoryNode::resetActive()
 	    }
 	}
     }
-    active = ret;
+    changeActive(ret);
     return(active);
 }
 
@@ -219,8 +253,6 @@ searchHistoryNode *findAndAddSHG(searchHistoryNode *parent,
 	delete temp;
 	return(ret);
     } else {
-	// ??? add to the DAG HERE
-	// XrwAddEdge(info.graph, (ApplNode) parent, (ApplNode) temp);
 	allSHGNodes.add(temp, temp->name);
 	return(temp);
     }
@@ -239,6 +271,14 @@ void shgInit()
 
     currentSHGNode = SearchHistoryGraph;
     currentSHGNode->active = TRUE;
+
+    // begin visual display of shg
+    SHGid = uiMgr->initSHG();     
+    printf ("PC: SHG initialized w/ SHGid = %d\n", SHGid);
+    // display root node with style 1 
+    uiMgr->DAGaddNode (SHGid, currentSHGNode->nodeId, UNTESTEDNODESTYLE, 
+		       currentSHGNode->shortName, currentSHGNode->name, 1);
+
 }
 
 searchHistoryNode *SearchHistoryGraph;
