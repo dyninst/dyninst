@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.25 1995/02/26 22:48:50 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.26 1995/05/18 10:41:09 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.25  1995/02/26 22:48:50  markc
+ * Revision 1.26  1995/05/18 10:41:09  markc
+ * Changed process dict to process map
+ *
+ * Revision 1.25  1995/02/26  22:48:50  markc
  * vector.size() returns an unsigned.  If the vector is to be traversed in reverse,
  * the bounds check cannot be > 0 since unsigned(0) - 1 is not negative.
  *
@@ -152,12 +155,7 @@ int pvmendtask();
 #include "dyninstP.h"
 #include "os.h"
 
-dictionary_hash<int, process*> processMap(intHash);
-
-/* root of process resource list */
-resource *processResource;
-resource *machineResource;
-
+vector<process*> processVec;
 string process::programName;
 vector<string> process::arg_list;
 
@@ -313,32 +311,16 @@ process *allocateProcess(int pid, const string name)
     process *ret;
 
     ret = new process;
-    processMap[pid] = ret;
-
-    if (!machineResource) {
-	char hostName[80];
-	struct utsname un;
-	P_uname(&un);
-	P_strcpy(hostName, un.nodename);
-
-	resource *machineRoot;
-	machineRoot = newResource(rootResource, NULL, nullString, "Machine",
-				  0.0, "");
-	machineResource = newResource(machineRoot, NULL, nullString, hostName,
-				      0.0, "");
-    }
+    processVec += ret;
 
     ret->pid = pid;
-    if (!processResource) {
-	processResource = newResource(rootResource, NULL, nullString, "Process",
-				      0.0, "");
-    }
+
     char buffer[80];
     struct utsname un;
     P_uname(&un);
     sprintf(buffer, "%d_%s", pid, un.nodename);
-    ret->rid = newResource(processResource, (void*)ret, nullString, name,
-			   0.0, buffer);
+    ret->rid = resource::newResource(processResource, (void*)ret, nullString, name,
+				     0.0, buffer);
     ret->bufEnd = 0;
 
     // this process won't be paused until this flag is set

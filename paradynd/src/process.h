@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.16  1995/02/16 08:54:04  markc
+ * Revision 1.17  1995/05/18 10:41:11  markc
+ * Changed process dict to process map
+ *
+ * Revision 1.16  1995/02/16  08:54:04  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.15  1995/02/16  08:34:37  markc
@@ -225,7 +228,14 @@ private:
   inline bool checkStatus();
 };
 
-extern dictionary_hash<int, process*> processMap;
+extern vector<process*> processVec;
+inline process *findProcess(int pid) {
+  unsigned size=processVec.size();
+  for (unsigned u=0; u<size; u++)
+    if (processVec[u]->getPid() == pid)
+      return processVec[u];
+  return NULL;
+}
 
 bool process::detach(const bool paused) {
   bool res;
