@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.31 2002/05/10 18:37:43 schendel Exp $
+// $Id: templates0.C,v 1.32 2002/05/13 21:17:00 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -80,6 +80,7 @@
 
 #if !defined(BPATCH_LIBRARY)
 #include "paradynd/src/instReqNode.h"
+#include "paradynd/src/processMetFocusNode.h"
 #endif
 
 template class  vector<pdThread *>;
@@ -114,6 +115,10 @@ template class  vector<instrDataNode *>;
 template class  vector<threadMetFocusNode *>;
 template class  vector<catchupReq>;
 template class  vector<catchupReq*>;
+template class  vector<vector<catchupReq *> >;
+// Temporary structs used in processMetFocusNode.C
+template class  vector<catchup_t>;
+template class  vector<sideEffect_t>;
 template class  vector<threadMetFocusNode_Val *>;
 template class  vector<const threadMetFocusNode_Val *>;
 #endif
