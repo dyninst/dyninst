@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.108 2002/06/13 19:53:04 mirg Exp $
+// $Id: inst-sparc-solaris.C,v 1.109 2002/06/26 21:14:45 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1141,7 +1141,8 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
  * Install a single tramp.
  *
  */
-void installTramp(instInstance *inst, char *code, int codeSize) 
+void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
+		  instPoint *location, callWhen when) 
 {
     //the default base trampoline template is the regular base trampoline.
     //However if the location iptype is  randomPoint then we have to use
@@ -1149,29 +1150,29 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 
     trampTemplate* current_template = &baseTemplate;
 
-    if(inst->location->ipType == otherPoint)
+    if(location->ipType == otherPoint)
         current_template = &conservativeBaseTemplate;
 
     totalMiniTramps++;
     insnGenerated += codeSize/sizeof(int);
     
     // TODO cast
-    (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+    proc->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
 
     Address atAddr;
-    if (inst->when == callPreInsn) {
+    if(when == callPreInsn) {
 	if (inst->baseInstance->prevInstru == false) {
 	    atAddr = inst->baseInstance->baseAddr+current_template->skipPreInsOffset;
 	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
 	    inst->baseInstance->prevInstru = true;
-	    generateNoOp(inst->proc, atAddr);
+	    generateNoOp(proc, atAddr);
 	}
     } else {
 	if (inst->baseInstance->postInstru == false) {
 	    atAddr = inst->baseInstance->baseAddr+current_template->skipPostInsOffset; 
 	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
 	    inst->baseInstance->postInstru = true;
-	    generateNoOp(inst->proc, atAddr);
+	    generateNoOp(proc, atAddr);
 	}
     }
 }
