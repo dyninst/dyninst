@@ -17,9 +17,9 @@
 #define MDL_FOLD_AVG 1
 
 #define MDL_AGG_SUM aggSum
-#define MDL_AGG_AVG aggMin
-#define MDL_AGG_MIN aggMax
-#define MDL_AGG_MAX aggAvg
+#define MDL_AGG_AVG aggAvg
+#define MDL_AGG_MIN aggMin
+#define MDL_AGG_MAX aggMax
 
 #define MDL_T_SCALAR_BASE 30
 #define MDL_T_INT 30
