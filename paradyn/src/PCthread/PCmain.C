@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.52  1996/04/18 22:01:55  naim
-/* Changes to make getPredictedDataCost asynchronous - naim
+/* Revision 1.53  1996/04/21 21:45:02  newhall
+/* added PCpredData, and registered at a cFunc controlCallback func
 /*
+ * Revision 1.52  1996/04/18  22:01:55  naim
+ * Changes to make getPredictedDataCost asynchronous - naim
+ *
  * Revision 1.51  1996/04/17  21:58:44  karavan
  * bug fix.
  *
@@ -135,6 +138,10 @@ void PCfold(perfStreamHandle,
   }
 }
 
+void PCpredData(metricHandle m_handle,resourceListHandle rl_handle,float cost){
+    cout << "PCpredData: THIS SHOULD NEVER EXECUTE" << endl;
+}
+
 //
 // all new data arrives at the PC thread via this upcall
 //
@@ -240,6 +247,7 @@ void PCmain(void* varg)
     memset(&controlHandlers, '\0', sizeof(controlHandlers));
     controlHandlers.fFunc = PCfold;
     controlHandlers.pFunc = PCphase;
+    controlHandlers.cFunc = PCpredData;
     dataHandlers.sample = PCnewDataCallback;
     filteredDataServer::initPStoken(dataMgr->createPerformanceStream(Sample,
 					       dataHandlers, controlHandlers));
