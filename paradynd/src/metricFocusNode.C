@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.162 1999/09/09 15:35:40 zhichen Exp $
+// $Id: metricFocusNode.C,v 1.163 1999/09/09 16:00:23 zhichen Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -2173,9 +2173,11 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
 
 #if defined(MT_THREAD)
    if (AGG_COMP==aggLevel && THR_COMP==comp->aggLevel && 2>=aggr_size){
-      metricDefinitionNode *pcomp = comp->components[0];
-      comp->components.resize(0);
-      comp->removeComponent(pcomp);
+      if (comp->components.size()>0) {
+        metricDefinitionNode *pcomp = comp->components[0];
+        comp->components.resize(0);
+        comp->removeComponent(pcomp);
+      }
    }
 #endif
 }
