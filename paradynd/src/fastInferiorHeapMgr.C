@@ -39,8 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// fastInferiorHeapMgr.C
-// Ari Tamches
+// $Id: fastInferiorHeapMgr.C,v 1.8 2000/03/12 22:23:34 wylie Exp $
 // A class that manages several fastInferiorHeaps (fastInferiorHeap.h/.C)
 // Formerly, each fastInferiorHeap would create its own shm-segment.
 // But this created too many segments.  This class creates a single shm segment,
@@ -251,7 +250,8 @@ void *fastInferiorHeapMgr::getSubHeapInSpace(unsigned subHeapIndex,
 
    assert( theShm != NULL );
 
-   void *basePtr = (theSpace == paradynd ? theShm->GetMappedAddress() : applicAttachedAt);
+   void *basePtr = (theSpace == 
+                    paradynd ? theShm->GetMappedAddress() : applicAttachedAt);
    if (basePtr == NULL) {
       // we're not ready to perform this operation yet!
       assert(false);
