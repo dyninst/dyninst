@@ -43,6 +43,7 @@
 #define _BPatch_h_
 
 #include <stdio.h>
+#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_type.h"
@@ -69,7 +70,7 @@ typedef void (*BPatchExecCallback)(BPatch_thread *proc);
 
 typedef void (*BPatchExitCallback)(BPatch_thread *proc, int code);
 
-class BPatch {
+class BPATCH_DLL_EXPORT BPatch {
     friend class BPatch_thread;
     friend class process;
 

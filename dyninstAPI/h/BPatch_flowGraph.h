@@ -1,6 +1,7 @@
 #ifndef _BPatch_flowGraph_h_
 #define _BPatch_flowGraph_h_
 
+#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"
@@ -14,7 +15,7 @@ class BPatch_image;
   * @see BPatch_basicBlock
   * @see BPatch_basicBlockLoop
   */
-class BPatch_flowGraph {
+class BPATCH_DLL_EXPORT BPatch_flowGraph {
 	friend class BPatch_function;
 	friend class BPatch_basicBlock;
 	friend ostream& operator<<(ostream&,BPatch_flowGraph&);

@@ -11,6 +11,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "BPatch_dll.h"
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P
@@ -56,7 +57,7 @@ static const bool BLACK = false;
 #endif
 
 template<class T,class Compare = comparison<T> >
-class BPatch_Set {
+class BPATCH_DLL_EXPORT BPatch_Set {
 private:
 
 #ifndef i386_unknown_nt4_0

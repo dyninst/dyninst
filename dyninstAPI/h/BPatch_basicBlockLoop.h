@@ -2,6 +2,7 @@
 #define _BPatch_basicBlockLoop_h
 
 #include <stdlib.h>
+#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"
@@ -15,7 +16,7 @@
 
 class BPatch_variableExpr;
 
-class BPatch_basicBlockLoop  {
+class BPATCH_DLL_EXPORT BPatch_basicBlockLoop  {
 	friend class BPatch_flowGraph;
 	friend ostream& operator<<(ostream&,BPatch_basicBlockLoop&);
 

@@ -42,6 +42,7 @@
 #ifndef _BPatch_image_h_
 #define _BPatch_image_h_
 
+#include "BPatch_dll.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_Vector.h"
 #include "BPatch_point.h"
@@ -54,7 +55,7 @@ class image;
 
 class AddrToVarExprHash;
 
-class BPatch_image: public BPatch_sourceObj {
+class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
     process	*proc;
 
 public:

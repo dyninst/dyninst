@@ -38,56 +38,41 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+#ifndef _BPatch_dll_h_
+#define _BPatch_dll_h_
 
-#ifndef _BPatch_point_h_
-#define _BPatch_point_h_
+#ifdef i386_unknown_nt4_0
+// we are building for a Windows target
 
-#include "BPatch_dll.h"
+// we get numerous spurious warnings about having some template classes
+// needing to have a dll-interface if instances of these classes are
+// to be used by classes whose public interfaces are exported from a DLL.
+// Specifing the template classes with a DLL export interface doesn't 
+// satisfy the compiler.  Until the compiler handles instantiated
+// templates exported from DLLs better, we disable the warning when building
+// or using the dyninstAPI DLL.
+//
+#pragma warning(disable:4251)
 
-class process;
-class instPoint;
-class BPatch_thread;
-class BPatch_image;
-class BPatch_function;
+#ifdef BPATCH_DLL_BUILD
+// we are building the dyninstAPI DLL
+#define	BPATCH_DLL_EXPORT	__declspec(dllexport)
+
+#else
+
+// we are not building the dyninstAPI DLL
+#define	BPATCH_DLL_EXPORT	__declspec(dllimport)
+#endif	// BPATCH_DLL_BUILD
+
+#else
+
+// we are not building for a Windows target
+#define	BPATCH_DLL_EXPORT
+
+#endif
 
 
-/*
- * Used with BPatch_function::findPoint to specify which of the possible
- * instrumentation points within a procedure should be returned.
- */
-typedef enum {
-    BPatch_entry,
-    BPatch_exit,
-    BPatch_subroutine,
-    BPatch_longJump,
-    BPatch_allLocations,
-    BPatch_instruction
-} BPatch_procedureLocation;
+// declare our version string
+extern "C" BPATCH_DLL_EXPORT const char V_libdyninstAPI[];
 
-
-class BPATCH_DLL_EXPORT BPatch_point {
-    friend class BPatch_thread;
-    friend class BPatch_image;
-    friend class BPatch_function;
-    friend class process;
-    friend BPatch_point* createInstructionInstPoint(process*proc,void*address);
-
-    process	*proc;
-    const BPatch_function	*func;
-    instPoint	*point;
-    BPatch_procedureLocation pointType;
-
-    BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
-		 BPatch_procedureLocation _pointType) :
-	proc(_proc), func(_func), point(_point), pointType(_pointType) {};
-public:
-    const BPatch_procedureLocation getPointType() { return pointType; }
-    const BPatch_function *getFunction() { return func; }
-    BPatch_function *getCalledFunction();
-    void            *getAddress();
-    int             getDisplacedInstructions(int maxSize, void *insns);
-
-    bool	usesTrap_NP();
-};
-
-#endif /* _BPatch_point_h_ */
+#endif /* _BPatch_dll_h_ */

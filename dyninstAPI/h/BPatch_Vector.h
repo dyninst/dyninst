@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.5 1999/07/08 00:18:45 nash Exp $
+// $Id: BPatch_Vector.h,v 1.6 2001/02/01 16:22:41 pcroth Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -47,13 +47,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "BPatch_dll.h"
 
 #ifdef external_templates
 #pragma interface
 #endif /* external_templates */
 
 template<class T>
-class BPatch_Vector {
+class BPATCH_DLL_EXPORT BPatch_Vector {
     int		reserved;	// Number of objects for which space is reserved
     int		len;		// The current number of objects in the vector
     T*		data;		// Points to the array of objects

@@ -41,6 +41,8 @@
 
 #ifndef _BPatch_type_h_
 #define _BPatch_type_h_
+
+#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
@@ -119,7 +121,7 @@ class BPatch_function;
  * A field can be an atomic type, i.e, int, char, or more complex like a
  * union or struct.  
  */
-class BPatch_field {
+class BPATCH_DLL_EXPORT BPatch_field {
   friend class BPatch_variableExpr;
 
   char *fieldname;
@@ -165,7 +167,7 @@ public:
 // Define an instance of a Common block.  Each subroutine can have its own
 //   version of the common block.
 //
-class BPatch_cblock {
+class BPATCH_DLL_EXPORT BPatch_cblock {
    friend BPatch_type;
 
 private:
@@ -180,7 +182,7 @@ public:
   BPatch_Vector<BPatch_function *> *getFunctions() { return &functions; }
 };
 
-class BPatch_type {
+class BPATCH_DLL_EXPORT BPatch_type {
 private:
   bool	        nullType;
   char		*name;
@@ -283,7 +285,7 @@ public:
 // It is desgined store information about a variable in a function.
 // Scope needs to be addressed in this class.
 
-class BPatch_localVar{
+class BPATCH_DLL_EXPORT BPatch_localVar{
   char * name;
   BPatch_type * type;
   int lineNum;

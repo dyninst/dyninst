@@ -2,6 +2,7 @@
 #define _BPatch_sourceBlock_h_
 
 #include <iostream.h>
+#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 
@@ -16,7 +17,7 @@
   * @see BPatch_basicBlock
   */
 
-class BPatch_sourceBlock{
+class BPATCH_DLL_EXPORT BPatch_sourceBlock{
 	friend class BPatch_flowGraph;
 	friend ostream& operator<<(ostream&,BPatch_sourceBlock&);
 

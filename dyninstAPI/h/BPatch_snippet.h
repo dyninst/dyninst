@@ -42,6 +42,7 @@
 #ifndef _BPatch_snippet_h_
 #define _BPatch_snippet_h_
 
+#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_point.h"
@@ -80,7 +81,7 @@ typedef enum {
     BPatch_deref
 } BPatch_unOp;
 
-class BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_snippet {
 public:
 // The following members are for  internal use by the library only:
     AstNode	*ast; /* XXX It would be better if this was protected */
@@ -95,7 +96,7 @@ public:
     float	getCost();
 };
 
-class BPatch_arithExpr: public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_arithExpr: public BPatch_snippet {
 public:
     BPatch_arithExpr(BPatch_binOp op,
 		     const BPatch_snippet &lOperand,
@@ -103,13 +104,13 @@ public:
     BPatch_arithExpr(BPatch_unOp op, const BPatch_snippet &lOperand);
 };
 
-class BPatch_boolExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_boolExpr : public BPatch_snippet {
 public:
     BPatch_boolExpr(BPatch_relOp op, const BPatch_snippet &lOperand,
 		    const BPatch_snippet &rOperand);
 };
 
-class BPatch_constExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
 public:
     BPatch_constExpr(int value);
 #ifdef BPATCH_NOT_YET
@@ -119,18 +120,18 @@ public:
     BPatch_constExpr(const void *value);
 };
 
-class BPatch_funcCallExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
 public:
     BPatch_funcCallExpr(const BPatch_function& func,
 			const BPatch_Vector<BPatch_snippet *> &args);
 };
 
-class BPatch_funcJumpExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_funcJumpExpr : public BPatch_snippet {
 public:
      BPatch_funcJumpExpr(const BPatch_function& func);
 };
 
-class BPatch_ifExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_ifExpr : public BPatch_snippet {
 public:
     BPatch_ifExpr(const BPatch_boolExpr &conditional,
 		  const BPatch_snippet &tClase);
@@ -139,27 +140,27 @@ public:
 		  const BPatch_snippet &fClause);
 };
 
-class BPatch_nullExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_nullExpr : public BPatch_snippet {
 public:
     BPatch_nullExpr();
 };
 
-class BPatch_paramExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_paramExpr : public BPatch_snippet {
 public:
     BPatch_paramExpr(int n);
 };
 
-class BPatch_retExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_retExpr : public BPatch_snippet {
 public:
     BPatch_retExpr();
 };
 
-class BPatch_sequence : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_sequence : public BPatch_snippet {
 public:
     BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items);
 };
 
-class BPatch_variableExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet {
     char		*name;
     process		*proc;
     void		*address;
@@ -192,7 +193,7 @@ public:
     BPatch_Vector<BPatch_variableExpr *> *getComponents();
 };
 
-class BPatch_breakPointExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_breakPointExpr : public BPatch_snippet {
 public:
     BPatch_breakPointExpr();
 };

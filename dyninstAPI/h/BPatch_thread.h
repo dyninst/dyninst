@@ -42,6 +42,7 @@
 #ifndef _BPatch_thread_h_
 #define _BPatch_thread_h_
 
+
 /*
  * The following is a kludge so that the functions that refer to signals (such
  * as BPatch_thread::stopSignal) can emulate the Unix behavior on Windows NT.
@@ -51,6 +52,7 @@
 #define SIGTRAP		5
 #endif
 
+#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_image.h"
 #include "BPatch_snippet.h"
@@ -85,7 +87,7 @@ typedef enum {
  * Contains information about the code that was inserted by an earlier call to
  * Bpatch_thread::insertSnippet.
  */
-class BPatchSnippetHandle {
+class BPATCH_DLL_EXPORT BPatchSnippetHandle {
     friend class BPatch_thread;
 private:
     BPatch_Vector<instInstance *> instance;
@@ -101,7 +103,7 @@ public:
 /*
  * Represents a thread of execution.
  */
-class BPatch_thread {
+class BPATCH_DLL_EXPORT BPatch_thread {
     friend class BPatch;
     friend class BPatch_image;
     friend class BPatch_function;

@@ -1,6 +1,7 @@
 #ifndef _BPatch_basicBlock_h_
 #define _BPatch_basicBlock_h_
 
+#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_sourceBlock.h" 
@@ -15,7 +16,7 @@
   * @see BPatch_basicBlockLoop
   */
 
-class BPatch_basicBlock {
+class BPATCH_DLL_EXPORT BPatch_basicBlock {
 	friend class BPatch_flowGraph;
 	friend class TarjanDominator;
 

@@ -42,6 +42,7 @@
 #ifndef _BPatch_function_h_
 #define _BPatch_function_h_
 
+#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_point.h"
 #include "BPatch_type.h"
@@ -56,7 +57,7 @@ class BPatch_function;
 class BPatch_point;
 class BPatch_flowGraph;
 
-class BPatch_function: public BPatch_sourceObj {
+class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
     friend class BPatch_flowGraph;
 
     process *proc;

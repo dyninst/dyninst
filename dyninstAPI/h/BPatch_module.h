@@ -42,6 +42,7 @@
 #ifndef _BPatch_module_h_
 #define _BPatch_module_h_
 
+#include "BPatch_dll.h"
 #include <BPatch_Vector.h>
 #include <BPatch_sourceObj.h>
 
@@ -55,7 +56,7 @@ class LineInformation;
 extern BPatch_builtInTypeCollection * builtInTypes;
 
 
-class BPatch_module: public BPatch_sourceObj {
+class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj {
 
     friend class BPatch_function;
     friend class BPatch_image;

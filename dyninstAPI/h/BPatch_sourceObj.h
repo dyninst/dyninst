@@ -42,6 +42,7 @@
 #ifndef _BPatch_sourceObj_h_
 #define _BPatch_sourceObj_h_
 
+#include "BPatch_dll.h"
 #include <BPatch_Vector.h>
 
 class BPatch_type;
@@ -71,7 +72,7 @@ typedef enum BPatch_sourceType {
     BPatch_sourceStatement
 } BPatch_sourceType;
 
-class BPatch_sourceObj {
+class BPATCH_DLL_EXPORT BPatch_sourceObj {
   public:
       BPatch_sourceType getSrcType() { return _srcType; }
       virtual BPatch_Vector<BPatch_sourceObj *> *getSourceObj() = 0;
