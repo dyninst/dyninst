@@ -477,8 +477,8 @@ bool mutatorTest3()
   unsigned int timeout = 0; // in ms
   int err = 0;
 
-  BPatchThreadEventCallback createcb = threadCreateCB;
-  if (!appThread->registerThreadEventCallback(BPatch_threadCreateEvent,
+  BPatchAsyncThreadEventCallback createcb = threadCreateCB;
+  if (!appThread->registerAsyncThreadEventCallback(BPatch_threadCreateEvent,
                                               createcb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
@@ -508,7 +508,7 @@ bool mutatorTest3()
 
   appThread->stopExecution();
 
-  if (!appThread->removeThreadEventCallback(BPatch_threadCreateEvent,
+  if (!appThread->removeAsyncThreadEventCallback(BPatch_threadCreateEvent,
                                             createcb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
@@ -540,8 +540,8 @@ bool mutatorTest4()
   unsigned int timeout = 0; // in ms
   int err = 0;
 
-  BPatchThreadEventCallback destroycb = threadDestroyCB;
-  if (!appThread->registerThreadEventCallback(BPatch_threadDestroyEvent,
+  BPatchAsyncThreadEventCallback destroycb = threadDestroyCB;
+  if (!appThread->registerAsyncThreadEventCallback(BPatch_threadDestroyEvent,
                                               destroycb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
@@ -572,7 +572,7 @@ bool mutatorTest4()
 
   appThread->stopExecution();
 
-  if (!appThread->removeThreadEventCallback(BPatch_threadDestroyEvent,
+  if (!appThread->removeAsyncThreadEventCallback(BPatch_threadDestroyEvent,
                                             destroycb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",

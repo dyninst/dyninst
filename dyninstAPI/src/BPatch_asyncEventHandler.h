@@ -124,7 +124,7 @@ class BPatch_eventMailbox {
 
   bool executeUserCallbacks();
   bool registerCallback(BPatch_asyncEventType type,
-                        BPatchThreadEventCallback _cb,
+                        BPatchAsyncThreadEventCallback _cb,
                         BPatch_thread *t, unsigned long tid);
   bool registerCallback(BPatchDynamicCallSiteCallback _cb,
                         BPatch_point *p, BPatch_function *f);
@@ -229,7 +229,7 @@ typedef struct {
 } dyncall_cb_record;
 
 typedef struct {
-    pdvector<BPatchThreadEventCallback> *cbs;
+    pdvector<BPatchAsyncThreadEventCallback> *cbs;
     pdvector<BPatch_function *> *mutatee_side_cbs;
     pdvector<BPatchSnippetHandle *> *handles;
     BPatch_thread *thread;
@@ -279,7 +279,7 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
     //  <type> occurs.
     bool registerThreadEventCallback(BPatch_thread *thread,
                                      BPatch_asyncEventType type,
-                                     BPatchThreadEventCallback cb);
+                                     BPatchAsyncThreadEventCallback cb);
 
     //  BPatch_asyncEventHandler::registerThreadEventCallback()
     //  Specify a function to be called in the mutatee when a
@@ -292,7 +292,7 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
     //  
     bool removeThreadEventCallback(BPatch_thread *thread,
                                    BPatch_asyncEventType type,
-                                   BPatchThreadEventCallback cb);
+                                   BPatchAsyncThreadEventCallback cb);
 
     //  BPatch_asyncEventHandler::removeThreadEventCallback()
     //  

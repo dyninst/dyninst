@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.53 2005/02/17 21:10:24 bernat Exp $
+// $Id: BPatch_function.C,v 1.54 2005/03/21 21:22:09 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -158,7 +158,7 @@ BPatch_sourceObj *BPatch_function::getObjParent()
  * s            The buffer into which the name will be copied.
  * len          The size of the buffer.
  */
-char *BPatch_function::getNameInt(char *s, int len)
+char *BPatch_function::getNameBuffer(char *s, int len)
 {
     assert(func);
     pdstring name = func->prettyName();
@@ -168,7 +168,7 @@ char *BPatch_function::getNameInt(char *s, int len)
 }
 
 #ifdef IBM_BPATCH_COMPAT
-const char *BPatch_function::getNameBuffer()
+const char *BPatch_function::getNameDPCL()
 {
   char n[1024];
   getName(n, 1023)[1023]='\0';

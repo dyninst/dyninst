@@ -106,7 +106,7 @@ bool BPatch_eventMailbox::executeUserCallbacks()
         case BPatch_threadStartEvent:
         case BPatch_threadStopEvent:
         {
-          BPatchThreadEventCallback cb = (BPatchThreadEventCallback) cbs[i].cb;
+          BPatchAsyncThreadEventCallback cb = (BPatchAsyncThreadEventCallback) cbs[i].cb;
           BPatch_thread *t = (BPatch_thread *) cbs[i].arg1;
           unsigned long tid = (unsigned long) cbs[i].arg2;
 
@@ -246,7 +246,7 @@ bool BPatch_eventMailbox::executeUserCallbacks()
 
 
 bool BPatch_eventMailbox::registerCallback(BPatch_asyncEventType type,
-                                           BPatchThreadEventCallback _cb,
+                                           BPatchAsyncThreadEventCallback _cb,
                                            BPatch_thread *t, unsigned long tid)
 {
     mb_callback_t cb;
@@ -909,7 +909,7 @@ BPatch_asyncEventHandler::getCBsForType(BPatch_asyncEventType t)
 
 bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread,
                                                            BPatch_asyncEventType type,
-                                                           BPatchThreadEventCallback cb)
+                                                           BPatchAsyncThreadEventCallback cb)
 {
   if (!isRunning) {
     if (!createThread()) {
@@ -953,7 +953,7 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
 
   if (thread_event_rec.thread && thread_event_rec.cbs) {
     //  already have callbacks for this thread, just add the new one
-    pdvector<BPatchThreadEventCallback> *cbs = thread_event_rec.cbs;
+    pdvector<BPatchAsyncThreadEventCallback> *cbs = thread_event_rec.cbs;
     assert(cbs);
     cbs->push_back(cb); 
     return true;
@@ -963,7 +963,7 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
   //       __FILE__, __LINE__, asyncEventType2Str(type));
   //  don't have any yet, need to alloc a new callback vector
   thread_event_rec.thread = thread;
-  thread_event_rec.cbs = new pdvector<BPatchThreadEventCallback>;
+  thread_event_rec.cbs = new pdvector<BPatchAsyncThreadEventCallback>;
   thread_event_rec.cbs->push_back(cb);
   event_cbs->push_back(thread_event_rec);
   return true;
@@ -1043,7 +1043,7 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
 
 bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_thread *thread,
                                                          BPatch_asyncEventType type,
-                                                         BPatchThreadEventCallback cb)
+                                                         BPatchAsyncThreadEventCallback cb)
 {
   pdvector<thread_event_cb_record> *event_cbs = getCBsForType(type);
   if (!event_cbs) return false;
@@ -1059,7 +1059,7 @@ bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_thread *thread,
   }
 
   if (thread_event_rec.thread && thread_event_rec.cbs) {
-    pdvector<BPatchThreadEventCallback> *cbs = thread_event_rec.cbs;
+    pdvector<BPatchAsyncThreadEventCallback> *cbs = thread_event_rec.cbs;
 
     for (unsigned int j = 0; j < cbs->size(); ++j) {
       if (cb == (*cbs)[j]) {
@@ -1877,7 +1877,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
          return false;
        }
 
-       pdvector<BPatchThreadEventCallback> *cbs = rec->cbs;
+       pdvector<BPatchAsyncThreadEventCallback> *cbs = rec->cbs;
        if (!cbs) {
          // no callbacks for this event on this thread
          //
@@ -1894,7 +1894,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
        //  (actually just register them in the mailbox,
        //   to be called on the primary thread).
        for (unsigned int j = 0; j < cbs->size(); ++j) {
-         BPatchThreadEventCallback cb = (*cbs)[j];
+         BPatchAsyncThreadEventCallback cb = (*cbs)[j];
          event_mailbox->registerCallback(ev.type, cb, appThread, tid);
        }
        return true;

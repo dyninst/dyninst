@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.125 2005/03/07 20:26:44 jaw Exp $
+// $Id: BPatch_thread.C,v 1.126 2005/03/21 21:22:09 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -333,7 +333,7 @@ BPatch_thread::BPatch_thread(int /*pid*/, process *nProc)
  */
 void BPatch_thread::BPatch_thread_dtor()
 {
-#if !defined (os_osf) && !defined (os_windows) && !defined (os_irix) && !defined (arch_ia64) 
+#if !defined (os_osf) && !defined (os_windows) && !defined (os_irix)  && !defined (arch_ia64)
     if (  (!detached) )
      // if ( proc && !proc->hasExited()) {
         //fprintf(stderr, "%s[%d]:  before detachFromProcess\n", __FILE__, __LINE__);
@@ -1670,8 +1670,8 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
     return true;
 }
 
-bool BPatch_thread::registerThreadEventCallbackInt(BPatch_asyncEventType type,
-                                                   BPatchThreadEventCallback cb)
+bool BPatch_thread::registerAsyncThreadEventCallbackInt(BPatch_asyncEventType type,
+                                                        BPatchAsyncThreadEventCallback cb)
 {
   bool ret = false;
   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
@@ -1680,8 +1680,8 @@ bool BPatch_thread::registerThreadEventCallbackInt(BPatch_asyncEventType type,
   return ret;
 }
 
-bool BPatch_thread::removeThreadEventCallbackInt(BPatch_asyncEventType type,
-                                                 BPatchThreadEventCallback cb)
+bool BPatch_thread::removeAsyncThreadEventCallbackInt(BPatch_asyncEventType type,
+                                                      BPatchAsyncThreadEventCallback cb)
 {
   bool ret = false;
   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
@@ -1690,15 +1690,15 @@ bool BPatch_thread::removeThreadEventCallbackInt(BPatch_asyncEventType type,
   return ret;
 }
 
-bool BPatch_thread::registerThreadEventCallbackMutateeSide(BPatch_asyncEventType type,
-                                                           BPatch_function *cb)
+bool BPatch_thread::registerAsyncThreadEventCallbackMutateeSide(BPatch_asyncEventType type,
+                                                                BPatch_function *cb)
 {
   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
   return handler->registerThreadEventCallback(this, type, cb);
 }
 
-bool BPatch_thread::removeThreadEventCallbackMutateeSide(BPatch_asyncEventType type,
-                                                         BPatch_function *cb)
+bool BPatch_thread::removeAsyncThreadEventCallbackMutateeSide(BPatch_asyncEventType type,
+                                                              BPatch_function *cb)
 {
   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
   return handler->removeThreadEventCallback(this, type, cb);
@@ -1706,12 +1706,14 @@ bool BPatch_thread::removeThreadEventCallbackMutateeSide(BPatch_asyncEventType t
 
 
 #ifdef IBM_BPATCH_COMPAT
+/*
 bool BPatch_thread::isThreaded()
 {
   return false;
 }
+*/
 
-bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadaddr)
+bool BPatch_thread::addSharedObjectInt(const char *name, const unsigned long loadaddr)
 {
   //  in IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
   // which is in turn a wrapper for creating a new ibmBpatchElf32Reader(name, addr)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.44 2005/03/17 19:03:03 jodom Exp $
+// $Id: templates2.C,v 1.45 2005/03/21 21:22:10 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -191,7 +191,7 @@ template class pdvector< pdpair< pdstring, pdvector< int_function * > * > >;
 template class pdvector<process_record>;
 template class pdvector<BPatchSnippetHandle *>;
 template class pdvector<BPatch_function *>;
-template class pdvector<BPatchThreadEventCallback>;
+template class pdvector<BPatchAsyncThreadEventCallback>;
 template class pdvector<BPatch_asyncEventRecord>;
 template class pdvector<dyncall_cb_record>;
 template class pdvector<thread_event_cb_record>;

@@ -196,7 +196,7 @@ public:
     // BPatch_point *findPoint();
 };
 
-typedef void (*BPatchThreadEventCallback)(BPatch_thread *thr, unsigned long thread_id);
+typedef void (*BPatchAsyncThreadEventCallback)(BPatch_thread *thr, unsigned long thread_id);
 
 /*
  * Represents a thread of execution.
@@ -565,25 +565,25 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     API_EXPORT_V(Int, (),
     void,enableDumpPatchedImage,());
 
-    //  BPatch_thread::registerThreadEventCallback
+    //  BPatch_thread::registerAsyncThreadEventCallback
     //  
     //  Specifies a user defined function to call when a thread event of
     //  <type> occurs
     //  
     //  relevant event types:  BPatch_threadCreateEvent, BPatch_threadStartEvent
     //                         BPatch_threadStopEvent, BPatch_threadDestroyEvent 
-    //  BPatchThreadEventCallback is:
-    //  void (*BPatchThreadEventCallback)(BPatch_thread *thr, int thread_id);
+    //  BPatchAsyncThreadEventCallback is:
+    //  void (*BPatchAsyncThreadEventCallback)(BPatch_thread *thr, int thread_id);
 
     API_EXPORT(Int, (type,cb),
-    bool,registerThreadEventCallback,(BPatch_asyncEventType type, 
-                                      BPatchThreadEventCallback cb));
+    bool,registerAsyncThreadEventCallback,(BPatch_asyncEventType type, 
+                                           BPatchAsyncThreadEventCallback cb));
 
     API_EXPORT(Int, (type,cb),
-    bool,removeThreadEventCallback,(BPatch_asyncEventType type,
-                                    BPatchThreadEventCallback cb));
+    bool,removeAsyncThreadEventCallback,(BPatch_asyncEventType type,
+                                         BPatchAsyncThreadEventCallback cb));
 
-    //  BPatch_thread::registerThreadEventCallback
+    //  BPatch_thread::registerAsyncThreadEventCallback
     //
     //  Specifies a user defined function to execute in the mutatee when a 
     //  thread event of <type> occurs.
@@ -594,18 +594,18 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     //  XXX  This will change.
 
     API_EXPORT(MutateeSide, (type,cb),
-    bool,registerThreadEventCallback,(BPatch_asyncEventType type,
-                                      BPatch_function *cb));
+    bool,registerAsyncThreadEventCallback,(BPatch_asyncEventType type,
+                                           BPatch_function *cb));
 
     API_EXPORT(MutateeSide, (type,cb),
-    bool,removeThreadEventCallback,(BPatch_asyncEventType type,
-                                    BPatch_function *cb));
+    bool,removeAsyncThreadEventCallback,(BPatch_asyncEventType type,
+                                         BPatch_function *cb));
 
 
 #ifdef IBM_BPATCH_COMPAT
 
-    API_EXPORT(Int, (),
-    bool,isThreaded,());
+    //API_EXPORT(Int, (),
+    //bool,isThreaded,());
 
     API_EXPORT(Int, (name, loadaddr),
     bool,addSharedObject,(const char *name, const unsigned long loadaddr));

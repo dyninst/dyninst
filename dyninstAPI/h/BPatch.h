@@ -473,9 +473,9 @@ public:
     BPatchThreadEventCallback,registerSnippetRemovedCallback,(BPatchThreadEventCallback cb));
 
     API_EXPORT(Int, (func, sigNum),
-    BPatchExitCallback,registerSignalCallback,(BPatchThreadEventCallback func, int sigNum)); 
+    BPatchThreadEventCallback,registerSignalCallback,(BPatchThreadEventCallback func, int sigNum)); 
 
-    API_EXPORT(Int, (func),
+    API_EXPORT(DPCL, (func),
     BPatchExitCallback,registerExitCallback,(BPatchThreadEventCallback func));
 
     API_EXPORT(Int, (cb),

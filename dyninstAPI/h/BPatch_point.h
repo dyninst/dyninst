@@ -77,6 +77,10 @@ typedef enum {
 /* #define BPatch_instruction BPatch_locInstruction */
 #define BPatch_arbitrary BPatch_locInstruction
 
+#if defined (IBM_BPATCH_COMPAT)
+#define BPatch_locBasicBlockLoopEntry BPatch_locLoopEntry
+#define BPatch_locBasicBlockLoopExit BPatch_locLoopExit
+#endif
 /*
  * Used with BPatch_function::findPoint to specify which of the possible
  * instrumentation points within a procedure should be returned.

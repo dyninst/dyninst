@@ -889,7 +889,7 @@ bool BPatch_rangedType::operator==(const BPatch_type &otype) const {
 }
 
 #ifdef IBM_BPATCH_COMPAT
-char *BPatch_type::getName(char *buffer, int max)
+char *BPatch_type::getName(char *buffer, int max) const
 {
   if (!name) {
      strncpy(buffer, "bad type name", (max > strlen("bad_type_name")) ?

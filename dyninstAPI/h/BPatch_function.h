@@ -115,7 +115,7 @@ public:
 
     //  BPatch_function::getName
     //  Returns <demangled> name of function
-    API_EXPORT(Int, (s, len),     
+    API_EXPORT(Buffer, (s, len),     
 
     char *,getName,(char *s, int len));
 
@@ -276,7 +276,7 @@ public:
 
     BPatch_type *,returnType,());
 
-    API_EXPORT(Int, (vect),
+    API_EXPORT_V(Int, (vect),
 
     void,getIncPoints,(BPatch_Vector<BPatch_point *> &vect));
 
@@ -284,7 +284,7 @@ public:
 
     int,getMangledNameLen,());
 
-    API_EXPORT(Int, (points),
+    API_EXPORT_V(Int, (points),
 
     void,getExcPoints,(BPatch_Vector<BPatch_point*> &points));
 
@@ -293,7 +293,7 @@ public:
 
     BPatch_variableExpr *,getFunctionRef,());
 
-    API_EXPORT(Int, (),
+    API_EXPORT(DPCL, (),
 
     const char *,getName,());
 

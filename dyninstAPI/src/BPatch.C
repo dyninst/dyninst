@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.94 2005/03/18 04:34:56 chadd Exp $
+// $Id: BPatch.C,v 1.95 2005/03/21 21:22:09 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -318,7 +318,7 @@ BPatch::BPatch()
     loadNativeDemangler();
 
     eventHandler = new BPatch_asyncEventHandler();
-#if !defined (os_windows)  && !defined (arch_ia64) && !defined (os_osf) && !defined (os_irix) 
+#if !defined (os_windows)  && !defined (os_osf) && !defined (os_irix) && !defined (arch_ia64)
     if (!eventHandler->initialize()) {
       //  not much else we can do in the ctor, except complain (should we abort?)
       bperr("%s[%d]:  failed to initialize eventHandler, possibly fatal\n",
@@ -551,7 +551,7 @@ BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallbackInt(BPatchOneTimeCo
 }
 
 #ifdef IBM_BPATCH_COMPAT
-BPatchExitCallback BPatch::registerExitCallbackInt(BPatchThreadEventCallback func)
+BPatchExitCallback BPatch::registerExitCallbackDPCL(BPatchThreadEventCallback func)
 {
 
     BPatchExitCallback ret;
@@ -765,7 +765,7 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
     assert(parent);
     info->threadsByPid[childPid] = new BPatch_thread(childPid, proc);
 
-#if !defined (os_osf) && !defined(os_windows) && !defined (arch_ia64) && !defined(os_irix)
+#if !defined (os_osf) && !defined(os_windows) && !defined(os_irix) && !defined (arch_ia64)
     if (!eventHandler->connectToProcess(info->threadsByPid[childPid])) {
       bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
     }
@@ -914,7 +914,7 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], co
         reportError(BPatchFatal, 68, "create process failed bootstrap");
 	return NULL;
     }
-#if !defined (os_osf) && !defined (os_windows)  && !defined(arch_ia64) && !defined(os_irix)
+#if !defined (os_osf) && !defined (os_windows)  && !defined(os_irix) && !defined (arch_ia64)
     if (!eventHandler->connectToProcess(ret)) {
       bpfatal("%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       fprintf(stderr,"%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
@@ -958,7 +958,7 @@ BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
 	delete ret;
 	return NULL;
     }
-#if !defined (os_osf) && !defined (os_windows) && !defined(os_irix) && !defined (arch_ia64)
+#if !defined (os_osf) && !defined (os_windows) && !defined(os_irix)  && !defined(arch_ia64)
     if (!eventHandler->connectToProcess(ret)) {
       bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
@@ -1501,8 +1501,14 @@ BPatchThreadEventCallback BPatch::registerDetachDoneCallbackInt(BPatchThreadEven
 }
 BPatchThreadEventCallback BPatch::registerSnippetRemovedCallbackInt(BPatchThreadEventCallback)
 {
-  return NULL
+  return NULL;
 }
+BPatchThreadEventCallback BPatch::registerSignalCallbackInt(BPatchThreadEventCallback, int signum)
+{
+  fprintf(stderr, "%s[%d]:  WARNING:  registerSignalCallback is not implemented yet\n", __FILE__, __LINE__);
+  return NULL;
+}
+
 #endif
 
 /*
