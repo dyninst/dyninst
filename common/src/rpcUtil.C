@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.30  1994/09/20 18:23:58  hollings
+ * Revision 1.31  1994/09/22 03:19:52  markc
+ * Changes to remove compiler warnings
+ *
+ * Revision 1.30  1994/09/20  18:23:58  hollings
  * added option to use rexec as well as fork and rsh to start processes.
  *
  * Revision 1.29  1994/08/18  19:55:04  markc
@@ -207,7 +210,7 @@ XDRrpc::XDRrpc(char *machine,
 	       int nblock,
 	       int wellKnownPortFd)
 {
-    fd = RPCprocessCreate(&pid, machine, user, program, arg_list, 
+    fd = RPCprocessCreate(pid, machine, user, program, arg_list, 
 	wellKnownPortFd);
     if (fd >= 0) {
         __xdrs__ = new XDR;
@@ -411,26 +414,9 @@ XDRrpc::XDRrpc(int family,
 }
 
 //
-// prepare for RPC's to be done/received on the passed thread id.
-//
-THREADrpc::THREADrpc(int thread)
-{
-    tid = thread;
-}
-
-//
-// This should never be called, it should be replaced by a virtual function
-//    from the derived class created by igen.
-//
-void RPCUser::verifyProtocolAndVersion()
-{
-    abort();
-}
-
-//
 // our version of string encoding that does malloc as needed.
 //
-bool_t xdr_String(XDR *xdrs, String *str)
+bool_t xdr_char_PTR(XDR *xdrs, char **str)
 {
     int len;
     unsigned char isNull=0;
@@ -475,7 +461,7 @@ bool_t xdr_String(XDR *xdrs, String *str)
 //
 // directly exec the command (local).
 //
-int execCmd(int *pid, char *command, char **arg_list, int portFd)
+int execCmd(int &pid, char *command, char **arg_list, int portFd)
 {
     int ret;
     int sv[2];
@@ -486,8 +472,8 @@ int execCmd(int *pid, char *command, char **arg_list, int portFd)
     ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
     if (ret) return(ret);
     execlERROR = 0;
-    *pid = vfork();
-    if (*pid == 0) {
+    pid = vfork();
+    if (pid == 0) {
 	close(sv[0]);
 	dup2(sv[1], 0);
 	if (!arg_list)
@@ -504,11 +490,12 @@ int execCmd(int *pid, char *command, char **arg_list, int portFd)
 	    new_al[i+1] = arg_list[i];
 	  }
 	  execvp(command, new_al);
-	  free(new_al);
+	  delete(new_al[0]);
+	  delete(new_al);
 	}
 	execlERROR = errno;
 	_exit(-1);
-    } else if (*pid > 0 && !execlERROR) {
+    } else if (pid > 0 && !execlERROR) {
 	close(sv[1]);
 	return(sv[0]);
     } else {
@@ -517,7 +504,7 @@ int execCmd(int *pid, char *command, char **arg_list, int portFd)
     return(-1);
 }
 
-int handleRemoteConnect(int *pid, int fd, int portFd)
+int handleRemoteConnect(int &pid, int fd, int portFd)
 {
     char *ret;
     int retFd;
@@ -529,7 +516,7 @@ int handleRemoteConnect(int *pid, int fd, int portFd)
 	ret = fgets(line, sizeof(line)-1, pfp);
 	if (ret && !strncmp(line, "PARADYND", strlen("PARADYND"))) {
 	    // got the good stuff
-	    sscanf(line, "PARADYND %d", pid);
+	    sscanf(line, "PARADYND %d", &pid);
 
 	    retFd = RPC_getConnect(portFd);
 	    return(retFd);
@@ -545,7 +532,7 @@ int handleRemoteConnect(int *pid, int fd, int portFd)
 //
 // use rsh to get a remote process started.
 //
-int rshCommand(int *pid, char *hostName, char *userName, char *command, 
+int rshCommand(int &pid, char *hostName, char *userName, char *command, 
     char **arg_list, int portFd)
 {
     int total;
@@ -595,7 +582,7 @@ int rshCommand(int *pid, char *hostName, char *userName, char *command,
     return(handleRemoteConnect(pid, fd[0], portFd));
 }
 
-int rexecCommand(int *pid, char *hostName, char *userName, char *command, 
+int rexecCommand(int &pid, char *hostName, char *userName, char *command, 
     char **arg_list, int portFd)
 {
     int fd;
@@ -627,13 +614,13 @@ int rexecCommand(int *pid, char *hostName, char *userName, char *command,
 }
 
 /*
- * arg_list should not have "command" at arg_list[0], it will
- * be put there
+ * 
+ * "command" will be appended to the front of the arg list
  *
  * if arg_list == NULL, command is the only argument used
  */
-int RPCprocessCreate(int *pid, char *hostName, char *userName,
-		     char *command, char **arg_list, int portFd)
+int RPCprocessCreate(int &pid, const char *hostName, const char *userName,
+		     const char *command, char **arg_list, int portFd)
 {
     int ret;
     char local[50];
@@ -645,36 +632,14 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
 	!strcmp(hostName, "") || 
 	!strcmp(hostName, "localhost") ||
 	!strcmp(hostName, local)) {
-	ret = execCmd(pid, command, arg_list, portFd);
+      ret = execCmd(pid, command, arg_list, portFd);
     } else if (useRexec.getValue()) {
-	ret = rexecCommand(pid, hostName, userName, command, arg_list, portFd);
+      ret = rexecCommand(pid, hostName, userName, command, arg_list, portFd);
     } else {
-	ret = rshCommand(pid, hostName, userName, command, arg_list, portFd);
+      ret = rshCommand(pid, hostName, userName, command, arg_list, portFd);
     }
     return(ret);
-}
-
-//
-// wait for an expected RPC responce, but also handle upcalls while waiting.
-//    Should not be called directly !!!
-//
-void RPCUser::awaitResponce(int tag)
-{
-    abort();
-}
-
-void
-XDRrpc::setNonBlock()
-{
-  if (fd >= 0)
-    fcntl (fd, F_SETFL, FNDELAY);
-}
-
-int
-XDRrpc::readReady(int timeout)
-{
-  return RPC_readReady (fd, timeout);
-}
+  }
 
 int
 RPC_getConnect(int fd)
@@ -692,16 +657,6 @@ RPC_getConnect(int fd)
     return -1;
   else
     return new_fd;
-}
-
-RPCUser::RPCUser(int st)
-{
-  err_state = st;
-}
-
-RPCServer::RPCServer(int st)
-{
-  err_state = st;
 }
 
 /*
