@@ -9,4 +9,5 @@ typedef struct {
    timeStamp end;
    sampleValue value;
 } Interval;
+
 #endif

@@ -31,6 +31,7 @@ class Histogram {
 	sampleValue getValue();
 	sampleValue getValue(timeStamp start, timeStamp end);
 	int getBuckets(sampleValue *buckets, int numberOfBuckets, int first);
+	int getCurrBin(){return(lastBin);}
 	void addInterval(timeStamp start, timeStamp end, 
 	    sampleValue value, bool smooth);
 	void addPoint(timeStamp start, sampleValue value) {

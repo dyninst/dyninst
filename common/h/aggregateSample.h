@@ -11,6 +11,7 @@
 
 #include "util/h/list.h"
 #include "util/h/hist.h"
+#include "util/h/Vector.h"
 #include "util/h/aggregation.h"
 
 //
@@ -26,6 +27,9 @@ class sampleInfo {
   public:
     struct sampleInterval newValue(timeStamp wallTime, sampleValue value);
     struct sampleInterval newValue(List<sampleInfo *> peers, 
+				   timeStamp wallTime, 
+				   sampleValue value);
+    struct sampleInterval newValue(vector<sampleInfo *> peers, 
 				   timeStamp wallTime, 
 				   sampleValue value);
     sampleInfo( int aOp = aggSum) {

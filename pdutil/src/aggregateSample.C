@@ -2,7 +2,12 @@
 /*
  * 
  * $Log: aggregateSample.C,v $
- * Revision 1.8  1995/02/16 09:27:59  markc
+ * Revision 1.9  1995/06/02 21:00:07  newhall
+ * added a NaN value generator
+ * fixed memory leaks in Histogram class
+ * added newValue member with a vector<sampleInfo *> to class sampleInfo
+ *
+ * Revision 1.8  1995/02/16  09:27:59  markc
  * Removed compiler warnings.
  * Changed Boolean to bool
  *
@@ -53,6 +58,7 @@ struct sampleInterval sampleInfo::newValue(timeStamp sampleTime,
 
     return(ret);
 }
+
 
 struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 					   timeStamp sampleTime, 
@@ -142,6 +148,107 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 
 		/* move forward our time of our earliest sample */
 		curr->lastSampleStart = earlyestTime;
+	      }
+
+	    // len is the number of samples on the list
+	    if (aggOp == aggAvg)
+	      aggregateVal /= len;
+
+	    ret.valid = true;
+	    ret.start = lastSampleEnd;
+	    ret.end = earlyestTime;
+	    ret.value = aggregateVal;
+	    assert(ret.value >= 0.0);
+
+	    lastSampleStart = lastSampleEnd;
+	    lastSampleEnd = earlyestTime;
+	} else {
+	    ret.valid = false;
+	}
+    }
+    return(ret);
+}
+
+struct sampleInterval sampleInfo::newValue(vector<sampleInfo *> parts,
+					   timeStamp sampleTime, 
+					   sampleValue newVal)
+{
+    struct sampleInterval ret;
+    assert((aggOp == aggSum) || (aggOp == aggAvg) ||
+	   (aggOp == aggMin) || (aggOp == aggMax));
+
+    if (!parts.size()) {
+       // not an aggregate.
+       return(newValue(sampleTime, newVal));
+    } else {
+	timeStamp earlyestTime = parts[0]->lastSampleEnd;
+	int len=0;
+	for(unsigned i=0; i < parts.size(); i++){
+	    len++;
+	    if(parts[i]->lastSampleEnd < earlyestTime){
+		earlyestTime = parts[i]->lastSampleEnd;
+	    }
+	}
+
+	if (earlyestTime > lastSampleEnd + 0.0001) {
+	    /* eat the first one to get a good interval basis */
+	    if (!firstSampleReceived) {
+		firstSampleReceived = true;
+		ret.valid = false;
+		lastSampleEnd = earlyestTime;
+
+               // this gives all of the samples the same initial starting
+	       // time
+	       // It is very important for them to have the same time
+	       // if this is not done, fract that is calculated below
+	       // will fail the assertions
+	       // You may want to zero the lastSample values here too
+
+		for (i=0; i < parts.size(); i++) 
+		    parts[i]->lastSampleStart = earlyestTime;
+
+		return(ret);
+	    }
+
+	    sampleValue aggregateVal = 0.0;
+
+	    int first = 1;
+
+	    for (i=0; i< parts.size(); i++) {
+		// assert(earlyestTime >= parts[i]->lastSampleStart);
+
+		double fract = (earlyestTime - lastSampleEnd)/
+		 (parts[i]->lastSampleEnd - parts[i]->lastSampleStart);
+		sampleValue component_val = (parts[i]->lastSample) * fract;
+
+		assert(fract > 0.0);
+		assert(fract <= 1.0);
+		assert(component_val >= -0.01);
+
+		parts[i]->lastSample -= component_val;
+
+		// each list entry comes from a separate reporter
+		switch (aggOp)
+		  {
+		  case aggSum:
+		  case aggAvg:
+		    aggregateVal += component_val;
+		    break;
+		  case aggMin:
+		    if (first) {
+		      aggregateVal = component_val;
+		      first = 0;
+		    } else if (component_val < aggregateVal)
+		      aggregateVal = component_val;
+		    break;
+		  case aggMax:
+		    if (component_val > aggregateVal)
+		      aggregateVal = component_val;
+		    break;
+		  }
+
+		/* move forward our time of our earliest sample */
+		parts[i]->lastSampleStart = earlyestTime;
 	      }
 
 	    // len is the number of samples on the list

@@ -16,7 +16,12 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.11  1995/02/16 09:28:02  markc
+ * Revision 1.12  1995/06/02 21:00:08  newhall
+ * added a NaN value generator
+ * fixed memory leaks in Histogram class
+ * added newValue member with a vector<sampleInfo *> to class sampleInfo
+ *
+ * Revision 1.11  1995/02/16  09:28:02  markc
  * Removed compiler warnings.
  * Changed Boolean to bool
  *
@@ -142,6 +147,13 @@ Histogram::~Histogram()
 	lag->next = curr->next;
     }
 
+    next = 0;
+    if (storageType == HistInterval) {
+        free(dataPtr.intervals);
+    }
+    else {
+	free(dataPtr.buckets);
+    }
 }
 
 #define MAX(a, b)	((a) > (b) ? (a):(b))
