@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.4 1994/06/29 02:52:30 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.5 1994/07/12 19:48:46 jcargill Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.4  1994/06/29 02:52:30  hollings
+ * Revision 1.5  1994/07/12 19:48:46  jcargill
+ * Added warning for functions not found in initialRequests set
+ *
+ * Revision 1.4  1994/06/29  02:52:30  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -324,6 +327,8 @@ void installDefaultInst(process *proc, instMaping *initialRequests)
     for (item = initialRequests; item->func; item++) {
 	func = findFunction(proc->symbols, item->func);
 	if (!func) {
+	    sprintf (errorLine, "unable to find %s\n", item->func);
+	    logLine(errorLine);
 	    continue;
 	}
 
