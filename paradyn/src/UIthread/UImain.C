@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.31  1994/10/25 17:57:32  karavan
-/* added Resource Display Objects, which support display of multiple resource
-/* abstractions.
+/* Revision 1.32  1994/11/01 05:42:32  karavan
+/* some minor performance and warning fixes
 /*
+ * Revision 1.31  1994/10/25  17:57:32  karavan
+ * added Resource Display Objects, which support display of multiple resource
+ * abstractions.
+ *
  * Revision 1.30  1994/10/09  01:24:47  karavan
  * A large number of changes related to the new UIM/visiThread metric&resource
  * selection interface and also to direct selection of resources on the
@@ -161,17 +164,12 @@
 #include <string.h>
 #include <sys/param.h>
 
-extern "C" {
-  #include "tcl.h"
-  #include "tk.h"
-}
-
+#include "UIglobals.h" 
 #include "../DMthread/DMresource.h"
 #include "../DMthread/DMabstractions.h"
 #include "dataManager.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
-#include "UIglobals.h" 
 #include "dag.h"
 
 /*
@@ -201,8 +199,6 @@ int UIM_BatchMode = 0;
 Tcl_HashTable UIMMsgReplyTbl;
 Tcl_HashTable UIMwhereDagTbl;
 int UIMMsgTokenID;
-int UIMwhereDagID;
-dag *baseWhere;
 appState PDapplicState = appPaused;     // used to update run/pause buttons  
 
 
@@ -242,9 +238,11 @@ extern "C" {
         Tcl_Interp *interp, int argc, char **argv));
 }
 
-
-extern void initParadynCmd(Tcl_Interp *interp);
 extern int UimpdCmd(ClientData clientData, 
+		Tcl_Interp *interp, 
+		int argc, 
+		char *argv[]);
+extern int ParadynCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
 		int argc, 
 		char *argv[]);
@@ -423,11 +421,13 @@ UImain(void* vargs)
     }
 
      // Add internal UIM command to the tcl interpreter.
-
     Tcl_CreateCommand(interp, "uimpd", 
 		      UimpdCmd, (ClientData) mainWindow,
 		      (Tcl_CmdDeleteProc *) NULL);
 
+    // add Paradyn tcl command to active interpreter
+    Tcl_CreateCommand(interp, "paradyn", ParadynCmd, (ClientData) NULL,
+		      (Tcl_CmdDeleteProc *) NULL);
     /*
      * Set the geometry of the main window, if requested.
      */
@@ -460,10 +460,6 @@ UImain(void* vargs)
 
     while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
       ;
-
-  // add Paradyn tcl command to active interpreter
-
-    initParadynCmd (interp);
 
    // bind stdin to this thread & setup command-line input w/prompt
 

@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.28  1994/09/25 01:54:12  newhall
-/* updated to support changes in VM, and UI interface
+/* Revision 1.29  1994/11/01 05:42:35  karavan
+/* some minor performance and warning fixes
 /*
+ * Revision 1.28  1994/09/25  01:54:12  newhall
+ * updated to support changes in VM, and UI interface
+ *
  * Revision 1.27  1994/09/22  01:17:53  markc
  * Cast stringHandles to char*s in printf statements
  *
@@ -92,17 +95,29 @@
  * initial version of UI thread code and tcl paradyn command
  * */
 
-#include <string.h>
-extern "C" {
- #include "tcl.h"
-}
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
 
+#include <string.h>
+#include "UIglobals.h"
 #include "../DMthread/DMresource.h"
 #include "util/h/tunableConst.h"
 #include "VM.CLNT.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
-#include "UIglobals.h"
 #include <assert.h>
 
 extern Boolean detachApplication(applicationContext,Boolean);
@@ -684,6 +699,7 @@ int ParadynVisiCmd (ClientData clientData,
       printf("active_info %d: name %s TypeId %d visiNum = %d\n",i,
 	     temp.data[i].name,temp.data[i].visiTypeId,temp.data[i].visiNum);
     }
+    free (temp.data);
   }
   else if (argv[1][0] == 'i') {
       VM_visiInfo_Array visi_info;
@@ -694,6 +710,7 @@ int ParadynVisiCmd (ClientData clientData,
 	printf("visi %d: name %s visiTypeId %d\n",i,
 	       visi_info.data[i].name,visi_info.data[i].visiTypeId);
       }
+      free (visi_info.data);
     } 
   else if (argv[1][0] == 'c') {
     int ok, i;
@@ -757,12 +774,4 @@ int ParadynCmd(ClientData clientData,
 
   sprintf(interp->result,"unknown paradyn cmd '%s'",argv[1]);
   return TCL_ERROR;  
-}
-
-void initParadynCmd(Tcl_Interp *interp)
-{
-  Tcl_CreateCommand(interp, "paradyn", ParadynCmd, (ClientData) NULL,
-		    (Tcl_CmdDeleteProc *) NULL);
-
-  return;
 }
