@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.24  1994/07/28 22:32:16  krisna
-/* proper starting sequence for UImain thread
+/* Revision 1.25  1994/08/01 20:24:39  karavan
+/* new version of dag; new dag support commands
 /*
+ * Revision 1.24  1994/07/28  22:32:16  krisna
+ * proper starting sequence for UImain thread
+ *
  * Revision 1.23  1994/07/25  14:58:14  hollings
  * added suppress resource option.
  *
@@ -146,6 +149,7 @@ extern "C" {
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
 #include "UIglobals.h" 
+#include "dag.h"
 
 /*
  * Global variables used by tcl/tk UImain program:
@@ -175,6 +179,7 @@ Tcl_HashTable UIMwhereDagTbl;
 int UIMMsgTokenID;
 int UIMwhereDagID;
 appState PDapplicState = appPaused;     // used to update run/pause buttons  
+dag *baseWhere;
 
 /*
  * Command-line options:
@@ -218,7 +223,7 @@ extern int UimpdCmd(ClientData clientData,
 		Tcl_Interp *interp, 
 		int argc, 
 		char *argv[]);
-
+extern int getDagToken ();
 /*
  * Forward declarations for procedures defined later in this file:
  */
@@ -257,33 +262,17 @@ void controlFunc (performanceStream *ps ,
                   char *name)
 {
   int nodeID;
-  char tcommand[200];
   char *parname, *label;
-    
   dataMgr->enableResourceCreationNotification(ps, newResource);
   nodeID = (int) Tk_GetUid(name);
   label = strrchr(name, '/'); label++; 
   if (parent == uim_rootRes) {
-    sprintf 
-      (tcommand, "$WHEREname.d01 addNode %d -root yes -style %d -label {%s}",
-       nodeID, 1, label);
-    if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-      printf ("WHEREaddNodeError: %s\n", interp->result);
-    }
+    baseWhere->CreateNode (nodeID, 1, label, 1); 
   }
   else {
-    sprintf (tcommand, "$WHEREname.d01 addNode %d -root no -style 1 -label {%s}",
-	     nodeID, label);
-    if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-      printf ("WHEREaddNodeError: %s\n", interp->result);
-    }
+    baseWhere->CreateNode (nodeID, 0, label, 1);
     parname = parent->getFullName();
-    sprintf (tcommand, "$WHEREname.d01 addEdge %d %d -style %d",
-	     (int) Tk_GetUid(parname), nodeID, 1);
-    if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-      printf ("WHEREaddEdgeError: %s\n", interp->result);
-    }
-  
+    baseWhere->AddEdge ((int) Tk_GetUid(parname), nodeID, 1);
   }
 }
 
@@ -294,9 +283,9 @@ void controlFunc (performanceStream *ps ,
 void resourceBatchChanged(performanceStream *ps, batchMode mode)
 {
     if (mode == batchStart) {
-	UIM_BatchMode++;
+      UIM_BatchMode++;
     } else {
-	UIM_BatchMode--;
+      UIM_BatchMode--;
     }
 }
 
@@ -314,7 +303,51 @@ applicStateChanged (performanceStream*, appState state)
   }
     PDapplicState = state;
 }
- 
+
+int addDefaultWhereStyles (dag *where)
+{
+  if (where->AddNStyle (1, "#c99e5f54dcab", "black", NULL,
+			    "-Adobe-times-bold-r-normal--*-80*", 
+			    "black", 'r', 1.0) != AOK) {
+    printf ("Error adding WHERE node style\n");
+    return 0;
+  }
+  if (where->AddEStyle(1, 0, 0, 0, 0, NULL, "#c99e5f54dcab", 'b', 2.0)
+      != AOK) {
+    printf ("Error adding WHERE edge style\n");
+    return 0;
+  }
+  return 1;
+}
+
+int addDefaultWhereBindings (dag *where, int token)
+{
+  char tcommand[100];
+  sprintf (tcommand, "all <1> {updateCurrentSelection %s %d}", 
+	   where->getCanvasName(), token);
+  if (where->addTkBinding (tcommand)) 
+    return 1;
+  else
+    return 0;
+}  
+
+int initWhereAxis (dag *wheredag, char *aName, char *title) 
+{
+  int token;
+  char tcommand[100];
+
+  token = getDagToken ();
+  sprintf (tcommand, "initWHERE %d %s {%s}", token, aName, title);
+  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR)
+    printf ("NOWHERE:: %s\n", interp->result);
+  wheredag->createDisplay (aName);
+  ActiveDags[token] = wheredag;
+  if (addDefaultWhereBindings (wheredag, token))
+    return 1;
+  else
+    return 0;
+}
+    
 /*
  *----------------------------------------------------------------------
  *
@@ -350,7 +383,6 @@ UImain(void* vargs)
     dataCallback dataFunc;
     char *temp;
     char *newres;
-    printf ("starting mainUI\n");
 
     interp = Tcl_CreateInterp();
 #ifdef TCL_MEM_DEBUG
@@ -426,11 +458,6 @@ UImain(void* vargs)
     if (Tk_Init(interp) == TCL_ERROR) {
       fprintf (stderr, "%s\n", interp->result);
     }
-
-     // Add the dag command to the tcl interpreter.
-
-    Tcl_CreateCommand(interp, "dag", Tk_DagCmd, (ClientData) mainWindow,
-	    (Tcl_CmdDeleteProc *) NULL);
 
      // Add internal UIM command to the tcl interpreter.
 
@@ -523,12 +550,12 @@ UImain(void* vargs)
     uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, BASE,
         dataFunc, controlFuncs);
     dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
-   /* display the where axis */
-    {
-      if (Tcl_VarEval (interp, "initWHERE .where", 0) == TCL_ERROR)
-	printf ("NOWHERE:: %s\n", interp->result);
-    }
-    
+   // display the where axis 
+    baseWhere = new dag (interp);
+    retVal = initWhereAxis (baseWhere, ".baseWA", "Paradyn Base Where Axis");
+    if (!addDefaultWhereStyles (baseWhere))
+      printf ("trouble in defaultwherestyle paradise\n");
+
 /********************************
  *    Main Loop for UIM thread.  
  ********************************/
@@ -563,14 +590,18 @@ UImain(void* vargs)
 
 	if (dataMgr->isValidUpCall(mtag)) {
 	  dataMgr->awaitResponce(-1);
-	  if (!UIM_BatchMode)
+	  if (!UIM_BatchMode) {
 	    Tcl_VarEval (interp, "update", 0);
+	    while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
+	      ;
+	  }
 	} else {
 
 // check for incoming client requests
 	  uim_server->mainLoop();
-	  if (!UIM_BatchMode)
+	  if (!UIM_BatchMode) {
 	    Tcl_VarEval (interp, "update", 0);
+	  }
 	}
       }
     } 

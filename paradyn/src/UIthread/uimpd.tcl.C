@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.3  1994/05/12 23:34:18  hollings
-/* made path to paradyn.h relative.
+/* Revision 1.4  1994/08/01 20:24:42  karavan
+/* new version of dag; new dag support commands
 /*
+ * Revision 1.3  1994/05/12  23:34:18  hollings
+ * made path to paradyn.h relative.
+ *
  * Revision 1.2  1994/05/07  23:26:48  karavan
  * added short explanation feature to shg.
  *
@@ -18,8 +21,11 @@ extern "C" {
 }
 #include "../pdMain/paradyn.h"
 #include "UIglobals.h"
+#include "dag.h"
 extern resourceList *build_resource_list (Tcl_Interp *interp, char *list);
-
+extern int getDagToken ();
+extern int initWhereAxis (dag *wheredag, char *aName, char *title); 
+ 
 /* arguments:
        0: gotMetrics
        1: msgID
@@ -66,6 +72,120 @@ int gotMetricsCmd(ClientData clientData,
 }
 
 /*
+  closeDAGCmd
+  binding set in tcl procedure initWHERE,
+  looks up dag * for this display and calls function to close display
+  arguments: dagID
+*/
+int closeDAGCmd (ClientData clientData, 
+		   Tcl_Interp *interp, 
+		   int argc, 
+		   char *argv[])
+{
+  int dagID;
+  dag *currDag;
+  dagID = atoi(argv[1]);
+  currDag = ActiveDags[dagID];
+  currDag->destroyDisplay();
+  printf ("dag %d destroyed\n", dagID);
+  return TCL_OK;
+}
+
+/*
+  refineSHGCmd
+  binding set in tcl procedure initWHERE,
+  looks up dag * for this display and calls function to close display
+  arguments: global variable currentSelection$dagID
+*/
+int refineSHGCmd (ClientData clientData, 
+		  Tcl_Interp *interp, 
+		  int argc, 
+		  char *argv[])
+{
+  int nodeID;
+  nodeID = atoi(argv[1]);
+  if (nodeID < 0) {
+    sprintf (interp->result, "no selection currently defined\n");
+    return TCL_ERROR;
+  }
+  perfConsult->setCurrentSHGnode (nodeID);
+  if (dataMgr->applicationDefined(context) != True) {
+    sprintf (interp->result, "no program defined, can't search\n");
+    return TCL_ERROR;
+  } else {
+    perfConsult->search(True, 1);
+    return TCL_OK;
+  }
+}
+
+
+/*
+  hideSubgraphCmd
+  binding set in tcl procedure initWHERE,
+  looks up dag * for this display and calls function to close display
+  arguments: dagID
+             currentselection variable name
+*/
+int hideSubgraphCmd (ClientData clientData, 
+		     Tcl_Interp *interp, 
+		     int argc, 
+		     char *argv[])
+{
+  int nodeID, dagID;
+  char *currNode;
+  dag *currDag;
+  currNode = Tcl_GetVar (interp, argv[2], TCL_GLOBAL_ONLY);
+  if (currNode == NULL)
+    return TCL_ERROR;
+  nodeID = atoi(currNode);
+  if (nodeID < 0) {
+    sprintf (interp->result, "no selection currently defined\n");
+    return TCL_ERROR;
+  }
+  dagID = atoi(argv[1]);
+  currDag = ActiveDags[dagID];
+  currDag->addDisplayOption (SUBTRACT, nodeID);
+  return TCL_OK;
+}
+
+/*
+  showAllNodesCmd
+  binding set in tcl procedure initWHERE,
+  looks up dag * for this display and calls function to close display
+  arguments: dagID
+             currentselection variable name
+*/
+int showAllNodesCmd (ClientData clientData, 
+		     Tcl_Interp *interp, 
+		     int argc, 
+		     char *argv[])
+{
+  int dagID;
+  dag *currDag;
+  dagID = atoi(argv[1]);
+  currDag = ActiveDags[dagID];
+  currDag->clearAllDisplayOptions ();
+  return TCL_OK;
+}
+
+/*
+  showWhereAxisCmd
+  binding set in tcl procedure initWHERE,
+  looks up dag * for this display and calls function to close display
+  arguments: dagID
+*/
+int showWhereAxisCmd (ClientData clientData, 
+		      Tcl_Interp *interp, 
+		      int argc, 
+		      char *argv[])
+{
+  if (initWhereAxis (baseWhere, ".baseWA",  "Paradyn Base Where Axis")) 
+    return TCL_OK;
+  else 
+    return TCL_ERROR;
+}
+
+/*
   shgShortExplain
   called from tcl procedure shgFullName.
   looks up and displays full pathname for node.
@@ -81,6 +201,7 @@ int shgShortExplainCmd (ClientData clientData,
   Tk_Uid nodeID;
   char *nodeExplain;
 
+  printf ("shgShortExplain\n");
   // get string for this nodeID
   nodeID = Tk_GetUid (argv[1]);
   if (!(entry = Tcl_FindHashEntry (&shgNamesTbl, nodeID))) {
@@ -90,8 +211,64 @@ int shgShortExplainCmd (ClientData clientData,
   nodeExplain = (char *) Tcl_GetHashValue(entry);
     // change variable linked to display window; display window will be 
     //  updated automatically
-  Tcl_SetVar (interp, "shgExplainStr", nodeExplain, 0);
+  Tcl_SetVar (interp, "shgExplainStr", nodeExplain, TCL_GLOBAL_ONLY);
   return TCL_OK;
+}
+
+/*
+  highlightNodeCmd
+  called from tcl procedure updateCurrentSelection.
+  looks up and displays full pathname for node.
+  arguments: 0 - cmd name
+             1 - nodeID
+	     2 - dag id
+*/  
+int highlightNodeCmd (ClientData clientData, 
+		      Tcl_Interp *interp, 
+		      int argc, 
+		      char *argv[])
+{
+  int nodeID, dagID;
+  dag *currDag;
+
+  // get string for this nodeID
+  nodeID = atoi(argv[1]);
+  dagID = atoi (argv[2]);
+
+  currDag = ActiveDags[dagID];
+  if (currDag->highlightNode (nodeID)) 
+    return TCL_OK;    
+  else {
+    return TCL_ERROR;
+  }
+}
+
+/*
+  unhighlightNodeCmd
+  called from tcl procedure updateCurrentSelection.
+  looks up and displays full pathname for node.
+  arguments: 0 - cmd name
+             1 - nodeID
+	     2 - dag id
+*/  
+int unhighlightNodeCmd (ClientData clientData, 
+		      Tcl_Interp *interp, 
+		      int argc, 
+		      char *argv[])
+{
+  int nodeID, dagID;
+  dag *currDag;
+
+  // get string for this nodeID
+  nodeID = atoi(argv[1]);
+  dagID = atoi (argv[2]);
+
+  currDag = ActiveDags[dagID];
+  if (currDag->unhighlightNode (nodeID)) 
+    return TCL_OK;    
+  else {
+    return TCL_ERROR;
+  }
 }
 
 /* 
@@ -153,6 +330,13 @@ static struct cmdTabEntry uimpd_Cmds[] = {
   {"drawStartVisiMenu", drawStartVisiMenuCmd},
   {"gotMetrics", gotMetricsCmd},
   {"shgShortExplain", shgShortExplainCmd},
+  {"closeDAG", closeDAGCmd}, 
+  {"showWhereAxis", showWhereAxisCmd},
+  {"highlightNode", highlightNodeCmd},
+  {"unhighlightNode", unhighlightNodeCmd},
+  {"refineSHG", refineSHGCmd},
+  {"hideSubgraph", hideSubgraphCmd},
+  {"showAllNodes", showAllNodesCmd},
   {NULL, NULL}
 };
 

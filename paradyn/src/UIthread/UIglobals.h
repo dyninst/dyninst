@@ -1,7 +1,10 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.6  1994/07/07 15:54:49  jcargill
-/* Commit for Karen; added extern defns for UIM_BatchMode & uim_maxError
+/* Revision 1.7  1994/08/01 20:24:37  karavan
+/* new version of dag; new dag support commands
 /*
+ * Revision 1.6  1994/07/07  15:54:49  jcargill
+ * Commit for Karen; added extern defns for UIM_BatchMode & uim_maxError
+ *
  * Revision 1.5  1994/05/07  23:26:29  karavan
  * added short explanation feature to SHG.
  *
@@ -31,7 +34,9 @@ extern "C" {
  #include "tk.h"
 }
 #define UIMBUFFSIZE 256
+#define MAXNUMACTIVEDAGS 20
 
+class dag;
 
 struct cmdTabEntry 
 {
@@ -56,5 +61,7 @@ extern Tcl_HashTable shgNamesTbl;
 extern Tcl_Interp *interp;
 extern int UIM_BatchMode;
 extern int uim_maxError;
+extern dag *baseWhere;
+extern dag *ActiveDags[MAXNUMACTIVEDAGS];
 
 #endif

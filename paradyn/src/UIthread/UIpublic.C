@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.9  1994/07/08 04:03:18  karavan
-/* changed showMsg to async function
+/* Revision 1.10  1994/08/01 20:24:40  karavan
+/* new version of dag; new dag support commands
 /*
+ * Revision 1.9  1994/07/08  04:03:18  karavan
+ * changed showMsg to async function
+ *
  * Revision 1.8  1994/07/07  05:58:05  karavan
  * added UI error service function
  *
@@ -64,6 +67,7 @@
 #include "thread/h/thread.h"
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
+#include "dag.h"
 extern "C" {
   #include "tk.h"
 }
@@ -77,11 +81,7 @@ class statusDisplayObject;
      /** note: right now there is a hard limit of 20 dags total; numbers 
               are never re-used.  This should be changed eventually.  
       */
-#define MAXNUMACTIVEDAGS 20
-char *ActiveDags [] = {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', 
-		       '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-		       '\0', '\0', '\0', '\0'};
-
+dag *ActiveDags[MAXNUMACTIVEDAGS];
 Tcl_HashTable shgNamesTbl;   /* store full pathname for SHG nodes */
  
 extern void initSHGStyles();
@@ -127,7 +127,7 @@ UIM::chooseMenuItem(chooseMenuItemCBFunc cb,
 statusDisplayObj::statusDisplayObj (int type)
 {
   if (type == PCSTATUSOBJECT)
-    wname = ".shg.status.txt";
+    wname = Tcl_GetVar (interp, "SHGname", TCL_GLOBAL_ONLY);
   else {
     wname = "notawindow";
     printf ("only PC supported so far!\n");
@@ -143,7 +143,7 @@ statusDisplayObj::updateStatusDisplay (int displayCode,
   va_start(ap, fmt);
   char c;
   char *curr = newItem;
-  
+
   while (c = *fmt++) {
     if (c == '%') {
       switch (c = *fmt++) {
@@ -173,7 +173,7 @@ statusDisplayObj::updateStatusDisplay (int displayCode,
     *curr = '\0';
   }
 
-  if (Tcl_VarEval (interp, "shgUpdateStatusLine .shg.status.txt {",
+  if (Tcl_VarEval (interp, "shgUpdateStatusLine $SHGname {",
 		   newItem, "}", (char *) NULL) == TCL_ERROR)
     fprintf (stderr, "status insert error: %s\n", interp->result);
 
@@ -213,7 +213,6 @@ void
 UIM::showError(int errCode, char *errString)
 {
   char errNum[10];
-  int maxError;
   sprintf (errNum, "%d", errCode);
   if (errCode <= uim_maxError) {
 
@@ -386,27 +385,75 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb)
 //  DAG/SHG Display Service Routines
 // ****************************************************************
 
-
-int 
-UIM::initSHG() 
+int getDagToken () 
 {
-  static int nextActiveDag = 0;
   int token;
-  char longshot[] = ".shg";
+  static int nextActiveDag = 0;
   if (nextActiveDag == MAXNUMACTIVEDAGS) {
-    printf ("initSHG error: max no. active dags exceeded\n");
+    printf ("getDagToken error: max no. active dags exceeded\n");
     return -1;
   }
   token = nextActiveDag;
   nextActiveDag++;
-
+  return token;
+}
+ 
+int 
+UIM::initSHG() 
+{
+  int token, retVal;
+  char tcommand[100];
+  char win[7] = ".shg";
+  dag *shgdag;
+  char tokstr[10];
+  token = getDagToken();
+  sprintf (tokstr, "%d", token);
+  sprintf (win+4, "%02d", token);
+  printf ("creating dag name %s\n", win);
+  shgdag = new dag (interp);
       /* set this variable to unique window name */
-  Tcl_SetVar (interp, "SHGname", longshot, 0);
+  Tcl_SetVar (interp, "SHGname", win, 0);
   
-  if (Tcl_VarEval (interp, "initSHG", (char *) NULL) == TCL_ERROR)
+  if (Tcl_VarEval (interp, "initSHG ", tokstr, (char *) NULL) == TCL_ERROR)
     printf ("initSHG error: %s\n", interp->result);
-      /** ooops! need to move this out of shg! */ 
-  ActiveDags[token] = ".shg.d01";
+
+  shgdag->createDisplay (win);
+  ActiveDags[token] = shgdag;
+
+  // add default styles for SHG
+  // style 1: not tested
+  retVal = shgdag->AddNStyle (1, "DarkSalmon", "DarkSlateGrey", NULL, 
+		      "-Adobe-times-medium-r-normal--*-100*",
+		      "black", 'r', 1.0);
+  // style 2: not active
+  retVal = shgdag->AddNStyle (2, "#a41bab855fe1", "DarkSlateGrey", NULL, 
+			      "-Adobe-times-medium-r-normal--*-80*",
+			      "DarkSlateGrey", 'r', 1.0);
+  // style 3: active and true
+  retVal = shgdag->AddNStyle (3, "#4cc6c43dc7ef", "SlateGrey", NULL,  
+			      "-Adobe-times-medium-r-normal--*-80*",
+			      "black", 'r', 1.0);
+  // style 4: active and false
+  retVal = shgdag->AddNStyle (4, "#8ba59f3b91f3", "DarkSlateGrey", NULL,
+			      "-Adobe-times-medium-r-normal--*-100*",
+			      "white", 'r', 1.0);
+  // edge 1:
+  retVal = shgdag->AddEStyle (1, 0, 0, 0, 0, NULL,
+			      "#c99e5f54dcab", 'b', 2.0);
+  // edge 2: 
+  retVal = shgdag->AddEStyle (2, 0, 0, 0, 0, NULL, 
+			      "#beb839376947", 'b', 2.0);
+  // edge 3:
+  retVal = shgdag->AddEStyle (3, 0, 0, 0, 0, NULL,
+			      "black", 'b', 2.0);
+  sprintf (tcommand, "all <2> {shgFullName $SHGname.dag._c_ %s}",
+	   tokstr);
+  retVal = shgdag->addTkBinding (tcommand);
+  printf ("addbinding returns: %d\n", retVal);
+  sprintf (tcommand, "all <1> {updateCurrentSelection $SHGname.dag._c_ %s}", 
+	   tokstr);
+  retVal = shgdag->addTkBinding (tcommand);
+  printf ("addbinding returns: %d\n", retVal);
       /* hash table for long node names */
   Tcl_InitHashTable (&shgNamesTbl, TCL_ONE_WORD_KEYS);
 
@@ -421,25 +468,21 @@ int
 UIM::DAGaddNode(int dagID, int nodeID, int styleID, 
 			char *label, char *shgname, int flags)
 {
-  char *dagName;
+  dag *dagName;
   char tcommand[200];
   Tcl_HashEntry *entryPtr;
   Tk_Uid token;
-  int added;
+  int added, retVal;
   
   dagName = ActiveDags[dagID];
-  if (flags) {
-    sprintf (tcommand, "%s addNode %d -root yes -style %d -label \"root\"",
-	     dagName, nodeID, styleID);
-  }
-  else {
-    sprintf (tcommand, "%s addNode %d -root no -style %d -label \"%s\"",
-	     dagName, nodeID, styleID, label);
-  }
-  if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-    printf ("DAGaddNodeError: %s\n", interp->result);
-    return 0;
-  }
+  if (flags)
+    retVal = dagName->CreateNode (nodeID, 1, "root", styleID);
+  else 
+    retVal = dagName->CreateNode (nodeID, 0, label, styleID);
+
+  if (retVal != AOK)
+    printf ("ERROR in UIM::DAGaddNode\n");
+
      // store pointer to full node pathname and use last piece as label
   sprintf (tcommand, "%d", nodeID);
   token = Tk_GetUid (tcommand);
@@ -454,35 +497,24 @@ int
 UIM::DAGaddEdge (int dagID, int srcID, 
 		 int dstID, int styleID)
 {
-  char *dagName;
-  char tcommand[200];
-
+  dag *dagName;
   dagName = ActiveDags[dagID];
-  sprintf (tcommand, "%s addEdge %d %d -style %d ",
-	   dagName, srcID, dstID, styleID);
-  if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-    printf ("DAGaddEdgeError: %s\n", interp->result);
-    return 0;
-  }
-  else
+  if (dagName->AddEdge (srcID, dstID, styleID) == AOK)
     return 1;
-
+  else 
+    return 0;
 }
 
   
 int 
 UIM::DAGconfigNode (int dagID, int nodeID, int styleID)
 {
-  char *dagName;
-  char tcommand[200];
+  dag *dagName;
 
   dagName = ActiveDags[dagID];
-  sprintf (tcommand, "%s nodeconfigure %d -style %d", 
-	   dagName, nodeID, styleID);
-  if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-    printf ("DAGconfigNode: %s\n", interp->result);
+    int configureNode (int nodeID, char *label, int styleID);
+  if (dagName->configureNode (nodeID, NULL, styleID) != AOK)
     return 0;
-  }
   else
     return 1;
 }
@@ -493,7 +525,7 @@ UIM::DAGcreateNodeStyle(int dagID, int styleID, char *options)
 {
   char *dagName;
   char tcommand[200];
-  dagName = ActiveDags[dagID];
+//  dagName = ActiveDags[dagID];
   sprintf (tcommand, "%s addNstyle %d %s", dagName, styleID, options);
 
   if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
@@ -510,7 +542,7 @@ UIM::DAGcreateEdgeStyle(int dagID, int styleID, char *options)
 {
   char *dagName;
   char tcommand[200];
-  dagName = ActiveDags[dagID];
+//  dagName = ActiveDags[dagID];
   sprintf (tcommand, "%s addEstyle %d %s", dagName, styleID, options);
 
   if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
