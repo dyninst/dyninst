@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.75 1999/08/30 16:04:39 zhichen Exp $
+// $Id: solaris.C,v 1.76 1999/09/06 20:55:49 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -897,7 +897,11 @@ bool process::isRunning_() const {
    // opposed to checking the 'status_' member vrble.  May assume that attach()
    // has run, but can't assume anything else.
    prstatus theStatus;
-   if (-1 == ioctl(proc_fd, PIOCSTATUS, &theStatus)) {
+#ifdef PURE_BUILD
+   // explicitly initialize "theStatus" struct (to pacify Purify)
+   memset(&theStatus, '\0', sizeof(prstatus));
+#endif
+   if (ioctl(proc_fd, PIOCSTATUS, &theStatus) == -1) {
       perror("process::isRunning_()");
       assert(false);
    }
