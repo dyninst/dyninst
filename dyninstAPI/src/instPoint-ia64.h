@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.9 2003/10/21 17:22:10 bernat Exp $
+// $Id: instPoint-ia64.h,v 1.10 2003/10/28 18:59:28 schendel Exp $
 
 #ifndef _INST_POINT_IA64_H_
 #define _INST_POINT_IA64_H_
@@ -90,6 +90,10 @@ class instPoint {
 			} /* required by func-reloc.C */
 
 		const function_base * iPgetFunction() const {
+			return myPDFunction;
+			} /* required by inst.C */
+
+		pd_Function* func() const {
 			return myPDFunction;
 			} /* required by inst.C */
 
