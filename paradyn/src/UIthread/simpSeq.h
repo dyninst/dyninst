@@ -5,9 +5,12 @@
 // Very lightweight all-around; no free store operations _ever_
 
 /* $Log: simpSeq.h,v $
-/* Revision 1.3  1995/10/17 22:09:48  tamches
-/* added operator==
+/* Revision 1.4  1995/11/06 02:33:37  tamches
+/* fixed operator= to return *this
 /*
+ * Revision 1.3  1995/10/17 22:09:48  tamches
+ * added operator==
+ *
  * Revision 1.2  1995/09/20 01:19:15  tamches
  * int --> unsigned in a lot of places
  *
@@ -45,6 +48,7 @@ class simpSeq {
       numitems = src.numitems;
       for (unsigned item=0; item < numitems; item++)
          data[item] = src.data[item]; // T::operator=(const T &)
+      return *this;
    }
 
    bool operator==(const simpSeq<T> &other) const;
