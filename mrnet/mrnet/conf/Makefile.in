@@ -147,7 +147,7 @@ DEPS	= $(addprefix $(DEPENDDIR)/, $(patsubst %.C,%.d,$(patsubst %.c,%.d,$(notdir
 
 all: DIRS $(TARGETS)
 
-test: all $(TESTS) $(BINDIR)/config_generator
+test: all $(TESTS) $(BINDIR)/mrnet_topgen
 
 rebuild:
 	make "FRC=force_rebuild"
@@ -182,7 +182,7 @@ $(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET)
 	echo Linking `basename $@` ...
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
 
-$(BINDIR)/config_generator: $(SRCDIR)/tests/config_generator.C
+$(BINDIR)/mrnet_topgen: $(SRCDIR)/tests/config_generator.C
 	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(SRCDIR)/tests/config_generator.C
 
