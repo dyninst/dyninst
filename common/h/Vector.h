@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Vector.h: resizable vectors.
- * $Id: Vector.h,v 1.8 1999/07/28 19:21:38 nash Exp $
+ * $Id: Vector.h,v 1.9 2000/06/14 23:01:29 wylie Exp $
 ************************************************************************/
 
 
@@ -273,11 +273,15 @@ vector<T>::resize(unsigned sz) {
     }
 }
 
+extern "C" {
+typedef int (*qsort_cmpfunc_t)(const void *, const void *);
+}
+
 template<class T>
 DO_INLINE_F
 void
 vector<T>::sort(int (*cmpfunc)(const void *, const void *)) {
-    qsort((void *) data_, sz_, sizeof(T), cmpfunc);
+    qsort((void *) data_, sz_, sizeof(T), (qsort_cmpfunc_t)cmpfunc);
 }
 
 template<class T>

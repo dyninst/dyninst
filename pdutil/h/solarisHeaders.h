@@ -134,7 +134,9 @@ extern void * P_memcpy (void *A1, const void *A2, size_t SIZE);
 inline void * P_memset (void *BLOCK, int C, size_t SIZE) {
   return (memset(BLOCK, C, SIZE));}
 inline void P_perror (const char *MESSAGE) { perror(MESSAGE);}
+extern "C" {
 typedef void (*P_sig_handler)(int);
+}
 inline P_sig_handler P_signal (int SIGNUM, P_sig_handler ACTION) {
   return (signal(SIGNUM, ACTION));}
 inline char * P_strcat (char *TO, const char *FROM) {
@@ -243,7 +245,14 @@ inline bool_t P_xdr_string(XDR *x, char **h, const u_int maxsize) {
 inline void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
 			    const caddr_t handle, 
 			    xdr_rd_func read_r, xdr_wr_func write_f) {
-  xdrrec_create(x, send_sz, rec_sz, handle, read_r, write_f);}
+#if defined(sparc_sun_solaris2_4) && !defined(__GNUC__)
+  xdrrec_create(x, send_sz, rec_sz, handle,
+        read_r, write_f);
+#else
+  xdrrec_create(x, send_sz, rec_sz, handle,
+        (const_xdr_rd_func)read_r, (const_xdr_wr_func)write_f);
+#endif
+}
 inline bool_t P_xdrrec_endofrecord(XDR *x, int now) { 
   return (xdrrec_endofrecord(x, now));}
 inline bool_t P_xdrrec_skiprecord(XDR *x) { return (xdrrec_skiprecord(x));}
