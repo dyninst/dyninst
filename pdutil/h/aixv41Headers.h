@@ -115,9 +115,8 @@ extern int P_uname(struct utsname *unm);
 extern pid_t P_wait(int *status_ptr);
 extern int P_waitpid(pid_t pid, int *statusp, int options);
 extern size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE);
-extern int P_chdir(const char *path);
-
-extern int P_putenv(const char *str);
+inline int P_chdir(const char *path) {return (chdir(path)); }
+inline int P_putenv(char *str) {return (putenv(str)); }
 
 /* SYSTEM-V shared memory */
 #include <sys/ipc.h>
