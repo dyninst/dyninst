@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2003/02/04 14:59:34 bernat Exp $
+# $Id: Makefile,v 1.11 2003/03/28 20:36:57 mikem Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,7 +30,7 @@ else
 CC              = $(GCC)
 LD              = $(GCC)
 CFLAGS          += -fpic
-LDFLAGS		= -ldl -lelf -shared -nostdlib
+LDFLAGS		= -ldl -lelf -shared -nostdlib -lgcc
 #ccw 19 nov 2001
 endif
 
