@@ -3,7 +3,11 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.29  1996/03/08 18:48:21  newhall
+ * Revision 1.30  1996/04/09 22:20:56  newhall
+ * changed DYNINSTgetWallTime to DYNINSTgetWalltime to fix undefined symbol
+ * errors when applications are linked with libdyninstRT_cp.a
+ *
+ * Revision 1.29  1996/03/08  18:48:21  newhall
  * added wall and process time args to DYNINSTgenerateTraceRecord.  This fixes
  * a bug that occured when the appl. is paused between reading a timer to compute
  * a metric value and reading a timer again to compute a header value.
@@ -214,7 +218,7 @@ try_again:
     }
 }
 
-time64 DYNINSTgetWallTime()
+time64 DYNINSTgetWalltime()
 {
      time64 now;
      struct timeval tv;
@@ -324,7 +328,7 @@ void DYNINSTstartWallTimer(tTimer *timer)
     /* when samples are being written back */
     if (DYNINSTin_sample) return;       
     if (timer->counter == 0) {
-        timer->start     = DYNINSTgetWallTime();
+        timer->start     = DYNINSTgetWalltime();
         timer->normalize = MILLION;
     }
     timer->counter++;
@@ -341,7 +345,7 @@ void DYNINSTstopWallTimer(tTimer *timer)
     }
 
     if (timer->counter == 1) {
-        time64 now = DYNINSTgetWallTime();
+        time64 now = DYNINSTgetWalltime();
 
         timer->snapShot = now - timer->start + timer->total;
         timer->mutex    = 1;
@@ -352,7 +356,7 @@ void DYNINSTstopWallTimer(tTimer *timer)
          * the next time a sample is take (if the {wall,process} timer has not
          * been restarted).
          */
-        timer->total    = DYNINSTgetWallTime() - timer->start + timer->total;
+        timer->total    = DYNINSTgetWalltime() - timer->start + timer->total;
         timer->counter  = 0;
         timer->mutex    = 0;
 
@@ -436,7 +440,7 @@ void DYNINSTinit(int skipBreakpoint)
     /* init these before the first alarm can expire */
     DYNINSTcyclesToUsec = (1.0/DYNINSTcyclesPerSecond()) * 1000000;
     DYNINSTlastCPUTime = DYNINSTgetCPUtime();
-    DYNINSTlastWallTime = DYNINSTgetWallTime();
+    DYNINSTlastWallTime = DYNINSTgetWalltime();
 
     /* define the alarm signal vector. We block all signals while sampling.  
      *  This prevents race conditions where signal handlers cause timers to 
@@ -575,7 +579,7 @@ void DYNINSTreportTimer(tTimer *timer)
     time64 wall_time;
 
     process_time = DYNINSTgetCPUtime();
-    wall_time = DYNINSTgetWallTime();
+    wall_time = DYNINSTgetWalltime();
 
     if (timer->mutex) {
 	total = timer->snapShot;
@@ -633,7 +637,7 @@ void DYNINSTfork(void *arg, int pid)
     time64 wall_time;
 
     process_time = DYNINSTgetCPUtime();
-    wall_time = DYNINSTgetWallTime();
+    wall_time = DYNINSTgetWalltime();
     wall_time -= startWall;
 
     printf("fork called with pid = %d\n", pid);
@@ -664,7 +668,7 @@ void DYNINSTprintCost()
     time64 wall_time;
 
     process_time = DYNINSTgetCPUtime();
-    wall_time = DYNINSTgetWallTime();
+    wall_time = DYNINSTgetWalltime();
     wall_time -= startWall;
 
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);

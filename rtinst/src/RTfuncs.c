@@ -3,7 +3,11 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.29  1996/04/09 15:52:40  naim
+ * Revision 1.30  1996/04/09 22:20:54  newhall
+ * changed DYNINSTgetWallTime to DYNINSTgetWalltime to fix undefined symbol
+ * errors when applications are linked with libdyninstRT_cp.a
+ *
+ * Revision 1.29  1996/04/09  15:52:40  naim
  * Fixing prototype for procedure DYNINSTgenerateTraceRecord and adding
  * additional parameters to a call to this function in RTtags.c that has these
  * parameters missing - naim
@@ -129,7 +133,7 @@ extern int *DYNINSTtestN;
 #endif
 
 extern time64 DYNINSTgetCPUtime(void);
-extern time64 DYNINSTgetWallTime(void);
+extern time64 DYNINSTgetWalltime(void);
 /* zxu added the following */
 extern void saveFPUstate(float *base) ;
 void restoreFPUstate(float *base) ;

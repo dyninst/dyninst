@@ -3,7 +3,11 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTcm5_cp.c,v $
- * Revision 1.11  1996/04/09 15:52:36  naim
+ * Revision 1.12  1996/04/09 22:20:50  newhall
+ * changed DYNINSTgetWallTime to DYNINSTgetWalltime to fix undefined symbol
+ * errors when applications are linked with libdyninstRT_cp.a
+ *
+ * Revision 1.11  1996/04/09  15:52:36  naim
  * Fixing prototype for procedure DYNINSTgenerateTraceRecord and adding
  * additional parameters to a call to this function in RTtags.c that has these
  * parameters missing - naim
@@ -87,7 +91,7 @@
 
 extern time64 startWall;
 extern time64 DYNINSTgetCPUtime();
-extern time64 DYNINSTgetWallTime();
+extern time64 DYNINSTgetWalltime();
 
 extern time64 DYNINSTtotalSampleTime;
 float DYNINSTcyclesToUsec;
@@ -110,7 +114,7 @@ void DYNINSTnodeCreate()
     time64 wall_time;
 
     process_time = DYNINSTgetCPUtime();
-    wall_time = DYNINSTgetWallTime();
+    wall_time = DYNINSTgetWalltime();
     wall_time -= startWall;
 
 
@@ -145,7 +149,7 @@ void DYNINSTreportCounter(intCounter *counter)
     time64 wall_time;
 
     process_time = DYNINSTgetCPUtime();
-    wall_time = DYNINSTgetWallTime();
+    wall_time = DYNINSTgetWalltime();
     wall_time -= startWall;
 
     sample.value = counter->value;
@@ -178,7 +182,7 @@ void DYNINSTreportBaseTramps()
                              DYNINSTtotalSampleTime + 106) / 1000000.0);
 
     currentCPU = DYNINSTgetCPUtime();
-    currentWall = DYNINSTgetWallTime();
+    currentWall = DYNINSTgetWalltime();
     elapsedWallTime = currentWall - DYNINSTlastWallTime;
     elapsedPauseTime += elapsedWallTime - (currentCPU - DYNINSTlastCPUTime);
     sample.pauseTime = ((double) elapsedPauseTime);
@@ -206,7 +210,7 @@ void DYNINSTreportCost(intCounter *counter)
     time64 wall_time;
 
     process_time = DYNINSTgetCPUtime();
-    wall_time = DYNINSTgetWallTime();
+    wall_time = DYNINSTgetWalltime();
     wall_time -= startWall;
 
 

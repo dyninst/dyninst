@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.40  1996/04/09 15:52:38  naim
+ * Revision 1.41  1996/04/09 22:20:53  newhall
+ * changed DYNINSTgetWallTime to DYNINSTgetWalltime to fix undefined symbol
+ * errors when applications are linked with libdyninstRT_cp.a
+ *
+ * Revision 1.40  1996/04/09  15:52:38  naim
  * Fixing prototype for procedure DYNINSTgenerateTraceRecord and adding
  * additional parameters to a call to this function in RTtags.c that has these
  * parameters missing - naim
@@ -209,7 +213,7 @@ int TRACELIBmustRetry;		/* signal variable from consumer -> producer */
 extern float DYNINSTcyclesToUsec;
 
 time64 getProcessTime();
-time64 DYNINSTgetWallTime();
+time64 DYNINSTgetWalltime();
 extern int DYNINSTin_sample;
 
 extern time64 DYNINSTtotalSampleTime;
@@ -357,7 +361,7 @@ retry:
     return(end.value);
 }
 
-inline time64 DYNINSTgetWallTime()
+inline time64 DYNINSTgetWalltime()
 {
     time64 now;
 
@@ -707,7 +711,7 @@ void DYNINSTinit()
 
     /* init these before the first alarm can expire */
     DYNINSTlastCPUTime = DYNINSTgetCPUtime();
-    DYNINSTlastWallTime = DYNINSTgetWallTime();
+    DYNINSTlastWallTime = DYNINSTgetWalltime();
 
     /*
      * Set up the SIGALRM handler stuff so counters/timers get sampled and

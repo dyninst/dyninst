@@ -1,9 +1,13 @@
 /*
  *  $Log: blz_RTcm5_pn.c,v $
- *  Revision 1.5  1996/03/01 22:29:11  mjrg
- *  Added type to resources.
- *  Added function DYNINSTexit for better support for exit from the application.
- *  Added reporting of sample in DYNINSTinit to avoid loosing sample values.
+ *  Revision 1.6  1996/04/09 22:20:57  newhall
+ *  changed DYNINSTgetWallTime to DYNINSTgetWalltime to fix undefined symbol
+ *  errors when applications are linked with libdyninstRT_cp.a
+ *
+ * Revision 1.5  1996/03/01  22:29:11  mjrg
+ * Added type to resources.
+ * Added function DYNINSTexit for better support for exit from the application.
+ * Added reporting of sample in DYNINSTinit to avoid loosing sample values.
  *
  *  Revision 1.4  1995/12/10 16:37:47  zhichen
  *  Minor cleanup
@@ -97,7 +101,7 @@ extern time64 DYNINSTelapsedTime;
 #define NI_CLK_USEC 33
 
 
-time64 DYNINSTgetWallTime();
+time64 DYNINSTgetWalltime();
 time64 DYNINSTgetCPUtime();
 void DYNINSTstartProcessTimer(tTimer *);
 void RecurringBlizzardAlarm(int, void (*)());
@@ -157,7 +161,7 @@ void blzDYNINSTinit()
 
     /* init these before the first alarm can expire */
     DYNINSTlastCPUTime = DYNINSTgetCPUtime();
-    DYNINSTlastWallTime = DYNINSTgetWallTime();
+    DYNINSTlastWallTime = DYNINSTgetWalltime();
 
     /*
      * Set up the SIGALRM handler stuff so counters/timers get sampled and
