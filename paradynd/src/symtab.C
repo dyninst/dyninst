@@ -16,6 +16,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.35  1995/12/20 16:10:47  tamches
+ * removed ref to sorted() (vector class)
+ *
  * Revision 1.34  1995/12/15 22:27:04  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
@@ -1054,7 +1057,7 @@ image::image(const string &fileName, bool &err)
   // sort the modules by address
   statusLine("sorting modules");
   mods.sort(symCompare);
-  assert(mods.sorted(symCompare));
+//  assert(mods.sorted(symCompare));
 
 #ifdef DEBUG_MODS
   ostrstream osb1(buffer, 100, ios::out);
