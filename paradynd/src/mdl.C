@@ -3,6 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.27  1996/04/30 16:17:05  lzheng
+ * The name of the functions to be instrumented for timer now become machine
+ * dependent and the definations are moved to $(PLATFORM).h
+ *
  * Revision 1.26  1996/04/29 22:09:42  mjrg
  * replaced an assert by an error checking
  *
@@ -987,16 +991,16 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode &mn, const AstNode *pred,
       return false;
     break;
   case MDL_START_WALL_TIMER:
-    timer_fun = "DYNINSTstartWallTimer";
+    timer_fun = START_WALL_TIMER;
     break;
   case MDL_STOP_WALL_TIMER:
-    timer_fun = "DYNINSTstopWallTimer";
+    timer_fun = STOP_WALL_TIMER;
     break;
   case MDL_START_PROC_TIMER:
-    timer_fun = "DYNINSTstartProcessTimer";
+    timer_fun = START_PROC_TIMER;
     break;
   case MDL_STOP_PROC_TIMER:
-    timer_fun = "DYNINSTstopProcessTimer";
+    timer_fun = STOP_PROC_TIMER;
     break;
   }
 
