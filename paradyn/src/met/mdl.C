@@ -37,7 +37,6 @@ void mdl_data::unique_name(string name) {
     T_dyninstRPC::mdl_list_stmt *lstmt = 
                           (T_dyninstRPC::mdl_list_stmt *) mdl_data::stmts[u];
     if (lstmt->id_ == name) {
-cout << ">>>> deleting list " << name << endl;
       delete mdl_data::stmts[u];
       for (unsigned v = u; v < sz-1; v++) {
 	mdl_data::stmts[v] = mdl_data::stmts[v+1];
@@ -50,7 +49,6 @@ cout << ">>>> deleting list " << name << endl;
   sz = mdl_data::all_constraints.size();
   for (unsigned u = 0; u < sz; u++) {
     if (mdl_data::all_constraints[u]->id_ == name) {
-cout << ">>>> deleting const. " << name << endl;
       delete mdl_data::all_constraints[u];
       for (unsigned v = u; v < sz-1; v++) {
 	mdl_data::all_constraints[v] = mdl_data::all_constraints[v+1];
@@ -63,7 +61,6 @@ cout << ">>>> deleting const. " << name << endl;
   sz = mdl_data::all_metrics.size();
   for (unsigned u = 0; u < sz; u++) {
     if (mdl_data::all_metrics[u]->id_ == name) {
-cout << ">>>> deleting metric " << name << endl;
       delete mdl_data::all_metrics[u];
       for (unsigned v = u; v < sz-1; v++) {
 	mdl_data::all_metrics[v] = mdl_data::all_metrics[v+1];
