@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.27 2004/03/08 23:45:41 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.28 2004/03/18 21:52:07 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -205,6 +205,10 @@ class dyn_lwp
 #if defined(cap_proc_fd)
   // Implemented where aborting system calls is possible
   bool abortSyscall();
+  // And restart a system call that was previously aborted
+  // Technically: restore the system to the pre-syscall state
+  bool restartSyscall();
+
   // Solaris: keep data in the LWP instead of in class process
   // Continue, clearing signals
   // Clear signals, leaved paused

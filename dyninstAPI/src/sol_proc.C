@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.47 2004/03/11 22:20:40 bernat Exp $
+// $Id: sol_proc.C,v 1.48 2004/03/18 21:52:07 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -176,13 +176,14 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
   lwpstatus_t status;
   long command[2];
   Address pc;  // PC at which we are trying to continue
-
   // Check the current status
   if (!get_status(&status)) {
+      fprintf(stderr, "Failed to get LWP status\n");
       return false;
   }
-  
+
   if ((0==status.pr_flags & PR_STOPPED) && (0==status.pr_flags & PR_ISTOP)) {
+      fprintf(stderr, "LWP not stopped\n");
       return false;
   }
 
@@ -198,62 +199,27 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
           clearSignal();
       }
   }
+
+  ptraceOps++; 
+  ptraceOtherOps++;
+
+
+  pc = (Address)(GETREG_PC(status.pr_reg));
+  if (stoppedInSyscall_ && pc == postsyscallpc_) {
+      if (!restartSyscall()) return false;
+  }
+  
   command[0] = PCRUN;
   if (signalToContinueWith == dyn_lwp::NoSignal)
       command[1] = PRCSIG;  // clear the signal
   else {
       command[1] = 0;
   }
-  pc = (Address)(GETREG_PC(status.pr_reg));
-  // we don't want to operate on the process in this state
-  ptraceOps++; 
-  ptraceOtherOps++;
 
-  if (! (stoppedInSyscall_ && pc == postsyscallpc_)) {
-     // Continue the process the easy way
-      if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
-          perror("continueLWP: PCRUN2");
-          return false;
-      }
-  } else {
-      
-      // We interrupted a sleeping system call at some previous pause
-      // (i.e. stoppedInSyscall is true), we have not restarted that
-      // system call yet, and the current PC is the insn following
-      // the interrupted call.  It is time to restart the system
-      // call.
-      
-      // Note that when we make the process runnable, we ignore
-      // `flags', set if `hasNewPC' was true in the previous block,
-      // because we don't want its PC; we want the PC of the system
-      // call trap, which was saved in `syscallreg'.
-
-      if (!restoreRegisters(*syscallreg_)) return false;
-      delete syscallreg_;
-      syscallreg_ = NULL;
-
-      // We are done -- the process is in the kernel for the system
-      // call, with the right registers values.  Make the process
-      // runnable, restoring its previously blocked signals.
-      // The signals were blocked as part of the abort mechanism.
-      stoppedInSyscall_ = false;
-      int bufsize = sizeof(long) + sizeof(proc_sigset_t);
-      char buf[bufsize]; long *bufptr = (long *)buf;
-      *bufptr = PCSHOLD; bufptr++;
-      memcpy(bufptr, &sighold_, sizeof(proc_sigset_t));
-
-      if (write(ctl_fd(), buf, bufsize) != bufsize) {
-          perror("continueLWP: PCSHOLD"); return false;
-      }
-
-      long command[2];
-      
-      command[0] = PCRUN;
-      command[1] = 0; // No arguments to PCRUN
-      if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
-          perror("continueLWP: PCRUN3"); return false;
-      }
-      
+  // Continue the process the easy way
+  if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+      perror("continueLWP: PCRUN2");
+      return false;
   }
   
   return true;
@@ -266,10 +232,6 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
 
 bool dyn_lwp::abortSyscall()
 {
-    sysset_t* scexit = SYSSET_ALLOC(proc_->getPid());
-    sysset_t* scsavedexit = SYSSET_ALLOC(proc_->getPid());
-    sysset_t* scentry = SYSSET_ALLOC(proc_->getPid());
-    sysset_t* scsavedentry = SYSSET_ALLOC(proc_->getPid());
     lwpstatus_t status;
 
     // MT: aborting syscalls does not work. Maybe someone with better knowledge
@@ -284,6 +246,23 @@ bool dyn_lwp::abortSyscall()
     stoppedInSyscall_ = true;
     
     if (!get_status(&status)) return false;
+
+    if (status.pr_syscall == 0 ||
+        status.pr_why == PR_SYSEXIT) {
+        // No work to be done
+        stoppedInSyscall_ = false;
+        return true;
+    }
+
+    if (((status.pr_flags & PR_STOPPED) == 0) &&
+        ((status.pr_flags & PR_ISTOP) == 0))
+        stop_();
+    
+
+    sysset_t* scexit = SYSSET_ALLOC(proc_->getPid());
+    sysset_t* scsavedexit = SYSSET_ALLOC(proc_->getPid());
+    sysset_t* scentry = SYSSET_ALLOC(proc_->getPid());
+    sysset_t* scsavedentry = SYSSET_ALLOC(proc_->getPid());
     
     // 1. Save the syscall number, registers, and blocked signals
     stoppedSyscall_ = status.pr_syscall;
@@ -354,6 +333,7 @@ bool dyn_lwp::abortSyscall()
     if (write(ctl_fd(), buf, bufsize) != bufsize) {
         perror("abortSyscall: PCSHOLD"); return false;
     }
+
     if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
         perror("abortSyscall: PCRUN"); return false;
     }
@@ -395,6 +375,50 @@ bool dyn_lwp::abortSyscall()
     
     return true;
 }
+
+bool dyn_lwp::restartSyscall() {
+    if (!stoppedInSyscall_)
+        return true;
+    
+    // We interrupted a sleeping system call at some previous pause
+    // (i.e. stoppedInSyscall is true), we have not restarted that
+    // system call yet, and the current PC is the insn following
+    // the interrupted call.  It is time to restart the system
+    // call.
+    
+    // Note that when we make the process runnable, we ignore
+    // `flags', set if `hasNewPC' was true in the previous block,
+    // because we don't want its PC; we want the PC of the system
+    // call trap, which was saved in `syscallreg'.
+    if (!restoreRegisters(*syscallreg_)) return false;
+    delete syscallreg_;
+    syscallreg_ = NULL;
+    
+    // We are done -- the process is in the kernel for the system
+    // call, with the right registers values.  Make the process
+    // runnable, restoring its previously blocked signals.
+    // The signals were blocked as part of the abort mechanism.
+    stoppedInSyscall_ = false;
+    int bufsize = sizeof(long) + sizeof(proc_sigset_t);
+    char buf[bufsize]; long *bufptr = (long *)buf;
+    *bufptr = PCSHOLD; bufptr++;
+    memcpy(bufptr, &sighold_, sizeof(proc_sigset_t));
+    
+    if (write(ctl_fd(), buf, bufsize) != bufsize) {
+        perror("continueLWP: PCSHOLD"); return false;
+    }
+    
+    long command[2];
+    
+    command[0] = PCRUN;
+    command[1] = 0; // No arguments to PCRUN
+    if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+        perror("continueLWP: PCRUN3"); return false;
+    }
+    return true;
+}
+
+
 
 dyn_lwp *process::createRepresentativeLWP() {
    // don't register the representativeLWP in the lwps since it's not a true
@@ -601,7 +625,7 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
 {
     lwpstatus_t status;
     get_status(&status);
-    
+
     // The fact that this routine can be shared between solaris/sparc and
     // solaris/x86 is just really, really cool.  /proc rules!
     int regbufsize = sizeof(long) + sizeof(prgregset_t);
@@ -839,10 +863,14 @@ bool dyn_lwp::representativeLWP_attach_() {
    is_attached_ = true;
    get_status(&status);
 
+
    if (status.pr_why == PR_SIGNALLED &&
        status.pr_what == SIGSTOP) {
        clearSignal();
    }
+
+  // Abort a system call if we're in it
+  abortSyscall();
 
    return true;
 }
@@ -1736,7 +1764,6 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
 
    for(unsigned u = 0; u < processVec.size(); u++) {
        process *lproc = processVec[u];
-       
        if(lproc && (lproc->status() == running || lproc->status() == neonatal))
        {
            if (wait_arg == -1 || lproc->getPid() == wait_arg) {
