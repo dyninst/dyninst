@@ -22,16 +22,16 @@ ParentNode::ParentNode( bool _threaded, std::string _hostname, Port _port )
       listening_sock_fd( 0 ), threaded( _threaded ), isLeaf_( false ),
       num_descendants( 0 ), num_descendants_reported( 0 )
 {
-    mrn_printf( 3, MCFL, stderr,
-                "In ParentNode(): Calling bind_to_port(%d)\n", port );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "In ParentNode(): Calling bind_to_port(%d)\n", port ));
     if( bindPort( &listening_sock_fd, &port ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "bind_to_port() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "bind_to_port() failed\n" ));
         error( MRN_ESYSTEM, "bindPort(%d): %s\n", port, strerror(errno) );
         return;
     }
     subtreereport_sync.RegisterCondition( ALLNODESREPORTED );
 
-    mrn_printf( 3, MCFL, stderr, "Leaving ParentNode()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Leaving ParentNode()\n" ));
 }
 
 
@@ -45,9 +45,9 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
 {
     int ret = 0;
 
-    mrn_printf( 3, MCFL, stderr, "In PN::recv_PacketsFromDownStream( "
+    mrn_dbg( 2, mrn_printf(FLF, stderr, "In PN::recv_PacketsFromDownStream( "
                 "rmt_nodes=%p, blocking=%s)\n", rmt_nodes,
-                (blocking? "true" : "false") );
+                (blocking? "true" : "false") ));
     if( !rmt_nodes ) {
         rmt_nodes = &children_nodes;
     }
@@ -61,7 +61,7 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
 
         RemoteNode *currRemNode = *iter;
         assert( currRemNode != NULL );
-        int curr_fd = currRemNode->get_sockfd();
+        int curr_fd = currRemNode->get_SocketFd();
         FD_SET( curr_fd, &rfds );
 
         if( curr_fd > max_fd )
@@ -75,13 +75,13 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
     struct timeval * timeout=NULL;
 
     if( blocking ) {
-        mrn_printf( 3, MCFL, stderr, "Calling \"blocking\" select"
-                    "( timeout=%d )\n", RemoteNode::poll_timeout );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling \"blocking\" select"
+                    "( timeout=%d )\n", RemoteNode::get_BlockingTimeOut() ));
 
-        if( RemoteNode::poll_timeout != 0 ){
+        if( RemoteNode::get_BlockingTimeOut() != 0 ){
             timeout = (struct timeval *) new char[ sizeof(struct timeval) ];
-            timeout->tv_sec = (RemoteNode::poll_timeout / 1000);
-            timeout->tv_usec = (RemoteNode::poll_timeout % 1000) * 1000;
+            timeout->tv_sec = (RemoteNode::get_BlockingTimeOut() / 1000);
+            timeout->tv_usec = (RemoteNode::get_BlockingTimeOut() % 1000) * 1000;
         }
 
     }
@@ -93,7 +93,7 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
     pollret = select( max_fd + 1, &rfds, NULL, NULL, timeout );
     delete [] timeout;
 
-    mrn_printf( 3, MCFL, stderr, "select() returned %d\n", pollret );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "select() returned %d\n", pollret ));
 
     if( pollret > 0 ) {
         // there is input on some connection
@@ -104,15 +104,15 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
         for( i=0, iter = rmt_nodes->begin( ); iter != rmt_nodes->end( );
              iter++, i++ ) {
 
-            int curr_fd = (*iter)->get_sockfd();
+            int curr_fd = (*iter)->get_SocketFd();
             if( FD_ISSET( curr_fd, &rfds ) ) {
                 readyNode = ( *iter );
                 assert( readyNode != NULL );
                 
                 if( readyNode->recv( pkt_list ) == -1 ) {
                     ret = -1;
-                    mrn_printf( 1, MCFL, stderr,
-                                "PN: recv() from ready node failed\n" );
+                    mrn_dbg( 1, mrn_printf(FLF, stderr,
+                                "PN: recv() from ready node failed\n" ));
                 }
             }
         }
@@ -120,14 +120,25 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
     else if( pollret < 0 ) {
         // an error occurred
         ret = -1;
-        mrn_printf( 1, MCFL, stderr,
-                    "PN::recv_PacketsFromDownStream() poll failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr,
+                    "PN::recv_PacketsFromDownStream() poll failed\n" ));
         fprintf( stderr, "%d: poll failed: %d: %s\n",
             XPlat::Process::GetProcessId(), errno, strerror(errno) );
     }
 
-    mrn_printf( 3, MCFL, stderr, "PN::recv_PacketsFromDownStream() %s\n",
-                ( ret >= 0 ? "succeeded" : "failed" ) );
+    mrn_dbg( 2, mrn_printf(FLF, stderr, "PN::recv_PacketsFromDownStream() %s\n",
+                ( ret >= 0 ? "succeeded" : "failed" ) ));
+    if( ret >= 0 && pkt_list.size() > 0 ){
+        mrn_dbg(2, mrn_printf(FLF, stderr,
+                   "recv_PacketsFromDownStream() => %d packets. Tags:",
+                   pkt_list.size() ));
+
+        std::list <Packet>::iterator iter;
+        for(iter = pkt_list.begin(); iter != pkt_list.end(); iter++){
+            mrn_dbg(2, mrn_printf(0,0,0, stderr, " %d", (*iter).get_Tag() ));
+        }
+        mrn_dbg(2, mrn_printf(0,0,0, stderr, "\n"));
+    }
 
     return ret;
 }
@@ -139,18 +150,7 @@ int ParentNode::send_PacketDownStream( Packet& packet, bool internal_only )
     int retval = 0;
     StreamManager *stream_mgr;
 
-    mrn_printf( 3, MCFL, stderr, "In send_PacketDownStream()\n" );
-    if( threaded ) {
-        streammanagerbyid_sync.Lock( );
-    }
-    mrn_printf( 3, MCFL, stderr, "StreamManager = %p\n",
-                &StreamManagerById );
-    mrn_printf( 3, MCFL, stderr, "StreamManagerById[%d] = %p\n",
-                packet.get_StreamId( ),
-                StreamManagerById[packet.get_StreamId( )] );
-    if( threaded ) {
-        streammanagerbyid_sync.Unlock( );
-    }
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In send_PacketDownStream()\n" ));
 
     std::list < RemoteNode * >::iterator iter;
     std::list < RemoteNode * >tmp_nodes;
@@ -159,25 +159,25 @@ int ParentNode::send_PacketDownStream( Packet& packet, bool internal_only )
         tmp_nodes = children_nodes;
     }
     else {
-        stream_mgr = StreamManagerById[packet.get_StreamId( )];
+        stream_mgr = StreamManager::get_StreamManagerById( packet.get_StreamId() );
         tmp_nodes = stream_mgr->downstream_nodes;
     }
     
     for( i = 0, iter = tmp_nodes.begin( ); iter != tmp_nodes.end( );
          iter++, i++ ) {
         if( ( *iter )->is_internal( ) || !internal_only ) {
-            mrn_printf( 3, MCFL, stderr,
-                        "Calling downstream[%d].send() ...\n", i );
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
+                        "Calling downstream[%d].send() ...\n", i ));
             if( ( *iter )->send( packet ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr, "downstream.send() failed\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr, "downstream.send() failed\n" ));
                 retval = -1;
             }
-            mrn_printf( 3, MCFL, stderr, "downstream.send() succeeded\n" );
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "downstream.send() succeeded\n" ));
         }
     }
 
-    mrn_printf( 3, MCFL, stderr, "send_PacketDownStream %s",
-                retval == 0 ? "succeeded\n" : "failed\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "send_PacketDownStream %s",
+                           retval == 0 ? "succeeded\n" : "failed\n" ));
     return retval;
 }
 
@@ -186,22 +186,22 @@ int ParentNode::flush_PacketsDownStream( )
     unsigned int i;
     int retval = 0;
     
-    mrn_printf( 3, MCFL, stderr, "In flush_PacketsDownStream()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In flush_PacketsDownStream()\n" ));
     
     std::list < RemoteNode * >::iterator iter;
     for( i = 0, iter = children_nodes.begin( );
          iter != children_nodes.end( ); iter++, i++ ) {
-        mrn_printf( 3, MCFL, stderr, "Calling downstream[%d].flush() ...\n",
-                        i );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling downstream[%d].flush() ...\n",
+                        i ));
         if( ( *iter )->flush( ) == -1 ) {
-            mrn_printf( 1, MCFL, stderr, "downstream.flush() failed\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "downstream.flush() failed\n" ));
             retval = -1;
         }
-        mrn_printf( 3, MCFL, stderr, "downstream.flush() succeeded\n" );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "downstream.flush() succeeded\n" ));
     }
 
-    mrn_printf( 3, MCFL, stderr, "flush_PacketsFromDownStream %s",
-                retval == 0 ? "succeeded\n" : "failed\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "flush_PacketsFromDownStream %s",
+                retval == 0 ? "succeeded\n" : "failed\n" ));
     return retval;
 }
 
@@ -211,30 +211,24 @@ int ParentNode::flush_PacketsDownStream( unsigned int stream_id )
     int retval = 0;
     StreamManager *stream_mgr;
 
-    mrn_printf( 3, MCFL, stderr, "In flush_PacketsDownStream(%d)\n",
-                stream_id );
-    if( threaded ) {
-        streammanagerbyid_sync.Lock( );
-    }
-    stream_mgr = StreamManagerById[stream_id];
-    if( threaded ) {
-        streammanagerbyid_sync.Unlock( );
-    }
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In flush_PacketsDownStream(%d)\n",
+                stream_id ));
+    stream_mgr = StreamManager::get_StreamManagerById( stream_id );
 
     std::list < RemoteNode * >::iterator iter;
     for( i = 0, iter = stream_mgr->downstream_nodes.begin( );
          iter != stream_mgr->downstream_nodes.end( ); iter++, i++ ) {
-        mrn_printf( 3, MCFL, stderr, "Calling downstream[%d].flush() ...\n",
-                    i );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling downstream[%d].flush() ...\n",
+                    i ));
         if( ( *iter )->flush( ) == -1 ) {
-            mrn_printf( 1, MCFL, stderr, "downstream.flush() failed\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "downstream.flush() failed\n" ));
             retval = -1;
         }
-        mrn_printf( 3, MCFL, stderr, "downstream.flush() succeeded\n" );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "downstream.flush() succeeded\n" ));
     }
     
-    mrn_printf( 3, MCFL, stderr, "flush_PacketsFromDownStream %s",
-                retval == 0 ? "succeeded\n" : "failed\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "flush_PacketsFromDownStream %s",
+                retval == 0 ? "succeeded\n" : "failed\n" ));
     return retval;
 }
 
@@ -243,11 +237,13 @@ int ParentNode::proc_newSubTree( Packet& packet )
     char *byte_array = NULL;
     char *appl = NULL;
     char *commnode_path=NULL;
-    mrn_printf( 3, MCFL, stderr, "In proc_newSubTree(%p)\n", &packet );
+    char **argv;
+    unsigned int argc;
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_newSubTree(%p)\n", &packet ));
 
-    if( packet.ExtractArgList( "%s%s%s",
-            &byte_array, &commnode_path, &appl ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
+    if( packet.ExtractArgList( "%s%s%s%as",
+            &byte_array, &commnode_path, &appl, &argv, &argc ) == -1 ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList() failed\n" ));
         return -1;
     }
 
@@ -270,9 +266,9 @@ int ParentNode::proc_newSubTree( Packet& packet )
 
             std::string rootname = cur_sg->get_RootName( );
             Port rootport = cur_sg->get_RootPort( );
-            mrn_printf( 3, MCFL, stderr,
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
                         "cur_child(%s:%d) has children (internal node)\n",
-                        rootname.c_str( ), rootport );
+                        rootname.c_str( ), rootport ));
             //If the cur_child has children launch him
             RemoteNode *cur_node =
                 new RemoteNode( threaded, rootname, rootport );
@@ -281,13 +277,13 @@ int ParentNode::proc_newSubTree( Packet& packet )
                                         commnode_path );
 
             if( cur_node->good( ) ) {
-                packet = Packet( 0, PROT_NEW_SUBTREE, "%s%s%s",
+                packet = Packet( 0, PROT_NEW_SUBTREE, "%s%s%s%as",
                                  cur_sg->get_ByteArray( ).c_str( ),
                                  commnode_path,
-                                 application.c_str( ) );
+                                 application.c_str( ), argv, argc );
                 if( cur_node->send( packet ) == -1 ||
                     cur_node->flush( ) == -1 ) {
-                    mrn_printf( 1, MCFL, stderr, "send/flush failed\n" );
+                    mrn_dbg( 1, mrn_printf(FLF, stderr, "send/flush failed\n" ));
                     return -1;
                 }
                 children_nodes.push_back( cur_node );
@@ -298,9 +294,9 @@ int ParentNode::proc_newSubTree( Packet& packet )
             Port rootport = cur_sg->get_RootPort( );
             Rank rootrank = cur_sg->get_Rank( );
 
-            mrn_printf( 3, MCFL, stderr,
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
                         "cur_child(%s:%d) is backend[%d]\n",
-                        rootname.c_str( ), rootport, rootrank );
+                        rootname.c_str( ), rootport, rootrank ));
 
             // since this child is a backend, I'm a leaf
             isLeaf_ = true;
@@ -310,13 +306,16 @@ int ParentNode::proc_newSubTree( Packet& packet )
                                                    rootport );
 
             if( application.length( ) > 0 ) {
-                std::vector < std::string > dummy_args;
+                std::vector < std::string > args;
+                for(unsigned int i=0; i<argc; i++){
+                    args.push_back( argv[i] );
+                }
                 if( cur_node->new_Application( listening_sock_fd,
                                                hostname, port,
                                                rootrank,
-                                               application, dummy_args ) == -1){
-                    mrn_printf( 1, MCFL, stderr,
-                                "child_node.new_application() failed\n" );
+                                               application, args ) == -1){
+                    mrn_dbg( 1, mrn_printf(FLF, stderr,
+                                "child_node.new_application() failed\n" ));
                     return -1;
                 }
             }
@@ -325,9 +324,9 @@ int ParentNode::proc_newSubTree( Packet& packet )
                 childnodebybackendid_sync.Lock( );
             }
             ChildNodeByRank[rootrank] = cur_node;
-            mrn_printf( 3, MCFL, stderr,
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
                         "Setting ChildNodebyBackendId[%d] to %p\n", rootrank,
-                        cur_node );
+                        cur_node ));
             backend_descendant_nodes.push_back( rootrank );
             if( threaded ) {
                 childnodebybackendid_sync.Unlock( );
@@ -339,17 +338,17 @@ int ParentNode::proc_newSubTree( Packet& packet )
 
     if( num_descendants > 0 ) {
         if( wait_for_SubTreeReports( ) == -1 ) {
-            mrn_printf( 1, MCFL, stderr,
-                        "wait_for_SubTreeReports() failed!\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr,
+                        "wait_for_SubTreeReports() failed!\n" ));
             return -1;
         }
     }
     else {
-        mrn_printf( 3, MCFL, stderr, "All my %d children must be BEs\n",
-                    children_nodes.size( ) );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "All my %d children must be BEs\n",
+                    children_nodes.size( ) ));
     }
     
-    mrn_printf( 3, MCFL, stderr, "proc_newSubTree() succeeded\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "proc_newSubTree() succeeded\n" ));
     return 0;
 }
 
@@ -359,34 +358,34 @@ int ParentNode::wait_for_SubTreeReports( void )
     if( threaded ) {
         subtreereport_sync.Lock( );
         while( num_descendants > num_descendants_reported ) {
-            mrn_printf( 1, MCFL, stderr,
-                        "Waiting for downstream nodes_reported signal ...\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr,
+                        "Waiting for downstream nodes_reported signal ...\n" ));
             subtreereport_sync.WaitOnCondition( ALLNODESREPORTED );
-            mrn_printf( 3, MCFL, stderr,
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
                         "%d of %d Descendants have checked in.\n",
-                        num_descendants_reported, num_descendants );
+                        num_descendants_reported, num_descendants ));
         }
         subtreereport_sync.Unlock( );
     }
     else {
         while( num_descendants > num_descendants_reported ) {
-            mrn_printf( 3, MCFL, stderr,
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
                         "%d of %d Descendants have checked in.\n",
-                        num_descendants_reported, num_descendants );
+                        num_descendants_reported, num_descendants ));
             if( recv_PacketsFromDownStream( packet_list ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "recv_PacketsFromDownStream() failed\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "recv_PacketsFromDownStream() failed\n" ));
                 return -1;
             }
             if( proc_PacketsFromDownStream( packet_list ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "recv_PacketsFromDownStream() failed\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "recv_PacketsFromDownStream() failed\n" ));
                 return -1;
             }
         }
     }
-    mrn_printf( 3, MCFL, stderr, "All %d downstream nodes have reported\n",
-                num_descendants );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "All %d downstream nodes have reported\n",
+                num_descendants ));
     return 0;
 }
 
@@ -394,26 +393,26 @@ int ParentNode::proc_delSubTree( Packet& packet )
 {
     unsigned int i;
     int retval = 0;
-    mrn_printf( 3, MCFL, stderr, "In proc_delSubTree()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_delSubTree()\n" ));
 
     std::list < RemoteNode * >::iterator iter;
     for( i = 0, iter = children_nodes.begin( );
          iter != children_nodes.end( ); iter++, i++ ) {
         if( ( *iter )->send( packet ) == -1 ) {
-            mrn_printf( 1, MCFL, stderr, "downstream.send() failed\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "downstream.send() failed\n" ));
             retval = -1;
             continue;
         }
     }
 
     if( flush_PacketsDownStream( ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr,
-                    "flush() failed. Now Exiting since delSubtree()\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr,
+                    "flush() failed. Now Exiting since delSubtree()\n" ));
         exit( -1 );
     }
 
-    mrn_printf( 3, MCFL, stderr,
-                "internal.sendDelSubTree() succeeded. Now Exiting\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "internal.sendDelSubTree() succeeded. Now Exiting\n" ));
     exit( 0 );
     return 0;
 }
@@ -424,11 +423,11 @@ int ParentNode::proc_newSubTreeReport( Packet& packet )
     int *backends;
     int i, no_backends;
 
-    mrn_printf( 3, MCFL, stderr,
-                "In parentnode.proc_newSubTreeReport()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "In parentnode.proc_newSubTreeReport()\n" ));
     if( packet.ExtractArgList( "%d %ad", &status, &backends,
                                &no_backends ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "ExtractArgList failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList failed\n" ));
         return -1;
     }
 
@@ -436,19 +435,19 @@ int ParentNode::proc_newSubTreeReport( Packet& packet )
         subtreereport_sync.Lock( );
     }
     num_descendants_reported++;
-    mrn_printf( 3, MCFL, stderr, "%d of %d descendants_reported\n",
-                num_descendants_reported, num_descendants );
-    mrn_printf( 3, MCFL, stderr, "Adding %d backends [ ", no_backends );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "%d of %d descendants_reported\n",
+                num_descendants_reported, num_descendants ));
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Adding %d backends [ ", no_backends ));
     childnodebybackendid_sync.Lock( );
     for( i = 0; i < no_backends; i++ ) {
-        mrn_printf( 3, 0, 0, stderr, "%d(%p), ", backends[i],
-                    ChildNodeByRank[backends[i]] );
+        mrn_dbg( 3, mrn_printf(0,0,0, stderr, "%d(%p), ", backends[i],
+                    ChildNodeByRank[backends[i]] ));
         ChildNodeByRank[backends[i]] = packet.get_InletNode();
         backend_descendant_nodes.push_back( backends[i] );
     }
-    mrn_printf( 3, 0, 0, stderr, "]\n" );
-    mrn_printf( 3, MCFL, stderr, "map[%d] at %p = %p\n", 0,
-                &ChildNodeByRank, ChildNodeByRank[0] );
+    mrn_dbg( 3, mrn_printf(0,0,0, stderr, "]\n" ));
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "map[%d] at %p = %p\n", 0,
+                &ChildNodeByRank, ChildNodeByRank[0] ));
     childnodebybackendid_sync.Unlock( );
     if( threaded ) {
         // TODO always send the signal?
@@ -458,8 +457,8 @@ int ParentNode::proc_newSubTreeReport( Packet& packet )
         subtreereport_sync.Unlock( );
     }
 
-    mrn_printf( 3, MCFL, stderr,
-                "Leaving parentnode.proc_newSubTreeReport()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "Leaving parentnode.proc_newSubTreeReport()\n" ));
     return status;
 }
 
@@ -470,10 +469,10 @@ int ParentNode::proc_Event( Packet& packet )
     Port eport;
 
 
-    mrn_printf( 3, MCFL, stderr, "In parentnode.proc_Event()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In parentnode.proc_Event()\n" ));
     if( packet.ExtractArgList( "%d %s %uhd %s", &etype, &ehost,
                                &eport, &edesc ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "ExtractArgList failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList failed\n" ));
         return -1;
     }
 
@@ -481,7 +480,7 @@ int ParentNode::proc_Event( Packet& packet )
     Event::add_Event( *event );
     delete event;
 
-    mrn_printf( 3, MCFL, stderr, "Leaving parentnode.proc_Event()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Leaving parentnode.proc_Event()\n" ));
     return 0;
 }
 
@@ -494,7 +493,7 @@ StreamManager *ParentNode::proc_newStream( Packet& packet )
 
     std::list < RemoteNode * >node_set;
 
-    mrn_printf( 3, MCFL, stderr, "In proc_newSTream()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_newSTream()\n" ));
 
     //assert( !StreamImpl::get_Stream(stream_id));
     //register new stream, though not yet needed.
@@ -502,45 +501,45 @@ StreamManager *ParentNode::proc_newStream( Packet& packet )
     if( packet.ExtractArgList( "%d %ad %d %d %d", &stream_id, &backends,
                                 &num_backends, &sync_id,
                                 &ds_filter_id, &us_filter_id ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList() failed\n" ));
         return NULL;
     }
 
     childnodebybackendid_sync.Lock( );
-    mrn_printf( 3, MCFL, stderr, "map size: %d\n",
-                ChildNodeByRank.size( ) );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "map size: %d\n",
+                ChildNodeByRank.size( ) ));
     for( i = 0; i < num_backends; i++ ) {
-        mrn_printf( 3, MCFL, stderr, "map[%d] at %p = %p\n", backends[i],
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "map[%d] at %p = %p\n", backends[i],
                     &ChildNodeByRank,
-                    ChildNodeByRank[backends[i]] );
-        mrn_printf( 3, MCFL, stderr,
+                    ChildNodeByRank[backends[i]] ));
+        mrn_dbg( 3, mrn_printf(FLF, stderr,
                     "Adding Endpoint %d(%p) to stream %d\n", backends[i],
-                    ChildNodeByRank[backends[i]], stream_id );
+                    ChildNodeByRank[backends[i]], stream_id ));
         node_set.push_back( ChildNodeByRank[backends[i]] );
     }
     childnodebybackendid_sync.Unlock( );
 
-    //printf(3, MCFL, stderr, "nodeset_size:%d\n", node_set.size());
+    //printf(3, mrn_printf(FLF, stderr, "nodeset_size:%d\n", node_set.size());
     //  node_set.sort(lt_RemoteNodePtr);      //sort the set of nodes (by ptr value)
-    //printf(3, MCFL, stderr, "nodeset_size:%d\n", node_set.size());
+    //printf(3, mrn_printf(FLF, stderr, "nodeset_size:%d\n", node_set.size());
     //  node_set.unique(equal_RemoteNodePtr); //remove duplicates
-    //printf(3, MCFL, stderr, "nodeset_size:%d\n", node_set.size());
+    //printf(3, mrn_printf(FLF, stderr, "nodeset_size:%d\n", node_set.size());
     node_set.sort( );
     node_set.unique( );
 
     std::list < RemoteNode * >::iterator iter, del_iter;
     for( i = 0, iter = node_set.begin( ); iter != node_set.end( ); i++ ) {
         if( ( *iter ) == NULL ) {   //temporary fix for adding unreachable backends
-            mrn_printf( 3, MCFL, stderr,
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
                         "node[%d] in stream %d is temporary fix case\n", i,
-                        stream_id );
+                        stream_id ));
             del_iter = iter;
             iter++;
             node_set.erase( del_iter );
         }
         else {
-            mrn_printf( 3, MCFL, stderr, "node[%d] in stream %d is %p\n", i,
-                        stream_id, *iter );
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "node[%d] in stream %d is %p\n", i,
+                        stream_id, *iter ));
             iter++;
         }
     }
@@ -548,15 +547,8 @@ StreamManager *ParentNode::proc_newStream( Packet& packet )
     StreamManager *stream_mgr =
         new StreamManager( stream_id, node_set, sync_id,
                            ds_filter_id, us_filter_id );
-    if( threaded ) {
-        streammanagerbyid_sync.Lock( );
-    }
-    StreamManagerById[stream_id] = stream_mgr;
-    if( threaded ) {
-        streammanagerbyid_sync.Unlock( );
-    }
 
-    mrn_printf( 3, MCFL, stderr, "internal.procNewStream() succeeded\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "internal.procNewStream() succeeded\n" ));
     return stream_mgr;
 }
 
@@ -570,17 +562,17 @@ int ParentNode::send_newStream( Packet& packet,
     for( i = 0, iter = node_set.begin( ); iter != node_set.end( );
          iter++, i++ ) {
         if( ( *iter )->is_internal( ) ) {  //only pass on to internal nodes
-            //printf(3, MCFL, stderr, "Calling node_set[%d].send() ...\n", i);
+            //printf(3, mrn_printf(FLF, stderr, "Calling node_set[%d].send() ...\n", i);
             if( ( *iter )->send( packet ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr, "node_set.send() failed\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr, "node_set.send() failed\n" ));
                 retval = -1;
                 continue;
             }
         }
-        //printf(3, MCFL, stderr, "node_set.send() succeeded\n");
+        //printf(3, mrn_printf(FLF, stderr, "node_set.send() succeeded\n");
     }
 
-    mrn_printf( 3, MCFL, stderr, "internal.procNewStream() succeeded\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "internal.procNewStream() succeeded\n" ));
     return 0;
 }
 
@@ -590,14 +582,12 @@ int ParentNode::proc_delStream( Packet& packet )
     unsigned int i;
     int stream_id;
 
-    mrn_printf( 3, MCFL, stderr, "In proc_delStream()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_delStream()\n" ));
 
-    streammanagerbyid_sync.Lock( );
-    StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId( )];
-    streammanagerbyid_sync.Unlock( );
+    StreamManager *stream_mgr = StreamManager::get_StreamManagerById( packet.get_StreamId() );
 
     if( packet.ExtractArgList( "%d", &stream_id ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList() failed\n" ));
         return -1;
     }
     assert( stream_id == packet.get_StreamId( ) );
@@ -605,20 +595,18 @@ int ParentNode::proc_delStream( Packet& packet )
     std::list < RemoteNode * >::iterator iter;
     for( i = 0, iter = stream_mgr->downstream_nodes.begin( );
          iter != stream_mgr->downstream_nodes.end( ); iter++, i++ ) {
-        mrn_printf( 3, MCFL, stderr, "Calling node_set[%d].send() ...\n",
-                    i );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling node_set[%d].send() ...\n",
+                    i ));
         if( ( *iter )->send( packet ) == -1 ) {
-            mrn_printf( 1, MCFL, stderr, "node_set.send() failed\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "node_set.send() failed\n" ));
             retval = -1;
             continue;
         }
-        mrn_printf( 3, MCFL, stderr, "node_set.send() succeeded\n" );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "node_set.send() succeeded\n" ));
     }
 
-    streammanagerbyid_sync.Lock( );
-    StreamManagerById.erase( stream_id );
-    streammanagerbyid_sync.Unlock( );
-    mrn_printf( 3, MCFL, stderr, "internal.procDelStream() succeeded\n" );
+    StreamManager::delete_StreamManagerById( stream_id );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "internal.procDelStream() succeeded\n" ));
     return 0;
 }
 
@@ -627,51 +615,56 @@ int ParentNode::proc_newApplication( Packet& packet )
     unsigned int i;
     int retval = 0;
     char *cmd;
+    char **argv;
+    unsigned int argc;
 
-    mrn_printf( 3, MCFL, stderr, "In proc_newApplication()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_newApplication()\n" ));
 
-    if( packet.ExtractArgList( "%s", &cmd ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
+    if( packet.ExtractArgList( "%s%as", &cmd, &argv, &argc ) == -1 ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList() failed\n" ));
         return -1;
     }
 
     std::list < RemoteNode * >::iterator iter;
     for( i = 0, iter = children_nodes.begin( );
          iter != children_nodes.end( ); iter++, i++ ) {
-        mrn_printf( 3, MCFL, stderr, "processing %s child: %s\n",
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "processing %s child: %s\n",
                     ( ( *iter )->is_internal( )? "internal" : "backend" ),
-                    ( *iter )->get_HostName( ).c_str( ) );
+                    ( *iter )->get_HostName( ).c_str( ) ));
         if( ( *iter )->is_internal( ) ) {
-            mrn_printf( 3, MCFL, stderr,
-                        "Calling child_node.send() ...\n" );
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
+                        "Calling child_node.send() ...\n" ));
             if( ( *iter )->send( packet ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr, "child_node.send() failed\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr, "child_node.send() failed\n" ));
                 retval = -1;
                 continue;
             }
-            mrn_printf( 3, MCFL, stderr, "child_node.send() succeeded\n" );
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "child_node.send() succeeded\n" ));
         }
         else {
             std::string cmd_str( cmd );
-            std::vector < std::string > dummy_args;
-            mrn_printf( 3, MCFL, stderr,
+            std::vector < std::string > args;
+            for(unsigned int j=0; j<argc; j++){
+                args.push_back( argv[i] );
+            }
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
                         "Calling child_node.new_application(%s) ...\n",
-                        cmd );
+                        cmd ));
             // TODO get real backend id
             if( ( *iter )->new_Application( listening_sock_fd, 
                                             hostname, port,
                                             UnknownRank,
-                                            cmd_str, dummy_args ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "child_node.new_application() failed\n" );
+                                            cmd_str, args ) == -1 ) {
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "child_node.new_application() failed\n" ));
                 retval = -1;
             }
-            mrn_printf( 3, MCFL, stderr,
-                        "child_node.new_application() succeeded\n" );
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
+                        "child_node.new_application() succeeded\n" ));
         }
     }
 
-    mrn_printf( 3, MCFL, stderr, "Leaving proc_newApplication()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Leaving proc_newApplication()\n" ));
     return retval;
 }
 
@@ -679,28 +672,28 @@ int ParentNode::proc_delApplication( Packet& packet )
 {
     unsigned int i;
     int retval = 0;
-    mrn_printf( 3, MCFL, stderr, "In proc_delApplication()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_delApplication()\n" ));
 
     std::list < RemoteNode * >::iterator iter;
     for( i = 0, iter = children_nodes.begin( );
          iter != children_nodes.end( ); iter++, i++ ) {
-        mrn_printf( 3, MCFL, stderr, "Calling downstream[%d].send() ...\n",
-                    i );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling downstream[%d].send() ...\n",
+                    i ));
         if( ( *iter )->send( packet ) == -1 ) {
-            mrn_printf( 1, MCFL, stderr, "downstream.send() failed\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "downstream.send() failed\n" ));
             retval = -1;
             continue;
         }
-        mrn_printf( 3, MCFL, stderr, "downstream.send() succeeded\n" );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "downstream.send() succeeded\n" ));
     }
 
     if( flush_PacketsDownStream( ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "flush() failed.\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "flush() failed.\n" ));
         return -1;
     }
 
-    mrn_printf( 3, MCFL, stderr,
-                "internal.sendDelApplication() succeeded.\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "internal.sendDelApplication() succeeded.\n" ));
     return 0;
 }
 
@@ -711,19 +704,19 @@ int ParentNode::proc_newFilter( Packet& packet )
     const char *so_file = NULL, *func = NULL;
     bool is_trans_filter;
 
-    mrn_printf( 3, MCFL, stderr, "In proc_newFilter()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_newFilter()\n" ));
 
     if( packet.ExtractArgList( "%uhd %s %s %c", &fid, &so_file,
                                 &func, &is_trans_filter ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList() failed\n" ));
         return -1;
     }
 
     retval = Filter::load_FilterFunc( so_file, func, is_trans_filter, fid );
 
     if( retval != ( int )fid ) {
-        mrn_printf( 1, MCFL, stderr,
-                    "Filter::load_FilterFunc() failed.\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr,
+                    "Filter::load_FilterFunc() failed.\n" ));
         return -1;
     }
 
@@ -775,8 +768,8 @@ int ParentNode::proc_getLeafInfo( Packet& pkt )
     //
     // handle the request
     if( isLeaf( ) ) {
-        mrn_printf( 3, MCFL, stderr, "leaf at %s:%u\n", hostname.c_str( ),
-                    port );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "leaf at %s:%u\n", hostname.c_str( ),
+                    port ));
 
         // build our leaf connection info arrays
         unsigned int nBEs = children_nodes.size( );
@@ -817,8 +810,8 @@ int ParentNode::proc_getLeafInfo( Packet& pkt )
         // (how it is delivered depends on what type of 
         // ParentNode we actually are)
         if( deliverLeafInfoResponse( resp ) == -1 ) {
-            mrn_printf( 1, MCFL, stderr,
-                        "failed to deliver getLeafInfo response\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr,
+                        "failed to deliver getLeafInfo response\n" ));
             ret = -1;
         }
     }
@@ -832,8 +825,8 @@ int ParentNode::proc_getLeafInfo( Packet& pkt )
             assert( child != NULL );
 
             if( ( child->send( pkt ) == -1 ) || ( child->flush( ) == -1 ) ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "failed to deliver getLeafInfo request to all children\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "failed to deliver getLeafInfo request to all children\n" ));
                 ret = -1;
                 break;
             }
@@ -894,8 +887,8 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
                                                &currParHosts, &currNumParHosts,
                                                &currParPorts, &currNumParPorts);
             if( eret == -1 ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "failed to extract data from leaf info packet\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "failed to extract data from leaf info packet\n" ));
                 ret = -1;
                 break;
             }
@@ -903,10 +896,10 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
 
             // add the new set of hosts and ports to our cumulative set
             for( unsigned int i = 0; i < currNumHosts; i++ ) {
-                mrn_printf( 3, 0, 0, stderr,
+                mrn_dbg( 3, mrn_printf(0,0,0, stderr,
                             "MRN: ParentNode: got LeafInfo: %s %s %u %u %s %u\n",
                             currHosts[i], currPorts[i], currRanks[i],
-                            currParHosts[i], currParPorts[i] );
+                            currParHosts[i], currParPorts[i] ));
                 allHosts.push_back( currHosts[i] );
                 allPorts.push_back( currPorts[i] );
                 allRanks.push_back( currRanks[i] );
@@ -941,10 +934,10 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
             parHostsArray[i] = allParHosts[i];
             parPortsArray[i] = allParPorts[i];
 
-            mrn_printf( 3, 0, 0, stderr,
+            mrn_dbg( 3, mrn_printf(0,0,0, stderr,
                         "ParNode: creating new leafinfo packet with %s %u %u %s %u\n",
                         portsArray[i], hostsArray[i], ranksArray[i],
-                        parHostsArray[i], parPortsArray[i] );
+                        parHostsArray[i], parPortsArray[i] ));
         }
 
         Packet resp( 0, PROT_GET_LEAF_INFO,
@@ -992,9 +985,9 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
     //
     // handle the request
     if( isLeaf( ) ) {
-        mrn_printf( 3, MCFL, stderr,
+        mrn_dbg( 3, mrn_printf(FLF, stderr,
                     "leaf waiting for connections at %s:%u\n",
-                    hostname.c_str( ), port );
+                    hostname.c_str( ), port ));
 
         // accept backend connections for all of our children nodes
         // this is a little tricky because our child RemoteNode objects
@@ -1042,9 +1035,9 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
             }
             assert( child != NULL );
 
-            mrn_printf( 3, MCFL, stderr,
+            mrn_dbg( 3, mrn_printf(FLF, stderr,
                         "connecting backend %u to remote node %p\n",
-                        be_rank, child );
+                        be_rank, child ));
             child->accept_Application( sock_fd );
         }
 
@@ -1058,8 +1051,8 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
             // (how it is delivered depends on what type of 
             // ParentNode we actually are)
             if( deliverConnectLeavesResponse( resp ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "failed to deliver connected leaves response\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "failed to deliver connected leaves response\n" ));
                 ret = -1;
             }
         }
@@ -1074,8 +1067,8 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
             assert( child != NULL );
 
             if( ( child->send( pkt ) == -1 ) || ( child->flush( ) == -1 ) ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "failed to deliver connectLeaves request to all children\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "failed to deliver connectLeaves request to all children\n" ));
                 ret = -1;
                 break;
             }
@@ -1107,8 +1100,8 @@ int ParentNode::proc_connectLeavesResponse( Packet& pkt )
             unsigned int currNumLeaves = 0;
             int eret = currPkt.ExtractArgList( "%ud", &currNumLeaves );
             if( eret == -1 ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "failed to extract data from connected leaves response packet\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "failed to extract data from connected leaves response packet\n" ));
                 ret = -1;
                 break;
             }
@@ -1147,7 +1140,7 @@ int ParentNode::getConnections( int **conns, unsigned int *nConns )
             RemoteNode *curNode = *iter;
             assert( curNode != NULL );
 
-            ( *conns )[i] = curNode->get_sockfd( );
+            ( *conns )[i] = curNode->get_SocketFd( );
             i++;
         }
     }
@@ -1155,6 +1148,23 @@ int ParentNode::getConnections( int **conns, unsigned int *nConns )
         ret = -1;
     }
     return ret;
+}
+
+int ParentNode::get_SocketFd(int **array, unsigned int *array_size)
+{
+    //std::list < RemoteNode * >::iterator iter;
+    unsigned int i;
+
+    *array_size = children_nodes.size();
+    *array = (int *) malloc (sizeof(int) * (*array_size) );
+
+    std::list < RemoteNode * >::iterator iter;
+    for( i = 0, iter = children_nodes.begin( );
+         iter != children_nodes.end( ); iter++, i++ ) {
+        (*array)[i] = (*iter)->get_SocketFd();
+    }
+
+	return 0;
 }
 
 }                               // namespace MRN

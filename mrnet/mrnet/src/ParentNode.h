@@ -52,9 +52,8 @@ class ParentNode: public Error {
     std::map < unsigned int, RemoteNode * >ChildNodeByRank;
     XPlat::Mutex childnodebybackendid_sync;
 
-    std::map < unsigned int, StreamManager * >StreamManagerById;
-    XPlat::Mutex streammanagerbyid_sync;
-
+    //std::map < unsigned int, StreamManager * >StreamManagerById;
+    //XPlat::Mutex streammanagerbyid_sync;
 
     virtual int deliverLeafInfoResponse( Packet& pkt ) = 0;
     virtual int deliverConnectLeavesResponse( Packet& pkt ) = 0;
@@ -101,11 +100,13 @@ class ParentNode: public Error {
 
     std::string get_HostName(  );
     Port get_Port(  );
+    int get_SocketFd(int **array, unsigned int *array_size);
     int getConnections( int **conns, unsigned int *nConns );
 };
 
 bool lt_RemoteNodePtr( RemoteNode * p1, RemoteNode * p2 );
 bool equal_RemoteNodePtr( RemoteNode * p1, RemoteNode * p2 );
+
 
 inline std::string ParentNode::get_HostName(  ) {
     return hostname;
