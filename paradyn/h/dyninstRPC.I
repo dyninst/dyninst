@@ -16,7 +16,10 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.22  1994/11/02 11:41:27  markc
+ * Revision 1.23  1994/11/03 16:05:31  rbi
+ * eliminated argc from addExecutable interface
+ *
+ * Revision 1.22  1994/11/02  11:41:27  markc
  * Incremented the version.
  *
  * Revision 1.21  1994/09/22  00:44:26  markc
@@ -85,11 +88,11 @@ int createDaemon(char *machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 19;
+    $version 20;
 
     //
     // Define a program to run. 
-    int addExecutable(int argc, String_Array argv);
+    int addExecutable(String_Array argv);
 
     //
     // Connect up with a running program (not possible on all platforms).
