@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.10  1994/05/05 02:13:29  karavan
-/* moved CmdTabEntry definition from paradyn.tcl.C to UIglobals.h
+/* Revision 1.11  1994/05/06 06:40:06  karavan
+/* added shg start command
 /*
+ * Revision 1.10  1994/05/05  02:13:29  karavan
+ * moved CmdTabEntry definition from paradyn.tcl.C to UIglobals.h
+ *
  * Revision 1.9  1994/05/02  20:38:31  hollings
  * added search pause command and shg commands.
  *
@@ -484,8 +487,8 @@ int ParadynSearchCmd (ClientData clientData,
   } else if (argc == 2) {
     limit = -1;
   } else {
-    printf("Usage: paradynd search <false|true> <int>\n");
-    printf("       paradynd search pause\n");
+    printf("Usage: paradyn search <false|true> <int>\n");
+    printf("       paradyn search pause\n");
     return TCL_ERROR;
   }
 
@@ -519,10 +522,14 @@ int ParadynSHGCmd (ClientData clientData,
 	     (node = atoi(argv[2]) > 0)) {
     sprintf(interp->result, "%d", perfConsult->setCurrentSHGnode(node));
     return TCL_OK;
+  } else if (argc == 2 && !strcmp(argv[1], "start")) {
+    perfConsult->startSHG();
+    return TCL_OK;
   } else {
-    printf("Usage: paradynd shg set <int>\n");
-    printf("       paradynd shg get\n");
-    printf("       paradynd shg reset\n");
+    printf("Usage: paradyn shg set <int>\n");
+    printf("       paradyn shg get\n");
+    printf("       paradyn shg reset\n");
+    printf("       paradyn shg start\n");
     return TCL_ERROR;
   }
 }
