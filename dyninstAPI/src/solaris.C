@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.81 1999/11/30 22:41:27 zandy Exp $
+// $Id: solaris.C,v 1.82 1999/12/09 17:41:03 zandy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1010,12 +1010,6 @@ bool process::continueProc_() {
        sysset_t scentry, scsavedentry;
        prrun_t run;
  
-#if 0
-       sprintf(errorLine,
- 	       "NOTE: Continuing a process that was sleeping in a syscall\n");
-       logLine(errorLine);
-#endif
-       
        // Restore the registers
        if (0 > ioctl(proc_fd, PIOCSREG, syscallreg)) {
 	   sprintf(errorLine,
@@ -1279,9 +1273,6 @@ bool process::pause_() {
   // we will restart the system call.
   postsyscallpc = (Address) prstatus.pr_reg[PC_REG];
 
-  sprintf(errorLine,
-	  "NOTE: paused the mutatee while it was sleeping in a system call\n");
-  logLine(errorLine);
   return 1;
 }
 
