@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.139 2003/04/20 01:00:20 schendel Exp $
+// $Id: aix.C,v 1.140 2003/04/23 22:59:43 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -632,6 +632,18 @@ bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs *)
          perror("changePC: PTT_WRITE_SPRS failed");
          return false;
       }
+      // Double check...
+      struct ptsprs spr_doublecheck;
+
+      if (P_ptrace(PTT_READ_SPRS, lwp_id_, (void *)&spr_doublecheck, 0,0) == -1) {
+         perror("changePC: PTT_READ_SPRS failed");
+         return false;
+      }
+      if (spr_doublecheck.pt_iar != loc) {
+          fprintf(stderr, "Doublecheck failed! PC at 0x%x instead of 0x%x!\n",
+                  spr_doublecheck.pt_iar, loc);
+      }
+      
    }
    return true;
 }
@@ -976,7 +988,6 @@ process *decodeProcessEvent(int pid,
             // in a few cases    
             why = procSignalled;
             what = WSTOPSIG(status);
-
             // AIX returns status information in the guise
             // of a trap. In this case, fake the info to 
             // the form we want.
@@ -987,62 +998,62 @@ process *decodeProcessEvent(int pid,
                 decodeRTSignal(proc, why, what, info);
             }
             else if (what == SIGTRAP) {
-               if(proc->childHasSignalled() && status==0x57f) {
-                  // This admittedly is a hack.  Occasionally, we'll get the
-                  // trap from the child indicating fork exit, but we'll
-                  // never get the trap from the parent indicating fork exit.
-                  // In this case though, we do appear to reliably get a trap
-                  // from the parent with an unexpected status value (0x57f).
-                  // We're using this trap as the fork event from the parent.
-                  status = W_SFWTED;
-               }
-
-               switch(status & 0x7f) {
-                 case W_SLWTED:
-                    // Load
-                    why = procSyscallExit;
-                    what = SYS_load;
-                    break;
-                 case W_SFWTED:
-                    // Fork
-                    why = procSyscallExit;
-                    what = SYS_fork;
-                    
-                    if (proc) {
-                       // We're the parent, since the child doesn't have a
-                       // process object
-                       int childPid = proc->childHasSignalled();
-                       if (childPid) {
+                if(proc->childHasSignalled() && status==0x57f) {
+                    // This admittedly is a hack.  Occasionally, we'll get the
+                    // trap from the child indicating fork exit, but we'll
+                    // never get the trap from the parent indicating fork exit.
+                    // In this case though, we do appear to reliably get a trap
+                    // from the parent with an unexpected status value (0x57f).
+                    // We're using this trap as the fork event from the parent.
+                    status = W_SFWTED;
+                }
+                
+                switch(status & 0x7f) {
+              case W_SLWTED:
+                  // Load
+                  why = procSyscallExit;
+                  what = SYS_load;
+                  break;
+              case W_SFWTED:
+                  // Fork
+                  why = procSyscallExit;
+                  what = SYS_fork;
+                  
+                  if (proc) {
+                      // We're the parent, since the child doesn't have a
+                      // process object
+                      int childPid = proc->childHasSignalled();
+                      if (childPid) {
                           info = childPid;
                           // successfully noticed a fork (both parent and
                           // child), reset state variables this allows
                           // successive forks to work
                           proc->setChildHasSignalled(0);
                           proc->setParentHasSignalled(0);
-                       }
-                       else {
+                      }
+                      else {
                           // Haven't seen the child yet, so 
                           // discard this signal. We'll use the child
                           // trap to begin fork handling
                           proc->setParentHasSignalled(result);
-                       }
-                    }
-                    else {
-                       // Child-side. See if the parent has trapped yet.
-                       // Uh... who is our parent?
-                       struct procsinfo psinfo;
-                       pid_t temp_child_pid = result;
-                       if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
-                           == -1) {
+                      }
+                  }
+                  else {
+                      // Child-side. See if the parent has trapped yet.
+                      // Uh... who is our parent?
+                      struct procsinfo psinfo;
+                      pid_t temp_child_pid = result;
+                      if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
+                          == -1) {
                           assert(false);
                           return false;
-                       }
-                       
-                       assert((pid_t)psinfo.pi_pid == result);
-                       
-                       int parentPid = psinfo.pi_ppid;
-                       process *parent = process::findProcess(parentPid);
-                       if (parent->parentHasSignalled()) {
+                      }
+                      
+                      assert((pid_t)psinfo.pi_pid == result);
+                      
+                      int parentPid = psinfo.pi_ppid;
+                      process *parent = process::findProcess(parentPid);
+                      if (parent->parentHasSignalled()) {
                           // Parent trap was already hit, so do the work here
                           proc = parent;
                           info = result;
@@ -1062,6 +1073,8 @@ process *decodeProcessEvent(int pid,
                     what = SYS_exec;
                     break;
                  default:                  
+                     // Check to see if we've hit a "system call" trap
+                     
                     break;
                }
             }
@@ -1076,7 +1089,10 @@ process *decodeProcessEvent(int pid,
         // Possible the process exited but we weren't aware of
         // it yet.
         proc = NULL;
-        perror("waitpid");
+        // If the errno is ECHILD we don't have any children. This
+        // is acceptable -- so don't print tons of error messages
+        if (errno != ECHILD) 
+            perror("waitpid");
     }
 
     return proc;
@@ -1359,17 +1375,30 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
     stop_();     //Send the process a SIGSTOP
-    
     bool isStopped = false;
     int waitStatus;
+    int loops = 0;
     while (!isStopped) {
         procSignalWhy_t why;
         procSignalWhat_t what;
         procSignalInfo_t info;
         if(hasExited()) false;
-        process *proc = decodeProcessEvent(pid, why, what, info, true);
+        if (loops == 2000) {
+            // Resend sigstop...
+            stop_();
+            loops = 0;
+        }
+        
+        process *proc = decodeProcessEvent(pid, why, what, info, false);
         assert(proc == NULL ||
                proc == this);
+
+        if (proc == NULL) {
+            loops++;
+            usleep(10);
+            continue;
+        }
+        
         if (didProcReceiveSignal(why) &&
             what == SIGSTOP) {
             isStopped = true;
@@ -1691,24 +1720,146 @@ Address dyn_lwp::readRegister(Register returnValReg)
 }
 
 syscallTrap *process::trapSyscallExitInternal(Address syscall) {
-    // Don't support trapping syscalls here yet, sorry
+    syscallTrap *trappedSyscall = NULL;
+
+    // HACK for catchup only
+    if (syscall == 0) return NULL;
+    
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (syscallTraps_[iter]->syscall_id == syscall) {
+            trappedSyscall = syscallTraps_[iter];
+            break;
+        }
+    }
+    if (trappedSyscall) {
+        trappedSyscall->refcount++;
+        return trappedSyscall;
+    }
+    else {
+        // Add a trap at this address, please
+        trappedSyscall = new syscallTrap;
+        trappedSyscall->refcount = 1;
+        trappedSyscall->syscall_id = syscall;
+        readDataSpace( (void*)syscall, sizeof(instruction), trappedSyscall->saved_insn, true);
+
+        instruction insnTrap;
+        generateBreakPoint(insnTrap);
+        writeDataSpace((void *)syscall, sizeof(instruction), &(insnTrap.raw));
+        syscallTraps_.push_back(trappedSyscall);
+        
+        return trappedSyscall;
+    }
+    // Should never be reached
     return NULL;
 }
 
 bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
-    assert(0 && "Unimplemented");
+    // Decrement the reference count, and if it's 0 remove the trapped
+    // system call
+    assert(trappedSyscall->refcount > 0);
+    
+    trappedSyscall->refcount--;
+    if (trappedSyscall->refcount > 0)
+        return true;
+    
+    // Erk... we hit 0. Undo the trap
+    if (!writeDataSpace((void *)trappedSyscall->syscall_id, sizeof(instruction),
+                        trappedSyscall->saved_insn))
+        return false;
+    // Now that we've reset the original behavior, remove this
+    // entry from the vector
+
+    pdvector<syscallTrap *> newSyscallTraps;
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (trappedSyscall != syscallTraps_[iter])
+            newSyscallTraps.push_back(syscallTraps_[iter]);
+    }
+    syscallTraps_ = newSyscallTraps;
+
+    delete trappedSyscall;
     return true;
 }
 
-Address dyn_lwp::getCurrentSyscall() {
-    return 0;
-}
 
+Address dyn_lwp::getCurrentSyscall(Address aixHACK) {
+    // We've been given the address of a return point in the function.
+    // Get and return the return address
+    if (!aixHACK || aixHACK == -1) return 0;
+
+    pd_Function *func = proc_->findFuncByAddr(aixHACK);
+    if (!func) {
+        return 0;
+    }
+
+    pdvector<instPoint *> funcExits = func->funcExits(proc());
+    // Only one exit on AIX
+    if (funcExits.size() != 1) {
+        return 0;
+    }
+    
+    trampTemplate *baseTramp = NULL;
+    // [] operator defines if it can't find the data -- that's BAD
+    proc()->baseMap.find(funcExits[0],baseTramp);
+    
+    if (!baseTramp) {
+        // Okay... we need a base tramp to insert the breakpoint at,
+        // but there's no base tramp there. So insert one (man, this
+        // is getting complicated)
+        returnInstance *retInstance = NULL;
+        bool defer;
+        baseTramp = findAndInstallBaseTramp(proc_,
+                                            funcExits[0],
+                                            retInstance,
+                                            false,
+                                            false,
+                                            defer);
+        if (!retInstance) return 0;
+        if (!baseTramp) return 0;
+        retInstance->installReturnInstance(proc_);
+
+        // But it gets worse :) since we need to fix up the return address
+        // to go to our new tramp as well... copy code from catchup side effect
+        // fixes
+        pdvector<Frame> stackwalk;
+        walkStack(stackwalk);
+        int i = 0;
+        while (stackwalk[i].getPC() != aixHACK) i++;
+        
+        // Frame won't be uppermost...
+        Frame parentFrame = stackwalk[i].getCallerFrame(proc());
+        Address oldReturnAddr;
+                
+        // Here's the fun bit. We actually store the LR in the parent's frame. So 
+        // we need to backtrace a bit.
+        proc()->readDataSpace((void *)(parentFrame.getFP()+8), sizeof(Address), &oldReturnAddr, false);
+        
+        if (oldReturnAddr != baseTramp->baseAddr) {
+            // Write it into the save slot
+            proc()->writeDataSpace((void*)(parentFrame.getFP()+8), sizeof(Address), &(baseTramp->baseAddr));
+            proc()->writeDataSpace((void*)(parentFrame.getFP()+12), sizeof(Address), &oldReturnAddr);
+        }
+    }
+    return baseTramp->baseAddr;
+}
+// Assumes we've stopped at a noop
 bool dyn_lwp::stepPastSyscallTrap() {
-    return false;
+    Frame frame = getActiveFrame();
+    
+    return changePC(frame.getPC() + sizeof(instruction), NULL);
 }
 
 int dyn_lwp::hasReachedSyscallTrap() {
+    
+    Frame frame = getActiveFrame();
+    if (frame.getPC() == -1)
+        return 0;
+    if (trappedSyscall_ && frame.getPC() == trappedSyscall_->syscall_id) {
+        return 2;
+    }
+    if (proc()->checkTrappedSyscallsInternal(frame.getPC())) {
+        return 1;
+    }
+    
     return 0;
 }
 
@@ -2201,58 +2352,58 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
     isLeaf = instFunc->makesNoCalls();
   
   if (frame.isLastFrame())
-    return false;
+      return false;
   Frame parentFrame = frame.getCallerFrame(this);
   Address oldReturnAddr;
-
+  
   if (isLeaf) {
-    // Stomp the LR
-    if (frame.getLWP()) {
-      // LWP method
-      struct ptsprs spr_contents;
-      Address oldLR;
-      if (P_ptrace(PTT_READ_SPRS, frame.getLWP()->get_lwp_id(),
-                   (int *)&spr_contents, 0, 0) == -1) {
-	perror("Failed to read SPRS in catchupSideEffect");
-	return false;
+      // Stomp the LR
+      if (frame.getLWP()) {
+          // LWP method
+          struct ptsprs spr_contents;
+          Address oldLR;
+          if (P_ptrace(PTT_READ_SPRS, frame.getLWP()->get_lwp_id(),
+                       (int *)&spr_contents, 0, 0) == -1) {
+              perror("Failed to read SPRS in catchupSideEffect");
+              return false;
+          }
+          oldReturnAddr = spr_contents.pt_lr;
+          spr_contents.pt_lr = (unsigned) exitTrampAddr;
+          if (P_ptrace(PTT_WRITE_SPRS, frame.getLWP()->get_lwp_id(),
+                       (int *)&spr_contents, 0, 0) == -1) {
+              perror("Failed to write SPRS in catchupSideEffect");
+              return false;
+          }
       }
-      oldReturnAddr = spr_contents.pt_lr;
-      spr_contents.pt_lr = (unsigned) exitTrampAddr;
-      if (P_ptrace(PTT_WRITE_SPRS, frame.getLWP()->get_lwp_id(),
-                   (int *)&spr_contents, 0, 0) == -1) {
-	perror("Failed to write SPRS in catchupSideEffect");
-	return false;
+      else {
+          // Old method
+          oldReturnAddr = P_ptrace(PT_READ_GPR, pid, (void *)LR, 0, 0);
+          if (oldReturnAddr == -1)
+          {
+              perror("Failed to read LR in catchupSideEffect");
+          }
+          if (P_ptrace(PT_WRITE_GPR, pid, (void *)LR, exitTrampAddr, 0) == -1) {
+              perror("Failed to write LR in catchupSideEffect");
+              return false;
+          }
       }
-    }
-    else {
-      // Old method
-      oldReturnAddr = P_ptrace(PT_READ_GPR, pid, (void *)LR, 0, 0);
-      if (oldReturnAddr == -1)
-	{
-	  perror("Failed to read LR in catchupSideEffect");
-	}
-      if (P_ptrace(PT_WRITE_GPR, pid, (void *)LR, exitTrampAddr, 0) == -1) {
-	perror("Failed to write LR in catchupSideEffect");
-	return false;
-      }
-    }
   }
   else {    
-    // Here's the fun bit. We actually store the LR in the parent's frame. So 
-    // we need to backtrace a bit.
-    readDataSpace((void *)(parentFrame.getFP()+8), sizeof(Address), &oldReturnAddr, false);
-    if (oldReturnAddr == exitTrampAddr) {
-      // We must've already overwritten the link register, so we're fine 
-      return true;
-    }
-    else { 
-      // Write it into the save slot
-      writeDataSpace((void*)(parentFrame.getFP()+8), sizeof(Address), &exitTrampAddr);
-    }
+      // Here's the fun bit. We actually store the LR in the parent's frame. So 
+      // we need to backtrace a bit.
+      readDataSpace((void *)(parentFrame.getFP()+8), sizeof(Address), &oldReturnAddr, false);
+      if (oldReturnAddr == exitTrampAddr) {
+          // We must've already overwritten the link register, so we're fine 
+          return true;
+      }
+      else { 
+          // Write it into the save slot
+          writeDataSpace((void*)(parentFrame.getFP()+8), sizeof(Address), &exitTrampAddr);
+      }
   }
   writeDataSpace((void*)(parentFrame.getFP()+12), sizeof(Address), &oldReturnAddr);
   return true;
-
+  
 }
 #endif
 
