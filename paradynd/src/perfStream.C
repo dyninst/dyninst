@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.4 1994/03/20 01:53:10 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.5 1994/03/26 20:50:49 jcargill Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.4  1994/03/20 01:53:10  markc
+ * Revision 1.5  1994/03/26 20:50:49  jcargill
+ * Changed the pause/continue code.  Now it really stops, instead of
+ * spin looping.
+ *
+ * Revision 1.4  1994/03/20  01:53:10  markc
  * Added a buffer to each process structure to allow for multiple writers on the
  * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
  * int.
@@ -277,10 +281,15 @@ int handleSigChild(int pid, int status)
 	    case SIGSTOP:
 		printf("CONTROLLER: Breakpoint reached\n");
 		curr->status = stopped;
-		/* force it into the stoped signal handler */
-		ptrace(PTRACE_CONT, pid, (char*)1, SIGPROF, 0);
-		/* pause the rest of the application */
+
+		// The Unix process should be stopped already, 
+		// since it's blocked on ptrace and we didn't forward
+		// received the SIGSTOP...
+		// But we need to pause the rest of the application
 		pauseApplication(); 
+
+		/* force it into the stoped signal handler */
+		// ptrace(PTRACE_CONT, pid, (char*)1, SIGPROF, 0);
 		break;
 
 	    case SIGIOT:

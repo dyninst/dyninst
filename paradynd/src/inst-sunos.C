@@ -3,7 +3,11 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.3  1994/03/22 21:03:14  hollings
+ * Revision 1.4  1994/03/26 20:50:47  jcargill
+ * Changed the pause/continue code.  Now it really stops, instead of
+ * spin looping.
+ *
+ * Revision 1.3  1994/03/22  21:03:14  hollings
  * Made it possible to add new processes (& paradynd's) via addExecutable.
  *
  * Revision 1.2  1994/03/20  01:53:07  markc
@@ -17,7 +21,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.3 1994/03/22 21:03:14 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.4 1994/03/26 20:50:47 jcargill Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,26 +101,21 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     int ret;
     int sig;
     int status;
-    int stopped;
+    int isStopped, wasStopped;
     extern int errno;
-
-    if (request == PTRACE_INTERRUPT) {
-	request = PTRACE_CONT;
-	data = SIGPROF;
-    } else if (request == PTRACE_CONT) {
-	data = SIGUSR1;
-    }
 
     if (proc->status == exited) {
         printf("attempt to ptrace exited process %d\n", proc->pid);
         return(-1);
     }
-
-    if (proc->status != neonatal && request != PTRACE_DUMPCORE) {
+	
+    wasStopped = (proc->status == stopped);
+    if (proc->status != neonatal && !wasStopped && 
+	request != PTRACE_DUMPCORE) {
 	/* make sure the process is stopped in the eyes of ptrace */
 	kill(proc->pid, SIGSTOP);
-	stopped = 0;
-	while (!stopped) {
+	isStopped = 0;
+	while (!isStopped) {
 	    ret = waitpid(proc->pid, &status, WUNTRACED);
 	    if ((ret == -1 && errno == ECHILD) || (WIFEXITED(status))) {
 		// the child is gone.
@@ -129,7 +128,7 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 	    }
 	    sig = WSTOPSIG(status);
 	    if (sig == SIGSTOP) {
-		stopped = 1;
+		isStopped = 1;
 	    } else {
 		ptrace(PTRACE_CONT, proc->pid,(char*)1, WSTOPSIG(status),0);
 	    }
@@ -141,7 +140,8 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     ret = ptrace(request, proc->pid,(char*) addr, data, (char*) addr2);
     assert(errno == 0);
 
-    if ((proc->status != neonatal) && (request != PTRACE_CONT)) {
+    if ((proc->status != neonatal) && (request != PTRACE_CONT) &&
+	(!wasStopped)) {
 	(void) ptrace(PTRACE_CONT, proc->pid,(char*) 1, SIGCONT, (char*) 0);
     }
     errno = 0;

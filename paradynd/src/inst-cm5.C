@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.2 1994/03/22 21:03:13 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.3 1994/03/26 20:50:41 jcargill Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.2  1994/03/22 21:03:13  hollings
+ * Revision 1.3  1994/03/26 20:50:41  jcargill
+ * Changed the pause/continue code.  Now it really stops, instead of
+ * spin looping.
+ *
+ * Revision 1.2  1994/03/22  21:03:13  hollings
  * Made it possible to add new processes (& paradynd's) via addExecutable.
  *
  * Revision 1.1  1994/01/27  20:31:20  hollings
@@ -622,25 +626,6 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     int scalarPid;
     struct regs regs;
 
-    /* hack for node processes */
-    if (request == PTRACE_INTERRUPT) {
-	if (proc->pid < MAXPID) {
-	    /* pause the process in the signal handler */
-	    request = PTRACE_CONT;
-	    data = SIGPROF;
-	} else {
-	    request = PTRACE_INTERRUPT;
-	    data = 0;
-	}
-    } else if (request == PTRACE_CONT) {
-	if (proc->pid < MAXPID) {
-	    /* get the process out of the pause signal handler */
-	    data = SIGUSR1;
-	} else {
-	    data = 0;
-	}
-    }
-
     if (proc->status == exited) {
 	printf("attempt to ptrace exited process %d\n", proc->pid);
 	return(-1);
@@ -663,15 +648,16 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 	/* normal process */
 	int sig;
 	int status;
-	int stopped;
+	int isStopped, wasStopped;
 	extern int errno;
 
-	if (proc->status != neonatal && 
+	wasStopped = (proc->status == stopped);
+	if (proc->status != neonatal && !wasStopped &&
 	    request != PTRACE_DUMPCORE) {
 	    /* make sure the process is stopped in the eyes of ptrace */
 	    kill(proc->pid, SIGSTOP);
-	    stopped = 0;
-	    while (!stopped) {
+	    isStopped = 0;
+	    while (!isStopped) {
 		ret = waitpid(proc->pid, &status, WUNTRACED);
 		if ((ret == -1 && errno == ECHILD) || (WIFEXITED(status))) {
 		    // the child is gone.
@@ -684,7 +670,7 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 		}
 		sig = WSTOPSIG(status);
 		if (sig == SIGSTOP) {
-		    stopped = 1;
+		    isStopped = 1;
 		} else {
 		    ptrace(PTRACE_CONT, proc->pid,(char*)1, WSTOPSIG(status),0);
 		}
@@ -695,7 +681,9 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 	errno = 0;
 	ret = ptrace(request, proc->pid,(char*) addr, data, (char*) addr2);
 	assert(errno == 0);
-	if ((proc->status != neonatal) && (request != PTRACE_CONT)) {
+
+	if ((proc->status != neonatal) && (request != PTRACE_CONT) &&
+	    (!wasStopped)) {
 	    (void) ptrace(PTRACE_CONT, proc->pid,(char*) 1, SIGCONT, (char*) 0);
 	}
 	errno = 0;
