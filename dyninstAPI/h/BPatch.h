@@ -72,7 +72,8 @@ typedef void (*BPatchForkCallback)(BPatch_thread *parent, BPatch_thread *child);
 
 typedef void (*BPatchExecCallback)(BPatch_thread *proc);
 
-typedef void (*BPatchExitCallback)(BPatch_thread *proc, int code);
+typedef void (*BPatchExitCallback)(BPatch_thread *proc,
+                                   BPatch_exitType exit_type);
 
 typedef void (*BPatchSignalCallback)(BPatch_thread *proc, int sigNum);
 
@@ -153,7 +154,8 @@ public:
     void registerForkedThread(int parentPid, int childPid, process *proc);
     void registerForkingThread(int forkingPid, process *proc);
     void registerExec(BPatch_thread *thread);
-    void registerExit(BPatch_thread *thread, int code);
+    void registerNormalExit(BPatch_thread *thread, int exitcode);
+    void registerSignalExit(BPatch_thread *thread, int signalnum);
     void registerThread(BPatch_thread *thread);
     void unRegisterThread(int pid);
     void launchDeferredOneTimeCode();
