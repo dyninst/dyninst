@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.2  1994/03/20 01:53:11  markc
+ * Revision 1.3  1994/03/31 01:58:33  markc
+ * Extended arguments to createProcess.
+ *
+ * Revision 1.2  1994/03/20  01:53:11  markc
  * Added a buffer to each process structure to allow for multiple writers on the
  * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
  * int.
@@ -79,7 +82,7 @@ struct processRec {
 
 extern List<process*> processList;
 
-process *createProcess(char *file, char *argv[]);
+process *createProcess(char *file, char *argv[], int nenv, char *envp[]);
 process *allocateProcess(int pid, char *name);
 process *findProcess(int pid);
 void initInferiorHeap(process *proc, Boolean globalHeap);
