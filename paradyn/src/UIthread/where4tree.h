@@ -44,7 +44,7 @@
 
 // Header file for subtree based on where4.fig [and where5.fig]
 
-/* $Id: where4tree.h,v 1.15 2000/07/28 17:22:07 pcroth Exp $ */
+/* $Id: where4tree.h,v 1.16 2001/02/12 14:53:06 wxd Exp $ */
 
 // This class is sort of a placeholder.  It has variables to find out who
 // is expanded and who isn't; it maintains the tree layout.
@@ -433,6 +433,12 @@ class where4tree {
    void toggle_highlight() {
       theNodeData.toggle_highlight();
    }
+   void set_highlight(bool ishighlight)
+   {
+	if (ishighlight)
+		highlight();
+	else unhighlight();
+   }
 
    bool selectUnSelectFromFullPathName(const char *name, bool selectFlag);
       // returns true iff found.  char * is used instead of string because
@@ -441,6 +447,28 @@ class where4tree {
    vector<const NODEDATA *> getSelections() const;
 
    void recursiveClearSelections();
+
+private:
+	vector<where4tree<NODEDATA> *>	shadow_nodes;
+	whereNodePosRawPath	primary_path;
+public:
+	void addShadowNode(where4tree<NODEDATA> *shadow_node) {
+		shadow_nodes += shadow_node;
+		shadow_node->setPrimaryPath(getPrimaryPath());
+	}
+	void setPrimaryPath(whereNodePosRawPath _path,int child_index) {
+		primary_path = _path;
+		primary_path.append(child_index);
+	}
+	void setPrimaryPath(whereNodePosRawPath _path) {
+		primary_path = _path;
+	}
+	whereNodePosRawPath	getPrimaryPath() { return primary_path;}
+	bool	isPrimary()
+	{
+		return (shadow_nodes.size() > 0);
+	}
+	vector<where4tree<NODEDATA> *>  &getShadowNodes() { return shadow_nodes;}
 };
 
 #endif
