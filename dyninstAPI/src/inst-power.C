@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.117 2001/12/09 02:41:24 gaburici Exp $
+ * $Id: inst-power.C,v 1.118 2001/12/14 17:57:01 gaburici Exp $
  */
 
 #include "common/h/headers.h"
@@ -2552,7 +2552,7 @@ static inline void emitAddOriginal(Register src, Register acc,
 
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(AddrSpec as, Register dest, char* baseInsn,
+void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 		Address &base, bool noCost)
 {
   //instruction *insn = (instruction *) ((void*)&baseInsn[base]);

@@ -2,12 +2,12 @@
 #define _MemoryAccess_h_
 
 /* This is believed to be machine independent, modulo register numbers of course */
-struct AddrSpec
+struct BPatch_addrSpec_NP
 {
   int imm;      // immediate
   int regs[2];  // registers: -1 means none, 0 is 1st, 1 is 2nd and so on
 public:
-  AddrSpec(int _imm, int _ra = -1, int _rb = -1)
+  BPatch_addrSpec_NP(int _imm, int _ra = -1, int _rb = -1)
     :  imm(_imm)
   {
     regs[0] = _ra;
@@ -17,7 +17,7 @@ public:
   int getImm() const { return imm; }
   int getReg(unsigned i) const { return regs[i]; }
 
-  bool equals(const AddrSpec& ar) const
+  bool equals(const BPatch_addrSpec_NP& ar) const
   {
     return
       (imm == ar.imm) &&
@@ -26,13 +26,13 @@ public:
   }
 };
 
-#define CountSpec AddrSpec // right now it has the same form
+#define BPatch_countSpec_NP BPatch_addrSpec_NP // right now it has the same form
 
-class MemoryAccess;
+class BPatch_memoryAccess;
 extern void initOpCodeInfo();
 
-/* This is believed to be machine independent, modulo register numbers of course */
-class MemoryAccess
+
+class BPatch_memoryAccess
 {
   friend class BPatch_function;
   friend class AstNode;
@@ -41,14 +41,9 @@ class MemoryAccess
   bool isStore;
   bool isPrefetch;
 
-  AddrSpec start;
-  CountSpec count;
+  BPatch_addrSpec_NP start;
+  BPatch_countSpec_NP count;
   short preFcn; // prefetch function, currently the codes on SPARC (-1 = none)
-
-  bool isALoad_NP() { return isLoad; }
-  bool isAStore_NP() { return isStore; }
-  bool isAPrefetch_NP() { return isPrefetch; }
-  short prefetchType_NP() { return preFcn; }
 
 protected:
   bool isALoad() { return isLoad; }
@@ -56,26 +51,26 @@ protected:
   bool isAPrefetch() { return isPrefetch; }
   short prefetchType() { return preFcn; }
 
-  AddrSpec getStartAddr() const { return start; }
-  CountSpec getByteCount() const { return count; }
+  BPatch_addrSpec_NP getStartAddr() const { return start; }
+  BPatch_countSpec_NP getByteCount() const { return count; }
 
 public:
-  static const MemoryAccess none;
+  static const BPatch_memoryAccess none;
 
-  MemoryAccess(bool _isLoad, bool _isStore, unsigned int _bytes,
+  BPatch_memoryAccess(bool _isLoad, bool _isStore, unsigned int _bytes,
 	       int _imm, int _ra, int _rb)
     : isLoad(_isLoad), isStore(_isStore), isPrefetch(false),
       start(_imm, _ra, _rb), count(_bytes), preFcn(-1)
   {} // this one exists for historical reasons (i.e. I'm lazy to rewrite)
 
-  MemoryAccess(bool _isLoad, bool _isStore)
+  BPatch_memoryAccess(bool _isLoad, bool _isStore)
     : isLoad(_isLoad), isStore(_isStore), start(0), count(0)
   {
     // initialize the op table here (if any exists on a given platform).
     initOpCodeInfo();
   }
 
-  MemoryAccess(bool _isLoad, bool _isStore,
+  BPatch_memoryAccess(bool _isLoad, bool _isStore,
 	       int _imm_s, int _ra_s, int _rb_s,
 	       int _imm_c, int _ra_c, int _rb_c)
     : isLoad(_isLoad), isStore(_isStore), isPrefetch(false),
@@ -83,7 +78,7 @@ public:
       preFcn(-1)
   {}
 
-  MemoryAccess(bool _isLoad, bool _isStore, bool _isPrefetch,
+  BPatch_memoryAccess(bool _isLoad, bool _isStore, bool _isPrefetch,
 	       int _imm_s, int _ra_s, int _rb_s,
 	       int _imm_c, int _ra_c, int _rb_c,
                unsigned short _preFcn)
@@ -92,9 +87,9 @@ public:
       preFcn(_preFcn)
     {}
 
-  bool equals(const MemoryAccess* mp) const { return equals(*mp); }
+  bool equals(const BPatch_memoryAccess* mp) const { return equals(*mp); }
 
-  bool equals(const MemoryAccess& rp) const
+  bool equals(const BPatch_memoryAccess& rp) const
   {
     return
       (isLoad == rp.isLoad) &&
@@ -105,7 +100,12 @@ public:
       (preFcn == rp.preFcn);
   }
 
-  AddrSpec getStartAddr_NP() const { return start; }
-  CountSpec getByteCount_NP() const { return count; }
+  BPatch_addrSpec_NP getStartAddr_NP() const { return start; }
+  BPatch_countSpec_NP getByteCount_NP() const { return count; }
+  bool isALoad_NP() { return isLoad; }
+  bool isAStore_NP() { return isStore; }
+  bool isAPrefetch_NP() { return isPrefetch; }
+  short prefetchType_NP() { return preFcn; }
+
 };
 #endif

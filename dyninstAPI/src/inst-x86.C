@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.97 2001/11/28 22:31:32 gaburici Exp $
+ * $Id: inst-x86.C,v 1.98 2001/12/14 17:57:02 gaburici Exp $
  */
 
 #include <iomanip.h>
@@ -2303,7 +2303,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 #ifdef BPATCH_LIBRARY
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(AddrSpec as, Register dest, char* baseInsn,
+void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 		Address &base, bool noCost)
 {
   // TODO ...

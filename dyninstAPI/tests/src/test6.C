@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.3 2001/12/09 02:41:25 gaburici Exp $
+// $Id: test6.C,v 1.4 2001/12/14 17:57:03 gaburici Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -145,10 +145,10 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
   bpthr->insertSnippet(listXXXCall, *res);
 }
 
-#define MK_LD(imm, rs1, rs2, bytes) (new MemoryAccess(true, false, (bytes), (imm), (rs1), (rs2)))
-#define MK_ST(imm, rs1, rs2, bytes) (new MemoryAccess(false, true, (bytes), (imm), (rs1), (rs2)))
-#define MK_LS(imm, rs1, rs2, bytes) (new MemoryAccess(true, true, (bytes), (imm), (rs1), (rs2)))
-#define MK_PF(imm, rs1, rs2, f) (new MemoryAccess(false, false, true, \
+#define MK_LD(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2)))
+#define MK_ST(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(false, true, (bytes), (imm), (rs1), (rs2)))
+#define MK_LS(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(true, true, (bytes), (imm), (rs1), (rs2)))
+#define MK_PF(imm, rs1, rs2, f) (new BPatch_memoryAccess(false, false, true, \
                                                   (imm), (rs1), (rs2), \
                                                    0, -1, -1, (f)))
 
@@ -160,9 +160,9 @@ const unsigned int nstores = 13;
 const unsigned int nprefes = 2;
 const unsigned int naxses = 26;
 
-MemoryAccess* loadList[nloads];
-MemoryAccess* storeList[nstores];
-MemoryAccess* prefeList[nprefes];
+BPatch_memoryAccess* loadList[nloads];
+BPatch_memoryAccess* storeList[nstores];
+BPatch_memoryAccess* prefeList[nprefes];
 
 void init_test_data()
 {
@@ -218,9 +218,9 @@ const unsigned int nstores = 32;
 const unsigned int nprefes = 0;
 const unsigned int naxses = 73;
 
-MemoryAccess* loadList[nloads];
-MemoryAccess* storeList[nstores];
-MemoryAccess* prefeList[nprefes];
+BPatch_memoryAccess* loadList[nloads];
+BPatch_memoryAccess* storeList[nstores];
+BPatch_memoryAccess* prefeList[nprefes];
 
 void init_test_data()
 {
@@ -263,7 +263,7 @@ void init_test_data()
 
   loadList[++k] = MK_LD(-76, 1, -1, 76);  // l27
   loadList[++k] = MK_LD(0, 4, -1, 24);
-  loadList[++k] = new MemoryAccess(true, false,
+  loadList[++k] = new BPatch_memoryAccess(true, false,
 				   0, 1, 9,
 				   0, 9999, -1); // 9999 means XER_25:31
 
@@ -312,7 +312,7 @@ void init_test_data()
   storeList[++k] = MK_ST(-76, 1, -1, 76);
   storeList[++k] = MK_ST(0, 4, -1, 20);
 
-  storeList[++k] = new MemoryAccess(false, true,
+  storeList[++k] = new BPatch_memoryAccess(false, true,
 				    0, 1, 9,
 				    0, 9999, -1); // 9999 means XER_25:31
 
@@ -367,16 +367,16 @@ void init_test_data()
                              printf("%s: %d\n", msg, res->size()); \
                              for(unsigned int i=0; i<res->size(); ++i) { \
                                BPatch_point *bpp = (*res)[i]; \
-                               const MemoryAccess* ma = bpp->getMemoryAccess(); \
-                               const AddrSpec& as = ma->getStartAddr_NP(); \
-                               const CountSpec& cs = ma->getByteCount_NP(); \
+                               const BPatch_memoryAccess* ma = bpp->getMemoryAccess(); \
+                               const BPatch_addrSpec_NP& as = ma->getStartAddr_NP(); \
+                               const BPatch_countSpec_NP& cs = ma->getByteCount_NP(); \
                                printf("%s[%d]: @[r%d+r%d+%d] #[r%d+r%d+%d]\n", msg, i+1, \
                                       as.getReg(0), as.getReg(1), as.getImm(), \
                                       cs.getReg(0), cs.getReg(1), cs.getImm()); \
                              } \
                            }
 
-bool validate(BPatch_Vector<BPatch_point*>* res, MemoryAccess* acc[], char* msg)
+bool validate(BPatch_Vector<BPatch_point*>* res, BPatch_memoryAccess* acc[], char* msg)
 {
   bool ok = true;
 

@@ -96,9 +96,9 @@ void initOpCodeInfo()
 }
 
 /* NOT yet implemented. */
-MemoryAccess isLoadOrStore(const instruction i)
+BPatch_memoryAccess isLoadOrStore(const instruction i)
 {
-  return MemoryAccess::none;
+  return BPatch_memoryAccess::none;
 }
 
 //Address Handle used by flowGraph which wraps the instructions

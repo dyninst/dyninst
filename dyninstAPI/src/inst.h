@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.62 2001/11/28 05:44:12 gaburici Exp $
+// $Id: inst.h,v 1.63 2001/12/14 17:57:02 gaburici Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -246,7 +246,7 @@ void     emitImm(opCode op, Register src, RegValue src2imm, Register dst,
                 char *insn, Address &base, bool noCost);
 
 #ifdef BPATCH_LIBRARY
-void emitASload(AddrSpec as, Register dest, char* baseInsn,
+void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 		Address &base, bool noCost);
 
 #define emitCSload emitASload

@@ -1,3 +1,3 @@
 #include <BPatch_memoryAccess_NP.h>
 
-const MemoryAccess MemoryAccess::none = MemoryAccess(false, false);
+const BPatch_memoryAccess BPatch_memoryAccess::none = BPatch_memoryAccess(false, false);

@@ -57,7 +57,7 @@
  * Private constructor
  */
 BPatch_point::BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
-	     BPatch_procedureLocation _pointType, MemoryAccess* _ma) :
+	     BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma) :
   // Note: MIPSPro compiler complains about redefinition of default argument
   proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma)
 {

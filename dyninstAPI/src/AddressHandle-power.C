@@ -86,11 +86,11 @@ bool isAnneal(const instruction /*i*/){
         return true;
 }
 
-#define MK_LD1(bytes, imm, ra) (MemoryAccess(true, false, (bytes), (imm), (ra), -1))
-#define MK_SD1(bytes, imm, ra) (MemoryAccess(false, true, (bytes), (imm), (ra), -1))
+#define MK_LD1(bytes, imm, ra) (BPatch_memoryAccess(true, false, (bytes), (imm), (ra), -1))
+#define MK_SD1(bytes, imm, ra) (BPatch_memoryAccess(false, true, (bytes), (imm), (ra), -1))
 
-#define MK_LX1(bytes, ra, rb) (MemoryAccess(true, false, (bytes), 0, (ra), (rb)))
-#define MK_SX1(bytes, ra, rb) (MemoryAccess(false, true, (bytes), 0, (ra), (rb)))
+#define MK_LX1(bytes, ra, rb) (BPatch_memoryAccess(true, false, (bytes), 0, (ra), (rb)))
+#define MK_SX1(bytes, ra, rb) (BPatch_memoryAccess(false, true, (bytes), 0, (ra), (rb)))
 
 #define MK_LD(bytes, i) (MK_LD1((bytes), i.dform.d_or_si, (signed)i.dform.ra))
 #define MK_SD(bytes, i) (MK_SD1((bytes), i.dform.d_or_si, (signed)i.dform.ra))
@@ -186,7 +186,7 @@ void initOpCodeInfo()
 #define logIS_A(x) 
 //#define logIS_A(x) logLine((x))
 
-MemoryAccess isLoadOrStore(const instruction i)
+BPatch_memoryAccess isLoadOrStore(const instruction i)
 {
   int op = i.dform.op;
   int  b;
@@ -241,7 +241,7 @@ MemoryAccess isLoadOrStore(const instruction i)
       return MK_SDS(8, i);
     }
     else
-      return MemoryAccess::none;
+      return BPatch_memoryAccess::none;
   }
   else if(op == LXop) { // X-forms
     unsigned int xop = i.xform.xo;
@@ -259,12 +259,12 @@ MemoryAccess isLoadOrStore(const instruction i)
       return oci->direc ? MK_SI(b, i) : MK_LI(b, i);
     }
     else if(xop == LSXxop || xop == STSXxop) {
-      return MemoryAccess(oci->direc == 0, oci->direc == 1,
+      return BPatch_memoryAccess(oci->direc == 0, oci->direc == 1,
 			   0, i.xform.ra, i.xform.rb,
 			   0, 9999, -1); // FIXME map this 9999 to XER_25:31
     }
   }
-  return MemoryAccess::none;
+  return BPatch_memoryAccess::none;
 }
 
 /** function which returns the offset of control transfer instructions

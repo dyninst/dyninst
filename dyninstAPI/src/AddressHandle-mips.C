@@ -311,9 +311,9 @@ void initOpCodeInfo()
 }
 
 /* NOT yet implemented. */
-MemoryAccess isLoadOrStore(const instruction i)
+BPatch_memoryAccess isLoadOrStore(const instruction i)
 {
-  return MemoryAccess::none;
+  return BPatch_memoryAccess::none;
 }
 
 /* find branches starting at the given address

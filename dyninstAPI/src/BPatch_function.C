@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.19 2001/12/03 04:42:06 tikir Exp $
+// $Id: BPatch_function.C,v 1.20 2001/12/14 17:57:00 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -308,7 +308,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 // platform independent code to inst-XXX.C
 BPatch_point* createInstPointForMemAccess(process *proc,
 					  void *addr,
-					  MemoryAccess* ma,
+					  BPatch_memoryAccess* ma,
 					  BPatch_point** alternative = NULL)
 {
   // VG(09/17/01): This seems the right fuction to update all data structures
@@ -373,10 +373,10 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
     //fprintf(stderr, "?????: %x\n", addr);
     ah++;
 
-    MemoryAccess ma = isLoadOrStore(inst);
+    BPatch_memoryAccess ma = isLoadOrStore(inst);
 
-    //AddrSpec start = ma.getStartAddr();
-    //CountSpec count = ma.getByteCount();
+    //BPatch_addrSpec_NP start = ma.getStartAddr();
+    //BPatch_countSpec_NP count = ma.getByteCount();
     //int imm = start.getImm();
     //int ra  = start.getReg(0);
     //int rb  = start.getReg(1);
@@ -389,7 +389,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
       //      ++xx, addr, inst, imm, ra, rb, cnt);
       // XXX this leaks...
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
-						    new MemoryAccess(ma));
+						    new BPatch_memoryAccess(ma));
       if(p)
         result->push_back(p);
       skip = true;
@@ -400,7 +400,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
       //      ++xx, addr, inst, imm, ra, rb, cnt);
       // XXX this leaks...
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
-						    new MemoryAccess(ma));
+						    new BPatch_memoryAccess(ma));
       if(p)
         result->push_back(p);
       skip = true;
@@ -411,7 +411,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
       //      ++xx, addr, inst, imm, ra, rb, cnt, fcn);
       // XXX this leaks...
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
-						    new MemoryAccess(ma));
+						    new BPatch_memoryAccess(ma));
       if(p)
         result->push_back(p);
       skip = true;

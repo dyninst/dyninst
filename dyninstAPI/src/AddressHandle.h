@@ -21,7 +21,7 @@ bool isAJumpInstruction(const instruction);
 bool isACallInstruction(const instruction);
 bool isAnneal(const instruction);
 Address getBranchTargetAddress(const instruction,Address pos);
-MemoryAccess isLoadOrStore(const instruction);
+BPatch_memoryAccess isLoadOrStore(const instruction);
 
 #if defined(rs6000_ibm_aix4_1)
 bool isAIndirectJumpInstruction(const instruction,AddressHandle);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.87 2001/12/06 20:57:45 schendel Exp $
+// $Id: ast.C,v 1.88 2001/12/14 17:57:00 gaburici Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1410,14 +1410,14 @@ Address AstNode::generateCode_phase2(process *proc,
 #ifdef BPATCH_LIBRARY
 	  // 1. get the point being instrumented & memory access info
 	  assert(location);
-	  const MemoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
+	  const BPatch_memoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
 	  if(!ma) {
 	    fprintf(stderr, "Memory access information not available at this point.\n");
 	    fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
 	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
 	    assert(0);
 	  }
-	  AddrSpec start = ma->getStartAddr();
+	  BPatch_addrSpec_NP start = ma->getStartAddr();
 	  emitASload(start, dest, insn, base, noCost);
 #else
 	  fprintf(stderr, "Effective address feature not supported w/o BPatch!\n");
@@ -1427,14 +1427,14 @@ Address AstNode::generateCode_phase2(process *proc,
 #ifdef BPATCH_LIBRARY
 	  // 1. get the point being instrumented & memory access info
 	  assert(location);
-	  const MemoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
+	  const BPatch_memoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
 	  if(!ma) {
 	    fprintf(stderr, "Memory access information not available at this point.\n");
 	    fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
 	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
 	    assert(0);
 	  }
-	  CountSpec count = ma->getByteCount();
+	  BPatch_countSpec_NP count = ma->getByteCount();
 	  emitCSload(count, dest, insn, base, noCost);
 #else
 	  fprintf(stderr, "Byte count feature not supported w/o BPatch!\n");

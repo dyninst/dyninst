@@ -49,7 +49,7 @@ class instPoint;
 class BPatch_thread;
 class BPatch_image;
 class BPatch_function;
-class MemoryAccess;
+class BPatch_memoryAccess;
 
 /*
  * Provide these definitions for backwards compatability.
@@ -110,16 +110,16 @@ class BPATCH_DLL_EXPORT BPatch_point {
 						    BPatch_point** alternative);
     friend BPatch_point* createInstPointForMemAccess(process *proc,
 						     void *addr,
-						     MemoryAccess* ma,
+						     BPatch_memoryAccess* ma,
 						     BPatch_point** alternative);
     process	*proc;
     const BPatch_function	*func;
     instPoint	*point;
     BPatch_procedureLocation pointType;
-    MemoryAccess *memacc;
+    BPatch_memoryAccess *memacc;
 
     BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
-		 BPatch_procedureLocation _pointType, MemoryAccess* _ma = NULL);
+		 BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma = NULL);
 public:
     //~BPatch_point() { delete memacc; };
 
@@ -127,7 +127,7 @@ public:
     const BPatch_function *getFunction() { return func; }
     BPatch_function *getCalledFunction();
     void            *getAddress();
-    const MemoryAccess* getMemoryAccess() const { return memacc; }
+    const BPatch_memoryAccess* getMemoryAccess() const { return memacc; }
 
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { getAddress(); }

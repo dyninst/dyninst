@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.42 2001/12/10 21:17:16 chadd Exp $
+// $Id: inst-alpha.C,v 1.43 2001/12/14 17:57:01 gaburici Exp $
 
 #include "common/h/headers.h"
 
@@ -1323,7 +1323,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 #ifdef BPATCH_LIBRARY
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(AddrSpec as, Register dest, char* baseInsn,
+void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 		Address &base, bool noCost)
 {
   // TODO ...

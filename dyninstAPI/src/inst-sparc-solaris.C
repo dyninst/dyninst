@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.99 2001/12/09 02:41:24 gaburici Exp $
+// $Id: inst-sparc-solaris.C,v 1.100 2001/12/14 17:57:01 gaburici Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1908,7 +1908,7 @@ static inline void emitAddOriginal(Register src, Register acc,
 
 // VG(11/30/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(AddrSpec as, Register dest, char* baseInsn,
+void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 		Address &base, bool noCost)
 {
   //instruction *insn = (instruction *) ((void*)&baseInsn[base]);
