@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.68 1999/05/20 15:54:56 zhichen Exp $
+// $Id: solaris.C,v 1.69 1999/05/21 18:17:30 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -782,7 +782,7 @@ bool process::dlopenDYNINSTlib() {
     strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
   } else {
     string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined;"
-        " should be set to the pathname of DynInstAPI runtime library");
+        " should be set to the pathname of the dyninstAPI_RT runtime library.");
     showErrorCallback(101, msg);
     return false;
   }
@@ -980,16 +980,14 @@ bool process::terminateProc_()
 static const Address lowest_addr = 0x0;
 void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
 {
-  lo = region_lo(near) ;
-  hi = region_hi(near) ;
-  // avoid mapping the zero page
-  if (lo < lowest_addr) lo = lowest_addr;
+  lo = region_lo(near);
+  hi = region_hi(near);
 }
 
 // ALERT: could be specific to SPARC
 void inferiorMallocAlign(unsigned &size)
 {
-  size = (size + 0x1f) & ~0x1f ;
+  size = (size + 0x1f) & ~0x1f;
 }
 #endif
 
@@ -1413,7 +1411,8 @@ bool process::changePC(Address addr, const void *savedRegs) {
    assert(status_ == stopped);
 
    // make a copy of the registers (on purpose)
-   prgregset_t theIntRegs = *(prgregset_t *)const_cast<void*>(savedRegs);
+   prgregset_t theIntRegs;
+   theIntRegs = *(prgregset_t*)const_cast<void*>(savedRegs);
 
    theIntRegs[R_PC] = addr; // PC (sparc), EIP (x86)
 #ifdef R_nPC  // true for sparc, not for x86
@@ -1466,7 +1465,7 @@ bool process::restoreRegisters(void *buffer) {
 
    assert(status_ == stopped); // /proc requires it
 
-   prgregset_t theIntRegs = *(prgregset_t *)buffer;
+   prgregset_t theIntRegs; theIntRegs = *(prgregset_t *)buffer;
    prfpregset_t theFpRegs = *(prfpregset_t *)((char *)buffer + sizeof(theIntRegs));
 
    if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
