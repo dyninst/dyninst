@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.3 2002/06/20 20:06:13 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.4 2002/06/20 21:00:44 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -77,6 +77,14 @@
 
 #define ALIGN_RIGHT_SHIFT 23
 
+/* NOTE: for the IA64_bundle constructor to work, the 
+IA64_instruction_x::IA64_Instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0, IA65_bundle * mybl = 0 ) {
+	instruction = lowHalf;
+	instruction_x = highHalf;
+	templateID = templ;
+	myBundle = mybl;
+	} /* end IA64_Instruction_x() */
+
 IA64_instruction::IA64_instruction( uint64_t insn, uint8_t templ, IA64_bundle * mybl ) {
 	instruction = insn;
 	templateID = templ;
@@ -94,10 +102,11 @@ IA64_bundle::IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, I
 	} /* end IA64_bundle() */
 
 /* This handles the MLX template/long instructions. */
-IA64_bundle::IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction & instructionLX ) {
+IA64_bundle::IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction_x & instructionLX ) {
 	if( templateID != 0x05 ) { fprintf( stderr, "Attempting to generate a bundle with a long instruction without using the MLX template, aborting.\n" ); abort(); }
 
-	/* FIXME */ * this = IA64_bundle( templateID, instruction0, 0, 0 );
+	/* FIXME: what's the Right Way to do this? */
+	* this = IA64_bundle( templateID, instruction0, instructionLX.getMachineCode().low, instructionLX.getMachineCode().high );
 	} /* end IA64_bundle() */
 
 IA64_bundle::IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t instruction1, uint64_t instruction2 ) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.3 2002/06/20 20:06:13 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.4 2002/06/20 21:00:44 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -97,6 +97,19 @@ struct ia64_bundle_t {
 	uint64_t low;
 	uint64_t high;
 	};
+
+class IA64_instruction_x : public IA64_instruction {
+	friend class IA64_bundle;
+
+	public:
+		IA64_Instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0, IA65_bundle * mybl = 0 );
+
+		ia64_bundle_t getMachineCode() { return ia64_bundle_t( instruction, instruction_x ); }	
+
+	private:
+		uint64_t instruction_x;
+
+	}; /* end the 82 bit instruction */
 
 class IA64_bundle {
 	public:
