@@ -44,6 +44,9 @@
 
 /*
  * $Log: debugger.h,v $
+ * Revision 1.3  1996/11/05 20:30:36  tamches
+ * removed dumpProcessImage prototype
+ *
  * Revision 1.2  1996/08/16 21:18:27  tamches
  * updated copyright for release 1.1
  *
@@ -51,7 +54,5 @@
  * Prototypes
  *
  */
-
-extern void dumpProcessImage(process *, bool stopped);
 
 #endif
