@@ -139,8 +139,9 @@ int P_select (int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval *tm) {
 int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
   return (socket(NAMESPACE, STYLE, PROTOCOL));}
 
-int P_socketpair(int namespace, int style, int protocol, int filedes[2]) {
-  return (socketpair(namespace, style, protocol, filedes));}
+int P_socketpair(int Namespace, int style, int protocol, int filedes[2]) {
+  return (socketpair(Namespace, style, protocol, filedes));}
+  // note: "namespace" is now a reserved word in c++!
 
 int P_strcasecmp(const char *s1, const char *s2) {
   return (strcasecmp((char*)s1, (char*)s2));}
