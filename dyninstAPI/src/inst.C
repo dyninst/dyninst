@@ -165,7 +165,7 @@ instInstance *addInstFunc(process *proc, const instPoint *&location,
 			  returnInstance *&retInstance)
 {
     assert(proc && location);
-    initTramps(); // shouldn't we delete regSpace first to avoid leaking memory?
+    initTramps();
 
     instInstance *ret = new instInstance;
     assert(ret);
@@ -528,13 +528,13 @@ void installBootstrapInst(process *proc) {
    // function --- not to update performance data.
 
    // Build an ast saying: "call DYNINSTinit() with the following args:
-   // (key base, total num bytes)
+   // (key base, total num bytes)"
 
-   vector<AstNode *> the_args;
+   vector<AstNode *> the_args(2);
 
 #ifdef SHM_SAMPLING
-   the_args += new AstNode(AstNode::Constant,
-		           (void*)(proc->getShmKeyUsed()));
+   the_args[0] = new AstNode(AstNode::Constant,
+			     (void*)(proc->getShmKeyUsed()));
    const unsigned shmHeapTotalNumBytes = proc->getShmHeapTotalNumBytes();
 
 #ifdef SHM_SAMPLING_DEBUG
@@ -542,12 +542,15 @@ void installBootstrapInst(process *proc) {
         << (proc->getShmKeyUsed()) << " and #bytes=" << shmHeapTotalNumBytes
         << endl;
 #endif
-   the_args += new AstNode(AstNode::Constant, (void*)shmHeapTotalNumBytes);
+   the_args[1] = new AstNode(AstNode::Constant, (void*)shmHeapTotalNumBytes);
+
 #else
+
    // 2 dummy args when not shm sampling -- just make sure they're not -1, 
    // which tells DYNINSTinit() that it's being called by DYNINSTfork
-   the_args += new AstNode(AstNode::Constant, (void *)0);
-   the_args += new AstNode(AstNode::Constant, (void *)0);
+   the_args[0] = new AstNode(AstNode::Constant, (void *)0);
+   the_args[1] = new AstNode(AstNode::Constant, (void *)0);
+
 #endif
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
