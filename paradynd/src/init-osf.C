@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-osf.C,v 1.2 2000/10/17 17:42:34 schendel Exp $ */
+/* $Id: init-osf.C,v 1.3 2000/12/15 21:38:43 pcroth Exp $ */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -48,6 +48,10 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
+#include "common/h/Time.h"
+#include "common/h/timing.h"
+#include "paradynd/src/timeMgr.h"
+
 
 // NOTE - the tagArg integer number starting with 0.  
 bool initOS() {
