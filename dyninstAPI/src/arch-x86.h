@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.16 2004/03/23 01:12:02 eli Exp $
+// $Id: arch-x86.h,v 1.17 2004/03/25 21:29:35 lharris Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -103,6 +103,8 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define PUSH_DS  (0x1E)
 #define POP_DS   (0X1F)
 #define POP_EAX  (0x58)
+#define POP_EBX  (0x5b)
+#define POP_EBP  (0x5d)
 #define NOP      (0x90)
 
 #define JCXZ     (0xE3)
@@ -119,6 +121,8 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 
 #define FRSTOR   (0xDD)
 #define FRSTOR_OP (4)
+
+#define MOVREGMEM_REG (0x8b)
 
 /* limits */
 #define MIN_IMM8 (-128)
@@ -218,5 +222,9 @@ to allocate new segments near base tramps, so heap segments can be
 allocated anywhere (the tramp address "x" is ignored). */
 inline Address region_lo(const Address /*x*/) { return 0x00000000; }
 inline Address region_hi(const Address /*x*/) { return 0xf0000000; }
+
+bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
+bool insn_hasDisp8(unsigned ModRM);
+bool insn_hasDisp32(unsigned ModRM);
 
 #endif
