@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.18  1994/07/11 23:00:57  jcargill
+ * Revision 1.19  1994/07/26 20:07:42  hollings
+ * added cast to ensure hash table pointers are positive.
+ *
+ * Revision 1.18  1994/07/11  23:00:57  jcargill
  * Fixed bug where added two lists with (+=) operator could result in
  * duplicate key entries
  *
@@ -90,7 +93,7 @@ typedef char Boolean;
 
 #pragma interface
 
-#define ListHash(ptr, size) (((int)(ptr) % (int)(size)))
+#define ListHash(ptr, size) (((unsigned int)(ptr) % (unsigned int)(size)))
 
 template <class Type> class List;
 template <class Type> class StringList;
@@ -388,6 +391,7 @@ template <class Type> Type HTable<Type>::find(void *key)
 
     if (!tableSize) return(NULL);
     hid = ListHash(key, tableSize);
+    if (hid <0 || hid > tableSize) abort();
     if (!table[hid]) {
 	return(NULL);
     } else {
@@ -404,6 +408,7 @@ template <class Type> void HTable<Type>::add(Type data, void *key)
 	table = (List<Type>**) calloc(tableSize, sizeof(List<Type>*));
     }
     hid = ListHash(key, tableSize);
+    if (hid <0 || hid > tableSize) abort();
     if (!table[hid]) {
 	table[hid] = new(List<Type>);
     }
@@ -416,6 +421,7 @@ template <class Type> Boolean HTable<Type>::remove(void *key)
     int hid;
 
     hid = ListHash(key, tableSize);
+    if (hid <0 || hid > tableSize) abort();
     if (table[hid]) {
 	return(table[hid]->remove(key));
     }
