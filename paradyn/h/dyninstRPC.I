@@ -148,6 +148,11 @@ $remote dynRPC {
     void addResource(String parent, String name);
 
     //
+    // stdio or stderr from an application.
+    //
+    $upcall $async void applicationIO(int pid, int len, String line);
+
+    //
     // Debugger style calls.
     //
     //
