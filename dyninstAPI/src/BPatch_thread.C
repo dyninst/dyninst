@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.95 2004/01/19 21:54:10 schendel Exp $
+// $Id: BPatch_thread.C,v 1.96 2004/02/12 20:46:56 tlmiller Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1374,6 +1374,8 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
 bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 		    		   char* fileName,int size)
 {
+	// /* DEBUG */ fprintf( stderr, "Looking for addr 0x%lx.\n", addr );
+
 	if(!fileName || (size <= 0)){
 		return false;
 	}
@@ -1383,26 +1385,58 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 	for(unsigned int i=0;i<appModules->size();i++){
 		lineInformation = (*appModules)[i]->getLineInformation();
 		if(!lineInformation) {
+		  // /* DEBUG */ fprintf( stderr, "No line information for module %d\n", i );
 		  cerr << __FILE__ << __LINE__ << ": found NULL lineInformation "<< endl;
 		  continue;
 		}
 #ifdef OLD_LINE_INFO
+		
+		Address inexactitude;
+		Address leastInexactitude = 0xFFFFFFFF;
+		unsigned short tempLineNo;
+		
 		for(int j=0;j<lineInformation->getSourceFileCount();j++){
 			pdstring* fileN = lineInformation->sourceFileList[j];
+			// /* DEBUG */ fprintf( stderr, "Looking for information on source file '%s'.\n", fileN->c_str() );
 			FileLineInformation* fInfo = 
 				lineInformation->lineInformationList[j];
 			if (!fInfo) {
+			  // /* DEBUG */ fprintf( stderr, "No information available on source file '%s'.\n", fileN->c_str() );
 			  cerr << "found NULL FileLineInformation! "<< endl;
 			  continue;
 			}
-			if(fInfo->getLineFromAddr(*fileN,lineNo,addr,true,false)){
-				if(fileN->length() < (unsigned)size)
+			
+			if( ! fInfo->getLineFromAddr( * fileN, tempLineNo, addr, true, false, & inexactitude ) ) { continue; }
+			// /* DEBUG */ fprintf( stderr, "%s: %d (0x%lx)\n", fileN->c_str(), tempLineNo, inexactitude );
+
+			/* If the match got better, record its inexactitude, lineNo, and name as
+			   our best match. */
+			if( inexactitude < leastInexactitude ) {
+				// /* DEBUG */ fprintf( stderr, "Inexactitude decreased: 0x%lx\n", inexactitude );
+				leastInexactitude = inexactitude;
+				lineNo = tempLineNo;
+				
+				if( fileN->length() < (unsigned)size ) {
 					size = fileN->length();
-				strncpy(fileName,fileN->c_str(),size);
+					}
+				strncpy( fileName, fileN->c_str(), size );
 				fileName[size] = '\0';
+				}
+			
+			/* If the match is perfect, we're done; don't bother to iterate over the
+			   rest of the files. */
+			if( inexactitude == 0 ) {
+				// /* DEBUG */ fprintf( stderr, "Found perfect match.\n" );
 				return true;
-			}	
-		}
+				}
+			} /* end by-file iteraition */
+
+		if( ! (leastInexactitude < 0xFFFFFFFF) ) {
+			return false;
+			}
+		else {
+			return true;
+			}
 #else
 		if (lineInformation->getLineAndFile(addr, lineNo, fileName, size))
 		    return true;
