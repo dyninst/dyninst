@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.22 2003/06/27 20:58:07 tlmiller Exp $
+ * $Id: RTlinux.c,v 1.23 2003/11/03 19:21:06 tlmiller Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -67,7 +67,7 @@ extern double DYNINSTstaticHeap_32K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_4M_anyHeap_1[];
 
 void _start( void ) {
-	fprintf( stderr, "*** Initializing dyninstAPI runtime.\n" );
+	/* fprintf( stderr, "*** Initializing dyninstAPI runtime.\n" ); */
 
 	/* Grab the page size, to align the heap pointer. */
 	long int pageSize = sysconf( _SC_PAGESIZE );
@@ -88,7 +88,7 @@ void _start( void ) {
 		fprintf( stderr, "*** Unable to mark DYNINSTstaticHeap_4M_anyHeap_1 executable!\n" );
 		perror( "_start" );
 		}
-	fprintf( stderr, "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
+	/* fprintf( stderr, "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize ); */
 
 	/* Mark _both_ heaps executable. */
 	alignedHeapPointer = (unsigned long int)DYNINSTstaticHeap_32K_lowmemHeap_1;
@@ -101,7 +101,7 @@ void _start( void ) {
 		fprintf( stderr, "*** Unable to mark DYNINSTstaticHeap_4M_anyHeap_1 executable!\n" );
 		perror( "_start" );
 		}
-	fprintf( stderr, "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
+	/* fprintf( stderr, "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize ); */
 	}
 
 /* Ensure we an executable block of memory. */
