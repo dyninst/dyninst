@@ -5,9 +5,14 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.52  1995/11/06 19:27:17  tamches
-/* removed a lot of warnings under g++ 2.7.0
+/* Revision 1.53  1995/11/07 01:31:45  tamches
+/* directory names in the "start a process" dialog box can now begin
+/* with ~ or ~some-user-name.  This solution was modeled after
+/* Tcl_TildeSubst (in the tcl source code)
 /*
+ * Revision 1.52  1995/11/06 19:27:17  tamches
+ * removed a lot of warnings under g++ 2.7.0
+ *
  * Revision 1.51  1995/11/03 21:19:55  naim
  * Adding paradyn exit command - naim
  *
@@ -205,6 +210,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <pwd.h>
 
 #include "Status.h"
 
@@ -468,7 +474,7 @@ int ParadynProcessCmd(ClientData,
   char *user = NULL;
   char *machine = NULL;
   char *paradynd = NULL;
-  char *dir = NULL;
+  string dir;
   static bool firstProcess=true;
   
   for (i=1; i < argc-1; i++) {
@@ -524,7 +530,68 @@ int ParadynProcessCmd(ClientData,
   // keys is pressed while defining a process, we end in a deadlock - naim
   disablePAUSEandRUN();
 
-  if (dataMgr->addExecutable(machine, user, paradynd, dir,
+  // At this point, we take a look at "dir"; if it starts with ~some_user_name,
+  // then we alter "dir".  In the spirit of Tcl_TildeSubst (tclGlob.c).
+  // The only reason we don't use Tcl_TildeSubst is because it uses Tcl_DStringFree,
+  // etc., where we much prefer to use Krishna's string class  --Ari
+
+  // for debugging (temporary):
+//  cout << dir << " maps to ";
+
+  const char *dir_cstr = dir.string_of();
+  if (dir_cstr[0] == '~') {
+     // two possibilities: a tilde by itself e.g. ~/x/y, or tilde followed by a username
+     if (dir_cstr[1] == '/' || dir_cstr[1] == '\0') {
+        // it's the first possibility.  We need to find the environment vrble HOME
+        // and use that result.  If HOME env vrble doesn't exist (it always does)
+        // than I have no idea what to do.  I guess I'll just leave "dir" unchanged
+        // in that case.
+        char *home_dir = getenv("HOME");
+        if (home_dir != NULL) {
+           // Now let dir=home_dir + dir_cstr(starting at [1 or 2])
+           // If home_dir ends in a '/' then we start dir_cstr at 2.  Else, 1
+           if (home_dir[strlen(home_dir)-1] == '/')
+              dir = string(home_dir) + &dir_cstr[2];
+           else
+              dir = string(home_dir) + &dir_cstr[1];
+	}
+     }
+     else {
+        // we need to collect the user name.  It starts at dir_cstr[1]
+        // and ends at (but not including) the first '/' or '\0'
+        const char *ptr=strchr(&dir_cstr[1], '/');
+
+        string user_name;
+        if (ptr != NULL) {
+           char user_name_buffer[200];
+           unsigned user_name_len = ptr - &dir_cstr[1];
+
+           for (unsigned i=0; i < user_name_len; i++)
+              user_name_buffer[i] = dir_cstr[1+i];
+           user_name_buffer[user_name_len] = '\0';
+
+           user_name = user_name_buffer;
+	}
+        else
+           user_name = string(&dir_cstr[1]);
+
+        struct passwd *pwPtr = getpwnam(user_name.string_of());
+        if (pwPtr == NULL) {
+           endpwent();
+           // something better needed...
+           //cerr << "Sorry, user \"" << user_name << "\" doesn't exist" << endl;
+	}
+        else {
+           dir = string(pwPtr->pw_dir) + string(ptr);
+           endpwent();
+	}
+     }
+  }
+
+  // temporary (for debugging):
+//  cout << dir << endl;
+
+  if (dataMgr->addExecutable(machine, user, paradynd, dir.string_of(),
 			     &av) == false)
   {
     enablePAUSEorRUN();
