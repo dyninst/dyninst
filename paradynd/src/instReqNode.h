@@ -58,18 +58,15 @@ class catchupReq {
  public:
    catchupReq() : frame() {};
    catchupReq(Frame frame2) :
-      frame(frame2), func(NULL) {};
+      frame(frame2) {};
    catchupReq(const catchupReq &src) {
        frame = src.frame;
-       func = src.func;
        for (unsigned i = 0; i < src.reqNodes.size(); i++)
            reqNodes.push_back(src.reqNodes[i]);
    }
    
    pdvector<instReqNode*> reqNodes;
    Frame        frame;
-   // Cache function lookups
-   pd_Function *func;
 };
 
 
@@ -84,8 +81,6 @@ class instReqNode {
       when(iWhen), order(o), loadedIntoApp_(false), trampsHookedUp_(false),
       rinstance(NULL), rpcCount(0), loadInstAttempts(0) 
    {
-      mtHandle.location = iPoint;
-      mtHandle.when = iWhen;
    }
    
    ~instReqNode();
@@ -111,13 +106,12 @@ class instReqNode {
    void disable(pd_process *proc);
    timeLength cost(pd_process *theProc) const;
    returnInstance *getRInstance() const { return rinstance; }
-   void setAffectedDataNodes(instInstanceFreeCallback cb, 
+   void setAffectedDataNodes(miniTrampHandleFreeCallback cb, 
 			     pdvector<instrDataNode *> *affectedNodes); 
    
    void catchupRPCCallback(void *returnValue);
    
    bool triggeredInStackFrame(Frame &frame,
-                              pd_Function *&func,
                               pd_process *p);
    
    instPoint *Point() {return point;}
@@ -131,7 +125,7 @@ class instReqNode {
    callWhen  when;
    callOrder order;
    
-   miniTrampHandle mtHandle;
+   miniTrampHandle *mtHandle;
 
    bool loadedIntoApp_;
    bool trampsHookedUp_;

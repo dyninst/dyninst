@@ -201,7 +201,7 @@ void instrDataNode::decRefCount()
     delete this;
 }
 
-void instrDataNode::decRefCountCallback(void *temp, instInstance *)
+void instrDataNode::decRefCountCallback(void *temp, miniTrampHandle *)
 {
   pdvector<instrDataNode *> *dataNodes = (pdvector<instrDataNode *> *)temp;
   for (unsigned i = 0; i < dataNodes->size(); i++) {

@@ -461,9 +461,11 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
    pdvector<catchupReq *> catchupWalk;
    for (unsigned f=0; f<stackWalk.size(); f++) {
        catchupWalk.push_back(new catchupReq(stackWalk[f]));
+#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
        if (aixHACKlowestFunc == 0) {
            aixHACKlowestFunc = stackWalk[f].getPC();
        }
+#endif
    }
    
    // Now go through all associated code nodes, and add appropriate bits to

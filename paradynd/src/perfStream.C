@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.161 2003/09/05 16:28:29 schendel Exp $
+// $Id: perfStream.C,v 1.162 2003/10/21 17:22:46 bernat Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -412,23 +412,13 @@ void processTraceStream(process *dproc)
                if (dproc->isDynamicallyLinked())
                   sh_objs  = dproc->sharedObjects();
                // Have to look in main image and (possibly) in shared objects
-               caller = symbols->findFuncByAddr(c->caller, dproc);
-               if (!caller && sh_objs)
-               {
-                  for(u_int j=0; j < sh_objs->size(); j++)
-                  {
-                     caller = ((*sh_objs)[j])->getImage()->findFuncByAddr(c->caller, dproc);
-                     if (caller) break;
-                  }
-               }
+               codeRange *range;
+               range = dproc->findCodeRangeByAddress(c->caller);
+               caller = range->function_ptr;
                
-               callee = symbols->findFuncByAddr(c->callee, dproc);
-               if (!callee && sh_objs) {
-                  for(u_int j=0; j < sh_objs->size(); j++) {
-                     callee = ((*sh_objs)[j])->getImage()->findFuncByAddr(c->callee, dproc);
-                     if (callee) break;
-                  }
-               }
+               range = dproc->findCodeRangeByAddress(c->callee);
+               callee = range->function_ptr;
+
                if(!callee || !caller){
                   cerr << "callee for addr " << ostream::hex << c->callee 
                        << ostream::dec << " not found, caller = "

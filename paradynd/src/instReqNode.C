@@ -70,13 +70,13 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
    rinstance(par.rinstance), rpcCount(par.rpcCount), 
    loadInstAttempts(par.loadInstAttempts)
 {
-   if(!par.instrLoaded() || !par.trampsHookedUp()) {
-      // can't setup the child if the parent isn't setup
-      return;
-   }
-   
-   process *llproc = childProc->get_dyn_process()->lowlevel_process();
-	bool res = getInheritedMiniTramp(&par.mtHandle, &mtHandle, llproc);
+    if(!par.instrLoaded() || !par.trampsHookedUp()) {
+        // can't setup the child if the parent isn't setup
+        return;
+    }
+    
+    process *llproc = childProc->get_dyn_process()->lowlevel_process();
+    bool res = getInheritedMiniTramp(par.mtHandle, mtHandle, llproc);
 	assert(res == true);
 }
 
@@ -104,10 +104,9 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
    // base tramp at the point (if needed), generates code for the tramp, calls
    // inferiorMalloc() in the text heap to get space for it, and actually
    // inserts the instrumentation.
-   instInstance *instI = new instInstance;
-
    loadMiniTramp_result res = 
-      loadMiniTramp(instI, theProc->get_dyn_process()->lowlevel_process(),
+      loadMiniTramp(mtHandle,
+                    theProc->get_dyn_process()->lowlevel_process(),
                     point, ast, when, order,
                     false, // false --> don't exclude cost
                     retInstance,
@@ -119,13 +118,9 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
    rinstance = retInstance;
    
    if(res == success_res) {
-      loadedIntoApp_ = true;
-      mtHandle.inst = instI;
-      mtHandle.when = when;
-      mtHandle.location = point;
-   } else {
-      delete instI;
+       loadedIntoApp_ = true;
    }
+   
 
    return res;
 }
@@ -139,10 +134,10 @@ void instReqNode::hookupJumps(pd_process *proc) {
    trampsHookedUp_ = true;
 }
 
-void instReqNode::setAffectedDataNodes(instInstanceFreeCallback cb, 
-				   pdvector<instrDataNode *> *affectedNodes) {
-  assert(loadedIntoApp_ == true);
-  mtHandle.inst->registerCallback(cb, (void *)affectedNodes);
+void instReqNode::setAffectedDataNodes(miniTrampHandleFreeCallback cb, 
+                                       pdvector<instrDataNode *> *affectedNodes) {
+    assert(loadedIntoApp_ == true);
+    mtHandle->registerCallback(cb, (void *)affectedNodes);
 }
 
 void instReqNode::disable(pd_process *proc)
@@ -182,10 +177,9 @@ void instReqNode::catchupRPCCallback(void * /*returnValue*/ ) {
 
 
 bool instReqNode::triggeredInStackFrame(Frame &frame, 
-                                        pd_Function *&func,
                                         pd_process *p)
 {
-   return p->triggeredInStackFrame(point, frame, func, when, order);
+   return p->triggeredInStackFrame(frame, point, when, order);
 }
 
 

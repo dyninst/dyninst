@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.105 2003/07/15 22:47:02 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.106 2003/10/21 17:22:45 bernat Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -60,7 +60,7 @@
 
 class threadMetFocusNode_Val;
 
-class instInstance; // enough since we only use instInstance* in this file
+class miniTrampHandle; // Only use pointers
 class pd_process;
 class pd_thread;
 
@@ -87,7 +87,7 @@ public:
   static void handleExitedProcess(pd_process *p);
 
   static void handleFork(const pd_process *parent, pd_process *child);
-     // called once per fork.  "map" maps all instInstance's of the parent
+     // called once per fork.  "map" maps all mini tramps's of the parent
      // process to the corresponding copy in the child process...we'll delete
      // some instrumentation in the child process if we find that some
      // instrumentation in the parent doesn't belong in the child.

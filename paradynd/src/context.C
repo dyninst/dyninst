@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.106 2003/09/05 16:28:16 schendel Exp $ */
+/* $Id: context.C,v 1.107 2003/10/21 17:22:37 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -257,7 +257,7 @@ void deleteThread(traceThread *fr)
     // how do we delete a resource id? - naim
 }
 
-unsigned instInstancePtrHash(instInstance * const &ptr) {
+unsigned miniTrampHandlePtrHash(miniTrampHandle * const &ptr) {
    // would be a static fn but for now aix.C needs it.
    unsigned addr = (unsigned)(Address)ptr;
    return addrHash16(addr); // util.h

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.250 2003/09/05 16:28:22 schendel Exp $
+// $Id: metricFocusNode.C,v 1.251 2003/10/21 17:22:44 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -136,7 +136,7 @@ extern unsigned enable_pd_samplevalue_debug;
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
 extern unsigned inferiorMemAvailable;
-extern pdvector<Address> getAllTrampsAtPoint(instInstance *instance);
+extern pdvector<Address> getAllTrampsAtPoint(miniTrampHandle *);
 
 void flush_batch_buffer();
 void batchSampleData(pdstring metname, int mid, timeStamp startTimeStamp, 

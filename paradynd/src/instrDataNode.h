@@ -48,7 +48,7 @@
 class instrCodeNode_Val;
 class threadMetFocusNode_Val;
 class pd_process;
-class instInstance;
+class miniTrampHandle;
 class HwEvent;
 
 class instrDataNode {
@@ -93,7 +93,7 @@ class instrDataNode {
 
   void incRefCount();
   void decRefCount();
-  static void decRefCountCallback(void *, instInstance *);
+  static void decRefCountCallback(void *, miniTrampHandle *);
 
   HwEvent* getHwEvent() { return hw; }
 

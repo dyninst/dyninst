@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.151 2003/09/05 16:28:21 schendel Exp $
+// $Id: mdl.C,v 1.152 2003/10/21 17:22:43 bernat Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -437,6 +437,7 @@ AstNode *createCounter(const pdstring &func, void *dataPtr,
       store = new AstNode(storeOp,counter_base,ast);
    } else abort();
 
+   if (counter_base) removeAst(counter_base);
    if (calc) removeAst(calc);
    if (load) removeAst(load);
 
