@@ -451,12 +451,18 @@ bool InstrucIter::delayInstructionSupported()
     return false;
 }
 
+
 bool InstrucIter::hasMore()
 {
-    if( currentAddress + insn.size() >= range + baseAddress )
-        return false;
-    
-    return true;
+    if((currentAddress < (baseAddress + range )) &&
+       (currentAddress >= baseAddress))
+        return true;
+    return false;
+
+//     if (0x806c500 == baseAddress) {
+//         fprintf(stderr,"0x%x %u %u 0x%x\n", 
+//                 currentAddress, insn.size(), range, baseAddress );
+//     }
 }
 
 bool InstrucIter::hasPrev()
