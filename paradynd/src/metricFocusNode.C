@@ -1051,7 +1051,8 @@ void metricDefinitionNode::manuallyTrigger() {
 
    if (aggregate_) {
       for (unsigned i=0; i < components.size(); i++)
-	 components[i]->manuallyTrigger();
+	 if (components[i]->anythingToManuallyTrigger())
+	   components[i]->manuallyTrigger();
    }
    else {
       for (unsigned i=0; i < instRequests.size(); i++)
@@ -1373,10 +1374,7 @@ void metricDefinitionNode::disable()
     inserted_ = false;
     if (aggregate_) {
         /* disable components of aggregate metrics */
-        // unsigned c_size = components.size();
-        //for (unsigned u=0; u<c_size; u++) {
 	for (unsigned u=0; u<components.size(); u++) {
-	  //components[u]->disable();
 	  metricDefinitionNode *m = components[u];
 	  unsigned aggr_size = m->aggregators.size();
 	  assert(aggr_size == m->samples.size());
@@ -2554,6 +2552,7 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
    // actual data; we need to fill in new meta-data (new houseKeeping entries).
 
    allocatedIndex = src.allocatedIndex;
+   allocatedLevel = src.allocatedLevel;
    theSampleId = iCounterId;
    assert(theSampleId != src.theSampleId);
 

@@ -45,6 +45,6 @@
 #define _HEAP_STATES_H_
 
 // the prefix FIH stands for fast-inferior-heap
-enum states {FIHallocated, FIHfree, FIHpendingfree, FIHmaybeAllocatedByFork, FIHallocatedButDoNotSample};
+enum states {FIHallocated, FIHfree, FIHpendingfree, FIHmaybeAllocatedByFork, FIHallocatedButDoNotSample, FIHmaybeAllocatedByForkButDoNotSample};
 
 #endif

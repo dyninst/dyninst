@@ -137,6 +137,8 @@ superVector<HK, RAW>::superVector(const superVector<HK, RAW> *parent,
    for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
       if (statemap[lcv] == FIHallocated)
 	 statemap[lcv] = FIHmaybeAllocatedByFork;
+      if (statemap[lcv] == FIHallocatedButDoNotSample)
+	 statemap[lcv] = FIHmaybeAllocatedByForkButDoNotSample;
    }
 
    for (unsigned lcv=0; lcv < houseKeeping.size(); lcv++) {
@@ -200,12 +202,14 @@ void superVector<HK, RAW>::forkHasCompleted() {
    // performs some assertion checks, such as mi != NULL for all allocated HKs.
 
    for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
-      if (statemap[lcv] == FIHmaybeAllocatedByFork)
+      if (statemap[lcv] == FIHmaybeAllocatedByFork ||
+	  statemap[lcv] == FIHmaybeAllocatedByForkButDoNotSample)
          // this guy isn't being carried over, because the focus was specific to a
 	 // process -- some other process -- before the fork.  (Can we check this?)
 	 statemap[lcv] = FIHfree;
 
-      if (statemap[lcv] == FIHallocated) {
+      if (statemap[lcv] == FIHallocated || 
+	  statemap[lcv] == FIHallocatedButDoNotSample) {
 	 const HK &theHK = houseKeeping[lcv];
 	 theHK.assertWellDefined();
       }
@@ -500,8 +504,12 @@ void superVector<HK, RAW>::initializeHKAfterFork(unsigned allocatedIndex,
 						 const HK &iHouseKeepingValue)
 {
    // should be called only for a maybe-allocated-by-fork value
-   assert(statemap[allocatedIndex] == FIHmaybeAllocatedByFork);
-   statemap[allocatedIndex] = FIHallocated;
+   assert(statemap[allocatedIndex] == FIHmaybeAllocatedByFork ||
+	  statemap[allocatedIndex] == FIHmaybeAllocatedByForkButDoNotSample);
+   if (statemap[allocatedIndex] == FIHmaybeAllocatedByFork)
+     statemap[allocatedIndex] = FIHallocated;
+   if (statemap[allocatedIndex] == FIHmaybeAllocatedByForkButDoNotSample)
+     statemap[allocatedIndex] = FIHallocatedButDoNotSample;
 
    // write HK:
    houseKeeping[allocatedIndex] = iHouseKeepingValue; // HK::operator=()
