@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.122 2003/02/26 21:27:50 schendel Exp $
+// $Id: inst-sparc-solaris.C,v 1.123 2003/03/10 18:47:49 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1385,7 +1385,8 @@ Register emitFuncCall(opCode op,
             P_abort();
          }
          // TODO: is this correct or should we get relocated address?
-         addr = func->getAddress(0);
+         //addr = func->getAddress(0);
+	 addr = func->getEffectiveAddress(proc);
       }
    }
    for (unsigned u = 0; u < operands.size(); u++)
@@ -2429,9 +2430,9 @@ bool pd_Function::findInstPoints(const image *owner) {
       InsnRegister rd,rs1,rs2;
       get_register_operands(instr,&rd,&rs1,&rs2);
 
-      if(rs1.is_o7() || rs2.is_o7() ||
-         (rd.is_o7() && 
-	  ((instr.raw & 0xc1f80000) != 0x81c00000))) /*indirect call*/
+      if(rs1.is_o7() || rs2.is_o7())// ||
+        // (rd.is_o7() && 
+	//  ((instr.raw & 0xc1f80000) != 0x81c00000))) /*indirect call*/
               o7_live = true;
     }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.137 2003/03/06 20:58:59 zandy Exp $
+// $Id: inst-sparc.C,v 1.138 2003/03/10 18:47:49 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2108,23 +2108,26 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     /* Check for conflict with a previously created inst point. */
     // VG(4/24/2002): there is no conflict on v9.
     if (proc->instPointMap.defines(curr_addr - INSN_SIZE)) {
+      //NOTE:if the previous instrumentation point is instrumented and
+      //instrumentation used call instruction, anomaly occurs
       if(isV9ISA())
         (proc->instPointMap)[curr_addr-INSN_SIZE]->point->dontUseCall = true;
       else {
         BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 4");
-        if(alternative)
-          *alternative = (proc->instPointMap)[curr_addr-INSN_SIZE];
         return NULL;
       }
+      if(alternative)
+        *alternative = (proc->instPointMap)[curr_addr-INSN_SIZE];
+
     } else if (proc->instPointMap.defines(curr_addr + INSN_SIZE)) {
       if(isV9ISA())
         dontUseCallHere=true;
       else {
         BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 5");
-        if(alternative)
-          *alternative = (proc->instPointMap)[curr_addr+INSN_SIZE];
         return NULL;
       }
+      if(alternative)
+        *alternative = (proc->instPointMap)[curr_addr+INSN_SIZE];
     }
 
     // VG(4/24/2002): Should also modify this no to bother with b,a on v9

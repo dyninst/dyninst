@@ -42,7 +42,11 @@ bool InstrucIter::isAIndirectJumpInstruction()
   if((i.resti.op == 0x2) && (i.resti.op3 == 0x38) &&
      (i.resti.rd == 0) && (i.resti.rs1 != 0xf) && 
      (i.resti.rs1 != 0x1f))
-    return true;
+  {
+	if((!i.resti.i && (i.restix.rs2 == 0)) ||
+	   (i.resti.i && (i.resti.simm13 == 0)))
+		return true;
+  }
   return false;
 }
 
