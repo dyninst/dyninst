@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-posix.c,v 1.70 2002/09/11 15:05:20 chadd Exp $
+ * $Id: RTetc-posix.c,v 1.71 2003/02/04 14:59:53 bernat Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -93,16 +93,17 @@ void pDYNINSTbreakPoint(void) /* ccw 5 sep 2002 */
 #endif /* DETACH_ON_THE_FLY */
 
 #ifndef USE_IRIX_FIXES
-     kill(getpid(), SIGSTOP);
-#endif
-
-#ifdef USE_IRIX_FIXES
+     fprintf(stderr, "Kill %d\n", getpid());
+     kill(getpid(), SIGKILL);
+     sleep(10);
+#else
      /* there is a bug in all 6.5 versions of IRIX through 6.5.9f that
         cause a PIOCSTRACE on SIGSTOP to starve (at least under the
         conditions that we are throwing it in.)  So on IRIX, we use
         SIGEMT.   -- willb, 10/4/2000 */
      kill(getpid(), SIGEMT);
 #endif
+     fprintf(stderr, "Returning from pDYNINSTbreadkPoint\n");
 }
 
 void
@@ -117,6 +118,7 @@ PARADYNbreakPoint(void) {
        Use of SIGILL is complex.  If there's a problem with it here,
        specialize this function to avoid it. */
 #endif
+    fprintf(stderr, "Calling DYNINSTbreakPoint\n");
     pDYNINSTbreakPoint();/* ccw 5 sep 2002 */
     DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0, 0.0, 0.0);
 }
