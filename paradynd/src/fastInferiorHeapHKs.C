@@ -44,8 +44,8 @@
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
-#include "util/h/spinMutex.h"
-#include "paradynd/src/process.h" 
+#include "paradynd/src/process.h"
+#include "util/h/spinMutex_cintf.h"
 #include "fastInferiorHeapHKs.h"
 
 genericHK &genericHK::operator=(const genericHK &src) {
