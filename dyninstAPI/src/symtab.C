@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.101 1999/07/26 21:50:48 cain Exp $
+// $Id: symtab.C,v 1.102 1999/08/09 05:55:14 csserra Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1006,8 +1006,9 @@ void pdmodule::FillInCallGraphStatic(process *proc) {
     
     // register that callee_resources holds list of resource*s 
     //  describing children of resource r....
-    AddCallGraphNodeCallback(exec()->file(), resource_full_name);
-    AddCallGraphStaticChildrenCallback(exec()->file(), resource_full_name,
+    string exe_name = proc->getImage()->file();
+    AddCallGraphNodeCallback(exe_name, resource_full_name);
+    AddCallGraphStaticChildrenCallback(exe_name, resource_full_name,
 				       callees_as_strings);
   }
 }

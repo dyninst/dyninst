@@ -47,22 +47,7 @@
 #define _ARCH_MIPS_H_
 
 /*
- * $Log: arch-mips.h,v $
- * Revision 1.4  1999/07/13 04:28:18  csserra
- * mips-sgi-irix6.4: 64-bit paradynd
- *
- * Revision 1.3  1999/06/21 22:31:44  csserra
- * fix stack frame analysis for mips-sgi-irix6.4
- *
- * Revision 1.2  1999/06/09 00:59:05  csserra
- * mips-sgi-irix6.4:
- *  - fix API tests
- *  - fix code generation
- *  - instrumentation timings
- *
- * Revision 1.1  1999/03/19 18:06:20  csserra
- * initial mips-sgi-irix6.4 commit
- *
+ * $Id: arch-mips.h,v 1.5 1999/08/09 05:55:13 csserra Exp $
  */
 
 #include "util/h/Types.h" // for "Address"

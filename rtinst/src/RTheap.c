@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.1 1999/07/13 04:18:59 csserra Exp $ */
+/* $Id: RTheap.c,v 1.2 1999/08/09 05:55:19 csserra Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -101,7 +101,7 @@ static void heap_getMappings(int *nmaps, prmap_t **maps)
 
   sprintf(proc_name, "/proc/%05d", (int)getpid());
   *maps = NULL;
-  if ((proc_fd = open(proc_name, O_RDWR)) == -1) {
+  if ((proc_fd = open(proc_name, O_RDONLY)) == -1) {
     perror("heap_getMappings(open)");
     return;
   } 
@@ -110,7 +110,7 @@ static void heap_getMappings(int *nmaps, prmap_t **maps)
     close(proc_fd);
     return;
   } 
-  if ((*maps = malloc(((*nmaps) + 1) * sizeof(prmap_t))) == NULL) {
+  if ((*maps = (prmap_t *)malloc(((*nmaps) + 1) * sizeof(prmap_t))) == NULL) {
     fprintf(stderr, "heap_getMappings(): out of memory\n");
     close(proc_fd);
     return;
@@ -154,7 +154,7 @@ static Address heap_findHole(size_t len,
 			     prmap_t *maps, 
 			     int nmaps)
 {
-  Address try;
+  Address try2;
   int n, n_lo, n_hi;
   
   /* sanity check */
@@ -175,26 +175,26 @@ static Address heap_findHole(size_t len,
 
   /* find hole in memory */
   n = n_hi;
-  try = heap_alignDown(hi-len+1, psize);
-  while (try >= lo) {
+  try2 = heap_alignDown(hi-len+1, psize);
+  while (try2 >= lo) {
     Address pr_vaddr = (Address)maps[n].pr_vaddr;
     Address pr_size = (Address)maps[n].pr_size;
     /* skip over any conflicting mappings */
     /* DEF: m1 and m2 conflict iff 
        ((m1.start < m2.end) && (m1.end > m2.start)) */
     if (n >= n_lo &&
-	try < pr_vaddr + pr_size &&
-	try + len > pr_vaddr) 
+	try2 < pr_vaddr + pr_size &&
+	try2 + len > pr_vaddr) 
     {      
       /* find next eligible address */
       Address skip = pr_vaddr - len;
       if (len > pr_vaddr) return 0; /* underflow */
-      try = heap_alignDown(pr_vaddr - len, psize);
+      try2 = heap_alignDown(pr_vaddr - len, psize);
       n--;
       continue;
     }
 
-    return try;
+    return try2;
   }
 
   return 0;
@@ -213,7 +213,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 {
   void *heap;
   size_t size = nbytes;
-  heapList_t *node = malloc(sizeof(heapList_t));;
+  heapList_t *node = (heapList_t *)malloc(sizeof(heapList_t));
 
   /*
   fprintf(stderr, "*** DYNINSTos_malloc(%iB, 0x%016p, 0x%016p)\n", 
@@ -273,18 +273,19 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     { /* find hole in target region and mmap */
       int mmap_prot = PROT_READ | PROT_WRITE | PROT_EXEC;
       Address hi = (Address)hi_addr;
-      Address try = (Address)lo_addr - psize;
+      Address try2 = (Address)lo_addr - psize;
 
       mmap_fd = DYNINSTheap_mmapFdOpen();
       for (heap = (void *)MAP_FAILED; heap == (void *)MAP_FAILED; ) {
-	try = heap_findHole(size, try + psize, hi, maps, nmaps);
-	if (try == 0) {
+	try2 = heap_findHole(size, try2 + psize, hi, maps, nmaps);
+	if (try2 == 0) {
 	  free(node);
 	  free(maps);
+	  DYNINSTheap_mmapFdClose(mmap_fd);
 	  return NULL;
 	}
 
-	heap = mmap((void *)try, size, mmap_prot, DYNINSTheap_mmapFlags, mmap_fd, 0);
+	heap = mmap((void *)try2, size, mmap_prot, DYNINSTheap_mmapFlags, mmap_fd, 0);
 	if (heap == (void *)MAP_FAILED) {
 	  perror("mmap");
 	}
