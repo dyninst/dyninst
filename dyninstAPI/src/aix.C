@@ -1535,8 +1535,8 @@ bool handleAIXsigTraps(int pid, int status) {
       //   the text segment heap has been cleared.
       if (curr) {
 	curr->status_ = stopped;
-        fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid,
-	                curr->currentPC());
+        //fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid,
+	//                curr->currentPC());
         resurrectBaseTramps(curr);            //Restore base trampolines
 	curr->continueProc();
       }
@@ -1579,9 +1579,9 @@ bool handleAIXsigTraps(int pid, int status) {
 
 	assert((pid_t)psinfo.pi_pid == pid);
 
-	string str = string("Parent of process ") + string(pid) + " is " +
-	               string(psinfo.pi_ppid) + "\n";
-	logLine(str.string_of());
+	//string str = string("Parent of process ") + string(pid) + " is " +
+	//               string(psinfo.pi_ppid) + "\n";
+	//logLine(str.string_of());
 
 	seenForkTrapForChild = true;
 	pidForChild = pid;
