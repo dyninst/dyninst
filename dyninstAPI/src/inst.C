@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.123 2005/01/21 23:44:30 bernat Exp $
+// $Id: inst.C,v 1.124 2005/02/17 02:16:21 rutar Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -340,11 +340,25 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
 #endif
 
    int trampCost = 0;
-   
+   Register blank[] = {1};
+
+
+   registerSpace * regS = new registerSpace(0, blank, 0, blank, false);
+
+
    /* VG(11/06/01): Added location, needed by effective address AST node */
    // returnAddr is an absolute address -- currently an offset, fixed below.
    mtHandle->returnAddr = ast->generateTramp(proc, (const instPoint *)location,
-                                             (char *)insn, count, &trampCost, noCost);
+                                             (char *)insn, count, &trampCost, 
+					     noCost, regS);
+
+
+   /*This places saves and restores in the base tramp (as opposed to 
+     noop placeholders) for all of the registers used in the mini-tramp */
+
+   unsigned saveRestoreRegisters = saveRestoreRegistersInBaseTramp(proc, 
+								   mtHandle->baseTramp,
+								   regS);
 
 #if defined(DEBUG)
    cerr << endl << endl << endl << "mini tramp: " << endl;

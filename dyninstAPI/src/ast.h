@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.75 2005/01/21 23:44:14 bernat Exp $
+// $Id: ast.h,v 1.76 2005/02/17 02:16:21 rutar Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -129,17 +129,29 @@ class registerSpace {
 	// Free the register even if its refCount is greater that 1
 	void forceFreeRegister(Register k);
 	void resetSpace();
+	void resetClobbers();
 
 	// Check to see if the register is free
 	bool isFreeRegister(Register k);
 
+	
+	// Inits the values for the clobbered variables for the floating point registers
+	void initFloatingPointRegisters(const unsigned int count, Register *fp);
+
+
 	//Makes register unClobbered
 	void unClobberRegister(Register reg);
-	
-	// Checks to see if register has been clobbered
+	void unClobberFPRegister(Register reg);
+
+	// Checks to see if register has been clobbered and clobbers it 
+	// if it hasn't been clobbered yet, returns true if we clobber it
+	// false if it has already been clobbered
 	bool clobberRegister(Register reg);
-	
+	bool clobberFPRegister(Register reg);
+
+	// Checks to see if given register has been clobbered, true if it has
 	bool beenSaved(Register reg);
+	bool beenSavedFP(Register reg);
 
 	// Manually set the reference count of the specified register
 	// we need to do so when reusing an already-allocated register
@@ -150,7 +162,14 @@ class registerSpace {
 	void incRefCount(Register k);
 
 	u_int getRegisterCount() { return numRegisters; }
+	u_int getFPRegisterCount() { return numFPRegisters; }
+
 	registerSlot *getRegSlot(Register k) { return (&registers[k]); }
+	registerSlot *getFPRegSlot(Register k) { return (&fpRegisters[k]); }
+
+	void copyInfo(registerSpace *rs);
+
+
 	bool readOnlyRegister(Register k);
 	// Make sure that no registers remain allocated, except "to_exclude"
 	// Used for assertion checking.
@@ -158,8 +177,10 @@ class registerSpace {
    bool for_multithreaded() { return is_multithreaded; }
  private:
 	u_int numRegisters;
+	u_int numFPRegisters;
 	Register highWaterRegister;
 	registerSlot *registers;
+	registerSlot *fpRegisters;
    bool is_multithreaded;
 #if defined(ia64_unknown_linux2_4)
 
@@ -212,7 +233,8 @@ class AstNode {
        ~AstNode();
 
         Address generateTramp(process *proc, const instPoint *location, char *i,
-			      Address &base, int *trampCost, bool noCost);
+			      Address &base, int *trampCost, bool noCost,
+			      registerSpace *rs);
 	Address generateCode(process *proc, registerSpace *rs, char *i, 
 			     Address &base, bool noCost, bool root,
 			     const instPoint *location = NULL);
@@ -220,6 +242,8 @@ class AstNode {
 				    Address &base, bool noCost,
 				    const pdvector<AstNode*> &ifForks,
 				    const instPoint *location = NULL);
+
+	
 
 	enum CostStyleType { Min, Avg, Max };
 	int minCost() const {  return costHelper(Min);  }

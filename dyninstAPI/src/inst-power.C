@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.211 2005/02/09 03:27:44 jaw Exp $
+ * $Id: inst-power.C,v 1.212 2005/02/17 02:16:21 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -568,6 +568,8 @@ void relocateInstruction(instruction *insn, Address origAddr, Address targetAddr
 #endif
 registerSpace *regSpace;
 
+registerSpace *floatRegSpace;
+
 // This register space should be used with the conservative base trampoline.
 // Right now it's only used for purposes of determining which registers must
 // be saved and restored in the base trampoline.
@@ -587,12 +589,17 @@ Register conservativeDeadRegList[] = { };
 // The registers that aren't preserved by called functions are considered live.
 Register conservativeLiveRegList[] = { 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 0 };
 
+Register floatingDeadRegList[] = { };
+
+Register floatingLiveRegList[] = {13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+
 void initTramps(bool is_multithreaded)
 {
     static bool inited=false;
     if (inited) return;
     inited = true;
 
+    
     // reg 12 is defined not to have a live value at procedure call points.
     // reg 11 is the static chain register, used to hold an environment pointer
     //   for languages like Pascal and PL/1; it is also apparently used by
@@ -612,6 +619,15 @@ void initTramps(bool is_multithreaded)
                          sizeof(liveRegList)/sizeof(Register), liveRegList,
                          is_multithreaded);
 
+    /*
+      floatRegSpace = 
+      new registerSpace(0, floatingDeadRegList,
+      sizeof(floatingLiveRegList)/sizeof(Register), floatingLiveRegList,
+      is_multithreaded); */
+
+    regSpace->initFloatingPointRegisters(sizeof(floatingLiveRegList)/sizeof(Register), 
+					floatingLiveRegList);
+    
 #if defined (__XLC__)
     conservativeDeadRegList = new Register[0]; //  is this just too weird?
 #endif
@@ -623,6 +639,10 @@ void initTramps(bool is_multithreaded)
 		        conservativeDeadRegList, 
 		        sizeof(conservativeLiveRegList)/sizeof(Register),
 			conservativeLiveRegList);
+
+    conservativeRegSpace->initFloatingPointRegisters(sizeof(floatingLiveRegList)/sizeof(Register), 
+					floatingLiveRegList);
+
 }
 
 /*
@@ -1006,6 +1026,7 @@ unsigned generateMTpreamble(char *insn, Address &base, process *proc)
 
   // registers cleanup
   regSpace->resetSpace();
+ 
   /* Get the hashed value of the thread */
   if (!proc->multithread_ready()) {
     // Uh oh... we're not ready to build an MT tramp yet. 
@@ -1025,7 +1046,7 @@ unsigned generateMTpreamble(char *insn, Address &base, process *proc)
     genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
     tmp_insn++; base+=sizeof(instruction);
   }
-
+  
   regSpace->resetSpace();
   return 0;
 }
@@ -1098,10 +1119,20 @@ unsigned restoreGPRegisters(instruction *&insn, Address &base, Address offset, r
     registerSlot *reg = theRegSpace->getRegSlot(i);
     if ((reg->number >= 10 && reg->number <= 12) || 
 	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
-	|| reg->number == 0) {
-      restoreRegister(insn, base, reg->number, offset);
-      numRegs++;
-    }
+	|| reg->number == 0) 
+      {
+	restoreRegister(insn, base, reg->number, offset);
+	numRegs++;
+      }
+    else
+      {
+	if (reg->beenClobbered)
+	  {
+	    restoreRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
+	    regSpace->unClobberRegister(reg->number);
+	    numRegs++;
+	  }
+      }
   }
   return numRegs;
 }
@@ -1114,6 +1145,7 @@ unsigned restoreGPRegisters(instruction *&insn, Address &base, Address offset, r
 
 unsigned saveFPRegisters(instruction *&insn, Address &base, Address offset)
 {
+  
   unsigned numRegs = 0;
   for (unsigned i = 0; i <= 9; i++) {
     numRegs++;
@@ -1124,6 +1156,7 @@ unsigned saveFPRegisters(instruction *&insn, Address &base, Address offset)
     saveFPRegister(insn, base, i, offset);
   }
   return numRegs;
+  
 }
 
 /*
@@ -1132,8 +1165,10 @@ unsigned saveFPRegisters(instruction *&insn, Address &base, Address offset)
  * Returns: number of regs restored.
  */
 
-unsigned restoreFPRegisters(instruction *&insn, Address &base, Address offset)
+unsigned restoreFPRegisters(instruction *&insn, Address &base, 
+			    Address offset, registerSpace *theRegSpace)
 {
+  /*
   unsigned numRegs = 0;
   for (unsigned i = 0; i <= 9; i++) {
     numRegs++;
@@ -1144,6 +1179,29 @@ unsigned restoreFPRegisters(instruction *&insn, Address &base, Address offset)
     restoreFPRegister(insn, base, i, offset);
   }
   return numRegs;
+  */
+
+  unsigned numRegs = 0;
+  for(u_int i = 0; i < theRegSpace->getFPRegisterCount(); i++) {
+    registerSlot *reg = theRegSpace->getFPRegSlot(i);
+    if (reg->number == 10)
+      {
+	restoreFPRegister(insn, base, reg->number, offset);
+	numRegs++;
+      }
+    else
+      {
+	if (reg->beenClobbered)
+	  {
+	    restoreFPRegister(insn, base, reg->number, TRAMP_FPR_OFFSET);
+	    regSpace->unClobberFPRegister(reg->number);
+	    numRegs++;
+	  }
+      }
+  }
+  
+  return numRegs;
+  
 }
 
 /*
@@ -1248,6 +1306,103 @@ void generateCostSection(instruction *&insn, Address &base)
  *
  */
 
+unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt, 
+					 registerSpace * rs)
+{
+  instruction iS[25];
+  instruction iR[25];
+  Address currAddrSave = 0;
+  Address currAddrRestore = 0;
+
+  instruction *iSave = (instruction *)iS;
+  instruction *iRestore = (instruction *)iR;
+
+  bool change = false;
+  
+  
+  //printf("Saving register in base tramp  "); 
+  /* Save and Restore GPRs */
+  for(u_int i = 0; i < rs->getRegisterCount(); i++) {
+    registerSlot *reg = rs->getRegSlot(i);
+    if ((reg->number >= 10 && reg->number <= 12) || 
+	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	|| reg->number == 0) 
+      continue;
+    if(reg->beenClobbered && bt->clobberedGPR[reg->number] == 0)
+      {
+	//printf("%d ",reg->number);
+	saveRegister(iSave, currAddrSave, reg->number, TRAMP_GPR_OFFSET);
+	restoreRegister(iRestore, currAddrRestore, reg->number, TRAMP_GPR_OFFSET);
+	bt->clobberedGPR[reg->number] = 1;
+	change = true;
+	bt->totalClobbered = bt->totalClobbered + 1;
+      }
+  }
+
+  //printf("\nSaving floating registers in base tramp  ");
+
+  /* Save and Restore FPRs */
+  for(u_int i = 0; i < rs->getFPRegisterCount(); i++) {
+    registerSlot *reg = rs->getFPRegSlot(i);
+    if (reg->number == 10)
+      continue;
+    if(reg->beenClobbered && bt->clobberedFPR[reg->number] == 0)
+      {
+	//printf("%d ", reg->number); 
+	saveFPRegister(iSave, currAddrSave, reg->number, TRAMP_FPR_OFFSET);
+	restoreFPRegister(iRestore, currAddrRestore, reg->number, TRAMP_FPR_OFFSET);
+	bt->clobberedFPR[reg->number] = 1;
+	change = true;
+	bt->totalClobbered = bt->totalClobbered + 1;
+      }
+  }
+  //printf("\n");
+
+  if (change)
+    {
+      proc->writeDataSpace((caddr_t)(bt->baseAddr + bt->saveRegOffset), 
+		       currAddrSave, (caddr_t) iS );
+      
+      proc->writeDataSpace((caddr_t)(bt->baseAddr + bt->saveRegOffset2), 
+			 currAddrSave, (caddr_t) iS );
+
+      proc->writeDataSpace((caddr_t)(bt->baseAddr + bt->restRegOffset), 
+		       currAddrRestore, (caddr_t) iR );
+
+      proc->writeDataSpace((caddr_t)(bt->baseAddr + bt->restRegOffset2), 
+			 currAddrRestore, (caddr_t) iR );
+
+      bt->saveRegOffset += currAddrSave;
+      bt->saveRegOffset2 += currAddrSave;
+      bt->restRegOffset += currAddrRestore;
+      bt->restRegOffset2 += currAddrRestore;
+
+    }
+
+  if (bt->totalClobbered < NUM_LO_REGISTERS &&
+      (change || bt->totalClobbered==0))
+    {
+      generateBranch(proc, bt->baseAddr + bt->saveRegOffset, 
+		     bt->baseAddr + bt->saveRegOffset + 
+		     (NUM_LO_REGISTERS - bt->totalClobbered)*sizeof(instruction));
+      
+      generateBranch(proc, bt->baseAddr + bt->saveRegOffset2, 
+		     bt->baseAddr + bt->saveRegOffset2 + 
+		     (NUM_LO_REGISTERS - bt->totalClobbered)*sizeof(instruction));
+      
+      generateBranch(proc, bt->baseAddr + bt->restRegOffset, 
+		     bt->baseAddr + bt->restRegOffset + 
+		     (NUM_LO_REGISTERS - bt->totalClobbered)*sizeof(instruction));
+      
+      generateBranch(proc, bt->baseAddr + bt->restRegOffset2, 
+		     bt->baseAddr + bt->restRegOffset2 + 
+		     (NUM_LO_REGISTERS - bt->totalClobbered)*sizeof(instruction));
+      
+    }
+
+  return 0;
+}
+
 trampTemplate* installBaseTramp(const instPoint *location, process *proc,
                                 bool trampRecursiveDesired = false,
                                 trampTemplate *oldTemplate = NULL,
@@ -1263,6 +1418,8 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     theRegSpace = conservativeRegSpace;
   else
     theRegSpace = regSpace;
+
+  theRegSpace->resetClobbers();
 
   bool wantTrampGuard = true;
   if (oldTemplate && oldTemplate->recursiveGuardPreJumpOffset == -1) {
@@ -1283,8 +1440,17 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       theTemplate->cost = 0;
       theTemplate->pre_minitramps = NULL;
       theTemplate->post_minitramps = NULL;
+      theTemplate->clobberedGPR = new int[13];
+      theTemplate->clobberedFPR = new int[14];
+      theTemplate->totalClobbered = 0;
   }
   
+  for (int i = 0; i < 13; i++)
+    theTemplate->clobberedGPR[i] = 0;
+  for (int i = 0; i < 14; i++)
+    theTemplate->clobberedFPR[i] = 0;
+
+
   // New model: build the tramp from code segments. Get rid of the
   // tramp-power.S file.
   /*
@@ -1363,6 +1529,17 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   // Save registers
   saveGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+  
+  saveFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
+
+  theTemplate->saveRegOffset = currAddr;
+
+  /* Noops, we will fill these in with restore registers */
+  for (unsigned i = 0; i < NUM_LO_REGISTERS; i++) {
+    generateNOOP(insn);
+    insn++; currAddr += sizeof(instruction);
+  }
+
   currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
 
   // Let the stack walk code/anyone else know we're in a base tramp
@@ -1385,7 +1562,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   
   //saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
  
-  saveFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
+ 
 
   if (location->getPointType() == otherPoint) {
     // Save special purpose registers
@@ -1499,7 +1676,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
   
   
-  //restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  //restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET, theRegSpace);
   
   restoreFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
 
@@ -1517,6 +1694,15 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
   
+  theTemplate->restRegOffset = currAddr;
+
+  /* Noops, we will fill these in with restore registers */
+  for (unsigned i = 0; i < NUM_LO_REGISTERS; i++) {
+    generateNOOP(insn);
+    insn++; currAddr += sizeof(instruction);
+  }
+
+
   // Pop stack flame, could also be a load indirect R1->R1
   genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
   insn++; currAddr += sizeof(instruction);
@@ -1534,7 +1720,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       generateNOOP(insn);
       insn++; currAddr += sizeof(instruction);
     }
-
+  
   // That was it? I somehow expected... more. Now handle the post-bits
 
   /////////////////////////////////////////////////////////////
@@ -1557,6 +1743,17 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Save registers
   saveGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
 
+  saveFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
+
+  theTemplate->saveRegOffset2 = currAddr; 
+
+  /* Noops are place-holders, will put save registers here later */
+  for (unsigned i = 0; i < NUM_LO_REGISTERS; i++) {
+    generateNOOP(insn);
+    insn++; currAddr += sizeof(instruction);
+  }
+  
+    
   currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
 
   // Let the stack walk code/anyone else know we're in a base tramp
@@ -1576,8 +1773,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   
   //saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
  
-  saveFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
-  
+    
   if (location->getPointType() == otherPoint) {
     // Save special purpose registers    
     saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
@@ -1682,7 +1878,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
   
   
-  //restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  //restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET, theRegSpace);
 
   restoreFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
 
@@ -1699,7 +1895,16 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
 
   restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
-  
+
+  theTemplate->restRegOffset2 = currAddr;
+
+  /* Noops, we will fill these in with restore registers */
+  for (unsigned i = 0; i < NUM_LO_REGISTERS; i++) {
+    generateNOOP(insn);
+    insn++; currAddr += sizeof(instruction);
+  }
+
+
   // Pop stack flame, could also be a load indirect R1->R1
   genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
   insn++; currAddr += sizeof(instruction);
@@ -1862,7 +2067,6 @@ void generateNoOp(process *proc, Address addr)
 }
 
 
-
      //////////////////////////////////////////////////////////////////////////
      //Returns `true' if a correct base trampoline exists; `false' otherwise
      //
@@ -1888,6 +2092,7 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
 {
   trampTemplate *ret = NULL;
   retInstance = NULL;
+
   // find fills in the second argument if it's found
   if (!proc->baseMap.find(location, ret)) {
       // Need to create base tramp
@@ -2378,8 +2583,9 @@ Register emitFuncCall(opCode /* ocode */,
       // internal error we expect this register to be free here
       // if (!rs->isFreeRegister(u+3)) abort();
     
-      if(rs->clobberRegister(u+3))
-	saveRegister(insn,base,u+3, TRAMP_GPR_OFFSET);
+      rs->clobberRegister(u+3);
+      //if(rs->clobberRegister(u+3))
+      //	saveRegister(insn,base,u+3, TRAMP_GPR_OFFSET);
 
       genImmInsn(insn, ORILop, srcs[u], u+3, 0);
       insn++;
@@ -2415,18 +2621,24 @@ Register emitFuncCall(opCode /* ocode */,
    insn++;
    base += sizeof(instruction);
    
-   // Saves remaining registers that haven't been clobbered already
-   //if (location->getPointType() == otherPoint ||
-   //    location->getPointType() == callSite)  {
    for(u_int i = 0; i < rs->getRegisterCount(); i++){
      registerSlot * reg = rs->getRegSlot(i);
-     if(rs->clobberRegister(reg->number))
-       saveRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
+     //if(rs->clobberRegister(reg->number)){
+     //saveRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
+     //}
+     rs->clobberRegister(reg->number);
    }
-   //   }
-   
+
+   for(u_int i = 0; i < rs->getFPRegisterCount(); i++){
+     registerSlot * reg = rs->getFPRegSlot(i);
+     //if(rs->clobberFPRegister(reg->number)){
+     //saveFPRegister(insn, base, reg->number, TRAMP_FPR_OFFSET);
+     //}
+     rs->clobberFPRegister(reg->number);
+   }
+
    // Save floating point registers
-   saveFPRegisters(insn, base, TRAMP_FPR_OFFSET);
+   // saveFPRegisters(insn, base, TRAMP_FPR_OFFSET);
 
    // brl - branch and link through the link reg.
 
@@ -2446,16 +2658,18 @@ Register emitFuncCall(opCode /* ocode */,
    base += sizeof(instruction);
    
    // Restore floating point registers
-   restoreFPRegisters(insn, base, TRAMP_FPR_OFFSET);
+   //restoreFPRegisters(insn, base, TRAMP_FPR_OFFSET);
    
    //Restore the registers used to save  parameters
+   /*
    for(u_int i = 0; i < rs->getRegisterCount(); i++) {
-     registerSlot *reg = rs->getRegSlot(i);
-     if (reg->beenClobbered) {
-       restoreRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
-       regSpace->unClobberRegister(reg->number);
-     }
+   registerSlot *reg = rs->getRegSlot(i);
+   if (reg->beenClobbered) {
+   restoreRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
+   regSpace->unClobberRegister(reg->number);
    }
+   }
+   */
    
    // restore saved registers.
    for (u_int ui = 0; ui < savedRegs.size(); ui++) {
@@ -2520,6 +2734,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
         return(0);              // let's hope this is expected!
         }        
       case trampTrailer: {
+	/*
 	for(u_int i = 0; i < regSpace->getRegisterCount(); i++) {
 	  registerSlot *reg = regSpace->getRegSlot(i);
 	  if (reg->beenClobbered) {
@@ -2527,6 +2742,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	    regSpace->unClobberRegister(reg->number);
 	  }
 	}
+	*/
 	
 /*
 	// restore the registers we have saved
@@ -3710,6 +3926,24 @@ bool registerSpace::clobberRegister(Register reg)
   return false;
 }
 
+//Checks to see if register has been clobbered
+//If return true, it hasn't and we need to save register
+//If return false, it's been clobbered and we do nothing
+bool registerSpace::clobberFPRegister(Register reg) 
+{
+  if (reg == 10)
+    return false;
+  for (u_int i=0; i < numFPRegisters; i++) {
+    if (fpRegisters[i].number == reg) {
+      if(fpRegisters[i].beenClobbered == true)
+	return false;
+      else{
+	fpRegisters[i].beenClobbered = true;
+	return true;
+      }	
+    }
+  }
+}
 
 bool registerSpace::beenSaved(Register reg)
 {
@@ -3727,9 +3961,19 @@ bool registerSpace::beenSaved(Register reg)
   return false;
 }
 
-
-
-
+bool registerSpace::beenSavedFP(Register reg)
+{
+  if (reg == 10)
+    return true;
+  for (u_int i = 0; i < numFPRegisters; i++){
+    if (fpRegisters[i].number == reg){
+      if (fpRegisters[i].beenClobbered == true)
+	return true;
+      else
+	return false;
+    }
+  }
+}
 
 bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> > &/*stackWalks*/)
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: trampTemplate.h,v 1.4 2004/08/16 04:34:41 rchen Exp $
+// $Id: trampTemplate.h,v 1.5 2005/02/17 02:16:21 rutar Exp $
 
 // trampTemplate class definition
 
@@ -78,6 +78,13 @@ class trampTemplate : public codeRange {
     int savePostInsOffset;/* Save regs before post instrumentation */
     int restorePostInsOffset;/* Restore from above */
 
+    int saveRegOffset; /* Saves regs used in mini-tramps */
+    int saveRegOffset2; /* Saves regs used in mini-tramps */
+    int restRegOffset; /* Restores regs used in mini-tramps */
+    int restRegOffset2; /* Saves regs used in mini-tramps */
+
+
+
 #if defined(rs6000_ibm_aix4_1)
     // Or other on-the-fly generated tramp 
     int recursiveGuardPreJumpOffset;/* Minitramp guard jump offset */
@@ -95,6 +102,10 @@ class trampTemplate : public codeRange {
     bool postInstru;
     int  prevBaseCost;
     int  postBaseCost;
+
+    int * clobberedGPR;
+    int * clobberedFPR;
+    int totalClobbered;
 
     const instPoint *location; /* Pointer to the owning inst point structure */
     process *proc; /* Process this base tramp is in */

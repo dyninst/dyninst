@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.23 2004/03/23 01:12:04 eli Exp $
+ * $Id: inst-power.h,v 1.24 2005/02/17 02:16:21 rutar Exp $
  */
 
 #ifndef INST_POWER_H
@@ -82,6 +82,11 @@ extern registerSpace *regSpace;
 #define FUNCSAVE  (14*4)
 #define FUNCARGS  32
 #define LINKAREA  24
+
+// The number of registers (general and floating point) that aren't
+// used in the base tramp explicitly 
+#define NUM_LO_REGISTERS 18
+
 
 // Okay, now that we have those defined, let's define the offsets upwards
 #define TRAMP_FRAME_SIZE (STACKSKIP + GPRSAVE + FPRSAVE + SPRSAVE + PDYNSAVE + \
