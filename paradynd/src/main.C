@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.134 2005/03/07 21:39:53 mjbrim Exp $
+// $Id: main.C,v 1.135 2005/03/11 00:38:07 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -65,6 +65,7 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 
 int StartOrAttach( void );
 bool isInfProcAttached = false;
+bool enableLoops = false;
 pdstring* newProcDir = NULL;
 pdvector<pdstring> newProcCmdLine;
 static bool reportedSelf = false;
@@ -191,7 +192,7 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
   int c;
   extern char *optarg;
   bool err = false;
-  const char optstring[] = "p:P:vVL:m:l:z:a:r:t:s:M:";
+  const char optstring[] = "p:P:vVL:m:l:z:a:r:t:s:M:o";
 
   // Defaults (for ones that make sense)
   machine = "localhost";
@@ -253,6 +254,11 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
       //the MPI implementation - MPICH or LAM
       MPI_impl = optarg;
       break;
+    case 'o':
+      //Enable loops
+      enableLoops = true;
+      break;
+         
     default:
       err = true;
       break;
@@ -499,8 +505,8 @@ main( int argc, char* argv[] )
    cerr << endl;
 #endif
    aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
-                              pd_known_socket_portnum,termWin_port, 
-			      pd_flag, pd_attpid, MPI_impl);
+                              pd_known_socket_portnum, termWin_port, 
+                              pd_flag, pd_attpid, MPI_impl);
 
    if (!aflag || pd_debug)
    {
@@ -757,14 +763,14 @@ StartOrAttach( void )
       if (newProcCmdLine.size() && (pd_attpid==0))
       {
          // ignore return val (is this right?)
-         pd_createProcess(newProcCmdLine, *newProcDir, true); 
-	 fprintf(stderr, "Created initial process\n");
+         pd_createProcess(newProcCmdLine, *newProcDir, enableLoops); 
       } 
       else if (pd_attpid && (pd_flag==2))
       {
          // We attach after doing a last bit of initialization, below
          startByAttach = true;
-      }else if (pd_attpid && (pd_flag==3))
+      }
+      else if (pd_attpid && (pd_flag==3))
       {
          // We attach to a just created application after doing a
          // last bit of initialization, below
@@ -772,7 +778,7 @@ StartOrAttach( void )
       }
    
    if (startByAttach) {
-       pd_process *p = pd_attachProcess("", pd_attpid, true);
+       pd_process *p = pd_attachProcess("", pd_attpid, enableLoops);
        
        if (!p) return -1;
        // Leave process paused in this case

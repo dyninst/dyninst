@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.150 2005/02/21 22:28:52 legendre Exp $
+ * $Id: DMdaemon.C,v 1.151 2005/03/11 00:38:05 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1524,6 +1524,9 @@ bool mpichCreateWrapper(const pdstring& machine, bool localMachine,
     
     buffer += (pdstring(" -z") + pdstring(de->getFlavor()));
     buffer += (pdstring(" -M") + pdstring(de->getMPItype()));
+   bool useLoops = tunableConstantRegistry::findBoolTunableConstant("EnableLoops").getValue();
+    if (useLoops)
+       buffer += pdstring(" -o");
 
     // Next add the arguments that define the process to be created.
     buffer += (pdstring(" -runme ") + app_name + pdstring(" $appargs\n"));
