@@ -1,6 +1,9 @@
 
 /*
  * $Log: init-cm5.C,v $
+ * Revision 1.9  1996/05/08 23:52:32  mjrg
+ * changed function called on exit
+ *
  * Revision 1.8  1996/03/01 22:31:57  mjrg
  * Replaced calls at the exit point by a call to DYNINSTexit
  *
@@ -69,11 +72,8 @@ bool initOS() {
   // TODO - no CMRT ?
 
   initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
-  //initialRequests += new instMapping("main", "DYNINSTalarmExpire", FUNC_EXIT);
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
   
-  //initialRequests += new instMapping(EXIT_NAME, "DYNINSTalarmExpire", FUNC_ENTRY);
-  //initialRequests += new instMapping(EXIT_NAME, "DYNINSTprintCost", FUNC_ENTRY);
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
 				 FUNC_ENTRY);
@@ -90,8 +90,7 @@ bool initOS() {
   initialRequests += new instMapping("CMMD_receive_async", "DYNINSTrecordTag",
 			  FUNC_ENTRY | FUNC_ARG, &tagArg);
   initialRequests += new instMapping("CMPE_CMCOM_pe_init", "DYNINSTinit", FUNC_ENTRY);
-  initialRequests += new instMapping("pe_main_default", "DYNINSTalarmExpire", FUNC_EXIT);
-  initialRequests += new instMapping("pe_main_default", "DYNINSTprintCost", FUNC_EXIT);
-  
+  initialRequests += new instMapping("pe_main_default", "DYNINSTexit", FUNC_EXIT);
+
   return true;
 };
