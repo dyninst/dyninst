@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.33  1995/08/08 03:13:03  newhall
-/* updates due to changes in DM: newPerfData, sampleDataCallbackFunc defs.
+/* Revision 1.34  1995/10/05 04:41:43  karavan
+/* changes to UI::PC interface calls.
 /*
+ * Revision 1.33  1995/08/08  03:13:03  newhall
+ * updates due to changes in DM: newPerfData, sampleDataCallbackFunc defs.
+ *
  * Revision 1.32  1995/08/05  17:09:11  krisna
  * do not include <memory.h> in C++ programs, use <stdlib.h>
  *
@@ -134,7 +137,6 @@
 #include "PCglobals.h"
 #include "PCmetric.h"
 #include "../src/pdMain/paradyn.h"
-#include "../src/UIthread/UIstatDisp.h"
 #include "../src/DMthread/DMresource.h"
 
 #include "../src/DMthread/DMinclude.h"
@@ -151,8 +153,6 @@ extern void PCevaluateWorld();
 extern thread_t MAINtid;
 extern timeStamp PCstartTransTime;
 extern timeStamp PCendTransTime;
-
-statusDisplayObj *PCstatusDisplay;   // token needed for PC status calls 
 
 int SHGid;             // id needed for Search History Graph uim dag calls
 static float PCbucketWidth;
@@ -296,9 +296,6 @@ void PCmain(void* varg)
 			     met->getHandle());
         }
     }
-
-    // initialize PC status display object
-    PCstatusDisplay = uiMgr->initStatusDisplay (PC_STATUSDISPLAY);
 
     while (1) {
 	tag = MSG_TAG_ANY;

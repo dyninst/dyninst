@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCglobals.h,v $
- * Revision 1.7  1995/06/02 20:50:07  newhall
+ * Revision 1.8  1995/10/05 04:41:40  karavan
+ * changes to UI::PC interface calls.
+ *
+ * Revision 1.7  1995/06/02  20:50:07  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.6  1995/02/16  08:19:09  markc
@@ -41,8 +44,6 @@
  *
  */
 
-class statusDisplayObj;
- 
 // should we print a message when a metric value is printed.
 extern bool fetchPrint;
 
@@ -61,9 +62,6 @@ extern bool interactiveShgUpdate;
 
 extern int SHGid;
 extern dataManagerUser *dataMgr;
-
-// token for PC status display requests
-extern statusDisplayObj *PCstatusDisplay;
 
 // styles for SHG display
 

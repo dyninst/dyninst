@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.25  1995/07/17 04:29:01  tamches
+ * Revision 1.26  1995/10/05 04:41:42  karavan
+ * changes to UI::PC interface calls.
+ *
+ * Revision 1.25  1995/07/17  04:29:01  tamches
  * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
  * new UI where axis.
  *
@@ -209,12 +212,14 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t,
     style = UNTESTEDNODESTYLE;
     suppressed = false;
     if (f->getSuppressed()) suppressed = true;
+/**
+    cout << "new shn created: hypothesis = "<< *h << endl << "     focus = " << 
+      *f << endl << "    suppressed = " << suppressed << endl;
+**/
 };
 
 ostream& operator <<(ostream &os, searchHistoryNode& shg)
 {
-    searchHistoryNodeList curr;
-
     if (shg.nodeId == currentSHGNode->nodeId) os << "**";
     os << shg.nodeId;
     if (shg.why) os << *shg.why;
@@ -432,7 +437,8 @@ void shgInit()
     currentSHGNode->changeActive(true);
 
     // begin visual display of shg
-    SHGid = uiMgr->initSHG();     
+    SHGid = uiMgr->initSHG("Global Search", 0);     
+
     // display root node with style 1 
     uiMgr->DAGaddNode (SHGid, currentSHGNode->nodeId, UNTESTEDNODESTYLE, 
 		       currentSHGNode->shortName, 

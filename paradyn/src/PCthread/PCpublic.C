@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.21  1995/06/02 20:50:12  newhall
+ * Revision 1.22  1995/10/05 04:41:44  karavan
+ * changes to UI::PC interface calls.
+ *
+ * Revision 1.21  1995/06/02  20:50:12  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.20  1995/02/16  08:19:16  markc
@@ -157,22 +160,6 @@ void performanceConsultant::printTestStatus()
     } else {
 	cout << "No test results available" << endl;
     }
-}
-
-
-void performanceConsultant::createInterval(int parent, 
-					   timeStamp start, 
-					   timeStamp end, 
-					   char *name)
-{
-    timeInterval *pi, *i;
-
-    pi = allTimeIntervals.find((void *) parent);
-    if (!pi) {
-	printf("time interval i%d does not exist\n", parent);
-	return;
-    }
-    i = new timeInterval(pi, start, end, name);
 }
 
 
@@ -319,8 +306,10 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
 
     // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
     (void) (newFoci = of->where->enumerateRefinements());
+//**    cout << "**ENUMERATE REFINEMENTS: " << *of << endl;
     for (; *newFoci; newFoci++){
 	f = *newFoci;
+//**	cout << "  " << *f << endl;
 	newNode = findAndAddSHG(of, of->why, f, of->when, WHEREEDGESTYLE);
 	newNode->shortName = 
 	    makeShortName((char *) of->name, (char *) newNode->name);
@@ -413,17 +402,7 @@ void performanceConsultant::printSHGNode(searchHistoryNode *node)
     cout << *node;
 }
 
-void performanceConsultant::startSHG()
-{
-  static int init;
-
-  if (!init) {
-      shgInit();
-  }
-}
-
-
-void performanceConsultant::clearSHG()
+void performanceConsultant::newSearch(phaseType pt)
 {
     searchHistoryNode *n;
     searchHistoryNodeList curr;
@@ -433,7 +412,7 @@ void performanceConsultant::clearSHG()
 	// delete(n);
     }
 
-    // init a new root node.
+    // init GUI display and a new root node.
     shgInit();
 }
 
@@ -490,7 +469,7 @@ void printStats()
     }
     char buffer[100];
     sprintf(buffer, "%d metric/focus pairs used\n", count);
-    PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY, buffer);
+    uiMgr->updateStatusDisplay(PC_STATUSDISPLAY, buffer);
 }
 
 
