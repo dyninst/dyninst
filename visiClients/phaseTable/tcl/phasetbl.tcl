@@ -1,6 +1,9 @@
 #
 # $Log: phasetbl.tcl,v $
-# Revision 1.3  1996/02/23 17:49:07  tamches
+# Revision 1.4  1996/03/11 17:44:49  newhall
+# changed params to PhaseDef
+#
+# Revision 1.3  1996/02/23  17:49:07  tamches
 # starting a phase now properly sends "with pc/with visis" flags
 #
 # Revision 1.2  1996/02/11 21:22:40  tamches
@@ -103,13 +106,13 @@ $W.top.left.menubar.file.m add command -label "Close" -command Shutdown
 menubutton $W.top.left.menubar.phase -text "Phase" \
 	-menu $W.top.left.menubar.phase.m
 menu $W.top.left.menubar.phase.m
-$W.top.left.menubar.phase.m add command -label "Start" -command "PhaseDef <null> false false"
+$W.top.left.menubar.phase.m add command -label "Start" -command "PhaseDef <null> 0 0"
 $W.top.left.menubar.phase.m add command -label "Start with Perf Consultant" \
-	-command "PhaseDef <null> true false"
+	-command "PhaseDef <null> 1 0"
 $W.top.left.menubar.phase.m add command -label "Start with Visis" \
-	-command "PhaseDef <null> false true" -state disabled
+	-command "PhaseDef <null> 0 1" -state disabled
 $W.top.left.menubar.phase.m add command -label "Start" \
-	-command "PhaseDef <null> true true" -state disabled
+	-command "PhaseDef <null> 1 1" -state disabled
 
 #
 #  Help menu
