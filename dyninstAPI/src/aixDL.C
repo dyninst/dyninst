@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.19 2002/05/13 19:51:58 mjbrim Exp $
+// $Id: aixDL.C,v 1.20 2002/06/17 21:31:14 chadd Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -386,9 +386,22 @@ bool checkAllThreadsForBreakpoint(int pid, Address break_addr, unsigned &curr_lw
 	  }
 	}
     }
-
   return false;
 }
+
+		  //ccw 30 apr 2002 : SPLIT4  
+#if !defined(BPATCH_LIBRARY)
+	
+bool process::trapDueToParadynLib()
+{
+  // Since this call requires a PTRACE, optimize it slightly
+  if (paradynlib_brk_addr == 0x0) return false;
+  // We have multiple threads, right? Well, instead of checking all
+  // of 'em all the time, cache the matching kernel thread ID and
+  // use it as long as it works :)
+  return checkAllThreadsForBreakpoint(pid, paradynlib_brk_addr, curr_lwp);
+}
+#endif
 
 bool process::trapDueToDyninstLib()
 {
@@ -397,7 +410,16 @@ bool process::trapDueToDyninstLib()
   // We have multiple threads, right? Well, instead of checking all
   // of 'em all the time, cache the matching kernel thread ID and
   // use it as long as it works :)
-  return checkAllThreadsForBreakpoint(pid, dyninstlib_brk_addr, curr_lwp);
+  bool result = checkAllThreadsForBreakpoint(pid, dyninstlib_brk_addr, curr_lwp);
+	if(result){ 
+	  dyninstlib_brk_addr = 0; //ccw 30 apr 2002 : SPLIT3
+	  //dyninstlib_brk_addr and paradynlib_brk_addr may be the same
+	  //if they are we dont want to get them mixed up. once we
+	  //see this trap is due to dyninst, reset the addr so
+	  //we can now catch the paradyn trap
+	}
+	return result;
+
 }
 
 bool process::trapAtEntryPointOfMain()
@@ -488,15 +510,7 @@ bool getRTLibraryName(string &dyninstName, int pid)
 {
   // get library name... 
   // Get the name of the appropriate runtime library
-#ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
-  const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
-#else
-#ifdef MT_THREAD
-  const char DyninstEnvVar[]="PARADYN_LIB_MT";
-#else
-  const char DyninstEnvVar[]="PARADYN_LIB";
-#endif MT_THREAD
-#endif
+  const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";//ccw 1 jun 2002 SPLIT
 
   if (dyninstName.length()) {
     // use the library name specified on the start-up command-line
@@ -521,6 +535,7 @@ bool getRTLibraryName(string &dyninstName, int pid)
   }
   return true;
 }
+
 
 /*
  * dlopenDYNINSTlib()
@@ -633,6 +648,129 @@ bool process::dlopenDYNINSTlib()
   return true;
 }
 
+
+
+		  //ccw 30 apr 2002 : SPLIT4  
+#if !defined(BPATCH_LIBRARY)
+
+bool process::dlopenPARADYNlib()
+{
+  // This is actually much easier than on other platforms, since
+  // by now we have the DYNINSTstaticHeap symbol to work with.
+  // Basically, we can ptrace() anywhere in the text heap we want to,
+  // so go somewhere untouched. Unfortunately, we haven't initialized
+  // the tramp space yet (no point except on AIX) so we can't simply
+  // call inferiorMalloc(). 
+
+  // However, if we can get code_len_ + code_off_ from the object file,
+  // then we can use the area above that point freely.
+
+  // Steps: Get the library name (command line or ENV)
+  //        Get the address for dlopen()
+  //        Write in a call to dlopen()
+  //        Write in a trap after the call
+  //        Write the library name somewhere where dlopen can find it.
+  // Actually, why not write the library name first?
+
+  const Object binaryFile = symbols->getObject();
+  Address codeBase = binaryFile.code_off() + binaryFile.code_len();
+  // Round it up to the nearest instruction. 
+  codeBase += sizeof(instruction) - (codeBase % sizeof(instruction));
+
+
+  int count = 0; // how much we've written
+  unsigned char scratchCodeBuffer[BYTES_TO_SAVE]; // space
+  Address dyninstlib_addr;
+  Address dlopencall_addr;
+  Address dlopentrap_addr;
+
+  // Do we want to save whatever is there? Can't see a reason why...
+#ifdef MT_THREAD
+  const char DyninstEnvVar[]="PARADYN_LIB_MT";
+#else
+  const char DyninstEnvVar[]="PARADYN_LIB";
+#endif MT_THREAD
+
+    // check the environment variable
+    if (getenv(DyninstEnvVar) != NULL) {
+      dyninstName = getenv(DyninstEnvVar);
+    } else {
+      string msg = string("Environment variable " + string(DyninstEnvVar)
+                   + " has not been defined for process ") + string(pid);
+      showErrorCallback(101, msg);
+      return false;
+  }
+
+  // Check to see if the library given exists.
+  if (access(dyninstName.c_str(), R_OK)) {
+    string msg = string("Runtime library ") + dyninstName
+        + string(" does not exist or cannot be accessed!");
+    showErrorCallback(101, msg);
+    return false;
+  }
+  
+  // write library name...
+  dyninstlib_addr = (Address) (codeBase + count);
+  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
+		 (caddr_t)const_cast<char*>(dyninstName.c_str()));
+  count += dyninstName.length()+sizeof(instruction); // a little padding
+
+  // Actually, we need to bump count up to a multiple of insnsize
+  count += sizeof(instruction) - (count % sizeof(instruction));
+
+  // Need a register space
+  // make sure this syncs with inst-power.C
+  Register liveRegList[] = {10, 9, 8, 7, 6, 5, 4, 3};
+  Register deadRegList[] = {11, 12};
+  unsigned liveRegListSize = sizeof(liveRegList)/sizeof(Register);
+  unsigned deadRegListSize = sizeof(deadRegList)/sizeof(Register);
+
+  registerSpace *dlopenRegSpace = new registerSpace(deadRegListSize, deadRegList, 
+						    liveRegListSize, liveRegList);
+  dlopenRegSpace->resetSpace();
+
+  Address dyninst_count = 0; // size of generated code
+  vector<AstNode*> dlopenAstArgs(2);
+  AstNode *dlopenAst;
+
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
+  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
+  dlopenAst = new AstNode("dlopen", dlopenAstArgs);
+  removeAst(dlopenAstArgs[0]);
+  removeAst(dlopenAstArgs[1]);
+  // We need to push down the stack before we call this
+  pushStack((char *)scratchCodeBuffer, dyninst_count);
+  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			  dyninst_count, true, true);
+  popStack((char *)scratchCodeBuffer, dyninst_count);
+  dlopencall_addr = codeBase + count;
+  writeDataSpace((void *)dlopencall_addr, dyninst_count, 
+		 (char *)scratchCodeBuffer);
+  removeAst(dlopenAst);
+  count += dyninst_count;
+
+  instruction insnTrap;
+  generateBreakPoint(insnTrap);
+  dlopentrap_addr = codeBase + count;
+  writeDataSpace((void *)dlopentrap_addr, sizeof(instruction),
+		 (void *)(&insnTrap.raw));
+  count += sizeof(instruction);
+
+  paradynlib_brk_addr = dlopentrap_addr; //ccw 30 apr 2002 : SPLIT4
+
+  // save registers
+  savedRegs = getRegisters();
+  assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
+
+  isLoadingParadynLib = true; //ccw 30 apr 2002 : SPLIT4
+  if (!changePC(dlopencall_addr)) {
+    logLine("WARNING: changePC failed in dlopenPARADYNlib\n");
+    assert(0);
+  }
+  return true;
+}
+
+#endif
 /*
  * Return the entry point of dlopen(). Used (I think) when we generate
  * a call to dlopen in an AST

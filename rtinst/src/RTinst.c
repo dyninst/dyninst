@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.52 2002/04/22 03:50:30 bernat Exp $
+ * $Id: RTinst.c,v 1.53 2002/06/17 21:31:18 chadd Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -56,6 +56,11 @@
 #include <string.h>
 #include <math.h>
 #include <sys/types.h>
+
+#if defined(i386_unknown_nt4_0) /* ccw 4 jun 2002 */
+#include <process.h>
+#define getpid _getpid
+#endif
 
 #if !defined(i386_unknown_nt4_0)
 #include <sys/ipc.h>
@@ -80,16 +85,16 @@ extern const char V_libdyninstRT[];
 #endif
 
 #ifdef DEBUG_PRINT_RT
-int DYNINSTdebugPrintRT = 1;
+int PARADYNdebugPrintRT = 1;
 #else
-int DYNINSTdebugPrintRT = 0;
+int PARADYNdebugPrintRT = 0;
 #endif
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 extern unsigned DYNINSTtotalTraps;
 #endif
 
-extern void   DYNINSTos_init(int calledByFork, int calledByAttach);
+/*extern void   DYNINSTos_init(int calledByFork, int calledByAttach); ccw 22 apr 2002 : SPLIT */
 extern void   PARADYNos_init(int calledByFork, int calledByAttach);
 
 /* platform dependent functions */
@@ -120,6 +125,14 @@ char DYNINSThasInitialized = 0; /* 0 : has not initialized
 				   2 : initialized by Dyninst
 				   3 : initialized by Paradyn */
 
+/* SPLIT ccw 4 jun 2002 
+ * These are used by DllMain to call pDYNINSTinit
+ */
+int libdyninstRT_DLL_localtheKey=-1;
+int libdyninstRT_DLL_localshmSegNumBytes=-1;
+int libdyninstRT_DLL_localparadynPid=-1;
+
+
 #if !defined(MT_THREAD)
 #define MAX_NUMBER_OF_THREADS 1
 #endif
@@ -136,6 +149,7 @@ int DYNINST_shmSegShmId; /* needed? */
 void *DYNINST_shmSegAttachedPtr;
 int DYNINST_mutatorPid = -1; /* set in DYNINSTinit(); pass to connectToDaemon();
 				 needed if we fork */
+int local_DYNINST_mutatorPid = -1;
 
 #ifdef USE_PROF
 int DYNINSTbufsiz;
@@ -151,9 +165,13 @@ short *DYNINSTprofBuffer;
  * in the name, instead of having it implicitly known. The format is:
  * DYNINSTstaticHeap_<size>_<type>_garbage
  */
+
+/* ccw 22 apr 2002 : SPLIT removed these heaps because they are in
+ 	DYNINST */
+/* 
 double DYNINSTstaticHeap_32K_lowmemHeap_1[(32*1024)/sizeof(double)];
 double DYNINSTstaticHeap_4M_anyHeap_1[(4*1024*1024)/sizeof(double)];
-
+*/
 /* As DYNINSTinit() completes, it has information to pass back
    to paradynd.  The data can differ; more stuff is needed
    when SHM_SAMPLING is defined, for example.  But in any event,
@@ -169,7 +187,7 @@ double DYNINSTstaticHeap_4M_anyHeap_1[(4*1024*1024)/sizeof(double)];
    record is now obsolete, along with the TR_START record.
    Additionally, we use this framework for DYNINSTexec() -- so the
    TR_EXEC record is now obsolete, too */
-struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+/* struct DYNINST_bootstrapStruct DYNINST_bootstrap_info; ccw 18 apr 2002 : SPLIT */
 struct PARADYN_bootstrapStruct PARADYN_bootstrap_info;
 
 #define N_FP_REGS 33
@@ -179,7 +197,8 @@ volatile int DYNINSTsampleMultiple    = 1;
       (presumably, upon a fold) */
 
 /* Written to by daemon just before launching an inferior RPC */
-rpcInfo curRPC = { 0, 0, 0 };
+/*rpcInfo curRPC = { 0, 0, 0 }; ccw 18 apr 2002 SPLIT */
+
 unsigned pcAtLastIRPC;  /* just used to check for errors */
 /* 1 = a trap was ignored and needs to be regenerated
    0 = there is not a trap that hasn't been processed */
@@ -427,6 +446,8 @@ static void initFPU()
        DYNINSTdummydouble *= x;
 }
 
+
+
 /************************************************************************
  * void DYNINSTinit()
  *
@@ -435,7 +456,7 @@ static void initFPU()
  * attach.
  *
  ************************************************************************/
-void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
+void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) /* ccw 18 apr 2002 : SPLIT */
 {
   /* If first 2 params are -1 then we're being called by DYNINSTfork(). */
   /* If first 2 params are 0 then it just means we're not shm sampling */
@@ -481,7 +502,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   assert(sizeof(rawTime64) == 8);
   assert(sizeof(int64_t) == 8);
   assert(sizeof(int32_t) == 4);
-  
+ 
   if (calledFromAttach)
     paradyndPid = -paradyndPid;
   
@@ -527,7 +548,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   RTprintf("%s\n", V_libdyninstRT);
 #endif
 
-  DYNINSTos_init(calledFromFork, calledFromAttach);
+  /*DYNINSTos_init(calledFromFork, calledFromAttach); ccw 22 apr 2002 : SPLIT */
   PARADYNos_init(calledFromFork, calledFromAttach);
 
 #ifdef USE_PROF
@@ -545,30 +566,31 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     
   /* Fill in info for paradynd to receive: */
   
-  DYNINST_bootstrap_info.ppid = -1; /* not needed really */
+  PARADYN_bootstrap_info.ppid = -1; /* not needed really */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+
   
   if (!calledFromFork) {
     shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record"
                        " to 0x%x\n", (Address)DYNINST_shmSegAttachedPtr);
     PARADYN_bootstrap_info.appl_attachedAtPtr.ptr = DYNINST_shmSegAttachedPtr;
   }
-  
-  DYNINST_bootstrap_info.pid = getpid();
+  PARADYN_bootstrap_info.pid = getpid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */ 
 #if !defined(i386_unknown_nt4_0)
   if (calledFromFork)
-    DYNINST_bootstrap_info.ppid = getppid();
+    PARADYN_bootstrap_info.ppid = getppid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */
 #else
-  DYNINST_bootstrap_info.ppid = 0;
-#endif
+  PARADYN_bootstrap_info.ppid = 0; /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+#endif 
 
   /* We do this field last as a way to synchronize; paradynd will ignore what it
      sees in this structure until the event field is nonzero */
+/* was DYNINST_ ccw 18 apr 2002 SPLIT */
   if (calledFromFork)
-    DYNINST_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
+    PARADYN_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
   else if (calledFromAttach)
-    DYNINST_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached proc) */
+    PARADYN_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached proc) */
   else				   
-    DYNINST_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
+    PARADYN_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
 					 called by exec'd proc or attachedTocreated case) */
 
   /* If attaching, now's the time where we set up the trace stream connection fd */
@@ -582,7 +604,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     unsigned attach_cookie = 0x22222222;
     int32_t ptr_size;
     
-    fprintf(stderr, "DYNINSTinit with pd %d\n", paradyndPid);
     DYNINSTinitTrace(paradyndPid);
     
     DYNINSTwriteTrace(&attach_cookie, sizeof(attach_cookie));
@@ -664,9 +685,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   
   shmsampling_printf("DYNINSTinit (pid=%d) --> about to PARADYNbreakPoint()\n",
 		     (int)getpid());
-  
   PARADYNbreakPoint();
-
   /* The next instruction is necessary to avoid a race condition when we
      link the thread library. This is just a hack to get the hw counters
      to work and it should be fixed - naim 4/9/97 */
@@ -674,13 +693,45 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   
   /* After the break, we clear DYNINST_bootstrap_info's event field, leaving the
      others there */
-  DYNINST_bootstrap_info.event = 0; /* 0 --> nothing */
+  PARADYN_bootstrap_info.event = 0; /* 0 --> nothing */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
 
   DYNINSTstartWallTimer(&DYNINSTelapsedTime);
   DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
-  
   shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
 }
+
+
+#if defined(i386_unknown_nt4_0)  /*ccw 4 jun 2002*/
+#include <windows.h>
+
+/* this function is automatically called when windows loads this dll
+ if we are launching a mutatee to instrument, dyninst will place
+ the correct values in libdyninstRT_DLL_local* 
+ and they will be passed to
+ pDYNINSTinit to correctly initialize the dll.  this keeps us
+ from having to instrument two steps from the mutator (load and then 
+ the execution of pDYNINSTinit()
+*/
+int pDllMainCalledOnce=0;
+BOOL WINAPI DllMain(
+  HINSTANCE hinstDLL,  /* handle to DLL module */
+  DWORD fdwReason,     /* reason for calling function */
+  LPVOID lpvReserved   /* reserved */
+){
+	if(pDllMainCalledOnce){
+	}else{
+		pDllMainCalledOnce++;
+		if(libdyninstRT_DLL_localtheKey != -1 ||  libdyninstRT_DLL_localshmSegNumBytes != -1 ||
+					libdyninstRT_DLL_localparadynPid != -1){
+			pDYNINSTinit(libdyninstRT_DLL_localtheKey, libdyninstRT_DLL_localshmSegNumBytes, 
+					libdyninstRT_DLL_localparadynPid);
+		}
+	}
+	return 1; 
+}
+ 
+
+#endif
 
 /* bootstrap structure extraction info (see rtinst/h/trace.h) */
 static struct PARADYN_bootstrapStruct _bs_dummy;
@@ -839,7 +890,7 @@ DYNINSTfork(int pid) {
 	forkexec_printf("dyninst-fork child past PARADYNbreakPoint()"
                         " ...calling DYNINSTinit(-1,-1)\n");
 
-	DYNINSTinit(-1, -1, DYNINST_mutatorPid);
+	pDYNINSTinit(-1, -1, DYNINST_mutatorPid);
 	   /* -1 params indicate called from DYNINSTfork */
 
 	forkexec_printf("dyninst-fork child done...running freely.\n");
@@ -872,7 +923,7 @@ DYNINSTexec(char *path) {
 
     forkexec_printf("execve called, path = %s\n", path);
 
-    if (strlen(path) + 1 > sizeof(DYNINST_bootstrap_info.path)) {
+    if (strlen(path) + 1 > sizeof(PARADYN_bootstrap_info.path)) { /* was DYNINST_ ccw 18 apr 2002 SPLIT */
       fprintf(stderr, "DYNINSTexec failed...path name too long\n");
       abort();
     }
@@ -882,9 +933,9 @@ DYNINSTexec(char *path) {
        to paradynd before the trace record.  So instead, we fill in
        DYNINST_bootstrap_info and then do a breakpoint.  This approach is the same
        as the end of DYNINSTinit. */
-    DYNINST_bootstrap_info.event = 4;
-    DYNINST_bootstrap_info.pid = getpid();
-    strcpy(DYNINST_bootstrap_info.path, path);
+    PARADYN_bootstrap_info.event = 4; /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+    PARADYN_bootstrap_info.pid = getpid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+    strcpy(PARADYN_bootstrap_info.path, path);/* was DYNINST_ ccw 18 apr 2002 SPLIT */
 
     /* The following turns OFF the alarm signal (the 0,0 parameters); when
        DYNINSTinit() runs again for the exec'd process, it'll be turned back on.  This
@@ -896,7 +947,7 @@ DYNINSTexec(char *path) {
     PARADYNbreakPoint();
 
     /* after the breakpoint, clear DYNINST_bootstrap_info */
-    DYNINST_bootstrap_info.event = 0; /* 0 --> nothing */
+    PARADYN_bootstrap_info.event = 0; /* 0 --> nothing */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
 
     forkexec_printf("DYNINSTexec after breakpoint...allowing the exec to happen now\n");
 }

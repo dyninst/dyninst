@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.49 2002/05/02 21:29:06 schendel Exp $
+ * $Id: rtinst.h,v 1.50 2002/06/17 21:31:16 chadd Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -48,7 +48,6 @@
 #ifndef _RTINST_H
 #define _RTINST_H
 
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /* We sometimes include this into assembly files, so guard the struct defs. */
 #if !defined(__ASSEMBLER__)
@@ -90,6 +89,12 @@
    done by resetting the machine.  This shouldn't be all that common.  For
    example, it would take a 3GHz machine 97 years to count up from 0 to 2^63.
 */
+
+#include "common/h/Types.h" /* ccw 22 apr 2002 : SPLIT we used to include dyninstAPI_RT.h 
+				BUT no longer. this is the only necessary thing we carry over*/
+extern int PARADYNdebugPrintRT;  /* declared in RTinst.c */
+#define RTprintf                if (PARADYNdebugPrintRT) printf /* ccw 22 apr 2002 : SPLIT */
+
 typedef int64_t rawTime64;
 
 

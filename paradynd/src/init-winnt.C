@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.9 2002/05/10 18:37:28 schendel Exp $
+// $Id: init-winnt.C,v 1.10 2002/06/17 21:31:16 chadd Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -56,32 +56,34 @@ static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
 static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
 
 bool initOS() {
+//ccw 29 apr 2002 : SPLIT3 initialRequestsPARADYN is changed to
+// initialRequestsPARADYNPARADYN
 
-  initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
-  initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
+  initialRequestsPARADYN += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
+  initialRequestsPARADYN += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-  initialRequests += new instMapping("execve", "DYNINSTexec",
+  initialRequestsPARADYN += new instMapping("execve", "DYNINSTexec",
 				     FUNC_ENTRY|FUNC_ARG, tidArg);
-  initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
+  initialRequestsPARADYN += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
 
 #ifdef PARADYND_PVM
   char *doPiggy;
 
-  initialRequests += new instMapping("pvm_send", "DYNINSTrecordTag",
+  initialRequestsPARADYN += new instMapping("pvm_send", "DYNINSTrecordTag",
 				 FUNC_ENTRY|FUNC_ARG, tagArg);
 
   // kludge to get Critical Path to work.
   // XXX - should be tunable constant.
   doPiggy = getenv("DYNINSTdoPiggy");
   if (doPiggy) {
-      initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
+      initialRequestsPARADYN += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
       tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
+      initialRequestsPARADYN+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
                            FUNC_ENTRY|FUNC_ARG, tidArg);
-      initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
+      initialRequestsPARADYN += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
       tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
+      initialRequestsPARADYN += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
                            FUNC_ENTRY|FUNC_ARG, tidArg);
   }
 #endif

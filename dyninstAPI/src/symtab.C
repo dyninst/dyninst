@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.138 2002/05/13 19:52:45 mjbrim Exp $
+// $Id: symtab.C,v 1.139 2002/06/17 21:31:15 chadd Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -408,7 +408,16 @@ bool image::addAllFunctions(vector<Symbol> &mods)
     is_libdyninstRT = true;
   else
     is_libdyninstRT = false;
-  
+ 
+#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
+  if (linkedFile.get_symbol(symString="pDYNINSTinit",  lookUp) ||
+      linkedFile.get_symbol(symString="_pDYNINSTinit", lookUp))
+    is_libparadynRT = true;
+  else
+    is_libparadynRT = false;
+ 
+#endif
+ 
   // find the real functions -- those with the correct type in the symbol table
   for(SymbolIter symIter(linkedFile); symIter;symIter++) {
     const Symbol &lookUp = symIter.currval();
@@ -1271,8 +1280,7 @@ image *image::parseImage(fileDescriptor *desc)
 
   statusLine("defining modules");
   ret->defineModules();
-
-//  statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
+statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
 
 #ifndef BPATCH_LIBRARY
   tp->resourceBatchMode(false);

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2002/02/11 22:01:35 tlmiller Exp $
+# $Id: Makefile,v 1.2 2002/06/17 21:31:17 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -53,7 +53,7 @@ SRCS	     += ../src/RTfirst.c \
 
 ifdef DETACH_ON_THE_FLY
 CFLAGS += -DDETACH_ON_THE_FLY
-SRCS 	+= ../../dyninstAPI_RT/src/RTsigill-x86.S
+SRCS 	+= ../src/RTsigill-x86.S
 endif
 
 ifdef USES_LIBHRTIME

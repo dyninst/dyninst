@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-posix.c,v 1.67 2000/10/17 17:42:51 schendel Exp $
+ * $Id: RTetc-posix.c,v 1.68 2002/06/17 21:31:18 chadd Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -80,6 +80,28 @@
  *
  * stop oneself.
 ************************************************************************/
+
+/* ccw 22 apr 2002 :  from dyninstAPI_RT/src/RTposix.c*/
+void DYNINSTbreakPoint(void)
+{
+#ifdef DETACH_ON_THE_FLY
+     extern DYNINSTsigill();
+     DYNINSTsigill();
+     return;
+#endif /* DETACH_ON_THE_FLY */
+
+#ifndef USE_IRIX_FIXES
+     kill(getpid(), SIGSTOP);
+#endif
+
+#ifdef USE_IRIX_FIXES
+     /* there is a bug in all 6.5 versions of IRIX through 6.5.9f that
+        cause a PIOCSTRACE on SIGSTOP to starve (at least under the
+        conditions that we are throwing it in.)  So on IRIX, we use
+        SIGEMT.   -- willb, 10/4/2000 */
+     kill(getpid(), SIGEMT);
+#endif
+}
 
 void
 PARADYNbreakPoint(void) {
@@ -264,6 +286,8 @@ static int connectToDaemon(int paradyndPid) {
 ************************************************************************/
 
 void DYNINSTinitTrace(int daemon_addr) {
+    fprintf(stderr, "<DYNINSTinitTrace %d\n", daemon_addr);
+
   if (daemon_addr == -1) {
     /* this process was started by the paradynd, which set up a pipe on fd 3 */
     DYNINST_trace_fd = 3;

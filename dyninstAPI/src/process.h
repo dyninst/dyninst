@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.201 2002/06/14 21:43:31 tlmiller Exp $
+/* $Id: process.h,v 1.202 2002/06/17 21:31:15 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -53,6 +53,8 @@
 #ifdef BPATCH_LIBRARY
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #else
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // ccw 18 apr 2002 : SPLIT only for (DYNINSTbootstrapStruct
+
 #include "rtinst/h/rtinst.h"
 #include "paradynd/src/timeMgr.h"
 #endif
@@ -517,6 +519,11 @@ class process {
   Address getTOCoffsetInfo(Address);
 
   bool dyninstLibAlreadyLoaded() { return hasLoadedDyninstLib; }
+
+#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
+  bool paradynLibAlreadyLoaded() { return hasLoadedParadynLib; }
+
+#endif
   bool dyninstLibIsBeingLoaded() { return isLoadingDyninstLib; }
   void clearDyninstLibLoadFlags() {
         hasLoadedDyninstLib = isLoadingDyninstLib = false; }
@@ -616,8 +623,8 @@ void saveWorldData(Address address, int size, const void* src);
   vector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
   vector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
   vector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
-
-	vector<string> loadLibraryUpdates;//ccw 14 may 2002
+  vector<string> loadLibraryCalls;//ccw 14 may 2002 
+  vector<string> loadLibraryUpdates;//ccw 14 may 2002
 
 
 	char* saveWorldFindDirectory();
@@ -815,6 +822,10 @@ void saveWorldData(Address address, int size, const void* src);
   bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
   bool reachedVeryFirstTrap; 
 
+#if !defined(BPATCH_LIBRARY) //ccw 23 apr 2002 : SPLIT
+	bool reachedPARADYNBreakPoint;
+#endif
+
   // inferior heap management
  public:
   bool splitHeaps;              /* are there separate code/data heaps? */
@@ -956,12 +967,22 @@ void saveWorldData(Address address, int size, const void* src);
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   Address get_dlopen_addr() const;
   Address dyninstlib_brk_addr;
+
+	Address paradynlib_brk_addr; //ccw 18 apr 2002 : SPLIT
+	//This is used to see if the paradyn runtime shared library has been
+	//loaded 
+	
   Address main_brk_addr;
 #if !defined(alpha_dec_osf4_0) && !defined(rs6000_ibm_aix4_1)
   Address rbrkAddr() { assert(dyn); return dyn->get_r_brk_addr(); }
 #endif
   bool dlopenDYNINSTlib();
   bool trapDueToDyninstLib();
+
+#if !defined(BPATCH_LIBRARY)
+  bool trapDueToParadynLib(); //ccw 18 apr 2002 : SPLIT
+#endif
+
   bool trapAtEntryPointOfMain();
 //  bool wasCreatedViaAttach() { return createdViaAttach; }
   bool wasCreatedViaFork() { return createdViaFork; }
@@ -1238,6 +1259,7 @@ void saveWorldData(Address address, int size, const void* src);
    bool isBootstrappedYet() const {
       return hasBootstrapped;
    }
+
    int procStopFromDYNINSTinit();
       // returns 0 if not processed, 1 for the usual processed case (process is
       // now paused), or 2 for the processed-but-still-running-inferiorRPC case
@@ -1245,8 +1267,30 @@ void saveWorldData(Address address, int size, const void* src);
    void handleCompletionOfDYNINSTinit(bool fromAttach);
       // called by above routine.  Reads bs_record from applic, takes action.
 
+#if !defined(BPATCH_LIBRARY)//ccw 18 apr 2002 : SPLIT
+	//this is the same as above except for pDYNINSTinit
+	//pDYNINSTinit call completion
+	void handleCompletionOfpDYNINSTinit(bool fromAttach); 
+	int procStopFrompDYNINSTinit();
+	void callpDYNINSTinit();
+
+	bool attachProcessParadyn(); //ccw 28 apr 2002 : SPLIT2
+
+	bool isPARADYNBootstrappedYet() const {
+      		return PARADYNhasBootstrapped;
+	   }
+
+#endif
    static void DYNINSTinitCompletionCallback(process *, void *data, void *ret);
       // inferiorRPC callback routine.
+
+#if !defined(BPATCH_LIBRARY) //ccw 18 apr 2002 : SPLIT
+	//this is the same as above EXCEPT it catches the PARADYN runtime lib
+	//pDYNINSTinit call completion
+   static void pDYNINSTinitCompletionCallback(process* theProc, void* userData, void* ret); 
+	bool dlopenPARADYNlib();
+
+#endif
 
 #ifdef DETACH_ON_THE_FLY
    // Golly, you'd think this would have been needed long ago.
@@ -1260,13 +1304,19 @@ private:
   process &operator=(const process &); // assign oper
 
   bool hasBootstrapped;
+#if !defined(BPATCH_LIBRARY)  //ccw 22 apr 2002 : SPLIT
+  bool PARADYNhasBootstrapped;
+#endif
      // set to true when we get callback from inferiorRPC call to DYNINSTinit
 
   // following two variables are used when libdyninstRT is dynamically linked
   // On other platforms the values are undefined
   bool hasLoadedDyninstLib; // true iff dyninstlib has been loaded already
   bool isLoadingDyninstLib; // true iff we are currently loading dyninst lib
-  
+#if !defined(BPATCH_LIBRARY) 
+bool hasLoadedParadynLib; // ccw 19 apr 2002 : SPLIT 
+bool isLoadingParadynLib;
+#endif
   // the next two variables are used when we are loading dyninstlib
   // They are used by the special inferior RPC that makes the call to load the
   // library -- we use a special inferior RPC because the regular RPC assumes
@@ -1522,6 +1572,7 @@ private:
    // platform-specific buffer size alignment
    void inferiorMallocAlign(unsigned &size);
 #endif /* USES_DYNAMIC_INF_HEAP */
+
    
    Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
 			  Address near_=0, bool *err=NULL);
@@ -1542,6 +1593,9 @@ private:
    // And the associated deletion of a base tramp
    void deleteBaseTramp(trampTemplate *baseTramp, instInstance *lastMiniTramp);
 
+Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
+                       Address near_=0, bool *err=NULL);
+void inferiorFree(process *p, Address item, const vector<addrVecType> &);
 
    void gcInstrumentation();
    void gcInstrumentation(vector<vector<Frame> >&stackWalks);

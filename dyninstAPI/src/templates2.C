@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.9 2002/05/10 18:37:44 schendel Exp $
+// $Id: templates2.C,v 1.10 2002/06/17 21:31:15 chadd Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -67,7 +67,9 @@ class BPatch_field;
 class BPatch_variableExpr;
 #endif
 
+template class vector<string>;
 template class pair<string, vector<string> >;
+
 template class vector<pair<string, vector<string> > >;
 
 template class  dictionary_hash_iter <Address, Symbol*>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.73 2002/06/14 21:43:32 tlmiller Exp $
+// $Id: linux.C,v 1.74 2002/06/17 21:31:15 chadd Exp $
 
 #include <fstream.h>
 
@@ -231,7 +231,7 @@ bool process::continueWithForwardSignal( int sig ) {
    return (P_ptrace(PTRACE_CONT, pid, 1, sig) != -1);
 }
 
-void OS::osTraceMe( void ) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
+void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
 
 process *findProcess( int );  // In process.C
 
@@ -611,6 +611,27 @@ int process::waitProcs(int *status) {
 			  if (wasRunning) 
 				  if (!curr->continueProc()) assert(0);
 		  }
+		  	
+		  //ccw 29 apr 2002 : SPLIT3  i expect to need to add code here..
+#if !defined(BPATCH_LIBRARY)
+		else if (!curr->paradynLibAlreadyLoaded() && curr->wasCreatedViaAttach()){
+			  /* FIXME: Is any of this code ever executed? */
+			  // make sure we are stopped in the eyes of paradynd - naim
+			  bool wasRunning = (curr->status() == running);
+			  if (curr->status() != stopped)
+				  curr->Stopped();   
+			  if(curr->isDynamicallyLinked()) {
+				  curr->handleIfDueToSharedObjectMapping();
+			  }
+			  if (curr->trapDueToParadynLib()) {
+				  // we need to load libdyninstRT.so.1 - naim
+				  curr->handleIfDueToDyninstLib();
+			  }
+			  if (wasRunning) 
+				  if (!curr->continueProc()) assert(0);
+
+		}
+#endif
 	  }
 #ifdef SIGNAL_DEBUG
 	  if( WIFSIGNALED(*status) )
@@ -746,20 +767,40 @@ bool process::attach_() {
 bool process::trapAtEntryPointOfMain()
 {
   // is the trap instr at main_brk_addr?
-  if( getPC(getPid()) == (Address)main_brk_addr )
+  if( getPC(getPid()) == (Address)main_brk_addr)
     return(true);
   else
     return(false);
 }
 
-bool process::trapDueToDyninstLib()
+//ccw 29 apr 2002 : SPLIT3 i expect to need to add trapDueToParadynLib here
+#if !defined(BPATCH_LIBRARY)
+bool process::trapDueToParadynLib()
 {
-  // is the trap instr at dyninstlib_brk_addr?
-  if( getPC(getPid()) == (Address)dyninstlib_brk_addr )
+  if( getPC(getPid()) == (Address)paradynlib_brk_addr)
     return(true);
   else
     return(false);
 }
+
+#endif
+
+bool process::trapDueToDyninstLib()
+{
+  // is the trap instr at dyninstlib_brk_addr?
+  if( getPC(getPid()) == (Address)dyninstlib_brk_addr){
+	  dyninstlib_brk_addr = 0; //ccw 30 apr 2002 : SPLIT3
+	  //dyninstlib_brk_addr and paradynlib_brk_addr may be the same
+	  //if they are we dont want to get them mixed up. once we
+	  //see this trap is due to dyninst, reset the addr so
+	  //we can now catch the paradyn trap
+    return(true);
+  } else{
+    return(false);
+  }
+}
+
+void emitCallRel32(unsigned disp32, unsigned char *&insn);
 
 Address process::get_dlopen_addr() const {
   if (dyn != NULL)

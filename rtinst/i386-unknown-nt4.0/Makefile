@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2001/02/23 00:01:03 schendel Exp $
+# $Id: Makefile,v 1.14 2002/06/17 21:31:17 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,15 +23,15 @@ OPT_FLAG	= $(OPT_FLAG) -Oy-
 !endif
 
 LD		= link
-LDFLAGS		= -DLL -debug -debugtype:cv -PDB:NONE -base:0x60000000
+LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x70000000 #-debugtype:cv
 
 #TARGET2		= libdyninstCP.a
 
-SRCS		= ../../dyninstAPI_RT/src/RTwinnt.c \
-	 	  ../src/RTetc-winnt.c  \
+SRCS		= ../src/RTetc-winnt.c  \
                   ../src/RThwtimer-winnt.c
-
-OBJS		= RTwinnt.obj RTetc-winnt.obj RThwtimer-winnt.obj
+#../../dyninstAPI_RT/src/RTwinnt.c  # ccw
+# RTwinnt.obj	# ccw
+OBJS		=  RTetc-winnt.obj RThwtimer-winnt.obj
 
 CFLAGS		= $(CFLAGS) -Ox -Oy-
 
@@ -59,7 +59,7 @@ include ../../nmake.library.tmpl
 #
 $(TARGET): $(OBJS)
 	@$(MAKE) $(VOUCHER)
-	$(LD) $(LDFLAGS) -EXPORT:DYNINSTinit -ENTRY:_DllMainCRTStartup@12 \
+	$(LD) $(LDFLAGS) -EXPORT:pDYNINSTinit -ENTRY:_DllMainCRTStartup@12 \
 	    -out:$(TARGET) $(VOUCHER).obj $(OBJS) $(LIBS) ws2_32.lib winmm.lib
 
 #$(TARGET2): $(OBJS) RTpvmPiggy.o RTcriticalPath.o

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.105 2002/06/14 20:27:16 mirg Exp $
+// $Id: ast.C,v 1.106 2002/06/17 21:31:14 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1277,8 +1277,21 @@ Address AstNode::generateCode_phase2(process *proc,
 		P_abort();
 	    }
 #else
+	// if we have not yet loaded PARADYN do this the old DYNINST way
+	if( !proc->paradynLibAlreadyLoaded()  ){ //ccw 19 apr 2002 : SPLIT 
+	    bool err;
+	    costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
+	    if (err) {
+                string msg = string("Internal error: "
+                        "unable to find addr of DYNINSTobsCostLow\n");
+		showErrorCallback(79, msg.c_str());
+		P_abort();
+	    }
+	}else{ //ccw 19 apr 2002 : SPLIT 
+	
 	    if (!noCost)
 	       costAddr = (Address)proc->getObsCostLowAddrInApplicSpace();
+	}
 #endif
 	    return emitA(op, 0, 0, 0, insn, base, noCost);
 #endif

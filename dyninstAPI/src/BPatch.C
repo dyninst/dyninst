@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.45 2002/03/19 22:57:20 jaw Exp $
+// $Id: BPatch.C,v 1.46 2002/06/17 21:31:14 chadd Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -837,6 +837,7 @@ bool BPatch::getThreadEvent(bool block)
 	    }
 	}
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+
 	handleSigChild(pid, status);
 #ifdef notdef
 	if (thread->lastSignal == SIGSTOP) {

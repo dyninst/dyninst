@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.53 2002/06/17 17:04:04 gaburici Exp $
+// $Id: pdwinnt.C,v 1.54 2002/06/17 21:31:15 chadd Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -54,6 +54,7 @@
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/main.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/perfStream.h" //SPLIT ccw 4 jun 2002
 #endif
 
 #ifdef BPATCH_LIBRARY
@@ -541,6 +542,15 @@ void process::walkStack(Frame currentFrame, vector<Frame> &stackWalk,
 }
 #endif
 
+
+//SPLIT ccw 4 jun 2002
+#if !defined(BPATCH_LIBRARY)
+//just a dummy so it compiles.
+bool process::dlopenPARADYNlib(){ 
+	return true;
+}
+#endif
+
 /* 
    Loading libDyninstRT.dll
 
@@ -743,18 +753,15 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
 
     if (!process::dyninstName.length())
         // check for an environment variable
-#ifdef BPATCH_LIBRARY  // dyninstAPI loads a different run-time library
+	// SPLIT ccw 4 jun 2002
+#if defined( BPATCH_LIBRARY ) || 1  // dyninstAPI loads a different run-time library
         process::dyninstName = getenv("DYNINSTAPI_RT_LIB");
-#else
-        process::dyninstName = getenv("PARADYN_LIB");
 #endif
 
     if (!process::dyninstName.length())
         // if environment variable unset, use the default name/strategy
-#ifdef BPATCH_LIBRARY
+#if defined( BPATCH_LIBRARY ) || 1 //SPLIT ccw 4 jun 2002
         process::dyninstName = "libdyninstAPI_RT.dll";
-#else
-        process::dyninstName = "libdyninstRT.dll";
 #endif
 	
     // make sure that directory separators are what LoadLibrary expects
@@ -768,13 +775,83 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
 
 #ifdef mips_unknown_ce2_11 //ccw 22 aug 2000
 	//add to process, then to remoteDevice
-    return codeBase+44;//this is for the offset of the string!
+   return codeBase+44;//this is for the offset of the string!
 #else
 	return codeBase;
 #endif
 }
 
+//SPLIT ccw 4 jun 2002 
+/* 
+   Loading libDyninstRT.dll
 
+   We load libDyninstRT.dll dynamically, by inserting code into the
+   application to call LoadLibraryA. We don't use the inferior RPC
+   mechanism from class process because it already assumes that
+   libdyninst is loaded (it uses the inferior heap).
+   Instead, we use a simple inferior call mechanism defined below
+   to insert the code to call LoadLibraryA("libdyninstRT.dll").
+ */
+#if !defined(mips_unknown_ce2_11)
+Address loadParadynDll(process *p ) {
+    Address codeBase = p->getImage()->codeOffset();
+	Address hackLoadLibAddr = 0x01f9ac30; //ccw 2 feb 2001 : HACK
+
+    Address LoadLibBase;
+    Address LoadLibAddr;
+    Symbol sym;
+
+	if (!p->getSymbolInfo("_LoadLibraryA@4", sym, LoadLibBase)) {
+        if( !p->getSymbolInfo( "_LoadLibraryA", sym, LoadLibBase ))
+        {
+	        printf("unable to find function LoadLibrary\n");
+	        assert(0);
+        }
+    }
+
+    LoadLibAddr = sym.addr() + LoadLibBase;
+    assert(LoadLibAddr);
+
+    char ibuf[LOAD_DYNINST_BUF_SIZE];
+    char *iptr = ibuf;
+	memset(ibuf, '\0', LOAD_DYNINST_BUF_SIZE);//ccw 25 aug 2000
+
+    // push nameAddr ; 5 bytes
+    *iptr++ = (char)0x68; 
+    *(int *)iptr = codeBase + 14; 
+    iptr += sizeof(int);
+
+    // call LoadLibrary ; 5 bytes
+    *iptr++ = (char)0xe8;
+    // offset relative to next instruction (address codeBase+10)
+    *(int *)iptr = LoadLibAddr - (codeBase + 10);
+    iptr += sizeof(int);
+
+    // add sp, 4
+    *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
+
+    // int3
+    *iptr++ = (char)0xcc;
+
+//    if (!process::dyninstName.length())
+        // check for an environment variable
+        process::dyninstName = getenv("PARADYN_LIB");
+
+    if (!process::dyninstName.length())
+        // if environment variable unset, use the default name/strategy
+        process::dyninstName = "libdyninstRT.dll";
+	
+    // make sure that directory separators are what LoadLibrary expects
+    strcpy(iptr, process::dyninstName.c_str());
+    for (unsigned int i=0; i<strlen(iptr); i++)
+        if (iptr[i]=='/'){
+		 iptr[i]='\\';
+	}
+    	p->writeDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, ibuf);
+
+	return codeBase;
+}
+#endif
 
 // osTraceMe is not needed in Windows NT
 void OS::osTraceMe(void) {}
@@ -836,7 +913,7 @@ byte savedOpCode[256]; //ccw 2 may 2001 : the op code we overwrite in main()
 byte newOpCode[256];   // ccw 27 june 2001 : the op code we add in main()
 //ccw 6 july 2001 the two above arrays are 256 bytes because writing one byte does not always cause the
 //instruction cache to be reloaded. 
-
+int setParadynVars = 0; //ccw 5 jun 2002 : SPLIT
 Address mainAddr=0 ; //ccw 2 may 2001 : the address of main()
 
 //ccw 2 may 2001 : the following function sets the varible name to the value given.
@@ -844,17 +921,27 @@ Address mainAddr=0 ; //ccw 2 may 2001 : the address of main()
 bool setVariable(process* p, string name, int value){
     	string full_name = string("_") + string(name);
 	Symbol syminfo;
-	if (!p->getSymbolInfo(full_name, syminfo)) {
-		string short_name(name);
-		if (!p->getSymbolInfo(short_name, syminfo)) {
+	string short_name(name);
+	if (!p->getSymbolInfo(short_name, syminfo)) {
+		if (!p->getSymbolInfo(full_name, syminfo)) {
 		    assert(0);
 		}
+	}else{
+		full_name = short_name;
 	}
 
 	if( syminfo.type() == Symbol::PDST_FUNCTION)
    		assert(0); 
 	Address tmpAddr = syminfo.addr();
-	return p->writeDataSpace((void*)tmpAddr, sizeof(int), (void*) &value);
+	int oldvalue;	
+	//p->readDataSpace((void*)tmpAddr, sizeof(int), (void*) &oldvalue,true);
+	//printf("\n\n READ ORIGINAL VAR %s %x %d\n", full_name.c_str(), tmpAddr, oldvalue);
+	int ret= p->writeDataSpace((void*)tmpAddr, sizeof(int), (void*) &value);
+	//printf(" SET VAR %s %x %d %d\n", full_name.c_str(), tmpAddr, value, ret);
+	//p->readDataSpace((void*)tmpAddr, sizeof(int), (void*) &value,true);
+	//printf(" READ VAR %s %x %d %d\n", full_name.c_str(), tmpAddr, value, ret);
+	//fflush(stdout);
+	return ret;
 }
 
 #ifdef mips_unknown_ce2_11
@@ -927,14 +1014,13 @@ int process::waitProcs(int *status) {
 	DWORD exnCode = debugEv.u.Exception.ExceptionRecord.ExceptionCode;
 	switch(exnCode) {
 	case EXCEPTION_BREAKPOINT: {
-	    //printf("Debug breakpoint exception, %d, addr = %x\n", 
-	    //       debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
-	    //       debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+	    /*printf("Debug breakpoint exception, %d, addr = %x\n", 
+	           debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
+	           debugEv.u.Exception.ExceptionRecord.ExceptionAddress);*/ //PRINTF
 	    
 #if defined(mips_unknown_ce2_11) //ccw 20 mar 2001 : 29 mar 2001
 		continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
 #endif
-
 
 #if !defined(mips_unknown_ce2_11)
 	    	if(!secondBkpt && !p->wasCreatedViaAttach()){
@@ -977,7 +1063,11 @@ int process::waitProcs(int *status) {
 #endif
 
 
-	    if (!p->reachedFirstBreak) {
+	    if (!p->reachedFirstBreak
+#if !defined(BPATCH_LIBRARY) //ccw 4 jun 2002 SPLIT
+			    || !p->hasLoadedParadynLib
+#endif
+			    ) {
 		int inst_offset=  0xd; 
 		if (!p->hasLoadedDyninstLib && !p->isLoadingDyninstLib) {
 			//ccw 11 july 2001: IS THIS TRUE?
@@ -990,8 +1080,7 @@ int process::waitProcs(int *status) {
 			//DebugBreak();//ccw 30 jan 2001
 			continueType = DBG_CONTINUE;//ccw 25 oct 2000 : 29 mar 2001
 
-
-
+			//printf(" Loading dyninst lib\n");//PRINTF
 		    Address addr = loadDyninstDll(p, p->savedData);
 	   	    mungeAddr = addr; //ccw 15 june 2001
 		    p->savedRegs = p->getRegisters();
@@ -1018,6 +1107,10 @@ int process::waitProcs(int *status) {
 
 		    p->isLoadingDyninstLib = false;
 		    p->hasLoadedDyninstLib = true;
+ 			//printf(" caught breakpoint after load of DYNINST lib\n");//PRINTF
+			
+#if defined(BPATCH_LIBRARY)  //ccw 4 jun 2002 SPLIT
+			
 #if !defined(mips_unknown_ce2_11)
 	 		//ccw 25 june 2001 NEED TO FLUSH ICACHE here
 			p->flushInstructionCache_((void*) ((w32CONTEXT*) p->savedRegs)->Eip,0x100);
@@ -1048,9 +1141,68 @@ int process::waitProcs(int *status) {
 				// reason, to get the icache updated correctly with the old op code before
 				// we continue. 
 			}
-#endif	
-	
+#endif
+#endif
+
+
+#if !defined(BPATCH_LIBRARY) //SPLIT ccw 4 jun 2002
+
+		}else if(p->isLoadingParadynLib
+			&& ((int) mungeAddr + inst_offset) ==
+			(int) debugEv.u.Exception.ExceptionRecord.ExceptionAddress) {
+			
+		    	p->hasLoadedParadynLib = true;
+		    	p->isLoadingParadynLib = false;
+			//printf(" caught breakpoint after load of paradyn lib\n");//PRINTF
+	 		//ccw 25 june 2001 NEED TO FLUSH ICACHE here
+			p->flushInstructionCache_((void*) ((w32CONTEXT*) p->savedRegs)->Eip,0x100);
+			if(mainAddr){
+			    // patch main() back to its original form
+			    p->writeDataSpace((void*) (mainAddr),16,(void*) savedOpCode); //ccw 2 may 2001
+			    // reset the IP to run what we just inserted.
+			    ((w32CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
+			}
+
+			p->restoreRegisters(p->savedRegs);
+			delete p->savedRegs;
+			p->writeDataSpace((void *)p->getImage()->codeOffset(),
+				      LOAD_DYNINST_BUF_SIZE,
+				      (void *)p->savedData);
+			if(mainAddr){
+				//ccw 25 june 2001 NEED TO FLUSH ICACHE here
+				//p->flushInstructionCache_((void*) ((CONTEXT*) p->savedRegs)->Eip,0x100);
+				p->readDataSpace_((void*)(mainAddr), 256, (void*) newOpCode);
+				p->writeDataSpace((void*) (mainAddr),256,(void*) savedOpCode); //ccw 2 may 2001
+				//technically, we only need to writeDataSpace once, up at the previous
+				// if statement. BUT writing once does not seem to always flush the 
+				// icache, and neither does FlushInsturctionCache()
+				// the readDataSpace_ is completely spurrious but is here for the same
+				// reason, to get the icache updated correctly with the old op code before
+				// we continue. 
+			}
+
+			p->status_ = stopped;
+			p->pause_();
+			
+			/*if(p->createdViaAttach){ //ccw 7 jun 2002
+				p->handleCompletionOfpDYNINSTinit(true);
+			}*/
+			break;
+
+#endif			
 		}else{
+#if !defined(BPATCH_LIBRARY) // ccw 5 jun 2002 : SPLIT
+			if(p->isLoadingParadynLib ){ //ccw 5 jun 2002 SPLIT
+			    p->status_ = stopped;
+			    p->pause_();
+			    int result = p->procStopFrompDYNINSTinit();
+			    //printf(" RESULT from pDYNINST init %d \n", result);//PRINTF
+			    assert(result >= 0 && result <= 2);		
+			    //fflush(stdout);//PRINTF
+			    p->status_ = running;
+			    p->continueProc_();
+			}
+#endif
 			break;  //ccw 20 june 2001 this is the DYNINSTinit breakpoint
 		}
 		p->reachedFirstBreak = true;
@@ -1077,21 +1229,24 @@ int process::waitProcs(int *status) {
 		    buffer=string("PID=") + string(pid) 
 			 + ", installing call to DYNINSTinit()";
 		    statusLine(buffer.c_str());
-#if !defined(BPATCH_LIBRARY)
-		    p->installBootstrapInst();//ccw 20 june 2001 
-			// now we dont need to do this,  DLLMain() does it.
-     			//this still needs to be done for paradyn
- 
-		    // now, let main() and then DYNINSTinit() get invoked.  As it
-		    // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
-		    // we read bootstrap information "sent back" (in a global vrble),
-		    // propagate metric instances, do tp->newProgramCallbackFunc(), etc.
-		     break; //ccw 20 june 2001, commented out  with p->installBootstrapInst()
-#endif
 		} else {
-		    //printf("First breakpoint after attach\n");
-		    p->pause_();
-		    break;
+			   
+			//breakpoint after attach....
+#if !defined(BPATCH_LIBRARY) //ccw 6 jun 2002 SPLIT
+			p->status_ = stopped;
+	    		p->pause_();
+		    	p->procStopFromDYNINSTinit();
+
+		    	mungeAddr = loadParadynDll(p); 
+			p->changePC(mungeAddr);
+			p->isLoadingParadynLib = true;
+ 		        p->status_ = running;
+	        	p->continueProc_();
+#else
+			p->pause_();
+			p->handleCompletionOfDYNINSTinit(true); //this line may be wrong...
+#endif
+			break;
 		}
 	    }
 
@@ -1182,6 +1337,13 @@ int process::waitProcs(int *status) {
 	    int result = p->procStopFromDYNINSTinit();
 	    assert(result >= 0 && result <= 2);
 	    if (result != 0) {
+#if !defined(BPATCH_LIBRARY) //ccw 5 jun 2002 SPLIT
+	    	mungeAddr = loadParadynDll(p); 
+		p->changePC(mungeAddr);
+		p->isLoadingParadynLib = true;
+ 	        p->status_ = running;
+	        p->continueProc_();
+#endif
 		if (result == 1) {
 #if defined( mips_unknown_ce2_11 )//ccw 20 mar 2001 : 29 mar 2001
 			continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 1 mar 2001
@@ -1190,6 +1352,7 @@ int process::waitProcs(int *status) {
 		} else {
 		    // procStopFromDYNINSTinit called continueProc()
 		    // What should we do here?
+		    
 		    break;
 		}
 	    } else if (p->handleTrapIfDueToRPC()) {
@@ -1219,7 +1382,7 @@ int process::waitProcs(int *status) {
 	    p->status_ = stopped;
 	    if( p->handleTrapIfDueToRPC() )
         {
-		    // handleTrapIfDueToRPC calls continueProc()
+		// handleTrapIfDueToRPC calls continueProc()
             // however, under Windows NT, it doesn't actually 
             // continue the thread until the ContinueDbgEvent call is made
 
@@ -1382,7 +1545,11 @@ int process::waitProcs(int *status) {
 
 	// We are currently not handling dynamic libraries loaded after the
 	// application starts.
-	if (p->isBootstrappedYet())
+	if (p->isBootstrappedYet()
+#if !defined(BPATCH_LIBRARY) //ccw 4 jun 2002 SPLIT
+			&& p->isPARADYNBootstrappedYet()
+#endif
+			)
 	  break;
 
 	// set the proc handle for the process that is loading the library
@@ -1410,7 +1577,6 @@ int process::waitProcs(int *status) {
 	// discover structure of new DLL, and incorporate into our
 	// list of known DLLs
 	if (imageName.length() > 0) {
-
 	shared_object *so = 
 #if defined( mips_unknown_ce2_11 )//ccw 29 mar 2001
 	new shared_object(imageName, (unsigned long) debugEv.u.LoadDll.lpBaseOfDll,
@@ -1433,7 +1599,7 @@ int process::waitProcs(int *status) {
 #endif 
 	    p->setDynamicLinking();
 
-#ifdef BPATCH_LIBRARY
+//#ifdef BPATCH_LIBRARY
             {
                 char dllFilename[_MAX_FNAME];
                 char dllExtension[_MAX_EXT];
@@ -1449,6 +1615,7 @@ int process::waitProcs(int *status) {
                     //when we load libdyninstAPI_RT.dll we need to find the local
                     //variables in the dll that will hold the cause and pid so when
                     //DLLMain is called they will be correctly passed to DYNINSTinit
+		    //printf(" WRITING VALUE TO DYNINT LIB\n");//PRINTF
                     if(!setVariable(p, "libdyninstAPI_RT_DLL_localCause", 1)){
                          assert(0);
                     }
@@ -1457,6 +1624,60 @@ int process::waitProcs(int *status) {
                     }
                 }
             }
+//#else
+#if !defined(BPATCH_LIBRARY)  //ccw 4 jun 2002 SPLIT
+
+	    {
+
+                char dllFilename[_MAX_FNAME];
+                char dllExtension[_MAX_EXT];
+
+                _splitpath( imageName.c_str(),
+                            NULL,
+                            NULL,
+                            dllFilename,
+                            dllExtension );
+                if( !_stricmp( dllFilename, "libdyninstRT" ) &&
+                    !_stricmp( dllExtension, ".dll" ) ) {
+                    // ccw 2 may 2001
+                    //when we load libdyninstRT.dll we need to find the local
+                    //variables in the dll that will hold the cause and pid so when
+                    //DLLMain is called they will be correctly passed to pDYNINSTinit
+		 	// variable 1
+			int var1;
+#ifdef SHM_SAMPLING
+			var1 = (p->getShmKeyUsed());
+#else 
+			var1 = 0;
+#endif
+			// variable 2
+			int var2;
+#ifdef SHM_SAMPLING
+			var2 = (p->getShmHeapTotalNumBytes());
+#else 
+			var2 = 0;
+#endif
+			// variable 3
+			int var3;
+			if(p->wasCreatedViaAttach() ){
+				var3 = (-1 * traceConnectInfo);
+			}else{
+				var3 = (1 * traceConnectInfo);
+			}
+			
+			//printf(" SETTING VALUES IN PARADYN LIB %d %d %d\n",var1, var2, var3);//PRINTF
+			//fflush(stdout);
+                    if(!setVariable(p, "libdyninstRT_DLL_localtheKey", var1)){
+                         assert(0);
+                    }
+                    if(!setVariable(p, "libdyninstRT_DLL_localshmSegNumBytes", var2)){
+                         assert(0);
+                    }
+		    if(!setVariable(p, "libdyninstRT_DLL_localparadynPid", var3)){
+                         assert(0);
+                    }
+                }
+	    }
 #endif	
 	  }
 		//ccw 31 jan 2001 : 29 mar 2001
@@ -2311,7 +2532,9 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
   now = (FILETIME2rawTime64(userT)+FILETIME2rawTime64(kernelT));
 
   // time shouldn't go backwards, but we'd better handle it if it does
+//  printf(" %I64d %I64d \n", now, previous);
   if (now < previous) {
+	  //DebugBreak();
      logLine("********* time going backwards in paradynd **********\n");
      now = previous;
   }

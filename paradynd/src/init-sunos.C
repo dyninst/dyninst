@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.36 2002/05/10 18:37:27 schendel Exp $ */
+/* $Id: init-sunos.C,v 1.37 2002/06/17 21:31:16 chadd Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -51,67 +51,71 @@
 #include "common/h/timing.h"
 #include "dyninstAPI/src/process.h"
 
+
+//ccw 19 apr 2002 : SPLIT
+//i changed initialRequests to initialRequestsPARADYN (28 times)
+
 // NOTE - the tagArg integer number starting with 0.  
 bool initOS() {
 
-//  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
+//  initialRequestsPARADYN += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
 // (obsoleted by installBootstrapInst() --ari)
 
 
   AstNode *retVal;
 
-  initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
+  initialRequestsPARADYN += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
-  initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
+  initialRequestsPARADYN += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   if (process::pdFlavor == "mpi") {
 #ifndef sparc_sun_solaris2_4
 	  instMPI();
 #endif
 	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("fork", "DYNINSTmpi_fork", 
+	  initialRequestsPARADYN += new instMapping("fork", "DYNINSTmpi_fork", 
 					     FUNC_EXIT|FUNC_ARG, retVal);
 	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("_fork", "DYNINSTmpi_fork", 
+	  initialRequestsPARADYN += new instMapping("_fork", "DYNINSTmpi_fork", 
 					     FUNC_EXIT|FUNC_ARG, retVal);
   } else { /* Fork and exec */
 	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("fork", "DYNINSTfork", 
+	  initialRequestsPARADYN += new instMapping("fork", "DYNINSTfork", 
 					     FUNC_EXIT|FUNC_ARG, retVal);
 
 	  //libthread _fork
 	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("_fork", "DYNINSTfork", 
+	  initialRequestsPARADYN += new instMapping("_fork", "DYNINSTfork", 
 					     FUNC_EXIT|FUNC_ARG, retVal);
 
 
-	  //initialRequests += new instMapping("execve", "DYNINSTexec",
+	  //initialRequestsPARADYN += new instMapping("execve", "DYNINSTexec",
 	  //			               FUNC_ENTRY|FUNC_ARG, tidArg);
-	  //initialRequests += new instMapping("execve", "DYNINSTexecFailed", 
+	  //initialRequestsPARADYN += new instMapping("execve", "DYNINSTexecFailed", 
 	  //                                   FUNC_EXIT);
 	  AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-	  initialRequests += new instMapping("_execve", "DYNINSTexec",
+	  initialRequestsPARADYN += new instMapping("_execve", "DYNINSTexec",
 					     FUNC_ENTRY|FUNC_ARG, tidArg);
-	  initialRequests += new instMapping("_execve", "DYNINSTexecFailed", 
+	  initialRequestsPARADYN += new instMapping("_execve", "DYNINSTexecFailed", 
 					     FUNC_EXIT);
   }
   
 #if defined(MT_THREAD)
-  initialRequests += new instMapping("_thread_start",
+  initialRequestsPARADYN += new instMapping("_thread_start",
 				     "DYNINST_VirtualTimerCREATE",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
 
-  initialRequests += new instMapping("_thr_exit_common", "DYNINSTthreadDelete", 
+  initialRequestsPARADYN += new instMapping("_thr_exit_common", "DYNINSTthreadDelete", 
                                      FUNC_ENTRY, callPreInsn, 
 				     orderLastAtPoint);
 
-  initialRequests += new instMapping("_resume_ret",
+  initialRequestsPARADYN += new instMapping("_resume_ret",
 				     "DYNINSTthreadStart",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
 
-  initialRequests += new instMapping("_resume",
+  initialRequestsPARADYN += new instMapping("_resume",
 				     "DYNINSTthreadStop",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
@@ -119,7 +123,7 @@ bool initOS() {
   // Thread SyncObjects
   // mutex
   AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequests += new instMapping("_cmutex_lock", 
+  initialRequestsPARADYN += new instMapping("_cmutex_lock", 
   				     "DYNINSTreportNewMutex", 
                                      FUNC_ENTRY|FUNC_ARG, 
   				     arg0);
@@ -127,7 +131,7 @@ bool initOS() {
   // rwlock
   //
   arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequests += new instMapping("_lrw_rdlock", 
+  initialRequestsPARADYN += new instMapping("_lrw_rdlock", 
   				     "DYNINSTreportNewRwLock", 
                                      FUNC_ENTRY|FUNC_ARG, 
   				     arg0);
@@ -135,7 +139,7 @@ bool initOS() {
   //Semaphore
   //
   arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequests += new instMapping("_sema_wait_cancel", 
+  initialRequestsPARADYN += new instMapping("_sema_wait_cancel", 
   				     "DYNINSTreportNewSema", 
                                      FUNC_ENTRY|FUNC_ARG, 
   				     arg0);
@@ -143,7 +147,7 @@ bool initOS() {
   // Conditional variable
   //
   arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequests += new instMapping("_cond_wait_cancel", 
+  initialRequestsPARADYN += new instMapping("_cond_wait_cancel", 
   				     "DYNINSTreportNewCondVar", 
                                      FUNC_ENTRY|FUNC_ARG, 
   				     arg0);
@@ -151,29 +155,29 @@ bool initOS() {
 
   
   AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
-  initialRequests += new instMapping("rexec", "DYNINSTrexec",
+  initialRequestsPARADYN += new instMapping("rexec", "DYNINSTrexec",
 				     FUNC_ENTRY|FUNC_ARG, cmdArg);
-  //   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
+  //   initialRequestsPARADYN += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
   
   
 #ifdef PARADYND_PVM
   char *doPiggy;
 
   AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
-  initialRequests += new instMapping("pvm_send", "DYNINSTrecordTag",
+  initialRequestsPARADYN += new instMapping("pvm_send", "DYNINSTrecordTag",
 				 FUNC_ENTRY|FUNC_ARG, tagArg);
 
   // kludge to get Critical Path to work.
   // XXX - should be tunable constant.
   doPiggy = getenv("DYNINSTdoPiggy");
   if (doPiggy) {
-      initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
+      initialRequestsPARADYN += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
       AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
+      initialRequestsPARADYN+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
                            FUNC_ENTRY|FUNC_ARG, tidArg);
-      initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
+      initialRequestsPARADYN += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
       tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
+      initialRequestsPARADYN += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
                            FUNC_ENTRY|FUNC_ARG, tidArg);
   }
 #endif
@@ -189,9 +193,9 @@ bool initOS() {
       static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
       static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;
       
-      initialRequests += new instMapping(sigactionF, "DYNINSTdeferSigHandler",
+      initialRequestsPARADYN += new instMapping(sigactionF, "DYNINSTdeferSigHandler",
                                          FUNC_ENTRY|FUNC_ARG, argList);
-      initialRequests += new instMapping(sigactionF, "DYNINSTresetSigHandler",
+      initialRequestsPARADYN += new instMapping(sigactionF, "DYNINSTresetSigHandler",
                                          FUNC_EXIT|FUNC_ARG, argList);
 #endif
 

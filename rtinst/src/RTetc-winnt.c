@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.9 2001/02/01 01:04:58 schendel Exp $
+ * $Id: RTetc-winnt.c,v 1.10 2002/06/17 21:31:18 chadd Exp $
  *
  ************************************************************************/
 
@@ -54,13 +54,27 @@
 #include <errno.h>
 #include <limits.h>
 
+
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/RThwtimer-winnt.h"
 
-static HANDLE DYNINSTprocHandle;
+
+static HANDLE DYNINSTprocHandle;  /*  ccw 4 jun 2002*/
+void
+DYNINSTbreakPoint(void) {
+  /* TODO: how do we stop all threads? */
+  DebugBreak();
+}
 
 
+void DYNINSTos_init(int calledByFork, int calledByAttach)
+{
+#ifndef mips_unknown_ce2_11 //ccw 23 july 2001
+  RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
+#endif
+}
+/* end  ccw 4 jun 2002*/
 void PARADYNos_init(int calledByFork, int calledByAttach) {
   RTprintf("PARADYNos_init(%d,%d)\n", calledByFork, calledByAttach);
   DYNINSTprocHandle = GetCurrentProcess();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.63 2002/06/14 21:43:32 tlmiller Exp $
+// $Id: unix.C,v 1.64 2002/06/17 21:31:15 chadd Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -380,8 +380,6 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 
 }
 
-
-
 /* 
    TODO: cleanup handleSigChild. This function has a lot of code that
    should be moved to a machine independent place (a lot of what is
@@ -394,9 +392,15 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
    --mjrg
 */
 
+
+bool finishedDYNINSTinit = false; //ccw 29 apr 2002 
+int RPCafterDYNINSTinit =0; //ccw 29 apr 2002 
+
+
 // TODO -- make this a process method
 int handleSigChild(int pid, int status)
 {
+
 #ifdef rs6000_ibm_aix4_1
     // On AIX, we get sigtraps on fork and load, and must handle
     // these cases specially
@@ -410,7 +414,6 @@ int handleSigChild(int pid, int status)
 
     // ignore signals from unknown processes
     process *curr = findProcess(pid);
-
     if (!curr) {
        forkexec_cerr << "handleSigChild pid " << pid << " is an unknown process." << endl;
        forkexec_cerr << "WIFSTOPPED=" << (WIFSTOPPED(status) ? "true" : "false");
@@ -464,7 +467,8 @@ int handleSigChild(int pid, int status)
 		  if (pc==(Address)curr->rbrkAddr()
 		      || pc==(Address)curr->main_brk_addr
 		      || pc==(Address)curr->dyninstlib_brk_addr
-		      || curr->isRPCwaitingForSysCallToComplete()) {
+		      || curr->isRPCwaitingForSysCallToComplete()
+		      || pc==(Address)curr->paradynlib_brk_addr) { //ccw 30 apr 2002 
 		       signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
 		       sig = SIGTRAP;
 		  }
@@ -558,7 +562,35 @@ int handleSigChild(int pid, int status)
 		  curr->handleIfDueToDyninstLib();
 		  // fall through...
 		}
+#if !defined(BPATCH_LIBRARY)
+		if (curr->trapDueToParadynLib()){
 
+		curr->handleIfDueToDyninstLib(); //rewrite instructions, just as in DYNINST lib
+
+ 		if(!curr->reachedPARADYNBreakPoint) {
+		   string buffer = string("PID=") + string(pid);
+		   buffer += string(", passed trap at end of load paradyn");
+		   statusLine(buffer.c_str());
+		   // check for DYNINST symbols and initializes the inferiorHeap
+		   // If libdyninst is dynamically linked, this can only be
+		   // called after libdyninst is loaded
+		  // curr->initDyninstLib();
+
+		   curr->reachedPARADYNBreakPoint = true;
+
+		   buffer=string("PID=") + string(pid) + string(", installing call to pDYNINSTinit()");
+		   statusLine(buffer.c_str());
+
+   		//lets pretend like we are attaching....
+		// Now force DYNINSTinit() to be invoked, via inferiorRPC.
+		curr->callpDYNINSTinit();
+
+			break;
+		}
+
+
+		}
+#endif
 		//If the list is not empty, it means some previous
 		//instrumentation has yet need to be finished.
 		if (instWList.size() != 0) {
@@ -571,6 +603,19 @@ int handleSigChild(int pid, int status)
 
 		if (curr->handleTrapIfDueToRPC()) {
 		  inferiorrpc_cerr << "processed RPC response in SIGTRAP" << endl;
+#if !defined(BPATCH_LIBRARY) //ccw 28 apr 2002 
+			if(curr->wasCreatedViaAttach() && finishedDYNINSTinit && !curr->paradynLibAlreadyLoaded()){ //ccw 19 apr 2002 
+				RPCafterDYNINSTinit ++;
+				//curr->attachProcessParadyn();
+				//finishedDYNINSTinit = false;
+				if(RPCafterDYNINSTinit == 2  ){
+					finishedDYNINSTinit = false;
+					curr->attachProcessParadyn();
+				}
+			}
+				
+
+#endif
 		   break;
 		}
 
@@ -636,8 +681,9 @@ int handleSigChild(int pid, int status)
 		    if (curr->handleStartProcess()) {
 		      /* handleStartProcess may detect that dyninstlib was
 			 linked into the application */
-		      if (!curr->dyninstLibAlreadyLoaded())	  
+		      if (!curr->dyninstLibAlreadyLoaded())
 			curr->dlopenDYNINSTlib();
+			
 		      // this will set isLoadingDyninstLib to true - naim
 		    } else {
 		      logLine("WARNING: handleStartProcess failed\n");
@@ -682,6 +728,10 @@ int handleSigChild(int pid, int status)
 		   curr->initDyninstLib();
 
 		   curr->reachedFirstBreak = true;
+#if !defined(BPATCH_LIBRARY) //ccw 23 apr 2002 
+		   curr->reachedPARADYNBreakPoint = false;
+#endif
+
 
 		   buffer=string("PID=") + string(pid) + string(", installing call to DYNINSTinit()");
 		   statusLine(buffer.c_str());
@@ -762,8 +812,16 @@ int handleSigChild(int pid, int status)
 		fix_ill = 0;
 #endif
 		int result = curr->procStopFromDYNINSTinit();
+		int stopfromPARADYNinit = 0;
 		assert(result >=0 && result <= 2);
 		if (result != 0) {
+
+#if !defined(BPATCH_LIBRARY) //ccw 28 apr 2002 
+			if(!curr->paradynLibAlreadyLoaded()){ //ccw 19 apr 2002 
+				finishedDYNINSTinit = true;
+			}
+
+#endif
 		   forkexec_cerr << "processed SIGSTOP from DYNINSTinit for pid " << curr->getPid() << endl << flush;
 		   if (result == 1) {
 		      assert(curr->status_ == stopped);
@@ -777,8 +835,25 @@ int handleSigChild(int pid, int status)
 		      assert(result == 2);
 		      break; // don't fall through...prog is finishing the inferiorRPC
 		   }
-		}
-		else if (curr->handleTrapIfDueToRPC()) {
+#if !defined(BPATCH_LIBRARY) // ccw 22 apr 2002 : SPLIT we have just finished pDYNINSTinit
+		}else if( curr->paradynLibAlreadyLoaded() && (result = curr->procStopFrompDYNINSTinit()) != 0 ) { //ccw 29 apr 2002 : SPLIT3 added paradynLibAlreadyLoaded() to protect linux
+			forkexec_cerr << "processed SIGSTOP from pDYNINSTinit for pid " << curr->getPid() << endl << flush;
+		stopfromPARADYNinit = 1;
+		   if (result == 1) {
+		      assert(curr->status_ == stopped);
+		      // DYNINSTinit() after normal startup, after fork, or after exec
+		      // syscall was made by a running program; leave paused
+		      // (tp->newProgramCallback() to paradyn will result in the process
+		      // being continued soon enough, assuming the applic was running,
+		      // which is true in all cases except when an applic is just being
+		      // started up).  Fall through (we want the status line to change)
+		   } else {
+		      assert(result == 2);
+		      break; // don't fall through...prog is finishing the inferiorRPC
+		   }
+
+#endif
+		}else if (curr->handleTrapIfDueToRPC()) {
 		   inferiorrpc_cerr << "processed RPC response in SIGSTOP" << endl;
 		   break; // don't want to execute ->Stopped() which changes status line
 		}
@@ -809,7 +884,16 @@ int handleSigChild(int pid, int status)
 		}
 		curr->status_ = prevStatus; // so Stopped() below won't be a nop
 		curr->Stopped();
-
+#if !defined(BPATCH_LIBRARY)  //ccw 19 apr 2002 : SPLIT
+		if(stopfromPARADYNinit){
+			curr->continueProc();
+		}
+			if(!curr->paradynLibAlreadyLoaded()){ //ccw 19 apr 2002 : SPLIT
+				curr->dlopenPARADYNlib();
+				curr->continueProc();
+				//break;
+			}
+#endif
 		break;
 	    }
 
@@ -955,6 +1039,7 @@ void checkProcStatus() {
    int wait_status;
    int wait_pid = process::waitProcs(&wait_status);
     if (wait_pid > 0) {
+
       if (handleSigChild(wait_pid, wait_status) < 0) {
 	 cerr << "handleSigChild failed for pid " << wait_pid << endl;
       }

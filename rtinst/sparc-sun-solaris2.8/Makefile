@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2001/06/04 19:26:08 bernat Exp $
+# $Id: Makefile,v 1.3 2002/06/17 21:31:17 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -36,17 +36,20 @@ CFLAGS		+= -fpic -O2
 LDFLAGS		= -shared
 endif
 
-VPATH        = ../src:../../dyninstAPI_RT/src
+VPATH        = ../src
+#:../../dyninstAPI_RT/src # ccw 18 apr 2002 : SPLIT
 
 SRCS	     += ../src/RTfirst.c \
-		../../dyninstAPI_RT/src/RTheap.c \
-		../../dyninstAPI_RT/src/RTheap-svr4.c \
-		../../dyninstAPI_RT/src/RTheap-solaris.c \
-		../../dyninstAPI_RT/src/RTposix.c \
-		../../dyninstAPI_RT/src/RTsolaris.c \
 		../src/RTetc-posix.c \
 		../src/RTetc-solaris.c \
 		../src/RTrexec.c
+
+#		../../dyninstAPI_RT/src/RTheap.c \ # ccw 18 apr 2002 : SPLIT
+#		../../dyninstAPI_RT/src/RTheap-svr4.c \
+#		../../dyninstAPI_RT/src/RTheap-solaris.c \
+#		../../dyninstAPI_RT/src/RTposix.c \
+#		../../dyninstAPI_RT/src/RTsolaris.c \
+	
 
 #CFLAGS += -DDEBUG_PRINT_RT     # enable debug/trace messages from library
 #CFLAGS += -DSHM_SAMPLING_DEBUG # shared-memory sampling debug/trace

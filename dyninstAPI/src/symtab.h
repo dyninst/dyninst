@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.107 2002/04/09 18:04:58 mjbrim Exp $
+// $Id: symtab.h,v 1.108 2002/06/17 21:31:15 chadd Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -823,6 +823,12 @@ public:
   Object &getObjectNC() { return linkedFile; } //ccw 27 july 2000 : this is a TERRIBLE hack : 29 mar 2001
 
   bool isDyninstRTLib() const { return is_libdyninstRT; }
+
+#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
+//  bool is_libparadynRT;
+  bool isParadynRTLib() const { return is_libparadynRT; }
+#endif
+
   bool isAOut() const { return is_a_out; }
 
   inline bool isCode(const Address &where) const;
@@ -939,6 +945,9 @@ public:
   unsigned dataLen_;
 
   bool is_libdyninstRT;
+#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
+  bool is_libparadynRT;
+#endif
   bool is_a_out;
   Address main_call_addr_; // address of call to main()
 

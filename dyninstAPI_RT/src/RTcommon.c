@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.24 2002/04/15 21:48:43 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.25 2002/06/17 21:31:16 chadd Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -119,7 +119,7 @@ void DYNINSTinit(int cause, int pid)
 {
     int calledByFork = 0, calledByAttach = 0;
 	int isRestart=0;
-	
+
     initFPU();
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -157,7 +157,7 @@ void DYNINSTinit(int cause, int pid)
     DYNINST_bootstrap_info.event = cause;
 
     DYNINST_mutatorPid = pid;
-	
+
 #ifndef i386_unknown_nt4_0 /*ccw 13 june 2001*/
 
 #ifndef mips_unknown_ce2_11 
@@ -183,14 +183,19 @@ void DYNINSTinit(int cause, int pid)
  from having to instrument two steps from the mutator (load and then 
  the execution of DYNINSTinit()
 */
+int DllMainCalledOnce = 0;
 BOOL WINAPI DllMain(
   HINSTANCE hinstDLL,  /* handle to DLL module */
   DWORD fdwReason,     /* reason for calling function */
   LPVOID lpvReserved   /* reserved */
 ){
 
-	if(libdyninstAPI_RT_DLL_localPid != -1 || libdyninstAPI_RT_DLL_localCause != -1){
-		DYNINSTinit(libdyninstAPI_RT_DLL_localCause,libdyninstAPI_RT_DLL_localPid);
+	if(DllMainCalledOnce){
+	}else{
+		DllMainCalledOnce++;
+		if(libdyninstAPI_RT_DLL_localPid != -1 || libdyninstAPI_RT_DLL_localCause != -1){
+			DYNINSTinit(libdyninstAPI_RT_DLL_localCause,libdyninstAPI_RT_DLL_localPid);
+		}
 	}
 	return 1; 
 }

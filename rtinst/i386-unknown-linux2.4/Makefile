@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2001/10/26 06:29:55 schendel Exp $
+# $Id: Makefile,v 1.12 2002/06/17 21:31:16 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,22 +38,25 @@ CFLAGS          += -I$(PVM_INCDIR)
 endif
 LDFLAGS         = -shared -ldl
 
-VPATH        = ../src:../../dyninstAPI_RT/src
+VPATH        = ../src
+#:../../dyninstAPI_RT/src
 
 SRCS	     += ../src/RTfirst.c \
-                ../../dyninstAPI_RT/src/RTheap.c \
-		../../dyninstAPI_RT/src/RTheap-linux.c \
-		../../dyninstAPI_RT/src/RTsig.c \
-		../../dyninstAPI_RT/src/RTposix.c \
-		../../dyninstAPI_RT/src/RTlinux.c \
 		../src/RTetc-posix.c \
 		../src/RTetc-linux.c \
 		../src/RThwtimer-linux.c \
-		../src/RTrexec.c
+		../src/RTrexec.c 
+
+#                ../../dyninstAPI_RT/src/RTheap.c \
+#		../../dyninstAPI_RT/src/RTheap-linux.c \
+#		../../dyninstAPI_RT/src/RTsig.c \
+#		../../dyninstAPI_RT/src/RTposix.c \
+#		../../dyninstAPI_RT/src/RTlinux.c \
+	
 
 ifdef DETACH_ON_THE_FLY
 CFLAGS += -DDETACH_ON_THE_FLY
-SRCS 	+= ../../dyninstAPI_RT/src/RTsigill-x86.S
+SRCS 	+= ../src/RTsigill-x86.S
 endif
 
 ifdef USES_LIBHRTIME

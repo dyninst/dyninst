@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.136 2002/06/13 19:53:03 mirg Exp $
+ * $Id: inst-power.C,v 1.137 2002/06/17 21:31:14 chadd Exp $
  */
 
 #include "common/h/headers.h"
@@ -1270,10 +1270,17 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
  
 #if defined(MT_THREAD)
+
+if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
+	//at this point we may have not yet loaded the
+	//paradyn lib, so the DYNINSTthreadPos symbols may not
+	//be found
+
   // MT: thread POS calculation. If not, stick a 0 here
   theTemplate->MTpreBranch = generateMTTrampCode(insn, currAddr, proc);
   // GenerateMT will push forward the currAddr, but not insn
   insn = &tramp[currAddr/4];
+}
 #endif
   if (wantTrampGuard) {
     // Tramp guard
@@ -1393,9 +1400,17 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
  
   // MT: thread POS calculation. If not, stick a 0 here
 #if defined(MT_THREAD)
+if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
+	//at this point we may have not yet loaded the
+	//paradyn lib, so the DYNINSTthreadPos symbols may not
+	//be found
+
+
   theTemplate->MTpostBranch = generateMTTrampCode(insn, currAddr, proc);
   // GenerateMT will push forward the currAddr, but not insn
   insn = &tramp[currAddr/4];
+}
+
 #endif
   
   // Tramp guard
@@ -1405,9 +1420,16 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
 	      (char *)insn, spareAddr, false);
 #if defined(MT_THREAD)
+if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
+	//at this point we may have not yet loaded the
+	//paradyn lib, so the DYNINSTthreadPos symbols may not
+	//be found
+
+
     // Add on the offset (for MT)
     emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
 	  (char *)insn, spareAddr, false);
+}
 #endif
     // Load value
     emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,

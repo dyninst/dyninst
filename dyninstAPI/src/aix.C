@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.98 2002/06/14 21:43:32 tlmiller Exp $
+// $Id: aix.C,v 1.99 2002/06/17 21:31:14 chadd Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -991,6 +991,28 @@ int process::waitProcs(int *status) {
 	  if (wasRunning) 
 	    if (!curr->continueProc()) assert(0);
 	}
+
+		  //ccw 30 apr 2002 : SPLIT4  
+#if !defined(BPATCH_LIBRARY)
+		else if (!curr->paradynLibAlreadyLoaded() && curr->wasCreatedViaAttach()){
+			  /* FIXME: Is any of this code ever executed? */
+			  // make sure we are stopped in the eyes of paradynd - naim
+			  bool wasRunning = (curr->status() == running);
+			  if (curr->status() != stopped)
+				  curr->Stopped();   
+			  if(curr->isDynamicallyLinked()) {
+				  curr->handleIfDueToSharedObjectMapping();
+			  }
+			  if (curr->trapDueToParadynLib()) {
+				  // we need to load libdyninstRT.so.1 - naim
+				  curr->handleIfDueToDyninstLib();
+			  }
+			  if (wasRunning) 
+				  if (!curr->continueProc()) assert(0);
+
+		}
+#endif
+
     }
   }// else if( errno )
   //perror( "process::waitProcs - waitpid" );
@@ -1033,6 +1055,11 @@ bool process::attach() {
   } else
     return true;
 #else
+
+	//ccw 30 apr 2002 : SPLIT5
+ string buffer ="attach!";
+   statusLine(buffer.c_str());
+
   if (parent != 0 || createdViaAttach) {
     return attach_();
   }
@@ -1677,7 +1704,6 @@ bool handleAIXsigTraps(int pid, int status) {
     process *curr = findProcess(pid); // NULL for child of a fork
     // see man page for "waitpid" et al for descriptions of constants such
     // as W_SLWTED, W_SFWTED, etc.
- 
     if (WIFSTOPPED(status) && (WSTOPSIG(status)==SIGTRAP)
 	&& ((status & 0x7f) == W_SLWTED)) {
       //Process is stopped on a load.  AIX has reloaded the process image and

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.130 2002/05/14 19:00:40 schendel Exp $
+// $Id: perfStream.C,v 1.131 2002/06/17 21:31:16 chadd Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -544,7 +544,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
 	 //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
 	 continue;
       }
-      else if (!theProc->isBootstrappedYet()) {
+      else if (!theProc->isBootstrappedYet() || !theProc->isPARADYNBootstrappedYet()) { //ccw 1 may 2002 : SPLIT
 	 //shmsample_cerr << "(-*-)" << endl;
 	 continue;
       }
