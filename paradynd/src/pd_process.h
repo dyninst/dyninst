@@ -184,8 +184,9 @@ class pd_process {
    }
    
    bool triggeredInStackFrame(instPoint* point, Frame frame,
+                              pd_Function *&func,
                               callWhen when, callOrder order) {
-      return dyninst_process->triggeredInStackFrame(point, frame, when, order);
+      return dyninst_process->triggeredInStackFrame(point, frame, func, when, order);
    }
    
    bool walkStacks(pdvector<pdvector<Frame> > &stackWalks) {

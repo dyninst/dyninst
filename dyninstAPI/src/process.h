@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.253 2003/04/20 01:00:10 schendel Exp $
+/* $Id: process.h,v 1.254 2003/04/24 14:28:48 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -381,8 +381,9 @@ class process {
   bool collectSaveWorldData;//this is set to collect data for
 				//save the world
 
-  bool triggeredInStackFrame(instPoint* point, Frame frame,
-			     callWhen when, callOrder order);
+  bool triggeredInStackFrame(instPoint* point, Frame &frame,
+                             pd_Function *&func,
+                             callWhen when, callOrder order);
 
   bool isInSignalHandler(Address addr);
 

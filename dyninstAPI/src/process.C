@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.415 2003/04/23 22:59:54 bernat Exp $
+// $Id: process.C,v 1.416 2003/04/24 14:28:42 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -451,39 +451,44 @@ bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
 //   return address of the callsite (indicating that the call is
 //   currently executing), triggeredInStackFrame will return true.
 
-bool process::triggeredInStackFrame(instPoint* point,  Frame frame, 
-				    callWhen when, callOrder order)
+bool process::triggeredInStackFrame(instPoint* point,  Frame &frame, 
+                                    pd_Function *&func,
+                                    callWhen when, callOrder order)
 {
-  //this->print(stderr, ">>> triggeredInStackFrame(): ");
-  trampTemplate *tempTramp;
-  bool retVal = false;
-  pd_Function *instPoint_fn = dynamic_cast<pd_Function *>
-                   (const_cast<function_base *>(point->iPgetFunction()));
-  pd_Function *stack_fn;
-  stack_fn = findAddressInFuncsAndTramps(frame.getPC());
-  if (pd_debug_catchup) {
-     char line[200];
-     bool didA = false;
-     if (stack_fn) {
-	pdvector<string> name = stack_fn->prettyNameVector();
-	if (name.size()) {
-           sprintf(line, "stack_func: %-20.20s ", name[0].c_str());
-           didA = true;
+    //this->print(stderr, ">>> triggeredInStackFrame(): ");
+    trampTemplate *tempTramp;
+    bool retVal = false;
+    pd_Function *instPoint_fn = dynamic_cast<pd_Function *>
+      (const_cast<function_base *>(point->iPgetFunction()));
+    pd_Function *stack_fn = func;
+    if (!func) {
+        stack_fn = findAddressInFuncsAndTramps(frame.getPC());
+        func = stack_fn;
+    }
+    
+    if (pd_debug_catchup) {
+        char line[200];
+        bool didA = false;
+        if (stack_fn) {
+            pdvector<string> name = stack_fn->prettyNameVector();
+            if (name.size()) {
+                sprintf(line, "stack_func: %-20.20s ", name[0].c_str());
+                didA = true;
+            }
         }
-     }
-     if(!didA)  sprintf(line, "stack_func: %-20.20s ", "");
-
-     if (instPoint_fn) {
-        pdvector<string> name = instPoint_fn->prettyNameVector();
-        strcat(line, "instP_func: ");
-        if (name.size())
-           strcat(line, name[0].c_str());
-     }
-     cerr << "triggeredInStackFrame- " << line << endl;
-  }
-  if (stack_fn != instPoint_fn) {
-    return false;
-  }
+        if(!didA)  sprintf(line, "stack_func: %-20.20s ", "");
+        
+        if (instPoint_fn) {
+            pdvector<string> name = instPoint_fn->prettyNameVector();
+            strcat(line, "instP_func: ");
+            if (name.size())
+                strcat(line, name[0].c_str());
+        }
+        cerr << "triggeredInStackFrame- " << line << endl;
+    }
+    if (stack_fn != instPoint_fn) {
+        return false;
+    }
   Address pc = frame.getPC();
   if ( pd_debug_catchup )
      cerr << "  Stack function matches function containing instPoint" << endl;

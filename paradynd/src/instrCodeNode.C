@@ -365,7 +365,9 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
       {
           Frame thisFrame = stackWalk[frameIter]->frame;
           bool triggered = 
-          curInstReq->triggeredInStackFrame(thisFrame, proc());
+          curInstReq->triggeredInStackFrame(stackWalk[frameIter]->frame,
+                                            stackWalk[frameIter]->func,
+                                            proc());
           if(triggered) {
               // Push this instRequest onto the list of ones to execute
               stackWalk[frameIter]->reqNodes.push_back(curInstReq);

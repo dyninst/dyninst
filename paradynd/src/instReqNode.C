@@ -176,9 +176,11 @@ void instReqNode::catchupRPCCallback(void * /*returnValue*/ ) {
 }
 
 
-bool instReqNode::triggeredInStackFrame(Frame &frame, pd_process *p)
+bool instReqNode::triggeredInStackFrame(Frame &frame, 
+                                        pd_Function *&func,
+                                        pd_process *p)
 {
-   return p->triggeredInStackFrame(point, frame, when, order);
+   return p->triggeredInStackFrame(point, frame, func, when, order);
 }
 
 
