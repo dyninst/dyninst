@@ -3,6 +3,11 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.8  1996/04/30 20:17:37  tamches
+ * double2string optimized for 0
+ * gcvt called instead of sprintf on the off-chance that
+ * it's a bit faster.
+ *
  * Revision 1.7  1995/12/22 22:43:10  tamches
  * selection
  * deletion
@@ -45,13 +50,20 @@ void tableVisi::updateConversionString() {
 }
 
 void tableVisi::double2string(char *buffer, double val) const {
-   // uses numSigFigs
    if (isnan(val)) {
       buffer[0] = '\0';
       return;
    }
+   
+   // Optimize for a common case:
+   if (val == 0) {
+      buffer[0] = '0';
+      buffer[1] = '\0';
+      return;
+   }
 
-   sprintf(buffer, conversionString, val);
+//   sprintf(buffer, conversionString, val);
+   gcvt(val, numSigFigs, buffer);
 
 //   cout << "from " << buffer << " to " << flush;
 
