@@ -150,7 +150,8 @@ int FunctionCoverage::instrumentPoints(){
 			bb->getAddressRange(startAddress,endAddress);
 
 			/** create the instrumentation point (arbitrary) */
-			p = appImage->createInstPointAtAddr(startAddress,&q);
+			p = appImage->createInstPointAtAddr(startAddress,&q,
+							    bpFunction);
 
 			if(p)
 				bpp->push_back(p);
