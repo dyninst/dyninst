@@ -1,8 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.31  1995/11/08 21:17:31  naim
-/* Adding matherr exception handler function to avoid error message when
-/* computing the "not a number" (NaN) value - naim
+/* Revision 1.32  1995/11/13 14:54:49  naim
+/* Adding error message #85 - naim
 /*
+ * Revision 1.31  1995/11/08  21:17:31  naim
+ * Adding matherr exception handler function to avoid error message when
+ * computing the "not a number" (NaN) value - naim
+ *
  * Revision 1.30  1995/11/06  02:48:59  tamches
  * used tkTools.h
  * removed code to pass args to UIthread (no longer used)
@@ -298,7 +301,8 @@ main (int argc, char **argv)
 //  init_struct init; init.tid = MAINtid; init.met_file = fname;
 
 // call sequential initialization routines
-  dataManager::DM_sequential_init(fname);
+  if(!dataManager::DM_sequential_init(fname))
+    uiMgr->showError(85,"");
   VM::VM_sequential_init(); 
 
 

@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.8  1995/11/03 21:15:48  naim
+# Revision 1.9  1995/11/13 14:54:43  naim
+# Adding error message #85 - naim
+#
+# Revision 1.8  1995/11/03  21:15:48  naim
 # Chaning message of error 11 - naim
 #
 # Revision 1.7  1995/10/30  23:09:43  naim
@@ -853,4 +856,13 @@ explanations for this problem are: (1) unknown host; (2) it is not possible
 to establish connection with the specified host. 
 }}
 
-set numPdErrors 84
+set pdError(85) {
+{Error found in metrics specified in the Paradyn configuration file.
+} {pdMain
+} {information
+} {
+An error was detected when Paradyn was reading the metrics described in the
+Paradyn configuration file.
+}}
+
+set numPdErrors 85
