@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.80 2001/10/18 16:06:56 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.81 2001/11/03 06:08:55 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -769,6 +769,7 @@ public:
   void okayToSample();
   void disable();
   void cleanup_drn();
+  bool isReadyForUpdates();
   void updateValue(timeStamp, pdSample);
   void forwardSimpleValue(timeStamp, timeStamp, pdSample);
 
@@ -826,7 +827,7 @@ public:
   // MT_THREAD version:  only for PROC_PRIM or THR_LEV
   bool nonNull() const { return (instRequests.size() || dataRequests.size()); }
   int getSizeOfInstRequests() const { return instRequests.size(); }
-  void setStartTime(timeStamp t, bool resetCompStartTime = false);
+  void setStartTime(timeStamp t);
   bool insertInstrumentation(pd_Function **func);
 
   void setInitialActualValue(pdSample s);
