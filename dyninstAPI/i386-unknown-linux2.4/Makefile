@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.23 2004/06/24 22:27:43 legendre Exp $
+# $Id: Makefile,v 1.24 2005/02/07 16:58:19 gquinn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,7 +29,6 @@ SRCS =          ../src/linux.C \
                 ../src/inst-linux.C \
                 ../src/inst-x86.C \
                 ../src/arch-x86.C \
-                ../src/arch-ia32.C \
 		../src/Object-elf.C \
                 ../src/unix.C \
 		../src/parseStab.C \

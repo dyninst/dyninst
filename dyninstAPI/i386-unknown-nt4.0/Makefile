@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.24 2004/03/05 16:50:47 bernat Exp $
+# $Id: Makefile,v 1.25 2005/02/07 16:58:22 gquinn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,7 +25,6 @@ SRCS =		../src/pdwinnt.C \
 		../src/LocalAlteration-x86.C \
 		../src/FunctionExpansionRecord.C \
 		../src/arch-x86.C \
-		../src/arch-ia32.C \
 		../src/InstrucIter-x86.C \
 		../src/syscall-nt.C \
 		../src/pdwinntDL.C \
@@ -42,7 +41,6 @@ OBJS = 		pdwinnt.obj \
 		LocalAlteration-x86.obj \
 		FunctionExpansionRecord.obj \
 		InstrucIter-x86.obj \
-		arch-ia32.obj \
 		codeRange.obj \
 		trampTemplate.obj \
 		syscall-nt.obj \

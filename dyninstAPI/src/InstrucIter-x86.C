@@ -49,7 +49,6 @@
 #include "common/h/Dictionary.h"
 
 #include "arch.h"
-#include "arch-ia32.h"
 #include "util.h"
 #include "process.h"
 #include "symtab.h"
