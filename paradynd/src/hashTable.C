@@ -54,7 +54,7 @@ hashTable::hashTable(unsigned size,
   }
 }
 
-hashTable::hashTable(hashTable *src) : mapTable(CThash)
+hashTable::hashTable(hashTable *src) : mapTable(src->mapTable)
 {
   assert(src);
   tableSize = src->tableSize;
@@ -63,14 +63,6 @@ hashTable::hashTable(hashTable *src) : mapTable(CThash)
   }
   for (unsigned i=0; i<src->freeList.size(); i++) {
     freeList += src->freeList[i];
-  }
-  vector<unsigned> keys;
-  vector<unsigned> values;
-  keys = src->mapTable.keys();
-  values = src->mapTable.values();
-  assert(keys.size()==values.size());
-  for (unsigned i=0; i<keys.size(); i++) {
-    mapTable[keys[i]]=values[i];  
   }
 }
 
