@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.105 2002/12/20 07:50:04 jaw Exp $
+// $Id: UImain.C,v 1.106 2003/05/08 19:48:59 pcroth Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -81,6 +81,12 @@ extern "C" const char V_libpdutil[];
 const Ident V_Uid(V_libpdutil,"Paradyn");
 extern "C" const char V_libpdthread[];
 const Ident V_Tid(V_libpdthread,"Paradyn");
+
+
+#if defined(i386_unknown_nt4_0)
+extern bool waitForKeypressOnExit;
+#endif // defined(i386_unknown_nt4_0)
+
 
 //----------------------------------------------------------------------------
 // prototypes of functions used in this file
@@ -772,6 +778,17 @@ void *UImain(void*) {
    unInstallCallGraphCommands(interp);
 
    Tcl_DeleteInterp( interp );
+
+#if defined(i386_unknown_nt4_0)
+    // In many places throughout our code we dump error or status message
+    // to stderr and then exit.  On Windows, we dump stdout and stderr to 
+    // a Windows console window.  Unless we keep this window up at
+    // program exit, the user doesn't get a chance to see the messages.
+    // 
+    // However, in case of a graceful exit, we just want the program to
+    // quit without forcing the user to dismiss the console window.
+    waitForKeypressOnExit = false;
+#endif // defined(i386_unknown_nt4_0)
 
    /*
     * Exiting this thread will signal the main/parent to exit.  No other

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main-nt.C,v 1.3 1999/07/08 19:24:06 pcroth Exp $
+// $Id: main-nt.C,v 1.4 2003/05/08 19:48:59 pcroth Exp $
 
 /*
  * main-nt.C - WinMain for Paradyn on Windows.  
@@ -53,11 +53,14 @@
 #include <io.h>
 #include <fcntl.h>
 #include <strstrea.h>
+#include <conio.h>
 
 
 // prototypes of functions used in this file
 int	main( int, char** );
 
+// globals
+bool waitForKeypressOnExit = true;
 
 // local variables
 static	ifstream*	pstdin_str	= NULL;
@@ -109,6 +112,24 @@ init_sockets_handle_error:
 
 	ExitProcess( 1 );
 }
+
+
+static
+void
+WaitForKeypress( void )
+{
+    if( waitForKeypressOnExit )
+    {
+        fprintf( stdout, "Press any key to exit..." );
+        fflush( stdout );
+        while( !_kbhit() )
+        {
+            Sleep( 500 );
+        }
+    }
+}
+
+
 
 static
 void
@@ -224,6 +245,12 @@ InitConsole( void )
 		cout = *pstdout_str;
 		cerr = *pstderr_str;
 	}
+
+    // we've got a console
+    //
+    // ensure that we leave it around long enough for user to
+    // see any error messages we dump out to the console
+    atexit( WaitForKeypress );
 
 	return;
 
