@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.148 2003/05/21 14:28:39 bernat Exp $
+// $Id: aix.C,v 1.149 2003/05/23 21:11:44 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -265,73 +265,72 @@ Frame Frame::getCallerFrame(process *p) const
   // Are we in a minitramp?
   bool inTramp = false;
   if (!func) {
-    trampTemplate *tramp = NULL;
-    instInstance *mini = NULL;
-    instPoint *instP = p->findInstPointFromAddress(pc_, &tramp, &mini);
-    if (instP) { /* We found something */
-      inTramp = true;
-    }
+      trampTemplate *tramp = NULL;
+      instInstance *mini = NULL;
+      instPoint *instP = p->findInstPointFromAddress(pc_, &tramp, &mini);
+      if (instP) { /* We found something */
+          inTramp = true;
+          func = (pd_Function *)instP->iPgetFunction();
+      }
+      
   }
   
   // Get current stack frame link area
   if (!p->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
-			(caddr_t)&thisStackFrame, false))
-    return Frame();
+                        (caddr_t)&thisStackFrame, false))
+      return Frame();
   p->readDataSpace((caddr_t) thisStackFrame.oldFp, sizeof(linkArea_t),
-		   (caddr_t) &lastStackFrame, false);
-
-  if (noFrame)
-    stackFrame = thisStackFrame;
-  else
-    stackFrame = lastStackFrame;
+                   (caddr_t) &lastStackFrame, false);
   
-  if (isLeaf) {
-    // So:
-    // Normal: call ptrace(pid)
-    // Thread: (not implemented) if bound to a kernel thread, go to LWP
-    //    if not, get it from the pthread debug library
-    // LWP: call ptrace(lwp)
-    struct ptsprs spr_contents;
-    if (lwp_ && lwp_->get_lwp_id()) {
-        if (P_ptrace(PTT_READ_SPRS, lwp_->get_lwp_id(), (int *)&spr_contents,
-                     0, 0) == -1) {
-            perror("Failed to read SPR data in getCallerFrameLWP");
-            return Frame();
-        }
-        ret.pc_ = spr_contents.pt_lr;
-    }
-    else if (thread_ && thread_->get_tid()) {
-        cerr << "NOT IMPLEMENTED YET" << endl;
-    }
-    else { // normal
-        ret.pc_ = P_ptrace(PT_READ_GPR, pid_, (void *)LR, 0, 0);
-    }
-  }
-  else if (inTramp) {
+  if (noFrame)
+      stackFrame = thisStackFrame;
+  else
+      stackFrame = lastStackFrame;
+  
+  if (inTramp) {
       p->readDataSpace((caddr_t)thisStackFrame.oldFp-TRAMP_FRAME_SIZE+TRAMP_SPR_OFFSET+STK_LR, sizeof(int),
                        (caddr_t)&ret.pc_, false);
   }
-  else { // Not a leaf function, grab the LR from the stack
-    // Oh lordy... but NOT if we're at the entry of the function. See, we haven't
-    // saved the LR on the stack frame yet!
-    ret.pc_ = stackFrame.savedLR;
+  else if (isLeaf) {
+      // So:
+      // Normal: call ptrace(pid)
+      // Thread: (not implemented) if bound to a kernel thread, go to LWP
+      //    if not, get it from the pthread debug library
+      // LWP: call ptrace(lwp)
+      struct ptsprs spr_contents;
+      if (lwp_ && lwp_->get_lwp_id()) {
+          if (P_ptrace(PTT_READ_SPRS, lwp_->get_lwp_id(), (int *)&spr_contents,
+                       0, 0) == -1) {
+              perror("Failed to read SPR data in getCallerFrameLWP");
+              return Frame();
+          }
+          ret.pc_ = spr_contents.pt_lr;
+      }
+      else if (thread_ && thread_->get_tid()) {
+          cerr << "NOT IMPLEMENTED YET" << endl;
+      }
+      else { // normal
+          ret.pc_ = P_ptrace(PT_READ_GPR, pid_, (void *)LR, 0, 0);
+      }
   }
-
+  else { // Not a leaf function, grab the LR from the stack
+      // Oh lordy... but NOT if we're at the entry of the function. See, we haven't
+      // saved the LR on the stack frame yet!
+      ret.pc_ = stackFrame.savedLR;
+  }
+  
   // If we're in instrumented functions, then the actual LR is stored
   // in the stack in the compilerInfo word. But how can we tell this?
   // Well... if there's an exit tramp at the LR addr, then it's the wrong one.
   if (func) {
-    instPoint *exitInst = func->funcExits(p)[0];
-    if (p->baseMap.defines(exitInst)) { // should always be true
-      if (p->baseMap[exitInst]->baseAddr == ret.pc_) {
-	// Again, we might be down one too far stack frames
-	ret.pc_ = stackFrame.compilerInfo;
+      instPoint *exitInst = func->funcExits(p)[0];
+      if (p->baseMap.defines(exitInst)) { // should always be true
+          if (p->baseMap[exitInst]->baseAddr == ret.pc_) {
+              // Again, we might be down one too far stack frames
+              ret.pc_ = stackFrame.compilerInfo;
+          }
       }
-    }
   }
-
-  
-
   if (noFrame) { // We never shifted the stack down, so recycle
     ret.fp_ = fp_;
   }
