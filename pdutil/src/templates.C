@@ -40,31 +40,12 @@
  */
 
 /*
- * Generate code for template classes used by libutil
- * $Id: templates.C,v 1.14 2002/04/09 18:06:38 mjbrim Exp $
+ * Generate code for template classes used by libpdutil
+ * $Id: templates.C,v 1.15 2002/04/22 20:52:55 mjbrim Exp $
  */
 
-#pragma implementation "Vector.h"
-#include "common/h/Vector.h"
-
-#pragma implementation "Symbol.h"
-#include "common/h/Symbol.h"
-
-#pragma implementation "Dictionary.h"
-#include "common/src/Dictionary.C"
-
-#include "pdutil/h/rpcUtil.h"
-#include "pdutil/h/hist.h"
 #include "pdutil/src/PriorityQueue.C"
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
 
-template class vector<string>;
-template class vector<rpcBuffer*>;
-template class vector<Histogram*>;
-template class pair<string, Symbol>;
-template pair<string, Symbol> make_pair<string, Symbol>(const string &, const Symbol &);
-template class dictionary_hash<string, Symbol>;
-template class vector<dictionary_hash <string, Symbol>::entry>;
 template class PriorityQueue<timeStamp, pdSample>;
-template class vector<PriorityQueue<timeStamp, pdSample>::pair>;
