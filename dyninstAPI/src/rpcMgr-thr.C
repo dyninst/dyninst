@@ -82,8 +82,12 @@ bool rpcThr::isReadyForIRPC() const {
 //    and we want to run it (and a system call breakpoint was set)
 // 2) We don't have a pending IRPC but there is one on the queue.
 irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
-    if (runningRPC_ || pendingRPC_) return irpcError;
 
+    
+    if (runningRPC_ || pendingRPC_) {
+        return irpcError;
+    }
+    
     if (postedRPCs_.size() == 0 &&
         mgr_->postedProcessRPCs_.size() == 0)
         return irpcNoIRPC;
@@ -151,14 +155,14 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
         pendingRPC_->runProcWhenDone = runProcWhenDone;
         mgr_->addPendingRPC(pendingRPC_);
     }
-    
     return runPendingIRPC();
 }
 
 irpcLaunchState_t rpcThr::runPendingIRPC() {
-    // CHECK FOR SYSTEM CALL STATUS
-    if (!pendingRPC_) return irpcNoIRPC;
-
+    if (!pendingRPC_) {
+        return irpcNoIRPC;
+    }
+    
     dyn_lwp *lwp = thr_->get_lwp();
 
     // We passed the system call check, so the thread is in a state
@@ -230,7 +234,9 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
          return irpcError;
       }
 #endif
+
       return irpcStarted;
+
 }
 
 bool rpcThr::deleteThrIRPC(int id) {

@@ -129,6 +129,7 @@ class rpcThr {
     // Internal launch function
     irpcLaunchState_t runPendingIRPC();
 
+    
   public:
     rpcThr(rpcMgr *mgr, dyn_thread *thr) : mgr_(mgr), thr_(thr), pendingRPC_(NULL), runningRPC_(NULL) {};
     
@@ -192,8 +193,7 @@ class rpcLWP {
     irpcLaunchState_t runPendingIRPC();
 
   public:
-    rpcLWP(rpcMgr *mgr, dyn_lwp *lwp) : mgr_(mgr), lwp_(lwp), pendingRPC_(NULL), runningRPC_(NULL) {};
-    
+    rpcLWP(rpcMgr *mgr, dyn_lwp *lwp) : mgr_(mgr), lwp_(lwp), pendingRPC_(NULL), runningRPC_(NULL) {} ;
     dyn_lwp *get_lwp() const { return lwp_; }
 
     // Returns ID of the RPC posted
@@ -274,8 +274,11 @@ class rpcMgr {
     bool addRunningRPC(inferiorRPCinProgress *rpc);
     bool removeRunningRPC(inferiorRPCinProgress *rpc);
 
+    // Prevent launchRPCs from being entered recursively
+    bool recursionGuard;
+    
   public:
-   rpcMgr(process *proc) : proc_(proc), lwps_(rpcLwpHash) { };
+   rpcMgr(process *proc) : proc_(proc), lwps_(rpcLwpHash), recursionGuard(false) { };
 
    void addThread(dyn_thread *thr);
    void deleteThread(dyn_thread *thr);

@@ -188,6 +188,15 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // don't do anything. Reason: launchRPCs is called several times
     // a second in the daemon main loop
 
+    if (recursionGuard) {
+        // Error case: somehow launchRPCs was entered recursively
+        cerr <<  "Error: inferior RPC mechanism was used in an unsafe way!" << endl;
+        // Umm....
+        return false;
+    }
+
+    recursionGuard = true;
+
     bool readyLWPRPC = false;
     bool readyThrRPC = false;
     bool processingLWPRPC = false;
@@ -197,8 +206,11 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     
     // We have a central list of all posted or pending RPCs... if those are empty
     // then don't bother doing work
-    if (allPostedRPCs_.size() == 0)
+    if (allPostedRPCs_.size() == 0) {
+        recursionGuard = false;
         return false;
+    }
+    
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = 
     lwps_.begin();
     while(rpc_iter != lwps_.end()) {
@@ -234,12 +246,14 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             // iRPCs finish, so continue the process here
             proc_->continueProc();
         }
+        recursionGuard = false;
         return false;
     }   
 
     // We have work to do. Pause the process.
     if (!proc_->pause()) {
         cerr << "FAILURE TO PAUSE PROCESS in launchRPCs" << endl;
+        recursionGuard = false;
         return false;
     }
     // Okay, there is an inferior RPC to do somewhere. Now we just need
@@ -271,6 +285,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             // If an IRPC was launched we've got it in the allRunningRPCs
             // vector (For bookkeeping)
             // And pick out whether the process should be run
+            
             if (thrState == irpcBreakpointSet ||
                 thrState == irpcAgain ||
                 thrState == irpcStarted) {
@@ -291,11 +306,14 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     if (runProcessWhenDone || 
         allRunningRPCs_.size() > 0) {
         proc_->continueProc();
+        recursionGuard = false;
         return true;
     }
-    if (wasRunning)
+    if (wasRunning) {
         proc_->continueProc();
+    }
     
+    recursionGuard = false;
     return false;
 }
 
