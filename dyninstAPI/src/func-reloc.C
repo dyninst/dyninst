@@ -390,17 +390,6 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
     return false;
   }
 
-    // make sure that new function version can fit in newInstructions (statically allocated)....
-    if (size() + totalSizeChange > NEW_INSTR_ARRAY_LEN) {
-       cerr << "WARN : attempting to relocate function " \
-       	    << prettyName().string_of() << " with size " \
-	    << " > NEW_INSTR_ARRAY_LEN (" << NEW_INSTR_ARRAY_LEN \
-	    << "), unable to instrument : " \
-            << " size = " << size() << " , totalSizeChange = " \
-	    << totalSizeChange << endl;
-       delete []oldInstructions;
-       return FALSE;
-    }
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << " Allocate memory: " << size() + totalSizeChange << endl;
@@ -431,9 +420,14 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
     } 
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-      newInstructions = NEW_INSTR;
+    // Upper bound on the number of instructions in the relocated function. 
+    // The original function has getNumInstructions instructions and so the
+    // relocated function has at least that many functions. At most, each byte
+    // added to the new function is an instruction, so the maximum number of 
+    // instructions in the new function is getNumInstructions + totalSizeChange
+    newInstructions = new instruction[getNumInstructions() + totalSizeChange];
 #elif defined(sparc_sun_solaris2_4)
-      newInstructions = reinterpret_cast<instruction *> (relocatedCode);
+    newInstructions = reinterpret_cast<instruction *> (relocatedCode);
 #endif
 
     // Apply the alterations needed for relocation. The expanded function 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.102 2001/07/05 16:53:22 tikir Exp $
+// $Id: inst-sparc.C,v 1.103 2001/08/07 17:01:20 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -50,7 +50,6 @@
 /****************************************************************************/
 /****************************************************************************/
 
-instruction newInstr[NEW_INSTR_ARRAY_LEN];
 static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
 
 trampTemplate baseTemplate;

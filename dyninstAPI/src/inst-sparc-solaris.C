@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.88 2001/08/06 23:22:00 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.89 2001/08/07 17:01:19 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2534,10 +2534,12 @@ bool pd_Function::findInstPoints(const image *owner) {
   // ITERATE OVER INSTRUCTIONS, locating instPoints
   adr = firstAddress;
 
+  instructions = new instruction[size()/sizeof(instruction)];
+ 
   for (int i=0; adr < lastAddress; adr += sizeof(instruction), i++) {
 
     instr.raw = owner->get_instruction(adr);
-    newInstr[i] = instr;
+    instructions[i] = instr;
     nexti.raw = owner->get_instruction(adr+4);
 
     // check for return insn and as a side affect decide if we are at the
@@ -2570,10 +2572,10 @@ bool pd_Function::findInstPoints(const image *owner) {
 
         instPoint *point;
         if (relocatable_ == true) {
-          point = new instPoint(this, newInstr[i], owner, adr, 
+          point = new instPoint(this, instructions[i], owner, adr, 
                                      false, functionExit, adr);
 	} else {
-            point = new instPoint(this, newInstr[i], owner, adr, 
+            point = new instPoint(this, instructions[i], owner, adr, 
                                             false, functionExit);
 	}
 

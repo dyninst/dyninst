@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.94 2001/08/06 23:22:00 gurari Exp $
+// $Id: symtab.h,v 1.95 2001/08/07 17:01:21 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -212,8 +212,8 @@ class pd_Function : public function_base {
 		Address adr, const unsigned size, 
 		const image *owner, bool &err);
     ~pd_Function() { delete relocatedCode;  // delete the rewritten version 
-                                            // of the function if it was 
-                                            // relocated      
+                     delete originalCode;   // of the function if it was 
+                     delete instructions;   // relocated      
                                /* TODO */ }
 
     bool findInstPoints(const image *owner);
@@ -500,6 +500,11 @@ class pd_Function : public function_base {
     instPoint *find_overlap(vector<instPoint*> v, Address targetAddress);
 #endif
 
+    void setNumInstructions(unsigned num) { numInstructions = num; }
+    unsigned getNumInstructions() { return numInstructions; }
+ 
+    instruction *getInstructions() { return instructions; }
+
 
 
 #ifndef BPATCH_LIBRARY
@@ -529,8 +534,14 @@ class pd_Function : public function_base {
 #endif
     
     // these are for relocated functions
-    bool relocatable_;		// true if func will be relocated when instr
-    unsigned char *relocatedCode;  // points to copy of rewritten function
+    bool relocatable_;		   // true if func will be relocated when instr
+
+    unsigned char *relocatedCode;  // points to copy of rewritten function    
+    unsigned char *originalCode;   // points to copy of original function
+
+    unsigned numInstructions;      // num instructions in original func
+    instruction *instructions;     // instructions that correspond to the 
+                                   // original function 
 
     bool noStackFrame; // formerly "leaf".  True iff this fn has no stack frame.
 

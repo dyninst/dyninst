@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.46 2000/08/22 16:33:25 pcroth Exp $
+// $Id: inst-sparc.h,v 1.47 2001/08/07 17:01:20 gurari Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -149,9 +149,6 @@ extern "C" void conservativeBaseTramp_savePostInsn();
 extern "C" void conservativeBaseTramp_restorePostInsn();
 extern trampTemplate conservativeBaseTemplate;
 extern NonRecursiveTrampTemplate nonRecursiveConservativeBaseTemplate;
-
-#define NEW_INSTR_ARRAY_LEN 8192
-extern instruction newInstr[NEW_INSTR_ARRAY_LEN];
 
 // amount of expansion for relocated functions....
 #define RELOCATED_FUNC_EXTRA_SPACE 36

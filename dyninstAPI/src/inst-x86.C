@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.87 2001/07/23 15:40:17 gurari Exp $
+ * $Id: inst-x86.C,v 1.88 2001/08/07 17:01:20 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -81,8 +81,6 @@ extern void modifyInstPoint(instPoint *&location,process *proc);
 extern bool isPowerOf2(int value, int &result);
 void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 
-instruction NEW_INSTR[NEW_INSTR_ARRAY_LEN];
-unsigned char OLD_CODE[NEW_INSTR_ARRAY_LEN];
 
 // The general machine registers. 
 // These values are taken from the Pentium manual and CANNOT be changed.
@@ -3214,11 +3212,13 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
     cerr << "pd_Function::loadCode" << endl;
 #endif
 
-  // copy function to be relocated from application into OLD_CODE
-  proc->readDataSpace((caddr_t)firstAddress, size(), OLD_CODE, true);
+  originalCode = new unsigned char[size()];
+
+  // copy function to be relocated from application into instructions
+  proc->readDataSpace((caddr_t)firstAddress, size(), originalCode, true);
 
   // first address of function
-  unsigned char *p = OLD_CODE;
+  unsigned char *p = originalCode;
 
   // last address of function
   unsigned end_of_function = (unsigned)(p + size());
@@ -3312,9 +3312,11 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
   // copy vector of instructions into buffer of instructions
   for (unsigned i = 0; i < insnVec.size(); i++) {
     oldCode[i] = insnVec[i];
-  }  
-  numberOfInstructions = insnVec.size();
+  }
 
+  numberOfInstructions = insnVec.size();
+  setNumInstructions(numberOfInstructions);  
+  
   return true;
 } 
 
