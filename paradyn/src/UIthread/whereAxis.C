@@ -4,14 +4,20 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.7  1995/10/17 22:20:15  tamches
-/* where axis is no longer a templated type; it uses where4tree with
-/* a template of whereAxisRootNode.
-/* Added many static vrbles and methods which had to be temporarily
-/* moved to whereAxisMisc for compiler-bug reasons in the past.
-/* Expanding a node now calls XWarpPointer more accurately.
-/* Same for un-expansion, finding, and navigating to a node.
+/* Revision 1.8  1995/11/20 03:27:50  tamches
+/* overallWindowBorderPix is no longer a global variable.
+/* double-click does a toggle_highlight of the parent node; same
+/* for ctrl-double-click.
+/* changed vector<whereAxisRootNode *> to vector<const whereAxisRootNode *>
 /*
+ * Revision 1.7  1995/10/17 22:20:15  tamches
+ * where axis is no longer a templated type; it uses where4tree with
+ * a template of whereAxisRootNode.
+ * Added many static vrbles and methods which had to be temporarily
+ * moved to whereAxisMisc for compiler-bug reasons in the past.
+ * Expanding a node now calls XWarpPointer more accurately.
+ * Same for un-expansion, finding, and navigating to a node.
+ *
  * Revision 1.6  1995/09/20 01:27:55  tamches
  * Better set_scrollbars() (mouse moves).  Use of graphicalPath, a new class.
  * Other major cleanifications to go along with where4tree changes.
@@ -176,7 +182,7 @@ bool whereAxis::set_scrollbars(int absolute_x, int relative_x,
 }
 
 whereNodeGraphicalPath<whereAxisRootNode> whereAxis::point2path(int x, int y) const {
-   extern const int overallWindowBorderPix;
+   const int overallWindowBorderPix = 0;
    const int root_centerx = nominal_centerx + horizScrollBarOffset;
       // relative (not absolute) coord.  note: horizScrollBarOffset <= 0
    const int root_topy = overallWindowBorderPix + vertScrollBarOffset;
@@ -413,8 +419,6 @@ whereAxis::whereAxis(ifstream &infile, Tcl_Interp *in_interp,
 }
 #endif
 
-const int overallWindowBorderPix = 0;
-
 void whereAxis::draw(bool doubleBuffer,
 		     bool xsynchronize // are we debugging?
 		     ) const {
@@ -431,6 +435,8 @@ void whereAxis::draw(bool doubleBuffer,
                      Tk_Width(consts.theTkWindow),
                      Tk_Height(consts.theTkWindow)
                      );
+
+   const int overallWindowBorderPix = 0;
 
    rootPtr->draw(consts.theTkWindow, consts, theDrawable,
 		 nominal_centerx + horizScrollBarOffset,
@@ -668,8 +674,14 @@ bool whereAxis::processCtrlDoubleClick(int x, int y) {
    // For now, we'll say unselect.
 
    where4tree<whereAxisRootNode> *ptr = thePath.getLastPathNode(rootPtr);
+
+   // change highlightedness of the root node (i.e. the double-click should undo
+   // the effects of the earlier single-click, now that we know that a double-click
+   // was the user's intention all along)
+   ptr->toggle_highlight(); // doesn't redraw
+
    if (ptr->getNumChildren()==0)
-      return false;
+      return true; // changes were made
 
    bool allChildrenSelected = true;
    bool noChildrenSelected = true;
@@ -748,12 +760,16 @@ bool whereAxis::processDoubleClick(int x, int y) {
       case whereNodeGraphicalPath<whereAxisRootNode>::ListboxItem: {
          // double-click in a listbox item
 //         cout << "double-click on a listbox item" << endl;
+         // first thing's first: now that we know the user intended to do a double-click
+         // all along, we should undo the effects of the single-click which came earlier.
+         thePath.getLastPathNode(rootPtr)->toggle_highlight(); // doesn't redraw
+
          const bool anyChanges = rootPtr->path2lbItemExpand(consts,
 							    thePath.getPath(), 0);
-         if (!anyChanges) {
-            // Just change highlightedness:
-            thePath.getLastPathNode(rootPtr)->toggle_highlight(); // doesn't redraw
 
+         if (!anyChanges) {
+            // The only real change we made was the toggle_highlight().  This is
+            // a case where we can do the redrawing ourselves (and fast).
             thePath.getParentOfLastPathNode(rootPtr)->
 	         draw(consts.theTkWindow, consts, Tk_WindowId(consts.theTkWindow),
 		      thePath.get_endpath_centerx(),
@@ -790,6 +806,8 @@ bool whereAxis::processDoubleClick(int x, int y) {
    adjustVertSBOffset (); // obtain FirstPix from the actual tk scrollbar
 
    if (scrollToWhenDone) {
+      const int overallWindowBorderPix = 0;
+
       whereNodeGraphicalPath<whereAxisRootNode>
 	   path_to_scroll_to(thePath.getPath(),
 			consts, rootPtr,
@@ -835,6 +853,7 @@ bool whereAxis::forciblyScrollToPathItem(const whereNodePosRawPath &thePath,
 }
 
 bool whereAxis::softScrollToEndOfPath(const whereNodePosRawPath &thePath) {
+   const int overallWindowBorderPix = 0;
    whereNodeGraphicalPath<whereAxisRootNode>
          scrollToPath(thePath, consts, rootPtr,
 		      nominal_centerx,
@@ -1105,7 +1124,7 @@ vector< vector<resourceHandle> > whereAxis::getSelections() const {
 
    for (unsigned i=0; i < numHierarchies; i++) {
       where4tree<whereAxisRootNode> *hierarchyRoot = rootPtr->getChildTree(i);
-      vector <whereAxisRootNode *> thisHierarchySelections = hierarchyRoot->getSelections();
+      vector <const whereAxisRootNode *> thisHierarchySelections = hierarchyRoot->getSelections();
 
       if (thisHierarchySelections.size()==0)
          // add hierarchy's root item
