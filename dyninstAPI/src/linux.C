@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.31 2000/05/11 04:52:22 zandy Exp $
+// $Id: linux.C,v 1.32 2000/05/12 20:54:21 zandy Exp $
 
 #include <fstream.h>
 
@@ -556,6 +556,8 @@ waitForInferiorSigillStop(int pid)
 		  pending.  Continue the process to clear the SIGSTOP
 		  (the process will stop again immediately). */
 	       P_ptrace(PTRACE_CONT, pid, 0, 0);
+	       if (0 > waitpid(pid, NULL, 0))
+		    perror("waitpid");
 	       continue; /* repeat to be sure we've stopped */
 	  }
 
@@ -576,6 +578,11 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 
      /* Reattach, which should stop the process. */
      p->reattach();
+     if (! p->isRunningRPC())
+	  /* If we got this signal when the inferior was not in an RPC,
+	     then we need to reattach after we handle it.
+	     FIXME: Why have we released the process for RPCs anyway? */
+	  p->needsDetach = true;
 
      /* Synchronize with the inferior sigill handler */
      waitForInferiorSigillStop(p->getPid());
@@ -649,9 +656,14 @@ int process::detach()
 	  goto out;
      }
      res = P_ptrace(PTRACE_DETACH, pid, 0, 0);
+     /* FIXME: We should use the assert, but that breaks */
+     if (0 > res)
+	  goto out;
      assert(res >= 0);
-     this->haveDetached = 1;
+     this->haveDetached = true;
      this->juststopped = false;
+     this->needsDetach = false;
+     this->status_ = running;
      ret = 1;
 out:
 #if 0
@@ -690,6 +702,7 @@ int process::reattach()
      assert(res >= 0);
      this->haveDetached = 0;
      this->juststopped = true;
+     this->status_ = stopped;
      ret = 1;
 out:
 #if 0
@@ -702,24 +715,28 @@ out:
 /* This method replaces continueProc. */
 int process::detachAndContinue()
 {
+     int ret = false;
+
      if (status_ == exited)
-	  return false;
+	  goto out;
 
      if (status_ != stopped && status_ != neonatal) {
 	  sprintf(errorLine, "Internal error: "
 		  "Unexpected process state %d in process::contineProc",
 		  (int)status_);
 	  showErrorCallback(39, errorLine);
-	  return false;
+	  goto out;
      }
 
      if (! this->detach()) {
 	  showErrorCallback(38, "System error: can't continue process");
-	  return false;
+	  goto out;
      }
 
+     ret = true;
      status_ = running;
-     return true;
+out:
+     return ret;
 }
 
 /* This method replaces pause. */
@@ -816,6 +833,7 @@ int process::waitProcs(int *status) {
 		  process *curr = findProcess( result );
 		  if (!curr->dyninstLibAlreadyLoaded() && curr->wasCreatedViaAttach())
 		  {
+		       /* FIXME: I don't think any of this code is executed. */
 			  // make sure we are stopped in the eyes of paradynd - naim
 			  bool wasRunning = (curr->status() == running);
 			  if (curr->status() != stopped)

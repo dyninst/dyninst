@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.7 2000/05/11 04:52:26 zandy Exp $
+ * $Id: RTlinux.c,v 1.8 2000/05/12 20:54:35 zandy Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -75,13 +75,11 @@ static void sigill_handler(int sig, struct sigcontext uap)
      kill(getpid(), SIGSTOP);
      errno = saved_errno;
 
-#if 0
+#if 1
      /* We won't need this once we fix this to return to reexecute the ill instruction */
      if (*((char*) (uap.eip)) == '\017' && *((char*) (uap.eip+1)) == '\013') {
-	  fprintf(stderr, "ZANDY: RTinst sigill_handler advancing the PC by 4\n");
-	  uap.eip += 4;
-     } else
-	  fprintf(stderr, "ZANDY: RTinst sigill_handler returning to %x\n", uap.eip);
+	  uap.eip += 6;
+     } 
 #endif     
 }
 #endif /* DETACH_ON_THE_FLY */

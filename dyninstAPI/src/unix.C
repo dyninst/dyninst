@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.36 2000/05/11 04:52:24 zandy Exp $
+// $Id: unix.C,v 1.37 2000/05/12 20:54:22 zandy Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -457,7 +457,11 @@ int handleSigChild(int pid, int status)
 		/* FIXME: ZANDY: test2 fails when this line is compiled. */
 			    << " pc = " << curr->currentPC() << endl;
 #endif
+#ifdef DETACH_ON_THE_FLY
+		const bool wasRunning = (curr->status() == running) || curr->juststopped;
+#else
 		const bool wasRunning = (curr->status() == running);
+#endif
 		curr->status_ = stopped;
 
 		// Check to see if the TRAP is due to a system call exit which
@@ -485,10 +489,23 @@ int handleSigChild(int pid, int status)
                 // check to see if trap is due to dlopen or dlcose event
 		if(curr->isDynamicallyLinked()){
 		    if(curr->handleIfDueToSharedObjectMapping()){
+		      inferiorrpc_cerr << "handle TRAP due to dlopen or dlclose event" <<endl;
+#ifdef DETACH_ON_THE_FLY
+		      if (!wasRunning)
+			   break;
+		      if (curr->needsDetach) {
+			   if (!curr->detachAndContinue())
+				assert(0);
+			   break;
+		      }
+		      if (!curr->continueProc()) {
+			   assert(0);
+		      }
+#else
 		      if (wasRunning && !curr->continueProc()) {
 			assert(0);
 		      }
-		      inferiorrpc_cerr << "handle TRAP due to dlopen or dlclose event" <<endl;
+#endif
 		      break;
 		    }
 		}

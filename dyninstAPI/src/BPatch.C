@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.25 2000/03/12 23:27:14 hollings Exp $
+// $Id: BPatch.C,v 1.26 2000/05/12 20:54:21 zandy Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -254,6 +254,12 @@ BPatch::BPatch()
     dynLibraryCallback = NULL;
     execCallback = NULL;
     exitCallback = NULL;
+
+#ifdef DETACH_ON_THE_FLY
+    // Register handler for notification from detached inferiors
+    extern void initDetachOnTheFly();
+    initDetachOnTheFly();
+#endif
 }
 
 

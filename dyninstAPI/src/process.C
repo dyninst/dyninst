@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.219 2000/05/11 04:52:22 zandy Exp $
+// $Id: process.C,v 1.220 2000/05/12 20:54:21 zandy Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1142,7 +1142,11 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 #endif
   extern void checkProcStatus();
   do {
+#ifdef DETACH_ON_THE_FLY
+    p->launchRPCifAppropriate((p->status()==running || p->juststopped), false);
+#else
     p->launchRPCifAppropriate((p->status()==running), false);
+#endif
     checkProcStatus();
   } while (!ret.ready);
   switch ((int)(Address)ret.result) {
@@ -1354,8 +1358,7 @@ bool process::initDyninstLib() {
   initInferiorHeap();
 
 #ifdef DETACH_ON_THE_FLY
-  /* FIXME: For Dyninst find somewhere to call initDetachOnTheFly only once. */
-  initDetachOnTheFly();
+  /* FIXME: This will probably go away when you clean up the PC handling */
   bool sigillerr;
   this->sigill_inferiorPCaddr = findInternalAddress("DYNINSTinferiorPC", true, sigillerr);
   assert(!sigillerr);
@@ -1428,6 +1431,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
   juststopped = 0;
+  needsDetach = 0;
   sigill_waiting = 0;
   use_sigill_pc = 0;
   sigill_pc = 0;
@@ -1590,6 +1594,7 @@ process::process(int iPid, image *iSymbols,
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
   juststopped = 0;
+  needsDetach = 0;
   sigill_waiting = 0;
   use_sigill_pc = 0;
   sigill_pc = 0;
@@ -1809,6 +1814,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
   juststopped = 0;
+  needsDetach = 0;
   sigill_waiting = 0;
   use_sigill_pc = 0;
   sigill_pc = 0;
@@ -2909,7 +2915,7 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
 
   if (needToCont) {
 #ifdef DETACH_ON_THE_FLY
-    if (needToDetach)
+    if (needToDetach) 
 	 return this->detachAndContinue();
     else
 	 return this->continueProc();
@@ -4324,7 +4330,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
          // sorry, this platform can't set a breakpoint at the system call
          // completion point.  In such cases, keep polling executingSystemCall()
          // inefficiently.
-          if (wasRunning)
+	   if (wasRunning)
             (void)continueProc();
 
           inferiorrpc_cerr << "launchRPCifAppropriate: couldn't set bkpt for "

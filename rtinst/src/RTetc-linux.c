@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.12 2000/05/11 04:52:31 zandy Exp $ */
+/* $Id: RTetc-linux.c,v 1.13 2000/05/12 20:54:36 zandy Exp $ */
 
 /************************************************************************
  * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
@@ -121,15 +121,23 @@ static void sigill_handler(int sig, struct sigcontext uap)
 
      DYNINSTinferiorPC = uap.eip;
 
-     if (DYNINST_paradyndPid <= 0)
-	  fprintf(stderr, "ZANDY: DYNINST_paradyndPid is not a pid (%d)\n",
+     if (DYNINST_paradyndPid <= 0) {
+	  fprintf(stderr, "DYNINST_paradyndPid is not a pid (%d)\n",
 		  DYNINST_paradyndPid);
+	  assert(0);
+     }
      if (0 > kill(DYNINST_paradyndPid, 33)) {
 	  perror("RTinst kill");
 	  assert(0);
      }
      kill(getpid(), SIGSTOP);
      errno = saved_errno;
+#if 1
+     /* We won't need this once we fix this to return to reexecute the ill instruction */
+     if (*((char*) (uap.eip)) == '\017' && *((char*) (uap.eip+1)) == '\013') {
+	  uap.eip += 6;
+     }
+#endif     
 }
 #endif /* DETACH_ON_THE_FLY */
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.137 2000/05/12 17:30:25 chambrea Exp $
+/* $Id: process.h,v 1.138 2000/05/12 20:54:22 zandy Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -476,6 +476,7 @@ class process {
 #ifdef DETACH_ON_THE_FLY
   bool haveDetached;
   bool juststopped;
+  bool needsDetach;
   int detach();
   int reattach();
   int sigill_waiting;
@@ -1102,6 +1103,12 @@ class process {
 
    static void DYNINSTinitCompletionCallback(process *, void *data, void *ret);
       // inferiorRPC callback routine.
+
+#ifdef DETACH_ON_THE_FLY
+   // Golly, you'd think this would have been needed long ago.
+   bool isRunningRPC() { return !(currRunningRPCs.empty()); }
+#endif
+
 
 private:
   // Since we don't define these, 'private' makes sure they're not used:
