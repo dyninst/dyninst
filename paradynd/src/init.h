@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.12  1996/02/01 17:42:24  naim
+ * Revision 1.13  1996/02/02 14:31:27  naim
+ * Eliminating old definition for observed cost - naim
+ *
+ * Revision 1.12  1996/02/01  17:42:24  naim
  * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
  * and adding a new definition for observed_cost - naim
  *
@@ -61,7 +64,6 @@ extern internalMetric *totalPredictedCost;
 extern internalMetric *observed_cost;
 extern internalMetric *smooth_obs_cost;
 extern internalMetric *bucket_width;
-extern internalMetric *new_observed_cost;
 
 extern bool init();
 extern bool initOS();

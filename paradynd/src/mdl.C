@@ -3,14 +3,18 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.18  1996/02/01 17:42:26  naim
+ * Revision 1.19  1996/02/02 14:31:30  naim
+ * Eliminating old definition for observed cost - naim
+ *
+ * Revision 1.18  1996/02/01  17:42:26  naim
  * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
  * and adding a new definition for observed_cost - naim
  *
  * Revision 1.17  1996/01/29  22:09:26  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines
- * Daemons don't enable internal metrics when they are not running any processes
+ * Daemons don't enable internal metrics when they are not running any 
+ * processes
  * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
  * the application stops only after it starts the CM5 daemon)
  *
@@ -1281,19 +1285,22 @@ bool mdl_init(string& flavor) {
 void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
   mdl_met = true;
 
+//
+// Old definition of observed_cost
+//
 // This code is not necessary if we define observed_cost as an internal
 // metric -- naim
 //
-  //static bool been_here = false;
-  //if (!been_here) {
-    //been_here = true;
-    // Kludge -- declare observed cost
-    // I don't want to attempt to define this using the current mdl
-    //string obs_cost = "observed_cost";
-    //assert(mdl_data::new_metric("observedCost", obs_cost, "CPUs",
+//  static bool been_here = false;
+//  if (!been_here) {
+//    been_here = true;
+//      // Kludge -- declare observed cost
+//      // I don't want to attempt to define this using the current mdl
+//    string obs_cost = "observed_cost";
+//    assert(mdl_data::new_metric("observedCost", obs_cost, "CPUs",
 //				aggMax, EventCounter, 0,
 // 			        NULL, NULL, NULL, NULL, true, true));
-  //}
+//  }
 
   if (var_0) {
     unsigned var_size = var_0->size();

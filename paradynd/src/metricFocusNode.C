@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.69  1996/02/01 17:42:30  naim
+ * Revision 1.70  1996/02/02 14:31:33  naim
+ * Eliminating old definition for observed cost - naim
+ *
+ * Revision 1.69  1996/02/01  17:42:30  naim
  * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
  * and adding a new definition for observed_cost - naim
  *
@@ -498,15 +501,20 @@ metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& f
       if (mi->getFullName() == flat_name)
         return mi;
 
+    //
+    // Old definition of observed_cost
+    //
     // KLUDGE ALERT
     // Catch complex metrics that are currently beyond the mdl's power
-    if (metric_name == "observed_cost") {
-      mi = mdl_observed_cost(canon_focus, metric_name, flat_name, processVec);
-    } else if (mdl_can_do(metric_name)) {
+    //if (metric_name == "observed_cost") {
+    //  mi=mdl_observed_cost(canon_focus, metric_name, flat_name, processVec);
+    //} else if (mdl_can_do(metric_name)) {
+
+    if (mdl_can_do(metric_name)) {
       mi = mdl_do(canon_focus, metric_name, flat_name, processVec);
     } else {
       bool matched;
-      mi = doInternalMetric(canon_focus, metric_name, flat_name, enable, matched);
+      mi=doInternalMetric(canon_focus,metric_name,flat_name,enable,matched);
       internal = true;
     }
     return(mi);
@@ -521,9 +529,14 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
   vector<process *> vp(1,p);
   bool internal = false;
 
-  if (met_ == "observed_cost") {
-    mi = mdl_observed_cost(focus_, met_, flat_name_, vp);
-  } else if (mdl_can_do(met_)) {
+  //
+  // Old definition of observed_cost
+  //
+  //if (met_ == "observed_cost") {
+  //  mi = mdl_observed_cost(focus_, met_, flat_name_, vp);
+  //} else if (mdl_can_do(met_)) {
+
+  if (mdl_can_do(met_)) {
     mi = mdl_do(focus_, met_, flat_name_, vp);
   } else {
     // internal metrics don't need to be propagated
@@ -911,7 +924,7 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     //
     // New definition for observed_cost
     //
-    new_observed_cost->value=s->obsCostIdeal;
+    observed_cost->value=s->obsCostIdeal;
 
     //
     // build circular buffer of recent values.

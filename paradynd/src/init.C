@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.23  1996/02/01 17:42:20  naim
+ * Revision 1.24  1996/02/02 14:31:25  naim
+ * Eliminating old definition for observed cost - naim
+ *
+ * Revision 1.23  1996/02/01  17:42:20  naim
  * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
  * and adding a new definition for observed_cost - naim
  *
@@ -98,7 +101,6 @@ internalMetric *totalPredictedCost= NULL;
 internalMetric *smooth_obs_cost = NULL;
 internalMetric *observed_cost = NULL;
 internalMetric *bucket_width = NULL;
-internalMetric *new_observed_cost = NULL;
 
 vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
@@ -167,15 +169,6 @@ bool init() {
 						      Normalized);
 
   observed_cost = internalMetric::newInternalMetric("observed_cost",
-						   EventCounter,
-						   aggMax,
-						   "CPUs",
-						   NULL,
-						   obs_cost_preds,
-						   false,
-						   Normalized);
-
-  new_observed_cost = internalMetric::newInternalMetric("new_observed_cost",
 						   EventCounter,
 						   aggMax,
 						   "CPUs",
