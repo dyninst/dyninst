@@ -1026,7 +1026,7 @@ void BPatch_flowGraph::fillDominatorInfo(){
                                   elements);
   tarjanDominator.findDominators();
   /* clean up references to our temp block */
-  while (tempb->immediateDominates->empty()) {
+  while (!tempb->immediateDominates->empty()) {
     bb = tempb->immediateDominates->minimum();
     bb->immediateDominator = NULL;
     tempb->immediateDominates->remove(bb);
@@ -1077,7 +1077,7 @@ void BPatch_flowGraph::fillPostDominatorInfo(){
                                   elements);
   tarjanDominator.findPostDominators();
   /* clean up references to our temp block */
-  while (tempb->immediatePostDominates->empty()) {
+  while (!tempb->immediatePostDominates->empty()) {
     bb = tempb->immediatePostDominates->minimum();
     bb->immediatePostDominator = NULL;
     tempb->immediatePostDominates->remove(bb);
