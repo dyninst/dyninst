@@ -1,7 +1,13 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.10  1994/09/06 09:26:28  karavan
+ * Revision 1.11  1994/10/25 22:08:13  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.10  1994/09/06  09:26:28  karavan
  * added back color-coded edges: added int edgeStyle to SearchHistoryNode
  * class and added estyle argument to constructor and findAndAddSHG
  *
@@ -89,10 +95,10 @@ class hintList: public List<hint*> {
 };
 
 class searchHistoryNode {
+    friend ostream& operator <<(ostream &os, searchHistoryNode& node);
     public:
 	searchHistoryNode(hypothesis*, focus*, timeInterval*, int estyle);
 	float cost();
-	void print(int);
 	Boolean print(int parent, FILE *fp);
 	hypothesis *why;
 	focus *where;
@@ -140,12 +146,14 @@ searchHistoryNode *findAndAddSHG(searchHistoryNode *parent,
 class hint {
     public:
         char *message;
-        void print();
 	// component to refine on.
 	hypothesis *why;
 	focus *where;
 	timeInterval *when;
 };
+
+ostream& operator <<(ostream &os, hint& ht);
+ostream& operator <<(ostream &os, searchHistoryNode& node);
 
 extern searchHistoryNode *SearchHistoryGraph;
 extern searchHistoryNode *currentSHGNode;

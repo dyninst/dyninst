@@ -17,7 +17,13 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.19  1994/09/22 01:06:05  markc
+ * Revision 1.20  1994/10/25 22:08:11  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.19  1994/09/22  01:06:05  markc
  * Added correct number of args to printf
  * Changed malloc on line 179 "shortName = (char*) malloc(32) since more than
  * 16 chars are needed.  This is a bug.
@@ -136,7 +142,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.19 1994/09/22 01:06:05 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.20 1994/10/25 22:08:11 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -151,13 +157,14 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 // ugly global to relate back cost of collecting data for a given test.
 float globalPredicatedCost;
 
-void hint::print()
+ostream& operator <<(ostream &os, hint& h)
 {
-    printf("HINT %s:", message);
-    if (why) why->print(0);
-    if (where) where->print();
-    if (when) when->print(0);
-    printf("\n");
+    os << "HINT ";
+    os << ((char *) h.message);
+    if (h.why) os << *h.why;
+    if (h.where) os << *h.where;
+    if (h.when) os << *h.when;
+    os << endl;
 }
 
 stringPool searchHistoryNode::shgNames;
@@ -188,40 +195,32 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t,
     if (f->getSuppressed()) suppressed = TRUE;
 };
 
-void searchHistoryNode::print(int level)
+ostream& operator <<(ostream &os, searchHistoryNode& shg)
 {
-    int i;
     searchHistoryNodeList curr;
 
-    for (i=0; i < level; i++) printf("    ");
-    if (this == currentSHGNode) printf("**");
-    printf("%d: ", nodeId);
-    if (why) why->print(-1);
-    if (where) {
-	where->print();
-	printf(" ");
+    if (shg.nodeId == currentSHGNode->nodeId) os << "**";
+    os << shg.nodeId;
+    if (shg.why) os << *shg.why;
+    if (shg.where) {
+	os << *shg.where, " ";
     }
-    if (when) when->print(-1);
-    if (status == TRUE) 
-	printf(" status = TRUE, ");
+    if (shg.when) os << *shg.when;
+    if (shg.status == TRUE) 
+	os << " status = TRUE, ";
     else
-	printf(" status = FALSE, ");
-    if (active == TRUE)
-	printf("active = TRUE");
+	os << " status = FALSE, ";
+    if (shg.active == TRUE)
+	os << "active = TRUE";
     else
-	printf("active = FALSE");
+	os << "active = FALSE";
 
-    if (suppressed == TRUE)
-	printf(" suppressed = TRUE");
+    if (shg.suppressed == TRUE)
+	os << " suppressed = TRUE";
     else
-	printf(" suppressed = FALSE");
+	os << " suppressed = FALSE";
 	
-     if (level >= 0) {
-	 printf("\n");
-         for (curr = *children; *curr; curr++) {
-	     (*curr)->print(level+1);
-	 }
-     }
+     os << endl;
 }
 
 Boolean searchHistoryNode::print(int parent, FILE *fp)
@@ -290,7 +289,7 @@ void searchHistoryNode::changeActive(Boolean newact)
 
     active = newact;
 #ifdef SHG_ADD_ON_EVAL
-    // if (!supressSHG.getValue()) {
+    if (!supressSHG.getValue()) {
       if (newact && !beenActive) {
 	beenActive = TRUE;
         // make sure we have the node in the SHG
@@ -301,7 +300,7 @@ void searchHistoryNode::changeActive(Boolean newact)
 				this->edgeStyle);
         }
       }
-    // }
+    }
 #endif
     changeColor();
 }    

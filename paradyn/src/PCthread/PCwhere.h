@@ -1,7 +1,13 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.6  1994/09/22 01:09:45  markc
+ * Revision 1.7  1994/10/25 22:08:21  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.6  1994/09/22  01:09:45  markc
  * Commented out operator = declaration, it wasn't being used, and doesn't
  * look correct.
  *
@@ -78,6 +84,7 @@ class focusList;
 //
 class focus {
 	friend class testValue;
+	friend ostream& operator <<(ostream &os, focus& f);
     public:
 	focus();		
 	focus(resourceList*);
@@ -88,8 +95,6 @@ class focus {
 	Boolean operator ==(focus*);	// comparison
 	focus *moreSpecific(resource *parm, Boolean &conflicts);
 	/* int operator = (focus); */
-	void print(char*);
-	void print();
 	void updateName();
 	stringHandle getName() 	{ return(name); }
 	Boolean getSuppressed()	{ return(suppress); }
@@ -108,6 +113,8 @@ class focus {
 	List<focus*>			constrainCache;
 	Boolean suppress;		// don't magnify on me.
 };
+
+ostream& operator <<(ostream &os, focus& f);
 
 class focusList: public HTable<focus*> {
     public:

@@ -17,7 +17,13 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.28  1994/09/22 00:59:35  markc
+ * Revision 1.29  1994/10/25 22:08:01  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.28  1994/09/22  00:59:35  markc
  * Added const to char* args for void testValue::addHint(focus *f, const char* message)
  *
  * Revision 1.27  1994/09/05  20:00:50  jcargill
@@ -174,13 +180,14 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.28 1994/09/22 00:59:35 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.29 1994/10/25 22:08:01 hollings Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <iostream.h>
 
 #include "util/h/tunableConst.h"
 #include "../pdMain/paradyn.h"
@@ -237,16 +244,16 @@ int testResult::operator == (testResult *arg)
 	return((int) FALSE);
 }
 
-void testResult::print()
+ostream& operator <<(ostream &os, testResult & tr)
 {
-    t->print();
-    f->print();
-    at->print(-1);
-    printf(" == ");
-    if (this->state.status == TRUE) {
-	printf("TRUE");
+    os << tr.t;
+    os << tr.f;
+    os << tr.at;
+    cout << " == ";
+    if (tr.state.status == TRUE) {
+	cout << "TRUE";
     } else {
-	printf("FALSE");
+	cout << "FALSE";
     }
 }
 
@@ -550,10 +557,10 @@ Boolean evalTests()
 
 	if (r->ableToEnable) {
 	    if (printTestResults.getValue()) {
-		printf("evaluate ");
-		r->t->print();
-		r->f->print();
-		printf(" at time %f\n", PCcurrentTime);
+		cout << "evaluate ";
+		cout << *(r->t);
+		cout << *(r->f);
+		cout << " at time " << PCcurrentTime << endl;
 	    }
 	    if (r->state.status == TRUE) {
 		hysteresis = 1.0 - hysteresisRange.getValue();
@@ -580,23 +587,28 @@ Boolean evalTests()
 	ret = TRUE;
 	if ((r->state.status == TRUE) && (previousStatus == FALSE)) {
 	    if (printTestResults.getValue()) {
-		printf("TEST RETURNED TRUE: ");
-		r->t->print();
-		r->f->print();
-		r->at->print(-1);
-		printf(" at time %f\n", PCcurrentTime);
-		printf("false from %f to %f\n", r->time, PCcurrentTime);
+		cout << "TEST RETURNED TRUE: \n";
+		cout << *(r->t);
+		cout << *(r->f);
+		cout << " ";
+		cout << *(r->at);
+		cout << endl;
+		cout << "     at time " << PCcurrentTime << endl;
+		cout << "     false from " << r->time << " to ";
+		cout << PCcurrentTime << endl;
 	    }
 	    r->time = PCcurrentTime;
 	    ret = TRUE;
 	} else if (r->state.status != previousStatus) {
 	    if (printTestResults.getValue()) {
-		printf("TEST BECAME FALSE: ");
-		r->t->print();
-		r->f->print();
-		r->at->print(-1);
-		printf(" at time %f\n", PCcurrentTime);
-		printf("true from %f to %f\n", r->time, PCcurrentTime);
+		cout << "TEST BECAME FALSE: ";
+		cout << *(r->t);
+		cout << *(r->f);
+		cout << *(r->at);
+		cout << endl;
+		cout << "     at time " << PCcurrentTime << endl;
+		cout << "     true from " << r->time << " to ";
+		cout << PCcurrentTime << endl;
 	    }
 	    r->time = PCcurrentTime;
 	    ret = TRUE;
@@ -675,10 +687,6 @@ Boolean doScan()
     if (change) {
 	// update status of hypotheses.
 	for (curr = allSHGNodes; shgNode = *curr; curr++) {
-	    // printf("checking shg node ");
-	    // (*curr)->print(-1);
-	    // printf("\n");
-
 	    if (shgNode->getActive() == FALSE) continue;
 	    assert(shgNode->why);
 	    ret = checkIfTrue(shgNode->why, shgNode->where, 
@@ -687,18 +695,18 @@ Boolean doScan()
 		shgNode->changeStatus(ret);
 
 		if (printNodes.getValue()) {
-		    printf("SHG Node %d ", shgNode->nodeId);
+		    cout << "SHG Node " << shgNode->nodeId;
 		    if (ret == TRUE) {
-			printf(" TRUE at time %f\n", PCcurrentTime);
+			cout << " TRUE at time " << PCcurrentTime << endl;
 			if (shgNode->hints) {
 			    for (currHint = *shgNode->hints; 
 				 *currHint; 
 				 currHint++){
-				(*currHint)->print();
+				cout << *(*currHint);
 			    }
 			}
 		    } else {
-			printf(" FALSE at time %f\n", PCcurrentTime);
+			cout << "FALSE at time " << PCcurrentTime << endl;
 		    }
 		}
 		if (ret == FALSE) {

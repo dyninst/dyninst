@@ -1,7 +1,13 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.11  1994/09/22 01:03:47  markc
+ * Revision 1.12  1994/10/25 22:08:06  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.11  1994/09/22  01:03:47  markc
  * Added const char* to PCmetric constructor
  *
  * Revision 1.10  1994/08/05  16:04:14  hollings
@@ -149,9 +155,9 @@ class PCmetric {
 	friend void PCmetricFunc(performanceStream *ps, metric *met);
 	friend void printStats();
 	friend void globalCost();
+	friend ostream& operator <<(ostream &os, PCmetric& );
     public:
 	// Constructor - default is Sum to aggregate.
-	void print();
 
 	stringHandle getName() { return(name); }
 	char *getUnits() { 
@@ -213,6 +219,8 @@ class PCmetric {
 	int aggregationOperator;
 	calcType calc;
 };
+
+ostream& operator <<(ostream &os, PCmetric& );
 
 extern PCmetric *findMetric(char *name);
 

@@ -19,7 +19,13 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.15  1994/09/05 20:00:44  jcargill
+ * Revision 1.16  1994/10/25 22:07:58  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.15  1994/09/05  20:00:44  jcargill
  * Better control of PC output through tunable constants.
  *
  * Revision 1.14  1994/08/05  16:04:10  hollings
@@ -115,7 +121,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.15 1994/09/05 20:00:44 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.16 1994/10/25 22:07:58 hollings Exp $";
 #endif
 
 #include <stdlib.h>
@@ -131,7 +137,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 
 // 25% to start
-tunableFloatConstant predictedCostLimit(0.25, 0.0, 1.0, NULL, userConstant,
+tunableFloatConstant predictedCostLimit(100.0, 0.0, 1.0, NULL, userConstant,
   "predictedCostLimit", "Max. allowable perturbation of the application.");
 
 searchHistoryNode *PCbaseSHGNode;
@@ -260,14 +266,14 @@ void autoChangeRefineList()
     extern tunableFloatConstant sufficientTime;
     extern tunableBooleanConstant printNodes;
 
-    if (printNodes.getValue()) printf("TRYING: ");
+    if (printNodes.getValue()) cout << "TRYING: " << endl;
 
     UIM_BatchMode++;
-    // totalCost = dataMgr->getCurrentHybridCost(context);
+    totalCost = dataMgr->getCurrentHybridCost(context);
 
     if (currentRefinementBase) {
 	// some number of tests just expired.
-	// totalCost -= batchCost;
+	totalCost -= batchCost;
 
 	if (totalCost < 0.0) {
 	    // The estimated cost of the last batch was way too high!!!
@@ -276,6 +282,7 @@ void autoChangeRefineList()
     }
 
     batchCost = 0.0;
+    // printf("startingCost = %f\n", totalCost);
     for (i =currentRefinementBase; 
 	 totalCost < predictedCostLimit.getValue(); i++) {
 	if (i >= currentRefinementBase + maxEval.getValue()) {
@@ -284,26 +291,50 @@ void autoChangeRefineList()
 	    break;
 	}
 	if (i >= refineCount) break;
-	if (printNodes.getValue()) printf("%d ", refinementOptions[i]->nodeId);
 	curr = refinementOptions[i];
-
 	newCost = curr->cost(); 
 
+	if (printNodes.getValue()) {
+	    cout << "  " << ((char *) curr->name) << endl;
+	    cout << "    (cost = " << curr->cost() << ")" << endl;
+	}
+
+	if (totalCost + newCost > predictedCostLimit.getValue()) {
+	    // too expensive to add.
+	    i--;
+	    if (i < currentRefinementBase) i = currentRefinementBase;
+	    break;
+	}
 	batchCost += newCost;
-	// totalCost += newCost;
+	totalCost += newCost;
+	// printf("totalCost = %f\n", totalCost);
 
 	curr->changeActive(TRUE);
     }
     UIM_BatchMode--;
 
     currentRefinementLimit = i;
-    if (printNodes.getValue()) printf("\n");
+    if (printNodes.getValue()) cout <<  "\n";
 
     // see if there was any thing to test.
     if (currentRefinementBase >= refineCount) {
 	dataMgr->pauseApplication(context);
 	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY, 
 	    "all refinements considered...application paused\n");
+	// prevent any further auto refinement.
+	PCautoRefinementLimit = 0;
+	PCsearchPaused = TRUE;
+
+	return;
+    }
+
+    if (i == currentRefinementBase) {
+	dataMgr->pauseApplication(context);
+	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY,
+	    "unable to consider further refinements within cost limits\n");
+	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY,
+	    "predicted cost of (%f +%f) >= limit %f\n", 
+	    totalCost, newCost, predictedCostLimit.getValue());
 	// prevent any further auto refinement.
 	PCautoRefinementLimit = 0;
 	PCsearchPaused = TRUE;
@@ -320,17 +351,17 @@ void autoTimeLimitExpired()
     int i;
     extern tunableBooleanConstant printNodes;
 
-    if (printNodes.getValue()) printf("GIVING UP ON: ");
+    if (printNodes.getValue()) cout << "GIVING UP ON: " << endl;
 
     UIM_BatchMode++;
     for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {
 	if (i >= refineCount) break;
 	if (printNodes.getValue()) 
-	  printf("%d ",  refinementOptions[i]->nodeId);
+	    cout << "   " << *refinementOptions[i] << endl;
 	refinementOptions[i]->changeActive(FALSE);
     }
     UIM_BatchMode--;
-    if (printNodes.getValue()) printf("\n");
+    if (printNodes.getValue()) cout << endl;
 
     currentRefinementBase = currentRefinementLimit+1;
     autoChangeRefineList();

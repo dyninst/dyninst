@@ -18,7 +18,13 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.12  1994/09/22 01:08:48  markc
+ * Revision 1.13  1994/10/25 22:08:18  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.12  1994/09/22  01:08:48  markc
  * Changed arg types on strCompare to remove compiler warnings
  *
  * Revision 1.11  1994/08/05  16:04:18  hollings
@@ -104,7 +110,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.12 1994/09/22 01:08:48 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.13 1994/10/25 22:08:18 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -201,20 +207,12 @@ Boolean focus::operator ==(focus *f)
 	return(FALSE);
 }
 
-void focus::print() 
+ostream& operator <<(ostream &os, focus& f)
 {
-    if (data)
-	printf((char *) name);
+    if (f.data)
+	os << ((char *) f.name);
     else
-	printf("<>");
-}
-
-void focus::print(char *ret)
-{
-    if (data)
-	strcpy(ret, (char *) name);
-    else
-	strcpy(ret, "<>");
+	os << "<>";
 }
 
 focusList *focus::findMagnifyCache(resource *cell)
@@ -249,7 +247,7 @@ void printCurrentFocus()
 
     // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
     for ((void) (curr=globalFocus); *curr; ++curr) {
-       (*curr)->print();
+       cout << *(*curr) <<  endl;
     }
 }
 

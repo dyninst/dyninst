@@ -1,7 +1,13 @@
 /*
  * 
  * $Log: PCwhy.h,v $
- * Revision 1.4  1994/09/22 01:12:01  markc
+ * Revision 1.5  1994/10/25 22:08:26  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.4  1994/09/22  01:12:01  markc
  * Added const to char* in
  * test(changeCollectionFunc, evalFunc, const char *);
  * hypothesis(hypothesis*, test*, const char *);
@@ -60,9 +66,10 @@ class test {
 	// collect(PCmetricList);	// make sure data is current
 	evalFunc evaluate;
 	// disable(PCmetricList);	// tell inst. we are done w data
-	void print();
 	char *name;		// name of the test.
 };
+
+ostream& operator <<(ostream &os, test& t);
 
 class testList: public List<test*> {
     public:
@@ -90,7 +97,6 @@ class hypothesis {
 	hypothesis(hypothesis*, test*, const char *, explanationFunction);
 	void unLabel();
 	float cost();
-	void print(int);		// print a hypothesis
 
 	char *name;
 	hypothesisList *children;
@@ -99,6 +105,8 @@ class hypothesis {
 	Boolean labeled;		// used by buildTestResultForHypothesis
 	explanationFunction explanation;
 };
+
+ostream& operator <<(ostream &os, hypothesis& hyp);
 
 class hypothesisList: public List<hypothesis*> {
     public:

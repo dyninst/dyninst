@@ -1,7 +1,13 @@
 /*
  *
  * $Log: PCwhen.h,v $
- * Revision 1.3  1994/09/22 01:08:05  markc
+ * Revision 1.4  1994/10/25 22:08:16  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.3  1994/09/22  01:08:05  markc
  * Made char* const in timeInterval::timeInterval
  *
  * Revision 1.2  1994/02/03  23:27:04  hollings
@@ -38,8 +44,6 @@ class timeInterval {
 	friend void doLoad(int, int*);
     public:
 	timeInterval(timeInterval*, timeStamp, timeStamp, const char*);
-	void print(int);
-	void print(int, char *name);
 	timeStamp start;
 	timeStamp end;
 	int id;
@@ -48,6 +52,8 @@ class timeInterval {
     private:
 	char *name;
 };
+
+ostream& operator <<(ostream &os, timeInterval& tr);
 
 extern timeInterval *currentInterval;		// currentInterval being tested.
 extern timeInterval whenAxis;			// root of when axis.

@@ -18,7 +18,13 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.21  1994/09/22 01:03:16  markc
+ * Revision 1.22  1994/10/25 22:08:05  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.21  1994/09/22  01:03:16  markc
  * Added const char* to PCmetric constructors
  *
  * Revision 1.20  1994/08/05  16:04:13  hollings
@@ -144,7 +150,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.21 1994/09/22 01:03:16 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.22 1994/10/25 22:08:05 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -200,9 +206,9 @@ PCmetric::PCmetric(const char *id, int ag, calcType c)
     allMetrics.add(this, name);
 }
 
-void PCmetric::print()
+ostream& operator <<(ostream &os, PCmetric & pm)
 {
-    printf((char *) name);
+    os << (char *) pm.name;
 }
 
 sampleValue PCmetric::value()
@@ -251,10 +257,9 @@ sampleValue PCmetric::value(focus *f, timeStamp start, timeStamp end)
     }
 
     if (!val->enabled) {
-	printf("Attempt to use disabled metric\n");
-	printf("*** metric %s for focus: ", (char*)name);
-	f->print();
-	printf("\n");
+	cout << "Attempt to use disabled metric\n";
+	cout << "*** metric " <<  (char*)name;
+	cout << " for focus: " <<  *f << endl;
 	abort();
     }
 

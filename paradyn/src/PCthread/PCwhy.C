@@ -18,7 +18,13 @@
 /*
  * 
  * $Log: PCwhy.C,v $
- * Revision 1.4  1994/09/22 01:11:12  markc
+ * Revision 1.5  1994/10/25 22:08:24  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.4  1994/09/22  01:11:12  markc
  * Added const to char* in
  *  hypothesis::hypothesis(hypothesis *p, test *t , const char *id, explanationFunction e
  * hypothesis::hypothesis(hypothesis *p, test *t , const char *id)
@@ -61,7 +67,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCwhy.C,v 1.4 1994/09/22 01:11:12 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCwhy.C,v 1.5 1994/10/25 22:08:24 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -75,9 +81,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 #include <string.h>
 
-void test::print()
+ostream& operator <<(ostream &os, test& t)
 {
-    printf("%s", name);
+    os << t.name;
 }
 
 test::test(changeCollectionFunc on, evalFunc eval, const char *id)
@@ -152,23 +158,9 @@ float hypothesis::cost()
     }
 }
 
-void hypothesis::print(int level)
+ostream& operator <<(ostream &os, hypothesis& hyp)
 {
-    int i;
-    hypothesisList curr;
-
-    for (i=0; i < level; i++) printf("    ");
-    printf("%s", name);
-
-    if (level >= 0) {
-	level++;
-	printf("\n");
-	if (children) {
-	    for (curr = *children; *curr; curr++) {
-		(*curr)->print(level);
-	    }
-	}
-    }
+     os << hyp.name;
 }
 
 void hypothesis::unLabel()

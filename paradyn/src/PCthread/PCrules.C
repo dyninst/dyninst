@@ -18,7 +18,13 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.19  1994/09/22 01:04:36  markc
+ * Revision 1.20  1994/10/25 22:08:10  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.19  1994/09/22  01:04:36  markc
  * Made lockOverhead 10 rather than 0 since it is used to divide
  *
  * Revision 1.18  1994/09/05  20:01:04  jcargill
@@ -126,12 +132,13 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.19 1994/09/22 01:04:36 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.20 1994/10/25 22:08:10 hollings Exp $";
 #endif
 
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <strstream.h>
 
 #include "../src/pdMain/paradyn.h"
 #include "PCwhy.h"
@@ -650,22 +657,21 @@ test highPageFaults((changeCollectionFunc) &highPageFaults_ENABLE,
 /* ARGSUSED */
 void defaultExplanation(searchHistoryNode *explainee)
 {
-  char name[80];
+    char *ptr;
+    ostrstream name;
+
     if (explainee && explainee->why) {
 	  PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, 
 	   "hypothesis: %s true for", explainee->why->name);
     } else {
 	  PCstatusDisplay->updateStatusDisplay 
 	    (PC_STATUSDISPLAY, "***** NO HYPOTHESIS *******\n");
-	}
-#ifdef notdef
-    // this should be redundant with the next line -- jkh 6/27/94
-    explainee->where->print();
-#endif
-    explainee->where->print(name);
+    }
+    name << *(explainee->where);
+    ptr = name.str();
     PCstatusDisplay->updateStatusDisplay
-      (PC_STATUSDISPLAY, "%s at %f\n", name, PCcurrentTime);
-
+      (PC_STATUSDISPLAY, "%s at %f\n", ptr, PCcurrentTime);
+    delete(ptr); 
 }
 
 
@@ -688,13 +694,14 @@ void cpuProfileExplanation(searchHistoryNode *explainee)
     totalCpu = CPUtime.value(whereAxis);
     elapsed = elapsedTime.value(whereAxis);
     for (; i=*allProcedures; allProcedures++) {
-	char name[80];
+	ostrstream name;
 	if (!CPUtime.enabled(i)) continue;
 
 	share = CPUtime.value(i) / totalCpu;
-	i->print(name);
-	sprintf(displayStr, " %-25s %-7.2f %-7.2f\n", name, 
+	name << *i;
+	sprintf(displayStr, " %-25s %-7.2f %-7.2f\n", name.str(), 
 		CPUtime.value(i), share*100.0);
+	delete (name.str());
 	PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, displayStr);
       }
 }

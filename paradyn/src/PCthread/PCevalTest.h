@@ -1,6 +1,12 @@
 /*
  * $Log: PCevalTest.h,v $
- * Revision 1.7  1994/09/22 01:00:21  markc
+ * Revision 1.8  1994/10/25 22:08:03  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.7  1994/09/22  01:00:21  markc
  * Added const to char* for addHint()
  *
  * Made printfs expecting n args get n args
@@ -80,7 +86,6 @@ class hypothesisValue {
 class testResult {
     public:
 	testResult() 	{ state.hints = NULL; time = 0.0; ableToEnable = FALSE;}
-	void print();
 	int operator == (testResult *);
 	testValue state;
 	test *t;		// which test
@@ -91,6 +96,8 @@ class testResult {
 	Boolean ableToEnable;	// could we turn it on?
 	List <datum*> *metFociUsed;	// what does this test need to run.
 };
+
+ostream& operator <<(ostream &os, testResult& tr);
 
 class testResultList: public List<testResult*> {
     public:

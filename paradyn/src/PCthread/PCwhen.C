@@ -17,7 +17,13 @@
 
 /*
  * $Log: PCwhen.C,v $
- * Revision 1.6  1994/09/22 01:07:31  markc
+ * Revision 1.7  1994/10/25 22:08:14  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.6  1994/09/22  01:07:31  markc
  * Made char* in timeInterval::timeInterval const
  *
  * Revision 1.5  1994/07/28  22:34:05  krisna
@@ -64,7 +70,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.6 1994/09/22 01:07:31 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.7 1994/10/25 22:08:14 hollings Exp $";
 #endif
 
 
@@ -98,33 +104,12 @@ timeInterval::timeInterval(timeInterval* parent,timeStamp s,timeStamp e, const c
     }
 }
 
-void timeInterval::print(int level)
+ostream& operator <<(ostream &os, timeInterval& ti)
 {
-    char name[80];
-
-    print(level, name);
-    printf("%s\n", name);
-}
-
-void timeInterval::print(int level, char *str)
-{
-    int i;
-    timeIntervalList curr;
-
-    if (level >= 0) {
-	for (i=0; i < level;i++) sprintf(str, "    ");
-	sprintf(str, "i%d: ", id);
-	if (name) sprintf(str, "name = %s ", name);
-	sprintf(str, "start = %f, end = %f\n", start, end);
-	if (subIntervals) {
-	    for (curr = *subIntervals; *curr; ++curr) {
-		(*curr)->print(level+1);
-	    }
-	}
-    } else if (end == HUGE_VAL) {
-	sprintf(str, "entire exeuction");
+    if (ti.end == HUGE_VAL) {
+	os << "entire exeuction";
     } else {
-	sprintf(str, "%5.2f to %5.2f", start, end);
+	os << ti.start, " to " , ti.end;
     }
 }
 

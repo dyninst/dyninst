@@ -18,7 +18,13 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.16  1994/09/06 09:26:25  karavan
+ * Revision 1.17  1994/10/25 22:08:08  hollings
+ * changed print member functions to ostream operators.
+ *
+ * Fixed lots of small issues related to the cost model for the
+ * Cost Model paper.
+ *
+ * Revision 1.16  1994/09/06  09:26:25  karavan
  * added back color-coded edges: added int edgeStyle to SearchHistoryNode
  * class and added estyle argument to constructor and findAndAddSHG
  *
@@ -114,7 +120,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.16 1994/09/06 09:26:25 karavan Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.17 1994/10/25 22:08:08 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -138,13 +144,12 @@ void performanceConsultant::printTestStatus()
     testResultList curr;
 
     if (currentTestResults) {
-	printf("\ntest results\n");
+	cout << endl << "test results" << endl;
 	for (curr = *currentTestResults; *curr; curr++) {
-	    (*curr)->print();
-	    printf("\n");
+	    cout << *curr << endl;
 	}
     } else {
-	printf("No test results available\n");
+	cout << "No test results available" << endl;
     }
 }
 
@@ -390,16 +395,16 @@ void performanceConsultant::printSHGList()
 {
     searchHistoryNodeList curr;
 
-    printf("\nNodes in Search History Graph\n");
+    cout << "\nNodes in Search History Graph\n";
     for (curr=allSHGNodes; *curr; curr++) {
-	(*curr)->print(-1);
-	printf("\n");
+	cout << *(*curr);
+	cout << endl;
     }
 }
 
 void performanceConsultant::printSHGNode(searchHistoryNode *node)
 {
-    node->print(-1);
+    cout << *node;
 }
 
 void performanceConsultant::startSHG()
