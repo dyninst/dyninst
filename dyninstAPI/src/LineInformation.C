@@ -573,8 +573,9 @@ void FileLineInformation::insertLineAddress(pdstring functionName,
 
 	FunctionInfo* fInfo = findFunctionInfo(functionName);
 	if (NULL == fInfo) {
-	  cerr << __FILE__ << ":" << __LINE__ << ":  cannot insert address for "
-	       << functionName << ", no record of this function." << endl;
+	 // cerr << __FILE__ << ":" << __LINE__ << ":  cannot insert address for "
+	  //<< functionName << ", no record of this function." << 
+	//endl;
 	  return;
 	}
 	insertLineAddress(fInfo,lineNo,codeAddress);
