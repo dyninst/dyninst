@@ -44,6 +44,9 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
+ * Revision 1.11  1999/08/27 21:04:02  zhichen
+ * tidy up
+ *
  * Revision 1.10  1996/08/16 21:27:44  tamches
  * updated copyright for release 1.1
  *
@@ -84,7 +87,7 @@
 #include <errno.h>
 
 #include "kludges.h"
-#include "../h/rtinst.h"
+#include "rtinst/h/rtinst.h"
 
 extern time64 DYNINSTgetCPUtime(void);
 

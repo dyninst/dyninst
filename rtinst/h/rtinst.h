@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.38 1999/07/13 04:32:15 csserra Exp $
+ * $Id: rtinst.h,v 1.39 1999/08/27 21:00:34 zhichen Exp $
  * This file contains the standard insrumentation functions that are provied
  *   by the instrumentation layer.
  *
@@ -178,7 +178,7 @@ extern time64 DYNINSTgetWalltime(void);
 
 #if defined(MT_THREAD)
 extern time64 DYNINSTgetCPUtime_LWP(int lwp_id);
-#include "rtinstMT/src/RTthread.h"
+#include "rtinst/src/RTthread.h"
 #endif
 
 /*

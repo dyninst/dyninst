@@ -39,8 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-solaris.c,v 1.26 1999/07/13 04:19:33 csserra Exp $ */
-
 /************************************************************************
  * RTsolaris.c: clock access functions for solaris-2.
 ************************************************************************/
@@ -57,12 +55,8 @@
 #include <unistd.h> /* getpid() */
 
 #include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-#include <thread.h>
-#endif
-
-/*extern int    gettimeofday(struct timeval *, struct timezone *);*/
 extern void perror(const char *);
 
 
@@ -246,6 +240,36 @@ static unsigned long long mulMillion(unsigned long long in) {
 }
 
 time64
+DYNINSTgetCPUtime_LWP(int lwp_id) {
+/* 
+ * gethrvtime()/1000 does work right shm sampling because it
+ * returns values that are in sync with /proc's PIOCUSAGE (pr_utime field
+ * only), so when a fudge factor needs to be added by paradynd's shm sampling
+ * of an active timer, things work ok. 
+ *
+ */
+  hrtime_t lwpTime;
+  time64 now = 0;
+  prusage_t theUsage;
+  int lwp_fd;
+  if (lwp_id != -1) {
+    lwp_fd = ioctl(procfd, PIOCOPENLWP, &(lwp_id));
+    if (lwp_fd != -1) {
+      if (ioctl(lwp_fd, PIOCUSAGE, &theUsage) == -1) {
+	assert(0);
+      }
+      now = mulMillion(theUsage.pr_utime.tv_sec); /* sec to usec */
+      now += div1000(theUsage.pr_utime.tv_nsec);  /* nsec to usec */
+    }
+  } else {
+    lwpTime = gethrvtime();
+    now = div1000(lwpTime);  /* nsec to usec */
+  }
+  return(now);  
+}
+
+
+time64
 DYNINSTgetCPUtime(void) {
   hrtime_t lwpTime;
   time64 now;
@@ -275,7 +299,7 @@ DYNINSTgetWalltime(void) {
     if (gettimeofday(&tv,NULL) == -1) {
         perror("gettimeofday");
 	assert(0);
-        abort();
+	abort();
     }
 
     now = mulMillion(tv.tv_sec) + tv.tv_usec;
@@ -286,30 +310,6 @@ DYNINSTgetWalltime(void) {
     return(now);
   }
 }
-
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-extern unsigned DYNINST_hash_lookup(unsigned key);
-extern unsigned DYNINST_initialize_done;
-extern void DYNINST_initialize_hash(unsigned total);
-extern void DYNINST_initialize_free(unsigned total);
-extern unsigned DYNINST_hash_insert(unsigned k);
-
-int DYNINSTthreadSelf(void) {
-  return(thr_self());
-}
-
-int DYNINSTthreadPos(void) {
-  if (initialize_done) {
-    return(DYNINST_hash_lookup(DYNINSTthreadSelf()));
-  } else {
-    DYNINST_initialize_free(MAX_NUMBER_OF_THREADS);
-    DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
-    DYNINST_initialize_done=1;
-    return(DYNINST_hash_insert(DYNINSTthreadSelf()));
-  }
-}
-#endif
-
 
 /****************************************************************************
    The trap handler. Currently being used only on x86 platform.

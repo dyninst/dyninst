@@ -113,8 +113,7 @@ void
 DYNINSTbreakPoint(void) {
     int sample ;
     kill(getpid(), SIGSTOP);
-    DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0,
-			DYNINSTgetWalltime(), DYNINSTgetCPUtime());
+    DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0, 0.0, 0.0) ;
 
 }
 
@@ -581,3 +580,9 @@ fallIn(int addr, int lower, int upper)
 {
         return (addr<=upper && addr >= lower) ;
 }
+
+int pipeOK(void) {
+  return (DYNINSTtraceFp != NULL);
+}
+
+

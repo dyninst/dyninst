@@ -43,6 +43,9 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.13  1999/08/27 21:04:01  zhichen
+ * tidy up
+ *
  * Revision 1.12  1999/08/20 20:38:40  bernat
  * Enabled shared memory.
  *
@@ -325,26 +328,3 @@ int DYNINSTgetRusage(int id)
     }
     return value;
 }
-
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-extern unsigned DYNINST_hash_lookup(unsigned key);
-extern unsigned DYNINST_initialize_done;
-extern void DYNINST_initialize_hash(unsigned total);
-extern void DYNINST_initialize_free(unsigned total);
-extern unsigned DYNINST_hash_insert(unsigned k);
-
-int DYNINSTthreadSelf(void) {
-  return(thread_self());
-}
-
-int DYNINSTthreadPos(void) {
-  if (DYNINST_initialize_done) {
-    return(DYNINST_hash_lookup(DYNINSTthreadSelf()));
-  } else {
-    DYNINST_initialize_free(MAX_NUMBER_OF_THREADS);
-    DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
-    DYNINST_initialize_done=1;
-    return(DYNINST_hash_insert(DYNINSTthreadSelf()));
-  }
-}
-#endif

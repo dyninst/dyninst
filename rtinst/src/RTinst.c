@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.13 1999/08/09 05:48:48 csserra Exp $
+ * $Id: RTinst.c,v 1.14 1999/08/27 21:04:01 zhichen Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -67,10 +67,6 @@
 #include "rtinst/h/trace.h"
 #include "util/h/sys.h"
 
-#if defined(sparc_sun_solaris2_4)
-#include <thread.h>
-#endif
-
 #ifdef PARADYN_MPI
 #include "/usr/lpp/ppe.poe/include/mpi.h"
 /* #include <mpi.h> */
@@ -78,14 +74,6 @@
 
 #if defined(SHM_SAMPLING)
 extern void makeNewShmSegCopy();
-#endif
-
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-void DYNINST_initialize_hash(unsigned total);
-void DYNINST_initialize_free(unsigned total);
-unsigned DYNINST_hash_insert(unsigned k);
-unsigned DYNINST_hash_lookup(unsigned k);
-unsigned DYNINST_initialize_done=0;
 #endif
 
 /* sunos's header files don't have these: */
@@ -609,6 +597,14 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     int             count;
     char            buffer[1024];
 
+#if defined(MT_THREAD)
+#if !defined(ONE_THREAD)
+    if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_traceLock)){
+      return ;
+    }
+#endif
+#endif /*MT_THREAD*/
+
     if (inDYNINSTgenerateTraceRecord) return;
     inDYNINSTgenerateTraceRecord = 1;
 
@@ -652,9 +648,13 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     if (flush) DYNINSTflushTrace();
 
     inDYNINSTgenerateTraceRecord = 0;
+#if defined(MT_THREAD)
+#if !defined(ONE_THREAD)
+    tc_lock_unlock(&DYNINST_traceLock) ;
+#endif
+#endif /*MT_THRAED*/
+
 }
-
-
 /************************************************************************
  * void DYNINSTreportBaseTramps(void)
  *
@@ -824,10 +824,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 #endif
   
   int dx;
-  
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  traceThrSelf traceRec;
-#endif
   
 #ifdef SHM_SAMPLING_DEBUG
   char thehostname[80];
@@ -999,20 +995,15 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     /* calledByFork -- DYNINSTfork already called DYNINSTinitTrace */
     ;
   
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  if (!DYNINST_initialize_done) {
-    DYNINST_initialize_free(MAX_NUMBER_OF_THREADS);
-    DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
-    traceRec.pos = DYNINST_hash_insert(DYNINSTthreadSelf());
-    DYNINST_initialize_done=1;
-  } else {
-    traceRec.pos = DYNINST_hash_lookup(DYNINSTthreadSelf());
+/* MT_THREAD */
+#if defined(MT_THREAD)
+  {
+    int pos;
+    DYNINSTthread_init((char*) DYNINST_shmSegAttachedPtr) ;
+    if (!calledFromFork)
+      DYNINST_initialize_once();
+    pos = DYNINST_ThreadUpdate(calledFromAttach?FLAG_ATTACH:FLAG_INIT) ;
   }
-  traceRec.tid = DYNINSTthreadSelf();
-  traceRec.ppid = getpid();
-  DYNINSTgenerateTraceRecord(0, TR_THRSELF, sizeof(traceRec), &traceRec, 1,
-			     DYNINSTgetWalltime(),
-			     DYNINSTgetCPUtime());
 #endif
   
   /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
@@ -1068,6 +1059,9 @@ DYNINSTexit(void) {
     if (done) return;
     done = 1;
 
+#ifdef PROFILE_CONTEXT_SWITCH
+    report_context_prof() ;
+#endif
 #ifndef SHM_SAMPLING
     DYNINSTreportSamples();
 #endif
@@ -1077,7 +1071,9 @@ DYNINSTexit(void) {
        Note that we don't have to inform paradynd of the exit; it will find out
        soon enough on its own, due to the waitpid() it does and/or finding an
        end-of-file on one of our piped file descriptors. */
-
+#ifdef PROFILE_BASETRAMP
+    report_btramp_stat();
+#endif
     DYNINSTprintCost();
 }
 
@@ -1695,161 +1691,6 @@ void DYNINSTcallReturn(int arg) {
 void DYNINSTexitPrint(int arg) {
     printf("exit %d\n", arg);
 }
-
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-
-unsigned DYNINSTthreadTable[MAX_NUMBER_OF_THREADS][MAX_NUMBER_OF_LEVELS];
-
-struct elemList {
-  unsigned pos;
-  struct elemList *next;
-};
-
-struct elemList *DYNINST_freeList=NULL;
-
-void DYNINST_add_free(unsigned pos)
-{
-  struct elemList *tmp;
-  tmp = (struct elemList *) malloc(sizeof(struct elemList));
-  tmp->pos = pos;
-  tmp->next = DYNINST_freeList;
-  DYNINST_freeList = tmp;
-}
-
-unsigned DYNINST_get_free()
-{
-  unsigned pos;
-  struct elemList *tmp;
-  if (DYNINST_freeList) {
-    pos = DYNINST_freeList->pos;
-    tmp = DYNINST_freeList;
-    DYNINST_freeList = DYNINST_freeList->next;
-    free(tmp);
-    return(pos);
-  }
-  abort();
-}
-
-void DYNINST_initialize_free(unsigned total)
-{
-  struct elemList *tmp;
-  int i;
-  for (i=0;i<total;i++) {
-    tmp = (struct elemList *) malloc(sizeof(struct elemList));   
-    tmp->pos = i;
-    tmp->next = DYNINST_freeList;
-    DYNINST_freeList = tmp;
-  }
-}
-
-#define HASH(x) (x % MAX_NUMBER_OF_THREADS)
-
-struct nlist {
-  unsigned key;
-  unsigned val;
-  struct nlist *next;
-};
-
-struct nlist *DYNINST_ThreadTable[MAX_NUMBER_OF_THREADS];
-unsigned DYNINST_currentNumberOfThreads=0;
-
-void DYNINST_initialize_hash(unsigned total)
-{
-  int i;
-  for (i=0;i<total;i++) DYNINST_ThreadTable[i]=NULL;
-}
-
-unsigned DYNINST_hash_lookup(unsigned k)
-{
-  unsigned pos;
-  struct nlist *p;
-  pos = HASH(k);
-  p=DYNINST_ThreadTable[pos];
-  while (p!=NULL) {
-    if (p->key==k) break;
-    else p=p->next;
-  }
-  assert(p!=NULL);
-  return(p->val);
-}
-
-unsigned DYNINST_hash_insert(unsigned k)
-{
-  unsigned pos;
-  struct nlist *p, *tmp;
-  pos = HASH(k);
-  p=DYNINST_ThreadTable[pos];
-  if (p != NULL) {
-    while (p!=NULL) {
-      tmp=p;
-      if (p->key==k) break;
-      else p=p->next;
-    }
-    assert(p==NULL);
-    assert(++DYNINST_currentNumberOfThreads<MAX_NUMBER_OF_THREADS);
-    p = (struct nlist *) malloc(sizeof(struct nlist));
-    p->next=NULL;
-    p->key=k;
-    p->val=DYNINST_get_free();
-    tmp->next=p;
-  } else {
-    assert(++DYNINST_currentNumberOfThreads<MAX_NUMBER_OF_THREADS);
-    p = (struct nlist *) malloc(sizeof(struct nlist));
-    p->next=NULL;
-    p->key=k;
-    p->val=DYNINST_get_free();
-    DYNINST_ThreadTable[pos]=p;
-  }
-  return(p->val);
-}
-
-void DYNINST_hash_delete(unsigned k)
-{
-  unsigned pos;
-  struct nlist *p=NULL, *tmp=NULL;
-  pos = HASH(k);
-  p=DYNINST_ThreadTable[pos];
-  assert(p);
-  if (p->key==k) {
-    DYNINST_ThreadTable[pos] = p->next;
-    DYNINST_add_free(tmp->val);
-    free(p);
-  }
-  else {
-    while (p!=NULL) {
-      if (p->key==k) break;
-      else {
-        tmp=p;
-        p=p->next;
-      }
-    }
-    assert(p!=NULL && tmp!=NULL);
-    tmp->next = p->next;
-    DYNINST_add_free(p->val);
-    free(p);
-  }
-  DYNINST_currentNumberOfThreads--;
-}
-
-/************************************************************************
- * void DYNINSTthreadCreate()
- *
- * track a thr_create() system call, and report to the paradyn daemon.
- ************************************************************************/
-void
-DYNINSTthreadCreate(int *tid) {
-    traceThread traceRec;
-    time64 process_time = DYNINSTgetCPUtime();
-    time64 wall_time = DYNINSTgetWalltime();
-    traceRec.ppid   = getpid();
-    traceRec.tid    = *tid;
-    traceRec.ntids  = 1;
-    traceRec.stride = 0;
-    DYNINSTgenerateTraceRecord(0,TR_THREAD,sizeof(traceRec), &traceRec, 1,
-			       wall_time,process_time);
-    hash_insert(*tid);
-}
-#endif
 
 
 /************************************************************************
