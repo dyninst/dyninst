@@ -1,12 +1,12 @@
 #
-# $Id: Makefile,v 1.15 2003/08/08 15:32:58 hollings Exp $
+# $Id: Makefile,v 1.16 2004/03/02 22:45:50 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_LIBERTY = true
 #NO_OPT_FLAG = true
-#DEBUG_FLAG = -g
+DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
@@ -36,7 +36,8 @@ SRCS =		../src/solaris.C \
 		../../common/src/timing-solaris.C \
 		../src/writeBackElf.C \
 		../src/addLibrary.C \
-		../src/saveSharedLibrary.C 
+		../src/saveSharedLibrary.C \
+		../src/syscall-solproc.C
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from
 # make.confing any way and it is actually configurable there via

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.19 2003/09/05 16:28:13 schendel Exp $
+# $Id: Makefile,v 1.20 2004/03/02 22:45:51 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -50,8 +50,8 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/InstrucIter-x86.C \
 		../../dyninstAPI/src/addLibraryLinux.C \
 		../../dyninstAPI/src/writeBackElf.C \
-		../../dyninstAPI/src/saveSharedLibrary.C
-
+		../../dyninstAPI/src/saveSharedLibrary.C \
+		../../dyninstAPI/src/syscall-linux.C
 
 MYFLAGS		+= -I/usr/include/libelf
 MYFLAGS		+= -DNO_MDL_PRINT

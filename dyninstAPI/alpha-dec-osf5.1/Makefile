@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2003/08/08 15:32:57 hollings Exp $
+# $Id: Makefile,v 1.3 2004/03/02 22:45:44 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -36,7 +36,8 @@ SRCS =		 ../src/inst-osf.C \
 		 ../src/InstrucIter-alpha.C \
 		 ../src/FunctionExpansionRecord.C \
 		 ../../common/src/osfKludges.C \
-		 ../../common/src/timing-aix.C
+		 ../../common/src/timing-aix.C \
+		../src/syscall-alpha.C
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

@@ -41,7 +41,8 @@ SRCS =		../src/aix.C \
 		../src/FunctionExpansionRecord.C \
 		../../common/src/aixv41Kludges.C \
 		../../common/src/timing-aix.C \
-		../src/writeBackXCOFF.C 
+		../src/writeBackXCOFF.C  \
+		../src/syscall-solproc.C
 #		../src/addLibraryXCOFF.C
 
 
