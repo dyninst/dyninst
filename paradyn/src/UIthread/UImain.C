@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.102 2002/08/03 15:05:58 willb Exp $
+// $Id: UImain.C,v 1.103 2002/08/05 16:49:43 willb Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -87,12 +87,6 @@ const Ident V_Tid(V_libpdthread,"Paradyn");
 //----------------------------------------------------------------------------
 static    void    ShowPrompt( bool continuation );
 static    void    StdinInputHandler( Tcl_Interp* interp );
-
-#if defined(i386_unknown_nt4_0)
-void clear_ready_sock(PDSOCKET sock) {
-// this is a no-op on NT, which uses the old threads library
-}
-#endif // !defined(i386_unknown_nt4_0)
 
 //----------------------------------------------------------------------------
 // variables used in this file
