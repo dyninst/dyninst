@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.3  1994/02/24 04:36:50  markc
+ * Revision 1.4  1994/04/21 04:56:04  karavan
+ * added calls to draw shg; changed node shortName from # to a short word
+ *
+ * Revision 1.3  1994/02/24  04:36:50  markc
  * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
  * startup.  Added a data member to the class that igen generates.
  * Make depend differences due to new header files that igen produces.
@@ -52,12 +55,13 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.3 1994/02/24 04:36:50 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.4 1994/04/21 04:56:04 karavan Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "PCmetric.h"
 #define extern
@@ -68,7 +72,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCshg.h"
 #include "PCevalTest.h"
 #include "performanceConsultant.SRVR.h"
-
+#include "paradyn.h"
 void performanceConsultant::printTestStatus()
 {
     testResultList curr;
@@ -108,6 +112,7 @@ searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
     hypothesisList hl;
     searchHistoryNode *newNode;
     searchHistoryNodeList ret;
+    char *nptr;
 
     if (!of) return(ret);
     if (!of->why->children) return(ret);
@@ -116,6 +121,14 @@ searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
 	newNode = findAndAddSHG(of, h, of->where, of->when);
 	ret.add(newNode);
 	val = of->children->addUnique(newNode);
+
+	  // extract display label string from node name
+	nptr = strchr (newNode->name, ' ');
+	*newNode->shortName = '\0';
+	strncat (newNode->shortName, newNode->name, (nptr-newNode->name));
+	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
+			   newNode->shortName, newNode->name, 0);
+	uiMgr->DAGaddEdge (SHGid, of->nodeId, newNode->nodeId, WHYEDGESTYLE);
     }
     return(ret);
 }
@@ -150,6 +163,12 @@ searchHistoryNodeList BuildWhenRefinements(searchHistoryNode *of)
 	newNode = findAndAddSHG(of, of->why, of->where, i);
 	ret.add(newNode);
 	val = of->children->addUnique(newNode);
+
+          // note:  this will draw the nodeID# as the shg node label!!
+	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
+			   newNode->shortName, newNode->name, 0);
+	uiMgr->DAGaddEdge (SHGid, of->nodeId, newNode->nodeId, WHENEDGESTYLE);
+	
     }
     return(ret);
 }
@@ -177,11 +196,42 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
     focusList newFoci;
     searchHistoryNodeList ret;
     searchHistoryNode *newNode;
+    char *childf;
+    char *tempa, *tempb, *c;
+    char sep[] = ",";
 
     if (!of) return(ret);
 
     for (newFoci = of->where->enumerateRefinements(); f=*newFoci; newFoci++){
 	newNode = findAndAddSHG(of, of->why, f, of->when);
+
+	    // get label name for shg display
+            // by comparing full names of parent and newNode and 
+            // setting shortName to the end of the different path
+            // Best feature of the following code: it works. :-P
+
+	childf = new char[strlen (newNode->name) + 1];
+	strcpy (childf, newNode->name);
+	c = strchr(childf, ' ');
+	c++; c++;
+	tempa = strtok(c, sep);
+	if (strstr(of->name, tempa) != NULL) 
+	  while ((tempa = strtok(NULL, sep)) != NULL) {
+	    if (strstr(of->name, tempa) == NULL) {
+	    break;
+	  }
+	}
+	tempb = strrchr (tempa, '/');
+	tempb++;
+	if (tempa = strchr (tempb, '>'))
+	  *tempa = '\0';
+	*newNode->shortName = '\0';
+	strcat (newNode->shortName, tempb);
+	delete (childf);
+	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
+			   newNode->shortName, newNode->name, 0);
+	uiMgr->DAGaddEdge (SHGid, of->nodeId, newNode->nodeId, WHEREEDGESTYLE);
+	
 	val = of->children->addUnique(newNode);
 	ret.add(newNode);
     }
@@ -265,7 +315,7 @@ void performanceConsultant::doRefine(int_Array ids)
 	id = ids.data[i];
 	for (curr = allSHGNodes; n = *curr; curr++) {
 	     if (n->nodeId == id) {
-		 n->active = TRUE;
+		 n->changeActive(TRUE);
 		 break;
 	     }
 	}
@@ -311,8 +361,10 @@ void performanceConsultant::resetRefinement()
 	curr->active = FALSE;
 	curr->status = FALSE;
 	curr->beenTested = FALSE;
+	   // update SHG display
+	uiMgr->DAGconfigNode (SHGid, curr->nodeId, UNTESTEDNODESTYLE);
     }
-    currentSHGNode->active = TRUE;
+    currentSHGNode->changeActive(TRUE);
 }
 
 void printStats()
@@ -358,3 +410,4 @@ void globalCost()
     }
     printf("total predicted cost = %f\n", globalPredicatedCost);
 }
+
