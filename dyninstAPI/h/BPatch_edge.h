@@ -91,7 +91,7 @@ class BPATCH_DLL_EXPORT BPatch_edge {
     
  private:
 
-    BPatch_edgeType BPatch_edge::getType();
+    BPatch_edgeType getType();
     BPatch_point *createInstPointAtEdge();
 
 };

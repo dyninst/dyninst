@@ -5115,4 +5115,5 @@ bool registerSpace::clobberRegister(Register reg)
 
 unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
 {
+  return false;
 }
