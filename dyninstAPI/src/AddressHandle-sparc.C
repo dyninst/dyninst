@@ -155,8 +155,6 @@ Address AddressHandle::nextAddress(){
 	return ret;
 }
 void AddressHandle::setCurrentAddress(Address addr){
-	assert((addr < (baseAddress + range )) &&
-               (addr >= baseAddress));
 	currentAddress = addr;
 }
 instruction AddressHandle::getInstruction(){
