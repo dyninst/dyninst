@@ -81,8 +81,8 @@ NetworkImpl::NetworkImpl( const char *_filename,
     // save the serialized graph string in a variable on the stack,
     // so that we don't build a packet with a pointer into a temporary
     std::string sg_str = sg.get_ByteArray(  );
-    Packet *packet = new Packet( 0, MRN_NEW_SUBTREE_PROT, "%s%s",
-                                 sg_str.c_str(  ), application.c_str(  ) );
+    Packet packet( 0, MRN_NEW_SUBTREE_PROT, "%s%s",
+                   sg_str.c_str(  ), application.c_str(  ) );
     if( front_end->proc_newSubTree( packet ) == -1 ) {
         MRN_errno = MRN_ENETWORK_FAILURE;
         _fail = true;
@@ -147,7 +147,7 @@ int NetworkImpl::recv( bool blocking )
 }
 
 
-int NetworkImpl::send( Packet * packet )
+int NetworkImpl::send( Packet& packet )
 {
     if( Network::network ) {
         return Network::network->front_end->send( packet );
@@ -189,7 +189,7 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
     assert( nLeaves != NULL );
 
     // request that our leaves give us their leaf info
-    Packet *pkt = new Packet( 0, MRN_GET_LEAF_INFO_PROT, "" );
+    Packet pkt( 0, MRN_GET_LEAF_INFO_PROT, "" );
     if( front_end->proc_getLeafInfo( pkt ) != -1 ) {
         // Gather the response from the tree
         //
@@ -201,8 +201,8 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
         // our caller, so the tool hasn't yet had the opportunity to start
         // using the network.  The only packets flowing should be our own.
         // 
-        Packet *resp = front_end->get_leafInfoPacket(  );
-        while( resp == NULL ) {
+        Packet resp = front_end->get_leafInfoPacket(  );
+        while( resp == *Packet::NullPacket ) {
             if( front_end->recv(  ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "failed to receive leaf info from front end node\n" );
@@ -213,7 +213,7 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
             resp = front_end->get_leafInfoPacket(  );
         }
 
-        if( resp != NULL ) {
+        if( resp != *Packet::NullPacket ) {
             // we got the response successfully -
             // build the return value from the response packet
             int *ids = NULL;
@@ -229,13 +229,13 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
             int *pranks = NULL;
             unsigned int nPRanks = 0;
 
-            int nret = resp->ExtractArgList( "%ad %as %ad %as %ad %ad",
-                                             &ids, &nIds,
-                                             &hosts, &nHosts,
-                                             &ranks, &nRanks,
-                                             &phosts, &nPHosts,
-                                             &pports, &nPPorts,
-                                             &pranks, &nPRanks );
+            int nret = resp.ExtractArgList( "%ad %as %ad %as %ad %ad",
+                                            &ids, &nIds,
+                                            &hosts, &nHosts,
+                                            &ranks, &nRanks,
+                                            &phosts, &nPHosts,
+                                            &pports, &nPPorts,
+                                            &pranks, &nPRanks );
             if( nret == 0 ) {
                 if( ( nHosts == nRanks ) &&
                     ( nHosts == nPHosts ) &&
@@ -293,14 +293,14 @@ int NetworkImpl::connect_Backends( void )
 
     // broadcast message to all leaves that they 
     // should accept their connections
-    Packet *pkt = new Packet( 0, MRN_CONNECT_LEAVES_PROT, "" );
+    Packet pkt( 0, MRN_CONNECT_LEAVES_PROT, "" );
     if( front_end->proc_connectLeaves( pkt ) != -1 ) {
 #if READY
         // in an ideal world, we don't have to get a response to this
 #else
         // wait for response (?)
-        Packet *resp = front_end->get_leavesConnectedPacket(  );
-        while( resp == NULL ) {
+        Packet resp = front_end->get_leavesConnectedPacket(  );
+        while( resp == *Packet::NullPacket ) {
             // allow the front end node to handle packets
             front_end->recv(  );
 
@@ -308,12 +308,12 @@ int NetworkImpl::connect_Backends( void )
             resp = front_end->get_leavesConnectedPacket(  );
         }
 
-        if( resp != NULL ) {
+        if( resp != *Packet::NullPacket ) {
             // verify response based on our notion of the 
             // number of leaves we have
             unsigned int nBackendsExpected = endpoints->size(  );
             unsigned int nBackends;
-            int nret = resp->ExtractArgList( "%ud", &nBackends );
+            int nret = resp.ExtractArgList( "%ud", &nBackends );
             if( nret == 0 ) {
                 if( nBackends != nBackendsExpected ) {
                     mrn_printf( 1, MCFL, stderr,

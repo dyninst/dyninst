@@ -64,7 +64,7 @@ ParentNode::~ParentNode( void )
 {
 }
 
-int ParentNode::recv_PacketsFromDownStream( std::list< Packet * >&pkt_list,
+int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
                                             std::list< RemoteNode * >*rmt_nodes,
                                             bool blocking )
 {
@@ -137,7 +137,7 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet * >&pkt_list,
 }
 
 
-int ParentNode::send_PacketDownStream( Packet * packet, bool internal_only )
+int ParentNode::send_PacketDownStream( Packet& packet, bool internal_only )
 {
     unsigned int i;
     int retval = 0;
@@ -150,8 +150,8 @@ int ParentNode::send_PacketDownStream( Packet * packet, bool internal_only )
     mrn_printf( 3, MCFL, stderr, "StreamManager = %p\n",
                 &StreamManagerById );
     mrn_printf( 3, MCFL, stderr, "StreamManagerById[%d] = %p\n",
-                packet->get_StreamId(  ),
-                StreamManagerById[packet->get_StreamId(  )] );
+                packet.get_StreamId(  ),
+                StreamManagerById[packet.get_StreamId(  )] );
     if( threaded ) {
         streammanagerbyid_sync.unlock(  );
     }
@@ -159,11 +159,11 @@ int ParentNode::send_PacketDownStream( Packet * packet, bool internal_only )
     std::list < RemoteNode * >::iterator iter;
     std::list < RemoteNode * >tmp_nodes;
 
-    if( packet->get_StreamId(  ) == 0 ) {   //stream id 0 => broadcast
+    if( packet.get_StreamId(  ) == 0 ) {   //stream id 0 => broadcast
         tmp_nodes = children_nodes;
     }
     else {
-        stream_mgr = StreamManagerById[packet->get_StreamId(  )];
+        stream_mgr = StreamManagerById[packet.get_StreamId(  )];
         tmp_nodes = stream_mgr->downstream_nodes;
     }
     
@@ -242,13 +242,13 @@ int ParentNode::flush_PacketsDownStream( unsigned int stream_id )
     return retval;
 }
 
-int ParentNode::proc_newSubTree( Packet * packet )
+int ParentNode::proc_newSubTree( Packet& packet )
 {
     char *byte_array = NULL;
     char *appl = NULL;
-    mrn_printf( 3, MCFL, stderr, "In proc_newSubTree()\n" );
+    mrn_printf( 3, MCFL, stderr, "In proc_newSubTree(%p)\n", &packet );
 
-    if( packet->ExtractArgList( "%s%s", &byte_array, &appl ) == -1 ) {
+    if( packet.ExtractArgList( "%s%s", &byte_array, &appl ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
         return -1;
     }
@@ -287,9 +287,9 @@ int ParentNode::proc_newSubTree( Packet * packet )
                                         config_port, COMMNODE_EXE );
 
             if( cur_node->good(  ) ) {
-                packet = new Packet( 0, MRN_NEW_SUBTREE_PROT, "%s%s",
-                                     cur_sg->get_ByteArray(  ).c_str(  ),
-                                     application.c_str(  ) );
+                packet = Packet( 0, MRN_NEW_SUBTREE_PROT, "%s%s",
+                                 cur_sg->get_ByteArray(  ).c_str(  ),
+                                 application.c_str(  ) );
                 if( cur_node->send( packet ) == -1 ||
                     cur_node->flush(  ) == -1 ) {
                     mrn_printf( 1, MCFL, stderr, "send/flush failed\n" );
@@ -363,7 +363,7 @@ int ParentNode::proc_newSubTree( Packet * packet )
 
 int ParentNode::wait_for_SubTreeReports( void )
 {
-    std::list < Packet * >packet_list;
+    std::list < Packet >packet_list;
     if( threaded ) {
         subtreereport_sync.lock(  );
         while( num_descendants > num_descendants_reported ) {
@@ -398,7 +398,7 @@ int ParentNode::wait_for_SubTreeReports( void )
     return 0;
 }
 
-int ParentNode::proc_delSubTree( Packet * packet )
+int ParentNode::proc_delSubTree( Packet& packet )
 {
     unsigned int i;
     int retval = 0;
@@ -426,7 +426,7 @@ int ParentNode::proc_delSubTree( Packet * packet )
     return 0;
 }
 
-int ParentNode::proc_newSubTreeReport( Packet * packet )
+int ParentNode::proc_newSubTreeReport( Packet& packet )
 {
     int status;
     int *backends;
@@ -434,9 +434,8 @@ int ParentNode::proc_newSubTreeReport( Packet * packet )
 
     mrn_printf( 3, MCFL, stderr,
                 "In parentnode.proc_newSubTreeReport()\n" );
-    if( packet->
-        ExtractArgList( "%d %ad", &status, &backends,
-                        &no_backends ) == -1 ) {
+    if( packet.ExtractArgList( "%d %ad", &status, &backends,
+                               &no_backends ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "ExtractArgList failed\n" );
         return -1;
     }
@@ -452,7 +451,7 @@ int ParentNode::proc_newSubTreeReport( Packet * packet )
     for( i = 0; i < no_backends; i++ ) {
         mrn_printf( 3, 0, 0, stderr, "%d(%p), ", backends[i],
                     ChildNodeByBackendId[backends[i]] );
-        ChildNodeByBackendId[backends[i]] = packet->inlet_node;
+        ChildNodeByBackendId[backends[i]] = packet.get_InletNode();
         backend_descendant_nodes.push_back( backends[i] );
     }
     mrn_printf( 3, 0, 0, stderr, "]\n" );
@@ -472,7 +471,7 @@ int ParentNode::proc_newSubTreeReport( Packet * packet )
     return status;
 }
 
-StreamManager *ParentNode::proc_newStream( Packet * packet )
+StreamManager *ParentNode::proc_newStream( Packet& packet )
 {
     unsigned int i, num_backends;
     int stream_id, sync_id, *backends;
@@ -486,7 +485,7 @@ StreamManager *ParentNode::proc_newStream( Packet * packet )
     //assert( !StreamImpl::get_Stream(stream_id));
     //register new stream, though not yet needed.
     //new Stream(stream_id, backends, num_backends, filter_id);
-    if( packet->ExtractArgList( "%d %ad %d %d %d", &stream_id, &backends,
+    if( packet.ExtractArgList( "%d %ad %d %d %d", &stream_id, &backends,
                                 &num_backends, &sync_id,
                                 &ds_filter_id, &us_filter_id ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
@@ -538,9 +537,6 @@ StreamManager *ParentNode::proc_newStream( Packet * packet )
     if( threaded ) {
         streammanagerbyid_sync.lock(  );
     }
-    mrn_printf( 3, MCFL, stderr,
-                "DCA: adding stream_mgr(%p) to strmgr[%d]\n", stream_mgr,
-                stream_id );
     StreamManagerById[stream_id] = stream_mgr;
     if( threaded ) {
         streammanagerbyid_sync.unlock(  );
@@ -550,7 +546,7 @@ StreamManager *ParentNode::proc_newStream( Packet * packet )
     return stream_mgr;
 }
 
-int ParentNode::send_newStream( Packet * packet,
+int ParentNode::send_newStream( Packet& packet,
                                 StreamManager * stream_mgr )
 {
     int i, retval;
@@ -574,7 +570,7 @@ int ParentNode::send_newStream( Packet * packet,
     return 0;
 }
 
-int ParentNode::proc_delStream( Packet * packet )
+int ParentNode::proc_delStream( Packet& packet )
 {
     int retval;
     unsigned int i;
@@ -583,14 +579,14 @@ int ParentNode::proc_delStream( Packet * packet )
     mrn_printf( 3, MCFL, stderr, "In proc_delStream()\n" );
 
     streammanagerbyid_sync.lock(  );
-    StreamManager *stream_mgr = StreamManagerById[packet->get_StreamId(  )];
+    StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId(  )];
     streammanagerbyid_sync.unlock(  );
 
-    if( packet->ExtractArgList( "%d", &stream_id ) == -1 ) {
+    if( packet.ExtractArgList( "%d", &stream_id ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
         return -1;
     }
-    assert( stream_id == packet->get_StreamId(  ) );
+    assert( stream_id == packet.get_StreamId(  ) );
 
     std::list < RemoteNode * >::iterator iter;
     for( i = 0, iter = stream_mgr->downstream_nodes.begin(  );
@@ -612,7 +608,7 @@ int ParentNode::proc_delStream( Packet * packet )
     return 0;
 }
 
-int ParentNode::proc_newApplication( Packet * packet )
+int ParentNode::proc_newApplication( Packet& packet )
 {
     unsigned int i;
     int retval = 0;
@@ -620,7 +616,7 @@ int ParentNode::proc_newApplication( Packet * packet )
 
     mrn_printf( 3, MCFL, stderr, "In proc_newApplication()\n" );
 
-    if( packet->ExtractArgList( "%s", &cmd ) == -1 ) {
+    if( packet.ExtractArgList( "%s", &cmd ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
         return -1;
     }
@@ -665,7 +661,7 @@ int ParentNode::proc_newApplication( Packet * packet )
     return retval;
 }
 
-int ParentNode::proc_delApplication( Packet * packet )
+int ParentNode::proc_delApplication( Packet& packet )
 {
     unsigned int i;
     int retval = 0;
@@ -694,7 +690,7 @@ int ParentNode::proc_delApplication( Packet * packet )
     return 0;
 }
 
-int ParentNode::proc_newFilter( Packet * packet )
+int ParentNode::proc_newFilter( Packet& packet )
 {
     int retval = 0;
     unsigned short fid = 0;
@@ -703,7 +699,7 @@ int ParentNode::proc_newFilter( Packet * packet )
 
     mrn_printf( 3, MCFL, stderr, "In proc_newFilter()\n" );
 
-    if( packet->ExtractArgList( "%uhd %s %s %c", &fid, &so_file,
+    if( packet.ExtractArgList( "%uhd %s %s %c", &fid, &so_file,
                                 &func, &is_trans_filter ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
         return -1;
@@ -750,7 +746,7 @@ bool equal_RemoteNodePtr( RemoteNode * p1, RemoteNode * p2 )
     }
 }
 
-int ParentNode::proc_getLeafInfo( Packet * pkt )
+int ParentNode::proc_getLeafInfo( Packet& pkt )
 {
     int ret = 0;
 
@@ -797,14 +793,14 @@ int ParentNode::proc_getLeafInfo( Packet * pkt )
             i++;
         }
 
-        Packet *resp = new Packet( 0, MRN_GET_LEAF_INFO_PROT,
-                                   "%ad %as %ad %as %ad %ad",
-                                   beIds, nBEs,
-                                   beHosts, nBEs,
-                                   beRanks, nBEs,
-                                   myHosts, nBEs,
-                                   myPorts, nBEs,
-                                   myRanks, nBEs );
+        Packet resp( 0, MRN_GET_LEAF_INFO_PROT,
+                     "%ad %as %ad %as %ad %ad",
+                     beIds, nBEs,
+                     beHosts, nBEs,
+                     beRanks, nBEs,
+                     myHosts, nBEs,
+                     myPorts, nBEs,
+                     myRanks, nBEs );
 
         // deliver the response 
         // (how it is delivered depends on what type of 
@@ -835,7 +831,7 @@ int ParentNode::proc_getLeafInfo( Packet * pkt )
     return ret;
 }
 
-int ParentNode::proc_getLeafInfoResponse( Packet * pkt )
+int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
 {
     int ret = 0;
 
@@ -864,11 +860,11 @@ int ParentNode::proc_getLeafInfoResponse( Packet * pkt )
         std::vector < char *>allParHosts;
         std::vector < unsigned int >allParPorts;
         std::vector < unsigned int >allParRanks;
-        for( std::vector < Packet * >::iterator piter =
+        for( std::vector < Packet >::iterator piter =
                  childLeafInfoResponses.begin(  );
              piter != childLeafInfoResponses.end(  ); piter++ ) {
-            Packet *currPkt = *piter;
-            assert( currPkt != NULL );
+            Packet currPkt = *piter;
+            assert( currPkt != *Packet::NullPacket );
 
             // get the data out of the current packet
             int *currIds = NULL;
@@ -883,16 +879,16 @@ int ParentNode::proc_getLeafInfoResponse( Packet * pkt )
             unsigned int currNumParPorts = 0;
             int *currParRanks = NULL;
             unsigned int currNumParRanks = 0;
-            int eret = currPkt->ExtractArgList( "%ad %as %ad %as %ad %ad",
-                                                &currIds, &currNumIds,
-                                                &currHosts, &currNumHosts,
-                                                &currRanks, &currNumRanks,
-                                                &currParHosts,
-                                                &currNumParHosts,
-                                                &currParPorts,
-                                                &currNumParPorts,
-                                                &currParRanks,
-                                                &currNumParRanks );
+            int eret = currPkt.ExtractArgList( "%ad %as %ad %as %ad %ad",
+                                               &currIds, &currNumIds,
+                                               &currHosts, &currNumHosts,
+                                               &currRanks, &currNumRanks,
+                                               &currParHosts,
+                                               &currNumParHosts,
+                                               &currParPorts,
+                                               &currNumParPorts,
+                                               &currParRanks,
+                                               &currNumParRanks );
             if( eret == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "failed to extract data from leaf info packet\n" );
@@ -954,14 +950,14 @@ int ParentNode::proc_getLeafInfoResponse( Packet * pkt )
                         parRanksArray[i] );
         }
 
-        Packet *resp = new Packet( 0, MRN_GET_LEAF_INFO_PROT,
-                                   "%ad %as %ad %as %ad %ad",
-                                   idsArray, nIds,
-                                   hostsArray, nHosts,
-                                   ranksArray, nRanks,
-                                   parHostsArray, nParHosts,
-                                   parPortsArray, nParPorts,
-                                   parRanksArray, nParRanks );
+        Packet resp( 0, MRN_GET_LEAF_INFO_PROT,
+                     "%ad %as %ad %as %ad %ad",
+                     idsArray, nIds,
+                     hostsArray, nHosts,
+                     ranksArray, nRanks,
+                     parHostsArray, nParHosts,
+                     parPortsArray, nParPorts,
+                     parRanksArray, nParRanks );
 
         // handle the aggregated response
         if( deliverLeafInfoResponse( resp ) == -1 ) {
@@ -970,7 +966,7 @@ int ParentNode::proc_getLeafInfoResponse( Packet * pkt )
 
 #if READY
         // release our children's responses
-        for( std::vector < Packet * >::iterator iter =
+        for( std::vector < Packet >::iterator iter =
                  childLeafInfoResponses.begin(  );
              iter != childLeafInfoResponses.end(  ); iter++ ) {
             delete *iter;
@@ -985,7 +981,7 @@ int ParentNode::proc_getLeafInfoResponse( Packet * pkt )
     return ret;
 }
 
-int ParentNode::proc_connectLeaves( Packet * pkt )
+int ParentNode::proc_connectLeaves( Packet& pkt )
 {
     int ret = 0;
 
@@ -1053,9 +1049,9 @@ int ParentNode::proc_connectLeaves( Packet * pkt )
 
         if( ret == 0 ) {
             // build a response packet 
-            Packet *resp = new Packet( 0, MRN_CONNECT_LEAVES_PROT,
-                                       "%ud",
-                                       children_nodes.size(  ) );
+            Packet resp( 0, MRN_CONNECT_LEAVES_PROT,
+                         "%ud",
+                         children_nodes.size(  ) );
 
             // deliver the response 
             // (how it is delivered depends on what type of 
@@ -1087,7 +1083,7 @@ int ParentNode::proc_connectLeaves( Packet * pkt )
     return ret;
 }
 
-int ParentNode::proc_connectLeavesResponse( Packet * pkt )
+int ParentNode::proc_connectLeavesResponse( Packet& pkt )
 {
     int ret = 0;
 
@@ -1102,13 +1098,13 @@ int ParentNode::proc_connectLeavesResponse( Packet * pkt )
         // we have received responses from all of our children -
         // aggregate the responses
         unsigned int nLeavesConnected = 0;
-        for( std::vector < Packet * >::iterator iter =
+        for( std::vector < Packet >::iterator iter =
                  childConnectedLeafResponses.begin(  );
              iter != childConnectedLeafResponses.end(  ); iter++ ) {
-            Packet *currPkt = *iter;
+            Packet currPkt = *iter;
 
             unsigned int currNumLeaves = 0;
-            int eret = currPkt->ExtractArgList( "%ud", &currNumLeaves );
+            int eret = currPkt.ExtractArgList( "%ud", &currNumLeaves );
             if( eret == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "failed to extract data from connected leaves response packet\n" );
@@ -1119,23 +1115,14 @@ int ParentNode::proc_connectLeavesResponse( Packet * pkt )
         }
 
         // build the response packet
-        Packet *resp = new Packet( 0, MRN_CONNECT_LEAVES_PROT, "%ud",
-                                   nLeavesConnected );
+        Packet resp( 0, MRN_CONNECT_LEAVES_PROT, "%ud",
+                     nLeavesConnected );
 
 
         // handle the aggregated response
         if( deliverConnectLeavesResponse( resp ) == -1 ) {
             ret = -1;
         }
-
-#if READY
-        // release our children's responses
-        for( std::vector < MRN_Packet * >::iterator iter =
-                 childConnectedLeafResponses.begin(  );
-             iter != childConnectedLeafResponses.end(  ); iter++ ) {
-            delete *iter;
-        }
-#endif // READY
         childConnectedLeafResponses.clear(  );
     }
     if( threaded ) {

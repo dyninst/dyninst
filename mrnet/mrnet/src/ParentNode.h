@@ -28,9 +28,9 @@ class ParentNode {
     bool threaded;
 
     bool isLeaf_;           // am I a leaf in the MRNet tree?
-    std::vector < Packet * >childLeafInfoResponses;
+    std::vector < Packet >childLeafInfoResponses;
     pthread_sync childLeafInfoResponsesLock;
-    std::vector < Packet * >childConnectedLeafResponses;
+    std::vector < Packet >childConnectedLeafResponses;
     pthread_sync childConnectedLeafResponsesLock;
 
     int wait_for_SubTreeReports(  );
@@ -50,8 +50,8 @@ class ParentNode {
     pthread_sync streammanagerbyid_sync;
 
 
-    virtual int deliverLeafInfoResponse( Packet * pkt ) = NULL;
-    virtual int deliverConnectLeavesResponse( Packet * pkt ) = NULL;
+    virtual int deliverLeafInfoResponse( Packet& pkt ) = NULL;
+    virtual int deliverConnectLeavesResponse( Packet& pkt ) = NULL;
 
     bool isLeaf( void ) const
         {
@@ -62,35 +62,35 @@ class ParentNode {
     ParentNode( bool _threaded, std::string, unsigned short );
     virtual ~ ParentNode( void );
 
-    virtual int proc_PacketsFromDownStream( std::list < Packet * >& ) = 0;
-    virtual int proc_DataFromDownStream( Packet * ) = 0;
+    virtual int proc_PacketsFromDownStream( std::list < Packet >& ) = 0;
+    virtual int proc_DataFromDownStream( Packet& ) = 0;
 
-    int recv_PacketsFromDownStream( std::list < Packet * >&packet_list,
+    int recv_PacketsFromDownStream( std::list < Packet >&packet_list,
                                     std::list < RemoteNode * >*rmt_nodes =
                                     NULL, bool blocking = true );
-    int send_PacketDownStream( Packet * packet, bool internal_only =
+    int send_PacketDownStream( Packet & packet, bool internal_only =
                                false );
     int flush_PacketsDownStream( unsigned int stream_id );
     int flush_PacketsDownStream( void );
 
-    int proc_newSubTree( Packet * );
-    int proc_delSubTree( Packet * );
+    int proc_newSubTree( Packet & );
+    int proc_delSubTree( Packet & );
 
-    int proc_newSubTreeReport( Packet * );
+    int proc_newSubTreeReport( Packet & );
 
-    StreamManager *proc_newStream( Packet * );
-    int send_newStream( Packet *, StreamManager * );
-    int proc_delStream( Packet * );
-    int proc_newApplication( Packet * );
-    int proc_delApplication( Packet * );
+    StreamManager *proc_newStream( Packet & );
+    int send_newStream( Packet &, StreamManager * );
+    int proc_delStream( Packet & );
+    int proc_newApplication( Packet & );
+    int proc_delApplication( Packet & );
 
-    int proc_newFilter( Packet * );
+    int proc_newFilter( Packet & );
 
-    int proc_getLeafInfo( Packet * );
-    int proc_getLeafInfoResponse( Packet * );
+    int proc_getLeafInfo( Packet & );
+    int proc_getLeafInfoResponse( Packet & );
 
-    int proc_connectLeaves( Packet * );
-    int proc_connectLeavesResponse( Packet * );
+    int proc_connectLeaves( Packet & );
+    int proc_connectLeavesResponse( Packet & );
 
     std::string get_HostName(  );
     unsigned short get_Port(  );

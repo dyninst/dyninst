@@ -54,17 +54,17 @@ BackEndNode::~BackEndNode(void)
     delete upstream_node;
 }
 
-int BackEndNode::proc_PacketsFromUpStream(std::list <Packet *> &packets)
+int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
 {
     int retval=0;
-    Packet *cur_packet;
+    Packet cur_packet;
 
     mrn_printf(3, MCFL, stderr, "In proc_PacketsFromUpStream()\n");
 
-    std::list<Packet *>::iterator iter=packets.begin();
+    std::list<Packet>::iterator iter=packets.begin();
     for(; iter != packets.end(); iter++){
         cur_packet = (*iter);
-        switch(cur_packet->get_Tag()){
+        switch(cur_packet.get_Tag()){
         case MRN_DATA_PROT:
         case MRN_NEW_SUBTREE_PROT:
         case MRN_DEL_SUBTREE_PROT:
@@ -76,7 +76,7 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet *> &packets)
         case MRN_CONNECT_LEAVES_PROT:
             //these protocol tags should never reach backend
             mrn_printf(1, MCFL,stderr,"BackEndNode::proc_DataFromUpStream(): "
-                       "poison tag: %d\n", cur_packet->get_Tag());
+                       "poison tag: %d\n", cur_packet.get_Tag());
             assert(0);
             break;
 
@@ -89,13 +89,10 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet *> &packets)
 
         default:
             //Any Unrecognized tag is assumed to be data
-            //mrn_printf(3, MCFL, stderr, "Calling proc_DataFromUpStream(). Tag: %d\n",
-            //cur_packet->get_Tag());
             if(proc_DataFromUpStream(cur_packet) == -1){
                 mrn_printf(1, MCFL, stderr, "proc_DataFromUpStream() failed\n");
                 retval=-1;
             }
-            //mrn_printf(3, MCFL, stderr, "proc_DataFromUpStream() succeded\n");
             break;
         }
     }
@@ -106,28 +103,26 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet *> &packets)
     return retval;
 }
 
-int BackEndNode::proc_DataFromUpStream(Packet *packet)
+int BackEndNode::proc_DataFromUpStream(Packet& packet)
 {
     StreamImpl * stream;
 
     mrn_printf(3, MCFL, stderr, "In proc_DataFromUpStream()\n");
 
-    stream = StreamImpl::get_Stream(packet->get_StreamId());
+    stream = StreamImpl::get_Stream(packet.get_StreamId());
 
     if( stream ){
-        //mrn_printf(3, MCFL, stderr, "Inserting packet into stream %d\n", packet->get_StreamId());
         stream->add_IncomingPacket(packet);
     }
     else{
-        //mrn_printf(3, MCFL, stderr, "Inserting packet into NEW stream %d\n", packet->get_StreamId());
-        stream = new StreamImpl(packet->get_StreamId());
+        stream = new StreamImpl(packet.get_StreamId());
         stream->add_IncomingPacket(packet);
     }
     mrn_printf(3, MCFL, stderr, "Leaving proc_DataFromUpStream()\n");
     return 0;
 }
 
-int BackEndNode::send(Packet *packet)
+int BackEndNode::send(Packet& packet)
 {
     mrn_printf(3, MCFL, stderr, "In backend.send(). Calling sendUpStream()\n");
     return send_PacketUpStream(packet);
@@ -141,7 +136,7 @@ int BackEndNode::flush()
 
 int BackEndNode::recv( bool blocking )
 {
-    std::list <Packet *> packet_list;
+    std::list <Packet> packet_list;
     mrn_printf(3, MCFL, stderr, "In backend.recv(). Calling recvfromUpStream()\n");
 
     if(recv_PacketsFromUpStream(packet_list) == -1){
@@ -164,7 +159,7 @@ int BackEndNode::recv( bool blocking )
 }
 
 
-int BackEndNode::proc_newStream(Packet* pkt)
+int BackEndNode::proc_newStream(Packet& pkt)
 {
     mrn_printf( 3, MCFL, stderr, "In proc_newStream()\n" );
 
@@ -175,17 +170,16 @@ int BackEndNode::proc_newStream(Packet* pkt)
     int sync_id = -1;
     int ds_filter_id = -1;
     int us_filter_id = -1;
-    int uret = pkt->ExtractArgList( "%d %ad %d %d %d",
+    int uret = pkt.ExtractArgList( "%d %ad %d %d %d",
                                     &stream_id,
                                     &backends, &num_backends,
                                     &sync_id,
                                     &ds_filter_id,
                                     &us_filter_id );
-    if( uret == -1 )
-        {
-            mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
-            return -1;
-        }
+    if( uret == -1 ) {
+        mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
+        return -1;
+    }
 
     // Build a new stream object.
     // (As a side effect, registers the stream.)

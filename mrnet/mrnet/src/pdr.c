@@ -280,8 +280,7 @@ bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
     case PDR_ENCODE:
         if (sp == NULL)
             return FALSE;
-        size = strlen(sp);
-        nodesize = (size == 0 ? 0 : size+1); /* add 1-byte null terminator */
+        nodesize = strlen(sp) + 1; /* add 1-byte null terminator */
         break;
     case PDR_DECODE:
         break;
@@ -301,15 +300,12 @@ bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
     case PDR_FREE:  /* Already handled above, but silences compiler warning */
         return TRUE;
     case PDR_DECODE:
-        if (nodesize == 0) {
-            return TRUE;
-        }
         if (sp == NULL)
             *cpp = sp = (char *)malloc(nodesize);
         if (sp == NULL) {
             return FALSE;
         }
-        sp[size] = 0;
+        sp[nodesize-1] = 0;
         /* fall into ... */
 
     case PDR_ENCODE:

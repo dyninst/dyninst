@@ -35,11 +35,22 @@ typedef enum {
 
 class DataElement{
  public:
-    DataType type;
     DataValue val;
+    DataType type;
     uint32_t array_len;
 
-    DataElement( ) :type(UNKNOWN_T), array_len(0) {}
+    DataElement( ) : type(UNKNOWN_T), array_len(0) { 
+        val.uld=0;
+    }
+    DataElement( const DataElement & de);
+    DataElement & operator= ( const DataElement &);
+    ~DataElement()
+    {
+        //TODO: array ptrs need to be "deleted" for CTL packets and
+        //      packets the usr sends since the buffer will never be
+        //      used again. array ptrs that result from recv'd data
+        //      packets must be "free()'d" by the user.
+    }
     DataType get_Type( void ) { return type; }
 
     char get_char( void ) { return val.c; }

@@ -13,12 +13,12 @@ namespace MRN
 
 class Message
 {
-    std::list < Packet * >packets;
+    std::list < Packet >packets;
 
  public:
     int send( int sock_fd );
-    int recv( int sock_fd, std::list < Packet * >&packets, RemoteNode * );
-    void add_Packet( Packet * );
+    int recv( int sock_fd, std::list < Packet >&packets, RemoteNode * );
+    void add_Packet( Packet & );
     int size_Packets(  );
     int size_Bytes(  );
 };
@@ -27,9 +27,8 @@ int read( int fd, void *buf, int size );
 int readmsg( int fd, struct msghdr *msg );
 int write( int fd, const void *buf, int size );
 
-inline void Message::add_Packet( Packet * packet )
+inline void Message::add_Packet( Packet& packet )
 {
-    assert( packet );
     packets.push_back( packet );
 }
 

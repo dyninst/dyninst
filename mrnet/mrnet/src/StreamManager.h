@@ -25,7 +25,7 @@ class StreamManager{
     StreamManager(int stream_id, std::list <RemoteNode *> &_downstream,
                   int sync_id, int ds_agg_id, int us_agg_id );
     ~StreamManager();
-    int push_packet(Packet *, std::vector<Packet *> &,
+    int push_packet(Packet&, std::vector<Packet> &,
                     bool going_upstream=true);
 };
 

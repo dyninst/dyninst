@@ -202,8 +202,8 @@ int Stream::load_FilterFunc( const char *so_file, const char *func,
     }
 
     //Filter registered locally, now propagate to tree
-    Packet *packet = new Packet( 0, MRN_NEW_FILTER_PROT, "%uhd %s %s %c",
-                                 fid, so_file, func, is_trans_filter );
+    Packet packet( 0, MRN_NEW_FILTER_PROT, "%uhd %s %s %c",
+                   fid, so_file, func, is_trans_filter );
     Network::network->front_end->send_PacketDownStream( packet, true );
 
     return fid;

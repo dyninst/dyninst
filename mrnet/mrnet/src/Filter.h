@@ -28,29 +28,29 @@ class Filter {
 
     Filter( unsigned short _filter_id );
     virtual ~ Filter(  );
-    virtual int push_packets( std::vector < Packet * >&packets_in,
-                              std::vector < Packet * >&packets_out ) = 0;
+    virtual int push_packets( std::vector < Packet >&packets_in,
+                              std::vector < Packet >&packets_out ) = 0;
 };
 
 class TransFilter:public Filter {
  private:
     std::string fmt_str;
-    void ( *trans_filter ) ( std::vector < Packet * >&packets_in,
-                             std::vector < Packet * >&packets_in,
+    void ( *trans_filter ) ( std::vector < Packet >&packets_in,
+                             std::vector < Packet >&packets_in,
                              void ** );
  public:
     TransFilter( unsigned short _fid );
     virtual ~ TransFilter(  );
-    virtual int push_packets( std::vector < Packet * >&packets_in,
-                              std::vector < Packet * >&packets_out );
+    virtual int push_packets( std::vector < Packet >&packets_in,
+                              std::vector < Packet >&packets_out );
 };
 
 class RemoteNode;
 class SyncFilter:public Filter {
  private:
-    std::map < RemoteNode *, std::vector < Packet * >*>PacketsByNode;
-    void ( *sync_filter ) ( std::vector < Packet * >&,
-                            std::vector < Packet * >&,
+    std::map < RemoteNode *, std::vector < Packet >*>PacketsByNode;
+    void ( *sync_filter ) ( std::vector < Packet >&,
+                            std::vector < Packet >&,
                             std::list < RemoteNode * >&, void ** );
     std::list < RemoteNode * >downstream_nodes;
     pthread_sync fsync;
@@ -58,8 +58,8 @@ class SyncFilter:public Filter {
  public:
     SyncFilter( unsigned short _filter_id, std::list < RemoteNode * >& );
     virtual ~ SyncFilter(  );
-    virtual int push_packets( std::vector < Packet * >&packets_in,
-                              std::vector < Packet * >&packets_out );
+    virtual int push_packets( std::vector < Packet >&packets_in,
+                              std::vector < Packet >&packets_out );
 };
 
 } // namespace MRN

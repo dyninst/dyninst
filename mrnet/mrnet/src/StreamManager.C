@@ -23,10 +23,10 @@ StreamManager::~StreamManager( )
     delete upstream_aggregator;
 }
 
-int StreamManager::push_packet(Packet *packet,
-                               std::vector<Packet *> & out_packets,
+int StreamManager::push_packet(Packet& packet,
+                               std::vector<Packet> & out_packets,
                                bool going_upstream){
-    std::vector<Packet *> in_packets;
+    std::vector<Packet> in_packets;
     
     mrn_printf(3, MCFL, stderr, "Entering StreamMgr.push_packet()\n");
 

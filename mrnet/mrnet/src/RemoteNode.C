@@ -19,7 +19,7 @@ ChildNode * RemoteNode::local_child_node=NULL;
 
 void * RemoteNode::recv_thread_main(void * args)
 {
-    std::list <Packet *>packet_list;
+    std::list <Packet>packet_list;
     RemoteNode * remote_node = (RemoteNode *)args;
     std::string local_hostname, remote_hostname;
 
@@ -357,7 +357,7 @@ int RemoteNode::new_Application(int listening_sock_fd,
     return accept_Connection( sock_fd, false );
 }
 
-int RemoteNode::send(Packet *packet)
+int RemoteNode::send(Packet& packet)
 {
     mrn_printf(3, MCFL, stderr, "In remotenode.send(). Calling msg.add_packet()\n");
 
@@ -366,14 +366,12 @@ int RemoteNode::send(Packet *packet)
     }
 
     msg_out.add_Packet(packet);
-    if( msg_out.size_Packets() == IOV_MAX )
-        {
-            int sret = msg_out.send( sock_fd );
-            if( sret == -1 )
-                {
-                    mrn_printf(1, MCFL, stderr, "RemoteNode.send, flush forced, but failed\n" );
-                }
+    if( msg_out.size_Packets() == IOV_MAX ) {
+        int sret = msg_out.send( sock_fd );
+        if( sret == -1 ) {
+            mrn_printf(1, MCFL, stderr, "RemoteNode.send, flush forced, but failed\n" );
         }
+    }
 
     if(threaded){
         msg_out_sync.signal(MRN_MESSAGEOUT_NONEMPTY);

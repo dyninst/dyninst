@@ -25,7 +25,7 @@ class StreamImpl:public Stream {
     static unsigned int cur_stream_idx;
     static bool force_network_recv;
 
-    std::list < Packet * >IncomingPacketBuffer;
+    std::list < Packet >IncomingPacketBuffer;
     int ds_filter_id;
     int us_filter_id;
     int sync_id;
@@ -48,7 +48,7 @@ class StreamImpl:public Stream {
     virtual int flush(  );
     virtual int recv( int *tag, void **buf, bool blocking = true );
     virtual unsigned int get_NumEndPoints(  );
-    void add_IncomingPacket( Packet * );
+    void add_IncomingPacket( Packet& );
     const std::vector < EndPoint * >*get_EndPoints(  ) const;
 
 
@@ -79,7 +79,7 @@ inline void StreamImpl::set_ForceNetworkRecv( bool force )
     force_network_recv = force;
 }
 
-inline void StreamImpl::add_IncomingPacket(Packet *packet)
+inline void StreamImpl::add_IncomingPacket(Packet& packet)
 {
     IncomingPacketBuffer.push_back(packet);
 }
@@ -94,6 +94,7 @@ inline int StreamImpl::unpack( void* buf, const char* fmt_str,
 {
     Packet * packet = (Packet *)buf;
     int ret = packet->ExtractVaList(fmt_str, arg_list); 
+    delete packet;
 
     return ret;
 }

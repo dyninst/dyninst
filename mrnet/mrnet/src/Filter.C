@@ -83,8 +83,8 @@ unsigned short Filter::get_NextFilterFuncId(  )
 TransFilter::TransFilter( unsigned short _filter_id )
     : Filter( _filter_id )
 {
-    trans_filter = ( void ( * )( std::vector < Packet * >&,
-                                 std::vector < Packet * >&,
+    trans_filter = ( void ( * )( std::vector < Packet >&,
+                                 std::vector < Packet >&,
                                  void ** ) )
         FilterFuncById[_filter_id];
     fmt_str = FilterFmtById[_filter_id];
@@ -94,8 +94,8 @@ TransFilter::~TransFilter(  )
 {
 }
 
-int TransFilter::push_packets( std::vector < Packet * >&packets_in,
-                               std::vector < Packet * >&packets_out )
+int TransFilter::push_packets( std::vector < Packet >&packets_in,
+                               std::vector < Packet >&packets_out )
 {
     mrn_printf( 3, MCFL, stderr, "In aggr.push_packets()\n" );
     
@@ -122,8 +122,8 @@ SyncFilter::SyncFilter( unsigned short _filter_id,
     :    Filter( _filter_id ), downstream_nodes( nodes )
 {
     sync_filter = ( void ( * )
-             ( std::vector < Packet * >&,
-               std::vector < Packet * >&,
+             ( std::vector < Packet >&,
+               std::vector < Packet >&,
                std::list < RemoteNode * >&,
                void ** ) )
         FilterFuncById[_filter_id];
@@ -133,8 +133,8 @@ SyncFilter::~SyncFilter(  )
 {
 }
 
-int SyncFilter::push_packets( std::vector < Packet * >&packets_in,
-                              std::vector < Packet * >&packets_out )
+int SyncFilter::push_packets( std::vector < Packet >&packets_in,
+                              std::vector < Packet >&packets_out )
 {
     mrn_printf( 3, MCFL, stderr,
                 "In sync.push_packets(). Pushing %d packets\n",

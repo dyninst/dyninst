@@ -9,20 +9,20 @@ namespace MRN
 /*==========================================*
  *    Default Aggregator Definitions        *
  *==========================================*/
-void aggr_Int_Sum( std::vector < Packet * >&packets_in,
-                   std::vector < Packet * >&packets_out,
+void aggr_Int_Sum( std::vector < Packet >&packets_in,
+                   std::vector < Packet >&packets_out,
                    void ** /* client data */ )
 {
     int sum = 0;
     
-    for( unsigned int i = 0; i < packets_in.size(  ); i++ ) {
-        Packet *cur_packet = packets_in[i];
-        sum += ( *cur_packet )[0]->get_int32_t(	 );
+    for( unsigned int i = 0; i < packets_in.size( ); i++ ) {
+        Packet cur_packet = packets_in[i];
+        sum += cur_packet[0].get_int32_t( );
     }
     
-    Packet *new_packet = new Packet( packets_in[0]->get_Tag(  ),
-                                     packets_in[0]->get_StreamId(  ),
-                                     "%d", sum );
+    Packet new_packet( packets_in[0].get_Tag( ),
+                       packets_in[0].get_StreamId( ),
+                       "%d", sum );
     packets_out.push_back( new_packet );
 }
 
@@ -200,17 +200,17 @@ void aggr_Float_Avg( DataElement ** in_elems, unsigned int in_count,
  *    Default SyncFilter Definitions        *
  *============================================*/
 
-void sync_WaitForAll( std::vector < Packet * >&packets_in,
-                      std::vector < Packet * >&packets_out,
+void sync_WaitForAll( std::vector < Packet >&packets_in,
+                      std::vector < Packet >&packets_out,
                       std::list < RemoteNode * >&downstream_nodes,
                       void **local_storage )
 {
-    std::map < RemoteNode *, std::list < Packet * >*>*PacketListByNode;
+    std::map < RemoteNode *, std::list < Packet >*>*PacketListByNode;
     
     mrn_printf( 3, MCFL, stderr, "In sync_WaitForAll()\n" );
     if( *local_storage == NULL ) {
         PacketListByNode =
-            new std::map < RemoteNode *, std::list < Packet * >*>;
+            new std::map < RemoteNode *, std::list < Packet >*>;
         *local_storage = PacketListByNode;
 
         std::list < RemoteNode * >::iterator iter;
@@ -219,12 +219,12 @@ void sync_WaitForAll( std::vector < Packet * >&packets_in,
                     downstream_nodes.size(  ) );
         for( iter = downstream_nodes.begin(  );
              iter != downstream_nodes.end(  ); iter++ ) {
-            ( *PacketListByNode )[( *iter )] = new std::list < Packet * >;
+            ( *PacketListByNode )[( *iter )] = new std::list < Packet >;
         }
     }
     else {
         PacketListByNode =
-            ( std::map < RemoteNode *, std::list < Packet * >*>* )
+            ( std::map < RemoteNode *, std::list < Packet >*>* )
             * local_storage;
     }
 
@@ -232,7 +232,7 @@ void sync_WaitForAll( std::vector < Packet * >&packets_in,
     mrn_printf( 3, MCFL, stderr, "Placing %d incoming packets\n",
                 packets_in.size(  ) );
     for( unsigned int i=0; i<packets_in.size(); i++ ){
-        ( ( *PacketListByNode )[ packets_in[i]->inlet_node] )->
+        ( ( *PacketListByNode )[ packets_in[i].get_InletNode() ] )->
             push_back(  packets_in[i] );
     }
     packets_in.clear(  );
@@ -240,7 +240,7 @@ void sync_WaitForAll( std::vector < Packet * >&packets_in,
     //check to see if all lists have at least one packet, "a wave"
     mrn_printf( 3, MCFL, stderr,
                 "Checking if all downstream_nodes are ready ..." );
-    std::map < RemoteNode *, std::list < Packet * >*>::iterator iter2;
+    std::map < RemoteNode *, std::list < Packet >*>::iterator iter2;
     for( iter2 = PacketListByNode->begin(  );
          iter2 != PacketListByNode->end(  ); iter2++ ) {
         if( ( ( *iter2 ).second )->size(  ) == 0 ) {
@@ -262,8 +262,8 @@ void sync_WaitForAll( std::vector < Packet * >&packets_in,
                 packets_out.size(  ) );
 }
 
-void sync_TimeOut( std::vector < Packet * >&packets_in,
-                   std::vector < Packet * >&packets_out,
+void sync_TimeOut( std::vector < Packet >&packets_in,
+                   std::vector < Packet >&packets_out,
                    std::list < RemoteNode * >&, void **local_storage )
 {
 }

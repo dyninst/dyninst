@@ -21,11 +21,11 @@ class ChildNode{
  public:
     ChildNode(bool, std::string, unsigned short);
     virtual ~ChildNode(void);
-    virtual int proc_PacketsFromUpStream(std::list <Packet *> &)=0;
-    virtual int proc_DataFromUpStream(Packet *)=0;
+    virtual int proc_PacketsFromUpStream(std::list <Packet> &)=0;
+    virtual int proc_DataFromUpStream(Packet&)=0;
 
-    int recv_PacketsFromUpStream(std::list <Packet *> &packet_list);
-    int send_PacketUpStream(Packet *packet);
+    int recv_PacketsFromUpStream(std::list <Packet> &packet_list);
+    int send_PacketUpStream(Packet& packet);
     int flush_PacketsUpStream();
 
     std::string get_HostName();
@@ -34,13 +34,13 @@ class ChildNode{
     int getConnections( int** conns, unsigned int* nConns );
 };
 
-inline int ChildNode::recv_PacketsFromUpStream(std::list <Packet *>
+inline int ChildNode::recv_PacketsFromUpStream(std::list <Packet>
                                                &packet_list)
 {
   return upstream_node->recv(packet_list);
 }
 
-inline int ChildNode::send_PacketUpStream(Packet *packet)
+inline int ChildNode::send_PacketUpStream(Packet& packet)
 {
   return upstream_node->send(packet);
 }

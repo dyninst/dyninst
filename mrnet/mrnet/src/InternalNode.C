@@ -113,10 +113,9 @@ int InternalNode::send_newSubTreeReport( bool status )
     }
     mrn_printf( 3, 0, 0, stderr, "]\n" );
 
-    Packet *packet = new Packet( 0, MRN_RPT_SUBTREE_PROT, "%d %ad", status,
-                                 backends,
-                                 backend_descendant_nodes.size(  ) );
-    if( packet->good(  ) ) {
+    Packet packet( 0, MRN_RPT_SUBTREE_PROT, "%d %ad", status,
+                   backends, backend_descendant_nodes.size(  ) );
+    if( packet.good(  ) ) {
         if( upstream_node->send( packet ) == -1 ||
             upstream_node->flush(  ) == -1 ) {
             mrn_printf( 1, MCFL, stderr, "send/flush failed\n" );
@@ -133,26 +132,23 @@ int InternalNode::send_newSubTreeReport( bool status )
 }
 
 
-int InternalNode::proc_DataFromUpStream( Packet * packet )
+int InternalNode::proc_DataFromUpStream( Packet& packet )
 {
     int retval;
 
     mrn_printf( 3, MCFL, stderr, "In proc_DataFromUpStream()\n" );
 
     streammanagerbyid_sync.lock(  );
-    StreamManager *stream_mgr = StreamManagerById[packet->get_StreamId(  )];
+    StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId(  )];
     streammanagerbyid_sync.unlock(  );
-    mrn_printf( 3, MCFL, stderr,
-                "DCA: extracted stream_mgr(%p) to strmgr[%d]\n",
-                stream_mgr, packet->get_StreamId(  ) );
 
-    std::vector < Packet * >packets;
+    std::vector < Packet >packets;
     stream_mgr->push_packet( packet, packets, false );  // packet going downstream
 
     if( !packets.empty(  ) ) {
         // deliver all packets to all downstream nodes
         for( unsigned int i = 0; i < packets.size(  ); i++ ) {
-            Packet *cur_packet = packets[i];
+            Packet cur_packet = packets[i];
 
             std::list < RemoteNode * >::iterator iter;
             unsigned int j;
@@ -180,15 +176,15 @@ int InternalNode::proc_DataFromUpStream( Packet * packet )
     return 0;
 }
 
-int InternalNode::proc_DataFromDownStream( Packet * packet )
+int InternalNode::proc_DataFromDownStream( Packet& packet )
 {
     mrn_printf( 3, MCFL, stderr, "In internal.proc_DataFromUpStream()\n" );
 
     streammanagerbyid_sync.lock(  );
-    StreamManager *stream_mgr = StreamManagerById[packet->get_StreamId(  )];
+    StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId(  )];
     streammanagerbyid_sync.unlock(  );
 
-    std::vector < Packet * >packets;
+    std::vector < Packet >packets;
 
     stream_mgr->push_packet( packet, packets, true );
     if( !packets.empty(  ) ) {
@@ -209,18 +205,18 @@ int InternalNode::proc_DataFromDownStream( Packet * packet )
 /*===================================================*/
 /*  LocalNode CLASS METHOD DEFINITIONS            */
 /*===================================================*/
-int InternalNode::proc_PacketsFromUpStream( std::list < Packet * >&packets )
+int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
 {
     int retval = 0;
-    Packet *cur_packet;
+    Packet cur_packet;
     StreamManager *stream_mgr;
 
     mrn_printf( 3, MCFL, stderr, "In proc_PacketsFromUpStream()\n" );
 
-    std::list < Packet * >::iterator iter = packets.begin(  );
+    std::list < Packet >::iterator iter = packets.begin(  );
     for( ; iter != packets.end(  ); iter++ ) {
         cur_packet = ( *iter );
-        switch ( cur_packet->get_Tag(  ) ) {
+        switch ( cur_packet.get_Tag(  ) ) {
         case MRN_NEW_SUBTREE_PROT:
             //printf(3, MCFL, stderr, "Calling proc_newSubTree()\n");
             if( proc_newSubTree( cur_packet ) == -1 ) {
@@ -329,18 +325,18 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet * >&packets )
     return retval;
 }
 
-int InternalNode::proc_PacketsFromDownStream( std::list <
-                                              Packet * >&packet_list )
+int InternalNode::proc_PacketsFromDownStream( std::list < Packet >&
+                                              packet_list )
 {
     int retval = 0;
-    Packet *cur_packet;
+    Packet cur_packet;
 
     mrn_printf( 3, MCFL, stderr, "In procPacketsFromDownStream()\n" );
 
-    std::list < Packet * >::iterator iter = packet_list.begin(  );
+    std::list < Packet >::iterator iter = packet_list.begin(  );
     for( ; iter != packet_list.end(  ); iter++ ) {
         cur_packet = ( *iter );
-        switch ( cur_packet->get_Tag(  ) ) {
+        switch ( cur_packet.get_Tag(  ) ) {
         case MRN_RPT_SUBTREE_PROT:
             //printf(3, MCFL, stderr, "Calling proc_newSubTreeReport()\n");
             if( proc_newSubTreeReport( cur_packet ) == -1 ) {
@@ -369,14 +365,11 @@ int InternalNode::proc_PacketsFromDownStream( std::list <
 
         default:
             //Any unrecognized tag is assumed to be data
-            //printf(3, MCFL, stderr, "Calling proc_DataFromDownStream(). Tag: %d\n",
-            //cur_packet->get_Tag());
             if( proc_DataFromDownStream( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "proc_DataFromDownStream() failed\n" );
                 retval = -1;
             }
-            //printf(3, MCFL, stderr, "proc_DataFromDownStream() succeeded\n");
         }
     }
 
@@ -386,7 +379,7 @@ int InternalNode::proc_PacketsFromDownStream( std::list <
     return retval;
 }
 
-int InternalNode::deliverLeafInfoResponse( Packet * pkt )
+int InternalNode::deliverLeafInfoResponse( Packet& pkt )
 {
     int ret = 0;
 
@@ -399,7 +392,7 @@ int InternalNode::deliverLeafInfoResponse( Packet * pkt )
     return ret;
 }
 
-int InternalNode::deliverConnectLeavesResponse( Packet * pkt )
+int InternalNode::deliverConnectLeavesResponse( Packet& pkt )
 {
     int ret = 0;
 

@@ -47,9 +47,9 @@ class RemoteNode:public CommunicationNode{
                         std::string &cmd, std::vector <std::string> &args);
     int accept_Application( int sock_fd );
 
-    int send(Packet *);
+    int send(Packet&);
     int flush();
-    int recv(std::list <Packet *> &); //blocking recv
+    int recv(std::list <Packet> &); //blocking recv
     bool has_data();
     bool is_backend();
     bool is_internal();
@@ -68,7 +68,7 @@ inline int RemoteNode::accept_Application( int connected_sock_fd )
     return accept_Connection( connected_sock_fd, false );    
 }
 
-inline int RemoteNode::recv(std::list <Packet *> &packet_list)
+inline int RemoteNode::recv(std::list <Packet> &packet_list)
 {
     return msg_in.recv(sock_fd, packet_list, this);
 }

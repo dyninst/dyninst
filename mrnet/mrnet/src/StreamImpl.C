@@ -44,10 +44,9 @@ StreamImpl::StreamImpl(Communicator *_comm, int _sync_id,
         }
         mrn_printf(4, 0,0, stderr, "]\n");
 
-        Packet * packet = new Packet(0, MRN_NEW_STREAM_PROT, "%d %ad %d %d %d",
-                                     stream_id, backends, endpoints->size(),
-                                     sync_id,
-                                     ds_filter_id, us_filter_id);
+        Packet packet(0, MRN_NEW_STREAM_PROT, "%d %ad %d %d %d",
+                      stream_id, backends, endpoints->size(),
+                      sync_id, ds_filter_id, us_filter_id);
         StreamManager * stream_mgr;
         stream_mgr = Network::network->front_end->proc_newStream(packet);
         Network::network->front_end->send_newStream(packet, stream_mgr);
@@ -71,8 +70,7 @@ StreamImpl::~StreamImpl()
 int StreamImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
 {
     bool checked_network = false;   // have we checked sockets for input?
-    Packet* cur_packet = NULL;
-
+    Packet cur_packet;
 
     mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
 
@@ -115,13 +113,12 @@ get_packet_from_stream_label:
         } while(start_idx != cur_stream_idx);
     }
 
-    if( cur_packet != NULL ) {
-        *tag = cur_packet->get_Tag();
-        *stream = (*StreamImpl::streams)[cur_packet->get_StreamId()];
-        *ptr = (void *) cur_packet;
-        mrn_printf(4, MCFL, stderr, "cur_packet(%p) tag: %d, fmt: %s\n",
-                   cur_packet, cur_packet->get_Tag(),
-                   cur_packet->get_FormatString() );
+    if( cur_packet != *Packet::NullPacket ) {
+        *tag = cur_packet.get_Tag();
+        *stream = (*StreamImpl::streams)[cur_packet.get_StreamId()];
+        *ptr = (void *) new Packet(cur_packet);
+        mrn_printf(4, MCFL, stderr, "cur_packet tag: %d, fmt: %s\n",
+                   cur_packet.get_Tag(), cur_packet.get_FormatString() );
         return 1;
     }
     else if( blocking || !checked_network ) {
@@ -145,8 +142,8 @@ get_packet_from_stream_label:
 
 int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list )
 {
-    Packet* packet = new Packet(stream_id, tag, fmt, arg_list);
-    if(packet->fail()){
+    Packet packet(stream_id, tag, fmt, arg_list);
+    if(packet.fail()){
         mrn_printf(1, MCFL, stderr, "new packet() fail\n");
         return -1;
     }
@@ -174,7 +171,7 @@ int StreamImpl::send(int tag, char const * fmt, ...)
 
 int StreamImpl::recv(int *tag, void ** ptr, bool blocking)
 {
-    Packet * cur_packet=NULL;
+    Packet cur_packet;
 
     mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
 
@@ -196,11 +193,11 @@ int StreamImpl::recv(int *tag, void ** ptr, bool blocking)
         }
         cur_packet = *( IncomingPacketBuffer.begin() );
         IncomingPacketBuffer.remove(cur_packet);
-        *tag = cur_packet->get_Tag();
-        *ptr = (void *) cur_packet;
+        *tag = cur_packet.get_Tag();
+        *ptr = (void *) new Packet(cur_packet);
     }
 
-    mrn_printf(4, MCFL, stderr, "packet's tag: %d\n", cur_packet->get_Tag());
+    mrn_printf(4, MCFL, stderr, "packet's tag: %d\n", cur_packet.get_Tag());
     mrn_printf(3, MCFL, stderr, "Leaving StreamImpl::recv().\n");
     return 1;
 }

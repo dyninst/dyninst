@@ -11,7 +11,7 @@
 namespace MRN
 {
 
-int Message::recv( int sock_fd, std::list < Packet * >&packets_in,
+int Message::recv( int sock_fd, std::list < Packet >&packets_in,
                    RemoteNode * remote_node )
 {
     int i;
@@ -154,14 +154,14 @@ int Message::recv( int sock_fd, std::list < Packet * >&packets_in,
     //
 
     for( i = 0; i < msg.msg_iovlen; i++ ) {
-        Packet *new_packet = new Packet( msg.msg_iov[i].iov_len,
-                                         ( char * )msg.msg_iov[i].
-                                         iov_base );
-        if( new_packet->fail(  ) ) {
+        Packet new_packet ( msg.msg_iov[i].iov_len,
+                            ( char * )msg.msg_iov[i].
+                            iov_base );
+        if( new_packet.fail(  ) ) {
             mrn_printf( 1, MCFL, stderr, "packet creation failed\n" );
             return -1;
         }
-        new_packet->inlet_node = remote_node;
+        new_packet.set_InletNode( remote_node );
         packets_in.push_back( new_packet );
     }
 
@@ -196,17 +196,17 @@ int Message::send( int sock_fd )
     //Process packets in list to prepare for send()
     packet_sizes = ( uint32_t * ) malloc( sizeof( uint32_t ) * no_packets );
     assert( packet_sizes );
-    std::list < Packet * >::iterator iter = packets.begin(  );
+    std::list < Packet >::iterator iter = packets.begin(  );
     mrn_printf( 3, MCFL, stderr, "Writing %d packets of size: [ ",
                 no_packets );
     int total_bytes = 0;
     for( i = 0; iter != packets.end(  ); iter++, i++ ) {
 
-        Packet *curPacket = *iter;
+        Packet curPacket = *iter;
 
-        iov[i].iov_base = curPacket->get_Buffer(  );
-        iov[i].iov_len = curPacket->get_BufferLen(  );
-        packet_sizes[i] = curPacket->get_BufferLen(  );
+        iov[i].iov_base = curPacket.get_Buffer(  );
+        iov[i].iov_len = curPacket.get_BufferLen(  );
+        packet_sizes[i] = curPacket.get_BufferLen(  );
 
         total_bytes += iov[i].iov_len;
         mrn_printf( 3, 0, 0, stderr, "%d, ", ( int )iov[i].iov_len );
