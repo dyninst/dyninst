@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.150 2004/02/25 04:36:41 schendel Exp $
+ * $Id: inst-x86.C,v 1.151 2004/02/28 00:26:21 schendel Exp $
  */
 
 #include <iomanip>
@@ -81,7 +81,6 @@ class ExpandInstruction;
 class InsertNops;
 
 extern bool relocateFunction(process *proc, instPoint *&location);
-extern void modifyInstPoint(instPoint *&location,process *proc);
 
 extern bool isPowerOf2(int value, int &result);
 void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
@@ -641,7 +640,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 
 #ifdef BPATCH_LIBRARY
    if (BPatch::bpatch->hasForcedRelocation_NP()) {
-      relocatable_ = true;
+      needs_relocation_ = true;
    }
 #endif
 
@@ -723,7 +722,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
             }
 
             // Force relocation when instrumenting function
-            relocatable_ = true;
+            needs_relocation_ = true;
          }
       }
       else if (insn.isLeave())
@@ -852,7 +851,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    unsigned int i;
    for (i=0;i<foo.size();i++) {
       if (_usesTrap(foo[i], funcEntry_, funcReturns) && size() >= 5) {
-         relocatable_ = true;
+         needs_relocation_ = true;
       }
    }
 
@@ -860,14 +859,14 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    // the function 
    if ( !canBeRelocated ) {
       // Function would have needed relocation 
-      if (relocatable_ == true) {
+      if (needs_relocation_ == true) {
 
 #ifdef DEBUG_FUNC_RELOC      
-         cerr << prettyName() << endl;
+         cerr << prettyName().c_str() << endl;
          cerr << "Jump Table: Can't relocate function" << endl;
 #endif
 
-         relocatable_ = false;
+         needs_relocation_ = false;
       }
    }
 
@@ -1945,6 +1944,42 @@ void generateNoOp(process *proc, Address addr)
    proc->writeDataSpace((caddr_t) addr, 5, (caddr_t)jump0);
 }
 
+bool can_do_relocation(process *proc,
+                       const pdvector<pdvector<Frame> > &stackWalks,
+                       pd_Function *instrumented_func)
+{
+   bool can_do_reloc = true;
+
+   // for every vectors of frame, ie. thread stack walk, make sure can do
+   // relocation
+   Address begAddr = instrumented_func->getAddress(proc);
+   for (unsigned walk_itr = 0; walk_itr < stackWalks.size(); walk_itr++) {
+      pdvector<pd_Function *> stack_funcs =
+         proc->pcsToFuncs(stackWalks[walk_itr]);
+
+      // for every frame in thread stack walk
+      for(unsigned i=0; i<stack_funcs.size(); i++) {
+         pd_Function *stack_func = stack_funcs[i];
+         Address pc = stackWalks[walk_itr][i].getPC();
+          
+         if( stack_func == instrumented_func ) {
+            // Catchup doesn't occur on instPoinst in relocated function when
+            // the original function is on the stack.  This leads to the
+            // timer never being called for timer metrics.  A solution still
+            // needs to be worked out.
+            if(pc >= begAddr && pc <= begAddr+JUMP_REL32_SZ) {
+               // can't relocate since within first five bytes
+               can_do_reloc = false;
+            } else if(instrumented_func->hasJumpToFirstFiveBytes()) {
+               can_do_reloc = false;
+            }
+            break;
+         }
+      }
+   }
+         
+   return can_do_reloc;
+}
 
 trampTemplate* findOrInstallBaseTramp(process *proc, 
 			   	       instPoint *&location, 
@@ -1953,57 +1988,83 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
 				       bool noCost,
                                        bool &deferred)
 {
+   //=======================================================================
+   // DUPLICATE CODE IN inst-sparc-solaris.C in findOrInstallBaseTramp
+   // merge these into platform independent code in the (near) future
    trampTemplate *ret;
    retInstance = NULL;
 
-   pd_Function *f = location->pointFunc();
-
+   pd_Function *ptFunc = location->pointFunc();
+   
    // location may not have been updated since relocation of function
-   if (f->needsRelocation() && f->hasBeenRelocated(proc)) {
-      f->modifyInstPoint(const_cast<const instPoint *&>(location), proc);
+   if(ptFunc->hasBeenRelocated(proc) && !location->isRelocatedPointType()) {
+      instPoint *reloc_inst_pt = location->getMatchingRelocInstPoint(proc);
+      location = reloc_inst_pt;
    }
 
-   if (!proc->baseMap.defines(location))
-   {
-      // if function needs relocation  
-      if (f->needsRelocation()) {
-	
-         // if function has not already been relocated
-         if (!f->hasBeenRelocated(proc)) {
-            // if in function don't relocate, defer, but insert traps
-            // then when retrying to relocate, can be in function to relocate
-            bool relocated = f->relocateFunction(proc, location, deferred);
-     
-            // Silence warnings
-            assert(relocated || true);
+   if (proc->baseMap.find(location, ret)) {
+      // This base tramp already exists; nothing to do.
+      return ret;
+   }
+   //=======================================================================
 
-#ifndef BPATCH_LIBRARY
-            if (!relocated) return NULL;
+   //=======================================================================
+   // DUPLICATE CODE IN inst-sparc-solaris.C in findOrInstallBaseTramp
+   // merge these into platform independent code in the (near) future
+   const BPatch_point *old_bppoint = location->getBPatch_point();
+   pdvector<pdvector<Frame> > stackWalks;
+   bool relocated;
+
+   if((! ptFunc->needsRelocation()) || ptFunc->hasBeenRelocated(proc))
+      goto install_base_tramp;
+
+   if (!proc->walkStacks(stackWalks)) return false;
+
+   if(! can_do_relocation(proc, stackWalks, ptFunc)) {
+      deferred = true;
+#ifdef BPATCH_LIBRARY   
+      goto install_base_tramp;  // Dyninst
+#else                   
+      return NULL;              // Paradyn
 #endif
-         }
-      }
-
-      ret = installBaseTramp(location, proc, noCost, trampRecursiveDesired);
-      proc->baseMap[location] = ret;
-
-      // generate branch from instrumentation point to base tramp
-      Address imageBaseAddr;
-      if (!proc->getBaseAddress(location->getOwner(), imageBaseAddr))
-         abort();
-      unsigned char *insn = new unsigned char[JUMP_REL32_SZ];
-      unsigned size = generateBranchToTramp(proc, location, ret->baseAddr, 
-                                            imageBaseAddr, insn, deferred);
-      if (size == 0) {
-         return NULL;
-      }
-      retInstance = new returnInstance(location->insns(), 
-                                       new instruction(insn, 0, size), size,
-                                       location->jumpAddr() + imageBaseAddr, 
-                                       size);
-
-   } else {
-      ret = proc->baseMap[location];
    }
+
+   // instrumenting relocated functions that are long running causes catchup
+   // to not start timer of these functions instrument original function
+   // instead in this case
+   if(ptFunc->is_on_stack(proc, stackWalks) && 
+      ptFunc->think_is_long_running(proc, stackWalks)) {
+      goto install_base_tramp;
+   }
+
+   relocated = ptFunc->relocateFunction(proc, location);
+   if(! relocated) { // try to install original func
+   }
+
+   location->setBPatch_point(old_bppoint);
+   //=======================================================================
+
+
+   install_base_tramp:
+
+   ret = installBaseTramp(location, proc, noCost, trampRecursiveDesired);
+   proc->baseMap[location] = ret;
+   
+   // generate branch from instrumentation point to base tramp
+   Address imageBaseAddr;
+   if (!proc->getBaseAddress(location->getOwner(), imageBaseAddr))
+      abort();
+   unsigned char *insn = new unsigned char[JUMP_REL32_SZ];
+   unsigned size = generateBranchToTramp(proc, location, ret->baseAddr, 
+                                         imageBaseAddr, insn, deferred);
+   if (size == 0) {
+      return NULL;
+   }
+   retInstance = new returnInstance(location->insns(), 
+                                    new instruction(insn, 0, size), size,
+                                    location->jumpAddr() + imageBaseAddr, 
+                                    size);
+   
    return(ret);
 }
 
@@ -4049,7 +4110,7 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
       if ( isTrueCallInsn((const instruction)(*insn)) && 
       get_disp(insn) == 0 && *(p + insnSize) == 0x5b ) {
 
-      relocatable_ = false;
+      needs_relocation_ = false;
 
       delete insn;
       return false;
@@ -5037,68 +5098,6 @@ bool pd_Function::PA_attachGeneralRewrites(
    }
 
    return true;
-}
-
-// modifyInstPoint: if the function associated with the process was 
-// recently relocated, then the instPoint may have the old pre-relocated
-// address (this can occur because we are getting instPoints in mdl routines 
-// and passing these to routines that do the instrumentation, it would
-// be better to let the routines that do the instrumenting find the points)
-
-void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
-    
-   unsigned retId = 0, callId = 0,arbitraryID = 0;
-   bool found = false;
-   if (!call_points_have_been_checked)
-      checkCallPoints();
-
-   if(relocatable_ && !(location->isRelocatedPointType())) {
-      for(u_int i=0; i < relocatedByProcess.size(); i++){
-         if((relocatedByProcess[i])->getProcess() == proc){
-            if(location == funcEntry_){
-               const instPoint *new_entry =
-                  ((relocatedByProcess[i])->funcEntry());
-               location = new_entry;
-            } 
-            else {
-               for(retId=0;retId < funcReturns.size(); retId++) {
-                  if(location == funcReturns[retId]){
-                     const pdvector<instPoint *> new_returns = 
-                        (relocatedByProcess[i])->funcReturns(); 
-                     location = (new_returns[retId]);
-                     found = true;
-                     break;
-                  }
-               }
-               if (found) break;
-         
-               for(callId=0;callId < calls.size(); callId++) {
-                  if(location == calls[callId]){
-                     pdvector<instPoint *> new_calls = 
-                        (relocatedByProcess[i])->funcCallSites(); 
-                     location = (new_calls[callId]);
-                     found = true;
-                     break;
-                  }
-               }
-               if (found) break;
-
-               for(arbitraryID=0; arbitraryID < arbitraryPoints.size(); 
-                   arbitraryID++) 
-               {
-                  if(location == arbitraryPoints[arbitraryID]){
-                     const pdvector<instPoint *> new_arbitrary = 
-                        (relocatedByProcess[i])->funcArbitraryPoints(); 
-                     location = (new_arbitrary[arbitraryID]);
-                     break;
-                  }
-               }
-
-               break;
-            }
-         }
-      }
-   }
 }
 
 /****************************************************************************/
