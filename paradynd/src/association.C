@@ -18,7 +18,10 @@
  * association.C - Manage mapping information (associations)
  *
  * $Log: association.C,v $
- * Revision 1.3  1994/09/22 01:32:26  markc
+ * Revision 1.4  1994/11/02 10:59:43  markc
+ * Replaced string-handles
+ *
+ * Revision 1.3  1994/09/22  01:32:26  markc
  * Made system includes extern"C"
  * Cast args for string functions
  *
@@ -40,13 +43,13 @@ extern "C" {
 #include "dyninstP.h"
 #include "util.h"
 #include "comm.h"
-
-extern pdRPC *tp;
+#include <strstream.h>
+#include "main.h"
 
 void newAssoc(process *proc, char *abstraction, char *type, char *key, 
 	      char *value)
 {
-  caddr_t faddr;
+  unsigned faddr;
   pdFunction *func;
 
   /* 
@@ -59,9 +62,19 @@ void newAssoc(process *proc, char *abstraction, char *type, char *key,
   /* For TCL translate address to name */
   if (strcmp(type, "UserCommand") == 0) {
     /* Translate from string to address */
-    sscanf(value, "%x", (unsigned int *) &faddr);
-    func = findFunctionByAddr(proc->symbols, faddr);
-    strcpy (value, (const char*)func->symTabName);
+    sscanf(value, "%x", &faddr);
+    func = (proc->symbols)->findFunctionByAddr(faddr);
+    // TODO ? correct behavior
+    if (!func)
+      return;
+
+    ostrstream os;
+
+    assert(!(func->getSymbol() == (char*)NULL));
+    os << func->getSymbol() << ends;
+    char *temp = os.str();
+    strcpy (value, temp);
+    delete temp;
   }    
  
   tp->mappingInfoCallback(0, abstraction, type, key, value);
