@@ -124,7 +124,7 @@ unsigned DYNINST_alloc_index(int tid)
     hashed_tid = tid % MAX_NUMBER_OF_THREADS;
     while(DYNINST_indexHash[hashed_tid] != -1) {
         hashed_tid++;
-        if (hashed_tid <= MAX_NUMBER_OF_THREADS)
+        if (hashed_tid == MAX_NUMBER_OF_THREADS)
             hashed_tid -= MAX_NUMBER_OF_THREADS;
     }
     DYNINST_indexHash[hashed_tid] = next_free_index;
@@ -175,20 +175,20 @@ unsigned DYNINST_lookup_index(int tid)
 
 /* A guaranteed-if-there index lookup */
 
-unsigned DYNINSTthreadIndexSLOW(tid)
+unsigned DYNINSTthreadIndexSLOW(int tid)
 {
   unsigned index = -1;
   unsigned hashed_tid;
   unsigned orig_tid;
   hashed_tid = tid % MAX_NUMBER_OF_THREADS;
   orig_tid = hashed_tid;
-  
+
   while(1) {
       index = DYNINST_indexHash[hashed_tid];
-      if ((index >= 0) &&
-          (RTsharedData.indexToThread[index] == tid))
-          /* Found it */
+      if ((index >= 0) && (RTsharedData.indexToThread[index] == tid)) {
+         /* Found it */
           break;
+      }
       hashed_tid++;
       if (hashed_tid >= MAX_NUMBER_OF_THREADS)
           hashed_tid -= MAX_NUMBER_OF_THREADS;
@@ -198,5 +198,6 @@ unsigned DYNINSTthreadIndexSLOW(tid)
       }
       
   }
+
   return index;
 }
