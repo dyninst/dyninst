@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.19 2000/03/13 00:17:48 hollings Exp $
+# $Id: make.module.tmpl,v 1.20 2000/03/13 16:23:57 paradyn Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -15,9 +15,7 @@ DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGETS        = test1 
-
-TEMP = test1 test2 test3 test4 \
+TARGETS        = test1 test2 test3 test4 \
 		 test1.mutatee_gcc \
 		 test2.mutatee_gcc \
 		 test3.mutatee_gcc \
