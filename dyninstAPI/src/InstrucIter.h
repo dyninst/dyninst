@@ -152,6 +152,7 @@ public:
         instPtr = mod->exec()->getPtrToInstruction( func->get_address() );
         insn.getNextInstruction( instPtr );
 #endif
+        
     }
         
    InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
@@ -193,11 +194,11 @@ public:
     //used by findInstPoints
     InstrucIter( Address addr, Address base,  image* img, 
                  bool useRelativeAddr = true ) :
+        addressImage( img ),
+        baseAddress( base ),
         currentAddress( addr )
     {
 #if defined(arch_x86) || defined(arch_x86_64)
-        addressImage = img;
-        baseAddress = base;
         instPtr = img->getPtrToInstruction( addr );
         insn.getNextInstruction( instPtr );        
 #endif   
@@ -281,6 +282,7 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
   bool isACondBranchInstruction();
   bool isAJumpInstruction();
   bool isACallInstruction();
+  bool isADynamicCallInstruction();
   bool isAnneal();
   bool isStackFramePreamble();
   bool isFramePush();

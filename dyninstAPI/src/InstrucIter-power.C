@@ -124,15 +124,73 @@ bool InstrucIter::isAJumpInstruction()
   */
 bool InstrucIter::isACallInstruction()
 {
+
+    //cerr << currentAddress << endl;
+    const instruction i = getInstruction();
+    //const instruction i = getInstruction();
+#define CALLmatch 0x48000001 /* bl */
+        
+    // Only look for 'bl' instructions for now, although a branch
+    // could be a call function, and it doesn't need to set the link
+    // register if it is the last function call
+    //cerr << currentAddreOPmask << endl;
+
+    return (isInsnType(i, OPmask | AALKmask, CALLmatch));
+    
+/*
   const instruction i = getInstruction();
-	if(i.iform.lk && 
+  if(i.iform.lk && 
 	   ((i.iform.op == Bop) || (i.bform.op == BCop) ||
-	    ((i.xlform.op == BCLRop) && 
-	     ((i.xlform.xo == 16) || (i.xlform.xo == 528))))){
-		return true;
-	}
-	return false;
+       ((i.xlform.op == BCLRop) && 
+       ((i.xlform.xo == 16) || (i.xlform.xo == 528))))){
+       return true;
+       }
+       return false;
+
+*/
 }
+bool InstrucIter::isADynamicCallInstruction()
+{
+// I'm going to break this up a little so that I can comment
+    // it better. 
+    
+    const instruction i = getInstruction();
+
+  if (i.xlform.op == BCLRop && i.xlform.xo == BCLRxop)
+    {
+      if (i.xlform.lk)
+	// Type one: Branch-to-LR, save PC in LR
+	// Standard function pointer call
+	return true;
+      else
+	// Type two: Branch-to-LR, don't save PC
+	// Haven't seen one of these around
+	// It would be a return instruction, probably
+	{
+	  return false;
+	}
+    }
+  if (i.xlform.op == BCLRop && i.xlform.xo == BCCTRxop)
+    {
+      if (i.xlform.lk)
+	// Type three: Branch-to-CR, save PC
+	{
+	  return true;
+	}
+      else
+	// Type four: Branch-to-CR, don't save PC
+	// Used for global linkage code.
+	// We handle those elsewhere.
+	{
+	  return true;
+	}
+    }
+  return false;
+
+
+}
+
+
 bool InstrucIter::isAnneal(){
   return true;
 }
@@ -290,7 +348,11 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
     }
     else if(op == STDop) {
       logIS_A("IS_A: std-stdu");
+      cerr << "****" << i.dsform.xo << endl; 
       assert(i.dsform.xo < 2);
+      
+      
+
       return MK_SDS(8, i);
     }
     else
@@ -360,20 +422,20 @@ Address InstrucIter::getBranchTargetAddress(Address pos)
 
 void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 {
-	(*this)--;
-	Address initialAddress = currentAddress;
+    Address initialAddress = currentAddress;
 	Address TOC_address = (addressImage->getObject()).getTOCoffset();
 
 	instruction check;
 
 	// If there are no prior instructions then we can't be looking at a
 	// jump through a jump table.
-	if (!hasPrev()) {
+	if( !hasPrev() ) 
+    {
 		result += (initialAddress + sizeof(instruction));
 		return;
 	}
-
-	// Check if the previous instruction is a move to CTR or LR;
+    
+    // Check if the previous instruction is a move to CTR or LR;
 	// if it is, then this is the pattern we're familiar with.  The
 	// register being moved into CTR or LR has the address to jump to.
 	(*this)--;
@@ -387,7 +449,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 		return;
 	}
 
-	// In the pattern we've seen, if the instruction previous to this is
+    // In the pattern we've seen, if the instruction previous to this is
 	// an add with a result that ends up being used as the jump address,
 	// then we're adding a relative value we got from the table to a base
 	// address to get the jump address; in other words, the contents of
@@ -397,7 +459,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 		(*this)--;
 		check = getInstruction();
 		if (check.xoform.op == CAXop && check.xoform.xo == CAXxop &&
-		    check.xoform.rt == jumpAddrReg)
+		    check.xoform.rt == (unsigned)jumpAddrReg)
 			tableIsRelative = true;
 		else
 			(*this)++;
@@ -408,7 +470,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	Address tableStartAddress = 0;
 
 	if (tableIsRelative) {
-		while(hasMore()){
+		while( hasPrev() ){
 			check = getInstruction();
 			if((check.dform.op == Lop) && (check.dform.ra == 2)){
 				jumpStartAddress = 
@@ -433,17 +495,17 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 		}
 	} else {
 		bool foundAdjustEntry = false;
-		while(hasMore()){
+		while( hasPrev() ){
 			check = getInstruction();
 			if(check.dform.op == CALop &&
-			   check.dform.rt == jumpAddrReg &&
+			   check.dform.rt == (unsigned)jumpAddrReg &&
 			   !foundAdjustEntry){
 				foundAdjustEntry = true;
 				adjustEntry = check.dform.d_or_si;
 				jumpAddrReg = check.dform.ra;
 			} else if(check.dform.op == Lop &&
 				  check.dform.ra == 2 &&
-				  check.dform.rt == jumpAddrReg){
+				  check.dform.rt == (unsigned)jumpAddrReg){
 				tableStartAddress = 
 				    (Address)(TOC_address + check.dform.d_or_si);
 				break;
@@ -452,9 +514,11 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 		}
 	}
 
+
 	setCurrentAddress(initialAddress);
 	int maxSwitch = 0;
-	while(hasMore()){
+  
+	while( hasPrev() ){
 		instruction check = getInstruction();
 		if((check.bform.op == BCop) && 
 	           !check.bform.aa && !check.bform.lk){
@@ -467,7 +531,8 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 		}
 		(*this)--;
 	}
-	if(!maxSwitch){
+	
+    if(!maxSwitch){
 		result += (initialAddress + sizeof(instruction));
 		return;
 	}
@@ -482,6 +547,8 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 		int jumpOffset = (int)addressImage->get_instruction(tableEntry);
 		result += (Address)(jumpStart+jumpOffset);
 	}
+
+
 }
 
 bool InstrucIter::delayInstructionSupported()
@@ -491,6 +558,7 @@ bool InstrucIter::delayInstructionSupported()
 
 bool InstrucIter::hasMore()
 {
+    return true;
 	if((currentAddress < (baseAddress + range )) &&
 	   (currentAddress >= baseAddress))
 		return true;
@@ -499,9 +567,14 @@ bool InstrucIter::hasMore()
 
 bool InstrucIter::hasPrev()
 {
-    if((currentAddress < (baseAddress + range )) &&
-       (currentAddress > baseAddress))
+    
+    if( currentAddress > baseAddress )
+    //if((currentAddress < (baseAddress + range )) &&
+    // (currentAddress > baseAddress))
 	return true;
+
+    //cerr << "hasprev" << std::hex << currentAddress 
+    //   << " "  << baseAddress << " "  << range << endl;
     return false;
 }
 
@@ -557,9 +630,10 @@ Address InstrucIter::operator--()
 
 Address InstrucIter::operator++(int)
 {
+    
 	Address ret = currentAddress;
 	currentAddress += sizeof(instruction);
-	return ret;
+    return ret;
 }
 
 Address InstrucIter::operator--(int)

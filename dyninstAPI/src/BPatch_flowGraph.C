@@ -608,10 +608,9 @@ BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 //to insert all entry basic blocks to the esrelevant field of the class.
 bool BPatch_flowGraph::createBasicBlocks()
 { 
+#if defined(arch_x86) || defined(arch_x86_64) || defined(rs6000_ibm_aix4_1)
 
-#if defined( arch_x86 ) || defined( arch_x86_64 )
- 
-    pdvector<BPatch_basicBlock *> *blocks = func->blocks();
+    pdvector< BPatch_basicBlock* >* blocks	= func->blocks();
     
     unsigned int size = blocks->size();     
     for( unsigned int ii = 0; ii < size; ii++ )
@@ -986,7 +985,7 @@ BPatch_flowGraph::createSourceBlocksInt()
    for (i = 0; i < appModules->size(); i++) {
       pdmodule* tmp = (pdmodule *)(*appModules)[i];
       LineInformation* lineInfo = tmp->getLineInformation(proc);
-
+ 
       //cerr << "module " << tmp->fileName() << endl;
 
       if (!lineInfo) {

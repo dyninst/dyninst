@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.37 2004/07/23 18:46:34 jodom Exp $
+// $Id: Object-xcoff.C,v 1.38 2005/02/24 23:21:05 lharris Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -368,6 +368,8 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
    long i,j;
    int cnt;
    pdstring name;
+   bool foundMain = false;
+   bool foundStart = false;
    unsigned value;
    int poolOffset;
    int poolLength;
@@ -437,10 +439,14 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
    cnt = read(fd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
    if ((unsigned) cnt != sizeof(struct scnhdr)* hdr.f_nscns)
      PARSE_AOUT_DIE("Reading section headers", 49);
-   if (!seekAndRead(fd, hdr.f_symptr + offset, (void**) &symbols, 
-                    hdr.f_nsyms * SYMESZ, true))
-     PARSE_AOUT_DIE("Reading symbol table", 49);
-
+   
+   if( hdr.f_symptr )
+   {
+       //if binary is not stripped 
+       if (!seekAndRead(fd, hdr.f_symptr + offset, (void**) &symbols, 
+                        hdr.f_nsyms * SYMESZ, true))
+           PARSE_AOUT_DIE("Reading symbol table", 49);
+   }
    // Consistency check
    if ((unsigned) aout.text_start != sectHdr[aout.o_sntext-1].s_paddr)
      PARSE_AOUT_DIE("Checking text address", 49);
@@ -451,48 +457,54 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
    if ((unsigned long) aout.dsize != sectHdr[aout.o_sndata-1].s_size)
      PARSE_AOUT_DIE("Checking data size", 49);
 
-   /*
+    /*
     * Get the pdstring pool, if there is one
     */
    stringPool = NULL;
-   if (hdr.f_nsyms) {
-     poolOffset = hdr.f_symptr + hdr.f_nsyms * SYMESZ;
-     /* length is stored in the first 4 bytes of the string pool */
-     if (!seekAndRead(fd, poolOffset + offset, (void**) &lengthPtr, sizeof(int), false))
-       PARSE_AOUT_DIE("Reading string pool size", 49);
-     if (poolLength > 0) {
-       if (!seekAndRead(fd, poolOffset + offset, (void**) &stringPool, poolLength, true)) 
-	 PARSE_AOUT_DIE("Reading string pool", 49);
-     }
+   if( hdr.f_nsyms ) 
+   {
+       poolOffset = hdr.f_symptr + hdr.f_nsyms * SYMESZ;
+       /* length is stored in the first 4 bytes of the string pool */
+       if(!seekAndRead(fd, poolOffset + offset, (void**) &lengthPtr, 
+                       sizeof(int), false))
+           PARSE_AOUT_DIE("Reading string pool size", 49);
+       if( poolLength > 0 ) 
+       {
+           if (!seekAndRead(fd, poolOffset + offset, (void**) &stringPool, 
+                            poolLength, true)) 
+               PARSE_AOUT_DIE("Reading string pool", 49);
+       }
    }
-
+   
    /* find the text section such that we access the line information */
    for (i=0; i < hdr.f_nscns; i++)
-     if (sectHdr[i].s_flags & STYP_TEXT) {
-       nlines = sectHdr[i].s_nlnno;
-       
-       /* if there is overflow in the number of lines */
-       if (nlines == 65535)
-	 for (j=0; j < hdr.f_nscns; j++)
-	   if ((sectHdr[j].s_flags & STYP_OVRFLO) &&
-	       (sectHdr[j].s_nlnno == (i+1))){
-	     nlines = (unsigned int)(sectHdr[j].s_vaddr);
-	     break;
-	   }
-
-       /* There may not be any line information. */
-       if (nlines == 0)
-	 continue;
-       
-       /* read the line information table */
-       if (!seekAndRead(fd,sectHdr[i].s_lnnoptr + offset,(void**) &lines,
-			nlines*LINESZ,true))
-	 PARSE_AOUT_DIE("Reading line information table", 49);
-
-       linesfdptr = sectHdr[i].s_lnnoptr;
-       break;
-     }
-
+   {
+       if (sectHdr[i].s_flags & STYP_TEXT) {
+           nlines = sectHdr[i].s_nlnno;
+           
+           /* if there is overflow in the number of lines */
+           if (nlines == 65535)
+               for (j=0; j < hdr.f_nscns; j++)
+                   if ((sectHdr[j].s_flags & STYP_OVRFLO) &&
+                       (sectHdr[j].s_nlnno == (i+1))){
+                       nlines = (unsigned int)(sectHdr[j].s_vaddr);
+                       break;
+                   }
+           
+           /* There may not be any line information. */
+           if (nlines == 0)
+               continue;
+           
+           /* read the line information table */
+           if (!seekAndRead(fd,sectHdr[i].s_lnnoptr + offset,(void**) &lines,
+                            nlines*LINESZ,true))
+               PARSE_AOUT_DIE("Reading line information table", 49);
+           
+           linesfdptr = sectHdr[i].s_lnnoptr;
+           break;
+       }
+   }
+     
    // Dyninst/Paradyn meanings
    // code_ptr_: location where mutator has the text segment in memory
    // text_reloc: that + value will get you a cup of coffee... the location in
@@ -609,25 +621,33 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
 
    // Find the debug symbol table.
    for (i=0; i < hdr.f_nscns; i++)
-     if (sectHdr[i].s_flags & STYP_DEBUG) {
-	 foundDebug = true;
-	 break;
+   {
+       if (sectHdr[i].s_flags & STYP_DEBUG) 
+       {
+           foundDebug = true;
+           break;
        }
-
-   if (foundDebug) 
-     {
+   }
+   if( foundDebug ) 
+   {
        stabs_ = (long unsigned int) symbols;
        nstabs_ = hdr.f_nsyms;
        stringpool_ = (long unsigned int) stringPool;
-       if (!seekAndRead(fd, roundup4(sectHdr[i].s_scnptr + offset),
-			(void **) &stabstr_, sectHdr[i].s_size, true))
-	 PARSE_AOUT_DIE("Reading initialized debug section", 49);
+       
+
+       if( hdr.f_nsyms )
+       {
+           if (!seekAndRead(fd, roundup4(sectHdr[i].s_scnptr + offset),
+                            (void **) &stabstr_, sectHdr[i].s_size, true))
+               PARSE_AOUT_DIE("Reading initialized debug section", 49);
+       }
+
        linesptr_ = (long unsigned int) lines;
        nlines_ = (int)nlines; 
        linesfdptr_ = linesfdptr;
    }
    else
-     {
+   {
        // Not all files have debug information. Libraries tend not to.
        stabs_ = 0;
        nstabs_ = 0;
@@ -636,15 +656,16 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
        linesptr_ = 0;
        nlines_ = 0;
        linesfdptr_ = 0;
-     }
-
+   }
+   
    // At this point, check to see if our memory (*_org_) values are
    // valid. If not, break -- there's only so much you can do, and
    // reading blind into memory doesn't count.
    if (text_org_ == (unsigned) -1) goto cleanup;
 
    // Now the symbol table itself:
-   for (i=0; i < hdr.f_nsyms; i++) {
+   for (i=0; i < hdr.f_nsyms; i++) 
+   {
      /* do the pointer addition by hand since sizeof(struct syment)
       *   seems to be 20 not 18 as it should be */
      sym = (struct syment *) (((unsigned) symbols) + i * SYMESZ);
@@ -783,6 +804,10 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
            continue;
        
        
+       if( name == "main" )
+           foundMain = true;
+       if( name == "_start" )
+           foundStart = true;
 
        Symbol sym(name, modName, type, linkage, value, false, size);
        
@@ -850,6 +875,75 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
          continue;
      }
    }
+   
+   if( !foundMain && is_aout )
+   {
+       //we havent found a symbol for main therefore we have to parse _start
+       //to find the address of main
+
+       //last two calls in _start are to main and exit
+       //find the end of _start then back up to find the target addresses
+       //for exit and main
+      
+       int c;
+       instruction i;
+       int calls = 0;
+       
+       for( c = 0; code_ptr_[ c ] != 0; c++ );
+
+       while( c > 0 )
+       {
+           i.raw = code_ptr_[ c ];
+
+           if(i.iform.lk && 
+              ((i.iform.op == Bop) || (i.bform.op == BCop) ||
+               ((i.xlform.op == BCLRop) && 
+                ((i.xlform.xo == 16) || (i.xlform.xo == 528)))))
+           {
+               calls++;
+               if( calls == 2 )
+                   break;
+           }
+           c--;
+       }
+       
+       Address currAddr = aout.text_start + c * sizeof( instruction );
+       Address mainAddr = 0;
+       
+       if( ( i.iform.op == Bop ) || ( i.bform.op == BCop ) )
+       {
+           int  disp = 0;
+           if(i.iform.op == Bop)
+           {
+               disp = i.iform.li;
+           }
+           else if(i.bform.op == BCop)
+           {
+               disp = i.bform.bd;
+           }
+
+           disp <<= 2;
+
+           if(i.iform.aa)
+           {
+               mainAddr = (Address)disp;
+           }
+           else
+               mainAddr = (Address)( currAddr + disp );      
+       }  
+
+       Symbol sym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
+                   Symbol::SL_GLOBAL, mainAddr, 0, (unsigned) -1 );
+      
+       symbols_[ "main" ] = sym;
+   
+       //since we are here make up a sym for _start as well
+
+       Symbol sym1( "__start", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
+                   Symbol::SL_GLOBAL, aout.text_start, 0, (unsigned) -1 );
+       symbols_[ "__start" ] = sym1;       
+   }
+
    // We grab the space at the end of the various objects to use as
    // trampoline space. This allows us to instrument those objects 
    // (reasonably) safely.

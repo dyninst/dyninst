@@ -1,4 +1,4 @@
-/*
+  /*
  * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.212 2005/02/17 02:16:21 rutar Exp $
+ * $Id: inst-power.C,v 1.213 2005/02/24 23:21:06 lharris Exp $
  */
 
 #include "common/h/headers.h"
@@ -65,7 +65,7 @@
 #include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
-
+#include "dyninstAPI/src/InstrucIter.h"
 #include "dyninstAPI/src/rpcMgr.h"
 
 #include <sstream>
@@ -302,12 +302,12 @@ instPoint::instPoint(int_function *f, const instruction &instr,
 
 bool isCallInsn(const instruction i)
 {
-  #define CALLmatch 0x48000001 /* bl */
-
-  // Only look for 'bl' instructions for now, although a branch
-  // could be a call function, and it doesn't need to set the link
-  // register if it is the last function call
-  return(isInsnType(i, OPmask | AALKmask, CALLmatch));
+#define CALLmatch 0x48000001 /* bl */
+    
+    // Only look for 'bl' instructions for now, although a branch
+    // could be a call function, and it doesn't need to set the link
+    // register if it is the last function call
+    return(isInsnType(i, OPmask | AALKmask, CALLmatch));
 }
 
 // Determine if the called function is a "library" function or a "user" function
@@ -3494,305 +3494,335 @@ int getInsnCost(opCode op)
 
 bool isDynamicCall(const instruction i)
 {
-  // I'm going to break this up a little so that I can comment
-  // it better. 
-
-  if (i.xlform.op == BCLRop && i.xlform.xo == BCLRxop)
+    // I'm going to break this up a little so that I can comment
+    // it better. 
+    
+    if (i.xlform.op == BCLRop && i.xlform.xo == BCLRxop)
     {
-      if (i.xlform.lk)
-	// Type one: Branch-to-LR, save PC in LR
-	// Standard function pointer call
-	return true;
-      else
-	// Type two: Branch-to-LR, don't save PC
-	// Haven't seen one of these around
-	// It would be a return instruction, probably
-	{
-	  return false;
-	}
+        if (i.xlform.lk)
+            // Type one: Branch-to-LR, save PC in LR
+            // Standard function pointer call
+            return true;
+        else
+            // Type two: Branch-to-LR, don't save PC
+            // Haven't seen one of these around
+            // It would be a return instruction, probably
+        {
+            return false;
+        }
     }
-  if (i.xlform.op == BCLRop && i.xlform.xo == BCCTRxop)
+    if (i.xlform.op == BCLRop && i.xlform.xo == BCCTRxop)
     {
-      if (i.xlform.lk)
-	// Type three: Branch-to-CR, save PC
-	{
-	  return true;
-	}
-      else
-	// Type four: Branch-to-CR, don't save PC
-	// Used for global linkage code.
-	// We handle those elsewhere.
-	{
-	  return true;
-	}
+        if (i.xlform.lk)
+            // Type three: Branch-to-CR, save PC
+        {
+            return true;
+        }
+        else
+            // Type four: Branch-to-CR, don't save PC
+            // Used for global linkage code.
+            // We handle those elsewhere.
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool int_function::findInstPoints(const image *i_owner)
+{
+    if( parsed_ ) 
+    {
+        fprintf(stderr, "Error: multiple call of findInstPoints\n");
+        return false;
+    } 
+    parsed_ = true;
+
+    makesNoCalls_ = true;
+    noStackFrame = true;
+    int insnSize = sizeof( instruction );
+    image *owner = const_cast<image *>(i_owner);
+    BPatch_Set< Address > leaders;
+    dictionary_hash< Address, BPatch_basicBlock* > leadersToBlock( addrHash );
+       
+    Address funcBegin = getAddress( 0 );
+    Address funcEnd = funcBegin;
+
+    instruction instr;
+    instr.raw = owner->get_instruction( funcBegin );
+
+    if (!IS_VALID_INSN(instr)) 
+    {
+        isInstrumentable_ = false;
+        return false;
+    }
+
+    //define entry instpoint 
+    funcEntry_ = new instPoint( this, instr, owner, funcBegin, 
+                               true, functionEntry );
+    assert( funcEntry_ );
+    
+    InstrucIter ah( funcBegin, funcBegin, owner );
+    Address currAddr = funcBegin;
+    
+    instruction retInsn;
+    retInsn.raw = 0;
+    funcReturns.push_back( new instPoint( this, retInsn, owner, 
+                                          funcBegin + get_size() - insnSize,
+                                          false, functionExit));
+    
+    instr.raw = owner->get_instruction( currAddr );
+    for (unsigned i = 0; i < 10; i++) 
+    {
+        if ((instr.dform.op == STUop) &&
+            (instr.dform.rt == 1) &&
+            (instr.dform.ra == 1)) 
+        {
+            noStackFrame = false;
+        }
+        if (instr.raw == MFLR0raw) 
+        {
+            makesNoCalls_ = false;
+        }
+        currAddr += insnSize;
+        instr.raw = owner->get_instruction( currAddr );
+    }
+ 
+    //find all the basic blocks and define the instpoints for this function
+    BPatch_Set< Address > visited;
+    pdvector< Address > jmpTargets;
+    jmpTargets.push_back( funcBegin );
+
+    //entry basic block
+    leaders += funcBegin;
+    leadersToBlock[ funcBegin ] = new BPatch_basicBlock;
+    leadersToBlock[ funcBegin ]->setRelStart( funcBegin );
+    leadersToBlock[ funcBegin ]->isEntryBasicBlock = true;
+    blockList->push_back( leadersToBlock[ funcBegin ] );
+    jmpTargets.push_back( funcBegin );
+    
+    for( unsigned i = 0; i < jmpTargets.size(); i++ )
+    {
+         InstrucIter ah( jmpTargets[ i ], funcBegin, owner );
+         BPatch_basicBlock* currBlk = leadersToBlock[ jmpTargets[ i ] ];
+        
+         while( true )
+         {
+             currAddr = *ah;
+             if( visited.contains( currAddr ) )
+                 break;
+             else
+                 visited += currAddr;
+
+             if( ah.isACondBranchInstruction() )
+             {
+                 currBlk->setRelLast( currAddr );
+                 currBlk->setRelEnd( currAddr + insnSize );
+                 if( currAddr >= funcEnd )
+                     funcEnd = currAddr + insnSize;
+                 
+                 Address target = ah.getBranchTargetAddress( currAddr );
+                 if( target < funcBegin )
+                 {
+                     currBlk->setExitBlock( true );
+                 }
+                 else
+                 {
+                     jmpTargets.push_back( target );
+                     
+                     //check if a basicblock object has been 
+                     //created for the target
+                     if( !leaders.contains( target ) )
+                     {
+                         //if not, then create one
+                         leadersToBlock[ target ] = new BPatch_basicBlock;
+                         leaders += target;
+                         blockList->push_back( leadersToBlock[ target ] );
+                     }
+                     leadersToBlock[ target ]->setRelStart( target );	
+                     leadersToBlock[ target ]->addSource( currBlk );
+                     currBlk->addTarget( leadersToBlock[ target ] );
+                 }            
+                
+                 Address t2 = currAddr + insnSize;
+                 jmpTargets.push_back( t2 );
+                 if( !leaders.contains( t2 ) )
+                 {
+                     leadersToBlock[ t2 ] = new BPatch_basicBlock;
+                     leaders += t2;
+                     blockList->push_back( leadersToBlock[ t2 ] );
+                 }                 
+                 leadersToBlock[ t2 ]->setRelStart( t2 );
+                 leadersToBlock[ t2 ]->addSource( currBlk );
+                 currBlk->addTarget( leadersToBlock[ t2 ] );
+                 break;
+             }
+             else if( ah.isAReturnInstruction() ||
+                      ah.getInstruction().raw == 0x0 )
+             {
+                 //we catch exits by overwriting the return address
+                 //we therefore do not need to make exit instPoints
+                 currBlk->setRelLast( currAddr );
+                 currBlk->setRelEnd( currAddr + insnSize );
+                 currBlk->isExitBasicBlock = true;
+                 
+                 if( currAddr >= funcEnd )
+                     funcEnd = currAddr + insnSize;
+                 break;
+             }
+             else if( ah.isAIndirectJumpInstruction( ah ) )
+             {
+                 InstrucIter ah2( ah );
+                 currBlk->setRelLast( currAddr );
+                 currBlk->setRelEnd( currAddr + insnSize );
+                 
+                 if( currAddr >= funcEnd )
+                     funcEnd = currAddr + insnSize;
+                 
+                 BPatch_Set< Address > res;              
+                 ah2.getMultipleJumpTargets( res );
+                                  
+                 BPatch_Set< Address >::iterator iter;
+                 iter = res.begin();
+
+                 while( iter != res.end() )
+                 {
+                     if( *iter < funcBegin )
+                     {
+                         currBlk->isExitBasicBlock = true;
+                     }
+                     else
+                     {
+                         if( !leaders.contains( *iter ) )
+                         {
+                             leadersToBlock[ *iter ] = new BPatch_basicBlock;
+                             leadersToBlock[ *iter ]->setRelStart( *iter );
+                             leaders += *iter;
+
+                             jmpTargets.push_back( *iter );
+                             blockList->push_back( leadersToBlock[ *iter] );
+                         }                        
+                         currBlk->addTarget( leadersToBlock[ *iter ] );
+                         leadersToBlock[ *iter ]->addSource( currBlk );
+                     }
+                     iter++;
+                 }                 
+                 break;
+             }             
+             else if( ah.isAJumpInstruction() )
+             {
+                 currBlk->setRelLast( currAddr );
+                 currBlk->setRelEnd( currAddr + insnSize );
+                 
+                 if( currAddr >= funcEnd )
+                     funcEnd = currAddr + insnSize;
+                
+                 Address target = ah.getBranchTargetAddress( *ah );
+
+                 if( target < funcBegin )
+                 {
+                     currBlk->setExitBlock( true );
+                 }
+                 else
+                 {
+                     jmpTargets.push_back( target );
+                     //check if a basicblock object has been 
+                     //created for the target
+                     if( !leaders.contains( target ) )
+                     {
+                         //if not, then create one
+                         leadersToBlock[ target ] = new BPatch_basicBlock;
+                         leaders += target;
+                         blockList->push_back( leadersToBlock[ target ] );
+                     }                     
+                     leadersToBlock[ target ]->setRelStart( target );	
+                     leadersToBlock[ target ]->addSource( currBlk );
+                     currBlk->addTarget( leadersToBlock[ target ] );
+                 }                 
+                 break;                 
+             }
+             else if( ah.isACallInstruction() || 
+                      ah.isADynamicCallInstruction())
+             {
+                 instr = ah.getInstruction();
+                 bool err;
+                 newCallPoint( currAddr, instr, owner, err);  
+                 
+                 if( err )
+                 {
+                     isInstrumentable_ = false;
+                     return false;
+                 }
+             }            
+             ah++;
+         }                   
     }
     
-  else if (i.xlform.op == Bop) {
-      /// Why didn't we catch this earlier? In any case, don't print an error
-
-      // I have seen this legally -- branches to the FP register saves.
-      // Since we ignore the save macros, we have no idea where the branch
-      // goes. For now, return true -- means no error.
-
-      //return true;
-
-      //  since we do not fill in args array, return false ??
-
-
-      //  This is a dynamic call site, but we cannot handle it
-     //fprintf(stderr, "%s[%d]:  FP register dynamic call site encountered, ignoring...\n",
-      //       __FILE__, __LINE__);
-      return false;
-  }
-  return false;
-}
-
-/* ************************************************************************
-   --  This function, isReturnInsn, is no longer needed.  -- sec
-
-// Check for a real return instruction.  Unfortunatly, on RS6000 there are
-//    several factors that make this difficult:
-//
-//    br - is the "normal" return instruction
-//    b <cleanupRoutine> is sometimes used to restore fp state.
-//    bctr - can be used, but it is also the instruction used for jump tables.
-//  
-//    However, due to the traceback table convention the instruction after 
-//    a real return is always all zeros (i.e. the flag for the start of a
-//    tracback record).
-//    Also, jump tables never seem to have a 0 offset so the sequence:
-//		bctr
-//		.long 0
-//    doesn't ever appear in a case statement.
-//
-//    We use the following heuristics.  
-//        1.) Any br is a return from function
-//        2.) bctr or b insn followed by zero insn is a return from a function.
-//
-// WARNING:  We use the heuristic that any return insns followed by a 0
-//   is the last return in the current function.
-//
-bool isReturnInsn(const image *owner, Address adr)
-{
-  bool        ret;
-  instruction instr;
-  instruction nextInstr;
-
-#ifdef ndef
-  // Currently there is a problem with finding the return insn on AIX,
-  // which was found once we started using xlc to compile programs
-  // xlc uses a br branch to branch inside the function, in addition with
-  // optmize flags, xlc using conditional branch returns; a conditional branch
-  // which could branch to somewhere inside of the function or leave the
-  // function we are working on a new way to handle this, but for it has not
-  // been implemented, tested, etc. as of now, so it is not here.
-  // if you have any questins, contact sec@cs.wisc.edu
-
-  // Finding a return instruction is becomming harder then predicted,
-  // right now be safe and allow a bctr or br followed by a 
-  // 0, raw, instruction--won't always work, but will never fail
-  // this will be fixed soon, being worked on now...  -- sec
-  instr.raw = owner->get_instruction(adr);
-  nextInstr.raw = owner->get_instruction(adr+4);
-  if(isInsnType(instr, FULLmask, BRraw) ||
-     isInsnType(instr, FULLmask, BCTRraw)) {     // bctr, br, or b
-    if(nextInstr.raw == 0) {
-      ret = true;
-    } else {
-      ret = false;
+    VECTOR_SORT( calls, instPointCompare );
+    //check if basic blocks need to be split   
+    VECTOR_SORT( (*blockList), basicBlockCompare );
+     
+    //maybe BPatch_flowGraph.C would be a better home for this bit of code?
+    for( unsigned int iii = 0; iii < blockList->size(); iii++ )
+    {
+        (*blockList)[iii]->blockNumber = iii;
     }
-  } else {
-    ret = false;
-  }
-#else
-  instr.raw = owner->get_instruction(adr);
-  nextInstr.raw = owner->get_instruction(adr+4);
   
-  if(isInsnType(instr, FULLmask, BRraw)) {      // br instruction
-    ret = true;
-  } else if (isInsnType(instr, FULLmask, BCTRraw) ||
-	     isInsnType(instr, Bmask, Bmatch)) {  // bctr or b 
-    if (nextInstr.raw == 0) {
-      ret = true;
-    } else {
-      ret = false;
-    }
-  } else {
-    ret = false;
-  }
-#endif
-
-  return ret;
-}
- * ************************************************************************ */
-
-bool isReturnInsnBLR(instruction instr) 
-{
-//  JAW -- not sure if this is a good idea.  At present, it seems as if the
-//  AIX libc return convention is to use "blr" as a return -- ie branch link reg.
-//  As noted above, however, this is not the only mechanism used for returns.
-//  Its OK if this function produces an incomplete set of exit points.  Problems
-//  arise, however, if 'blr' is used for non-return branches and we misinterpret
-//  some harmless jump as a call to "return".
- 
- bool ret = false;
- if(isInsnType(instr, FULLmask, BRraw))       // brl instruction
-    ret = true;
- return ret;
-}
-
-bool int_function::findInstPoints(const image *owner) 
-{  
-  parsed_ = true;
-
-  Address adr = getAddress(0);
-  Address preamble_adr = adr;
-  Address canonical_return_address;
-  instruction instr;
-  bool err;
-
-  bool is_in_libc = false;
-  pdstring modname = pdmod()->fileName();
-  if (modname.suffixed_by("libc.a"))
-    is_in_libc = true;
-
-  instr.raw = owner->get_instruction(adr);
-  if (!IS_VALID_INSN(instr)) {
-      goto set_uninstrumentable;
-  }
-
-  // This is for stack walks. If we don't make any calls, then we never
-  // save the link register and (for stack walks) the correct value is in
-  // the LR. If we do make calls, then the correct value is on the stack.
-  // By observation, the first instruction in the function is always mfspr
-  // in the second case. 
-  makesNoCalls_ = true;
-  noStackFrame = true;
-
-
-  // Do we make a stack frame? Umm... well... it's hard to tell. If we spot
-  // the instruction used (stwu) on r1, then we assume we make a frame. If
-  // not, no.
-
-  funcEntry_ = new instPoint(this, instr, owner, adr, true, functionEntry);
-  assert(funcEntry_);
-
-  // instead of finding the return instruction, we are creating a 
-  // return base trampoline which will be called when the function really
-  // exits.  what will happen is that the link register, which holds the
-  // pc for the return branch, will be changed to point ot this trampoline,
-  //
-  // !!! Note that because there is no specific instruction that corresponds
-  //     to this point, we don't have an address to pass to the instPoint
-  //     constructor.  Because Dyninst maintains a mapping from addresses to
-  //     instrumentation points, it requires that each point has a unique
-  //     address.
-  //     We use the address of the last instruction in the function
-  //     as the exit point address so that we can still do address comparisons
-  instruction retInsn;
-  retInsn.raw = 0;
-  canonical_return_address = adr + get_size() - sizeof(instruction);
-
-  funcReturns.push_back(new instPoint(this, retInsn, owner,
-				      canonical_return_address,
-				      false, functionExit));
-
-  // Check whether we're a leaf function (makes no calls, LR never saved)
-  // or don't create a stack frame.
-  // 26SEP03: just to make life impossible, there are functions (sqrt is a good example)
-  // that do create stack frames, but only before calling error functions -- so checking
-  // for the existence of "save SP" is _not_ sufficient. We need to check within the preamble
-  // of the function. Define that to the first 10 instructions -- normally the SP is saved
-  // within the first 4
-  instr.raw = owner->get_instruction(preamble_adr);
-  for (unsigned i = 0; i < 10; i++) {
-      if ((instr.dform.op == STUop) &&
-          (instr.dform.rt == 1) &&
-          (instr.dform.ra == 1)) {
-          noStackFrame = false;
-      }
-      if (instr.raw == MFLR0raw) {
-          makesNoCalls_ = false;
-      }
-      preamble_adr += sizeof(instruction);
-      instr.raw = owner->get_instruction(preamble_adr);
-  }
-
-  // Now we go through the entire function looking for calls.
-  // JAW -- and some returns (of the form 'blr');
-  
-  // Define call sites in the function
-  instr.raw = owner->get_instruction(adr);
-  while(instr.raw != 0x0) {
-      if (isCallInsn(instr)) {
-          // Define the call point
+    for( unsigned int r = 0; r + 1 < blockList->size(); r++ )
+    {
+        BPatch_basicBlock* b1 = (*blockList)[ r ];
+        BPatch_basicBlock* b2 = (*blockList)[ r + 1 ];
+              
+        if( b2->getRelStart() < b1->getRelEnd() )
+        {
+            BPatch_Vector< BPatch_basicBlock* > out;
+            b1->getTargets( out );
+            
+            for( unsigned j = 0; j < out.size(); j++ )
+            {
+                out[j]->sources.remove( b1 );
+                out[j]->sources.insert( b2 );
+            }        
           
-          
-          adr = newCallPoint(adr, instr, owner, err);
-          
-          
-          if (err)   goto set_uninstrumentable;
-      }
-      else if (isDynamicCall(instr)) {
-          // Define the call point
-          adr = newCallPoint(adr, instr, owner, err);
-          if (err)   goto set_uninstrumentable;
-      }
-      else {
-        //  JAW:  NASTY NASTY NASTY
-        //  We need to be able to detect multiple exit points for the function 
-        //  "load1" in libc.  These are 'blr' opcodes.  Unfortunately, generally 
-        //  detecting 'blr' calls and assigning exit points to them appears to
-        //  be incorrect (guess that 'blr' is used for more things than returns)
-        //
-        //  Judging from avbove comments, properly detecting multiple exit points
-        //  for functions on AIX is "hard", so we just don't do it -- instead only
-        //  assigning an exit point for the last insn in the func.
-
-        //  Here is a special case, that makes sure that we catch more than one "blr"
-        //  exit point in the function load1, in libc.a, if there is more than one.
-        //  There are 2 in the libc.a that comes w/AIX 5.2
-
-        if ( (is_in_libc) && (isReturnInsnBLR(instr))) {
-          if (prettyName_[0] == "load1") {
-            // add a new exit point if this instr is not at the canonical exit point
-            // address (we already made an exit point there).
-            if (adr != canonical_return_address) {
-               //fprintf(stderr, "%s[%d]:  making new exit point at %p\n", __FILE__, __LINE__,
-                //               adr);
-               funcReturns.push_back(new instPoint(this, retInsn, owner, adr,
-                                                   false, functionExit));
-
+            //set end address of higher block
+            b2->setRelLast( b1->getRelLast());
+            b2->setRelEnd( b1->getRelEnd() );
+            b2->targets = b1->targets;	    
+            b2->addSource( b1 );
+            
+            BPatch_Set< BPatch_basicBlock* > nt;
+            nt += b2;
+            b1->targets = nt;
+            
+            //find the end of the split block	       
+            b1->setRelLast( b2->getRelStart() - insnSize );
+            b1->setRelEnd( b2->getRelStart() );
+                                    
+            if( b1->isExitBasicBlock )
+            {
+                b1->setExitBlock( false );
+                b2->setExitBlock( true );
             }
-          }
         }
-      }
-      // now do the next instruction
-      adr += sizeof(instruction);
-      instr.raw = owner->get_instruction(adr);
-  }
-  //cerr << endl;
-  // Check for linkage code, and if so enter the call site as 
-  // a static call.
-  // Linkage template:
-  // l      r12,<offset>(r2) // address of call into R12
-  // st     r2,20(r1)        // Store old TOC on the stack
-  // l      r0,0(r12)        // Address of callee func
-  // l      r2,4(r12)        // callee TOC
-  // mtctr  0                // We keep the LR static, use the CTR
-  // bctr                    // non-saving branch to CTR
+    }
 
-  // The parser detects linkage functions and appends _linkage to the name
-  
-  isInstrumentable_ = 1;
-  return(true);
-
- set_uninstrumentable:
-  isInstrumentable_ = 0;
-  return false;
+    for( unsigned q = 0; q + 1 < blockList->size(); q++ )
+    {
+        BPatch_basicBlock* b1 = (*blockList)[ q ];
+        BPatch_basicBlock* b2 = (*blockList)[ q + 1 ];
+        
+        if( b1->getRelEnd() == 0 )
+        {
+            b1->setRelLast( b2->getRelStart() - insnSize );
+            b1->setRelEnd( b2->getRelStart() );
+            b1->addTarget( b2 );
+            b2->addSource( b1 );	            
+        }        
+    }    
+    
+    isInstrumentable_ = true;
+    return true;
 }
-
-
 
 //
 // Each processor may have a different heap layout.
@@ -3871,38 +3901,6 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 
 
 
-//
-// This is specific to some processors that have info in registers that we
-//   can read, but should not write.
-//   On power, registers r3-r11 are parameters that must be read only.
-//     However, sometimes we have spilled to paramter registers back to the
-//     stack to use them as scratch registers.  In this case they are writeable.
-//
-bool registerSpace::readOnlyRegister(Register reg_number) 
-{
-    registerSlot *regSlot = NULL;
-
-    // it's not a parameter registers so it is read/write
-    if ((reg_number > 11) || (reg_number < 3)) return false;
-
-    // find the registerSlot for this register.
-    for (u_int i = 0; i < regSpace->getRegisterCount(); i++) {
-	regSlot = regSpace->getRegSlot(i);
-	if (regSlot->number == reg_number) {
-	    break;
-	}
-    }
-
-    if (regSlot->mustRestore) {
-	// we have already wrriten this to the stack so its OK to clobber it.
-	return(false);
-    } else {
-	// its a live parameter register.
-        return true;
-    }
-}
-
-
 
 //Checks to see if register has been clobbered
 //If return true, it hasn't and we need to save register
@@ -3974,6 +3972,39 @@ bool registerSpace::beenSavedFP(Register reg)
     }
   }
 }
+
+
+//
+// This is specific to some processors that have info in registers that we
+//   can read, but should not write.
+//   On power, registers r3-r11 are parameters that must be read only.
+//     However, sometimes we have spilled to paramter registers back to the
+//     stack to use them as scratch registers.  In this case they are writeable.
+//
+bool registerSpace::readOnlyRegister(Register reg_number) 
+{
+    registerSlot *regSlot = NULL;
+
+    // it's not a parameter registers so it is read/write
+    if ((reg_number > 11) || (reg_number < 3)) return false;
+
+    // find the registerSlot for this register.
+    for (u_int i = 0; i < regSpace->getRegisterCount(); i++) {
+	regSlot = regSpace->getRegSlot(i);
+	if (regSlot->number == reg_number) {
+	    break;
+	}
+    }
+
+    if (regSlot->mustRestore) {
+	// we have already wrriten this to the stack so its OK to clobber it.
+	return(false);
+    } else {
+	// its a live parameter register.
+        return true;
+    }
+}
+
 
 bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> > &/*stackWalks*/)
 {

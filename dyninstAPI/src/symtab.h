@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.172 2005/02/15 17:43:48 legendre Exp $
+// $Id: symtab.h,v 1.173 2005/02/24 23:21:07 lharris Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -497,7 +497,10 @@ class image : public codeRange {
    bool isDyninstRTLib() const { return is_libdyninstRT; }
 
    bool isAOut() const { return is_a_out; }
-
+ 
+#if defined( arch_x86 )
+   inline bool isText(const Address& where ) const;
+#endif
    inline bool isCode(const Address &where) const;
    inline bool isData(const Address &where) const;
    inline bool isValidAddress(const Address &where) const;
@@ -793,6 +796,12 @@ inline bool image::isCode(const Address &where)  const{
            (where >= codeOffset_) && (where < (codeOffset_+(codeLen_<<2))));
 }
 
+#if defined( arch_x86 )
+inline bool image::isText( const Address &where) const
+{
+    return ( linkedFile.isText( where ) );
+}
+#endif
 inline bool image::isData(const Address &where)  const{
    return (linkedFile.data_ptr() && 
            (where >= dataOffset_) && (where < (dataOffset_+(dataLen_<<2))));
@@ -823,6 +832,20 @@ inline bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
    return false;
 }
 
+ 
+typedef int_function *pdFuncPtr;
+
+struct pdFuncCmp
+{
+    int operator()( const pdFuncPtr &pdf1, const pdFuncPtr &pdf2 ) const
+    {
+        if( pdf1->get_address() > pdf2->get_address() )
+            return 1;
+        if( pdf1->get_address() < pdf2->get_address() )
+            return -1;
+        return 0;
+    }
+};
 
 int instPointCompare( instPoint*& ip1, instPoint*& ip2 );
 int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 );
