@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.5 1994/04/18 15:54:41 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.6 1994/05/12 22:24:08 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.5  1994/04/18 15:54:41  markc
+ * Revision 1.6  1994/05/12 22:24:08  markc
+ * Fixed instrumentation for createMsgBytesSentMetric.
+ *
+ * Revision 1.5  1994/04/18  15:54:41  markc
  * Changed defaultMSGTagPredicate to look at the second parameter which is the
  * message tag in pvm.
  *
@@ -299,22 +302,18 @@ void createMsgBytesRecvMetric(metricDefinitionNode *mn,
   AstNode *msgBytesAst;
 
   msgBytesAst =
-    new AstNode
-      (
-       new AstNode
-       (
-	"pvm_bufinfo",
-	new AstNode("pvm_getrbuf", NULL, NULL),
-	new AstNode(DataPtr, tempCounter)
-	),
-       new AstNode
-       (
-	"addCounter",
-	new AstNode (DataValue, dataPtr),
-	new AstNode(DataValue, tempCounter)
-	)
-       );
-
+    new AstNode (
+		 new AstNode (
+			      "pvm_bufinfo",
+			      new AstNode("pvm_getrbuf", NULL, NULL),
+			      new AstNode(DataPtr, tempCounter)
+			      ),
+		 new AstNode (
+			      "addCounter",
+			      new AstNode (DataValue, dataPtr),
+			      new AstNode(DataValue, tempCounter)
+			      )
+		 );
   finishMsgBytesMetric (mn, funcs, trigger, msgBytesAst);
 }
 
@@ -329,26 +328,19 @@ void createMsgBytesSentMetric(metricDefinitionNode *mn,
 {
   AstNode *msgBytesAst;
 
-  dataPtr = mn->addIntCounter(0, True);
-  tempCounter = mn->addIntCounter(0, False);
-
   msgBytesAst =
-    new AstNode
-      (
-       new AstNode
-       (
-	"pvm_bufinfo",
-	new AstNode("pvm_getsbuf", NULL, NULL),
-	new AstNode(DataPtr, tempCounter)
-	),
-       new AstNode
-       (
-	"addCounter",
-	new AstNode (DataValue, dataPtr),
-	new AstNode(DataValue, tempCounter)
-	)
-       );
-
+    new AstNode (
+		 new AstNode (
+			      "pvm_bufinfo",
+			      new AstNode("pvm_getsbuf", NULL, NULL),
+			      new AstNode(DataPtr, tempCounter)
+			      ),
+		 new AstNode (
+			      "addCounter",
+			      new AstNode (DataValue, dataPtr),
+			      new AstNode(DataValue, tempCounter)
+			      )
+		 );
   finishMsgBytesMetric (mn, funcs, trigger, msgBytesAst);
 }
 
