@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.3 1999/05/25 20:26:57 hollings Exp $
+// $Id: osfDL.C,v 1.4 1999/06/10 19:14:35 hollings Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -340,6 +340,16 @@ void process::handleIfDueToDyninstLib()
 
   delete [] savedRegs;
   savedRegs = NULL;
+
+  Address breakPoint = findInternalAddress("DYNINSTbreakPoint", false, err);
+  if (!err) {
+      // found the library alread
+      string msg = string("Do not statically link libdyninstRT.\n"
+	"   Use DYNINSTAPI_RT_LIB environment variable to specify lib.");
+      showErrorCallback(101, msg);
+      exit(0);
+      return;
+  }
 
   isLoadingDyninstLib = false;
   hasLoadedDyninstLib = true;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.19 1999/05/25 16:38:10 wylie Exp $
+// $Id: BPatch_thread.C,v 1.20 1999/06/10 19:14:34 hollings Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -97,7 +97,14 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
     	    envp_vec += envp[i];
     }
 
-    proc = createProcess(path, argv_vec, envp_vec, "");
+    string directoryName = "";
+#if defined(alpha_dec_osf4_0)
+    char buf[1024];
+    (void*) getcwd(buf, sizeof(buf));
+    directoryName = buf;
+#endif
+
+    proc = createProcess(path, argv_vec, envp_vec, directoryName);
 
     // XXX Should do something more sensible.
     if (proc == NULL) return;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.12 1999/06/08 22:14:07 csserra Exp $
+// $Id: inst-alpha.C,v 1.13 1999/06/10 19:14:35 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -2033,10 +2033,15 @@ void emitFuncJump(opCode op,
  */
 bool process::terminateProc_()
 {
-    int sig = SIGKILL;
-    if (ioctl(proc_fd, PIOCKILL, &sig) == -1)
-	return false;
-    else
-	return true;
+    long flags = PRFS_KOLC;
+    if (ioctl (proc_fd, PIOCSSPCACT, &flags) < 0)
+        return false;
+
+    Exited();
+
+    // just to make sure it is dead
+    kill(getPid(), 9);
+
+    return true;
 }
 #endif
