@@ -121,7 +121,7 @@ int DYNINSTtoAddr;
 short *DYNINSTprofBuffer;
 #endif
 
-extern void   DYNINSTos_init(void);
+extern void   DYNINSTos_init(int calledByFork, int calledByAttach);
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
 
@@ -639,6 +639,7 @@ DYNINSTsampleValues(void) {
 
 
 
+static int DYNINST_trace_fd = -1; /* low-level version of DYNINSTtraceFp */
 
 /************************************************************************
  * void DYNINSTflushTrace(void)
@@ -710,8 +711,10 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     errno = 0;
 
     if (!DYNINSTtraceFp || (type == TR_EXIT)) {
-        DYNINSTtraceFp = fdopen(dup(CONTROLLER_FD), "w");
-	/* error check? */
+        //DYNINSTtraceFp = fdopen(dup(CONTROLLER_FD), "w"); // why the dup()?
+	assert(DYNINST_trace_fd != -1);
+        DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); // why the dup()?
+	assert(DYNINSTtraceFp);
     }
 
     while (1) {
@@ -913,7 +916,8 @@ DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
  * void DYNINSTinit()
  *
  * initialize the DYNINST library.  this function is called at the start
- * of the application program, as well as after a fork.
+ * of the application program, as well as after a fork, and after an
+ * attach.
  *
 ************************************************************************/
 
@@ -1014,12 +1018,58 @@ void shmsampling_printf(const char *fmt, ...) {
 #endif
 }
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+extern char *sys_errlist[];
+
+/************************************************************************
+ * static int connectToDaemon(int port)
+ *
+ * get a connection to a paradyn daemon for the trace stream
+ *
+ * does: socket(), connect()
+************************************************************************/
+
+static int connectToDaemon(int daemonPort, unsigned long hostAddr) {
+  struct sockaddr_in sadr;
+  int sock_fd;
+
+  memset((void*) &sadr, 0, sizeof(sadr));
+  sadr.sin_family = PF_INET;
+  sadr.sin_port = htons(daemonPort);
+  sadr.sin_addr.s_addr = hostAddr;
+
+  sock_fd = socket(PF_INET, SOCK_STREAM, 0);
+  if (sock_fd < 0) {
+    perror("DYNINST connectToDaemon socket()");
+    abort();
+  }
+
+//  if (sock_fd != CONTROLLER_FD) {
+//    fprintf(stderr, "DYNINST: socket error...sock_fd (%d) != CONTROLLER_FD (%d)\n",
+//	    sock_fd, CONTROLLER_FD);
+//    abort();
+//  }
+
+  if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
+    perror("DYNINST connectToDaemon: connect()");
+    abort();
+  }
+
+  return sock_fd;
+}
+
 void
-DYNINSTinit(int theKey, int shmSegNumBytes) {
-   /* If all params are -1 then we're being called by DYNINSTfork(), so don't
-      do any of the shm seg attach stuff... */
+DYNINSTinit(int theKey, int shmSegNumBytes, int portnum, unsigned hostaddr) {
+   /* If all params are -1 then we're being called by DYNINSTfork(). */
+   /* portnum and hostaddr are -1 unless we're called by attach, in which case it
+      gives the port number to connect() to get an fd for the trace stream. */
 
    int calledFromFork = (theKey == -1);
+   int calledFromAttach = (portnum != -1);
+
 #ifndef SHM_SAMPLING
     struct sigaction act;
     unsigned         val;
@@ -1034,8 +1084,9 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
    (void)gethostname(thehostname, 80);
    thehostname[79] = '\0';
 
-   shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d and %d\n",
-		      thehostname, (int)getpid(), theKey, shmSegNumBytes);
+   shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d, %u\n",
+		      thehostname, (int)getpid(), theKey, shmSegNumBytes,
+		      portnum, hostaddr);
 #endif
 
 #ifdef SHM_SAMPLING
@@ -1070,19 +1121,22 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
     // stdout/stderr redirected to a pipe/file/whatever, it changes to fully-buffered.
     // This indeed occurs with us (see paradynd/src/process.C to see how a program's
     // stdout/stderr are redirected to a pipe). So we reset back to the desired
-    // "bufferedness" here.  See stdio.h for these calls.
+    // "bufferedness" here.  See stdio.h for these calls.  When attaching, stdio
+    // isn't under paradynd control, so we don't do this stuff.
 
     /* Note! Since we are messing with stdio stuff here, it should go without
        saying that DYNINSTinit() (or at least this part of it) shouldn't be
        invoked until stdio has been initialized! */
 
-    setvbuf(stdout, NULL, _IOLBF, 0);
-       /* make stdout line-buffered.
-          "setlinebuf(stdout)" is cleaner but HP doesn't seem to have it */
-    setvbuf(stderr, NULL, _IONBF, 0);
-       /* make stderr non-buffered */
+    if (!calledFromAttach) {
+       setvbuf(stdout, NULL, _IOLBF, 0);
+          /* make stdout line-buffered.  "setlinebuf(stdout)" is cleaner but HP
+	     doesn't seem to have it */
+       setvbuf(stderr, NULL, _IONBF, 0);
+          /* make stderr non-buffered */
+    }
 
-    DYNINSTos_init();
+    DYNINSTos_init(calledFromFork, calledFromAttach);
       /* is this needed when calledFromFork?  Depends on what it does, which is in turn
          os-dependent...so, calledFromFork should probably be passed to this routine. */
 
@@ -1121,13 +1175,14 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
     DYNINST_install_ualarm(val, val);
 #endif
 
-    temp = getenv("DYNINSTtagLimit");
-    if (temp) {
-	int newVal;
-	newVal = atoi(temp);
-	if (newVal < DYNINSTtagLimit) {
-	    DYNINSTtagLimit = newVal;
-	}
+    if (!calledFromFork) {				   
+       temp = getenv("DYNINSTtagLimit");
+       if (temp) {
+	  int newVal = atoi(temp);
+	  if (newVal < DYNINSTtagLimit) {
+	     DYNINSTtagLimit = newVal;
+	  }
+       }
     }
 
 #ifdef USE_PROF
@@ -1156,9 +1211,6 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
        DYNINST_bootstrap_info.appl_attachedAtPtr = the_shmSegAttachedPtr;
 #endif
     }
-    else {
-       shmsampling_printf("DYNINSTinit NOT setting appl_attachedAtPtr in bs_record since called-by-fork\n");
-    }				   
 
     DYNINST_bootstrap_info.pid = getpid();
     if (calledFromFork)
@@ -1168,13 +1220,41 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
        sees in this structure until the event field is nonzero */
    if (calledFromFork)
       DYNINST_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
-   else
+   else if (calledFromAttach)
+      DYNINST_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached process) */
+   else				   
       DYNINST_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when called by exec'd proc) */
 
 #ifndef SHM_SAMPLING
     /* what good does this do here? */
 //    DYNINSTreportSamples();
 #endif
+
+   /* If attaching, now's the time where we set up the trace stream connection fd */
+   if (calledFromAttach) {
+      int pid = getpid();
+      int ppid = getppid();
+      unsigned attach_cookie = 0x22222222;
+
+      /* portnum and hostaddr are passed in as params */
+      int tracestream_fd = connectToDaemon(portnum, hostaddr);
+      assert(tracestream_fd != -1);
+         // warning: many parts in rtinst assume that it's 3, but that won't
+	 // necessarily be the case for attach (the program is already running and
+         // may have opened dozens of fd's).					       
+
+      DYNINSTtraceFp = fdopen(tracestream_fd, "w");
+      assert(DYNINSTtraceFp);
+
+      fwrite(&attach_cookie, sizeof(attach_cookie), 1, DYNINSTtraceFp);
+      fwrite(&pid, sizeof(pid), 1, DYNINSTtraceFp);
+      fwrite(&ppid, sizeof(ppid), 1, DYNINSTtraceFp);
+#ifdef SHM_SAMPLING
+      fwrite(&the_shmSegKey, sizeof(the_shmSegKey), 1, DYNINSTtraceFp);
+      fwrite(&the_shmSegAttachedPtr, sizeof(the_shmSegAttachedPtr), 1, DYNINSTtraceFp);
+#endif
+      fflush(DYNINSTtraceFp);
+   }
 
    /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
       it will read from DYNINST_bootstrap_info */
@@ -1224,48 +1304,6 @@ DYNINSTexit(void) {
 
 
 
-
-/************************************************************************
- * static int connectToDaemon(int port)
- *
- * get a connection to a paradyn daemon for the trace stream
- *
- * does: socket(), connect()
-************************************************************************/
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-extern char *sys_errlist[];
-
-static int connectToDaemon(int daemonPort, unsigned long hostAddr) {
-  struct sockaddr_in sadr;
-  int sock_fd;
-
-  memset((void*) &sadr, 0, sizeof(sadr));
-  sadr.sin_family = PF_INET;
-  sadr.sin_port = htons(daemonPort);
-  sadr.sin_addr.s_addr = hostAddr;
-
-  sock_fd = socket(PF_INET, SOCK_STREAM, 0);
-  if (sock_fd < 0) {
-    fprintf(stderr, "DYNINST: socket failed: %s\n", sys_errlist[errno]);
-    abort();
-  }
-  if (sock_fd != CONTROLLER_FD) {
-    fprintf(stderr, "DYNINST: socket error\n");
-    abort();
-  }
-
-  if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
-    fprintf(stderr, "DYNINST: connect failed: %s\n", sys_errlist[errno]);
-    abort();
-  }
-
-  return sock_fd;
-}
-
 
 /************************************************************************
  * void DYNINSTfork(void* arg, int pid)
@@ -1444,6 +1482,9 @@ DYNINSTfork(int pid) {
 	   yet attached to the child process.
 	   So idea #3 (the current one) is to just send all that information along the
 	   new connection (whereas we used to just send the pid).
+
+	   NOTE: soon attach will probably be implemented in a similar way -- by
+	         writing to the connection.
 	 */
 
 	/* get the socket port number for traces from the environment */
@@ -1463,13 +1504,20 @@ DYNINSTfork(int pid) {
 
 	/* set up a connection to the daemon for the trace stream */
 	forkexec_printf("dyninst-fork child closing old connections...\n");
+	assert(DYNINST_trace_fd != -1);
         fclose(DYNINSTtraceFp);
-	close(CONTROLLER_FD);
+	(void)close(DYNINST_trace_fd);
+	//close(CONTROLLER_FD);
 
 	forkexec_printf("dyninst-fork child opening new connection.\n");
 	DYNINSTtraceFp = fdopen(connectToDaemon(tracePort, hostAddr), "w");
 
 	forkexec_printf("dyninst-fork child pid %d opened new connection...now sending pid etc. along it\n", (int)getpid());
+
+	{
+	  unsigned fork_cookie = 0x11111111;
+	  fwrite(&fork_cookie, sizeof(fork_cookie), 1, DYNINSTtraceFp);
+	}
 
 	fwrite(&pid, sizeof(pid), 1, DYNINSTtraceFp);
 	fwrite(&ppid, sizeof(ppid), 1, DYNINSTtraceFp);
@@ -1487,7 +1535,8 @@ DYNINSTfork(int pid) {
 
 	forkexec_printf("dyninst-fork child past DYNINSTbreakPoint()...calling DYNINSTinit(-1,-1)\n");
 
-	DYNINSTinit(-1,-1); /* -1 params indicate called from DYNINSTfork */
+	DYNINSTinit(-1,-1, -1, (unsigned)-1);
+	   /* -1 params indicate called from DYNINSTfork */
 
 	forkexec_printf("dyninst-fork child done...running freely.\n");
     }
@@ -1513,7 +1562,7 @@ DYNINSTexec(char *path) {
        to paradynd before the trace record.  So instead, we fill in
        DYNINST_bootstrap_info and then do a breakpoint.  This approach is the same
        as the end of DYNINSTinit. */
-    DYNINST_bootstrap_info.event = 3;
+    DYNINST_bootstrap_info.event = 4;
     DYNINST_bootstrap_info.pid = getpid();
     strcpy(DYNINST_bootstrap_info.path, path);
 
