@@ -18,6 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
+ * Revision 1.26  1996/01/08 22:08:00  tamches
+ * Added igen call getNodeInfo() as a placeholder for the new PC
+ * (i.e., it's not yet implemented)
+ *
  * Revision 1.25  1995/11/28 15:48:38  naim
  * Minor fix. Changing char[number] by string - naim
  *
@@ -464,6 +468,30 @@ void performanceConsultant::resetRefinement()
 	curr->changeTested(false);
     }
     currentSHGNode->changeActive(true);
+}
+
+bool performanceConsultant::getNodeInfo(int nodeId, shg_node_info *theNodeInfo) {
+   // this routine fills in "theNodeInfo", assuming that the "nodeId" passed
+   // in is valid.  If all's well, it returns true, else false.
+   // (If false is returned, then "theNodeInfo" may be left un-filled-in)
+
+   // "shg_node_info" is defined in performanceConsultant.I
+   // It is _not_ an internally-used structure; it's just used for this igen routine!
+   // (If the name shg_node_info does not make this clear, then maybe it should
+   //  be changed)
+
+   // As you can see from these dummy values, this routine is not yet implemented (duh):
+   theNodeInfo->why = "because";
+   theNodeInfo->where = "Manhatten";
+   theNodeInfo->currentConclusion = false;
+   theNodeInfo->timeTrueFalse = (timeStamp)nodeId + 1000;
+   theNodeInfo->currentValue = 65.25;
+   theNodeInfo->startTime = 100;
+   theNodeInfo->endTime = 200;
+   theNodeInfo->estimatedCost = 50;
+   theNodeInfo->persistent = (nodeId % 2 == 0);
+    
+   return true;
 }
 
 void printStats()
