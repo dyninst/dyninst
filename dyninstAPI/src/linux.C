@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.65 2002/03/22 21:55:17 chadd Exp $
+// $Id: linux.C,v 1.66 2002/04/05 19:38:39 schendel Exp $
 
 #include <fstream.h>
 
@@ -768,13 +768,6 @@ int process::detachAndContinue()
      ret = true;
      status_ = running;
 out:
-#ifndef BPATCH_LIBRARY
-     if(callBeforeContinue != NULL && 
-	initialStartTime.isInitialized() && 
-	initialStartTime != notValidSentinal) {
-       (*callBeforeContinue)(initialStartTime);
-     }
-#endif
      return ret;
 }
 

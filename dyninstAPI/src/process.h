@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.190 2002/03/22 21:55:18 chadd Exp $
+/* $Id: process.h,v 1.191 2002/04/05 19:38:40 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1380,10 +1380,6 @@ public:
     hasNewPC = true;
   }
 
-  void setCallbackBeforeContinue(continueCallback func) {
-    callBeforeContinue = func;
-  }
-
   inline Address costAddr()  const { return costAddr_; }
   void getObservedCostAddr();   
 
@@ -1424,8 +1420,6 @@ private:
   // for processing observed cost (see method processCost())
   int64_t cumObsCost; // in cycles
   unsigned lastObsCostLow; // in cycles
-
-  continueCallback callBeforeContinue;
 
   Address costAddr_;
   bool execed_;  // true if this process does an exec...set in handleExec
