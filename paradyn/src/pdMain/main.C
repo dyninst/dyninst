@@ -1,9 +1,17 @@
 /* $Log: main.C,v $
-/* Revision 1.21  1995/08/13 23:22:26  tamches
-/* Moved tcl/tk initialization code here from UImain.
-/* tcl/tk initialization is now the very first thing done
-/* in main()
+/* Revision 1.22  1995/08/14 22:49:49  tamches
+/* Removed the TC thread.
+/* The main tunable constant dictionaries are global variables
+/* (in TCthread/TCmain.C); their constructors automatically
+/* initialize the TC registry before main() even starts.  Hence,
+/* no problems declaring any tunable constants after main starts.
+/* But, don't declare any tunable constants as global variables.
 /*
+ * Revision 1.21  1995/08/13  23:22:26  tamches
+ * Moved tcl/tk initialization code here from UImain.
+ * tcl/tk initialization is now the very first thing done
+ * in main()
+ *
  * Revision 1.20  1995/08/12  22:27:51  newhall
  * added calls to DM and VM sequential initialization routines
  *
@@ -93,7 +101,7 @@ extern void *UImain(void *);
 extern void *DMmain(void *);
 extern void *PCmain(void *);
 extern void *VMmain (void *);
-extern void *TCmain (void *); // tunable consts
+//extern void *TCmain (void *); // tunable consts
 
 #define MBUFSIZE 256
 #define DEBUGBUFSIZE	4096
@@ -103,7 +111,7 @@ thread_t MAINtid;
 thread_t PCtid;
 thread_t DMtid;
 thread_t VMtid;
-thread_t TCtid; // tunable constants
+//thread_t TCtid; // tunable constants
 
 char UIStack[32768];
 
@@ -187,7 +195,14 @@ main (int argc, char **argv)
   string argcStr = string(argc - 1);
   Tcl_SetVar(interp, "argc", argcStr.string_of(), TCL_GLOBAL_ONLY);
   Tcl_SetVar(interp, "argv0", argv[0], TCL_GLOBAL_ONLY);
-  
+
+  // Here is one tunable constant that is definitely intended to be hard-coded in:
+   tunableBooleanConstantDeclarator tcInDeveloperMode("developerMode",
+	 "Allow access to all tunable constants, including those limited to developer mode.  (Use with caution)",
+	 false, // initial value
+	 NULL, // no callback routine (yet)
+         userConstant);
+
   //
   // We check our own read/write events.
   //
@@ -238,19 +253,19 @@ main (int argc, char **argv)
         user interface manager, performance consultant */
   
 // initialize Tunable Constants thread
-  if (THR_ERR == thr_create(NULL, // stack
-			    0, // stack size
-			    TCmain, // entry-point function
-			    NULL, // args
-			    0, // flags
-			    &TCtid))
-     exit(1);
-  PARADYN_DEBUG (("TC thread created\n"));
-  // wait until TC has properly initialized (it'll send us a blank msg)
-  mtag = MSG_TAG_TC_READY;
-  msgsize = MBUFSIZE;
-  (void)msg_recv(&mtag, mbuf, &msgsize);
-//  cout << "pdMain: TC thread has given us the okay to continue creating threads!" << endl;
+//  if (THR_ERR == thr_create(NULL, // stack
+//			    0, // stack size
+//			    TCmain, // entry-point function
+//			    NULL, // args
+//			    0, // flags
+//			    &TCtid))
+//     exit(1);
+//  PARADYN_DEBUG (("TC thread created\n"));
+//  // wait until TC has properly initialized (it'll send us a blank msg)
+//  mtag = MSG_TAG_TC_READY;
+//  msgsize = MBUFSIZE;
+//  (void)msg_recv(&mtag, mbuf, &msgsize);
+////  cout << "pdMain: TC thread has given us the okay to continue creating threads!" << endl;
   
 // Declare some tunable constants (declaring them here makes them last as long
 // as this routine does, which is "forever")
