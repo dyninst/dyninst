@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2002/04/09 18:04:54 mjbrim Exp $
+# $Id: Makefile,v 1.6 2002/04/15 15:07:30 mjbrim Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,8 +19,7 @@ include $(TO_CORE)/make.config
 # Override these defaults by setting LDTCLFLAGS in top level make.config.local
 # Recommended settig for AIX 4.3.3 w/IBM RPM supplied tcl-8.3.3 is:
 # LDTCLFLAGS := -Wl,-brtl,-bbigtoc
-LDTCLFLAGS := -Wl,-bbigtoc
-# LDTCLFLAGS ?= 
+LDTCLFLAGS ?= -Xlinker -brtl
 LDFLAGS += $(LDTCLFLAGS)
 
 ifdef GCC_2_95
