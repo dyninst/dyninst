@@ -1,4 +1,4 @@
-# $Id: whereAxis.tcl,v 1.10 1999/03/03 18:18:31 pcroth Exp $
+# $Id: whereAxis.tcl,v 1.11 1999/07/27 19:50:34 pcroth Exp $
 
 # ##################################################################
 
@@ -83,7 +83,7 @@ proc whereAxisInitialize {} {
    bind .whereAxis.nontop.main.all <Expose>    {whereAxisExposeHook %c}
    bind .whereAxis.nontop.main.all <Visibility> {whereAxisVisibilityHook %s}
    bind .whereAxis.nontop.main.all <Button-1>  {whereAxisSingleClickHook %x %y}
-   bind .whereAxis.nontop.main.all <Button-2>  {whereAxisSingleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Button-3>  {whereAxisSingleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Double-Button-1> {whereAxisDoubleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Shift-Double-Button-1> {whereAxisShiftDoubleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Control-Double-Button-1> {whereAxisCtrlDoubleClickHook %x %y}
