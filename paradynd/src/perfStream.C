@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.170 2004/06/21 19:38:37 pcroth Exp $
+// $Id: perfStream.C,v 1.171 2004/07/14 18:24:10 eli Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -55,7 +55,6 @@
 #include "dyninstAPI/src/stats.h"
 #include "paradynd/src/debugger.h"
 #include "paradynd/src/main.h"
-#include "paradynd/src/association.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/context.h"
 #include "paradynd/src/perfStream.h"
@@ -304,7 +303,6 @@ void processTraceStream(process *dproc)
     traceStream sid;
     char *recordData;
     traceHeader header;
-    struct _association *a;
 
 #if !defined(i386_unknown_nt4_0)
     ret = read(dproc->traceLink, &(dproc->buffer[dproc->bufEnd]), 
@@ -401,13 +399,6 @@ void processTraceStream(process *dproc)
                            (struct _newresource *) ((void*)recordData));
             // createResource() is in this file, below
             break;
-
-         case TR_NEW_ASSOCIATION: {
-            a = (struct _association *) ((void*)recordData);
-            pd_process *p = getProcMgr().find_pd_process(dproc->getPid());
-            newAssoc(p, a->abstraction, a->type, a->key, a->value);
-            break;
-         }            
          case TR_EXIT:
             {
                /* 03/09/2001 - Jeffrey Shergalis
