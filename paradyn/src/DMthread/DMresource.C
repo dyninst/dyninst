@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.65 2003/07/18 15:44:26 schendel Exp $
+// $Id: DMresource.C,v 1.66 2003/10/22 17:57:02 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,6 +67,7 @@ inline unsigned newResourceHandle() {
 // used only to construct root.
 //
 resource::resource()
+  : type( CategoryResourceType )
 {
     pdstring temp = "ROOT"; 
     assert(allResources.size()==0);
@@ -90,11 +91,15 @@ resource::resource(resourceHandle p_handle,
 		   unsigned tempId,
 		   pdvector<pdstring>& resource_name,
 		   pdstring& r_name,
-		   pdstring& a, unsigned res_type) 
+		   pdstring& a,
+           ResourceType _type,
+           unsigned int _mdlType)
 {
     
     if(!allResources.defines(r_name)){
-        type = res_type;
+
+        type = _type;
+        mdlType = _mdlType;
         name = r_name;
 	// the daemons generate an id for the resource. If there are no
 	// conflicts between this id and the id for other resource, we
@@ -125,12 +130,15 @@ resource::resource(resourceHandle p_handle,
 resource::resource(resourceHandle p_handle, 
 		   pdvector<pdstring>& resource_name,
 		   pdstring& r_name,
-		   pdstring& a, unsigned res_type)
+		   pdstring& a,
+           ResourceType _type,
+           unsigned int _mdlType)
 {
     
    if(!allResources.defines(r_name)){
-      type = res_type;
       name = r_name;
+      type = _type;
+      mdlType = _mdlType;
       res_handle = pdstring::hash(name);
       while (resources.defines(res_handle))
          res_handle = (res_handle+1) % (unsigned)INT_MAX;
@@ -168,7 +176,9 @@ resource *resource::handle_to_resource(resourceHandle r_handle) {
 // vector
 resourceHandle resource::createResource(unsigned res_id, 
                                         pdvector<pdstring>& resource_name,
-                                        pdstring& abstr, unsigned type)
+                                        pdstring& abstr, 
+                                        ResourceType type,
+                                        unsigned int mdlType)
 {
    static const pdstring slashStr = "/";
    static const pdstring baseStr = "BASE";
@@ -212,7 +222,7 @@ resourceHandle resource::createResource(unsigned res_id,
 
    /* then create it */
    resource *ret =  new resource(parent->getHandle(),res_id, resource_name,
-                                 myName,abstr, type);
+                                 myName,abstr, type, mdlType);
 
    // check to see if the suppressMagnify option should be set...if
    // this resource is specifed in the mdl exclude_lib option
@@ -324,7 +334,9 @@ resourceHandle resource::createResource(unsigned res_id,
 }
 
 resourceHandle resource::createResource_ncb(pdvector<pdstring>& resource_name, 
-                                            pdstring& abstr, unsigned type,
+                                            pdstring& abstr, 
+                                            ResourceType type,
+                                            unsigned int mdlType,
                                             resourceHandle &p_handle, 
                                             bool &exist)
 {
@@ -372,7 +384,7 @@ resourceHandle resource::createResource_ncb(pdvector<pdstring>& resource_name,
 
    /* then create it */
    resource *ret =  new resource(parent->getHandle(),resource_name,
-                                 myName,abstr, type);
+                                 myName,abstr, type, mdlType);
 
    resourceHandle r_handle = ret->getHandle() ;
    return(r_handle);

@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.77 2003/05/19 03:02:55 schendel Exp $
+ * $Id: RTinst.c,v 1.78 2003/10/22 17:57:05 pcroth Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -80,6 +80,7 @@
 #endif
 
 #include "RTcompat.h"
+#include "pdutil/h/resource.h"
 
 extern void makeNewShmSegCopy();
 
@@ -1184,7 +1185,8 @@ void DYNINSTreportNewTags(void)
       sprintf(newRes.name, "SyncObject/Message/%d",
 	      TagGroupInfo.NewTags[dx].groupId);
       strcpy(newRes.abstraction, "BASE");
-      newRes.type = RES_TYPE_INT;
+      newRes.mdlType = RES_TYPE_INT;
+      newRes.btype = MessageGroupResourceType;
 
       DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
 				 sizeof(struct _newresource), &newRes, 1,
@@ -1195,12 +1197,14 @@ void DYNINSTreportNewTags(void)
     if(TagGroupInfo.TagHierarchy) {
       sprintf(newRes.name, "SyncObject/Message/%d/%d", 
 	      TagGroupInfo.NewTags[dx].groupId, TagGroupInfo.NewTags[dx].tagId);
+      newRes.btype = MessageTagResourceType;
     } else {
       sprintf(newRes.name, "SyncObject/Message/%d", 
 	      TagGroupInfo.NewTags[dx].tagId);
+      newRes.btype = MessageGroupResourceType;
     }
     strcpy(newRes.abstraction, "BASE");
-    newRes.type = RES_TYPE_INT;
+    newRes.mdlType = RES_TYPE_INT;
 
     DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
 			       sizeof(struct _newresource), &newRes, 1,

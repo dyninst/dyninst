@@ -64,6 +64,8 @@
 
 #include <stdlib.h>
 
+#include "pdutil/h/resource.h"
+
 unsigned          DYNINST_initialize_done=0;
 DECLARE_TC_LOCK(DYNINST_traceLock) ;
 DECLARE_TC_LOCK(DYNINST_initLock) ;
@@ -176,7 +178,8 @@ void DYNINSTreportNewCondVar(dyninst_cond_t* cvp){
     memset(&newRes, '\0', sizeof(newRes));
     sprintf(newRes.name, "SyncObject/CondVar/%d", (unsigned) cvp) ;
     strcpy(newRes.abstraction, "BASE");
-    newRes.type = RES_TYPE_INT;
+    newRes.mdlType = RES_TYPE_INT;
+    newRes.btype = CondVarResourceType;
     DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
                         sizeof(struct _newresource), &newRes, 1,
                         0,0);
@@ -198,7 +201,8 @@ void DYNINSTreportNewMutex(dyninst_mutex_t* m){
     memset(&newRes, '\0', sizeof(newRes));
     sprintf(newRes.name, "SyncObject/Mutex/%d", (unsigned) m) ;
     strcpy(newRes.abstraction, "BASE");
-    newRes.type = RES_TYPE_INT;
+    newRes.mdlType = RES_TYPE_INT;
+    newRes.btype = MutexResourceType;
     DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
                         sizeof(struct _newresource), &newRes, 1,
                         0,0);
@@ -221,7 +225,8 @@ void DYNINSTreportNewRwLock(dyninst_rwlock_t* p){
     memset(&newRes, '\0', sizeof(newRes));
     sprintf(newRes.name, "SyncObject/RwLock/%d", (unsigned) p) ;
     strcpy(newRes.abstraction, "BASE");
-    newRes.type = RES_TYPE_INT;
+    newRes.mdlType = RES_TYPE_INT;
+    newRes.btype = RWLockResourceType;
     DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
                         sizeof(struct _newresource), &newRes, 1,
                         0,0);
@@ -244,7 +249,8 @@ void DYNINSTreportNewSema(dyninst_sema_t* p){
     memset(&newRes, '\0', sizeof(newRes));
     sprintf(newRes.name, "SyncObject/Semaphore/%d", (unsigned) p) ;
     strcpy(newRes.abstraction, "BASE");
-    newRes.type = RES_TYPE_INT;
+    newRes.mdlType = RES_TYPE_INT;
+    newRes.btype = SemaphoreResourceType;
     DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
                         sizeof(struct _newresource), &newRes, 1,
                         0,0);

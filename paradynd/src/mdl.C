@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.152 2003/10/21 17:22:43 bernat Exp $
+// $Id: mdl.C,v 1.153 2003/10/22 17:57:03 pcroth Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -2322,7 +2322,7 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
       resource *r = resource::findResource(resPath);
       if (!r) assert(0);
       
-      switch (r->type()) {
+      switch (r->mdlType()) {
         case MDL_T_INT: {
            const char* p = trailingRes.c_str();
            char*       q = NULL;

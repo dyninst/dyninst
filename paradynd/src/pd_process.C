@@ -179,11 +179,20 @@ void pd_process::init() {
 
     if(multithread_capable() && !has_mt_resource_heirarchies_been_defined) {
        resource::newResource(syncRoot, NULL, nullString, "Mutex", 
-                             timeStamp::ts1970(), "", MDL_T_STRING, false);
+                             timeStamp::ts1970(), "", 
+                             CategoryResourceType,
+                             MDL_T_STRING,
+                             false);
        resource::newResource(syncRoot, NULL, nullString, "RwLock", 
-                             timeStamp::ts1970(), "", MDL_T_STRING, false);
+                             timeStamp::ts1970(), "",
+                             CategoryResourceType,
+                             MDL_T_STRING,
+                             false);
        resource::newResource(syncRoot, NULL, nullString, "CondVar", 
-                             timeStamp::ts1970(), "", MDL_T_STRING, false);
+                             timeStamp::ts1970(), "",
+                             CategoryResourceType,
+                             MDL_T_STRING,
+                             false);
        has_mt_resource_heirarchies_been_defined = true;
     }
     
@@ -235,6 +244,7 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
 				img->name(), // process name
 				timeStamp::ts1970(), // creation time
 				buff, // unique name (?)
+                ProcessResourceType,
 				MDL_T_STRING, // mdl type (?)
 				true
 				);
@@ -280,6 +290,7 @@ pd_process::pd_process(const pdstring &progpath, int pid)
                                 img->name(),
                                 timeStamp::ts1970(), // creation time
                                 buff, // unique name (?)
+                                ProcessResourceType,
                                 MDL_T_STRING, // mdl type (?)
                                 true
                                 );
@@ -323,6 +334,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
                                img->name(),
                                timeStamp::ts1970(), // creation time
                                buff, // unique name (?)
+                               ProcessResourceType,
                                MDL_T_STRING, // mdl type (?)
                                true
                                );
@@ -342,7 +354,9 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
       resource *rid;
       rid = resource::newResource(get_rid(), (void *)thr, nullString, 
                                   buffer, timeStamp::ts1970(), "",
-                                  MDL_T_STRING, true);
+                                  ThreadResourceType,
+                                  MDL_T_STRING,
+                                  true);
       pd_thr->update_rid(rid);
       // tell front-end about thread start function for newly created threads
       // We need the module, which could be anywhere (including a library)

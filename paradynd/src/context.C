@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.107 2003/10/21 17:22:37 bernat Exp $ */
+/* $Id: context.C,v 1.108 2003/10/22 17:57:03 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -171,9 +171,15 @@ void createThread(traceThread *fr) {
    pdstring pretty_name = pdstring(thr->get_start_func()->prettyName().c_str()) ;
    buffer = pdstring("thr_")+pdstring(fr->tid)+pdstring("{")+pretty_name+pdstring("}");
    resource *rid;
-   rid = resource::newResource(proc->get_rid(), (void *)thr, nullString, 
-                               buffer, timeStamp::ts1970(), "", MDL_T_STRING,
-                               true);
+   rid = resource::newResource(proc->get_rid(),
+                                (void *)thr,
+                                nullString, 
+                                buffer,
+                                timeStamp::ts1970(),
+                                "",
+                                ThreadResourceType,
+                                MDL_T_STRING,
+                                true);
    pd_thr->update_rid(rid);
 
    // tell front-end about thread start function for newly created threads
@@ -215,16 +221,21 @@ void updateThreadId(traceThread *fr) {
       pdstring pretty_name = pdstring(thr->get_start_func()->prettyName().c_str());
       buffer = pdstring("thr_") + pdstring(fr->tid) + pdstring("{") + 
 	       pretty_name + pdstring("}");
-      rid = resource::newResource(pdproc->get_rid(), (void *)thr, nullString, 
-			  buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
    } else {
       buffer = pdstring("thr_") + pdstring(fr->tid) + pdstring("{main}") ;
-      rid = resource::newResource(pdproc->get_rid(), (void *)thr, nullString,
-			  buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
       
       // updating main thread
       dynproc->updateThread(thr, fr->tid, fr->index, fr->resumestate_p);
    }
+   rid = resource::newResource(pdproc->get_rid(),
+                                (void *)thr,
+                                nullString,
+                                buffer,
+                                timeStamp::ts1970(),
+                                "",
+                                ThreadResourceType,
+                                MDL_T_STRING, 
+                                true);
    pdthr->update_rid(rid);
    //sprintf(errorLine, "*****updateThreadId, tid=%d, index=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->index, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
    //logLine(errorLine) ;

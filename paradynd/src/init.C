@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.78 2003/09/05 16:28:23 schendel Exp $
+// $Id: init.C,v 1.79 2003/10/22 17:57:03 pcroth Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -251,35 +251,53 @@ bool paradyn_init() {
 
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      pdstring("Machine"), timeStamp::ts1970(), 
-				      "", MDL_T_STRING, false);
+				      "", 
+                      CategoryResourceType,
+                      MDL_T_STRING, 
+                      false);
   machineResource = resource::newResource(machineRoot, NULL, nullString,
 					  hostName, timeStamp::ts1970(), "", 
-					  MDL_T_STRING, false);
-//
-// processResource = resource::newResource(machineResource, NULL, nullString,
-//				  pdstring("Process"), 0.0, "", MDL_T_STRING,
-//				  false);
-//
+                      MachineResourceType,
+					  MDL_T_STRING, 
+                      false);
 
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
 				     pdstring("Code"), timeStamp::ts1970(), "", 
-				     MDL_T_STRING, false);
+                     CategoryResourceType,
+				     MDL_T_STRING, 
+                     false);
   syncRoot = resource::newResource(rootResource, NULL, nullString, 
 				   pdstring("SyncObject"), timeStamp::ts1970(), "",
-				   MDL_T_STRING, false);
+                   CategoryResourceType,
+				   MDL_T_STRING, 
+                   false);
   // TODO -- should these be detected and built ?
   resource::newResource(syncRoot, NULL, nullString, "Message",
-			timeStamp::ts1970(), "", MDL_T_STRING, false);
+			timeStamp::ts1970(), "",
+            CategoryResourceType,
+            MDL_T_STRING, 
+            false);
   resource::newResource(syncRoot, NULL, nullString, "SpinLock",
-			timeStamp::ts1970(), "", MDL_T_STRING, false);
+			timeStamp::ts1970(), "",
+            CategoryResourceType,
+            MDL_T_STRING,
+            false);
   resource::newResource(syncRoot, NULL, nullString, "Barrier",
-			timeStamp::ts1970(), "", MDL_T_STRING, false);
+			timeStamp::ts1970(), "",
+            CategoryResourceType,
+            MDL_T_STRING,
+            false);
   resource::newResource(syncRoot, NULL, nullString, "Semaphore", 
-			timeStamp::ts1970(), "", MDL_T_STRING, false);
+			timeStamp::ts1970(), "",
+            CategoryResourceType,
+            MDL_T_STRING,
+            false);
 
   /*
   memoryRoot = resource::newResource(rootResource, NULL, nullString, 
-				     "Memory", 0.0, "", MDL_T_STRING,
+				     "Memory", 0.0, "",
+                     CategoryResourceType,
+                     MDL_T_STRING,
 				     true);
   */
 

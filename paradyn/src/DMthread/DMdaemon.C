@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.139 2003/09/05 19:14:18 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.140 2003/10/22 17:57:01 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2247,7 +2247,10 @@ void paradynDaemon::addProcessInfo(const pdvector<pdstring> &resource_name) {
 //
 void paradynDaemon::resourceInfoCallback(u_int temporaryId,
                                          pdvector<pdstring> resource_name,
-                                         pdstring abstr, u_int type) {
+                                         pdstring abstr,
+                                         u_int type,
+                                         u_int mdlType)
+{
 
    if(resource_name.size() > 0) {
       const char *rstr = resource_name[0].c_str();
@@ -2257,7 +2260,9 @@ void paradynDaemon::resourceInfoCallback(u_int temporaryId,
    }
 
    resourceHandle r = resource::createResource(temporaryId, resource_name, 
-                                               abstr, type);
+                                               abstr,
+                                               (ResourceType)type,
+                                               mdlType);
    if(!count){
       if (r != temporaryId) {
          pdvector<u_int>tempIds; pdvector<u_int>rIds;
@@ -2279,7 +2284,8 @@ void paradynDaemon::severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceI
       resourceInfoCallback(items[lcv].temporaryId,
 			   items[lcv].resource_name,
 			   items[lcv].abstraction,
-			   items[lcv].type);
+               items[lcv].type,
+			   items[lcv].mdlType);
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.16 2003/07/15 22:45:24 schendel Exp $
+// $Id: CallGraph.C,v 1.17 2003/10/22 17:57:01 pcroth Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -162,7 +162,7 @@ bool CallGraph::AddResource(resource *r) {
     pdvector <resource *> empty;
 
     // make sure that resource refers to function....
-    assert(r == rootResource || r->getType() == MDL_T_PROCEDURE);
+    assert(r == rootResource || r->getMDLType() == MDL_T_PROCEDURE);
 
     if (children.defines(r) || parents.defines(r)) {
         return false;
@@ -276,7 +276,7 @@ void CallGraph::AddDynamicCallSite(resource *parent){
 
 void CallGraph::SetEntryFunc(resource *r, unsigned tid) {
     assert(r != NULL);
-    assert(r->getType() == MDL_T_PROCEDURE);
+    assert(r->getMDLType() == MDL_T_PROCEDURE);
     
     if(entryFunction == NULL)
        entryFunction = r;

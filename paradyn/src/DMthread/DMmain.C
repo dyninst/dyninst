@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.153 2003/09/05 19:14:19 pcroth Exp $
+// $Id: DMmain.C,v 1.154 2003/10/22 17:57:02 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -328,7 +328,8 @@ void dynRPCUser::resourceBatchMode(bool) // bool onNow
 // upcalls from remote process.
 //
 void dynRPCUser::resourceInfoCallback(u_int , pdvector<pdstring> ,
-                                      pdstring , u_int) {
+                                      pdstring , u_int, u_int)
+{
 
 printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 

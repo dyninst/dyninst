@@ -46,6 +46,7 @@
 
 #include "common/h/Time.h"
 #include "common/h/Dictionary.h"
+#include "pdutil/h/resource.h"
 
 class resource;
 
@@ -77,7 +78,8 @@ public:
   inline resource(const pdstring& abstraction, const pdstring& self_name,
 		  timeStamp creation,
 		  void *handle, bool suppressed, resource *parent, 
-		  unsigned type);
+          ResourceType type,
+		  unsigned int mdlType);
 
   const pdstring &name() const { return name_; }
 
@@ -118,7 +120,8 @@ public:
   const pdstring &abstraction() const { return abstraction_; }
   void *handle() const { return handle_; }
   unsigned id() const { return id_; }
-  unsigned type() const { return type_; }
+  unsigned int mdlType() const { return mdlType_; }
+  ResourceType type( void ) const { return type_; }
 
   resource *parent() const { return parent_; }
 
@@ -137,7 +140,8 @@ public:
 			       const pdstring &abstraction,
 			       const pdstring &name, timeStamp creation,
 			       const pdstring &unique, 
-			       unsigned type,
+                   ResourceType type,
+			       unsigned int mdlType,
 			       bool send_now);
   static void send_now();
 
@@ -145,9 +149,13 @@ public:
 			       const pdstring &abstraction,
 			       const pdstring &name, timeStamp creation,
 			       const pdstring &unique, 
-			       unsigned type);
-  static resource *newResource(resource *parent, const pdstring& name, unsigned id,
-			       unsigned type);
+                   ResourceType type,
+			       unsigned int mdlType);
+  static resource *newResource(resource *parent,
+                                const pdstring& name,
+                                unsigned int id,
+                                ResourceType type,
+			                    unsigned int mdlType);
   inline void set_id(unsigned id);
 
 private:
@@ -159,7 +167,8 @@ private:
   bool suppressed_;
   resource *parent_;
   unsigned id_;
-  unsigned type_;  // the mdl type of this resource
+  ResourceType type_;         // the type of this resource (func, module, ...)
+  unsigned mdlType_;            // the mdl type of this resource
 
   static dictionary_hash<pdstring, resource*> allResources;
   static dictionary_hash<unsigned, resource*> res_dict;
@@ -177,17 +186,26 @@ inline bool resource::isResourceDescendent(resource *is_a_parent) {
 }
 
 inline resource::resource()
-: creation_(timeStamp::ts1970()), handle_(NULL), suppressed_(true), parent_(NULL)
+: creation_(timeStamp::ts1970()),
+  handle_(NULL),
+  suppressed_(true),
+  parent_(NULL)
 { }
 
-inline resource::resource(const pdstring& abstraction, const pdstring& self_name,
-                   timeStamp creat,
-		   void *hand, bool supp, resource *par,
-		   unsigned type)
+inline resource::resource(const pdstring& abstraction,
+                            const pdstring& self_name,
+                            timeStamp creat,
+		                    void *hand,
+                            bool supp,
+                            resource *par,
+                            ResourceType type,
+		                    unsigned int mdlType)
 : name_(self_name),
   abstraction_(abstraction),
   creation_(creat), handle_(hand), suppressed_(supp), parent_(par),
-  type_(type) { }
+  type_(type),
+  mdlType_(mdlType)
+{ }
 
 inline resource *resource::findResource(unsigned name) {
    // why is the param call-by-reference?

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.162 2003/10/21 17:22:46 bernat Exp $
+// $Id: perfStream.C,v 1.163 2003/10/22 17:57:04 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -959,11 +959,11 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
    // resource *res;
    pdvector<pdstring> parent_name;
    resource *parent = NULL;
-   unsigned type;
+   unsigned mdlType;
    //cerr << "in createResource pid: " << pid << endl;
-   switch (r->type) {
-     case RES_TYPE_STRING: type = MDL_T_STRING; break;
-     case RES_TYPE_INT:    type = MDL_T_INT; break;
+   switch (r->mdlType) {
+     case RES_TYPE_STRING: mdlType = MDL_T_STRING; break;
+     case RES_TYPE_INT:    mdlType = MDL_T_INT; break;
      default: 
         pdstring msg = pdstring("Invalid resource type reported on trace stream from PID=")
            + pdstring(pid);
@@ -973,6 +973,7 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
    }
 
    name = r->name;
+   ResourceType type = (ResourceType)r->btype;
    //cerr << "cr - a, name: " << name << endl;
    do {
       tmp = strchr(name, '/');
@@ -990,7 +991,10 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
    //cerr << "cr - c\n";
    if ((parent = resource::findResource(parent_name)) && name != r->name) {
       resource::newResource(parent, NULL, r->abstraction, name,
-                            trWall, "", type, true);
+                            trWall, "", 
+                            type,
+                            mdlType,
+                            true);
    }
    else {
       pdstring msg = pdstring("Unknown resource '") + pdstring(r->name) +

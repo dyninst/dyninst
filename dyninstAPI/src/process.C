@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.457 2003/10/22 16:00:53 schendel Exp $
+// $Id: process.C,v 1.458 2003/10/22 17:57:00 pcroth Exp $
 
 #include <ctype.h>
 
@@ -3963,8 +3963,8 @@ bool process::getSharedObjects() {
 #ifndef BPATCH_LIBRARY
 function_base *process::findOnlyOneFunction(resource *func, resource *mod){
     if((!func) || (!mod)) { return 0; }
-    if(func->type() != MDL_T_PROCEDURE) { return 0; }
-    if(mod->type() != MDL_T_MODULE) { return 0; }
+    if(func->mdlType() != MDL_T_PROCEDURE) { return 0; }
+    if(mod->mdlType() != MDL_T_MODULE) { return 0; }
 
     const pdvector<pdstring> &f_names = func->names();
     const pdvector<pdstring> &m_names = mod->names();
@@ -4005,8 +4005,8 @@ bool process::findAllFuncsByName(resource *func, resource *mod,
    
   pdvector<pd_Function *> *pdfv=NULL;
   if((!func) || (!mod)) { return 0; }
-    if(func->type() != MDL_T_PROCEDURE) { return 0; }
-    if(mod->type() != MDL_T_MODULE) { return 0; }
+    if(func->mdlType() != MDL_T_PROCEDURE) { return 0; }
+    if(mod->mdlType() != MDL_T_MODULE) { return 0; }
 
     const pdvector<pdstring> &f_names = func->names();
     const pdvector<pdstring> &m_names = mod->names();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.192 2003/10/22 16:01:14 schendel Exp $
+// $Id: symtab.C,v 1.193 2003/10/22 17:57:00 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -952,6 +952,11 @@ void image::postProcess(const pdstring pifname)
 					 abstraction,
 					 tmp1, timeStamp::ts1970(),
 					 nullString, // uniqifier
+#if READY
+                     0,         // what type to use?
+#else
+                     OtherResourceType,
+#endif // READY
 					 MDL_T_STRING,
 					 true);
         } else {
@@ -1049,6 +1054,7 @@ void pdmodule::define() {
                                                 fileName(), // name
                                          timeStamp::ts1970(), // creation time
                                                 pdstring(), // unique-ifier
+                                                ModuleResourceType,
                                                 MDL_T_MODULE,
                                                 false);
          }
@@ -1080,6 +1086,7 @@ void pdmodule::define() {
                                useTyped ? prettyWithTypes : pdf->prettyName(), 
                                   timeStamp::ts1970(),
                                   nullString, // uniquifier
+                                  FunctionResourceType,
                                   MDL_T_PROCEDURE,
                                   false );
          pdf->SetFuncResource(res);

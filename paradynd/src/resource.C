@@ -70,8 +70,12 @@ resource *memoryRoot; // shared-memory resource
 resource *memoryResource; // shared-memory resource
 
 
-resource *resource::newResource(resource *parent, const pdstring& name, unsigned id, 
-				unsigned type) {
+resource *resource::newResource(resource *parent,
+                                const pdstring& name,
+                                unsigned id, 
+                                ResourceType type,
+				                unsigned int mdlType)
+{
   assert (name != (char*) NULL);
   assert ((name.c_str())[0] != '/');
 
@@ -86,7 +90,14 @@ resource *resource::newResource(resource *parent, const pdstring& name, unsigned
 
   
   //ret = new resource(abs, name, 0.0, NULL, false, parent, v_names, type);
-  ret = new resource(abs, name, timeStamp::ts1970(), NULL, false, parent, type);
+  ret = new resource(abs,
+                        name,
+                        timeStamp::ts1970(),
+                        NULL,
+                        false,
+                        parent,
+                        type,
+                        mdlType);
   assert(ret);
 
   allResources[res_string] = ret;
@@ -100,7 +111,8 @@ resource *resource::newResource(resource *parent, void *handle,
 				const pdstring &abstraction, 
 				const pdstring &name, timeStamp creation,
 				const pdstring &unique,
-				unsigned type,
+                ResourceType type,
+				unsigned int mdlType,
 				bool send_it_now)
 {
   assert (name != (char*) NULL);
@@ -124,8 +136,14 @@ resource *resource::newResource(resource *parent, void *handle,
   pdvector<pdstring> res_components = parent->names();
   res_components += unique_string;
 
-  ret = new resource(abstraction, unique_string, creation, handle,
-		     false, parent, type);
+  ret = new resource(abstraction,
+                        unique_string,
+                        creation,
+                        handle,
+		                false,
+                        parent,
+                        type,
+                        mdlType);
   assert(ret);
   allResources[res_string] = ret;
 
@@ -151,6 +169,7 @@ resource *resource::newResource(resource *parent, void *handle,
   cbstruct.resource_name = res_components;
   cbstruct.abstraction = abstraction;
   cbstruct.type = type;
+  cbstruct.mdlType = mdlType;
   resourceInfoCallbackBuffer += cbstruct;
   if (resourceInfoCallbackBuffer.size()==100)
      send_it_now = true;
@@ -170,7 +189,8 @@ resource *resource::newResource_ncb(resource *parent, void *handle,
 				const pdstring &abstraction, 
 				const pdstring &name, timeStamp creation,
 				const pdstring &unique,
-				unsigned type)
+                ResourceType type,
+				unsigned int mdlType)
 {
   assert (name != (char*) NULL);
   assert ((name.c_str())[0] != '/');
@@ -191,7 +211,7 @@ resource *resource::newResource_ncb(resource *parent, void *handle,
   res_components += unique_string;
 
   resource *ret = new resource(abstraction, unique_string, creation, handle,
-			       false, parent, type);
+			       false, parent, type, mdlType);
   assert(ret);
   allResources[res_string] = ret;
 
