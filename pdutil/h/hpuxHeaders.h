@@ -109,6 +109,16 @@ inline size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
 inline int P_chdir(const char *path) { return chdir(path); }
 
+inline int P_putenv(const char *str) { return putenv(str); }
+
+/* SYSTEM-V shared memory */
+#include <sys/ipc.h>
+#include <sys/shm.h> /* shmid_ds */
+inline int P_shmget(key_t key, int size, int flag) { return shmget(key,size,flag); }
+inline void *P_shmat(int shmid, void *addr, int flags) { return shmat(shmid, addr, flags); }
+inline int P_shmdt(void *addr) { return shmdt(addr); }
+inline int P_shmctl(int shmid, int cmd, struct shmid_ds *buf) { return shmctl(shmid, cmd, buf); }
+
 
 /* ANSI */
 inline void P_exit (int STATUS) { exit(STATUS);}
@@ -170,6 +180,12 @@ inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
   return (getsockname(SOCKET, ADDR, (int*) LENGTH_PTR));}
+inline int P_getsockopt(int fd, int level, int optname, void *optval, int *optlen) {
+   return getsockopt(fd, level, optname, optval, optlen);
+}
+inline int P_setsockopt(int fd, int level, int optname, void *optval, int optlen) {
+   return setsockopt(fd, level, optname, optval, optlen);
+}
 /* inline int P_gettimeofday (struct timeval *TP, struct timezone *TZP) {
   return (gettimeofday(TP, TZP));} */
 inline int P_listen (int socket, unsigned int n) { return (listen(socket, n));}

@@ -110,6 +110,16 @@ extern int P_waitpid(pid_t pid, int *statusp, int options);
 extern size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE);
 extern int P_chdir(const char *path);
 
+extern int P_putenv(const char *);
+
+/* SYSTEM-V shared memory */
+#include <sys/ipc.h>
+#include <sys/shm.h> /* shmid_ds */
+extern int P_shmget(key_t, int, int);
+extern void *P_shmat(int, void *, int);
+extern int P_shmdt(void *);
+extern int P_shmctl(int, int, struct shmid_ds *);
+
 /* ANSI */
 extern void P_exit (int STATUS);
 extern int P_fflush(FILE *stream);
@@ -145,6 +155,8 @@ extern struct hostent * P_gethostbyname (const char *NAME);
 /* extern int P_getrusage(int, struct rusage*); */
 extern struct servent * P_getservbyname (const char *NAME, const char *PROTO);
 extern int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR);
+extern int P_getsockopt(int, int, int, void *, int *);
+extern int P_setsockopt(int, int, int, void *, int);
 /* extern int P_gettimeofday (struct timeval *TP, struct timezone *TZP); */
 extern int P_listen (int socket, unsigned int n);
 caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t off);
