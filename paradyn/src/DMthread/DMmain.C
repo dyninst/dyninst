@@ -2,6 +2,9 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
+ * Revision 1.82  1995/11/22 00:07:30  mjrg
+ * Removed -f and -t arguments to paradyn
+ *
  * Revision 1.81  1995/11/17 17:18:02  newhall
  * added normalized member to metric class, support for MDL unitsType option
  *
@@ -674,7 +677,7 @@ int dataManager::DM_post_thread_create_init(int tid) {
     // new paradynd's may try to connect to well known port
     DMsetupSocket (dataManager::dm->sock_fd);
 
-    assert(RPC_make_arg_list(paradynDaemon::args, AF_INET, SOCK_STREAM,
+    assert(RPC_make_arg_list(paradynDaemon::args,
   	 		     dataManager::dm->socket, 1, 1, "", false));
 
     // start initial phase
