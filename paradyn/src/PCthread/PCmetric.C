@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.20  1994/08/05 16:04:13  hollings
+ * Revision 1.21  1994/09/22 01:03:16  markc
+ * Added const char* to PCmetric constructors
+ *
+ * Revision 1.20  1994/08/05  16:04:13  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.19  1994/08/03  19:09:51  hollings
@@ -141,7 +144,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.20 1994/08/05 16:04:13 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.21 1994/09/22 01:03:16 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -181,7 +184,7 @@ extern performanceStream *pcStream;
 extern searchHistoryNode *currentSHGNode;
 extern Boolean doAutoRefinement(searchHistoryNode *, int);
 
-PCmetric::PCmetric(char *id)
+PCmetric::PCmetric(const char *id)
 {
     name = PCmetricStrings.findAndAdd(id);
     aggregationOperator = aggSum;
@@ -189,7 +192,7 @@ PCmetric::PCmetric(char *id)
     allMetrics.add(this, name);
 }
 
-PCmetric::PCmetric(char *id, int ag, calcType c)
+PCmetric::PCmetric(const char *id, int ag, calcType c)
 {
     name = PCmetricStrings.findAndAdd(id);
     aggregationOperator = ag;
@@ -249,7 +252,7 @@ sampleValue PCmetric::value(focus *f, timeStamp start, timeStamp end)
 
     if (!val->enabled) {
 	printf("Attempt to use disabled metric\n");
-	printf("*** metric %s for focus: ", name);
+	printf("*** metric %s for focus: ", (char*)name);
 	f->print();
 	printf("\n");
 	abort();
