@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.169 2005/01/21 23:44:50 bernat Exp $
+// $Id: symtab.h,v 1.170 2005/02/02 17:27:38 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -198,10 +198,8 @@ class pdmodule: public module {
 #endif
       exec_(e), 
 
-      allInstrumentableFunctionsByPrettyName( pdstring::hash ),
-      allInstrumentableFunctionsByMangledName( pdstring::hash ),
-      allUninstrumentableFunctionsByPrettyName( pdstring::hash ),
-      allUninstrumentableFunctionsByMangledName( pdstring::hash )  
+      allFunctionsByPrettyName( pdstring::hash ),
+      allFunctionsByMangledName( pdstring::hash )
       {
       }
 
@@ -226,7 +224,6 @@ void cleanProcessSpecific(process *p);
    void updateForFork(process *childProcess, const process *parentProcess);
 
    pdvector<int_function *> * getFunctions();
-   const pdvector<int_function *> * getPD_Functions();
 
    pdvector<int_function *> *findFunction (const pdstring &name, 
                                             pdvector<int_function *> *found);
@@ -236,11 +233,7 @@ void cleanProcessSpecific(process *p);
                                                   bool regex_case_sensitive=true);
 
    int_function *findFunctionByMangled(const pdstring &name);
-   pdvector<int_function *> *findUninstrumentableFunction(const pdstring &name,
-                                                           pdvector<int_function *> *found);
-   // remove record of function from internal vector of instrumentable funcs
-   // (used when a function needs to be reclassified as non-instrumentable);
-   bool removeInstruFunc(int_function *pdf);
+
    bool isShared() const;
 #ifndef BPATCH_LIBRARY
    resource *getResource() { return modResource; }
@@ -277,23 +270,19 @@ void cleanProcessSpecific(process *p);
    lineDict lines_;
    //  list of all found functions in module....
    // pdvector<int_function*> funcs;
-   // pdvector<int_function*> notInstruFuncs;
 
    //bool shared_;                      // if image it belongs to is shared lib
 
  public:
 
-   void addInstrumentableFunction( int_function * function );
-   void addUninstrumentableFunction( int_function * function );
+   void addFunction( int_function * function );
 
  private:
 
    typedef dictionary_hash< pdstring, int_function * >::iterator FunctionsByMangledNameIterator;
    typedef dictionary_hash< pdstring, pdvector< int_function * > * >::iterator FunctionsByPrettyNameIterator;
-   dictionary_hash< pdstring, pdvector< int_function * > * > allInstrumentableFunctionsByPrettyName;
-   dictionary_hash< pdstring, int_function * > allInstrumentableFunctionsByMangledName;
-   dictionary_hash< pdstring, pdvector< int_function * > * > allUninstrumentableFunctionsByPrettyName;
-   dictionary_hash< pdstring, int_function * > allUninstrumentableFunctionsByMangledName;
+   dictionary_hash< pdstring, pdvector< int_function * > * > allFunctionsByPrettyName;
+   dictionary_hash< pdstring, int_function * > allFunctionsByMangledName;
 
 };
 
@@ -328,6 +317,8 @@ class internalSym {
 
 int rawfuncscmp( int_function*& pdf1, int_function*& pdf2 );
 
+typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
+
 // modsByFileName
 // modsbyFullName
 // includedMods
@@ -335,8 +326,6 @@ int rawfuncscmp( int_function*& pdf1, int_function*& pdf2 );
 // allMods
 // includedFunctions
 // excludedFunctions
-// instrumentableFunctions
-// notInstruFunctions
 // funcsByAddr
 // funcsByPretty
 // file_
@@ -377,13 +366,16 @@ class image : public codeRange {
    // Cleaning function -- removes all process-dependent info
    void cleanProcessSpecific(process *p);
 
+   // Fills  in raw_funcs with targets in callTargets
    void parseStaticCallTargets( pdvector< Address >& callTargets,
-                                pdvector< int_function* > *raw_funcs,
+                                pdvector< int_function* > &raw_funcs,
                                 pdmodule* mod );
 
-   bool parseFunction( int_function* pdf, pdvector< Address >& callTargets,
-                       pdmodule* mod );
+   bool parseFunction( int_function* pdf, pdvector< Address >& callTargets); 
    image(fileDescriptor *desc, bool &err, Address newBaseAddr = 0); 
+
+   void analyzeIfNeeded();
+
  protected:
    ~image();
 
@@ -422,8 +414,7 @@ class image : public codeRange {
 
    // Find the vector of functions associated with a (demangled) name
    pdvector <int_function *> *findFuncVectorByPretty(const pdstring &name);
-   //pdvector <int_function *> *findFuncVectorByMangled(const pdstring &name);
-   pdvector <int_function *> *findFuncVectorByNotInstru(const pdstring &name);
+   pdvector <int_function *> *findFuncVectorByMangled(const pdstring &name);
 
    // Find the vector of functions determined by a filter function
    pdvector <int_function *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
@@ -433,13 +424,6 @@ class image : public codeRange {
                                                      void *user_data, 
                                                      pdvector<int_function *> *found);
 
-   // Find a function by mangled (original) name. Guaranteed unique
-   int_function *findFuncByMangled(const pdstring &name);
-   // Look for the function in the non instrumentable list
-   int_function *findNonInstruFunc(const pdstring &name);
-
-   // Looks for the name in all lists (inc. excluded and non-instrumentable)
-   int_function *findOnlyOneFunctionFromAll(const pdstring &name);
    int_function *findOnlyOneFunction(const pdstring &name);
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
@@ -461,13 +445,9 @@ class image : public codeRange {
 
    // Given an address (offset into the image), find the function that occupies
    // that address
-   int_function *findFuncByOffset(const Address &offset) const;
-   int_function *findFuncByEntry(const Address &entry) const;
+   int_function *findFuncByOffset(const Address &offset);
+   int_function *findFuncByEntry(const Address &entry);
   
-   void findModByAddr (const Symbol &lookUp, pdvector<Symbol> &mods,
-                       pdstring &modName, Address &modAddr, 
-                       const pdstring &defName);
-
    // report modules to paradyn
    void defineModules(process *proc);
   
@@ -553,21 +533,13 @@ class image : public codeRange {
    Address get_main_call_addr() const { return main_call_addr_; }
  private:
 
-   // Adds a function to the following lists
-   // funcsByPretty
-   // funcsByMangled
-   // funcsByAddr
-   // if (excluded) excludedFunctions
-   // else includedFunctions
-   void addInstruFunction(int_function *func, pdmodule *mod,
-                          const Address addr);
+   void findModByAddr (const Symbol &lookUp, pdvector<Symbol> &mods,
+                       pdstring &modName, Address &modAddr, 
+                       const pdstring &defName);
+
 
    // Remove a function from the lists of instrumentable functions, once already inserted.
    int removeFuncFromInstrumentable(int_function *func);
-
-   // Add a function which could not be instrumented.  Sticks it in
-   // notInstruFuncs (list)
-   void addNotInstruFunc(int_function *func, pdmodule *mod);
 
    int_function *makeOneFunction(pdvector<Symbol> &mods,
                                 const Symbol &lookUp);
@@ -605,13 +577,17 @@ class image : public codeRange {
    pdmodule *getOrCreateModule (const pdstring &modName, const Address modAddr);
    pdmodule *newModule(const pdstring &name, const Address addr, supportedLanguages lang);
 
-   bool addAllFunctions(pdvector<Symbol> &mods, pdvector<int_function *> *raw_funcs);
+   bool symbolsToFunctions(pdvector<Symbol> &mods, pdvector<int_function *> *raw_funcs);
 
    bool addAllVariables();
    void getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
    void setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
 
-   bool buildFunctionMaps(pdvector<int_function *> *);
+   // We have a _lot_ of lookup types; this handles proper entry
+   void enterFunctionInTables(int_function *func, pdmodule *mod);
+
+   bool buildFunctionLists(pdvector<int_function *> &raw_funcs);
+   bool analyzeImage();
    //
    //  ****  PRIVATE DATA MEMBERS  ****
    //
@@ -652,7 +628,6 @@ class image : public codeRange {
    dictionary_hash<Address, Address> knownJumpTargets;
 
    pdvector<pdmodule *> _mods;
-   pdvector<int_function*> instrumentableFunctions;
 
    // The dictionary of all symbol addresses in the image. We use it as a hack
    // on x86 to scavenge some bytes past a function exit for the exit-point
@@ -673,10 +648,8 @@ class image : public codeRange {
    // Hash table holding functions by mangled name.
    // Should contain same functions as funcsByPretty....
    dictionary_hash <pdstring, pdvector<int_function*>*> funcsByMangled;
-   // The functions that can't be instrumented
-   // Note that notInstruFunctions holds list of functions for which
-   //  necessary instrumentation data could NOT be found....
-   dictionary_hash <pdstring, int_function*> notInstruFunctions;
+   // And a way to iterate over all the functions efficiently
+   pdvector<int_function *> everyUniqueFunction;
 
    // TODO -- get rid of one of these
    // Note : as of 971001 (mcheyney), these hash tables only 
@@ -690,6 +663,8 @@ class image : public codeRange {
    dictionary_hash <pdstring, pdvector<pdstring>*> varsByPretty;
  
    int refCount;
+
+   imageParseState_t parseState_;
 };
 
 /*
