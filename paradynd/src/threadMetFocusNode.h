@@ -58,7 +58,7 @@ class threadMetFocusNode_Val {
   friend class threadMetFocusNode;
 
   enum { NON_THREAD = -1};
-  const string &metric_name;
+  const string metric_name;
   const Focus focus;
   vector< parentDataRec<processMetFocusNode> > parentsBuf;
   pdSample cumulativeValue;
@@ -66,21 +66,31 @@ class threadMetFocusNode_Val {
   pdThread *pdThr;
   int referenceCount;
 
-  void updateAllAggInfoInitialized( void );
+  void updateAllAggInfoInitialized();
+  pdSample getCumulativeValue() const { return cumulativeValue; }
+  void setCumulativeValue(pdSample v) { cumulativeValue = v; }
 
  public:
   static string construct_key_name(const string &metricStr, 
 				   const string &focusStr) {
-    return (metricStr + "-" + focusStr);
+  return string(metricStr + "-" + focusStr);
   }
 
   threadMetFocusNode_Val(const string &met, const Focus &f, pdThread *pdthr) : 
-    metric_name(met), focus(f), cumulativeValue(pdSample::Zero()), 
+    metric_name(met), focus(f), // parentsBuf written to by recordAsParent(),
+                                // called by processMetFocusNode copy construct.
+    cumulativeValue(pdSample::Zero()), 
     allAggInfoInitialized(false), pdThr(pdthr), referenceCount(0)
   { }
+
+  threadMetFocusNode_Val(const threadMetFocusNode_Val &par,process *childProc,
+			 pdThread *pdThr);
+
   ~threadMetFocusNode_Val();
 
   string getKeyName();
+  string getMetricName() const { return metric_name; }
+  Focus  getFocus() const { return focus; }
   void updateValue(timeStamp, pdSample);
   void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
 			    pdSample value);
@@ -105,26 +115,39 @@ class threadMetFocusNode : public metricFocusNode {
   threadMetFocusNode_Val &V;
   processMetFocusNode *parent;
 
+  void updateAllAggInfoInitialized() {  V.updateAllAggInfoInitialized();  }
+
  protected:
   static dictionary_hash<string, threadMetFocusNode_Val*> 
                                                     allThrMetFocusNodeVals;
   threadMetFocusNode(threadMetFocusNode_Val *thrValPtr) : V(*thrValPtr),
     parent(NULL) { }
 
+  // copy constructor variation
+  threadMetFocusNode(const threadMetFocusNode &par, process *childProc,
+		     pdThread *pdThr);
+
  public:
   static threadMetFocusNode *threadMetFocusNode::newThreadMetFocusNode(
 		   const string &metric_name, const Focus &f, pdThread *pdthr);
+  static threadMetFocusNode *threadMetFocusNode::copyThreadMetFocusNode(
+		   const threadMetFocusNode &par, process *childProc, 
+		   pdThread *pdthr);
 
   virtual ~threadMetFocusNode();
   void recordAsParent(processMetFocusNode *procNode, 
 		      aggComponent *childAggInfo);
   void print();
+  string getMetricName() const { return V.getMetricName(); }
+  Focus getFocus() const { return V.getFocus(); }
   process *proc();
   bool instrInserted()     { return V.instrInserted(); }
   bool isReadyForUpdates() { return V.isReadyForUpdates(); }
+
   int getThreadID()  const { return V.getThreadID(); }
   int getThreadPos() const { return V.getThreadPos(); }
   threadMetFocusNode_Val *getValuePtr() { return &V; }
+  const threadMetFocusNode_Val *getValuePtr() const { return &V; }
   void initializeForSampling(timeStamp startTime, pdSample initValue);
   void initAggInfoObjects(timeStamp startTime, pdSample initValue);
 };
