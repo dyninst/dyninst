@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.15  1994/11/02 19:03:54  hollings
+ * Revision 1.16  1994/11/06 09:45:29  jcargill
+ * Added prototype for clock functions to fix pause_time metric for cm5
+ *
+ * Revision 1.15  1994/11/02  19:03:54  hollings
  * Made the observed cost model use a normal variable rather than a reserved
  * register.
  *
@@ -69,6 +72,9 @@
  */
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
+
+extern time64 DYNINSTgetCPUtime();
+extern time64 DYNINSTgetWallTime();
 
 /* see note below - jkh 10/19/94 */
 int DYNINSTnprocs;
