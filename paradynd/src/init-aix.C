@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.34 2004/10/07 00:45:57 jaw Exp $
+// $Id: init-aix.C,v 1.35 2005/02/17 21:10:57 bernat Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/pd_process.h"
@@ -79,9 +79,6 @@ bool initOS()
   static BPatch_paramExpr mpiScattervCommArg(8);
   static BPatch_paramExpr mpiScanCommArg(5);
 
-
-    initialRequestsPARADYN += new pdinstMapping("DYNINSTsampleValues", 
-                                                "DYNINSTreportNewTags", FUNC_ENTRY);
 
     initialRequestsPARADYN += new pdinstMapping("system", "DYNINSTsystem", 
                                                 FUNC_ENTRY);
