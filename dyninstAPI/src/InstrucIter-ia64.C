@@ -34,25 +34,60 @@ bool addressIsValidInsnAddr( Address addr ) {
 
 bool InstrucIter::isAReturnInstruction()
 {
-	assert( 0 );
+	IA64_instruction * insn = getInstruction();
+	switch( insn->getType() ) {
+		case IA64_instruction::RETURN:
+			return true;
+			break;
+	
+		default:
+			break;
+		} /* end instruction-type switch */
 	return false;
 }
 
 bool InstrucIter::isAIndirectJumpInstruction()
 {
-	assert( 0 );
+	IA64_instruction * insn = getInstruction();
+	switch( insn->getType() ) {
+		case IA64_instruction::INDIRECT_BRANCH:
+			if( insn->getPredicate() == 0 ) { return true; }
+			break;
+
+		default:
+			break;
+		} /* end instruction-type switch */
 	return false;
 }
 
 bool InstrucIter::isACondBranchInstruction()
 {
-	assert( 0 );
+	IA64_instruction * insn = getInstruction();
+	switch( insn->getType() ) {
+		case IA64_instruction::DIRECT_BRANCH:
+		/* Not sure if this second case is intended. */
+		case IA64_instruction::INDIRECT_BRANCH: {
+			if( insn->getPredicate() != 0 ) { return true; }
+			break; } 
+		
+		default:
+			break;
+		} /* end instruction-type switch */
 	return false;
 }
 
+/* We take this to mean a dirct conditional branch which always executes. */
 bool InstrucIter::isAJumpInstruction()
 {
-	assert( 0 );
+	IA64_instruction * insn = getInstruction();
+	switch( insn->getType() ) {
+		case IA64_instruction::DIRECT_BRANCH:
+			if( insn->getPredicate() == 0 ) { return true; }
+			break;
+
+		default:
+			break;
+		} /* end instruction-type switch */
 	return false;
 }
 
@@ -68,10 +103,13 @@ bool InstrucIter::isAnneal()
 	return false;
 }
 
-Address InstrucIter::getBranchTargetAddress(Address pos)
+Address InstrucIter::getBranchTargetAddress( Address pos )
 {
-	assert( 0 );
-	return false;
+	IA64_instruction * insn = getInstruction();
+	Address rawTargetAddress = insn->getTargetAddress() + pos;
+	Address targetAddress = rawTargetAddress - (rawTargetAddress % 0x10);
+	// /* DEBUG */ fprintf( stderr, "Instruction at 0x%lx targets 0x%lx\n", currentAddress, targetAddress );
+	return targetAddress;
 }
 
 void initOpCodeInfo() {
@@ -80,7 +118,24 @@ void initOpCodeInfo() {
 
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-	assert( 0 );
+	IA64_instruction * insn = getInstruction();
+	IA64_instruction::insnType type = insn->getType();
+	
+	switch( type ) {
+		case IA64_instruction::INTEGER_LOAD:
+			break;
+		case IA64_instruction::INTEGER_STORE:
+			break;
+		case IA64_instruction::FP_LOAD:
+			break;
+		case IA64_instruction::FP_STORE:
+			break;											
+			
+		default:
+			return NULL;
+		}
+
+	fprintf( stderr, "FIXME: decode instruction to generate BPatch_memoryAccess.\n" );
 	return NULL;
 }
 
@@ -92,22 +147,127 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
   if (ma != BPatch_memoryAccess::none)
     return ma;
 
-  const instruction i = getInstruction();
+  IA64_instruction * i = getInstruction();
   /* Work around compiler idiocy.  FIXME: ignoring long instructions. */
-  uint64_t raw = i.getMachineCode();
+  uint64_t raw = i->getMachineCode();
   in = new BPatch_instruction( & raw, sizeof( raw ) );
 
   return in;
 }
 
-void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
-{
-	assert( 0 );
-}
+#define INDIRECT_BRANCH_REGISTER_MASK	0x0000007000000000	/* bits 13 - 15 */
+#define MOVE_TO_BR_DESTINATION_MASK		0x00000000E0000000	/* bits 06 - 08 */
+
+#define A_TYPE_SIGN_BIT					0x0800000000000000	/* bit 36 */
+#define A_TYPE_IMM9D					0x07FC000000000000	/* bits 27 - 35 */
+#define A_TYPE_IMM5C					0x0003E00000000000  /* bits 22 - 26 */
+#define A_TYPE_SOURCE_MASK				0x0000180000000000  /* bits 21 - 20 */
+#define A_TYPE_IMM7B					0x000007F000000000  /* bits 19 - 13 */
+
+void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses ) {
+	/* The IA-64 SCRAG defines a pattern similar to the power's.  At some constant offset
+	   from the GP, there's a jump table whose 64-bit entries are offsets from the base
+	   address of the table to the target.  We assume that the nearest previous
+	   addition involving r1 is calculating the jump table's address; if this proves to be
+	   ill-founded, we'll have to trace registers backwards, starting with the branch
+	   register used in the indirect jump. */
+
+	Address gpAddress = (addressImage->getObject()).getTOCoffset();
+	Address originalAddress = currentAddress;
+
+	/* We assume that gcc will always generate an addl-form.  (Otherwise,
+	   our checks will have to be somewhat more general.) */
+	Address jumpTableOffset = 0;
+	do {
+		/* Rewind one instruction. */
+		if( ! hasPrev() ) { return; } (*this)--;
+		
+		/* Acquire it. */
+		IA64_instruction * insn = getInstruction();
+		
+		/* Is it an integer or memory operation? */
+		IA64_instruction::unitType unitType = insn->getUnitType();
+		if( unitType != IA64_instruction::I && unitType != IA64_instruction::M ) { continue; }
+
+		/* If so, is it an addl? */
+		uint64_t rawInstruction = insn->getMachineCode();
+		uint64_t majorOpCode = (rawInstruction & MAJOR_OPCODE_MASK ) >> ( 37 + ALIGN_RIGHT_SHIFT );
+		if( majorOpCode != 0x09 ) { continue; }
+		
+		/* If it's an addl, is its destination register r1? */
+		uint64_t destinationRegister = ( rawInstruction & A_TYPE_SOURCE_MASK ) >> ( 20 + ALIGN_RIGHT_SHIFT );
+		if( destinationRegister != 0x01 ) { continue; }
+		
+		/* Finally, extract the constant jumpTableOffset. */
+		uint64_t signBit = ( rawInstruction & A_TYPE_SIGN_BIT ) >> ( 36 + ALIGN_RIGHT_SHIFT );
+		uint64_t immediate = 	( rawInstruction & A_TYPE_IMM5C ) >> ( 22 + ALIGN_RIGHT_SHIFT - 16 ) |
+								( rawInstruction & A_TYPE_IMM9D ) >> ( 27 + ALIGN_RIGHT_SHIFT - 7 ) |
+								( rawInstruction & A_TYPE_IMM7B ) >> ( 13 + ALIGN_RIGHT_SHIFT );
+		jumpTableOffset = signExtend( signBit, immediate );
+		
+		/* We've found the jumpTableOffset, stop looking. */
+		// /* DEBUG */ fprintf( stderr, "jumpTableOffset = %ld\n", jumpTableOffset );
+		break;
+	} while( true );
+	
+	/* Calculate the jump table's address. */
+	Address jumpTableAddressAddress = gpAddress + jumpTableOffset;
+	// /* DEBUG */ fprintf( stderr, "jumpTableAddressAddress = 0x%lx\n", jumpTableAddressAddress );
+	
+	/* Assume that the nearest previous immediate-register compare
+	   is range-checking the jump-table offset.  Extract that
+	   constant, n.  (Otherwise, we're kind of screwed: how big 
+	   is the jump table?) */
+	uint64_t maxTableLength = 0;
+	do {
+		/* Rewind one instruction. */
+		if( ! hasPrev() ) { return; } (*this)--;
+		
+		/* Acquire it. */
+		IA64_instruction * insn = getInstruction();
+
+		/* Is it an integer or memory operation? */
+		IA64_instruction::unitType unitType = insn->getUnitType();
+		if( unitType != IA64_instruction::I && unitType != IA64_instruction::M ) { continue; }
+
+		/* If so, is it a cmp.ltu? */
+		uint64_t rawInstruction = insn->getMachineCode();
+		uint64_t majorOpCode = (rawInstruction & MAJOR_OPCODE_MASK ) >> ( 37 + ALIGN_RIGHT_SHIFT );
+		if( majorOpCode != 0x0D ) { continue; }
+		
+		/* Extract the immediate. */
+		uint64_t signBit = ( rawInstruction & A_TYPE_SIGN_BIT ) >> ( 36 + ALIGN_RIGHT_SHIFT );
+		uint64_t immediate = ( rawInstruction & A_TYPE_IMM7B ) >> ( 13 + ALIGN_RIGHT_SHIFT );
+		maxTableLength = signExtend( signBit, immediate );
+
+		/* We've found a cmp.ltu; stop looking. */
+		// /* DEBUG */ fprintf( stderr, "maxTableLength = %ld\n", maxTableLength );
+		break;		
+	} while( true );
+
+	/* Do the indirection. */
+	Address jumpTableAddress = 0;
+	assert( addressProc->readTextSpace( (void *)jumpTableAddressAddress, sizeof( Address ), & jumpTableAddress ) != false );
+	// /* DEBUG */ fprintf( stderr, "jumpTableAddress = 0x%lx\n", jumpTableAddress );
+
+	/* Read n entries from the jump table, summing with jumpTableAddress
+	   to add to the set targetAddresses. */
+	uint64_t * jumpTable = (uint64_t *)malloc( sizeof( uint64_t ) * maxTableLength );
+	assert( jumpTable != NULL );
+	assert( addressProc->readTextSpace( (void *)jumpTableAddress, sizeof( uint64_t ) * maxTableLength, jumpTable ) != false );
+	
+	for( unsigned int i = 0; i < maxTableLength; i++ ) {
+		// /* DEBUG */ fprintf( stderr, "Adding target: 0x%lx (0x%lx + 0x%lx + (%d * 8))\n", jumpTableAddress + jumpTable[i] + (i * 8), jumpTableAddress, jumpTable[i], i );
+		targetAddresses.insert( jumpTable[i] + jumpTableAddress + (i * 8) );
+		} /* end jump table iteration */
+
+	/* Clean up. */
+	free( jumpTable );
+	setCurrentAddress( originalAddress );
+	} /* end getMultipleJumpTargets() */
 
 bool InstrucIter::delayInstructionSupported()
 {
-	assert( 0 );
 	return false;
 }
 
@@ -157,13 +317,21 @@ Address InstrucIter::nextAddress()
 
 void InstrucIter::setCurrentAddress(Address addr)
 {
+	assert( (currentAddress % 0x10) < 3 );
 	currentAddress = addr;
 }
 
 instruction InstrucIter::getInstruction()
 {	
-	assert( 0 );
-	return instruction();
+	uint8_t slotNo = (currentAddress % 0x10 );
+	Address alignedBundleAddress = currentAddress - slotNo;
+	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( alignedBundleAddress, addressProc );
+	ia64_bundle_t rawBundle;
+	bool successfulRead = iAddr.saveMyBundleTo( (uint8_t *) & rawBundle );
+	assert( successfulRead );
+
+	IA64_bundle theBundle( rawBundle );
+	return theBundle.getInstruction( slotNo );
 }
 
 instruction InstrucIter::getNextInstruction()
@@ -204,6 +372,5 @@ Address InstrucIter::operator--(int)
 
 Address InstrucIter::operator*()
 {	
-	assert( 0 );
-	return 0;
+	return currentAddress;
 }
