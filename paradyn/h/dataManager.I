@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.56  1995/12/03 21:29:40  newhall
+ * Revision 1.57  1995/12/11 02:23:20  newhall
+ * changed magnify2 to return a resourceList label with each magnified focus
+ *
+ * Revision 1.56  1995/12/03  21:29:40  newhall
  * change sampleDataCallbackFunc to take a vector of data values
  *
  * Revision 1.55  1995/11/28  15:42:08  naim
@@ -336,7 +339,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 29;
+    $version 30;
 
     //
     // Start a paradyn daemon
@@ -493,7 +496,7 @@ $remote dataManager {
     // of one of the resources with the remaining resource components of rlh,
     // this routine returns 0 if no resource components of rlh have children
     //
-    vector<resourceListHandle> *magnify2(resourceListHandle rlh);
+    vector<rlNameId> *magnify2(resourceListHandle rlh);
 
     //
     // if resource rh is a decendent of a component of the focus, return a new
