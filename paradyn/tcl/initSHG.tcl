@@ -3,7 +3,10 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.7  1994/09/05 20:09:18  karavan
+# Revision 1.8  1994/09/20 21:29:33  jcargill
+# added procedure addDefaultShgBindings (really karavan, but she's not here...)
+#
+# Revision 1.7  1994/09/05  20:09:18  karavan
 # small visual fixes
 #
 # Revision 1.6  1994/08/01  20:26:30  karavan
@@ -67,7 +70,41 @@ proc shgUpdateStatusLine {w newItem} {
 	puts "shgUpdateStatusLine::NO SUCH WINDOW - $w !!"
     }
 }
-    
+
+proc addDefaultShgBindings {cname dagID} {
+    $cname bind all <2> "shgFullName $cname $dagID"
+    $cname bind all <1> "updateCurrentSelection $cname $dagID"
+    $cname bind all <3> "hideCurrentSelection $cname $dagID"
+}
+
+proc addDefaultShgStyles {dagID} {
+
+  # style 1: not tested
+    uimpd addNStyle $dagID 1 "#e9fbb57aa3c9" DarkSlateGrey  \
+	    "-*-Times-Bold-R-Normal--*-140*" black r 1.0
+
+  # style 2: not active
+    uimpd addNStyle $dagID 2 "#cc85d5c2777d" DarkSlateGrey  \
+	    "-*-Times-Bold-R-Normal--*-100*" black r 1.0
+
+  # style 3: active and true
+    uimpd addNStyle $dagID 3 "#acbff48ff6c8" SlateGrey  \
+	            "-*-Times-Bold-R-Normal--*-140*" black r 1.0
+
+  # style 4: active and false
+    uimpd addNStyle $dagID 4 "#ffffbba5bba5" DarkSlateGrey  \
+		"-*-Times-Bold-R-Normal--*-100*" black r 1.0
+
+  # edge 1: where axis refinement
+    uimpd addEStyle $dagID 1 0 "#c99e5f54dcab" b 2.0
+
+  # edge 2: why axis refinement
+    uimpd addEStyle $dagID 2 0 "#622261fcab01" b 2.0
+
+  # edge 3: when axis refinement
+    uimpd addEStyle $dagID 3 0 black b 2.0
+}
+
 proc initSHG {dagID} {
 
     global SHGname PCsearchState shgExplainStr currentSelection$dagID
