@@ -1,4 +1,4 @@
-// $Id: test9.C,v 1.7 2004/01/19 21:55:25 schendel Exp $
+// $Id: test9.C,v 1.8 2004/02/16 16:29:52 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -22,6 +22,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <dirent.h>
 
 #if defined(i386_unknown_linux2_0) || defined (sparc_sun_solaris2_4)
 #include <sys/types.h>
@@ -54,6 +55,8 @@ bool runAllTests = true;
 const unsigned int MAX_TEST = 6;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
+
+char *savedDirectories[MAX_TEST+1];
 
 template class BPatch_Vector<BPatch_variableExpr*>;
 template class BPatch_Set<int>;
@@ -418,6 +421,7 @@ void mutatorTest1(char *pathname, char** child_argv)
 	
 	instrumentToCallZeroArg(appThread, appImage, "func1_1", "call1_1", testNo, testName);
 	char* dirname=saveWorld(appThread);	
+	savedDirectories[testNo] = dirname;
 	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST1);
 
 	appThread->terminateExecution();
@@ -456,7 +460,7 @@ void mutatorTest2(char *pathname, char** child_argv)
 	}
 
 	char * dirname = saveWorld(appThread);
-
+	savedDirectories[testNo] = dirname;
 	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST2);
 	appThread->terminateExecution();
 #else
@@ -557,6 +561,7 @@ void mutatorTest3(char *pathname, char** child_argv)
     appThread->insertSnippet(call2Expr, *point3_1, BPatch_callBefore, BPatch_lastSnippet);
 
 	char * dirname = saveWorld(appThread);
+	savedDirectories[testNo] = dirname;	
 	appThread->terminateExecution();
 
 	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST3);
@@ -625,6 +630,7 @@ void mutatorTest4(char *pathname, char** child_argv)
     expr4_1->writeValue(&n,true); //ccw 31 jul 2002
 
 	char * dirname = saveWorld(appThread);
+	savedDirectories[testNo]= dirname;
 
 	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST4);
 	appThread->terminateExecution();
@@ -652,7 +658,7 @@ void mutatorTest5(char *pathname, char** child_argv)
 	     exit(1);
 	}
 	char * dirname = saveWorld(appThread);
-
+	savedDirectories[testNo] = dirname;
 	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST5);
 	appThread->terminateExecution();
 #else
@@ -683,7 +689,7 @@ void mutatorTest6(char *pathname, char** child_argv)
 	instrumentToCallZeroArg(appThread, appImage, "func6_2", "call6_2", testNo, testName);
 	
 	char * dirname = saveWorld(appThread);
-
+	savedDirectories[testNo]=dirname;
 	passedTest[testNo] = runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST6);
 	appThread->terminateExecution();
 #else
@@ -748,6 +754,34 @@ int mutatorMAIN(char *pathname)
     return(1);
 }
 
+void removeDirectoryAndAllFiles ( char* dirname) {
+
+  	DIR* dirPtr = opendir ( dirname);
+	  struct dirent *dirEntry, *result;
+	int err;
+
+        if (!dirPtr) {
+                return;
+        }
+        dirEntry  = (struct dirent*)malloc( sizeof(*dirEntry) + pathconf(dirname,_PC_NAME_MAX)+ 1 );
+        result = dirEntry;
+
+	readdir_r ( dirPtr, dirEntry, &result);
+        while ( result ){ 
+                int len = strlen(dirEntry->d_name);
+                char fullname[1024];
+                if( dirEntry->d_name[len-1] != '.'){
+                        sprintf(fullname, "%s/%s", dirname,dirEntry->d_name);
+                        remove(fullname);
+                }
+		readdir_r ( dirPtr, dirEntry, &result);
+        }
+        closedir(dirPtr);
+	remove(dirname);
+	free(dirEntry);
+}
+
+
 //
 // main - decide our role and call the correct "main"
 //
@@ -756,11 +790,10 @@ main(unsigned int argc, char *argv[])
 {
     char mutateeName[128];
     char libRTname[256];
-
+	int removeAllDirs =0, saveAllDirs=0;
 
     strcpy(mutateeName,mutateeNameRoot);
     libRTname[0]='\0';
-
     if (!getenv("DYNINSTAPI_RT_LIB")) {
 	 fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
 #if defined(i386_unknown_nt4_0)
@@ -777,12 +810,18 @@ main(unsigned int argc, char *argv[])
     for (i=1; i <= MAX_TEST; i++) {
         runTest[i] = true;
         passedTest[i] = false;
+	savedDirectories[i]=NULL;
     }
 
     for (i=1; i < argc; i++) {
         if (strncmp(argv[i], "-v+", 3) == 0)    errorPrint++;
         if (strncmp(argv[i], "-v++", 4) == 0)   errorPrint++;
-	if (strncmp(argv[i], "-verbose", 2) == 0) {
+	
+	if (strcmp(argv[i], "-rmdirs") == 0){
+		removeAllDirs = 1;
+	}else if (strcmp(argv[i], "-savedirs") == 0){
+		saveAllDirs = 1;
+	}else if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
@@ -874,7 +913,14 @@ main(unsigned int argc, char *argv[])
         if (runTest[i] && !passedTest[i]) {
             fprintf(stderr,"failure on %d\n", i);
             testsFailed++;
-        }
+		if(  removeAllDirs && savedDirectories[i] ){
+			/* remove failed test here */
+			removeDirectoryAndAllFiles(savedDirectories[i]);
+		}
+        }else if( !saveAllDirs && savedDirectories[i]) {
+		/* remove successful test here */
+ 		removeDirectoryAndAllFiles(savedDirectories[i]);
+	}
     }
 
     if (!testsFailed) {
