@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.8 2000/02/09 18:43:15 hollings Exp $
+// $Id: osfDL.C,v 1.9 2000/03/06 21:30:07 zandy Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -357,7 +357,6 @@ void process::handleIfDueToDyninstLib()
       return;
   }
 
-  isLoadingDyninstLib = false;
   hasLoadedDyninstLib = true;
 #ifdef BPATCH_LIBRARY
   char *libVar = "DYNINSTAPI_RT_LIB";
@@ -383,6 +382,7 @@ void process::handleIfDueToDyninstLib()
 	  }
       }
   }
+  isLoadingDyninstLib = false;
   hasLoadedDyninstLib = true;
 }
 

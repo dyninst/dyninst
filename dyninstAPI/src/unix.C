@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.32 1999/12/17 16:13:57 pcroth Exp $
+// $Id: unix.C,v 1.33 2000/03/06 21:30:08 zandy Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -554,8 +554,11 @@ int handleSigChild(int pid, int status)
 		      !curr->dyninstLibIsBeingLoaded()) {
 		     curr->handleTrapAtEntryPointOfMain();
 		     if (curr->handleStartProcess()) {
-		       curr->dlopenDYNINSTlib();
-		       // this will set isLoadingDyninstLib to true - naim
+			  /* handleStartProcess may detect that dyninstlib was
+			     linked into the application */
+		       if (!curr->dyninstLibAlreadyLoaded())	  
+			    curr->dlopenDYNINSTlib();
+  		            // this will set isLoadingDyninstLib to true - naim
 		     } else {
 		       logLine("WARNING: handleStartProcess failed\n");
 		       assert(0);
@@ -581,7 +584,7 @@ int handleSigChild(int pid, int status)
 		} else {
 		  // if this is not the case, then we are not ready to
 		  // process the code below yet - naim
-		  string msg = string("Process") + string(curr->getPid()) +
+		  string msg = string("Process ") + string(curr->getPid()) +
 		               string(" was unable to load file ") + 
 #ifdef BPATCH_LIBRARY
 			       string(getenv("DYNINSTAPI_RT_LIB"));

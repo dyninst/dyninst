@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.208 2000/03/06 16:46:53 paradyn Exp $
+// $Id: process.C,v 1.209 2000/03/06 21:30:08 zandy Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1924,7 +1924,13 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
      logLine("WARNING: pause failed\n");
      assert(0);
    }
-   if (theProc->handleStartProcess()) {
+   theProc->handleStartProcess();
+   if (!theProc->dyninstLibAlreadyLoaded()) {
+     /* Ordinarily, dyninstlib has not been loaded yet.  But sometimes
+        a zany user links it into their application, leaving no need
+        to load it again (in fact, we will probably hang if we try to
+        load it again).  This is checked in the call to
+        handleStartProcess */
      theProc->dlopenDYNINSTlib();
      // this will set isLoadingDyninstLib to true - naim
      if (!theProc->continueProc()) {
@@ -2677,10 +2683,60 @@ bool process::handleStartProcess(){
     return true;
 }
 
+/* Checks whether the shared object SO is the runtime instrumentation
+   library.  The test looks for "libdyninst" in the library name (both
+   the Dyninst and Paradyn rtinst libs have this substring on every
+   platform).
+
+   Returns:
+   0  if SO is not the runtime library
+   1  if SO is the runtime library, but it has not been initialized
+   2  if SO is the runtime library, and it has been initialized by Dyninst
+   3  if SO is the runtime library, and it has been initialized by Paradyn
+ */
+static int
+check_rtinst(process *proc, shared_object *so)
+{
+     const char *name, *p;
+     static const char *libdyn = "libdyninst";
+     static int len = 10; /* length of libdyn */
+
+     name = (so->getName()).string_of();
+
+     p = strrchr(name, '/');
+     if (!p)
+	  /* name is relative to current directory */
+	  p = name;
+     else
+	  ++p; /* skip '/' */
+
+     if (0 != strncmp(p, libdyn, len)) {
+	  return 0;
+     }
+
+     /* Now we check if the library has initialized */
+     Symbol sym;
+     if (! so->getSymbolInfo("DYNINSThasInitialized", sym)) {
+	  return 0;
+     }
+     Address addr = sym.addr() + so->getBaseAddress();
+     unsigned int val;
+     if (! proc->readDataSpace((void*)addr, sizeof(val), (void*)&val, true)) {
+	  return 0;
+     }
+     if (val == 0) {
+	  /* The library has been loaded, but not initialized */
+	  return 1;
+     } else
+	  return val;
+}
+
 // addASharedObject: This routine is called whenever a new shared object
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
 bool process::addASharedObject(shared_object &new_obj){
+    int ret;
+    string msg;
     image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
     if(!img){
         //logLine("error parsing image in addASharedObject\n");
@@ -2688,6 +2744,33 @@ bool process::addASharedObject(shared_object &new_obj){
     }
     new_obj.addImage(img);
     // TODO: check for "is_elf64" consistency (Object)
+
+#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
+    /* If we're not currently trying to load the runtime library,
+       check whether this shared object is the runtime lib. */
+    if (!isLoadingDyninstLib
+	&& (ret = check_rtinst(this, &new_obj))) {
+	 if (ret == 1) {
+	      /* The runtime library has been loaded, but not initialized.
+		 Proceed anyway. */
+	      msg = string("Application was linked with Dyninst/Paradyn runtime library -- this is not necessary");
+	      statusLine(msg.string_of());
+	      this->hasLoadedDyninstLib = 1;
+	 } else {
+	      /* The runtime library has been loaded into the inferior
+                 and previously initialized, probably by a previous
+                 run or Dyninst or Paradyn.  Bail.  */
+	      if (ret == 2)
+		   msg = string("This process was previously modified by Dyninst -- cannot reattach");
+	      else if (ret == 3)
+		   msg = string("This process was previously modified by Paradyn -- cannot reattach");
+	      else
+		   assert(0);
+	      showErrorCallback(26, msg);
+	      return false;
+	 }
+    }
+#endif
 
     // if the list of all functions and all modules have already been 
     // created for this process, then the functions and modules from this
@@ -2790,7 +2873,6 @@ bool process::addASharedObject(shared_object &new_obj){
 // to an already running process.  It gets and process all shared objects
 // that have been mapped into the process's address space
 bool process::getSharedObjects() {
-
 #ifndef alpha_dec_osf4_0
     assert(!shared_objects);
 #else
@@ -2805,21 +2887,21 @@ bool process::getSharedObjects() {
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(true);
 #endif
-        // for each element in shared_objects list process the 
-        // image file to find new instrumentaiton points
-        for(u_int j=0; j < shared_objects->size(); j++){
-            //string temp2 = string(j);
-            //temp2 += string(" ");
-            //temp2 += string("the shared obj, addr: ");
-            //temp2 += string(((*shared_objects)[j])->getBaseAddress());
-            //temp2 += string(" name: ");
-            //temp2 += string(((*shared_objects)[j])->getName());
-            //temp2 += string("\n");
-            //logLine(P_strdup(temp2.string_of()));
-            if(!addASharedObject(*((*shared_objects)[j]))){
-              //logLine("Error after call to addASharedObject\n");
-            }
-        }
+	// for each element in shared_objects list process the 
+	// image file to find new instrumentaiton points
+	for(u_int j=0; j < shared_objects->size(); j++){
+	    //string temp2 = string(j);
+	    //temp2 += string(" ");
+	    //temp2 += string("the shared obj, addr: ");
+	    //temp2 += string(((*shared_objects)[j])->getBaseAddress());
+	    //temp2 += string(" name: ");
+	    //temp2 += string(((*shared_objects)[j])->getName());
+	    //temp2 += string("\n");
+	    //logLine(P_strdup(temp2.string_of()));
+	    if(!addASharedObject(*((*shared_objects)[j]))){
+	      //logLine("Error after call to addASharedObject\n");
+	    }
+	}
 
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(false);
