@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.7 1994/07/28 22:40:39 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.8 1994/08/17 18:13:31 markc Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.7  1994/07/28 22:40:39  krisna
+ * Revision 1.8  1994/08/17 18:13:31  markc
+ * Changed variable names in installDefaultInst to quiet compiler warnings.
+ * Added reachedFirstBreak check to avoid stopping processes that have yet
+ * to reach their initial SIGSTOP.
+ *
+ * Revision 1.7  1994/07/28  22:40:39  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.6  1994/07/20  23:23:36  hollings
@@ -333,14 +338,14 @@ void deleteInst(instInstance *old)
 }
 
 
-void installDefaultInst(process *proc, instMaping *initialRequests)
+void installDefaultInst(process *proc, instMaping *initialReqs)
 {
     int i;
     AstNode *ast;
     function *func;
     instMaping *item;
 
-    for (item = initialRequests; item->func; item++) {
+    for (item = initialReqs; item->func; item++) {
 	func = findFunction(proc->symbols, item->func);
 	if (!func) {
 	    sprintf (errorLine, "unable to find %s\n", item->func);
@@ -378,7 +383,7 @@ void installDefaultInst(process *proc, instMaping *initialRequests)
 
 void pauseProcess(process *proc)
 {
-    if (proc->status == running) {
+    if (proc->status == running && proc->reachedFirstBreak) {
 	(void) PCptrace(PTRACE_INTERRUPT, proc, (int*)1, 0, 0);
         proc->status = stopped;
     }
