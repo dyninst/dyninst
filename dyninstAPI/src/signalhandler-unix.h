@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.6 2003/05/23 23:44:11 jodom Exp $
+/* $Id: signalhandler-unix.h,v 1.7 2003/06/10 17:45:42 tlmiller Exp $
  */
 
 /*
@@ -107,7 +107,7 @@ typedef unsigned int procSignalWhat_t;
 
 /* On /proc platforms we have predefined system call mappings (SYS_fork, etc).
    Define them here for platforms which don't have them */
-#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 #define SYS_fork 1
 #define SYS_exec 2
 #define SYS_exit 3
