@@ -1,14 +1,27 @@
 // graphicalPath.h
 // Ariel Tamches
 
+/* $Log: graphicalPath.C,v $
+/* Revision 1.2  1995/10/17 20:54:37  tamches
+/* Added check for NULL rootPtr in constructors (needed by new shg).
+/* class where4tree is templated in a different manner.
+/* Added operator= and operator==
+/*
+ */
+
 #include "graphicalPath.h"
 
-template <class USERNODEDATA>
-whereNodeGraphicalPath<USERNODEDATA>::
+template <class ROOTTYPE>
+whereNodeGraphicalPath<ROOTTYPE>::
 whereNodeGraphicalPath(const whereNodePosRawPath &iPath,
 		       const where4TreeConstants &tc,
-		       const where4tree<USERNODEDATA> *rootPtr,
+		       const where4tree<ROOTTYPE> *rootPtr,
 		       int root_centerx, int root_topy) : thePath(iPath) {
+   if (rootPtr==NULL) {
+      whatThePathEndsIn = Nothing;
+      return;
+   }
+
    if (iPath.getSize() == 0) {
       // special case when there exists no parent node (the root)
       whatThePathEndsIn = ExpandedNode;
@@ -16,14 +29,14 @@ whereNodeGraphicalPath(const whereNodePosRawPath &iPath,
       return;
    }
 
-   const where4tree<USERNODEDATA> *ptr = rootPtr;
+   const where4tree<ROOTTYPE> *ptr = rootPtr;
    for (unsigned i=0; i < iPath.getSize()-1; i++) {
       unsigned childindex = iPath[i];
       int child_centerx = root_centerx -
                           ptr->horiz_pix_everything_below_root(tc) / 2 +
                           ptr->horiz_offset_to_expanded_child(tc, childindex) +
                           ptr->getChildTree(childindex)->entire_width(tc) / 2;
-      int child_topy = root_topy + ptr->getRootNode().getHeight() +
+      int child_topy = root_topy + ptr->getNodeData().getHeightAsRoot() +
                        tc.vertPixParent2ChildTop;
 
       ptr = ptr->getChildTree(childindex);
@@ -44,7 +57,7 @@ whereNodeGraphicalPath(const whereNodePosRawPath &iPath,
 	                ptr->horiz_pix_everything_below_root(tc) / 2 +
 	                ptr->horiz_offset_to_expanded_child(tc, childindex) +
 			ptr->getChildTree(childindex)->entire_width(tc) / 2;
-      endpath_topy = root_topy + ptr->getRootNode().getHeight() +
+      endpath_topy = root_topy + ptr->getNodeData().getHeightAsRoot() +
 	             tc.vertPixParent2ChildTop;
    }
    else {
@@ -54,12 +67,17 @@ whereNodeGraphicalPath(const whereNodePosRawPath &iPath,
    }
 }
 
-template <class USERNODEDATA>
-whereNodeGraphicalPath<USERNODEDATA>::
+template <class ROOTTYPE>
+whereNodeGraphicalPath<ROOTTYPE>::
 whereNodeGraphicalPath(int point_x, int point_y,
 		       const where4TreeConstants &tc,
-		       const where4tree<USERNODEDATA> *rootPtr,
+		       const where4tree<ROOTTYPE> *rootPtr,
 		       int root_centerx, int root_topy) {
+   if (rootPtr==NULL) {
+      whatThePathEndsIn = Nothing;
+      return;
+   }
+
    while (true) {
       int theItemLocation = rootPtr->point2ItemOneStep(tc, point_x, point_y,
 						       root_centerx, root_topy);
@@ -88,13 +106,13 @@ whereNodeGraphicalPath(int point_x, int point_y,
          }
 
          // Time to "recurse".
-         const where4tree<USERNODEDATA> *childptr = rootPtr->getChildTree(childindex);
+         const where4tree<ROOTTYPE> *childptr = rootPtr->getChildTree(childindex);
       
          int child_centerx = root_centerx -
 	                     rootPtr->horiz_pix_everything_below_root(tc) / 2 +
                              rootPtr->horiz_offset_to_expanded_child(tc, childindex) +
                              childptr->entire_width(tc) / 2;
-         int child_topy = root_topy + rootPtr->getRootNode().getHeight() +
+         int child_topy = root_topy + rootPtr->getNodeData().getHeightAsRoot() +
                           tc.vertPixParent2ChildTop;
 
          // set up "recursion" parameters:
@@ -123,4 +141,27 @@ whereNodeGraphicalPath(int point_x, int point_y,
    }
 }
 
+template <class ROOTTYPE>
+whereNodeGraphicalPath<ROOTTYPE> &
+whereNodeGraphicalPath<ROOTTYPE>::operator=
+(const whereNodeGraphicalPath<ROOTTYPE> &other) {
+   thePath = other.thePath; // operator=
+   whatThePathEndsIn = other.whatThePathEndsIn;
+   endpath_centerx = other.endpath_centerx;
+   endpath_topy = other.endpath_topy;
 
+   return *this;
+}
+
+
+template <class ROOTTYPE>
+bool whereNodeGraphicalPath<ROOTTYPE>::
+operator==(const whereNodeGraphicalPath<ROOTTYPE> &other) const {
+   // note: this routine does _not_ take into account endpath_centerx/endpath_topy;
+   //       I felt that comparing the actual path elements was more useful;
+   //       comparing x/y could return false "too easily" --ari
+   if (whatThePathEndsIn != other.whatThePathEndsIn)
+      return false;
+
+   return (thePath==other.thePath);
+}
