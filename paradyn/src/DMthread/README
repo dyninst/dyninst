@@ -25,6 +25,10 @@ handle to a dataManager interface routine.
 Within the DM thread, care should be taken when using pointers to objects that
 are not persistent (metricInstance and performanceStream)
 
+DM handles are not reused over the execution of paradyn, but MI and perfStream
+handles may be invalid.  For example, enabling a metric/focus pair, disabiling
+it, and then re-enabling it may result in two different metricInstance handles
+to be associated with the pair. 
 
 (II) Persistence Flags
 ----------------------
@@ -133,8 +137,10 @@ result if folds were called on a per/MI basis
 
 on set/clear persistence flags: 
 -------------------------------
-these routines have no enable/disable side effects, but when a fold, enable,
+These routines have no enable/disable side effects, but when a fold, enable,
 disable, or new phase event occurs then the appropriate action will take place.
+Clearing the data persistence flag may result in deleting histogram data and
+deleting metricInstances (this occurs when the MI is not enabled).
 
 
 on disable MI
