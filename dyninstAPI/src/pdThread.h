@@ -65,7 +65,7 @@ class pdThread {
       pos = pos_;
       rid = rid_;
     }
-    Thread(process *pproc, int tid_, handleT handle_) : tid(tid_), pos(0), rid(NULL), handle(handle_)
+    pdThread(process *pproc, int tid_, handleT handle_) : tid(tid_), pos(0), rid(NULL), handle(handle_)
     {
       assert(pproc);
       proc = pproc;
