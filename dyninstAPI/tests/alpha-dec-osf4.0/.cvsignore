@@ -1,1 +1,1 @@
-DEPENDS V_*.c test? test?.mutatee* libtest*.so so_locations
+DEPENDS V_*.c test? test*.mutatee_* libtest*.so so_locations

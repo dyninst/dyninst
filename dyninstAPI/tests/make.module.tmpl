@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.17 1999/11/07 21:47:10 wylie Exp $
+# $Id: make.module.tmpl,v 1.18 2000/03/12 23:28:27 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -15,15 +15,21 @@ DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGETS        = test1 test2 test3 \
+TARGETS        = test1 
+
+TEMP = test1 test2 test3 test4 \
 		 test1.mutatee_gcc \
 		 test2.mutatee_gcc \
-		 test3.mutatee_gcc
+		 test3.mutatee_gcc \
+		 test4a.mutatee_gcc \
+		 test4b.mutatee_gcc
 
 ifdef NATIVE_CC
 TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
 		 test2.mutatee_$(NATIVE_CC) \
-		 test3.mutatee_$(NATIVE_CC)
+		 test3.mutatee_$(NATIVE_CC) \
+		 test4a.mutatee_$(NATIVE_CC) \
+		 test4b.mutatee_$(NATIVE_CC)
 endif
 
 ifdef USES_LIBDYNINSTRT_SO
@@ -32,7 +38,10 @@ endif
 SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test2.C ../src/test2.mutatee.c \
 		../src/test3.C ../src/test3.mutatee.c \
+		../src/test4.C ../src/test4a.mutatee.c ../src/test4b.mutatee.c \
                 ../src/libtestA.c ../src/libtestB.c
+SRCS		= ../src/test1.C ../src/test_util.c
+
 endif
 
 VPATH	     +=
@@ -40,7 +49,8 @@ VPATH	     +=
 CXXFLAGS     += -I../../h $(BASICWARNINGS)
 CFLAGS       += -I../../h $(BASICWARNINGS)
 
-LIBS         += -ldyninstAPI
+#LIBS         += -static -ldyninstAPI -lpdutil
+LIBS         += -ldyninstAPI -lpdutil
 ifndef USES_LIBDYNINST_SO
 LIBS         += -lpdutil
 endif
@@ -50,11 +60,15 @@ all:
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test1 TARGET2=test1.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test2 TARGET2=test2.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test3 TARGET2=test3.mutatee_gcc
+	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test4 TARGET2=test4a.mutatee_gcc
+	$(MAKE) aTest MUTATEE_CC=gcc TARGET2=test4b.mutatee_gcc
 	$(MAKE) testlibs
 ifdef NATIVE_CC
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_$(NATIVE_CC)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4a.mutatee_$(NATIVE_CC)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4b.mutatee_$(NATIVE_CC)
 endif
 
 pc:

@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.32 2000/03/09 16:30:33 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.33 2000/03/12 23:28:28 hollings Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -49,7 +49,7 @@ int debugPrint = 0;
 #define FALSE	0
 
 int runAllTests = TRUE;
-#define MAX_TEST 28
+#define MAX_TEST 29
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
@@ -1383,7 +1383,7 @@ void call23_2()
 
 void call23_1()
 {
-    int localVariable23_1;
+    int localVariable23_1 = 2300019;
     int shadowVariable23_1 = 2300011;
     int shadowVariable23_2 = 2300021;
 
@@ -1834,6 +1834,8 @@ void call28_1()
     for (j=0; j < 400; j++);
 }
 
+int globalVariable29_1;
+
 void func28_1()
 {
     int i;
@@ -1859,6 +1861,15 @@ void func28_1()
     verifyScalarValue28("globalVariable28_7", globalVariable28_7, 28000014);
 
     if (passedTest[28]) printf("Passed test #28 (user defined fields)\n");
+}
+
+int func29_1()
+{
+    passedTest[29] = (globalVariable29_1 == 1);
+
+    if (passedTest[29]) printf("Passed test #29 (BPatch_srcObj class)\n");
+
+    return 0;
 }
 
 /* "replaceFunctionCall()" on Irix usually requires that the new
@@ -1971,6 +1982,7 @@ int main(int iargc, char *argv[])
     if (runTest[26]) func26_1();
     if (runTest[27]) func27_1();
     if (runTest[28]) func28_1();
+    if (runTest[29]) func29_1();
 
     /* See how we did running the tests. */
     for (i=1; i <= MAX_TEST; i++) {

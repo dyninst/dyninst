@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.46 2000/03/04 01:25:42 zandy Exp $
+// $Id: test1.C,v 1.47 2000/03/12 23:28:28 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -37,7 +37,7 @@ int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 28;
+const unsigned int MAX_TEST = 29;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -1355,7 +1355,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	p = appImage->createInstPointAtAddr((char *)f->getBaseAddr() + i);
 
 	if (p) {
-	    if (p->getPointType() == BPatch_address) {
+	    if (p->getPointType() == BPatch_instruction) {
 		found_one = true;
 		if (appThread->insertSnippet(call20_1Expr, *p) == NULL) {
 		    fprintf(stderr,
@@ -2144,6 +2144,76 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->insertSnippet(assignment6, *point28);
 }
 
+bool printSrcObj(BPatch_sourceObj *p, int level)
+{
+    int i;
+    char name[80];
+    bool ret = true;
+
+    BPatch_Vector<BPatch_sourceObj *> *curr;
+
+    if (!p) return(true);
+
+    switch (p->getSrcType()) {
+	case BPatch_sourceProgram:
+	    if (level != 0) ret = false;
+	    break;
+
+	case BPatch_sourceModule: 
+	    if (level != 1) ret = false;
+	    break;
+
+	case BPatch_sourceFunction: 
+	    if (level != 2) ret = false;
+	    break;
+
+	default:
+	    printf("<unknown type>");
+    }
+
+    curr = p->getSourceObj();
+    if (!curr) {
+	// eveything down to functions should have something
+	return((level == 2) ? true : false);
+    }
+
+    for (i=0; i < curr->size(); i++) {
+	p = (*curr)[i];
+	ret = printSrcObj(p, level+1) && ret;
+    }
+
+    return ret;
+}
+
+//
+// Start Test Case #29 - getParent/Child
+//
+void mutatorTest29(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    bool ret;
+    BPatch_sourceObj *p;
+    BPatch_Vector<BPatch_sourceObj *> *curr;
+
+    p = (BPatch_sourceObj *) appImage;
+    passedTest[29] = printSrcObj(p, 0);
+
+    if (!passedTest[29]) {
+	fprintf(stderr, "**Failed** test #29 (class BPatch_srcObj)\n");
+	return;
+    }
+
+    BPatch_variableExpr *expr29_1 =appImage->findVariable("globalVariable29_1");
+    if (expr29_1 == NULL) {
+	fprintf(stderr, "**Failed** test #29 (class BPatch_srcObj)\n");
+	fprintf(stderr, "    Unable to locate globalVariable27_1\n");
+	return;
+    }
+    expectError = DYNINST_NO_ERROR;
+
+    int n = 1;
+    expr29_1->writeValue(&n);
+}
+
 int mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
@@ -2249,6 +2319,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if (runTest[26]) mutatorTest26(appThread, appImage);
     if (runTest[27]) mutatorTest27(appThread, appImage);
     if (runTest[28]) mutatorTest28(appThread, appImage);
+    if (runTest[29]) mutatorTest29(appThread, appImage);
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
@@ -2384,6 +2455,14 @@ main(unsigned int argc, char *argv[])
 	}
 	printf("\n");
     }
+
+
+#if defined(sparc_sun_sunos4_1_3)
+    if (useAttach) {
+        printf("Attach is not supported on this platform.\n");
+        exit(1);
+    }
+#endif
 
     int exitCode = mutatorMAIN(mutateeName, useAttach);
 
