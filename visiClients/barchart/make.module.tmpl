@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.3  1995/05/10 23:09:43  tamches
+# Revision 1.4  1995/06/23 03:15:08  tamches
+# changed to -fno-implicit-templates; added templates.C file.
+#
+# Revision 1.3  1995/05/10  23:09:43  tamches
 # Cut down on the number of libraries that were being linked in;
 # several were unnecessary (Xt, Xmu,...)
 #
@@ -16,12 +19,15 @@
 #
 #
 
+EXPLICIT_DEPENDS = 1
+
 TARGET	      = barChart
 
 SRCS	     += ../barChart.C \
 		../barChartTcl.C \
 		../barChartDriver.C \
-		../dg2.C
+		../dg2.C \
+		../templates.C
 
 LIBS         += -lvisi -lhist -lpdutil 
 #SYSLIBS	     += -ltk -ltcl -lXaw -lXext -lXmu -lXt -lX11 -lm
