@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.1 2001/06/04 16:24:14 schendel Exp $
+# $Id: Makefile,v 1.2 2001/06/04 19:26:05 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -62,14 +62,8 @@ endif
 
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
-ifdef USES_LIBDYNINSTRT_SO
 $(TARGET2):  $(MUTATEE_SRC)
 	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $@ $(MUTLIBS)
-else
-DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o
-$(TARGET2):  $(MUTATEE_SRC)
-        $(MUTATEE_CC) $(MUTATEE_CFLAGS) $(DYNINSTAPI_RT_LIB) $(MUTATEE_SRC) -o $@.$(CC) $(MUTLIBS)
-endif
 
 ifeq (test1,$(findstring test1,$(TARGET2)))
 MUTATEE_SRC     +=      ../src/call35_1_sparc_solaris.s

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2001/06/04 16:24:14 schendel Exp $
+# $Id: Makefile,v 1.2 2001/06/04 19:26:06 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,7 +19,6 @@ USES_NATIVE_CC = true
 endif
 
 # if we want to produce a shared object...
-ifdef USES_LIBDYNINSTRT_SO
 
 CFLAGS          = -g -I. -I../.. -Dsparc_sun_solaris2_4
 ifdef USES_NATIVE_CC
@@ -32,12 +31,6 @@ CC              = gcc
 LD              = gcc
 CFLAGS          += -fpic
 LDFLAGS		= -shared
-endif
-
-else #!USES_LIBDYNINSTRT_SO
-LD		= gcc
-LDFLAGS         += -static -nostdlib -Xlinker -r
-CFLAGS		+= -O2 -mno-app-regs -ffixed-g1
 endif
 
 #CFLAGS += -DDEBUG_PRINT_RT      # enable debug/trace messages from library
