@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.27 1999/11/06 21:45:21 wylie Exp $ */
+/* $Id: test1.mutatee.c,v 1.28 1999/11/09 17:07:30 hollings Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1711,13 +1711,15 @@ void func26_1()
  */
 
 typedef struct {
-    void *field1;
-    float field2;
+    /* void *field27_11; */
+    int field27_11;
+    float field27_12;
 } type27_1;
 
 typedef struct {
-    void *field1;
-    float field2;
+    /* void *field27_21; */
+    int field27_21;
+    float field27_22;
 } type27_2;
 
 typedef struct {

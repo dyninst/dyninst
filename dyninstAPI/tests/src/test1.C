@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.42 1999/11/07 21:48:46 wylie Exp $
+// $Id: test1.C,v 1.43 1999/11/09 17:07:30 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -1253,7 +1253,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 //
 // Start Test Case #18 - mutator side (read/write a variable in the mutatee)
 //
-void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest18(BPatch_thread *, BPatch_image *appImage)
 {
     BPatch_variableExpr *expr18_1 =appImage->findVariable("globalVariable18_1");
     if (expr18_1 == NULL) {
@@ -1394,7 +1394,7 @@ void readyTest21or22(BPatch_thread *appThread)
 #endif
 }
 
-void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
@@ -1923,40 +1923,40 @@ void mutatorTest27(BPatch_thread *appThread, BPatch_image *appImage)
 	return;
     }
 
-    if (!type27_1->isCompatible(*type27_2)) {
+    if (!type27_1->isCompatible(type27_2)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_1 reported as incompatibile with typ27_2\n");
+	fprintf(stderr,"    type27_1 reported as incompatibile with type27_2\n");
 	return;
     }
 
-    if (!type27_2->isCompatible(*type27_1)) {
+    if (!type27_2->isCompatible(type27_1)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_2 reported as incompatibile with typ27_1\n");
+	fprintf(stderr,"    type27_2 reported as incompatibile with type27_1\n");
 	return;
     }
 
-    if (!type27_3->isCompatible(*type27_3)) {
+    if (!type27_3->isCompatible(type27_3)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_3 reported as incompatibile with typ27_4\n");
+	fprintf(stderr,"    type27_3 reported as incompatibile with type27_4\n");
 	return;
     }
 
-    if (!type27_4->isCompatible(*type27_3)) {
+    if (!type27_4->isCompatible(type27_3)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_4 reported as incompatibile with typ27_3\n");
+	fprintf(stderr,"    type27_4 reported as incompatibile with type27_3\n");
 	return;
     }
 
     expectError = 112; // We're expecting type conflicts here
-    if (type27_1->isCompatible(*type27_3)) {
+    if (type27_1->isCompatible(type27_3)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_1 reported as compatibile with typ27_3\n");
+	fprintf(stderr,"    type27_1 reported as compatibile with type27_3\n");
 	return;
     }
 
-    if (type27_4->isCompatible(*type27_2)) {
+    if (type27_4->isCompatible(type27_2)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_4 reported as compatibile with typ27_2\n");
+	fprintf(stderr,"    type27_4 reported as compatibile with type27_2\n");
 	return;
     }
     expectError = DYNINST_NO_ERROR;
@@ -1973,7 +1973,7 @@ void mutatorTest27(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_type *type27_8 = const_cast<BPatch_type *> (expr27_8->getType());
     assert(type27_5 && type27_6 && type27_7 && type27_8);
 
-    if (!type27_5->isCompatible(*type27_6)) {
+    if (!type27_5->isCompatible(type27_6)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
 	fprintf(stderr,"    type27_5 reported as incompatibile with type27_6\n");
 	return;
@@ -1981,16 +1981,16 @@ void mutatorTest27(BPatch_thread *appThread, BPatch_image *appImage)
 
     // difderent number of elements
     expectError = 112; // We're expecting type conflicts here
-    if (type27_5->isCompatible(*type27_7)) {
+    if (type27_5->isCompatible(type27_7)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_5 reported as compatibile with typ27_7\n");
+	fprintf(stderr,"    type27_5 reported as compatibile with type27_7\n");
 	return;
     }
 
     // same # of elements, different type
-    if (type27_5->isCompatible(*type27_8)) {
+    if (type27_5->isCompatible(type27_8)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_5 reported as compatibile with typ27_8\n");
+	fprintf(stderr,"    type27_5 reported as compatibile with type27_8\n");
 	return;
     }
 
