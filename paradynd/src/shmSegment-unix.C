@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.4 2000/07/28 17:22:33 pcroth Exp $
+// $Id: shmSegment-unix.C,v 1.5 2001/03/08 23:01:00 bernat Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -305,7 +305,7 @@ TryToReleaseShmSegment( key_t keyToTry, unsigned int size )
       return noNeed;
 
    if (shmid == -1) {
-      perror("shmget");
+      perror("tryToReleaseShmSegment");
       return gcDidntHappen;
    }
 
