@@ -14,10 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.7  1994/05/23 20:56:48  newhall
-/* To visi_GridCellHisto class: added deleted flag, SumValue
-/* method function, and fixed AggregateValue method function
+/* Revision 1.8  1994/06/07 17:48:49  newhall
+/* support for adding metrics and resources to existing visualization
 /*
+ * Revision 1.7  1994/05/23  20:56:48  newhall
+ * To visi_GridCellHisto class: added deleted flag, SumValue
+ * method function, and fixed AggregateValue method function
+ *
  * Revision 1.6  1994/05/11  17:13:14  newhall
  * changed data type from double to float
  *
@@ -37,6 +40,7 @@
  *  */ 
 #include "visi/h/visualization.h"
 #include "visi.SRVR.h"
+#define DEBUG
 
 visi_DataGrid  dataGrid;
 visi_MRList    metricList;
@@ -302,13 +306,15 @@ void visualization::AddMetricsResources(metricType_Array metrics,
 					resourceType_Array resources,
 					double bucketWidth,
 					int nobuckets){
-  int ok;
+  int ok,i;
+  visi_metricType *mets = 0;
+  visi_resourceType *res = 0;
+  int numRes, numMet;
 
   if(!initDone)
     VisiInit();
 
-  // if this is the first set of metrics/resources
-  // construct new dataGrid
+  // this is first set of metrics/resources, construct new dataGrid
   if(!dataGrid.NumMetrics()){
     //construct metric, resource lists
     metricList.visi_MRList(metrics.count,
@@ -324,11 +330,70 @@ void visualization::AddMetricsResources(metricType_Array metrics,
 			nobuckets,
 			(timeType)bucketWidth);
   }
-  else{
-    // add elements to existing data grid
-    // not supported yet
+  else{ // add elements to existing data grid
+
+    // create list of new resources and add them to resource list
+    res=(visi_resourceType *)malloc(sizeof(visi_resourceType)*resources.count);
+    numRes = 0;
+
+    for(i=0; i < resources.count; i++){
+      if(!dataGrid.ResourceInGrid(resources.data[i].Id)){
+#ifdef DEBUG
+          fprintf(stderr,"resource %s Id = %d is new\n",resources.data[i].name,
+		 resources.data[i].Id);
+#endif
+	  if(!resources.data[i].name)
+	    res[numRes].name = NULL;
+          else
+            res[numRes].name = strdup(resources.data[i].name);
+          res[numRes++].Id = resources.data[i].Id;
+          resourceList.AddElements(1,resources.data[i].name);
+      }
+    }
+#ifdef DEBUG
+    fprintf(stderr,"number of new resources = %d\n",numRes);
+#endif
+
+    // add new resources to dataGrid
+    if(numRes > 0)
+      dataGrid.AddNewResource(numRes,res);
+
+    // create list of new metrics and add them to metricsList
+    mets = (visi_metricType *)malloc(sizeof(visi_metricType)*metrics.count);
+    numMet = 0;
+    for(i=0; i < metrics.count; i++){
+      if(!dataGrid.MetricInGrid(metrics.data[i].Id)){
+
+#ifdef DEBUG
+          fprintf(stderr,"metric %s Id = %d is new\n",metrics.data[i].name,
+		 metrics.data[i].Id);
+#endif
+	if(!metrics.data[i].name)
+	  mets[numMet].name = NULL;
+        else
+	  mets[numMet].name = strdup(metrics.data[i].name);
+        if(!metrics.data[i].units)
+	  mets[numMet].units = NULL;
+        else
+	  mets[numMet].units = strdup(metrics.data[i].units);
+        mets[numMet].Id = metrics.data[i].Id;
+	mets[numMet++].aggregate = metrics.data[i].aggregate;
+        metricList.AddElements(1,metrics.data[i].name);
+      }
+    }
+#ifdef DEBUG
+    fprintf(stderr,"number of new metrics = %d\n",numMet);
+#endif
+
+    // add new metrics to dataGrid
+    if(numMet > 0)
+      dataGrid.AddNewMetrics(numMet,mets);
+
     // clear deleted for all existing grid cell elements
+    dataGrid.ClearDeleted();
+
   }
+
   //call callback routine assoc. w/event ADDMETRICSRESOURCES 
   if(eventCallbacks[ADDMETRICSRESOURCES] !=  NULL){
      ok = eventCallbacks[ADDMETRICSRESOURCES](0);

@@ -14,10 +14,13 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.6  1994/05/23 20:56:46  newhall
-/* To visi_GridCellHisto class: added deleted flag, SumValue
-/* method function, and fixed AggregateValue method function
+/* Revision 1.7  1994/06/07 17:48:46  newhall
+/* support for adding metrics and resources to existing visualization
 /*
+ * Revision 1.6  1994/05/23  20:56:46  newhall
+ * To visi_GridCellHisto class: added deleted flag, SumValue
+ * method function, and fixed AggregateValue method function
+ *
  * Revision 1.5  1994/05/11  17:12:44  newhall
  * changed data values type from double to float
  * fixed fold method function to support a folding
@@ -111,7 +114,6 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
    valid      = 1;
  }
  deleted = 0;
- userdata = NULL;
  size       = numElements;
  lastBucketFilled = -1;
 }
@@ -167,6 +169,44 @@ int visi_GridHistoArray::Invalidate(int i){
 }
 
 
+//
+// add new elements to the values array
+//
+int visi_GridHistoArray::AddNewResources(int howmany){
+
+visi_GridCellHisto *temp;
+
+  if(howmany > 0){
+    temp = values;
+    values = new visi_GridCellHisto[howmany + size];
+    for(int i = 0; i < size; i++){
+       if(values[i].AddNewValues(temp[i].Value(),
+				  temp[i].Size(),
+				  temp[i].LastBucketFilled(),
+				  temp[i].userdata) != OK){
+	 return(ERROR_CREATEGRID);
+       }
+       temp[i].userdata = NULL;
+    }
+    size += howmany;
+    
+  }
+  return(OK);
+
+}
+
+
+//
+//  add new elements to the values array
+//
+int visi_GridHistoArray::AddNewValues(visi_GridCellHisto *rarray,int howmany){
+
+  values = rarray;
+  size   = howmany;
+  rarray = NULL;
+  return(OK);
+
+}
 
 ///////////////////////////////////////////
 //
@@ -342,3 +382,107 @@ int visi_DataGrid::Invalidate(int metric,
 
 }
 
+
+//
+// adds a new set of resources to the data grid
+//
+int visi_DataGrid::AddNewResource(int howmany,visi_resourceType *rlist){
+
+Resource *temp;
+int i,ok;
+
+  // add new values to resource list
+  temp = resources;
+  resources = new Resource[numResources + howmany];
+
+  for(i = 0; i < numResources; i++){
+    resources[i].Resource(temp[i].Name(),temp[i].Identifier());
+  }
+  for(i = numResources; i < (numResources + howmany); i++){
+    resources[i].Resource(rlist[i-numResources].name,
+			  rlist[i-numResources].Id);
+  }
+
+  numResources += howmany;
+
+  // add space to data grid for new resources
+  for(i = 0; i < numMetrics; i++){
+     if((ok = data_values[i].AddNewResources(howmany)) != OK)
+       return(ok); 
+  }
+  return(OK);
+}
+
+
+//
+//  adds a new set of resources to the data grid
+//
+int visi_DataGrid::AddNewMetrics(int howmany,visi_metricType *mlist){
+
+visi_GridHistoArray *tempdata;
+Metric *temp;
+int i,ok;
+
+  // add new values to metric list
+  temp = metrics;
+  metrics = new Metric[numMetrics + howmany];
+
+  for(i = 0; i < numMetrics; i++){
+    metrics[i].Metric(temp[i].Units(),temp[i].Name(),
+		      temp[i].Identifier(),temp[i].Aggregate());
+  }
+  for(i = numMetrics; i < (numMetrics + howmany); i++){
+    metrics[i].Metric(mlist[i-numMetrics].units, mlist[i-numMetrics].name,
+		       mlist[i-numMetrics].Id, mlist[i-numMetrics].aggregate);
+  }
+
+
+  // add space to data grid for new metrics
+
+  tempdata = data_values;
+  data_values = new visi_GridHistoArray[numMetrics + howmany];
+
+  for(i=0; i < numMetrics; i++){
+    if(data_values[i].AddNewValues(tempdata[i].Value(),tempdata[i].Size())
+       != OK){
+       return(ERROR_CREATEGRID); 
+    }
+  }
+
+  for(i=numMetrics; i < (numMetrics + howmany); i++){
+    data_values[i].visi_GridHistoArray(numResources);
+  }
+
+  numMetrics += howmany;
+  tempdata = NULL;
+  return(OK);
+
+}
+
+
+//
+//  returns 1 if metric with Id equal to test_id is in the data grid
+//
+int visi_DataGrid::MetricInGrid(int test_id){
+
+  for(int i = 0; i < numMetrics; i++){
+    if (test_id == metrics[i].Identifier()){
+      return(1);
+    }
+  }
+  return(0);
+}
+
+
+//
+//  returns 1 if resource with Id equal to test_id is in the data grid
+//
+int visi_DataGrid::ResourceInGrid(int test_id){
+
+  for(int i = 0; i < numResources; i++){
+    if (test_id == resources[i].Identifier()){
+      return(1);
+    }
+  }
+  return(0);
+}
