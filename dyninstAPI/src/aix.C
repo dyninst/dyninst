@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.143 2003/05/08 15:00:15 chadd Exp $
+// $Id: aix.C,v 1.144 2003/05/08 23:44:35 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1113,22 +1113,23 @@ bool process::installSyscallTracing() {
     // We mimic system call tracing via instrumentation
     
     // Pre-fork (is this strictly necessary?
-    tracingRequests += new instMapping("fork", "DYNINST_instForkEntry",
+    tracingRequests += new instMapping("libc.a/fork", "DYNINST_instForkEntry",
                                        FUNC_ENTRY);
     // Post-fork: handled for us by the system
 
     // Pre-exec: get the exec'ed file name
     AstNode *arg1 = new AstNode(AstNode::Param, (void *)0);
-    tracingRequests += new instMapping("execve", "DYNINST_instExecEntry",
+    tracingRequests += new instMapping("libc.a/execve", "DYNINST_instExecEntry",
                                        FUNC_ENTRY|FUNC_ARG,
                                        arg1);
     // Post-exec: handled for us by the system
 
     // Pre-exit: get the return code
-    tracingRequests += new instMapping("exit", "DYNINST_instExitEntry",
+    
+    tracingRequests += new instMapping("libc.a/exit", "DYNINST_instExitEntry",
                                        FUNC_ENTRY|FUNC_ARG,
                                        arg1);
-
+    
     // Post-exit: handled for us by the system
     removeAst(arg1);
 
@@ -1697,14 +1698,14 @@ class instInstance;
 string process::tryToFindExecutable(const string &progpath, int /*pid*/) {
    // returns empty string on failure
 
-  if (!progpath.length())
-    cerr << "Warning: Attach on AIX requires program path to be specified" << endl;
-   if (progpath.length() == 0)
-      return "";
-   if (exists_executable(progpath)) // util lib
-      return progpath;
-
-   return ""; // failure
+    if (!progpath.length())
+        cerr << "Warning: Attach on AIX requires program path to be specified" << endl;
+    if (progpath.length() == 0)
+        return "";
+    if (exists_executable(progpath)) // util lib
+        return progpath;
+    
+    return ""; // failure
 }
 
 Address dyn_lwp::readRegister(Register returnValReg) 
