@@ -40,41 +40,122 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.8 1999/11/11 00:51:49 wylie Exp $
+ * $Id: Types.h,v 1.9 2000/08/14 19:23:01 schendel Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
 #if !defined(_Types_h_)
 #define _Types_h_
 
-/* This file is now included by the rtinst library also, so all
-   C++ constructs need to be in #ifdef _cplusplus... 7/9/99 -bhs */
+
+/* sets up 64 bit
+   types:
+     int64_t         uint64_t
+     int32_t         uint32_t
+   constant macros:
+     I64_C(x)        UI64_C(x)
+   limits:
+     INT64_MAX       INT64_MIN        UINT64_MAX
+     INT32_MAX       INT32_MIN        UINT32_MAX
+
+     needs to be included before anything that includes an inttypes.h file
+     (eg. stdio on some systems) 
+*/
 
 /* typedef appropriate definitions for ISO C9X standard integer types
-   if these currently aren't provided in <sys/types.h> */
+   if these currently aren't provided in <inttypes.h> */
 #if defined(i386_unknown_nt4_0)
 typedef __int64 int64_t;
 typedef __int32 int32_t;
 typedef unsigned __int64 uint64_t;
 typedef unsigned __int32 uint32_t;
-#elif defined(alpha_dec_osf4_0) || \
-      (defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES))
+#elif defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES)
 typedef int int32_t;
 typedef long long int64_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
+#elif defined(alpha_dec_osf4_0) && !defined(_H_INTTYPES)
+typedef int int32_t;
+typedef long int64_t;
+typedef unsigned int uint32_t;
+typedef unsigned long uint64_t;
 #else
-#include <sys/types.h>
-/* Includes
-             int32_t   uint32_t    int64_t      uint64_t
-Solaris      yes       yes         yes          yes
-Linux        yes       no?         yes          no?
-Irix         yes       yes         yes          yes
-Osf          no        no          no           no
-Aix4.1       no        no          no           no
-Aix4.3       yes       yes         yes          yes
-WindowsNT    no        no          no           no
+#ifdef i386_unknown_linux2_0
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+#endif
+
+#ifdef rs6000_ibm_aix4_1
+#define _ALL_SOURCE
+#endif
+
+#include <inttypes.h>
+
+/* --- inttypes.h ---
+             int32_t  uint32_t  int64_t uint64_t 32B lmts 64Blmts 64BlitMacros#
+Sol5.6       yes      yes       yes     yes      yes      no*     yes   
+Sol5.7       yes      yes       yes     yes      yes      no*     yes   
+Linux        yes      yes       yes     yes      yes      yes     yes
+Irix         yes      yes       yes     yes      yes      yes     yes
+Osf4.0       nonexistant
+Osf5.0       ?
+Aix4.2       nonexistant
+Aix4.3+      yes      yes       yes     yes      yes      no*     yes
+WindowsNT    nonexistant
+
+  * the 64bit limits on solaris and aix are defined, but they are not defined
+    properly to include the numeric literal postfix (eg. LL), so we need to
+    explicitly define these
+  # we rename all of the 64 bit literal macros to our shortened name
+  + can't depend on existance of inttypes.h for aix since nonexistant on 4.2
 */
+#endif
+
+
+/* Set up the 64 BIT LITERAL MACROS */
+#if defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES)
+#define I64_C(x)  (x##ll)
+#define UI64_C(x) (x##ull)
+#elif defined(alpha_dec_osf4_0)
+#define I64_C(x)  (x##l)
+#define UI64_C(x) (x##ul)
+#elif defined(i386_unknown_nt4_0)
+#define I64_C(x)  (x##i64)
+#define UI64_C(x) (x##ui64)
+#else
+#define I64_C(x)  INT64_C(x)
+#define UI64_C(x) UINT64_C(x)
+#endif
+
+/* Set up the 32 BIT LIMITS for those not already set up */
+#if defined(alpha_dec_osf4_0) || \
+    (defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES))
+#define INT32_MAX  (2147483647)
+#define UINT32_MAX (4294967295U)
+#define INT32_MIN  (-2147483647-1)
+#endif
+
+/* Set up the 64 BIT LIMITS for those not already set up */
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || \
+    defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
+/* see note (*) above */
+#undef INT64_MAX
+#undef UINT64_MAX
+#undef INT64_MIN
+#define INT64_MAX    I64_C(9223372036854775807)
+#define UINT64_MAX   UI64_C(18446744073709551615)
+/* The GNU compilers on solaris have what seems like a bug where a
+   warning is printed when the ...808 int64 minimum is used, so we'll get the
+   value with some trickery */
+#define INT64_MIN    (-INT64_MAX-1)
+#elif defined(i386_unknown_nt4_0)
+#include <limits.h>
+#define INT64_MAX  _I64_MAX
+#define UINT64_MAX _UI64_MAX
+#define INT64_MIN  _I64_MIN
+#define INT32_MAX  _I32_MAX
+#define INT32_MIN  _I32_MIN
+#define UINT32_MAX  _UI32_MAX
 #endif
 
 typedef int64_t time64;
@@ -92,6 +173,9 @@ typedef long int RegValue;      /* register content */
    to the code generator (i.e. if-statement) - jkh 5/24/99 */
 typedef unsigned int Register;  /* a register number, e.g., [0..31]  */
 static const Register Null_Register = (Register)(-1);   /* '255' */
+
+/* This file is now included by the rtinst library also, so all
+   C++ constructs need to be in #ifdef _cplusplus... 7/9/99 -bhs */
 
 #ifdef __cplusplus
 
