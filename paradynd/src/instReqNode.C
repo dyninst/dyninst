@@ -66,52 +66,9 @@ instReqNode::instReqNode(instPoint *iPoint, AstNode *iAst, callWhen iWhen,
   assert(point);
 }
 
-instReqNode instReqNode::forkProcess(const instReqNode &parentNode,
-		      const dictionary_hash<instInstance*,instInstance*> &map)
-{
-  /*
-  instReqNode ret = instReqNode(parentNode.point, parentNode.ast, 
-				parentNode.when, parentNode.order);
-  
-  if (!map.find(parentNode.instance, ret.instance)) // writes to ret.instance
-    assert(false);
-  */
-  instReqNode ret;
-  return ret;
-}
-
-bool instReqNode::unFork(process *proc, 
-			 dictionary_hash<instInstance*,instInstance*> &map) 
-  const {
-  /*
-  // The fork syscall duplicates all trampolines from the parent into the
-  // child. For those mi's which we don't want to propagate to the child,
-  // this creates a problem.  We need to remove instrumentation code from the
-  // child.  This routine does that.
-  //
-  // "this" represents an instReqNode in the PARENT process.  "map" maps all
-  // instInstance*'s of the parent process to instInstance*'s in the child
-  // process.  We modify "map" by setting a value to NULL.
-
-  //instInstance *parentInstance = getInstance();
-   
-  instInstance *childInstance;
-  if (!map.find(parentInstance, childInstance)) // writes to childInstance
-    assert(false);
-  
-  deleteInst(proc, childInstance);
-  
-  map[parentInstance] = NULL; // since we've deleted...
-  */
-  
-  return true; // success
-}
-
 // returns false if instr insert was deferred
 loadMiniTramp_result instReqNode::loadInstrIntoApp(process *theProc,
-						returnInstance *&retInstance,
-						   instInstance **mtInst) {
-  (*mtInst) = NULL;
+					      returnInstance *&retInstance) {
   if(loadedIntoApp) return success_res;
 
   // NEW: We may manually trigger the instrumentation, via a call to
@@ -135,10 +92,8 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(process *theProc,
     mtHandle.inst = instI;
     mtHandle.when = when;
     mtHandle.location = point;
-    (*mtInst) = instI;
   } else {
     delete instI;
-    (*mtInst) = NULL;
   }
 
   return res;
@@ -151,9 +106,17 @@ void instReqNode::hookupJumps(process *proc) {
   trampsHookedUp = true;
 }
 
+void instReqNode::setAffectedDataNodes(instInstanceFreeCallback cb, 
+				   vector<instrDataNode *> *affectedNodes) {
+  assert(loadedIntoApp == true);
+  mtHandle.inst->registerCallback(cb, (void *)affectedNodes);
+}
+
 void instReqNode::disable(process *proc)
 {
-  //cerr << "in instReqNode::disable - " << pointsToCheck.size()
+  //cerr << "in instReqNode (" << this << ")::disable  loadedIntoApp = "
+  //    << loadedIntoApp << ", deleting inst: " << mtHandle.inst
+  //    << "\n";
   //     << " points to check\n";
   if(loadedIntoApp == true)
     deleteInst(proc, mtHandle);
