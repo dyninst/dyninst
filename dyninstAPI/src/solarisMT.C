@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.6 2002/07/03 22:18:34 bernat Exp $
+// $Id: solarisMT.C,v 1.7 2002/07/29 18:39:12 schendel Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -229,5 +229,11 @@ Frame pdThread::getActiveFrame() {
     pc = rs.pc;
   } 
   return Frame(pc, fp, proc->getPid(), this, 0, true);
+}
+
+int process::findLWPbyPOS(int pos)
+{
+  //  return RTsharedData.virtualTimers[pos].pos;
+  return 0;
 }
 
