@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.91 2003/09/05 16:27:34 schendel Exp $
+// $Id: BPatch_thread.C,v 1.92 2003/09/11 18:19:57 chadd Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -888,6 +888,26 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
       return NULL;
     }
 
+#if defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
+
+	bool isMain=false;
+	const BPatch_function *tmpFunc = point.getFunction();
+
+	char tmpFuncName[1024];
+
+	if(proc->collectSaveWorldData){
+		tmpFunc->getName(tmpFuncName, 1024);
+
+		if( !strncmp(tmpFuncName,"main",4)){
+
+			isMain = true;
+		
+		}
+		
+	}
+
+#endif
+
     loadMiniTramp_result res = addInstFunc(mtHandle, proc, ip, ast, _when, 
 					   _order, false,
 			// Do we want the base tramp (if any) created allowing
@@ -897,7 +917,12 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 			// inst point.
 			point.getPointType() == BPatch_arbitrary ?  true : 
 #endif
+
+#if defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
+			(isMain ? true :BPatch::bpatch->isTrampRecursive())
+#else
 			BPatch::bpatch->isTrampRecursive()
+#endif
 					   );
 
     if(res == success_res) {
@@ -1320,7 +1345,7 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
     }
 
 #ifdef BPATCH_LIBRARY //ccw 14 may 2002
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1) || defined(r6000_ibm_aix5_1)
 	if(proc->collectSaveWorldData && reload){
 		proc->saveWorldloadLibrary(libname);	
 	}
