@@ -46,6 +46,9 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.43  1996/09/13 21:54:01  mjrg
+ * Changed code to allow base tramps of variable size.
+ *
  * Revision 1.42  1996/08/20 21:34:54  lzheng
  * Minor fix for the procedure readDataFromFrame
  *
@@ -105,7 +108,7 @@ extern unsigned activeProcesses; // number of active processes
 class resource;
 class instPoint;
 class instInstance;
-class baseTrampoline;
+class trampTemplate;
 
 // TODO a kludge - to prevent recursive includes
 class image;
@@ -236,7 +239,7 @@ friend class ptraceKludge;
   inferiorHeap	heaps[2];	// the heaps text and data
   resource *rid;		/* handle to resource for this process */
   process *parent;		/* parent of this proces */
-  dictionary_hash<instPoint*, unsigned> baseMap;	/* map and inst point to its base tramp */
+  dictionary_hash<instPoint*, trampTemplate *> baseMap;	/* map and inst point to its base tramp */
   char buffer[2048];
   unsigned bufStart;
   unsigned bufEnd;
