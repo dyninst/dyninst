@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.73 2005/03/22 05:56:35 rchen Exp $
+ * $Id: inst-ia64.C,v 1.74 2005/04/06 04:26:40 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -2549,9 +2549,13 @@ bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 	/* FIXME: */ if( reg.raw == INVALID_CFM ) { assert( 0 ); }
 
 	/* Set regSpace for the code generator. */
+	int baseReg = 32 + reg.CFM.sof + NUM_PRESERVED;
+	if( baseReg > 128 - (NUM_LOCALS + NUM_OUTPUT) )
+		baseReg = 128 - (NUM_LOCALS + NUM_OUTPUT); // Never allocate over 128 registers.
+
 	Register deadRegisterList[NUM_LOCALS + NUM_OUTPUT];
-	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-		deadRegisterList[i] = 32 + reg.CFM.sof + i + NUM_PRESERVED;
+	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; ++i ) {
+		deadRegisterList[i] = baseReg + i;
 		} /* end deadRegisterList population */
 	registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
 
