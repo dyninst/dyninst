@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.277 2001/11/06 19:20:21 bernat Exp $
+// $Id: process.C,v 1.278 2001/11/06 21:29:08 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4117,7 +4117,9 @@ pd_Function *process::findFunctionIn(Address adr)
   }
 
   if (returned_functions.size() > 1) { // Got more than one return
+#ifdef DEBUG
     cerr << "Warning: multiple matches found for address " << adr << endl;
+#endif
     for (int i = 0; i < returned_functions.size(); i++)
       cerr << returned_functions[i]->prettyName() << endl;
   }
@@ -4190,7 +4192,9 @@ pd_Function *process::findFuncByAddr(Address adr)
   }
 
   if (returned_functions.size() > 1) { // Got more than one return
+#ifdef DEBUG
     cerr << "Warning: multiple matches found for address " << adr << endl;
+#endif
     for (unsigned int i = 0; i < returned_functions.size(); i++)
       cerr << returned_functions[i]->prettyName() << endl;
   }
@@ -4220,7 +4224,9 @@ pd_Function *process::findFuncByAddr(Address adr)
   }
 
   if (returned_functions.size() > 1) { // Got more than one return
+#ifdef DEBUG
     cerr << "Warning: multiple matches found for address " << adr << endl;
+#endif
     for (unsigned int i = 0; i < returned_functions.size(); i++)
       cerr << returned_functions[i]->prettyName() << endl;
   }
