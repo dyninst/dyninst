@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.168 2001/12/06 20:57:51 schendel Exp $
+/* $Id: process.h,v 1.169 2001/12/11 20:22:24 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -72,6 +72,8 @@
 #endif
 
 #include "dyninstAPI/src/symtab.h" // internalSym
+
+#include "dyninstAPI/src/imageUpdate.h" //ccw 29 oct 2001
 
 #ifdef SHM_SAMPLING
 #include "paradynd/src/shmSegment.h"
@@ -258,6 +260,8 @@ class inferiorHeap {
   vector<heapItem *> bufferPool;        // distributed heap segments -- csserra
 };
 
+
+ 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
 class mutationRecord {
 public:
@@ -521,6 +525,12 @@ class process {
 #ifdef BPATCH_LIBRARY
   bool setProcfsFlags();
   bool dumpImage(string outFile);
+
+#ifdef sparc_sun_solaris2_4
+  bool dumpPatchedImage(string outFile);//ccw 28 oct 2001
+#else
+  bool dumpPatchedImage(string outFile) { return false; } 
+#endif
   string execPathArg;	// path exec is trying - used when process calls exec
 #else
   bool dumpImage();
@@ -629,6 +639,13 @@ class process {
       return false;
     }
 #endif
+
+#ifdef BPATCH_LIBRARY
+  vector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
+  vector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
+  vector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
+#endif
+	void saveWorldData(Address address, int size, const void* src);
 
   bool writeDataSpace(void *inTracedProcess,
                       u_int amount, const void *inSelf);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.104 2001/11/06 19:20:21 bernat Exp $
+// $Id: solaris.C,v 1.105 2001/12/11 20:22:25 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -165,6 +165,166 @@ bool process::continueWithForwardSignal(int) {
 
    return true;
 }
+
+#ifdef BPATCH_LIBRARY
+bool process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
+
+	writeBackElf *newElf;
+	addLibrary *addLibraryElf;
+	void *data;
+	unsigned int errFlag=0;
+	char name[50];	
+	vector<imageUpdate*> compactedUpdates;
+	vector<imageUpdate*> compactedHighmemUpdates;
+	Address guardFlagAddr= getTrampGuardFlagAddr();
+	unsigned int lastCompactedUpdateAddress;
+
+	newElf = new writeBackElf(( char*) getImage()->file().string_of(),"/tmp/dyninstMutatee",errFlag);
+	newElf->registerProcess(this);
+
+	imageUpdates.sort(imageUpdate::imageUpdateSort);// imageUpdate::mysort ); 
+	newElf->compactSections(imageUpdates,compactedUpdates);
+
+	highmemUpdates.sort( imageUpdate::imageUpdateSort);
+	newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
+
+	newElf->alignHighMem(compactedHighmemUpdates);
+
+	//for loop to add sections.....
+	for(unsigned int i=0;i<compactedUpdates.size();i++){
+		(char*) data = new char[compactedUpdates[i]->size];
+		readDataSpace((void*) compactedUpdates[i]->address, compactedUpdates[i]->size, 	
+			data, true);	
+
+		//the TrampGuardFlag must be set to 1 to get the
+		//tramps to run. it is not necessary set to 1 yet so
+		//we set it to 1 before we save the file.
+		if(guardFlagAddr){
+			if(compactedUpdates[i]->address < guardFlagAddr &&
+                        guardFlagAddr < compactedUpdates[i]->address+compactedUpdates[i]->size){
+                                ((char*) data)[guardFlagAddr -
+                                        compactedUpdates[i]->address ] = 0x1;
+                        }
+		}
+
+		sprintf(name,"dyninstAPI_%08x",i);
+		newElf->addSection(compactedUpdates[i]->address,data ,compactedUpdates[i]->size,name); 
+		delete [] (char*) data;
+	}
+
+	unsigned int pageSize = getpagesize();
+	unsigned int startPage, stopPage;
+	unsigned int numberUpdates;
+	int startIndex, stopIndex;
+	for(unsigned int j=0;j<compactedHighmemUpdates.size();j++){
+		//the layout of dyninstAPIhighmem_%08x is:
+		//pageData
+		//address of update
+		//size of update
+		// ...
+		//address of update
+		//size of update
+		//number of updates 
+
+		startPage =  compactedHighmemUpdates[j]->address - compactedHighmemUpdates[j]->address%pageSize;
+		stopPage = compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size-
+                                        (compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size )%pageSize; 
+		numberUpdates = 0;
+		startIndex = -1;
+		stopIndex = -1;	
+		for(unsigned index = 0;index < highmemUpdates.size(); index++){
+			if(startPage <= highmemUpdates[index]->address && 
+				highmemUpdates[index]->address  < (startPage + compactedHighmemUpdates[j]->size)){
+				numberUpdates ++;
+				stopIndex = index;
+				if(startIndex == -1){
+					startIndex = index;
+				}
+			}
+		}
+		unsigned int dataSize = compactedHighmemUpdates[j]->size + sizeof(unsigned int) + 
+			(2*numberUpdates * sizeof(unsigned int));
+
+		(char*) data = new char[dataSize];
+
+               	//fill in pageData 
+		readDataSpace((void*) compactedHighmemUpdates[j]->address, compactedHighmemUpdates[j]->size,
+                        data, true);
+
+		unsigned int *dataPtr = (unsigned int*) ( (char*) data + compactedHighmemUpdates[j]->size);
+
+		//fill in address of update
+		//fill in size of update
+		for(unsigned index = startIndex; index<=stopIndex;index++){
+			memcpy(dataPtr, &highmemUpdates[index]->address ,sizeof(unsigned int));	
+			dataPtr ++;
+			memcpy(dataPtr, &highmemUpdates[index]->size, sizeof(unsigned int));
+			dataPtr++;
+		}
+
+		//fill in number of updates
+		memcpy(dataPtr, &numberUpdates, sizeof(unsigned int));
+
+                sprintf(name,"dyninstAPIhighmem_%08x",j);
+                
+		newElf->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);
+
+		lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
+		delete [] (char*) data;
+	}
+
+	char *dataUpdatesData;
+	int sizeofDataUpdatesData=0;
+	for(unsigned int m=0;m<dataUpdates.size();m++){
+		sizeofDataUpdatesData += (sizeof(int) + sizeof(Address)); //sizeof(size) +sizeof(Address);
+		sizeofDataUpdatesData += dataUpdates[m]->size;
+	}
+
+
+	if(dataUpdates.size() > 0) {
+		dataUpdatesData = new char[sizeofDataUpdatesData+(sizeof(int) + sizeof(Address))];
+		char* ptr = dataUpdatesData;
+		for(unsigned int k=0;k<dataUpdates.size();k++){
+			memcpy(ptr, &dataUpdates[k]->size, sizeof(int));
+			ptr += sizeof(int);
+			memcpy(ptr, &dataUpdates[k]->address, sizeof(Address));
+			ptr+=sizeof(Address);
+			memcpy(ptr, dataUpdates[k]->value, dataUpdates[k]->size);
+			ptr+=dataUpdates[k]->size;
+			//printf(" DATA UPDATE : from: %x to %x , value %x\n", dataUpdates[k]->address,
+		//		dataUpdates[k]->address+ dataUpdates[k]->size, (unsigned int) dataUpdates[k]->value);
+
+		}
+		*(int*) ptr=0;
+		ptr += sizeof(int);
+		*(unsigned int*) ptr=0;
+		newElf->addSection(lastCompactedUpdateAddress, dataUpdatesData, 
+			sizeofDataUpdatesData, "dyninstAPI_data", false);
+		delete [] (char*) dataUpdatesData;
+	}
+
+	unsigned int k;
+	
+	for( k=0;k<imageUpdates.size();k++){
+		delete imageUpdates[k];
+	}
+
+	for( k=0;k<highmemUpdates.size();k++){
+		delete highmemUpdates[k];
+	}
+	for(  k=0;k<compactedUpdates.size();k++){
+                delete compactedUpdates[k];
+        }
+
+        for(  k=0;k<compactedHighmemUpdates.size();k++){
+                delete compactedHighmemUpdates[k];
+        }
+
+	newElf->createElf();
+	addLibraryElf = new addLibrary(newElf->getElf(),"libdyninstAPI_RT.so.1",errFlag);
+	addLibraryElf->outputElf((char*)imageFileName.string_of());
+}
+#endif
 
 #ifndef BPATCH_LIBRARY
 bool process::dumpImage() {return false;}
@@ -1709,7 +1869,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
   if((lseek(proc_fd, (off_t)inTraced, SEEK_SET)) != (off_t)inTraced) {
-    printf("error in lseek addr = 0x%lx amount = %d\n",
+    fprintf(stderr,"error in lseek addr = 0x%lx amount = %d\n",
                 (Address)inTraced,amount);
     return false;
   }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.45 2001/12/11 17:36:06 jaw Exp $
+// $Id: BPatch_thread.C,v 1.46 2001/12/11 20:22:22 chadd Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -502,6 +502,37 @@ bool BPatch_thread::dumpCore(const char *file, bool terminate)
     }
 
     return ret;
+}
+
+/*
+ * BPatch_thread::dumpPatchedImage
+ *
+ * Writes the mutated file back to disk,
+ * in ELF format.  (Solaris only)
+ *
+ *
+ */
+bool BPatch_thread::dumpPatchedImage(const char* file){ //ccw 28 oct 2001
+
+#if !defined(sparc_sun_solaris2_4)
+	return false;
+#else
+    bool was_stopped;
+    bool had_unreportedStop = unreportedStop;
+    if (isStopped()) was_stopped = true;
+    else was_stopped = false;
+
+    stopExecution();
+
+    bool ret = proc->dumpPatchedImage(file);
+    if (was_stopped) {
+        unreportedStop = had_unreportedStop;
+    } else {
+        continueExecution();
+    }
+
+    return ret;
+#endif
 }
 
 

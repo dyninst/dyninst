@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.280 2001/12/06 20:57:49 schendel Exp $
+// $Id: process.C,v 1.281 2001/12/11 20:22:23 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1255,6 +1255,23 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
 }
 
 /*
+ * This function adds an item to the dataUpdates vector
+ * which is used to maintain a list of variables that have
+ * been written by the mutator //ccw 26 nov 2001
+ */
+void process::saveWorldData(Address address, int size, const void* src){
+#ifdef BPATCH_LIBRARY
+	dataUpdate *newData = new dataUpdate;
+	newData->address= address;
+	newData->size = size;
+	newData->value = new char[size];
+	memcpy(newData->value, src, size);
+	dataUpdates.push_back(newData);
+#endif
+
+}
+
+/*
  * Given an image, add all static heaps inside it
  * (DYNINSTstaticHeap...) to the buffer pool.
  */
@@ -1632,6 +1649,29 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
   hp->totalFreeMemAvailable -= size;
   inferiorMemAvailable = hp->totalFreeMemAvailable;
   assert(h->addr);
+
+	// ccw: 28 oct 2001
+	// create imageUpdate here:
+	// imageUpdate(h->addr,size)
+#ifdef BPATCH_LIBRARY
+#ifdef sparc_sun_solaris2_4 
+	if(h->addr < 0xF0000000){
+		imageUpdate *imagePatch=new imageUpdate; 
+		imagePatch->address = h->addr;
+		imagePatch->size = size;
+		p->imageUpdates.push_back(imagePatch);
+		//printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size); 
+	}else{
+		//printf(" HIGHMEM UPDATE %x %x\n", h->addr, size);
+                imageUpdate *imagePatch=new imageUpdate;
+                imagePatch->address = h->addr;
+                imagePatch->size = size;
+                p->highmemUpdates.push_back(imagePatch);
+                //printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
+
+	}
+#endif
+#endif
   return(h->addr);
 }
 
@@ -3363,9 +3403,10 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
   bool needToDetach = false;
 #endif /* DETACH_ON_THE_FLY */
 
-  if (status_ == exited)
+  if (status_ == exited){
+	printf(" STATUS == EXITED");
     return false;
-
+	}
   if (status_ == running) {
     needToCont = true;
 #ifdef DETACH_ON_THE_FLY

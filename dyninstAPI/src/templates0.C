@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.22 2001/06/12 15:43:32 hollings Exp $
+// $Id: templates0.C,v 1.23 2001/12/11 20:22:26 chadd Exp $
 // Generate all the templates in one file.
 
 /*
@@ -125,6 +125,13 @@ template class  vector<relocationEntry>;
 template class vector<LocalAlteration*>;
 template class vector<FERNode>;
 template class vector<FERNode*>;
+
+#ifdef BPATCH_LIBRARY
+#ifdef sparc_sun_solaris2_4
+template class vector<imageUpdate*>;//ccw 28 oct 2001
+template class vector<dataUpdate*> ;//ccw 26 nov 2001
+#endif
+#endif
 
 #ifndef BPATCH_LIBRARY
 template class vector<processTimerHK>;

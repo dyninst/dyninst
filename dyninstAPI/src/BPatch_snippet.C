@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.33 2001/12/06 20:57:59 schendel Exp $
+// $Id: BPatch_snippet.C,v 1.34 2001/12/11 20:22:22 chadd Exp $
 
 #define BPATCH_FILE
 
@@ -792,10 +792,15 @@ void BPatch_variableExpr::readValue(void *dst, int len)
  *
  * returns false if the type info isn't available (i.e. we don't know the size)
  */
-bool BPatch_variableExpr::writeValue(const void *src)
+bool BPatch_variableExpr::writeValue(const void *src, bool saveWorld)
 {
     if (size) {
 	proc->writeDataSpace(address, size, src);
+#ifdef sparc_sun_solaris2_4	
+	if(saveWorld) { //ccw 26 nov 2001
+		proc->saveWorldData((Address) address,size,src);
+	}
+#endif
 	return true;
     } else {
 	return false;
@@ -812,8 +817,13 @@ bool BPatch_variableExpr::writeValue(const void *src)
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
  */
-void BPatch_variableExpr::writeValue(const void *src, int len)
+void BPatch_variableExpr::writeValue(const void *src, int len, bool saveWorld)
 {
+#ifdef sparc_sun_solaris2_4
+    if(saveWorld) { //ccw 26 nov 2001
+	proc->saveWorldData((Address) address,len,src);
+    }
+#endif
     proc->writeDataSpace(address, len, src);
 }
 
