@@ -576,8 +576,8 @@ void installBootstrapInst(process *proc) {
 #else
    // 2 dummy args when not shm sampling -- just make sure they're not -1, 
    // which tells DYNINSTinit() that it's being called by DYNINSTfork
-   the_args += new AstNode(AstNode::Constant, NULL);
-   the_args += new AstNode(AstNode::Constant, NULL);
+   the_args += new AstNode(AstNode::Constant, (void *)0);
+   the_args += new AstNode(AstNode::Constant, (void *)0);
 #endif
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
