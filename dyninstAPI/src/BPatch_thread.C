@@ -191,7 +191,13 @@ BPatch_thread::~BPatch_thread()
     // XXX I think there are some other things we need to deallocate -- check
     // on that.
 
-    delete proc;
+    // XXX We'd like to delete the process object here, but if we do that then
+    // we get problems (specifically, the library gets confused in some way so
+    // that it won't be able to run another mutatee process).  Anyway, the
+    // process class has no destructor right now, so whether we delete proc or
+    // not we're leaking megabytes of memory.  So, for now, we just leave it
+    // around.
+    // delete proc;
 }
 
 
