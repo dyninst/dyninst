@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.38 1999/10/05 22:14:26 pcroth Exp $
+# $Id: Makefile,v 1.39 2000/02/16 23:57:57 paradyn Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -33,13 +33,17 @@ DyninstAPI	= util dyninstAPI_RT dyninstAPI dyninstAPI/tests
 threadComps	= rtinst/multi-thread-aware paradynd/multi-thread-aware
 
 # "Paradyn" itself is just the list of all Paradyn components
-Paradyn		= $(basicComps) $(subSystems) $(threadComps)
+Paradyn		= $(basicComps) $(subSystems)
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
 ifndef DONT_BUILD_PARADYN
 fullSystem	+= $(Paradyn)
 Build_list	+= Paradyn
+ifndef DONT_BUILD_PD_MT
+fullSystem	+= $(threadComps)
+Build_list	+= threadComps
+endif
 endif
 ifndef DONT_BUILD_DYNINST
 fullSystem	+= $(DyninstAPI)
@@ -97,6 +101,9 @@ intro:
 	@echo "Build of $(BUILD_ID) starting for $(PLATFORM)!"
 ifdef DONT_BUILD_PARADYN
 	@echo "Build of Paradyn components skipped!"
+endif
+ifdef DONT_BUILD_PD_MT
+	@echo "Build of ParadynMT components skipped!"
 endif
 ifdef DONT_BUILD_DYNINST
 	@echo "Build of DyninstAPI components skipped!"
