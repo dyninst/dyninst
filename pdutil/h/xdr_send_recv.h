@@ -46,6 +46,8 @@
 
 #ifdef i386_unknown_nt4_0
 struct XDR; //to avoid include of rpc/xdr.h
+#else
+#include <rpc/xdr.h>
 #endif
 
 #include "common/h/String.h"
