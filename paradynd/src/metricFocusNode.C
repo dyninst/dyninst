@@ -294,7 +294,24 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
        return NULL;
     }
 
+    //cerr << "createMetricInstance called.  metric_name = " << \
+    //     metric_name << endl;
+    //cerr << " canonicalFocus (derived from focus (u_int id array)) == " \
+    //	 << endl;
+    //for(unsigned z = 0; z < canonicalFocus.size(); z++) {
+    //    vector<string> temp_strings = canonicalFocus[z];
+    //	cerr << "  canonicalFocus[" << z << "] : " << endl;
+    //    for(unsigned y = 0; y < temp_strings.size(); y++) {
+    //        cerr << "   " << temp_strings[y] << endl;
+    //    }
+    //}
+
     string flat_name = metricAndCanonFocus2FlatName(metric_name, canonicalFocus);
+    //cerr << "flat_name = " << flat_name << endl;
+
+
+    // first see if it is already defined.
+    dictionary_hash_iter<unsigned, metricDefinitionNode*> mdi(allMIs);
 
 /*
  * See if we can find the requested metric instance.
@@ -318,7 +335,11 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
        }
     }
 
+    //cerr << " previous instance of metric not found, trying to create" \
+    //	 << endl;
+
     if (mdl_can_do(metric_name)) {
+      //cerr << " mdl_can_do(metrix_name) == TRUE" << endl;
       internal = false;
 
       /* select the processes that should be instrumented. We skip process
@@ -348,6 +369,14 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
       else computingCost = true;
       metricDefinitionNode *mi = mdl_do(canonicalFocus, metric_name, flat_name, procs, false,
 		  computingCost);
+
+      //cerr << "  mdl_do returned ";
+      //if (mi == NULL) {
+      //    cerr << "NULL" << endl;
+      //} else {
+      //    cerr << "Non-NULL" << endl;
+      //}
+
       if (mi == NULL) {
 	 metric_cerr << "createMetricInstance failed since mdl_do failed" << endl;
 	 metric_cerr << "metric name was " << metric_name << "; focus was ";
@@ -355,6 +384,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
       }
       return mi;
     } else {
+      //cerr << " mdl_can_do(metrix_name) == FALSE" << endl;
       bool matched;
       metricDefinitionNode *mi=doInternalMetric(canonicalFocus,
 			  canonicalFocus, // is this right for component_canon_focus???

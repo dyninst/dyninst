@@ -2015,8 +2015,10 @@ void dynRPC::send_stmts(vector<T_dyninstRPC::mdl_stmt*> *vs) {
 void dynRPC::send_libs(vector<string> *libs) {
 
     mdl_libs = true;
+    cerr << "void dynRPC::send_libs(vector<string> *libs) called" << endl;
     for(u_int i=0; i < libs->size(); i++){
 	mdl_data::lib_constraints += (*libs)[i]; 
+	cerr << " send_libs : adding " << (*libs)[i] << " to paradynd set of mdl_data::lib_constraints" << endl;
     }
 
 }
@@ -2308,6 +2310,9 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
   while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs)) {
     switch (connection->waitLoop()) {
     case T_dyninstRPC::error:
+      cerr << "mdl_get_initial flavor = " << flavor.string_of() \
+	  << " connection = " << connection << \
+          "  error in connection->waitLoop()" << endl;
       return false;
     default:
       break;
@@ -2315,6 +2320,9 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
     while (connection->buffered_requests()) {
       switch (connection->process_buffered()) {
       case T_dyninstRPC::error:
+	cerr << "mdl_get_initial flavor = " << flavor.string_of() \
+	  << " connection = " << connection << \
+          "  error in connection->processBuffered()" << endl;
 	return false;
       default:
 	break;
