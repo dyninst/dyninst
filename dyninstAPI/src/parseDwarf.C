@@ -100,7 +100,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 			assert( status == DW_DLV_OK );
 
 			/* Does it have a name? */
-			char * boundName;
+			char * boundName = NULL;
 			status = dwarf_diename( boundEntry, & boundName, NULL );
 			assert( status != DW_DLV_ERROR );
 
@@ -111,7 +111,8 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 				dwarf_dealloc( dbg, boundName, DW_DLA_STRING );
 				return true;
 				}
-			dwarf_dealloc( dbg, boundName, DW_DLA_STRING );
+			if (boundName != NULL)
+			   dwarf_dealloc( dbg, boundName, DW_DLA_STRING );
 
 			/* Does it describe a nameless constant? */
 			Dwarf_Attribute constBoundAttribute;
