@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile,v 1.4 2004/03/23 01:12:24 eli Exp $
+# $Id: Makefile,v 1.5 2004/07/19 02:02:23 pcroth Exp $
 #
 
 USES_FLEX   = true
@@ -53,7 +53,7 @@ MRNET_CFLAGS="-O2"
 MRNET_CXXFLAGS="-O2"
 endif
 
-.PHONY: all install clean configure-build
+.PHONY: all install clean distclean configure-build
 
 all:    configure-build
 	cd ./build; ${MAKE} $@
@@ -67,7 +67,9 @@ configure-build:
 	    cd ./build; CC=gcc CXX=g++ CFLAGS=${MRNET_CFLAGS} CXXFLAGS=${MRNET_CXXFLAGS} sh ../../mrnet/configure --prefix=`pwd`/${TO_CORE}/../../${PLATFORM} --with-libfl=${FLEX_DIR}/libfl.a --enable-verbosebuild ; \
 	fi
 
-clean:  configure-build
-	cd ./build; ${MAKE} distclean
-
+clean distclean:
+	if test -f ./build/Makefile ; \
+	then \
+		$(MAKE) -C ./build $@ ; \
+	fi
 
