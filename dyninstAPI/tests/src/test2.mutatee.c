@@ -1,6 +1,8 @@
 
 /* Test application (Mutatee) */
 
+/* $Id: test2.mutatee.c,v 1.12 1999/06/17 14:58:41 wylie Exp $ */
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -86,9 +88,11 @@ void func12_1()
 int main(int argc, char *argv[])
 {
     int i;
+#if !defined(i386_unknown_nt4_0)
     void *ref;
-    int useAttach = FALSE;
     int pfd;
+#endif
+    int useAttach = FALSE;
  
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
