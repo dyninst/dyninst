@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.20 2001/11/28 05:44:10 gaburici Exp $
+// $Id: arch-power.h,v 1.21 2003/04/09 23:22:29 buck Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -249,6 +249,7 @@ typedef union instructUnion instruction;
 #define LBZUXxop	119
 #define LHZXxop		279
 #define LHZUXxop	311
+#define MFSPRxop	339
 #define LHAXxop		343
 #define LWAXxop		341
 #define LWAUXxop	373
@@ -273,6 +274,7 @@ typedef union instructUnion instruction;
 #define STBUXxop	247
 #define STHXxop		407
 #define STHUXxop	439
+#define MTSPRxop	467
 #define STSXxop		661
 #define STBRXxop	662
 #define STFSXxop	663

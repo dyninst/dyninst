@@ -309,31 +309,91 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	Address TOC_address = (addressImage->getObject()).getTOCoffset();
 
 	instruction check;
-	Address jumpStartAddress = 0;
-	while(hasMore()){
-		check = getInstruction();
-		if((check.dform.op == Lop) && (check.dform.ra == 2)){
-			jumpStartAddress = 
-				(Address)(TOC_address + check.dform.d_or_si);
-			break;
-		}
-		(*this)--;
-	}
-	(*this)--;
-	Address adjustEntry = 0;
-	check = getInstruction();
-	if((check.dform.op == Lop))
-		adjustEntry = check.dform.d_or_si;
 
+	// If there are no prior instructions then we can't be looking at a
+	// jump through a jump table.
+	if (!hasPrev()) {
+		result += (initialAddress + sizeof(instruction));
+		return;
+	}
+
+	// Check if the previous instruction is a move to CTR or LR;
+	// if it is, then this is the pattern we're familiar with.  The
+	// register being moved into CTR or LR has the address to jump to.
+	(*this)--;
+	int jumpAddrReg;
+	check = getInstruction();
+	if (check.xfxform.op == STXop && check.xfxform.xo == MTSPRxop &&
+	    (check.xfxform.spr == 0x100 || check.xfxform.spr == 0x120)) {
+		jumpAddrReg = check.xfxform.rt;
+	} else {
+		result += (initialAddress + sizeof(instruction));
+		return;
+	}
+
+	// In the pattern we've seen, if the instruction previous to this is
+	// an add with a result that ends up being used as the jump address,
+	// then we're adding a relative value we got from the table to a base
+	// address to get the jump address; in other words, the contents of
+	// the jump table are relative.
+	bool tableIsRelative = false;
+	if (hasPrev()) {
+		(*this)--;
+		check = getInstruction();
+		if (check.xoform.op == CAXop && check.xoform.xo == CAXxop &&
+		    check.xoform.rt == jumpAddrReg)
+			tableIsRelative = true;
+		else
+			(*this)++;
+	}
+
+	Address jumpStartAddress = 0;
+	Address adjustEntry = 0;
 	Address tableStartAddress = 0;
-	while(hasMore()){
-		instruction check = getInstruction();
-		if((check.dform.op == Lop) && (check.dform.ra == 2)){
-			tableStartAddress = 
-				(Address)(TOC_address + check.dform.d_or_si);
-			break;
+
+	if (tableIsRelative) {
+		while(hasMore()){
+			check = getInstruction();
+			if((check.dform.op == Lop) && (check.dform.ra == 2)){
+				jumpStartAddress = 
+				    (Address)(TOC_address + check.dform.d_or_si);
+				break;
+			}
+			(*this)--;
 		}
 		(*this)--;
+		check = getInstruction();
+		if((check.dform.op == Lop))
+			adjustEntry = check.dform.d_or_si;
+
+		while(hasMore()){
+			instruction check = getInstruction();
+			if((check.dform.op == Lop) && (check.dform.ra == 2)){
+				tableStartAddress = 
+				    (Address)(TOC_address + check.dform.d_or_si);
+				break;
+			}
+			(*this)--;
+		}
+	} else {
+		bool foundAdjustEntry = false;
+		while(hasMore()){
+			check = getInstruction();
+			if(check.dform.op == CALop &&
+			   check.dform.rt == jumpAddrReg &&
+			   !foundAdjustEntry){
+				foundAdjustEntry = true;
+				adjustEntry = check.dform.d_or_si;
+				jumpAddrReg = check.dform.ra;
+			} else if(check.dform.op == Lop &&
+				  check.dform.ra == 2 &&
+				  check.dform.rt == jumpAddrReg){
+				tableStartAddress = 
+				    (Address)(TOC_address + check.dform.d_or_si);
+				break;
+			}
+			(*this)--;
+		}
 	}
 
 	setCurrentAddress(initialAddress);
