@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.12 2002/08/21 19:42:09 schendel Exp $
+/* $Id: shmMgr.C,v 1.13 2002/12/14 16:37:56 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -104,8 +104,9 @@ shmMgr::shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr,
   baseAddrInDaemon = reinterpret_cast<Address>(theShm->GetMappedAddress());
   memcpy(theShm->GetMappedAddress(), par.theShm->GetMappedAddress(),shmSize);
 
-  freespace = shmSize;
-  highWaterMark = baseAddrInDaemon;
+  freespace = par.freespace;
+  unsigned highWaterMarkOffset = par.highWaterMark - par.baseAddrInDaemon;
+  highWaterMark = baseAddrInDaemon + highWaterMarkOffset;
 
   for(unsigned i=0; i<par.prealloc.size(); i++) {
     shmMgrPreallocInternal *new_prealloc = 
@@ -146,10 +147,11 @@ Address shmMgr::malloc(unsigned size) {
   num_allocated++;
   // Next, check to see if this size matches any of the preallocated
   // chunks
-  for (unsigned i = 0; i < prealloc.size(); i++)
-    if ((size == prealloc[i]->size_) &&
-	(prealloc[i]->oneAvailable()))
-      return prealloc[i]->malloc();
+  for (unsigned i = 0; i < prealloc.size(); i++) {
+     if ((size == prealloc[i]->size_) &&
+         (prealloc[i]->oneAvailable()))
+        return prealloc[i]->malloc();
+  }
   
   // Grump. Nothing available.. so do it the hard way
   // Cheesed, again
@@ -163,12 +165,13 @@ void shmMgr::free(Address addr)
 {
   // First, check if the addr is within any of the preallocated
   // chunks
-  for (unsigned i = 0; i < prealloc.size(); i++)
-    if ((addr >= prealloc[i]->baseAddr_) &&
-	(addr < (prealloc[i]->baseAddr_ + (prealloc[i]->size_*prealloc[i]->numElems_)))) {
-      prealloc[i]->free(addr);
-      break;
-    }
+   for (unsigned i = 0; i < prealloc.size(); i++) {
+      if ((addr >= prealloc[i]->baseAddr_) &&
+          (addr < (prealloc[i]->baseAddr_ + (prealloc[i]->size_*prealloc[i]->numElems_)))) {
+         prealloc[i]->free(addr);
+         break;
+      }
+   }
   num_allocated--;
   // Otherwise ignore (for now)
 }
@@ -282,12 +285,12 @@ Address shmMgrPreallocInternal::malloc()
 
 void shmMgrPreallocInternal::free(Address addr)
 {
-  // Reverse engineer allocation, above...
-  unsigned freed_block;
-  unsigned freed_slot;
-  freed_block = ((addr - baseAddr_)/size_)/8;
-  freed_slot =  ((addr - baseAddr_)/size_) % 8;
-  assert(bitmap_[freed_block] & (0x1 << freed_slot));
-  bitmap_[freed_block] = bitmap_[freed_block] - (0x1 << freed_slot);
-  currAlloc_--;
+   // Reverse engineer allocation, above...
+   unsigned freed_block;
+   unsigned freed_slot;
+   freed_block = ((addr - baseAddr_)/size_)/8;
+   freed_slot =  ((addr - baseAddr_)/size_) % 8;
+   assert(bitmap_[freed_block] & (0x1 << freed_slot));
+   bitmap_[freed_block] = bitmap_[freed_block] - (0x1 << freed_slot);
+   currAlloc_--;
 }
