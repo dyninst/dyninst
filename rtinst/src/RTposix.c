@@ -22,7 +22,11 @@
  * RTposix.c: runtime instrumentation functions for generic posix.
  *
  * $Log: RTposix.c,v $
- * Revision 1.9  1995/03/10 19:39:42  hollings
+ * Revision 1.10  1995/05/18 11:08:27  markc
+ * added guard prevent timer start-stop during alarm handler
+ * added version number
+ *
+ * Revision 1.9  1995/03/10  19:39:42  hollings
  * Fixed an ugly race condition in observed cost.
  *
  * Added the use of unix profil to compute the time spent in inst code.
@@ -59,6 +63,10 @@
 
 
 
+/************************************************************************
+ * Per module flags
+************************************************************************/
+static int          DYNINSTin_sample = 0;
 
 /************************************************************************
  * symbolic constants.
@@ -123,6 +131,9 @@ DYNINSTbreakPoint(void) {
 
 void
 DYNINSTstartProcessTimer(tTimer* timer) {
+    /* if "write" is instrumented to start timers, a timer could be started */
+    /* when samples are being written back */
+    if (DYNINSTin_sample) return;       
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetCPUtime();
         timer->normalize = 1000000;
@@ -140,6 +151,10 @@ DYNINSTstartProcessTimer(tTimer* timer) {
 
 void
 DYNINSTstopProcessTimer(tTimer* timer) {
+    /* if "write" is instrumented to start timers, a timer could be started */
+    /* when samples are being written back */
+    if (DYNINSTin_sample) return;       
+
     if (!timer->counter) {
         return;
     }
@@ -176,6 +191,9 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 
 void
 DYNINSTstartWallTimer(tTimer* timer) {
+    /* if "write" is instrumented to start timers, a timer could be started */
+    /* when samples are being written back */
+    if (DYNINSTin_sample) return;       
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetWalltime();
         timer->normalize = 1000000;
@@ -193,6 +211,10 @@ DYNINSTstartWallTimer(tTimer* timer) {
 
 void
 DYNINSTstopWallTimer(tTimer* timer) {
+    /* if "write" is instrumented to start timers, a timer could be started */
+    /* when samples are being written back */
+    if (DYNINSTin_sample) return;       
+
     if (!timer->counter) {
         return;
     }
@@ -539,13 +561,13 @@ void
 DYNINSTalarmExpire(int signo) {
     time64     start_cpu;
     time64     end_cpu;
-    static int in_sample = 0;
+    /* static int in_sample = 0; */
     float      fp_context[N_FP_REGS];
 
-    if (in_sample) {
+    if (DYNINSTin_sample) {
         return;
     }
-    in_sample = 1;
+    DYNINSTin_sample = 1;
 
     DYNINSTtotalAlarmExpires++;
     if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0) {
@@ -564,7 +586,7 @@ DYNINSTalarmExpire(int signo) {
         restoreFPUstate(fp_context);
     }
 
-    in_sample = 0;
+    DYNINSTin_sample = 0;
 }
 
 

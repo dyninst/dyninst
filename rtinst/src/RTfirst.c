@@ -4,3 +4,5 @@
 /* Note, this is different from DYNINSTstartCode */
 
 void DYNINSTfirst() { }
+
+unsigned DYNINSTversion = 1;

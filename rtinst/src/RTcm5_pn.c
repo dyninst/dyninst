@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.23  1995/03/13 16:05:47  jcargill
+ * Revision 1.24  1995/05/18 11:08:22  markc
+ * added guard prevent timer start-stop during alarm handler
+ * added version number
+ *
+ * Revision 1.23  1995/03/13  16:05:47  jcargill
  * fixed Double/float mix-up; could cause store-double instruction to an
  * incorrectly aligned address.
  *
@@ -145,7 +149,7 @@ time64 DYNINSTgetWallTime();
 extern int DYNINSTtotalSamples;
 extern time64 DYNINSTlastCPUTime;
 extern time64 DYNINSTlastWallTime;
-
+extern int DYNINSTin_sample;
 
 struct timer_buf {
     unsigned int high;
@@ -249,6 +253,9 @@ inline time64 DYNINSTgetWallTime()
 
 void DYNINSTstartWallTimer(tTimer *timer)
 {
+    /* events that trigger timer starts during trace flushes are to be ignored */
+    if (DYNINSTin_sample) return;
+
     if (timer->counter == 0) {
 	 timer->start = getWallTime();
     }
@@ -259,6 +266,9 @@ void DYNINSTstartWallTimer(tTimer *timer)
 void DYNINSTstopWallTimer(tTimer *timer)
 {
     time64 now;
+
+    /* events that trigger timer stops during trace flushes are to be ignored */
+    if (DYNINSTin_sample) return;
 
     if (!timer->counter) return;
 
@@ -276,6 +286,8 @@ void DYNINSTstopWallTimer(tTimer *timer)
 
 void DYNINSTstartProcessTimer(tTimer *timer)
 {
+    /* events that trigger timer starts during trace flushes are to be ignored */
+    if (DYNINSTin_sample) return;
     if (timer->counter == 0) {
 	 timer->start = getProcessTime();
 	 timer->normalize = NI_CLK_USEC * MILLION;
@@ -290,6 +302,9 @@ void DYNINSTstopProcessTimer(tTimer *timer)
     time64 end;
     time64 elapsed;
     tTimer timerTemp;
+
+    /* events that trigger timer stops during trace flushes are to be ignored */
+    if (DYNINSTin_sample) return;
 
     if (!timer->counter) return;
 

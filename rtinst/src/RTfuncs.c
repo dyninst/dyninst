@@ -3,7 +3,11 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.18  1995/02/16 09:07:15  markc
+ * Revision 1.19  1995/05/18 11:08:25  markc
+ * added guard prevent timer start-stop during alarm handler
+ * added version number
+ *
+ * Revision 1.18  1995/02/16  09:07:15  markc
  * Made Boolean type RT_Boolean to prevent picking up a different boolean
  * definition.
  *
@@ -95,6 +99,8 @@ int DYNINSTtotalAlaramExpires;
 char DYNINSTdata[SYN_INST_BUF_SIZE];
 char DYNINSTglobalData[SYN_INST_BUF_SIZE];
 
+/* Prevents timers from being started-stopped during alarm handling */
+int DYNINSTin_sample = 0;
 
 /*
  * for now costCount is in cycles. 
@@ -252,14 +258,13 @@ void DYNINSTreportCost(intCounter *counter)
 void DYNINSTalarmExpire()
 {
     time64 start, end;
-    static int inSample;
     float fp_context[33];	/* space to store fp context */
 
 /*     printf ("DYNINSTalarmExpired\n"); */
     /* should use atomic test and set for this */
-    if (inSample) return;
+    if (DYNINSTin_sample) return;
 
-    inSample = 1;
+    DYNINSTin_sample = 1;
 
     /* only sample every DYNINSTsampleMultiple calls */
     DYNINSTtotalAlaramExpires++;
@@ -285,5 +290,5 @@ void DYNINSTalarmExpire()
 	restoreFPUstate(fp_context);
     }
 
-    inSample = 0;
+    DYNINSTin_sample = 0;
 }

@@ -3,7 +3,11 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.22  1995/02/16 09:07:33  markc
+ * Revision 1.23  1995/05/18 11:08:28  markc
+ * added guard prevent timer start-stop during alarm handler
+ * added version number
+ *
+ * Revision 1.22  1995/02/16  09:07:33  markc
  * Made Boolean type RT_Boolean to prevent picking up a different boolean
  * definition.
  *
@@ -117,6 +121,8 @@ extern time64 DYNINSTtotalSampleTime;
 extern time64 DYNINSTlastCPUTime;
 extern time64 DYNINSTlastWallTime;
 
+/* prevents timers from being triggered during sample reporting */
+extern int DYNINSTin_sample;
 
 FILE *DYNINSTtraceFp;
 tTimer DYNINSTelapsedTime;
@@ -200,6 +206,9 @@ void DYNINSTstartProcessTimer(tTimer *timer)
 {
     time64 temp;
 
+    /* events that trigger timer starts during trace flushes are to be ignored */
+    if (DYNINSTin_sample) return;
+
     if (timer->counter == 0) {
 	 temp = DYNINSTgetUserTime();
 	 timer->start = temp;
@@ -214,9 +223,11 @@ void DYNINSTstopProcessTimer(tTimer *timer)
     time64 now;
     struct rusage ru;
 
+    /* events that trigger timer stops during trace flushes are to be ignored */
+    if (DYNINSTin_sample) return;
+
     /* don't stop a counter that is not running */
     if (!timer->counter) return;
-
 
     /* Warning - there is a window between setting now, and mutex that
 	  can cause time to go backwards by the time to execute the
@@ -249,6 +260,9 @@ void DYNINSTstartWallTimer(tTimer *timer)
 {
     struct timeval tv;
 
+    /* events that trigger timer starts during trace flushes are to be ignored */
+    if (DYNINSTin_sample) return;
+
     if (timer->counter == 0) {
 	 gettimeofday(&tv, NULL);
 	 timer->start = tv.tv_sec;
@@ -264,6 +278,9 @@ void DYNINSTstopWallTimer(tTimer *timer)
 {
     time64 now;
     struct timeval tv;
+
+    /* events that trigger timer starts during trace flushes are to be ignored */
+    if (DYNINSTin_sample) return;
 
     /* don't stop a counter that is not running */
     if (!timer->counter) return;
