@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.7  1996/02/11 18:23:57  tamches
-/* removed addToStatusDisplay
+/* Revision 1.8  1996/02/15 23:10:01  tamches
+/* added proper support for why vs. where axis refinement
 /*
+ * Revision 1.7  1996/02/11 18:23:57  tamches
+ * removed addToStatusDisplay
+ *
  * Revision 1.6  1996/02/07 19:07:46  tamches
  * rethink_entire_layout, addNode, configNode, and addEdge now
  * take in "isCurrShg" flag
@@ -58,6 +61,9 @@ class shg {
              rootItemInactiveShadowTextGC, rootItemActiveShadowTextGC;
    static GC listboxInactiveItemGC, listboxActiveItemGC,
              listboxInactiveShadowItemGC, listboxActiveShadowItemGC;
+   static GC whyRefinementRayGC;
+   static GC whereRefinementRayGC;
+   static GC listboxRayGC;
 
    // this appears to be the WRONG class for the following vrbles:
    static int listboxBorderPix; // 3
@@ -196,6 +202,26 @@ class shg {
       unsigned styleIndex = theStyle;
       return listboxItemTk3DBordersByStyle[styleIndex];
    }
+   static GC getGCforListboxRay(shgRootNode::refinement theRefinement) {
+      if (theRefinement == shgRootNode::ref_undefined)
+         assert("undefined refinement" && false);
+      else if (theRefinement == shgRootNode::ref_why)
+         return whyRefinementRayGC;
+      else if (theRefinement == shgRootNode::ref_where)
+         return whereRefinementRayGC;
+      else
+         assert("unknown refinement" && false);
+   }
+   static GC getGCforNonListboxRay(shgRootNode::refinement theRefinement) {
+      if (theRefinement == shgRootNode::ref_undefined)
+         assert("undefined refinement" && false);
+      else if (theRefinement == shgRootNode::ref_why)
+         return whyRefinementRayGC;
+      else if (theRefinement == shgRootNode::ref_where)
+         return whereRefinementRayGC;
+      else
+         assert("unknown refinement" && false);
+   }
 
    shg(int phaseId,
        Tcl_Interp *interp, Tk_Window theTkWindow,
@@ -263,7 +289,8 @@ class shg {
       // (anything else) will un-expand the node, leading to a massive layout
       // rethinkification.  Other changes are more simple -- simply changing the color
       // of a node.
-   void addEdge(unsigned fromId, unsigned toId, shgRootNode::evaluationState,
+   void addEdge(unsigned fromId, unsigned toId,
+                shgRootNode::refinement, // why vs. where refinement.
                 const char *label, // only used for shadow nodes; else NULL
                 bool isCurrShg);
       // The evaluationState param decides whether to explicitly expand
