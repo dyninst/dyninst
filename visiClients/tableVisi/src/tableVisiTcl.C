@@ -44,6 +44,12 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
+ * Revision 1.12  1999/07/13 17:16:13  pcroth
+ * Fixed ordering problem of destroying GUI and destructing static variable
+ * pdLogo::all_logos.  On NT, the static variable is destroyed before the
+ * GUI, but a callback for the GUI ends up referencing the variable causing
+ * an access violation error.
+ *
  * Revision 1.11  1999/03/13 15:24:05  pcroth
  * Added support for building under Windows NT
  *
@@ -89,6 +95,7 @@
 /* ************************************************************* */
 
 extern tableVisi *theTableVisi; // our main data structure
+extern Tcl_Interp* mainInterp;
 extern bool xsynch_flag;
 unsigned currFormat=0; // 0 --> current; 1 --> averages; 2 --> totals
 bool profileMode = false;
@@ -113,7 +120,6 @@ void updatePhaseLabelIfFirstTime() {
    if (phaseHandle < -1)
       return; // sorry, not yet defined
 
-   extern Tcl_Interp *mainInterp;
    const char *phaseName = visi_GetMyPhaseName();
    if (phaseName == NULL) {
       // ugh; we have a current phase, but the name isn't yet known
@@ -183,7 +189,6 @@ int Dg2NewDataCallback(int) {
 }
 
 int Dg2PhaseDataCallback(int) {
-   extern Tcl_Interp *mainInterp;
    myTclEval(mainInterp, "DgPhaseDataCallback");
 
    return TCL_OK;
@@ -199,7 +204,6 @@ int Dg2AddMetricsCallback(int) {
 
    updatePhaseLabelIfFirstTime();
 
-   extern Tcl_Interp *mainInterp;
    theTableVisi->clearMetrics(mainInterp);
 
    unsigned newNumMetrics = visi_NumMetrics();
@@ -276,6 +280,28 @@ int Dg2AddMetricsCallback(int) {
 
    return TCL_OK;
 }
+
+
+//
+// Dg2ParadynExitedCallback
+//
+// Called when connection between Paradyn and visi is broken.
+// We use it to shut down the visi gracefully.
+//
+int Dg2ParadynExitedCallback(int)
+{
+    // shut the GUI down gracefully
+    //
+    // We don't use myTclEval here because we want to
+    // avoid calling exit().  There is a problem with
+    // the ordering of Tk destroying its windows and
+    // the destruction of Paradyn's static objects
+    //
+    Tcl_Eval( mainInterp, "GracefulShutdown" );
+
+    return TCL_OK;
+}
+
 
 /* ************************************************************* */
 
@@ -540,6 +566,20 @@ int formatChangedCommand(ClientData, Tcl_Interp *interp,
    return TCL_OK;
 }
 
+
+
+int tableVisiDestroyCommand( ClientData,
+                             Tcl_Interp *interp,
+			                 int argc,
+                             char* argv[])
+{
+    // release resources that must be
+    // gone before we destroy the GUI
+    theTableVisi->ReleaseResources();
+    return TCL_OK;
+}
+
+
 void installTableVisiCommands(Tcl_Interp *interp) {
    Tcl_CreateCommand(interp, "horizScrollbarNewScrollPosition",
 		     tableVisiNewHorizScrollPositionCommand,
@@ -590,4 +630,10 @@ void installTableVisiCommands(Tcl_Interp *interp) {
    Tcl_CreateCommand(interp, "formatChanged",
 		     formatChangedCommand,
 		     NULL, dummyDeleteProc);
+
+   Tcl_CreateCommand(interp,
+                     "tableVisiDestroyHook",
+		             tableVisiDestroyCommand,
+		             NULL,
+                     dummyDeleteProc);
 }

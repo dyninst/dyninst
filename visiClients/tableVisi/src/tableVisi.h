@@ -44,6 +44,12 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.8  1999/07/13 17:16:11  pcroth
+ * Fixed ordering problem of destroying GUI and destructing static variable
+ * pdLogo::all_logos.  On NT, the static variable is destroyed before the
+ * GUI, but a callback for the GUI ends up referencing the variable causing
+ * an access violation error.
+ *
  * Revision 1.7  1999/03/13 15:24:05  pcroth
  * Added support for building under Windows NT
  *
@@ -300,6 +306,8 @@ class tableVisi {
    }
 
    void deleteSelection();
+
+   void ReleaseResources( void );
 };
 
 #endif

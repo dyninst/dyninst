@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.13 1999/03/13 15:24:04 pcroth Exp $
+// $Id: main.C,v 1.14 1999/07/13 17:16:10 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -91,10 +91,10 @@ int main(int argc, char **argv) {
 
    if (argc==2 && 0==strcmp(argv[1], "--debug")) {
       xsynch_flag = true;
+#if !defined(i386_unknown_nt4_0)
       cout << "tableVisi at sigpause...pid=" << getpid() << endl;
-#if READY
       sigpause(0);
-#endif // READY
+#endif // !defined(i386_unknown_nt4_0)
       argc = 1;
    }
 
@@ -108,12 +108,12 @@ int main(int argc, char **argv) {
    mainInterp = Tcl_CreateInterp();
    assert(mainInterp);
 
-#if READY
+#if !defined(i386_unknown_nt4_0)
    if (xsynch_flag) {
       cout << "xsynching..." << endl;
       XSynchronize(Tk_Display(Tk_MainWindow(mainInterp)), 1);
    }
-#endif // READY
+#endif // !defined(i386_unknown_nt4_0)
 
    if (TCL_OK != Tcl_Init(mainInterp))
       tclpanic(mainInterp, "Could not Tcl_Init");
@@ -138,6 +138,9 @@ int main(int argc, char **argv) {
 
    if (visi_RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
       panic("Dg2_Init() -- couldn't install DATAVALUES callback");
+
+   if (visi_RegistrationCallback(PARADYNEXITED, Dg2ParadynExitedCallback) != 0)
+       panic("Dg2_Init() -- couldn't install PARADYNEXITED callback");
 
 //   if (visi_RegistrationCallback(PHASEDATA, Dg2PhaseDataCallback) != 0)
 //      panic("Dg2_Init() -- couldn't install PHASEINFO callback");
@@ -185,6 +188,7 @@ int main(int argc, char **argv) {
    Tk_MainLoop(); // returns when all tk windows are closed
 
    delete theTableVisi;
+   theTableVisi = NULL;
 
    return 0;
 }

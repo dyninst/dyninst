@@ -42,7 +42,7 @@
 // dg2.C
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
-/* $Id: dg2.C,v 1.22 1999/04/27 16:05:07 nash Exp $ */
+/* $Id: dg2.C,v 1.23 1999/07/13 17:15:59 pcroth Exp $ */
 
 // An updated version of DGClient.C for barchart2.C
 // Contains several **deletions** to remove blt_barchart influences
@@ -65,32 +65,6 @@
 #include "barChartUtil.h"
 
 void my_visi_callback(void*, int*, long unsigned int*) {
-
-#if defined(i386_unknown_nt4_0)
-#if READY
-	why are we being notified of input on stdin?
-// #else
-	PDSOCKET s = (PDSOCKET)_get_osfhandle(0);
-	FD_SET readset;
-
-	FD_ZERO( &readset );
-	FD_SET( s, &readset );
-
-	// blocking till input arrives - 
-	// if we are here, we should have input
-	// (but experiments show we don't)
-	struct timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = 0;
-	int ret = select( 0, &readset, NULL, NULL, &tv );
-	if( ret != 1 )
-	{
-		// we were notified incorrectly - return
-		return;
-	}
-
-#endif // READY
-#endif // defined(i386_unknown_nt4_0)
 
    if (visi_callback() == -1)
       exit(0);
@@ -318,6 +292,9 @@ int Dg2_Init(Tcl_Interp *interp) {
 
    if (visi_RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
       panic("Dg2_Init() -- couldn't install DATAVALUES callback");
+
+   if (visi_RegistrationCallback(PARADYNEXITED, Dg2ParadynExitedCallback) != 0)
+       panic("Dg2_Init() -- couldn't install PARADYNEXITED callback");
 
    // install "Dg" as a new tcl command; Dg_TclCommand() will be invoked when
    // a tcl script calls Dg

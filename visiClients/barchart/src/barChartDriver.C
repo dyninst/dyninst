@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: barChartDriver.C,v 1.18 1999/03/13 15:23:51 pcroth Exp $
+// $Id: barChartDriver.C,v 1.19 1999/07/13 17:15:58 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -86,10 +86,10 @@ int main(int argc, char **argv) {
          xsynchFlag = true;
       else if (0==strcmp(*argv, "--debug")) {
          xsynchFlag = true;
+#if !defined(i386_unknown_nt4_0)
 	 cout << "barChart pid " << getpid() << " at sigpause..." << endl;
-#if READY
 	 sigpause(0);
-#endif // READY
+#endif // !defined(i386_unknown_nt4_0)
       }
       else {
          cerr << "barChart: unrecognized argument \"" << *argv << "\"" << endl;

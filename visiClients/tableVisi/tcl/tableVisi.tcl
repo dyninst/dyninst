@@ -1,5 +1,5 @@
 #
-# $Id: tableVisi.tcl,v 1.7 1999/07/05 22:03:40 wylie Exp $
+# $Id: tableVisi.tcl,v 1.8 1999/07/13 17:16:17 pcroth Exp $
 #
 
 proc initializeTableVisi {} {
@@ -37,7 +37,7 @@ proc initializeTableVisi {} {
    
    menubutton .top.left.menubar.file -text "File" -menu .top.left.menubar.file.m
    menu .top.left.menubar.file.m -selectcolor cornflowerblue
-   .top.left.menubar.file.m add command -label "Close Table" -command {destroy .}
+   .top.left.menubar.file.m add command -label "Close Table" -command {GracefulShutdown}
    
    menubutton .top.left.menubar.acts -text "Actions" -menu .top.left.menubar.acts.m
    menu .top.left.menubar.acts.m  -selectcolor cornflowerblue
@@ -137,6 +137,8 @@ proc initializeTableVisi {} {
 
    wm minsize . 300 200
    wm title . "Table Visualization"
+
+   bind .top <Destroy> +{tableVisiDestroyHook}
 }
    
 #  AddEntry -- Ask paradyn to start a new curve
@@ -147,6 +149,15 @@ proc AddEntry {} {
 #  DelEntry -- Ask paradyn to stop a curve
 proc DelEntry {} {
   puts stderr "Delete Entry not yet implemented"
+}
+
+
+#
+# GracefulShutdown
+# Effects a graceful shutdown of the visi
+#
+proc GracefulShutdown {} {
+    destroy .
 }
 
 #  Called by visi library when histos have folded
@@ -178,3 +189,4 @@ proc DgPhaseDataCallback {} {
    puts stderr "welcome to DgPhaseEndCallback (tcl code)"
    return
 }
+

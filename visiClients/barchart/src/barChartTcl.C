@@ -41,7 +41,7 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.17 1999/04/27 16:05:07 nash Exp $ */
+/* $Id: barChartTcl.C,v 1.18 1999/07/13 17:15:58 pcroth Exp $ */
 
 #include <iostream.h>
 
@@ -126,6 +126,20 @@ int Dg2NewDataCallback(int lastBucket) {
    }
    else
       return TCL_ERROR;
+}
+
+
+// Dg2ParadynExitedCallback
+// Function called when Paradyn has exited, or
+// when we've failed to read off our Paradyn connection
+int Dg2ParadynExitedCallback(int)
+{
+    // gracefully destroy the window
+    // note that we don't use myTclEval here
+    // because we want to avoid calling exit()
+    // before destroying the Tk windows
+    Tcl_Eval( MainInterp, "GracefulClose" );
+    return TCL_OK;
 }
 
 int resizeCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv) {

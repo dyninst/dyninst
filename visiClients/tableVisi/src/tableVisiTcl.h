@@ -44,6 +44,12 @@
 
 /*
  * $Log: tableVisiTcl.h,v $
+ * Revision 1.5  1999/07/13 17:16:13  pcroth
+ * Fixed ordering problem of destroying GUI and destructing static variable
+ * pdLogo::all_logos.  On NT, the static variable is destroyed before the
+ * GUI, but a callback for the GUI ends up referencing the variable causing
+ * an access violation error.
+ *
  * Revision 1.4  1996/08/16 21:37:02  tamches
  * updated copyright for release 1.1
  *
@@ -69,6 +75,7 @@ int Dg2AddMetricsCallback(int);
 //int Dg2InvalidMetricsOrResources(int);
 //int Dg2PhaseNameCallback(int);
 int Dg2PhaseDataCallback(int);
+int Dg2ParadynExitedCallback(int);
 
 void installTableVisiCommands(Tcl_Interp *);
 void unInstallTableVisiCommands(Tcl_Interp *);

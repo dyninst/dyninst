@@ -2,6 +2,12 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.33  1999/07/13 17:16:04  pcroth
+#  Fixed ordering problem of destroying GUI and destructing static variable
+#  pdLogo::all_logos.  On NT, the static variable is destroyed before the
+#  GUI, but a callback for the GUI ends up referencing the variable causing
+#  an access violation error.
+#
 #  Revision 1.32  1996/05/15 18:02:44  tamches
 #  modified processNewMetricMax to use the new callback scheme
 #
@@ -955,6 +961,9 @@ proc myYScroll {first last} {
    $W.farLeft.resourcesAxisScrollbar set $first $last
 
    set totalCanvasHeight [lindex [$WresourcesCanvas cget -scrollregion] 3]
+   if {$totalCanvasHeight == {} } {
+      set totalCanvasHeight 0
+   }
 
    set firstPix [expr round($totalCanvasHeight * $first)]
 

@@ -44,6 +44,12 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.11  1999/07/13 17:16:11  pcroth
+ * Fixed ordering problem of destroying GUI and destructing static variable
+ * pdLogo::all_logos.  On NT, the static variable is destroyed before the
+ * GUI, but a callback for the GUI ends up referencing the variable causing
+ * an access violation error.
+ *
  * Revision 1.10  1999/03/13 15:24:04  pcroth
  * Added support for building under Windows NT
  *
@@ -248,22 +254,10 @@ tableVisi::tableVisi(Tcl_Interp *interp,
    cellGC = NULL;
 }
 
+
 tableVisi::~tableVisi() {
    // arrays metrics[], foci[], indirectMetrics[], indirectFoci[], cells[][] will
    // delete themselves.
-
-   Tk_FreeColor(cellColor);
-   Tk_FreeColor(focusNameColor);
-   Tk_FreeColor(metricUnitsColor);
-   Tk_FreeColor(metricNameColor);
-   Tk_FreeColor(lineColor);
-   Tk_FreeColor(backgroundColor);
-   Tk_FreeColor(highlightedBackgroundColor);
-
-   Tk_FreeFont(cellFont);
-   Tk_FreeFont(focusNameFont);
-   Tk_FreeFont(metricUnitsFont);
-   Tk_FreeFont(metricNameFont);
 
    if (!offscreenPixmap)
       // the offscreen pixmap was never allocated(!)...so, we never
@@ -480,12 +474,12 @@ void tableVisi::drawMetricNames(Drawable theDrawable) const {
    clipRect.width = Tk_Width(theTkWindow) - clipRect.x + 1;
    clipRect.height = Tk_Height(theTkWindow);
 
-#if READY
+#if !defined(i386_unknown_nt4_0)
    XSetClipRectangles(Tk_Display(theTkWindow), metricNameGC,
 		      0, 0, &clipRect, 1, YXBanded);
    XSetClipRectangles(Tk_Display(theTkWindow), metricUnitsGC,
 		      0, 0, &clipRect, 1, YXBanded);
-#endif // READY
+#endif // !defined(i386_unknown_nt4_0)
 
    for (unsigned metriclcv=0; metriclcv < indirectMetrics.size(); metriclcv++) {
       if (curr_x > maxVisibleX)
@@ -608,10 +602,10 @@ void tableVisi::drawFocusNames(Drawable theDrawable) const {
    clipRect.width = Tk_Width(theTkWindow);
    clipRect.height = Tk_Height(theTkWindow) - clipRect.y + 1;
 
-#if READY
+#if !defined(i386_unknown_nt4_0)
    XSetClipRectangles(Tk_Display(theTkWindow), focusNameGC,
 		      0, 0, &clipRect, 1, YXBanded);
-#endif // READY
+#endif // !defined(i386_unknown_nt4_0)
 
    for (unsigned focuslcv = 0; focuslcv < indirectFoci.size(); focuslcv++) {
       if (curr_y > maxVisibleY)
@@ -715,10 +709,10 @@ void tableVisi::drawCells(Drawable theDrawable) const {
    clipRect.width = Tk_Width(theTkWindow) - clipRect.x + 1;
    clipRect.height = Tk_Height(theTkWindow) - clipRect.y + 1;
 
-#if READY
+#if !defined(i386_unknown_nt4_0)
    XSetClipRectangles(Tk_Display(theTkWindow), cellGC,
 		      0, 0, &clipRect, 1, YXBanded);
-#endif // READY
+#endif // !defined(i386_unknown_nt4_0)
 
    for (unsigned metriclcv = 0; metriclcv < indirectMetrics.size(); metriclcv++) {
       if (curr_x > maxVisibleX)
@@ -789,6 +783,28 @@ void tableVisi::drawCells1Col(Drawable theDrawable, int middle_x, int top_y,
 unsigned tableVisi::getVertPixCellTop2Baseline() const {
    return 2 + cellFontMetrics.ascent;
 }
+
+
+void
+tableVisi::ReleaseResources( void )
+{
+    // release Tk resources that should be
+    // gone by the time we destroy the GUI
+    Tk_FreeColor(cellColor);
+    Tk_FreeColor(focusNameColor);
+    Tk_FreeColor(metricUnitsColor);
+    Tk_FreeColor(metricNameColor);
+    Tk_FreeColor(lineColor);
+    Tk_FreeColor(backgroundColor);
+    Tk_FreeColor(highlightedBackgroundColor);
+
+    Tk_FreeFont(cellFont);
+    Tk_FreeFont(focusNameFont);
+    Tk_FreeFont(metricUnitsFont);
+    Tk_FreeFont(metricNameFont);
+}
+
+
 
 /* *************************************************************** */
 

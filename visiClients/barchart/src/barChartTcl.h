@@ -65,5 +65,6 @@ int Dg2PhaseNameCallback(int);
 int Dg2InvalidMetricsOrResources(int);
 int Dg2Fold(int);
 int Dg2AddMetricsCallback(int);
+int Dg2ParadynExitedCallback(int);
 
 #endif

@@ -1,5 +1,5 @@
 #
-# $Id: phasetbl.tcl,v 1.5 1999/07/05 22:03:12 wylie Exp $
+# $Id: phasetbl.tcl,v 1.6 1999/07/13 17:16:08 pcroth Exp $
 #
 
 if {[string match [winfo depth .] color] == 1} {
@@ -213,6 +213,15 @@ proc DgValidCallback {m} {
 proc DgDataCallback {bucket} {
 
 }
+
+#
+# DgParadynExitedCallback -- visi calls this command when its
+# connection to Paradyn is broken
+#
+proc DgParadynExitedCallback {} {
+    Shutdown
+}
+
 set xOffset 10 
 set yOffset 5
 set widthChange 20
