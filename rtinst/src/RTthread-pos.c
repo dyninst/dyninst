@@ -44,100 +44,128 @@
 
 /***********************************************************
  *
- * RTthread-pos: POS calculation for MT paradyn
+ * RTthread-index: INDEX calculation for MT paradyn
  *
  ***********************************************************/
 
 /* Short version: when we get a pthread id, it is rarely in
    a form that is easy to use as an array offset. IDs are rarely
    consecutive numbers. So we convert this thread ID to a paradyn
-   ID, called a POS. 
+   ID, called an INDEX. 
 */
 
-unsigned  DYNINST_next_free_pos;
-unsigned  DYNINST_num_pos_free;
-DECLARE_TC_LOCK(DYNINST_pos_lock);
+unsigned  DYNINST_next_free_index;
+unsigned  DYNINST_num_index_free;
+DECLARE_TC_LOCK(DYNINST_index_lock);
 
-void DYNINST_initialize_pos_list()
+void DYNINST_initialize_index_list()
 {
   unsigned i;
-  static int init_pos_done = 0;
-  if (init_pos_done) return;
-  tc_lock_init(&DYNINST_pos_lock);
+  static int init_index_done = 0;
+  if (init_index_done) return;
+  tc_lock_init(&DYNINST_index_lock);
   for (i = 0; i < MAX_NUMBER_OF_THREADS; i++)
-    RTsharedData.posToThread[i] = 0;
+    RTsharedData.indexToThread[i] = 0;
   /* 0 means a free slot. */
-  DYNINST_next_free_pos = 0;
-  DYNINST_num_pos_free = MAX_NUMBER_OF_THREADS;
-  init_pos_done = 1;
+  DYNINST_next_free_index = 0;
+  DYNINST_num_index_free = MAX_NUMBER_OF_THREADS;
+  init_index_done = 1;
+
+  /* That gets the INDEX->THREAD mapping done, now the other way around */
+  DYNINST_indexHash = (unsigned *)calloc(MAX_NUMBER_OF_THREADS, sizeof(unsigned));
+  for (i = 0; i < MAX_NUMBER_OF_THREADS; i++)
+      DYNINST_indexHash[i] = -1;
 }
 
 /* 
-   Get the next free POS slot, using a linear scan of 
+   Get the next free INDEX slot, using a linear scan of 
    the array. Question: would a linked list be faster?
 */
-unsigned DYNINST_alloc_pos(int tid)
+unsigned DYNINST_alloc_index(int tid)
 {
-  unsigned next_free_pos;
-  unsigned saw_deleted_pos = 0;
-  unsigned looped_once = 0;
-  if (!DYNINST_num_pos_free) return -1;
-  if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_pos_lock)) {
-    return MAX_NUMBER_OF_THREADS;
-  }
-  /* We've got the lock, stay here as short a time as possible */
-  next_free_pos = DYNINST_next_free_pos;
+    unsigned hashed_tid;
+    unsigned next_free_index;
+    unsigned saw_deleted_index = 0;
+    unsigned looped_once = 0;
 
-  while (RTsharedData.posToThread[next_free_pos] != 0) {
-    if (RTsharedData.posToThread[next_free_pos] == THREAD_AWAITING_DELETION)
-      saw_deleted_pos = 1;
-    next_free_pos++;
-    if (next_free_pos >= MAX_NUMBER_OF_THREADS)
-      if (looped_once && !saw_deleted_pos) {
-	/* Weird... we've gone through the entire array with no luck,
-	   and there are no threads being freed */
-	tc_lock_unlock(&DYNINST_pos_lock);
-	return MAX_NUMBER_OF_THREADS;
-      }
-      else {
-	/* There is at least one thread that's going to be freed,
-	   so loop until it is*/
-	next_free_pos -= MAX_NUMBER_OF_THREADS;
-	looped_once = 1;
-      }
-  }
-  /* next_free_pos is free */
-
-  RTsharedData.posToThread[next_free_pos] = tid;
-  DYNINST_num_pos_free--;
-  DYNINST_next_free_pos = next_free_pos+1;
-  tc_lock_unlock(&DYNINST_pos_lock);
-  return next_free_pos;
+    if (!DYNINST_num_index_free) return -1;
+    if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_index_lock)) {
+        return MAX_NUMBER_OF_THREADS;
+    }
+    /* We've got the lock, stay here as short a time as indexsible */
+    next_free_index = DYNINST_next_free_index;
+    
+    while (RTsharedData.indexToThread[next_free_index] != 0) {
+        if (RTsharedData.indexToThread[next_free_index] == THREAD_AWAITING_DELETION)
+            saw_deleted_index = 1;
+        next_free_index++;
+        if (next_free_index >= MAX_NUMBER_OF_THREADS)
+            if (looped_once && !saw_deleted_index) {
+                /* Weird... we've gone through the entire array with no luck,
+                   and there are no threads being freed */
+                tc_lock_unlock(&DYNINST_index_lock);
+                return MAX_NUMBER_OF_THREADS;
+            }
+            else {
+                /* There is at least one thread that's going to be freed,
+                   so loop until it is*/
+                next_free_index -= MAX_NUMBER_OF_THREADS;
+                looped_once = 1;
+            }
+    }
+    /* next_free_index is free */
+    
+    RTsharedData.indexToThread[next_free_index] = tid;
+    DYNINST_num_index_free--;
+    DYNINST_next_free_index = next_free_index+1;
+    
+    /* Now that we have the index, store it for this thread */
+    /* TODO: better hash function than mod */
+    hashed_tid = tid % MAX_NUMBER_OF_THREADS;
+    while(DYNINST_indexHash[hashed_tid] != -1) {
+        hashed_tid++;
+        if (hashed_tid <= MAX_NUMBER_OF_THREADS)
+            hashed_tid -= MAX_NUMBER_OF_THREADS;
+    }
+    DYNINST_indexHash[hashed_tid] = next_free_index;
+    
+    tc_lock_unlock(&DYNINST_index_lock);
+    return next_free_index;
 }
     
-void DYNINST_free_pos(unsigned pos, int tid)
+void DYNINST_free_index(unsigned index, int tid)
 {
-  if (RTsharedData.posToThread[pos] != tid) {
-    return;
-  }
-  if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_pos_lock)) {
-    return;
-  }
-  /* Don't free immediately -- the daemon needs to clear out the
-     variable arrays first */
-  RTsharedData.posToThread[pos] = THREAD_AWAITING_DELETION;
-  DYNINST_num_pos_free++;
-  tc_lock_unlock(&DYNINST_pos_lock);
+    unsigned hashed_tid;
+    if (RTsharedData.indexToThread[index] != tid) {
+        return;
+    }
+    if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_index_lock)) {
+        return;
+    }
+    /* Don't free immediately -- the daemon needs to clear out the
+       variable arrays first */
+    RTsharedData.indexToThread[index] = THREAD_AWAITING_DELETION;
+    DYNINST_num_index_free++;
+    
+    hashed_tid = tid % MAX_NUMBER_OF_THREADS;
+    while (DYNINST_indexHash[hashed_tid] != index) {
+        hashed_tid++;
+        if (hashed_tid >= MAX_NUMBER_OF_THREADS)
+            hashed_tid -= MAX_NUMBER_OF_THREADS;
+    }
+    DYNINST_indexHash[hashed_tid] = -1;
+    
+    tc_lock_unlock(&DYNINST_index_lock);
 }
 
 /* Why would someone want to do this? */
 
-unsigned DYNINST_lookup_pos(int tid)
+unsigned DYNINST_lookup_index(int tid)
 {
   /* Readonly... no need to lock */
   unsigned i;
   for (i = 0; i < MAX_NUMBER_OF_THREADS; i++)
-    if (RTsharedData.posToThread[i] == tid)
+    if (RTsharedData.indexToThread[i] == tid)
       return i;
   return MAX_NUMBER_OF_THREADS;
 }
@@ -145,22 +173,30 @@ unsigned DYNINST_lookup_pos(int tid)
 
 /***************************************************************/
 
-/*
-  Why -1? Because POS starts at 0, but NULL is a valid
-  return value (means not found). So we shift the range
-  to 1-MAX_NUMBER_OF_THREADS
-*/
-unsigned DYNINSTthreadPosSLOW(tid)
-{
-  unsigned pos;
-  pos = (unsigned)P_thread_getspecific(DYNINST_thread_key);
-  
+/* A guaranteed-if-there index lookup */
 
-  if (pos < 0 || pos >= MAX_NUMBER_OF_THREADS) {
-    return MAX_NUMBER_OF_THREADS;
+unsigned DYNINSTthreadIndexSLOW(tid)
+{
+  unsigned index = -1;
+  unsigned hashed_tid;
+  unsigned orig_tid;
+  hashed_tid = tid % MAX_NUMBER_OF_THREADS;
+  orig_tid = hashed_tid;
+  
+  while(1) {
+      index = DYNINST_indexHash[hashed_tid];
+      if ((index >= 0) &&
+          (RTsharedData.indexToThread[index] == tid))
+          /* Found it */
+          break;
+      hashed_tid++;
+      if (hashed_tid >= MAX_NUMBER_OF_THREADS)
+          hashed_tid -= MAX_NUMBER_OF_THREADS;
+      if (hashed_tid == orig_tid) {
+          /* Breakout condition */
+          return MAX_NUMBER_OF_THREADS;
+      }
+      
   }
-  if (RTsharedData.posToThread[pos] != tid) {
-    return MAX_NUMBER_OF_THREADS;
-  }
-  return pos;
+  return index;
 }

@@ -2,10 +2,10 @@
 #include "../../dyninstAPI/src/inst-power.h"
 	.machine "push"
 	.machine "ppc"
-	.globl	DYNINSTthreadPosFAST
-	.globl	.DYNINSTthreadPosFAST
-DYNINSTthreadPosFAST:
-.DYNINSTthreadPosFAST:
+	.globl	DYNINSTthreadIndexFAST
+	.globl	.DYNINSTthreadIndexFAST
+DYNINSTthreadIndexFAST:
+.DYNINSTthreadIndexFAST:
 	l	3,0(1)
 	l	3,112(3)
 	l	0, 0(0)	

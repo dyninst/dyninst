@@ -65,15 +65,9 @@
 #include <stdlib.h>
 
 unsigned          DYNINST_initialize_done=0;
-DECLARE_TC_LOCK(DYNINST_removeLock) ;
 DECLARE_TC_LOCK(DYNINST_traceLock) ;
-DECLARE_TC_LOCK(DYNINST_posLock) ;
 DECLARE_TC_LOCK(DYNINST_initLock) ;
-/*============================
-       Per-Thread Data
- ============================= */
-/* Used for storing appropriate thread-specific data */
-dyninst_key_t  DYNINST_thread_key ;
+unsigned *DYNINST_indexHash ;
 
 /**************************** INITIALIZATION ********************************/
 
@@ -93,9 +87,8 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
     return;
   if (!DYNINST_initialize_done) {
     unsigned i;
-    DYNINST_initialize_pos_list();
+    DYNINST_initialize_index_list();
     DYNINST_initialize_done=1;
-    P_thread_key_create(&DYNINST_thread_key, NULL /* no destructor */) ;
     for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
       RTsharedData.virtualTimers[i].total = 0;
       RTsharedData.virtualTimers[i].start = 0;
@@ -106,8 +99,6 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
       RTsharedData.virtualTimers[i].protector2 = 0;
       RTsharedData.virtualTimers[i].rt_previous = 0;
     }    
-    
-
   }
   tc_lock_unlock(&DYNINST_initLock);
 }

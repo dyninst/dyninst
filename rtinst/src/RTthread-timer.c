@@ -136,12 +136,12 @@ void _VirtualTimerFinalize(virtualTimer *vt) {
    use the works: check p1 == p2, check rollbacks, the lot. */
 /* Hrm... since only one thread gets to access a timer, why are we bothering?
    We have serialized access to these suckers */
-rawTime64 getThreadCPUTime(unsigned pos, int *valid) {
+rawTime64 getThreadCPUTime(unsigned index, int *valid) {
   volatile int protector1, protector2;
   volatile rawTime64 total, start ;
   rawTime64 now = -1;
   volatile int    count, vt_lwp_id;
-  virtualTimer *vt = &(RTsharedData.virtualTimers[pos]);
+  virtualTimer *vt = &(RTsharedData.virtualTimers[index]);
 
   protector2 = vt->protector2 ;
   count = vt->counter;
@@ -177,7 +177,7 @@ rawTime64 getThreadCPUTime(unsigned pos, int *valid) {
   }
 }
 
-#define PRINTOUT_TIMER(t)   fprintf(stderr, "Timer (%x): total %lld, start %lld, counter %d, pos %u, p1 %d, p2 %d\n", (unsigned) t, t->total, t->start, t->counter, t->pos, t->protector1, t->protector2);
+#define PRINTOUT_TIMER(t)   fprintf(stderr, "Timer (%x): total %lld, start %lld, counter %d, index %u, p1 %d, p2 %d\n", (unsigned) t, t->total, t->start, t->counter, t->index, t->protector1, t->protector2);
 
 
 /*
@@ -190,9 +190,9 @@ void DYNINSTstartThreadTimer(tTimer* timer)
    int i;
 
 
-   unsigned pos = DYNINSTthreadPosFAST();
+   unsigned index = DYNINSTthreadIndexFAST();
    
-   if (RTsharedData.posToThread[pos] != P_thread_self()) {
+   if (RTsharedData.indexToThread[index] != P_thread_self()) {
        return;
    }
    
@@ -203,15 +203,15 @@ void DYNINSTstartThreadTimer(tTimer* timer)
    timer->protector1++;
    MEMORY_BARRIER;
    if (timer->counter == 0) {
-      if (!(timer->pos)) { /* No POS associated with this timer yet */
-         /* POS could be set in daemon, which would make this much easier */
-         timer->pos = pos;
-         /* fprintf(stderr, "Setting timer POS to %d, tid %d\n", timer->pos, 
+      if (!(timer->index)) { /* No INDEX associated with this timer yet */
+         /* INDEX could be set in daemon, which would make this much easier */
+         timer->index = index;
+         /* fprintf(stderr, "Setting timer INDEX to %d, tid %d\n", timer->index, 
                     P_thread_self()); */
       }
       /* We sample the virtual timer, so we may need to retry */
       while (!valid) {
-         start = getThreadCPUTime(timer->pos, &valid);
+         start = getThreadCPUTime(timer->index, &valid);
       }
       timer->start = start;
    }
@@ -226,9 +226,9 @@ void DYNINSTstopThreadTimer(tTimer* timer)
 {
     int i;
 
-    unsigned pos = DYNINSTthreadPosFAST();
+    unsigned index = DYNINSTthreadIndexFAST();
     
-    if (RTsharedData.posToThread[pos] != P_thread_self()) {
+    if (RTsharedData.indexToThread[index] != P_thread_self()) {
         return;
     }
     
@@ -243,7 +243,7 @@ void DYNINSTstopThreadTimer(tTimer* timer)
       rawTime64 now;
 
       while (!valid) {
-         now = getThreadCPUTime(timer->pos, &valid);
+         now = getThreadCPUTime(timer->index, &valid);
       }
       if (now < timer->start) {
          assert(0 && "Rollback in DYNINSTstopThreadTimer");

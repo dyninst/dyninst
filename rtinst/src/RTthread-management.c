@@ -51,54 +51,52 @@
  */
 int DYNINST_reportThreadUpdate(int flag) {
   traceThread traceRec ;
-  int pos,  tid;
+  int index,  tid;
   void* stackbase ;
   long  startpc ;
   int   lwpid ;
   void*  resumestate_p ;
   if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
-    tid = pthread_self();
-    pos=DYNINST_lookup_pos(tid) ;
-    if (pos == MAX_NUMBER_OF_THREADS)
-      pos = DYNINST_alloc_pos(tid);
-    if (pos < 0) {
-      assert(0 && "Serious error in DYNINST_ThreadUpdate");
-    }
-    traceRec.ppid   = getpid();
-    traceRec.tid    = tid;
-    traceRec.pos    = pos;
-    traceRec.ntids  = 1;
-    traceRec.stride = 0;
-    traceRec.stack_addr = (unsigned) stackbase;
-    traceRec.start_pc = (unsigned) startpc ;
-    traceRec.resumestate_p = resumestate_p ;
-    traceRec.context = flag ;
-    fprintf(stderr, "Reporting MAIN thread, tid %d pos %d stack 0x%x pc 0x%x\n",
-	    traceRec.tid, traceRec.pos, traceRec.stack_addr, traceRec.start_pc);
-    DYNINSTgenerateTraceRecord(0,
-			       TR_THR_SELF,
-			       sizeof(traceRec),
-			       &traceRec,
-			       1,
-			       DYNINSTgetWalltime(),
-			       DYNINSTgetCPUtime());
+      tid = pthread_self();
+      index = DYNINSTthreadIndexSLOW(tid) ;
+      if (index == MAX_NUMBER_OF_THREADS)
+          index = DYNINST_alloc_index(tid);
+      if (index < 0) {
+          assert(0 && "Serious error in DYNINST_ThreadUpdate");
+      }
+      traceRec.ppid   = getpid();
+      traceRec.tid    = tid;
+      traceRec.index    = index;
+      traceRec.ntids  = 1;
+      traceRec.stride = 0;
+      traceRec.stack_addr = (unsigned) stackbase;
+      traceRec.start_pc = (unsigned) startpc ;
+      traceRec.resumestate_p = resumestate_p ;
+      traceRec.context = flag ;
+      DYNINSTgenerateTraceRecord(0,
+                                 TR_THR_SELF,
+                                 sizeof(traceRec),
+                                 &traceRec,
+                                 1,
+                                 DYNINSTgetWalltime(),
+                                 DYNINSTgetCPUtime());
   } 
-
+  
   /* Called by parent thread... start its virtual timer */
-  _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), THREAD_CREATE) ;
-  return pos ;
+  _VirtualTimerStart(&(RTsharedData.virtualTimers[index]), THREAD_CREATE) ;
+  return index ;
 }
 
 /*
  * Report info for a new thread 
  */
-void DYNINST_reportNewThread(unsigned pos, int tid) 
+void DYNINST_reportNewThread(unsigned index, int tid) 
 {
   void* stackbase ;
   long  startpc ;
   int   lwpid ; /* Ignored */
   void*  resumestate_p ;
-  extern int pipeOK(void); /* RTposix.c */
+  extern int pipeOK(void); /* RTindexix.c */
 
   if (pipeOK())
       if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
@@ -110,7 +108,7 @@ void DYNINST_reportNewThread(unsigned pos, int tid)
           traceRec.stack_addr = (unsigned) stackbase;
           traceRec.start_pc = (unsigned) startpc ;
           traceRec.resumestate_p = resumestate_p ;
-          traceRec.pos=pos ;
+          traceRec.index=index ;
           traceRec.context = FLAG_SELF ;
           
           DYNINSTgenerateTraceRecord(0,
@@ -122,10 +120,10 @@ void DYNINST_reportNewThread(unsigned pos, int tid)
       }
 }
 
-void DYNINST_reportThreadDeletion(unsigned pos, int tid) {
+void DYNINST_reportThreadDeletion(unsigned index, int tid) {
   traceThread traceRec;
   rawTime64 process_time, wall_time ;
-  traceRec.pos = pos;
+  traceRec.index = index;
   process_time = DYNINSTgetCPUtime();
   wall_time = DYNINSTgetWalltime();
   traceRec.ppid   = getpid();
@@ -138,28 +136,29 @@ void DYNINST_reportThreadDeletion(unsigned pos, int tid) {
 }  
 
 void DYNINSTthreadDelete(void) {
-  unsigned pos = DYNINSTthreadPosFAST();
+  unsigned index = DYNINSTthreadIndexFAST();
   int tid = P_thread_self();
+  
   if(tid == 0)  /* sometimes get invalid tid when forking */
      return;
 
-  /* Order: set the POS to "awaiting deletion",
+  /* Order: set the INDEX to "awaiting deletion",
      report deletion, then stop the virtual timer. The VT will be
      deleted when it needs to be reused as part of allocating
      a new thread.
   */
-  DYNINST_free_pos(pos, tid);
+  DYNINST_free_index(index, tid);
 
-  DYNINST_reportThreadDeletion(pos, tid);
+  DYNINST_reportThreadDeletion(index, tid);
 
-  _VirtualTimerStop(&(RTsharedData.virtualTimers[pos]));
+  _VirtualTimerStop(&(RTsharedData.virtualTimers[index]));
 
 }
 
 int DYNINSTregister_running_thread(void) {
    char line[120];
    int tid;
-   int pos;
+   int index;
    virtualTimer *vt;
 
    tid = P_thread_self();
@@ -170,29 +169,29 @@ int DYNINSTregister_running_thread(void) {
       //write(2, line, strlen(line));
       return 0;
    }
-   pos = DYNINST_lookup_pos(tid);
-   if(pos == MAX_NUMBER_OF_THREADS) {
-      sprintf(line, "  couldn't find corresponding pos, tid: %d, lwp %d\n",
+   index = DYNINST_lookup_index(tid);
+   if(index == MAX_NUMBER_OF_THREADS) {
+      sprintf(line, "  couldn't find corresponding index, tid: %d, lwp %d\n",
               tid, P_lwp_self());
       write(2, line, strlen(line));
    }
-   vt = &(RTsharedData.virtualTimers[pos]);
-   //sprintf(line, "  register, tid: %d, pos: %d, lwp: %d, addr: %p\n",
-   //        tid, pos, P_lwp_self(), vt);
+   vt = &(RTsharedData.virtualTimers[index]);
+   //sprintf(line, "  register, tid: %d, index: %d, lwp: %d, addr: %p\n",
+   //        tid, index, P_lwp_self(), vt);
    //write(2, line, strlen(line));
 
    _VirtualTimerDestroy(vt);
    _VirtualTimerStart(vt, 0);
-   DYNINST_reportNewThread(pos, tid);
+   DYNINST_reportNewThread(index, tid);
 
    return 1;
 }
 
-/* Returns new POS */
+/* Returns new INDEX */
 
 unsigned DYNINSTthreadCreate(int tid)
 {
-  unsigned pos;
+  unsigned index;
   unsigned lwpid;
   /* This can get run before we have actually initialized the
      library... from the base tramp */
@@ -201,21 +200,19 @@ unsigned DYNINSTthreadCreate(int tid)
     return 0;
 
   /* Check to see if we already know this thread */
-  pos = DYNINST_lookup_pos(tid);
-  if (pos < MAX_NUMBER_OF_THREADS)
-    return pos;
-  pos = DYNINST_alloc_pos(tid);
+  index = DYNINST_lookup_index(tid);
+  if (index < MAX_NUMBER_OF_THREADS)
+    return index;
+  index = DYNINST_alloc_index(tid);
   lwpid = P_lwp_self();
   /* Report new thread */
-  DYNINST_reportNewThread(pos, tid);
-  /* Store the POS in thread-specific storage */
-  P_thread_setspecific(DYNINST_thread_key, (void *)(pos)) ;
+  DYNINST_reportNewThread(index, tid);
   /* Set up virtual timers */
-  if (&(RTsharedData.virtualTimers[pos])) {
-      _VirtualTimerDestroy(&(RTsharedData.virtualTimers[pos]));
-      _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), THREAD_CREATE) ;
+  if (&(RTsharedData.virtualTimers[index])) {
+      _VirtualTimerDestroy(&(RTsharedData.virtualTimers[index]));
+      _VirtualTimerStart(&(RTsharedData.virtualTimers[index]), THREAD_CREATE) ;
   }
-  return pos;
+  return index;
 }
 
 void DYNINST_dummy_create(void)
@@ -226,29 +223,29 @@ void DYNINST_dummy_create(void)
 /* Called at context switch in */
 void DYNINSTthreadStart() {
   unsigned i;
-  unsigned pos = DYNINSTthreadPosFAST() ; /* in mini */
-  if (pos >= 0) {
+  unsigned index = DYNINSTthreadIndexFAST() ; /* in mini */
+  if (index >= 0) {
     int lwpid = P_lwp_self() ;
     /* Restart the virtual timer */
-    _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), VIRTUAL_TIMER_START) ;
+    _VirtualTimerStart(&(RTsharedData.virtualTimers[index]), VIRTUAL_TIMER_START) ;
 
     /* Check to see if there are pending iRPCs to run */
     for (i = 0; i < MAX_PENDING_RPC; i++)
-      if (RTsharedData.pendingIRPCs[pos][i].flag == 1) { /* Ha! We have an RPC! */
-	if (RTsharedData.pendingIRPCs[pos][i].rpc)
-	  (*RTsharedData.pendingIRPCs[pos][i].rpc)();
-	RTsharedData.pendingIRPCs[pos][i].flag = 2;
+      if (RTsharedData.pendingIRPCs[index][i].flag == 1) { /* Ha! We have an RPC! */
+	if (RTsharedData.pendingIRPCs[index][i].rpc)
+	  (*RTsharedData.pendingIRPCs[index][i].rpc)();
+	RTsharedData.pendingIRPCs[index][i].flag = 2;
       }
   }
 }
 
 /* CALLED at thread context switch out */
 void DYNINSTthreadStop() {
-  int pos; /* in mini */
-  pos = DYNINSTthreadPosFAST() ; /* in mini */
-  if (pos >=0) {
-    _VirtualTimerStop(&(RTsharedData.virtualTimers[pos])) ;
-    _VirtualTimerFinalize(&(RTsharedData.virtualTimers[pos])) ;
+  int index; /* in mini */
+  index = DYNINSTthreadIndexFAST() ; /* in mini */
+  if (index >=0) {
+    _VirtualTimerStop(&(RTsharedData.virtualTimers[index])) ;
+    _VirtualTimerFinalize(&(RTsharedData.virtualTimers[index])) ;
   }
 }
 

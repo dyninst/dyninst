@@ -7,10 +7,10 @@
 #include <stdio.h>
 #include "RTthread.h"
 
-int DYNINSTthreadPos ()
+int DYNINSTthreadIndex ()
 {
   int tid;
-  int curr_pos = DYNINSTthreadPosFAST();
+  int curr_index = DYNINSTthreadIndexFAST();
   if (!DYNINST_initialize_done)
     return 0;
   tid = P_thread_self();
@@ -22,32 +22,19 @@ int DYNINSTthreadPos ()
   }
 
   /* Quick method. Could we get away with a logical AND? */
-  if ((curr_pos >= 0) && 
-      (curr_pos < MAX_NUMBER_OF_THREADS)) {
-      if (RTsharedData.posToThread[curr_pos] == tid)
-          return curr_pos;
-  }
-
-  /*
-    Check to see if thread local storage is in a consistent state. Otherwise,
-    we must not call DYNINSTthreadPosSLOW, which calls thr_getspecific
-  */
-  if (DYNINSTthreadSaneLocalStorage() == 0) {
-      return 0;
+  if ((curr_index >= 0) && 
+      (curr_index < MAX_NUMBER_OF_THREADS)) {
+      if (RTsharedData.indexToThread[curr_index] == tid)
+          return curr_index;
   }
 
   /* Slow method */
-  curr_pos = DYNINSTthreadPosSLOW(tid);
-  if (curr_pos == MAX_NUMBER_OF_THREADS) {
+  curr_index = DYNINSTthreadIndexSLOW(tid);
+  if (curr_index == MAX_NUMBER_OF_THREADS) {
     /* Oh, crud. Really slow */
-    curr_pos = DYNINSTthreadCreate(tid);
+    curr_index = DYNINSTthreadCreate(tid);
   }
-  return curr_pos;
-}
-
-unsigned DYNINSTthreadContext()
-{
-  return 0;
+  return curr_index;
 }
 
 int tc_lock_init(tc_lock_t *t)

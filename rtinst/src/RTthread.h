@@ -72,32 +72,32 @@ void _VirtualTimerStop(virtualTimer *timer);
 void _VirtualTimerDestroy(virtualTimer *timer);
 unsigned PARADYNgetFD(unsigned lwp);
 
-rawTime64 getThreadCPUTime(unsigned pos, int *valid);
+rawTime64 getThreadCPUTime(unsigned index, int *valid);
 void DYNINSTstartThreadTimer(tTimer *timer);
 void DYNINSTstopThreadTimer(tTimer *timer);
 
 /* RTthread-management.c */
 int DYNINST_reportThreadUpdate(int flag);
-void DYNINST_reportNewThread(unsigned pos, int tid);
-void DYNINST_reportThreadDeletion(unsigned pos, int tid);
+void DYNINST_reportNewThread(unsigned index, int tid);
+void DYNINST_reportThreadDeletion(unsigned index, int tid);
 void DYNINSTthreadDelete(void);
 unsigned DYNINSTthreadCreate(int tid);
 void DYNINST_dummy_create(void);
 void DYNINSTthreadStart(void);
 void DYNINSTthreadStop(void);
 
-/* RTthread-pos.c */
-void DYNINST_initialize_pos_list();
-unsigned DYNINST_alloc_pos(int tid);
-void DYNINST_free_pos(unsigned pos, int tid);
-unsigned DYNINST_lookup_pos(int tid);
-unsigned DYNINSTthreadPosSLOW(int tid);
+/* RTthread-index.c */
+void DYNINST_initialize_index_list();
+unsigned DYNINST_alloc_index(int tid);
+void DYNINST_free_index(unsigned index, int tid);
+unsigned DYNINST_lookup_index(int tid);
+unsigned DYNINSTthreadIndexSLOW(int tid);
 
 /* RTthread-<arch> */
-unsigned DYNINSTthreadPosFAST();
+unsigned DYNINSTthreadIndexFAST();
 void *DYNINSTthreadSaneLocalStorage(void);
 unsigned DYNINSTthreadContext();
-int DYNINSTthreadPos();
+int DYNINSTthreadIndex();
 
 /* RTthread-<os> */
 void DYNINST_ThreadPInfo(void*, void**, int *, long*, int*, void**/*&resumestate_t*/);
@@ -107,10 +107,10 @@ int  DYNINST_ThreadInfo(void**, int *, long*, int*, void** /*&resumestate_t*/);
 rawTime64 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd);
 
 /* RTthread.c */
-extern dyninst_key_t  DYNINST_thread_key ;
 extern unsigned DYNINST_initialize_done;
 void DYNINST_initialize_once();
 extern tc_lock_t DYNINST_traceLock;
+extern unsigned *DYNINST_indexHash;
 
 /* RTinst.c */
 unsigned MAX_NUMBER_OF_THREADS;
