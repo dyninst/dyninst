@@ -16,11 +16,14 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.61  1996/05/08 07:35:15  karavan
-/* Changed enable data calls to be fully asynchronous within the performance consultant.
+/* Revision 1.62  1996/05/08 13:37:06  naim
+/* Minor changes to debugging information - naim
 /*
-/* some changes to cost handling, with additional limit on number of outstanding enable requests.
-/*
+ * Revision 1.61  1996/05/08  07:35:15  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.60  1996/05/06 04:35:14  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -265,9 +268,7 @@ void PCnewDataCallback(vector<dataValueType> *values,
       assert (rawInput);
       rawInput-> newData(curr->mi, curr->value, curr->bucketNum);      
     }
-    // dealloc dm buffer space
-    // (leave this next line in or die a horrible slow memory leak death!) 
-    datavalues_bufferpool.dealloc(values);
+
 #ifdef MYPCDEBUG
     t2=TESTgetTime();
     if ((t2-t1) > 1.0) {
@@ -278,6 +279,10 @@ void PCnewDataCallback(vector<dataValueType> *values,
         printf("********** metric=%s, focus=%s\n",metname,focname);
     }
 #endif
+
+    // dealloc dm buffer space
+    // (leave this next line in or die a horrible slow memory leak death!) 
+    datavalues_bufferpool.dealloc(values);
 }
 
 //

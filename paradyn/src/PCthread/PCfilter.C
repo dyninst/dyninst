@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.21  1996/05/08 07:35:11  karavan
+ * Revision 1.22  1996/05/08 13:37:09  naim
+ * Minor changes to debugging information - naim
+ *
+ * Revision 1.21  1996/05/08  07:35:11  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
  * some changes to cost handling, with additional limit on number of outstanding enable requests.
@@ -474,8 +477,21 @@ filteredDataServer::unsubscribeAllData()
 {
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
+#ifdef MYPCDEBUG
+      double t1,t2;
+      t1=TESTgetTime(); 
+#endif
       dataMgr->disableDataCollection(performanceConsultant::pstream, 
 				     AllDataFilters[i]->getMI(), phType);
+#ifdef MYPCDEBUG
+      // -------------------------- PCDEBUG ------------------
+      t2=TESTgetTime();
+      if (performanceConsultant::collectInstrTimings) {
+        if ((t2-t1) > 1.0) 
+	  printf("==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",t2-t1); 
+      }
+      // -------------------------- PCDEBUG ------------------
+#endif
     }
   }
 }
@@ -659,8 +675,19 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
   if (!fndflag) return;
   subsLeft = curr->rmConsumer(sub);
   if (subsLeft == 0) {
+#ifdef MYPCDEBUG
+    double t1,t2;
+    t1=TESTgetTime();
+#endif
     dataMgr->clearPersistentData(subID);
     dataMgr->disableDataCollection (performanceConsultant::pstream, subID, phType);
+#ifdef MYPCDEBUG
+    t2=TESTgetTime();
+    if (performanceConsultant::collectInstrTimings) {
+      if ((t2-t1) > 1.0) 
+        printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1);
+    } 
+#endif
   }
 #ifdef PCDEBUG
   // debug printing
