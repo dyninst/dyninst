@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.6 2000/03/01 15:45:02 altinel Exp $
+# $Id: Makefile,v 1.7 2000/04/24 00:47:40 paradyn Exp $
 #
 # Makefile for dyninstAPI test programs on Compaq Alpha
 #
@@ -19,6 +19,8 @@ CFLAGS += -g
 
 SYSLIBS   += -g -lmld -liberty
 NATIVE_CC = cc
+NATIVE_CXX = cxx
+GNU_CXX = g++
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -27,10 +29,12 @@ include ../make.module.tmpl
 
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
+MUTATEE_CFLAGS = $(MODCFLAGS) -g
 ifeq ($(MUTATEE_CC),$(NATIVE_CC))
 MUTATEE_CFLAGS = $(ARCH_DEF) -g
-else
-MUTATEE_CFLAGS = $(MODCFLAGS) -g
+endif
+ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
+MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
 
 ifdef GCC_2_95
