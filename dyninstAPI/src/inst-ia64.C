@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.34 2003/08/11 11:57:51 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.35 2003/09/23 17:28:52 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -80,8 +80,7 @@
 
 #include "dyninstAPI/src/rpcMgr.h"
 
-/* Private refactoring function.  Copies and rewrites
-   the basetramp template so it'll function in its new home. */
+/* Assembler-level labels for the dynamic basetramp. */
 extern "C" {
 	void fetch_ar_pfs();
 	void address_of_instrumentation();
@@ -92,6 +91,8 @@ extern "C" {
 	void address_of_jump_to_emulation();
 	} /* end template symbols */
 
+/* Private refactoring function.  Copies and rewrites
+   the basetramp template so it'll function in its new home. */
 Address relocateBaseTrampTemplateTo( Address buffer, Address target ) {
 	/* These offset won't change, so only calculate them once. */
 	static Address addressOfTemplate = (Address)&fetch_ar_pfs;
@@ -1030,7 +1031,7 @@ bool generatePreservationHeader( ia64_bundle_t * insnPtr, Address & count ) {
 	insnPtr[bundleCount++] = unatMoveBundle.getMachineCode();
 	insnPtr[bundleCount++] = unatStoreBundle.getMachineCode();
 
-	/* Preserve the unstacked integer registers.  FIXME: do static analysis. */
+	/* Preserve the unstacked integer registers. */
 	IA64_instruction r1spill = generateSpillTo( REGISTER_SP, 1, -8 );
 	IA64_instruction r2spill = generateSpillTo( REGISTER_SP, 2, -8 );
 	IA64_bundle spillBundle( MstopMIstop, r1spill, r2spill, integerNOP );
@@ -1178,6 +1179,157 @@ bool generatePreservationTrailer( ia64_bundle_t * insnPtr, Address & count ) {
 	return true;
 	} /* end generatePreservationTrailer() */
 
+/* Originally from linux-ia64.C's executingSystemCall(). */
+bool needToHandleSyscall( process * proc ) {
+	/* This checks if the previous instruction is a break 0x100000. */
+	const uint64_t SYSCALL_MASK = 0x01000000000 >> 5;
+	uint64_t iip, instruction, rawBundle[2];
+	int64_t ipsr_ri, pr;
+	IA64_bundle origBundle;
+	
+	// Bad things happen if you use ptrace on a running process.
+	assert( proc->status() == stopped );
+	errno = 0;
+	
+	// Find the correct bundle.
+	iip = getPC( proc->getPid() );
+	ipsr_ri = P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 );
+	if( errno && (ipsr_ri == -1) ) {
+		// Error reading process information.  Should we assert here?
+		assert(0);
+		}
+	ipsr_ri = (ipsr_ri & 0x0000060000000000) >> 41;
+	if (ipsr_ri == 0) iip -= 16;  // Get previous bundle, if necessary.
+		
+	// Read bundle data
+	if( ! proc->readDataSpace( (void *)iip, 16, (void *)rawBundle, true ) ) {
+		// Could have gotten here because the mutatee stopped right
+		// after a jump to the beginning of a memory segment (aka,
+		// no previous bundle).  But, that can't happen from a syscall.
+		return false;
+		}
+	
+	// Isolate previous instruction.
+	origBundle = IA64_bundle( rawBundle[0], rawBundle[1] );
+	ipsr_ri = (ipsr_ri + 2) % 3;
+	instruction = origBundle.getInstruction(ipsr_ri)->getMachineCode();
+	instruction = instruction >> ALIGN_RIGHT_SHIFT;
+	
+	// Determine predicate register and remove it from instruction.
+	pr = P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_PR, 0 );
+	if (errno && pr == -1) assert(0);
+	pr = (pr >> (0x1F & instruction)) & 0x1;
+	instruction = instruction >> 5;
+	
+	return (pr && instruction == SYSCALL_MASK);
+	} /* end needToHandleSyscall() */
+
+#include "dlfcn.h"
+bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
+	/* Extract the current slotNo. */
+	errno = 0;
+	uint64_t ipsr = P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 );
+	assert( ! errno );
+	uint64_t slotNo = (ipsr & PSR_RI_MASK) >> 41;
+	assert( slotNo <= 2 );
+	
+	/* When the kernel continues execution of the now-stopped process,
+	   it may or may not decrement the slot counter to restart the
+	   interrupted system call.  Since we need to resume after the iRPC
+	   where the kernel thinks we should, we need to change the slot of 
+	   the iRPC's terminal break, since we can't alter ipsr.ri otherwise.
+	   
+	   The header code is templated; we just replace the first bundle with
+	   the one appropriate for the known slotNo.  Copy from 'syscallPrefix'
+	   to 'syscallPrefixCommon', exclusive.  (The last bundle is an spacing-
+	   only NOP bundle.  The iRPC header proper should start there.) */
+
+	assert( ( ((Address)insnPtr) + baseBytes ) % 16 == 0 );
+	ia64_bundle_t * bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + baseBytes );
+
+	/* FIXME: (static variable) cache the Addresses below. */
+	/* Calling dlopen() on a NULL string dlopen()s the current executable.
+	   This neatly sidesteps the problem of making sure we're looking at the right library
+	   when we look for our code templates.
+	   
+	   It's also worth noting that labels also marked as functions return pointers to the
+	   function pointer, not the function pointer proper.  Don't ask me, I don't know. */
+	char * dlErrorString = NULL;
+	void * handle = dlopen( NULL, RTLD_NOW );
+	assert( handle != NULL );
+
+	void * syscallPrefix = dlsym( handle, "syscallPrefix" );
+	if( (dlErrorString = dlerror()) != NULL ) {
+		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
+		}
+	assert( syscallPrefix != NULL );
+
+	void * prefixNotInSyscall = dlsym( handle, "prefixNotInSyscall" );
+	if( (dlErrorString = dlerror()) != NULL ) {
+		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
+		}
+	assert( prefixNotInSyscall != NULL );
+
+	void * prefixInSyscall = dlsym( handle, "prefixInSyscall" );
+	if( (dlErrorString = dlerror()) != NULL ) {
+		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
+		}
+	assert( prefixInSyscall != NULL );
+
+	void * prefixCommon = dlsym( handle, "prefixCommon" );
+	if( (dlErrorString = dlerror()) != NULL ) {
+		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
+		}
+	assert( prefixCommon != NULL );		
+
+	void * jumpFromNotInSyscallToPrefixCommon = dlsym( handle, "jumpFromNotInSyscallToPrefixCommon" );
+	if( (dlErrorString = dlerror()) != NULL ) {
+		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
+		}
+	assert( jumpFromNotInSyscallToPrefixCommon != NULL );	
+	
+	dlclose( handle );
+
+	/* Since the linker will indirect functions one level,
+	   we don't declare any of the assembly blocks functions. */
+	Address syscallPrefixAddress = (Address) syscallPrefix;
+	Address prefixNotInSyscallAddress = (Address) prefixNotInSyscall;
+	Address prefixInSyscallAddress = (Address) prefixInSyscall;
+	Address prefixCommonAddress = (Address) prefixCommon;
+
+	Address lengthWithoutTrailingNOPs = prefixCommonAddress - syscallPrefixAddress;
+	memcpy( bundlePtr, (const void * )syscallPrefixAddress, lengthWithoutTrailingNOPs );
+	baseBytes += lengthWithoutTrailingNOPs;
+
+	/* Likewise, we need to rewrite the nop.b bundle at jumpFromNotInSyscallToPrefixCommon
+	   because the assembler jumps are indirected.  (Why can't I force a relative jump?!) */
+	Address jumpAddress = (Address) jumpFromNotInSyscallToPrefixCommon;
+	IA64_instruction memoryNOP( NOP_M );
+	IA64_instruction_x branchPastInSyscall = generateLongBranchTo( prefixCommonAddress - jumpAddress );
+	IA64_bundle branchPastInSyscallBundle( MLXstop, memoryNOP, branchPastInSyscall );
+	* (bundlePtr + ( (jumpAddress - syscallPrefixAddress) / 16 )) = branchPastInSyscallBundle.getMachineCode();
+
+	/* Construct the slot-specific jump bundle. */
+	IA64_bundle entryJumpBundle;
+	IA64_instruction jumpToInSyscall = generateShortImmediateBranch( prefixInSyscallAddress - syscallPrefixAddress );
+	IA64_instruction jumpToNotInSyscall = generateShortImmediateBranch( prefixNotInSyscallAddress - syscallPrefixAddress );
+	switch( slotNo ) {
+		case 0:
+			entryJumpBundle = IA64_bundle( BBBstop, jumpToNotInSyscall, NOP_B, jumpToInSyscall );
+			break;
+		case 1:
+			entryJumpBundle = IA64_bundle( BBBstop, jumpToInSyscall, jumpToNotInSyscall, NOP_B );
+			break;
+		case 2:
+			entryJumpBundle = IA64_bundle( BBBstop, jumpToNotInSyscall, NOP_B, jumpToInSyscall );
+			break;
+		}
+	bundlePtr[ 0 ] = entryJumpBundle.getMachineCode();
+
+fprintf( stderr, "* iRPC system call handler (prefix) generated at 0x%lx\n", (Address) bundlePtr );
+	return true;
+	} /* end emitSystemCallHeader() */
+
 /* Required by process.C */
 bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 	/* Extract the CFM. */
@@ -1212,17 +1364,100 @@ bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 	* regSpace = rs;
 	memcpy( ::deadRegisterList, deadRegisterList, 16 * sizeof( Register ) );
 
-	/* We'll be adjusting the PC to the start of the preservation code,
-	   but we can't change the slot number ([i]psr.ri), so we need to soak
-	   up the extra slots with nops. */
 	assert( ( ((Address)insnPtr) + baseBytes ) % 16 == 0 );
 	ia64_bundle_t * bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + baseBytes );
-	bundlePtr[0] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode();
-	baseBytes += 16; bundlePtr++;
+
+	if( needToHandleSyscall( proc_ ) ) {
+		if( ! emitSyscallHeader( proc_, insnPtr, baseBytes ) ) { return false; }
+		bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + baseBytes );
+		}
+	else {
+		/* We'll be adjusting the PC to the start of the preservation code,
+		   but we can't change the slot number ([i]psr.ri), so we need to soak
+		   up the extra slots with nops. */
+		bundlePtr[0] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode();
+		baseBytes += 16; bundlePtr++;
+		}
 
 	/* Generate the preservation header. */
 	return generatePreservationHeader( bundlePtr, baseBytes );
 	} /* end emitInferiorRPCheader() */
+
+bool emitSyscallTrailer( void * insnPtr, Address & baseBytes, uint64_t slotNo ) {
+	/* Copy the template from 'syscallSuffix' to 'suffixExitPoint' (inclusive),
+	   and replace the bundle at 'suffixExitPoint' with one which has 
+	   predicated SIGILLs in the right places. */
+
+	assert( ( ((Address)insnPtr) + baseBytes ) % 16 == 0 );
+	ia64_bundle_t * bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + baseBytes );
+
+	/* Grab those two addresses. */
+	char * dlErrorString = NULL;
+	void * handle = dlopen( NULL, RTLD_NOW );
+	assert( handle != NULL );
+
+	void * syscallSuffix = dlsym( handle, "syscallSuffix" );
+	if( (dlErrorString = dlerror()) != NULL ) {
+		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
+		}
+	assert( syscallSuffix != NULL );
+	
+	void * suffixExitPoint= dlsym( handle, "suffixExitPoint" );
+	if( (dlErrorString = dlerror()) != NULL ) {
+		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
+		}
+	assert( suffixExitPoint != NULL );
+	
+	dlclose( handle );
+	
+	/* Copy the code template. */
+	Address syscallSuffixAddress = (Address) syscallSuffix;
+	Address suffixExitPointAddress = (Address) suffixExitPoint;
+	
+	/* Trailing NOPs are replaced by the constructed SIGILLs. */
+	Address lengthWithTrailingNOPs = ( suffixExitPointAddress + 0x10 ) - syscallSuffixAddress;
+	memcpy( bundlePtr, (const void *)syscallSuffixAddress, lengthWithTrailingNOPs );
+	baseBytes += lengthWithTrailingNOPs;
+	
+	/* Construct the predicated SIGILLs for the bundle at suffixExitPointAddress. */
+	IA64_bundle predicatedBreakBundle;
+	switch( slotNo ) {
+		case 0: {
+			/* slot 0 NOT, slot 2 IS;; p1 and p2 from assembler */
+			IA64_instruction notInSyscallBreak( TRAP_M );
+			IA64_instruction inSyscallBreak( TRAP_I );
+			notInSyscallBreak = predicateInstruction( 1, notInSyscallBreak );
+			inSyscallBreak = predicateInstruction( 2, inSyscallBreak );
+			predicatedBreakBundle = IA64_bundle( MMIstop, notInSyscallBreak, NOP_M, inSyscallBreak );
+			} break;
+			
+		case 1: {
+			/* slot 1 NOT, slot 0 IS */
+			IA64_instruction notInSyscallBreak( TRAP_M );
+			IA64_instruction inSyscallBreak( TRAP_M );
+			notInSyscallBreak = predicateInstruction( 1, notInSyscallBreak );
+			inSyscallBreak = predicateInstruction( 2, inSyscallBreak );
+			predicatedBreakBundle = IA64_bundle( MMIstop, inSyscallBreak, notInSyscallBreak, NOP_I );
+			} break;
+			
+		case 2: {
+			/* slot 2 NOT, slot 1 IS */
+			IA64_instruction memoryNOP( NOP_M );
+			IA64_instruction notInSyscallBreak( TRAP_I );
+			IA64_instruction inSyscallBreak( TRAP_M );
+			notInSyscallBreak = predicateInstruction( 1, notInSyscallBreak );
+			inSyscallBreak = predicateInstruction( 2, inSyscallBreak );
+			predicatedBreakBundle = IA64_bundle( MMIstop, memoryNOP, inSyscallBreak, notInSyscallBreak );
+			} break;
+			
+		default:
+			assert( 0 );
+		} /* end slotNo switch */		
+	* (bundlePtr + ((lengthWithTrailingNOPs - 0x10) / 16) ) = predicatedBreakBundle.getMachineCode();
+
+fprintf( stderr, "* iRPC system call handler (suffix) generated at 0x%lx\n", (Address) bundlePtr );
+	return true;
+	} /* end emitSyscallTrailer() */
 
 /* Required by process.C */
 bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
@@ -1255,7 +1490,7 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 	assert( ( ((Address)insnPtr) + offset ) % 16 == 0 );
 	bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + offset );
 	bundleCount = 0;
-
+	
 	/* The SIGILL for the demon needs to happen in the instruction slot
 	   corresponding to ipsr.ri so that the mutatee resumes in the correct
 	   location after the daemon adjusts its PC. */
@@ -1265,26 +1500,33 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 	uint64_t slotNo = (ipsr & PSR_RI_MASK) >> 41;
 	assert( slotNo <= 2 );
 
-	IA64_bundle slottedTrapBundle;
-	switch( slotNo ) {
-		case 0:
-			slottedTrapBundle = IA64_bundle( MIIstop, TRAP_M, NOP_I, NOP_I );
-			break;
-		case 1:
-			slottedTrapBundle = IA64_bundle( MIIstop, NOP_M, TRAP_I, NOP_I );
-			break;
-		case 2:
-			slottedTrapBundle = IA64_bundle( MIIstop, NOP_M, NOP_I, TRAP_I );
-			break;
-		} /* end slotNo switch */
+	if( needToHandleSyscall( proc_ ) ) {
+		if( ! emitSyscallTrailer( insnPtr, offset, slotNo ) ) { return false; }
+		breakOffset = offset - 16;
+		}
+	else {
+		IA64_bundle slottedTrapBundle;
+		switch( slotNo ) {
+			case 0:
+				slottedTrapBundle = IA64_bundle( MIIstop, TRAP_M, NOP_I, NOP_I );
+				break;
+			case 1:
+				slottedTrapBundle = IA64_bundle( MIIstop, NOP_M, TRAP_I, NOP_I );
+				break;
+			case 2:
+				slottedTrapBundle = IA64_bundle( MIIstop, NOP_M, NOP_I, TRAP_I );
+				break;
+			} /* end slotNo switch */
 
-	breakOffset = offset + (bundleCount * 16);
-	bundlePtr[ bundleCount++ ] = slottedTrapBundle.getMachineCode();
+		breakOffset = offset + (bundleCount * 16);
+		bundlePtr[ bundleCount++ ] = slottedTrapBundle.getMachineCode();
+		offset += 16;
+		} /* end if we don't need to handle a syscall */
 
 	/* If the demon drops the ball, make sure the mutatee suicides. */
-	bundlePtr[ bundleCount++ ] = trapBundle.getMachineCode();
-
-	offset += bundleCount * 16;
+	bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + offset );		
+	bundlePtr[ 0 ] = trapBundle.getMachineCode();
+	offset += 16;
 	return true;
 	} /* end emitInferiorRPCtrailer() */
 
@@ -1807,13 +2049,25 @@ const IA64_iterator IA64_iterator::operator++ ( int ) {
 	} /* end operator ++ */
 
 /* Implementation of instPoint */
-
 instPoint::instPoint( Address encodedAddress, pd_Function * pdfn, const image * owner, IA64_instruction * theInsn )  : myAddress( encodedAddress ), myPDFunction( pdfn ), myOwner( owner ), myInstruction( theInsn ) {
 	/* Extract from that its target address. */
 	myTargetAddress = myInstruction->getTargetAddress() + myPDFunction->addr();
 	} /* end instPoint constructor */
 
-/* I haven't the slightest idea what needs this. */
+/* The IA-64 instrumentation code always displaces a single three-instruction bundle.
+   We'll return the machine code, since that's easier and the type of insns isn't specificed. */ 
 int BPatch_point::getDisplacedInstructions( int maxSize, void * insns ) {
-	assert( 0 );
+	const IA64_instruction * insn = point->iPgetInstruction();
+	const IA64_bundle * bundle = insn->getMyBundle();
+	
+	/* We could probably generate the bundle from the instruction's address. */
+	assert( bundle != NULL );
+
+	/* If there's not enough room, don't do anything. */
+	if( ((unsigned)maxSize) < sizeof( ia64_bundle_t ) ) { return 0; }
+
+	/* Copy things over. */
+	* ( ia64_bundle_t *) insns = bundle->getMachineCode();
+
+	return sizeof( ia64_bundle_t );
 	} /* end getDisplacedInstructions() */
