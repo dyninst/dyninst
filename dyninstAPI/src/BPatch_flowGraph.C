@@ -1355,6 +1355,7 @@ void BPatch_flowGraph::fillLoopInfo(BPatch_Set<BPatch_basicBlock*>** backEdges,
 }
 
 
+#ifdef DEBUG 
 //print method
 ostream&
 operator<<(ostream& os,BPatch_flowGraph& fg){
@@ -1385,6 +1386,7 @@ operator<<(ostream& os,BPatch_flowGraph& fg){
    os << "End CFG :\n";
    return os;
 }
+#endif
 
 
 // return a pair of the min and max source lines for this loop

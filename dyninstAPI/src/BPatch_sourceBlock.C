@@ -38,6 +38,7 @@ BPatch_sourceBlock::getSourceLines(BPatch_Vector<unsigned short>& lines){
 }
 
 
+#ifdef DEBUG 
 //print method 
 ostream& operator<<(ostream& os,BPatch_sourceBlock& sb){
 
@@ -61,3 +62,5 @@ ostream& operator<<(ostream& os,BPatch_sourceBlock& sb){
 	os << ")}" << endl;
 	return os;
 }
+
+#endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.166 2003/08/11 11:57:54 tlmiller Exp $
+// $Id: aix.C,v 1.167 2003/08/11 15:40:26 hollings Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -270,6 +270,7 @@ Frame Frame::getCallerFrame(process *p) const
 }
 
 
+#ifdef DEBUG 
 void decodeInstr(unsigned instr_raw) {
   // Decode an instruction. Fun, eh?
   union instructUnion instr;
@@ -338,6 +339,8 @@ void decodeInstr(unsigned instr_raw) {
   }
   return;
 }      
+
+#endif
 
 // already setup on this FD.
 // disconnect from controlling terminal 

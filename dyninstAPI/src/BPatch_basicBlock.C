@@ -163,6 +163,7 @@ bool BPatch_basicBlock::getAddressRange(void*& _startAddress,
 	return true;
 }
 
+#ifdef DEBUG
 //print method
 ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 {
@@ -218,7 +219,7 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
 	return os;
 }
-
+#endif
 
 /*
  * BPatch_basicBlock::findPoint (based on VG 09/05/01)

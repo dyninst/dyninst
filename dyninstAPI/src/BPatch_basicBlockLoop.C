@@ -106,6 +106,7 @@ BPatch_Set<BPatch_variableExpr*>* BPatch_basicBlockLoop::getLoopIterators(){
 	return NULL;
 }
 
+#ifdef DEBUG
 //print method
 ostream& operator<<(ostream& os,BPatch_basicBlockLoop& bbl){
 	int i;
@@ -141,3 +142,4 @@ ostream& operator<<(ostream& os,BPatch_basicBlockLoop& bbl){
 
 	return os;
 }
+#endif

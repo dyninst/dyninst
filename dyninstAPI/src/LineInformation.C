@@ -1477,7 +1477,8 @@ void LineInformation::dump(const char *modName)
   fclose(dumpfile);
 
 }
-#endif
+
+#ifdef DEBUG 
 ostream& operator<<(ostream& os,FileLineInformation& linfo){
 
 	cerr << "\tLINE TO ADDRESS \t\t ADDRESS TO LINE:\n";
@@ -1525,6 +1526,8 @@ ostream& operator<<(ostream& os,FileLineInformation& linfo){
 	return os;
 }
 
+#endif
+
 #ifndef OLD_LINE_INFO
 void LineInformation::print() 
 {
@@ -1558,44 +1561,5 @@ ostream& operator<<(ostream& os,LineInformation&) {
 	return os;
 }
 
-/*
-ostream& operator<<(ostream& os,FileLineInformation& linfo){
-	cerr << "\tLINE TO ADDRESS \t\t ADDRESS TO LINE:\n";
-	for(int j=0;j<linfo.size;j++){
-		os << dec << j << "\t";
-		os << linfo.lineToAddr[j]->lineNo << " ----> ";
-		os << hex << linfo.lineToAddr[j]->codeAddress 
-		   << "\t\t";
-		os << hex << linfo.addrToLine[j]->codeAddress  
-		   << " ----> ";
-		os << dec << linfo.addrToLine[j]->lineNo << "\n";
-	}
-	for(int i=0;i<linfo.functionCount;i++){
-		FunctionInfo* funcinfo = linfo.lineInformationList[i];
-		os << "FUNCTION LINE : " << *(linfo.functionNameList[i]) << " : " ;
-		if(!funcinfo->validInfo){
-			os << "INVALID LINE INFO" << endl;
-			continue;
-		}
-		os << dec << funcinfo->startLinePtr->lineNo 
-		   << " --- ";
-		os << funcinfo->endLinePtr->lineNo << "\t\t";
-		os << hex << funcinfo->startAddrPtr->codeAddress 
-		   << " --- ";
-		os << hex << funcinfo->endAddrPtr->codeAddress 
-		   << dec << "\n";
-	}
-	return os;
-}
-
-ostream& operator<<(ostream& os,LineInformation& linfo){
-	os << "**********************************************\n";
-	os << "MODULE : " << linfo.moduleName << "\n";  
-	os << "**********************************************\n";
-	for(int i=0;i<linfo.sourceFileCount;i++){
-		os << "FILE : " << *(linfo.sourceFileList[i]) << "\n";
-		os << *(linfo.lineInformationList[i]);
-	}
-	return os;
-}
-*/
+// end DEBUG_LINE_INFO
+#endif

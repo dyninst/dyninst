@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.445 2003/08/05 21:49:23 hollings Exp $
+// $Id: process.C,v 1.446 2003/08/11 15:40:26 hollings Exp $
 
 #include <ctype.h>
 
@@ -220,6 +220,7 @@ void setLibState(libraryState_t &lib, libraryState_t state) {
     else lib = state;
 }
 
+#ifdef DEBUG
 ostream& operator<<(ostream&s, const Frame &f) {
     fprintf(stderr, "PC: 0x%lx, FP: 0x%lx, PID: %d",
             f.pc_, f.fp_, f.pid_);
@@ -242,6 +243,7 @@ ostream& operator<<(ostream&s, const Frame &f) {
 
   return s;
 }
+#endif
 
 /* AIX method defined in aix.C; hijacked for IA-64's GP. */
 #if !defined(rs6000_ibm_aix4_1) && !defined( ia64_unknown_linux2_4 )

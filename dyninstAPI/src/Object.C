@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.12 2003/08/05 21:49:22 hollings Exp $
+// $Id: Object.C,v 1.13 2003/08/11 15:40:26 hollings Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -79,6 +79,8 @@ bool AObject::get_func_binding_table_ptr(const pdvector<relocationEntry> *&) con
     return false;
 }
 
+#ifdef DEBUG 
+
 ostream & relocationEntry::operator<< (ostream &s) const {
     s << "target_addr_ = " << target_addr_ << endl;
     s << "rel_addr_ = " << rel_addr_ << endl;
@@ -96,6 +98,7 @@ ostream &operator<<(ostream &os, relocationEntry &q) {
  *  Dump info on state of object *this....
  *
 **************************************************/
+
 
 const ostream &AObject::dump_state_info(ostream &s) {
 
@@ -125,8 +128,4 @@ const ostream &AObject::dump_state_info(ostream &s) {
     return s;
 }
 
-
-
-
-
-
+#endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.177 2003/08/11 11:57:59 tlmiller Exp $
+// $Id: symtab.C,v 1.178 2003/08/11 15:40:26 hollings Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,6 +105,7 @@ bool function_base::match(function_base *fb)
 	    (size_       == fb->size_));
 }
 
+#ifdef DEBUG
 /*
   Debuggering info for function_base....
  */
@@ -129,6 +130,8 @@ ostream & function_base::operator<<(ostream &s) const {
 ostream &operator<<(ostream &os, function_base &f) {
     return f.operator<<(os);
 }
+
+#endif
 
 /*
  * function_base::getMangledName

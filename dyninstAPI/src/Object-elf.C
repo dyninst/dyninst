@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.54 2003/08/11 11:57:53 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.55 2003/08/11 15:40:26 hollings Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1950,6 +1950,8 @@ inline bool Object::get_func_binding_table_ptr(const pdvector<relocationEntry> *
     return true;
 }
 
+#ifdef DEBUG
+
 // stream-based debug output
 const ostream &Object::dump_state_info(ostream &s) 
 {
@@ -1982,6 +1984,8 @@ const ostream &Object::dump_state_info(ostream &s)
 
   return s;
 } 
+
+#endif
 
 
 Address Object::getPltSlot(pdstring funcName) const{
