@@ -41,6 +41,10 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.45  1997/07/10 21:44:53  hollings
+ * Added BPatch_retExpr
+ * Added null type for returnOp and paramOp
+ *
  * Revision 1.44  1997/06/23 19:15:49  buck
  * Added features to the dyninst API library, including an optional "else"
  * in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
@@ -1538,6 +1542,8 @@ BPatch_type *AstNode::checkType()
 		// XXX No checking for now.  Should check that loperand
 		// is boolean.
 		ret = BPatch::bpatch->type_Untyped;
+	    } else if (op == noOp) {
+		ret = BPatch::bpatch->type_Untyped;
 	    } else {
 		if (lType != NULL && rType != NULL) {
 		    if (!lType->isCompatible(*rType)) {
@@ -1552,9 +1558,10 @@ BPatch_type *AstNode::checkType()
 	    break;
 	case operandNode:
 	    assert(loperand == NULL && roperand == NULL);
-	    if (oType == Param)
-		ret = BPatch::bpatch->type_Untyped; //XXX Params untyped for now
-	    else
+	    if ((oType == Param) || (oType == ReturnVal)) {
+		// XXX Params and ReturnVals untyped for now
+		ret = BPatch::bpatch->type_Untyped; 
+	    } else
     		ret = getType();
 	    assert(ret != NULL);
 	    break;

@@ -350,6 +350,21 @@ BPatch_paramExpr::BPatch_paramExpr(int n)
 
 
 /*
+ * BPatch_retExpr::BPatch_retExpr
+ *
+ * Construct a snippet representing a return value from the function in which
+ * the snippet is inserted.
+ *
+ */
+BPatch_retExpr::BPatch_retExpr()
+{
+    ast = new AstNode(AstNode::ReturnVal, (void *)0);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+/*
  * BPatch_sequence::BPatch_sequence
  *
  * Construct a snippet representing a sequence of snippets.
