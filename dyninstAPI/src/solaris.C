@@ -519,9 +519,22 @@ void process::handleIfDueToDyninstLib()
   Address codeBase = (this->findOneFunction("_start"))->addr();
   assert(codeBase);
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
+
+  // restore registers
   restoreRegisters(savedRegs); 
-  // this should put the PC at the right position, that is, at the entry point
-  // of main - naim
+
+#if defined(i386_unknown_solaris2_5)
+  // restore the stack frame of _start()
+  prgregset_t theIntRegs = *(prgregset_t *)savedRegs;
+  Address theEBP = theIntRegs[EBP];
+  assert (theEBP);
+  // this is pretty kludge. if the stack frame of _start is not the right
+  // size, this would break.
+  writeDataSpace ((void*)(theEBP-6*sizeof(int)),6*sizeof(int),savedStackFrame);
+#endif
+
+  delete[] savedRegs;
+  savedRegs = NULL;
 }
 
 void process::handleTrapAtEntryPointOfMain()
@@ -530,7 +543,12 @@ void process::handleTrapAtEntryPointOfMain()
   assert(f_main);
   unsigned addr = f_main->addr();
   // restore original instruction 
+#if defined(sparc_sun_solaris2_4)
   writeDataSpace((void *)addr, sizeof(instruction), (char *)savedCodeBuffer);
+
+#else // x86
+  writeDataSpace((void *)addr, 2, (char *)savedCodeBuffer);
+#endif
 }
 
 void process::insertTrapAtEntryPointOfMain()
@@ -545,13 +563,21 @@ void process::insertTrapAtEntryPointOfMain()
   }
   assert(f_main);
   unsigned addr = f_main->addr();
+
   // save original instruction first
+#if defined(sparc_sun_solaris2_4)
   readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
+#else // x86
+  readDataSpace((void *)addr, 2, savedCodeBuffer, true);
+#endif
   // and now, insert trap
   instruction insnTrap;
   generateBreakPoint(insnTrap);
-  //insnTrap.raw = BREAK_POINT_INSN;
+#if defined(sparc_sun_solaris2_4)
   writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
+#else //x86. have to use SIGILL instead of SIGTRAP
+  writeDataSpace((void *)addr, 2, insnTrap.ptr());  
+#endif
   main_brk_addr = addr;
 }
 
@@ -602,7 +628,9 @@ bool process::dlopenDYNINSTlib() {
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
 			  count, true);
   writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
+#if defined(sparc_sun_solaris2_4)
   count += sizeof(instruction);
+#endif
 #endif
 
   // we need to make 2 calls to dlopen: one to load libsocket.so.1 and another
@@ -622,59 +650,24 @@ bool process::dlopenDYNINSTlib() {
   unsigned dyninst_count = 0;
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
 			  dyninst_count, true);
-  writeDataSpace((void *)codeBase, dyninst_count, (char *)scratchCodeBuffer);
+  writeDataSpace((void *)codeBase+count, dyninst_count, (char *)scratchCodeBuffer);
+#if defined(sparc_sun_solaris2_4)
   dyninst_count += sizeof(instruction);
-  count += dyninst_count;
-
-#ifdef ndef
-  // NOTE: this is an example of the code that could go here to check for
-  // the return value of dlopen. If dlopen returns NULL, which means failure,
-  // we won't be able to load libdyninstRT.so.1. If this happens, paradynd
-  // will notice it anyway and it will print a message to the user saying that
-  // dlopen failed for some reason. It might be better to be able to call
-  // dlerror at this point and print the corresponding error message, but we
-  // will need to add a "printOp" or something similar to the AstNode class
-  // to do this, plus we will need to find the address of dlerror first in the
-  // same way we do it for dlopen - naim 8/13/97
-
-  // we now check the return value of dlopen. If it is NULL, which means that
-  // dlopen has failed, we then go ahead and retry calling it again until it
-  // succeeds - naim
-  AstNode *check_dlopen_result;
-  AstNode *expression;
-  AstNode *action;
-  AstNode *part1, *part2;
-  part1 = new AstNode(AstNode::DataReg,(void *)RETVAL_REG);
-  part2 = new AstNode(AstNode::Constant,(void *)0);
-  expression = new AstNode(eqOp, part1, part2);
-  removeAst(part1);
-  removeAst(part2);
-  AstNode *offset;
-  // offset if the number of instructions from this point to the beginning
-  // of codeBase. If the number of instructions generated change, we also
-  // have to change this value (15 for now) - naim
-  offset = new AstNode(AstNode::Constant, (void *)(-15*sizeof(instruction))); 
-  action = new AstNode(branchOp, offset);
-  removeAst(offset);
-  check_dlopen_result = new AstNode(ifOp, expression, action); 
-  removeAst(expression);
-  removeAst(action);
-  unsigned astcount=0;
-  check_dlopen_result->generateCode(this, dlopenRegSpace, 
-				    (char *)scratchCodeBuffer, astcount, true);
-  writeDataSpace((void *)(codeBase+count), astcount, 
-		 (char *)scratchCodeBuffer);
-  count += astcount;
-  removeAst(check_dlopen_result);
 #endif
+  count += dyninst_count;
 
   instruction insnTrap;
   generateBreakPoint(insnTrap);
-  //insnTrap.raw = BREAK_POINT_INSN;
+#if defined(sparc_sun_solaris2_4)
   writeDataSpace((void *)(codeBase + count), sizeof(instruction), 
 		 (char *)&insnTrap);
   dyninstlib_brk_addr = codeBase + count;
   count += sizeof(instruction);
+#else //x86
+  writeDataSpace((void *)(codeBase + count), 2, insnTrap.ptr());
+  dyninstlib_brk_addr = codeBase + count;
+  count += 2;
+#endif
 
   char libname[256];
 #ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
@@ -757,8 +750,18 @@ bool process::dlopenDYNINSTlib() {
   writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
   removeAst(dlopenAst);
 
+  // save registers
   savedRegs = getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
+#if defined(i386_unknown_solaris2_5)
+  // save the stack frame of _start()
+  prgregset_t regs = *(prgregset_t*)savedRegs;
+  Address theEBP = regs[EBP];
+  assert (theEBP);
+  // this is pretty kludge. if the stack frame of _start is not the right
+  // size, this would break.
+  readDataSpace((void*)(theEBP-6*sizeof(int)),6*sizeof(int), savedStackFrame, true);
+#endif
   isLoadingDyninstLib = true;
   if (!changePC(codeBase,savedRegs)) // this uses the info in "savedRegs"
   {
@@ -804,13 +807,15 @@ bool process::continueProc_() {
   prrun_t flags;
   prstatus_t stat;
 
-//cerr << "welcome to continueProc_()" << endl;
-
   // a process that receives a stop signal stops twice. We need to run the process
   // and wait for the second stop. (The first run simply absorbs the stop signal;
   // the second one does the actual continue.)
-  if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
-      && (stat.pr_flags & PR_STOPPED)
+  if (ioctl(proc_fd, PIOCSTATUS, &stat) == -1) return false;
+
+  if ((0==stat.pr_flags & PR_STOPPED) && (0==stat.pr_flags & PR_ISTOP))
+    return false;
+
+  if ((stat.pr_flags & PR_STOPPED)
       && (stat.pr_why == PR_SIGNALLED)
       && (stat.pr_what == SIGSTOP || stat.pr_what == SIGINT)) {
     flags.pr_flags = PRSTOP;

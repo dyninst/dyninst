@@ -82,6 +82,7 @@ public:
 			u_int &change_type,
 			bool &error_occured=false);
     unsigned get_dlopen_addr() const { return dlopen_addr; }
+    unsigned get_r_brk_addr() const { return r_brk_addr; }
     
 private:
    bool  dynlinked;

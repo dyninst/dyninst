@@ -180,9 +180,11 @@ bool dynamic_linking::set_r_brk_point(process *proc) {
 	sizeof(instruction),&trap_insn.raw)){
 	return false;
     }
-#else
-    // currently we don't support this on x86 
-    return false;
+#else // x86
+    instruction trap_insn((const unsigned char*)"\017\013\0220\0220", ILLEGAL, 4);
+    if (!proc->writeDataSpace((void *)r_brk_addr, 4, trap_insn.ptr()))
+        return false;
+    //proc->SetIllForTrap();
 #endif
 
     brkpoint_set = true;
@@ -519,7 +521,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 				u_int &change_type,
 				bool &error_occured){ 
 
-#if defined(sparc_sun_solaris2_4) 
   prgregset_t regs;
   error_occured = false;
   int proc_fd = proc->getProcFileDescriptor(); 
@@ -552,6 +553,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 						  error_occured);
 	} 
 
+#if defined(sparc_sun_solaris2_4)
 	// change the pc so that it will look like the retl instr 
         // completed: set PC to o7 in current frame
 	// we can do this because this retl doesn't correspond to 
@@ -560,17 +562,22 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 	// retl has already happend
 
 	// first get the value of the stackpointer
-	u_int o7reg = regs[R_O7];  
-	o7reg += 8;
+	u_int o7reg = regs[R_O7];
+        o7reg += 8;
 	if(!(proc->changePC(o7reg))) {
 	      // printf("error in changePC handleIfDueToSharedObjectMapping\n");
 	      error_occured = true;
 	      return true;
         }
+#else //x86
+	// set the pc to the "ret" instruction
+	u_int next_pc = regs[R_PC] + 4;
+	if (!proc->changePC(next_pc))
+	    error_occured = true;
+#endif
 	return true;
     }
   }
-#endif
 
   return false; 
 }

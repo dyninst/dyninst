@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.32  1998/05/15 23:27:04  czhang
+ * Changes to support dynamic loading on x86.
+ *
  * Revision 1.31  1998/04/22 02:30:20  buck
  * Moved showerror.h from paradynd directory to dyninstAPI directory.
  *
@@ -187,6 +190,8 @@
  */
 
 #include <limits.h>
+#include <sys/signal.h>
+#include <sys/ucontext.h>
 #include "util/h/headers.h"
 
 #ifndef BPATCH_LIBRARY
@@ -209,6 +214,7 @@
 #include "dyninstAPI/src/instP.h" // class returnInstance
 
 extern bool isPowerOf2(int value, int &result);
+void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 
 // The general machine registers. 
 // These values are taken from the Pentium manual and CANNOT be changed.
@@ -1211,6 +1217,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 #else
   unsigned trampSize = 73;
 #endif
+
   for (u = 0; u < location->insnsBefore(); u++) {
     trampSize += getRelocatedInstructionSz(location->insnBeforePt(u));
   }
@@ -1442,7 +1449,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 
   // return to user code
   currAddr = baseAddr + (insn - code);
-  emitJump((location->returnAddr() + imageBaseAddr) - (currAddr+JUMP_SZ), insn);
+  emitJump(location->returnAddr()+imageBaseAddr - (currAddr+JUMP_SZ), insn);
 
   assert((unsigned)(insn-code) == trampSize);
 
@@ -1752,6 +1759,10 @@ void emitAddMemImm32(Address addr, int imm, unsigned char *&insn) {
 
 // emit JUMP rel32
 void emitJump(unsigned disp32, unsigned char *&insn) {
+  if ((signed)disp32 >= 0)
+    assert (disp32 < unsigned(1<<31));
+  else
+    assert (-disp32 < unsigned(1<<31));
   *insn++ = 0xE9;
   *((int *)insn) = disp32;
   insn += sizeof(int);
@@ -2315,6 +2326,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   }
 #endif
 
+#if !defined(USES_LIBDYNINSTRT_SO)
   // Check that we can patch up user code to jump to our base trampolines:
   const Address instHeapStart = curr;
   const Address instHeapEnd = instHeapStart + SYN_INST_BUF_SIZE - 1;
@@ -2326,7 +2338,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     logLine(errorLine);
     return false;
   }
-
+#endif
   return true;
 }
 
@@ -2437,11 +2449,17 @@ void returnInstance::addToReturnWaitingList(Address , process *) {
 }
 
 void generateBreakPoint(instruction &insn) {
-  P_abort();
+  insn = instruction ((const unsigned char*)"\017\013", ILLEGAL, 2);
 }
 
 void instWaitingList::cleanUp(process *, Address ) {
   P_abort();
+/*
+  proc->writeTextSpace((caddr_t)pc, relocatedInstruction.size(),
+            (caddr_t&)(relocatedInstruction.ptr()));
+  proc->writeTextSpace((caddr_t)addr_, instSeqSize,
+            (caddr_t)instructionSeq);
+*/
 }
 
 /* ***************************************************** */
@@ -2552,4 +2570,16 @@ bool process::replaceFunctionCall(const instPoint *point,
     }
 
     return true;
+}
+
+void
+BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
+{
+  cout << "In BaseTrampTrapHandler()" << endl;
+  // unset trap handler, so that DYNINSTtrapHandler can take place
+  if (sigaction(SIGTRAP, NULL, NULL) != 0) {
+    perror("sigaction(SIGTRAP)");
+    assert(0);
+    abort();
+  }
 }

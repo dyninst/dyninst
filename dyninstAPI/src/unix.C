@@ -40,6 +40,7 @@
  */
 
 
+#include <sys/procfs.h>
 #include "util/h/headers.h"
 #include "util/h/String.h"
 #include "util/h/Vector.h"
@@ -375,8 +376,24 @@ int handleSigChild(int pid, int status)
 
     if (WIFSTOPPED(status)) {
 	int sig = WSTOPSIG(status);
-	switch (sig) {
 
+#if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
+        // we put an illegal instead of a trap at the following places, but 
+        // the illegal instructions are really for trapping purpose, so the
+        // handling should be the same as for trap
+        {
+          prgregset_t regs;
+          int proc_fd = curr->getProcFileDescriptor();
+          if ((ioctl (proc_fd, PIOCGREG, &regs) != -1) && (sig == SIGILL)
+          && (regs[R_PC]==(int)curr->rbrkAddr()
+            ||regs[R_PC]==(int)curr->main_brk_addr
+            ||regs[R_PC]==(int)curr->dyninstlib_brk_addr)) {
+            sig = SIGTRAP;
+          }
+        }
+#endif
+
+	switch (sig) {
 	    case SIGTSTP:
 		sprintf(errorLine, "process %d got SIGTSTP", pid);
 		statusLine(errorLine);
@@ -560,10 +577,14 @@ int handleSigChild(int pid, int status)
 		   // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
 		   // we read bootstrap information "sent back" (in a global vrble),
 		   // propagate metric instances, do tp->newProgramCallbackFunc(), etc.
+                   // inferiorRPC is used to do DYNINSTinit, don't want to 
+                   // continueProc() because it'll kill the applications.
+                   // don't know why this is so. -Chun.
 		   if (!curr->continueProc()) {
 		      cerr << "continueProc after installBootstrapInst() failed, so DYNINSTinit() isn't being invoked yet, which it should!" << endl;
 		   }
-		   else {
+		   else 
+		   {
 		      buffer=string("PID=") + string(pid) + ", running DYNINSTinit()...";
 		      statusLine(buffer.string_of());
 		   }
