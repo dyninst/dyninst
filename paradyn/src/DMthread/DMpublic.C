@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.27  1994/08/11 02:17:42  newhall
+ * Revision 1.28  1994/08/22 15:59:07  markc
+ * Add interface calls to support daemon definitions.
+ *
+ * Revision 1.27  1994/08/11  02:17:42  newhall
  * added dataManager interface routine destroyPerformanceStream
  *
  * Revision 1.26  1994/08/08  20:15:20  hollings
@@ -136,14 +139,26 @@ Boolean dataManager::addDaemon(applicationContext *app,
   return (app->getDaemon(machine, login, name));
 }
 
+Boolean dataManager::defineDaemon(applicationContext *app,
+				  char *command,
+				  char *dir,
+				  char *login,
+				  char *name,
+				  char *machine,
+				  int flavor)
+{
+  return (app->defineDaemon(command, dir, login, name, machine, flavor));
+}
+
 Boolean dataManager::addExecutable(applicationContext *app,
 				   char  *machine,
 				   char *login,
 				   char *name,
+				   char *dir,
 				   int argc,
 				   char **argv)
 {
-    return(app->addExecutable(machine, login, name, argc, argv));
+    return(app->addExecutable(machine, login, name, dir, argc, argv));
 }
 
 Boolean dataManager::applicationDefined(applicationContext *app)
@@ -400,4 +415,9 @@ timeStamp dataManager::getCurrentBucketWidth()
 int dataManager::getMaxBins()
 {
     return(Histogram::numBins);
+}
+
+void dataManager::printDaemons(applicationContext *app)
+{
+  app->printDaemons();
 }
