@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.25  1994/08/08 20:14:54  hollings
+ * Revision 1.26  1994/08/11 02:18:05  newhall
+ * added dataManager interface routine destroyPerformanceStream
+ *
+ * Revision 1.25  1994/08/08  20:14:54  hollings
  * added suppress instrumentation command.
  *
  * Revision 1.24  1994/08/05  16:03:46  hollings
@@ -309,7 +312,15 @@ $remote dataManager {
 					       abstractionType, 
 					       dataCallback, 
 					       controlCallback);
-	
+
+    // 
+    // Destroy a performanceStream.  
+    // 
+    // applicationContext  - an application context.
+    // performanceStream   - a stream returned by createPerformanceStream
+    //
+    int  destroyPerformanceStream(applicationContext*,
+				 performanceStream*);
 
     void setSampleRate(performanceStream *stream, timeStamp sampleInterval);
 

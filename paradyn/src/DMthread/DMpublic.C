@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.26  1994/08/08 20:15:20  hollings
+ * Revision 1.27  1994/08/11 02:17:42  newhall
+ * added dataManager interface routine destroyPerformanceStream
+ *
+ * Revision 1.26  1994/08/08  20:15:20  hollings
  * added suppress instrumentation command.
  *
  * Revision 1.25  1994/08/05  16:03:59  hollings
@@ -193,6 +196,19 @@ performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
 
     return(ps);
 }
+
+int dataManager::destroyPerformanceStream(applicationContext *ap,
+                                          performanceStream *ps){
+    int ok = 1;
+    performanceStream *temp;
+
+    if(temp = ap->streams.find(ps)){
+      ok = ap->streams.remove(ps);
+    }
+    return(ok);
+}
+
+
 
 String_Array dataManager::getAvailableMetrics(applicationContext *ap)
 {
