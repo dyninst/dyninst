@@ -276,6 +276,33 @@ BPatch_typeArray::BPatch_typeArray(BPatch_type *_base,
    arrayElem->incrRefCount();
 }
 
+bool BPatch_typeArray::operator==(const BPatch_type &otype) const {
+   try {
+      const BPatch_typeArray &oArraytype = dynamic_cast<const BPatch_typeArray &>(otype);
+      return (BPatch_rangedType::operator==(otype) && 
+              (*arrayElem)==*oArraytype.arrayElem);
+   } catch (...) {
+      return false;
+   }
+}
+
+void BPatch_typeArray::merge(BPatch_type *other) {
+   // There are wierd cases where we may define an array with an element
+   // that is a forward reference
+   
+   BPatch_typeArray *otherarray = dynamic_cast<BPatch_typeArray *>(other);
+
+   if ( otherarray == NULL || this->ID != otherarray->ID || 
+        this->arrayElem->getDataClass() != BPatch_dataUnknownType) {
+      bperr( "Ignoring attempt to merge dissimilar types.\n" );
+      return;
+   }
+
+   arrayElem->decrRefCount();
+   otherarray->arrayElem->incrRefCount();
+   arrayElem = otherarray->arrayElem;
+}
+
 void BPatch_typeArray::updateSize() {
    unsigned int elemSize;
 

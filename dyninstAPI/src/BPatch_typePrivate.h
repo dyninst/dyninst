@@ -159,6 +159,8 @@ class BPATCH_DLL_EXPORT BPatch_typeArray : public BPatch_rangedType {
  protected:
    void updateSize();
  public:
+   bool operator==(const BPatch_type &otype) const;
+   void merge(BPatch_type *other);
    BPatch_typeArray(int _ID, BPatch_type *_base, int _low, int _hi, const char *_name, unsigned int sizeHint = 0);
    BPatch_typeArray(BPatch_type *_base, int _low, int _hi, const char *_name);
    ~BPatch_typeArray() { arrayElem->decrRefCount(); }
