@@ -4,9 +4,12 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.7  1996/01/09 23:56:19  tamches
-/* added whereAxisDrawTipsCallback
+/* Revision 1.8  1996/04/01 22:34:35  tamches
+/* added whereAxisVisibilityCallbackCommand
 /*
+ * Revision 1.7  1996/01/09 23:56:19  tamches
+ * added whereAxisDrawTipsCallback
+ *
  * Revision 1.6  1995/10/17 22:22:44  tamches
  * abstractions is no longer a templated type.
  * Other minor changes corresponding to new where axis commits.
@@ -103,6 +106,29 @@ int whereAxisExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 
    if (theAbstractions->existsCurrent() && count==0)
       initiateWhereAxisRedraw(interp, true); // true --> double buffer
+
+   return TCL_OK;
+}
+
+int whereAxisVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
+				       int argc, char **argv) {
+   if (!tryFirstGoodWhereAxisWid(interp, topLevelTkWindow))
+      return TCL_ERROR;
+
+   assert(argc == 2);
+
+   char *newVisibility = argv[1];
+
+   if (0==strcmp(newVisibility, "VisibilityUnobscured"))
+      theAbstractions->makeVisibilityUnobscured();
+   else if (0==strcmp(newVisibility, "VisibilityPartiallyObscured"))
+      theAbstractions->makeVisibilityPartiallyObscured();
+   else if (0==strcmp(newVisibility, "VisibilityFullyObscured"))
+      theAbstractions->makeVisibilityFullyObscured();
+   else {
+      cerr << "unrecognized visibility " << newVisibility << endl;
+      return TCL_ERROR;
+   }
 
    return TCL_OK;
 }
@@ -405,6 +431,9 @@ void installWhereAxisCommands(Tcl_Interp *interp) {
 		     NULL, // clientData
 		     deleteDummyProc);
    Tcl_CreateCommand(interp, "whereAxisExposeHook", whereAxisExposeCallbackCommand,
+		     NULL, deleteDummyProc);
+   Tcl_CreateCommand(interp, "whereAxisVisibilityHook",
+		     whereAxisVisibilityCallbackCommand,
 		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "whereAxisSingleClickHook",
 		     whereAxisSingleClickCallbackCommand,
