@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWin.C,v 1.2 2004/06/21 22:06:55 pcroth Exp $
+// $Id: TermWin.C,v 1.3 2004/12/07 20:48:05 tlmiller Exp $
 #include <signal.h>
 #include "common/h/headers.h"
 #include "visiClients/termWin/src/TermWin.h"
@@ -261,8 +261,6 @@ TermWin::DispatchEvent( thread_t mtid, tag_t mtag )
 void
 TermWin::shutdown( void )
 {
-    // Paradyn is telling us that it is shutting down
-    shouldExit = true;
 }
 
 
