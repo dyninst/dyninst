@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.52 2004/04/06 16:37:17 bernat Exp $
+// $Id: sol_proc.C,v 1.53 2004/04/14 19:39:09 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -266,10 +266,6 @@ bool dyn_lwp::abortSyscall()
     
     // 1. Save the syscall number, registers, and blocked signals
     stoppedSyscall_ = status.pr_syscall;
-    // Copy registers as is getRegisters
-    syscallreg_ = new dyn_saved_regs;
-
-    getRegisters(syscallreg_);
 /*
     memcpy(&(syscallreg_->theIntRegs), &(status.pr_reg), sizeof(prgregset_t));
     memcpy(&(syscallreg_->theFpRegs), &(status.pr_fpreg), sizeof(prfpregset_t));
@@ -320,19 +316,20 @@ bool dyn_lwp::abortSyscall()
     prdelset(&sigs, SIGILL);
     
     // Set the signals to "ignore" and run, aborting the syscall
+#if 0
     int bufsize = sizeof(long) + sizeof(proc_sigset_t);
     char buf[bufsize]; long *bufptr = (long *)buf;
     *bufptr = PCSHOLD; bufptr++;
     memcpy(bufptr, &sigs, sizeof(proc_sigset_t));
-    
+
+    if (write(ctl_fd(), buf, bufsize) != bufsize) {
+        perror("abortSyscall: PCSHOLD"); return false;
+    }
+#endif
     long command[2];
     
     command[0] = PCRUN;
     command[1] = PRSABORT;
-    
-    if (write(ctl_fd(), buf, bufsize) != bufsize) {
-        perror("abortSyscall: PCSHOLD"); return false;
-    }
 
     if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
         perror("abortSyscall: PCRUN"); return false;
@@ -366,13 +363,20 @@ bool dyn_lwp::abortSyscall()
         logLine(errorLine);
         return 0;
     }
-    proc_->set_entry_syscalls(scsavedentry);
-    proc_->set_exit_syscalls(scsavedexit);
-    
+
+
+    // Get a copy of the registers and save for when we restart the syscall
+    // We ran the process, so clear the register cache
+    clearCachedRegister();
+    syscallreg_ = new dyn_saved_regs;
+    getRegisters(syscallreg_);
+    // And clear the cache again just to be safe
+    clearCachedRegister();
     // Remember the current PC.  When we continue the process at this PC
     // we will restart the system call.
-    postsyscallpc_ = (Address) GETREG_PC(status.pr_reg);
-    
+    postsyscallpc_ = (Address) GETREG_PC(syscallreg_->theIntRegs);
+    proc_->set_entry_syscalls(scsavedentry);
+    proc_->set_exit_syscalls(scsavedexit);
     return true;
 }
 
@@ -399,6 +403,7 @@ bool dyn_lwp::restartSyscall() {
     // runnable, restoring its previously blocked signals.
     // The signals were blocked as part of the abort mechanism.
     stoppedInSyscall_ = false;
+#if 0
     int bufsize = sizeof(long) + sizeof(proc_sigset_t);
     char buf[bufsize]; long *bufptr = (long *)buf;
     *bufptr = PCSHOLD; bufptr++;
@@ -407,14 +412,7 @@ bool dyn_lwp::restartSyscall() {
     if (write(ctl_fd(), buf, bufsize) != bufsize) {
         perror("continueLWP: PCSHOLD"); return false;
     }
-    
-    long command[2];
-    
-    command[0] = PCRUN;
-    command[1] = 0; // No arguments to PCRUN
-    if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
-        perror("continueLWP: PCRUN3"); return false;
-    }
+#endif
     return true;
 }
 
