@@ -42,7 +42,7 @@ x:
 	  nop
 	  mov     %o0, %l3                     /* %l3 = DYNINSTthreadSelf */
 	  cmp     %l3, 0                       /* if %l3 <= 0? */
-          bg      .LDYNINSTthreadPos_TEST1     /* DYNINSTthreadSelf>=0 */
+          bg      .LDYNINSTthreadPos_TEST1     /* DYNINSTthreadSelf>0 */
 	  ld      [%i1+DYNINST_ThreadTids],%l2 /* l2 = DYNINST_ThreadTids */
           ret                                    
           restore %g0,-2,%o0                   /* if thread id == 0, return -2 */

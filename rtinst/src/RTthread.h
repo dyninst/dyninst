@@ -50,10 +50,21 @@ typedef struct rpcToDo_s {
   tc_lock_t lock;
 } rpcToDo;
 
+#ifdef rs6000_ibm_aix4_1
+#include <pthread.h>
+#include <semaphore.h>
+typedef pthread_key_t      thread_key_t;
+typedef pthread_mutex_t    mutex_t;
+typedef pthread_cond_t     cond_t;
+typedef pthread_t          thread_t;
+typedef pthread_rwlock_t   rwlock_t;
+typedef sem_t              sema_t;
+#else
 #ifndef _thread_h_thread_h_ /* avoid type clash with  */
 #include <thread.h>
 #endif
 #include <synch.h>
+#endif
 
 typedef struct sharedData_s {
   tTimer virtualTimers[MAX_NUMBER_OF_THREADS] ;
