@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.213 2004/04/19 21:31:10 mirg Exp $
+// $Id: symtab.C,v 1.214 2004/07/23 20:39:01 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1150,8 +1150,7 @@ void pdmodule::define(process *proc) {
          if (mname && (0 == strcmp(mname, fileName().c_str()))) {
              dfsCreateLoopResources(pdf->getLoopTree(proc), res, pdf);
 	 }
-
-         free(prettyWithTypes);
+		if( prettyWithTypes != NULL ) { free(prettyWithTypes); }
       }
    }
    
