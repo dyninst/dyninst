@@ -1,6 +1,9 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.2  1994/05/23 01:55:46  karavan
+# Revision 1.3  1994/06/13 16:53:06  karavan
+# added mkLogo procedure
+#
+# Revision 1.2  1994/05/23  01:55:46  karavan
 # its a whole new look for paradyn!
 #
 # Revision 1.1  1994/05/03  06:36:03  karavan
@@ -24,6 +27,18 @@ proc mkMessage {w {text ""} {pack {top fillx}} args} {
         pack append [winfo parent $w] $w $pack
         return $w
 }
+
+# display paradyn logo in a raised box.  If no pack argument supplied, 
+#  defaults to left.
+proc mkLogo {w {pack left}} {
+    global PdMainBgColor PdBitmapDir
+
+    eval label $w -bitmap @$PdBitmapDir/logo.xbm -foreground #b3331e1b53c7 \
+	    -background $PdMainBgColor -relief raised
+    pack append [winfo parent $w] $w $pack
+    return $w
+}
+
 #----------------------------------------------------------------------------
 #  Make a bar of buttons and pack into parent.  Embed the left button in an
 #  additional sunken frame to indicaute that it is the default button, and
