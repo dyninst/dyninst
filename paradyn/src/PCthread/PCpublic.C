@@ -18,6 +18,9 @@
 /*
  * 
  * $Log: PCpublic.C,v $
+ * Revision 1.27  1996/01/09 00:45:54  tamches
+ * added phaseId argument to getNodeInfo
+ *
  * Revision 1.26  1996/01/08 22:08:00  tamches
  * Added igen call getNodeInfo() as a placeholder for the new PC
  * (i.e., it's not yet implemented)
@@ -470,9 +473,10 @@ void performanceConsultant::resetRefinement()
     currentSHGNode->changeActive(true);
 }
 
-bool performanceConsultant::getNodeInfo(int nodeId, shg_node_info *theNodeInfo) {
-   // this routine fills in "theNodeInfo", assuming that the "nodeId" passed
-   // in is valid.  If all's well, it returns true, else false.
+bool performanceConsultant::getNodeInfo(int phaseId, int nodeId,
+					shg_node_info *theNodeInfo) {
+   // this routine fills in "theNodeInfo", assuming that the "nodeId" and
+   // "phaseId" are good values.  If all's well, it returns true, else false.
    // (If false is returned, then "theNodeInfo" may be left un-filled-in)
 
    // "shg_node_info" is defined in performanceConsultant.I
