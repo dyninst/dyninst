@@ -1,7 +1,15 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.8  1994/06/29 21:47:38  hollings
+# Revision 1.10  1994/07/07 18:17:25  karavan
+# bug fix:  menu name specification error
+#
+# Revision 1.9  1994/07/07  05:57:05  karavan
+# UIM error service implementation
+#
+# CVr: ----------------------------------------------------------------------
+#
+# Revision 1.8  1994/06/29  21:47:38  hollings
 # killed old background colors and switched to motif like greys.
 # cleaned up option specification to use options data base.
 #
@@ -73,7 +81,7 @@ proc drawToolBar {} {
 
     wm geometry . =750x750
 
-    frame .menub -relief raised 
+    frame .menub -relief raised -borderwidth 2
     frame .where -height 100
     frame .main -height 400 -width 400
     frame .buttons 
@@ -82,33 +90,46 @@ proc drawToolBar {} {
 	    {EXIT "destroy ."}}
     .buttons.2 configure -state disabled
 
-    menubutton .menub.b1 -text "Setup" -menu .menub.b1.m 
-    menubutton .menub.b3 -text "Metrics" 
-    menubutton .menub.b5 -text "Start Visual" \
-	    -menu .menub.b5.m 
-    menubutton .menub.b6 -text "Help" 
-    menu .menub.b5.m -postcommand \
-	    {uimpd drawStartVisiMenu .menub.b5.m}
-    menu .menub.b1.m 
-    .menub.b1.m add command -label "Application Control" \
+    frame .menub.left
+    label .menub.left.title -text "Paradyn Main Control"
+    frame .menub.left.men
+    menubutton .menub.left.men.b1 -text "Setup" -menu .menub.left.men.b1.m 
+    menubutton .menub.left.men.b3 -text "Metrics"
+    menubutton .menub.left.men.b2 -text "Options"
+    menubutton .menub.left.men.b5 -text "Start Visual" \
+	    -menu .menub.left.men.b5.m 
+    menubutton .menub.left.men.b6 -text "Help" 
+    menu .menub.left.men.b5.m -postcommand \
+	    {uimpd drawStartVisiMenu .menub.left.men.b5.m}
+    menu .menub.left.men.b1.m 
+    .menub.left.men.b1.m add command -label "Application Control" \
 	    -command ApplicDefn
-    .menub.b1.m add command -label "Start Perf Consultant" \
+    .menub.left.men.b1.m add command -label "Start Perf Consultant" \
 	    -command {paradyn shg start}
-    .menub.b1.m add command -label "Options Control" \
+    .menub.left.men.b1.m add command -label "Options Control" \
 	    -state disabled
-
-
+    menu .menub.left.men.b2.m 
+    .menub.left.men.b2.m add command -label "Error History" \
+	    -command {showErrorHistory}
     wm title . "Paradyn"
 
+    pack .menub .main  -side top -fill x
     pack .buttons -side bottom -fill x
     pack .where -side bottom -fill x
-    pack .menub .main  -side top -fill x
 
-    mkLogo .menub.logobox
+    pack .menub.left.men.b6 -side right -padx 10
+    pack .menub.left.men.b1 .menub.left.men.b3 .menub.left.men.b2 \
+	    .menub.left.men.b5 \
+	    -side left -padx 10
+    pack .menub.left -side left -fill x
+    mkLogo .menub.logobox right
 
-    pack .menub.b6 .menub.b3 .menub.b5 \
-	    .menub.b1 -side right -padx 10
+    pack .menub.left.title .menub.left.men -side top -fill x
 
+    # read in error file
+
+    uplevel #0 {source "$PdBitmapDir/errorList.tcl"}
+    
     InitApplicDefnScreen 
 
 }
