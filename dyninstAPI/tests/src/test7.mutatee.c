@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test7.mutatee.c,v 1.5 2004/03/08 23:46:05 bernat Exp $ */
+/* $Id: test7.mutatee.c,v 1.6 2004/03/09 21:36:43 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -125,7 +125,8 @@ void mutateeMAIN()
      the postForkCallback */
 
   if (pid == 0) {   /* child */
-    func7_1();
+      dprintf("Child: starting tests\n");
+      func7_1();
     func7_2();
     func7_3();
     func7_4();
@@ -134,8 +135,10 @@ void mutateeMAIN()
     func7_7();
     func7_8();
     func7_9();
+    dprintf("Child: done with tests, exiting\n");
   } else if(pid > 0) {
-    func7_1();
+      dprintf("Parent: starting tests\n");
+      func7_1();
     func7_2();
     func7_3();
     func7_4();
@@ -144,6 +147,7 @@ void mutateeMAIN()
     func7_7();
     func7_8();
     func7_9();
+    dprintf("Parent: done with tests, exiting\n");
   } else if(pid < 0) {
     fprintf(stderr, "error on fork\n");
     exit(pid);  /* error case */

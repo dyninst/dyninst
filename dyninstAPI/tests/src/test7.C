@@ -1,4 +1,4 @@
-// $Id: test7.C,v 1.10 2004/03/08 23:46:04 bernat Exp $
+// $Id: test7.C,v 1.11 2004/03/09 21:36:43 bernat Exp $
 //
 
 #include <stdio.h>
@@ -1095,19 +1095,27 @@ void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
    //fprintf(stderr, "in postForkFunc\n");
     /* For later identification */
     childThread = child;
+    dprintf("Preparing tests on parent\n");
     prepareTests(Parent_p, parent, PostFork);
+    dprintf("Preparing tests on child\n");
     prepareTests(Child_p,  child,  PostFork);
+    dprintf("Fork handler finished (parent %p, child %p)\n", parent, child);
 }
 
 /* And verify them when they exit */
 
 void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
+    dprintf("Exit func called\n");
     if (thread == parentThread) {
+        dprintf("Parent exit reached, checking...\n");
         checkTests(Parent_p, thread);
         parentDone = true;
+        dprintf("Parent done\n");
     }
     else if (thread == childThread) {
+        dprintf("Child exit reached, checking...\n");
         checkTests(Child_p, thread);
+        dprintf("Child done\n");
         childDone = true;
     }
     else {
@@ -1164,7 +1172,11 @@ void mutatorMAIN(char *pathname)
     /* Secondary test: we should not have to manually continue
        either parent or child at any point */
     while(!(parentDone && childDone)) {
+        dprintf("Mutator waiting for status change on child\n");
         bpatch->waitForStatusChange();
+        /* Clear terminated bits */
+        parentThread->isTerminated();
+        childThread->isTerminated();
     }
     showFinalResults();
     exit(0);
