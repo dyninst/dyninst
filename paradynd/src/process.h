@@ -724,4 +724,6 @@ class Frame {
     Frame getPreviousStackFrameInfo(process *proc) const;
 };
 
+extern vector<process *> processVec;
+
 #endif
