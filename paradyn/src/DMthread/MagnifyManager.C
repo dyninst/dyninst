@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: MagnifyManager.C,v 1.1 1999/05/24 16:55:08 cain Exp $
+// $Id: MagnifyManager.C,v 1.2 1999/06/04 16:05:39 cain Exp $
 
 #include "DMinclude.h"
 #include "MagnifyManager.h"
@@ -51,19 +51,19 @@ vector <resourceHandle>* MagnifyManager::getChildren
 
     // default type is original....
     if (!rh->MagnifyTypeApplies(type)) {
-	type = eOriginal;
+      type = OriginalSearch;
     }
 
     switch(type) {
-	case eOriginal:
+	case OriginalSearch:
 #ifdef PCDEBUG
 printf("in getchildren, original magnify type\n");
 #endif
 	    return rh->getChildren();
 	    break;
-	case eCallGraph:
+	case CallGraphSearch:
 #ifdef PCDEBUG
-printf("in getchildren, eCallGraph magnify type\n");
+printf("in getchildren, CallGraph magnify type\n");
 #endif
 	    // ALERT ALERT - needs to be replaced w/ actual program
 	    //  number if different programs being examined in single

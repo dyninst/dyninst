@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.47 1999/06/03 07:16:14 nash Exp $
+// $Id: DMresource.C,v 1.48 1999/06/04 16:05:39 cain Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -550,7 +550,7 @@ vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type){
     vector<rlNameId> *return_list;
 
     // supported magnify types....
-    assert(type == eOriginal || type == eCallGraph);
+    assert(type == OriginalSearch || type == CallGraphSearch);
 
     // check to see if rh is a component of this resourceList
     unsigned rIndex = elements.size();

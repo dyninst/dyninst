@@ -41,7 +41,7 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.9 1998/08/16 23:37:39 wylie Exp $
+ * $Id: PCconstants.C,v 1.10 1999/06/04 16:07:01 cain Exp $
  */
 
 #include "PCintern.h"
@@ -88,6 +88,15 @@ void TCcollectInstrTimingsCB (bool newval)
 void TCuseIndividualThresholdsCB (bool newval)
 {
   performanceConsultant::useIndividualThresholds = newval;
+}
+
+extern bool haveSeenFirstGoodShgWid; //UIpublic.C
+
+void TCEnableCGSearchesCB (bool newval){
+  if(!haveSeenFirstGoodShgWid)
+    performanceConsultant::useCallGraphSearch = newval;
+  else 
+    uiMgr->showError(111, "");
 }
 
 void initPCconstants ()
@@ -207,6 +216,14 @@ void initPCconstants ()
      developerConstant, 
      boolInitializer);
   TCuseIndividualThresholdsCB (boolInitializer);
+  
+  boolInitializer = false;
+  tunableConstantRegistry::createBoolTunableConstant
+    ("PCuseCallGraphSearch", 
+     "Changes functionality of performance consultant to use call graph based searches", 
+     TCEnableCGSearchesCB, 
+     developerConstant,
+     boolInitializer);
 
   floatInitializer = 0.20;
   tunableConstantRegistry::createFloatTunableConstant 

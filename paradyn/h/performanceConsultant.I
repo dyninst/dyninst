@@ -1,6 +1,6 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.35 1999/05/19 07:52:18 karavan Exp $
+ * $Id: performanceConsultant.I,v 1.36 1999/06/04 16:04:29 cain Exp $
  */
 
 #include "dataManager.thread.h"
@@ -43,7 +43,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 21;
+    $version 22;
 
     // If search is paused, resumes search.  Otherwise, performs
     // all initialization for new search; initializes root node and 
@@ -81,6 +81,7 @@ $remote performanceConsultant {
     static bool printDataCollection;
     static bool collectInstrTimings;
     static bool useIndividualThresholds;
+    static bool useCallGraphSearch;
     // other PC-globals
     static unsigned DMcurrentPhaseToken;
     static unsigned currentPhase;

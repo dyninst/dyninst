@@ -41,13 +41,14 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.57 1999/05/19 07:50:26 karavan Exp $
+ * $Id: PCshg.C,v 1.58 1999/06/04 16:07:02 cain Exp $
  */
 
 #include "PCintern.h"
 #include "PCshg.h"
 #include "PCexperiment.h"
 #include "PCsearch.h"
+#include "../DMthread/DMinclude.h"
 
 //
 // ****** searchHistoryNode *******
@@ -305,7 +306,12 @@ searchHistoryNode::expandWhere()
       continue;
     if (!why->isPruned(currHandle)) {
       // prunes limit the resource trees along which we will expand this node
-      kids = dataMgr->magnify(currHandle, where);
+
+      if(performanceConsultant::useCallGraphSearch)
+	kids = dataMgr->magnify(currHandle, where, CallGraphSearch);
+      else 
+	kids = dataMgr->magnify(currHandle, where, OriginalSearch);
+      
       if ( (kids != NULL) && (kids->size() >= 1)) {
 	// note we don't bother refining if there's only a single child, 
 	// because the child would trivially test true.

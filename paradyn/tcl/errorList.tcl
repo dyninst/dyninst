@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.40 1999/05/24 17:06:17 cain Exp $
+# $Id: errorList.tcl,v 1.41 1999/06/04 16:08:22 cain Exp $
 
 #
 # Error message format:
@@ -978,9 +978,16 @@ set pdError(110) {
 {No additional information available.}
 }
 
+set pdError(111) {
+{Search type may not be changed after starting performance consultant.} 
+{pc}
+{warning}
+{No additional information available.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 110
+    return 111
 }

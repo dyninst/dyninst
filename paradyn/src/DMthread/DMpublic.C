@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.108 1999/05/26 22:49:53 cain Exp $
+// $Id: DMpublic.C,v 1.109 1999/06/04 16:05:38 cain Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -904,32 +904,15 @@ void dataManager::disableDataAndClearPersistentData(perfStreamHandle ps_handle,
 // if the resource rh is a component of the focus rlh, otherwise it returns 0
 //
 vector<rlNameId> *dataManager::magnify(resourceHandle rh, 
-				       resourceListHandle rlh){
+				       resourceListHandle rlh, magnifyType m){
   
 #ifdef PCDEBUG
-  printf("Call made to datamanager:magnify, which is calling resourceList::magnify(rh, eCallGraph)\n");
+  printf("Call made to datamanager:magnify, which is calling resourceList::magnify(rh, CallGraphSearch)\n");
 #endif
 
     resourceList *rl = resourceList::getFocus(rlh);
     if(rl){
-      //return(rl->magnify(rh, eCallGraph));
-      return(rl->magnify(rh, eOriginal));
-    }
-    return 0;
-}
-
-
-//
-// This routine returns a list of foci each of which is the result of combining
-// a child of one of the resources with the remaining resource components of
-// rlh, this routine returns 0 if no resource components of rlh have children
-// The DM allocates the vector, the client is responsible for deallocation
-//
-vector<rlNameId> *dataManager::magnify2(resourceListHandle rlh){
-    resourceList *rl = resourceList::getFocus(rlh);
-    if(rl){
-      //return (rl->magnify(eCallGraph));
-      return (rl->magnify(eOriginal));
+      return(rl->magnify(rh, m));
     }
     return 0;
 }

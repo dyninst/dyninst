@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.67 1999/04/27 16:03:39 nash Exp $ */
+/* $Id: PCmain.C,v 1.68 1999/06/04 16:07:01 cain Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -77,6 +77,7 @@ bool performanceConsultant::printTestResults  = false;
 bool performanceConsultant::printDataTrace = false;   
 bool performanceConsultant::collectInstrTimings = false;
 bool performanceConsultant::useIndividualThresholds  = false;
+bool performanceConsultant::useCallGraphSearch = false;
 // 0 means no current phase defined  
 unsigned performanceConsultant::currentPhase = 0; 
 unsigned performanceConsultant::DMcurrentPhaseToken = 0;

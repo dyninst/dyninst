@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.41 1999/06/03 07:16:14 nash Exp $
+// $Id: DMresource.h,v 1.42 1999/06/04 16:05:39 cain Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -129,9 +129,9 @@ class resource {
     //  necessitated some types of magnification which semantically
     //  apply to only some resources....
     bool MagnifyTypeApplies(magnifyType t) {
-        assert(t == eOriginal || t == eCallGraph);
-	if (t == eOriginal) return true;
-	assert(t == eCallGraph);
+        assert(t == OriginalSearch || t == CallGraphSearch);
+	if (t == OriginalSearch) return true;
+	assert(t == CallGraphSearch);
 	if (!strcmp(fullName[0].string_of(), "Code")) {
 	    return true;
 	}
@@ -206,7 +206,7 @@ class resourceList {
 
       // Syntacticaly assuming here that all magnify types are equally
       //  applicable to all resources - conceptually this is not the case
-      //  (eCallGraph applies to magnifying down the call graph only),
+      //  (CallGraphSearch applies to magnifying down the call graph only),
       //  - but this makes the interface more uniform and cleaner....
       // Therefore, when something which handles non-standard magnification
       //  types for a resource hierarchy which it does not handle, it

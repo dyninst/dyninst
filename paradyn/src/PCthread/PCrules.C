@@ -42,7 +42,7 @@
 /*
  * The specific metric and hypothesis definitions which will eventually 
  * be parsed from a configuration file.
- * $Id: PCrules.C,v 1.45 1998/08/16 23:37:40 wylie Exp $
+ * $Id: PCrules.C,v 1.46 1999/06/04 16:07:02 cain Exp $
  */
 
 #include "PCintern.h"
@@ -115,8 +115,12 @@ void initPCmetrics()
   // its dictionary, accessed by string name
   PCmetric *temp;
   metNameFocus specs[10];
-  
-  specs[0].mname = "cpu";
+
+  if(performanceConsultant::useCallGraphSearch)
+    specs[0].mname = "cpu_inclusive";
+  else 
+    specs[0].mname = "cpu";
+
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
   specs[1].mname = "active_processes";
@@ -129,7 +133,11 @@ void initPCmetrics()
     cout << "PCmetric " << temp->getName() << " created." << endl;
 #endif
 
-  specs[0].mname = "cpu";
+  if(performanceConsultant::useCallGraphSearch)
+    specs[0].mname = "cpu_inclusive";
+  else
+    specs[0].mname = "cpu";
+
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
   temp = new PCmetric ("nonNormalizedCPUtime", specs, 1, NULL, NULL, 1);

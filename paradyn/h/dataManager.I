@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.91 1999/05/25 22:35:38 nash Exp $
+ * $Id: dataManager.I,v 1.92 1999/06/04 16:04:28 cain Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -159,7 +159,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 53;
+    $version 54;
 
     //
     // Start a paradyn daemon
@@ -367,14 +367,8 @@ $remote dataManager {
     // if the resource rh is a component of the focus rlh, otherwise returns 0
     //
     vector<rlNameId> *magnify(resourceHandle rh, 
-					resourceListHandle rlh);
-
-    //
-    // returns a list of foci each of which is the result of combining a child
-    // of one of the resources with the remaining resource components of rlh,
-    // this routine returns 0 if no resource components of rlh have children
-    //
-    vector<rlNameId> *magnify2(resourceListHandle rlh);
+			      resourceListHandle rlh,
+                              magnifyType m);
 
     //
     // if resource rh is a decendent of a component of the focus, return a new
