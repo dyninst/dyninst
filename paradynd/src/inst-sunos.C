@@ -3,7 +3,14 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.25  1995/02/16 08:53:29  markc
+ * Revision 1.26  1995/03/10 19:33:49  hollings
+ * Fixed several aspects realted to the cost model:
+ *     track the cost of the base tramp not just mini-tramps
+ *     correctly handle inst cost greater than an imm format on sparc
+ *     print starts at end of pvm apps.
+ *     added option to read a file with more accurate data for predicted cost.
+ *
+ * Revision 1.25  1995/02/16  08:53:29  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.24  1995/02/16  08:33:28  markc
@@ -101,7 +108,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.25 1995/02/16 08:53:29 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.26 1995/03/10 19:33:49 hollings Exp $";
 
 #include "os.h"
 #include "metric.h"
@@ -170,15 +177,31 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTincrementCounter"] = 16;
     // 240 ns
     primitiveCosts["DYNINSTdecrementCounter"] = 16;
-    // 7.4 usec * 70 mhz (SS-5)
-    primitiveCosts["DYNINSTstartWallTimer"] = 518;
-    // 9.6 usec * 70 mhz (SS-5)
-    primitiveCosts["DYNINSTstopWallTimer"] = 841;
-    // 1.80 usec * 70 Mhz (measured on a SS-5)
-    primitiveCosts["DYNINSTstartProcessTimer"] = 126;
-    // 3.46 usec * 70 mhz (measured on a SS-5)
-    primitiveCosts["DYNINSTstopProcessTimer"] = 242;
+#ifdef sparc_sun_solaris2_3
+    // Solaris measured 
+    // clock == 39.173MHz
+    // cost per call DYNINSTstartWallTimer 11.700000 usec 
+    // cost per call DYNINSTstopWallTimer 22.550000 usec 
+    // cost per call DYNINSTstartProcessTimer 14.650000 usec 
+    // cost per call DYNINSTstopProcessTimer 24.550000 usec 
+    logLine("Solaris dyninst costs being used");
 
+    primitiveCosts["DYNINSTstartWallTimer"] = 468;
+    primitiveCosts["DYNINSTstopWallTimer"] = 900;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 574;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 961;
+#else
+    // 23.39 usec * 85 mhz (SS-5)
+    primitiveCosts["DYNINSTstartWallTimer"] = 1988;
+    // 48.05 usec * 85 mhz (SS-5)
+    primitiveCosts["DYNINSTstopWallTimer"] = 4084;
+    // 1.80 usec * 70 Mhz (measured on a SS-5)
+    // 25 cycles (read clock) +  26 (startProcessTimer)
+    primitiveCosts["DYNINSTstartProcessTimer"] = 51;
+    // 3.46 usec * 70 mhz (measured on a SS-5)
+    // 61 cycles + 2*25 cycles to read clock
+    primitiveCosts["DYNINSTstopProcessTimer"] = 111;
+#endif
 }
 
 int flushPtrace()
@@ -230,7 +253,6 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     argv[8] = P_strdup(process::arg_list[4].string_of());
     argv[9] = P_strdup(process::arg_list[5].string_of());
     argv[10] = NULL;
-
     if ((childPid=fork()) == 0) {		/* child */
       P_execvp (command, argv);
       logLine("Exec failed in paradynd to start paradyndCM5\n");

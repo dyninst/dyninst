@@ -1,7 +1,14 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.6  1995/02/16 08:53:12  markc
+ * Revision 1.7  1995/03/10 19:33:46  hollings
+ * Fixed several aspects realted to the cost model:
+ *     track the cost of the base tramp not just mini-tramps
+ *     correctly handle inst cost greater than an imm format on sparc
+ *     print starts at end of pvm apps.
+ *     added option to read a file with more accurate data for predicted cost.
+ *
+ * Revision 1.6  1995/02/16  08:53:12  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.5  1995/02/16  08:33:19  markc
@@ -110,6 +117,7 @@ bool init() {
   sym_data sd;
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
 
+  initDefaultPointFrequencyTable();
   return (initOS());
 }
 

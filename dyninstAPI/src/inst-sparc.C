@@ -19,14 +19,21 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.22 1995/02/24 04:42:04 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.23 1995/03/10 19:33:47 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.22  1995/02/24 04:42:04  markc
+ * Revision 1.23  1995/03/10 19:33:47  hollings
+ * Fixed several aspects realted to the cost model:
+ *     track the cost of the base tramp not just mini-tramps
+ *     correctly handle inst cost greater than an imm format on sparc
+ *     print starts at end of pvm apps.
+ *     added option to read a file with more accurate data for predicted cost.
+ *
+ * Revision 1.22  1995/02/24  04:42:04  markc
  * Check if an address could be for an instruction before checking to see if it
  * is delayed, since we should not be checking instructions that are out of range.
  *
@@ -184,6 +191,7 @@ unsigned getMaxBranch() {
 
 #define REG_L0          16
 #define REG_L1          17
+#define REG_L2          18
 
 const char *registerNames[] = { "g0", "g1", "g2", "g3", "g4", "g5", "g6", "g7",
 				"o0", "o1", "o2", "o3", "o4", "o5", "sp", "o7",
@@ -401,10 +409,35 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
     return ret;
 }
 
+//
+// initDefaultPointFrequencyTable - define the expected call frequency of
+//    procedures.  Currently we just define several one shots with a
+//    frequency of one, and provide a hook to read a file with more accurate
+//    information.
+//
 void initDefaultPointFrequencyTable()
 {
+    FILE *fp;
+    float value;
+    char name[512];
+
     funcFrequencyTable["main"] = 1;
+    funcFrequencyTable["DYNINSTsampleValues"] = 1;
     funcFrequencyTable[EXIT_NAME] = 1;
+
+    // try to read file.
+    fp = fopen("freq.input", "r");
+    if (!fp) {
+        return;
+    } else {
+        printf("found freq.input file\n");
+    }
+    while (!feof(fp)) {
+        fscanf(fp, "%s %f\n", name, &value);
+        funcFrequencyTable[name] = (int) value;
+        printf("adding %s %f\n", name, value);
+    }
+    fclose(fp);
 }
 
 /*
@@ -443,6 +476,20 @@ float getPointFrequency(instPoint *point)
       }
     } else 
       return (funcFrequencyTable[func->prettyName()]);
+}
+
+//
+// return cost in cycles of executing at this point.  This is the cost
+//   of the base tramp if it is the first at this point or 0 otherwise.
+//
+int getPointCost(process *proc, instPoint *point)
+{
+    if (proc->baseMap.defines(point)) {
+        return(0);
+    } else {
+        // 8 cycles for base tramp
+        return(8);
+    }
 }
 
 /*
@@ -751,36 +798,66 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	base += 3 * sizeof(instruction);
     } else if (op ==  trampPreamble) {
         genImmInsn(insn, SAVEop3, 14, -112, 14);
+	base += sizeof(instruction);
         insn++;
       
         // generate code to update the observed cost.
 	// sethi %hi(dest), %l0
         generateSetHi(insn, dest, REG_L0);
+	base += sizeof(instruction);
         insn++;
   
 	// ld [%l0+ lo(dest)], %l1
         generateLoad(insn, REG_L0, dest, REG_L1);
+	base += sizeof(instruction);
         insn++;
   
         // update value
-        genImmInsn(insn, ADDop3, REG_L1, src1, REG_L1);
-        insn++;
+	if (src1 < MAX_IMM) {
+	    genImmInsn(insn, ADDop3, REG_L1, src1, REG_L1);
+	    base += sizeof(instruction);
+	    insn++;
+	} else {
+	    // load in two parts
+            generateSetHi(insn, src1, REG_L2);
+            base += sizeof(instruction);
+            insn++;
+
+            // or regd,imm,regd
+            genImmInsn(insn, ORop3, REG_L2, LOW(src1), REG_L2);
+            base += sizeof(instruction);
+            insn++;
+
+            // now add it
+            genSimpleInsn(insn, ADDop3, REG_L1, REG_L2, REG_L1);
+            base += sizeof(instruction);
+            insn++;
+	}
   
         // store result st %l1, [%l0+ lo(dest)];
         generateStore(insn, REG_L1, REG_L0, dest);
-  
-        base += 5 * sizeof(instruction);
+	base += sizeof(instruction);
+	insn++;
     } else if (op ==  trampTrailer) {
-        genSimpleInsn(insn, RESTOREop3, 0, 0, 0); insn++;
+        genSimpleInsn(insn, RESTOREop3, 0, 0, 0); 
+	base += sizeof(instruction);
+	insn++;
 
 	generateNOOP(insn);
+	base += sizeof(instruction);
 	insn++;
 
 	// dest is in words of offset and generateBranchInsn is bytes offset
 	generateBranchInsn(insn, dest << 2);
+	base += sizeof(instruction);
+	insn++;
 
-	base += sizeof(instruction) * 3;
-	return(base -  sizeof(instruction));
+        // add no-op, SS-5 sometimes seems to try to decode this insn - jkh 2/14
+        generateNOOP(insn);
+        insn++;
+        base += sizeof(instruction);
+
+	return(base -  2 * sizeof(instruction));
     } else if (op == noOp) {
 	generateNOOP(insn);
 	base += sizeof(instruction);
@@ -862,13 +939,15 @@ reg getParameter(reg dest, int param)
 int getInsnCost(opCode op)
 {
     if (op == loadConstOp) {
-	return(2);
+	return(1);
     } else if (op ==  loadOp) {
 	// sethi + load single
-	return(1+2);
+	return(1+1);
     } else if (op ==  storeOp) {
 	// sethi + store single
-	return(1+3);
+	// return(1+3);
+	// for SS-5 ?
+        return(1+2);
     } else if (op ==  ifOp) {
 	// subcc
 	// be
@@ -893,7 +972,7 @@ int getInsnCost(opCode op)
 	count += 1;
 
 	// jmpl
-	count += 2;
+	count += 1;
 
 	// noop
 	count += 1;
@@ -904,12 +983,13 @@ int getInsnCost(opCode op)
         // ld [%lo + %lo(obsCost)], %l1
         // add %l1, <cost>, %l1
         // st %l1, [%lo + %lo(obsCost)]
-        return(1+1+2+1+3);
+        // return(1+1+2+1+3);
+	return(1+1+1+1+2);
     } else if (op ==  trampTrailer) {
 	// restore
 	// noop
 	// retl
-	return(1+1+2);
+	return(1+1+1);
     } else if (op == noOp) {
 	// noop
 	return(1);

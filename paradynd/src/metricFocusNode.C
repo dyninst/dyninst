@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.50 1995/02/26 22:46:45 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.51 1995/03/10 19:33:54 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.50  1995/02/26 22:46:45  markc
+ * Revision 1.51  1995/03/10 19:33:54  hollings
+ * Fixed several aspects realted to the cost model:
+ *     track the cost of the base tramp not just mini-tramps
+ *     correctly handle inst cost greater than an imm format on sparc
+ *     print starts at end of pvm apps.
+ *     added option to read a file with more accurate data for predicted cost.
+ *
+ * Revision 1.50  1995/02/26  22:46:45  markc
  * Commented code that needs to be reexamined.
  *
  * Revision 1.49  1995/02/16  08:53:42  markc
@@ -884,6 +891,7 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
 void processCost(process *proc, traceHeader *h, costUpdate *s)
 {
     int i;
+    double unInstTime;
     process *p;
 
     if (proc->theCost.wallTimeLastTrampSample) {
@@ -896,8 +904,14 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     proc->theCost.currentPredictedCost = currentPredictedCost;
 
     // update totalPredicted cost.
+    // Need to multiply by the share of the un-inst time to get pred cost
+    //   for the interval.
+    //   timWOinst = TwInst/(1 + predCost);
+    //
+    unInstTime = ((h->process - proc->theCost.timeLastTrampSample)/1000000.0)/
+        (1 + proc->theCost.currentPredictedCost);
     proc->theCost.totalPredictedCost += proc->theCost.currentPredictedCost *
-	    (h->process - proc->theCost.timeLastTrampSample)/1000000.0;
+            unInstTime;
     proc->theCost.timeLastTrampSample = h->process;
 
     //
@@ -1058,8 +1072,12 @@ float instReqNode::cost()
     float value;
     float unitCost;
     float frequency;
+    int unitCostInCycles;
 
-    unitCost = ast->cost() / cyclesPerSecond;
+    unitCostInCycles = ast->cost() + getPointCost(proc, point) +
+        getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
+    // printf("unit cost = %d cycles\n", unitCostInCycles);
+    unitCost = unitCostInCycles/ cyclesPerSecond;
     frequency = getPointFrequency(point);
     value = unitCost * frequency;
 

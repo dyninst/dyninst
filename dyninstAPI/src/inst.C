@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.14 1995/02/16 08:53:33 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.15 1995/03/10 19:33:51 hollings Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.14  1995/02/16 08:53:33  markc
+ * Revision 1.15  1995/03/10 19:33:51  hollings
+ * Fixed several aspects realted to the cost model:
+ *     track the cost of the base tramp not just mini-tramps
+ *     correctly handle inst cost greater than an imm format on sparc
+ *     print starts at end of pvm apps.
+ *     added option to read a file with more accurate data for predicted cost.
+ *
+ * Revision 1.14  1995/02/16  08:53:33  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.13  1995/02/16  08:33:30  markc
@@ -186,6 +193,7 @@ static dictionary_hash<instPoint*, point*> activePoints(ipHash);
 instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     callWhen when, callOrder order)
 {
+    int trampCost;
     unsigned count;
     unsigned fromAddr;
     point *thePoint;
@@ -220,6 +228,10 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     assert(ret);
     ret->proc = proc;
 
+    // must do this before findAndInstallBaseTramp, puts the tramp in to
+    // get the correct cost.
+    trampCost = getPointCost(proc, location);
+
     /* make sure the base tramp has been installed for this point */
     ret->baseAddr = findAndInstallBaseTramp(proc, location);
 
@@ -229,7 +241,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     // return value is offset of return stmnt.
     //
     count = 0;
-    ret->returnAddr = ast->generateTramp(proc, insn, count); 
+    ret->returnAddr = ast->generateTramp(proc, insn, count, trampCost); 
 
     ret->trampBase = inferiorMalloc(proc, count);
     trampBytes += count;

@@ -1,7 +1,14 @@
 
 /*
  * $Log: init-pvm.C,v $
- * Revision 1.3  1994/11/10 18:57:54  jcargill
+ * Revision 1.4  1995/03/10 19:33:44  hollings
+ * Fixed several aspects realted to the cost model:
+ *     track the cost of the base tramp not just mini-tramps
+ *     correctly handle inst cost greater than an imm format on sparc
+ *     print starts at end of pvm apps.
+ *     added option to read a file with more accurate data for predicted cost.
+ *
+ * Revision 1.3  1994/11/10  18:57:54  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.2  1994/11/09  18:40:00  rbi
@@ -138,7 +145,7 @@ bool initOS() {
 			    createIOBytesTotal, ioPredicates, false);
 			    */
 
-  initialRequests = new instMapping[8];
+  initialRequests = new instMapping[9];
 
   initialRequests[0].set("pvm_send", "DYNINSTrecordTag",
 			 FUNC_ENTRY|FUNC_ARG, &tagArg);
@@ -148,10 +155,11 @@ bool initOS() {
   initialRequests[3].set("main", "DYNINSTinit", FUNC_ENTRY);
   initialRequests[4].set(EXIT_NAME, "DYNINSTalarmExpire", FUNC_ENTRY);
   initialRequests[5].set(EXIT_NAME, "DYNINSTbreakPoint", FUNC_ENTRY);
-  initialRequests[6].set("DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY);
+  initialRequests[6].set(EXIT_NAME, "DYNINSTprintCost", FUNC_ENTRY);
+  initialRequests[7].set("DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY);
 
   // KLUDGE TODO - false means end of array
-  initialRequests[7].set(NULL, NULL, 0, NULL, false);
+  initialRequests[8].set(NULL, NULL, 0, NULL, false);
 
   return true;
 };
