@@ -1,7 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.18  1995/06/02 20:55:58  newhall
-/* made code compatable with new DM interface
+/* Revision 1.19  1995/08/11 21:51:16  newhall
+/* Parsing of PDL files is done before thread creation
+/* Removed call to dataManager kludge method function
 /*
+ * Revision 1.18  1995/06/02  20:55:58  newhall
+ * made code compatable with new DM interface
+ *
  * Revision 1.17  1995/05/18  11:00:31  markc
  * added mdl hooks
  *
@@ -122,6 +126,9 @@ void eFunction(int errno, char *message)
     abort();
 }
 
+extern bool metDoTunable();
+extern bool metMain(string&);
+
 int
 main (int argc, char *argv[])
 {
@@ -170,6 +177,12 @@ main (int argc, char *argv[])
 
 // get tid of parent
   MAINtid = thr_self();
+
+// parse PDL files 
+// TODO: this should go in DM_init_seq routine 
+  string filename = fname;
+  metMain(filename);
+
 
      /* initialize the 4 main threads of paradyn: data manager, visi manager,
         user interface manager, performance consultant */
@@ -255,7 +268,7 @@ main (int argc, char *argv[])
 					       false,
 					       NULL,
 					       userConstant);
-					       
+
 // initialize DM
   // Structure used to pass initial arguments to data manager
   init_struct init; init.tid = MAINtid; init.met_file = fname;
@@ -326,8 +339,7 @@ main (int argc, char *argv[])
     uiMgr->readStartupFile (sname);
 
 // wait for UIM thread to exit 
-
-  dataMgr->kludge(fname);
+//  dataMgr->kludge(fname);
 
   thr_join (UIMtid, NULL, NULL);
 }
