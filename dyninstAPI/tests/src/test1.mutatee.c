@@ -407,7 +407,7 @@ void func2_1() { dprintf("func2_1 () called\n"); }
 void func3_1() { dprintf("func3_1 () called\n"); }
 void func4_1() { dprintf("func4_1 () called\n"); }
 void func5_1() { dprintf("func5_1 () called\n"); }
-void func6_1() { dprintf("func7_1 () called\n"); }
+void func6_1() { dprintf("func6_1 () called\n"); }
 void func7_1() { dprintf("func7_1 () called\n"); }
 
 void func8_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
