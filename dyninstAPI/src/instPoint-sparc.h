@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.18 2003/01/28 12:30:47 jodom Exp $
+// $Id: instPoint-sparc.h,v 1.19 2003/02/26 21:27:41 schendel Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -129,6 +129,7 @@ public:
   bool getRelocated() { return relocated_; }
   void setRelocated() { relocated_ = true; }
 
+  instPointType getPointType() { return ipType; }
 
 // TODO: These should all be private
 
