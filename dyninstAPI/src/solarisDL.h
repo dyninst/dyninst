@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: solarisDL.h,v 1.8 1998/08/16 23:39:04 wylie Exp $
+
 #if !defined(solaris_dl_hdr)
 #define solaris_dl_hdr
 
@@ -80,7 +82,7 @@ public:
     bool handleIfDueToSharedObjectMapping(process *proc,
 			vector<shared_object *> **changed_objects,
 			u_int &change_type,
-			bool &error_occured=false);
+			bool &error_occured);
     unsigned get_dlopen_addr() const { return dlopen_addr; }
     unsigned get_r_brk_addr() const { return r_brk_addr; }
     
