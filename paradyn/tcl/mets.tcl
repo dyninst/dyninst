@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.1  1994/05/07 18:11:43  karavan
+# Revision 1.2  1994/05/07 23:25:43  karavan
+# added msg if no metrics defined
+#
+# Revision 1.1  1994/05/07  18:11:43  karavan
 # initial version
 #
 
@@ -32,18 +35,23 @@ proc getMetsAndRes {} {
 	set ret 0
 	set msg1 "Select Visualization Metric(s)"
 	set msg2 "Enter Focus:"
-
+	set msg3 "No Metrics Currently Defined"
         mkDialogWindow $w
 
         mkFrame $w.top {top fill expand} -relief raised -border 1
         mkMessage $w.top.msg $msg1 {top expand padx 20 pady 20} \
-	          -aspect 1000 -font -Adobe-times-medium-r-normal--*-120*
+	          -aspect 1000 -font -Adobe-times-bold-r-normal--*-120*
 
-	for {set i 0} {$i < $metCount} {incr i} {
+	if {$metCount == 0} {
+	  mkMessage $w.top.nometsmsg $msg3 {top expand} \
+		-font -Adobe-times-medium-r-normal--*-120*
+        } else {
+	 for {set i 0} {$i < $metCount} {incr i} {
 	  checkbutton $w.top.cb$i  -width 20 -anchor w -padx 2 \
 	    -variable metmenuCB([expr $i]) \
 	    -text [lindex $metList [expr $i]]
 	  pack $w.top.cb$i -side top
+         }
         }
 
         mkFrame $w.mid {top fill expand} -relief raised -border 1
