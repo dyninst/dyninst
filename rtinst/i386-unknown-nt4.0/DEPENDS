@@ -2,7 +2,10 @@ RTwinnt.obj: ../../dyninstAPI_RT/src/RTwinnt.c \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/Types.h
 RTetc-winnt.obj: ../src/RTetc-winnt.c ../../rtinst/h/trace.h \
  ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
- ../../common/h/Types.h
+ ../../common/h/Types.h ../../rtinst/h/RThwtimer-winnt.h
+RThwtimer-winnt.obj: ../src/RThwtimer-winnt.c \
+ ../../rtinst/h/RThwtimer-winnt.h ../../common/h/Types.h \
+ ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h
 RTfirst.obj: ../src/RTfirst.c
 RTinst.obj: ../src/RTinst.c ../src/kludges.h ../../rtinst/h/rtinst.h \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/Types.h \
