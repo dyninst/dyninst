@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.3 1999/06/08 07:10:29 csserra Exp $
+// $Id: irixDL.C,v 1.4 1999/07/13 04:28:19 csserra Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h> // gregset_t
 #include "util/h/Types.h" // Address
 #include "util/h/Dictionary.h"
-#include "util/h/Object.h" // Object-elf32
+#include "util/h/Object.h" // ELF parsing
 #include "dyninstAPI/src/irixDL.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/arch.h" // instruction
@@ -83,13 +83,6 @@ static void print_mmaps(process *p)
 }
 */
 
-bool process::trapAtEntryPointOfMain()
-{
-  bool ret = (pcFromProc(proc_fd) == main_brk_addr);
-  //if (ret) fprintf(stderr, ">>> process::trapAtEntryPointOfMain()\n");
-  return ret;
-}
-
 bool process::trapDueToDyninstLib()
 {
   bool ret = (pcFromProc(proc_fd) == dyninstlib_brk_addr);
@@ -103,13 +96,25 @@ Address process::get_dlopen_addr() const
   return (dyn) ? (dyn->get_dlopen_addr()) : (0);
 }
 
+bool process::trapAtEntryPointOfMain()
+{
+  bool ret = (pcFromProc(proc_fd) == main_brk_addr);
+  //if (ret) fprintf(stderr, ">>> process::trapAtEntryPointOfMain(true)\n");
+  return ret;
+}
+
+/* insertTrapAtEntryPointOfMain(): For some Fortran apps, main() is
+   defined in a shared library.  If main() cannot be found, then we
+   check if the executable image contained a call to main().  This is
+   usually inside __start(). */
 void process::insertTrapAtEntryPointOfMain()
 {
-  //fprintf(stderr, ">>> process::insertTrapAtEntryPointOfMain()\n");
-
-  // save trap address: start of main()
-  // TODO: use start of "_main" if exists?
+  // insert trap near "main"
   main_brk_addr = lookup_fn(this, "main");
+  if (main_brk_addr == 0) {
+    main_brk_addr = getImage()->get_main_call_addr();
+  }
+  assert(main_brk_addr);
 
   // save original instruction
   readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true);
@@ -147,71 +152,135 @@ Address dynamic_linking::get_dlopen_addr() const {
   return dlopen_addr;
 }
 
+static bool isExecutable(process *p, const string &dso_name)
+{
+  if (dso_name == p->getImage()->file()) return true;
+  if (dso_name == p->getImage()->name()) return true;
+  if (dso_name == p->getArgv0()) return true;
+  return false;
+}
+
+static bool handleIfLibc(process *p, 
+			 const string &dso_name, Address dso_base,
+			 int &libc_fd, Address &libc_base)
+{
+  if (libc_fd == -1 && strstr(dso_name.string_of(), "libc.")) {
+    int proc_fd = p->getProcFileDescriptor();
+    assert(proc_fd);
+    libc_base = dso_base;
+    caddr_t libc_base_proc = (caddr_t)dso_base;
+    if ((libc_fd = ioctl(proc_fd, PIOCOPENM, &libc_base_proc)) == -1) {
+      perror("handleIfLibc(PIOCOPENM)");
+      return false;
+    }
+  }
+  return true;
+}
+			 
 vector<shared_object *> *
 dynamic_linking::getRldObjects(process *p, int &libc_fd, Address &libc_base)
 {
   //fprintf(stderr, ">>> dynamic_linking::getRldObjects()\n");
   vector<shared_object *> *ret = new vector<shared_object *>;
+  
+  // find rld map
+  Address rld_obj_addr = lookup_fn(p, "__rld_obj_head");
+  assert(rld_obj_addr);
 
-  internalSym rld_obj_sym;
-  if (!(p->findInternalSymbol(string("__rld_obj_head"), true, rld_obj_sym))) {
-    delete ret;
-    return NULL;
-  }
-  Address rld_obj_addr = rld_obj_sym.getAddr();
+  // ELF class: 32/64-bit
+  bool is_elf64 = p->getImage()->getObject().is_elf64();
+  if (is_elf64) {
 
-  // read address of (head of) rld map
-  Elf32_Obj_Info *rld_obj_head;
-  p->readDataSpace((void *)rld_obj_addr, sizeof(Elf32_Obj_Info *), 
-		   &rld_obj_head, true);
+    // read address of (head of) rld map
+    Elf64_Obj_Info *rld_obj_head;
+    // address-in-memory
+    p->readDataSpace((void *)rld_obj_addr, sizeof(Elf64_Obj_Info *), 
+		     &rld_obj_head, true);
+    // iterate through Elf64_Obj_Info list
+    Elf64_Obj_Info obj, *next;
+    for (next = rld_obj_head; 
+	 next != NULL; 
+	 next = (Elf64_Obj_Info *)obj.oi_next) 
+    {
+      // read rld object
+      p->readDataSpace(next, sizeof(Elf64_Obj_Info), &obj, true);
+      assert(obj.oi_magic == 0xffffffff); // TODO
+      
+      // DSO base address
+      Address dso_base = obj.oi_ehdr;
+      // DSO name
+      int name_len = obj.oi_pathname_len + 1;
+      char *name_buf = new char[name_len];
+      p->readDataSpace((char *)obj.oi_pathname, name_len, name_buf, true);
+      string dso_name = name_buf;
+      delete [] name_buf;
 
-  Elf32_Obj_Info obj, *next;
-  for (next = rld_obj_head; next != NULL; next = (Elf32_Obj_Info *)obj.oi_next) {
-    // read rld object
-    p->readDataSpace(next, sizeof(Elf32_Obj_Info), &obj, true);
-
-    // debug
-    prpsinfo_t info;
-    int proc_fd = p->getProcFileDescriptor();
-    ioctl(proc_fd, PIOCPSINFO, &info);
-
-    // DSO name
-    int name_len = obj.oi_pathname_len + 1;
-    char *name_buf = new char[name_len];
-    p->readDataSpace((char *)obj.oi_pathname, name_len, name_buf, true);
-    string dso_name = name_buf;
-    delete [] name_buf;
-
-    // first object in map is executable (skip)
-    // TODO: check against PIOCPSINFO strings
-    if (dso_name == p->getImage()->file() ||
-	dso_name == p->getImage()->name() || 
-	dso_name == p->getArgv0()) 
-      {
-	continue;
-      }
-
-    // DSO base address
-    Address dso_base = obj.oi_ehdr;
-
-    // new shared object
-    shared_object *so = new shared_object(dso_name, dso_base, false, true, true, 0);
-    *ret += so; // add to vector
-
-    // map "libc" to file descriptor
-    if (strstr(dso_name.string_of(), "libc.")) {
-      int proc_fd = p->getProcFileDescriptor();
-      assert(proc_fd);
-      libc_base = dso_base;
-      caddr_t libc_base_proc = (caddr_t)dso_base;
-      if ((libc_fd = ioctl(proc_fd, PIOCOPENM, &libc_base_proc)) == -1) {
-	perror("dynamic_linking::getRldObjects(PIOCOPENM)");
+      // skip a.out
+      if (isExecutable(p, dso_name)) continue;
+      
+      // check for libc
+      if (!handleIfLibc(p, dso_name, dso_base, libc_fd, libc_base)) {
+	for (unsigned i = 0; i < ret->size(); i++) 
+	  delete (*ret)[i];
 	delete ret;
 	return NULL;
       }
+      
+      // add new shared object
+      *ret += new shared_object(dso_name, dso_base, false, true, true, 0);
     }
+
+  } else { // 32-bit ELF
+    
+    // read address of (head of) rld map
+    Elf32_Obj_Info *rld_obj_head;
+    // address-in-memory
+    if (sizeof(void *) == sizeof(uint64_t)) {
+      // 32-bit application, 64-bit paradynd
+      rld_obj_head = NULL;
+      char *local_addr = ((char *)&rld_obj_head) + 4;
+      p->readDataSpace((void *)rld_obj_addr, sizeof(uint32_t), 
+		       local_addr, true);
+    } else { 
+      p->readDataSpace((void *)rld_obj_addr, sizeof(Elf32_Obj_Info *), 
+		       &rld_obj_head, true);
+    }
+
+    // iterate through Elf32_Obj_Info list
+    Elf32_Obj_Info obj, *next;
+    for (next = rld_obj_head; 
+	 next != NULL; 
+	 next = (Elf32_Obj_Info *)obj.oi_next) 
+    {
+      // read rld object
+      p->readDataSpace(next, sizeof(Elf32_Obj_Info), &obj, true);
+      assert(obj.oi_magic == 0xffffffff);
+      
+      // DSO base address
+      Address dso_base = obj.oi_ehdr;
+      // DSO name
+      int name_len = obj.oi_pathname_len + 1;
+      char *name_buf = new char[name_len];
+      p->readDataSpace((char *)obj.oi_pathname, name_len, name_buf, true);
+      string dso_name = name_buf;
+      delete [] name_buf;
+      if (isExecutable(p, dso_name)) continue; // skip a.out
+      
+      // check for libc
+      if (!handleIfLibc(p, dso_name, dso_base, libc_fd, libc_base)) {
+	for (unsigned i = 0; i < ret->size(); i++) 
+	  delete (*ret)[i];
+	delete ret;
+	return NULL;
+      }
+      
+      // add new shared object
+      *ret += new shared_object(dso_name, dso_base, false, true, true, 0);
+    }
+
   }
 
+  //if (is_elf64) fprintf(stderr, ">>> 64-bit getRldObjects() successful\n");
   return ret;
 }
 
@@ -221,30 +290,70 @@ void dynamic_linking::getObjectPath(process *p, Address ret_base, string &ret)
   //fprintf(stderr, ">>> dynamic_linking::getObjectPath(0x%08x)\n", base);
 
   // find head of rld map
-  internalSym rld_obj_sym;
-  p->findInternalSymbol(string("__rld_obj_head"), true, rld_obj_sym);
-  assert(rld_obj_sym.getAddr());
-  Address rld_obj_addr = rld_obj_sym.getAddr();
-  Elf32_Obj_Info *rld_obj_head;
-  p->readDataSpace((void *)rld_obj_addr, sizeof(Elf32_Obj_Info *), 
-		   &rld_obj_head, true);
+  Address rld_obj_addr = lookup_fn(p, "__rld_obj_head");
+  assert(rld_obj_addr);
 
-  // read rld map elements
-  Elf32_Obj_Info obj, *next;
-  for (next = rld_obj_head; next != NULL; next = (Elf32_Obj_Info *)obj.oi_next) {
-    p->readDataSpace(next, sizeof(Elf32_Obj_Info), &obj, true);
+  // ELF class: 32/64-bit
+  bool is_elf64 = p->getImage()->getObject().is_elf64();
+  if (is_elf64) {
 
-    // DSO base address
-    Address dso_base = obj.oi_ehdr;
-    if (dso_base == ret_base) {
-      // DSO name
-      int name_len = obj.oi_pathname_len + 1;
-      char *name_buf = new char[name_len];
-      p->readDataSpace((char *)obj.oi_pathname, name_len, name_buf, true);
-      ret = name_buf;
-      delete [] name_buf;
+    // read rld map elements
+    Elf64_Obj_Info *rld_obj_head;
+    // address-in-memory
+    p->readDataSpace((void *)rld_obj_addr, sizeof(Elf64_Obj_Info *), 
+		     &rld_obj_head, true);
+    Elf64_Obj_Info obj, *next;
+    for (next = rld_obj_head; 
+	 next != NULL; 
+	 next = (Elf64_Obj_Info *)obj.oi_next) 
+    {
+      p->readDataSpace(next, sizeof(Elf64_Obj_Info), &obj, true);
+      Address dso_base = obj.oi_ehdr;
+      if (dso_base == ret_base) {
+	// DSO name
+	int name_len = obj.oi_pathname_len + 1;
+	char *name_buf = new char[name_len];
+	p->readDataSpace((char *)obj.oi_pathname, name_len, name_buf, true);
+	//fprintf(stderr, ">>> 64-bit getObjectPath(): \"%s\"\n", name_buf);
+	ret = name_buf;
+	delete [] name_buf;
+      }
     }
+
+  } else { // 32-bit ELF
+
+    // read rld map elements
+    Elf32_Obj_Info *rld_obj_head;
+    // address-in-memory
+    if (sizeof(void *) == sizeof(uint64_t)) {
+      // 32-bit application, 64-bit paradynd
+      rld_obj_head = NULL;
+      char *local_addr = ((char *)&rld_obj_head) + 4;
+      p->readDataSpace((void *)rld_obj_addr, sizeof(uint32_t), 
+		       local_addr, true);
+    } else {
+      p->readDataSpace((void *)rld_obj_addr, sizeof(Elf32_Obj_Info *), 
+		       &rld_obj_head, true);
+    }
+    Elf32_Obj_Info obj, *next;
+    for (next = rld_obj_head; 
+	 next != NULL; 
+	 next = (Elf32_Obj_Info *)obj.oi_next) 
+    {
+      p->readDataSpace(next, sizeof(Elf32_Obj_Info), &obj, true);
+      Address dso_base = obj.oi_ehdr;
+      if (dso_base == ret_base) {
+	// DSO name
+	int name_len = obj.oi_pathname_len + 1;
+	char *name_buf = new char[name_len];
+	p->readDataSpace((char *)obj.oi_pathname, name_len, name_buf, true);
+	ret = name_buf;
+	delete [] name_buf;
+      }
+    }
+
   }
+  //if (is_elf64) fprintf(stderr, ">>> 64-bit getObjectPath() successful\n");
 }
 
 
@@ -275,75 +384,66 @@ bool dynamic_linking::setMappingHooks(process *p, int libc_fd, Address /*libc_ba
 {
   //fprintf(stderr, ">>> dynamic_linking::setMappingHooks()\n");
 
-  // ELF header
+  // ELF initialization
   assert(libc_fd != -1); 
   Elf *elfp = elf_begin(libc_fd, ELF_C_READ, 0);
   assert(elfp);
 
-  // section header names
-  Elf32_Ehdr *ehdrp = elf32_getehdr(elfp);
-  assert(ehdrp);
-  Elf_Scn *shstrscnp = elf_getscn(elfp, ehdrp->e_shstrndx);
-  assert(shstrscnp);
-  Elf_Data *shstrdatap = elf_getdata(shstrscnp, 0);
-  assert(shstrdatap);
-  const char *shnames = (const char *)shstrdatap->d_buf;
+  // ELF class: 32/64-bit
+  bool is_elf64 = p->getImage()->getObject().is_elf64();
 
-  // symbol table
-  Elf_Scn *symscnp = 0;
+  // find ".dynsym" and ".dynstr" sections
   Elf_Scn *strscnp = 0;
+  Elf_Scn *symscnp = 0;
+  const char *shnames = pdelf_get_shnames(elfp, is_elf64);
   Elf_Scn *scnp = 0;
   while ((scnp = elf_nextscn(elfp, scnp))) {
-    Elf32_Shdr *shdrp = elf32_getshdr(scnp);
-    assert(shdrp);
+    pdElfShdr pd_shdr(scnp, is_elf64); // wrapper object
+    assert(pd_shdr.err == false);
 
-    const char *shname = &shnames[shdrp->sh_name];
-    if (!strcmp(shname, ".dynsym")) symscnp = scnp;
-    else if (!strcmp(shname, ".dynstr")) strscnp = scnp;
+    const char *shname = &shnames[pd_shdr.pd_name];
+    if (strcmp(shname, ".dynstr") == 0) strscnp = scnp;
+    if (strcmp(shname, ".dynsym") == 0) symscnp = scnp;
     if (symscnp && strscnp) break;
   }
-  assert(symscnp);
   assert(strscnp);
+  assert(symscnp);
   
-  // symbol table (names)
+  // ELF symbol names
   Elf_Data *strdatap = elf_getdata(strscnp, 0);
   assert(strdatap);
   const char *symnames = (const char *)strdatap->d_buf;
-  // symbol table (symbols)
+  // ELF symbols
   Elf_Data *symdatap = elf_getdata(symscnp, 0);
   assert(symdatap);
-  unsigned nsyms = symdatap->d_size / sizeof(Elf32_Sym);
-  Elf32_Sym *syms = (Elf32_Sym *)symdatap->d_buf;
 
-  // find dlopen(), dlclose()
+  // find mapping symbols
+  pdElfSymVector pd_syms(symdatap, is_elf64);
+  unsigned nsyms = pd_syms.size();
   for (unsigned i = 0; i < nsyms; i++) {
-    Elf32_Sym *sym = &syms[i];
-    if (sym->st_shndx == SHN_UNDEF) continue;
-    if (ELF32_ST_TYPE(sym->st_info) == STT_FUNC) {
-      const char *name = &symnames[sym->st_name];
+    pdElfSym &pd_sym = pd_syms[i];
+    if (pd_sym.pd_shndx == SHN_UNDEF) continue;
+    if (pd_sym.pd_type != STT_FUNC) continue;
+    const char *name = &symnames[pd_sym.pd_name];
 
-      // find symbols: dlopen, ___tp_dlinsert_post, ___tp_dlremove_post
-      // unused: __tp_dlinsert_pre, __tp_dlinsert_version_pre
-      // unused: __tp_dlremove_pre
-      if (strcmp(name, "dlopen") == 0) {
-	//dlopen_addr = libc_base + sym->st_value;
-	dlopen_addr = sym->st_value;
-	//fprintf(stderr, "  %s found (%0#10x)\n", name, sym->st_value);
-      } else if (strcmp(name, "___tp_dlinsert_post") == 0) {
-	dso_events += new dsoEvent_t(p, DSO_INSERT_POST, sym->st_value);
-	//fprintf(stderr, "  %s found (%0#10x)\n", name, sym->st_value);
-      } else if (strcmp(name, "___tp_dlremove_post") == 0) {
-	//dso_events += new dsoEvent_t(p, DSO_REMOVE_POST, sym->st_value);
-	//fprintf(stderr, "  %s found (%0#10x)\n", name, sym->st_value);
-      }
+    // used symbols: dlopen, ___tp_dlinsert_post
+    // deprecated symbols: ___tp_dlremove_post
+    // unused: __tp_dlinsert_pre, __tp_dlinsert_version_pre
+    // unused: __tp_dlremove_pre
+    if (strcmp(name, "dlopen") == 0) {
+      dlopen_addr = pd_sym.pd_value;
+    } else if (strcmp(name, "___tp_dlinsert_post") == 0) {
+      dso_events += new dsoEvent_t(p, DSO_INSERT_POST, pd_sym.pd_value);
     }
   }
-  elf_end(elfp);
 
+  elf_end(elfp); // cleanup
 
-  // "_rld_text_resolve" address is store, but no trap is set (unused)
+  // "_rld_text_resolve" address stored (but unused)
+  // TODO: deprecate
   r_brk_addr = p->getImage()->getObject().get_rbrk_addr();
 
+  //if (is_elf64) fprintf(stderr, ">>> 64-bit setMappingHooks() successful\n");
   return true;
 }
 
@@ -360,8 +460,8 @@ void dynamic_linking::unsetMappingHooks(process * /*p*/)
 // dlclose events should result in a call to removeASharedObject
 vector<shared_object *> *dynamic_linking::getSharedObjects(process *p)
 {
-  //fprintf(stderr, ">>> dynamic_linking::getSharedObjects()\n");
-  int libc_fd;
+  //fprintf(stderr, ">>> getSharedObjects()\n");
+  int libc_fd = -1;
   Address libc_base;
 
   // process DSOs that have already been loaded
@@ -379,7 +479,51 @@ vector<shared_object *> *dynamic_linking::getSharedObjects(process *p)
 
 bool process::dlopenDYNINSTlib()
 {
-  //fprintf(stderr, ">>> process::dlopenDYNINSTlib()\n");
+  //fprintf(stderr, ">>> dlopenDYNINSTlib()\n");
+
+  // find runtime library
+  char *rtlib_var;
+  char *rtlib_prefix;
+#ifdef BPATCH_LIBRARY
+  rtlib_var = "DYNINSTAPI_RT_LIB";
+  rtlib_prefix = "libdyninstAPI_RT";
+#else
+  rtlib_var = "PARADYN_LIB";
+  rtlib_prefix = "libdyninstRT";
+#endif
+  char *rtlib_val = getenv(rtlib_var);
+  if (!rtlib_val) {
+    string msg = "The environment variable ";
+    msg += rtlib_var;
+    msg += " is not defined properly.";
+    showErrorCallback(101, msg);
+    return false;
+  }
+  assert(strstr(rtlib_val, rtlib_prefix));
+
+  // for 32-bit apps, modify the rtlib environment variable
+  char *rtlib_mod = "_n32";
+  if (!getImage()->getObject().is_elf64() &&
+      !strstr(rtlib_val, rtlib_mod)) 
+  {
+    char *rtlib_suffix = ".so.1";
+    // truncate suffix
+    // NOTE: this modifies the actual environment string
+    // (which we are about to replace, so it's OK)
+    char *ptr_suffix = strstr(rtlib_val, rtlib_suffix);
+    assert(ptr_suffix);
+    *ptr_suffix = 0;
+    // build environment variable
+    char buf[512];
+    sprintf(buf, "%s=%s%s%s", rtlib_var, rtlib_val, rtlib_mod, rtlib_suffix);
+    // allocate environment buffer
+    char *env = (char *)malloc(strlen(buf)+1);
+    assert(env);
+    strcpy(env, buf);
+    // insert environment name/value pair
+    int ret = putenv(env);
+    assert(ret == 0);
+  }
   
   // use "_start" as scratch buffer to invoke dlopen() on DYNINST
   Address baseAddr = lookup_fn(this, "_start");
@@ -391,22 +535,11 @@ bool process::dlopenDYNINSTlib()
   bufSize += INSN_SIZE;
   
   // step 1: DYNINST library string (data)
-  //Address libStart = bufSize;
+  //Address libStart = bufSize; // debug
   Address libAddr = baseAddr + bufSize;
-#ifdef BPATCH_LIBRARY
-  char *libVar = "DYNINSTAPI_RT_LIB";
-#else
-  char *libVar = "PARADYN_LIB";
-#endif
-  char *libName = getenv(libVar);
-  if (!libName) {
-    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined,"
-        " should be set to the pathname of the dyninstAPI_RT runtime library.");
-    showErrorCallback(101, msg);
-    return false;
-  }
-  int libSize = strlen(libName) + 1;
-  strcpy(buf + bufSize, libName);
+  char *libPath = getenv(rtlib_var); // see above
+  int libSize = strlen(libPath) + 1;
+  strcpy(buf + bufSize, libPath);
   bufSize += libSize;
   // pad to aligned instruction boundary
   if (!isAligned(baseAddr + bufSize)) {
@@ -442,11 +575,12 @@ bool process::dlopenDYNINSTlib()
   bufSize += INSN_SIZE;
   //int trapEnd = bufSize; // debug
 
+  // debug
   /*
   fprintf(stderr, "inferior dlopen code: (%i bytes)\n", bufSize);
   dis(buf, baseAddr);
   fprintf(stderr, "%0#10x      \"%s\"\n", baseAddr + libStart, buf + libStart);
-  for (int i = codeStart; i < trapEnd; i += INSN_SIZE) {
+  for (int i = codeStart; i < bufSize; i += INSN_SIZE) {
     dis(buf + i, baseAddr + i);
   }
   */
@@ -466,6 +600,13 @@ bool process::dlopenDYNINSTlib()
   bool ret = changePC(codeAddr, savedRegs);
   assert(ret);
 
+  // debug
+  /*
+  fprintf(stderr, "inferior dlopen code: (%i bytes)\n", bufSize - codeStart);
+  disDataSpace(this, (void *)(baseAddr + codeStart), 
+	       (bufSize - codeStart) / INSN_SIZE, "  ");
+  */
+
   dyninstlib_brk_addr = trapAddr;
   isLoadingDyninstLib = true;
   return true;
@@ -474,17 +615,46 @@ bool process::dlopenDYNINSTlib()
 // dlopenToAddr(): find DSO base address from dlopen() return value
 Address dynamic_linking::dlopenToAddr(process *p, void *dlopen_ret)
 {
-  // TODO: 64-bit version
-  // (Elf32_Obj_Info *) is offset 3 words from (void *) dlopen return value
-  unsigned *pobj_addr = ((unsigned *)dlopen_ret) + 3;
-  Elf32_Obj_Info *obj_addr, obj;
-  p->readDataSpace(pobj_addr, sizeof(Elf32_Obj_Info *), &obj_addr, true);
-  p->readDataSpace(obj_addr, sizeof(Elf32_Obj_Info), &obj, true);
+  Address ret;
 
-  // "Elf32_Obj_Info.oi_orig_ehdr": quickstart (precomputed) base address
-  // "Elf32_Obj_Info.oi_ehdr"     : runtime (actual) base address
-  //Address ret = obj.oi_ehdr - obj.oi_orig_ehdr;
-  Address ret = obj.oi_ehdr;
+  // ELF class: 32/64-bit
+  bool is_elf64 = p->getImage()->getObject().is_elf64();
+  if (is_elf64) {
+
+    // (Elf64_Obj_Info *) is offset 2 doublewords from
+    // the 64-bit dlopen return value (void *) 
+    Address pobj_addr = ((Address)dlopen_ret) + (2 * sizeof(uint64_t));
+    Elf64_Obj_Info *obj_addr, obj;
+    // address-in-memory
+    p->readDataSpace((void *)pobj_addr, sizeof(Elf64_Obj_Info *), &obj_addr, true);
+    p->readDataSpace(obj_addr, sizeof(Elf64_Obj_Info), &obj, true);
+    // "oi_orig_ehdr": quickstart (precomputed) base address
+    // "oi_ehdr"     : runtime (actual) base address
+    ret = obj.oi_ehdr;
+
+  } else { // 32-bit ELF
+
+    // (Elf32_Obj_Info *) is offset 3 words from
+    // the 32-bit dlopen return value (void *)
+    Address pobj_addr = ((Address)dlopen_ret) + (3 * sizeof(uint32_t));
+    Elf32_Obj_Info *obj_addr, obj;
+    // address-in-memory
+    if (sizeof(void *) == sizeof(uint64_t)) {
+      // 32-bit application, 64-bit paradynd
+      obj_addr = NULL;
+      char *local_addr = ((char *)&obj_addr) + 4;
+      p->readDataSpace((void *)pobj_addr, sizeof(uint32_t), local_addr, true);
+    } else {
+      p->readDataSpace((void *)pobj_addr, sizeof(Elf32_Obj_Info *), &obj_addr, true);
+    }
+    p->readDataSpace(obj_addr, sizeof(Elf32_Obj_Info), &obj, true);
+    // "oi_orig_ehdr": quickstart (precomputed) base address
+    // "oi_ehdr"     : runtime (actual) base address
+    ret = obj.oi_ehdr;
+    
+  }
+  
+  //if (is_elf64) fprintf(stderr, ">>> 64-bit dlopenToAddr() successful\n");
   return ret;
 }
 
@@ -527,12 +697,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
     genTrap(&trap);
 
     if (pc == event->fn_brk) {
-      // advance trap one instruction (deprecated)
-      //event->next_brk = regs[PROC_REG_RA];
-      //p->writeDataSpace((void *)event->fn_brk, INSN_SIZE, &event->buf);
-      //p->readDataSpace((void *)event->next_brk, INSN_SIZE, &event->buf, true);
-      //p->writeDataSpace((void *)event->next_brk, INSN_SIZE, &trap);
-
       // jr ra 
       assert(isInsnType(event->buf, JRmask, JRmatch));
       assert(event->buf.rtype.rs == REG_RA);
@@ -575,16 +739,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
       break;
     } else if (pc == event->next_brk) {
       assert(0); // TODO: remove this code (not reached)
-
-      // restore trap to call point
-      //p->writeDataSpace((void *)event->next_brk, INSN_SIZE, &event->buf);
-      //p->readDataSpace((void *)event->fn_brk, INSN_SIZE, &event->buf, true);
-      //p->writeDataSpace((void *)event->fn_brk, INSN_SIZE, &trap);
-      //event->next_brk = 0;
-
-      change_type = SHAREDOBJECT_NOCHANGE;
-      ret = true;
-      break;
     }
   }
 
@@ -593,7 +747,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 
 void process::handleIfDueToDyninstLib()
 {
-  //fprintf(stderr, ">>> process::handleIfDueToDyninstLib()\n");
+  //fprintf(stderr, ">>> handleIfDueToDyninstLib()\n");
 
   // restore code and registers
   Address code = lookup_fn(this, "_start");

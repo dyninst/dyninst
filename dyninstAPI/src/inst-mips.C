@@ -115,12 +115,17 @@ void print_inst_pts(const vector<instPoint*> &pts, pd_Function *fn)
 
 void print_function(pd_Function *f)
 {
-  fprintf(stderr, "0x%p: %s(%u insns):\n", 
-	  (void *)f->getAddress(0), f->prettyName().string_of(), f->size() / INSN_SIZE);
+  fprintf(stderr, "0x%016lx: %s (%i insns):\n", 
+	  f->getAddress(0), 
+	  f->prettyName().string_of(), 
+	  f->size() / (int)INSN_SIZE);
+
   vector<instPoint*> t;
   t += const_cast<instPoint*>(f->funcEntry(0));
   print_inst_pts(t, f);
+
   print_inst_pts(f->funcCalls(0), f);
+
   print_inst_pts(f->funcExits(0), f);
 }
 
@@ -162,51 +167,64 @@ Address lookup_fn(process *p, const string &f)
   return ret;
 }
 
-static bool mips_dis_init = true;
+static void mips_dis_init()
+{
+  static bool init = true;
+  if (init) {
+    //dis_init32("0x%016lx\t", 0, reg_names, 1);
+    //dis_init64("0x%016lx\t", 0, reg_names, 1);
+    init = false;
+  }
+}
+
 void disDataSpace(process *p, void *addr_, int ninsns, 
 		  const char *pre, FILE *stream)
 {
-  /*
-  if (mips_dis_init) {
-    mips_dis_init = false;
-    dis_init32(0, 0, reg_names, 1);
-  }
+  mips_dis_init();
   
   instruction *addr = (instruction *)addr_;
   assert(isAligned((Address)addr));
   instruction insn;
   char buf[64];
-  Elf32_Addr regmask, value, lsreg;
+  static bool is_elf64 = p->getImage()->getObject().is_elf64();
+
   for (int i = 0; i < ninsns; i++) {
     void *inTraced = addr + i;
     p->readDataSpace(inTraced, INSN_SIZE, &insn, true);
-    disasm32(buf, (Elf32_Addr)inTraced, *(Elf32_Addr *)&insn, &regmask, &value, &lsreg);
-    fprintf(stream, "%s%s\n", (pre) ? (pre) : (""), buf);
+    Elf32_Addr regmask, lsreg;
+    if (is_elf64) {
+
+      Elf64_Addr value;
+      //disasm64(buf, (Elf64_Addr)inTraced, *(Elf32_Addr *)&insn, &regmask, &value, &lsreg);
+
+    } else { // 32-bit app
+
+      Elf32_Addr value;
+      //disasm32(buf, (Elf32_Addr)inTraced, *(Elf32_Addr *)&insn, &regmask, &value, &lsreg);
+
+    }
+    if (pre) fprintf(stream, "%s", pre);
+    fprintf(stream, "%s\n", buf);
   }
-  */
 }
 
 void dis(void *actual_, void *addr_, int ninsns, 
 	 const char *pre, FILE *stream)
 {
-  /*
+  mips_dis_init();
+
   instruction *actual = (instruction *)actual_;
   instruction *addr = (instruction *)addr_;
   if (addr == NULL) addr = actual;
-
-  if (mips_dis_init) {
-    mips_dis_init = false;
-    dis_init32(0, 0, 0, 0);
-  }
-
   char buf[64];
+
   Elf32_Addr regmask, value, lsreg;
   for (int i = 0; i < ninsns; i++) {
-    disasm32(buf, (Elf32_Addr)(addr + i), *(Elf32_Addr *)(actual + i), 
-	     &regmask, &value, &lsreg);
+    Elf32_Addr inSelf = (Elf32_Addr)(addr + i);
+    Elf32_Addr insn = *(Elf32_Addr *)(actual + i);
+    //disasm32(buf, inSelf, insn, &regmask, &value, &lsreg);
     fprintf(stream, "%s%s\n", (pre) ? (pre) : (""), buf);
   }
-  */
 }
 
 /*
@@ -221,20 +239,23 @@ void dis(void *actual_, void *addr_, int ninsns,
  *   isTrap
  *
  */
-#define UNINSTR(str) fprintf(stderr, "uninstrumentable: %s (%0#10x: %i insns) - %s\n", \
-			     prettyName().string_of(), \
-			     file_->exec()->getObject().get_base_addr() + getAddress(0), \
-			     size() / INSN_SIZE, \
-			     str)
+#ifdef CSS_DEBUG_INST
+#define UNINSTR(str) \
+  fprintf(stderr, "uninstrumentable: %s (%0#10x: %i insns) - %s\n", \
+	  prettyName().string_of(), \
+	  file_->exec()->getObject().get_base_addr() + getAddress(0), \
+	  size() / INSN_SIZE, \
+	  str)
+#else
+#define UNINSTR(str)
+#endif
 
 bool pd_Function::findInstPoints(const image *owner) {
   //fprintf(stderr, "\n>>> pd_Function::findInstPoints()\n");
   //fprintf(stderr, "%0#10x: %s(%u insns):\n", 
   //getAddress(0), prettyName().string_of(), size() / INSN_SIZE);
   if (size() == 0) {
-#ifdef CSS_DEBUG_INST
     UNINSTR("zero length");
-#endif
     return false;
   }
 
@@ -251,7 +272,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   /* stack frame info */
   /* check if function has a stack frame:
-   *  - yes: entry point is "save" instruction (addiu sp,sp,-XX)
+   *  - yes: entry point is "save" instruction ([d]addiu sp,sp,-XX)
    *  - no: entry point is start of function
    */
   Address entry = findStackFrame(owner);
@@ -299,7 +320,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
 static bool contains(vector<int> &V, int val)
 {
-  for (int i = 0; i < V.size(); i++) {
+  for (unsigned i = 0; i < V.size(); i++) {
     if (V[i] == val) return true;
   }
   return false;
@@ -341,9 +362,10 @@ static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &s
 
 
   if (mult) {
-    fprintf(stderr, "*** %s (0x%08p: %i insns): stack frame\n",
-	    fn->prettyName().string_of(), (void *)fn->getAddress(0), 
-	    fn->size() / INSN_SIZE);
+    fprintf(stderr, "*** %s (0x%016lx: %i insns): stack frame\n",
+	    fn->prettyName().string_of(), 
+	    fn->getAddress(0), 
+	    fn->size() / (int)INSN_SIZE);
     vector<int> locals;
     for (unsigned i = 0; i < slots.size(); i++) {
       if (slots[i].size() > 0) {
@@ -390,8 +412,6 @@ Address pd_Function::findStackFrame(const image *owner)
     regSaves[i].slot = -1;
   }
 
-  regSave_t &save = regSaves[0];
-
   // multiple register saves
   vector<vector<int> >slots(32);
 
@@ -405,8 +425,8 @@ Address pd_Function::findStackFrame(const image *owner)
     insn.raw = owner->get_instruction(start + off);
     struct fmt_itype &itype = insn.itype;
 
-    // stack frame save: "addiu sp,sp,-XX" insn
-    if (itype.op == ADDIUop && 
+    // stack frame save: "[d]addiu sp,sp,-XX" insn
+    if ((itype.op == ADDIUop || itype.op == DADDIUop) && 
 	itype.rs == REG_SP &&
 	itype.rt == REG_SP &&
 	itype.simm16 < 0)
@@ -490,89 +510,65 @@ static int cmpByAddr(const void *A, const void *B)
 bool pd_Function::checkInstPoints()
 {
   //fprintf(stderr, ">>> pd_Function::checkInstPoints()\n");
-  vector<instPoint*> pts;
+  bool ret = true;
 
-  /* function has no entry point */
-  if (!funcEntry_) {
-    //fprintf(stderr, "!!/ no entry pt\n");
-#ifdef CSS_DEBUG_INST
-    UNINSTR("no entry point");
-#endif
-    return false;
-  } 
-  /* function has no exit points */
-  if (funcReturns.size() == 0) {
-    //fprintf(stderr, "!! no exit pts\n");
-#ifdef CSS_DEBUG_INST
-    UNINSTR("no exit points");
-    print_inst_pts(pts, this);
-#endif
-    return false; 
-  }
-
-  /* create complete list of function's instPoints, sorted by address */
-  pts += funcEntry_;
-  for (unsigned i = 0; i < funcReturns.size(); i++) 
-    pts += funcReturns[i];
-  for (unsigned i = 0; i < calls.size(); i++) 
-    pts += calls[i];
-  pts.sort(cmpByAddr);
-
-  // debug: print sorted list of inst pts
-  /*
-  for (unsigned i = 0; i < pts.size(); i++) {
-    fprintf(stderr, "%0#10x: ", pts[i]->offset());
-    switch(pts[i]->type()) {
-    case IPT_ENTRY:
-      fprintf(stderr, "entry\n"); break;
-    case IPT_EXIT:
-      fprintf(stderr, "exit\n"); break;
-    case IPT_CALL:
-      fprintf(stderr, "call\n"); break;
-    case IPT_NONE:      
-    default:
-      fprintf(stderr, "??? (%i)\n", pts[i]->type()); break;
+  // resolve call targets of "_start"
+  // (looking for calls to "main")
+  if (symTabName() == "_start" ||
+      symTabName() == "__start") 
+  {
+    for (unsigned i = 0; i < calls.size(); i++) {
+      findTarget(calls[i]);
     }
   }
-  */
 
-  /* first instPoint is not an entry point */
-  if (pts[0]->type() != IPT_ENTRY) {
-    //fprintf(stderr, "!! first inst pt not entry\n");
-#ifdef CSS_DEBUG_INST
-    UNINSTR("1st inst pt not entry");
-    print_inst_pts(pts, this);
-#endif
-    return false;
+  /* no entry point */
+  if (!funcEntry_) {
+    UNINSTR("no entry point");
+    ret = false;
+  } 
+
+  /* no exit points */
+  if (funcReturns.size() == 0) {
+    UNINSTR("no exit points");
+    ret = false;
   }
 
+  /* sort all instPoints by address */
+  vector<instPoint*> pts;
+  if (funcEntry_) pts += funcEntry_;
+  for (unsigned i = 0; i < funcReturns.size(); i++) {
+    pts += funcReturns[i];
+  }
+  for (unsigned i = 0; i < calls.size(); i++) {
+    pts += calls[i];
+  }
+  pts.sort(cmpByAddr);
+
+  /* first instPoint not an entry point */
+  if (pts[0]->type() != IPT_ENTRY) {
+    UNINSTR("1st inst pt not entry");
+    //print_inst_pts(pts, this);
+    ret = false;
+  }
+
+  /* check for overlapping instPoints */
   for (unsigned i = 0; i < pts.size() - 1; i++) {
     instPoint *p = pts[i];
     instPoint *p2 = pts[i+1];
-
-    /* check for overlapping instPoints */
     if (p2->offset() < p->offset() + p->size()) {
       relocatable_ = true;
       isTrap = true; // alias for relocatable_ (TODO)
       p2->flags |= IP_Overlap;
     }
   }
-
-#ifdef CSS_DEBUG_INST
-  if (relocatable_) {
-    fprintf(stderr, "relocate: %s (%0#10x: %i insns)\n",
-	    prettyName().string_of(), getAddress(0),
-	    size() / INSN_SIZE);
-    print_inst_pts(pts, this);
-  }
-#endif
-
-
   // TODO: function relocation not yet implemented
   if (relocatable_) {
-    return false;
+    ret = false;
   }
-  return true;
+  
+  //if (!ret) fprintf(stderr, ">>> uninstrumentable: \"%s\"\n", prettyName().string_of());
+  return ret;
 }
 
 /* checkCallPoints():
@@ -601,43 +597,14 @@ void pd_Function::checkCallPoints()
     if (tgt_addr) {
       pd_Function *tgt_fn = file_->exec()->findFunction(tgt_addr);
       ip->setCallee(tgt_fn); // possibly NULL
-
-      /*
-      if (!tgt_fn) 
-	fprintf(stderr, ">>> difficult <%s:%0#10x>: bogus target calculation\n", 
-		prettyName().string_of(), 
-		ip->iPgetOwner()->getObject().get_base_addr() + ip->address(0));
-      */      
-
       // NOTE: (target == fnStart) => optimized recursive call
       if (!tgt_fn && tgt_addr > fnStart && tgt_addr < fnStart + size()) {
 	// target is inside same function (i.e. branch)
-	//fprintf(stderr, "!!! internal call target (%s,%0#10x): 0x%08x\n",
-	//prettyName().string_of(), ip->address(), target);	  
 	delete ip;
 	continue;
       }
-
-#ifdef CSS_DEBUG_INST
-      Address objBase = ip->iPgetOwner()->getObject().get_base_addr();
-      fprintf(stderr, "0x%08x: call ", objBase + ip->iPgetAddress());
-      if (tgt_fn) fprintf(stderr, "\"%s\"\n", tgt_fn->prettyName().string_of());
-      else fprintf(stderr, "<unknown>\n");
-    } else {
-      fprintf(stderr, "0x%08x: call ", ip->iPgetAddress());
-      if (ip->hint_) fprintf(stderr, "(GOT:0x%08x)\n", 
-			    file_->exec()->getObject().get_base_addr() + ip->hint_);
-      else fprintf(stderr, "<unknown>\n");
-#endif      
     }
      
-    /*
-    if (!tgt_addr && !ip->hint_) 
-      fprintf(stderr, ">>> difficult <%s:%0#10x>: target unknown\n", 
-	      prettyName().string_of(), 
-	      ip->iPgetOwner()->getObject().get_base_addr() + ip->address(0));
-    */      
-
     /* fallthrough cases (call sites are kept):
      * - target is unknown (trap)
      * - target is external, but callee function cannot be found
@@ -723,39 +690,55 @@ void print_sequence(int targetReg, vector<int> &baseAdjusts,
   if (adjusts[n] != 0) fprintf(stderr, "%+i", adjusts[n]);
 }
 
-unsigned get_word(const Object &elf, Address a)
+uint32_t get_word(const Object &elf, Address addr)
 {
-  unsigned ret = 0;
-  if (a >= elf.code_off() && a < elf.code_off() + (elf.code_len() << 2)) {
-    // TODO: const_cast problem?
+  uint32_t ret = 0;
+  if (addr >= elf.code_off() && addr < elf.code_off() + (elf.code_len() << 2)) {
     char *base = (char *)const_cast<Word*>(elf.code_ptr());
-    char *ptr = base + (a - elf.code_off());
-    ret = *(unsigned *)ptr;
-    //fprintf(stderr, ">>> get_word(%0#10x): code    => %0#10x\n", a, ret);
-  } else if (a >= elf.data_off() && a < elf.data_off() + (elf.data_len() << 2)) {
-    // TODO: const_cast problem?
+    char *ptr = base + (addr - elf.code_off());
+    ret = *(uint32_t *)ptr;
+  } else if (addr >= elf.data_off() && addr < elf.data_off() + (elf.data_len() << 2)) {
     char *base = (char *)const_cast<Word*>(elf.data_ptr());
-    char *ptr = base + (a - elf.data_off());
-    ret = *(unsigned *)ptr;
-    //fprintf(stderr, ">>> get_word(%0#10x): data    => %0#10x\n", a, ret);
-  } else {
-    //fprintf(stderr, "!!! get_word(%0#10x): unknown => %0#10x\n", a, ret);
+    char *ptr = base + (addr - elf.data_off());
+    ret = *(uint32_t *)ptr;
+  }
+  return ret;
+}
+
+uint64_t get_dword(const Object &elf, Address addr)
+{
+  uint64_t ret = 0;
+  if (addr >= elf.code_off() && addr < elf.code_off() + (elf.code_len() << 2)) {
+    char *base = (char *)const_cast<Word*>(elf.code_ptr());
+    char *ptr = base + (addr - elf.code_off());
+    uint64_t hi = *(uint32_t *)ptr;
+    uint64_t lo = *(uint32_t *)(ptr + sizeof(uint32_t));
+    ret = (hi << 32) | lo;
+  } else if (addr >= elf.data_off() && addr < elf.data_off() + (elf.data_len() << 2)) {
+    char *base = (char *)const_cast<Word*>(elf.data_ptr());
+    char *ptr = base + (addr - elf.data_off());
+    uint64_t hi = *(uint32_t *)ptr;
+    uint64_t lo = *(uint32_t *)(ptr + sizeof(uint32_t));
+    ret = (hi << 32) | lo;
   }
   return ret;
 }
 
 Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
 {
-  //fprintf(stderr, ">>> pd_Function::findIndirectJumpTarget(%s,%0#10x)",
-  //prettyName().string_of(), ip->address());
+  /*
+  fprintf(stderr, ">>> pd_Function::findIndirectJumpTarget <0x%016lx: %s>\n", 
+	  file_->exec()->getObject().get_base_addr() + ip->address(), 
+	  prettyName().string_of());
+  */
 
   assert(i.rtype.op == SPECIALop);
   assert(i.rtype.ops == JALRops || i.rtype.ops == JRops);
   
   // look for the following instruction sequence(s):
-  // lw        R1,XX(gp)
-  // [daddiu]  R1,R1,XX
-  // j[al]r    R2,R1
+  // lw          R1,XX(gp)
+  // [[d]addiu]  R1,R1,XX
+  // j[al]r      R2,R1
 
   // TODO: need control flow info
   // TODO: internal indirect jump (switch)
@@ -779,92 +762,91 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   int off; // must be signed
   // start at "ip+4" to parse delay slot insn
   for (off = ip->offset() + INSN_SIZE; off >= 0; off -= INSN_SIZE) {
-    // TODO: is this valid?
+    // analysis stops when $gp or $sp encountered
+    // TODO: decode $sp sequences using stack frame info
     if (targetReg == REG_GP) break;
     if (targetReg == REG_SP) break;
 
     i2.raw = owner->get_instruction(start+off);
 
-    // indirect jump sequence:
-    //   lw      R1,X(gp)
-    // * addiu   R1,R1,X
-    // * daddiu  R1,R1,X
-    // * lw      R2,X(R1)
-    // * move    R3,R2
-    //   jr      R3
-    //   (* - zero or more)
+    // parse indirect jump sequence
  
+    // daddu t9,t9,gp
+    if (isInsnType(i2, DADDUmask, DADDUmatch) &&
+	i2.rtype.rs == REG_T9 &&
+	i2.rtype.rt == REG_GP &&
+	i2.rtype.rd == REG_T9)
+    {
+      targetReg = REG_GP;
+      // debug
+      insns += i2.raw;
+      insnAddrs += start+off;
+    }
     // move R2,R1
     if (isInsnType(i2, ORmask, ORmatch) &&
 	i2.rtype.rt == REG_ZERO &&
 	i2.rtype.rd == targetReg) 
-      {
-	targetReg = i2.rtype.rs;
-	// debug
-	insns += i2.raw;
-	insnAddrs += start+off;
-      }
+    {
+      targetReg = i2.rtype.rs;
+      // debug
+      insns += i2.raw;
+      insnAddrs += start+off;
+    }
+    // addiu  R1,R1,X
     // daddiu R1,R1,X
-    if (isInsnType(i2, ADDIUmask, ADDIUmatch) &&
-	     i2.itype.rs == targetReg &&
-	     i2.itype.rt == targetReg) 
-      {
-	adjust += i2.itype.simm16;
-	// debug
-	insns += i2.raw;
-	insnAddrs += start+off;
-      }
-    // daddiu R1,R1,X
-    if (isInsnType(i2, DADDIUmask, DADDIUmatch) &&
-	     i2.itype.rs == targetReg &&
-	     i2.itype.rt == targetReg) 
-      {
-	adjust += i2.itype.simm16;
-	// debug
-	insns += i2.raw;
-	insnAddrs += start+off;
-      }
+    if ((isInsnType(i2, ADDIUmask, ADDIUmatch) || 
+	 isInsnType(i2, DADDIUmask, DADDIUmatch)) &&
+	i2.itype.rs == targetReg &&
+	i2.itype.rt == targetReg) 
+    {
+      adjust += i2.itype.simm16;
+      // debug
+      insns += i2.raw;
+      insnAddrs += start+off;
+    }
     // lw R2,X(R1)
-    if (isInsnType(i2, LWmask, LWmatch) &&
-	     i2.itype.rt == targetReg) 
-      {
-	baseRegs += (int)i2.itype.rs;
-	baseAdjusts += (int)i2.itype.simm16;
-	adjusts += adjust;
-	adjust = 0;
-	targetReg = i2.itype.rs;
-	// debug
-	insns += i2.raw;
-	insnAddrs += start+off;
-      }
+    // ld R2,X(R1)
+    if ((isInsnType(i2, LWmask, LWmatch) || 
+	 isInsnType(i2, LDmask, LDmatch)) &&
+	i2.itype.rt == targetReg) 
+    {
+      baseRegs += (int)i2.itype.rs;
+      baseAdjusts += (int)i2.itype.simm16;
+      adjusts += adjust;
+      adjust = 0;
+      targetReg = i2.itype.rs;
+      // debug
+      insns += i2.raw;
+      insnAddrs += start+off;
+    }
   }
 
   // sanity check
   unsigned int n_loads = baseRegs.size();
-  if (n_loads < 1) {
-    //fprintf(stderr, "!!! no loads in indirect jump (%s,%0#10x)\n",
-    //prettyName().string_of(), ip->address());
-    //fprintf(stderr, ": XXX no loads\n");
-    return 0;
-  }
-  //assert(n_loads > 0); // jump to $a1
+  if (n_loads < 1) return 0;
   assert(baseAdjusts.size() == n_loads);
   assert(adjusts.size() == n_loads);
-  //if (adjust != 0) fprintf(stderr, "assert(adjust == 0) failed\n");
+  //assert(n_loads > 0); // jump to $a1
   //assert(adjust == 0);
-
+  
   // debug: target arithmetic
-  //fprintf(stderr, "  arithmetic");
-  //fprintf(stderr, ": ");
-  //print_sequence(targetReg, baseAdjusts, adjusts, 0, NULL);
-  //fprintf(stderr, "\n");
+  /*
+  fprintf(stderr, ">>> <0x%016lx:%s>", 
+	  owner->getObject().get_base_addr() + ip->address(),
+	  prettyName().string_of());
+  fprintf(stderr, ": ");
+  print_sequence(targetReg, baseAdjusts, adjusts, 0, NULL);
+  fprintf(stderr, "\n");
+  */
 
   // debug: insn sequence
+  /*
   instruction i3;
   for (int i = insns.size()-1; i >= 0; i--) {
     i3.raw = insns[i];
-    //dis(&i3, (void *)insnAddrs[i], 1, "  ");
+    dis(&i3, (void *)insnAddrs[i], 1, "  ");
   }
+  */
 
   // check base register
   Address target;
@@ -882,32 +864,57 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   }
 
   Address obj_base = elf.get_base_addr();
+  bool is_elf64 = elf.is_elf64();
 
   // special case: external symbol call via GOT entry
-  // TODO: size of address in GOT (64- vs 32-bit)
   if (baseRegs.size() == 1 && 
       targetReg == REG_GP &&
       adjusts[0] == 0) 
     {
       Address got_entry_off = target + baseAdjusts[0] - obj_base;
-      Address got_entry = (Address)get_word(elf, got_entry_off);
+      // address-in-memory
+      Address got_entry = (is_elf64)
+	? (get_dword(elf, got_entry_off))
+	: (get_word(elf, got_entry_off));
       Address fn_off = got_entry - obj_base;
-      pd_Function *pdf = owner->findFunction(fn_off);
-      if (pdf) return fn_off;
-      // external symbol
-      ip->hint_ = got_entry_off;
+      if (fn_off) {
+	pd_Function *pdf = owner->findFunction(fn_off);
+	if (pdf) return fn_off;
+      }
+
+      // check for calls to "main"
+      const char *callee_name = elf.got_entry_name(got_entry_off);
+      if (callee_name && !strcmp("main", callee_name)) {
+	owner->main_call_addr_ = ip->address();
+      }
+
+      // external symbol (GOT hint will be resolved at runtime)
+      ip->hint_got_ = got_entry_off;
       return 0;
     }
-    
+
+  // debug: target arithmetic
+  /*
+  fprintf(stderr, ">>> findIndirectJumpTarget <0x%016lx: %s>\n", 
+	  ip->address() + obj_base, prettyName().string_of());
+  fprintf(stderr, "  => ");
+  print_sequence(targetReg, baseAdjusts, adjusts, 0, NULL);
+  fprintf(stderr, "\n");
+  */
+
   // calculate jump target
-  // TODO: size of address in GOT (64- vs 32-bit)
   for (int i = baseRegs.size()-1; i >= 0; i--) {
     Address vaddr = target + baseAdjusts[i];
-    unsigned word = get_word(elf, vaddr - obj_base);
-    target = word + adjusts[i];
+    Address vaddr_rel = vaddr - obj_base;
+    // address-in-memory
+    Address addr_in_mem = (is_elf64)
+      ? (get_dword(elf, vaddr_rel))
+      : (get_word(elf, vaddr_rel));
+    if (addr_in_mem == 0) return 0;
+    target = addr_in_mem + adjusts[i];
   }
   target -= obj_base; // relative addressing
-  
+
   return target;
 }
 
@@ -946,7 +953,7 @@ bool branchWithinRange(Address branch, Address target)
    - minitramp to basetramp
    - basetramp to instPoint
 */
-void generateBranch(process *proc, Address branch, Address target)
+void generateBranch(process *p, Address branch, Address target)
 {
   //fprintf(stderr, "!!! generateBranch(): %0#10x to %0#10x", branch, target);
   assert(isAligned(branch));
@@ -974,7 +981,9 @@ void generateBranch(process *proc, Address branch, Address target)
   }
  
   // TODO: delay slot insn?
-  proc->writeTextWord((caddr_t)branch, i.raw);
+  p->writeTextWord((caddr_t)branch, i.raw);
+  //fprintf(stderr, ">>> generateBranch(): 0x%016lx to 0x%016lx\n", branch, target);
+  //disDataSpace(p, (void *)branch, 1, "  ");
 }
 
 
@@ -1092,8 +1101,8 @@ UnsignedImm getImmField(Address val, int n)
 
 void genLoadNegConst(reg dst, Address imm, char *code, Address &base, bool /*noCost*/)
 {
-  //fprintf(stderr, ">>> genLoadNegConst(%0#18llx)\n", imm);
-  Address base_orig = base; // debug
+  //fprintf(stderr, ">>> genLoadNegConst(0x%016lx)\n", imm);
+  //Address base_orig = base; // debug
 
   int i;
   int nbits = sizeof(Address) * 8; // N-bit registers
@@ -1113,7 +1122,7 @@ void genLoadNegConst(reg dst, Address imm, char *code, Address &base, bool /*noC
   instruction *insn = (instruction *)(code + base);
   switch (signbit) {
   case 0:
-    genItype(insn, DADDIop, REG_ZERO, dst, imm);
+    genItype(insn, DADDIUop, REG_ZERO, dst, imm);
     base += INSN_SIZE;
     break;
   default:
@@ -1135,9 +1144,11 @@ void genLoadNegConst(reg dst, Address imm, char *code, Address &base, bool /*noC
   }
 
   // debug
+  /*
   for (Address i = base_orig; i < base; i += INSN_SIZE) {
-    //dis((instruction *)(code + i), NULL, 1, "  ");
+    dis((instruction *)(code + i), NULL, 1, "  ");
   }
+  */
 }
 
 void genLoadConst(reg dst, RegValue imm, char *code, Address &base, bool noCost)
@@ -1146,44 +1157,64 @@ void genLoadConst(reg dst, RegValue imm, char *code, Address &base, bool noCost)
   if (imm < 0) return genLoadNegConst(dst, (Address)imm, code, base, noCost);
 
   //fprintf(stderr, ">>> genLoadConst(0x%lx)\n", imm);
-  Address base_orig = base; // debug
+  //Address base_orig = base; // debug
 
   int nbits = sizeof(RegValue) * 8; // N-bit addresses
   int nimm = (nbits/IMM_NBITS); // # of immediate (16-bit) fields
-  int nonzero = 0; // highest significance nonzero field
+  int nonzero = 0; // most significant nonzero field
   for (nonzero = nimm - 1; nonzero > 0; nonzero--) {
     if (getImmField(imm, nonzero) != IMM_ZERO) break;
   }
 
   instruction *insn = (instruction *)(code + base);
   switch (nonzero) {
-  case 0:
-    if (imm & 0x8000) genItype(insn, ORIop, REG_ZERO, dst, imm);
-    else genItype(insn, ADDIUop, REG_ZERO, dst, imm);
-    base += INSN_SIZE;
-    break;
+  case 0: 
+    {
+      genItype(insn, ORIop, REG_ZERO, dst, getImmField(imm, 0));
+      base += INSN_SIZE;
+    } break;
   default:
-    genItype(insn, LUIop, 0, dst, getImmField(imm, nonzero));
-    base += INSN_SIZE;
-    if (getImmField(imm, nonzero-1) != IMM_ZERO) {
-      genItype(insn+1, ORIop, dst, dst, getImmField(imm, nonzero-1));
-      base += INSN_SIZE;
-    }
-    for (int i = nonzero-2; i >= 0; i--) {
-      insn = (instruction *)(code + base);
-      genRtype(insn, DSLLops, 0, dst, dst, IMM_NBITS);
-      base += INSN_SIZE;
-      if (getImmField(imm, i) != IMM_ZERO) {
-	genItype(insn+1, ORIop, dst, dst, getImmField(imm, i));
+    {
+      // load most significant nonzero field
+      UnsignedImm field = getImmField(imm, nonzero);
+      if (bit(IMM_NBITS-1, field)) {
+	// MSB of first nonzero field is one 
+	// (i.e. sign-extending would be bad)
+	// => ori, dsll
+	genItype(insn, ORIop, REG_ZERO, dst, field);
 	base += INSN_SIZE;
+	genRtype(insn+1, DSLLops, 0, dst, dst, IMM_NBITS);
+	base += INSN_SIZE;
+      } else {
+	// MSB of first nonzero field is zero
+	// => lui
+	genItype(insn, LUIop, 0, dst, field);
+	base += INSN_SIZE;
+      }
+      // load next field
+      if (getImmField(imm, nonzero-1) != IMM_ZERO) {
+	genItype(insn+1, ORIop, dst, dst, getImmField(imm, nonzero-1));
+	base += INSN_SIZE;
+      }
+      // load remaining fields
+      for (int i = nonzero-2; i >= 0; i--) {
+	insn = (instruction *)(code + base);
+	genRtype(insn, DSLLops, 0, dst, dst, IMM_NBITS);
+	base += INSN_SIZE;
+	if (getImmField(imm, i) != IMM_ZERO) {
+	  genItype(insn+1, ORIop, dst, dst, getImmField(imm, i));
+	  base += INSN_SIZE;
+	}
       }
     }
   }
 
   // debug
+  /*
   for (Address i = base_orig; i < base; i += INSN_SIZE) {
-    //dis((instruction *)(code + i), NULL, 1, "  ");
+    dis((instruction *)(code + i), NULL, 1, "  ");
   }
+  */
 }
 
 
@@ -1368,12 +1399,12 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
 
   case plusOp:
     //fprintf(stderr, ">>> emit(plusOp)\n");
-    genRtype(insn, ADDUops, src1, src2, dst);
+    genRtype(insn, DADDUops, src1, src2, dst);
     base += INSN_SIZE;
     break;
   case minusOp:
     //fprintf(stderr, ">>> emit(minusOp)\n");
-    genRtype(insn, SUBUops, src1, src2, dst);
+    genRtype(insn, DSUBUops, src1, src2, dst);
     base += INSN_SIZE;
     break;
   case timesOp:
@@ -1384,7 +1415,7 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
        nop           # padding for "mflo"
     */
     //fprintf(stderr, ">>> emit(timesOp)\n");
-    genRtype(insn, MULTops, src1, src2, 0);
+    genRtype(insn, DMULTUops, src1, src2, 0);
     genRtype(insn+1, MFLOops, 0, 0, dst);
     genNop(insn+2);
     genNop(insn+3);
@@ -1398,7 +1429,7 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
        nop           # padding for "mflo"
     */
     //fprintf(stderr, ">>> emit(divOp)\n");
-    genRtype(insn, DIVops, src1, src2, 0);
+    genRtype(insn, DDIVUops, src1, src2, 0);
     genRtype(insn+1, MFLOops, 0, 0, dst);
     genNop(insn+2);
     genNop(insn+3);
@@ -1571,12 +1602,12 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
     
   case plusOp:
     if (!doNotOverflow(imm)) break;
-    genItype(insn, ADDIUop, src, dst, imm);
+    genItype(insn, DADDIUop, src, dst, imm);
     base += INSN_SIZE;
     return;
   case minusOp:
     if (!doNotOverflow(-imm)) break;
-    genItype(insn, ADDIUop, src, dst, -imm);
+    genItype(insn, DADDIUop, src, dst, -imm);
     base += INSN_SIZE;
     return;
   case timesOp:
@@ -1604,7 +1635,7 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
   case eqOp:
     if (!doNotOverflow(-imm)) break;
     // saves one register over emitV()
-    genItype(insn, ADDIUop, src, dst, -imm);
+    genItype(insn, DADDIUop, src, dst, -imm);
     genItype(insn+1, BEQLop, dst, REG_ZERO, 0x2);
     genItype(insn+2, ORIop, REG_ZERO, dst, 0x1);
     genItype(insn+3, ORIop, REG_ZERO, dst, 0x0);
@@ -1613,7 +1644,7 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
   case neOp:
     if (!doNotOverflow(-imm)) break;
     // saves one register over emitV()
-    genItype(insn, ADDIUop, src, dst, -imm);
+    genItype(insn, DADDIUop, src, dst, -imm);
     genItype(insn+1, BNELop, dst, REG_ZERO, 0x2);
     genItype(insn+2, ORIop, REG_ZERO, dst, 0x1);
     genItype(insn+3, ORIop, REG_ZERO, dst, 0x0);
@@ -1658,7 +1689,7 @@ bool process::emitInferiorRPCheader(void *code_, Address &base)
   instruction *insn = (instruction *)(code + base);
 
   // TODO: why 512 bytes? not using basetramp code, right?
-  genItype(insn, ADDIUop, REG_SP, REG_SP, -512); // addiu sp,sp,-512
+  genItype(insn, DADDIUop, REG_SP, REG_SP, -512); // daddiu sp,sp,-512
   base += INSN_SIZE;
 
   return true;
@@ -1685,8 +1716,8 @@ bool process::emitInferiorRPCtrailer(void *code_, Address &base,
 
   // mandatory RPC trailer: restore, trap, illegal
   instruction *insn = (instruction *)(code + base);
-  // addiu sp,sp,512
-  genItype(insn, ADDIUop, REG_SP, REG_SP, 512);
+  // daddiu sp,sp,512
+  genItype(insn, DADDIUop, REG_SP, REG_SP, 512);
   base += INSN_SIZE;
   // trap insn
   genTrap(insn+1);
@@ -1869,7 +1900,7 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
     // grow stack frame
     stackBytes = (nargs - NUM_ARG_REGS) * BYTES_PER_ARG; // 8 bytes per parameter
     insn = (instruction *)(code + base);
-    genItype (insn, ADDIUop, REG_SP, REG_SP, -stackBytes);
+    genItype (insn, DADDIUop, REG_SP, REG_SP, -stackBytes);
     base += INSN_SIZE;
     /* NOTE: the size of the stack frame has been temporarily
        increased; its size is restored by the "addiu sp,sp,stackBytes"
@@ -1895,7 +1926,7 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
   // restore stack frame (if necessary)
   if (stackArgs) {
     insn = (instruction *)(code + base);
-    genItype(insn, ADDIUop, REG_SP, REG_SP, stackBytes);
+    genItype(insn, DADDIUop, REG_SP, REG_SP, stackBytes);
     base += INSN_SIZE;
   }
 
@@ -1915,18 +1946,17 @@ void returnInstance::installReturnInstance(process *p)
 
 
 
-
 /***********************/
 /*** HERE BE DRAGONS ***/
 /***********************/
 
 
 
-void relocateInstruction(instruction *insn, Address origAddr, 
-			 Address relocAddr, process *p)
+void relocateInstruction(instruction * /*insn*/, Address /*origAddr*/, 
+			 Address /*relocAddr*/, process * /*p*/)
 {
   //fprintf(stderr, "!!! relocateInstruction(0x%08x): ", relocAddr);
-  //dis(insn, origAddr);
+  //dis(insn, origAddr, 1, ">>> reloc ");
 }
 
 trampTemplate *installBaseTramp(process *p, instPoint *&ip)
@@ -2036,10 +2066,12 @@ trampTemplate *findAndInstallBaseTramp(process *p,
   ret = installBaseTramp(p, ip);
 
   // debug --csserra
-  //char buf[1024];
-  //sprintf(buf, "!!! installed basetramp (%i insns): ", (int)ret->size/INSN_SIZE);
-  //ip->print(stderr, buf);
-  //disDataSpace(p, (void *)ret->baseAddr, ret->size/INSN_SIZE, "  ");
+  /*
+  char buf[1024];
+  sprintf(buf, "!!! installed basetramp (%i insns): ", ret->size/INSN_SIZE);
+  ip->print(stderr, buf);
+  disDataSpace(p, (void *)ret->baseAddr, ret->size/INSN_SIZE, "  ");
+  */
 
   // generate jump from instPoint to basetramp
   instruction *insn = new instruction[2];
@@ -2074,10 +2106,12 @@ void installTramp(instInstance *inst, char *code, int codeSize)
   }
 
   // debug - csserra
-  //char buf[1024];
-  //sprintf(buf, "!!! installed minitramp (%i insns): ", codeSize/INSN_SIZE);
-  //inst->location->print(stderr, buf);
-  //disDataSpace(inst->proc, (void *)inst->trampBase, codeSize/INSN_SIZE, "  ");
+  /*
+  char buf[1024];
+  sprintf(buf, "!!! installed minitramp (%i insns): ", codeSize/INSN_SIZE);
+  inst->location->print(stderr, buf);
+  disDataSpace(inst->proc, (void *)inst->trampBase, codeSize/INSN_SIZE, "  ");
+  */
 }
 
 void instWaitingList::cleanUp(process *p, Address pc)
@@ -2168,8 +2202,8 @@ bool process::replaceFunctionCall(const instPoint *ip,
   // NOTE: modifying $t9 in the delay slot of "jalr ra,t9" doesn't seem to work
   // jalr   ra,t9
   //genRtype(&insn[0], JALRops, REG_T9, 0, REG_RA);
-  // addiu  t9,t9,dst_diff
-  genItype(&insn[1], ADDIop, REG_T9, REG_T9, dst_diff);
+  // daddiu  t9,t9,dst_diff
+  genItype(&insn[1], DADDIop, REG_T9, REG_T9, dst_diff);
   this->writeTextSpace((void *)pt_addr, 2*INSN_SIZE, insn);
 
   // debug
@@ -2190,13 +2224,13 @@ void emitFuncJump(opCode /*op*/,
      assert(0);
 }
 
-bool process::findCallee(instPoint &inst, function_base *&target)
+bool process::findCallee(instPoint &ip, function_base *&target)
 {
-  //fprintf(stderr, "!!! process::findCallee()\n");
-  assert(inst.type() == IPT_CALL);
+  //ip.print(stderr, ">>> findCallee(): ");
+  assert(ip.type() == IPT_CALL);
 
   // callee already known?
-  function_base *callee = const_cast<function_base*>(inst.iPgetCallee());
+  function_base *callee = const_cast<function_base*>(ip.iPgetCallee());
   if (callee) {
     target = callee;
     return true;
@@ -2205,19 +2239,29 @@ bool process::findCallee(instPoint &inst, function_base *&target)
   /* GOT-based calls are partially resolved by checkCallPoints(); all
      we need to do here is correct the runtime address of the GOT
      entry and dereference it */
-  if (inst.hint_) {
+  if (ip.hint_got_) {
     // runtime address of GOT entry
     Address got_entry_base = 0;
-    getBaseAddress(inst.iPgetOwner(), got_entry_base);
-    // TODO: size of GOT entry (32/64)
-    Address got_entry_off = inst.hint_;
+    getBaseAddress(ip.iPgetOwner(), got_entry_base);
+    Address got_entry_off = ip.hint_got_;
     Address got_entry_addr = got_entry_base + got_entry_off;
 
-    // function object
+    // read GOT entry from process address space
     void *fn_ptr;
-    readDataSpace((void *)got_entry_addr, sizeof(void *), &fn_ptr, true);
+    // address-in-memory
+    if ((sizeof(void *) == sizeof(uint64_t)) &&
+	(!getImage()->getObject().is_elf64())) 
+    {
+      // 32-bit application, 64-bit paradynd
+      fn_ptr = NULL;
+      char *fn_ptr_adj = ((char *)&fn_ptr) + sizeof(uint32_t);
+      readDataSpace((void *)got_entry_addr, sizeof(uint32_t), fn_ptr_adj, true);
+    } else {
+      readDataSpace((void *)got_entry_addr, sizeof(void *), &fn_ptr, true);
+    }
+
+    // lookup function by address
     Address fn_addr = (Address)fn_ptr;
-    // TODO: will this work on relocated functions?
     pd_Function *pdf = (pd_Function *)findFunctionIn(fn_addr);
     if (pdf) {
       Address fn_base;
@@ -2231,7 +2275,7 @@ bool process::findCallee(instPoint &inst, function_base *&target)
 
   // TODO: if we get to this point, don't know what to do
   //fprintf(stderr, "process::findCallee(%s:0x%08x): unknown callee\n",
-  //inst.iPgetFunction()->prettyName().string_of(), inst.iPgetAddress());
+  //ip.iPgetFunction()->prettyName().string_of(), ip.iPgetAddress());
 
   target = NULL;
   return false;
@@ -2241,7 +2285,6 @@ bool process::findCallee(instPoint &inst, function_base *&target)
    frequency of procedures.  Currently we just define several one
    shots with a frequency of one, and provide a hook to read a file
    with more accurate information. */
-// TODO: implement
 void initDefaultPointFrequencyTable()
 {
     funcFrequencyTable["main"] = 1;
@@ -2279,8 +2322,12 @@ void initPrimitiveCost()
   // CPU time
   //primitiveCosts["DYNINSTstartProcessTimer"] =  3900; // PIOCGETEVCTRS
   //primitiveCosts["DYNINSTstopProcessTimer"] =   3800; // PIOCGETEVCTRS
-  primitiveCosts["DYNINSTstartProcessTimer"] = 7760; // PIOCUSAGE
-  primitiveCosts["DYNINSTstopProcessTimer"] =  7810; // PIOCUSAGE
+  //primitiveCosts["DYNINSTstartProcessTimer"] = 7760; // PIOCUSAGE
+  //primitiveCosts["DYNINSTstopProcessTimer"] =  7810; // PIOCUSAGE
+  //primitiveCosts["DYNINSTstartProcessTimer"] = 4920; // PIOCACINFO
+  //primitiveCosts["DYNINSTstopProcessTimer"] =  4940; // PIOCACINFO
+  primitiveCosts["DYNINSTstartProcessTimer"] = 5000; // PIOCGETPTIMER
+  primitiveCosts["DYNINSTstopProcessTimer"] =  4950; // PIOCGETPTIMER
 
   // TODO: tricky interactions with DYNINSTinit()
   primitiveCosts["DYNINSTinit"] = 1;

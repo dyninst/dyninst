@@ -102,7 +102,7 @@ baseTramp:
 _baseTramp:	
 
 /* save registers */
-	addiu	$sp,$sp,-512
+	daddiu	$sp,$sp,-512
 	sdc1	 $f0,504($sp)
 	sdc1	 $f1,496($sp)
 	sdc1	 $f2,488($sp)
@@ -278,7 +278,7 @@ _baseTramp_updateCostInsn:
 	ld	 $29, 16($sp)
 	ld	 $30,  8($sp)
 	ld	 $31,  0($sp)
-	addiu	$sp,$sp,512
+	daddiu	$sp,$sp,512
 	
 baseTramp_emulateInsn:	
 _baseTramp_emulateInsn:	
@@ -293,7 +293,7 @@ _baseTramp_skipPostInsn:
         nop
 
 /* save registers */
-	addiu	$sp,$sp,-512
+	daddiu	$sp,$sp,-512
 	sdc1	 $f0,504($sp)
 	sdc1	 $f1,496($sp)
 	sdc1	 $f2,488($sp)
@@ -443,7 +443,7 @@ _baseTramp_localPostReturn:
 	ld	 $29, 16($sp)
 	ld	 $30,  8($sp)
 	ld	 $31,  0($sp)
-	addiu	$sp,$sp,512
+	daddiu	$sp,$sp,512
 	
 baseTramp_returnInsn:	
 _baseTramp_returnInsn:	

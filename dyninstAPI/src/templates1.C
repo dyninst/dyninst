@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.25 1999/07/08 00:22:34 nash Exp $
+// $Id: templates1.C,v 1.26 1999/07/13 04:28:20 csserra Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -69,6 +69,7 @@ class BPatch_field;
 #include "dyninstAPI/src/irixDL.h" // dsoEvent_t
 template class  vector<dsoEvent_t *>;
 template class  vector<vector<int> >;
+template class  vector<pdElfSym *>;
 #endif
 template class  dictionary_hash <Address, unsigned>;
 template class  vector<dictionary_hash <Address, unsigned>::entry>;

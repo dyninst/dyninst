@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.7 1999/07/07 16:07:35 zhichen Exp $
+// $Id: irix.C,v 1.8 1999/07/13 04:28:19 csserra Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -66,8 +66,7 @@
 #include <string.h>       // strncmp()
 #include <stdlib.h>       // getenv()
 #include <termio.h>       // TIOCNOTTY
-#include <sys/hwperftypes.h>  // hardware performance counters
-#include <sys/hwperfmacros.h> // hardware performance counters
+#include <sys/timers.h>   // PTIMER macros
 
 
 extern debug_ostream inferiorrpc_cerr;
@@ -118,20 +117,9 @@ void print_proc_pc(int fd)
   fprintf(stderr, "%5s: %#10x\n", "$pc", (unsigned)regs[CTX_EPC]);
 }
 
-#ifdef USES_NATIVE_CC
-#include <dem.h>
-static char cplus_demangle_buf[MAXDBUF];
-extern "C" char *cplus_demangle(char *from, int notused) {
-  fprintf(stderr, ">>> cplus_demangle(%s)\n", from);
-  demangle(from, cplus_demangle_buf);
-  return cplus_demangle_buf;
-}
-#endif /* USES_NATIVE_CC */
-
 bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
 {
-  //fprintf(stderr, ">>> process::readDataSpace_()\n");
-
+  //fprintf(stderr, ">>> process::readDataSpace_(0x%016lx)\n", inTraced);
   ptraceOps++; 
   ptraceBytes += nbytes;
 
@@ -621,8 +609,6 @@ bool process::continueProc_()
   prrun_t run;
   run.pr_flags = PRCSIG; // clear current signal
   if (hasNewPC) {        // new PC value
-    fprintf(stderr, "  change $pc (0x%p to 0x%p)\n",
-	    (void *)stat.pr_reg[PROC_REG_PC], (void *)currentPC_);
     hasNewPC = false;
     run.pr_vaddr = (caddr_t)currentPC_;
     run.pr_flags |= PRSVADDR;
@@ -893,11 +879,24 @@ bool process::dumpImage() {
 
   // overwrite ".text" section with runtime contents
 
+  bool is_elf64 = img->getObject().is_elf64();
   Elf *elfp = elf_begin(fd, ELF_C_READ, 0);
   assert(elfp);
-  Elf32_Ehdr *ehdrp = elf32_getehdr(elfp);
-  assert(ehdrp);
-  Elf_Scn *shstrscnp = elf_getscn(elfp, ehdrp->e_shstrndx);
+  int e_shstrndx;
+  if (is_elf64) {
+
+    Elf64_Ehdr *ehdrp = elf64_getehdr(elfp);
+    assert(ehdrp);
+    e_shstrndx = ehdrp->e_shstrndx;
+
+  } else { // 32-bit
+
+    Elf32_Ehdr *ehdrp = elf32_getehdr(elfp);
+    assert(ehdrp);
+    e_shstrndx = ehdrp->e_shstrndx;
+
+  }
+  Elf_Scn *shstrscnp = elf_getscn(elfp, e_shstrndx);
   assert(shstrscnp);
   Elf_Data *shstrdatap = elf_getdata(shstrscnp, 0);
   assert(shstrdatap);
@@ -906,15 +905,14 @@ bool process::dumpImage() {
   Address txtAddr = 0;
   int txtLen = 0;
   int txtOff = 0;
-
   Elf_Scn *scn = 0;
   while ((scn = elf_nextscn(elfp, scn)) != 0) {
-    Elf32_Shdr *shdrp = elf32_getshdr(scn);
-    char *name = (char *)&shnames[shdrp->sh_name];
+    pdElfShdr pd_shdr(scn, is_elf64);
+    char *name = (char *)&shnames[pd_shdr.pd_name];
     if (strcmp(name, ".text") == 0) {
-      txtOff = shdrp->sh_offset;
-      txtLen = shdrp->sh_size;
-      txtAddr = shdrp->sh_addr;
+      txtOff = pd_shdr.pd_offset;
+      txtLen = pd_shdr.pd_size;
+      txtAddr = pd_shdr.pd_addr;
       break;
     }
   }
@@ -953,15 +951,8 @@ bool process::getActiveFrame(Address *fp, Address *pc)
 
   // $fp value (no actual $fp register)
   pd_Function *fn = (pd_Function *)findFunctionIn(*pc);
-  if (!fn) {
-    //fprintf(stderr, "  $fp=%0#10x, $pc=%0#10x  FAILED\n", *fp, *pc);
-    return false;
-  }
+  if (!fn) return false;
   *fp = regs[PROC_REG_SP] + fn->frameSize;
-
-  // debug
-  //fprintf(stderr, "  $fp=%0#10x, $pc=%0#10x (in %s)\n", *fp, *pc, 
-  //fn->prettyName().string_of());
 
   return true;
 }
@@ -996,7 +987,7 @@ bool process::readDataFromFrame(Address fp, Address *fp_caller,
     if (ra_save.slot == -1) return false;
     Address sp = fp - callee->frameSize;
     Address ra_addr = sp + ra_save.slot;
-    // TODO: address-in-memory
+    // address-in-memory
     if (ra_save.dword) {
       uint64_t raw64;
       readDataSpace((void *)ra_addr, sizeof(uint64_t), &raw64, true);
@@ -1042,59 +1033,29 @@ void OS::osDisconnect(void) {
 // to obtain it (solaris).  It must not stop the inferior process in order
 // to obtain the result, nor can it assue that the inferior has been stopped.
 // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
-#define HW_CTR_NUM (0) // must be consistent with RTirix.c
 // TODO: "#ifdef PURE_BUILD" support
-time64 process::getInferiorProcessCPUtime(int ) {
+time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
+{
   //fprintf(stderr, ">>> getInferiorProcessCPUtime()\n");
   time64 ret;
   static time64 ret_prev = 0;
-  static bool use_hw_ctrs = false;
-  static uint64_t cycles_per_usec = 0;
-  static Address gen_num_addr = 0;
-  static bool init = true;
-  if (init) {
-    //fprintf(stderr, ">>> getInferiorProcessCPUtime(init)\n");
-    Address use_hw_addr = lookup_fn(this, "DYNINSTos_CPUctr_use");
-    char byte = 0;
-    readDataSpace_((void *)use_hw_addr, sizeof(char), &byte);
-    use_hw_ctrs = byte;
-    if (use_hw_ctrs) {
-      Address cycles_addr = lookup_fn(this, "DYNINSTos_CPUctr_cycles");
-      readDataSpace_((void *)cycles_addr, sizeof(uint64_t), &cycles_per_usec);
-      gen_num_addr = lookup_fn(this, "DYNINSTos_CPUctr_gen");
-    }
-    init = false;
-  }
 
-  if (use_hw_ctrs) {
-    hwperf_cntr_t count;
-    int gen_num;
-    if ((gen_num = ioctl(proc_fd, PIOCGETEVCTRS, &count)) == -1) {
-      perror("getInferiorProcessCPUtime - PIOCGETEVCTRS");
-      return ret_prev;
-    }
-    ret = count.hwp_evctr[HW_CTR_NUM] / cycles_per_usec;
-    // generation numbers
-    // TODO: do not check gen num - save readDataSpace() latency
-    /*
-    int inf_gen_num;
-    readDataSpace_((void *)gen_num_addr, sizeof(int), &inf_gen_num);
-    if (gen_num != inf_gen_num) {
-      fprintf(stderr, "!!! paradynd: hwperf counters generation number mismatch\n");
-    }
-    */
-  } else { // not using hardware performance counters
-    prusage_t usage;
-    if (ioctl(proc_fd, PIOCUSAGE, &usage) == -1) {
-      perror("getInferiorProcessCPUtime - PIOCUSAGE");
-      return ret_prev;
-    }
-    ret = 0;
-    ret += PDYN_mulMillion(usage.pu_utime.tv_sec); // sec to usec  (user)
-    ret += PDYN_mulMillion(usage.pu_stime.tv_sec); // sec to usec  (sys)
-    ret += PDYN_div1000(usage.pu_utime.tv_nsec);   // nsec to usec (user)
-    ret += PDYN_div1000(usage.pu_stime.tv_nsec);   // nsec to usec (sys)
+  /*
+  pracinfo_t t;
+  ioctl(proc_fd, PIOCACINFO, &t);
+  ret = PDYN_div1000(t.pr_timers.ac_utime + t.pr_timers.ac_stime);
+  */
+
+  timespec_t t[MAX_PROCTIMER];
+  if (ioctl(proc_fd, PIOCGETPTIMER, t) == -1) {
+    perror("getInferiorProcessCPUtime - PIOCGETPTIMER");
+    return ret_prev;
   }
+  ret = 0;
+  ret += PDYN_mulMillion(t[AS_USR_RUN].tv_sec); // sec to usec  (user)
+  ret += PDYN_mulMillion(t[AS_SYS_RUN].tv_sec); // sec to usec  (sys)
+  ret += PDYN_div1000(t[AS_USR_RUN].tv_nsec);   // nsec to usec (user)
+  ret += PDYN_div1000(t[AS_SYS_RUN].tv_nsec);   // nsec to usec (sys)
 
   // sanity check: time should not go backwards
   if (ret < ret_prev) {

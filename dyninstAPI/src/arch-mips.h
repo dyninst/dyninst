@@ -48,6 +48,9 @@
 
 /*
  * $Log: arch-mips.h,v $
+ * Revision 1.4  1999/07/13 04:28:18  csserra
+ * mips-sgi-irix6.4: 64-bit paradynd
+ *
  * Revision 1.3  1999/06/21 22:31:44  csserra
  * fix stack frame analysis for mips-sgi-irix6.4
  *
@@ -355,6 +358,8 @@ inline bool isInsnType(const instruction i,
 #define JALmatch     (0x0c000000)
 #define JRmask       (OPmask | OPSmask)
 #define JRmatch      (0x00000008)
+#define LDmask       (OPmask)
+#define LDmatch      (0xdc000000)
 #define LUImask      (OPmask)
 #define LUImatch     (0x3c000000)
 #define LWmask       (OPmask)

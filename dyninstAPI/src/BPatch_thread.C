@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.22 1999/07/07 16:02:17 zhichen Exp $
+// $Id: BPatch_thread.C,v 1.23 1999/07/13 04:28:17 csserra Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -137,7 +137,12 @@ BPatch_thread::BPatch_thread(char *path, int pid)
     createdViaAttach(true), detached(false), waitingForOneTimeCode(false),
     unreportedStop(false), unreportedTermination(false)
 {
-    if (!attachProcess(path, pid, 1, proc)) {
+    /* For some reason, on Irix, evaluating the return value of
+       attachProcess directly (i.e. no "ret" variable) causes the
+       expression to be incorrectly evaluated as false.  This appears
+       to be a compiler bug ("g++ -mabi=64 -O3"). */
+    bool ret = attachProcess(path, pid, 1, proc);
+    if (!(ret)) {
     	// XXX Should do something more sensible
 	proc = NULL;
 	return;

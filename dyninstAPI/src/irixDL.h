@@ -45,6 +45,7 @@
 #include "util/h/Types.h"
 #include "util/h/Vector.h"
 #include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/dynamiclinking.h"
 class process;
 
 
@@ -113,11 +114,86 @@ class dynamic_linking {
   
   bool dynlinked;
   Address dlopen_addr;
-
   Address r_brk_addr; // NOTUSED
   vector<dsoEvent_t *> dso_events;
   rldState_t state;
 };
+
+
+// ABI-generic wrapper class for ELF symbol
+class pdElfSym {
+ public:
+  
+  unsigned pd_name;
+  unsigned pd_type;
+  unsigned pd_shndx;
+  Address  pd_value;
+
+  // 32-bit constructor
+  pdElfSym(Elf32_Sym *symp)
+  {
+    assert(symp);
+    pd_name = symp->st_name;
+    pd_type = ELF32_ST_TYPE(symp->st_info);
+    pd_shndx = symp->st_shndx;
+    pd_value = symp->st_value;
+  } 
+
+  // 64-bit constructor
+  pdElfSym(Elf64_Sym *symp)
+  {
+    assert(symp);
+    pd_name = symp->st_name;
+    pd_type = ELF64_ST_TYPE(symp->st_info);
+    pd_shndx = symp->st_shndx;
+    pd_value = symp->st_value;
+  } 
+};
+
+
+// ABI-generic wrapper class for ELF symbol array
+class pdElfSymVector {
+ private:
+
+  vector<pdElfSym *> elf_syms_;
+
+ public:
+
+  pdElfSymVector(Elf_Data *symdatap, bool is_elf64) 
+    {
+      assert(symdatap);
+     
+      if (is_elf64) {
+	
+	unsigned nsyms = symdatap->d_size / sizeof(Elf64_Sym);
+	Elf64_Sym *syms = (Elf64_Sym *)symdatap->d_buf;
+	for (unsigned i = 0; i < nsyms; i++) {
+	  elf_syms_ += new pdElfSym(&syms[i]);
+	}
+
+      } else { // 32-bit ELF
+	
+	unsigned nsyms = symdatap->d_size / sizeof(Elf32_Sym);
+	Elf32_Sym *syms = (Elf32_Sym *)symdatap->d_buf;
+	for (unsigned i = 0; i < nsyms; i++) {
+	  elf_syms_ += new pdElfSym(&syms[i]);
+	}
+
+      }
+    }
+
+  ~pdElfSymVector() 
+    {
+      for (unsigned i = 0; i < elf_syms_.size(); i++) {
+	delete elf_syms_[i];
+      }
+    }
+
+  int size() { return elf_syms_.size(); }
+
+  pdElfSym &operator[](unsigned i) { return *elf_syms_[i]; }
+};
+
 
 #endif /* _IRIX_DL_H_ */
 
