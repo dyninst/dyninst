@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.97 2003/04/11 22:46:22 schendel Exp $
+// $Id: linux.C,v 1.98 2003/04/16 21:07:20 bernat Exp $
 
 #include <fstream.h>
 
@@ -323,9 +323,7 @@ process *decodeProcessEvent(int pid,
     int result = 0, status = 0;
     process *proc = NULL;
     bool ignore;
-    
     result = waitpid( pid, &status, options );
-    
     // Translate the signal into a why/what combo.
     // We can fake results here as well: translate a stop in fork
     // to a (SYSEXIT,fork) pair. Don't do that yet.
@@ -354,9 +352,14 @@ process *decodeProcessEvent(int pid,
             // as well. procSignalled is a generic return.
             // For example, we translate SIGILL to SIGTRAP
             // in a few cases
-
             why = procSignalled;
             what = WSTOPSIG(status);
+
+            if (what == SIGILL) {
+                // Check for system call exit and handle
+                // We're aborting on Linux, can ignore this
+                
+            }
 
             if (what == SIGSTOP) {
                 decodeRTSignal(proc, why, what, info);
@@ -372,8 +375,7 @@ process *decodeProcessEvent(int pid,
                 
                 if (pc == proc->rbrkAddr() ||
                     pc == proc->main_brk_addr ||
-                    pc == proc->dyninstlib_brk_addr ||
-                    proc->existsRPCWaitingForSyscall()) {
+                    pc == proc->dyninstlib_brk_addr) {
                     what = SIGTRAP;
                 }
             }
@@ -595,7 +597,6 @@ bool process::isRunning_() const {
 // TODO is this safe here ?
 bool process::continueProc_() {
   int ret;
-
   if (!checkStatus()) 
       return false;
   
@@ -605,9 +606,6 @@ bool process::continueProc_() {
 
   if (ret == -1)
   {
-      fprintf(stderr, "ptrace error on process %d\n", getPid());
-      sleep(10);
-      
       perror("continueProc_()");
   }
   
