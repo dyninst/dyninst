@@ -1,7 +1,10 @@
 
 /*
  * $Log: init-pvm.C,v $
- * Revision 1.6  1995/08/24 15:03:53  hollings
+ * Revision 1.7  1995/08/28 01:48:05  hollings
+ * Corrected error with instMapping constructor for critical path.
+ *
+ * Revision 1.6  1995/08/24  15:03:53  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -47,7 +50,6 @@ static AstNode cmdArg(Param, (void *) 4);
 
 bool initOS() {
 
-  int next;
   char *doPiggy;
 
   initialRequests += new instMapping("pvm_recv", "DYNINSTrecordTag",
@@ -73,10 +75,10 @@ bool initOS() {
   if (doPiggy) {
       initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
       initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
-                           FUNC_ENTRY|FUNC_ARG, &tidArg, &tagArg);
+                           FUNC_ENTRY|FUNC_ARG, &tidArg);
       initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
       initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
-                           FUNC_ENTRY|FUNC_ARG, &tidArg, &tagArg);
+                           FUNC_ENTRY|FUNC_ARG, &tidArg);
   }
   return true;
 };
