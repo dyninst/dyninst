@@ -4,6 +4,11 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.30  1998/02/05 22:19:00  czhang
+# Removed the rule for "metTester", which was used for building a stand-alone
+# test for the MDL scanner and parser.  Two of the source files for the test
+# "metTester.C" and "metTemplates.C" were removed because they were obsolete.
+#
 # Revision 1.29  1996/05/12 04:41:20  tamches
 # added templatesUIWASHG.C (split off from templatesUI.C), since our
 # aix 4.1 machines barfed when assembling what was templatesUI.C
@@ -149,10 +154,6 @@ CXXFLAGS     += -DNO_MDL_PRINT
 TFLAGS       += -DNO_MDL_PRINT
 
 all:	$(TARGET) 
-
-metTester: metParser.o metTester.o metScanner.o metTemplates.o metClass.o
-	$(CXX) $(LIBDIR) -o metTester metTemplates.o metParser.o metTester.o \
-	metScanner.o metClass.o -lfl
 
 templatesIGENMDL.o: ../src/templatesIGENMDL.C
 	$(CXX) $(TFLAGS) -c ../src/templatesIGENMDL.C
