@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.51 2003/08/19 18:36:32 hollings Exp $
+# $Id: make.module.tmpl,v 1.52 2003/10/29 22:43:18 rchen Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -12,10 +12,27 @@ RELEASE_NUM	= 4.0
 
 DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 
+# Test to see if GCC is available
+ifdef M_GCC
+OUTPUT		= $(shell which $(M_GCC) 2>&1)
+ifeq (,$(findstring /$(M_GCC),$(OUTPUT)))
+M_GCC =
+endif
+endif
+
+# Test to see if GXX is available
+ifdef M_GXX
+OUTPUT		= $(shell which $(M_GXX) 2>&1)
+ifeq (,$(findstring /$(M_GXX),$(OUTPUT)))
+M_GXX =
+endif
+endif
+
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
 TARGETS       =  test1 test2 test3 test4 test5 test6 test7 test8 test9 test10
+ifdef M_GCC
 TARGETS      +=	 test1.mutatee_$(M_GCC) \
 		 test2.mutatee_$(M_GCC) \
 		 test3.mutatee_$(M_GCC) \
@@ -26,6 +43,7 @@ TARGETS      +=	 test1.mutatee_$(M_GCC) \
 		 test8.mutatee_$(M_GCC) \
 		 test9.mutatee_$(M_GCC) \
 		 test10.mutatee_$(M_GCC)
+endif
 
 ifdef NATIVE_CC
 TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
@@ -183,19 +201,32 @@ all:	tests.done
 
 tests.done:
 endif
-	$(MAKE) testlibs MUTATEE_CC=$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test1 TARGET2=test1.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test2 TARGET2=test2.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test3 TARGET2=test3.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test4 TARGET2=test4a.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test4b.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test1
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test2
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test3
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test4
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test5
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test6 TARGET2=test6.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test7 TARGET2=test7.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test8 TARGET2=test8.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test9 TARGET2=test9.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test10 TARGET2=test10.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test6
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test7
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test8
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test9
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test10
+	$(MAKE) testlibs MUTATEE_CC=$(M_GCC)
 
+ifneq ($(M_GCC),)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test1.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test2.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test3.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test4a.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test4b.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test6.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test7.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test8.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test9.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test10.mutatee_$(M_GCC)
+else
+	@echo "WARNING: Skipping gcc mutatees..."
+endif
 ifneq ($(NATIVE_CC),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC)
@@ -206,7 +237,6 @@ ifneq ($(NATIVE_CC),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test7.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test8.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test9.mutatee_$(NATIVE_CC)
-
 else
 	@echo "WARNING: Skipping native C compiler mutatees..."
 endif
@@ -221,7 +251,7 @@ ifneq ($(M_GXX),)
 	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test8.mutatee_$(M_GXX)
 	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test9.mutatee_$(M_GXX)
 else
-	@echo "WARNING: Skipping $(M_GXX) mutatees..."
+	@echo "WARNING: Skipping g++ mutatees..."
 endif
 ifneq ($(NATIVE_CXX),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test1.mutatee_$(NATIVE_CXX)
@@ -233,7 +263,6 @@ ifneq ($(NATIVE_CXX),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test7.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test8.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test9.mutatee_$(NATIVE_CXX)
-
 else
 	@echo "WARNING: Skipping native C++ compiler mutatees..."
 endif
