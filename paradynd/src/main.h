@@ -53,4 +53,6 @@ extern pdRPC *tp;
 // Now also cleans up shm segs by deleting all processes  -ari
 void cleanUpAndExit(int status);
 
+extern bool frontendExited;
+
 #endif

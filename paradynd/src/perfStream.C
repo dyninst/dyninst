@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.175 2005/01/28 18:12:05 legendre Exp $
+// $Id: perfStream.C,v 1.176 2005/03/03 18:03:06 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h" // getCyclesPerSecond
@@ -200,6 +200,12 @@ void processAppIO(process *curr)
 char errorLine[1024];
 
 void logLineN(const char *line, int n, bool /* force */) {
+  // Fix for daemon segfault: don't send messages to the frontend if 
+  // it's gone. Happens if the frontend exits.
+  if (frontendExited) {
+    fprintf(stderr, "Skipping message, frontend exited:\n%s\n", line);
+    return;
+  }
     static char fullLine[1024];
     //cerr << "logLineN: " << n << "- " << line << "\n";
     if (strlen(fullLine) + strlen(line) >= 1024) {
@@ -966,8 +972,10 @@ void controllerMainLoop(bool check_buffer_first)
       }
 #if !defined(i386_unknown_nt4_0)
       if (FD_ISSET(tp->get_sock(), &errorSet)) {
-         // paradyn is gone so we go too.
-         cleanUpAndExit(-1);
+	// Don't forward more messages to the frontend.
+	frontendExited = true;
+	// paradyn is gone so we go too.
+	cleanUpAndExit(-1);
       }
 #else // !defined(i386_unknown_nt4_0)
          
@@ -979,6 +987,8 @@ void controllerMainLoop(bool check_buffer_first)
          int nbytes = recv(tp->get_sock(), (char*)&junk, sizeof(junk),
                            MSG_PEEK );
          if( nbytes == 0 ) {
+	   // No more messages to Daddy
+	   frontendExited = true;
             // paradyn is gone so we go too
             cleanUpAndExit(-1);
          }
@@ -986,23 +996,7 @@ void controllerMainLoop(bool check_buffer_first)
 #endif // !defined(i386_unknown_nt4_0)
 	 
       bool delayIGENrequests=false;
-#if 0
-      processMgr::procIter itrB = getProcMgr().begin();
-      // Need to take another look at this... it REALLY hoses
-      // the response of the daemon to the frontend in the MT
-      // case (where we can be waiting for a syscall for a long time)
-      while(itrB != getProcMgr().end()) {
-         pd_process *curProc = *itrB++;
-         if(curProc == NULL)
-            continue; // process structure has been deallocated
-         
-         if((curProc->isAnyIRPCwaitingForSyscall()) &&
-            curProc->status() == running) {
-            delayIGENrequests=true;
-            break;
-         }
-      }
-#endif
+
       // if we are waiting for a system call to complete in order to
       // launch an inferiorRPC, we will avoid processing any igen
       // request - naim

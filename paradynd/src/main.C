@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.130 2005/02/17 21:11:01 bernat Exp $
+// $Id: main.C,v 1.131 2005/03/03 18:03:06 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -118,6 +118,8 @@ void sigtermHandler()
 {
   showErrorCallback(98,"paradynd has been terminated");
 }
+
+bool frontendExited = false;
 
 // Now also cleans up shm segs by deleting all processes  -ari
 void cleanUpAndExit(int status) {
