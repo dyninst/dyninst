@@ -52,12 +52,21 @@
 #include "BPatch.h"
 
 /* Intended only for classes. */
-void BPatch_type::merge( BPatch_type * other ) {
+bool BPatch_type::merge( BPatch_type * other ) {
 	// fprintf( stderr, "Merging 0x%x and 0x%x\n", this, other );
 
 	if( this->ID != other->ID ) {
 		fprintf( stderr, "Ignoring attempt to merge dissimilar types.\n" );
+		return false;
 		}
+
+	/* Sanity check time */
+	if (this->type_ != BPatch_unknownType &&
+	    (this->type_ != other->type_ ||
+	     this->type_ != BPatch_dataCommon ||
+	     this->type_ != BPatch_dataStructure)) {
+	  return false;
+	}
 
 	/* If we don't have a name, gain one. */
 	if( this->name == NULL ) { this->name = other->name; }
@@ -72,6 +81,7 @@ void BPatch_type::merge( BPatch_type * other ) {
 	if( this->fieldList.size() < other->fieldList.size() ) {
 		this->fieldList = other->fieldList;
 		}
+	return true;
 	} /* end merge() */
 
 // This is the ID that is decremented for each type a user defines. It is
@@ -218,10 +228,18 @@ nullType(false), cblocks(NULL)
   modifierType = 0;
   ID = _ID;
   if(_type == BPatch_dataScalar){  // could be a typedef for something
-    if( _name)
-      name = strdup(_name);
-    else
+    if( _name) {
+      /*
+      if (_name[0] == '\0' && _ptr && _ptr->name)
+	name = strdup(_ptr->name);
+      else
+      */
+	name = strdup(_name);
+	/*
+    } else {
       name = NULL;
+	*/
+    }
     if(_ptr ){
       if(_ptr->ptr) // point to whatever it points to
 	ptr = _ptr->ptr;
@@ -236,8 +254,14 @@ nullType(false), cblocks(NULL)
       type_ = _type;
     }
 	
-    low = NULL;
-    hi = NULL;
+    if (_ptr->low != NULL)
+      low = strdup(_ptr->low);
+    else
+      low = NULL;
+    if (_ptr->hi != NULL)
+      hi = strdup(_ptr->hi);
+    else
+      hi = NULL;
   } else{
     type_=_type;
     ptr = _ptr;
@@ -247,8 +271,14 @@ nullType(false), cblocks(NULL)
       name = NULL;
 
     size = sizeof(void *);
-    low = NULL;
-    hi = NULL;
+    if (_ptr->low != NULL)
+      low = strdup(_ptr->low);
+    else
+      low = NULL;
+    if (_ptr->hi != NULL)
+      hi = strdup(_ptr->hi);
+    else
+      hi = NULL;
   }
 }
 

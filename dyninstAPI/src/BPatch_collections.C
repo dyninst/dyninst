@@ -220,7 +220,11 @@ BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
 	memmove( existingType, type, sizeof( BPatch_type ) );
 #else
 	/* Merge the type information. */
-	existingType->merge( type );
+	if (!existingType->merge( type )) {
+	  /* If we can't merge, replace wholesale */
+	  typesByID[ type->getID() ] = type;
+	}
+
 #endif
     /* The type may have gained a name. */
     if( existingType->getName() != NULL ) {

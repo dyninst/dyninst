@@ -225,7 +225,7 @@ public:
 // Start Internal Functions
   BPatch_type();
 
-  void merge( BPatch_type * other );
+  bool merge( BPatch_type * other );
   
   BPatch_type(const char *_name, bool _nullType = false);
   /* Enum constructor */
