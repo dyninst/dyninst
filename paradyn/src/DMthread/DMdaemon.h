@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.60 2003/05/27 03:30:13 schendel Exp $
+// $Id: DMdaemon.h,v 1.61 2003/05/27 21:44:53 bernat Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -150,7 +150,9 @@ class paradynDaemon: public dynRPCUser {
    friend void DMdoEnableData(perfStreamHandle, perfStreamHandle,
 			      pdvector<metricRLType>*, u_int, phaseType,
 			      phaseHandle,u_int,u_int,u_int);
- public:
+   friend class metricFocusReq_Val; // access to disabledMids
+   
+  public:
    struct MPICHWrapperInfo
    {
       string	filename;
