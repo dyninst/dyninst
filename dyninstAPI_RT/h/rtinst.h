@@ -140,9 +140,9 @@ struct tTimerRec {
     volatile timerType 	type;
     volatile sampleId 	id;
     volatile char mutex;
-//    volatile char sampled; /* is this used? */
+/*    volatile char sampled; * is this used? */
 
-//   volatile unsigned char theSpinner;
+/*   volatile unsigned char theSpinner; */
    /* mutex serving 2 purposes: (1) so paradynd won't sample while we're in middle of
       updating and (2) so multiple LWPs or threads won't update at the same time */ 
 };

@@ -520,7 +520,11 @@ int handleSigChild(int pid, int status)
 		  // process the code below yet - naim
 		  string msg = string("Process") + string(curr->getPid()) +
 		               string(" was unable to load file ") + 
+#ifdef BPATCH_LIBRARY
+			       string(getenv("DYNINSTAPI_RT_LIB"));
+#else
 		               string(getenv("PARADYN_LIB"));
+#endif
 		  showErrorCallback(101, msg);
 		  break;
 		}

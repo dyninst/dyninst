@@ -1,7 +1,5 @@
 
-This directory contains tests for the dyninstAPI library.  The library
-currently runs on the sparc-sun-solaris2.4, sparc-sun-sunos4.1.3,
-rs6000-ibm-aix4.1 platforms, and i386-unknown-solaris2.5 platofrms.
+This directory contains tests for the dyninstAPI library.
 
 Before you can build the test programs, you will need do a "make install"
 in the following directories (relative to the top of the paradyn source
@@ -18,16 +16,23 @@ Once you've made the above libraries, you can go into the $PLATFORM
 subdirectory of the directory containing this README file and run make
 there.
 
-To run the tests, type "test1" in the directory in which they were made.
-The test1 program starts test1.mutatee (which must be in the current
-working directory when you run test1).  Test1 instruments test1.mutatee
-and then lets it run to check that the results of the instrumentation were
-as expected.
+To run the tests, type "test1" or "test2" in the directory in which they
+were made.  Each test program starts a mutatee process, test1.mutatee or
+test2.mutatee, the executable for which must be in the current directory.
+For both programs, you should see a series of messages saying that each
+test was passed.
 
-You should see a series of messages saying that tests 1-16 were passed.
-If any messages saying "**Failed** test #n" appear then there is a problem
-in the dyninstAPI library.
+The programs take two options:
+    -verbose	Print extra output.
+    -attach	Start the mutatee without using the library and then
+		attach to it.  This option is only supported on Solaris
+		and Windows NT.
 
 It is normal to see the messages "WARNING: register _n_ is still in use" and
 "attempt to ptrace exited process," as well as the message "Process _n_
 has terminated" when test1.mutatee exits.
+
+The test2 program tests to see that various error conditions are caught
+and reported properly by the library, so it is normal for it to print some
+warning and error messages.  If all tests pass, it will print a message
+saying so, so you may assume any error messages printed were expected.

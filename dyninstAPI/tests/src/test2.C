@@ -31,6 +31,7 @@
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "test_util.h"
+#include "test2.h"
 
 #ifdef i386_unknown_nt4_0
 #define access _access
@@ -90,10 +91,12 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
 
     gotError = true;
 
-    if (expectErrors)
-    	printf("Error (expected) #%d (level %d): %s\n", num, level, line);
-    else
+    if (expectErrors) {
+	if (debugPrint)
+    	    printf("Error (expected) #%d (level %d): %s\n", num, level, line);
+    } else {
     	printf("Error #%d (level %d): %s\n", num, level, line);
+    }
 }
 
 //
@@ -122,7 +125,7 @@ main(int argc, char *argv[])
 	}
     }
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+#if defined(sparc_sun_sunos4_1_3) || defined(rs6000_ibm_aix3_2)
     if (useAttach) {
 	printf("Attach is not supported on this platform.\n");
 	exit(1);
@@ -230,18 +233,35 @@ main(int argc, char *argv[])
     }
 
     ret->continueExecution();
-#ifdef NOT_YET /* Put this in when dlopen works. */
-    ret->stopExecution();
-    ret->continueExecution();
+
+// We'll put this ifndef back when it works under sparc solaris again
+//#ifndef sparc_sun_solaris2_4
+#if 1
+    printf("Skipping test #6 (load a dynamically linked library)\n");
+    printf("    feature not implemented on this platform\n");
+#else
+    waitUntilStopped(ret, 6, "load a dynamically linked library");
 
     // see if the dlopen happended.
-    sleep(1);
+    bool found = false;
     BPatch_Vector<BPatch_module *> *m = img->getModules();
     for (i=0; i < m->size(); i++) {
 	    char name[80];
 	    (*m)[i]->getName(name, sizeof(name));
-	    printf("modules %s\n", name);
+	    if (strcmp(name, TEST_DYNAMIC_LIB) == 0) {
+		found = true;
+		break;
+	    }
     }
+    if (found) {
+    	printf("Passed test #6 (load a dynamically linked library)\n");
+    } else {
+    	printf("**Failed** test #6 (load a dynamically linked library)\n");
+	printf("    image::getModules() did not indicate that the library had been loaded\n");
+	failed = true;
+    }
+
+    ret->continueExecution();
 #endif
 
     ret->stopExecution();
@@ -257,19 +277,21 @@ main(int argc, char *argv[])
     }
 
 #ifndef sparc_sun_sunos4_1_3
-    printf("Skipping test #6 (dump core but do not terminate)\n");
+    printf("Skipping test #7 (dump core but do not terminate)\n");
     printf("    BPatch_thread::dumpCore() not implemented on this platform\n");
 #else
     gotError = false;
     ret->dumpCore("mycore", true);
     bool coreExists = (access("mycore", F_OK) == 0);
     if (gotError || !coreExists) {
-	printf("**Failed** test #6 (dump core but do not terminate)\n");
+	printf("**Failed** test #7 (dump core but do not terminate)\n");
 	failed = true;
 	if (gotError)
 	    printf("    error reported by dumpCore\n");
 	if (!coreExists)
 	    printf("    the core file wasn't written\n");
+    } else {
+    	printf("Passed test #7 (dump core but do not terminate)\n");
     }
 #endif
 

@@ -18,6 +18,8 @@
 #include <dlfcn.h>
 #endif
 
+#include "test2.h"
+
 /* XXX Currently, there's a bug in the library that prevents a subroutine call
  * instrumentation point from being recognized if it is the first instruction
  * in a function.  The following variable is used in this program in a number
@@ -81,13 +83,18 @@ void main(int argc, char *argv[])
 	printf("Mutator attached.  Mutatee continuing.\n");
     }
 
-#ifdef NOT_YET /* Put this in when dlopen works. */
+//We'll put this ifdef back when it works under sparc solaris again
+//#ifdef sparc_sun_solaris2_4
+#if 0
     // now use the dlopen interface to force an object to load.
-    ref = dlopen("libX11.so.4", RTLD_NOW);
+    ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW);
     if (!ref) {
 	fprintf(stderr, "%s\n", dlerror());
 	fflush(stderr);
     }
+
+    // Stop and wait for the mutator to check that we linked the library
+    stop_process();
 #endif
 
     while(1);

@@ -520,6 +520,11 @@ bool process::dlopenDYNINSTlib() {
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
   vector<AstNode*> dlopenAstArgs(2);
 
+  unsigned count = 0;
+
+#ifdef BPATCH_LIBRARY	/* dyninst API doesn't load libsocket.so.1 */
+  AstNode *dlopenAst;
+#else
   dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0); 
   // library name. We use a scratch value first. We will update this parameter
   // later, once we determine the offset to find the string - naim
@@ -527,8 +532,7 @@ bool process::dlopenDYNINSTlib() {
   AstNode *dlopenAst = new AstNode("dlopen",dlopenAstArgs);
   removeAst(dlopenAstArgs[0]);
   removeAst(dlopenAstArgs[1]);
-
-  unsigned count = 0;
+#endif
 
   // deadList and deadListSize are defined in inst-sparc.C - naim
   extern int deadList[];
@@ -536,14 +540,19 @@ bool process::dlopenDYNINSTlib() {
   registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(int), deadList, 0, NULL);
   dlopenRegSpace->resetSpace();
 
+#ifndef BPATCH_LIBRARY /* dyninst API doesn't load libsocket.so.1 */
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
 			  count, true);
   writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
   count += sizeof(instruction);
+#endif
 
   // we need to make 2 calls to dlopen: one to load libsocket.so.1 and another
   // one to load libdyninst.so.1 - naim
+
+#ifndef BPATCH_LIBRARY /* since dyninst API didn't create an ast yet */
   removeAst(dlopenAst); // to avoid memory leaks - naim
+#endif
   dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
   // library name. We use a scratch value first. We will update this parameter
   // later, once we determine the offset to find the string - naim
@@ -610,6 +619,15 @@ bool process::dlopenDYNINSTlib() {
   count += sizeof(instruction);
 
   char libname[256];
+#ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
+  if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+    strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
+  } else {
+    string msg = string("DYNINSTAPI_RT_LIB is not defined");
+    showErrorCallback(101, msg);
+    return false;
+  }
+#else
   if (getenv("PARADYN_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
   } else {
@@ -618,12 +636,19 @@ bool process::dlopenDYNINSTlib() {
     showErrorCallback(101, msg);
     return false;
   }
+#endif
+
   unsigned dyninstlib_addr = (unsigned) (codeBase + count);
+
   writeDataSpace((void *)(codeBase + count), strlen(libname)+1,
 		 (caddr_t)libname);
   count += strlen(libname)+1;
   // we have now written the name of the library after the trap - naim
 
+#ifdef BPATCH_LIBRARY  /* dyninst API doesn't load libsocket.so.1 */
+  assert((count + strlen(libname) + 1) <=BYTES_TO_SAVE);
+  // The dyninst API doesn't load the socket library
+#else
   char socketname[256];
   if (getenv("PARADYN_SOCKET_LIB") != NULL) {
     strcpy((char*)socketname,(char*)getenv("PARADYN_SOCKET_LIB"));
@@ -635,9 +660,13 @@ bool process::dlopenDYNINSTlib() {
 		 strlen(socketname)+1, (caddr_t)socketname);
   count += strlen(socketname)+1;
   // we have now written the name of the socket library after the trap - naim
+  //
+  assert((count + strlen(libname)+1 + strlen(socketname)+1) <=BYTES_TO_SAVE);
+#endif
 
-  assert(count<=BYTES_TO_SAVE);
-
+#ifdef BPATCH_LIBRARY  /* dyninst API doesn't load libsocket.so.1 */
+  count = 0; // reset count
+#else
   // at this time, we know the offset for the library name, so we fix the
   // call to dlopen and we just write the code again! This is probably not
   // very elegant, but it is easy and it works - naim
@@ -653,6 +682,7 @@ bool process::dlopenDYNINSTlib() {
 			  count, true);
   writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
   removeAst(dlopenAst);
+#endif
 
   // at this time, we know the offset for the library name, so we fix the
   // call to dlopen and we just write the code again! This is probably not

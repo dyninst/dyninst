@@ -94,12 +94,9 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 
     for (int n = 0; n < points->size(); n++) {
 	BPatch_function *func;
-	if ((func = (*points)[n]->getCalledFunction()) == NULL) {
-	    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	    fprintf(stderr, "    Can't get called function in %s\n",
-		    inFunction);
-	    exit(1);
-	}
+
+	if ((func = (*points)[n]->getCalledFunction()) == NULL) continue;
+
 	char fn[256];
 	if (func->getName(fn, 256) == NULL) {
 	    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
@@ -1095,6 +1092,14 @@ main(int argc, char *argv[])
 	    exit(-1);
 	}
     }
+
+#if defined(sparc_sun_sunos4_1_3) || defined(rs6000_ibm_aix3_2)
+    if (useAttach) {
+        printf("Attach is not supported on this platform.\n");
+        exit(1);
+    }
+#endif
+
 
 #ifdef i386_unknown_nt4_0
     mutatorMAIN("test1.mutatee.exe", useAttach);

@@ -2073,7 +2073,11 @@ bool process::handleIfDueToSharedObjectMapping(){
              // TODO: currently we aren't handling dlopen because  
 	     // we don't have the code in place to modify existing metrics
 	     // This is what we really want to do:
+#ifdef BPATCH_LIBRARY
+	     if (((*changed_objects)[i])->getName() == string(getenv("DYNINSTAPI_RT_LIB"))) 
+#else
 	     if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB"))) 
+#endif
 	     {
 	       if(addASharedObject(*((*changed_objects)[i]))){
 		 *shared_objects += (*changed_objects)[i];

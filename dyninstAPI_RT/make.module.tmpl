@@ -20,9 +20,11 @@ ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING
 endif
 
-CFLAGS  += -UMT_THREAD
-
+ifdef USES_LIBDYNINSTRT_SO
+all: $(TARGET3)
+else
 all: $(TARGET) $(TARGET2) $(ALT_TARGET)
+endif
 
 #
 # override standard link rule; libdyninst is not really a library or a program.
@@ -35,8 +37,10 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
+ifndef USES_LIBDYNINSTRT_SO
 $(TARGET): $(OBJS) $(LIBS)
 	$(LD) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -lgcc
+endif
 
 #
 # override standard install rule; provide a default DEST if not already set
@@ -47,7 +51,14 @@ endif
 
 UNCOMMON_INSTALL= true
 
+ifdef USES_LIBDYNINSTRT_SO
+install: $(DEST)/$(TARGET3)
+else
 install: $(DEST)/$(TARGET) $(SYSEXTRAS)
+endif
 
-$(DEST)/libdyninstAPI_RT.o:       libdyninstAPI_RT.o
+$(DEST)/libdyninstAPI_RT.o: libdyninstAPI_RT.o
 	cp libdyninstAPI_RT.o ../../../lib/$(PLATFORM)
+
+$(DEST)/libdyninstAPI_RT.so.1: libdyninstAPI_RT.so.1
+	cp libdyninstAPI_RT.so.1 ../../../lib/$(PLATFORM)
