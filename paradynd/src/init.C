@@ -1,7 +1,11 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.11  1995/11/13 14:56:31  naim
+ * Revision 1.12  1995/11/13 16:28:24  naim
+ * Making observed_cost, predicted_cost, active_processes and pause_time "normal"
+ * metrics and not "developer" mode metrics - naim
+ *
+ * Revision 1.11  1995/11/13  14:56:31  naim
  * Making all internal metrics "developer mode" metrics - naim
  *
  * Revision 1.10  1995/09/26  20:28:46  naim
@@ -116,7 +120,7 @@ bool init() {
 							 "Wasted CPUs",
 							 NULL,
 							 default_im_preds,
-							 true);
+							 false);
 
   hybridPredictedCost = internalMetric::newInternalMetric("hybrid_cost", 
 							  SampledFunction,
@@ -132,7 +136,7 @@ bool init() {
 						   "Wasted CPUs",
 						   NULL,
 						   default_im_preds,
-						   true);
+						   false);
 
 //  activeSlots = internalMetric::newInternalMetric("active_slots", 
 //						  SampledFunction,
@@ -241,10 +245,10 @@ bool init() {
    pauseTime = internalMetric::newInternalMetric("pause_time",
 						 EventCounter,
 						 aggMax,
-						 "% Time",
+						 "Seconds",
 						 computePauseTimeMetric,
 						 default_im_preds,
-						 true);
+						 false);
 
   activeProcs = internalMetric::newInternalMetric("active_processes",
 						  EventCounter,
@@ -252,7 +256,7 @@ bool init() {
 						  "Processes",
 						  NULL,
 						  obs_cost_preds,
-						  true);
+						  false);
 
   sym_data sd;
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
