@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.113 2003/12/08 19:03:32 schendel Exp $
+// $Id: pdwinnt.C,v 1.114 2003/12/18 17:15:34 schendel Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -939,6 +939,7 @@ int secondDLL = 0; //ccw 24 oct 2000 : 28 mar 2001
 #endif
 
 int handleProcessEvent(process *proc,
+                       dyn_lwp *relevantLWP,
                        procSignalWhy_t why,
                        procSignalWhat_t what,
                        procSignalInfo_t info) {
@@ -1077,7 +1078,7 @@ void decodeAndHandleProcessEvent(bool block) {
 
     proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block);
     if (!proc) return;
-    handleProcessEvent(proc, why, what, info);
+    handleProcessEvent(proc, selectedLWP, why, what, info);
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.110 2003/12/08 19:03:34 schendel Exp $
+// $Id: unix.C,v 1.111 2003/12/18 17:15:36 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -622,9 +622,11 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
 
 // Needs to be fleshed out
 int handleSigStopNInt(process *proc,
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
+                      dyn_lwp *relevantLWP,
                       procSignalWhat_t what,
 #else
+                      dyn_lwp *,
                       procSignalWhat_t,
 #endif
                       procSignalInfo_t /*info*/) {
@@ -645,13 +647,17 @@ int handleSigStopNInt(process *proc,
    // already, and forwarding a "stop" does odd things on platforms
    // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
 
-// AIX MT fix: we get extra SIGTRAPS. Remove with proc, etc. etc.
-#if defined(rs6000_ibm_aix4_1)
+// AIX, Linux MT fix: we get extra SIGTRAPS. Remove with proc, etc. etc.
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
    if(proc->multithread_capable()) {
       if( what == SIGSTOP )
       {
-         // we saw an unexpected SIGSTOP, continue the process
-         proc->continueProc();
+         if(process::IndependentLwpControl())  // eg. linux
+            relevantLWP->continueLWP();
+         else {
+            // we saw an unexpected SIGSTOP, continue the process
+            proc->continueProc();
+         }
       }
    }
 #endif
@@ -725,7 +731,7 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
 }
 
 
-int handleSignal(process *proc, procSignalWhat_t what, 
+int handleSignal(process *proc, dyn_lwp *relevantLWP, procSignalWhat_t what, 
                  procSignalInfo_t info) {
    int ret = 0;
     
@@ -754,14 +760,15 @@ int handleSignal(process *proc, procSignalWhat_t what,
 #endif
  case SIGSTOP:
  case SIGINT:
-     ret = handleSigStopNInt(proc, what, info);
+     ret = handleSigStopNInt(proc, relevantLWP, what, info);
      break;
  case SIGILL: 
      // x86 uses SIGILL for various purposes
-     if (proc->getRpcMgr()->handleSignalIfDueToIRPC())
-         ret = 1;
-     else 
-         ret = handleSigCritical(proc, what, info);
+    if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
+       ret = 1;
+    } else {
+       ret = handleSigCritical(proc, what, info);
+    }
      break;
      
  case SIGCHLD:
@@ -1039,6 +1046,7 @@ int handleSyscallExit(process *proc,
 }
 
 int handleProcessEvent(process *proc,
+                       dyn_lwp *relevantLWP,
                        procSignalWhy_t why,
                        procSignalWhat_t what,
                        procSignalInfo_t info) {
@@ -1071,7 +1079,7 @@ int handleProcessEvent(process *proc,
      case procSignalled:
      case procInstPointTrap:
      case procForkSigChild:
-        ret = handleSignal(proc, what, info);
+        ret = handleSignal(proc, relevantLWP, what, info);
         if (!ret)
             cerr << "handleSignal failed! " << what << endl;
         break;
@@ -1107,13 +1115,14 @@ void decodeAndHandleProcessEvent (bool block) {
     procSignalInfo_t info;
     process *proc;
     dyn_lwp *selectedLWP;
+
     proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block);
 
     if (!proc) {
        return;
     }
 
-    if (!handleProcessEvent(proc, why, what, info)) 
+    if (!handleProcessEvent(proc, selectedLWP, why, what, info)) 
         fprintf(stderr, "handleProcessEvent failed!\n");
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.6 2003/12/08 19:03:26 schendel Exp $
+/* $Id: signalhandler.h,v 1.7 2003/12/18 17:15:35 schendel Exp $
  */
 
 /*
@@ -91,6 +91,7 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
 
 // Takes the data above and performs whatever handling is necessary
 int handleProcessEvent(process *proc,
+                       dyn_lwp *relevantLWP,
                        procSignalWhy_t why,
                        procSignalWhat_t what,
                        procSignalInfo_t info);

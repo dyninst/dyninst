@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.68 2003/12/08 19:03:28 schendel Exp $
+// $Id: BPatch.C,v 1.69 2003/12/18 17:15:31 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -890,7 +890,7 @@ bool BPatch::getThreadEventOnly(bool block)
        
        // Do standard handling
        processState prevState = thread->proc->status();
-       handleProcessEvent(proc, why, what, info);
+       handleProcessEvent(proc, selectedLWP, why, what, info);
 
        // In the case where we trap on exit(), we're only updating the
        // exit code of the process.  Propagate this to the thread.

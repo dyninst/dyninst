@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.14 2003/12/08 19:03:29 schendel Exp $
+// $Id: aix-ptrace.C,v 1.15 2003/12/18 17:15:32 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -892,7 +892,7 @@ bool dyn_lwp::waitUntilStopped() {
          isStopped = true;
       }
       else {
-         handleProcessEvent(proc_, why, what, info);
+         handleProcessEvent(proc_, selectedLWP, why, what, info);
          // if handleProcessEvent left the proc stopped, continue
          // it so we that we will get the SIGSTOP signal we sent the proc
          if(proc_->status() == stopped) {
@@ -969,7 +969,7 @@ bool process::loopUntilStopped() {
             isStopped = true;
         }
         else {
-            handleProcessEvent(this, why, what, info);
+            handleProcessEvent(this, selectedLWP, why, what, info);
             // if handleProcessEvent left the proc stopped, continue
             // it so we that we will get the SIGSTOP signal we sent the proc
             if(status() == stopped) {
