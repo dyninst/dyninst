@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.43 2003/01/07 21:36:26 bernat Exp $
+ * $Id: RTetc-solaris.c,v 1.44 2003/04/11 22:46:47 schendel Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -74,6 +74,7 @@ extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
 
 
 static int procfd = -1;
+int proc_usage_fd = 0;
 rawTime64 cpuPrevious_hw = 0;
 rawTime64 cpuPrevious_sw = 0;
 rawTime64 wallPrevious_hw = 0;
@@ -99,6 +100,7 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
    hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
 
   /* needs to be reinitialized when fork occurs */
+   proc_usage_fd = 0;
    cpuPrevious_hw  = 0;
    cpuPrevious_sw  = 0;
    wallPrevious_hw = 0;
@@ -178,25 +180,25 @@ rawTime64
 DYNINSTgetCPUtime_sw(void) {
   static int cpuRollbackOccurred = 0;
   rawTime64 now, tmp_cpuPrevious = cpuPrevious_sw;
-  static int fd = 0;
+
 #if 0
   now = gethrvtime();
 #endif
   prusage_t theUsage;
-  if (!fd) {
+  if (!proc_usage_fd) {
       char usage_fd[256];
       sprintf(usage_fd, "/proc/self/usage");
-      fd = open(usage_fd, O_RDONLY, 0);
-      if (fd == -1) assert(0);
+      proc_usage_fd = open(usage_fd, O_RDONLY, 0);
+      if (proc_usage_fd == -1) assert(0);
   }
-  if (pread(fd, &theUsage, sizeof(prusage_t), 0) !=
+  if (pread(proc_usage_fd, &theUsage, sizeof(prusage_t), 0) !=
       sizeof(prusage_t)) {
       assert(0);
   }
-
+                 
   now =  (theUsage.pr_utime.tv_sec + theUsage.pr_stime.tv_sec) * 1000000000LL;
   now += (theUsage.pr_utime.tv_nsec+ theUsage.pr_stime.tv_nsec);
-      
+   
 #ifndef MT_THREAD
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
