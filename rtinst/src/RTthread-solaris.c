@@ -100,11 +100,13 @@ typedef struct uthread {
 
 extern void* DYNINST_allthreads_p ;
 void idtot(int tid) {
+/*
   if ( DYNINST_allthreads_p ) {
     uthread_t *ct = (uthread_t*) DYNINST_idtot(tid, DYNINST_allthreads_p);
     fprintf(stderr, "stk=0x%x, startpc=0x%x, lwpid=0x%x, resumestate=0x%x",
 	    ct->thread_stack, ct->start_pc, ct->lwp_id, &(ct->t_resumestate));
   }
+*/
 }
 
 void DYNINST_ThreadPInfo(
