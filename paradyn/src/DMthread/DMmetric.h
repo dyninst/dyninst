@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.46 2004/03/23 01:12:25 eli Exp $ 
+// $Id: DMmetric.h,v 1.47 2004/06/14 22:25:54 legendre Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -293,7 +293,7 @@ class metricInstance {
 	static void decrNumCurrHists(){ if(num_curr_hists) num_curr_hists--; }
 	static void decrNumGlobalHists(){ if(num_global_hists) num_global_hists--; }
 
-    bool hasData( void ) const          { return (data != NULL); }
+   bool hasData( phaseType phase ) const;
 
     private:
 	metricHandle met;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.47 2004/03/23 01:12:25 eli Exp $
+// $Id: DMmetric.C,v 1.48 2004/06/14 22:25:53 legendre Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -1007,4 +1007,10 @@ void metricInstance::newCurrDataCollection(dataCallBack dcb,
     phaseInfo::setCurrentBucketWidth(data->getBucketWidth());
 }
 
-
+bool metricInstance::hasData( phaseType phase ) const
+{
+   if (phase == CurrentPhase)
+      return data != NULL;
+   else
+      return global_data != NULL;
+}

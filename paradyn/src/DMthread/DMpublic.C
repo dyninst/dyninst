@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.142 2004/05/31 00:22:52 pcroth Exp $
+// $Id: DMpublic.C,v 1.143 2004/06/14 22:25:55 legendre Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -1226,7 +1226,7 @@ dataManager::getBucketWidth( metricInstanceHandle mih, phaseType ptype )
     timeLength* ret = NULL;
 
     metricInstance* mi = metricInstance::allMetricInstances[mih];
-    if( (mi != NULL) && (mi->hasData()) )
+    if( (mi != NULL) && (mi->hasData(ptype)) )
     {
         ret = new timeLength( mi->getBucketWidth( ptype ) );
     }
