@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.72 2004/02/07 18:34:05 schendel Exp $
+// $Id: irix.C,v 1.73 2004/02/25 04:36:42 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -54,7 +54,7 @@
 #include "dyninstAPI/src/arch-mips.h"
 #include "dyninstAPI/src/inst-mips.h"
 #include "dyninstAPI/src/symtab.h" // pd_Function
-#include "dyninstAPI/src/instPoint-mips.h"
+#include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/frame.h"
@@ -236,7 +236,7 @@ bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf)
 }
 #endif
 
-bool dyn_lwp::getRegisters(struct dyn_saved_regs *regs) 
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) 
 {
    if (ioctl(fd_, PIOCGREG, &(regs->intRegs)) == -1) {
       perror("dyn_lwp::getRegisters(PIOCGREG)");
@@ -254,7 +254,7 @@ bool dyn_lwp::getRegisters(struct dyn_saved_regs *regs)
    return true;
 }
 
-bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs)
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
 {
   if (ioctl(fd_, PIOCSREG, &(regs.intRegs)) == -1) {
     perror("dyn_lwp::restoreRegisters(PIOCSREG)");
@@ -1173,7 +1173,7 @@ Frame Frame::getCallerFrame(process *p) const
     pd_Function *callee = range->function_ptr;
     Address pc_off;
     if (!callee && ip)
-        callee = (pd_Function *) ip->iPgetFunction();
+        callee = (pd_Function *) ip->pointFunc();
 
     // calculate runtime address of callee fn
     if (!callee) {
@@ -1182,7 +1182,7 @@ Frame Frame::getCallerFrame(process *p) const
     }
 
     if (ip) {
-        pc_off = ip->iPgetAddress() - callee->getEffectiveAddress(p);
+        pc_off = ip->pointAddr() - callee->getEffectiveAddress(p);
     }
     else {
         pc_off = pc_ - callee->getEffectiveAddress(p);
@@ -1272,7 +1272,7 @@ Frame Frame::getCallerFrame(process *p) const
     if (mt2) bt2 = mt2->baseTramp;
     if (bt2) ip2 = (instPoint *) bt2->location;
     if (!caller && ip2)
-        caller = (pd_Function *)ip2->iPgetFunction();
+        caller = (pd_Function *)ip2->pointFunc();
     
     // Check for saved $fp value
     Address fp2;
