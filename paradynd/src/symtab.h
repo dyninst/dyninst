@@ -7,7 +7,12 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.7  1994/09/30 19:47:17  rbi
+ * Revision 1.8  1994/10/25 22:20:34  hollings
+ * Added code to suppress "functions" that have aninvalid instruction
+ * as their first instruction.  These are really read-only data that has
+ * been placed in the text segment to protect it from writing.
+ *
+ * Revision 1.7  1994/09/30  19:47:17  rbi
  * Basic instrumentation for CMFortran
  *
  * Revision 1.6  1994/09/22  02:26:56  markc
@@ -180,6 +185,7 @@ class module {
 #define TAG_MSG_FUNC	0x04
 #define TAG_SYNC_FUNC	0x08
 #define TAG_CPU_STATE	0x10	/* does the func block waiting for ext. event */
+#define TAG_NON_FUNC	0x20	/* has an invalid instruction at entry point */
 
 /*
  * symbols we need to find from our RTinst library.  This is how we know

@@ -19,14 +19,22 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.15 1994/09/22 01:58:17 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.17 1994/10/25 22:20:38 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.15  1994/09/22 01:58:17  markc
+ * Revision 1.17  1994/10/25 22:20:38  hollings
+ * Added code to suppress "functions" that have aninvalid instruction
+ * as their first instruction.  These are really read-only data that has
+ * been placed in the text segment to protect it from writing.
+ *
+ * Revision 1.16  1994/10/13  07:24:42  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.15  1994/09/22  01:58:17  markc
  * made getStrOp() return const char*
  * changed *allocs to news
  * enter funcFrequencyTable handles into stringPool
@@ -399,9 +407,12 @@ void locateInstPoints(pdFunction *func, void *codeV, int offset, int calls)
     codeIndex = ((unsigned int) (func->addr-offset))/sizeof(instruction);
     offset /= sizeof(instruction);
     if (!IS_VALID_INSN(code[codeIndex])) {
-	sprintf (errorLine, "Func '%s', code %x is not a valid insn\n", 
-		 (char*)func->prettyName, (code[codeIndex]).raw);
-	logLine (errorLine);
+	func->tag |= TAG_NON_FUNC;
+	// comment out warning since all gobal const have this property.
+	// jkh 10/17/94
+	// sprintf (errorLine, "Func '%s', code %x is not a valid insn\n", 
+		 // (char*)func->prettyName, (code[codeIndex]).raw);
+	// logLine (errorLine);
         func->funcEntry = NULL;
         func->funcReturn = NULL;
         return;
@@ -457,15 +468,34 @@ Boolean locateAllInstPoints(image *i)
 	logLine("WARNING: Program text + data could be too big for dyninst\n");
     }
 
+//
+// always scan ALL functions, library or not to identify
+// valid code points and stuff
+//
+// these functions may not be reported to paradyn nor instrumented
+// otherwise
+//
+
     for (func=i->funcs; func; func=func->next) {
-	if (!(func->tag & TAG_LIB_FUNC)) {
+//	if (!(func->tag & TAG_LIB_FUNC)) {
 //	    if (func->line) {
-//		printf("inst %s line %d:%s\n", func->file->fileName, 
+//		sprintf(errorLine, "inst %s line %d:%s\n", func->file->fileName, 
 //		       func->line, func->prettyName);
-//		logLine (output);
+//		logLine (errorLine);
 //	    }
 	    locateInstPoints(func, (instruction *) i->code, i->textOffset,TRUE);
-	}
+#ifdef notdef
+	    if (!func->funcEntry && !func->funcReturn) {
+		sprintf(errorLine, "could not find entry and exit for this function\n");
+		logLine(errorLine);
+	    }
+#endif
+//	}
+//	else {
+//	    sprintf(errorLine, "ignoring library function: %s %d %s\n",
+//		func->file->fileName, func->line, func->prettyName);
+//	    logLine(errorLine);
+//	}
     }
     return(TRUE);
 }

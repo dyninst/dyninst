@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.14 1994/10/04 21:40:12 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.16 1994/10/25 22:20:29 hollings Exp $";
 #endif
 
 /*
@@ -16,7 +16,15 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.14  1994/10/04 21:40:12  jcargill
+ * Revision 1.16  1994/10/25 22:20:29  hollings
+ * Added code to suppress "functions" that have aninvalid instruction
+ * as their first instruction.  These are really read-only data that has
+ * been placed in the text segment to protect it from writing.
+ *
+ * Revision 1.15  1994/10/13  07:25:04  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.14  1994/10/04  21:40:12  jcargill
  * Removed requirement that functions have valid line-number information to
  * be consider user functions.
  *
@@ -229,6 +237,12 @@ pdFunction *funcFindOrAdd(image *exec, module *mod, caddr_t addr, char *name)
 
 pdFunction *newFunc(image *exec, module *mod, const char *name, int addr)
 {
+    if (exec->funcAddrHash.find((void *) addr)) {
+	sprintf(errorLine, "function defined twice, ignoring this function\n");
+	logLine(errorLine);
+	return 0;
+    }
+
     char *p;
     pdFunction *func;
 
@@ -236,12 +250,6 @@ pdFunction *newFunc(image *exec, module *mod, const char *name, int addr)
 	logLine("Error function without module\n");
     }
     func = new pdFunction;
-
-    if (exec->funcAddrHash.find((void *) addr)) {
-	sprintf(errorLine, "function defined twice\n");
-	logLine(errorLine);
-	abort();
-    }
 
     exec->funcAddrHash.add(func, (void *) addr);
 
@@ -373,7 +381,11 @@ image *parseImage(char *file, int offset)
     for (mod = ret->modules; mod; mod=mod->next) {
 	modResource = NULL;
 	for (curr = mod->funcs;  func = *curr; curr++) {
-	    if ((!func->tag & TAG_LIB_FUNC) && (func->line)) {
+	    if ((!func->tag & TAG_LIB_FUNC) &&
+		(!(func->tag & TAG_NON_FUNC))) { 
+	    
+	    // IGNORE LINE NUMBERS FOR NOW
+	    // if ((!func->tag & TAG_LIB_FUNC) && (func->line)) {
 
 		// see if we have created module yet.
 		if (!modResource) {
