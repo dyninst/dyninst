@@ -1014,8 +1014,7 @@ void shmsampling_printf(const char *fmt, ...) {
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
+#include <sys/un.h>
 extern char *sys_errlist[];
 
 /************************************************************************
@@ -1026,37 +1025,38 @@ extern char *sys_errlist[];
  * does: socket(), connect()
 ************************************************************************/
 
-static int connectToDaemon(int daemonPort, unsigned long hostAddr) {
-  struct sockaddr_in sadr;
+static int connectToDaemon(char *traceSocketPath) {
   int sock_fd;
-
-  memset((void*) &sadr, 0, sizeof(sadr));
-  sadr.sin_family = PF_INET;
-  sadr.sin_port = htons(daemonPort);
-  sadr.sin_addr.s_addr = hostAddr;
-
-  sock_fd = socket(PF_INET, SOCK_STREAM, 0);
+  struct sockaddr_un sadr;
+  sock_fd = socket(PF_UNIX, SOCK_STREAM, 0);
   if (sock_fd < 0) {
-    perror("DYNINST connectToDaemon socket()");
+    fprintf(stderr, "DYNINST: socket failed: %s\n", sys_errlist[errno]);
     abort();
   }
 
+  sadr.sun_family = PF_UNIX;
+  strcpy(sadr.sun_path, traceSocketPath);
+  //sprintf(sadr.sun_path, "%sparadynd.%d", P_tmpdir, getuid());
   if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
-    perror("DYNINST connectToDaemon: connect()");
+    fprintf(stderr, "DYNINST: connect failed: %s\n", sys_errlist[errno]);
     abort();
   }
 
   return sock_fd;
 }
 
+
 void
-DYNINSTinit(int theKey, int shmSegNumBytes, int portnum, unsigned hostaddr) {
+DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) {
    /* If all params are -1 then we're being called by DYNINSTfork(). */
-   /* portnum and hostaddr are -1 unless we're called by attach, in which case it
-      gives the port number to connect() to get an fd for the trace stream. */
+
+   /* paradyndPid is -1 unless we're called by attach, in which case 
+      the pid is used to build the path name for the socket to which we
+      connect to for the trace stream
+   */
 
    int calledFromFork = (theKey == -1);
-   int calledFromAttach = (portnum != -1);
+   int calledFromAttach = (paradyndPid != -1);
 
 #ifndef SHM_SAMPLING
     struct sigaction act;
@@ -1074,7 +1074,7 @@ DYNINSTinit(int theKey, int shmSegNumBytes, int portnum, unsigned hostaddr) {
 
    shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d, %u\n",
 		      thehostname, (int)getpid(), theKey, shmSegNumBytes,
-		      portnum, hostaddr);
+                      paradyndPid);
 #endif
 
 #ifdef SHM_SAMPLING
@@ -1226,7 +1226,9 @@ DYNINSTinit(int theKey, int shmSegNumBytes, int portnum, unsigned hostaddr) {
       unsigned attach_cookie = 0x22222222;
 
       /* portnum and hostaddr are passed in as params */
-      DYNINST_trace_fd = connectToDaemon(portnum, hostaddr);
+      char path[100];
+      sprintf(path, "%sparadynd.%d\n", P_tmpdir, paradyndPid);
+      DYNINST_trace_fd = connectToDaemon(path);
       assert(DYNINST_trace_fd != -1);
 
       DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); // why the dup()?
@@ -1461,8 +1463,6 @@ DYNINSTfork(int pid) {
 	int ppid = getppid();
 
         char *traceEnv;
-	unsigned long tracePort;
-	unsigned long hostAddr;
 
        forkexec_printf("DYNINSTfork CHILD -- welcome\n");
        fflush(stderr);
@@ -1486,19 +1486,11 @@ DYNINSTfork(int pid) {
 	         writing to the connection.
 	 */
 
-	/* get the socket port number for traces from the environment */
-	{ 
-	  extern long strtol(const char *, char **, int);
-
-	  char *s1 = 0, *s2 = 0;
-	  traceEnv = getenv("PARADYND_TRACE_SOCKET");
-	  assert(traceEnv);
-
-	  tracePort = (unsigned long)strtol(traceEnv, &s1, 10);
-	  assert(traceEnv != s1);
-
-	  hostAddr = (unsigned long)strtol(s1, &s2, 10);
-	  assert(s1 != s2);
+	/* get the socket path from the environment */
+	traceEnv = getenv("PARADYND_TRACE_SOCKET");
+	if (!traceEnv) {
+	  fprintf(stderr,"DYNINST error: can't find PARADYND_TRACE_SOCKET in the environment\n");
+	  abort();
 	}
 
 	/* set up a connection to the daemon for the trace stream.  (The child proc
@@ -1509,7 +1501,7 @@ DYNINSTfork(int pid) {
 	(void)close(DYNINST_trace_fd);
 
 	forkexec_printf("dyninst-fork child opening new connection.\n");
-	DYNINST_trace_fd = connectToDaemon(tracePort, hostAddr);
+	DYNINST_trace_fd = connectToDaemon(traceEnv);
 	assert(DYNINST_trace_fd != -1);
 
 	DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w");
@@ -1538,7 +1530,7 @@ DYNINSTfork(int pid) {
 
 	forkexec_printf("dyninst-fork child past DYNINSTbreakPoint()...calling DYNINSTinit(-1,-1)\n");
 
-	DYNINSTinit(-1,-1, -1, (unsigned)-1);
+	DYNINSTinit(-1,-1, -1);
 	   /* -1 params indicate called from DYNINSTfork */
 
 	forkexec_printf("dyninst-fork child done...running freely.\n");
