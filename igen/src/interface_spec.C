@@ -384,7 +384,7 @@ bool interface_spec::gen_ctor_1(ofstream &out_stream, const bool &server,
 				const bool &hdr) const {
   out_stream << (!hdr ? gen_class_prefix(server) : string(""))
     << gen_class_name(server) 
-      << "(int use_fd, xdr_rd_func r, xdr_wr_func w, const bool nblock)";
+      << "(int use_fd, xdr_rd_func r, xdr_wr_func w, const int nblock)";
   if (hdr) {
     out_stream << ";\n";
     return true;
@@ -401,7 +401,7 @@ bool interface_spec::gen_ctor_2(ofstream &out_stream, const bool &server,
 				const bool &hdr) const
 {
   out_stream << (!hdr ? gen_class_prefix(server) : string("")) << gen_class_name(server)
-    << "(int family, int port, int type, const string host, xdr_rd_func r, xdr_wr_func w, bool nblock)";
+    << "(int family, int port, int type, const string host, xdr_rd_func r, xdr_wr_func w, int nblock)";
 
   if (hdr) {
     out_stream << ";\n";
@@ -418,7 +418,7 @@ bool interface_spec::gen_ctor_3(ofstream &out_stream, const bool &server,
 				const bool &hdr) const
 {
   out_stream << (!hdr ? gen_class_prefix(server) : string("")) << gen_class_name(server)
-    << "(const string machine, const string login, const string program, xdr_rd_func rf, xdr_wr_func wf, vector<string> &args, bool nblock, int port_fd)";
+    << "(const string machine, const string login, const string program, xdr_rd_func rf, xdr_wr_func wf, vector<string> &args, int nblock, int port_fd)";
 
   if (hdr) {
     out_stream << ";\n";
