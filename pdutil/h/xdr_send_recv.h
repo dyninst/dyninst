@@ -42,14 +42,11 @@
 #ifndef _XDR_SEND_RECV_H_
 #define _XDR_SEND_RECV_H_
 
-//#include <rpc/xdr.h> // XDR
 #include <sys/types.h> // uint32_t
-#include "common/h/triple.h"
 #include "common/h/String.h"
 #include "common/h/Vector.h"
-#include "common/h/vectorSet.h"
+//#include "common/h/vectorSet.h"
 #include "ByteArray.h"
-#include "common/h/Pair.h"
 
 class xdr_send_fail {};
 class xdr_recv_fail {};
@@ -64,8 +61,6 @@ bool P_xdr_send(XDR *xdr, const int &);
 bool P_xdr_send(XDR *xdr, const unsigned &); 
 bool P_xdr_send(XDR *xdr, const long &);
 bool P_xdr_send(XDR *xdr, const unsigned long &);
-//bool P_xdr_send(XDR *xdr, const long long &);
-//bool P_xdr_send(XDR *xdr, const unsigned long long &);
 #endif
 
 bool P_xdr_send(XDR *xdr, const uint32_t &);
@@ -86,8 +81,6 @@ bool P_xdr_recv(XDR *xdr, int &i);
 bool P_xdr_recv(XDR *xdr, unsigned &u);
 bool P_xdr_recv(XDR *xdr, long &l);
 bool P_xdr_recv(XDR *xdr, unsigned long &ul);
-//  bool P_xdr_recv(XDR *xdr, long long &ll);
-//  bool P_xdr_recv(XDR *xdr, unsigned long long &ull);
 #endif
 
 bool P_xdr_recv(XDR *xdr, uint32_t &);
@@ -100,7 +93,7 @@ bool P_xdr_recv(XDR *xdr, byteArray &);
 bool P_xdr_recv(XDR *xdr, string &);
 
 bool read1_bool(XDR *xdr);
-#ifndef i386_unknown_nt4_0
+#if !defined(i386_unknown_nt4_0)
 uint16_t read1_uint16(XDR *xdr);
 #endif
 uint32_t read1_uint32(XDR *xdr);
@@ -130,35 +123,6 @@ bool P_xdr_recv(XDR *xdr, T *&data) {
    return P_xdr_recv(xdr, *data);
 }
 
-
-//--------------------
-// New style XDR send/recv for pairs and triples
-
-template <class P1, class P2>
-bool P_xdr_send(XDR *xdr, const pair<P1, P2> &p) {
-   return P_xdr_send(xdr, p.first) &&
-          P_xdr_send(xdr, p.second);
-}
-
-template <class P1, class P2>
-bool P_xdr_recv(XDR *xdr, pair<P1, P2> &p) {
-   return P_xdr_recv(xdr, p.first) &&
-          P_xdr_recv(xdr, p.second);
-}
-
-template <class P1, class P2, class P3>
-bool P_xdr_send(XDR *xdr, const triple<P1, P2, P3> &p) {
-   return P_xdr_send(xdr, p.first) &&
-          P_xdr_send(xdr, p.second) &&
-          P_xdr_send(xdr, p.third);
-}
-
-template <class P1, class P2, class P3>
-bool P_xdr_recv(XDR *xdr, triple<P1, P2, P3> &p) {
-   return P_xdr_recv(xdr, p.first) &&
-          P_xdr_recv(xdr, p.second) &&
-          P_xdr_recv(xdr, p.third);
-}
 
 // --------------------
 // New style XDR send routines for vectors
