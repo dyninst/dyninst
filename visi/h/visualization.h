@@ -104,6 +104,9 @@ extern void visi_showErrorVisiCallback(const char *msg);
 extern PDSOCKET visi_Init();
 
 /* callback associated with paradyn-visualization interface routines
+ * Call this function when data is available on the PDSOCKET returned
+ * from visi_Init.  Note that this function will consume all XDR records
+ * available on the socket before returning to the caller.
  */
 extern int visi_callback();
 
