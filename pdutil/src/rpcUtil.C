@@ -3,22 +3,14 @@
 // This file defines a set of utility routines for RPC services.
 //
 //
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <assert.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <memory.h>
-#include <string.h>
 
-extern "C" {
-#include <rpc/types.h>
-}
+// overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
+// malloc 
+
+#ifdef MIPS
+#define MALLOC_DEFINED_AS_VOID
+#endif
+
 #include "util/h/rpcUtil.h"
 
 int RPCdefaultXDRRead(int handle, char *buf, u_int len)
