@@ -42,6 +42,12 @@ WARNFLAGS = -Wall \
 	        -Wredundant-decls      \
 	        -Wno-non-template-friend
 endif # SILENCE_WARNINGS
+
+# add pthread flag for GNU compiler
+CFLAGS      += -pthread
+CXXFLAGS    += -pthread
+LDFLAGS     += -pthread
+
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 WARNFLAGS       += -Wno-unknown-pragmas
 else   # STL on Solaris with cast-align generates a warning with much output
@@ -57,7 +63,7 @@ TARGETS = $(LIBMC) $(COMMNODE) $(TESTS)
 INCDIR = -I$(SRCDIR)/.. -I. -I$(OBJDIR)
 LIBMC    =$(LIBDIR)/libmrnet.a
 COMMNODE=$(BINDIR)/mrnet_commnode 
-TESTS   = $(BINDIR)/test_basic_FE \
+TESTS   = $(BINDIR)/test_basic_FE $(BINDIR)/test_basic_BE \
 	      $(BINDIR)/FloatAvg_FE $(BINDIR)/FloatAvg_BE \
 	      $(BINDIR)/microbench_FE $(BINDIR)/microbench_BE $(BINDIR)/config_generator
 
@@ -136,6 +142,10 @@ $(LIBMC): $(LIBMC_OBJS)
 $(BINDIR)/test_basic_FE: $(LIBMC) $(OBJDIR)/test_basic_FE.o $(OBJDIR)/test_common.o
 	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/test_basic_FE.o $(OBJDIR)/test_common.o $(LIBMC) $(LIBS)
+
+$(BINDIR)/test_basic_BE: $(LIBMC) $(OBJDIR)/test_basic_BE.o $(OBJDIR)/test_common.o
+	echo "Linking `basename $@` ..."
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/test_basic_BE.o $(OBJDIR)/test_common.o $(LIBMC) $(LIBS)
 
 $(BINDIR)/test1_BE: $(LIBMC) $(OBJDIR)/test1_BE.o
 	echo "Linking `basename $@` ..."
