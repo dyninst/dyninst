@@ -59,6 +59,7 @@ instReqNode::instReqNode(instPoint *iPoint, AstNode *iAst, callWhen iWhen,
   order = o;
   instance = NULL; // set when loadInstrIntoApp() calls addInstFunc()
   ast = assignAst(iAst);
+  rpcCount = 0;
   assert(point);
 }
 
@@ -158,25 +159,14 @@ timeLength instReqNode::cost(process *theProc) const
   return(value);
 }
 
-extern void checkProcStatus();
-
-bool instReqNode::triggerNow(process *theProc, Frame &triggeredFrame, int mid) 
+bool instReqNode::postCatchupRPC(process *theProc,
+				 Frame &triggeredFrame,
+				 int mid) 
 {
-  
-  bool needToCont = (theProc->status() == running);
-#ifdef DETACH_ON_THE_FLY
-  if ( !theProc->reattachAndPause())
-#else
-  if ( !theProc->pause() )
-#endif
-    {
-      cerr << "instReqNode::triggerNow -- pause failed" << endl;
-      return false;
-    }
   // So we have an instrumentation node (this), and a frame
   // to trigger it in.
   theProc->postRPCtoDo(ast, false, // don't skip cost
-		       instReqNode::triggerNowCallbackDispatch,
+		       NULL,
 		       (void *)this,
 		       mid,
 		       triggeredFrame.getThread(),
@@ -187,46 +177,13 @@ bool instReqNode::triggerNow(process *theProc, Frame &triggeredFrame, int mid)
 	 << (int) this 
 	 << " with frame"
 	 << triggeredFrame << endl;
-  rpcCount = 0;
 
-  // Launch RPC immediately, don't wait for the RPC to get launched
-  // normally. We know our RPC is done when rpcCount increases 
-  // (that's the callback)
-  do {
-    // Make sure that we are not currently in an RPC to avoid race
-    // conditions between catchup instrumentation and waitProcs()
-    // loops
-    if ( !theProc->isRPCwaitingForSysCallToComplete() ) 
-      theProc->launchRPCifAppropriate(false, false);	
-    checkProcStatus();
-    
-  } while ( !rpcCount && theProc->status() != exited );
-  if ( pd_debug_catchup ) 
-    cerr << "Catchup instrumentation is finished." << endl;
-
-  // Run side effects. This can run side effects multiple
-  // times. It assumes that they are idempotent. 
-  theProc->catchupSideEffect(triggeredFrame, this);
-
-  // And we're done!
-  if( needToCont && (theProc->status() != running)) {
-#ifdef DETACH_ON_THE_FLY
-    theProc->detachAndContinue();
-#else
-    theProc->continueProc();
-#endif
-  }
-  else if ( !needToCont && theProc->status()==running ) {
-#ifdef DETACH_ON_THE_FLY
-    theProc->reattachAndPause();
-#else
-    theProc->pause();
-#endif
-  }
+  // Don't launch the RPC immediately. We'll launch them all
+  // at one time.
   return true;
 }
 
-void instReqNode::triggerNowCallback(void * /*returnValue*/ ) {
+void instReqNode::catchupRPCCallback(void * /*returnValue*/ ) {
    ++rpcCount;
 }
 

@@ -389,28 +389,23 @@ void processMetFocusNode::doCatchupInstrumentation() {
   }
 
   prepareCatchupInstr();
-  vector<instrCodeNode *> codeNodes;
-  getAllCodeNodes(&codeNodes);
-  
-  for(unsigned i=0; i<codeNodes.size(); i++) {
-    if(codeNodes[i]->catchupInstrNeeded()) {
-      codeNodes[i]->manuallyTrigger(getMetricID());  
-    }
-  }
+
+  postCatchupRPCs();
+
+  void checkProcStatus();
+
+  // Get them all cleared out
+  do {
+    if (!proc_->isRPCwaitingForSysCallToComplete() )
+      proc_->launchRPCifAppropriate(false, false);
+    checkProcStatus();
+  } while (proc_->existsRPCreadyToLaunch() ||
+	   proc_->existsRPCinProgress());
 }
 
 bool processMetFocusNode::catchupInstrNeeded() const {
-  bool needed = false;
-  vector<const instrCodeNode *> codeNodes;
-  getAllCodeNodes(&codeNodes);
-
-  for(unsigned i=0; i<codeNodes.size(); i++) {
-    if(codeNodes[i]->catchupInstrNeeded()) {
-      needed = true;
-      break;
-    }
-  }
-  return needed;
+  assert(0 && "Not implemented");
+  return false;
 }
 
 //
@@ -435,18 +430,112 @@ bool processMetFocusNode::catchupInstrNeeded() const {
 //         
 
 void processMetFocusNode::prepareCatchupInstr() {
+
   vector< vector<Frame> > allStackWalks;
 
 #if defined(MT_THREAD)
   proc()->walkAllStack(allStackWalks);
   
 #else
+  // Fake multithread stack walk
   vector<Frame> stackWalk;
   proc()->walkStack(proc()->getActiveFrame(), stackWalk);
   allStackWalks.push_back(stackWalk);
 #endif
-  metricVarCodeNode->prepareCatchupInstr(allStackWalks);
+
+  assert(catchupASTList.size() == 0); // Make sure there's no catchup sitting around
+
+  // Convert the stack walks into a similar list of catchupReq nodes,
+  // which maps 1:1 onto the stack walk and includes a vector of instReqNodes
+  // that need to be executed
+
+  // 2d vector -- first by thread, then by individual stack frame
+  vector<vector<catchupReq *> > catchupStackWalks;
+  for (unsigned i = 0; i < allStackWalks.size(); i++) {
+    vector<catchupReq *> catchupWalk;
+    for (unsigned j = 0; j < allStackWalks[i].size(); j++)
+      catchupWalk.push_back(new catchupReq(allStackWalks[i][j]));
+    catchupStackWalks.push_back(catchupWalk);
+  }
+
+  // Now go through all associated code nodes, and add appropriate bits
+  // to the catchup request list.
+
+  for (unsigned constraintIter = 0; constraintIter < constraintCodeNodes.size(); constraintIter++)
+    if (!constraintCodeNodes[constraintIter]->hasBeenCatchuped()) {
+      constraintCodeNodes[constraintIter]->prepareCatchupInstr(catchupStackWalks);
+    }
+  // Get the metric code node catchup list
+  metricVarCodeNode->prepareCatchupInstr(catchupStackWalks);
+
+  // Note: stacks are delivered to us in bottom-up order (most recent to main()),
+  // and we want to execute from main down. So loop through backwards and add
+  // to the main list. We can go one thread at a time, because multiple threads
+  // will not interfere with each other.
+
+  // Iterate through all threads
+  //  cerr << "Looping through " << catchupStackWalks.size() << " stack walks" << endl;
+  for (unsigned i1 = 0; i1 < catchupStackWalks.size(); i1++) {
+    // Then through each frame in the stack walk
+    AstNode *conglomerate = NULL;
+    for (int j1 = catchupStackWalks[i1].size()-1;
+	 j1 >= 0; j1--) { // Note: backwards iteration
+      //      cerr << "Frame " <<i1<<"/"<<j1 << " "  << catchupStackWalks[i1][j1]->frame << endl;
+      if (((catchupStackWalks[i1])[j1]->reqNodes).size()) { // Means we have a catchup request
+	// What we want to do: build a single big AST then
+	// launch it as an RPC. 
+	for (int k1 = 0; k1 < ((catchupStackWalks[i1])[j1]->reqNodes).size(); k1++) {
+	  AstNode *AST = catchupStackWalks[i1][j1]->reqNodes[k1]->Ast();
+	  if (!conglomerate) {
+	    conglomerate = AST;
+	  }
+	  else { // Need to combine with a SequenceNode
+	    AstNode *old = conglomerate;
+	    conglomerate = new AstNode(conglomerate, AST);
+	    removeAst(old);
+	  }
+	}
+	sideEffect_t side;
+	side.frame = catchupStackWalks[i1][j1]->frame;
+	side.reqNode = catchupStackWalks[i1][j1]->reqNodes[0];
+	sideEffectFrameList.push_back(side);
+      }
+    } // Inner loop
+    if (conglomerate) {
+      catchup_t catchup;
+      catchup.ast = conglomerate;
+      catchup.thread = catchupStackWalks[i1][0]->frame.getThread();
+      catchup.lwp = catchupStackWalks[i1][0]->frame.getLWP();
+      catchupASTList.push_back(catchup);
+    }
+  }
 }
+
+void processMetFocusNode::postCatchupRPCs()
+{
+  // Assume the list of catchup requests is 
+  // sorted
+
+  if (pd_debug_catchup) {
+    cerr << "Posting " << catchupASTList.size() << " catchup requests" << endl;
+    cerr << "Handing " << sideEffectFrameList.size() << " side effects" << endl;
+  }
+  for (unsigned i=0; i < catchupASTList.size(); i++) {
+    proc_->postRPCtoDo(catchupASTList[i].ast, false,
+		       NULL, NULL,
+		       getMetricID(),
+		       catchupASTList[i].thread,
+		       catchupASTList[i].lwp,
+		       false);
+  }
+  catchupASTList.resize(0);
+  for (unsigned j = 0; j < sideEffectFrameList.size(); j++) {
+    proc_->catchupSideEffect(sideEffectFrameList[j].frame, 
+			     sideEffectFrameList[j].reqNode);
+  }
+  sideEffectFrameList.resize(0);
+}
+
 
 void processMetFocusNode::initAggInfoObjects(timeStamp startTime, 
 					     pdSample initValue)

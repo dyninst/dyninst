@@ -44,14 +44,29 @@
 
 #include "paradynd/src/metricFocusNode.h"
 #include "common/h/Dictionary.h"
+#include "dyninstAPI/src/frame.h"
 
 class machineMetFocusNode;
 class instrCodeNode;
 class threadMetFocusNode;
 class threadMetFocusNode_Val;
 class instrDataNode;
+class catchupReq;
+class AstNode;
+class pdThread;
+class instReqNode;
 class Focus;
 
+struct catchup_t {
+  AstNode *ast;
+  pdThread *thread;
+  unsigned lwp;
+};
+
+struct sideEffect_t {
+  Frame frame;
+  instReqNode *reqNode;
+};
 class processMetFocusNode : public metricFocusNode {
  private:
   instrCodeNode *metricVarCodeNode;
@@ -70,6 +85,8 @@ class processMetFocusNode : public metricFocusNode {
   const Focus &focus;
   bool dontInsertData_;
   bool catchupNotDoneYet_;
+  vector<catchup_t > catchupASTList;
+  vector<sideEffect_t>     sideEffectFrameList;
 
   processMetFocusNode(process *p, const string &metname,
 		      const Focus &component_foc, aggregateOp agg_op, 
@@ -151,6 +168,20 @@ class processMetFocusNode : public metricFocusNode {
   timeStamp getStartTime() { return procStartTime; }
 
   void prepareCatchupInstr();
+  void postCatchupRPCs();
+
+#if defined(MT_THREAD)
+  void setMetricRelated(unsigned type, bool arg_dontInsertData, 
+			const vector<string> &temp_ctr, 
+			vector<T_dyninstRPC::mdl_constraint*> flag_cons,
+			T_dyninstRPC::mdl_constraint* repl_cons) {
+    type_thr          = type;
+    dontInsertData_thr = arg_dontInsertData;
+    temp_ctr_thr      = temp_ctr;
+    flag_cons_thr     = flag_cons;
+    base_use_thr      = repl_cons;
+  }
+#endif
 };
 
 

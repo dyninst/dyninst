@@ -72,6 +72,7 @@ class instrCodeNode_Val {
   bool _baseTrampsHookedUp;
   bool instrDeferred_;
   bool instrLoaded_;
+  bool hasBeenCatchuped_;
   process *proc_;
   bool dontInsertData_;
   int referenceCount;
@@ -89,7 +90,7 @@ class instrCodeNode_Val {
   instrCodeNode_Val(const string &name_, const Focus &f, process *p) : 
     sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
     _baseTrampsHookedUp(false), instrDeferred_(false), instrLoaded_(false), 
-    proc_(p), referenceCount(0)
+    hasBeenCatchuped_(false), proc_(p), referenceCount(0)
   { }
   ~instrCodeNode_Val();
 
@@ -127,12 +128,17 @@ class instrCodeNode {
   int getID() { return reinterpret_cast<int>(&V); }
   instrCodeNode_Val *getInternalData() { return &V; }
   // should make it private
-  void prepareCatchupInstr(vector<vector<Frame> > &); 
+
+  bool hasBeenCatchuped() const { return V.hasBeenCatchuped_;};
+  void prepareCatchupInstr(vector<vector<catchupReq *> >&); 
+
   string getName() { return V.getName(); }
+  /*
   bool catchupInstrNeeded() const {
     if( V.manuallyTriggerNodes.size() > 0 )  return true;
     else  return false;
   }
+  */
   int numDataNodes() { 
     return (((V.sampledDataNode != NULL) ? 1 : 0) +
 	    ((V.constraintDataNode != NULL) ? 1 : 0) +

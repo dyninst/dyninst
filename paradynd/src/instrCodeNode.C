@@ -146,6 +146,15 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
 {
   //
   //
+  pd_Function *instPoint_fn = dynamic_cast<pd_Function *>
+    (const_cast<function_base *>
+     (iRN.Point()->iPgetFunction()));
+  if (instPoint_fn) {
+    vector<string> name = instPoint_fn->prettyNameVector();
+    if (name.size())
+      cerr << "instP function: " << name[0] << " ";
+  }
+
   switch (iRN.When()) {
   case callPreInsn:
     cerr << " callPreInsn for ";
@@ -192,87 +201,67 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
 //
 }
 
-void instrCodeNode::prepareCatchupInstr(vector<vector<Frame> > &allStackWalks)
+void instrCodeNode::prepareCatchupInstr(vector<vector<catchupReq *> > &allStackWalks)
 {
+  V.hasBeenCatchuped_ = true;
+  // Okay, we have a list of stack frames (allStackWalks[stackIter]), 
+  // and a list of instPoints (instRequests). We want to get a list of
+  // the instRequests that are on the stack. So, we loop through the 
+  // instrumentation requests (the instPoints), checking to see if:
+  //   1) the instPoint would have been triggered (triggeredInStackFrame)
+  //   2) the instPoint takes no arguments from the function it is in
+  //      (knowledge that we no longer have)
+  //   3) That the instrumentation was actually put in and not deferred
+  // If these three requirements pass, the instPoint and the associated
+  // frame are stored for later manual triggering.
+  // Note: we repeat this for each stack walk we have (The above for loop)
+  
+  // Note: the matchup is probably sparse, and so this is extremely inefficient
+  // O(#threads*#instrequests*#of frames on stack), where realistically it should 
+  // be O(#threads*#instrequests). 
 
-  vector<instReqNode> &instRequests = V.getInstRequests();
-  vector<instPoint*> instPts;
-  for (unsigned stackIter = 0; stackIter < allStackWalks.size(); stackIter++) {    
-    const vector<Frame> stackWalk = allStackWalks[stackIter];
-    // Okay, we have a list of stack frames (allStackWalks[stackIter]), 
-    // and a list of instPoints (instRequests). We want to get a list of
-    // the instRequests that are on the stack. So, we loop through the 
-    // instrumentation requests (the instPoints), checking to see if:
-    //   1) the instPoint would have been triggered (triggeredInStackFrame)
-    //   2) the instPoint takes no arguments from the function it is in
-    //      (knowledge that we no longer have)
-    //   3) That the instrumentation was actually put in and not deferred
-    // If these three requirements pass, the instPoint and the associated
-    // frame are stored for later manual triggering.
-    // Note: we repeat this for each stack walk we have (The above for loop)
-    // Loop through the instRequests:
-    for (unsigned instIter = 0; instIter < instRequests.size(); instIter++) {
-      // If the instRequest was not installed, skip...
-      if ( (instRequests[instIter].getRInstance() != NULL) &&
-	   !(instRequests[instIter].getRInstance()->Installed())) {
-	if (pd_debug_catchup) {
-	  cerr << "Skipped, not installed" << endl;
-	}
-	continue; // skip it (case 3 above)
+  // We loop through the inst requests first, since an inst request might
+  // not be suitable for catchup. If we don't like an inst request, we can skip
+  // it once and for all.
+
+  for (unsigned instIter = 0; instIter < V.instRequests.size(); instIter++) {
+    //prepareCatchupInstr_debug(V.instRequests[instIter]);
+    // If the instRequest was not installed, skip...
+    if ( (V.instRequests[instIter].getRInstance() != NULL) &&
+	 !(V.instRequests[instIter].getRInstance()->Installed())) {
+      if (pd_debug_catchup) {
+	cerr << "Skipped, not installed" << endl;
       }
-      // If it accesses parameters, skip it...
-      if (instRequests[instIter].Ast()->accessesParam()) {
-	if (pd_debug_catchup) {
-	  cerr << "Skipped, accesses parameters" << endl;
-	}
-	continue;
+      continue; // skip it (case 3 above)
+    }
+    // If it accesses parameters, skip it...
+    if (V.instRequests[instIter].Ast()->accessesParam()) {
+      if (pd_debug_catchup) {
+	cerr << "Skipped, accesses parameters" << endl;
       }
-      // Finally, test if it is active in any stack frame. Note: we can
-      // get multiple starts this way, which is good. The counter variable
-      // in the timer takes care of that.
-      for (unsigned frameIter = 0; frameIter < stackWalk.size();
-	   frameIter++) {
-	Frame thisFrame = stackWalk[frameIter];
-	if (instRequests[instIter].triggeredInStackFrame(thisFrame, proc())) {
-	  // So we finally get to do something!
-	  V.manuallyTriggerNodes.push_back(new catchupReq(&instRequests[instIter], 
-							  thisFrame));
-	} // if we want to do catchup
-      } // loop through individual stack walk
-    } // Loop through inst requests
+      continue; // Case 2
+    }
+    // Finally, test if it is active in any stack frame. Note: we can
+    // get multiple starts this way, which is good. The counter variable
+    // in the timer takes care of that.
+    
+    for (unsigned stackIter = 0; stackIter < allStackWalks.size(); stackIter++) {    
+      for (int frameIter = 0; frameIter < allStackWalks[stackIter].size(); frameIter++) {
+	Frame thisFrame = (allStackWalks[stackIter])[frameIter]->frame;
+      
+	bool triggered = V.instRequests[instIter].triggeredInStackFrame(thisFrame, proc());
+	if (triggered) {
+	  // Push this instRequest onto the list of ones to execute
+	  cerr << "catchup was triggered in frame " << thisFrame << endl;
+	  allStackWalks[stackIter][frameIter]->reqNodes.push_back(&(V.instRequests[instIter]));
+	} // If we want catchup
+      } // loop through instrumentation requests
+    } // loop through a stack walk.
   } // loop through all stack walks
   // if MTHREAD
+  // Not sure what the following did: figure it out and set it up.
   //oldCatchUp(tid);
   
-}
-
-// Look at the inst point corresponding to *this, and the stack.
-// If inst point corresponds a location which is conceptually "over"
-// the current execution frame, then set the manuallyTrigger flag
-// (of *this) to true, (hopefully) causing the AST corresponding
-// to the inst point to be executed (before the process resumes
-// execution).
-// What does conceptually "over" mean?
-// An inst point is "over" the current execution state if that inst
-//  point would have had to have been traversed to get to the current
-//  execution state, had the inst point existed since before the
-//  program began execution.
-// In practise, inst points are categorized as function entry, exit, and call
-//  site instrumentation.  entry instrumentation is "over" the current 
-//  execution frame if the function it is applied to appears anywhere
-//  on the stack.  exit instrumentation is never "over" the current 
-//  execution frame.  call site instrumentation is "over" the current
-//  execution frame if   
-
-void instrCodeNode::manuallyTrigger(int mid) {
-  for ( unsigned i=0; i < V.manuallyTriggerNodes.size(); ++i ) {
-    instReqNode *triggeredNode =V.manuallyTriggerNodes[i]->reqNode();
-    Frame triggeredFrame = V.manuallyTriggerNodes[i]->frame();
-    if (!triggeredNode->triggerNow(proc(), triggeredFrame, mid))
-      cerr << "Manual trigger failed for " << triggeredNode << endl;
-    delete V.manuallyTriggerNodes[i];
-  }
-  V.manuallyTriggerNodes.resize(0);  
 }
 
 bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {

@@ -52,19 +52,23 @@ class AstNode;
 class instInstance;
 
 class instReqNode;
+
 class catchupReq {
-
  public:
-  catchupReq() : reqNode_(NULL), frame_() {};
-  catchupReq(instReqNode *inst, Frame frame) :
-    reqNode_(inst), frame_(frame) {};
-  instReqNode *reqNode() { return reqNode_;}
-  Frame frame() { return frame_;}
+  catchupReq() : frame() {};
+  catchupReq(Frame frame2) :
+    frame(frame2) {};
+  catchupReq(const catchupReq &src) {
+    frame = src.frame;
+    for (unsigned i = 0; i < src.reqNodes.size(); i++)
+      reqNodes.push_back(src.reqNodes[i]);
+  }
 
- private:
-  instReqNode *reqNode_;
-  Frame        frame_;
+
+  vector<instReqNode *> reqNodes;
+  Frame        frame;
 };
+
 
 class instReqNode {
  public:
@@ -121,11 +125,11 @@ class instReqNode {
   instInstance *getInstance() const { return instance; }
   returnInstance *getRInstance() const { return rinstance; }
   
-  bool triggerNow(process *theProc, Frame &triggeredFrame, int mid);
-  static void triggerNowCallbackDispatch(process * /*theProc*/,
+  bool postCatchupRPC(process *theProc, Frame &triggeredFrame, int mid);
+  static void catchupRPCCallbackDispatch(process * /*theProc*/,
 					 void *userData, void *returnValue)
-    { ((instReqNode*)userData)->triggerNowCallback( returnValue ); }
-  void triggerNowCallback(void *returnValue);
+    { ((instReqNode*)userData)->catchupRPCCallback( returnValue ); }
+  void catchupRPCCallback(void *returnValue);
   
   bool triggeredInStackFrame(Frame &frame, process *p);
   
