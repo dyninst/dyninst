@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.5 2001/11/05 20:01:27 schendel Exp $
+// $Id: sampleAggregator.C,v 1.6 2001/12/15 02:44:23 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -102,9 +102,15 @@ void aggComponent::addSamplePt(timeStamp timeOfSample, pdSample value) {
   aggu_cerr << "addSamplePt- " << this << ", timeOfSample: " << timeOfSample
 	    << ", lastProcessedSampleTime: " << lastProcessedSampleTime 
 	    << ", value: " << value << "\n";
+  assert(! hasFinished());  // can't add samples if it has finished already
+  internalAddSamplePt(timeOfSample, value);
+}
+
+void aggComponent::internalAddSamplePt(timeStamp timeOfSample,pdSample value) {
   assert(timeOfSample > lastProcessedSampleTime);
   futureSamples.add(timeOfSample, value);
 }
+
 
 // Actually process a sample, sample should have been shifted off of queue
 void aggComponent::processSamplePt(timeStamp timeOfSample, pdSample value) {
@@ -139,7 +145,7 @@ void aggComponent::processSamplePt(timeStamp timeOfSample, pdSample value) {
 
   // save the remainder of the sample that was after the current interval
   if(timeOfSample > endIntvl())
-    addSamplePt(timeOfSample, addToLeftOver);
+    internalAddSamplePt(timeOfSample, addToLeftOver);
 
   lastProcessedSampleTime = rightTimeMark;
 }
@@ -193,7 +199,9 @@ aggComponent *sampleAggregator::newComponent() {
 bool sampleAggregator::allCompsCompleteForInterval() const {
   for(unsigned i=0; i<componentBuf.size(); i++) {
     aggComponent *curComp = componentBuf[i];
-    bool compDone = false;  // the component is done for this interval 
+    bool compDone = false;  // the component is done for this interval
+    if(curComp->hasFinished())
+      compDone = true;
     if(curComp->isRemoveRequested() && curComp->filledUpto(curIntvlStart))
       compDone = true;
     bool compIntvlComplete = false;

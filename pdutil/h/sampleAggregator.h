@@ -67,12 +67,11 @@ struct sampleInterval {
 
 // class aggComponent: define a class for sample values. This class should be
 // used with class sampleAggregator. aggComponent objects are allocated and
-// deallocated by class sampleAggregator.  Objects are allocated by
-// sampleAggregator::newSampleInfo.  All aggComponent object must be a
+// deallocated by class sampleAggregator.  All aggComponent object must be a
 // component of one and only one sampleAggregator.  Sharing of aggComponents
 // between sampleAggregator's is not allowed.  This is because the
 // aggComponents have information about the state of aggregation for a
-// particular sampleAggregator.  
+// particular sampleAggregator.
 
 // To interact with the aggregation code, here's what one does.  The sequence
 // is important:
@@ -134,6 +133,14 @@ struct sampleInterval {
 // aggComponent after it has aggregated all the sampling data for this
 // aggComponent.
 
+// However, if one wants to finish sending samples to an aggComponent because
+// the aggComponent has finished it's processing, then one should call
+// markAsFinished on this aggComponent.  This will allow any
+// sampleAggregators which are managing this aggComponent to not wait for
+// samples on this aggComponent and hold up aggregation.  However, the
+// aggComponent won't be deleted, but will stay around so it's values can
+// still be aggregated with it's other sibling aggComponents.
+
 
 class aggComponent {
   friend class sampleAggregator;
@@ -167,11 +174,19 @@ class aggComponent {
   // note the value here is a change in sample value that got added at the
   // specified timeOfSample
   void addSamplePt(timeStamp timeOfSample, pdSample value);
+
+  // This will keep the aggComponent around and not remove the aggComponent.
+  // This allows a sampleAggregator to still total the values in this
+  // aggComponent when aggregating.  However, the aggComponent won't wait
+  // for new samples from this aggComponent, since it has "finished".
+  void markAsFinished() {
+    bIsFinished = true;
+  }
   void requestRemove() {  _requestRemove = true;  }
   const sampleAggregator *getParentAggregator() { return &parentAggregator; }
  private:
   aggComponent(const sampleAggregator &parent) : curIntvlVal(pdSample::Zero()),
-    parentAggregator(parent), _requestRemove(false) { }
+    parentAggregator(parent), _requestRemove(false), bIsFinished(false) { }
   ~aggComponent() { }
   timeStamp  startIntvl() const;
   timeStamp  endIntvl()   const;
@@ -184,6 +199,10 @@ class aggComponent {
   }
 
   void processSamplePt(timeStamp timeOfSample, pdSample value);
+
+  // used by processSamplePt, when a portion of the sample can be processed
+  // but the leftover part of the sample should be added to the queue
+  void internalAddSamplePt(timeStamp timeOfSample, pdSample value);
   void updateActualValWithIntvlVal() {
     curActualVal += curIntvlVal;
     curIntvlVal  = pdSample::Zero();
@@ -191,6 +210,7 @@ class aggComponent {
   void updateWithPriorQueuedSamples(timeStamp curTimeStamp);
   void updateCurIntvlWithQueuedSamples();
   bool readyToProcessSamples() const;
+  bool hasFinished() const { return bIsFinished; }
   bool isRemoveRequested() const { return _requestRemove; }
   unsigned numQueuedSamples() { return futureSamples.size(); }
 
@@ -202,6 +222,7 @@ class aggComponent {
   const sampleAggregator &parentAggregator;
   bool _requestRemove;
   bool bIsInitialStartTimeSet;
+  bool bIsFinished;
   
   friend ostream& operator<<(ostream&s, const aggComponent &comp);
 };
