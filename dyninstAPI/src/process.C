@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.394 2003/03/10 21:06:59 pcroth Exp $
+// $Id: process.C,v 1.395 2003/03/10 23:15:35 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2721,15 +2721,13 @@ process *createProcess(const string File, pdvector<string> argv,
         return NULL;
     }
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // What a hack... getExecFileDescriptor waits for a trap
     // signal on AIX and returns the code in status. So we basically
     // have a pending TRAP that we need to handle, but not right
     // now.
+#if defined(rs6000_ibm_aix4_1)
     int fileDescSignal = WSTOPSIG(status);
-#endif // defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-
-    
+#endif
     image *img = image::parseImage(desc);
     if (!img) {
       // For better error reporting, two failure return values would be
@@ -3265,14 +3263,13 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     fileDescriptor *desc = 
         getExecFileDescriptor(fullPathToExecutable, status, true);
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // What a hack... getExecFileDescriptor waits for a trap
     // signal on AIX and returns the code in status. So we basically
     // have a pending TRAP that we need to handle, but not right
     // now.
+#if defined(rs6000_ibm_aix4_1)
     int fileDescSignal = WSTOPSIG(status);
-#endif // defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-    
+#endif 
 
     if (!desc) {
       return false;
@@ -3742,7 +3739,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 
 bool process::pause() {
   if (status_ == stopped || status_ == neonatal) {
-    return true;
+      return true;
   }
   
   if (status_ == exited) {
