@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.73 2004/06/01 22:07:28 legendre Exp $
+ * $Id: Object-elf.C,v 1.74 2004/06/08 22:03:13 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1307,27 +1307,26 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
 ********************************************************/
 void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 {
-    unsigned u, v, nsymbols;
+   unsigned u, v, nsymbols;
 
-    nsymbols = allsymbols.size();
+   nsymbols = allsymbols.size();
 	unsigned int u_section_idx = 0;
-    for (u=0; u < nsymbols; u++) {
-        //  If function symbol, and size set to 0, or if the
-        //   executable has been EEL rewritten, patch the size
-		//
+   for (u=0; u < nsymbols; u++) {
+      //  If function symbol, and size set to 0, or if the
+      //   executable has been EEL rewritten, patch the size
+      //
 		//  Patch the symbol size to the difference between the address
 		//  of this symbol and the next, unless the next symbol is beyond
 		//  the boundary of the section to which this symbol belongs.  In
 		//  that case, set the size to the difference between the section
 		//  end and this symbol.
 		// 
-        if (allsymbols[u].type() == Symbol::PDST_FUNCTION
+      if (allsymbols[u].type() == Symbol::PDST_FUNCTION
 #if ! defined(ia64_unknown_linux2_4)
-               && (isEEL || allsymbols[u].size() == 0)) {
-#else
-               ) {
+          && (isEEL || allsymbols[u].size() == 0)
 #endif
-
+          )
+      {
 			// find the section to which allsymbols[u] belongs
 			// (most likely, it is the section to which allsymbols[u-1] 
 			// belonged)
@@ -1343,7 +1342,7 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 				shi -= get_base_addr();
 #endif
 				if( (allsymbols[u].addr() >= slow) &&
-					(allsymbols[u].addr() < shi) )
+                (allsymbols[u].addr() < shi) )
 				{
 					// we found u's section
 					break;
@@ -1352,19 +1351,33 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 				// try the next section
 				u_section_idx++;
 			}
+
+         //Some platforms (Fedora Core 2) thought it would be really 
+         // funny if they stuck size 0 symbols inbetween sections.  
+         // we'll just delete the symbol in this case.
+         if (u_section_idx == allSectionHdrs.size())
+         {
+            //Delete item u
+            for (unsigned i = u; i < allsymbols.size()-1; i++)
+               allsymbols[u] = allsymbols[u+1];
+            allsymbols.pop_back();
+            //Search next item
+            u--; nsymbols--;
+            continue;
+         }
+
 			assert( u_section_idx < allSectionHdrs.size() );
 
-
 			// search for the next symbol after allsymbols[u]
-            v = u+1;
-            while (v < nsymbols && allsymbols[v].addr() == allsymbols[u].addr())
+         v = u+1;
+         while (v < nsymbols && allsymbols[v].addr() == allsymbols[u].addr())
 			{
-                v++;
+            v++;
 			}
 
 			unsigned int symSize = 0;
 			unsigned int v_section_idx = 0;
-            if (v < nsymbols) {
+         if (v < nsymbols) {
 
 				// find the section to which allsymbols[v] belongs
 				// (most likely, it is in the same section as symbol u)
@@ -1379,7 +1392,7 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 					shi -= get_base_addr();
 #endif
 					if( (allsymbols[v].addr() >= slow) &&
-						(allsymbols[v].addr() < shi) )
+                   (allsymbols[v].addr() < shi) )
 					{
 						// we found v's section
 						break;
@@ -1388,7 +1401,6 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 					// try the next section
 					v_section_idx++;
 				}
-				assert( v_section_idx < allSectionHdrs.size() );
 
 				if( u_section_idx == v_section_idx )
 				{
@@ -1397,10 +1409,10 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 					// take the size of symbol u to be the difference
 					// between their two addresses
 					//
-                    symSize = ((unsigned int)allsymbols[v].addr()) - 
-								(unsigned int)allsymbols[u].addr();
+               symSize = ((unsigned int)allsymbols[v].addr()) - 
+                  (unsigned int)allsymbols[u].addr();
 				}
-            }
+         }
 			
 			if( (v == nsymbols) || (u_section_idx != v_section_idx) )
 			{
@@ -1410,18 +1422,18 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 				// end of its section
 				//
 				symSize = allSectionHdrs[u_section_idx]->pd_addr + 
-							allSectionHdrs[u_section_idx]->pd_size -
+               allSectionHdrs[u_section_idx]->pd_size -
 #if defined(mips_sgi_irix6_4)
-								(allsymbols[u].addr() + get_base_addr());
+               (allsymbols[u].addr() + get_base_addr());
 #else
-								allsymbols[u].addr();
+            allsymbols[u].addr();
 #endif
 			}
 
 			// update the symbol size
-            allsymbols[u].change_size( symSize );
-        }
-    }
+         allsymbols[u].change_size( symSize );
+      }
+   }
 }
 
 /********************************************************
