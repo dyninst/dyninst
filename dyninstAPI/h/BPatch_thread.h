@@ -90,6 +90,10 @@ public:
     ~BPatchSnippetHandle();
 
     void add(miniTrampHandle *pointInstance);
+    void getMiniTrampHandles(BPatch_Vector<miniTrampHandle *> *save_mtHandles) {
+      for(unsigned i=0; i<mtHandles.size(); i++)
+	(*save_mtHandles).push_back(mtHandles[i]);
+    }
 };
 
 /*
@@ -174,6 +178,9 @@ public:
     BPatch_variableExpr	*malloc(const BPatch_type &type);
     void	free(const BPatch_variableExpr &ptr);
     BPatch_variableExpr *getInheritedVariable(const BPatch_variableExpr &pVar);
+    BPatchSnippetHandle *getInheritedSnippet(
+					  BPatchSnippetHandle &parentSnippet);
+
 
     // to provide backward compatiblity 
     BPatchSnippetHandle *insertSnippet(

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.59 2002/08/09 23:32:38 jaw Exp $
+// $Id: BPatch_thread.C,v 1.60 2002/08/12 04:21:29 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -640,7 +640,7 @@ void BPatch_thread::free(const BPatch_variableExpr &ptr)
  * BPatch_thread::getInheritedVariable
  *
  * Allows one to retrieve a variable which exists in a child process which 
- * was inherited from and originally created in the parent process
+ * was inherited from and originally created in the parent process.
  * Function is invoked on the child BPatch_thread (created from a fork in 
  * the application).
  *
@@ -660,6 +660,41 @@ BPatch_variableExpr *BPatch_thread::getInheritedVariable(
   }
   return new BPatch_variableExpr(proc, parentVar.getBaseAddr(),
 				 parentVar.getType());
+}
+
+
+/*
+ * BPatch_thread::getInheritedSnippet
+ *
+ * Allows one to retrieve a snippet which exists in a child process which 
+ * was inherited from and originally created in the parent process.
+ * Function is invoked on the child BPatch_thread (created from a fork in 
+ * the application).
+ *
+ * parentVar   A BPatch_variableExpr created in the parent thread
+ *
+ * Returns:    The corresponding BPatch_variableExpr from the child thread
+ *             or NULL if the variable argument hasn't been malloced
+ *             in a parent process.
+ */
+BPatchSnippetHandle *BPatch_thread::getInheritedSnippet(
+			 	          BPatchSnippetHandle &parentSnippet)
+{
+  // a BPatchSnippetHandle has an miniTrampHandle for each point that
+  // the instrumentation is inserted at
+  BPatch_Vector<miniTrampHandle *> parent_mtHandles;
+  parentSnippet.getMiniTrampHandles(&parent_mtHandles);
+
+  BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(proc);
+  for(unsigned i=0; i<parent_mtHandles.size(); i++) {
+    miniTrampHandle *childMT = new miniTrampHandle;
+    if(! getInheritedMiniTramp(parent_mtHandles[i], childMT, proc)) {
+      // error, couldn't find a snippet
+      return NULL;
+    }
+    childSnippet->add(childMT);
+  }
+  return childSnippet;
 }
 
 
