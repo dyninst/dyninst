@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.60 2003/11/14 20:10:47 pcroth Exp $
+# $Id: Makefile,v 1.61 2004/04/07 21:22:40 rchen Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -28,7 +28,7 @@ ParadynVC	= visi \
 		visiClients/histVisi visiClients/terrain \
 		visiClients/termWin
 subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
-DyninstAPI	= dyninstAPI_RT dyninstAPI dyninstAPI/tests dyner
+DyninstAPI	= dyninstAPI_RT dyninstAPI dyninstAPI/tests dyner codeCoverage
 
 threadComps	= rtinst/multi-thread-aware
 
