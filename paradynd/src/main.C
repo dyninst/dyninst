@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.87 2000/06/14 23:03:45 wylie Exp $
+// $Id: main.C,v 1.88 2000/06/15 19:24:29 paradyn Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -159,7 +159,7 @@ void cleanUpAndExit(int status) {
      if (theProc == NULL)
         continue; // process has already been cleaned up
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
      // Try to be a bit smarter when we clean up the processes - kill
      // all processes that were created, leave all processes that were
      // attached to running.  This should really go into the process class,
@@ -169,7 +169,7 @@ void cleanUpAndExit(int status) {
      bool wasAttachedTo = theProc->wasCreatedViaAttach();
 #endif
      delete theProc; // calls process::~process, which fries the shm seg
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
      if (!wasAttachedTo) OS::osKill(pid);
 #endif
 
@@ -207,6 +207,8 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
           //cerr << "paradynd: -v flag is obsolete (and ignored)" << endl;
       }
       else if (!P_strncmp(arg_list[loop], "-L", 2)) {
+          // this is an optional specification of the runtime library,
+          // overriding PARADYN_LIB (primarily for debugging/testing purposes)
 	  process::dyninstName = (arg_list[loop] + 2);
 	  if (!process::dyninstName.length()) return false;
       }
