@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.8 2004/03/31 20:37:25 tlmiller Exp $
+// $Id: test8.C,v 1.9 2004/04/01 22:10:06 tlmiller Exp $
 //
 
 #include <stdio.h>
@@ -337,22 +337,33 @@ void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
 	static const frameInfo_t correct_frame_info[] = {
 	
 #if defined( os_linux ) && defined( arch_x86 )
-		{ false, false, BPatch_frameNormal, NULL },
 		{ true, false, BPatch_frameNormal, "__kill" },
 #elif defined( os_solaris ) && defined( arch_sparc )
 		{ true, false, BPatch_frameNormal, "_kill" },
 #elif defined( os_aix ) && defined( arch_power )
+		/* AIX uses kill(), but the PC of a process in a syscall can
+		   not be correctly determined, and appears to be the address
+		   to which the syscall function will return. */
 #elif defined( os_windows ) && defined( arch_x86 )
+		/* Windows/x86 does not use kill(), so its lowermost frame will be 
+		   something unidentifiable in a system DLL. */
 		{ false, false, BPatch_frameNormal, NULL },
 #else
 		{ true, false, BPatch_frameNormal, "kill" },	
 #endif
-#if ! defined( os_windows ) && ! defined( arch_x86 )		
+#if ! defined( os_windows ) && ! defined( arch_x86 )
+		/* Windows/x86's stop_process_() calls DebugBreak(); it's 
+		   apparently normal to lose this frame. */
 		{ true, false, BPatch_frameNormal, "stop_process_" },
 #endif
 		{ true, false, BPatch_frameNormal, "func3_3" },
 		{ true, false, BPatch_frameTrampoline, NULL },
-		{ true, false, BPatch_frameNormal, "func3_2" },
+		/* On AIX and x86 (and others), if our instrumentation fires
+		   before frame construction or after frame destruction, it's 
+		   acceptable to not report the function (since, after all, it
+		   doesn't have a frame on the stack. */
+		{ true, true, BPatch_frameNormal, "func3_2" },
+		{ true, false, BPatch_frameNormal, "func3_1" },
 		{ true, false, BPatch_frameNormal, "main" }
 		};
 	
