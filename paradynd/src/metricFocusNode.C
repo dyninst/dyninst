@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.189 2001/07/02 22:43:22 gurari Exp $
+// $Id: metricFocusNode.C,v 1.190 2001/07/20 21:38:56 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -178,7 +178,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   component_focus(component_foc), flat_name_(component_flat_name),
   aggSample(0, metAggInfo.get_proportionCalc(metric_style)),
   cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(p), 
-  style_(metric_style)
+  style_(metric_style), constructor(NON_AGG)
 {
 #if defined(MT_THREAD)
   needData_ = true ;
@@ -204,7 +204,7 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   focus_(foc), flat_name_(cat_name), components(parts), 
   aggSample(agg_op, metAggInfo.get_proportionCalc(metric_style)), 
   cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), 
-  proc_(NULL), style_(metric_style)
+  proc_(NULL), style_(metric_style), constructor(AGG)
 {
 /*
   unsigned p_size = parts.size();
@@ -228,14 +228,14 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   // metric will be sampled. I moved this out of the constructor so that we
   // could first verify that the instrumentation was successfully inserted,
   // before okaying the sampling - itai
-  void metricDefinitionNode::okayToSample() {
-    unsigned c_size = components.size();
-    for (unsigned u=0; u<c_size; u++) {
-      metricDefinitionNode *mi = components[u];
-      mi->aggregators.push_back(this);
-      mi->samples.push_back(aggSample.newComponent(metAggInfo.get_updateStyle(style_)));
-    }
+void metricDefinitionNode::okayToSample() {
+  unsigned c_size = components.size();
+  for (unsigned u=0; u<c_size; u++) {
+    metricDefinitionNode *mi = components[u];
+    mi->aggregators.push_back(this);
+    mi->samples.push_back(aggSample.newComponent(metAggInfo.get_updateStyle(style_)));
   }
+}
 
 
 
@@ -412,7 +412,6 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
        }
     }
 
-
     if (mdl_can_do(metric_name)) {
       internal = false;
 
@@ -426,7 +425,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
       */
       vector<process*> procs;
       vector< vector<pdThread *> > threadsVec;
-      
+
       for (unsigned u = 0; u < processVec.size(); u++) {
 	if (processVec[u]->status()==exited 
 	    || processVec[u]->status()==neonatal || processVec[u]->isBootstrappedYet()) 
@@ -445,6 +444,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
       if (procs.size() == 0) {
 	// there are no processes to instrument
 #endif
+
 	//printf("createMetricInstance failed, no processes to instrument\n");
 	return NULL;
       }
@@ -506,6 +506,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 	}
       }
 #endif
+
       return mi;
     } else {
       bool matched;
@@ -1875,11 +1876,11 @@ void metricDefinitionNode::oldCatchUp() {
 #error Check for instPoint type == entry not implemented on this platform
 #endif
 	    {
-	      // if ( pd_debug_catchup ) {
+              if ( pd_debug_catchup ) {
 		metric_cerr << "AdjustManuallyTrigger -- "
 			    << "(WHOLE_PROGRAM kludge) catch-up needed for "
 			    << flat_name_ << " @ " << mainFunc->prettyName() << endl;
-	      // }
+              }
 	      manuallyTriggerNodes.insert( 0, &(instRequests[k]) );
 	    }
 	  }
@@ -2062,6 +2063,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus,
                                                     true, internal);
+
     // calls mdl_do()
 
     if (!mi) {
@@ -2200,12 +2202,16 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	}
 #endif
 
-        // instrumentation successfully inserted, so sample this metric 
-        mi->okayToSample();
+        // instrumentation successfully inserted, so sample this metric.
+        // only relevant to mi's created with the second constructor .
+	if (mi->whichConstructor() == AGG) {
+          mi->okayToSample();
+	}
 
 	// calls pause and unpause (this could be a bug, since the next line should be allowed to execute before the unpause!!!)
 
 	mi->checkAndInstallInstrumentation();
+
 	//
         // Now that the timers and counters have been allocated on the heap, and
 	// the instrumentation added, we can manually execute instrumentation
@@ -2269,19 +2275,28 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
 
     bool internal;
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus, false, internal);
+
     if (!mi) {
        metric_cerr << "guessCost returning 0.0 since createMetricInstance failed" << endl;
        return timeLength::Zero();
     }
 
+    if (mi->whichConstructor() == AGG) {
+      mi->okayToSample();
+    }
+
     timeLength cost = mi->cost();
+
     // delete the metric instance, if it is not being used 
     if (!allMIs.defines(mi->getMId()) && mi->aggregators.size()==0) {
       metric_cerr << "guessCost deletes <" <<  mi->getFullName().string_of()
 	          << ">  since it is not being used" << endl << endl ;
-      for (unsigned u=0; u<mi->components.size(); u++)
+
+      for (unsigned u=0; u < mi->components.size(); u++) {
 	mi->removeComponent(mi->components[u]);
+      }
       mi->components.resize(0);
+
       delete mi;
     }
 
@@ -3053,6 +3068,11 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
       if (PROC_PRIM == comp->aggLevel)
 	if (allMIPrimitives.defines(comp->flat_name_))
 	  allMIPrimitives.undef(comp->flat_name_);
+
+      for (u=0; u<comp->components.size(); u++) {
+	comp->removeComponent(comp->components[u]);
+      }
+      (comp->components).resize(0);
 
       delete comp;
       return;
