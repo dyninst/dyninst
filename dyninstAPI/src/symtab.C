@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.170 2003/06/18 20:31:56 schendel Exp $
+// $Id: symtab.C,v 1.171 2003/06/22 22:40:33 rchen Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1738,6 +1738,59 @@ void image::getModuleLanguageInfo(dictionary_hash<string, supportedLanguages> *m
 
 
 #endif // stabs platforms
+
+//
+// eCoff Platforms
+//
+#if defined(alpha_dec_osf4_0)
+
+    LDFILE *ldptr;
+    pCHDRR symtab;
+
+    ldptr = ldopen((char *)linkedFile.GetFile().c_str(), NULL);
+    symtab = SYMTAB(ldptr);
+    for (int i = 0; i < symtab->hdr.ifdMax; ++i) {
+        pCFDR file = symtab->pcfd + i;
+	char *tmp = ((symtab->psym + file->pfd->isymBase)->iss + 
+		     (symtab->pss + file->pfd->issBase));
+        string modname = (strrchr(tmp, '/') ? strrchr(tmp, '/') + 1 : tmp);
+
+        if (file->pfd->csym && modname.length()) {
+            switch (file->pfd->lang) {
+            case langAssembler:
+//		fprintf(stderr, "Setting %s to 'lang_Assembly'\n", modname.c_str());
+                (*mod_langs)[modname] = lang_Assembly;
+                break;
+
+            case langC:
+            case langStdc:
+//		fprintf(stderr, "Setting %s to 'lang_C'\n", modname.c_str());
+                (*mod_langs)[modname] = lang_C;
+                break;
+
+            case langCxx:
+            case langDECCxx:
+//		fprintf(stderr, "Setting %s to 'lang_CPlusPlus'\n", modname.c_str());
+                (*mod_langs)[modname] = lang_CPlusPlus;
+                break;
+
+            case langFortran:
+            case langFortran90:
+//		fprintf(stderr, "Setting %s to 'lang_Fortran'\n", modname.c_str());
+                (*mod_langs)[modname] = lang_Fortran;
+                break;
+
+            default:
+//		fprintf(stderr, "Setting %s to 'lang_Unknown'\n", modname.c_str());
+                (*mod_langs)[modname] = lang_Unknown;
+            }
+
+        }
+    }
+    ldaclose(ldptr);
+
+#endif // eCoff Platforms
+
 }
 
 //  setModuleLanguages is only called after modules have been defined.
