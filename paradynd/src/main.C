@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.123 2004/03/23 01:12:35 eli Exp $
+// $Id: main.C,v 1.124 2004/03/25 16:48:19 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -132,8 +132,12 @@ void cleanUpAndExit(int status) {
    unlink(traceSocketPath.c_str());
 #endif
 
-   processMetFocusNode::removeProcNodesToDeleteLater();
+   // If the process manager hasn't been initialized, then we can
+   // skip the following.
+   if (!isProcMgrInitialized())
+      P_exit(status);
 
+   processMetFocusNode::removeProcNodesToDeleteLater();
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *theProc = *itr++;

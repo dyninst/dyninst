@@ -130,6 +130,7 @@ extern processMgr *theProcMgr;
 // -------------------------------------------------------
 
 void initProcMgr();
+bool isProcMgrInitialized();
 
 inline processMgr &getProcMgr() {
    return *theProcMgr;

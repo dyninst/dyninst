@@ -50,6 +50,11 @@ void initProcMgr() {
    theProcMgr = new processMgr();
 }
 
+bool isProcMgrInitialized()
+{
+   return (theProcMgr != NULL);
+}
+
 pd_process *processMgr::find_pd_process(BPatch_thread *dyn_proc) {
    for(unsigned i=0; i<procBuf.size(); i++) {
       pd_process *curProc = procBuf[i];
