@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.61 2003/05/08 15:00:16 chadd Exp $
+// $Id: BPatch.C,v 1.62 2003/05/09 14:29:50 chadd Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -885,7 +885,6 @@ bool BPatch::getThreadEventOnly(bool block)
                thread->setUnreportedTermination(true);
            }
            else if (didProcExit(why)) {
-		cerr<<" SETTING EXIT CODE IN BPATCH.C 888"<<endl;
                thread->proc->exitCode_ = what;
                thread->exitCode = thread->proc->exitCode();
                thread->lastSignal = 0; /* XXX Make into some constant */
