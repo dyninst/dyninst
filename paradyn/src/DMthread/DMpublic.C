@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.28  1994/08/22 15:59:07  markc
+ * Revision 1.29  1994/09/22 00:56:05  markc
+ * Added const to args to addExecutable()
+ *
+ * Revision 1.28  1994/08/22  15:59:07  markc
  * Add interface calls to support daemon definitions.
  *
  * Revision 1.27  1994/08/11  02:17:42  newhall
@@ -140,11 +143,11 @@ Boolean dataManager::addDaemon(applicationContext *app,
 }
 
 Boolean dataManager::defineDaemon(applicationContext *app,
-				  char *command,
-				  char *dir,
-				  char *login,
-				  char *name,
-				  char *machine,
+				  const char *command,
+				  const char *dir,
+				  const char *login,
+				  const char *name,
+				  const char *machine,
 				  int flavor)
 {
   return (app->defineDaemon(command, dir, login, name, machine, flavor));
@@ -397,13 +400,13 @@ metricInfo *dataManager::getMetricInfo(metric *met) {
 }
 
 resource *dataManager::newResource(applicationContext *app, 
-			      resource *res, 
-			      char *name)
+				   resource *res, 
+				   const char *name)
 {
     resource *child;
 
     child = createResource(res, name, BASE);
-    app->tellDaemonsOfResource((char *) res->getFullName(), name);
+    app->tellDaemonsOfResource((const char *) res->getFullName(), name);
     return(child);
 }
 
