@@ -73,6 +73,7 @@ class BPatch {
     BPatchDynLibraryCallback dynLibraryCallback;
     bool	typeCheckOn;
     int		lastError;
+    bool	debugParseOn;
 
     bool	getThreadEvent(bool block);
     bool	havePendingEvent();
@@ -88,6 +89,7 @@ public:
     
     // The following are only to be called by the library:
     bool isTypeChecked() { return typeCheckOn; }
+    bool parseDebugInfo() { return debugParseOn; }
 
     void registerProvisionalThread(int pid);
     void registerThread(BPatch_thread *thread);
@@ -111,6 +113,7 @@ public:
     BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback function);
     BPatch_Vector<BPatch_thread*> *getThreads();
 
+    void setDebugParsing(bool x) { debugParseOn = x; }
     void setTypeChecking(bool x) { typeCheckOn = x; }
 
     BPatch_thread *createProcess(char *path, char *argv[], char *envp[] = NULL);
