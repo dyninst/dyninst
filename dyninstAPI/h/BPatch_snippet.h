@@ -45,6 +45,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_point.h"
 #include "BPatch_type.h"
+#include "BPatch_module.h"
 
 class AstNode;
 class function_base;
@@ -87,14 +88,15 @@ class BPatch_function {
     process *proc;
     BPatch_type * retType;
     BPatch_Vector<BPatch_localVar *> params;
+    BPatch_module *mod;
     
 public:
 // The following are for  internal use by the library only:
     function_base *func;
 // No longer inline but defined in .C file
-    BPatch_function(process *_proc, function_base *_func);
+    BPatch_function(process *_proc, function_base *_func, BPatch_module *);
     BPatch_function(process *_proc, function_base *_func,
-		    BPatch_type * _retType);
+		    BPatch_type * _retType, BPatch_module *);
     BPatch_localVarCollection * localVariables;
     BPatch_localVarCollection * funcParameters;
     void setReturnType( BPatch_type * _retType){
@@ -105,6 +107,7 @@ public:
     void	 *getBaseAddr();
     unsigned int getSize();
     BPatch_type * getReturnType(){ return retType; }
+    BPatch_module *getModule()	{ return mod; }
     void addParam(char * _name, BPatch_type *_type, int _linenum,
 		  int _frameOffset );
     

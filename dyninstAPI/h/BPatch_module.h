@@ -60,7 +60,7 @@ class BPatch_module {
 public:
 // The following functions are for internal use by  the library only:
     BPatch_module(process *_proc, pdmodule *_mod);
-    BPatch_module() : mod(NULL) {};
+    BPatch_module() : mod(NULL), BPfuncs(NULL) {};
 
     BPatch_typeCollection *moduleTypes;
 
@@ -79,6 +79,7 @@ private:
 
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
     char *parseStabStringType(char *stabstr, char *name, int ID);
+
 };
 
 #endif /* _BPatch_module_h_ */
