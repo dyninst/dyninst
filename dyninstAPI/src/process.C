@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.438 2003/07/15 22:44:33 schendel Exp $
+// $Id: process.C,v 1.439 2003/07/18 20:06:47 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -487,7 +487,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
         if (stack_fn && instPoint_fn &&
             (stack_fn->prettyName() == instPoint_fn->prettyName()))
             if (pd_debug_catchup)
-                fprintf(stderr, "Equal names, ptr 0x%x != 0x%x\n",
+                fprintf(stderr, "Equal names, ptr %p != %p\n",
                         stack_fn, instPoint_fn);
         return false;
     }
@@ -1043,7 +1043,11 @@ bool process::isInSignalHandler(Address addr)
  * which is used to maintain a list of variables that have
  * been written by the mutator //ccw 26 nov 2001
  */
+#ifdef BPATCH_LIBRARY
 void process::saveWorldData(Address address, int size, const void* src){
+#else
+void process::saveWorldData(Address, int, const void*){
+#endif
 #ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 	if(collectSaveWorldData){  //ccw 16 jul 2002 : NEW LINE
@@ -1055,11 +1059,9 @@ void process::saveWorldData(Address address, int size, const void* src){
 		dataUpdates.push_back(newData);
 	}
 #else /* Get rid of annoying warnings */
-//#if !defined(rs6000_ibm_aix4_1)
 	Address tempaddr = address;
 	int tempsize = size;
 	const void *bob = src;
-//#endif
 #endif
 #endif
 }
@@ -1114,7 +1116,10 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
                                  unsigned int &dyninst_SharedLibrariesSize, 
                                  char* directoryName, unsigned int &count) {
    shared_object *sh_obj;
-   unsigned int dl_debug_statePltEntry=0, tmp_dlopen;
+   unsigned int dl_debug_statePltEntry=0;
+#if defined(sparc_sun_solaris2_4)
+   unsigned int tmp_dlopen;
+#endif
    bool dlopenUsed = false;
    
    //In the mutated binary we need to catch the dlopen events and adjust the
@@ -1630,7 +1635,7 @@ typedef struct {
   void *result;
 } imd_rpc_ret;
 
-void process::inferiorMallocCallback(process *proc, unsigned /* rpc_id */,
+void process::inferiorMallocCallback(process * /*proc*/, unsigned /* rpc_id */,
                                      void *data, void *result)
 {
   imd_rpc_ret *ret = (imd_rpc_ret *)data;
@@ -1691,7 +1696,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
                            NULL, NULL); // process-wide
   bool wasRunning = (status() == running);
   do {
-      bool result = getRpcMgr()->launchRPCs(wasRunning);
+      getRpcMgr()->launchRPCs(wasRunning);
       if(hasExited()) return;
       decodeAndHandleProcessEvent(false);
    } while (!ret.ready); // Loop until callback has fired.
@@ -2008,6 +2013,7 @@ process::process(int iPid, image *iImage, int iTraceLink
   instPointMap(hash_address),
 #endif
   loadLibraryCallbacks_(pdstring::hash),
+  cached_result(not_cached),
 #ifndef BPATCH_LIBRARY
   shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
@@ -2025,8 +2031,8 @@ process::process(int iPid, image *iImage, int iTraceLink
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
-
-   invalid_thr_create_msgs = 0;
+    shared_objects = 0;
+    invalid_thr_create_msgs = 0;
 
     parentPid = childPid = 0;
     dyninstlib_brk_addr = 0;
@@ -2073,11 +2079,18 @@ process::process(int iPid, image *iImage, int iTraceLink
     previousSignalAddr_ = 0;
     exitCode_ = (procSignalWhat_t) -1;
     continueAfterNextStop_ = 0;
+
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
-    shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
+    shmMetaData = 
+       new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS); 
+               // previously was using maxNumberOfThreads() instead of
+               // MAX_NUMBER_OF_THREADS.  Unfortunately, maxNumberOfThreads
+               // calls multithread_capable(), which isn't able to be
+               // called yet since the modules aren't parsed.
+               // We'll use the larger size for the ST case.  The increased
+               // size is fairly small, perhaps 2 KB.
 #endif
-
     parent = NULL;
     inExec = false;
 
@@ -2092,7 +2105,6 @@ process::process(int iPid, image *iImage, int iTraceLink
     
     dynamiclinking = false;
     dyn = new dynamic_linking;
-    shared_objects = 0;
     runtime_lib = 0;
     all_functions = 0;
     all_modules = 0;
@@ -2181,6 +2193,7 @@ process::process(int iPid, image *iSymbols,
   instPointMap(hash_address),
 #endif
   loadLibraryCallbacks_(pdstring::hash),
+  cached_result(not_cached),
 #ifndef BPATCH_LIBRARY
   shmMetaData(NULL), shMetaOffsetData(NULL),
   PARADYNhasBootstrapped(false),
@@ -2411,6 +2424,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   instPointMap(hash_address),
 #endif
   loadLibraryCallbacks_(pdstring::hash),
+  cached_result(parentProc.cached_result),
 #ifndef BPATCH_LIBRARY
   shmMetaData(NULL), shMetaOffsetData(NULL),
   PARADYNhasBootstrapped(false),
@@ -2833,7 +2847,6 @@ process *createProcess(const pdstring File, pdvector<pdstring> argv,
     cont = theProc->GetRegisters(thrHandle_temp); //ccw 10 aug 2000 : ADD thrHandle HERE!
     img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
 #endif
-    
     processVec.push_back(theProc);
     activeProcesses++;
     
@@ -2870,7 +2883,7 @@ process *createProcess(const pdstring File, pdvector<pdstring> argv,
         delete theProc;
         return NULL;
     }
-    
+
     while (!theProc->reachedBootstrapState(bootstrapped)) {
        // We're waiting for something... so wait
        // true: block until a signal is received (efficiency)
@@ -3548,7 +3561,7 @@ void process::processCost(unsigned obsCostLow,
   lastObsCostLow = obsCostLow;
   //  sampleVal_cerr << "processCost- cumObsCost: " << cumObsCost << "\n"; 
   timeLength observedCost(cumObsCost, getCyclesPerSecond());
-  timeUnit tu = getCyclesPerSecond(); // just used to print out
+  // timeUnit tu = getCyclesPerSecond(); // just used to print out
   //  sampleVal_cerr << "processCost: cyclesPerSecond=" << tu
   //		 << "; cum obs cost=" << observedCost << "\n";
   
@@ -3581,6 +3594,52 @@ void process::processCost(unsigned obsCostLow,
   observed_cost->updateValue(this, wallTime, sObsCost, processTime);
 }
 #endif
+
+// If true is passed for ignore_if_mt_not_set, then an error won't be
+// initiated if we're unable to determine if the program is multi-threaded.
+// We are unable to determine this if the daemon hasn't yet figured out what
+// libraries are linked against the application.  Currently, we identify an
+// application as being multi-threaded if it is linked against a thread
+// library (eg. libpthreads.a on AIX).  There are cases where we are querying
+// whether the app is multi-threaded, but it can't be determined yet but it
+// also isn't necessary to know.
+#ifdef BPATCH_LIBRARY
+bool process::multithread_capable(bool)
+#else
+bool process::multithread_capable(bool ignore_if_mt_not_set)
+#endif
+{
+#ifdef BPATCH_LIBRARY
+   return false;
+#else
+   if(cached_result != not_cached) {
+      if(cached_result == cached_mt_true) {
+         return true;
+      } else {
+         assert(cached_result == cached_mt_false);
+         return false;
+      }
+   }
+
+   if(!symbols || !shared_objects) {
+      if(! ignore_if_mt_not_set) {
+         cerr << "   can't query MT state, assert\n";
+         assert(false);
+      }
+      return false;
+   }
+
+   if(findModule("libthread.so.1", true) ||  // Solaris
+      findModule("libpthreads.a", true))     // AIX
+   {
+      cached_result = cached_mt_true;
+      return true;
+   } else {
+      cached_result = cached_mt_false;
+      return false;
+   }
+#endif
+}
 
 /*
  * Copy data from controller process to the named process.
@@ -4201,6 +4260,7 @@ bool process::getSharedObjects() {
 #endif
 
     shared_objects = dyn->getSharedObjects(this); 
+
     if(shared_objects){
         statusLine("parsing shared object files");
 
@@ -4250,8 +4310,6 @@ function_base *process::findOnlyOneFunction(resource *func, resource *mod){
     pdstring func_name = f_names[f_names.size() -1]; 
     pdstring mod_name = m_names[m_names.size() -1]; 
 
-    pd_Function *found;
-
     //cerr << "process::findOneFunction called.  function name = " 
     //   << func_name.c_str() << endl;
     
@@ -4293,8 +4351,6 @@ bool process::findAllFuncsByName(resource *func, resource *mod,
     const pdvector<pdstring> &m_names = mod->names();
     pdstring func_name = f_names[f_names.size() -1]; 
     pdstring mod_name = m_names[m_names.size() -1]; 
-
-    pd_Function *found;
 
     //cerr << "process::findOneFunction called.  function name = " 
     //   << func_name.c_str() << endl;
@@ -5377,7 +5433,11 @@ void process::registerPreExitCallback(exitEntryCallback_t callback, void *data) 
  * Returns true if handling was done
  */
 
+#if defined(alpha_dec_osf4_0)
 bool process::handleSyscallExit(procSignalWhat_t syscall)
+#else
+bool process::handleSyscallExit(procSignalWhat_t)
+#endif
 {
     // For each thread:
     // Get the LWP associated with the thread
@@ -6196,7 +6256,12 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
       return instPointMap[addr];
    } else {
       if (bpfunc == NULL) {
-         bpfunc = findOrCreateBPFunc((pd_Function *)ip->iPgetFunction());
+         const pd_Function *fc =
+            dynamic_cast<const pd_Function *>(ip->iPgetFunction());
+         pd_Function *f = const_cast<pd_Function *>(fc);
+         const BPatch_function *ptr =
+            dynamic_cast<const BPatch_function *>(findOrCreateBPFunc(f));
+         bpfunc = const_cast<BPatch_function *>(ptr);
       }
 
       BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);
@@ -6417,7 +6482,6 @@ dyn_lwp *process::getDefaultLWP() const
 
 void read_variables_after_fork(process *proc, int *shm_key,
                                void **DYNINST_shmSegAttachedPtr) {
-   int hintBestCpuTimerLevel, hintBestWallTimerLevel;
    bool err = false;
    Address addr = proc->findInternalAddress("DYNINST_shmSegKey", true, err);
    assert(err==false);
@@ -6431,8 +6495,8 @@ void read_variables_after_fork(process *proc, int *shm_key,
       return;  // readDataSpace has it's own error reporting
 }
 
-void call_PARADYN_init_child_after_fork(process *theProc, 
-                                        unsigned rpc_id,
+void call_PARADYN_init_child_after_fork(process * /*theProc*/, 
+                                        unsigned /*rpc_id*/,
                                         void * /*userData*/,
                                         void *returnVal) {
    //cerr << "called call_PARADYN_init callback, returnVal: " << returnVal 
@@ -6500,7 +6564,7 @@ dyn_thread *process::createThread(
   unsigned stackbase, 
   unsigned startpc, 
   void* resumestate_p,  
-  bool bySelf)
+  bool /*bySelf*/)
 {
   dyn_thread *thr;
   //fprintf(stderr, "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);

@@ -52,7 +52,7 @@
 bool dyn_thread::updateLWP()
 {
   // ST case
-  if ((!proc->multithread_ready()) || 
+  if ((!proc->multithread_ready(true)) || 
       (index == (unsigned) -1)) {
     lwp = proc->getDefaultLWP();
     return true;
@@ -96,7 +96,7 @@ Frame dyn_thread::getActiveFrameMT()
 // get info for threads not currently scheduled on an LWP
 Frame dyn_thread::getActiveFrame()
 {
-   if(! get_proc()->multithread_capable()) {
+   if(! get_proc()->multithread_capable(true)) {
       updateLWP();
       Frame lwpFrame = lwp->getActiveFrame();  
       return Frame(lwpFrame.getPC(), lwpFrame.getFP(),
@@ -125,7 +125,7 @@ bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
 
 dyn_lwp *dyn_thread::get_lwp()
 {
-  if (proc->multithread_ready())
+  if (proc->multithread_ready(true))
     updateLWP();
   return lwp;
 }
@@ -149,7 +149,12 @@ void dyn_thread::clearPreRPCStack() {
 // here for now since there is no other Frame functions needed for a .C
 // file and this function looks like it can be moved back to frame.h
 // as soon as we get AIX /proc going
-bool Frame::isLastFrame(process *p) const { 
+#if defined(rs6000_ibm_aix4_1)
+bool Frame::isLastFrame(process *p) const
+#else
+bool Frame::isLastFrame(process *) const
+#endif
+{
    // AIX MT: we see 0 PCs in the middle of a stack walk, which
    // confuses us. This is a side effect of the syscall trap code,
    // and will be REMOVED when /proc is available.
