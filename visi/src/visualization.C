@@ -14,9 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.23  1995/02/26 01:59:40  newhall
-/* added phase interface functions
+/* Revision 1.24  1995/03/31 15:56:11  jcargill
+/* Changed malloc's to new's, so that constructors would get fired;
+/* otherwise, bogus memory references/free's occur.
 /*
+ * Revision 1.23  1995/02/26  01:59:40  newhall
+ * added phase interface functions
+ *
  * Revision 1.22  1995/02/16  09:31:03  markc
  * Modified NaN generation code for machines that do not have nan.h.
  * This code has not been tested.
@@ -374,12 +378,10 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     // in newElements
     numRes = 0;
     numMet = 0;
-    if((res=(visi_resourceType *)malloc(sizeof(visi_resourceType)*
-				    newElements.size())) == NULL){
-        return;
+    if((res= new visi_resourceType [newElements.size()]) == NULL){ 
+	return;
     }				   
-    if((mets=(visi_metricType *)malloc(sizeof(visi_metricType)*
-				    newElements.size())) == NULL){
+    if((mets= new visi_metricType [newElements.size()]) == NULL){
         return;
     }				   
     for(i = 0; i < newElements.size(); i++){
@@ -425,8 +427,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
   else{ // add elements to existing data grid
 
     // create list of new resources and add them to resource list
-    res=(visi_resourceType *)malloc(sizeof(visi_resourceType)
-				    *newElements.size());
+    res= new visi_resourceType [newElements.size()];
     numRes = 0;
     for(i=0; i < newElements.size(); i++){
       if(!dataGrid.ResourceInGrid(newElements[i].res.Id)){
@@ -450,8 +451,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
       dataGrid.AddNewResource(numRes,res);
 
     // create list of new metrics and add them to metricsList
-    mets = (visi_metricType *)malloc(sizeof(visi_metricType)*
-	    newElements.size());
+    mets = new visi_metricType [newElements.size()];
     numMet = 0;
     for(i=0; i < newElements.size(); i++){
       if(!dataGrid.MetricInGrid(newElements[i].met.Id)){
@@ -487,8 +487,8 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
      dataGrid[dataGrid.MetricIndex(newElements[k].met.Id)][dataGrid.ResourceIndex(newElements[k].res.Id)].SetEnabled();
   }
  
-  free(mets);
-  free(res);
+  delete [] mets;
+  delete [] res;
   //call callback routine assoc. w/event ADDMETRICSRESOURCES 
   if(eventCallbacks[ADDMETRICSRESOURCES] !=  NULL){
      ok = eventCallbacks[ADDMETRICSRESOURCES](0);
