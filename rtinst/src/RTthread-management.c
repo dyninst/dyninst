@@ -137,8 +137,6 @@ void DYNINST_reportThreadDeletion(unsigned pos, int tid) {
                              wall_time,process_time);
 }  
 
-
-
 void DYNINSTthreadDelete(void) {
   unsigned pos = DYNINSTthreadPosFAST();
   int tid = P_thread_self();
@@ -159,17 +157,30 @@ void DYNINSTthreadDelete(void) {
 }
 
 int DYNINSTregister_running_thread(void) {
+   char line[120];
    int tid;
    int pos;
    virtualTimer *vt;
 
    tid = P_thread_self();
+   if(tid == 0) {
+      // the daemon will recognize this failed RPC and handle it accordingly
+      //sprintf(line, "  register, tid: %d, lwp: %d, returning\n",
+      //        tid, P_lwp_self());
+      //write(2, line, strlen(line));
+      return 0;
+   }
    pos = DYNINST_lookup_pos(tid);
    if(pos == MAX_NUMBER_OF_THREADS) {
-      fprintf(stderr, "Couldn't find corresponding pos\n");
-      while(1);
+      sprintf(line, "  couldn't find corresponding pos, tid: %d, lwp %d\n",
+              tid, P_lwp_self());
+      write(2, line, strlen(line));
    }
    vt = &(RTsharedData.virtualTimers[pos]);
+   //sprintf(line, "  register, tid: %d, pos: %d, lwp: %d, addr: %p\n",
+   //        tid, pos, P_lwp_self(), vt);
+   //write(2, line, strlen(line));
+
    _VirtualTimerDestroy(vt);
    _VirtualTimerStart(vt, 0);
    DYNINST_reportNewThread(pos, tid);
