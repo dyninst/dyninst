@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.90 2000/10/17 17:42:35 schendel Exp $
+// $Id: main.C,v 1.91 2000/10/20 19:41:54 zandy Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -361,6 +361,7 @@ int main(unsigned argc, char *argv[]) {
     for (unsigned int i = argNum; i < argc; i++)
       cmdLine += argv[i];
 
+    process::pdFlavor = pd_flavor;
 #ifdef PARADYND_PVM
     // There are 3 ways to get here
     //     started by pvm_spawn from first paradynd -- must report back
@@ -373,7 +374,6 @@ int main(unsigned argc, char *argv[]) {
 #ifdef PDYN_DEBUG
     cerr << "pd_flavor: " << pd_flavor.string_of() << endl;
 #endif
-    process::pdFlavor = pd_flavor;
     if (pd_flavor == string("pvm")) {
        pvmParent = pvm_parent();
 
