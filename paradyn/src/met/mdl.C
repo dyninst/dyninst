@@ -41,6 +41,10 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.36  1998/03/26 07:12:20  czhang
+ * In mdl_v_expr::apply(), check for (var_=="$return") in the case of
+ * MDL_EXPR_VAR.
+ *
  * Revision 1.35  1998/01/30 21:14:08  czhang
  * In mdl_v_expr::apply, MDL_EXPR_VAR processing, "switch (get_drn.type())"
  * missed two cases: MDL_T_PROC_TIMER and MDL_T_WALL_TIMER.  Added them.
@@ -638,8 +642,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
     }
     case MDL_EXPR_FUNC:
     {
-      if (var_ == "startWallTimer" || var_ == "stopWallTimer"
-      || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
+      if (var_==string("startWallTimer")||var_==string("stopWallTimer")
+      || var_==string("startProcessTimer")||var_==string("stopProcessTimer"))
       {
         if (!args_) return false;
         unsigned size = args_->size();
@@ -655,7 +659,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
         }
         ok_ = true;
       }
-      else if (var_ == "readSymbol" || var_ == "readAddress")
+      else if (var_ == string("readSymbol") || var_ == string("readAddress"))
         ok_ = true;
       else
       {
@@ -714,7 +718,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
     }
     case MDL_EXPR_VAR:
     {
-      if (var_ == "$cmin" || var_ == "$cmax")
+      if (var_==string("$cmin")||var_==string("$cmax")||var_==string("$return"))
       {
         ok_ = true; return true;
       }
@@ -862,12 +866,12 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
       if (args_)
         arg_size = args_->size();
 
-      if (var_ == "startWallTimer" || var_ == "stopWallTimer")
+      if (var_ == string("startWallTimer") || var_ == string("stopWallTimer"))
       {
         assert (0);
         ok_ = false;
       }
-      else if (var_ == "startProcessTimer" || var_ == "stopProcessTimer")
+      else if (var_ == string("startProcessTimer") || var_ == string("stopProcessTimer"))
       {
         assert (0);
         ok_ = false;
@@ -940,7 +944,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
     }
     case MDL_EXPR_VAR:
     {
-      if (var_ == string("$cmin") || var_ == string("$cmax"))
+      if (var_==string("$cmin")||var_==string("$cmax")||var_==string("$return"))
         ok_ = true;
       else
         ok_ = mdl_env::get (ret, var_);
