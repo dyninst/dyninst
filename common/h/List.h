@@ -7,7 +7,11 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.19  1994/07/26 20:07:42  hollings
+ * Revision 1.20  1994/08/17 18:22:54  markc
+ * Moved the definitions of the << operator into the class declaration to
+ * keep gcc happy.
+ *
+ * Revision 1.19  1994/07/26  20:07:42  hollings
  * added cast to ensure hash table pointers are positive.
  *
  * Revision 1.18  1994/07/11  23:00:57  jcargill
@@ -97,6 +101,7 @@ typedef char Boolean;
 
 template <class Type> class List;
 template <class Type> class StringList;
+template <class Type> class HTable;
 
 template <class Type> class ListItem {
     friend class List<Type>;
@@ -109,10 +114,16 @@ template <class Type> class ListItem {
 
 template <class Type> class List {
     public:
-	List() { head = NULL; current = NULL; }
+	List() { head = NULL; }
 	int  empty() { return (head == NULL);}
-	friend ostream &operator<<(ostream&, List<Type>&);
-	void print();
+	friend ostream &operator<<(ostream &os, List<Type> &data) {
+	  List<Type> curr;
+	  for (curr= data; *curr; curr++) {
+	    os << *curr << endl;
+	  }
+	  return os;
+	}
+
 	void add(Type data, void *key);
 	void add(Type data);
 	Boolean addUnique(Type data);
@@ -129,7 +140,7 @@ template <class Type> class List {
 	}
 	Type find(void *key);
 	Boolean remove(void *key);
-	void removeAll(int deleteItem=1);
+	void removeAll();
 	int count()	{
 	    int c;
 	    ListItem<Type> *curr;
@@ -165,43 +176,9 @@ template <class Type> class List {
 	  for (temp_ptr = head; temp_ptr && temp_ptr->data; temp_ptr = temp_ptr->next)
 	    map_function (temp_ptr->data);
 	}
-	void setCurrent() { current = head;}
-	const Type getCurrent() { 
-	  if (current) return ( (const Type) current->data);
-	  else return 0;
-	}
-	const Type next() {
-	  advanceCurrent();
-	  return getCurrent();
-	}
-	void advanceCurrent() { if (current) current = current->next;}
     protected:
 	ListItem<Type>	*head;
-	ListItem<Type>  *current;
 };
-
-template <class Type> ostream &operator<<(ostream &os, List<Type> &data)
-{
-    List<Type> curr;
-
-    for (curr= data; *curr; curr++) {
-        os << *curr << endl;
-    }
-    return os;
-}
-
-//
-// Warning this function should be replaced by the stream operator above, but
-//   g++ is broken and won't create it.
-// 
-template <class Type> void List<Type>::print()
-{
-    ListItem<Type> *curr;
-
-    for (curr=head; curr; curr=curr->next) {
-        cout << (curr->data) << endl;
-    }
-}
 
 template <class Type> void List<Type>::add(Type data, void *key)
 {
@@ -225,21 +202,17 @@ template <class Type> Boolean List<Type>::addUnique(Type data)
     return(addUnique(data, (void *) data)); 
 }
 
-template <class Type> void List<Type>::removeAll(int deleteItem)
+template <class Type> void List<Type>::removeAll()
 {
-   ListItem<Type> *curr, *next;
+  ListItem<Type> *curr, *nx;
 
-   if (deleteItem) {
-       curr = head;
-       while (curr) {
-           next = curr->next;
-           delete (curr);
-           curr = next;
-       }
-   }
-
-   head = 0;
-   current = 0;
+  curr = head;
+  while (curr) {
+    nx = curr->next;
+    delete (curr);
+    curr = nx;
+  }
+  head = 0;
 }
 
 template <class Type> Boolean List<Type>::remove(void *key)
@@ -260,9 +233,6 @@ template <class Type> Boolean List<Type>::remove(void *key)
 	} else {
 	    head = curr->next;
 	}
-	// if the 'current' pointer is this element, advance it
-	if (current == curr)
-	  advanceCurrent();
 	delete(curr);
 	return(TRUE);
     } else {
@@ -285,8 +255,19 @@ template <class Type> Type List<Type>::find(void *data)
 template <class Type> class HTable {
 
     public:
-	friend ostream &operator<<(ostream&, HTable<Type>&);
-	void print();
+	// placing function def here makes gcc happy 
+	friend ostream &operator<<(ostream &os,
+				   HTable<Type> &data) {
+            int i, total;
+
+            total = 0;
+            for (i=0; i < data.tableSize; i++) {
+	      if (data.table[i]) {
+                os << *data.table[i];
+	      }
+            }
+            return os;
+          }
 	HTable(Type data) { (void) HTable(); add(data, (void *) data); }
 	void add(Type data, void *key);
 	HTable(); 
@@ -341,6 +322,7 @@ template <class Type> class HTable {
 	    }
 	    return(total);
 	}
+
     private:
 	List<Type> **table;
 	List<Type> currList;
@@ -348,35 +330,6 @@ template <class Type> class HTable {
 	int tableSize;
 };
 
-template <class Type> ostream &operator<<(ostream &os, HTable<Type> &data)
-{
-    int i, total;
-
-    total = 0;
-    for (i=0; i < data.tableSize; i++) {
-	if (data.table[i]) {
-            os << *data.table[i];
-	}
-    }
-    return os;
-}
-
-
-//
-// Warning this function should be replaced by the stream operator above, but
-//   g++ is broken and won't create it.
-// 
-template <class Type> void HTable<Type>::print()
-{
-    int i, total;
-
-    total = 0;
-    for (i=0; i < tableSize; i++) {
-	if (table[i]) {
-            table[i]->print();
-	}
-    }
-}
 
 template <class Type> HTable<Type>::HTable()
 { 
