@@ -41,6 +41,13 @@
 
 /*
  * $Log: init-aix.C,v $
+ * Revision 1.9  1997/02/18 21:16:04  sec
+ * Added some support for MPI functions, default instrumentation to catch
+ * the msg tags, etc.
+ * Removed the default instrumentation for DYNISTexecFailed on the exit point
+ * for exec; this was always being called, even when exec worked, due to how
+ * AIX handles exec.  This should make exec work now.
+ *
  * Revision 1.8  1996/12/16 23:10:27  mjrg
  * bug fixes to fork/exec on all platforms, partial fix to fork on AIX
  *
@@ -94,28 +101,64 @@ static AstNode argvArg(AstNode::Param, (void *) 1);
 static AstNode cmdArg(AstNode::Param, (void *) 4);
 static AstNode tidArg(AstNode::Param, (void *) 0);
 
-bool initOS() {
-//  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
-// (obsoleted by installBootstrapInst() --ari)
+static AstNode mpiNormTagArg(AstNode::Param, (void *) 4);
+static AstNode mpiSRRecvTagArg(AstNode::Param, (void *) 9);
 
 
+bool initOS()
+{
+  //  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
+  // (obsoleted by installBootstrapInst() --ari)
+
+  // A problem exists in mapping these two functions, since FUNC_EXIT
+  // is not found very well in the aix version, as of now.
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
-
-  // we need to instrument __fork instead of fork. fork makes a tail call
-  // to __fork, and we can't get the correct return value from fork.
-  initialRequests += new instMapping("__fork", "DYNINSTfork", FUNC_EXIT|FUNC_ARG, &tidArg);
-
-  initialRequests += new instMapping("execve", "DYNINSTexec", FUNC_ENTRY|FUNC_ARG, &tidArg);
-  initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
-  initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY);
-  initialRequests += new instMapping("rexec", "DYNINSTrexec",
-			      FUNC_ENTRY|FUNC_ARG, &cmdArg);
-  initialRequests += new instMapping("execvp", "DYNINSTexecvp", 
-				FUNC_ENTRY|FUNC_ARG, &argvArg);
+  initialRequests += new instMapping("DYNINSTsampleValues", 
+				     "DYNINSTreportNewTags", FUNC_ENTRY);
 
+  // we need to instrument __fork instead of fork. fork makes a tail call
+  // to __fork, and we can't get the correct return value from fork.
+  initialRequests += new instMapping("__fork", "DYNINSTfork", 
+				     FUNC_EXIT|FUNC_ARG, &tidArg);
+
+  // None of the execs work very well on AIX, this needs to be looked
+  // into.
+  // initialRequests += new instMapping("rexec", "DYNINSTrexec",
+  //                                    FUNC_ENTRY|FUNC_ARG, &cmdArg);
+  initialRequests += new instMapping("execve", "DYNINSTexec", 
+                                     FUNC_ENTRY|FUNC_ARG, &tidArg);
+  // Instrumenting DYNINSTexecFailed at the end of execve is not working
+  // well on the aix version, this needs to be looked into more seriously
+  // to find out if DYNINSTexecFailed should really be instrumented at the
+  // end of execve!
+  // We are installing a trampoline at the end of execve, before the last
+  // branch out of the function, which branches to a __start function 
+  // which calls the new executable; so we are calling DYNINSTexecFailed
+  // way to early; since I am not sure where it should go, just by looking
+  // at the execve code, I will leave it out for now.
+  // initialRequests += new instMapping("execve", "DYNINSTexecFailed", 
+  //                                    FUNC_EXIT);
+
+  // ----------------------------------------------------------------------
+
+  initialRequests += new instMapping("MPI__Send", "DYNINSTrecordTag",
+				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
+  initialRequests += new instMapping("MPI__Bsend", "DYNINSTrecordTag",
+				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
+  initialRequests += new instMapping("MPI__Ssend", "DYNINSTrecordTag",
+				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
+  initialRequests += new instMapping("MPI__Isend", "DYNINSTrecordTag",
+				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
+  initialRequests += new instMapping("MPI__Issend", "DYNINSTrecordTag",
+				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
+
+  initialRequests += new instMapping("MPI__Sendrecv", "DYNINSTrecordTag",
+				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
+  initialRequests += new instMapping("MPI__Sendrecv", "DYNINSTrecordTag",
+				     FUNC_ENTRY|FUNC_ARG, &mpiSRRecvTagArg);
 
 #ifdef PARADYND_PVM
   char *doPiggy;
