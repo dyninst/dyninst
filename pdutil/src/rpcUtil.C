@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.94 2004/10/19 01:23:44 pack Exp $
+// $Id: rpcUtil.C,v 1.95 2005/01/14 20:57:54 tlmiller Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -1329,7 +1329,7 @@ static const pdstring get_local_ip_address()
 		// /* DEBUG */ fprintf( stderr, "%s[%d]: considering interface %d (%s)...\n", __FILE__, __LINE__, i, ifr->ifr_name, ifr->ifr_addr.sa_family );	
 		
 		if( ifr->ifr_addr.sa_family != AF_INET ) {
-			/* DEBUG */ fprintf( stderr, "%s[%d]: interface %d (%s) has address family %d, not AF_INET.\n", __FILE__, __LINE__, i, ifr->ifr_name, ifr->ifr_addr.sa_family );	
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: interface %d (%s) has address family %d, not AF_INET.\n", __FILE__, __LINE__, i, ifr->ifr_name, ifr->ifr_addr.sa_family );	
 			continue;
 			}
 			
