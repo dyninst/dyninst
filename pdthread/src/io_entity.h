@@ -31,14 +31,13 @@ class io_entity : public entity {
         my_mail = new io_mailbox(tid, this);
     }
     
-    virtual bool is_ready(unsigned* sizep, unsigned do_poll) const;
     virtual thread_t get_owner() { return owner; }
     
     virtual int do_read(void* buf, unsigned bufsize, unsigned* count) = 0;
     virtual int do_write(void* buf, unsigned bufsize, unsigned* count) = 0;
-    inline int is_special() { return special; }
-    inline int will_block() { return will_block_fn && will_block_fn(desc); }
-    inline int self() { return my_self; }
+    int is_special() { return special; }
+    int will_block() { return will_block_fn && will_block_fn(desc); }
+    int self() { return my_self; }
 };
 
 #endif

@@ -49,7 +49,7 @@ class thr_mailbox : public mailbox {
     
   public:
     thr_mailbox(thread_t owner);
-    ~thr_mailbox();
+    virtual ~thr_mailbox();
 
     /* put() delivers message m into this mailbox */
     virtual int put(message* m);

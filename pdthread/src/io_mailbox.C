@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+io_mailbox::~io_mailbox() {}
+
 io_mailbox::io_mailbox(thread_t owner, io_entity* ie)
         : mailbox(owner), underlying_io(ie) { }
 
