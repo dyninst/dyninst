@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: process.C,v 1.151 1998/05/18 17:21:26 wylie Exp $
+
 extern "C" {
 #ifdef PARADYND_PVM
 int pvmputenv (const char *);
@@ -1441,7 +1443,7 @@ void process::DYNINSTinitCompletionCallback(process *theProc,
 					    unsigned // return value from DYNINSTinit
 					    ) {
    attach_cerr << "Welcome to DYNINSTinitCompletionCallback" << endl;
-   if (NULL != userData && 0==strcmp(userData, "viaCreateProcess"))
+   if (NULL != userData && 0==strcmp((char*)userData, "viaCreateProcess"))
      theProc->handleCompletionOfDYNINSTinit(false);
    else
      theProc->handleCompletionOfDYNINSTinit(true);
