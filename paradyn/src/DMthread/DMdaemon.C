@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.104 2001/10/08 20:51:42 zandy Exp $
+ * $Id: DMdaemon.C,v 1.105 2001/10/26 06:29:52 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1062,7 +1062,8 @@ static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
 {
   unsigned int j;
   
-  char **s = new char*[cmdLineVec.size()+1]();
+  const int cmdLineVecSize = 1000;
+  char **s = new char*[cmdLineVecSize]();
 
   for ( j = 0; j < cmdLineVec.size(); j++ ) {
     s[j] = P_strdup(cmdLineVec[j].string_of());
@@ -1072,7 +1073,8 @@ static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
   
   if (dir.length()) {
       // mpirun cds to "current directory" based on PWD environment variable
-      char* buf = new char[dir.length()+5]();
+      const int dirLength = 300;
+      char* buf = new char[dirLength]();
       sprintf(buf, "PWD=%s",dir.string_of());
       putenv(buf);
   }
@@ -1397,7 +1399,7 @@ bool mpichCreateWrapper(const string& machine,
 		// we write the script to a local temporary file so as to 
 		// copy it to the remote system
 		//
-		string localWrapper = tmpnam( NULL );
+		string localWrapper = mkstemp( NULL );
 		if( !writeMPICHWrapper( localWrapper, buffer ) )
 		{
 			return false;
