@@ -44,7 +44,7 @@ int mutateeCplusplus = 0;
 int mutateeFortran = 0;
 int mutateeF77 = 0;
 bool runAllTests = true;
-const unsigned int MAX_TEST = 37;
+const unsigned int MAX_TEST = 38;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 int saveWorld = 0;
@@ -4319,7 +4319,13 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
 	    // in order to be part of the loop's body
 	    void *start, *end;
 	    blocks[1]->getAddressRange(start, end);
-	    p = appImage->createInstPointAtAddr((char *)start);	    
+
+	    BPatchErrorCallback oldError =
+		bpatch->registerErrorCallback(createInstPointError);
+
+	    p = appImage->createInstPointAtAddr((char *)start);
+
+	    bpatch->registerErrorCallback(oldError);
 	}
 
 	// was an inst point created?
@@ -4352,8 +4358,8 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
 
 void instrumentFuncLoopsWithCall(BPatch_thread *appThread, 
 				 BPatch_image *appImage,
-				 char * call_func,
-				 char * inc_func)
+				 char *call_func,
+				 char *inc_func)
 {
     // DON'T RUN FOR NOW
     return;
@@ -4391,16 +4397,171 @@ void instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 
 void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    BPatchErrorCallback oldError =
-    	bpatch->registerErrorCallback(createInstPointError);
-
     instrumentFuncLoopsWithCall(appThread, appImage,"call37_1", "inc37_1");
 
     instrumentFuncLoopsWithCall(appThread, appImage,"call37_2", "inc37_2");
 
     instrumentFuncLoopsWithCall(appThread, appImage,"call37_3", "inc37_3");
+}
+
+
+//
+// Start Test Case #38 - (CFG loop/callee tree)
+//
+
+
+void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    BPatch_Vector<BPatch_function *> funcs0;
     
-    bpatch->registerErrorCallback(oldError);
+    appImage->findFunction("call38_1", funcs0);
+
+    BPatch_function *func = funcs0[0];
+
+    BPatch_flowGraph *cfg = func->getCFG();
+
+    cfg->createLoopHierarchy();
+    //cfg->printLoops();
+
+    // check that funcs are inserted in the proper places in the loop hierarchy
+    LoopTreeNode *root = cfg->getLoopHierarchy();
+
+    LoopTreeNode *firstForLoop  = root->children[0];
+
+    // determine which node is the while loop and which is the second
+    // for loop, this is platform dependent
+
+    LoopTreeNode *secondForLoop = firstForLoop->children[0];
+    LoopTreeNode *whileLoop     = firstForLoop->children[1];
+
+    // swap if got wrong
+    if (firstForLoop->children[0]->children.size() == 0) {
+	secondForLoop = firstForLoop->children[1];
+	whileLoop     = firstForLoop->children[0];
+    }
+
+    LoopTreeNode *thirdForLoop  = secondForLoop->children[0];
+
+    // root loop has 1 child, the outer for loop
+    if (1 != root->children.size()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    root loop should have 1 child, found %d.\n",
+		root->children.size());
+	exit(1);
+    }
+
+    // call38_1 and call38_7 should be off the root
+    const char * f38_1 = root->getFuncName(0);
+    const char * f38_7 = root->getFuncName(1);
+
+    if (2 != root->numCallees()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    root loop should have 2 functions, found %d.\n",
+		root->numCallees());
+	exit(1);
+    }
+    if (0 != strcmp("funCall38_1",f38_1)) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    expected funCall38_1 not %s.\n",f38_1);
+	exit(1);
+    }
+    if (0 != strcmp("funCall38_7",f38_7)) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    expected funCall38_7 not %s.\n",f38_7);
+	exit(1);
+    }
+
+    // the first for loop should have 3 children and 2 functions
+    if (3 != firstForLoop->numCallees()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    first for loop found %d funcs not 3.\n", 
+		firstForLoop->numCallees());
+	exit(1);
+    }
+    if (2 != firstForLoop->children.size()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    first for loop had %d children, not 2.\n",
+		firstForLoop->children.size());
+	exit(1);
+    }
+
+    // call38_2, call38_4 and call38_6 should be under the outer loop
+    const char * f38_2 = firstForLoop->getFuncName(0);
+    const char * f38_4 = firstForLoop->getFuncName(1);
+    const char * f38_6 = firstForLoop->getFuncName(2);
+
+    if (0 != strcmp("funCall38_2",f38_2)) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    expected funCall38_2 not %s.\n",f38_2);
+	exit(1);
+    }
+    if (0 != strcmp("funCall38_4",f38_4)) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    expected funCall38_4 not %s.\n",f38_4);
+	exit(1);
+    }
+    if (0 != strcmp("funCall38_6",f38_6)) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    expected funCall38_6 not %s.\n",f38_6);
+	exit(1);
+    }
+
+    // the second for loop should have one child and no nested functions
+    if (1 != secondForLoop->children.size()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    second for loop had %d children, not 1.\n",
+		secondForLoop->children.size());
+	exit(1);
+    }
+    if (0 != secondForLoop->numCallees()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    second for loop had %d funcs (%s), should be 0.\n",
+		secondForLoop->numCallees(),
+		secondForLoop->getFuncName(0));
+	exit(1);
+    }
+
+    // third for loop has no children and one function funCall38_3
+    if (0 != thirdForLoop->children.size()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    third for loop had %d children, not 0.\n",
+		thirdForLoop->children.size());
+	exit(1);
+    }
+    if (1 != thirdForLoop->numCallees()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    third for loop had %d funcs, not 1.\n",
+		thirdForLoop->numCallees());
+	exit(1);
+    }
+
+    const char * f38_3 = thirdForLoop->getFuncName(0);
+    if (0 != strcmp("funCall38_3",f38_3)) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    expected funCall38_3 not %s.\n",f38_3);
+	exit(1);
+    }
+
+    // the while loop has no children and one function (funCall38_5)
+    if (0 != whileLoop->children.size()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    while loop had %d children, not 0.\n",
+		whileLoop->children.size());
+	exit(1);
+    }
+    if (1 != whileLoop->numCallees()) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    while loop had %d functions, not 1.\n",
+		whileLoop->numCallees());
+	exit(1);
+    }
+
+    const char * f38_5 = whileLoop->getFuncName(0);
+    if (0 != strcmp("funCall38_5",f38_5)) {
+	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+	fprintf(stderr,"    expected funCall38_5 not %s.\n",f38_5);
+	exit(1);
+    }
 }
 
 
@@ -4572,6 +4733,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if( runTest[ 36 ] ) mutatorTest36( appThread, appImage );
     
     if( runTest[ 37 ] ) mutatorTest37( appThread, appImage );
+    if( runTest[ 38 ] ) mutatorTest38( appThread, appImage );
 
     
     /* the following bit of code saves the mutatee in its mutated state to the
