@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.8 1994/07/05 03:26:02 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.9 1994/07/14 14:41:39 jcargill Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.8  1994/07/05 03:26:02  hollings
+ * Revision 1.9  1994/07/14 14:41:39  jcargill
+ * Major CM5 changes for new ptrace, and new transport.  Removed lots of
+ * old/dead code.  Changes to default CMMD instrumentation (to handle
+ * optimization)
+ *
+ * Revision 1.8  1994/07/05  03:26:02  hollings
  * observed cost model
  *
  * Revision 1.7  1994/06/29  02:52:25  hollings
@@ -122,14 +127,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <sys/wait.h>
 #include <sys/errno.h>
 #include <machine/reg.h>
-
-extern "C" {
-#include <sys/unistd.h>
-#include <cmsys/cm_ptrace.h>
 #include <sys/ptrace.h>
-int CMTS_ConnectToDaemon();
-int ptrace();
-}
 
 #include "dyninst.h"
 #include "rtinst/h/trace.h"
@@ -139,7 +137,10 @@ int ptrace();
 #include "instP.h"
 #include "ast.h"
 #include "ptrace_emul.h"
+#include "dyninstRPC.SRVR.h"
 #include "util.h"
+
+#include <cm/cmmd.h>
 
 libraryList msgFilterFunctions;
 libraryList msgByteSentFunctions;
@@ -148,11 +149,9 @@ libraryList msgByteFunctions;
 libraryList fileByteFunctions;
 libraryList libraryFunctions;
 
-process *nodePseudoProcess;
-
 /* Prototypes */
-int emulatePtraceRequest (int request, process *proc, int cmPid, void *addr, 
-		int data, void *addr2);
+int nodePtrace (int request, process *proc, int scalarPid, int nodeId, 
+		void *addr, int data, void *addr2);
 
 void addLibFunc(libraryList *list, char *name, int arg)
 {
@@ -166,10 +165,27 @@ void addLibFunc(libraryList *list, char *name, int arg)
  */
 void initLibraryFunctions()
 {
-    addLibFunc(&msgByteSentFunctions, "CMPR_m_s_open_for_send", TAG_LIB_FUNC);
-    addLibFunc(&msgByteSentFunctions, "CMPR_m_p_open_for_send", TAG_LIB_FUNC);
-    addLibFunc(&msgByteRecvFunctions, "CMPR_m_s_open_for_receive",TAG_LIB_FUNC);
-    addLibFunc(&msgByteRecvFunctions, "CMPR_m_p_open_for_receive",TAG_LIB_FUNC);
+    addLibFunc(&msgByteSentFunctions, "CMMD_send", 
+	       TAG_LIB_FUNC|TAG_MSG_FUNC|TAG_CPU_STATE);
+    addLibFunc(&msgByteSentFunctions, "CMMD_send_block", TAG_LIB_FUNC);
+    addLibFunc(&msgByteSentFunctions, "CMMD_send_noblock", TAG_LIB_FUNC);
+    addLibFunc(&msgByteSentFunctions, "CMMD_send_async", TAG_LIB_FUNC);
+
+//    addLibFunc(&msgByteSentFunctions, "CMPR_m_p_open_for_send", 
+//		 TAG_LIB_FUNC);
+//    addLibFunc(&msgByteSentFunctions, "CMPR_m_s_open_for_send", 
+//		 TAG_LIB_FUNC);
+
+    addLibFunc(&msgByteRecvFunctions, "CMMD_receive",
+	       TAG_LIB_FUNC|TAG_MSG_FUNC|TAG_CPU_STATE);
+    addLibFunc(&msgByteRecvFunctions, "CMMD_receive_block", TAG_LIB_FUNC);
+    addLibFunc(&msgByteRecvFunctions, "CMMD_receive_noblock", TAG_LIB_FUNC);
+    addLibFunc(&msgByteRecvFunctions, "CMMD_receive_async", TAG_LIB_FUNC);
+
+//    addLibFunc(&msgByteRecvFunctions, "CMPR_m_s_open_for_receive",
+//		 TAG_LIB_FUNC);
+//    addLibFunc(&msgByteRecvFunctions, "CMPR_m_p_open_for_receive",
+//		 TAG_LIB_FUNC);
 
     /* should record waiting time in read/write, but have a conflict with
      *   use of these functions by our inst code.
@@ -255,389 +271,73 @@ void initLibraryFunctions()
 
     msgByteFunctions += msgByteSentFunctions;
     msgByteFunctions += msgByteRecvFunctions;
-
 }
 
-/* have we connected to the TS-deamon */
-static int tsdConnected;
 
-static AstNode tagArg(Param, (void *) 2);
 
-instMaping defaultInst[] = {
-    { "main", "DYNINSTinit", FUNC_ENTRY },
-    { "main", "DYNINSTsampleValues", FUNC_EXIT },
-    { "exit", "DYNINSTsampleValues", FUNC_ENTRY },
-    { "DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY },
-    { "CMMD_send", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMD_receive", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg},
-    { "CMMP_receive_block", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMP_send_block", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMP_send_async", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMP_receive_async", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { NULL, NULL, 0},
-};
 
-process *createGlobalPseudoProcess(process *sampleNodeProc)
-{
-    process *ret;
-
-    ret = (process *) xcalloc(sizeof(process),1);
-    ret->symbols = sampleNodeProc->symbols;
-    ret->aggregate = True;
-    ret->pid = -1;
-    ret->parent = sampleNodeProc->parent;
-    initInferiorHeap(ret, True);
-
-    return(ret);
-}
-
+extern char *pd_machine;
+extern int pd_family;
+extern int pd_type;
+extern int pd_known_socket;
+extern int pd_flag;
 
 void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 {
-    int i;
-    int val;
-    int pid;
-    int callee;
-    int status;
-    process *ret;
-    char name[80];
+    int childPid;
     process *parent;
-    struct regs nodeRegisters;
-    struct regs newRegisters;
+    char **arg_list;
+    char command[80];
+    char application[256];
+    char app_pid[20];
+    char num_nodes[20];	
+    char *argv[20];
 
     parent = findProcess(fr->ppid);
     assert(parent);
 
-    /* make sure we have a TS-deamon connection */
-    if (!tsdConnected) {
-	tsdConnected = 1;
-	if (CMTS_ConnectToDaemon() == -1) {
-	    logLine("Can't connect to TS Daemon\n");
-	    free(ret);
-	    return;
-	}
+    if ((childPid=fork()) == 0) {		/* child */
+	/* Build arglist */
+	arg_list = RPC_make_arg_list (pd_family, pd_type, 
+				      pd_known_socket, pd_flag);
+	sprintf (command, "paradyndCM5");
+	sprintf (application, "%s", curr->symbols->file);
+	sprintf (app_pid, "%d", curr->pid);
+	sprintf (num_nodes, "%d", fr->npids);
+
+	/*
+	 * It would be nice if this weren't sensitive to the size of
+	 * arg_list.  For the moment, only 6 are written by
+	 * make_arg_list; this could be cleaner.
+	 */
+	argv[0] = command;
+	argv[1] = application;
+	argv[2] = app_pid;
+	argv[3] = num_nodes;
+	argv[4] = arg_list[1];
+	argv[5] = arg_list[2];
+	argv[6] = arg_list[3];
+	argv[7] = arg_list[4];
+	argv[8] = arg_list[5];
+	argv[9] = arg_list[6];
+	argv[10] = arg_list[7];
+	argv[11] = 0;
+
+	ptrace (0, 0, 0, 0, 0);
+
+	execv (command, argv);
     }
-
-    /* attach to the process */
-    val = CM_ptrace(0, PE_PTRACE_TRACEPID, fr->pid%MAXPID, 0, 0, 0);
-    if (val != 0) {
-	perror("nptrace");
-	free(ret);
-	return;
+    else {			/* parent */
+	printf ("forked child process (pid=%d).\n", childPid);
     }
-
-#define TMC_SCHED_BUG_KLUDGE
-#ifdef TMC_SCHED_BUG_KLUDGE
-
-/*
- * This section of code is a kludge to get around the odd behavior of the
- * TMC's scheduler.  When the CP process is blocked for any reason, and 
- * doesn't reach the cm5_stopped_state (wait channel) in the kernel, the 
- * nodes never get scheduled if anyone else is using the partition.
- *
- * This caused a deadlock for us, during the processing of the TR_MULTI_FORK
- * record.  The state of the deadlock is as follows:
- *   - the CP program has reached a breakpoint, after the production of the
- *     TR_MULTI_FORK record.  The process tries to enter the breakpoint by
- *     sending itself a SIGSTOP.  The controller should receive the SIGSTOP,
- *     and forward a SIGPROF to the CP program, to force it into the
- *     spin-loop in DYNINSTpauseProcess.
- *
- *   - the "controller" process is busy processing the TR_MULTI_FORK record,
- *     which involves forcing each node to call an init routine.  So the 
- *     controller never returns to the controllerMainloop, where it would
- *     notice the SIGSTOP and pause the CP program.
- *
- *   - the nodes work at the init code for a while.  However, when the
- *     timeslice ends, the nodes never get rescheduled, since the CP 
- *
- * So to summarize: The CP is blocked in the kernel, so that nodes
- * never get scheduled to run, so they never complete the
- * initialization code, so they the controller never gets to continue,
- * and thus it can't forward the * SIGPROF to the CP to get it
- * started.  QED
- *
- * Solution for now is to wait for the CP to hit the breakpoint, and forward
- * the signal *before* we do any of the ptrace stuff to force the nodes to
- * init.
- */
-
-retry:
-    /*
-     * Wait for the change of status only from the "interested party"
-     * CP process.
-     */
-    pid = waitpid(fr->ppid, &status, NULL);
-
-    /* make sure the process stopped.  What else could it reasonable do? */
-    if (! WIFSTOPPED(status))	
-      abort();
-    
-    switch (WSTOPSIG(status)) {
-	case SIGALRM:
-	    /* We might also get a sig alaram in here since there is a race 
-	     * between the alaram handler and the stop.
-	     * We just drop the alaram, and then go about our business.
-	     * JKH - 8/9/93
-	     */
-	     ptrace(PTRACE_CONT, pid, (char*)1, SIGCONT, 0);
-	     logLine("got sigalarm eating it\n");
-	     goto retry;
-
-	case SIGSTOP:
-	  logLine("CONTROLLER: Breakpoint reached, continuing for node init\n");
-	  curr->status = stopped;
-	  /* force it into the stoped signal handler */
-	  ptrace(PTRACE_CONT, pid, (char*)1, SIGPROF, 0);
-
-	  /* pause the rest of the application */
-	  /*
-	   * or, that is, we would, but then the nodes wouldn't be able to run
-	   * our initializaiton code...  Perhaps we should pauseAllProcesses at
-	   * the end of this routine, instead...
-	   */
-	  /*       pauseAllProcesses(curr->appl); */   
-	  break;
-
-	default:
-	  logLine("CP process reached a non-stopped state (signal %d). Weird.\n",
-	      WSTOPSIG(status));
-	  abort();
-    }
-
-/*
- * Everything should be hunky-dory now.  We shouldn't deadlock, since
- * the CP will spin.  Now we can get back to init-ing the nodes.
- */
-
-#endif  /* TMC_SCHED_BUG_KLUDGE */
-
-
-    for (i=0; i < fr->npids; i++) {
-	int newpid;
-
-	sprintf(name, "%s.pn[%d]", parent->symbols->name, i);
-	newpid = fr->pid + i * fr->stride;
-
-	ret = allocateProcess(newpid, name);
-
-	ret->pid = newpid;
-	ret->symbols = parseImage(parent->symbols->file, 1);
-	ret->traceLink = -1;
-	ret->ioLink = -1;
-	ret->parent = parent;
-	initInferiorHeap(ret, False);
-    }
-
-    /*
-     * Get nodes to call DYNINSTinit.
-     *
-     */
-    logLine("forcing node inits\n");
-    for (i=0; i < fr->npids; i++) {
-	val = CM_ptrace(i, PE_PTRACE_INTERRUPT, fr->ppid, 0, 0, 0);
-	if (val) {
-	    logLine("CM_ptrace: pn%d error PE_PTRACE_INTERRUPT\n",i);
-	    exit(-1);
-	}
-	logLine(".");
-	fflush(stdout);
-    }
-    for (i=0; i < fr->npids; i++) {
-	val = CM_ptrace(i, PE_PTRACE_GETREGS, fr->ppid, 
-	    (char *) &nodeRegisters, 0, 0);
-	if (val) {
-	    logLine("CM_ptrace: pn%d error PE_PTRACE_GETREGS\n",i);
-	    exit(-1);
-	}
-
-	/* fix up regs */
-	newRegisters = nodeRegisters;
-	newRegisters.r_o7 = newRegisters.r_npc;
-	callee = findInternalAddress(ret->symbols, "DYNINSTinitTraceLib", True);
-	newRegisters.r_npc = callee;
-
-	val = CM_ptrace(i, PE_PTRACE_SETREGS, fr->ppid, 
-	    (char *) &newRegisters, 0, 0);
-	if (val) {
-	    logLine("CM_ptrace: pn%d error PE_PTRACE_SETREGS\n",i);
-	    exit(-1);
-	}
-	val = CM_ptrace(i, PE_PTRACE_CONT, fr->ppid, 0, 0, 0);
-	if (val) {
-	    logLine("CM_ptrace: pn%d error PE_PTRACE_CONT\n",i);
-	    exit(-1);
-	}
-	logLine(".");
-	fflush(stdout);
-    }
-    for (i=0; i < fr->npids; i++) {
-	/* wait till it stops */
-	val = 0;
-	while (val != PE_STATUS_BREAK) {
-	    val = CM_ptrace(i, PE_PTRACE_GETSTATUS, fr->ppid, 0, 0, 0);
-	}
-	// logLine("process %d got break after init\n", i);
-
-	val = CM_ptrace(i, PE_PTRACE_INTERRUPT, fr->ppid, 0, 0, 0);
-	if (val) {
-	    logLine("CM_ptrace: pn%d error PE_PTRACE_INTERRUPT\n",i);
-	    exit(-1);
-	}
-
-	val = CM_ptrace(i, PE_PTRACE_SETREGS, fr->ppid, 
-	    (char *) &nodeRegisters, 0, 0);
-	if (val) {
-	    logLine("CM_ptrace: pn%d error PE_PTRACE_SETREGS\n",i);
-	    exit(-1);
-	}
-	val = CM_ptrace(i, PE_PTRACE_CONT, fr->ppid, 0, 0, 0);
-	if (val) {
-	    logLine("CM_ptrace: pn%d error PE_PTRACE_CONT\n",i);
-	    exit(-1);
-	}
-
-	logLine(".");
-	fflush(stdout);
-	// logLine("process %d was continued after init\n", i);
-    }
-    logLine("node initing done\n");
-    fflush(stdout);
-    
-    nodePseudoProcess = createGlobalPseudoProcess(ret);
-
-    /*
-     * install default instrumentation.
-     *
-     */
-    installDefaultInst(nodePseudoProcess, defaultInst);
 
     pauseAllProcesses();
-    
 }
 
-static int buffered;
-
-#ifdef notdef
-
-static int errnos[DBG_MAX_BATCH_SIZE];
-static int results[DBG_MAX_BATCH_SIZE];
-static struct cmos_ptrace_req requests[DBG_MAX_BATCH_SIZE];
-
-
-
-/*
- * flushPtrace was replace by a version which waits for an ACK from the
- * timeslice-handler...
- */
-
-int flushPtrace()
-{
-    int ret;
-    int scalarPid;
-    extern int errno;
-
-    if (buffered == 1) {
-	errno = 0;
-	ret = CM_ptrace(requests[0].pe, requests[0].request, requests[0].pid, 
-	    requests[0].addr, requests[0].data, requests[0].addr2);
-	if (errno) {
-	    perror("read");
-	    abort();
-	}
-	buffered = 0;
-    } else if (buffered) {
-	errno = 0;
-	scalarPid = requests[0].pid;
-	ret = CMOS_ptrace_batch(scalarPid, buffered, requests, 
-	    results, errnos);
-	if (errno) { 
-	    perror("readBatch");
-	    for (ret=0; ret < buffered; ret++) {
-		if (errnos[ret]) {
-		    abort();
-		}
-	    }
-	    exit(-1);
-	}
-	ret = results[buffered-1];
-	buffered = 0;
-    }
-    return(ret);
-}
-#endif
-
-
-/*
- * OLD OUTDATED comment:  (but still worth keeping in mind)
- *
- * Some global variables, needed for the ptrace protocol.  They maintain a
- * sequence number per ptrace request, and maintain a sliding window
- * protocol, so that the controller won't block writing to the handlers.
- * This blocking is a bad thing, since it can lead to a deadlock.
- *
- * The deadlock is as follows: The controller is blocked, waiting for
- * the handler to read some data.  The handler can't read data until
- * the controller forwards the signal which causes handlers to fire.
- * The controller will never forward it, because it's blocked.  QED.
- * 
- * The solution is to never have more than window_threshold bytes of
- * ptrace reqeusts outstanding on the socket.  To do this, we call
- * checkInferiorProcs(), so that signals will be forwarded, and
- * handlers will fire.  We also call pollInferiorProcs, so that we
- * will read some ACKs and move the window.
- *
- * UPDATED comment:  (this is current)
- * 
- * After some more thought, the sliding window was discarded, and
- * synchronous protocol between the instrumentation controller and the
- * handlers was put in instead.  This way we know that when we're
- * writing ptrace data, and handlers is reading it, and when the
- * handler is writing samples to the pipe, we won't ever block writing
- * ptrace requests.  This seems much cleaner.  --jmc
- */
-
-
-/* Some of this should really be one per cm5 process...  XXXXX */
-
-static int seqNumSent = 0;
-static int seqNumAcked = 0;
-static int ptraceBufferSize = 0;
-static char *ptraceBuffer = NULL;
-static int ptraceBufferOffset = 0;
-
-/*
- * New version, which waits for an ACK from the handler.  Doesn't
- * actually wait at this point, since we can't read from the tracePipe
- * and handle signals if we block here.  And reading from the trace
- * pipe is not renetrant, since processTraceStream buffers data
- * itself.
- *
- * At some point we should think about this...   XXX   
- */
-
-int flushPtrace()
-{
-
-/*     while (seqNumSent > seqNumAcked) */
-	/* Check for data on any of the inferior processes trace streams */
-/* 	pollInferiorProcs(); */
-
-  return 0;
-}
-
-
-void processPtraceAck (traceHeader *header, ptraceAck *ackRecord)
-{
-    seqNumAcked = ackRecord->seqNumber;
-    
-    assert(seqNumAcked >= 0);
-    assert(seqNumAcked <= seqNumSent);
-    logLine ("received Ptrace ack (seq #%d)\n", seqNumAcked);
-}
 
 
 extern int ptraceOtherOps, ptraceOps, ptraceBytes;
+extern process *nodePseudoProcess;
 
 /* 
  * The performance consultant's ptrace, it calls CM_ptrace and ptrace as needed.
@@ -646,13 +346,18 @@ extern int ptraceOtherOps, ptraceOps, ptraceBytes;
 int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 {
     int ret;
-    int code;
+//    int code;
     int cmPid;
     int scalarPid;
-    struct regs regs;
+//    struct regs regs;
+    extern int errno;
+
+    errno = 0;
 
     if (proc->status == exited) {
-	logLine("attempt to ptrace exited process %d\n", proc->pid);
+	sprintf (errorLine, 
+		 "attempt to ptrace exited process %d\n", proc->pid);
+	logLine(errorLine);
 	return(-1);
     }
 
@@ -668,13 +373,13 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 
     if (proc == nodePseudoProcess) {
 	// do a broadcast ptrace.
-	emulatePtraceRequest (request, proc, 0xffffffff, addr, data, addr2);
+	nodePtrace (request, proc, proc->pid%MAXPID, 0xffffffff, addr, 
+		    data, addr2);
     } else if (proc->pid < MAXPID) {
 	/* normal process */
 	int sig;
 	int status;
 	int isStopped, wasStopped;
-	extern int errno;
 
 	wasStopped = (proc->status == stopped);
 	if (proc->status != neonatal && !wasStopped &&
@@ -697,6 +402,7 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 		if (sig == SIGSTOP) {
 		    isStopped = 1;
 		} else {
+		    printf ("PCptrace forwarded signal %d while waiting for stop\n", WSTOPSIG(status));
 		    ptrace(PTRACE_CONT, proc->pid,(char*)1, WSTOPSIG(status),0);
 		}
 	    }
@@ -709,7 +415,7 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 
 	if ((proc->status != neonatal) && (request != PTRACE_CONT) &&
 	    (!wasStopped)) {
-	    (void) ptrace(PTRACE_CONT, proc->pid,(char*) 1, SIGCONT, (char*) 0);
+	    (void) ptrace(PTRACE_CONT, proc->pid,(char*) 1, 0, (char*) 0);
 	}
 	errno = 0;
 	return(ret);
@@ -717,215 +423,74 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 	cmPid = (proc->pid / MAXPID) - 1;
 	scalarPid = proc->pid % MAXPID;
 
-	switch (request) {
-	    case PTRACE_INTERRUPT:
-		code = PE_PTRACE_INTERRUPT;
-		break;
+	/*
+	 * Keeping this continue code around for a while, since we may need 
+         * to do the same type of thing on the nodes in the future...
+	 */
 
-	    case PTRACE_DUMPCORE:
-		code = PE_PTRACE_DUMPCORE;
-		break;
+//	    case PTRACE_CONT:
+//		/* need to advance pc past break point if at one */
+//		code = CM_ptrace(cmPid, PE_PTRACE_GETSTATUS, scalarPid,0,0,0);
+//		if (code == PE_STATUS_BREAK) {
+//		    code = CM_ptrace(cmPid, PE_PTRACE_GETREGS, 
+//			scalarPid, (char *) &regs,0,0);
+//		    regs.r_pc += 4;
+//		    code = CM_ptrace(cmPid, PE_PTRACE_SETREGS, scalarPid,
+//			(char *) &regs,0,0);
+//		}
 
-	    case PTRACE_CONT:
-		/* need to advance pc past break point if at one */
-		code = CM_ptrace(cmPid, PE_PTRACE_GETSTATUS, scalarPid,0,0,0);
-		if (code == PE_STATUS_BREAK) {
-		    code = CM_ptrace(cmPid, PE_PTRACE_GETREGS, 
-			scalarPid, (char *) &regs,0,0);
-		    regs.r_pc += 4;
-		    code = CM_ptrace(cmPid, PE_PTRACE_SETREGS, scalarPid,
-			(char *) &regs,0,0);
-		}
-		code = PE_PTRACE_CONT;
-		addr = 0;
-		data = 0;
-		addr2 = 0;
-		break;
-
-	    case PTRACE_READDATA:
-		// only used for debuging.
-		code = PE_PTRACE_READDATA;
-		break;
-
-	    case PTRACE_POKETEXT:
-		code = PE_PTRACE_POKETEXT;
-		return (emulatePtraceRequest (request, proc, cmPid, 
-					      addr, data, addr2));
-		break;
-
-	    case PTRACE_WRITEDATA:
-		code = PE_PTRACE_WRITEDATA;
-		return (emulatePtraceRequest (request, proc, cmPid, 
-					      addr, data, addr2));
-		break;
-
-	    case PTRACE_POKEDATA:
-		code = PE_PTRACE_POKEDATA;
-		return (emulatePtraceRequest (request, proc, cmPid, 
-					      addr, data, addr2));
-		break;
-
-	    case PTRACE_DETACH:
-		return(0);
-
-	    default:
-		abort();
-		break;
-	}
-
-	return (CM_ptrace(cmPid, code, scalarPid, (char *) addr, 
-			  data, (char *) addr2));
+	return (nodePtrace (request, proc, proc->pid%MAXPID, cmPid, addr, 
+			    data, addr2));
     }
     return(0);
 }
 
 
 /*
- * Ptrace emulation section.  We send packets of "Modify memory"
- * requests to the instrumentation controller.  The format of a
- * request is as follows:
- *
- * [ request ] - modify memory request.  Currently the only request.
- * [ req id  ] - Uniq id for purposes of Acknowledgement.
- * [ node id ] - Node id:  0-(partition_size-1) for unique node.  
- *                         0xffffffff to broadcast to all nodes in partition
- * [ address ] - Memory address to modify
- * [ length  ] - Number of words of data to write
- * [ data    ]
- * [ ...     ]
- * [ data    ]
- *
- * Everything between brackets above ([...]) is one word in length.
- * Since the instrumentation controller is running on the front-end
- * (so it can really use ptrace to control the application), we can
- * assume no byte-order problems.
- *
- *
+ * This routine send ptrace requests via CMMD to the nodes for processing.
  */
-
-/*
- * This routine buffers ptrace requests, which will be sent to the
- * timeslice handler when it is ready for them.
- */
-
-int emulatePtraceRequest (int request, process *proc, int cmPid, void *addr, 
-		int data, void *addr2)
+int nodePtrace (int request, process *proc, int scalarPid, int nodeId, 
+		void *addr, int data, void *addr2)
 {
-    int sock;
     ptraceReqHeader header;
+    extern int errno;
 
-    process *tempProc;
-    char *sourceAddr;		/* source of the data to send */
+    /* Check for node I/O */
+    int i;
 
-    /*
-     * Find the appropriate socket to write to.  We traverse up the parent
-     * links until we find a NULL parent ptr.
-     */
-    tempProc = proc;
-    while (tempProc->parent != NULL)
-	tempProc = tempProc->parent;
-    sock = tempProc->traceLink;
-
-    /*
-     * If this is a first ptrace request (none buffered), then we
-     * should notify the handler, so it can get ready for the next
-     * batch.
-     */
-    if (ptraceBufferOffset == 0) {
-	/* Send a "ptrace data available" message */
-
-	header.request = PTRACE_REQUESTS_AVAILABLE;
-	write (sock, (char *) &header, sizeof (header));
-    }
+    for (i=0; i< 1000; i++)
+	while (CMMD_poll_for_services() == 1)
+	    ;			/* TEMPORARY:    XXXXXX */
 
     /* Create the request header */
-    header.request = MODIFY_TEXT;
-    header.req_id = 0;
-    header.dest = cmPid;
-    header.address = (char *) addr;
+    header.request = request;
+    header.pid = scalarPid;
+    header.nodeNum = nodeId;
+    header.addr = (char *) addr;
+    header.data = (char *) data;
+    header.addr2 = (char *) addr2;
 
+    /* Send the ptrace request to the nodes for execution */
+    CMMD_bc_from_host (&header, sizeof(header));
+
+    /* Send optional addition data for the request */
     switch (request) {
-    case PTRACE_POKETEXT:
-    case PTRACE_POKEDATA:
-	header.length = sizeof (int);
-	sourceAddr = (char *) &data;
+      case PTRACE_WRITEDATA:
+	CMMD_bc_from_host (addr2, data);
 	break;
-    case PTRACE_WRITEDATA:
-	header.length = data;
-	sourceAddr = (char *) addr2;
+      default:
+	// No "optional" data gets sent by default...
 	break;
     }  
 
 #ifdef DEBUG_PRINTS
-    logLine ("Buffering (%d, %d, %d)\n", cmPid, addr, header.length);
+    logLine ("Sent ptrace request (%d, %d, %d)\n", nodeId, addr, header.length);
 #endif
    
-    /*
-     * Check whether the ptrace-data buffer has enough room for the
-     * current request.
-     */
-    while (sizeof(header)+header.length > ptraceBufferSize-ptraceBufferOffset) 
-    {
-	/* buffer is full or does not exist.  Realloc it. */
-
-	if (ptraceBuffer == NULL) {
-	    ptraceBufferSize = 1024 * 1024;
-	    ptraceBuffer = (char *) malloc(ptraceBufferSize);
-	}
-	else {
-	    
-	    ptraceBufferSize *= 2;
-	    ptraceBuffer = (char *) realloc (ptraceBuffer, ptraceBufferSize);
-	}
-
-	if (ptraceBuffer == NULL) 
-	    abort();
-    }
-	
-
-    /* Save the request header */
-    memcpy (&ptraceBuffer[ptraceBufferOffset], 
-	    (char *) &header, sizeof (header));
-    ptraceBufferOffset += sizeof(header);
-    
-    /* Save the new text. */
-    memcpy (&ptraceBuffer[ptraceBufferOffset], 
-	    (char *) sourceAddr, header.length);
-    ptraceBufferOffset += header.length;
-
+    errno = 0;			/* can be hosed by CMMD_poll_for_services() */
     return 0;			/* WHAT SHOULD WE RETURN?  XXX */
 }
 
-
-void sendPtraceBuffer(process *proc)
-{
-    ptraceReqHeader header;
-    process *tempProc;
-    int sock;
-
-    /*
-     * Find the appropriate socket to write to.  We traverse up the parent
-     * links until we find a NULL parent ptr.
-     */
-    tempProc = proc;
-    while (tempProc->parent != NULL)
-	tempProc = tempProc->parent;
-    sock = tempProc->traceLink;
-
-    /* Send the buffered Ptrace data. */
-    if (write (sock, ptraceBuffer, ptraceBufferOffset) != ptraceBufferOffset)
-	perror ("write didn't send all");
-
-    /* Indicate that no more ptrace requests are coming */
-    header.req_id = seqNumSent++;
-    header.length = ptraceBufferOffset;
-    header.request = PTRACE_REQUESTS_DONE;
-    write (sock, (char *) &header, sizeof (header));
-
-    /* Free up the ptraceBuffer */
-    ptraceBufferOffset = 0;
-
-}
 
 #define NS_TO_SEC	1000000000.0
 
@@ -968,6 +533,20 @@ float getPrimitiveCost(char *name)
 }
 #endif
 
+
+/*
+ * TEMPORARY:  to get things to compile... -jmc
+ *
+ */
+int getPrimitiveCost(char *name)
+{
+    int ret;
+    ret = 0;
+    return(ret);
+}
+
+
+
 /*
  * Not required on this platform.
  *
@@ -978,23 +557,32 @@ void instCleanup()
 
 char *getProcessStatus(process *proc)
 {
-    int val;
     static char ret[80];
+    int status, pid;
 
+    printf ("getting status for process proc=%x, pid=%d\n", proc, proc->pid);
     if (proc->pid > MAXPID) {
-        val = CM_ptrace((proc->pid / MAXPID) - 1, PE_PTRACE_GETSTATUS,
-            proc->pid % MAXPID, 0, 0, 0);
-        if (val == PE_STATUS_RUNNING)
-            return("state = PE_STATUS_RUNNING");
-        else if (val == PE_STATUS_BREAK)
-            return("state = PE_STATUS_BREAK");
-        else if (val == PE_STATUS_ERROR)
-            return("state = PE_STATUS_ERROR");
-        else {
-            sprintf(ret, "state = %d\n", val);
-	    return(ret);
-	}
+
+	PCptrace (PTRACE_STATUS, proc, 0, 0, 0);
+
+//        val = CM_ptrace((proc->pid / MAXPID) - 1, PE_PTRACE_GETSTATUS,
+//            proc->pid % MAXPID, 0, 0, 0);
+//        if (val == PE_STATUS_RUNNING)
+//            return("state = PE_STATUS_RUNNING");
+//        else if (val == PE_STATUS_BREAK)
+//            return("state = PE_STATUS_BREAK");
+//        else if (val == PE_STATUS_ERROR)
+//            return("state = PE_STATUS_ERROR");
+//        else {
+//            sprintf(ret, "state = %d\n", val);
+//	    return(ret);
+//	}
+
     } else {
+	pid = waitpid (proc->pid, &status, WNOHANG);
+	printf("status of real unix process is:  %x  (ret = %d, pid = %d)\n", 
+	       status, pid, proc->pid);
+
 	switch (proc->status) {
 	    case running:
 		sprintf(ret, "%d running", proc->pid);
