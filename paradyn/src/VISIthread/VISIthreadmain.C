@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.41  1995/08/01 02:18:41  newhall
-/* changes to support phase interface
+/* Revision 1.42  1995/08/05 17:10:46  krisna
+/* use `0' for `NULL'
 /*
+ * Revision 1.41  1995/08/01 02:18:41  newhall
+ * changes to support phase interface
+ *
  * Revision 1.40  1995/07/06  01:53:58  newhall
  * fixed arguments to RPCprocessCreate (I have no idea why this worked before)
  *
@@ -170,7 +173,7 @@
  * */
 #include <signal.h>
 #include <math.h>
-#include <memory.h>
+#include <stdlib.h>
 #include "util/h/list.h"
 #include "util/h/rpcUtil.h"
 #include "util/h/sys.h"
@@ -605,7 +608,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	  matrix.res.Id = newEnabled[i]->r_id;
 	  if((matrix.res.name = 
 	      AbbreviatedFocus((char *)newEnabled[i]->focus_name.string_of()))
-	      ==NULL){
+	      ==0){
 	      ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	      ptr->quit = 1;
               delete(retryList);
@@ -770,7 +773,7 @@ void *VISIthreadmain(void *vargs){
   union dataCallback dataHandlers;
   dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataCallback;
   if((globals->ps_handle = globals->dmp->createPerformanceStream(
-		   Sample,dataHandlers,callbacks)) == NULL){
+		   Sample,dataHandlers,callbacks)) == 0){
       PARADYN_DEBUG(("Error in createPerformanceStream"));
       ERROR_MSG(15,"Error in VISIthreadchooseMetRes: createPerformanceStream");
       globals->quit = 1;
