@@ -4,10 +4,14 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.9  1996/02/02 18:44:16  tamches
-/* Displaying extra information about an shg node has changed from a mouse-move
-/* to a middle-click
+/* Revision 1.10  1996/02/07 19:08:23  tamches
+/* addNode, configNode, and addEdge now take in "isCurrShg" flag, which
+/* is in turn passed to rethink_entire_layout
 /*
+ * Revision 1.9  1996/02/02 18:44:16  tamches
+ * Displaying extra information about an shg node has changed from a mouse-move
+ * to a middle-click
+ *
  * Revision 1.8  1996/02/02 01:08:31  karavan
  * changes to support new PC/UI interface
  *
@@ -778,7 +782,7 @@ bool shg::softScrollToEndOfPath(const whereNodePosRawPath &thePath) {
 
 void shg::addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalState,
 		  const string &label, const string &fullInfo,
-		  bool rootNodeFlag) {
+		  bool rootNodeFlag, bool isCurrShg) {
    if (rootNodeFlag) {
       assert(hash.size() == 0);
       assert(rootPtr == NULL);
@@ -816,11 +820,12 @@ void shg::addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalS
    if (rootNodeFlag)
       // only in this case do we rethink layout sizes; otherwise,
       // we wait until an edge connects to this new node.
-      rethink_entire_layout();
+      rethink_entire_layout(isCurrShg);
 }
 
 bool shg::configNode(unsigned id, bool newActive,
-		     shgRootNode::evaluationState newEvalState) {
+		     shgRootNode::evaluationState newEvalState,
+		     bool isCurrShg) {
    // returns true iff any changes.  Does not redraw.
    // Note: a change from "tentatively-true" to (anything else)
    // will un-expand the node, leading to a massive layout rethinkification.
@@ -882,7 +887,7 @@ bool shg::configNode(unsigned id, bool newActive,
             // now rethink all-expanded-children dimensions for all ancestors
             // of parentPtr.  For now, we are sloppy, and just rethink those traits
             // for the entier shg (!):
-            rethink_entire_layout();
+            rethink_entire_layout(isCurrShg);
             return true;
 	 }
 
@@ -903,7 +908,7 @@ bool shg::configNode(unsigned id, bool newActive,
             // now rethink all-expanded-children dimensions for all ancestors
             // of parentPtr.  For now, we are sloppy, and just rethink those traits
             // for the entier shg (!):
-	    rethink_entire_layout();
+	    rethink_entire_layout(isCurrShg);
             return true;
 	 }
 
@@ -916,7 +921,8 @@ bool shg::configNode(unsigned id, bool newActive,
 
 void shg::addEdge(unsigned fromId, unsigned toId,
 		  shgRootNode::evaluationState theState,
-		  const char *label // only used for shadow nodes; else NULL
+		  const char *label, // only used for shadow nodes; else NULL
+		  bool isCurrShg
 		  ) {
    assert(rootPtr);
 
@@ -972,7 +978,7 @@ void shg::addEdge(unsigned fromId, unsigned toId,
 		       );
 
    // rethink layout of entire shg (slow...):
-   rethink_entire_layout();
+   rethink_entire_layout(isCurrShg);
 }
 
 void shg::addToStatusDisplay(const string &str) {
@@ -983,4 +989,3 @@ void shg::addToStatusDisplay(const string &str) {
    commandStr = ".shg.nontop.textarea.text yview -pickplace end";
    myTclEval(interp, commandStr);
 }
-
