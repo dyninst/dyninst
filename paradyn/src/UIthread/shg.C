@@ -4,9 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.14  1996/03/08 00:21:39  tamches
-/* added support for hidden nodes
+/* Revision 1.15  1996/03/29 20:51:12  tamches
+/* on configNode, check for change in hide-ness is moved before check for
+/* true-ness; avoids an assertion failure when expanding a hidden node at times.
 /*
+ * Revision 1.14  1996/03/08 00:21:39  tamches
+ * added support for hidden nodes
+ *
  * Revision 1.13  1996/02/15 23:10:34  tamches
  * added proper code for why vs. where axis refinement
  *
@@ -1031,6 +1035,29 @@ bool shg::configNode(unsigned id, bool newActive,
 
    bool rethink_all = false; // so far...
 
+   // Perhaps some node(s) have become hidden or unhidden.  We must handle this case first.
+   // Why?  Here's an example.  Say a node is hidden because it's false.  Then it gets set
+   // to true.  The code for true will try to un-expand the node, but that code will get
+   // an assertion failure because it doesn't want to expand (or unexpand) anything hidden!
+   // So the bottom line is that we have to rethink whether or not the hide-ness of a node
+   // should change FIRST.
+
+   // set rethink_all to true if some node(s) have become hidden or unhidden
+   // Note that there's no need to check our shadow children, because the
+   // only trait that may lead to a different hidden-ness is that they're shadow
+   // nodes, and that's not gonna change.
+   assert(oldHidden == !ptr->getNodeData().anything2draw());
+   bool new_hidden = state2hidden(newEvalState, newActive,
+				  false); // false --> not shadow node
+   if (oldHidden != new_hidden) {
+      if (new_hidden)
+	 ptr->getNodeData().hidify();
+      else
+	 ptr->getNodeData().unhide();
+
+      rethink_all = rootPtr->updateAnything2Draw(consts); // probably a bit more than is needed...
+   }
+
    if (newEvalState == shgRootNode::es_true) {
       // if we have changed to true (whether active or not)
       where4tree<shgRootNode> *parentPtr = hash2[ptr];
@@ -1068,24 +1095,6 @@ bool shg::configNode(unsigned id, bool newActive,
 	 }
 
       assert(rethink_all);
-   }
-
-   // Perhaps some node(s) have become hidden or unhidden.
-   if (!rethink_all) {
-      // set rethink_all to true if some node(s) have become hidden or unhidden
-      // Note that there's no need to check our shadow children, because the
-      // only trait that may lead to a different hidden-ness is that they're shadow
-      // nodes, and that's not gonna change.
-      assert(oldHidden == !ptr->getNodeData().anything2draw());
-      bool new_hidden = state2hidden(newEvalState, newActive,
-				     false); // false --> not shadow node
-      if (oldHidden != new_hidden) {
-         if (new_hidden)
-            ptr->getNodeData().hidify();
-         else
-            ptr->getNodeData().unhide();
-         rethink_all = true;
-      }
    }
 
    if (rethink_all)
