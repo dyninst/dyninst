@@ -173,26 +173,27 @@ class pd_process {
    }
 
    int getTraceLink() { return dyninst_process->traceLink; }
-	dyn_lwp *getDefaultLWP() const {
-		return dyninst_process->getDefaultLWP();
-	}
+   void setTraceLink(int v) { dyninst_process->traceLink = v; }
+   dyn_lwp *getDefaultLWP() const {
+      return dyninst_process->getDefaultLWP();
+   }
 
-	void postRPCtoDo(AstNode *action, bool noCost,
-						  inferiorRPCcallbackFunc callbackFunc,
-						  void *userData, int mid, dyn_thread *thr,
-						  dyn_lwp *lwp, bool lowmem = false) {
-		dyninst_process->postRPCtoDo(action, noCost, callbackFunc, userData,
-											  mid, thr, lwp, lowmem);
-	}
-
+   void postRPCtoDo(AstNode *action, bool noCost,
+                    inferiorRPCcallbackFunc callbackFunc,
+                    void *userData, int mid, dyn_thread *thr,
+                    dyn_lwp *lwp, bool lowmem = false) {
+      dyninst_process->postRPCtoDo(action, noCost, callbackFunc, userData,
+                                   mid, thr, lwp, lowmem);
+   }
+   
    bool triggeredInStackFrame(instPoint* point, Frame frame,
 			      callWhen when, callOrder order) {
       return dyninst_process->triggeredInStackFrame(point, frame, when, order);
    }
 
-	bool walkStacks(vector<vector<Frame> > &stackWalks) {
-		return dyninst_process->walkStacks(stackWalks);
-	}
+   bool walkStacks(vector<vector<Frame> > &stackWalks) {
+      return dyninst_process->walkStacks(stackWalks);
+   }
 
    function_base *findOneFunction(resource *func, resource *mod) {
       return dyninst_process->findOneFunction(func, mod);
@@ -204,6 +205,10 @@ class pd_process {
 
    bool getSymbolInfo(const string &n, Symbol &info, Address &baseAddr) const {
       return dyninst_process->getSymbolInfo(n, info, baseAddr);
+   }
+
+   image *getImage() const {
+      return dyninst_process->getImage();
    }
 
    bool findCallee(instPoint &instr, function_base *&target) {
@@ -230,9 +235,9 @@ class pd_process {
       return dyninst_process->maxNumberOfThreads();
    }
 
-	dyn_thread *getThreadByPOS(unsigned pos) {
-		return dyninst_process->getThreadByPOS(pos);
-	}
+   dyn_thread *getThreadByPOS(unsigned pos) {
+      return dyninst_process->getThreadByPOS(pos);
+   }
 
    function_base *getMainFunction() const {
       return dyninst_process->getMainFunction();
@@ -265,9 +270,9 @@ class pd_process {
    bool multithread_capable() {
       return dyninst_process->multithread_capable();
    }
-	bool multithread_ready() {
+   bool multithread_ready() {
       return dyninst_process->multithread_ready();
-	}
+   }
 
    pd_thread *STthread() { 
 		assert(! multithread_capable());
