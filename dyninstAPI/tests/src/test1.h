@@ -19,6 +19,10 @@
 #define TEST_PTR	TEST_PTR_32BIT
 #endif
 
+#elif defined(ia64_unknown_linux2_4)
+#define	TEST_PTR_SIZE	8
+#define	TEST_PTR		TEST_PTR_64BIT
+
 #else /* Others are 32 bits. */
 #define TEST_PTR_SIZE	4
 #define TEST_PTR	TEST_PTR_32BIT
