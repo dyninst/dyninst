@@ -1,4 +1,4 @@
-// $Id: arch-ia32.C,v 1.2 2002/06/07 20:17:54 gaburici Exp $
+// $Id: arch-ia32.C,v 1.3 2002/06/13 00:37:06 gaburici Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
 //                                   volume 2: Instruction Set Reference
@@ -12,7 +12,7 @@
 
 // tables and pseudotables
 enum {
-  t_ill=0, t_oneB, t_twoB, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_grpsse, t_done=99
+  t_ill=0, t_oneB, t_twoB, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_grpsse, t_3dnow, t_done=99
 };
 
 #define oneB t_done, 0
@@ -21,7 +21,7 @@ enum {
 // groups
 enum {
   Grp1=0, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7, Grp8, Grp9,
-  Grp11, Grp12, Grp13, Grp14, Grp15, Grp16
+  Grp11, Grp12, Grp13, Grp14, Grp15, Grp16, GrpAMD
 };
 
 // SSE
@@ -473,18 +473,18 @@ static ia32_entry twoByteMap[256] = {
   { "lar",        t_done, 0, true, { Gv, Ew, Zz }, 0  },
   { "lsl",        t_done, 0, true, { Gv, Ew, Zz }, 0  },
   { 0,            t_ill,  0, false, { Zz, Zz, Zz },0},
-  { "syscallAMD", t_done, 0, false, { Zz, Zz, Zz }, 0 },
+  { "syscall",    t_done, 0, false, { Zz, Zz, Zz }, 0 }, // AMD
   { "clts",       t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "sysretAMD",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
+  { "sysret",     t_done, 0, false, { Zz, Zz, Zz }, 0 }, // AMD
   /* 08 */
   { "invd",   t_done, 0, false, { Zz, Zz, Zz }, 0 },
   { "wbinvd", t_done, 0, false, { Zz, Zz, Zz }, 0 },
   { 0,        t_ill,  0, false, { Zz, Zz, Zz }, 0 },
   { "ud2",    t_ill,  0, 0, { Zz, Zz, Zz }, 0 },
   { 0,        t_ill,  0, 0, { Zz, Zz, Zz }, 0 },
-  {0, t_ill, 0,0, { Zz, Zz, Zz },0}, // FIXME: AMD 3DNOW
-  {0, t_ill, 0,0 ,{ Zz, Zz, Zz },0}, // FIXME: AMD 3DNOW
-  {0, t_ill, 0,0 ,{ Zz, Zz, Zz },0}, // FIXME: AMD 3DNOW
+  { "prefetch(w)", t_done,  0, true,  { Zz, Zz, Zz }, 0 }, // AMD
+  { "femms",       t_done,  0, false, { Zz, Zz, Zz }, 0 }, // AMD 
+  { 0,             t_3dnow, 0, true,  { Zz, Zz, Zz }, 0 }, // AMD 3DNOW! suffixes
   /* 10 */
   { 0, t_sse, SSE10, true, { Zz, Zz, Zz }, 0 },
   { 0, t_sse, SSE11, true, { Zz, Zz, Zz }, 0 },
@@ -989,6 +989,28 @@ static ia32_entry groupMap2[][2][8] = {
       { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
       { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
       { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+    },
+    {
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+    }
+  },
+  { /* AMD prefetch group */
+    {
+      { "prefetch",   t_done, 0, true, { Zz, Zz, Zz }, 0 },
+      { "prefetchw",  t_done, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
     },
     {
       { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
@@ -1756,6 +1778,11 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
     case t_coprocEsc:
       instruct.legacy_type = 0;
       return ia32_decode_FP(pref, addr, instruct);
+    case t_3dnow:
+      // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
+      // Right now we don't care what the actual opcode is, so there's no table
+      instruct.size += 1;
+      break;
     case t_ill:
       instruct.legacy_type = ILLEGAL;
       return instruct;
