@@ -1,6 +1,9 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.51  1996/02/08 01:01:49  tamches
+# starting a new phase w/ visis greyed out since not yet implemented
+#
 # Revision 1.50  1996/02/08 00:01:44  tamches
 # Dimmed the Help menu, since it's not yet implemented
 #
@@ -198,9 +201,9 @@ proc drawToolBar {} {
    .parent.menub.left.men.b6.m add command -label "Start With Perf Consultant" \
 	   -command "uimpd startPhase pc"
    .parent.menub.left.men.b6.m add command -label "Start With Visis" \
-	   -command "uimpd startPhase visis"
+	   -command "uimpd startPhase visis" -state disabled
    .parent.menub.left.men.b6.m add command -label "Start With Perf Consultant & Visis" \
-	   -command "uimpd startPhase both"
+	   -command "uimpd startPhase both" -state disabled
 
 
 #    menu .parent.menub.left.men.b2.m 
@@ -226,8 +229,8 @@ proc drawToolBar {} {
 	    -side left -padx 10
     pack .parent.menub.left -side left -fill both -expand 1
 
-   makeLogo .parent.menub.logobox paradynLogo raised 2 #b3331e1b53c7
-   pack  .parent.menub.logobox -side right
+    makeLogo .parent.menub.logobox paradynLogo raised 2 #b3331e1b53c7
+    pack  .parent.menub.logobox -side right
 
     pack .parent.menub.left.title -side top -fill both -expand true
     pack .parent.menub.left.men -side top -fill x -expand false
