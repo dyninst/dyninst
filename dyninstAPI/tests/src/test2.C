@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.17 1999/06/08 18:58:03 hollings Exp $
+// $Id: test2.C,v 1.18 1999/06/17 14:58:27 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -209,6 +209,7 @@ bool processMgmntTests()
 //
 // main - decide our role and call the correct "main"
 //
+int
 main(int argc, char *argv[])
 {
     BPatch_thread *ret;
@@ -233,11 +234,6 @@ main(int argc, char *argv[])
 #endif
 #endif
 
-    // Create an instance of the bpatch library
-    bpatch = new BPatch;
-
-    bpatch->registerErrorCallback(errorFunc);
-
     int i;
     for (i=1; i < argc; i++) {
 	if (!strcmp(argv[i], "-verbose")) {
@@ -245,6 +241,7 @@ main(int argc, char *argv[])
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
             if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
+            fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
 	} else {
@@ -259,6 +256,11 @@ main(int argc, char *argv[])
 	exit(1);
     }
 #endif
+
+    // Create an instance of the bpatch library
+    bpatch = new BPatch;
+
+    bpatch->registerErrorCallback(errorFunc);
 
     // Try failure cases
     expectErrors = true;
