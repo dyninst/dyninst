@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tcl.h>
 
 #if defined(i386_unknown_nt4_0)
 #include <windows.h>
@@ -14,7 +15,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
-#include "tcl.h"
 #include "dynerList.h"
 #include "breakpoint.h"
 

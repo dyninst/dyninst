@@ -112,7 +112,12 @@ func_call: IDENTIFIER '(' param_list ')'
 	$$ = new BPatch_funcCallExpr(*func, *$3); 
     }
 
-param_list: param 
+param_list: 
+    {
+	//No parameters, return an empty vector
+	$$ = new BPatch_Vector<BPatch_snippet *>;
+    }
+    | param 
     { 
 	$$ = new BPatch_Vector<BPatch_snippet *>; 
 	$$->push_back($1);
