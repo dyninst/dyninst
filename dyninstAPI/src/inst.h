@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.54 2000/02/18 20:40:53 bernat Exp $
+// $Id: inst.h,v 1.55 2000/03/04 01:25:20 zandy Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -244,6 +244,7 @@ Register getParameter(Register dest, int param);
 
 #define INFERIOR_HEAP_BASE     "DYNINSTdata"
 #define UINFERIOR_HEAP_BASE    "_DYNINSTdata"
+#define LOWMEM_HEAP_SIZE       4096
 
 class point {
  public:

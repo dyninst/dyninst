@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.127 2000/02/25 17:16:05 bernat Exp $
+/* $Id: process.h,v 1.128 2000/03/04 01:25:21 zandy Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -127,7 +127,7 @@ class BPatch_thread;
 
 typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
-typedef enum { textHeap=0x01, dataHeap=0x02, anyHeap=0x33 } inferiorHeapType;
+typedef enum { textHeap=0x01, dataHeap=0x02, anyHeap=0x33, lowmemHeap=0x40 } inferiorHeapType;
 typedef vector<Address> addrVecType;
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
@@ -483,9 +483,9 @@ class process {
   void cleanRPCreadyToLaunch(int mid);
   void postRPCtoDo(AstNode *, bool noCost,
 #if defined(MT_THREAD)
-		   inferiorRPCcallbackFunc, void *data, int, int, bool);
+		   inferiorRPCcallbackFunc, void *data, int, int, bool, bool lowmem=false);
 #else
-                   inferiorRPCcallbackFunc, void *data, int);
+                   inferiorRPCcallbackFunc, void *data, int, bool lowmem = false);
 #endif
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress() const;
@@ -653,6 +653,7 @@ class process {
      inferiorRPCcallbackFunc callbackFunc;
      void *userData;
      int mid;
+     bool lowmem; /* set to true when the inferior is low on memory */
 #if defined(MT_THREAD)
      int thrId;
      bool isSafeRPC; // launch it as safe RPC or regular RPC
@@ -731,9 +732,9 @@ class process {
 			      Address &stopForResultAddr,
 			      Address &justAfter_stopForResultAddr,
 #if defined(MT_THREAD)
-			      Register &resultReg, int thrId, bool isMT=false);
+			      Register &resultReg, int thrId, bool isMT=false, bool lowmem=false);
 #else
-                              Register &resultReg);
+                              Register &resultReg, bool lowmem=false);
 #endif
   void *getRegisters();
      // ptrace-GETREGS and ptrace-GETFPREGS (or /proc PIOCGREG and PIOCGFPREG).

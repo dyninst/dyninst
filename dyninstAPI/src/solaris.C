@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.84 2000/02/04 21:52:49 zhichen Exp $
+// $Id: solaris.C,v 1.85 2000/03/04 01:25:22 zandy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1125,9 +1125,9 @@ void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
   hi = region_hi(near);
 }
 
-// ALERT: could be specific to SPARC
 void inferiorMallocAlign(unsigned &size)
 {
+     /* 32 byte alignment.  Should it be 64? */
   size = (size + 0x1f) & ~0x1f;
 }
 #endif

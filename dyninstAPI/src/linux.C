@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.25 2000/03/03 22:06:23 mirg Exp $
+// $Id: linux.C,v 1.26 2000/03/04 01:25:20 zandy Exp $
 
 #include <fstream.h>
 
@@ -1669,14 +1669,9 @@ int getNumberOfCPUs()
 
 Address process::read_inferiorRPC_result_register(Register /*reg*/) {
    // On x86, the result is always stashed in %EAX
-
-   Address raddr = EAX * 4;
-   Address eaxval = ptraceKludge::deliverPtrace(this, PTRACE_PEEKUSER, raddr, 0);
-   if( errno ) {
-     perror( "process::read_inferiorRPC_result_register; ptrace PEEKUSER" );
-     assert(false);
-   }
-   return eaxval;
+   int ret;
+   ret = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, EAX*4, 0);
+   return (Address)ret;
 }
 
 bool process::set_breakpoint_for_syscall_completion() {
@@ -1897,3 +1892,18 @@ bool process::hasBeenBound(const relocationEntry entry,
     }
     return false;
 }
+
+#if defined(USES_DYNAMIC_INF_HEAP)
+static const Address lowest_addr = 0x0;
+void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
+{
+  lo = region_lo(near);
+  hi = region_hi(near);
+}
+
+void inferiorMallocAlign(unsigned &size)
+{
+     /* 32 byte alignment.  Should it be 64? */
+  size = (size + 0x1f) & ~0x1f;
+}
+#endif

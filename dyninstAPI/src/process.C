@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.206 2000/03/03 22:06:57 mirg Exp $
+// $Id: process.C,v 1.207 2000/03/04 01:25:21 zandy Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -611,7 +611,8 @@ void inferiorFreeCompact(inferiorHeap *hp)
     heapItem *h2 = freeList[i];
     assert(h1->length != 0);
     assert(h1->addr + h1->length <= h2->addr);
-    if (h1->addr + h1->length == h2->addr) {
+    if (h1->addr + h1->length == h2->addr
+	&& h1->type == h2->type) {
       h2->addr = h1->addr;
       h2->length = h1->length + h2->length;
       h1->length = 0;
@@ -714,14 +715,29 @@ void process::initInferiorHeap()
     bool err;
     Address heapAddr=0;
     int staticHeapSize = alignAddress(SYN_INST_BUF_SIZE, 32);
+
+    /* Reserve the last LOWMEM_HEAP_SIZE bytes of the
+       INFERIOR_HEAP_BASE for the low mem heap.  The low mem heap
+       should only be used on inferior RPCs made to allocate
+       additional dynamic memory in the inferior process. */
+    assert(!(LOWMEM_HEAP_SIZE % 32));
     if (splitHeaps) {
       heapAddr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
-      hp->bufferPool += new heapItem(heapAddr, staticHeapSize, dataHeap, false);
+      assert(heapAddr);
+      hp->bufferPool += new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
+				     dataHeap, false);
+      hp->bufferPool += new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
+				     LOWMEM_HEAP_SIZE, lowmemHeap, false);
       heapAddr = findInternalAddress("DYNINSTtext", true, err);
+      assert(heapAddr);
       hp->bufferPool += new heapItem(heapAddr, staticHeapSize, textHeap, false);
     } else {
       heapAddr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
-      hp->bufferPool += new heapItem(heapAddr, staticHeapSize, anyHeap, false);
+      assert(heapAddr);
+      hp->bufferPool += new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
+				     anyHeap, false);
+      hp->bufferPool += new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
+				     LOWMEM_HEAP_SIZE, lowmemHeap, false);
     }
   }
 
@@ -840,17 +856,17 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 
   // issue RPC and wait for result
   imd_rpc_ret ret = { false, NULL };
+  /* set lowmem to ensure there is space for inferior malloc */
 #if defined(MT_THREAD)
-  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, -1, false);
+  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, -1, false, true);
 #else
-  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1);
+  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, true);
 #endif
   extern void checkProcStatus();
   do {
     p->launchRPCifAppropriate((p->status()==running), false);
     checkProcStatus();
   } while (!ret.ready);
-
   switch ((int)(Address)ret.result) {
   case 0:
     sprintf(errorLine, "DYNINSTos_malloc() failed\n");
@@ -909,6 +925,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
   // attempt 4: remove range constraints
   // attempt 5: allocate new segment (1 MB, unconstrained)
   // attempt 6: allocate new segment (sized, unconstrained)
+  // attempt 7: deferred free, compact free blocks (why again?)
   int freeIndex = -1;
   int ntry = 0;
   for (ntry = 0; freeIndex == -1; ntry++) {
@@ -2794,7 +2811,6 @@ bool process::getSharedObjects() {
 	    //temp2 += string(((*shared_objects)[j])->getName());
 	    //temp2 += string("\n");
 	    //logLine(P_strdup(temp2.string_of()));
-
 	    if(!addASharedObject(*((*shared_objects)[j]))){
 	      //logLine("Error after call to addASharedObject\n");
 	    }
@@ -3562,7 +3578,8 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
 			  int thrId,
 			  bool isSAFE) {
 #else
-			  int mid) {
+	                  int mid,
+			  bool lowmem) {
 #endif
    // posts an RPC, but does NOT make any effort to launch it.
    inferiorRPCtoDo theStruct;
@@ -3571,6 +3588,7 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
    theStruct.callbackFunc = callbackFunc;
    theStruct.userData = userData;
    theStruct.mid = mid;
+   theStruct.lowmem = lowmem;
 
 #if defined(MT_THREAD)
    theStruct.thrId = thrId;
@@ -3860,9 +3878,11 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 #if defined(MT_THREAD)
 					       inProgStruct.resultRegister,
 					       todo.thrId,
-					       todo.isSafeRPC);
+					       todo.isSafeRPC,
+					       todo.lowmem);
 #else
-					       inProgStruct.resultRegister);
+					       inProgStruct.resultRegister,
+					       todo.lowmem);
 #endif
       // the last 4 args are written to
 
@@ -3924,9 +3944,11 @@ Address process::createRPCtempTramp(AstNode *action,
 #if defined(MT_THREAD)
 				     Register &resultReg,
 				     int thrId,
-				     bool isSAFE) {
+				     bool isSAFE,
+                                     bool lowmem) {
 #else
-                                     Register &resultReg) {
+                                     Register &resultReg,
+                                     bool lowmem) {
 #endif
 
    // Returns addr of temp tramp, which was allocated in the inferior heap.
@@ -4032,9 +4054,16 @@ Address process::createRPCtempTramp(AstNode *action,
       return 0;
    }
 
-   Address tempTrampBase = inferiorMalloc(this, count, textHeap);
+   Address tempTrampBase;
+   if (lowmem)
+       /* lowmemHeap should always have free space, so this will not
+	  require a recursive inferior RPC. */
+       tempTrampBase = inferiorMalloc(this, count, lowmemHeap);
+   else
+       /* May cause another inferior RPC to dynamically allocate a new heap
+          in the inferior. */
+       tempTrampBase = inferiorMalloc(this, count, textHeap);
    assert(tempTrampBase);
-
 
    breakAddr                      = tempTrampBase + breakOffset;
    if (shouldStopForResult) {
@@ -4240,7 +4269,6 @@ bool process::handleTrapIfDueToRPC() {
       // to theStruct.resultValue, for use when we get match_type==2.
 
       inferiorrpc_cerr << "Welcome to handleTrapIfDueToRPC match type 1" << endl;
-
       if (pd_debug_infrpc) 
 	cerr << "Welcome to handleTrapIfDueToRPC match type 1 (grab the result)" << endl;
 
@@ -4256,7 +4284,6 @@ bool process::handleTrapIfDueToRPC() {
 	  if ( theStruct.resultRegister != Null_Register )
 	  {
       	returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
-
       	extern registerSpace *regSpace;
       	regSpace->freeRegister(theStruct.resultRegister);
 	  }
