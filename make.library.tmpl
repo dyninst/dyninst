@@ -5,7 +5,16 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.library.tmpl,v $
-# Revision 1.5  1995/02/27 17:37:04  jcargill
+# Revision 1.6  1995/08/24 15:00:54  hollings
+# AIX/SP-2 port (including option for split instruction/data heaps)
+# Tracing of rexec (correctly spawns a paradynd if needed)
+# Added rtinst function to read getrusage stats (can now be used in metrics)
+# Critical Path
+# Improved Error reporting in MDL sematic checks
+# Fixed MDL Function call statement
+# Fixed bugs in TK usage (strings passed where UID expected)
+#
+# Revision 1.5  1995/02/27  17:37:04  jcargill
 # Added support for suppressing implicit dependency generation
 # (EXPLICIT_DEPENDS) and removed PD_NO_DEPENDS support
 #
@@ -31,6 +40,7 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.y, %.o, $(filter %.y,$(notdir $(SRCS)))) \
 		$(patsubst %.l, %.o, $(filter %.l,$(notdir $(SRCS)))) \
 		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
+		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
 ifndef UNCOMMON_LINK

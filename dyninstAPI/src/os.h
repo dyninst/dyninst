@@ -11,7 +11,16 @@
 
 /*
  * $Log: os.h,v $
- * Revision 1.6  1995/05/30 05:05:00  krisna
+ * Revision 1.7  1995/08/24 15:04:24  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.6  1995/05/30  05:05:00  krisna
  * upgrade from solaris-2.3 to solaris-2.4.
  * architecture-os based include protection of header files.
  * removed architecture-os dependencies in generic sources.
@@ -46,6 +55,8 @@
 #include "sunos.h"
 #elif defined(sparc_sun_solaris2_4)
 #include "solaris.h"
+#elif defined(rs6000_ibm_aix3_2)
+#include "aix.h"
 #elif defined(sparc_tmc_cmost7_3)
 #include "cmost.h"
 #elif defined(hppa1_1_hp_hpux)

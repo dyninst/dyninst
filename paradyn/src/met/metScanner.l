@@ -1,7 +1,16 @@
 %{
 /*
  * $Log: metScanner.l,v $
- * Revision 1.4  1995/05/18 10:58:35  markc
+ * Revision 1.5  1995/08/24 15:02:48  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.4  1995/05/18  10:58:35  markc
  * mdl
  *
  * Revision 1.3  1995/02/07  21:59:56  newhall
@@ -21,7 +30,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/met/Attic/metScanner.l,v 1.4 1995/05/18 10:58:35 markc Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradyn/src/met/metScanner.l,v 1.4 1995/05/18 10:58:35 markc Exp";
 #endif
 
 #include <stdio.h>
@@ -170,6 +179,7 @@ i
 "user"		{ return(tUSER);}
 "force"		{ return(tFORCE);}
 "default"	{ return(tDEFAULT); }
+"void"		{ return(tVOID); }
 [Tt][Rr][Uu][Ee]	{ return(tTRUE);}
 [Ff][Aa][Ll][Ss][Ee]	{ return(tFALSE);}
 {FIX}		{ 

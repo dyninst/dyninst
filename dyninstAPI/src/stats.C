@@ -2,7 +2,16 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.14  1995/02/16 08:54:16  markc
+ * Revision 1.15  1995/08/24 15:04:32  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.14  1995/02/16  08:54:16  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.13  1995/02/16  08:34:50  markc
@@ -139,9 +148,13 @@ void printAppStats(struct endStatsRec *stats, float clockSpeed)
     sprintf(errorLine,"    Total instrumentation (%dMhz clock) cost = %f\n", 
 	(int) (clockSpeed/1000000.0), stats->instCycles/(clockSpeed));
     logLine(errorLine);
+    sprintf(errorLine,"    Total inst (via prof) = %f\n", stats->instTicks/100.0);
+    logLine(errorLine);
     sprintf(errorLine,"    Total handler cost = %f\n", stats->handlerCost);
     logLine(errorLine);
     sprintf(errorLine,"    Total cpu time of program %f\n", stats->totalCpuTime);
+    logLine(errorLine);
+    sprintf(errorLine,"     Total cpu time (via prof) = %f\n", stats->userTicks/100.0);
     logLine(errorLine);
     sprintf(errorLine,"    Elapsed wall time of program %f\n",stats->totalWallTime);
     logLine(errorLine);

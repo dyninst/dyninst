@@ -1,5 +1,20 @@
 
 
+
+/* 
+ * $Log: mdl.C,v $
+ * Revision 1.5  1995/08/24 15:04:14  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ *
+ */
+
 #include <iostream.h>
 #include <stdio.h>
 #include "dyninstRPC.xdr.SRVR.h"
@@ -320,6 +335,9 @@ inline dataReqNode *create_data_object(unsigned mdl_data_type,
     return (mn->addTimer(wallTime));
   case MDL_T_PROC_TIMER:
     return (mn->addTimer(processTime));
+  case MDL_T_NONE:
+    // just to keep mdl apply allocate a dummy un-sampled counter.
+    return (mn->addIntCounter(0, false));
   default:
     assert(0);
     return NULL;
@@ -362,6 +380,9 @@ static inline bool apply_to_process_list(vector<process*>& instProcess,
 #endif
     process *proc = instProcess[p]; assert(proc);
     global_proc = proc;     // TODO -- global
+
+    // skip exited processes.
+    if (proc->status() == exited) continue;
 
     if (!update_environment(proc)) return false;
 
@@ -458,8 +479,9 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   vector<metricDefinitionNode*> parts;
 
   const unsigned tc_size = temp_ctr_->size();
-  for (unsigned tc=0; tc<tc_size; tc++)
+  for (unsigned tc=0; tc<tc_size; tc++) {
     mdl_env::add((*temp_ctr_)[tc], false, MDL_T_DRN);
+  }
 
   static string machine;
   static bool machine_init= false;
@@ -641,11 +663,6 @@ bool T_dyninstRPC::mdl_instr_req::apply(unsigned where, instPoint *p, unsigned w
   default: assert(0);
   }
 
-  dataReqNode *drn;
-  mdl_var get_drn;
-  assert(mdl_env::get(get_drn, timer_counter_name_));
-  assert(get_drn.get(drn));
-
   AstNode *ast_arg = NULL;
   // TODO -- args to calls
   switch (type_) {
@@ -657,6 +674,13 @@ bool T_dyninstRPC::mdl_instr_req::apply(unsigned where, instPoint *p, unsigned w
     if (!(ast_arg = do_instr_rand(arg_type_, arg_val_, arg_name_, arg_name_2_)))
       return false;
     break;
+  }
+
+  dataReqNode *drn;
+  mdl_var get_drn;
+  if (type_ != MDL_CALL_FUNC) {
+      assert(mdl_env::get(get_drn, timer_counter_name_));
+      assert(get_drn.get(drn));
   }
 
   AstNode *code = NULL;
@@ -685,9 +709,14 @@ bool T_dyninstRPC::mdl_instr_req::apply(unsigned where, instPoint *p, unsigned w
     code = createPrimitiveCall("DYNINSTstopProcessTimer", drn, 0);
     break;
   case MDL_CALL_FUNC:
-    pdf = global_proc->symbols->findOneFunction(string(arg_name_));
-    if (!pdf) return false;
-    code = createPrimitiveCall(arg_name_, drn, 0);
+    pdf = global_proc->symbols->findOneFunction(string(timer_counter_name_));
+    if (!pdf) {
+	fprintf(stderr, "Unable to locate procedure %s for metric definition\n",
+		timer_counter_name_.string_of());
+	fflush(stderr);
+	return false;
+    }
+    code = new AstNode(timer_counter_name_, ast_arg, NULL);
     break;
   case MDL_CALL_FUNC_COUNTER:
     pdf = global_proc->symbols->findOneFunction(string(arg_name_));
@@ -1156,6 +1185,7 @@ bool mdl_init(string& flavor) {
 void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
   static bool been_here = false;
   mdl_met = true;
+
   if (!been_here) {
     been_here = true;
     // Kludge -- declare observed cost
@@ -1168,7 +1198,8 @@ void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
   if (var_0) {
     unsigned var_size = var_0->size();
     for (unsigned v=0; v<var_size; v++) {
-      // cout << *(*var_0)[v] << endl;
+      // fprintf(stderr, "Got metric %s\n", (*var_0)[v]->name_.string_of());
+      // fflush(stderr);
       bool found = false;
       unsigned f_size = (*var_0)[v]->flavors_->size();
 
@@ -1189,10 +1220,12 @@ void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
 	if (!found) {
 	  T_dyninstRPC::mdl_metric *m = (*var_0)[v];
 	  mdl_data::all_metrics += m;
-	  // cout << "Defining metric " << m->name_ << endl;
 	}
       }
     }
+  } else {
+     fprintf(stderr, "no metric defined\n");
+     fflush(stderr);
   }
 }
 
@@ -1395,13 +1428,18 @@ AstNode *do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& 
 
   switch (arg_type) {
   case MDL_T_INT:
-    if (arg_name == "$constraint") {
-      // $constraint in an expression
+    if (arg_name.prefixed_by("$")) {
+      // variable in the expression.
       mdl_var get_int;
       int value;
       assert(mdl_env::get(get_int, arg_name));
-      assert(get_int.get(value));
-      ret = new AstNode(Constant, (void*) value);
+      if (!get_int.get(value)) {
+	  fprintf(stderr, "Unable to get value for %s\n", arg_name.string_of());
+	  fflush(stderr);
+	  return NULL;
+      } else {
+	  ret = new AstNode(Constant, (void*) value);
+      }
     } else {
       ret = new AstNode(Constant, (void*) arg_val);
     }
@@ -1426,26 +1464,77 @@ AstNode *do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& 
     ret = new AstNode(DataAddr, (void*) arg_val);
     break;
   case MDL_CALL_FUNC:
+    // call a function with either and integer or a counter argument
+    //    XXXX This code should generalized function call.  - jkh 7/31/95.
+    // 	       Also should handle multiple arguments.
+    //
     pdf = global_proc->symbols->findOneFunction(string(arg_name));
-    if (!pdf) return NULL;
-    ret = new AstNode(arg_name,
-		      new AstNode(Constant, (void*) arg_val),
-		      new AstNode(Constant, (void*) 0));
-    break;
-  case MDL_CALL_FUNC_COUNTER:
-    pdf = global_proc->symbols->findOneFunction(string(arg_name));
-    if (!pdf) return NULL;
-    assert(mdl_env::get(get_drn, arg2));
-    assert(get_drn.get(drn));
-    ret = createPrimitiveCall(arg_name, drn, 0);
+    if (!pdf) {
+	fprintf(stderr, "Unable to locate procedure %s for metric definition\n",
+		arg_name.string_of());
+	fflush(stderr);
+	return NULL;
+    }
+    // Hack to tell counter from timer.
+    if (arg2 == "s") {
+        ret = new AstNode(arg_name,
+			  new AstNode(Constant, (void*) arg_val),
+			  new AstNode(Constant, (void*) 0));
+    } else {
+        mdl_var get_drn;
+        dataReqNode *drn;
+
+	if (!mdl_env::get(get_drn, arg2)) {
+	    fprintf(stderr,"Unable to find variable %s for metric definition\n",
+		arg2.string_of());
+	    return NULL;
+	}
+	assert(get_drn.get(drn));
+	ret = createPrimitiveCall(arg_name, drn, 0);
+    }
     break;
   case MDL_T_COUNTER:
     {
       mdl_var get_drn;
       dataReqNode *drn;
       assert(mdl_env::get(get_drn, arg_name));
-      assert(get_drn.get(drn));
-      ret = new AstNode(DataValue, (void*) drn);
+      //
+      // This code was added to support additional mdl evaluation time 
+      //     variables.  To keep it simple, I left the parser alone and so
+      //     any unknown identifier maps to MDL_T_COUNTER.  We lookup the
+      //     variable's type here to generate the correct code.  MDL
+      //     really should have a general type system and all functions
+      //     signatures. - jkh 7/5/95
+      //
+      switch (get_drn.type()) {
+	  case MDL_T_INT:
+	      int value;
+	      if (!get_drn.get(value)) {
+		  fprintf(stderr, "Unable to get value for %s\n", 
+		      arg_name.string_of());
+		  fflush(stderr);
+		  return NULL;
+	      } else {
+		  ret = new AstNode(Constant, (void*) value);
+	      }
+	      break;
+	  case MDL_T_COUNTER:	// is MDL_T_COUNTER used here ??? jkh 7/31/95
+	  case MDL_T_DRN:
+	      if (!get_drn.get(drn)) {
+		  fprintf(stderr, "Unable to find variable %s\n", 
+		      arg_name.string_of());
+		  fflush(stderr);
+		  return NULL;
+	      } else {
+		  ret = new AstNode(DataValue, (void*) drn);
+	      }
+	      break;
+	  default:
+	      fprintf(stderr, "type of variable %s is not known\n",
+		  arg_name.string_of());
+	      fflush(stderr);
+	      return NULL;
+      }
     }
     break;
   default:

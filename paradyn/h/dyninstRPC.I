@@ -15,8 +15,8 @@
  */
 
 /*
- * $Log: dyninstRPC.I,v $
- * Revision 1.27  1995/06/02 20:58:45  newhall
+ * dyninstRPC.I,v
+ * Revision 1.27  1995/06/02  20:58:45  newhall
  * made code compatable with new datamanager interface
  * replaced List and HTable container classes with STL containers
  *
@@ -411,7 +411,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 22;
+    $version 24;
 
     //
     // Define a program to run. 
@@ -478,6 +478,15 @@ $remote dynRPC {
 						       double endTimeStamp, 
 						       double value);
 
+   //
+   // XXXX - Hack this should be generalized into a vector.
+   //
+   $virtual $upcall $async void cpDataCallbackFunc(int program,
+                                                      double timeStamp,
+                                                      int context,
+                                                      double total,
+                                                      double share);
+
    // 
    // Handler that reports the initial time for which a daemon reports a sample
    // The earliest (absolute) initial time will become the base time (0)
@@ -529,7 +538,7 @@ $remote dynRPC {
     // resourceList	- a list of resources
     // metric	- what metric to collect data for
     //
-    int enableDataCollection(vector<u_int> focus, string metric);
+    int enableDataCollection(vector<u_int> focus, string metric,int id);
 
     //
     // stop collecting data for the named mi.

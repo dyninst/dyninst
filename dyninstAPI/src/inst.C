@@ -7,14 +7,23 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.17 1995/08/05 17:15:28 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.18 1995/08/24 15:04:05 hollings Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.17  1995/08/05 17:15:28  krisna
+ * Revision 1.18  1995/08/24 15:04:05  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.17  1995/08/05  17:15:28  krisna
  * deleted redundant AND WRONG definition of ipHash
  *
  * Revision 1.16  1995/05/18  10:36:42  markc
@@ -133,7 +142,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *
  */
 
-#include "util/h/headers.h"
 #include <assert.h>
 #include <sys/signal.h>
 #include <sys/param.h>
@@ -148,7 +156,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
 #include "util.h"
 #include "internalMetrics.h"
 #include <strstream.h>
-#include "inst-sparc.h"
 #include "stats.h"
 #include "init.h"
 
@@ -245,7 +252,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     count = 0;
     ret->returnAddr = ast->generateTramp(proc, insn, count, trampCost); 
 
-    ret->trampBase = inferiorMalloc(proc, count);
+    ret->trampBase = inferiorMalloc(proc, count, textHeap);
     trampBytes += count;
     ret->returnAddr += ret->trampBase;
 
@@ -368,7 +375,7 @@ void deleteInst(instInstance *old)
 	}
     }
 
-    inferiorFree(old->proc, old->trampBase);
+    inferiorFree(old->proc, old->trampBase, textHeap);
 
     /* remove old from atPoint linked list */
     if (right) right->prevAtPoint = left;
@@ -455,7 +462,7 @@ unsigned getPrimitiveCost(const string name)
     if (!init) { init = 1; initPrimitiveCost(); }
 
     if (!primitiveCosts.defines(name)) {
-      return 1000;
+      return 1;
     } else
       return (primitiveCosts[name]);
 }

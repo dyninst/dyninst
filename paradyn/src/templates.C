@@ -5,7 +5,16 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.15  1995/08/01 02:18:04  newhall
+ * Revision 1.16  1995/08/24 15:02:11  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.15  1995/08/01  02:18:04  newhall
  * changes to support phases
  *
  * Revision 1.14  1995/07/24 21:25:51  tamches
@@ -92,6 +101,7 @@
 
 #include "dataManager.thread.h"
 #include "dyninstRPC.xdr.CLNT.h"
+class cpContext;
 #include "paradyn/src/DMthread/DMdaemon.h"
 #include "paradyn/src/DMthread/DMmetric.h"
 #include "paradyn/src/DMthread/DMresource.h"
@@ -100,6 +110,7 @@
 #include "paradyn/src/DMthread/DMabstractions.h"
 
 
+template class vector<cpContext*>;
 template class vector<unsigned>;
 template class vector<int>;
 template class vector< vector<string> >;

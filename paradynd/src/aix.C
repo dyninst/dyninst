@@ -1,0 +1,671 @@
+
+/* 
+ * $Log: aix.C,v $
+ * Revision 1.1  1995/08/24 15:03:37  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ *
+ */
+
+
+#include "util/h/headers.h"
+#include "os.h"
+#include "process.h"
+#include "symtab.h"
+#include "stats.h"
+#include "util/h/Types.h"
+#include "util/h/Object.h"
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <xcoff.h>
+#include <scnhdr.h>
+#include <sys/time.h>
+
+extern "C" {
+extern int ioctl(int, int, ...);
+};
+
+
+unsigned AIX_TEXT_OFFSET_HACK;
+unsigned AIX_DATA_OFFSET_HACK;
+
+class ptraceKludge {
+public:
+  static bool haltProcess(process *p);
+  static bool deliverPtrace(process *p, int req, char *addr,
+			    int data, char *addr2);
+  static void continueProcess(process *p, const bool halted);
+};
+
+bool ptraceKludge::haltProcess(process *p) {
+  bool wasStopped = (p->status() == stopped);
+  if (p->status() != neonatal && !wasStopped) {
+    if (!p->loopUntilStopped()) {
+      cerr << "error in loopUntilStopped\n";
+      assert(0);
+    }
+  }
+  return wasStopped;
+}
+
+bool ptraceKludge::deliverPtrace(process *p, int req, char *addr,
+				 int data, char *addr2) {
+  bool halted;
+  bool ret;
+  
+  
+  if (req != PT_DETACH) halted = haltProcess(p);
+  if (ptrace(req, p->getPid(), addr, data, addr2) == -1)
+    ret = false;
+  else
+    ret = true;
+  if (req != PT_DETACH) continueProcess(p, halted);
+  return ret;
+}
+
+void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
+#ifdef notdef
+    if (ptrace(PT_CONTINUE, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
+#endif
+  if ((p->status() != neonatal) && (!wasStopped)) {
+    if (ptrace(PT_DETACH, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
+      cerr << "error in continueProcess\n";
+      assert(0);
+    }
+  }
+}
+
+// already setup on this FD.
+// disconnect from controlling terminal 
+void OS::osDisconnect(void) {
+  int ttyfd = open ("/dev/tty", O_RDONLY);
+  ioctl (ttyfd, TIOCNOTTY, NULL); 
+  close (ttyfd);
+}
+
+bool OS::osAttach(pid_t process_id) {
+  int ret;
+
+  ret = ptrace(PT_ATTACH, process_id, 0, 0, 0);
+  if (ret == -1) {
+      ret = ptrace(PT_REATT, process_id, 0, 0, 0);
+  }
+  return (ret != -1);
+}
+
+bool OS::osStop(pid_t pid) { 
+	// attach generates a SIG TRAP which we catch
+	osAttach(pid);
+#ifdef notdef
+	// for some reason AIX is much happier to send SIGINT. SIGSTOPS seem
+	//   to get lost sometimes - jkh 5/13/95
+	okStop = (kill(pid, SIGINT) != -1);
+	if (okStop) {
+	    return(osAttach(pid));
+	}
+#endif
+	return false;
+}
+
+// TODO dump core
+bool OS::osDumpCore(pid_t pid, const string dumpTo) {
+  // return (!ptrace(PT_DUMPCORE, pid, dumpTo, 0, 0));
+  logLine("dumpcore not available yet");
+  return false;
+}
+
+bool OS::osForwardSignal (pid_t pid, int stat) {
+  if (stat != 0) {
+      ptrace(PT_DETACH, pid, (char*)1, stat, 0);
+      return (true);
+  } else {
+      return (ptrace(PT_CONTINUE, pid, (char*)1, 0, 0) != -1);
+  }
+}
+
+void OS::osTraceMe(void) { ptrace(PT_TRACE_ME, 0, 0, 0, 0); }
+
+// TODO is this safe here ?
+bool process::continueProc_() {
+  int ret1, ret2;
+
+  if (!checkStatus()) 
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+#ifdef notdef
+  // switch these to not detach after every call.
+  ret1 = ptrace(PT_CONTINUE, pid, (char*)1, SIGCONT, (char*)NULL);
+#endif
+  ret2 = ptrace(PT_DETACH, pid, (char*)1, SIGCONT, (char*)NULL);
+  return (ret1 != -1 && ret2 != -2);
+}
+
+// TODO ??
+bool process::pause_() {
+  if (!checkStatus()) 
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+  bool wasStopped = (status() == stopped);
+  if (status() != neonatal && !wasStopped)
+    return (loopUntilStopped());
+  else
+    return true;
+}
+
+bool process::detach_() {
+  if (checkStatus()) {
+      ptraceOps++; ptraceOtherOps++;
+      if (!ptraceKludge::deliverPtrace(this,PT_DETACH,(char*)1,SIGSTOP, NULL)) {
+	  sprintf(errorLine, "unable to detach %d\n", getPid());
+	  logLine(errorLine);
+      }
+  }
+  // always return true since we report the error condition.
+  return (true);
+}
+
+// temporarily unimplemented, PT_DUMPCORE is specific to sunos4.1
+bool process::dumpCore_(const string coreFile) {
+  if (!checkStatus()) 
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+
+  assert(OS::osDumpImage(symbols->file(), pid, symbols->codeOffset()));
+  errno = 0;
+  (void) ptrace(PT_CONTINUE, pid, (char*)1, SIGBUS, NULL);
+  assert(errno == 0);
+  return true;
+}
+
+bool process::writeTextWord_(caddr_t inTraced, int data) {
+  if (!checkStatus()) 
+    return false;
+  ptraceBytes += sizeof(int); ptraceOps++;
+  return (ptraceKludge::deliverPtrace(this, PT_WRITE_I, inTraced, data, NULL));
+}
+
+bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+  if (!checkStatus()) 
+    return false;
+  ptraceBytes += amount; ptraceOps++;
+  return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, amount, inSelf));
+}
+
+bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+  if (!checkStatus())
+    return false;
+  ptraceOps++; ptraceBytes += amount;
+  return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, amount, inSelf));
+}
+
+bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+  if (!checkStatus())
+    return false;
+  ptraceOps++; ptraceBytes += amount;
+  return (ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, inTraced, amount, inSelf));
+}
+
+bool process::loopUntilStopped() {
+  /* make sure the process is stopped in the eyes of ptrace */
+  OS::osStop(pid);
+  bool isStopped = false;
+  int waitStatus;
+  while (!isStopped) {
+    int ret = waitpid(pid, &waitStatus, WUNTRACED);
+    if ((ret == -1) && (errno == EINTR)) continue;
+    if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
+      // the child is gone.
+      status_ = exited;
+      return(false);
+    }
+    if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
+      printf("problem stopping process\n");
+      assert(0);
+    }
+    int sig = WSTOPSIG(waitStatus);
+    if ((sig == SIGTRAP) || (sig == SIGSTOP) || (sig == SIGINT)) {
+      isStopped = true;
+    } else {
+      if (ptrace(PT_CONTINUE, pid, (char*)1, WSTOPSIG(waitStatus), 0) == -1) {
+	cerr << "Ptrace error\n";
+	assert(0);
+      }
+    }
+  }
+
+  return true;
+}
+
+
+//
+// Write out the current contents of the text segment to disk.  This is useful
+//    for debugging dyninst.
+//
+bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOff)
+{
+    int i;
+    int rd;
+    int ifd;
+    int ofd;
+    int cnt;
+    int total;
+    int length;
+    extern int errno;
+    char buffer[4096];
+    char outFile[256];
+    struct filehdr hdr;
+    struct stat statBuf;
+    struct aouthdr aout;
+    struct scnhdr *sectHdr;
+
+    ifd = open(imageFileName.string_of(), O_RDONLY, 0);
+    if (ifd < 0) {
+      sprintf(errorLine, "unable to open %s\n", outFile);
+      logLine(errorLine);
+      perror("open");
+      return true;
+    }
+
+    rd = fstat(ifd, &statBuf);
+    if (rd != 0) {
+      perror("fstat");
+      sprintf(errorLine, "unable to stat %s\n", outFile);
+      logLine(errorLine);
+      return true;
+    }
+    length = statBuf.st_size;
+    sprintf(outFile, "%s.real", imageFileName.string_of());
+    sprintf(errorLine, "saving program to %s\n", outFile);
+    logLine(errorLine);
+
+    ofd = open(outFile, O_WRONLY|O_CREAT, 0777);
+    if (ofd < 0) {
+      perror("open");
+      exit(-1);
+    }
+
+    /* read header and section headers */
+    cnt = read(ifd, &hdr, sizeof(struct filehdr));
+    if (cnt != sizeof(struct filehdr)) {
+	sprintf(errorLine, "error reading header\n");
+	logLine(errorLine);
+	return false;
+    }
+
+    cnt = read(ifd, &aout, sizeof(struct aouthdr));
+
+    sectHdr = (struct scnhdr *) calloc(sizeof(struct scnhdr), hdr.f_nscns);
+    cnt = read(ifd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
+    if (cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
+	sprintf(errorLine, "section headers\n");
+	logLine(errorLine);
+	return false;
+    }
+
+    /* now copy the entire file */
+    lseek(ofd, 0, SEEK_SET);
+    lseek(ifd, 0, SEEK_SET);
+    for (i=0; i < length; i += 4096) {
+        rd = read(ifd, buffer, 4096);
+        write(ofd, buffer, rd);
+        total += rd;
+    }
+
+    if (!stopped) {
+        // make sure it is stopped.
+        osStop(pid);
+        waitpid(pid, NULL, WUNTRACED);
+    }
+
+    /* seek to the text segment */
+    lseek(ofd, aout.text_start, SEEK_SET);
+    for (i=0; i < aout.tsize; i+= 1024) {
+        errno = 0;
+        length = ((i + 1024) < aout.tsize) ? 1024 : aout.tsize -i;
+        ptrace(PT_READ_BLOCK, pid, (char*) (codeOff + i), length, buffer);
+        if (errno) {
+	    perror("ptrace");
+	    assert(0);
+        }
+	write(ofd, buffer, length);
+    }
+
+    ptrace(PT_CONTINUE, pid, (char*) 1, SIGCONT, 0);
+
+    close(ofd);
+    close(ifd);
+
+    return true;
+}
+
+//
+// Seek to the desired offset and read the passed length of the file
+//   into dest.  If any errors are detected, log a message and return false.
+//
+bool seekAndRead(int fd, int offset, void **dest, int length, bool allocate)
+{
+    int cnt;
+
+    if (allocate) {
+	*dest = malloc(length);
+    }
+
+    if (!*dest) {
+	sprintf(errorLine, "unable to parse executable file\n");
+	logLine(errorLine);
+	return false;
+    }
+
+    cnt = lseek(fd, offset, SEEK_SET);
+    if (cnt != offset) {
+        sprintf(errorLine, "unable to parse executable file\n");
+	logLine(errorLine);
+	return false;
+    }
+    cnt = read(fd, *dest, length);
+    if (cnt != length) {
+        sprintf(errorLine, "unable to parse executable file\n");
+	logLine(errorLine);
+	return false;
+    }
+    return true;
+}
+
+void Object::load_object()
+{
+    long i;
+    int fd;
+    int cnt;
+    string name;
+    string module;
+    unsigned value;
+    int poolOffset;
+    int poolLength;
+    union auxent *aux;
+    struct filehdr hdr;
+    struct syment *sym;
+    struct aouthdr aout;
+    union auxent *csect;
+    char *stringPool NULL;
+    bool newModule = false;
+    Symbol::SymbolType type; 
+    int *lengthPtr = &poolLength;
+    struct syment *symbols = NULL;
+    struct scnhdr *sectHdr = NULL;
+    Symbol::SymbolLinkage linkage;
+
+    fd = open(file_.string_of(), O_RDONLY, 0);
+    if (fd <0) {
+        sprintf(errorLine, "unable to open executable file %s\n", 
+	    file_.string_of());
+	statusLine(errorLine);
+	goto cleanup;
+    }
+
+    cnt = read(fd, &hdr, sizeof(struct filehdr));
+    if (cnt != sizeof(struct filehdr)) {
+        sprintf(errorLine, "error reagin executable file %s\n", 
+	    file_.string_of());
+	statusLine(errorLine);
+	goto cleanup;
+    }
+
+    cnt = read(fd, &aout, sizeof(struct aouthdr));
+    if (cnt != sizeof(struct aouthdr)) {
+        sprintf(errorLine, "error reagin executable file %s\n", 
+	    file_.string_of());
+	statusLine(errorLine);
+	goto cleanup;
+    }
+
+    sectHdr = (struct scnhdr *) malloc(sizeof(struct scnhdr) * hdr.f_nscns);
+    assert(sectHdr);
+    cnt = read(fd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
+    if (cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
+        sprintf(errorLine, "error reagin executable file %s\n", 
+	    file_.string_of());
+	statusLine(errorLine);
+	goto cleanup;
+    }
+
+    // fprintf(stderr, "symbol table has %d entries starting at %d\n",
+    //    (int) hdr.f_nsyms, (int) hdr.f_symptr);
+
+    if (!seekAndRead(fd, hdr.f_symptr, (void**) &symbols, 
+	hdr.f_nsyms * SYMESZ, true)) {
+	goto cleanup;
+    }
+
+    /*
+     * Get the string pool
+     */
+    poolOffset = hdr.f_symptr + hdr.f_nsyms * SYMESZ;
+    /* length is stored in the first 4 bytes of the string pool */
+    if (!seekAndRead(fd, poolOffset, (void**) &lengthPtr, sizeof(int), false)) {
+	goto cleanup;
+    }
+
+    if (!seekAndRead(fd, poolOffset, (void**) &stringPool, poolLength, true)) {
+	goto cleanup;
+    }
+
+    // identify the code region.
+    if (aout.tsize != sectHdr[aout.o_sntext-1].s_size) {
+	// consistantcy check failed!!!!
+        sprintf(errorLine, 
+	    "executable header file interal error: text segment size %s\n", 
+	    file_.string_of());
+	statusLine(errorLine);
+	goto cleanup;
+    }
+
+    if (!seekAndRead(fd, sectHdr[aout.o_sntext-1].s_scnptr, 
+	(void **) &code_ptr_, aout.tsize, true)) {
+	goto cleanup;
+    }
+    code_off_ =  aout.text_start + AIX_TEXT_OFFSET_HACK;
+    // fprintf(stderr, "reading code starting at %x\n", code_off_);
+    code_len_ = aout.tsize;
+
+    // now the init data segment.
+    if (aout.dsize != sectHdr[aout.o_sndata-1].s_size) {
+	// consistantcy check failed!!!!
+        sprintf(errorLine, 
+	    "executable header file interal error: data segment size %s\n", 
+	    file_.string_of());
+	statusLine(errorLine);
+	goto cleanup;
+    }
+    if (!seekAndRead(fd, sectHdr[aout.o_sndata-1].s_scnptr, 
+	(void **) &data_ptr_, aout.dsize, true)) {
+	goto cleanup;
+    }
+    data_off_ = sectHdr[aout.o_sndata-1].s_vaddr + AIX_DATA_OFFSET_HACK;
+    data_len_ = aout.dsize;
+
+    for (i=0; i < hdr.f_nsyms; i++) {
+	/* do the pointer addition by hand since sizeof(struct syment)
+         *   seems to be 20 not 18 as it should be */
+        sym = (struct syment *) (((unsigned) symbols) + i * SYMESZ);
+        if (!(sym->n_sclass & DBXMASK)) {
+	    if ((sym->n_sclass == C_HIDEXT) || 
+		(sym->n_sclass == C_EXT) ||
+		(sym->n_sclass == C_FILE)) {
+		if (!sym->n_zeroes) {
+		    name = string(&stringPool[sym->n_offset]);
+		} else {
+		    char tempName[9];
+		    memset(tempName, 0, 9);
+		    strncpy(tempName, sym->n_name, 8);
+		    name = string(tempName);
+		}
+	    }
+	    
+	    if ((sym->n_sclass == C_HIDEXT) || (sym->n_sclass == C_EXT)) {
+		if (sym->n_sclass == C_HIDEXT) {
+		    linkage = Symbol::SL_LOCAL;
+	        } else {
+		    linkage = Symbol::SL_GLOBAL;
+		}
+
+		if (sym->n_scnum == aout.o_sntext) {
+		    type = Symbol::PDST_FUNCTION;
+		    // XXX - Hack for AIX loader.
+		    value = sym->n_value + AIX_TEXT_OFFSET_HACK;
+	        } else {
+		    // bss or data
+		    csect = (union auxent *)
+			((char *) sym + sym->n_numaux * SYMESZ);
+		    if ((csect->x_csect.x_smclas == XMC_TC) ||
+		        (csect->x_csect.x_smclas == XMC_DS)) {
+			// table of contents related entry not a real symbol.
+			continue;
+		    }
+		    type = Symbol::PDST_OBJECT;
+		    // XXX - Hack for AIX loader.
+		    value = sym->n_value + AIX_DATA_OFFSET_HACK;
+		}
+
+
+		if (newModule) {
+		    // modules are defined multiple times for xlf Fortran.
+		    if (symbols_.defines(module)) {
+			Symbol &oldValue = symbols_[module];
+			// symbols should be in assending order.
+			if (oldValue.addr() > value) {
+			    logLine("symbol table out of order, use -Xlinker -bnoobjreorder");
+			    goto cleanup;
+			}
+		    } else {
+			symbols_[module] = Symbol(module, module, 
+			    Symbol::PDST_MODULE, linkage, value, false);
+		    }
+		    newModule = false;
+		}
+
+		// XXXX - Hack to make names match assumptions of symtab.C
+		if (name.prefixed_by(".")) {
+		    char temp[512];
+		    sprintf(temp, "_%s", &name.string_of()[1]);
+		    name = string(temp);
+		} else if (type == Symbol::PDST_FUNCTION) {
+		    // text segment without a leady . is a toc item
+		    continue;
+		}
+
+		//fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
+		//   name.string_of(), module.string_of(), value);
+		symbols_[name] = Symbol(name, module, type, linkage, 
+			    value, false);
+	    } else if (sym->n_sclass == C_FILE) {
+		if (!strcmp(name.string_of(), ".file")) {
+		    int j;
+		    /* has aux record with additional information. */
+		    for (j=1; j <= sym->n_numaux; j++) {
+			aux = (union auxent *) ((char *) sym + j * SYMESZ);
+			if (aux->x_file._x.x_ftype == XFT_FN) {
+			    // this aux record contains the file name.
+			    if (!aux->x_file._x.x_zeroes) {
+				name = 
+				  string(&stringPool[aux->x_file._x.x_offset]);
+			    } else {
+				// x_fname is 14 bytes
+				char tempName[14];
+				memset(tempName, 0, 15);
+				strncpy(tempName, aux->x_file.x_fname, 14);
+				name = string(tempName);
+			    }
+			}
+		    }
+		}
+		// fprintf(stderr, "Found module %s\n", name.string_of());
+		// mark it to be added, but don't add it until the next symbol
+		//    tells us the address.
+		newModule = true;
+		module = name;
+		continue;
+	    }
+        }
+    }
+
+cleanup:
+    close(fd);
+    if (sectHdr) free(sectHdr);
+    if (stringPool) free(stringPool);
+    if (symbols) free(symbols);
+
+    return;
+}
+
+
+//
+// Verify that that program is statically linked, and establish the text 
+//   and data segments starting addresses.
+//
+bool establishBaseAddrs(int pid, int &status)
+{
+    int ret;
+    struct ld_info *ptr;
+    struct ld_info info[64];
+
+    // check that the program was loaded at the correct address.
+
+    /* The following comment and usleep statement are taken from gdb 4.14
+	in the file rs6000-nat.c - jkh 6/13/95 */
+    /* According to my humble theory, AIX has some timing problems and
+     when the user stack grows, kernel doesn't update stack info in time
+     and ptrace calls step on user stack. That is why we sleep here a little,
+     and give kernel to update its internals. */
+    usleep (36000);
+
+    // wait for the TRAP point.
+    waitpid(pid, &status, WUNTRACED);
+
+
+    ret = ptrace(PT_LDINFO, pid, (char *) &info, sizeof(info), (char *) &info);
+    if (ret != 0) {
+	statusLine("unable to get loader info about process, application aborted");
+	return false;
+    }
+
+    ptr = info;
+    if (ptr->ldinfo_next) {
+	statusLine("ERROR: program not staticlly linked");
+	logLine("ERROR: program not staticlly linked");
+	return false;
+    }
+
+    // now check addr.
+    AIX_TEXT_OFFSET_HACK = (unsigned) ptr->ldinfo_textorg + 0x200;
+    AIX_DATA_OFFSET_HACK = (unsigned) ptr->ldinfo_dataorg;
+
+    return true;
+}
+
+//
+// dummy versions of OS statistics.
+//
+float OS::compute_rusage_cpu() { return(0.0); }
+float OS::compute_rusage_sys() { return(0.0); }
+float OS::compute_rusage_min() { return(0.0); }
+float OS::compute_rusage_maj() { return(0.0); }
+float OS::compute_rusage_swap() { return(0.0); }
+float OS::compute_rusage_io_in() { return(0.0); }
+float OS::compute_rusage_io_out() { return(0.0); }
+float OS::compute_rusage_msg_send() { return(0.0); }
+float OS::compute_rusage_sigs() { return(0.0); }
+float OS::compute_rusage_vol_cs() { return(0.0); }
+float OS::compute_rusage_inv_cs() { return(0.0); }
+float OS::compute_rusage_msg_recv() { return(0.0); }

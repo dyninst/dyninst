@@ -4,7 +4,16 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.12  1995/07/18 19:14:12  krisna
+# Revision 1.13  1995/08/24 15:01:52  hollings
+# AIX/SP-2 port (including option for split instruction/data heaps)
+# Tracing of rexec (correctly spawns a paradynd if needed)
+# Added rtinst function to read getrusage stats (can now be used in metrics)
+# Critical Path
+# Improved Error reporting in MDL sematic checks
+# Fixed MDL Function call statement
+# Fixed bugs in TK usage (strings passed where UID expected)
+#
+# Revision 1.12  1995/07/18  19:14:12  krisna
 # changes to convert Tcl sources to C
 #
 # Revision 1.11  1995/07/17 05:02:52  tamches
@@ -57,6 +66,7 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/DMthread/DMperfstream.C \
 		../src/DMthread/DMresource.C \
 		../src/DMthread/DMabstractions.C \
+		../src/DMthread/DMcritPath.C \
 		../src/DMthread/DMphase.C \
 		../src/pdMain/main.C \
 		../src/VMthread/VMmain.C \

@@ -564,9 +564,10 @@ bool paradynDaemon::enableData(resourceListHandle r_handle,
         
     int id;
     paradynDaemon *pd;
+
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
-        id = pd->enableDataCollection(vs, (const char*) m->getName());
+        id = pd->enableDataCollection(vs, (const char*) m->getName(), mi->id);
         if (printChangeCollection.getValue()) {
             cout << "EDC:  " << (char*)m->getName()
    	            << (char *) rl->getName() << " " << id <<"\n";

@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.26 1995/05/30 05:05:05 krisna Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26 1995/05/30 05:05:05 krisna Exp";
 #endif
 
 /*
@@ -16,7 +16,16 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.26  1995/05/30 05:05:05  krisna
+ * Revision 1.27  1995/08/24 15:04:36  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.26  1995/05/30  05:05:05  krisna
  * upgrade from solaris-2.3 to solaris-2.4.
  * architecture-os based include protection of header files.
  * removed architecture-os dependencies in generic sources.
@@ -489,7 +498,7 @@ void image::postProcess(const string pifname)
 {
   FILE *Fil;
   string fname;
-  char temp[5000], errorstr[5000], key[5000];
+  char errorstr[5000], key[5000];
   char tmp1[5000], abstraction[500];
   resource *parent;
 
@@ -977,13 +986,15 @@ image::image(const string &fileName, bool &err)
   // kludge is true for module symbols that I am guessing are modules
   vector<Symbol> uniq;
   unsigned loop=0;
-  while (loop < (mods.size()-1)) {
-    if (mods[loop].addr() == mods[loop+1].addr()) {
+
+  // must use loop+1 not mods.size()-1 since it is an unsigned compare
+  //  which could go negative - jkh 5/29/95
+  for (loop=0; loop < mods.size(); loop++) {
+    if ((loop+1 < mods.size()) && mods[loop].addr() == mods[loop+1].addr()) {
       if (!mods[loop].kludge())
 	mods[loop+1] = mods[loop];
     } else
       uniq += mods[loop];
-    loop++;
   }
 
 #ifdef DEBUG_MODS
@@ -1140,20 +1151,17 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
     // if (!IS_VALID_INSN(instr)) {
     // err = true; return;
     // } else 
-    if (isInsnType(instr, RETmask, RETmatch) ||
-	       isInsnType(instr, RETLmask, RETLmatch)) {
+#if defined(rs6000_ibm_aix3_2)
+    // need to poke around the actual instruction to get it right - jkh 7/28/95
+    extern bool isReturnInsn(const image *owner, Address adr);
+    if (isReturnInsn(owner, adr)) {
+#else
+    if (isReturnInsn(instr)) {
+#endif
       // define the return point
       funcReturn_ = new instPoint(this, instr, owner, adr, false);
       assert(funcReturn_);
-      // TODO -- move this to machine dependent area
-      if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12)) {
-	logLine("*** FATAL Error:");
-	sprintf(errorLine, " unsupported return at %x\n", funcReturn_->addr);
-	logLine(errorLine);
-	P_abort();
-	err = false;
-	return;
-      }
+
       return;
     } else if (isCallInsn(instr)) {
       // define a call point
@@ -1164,66 +1172,6 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
     // now do the next instruction
     adr += 4;
   }
-}
-
-// find all DYNINST symbols that are data symbols
-bool image::heapIsOk(const vector<sym_data> &find_us) {
-  Address curr, instHeapEnd;
-  Symbol sym;
-  string str;
-
-  for (unsigned i=0; i<find_us.size(); i++) {
-    str = find_us[i].name;
-    if (!linkedFile.get_symbol(str, sym)) {
-      string str1 = string("_") + str.string_of();
-      if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
-	char msg[100];
-        sprintf(msg, "Cannot find %s, exiting", str.string_of());
-	statusLine(msg);
-	return false;
-      }
-    }
-    addInternalSymbol(str, sym.addr());
-  }
-
-  string ghb = GLOBAL_HEAP_BASE;
-  if (!linkedFile.get_symbol(ghb, sym)) {
-    ghb = U_GLOBAL_HEAP_BASE;
-    if (!linkedFile.get_symbol(ghb, sym)) {
-      char msg[100];
-      sprintf(msg, "Cannot find %s, exiting", str.string_of());
-      statusLine(msg);
-      return false;
-    }
-  }
-  instHeapEnd = sym.addr();
-  addInternalSymbol(ghb, instHeapEnd);
-  ghb = INFERIOR_HEAP_BASE;
-
-  if (!linkedFile.get_symbol(ghb, sym)) {
-    ghb = UINFERIOR_HEAP_BASE;
-    if (!linkedFile.get_symbol(ghb, sym)) {
-      char msg[100];
-      sprintf(msg, "Cannot find %s, cannot use this application", str.string_of());
-      statusLine(msg);
-      return false;
-    }
-  }
-  curr = sym.addr();
-  addInternalSymbol(ghb, curr);
-  if (curr > instHeapEnd) instHeapEnd = curr;
-
-  // check that we can get to our heap.
-  if (instHeapEnd > getMaxBranch()) {
-    logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-    sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
-    logLine(errorLine);
-    return false;
-  } else if (instHeapEnd + SYN_INST_BUF_SIZE > getMaxBranch()) {
-    logLine("WARNING: Program text + data could be too big for dyninst\n");
-    return false;
-  }
-  return true;
 }
 
 // Store the mapping function:    name --> set of mdl resource lists
@@ -1275,5 +1223,3 @@ void image::watch_functions(string& name, vector<string> *vs, bool is_lib,
   watch_vec[found_index].mods = NULL;
   watch_vec[found_index].is_func = true;
 }
-
-

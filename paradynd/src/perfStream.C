@@ -7,14 +7,23 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.39 1995/05/18 10:40:37 markc Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/perfStream.C,v 1.39 1995/05/18 10:40:37 markc Exp";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.39  1995/05/18 10:40:37  markc
+ * Revision 1.40  1995/08/24 15:04:26  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.39  1995/05/18  10:40:37  markc
  * Added code to read mdl calls to prevent starting a process before this
  * data arrives.
  *
@@ -251,7 +260,8 @@ time64 firstRecordTime = 0;
 void processAppIO(process *curr)
 {
     int ret;
-    char lineBuf[1024];
+    // char lineBuf[1024];
+    char lineBuf[256];
 
     ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
     if (ret < 0) {
@@ -408,6 +418,11 @@ void processTraceStream(process *curr)
 		processCost(curr, &header, (costUpdate *) ((void*)recordData));
 		break;
 
+	    case TR_CP_SAMPLE:
+		extern void processCP(process *, traceHeader *, cpSample *);
+		processCP(curr, &header, (cpSample *) recordData);
+		break;
+
 	    default:
 		sprintf(errorLine, "got record type %d on sid %d\n", 
 		    header.type, sid);
@@ -445,15 +460,22 @@ int handleSigChild(int pid, int status)
 		/* trap at the start of a ptraced process 
 		 *   continue past it.
 		 */
-		sprintf(buffer, "PID=%d, passed trap at start of program", pid);
-		statusLine(buffer);
 
 		// the process is stopped as a result of the initial SIGTRAP
 		curr->status_ = stopped;
 
 		// query default instrumentation here - not done yet
-		installDefaultInst(curr, initialRequests);
+		// We must check that this is the first trap since on machines
+		//   where we use ptrace detach, a TRAP is generated on a pause.
+		//   - jkh 7/7/95
+		if (!curr->reachedFirstBreak) {
+		    sprintf(buffer, "PID=%d, passed trap at start of program", pid);
+		    statusLine(buffer);
+		    installDefaultInst(curr, initialRequests);
+		    curr->reachedFirstBreak = 1;
+		}
 
+#ifdef notdef
 		if (!OS::osForwardSignal(pid, 0)) {
 		  P_abort();
 		}
@@ -463,9 +485,11 @@ int handleSigChild(int pid, int status)
 		// based on magic number, I guess...   XXXXXX
 
 		curr->status_ = running;
+#endif
 		break;
 
 	    case SIGSTOP:
+	    case SIGINT:
 		curr->status_ = stopped;
 		curr->reachedFirstBreak = 1;
 
@@ -477,16 +501,15 @@ int handleSigChild(int pid, int status)
 		break;
 
 	    case SIGIOT:
-	    case SIGSEGV:
 	    case SIGBUS:
 	    case SIGILL:
+		curr->status_ = stopped;
 		dumpProcessImage(curr, true);
 		OS::osDumpCore(pid, "core.real");
 		curr->status_ = exited;
 		// ???
 		// should really log this to the error reporting system.
 		// jkh - 6/25/96
-		logLine("caught fatal signal, dumping program image\n");
 		// now forward it to the process.
 		OS::osForwardSignal(pid, WSTOPSIG(status));
 		break;
@@ -497,6 +520,7 @@ int handleSigChild(int pid, int status)
 	    case SIGALRM:
 	    case SIGVTALRM:
 	    case SIGCONT:
+	    case SIGSEGV:	// treadmarks needs this signal
 		// printf("caught signal, forwarding...  (sig=%d)\n", 
 		//       WSTOPSIG(status));
 		if (!OS::osForwardSignal(pid, WSTOPSIG(status))) {
@@ -505,11 +529,15 @@ int handleSigChild(int pid, int status)
                 }
 		break;
 
+#ifdef notdef
+	    // XXXX for debugging
+	    case SIGSEGV:	// treadmarks needs this signal
+#endif
 	    default:
-		sprintf(errorLine, "ERROR: unhandled signal, not forwarding.  (sig=%d, pid=%d)\n", 
-			WSTOPSIG(status), pid);
-		logLine(errorLine);
-		OS::osForwardSignal(pid, 0);
+		if (!OS::osForwardSignal(pid, WSTOPSIG(status))) {
+                     logLine("error  in forwarding  signal\n");
+                     P_abort();
+                }
 		break;
 
 	}
@@ -531,6 +559,12 @@ int handleSigChild(int pid, int status)
 	logLine(errorLine);
     }
     return(0);
+}
+
+void ioFunc()
+{
+     printf("in SIG child func\n");
+     fflush(stdout);
 }
 
 /*
@@ -587,6 +621,8 @@ void controllerMainLoop(bool check_buffer_first)
 	if (fd_ptr[0] > width)
 	  width = fd_ptr[0];
 #endif
+
+	// poll for IO
 	pollTime.tv_sec = 0;
 	pollTime.tv_usec = 50000;
 
@@ -606,6 +642,7 @@ void controllerMainLoop(bool check_buffer_first)
 
 	// TODO - move this into an os dependent area
 	ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTime);
+
 	if (ct > 0) {
             unsigned p_size = processVec.size();
 	    for (unsigned u=0; u<p_size; u++) {

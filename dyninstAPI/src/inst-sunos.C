@@ -3,7 +3,16 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.28  1995/05/30 05:04:58  krisna
+ * Revision 1.29  1995/08/24 15:04:03  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.28  1995/05/30  05:04:58  krisna
  * upgrade from solaris-2.3 to solaris-2.4.
  * architecture-os based include protection of header files.
  * removed architecture-os dependencies in generic sources.
@@ -117,7 +126,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.28 1995/05/30 05:04:58 krisna Exp $";
+char inst_sunos_ident[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-sunos.C,v 1.28 1995/05/30 05:04:58 krisna Exp";
 
 #include "os.h"
 #include "metric.h"
@@ -204,10 +213,10 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTstartWallTimer"] = 1988;
     // 48.05 usec * 85 mhz (SS-5)
     primitiveCosts["DYNINSTstopWallTimer"] = 4084;
-    // 1.80 usec * 70 Mhz (measured on a SS-5)
+    // 1.61 usec * 85 Mhz (measured on a SS-5)
     // 25 cycles (read clock) +  26 (startProcessTimer)
     primitiveCosts["DYNINSTstartProcessTimer"] = 51;
-    // 3.46 usec * 70 mhz (measured on a SS-5)
+     // 3.38 usec * 85 mhz (measured on a SS-5)
     // 61 cycles + 2*25 cycles to read clock
     primitiveCosts["DYNINSTstopProcessTimer"] = 111;
 #endif
@@ -298,6 +307,14 @@ void initLibraryFunctions()
 #ifdef notdef
     tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT;
     tagDict["read"] = TAG_LIB_FUNC | TAG_IO_IN;
+
+    tagDict["send"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_SEND;
+    tagDict["sendmsg"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_SEND;
+    tagDict["sendto"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_SEND;
+
+    tagDict["rev"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_RECV;
+    tagDict["recvmsg"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_RECV;
+    tagDict["recvfrom"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_RECV;
 
     tagDict["DYNINSTalarmExpire"] = TAG_LIB_FUNC;
     tagDict["DYNINSTsampleValues"] = TAG_LIB_FUNC;

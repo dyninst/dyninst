@@ -5,7 +5,16 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.program.tmpl,v $
-# Revision 1.5  1995/03/15 19:12:13  jcargill
+# Revision 1.6  1995/08/24 15:00:55  hollings
+# AIX/SP-2 port (including option for split instruction/data heaps)
+# Tracing of rexec (correctly spawns a paradynd if needed)
+# Added rtinst function to read getrusage stats (can now be used in metrics)
+# Critical Path
+# Improved Error reporting in MDL sematic checks
+# Fixed MDL Function call statement
+# Fixed bugs in TK usage (strings passed where UID expected)
+#
+# Revision 1.5  1995/03/15  19:12:13  jcargill
 # Added real pure rule, and fixed LDFLAGS
 #
 # Revision 1.4  1995/02/27  17:37:06  jcargill
@@ -29,11 +38,13 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.y, %.o, $(filter %.y,$(notdir $(SRCS)))) \
 		$(patsubst %.l, %.o, $(filter %.l,$(notdir $(SRCS)))) \
 		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
+		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
 ifndef UNCOMMON_LINK
-$(TARGET): $(OBJS) $(LIBS)
-	$(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+$(TARGET): $(OBJS) 
+	$(MODCC) -o $(HOME)/tmp/$(TARGET) $(LDFLAGS) $(MODCFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	mv $(HOME)/tmp/$(TARGET) $(TARGET)
 endif
 
 ifndef UNCOMMON_LINK
@@ -106,7 +117,8 @@ endif
 
 %.C: %.y
 	$(YACC) $(YFLAGS) $<
-	mv y.tab.c $@
+	cp y.tab.c $@
+## change back to mv!! klk
 
 %.C: %.l
 	$(LEX) -t $(LFLAGS) $< > $@

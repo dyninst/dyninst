@@ -3,7 +3,16 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.7  1995/06/02 20:49:02  newhall
+ * Revision 1.8  1995/08/24 15:02:46  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.7  1995/06/02  20:49:02  newhall
  * made code compatable with new DM interface
  * fixed problem with force option in visiDef
  * fixed hpux link errors
@@ -67,6 +76,7 @@ extern unsigned hacked_cons_type;
 %token tRC tLC tASSIGN tPRE_INSN tPOST_INSN
 %token tARG tRETURN
 %token tREAD_SYMBOL tREAD_ADDRESS
+%token tVOID
 %left tLT tGT tEQ tNE tLE tGE
 %left tPLUS tMINUS
 %left tMULT tDIV
@@ -363,7 +373,7 @@ instr_req: tSET_COUNTER tLPAREN tIDENT tCOMMA instr_rand tRPAREN tSEMI {
 } | tSTOP_WALL_TIMER tLPAREN tIDENT tRPAREN tSEMI {
   $$.instr_req = new T_dyninstRPC::mdl_instr_req(MDL_STOP_WALL_TIMER, *$3.sp);
   delete $3.sp; 
-} | tIDENT tLPAREN instr_rand tRPAREN {
+} | tIDENT tLPAREN instr_rand tRPAREN tSEMI {
   $$.instr_req = new T_dyninstRPC::mdl_instr_req($3.rand.type, $3.rand.arg, *$3.rand.str,
 						 *$3.rand.str2, MDL_CALL_FUNC, *$1.sp);
   delete $1.sp; delete $3.rand.str; delete $3.rand.str2;
@@ -467,6 +477,10 @@ met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK {
   $$.base.m_stmt_v = $5.m_stmt_v; 
 } | tBASE tIS tW_TIME tLBLOCK metric_stmts tRBLOCK { 
   $$.base.type = MDL_T_WALL_TIMER;
+  $$.base.m_stmt_v = $5.m_stmt_v; 
+} | tBASE tIS tVOID tLBLOCK metric_stmts tRBLOCK {
+  // for special un-sampled metrics.
+  $$.base.type = MDL_T_NONE;
   $$.base.m_stmt_v = $5.m_stmt_v; 
 };
 

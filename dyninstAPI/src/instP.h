@@ -7,7 +7,16 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
- * Revision 1.8  1995/02/16 08:53:36  markc
+ * Revision 1.9  1995/08/24 15:04:10  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.8  1995/02/16  08:53:36  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.7  1995/02/16  08:33:33  markc
@@ -76,6 +85,8 @@ class trampTemplate {
     int localPreOffset;
     int localPostOffset;
 };
+
+extern trampTemplate baseTemplate;
 
 class instInstance {
  public:

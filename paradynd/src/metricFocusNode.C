@@ -7,14 +7,23 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.52 1995/05/18 10:38:42 markc Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52 1995/05/18 10:38:42 markc Exp";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.52  1995/05/18 10:38:42  markc
+ * Revision 1.53  1995/08/24 15:04:18  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.52  1995/05/18  10:38:42  markc
  * Removed class metric
  *
  * Revision 1.51  1995/03/10  19:33:54  hollings
@@ -366,7 +375,6 @@ float getProcessCount() {  return ((float) processVec.size()); }
 
 // check for "special" metrics that are computed directly by paradynd 
 // if a cost of an internal metric is asked for, enable=false
-
 metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
 				       string& metric_name, string& flat_name,
 				       bool enable, bool& matched)
@@ -441,12 +449,19 @@ metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& f
     return(mi);
 }
 
-int startCollecting(string& metric_name, vector<u_int>& focus) {
+int startCollecting(string& metric_name, vector<u_int>& focus, int id) 
+{
     // TODO -- why is this here?
     if (CMMDhostless == true) return(-1);
 
     static int MICount=0;
     bool internal = false;
+
+    // Make the unique ID for this metric/focus visible in MDL.
+    string vname = "$globalId";
+    mdl_env::add(vname, false, MDL_T_INT);
+    mdl_env::set(id, vname);
+
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus,
 						    true, internal);
     
@@ -553,6 +568,7 @@ void metricDefinitionNode::disable()
       for (u=0; u<size; u++)
 	requests[u]->disable();
     }
+
 }
 
 metricDefinitionNode::~metricDefinitionNode()
@@ -699,7 +715,7 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     // build circular buffer of recent values.
     //
     proc->theCost.past[proc->theCost.currentHist] = 
-	(s->observedCost - proc->theCost.lastObservedCost);
+	(s->obsCostIdeal - proc->theCost.lastObservedCost);
     if (++proc->theCost.currentHist == HIST_LIMIT) proc->theCost.currentHist = 0;
 
     // now compute current value of hybrid;
@@ -708,7 +724,7 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     }
     proc->theCost.hybrid /= HIST_LIMIT;
 
-    proc->theCost.lastObservedCost = s->observedCost;
+    proc->theCost.lastObservedCost = s->obsCostIdeal;
 
     currentHybridValue = 0.0;
 

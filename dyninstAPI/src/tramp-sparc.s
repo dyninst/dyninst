@@ -5,10 +5,19 @@
  *    appropriate inferior process via ptrace calls.
  *
  * $Log: tramp-sparc.s,v $
- * Revision 1.8  1994/11/02 19:01:26  hollings
- * Made the observed cost model use a normal variable rather than a reserved
- * register.
+ * Revision 1.9  1995/08/24 15:04:45  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
  *
+# Revision 1.8  1994/11/02  19:01:26  hollings
+# Made the observed cost model use a normal variable rather than a reserved
+# register.
+#
 # Revision 1.7  1994/11/02  11:18:32  markc
 # Commented out the cost model.
 #
@@ -60,9 +69,9 @@
  * - do global before local because global call DYNINSTinit.
  *
  */
+.data
 	.global baseTramp
 	.global	_baseTramp
-.data
 baseTramp:
 _baseTramp:
 	/* should update cost of base tramp here, but we don't have a
@@ -77,4 +86,5 @@ _baseTramp:
 	.word	LOCAL_POST_BRANCH
 	/* should update post insn cost of base tramp here */
 	.word	RETURN_INSN
+	nop			/* see if this prevents crash jkh 4/4/95 */
 	.word	END_TRAMP

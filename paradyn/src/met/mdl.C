@@ -111,7 +111,10 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&f
 	if (mdl_data::all_constraints[in]->id_ == (*constraints_)[u]->id_) {
 	  found = true; break;
 	}
-      if (!found) return NULL;            // The global constraint does not exist
+      if (!found) {
+	  cout << "unable to find global constraint\n";
+	  return NULL;            // The global constraint does not exist
+      }
     }
   }
 
@@ -236,6 +239,12 @@ T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type, string obj_name)
 T_dyninstRPC::mdl_instr_req::mdl_instr_req() : type_(0) { }
 T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 
+//
+// XXXX - This entire routine needs to be gutted. At minimum any condition that
+// XXXX   produces a false return value should log a warning.  Right now it 
+// XXXX   silently deletes metrics from considuration.  Debugging MDL is almost
+// XXXX   impossible.  jkh 7/6/95.
+//
 bool T_dyninstRPC::mdl_instr_req::apply(unsigned where, instPoint *p, unsigned where_instr,
 					metricDefinitionNode *mn, AstNode *anode,
 					vector<dataReqNode*>& flags) {
@@ -264,6 +273,11 @@ bool T_dyninstRPC::mdl_instr_req::apply(unsigned where, instPoint *p, unsigned w
     // handle instr_rand
     if (!do_instr_rand(arg_type_, arg_val_, arg_name_, arg_name_2_)) return false;
   }
+
+  // skip all this crude for a function call, must check at runtime in
+  //   paradynd.
+  if (type_ == MDL_CALL_FUNC) return true;
+
   mdl_var timer;
   if (!mdl_env::get(timer, timer_counter_name_)) return false;
 
@@ -271,20 +285,28 @@ bool T_dyninstRPC::mdl_instr_req::apply(unsigned where, instPoint *p, unsigned w
   case MDL_SET_COUNTER:
   case MDL_ADD_COUNTER:
   case MDL_SUB_COUNTER:
-  case MDL_CALL_FUNC:
+  // should not have a timer as the first argument here. - jkh 7/6/95.
+  // case MDL_CALL_FUNC:
   case MDL_CALL_FUNC_COUNTER:
     if (timer.type() != MDL_T_COUNTER) return false;
     break;
   case MDL_START_WALL_TIMER:
   case MDL_STOP_WALL_TIMER:
-    if (timer.type() != MDL_T_WALL_TIMER) return false;
+    if (timer.type() != MDL_T_WALL_TIMER) {
+	cout << "operand of timer operation is not a wall timer\n";
+	return false;
+    }
     break;
   case MDL_START_PROC_TIMER:
   case MDL_STOP_PROC_TIMER:
-    if (timer.type() != MDL_T_PROC_TIMER) return false;
+    if (timer.type() != MDL_T_PROC_TIMER) {
+	cout << "operand of timer operation is not a process timer\n";
+	return false;
+    }
     break;
   default:
-    return false;
+      cout << "unkown instrumentation request type\n";
+      return false;
   }
   return true;
 }
@@ -332,7 +354,10 @@ bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode *mn,
   case MDL_T_STRING: list_type = MDL_T_LIST_STRING; break;
   case MDL_T_PROCEDURE: list_type = MDL_T_LIST_PROCEDURE; break;
   case MDL_T_MODULE: list_type = MDL_T_LIST_MODULE; break;
-  default: return false;
+  default: 
+      // this should only happen if there is a parser error.
+      abort();
+      return false;
   }
   return (mdl_env::add(id_, false, list_type));
 }
@@ -854,6 +879,7 @@ bool do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& arg_
   case MDL_T_COUNTER:
     break;
   default:
+    cout << "invalid operand\n";
     return false;
   }
   return true;

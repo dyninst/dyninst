@@ -2,7 +2,16 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.72  1995/08/20 03:51:27  newhall
+ * Revision 1.73  1995/08/24 15:02:26  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.72  1995/08/20  03:51:27  newhall
  * *** empty log message ***
  *
  * Revision 1.71  1995/08/20 03:37:07  newhall
@@ -344,7 +353,7 @@ void dynRPCUser::applicationIO(int pid, int len, string data)
 	if (pid) {
 	    printf("pid %d:", pid);
 	} else {
-	    printf("paradynd: %d", pid);
+	    printf("paradynd: ");
 	}
 	if (extra.length()) {
 	    cout << extra;
@@ -355,7 +364,7 @@ void dynRPCUser::applicationIO(int pid, int len, string data)
 	ptr = P_strchr(rest, '\n');
     }
     delete tp;
-    extra = rest;
+    extra += rest;
     rest = 0;
 }
 
@@ -471,6 +480,15 @@ void dynRPCUser::firstSampleCallback (int program,
   assert(0 && "Invalid virtual function");
 }
 
+void dynRPCUser::cpDataCallbackFunc(int program,
+                                         double timeStamp,
+                                         int context,
+                                         double total,
+                                         double share)
+{
+    assert(0 && "Invalid virtual function");
+}
+
 void dynRPCUser::sampleDataCallbackFunc(int program,
 					   int mid,
 					   double startTimeStamp,
@@ -532,7 +550,7 @@ void DM_eFunction(int errno, char *message)
 }
 
 
-int dataManager::DM_sequential_init(const char* met_file){
+int dataManager::DM_sequential_init(init_struct* init){
    // parse PDL file
    string fname = met_file;
    return(metMain(fname)); 

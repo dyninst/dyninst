@@ -116,6 +116,7 @@ class paradynDaemon: public dynRPCUser {
 	virtual void reportSelf (string m, string p, int pd, string flav);
 	virtual void sampleDataCallbackFunc(int, int, double, 
 					    double, double);
+	virtual void cpDataCallbackFunc(int, double, int, double, double);
 	double getEarliestFirstTime() const { return earliestFirstTime;}
 	static double setEarliestFirstTime(double f){
             if(!earliestFirstTime) earliestFirstTime = f;

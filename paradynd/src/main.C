@@ -2,7 +2,16 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.33  1995/05/18 10:38:17  markc
+ * Revision 1.34  1995/08/24 15:04:13  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.33  1995/05/18  10:38:17  markc
  * deleted metric callbacks -- these are now requested from the daemon
  * initialize mdl data before parsing an image
  *
@@ -194,6 +203,13 @@ void configStdIO(bool closeStdIn)
 
 int main(int argc, char *argv[])
 {
+    int i;
+    vector<string> cmdLine;
+    vector<string> envp;
+
+    // for debugging
+    // { int i= 1; while (i); }
+
     process::programName = argv[0];
 
     // process command line args passed in
@@ -210,6 +226,19 @@ int main(int argc, char *argv[])
     P_uname(&un);
     P_strcpy(machine_name, un.nodename);
  
+    //
+    // See if we should fork an app process now.
+    //
+    for (i=0; argv[i]; i++) {
+	int j;
+	if (!strcmp(argv[i], "-runme")) {
+	     // next arg is the command to run.
+	     for (j=0,i++; argv[i]; i++,j++) {
+		 cmdLine += argv[i];
+	     }
+	}
+    }
+
 #ifdef PARADYND_PVM
     // There are 3 ways to get here
     //     started by pvm_spawn from first paradyndPVM, must report back
@@ -217,8 +246,15 @@ int main(int argc, char *argv[])
     //     started by exec --> use pipe
     
     // int pvm_id = pvm_mytid();
+    int pvmParent;
 
-    if (pvm_parent() != PvmNoParent) {
+    pvmParent = pvm_parent();
+    if (pvmParent == PvmSysErr) {
+	fprintf(stdout, "Unable to connect to PVM daemon, is PVM running?\n");
+	fflush(stdout);
+	exit(-1);
+    }
+    if (pvmParent != PvmNoParent) {
       // started by pvm_spawn
       // TODO -- report error here
       if (!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 0))
@@ -271,6 +307,9 @@ int main(int argc, char *argv[])
 	tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, 
 		       NULL, NULL, false);
 
+	if (cmdLine.size()) {
+	    tp->reportSelf(machine_name, argv[0], getpid(), metPVM);
+	}
       } else if (pid > 0) {
 	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
 	sprintf(errorLine, "PARADYND %d\n", pid);
@@ -298,6 +337,10 @@ int main(int argc, char *argv[])
     initLibraryFunctions();
     if (!init())
       abort();
+
+    if (cmdLine.size()) {
+	 addProcess(cmdLine, envp);
+    }
 
     controllerMainLoop(true);
 }

@@ -5,7 +5,16 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.16  1995/08/05 17:17:12  krisna
+ * Revision 1.17  1995/08/24 15:04:40  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.16  1995/08/05  17:17:12  krisna
  * added lots of missing templates
  *
  * Revision 1.15  1995/05/18  10:42:54  markc
@@ -189,6 +198,8 @@ template class  dictionary_hash <string, unsigned>;
 template class  dictionary_hash <string, vector<pdFunction*>*>;
 template class  dictionary_hash <unsigned, Line>;
 template class  dictionary_hash <unsigned, heapItem*>;
+template class  dictionary_hash <unsigned, cpSample*>;
+
 template class  dictionary_hash <unsigned, metricDefinitionNode*>;
 template class  dictionary_hash <unsigned, pdFunction*>;
 template class  dictionary_hash <unsigned, resource *>;

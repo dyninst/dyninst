@@ -7,14 +7,23 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.19 1995/05/18 10:39:29 markc Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metricDefs-cm5.C,v 1.19 1995/05/18 10:39:29 markc Exp";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.19  1995/05/18 10:39:29  markc
+ * Revision 1.20  1995/08/24 15:04:22  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.19  1995/05/18  10:39:29  markc
  * These are no longer needed
  *
  * Revision 1.18  1995/02/16  08:53:49  markc
@@ -243,6 +252,7 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     return(new AstNode(DataValue, data));
 }
 
+#ifdef notdef
 void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
 {
     dataReqNode *dataPtr = mn->addTimer(processTime);
@@ -281,3 +291,4 @@ void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
       mn->addInst(func->funcEntry(), stopNode, callPreInsn,orderLastAtPoint); 
     } 
 }
+#endif

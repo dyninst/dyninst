@@ -4,7 +4,16 @@
 
 /*
  * $Log: ast.h,v $
- * Revision 1.9  1995/05/18 10:29:58  markc
+ * Revision 1.10  1995/08/24 15:03:45  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.9  1995/05/18  10:29:58  markc
  * Added new opcode DataAddr
  *
  * Revision 1.8  1995/03/10  19:29:13  hollings
@@ -54,20 +63,26 @@ typedef int reg;
 class registerSlot {
  public:
     int number;         // what register is it
-    bool inUse;      // free or in use.
+    bool inUse;      	// free or in use.
+    bool needsSaving;	// been used since last rest
+    bool mustRestore;   // need to restore it before we are done.		
+    bool startsLive;	// starts life as a live register.
 };
 
 class registerSpace {
     public:
-	registerSpace(int count, int *possibles);
-	reg allocateRegister();
+	registerSpace(int dCount, int *deads, int lCount, int *lives);
+	reg allocateRegister(char *insn, unsigned &base);
 	void freeRegister(int reg);
 	void resetSpace();
+	bool isFreeRegister(reg reg_number);
+	int getRegisterCount() { return numRegisters; }
+	registerSlot *getRegSlot(int i) { return (&registers[i]); }
 	bool readOnlyRegister(reg reg_number);
     private:
-	registerSlot *registers;
 	int numRegisters;
 	int highWaterRegister;
+	registerSlot *registers;
 };
 
 class AstNode;

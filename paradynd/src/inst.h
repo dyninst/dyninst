@@ -11,7 +11,16 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.12  1995/05/18 10:37:04  markc
+ * Revision 1.13  1995/08/24 15:04:07  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.12  1995/05/18  10:37:04  markc
  * removed tag dictionary
  *
  * Revision 1.11  1995/03/10  19:30:21  hollings
@@ -193,12 +202,12 @@ pdFunction *getFunction(instPoint *point);
 class instMapping {
  public:
   instMapping(const string f, const string i, const int w, AstNode *a=NULL)
-    : func(f), inst(i), where(w), arg(a) { }
+	: func(f), inst(i), where(w), arg(a) { }
 
   string func;         /* function to instrument */
   string inst;         /* inst. function to place at func */
   int where;          /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
-  AstNode *arg;	    /* what to pass as arg0 */
+  AstNode *arg;	      /* what to pass as arg0 */
 };
 
 /*
@@ -242,7 +251,9 @@ typedef enum { plusOp,
 	       trampTrailer,
 	       noOp,
 	       orOp,
-	       andOp} opCode;
+	       andOp,
+	       getParamOp,
+	       saveRegOp} opCode;
 
 /*
  * Generate an instruction.

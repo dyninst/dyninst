@@ -18,7 +18,16 @@
  * association.C - Manage mapping information (associations)
  *
  * $Log: association.C,v $
- * Revision 1.6  1995/02/16 08:52:45  markc
+ * Revision 1.7  1995/08/24 15:03:42  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.6  1995/02/16  08:52:45  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.5  1995/02/16  08:32:46  markc
@@ -47,7 +56,6 @@
  */
 
 #include "util/h/headers.h"
-
 #include "symtab.h"
 #include "process.h"
 #include "dyninstP.h"

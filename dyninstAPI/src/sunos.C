@@ -1,7 +1,16 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.4  1995/05/18 10:42:12  markc
+ * Revision 1.5  1995/08/24 15:04:34  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.4  1995/05/18  10:42:12  markc
  * Added getruage calls
  *
  * Revision 1.3  1995/02/16  08:54:21  markc
@@ -70,13 +79,16 @@ bool ptraceKludge::haltProcess(process *p) {
 
 bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, char *addr,
 				 int data, char *addr2) {
-  bool halted = haltProcess(p);
+  bool halted;
   bool ret;
+  
+  
+  if (req != PTRACE_DETACH) halted = haltProcess(p);
   if (P_ptrace(req, p->getPid(), addr, data, addr2) == -1)
     ret = false;
   else
     ret = true;
-  continueProcess(p, halted);
+  if (req != PTRACE_DETACH) continueProcess(p, halted);
   return ret;
 }
 
@@ -100,7 +112,10 @@ bool OS::osAttach(pid_t process_id) {
   return (P_ptrace(PTRACE_ATTACH, process_id, 0, 0, 0) != -1);
 }
 
-bool OS::osStop(pid_t pid) { return (P_kill(pid, SIGSTOP) != -1); }
+bool OS::osStop(pid_t pid) { 
+	osAttach(pid);
+	return (P_kill(pid, SIGSTOP) != -1); 
+}
 
 // TODO dump core
 bool OS::osDumpCore(pid_t pid, const string dumpTo) {
@@ -117,10 +132,14 @@ void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0, 0); }
 
 // TODO is this safe here ?
 bool process::continueProc_() {
+  int ret1, ret2;
+
   if (!checkStatus()) 
     return false;
   ptraceOps++; ptraceOtherOps++;
-  return (P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL) != -1);
+  ret1 = P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL);
+  ret2 = P_ptrace(PTRACE_DETACH, pid, (char*)1, 0, (char*)NULL);
+  return (ret1 != -1 && ret2 != -2);
 }
 
 // TODO ??
@@ -209,6 +228,7 @@ bool process::loopUntilStopped() {
       }
     }
   }
+
   return true;
 }
 

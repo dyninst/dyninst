@@ -19,14 +19,23 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.26 1995/08/05 17:14:46 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.27 1995/08/24 15:04:01 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.26  1995/08/05 17:14:46  krisna
+ * Revision 1.27  1995/08/24 15:04:01  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.26  1995/08/05  17:14:46  krisna
  * read the code to find out why
  *
  * Revision 1.25  1995/05/25  20:39:02  markc
@@ -510,8 +519,9 @@ float getPointFrequency(instPoint *point)
       } else {
 	return(250);
       }
-    } else 
+    } else {
       return (funcFrequencyTable[func->prettyName()]);
+    }
 }
 
 //
@@ -585,7 +595,7 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 }
 
 registerSpace *regSpace;
-int regList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
+int deadList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
 
 void initTramps()
 {
@@ -596,7 +606,7 @@ void initTramps()
 
     initATramp(&baseTemplate, (instruction *) baseTramp);
 
-    regSpace = new registerSpace(sizeof(regList)/sizeof(int), regList);
+    regSpace = new registerSpace(sizeof(deadList)/sizeof(int), deadList,					 0, NULL);
 }
 
 /*
@@ -671,7 +681,8 @@ void generateNoOp(process *proc, int addr)
 }
 
 
-unsigned findAndInstallBaseTramp(process *proc, instPoint *location)
+unsigned findAndInstallBaseTramp(process *proc, 
+				 instPoint *location)
 {
     unsigned ret;
     process *globalProc;
@@ -683,12 +694,13 @@ unsigned findAndInstallBaseTramp(process *proc, instPoint *location)
 	globalProc = proc;
     }
     if (!globalProc->baseMap.defines(location)) {
-	ret = inferiorMalloc(globalProc, baseTemplate.size);
+	ret = inferiorMalloc(globalProc, baseTemplate.size, textHeap);
 	installBaseTramp(ret, location, globalProc);
 	generateBranch(globalProc, location->addr, (int) ret);
 	globalProc->baseMap[location] = ret;
-    } else 
-      ret = globalProc->baseMap[location];
+    } else {
+        ret = globalProc->baseMap[location];
+    }
       
     return(ret);
 }
@@ -834,6 +846,11 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	generateNOOP(insn);
 
 	base += 3 * sizeof(instruction);
+
+	// return value is the register with the return value from the
+	//   function.
+	// This needs to be %o0 since it is back in the callers scope.
+	return(8);
     } else if (op ==  trampPreamble) {
         genImmInsn(insn, SAVEop3, 14, -112, 14);
 	base += sizeof(instruction);
@@ -899,6 +916,15 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
     } else if (op == noOp) {
 	generateNOOP(insn);
 	base += sizeof(instruction);
+    } else if (op == getParamOp) {
+	// first 8 parameters are in register 24 ....
+	if (src1 <= 8) {
+	    return(24+src1);
+	}
+	abort();
+    } else if (op == saveRegOp) {
+	// should never be called for this platform.
+	abort();
     } else {
       int op3=-1;
 	switch (op) {
@@ -958,19 +984,6 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 }
 
 //
-// move the passed parameter into the passed register, or if it is already
-//    in a register return the register number.
-//
-reg getParameter(reg dest, int param)
-{
-    if (param <= 8) {
-	return(24+param);
-    }
-    abort();
-    return(-1);
-}
-
-//
 // All values based on Cypress0 && Cypress1 implementations as documented in
 //   SPARC v.8 manual p. 291
 //
@@ -983,9 +996,9 @@ int getInsnCost(opCode op)
 	return(1+1);
     } else if (op ==  storeOp) {
 	// sethi + store single
-	// return(1+3);
+	// return(1+3); 
 	// for SS-5 ?
-        return(1+2);
+	return(1+2); 
     } else if (op ==  ifOp) {
 	// subcc
 	// be
@@ -1017,6 +1030,7 @@ int getInsnCost(opCode op)
 
 	return(count);
     } else if (op ==  trampPreamble) {
+	// save
         // sethi %hi(obsCost), %l0
         // ld [%lo + %lo(obsCost)], %l1
         // add %l1, <cost>, %l1
@@ -1037,7 +1051,7 @@ int getInsnCost(opCode op)
 	    case eqOp:
             case neOp:
 	        // bne -- assume taken
-	        return(3);
+	        return(2);
 	        break;
 
 	    case lessOp:
@@ -1088,3 +1102,81 @@ restore_original_instructions(process* p, instPoint* ip) {
     return;
 }
 
+bool isReturnInsn(const instruction instr)
+{
+    if (isInsnType(instr, RETmask, RETmatch) ||
+        isInsnType(instr, RETLmask, RETLmatch)) {
+        if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12)) {
+	    logLine("*** FATAL Error:");
+	    sprintf(errorLine, " unsupported return\n");
+	    logLine(errorLine);
+	    P_abort();
+        }
+	return true;
+    }
+    return false;
+}
+
+
+// The exact semantics of the heap are processor specific.
+//
+// find all DYNINST symbols that are data symbols
+//
+bool image::heapIsOk(const vector<sym_data> &find_us) {
+  Address curr, instHeapEnd;
+  Symbol sym;
+  string str;
+
+  for (unsigned i=0; i<find_us.size(); i++) {
+    str = find_us[i].name;
+    if (!linkedFile.get_symbol(str, sym)) {
+      string str1 = string("_") + str.string_of();
+      if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
+	char msg[100];
+        sprintf(msg, "Cannot find %s, exiting", str.string_of());
+	statusLine(msg);
+	return false;
+      }
+    }
+    addInternalSymbol(str, sym.addr());
+  }
+
+  string ghb = GLOBAL_HEAP_BASE;
+  if (!linkedFile.get_symbol(ghb, sym)) {
+    ghb = U_GLOBAL_HEAP_BASE;
+    if (!linkedFile.get_symbol(ghb, sym)) {
+      char msg[100];
+      sprintf(msg, "Cannot find %s, exiting", str.string_of());
+      statusLine(msg);
+      return false;
+    }
+  }
+  instHeapEnd = sym.addr();
+  addInternalSymbol(ghb, instHeapEnd);
+  ghb = INFERIOR_HEAP_BASE;
+
+  if (!linkedFile.get_symbol(ghb, sym)) {
+    ghb = UINFERIOR_HEAP_BASE;
+    if (!linkedFile.get_symbol(ghb, sym)) {
+      char msg[100];
+      sprintf(msg, "Cannot find %s, cannot use this application", str.string_of());
+      statusLine(msg);
+      return false;
+    }
+  }
+  curr = sym.addr();
+  addInternalSymbol(ghb, curr);
+  if (curr > instHeapEnd) instHeapEnd = curr;
+
+  // check that we can get to our heap.
+  if (instHeapEnd > getMaxBranch()) {
+    logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
+    sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
+    logLine(errorLine);
+    return false;
+  } else if (instHeapEnd + SYN_INST_BUF_SIZE > getMaxBranch()) {
+    logLine("WARNING: Program text + data could be too big for dyninst\n");
+    return false;
+  }
+  return true;
+}

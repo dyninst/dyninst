@@ -10,7 +10,16 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.18  1995/08/05 17:16:47  krisna
+ * Revision 1.19  1995/08/24 15:04:31  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.18  1995/08/05  17:16:47  krisna
  * (const T *) vs (T * const)
  *
  * Revision 1.17  1995/05/18  10:41:11  markc
@@ -164,7 +173,8 @@ class process {
 public:
 friend class ptraceKludge;
 
-  process() : heapActive(uiHash), baseMap(ipHash), firstRecordTime(0) {
+  process() : dataHeapActive(uiHash), textHeapActive(uiHash),
+	      baseMap(ipHash), firstRecordTime(0) {
     symbols = NULL; traceLink = 0; ioLink = 0;
     status_ = neonatal; pid = 0; thread = 0;
     aggregate = false; rid = 0; parent = NULL;
@@ -184,8 +194,13 @@ friend class ptraceKludge;
   int pid;			/* id of this process */
   int thread;			/* thread id for thread */
   bool aggregate;		/* is this process a pseudo process ??? */
-  dictionary_hash<unsigned, heapItem*> heapActive; // active part of inferior heap 
-  vector<heapItem*> heapFree;  /* free block of inferrior heap */
+  // on some platforms we use one heap for text and data so textHeapFree is not
+  // used.
+  bool splitHeaps;		/* are the inferior heap split I/D ? */
+  dictionary_hash<unsigned, heapItem*> dataHeapActive; // active part of heap 
+  dictionary_hash<unsigned, heapItem*> textHeapActive; // active part of heap 
+  vector<heapItem*> dataHeapFree;  /* free block of data inferrior heap */
+  vector<heapItem*> textHeapFree;  /* free block of text inferrior heap */
   resource *rid;		/* handle to resource for this process */
   process *parent;		/* parent of this proces */
   dictionary_hash<instPoint*, unsigned> baseMap;	/* map and inst point to its base tramp */
@@ -250,12 +265,6 @@ inline process *findProcess(int pid) {
 bool process::detach(const bool paused) {
   bool res;
   assert (res = detach_());
-  // PCptrace(PTRACE_DETACH, proc, (char*) 1, SIGCONT, NULL);
-  if (paused) {
-    OS::osStop(pid);
-    sprintf(errorLine, "detaching process %d leaving it paused\n", pid);
-    logLine(errorLine);
-  }
   return res;
 }
 
@@ -330,8 +339,9 @@ process *allocateProcess(int pid, const string name);
 void initInferiorHeap(process *proc, bool globalHeap);
 void copyInferiorHeap(process *from, process *to);
 
-unsigned inferiorMalloc(process *proc, int size);
-void inferiorFree(process *proc, unsigned pointer);
+typedef enum { textHeap, dataHeap } inferiorHeapType;
+unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type);
+void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type);
 
 extern resource *machineResource;
 

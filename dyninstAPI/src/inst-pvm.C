@@ -3,7 +3,16 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.20  1995/05/18 10:35:23  markc
+ * Revision 1.21  1995/08/24 15:03:59  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.20  1995/05/18  10:35:23  markc
  * Removed tag dictionary
  *
  * Revision 1.19  1995/02/26  22:45:36  markc
@@ -81,7 +90,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.20 1995/05/18 10:35:23 markc Exp $";
+char inst_sunos_ident[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-pvm.C,v 1.20 1995/05/18 10:35:23 markc Exp";
 
 extern "C" {
 #include "pvm3.h"
@@ -162,14 +171,18 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTincrementCounter"] = 16;
     // 240 ns
     primitiveCosts["DYNINSTdecrementCounter"] = 16;
-    // 7.4 usec * 70 mhz (SS-5)
-    primitiveCosts["DYNINSTstartWallTimer"] = 518;
-    // 9.6 usec * 70 mhz (SS-5)
-    primitiveCosts["DYNINSTstopWallTimer"] = 841;
-    // 1.80 usec * 70 Mhz (measured on a SS-5)
-    primitiveCosts["DYNINSTstartProcessTimer"] = 126;
-    // 3.46 usec * 70 mhz (measured on a SS-5)
-    primitiveCosts["DYNINSTstopProcessTimer"] = 242;
+
+    // 23.39 usec * 85 mhz (SS-5)
+    // 20 cycles (DYNINSTstartWallTimer) +  17+8 (getWallTime)
+    primitiveCosts["DYNINSTstartWallTimer"] = 45;
+    // 42 cycles (DYNINSTstopWallTimer) +  2(17+8) (getWallTime)
+    primitiveCosts["DYNINSTstopWallTimer"] = 92;
+    // 1.61 usec * 85 Mhz (measured on a SS-5)
+    // 25 cycles (read clock) +  26 (startProcessTimer)
+    primitiveCosts["DYNINSTstartProcessTimer"] = 51;
+     // 3.38 usec * 85 mhz (measured on a SS-5)
+    // 61 cycles + 2*25 cycles to read clock
+    primitiveCosts["DYNINSTstopProcessTimer"] = 111;
 }
 
 int flushPtrace() {

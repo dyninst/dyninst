@@ -7,14 +7,23 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.26 1995/05/18 10:41:09 markc Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.26 1995/05/18 10:41:09 markc Exp";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.26  1995/05/18 10:41:09  markc
+ * Revision 1.27  1995/08/24 15:04:29  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.26  1995/05/18  10:41:09  markc
  * Changed process dict to process map
  *
  * Revision 1.25  1995/02/26  22:48:50  markc
@@ -159,7 +168,7 @@ vector<process*> processVec;
 string process::programName;
 vector<string> process::arg_list;
 
-void initInferiorHeap(process *proc, bool globalHeap)
+void initInferiorHeap(process *proc, bool globalHeap, bool textHeap)
 {
     heapItem *np;
     bool err;
@@ -167,7 +176,12 @@ void initInferiorHeap(process *proc, bool globalHeap)
     assert(proc->symbols);
 
     np = new heapItem;
-    if (globalHeap) {
+    if (textHeap) {
+	np->addr = 
+	  (proc->symbols)->findInternalAddress("DYNINSTtext", true,err);
+	if (err)
+	  abort();
+    } else if (globalHeap) {
 	np->addr = 
 	  (proc->symbols)->findInternalAddress(GLOBAL_HEAP_BASE, true,err);
 	if (err)
@@ -190,7 +204,11 @@ void initInferiorHeap(process *proc, bool globalHeap)
     }
 
 
-    proc->heapFree += np;
+    if (textHeap) {
+	proc->textHeapFree += np;
+    } else {
+	proc->dataHeapFree += np;
+    }
 }
 
 void copyInferiorHeap(process *from, process *to)
@@ -220,8 +238,10 @@ void copyInferiorHeap(process *from, process *to)
 #endif
 }
 
-unsigned inferiorMalloc(process *proc, int size)
+unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 {
+    vector<heapItem*> *heapFree;
+    dictionary_hash<unsigned, heapItem*> *heapActive;
     heapItem *np=NULL, *newEntry = NULL;
     
     assert(size > 0);
@@ -229,10 +249,18 @@ unsigned inferiorMalloc(process *proc, int size)
     /* 32 bytes on a SPARC */
     size = (size + 0x1f) & ~0x1f; 
 
+    if ((type == textHeap) && (proc->splitHeaps)) {
+	heapFree = &proc->textHeapFree;
+	heapActive = &proc->textHeapActive;
+    } else {
+	heapFree = &proc->dataHeapFree;
+	heapActive = &proc->dataHeapActive;
+    }
+
     int i, foundIndex=-1; bool found=false; 
-    for (i=0; i < proc->heapFree.size(); i++) {
-      if ((proc->heapFree[i])->length >= size) {
-	np = proc->heapFree[i];
+    for (i=0; i < heapFree->size(); i++) {
+      if (((*heapFree)[i])->length >= size) {
+	np = (*heapFree)[i];
 	found = true;
 	foundIndex = i;
 	break;
@@ -254,16 +282,16 @@ unsigned inferiorMalloc(process *proc, int size)
 	newEntry->addr = np->addr + size;
 	
 	// overwrite the old entry
-	proc->heapFree[foundIndex] = newEntry;
+	(*heapFree)[foundIndex] = newEntry;
 
 	/* now split curr */
 	np->length = size;
     } else {
-      i = proc->heapFree.size();
+      i = heapFree->size();
       // copy the last element over this element
       if (foundIndex < (i-1)) {
-	proc->heapFree[foundIndex] = proc->heapFree[i-1];
-	proc->heapFree.resize(i-1);
+	(*heapFree)[foundIndex] = (*heapFree)[i-1];
+	heapFree->resize(i-1);
       } else if (i == 1) {
 	logLine("Inferior heap overflow\n");
 	abort();
@@ -274,17 +302,27 @@ unsigned inferiorMalloc(process *proc, int size)
     np->status = HEAPallocated;
 
     // onto in use list
-    proc->heapActive[np->addr] = np;
+    (*heapActive)[np->addr] = np;
     return(np->addr);
 }
 
-void inferiorFree(process *proc, unsigned pointer)
+void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type)
 {
     heapItem *np;
+    vector<heapItem*> *heapFree;
+    dictionary_hash<unsigned, heapItem*> *heapActive;
 
-    if (!proc->heapActive.defines(pointer))
+    if ((type == textHeap) && (proc->splitHeaps)) {
+	heapFree = &proc->textHeapFree;
+	heapActive = &proc->textHeapActive;
+    } else {
+	heapFree = &proc->dataHeapFree;
+	heapActive = &proc->dataHeapActive;
+    }
+
+    if (!heapActive->defines(pointer))
       abort();
-    np = proc->heapActive[pointer];
+    np = (*heapActive)[pointer];
     proc->freed += np->length;
 #ifdef notdef
     /* free is currently disabled because we can't handle the case of an
@@ -394,6 +432,15 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	    return(NULL);
 	}
 
+#if defined(rs6000_ibm_aix3_2)
+	extern bool establishBaseAddrs(int pid, int &status);
+	int status;
+
+	if (!establishBaseAddrs(pid, status)) {
+	    return(NULL);
+	}
+#endif
+
 	img = image::parseImage(file);
 	if (!img) {
 	    // destroy child process
@@ -407,7 +454,17 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	// sprintf(name, "%s", (char*)img->name);
 	ret = allocateProcess(pid, img->name());
 	ret->symbols = img;
-	initInferiorHeap(ret, false);
+
+	initInferiorHeap(ret, false, false);
+	ret->splitHeaps = false;
+
+#if defined(rs6000_ibm_aix3_2)
+	// XXXX - move this to a machine dependant place.
+
+	// create a seperate text heap.
+	initInferiorHeap(ret, false, true);
+	ret->splitHeaps = true;
+#endif
 
 	ret->status_ = neonatal;
 	ret->traceLink = tracePipe[0];
@@ -415,6 +472,19 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	close(tracePipe[1]);
 	close(ioPipe[1]);
 	statusLine("ready");
+
+#if defined(rs6000_ibm_aix3_2)
+	// XXXX - this is a hack since establishBaseAddrs needed to wait for
+	//    the TRAP signal.
+	// We really need to move most of the above code (esp parse image)
+	//    to the TRAP signal handler.  The problem is that we don't
+	//    know the base addresses until we get the load info via ptrace.
+	//    In general it is even harder, since dynamic libs can be loaded
+	//    at any time.
+	extern int handleSigChild(int pid, int status);
+
+	(void) handleSigChild(pid, status);
+#endif
 	return(ret);
     } else if (pid == 0) {
 #ifdef PARADYND_PVM
@@ -478,6 +548,24 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	  for (int ep=envp.size()-1; ep>=0; ep--)
 	    pvmputenv(envp[ep].string_of());
 #endif
+        // hand off info about how to start a paradynd to the application.
+	//   used to catch rexec calls, and poe events.
+	//
+	char paradynInfo[1024];
+	sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
+	for (i=0; i < process::arg_list.size(); i++) {
+	    char *str;
+
+	    str = process::arg_list[i].string_of();
+	    if (!strcmp(str, "-l1")) {
+		strcat(paradynInfo, "-l0");
+	    } else {
+		strcat(paradynInfo, str);
+	    }
+	    strcat(paradynInfo, " ");
+	}
+	putenv(paradynInfo);
+
 	char **args;
 	args = new char*[argv.size()+1];
 	for (unsigned ai=0; ai<argv.size(); ai++)

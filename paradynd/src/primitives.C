@@ -7,14 +7,23 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.8 1995/02/16 08:53:58 markc Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/primitives.C,v 1.8 1995/02/16 08:53:58 markc Exp";
 #endif
 
 /*
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
- * Revision 1.8  1995/02/16 08:53:58  markc
+ * Revision 1.9  1995/08/24 15:04:28  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.8  1995/02/16  08:53:58  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.7  1995/02/16  08:34:30  markc
@@ -108,7 +117,8 @@ intCounterHandle *createIntCounter(process *proc, int value, bool report)
     ret->proc = proc;
     ret->data.id.aggregate = proc->aggregate;
     ret->data.id.id = counterId++;
-    ret->counterPtr = (intCounter *) inferiorMalloc(proc, sizeof(intCounter));
+    ret->counterPtr = (intCounter *) 
+	inferiorMalloc(proc, sizeof(intCounter), dataHeap);
     ret->data.value = value;
     proc->writeDataSpace((caddr_t) ret->counterPtr, sizeof(intCounter),
 			 (caddr_t) &ret->data);
@@ -144,7 +154,7 @@ int getIntCounterValue(intCounterHandle *handle)
 void freeIntCounter(intCounterHandle *handle)
 {
     if (handle->sampler) deleteInst(handle->sampler);
-    inferiorFree(handle->proc, (unsigned) handle->counterPtr);
+    inferiorFree(handle->proc, (unsigned) handle->counterPtr, dataHeap);
     free(handle);
 }
 
@@ -157,7 +167,8 @@ timerHandle *createTimer(process *proc, timerType type, bool report)
 
     ret = new timerHandle;
     ret->proc = proc;
-    ret->timerPtr = (tTimer *) inferiorMalloc(proc, sizeof(tTimer));
+    ret->timerPtr = (tTimer *) 
+	inferiorMalloc(proc, sizeof(tTimer), dataHeap);
 
     P_memset((void*)&ret->data, (int)'\0', sizeof(tTimer));
     ret->data.id.aggregate = proc->aggregate;
@@ -203,6 +214,6 @@ float getTimerValue(timerHandle *handle)
 void freeTimer(timerHandle *handle)
 {
     deleteInst(handle->sampler);
-    inferiorFree(handle->proc, (unsigned) handle->timerPtr);
+    inferiorFree(handle->proc, (unsigned) handle->timerPtr, dataHeap);
     free(handle);
 }

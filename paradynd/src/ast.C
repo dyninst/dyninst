@@ -1,7 +1,16 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.16  1995/07/11 20:57:29  jcargill
+ * Revision 1.17  1995/08/24 15:03:44  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.16  1995/07/11  20:57:29  jcargill
  * Changed sparc-specific ifdefs to include sparc_tmc_cmost7_3
  *
  * Revision 1.15  1995/05/30  05:04:55  krisna
@@ -66,14 +75,31 @@
 #endif
 #endif
 
-registerSpace::registerSpace(int count, int *possibles) {
+extern registerSpace *regSpace;
+
+registerSpace::registerSpace(int deadCount, int *dead, int liveCount, int *live)
+{
     int i;
 
-    numRegisters = count;
+    numRegisters = deadCount + liveCount;
     registers = new registerSlot[numRegisters];
-    for (i=0; i < count; i++) {
-	registers[i].number = possibles[i];
+
+    // load dead ones
+    for (i=0; i < deadCount; i++) {
+	registers[i].number = dead[i];
 	registers[i].inUse = false;
+	registers[i].mustRestore = false;
+	registers[i].needsSaving = false;
+	registers[i].startsLive = false;
+    }
+
+    // load live ones;
+    for (i=0; i < liveCount; i++) {
+	registers[i+deadCount].number = live[i];
+	registers[i+deadCount].inUse = false;
+	registers[i+deadCount].mustRestore = false;
+	registers[i+deadCount].needsSaving = true;
+	registers[i+deadCount].startsLive = true;
     }
 }
 
@@ -88,16 +114,32 @@ bool registerSpace::readOnlyRegister(reg reg_number) {
 }
 
 
-reg registerSpace::allocateRegister() {
+reg registerSpace::allocateRegister(char *insn, unsigned &base) 
+{
     int i;
     for (i=0; i < numRegisters; i++) {
-	if (!registers[i].inUse) {
+	if (!registers[i].inUse && !registers[i].needsSaving) {
 	    registers[i].inUse = true;
 	    highWaterRegister = (highWaterRegister > i) ? 
 		 highWaterRegister : i;
 	    return(registers[i].number);
 	}
     }
+
+    // now consider ones that need saving
+    for (i=0; i < numRegisters; i++) {
+	if (!registers[i].inUse) {
+	    emit(saveRegOp, registers[i].number, 0, 0, insn, base);
+	    registers[i].inUse = true;
+	    registers[i].mustRestore = true;
+	    // prevent general spill (func call) from saving this register.
+	    registers[i].needsSaving = false;
+	    highWaterRegister = (highWaterRegister > i) ? 
+		 highWaterRegister : i;
+	    return(registers[i].number);
+	}
+    }
+
     abort();
     return(-1);
 }
@@ -112,16 +154,29 @@ void registerSpace::freeRegister(int reg) {
     }
 }
 
+bool registerSpace::isFreeRegister(int reg) {
+    int i;
+    for (i=0; i < numRegisters; i++) {
+	if ((registers[i].number == reg) &&
+	    (registers[i].inUse == true)) {
+	    return false;
+	}
+    }
+    return true;
+}
+
 void registerSpace::resetSpace() {
     int i;
     for (i=0; i < numRegisters; i++) {
 	registers[i].inUse = false;
+	registers[i].mustRestore = false;
+	registers[i].needsSaving = registers[i].startsLive;
     }
     highWaterRegister = 0;
 }
 
 int AstNode::generateTramp(process *proc, char *i, 
-			   unsigned &count,
+			   unsigned &count, 
 			   int trampCost)
 {
     int ret;
@@ -183,7 +238,7 @@ reg AstNode::generateCode(process *proc,
             // sprintf(errorLine,branch forward %d\n", base - fromAddr);
 	} else if (op == storeOp) {
 	    src1 = roperand->generateCode(proc, rs, insn, base);
-	    src2 = rs->allocateRegister();
+	    src2 = rs->allocateRegister(insn, base);
 	    addr = loperand->dValue->getInferiorPtr();
 	    (void) emit(op, src1, src2, (reg) addr, insn, base);
 	    rs->freeRegister(src1);
@@ -214,14 +269,14 @@ reg AstNode::generateCode(process *proc,
 	    rs->freeRegister(src);
 
 	    if ((right_dest != -1) && rs->readOnlyRegister(right_dest))
-	      dest = rs->allocateRegister();
+	      dest = rs->allocateRegister(insn, base);
 	    else
 	      dest = right_dest;
 
 	    (void) emit(op, src, right_dest, dest, insn, base);
 	}
     } else if (type == operandNode) {
-	dest = rs->allocateRegister();
+	dest = rs->allocateRegister(insn, base);
 	if (oType == Constant) {
 	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base);
 	} else if (oType == ConstantPtr) {
@@ -239,11 +294,12 @@ reg AstNode::generateCode(process *proc,
 		(void) emit(loadOp, (reg) addr, dest, dest, insn, base);
 	    }
 	} else if (oType == Param) {
-	    // src = rs->allocateRegister();
-	    dest = getParameter(src, (int) oValue);
-	    // if (src != dest) {
-	    // rs->freeRegister(src);
-	    // }
+	    src = rs->allocateRegister(insn, base);
+	    // return the actual reg it is in.
+	    dest = emit(getParamOp, oValue, 0, src, insn, base);
+	    if (src != dest) {
+		rs->freeRegister(src);
+	    }
 	} else if (oType == DataAddr) {
 	  addr = (unsigned) oValue;
 	  emit(loadOp, (reg) addr, dest, dest, insn, base);
@@ -275,10 +331,7 @@ reg AstNode::generateCode(process *proc,
 	} else {
 	    src2 = -1;
 	}
-	(void) emit(callOp, src1, src2, (int) addr, insn, base);
-
-	// TODO -- this is a test, caller out[0]/ callee in[0] has result
-	dest = 8;
+	dest = emit(callOp, src1, src2, (int) addr, insn, base);
     } else if (type == sequenceNode) {
 	loperand->generateCode(proc, rs, insn, base);
 	return(roperand->generateCode(proc, rs, insn, base));

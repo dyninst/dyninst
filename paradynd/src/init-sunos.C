@@ -1,7 +1,16 @@
 
 /*
  * $Log: init-sunos.C,v $
- * Revision 1.3  1995/05/18 10:33:50  markc
+ * Revision 1.4  1995/08/24 15:03:54  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.3  1995/05/18  10:33:50  markc
  * Removed resource predicate definitions
  * Removed metric defintions
  *
@@ -23,6 +32,7 @@
 
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode tagArg(Param, (void *) 1);
+static AstNode cmdArg(Param, (void *) 4);
 
 bool initOS() {
 
@@ -56,6 +66,8 @@ bool initOS() {
 				 FUNC_ENTRY|FUNC_ARG, &tagArg);
   initialRequests += new instMapping("CMMD_receive_async", "DYNINSTrecordTag",
 				 FUNC_ENTRY|FUNC_ARG, &tagArg);
+  initialRequests += new instMapping("rexec", "DYNINSTrexec",
+				 FUNC_ENTRY|FUNC_ARG, &cmdArg);
 
   return true;
 };

@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18 1995/05/18 10:32:35 markc Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18 1995/05/18 10:32:35 markc Exp";
 #endif
 
 
@@ -27,7 +27,16 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.18  1995/05/18 10:32:35  markc
+ * Revision 1.19  1995/08/24 15:03:48  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.18  1995/05/18  10:32:35  markc
  * Replaced process dict with process map
  * Get metric definitions from two locations (internal, and mdl)
  *
@@ -217,11 +226,11 @@ void dynRPC::resourceInfoResponse(vector<string> resource_name, u_int resource_i
 }
 
 // TODO -- startCollecting  Returns -1 on failure ?
-int dynRPC::enableDataCollection(vector<u_int> focus, string met)
+int dynRPC::enableDataCollection(vector<u_int> focus, string met, int gid)
 {
     int id;
     totalInstTime.start();
-    id = startCollecting(met, focus);
+    id = startCollecting(met, focus, gid);
     totalInstTime.stop();
     // cout << "Enabled " << met << " = " << id << endl;
     return(id);

@@ -2,7 +2,16 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.47  1995/08/20 03:35:55  newhall
+ * Revision 1.48  1995/08/24 15:02:02  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ * Revision 1.47  1995/08/20  03:35:55  newhall
  * changed parameters to DM_sequential_init, added set and clear persistent
  * data and persistent collection flags
  *
@@ -289,7 +298,7 @@ struct controlCallback {
 typedef struct controlCallback controlCallback;
 
 $remote dataManager {
-    $base 2000;
+    $base 2500;
     $version 24;
 
     //

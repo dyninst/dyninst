@@ -1,4 +1,17 @@
 
+/*
+ * $Log: mdld.h,v $
+ * Revision 1.2  1995/08/24 15:04:16  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
+ *
+ */
 #if !defined(mdl_daemon_hdr)
 #define mdl_daemon_hdr
 

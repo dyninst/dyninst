@@ -3,8 +3,8 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Log: make.module.tmpl,v $
-# Revision 1.5  1995/05/30 22:16:30  krisna
+# make.module.tmpl,v
+# Revision 1.5  1995/05/30  22:16:30  krisna
 # moved arch-os specific sources to appropriate directory
 #
 # Revision 1.4  1995/05/18  10:46:08  markc
@@ -35,6 +35,8 @@ SRCS	     += ../src/association.C \
 		../src/inst.C \
 		../src/main.C \
 		../src/metric.C \
+		../src/metricDefs-common.C \
+		../src/metricDefs-critPath.C \
 		../src/perfStream-def.C \
 		../src/perfStream.C \
 		../src/primitives.C \

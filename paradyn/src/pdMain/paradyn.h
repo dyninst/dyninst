@@ -1,7 +1,16 @@
 /* $Log: paradyn.h,v $
-/* Revision 1.12  1995/08/12 22:27:37  newhall
-/* moved def. of init_struct to dataManager.I
+/* Revision 1.13  1995/08/24 15:02:57  hollings
+/* AIX/SP-2 port (including option for split instruction/data heaps)
+/* Tracing of rexec (correctly spawns a paradynd if needed)
+/* Added rtinst function to read getrusage stats (can now be used in metrics)
+/* Critical Path
+/* Improved Error reporting in MDL sematic checks
+/* Fixed MDL Function call statement
+/* Fixed bugs in TK usage (strings passed where UID expected)
 /*
+ * Revision 1.12  1995/08/12  22:27:37  newhall
+ * moved def. of init_struct to dataManager.I
+ *
  * Revision 1.11  1995/06/02  20:56:00  newhall
  * made code compatable with new DM interface
  *
@@ -60,12 +69,13 @@ typedef struct CLargStruct CLargStruct;
 
 /* common MSG TAG definitions */
 
-#define MSG_TAG_UIM_READY 1001
-#define MSG_TAG_DM_READY 1002
-#define MSG_TAG_VM_READY 1003
-#define MSG_TAG_PC_READY 1004
-#define MSG_TAG_ALL_CHILDREN_READY 1005
-#define MSG_TAG_TC_READY 1006
+/* changed these to be MSG_TAG_USERrelative (for AIX) jkh 8/14/95 */
+#define MSG_TAG_UIM_READY MSG_TAG_USER+1
+#define MSG_TAG_DM_READY MSG_TAG_USER+2
+#define MSG_TAG_VM_READY MSG_TAG_USER+3
+#define MSG_TAG_PC_READY MSG_TAG_USER+4
+#define MSG_TAG_ALL_CHILDREN_READY MSG_TAG_USER+5
+#define MSG_TAG_TC_READY MSG_TAG_USER+6
 
 extern thread_t UIMtid;
 extern thread_t MAINtid;

@@ -629,7 +629,7 @@ dag::AddEStyle (int styleID, int arrow, int ashape1, int ashape2, int ashape3,
       strcpy(eStylePtr->stipple, "");
     else {
       Pixmap stip;
-      stip = Tk_GetBitmap (interp, tkwin, stipple);
+      stip = Tk_GetBitmap (interp, tkwin, Tk_GetUid(stipple));
       if (stip == None) {
 	delete eStylePtr;
 	return 0;
@@ -641,7 +641,7 @@ dag::AddEStyle (int styleID, int arrow, int ashape1, int ashape2, int ashape3,
       strcpy(eStylePtr->fill, "black");
     else {
       XColor *col;
-      col = Tk_GetColor (interp, tkwin, fill);
+      col = Tk_GetColor (interp, tkwin, Tk_GetUid(fill));
       if (col == NULL) {
 	delete eStylePtr;
 	return 0;
@@ -692,7 +692,7 @@ dag::AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
       strcpy(nStylePtr->bg, "yellow");
     else {
       XColor *col;
-      col = Tk_GetColor (interp, tkwin, bg);
+      col = Tk_GetColor (interp, tkwin, Tk_GetUid(bg));
       if (col == NULL) {
 	delete nStylePtr;
 	return 0;
@@ -704,7 +704,7 @@ dag::AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
       strcpy(nStylePtr->outline, "black");
     else {
       XColor *col;
-      col = Tk_GetColor (interp, tkwin, outline);
+      col = Tk_GetColor (interp, tkwin, Tk_GetUid(outline));
       if (col == NULL) {
 	delete nStylePtr;
 	return 0;
@@ -728,7 +728,7 @@ dag::AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
       strcpy(nStylePtr->text, "black");
     else {
       XColor *col;
-      col = Tk_GetColor (interp, tkwin, text);
+      col = Tk_GetColor (interp, tkwin, Tk_GetUid(text));
       if (col == NULL) {
 	delete nStylePtr;
 	return 0;
@@ -746,8 +746,11 @@ dag::AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
       strcpy(nStylePtr->font, "-Adobe-times-medium-r-normal--*-100*");
     else
       strcpy (nStylePtr->font, font);
+
+    /* - MUST call Tk_GetUid(...) - jkh 5/24/95 */
     nStylePtr->fontstruct = Tk_GetFontStruct (interp, tkwin, 
-					      nStylePtr->font);
+					      Tk_GetUid(nStylePtr->font));
+
     if (nStylePtr->fontstruct == NULL)   {  /* not a valid font */
       delete nStylePtr;
       return ERR_NST_BADFONT;
