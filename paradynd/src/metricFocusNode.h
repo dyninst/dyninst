@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.83 2001/11/27 17:40:28 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.84 2001/11/27 22:35:26 gurari Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -929,6 +929,10 @@ public:
   void markAsDeferred() {  
     assert(getMdnType()==PRIM_MDN);
     instrDeferred_ = true;
+  }
+  void unmarkAsDeferred() {
+    assert(getMdnType()==PRIM_MDN);
+    instrDeferred_ = false;
   }
   bool isInitialActualValueSet() { return !mdnInitActualVal.isNaN(); }
   bool isStartTimeSet()    { return mdnStartTime.isInitialized(); }

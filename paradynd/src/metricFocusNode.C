@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.208 2001/11/27 17:40:29 schendel Exp $
+// $Id: metricFocusNode.C,v 1.209 2001/11/27 22:35:25 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -1966,6 +1966,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
     }
 
     mi->id_ = id;
+
 #if defined(MT_THREAD)
     mi->propagateId(id);
 #endif
@@ -1974,8 +1975,9 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
     sprintf(errorLine,"-----> in startCollecting, id=%d\n",mi->id_);
     logLine(errorLine);
 #endif
-
-    assert(!allMIs.defines(mi->id_));
+    // No longer assert -- if we're retrying instrumentation, then
+    // the MDN may already exist. 
+    //assert(!allMIs.defines(mi->id_));
     allMIs[mi->id_] = mi;
 
     const timeLength cost = mi->cost();
@@ -2030,16 +2032,17 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
         pd_Function *func = NULL;
 	bool inserted = mi->insertInstrumentation(&func);
 
-        // Silence warnings
-        assert(ret || true);
-        assert(inserted || true);
- 
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) 
+	// Instrumentation insertion may have failed. We should handle this case
+	// better than an assert. Currently we handle the case where (on x86) we
+	// couldn't insert the instrumentation due to relocation failure (deferred
+	// instrumentation). If it's deferred, come back later. 
+
         if(inserted == false) {
+
           // instrumentation was deferred
           if (mi->hasDeferredInstr()) {
             ret = mi->id_;            
-         
+
             // Check if we have already created the defInst object for 
             // instrumenting the function later 
             bool previouslyDeferred = false;
@@ -2055,8 +2058,9 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
                   instrumentationToDo[i]->func()->setRelocatable(false);
 		}
 
+                // latest attempt to insert instrumentation failed.
                 ret = 0;
-	        continue;
+	        break;
 	      }
 	    }
 
@@ -2067,20 +2071,24 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
               defInst *di = new defInst(metric_name, focus, id, func, 1000);
               instrumentationToDo.push_back(di);
   	    }
-	  }
 
+	    // Don't delete the metricDefinitionNode because we want to
+	    // reuse it later. 
+	    return ret;
+	  } // end deferred handling
+	  // Instrumentation failed for an unknown reason. Very bad case.
+	  else {
+	    assert(false);
           // disable remnants of failed attempt to instrument function
-
-          allMIs.undef(mi->id_);
-          assert(!allMIs.defines(mi->id_));
-
-          mi->disable();
-          delete mi;
-          return ret;
+	    
+	    allMIs.undef(mi->id_);
+	    assert(!allMIs.defines(mi->id_));
+	    
+	    mi->disable();
+	    delete mi;
+	    return ret;
+	  }
 	}
-#endif
-
-	// calls pause and unpause (this could be a bug, since the next line should be allowed to execute before the unpause!!!)
 
 	mi->checkAndInstallInstrumentation();
 
@@ -2094,8 +2102,9 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	// Adjust mi's manuallyTrigger fields to try to execute function entry
 	// and call site instrumentation according to the program stack....
 	//cerr << " (startCollecting) about to call mi->adjustManuallyTrigger" << endl;
-	if (!alreadyThere) // trigger only if it is fresh request
+	if (!alreadyThere) { // trigger only if it is fresh request
 	  mi->adjustManuallyTrigger();
+	}
         else {
 	  if (pd_debug_catchup)
 	    cerr << "SKIPPED  adjustManuallyTrigger for "
@@ -2403,6 +2412,7 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
       bool aCompWasDeferred = false;
       for (u1=0; u1<c_size; u1++) {
 	metricDefinitionNode *thisComp = components[u1];
+        thisComp->unmarkAsDeferred();
         if(aCompWasDeferred == true)
 	  thisComp->markAsDeferred();
 	else {
@@ -2460,6 +2470,7 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
       // Loop thru "instRequests", an array of instReqNode:
       // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
       unsigned int inst_size = instRequests.size();
+
       for (u1=0; u1<inst_size; u1++) {
 	  // code executed later (adjustManuallyTrigger) may also manually trigger 
 	  // the instrumentation via inferiorRPC.
@@ -2467,6 +2478,7 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
 	  bool deferredFlag = false;
 	  if (!instRequests[u1].insertInstrumentation(proc_, retInst, 
                                                       &deferredFlag)) {
+            unmarkAsDeferred();
             if (deferredFlag == true) {
 	      *func = dynamic_cast<pd_Function *>(
                        const_cast<function_base *>(
@@ -3609,6 +3621,7 @@ void metricDefinitionNode::updateValue(timeStamp sampleTime, pdSample value)
   sampleVal_cerr << "updateValue() - mdn: " << this << ", " 
 		 << getFullName() << "value: " << value << ", cumVal: " 
 		 << cumulativeValue << "\n";
+
   if(hasDeferredInstr()) {
     sampleVal_cerr << "returning since has deferred instrumentation\n";
     return;
