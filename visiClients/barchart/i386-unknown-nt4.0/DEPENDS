@@ -1,53 +1,53 @@
 tkTools.obj: ../../../paradyn/src/UIthread/tkTools.C \
- ../../../paradyn/src/UIthread/minmax.h ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h \
+ ../../../paradyn/src/UIthread/minmax.h ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h \
  ../../../paradyn/src/UIthread/tkTools.h \
- ../../../util/h/String.h ../../../util/h/debugOstream.h \
- ../../../util/h/refCounter.h
+ ../../../common/h/String.h ../../../common/h/debugOstream.h \
+ ../../../common/h/refCounter.h
 pdLogo.obj: ../../../paradyn/src/UIthread/pdLogo.C \
- ../../../paradyn/src/UIthread/pdLogo.h ../../../util/h/Dictionary.h \
- ../../../util/h/Vector.h ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/refCounter.h \
+ ../../../paradyn/src/UIthread/pdLogo.h ../../../common/h/Dictionary.h \
+ ../../../common/h/Vector.h ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../common/h/refCounter.h \
  ../../../paradyn/src/UIthread/tkTools.h
 minmax.obj: ../../../paradyn/src/UIthread/minmax.C \
  ../../../paradyn/src/UIthread/minmax.h
-barChart.obj: ../src/barChart.C ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/pdsocket.h \
+barChart.obj: ../src/barChart.C ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../pdutil/h/pdsocket.h \
  ../../../visi/h/visualization.h ../../../visi/h/visiTypes.h \
- ../src/barChart.h ../../../util/h/Vector.h ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/refCounter.h \
+ ../src/barChart.h ../../../common/h/Vector.h ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/refCounter.h \
  ../../../paradyn/src/UIthread/tkTools.h ../src/barChartUtil.h \
  ../src/dg2.h ../src/barChartTcl.h
-barChartTcl.obj: ../src/barChartTcl.C ../../../util/h/Vector.h \
- ../../../util/h/String.h ../../../util/h/debugOstream.h \
- ../../../util/h/headers.h ../../../util/h/ntHeaders.h \
- ../../../util/h/refCounter.h ../../../util/h/pdsocket.h \
+barChartTcl.obj: ../src/barChartTcl.C ../../../common/h/Vector.h \
+ ../../../common/h/String.h ../../../common/h/debugOstream.h \
+ ../../../common/h/headers.h ../../../common/h/ntHeaders.h \
+ ../../../common/h/refCounter.h ../../../pdutil/h/pdsocket.h \
  ../src/dg2.h \
  ../../../visi/h/visualization.h ../../../visi/h/visiTypes.h \
  ../src/barChart.h ../../../paradyn/src/UIthread/tkTools.h \
  ../src/barChartUtil.h
-barChartDriver.obj: ../src/barChartDriver.C ../../../util/h/Ident.h \
- ../../../util/h/String.h ../../../util/h/debugOstream.h \
- ../../../util/h/headers.h ../../../util/h/ntHeaders.h \
- ../../../util/h/refCounter.h \
+barChartDriver.obj: ../src/barChartDriver.C ../../../common/h/Ident.h \
+ ../../../common/h/String.h ../../../common/h/debugOstream.h \
+ ../../../common/h/headers.h ../../../common/h/ntHeaders.h \
+ ../../../common/h/refCounter.h \
  ../../../paradyn/src/UIthread/tkTools.h \
- ../../../paradyn/src/UIthread/pdLogo.h ../../../util/h/Dictionary.h \
- ../../../util/h/Vector.h ../../../paradyn/xbm/logo.xbm ../src/dg2.h \
+ ../../../paradyn/src/UIthread/pdLogo.h ../../../common/h/Dictionary.h \
+ ../../../common/h/Vector.h ../../../paradyn/xbm/logo.xbm ../src/dg2.h \
  ../src/barChartTcl.h ../src/barChartUtil.h
-dg2.obj: ../src/dg2.C ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/pdsocket.h \
- ../../../util/h/pddesc.h \
- ../../../paradyn/src/UIthread/tkTools.h ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/refCounter.h \
+dg2.obj: ../src/dg2.C ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../pdutil/h/pdsocket.h \
+ ../../../pdutil/h/pddesc.h \
+ ../../../paradyn/src/UIthread/tkTools.h ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/refCounter.h \
  ../src/dg2.h ../../../visi/h/visualization.h \
  ../../../visi/h/visiTypes.h ../src/barChartTcl.h ../src/barChart.h \
- ../../../util/h/Vector.h ../src/barChartUtil.h
+ ../../../common/h/Vector.h ../src/barChartUtil.h
 templates.obj: ../src/templates.C ../../../paradyn/src/UIthread/pdLogo.h \
- ../../../util/h/Dictionary.h ../../../util/h/Vector.h \
- ../../../util/h/String.h ../../../util/h/debugOstream.h \
- ../../../util/h/headers.h ../../../util/h/ntHeaders.h \
- ../../../util/h/refCounter.h ../../../paradyn/src/UIthread/tkTools.h \
- ../../../util/src/Dictionary.C ../../../paradyn/src/UIthread/minmax.C \
+ ../../../common/h/Dictionary.h ../../../common/h/Vector.h \
+ ../../../common/h/String.h ../../../common/h/debugOstream.h \
+ ../../../common/h/headers.h ../../../common/h/ntHeaders.h \
+ ../../../common/h/refCounter.h ../../../paradyn/src/UIthread/tkTools.h \
+ ../../../common/src/Dictionary.C ../../../paradyn/src/UIthread/minmax.C \
  ../../../paradyn/src/UIthread/minmax.h
 tcl2c.obj: tcl2c.C

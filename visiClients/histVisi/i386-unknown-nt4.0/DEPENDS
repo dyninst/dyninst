@@ -1,82 +1,82 @@
 tkTools.obj: ../../../paradyn/src/UIthread/tkTools.C \
- ../../../paradyn/src/UIthread/minmax.h ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h \
+ ../../../paradyn/src/UIthread/minmax.h ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h \
  ../../../paradyn/src/UIthread/tkTools.h \
  ../../../tclStuff/include/tcl.h ../../../tclStuff/include/tk.h \
- ../../../util/h/String.h ../../../util/h/debugOstream.h \
- ../../../util/h/refCounter.h
+ ../../../common/h/String.h ../../../common/h/debugOstream.h \
+ ../../../common/h/refCounter.h
 pdLogo.obj: ../../../paradyn/src/UIthread/pdLogo.C \
- ../../../paradyn/src/UIthread/pdLogo.h ../../../util/h/Dictionary.h \
- ../../../util/h/Vector.h ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/refCounter.h \
+ ../../../paradyn/src/UIthread/pdLogo.h ../../../common/h/Dictionary.h \
+ ../../../common/h/Vector.h ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../common/h/refCounter.h \
  ../../../paradyn/src/UIthread/tkTools.h \
  ../../../tclStuff/include/tcl.h ../../../tclStuff/include/tk.h
-DGClient.obj: ../src/DGClient.C ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../tclStuff/include/tcl.h \
+DGClient.obj: ../src/DGClient.C ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../tclStuff/include/tcl.h \
  ../../../tclStuff/include/tk.h ../src/DGClient.h \
- ../../../util/h/pdsocket.h ../../../visi/h/visualization.h \
+ ../../../pdutil/h/pdsocket.h ../../../visi/h/visualization.h \
  ../../../visi/h/visiTypes.h
-HistVisi.obj: ../src/HistVisi.C ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/pdsocket.h \
- ../../../util/h/pddesc.h ../../../tclStuff/include/tcl.h \
+HistVisi.obj: ../src/HistVisi.C ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../pdutil/h/pdsocket.h \
+ ../../../pdutil/h/pddesc.h ../../../tclStuff/include/tcl.h \
  ../../../tclStuff/include/tk.h \
- ../../../paradyn/src/UIthread/tkTools.h ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/refCounter.h \
- ../../../util/h/Dictionary.h ../../../util/h/Vector.h \
+ ../../../paradyn/src/UIthread/tkTools.h ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/refCounter.h \
+ ../../../common/h/Dictionary.h ../../../common/h/Vector.h \
  ../src/Histogram.h ../src/PDGraph.h ../src/DGClient.h \
  ../../../visi/h/visiTypes.h ../../../visi/h/visualization.h \
  ../src/HistVisi.h ../../../paradyn/src/UIthread/pdLogo.h \
  ../../../paradyn/xbm/logo.xbm
 init-nt.obj: ../src/init-nt.C
-init.obj: ../src/init.C ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/refCounter.h \
+init.obj: ../src/init.C ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../common/h/refCounter.h \
  ../../../tclStuff/include/tcl.h ../../../tclStuff/include/tk.h \
- ../../../util/h/Vector.h ../../../util/h/Dictionary.h \
+ ../../../common/h/Vector.h ../../../common/h/Dictionary.h \
  ../src/Histogram.h ../src/PDGraph.h
 main-nt.obj: ../src/main-nt.C
-main.obj: ../src/main.C ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../tclStuff/include/tcl.h \
+main.obj: ../src/main.C ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../tclStuff/include/tcl.h \
  ../../../tclStuff/include/tk.h \
- ../../../paradyn/src/UIthread/tkTools.h ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/refCounter.h \
- ../../../util/h/Ident.h ../../../visi/h/visiTypes.h \
- ../../../util/h/Vector.h ../src/Histogram.h ../src/DGClient.h \
+ ../../../paradyn/src/UIthread/tkTools.h ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/refCounter.h \
+ ../../../common/h/Ident.h ../../../visi/h/visiTypes.h \
+ ../../../common/h/Vector.h ../src/Histogram.h ../src/DGClient.h \
  ../src/HistVisi.h
-PDGData.obj: ../src/PDGData.C ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/refCounter.h \
+PDGData.obj: ../src/PDGData.C ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../common/h/refCounter.h \
  ../../../tclStuff/include/tcl.h ../../../tclStuff/include/tk.h \
- ../../../util/h/Dictionary.h ../../../util/h/Vector.h \
+ ../../../common/h/Dictionary.h ../../../common/h/Vector.h \
  ../src/PDGraph.h
-PDGraph.obj: ../src/PDGraph.C ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/refCounter.h \
+PDGraph.obj: ../src/PDGraph.C ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../common/h/refCounter.h \
  ../../../tclStuff/include/tcl.h ../../../tclStuff/include/tk.h \
- ../../../util/h/Dictionary.h ../../../util/h/Vector.h \
+ ../../../common/h/Dictionary.h ../../../common/h/Vector.h \
  ../src/PDGraph.h ../../../paradyn/src/UIthread/minmax.h \
- ../../../paradyn/src/UIthread/minmax.C ../../../util/src/Dictionary.C
-PDGTimeAxis.obj: ../src/PDGTimeAxis.C ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/refCounter.h \
+ ../../../paradyn/src/UIthread/minmax.C ../../../common/src/Dictionary.C
+PDGTimeAxis.obj: ../src/PDGTimeAxis.C ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../common/h/refCounter.h \
  ../../../tclStuff/include/tcl.h ../../../tclStuff/include/tk.h \
- ../../../util/h/Dictionary.h ../../../util/h/Vector.h \
+ ../../../common/h/Dictionary.h ../../../common/h/Vector.h \
  ../src/PDGraph.h
-PDGValueAxis.obj: ../src/PDGValueAxis.C ../../../util/h/String.h \
- ../../../util/h/debugOstream.h ../../../util/h/headers.h \
- ../../../util/h/ntHeaders.h ../../../util/h/refCounter.h \
+PDGValueAxis.obj: ../src/PDGValueAxis.C ../../../common/h/String.h \
+ ../../../common/h/debugOstream.h ../../../common/h/headers.h \
+ ../../../common/h/ntHeaders.h ../../../common/h/refCounter.h \
  ../../../tclStuff/include/tcl.h ../../../tclStuff/include/tk.h \
- ../../../util/h/Dictionary.h ../../../util/h/Vector.h \
+ ../../../common/h/Dictionary.h ../../../common/h/Vector.h \
  ../src/PDGraph.h ../../../paradyn/src/UIthread/minmax.h \
  ../../../paradyn/src/UIthread/minmax.C
-templates.obj: ../src/templates.C ../../../util/h/Vector.h \
- ../../../util/h/String.h ../../../util/h/debugOstream.h \
- ../../../util/h/headers.h ../../../util/h/ntHeaders.h \
- ../../../util/h/refCounter.h ../../../paradyn/src/UIthread/minmax.C \
+templates.obj: ../src/templates.C ../../../common/h/Vector.h \
+ ../../../common/h/String.h ../../../common/h/debugOstream.h \
+ ../../../common/h/headers.h ../../../common/h/ntHeaders.h \
+ ../../../common/h/refCounter.h ../../../paradyn/src/UIthread/minmax.C \
  ../../../paradyn/src/UIthread/minmax.h \
- ../../../paradyn/src/UIthread/pdLogo.h ../../../util/h/Dictionary.h \
+ ../../../paradyn/src/UIthread/pdLogo.h ../../../common/h/Dictionary.h \
  ../../../paradyn/src/UIthread/tkTools.h \
  ../../../tclStuff/include/tcl.h ../../../tclStuff/include/tk.h \
- ../../../util/src/Dictionary.C
+ ../../../common/src/Dictionary.C
 tcl2c.obj: tcl2c.C ../../../tclStuff/include/tcl.h
