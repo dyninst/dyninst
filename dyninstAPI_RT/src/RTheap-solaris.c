@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-solaris.c,v 1.5 2000/03/04 01:29:21 zandy Exp $ */
+/* $Id: RTheap-solaris.c,v 1.6 2000/08/07 00:57:50 wylie Exp $ */
 /* RTheap-solaris.c: Solaris-specific heap components */
 
 #include <stdlib.h>
@@ -73,9 +73,10 @@ RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi)
   /* We do not save footprint space by allocating in
      the user's heap on this platform, so we stay out of it. */
   return RT_FALSE;
-#endif
+#else
   if (lo_addr <= sbrk_addr + 0x800000) return RT_TRUE;
   return RT_FALSE;
+#endif
 }
 
 int DYNINSTheap_mmapFdOpen(void)

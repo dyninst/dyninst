@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.2 2000/06/20 22:39:44 wylie Exp $
+// $Id: inst-linux.C,v 1.3 2000/08/07 00:55:48 wylie Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -142,6 +142,7 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportNewTags"] = 40; 
 }
 
+#ifndef BPATCH_LIBRARY
 /*
  * Define the various classes of library functions to inst. 
  *
@@ -187,7 +188,6 @@ void initLibraryFunctions()
 #endif
 }
  
-#ifndef BPATCH_LIBRARY
 float computePauseTimeMetric(const metricDefinitionNode *) {
     // we don't need to use the metricDefinitionNode
     timeStamp now;

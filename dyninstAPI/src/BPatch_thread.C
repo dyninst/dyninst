@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.36 2000/07/12 17:55:57 buck Exp $
+// $Id: BPatch_thread.C,v 1.37 2000/08/07 00:55:35 wylie Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -67,10 +67,10 @@ int BPatch_thread::getPid()
 
 static void insertVForkInst(BPatch_thread *thread)
 {
-#ifndef i386_unknown_nt4_0
     BPatch_image *appImage = thread->getImage();
     if (!appImage) return;
 
+#ifndef i386_unknown_nt4_0
     BPatch_function *vforkFunc = appImage->findFunction("DYNINSTvfork");
     BPatch_Vector<BPatch_point *> *points =
       appImage->findProcedurePoint("vfork", BPatch_exit);
@@ -203,7 +203,7 @@ BPatch_thread::BPatch_thread(char *path, int pid)
  * parentPid          Pathname of the executable file for the process.
  * childPid           Process ID of the target process.
  */
-BPatch_thread::BPatch_thread(int pid, process *nProc)
+BPatch_thread::BPatch_thread(int /*pid*/, process *nProc)
   : proc(nProc), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
     createdViaAttach(true), detached(false), waitingForOneTimeCode(false),
     unreportedStop(false), unreportedTermination(false)
@@ -1154,7 +1154,7 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 			FileLineInformation* fInfo = 
 				lineInformation->lineInformationList[j];
 			if(fInfo->getLineFromAddr(*fileN,lineNo,addr,true,false)){
-				if(fileN->length() < size)
+				if(fileN->length() < (unsigned)size)
 					size = fileN->length();
 				strncpy(fileName,fileN->string_of(),size);
 				fileName[size] = '\0';

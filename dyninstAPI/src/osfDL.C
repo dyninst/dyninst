@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.13 2000/07/28 17:21:16 pcroth Exp $
+// $Id: osfDL.C,v 1.14 2000/08/07 00:56:01 wylie Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -347,22 +347,25 @@ void process::handleIfDueToDyninstLib()
   delete [] (char*)savedRegs;
   savedRegs = NULL;
 
+#ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
+  const char *DyninstEnvVar="DYNINSTAPI_RT_LIB";
+  const char *DyninstLibName="libdyninstAPI_RT";
+#else
+  const char *DyninstEnvVar="PARADYN_LIB";
+  const char *DyninstLibName="libdyninstRT";
+#endif
+
   (void) findInternalAddress("DYNINSTbreakPoint", false, err);
   if (!err) {
-      // found the library alread
-      string msg = string("Do not statically link libdyninstRT.\n"
-	"   Use DYNINSTAPI_RT_LIB environment variable to specify lib.");
+      // found the library already
+      string msg = string("Do not statically link ") + string(DyninstLibName) 
+                 + string(.\n   Use ")               + string(DyninstEnvVar) 
+                 + string(" environment variable to specify library.");
       showErrorCallback(101, msg);
-      exit(0);
       return;
   }
 
   hasLoadedDyninstLib = true;
-#ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
-  const char *DyninstEnvVar="DYNINSTAPI_RT_LIB";
-#else
-  const char *DyninstEnvVar="PARADYN_LIB";
-#endif
 
   if (dyninstName.length()) {
     // use the library name specified on the start-up command-line

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.3 1999/11/11 00:55:03 wylie Exp $
+ * $Id: RTwinnt.c,v 1.4 2000/08/07 01:00:21 wylie Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 
@@ -50,15 +50,7 @@
 #include <windows.h>
 #include <mmsystem.h>
 #include <errno.h>
-
-#ifdef CONTROLLER_FD
-#undef CONTROLLER_FD
-static HANDLE CONTROLLER_FD;
-#endif
-
-static HANDLE DYNINSTprocHandle;
-
-
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /************************************************************************
  * void DYNINSTbreakPoint(void)
@@ -73,11 +65,7 @@ DYNINSTbreakPoint(void) {
 }
 
 
-void DYNINSTos_init(int calledFromFork, int calledFromAttach, int paradyndAddr)
+void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
-  unsigned ioCookie = 0x33333333;
-  unsigned pid = GetCurrentProcessId();
-  unsigned ppid = paradyndAddr;
-  DYNINSTprocHandle = GetCurrentProcess();
+  RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
 }
-
