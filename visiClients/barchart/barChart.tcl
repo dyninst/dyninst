@@ -2,10 +2,13 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.18  1995/05/10 22:28:24  tamches
-#  Removed warning message in getMetricHints when encountering an
-#  unknown metric...but we still default to min=0 max=1.  This information
-#  should really be kept in the data manger, imho.
+#  Revision 1.19  1995/07/06 18:54:59  tamches
+#  Update for tk4.0
+#
+# Revision 1.18  1995/05/10  22:28:24  tamches
+# Removed warning message in getMetricHints when encountering an
+# unknown metric...but we still default to min=0 max=1.  This information
+# should really be kept in the data manger, imho.
 #
 # Revision 1.17  1995/04/01  01:34:21  tamches
 # Metric axis lines now 2 pix wide, not 1.  Metric key items now more
@@ -132,10 +135,9 @@ option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-14-*
 option add *Data*font *-Helvetica-*-r-*-12-*
 option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
-if {[string match [tk colormodel .] color] == 1} {
+if {[winfo depth .] > 1} {
    # You have a color monitor...
-   # change primary background color from 'bisque' to 'grey'
-   . config -bg grey
+#   . config -bg grey
    option add *Background grey
    option add *activeBackground LightGrey
    option add *activeForeground black
@@ -198,13 +200,13 @@ pack  $Wmbar -side top -fill both -expand false
 # #################### File menu #################
 
 menubutton $Wmbar.file -text File -menu $Wmbar.file.m
-menu $Wmbar.file.m
+menu $Wmbar.file.m -selectcolor tomato
 $Wmbar.file.m add command -label "Close Bar chart" -command GracefulClose
 
 # #################### Actions Menu ###################
 
 menubutton $Wmbar.actions -text Actions -menu $Wmbar.actions.m
-menu $Wmbar.actions.m
+menu $Wmbar.actions.m -selectcolor tomato
 $Wmbar.actions.m add command -label "Add Bars..." -command AddMetricDialog
 $Wmbar.actions.m add separator
 $Wmbar.actions.m add command -label "Remove Selected Metric(s)" -state disabled
@@ -213,7 +215,7 @@ $Wmbar.actions.m add command -label "Remove Selected Resource(s)" -state disable
 # #################### View menu ###################
 
 menubutton $Wmbar.view -text View -menu $Wmbar.view.m
-menu $Wmbar.view.m
+menu $Wmbar.view.m -selectcolor tomato
 $Wmbar.view.m add radio -label "Order Resources by Name (ascending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByName
 $Wmbar.view.m add radio -label "Order Resources by Name (descending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByNameDescending
 $Wmbar.view.m add radio -label "Order Resources as Inserted by User" -variable SortPrefs -command ProcessNewSortPrefs -value NoParticular
@@ -263,8 +265,9 @@ pack $W.farLeft -side left -expand false -fill y
    # expand is set to false; if the window is made wider, don't change width
 
 scrollbar $W.farLeft.resourcesAxisScrollbar -orient vertical -width 16 \
-        -foreground gray -activeforeground gray -relief sunken \
-        -command processNewScrollPosition
+        -background gray -activebackground gray -relief sunken \
+        -command ".bargrph.left.resourcesAxisCanvas yview"
+
 pack $W.farLeft.resourcesAxisScrollbar -side top -fill y -expand true
    # expand is set to true; if the window is made taller, we want
    # extra height.
@@ -289,8 +292,8 @@ pack   $W.left.metricsKey -side bottom -expand false
 
 set WresourcesCanvas $W.left.resourcesAxisCanvas
 canvas $WresourcesCanvas -width $resourcesAxisWidth -relief groove \
-                             -yscrollcommand myXScroll \
-                             -scrollincrement 1
+                             -yscrollcommand myYScroll \
+                             -yscrollincrement 1
 pack   $WresourcesCanvas -side top -expand true -fill y
    # expand is set to true; if the window is made taller, we want the
    # extra height.
@@ -314,7 +317,7 @@ pack  $W.body -side top -fill both -expand true
 pack append . $W {fill expand frame center}
 
 # set some window manager hints:
-wm minsize  . 350 250
+#wm minsize  . 350 250
 wm title    . "Barchart"
 
 proc getWindowWidth {wName} {
@@ -500,35 +503,6 @@ proc Initialize {} {
    bind $W.body <Expose>    {myExposeEventHandler}
 }
 
-# ######################################################################
-# ################################ procedures ##########################
-# ######################################################################
-#
-# selectResource
-# unSelectResource
-# processEnterResource
-# processExitResource
-# rethinkResourceWidths
-# drawResourcesAxis
-# processNewMetricMax
-# drawMetricAxis
-# myConfigureEventHandler
-# myExposeEventHandler
-# getMetricHints
-# addMetric
-# delMetric
-# processNewScrollPosition
-# myXScroll
-# DgFoldCallback
-# DgConfigCallback
-# AddMetricDialog
-# AddResourceDialog
-# ProcessNewSortPrefs
-# rethinkIndirectResources
-# rethinkDataFormat
-#
-# ######################################################################
-
 # selectResource -- assuming this resource was clicked on, select it
 proc selectResource {widgetName} {
    global Wmbar
@@ -669,7 +643,7 @@ proc rethinkLeftSectionWidth {} {
 # at the time this routine is called, may not be up-to-date with respect to
 # numResources), and then redraws by re-recreating the canvas items and
 # message widgets
-proc drawResourcesAxis {theHeight} {
+proc drawResourcesAxis {windowHeight} {
    global W
    global Wmbar
    global WresourcesCanvas
@@ -753,24 +727,15 @@ proc drawResourcesAxis {theHeight} {
    # Update the scrollbar's scrollregion configuration:
    set regionList {0 0 0 0}
    set regionList [lreplace $regionList 2 2 $resourcesAxisWidth]
-   set regionList [lreplace $regionList 3 3 $bottom]
+#   set regionList [lreplace $regionList 3 3 $bottom]
+   set regionList [lreplace $regionList 3 3 $top]
    $WresourcesCanvas configure -scrollregion $regionList
 
-   set screenHeight $theHeight
-
    set oldconfig [$W.farLeft.resourcesAxisScrollbar get]
-   set oldTotalHeight [lindex $oldconfig 0]
+   set oldFirst [lindex $oldconfig 0]
+   set oldLast  [lindex $oldconfig 1]
 
-   if {$oldTotalHeight != $bottom} {
-      # puts stderr "drawResourcesAxis: detected major change in resources ($oldTotalWidth != $right), resetting"
-      set firstUnit 0
-   } else {
-      # no change
-      set firstUnit [lindex $oldconfig 2]
-   }
-
-   set lastUnit [expr $firstUnit + $screenHeight - 1]
-   $W.farLeft.resourcesAxisScrollbar set $bottom $screenHeight $firstUnit $lastUnit
+   $W.farLeft.resourcesAxisScrollbar set $oldFirst $oldLast
 }
 
 # ProcessNewMetricMax {metricid newMaxVal}
@@ -1151,47 +1116,27 @@ proc delMetric {delIndex} {
    # this metric?
 }
 
-proc processNewScrollPosition {newTop} {
-   # the scrollbar -command setting calls this procedure whenever scrolling
-   # takes place.  We update the x-axis canvas and inform our C++ code of
-   # the new scrollbar settings.
-   global WresourcesCanvas
-   global W
-
-   if {$newTop < 0} {
-      set newTop 0
-   }
-
-   # if max <= visible then set newTop 0
-   set currSettings [$W.farLeft.resourcesAxisScrollbar get]
-   set totalSize   [lindex $currSettings 0]
-   set visibleSize [lindex $currSettings 1]
-
-   if {$visibleSize > $totalSize} {
-      set newTop 0
-   } elseif {[expr $newTop + $visibleSize] > $totalSize} {
-      set newTop [expr $totalSize - $visibleSize]
-   }
-
-   # update the resources axis canvas
-   # will automatically generate a call to myXScroll, which then updates the
-   # look of the scrollbar to reflect the new position, and calls our
-   # C++ code to update the bar offsets
-   $WresourcesCanvas yview $newTop
-}
-
-# myXScroll -- the -scrollcommand config of the resources axis canvas.
+# myYScroll -- the -scrollcommand config of the resources axis canvas.
 #          Gets called whenever the canvas view changes or gets resized.
 #          This includes every scroll the user makes (yikes!)
 #          Gives us an opportunity to rethink the bounds of the scrollbar.
 #          We get passed: total size, window size, left, right
-proc myXScroll {totalSize visibleSize left right} {
-   global W
+proc myYScroll {first last} {
+   global W WresourcesCanvas
 
-   $W.farLeft.resourcesAxisScrollbar set $totalSize $visibleSize $left $right
+   $W.farLeft.resourcesAxisScrollbar set $first $last
 
    # call our C++ code to update the bar offsets
-   newScrollPosition $left
+   set totalCanvasHeight [lindex [$WresourcesCanvas cget -scrollregion] 3]
+#   puts stderr "myYscroll: totalCanvasHeight is $totalCanvasHeight"
+
+   set newFirstFrac [lindex [$W.farLeft.resourcesAxisScrollbar get] 0]
+#   puts stderr "myYscroll: newFirstFrac is $newFirstFrac"
+
+   set firstPix [expr round($totalCanvasHeight * $newFirstFrac)]
+#   puts stderr "myYscroll: so, first pixel is $firstPix" 
+
+   newScrollPosition $firstPix
 }
 
 # ############################################################################

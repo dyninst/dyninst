@@ -7,9 +7,12 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.14  1995/05/10 22:27:30  tamches
-/* Added an extra (probably unnecessary) isnan() check for HP.
+/* Revision 1.15  1995/07/06 18:54:32  tamches
+/* Update for tk4.0
 /*
+ * Revision 1.14  1995/05/10  22:27:30  tamches
+ * Added an extra (probably unnecessary) isnan() check for HP.
+ *
  * Revision 1.13  1995/04/01  01:35:13  tamches
  * Implemented NaN checking (needed on HP) of incoming dataGrid values
  *
@@ -155,7 +158,7 @@ BarChart::BarChart(char *tkWindowName,
    width  -= borderPix*2;
    height -= borderPix*2;
    
-   greyColor = Tk_GetColor(MainInterp, theWindow, None, Tk_GetUid("grey"));
+   greyColor = Tk_GetColor(MainInterp, theWindow, Tk_GetUid("grey"));
 
    DataFormat = Current;
    
@@ -280,7 +283,7 @@ void BarChart::RethinkMetricColors() {
    metricColors.reallocate(numMetrics);
 
    for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
-      XColor *theColor = Tk_GetColor(MainInterp, theWindow, None,
+      XColor *theColor = Tk_GetColor(MainInterp, theWindow,
 				     Tk_GetUid(gimmeColorName(metriclcv)));
 
       metricColors[metriclcv] = theColor;
@@ -566,7 +569,7 @@ void BarChart::processNewScrollPosition(int newPos) {
 
    // cout << "BarChart::processNewScrollPosition -- new pos=" << newPos << endl;
 
-   // adjust the current x-pixel scroll offset value and
+   // adjust the current y-pixel scroll offset value and
    // simulate an expose event
    currScrollOffset = -newPos;
  
