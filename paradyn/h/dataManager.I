@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.58  1995/12/13 03:17:44  newhall
+ * changed return values from string* to const char*
+ *
  * Revision 1.57  1995/12/11 02:23:20  newhall
  * changed magnify2 to return a resourceList label with each magnified focus
  *
@@ -339,7 +342,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 30;
+    $version 31;
 
     //
     // Start a paradyn daemon
@@ -524,7 +527,7 @@ $remote dataManager {
     //
     // returns the name for the focus associated with this resourceHandle
     //
-    string *getFocusName(const vector<resourceHandle>*);
+    const char *getFocusName(const vector<resourceHandle>*);
 
     //
     // change the persistent_collection flag value for the assoc. MI
@@ -610,13 +613,13 @@ $remote dataManager {
     // the name instead it is the unique name trunctated)
     // so for "/Code/blah.c/foo" this routine will return "foo"
     //
-    string *getResourceLabelName(resourceHandle);
+    const char *getResourceLabelName(resourceHandle);
 
 
     //
     // returns full name of a resource  ie. "/Code/blah.c/foo" 
     //
-    string *getResourceName(resourceHandle);
+    const char *getResourceName(resourceHandle);
 
 
     //
@@ -661,7 +664,7 @@ $remote dataManager {
     //
     // Metric utility functions.
     //
-    string *getMetricName(metricHandle);
+    const char *getMetricName(metricHandle);
 
     //
     // get the supporting info about a metric.
@@ -672,7 +675,7 @@ $remote dataManager {
     // Get metric out of a metric instance.
     //
     metricHandle *getMetric(metricInstanceHandle);
-    string *getMetricNameFromMI(metricInstanceHandle);
+    const char *getMetricNameFromMI(metricInstanceHandle);
 
     //
     // Get the value of a metric.
