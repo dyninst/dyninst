@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.45  1996/04/30 18:58:38  newhall
+ * Revision 1.46  1996/05/01 18:07:21  newhall
+ * added parameter to predicted cost call
+ *
+ * Revision 1.45  1996/04/30  18:58:38  newhall
  * changes to enableDataCollection calls and upcalls
  *
  * Revision 1.44  1996/04/29  03:32:56  tamches
@@ -265,13 +268,14 @@ vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
 void dynRPC::getPredictedDataCost(u_int id,
 				  u_int req_id,
 				  vector<u_int> focus, 
-				  string metName)
+				  string metName,
+				  u_int clientID)
 {
     if (!metName.length()) 
-      getPredictedDataCostCallback(id, req_id, 0.0);
+      getPredictedDataCostCallback(id, req_id, 0.0,clientID);
     else{
       float cost = guessCost(metName, focus);
-      getPredictedDataCostCallback(id, req_id, cost);
+      getPredictedDataCostCallback(id, req_id, cost,clientID);
     }
 }
 
