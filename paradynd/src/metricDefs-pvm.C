@@ -7,14 +7,22 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.12 1994/07/05 03:26:15 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.13 1994/08/17 18:15:34 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.12  1994/07/05 03:26:15  hollings
+ * Revision 1.13  1994/08/17 18:15:34  markc
+ * Removed finishMsgBytesMetric.
+ * Moved code to check number of bytes sent to the function entry since
+ * the send buffer will be freed by the function exit.
+ *
+ * Msg bytes received continues to check the message buffer at function
+ * entry, since the buffer does not exist until the receive is done.
+ *
+ * Revision 1.12  1994/07/05  03:26:15  hollings
  * observed cost model
  *
  * Revision 1.11  1994/07/02  01:46:44  markc
@@ -146,22 +154,6 @@ void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
 }
 
 
-void finishMsgBytesMetric(metricDefinitionNode *mn,
-			  libraryList *funcs,
-			  AstNode *trigger,
-			  AstNode *msgBytesAst)
-{
-  function *func;
-
-  if (trigger) msgBytesAst = createIf(trigger, msgBytesAst);
-
-  for (func = mn->proc->symbols->funcs; func; func = func->next) {
-    if (funcs->find(func->prettyName)) {
-      mn->addInst(func->funcReturn, msgBytesAst,
-		  callPreInsn, orderFirstAtPoint);
-    }
-  }
-}
 
 
 //
@@ -174,6 +166,7 @@ void createMsgBytesRecvMetric(metricDefinitionNode *mn,
 			      dataReqNode *tempCounter)
 {
   AstNode *msgBytesAst;
+  function *func;
 
   msgBytesAst =
     new AstNode (
@@ -188,7 +181,16 @@ void createMsgBytesRecvMetric(metricDefinitionNode *mn,
 			      new AstNode(DataValue, tempCounter)
 			      )
 		 );
-  finishMsgBytesMetric (mn, funcs, trigger, msgBytesAst);
+
+  if (trigger)
+    msgBytesAst = createIf(trigger, msgBytesAst);
+
+  for (func = mn->proc->symbols->funcs; func; func = func->next) {
+    if (funcs->find(func->prettyName)) {
+      mn->addInst(func->funcReturn, msgBytesAst,
+		  callPreInsn, orderFirstAtPoint);
+    }
+  }
 }
 
 //
@@ -201,6 +203,7 @@ void createMsgBytesSentMetric(metricDefinitionNode *mn,
 			      dataReqNode *tempCounter)
 {
   AstNode *msgBytesAst;
+  function *func;
 
   msgBytesAst =
     new AstNode (
@@ -215,7 +218,16 @@ void createMsgBytesSentMetric(metricDefinitionNode *mn,
 			      new AstNode(DataValue, tempCounter)
 			      )
 		 );
-  finishMsgBytesMetric (mn, funcs, trigger, msgBytesAst);
+
+  if (trigger)
+    msgBytesAst = createIf(trigger, msgBytesAst);
+
+  for (func = mn->proc->symbols->funcs; func; func = func->next) {
+    if (funcs->find(func->prettyName)) {
+      mn->addInst(func->funcEntry, msgBytesAst,
+		  callPreInsn, orderFirstAtPoint);
+    }
+  }
 }
 
 void createMsgBytesSent(metricDefinitionNode *mn, AstNode *tr)
