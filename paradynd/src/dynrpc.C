@@ -43,6 +43,10 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.69  1998/03/19 19:02:46  wylie
+ * Workaround for VC++'s inability to correctly scope iterator variable
+ * definitions.
+ *
  * Revision 1.68  1998/03/12 22:35:57  naim
  * Changes to reduce the number of unnecessary calls to continueProc, improving
  * performance both when enabling and disabling metrics - naim
@@ -247,8 +251,8 @@ void dynRPC::disableDataCollection(int mid)
     }
 
     mi->disable();
-    for (unsigned i=0;i<procsToCont.size();i++) {
-      procsToCont[i]->continueProc();
+    for (unsigned p=0;p<procsToCont.size();p++) {
+      procsToCont[p]->continueProc();
     }
     allMIs.undef(mid);
     delete(mi);
