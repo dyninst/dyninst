@@ -4,7 +4,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
- * Revision 1.3  1994/02/02 00:46:12  hollings
+ * Revision 1.4  1994/07/05 03:25:10  hollings
+ * obsereved cost model.
+ *
+ * Revision 1.3  1994/02/02  00:46:12  hollings
  * Changes to make it compile with the new tree.
  *
  * Revision 1.2  1993/12/13  19:47:52  hollings
@@ -31,6 +34,8 @@
 #include <unistd.h>
 #include <kvm.h>
 
+#include "../h/rtinst.h"
+
 int DYNINSTmappedUarea;
 int *_p_1, *_p_2;
 static int _kmem = -1;
@@ -50,22 +55,36 @@ caddr_t DYNINSTprobeUarea()
      struct proc *p;
 
      kd = kvm_open(NULL, NULL, NULL, O_RDONLY, NULL);
-     if (!kd) return(0);
+     if (!kd) {
+	 perror("kvm_open");
+	 return(0);
+     }
      pid = getpid();
      p = kvm_getproc(kd, pid);
-     if (!p) return(0);
+     if (!p) {
+	 return(0);
+	 perror("kvm_getproc");
+     }
      u = kvm_getu(kd, p);
-     if (!u) return(0);
+     if (!u) {
+	 perror("kvm_getu");
+	 return(0);
+     }
 
      kvm_getcmd(kd, p, u, &args, NULL);
-     if (cmd = (char *) rindex(args[0], '/')) {
+     cmd = (char *) rindex(args[0], '/');
+     if (cmd) {
 	 cmd++;
      } else {
 	 cmd = args[0];
      }
+#ifdef notdef
      if (strcmp(cmd, u->u_comm)) {
+	 printf("cmd = %s, u_comm = %s\n", cmd, u->u_comm);
+	 perror("no cmd");
 	 return(0);
      }
+#endif
      kvm_close(kd);
 
      return((caddr_t)p->p_uarea);
@@ -83,6 +102,8 @@ int DYNINSTmapUarea()
 	printf("WARNING: program compiled for wrong version of SPARC chip.\n");
 	printf(" using getrusage for times, this may slow your program down\n");
 	printf(" by a factor of ten or more.\n");
+	printf("\n");
+	fflush(stdout);
 	return(0);
     }
 
@@ -101,4 +122,290 @@ int DYNINSTmapUarea()
     _p_2 = (int *) &(u->u_ru.ru_utime.tv_usec);
 
     return(1);
+}
+
+/*
+ * Run a nop loop to estimate clock frequency.
+ *
+ */
+
+#define LOOP_LIMIT	50000
+#define MILLION		1000000
+
+float DYNINSTgetClock()
+{
+
+  int i;
+  float elapsed;
+  float clockSpeed;
+  time64 startF, endF;
+
+  startF = DYNINSTgetCPUtime();
+  for (i=0; i < LOOP_LIMIT; i++) {
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+  }
+  endF = DYNINSTgetCPUtime();
+
+  elapsed = (endF-startF)/((double) MILLION);
+  clockSpeed = (256*LOOP_LIMIT)/elapsed/MILLION;
+
+  printf("elapsed = %f\n", elapsed);
+  printf("clockSpeed = %f\n", clockSpeed);
+
+  return(clockSpeed);
 }

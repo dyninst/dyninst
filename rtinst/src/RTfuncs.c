@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.6  1994/02/02 00:46:11  hollings
+ * Revision 1.7  1994/07/05 03:25:09  hollings
+ * obsereved cost model.
+ *
+ * Revision 1.6  1994/02/02  00:46:11  hollings
  * Changes to make it compile with the new tree.
  *
  * Revision 1.5  1993/12/13  19:47:29  hollings
@@ -23,6 +26,7 @@
  *
  *
  */
+#include <assert.h>
 #include <sys/signal.h>
 #include <stdio.h>
 
@@ -45,6 +49,13 @@ char DYNINSTdata[SYN_INST_BUF_SIZE];
 char DYNINSTglobalData[SYN_INST_BUF_SIZE];
 int DYNINSTnumSampled;
 int DYNINSTnumReported;
+int DYNINSTtotalAlaramExpires;
+
+/*
+ * for now costCount is in cycles. 
+ */
+float DYNINSTcyclesToUsec = 1/66.0;
+extern time64 DYNINSTtotalSampleTime;
 
 void DYNINSTreportCounter(intCounter *counter)
 {
@@ -88,14 +99,95 @@ volatile int DYNINSTsampleMultiple = 1;
  *   timers and counters.  The code to do the sampling is added as func
  *   entry dynamic instrumentation.
  *
+ *   It also reports the current value of the observed cost.
+ *
  */
 void DYNINSTsampleValues()
 {
     DYNINSTnumReported++;
 }
 
+#define FOUR_BILLION (((double) 1.0) * 1024 * 1024 * 1024 * 4)
+
+/* 
+ * Define a union to let us get at the bits of a 64 bit integer.
+ *
+ *  This is needed since gcc doesn't support 64 bit ints fully. 
+ *
+ *  Think at least twice before changing this. 	jkh 7/2/94
+ */
+union timeUnion {
+    unsigned int array[2];
+    int64 i64;
+};
+
+/*
+ * Return the observed cost of instrumentation in machine cycles.
+ *
+ */
+int64 DYNINSTgetObservedCycles()
+{
+    static int64 previous;
+    static union timeUnion value;
+    register unsigned int lowBits asm("%g7");
+
+    value.array[1] = lowBits;
+    if (value.i64 < previous) {
+	/*  add to high word 
+	 *
+	 ************************** WARNING ***************************
+	 *     this assumes we sample frequenly enough to catch these *
+	 **************************************************************
+	 */
+        fprintf(stderr, "current %f, previous %f\n", ((double) value.i64),
+		((double) previous));
+        fprintf(stderr, "Warning observed cost register wrapped\n");
+	value.array[0] += 1;
+
+	fflush(stderr);
+    }
+    previous = value.i64;
+    return(value.i64);
+}
+
+void DYNINSTreportCost(intCounter *counter)
+{
+    /*
+     *     This should eventually be replaced by the normal code to report
+     *     a mapped counter???
+     */
+
+    double cost;
+    int64 value; 
+    static double prevCost;
+    traceSample sample;
+
+    value = DYNINSTgetObservedCycles();
+    cost = ((double) value) * (DYNINSTcyclesToUsec / 1000000.0);
+
+    if (cost < prevCost) {
+	fprintf(stderr, "Fatal Error Cost counter went backwards\n");
+	fflush(stderr);
+	sigpause(0xffff);
+    }
+
+    prevCost = cost;
+
+    sample.value = cost;
+    sample.id = counter->id;
+
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
+}
+
+/*
+ * Call this function to generate a sample when needed.
+ *   Exception is the exit from the program which DYNINSTsampleValues should
+ *   be called directly!!!
+ *
+ */
 void DYNINSTalarmExpire()
 {
+    time64 start, end;
     static int inSample;
 
     /* should use atomic test and set for this */
@@ -104,8 +196,13 @@ void DYNINSTalarmExpire()
     inSample = 1;
 
     /* only sample every DYNINSTsampleMultiple calls */
-    if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0) 
+    DYNINSTtotalAlaramExpires++;
+    if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0)  {
+	start = DYNINSTgetCPUtime();
 	DYNINSTsampleValues();
+	end = DYNINSTgetCPUtime();
+	DYNINSTtotalSampleTime += end - start;
+    }
 
     inSample = 0;
 }

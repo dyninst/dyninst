@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.9  1994/05/18 00:53:28  hollings
+ * Revision 1.10  1994/07/05 03:25:11  hollings
+ * obsereved cost model.
+ *
+ * Revision 1.9  1994/05/18  00:53:28  hollings
  * added flush's after error printfs to force data out pipes on the way
  * to paradyn.
  *
@@ -51,7 +54,16 @@
 
 #define MILLION	1000000
 extern int DYNINSTmappedUarea;
-extern int *_p_1, *_p_2;
+extern float DYNINSTcyclesToUsec;
+time64 DYNINSTtotalSampleTime;
+int64 DYNINSTgetObservedCycles();
+
+/* clockWord must be volatile becuase it changes on clock interrups. 
+ *    -- added volatile jkh 7/3/94
+ *
+ */
+typedef volatile unsigned int clockWord;
+extern clockWord *_p_1, *_p_2;
 
 /*
  * Missing stuff.
@@ -59,11 +71,27 @@ extern int *_p_1, *_p_2;
  */
 extern int getrusage(int who, struct rusage *rusage);
 
+/*
+ * return cpuTime in useconds.
+ *
+ */
+time64 DYNINSTgetCPUtime()
+{
+     time64 now;
+     struct rusage ru;
+
+     getrusage(RUSAGE_SELF, &ru);
+     now = ru.ru_utime.tv_sec;
+     now *= MILLION;
+     now += ru.ru_utime.tv_usec;
+
+     return(now);
+}
+
 inline time64 DYNINSTgetUserTime()
 {
     int first;
     time64 now;
-    struct rusage ru;
 
     if (DYNINSTmappedUarea) {
 retry:
@@ -73,10 +101,7 @@ retry:
 	 now += *_p_2;
 	 if (*_p_1 != first) goto retry;
      } else {
-	 getrusage(RUSAGE_SELF, &ru);
-	 now = ru.ru_utime.tv_sec;
-	 now *= MILLION;
-	 now += ru.ru_utime.tv_usec;
+	 now = DYNINSTgetCPUtime();
      }
      return(now);
 }
@@ -214,7 +239,8 @@ void DYNINSTinit(int skipBreakpoint)
     char *interval;
     struct sigvec alarmVector;
     struct sigvec pauseVector;
-    extern void DYNINSTsampleValues();
+    extern float DYNINSTgetClock();
+    extern void DYNINSTalarmExpire();
 
     startWall = 0;
 
@@ -234,7 +260,7 @@ void DYNINSTinit(int skipBreakpoint)
      *  This prevents race conditions where signal handlers cause timers to 
      *  be started and stopped.
      */
-    alarmVector.sv_handler = DYNINSTsampleValues;
+    alarmVector.sv_handler = DYNINSTalarmExpire;
     alarmVector.sv_mask = ~0;
     alarmVector.sv_flags = 0;
 
@@ -249,11 +275,13 @@ void DYNINSTinit(int skipBreakpoint)
     ualarm(val, val);
 
     DYNINSTmappedUarea = DYNINSTmapUarea();
+    DYNINSTcyclesToUsec = 1.0/DYNINSTgetClock();
 
     /*
      * pause the process and wait for additional info.
      *
      */
+    printf("Time at main %f\n", ((float) DYNINSTgetCPUtime())/1000000.0);
     if (!skipBreakpoint) DYNINSTbreakPoint();
 }
 
@@ -270,7 +298,6 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 {
     int ret;
     int count;
-    struct rusage ru;
     struct timeval tv;
     char buffer[1024], *bufptr;
     traceHeader header;
@@ -291,10 +318,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 	header.process += *_p_2;
     } else {
 #endif
-	getrusage(RUSAGE_SELF, &ru);
-	header.process = ru.ru_utime.tv_sec;
-	header.process *= (time64) MILLION;
-	header.process += ru.ru_utime.tv_usec;
+	header.process = DYNINSTgetCPUtime();
 #ifdef notdef
     }
 #endif
@@ -348,7 +372,6 @@ void DYNINSTreportTimer(tTimer *timer)
 {
     time64 now;
     time64 total;
-    struct rusage ru;
     struct timeval tv;
     traceSample sample;
 
@@ -357,10 +380,7 @@ void DYNINSTreportTimer(tTimer *timer)
     } else if (timer->counter) {
 	/* timer is running */
 	if (timer->type == processTime) {
-	    getrusage(RUSAGE_SELF, &ru);
-	    now = ru.ru_utime.tv_sec;
-	    now *= (time64) MILLION;
-	    now += ru.ru_utime.tv_usec;
+	    now = DYNINSTgetCPUtime();
 	} else {
 	    gettimeofday(&tv, NULL);
 	    now = tv.tv_sec;
@@ -404,3 +424,38 @@ void DYNINSTfork(void *arg, int pid)
 	sigpause();
     }
 }
+
+
+extern int DYNINSTnumReported;
+extern int DYNINSTtotalAlaramExpires;
+
+void DYNINSTprintCost()
+{
+    time64 now;
+    int64 value;
+    FILE *fp;
+
+    value = DYNINSTgetObservedCycles();
+    printf("Raw cycle count = %f\n", (double) value);
+
+    value *= DYNINSTcyclesToUsec;
+
+    fp = fopen("stats.out", "w");
+
+    fprintf(fp, "DYNINSTtotalAlaramExpires %d\n", DYNINSTtotalAlaramExpires);
+    fprintf(fp, "DYNINSTnumReported %d\n", DYNINSTnumReported);
+
+    fprintf(fp,"Total instrumentation cost = %f\n", ((double) value)/1000000.0);
+    fprintf(fp,"Total handler cost = %f\n", 
+	((double) DYNINSTtotalSampleTime)/1000000.0);
+
+    now = DYNINSTgetCPUtime();
+
+    fprintf(fp,"Total cpu time of program %f\n", ((double) now)/MILLION);
+    fflush(fp);
+    fclose(fp);
+
+    /* record that we are done -- should be somewhere better. */
+    DYNINSTgenerateTraceRecord(0, TR_EXIT, 0, NULL);
+}
+
