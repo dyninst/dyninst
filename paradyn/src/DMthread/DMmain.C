@@ -124,6 +124,7 @@ void dynRPCUser::applicationIO(int,int,string data)
     // the error is occuring (rest is always '\0' terminated when this
     // error occurs)---tn 
     fprintf(stdout,data.string_of());
+    fflush(stdout);
 
 #ifdef n_def
     char *ptr;
@@ -519,22 +520,26 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 					string machine_name)
 {
     // there better be a paradynd running on this machine!
-    paradynDaemon *pd, *daemon = NULL;
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-        pd = paradynDaemon::allDaemons[i];
-	if(pd->machine.length() && (pd->machine == machine_name)){
-	    daemon = pd;
+
+    for (unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
+        paradynDaemon *pd = paradynDaemon::allDaemons[i];
+	if (pd->machine.length() && (pd->machine == machine_name)){
+	    if (!paradynDaemon::addRunningProgram(pid, argvString, pd))
+	       assert(false);
+
+	    uiMgr->enablePauseOrRun();
+
+	    return;
 	}
     }
+
     // for now, abort if there is no paradynd, this should not happen
-    if (!daemon) {
-	printf("process started on %s, can't find paradynd there\n",
-		machine_name.string_of());
-	printf("paradyn error #1 encountered\n");
-	exit(-1);
-    }
+    printf("process started on %s, can't find paradynd there\n",
+	   machine_name.string_of());
+    printf("paradyn error #1 encountered\n");
+    exit(-1);
       
-   assert (paradynDaemon::addRunningProgram(pid, argvString, daemon));
+//   assert (paradynDaemon::addRunningProgram(pid, argvString, daemon));
 }
 
 void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
