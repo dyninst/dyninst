@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.9 1999/05/29 23:47:57 wylie Exp $
+# $Id: make.module.tmpl,v 1.10 1999/06/08 05:57:25 csserra Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -56,5 +56,5 @@ UNCOMMON_INSTALL=true
 
 install: all
 	-@$(MKDIR) $(DEST)
-	$(CP) $(TARGETS) $(DEST)
+	-$(CP) $(TARGETS) $(DEST)
 

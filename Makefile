@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.34 1999/05/29 22:23:42 wylie Exp $
+# $Id: Makefile,v 1.35 1999/06/08 05:57:20 csserra Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -20,7 +20,7 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 # "DyninstAPI" is the list of additional API components (optional).
 
 basicComps	= util igen thread visi hist rtinst
-ParadynD	= paradynd
+ParadynD	= util igen rtinst paradynd
 ParadynFE	= paradyn
 ParadynVC	= rthist \
 		visiClients/tclVisi visiClients/barchart \
