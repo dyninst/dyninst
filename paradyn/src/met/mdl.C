@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.27  1997/06/05 04:29:44  newhall
+ * added exclude_func mdl option to exclude shared object functions
+ *
  * Revision 1.26  1997/04/14 20:01:52  zhichen
  * Added MDL_T_RECORD and fixed a bug.
  *
@@ -111,6 +114,7 @@ dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
 vector<mdl_focus_element> mdl_data::foci;
 vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 vector<string> mdl_data::lib_constraints;
+vector<string> mdl_data::func_constraints;
 
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
 
@@ -996,6 +1000,12 @@ bool mdl_send(dynRPCUser *remote) {
   else {
       remote->send_no_libs();
   }
+  if(mdl_data::func_constraints.size()){
+      remote->send_funcs(&mdl_data::func_constraints);
+  }
+  else {
+      remote->send_no_funcs();
+  }
 
 #ifdef notdef
   unsigned size = mdl_data::all_metrics.size(), index;
@@ -1015,6 +1025,13 @@ bool mdl_send(dynRPCUser *remote) {
 bool mdl_get_lib_constraints(vector<string> &lc){
     for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
         lc += mdl_data::lib_constraints[i];
+    }
+    return (lc.size()>0);
+}
+
+bool mdl_get_func_constraints(vector<string> &lc){
+    for(u_int i=0; i < mdl_data::func_constraints.size(); i++){
+        lc += mdl_data::func_constraints[i];
     }
     return (lc.size()>0);
 }

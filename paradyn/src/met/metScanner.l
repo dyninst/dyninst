@@ -41,6 +41,9 @@
  */
 /*
  * $Log: metScanner.l,v $
+ * Revision 1.15  1997/06/05 04:29:47  newhall
+ * added exclude_func mdl option to exclude shared object functions
+ *
  * Revision 1.14  1996/10/08 21:52:18  mjrg
  * changed the evaluation of resource lists
  * removed warnings
@@ -247,6 +250,7 @@ i
 "process"		{ return(tPROCESS); }
 "visi"		{ return(tVISI); }
 "exclude_lib"		{ return(tEXLIB); }
+"exclude_func"		{ return(tEXFUNC); }
 "tunable_constant"	{ return(tTUNABLE_CONSTANT); }
 "command"		{ return(tCOMMAND); }
 "host"		{ return(tHOST); }

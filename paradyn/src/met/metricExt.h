@@ -41,6 +41,9 @@
 
 /*
  * $Log: metricExt.h,v $
+ * Revision 1.8  1997/06/05 04:29:48  newhall
+ * added exclude_func mdl option to exclude shared object functions
+ *
  * Revision 1.7  1996/09/26 19:03:28  newhall
  * added "exclude_lib" mdl option
  *
@@ -80,5 +83,6 @@ extern void mdl_destroy();
 extern bool mdl_apply();
 
 extern bool mdl_get_lib_constraints(vector<string> &);
+extern bool mdl_get_func_constraints(vector<string> &);
 
 #endif
