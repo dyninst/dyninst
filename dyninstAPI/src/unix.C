@@ -541,7 +541,11 @@ int handleSigChild(int pid, int status)
                 // will be able to attach again using gdb. We need to send
                 // a kill -ILL pid signal to the application in order to
                 // get here - naim
-                if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) { 
+#if defined(rs6000_ibm_aix4_1)
+                if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) {
+#else
+                if (ptrace(PT_DETACH, pid, 1, SIGSTOP, NULL) == -1) { 
+#endif
                   logLine("ptrace error\n");
                 }
 #else
@@ -584,7 +588,11 @@ int handleSigChild(int pid, int status)
                 if (sig==SIGSEGV)
 		{
                   logLine("==> Detaching paradynd from the application...\n");
-                  if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) 
+#if defined(rs6000_ibm_aix4_1)
+                  if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1)
+#else
+                  if (ptrace(PT_DETACH,pid, 1, SIGSTOP, NULL) == -1)
+#endif
                     logLine("ptrace error\n");
                   break;
                 }
