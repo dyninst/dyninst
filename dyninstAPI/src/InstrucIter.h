@@ -139,11 +139,12 @@ public:
      ,instructionPointers(ii.instructionPointers)
 #endif
     {
-// #if defined(i386_unknown_linux2_0) ||\
-//     defined(i386_unknown_solaris2_5) ||\
-//     defined(i386_unknown_nt4_0) ||\
-//     defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-
+  /*
+  #if defined(i386_unknown_linux2_0) ||\
+      defined(i386_unknown_solaris2_5) ||\
+      defined(i386_unknown_nt4_0) ||\
+      defined(ia64_unknown_linux2_4)  // Temporary duplication - TLM
+  */
 //     copy(ii);
 
 // #endif
@@ -151,11 +152,12 @@ public:
 
   /** destructor */
   ~InstrucIter() {
-// #if defined(i386_unknown_linux2_0) ||\
-//     defined(i386_unknown_solaris2_5) ||\
-//     defined(i386_unknown_nt4_0) ||\
-//     defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-
+  /*
+  #if defined(i386_unknown_linux2_0) ||\
+      defined(i386_unknown_solaris2_5) ||\
+      defined(i386_unknown_nt4_0) ||\
+      defined(ia64_unknown_linux2_4)   // Temporary duplication - TLM
+  */
 //     kill();
 
 // #endif
