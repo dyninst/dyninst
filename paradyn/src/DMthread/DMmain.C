@@ -62,6 +62,8 @@ double   quiet_nan();
 #include "util/h/String.h"
 #include "DMphase.h"
 
+typedef vector<string> blahType;
+
 // bool parse_metrics(string metric_file);
 bool metMain(string &userFile);
 
@@ -83,6 +85,7 @@ dictionary_hash<string, resource*> resource::allResources(string::hash);
 dictionary_hash<string,resourceList *> resourceList::allFoci(string::hash);
 
 vector<resource*> resource::resources;
+vector<string> resource::lib_constraints;
 vector<metric*> metric::metrics;
 vector<paradynDaemon*> paradynDaemon::allDaemons;
 vector<daemonEntry*> paradynDaemon::allEntries;
@@ -94,6 +97,7 @@ u_int metricInstance::next_id = 1;
 u_int performanceStream::next_id = 0;
 vector<DM_enableType*> paradynDaemon::outstanding_enables;  
 u_int paradynDaemon::next_enable_id = 0;  
+u_int paradynDaemon::count = 0;
 
 resource *resource::rootResource = new resource();
 timeStamp metricInstance::curr_bucket_width;
@@ -103,9 +107,6 @@ u_int metricInstance::num_curr_hists = 0;
 u_int metricInstance::num_global_hists = 0;
 
 double paradynDaemon::earliestFirstTime = 0;
-
-// TODO: remove
-// void DMchangeSampleRate(float rate); 
 void newSampleRate(float rate);
 
 extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
@@ -163,20 +164,7 @@ extern status_line *DMstatus;
 
 void dynRPCUser::resourceBatchMode(bool onNow)
 {
-    static int count=0;
-
-    int prev = count;
-    if (onNow) {
-	count++;
-    } else {
-	count--;
-    }
-
-    if (count == 0) {
-	performanceStream::ResourceBatchMode(batchEnd);
-    } else if (!prev) {
-	performanceStream::ResourceBatchMode(batchStart);
-    }
+   printf("error calling virtual func: dynRPCUser::resourceBatchMode\n");
 }
 
 //
@@ -185,8 +173,9 @@ void dynRPCUser::resourceBatchMode(bool onNow)
 void dynRPCUser::resourceInfoCallback(int,
 				      vector<string> resource_name,
 				      string abstr, u_int type) {
-    resourceHandle r = createResource(resource_name, abstr, type);
-    resourceInfoResponse(resource_name, r);
+
+printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
+
 }
 
 void dynRPCUser::mappingInfoCallback(int,
@@ -220,8 +209,10 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
     // update MI state and response vector
     for(u_int i=0; i < mis.size(); i++){
         if(mis[i] && successful[i]){  // this MI could be enabled
-	    mis[i]->setEnabled();
-	    metric *metricptr = metric::getMetric(mis[i]->getMetricHandle());
+	  mis[i]->setEnabled();
+	  metric *metricptr = metric::getMetric(mis[i]->getMetricHandle());
+	  if(metricptr){
+
             if(enable.ph_type == CurrentPhase){
 		u_int old_current = mis[i]->currUsersCount();
 		bool  current_data = mis[i]->isCurrHistogram();
@@ -288,6 +279,12 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 	    if(enable.phase_persistent_data){
 		mis[i]->setPhasePersistentData();
 	    }
+	  }
+	  else {
+	      cout << "mis enabled but no metric handle: " 
+		   << mis[i]->getMetricHandle() << endl;
+	      assert(0);
+	  }
 	}
 	else {  // was not successfully enabled
 	    (*response)[i].successfully_enabled = false;
@@ -767,40 +764,6 @@ void addMetric(T_dyninstRPC::metricInfo &info)
 }
 
 
-#ifdef n_def
-resourceHandle createResource(resourceHandle parent, vector<string>& res_name,
-			 string& res_string,string& abstr)
-{
-    /* first check to see if the resource has already been defined */
-    resource *p = resource::resources[parent];
-    resourceHandle *child = p->findChild(res_string.string_of());
-    if (child){
-        return(*child); 
-	delete child;
-    }
-
-    // if abstr is not defined then use default abstraction 
-    if(!abstr.string_of()){
-        abstr = string("BASE");
-    }
-
-    /* then create it */
-    resource *ret =  new resource(parent,res_name,res_string,abstr);
-
-    /* inform others about it if they need to know */
-    dictionary_hash_iter<perfStreamHandle,performanceStream*> 
-			allS(performanceStream::allStreams);
-    perfStreamHandle h;
-    performanceStream *ps;
-    resourceHandle r_handle = ret->getHandle();
-    string name = ret->getFullName(); 
-    while(allS.next(h,ps)){
-	ps->callResourceFunc(parent,r_handle,name,abstr);
-    }
-    return(r_handle);
-}
-#endif
-
 // I don't want to parse for '/' more than once, thus the use of a string vector
 resourceHandle createResource(vector<string>& resource_name, string& abstr, unsigned type) {
   resource *parent = NULL;
@@ -823,6 +786,7 @@ resourceHandle createResource(vector<string>& resource_name, string& abstr, unsi
     }
     if (!parent) assert(0);
 
+
     /* first check to see if the resource has already been defined */
     resource *p = resource::resources[parent->getHandle()];
     string myName = p_name;
@@ -842,6 +806,18 @@ resourceHandle createResource(vector<string>& resource_name, string& abstr, unsi
     /* then create it */
     resource *ret =  new resource(parent->getHandle(),resource_name,
 				  myName,abstr, type);
+
+    // check to see if the suppressMagnify option should be set...if
+    // this resource is specifed in the mdl exclude_lib option
+    vector<string> shared_lib_constraints;
+    if(resource::get_lib_constraints(shared_lib_constraints) &&
+       (string(parent->getFullName()) == "/Code")){
+	    for(u_int i=0; i < shared_lib_constraints.size(); i++){
+                if(shared_lib_constraints[i] == ret->getName()){
+		    ret->setSuppressMagnify();
+		}
+	    }
+    }
 
     /* inform others about it if they need to know */
     dictionary_hash_iter<perfStreamHandle,performanceStream*> 

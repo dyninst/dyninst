@@ -47,6 +47,7 @@
 
 #include "dataManager.thread.h"
 #include "DMresource.h"
+#include "paradyn/src/met/metricExt.h"
 
 //
 // used only to construct root.
@@ -60,6 +61,7 @@ resource::resource()
         parent = res_handle; 
         suppressSearch = FALSE;
         suppressChildSearch = FALSE;
+	suppressMagnify = false;
         abstr = NULL;
         resource *res = this;
         resources += res;
@@ -85,6 +87,7 @@ resource::resource(resourceHandle p_handle,
 	suppressSearch = p->getSuppressChildren();
 	suppressChildSearch = suppressSearch; // check for suppress
 					      // of parent's children
+	suppressMagnify = false;
         abstr = AMfind(a.string_of());
 	resource *res = this;
 	allResources[name] = res;
@@ -234,6 +237,36 @@ resource *resource::string_to_resource(const string &res) {
         return(allResources[res]);
     }
     return 0;
+}
+
+// get_lib_constraints: returns true if there is a list of lib constraints
+// specified by the mdl exclude_lib option.  If the list has not yet been 
+// created, this routine creates the list from the mdl_data list
+bool resource::get_lib_constraints(vector<string> &list){
+ 
+    if(!(lib_constraints.size())){
+        vector<string> temp;
+	// create list
+        if(mdl_get_lib_constraints(temp)){
+	    for(u_int i=0; i < temp.size(); i++){
+		char *next = (char *)(temp[i].string_of());
+		u_int where = 0;
+		for(u_int j=0; j< temp[i].length();j++){
+                    if(next[j] == '/'){
+		       where = j+1; 
+		    }
+		}
+		assert(where < temp[i].length());
+		if(where){
+		   lib_constraints += string(&(next[where])); 
+		}
+	    }
+        }
+    }
+    for(u_int i=0; i < lib_constraints.size(); i++){
+            list += lib_constraints[i];
+    }
+    return lib_constraints.size();
 }
 
 int DMresourceListNameCompare(const void *n1, const void *n2){
@@ -391,10 +424,15 @@ vector<rlNameId> *resourceList::magnify(resourceHandle rh){
 	}
 	rlNameId temp;
 	for(unsigned j=0; j < children->size(); j++){
-	  new_focus[rIndex] = (*children)[j];
-	  temp.id = resourceList::getResourceList(new_focus);
-	  temp.res_name = resource::getName((*children)[j]);
-	  *return_list += temp; 
+	  // check to see if this child can be magnified
+	  // if so, create a new focus with this child
+	  resource *child_res = resource::handle_to_resource((*children)[j]);
+	  if(child_res && !(child_res->isMagnifySuppressed())){
+	      new_focus[rIndex] = (*children)[j];
+	      temp.id = resourceList::getResourceList(new_focus);
+	      temp.res_name = resource::getName((*children)[j]);
+	      *return_list += temp; 
+	  }
 	}
 	delete children;
 	return return_list;

@@ -208,6 +208,10 @@ class paradynDaemon: public dynRPCUser {
 	virtual void cpDataCallbackFunc(int, double, int, double, double);
 
         virtual void endOfDataCollection(int);
+	virtual void resourceInfoCallback(int, vector<string> resource_name,
+		    			  string abstr, u_int type);
+        virtual void resourceBatchMode(bool onNow);  
+	void reportResources();
 
 	double getEarliestFirstTime() const { return earliestFirstTime;}
 	static void setEarliestFirstTime(double f){
@@ -293,6 +297,11 @@ class paradynDaemon: public dynRPCUser {
 	// all active metrics ids for this daemon.
         dictionary_hash<unsigned, metricInstance*> activeMids;
         vector<unsigned> disabledMids;
+
+        // used to hold responses to resourceInfoCallback
+	vector< vector<string> > newResourcesDefined;
+	vector<resourceHandle> newResourceHandles;
+	static u_int count;
 
         static double earliestFirstTime;
 

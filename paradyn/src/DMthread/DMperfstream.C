@@ -209,6 +209,7 @@ void performanceStream::notifyAllChange(appState state){
 
 void performanceStream::ResourceBatchMode(batchMode mode){
    dictionary_hash_iter<perfStreamHandle,performanceStream*> allS(allStreams);
+
    perfStreamHandle h;
    performanceStream *ps;
    while(allS.next(h,ps)){

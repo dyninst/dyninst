@@ -666,6 +666,62 @@ bool paradynDaemon::setInstSuppress(resource *res, bool newValue)
 }
 
 //
+// signal from daemon that is is about to start or end a set 
+// of new resource definitions
+//
+void paradynDaemon::resourceBatchMode(bool onNow){
+
+    int prev = count;
+    if (onNow) {
+	count++;
+    } else {
+	assert(count > 0);
+	count--;
+    }
+    if (count == 0) {
+	for(u_int i=0; i < allDaemons.size(); i++){
+            (allDaemons[i])->reportResources();
+	}
+        performanceStream::ResourceBatchMode(batchEnd);
+    } else if (!prev) {
+        performanceStream::ResourceBatchMode(batchStart);
+    }
+}
+
+//
+//  reportResources:  send new resource ids to daemon
+//
+void  paradynDaemon::reportResources(){
+    assert(newResourcesDefined.size() == newResourceHandles.size());
+    for(u_int i=0; i < newResourceHandles.size(); i++){
+	 resourceInfoResponse(newResourcesDefined[i], newResourceHandles[i]);
+    }
+    newResourceHandles.resize(0);
+    newResourcesDefined.resize(0);
+    assert(newResourcesDefined.size() == newResourceHandles.size());
+    assert(newResourcesDefined.size() == 0);
+}
+
+//
+// upcall from paradynd reporting new resource
+//
+void paradynDaemon::resourceInfoCallback(int,
+			      vector<string> resource_name,
+		   	      string abstr, u_int type) {
+
+    resourceHandle r = createResource(resource_name, abstr, type);
+    if(!count){
+	resourceInfoResponse(resource_name, r);
+    }
+    else {
+        newResourcesDefined += resource_name;
+	newResourceHandles += r;
+        assert(newResourcesDefined.size() == newResourceHandles.size());
+    }
+}
+
+
+//
 // Get the expected delay (as a fraction of the running program) for the passed
 //   resource list (focus) and metric.
 //
@@ -1141,7 +1197,7 @@ void paradynDaemon::handle_error()
 // (pid no longer used --ari)
 //
 void 
-paradynDaemon::reportSelf (string m, string p, int pd, string flav)
+paradynDaemon::reportSelf (string m, string p, int , string flav)
 {
   flavor = flav;
   if (!m.length() || !p.length()) {

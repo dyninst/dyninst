@@ -94,6 +94,9 @@ class resource {
     bool getSuppress() const { return(suppressSearch); }
     bool getSuppressChildren() const { return(suppressChildSearch); }
     abstraction *getAbstraction() { return(abstr); }
+    bool isMagnifySuppressed() { return (suppressMagnify); }
+    void setSuppressMagnify() {suppressMagnify = true;}
+    void clearSuppressMagnify() {suppressMagnify = false;}
 
     void AddChild(resourceHandle r){ children += r; }
     resourceHandle getHandle() const {return(res_handle);}
@@ -101,6 +104,7 @@ class resource {
     static const char *getName(resourceHandle);
     static const char *getFullName(resourceHandle);
     const vector<string>& getParts() const {return fullName;}
+    static bool get_lib_constraints(vector<string>&);
   protected:
     resource();
     resource(resourceHandle p_handle,
@@ -116,11 +120,13 @@ class resource {
     vector<string> fullName; 
     bool suppressSearch;
     bool suppressChildSearch;
+    bool suppressMagnify;  // true if mdl exclude_lib option specifies this 
     abstraction *abstr;  // TODO: change this to a handle later
     vector<resourceHandle> children; 
     static dictionary_hash<string, resource*> allResources;
     static vector<resource*> resources;  // indexed by resourceHandle
     static resource *rootResource;
+    static vector<string> lib_constraints;
 
     static resource *handle_to_resource(resourceHandle);
     static resource *string_to_resource(const string &);
