@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.12 2001/08/20 19:59:04 bernat Exp $
+// $Id: Object-xcoff.C,v 1.13 2001/08/22 01:31:28 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -481,15 +481,16 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
 	 in_self += 1024;
 	 in_traced += 1024;
        }
-     if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
-		ptrace_amount, (int *)in_self) == -1) {
-       //#ifdef DEBUG
-       fprintf(stderr, "PTRACE_READ 2: from %x (in_traced) to %x (in_self)\n",
-	       (int) in_traced, (int) in_self);
-       perror("Reading data segment of inferior process");
-       //#endif DEBUG
-       PARSE_AOUT_DIE("Reading data segment", 49);
-     }
+     if (ptrace_amount)
+       if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
+		  ptrace_amount, (int *)in_self) == -1) {
+#ifdef DEBUG
+	 fprintf(stderr, "PTRACE_READ 2: from %x (in_traced) to %x (in_self)\n",
+		 (int) in_traced, (int) in_self);
+	 perror("Reading data segment of inferior process");
+#endif DEBUG
+	 PARSE_AOUT_DIE("Reading data segment", 49);
+       }
      // data_off_ is the value subtracted from an (absolute) address to
      // give an offset into the mutator's copy of the data
      data_off_ = data_org_;
