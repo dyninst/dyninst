@@ -150,7 +150,10 @@ public:
     virtual const instPoint *funcEntry(process *p) const = 0;
     virtual const vector<instPoint*> &funcExits(process *p) const = 0;
     virtual const vector<instPoint*> &funcCalls(process *p) const = 0; 
-    virtual bool isLeafFunc() const = 0; 
+    virtual bool hasNoStackFrame() const = 0;
+       // formerly "isLeafFunc()" but that led to confusion, since people assign two
+       // different meanings to "leaf" fns: (1) has no stack frame, (2) makes no calls.
+       // By renaming this fn, we make clear that we're returning (1), not (2).
 
 private:
     string symTabName_;		/* name as it appears in the symbol table */
@@ -238,14 +241,14 @@ class pd_Function : public function_base {
     	return(tg & comp);
     }
     bool isLibTag() const { return (tag() & TAG_LIB_FUNC);}
-    bool isLeafFunc() const {return leaf;}
+
+    bool hasNoStackFrame() const {return noStackFrame;}
+       // formerly "isLeafFunc()" but that led to confusion, since people assign two
+       // different meanings to "leaf" fns: (1) has no stack frame, (2) makes no calls.
+       // By renaming this fn, we make clear that we're returning (1), not (2).
+
     bool isTrapFunc() {return isTrap;}
 
-#if defined(hppa1_1_hp_hpux)
-    instruction entryPoint;
-    instruction exitPoint;
-    vector<instPoint*> lr;
-#endif
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)   
 
     bool checkInstPoints(const image *owner);
@@ -279,7 +282,9 @@ class pd_Function : public function_base {
 
     // these are for relocated functions
     bool relocatable_;		// true if func will be relocated when instr
-    bool leaf;  		// true if function is a leaf function
+
+    bool noStackFrame; // formerly "leaf".  True iff this fn has no stack frame.
+
     bool isTrap; 		// true if function contains a trap instruct
     vector<relocatedFuncInfo *> relocatedByProcess; // one element per process
 };
@@ -439,10 +444,6 @@ public:
   vector<pd_Function*> mdlLib;
   vector<pd_Function*> mdlNormal;
   vector<pdmodule *> mods;
-
-#if defined(hppa1_1_hp_hpux)
-  vector<unwind_table_entry> unwind;
-#endif
 
 private:
   string file_;		/* image file name */
