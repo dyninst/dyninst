@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.92 2002/04/02 23:27:49 mirg Exp $
+// $Id: ast.C,v 1.93 2002/04/04 18:06:42 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1004,10 +1004,16 @@ static Register shareDestWithSrc(Register left, Register right,
     Register dest;
 
     if (left != Null_Register && 
+#if defined(MT_THREAD)
+	left != REG_MT_BASE && // MT code uses this reg, but marks it as free
+#endif
 	!rs->is_keep_register(left) && !wasKept(left, kept_state)) {
 	dest = left;
     }
     else if (right != Null_Register && 
+#if defined(MT_THREAD)
+	     right != REG_MT_BASE && // MT code uses this reg
+#endif
 	     !rs->is_keep_register(right) && !wasKept(right, kept_state)) {
 	dest = right;
     }
@@ -1095,7 +1101,9 @@ Address AstNode::generateCode_phase2(process *proc,
           rs->unkeep_register(kept_register);
           Register tmp=kept_register;
           kept_register=Null_Register;
+#ifdef BPATCH_LIBRARY_F
 	  assert(!rs->isFreeRegister(tmp));
+#endif
           return (Address)tmp;
       }
       return (Address)kept_register;
