@@ -39,31 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
-#error "invalid architecture-os inclusion"
-#endif
-#ifndef SOLARIS_PD_HDR
-#define SOLARIS_PD_HDR
+// $Id: linuxMT.C,v
 
-#include <procfs.h>
-#include <sys/param.h>
 
-#define EXIT_NAME "_exithandle"
-
-#define BYTES_TO_SAVE 256 // it should be a multiple of sizeof(instruction)
-
-#define SIGNAL_HANDLER	 "sigacthandler"
-
-typedef int handleT; // a /proc file descriptor
-
-struct dyn_saved_regs
-{
-    prgregset_t theIntRegs;
-    prfpregset_t theFpRegs;
-};
-
-//#include "saveSharedLibrary.h" //ccw 13 jan 2002
-#include "writeBackElf.h" //ccw 28 oct 2001
-
-#include "addLibrary.h" //ccw 3 dec 2001
-#endif
+Frame dyn_thread::getActiveFrameMT() {
+   return Frame();
+}

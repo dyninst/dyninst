@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.30 2003/05/19 03:02:44 schendel Exp $
+// $Id: init-aix.C,v 1.31 2003/06/24 19:41:43 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -138,59 +138,71 @@ bool initOS()
     initialRequestsPARADYN += new instMapping("MPI_Scan", "DYNINSTrecordGroup",
                                               FUNC_ENTRY|FUNC_ARG, &mpiScanCommArg);
     
-#if defined(MT_THREAD)
+    // ===  MULTI-THREADED FUNCTIONS  ======================================
     // Official gotten-from-tracing name. While pthread_create() is the
     // call made from user space, _pthread_body is the parent of any created
     // thread, and so is a good place to instrument.
-    
-    initialRequestsPARADYN += new instMapping("_pthread_body",
-                                              "DYNINST_dummy_create",
-                                              FUNC_ENTRY, callPreInsn,
-                                              orderFirstAtPoint);
-    initialRequestsPARADYN += new instMapping("pthread_exit", "DYNINSTthreadDelete", 
-                                              FUNC_ENTRY, callPreInsn, 
-                                              orderLastAtPoint);
+    instMapping *mapping;
+    mapping = new instMapping("_pthread_body", "DYNINST_dummy_create",
+                              FUNC_ENTRY, callPreInsn, orderFirstAtPoint);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+
+    mapping = new instMapping("pthread_exit", "DYNINSTthreadDelete", 
+                              FUNC_ENTRY, callPreInsn, orderLastAtPoint);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+
     // Should really be the longjmp in the pthread library
-    initialRequestsPARADYN += new instMapping("_longjmp",
-                                              "DYNINSTthreadStart",
-                                              FUNC_ENTRY, callPreInsn,
-                                              orderLastAtPoint) ;
-    initialRequestsPARADYN += new instMapping("_usched_swtch",
-                                              "DYNINSTthreadStop",
-                                              FUNC_ENTRY, callPreInsn,
-                                              orderLastAtPoint) ;
+    mapping = new instMapping("_longjmp", "DYNINSTthreadStart",
+                              FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+
+    mapping = new instMapping("_usched_swtch", "DYNINSTthreadStop",
+                              FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+
     // Thread SyncObjects
     // mutex
     AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
-    initialRequestsPARADYN += new instMapping("pthread_mutex_init", 
-                                              "DYNINSTreportNewMutex", 
-                                              FUNC_ENTRY|FUNC_ARG, 
-                                              arg0);
+    mapping = new instMapping("pthread_mutex_init", "DYNINSTreportNewMutex", 
+                              FUNC_ENTRY|FUNC_ARG, arg0);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
     
     // rwlock
     //
     arg0 = new AstNode(AstNode::Param, (void*) 0);
-    initialRequestsPARADYN += new instMapping("pthread_rwlock_init", 
-                                              "DYNINSTreportNewRwLock", 
-                                              FUNC_ENTRY|FUNC_ARG, 
-                                              arg0);
+    mapping = new instMapping("pthread_rwlock_init", "DYNINSTreportNewRwLock", 
+                              FUNC_ENTRY|FUNC_ARG, arg0);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
     
     //Semaphore
     //
     arg0 = new AstNode(AstNode::Param, (void*) 0);
-    initialRequestsPARADYN += new instMapping("i_need_a_name", 
-                                              "DYNINSTreportNewSema", 
-                                              FUNC_ENTRY|FUNC_ARG, 
-                                              arg0);
+    mapping = new instMapping("i_need_a_name", "DYNINSTreportNewSema", 
+                              FUNC_ENTRY|FUNC_ARG, arg0);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
     
     // Conditional variable
     //
     arg0 = new AstNode(AstNode::Param, (void*) 0);
-    initialRequestsPARADYN += new instMapping("pthread_cond_init", 
-                                              "DYNINSTreportNewCondVar", 
-                                              FUNC_ENTRY|FUNC_ARG, 
-                                              arg0);
-#endif
+    mapping = new instMapping("pthread_cond_init", "DYNINSTreportNewCondVar", 
+                              FUNC_ENTRY|FUNC_ARG, arg0);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+    // =====================================================================
     
 #ifdef PARADYND_PVM
     char *doPiggy;

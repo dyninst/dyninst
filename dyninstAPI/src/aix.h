@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.16 2003/06/20 22:07:35 schendel Exp $
+// $Id: aix.h,v 1.17 2003/06/24 19:41:19 schendel Exp $
 
 #if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
 #error "invalid architecture-os inclusion"
@@ -54,21 +54,6 @@
 
 #include <sys/param.h>
 #define EXIT_NAME "exit"
-
-#define START_WALL_TIMER "DYNINSTstartWallTimer"
-#define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
-
-#if defined(MT_THREAD)
-#define START_PROC_TIMER           "DYNINSTstartThreadTimer"
-#define STOP_PROC_TIMER            "DYNINSTstopThreadTimer" 
-#else
-#define START_PROC_TIMER "DYNINSTstartProcessTimer"
-#define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
-#endif
-
-#define START_PROC_TIMER_LWP       "DYNINSTstartThreadTimer"
-#define START_PROC_TIMER_LWP_IRPC  "DYNINSTstartThreadTimer_inferiorRPC"
-#define DESTROY_PROC_TIMER         "DYNINSTdestroyThreadTimer"
 
 #define SIGNAL_HANDLER  0
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.15 2003/01/06 19:27:02 bernat Exp $
+// $Id: aixMT.C,v 1.16 2003/06/24 19:41:20 schendel Exp $
 
 //#include <sys/pthdebug.h> // Pthread debug library, disabled
 #include "dyninstAPI/src/dyn_thread.h"
@@ -56,7 +56,7 @@
  * Get the stack frame, given a (p)thread ID 
  */
 
-Frame dyn_thread::getActiveFrame() {
+Frame dyn_thread::getActiveFrameMT() {
   Frame newFrame;
 
 

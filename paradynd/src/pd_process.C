@@ -148,7 +148,7 @@ pd_process *pd_attachProcess(const string &progpath, int pid) {
 }
 
 void pd_process::init() {
-    
+    static bool has_mt_resource_heirarchies_been_defined = false;
     string buffer = string("PID=") + string(getPid());
     buffer += string(", initializing daemon-side data");
     statusLine(buffer.c_str());
@@ -163,6 +163,16 @@ void pd_process::init() {
     buffer = string("PID=") + string(getPid());
     buffer += string(", posting call graph information");
     statusLine(buffer.c_str());
+
+    if(multithread_capable() && !has_mt_resource_heirarchies_been_defined) {
+       resource::newResource(syncRoot, NULL, nullString, "Mutex", 
+                             timeStamp::ts1970(), "", MDL_T_STRING, false);
+       resource::newResource(syncRoot, NULL, nullString, "RwLock", 
+                             timeStamp::ts1970(), "", MDL_T_STRING, false);
+       resource::newResource(syncRoot, NULL, nullString, "CondVar", 
+                             timeStamp::ts1970(), "", MDL_T_STRING, false);
+       has_mt_resource_heirarchies_been_defined = true;
+    }
     
     FillInCallGraphStatic();
     if (resource::num_outstanding_creates)
@@ -871,11 +881,11 @@ bool pd_process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
 bool pd_process::getParadynRTname() {
     
     // Replace with better test for MT-ness
-#ifdef MT_THREAD
-    const char ParadynEnvVar[]="PARADYN_LIB_MT";
-#else
-    const char ParadynEnvVar[]="PARADYN_LIB";
-#endif // MT_THREAD
+   char ParadynEnvVar[20];
+   if(multithread_capable())      
+      strcpy(ParadynEnvVar, "PARADYN_LIB_MT");
+   else
+      strcpy(ParadynEnvVar, "PARADYN_LIB");
     
     // If there is a default set, use it
     if (defaultParadynRTname.length())

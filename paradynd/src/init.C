@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.75 2003/06/20 22:08:01 schendel Exp $
+// $Id: init.C,v 1.76 2003/06/24 19:41:45 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -271,14 +271,7 @@ bool paradyn_init() {
 			timeStamp::ts1970(), "", MDL_T_STRING, false);
   resource::newResource(syncRoot, NULL, nullString, "Semaphore", 
 			timeStamp::ts1970(), "", MDL_T_STRING, false);
-#if defined(MT_THREAD)
-  resource::newResource(syncRoot, NULL, nullString, "Mutex", 
-			timeStamp::ts1970(), "", MDL_T_STRING, false);
-  resource::newResource(syncRoot, NULL, nullString, "RwLock", 
-			timeStamp::ts1970(), "", MDL_T_STRING, false);
-  resource::newResource(syncRoot, NULL, nullString, "CondVar", 
-			timeStamp::ts1970(), "", MDL_T_STRING, false);
-#endif
+
   /*
   memoryRoot = resource::newResource(rootResource, NULL, nullString, 
 				     "Memory", 0.0, "", MDL_T_STRING,

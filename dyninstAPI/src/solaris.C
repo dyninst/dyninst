@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.150 2003/06/20 22:07:55 schendel Exp $
+// $Id: solaris.C,v 1.151 2003/06/24 19:41:40 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -572,12 +572,19 @@ bool process::loadDYNINSTlib() {
 //ccw 18 apr 2002 : SPLIT
   AstNode *dlopenAst;
 
-  // deadList and deadListSize are defined in inst-sparc.C - naim
-  extern Register deadList[];
-  extern unsigned int deadListSize;
+  // deadList and deadListSize are also used in inst-sparc.C
+  // registers 8 to 15: out registers 
+  // registers 16 to 22: local registers
+  Register deadList[10] = { 16, 17, 18, 19, 20, 21, 22, 0, 0, 0 };
+  unsigned dead_reg_count = 7;
+  if(! multithread_capable()) {
+     deadList[7] = 23;
+     dead_reg_count++;
+  }
+
   registerSpace *dlopenRegSpace =
-     new registerSpace(deadListSize/sizeof(Register),
-                       deadList, (unsigned)0, NULL, multithread_capable());
+     new registerSpace(dead_reg_count, deadList, (unsigned)0,
+                       NULL, multithread_capable());
   dlopenRegSpace->resetSpace();
 
   // we need to make 2 calls to dlopen: one to load libsocket.so.1 and another

@@ -85,22 +85,22 @@ bool dyn_thread::updateLWP()
 }
 #endif
   
-
-#if !defined(MT_THREAD)
 // MT version lives in the <os>MT.C files, and can do things like
 // get info for threads not currently scheduled on an LWP
 Frame dyn_thread::getActiveFrame()
 {
-  updateLWP();
-  Frame lwpFrame = lwp->getActiveFrame();  
-  return Frame(lwpFrame.getPC(), lwpFrame.getFP(),
-               lwpFrame.getSP(), lwpFrame.getPID(),
-               this, lwpFrame.getLWP(),
-               true);
+   if(! get_proc()->multithread_capable()) {
+      updateLWP();
+      Frame lwpFrame = lwp->getActiveFrame();  
+      return Frame(lwpFrame.getPC(), lwpFrame.getFP(),
+                   lwpFrame.getSP(), lwpFrame.getPID(),
+                   this, lwpFrame.getLWP(),
+                   true);
   
-  return lwp->getActiveFrame();
+      return lwp->getActiveFrame();
+   } else
+      return getActiveFrameMT();
 }
-#endif
 
 // stackWalk: return parameter.
 bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
@@ -136,3 +136,28 @@ bool dyn_thread::savePreRPCStack()
 void dyn_thread::clearPreRPCStack() {
     useRPCStack_ = false;
 }
+
+
+// of course this doesn't belong in dyn_thread.C, but I'm stashing it
+// here for now since there is no other Frame functions needed for a .C
+// file and this function looks like it can be moved back to frame.h
+// as soon as we get AIX /proc going
+bool Frame::isLastFrame(process *p) const { 
+   // AIX MT: we see 0 PCs in the middle of a stack walk, which
+   // confuses us. This is a side effect of the syscall trap code,
+   // and will be REMOVED when /proc is available.
+#if defined(rs6000_ibm_aix4_1)
+   if(p->multithread_capable()) {
+      if (fp_ == 0) return true;
+   }
+   else {
+      if (fp_ == 0) return true;
+      if (pc_ == 0) return true;
+   }
+#else
+   if (fp_ == 0) return true;
+   if (pc_ == 0) return true;
+#endif
+   return false;
+}
+

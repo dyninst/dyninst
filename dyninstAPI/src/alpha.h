@@ -52,10 +52,6 @@
 
 #define BYTES_TO_SAVE 512 // should be a multiple of sizeof(instruction)
 
-#define START_WALL_TIMER "DYNINSTstartWallTimer"
-#define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
-#define START_PROC_TIMER "DYNINSTstartProcessTimer"
-#define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER  0
 
 /*extern unsigned AIX_TEXT_OFFSET_HACK;

@@ -155,10 +155,8 @@ class rpcThr {
 
     // Launch an IRPC
     irpcLaunchState_t launchThrIRPC(bool runProcWhenDone);
-
-#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
     irpcLaunchState_t launchProcIRPC(bool runProcWhenDone);
-#endif
+
     // Handle the syscall callback
     static void launchThrIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
     
@@ -292,6 +290,7 @@ class rpcMgr {
    void deleteThread(dyn_thread *thr);
    void addLWP(dyn_lwp *lwp);
    void deleteLWP(dyn_lwp *lwp);
+   process *proc() { return proc_; }
 
    // Find an IRPC and return it's state (queued, running, etc.)
    irpcState_t getRPCState(unsigned id);

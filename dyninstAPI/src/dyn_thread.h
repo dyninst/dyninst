@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.12 2003/06/17 20:27:27 schendel Exp $
+// $Id: dyn_thread.h,v 1.13 2003/06/24 19:41:23 schendel Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -50,6 +50,9 @@ class Frame;
 class dyn_lwp;
 
 class dyn_thread {
+ private:
+   Frame getActiveFrameMT();  // called by getActiveFrame
+
  public:
   //
   dyn_thread(process *pproc) : 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.9 2003/06/20 22:07:50 schendel Exp $
+// $Id: pdwinnt.h,v 1.10 2003/06/24 19:41:35 schendel Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -61,16 +61,8 @@ struct dyn_saved_regs {
 #define read(x,y,z) recv(x,(char *)y,z,0)
 
 #define EXIT_NAME "_exit"
-#define START_WALL_TIMER "DYNINSTstartWallTimer"
-#define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
-#define START_PROC_TIMER "DYNINSTstartProcessTimer"
-#define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER 0
 #endif
-
-#define START_PROC_TIMER_LWP       "not_implemented_yet"
-#define START_PROC_TIMER_LWP_IRPC  "not_implemented_yet"
-#define DESTROY_PROC_TIMER         "not_implemented_yet"
 
 // Number of bytes to save in an overwrite operation
 #define BYTES_TO_SAVE 256

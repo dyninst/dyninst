@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.142 2003/06/20 22:07:43 schendel Exp $
+// $Id: inst-sparc.C,v 1.143 2003/06/24 19:41:26 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -66,15 +66,6 @@ NonRecursiveTrampTemplate nonRecursiveConservativeBaseTemplate;
 
 registerSpace *regSpace;
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-// registers 8 to 15: out registers 
-// registers 16 to 22: local registers
-Register deadList[] = {16, 17, 18, 19, 20, 21, 22 };
-#else
-Register deadList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
-#endif
-
-int deadListSize = sizeof(deadList);
 
 /****************************************************************************/
 /****************************************************************************/
@@ -928,8 +919,17 @@ void initTramps(bool is_multithreaded)
     initATramp(&nonRecursiveConservativeBaseTemplate,
 	       (Address)conservativeBaseTramp,true);
 
-    regSpace = new registerSpace(sizeof(deadList)/sizeof(Register), deadList,
-                                 0, NULL, is_multithreaded);
+    // registers 8 to 15: out registers 
+    // registers 16 to 22: local registers
+    Register deadList[10] = { 16, 17, 18, 19, 20, 21, 22, 0, 0, 0 };
+    unsigned dead_reg_count = 7;
+    if(! is_multithreaded) {
+       deadList[7] = 23;
+       dead_reg_count++;
+    }
+
+    regSpace = new registerSpace(dead_reg_count, deadList, 0, NULL,
+                                 is_multithreaded);
     assert(regSpace);
 }
 

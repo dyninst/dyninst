@@ -87,14 +87,17 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
         return irpcError;
     }
 
-#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
-    if (postedRPCs_.size() == 0)
-        return irpcNoIRPC;
-#else
-    if (postedRPCs_.size() == 0 &&
-        mgr_->postedProcessRPCs_.size() == 0)
-        return irpcNoIRPC;
+#if defined(sparc_sun_solaris2_4)
+    if(mgr_->proc()->multithread_capable()) {
+       if (postedRPCs_.size() == 0)
+          return irpcNoIRPC;
+    } else
 #endif
+    {
+    if(postedRPCs_.size() == 0 && mgr_->postedProcessRPCs_.size() == 0)
+       return irpcNoIRPC;
+    }
+
 
     // We can run the RPC if we're not currently in a system call.
     // This is defined as "any time we can't modify the state of the
@@ -288,8 +291,8 @@ bool rpcThr::handleCompletedIRPC() {
     dyn_lwp *lwp = thr_->get_lwp();
     assert(lwp);
 
-#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)    
-    if (runningRPC_->isProcessRPC) {
+#if defined(sparc_sun_solaris2_4)    
+    if(mgr_->proc()->multithread_capable() && runningRPC_->isProcessRPC) {
         lwp->proc()->restoreDefaultLWP();
         mgr_->processingProcessRPC = false;
     }
@@ -384,7 +387,6 @@ void rpcThr::launchThrIRPCCallbackDispatch(dyn_lwp * /*lwp*/,
 }
 
 
-#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
 // Launch an inferior RPC
 // Two cases: 
 // 1) We have a pending RPC (in pendingRPC_) that we already prepped
@@ -426,4 +428,4 @@ irpcLaunchState_t rpcThr::launchProcIRPC(bool runProcWhenDone) {
 
     return runPendingIRPC();
 }
-#endif
+

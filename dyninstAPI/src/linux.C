@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.104 2003/06/17 20:27:30 schendel Exp $
+// $Id: linux.C,v 1.105 2003/06/24 19:41:30 schendel Exp $
 
 #include <fstream.h>
 
@@ -208,7 +208,7 @@ void printStackWalk( process *p ) {
     const Address framePC = theFrame.getPC();
     inferiorrpc_cerr << "stack frame pc @ " << (void*)framePC << endl;
     
-    if (theFrame.isLastFrame())
+    if (theFrame.isLastFrame(p))
       // well, we've gone as far as we can, with no match.
       break;
     

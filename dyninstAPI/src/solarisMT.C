@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.10 2002/10/15 17:11:19 schendel Exp $
+// $Id: solarisMT.C,v 1.11 2003/06/24 19:41:42 schendel Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -48,7 +48,7 @@
 // As of solaris 8, threads are bound 1:1 with lwps. So this will always
 // end up querying an lwp.
 
-Frame dyn_thread::getActiveFrame() {
+Frame dyn_thread::getActiveFrameMT() {
 
   typedef struct {
     long    sp;

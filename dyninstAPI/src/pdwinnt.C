@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.100 2003/06/17 20:27:32 schendel Exp $
+// $Id: pdwinnt.C,v 1.101 2003/06/24 19:41:34 schendel Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -466,7 +466,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
     }  
     Address spOld = 0xffffffff;
     
-    while (!currentFrame.isLastFrame()) {
+    while (!currentFrame.isLastFrame(this)) {
         Address spNew = currentFrame.getSP(); // ccw 6 feb 2001 : should get SP?
         
         // successive frame pointers might be the same (e.g. leaf functions)
@@ -2605,3 +2605,6 @@ bool process::loadDYNINSTlibCleanup()
 
 void loadNativeDemangler() {}
 
+Frame dyn_thread::getActiveFrameMT() {
+   return Frame();
+}  // not used until MT supported

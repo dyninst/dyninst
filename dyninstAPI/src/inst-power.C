@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.176 2003/06/20 22:07:41 schendel Exp $
+ * $Id: inst-power.C,v 1.177 2003/06/24 19:41:25 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -563,18 +563,6 @@ registerSpace *regSpace;
 // be saved and restored in the base trampoline.
 registerSpace *conservativeRegSpace;
 
-// reg 12 is defined not to have a live value at procedure call points.
-// reg 11 is the static chain register, used to hold an environment pointer
-//   for languages like Pascal and PL/1; it is also apparently used by OpenMP.
-//   It should be considered live at entry points and call sites.
-// reg 3-10 are used to pass arguments to functions.
-//   We must save them before we can use them.
-#if defined(MT_THREAD)
-Register deadRegList[] = { };
-#else
-Register deadRegList[] = { 12 };
-#endif
-
 // allocate in reverse order since we use them to build arguments.
 Register liveRegList[] = { 11, 10, 9, 8, 7, 6, 5, 4, 3 };
 
@@ -589,8 +577,22 @@ void initTramps(bool is_multithreaded)
     if (inited) return;
     inited = true;
 
+    // reg 12 is defined not to have a live value at procedure call points.
+    // reg 11 is the static chain register, used to hold an environment pointer
+    //   for languages like Pascal and PL/1; it is also apparently used by
+    //   OpenMP.  It should be considered live at entry points and call
+    //   sites.
+    // reg 3-10 are used to pass arguments to functions.
+    //   We must save them before we can use them.
+    Register deadRegList[1];
+    unsigned dead_reg_count = 0;
+    if(! is_multithreaded) {
+       dead_reg_count++;
+       deadRegList[0] = 12;
+    }
+
     regSpace = 
-       new registerSpace(sizeof(deadRegList)/sizeof(Register), deadRegList, 
+       new registerSpace(dead_reg_count, deadRegList, 
                          sizeof(liveRegList)/sizeof(Register), liveRegList,
                          is_multithreaded);
 

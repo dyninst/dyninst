@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.60 2003/06/17 20:27:28 schendel Exp $
+// $Id: irix.C,v 1.61 2003/06/24 19:41:28 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -60,6 +60,7 @@
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/stats.h" // ptrace{Ops,Bytes}
+#include "dyninstAPI/src/dyn_thread.h"
 #include "common/h/pathName.h" // expand_tilde_pathname, exists_executable
 #include "common/h/irixKludges.h" // PDYN_XXX
 #include "common/h/Time.h"
@@ -1908,3 +1909,8 @@ void dyn_lwp::closeFD_()
 }
 
 void loadNativeDemangler() {}
+
+Frame dyn_thread::getActiveFrameMT() {
+   return Frame();
+}  // not used until MT supported
+

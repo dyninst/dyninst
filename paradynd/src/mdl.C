@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.147 2003/06/20 22:08:05 schendel Exp $
+// $Id: mdl.C,v 1.148 2003/06/24 19:41:46 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -447,6 +447,15 @@ AstNode *createCounter(const string &func, void *dataPtr,
 // mdl_v_expr backend methods
 //----------------------------------------------------------------------------
 
+#define START_WALL_TIMER       "DYNINSTstartWallTimer"
+#define STOP_WALL_TIMER        "DYNINSTstopWallTimer"
+#define START_PROC_TIMER       "DYNINSTstartProcessTimer"
+#define STOP_PROC_TIMER        "DYNINSTstopProcessTimer" 
+#define MT_START_PROC_TIMER    "DYNINSTstartThreadTimer"
+#define MT_STOP_PROC_TIMER     "DYNINSTstopThreadTimer" 
+#define DESTROY_PROC_TIMER     "DYNINSTdestroyThreadTimer"
+
+
 bool
 mdld_v_expr::apply_be(AstNode*& ast)
 {
@@ -582,7 +591,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
         {
            if (var_ == "startWallTimer" || var_ == "stopWallTimer"
                || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
-               || var_ == "startProcessTimer_lwp" || var_ == "destroyProcessTimer")
+               || var_ == "destroyProcessTimer")
            {
               if (!args_) return false;
               unsigned size = args_->size();
@@ -590,21 +599,27 @@ mdld_v_expr::apply_be(AstNode*& ast)
 
               mdl_var timer(false);
               instrDataNode* dn;
-              if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(timer)) return false;
-              if (!timer.get(dn)) return false;
+              if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(timer))
+                 return false;
+              if (!timer.get(dn))
+                 return false;
 
               string timer_func;
               if (var_ == "startWallTimer")
                  timer_func = START_WALL_TIMER;
               else if (var_ == "stopWallTimer")
                  timer_func = STOP_WALL_TIMER;
-              else if (var_ == "startProcessTimer")
-                 timer_func = START_PROC_TIMER;
-              else if (var_ == "stopProcessTimer")
-                 timer_func = STOP_PROC_TIMER;
-              else if (var_ == "startProcessTimer_lwp")
-                 timer_func = START_PROC_TIMER_LWP;
-              else if (var_ == "destroyProcessTimer")
+              else if (var_ == "startProcessTimer") {
+                 if(global_proc->multithread_capable())
+                    timer_func = MT_START_PROC_TIMER;
+                 else
+                    timer_func = START_PROC_TIMER;
+              } else if (var_ == "stopProcessTimer") {
+                 if(global_proc->multithread_capable())                    
+                    timer_func = MT_STOP_PROC_TIMER;
+                 else
+                    timer_func = STOP_PROC_TIMER;                    
+              } else if (var_ == "destroyProcessTimer")
                  timer_func = DESTROY_PROC_TIMER;
 
               pdvector<AstNode *> ast_args;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.158 2003/06/17 20:27:25 schendel Exp $
+// $Id: aix.C,v 1.159 2003/06/24 19:41:18 schendel Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -795,7 +795,7 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
   if (frame.isUppermost())
     isLeaf = instFunc->makesNoCalls();
   
-  if (frame.isLastFrame())
+  if (frame.isLastFrame(this))
       return false;
   Frame parentFrame = frame.getCallerFrame(this);
   Address oldReturnAddr;

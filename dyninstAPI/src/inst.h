@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.76 2003/06/20 22:07:47 schendel Exp $
+// $Id: inst.h,v 1.77 2003/06/24 19:41:27 schendel Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -154,19 +154,21 @@ public:
   // ~instMapping() { removeAst(arg); };
   instMapping(const string f, const string i, const int w, 
 	      callWhen wn, callOrder o, AstNode *a=NULL)
-     : func(f), inst(i), where(w), when(wn), order(o), useTrampGuard(true) {
+     : func(f), inst(i), where(w), when(wn), order(o), useTrampGuard(true),
+     mt_only(false) {
     if(a) args.push_back(assignAst(a));
   }
 
   instMapping(const string f, const string i, const int w, AstNode *a=NULL)
      : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
-       useTrampGuard(true) {
+       useTrampGuard(true), mt_only(false) {
     if(a) args.push_back(assignAst(a));
   }
 
   instMapping(const string f, const string i, const int w, 
-	      pdvector<AstNode*> &aList) : func(f), inst(i), where(w),
-	      when(callPreInsn), order(orderLastAtPoint), useTrampGuard(true) {
+              pdvector<AstNode*> &aList) :
+     func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
+     useTrampGuard(true), mt_only(false) {
     for(unsigned u=0; u < aList.size(); u++) {
       if(aList[u]) args.push_back(assignAst(aList[u]));
     }
@@ -183,6 +185,8 @@ public:
 
 public:
   void dontUseTrampGuard() { useTrampGuard = false; }
+  void markAs_MTonly() { mt_only = true; }
+  bool is_MTonly() { return mt_only; }
 
   string func;                 /* function to instrument */
   string inst;                 /* inst. function to place at func */
@@ -191,6 +195,7 @@ public:
   callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
   pdvector<AstNode *> args;      /* what to pass as arg0 ... n */
   bool useTrampGuard;
+  bool mt_only;
   // AstNode *arg;            /* what to pass as arg0 */
 };
 

@@ -227,7 +227,6 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
        }
     }
 #endif
-    
     // Only run thread RPCs if there are no LWP RPCs either waiting or in flight.
 
 
@@ -279,8 +278,8 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             lwp_iter++;
         }
     }
-#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
-    else if (readyProcessRPC) {
+#if defined(sparc_sun_solaris2_4)
+    else if (proc_->multithread_capable() && readyProcessRPC) {
         // Loop over all threads until one can run the process RPC
         for (unsigned iter = 0; iter < thrs_.size(); iter++) {
             rpcThr *curThr = thrs_[iter];

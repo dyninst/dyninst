@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.18 2003/06/20 22:08:14 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.19 2003/06/24 19:41:49 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -608,11 +608,7 @@ bool hwTimerHK::perform(const tHwTimer *theTimer, pd_process *inferiorProc) {
 }
 
 const tHwTimer hwTimerHK::initValue = { 0, 0, 0,
-                                   #if defined(MT_THREAD)
-					   0, 0, 0,
-                                   #endif
-					   0, 0, 0 };
-
+                                        0, 0, 0, 0 };
 
 const tHwCounter hwCounterHK::initValue = { 0, 0 };
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.434 2003/06/22 22:40:28 rchen Exp $
+// $Id: process.C,v 1.435 2003/06/24 19:41:36 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -349,7 +349,7 @@ bool process::walkStackFromFrame(Frame startFrame,
 #endif
 
   // Step through the stack frames
-  while (!currentFrame.isLastFrame()) {
+  while (!currentFrame.isLastFrame(this)) {
     
     // grab the frame pointer
     fpNew = currentFrame.getFP();
@@ -2659,6 +2659,31 @@ Address process::initSharedMetaData() {
 }
 #endif
 
+
+#if defined(rs6000_ibm_aix4_1)
+void aix_pre_allocate(process *theProc) {
+    // Pre-emptively allocate a HUGE chunk of memory right below
+    // the shared memory segment -- we need this to instrument 
+    // libraries anyway, so grab it now. This massively simplifies
+    // life. 
+    bool err = false;
+    Address alloc;
+    pdvector<Address> allocations;
+    do {
+        alloc = theProc->inferiorMalloc((unsigned) 1024*1024, 
+                                        (inferiorHeapType) anyHeap, 
+                                        (Address) 0xd0000000, 
+                                        &err);    
+        allocations.push_back(alloc);
+    } while (alloc > (0xd0000000 - 0x02000000));
+    // 0x02... is POWER's branch range. Basically, slurp the memory
+    // below the shared library segment (pre-allocate). 
+    for (unsigned i = 0; i < allocations.size(); i++)
+        if (allocations[i])
+            theProc->inferiorFree(allocations[i]);
+}
+#endif
+
 extern bool forkNewProcess(string &file, string dir, pdvector<string> argv, 
 		    pdvector<string> envp, string inputFile, string outputFile,
 		    int &traceLink, 
@@ -2890,28 +2915,12 @@ process *createProcess(const string File, pdvector<string> argv,
        decodeAndHandleProcessEvent(true);
     }
 
-#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
-    // Pre-emptively allocate a HUGE chunk of memory right below
-    // the shared memory segment -- we need this to instrument 
-    // libraries anyway, so grab it now. This massively simplifies
-    // life. 
-    bool err = false;
-    Address alloc;
-    pdvector<Address> allocations;
-    do {
-        alloc = theProc->inferiorMalloc((unsigned) 1024*1024, 
-                                        (inferiorHeapType) anyHeap, 
-                                        (Address) 0xd0000000, 
-                                        &err);    
-        allocations.push_back(alloc);
-    } while (alloc > (0xd0000000 - 0x02000000));
-    // 0x02... is POWER's branch range. Basically, slurp the memory
-    // below the shared library segment (pre-allocate). 
-    for (unsigned i = 0; i < allocations.size(); i++)
-        if (allocations[i])
-            theProc->inferiorFree(allocations[i]);
-    
+#if defined(rs6000_ibm_aix4_1)
+    if(theProc->multithread_capable()) {
+       aix_pre_allocate(theProc);
+    }
 #endif
+
     return theProc;    
 }
 
@@ -5835,80 +5844,83 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
       instMapping *req = requests[lcv];
 
+      if(!multithread_capable() && req->is_MTonly())
+         continue;
+
       string func_name;
       string lib_name;
       pdvector<function_base *>matchingFuncs;
-
+      
       getLibAndFunc(req->func, lib_name, func_name);
       
       if ((lib_name != "*") && (lib_name != "")) {
-	function_base *func2 = static_cast<function_base *>(findOnlyOneFunction(req->func));
-        if(func2 != NULL)
-           matchingFuncs.push_back(func2);
-        //else
-        //   cerr << "couldn't find initial function " << req->func << "\n";
+         function_base *func2 = static_cast<function_base *>(findOnlyOneFunction(req->func));
+         if(func2 != NULL)
+            matchingFuncs.push_back(func2);
+         //else
+         //   cerr << "couldn't find initial function " << req->func << "\n";
       }
       else {
-	// Wildcard: grab all functions matching this name
-	findAllFuncsByName(func_name, matchingFuncs);
+         // Wildcard: grab all functions matching this name
+         findAllFuncsByName(func_name, matchingFuncs);
       }
-
+      
       for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
-	function_base *func = matchingFuncs[funcIter];
-	
-	if (!func) {
-	  continue;  // probably should have a flag telling us whether errors
-        }
-
-	// should be silently handled or not
-	AstNode *ast;
-	if ((req->where & FUNC_ARG) && req->args.size()>0) {
-	  ast = new AstNode(req->inst, req->args);
-	} else {
-	  AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
-	  ast = new AstNode(req->inst, tmp);
-	  removeAst(tmp);
-	}
-	if (req->where & FUNC_EXIT) {
-	  const pdvector<instPoint*> func_rets = func->funcExits(this);
-	  for (unsigned j=0; j < func_rets.size(); j++) {
-	    instPoint *func_ret = const_cast<instPoint *>(func_rets[j]);
-	    miniTrampHandle mtHandle;
-            assert(addInstFunc(&mtHandle, this, func_ret, ast,
-			       req->when, req->order, false, 
-			       (!req->useTrampGuard))
-		   == success_res);
-	  }
+         function_base *func = matchingFuncs[funcIter];
+         
+         if (!func) {
+            continue;  // probably should have a flag telling us whether errors
+         }
+         
+         // should be silently handled or not
+         AstNode *ast;
+         if ((req->where & FUNC_ARG) && req->args.size()>0) {
+            ast = new AstNode(req->inst, req->args);
+         } else {
+            AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
+            ast = new AstNode(req->inst, tmp);
+            removeAst(tmp);
+         }
+         if (req->where & FUNC_EXIT) {
+            const pdvector<instPoint*> func_rets = func->funcExits(this);
+            for (unsigned j=0; j < func_rets.size(); j++) {
+               instPoint *func_ret = const_cast<instPoint *>(func_rets[j]);
+               miniTrampHandle mtHandle;
+               assert(addInstFunc(&mtHandle, this, func_ret, ast,
+                                  req->when, req->order, false, 
+                                  (!req->useTrampGuard))
+                      == success_res);
+            }
 	  
-	}
-	
-	if (req->where & FUNC_ENTRY) {
-	  instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
-	  miniTrampHandle mtHandle;
-	  assert(addInstFunc(&mtHandle, this, func_entry, ast,
-			     req->when, req->order, false,
-			     (!req->useTrampGuard))
-		 == success_res);
-	  
-	  
-	}
-	
-	if (req->where & FUNC_CALL) {
-	  pdvector<instPoint*> func_calls = func->funcCalls(this);
-	  if (func_calls.size() == 0)
-            continue;
-	  
-	  for (unsigned j=0; j < func_calls.size(); j++) {
-	    miniTrampHandle mtHandle;
-            assert(addInstFunc(&mtHandle, this, func_calls[j], ast,
-			       req->when, req->order, false, 
-			       (!req->useTrampGuard))
-		   == success_res);
-	    
-	  }
-	}
-	
-	removeAst(ast);
+         }
+         
+         if (req->where & FUNC_ENTRY) {
+            instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
+            miniTrampHandle mtHandle;
+            assert(addInstFunc(&mtHandle, this, func_entry, ast,
+                               req->when, req->order, false,
+                               (!req->useTrampGuard))
+                   == success_res);
+            
+            
+         }
+         
+         if (req->where & FUNC_CALL) {
+            pdvector<instPoint*> func_calls = func->funcCalls(this);
+            if (func_calls.size() == 0)
+               continue;
+            
+            for (unsigned j=0; j < func_calls.size(); j++) {
+               miniTrampHandle mtHandle;
+               assert(addInstFunc(&mtHandle, this, func_calls[j], ast,
+                                  req->when, req->order, false, 
+                                  (!req->useTrampGuard))
+                      == success_res);
+               
+            }
+         }
+         
+         removeAst(ast);
       }
    }
 }

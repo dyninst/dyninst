@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.47 2003/05/19 03:02:51 schendel Exp $ */
+/* $Id: init-sunos.C,v 1.48 2003/06/24 19:41:44 schendel Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -79,75 +79,84 @@ bool initOS() {
 					     FUNC_EXIT|FUNC_ARG, retVal);
   } else { /* Fork and exec */
   }
-  
-#if defined(MT_THREAD)
-  initialRequestsPARADYN += new instMapping("_thread_start",
-				     "DYNINST_dummy_create",
-				     FUNC_ENTRY, callPreInsn,
-				     orderLastAtPoint) ;
-  initialRequestsPARADYN += new instMapping("_thr_exit_common", "DYNINSTthreadDelete", 
-                                     FUNC_ENTRY, callPreInsn, 
-				     orderLastAtPoint);
+
+  // ===  MULTI-THREADED FUNCTIONS  ======================================  
+  instMapping *mapping;
+  mapping = new instMapping("_thread_start", "DYNINST_dummy_create",
+                            FUNC_ENTRY, callPreInsn, orderLastAtPoint);
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
+
+
+  mapping = new instMapping("_thr_exit_common", "DYNINSTthreadDelete", 
+                            FUNC_ENTRY, callPreInsn, orderLastAtPoint);
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
 
 #if 0
   // Unsupported
-  initialRequestsPARADYN += new instMapping("_resume_ret",
-				     "DYNINSTthreadStart",
-				     FUNC_ENTRY, callPreInsn,
-				     orderLastAtPoint) ;
+  mapping = new instMapping("_resume_ret", "DYNINSTthreadStart",
+                            FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
 
-  initialRequestsPARADYN += new instMapping("_resume",
-				     "DYNINSTthreadStop",
-				     FUNC_ENTRY, callPreInsn,
-				     orderLastAtPoint) ;
+
+  mapping = new instMapping("_resume", "DYNINSTthreadStop",
+                            FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
 #endif
+
   // Thread SyncObjects
   // mutex
   AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequestsPARADYN += new instMapping("_cmutex_lock", 
-                                            "DYNINSTreportNewMutex", 
-                                            FUNC_ENTRY|FUNC_ARG, 
-                                            arg0);
+  mapping = new instMapping("_cmutex_lock",  "DYNINSTreportNewMutex", 
+                            FUNC_ENTRY|FUNC_ARG, arg0);
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
+
 
   arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequestsPARADYN += new instMapping("pthread_mutex_init",
-                                            "DYNINSTreportNewMutex",
-                                            FUNC_ENTRY|FUNC_ARG,
-                                            arg0);
+  mapping = new instMapping("pthread_mutex_init", "DYNINSTreportNewMutex",
+                            FUNC_ENTRY|FUNC_ARG, arg0);
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
+
+
   arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequestsPARADYN += new instMapping("pthread_mutex_lock",
-                                            "DYNINSTreportNewMutex",
-                                            FUNC_ENTRY|FUNC_ARG,
-                                            arg0);
+  mapping = new instMapping("pthread_mutex_lock", "DYNINSTreportNewMutex",
+                            FUNC_ENTRY|FUNC_ARG, arg0);
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
 
 
   // rwlock
   //
   arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequestsPARADYN += new instMapping("_lrw_rdlock", 
-  				     "DYNINSTreportNewRwLock", 
-                                     FUNC_ENTRY|FUNC_ARG, 
-  				     arg0);
+  mapping = new instMapping("_lrw_rdlock", "DYNINSTreportNewRwLock", 
+                            FUNC_ENTRY|FUNC_ARG, arg0);
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
+
 
   //Semaphore
   //
   arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequestsPARADYN += new instMapping("_sema_wait_cancel", 
-  				     "DYNINSTreportNewSema", 
-                                     FUNC_ENTRY|FUNC_ARG, 
-  				     arg0);
+  mapping = new instMapping("_sema_wait_cancel", "DYNINSTreportNewSema", 
+                            FUNC_ENTRY|FUNC_ARG, arg0);
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
 
 
   // Conditional variable
   //
   arg0 = new AstNode(AstNode::Param, (void*) 0);
-  initialRequestsPARADYN += new instMapping("_cond_wait_cancel", 
-  				     "DYNINSTreportNewCondVar", 
-                                     FUNC_ENTRY|FUNC_ARG, 
-  				     arg0);
+  mapping = new instMapping("_cond_wait_cancel", "DYNINSTreportNewCondVar", 
+                            FUNC_ENTRY|FUNC_ARG, arg0);
+  mapping->markAs_MTonly();
+  initialRequestsPARADYN.push_back(mapping);
+  // =====================================================================
 
-
-#endif
   
   AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
   initialRequestsPARADYN += new instMapping("rexec", "DYNINSTrexec",

@@ -52,10 +52,6 @@
 
 #define BYTES_TO_SAVE 256 // should be a multiple of sizeof(instruction)
 
-#define START_WALL_TIMER "DYNINSTstartWallTimer"
-#define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
-#define START_PROC_TIMER "DYNINSTstartProcessTimer"
-#define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER	 "sigacthandler"
 
 typedef int handleT; // a /proc file descriptor
