@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.113 2004/02/25 04:36:59 schendel Exp $
+// $Id: inst.C,v 1.114 2004/02/26 20:37:47 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -425,6 +425,8 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    
     if (err) {
         cerr << "Returning inst.C: failed allocate" << endl;
+        delete mtHandle;
+        mtHandle = NULL;
         return failure_res;
     }
     assert(mtHandle->miniTrampBase);
