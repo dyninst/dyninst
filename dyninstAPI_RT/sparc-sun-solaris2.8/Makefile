@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2003/03/28 20:36:57 mikem Exp $
+# $Id: Makefile,v 1.12 2003/07/01 19:57:40 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,7 +30,7 @@ else
 CC              = $(GCC)
 LD              = $(GCC)
 CFLAGS          += -fpic
-LDFLAGS		= -ldl -lelf -shared -nostdlib -lgcc
+LDFLAGS		= -ldl -lelf -shared -nostdlib -lgcc -z initarray=libdyninstAPI_RT_init
 #ccw 19 nov 2001
 endif
 
