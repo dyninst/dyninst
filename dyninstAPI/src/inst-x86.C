@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.40 1999/02/08 13:57:30 nash Exp $
+ * $Id: inst-x86.C,v 1.41 1999/04/27 16:03:05 nash Exp $
  */
 
 #include <limits.h>
@@ -977,7 +977,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
 	  if (retInstance) {
 	      retInstance->installReturnInstance(proc);
 	  }
-	  generateBranch(proc, the_entry->address()+5, baseAddr);
+	  generateBranch(proc, the_entry->address()+imageBaseAddr+5, baseAddr);
 	  *insn++ = 0xEB;
 	  *insn++ = (char)(displacement-2);
 	  return 2;

@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: unix.C,v 1.24 1999/04/27 16:03:09 nash Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -547,6 +548,7 @@ int handleSigChild(int pid, int status)
 		     if (!curr->continueProc()) {
 		       assert(0);
 		     }
+			 signal_cerr << "Process continued for dlopen" << endl;
 		     break;
 		  }
 		  // fall through...

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.105 1999/03/19 18:11:13 csserra Exp $
+/* $Id: process.h,v 1.106 1999/04/27 16:03:08 nash Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -310,7 +310,15 @@ class process {
   processState status() const { return status_;}
   string getStatusAsString() const; // useful for debug printing etc.
 
-  void continueAfterNextStop() { continueAfterNextStop_ = true; }
+  bool checkContinueAfterStop() {
+	  if( continueAfterNextStop_ > 0 ) {
+		  continueAfterNextStop_++;
+		  return true;
+	  }
+	  return false;
+  }
+		  
+  void continueAfterNextStop( int num = 1 ) { continueAfterNextStop_ += num; }
   void Exited();
   void Stopped();
 
@@ -438,7 +446,7 @@ class process {
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   hashTable *threadMap;         /* mapping table for threads into superTable */
 #endif
-  bool continueAfterNextStop_;
+  int continueAfterNextStop_;
 
   resource *rid;		/* handle to resource for this process */
 
@@ -574,6 +582,7 @@ class process {
   bool trapDueToDyninstLib();
   bool trapAtEntryPointOfMain();
   bool wasCreatedViaAttach() { return createdViaAttach; }
+  bool wasCreatedViaFork() { return createdViaFork; }
   void handleIfDueToDyninstLib();  
   void insertTrapAtEntryPointOfMain();
   void handleTrapAtEntryPointOfMain();
@@ -896,6 +905,13 @@ private:
      // This vrble is important because it tells us what to do when we exit.
      // If we created via attach, we should (presumably) detach but not fry
      // the application; otherwise, a kill(pid, 9) is called for.
+
+  // This is set by the constructor to the obvious value, and is rarely used.
+  // Specifically, I made it so that the Linux version could still do a full
+  // ptrace_attach, even though the rest of paradyn assumes we are Solaris 
+  // and have an inherit_tracing_state flag -- DAN
+  bool createdViaFork;
+
   // the following 2 are defined only if 'createdViaAttach' is true; action is taken
   // on these vrbles once DYNINSTinit completes.
 

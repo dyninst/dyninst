@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.164 1999/04/15 21:23:11 nash Exp $
+// $Id: process.C,v 1.165 1999/04/27 16:03:06 nash Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -512,7 +512,7 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
     }
 
     for (unsigned u4 = 0; u4 < src.bufferPool.size(); u4++) {
-      bufferPool += new heapItem(bufferPool[u4]);
+      bufferPool += new heapItem(src.bufferPool[u4]);
     }
 
     disabledListTotalMem = src.disabledListTotalMem;
@@ -808,13 +808,14 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     reachedFirstBreak = false; // haven't yet seen first trap
     reachedVeryFirstTrap = false;
     createdViaAttach = false;
+	createdViaFork = false;
     needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button
 
     symbols = iImage;
     mainFunction = NULL; // set in platform dependent function heapIsOk
 
     status_ = neonatal;
-    continueAfterNextStop_ = false;
+    continueAfterNextStop_ = 0;
     deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
@@ -932,6 +933,7 @@ process::process(int iPid, image *iSymbols,
    reachedFirstBreak = true; // the initial trap of program entry was passed long ago...
    reachedVeryFirstTrap = true;
    createdViaAttach = true;
+   createdViaFork = false;
 
    // the next two variables are used only if libdyninstRT is dynamically linked
    hasLoadedDyninstLib = false;
@@ -941,7 +943,7 @@ process::process(int iPid, image *iSymbols,
    mainFunction = NULL; // set in platform dependent function heapIsOk
 
    status_ = neonatal;
-   continueAfterNextStop_ = false;
+   continueAfterNextStop_ = 0;
    deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
@@ -1091,6 +1093,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     hasLoadedDyninstLib = false; // TODO: is this the right value?
     isLoadingDyninstLib = false;
 
+	createdViaFork = true;
     createdViaAttach = parentProc.createdViaAttach;
     wasRunningWhenAttached = true;
     needToContinueAfterDYNINSTinit = true;
@@ -1103,7 +1106,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     ioLink = -1; // when does this get set?
 
     status_ = neonatal; // is neonatal right?
-    continueAfterNextStop_ = false;
+    continueAfterNextStop_ = 0;
     deferredContinueProc = false;
 
     pid = iPid; 
@@ -1215,8 +1218,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
       showErrorCallback(69, "Error in fork: cannot attach to child process");
    }
 
-   status_ = stopped;
-      // would neonatal be more appropriate?  Nah, we've reached the first trap
+   if( isRunning_() )
+	   status_ = running;
+   else
+	   status_ = stopped;
+   // would neonatal be more appropriate?  Nah, we've reached the first trap
 }
 
 #endif
@@ -3881,8 +3887,7 @@ void process::Stopped() {
     tp->processStatus(pid, procPaused);
 #endif
 
-    if (continueAfterNextStop_) {
-       continueAfterNextStop_ = false;
+    if ( checkContinueAfterStop() ) {
        if (!continueProc())
           assert(false);
     }

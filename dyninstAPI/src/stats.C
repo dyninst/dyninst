@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.20 1998/09/15 04:16:09 buck Exp $
+ * $Id: stats.C,v 1.21 1999/04/27 16:03:09 nash Exp $
  */
 
 #include "dyninstAPI/src/symtab.h"
@@ -143,6 +143,10 @@ void printAppStats(struct endStatsRec *stats, float clockSpeed)
     logLine(errorLine);
     sprintf(errorLine, "    sampling rate %f\n", stats->samplingRate);
     logLine(errorLine);
+#if defined(i386_unknown_linux2_0)
+    sprintf(errorLine, "    total traps hit %d\n", stats->totalTraps);
+    logLine(errorLine);
+#endif
 }
 #endif
 

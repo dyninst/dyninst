@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.8 1999/04/16 21:33:56 nash Exp $
+// $Id: linux.C,v 1.9 1999/04/27 16:03:06 nash Exp $
 
 #include <fstream.h>
 
@@ -546,20 +546,32 @@ bool process::attach() {
 
   // Only if we are really attaching rather than spawning the inferior
   // process ourselves do we need to call PTRACE_ATTACH
-  if( createdViaAttach ) {
-    if( -1 == P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
+  if( createdViaAttach || createdViaFork ) {
+	  attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
+    if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
       { perror( "process::attach - PTRACE_ATTACH" ); return false; }
+  }
 
+  if( createdViaAttach )
+  {
     // If the process was running, it will need to be restarted, as
     // PTRACE_ATTACH kills it
     // Actually, the attach process contructor assumes that the process is
     // running.  While this is foolish, let's play along for now.
-    if( true /* running */ ) {
-      if( -1 == kill( getPid(), SIGCONT ) )
-	//if( -1 == P_ptrace(PTRACE_CONT, getPid(), 1, 0) )
-	{ perror( "process::attach - SIGCONT" ); return false; }
+	if( true /* running */ ) {
+		if( 0 != P_ptrace(PTRACE_CONT, getPid(), 0, 0) )
+		{
+			perror( "process::attach - continue" );
+			return false;
+		}
     }
   }
+
+/*  if( isRunning_() )
+  {
+	  attach_cerr << "fixing status_ => running" << endl;
+	  status_ = running;
+	  }*/
 
   return true;
 }
@@ -873,23 +885,18 @@ bool process::continueProc_() {
  * ptraceKludge::continueProcess.
  */
 #ifndef PTRACE_ATTACH_DETACH
-  //#ifdef PTRACEDEBUG
-  //fprintf(stderr,"child (%d), stop paradynd (%d)\n", getPid(), getpid() );
-  //  P_ptrace(PTRACE_DETACH, pid, (char*)1, 0 );
-  //kill( getpid(), SIGSTOP );
-  //#endif
-  if (!ptraceKludge::deliverPtrace(this, PTRACE_CONT, 1, 0))
-    ret = -1;
-  else
-    ret = 0;
-  //ret = P_ptrace(PTRACE_CONT, pid, (char*)1, 0);
+  ret = P_ptrace(PTRACE_CONT, getPid(), 1, 0);
 #else
-  ret = P_ptrace(PTRACE_DETACH, pid, (char*)1, SIGCONT);
+  ret = P_ptrace(PTRACE_DETACH, getPid(), 1, SIGCONT);
 #endif
 
-/*  if (ret == -1)
-      perror("continueProc_()");
-*/
+  if (ret == -1)
+  {
+	  /*if( isRunning_() )
+		  ret = 0;
+		  else*/
+		  perror("continueProc_()");
+  }
 
   return ret != -1;
 }
@@ -1365,7 +1372,7 @@ time64 process::getInferiorProcessCPUtime() /* const */ {
 
     buf2 = new char[ bufsize ];
 
-    size_t rsize = P_read( fd, buf2, bufsize-1 );
+    /*size_t rsize = */P_read( fd, buf2, bufsize-1 );
 
     if( 2 == sscanf( buf2, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %d %d ", &utime, &stime ) ) {
       // These numbers are in 'jiffies' or clock ticks.  For now, we
@@ -1561,9 +1568,9 @@ void print_read_error_info(const relocationEntry entry,
       pd_Function *&target_pdf, Address base_addr) {
 
     sprintf(errorLine, "  entry      : target_addr 0x%x\n",
-	    entry.target_addr());
+	    (unsigned)entry.target_addr());
     logLine(errorLine);
-    sprintf(errorLine, "               rel_addr 0x%x\n", entry.rel_addr());
+    sprintf(errorLine, "               rel_addr 0x%x\n", (unsigned)entry.rel_addr());
     logLine(errorLine);
     sprintf(errorLine, "               name %s\n", (entry.name()).string_of());
     logLine(errorLine);
@@ -1578,10 +1585,10 @@ void print_read_error_info(const relocationEntry entry,
 	    target_pdf->size());
     logLine(errorLine);
     sprintf(errorLine , "              addr 0x%x\n",
-	    target_pdf->addr());
+	    (unsigned)target_pdf->addr());
     logLine(errorLine);
 
-    sprintf(errorLine, "  base_addr  0x%x\n", base_addr);
+    sprintf(errorLine, "  base_addr  0x%x\n", (unsigned)base_addr);
     logLine(errorLine);
 }
 
@@ -1735,7 +1742,7 @@ bool process::hasBeenBound(const relocationEntry entry,
     Address bound_addr = 0;
     if(!readDataSpace((const void*)got_entry, sizeof(Address), 
 			&bound_addr, true)){
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",got_entry,pid);
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,pid);
 	logLine(errorLine);
 	print_read_error_info(entry, target_pdf, base_addr);
         return false;
