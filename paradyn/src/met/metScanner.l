@@ -1,6 +1,12 @@
 %{
 /*
  * $Log: metScanner.l,v $
+ * Revision 1.9  1995/12/15 22:30:09  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Change syntax of MDL resource lists
+ *
  * Revision 1.8  1995/11/21 15:15:39  naim
  * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
  * can specify all elements in any order). Additionally, the option "fold"
@@ -197,6 +203,8 @@ i
 "force"		{ return(tFORCE);}
 "default"	{ return(tDEFAULT); }
 "void"		{ return(tVOID); }
+"items"         { return(tITEMS); }
+"library"       { return(tLIBRARY); }
 [Tt][Rr][Uu][Ee]	{ return(tTRUE);}
 [Ff][Aa][Ll][Ss][Ee]	{ return(tFALSE);}
 {FIX}		{ 

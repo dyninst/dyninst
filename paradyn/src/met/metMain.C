@@ -10,6 +10,12 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.25  1995/12/15 22:30:04  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Change syntax of MDL resource lists
+ *
  * Revision 1.24  1995/11/13 14:58:36  naim
  * Adding "mode" option to the Metric Description Language to allow specificacion
  * of developer mode for metrics (default mode is "normal") - naim
@@ -91,6 +97,11 @@
  *
  */
 
+#define GLOBAL_CONFIG_FILE "/paradyn.rc"
+#define LOCAL_CONFIG_FILE "/.paradynrc"
+#define PARADYN_ROOT "PARADYN_ROOT"
+
+
 #include "paradyn/src/met/metParse.h"
 #include "../TCthread/tunableConst.h"
 #include "paradyn/src/met/metricExt.h"
@@ -154,12 +165,12 @@ bool metMain(string &userFile)
 
   mdl_init();
  
-  const string rcFileExtensionName="paradyn.rc";
+//  const string rcFileExtensionName="paradyn.rc";
      // formerly Paradynrc_NEW --ari
 
-  proot = getenv("PARADYN_ROOT");
+  proot = getenv(PARADYN_ROOT);
   if (proot) {
-    fname = string(proot) + "/" + rcFileExtensionName;
+    fname = string(proot) + GLOBAL_CONFIG_FILE;
     yy1 = open_N_parse(fname);
   } else {
     // note: we should use getwd() instead --ari
@@ -167,14 +178,14 @@ bool metMain(string &userFile)
     //  in the K & R book's appendix)
     cwd = getenv("PWD");
     if (cwd) {
-      fname = string(cwd) + "/" + rcFileExtensionName;
+      fname = string(cwd) + GLOBAL_CONFIG_FILE;
       yy1 = open_N_parse(fname);
     } else yy1 = -1;
   }
 
   home = getenv("HOME");
   if (home) {
-    fname = string(home) + "/." + rcFileExtensionName;
+    fname = string(home) + LOCAL_CONFIG_FILE;
     yy2 = open_N_parse(fname);
   } else yy2 = -1;
 
@@ -188,7 +199,7 @@ bool metMain(string &userFile)
   else yy3 = -1;
 
   if (yy1 < 0 && yy2 < 0 && yy3 < 0) {
-    fprintf(stderr,"Error: can't find any configuration files.\n");
+    fprintf(stderr,"Error: can't find any configuration files.\nParadyn looks for configuration files in the following places:\n\t$PARADYN_ROOT/paradyn.rc or $PWD/paradyn.rc\n\t$HOME/.paradynrc\n");
     exit(-1);
   }
 
@@ -208,7 +219,7 @@ bool metDoDaemon()
   static bool been_done=0;
   // the default daemons
   if (!been_done) {
-    dataMgr->defineDaemon("paradyndPVM", NULL, NULL, "pvmd", NULL, "pvm");
+    dataMgr->defineDaemon("paradynd", NULL, NULL, "pvmd", NULL, "pvm");
     dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, "unix");
     // TODO -- should cm5d be defined
     dataMgr->defineDaemon("paradynd", NULL, NULL, "cm5d", NULL, "cm5");

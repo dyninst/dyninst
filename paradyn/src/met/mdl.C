@@ -257,25 +257,7 @@ T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 // XXXX   silently deletes metrics from considuration.  Debugging MDL is almost
 // XXXX   impossible.  jkh 7/6/95.
 //
-bool T_dyninstRPC::mdl_instr_req::apply(unsigned where, instPoint *p, unsigned where_instr,
-					metricDefinitionNode *mn, AstNode *anode,
-					vector<dataReqNode*>& flags) {
-  switch (where) {
-  case MDL_PREPEND:
-  case MDL_APPEND:
-    break;
-  default:
-    return false;
-  }
-
-  switch (where_instr) {
-  case MDL_PRE_INSN:
-  case MDL_POST_INSN:
-    break;
-  default:
-    return false;
-  }
-
+bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *anode) {
   switch (type_) {
   case MDL_SET_COUNTER:
   case MDL_ADD_COUNTER:
@@ -350,7 +332,7 @@ bool T_dyninstRPC::mdl_for_stmt::apply(metricDefinitionNode *mn,
 
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 					   vector<string> *elems,
-					   bool is_lib, string flavor) 
+					   bool is_lib, vector<string> *flavor) 
 : type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) { }
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
@@ -384,9 +366,7 @@ T_dyninstRPC::mdl_icode::mdl_icode(u_int iop1, u_int ival1, string str1,
   bin_op_(bin_op), use_if_(use_if), req_(ireq) { }
 T_dyninstRPC::mdl_icode::~mdl_icode() { delete req_; }
 
-bool T_dyninstRPC::mdl_icode::apply(u_int position, instPoint *p, u_int where_instr,
-				    metricDefinitionNode *mn,
-				    vector<dataReqNode*>& flags) {
+bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn) {
   if (!req_) return false;
   if (use_if_) {
     string empty;
@@ -402,7 +382,7 @@ bool T_dyninstRPC::mdl_icode::apply(u_int position, instPoint *p, u_int where_in
       return false;
     }
   }
-  return (req_->apply(position, p, where_instr, mn, NULL, flags));
+  return (req_->apply(mn, NULL));
 }
 
 T_dyninstRPC::mdl_expr::mdl_expr() { }
@@ -630,8 +610,26 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   if (!temp.get(p))
     return false;
   unsigned size = icode_reqs_->size();
+
+  switch (position_) {
+  case MDL_PREPEND:
+  case MDL_APPEND:
+    break;
+  default:
+    return false;
+  }
+
+  switch (where_instr_) {
+  case MDL_PRE_INSN:
+  case MDL_POST_INSN:
+    break;
+  default:
+    return false;
+  }
+
+  AstNode *an = NULL;
   for (unsigned u=0; u<size; u++)
-    if (!(*icode_reqs_)[u]->apply(position_, p, where_instr_, NULL, flags))
+    if (!(*icode_reqs_)[u]->apply(an))
       return false;
   return true;
 }

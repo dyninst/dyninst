@@ -173,8 +173,7 @@ public:
 		u_int type, string obj_name);
 
   ~mdl_instr_req();
-  bool apply(u_int pos, instPoint *p, u_int where_instr, metricDefinitionNode *m,
-	     AstNode *pred, vector<dataReqNode*>& flags);
+   bool apply(AstNode *&mn, AstNode *pred);
 $ignore
 };
 
@@ -198,8 +197,7 @@ public:
 	    u_int iop2, u_int ival2, string str2,
 	    u_int bop, bool use, T_dyninstRPC::mdl_instr_req *r);
   ~mdl_icode();
-  bool apply(u_int position, instPoint *p, u_int where_instr,
-	     metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+   bool apply(AstNode *&mn);
 $ignore
 };
 
@@ -221,12 +219,12 @@ class mdl_list_stmt : mdl_stmt {
   string id_;
   vector<string> *elements_;
   bool is_lib_;
-  string flavor_;
+  vector<string> *flavor_;
 
 $ignore
 public:
   mdl_list_stmt(u_int type, string ident, vector<string> *elems,
-		bool is_lib, string flavor);
+		bool is_lib, vector<string> *flavor);
   virtual ~mdl_list_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
 #ifdef NO_MDL_PRINT
@@ -429,7 +427,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 25;
+    $version 26;
 
     //
     // Define a program to run. 

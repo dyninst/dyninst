@@ -3,6 +3,12 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.15  1995/12/15 22:30:07  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Change syntax of MDL resource lists
+ *
  * Revision 1.14  1995/11/28 15:52:57  naim
  * Minor fix. Changing char[number] by string - naim
  *
@@ -100,7 +106,7 @@ extern unsigned hacked_cons_type;
 %token tRC tLC tASSIGN tPRE_INSN tPOST_INSN
 %token tARG tRETURN
 %token tREAD_SYMBOL tREAD_ADDRESS
-%token tVOID
+%token tVOID tITEMS tLIBRARY
 %left tLT tGT tEQ tNE tLE tGE
 %left tPLUS tMINUS
 %left tMULT tDIV
@@ -138,14 +144,45 @@ opt_library: tCOMMA tTRUE     { $$.b = true; }
 list_id: tCOMMA tLITERAL      { $$.sp = $2.sp; }
 
 list_items: tCOMMA tLPAREN stringItems tRPAREN { $$.vs = $3.vs; }
+          | tLBLOCK stringItems tRBLOCK { $$.vs = $2.vs; }
 
 resList: tRES_LIST tLPAREN list_type list_id list_items opt_library tCOMMA tIDENT tRPAREN tSEMI { 
+  vector<string> *temp = new vector<string>;
+  *temp += *$8.sp;
   metParseError = ERR_NO_ERROR;
   T_dyninstRPC::mdl_stmt *s = new T_dyninstRPC::mdl_list_stmt($3.u, *$4.sp,
-							      $5.vs, $6.b, *$8.sp);
+							      $5.vs, $6.b, temp);
   if (s) mdl_data::stmts += s;
   delete $4.sp; delete $8.sp;
-} | tRES_LIST error;
+}
+ | tRES_LIST tIDENT tIS list_type tLBLOCK resListItems tRBLOCK 
+       {
+       T_dyninstRPC::mdl_stmt *s = new T_dyninstRPC::mdl_list_stmt($4.u, *$2.sp, 
+								   $6.vs, $6.b, $6.vsf);
+         if (s) mdl_data::stmts += s; 
+         delete $2.sp; delete $6.sp; }
+ | tRES_LIST error;
+
+library : tTRUE { $$.b = true; }
+        | tFALSE { $$.b = false; }
+
+resListItems: 
+             tITEMS list_items tSEMI met_flavor tLIBRARY library tSEMI
+               { $$.vs = $2.vs; $$.vsf = $4.vs; $$.b = $6.b; }
+           | tITEMS list_items tSEMI tLIBRARY library tSEMI met_flavor
+               { $$.vs = $2.vs; $$.b = $5.b; $$.vsf = $7.vs; }
+           | met_flavor tITEMS list_items tSEMI tLIBRARY library tSEMI
+               { $$.vsf = $1.vs; $$.vs = $3.vs; $$.b = $6.b; }
+	   | met_flavor tLIBRARY library tSEMI tITEMS list_items tSEMI
+	       { $$.vsf = $1.vs; $$.b = $3.b; $$.vs = $6.vs; }
+	   | tLIBRARY library tSEMI tITEMS list_items tSEMI met_flavor
+	       { $$.b = $2.b; $$.vs = $5.vs; $$.vsf = $7.vs; }
+	   | tLIBRARY library tSEMI met_flavor tITEMS list_items tSEMI
+	       { $$.b = $2.b; $$.vsf = $4.vs; $$.vs = $6.vs; }
+	   | tITEMS list_items tSEMI met_flavor 
+               { $$.vs = $2.vs; $$.vsf = $4.vs; $$.b = false; }
+	   | met_flavor tITEMS list_items tSEMI
+	       { $$.vsf = $1.vs; $$.vs = $3.vs; $$.b = false; }
 
 stringItems: tLITERAL {
                   $$.vs = new vector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
@@ -484,6 +521,8 @@ flavor_list: tIDENT {
                        $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; };
 
 met_flavor: tFLAVOR tASSIGN tLBLOCK flavor_list tRBLOCK tSEMI {$$.vs = $4.vs;};
+	| tFLAVOR tLBLOCK flavor_list tRBLOCK tSEMI { $$.vs = $3.vs;};
+
 
 mode_val: tDEVELOPER { $$.b = true; }
 	| tNORMAL { $$.b = false; }; 

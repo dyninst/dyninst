@@ -1,6 +1,12 @@
 
 /*
  * $Log: metParse.h,v $
+ * Revision 1.9  1995/12/15 22:30:06  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Change syntax of MDL resource lists
+ *
  * Revision 1.8  1995/11/21 21:06:53  naim
  * Fixing unitsType definition for MDL grammar - naim
  *
@@ -283,6 +289,7 @@ struct parseStack {
   T_dyninstRPC::mdl_icode *i_code;
   metricFld mfld;
   metricDef *mde;
+  vector<string> *vsf;
 };
 
 extern FILE *yyin;
