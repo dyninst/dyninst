@@ -4,45 +4,41 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Log: nmake.library.tmpl,v $
-# Revision 1.1  1997/05/23 23:04:53  mjrg
-# Windows NT port
+# $Id: nmake.library.tmpl,v 1.2 1998/03/02 00:42:13 wylie Exp $
 #
-#
-#
-
 
 VPATH           = $(VPATH) ../src
 
 !ifndef UNCOMMON_LINK
 $(TARGET): $(OBJS)
-	@rm -f $(TARGET)
+	@$(RM) $(TARGET)
 	lib -out:$*.lib $(OBJS)
 #	$(RANLIB) $(TARGET)
 
 !ifdef TARGET2
 $(TARGET2): $(OBJS2)
-	@rm -f $(TARGET2)
-	ar crv $(TARGET2) $(OBJS2)
+	@$(RM) $(TARGET2)
+	$(AR) crv $(TARGET2) $(OBJS2)
 	$(RANLIB) $(TARGET2)
 !endif  # TARGET2
 !endif  # UNCOMMON_LINK
 
 !ifndef DEST
-DEST            = $(TO_CORE)\..\lib\$(PLATFORM)
+DEST            = $(LIBRARY_DEST)
 !endif
 
 echo:
 	echo $(OBJS)
 
 clean:
-	del *.obj *.h *.C *.lib $(TARGET)
+	$(RM) *.obj *.h *.C *.lib $(TARGET)
 
 !ifndef UNCOMMON_INSTALL
 install: $(DEST)/$(TARGET)
 
 $(DEST)/$(TARGET):  $(TARGET)
-	copy $(TARGET) $(DEST)
+	@-$(MKDIR) $(DEST)
+	$(CP) $(TARGET) $(DEST)
 #	$(RANLIB) $(DEST)/$(TARGET)
 
 #
@@ -52,7 +48,7 @@ $(DEST)/$(TARGET):  $(TARGET)
 install: $(DEST)/$(TARGET2)
 
 $(DEST)/$(TARGET2):  $(TARGET2)
-	cp $(TARGET2) $(DEST)
+	$(CP) $(TARGET2) $(DEST)
 	$(RANLIB) $(DEST)/$(TARGET2)
 !endif
 !endif      # ifndef UNCOMMON_INSTALL
@@ -63,7 +59,7 @@ $(DEST)/$(TARGET2):  $(TARGET2)
 
 #.PHONY : depend
 #depend:
-#	rm -f DEPENDS
+#	$(RM) DEPENDS
 #	$(MAKE) DEPENDS
 
 # 
@@ -122,13 +118,13 @@ pure:
 
 {..\src\}.y.C:
 	$(YACC) $(YFLAGS) $<
-	del $@
-	move y.tab.c $@
+	$(RM) $@
+	$(MV) y.tab.c $@
 
 {..\src\}.y.obj:
 	$(YACC) $(YFLAGS) $<
-	del $@
-	move y.tab.c $@
+	$(RM) $@
+	$(MV) y.tab.c $@
 	$(CXX) $(CXXFLAGS) -c $<
 
 
