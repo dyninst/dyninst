@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.54 2001/12/18 22:54:04 zandy Exp $
+// $Id: linux.C,v 1.55 2002/01/31 17:06:55 cortes Exp $
 
 #include <fstream.h>
 
@@ -897,7 +897,7 @@ bool process::attach() {
 
   // Only if we are really attaching rather than spawning the inferior
   // process ourselves do we need to call PTRACE_ATTACH
-  if( createdViaAttach || createdViaFork ) {
+  if( createdViaAttach || createdViaFork || createdViaAttachToCreated ) {
 	  attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
     if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
 	{
@@ -913,12 +913,59 @@ bool process::attach() {
     // Actually, the attach process contructor assumes that the process is
     // running.  While this is foolish, let's play along for now.
 	if( status_ != running || !isRunning_() ) {
-		if( 0 != P_ptrace(PTRACE_CONT, getPid(), 0, 0) )
-		{
-			perror( "process::attach - continue" );
-		}
+	        if( 0 != P_ptrace(PTRACE_CONT, getPid(), 0, 0) )
+	        {
+			perror( "process::attach - continue 1" );
+                }
     }
   }
+
+  if (createdViaAttachToCreated)
+    {
+      // This case is a special situation. The process is stopped
+      // in the exec() system call but we have not received the first 
+      // TRAP because it has been caught by another process.
+
+
+      cerr << "process::attach() doing wait" << endl;
+      if (0 > waitpid(getPid(), NULL, 0)) {
+          perror("waitpid");
+          exit(1);
+      }
+
+      /* lose race */
+      sleep(1);
+ 
+
+      /* continue, clearing pending stop */
+      if (0 > ptrace(PTRACE_CONT, getPid(), 0, SIGCONT)) {
+          perror("process::attach: PTRACE_CONT 1");
+          return false;
+      }
+     
+
+      if (0 > waitpid(getPid(), NULL, 0)) {
+          perror("process::attach: WAITPID");
+          return false;
+      }
+     
+
+      /* continue, resending the TRAP to emulate the normal situation*/
+      if ( 0 > kill(getPid(), SIGTRAP)){
+	  perror("process::attach: KILL");
+          return false;
+      }
+
+      if (0 > ptrace(PTRACE_CONT, getPid(), 0, SIGCONT)) {
+          perror("process::attach: PTRACE_CONT 2");
+          return false;
+      }
+
+      fprintf(stderr, "done attaching\n");
+      status_ = neonatal;
+      return true;
+
+     } // end - if createdViaAttachToCreated
 
 #ifdef notdef
   if( status_ != running && isRunning_() )
@@ -2200,3 +2247,4 @@ void inferiorMallocAlign(unsigned &size)
   size = (size + 0x1f) & ~0x1f;
 }
 #endif
+
