@@ -22,6 +22,7 @@ class string {
 public:
      string ();
      string (const char *);
+     string (const char *, unsigned n); // just copy the first n chars
      string (const string &);
      string (int);      // convert int to its string representation
      string (unsigned); // convert unsigned to its string representation
