@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2003/08/11 11:57:48 tlmiller Exp $
+# $Id: Makefile,v 1.11 2003/09/23 17:28:38 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -18,27 +18,26 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =          ../src/linux.C \
+SRCS =	../src/linux.C \
 		../src/linux-ia64.C \
 		../src/linuxDL.C \
 		../src/linuxMT.C \
-                ../src/inst-linux.C \
-                ../src/inst-ia64.C \
-                ../src/arch-ia64.C \
+		../src/inst-linux.C \
+		../src/inst-ia64.C \
+		../src/arch-ia64.C \
 		../src/Object-elf.C \
-                ../src/unix.C \
+		../src/unix.C \
 		../src/parseStab.C \
 		../src/func-reloc.C \
-	        ../src/LocalAlteration.C \
-	        ../src/LocalAlteration-ia64.C \
+		../src/LocalAlteration.C \
+		../src/LocalAlteration-ia64.C \
 		../src/FunctionExpansionRecord.C \
-                ../src/addLibraryLinux.C \
-                ../src/InstrucIter-ia64.C \
+		../src/addLibraryLinux.C \
+		../src/InstrucIter-ia64.C \
 		../src/parseDwarf.C \
 		../../common/src/linuxKludges.C \
 		../../common/src/timing-linux.C \
-		../src/ia64-template.s
-
+		../src/ia64-template.s		
 
 MYFLAGS		+= -I/usr/include/libelf -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR)
 
