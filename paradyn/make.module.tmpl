@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.23  1996/02/06 16:27:43  mjrg
+# Invoke tcl2c with perl, to avoid problems on HP.
+#
 # Revision 1.22  1996/02/02 02:22:52  karavan
 #  Its a baby performance consultant!
 #
@@ -212,6 +215,6 @@ templatesUI.o: ../src/templatesUI.C
 	$(CXX) $(TFLAGS) -c ../src/templatesUI.C
 
 $(TCL2C_GEN_SRCS):	$(TCL_SRCS)
-	$(TCL2C) $^ > $@
+	perl $(TCL2C) $^ > $@
 
 
