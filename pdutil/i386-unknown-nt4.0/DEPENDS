@@ -25,6 +25,7 @@ hist.obj: ../src/hist.C ../../util/h/headers.h \
  ../../util/h/Vector.h ../../util/h/sys.h ../../util/h/makenan.h
 timing.obj: ../src/timing.C ../../util/h/Timer.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h
+timing-nt.obj: ../src/timing-nt.C
 Timer.obj: ../src/Timer.C ../../util/h/Timer.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h
 Types.obj: ../src/Types.C ../../util/h/Types.h
@@ -42,7 +43,7 @@ Object.obj: ../src/Object.C ../../util/h/Object.h \
  ../../util/h/debugOstream.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
  ../../util/h/ByteArray.h ../../util/h/Symbol.h ../../util/h/Types.h \
- ../../util/h/lprintf.h ../../util/h/Object-elf32.h
+ ../../util/h/lprintf.h ../../util/h/Object-elf.h
 Object-nt.obj: ../src/Object-nt.C ../../util/h/Object-nt.h \
  ../../util/h/Object.h \
  ../../util/h/String.h \
