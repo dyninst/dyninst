@@ -79,7 +79,7 @@ int DYNINSTloadLibrary(char *libname)
   gLoadLibraryErrorString[0]='\0';
   
   if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
-    // An error has occurred
+    /* An error has occurred */
     perror( "DYNINSTloadLibrary -- dlopen" );
     
     if (NULL != (err_str = dlerror()))
@@ -87,7 +87,7 @@ int DYNINSTloadLibrary(char *libname)
     else 
       sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
     
-    //fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
+    /*fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);*/
     return 0;  
   } else
     return 1;
@@ -95,6 +95,7 @@ int DYNINSTloadLibrary(char *libname)
 
 #endif /* EXPORT_SPINLOCKS_AS_HEADER */
 
+#ifdef __GNUC__
 void DYNINSTlock_spinlock(dyninst_spinlock *mut)
 {
 
@@ -111,3 +112,15 @@ void DYNINSTlock_spinlock(dyninst_spinlock *mut)
      );
 
 }
+#else
+
+/* Later version of xlc have a -qasm=gcc option.  But our version does not... */
+
+void DYNINSTlock_spinlock_inline(dyninst_spinlock *mut);
+#pragma mc_func DYNINSTlock_spinlock_inline {"7c801828" "2c040001" "41a2fff8" "38a00001" "7ca0192d" "40a2ffec" "4c00012c" }
+
+void DYNINSTlock_spinlock(dyninst_spinlock *mut) {
+  DYNINSTlock_spinlock_inline(mut);
+ }
+
+#endif
