@@ -76,14 +76,17 @@
 //#include <mpi.h>
 #endif
 
-#if defined(MT_THREAD)
-void initialize_hash(unsigned total);
-void initialize_free(unsigned total);
-unsigned hash_insert(unsigned k);
-unsigned hash_lookup(unsigned k);
-unsigned initialize_done=0;
+#if defined(SHM_SAMPLING)
+extern void makeNewShmSegCopy();
 #endif
 
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+void DYNINST_initialize_hash(unsigned total);
+void DYNINST_initialize_free(unsigned total);
+unsigned DYNINST_hash_insert(unsigned k);
+unsigned DYNINST_hash_lookup(unsigned k);
+unsigned DYNINST_initialize_done=0;
+#endif
 
 /* sunos's header files don't have these: */
 #ifdef sparc_sun_sunos4_1_3
@@ -115,6 +118,7 @@ extern void DYNINSTcloseTrace(void);
 extern void *DYNINST_shm_init(int, int, int *);
 
 void DYNINSTprintCost(void);
+int DYNINSTTGroup_CreateUniqueId(int);
 
 /************************************************************************/
 
@@ -884,7 +888,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   
   int dx;
   
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
   traceThrSelf traceRec;
 #endif
   
@@ -1033,14 +1037,14 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     /* calledByFork -- DYNINSTfork already called DYNINSTinitTrace */
     ;
   
-#if defined(MT_THREAD)
-  if (!initialize_done) {
-    initialize_free(MAX_NUMBER_OF_THREADS);
-    initialize_hash(MAX_NUMBER_OF_THREADS);
-    traceRec.pos = hash_insert(DYNINSTthreadSelf());
-    initialize_done=1;
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+  if (!DYNINST_initialize_done) {
+    DYNINST_initialize_free(MAX_NUMBER_OF_THREADS);
+    DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
+    traceRec.pos = DYNINST_hash_insert(DYNINSTthreadSelf());
+    DYNINST_initialize_done=1;
   } else {
-    traceRec.pos = hash_lookup(DYNINSTthreadSelf());
+    traceRec.pos = DYNINST_hash_lookup(DYNINSTthreadSelf());
   }
   traceRec.tid = DYNINSTthreadSelf();
   traceRec.ppid = getpid();
@@ -1056,6 +1060,11 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 		     (int)getpid());
   
   DYNINSTbreakPoint();
+
+  /* The next instruction is necessary to avoid a race condition when we
+     link the thread library. This is just a hack to get the hw counters
+     to work and it should be fixed - naim 4/9/97 */
+  /* usleep(1000000); */
   
   /* After the break, we clear DYNINST_bootstrap_info's event field, leaving the
      others there */
@@ -1413,7 +1422,7 @@ void DYNINSTreportNewTags(void)
     process_time = DYNINSTgetCPUtime();
     /* this _is_ needed; paradynd keeps the 'creation' time of each resource
      *  (resource.h) */
-     wall_time = DYNINSTgetWalltime();
+    wall_time = DYNINSTgetWalltime();
   }
 
 #ifdef COSTTEST
@@ -1740,50 +1749,49 @@ void DYNINSTexitPrint(int arg) {
     printf("exit %d\n", arg);
 }
 
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 
-
-#if defined(MT_THREAD)
-unsigned DYNINSTthreadTable[MAX_NUMBER_OF_THREADS];
+unsigned DYNINSTthreadTable[MAX_NUMBER_OF_THREADS][MAX_NUMBER_OF_LEVELS];
 
 struct elemList {
   unsigned pos;
   struct elemList *next;
 };
 
-struct elemList *freeList=NULL;
+struct elemList *DYNINST_freeList=NULL;
 
-void add_free(unsigned pos)
+void DYNINST_add_free(unsigned pos)
 {
   struct elemList *tmp;
   tmp = (struct elemList *) malloc(sizeof(struct elemList));
   tmp->pos = pos;
-  tmp->next = freeList;
-  freeList = tmp;
+  tmp->next = DYNINST_freeList;
+  DYNINST_freeList = tmp;
 }
 
-unsigned get_free()
+unsigned DYNINST_get_free()
 {
   unsigned pos;
   struct elemList *tmp;
-  if (freeList) {
-    pos = freeList->pos;
-    tmp = freeList;
-    freeList = freeList->next;
+  if (DYNINST_freeList) {
+    pos = DYNINST_freeList->pos;
+    tmp = DYNINST_freeList;
+    DYNINST_freeList = DYNINST_freeList->next;
     free(tmp);
     return(pos);
   }
   abort();
 }
 
-void initialize_free(unsigned total)
+void DYNINST_initialize_free(unsigned total)
 {
   struct elemList *tmp;
   int i;
   for (i=0;i<total;i++) {
     tmp = (struct elemList *) malloc(sizeof(struct elemList));   
     tmp->pos = i;
-    tmp->next = freeList;
-    freeList = tmp;
+    tmp->next = DYNINST_freeList;
+    DYNINST_freeList = tmp;
   }
 }
 
@@ -1795,21 +1803,21 @@ struct nlist {
   struct nlist *next;
 };
 
-struct nlist *ThreadTable[MAX_NUMBER_OF_THREADS];
-unsigned currentNumberOfThreads=0;
+struct nlist *DYNINST_ThreadTable[MAX_NUMBER_OF_THREADS];
+unsigned DYNINST_currentNumberOfThreads=0;
 
-void initialize_hash(unsigned total)
+void DYNINST_initialize_hash(unsigned total)
 {
   int i;
-  for (i=0;i<total;i++) ThreadTable[i]=NULL;
+  for (i=0;i<total;i++) DYNINST_ThreadTable[i]=NULL;
 }
 
-unsigned hash_lookup(unsigned k)
+unsigned DYNINST_hash_lookup(unsigned k)
 {
   unsigned pos;
   struct nlist *p;
   pos = HASH(k);
-  p=ThreadTable[pos];
+  p=DYNINST_ThreadTable[pos];
   while (p!=NULL) {
     if (p->key==k) break;
     else p=p->next;
@@ -1818,12 +1826,12 @@ unsigned hash_lookup(unsigned k)
   return(p->val);
 }
 
-unsigned hash_insert(unsigned k)
+unsigned DYNINST_hash_insert(unsigned k)
 {
   unsigned pos;
   struct nlist *p, *tmp;
   pos = HASH(k);
-  p=ThreadTable[pos];
+  p=DYNINST_ThreadTable[pos];
   if (p != NULL) {
     while (p!=NULL) {
       tmp=p;
@@ -1831,33 +1839,33 @@ unsigned hash_insert(unsigned k)
       else p=p->next;
     }
     assert(p==NULL);
-    assert(++currentNumberOfThreads<MAX_NUMBER_OF_THREADS);
+    assert(++DYNINST_currentNumberOfThreads<MAX_NUMBER_OF_THREADS);
     p = (struct nlist *) malloc(sizeof(struct nlist));
     p->next=NULL;
     p->key=k;
-    p->val=get_free();
+    p->val=DYNINST_get_free();
     tmp->next=p;
   } else {
-    assert(++currentNumberOfThreads<MAX_NUMBER_OF_THREADS);
+    assert(++DYNINST_currentNumberOfThreads<MAX_NUMBER_OF_THREADS);
     p = (struct nlist *) malloc(sizeof(struct nlist));
     p->next=NULL;
     p->key=k;
-    p->val=get_free();
-    ThreadTable[pos]=p;
+    p->val=DYNINST_get_free();
+    DYNINST_ThreadTable[pos]=p;
   }
   return(p->val);
 }
 
-void hash_delete(unsigned k)
+void DYNINST_hash_delete(unsigned k)
 {
   unsigned pos;
   struct nlist *p=NULL, *tmp=NULL;
   pos = HASH(k);
-  p=ThreadTable[pos];
+  p=DYNINST_ThreadTable[pos];
   assert(p);
   if (p->key==k) {
-    ThreadTable[pos] = p->next;
-    add_free(tmp->val);
+    DYNINST_ThreadTable[pos] = p->next;
+    DYNINST_add_free(tmp->val);
     free(p);
   }
   else {
@@ -1870,10 +1878,10 @@ void hash_delete(unsigned k)
     }
     assert(p!=NULL && tmp!=NULL);
     tmp->next = p->next;
-    add_free(p->val);
+    DYNINST_add_free(p->val);
     free(p);
   }
-  currentNumberOfThreads--;
+  DYNINST_currentNumberOfThreads--;
 }
 
 /************************************************************************

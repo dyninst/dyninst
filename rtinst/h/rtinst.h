@@ -153,8 +153,9 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type,
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #define MAX_NUMBER_OF_THREADS (100)
+#define MAX_NUMBER_OF_LEVELS (30)
 extern int DYNINSTthreadPos(void);
 extern int DYNINSTthreadSelf(void);
 #endif

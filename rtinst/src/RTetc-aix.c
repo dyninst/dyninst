@@ -43,6 +43,10 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.10  1997/05/07 18:59:15  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished - naim
+ *
  * Revision 1.9  1997/02/18 21:34:37  sec
  * There were some bugs in how the time was accessed, fixed those; I also
  * removed DYNISTexecvp which is buggy, and is never called (it was called
@@ -88,7 +92,7 @@
 
 #include "rtinst/h/rtinst.h"
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #include <sys/thread.h>
 #endif
 
@@ -225,25 +229,25 @@ int DYNINSTgetRusage(int id)
     return value;
 }
 
-#if defined(MT_THREAD)
-extern unsigned hash_lookup(unsigned key);
-extern unsigned initialize_done;
-extern void initialize_hash(unsigned total);
-extern void initialize_free(unsigned total);
-extern unsigned hash_insert(unsigned k);
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+extern unsigned DYNINST_hash_lookup(unsigned key);
+extern unsigned DYNINST_initialize_done;
+extern void DYNINST_initialize_hash(unsigned total);
+extern void DYNINST_initialize_free(unsigned total);
+extern unsigned DYNINST_hash_insert(unsigned k);
 
 int DYNINSTthreadSelf(void) {
   return(thread_self());
 }
 
 int DYNINSTthreadPos(void) {
-  if (initialize_done) {
-    return(hash_lookup(DYNINSTthreadSelf()));
+  if (DYNINST_initialize_done) {
+    return(DYNINST_hash_lookup(DYNINSTthreadSelf()));
   } else {
-    initialize_free(MAX_NUMBER_OF_THREADS);
-    initialize_hash(MAX_NUMBER_OF_THREADS);
-    initialize_done=1;
-    return(hash_insert(DYNINSTthreadSelf()));
+    DYNINST_initialize_free(MAX_NUMBER_OF_THREADS);
+    DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
+    DYNINST_initialize_done=1;
+    return(DYNINST_hash_insert(DYNINSTthreadSelf()));
   }
 }
 #endif
