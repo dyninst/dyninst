@@ -4,6 +4,9 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.16  1996/10/31 07:35:21  tamches
+# added vectorSet
+#
 # Revision 1.15  1996/05/31 23:38:26  tamches
 # removed libpdutilPVM since not used any more
 #
@@ -45,12 +48,14 @@ SRCS	     += ../src/String.C \
 		../src/pathName.C \
 		../src/PriorityQueue.C \
 		../src/odometer.C \
-		../src/CircularBuffer.C
+		../src/CircularBuffer.C \
+		../src/vectorSet.C
 
 OBJS         += String.o DictionaryLite.o \
 		lprintf.o rpcUtil.o aggregateSample.o \
  		stringPool.o hist.o timing.o \
 		makenan.o pathName.o \
-		PriorityQueue.o CircularBuffer.o
+		PriorityQueue.o CircularBuffer.o \
+		vectorSet.o
 
 all: $(TARGET)
