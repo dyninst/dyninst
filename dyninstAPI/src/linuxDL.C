@@ -53,6 +53,7 @@ extern debug_ostream sharedobj_cerr;
 #include <sys/ioctl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/reg.h>
 
 static int scandir_select_ld( const struct dirent * entry ) {
   // Select files which could be ld.so, they must start with "ld", and must
@@ -744,8 +745,29 @@ vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
     return 0;
 }
 
+static Address getSP(int pid) {
+   Address regaddr = UESP * sizeof(int);
+   int res;
+   res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
+   if( errno ) {
+     perror( "getSP" );
+     exit(-1);
+     return 0; // Shut up the compiler
+   } else {
+     assert(res);
+     return (Address)res;
+   }   
+}
 
+static bool changeSP(int pid, Address loc) {
+  Address regaddr = UESP * sizeof(int);
+  if (0 != P_ptrace (PTRACE_POKEUSER, pid, regaddr, loc )) {
+    perror( "process::changeSP - PTRACE_POKEUSER" );
+    return false;
+  }
 
+  return true;
+}
 
 // handleIfDueToSharedObjectMapping: returns true if the trap was caused
 // by a change to the link maps,  If it is, and if the linkmaps state is
@@ -797,12 +819,29 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 					      error_occured);
     } 
 
-    // set the pc to the "ret" instruction
-    // Try disassembling the dummy function at _r_debug to find out the
-    // offset to the "ret" instruction; it was 4 on x86-solaris and 6 here
-    u_int next_pc = pc + 6;
-    if (!proc->changePC(next_pc))
+    // Return from the function.  We used to do this by setting the program
+    // counter to the end of the function, but we don't necessarily know
+    // how long it is, so now we emulate a ret instruction by changing the
+    // PC to the return value from the stack and incrementing the stack
+    // pointer.
+    Address sp = getSP(proc->getPid());
+
+    Address ret_addr;
+    if(!proc->readDataSpace((caddr_t)sp, sizeof(Address),
+			    (caddr_t)&ret_addr, true)) {
+      // printf("read failed sp = 0x%x\n", sp);
       error_occured = true;
+      return true;
+    }
+
+    if (!changeSP(proc->getPid(), sp + sizeof(Address))) {
+      error_occured = true;
+      return true;
+    }
+
+    if (!proc->changePC(ret_addr))
+      error_occured = true;
+
     return true;
   }
 
