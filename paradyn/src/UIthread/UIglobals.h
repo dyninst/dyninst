@@ -1,8 +1,15 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.17  1995/07/24 21:29:43  tamches
-/* removed or commented out resourceDisplayObj, baseWhere, and
-/* uim_knownAbstractions, which are all things related to the old where axis.
+/* Revision 1.18  1995/10/05 04:30:13  karavan
+/* added ActiveDags to dag class.
+/* removed SHG_DAGID global (not used).
+/* removed SHGwinName global (obsoleted).
+/* removed tokenRec struc and tokenHandler class (obsoleted).
+/* removed commented obsolete code.
 /*
+ * Revision 1.17  1995/07/24  21:29:43  tamches
+ * removed or commented out resourceDisplayObj, baseWhere, and
+ * uim_knownAbstractions, which are all things related to the old where axis.
+ *
  * Revision 1.16  1995/06/02  20:50:34  newhall
  * made code compatable with new DM interface
  *
@@ -76,9 +83,7 @@
 extern "C" {
  #include "tk.h"
 }
-
 #define UIMBUFFSIZE 256
-#define MAXNUMACTIVEDAGS 20
 
 #define DISPLAYED 0
 #define ICONIFIED 1
@@ -87,12 +92,9 @@ extern "C" {
 typedef unsigned nodeIdType;
 typedef vector<nodeIdType> numlist;
 nodeIdType StrToNodeIdType (char *instring); 
-char *NodeIdTypeToStr (nodeIdType intoken);
-
-//** remove this once defined in DMinclude.h
-typedef unsigned abstractHandle;
 
 class dag;
+class shgDisplay;
 
 struct cmdTabEntry 
 {
@@ -105,24 +107,6 @@ typedef struct UIMReplyRec {
   thread_t tid;
 } UIMReplyRec;
 
-typedef struct tokenRec {
-  int token;
-  void *object;
-} tokenRec;
-
-class tokenHandler {
- public:
-  int getToken(void *obj);
-  int reportToken (void *obj);
-  tokenRec *translateToken (int token);
-  bool invalidate (int token);
-  tokenHandler () {counter = 1;}
-  int getCount () {return counter;}
- private:
-  int counter;
-  List<tokenRec *> store;
-};
-
 // used by paradyn enable command
 extern int                       uim_eid;
 
@@ -134,9 +118,6 @@ extern UIM                       *uim_server;
 //  int tokens are used within tcl/tk code since we can't use pointers
 extern Tcl_HashTable UIMMsgReplyTbl;
 extern int UIMMsgTokenID;
-//extern tokenHandler tokenClerk; 
-extern Tcl_HashTable shgNamesTbl;
-extern char *SHGwinName;
 
 // this tcl interpreter used for entire UI
 extern Tcl_Interp *interp;   
@@ -150,13 +131,8 @@ extern status_line *ui_status;
 // value of highest valid error index
 extern int uim_maxError;     
 
-// every currently defined dag listed here for lookups by tcl/tk routines
-extern dag *ActiveDags[MAXNUMACTIVEDAGS];
-
 // where axes display
 extern resourceHandle   uim_rootRes;
-//extern dag *baseWhere;  /*** get rid of this from uimpd, UImain,UIpublic */
-//extern List<stringHandle> uim_knownAbstractions;
 
 // metric-resource selection 
 extern int uim_ResourceSelectionStatus;
