@@ -18,7 +18,10 @@
  * association.C - Manage mapping information (associations)
  *
  * $Log: association.C,v $
- * Revision 1.1  1994/06/27 21:29:11  rbi
+ * Revision 1.2  1994/07/20 22:21:42  rbi
+ * Small type change
+ *
+ * Revision 1.1  1994/06/27  21:29:11  rbi
  * Code for handling abstraction-specific mappings
  *
  */
@@ -38,7 +41,7 @@ extern pdRPC *tp;
 void newAssoc(process *proc, char *abstraction, char *type, char *key, 
 	      char *value)
 {
-  unsigned faddr;
+  caddr_t faddr;
   function *func;
 
   /* 
