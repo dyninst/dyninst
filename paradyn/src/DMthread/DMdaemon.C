@@ -678,6 +678,16 @@ bool paradynDaemon::newExecutable(const string &machine,
   //Added to start blizzard application, Tempest
 
   daemonEntry *def = findEntry(machine, name) ;
+  if (!def) {
+     if (name.length()) {
+	string msg = string("Paradyn daemon \"") + name + string("\" not defined.");
+	uiMgr->showError(90,P_strdup(msg.string_of()));
+     }
+     else {
+        uiMgr->showError(91,"");
+     }
+     return false;
+  }
   if(def->getFlavorString() == "cow")
         return startBlzApp(machine, login, name, dir, argv) ;
   //------------
