@@ -45,9 +45,13 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.15  1996/11/26 16:07:08  naim
-/* Fixing asserts - naim
+/* Revision 1.16  1997/09/24 19:29:05  tamches
+/* XFontStruct --> Tk_Font; use of Tk_GetFontMetrics
+/* for tcl 8.0
 /*
+ * Revision 1.15  1996/11/26 16:07:08  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.14  1996/08/16 21:07:44  tamches
  * updated copyright for release 1.1
  *
@@ -102,9 +106,10 @@
 #endif
 
 #include "tkTools.h"
+#include "tk.h"
 
-XFontStruct *whereAxis::theRootItemFontStruct = NULL;
-XFontStruct *whereAxis::theListboxItemFontStruct = NULL;
+Tk_Font whereAxis::theRootItemFontStruct = NULL;
+Tk_Font whereAxis::theListboxItemFontStruct = NULL;
 Tk_3DBorder  whereAxis::rootItemTk3DBorder = NULL;
 GC           whereAxis::rootItemTextGC = NULL;
 Tk_3DBorder  whereAxis::listboxItem3DBorder = NULL;
@@ -941,8 +946,10 @@ bool whereAxis::softScrollToEndOfPath(const whereNodePosRawPath &thePath) {
          // First, let's scroll within the listbox (no redrawing yet)
          where4tree<whereAxisRootNode> *parent = scrollToPath.getParentOfLastPathNode(rootPtr);
 
+         Tk_FontMetrics lbFontMetrics; // filled in by Tk_GetFontMetrics()
+         Tk_GetFontMetrics(consts.listboxFontStruct, &lbFontMetrics);
          const unsigned itemHeight = consts.listboxVertPadAboveItem +
-	                             consts.listboxFontStruct->ascent +
+                                     lbFontMetrics.ascent +
    	                             consts.listboxVertPadAfterItemBaseline;
    
          int scrollToVertPix = 0; // relative to listbox top
