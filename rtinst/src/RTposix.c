@@ -240,7 +240,7 @@ install_ualarm(unsigned value, unsigned interval) {
     it.it_value.tv_usec    = value;
     it.it_interval.tv_usec = interval;
 
-    if (setitimer(ITIMER_VIRTUAL, &it, 0) == -1) {
+    if (setitimer(ITIMER_REAL, &it, 0) == -1) {
         perror("setitimer");
         abort();
     }
@@ -573,8 +573,8 @@ DYNINSTinit(int doskip) {
 #endif /* defined(SA_INTERRUPT) */
     sigfillset(&act.sa_mask);
 
-    if (sigaction(SIGVTALRM, &act, 0) == -1) {
-        perror("sigaction(SIGVTALRM)");
+    if (sigaction(SIGALRM, &act, 0) == -1) {
+        perror("sigaction(SIGALRM)");
         abort();
     }
 
