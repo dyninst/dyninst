@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.4 1994/09/22 02:27:37 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.5 1994/11/02 11:18:54 markc Exp $";
 #endif
 
 /*
  * util.C - support functions.
  *
  * $Log: util.C,v $
- * Revision 1.4  1994/09/22 02:27:37  markc
+ * Revision 1.5  1994/11/02 11:18:54  markc
+ * Remove old malloc wrappers.
+ *
+ * Revision 1.4  1994/09/22  02:27:37  markc
  * Changed signature to intComp
  *
  * Revision 1.3  1994/07/28  22:40:49  krisna
@@ -36,55 +39,33 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-extern "C" {
-#include <stdlib.h>
-#include <errno.h>
-}
-
+#include "util/h/kludges.h"
 #include "util.h"
-
-extern "C" {
-  void perror(char *s);
-}
-
-void *xmalloc(size_t size)
-{
-    void *ret;
-
-    ret = malloc(size);
-    if (!ret) {
-	perror("malloc");
-	exit(-1);
-    }
-    return(ret);
-}
-
-void *xcalloc(size_t nelem, size_t elsize)
-{
-    void *ret;
-
-    ret = calloc(nelem, elsize);
-    if (!ret) {
-	perror("calloc");
-	exit(-1);
-    }
-    return(ret);
-}
-
-void *xrealloc(void *ptr, size_t size)
-{
-    void *ret;
-
-    ret = realloc(ptr, size);
-    if (!ret) {
-	perror("realloc");
-	exit(-1);
-    }
-    return(ret);
-}
 
 /* used for qsort */
 int intComp(const void *i, const void *j)
 {
     return (*((int*)i) - *((int*)j) );
 }
+
+#ifdef notdef
+void
+log_printf(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vsprintf(errorLine, fmt, ap);
+    va_end(ap);
+    logLine(errorLine);
+    // printf("%s", log_buffer);
+}
+#endif
+
+void
+pd_log_perror(const char* msg) {
+    extern char* sys_errlist[];
+    sprintf(errorLine, "%s: %s\n", msg, sys_errlist[errno]);
+    logLine(errorLine);
+    // fprintf(stderr, "%s", log_buffer);
+}
+
+

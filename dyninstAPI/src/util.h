@@ -7,7 +7,10 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
- * Revision 1.4  1994/09/22 02:27:52  markc
+ * Revision 1.5  1994/11/02 11:18:52  markc
+ * Remove old malloc wrappers.
+ *
+ * Revision 1.4  1994/09/22  02:27:52  markc
  * Change signature to intComp
  *
  * Revision 1.3  1994/07/28  22:40:50  krisna
@@ -29,18 +32,21 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-extern "C" {
-#include <sys/types.h>
-}
-
-extern "C" void *xmalloc(size_t);
-
-extern "C" void *xcalloc(size_t, size_t);
-
-extern "C" void *xrealloc(void *, size_t);
+#include "util/h/kludges.h"
 
 extern void logLine(const char *line);
 extern char errorLine[];
 extern int intComp(const void *, const void *);
+
+inline unsigned uiHash(const unsigned &val) {
+  return val;
+}
+
+inline unsigned intHash(const int &val) {
+  return val;
+}
+
+void
+pd_log_perror(const char* msg);
 
 #endif /* UTIL_H */
