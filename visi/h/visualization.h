@@ -17,9 +17,12 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.10  1995/08/01 01:58:46  newhall
-/* changes relating to phase interface stuff
+/* Revision 1.11  1995/09/18 18:26:00  newhall
+/* updated test subdirectory, added visilib routine GetMetRes()
 /*
+ * Revision 1.10  1995/08/01  01:58:46  newhall
+ * changes relating to phase interface stuff
+ *
  * Revision 1.9  1995/02/26  01:59:31  newhall
  * added phase interface functions
  *
@@ -108,6 +111,11 @@ extern int visi_callback();
 extern void GetMetsRes(char *metres,  // predefined list met-res pairs 
 		       int numElements,  
 		       int type);      // 0-histogram, 1-scalar
+
+//
+// equivalent to a call to GetMetRes(0,0,0)
+//
+extern void GetMetsRes();
 
 //
 // stop data collection for a metric/resource pair

@@ -1,0 +1,9 @@
+TARGET	      = xtext2
+
+SRCS	     += ../src/xtext2.C 
+
+LIBS	     += -lvisi -lhist -lpdutil
+SYSLIBS	     += -lXaw -lXext -lXmu -lXt -lX11 -lm
+
+all: $(TARGET) 
+

@@ -1,0 +1,18 @@
+TARGET	      = psuedoparadyn
+
+VPATH        += ../../../../visi/h:
+
+SRCS	     += ../src/psuedoparadyn.C ../src/templates.C
+
+IGEN_GEN_SRCS = visi.xdr.CLNT.C  visi.xdr.C 
+
+IGEN_ISRCS = visi.I
+
+LIBS	     += -lvisi -lhist -lpdutil
+SYSLIBS	     += -lXaw -lXext -lXmu -lXt -lX11 -lm
+
+all: $(TARGET) 
+
+templates.o: ../src/templates.C
+	$(CXX) $(TFLAGS) -c ../src/templates.C
+

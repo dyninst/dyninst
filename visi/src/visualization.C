@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.28  1995/09/08 19:47:00  krisna
-/* stupid way to avoid the for-scope problem
+/* Revision 1.29  1995/09/18 18:26:06  newhall
+/* updated test subdirectory, added visilib routine GetMetRes()
 /*
+ * Revision 1.28  1995/09/08  19:47:00  krisna
+ * stupid way to avoid the for-scope problem
+ *
  * Revision 1.27  1995/08/05 17:12:18  krisna
  * use `0' instead of `NULL'
  *
@@ -226,6 +229,12 @@ void GetMetsRes(char *metres,
   if(!initDone)
     VisiInit();
   vp->GetMetricResource(metres,numElements,0);
+}
+
+void GetMetsRes(){
+  if(!initDone)
+    VisiInit();
+  vp->GetMetricResource(0,0,0);
 }
 
 

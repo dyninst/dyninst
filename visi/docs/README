@@ -1,4 +1,5 @@
-directions to incorporate a visualization  (an example is in xtext.C)
+directions to incorporate a visualization  
+(an example is in ~paradyn/core/visi/test/server/xtext.C)
 -----------------------------------------
 in main():
 ---------
@@ -63,7 +64,7 @@ Each datagrid cell has a void * public member (userdata) that can be used
 to add any additional information to a datagrid cell.   
 
 
-Interface test programs  (in paradyn/core/visi/test )
+Interface test programs  (in ~paradyn/core/visi/test/ )
 -----------------------
 Sample visi interface client server programs, and examples of integrating
 the interface routines into an existing visualization.
