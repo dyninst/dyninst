@@ -3,7 +3,11 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.20  1995/08/29 20:26:55  mjrg
+ * Revision 1.21  1995/10/27 01:04:40  zhichen
+ * Added some comments to DYNINSTsampleValues.
+ * Added some prototypes
+ *
+ * Revision 1.20  1995/08/29  20:26:55  mjrg
  * changed sample.observedCost to sample.obsCostIdeal
  *
  * Revision 1.19  1995/05/18  11:08:25  markc
@@ -89,6 +93,11 @@
 
 extern time64 DYNINSTgetCPUtime();
 extern time64 DYNINSTgetWallTime();
+/* zxu added the following */
+extern void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length, void *eventData, int flush) ;
+extern void saveFPUstate(float *base) ;
+void restoreFPUstate(float *base) ;
+void DYNINSTflushTrace() ;
 
 /* see note below - jkh 10/19/94 */
 int DYNINSTnprocs;
@@ -115,10 +124,10 @@ void DYNINSTreportCounter(intCounter *counter)
 {
     traceSample sample;
 
+/*  printf("DYNINSTreportCounter ...\n") ; */
     sample.value = counter->value;
     sample.id = counter->id;
     DYNINSTtotalSamples++;
-
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
 }
 
@@ -160,6 +169,22 @@ volatile int DYNINSTsampleMultiple = 1;
 void DYNINSTsampleValues()
 {
 /*     printf ("DYNINSTsampleValues called...\n"); */
+/* 
+ * There is alarm that will go off periodically. Each time the alaram expires. A routine
+ * called DYNINSTalarmExpires (which is a handler for the alarm) will be executed.
+ *
+ * DYNINSTalarmExpires()
+ * {
+ * DYNINSTsampleValue() ; //DYNINSTsampleValue is initially  a dummy at the beginning 
+ * }
+ *
+ * Each time a new focus-metric is instrumented (generated), paradynd
+ * will also instrument DYNINSTsamplevalue() accordingly, basically it will add 
+ * a pair of rountines DYNINSTreportCounter and DYNINSTreportTimer which will
+ * report the corresponding timer and counter value when the alarm expires.
+ * So my understanding now is that the alarm actually trigers the writing of 
+ * TRACELIBbuffer which make sense. 
+ */
     DYNINSTnumReported++;
 }
 
@@ -263,7 +288,8 @@ void DYNINSTalarmExpire()
     time64 start, end;
     float fp_context[33];	/* space to store fp context */
 
-/*     printf ("DYNINSTalarmExpired\n"); */
+
+     /* printf ("DYNINSTalarmExpired\n");        */
     /* should use atomic test and set for this */
     if (DYNINSTin_sample) return;
 
