@@ -244,6 +244,7 @@ void DYNINSTos_getMappings(prmap_t **maps, int *nmaps)
     perror("DYNINSTos_getMappings(PIOCMAP)");
     close(proc_fd);
     free(*maps);
+    *maps = NULL;
     return;
   }
   close(proc_fd);
@@ -315,7 +316,7 @@ seg_t *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
 {
   size_t size = nbytes;
   int nmaps;
-  prmap_t *maps;
+  prmap_t *maps = NULL;
   int mmap_fd;
   void *heap;
   segList_t *node;
@@ -371,7 +372,7 @@ seg_t *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
   Heaps = node;
 
   /* cleanup */
-  free(maps);
+  if (maps) free(maps);
   close(mmap_fd);
 
   /* return node->seg.addr; */
