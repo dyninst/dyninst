@@ -99,7 +99,7 @@ static const short yyrhs[] = {     9,
 
 #if YYDEBUG != 0
 static const short yyrline[] = { 0,
-    34,    35,    47,    63,    65,    71,    79,    91
+    34,    35,    47,    62,    64,    70,    78,    91
 };
 #endif
 
@@ -652,39 +652,38 @@ case 2:
 #line 36 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
 {
 	    if(potential_root.size() != 1){
-	      //fprintf(stderr, "graph is not connected\n");
+	      mc_printf((stderr, "graph is not connected\n"));
 	      YYABORT;
 	    }	   
             std::list<MC_NetworkNode *>::iterator iter=potential_root.begin();
 	    parsed_graph->set_Root(*iter);
-	    //fprintf(stderr, "graph's root is %s:%hd\n",
-                       //(*iter)->get_HostName().c_str(), (*iter)->get_Port() );
+	    fprintf(stderr, "graph's root is %s:%hd\n",
+                       (*iter)->get_HostName().c_str(), (*iter)->get_Port() );
 	  ;
     break;}
 case 3:
 #line 48 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
 {
-	  //fprintf(stderr, "%s:%hd's children are:",$1->get_HostName().c_str(),
+	  //fprintf(stderr, "%s:%hd's children are:\n",$1->get_HostName().c_str(),
 		     //$1->get_Port() );
           std::list<MC_NetworkNode *>::iterator iter=hostlist.begin();
           for(; iter != hostlist.end(); iter++){
 	    MC_NetworkNode * cur_node;
 	    cur_node = (*iter);
 	    potential_root.remove(cur_node); //node cannot be a root, remove
-	    yyvsp[-3].node_ptr->add_Child(cur_node);
-	    //fprintf(stderr, " %s:%hd", cur_node->get_HostName().c_str(),
+	    //fprintf(stderr, " %s:%hd\n", cur_node->get_HostName().c_str(),
 		       //cur_node->get_Port() );
+	    yyvsp[-3].node_ptr->add_Child(cur_node);
 	  }
-	  //fprintf(stderr, "\n");
 	  hostlist.clear();
 	;
     break;}
 case 4:
-#line 63 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 62 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
 {fprintf(stderr, "parse error on line %d\n", linenum-1); YYABORT;
     break;}
 case 5:
-#line 66 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 65 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
 {
 	   //fprintf(stderr, "Adding %s:%d to hostlist\n",
                    //$2->get_HostName().c_str(), $2->get_Port() );
@@ -692,7 +691,7 @@ case 5:
 	 ;
     break;}
 case 6:
-#line 72 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 71 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
 {
 	   //fprintf(stderr, "Adding %s:%d to hostlist\n",
                    //$1->get_HostName().c_str(), $1->get_Port() );
@@ -700,10 +699,11 @@ case 6:
 	 ;
     break;}
 case 7:
-#line 80 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 79 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
 {
           MC_NetworkNode * cur_node = parsed_graph->find_Node(yyvsp[-2].hostname, yyvsp[0].port);
           if(cur_node == NULL){
+	    //fprintf(stderr, "creating new node(%s:%d)\n", $1, $3);
             cur_node = new MC_NetworkNode(yyvsp[-2].hostname, yyvsp[0].port);
             parsed_graph->add_Node(cur_node);
 	    potential_root.push_back(cur_node);

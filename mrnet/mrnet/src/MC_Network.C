@@ -60,8 +60,11 @@ void MC_Network::error_str(const char *s)
 /*================================================*/
 /*             MC_Stream class DEFINITIONS        */
 /*================================================*/
-MC_Stream * MC_Stream::new_Stream(MC_Communicator &comm, int _filter_id)
+MC_Stream * MC_Stream::new_Stream(MC_Communicator *comm, int _filter_id)
 {
+  mc_printf((stderr, "comm(%p) size:%d\n",
+	     comm, ((MC_CommunicatorImpl*)(comm))->get_EndPoints()->size()));
+  mc_printf((stderr, "comm's endpoint: %p\n", ((MC_CommunicatorImpl*)(comm))->get_EndPoints()));
   return new MC_StreamImpl(comm, _filter_id);
 }
 

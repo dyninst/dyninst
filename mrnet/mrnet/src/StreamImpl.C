@@ -10,10 +10,13 @@ unsigned int MC_StreamImpl::cur_stream_idx=0;
 unsigned int MC_StreamImpl::next_stream_id=0;
 map <unsigned int, MC_StreamImpl *> MC_StreamImpl::streams;
 
-MC_StreamImpl::MC_StreamImpl(MC_Communicator &_comm, int _filter_id)
+MC_StreamImpl::MC_StreamImpl(MC_Communicator *_comm, int _filter_id)
   :filter_id(_filter_id)
 {
-  communicator = new MC_CommunicatorImpl(_comm); //copy the comm.
+  communicator = new MC_CommunicatorImpl(*_comm); //copy the comm.
+  mc_printf((stderr, "old comm(%p) endpoint:%p, new comm(%p) endpoint:%p\n",
+	     _comm, ((MC_CommunicatorImpl*)(_comm))->get_EndPoints(),
+	     communicator, communicator->get_EndPoints()));
   stream_id = next_stream_id++;
   MC_StreamImpl::streams[stream_id] = this;
   if ( MC_Network::network ){

@@ -3,8 +3,10 @@
 
 #include <list>
 #include <vector>
-
 #include <string>
+
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "mrnet/src/MC_Errors.h"
 #include "mrnet/src/pdr.h"
@@ -97,6 +99,7 @@ class MC_Packet: public MC_Error{
 };
 
 int MC_read(int fd, void * buf, int size);
+int MC_readmsg(int fd, struct msghdr *msg);
 int MC_write(int fd, const void * buf, int size);
 
 MC_DataTypes Fmt2Type(string cur_fmt);

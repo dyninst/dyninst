@@ -39,7 +39,7 @@ class MC_Communicator{
 
 class MC_Stream{
  public:
-  static MC_Stream * new_Stream(MC_Communicator &, int _filter_id);
+  static MC_Stream * new_Stream(MC_Communicator *, int _filter_id);
   static int recv(int *tag, void **buf, MC_Stream ** stream);
   static int unpack(char * buf, const char * format_str, ...);
 

@@ -26,28 +26,28 @@ int main(int argc, char **argv){
   MC_Communicator * comm_BC = MC_Communicator::get_BroadcastCommunicator();
 
   //fprintf(stderr, "FFF: Creating New Stream ...\n");
-  stream_BC = MC_Stream::new_Stream(*comm_BC, filter_id);
+  stream_BC = MC_Stream::new_Stream(comm_BC, filter_id);
 
   send_val = 1;
-  //fprintf(stderr, "FFF: sending integer on stream ...\n");
+  fprintf(stderr, "FFF: sending integer on stream ...\n");
   exp_timer.start();
   if(stream_BC->send(PROT_HELLO, "%d", send_val) == -1){
     fprintf(stderr, "FFF: stream.send() failed\n");
     exit(-1);
   }
   exp_timer.end();
-  //fprintf(stderr, "FFF: stream.send() succeeded\n");
+  fprintf(stderr, "FFF: stream.send() succeeded\n");
 
   if(stream_BC->flush() == -1){
     fprintf(stderr, "FFF: stream.flush() failed\n");
     exit(-1);
   }
-  //fprintf(stderr, "FFF: stream.flush() succeeded\n");
+  fprintf(stderr, "FFF: stream.flush() succeeded\n");
 
   for (int i = 0; i < comm_BC->size(); ){
     MC_Stream * stream;
 
-    //fprintf(stderr, "FFF: calling recv() on stream ...\n");
+    fprintf(stderr, "FFF: calling recv() on stream ...\n");
     if(MC_Stream::recv(&tag, (void **)&buf, &stream) > 0){
       stream->unpack(buf, "%d", &recv_val);
       fprintf(stderr, "FFF: Recieved val: %d from a backend\n", recv_val);
@@ -56,7 +56,7 @@ int main(int argc, char **argv){
   }
 
   MC_Network::delete_Network();
-  //fprintf(stderr, "FFF: frontend deleted. Exiting ...\n");
+  fprintf(stderr, "FFF: frontend deleted. Exiting ...\n");
   init_timer.print_start();
   init_timer.print_end();
   exp_timer.print_start();

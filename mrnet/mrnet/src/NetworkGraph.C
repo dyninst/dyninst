@@ -26,8 +26,9 @@ string MC_NetworkNode::get_HostName()
 
 void MC_NetworkNode::add_Child(MC_NetworkNode * child)
 {
-  mc_printf((stderr, "Adding %s as %d child of Node %s(%p)\n", 
-	     child->hostname.c_str(),children.size(), hostname.c_str(), this));
+  //mc_printf((stderr, "Adding %s:%d as child %d of Node %s:%d(%p)\n", 
+	     //child->hostname.c_str(), child->port, children.size(),
+             //hostname.c_str(), port, this));
   children.push_back(child);
 }
 
@@ -47,7 +48,7 @@ void MC_NetworkNode::visit()
 MC_NetworkGraph::MC_NetworkGraph()
   :graph_checked(false), visited_nodes(0), _has_cycle(false)
 {
-  add_Node(root);
+  //add_Node(root);
   endpoints = new vector <MC_EndPoint *>;
 }
 
@@ -84,17 +85,15 @@ MC_NetworkNode * MC_NetworkGraph::get_Root()
 
 MC_NetworkNode * MC_NetworkGraph::find_Node(char * hostname, unsigned short port)
 {
-  MC_NetworkNode *node;
   char port_str[128];
   sprintf(port_str, "%d", port);
   string key = string(hostname) + string(port_str);
 
-  if( nodes.find(key) != nodes.end() ){
-    return node;
-  }
-  else{
+  std::map<string, MC_NetworkNode*>::iterator iter = nodes.find(key);
+  if( iter == nodes.end() ){
     return NULL;
   }
+  return (*iter).second;
 }
 
 bool MC_NetworkGraph::has_cycle(){
@@ -109,33 +108,31 @@ bool MC_NetworkGraph::has_cycle(){
 void MC_NetworkGraph::preorder_traversal(MC_NetworkNode * node){
   static int next_leaf_id=0;
 
-  mc_printf((stderr, "preorder_traversing node %s (%p) ...",
-             node->get_HostName().c_str(), node ));
+  //mc_printf((stderr, "Preorder_traversing node %s:%d (%p) ...\n",
+             //node->get_HostName().c_str(), node->get_Port(), node ));
 
   if( node->visited() == true ){
-    mc_printf((stderr, "Node already visited\n"));
+    //mc_printf((stderr, "Node already visited\n"));
     //Should I stop here?
     _has_cycle=true;
   }
   else{
-    mc_printf((stderr, "Node's 1st visit\n"));
+    //mc_printf((stderr, "Node's 1st visit\n"));
     node->visit();
     visited_nodes++;
 
     if(node->children.size() == 0){
-      mc_printf((stderr, "Node has no children\n"));
-      // I am a leaf node, just add my name to the serial representation and return
+      // Leaf node, just add my name to the serial representation and return
       node->id = next_leaf_id++;
-      serial_graph.add_Child(node->id, node->get_HostName());
+      serial_graph.add_Child(node->id, node->get_HostName(), node->get_Port());
       endpoints->push_back(MC_EndPoint::new_EndPoint( node->id,
 						 node->get_HostName().c_str(),
-						 0));
+						 node->get_Port()));
       return;
     }
     else{
-      mc_printf((stderr, "Node has %d children\n", node->children.size() ));
       //Starting new sub-tree component in graph serialization:
-      serial_graph.add_SubTree(node->get_HostName());
+      serial_graph.add_SubTree(node->get_HostName(), node->get_Port());
     }
   }
 
@@ -155,8 +152,8 @@ bool MC_NetworkGraph::fully_connected()
     graph_checked=true;
   }
 
-  mc_printf((stderr, "In fully_connected(). visited %d, exist %d\n",
-             visited_nodes, nodes.size() ));
+  //mc_printf((stderr, "In fully_connected(). visited %d, exist %d\n",
+             //visited_nodes, nodes.size() ));
   return ( visited_nodes == nodes.size() ) ;
 }
 
@@ -179,17 +176,20 @@ MC_SerialGraph::MC_SerialGraph()
 {
 }
 
-void MC_SerialGraph::add_Child(int id, string hostname)
+void MC_SerialGraph::add_Child(int id, string hostname, unsigned short port)
 {
-  char id_str[128];
+  char id_str[128], port_str[128];
   sprintf(id_str, "%d", id);
-  byte_array += hostname + ":" + string(id_str) + " ";
+  sprintf(port_str, "%d", port);
+  byte_array += hostname + ":" + string(port_str) + ":" + string(id_str) + " ";
   num_nodes++; num_backends++;
 }
 
-void MC_SerialGraph::add_SubTree(string hostname)
+void MC_SerialGraph::add_SubTree(string hostname, unsigned short port)
 {
-  byte_array += "[ " + hostname + " ";
+  char port_str[128];
+  sprintf(port_str, "%d", port);
+  byte_array += "[ " + hostname + ":" + string(port_str) + " ";
   num_nodes++;
 }
 
@@ -200,35 +200,39 @@ void MC_SerialGraph::end_SubTree()
 
 void MC_SerialGraph::set_ToFirstChild()
 {
-  unsigned int i;
-  //Set buf_idx to this positions: [ xxx yyy ...
-  for(buf_idx = 3; byte_array[buf_idx-1] != ' '; buf_idx++);
+  //unsigned int i;
+  //Set buf_idx to this positions: [ xxx:0 yyy:1 ...
+  //                                       ^
+  //for(buf_idx = 3; byte_array[buf_idx-1] != ' '; buf_idx++);
+  buf_idx = byte_array.find(' ', 2);
+  buf_idx++;
 
-  mc_printf((stderr, "In set_tofirstchild():\n"));
-  mc_printf((stderr, "byte_array: %s\n", byte_array.c_str()));
-  mc_printf((stderr, "1st child : "));
-  for(i=0; i<buf_idx; i++){
-    _fprintf((stderr, " "));
-  }
-  _fprintf((stderr, "^\n"));
+
+  //mc_printf((stderr, "In set_tofirstchild():\n"));
+  //mc_printf((stderr, "byte_array: %s\n", byte_array.c_str()));
+  //mc_printf((stderr, "1st child : "));
+  //for(i=0; i<buf_idx; i++){
+    //_fprintf((stderr, " "));
+  //}
+  //_fprintf((stderr, "^\n"));
 }
 
 MC_SerialGraph * MC_SerialGraph::get_NextChild()
 {
   MC_SerialGraph * retval;
-  unsigned int i, begin, end, cur;
+  unsigned int begin, end, cur;
   const char * buf = byte_array.c_str();
   bool leaf_node=false;
 
-  mc_printf((stderr, "In get_nextchild():\n"));
-  mc_printf((stderr, "byte_array: %s\n", byte_array.c_str()));
-  mc_printf((stderr, "    child : "));
-  for(i=0; i<buf_idx; i++){
-    _fprintf((stderr, " "));
-  }
-  _fprintf((stderr, "^\n"));
+  //mc_printf((stderr, "In get_nextchild():\n"));
+  //mc_printf((stderr, "byte_array: %s\n", byte_array.c_str()));
+  //mc_printf((stderr, "    child : "));
+  //for(i=0; i<buf_idx; i++){
+    //_fprintf((stderr, " "));
+  //}
+  //_fprintf((stderr, "^\n"));
 
-  mc_printf((stderr, "buf_idx: %d, array_len: %d\n", buf_idx, byte_array.length()));
+  //mc_printf((stderr, "buf_idx: %d, array_len: %d\n", buf_idx, byte_array.length()));
   if(buf_idx >= byte_array.length()-2){
     return NULL;
   }
@@ -261,35 +265,61 @@ MC_SerialGraph * MC_SerialGraph::get_NextChild()
     retval = new MC_SerialGraph("[ " + byte_array.substr(begin, end) + " ]");
   }
 
-  mc_printf((stderr, "get_nextchild() returning:"));  retval->print();
+  //mc_printf((stderr, "get_nextchild() returning:"));  retval->print();
   return retval;
 }
 
 bool MC_SerialGraph::has_children()
 {
-  //does first "host" have ":id" suffix
+  int num_colons=0;
+
+  //does first host have ":port:id" (internal nodes have ":port" suffix only)
   for(int idx=2; byte_array[idx] != ' '; idx++){
     if(byte_array[idx] == ':'){
-      return false;
+      num_colons++;
     }
   }
-  return true;
+
+  if(num_colons == 2){
+    return false;
+  }
+  else{
+    return true;
+  }
 }
 
 string MC_SerialGraph::get_RootName()
 {
   string retval;
-  int cur=2, begin=2, end=1; //Byte array begins [ xxx ...
+  int begin=2, end=1; //Byte array begins [ xxx ...
 
-  //find first space or ':'
-  while(byte_array[cur+1] != ' ' && byte_array[cur+1] != ':'){
-    cur++; end++;
-  }
+  //find first ':'
+  end = byte_array.find(':', begin);
+  assert (end != -1);
+  //while(byte_array[cur+1] != ':'){
+    //cur++; end++;
+  //}
 
-  retval = byte_array.substr(begin, end);
-  mc_printf((stderr, "In get_rootname(). array: %s, root %s\n",
-	     byte_array.c_str(), retval.c_str()));
+  retval = byte_array.substr(begin, end-begin);
+  //mc_printf((stderr, "In get_rootname(). array: %s, root %s\n",
+	     //byte_array.c_str(), retval.c_str()));
 
+  return retval;
+}
+
+unsigned short MC_SerialGraph::get_RootPort()
+{
+  int begin, end;
+  unsigned short retval;
+
+  begin = byte_array.find(':', 2);
+  assert( begin != -1);
+  begin++;
+  end = byte_array.find(' ', begin);
+  string port_string = byte_array.substr(begin, end-begin);
+  retval = atoi(port_string.c_str());
+  //mc_printf((stderr, "In get_port(). array: %s, port: %d\n",
+	     //byte_array.c_str(), retval));
   return retval;
 }
 
@@ -308,23 +338,22 @@ int MC_SerialGraph::get_Id(){
   assert(!has_children());
 
   int retval=0;
-  int cur, begin=1, end=1; //Byte array begins [ xxx ...
+  int begin=0, end=1; //Byte array begins [ xxx ...
 
-  //find ':'
-  while(byte_array[begin-1] != ':'){
-    begin++;
-  }
-  cur=begin;
+  //find 2nd ':'
+  begin = byte_array.find(':', begin);
+  assert(begin != -1);
+  begin++;
+  begin = byte_array.find(':', begin);
+  assert(begin != -1);
+  begin++;
+  end = byte_array.find(' ', begin);
 
-  while(byte_array[cur+1] != ' '){
-    cur++, end++;
-  }
-
-  string idstring = byte_array.substr(begin, end);
+  string idstring = byte_array.substr(begin, end-begin);
 
   retval = atoi(idstring.c_str());
-  mc_printf((stderr, "In get_Id(). byte_array: %s, id: %s, %d\n",
-             byte_array.c_str(), idstring.c_str(), retval));
+  //mc_printf((stderr, "In get_Id(). byte_array: %s, id: %s, %d\n",
+             //byte_array.c_str(), idstring.c_str(), retval));
 
   return retval;
 }

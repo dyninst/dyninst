@@ -22,12 +22,13 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename, const char * _application
     return;
   }
 
-  if ( !graph->fully_connected() ){
+  //fully_connected check no longer needed since handled in "parser.y"
+  //if ( !graph->fully_connected() ){
    //All nodes not reachable from root
-    mc_errno = MC_ENETWORK_NOTCONNECTED;
-    _fail=true;
-    return;
-  }
+    //mc_errno = MC_ENETWORK_NOTCONNECTED;
+    //_fail=true;
+    //return;
+  //}
 
   MC_NetworkImpl::endpoints = graph->get_EndPoints();
   MC_CommunicatorImpl::create_BroadcastCommunicator(MC_NetworkImpl::endpoints);

@@ -12,6 +12,7 @@
 #include "mrnet/src/MC_Message.h"
 #include "mrnet/src/MC_NetworkGraph.h"
 #include "mrnet/src/MC_StreamManager.h"
+#include "pthread_sync.h"
 
 enum MC_ProtocolTags{MC_NEW_SUBTREE_PROT=200, MC_DEL_SUBTREE_PROT,
                      MC_RPT_SUBTREE_PROT,
@@ -34,22 +35,21 @@ class MC_CommunicationNode: public MC_Error{
 class MC_LocalNode;
 class MC_RemoteNode:public MC_CommunicationNode{
  private:
-  MC_Message msg_in;
-  MC_Message msg_out;
+  MC_Message msg_in, msg_out;
+  enum {MC_MESSAGEOUT_NONEMPTY};
+
   int sock_fd;
   bool _is_internal_node;
-  bool _is_upstream;
   struct pollfd poll_struct;
-
   bool threaded;
-  pthread_t recv_thread_id, send_thread_id;
-  pthread_mutex_t msg_out_mutex;
-
 
  public:
   static MC_LocalNode * local_node;
   static void * recv_thread_main(void * arg);
   static void * send_thread_main(void * arg);
+  pthread_t recv_thread_id, send_thread_id;
+  bool _is_upstream;
+  pthread_sync msg_out_sync;
 
   MC_RemoteNode(string &_hostname, unsigned short _port, bool threaded);
   int connect();
@@ -68,24 +68,22 @@ class MC_RemoteNode:public MC_CommunicationNode{
 };
 
 class MC_LocalNode: public MC_CommunicationNode{
-  friend class MC_Aggregator;
-  friend class MC_Synchronizer;
  protected:
-  static std::map<unsigned int, MC_Aggregator::AggregatorSpec *> AggrSpecById;
-  static std::map<unsigned int,
-           void(*)(std::list<MC_Packet*>&, std::list<MC_Packet*>&,
-                   std::list<MC_RemoteNode *> &) > SyncById;
+  bool threaded;
   MC_RemoteNode * upstream_node;
   std::list<MC_RemoteNode *> children_nodes;
+
   int listening_sock_fd;
   std::list<int> backend_descendant_nodes;
   int num_descendants_reported;
 
   std::map<unsigned int, MC_RemoteNode *> ChildNodeByBackendId;
+  pthread_sync childnodebybackendid_sync;
   std::map<unsigned int, MC_StreamManager *> StreamManagerById;
+  pthread_sync streammanagerbyid_sync;
 
  public:
-  MC_LocalNode(void);
+  MC_LocalNode(bool);
   virtual ~MC_LocalNode(void);
 
   //for MC_ChildNode
@@ -124,9 +122,22 @@ class MC_LocalNode: public MC_CommunicationNode{
 
 class MC_InternalNode: public MC_LocalNode
 {
+  friend class MC_Aggregator;
+  friend class MC_Synchronizer;
+ private:
+  unsigned int num_descendants, num_descendants_reported;
+  enum{MC_ALLNODESREPORTED};
+
+  static std::map<unsigned int, MC_Aggregator::AggregatorSpec *> AggrSpecById;
+  static std::map<unsigned int,
+           void(*)(std::list<MC_Packet*>&, std::list<MC_Packet*>&,
+                   std::list<MC_RemoteNode *> &) > SyncById;
+
  public:
+  pthread_sync subtreereport_sync;
   MC_InternalNode(string _parent_hostname, unsigned short _parent_port);
   virtual ~MC_InternalNode(void);
+  void waitLoop();
 
   //from MC_ChildNode
   virtual int proc_newSubTree(MC_Packet *);
@@ -261,4 +272,10 @@ class MC_RemoteNode:public MC_CommunicationNode{
 bool lt_RemoteNodePtr(MC_RemoteNode *p1, MC_RemoteNode *p2);
 bool equal_RemoteNodePtr(MC_RemoteNode *p1, MC_RemoteNode *p2);
 
+extern pthread_key_t thread_name_key;
+typedef struct{
+  pthread_t thread_id;
+  char * thread_name;
+  char * tmp_filename;
+} tsd_t;
 #endif /* __mc_communicationnode_h */

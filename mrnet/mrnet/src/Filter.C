@@ -19,7 +19,7 @@ MC_Filter::~MC_Filter()
 MC_Aggregator::MC_Aggregator(unsigned short _filter_id)
   :MC_Filter(_filter_id)
 {
-  aggr_spec = MC_LocalNode::AggrSpecById[filter_id];
+  aggr_spec = MC_InternalNode::AggrSpecById[filter_id];
 }
 
 MC_Aggregator::~MC_Aggregator()
@@ -58,7 +58,7 @@ MC_Synchronizer::MC_Synchronizer(unsigned short _filter_id,
                                  std::list <MC_RemoteNode *> &nodes)
   :MC_Filter(_filter_id), downstream_nodes(nodes)
 {
-  sync = MC_LocalNode::SyncById[filter_id];
+  sync = MC_InternalNode::SyncById[filter_id];
 }
 
 MC_Synchronizer::~MC_Synchronizer()

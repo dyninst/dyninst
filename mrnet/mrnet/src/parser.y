@@ -35,29 +35,28 @@ config: line config
       | line
           {
 	    if(potential_root.size() != 1){
-	      //fprintf(stderr, "graph is not connected\n");
+	      mc_printf((stderr, "graph is not connected\n"));
 	      YYABORT;
 	    }	   
             std::list<MC_NetworkNode *>::iterator iter=potential_root.begin();
 	    parsed_graph->set_Root(*iter);
-	    //fprintf(stderr, "graph's root is %s:%hd\n",
-                       //(*iter)->get_HostName().c_str(), (*iter)->get_Port() );
+	    fprintf(stderr, "graph's root is %s:%hd\n",
+                       (*iter)->get_HostName().c_str(), (*iter)->get_Port() );
 	  }
 
 line: host ARROW hosts SEMI
         {
-	  //fprintf(stderr, "%s:%hd's children are:",$1->get_HostName().c_str(),
+	  //fprintf(stderr, "%s:%hd's children are:\n",$1->get_HostName().c_str(),
 		     //$1->get_Port() );
           std::list<MC_NetworkNode *>::iterator iter=hostlist.begin();
           for(; iter != hostlist.end(); iter++){
 	    MC_NetworkNode * cur_node;
 	    cur_node = (*iter);
 	    potential_root.remove(cur_node); //node cannot be a root, remove
-	    $1->add_Child(cur_node);
-	    //fprintf(stderr, " %s:%hd", cur_node->get_HostName().c_str(),
+	    //fprintf(stderr, " %s:%hd\n", cur_node->get_HostName().c_str(),
 		       //cur_node->get_Port() );
+	    $1->add_Child(cur_node);
 	  }
-	  //fprintf(stderr, "\n");
 	  hostlist.clear();
 	}
     | error {fprintf(stderr, "parse error on line %d\n", linenum-1); YYABORT}
@@ -80,6 +79,7 @@ host: HOSTNAME COLON PORT
         {
           MC_NetworkNode * cur_node = parsed_graph->find_Node($1, $3);
           if(cur_node == NULL){
+	    //fprintf(stderr, "creating new node(%s:%d)\n", $1, $3);
             cur_node = new MC_NetworkNode($1, $3);
             parsed_graph->add_Node(cur_node);
 	    potential_root.push_back(cur_node);

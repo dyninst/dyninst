@@ -23,7 +23,7 @@ class MC_StreamImpl: public MC_Stream {
   MC_CommunicatorImpl * communicator;
 
  public:
-  MC_StreamImpl(MC_Communicator &, int _filter_id);
+  MC_StreamImpl(MC_Communicator *, int _filter_id);
   virtual ~MC_StreamImpl();
   MC_StreamImpl(int stream_id, int * backends=0, int num_backends=-1, int filter_id=-1);
   static int recv(int *tag, void **buf, MC_Stream ** stream);

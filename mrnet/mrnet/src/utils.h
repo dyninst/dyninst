@@ -62,9 +62,12 @@ static char *mc_tmpfilename;
 #include <libgen.h>
 #define _mc_printf(X) \
 do { \
+  mc_tmpfilename=0; \
   mc_tmpfilename=strdup(__FILE__); /*basename may modify 1st arg, so copy */\
   assert(mc_tmpfilename); \
+  fprintf(stderr, "***[%d]: tmp:%p &tmp:%p\n", getpid(), mc_tmpfilename, &mc_tmpfilename); \
   fprintf(stderr, "[%s:%d:%s:%d]: ", getHostName().c_str(), getpid(), basename(mc_tmpfilename), __LINE__); \
+  fprintf(stderr, "***[%d]: tmp:%p &tmp:%p\n", getpid(), mc_tmpfilename, &mc_tmpfilename); \
   free(mc_tmpfilename); \
   fprintf X; fflush(stderr);       \
 } while(0)

@@ -50,7 +50,9 @@ TARGETS = $(LIBMC) $(COMM_NODE) $(TESTS)
 INCDIR = -I$(MRNET_ROOT)/..
 LIBMC    =$(LIBDIR)/libmcnetwork.a
 COMM_NODE=$(BINDIR)/comm_node 
-TESTS   = $(BINDIR)/test1_FE $(BINDIR)/test1_BE
+TESTS   = $(BINDIR)/test1_FE $(BINDIR)/test1_BE \
+          $(BINDIR)/FloatAvg_FE $(BINDIR)/FloatAvg_BE
+
 #TESTS   = $(BINDIR)/test1_FE $(BINDIR)/test1_BE $(BINDIR)/xdr_test $(BINDIR)/pdr_test
 
 
@@ -118,13 +120,21 @@ $(LIBMC): $(LIBMC_OBJS)
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
 
-$(BINDIR)/test1_FE: $(LIBMC)
+$(BINDIR)/test1_FE: $(LIBMC) $(OBJDIR)/test1_FE.o
 	echo "Linking $@ ..."
-	$(CXX) $(CXXFLAGS) -Itests -o $@ tests/test1_FE.C $(LIBMC) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/test1_FE.o $(LIBMC) $(LIBS)
 
-$(BINDIR)/test1_BE: $(LIBMC)
+$(BINDIR)/test1_BE: $(LIBMC) $(OBJDIR)/test1_BE.o
 	echo "Linking $@ ..."
-	$(CXX) $(CXXFLAGS) -Itests -o $@ tests/test1_BE.C $(LIBMC) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/test1_BE.o $(LIBMC) $(LIBS)
+
+$(BINDIR)/FloatAvg_FE: $(LIBMC) $(OBJDIR)/FloatAvg_FE.o
+	echo "Linking $@ ..."
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/FloatAvg_FE.o $(LIBMC) $(LIBS)
+
+$(BINDIR)/FloatAvg_BE: $(LIBMC) $(OBJDIR)/FloatAvg_BE.o
+	echo "Linking $@ ..."
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/FloatAvg_BE.o $(LIBMC) $(LIBS)
 
 $(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
 	echo "Linking $@ ..."
@@ -184,7 +194,27 @@ tar:
 	echo "Tarring $(files) =>  mrnet.`date +"%d_%b_%H-%M"`.tgz ..."
 	cd ..; tar czf mrnet.`date +"%d_%b_%H-%M"`.tgz $(files)
 
-files2 = Makefile src/*.[C,h]
+files2 = conf/Makefile.in  \
+         $(MRNET_ROOT)/src/MC_CommunicatorImpl.C \
+         $(MRNET_ROOT)/src/MC_CommunicatorImpl.h \
+         $(MRNET_ROOT)/src/MC_StreamImpl.C \
+         $(MRNET_ROOT)/src/MC_StreamImpl.h \
+         $(MRNET_ROOT)/src/MC_NetworkImpl.C \
+         $(MRNET_ROOT)/src/MC_NetworkImpl.h \
+         $(MRNET_ROOT)/src/MC_Network.C \
+         $(MRNET_ROOT)/h/MC_Network.h \
+         $(MRNET_ROOT)/src/MC_StreamManager.C \
+         $(MRNET_ROOT)/src/MC_StreamManager.h \
+         $(MRNET_ROOT)/src/MC_Filter.C \
+         $(MRNET_ROOT)/src/MC_Filter.h \
+         $(MRNET_ROOT)/src/MC_Message.C \
+         $(MRNET_ROOT)/src/MC_Message.h \
+         $(MRNET_ROOT)/src/MC_NetworkGraph.C \
+         $(MRNET_ROOT)/src/MC_NetworkGraph.h \
+         $(MRNET_ROOT)/src/MC_CommunicationNode.C \
+         $(MRNET_ROOT)/src/MC_CommunicationNode.h \
+         $(MRNET_ROOT)/src/MC_CommunicationNodeMain.C
+
 edit:
 	echo Editing $(files2) ...
 	xemacs $(files2) &
@@ -206,14 +236,12 @@ $(OBJDIR)/%.o: %.C $(FRC)
 
 $(OBJDIR)/%.d: %.c $(FRC)
 	echo Building Depends File $@ ...
-	set -e; $(CXX) -MM $(CXXFLAGS) $< \
-		| sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
+	$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
 		[ -s $@ ] || rm -f $@
 
 $(OBJDIR)/%.d: %.C $(FRC)
 	echo Building Depends File $@ ...
-	set -e; $(CXX) -MM $(CXXFLAGS) $< \
-		| sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
+	$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
 		[ -s $@ ] || rm -f $@
 
 

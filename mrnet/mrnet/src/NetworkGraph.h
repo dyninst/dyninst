@@ -45,13 +45,14 @@ class MC_SerialGraph{
  public:
   MC_SerialGraph();
   MC_SerialGraph(string);
-  void add_Child(int, string);
-  void add_SubTree(string);
+  void add_Child(int, string, unsigned short);
+  void add_SubTree(string, unsigned short);
   void end_SubTree();
   string get_ByteArray();
   void print();
 
   string get_RootName();
+  unsigned short get_RootPort();
   void set_ToFirstChild();
   MC_SerialGraph * get_NextChild();
   bool has_children();

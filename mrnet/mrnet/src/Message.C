@@ -1,14 +1,12 @@
 #include "mrnet/src/Types.h"
 #include <stdarg.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <errno.h>
 
 #include "mrnet/src/MC_Message.h"
 #include "mrnet/src/utils.h"
 
 void MC_Message::add_Packet(MC_Packet *packet)
 {
-  mc_printf((stderr, "Adding packet to message (%p)\n", this));
   assert(packet);
   packets.push_back(packet);
 }
@@ -26,23 +24,21 @@ int MC_Message::recv(int sock_fd, list <MC_Packet *> &packets, MC_RemoteNode *re
   mc_printf((stderr, "Receiving packets to message (%p)\n", this));
 
   /* find out how many packets are coming */
-  mc_printf((stderr, "Calling pdr_sizeof(uint32)\n"));
   buf_len = pdr_sizeof((pdrproc_t)(pdr_uint32), &no_packets);
-  mc_printf((stderr, "pdr_sizeof(uint32) returned %d\n", buf_len));
   assert(buf_len);
   buf = (char *)malloc( buf_len);
   assert(buf);
 
   mc_printf((stderr, "Calling MC_read(%d, %p, %d)\n", sock_fd, buf, buf_len));
-  if( MC_read(sock_fd, buf, buf_len) != buf_len){
-    mc_printf((stderr, "\0"));
+  int retval;
+  if( (retval=MC_read(sock_fd, buf, buf_len)) != buf_len){
+    mc_printf((stderr, "MC_read returned %d\n", retval));
     _perror("MC_read()");
     free(buf);
     return -1;
   }
 
   pdrmem_create(&pdrs, buf, buf_len, op);
-  mc_printf((stderr, "Calling pdr_uint32() ...\n"));
   if( !pdr_uint32(&pdrs, &no_packets) ){
     mc_printf((stderr, "pdr_uint32() failed\n"));
     free(buf);
@@ -60,23 +56,21 @@ int MC_Message::recv(int sock_fd, list <MC_Packet *> &packets, MC_RemoteNode *re
   packet_sizes = (uint32_t *)malloc( sizeof(uint32_t) * no_packets);
   assert(packet_sizes);
 
-  mc_printf((stderr, "Calling MC_read(%d, %p, %d)...\n", sock_fd, buf, buf_len));
+  mc_printf((stderr, "Calling MC_read(%d, %p, %d) for %d buffer lengths.\n",
+             sock_fd, buf, buf_len, no_packets));
   if( MC_read(sock_fd, buf, buf_len) != buf_len){
     mc_printf((stderr, "MC_read() failed\n"));
     free(buf);
     return -1;
   }
-  mc_printf((stderr, "MC_read() succeeded. Receive %d packets\n", no_packets));
 
   pdrmem_create(&pdrs, buf, buf_len, op);
-  mc_printf((stderr, "Calling pdr_vector() ...\n"));
   if( !pdr_vector(&pdrs, (char *)(packet_sizes), no_packets, sizeof(uint32_t),
                  (pdrproc_t)pdr_uint32) ){
     mc_printf((stderr, "pdr_vector() failed\n"));
     free(buf);
     return -1;
   }
-  mc_printf((stderr, "pdr_vector() succeeded\n"));
   free(buf);
 
   /* recv packet buffers */
@@ -98,28 +92,24 @@ int MC_Message::recv(int sock_fd, list <MC_Packet *> &packets, MC_RemoteNode *re
   }
   _fprintf((stderr, "]\n"));
 
-  mc_printf((stderr, "Calling recv_msg() ...\n"));
-  if(recvmsg(sock_fd, &msg, MSG_WAITALL) != total_bytes){
-    mc_printf((stderr, "\0"));
-    _perror("recvmsg()");
+  if(MC_readmsg(sock_fd, &msg) != total_bytes){
+    mc_printf((stderr, "%s", ""));
+    _perror("MC_readmsg()");
     return -1;
   }
-  mc_printf((stderr, "recv_msg() succeeded.\n"));
 
   for(i=0; i<msg.msg_iovlen; i++){
-    mc_printf((stderr, "Creating new packets\n"));
     MC_Packet * new_packet = new MC_Packet(msg.msg_iov[i].iov_len,
 					   (char *)msg.msg_iov[i].iov_base);
     if(new_packet->fail()){
       mc_printf((stderr, "packet creation failed\n"));
       return -1;
     }
-    mc_printf((stderr, "packet creation succeeded\n"));
     new_packet->inlet_node = remote_node;
     packets.push_back(new_packet);
   }
 
-  mc_printf((stderr, "msg(%p)::recv() succeeded\n", this));
+  mc_printf((stderr, "Msg(%p)::recv() succeeded\n", this));
   return 0;
 }
 
@@ -142,7 +132,6 @@ int MC_Message::send(int sock_fd)
     return 0;
   }
   no_packets = packets.size();
-  mc_printf((stderr, "Sending %d packets\n", no_packets));
 
   /* send packet buffers */
   iov = (struct iovec *)malloc(sizeof(struct iovec)*no_packets);
@@ -153,43 +142,39 @@ int MC_Message::send(int sock_fd)
   packet_sizes = (uint32_t *)malloc( sizeof(uint32_t) * no_packets );
   assert(packet_sizes);
   list<MC_Packet *>::iterator iter=packets.begin();
-  mc_printf((stderr, "Writing %d packets of size\n", no_packets));
+  mc_printf((stderr, "Writing %d packets of size: [ ", no_packets));
   int total_bytes =0;
   for(i=0; iter != packets.end(); iter++, i++){
     iov[i].iov_base = (*iter)->get_Buffer();
     iov[i].iov_len = (*iter)->get_BufferLen();
     packet_sizes[i] = (*iter)->get_BufferLen();
     total_bytes += iov[i].iov_len;
-    mc_printf((stderr, "vector[%d].size = %d\n", i, iov[i].iov_len));
+    _fprintf((stderr, "%d, ", iov[i].iov_len));
   }
+  _fprintf((stderr, "]\n"));
   
   /* put how many packets are going */
 
-  mc_printf((stderr, "Calling pdr_sizeof(uint32)\n"));
   buf_len = pdr_sizeof((pdrproc_t)(pdr_uint32), &no_packets);
-  mc_printf((stderr, "pdr_sizeof(uint32) returned %d\n", buf_len));
   assert(buf_len);
   buf = (char *)malloc( buf_len );
   assert(buf);
   pdrmem_create(&pdrs, buf, buf_len, op);
 
 
-  mc_printf((stderr, "Calling pdr_uint32()\n"));
   if( !pdr_uint32(&pdrs, &no_packets) ){
     mc_printf((stderr, "pdr_uint32() failed\n"));
     free(buf);
     return -1;
   }
-  mc_printf((stderr, "pdr_uint32() succeeded\n"));
 
   mc_printf((stderr, "Calling MC_write(%d, %p, %d)\n", sock_fd, buf, buf_len));
   if( MC_write(sock_fd, buf, buf_len) != buf_len){
-    mc_printf((stderr, "\0"));
+    mc_printf((stderr, "%s", ""));
     _perror("MC_write()");
     free(buf);
     return -1;
   }
-  mc_printf((stderr, "MC_write() succeeded\n"));
   free(buf);
 
   /* send a vector of packet_sizes */
@@ -198,26 +183,24 @@ int MC_Message::send(int sock_fd)
   assert(buf);
   pdrmem_create(&pdrs, buf, buf_len, op);
 
-  mc_printf((stderr, "Calling pdr_vector() ...\n"));
   if( !pdr_vector(&pdrs, (char *)(packet_sizes), no_packets, sizeof(uint32_t),
                  (pdrproc_t)pdr_uint32) ){
     mc_printf((stderr, "pdr_vector() failed\n"));
     free(buf);
     return -1;
   }
-  mc_printf((stderr, "pdr_vector() succeeded\n"));
 
   mc_printf((stderr, "Calling MC_write(%d, %p, %d)\n", sock_fd, buf, buf_len));
   if( MC_write(sock_fd, buf, buf_len ) != buf_len){
-    mc_printf((stderr, "\0"));
+    mc_printf((stderr, "%s", ""));
     _perror("MC_write()");
     free(buf);
     return -1;
   }
-  mc_printf((stderr, "MC_write() succeeded\n"));
   free(buf);
 
-  mc_printf((stderr, "Calling writev(%d vectors, %d bytes)\n", iovlen, total_bytes));
+  mc_printf((stderr, "Calling writev(%d vectors, %d total bytes)\n",
+             iovlen, total_bytes));
   int ret;
   if( (ret=writev(sock_fd, iov, iovlen)) != total_bytes){
     mc_printf((stderr, "writev() returned %d of %d bytes\n", ret, total_bytes));
@@ -227,7 +210,6 @@ int MC_Message::send(int sock_fd)
     _perror("writev()");
     return -1;
   }
-  mc_printf((stderr, "writev() succeeded\n"));
 
   packets.clear();
 
@@ -261,31 +243,25 @@ MC_Packet::MC_Packet(int _tag, const char *fmt, ...)
   assert(src);
 
   va_start(arg_list, fmt);
-  mc_printf((stderr, "Calling ArgList2DataElementArray()\n"));
   if( ArgList2DataElementArray(arg_list) == -1){
     mc_printf((stderr, "ArgList2DataElementArray() failed\n"));
     va_end(arg_list);
     mc_errno = MC_EPACKING;
     return;
   }
-  mc_printf((stderr, "ArgList2DataElementArray() succeeded\n"));
   va_end(arg_list);
 
-  mc_printf((stderr, "Calling pdr_sizeof(pdr_packet)\n"));
   buf_len = pdr_sizeof((pdrproc_t)(MC_Packet::pdr_packet), this);
-  mc_printf((stderr, "pdr_sizeof(pdr_packet) returned %d\n", buf_len));
   assert(buf_len);
   buf = (char *) malloc (buf_len);
   assert(buf);
 
   pdrmem_create(&pdrs, buf, buf_len, PDR_ENCODE);
-  mc_printf((stderr, "Calling pdr_packet()\n"));
   if(!MC_Packet::pdr_packet(&pdrs, this)){
     mc_printf((stderr, "pdr_packet() failed\n"));
     mc_errno = MC_EPACKING;
     return;
   }
-  mc_printf((stderr, "pdr_packet() succeeded\n"));
 
   mc_printf((stderr, "MC_Packet(%p) constructor succeeded\n", this));
   return;
@@ -300,30 +276,24 @@ MC_Packet::MC_Packet(unsigned short _stream_id, int _tag, const char *fmt, va_li
   fmt_str = strdup(fmt);
   src = strdup(getNetworkName().c_str());
 
-  mc_printf((stderr, "Calling ArgList2DataElementArray()\n"));
   if( ArgList2DataElementArray(arg_list) == -1){
     mc_printf((stderr, "ArgList2DataElementArray() failed\n"));
     mc_errno = MC_EPACKING;
     return;
   }
-  mc_printf((stderr, "ArgList2DataElementArray() succeeded\n"));
 
-  mc_printf((stderr, "Calling pdr_sizeof(pdr_packet)\n"));
   buf_len = pdr_sizeof((pdrproc_t)(MC_Packet::pdr_packet), this);
-  mc_printf((stderr, "pdr_sizeof(pdr_packet) returned %d\n", buf_len));
   assert(buf_len);
   buf = (char *) malloc (buf_len); 
   assert(buf);
 
   pdrmem_create(&pdrs, buf, buf_len, PDR_ENCODE);
 
-  mc_printf((stderr, "Calling pdr_packet()\n"));
   if(!MC_Packet::pdr_packet(&pdrs, this)){
     mc_printf((stderr, "pdr_packet() failed\n"));
     mc_errno = MC_EPACKING;
     return;
   }
-  mc_printf((stderr, "pdr_packet() succeeded\n"));
 
   mc_printf((stderr, "MC_Packet(%p) constructor succeeded\n", this));
   return;
@@ -338,14 +308,13 @@ MC_Packet::MC_Packet(unsigned int _buf_len, char * _buf)
   pdrmem_create(&pdrs, buf, buf_len, PDR_DECODE);
 
 
-  mc_printf((stderr, "Calling pdr_packet()\n"));
   if(!MC_Packet::pdr_packet(&pdrs, this)){
     mc_printf((stderr, "pdr_packet() failed\n"));
     mc_errno = MC_EPACKING;
   }
-  mc_printf((stderr, "pdr_packet succeeded: src:%s, tag:%d, fmt:%s\n", src, tag, fmt_str));
 
-  mc_printf((stderr, "MC_Packet(%p) constructor succeeded\n", this));
+  mc_printf((stderr, "MC_Packet(%p) constructor succeeded: src:%s, "
+                     "tag:%d, fmt:%s\n", this, src, tag, fmt_str));
 }
 
 int MC_Packet::ExtractArgList(const char * fmt, ...){
@@ -359,7 +328,6 @@ int MC_Packet::ExtractArgList(const char * fmt, ...){
     return -1;
   }
 
-  mc_printf((stderr, "Calling DataElementArray2ArgList()\n"));
   va_start(arg_list, fmt);
   DataElementArray2ArgList(arg_list); 
   va_end(arg_list);
@@ -377,7 +345,6 @@ int MC_Packet::ExtractVaList(const char * fmt, va_list arg_list){
     return -1;
   }
 
-  mc_printf((stderr, "Calling DataElementArray2ArgList()\n"));
   DataElementArray2ArgList(arg_list); 
 
   mc_printf((stderr, "ExtractVaList(%p) succeeded\n", this));
@@ -399,27 +366,26 @@ bool_t MC_Packet::pdr_packet(PDR * pdrs, MC_Packet * pkt){
     | streamid | tag | srcstr |  fmtstr | packed_data |
     ---------------------------------------------------
 *******************************************************************************/
-  mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
-  mc_printf((stderr, "Calling pdr_uint16()\n"));
-  mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
+  //mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
+  //mc_printf((stderr, "Calling pdr_uint16()\n"));
   if( pdr_uint16(pdrs, &(pkt->stream_id)) == FALSE){
     mc_printf((stderr, "pdr_uint16() failed\n"));
     return FALSE;
   }
-  mc_printf((stderr, "Calling pdr_uint32()\n"));
-  mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
+  //mc_printf((stderr, "Calling pdr_uint32()\n"));
+  //mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
   if( pdr_int32(pdrs, &(pkt->tag)) == FALSE){
     mc_printf((stderr, "pdr_uint32() failed\n"));
     return FALSE;
   }
-  mc_printf((stderr, "Calling pdr_wrapstring(%s)\n", pkt->src));
-  mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
+  //mc_printf((stderr, "Calling pdr_wrapstring(%s)\n", pkt->src));
+  //mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
   if( pdr_wrapstring(pdrs, &(pkt->src)) == FALSE){
     mc_printf((stderr, "pdr_wrapstring() failed\n"));
     return FALSE;
   }
-  mc_printf((stderr, "Calling pdr_wrapstring(%s)\n", pkt->fmt_str));
-  mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
+  //mc_printf((stderr, "Calling pdr_wrapstring(%s)\n", pkt->fmt_str));
+  //mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
   if( pdr_wrapstring(pdrs, &(pkt->fmt_str)) == FALSE){
     mc_printf((stderr, "pdr_wrapstring() failed\n"));
     return FALSE;
@@ -447,7 +413,7 @@ bool_t MC_Packet::pdr_packet(PDR * pdrs, MC_Packet * pkt){
       cur_elem->type = Fmt2Type(string(cur_fmt));
       pkt->data_elements.push_back(cur_elem);
     }
-    mc_printf((stderr, "Handling packet[%d], cur_fmt: %s, type: %d\n",
+    mc_printf((stderr, "Handling packet[%d], cur_fmt: \"%s\", type: %d\n",
                i, cur_fmt, cur_elem->type));
 
     switch(cur_elem->type){
@@ -531,8 +497,8 @@ bool_t MC_Packet::pdr_packet(PDR * pdrs, MC_Packet * pkt){
 	cur_elem->val.p = NULL;
       }
       else{
-	mc_printf((stderr, "ENCODING string %s (%p)\n", (char*)cur_elem->val.p, cur_elem->val.p));
-  mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
+	//mc_printf((stderr, "ENCODING string %s (%p)\n", (char*)cur_elem->val.p, cur_elem->val.p));
+  //mc_printf((stderr, "pdrs->space: %d\n", pdrs->space));
       }
       retval = pdr_wrapstring(pdrs, (char**)&(cur_elem->val.p));
       break;
@@ -591,8 +557,8 @@ int MC_Packet::ArgList2DataElementArray(va_list arg_list)
 
     cur_elem = new MC_DataElement;
     cur_elem->type = Fmt2Type(cur_fmt);
-    mc_printf((stderr, "Handling new packet, cur_fmt: %s, type: %d\n",
-               cur_fmt, cur_elem->type));
+    //mc_printf((stderr, "Handling new packet, cur_fmt: \"%s\", type: %d\n",
+               //cur_fmt, cur_elem->type));
     switch(cur_elem->type){
     case UNKNOWN_T:
       assert(0);
@@ -676,8 +642,8 @@ void MC_Packet::DataElementArray2ArgList(va_list arg_list)
 
     cur_elem = data_elements[i];
     assert(cur_elem->type == Fmt2Type(cur_fmt));
-    mc_printf((stderr, "packet[%d], cur_fmt: %s, cur_type: %d\n",
-               i, cur_fmt, cur_elem->type));
+    //mc_printf((stderr, "packet[%d], cur_fmt: \"%s\", cur_type: %d\n",
+               //i, cur_fmt, cur_elem->type));
     switch(cur_elem->type){
     case UNKNOWN_T:
       assert(0);
@@ -742,7 +708,7 @@ void MC_Packet::DataElementArray2ArgList(va_list arg_list)
       *((int *)tmp_ptr) = cur_elem->array_len;
       break;
     case STRING_T:
-      mc_printf((stderr, "Extracting %s\n", (char *)cur_elem->val.p));
+      //mc_printf((stderr, "Extracting %s\n", (char *)cur_elem->val.p));
       tmp_ptr = (void *)va_arg(arg_list, char **);
       *((char **)tmp_ptr) = (char *)cur_elem->val.p;
       break;
@@ -825,10 +791,44 @@ MC_DataTypes Fmt2Type(string cur_fmt)
 
 int MC_write(int fd, const void *buf, int count)
 {
+  //should do a recursive call checking for syscall interuption
   return send(fd, buf, count, 0);
 }
 
 int MC_read(int fd, void *buf, int count)
 {
-  return recv(fd, buf, count, MSG_WAITALL);
+  int bytes_recvd=0, retval;
+  while(bytes_recvd != count){
+    retval = recv(fd, ((char*)buf)+bytes_recvd, count-bytes_recvd, MSG_WAITALL);
+
+    if(retval == -1){
+      if(errno == EINTR){
+	continue;
+      }
+      else{
+        return -1;
+      }
+    }
+    else{
+      bytes_recvd += retval;
+      if(bytes_recvd < count && errno == EINTR){
+	continue;
+      }
+      else{
+	//bytes_recvd is either count, or error other than "eintr" occured
+	if(bytes_recvd != count){
+	  mc_printf((stderr, "premature return from MC_read(). Got %d of %d "
+                             " bytes. errno: %d\n", bytes_recvd, count, errno));
+	}
+	return bytes_recvd;
+      }
+    }
+  }
+  assert(0);
+  return -1;
+}
+
+int MC_readmsg(int fd, struct msghdr *msg){
+  //should do a recursive call checking for syscall interuption
+  return recvmsg(fd, msg, MSG_WAITALL); 
 }

@@ -12,8 +12,8 @@ class MC_CommunicatorImpl: public MC_Communicator{
 
  private:
   static MC_CommunicatorImpl * comm_Broadcast;
-  std::vector <MC_RemoteNode *> downstream_nodes; //BackEnds addressed by communicator
-  std::vector <MC_EndPoint *> endpoints;     //BackEnds addressed by communicator
+  std::vector <MC_RemoteNode *> downstream_nodes; 
+  std::vector <MC_EndPoint *> * endpoints;   //BackEnds addressed by communicator
 
  public:
 

@@ -53,7 +53,7 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
   struct sockaddr_in server_addr;
   struct hostent * server_hostent;
 
-  mc_printf((stderr, "Connecting to %s:%d ...\n", hostname, port));
+  mc_printf((stderr, "In connect_to_host(%s:%d) ...\n", hostname, port));
 
   if(sock == 0){
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -63,7 +63,6 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
       perror("socket()");
       return -1;
     }
-    mc_printf((stderr, "socket() succeeded\n"));
   }
 
   server_hostent = gethostbyname(hostname);
@@ -83,18 +82,17 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
     perror("connect()");
     return -1;
   }
-  perror("connect()");
 
-  char *_hostname; unsigned short _p;
-  if(get_socket_peer(sock, &_hostname, &_p) == -1){
-    mc_printf((stderr, "\0"));
-    perror("get_socket_peer()");
-  }
-  else{
-    mc_printf((stderr, "really connected to %s:%d\n", _hostname, _p));
-  }
+  //char *_hostname; unsigned short _p;
+  //if(get_socket_peer(sock, &_hostname, &_p) == -1){
+    //mc_printf((stderr, "%s", ""));
+    //perror("get_socket_peer()");
+  //}
+  //else{
+    //mc_printf((stderr, "really connected to %s:%d\n", _hostname, _p));
+  //}
 
-  mc_printf((stderr, "Connect_to_host() returning %d\n", sock));
+  mc_printf((stderr, "Leaving Connect_to_host(). Returning sock: %d\n", sock));
   *sock_in = sock;
   return 0;
 }
@@ -140,17 +138,16 @@ int bind_to_port(int *sock_in, unsigned short *port_in)
     
   }
 
-  mc_printf((stderr, "calling listen()\n"));
   if(listen(sock, 1) == -1){
-    mc_printf((stderr, "\0"));
+    mc_printf((stderr, "%s", ""));
     perror("listen()");
     return -1;
   }
-  mc_printf((stderr, "listen() succeeded()\n"));
 
   *sock_in = sock;
   *port_in = port;
-  mc_printf((stderr, "bind_to_port() returning sock:%d, port:%d\n", sock, port));
+  mc_printf((stderr, "Leaving bind_to_port(). Returning sock:%d, port:%d\n",
+             sock, port));
   return 0;
 }
 
@@ -158,16 +155,17 @@ int get_socket_connection(int bound_socket)
 {
   int connected_socket;
 
-  mc_printf((stderr, "get_connection(sock:%d). Calling accept()\n", bound_socket));
+  mc_printf((stderr, "In get_connection(sock:%d).\n", bound_socket));
 
   connected_socket = accept(bound_socket, NULL, NULL);
   if(connected_socket == -1){
-    mc_printf((stderr, "\0"));
+    mc_printf((stderr, "%s", ""));
     perror("accept()");
     return -1;
   }
 
-  mc_printf((stderr, "accept() succeeded. get_connection() returning sock:%d\n", connected_socket));
+  mc_printf((stderr, "Leaving get_connection(). Returning sock:%d\n",
+             connected_socket));
   return connected_socket;
 }
 
@@ -180,20 +178,21 @@ int get_socket_peer(int connected_socket, char **hostname, unsigned short * port
   mc_printf((stderr, "In get_socket_peer()\n"));
 
   if( getpeername(connected_socket, (struct sockaddr *)(&peer_addr), &peer_addrlen) == -1){
-    mc_printf((stderr,"\0"));
+    mc_printf((stderr,"%s", ""));
     perror("getpeername()");
     return -1;
   }
 
   if(inet_ntop(AF_INET, &peer_addr.sin_addr, buf, sizeof(buf)) == NULL){
-    mc_printf((stderr, "\0"));
+    mc_printf((stderr, "%s", ""));
     perror("inet_ntop()");
     return -1;
   }
 
   *port = ntohs(peer_addr.sin_port);
   *hostname = strdup(buf);
-  mc_printf((stderr, "get_socket_peer() returning %s:%d\n", *hostname, *port));
+  mc_printf((stderr, "Leaving get_socket_peer(). Returning %s:%d\n",
+             *hostname, *port));
   return 0;
 }
 
@@ -283,12 +282,19 @@ const string getHostName()
   char hostname[256];
 
   if (gethostname(hostname,sizeof(hostname)) == -1) {
-    mc_printf((stderr, "\0"));
+    mc_printf((stderr, "%s", ""));
     perror("gethostname()");
     return string("");
   }
-    
-  return string(hostname);
+
+  string hostname_str = string(hostname);
+  int idx=hostname_str.find('.');
+  if(idx != -1){
+    return hostname_str.substr(0, idx);
+  }
+  else{
+    return hostname_str;
+  }
 }
 
 // get the network domain name from the given hostname (default=localhost)
@@ -394,15 +400,12 @@ int create_Process(const string &remote_shell,
      (hostName == "localhost") ||
      (getNetworkName(hostName) == getNetworkName()) ||
      (getNetworkAddr(hostName) == getNetworkAddr()) ){
-    mc_printf((stderr, "calling execCmd()\n"));
     return execCmd(command, arg_list);
   }
   else if (remote_shell.length() > 0){
-    mc_printf((stderr, "calling remoteCmd()\n"));
     return remoteCommand(remote_shell, hostName, userName, command, arg_list);
   }
   else{
-    mc_printf((stderr, "calling rshCmd()\n"));
     return rshCommand(hostName, userName, command, arg_list);
   }
 }
@@ -426,7 +429,7 @@ int execCmd(const string command, const vector<string> &args)
 
   ret = fork();
   if (ret == 0) {
-    mc_printf((stderr, "Child calling execvp:"));
+    mc_printf((stderr, "Forked child calling execvp:"));
     for(i=0; arglist[i] != NULL; i++){
       _fprintf((stderr, "%s ", arglist[i]));
     }
@@ -452,6 +455,7 @@ int remoteCommand(const string remoteExecCmd,
   vector<string> tmp;
   string cmd;
 
+  mc_printf((stderr, "In remoteCommand()\n"));
 #if defined(DEFAULT_RUNAUTH_COMMAND)
   //might be necessary to call runauth to pass credentials
   cmd = DEFAULT_RUNAUTH_COMMAND;
@@ -485,8 +489,8 @@ int remoteCommand(const string remoteExecCmd,
     mc_printf((stderr, "execCmd() failed\n"));
     return -1;
   }
-  mc_printf((stderr, "execCmd() succeeded\n"));
 
+  mc_printf((stderr, "Leaving remoteCommand()\n"));
   return 0;
 }
 

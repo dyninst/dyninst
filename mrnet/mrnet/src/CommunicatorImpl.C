@@ -14,31 +14,38 @@ MC_CommunicatorImpl * MC_CommunicatorImpl::get_BroadcastCommunicator(void)
   return comm_Broadcast;
 }
 
-void MC_CommunicatorImpl::create_BroadcastCommunicator(vector <MC_EndPoint *> * endpoints)
+void MC_CommunicatorImpl::create_BroadcastCommunicator(vector <MC_EndPoint *> * _endpoints)
 {
   unsigned int i;
   comm_Broadcast = new MC_CommunicatorImpl();
 
-  mc_printf((stderr, "In create_broadcastcomm()\n"));
-
-  for(i=0; i<endpoints->size(); i++){
-    mc_printf((stderr, "adding endpoint %s:%d[%d]\n",
-              (*endpoints)[i]->get_HostName(),
-              (*endpoints)[i]->get_Port(), (*endpoints)[i]->get_Id()));
-    comm_Broadcast->add_EndPoint( (*endpoints)[i] );
+  mc_printf((stderr, "In create_BroadCastComm(). comm_bc: [ "));
+  comm_Broadcast->endpoints = _endpoints;
+  for(i=0; i<comm_Broadcast->endpoints->size(); i++){
+    _fprintf((stderr, "%s:%d:%d, ",
+              (*comm_Broadcast->endpoints)[i]->get_HostName(),
+              (*comm_Broadcast->endpoints)[i]->get_Port(),
+              (*comm_Broadcast->endpoints)[i]->get_Id()));
   }
+  _fprintf((stderr, "]\n"));
+
+  mc_printf((stderr, "comm_bc size: %d\n",
+             comm_Broadcast->get_EndPoints()->size()));
   return;  
 }
 
 MC_CommunicatorImpl::MC_CommunicatorImpl(void)
 {}
 
+MC_CommunicatorImpl::MC_CommunicatorImpl(MC_Communicator &comm)
+{
+  endpoints = new std::vector <MC_EndPoint *>;
+  *endpoints = *(static_cast<MC_CommunicatorImpl&>(comm).endpoints);
+}
+
 MC_CommunicatorImpl::~MC_CommunicatorImpl(void)
 {}
 
-MC_CommunicatorImpl::MC_CommunicatorImpl(MC_Communicator &)
-{
-}
 int MC_CommunicatorImpl::add_EndPoint(const char * _hostname, unsigned short _port)
 {
   MC_EndPoint * new_endpoint = MC_Network::network->get_EndPoint(_hostname, _port);
@@ -47,14 +54,14 @@ int MC_CommunicatorImpl::add_EndPoint(const char * _hostname, unsigned short _po
     return -1;
   }
 
-  endpoints.push_back(new_endpoint);
+  endpoints->push_back(new_endpoint);
   return 0;
 }
 
 int MC_CommunicatorImpl::add_EndPoint(MC_EndPoint * new_endpoint)
 {
   if(new_endpoint){
-    endpoints.push_back(new_endpoint);
+    endpoints->push_back(new_endpoint);
     return 0;
   }
   else{
@@ -92,5 +99,5 @@ unsigned int MC_CommunicatorImpl::get_Id(int id)
 
 vector <MC_EndPoint *> * MC_CommunicatorImpl::get_EndPoints()
 {
-  return &endpoints;
+  return endpoints;
 }
