@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.456 2003/10/21 22:40:55 bernat Exp $
+// $Id: process.C,v 1.457 2003/10/22 16:00:53 schendel Exp $
 
 #include <ctype.h>
 
@@ -385,7 +385,7 @@ bool process::getAllActiveFrames(pdvector<Frame> &activeFrames)
   bool success = true;
   if (!threads.size()) { // Nothing defined in the thread data structures
     // So use the process LWP instead (Dyninst)
-    active = getProcessLWP()->getActiveFrame();
+    active = getRepresentativeLWP()->getActiveFrame();
     if (active == Frame()) { // Hrm.. should getActive return a bool?
       return false;
     }
@@ -407,7 +407,7 @@ bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
 {
   pdvector<Frame> stackWalk;
   if (!threads.size()) { // Nothing defined in thread data structures
-    if (!getProcessLWP()->walkStack(stackWalk))
+    if (!getRepresentativeLWP()->walkStack(stackWalk))
       return false;
     // Use the walk from the default LWP
     stackWalks.push_back(stackWalk);
@@ -1621,7 +1621,7 @@ process::~process()
        }
     }
 #endif
-   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
    unsigned index;
    
@@ -1667,93 +1667,94 @@ process::process(int iPid, image *iImage, int iTraceLink
 #if !defined(BPATCH_LIBRARY)
   previous(0),
 #endif
-  lwps(CThash)
+  representativeLWP(NULL),
+  real_lwps(CThash)
 {
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
-    shared_objects = 0;
-    invalid_thr_create_msgs = 0;
+   shared_objects = 0;
+   invalid_thr_create_msgs = 0;
 
-    parentPid = childPid = 0;
-    dyninstlib_brk_addr = 0;
+   parentPid = childPid = 0;
+   dyninstlib_brk_addr = 0;
     
-    main_brk_addr = 0;
+   main_brk_addr = 0;
 
-    nextTrapIsFork = false;
-    nextTrapIsExec = false;
+   nextTrapIsFork = false;
+   nextTrapIsExec = false;
 
-    LWPstoppedFromForkExit = 0;  
+   LWPstoppedFromForkExit = 0;  
 
-    wasRunningWhenAttached_ = false;
-    bootstrapState = unstarted;
+   wasRunningWhenAttached_ = false;
+   bootstrapState = unstarted;
 
-    createdViaAttach = false;
-    createdViaFork = false;
-    createdViaAttachToCreated = false; 
-    wasRunningWhenAttached_ = false; // Technically true...
+   createdViaAttach = false;
+   createdViaFork = false;
+   createdViaAttachToCreated = false; 
+   wasRunningWhenAttached_ = false; // Technically true...
 
 #ifndef BPATCH_LIBRARY
-      if (iTraceLink == -1 ) createdViaAttachToCreated = true;
-                         // indicates the unique case where paradynd is attached to
-                         // a stopped application just after executing the execv() --Ana
+   if (iTraceLink == -1 ) createdViaAttachToCreated = true;
+   // indicates the unique case where paradynd is attached to
+   // a stopped application just after executing the execv() --Ana
 #endif
-    needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button
+   needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button
 
-    symbols = iImage;
-    // The a.out is a special case... all addresses in it are absolutes,
-    // but we only want it to occupy the area in our memory map that the
-    // functions take up. So we insert it at the codeOffset, and then
-    // _don't_ pass in offsets for recursed function lookups
-    addCodeRange(symbols->codeOffset(), symbols);
+   symbols = iImage;
+   // The a.out is a special case... all addresses in it are absolutes,
+   // but we only want it to occupy the area in our memory map that the
+   // functions take up. So we insert it at the codeOffset, and then
+   // _don't_ pass in offsets for recursed function lookups
+   addCodeRange(symbols->codeOffset(), symbols);
     
-    mainFunction = NULL; // set in platform dependent function heapIsOk
+   mainFunction = NULL; // set in platform dependent function heapIsOk
 
-    theRpcMgr = new rpcMgr(this);
+   theRpcMgr = new rpcMgr(this);
 
-    status_ = neonatal;
-    previousSignalAddr_ = 0;
-    exitCode_ = (procSignalWhat_t) -1;
-    continueAfterNextStop_ = 0;
+   set_status(neonatal);
+   previousSignalAddr_ = 0;
+   exitCode_ = (procSignalWhat_t) -1;
+   continueAfterNextStop_ = 0;
 
 #ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
-    shmMetaData = 
-       new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS); 
-               // previously was using maxNumberOfThreads() instead of
-               // MAX_NUMBER_OF_THREADS.  Unfortunately, maxNumberOfThreads
-               // calls multithread_capable(), which isn't able to be
-               // called yet since the modules aren't parsed.
-               // We'll use the larger size for the ST case.  The increased
-               // size is fairly small, perhaps 2 KB.
+   theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+   shmMetaData = 
+      new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS); 
+   // previously was using maxNumberOfThreads() instead of
+   // MAX_NUMBER_OF_THREADS.  Unfortunately, maxNumberOfThreads
+   // calls multithread_capable(), which isn't able to be
+   // called yet since the modules aren't parsed.
+   // We'll use the larger size for the ST case.  The increased
+   // size is fairly small, perhaps 2 KB.
 #endif
-    parent = NULL;
-    inExec = false;
+   parent = NULL;
+   inExec = false;
 
-    cumObsCost = 0;
-    lastObsCostLow = 0;
+   cumObsCost = 0;
+   lastObsCostLow = 0;
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
-    trampTableItems = 0;
-    memset(trampTable, 0, sizeof(trampTable));
+   trampTableItems = 0;
+   memset(trampTable, 0, sizeof(trampTable));
 #endif
     
-    dynamiclinking = false;
-    dyn = new dynamic_linking;
-    runtime_lib = 0;
-    all_functions = 0;
-    all_modules = 0;
-    some_modules = 0;
-    some_functions = 0;
+   dynamiclinking = false;
+   dyn = new dynamic_linking;
+   runtime_lib = 0;
+   all_functions = 0;
+   all_modules = 0;
+   some_modules = 0;
+   some_functions = 0;
 #if defined(i386_unknown_linux2_0)
-    signal_restore = 0;
+   signal_restore = 0;
 #else
-    signal_handler = 0;
+   signal_handler = 0;
 #endif
-    execed_ = false;
+   execed_ = false;
 
-    inInferiorMallocDynamic = false;
+   inInferiorMallocDynamic = false;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -1763,7 +1764,7 @@ process::process(int iPid, image *iImage, int iTraceLink
       exit(5);
    }
 
-//   childUareaPtr = tryToMapChildUarea(iPid);
+   //   childUareaPtr = tryToMapChildUarea(iPid);
    childUareaPtr = NULL;
 #endif
 #endif
@@ -1771,26 +1772,27 @@ process::process(int iPid, image *iImage, int iTraceLink
    splitHeaps = false;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
-        // XXXX - move this to a machine dependant place.
+   // XXXX - move this to a machine dependant place.
 
-        // create a seperate text heap.
-        //initInferiorHeap(true);
-        splitHeaps = true;
+   // create a seperate text heap.
+   //initInferiorHeap(true);
+   splitHeaps = true;
 #endif
-          traceLink = iTraceLink; // notice that tracelink will be -1 in the unique
-                                  // case called "AttachToCreated" - Ana
+   traceLink = iTraceLink; // notice that tracelink will be -1 in the unique
+   // case called "AttachToCreated" - Ana
           
-          bufStart = 0;
-          bufEnd = 0;
+   bufStart = 0;
+   bufEnd = 0;
    //removed for output redirection
    //ioLink = iIoLink;
 
-   createProcessLWP();
+
+   createRepresentativeLWP();
 
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
       pdstring msg = pdstring("Warning: unable to attach to specified process :")
-                   + pdstring(pid);
+         + pdstring(pid);
       showErrorCallback(26, msg.c_str());
       cerr << "Process: failed attach!" << endl;
    }
@@ -1798,7 +1800,7 @@ process::process(int iPid, image *iImage, int iTraceLink
 #ifndef BPATCH_LIBRARY
 #ifdef PAPI
    if (isPapiInitialized()) {
-     papi = new papiMgr(this);
+      papi = new papiMgr(this);
    }
 #endif
 #endif
@@ -1834,7 +1836,8 @@ process::process(int iPid, image *iSymbols,
 #if !defined(BPATCH_LIBRARY)  && defined(i386_unknown_nt4_0)
   previous(0), //ccw 8 jun 2002
 #endif
-  lwps(CThash)
+  representativeLWP(NULL),
+  real_lwps(CThash)
 {
     parentPid = childPid = 0;
     dyninstlib_brk_addr = 0;
@@ -1861,7 +1864,7 @@ process::process(int iPid, image *iSymbols,
     symbols = iSymbols;
     mainFunction = NULL; // set in platform dependent function heapIsOk
     
-    status_ = neonatal;
+    set_status(neonatal);
     previousSignalAddr_ = 0;
     exitCode_ = (procSignalWhat_t) -1;
     continueAfterNextStop_ = 0;
@@ -1929,7 +1932,7 @@ process::process(int iPid, image *iSymbols,
    // Now the actual attach...the moment we've all been waiting for
 
    attach_cerr << "process attach ctor: about to attach to pid " << getPid() << endl;
-   createProcessLWP();
+   createRepresentativeLWP();
 
    // It is assumed that a call to attach() doesn't affect the running status
    // of the process.  But, unfortunately, some platforms may barf if the
@@ -1975,13 +1978,9 @@ process::process(int iPid, image *iSymbols,
    // use later.
    wasRunningWhenAttached_ = isRunning_();
    if (wasRunningWhenAttached_) 
-       status_ = running;
+      set_status(running);
    else
-       status_ = stopped;
-
-   // Now pause the process before we go to work on it.
-   if (!pause())
-       assert(false);
+      set_status(stopped);
 
    // Does attach() send a SIGTRAP, a la the initial SIGTRAP sent at the
    // end of exec?  It seems that on some platforms it does; on others
@@ -2027,7 +2026,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #ifdef SHM_SAMPLING
   previous(0),
 #endif
-  lwps(CThash)
+  representativeLWP(NULL),
+  real_lwps(CThash)
 {
    tracingRequests = parentProc.tracingRequests;
     
@@ -2055,8 +2055,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    //removed for output redireciton
    //ioLink = -1; // when does this get set?
 
-   status_ = neonatal; // is neonatal right?
-    previousSignalAddr_ = 0;
+   set_status(neonatal); // is neonatal right?
+   previousSignalAddr_ = 0;
    exitCode_ = (procSignalWhat_t) -1;
    continueAfterNextStop_ = 0;
 
@@ -2159,11 +2159,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    childUareaPtr = NULL;
 #endif
 
-   createProcessLWP();
+   createRepresentativeLWP();
 
    if (!attach()) {     // moved from ::forkProcess
       showErrorCallback(69, "Error in fork: cannot attach to child process");
-      status_ = exited;
+      set_status(exited);
       return;
    }
 
@@ -2178,9 +2178,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    // process::recognize_threads
 
    if( isRunning_() )
-      status_ = running;
+      set_status(running);
    else
-      status_ = stopped;
+      set_status(stopped);
    // would neonatal be more appropriate?  Nah, we've reached the first trap
 
 #ifndef BPATCH_LIBRARY
@@ -2417,7 +2417,6 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
 #endif
 			       );
     // change this to a ctor that takes in more args
-
     assert(theProc);
 #ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
     //the MIPS instruction generator needs the Gp register value to
@@ -2430,7 +2429,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
 #endif
     processVec.push_back(theProc);
     activeProcesses++;
-    
+
     // find the signal handler function
     theProc->findSignalHandler(); // should this be in the ctor?
 
@@ -2438,7 +2437,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     // a pass-through for process operations. In MT, it's the
     // main thread of the process and is handled correctly
 
-    theProc->threads.push_back(new dyn_thread(theProc));
+    theProc->createInitialThread();
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // XXXX - this is a hack since getExecFileDescriptor needed to wait for
@@ -2478,6 +2477,9 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     }
 #endif
 
+    if(process::IndependentLwpControl())
+       theProc->independentLwpControlInit();
+
     return theProc;    
 }
 
@@ -2508,11 +2510,11 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
   
   // When we attach to a process, we don't fork...so this routine is much
   // simpler than its "competitor", ll_createProcess() (above).
-  
   pdstring fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
 
-  if (!fullPathToExecutable.length())
+  if (!fullPathToExecutable.length()) {
       return NULL;
+  }
 
 #if defined(i386_unknown_nt4_0)
   int status = (int)INVALID_HANDLE_VALUE;	// indicates we need to obtain a valid handle
@@ -2522,8 +2524,9 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
 
   fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
 					       status, false);
-  if (!desc)
+  if (!desc) {
       return NULL;
+  }
 
   image *theImage = image::parseImage(desc);
 
@@ -2542,7 +2545,6 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
 				 ,7000 // shm seg key to try first
 #endif                            
 				 );
-
   assert(theProc);
 
   if (!success) {
@@ -2557,7 +2559,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
   processVec.push_back(theProc);
   activeProcesses++;
 
-  theProc->threads += new dyn_thread(theProc);
+  theProc->createInitialThread();
 
   // we now need to dynamically load libdyninstRT.so.1 - naim
   if (!theProc->pause()) {
@@ -2574,7 +2576,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
       return NULL;
   }
 
-    // The process is paused at this point. Run if appropriate.
+  // The process is paused at this point. Run if appropriate.
 
 #if defined(alpha_dec_osf4_0)
   // need to perform this after dyninst Heap is present and happy
@@ -2807,6 +2809,7 @@ bool process::iRPCDyninstInit() {
         cause = 2;
     else 
         cause = 1;
+
     pdvector<AstNode*> the_args(2);
     the_args[0] = new AstNode(AstNode::Constant, (void*)cause);
     the_args[1] = new AstNode(AstNode::Constant, (void*)pid);
@@ -2818,7 +2821,7 @@ bool process::iRPCDyninstInit() {
                              NULL, // No user data
                              true, // Use reserved memory
                              NULL, NULL);// No particular thread or LWP
-    
+
     // We loop until dyninst init has run (check via the callback)
     while (!reachedBootstrapState(bootstrapped)) {
         getRpcMgr()->launchRPCs(false); // false: not running
@@ -2826,15 +2829,21 @@ bool process::iRPCDyninstInit() {
            return false;
         decodeAndHandleProcessEvent(true);
     }
+
     return true;
 }
 
 bool process::attach() {
-   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
    unsigned index;
-   
-   assert(getProcessLWP());  // we expect this to be defined
+   assert(getRepresentativeLWP());  // we expect this to be defined
+   // Though on linux, if process found to be MT, there will be no
+   // representativeLWP since there is no lwp which controls the entire
+   // process for MT linux.
+
+   if(! getRepresentativeLWP()->attach())
+      return false;
 
    while (lwp_iter.next(index, lwp)) {
       if (!lwp->attach()) {
@@ -3047,7 +3056,7 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
     // initializing vector of threads - thread[0] is really the 
     // same process
 
-    ret->threads += new dyn_thread(ret);     
+    ret->createInitialThread();
 
     // initializing hash table for threads. This table maps threads to
     // positions in the superTable - naim 4/14/97
@@ -3171,6 +3180,49 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
    }
 #endif
 }
+
+dyn_lwp *process::get_stopped_lwp() {
+   dyn_lwp *foundLWP = NULL;
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+   dyn_lwp *lwp;
+   unsigned index;
+
+   if(IndependentLwpControl()) {
+      while (lwp_iter.next(index, lwp)) {
+         if(lwp->status() == stopped)
+            foundLWP = lwp;
+      }
+   } else {
+      if(this->status() == stopped) {
+         lwp_iter.next(index, lwp);
+         foundLWP = lwp;
+      }
+   }
+
+   return foundLWP;
+}
+
+dyn_lwp *process::stop_an_lwp() {
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+   dyn_lwp *lwp;
+   dyn_lwp *stopped_lwp = NULL;
+   unsigned index;
+
+   if(IndependentLwpControl()) {
+      while(lwp_iter.next(index, lwp)) {
+         if(lwp->pauseLWP()) {
+            stopped_lwp = lwp;
+            break;
+         }
+      }
+   } else {
+      getRepresentativeLWP()->pauseLWP();
+      stopped_lwp = getRepresentativeLWP();
+   }   
+
+   return stopped_lwp;
+}
+
 
 /*
  * Copy data from controller process to the named process.
@@ -3391,42 +3443,104 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 }
 //#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
-bool process::pause() {
-    
-  if (status_ == stopped || status_ == neonatal) {
-      return true;
-  }
-  
-  if (status_ == exited) {
-    sprintf(errorLine, "warn : in process::pause, trying to pause exited process, returning FALSE\n");
-    logLine(errorLine);
-    return false;
-  }
+void process::clearProcessEvents() {
+   // first coded for Solaris, trying it out on other platforms
 
-  if (status_ == running && reachedBootstrapState(initialized)) {
-      bool res = pause_();
-      if (!res) {
-          sprintf(errorLine, "warn : in process::pause, pause_ unable to pause process\n");
-          logLine(errorLine);
-          return false;
+   // Make sure process isn't already stopped from an event. If it is,
+   // handle the event.  An example where this happens is if the process is
+   // stopped at a trap that signals the end of an rpc.  The loop is because
+   // there are actually 2 successive traps at the end of an rpc.
+   bool handledEvent = false;
+   do {
+      procSignalWhy_t why;
+      procSignalWhat_t what;
+      procSignalInfo_t info;
+      dyn_lwp *lwp = NULL;
+      process *proc = decodeProcessEvent(&lwp, getPid(), why, what, info,
+                                         false, 0);
+
+      if(proc) {
+         handleProcessEvent(proc, why, what, info);
+         handledEvent = true;
+      } else
+         handledEvent = false;
+   } while(handledEvent == true);  // keep checking if we handled an event
+}
+
+void process::set_status(processState st, dyn_lwp *whichLWP) {
+   // update the process status
+   status_ = st;
+
+   // update the specified LWP status
+   if(whichLWP == NULL) {
+      pdvector<dyn_thread *>::iterator iter = threads.begin();
+
+      dyn_lwp *proclwp = getRepresentativeLWP();
+      if(proclwp) proclwp->set_status(st);
+
+      while(iter != threads.end()) {
+         dyn_thread *thr = *(iter);
+         dyn_lwp *lwp = thr->get_lwp();
+         assert(lwp);
+         lwp->set_status(st);
+         iter++;
       }
-      
-      status_ = stopped;
-  }
-  else {
-    // The only remaining combination is: status==running but haven't yet
-    // reached first break.  We never want to pause before reaching the
-    // first break (trap, actually).  But should we be returning true or false in this
-    // case?
-  }
+   } else
+      whichLWP->set_status(st);
+}
 
-  return true;
+bool process::pause() {
+   if (status_ == exited) {
+      sprintf(errorLine, "warn : in process::pause, trying to pause exited "
+              "process, returning FALSE\n");
+      logLine(errorLine);
+      return false;
+   }
+
+   // The only remaining combination is: status==running but haven't yet
+   // reached first break.  We never want to pause before reaching the first
+   // break (trap, actually).  But should we be returning true or false in
+   // this case?
+   if(! reachedBootstrapState(initialized))
+      return true;
+
+#if defined(sparc_sun_solaris2_4)
+   clearProcessEvents();
+#endif
+
+   // Let's try having stopped mean all lwps stopped and running mean
+   // atleast one lwp running.
+   if (status_ == stopped || status_ == neonatal)
+      return true;
+
+   if(IndependentLwpControl()) {
+      pdvector<dyn_thread *>::iterator iter = threads.begin();
+
+      while(iter != threads.end()) {
+         dyn_thread *thr = *(iter);
+         dyn_lwp *lwp = thr->get_lwp();
+         assert(lwp);
+         lwp->pauseLWP(true);
+         iter++;
+      }
+   } else {
+      assert(status_ == running);      
+      bool res = getRepresentativeLWP()->pauseLWP(true);
+      if (!res) {
+         sprintf(errorLine,
+                 "warn : in process::pause, pause_ unable to pause process\n");
+         logLine(errorLine);
+         return false;
+      }
+   }
+
+   status_ = stopped;
+   return true;
 }
 
 // handleIfDueToSharedObjectMapping: if a trap instruction was caused by
 // a dlopen or dlclose event then return true
 bool process::handleIfDueToSharedObjectMapping(){
-
    if(!dyn) { 
       return false;
    }
@@ -4739,28 +4853,35 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
 
 
 bool process::continueProc() {
-  if (status_ == exited) return false;
+   if (status_ == exited) return false;
 
-  // We're already running
-  if (status_ == running) return true;
+   if (status_ == running) {
+      return true;
+   }
 
-  if (status_ != stopped && status_ != neonatal) {
-    sprintf(errorLine, "Internal error: "
-                "Unexpected process state %d in process::contineProc",
-                (int)status_);
-    showErrorCallback(39, errorLine);
-    return false;
-  }
-  bool res = continueProc_();
+   if(IndependentLwpControl()) {
+      pdvector<dyn_thread *>::iterator iter = threads.begin();
 
-  if (!res) {
-      showErrorCallback(38, "System error: can't continue process");
-      cerr << "Failed continue" << getPid() << endl;
-      return false;
-  }
-  status_ = running;
-  
-  return true;
+      while(iter != threads.end()) {
+         dyn_thread *thr = *(iter);
+         dyn_lwp *lwp = thr->get_lwp();
+         assert(lwp);
+         lwp->continueLWP();
+         iter++;
+      }
+   } else {
+      //if (status_ == running)
+      //return true;
+      
+      bool res = getRepresentativeLWP()->continueLWP();
+      if (!res) {
+         showErrorCallback(38, "System error: can't continue process");
+         return false;
+      }
+   }
+    
+   status_ = running;
+   return true;
 }
 
 bool process::detach(const bool paused) {
@@ -4768,7 +4889,14 @@ bool process::detach(const bool paused) {
       logLine("detach: pause not implemented\n"); // why not? --ari
    }
 
-   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
+   assert(getRepresentativeLWP());  // we expect this to be defined
+   // Though on linux, if process found to be MT, there will be no
+   // representativeLWP since there is no lwp which controls the entire
+   // process for MT linux.
+
+   getRepresentativeLWP()->detach();   
+
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
    unsigned index;
    while (lwp_iter.next(index, lwp)) {
@@ -4858,7 +4986,7 @@ void process::handleProcessExit(int exitCode) {
    // Let the process die
    //continueProc();
    
-   status_ = exited;
+   set_status(exited);
    detach(false);
 
   // Perhaps these lines can be un-commented out in the future, but since
@@ -4922,7 +5050,7 @@ void process::handleExecExit() {
 #endif
    // all instrumentation that was inserted in this process is gone.
    // set exited here so that the disables won't try to write to process
-   status_ = exited; 
+   set_status(exited);
    
    // Clean up state from old exec: all dynamic linking stuff, all lists 
    // of functions and modules from old executable
@@ -4978,7 +5106,7 @@ void process::handleExecExit() {
 
    // Before we parse the file descriptor, re-open the /proc/pid/as file handle
 #if defined(rs6000_ibm_aix4_1) && defined(AIX_PROC)
-   getProcessLWP()->reopen_fds();
+   getRepresentativeLWP()->reopen_fds();
 #endif
 
    fileDescriptor *desc = getExecFileDescriptor(execFilePath,
@@ -5039,7 +5167,7 @@ void process::handleExecExit() {
     /* update process status */
        // we haven't yet seen initial SIGTRAP for this proc (is this right?)
     
-    status_ = stopped; // was 'exited'
+    set_status(stopped); // was 'exited'
 
    // TODO: We should remove (code) items from the where axis, if the exec'd process
    // was the only one who had them.
@@ -5670,6 +5798,14 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
   }
 }
 
+dyn_thread *process::createInitialThread() {
+   assert(threads.size() == 0);
+   dyn_thread *initialThread = new dyn_thread(this);
+   threads.push_back(initialThread);
+   return initialThread;
+}
+
+
 dyn_thread *process::getThread(unsigned tid) {
    dyn_thread *thr;
    for(unsigned i=0; i<threads.size(); i++) {
@@ -5686,11 +5822,12 @@ dyn_thread *process::getThread(unsigned tid) {
 dyn_lwp *process::getLWP(unsigned lwp_id)
 {
   dyn_lwp *foundLWP;
-  if (lwps.find(lwp_id, foundLWP)) {
+  if(real_lwps.find(lwp_id, foundLWP)) {
     return foundLWP;
   }
 
-  foundLWP = createLWP(lwp_id);
+  foundLWP = createRealLWP(lwp_id, lwp_id);
+
   if (!foundLWP->attach()) {
      deleteLWP(foundLWP);
      return NULL;
@@ -5698,28 +5835,37 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
   return foundLWP;
 }
 
-dyn_lwp *process::createLWP(unsigned lwp_id) {
+dyn_lwp *process::lookupLWP(unsigned lwp_id) {
+   dyn_lwp *foundLWP = NULL;
+   bool found = real_lwps.find(lwp_id, foundLWP);
+   if(! found) {
+      if(lwp_id == getRepresentativeLWP()->get_lwp_id())
+         foundLWP = getRepresentativeLWP();
+   }
+   return foundLWP;
+}
+
+// fictional lwps aren't saved in the real_lwps vector
+dyn_lwp *process::createFictionalLWP(unsigned lwp_id) {
    dyn_lwp *lwp = new dyn_lwp(lwp_id, this);
-   lwps[lwp_id] = lwp;
+   theRpcMgr->addLWP(lwp);
+   return lwp;
+}
+
+dyn_lwp *process::createRealLWP(unsigned lwp_id, int lwp_index) {
+   dyn_lwp *lwp = new dyn_lwp(lwp_id, this);
+   real_lwps[lwp_id] = lwp;
    theRpcMgr->addLWP(lwp);
    return lwp;
 }
 
 void process::deleteLWP(dyn_lwp *lwp_to_delete) {
-   if(lwps.size() > 0 && lwp_to_delete!=NULL) {
+   if(real_lwps.size() > 0 && lwp_to_delete!=NULL) {
       theRpcMgr->deleteLWP(lwp_to_delete);
       unsigned index = lwp_to_delete->get_lwp_id();
-      lwps.undef(index);
+      real_lwps.undef(index);
    }
    delete lwp_to_delete;
-}
-
-dyn_lwp *process::getProcessLWP() const
-{
-  dyn_lwp *lwp;
-  if (lwps.find(0, lwp))
-    return lwp;
-  return NULL;
 }
 
 void read_variables_after_fork(process *proc, int *shm_key,
@@ -5758,7 +5904,7 @@ void process::init_shared_memory(process *parentProc) {
    int lwp_stopped_from_exit = parentProc->getLWPStoppedFromForkExit();
    dyn_lwp *lwp_to_use;
    if(lwp_stopped_from_exit == UNSET_LWP_STOPPED_FROM_EXIT_VAL)
-      lwp_to_use = getProcessLWP();
+      lwp_to_use = getRepresentativeLWP();
    else
       lwp_to_use = getLWP(lwp_stopped_from_exit);
 
@@ -5935,13 +6081,13 @@ void process::deleteThread(int tid)
 
 #endif /* MT*/
 
-void process::overrideProcessLWP(dyn_lwp *lwp) {
-    saved_process_lwp = lwps[0];
-    lwps[0] = lwp;
+void process::overrideRepresentativeLWP(dyn_lwp *lwp) {
+    saved_process_lwp = getRepresentativeLWP();
+    representativeLWP = lwp;
 }
 
-void process::restoreProcessLWP() {
-    lwps[0] = saved_process_lwp;
+void process::restoreRepresentativeLWP() {
+    representativeLWP = saved_process_lwp;
 }
 
 
