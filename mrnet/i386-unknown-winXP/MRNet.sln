@@ -1,0 +1,39 @@
+Microsoft Visual Studio Solution File, Format Version 7.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xplat", "xplat\xplat.vcproj", "{6EEC078F-CD5B-4A67-8089-625026FCE928}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "topgen", "topgen\topgen.vcproj", "{7160B2EB-10DD-4B19-BFA1-E54F6D562DC9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmrnet", "libmrnet\libmrnet.vcproj", "{CA090BC6-35B7-431B-8A9A-58F3D03487A4}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mrnet_commnode", "mrnet_commnode\mrnet_commnode.vcproj", "{305D2E56-D07D-4116-B9AA-3178D896C733}"
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		ConfigName.0 = Debug
+		ConfigName.1 = Release
+	EndGlobalSection
+	GlobalSection(ProjectDependencies) = postSolution
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{6EEC078F-CD5B-4A67-8089-625026FCE928}.Debug.ActiveCfg = Debug|Win32
+		{6EEC078F-CD5B-4A67-8089-625026FCE928}.Debug.Build.0 = Debug|Win32
+		{6EEC078F-CD5B-4A67-8089-625026FCE928}.Release.ActiveCfg = Release|Win32
+		{6EEC078F-CD5B-4A67-8089-625026FCE928}.Release.Build.0 = Release|Win32
+		{7160B2EB-10DD-4B19-BFA1-E54F6D562DC9}.Debug.ActiveCfg = Debug|Win32
+		{7160B2EB-10DD-4B19-BFA1-E54F6D562DC9}.Debug.Build.0 = Debug|Win32
+		{7160B2EB-10DD-4B19-BFA1-E54F6D562DC9}.Release.ActiveCfg = Release|Win32
+		{7160B2EB-10DD-4B19-BFA1-E54F6D562DC9}.Release.Build.0 = Release|Win32
+		{CA090BC6-35B7-431B-8A9A-58F3D03487A4}.Debug.ActiveCfg = Debug|Win32
+		{CA090BC6-35B7-431B-8A9A-58F3D03487A4}.Debug.Build.0 = Debug|Win32
+		{CA090BC6-35B7-431B-8A9A-58F3D03487A4}.Release.ActiveCfg = Release|Win32
+		{CA090BC6-35B7-431B-8A9A-58F3D03487A4}.Release.Build.0 = Release|Win32
+		{305D2E56-D07D-4116-B9AA-3178D896C733}.Debug.ActiveCfg = Debug|Win32
+		{305D2E56-D07D-4116-B9AA-3178D896C733}.Debug.Build.0 = Debug|Win32
+		{305D2E56-D07D-4116-B9AA-3178D896C733}.Release.ActiveCfg = Release|Win32
+		{305D2E56-D07D-4116-B9AA-3178D896C733}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
