@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.219 2002/02/26 20:24:38 gurari Exp $
+// $Id: metricFocusNode.C,v 1.220 2002/03/14 23:25:25 bernat Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -3354,8 +3354,14 @@ threadMetFocusNode::~threadMetFocusNode() {
 // call removeComponent before delete
 metricDefinitionNode::~metricDefinitionNode()  
 {
-  assert(0 == aggregators.size());
-  assert(0 == components.size());
+  if (aggregators.size())
+    cerr << "Aggregators list has size "
+	 << aggregators.size()
+	 << " should be 0" << endl;
+  if (components.size())
+    cerr << "Components list has size "
+	 << components.size()
+	 << " should be 0" << endl;
 }
 
 processMetFocusNode::~processMetFocusNode() {
