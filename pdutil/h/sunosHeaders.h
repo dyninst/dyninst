@@ -108,7 +108,7 @@ extern int P_listen (int socket, unsigned int n);
 caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t off);
 extern int P_munmap(caddr_t, int);
 extern int P_socket (int NAMESPACE, int STYLE, int PROTOCOL);
-extern int P_socketpair(int namespace, int style, int protocol, int filedes[2]);
+extern int P_socketpair(int namesp, int style, int protocol, int filedes[2]);
 extern int P_strcasecmp(const char *s1, const char *s2);
 extern int P_strncasecmp (const char *S1, const char *S2, size_t N);
 
