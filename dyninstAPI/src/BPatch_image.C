@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.57 2004/06/08 15:45:56 eli Exp $
+// $Id: BPatch_image.C,v 1.58 2004/06/21 22:08:52 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -265,11 +265,15 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 	/* With all the BPatch_functions created, generate the modules.
 	   The BPatch_module constructor will set its bpfs to point to itself,
 	   and the parser will cache per-image type collections. */
+	char moduleName[255];   
+	BPatch_module * defaultModule = NULL;
 	for( i = 0; i < pdModules->size(); i++ ) {
 		pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
 		BPatch_module * bpm = new BPatch_module( proc, currentModule, this );
 		modlist->push_back( bpm );
+		if( strcmp( bpm->getName( moduleName, 255 ), "DEFAULT_MODULE" ) ) { defaultModule = bpm; }
 		} /* end of second iteration over modules */		
+	assert( defaultModule != NULL ) ;
 
 	/* DEBUG: verify that all known bpfs have non-NULL bpm pointers. */
 	dictionary_hash< function_base *, BPatch_function *>::const_iterator iter = proc->PDFuncToBPFuncMap.begin();
@@ -277,7 +281,10 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 	for( ; iter != end; ++iter ) {
 		char name[255];
 		BPatch_function * bpf = * iter;
-		if( bpf->getModule() == NULL ) { fprintf( stderr, "Warning: bpf '%s' has no module.\n", bpf->getName( name, 255 ) ); }
+		if( bpf->getModule() == NULL ) {
+			// /* DEBUG */ fprintf( stderr, "Warning: bpf '%s' unclaimed by any module, setting to DEFAULT_MODULE.\n", bpf->getName( name, 255 ) );
+			bpf->setModule( defaultModule );
+			}
 		} /* end iteration over function map */
 		
 	return modlist;
