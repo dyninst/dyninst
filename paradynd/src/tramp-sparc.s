@@ -46,6 +46,11 @@
  *    appropriate inferior process via ptrace calls.
  *
  * $Log: tramp-sparc.s,v $
+ * Revision 1.13  1996/09/12 15:08:24  naim
+ * This commit move all saves and restores from the mini-tramps to the base
+ * tramp. It also add jumps to skip instrumentation in the base-tramp when
+ * it isn't required - naim
+ *
  * Revision 1.12  1996/08/20 18:57:59  lzheng
  * A few slot was added to allow multiple instructions to be moved into
  * the base trampoline
@@ -99,8 +104,7 @@
  * Revision 1.5  1993/09/10  20:33:44  hollings
  * moved tramps to data area so the dyninst code can be run under qpt.
  *
- * Revision 1.4  1993/08/11  01:36:10  hollings
- * fixed include files.
+ * Revision 1.4  1993/08/11  01:36:10  hollings * fixed include files.
  *
  * Revision 1.3  1993/06/22  19:00:01  hollings
  * global inst state.
@@ -128,8 +132,30 @@ _baseTramp:
 	/* should update cost of base tramp here, but we don't have a
 	   register to use!
 	*/
+	.word   SKIP_PRE_INSN
+	nop			/* delay slot for jump if there is no inst. */
 	.word	GLOBAL_PRE_BRANCH
+	save  %sp, -112, %sp	/* saving registers before jumping to */
+	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
+	std  %g2, [ %fp + -16 ]
+	std  %g4, [ %fp + -24 ]
+	std  %g6, [ %fp + -32 ]
+	nop			/* fill this in with instructions to  */
+	nop			/* compute the address of the vector  */
+	nop			/* of counter/timers for each thread  */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	.word	LOCAL_PRE_BRANCH
+	nop
+	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
+	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
+	ldd  [ %fp + -24 ], %g4
+	ldd  [ %fp + -32 ], %g6
+	restore
 	nop
 	.word 	EMULATE_INSN
 	nop			/* second instruction if it's leaf */
@@ -137,8 +163,31 @@ _baseTramp:
 	nop			/* if the previous instruction is a DCTI  */
 	nop			/* this slot is needed for leaf procedure */
 	nop			/* extra nop for aggregate size */
+	.word   SKIP_POST_INSN
+	nop
 	.word	GLOBAL_POST_BRANCH
+	save  %sp, -112, %sp	/* saving registers before jumping to */
+	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
+	std  %g2, [ %fp + -16 ]
+	std  %g4, [ %fp + -24 ]
+	std  %g6, [ %fp + -32 ]
+	nop			/* fill this in with instructions to  */
+	nop			/* compute the address of the vector  */
+	nop			/* of counter/timers for each thread  */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	.word	LOCAL_POST_BRANCH
+	nop
+	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
+	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
+	ldd  [ %fp + -24 ], %g4
+	ldd  [ %fp + -32 ], %g6
+	restore
+	nop
 	/* should update post insn cost of base tramp here */
 	.word	RETURN_INSN
 	nop			/* see if this prevents crash jkh 4/4/95 */

@@ -43,6 +43,11 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.44  1996/09/12 15:08:21  naim
+ * This commit move all saves and restores from the mini-tramps to the base
+ * tramp. It also add jumps to skip instrumentation in the base-tramp when
+ * it isn't required - naim
+ *
  * Revision 1.43  1996/09/05 16:40:07  lzheng
  * Moved the architecture dependent definations to the architecture
  * dependent files; Added some comments
@@ -813,6 +818,18 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	    case GLOBAL_POST_BRANCH:
 		thisTemp->globalPostOffset = ((void*)temp - (void*)tramp);
 		break;
+	    case SKIP_PRE_INSN:
+                thisTemp->skipPreInsOffset = ((void*)temp - (void*)tramp);
+                break;
+	    case SKIP_POST_INSN:
+                thisTemp->skipPostInsOffset = ((void*)temp - (void*)tramp);
+                break;
+	    case RETURN_INSN:
+                thisTemp->returnInsOffset = ((void*)temp - (void*)tramp);
+                break;
+	    case EMULATE_INSN:
+                thisTemp->emulateInsOffset = ((void*)temp - (void*)tramp);
+                break;
   	}	
     }
     thisTemp->size = (int) temp - (int) tramp;
@@ -949,11 +966,25 @@ void installBaseTramp(unsigned baseAddr,
 	    } else {
 		generateCallInsn(temp, currAddr, location->addr+location->size);
 	    }
-
-	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
-		   (temp->raw == GLOBAL_PRE_BRANCH) ||
-		   (temp->raw == LOCAL_POST_BRANCH) ||
+        } else if (temp->raw == SKIP_PRE_INSN) {
+          unsigned offset;
+          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
+          generateBranchInsn(temp,offset);
+        } else if (temp->raw == SKIP_POST_INSN) {
+          unsigned offset;
+          offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+          generateBranchInsn(temp,offset);
+        } else if ((temp->raw == LOCAL_PRE_BRANCH) ||
+                   (temp->raw == GLOBAL_PRE_BRANCH) ||
+                   (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
+            if ((temp->raw == LOCAL_PRE_BRANCH) ||
+                (temp->raw == LOCAL_POST_BRANCH)) {
+                temp -= NUM_INSN_MT_PREAMBLE;
+                unsigned numIns=0;
+                generateMTpreamble((char *)temp, numIns, proc);
+                temp += NUM_INSN_MT_PREAMBLE;
+            }
 	    /* fill with no-op */
 	    generateNOOP(temp);
 	}
@@ -1034,10 +1065,25 @@ void installBaseTrampSpecial(unsigned baseAddr,
                 /* skip the aggregate size slot */
                 temp->branch.disp22 += 1;
             }
+        } else if (temp->raw == SKIP_PRE_INSN) {
+          unsigned offset;
+          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
+          generateBranchInsn(temp,offset);
+        } else if (temp->raw == SKIP_POST_INSN) {
+          unsigned offset;
+          offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+          generateBranchInsn(temp,offset);
         } else if ((temp->raw == LOCAL_PRE_BRANCH) ||
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
                    (temp->raw == LOCAL_POST_BRANCH) ||
-                   (temp->raw == GLOBAL_POST_BRANCH)) {
+		   (temp->raw == GLOBAL_POST_BRANCH)) {
+            if ((temp->raw == LOCAL_PRE_BRANCH) ||
+                (temp->raw == LOCAL_POST_BRANCH)) {
+                temp -= NUM_INSN_MT_PREAMBLE;
+                unsigned numIns=0;
+                generateMTpreamble((char *)temp, numIns, proc);
+		temp += NUM_INSN_MT_PREAMBLE;
+            }
             /* fill with no-op */
             generateNOOP(temp);
         }
@@ -1049,8 +1095,6 @@ void installBaseTrampSpecial(unsigned baseAddr,
 
     free(code);
 }
-
-
 
 void generateNoOp(process *proc, int addr)
 {
@@ -1186,7 +1230,14 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     
     // TODO cast
     (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
-    // PCptrace(PTRACE_WRITEDATA, inst->proc, (char*) inst->trampBase, codeSize, code);
+
+    unsigned atAddr;
+    if (inst->when == callPreInsn) {
+      atAddr = inst->baseAddr+baseTemplate.skipPreInsOffset;
+    }
+    else {
+      atAddr = inst->baseAddr+baseTemplate.skipPostInsOffset; 
+    }
 }
 
 /*
@@ -1379,6 +1430,8 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
     } else if (op ==  trampPreamble) {
+#ifdef ndef
+        // save and restore are done inthe base tramp now
         genImmInsn(insn, SAVEop3, 14, -112, 14);
 	base += sizeof(instruction);
         insn++;
@@ -1389,7 +1442,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	  base += sizeof(instruction);
 	  insn++;
 	}
-
+#endif
         // generate code to update the observed cost.
 	// sethi %hi(dest), %l0
         generateSetHi(insn, dest, REG_L0);
@@ -1428,7 +1481,8 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	base += sizeof(instruction);
 	insn++;
     } else if (op ==  trampTrailer) {
-
+#ifdef ndef
+        // save and restore are done inthe base tramp now
 	// generate code to restore global registers
 	for (unsigned u = 0; u < 4; u++) {
 	  genLoadD(insn, REG_FP, - (8 + 8*u), 2*u);
@@ -1443,7 +1497,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	generateNOOP(insn);
 	base += sizeof(instruction);
 	insn++;
-
+#endif
 	// dest is in words of offset and generateBranchInsn is bytes offset
 	generateBranchInsn(insn, dest << 2);
 	base += sizeof(instruction);
@@ -2013,8 +2067,8 @@ bool pdFunction::findInstPoints(const image *owner,
 	  //instPoint *point = new instPoint(this, instr, owner, newAdr, false,
 	  //			      functionExit, adr);
 	  if (relocation) {
-	      instPoint *point = new instPoint(this, instr, owner, newAdr, false,
-				      functionExit, adr);
+	      instPoint *point = new instPoint(this, instr, owner, newAdr, 
+                                               false, functionExit, adr);
 	      funcReturns += point;
 	      funcReturns[retId] -> instId = retId++;
 	  } else {
@@ -2158,7 +2212,6 @@ void pdFunction::relocateFunction(process *proc) {
     //Find out the instPoints all the relocation
     findInstPoints(globalProc->symbols, ret, proc);
     proc->writeDataSpace((caddr_t)ret, size()+28, (caddr_t) newInstr);
-
 }
 
 

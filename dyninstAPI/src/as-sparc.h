@@ -44,6 +44,11 @@
 
 /*
  * $Log: as-sparc.h,v $
+ * Revision 1.4  1996/09/12 15:08:25  naim
+ * This commit move all saves and restores from the mini-tramps to the base
+ * tramp. It also add jumps to skip instrumentation in the base-tramp when
+ * it isn't required - naim
+ *
  * Revision 1.3  1996/08/16 21:18:10  tamches
  * updated copyright for release 1.1
  *
@@ -90,5 +95,10 @@
 
 /* branch to first global post insn mini-tramp */
 #define GLOBAL_POST_BRANCH	0xc
+
+/* branch back to the application if there is no instrumentation at 
+   this point */
+#define SKIP_PRE_INSN           0xd
+#define SKIP_POST_INSN          0xe
 
 #endif

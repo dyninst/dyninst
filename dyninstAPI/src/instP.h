@@ -43,6 +43,11 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.15  1996/09/12 15:08:25  naim
+ * This commit move all saves and restores from the mini-tramps to the base
+ * tramp. It also add jumps to skip instrumentation in the base-tramp when
+ * it isn't required - naim
+ *
  * Revision 1.14  1996/09/05 16:31:35  lzheng
  * Move the defination of BREAK_POINT_INSN to the machine dependent file
  *
@@ -109,6 +114,10 @@ class trampTemplate {
     int globalPostOffset;
     int localPreOffset;
     int localPostOffset;
+    int returnInsOffset;
+    int skipPreInsOffset;
+    int skipPostInsOffset;
+    int emulateInsOffset;
 };
 
 extern trampTemplate baseTemplate;
