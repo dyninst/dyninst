@@ -104,7 +104,7 @@ public:
     BPatch_snippet(const BPatch_snippet &);
     BPatch_snippet &operator=(const BPatch_snippet &);
 
-    virtual	~BPatch_snippet();
+    ~BPatch_snippet();
 
     float	getCost();
 };
