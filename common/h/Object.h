@@ -223,7 +223,8 @@ private:
 
 class SymbolIter {
 public:
-     SymbolIter (const Object &obj):  si_(obj.symbols_) {}
+     SymbolIter (const Object     &obj): si_(obj.symbols_) {}
+     SymbolIter (const SymbolIter &src): si_(src.si_) {}
     ~SymbolIter () {}
 
     void  reset () { si_.reset(); }
@@ -243,7 +244,6 @@ public:
 private:
     dictionary_hash_iter<string, Symbol> si_;
 
-    SymbolIter            (const SymbolIter &); // explicitly disallowed
     SymbolIter& operator= (const SymbolIter &); // explicitly disallowed
 };
 
