@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.31 2004/04/06 16:37:09 bernat Exp $
+// $Id: arch-ia64.C,v 1.32 2004/04/26 21:34:55 rchen Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -501,12 +501,13 @@ IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long 
 	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
 	} /* end generateConstantInRegister( imm64 ) */
 
-IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister ) {
+IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister, Register predicate ) {
 	int64_t displacement60 = displacement64 >> 4;
 	uint64_t sBranchRegister = (uint64_t)branchRegister;
 
 	uint64_t rawInsnHigh = 0x0000000000000000 | 
 			   ( ((uint64_t)0x0D) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)(predicate & 0x3F)) << (0 + ALIGN_RIGHT_SHIFT)) |
 			   ( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
 			   ( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT)) |
 			   ( (sBranchRegister & 0x07 ) << (6 + ALIGN_RIGHT_SHIFT));

@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.24 2004/03/23 01:12:01 eli Exp $
+// $Id: arch-ia64.h,v 1.25 2004/04/26 21:35:01 rchen Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -204,7 +204,7 @@ IA64_instruction generateOriginalAllocFor( registerSpace * rs );
 
 IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 );
 IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 );
-IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister );
+IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister, Register predicate = 0 );
 
 /* Required by linuxDL.C */
 IA64_instruction generateReturnTo( unsigned int branchRegister );
