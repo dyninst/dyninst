@@ -1,3 +1,4 @@
+#include <iostream>
 #include "mrnet/h/MR_Network.h"
 #include "test1.h"
 #include "timer.h"
