@@ -40,13 +40,13 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.65  1999/03/03 18:15:15  pcroth
-/* Updated to support Windows NT as a front-end platform
-/* Changes made to X code, to use Tcl analogues when appropriate
-/* Also changed in response to modifications in thread library and igen output.
+/* Revision 1.66  1999/03/12 22:58:20  pcroth
+/*  Fixed poor handling of RCS logs by last CVS checkin
 /*
- * Revision 1.5  1999/03/01 17:56:19  pcroth
- * removed carriage returns
+ * Revision 1.65  1999/03/03 18:15:15  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
  *
  * Revision 1.64  1996/08/16 21:03:31  tamches
  * updated copyright for release 1.1
