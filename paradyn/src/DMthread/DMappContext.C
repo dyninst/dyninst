@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.40  1994/09/22 00:52:29  markc
+ * Revision 1.41  1994/11/02 11:45:12  markc
+ * Put a hack into addExecutable to handle incorrect parameters passed in.
+ *
+ * Revision 1.40  1994/09/22  00:52:29  markc
  * Changed "String" to "char*"
  * Used access methods for private member functions from igen classes
  * Removed purify error (new char[len] --> char[len+1] on line 303
@@ -166,6 +169,7 @@ double   quiet_nan(int unused);
 #include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
 #include "util/h/tunableConst.h"
+#include "util/h/kludges.h"
 
 tunableBooleanConstant printChangeCollection(FALSE, NULL, developerConstant,
     "printChangeCollection", 
@@ -415,12 +419,23 @@ Boolean applicationContext::addExecutable(char  *machine,
       (paradynDaemon*) NULL)
     return FALSE;
 
-  programToRun.count = argc;
-  programToRun.data = argv;
+  // KLUDGE -  TODO 
+  // argv is not always null terminated - look into this
+  // programToRun.count = argc;
+  // programToRun.data = argv;
+  programToRun.count = argc+1;
+  programToRun.data = new char*[argc+1];
+  int i;
+  for (i=0; i<argc; i++)
+    programToRun.data[i] = argv[i];
+  programToRun.data[argc] = (char*)NULL;
 
   startResourceBatchMode();
   pid = daemon->addExecutable(argc, programToRun);
   endResourceBatchMode();
+
+  // part of the previous kludge
+  delete [] programToRun.data;
 
   // did the application get started ok?
   if (pid > 0 && !daemon->did_error_occur()) {
