@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.92 2003/03/17 21:16:46 bernat Exp $
+// $Id: linux.C,v 1.93 2003/03/21 21:21:03 bernat Exp $
 
 #include <fstream.h>
 
@@ -382,7 +382,7 @@ process *decodeProcessEvent(int pid,
         }
     }
     else if (result < 0) {
-        perror("decodeProcessEvent: waitpid failure");
+        //perror("decodeProcessEvent: waitpid failure");
     }
     return proc;
 }
@@ -393,7 +393,6 @@ bool process::installSyscallTracing() {
     AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
     AstNode *arg0 = new AstNode(AstNode::Param, (void *)0);
 
-    
     // Pre-fork - is this strictly necessary?
     tracingRequests += new instMapping("__libc_fork", "DYNINST_instForkEntry",
                                        FUNC_ENTRY);
@@ -648,7 +647,6 @@ bool process::detach_() {
    return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
 }
 
-#ifdef BPATCH_LIBRARY
 bool process::API_detach_(const bool cont) {
 //  assert(cont);
   if (!checkStatus())
@@ -657,7 +655,6 @@ bool process::API_detach_(const bool cont) {
   if (!cont) P_kill(pid, SIGSTOP);
   return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
 }
-#endif
 
 bool process::dumpCore_(const string/* coreFile*/) { return false; }
 

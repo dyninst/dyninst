@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.23 2003/03/12 01:50:08 schendel Exp $
+// $Id: procfs.C,v 1.24 2003/03/21 21:21:03 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -422,7 +422,6 @@ int dyn_lwp::hasReachedSyscallTrap() {
     return 2;
 }
 
-#ifdef BPATCH_LIBRARY
 /*
    detach from thr process, continuing its execution if the parameter "cont"
    is true.
@@ -478,7 +477,6 @@ bool process::API_detach_(const bool cont)
   deleteLWP(getDefaultLWP());
   return true;
 }
-#endif
 
 bool process::writeTextWord_(caddr_t inTraced, int data) {
   return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);

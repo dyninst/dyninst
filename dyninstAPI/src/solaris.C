@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.138 2003/03/17 17:57:51 igor Exp $
+// $Id: solaris.C,v 1.139 2003/03/21 21:21:03 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -732,7 +732,7 @@ bool process::dumpCore_(const string coreName)
   sprintf(command, "gcore %d 2> /dev/null; mv core.%d %s", getPid(), getPid(), 
           coreName.c_str());
 
-  detach(false);
+  API_detach(false);
   system(command);
   attach();
 

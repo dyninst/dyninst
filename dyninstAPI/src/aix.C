@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.130 2003/03/17 03:05:33 schendel Exp $
+// $Id: aix.C,v 1.131 2003/03/21 21:21:03 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1077,7 +1077,6 @@ bool process::installSyscallTracing() {
     tracingRequests += new instMapping("execve", "DYNINST_instExecEntry",
                                        FUNC_ENTRY|FUNC_ARG,
                                        arg1);
-
     // Post-exec: handled for us by the system
 
     // Pre-exit: get the return code
@@ -1225,14 +1224,12 @@ bool process::detach_() {
    return (true);
 }
 
-#ifdef BPATCH_LIBRARY
 bool process::API_detach_(const bool cont) {
   if (!checkStatus())
       return false;
   ptraceOps++; ptraceOtherOps++;
   return (ptraceKludge::deliverPtrace(this,PT_DETACH,(char*)1, cont ? 0 : SIGSTOP,NULL));
 }
-#endif
 
 // temporarily unimplemented, PT_DUMPCORE is specific to sunos4.1
 bool process::dumpCore_(const string coreFile) {
@@ -1642,7 +1639,6 @@ string process::tryToFindExecutable(const string &progpath, int /*pid*/) {
     cerr << "Warning: Attach on AIX requires program path to be specified" << endl;
    if (progpath.length() == 0)
       return "";
-
    if (exists_executable(progpath)) // util lib
       return progpath;
 

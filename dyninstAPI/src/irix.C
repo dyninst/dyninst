@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.53 2003/03/14 23:18:23 bernat Exp $
+// $Id: irix.C,v 1.54 2003/03/21 21:21:03 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -894,7 +894,6 @@ bool process::terminateProc_()
 }
 #endif
 
-#ifdef BPATCH_LIBRARY
 /* API_detach_: detach from the process (clean up /proc state);
    continue process' execution if "cont" is true. */
 bool process::API_detach_(const bool cont)
@@ -949,7 +948,6 @@ bool process::API_detach_(const bool cont)
   deleteLWP(getDefaultLWP());
   return ret;
 }
-#endif
 
 string process::tryToFindExecutable(const string &progpath, int /*pid*/)
 {
