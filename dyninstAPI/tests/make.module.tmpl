@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.55 2003/12/11 21:23:46 rchen Exp $
+# $Id: make.module.tmpl,v 1.56 2004/04/07 21:22:48 rchen Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -31,7 +31,7 @@ endif
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGETS       =  test1 test2 test3 test4 test5 test6 test7 test8 test9 test10
+TARGETS       =  test1 test2 test3 test4 test5 test6 test7 test8 test9 test10 test11
 ifdef M_GCC
 TARGETS      +=	 test1.mutatee_$(M_GCC) \
 		 test2.mutatee_$(M_GCC) \
@@ -211,6 +211,7 @@ endif
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test8
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test9
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test10
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test11
 	$(MAKE) testlibs MUTATEE_CC=$(M_GCC)
 
 ifneq ($(M_GCC),)
@@ -279,6 +280,10 @@ pc:
 	$(MAKE) purecov TARGET=test2 TARGET2=test2.mutatee
 
 aTest:	$(TARGET) $(TARGET2)
+
+# Explicit test11 build instruction.
+test11:
+	cp ../src/test11.sh test11
 
 testlibs: libtestA.so libtestB.so $(MUTATEE_TEST9_LIBS_LIST)
 
