@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.96 2003/05/21 20:12:45 schendel Exp $ */
+/* $Id: context.C,v 1.97 2003/05/30 02:36:34 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -183,6 +183,7 @@ void createThread(traceThread *fr) {
    resource *modRes = foundMod->getResource();
    string start_func_str = thr->get_start_func()->prettyName();
    string res_string = modRes->full_name() + "/" + start_func_str;
+
    CallGraphSetEntryFuncCallback(proc->getImage()->file(), res_string, thr->get_tid());
 }
 
@@ -560,10 +561,9 @@ void wait_for_thread_creation(process *childDynProc,
    fd_set readSet;
    fd_set errorSet;
    int ct;
-
    while(! allThreadCreatesReceived(childDynProc, num_expected)) {
-      if(childDynProc->hasExited()) return;
-      //decodeAndHandleProcessEvent(false);
+       if(childDynProc->hasExited()) return;
+       //decodeAndHandleProcessEvent(false);
 
       int width = 0;
       struct timeval pollTimeStruct;
@@ -713,12 +713,12 @@ void paradyn_forkCallback(process *parentDynProc,
    childProc->initAfterFork(parentProc);
    metricFocusNode::handleFork(parentProc, childProc);
 
-   assert(childProc->status() == stopped);
    childDynProc->registerPostExecCallback(pd_process::paradynPostExecDispatch,
                                           (void *)childProc);
    childDynProc->registerPostForkCallback(paradyn_forkCallback,
                                           (void *)childProc);
-   childProc->continueProc();
+   if (childProc->status() == stopped)
+       childProc->continueProc();
    // parent process will get continued by unix.C/handleSyscallExit
 }
 
