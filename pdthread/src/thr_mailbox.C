@@ -168,16 +168,21 @@ struct sock_set_populator {
     }
     
     /* FIXME: using fd_set, not portable to non-unix */
-    void visit(PDSOCKET desc) {
-        if(!already_ready->contains(desc)) {
-            thr_debug_msg(CURRENT_FUNCTION, "ADDING %d to wait set\n", (unsigned)desc);
-            FD_SET(desc, to_populate);
-            if(desc + 1 > count) count = desc + 1;
-        } else {
-            thr_debug_msg(CURRENT_FUNCTION, "NOT ADDING %d to wait set\n", (unsigned)desc);
-        }
-    }
+    void visit(PDSOCKET desc);
 };
+
+
+void sock_set_populator::visit(PDSOCKET desc) {
+	if(!already_ready->contains(desc)) {
+		thr_debug_msg(CURRENT_FUNCTION, "ADDING %d to wait set\n", (unsigned)desc);
+		FD_SET(desc, to_populate);
+		if(desc + 1 > count) count = desc + 1;
+	} else {
+		thr_debug_msg(CURRENT_FUNCTION, "NOT ADDING %d to wait set\n", (unsigned)desc);
+	}
+}
+
+
 
 struct ready_socks_populator {
     fd_set* populate_from;
@@ -186,28 +191,40 @@ struct ready_socks_populator {
     dllist<PDSOCKET,dummy_sync>* descs_from;    
     dllist<PDSOCKET,dummy_sync>* populate_to;
 
-    void visit(PDSOCKET desc) {
-        io_entity *ie = socket_q::socket_from_desc(desc);
-
-        assert(ie);
-
-        if(!(populate_to->contains(desc)) && descs_from->contains(desc)) {
-            
-            if (FD_ISSET(desc, populate_from)) {
-                
-                thr_debug_msg(CURRENT_FUNCTION, "enqueuing SOCKET message from %d\n", (unsigned)desc);
-
-                message *m = new io_message(ie,ie->self(), MSG_TAG_SOCKET);
-                
-                owner->put(m);
-                populate_to->put(desc);
-            } else {
-                thr_debug_msg(CURRENT_FUNCTION, "NOT enqueuing SOCKET message from %d\n", (unsigned)desc);
-            }
-        }
-    }
-    
+    void visit(PDSOCKET desc);
+	
 };
+
+
+void
+ready_socks_populator::visit(PDSOCKET desc)
+{
+	io_entity *ie = socket_q::socket_from_desc(desc);
+
+	assert(ie);
+
+#if READY
+	if(!(populate_to->contains(desc)) && descs_from->contains(desc)) {
+#endif // READY
+		if (FD_ISSET(desc, populate_from)) {
+			
+			thr_debug_msg(CURRENT_FUNCTION, "enqueuing SOCKET message from %d\n", (unsigned)desc);
+
+			message *m = new io_message(ie,ie->self(), MSG_TAG_SOCKET);
+			
+			owner->put(m);
+			populate_to->put(desc);
+		} 
+#if READY
+		else {
+			thr_debug_msg(CURRENT_FUNCTION, "NOT enqueuing SOCKET message from %d\n", (unsigned)desc);
+		}
+	}
+#endif // READY
+}
+    
+
+
 
 void* thr_mailbox::sock_select_loop(void* which_mailbox) {
     thr_mailbox* owner = (thr_mailbox*)which_mailbox;
@@ -381,6 +398,7 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
     tag_t actual_type = 0;
     PDDESC file_sender;
     PDSOCKET sock_sender;
+	message* msg_from_special = NULL;
 
     if (*sender != THR_TID_UNSPEC)
         message_criteria |= SENDER_SPECIFIED;
@@ -407,16 +425,45 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
                 message_criteria |= TAG_SPECIFIED;
         }    
     
+#if READY
+	// goto unnecessary here - is it going to cause maintenance trouble?
+#endif // READY
+
   find_msg:
 
+#if READY
+				// ??? can we make these criterion objects
+				// all derived from the same base class,
+				// do the switch to construct the critera,
+				// then share the "contains" and "if(found)..." logic?
+#endif // READY
     switch (message_criteria) {
         case TAG_SPECIFIED + SENDER_SPECIFIED: {
             sender_and_tag_matches_predicate criterion(*sender, *type);
             found = messages->contains(&criterion);
 
             if(found) {
-                if(do_yank && m)
+#if READY
+				// is it ever the case that do_yank is true but m is NULL?
+				// (I.e., do we ever want to drop a message on the floor?)
+#endif // READY
+                if(do_yank && m) {
                     *m = messages->yank(&criterion);
+				}
+#if READY
+#else
+				else if( !do_yank &&
+						thrtab::is_io_entity(actual_sender) &&
+						((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
+					// consume the "message" from our special sender
+					// 
+					// we're telling the caller about input on
+					// their special file, and we expect them to
+					// consume it
+					msg_from_special = messages->yank(&criterion);
+					m = &msg_from_special;
+				}
+#endif // READY
                 goto done;
             }
 
@@ -431,8 +478,23 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
             found = messages->contains(&criterion);
 
             if(found) {
-                if(do_yank && m)
+                if(do_yank && m) {
                     *m = messages->yank(&criterion);
+				}
+#if READY
+#else
+				else if( !do_yank &&
+						thrtab::is_io_entity(actual_sender) &&
+						((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
+					// consume the "message" from our special sender
+					// 
+					// we're telling the caller about input on
+					// their special file, and we expect them to
+					// consume it
+					msg_from_special = messages->yank(&criterion);
+					m = &msg_from_special;
+				}
+#endif // READY
                 goto done;
             }
 
@@ -447,8 +509,23 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
             found = messages->contains(&criterion);
 
             if(found) {
-                if(do_yank && m)
+                if(do_yank && m) {
                     *m = messages->yank(&criterion);
+				}
+#if READY
+#else
+				else if( !do_yank &&
+						thrtab::is_io_entity(actual_sender) &&
+						((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
+					// consume the "message" from our special sender
+					// 
+					// we're telling the caller about input on
+					// their special file, and we expect them to
+					// consume it
+					msg_from_special = messages->yank(&criterion);
+					m = &msg_from_special;
+				}
+#endif // READY
                 goto done;
             }
 
@@ -467,8 +544,23 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
             // file,socket,thread if io_first, otherwise thread,file,socket)
 
             if(found) {
-                if(do_yank && m)
+                if(do_yank && m) {
                     *m = messages->yank(&criterion);
+				}
+#if READY
+#else
+				else if( !do_yank &&
+						thrtab::is_io_entity(actual_sender) &&
+						((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
+					// consume the "message" from our special sender
+					// 
+					// we're telling the caller about input on
+					// their special file, and we expect them to
+					// consume it
+					msg_from_special = messages->yank(&criterion);
+					m = &msg_from_special;
+				}
+#endif // READY
                 goto done;
             }
             
@@ -510,6 +602,10 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
     if(actual_type)
         *type = actual_type;
     
+	if(msg_from_special != NULL) {
+		// consume the "message" from the special sender
+		delete msg_from_special;
+	}
     return found;
 }
 
@@ -527,8 +623,10 @@ int thr_mailbox::put(message* m) {
 int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp) {
     int retval = THR_OKAY;
 
+#if READY
     signal_fd_selector();
     signal_sock_selector();
+#endif // READY
 
     monitor->lock();
     
@@ -567,8 +665,10 @@ int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
     //        by passing fd_first to check_for and then implementing 
     //        poll_preference semantics there
     
+#if READY
     signal_fd_selector();
     signal_sock_selector();
+#endif // READY
     
     monitor->lock();
     
@@ -587,7 +687,7 @@ int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
 void thr_mailbox::bind_fd(PDDESC fd, unsigned special, int
                           (*wb)(void*), void* desc, thread_t* ptid) {
     // FIXME:  ignoring "special"
-    *ptid = thrtab::create_file(fd,owned_by,wb,desc);
+    *ptid = thrtab::create_file(fd,owned_by,wb,desc,(special != 0));
     fds_monitor->lock();
     bound_fds->put(fd);
     fds_monitor->unlock();
@@ -597,8 +697,7 @@ void thr_mailbox::bind_fd(PDDESC fd, unsigned special, int
 
 void thr_mailbox::bind_sock(PDSOCKET sock, unsigned special, int
                             (*wb)(void*), void* desc, thread_t* ptid) {
-    // FIXME:  ignoring "special"
-    *ptid = thrtab::create_socket(sock,owned_by,wb,desc);
+    *ptid = thrtab::create_socket(sock,owned_by,wb,desc,(special != 0));
     sock_monitor->lock();
     bound_socks->put(sock);
     sock_monitor->unlock();
