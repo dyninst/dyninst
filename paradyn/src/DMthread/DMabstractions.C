@@ -2,7 +2,20 @@
  * DMabstractions.C: code to handle programming abstractions
  *
  * $Log: DMabstractions.C,v $
- * Revision 1.3  1995/02/16 08:09:22  markc
+ * Revision 1.4  1995/06/02 20:48:12  newhall
+ * * removed all pointers to datamanager class objects from datamanager
+ *    interface functions and from client threads, objects are now
+ *    refered to by handles or by passing copies of DM internal data
+ * * removed applicationContext class from datamanager
+ * * replaced List and HTable container classes with STL containers
+ * * removed global variables from datamanager
+ * * remove redundant lists of class objects from datamanager
+ * * some reorginization and clean-up of data manager classes
+ * * removed all stringPools and stringHandles
+ * * KLUDGE: there are PC friend members of DM classes that should be
+ *    removed when the PC is re-written
+ *
+ * Revision 1.3  1995/02/16  08:09:22  markc
  * Made char* args const char*
  *
  * Revision 1.2  1995/01/26  17:58:06  jcargill
@@ -15,38 +28,35 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-
 #include "dataManager.thread.h"
+#include "DMabstractions.h"
 #include "DMresource.h"
-#include "util/h/list.h"
-
-stringPool abstraction::names;
-HTable<abstraction*> abstraction::allAbstractions;
-abstraction *baseAbstr = new abstraction("BASE");
-abstraction *cmfAbstr = new abstraction("CMF");
+#include "util/h/Dictionary.h"
+#include "util/h/String.h"
 
 abstraction::abstraction(const char *a)
 {
-  stringHandle aName;
-
-  aName = names.findAndAdd(a);
-  allAbstractions.add(this, (void *) aName);
-  name = aName;
+  string aName = a;
+  if(!(allAbstractions.defines(aName))){
+     name = a;
+     abstraction *abstr = this;
+     allAbstractions[aName] = abstr;
+     abstr = 0;
+  }
 }
 
 void abstraction::print()
 {
-    printf("%s ", (char *) name);
+    printf("%s ", (char *) name.string_of());
 }
 
 abstraction *AMfind(const char *aname) 
 {
   abstraction *ret = NULL;
-  stringHandle aName;
+  string aName = aname;
 
-  aName = abstraction::names.findAndAdd(aname);
-  ret = abstraction::allAbstractions.find(aName);
-
+  if(abstraction::allAbstractions.defines(aName))
+      ret = abstraction::allAbstractions[aName];
   return ret;
 }
 
@@ -59,7 +69,7 @@ void AMnewMapping(const char *abstr, const char *type, const char *key,
   a = AMfind(abstr);
   if (a) {
     printf("AMnewMapping: received new mapping for abstraction '%s'\n", 
-	   (char *) a->getName());
+	    a->getName());
   }
 }
 

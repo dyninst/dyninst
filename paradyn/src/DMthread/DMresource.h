@@ -2,8 +2,18 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.17  1995/05/18 10:57:08  markc
- * added ids to resource class
+ * Revision 1.18  1995/06/02 20:48:30  newhall
+ * * removed all pointers to datamanager class objects from datamanager
+ *    interface functions and from client threads, objects are now
+ *    refered to by handles or by passing copies of DM internal data
+ * * removed applicationContext class from datamanager
+ * * replaced List and HTable container classes with STL containers
+ * * removed global variables from datamanager
+ * * remove redundant lists of class objects from datamanager
+ * * some reorginization and clean-up of data manager classes
+ * * removed all stringPools and stringHandles
+ * * KLUDGE: there are PC friend members of DM classes that should be
+ *    removed when the PC is re-written
  *
  * Revision 1.16  1995/02/16  08:17:54  markc
  * Changed Boolean to bool
@@ -74,135 +84,133 @@ extern "C" {
 #include <assert.h>
 }
 
-#include "util/h/list.h"
-#include "util/h/stringPool.h"
+#include "util/h/Vector.h"
+#include "util/h/Dictionary.h"
 #include "dataManager.thread.h"
+#include "dataManager.thread.SRVR.h"
 #include "DMabstractions.h"
+#include "DMinclude.h"
 
-class resource;
-
-// Does this confuse anybody?
-// TODO -- these classes are in serious need of a rewrite.  It is very difficult
-//         to determine what is going on in here.  
-
-class resourceList {
-  public:
-      resourceList() { count = 0; 
-			elements = NULL; 
-			maxItems = 0; 
-			fullName = NULL;
-			locked = 0;
-		     }
-      resource *getNth(int n) {
-	  lock();
-	  if (n < count) {
-	      unlock();
-	      return(elements[n]);
-	  } else {
-	      unlock();
-	      return(NULL);
-	  }
-      }
-      void add(resource *r) {
-	lock();
-	if (count == maxItems) {
-	    maxItems += 10;
-	    if (elements) {
-		elements = (resource**) realloc(elements, sizeof(resource*) * maxItems);
-	    } else {
-		elements = (resource* *) malloc(sizeof(resource*) * maxItems);
-	    }
-	}
-	elements[count] = r;
-	count++;
-	if (fullName) {
-	   fullName = NULL;
-	}
-	unlock();
-	return;
-      }
-      resource *find(const char *name);
-      stringHandle getCanonicalName();
-      int getCount()	{ return(count); }
-      void print();
-      char **convertToStringList();
-      bool convertToStringList(vector< vector<string> >& fs);
-      bool convertToIDList(vector<u_int>& flist);
-
-  private:
-      // provide mutex so we can support shared access.
-      void lock() { assert(!locked); locked = 1; }
-      void unlock() { assert(locked); locked = 0; } 
-      volatile int locked;
-
-      int count;
-      int maxItems;
-      resource **elements;
-      stringHandle fullName;
-
-      // names space of all resource list canonical names
-      static stringPool names;
-};
-
-// Please fix me.
-
+//
+//  resources can be created, but never destroyed
+//
 class resource {
-  // friend resource *createResource(resource *parent, const char *name, const char *abstr);
-      friend resource *createResource(vector<string>& res_name, string& abstraction);
       friend class dataManager;
       friend class performanceStream;
       friend class resourceList;
       friend void printAllResources();
       friend class dynRPCUser;
+      friend string DMcreateRLname(const vector<resourceHandle> &res);
+      resourceHandle createResource(vector<string>&, string&);
+
+      // TODO: these should go when PC is re-written *******************
+      friend class testValue;
+      friend class focus;
+      friend void initResources();
+      friend class dag;
+
+      // ***************************************************************
   public:
-    resourceList *getChildren() { return(&children); }
-    stringHandle getName() { return(name); }
-    stringHandle getFullName() { return(fullName); }
-    resource *findChild(char *nm) { return(children.find(nm)); }
-    int match(char *ptr) { return(ptr == name); }
-    bool isDescendent(resource *child);
-    bool sameRoot(resource *child);
+    vector<resourceHandle> *getChildren();
+    const char *getName() { return(fullName[fullName.size()-1].string_of());}
+    const char *getFullName() { return(name.string_of()); }
+    const char *getAbstractionName(){ 
+	if (abstr) return(abstr->getName());
+        return 0;	
+    }
+    resourceHandle *findChild(const char*);
+    int match(string ptr) { return(ptr == name); }
+    bool isDescendent(resourceHandle child);
+    bool sameRoot(resourceHandle other);
     void print();
-    resource *getParent()	{ return(parent); }
-    static resource *rootResource;
-    void setSuppress(bool nv)	{ suppressSearch = nv; }
-    void setSuppressChildren(bool nv){ suppressChildSearch = nv; }
-    bool getSuppress()		{ return(suppressSearch); }
+    resourceHandle getParent(){ return(parent); }
+    void setSuppress(bool newValue){ suppressSearch = newValue; }
+    void setSuppressChildren(bool newValue){ suppressChildSearch = newValue;}
+    bool getSuppress()	{ return(suppressSearch); }
     bool getSuppressChildren()	{ return(suppressChildSearch); }
     abstraction *getAbstraction() { return(abstr); }
-    vector<string>& getParts()  { return name_parts_; }
-    unsigned id()               { return id_;}
 
+    void AddChild(resourceHandle r){ children += r; }
+    resourceHandle getHandle(){return(res_handle);}
+    static bool string_to_handle(string res,resourceHandle *h);
+    static const char *getName(resourceHandle);
+    vector<string>& getParts(){return fullName;}
   protected:
     resource();
-    // resource(resource *parent, char *name, const char *a);
-    resource(resource *parent, stringHandle name, stringHandle a,
-	     vector<string>& name_parts);
-
+    resource(resourceHandle p_handle,
+	     vector<string>& resource_name,
+	     string& r_name,
+	     string& abstr);
+    ~resource(){}
   private:
-    vector<string> name_parts_;
-    resource *parent;         /* parent of this resourceBase */
+    string name;
+    resourceHandle res_handle;  
+    resourceHandle parent;  
+    vector<string> fullName; 
+    bool suppressSearch;
+    bool suppressChildSearch;
+    abstraction *abstr;  // TODO: change this to a handle latter
+    vector<resourceHandle> children; 
+    static dictionary_hash<string, resource*> allResources;
+    static vector<resource*> resources;  // indexed by resourceHandle
+    static resource *rootResource;
 
-    /* children of this resourceBase */
-    resourceList children;  	
-
-    stringHandle name;
-    stringHandle fullName;
-    abstraction *abstr;
-
-    List<performanceStream*> notify;
-
-    // global variables common to all resourceBase.
-    static stringPool names;
-    static HTable<resource*> allResources;
-
-    bool suppressSearch;		// user wants to ignore this one.
-    bool suppressChildSearch;	// user wants to ignore children of
-					// this one.  Important for top-level
-					// resources, which are in all foci.
-    unsigned id_;               // this could serve as a handle to the resource
-
-    static unsigned all_id_;
+    static resource *handle_to_resource(resourceHandle);
+    static resource *string_to_resource(string);
 };
+
+// 
+// a resourceList can be created, but never destroyed
+//
+class resourceList {
+      friend class metricInstance;
+      friend class dataManager;
+      friend class paradynDaemon;
+      // TODO: these should go when PC is re-written *******************
+      friend class datum;
+      friend class focus;
+      friend void initResources();
+      // ***************************************************************
+  public:
+      resourceList(string name); 
+      resourceList(const vector<resourceHandle> &resources); 
+      resourceList(const vector<string> &names); 
+      bool getNth(int n,resourceHandle *h) {
+	  if(n >= elements.size())
+	      return FALSE;
+          else{ 
+	      *h = elements[n]->getHandle();
+	      return TRUE;
+          }
+      }
+      resourceListHandle getHandle(){return(id);}
+      int getCount() { return(elements.size()); }
+      void print();
+      const char *getName(){return(fullName.string_of());}
+
+      // TODO: do we need this????
+      // char **convertToStringList();
+      // bool convertToStringList(vector<string> &vs);
+      bool convertToStringList(vector< vector<string> >& fs);
+      bool convertToIDList(vector<u_int>& flist);
+
+
+
+      static const char *getName(resourceListHandle rh);
+      static vector<resourceHandle> *getResourceHandles(resourceListHandle);
+      static const resourceListHandle *find(const string &name);
+      // creates new resourceList if one doesn't already exist 
+      static resourceListHandle getResourceList(const vector<resourceHandle>&);
+  private:
+      resourceListHandle id;
+      vector<resource*> elements;
+      string fullName;
+      static vector<resourceList *> foci;  // indexed by resourceList id
+      static dictionary_hash<string,resourceList *> allFoci;
+
+      static resourceList *getFocus(resourceListHandle);
+      static resourceList *findRL(const char *name);
+};
+
 #endif
 

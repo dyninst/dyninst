@@ -3,19 +3,22 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
-    All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.21 1995/05/18 10:56:53 markc Exp $";
-#endif
-
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.21  1995/05/18 10:56:53  markc
- * extended resource class to store an id per resource
+ * Revision 1.22  1995/06/02 20:48:28  newhall
+ * * removed all pointers to datamanager class objects from datamanager
+ *    interface functions and from client threads, objects are now
+ *    refered to by handles or by passing copies of DM internal data
+ * * removed applicationContext class from datamanager
+ * * replaced List and HTable container classes with STL containers
+ * * removed global variables from datamanager
+ * * remove redundant lists of class objects from datamanager
+ * * some reorginization and clean-up of data manager classes
+ * * removed all stringPools and stringHandles
+ * * KLUDGE: there are PC friend members of DM classes that should be
+ *    removed when the PC is re-written
  *
  * Revision 1.20  1995/03/02  04:23:21  krisna
  * warning and bug fixes.
@@ -98,80 +101,121 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "dataManager.thread.h"
 #include "DMresource.h"
 
-unsigned resource::all_id_=0;
-stringPool resource::names;
-resource *resource::rootResource = new resource();
-HTable<resource*> resource::allResources;
-stringPool resourceList::names;
+/*  TODO: remove this
+char *resource::createname(vector<string>& res_name){
 
+  char *tempName = new char[255];
+  unsigned j = 0;
+  for(unsigned i=0; i < res_name.size()-1;i++){
+      sprintf(&(tempName[j]), "%s/", res_name[i].string_of());
+      j += res_name[i].length()+1;
+  }
+  if(i>0){
+     sprintf(&(tempName[j]),"%s",res_name[i].string_of());
+  }
+  return(tempName);
+  tempName = 0;
+}
+*/
 
 //
 // used only to construct root.
 //
-// What is this?
 resource::resource()
 {
-    name = names.findAndAdd("");
-    fullName = names.findAndAdd("");
-    parent = NULL;
-    suppressSearch = FALSE;
-    suppressChildSearch = FALSE;
-    abstr = NULL;            // We cannot give it a real abstraction
-                             // because abstractions have not been initialized
-                             // yet.  This is UGLY.  We need a better way
-                             // to initialize globals than relying on 
-                             // their constructors.
-    id_ = all_id_++;
+    string temp = ""; 
+    if(!allResources.defines(temp)){
+        name = temp; 
+        res_handle = resources.size();
+        parent = res_handle; 
+        suppressSearch = FALSE;
+        suppressChildSearch = FALSE;
+        abstr = NULL;
+        resource *res = this;
+        resources += res;
+        allResources[name] = res;
+    }
 }
 
-resource::resource(resource *p, stringHandle iName, stringHandle my_abstraction,
-		   vector<string>& name_parts)
-: name_parts_(name_parts)
+resource::resource(resourceHandle p_handle, 
+		   vector<string>& resource_name,
+		   string& r_name,
+		   string& a) 
 {
-    parent = p;
-
-    id_ = all_id_++;
-    string f_name;
-    unsigned size = name_parts.size();
-    for (unsigned u=0; u<size; u++)
-      f_name += string("/") + name_parts[u];
-    fullName = names.findAndAdd(f_name.string_of());
-
-    allResources.add(this, (void *) fullName);
-    name = iName;
     
-    // It would be nice if we could settle on char* or stringHandle or string
-    abstr = AMfind((const char*)my_abstraction);
-
-    suppressChildSearch = FALSE;
-    suppressSearch = p->getSuppressChildren(); // check for suppress of
-					       // parent's children
-    if (!suppressSearch) 
-      suppressSearch = p->getSuppress(); // inherit search suppression from
-					 // parent resource
-    parent->children.add(this);
+    if(!allResources.defines(r_name)){
+	name = r_name;
+	res_handle = resources.size();
+        parent = p_handle;
+	fullName = resource_name;
+	resource *p = resources[parent];
+	 
+	// if(!suppressSearch)
+	//  suppressSearch = p->getSuppress();  // inherit suppress from parent
+	suppressSearch = FALSE;
+	suppressChildSearch = p->getSuppressChildren(); // check for suppress
+					       		// of parent's children
+        abstr = AMfind(a.string_of());
+	resource *res = this;
+	allResources[name] = res;
+	resources += res;
+        p->AddChild(res_handle);
+    }
 }
+
+resource *resource::handle_to_resource(resourceHandle r_handle) {
+     if (r_handle < resources.size()) {
+         return(resources[r_handle]);    
+     }
+     return(NULL);
+}
+vector<resourceHandle> *resource::getChildren(){
+
+    vector<resourceHandle> *temp = new vector<resourceHandle>;
+    for(unsigned i=0; i < children.size(); i++){
+        *temp += (resources[children[i]])->getHandle();      
+    }
+    return(temp);
+}
+
+resourceHandle *resource::findChild(const char *nm){
+    string temp = nm;
+    for(unsigned i=0; i < children.size(); i++){
+        if((resources[children[i]])->match(temp)){
+	     resourceHandle *h = new resourceHandle;
+	     *h = children[i];
+	     return(h);
+	     h = 0;
+        }
+    }
+    return(0);  // not found
+}
+
 
 void resource::print()
 {
-    if (parent) {
-	parent->print();
+    printf("%s ", name.string_of());
+}
+
+bool resource::string_to_handle(string res,resourceHandle *h){
+    if(allResources.defines(res)){
+       resource *temp = allResources[res];
+       *h = temp->getHandle();
+       return(TRUE);
     }
-    printf("%s ", (char*)name);
+    else
+    return(FALSE);
 }
 
 /*
  * Convinence function.
  *
  */
-bool resource::isDescendent(resource *child)
+bool resource::isDescendent(resourceHandle child)
 {
-    while (child) {
-        if (child == this) {
-            return(TRUE);
-        } else {
-            child = child->parent;
-        }
+    for(unsigned i=0; i < children.size(); i++){
+        if(child == children[i])
+	    return(TRUE);
     }
     return(FALSE);
 }
@@ -182,19 +226,20 @@ bool resource::isDescendent(resource *child)
  * the test for a common base checks the node below the
  * common root.
  */
-bool resource::sameRoot(resource *other)
+bool resource::sameRoot(resourceHandle other)
 {
   resource *myBase=0, *otherBase=0, *temp;
 
   temp = this;
-  while (temp->parent) {
+  resourceHandle root = rootResource->getHandle(); 
+  while (temp->getHandle() != root) {
     myBase = temp;
-    temp = temp->parent;
+    temp = handle_to_resource(temp->parent);
   }
-  temp = other;
-  while (temp->parent) {
+  temp = handle_to_resource(other);
+  while (temp->getHandle() != root) {
     otherBase = temp;
-    temp = temp->parent;
+    temp = handle_to_resource(temp->parent);
   }
   if (myBase == otherBase)
     return TRUE;
@@ -202,117 +247,192 @@ bool resource::sameRoot(resource *other)
     return FALSE;
 }
 
+const char *resource::getName(resourceHandle h){
+
+    if(h < resources.size()){
+        resource *res = resources[h];
+	return(res->getName());
+    }
+    return 0;
+}
+
+resource *resource::string_to_resource(string res){
+
+    if(allResources.defines(res)){
+        return(allResources[res]);
+    }
+    return 0;
+}
+
+string DMcreateRLname(const vector<resourceHandle> &res){
+    // create a unique name
+    string temp;
+    resource *next;
+    for(unsigned i=0; i < (res.size() - 1); i++){
+	next = resource::handle_to_resource(res[i]);
+	temp += next->getFullName();
+	temp += ",";
+    }
+    if(res.size() > 0){
+	next = resource::handle_to_resource(res[i]);
+	temp += next->getFullName();
+    }
+
+    return(temp);
+}
+
+resourceList::resourceList(const vector<resourceHandle> &res){
+    // create a unique name
+    string temp = DMcreateRLname(res);
+
+    // see if this resourceList has been created already, if not add it
+    if(!allFoci.defines(temp)){
+        id = foci.size();
+	resourceList *rl = this;
+        allFoci[temp] = rl;
+        fullName = temp;
+        foci += rl;
+
+        // create elements vector 
+        for(unsigned i=0; i < res.size(); i++){
+	    elements += resource::handle_to_resource(res[i]);
+            // elements += r;
+    } }
+}
+
+// this should be called with strings of fullNames for resources
+// ex.  "/Procedure/blah.c/foo"  rather than "foo"
+resourceList::resourceList(const vector<string> &names){
+    // create a unique name
+    unsigned size = names.size();
+    string temp;
+    for(unsigned i=0; i < size; i++){
+       temp += names[i]; 
+       if(i < (size-1)){
+	   temp += ",";
+       }
+    }
+    // see if this resourceList has been created already, if not add it
+    if(!allFoci.defines(temp)){
+        id = foci.size();
+        resourceList *rl = this;
+        allFoci[temp] = rl;
+        fullName = temp;
+        foci += rl;
+        // create elements vector 
+        for(i=0; i < size; i++){
+	    elements += resource::string_to_resource(names[i]);
+    } }
+}
+
+
 void resourceList::print()
 {
     int i;
 
     printf("{");
-    lock();
-    for (i=0; i < count; i++) {
+    for (i=0; i < elements.size(); i++) {
 	if (i) printf(" ");
 	printf("{");
 	elements[i]->print();
 	printf("}");
     }
-    unlock();
     printf("}");
 }
 
-resource *resourceList::find(const char *name) 
-{
-    int i;
-    resource *ret;
-    stringHandle iName;
-
-    iName = resource::names.findAndAdd(name);
-
-    lock();
-    for (i=0, ret = NULL; i < count; i++) {
-	if (elements[i]->name == iName) {
-	    ret = elements[i];
-	    break;
-	}
-    }
-    unlock();
-    return(ret);
+#ifdef n_def
+bool resourceList::convertToStringList(vector<string> &vs) {
+    for (unsigned i=0; i < elements.size(); i++)
+      vs += elements[i]->getFullName();
+    return true;
 }
+#endif
 
 bool resourceList::convertToStringList(vector< vector<string> > &fs) {
-    lock();
-    for (unsigned i=0; i < count; i++) 
-      fs += elements[i]->getParts();
-    unlock();
+    for (unsigned i=0; i < elements.size(); i++)
+        fs += elements[i]->getParts();
     return true;
 }
 
 bool resourceList::convertToIDList(vector<u_int> &fs) {
-    lock();
-    for (unsigned i=0; i < count; i++)
-      fs += elements[i]->id();
-    unlock();
+    for (unsigned i=0; i < elements.size(); i++){
+        fs += elements[i]->getHandle();
+    }
     return true;
 }
 
-char **resourceList::convertToStringList() 
-{
-    int i;
-    char **temp;
 
-    lock();
-    temp = (char **) malloc(sizeof(char *) * count);
-    for (i=0; i < count; i++) {
-	temp[i] = (char *)elements[i]->fullName;
+const char *resourceList::getName(resourceListHandle rh){
+
+    if(rh < foci.size()){
+        resourceList *rl = foci[rh];
+        return(rl->getName());
     }
-    unlock();
-    return(temp);
+    return(NULL);
 }
 
-static int stringCompare(const void* p1, const void* p2) {
-    extern int strCompare(const char* const * a, const char* const * b);
-    return (strCompare((const char* const *) p1, (const char* const *) p2));
+vector<resourceHandle> *resourceList::getResourceHandles(resourceListHandle h){
+
+    resourceList *focus = getFocus(h);
+    if(focus){
+        vector<resourceHandle> *handles = new vector<resourceHandle>;
+        for(unsigned i=0; i < focus->elements.size(); i++){
+	    resource *part = focus->elements[i];
+            *handles += part->getHandle(); 
+	}
+	return(handles);
+    }
+    return(NULL);
+
 }
 
-stringHandle resourceList::getCanonicalName()
-{
-    int i;
-    int total;
-    char *tempName;
-    stringHandle *temp;
+const resourceListHandle *resourceList::find(const string &name){
 
-    lock();
-    if (!fullName) {
-	temp = (stringHandle *) malloc(sizeof(stringHandle) * count);
-	for (i=0; i < count; i++) {
-	    temp[i] = elements[i]->fullName;
-	}
-	qsort(temp, count, sizeof(char *), stringCompare);
-
-	total = 3;
-	for (i=0; i < count; i++) total += strlen((char *) temp[i])+2;
-
-	tempName = new(char[total]);
-	strcpy(tempName, "<");
-	for (i=0; i < count; i++) {
-	    if (i) strcat(tempName, ",");
-	    strcat(tempName, (char *) temp[i]);
-	}
-	strcat(tempName, ">");
-
-	fullName = names.findAndAdd(tempName);
-	delete(tempName);
-	delete(temp);
+    if(allFoci.defines(name)){
+        resourceList *res_list = allFoci[name]; 
+	const resourceListHandle *h = &res_list->id;
+	return(h);
+	res_list = 0;
     }
-    unlock();
-    return(fullName);
+    return 0;
+
+
+}
+
+resourceListHandle resourceList::getResourceList(
+				const vector<resourceHandle>& h){
+
+    // does this resourceList already exist?
+    string temp = DMcreateRLname(h);
+    if(allFoci.defines(temp)){
+	resourceList *rl = allFoci[temp];
+        return(rl->getHandle());
+    }
+    // create a new resourceList
+    resourceList *res = new resourceList(h);
+    return(res->getHandle());
+}
+
+resourceList *resourceList::getFocus(resourceListHandle handle){
+
+    if(handle < foci.size())
+	return(foci[handle]);
+    return 0;
+}
+
+resourceList *resourceList::findRL(const char *name){
+    string temp = name;
+    if(allFoci.defines(name)){
+        return allFoci[name];
+    }
+    return NULL;
 }
 
 void printAllResources()
 {
-    HTable<resource*> curr;
-
-    for (curr=  resource::allResources; *curr; ++curr) {
+    for(unsigned i=0; i < resource::resources.size(); i++){
 	printf("{");
-        (*curr)->print();
+        (resource::resources[i])->print();
 	printf("}");
         printf("\n");
     }

@@ -2,8 +2,18 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.64  1995/05/18 10:56:05  markc
- * Modified resource creation to get an id for each resource
+ * Revision 1.65  1995/06/02 20:48:19  newhall
+ * * removed all pointers to datamanager class objects from datamanager
+ *    interface functions and from client threads, objects are now
+ *    refered to by handles or by passing copies of DM internal data
+ * * removed applicationContext class from datamanager
+ * * replaced List and HTable container classes with STL containers
+ * * removed global variables from datamanager
+ * * remove redundant lists of class objects from datamanager
+ * * some reorginization and clean-up of data manager classes
+ * * removed all stringPools and stringHandles
+ * * KLUDGE: there are PC friend members of DM classes that should be
+ *    removed when the PC is re-written
  *
  * Revision 1.63  1995/03/02  04:23:19  krisna
  * warning and bug fixes.
@@ -232,129 +242,55 @@ double   quiet_nan(int unused);
 }
 
 #include "thread/h/thread.h"
-#include "../TCthread/tunableConst.h"
+#include "paradyn/src/TCthread/tunableConst.h"
 #include "dataManager.thread.SRVR.h"
 #include "dyninstRPC.xdr.CLNT.h"
-#include "DMinternals.h"
-#include "../pdMain/paradyn.h"
-#include "../UIthread/Status.h"
-#include "paradyn/src/met/metricExt.h"
+#include "DMdaemon.h"
+#include "DMmetric.h"
+#include "DMperfstream.h"
+#include "DMabstractions.h"
+#include "paradyn/src/pdMain/paradyn.h"
+#include "paradyn/src/UIthread/Status.h"
+
 #include "util/h/Vector.h"
+#include "util/h/Dictionary.h"
+#include "util/h/String.h"
 #include "DMphase.h"
 
-bool parse_metrics(applicationContext *appCon, string metric_file);
+bool parse_metrics(string metric_file);
+bool metMain(string &userFile);
 
-static int wellKnownPortFd;
-static dataManager *dm;
-stringPool metric::names;
-HTable<metric *> metric::allMetrics;
-List<paradynDaemon*> paradynDaemon::allDaemons;
+// this has to be declared before baseAbstr, cmfAbstr, and rootResource 
+int dataManager::sock_fd;  
+int dataManager::socket;  
+dataManager *dataManager::dm = NULL;  
+
+dictionary_hash<string,abstraction*> abstraction::allAbstractions(string::hash);
+abstraction *baseAbstr = new abstraction("BASE");
+abstraction *cmfAbstr = new abstraction("CMF");
+
+dictionary_hash<string,metric*> metric::allMetrics(string::hash);
+dictionary_hash<metricInstanceHandle,metricInstance *> 
+		metricInstance::allMetricInstances(metricInstance::mhash);
+dictionary_hash<perfStreamHandle,performanceStream*>  
+		performanceStream::allStreams(performanceStream::pshash);
+dictionary_hash<string, resource*> resource::allResources(string::hash);
+dictionary_hash<string,resourceList *> resourceList::allFoci(string::hash);
+
+vector<resource*> resource::resources;
+vector<metric*> metric::metrics;
+vector<paradynDaemon*> paradynDaemon::allDaemons;
+vector<daemonEntry*> paradynDaemon::allEntries;
+vector<executable*> paradynDaemon::programs;
+vector<resourceList *> resourceList::foci;
+vector<phaseInfo *> phaseInfo::dm_phases;
+vector<bool> metricInstance::nextId;
+vector<bool> performanceStream::nextId;
+resource *resource::rootResource = new resource();
+
+double paradynDaemon::earliestFirstTime = 0;
 
 void newSampleRate(float rate); // callback routine for float TC "samplingRate"
-
-// TODO: temporary until new version of data manager
-vector<performanceStream *> phase_notify_list;
-
-metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
-							metric *m)
-{
-    stringHandle name;
-    metricInstance *mi;
-
-    if (!m || !rl) return(NULL);
-
-    name = rl->getCanonicalName();
-    mi = m->enabledCombos.find(name);
-    // printf("%s enabled\n",(char *)name);
-    if (mi) {
-        mi->count++;
-	mi->users.add(this);
-    } else {
-	mi = appl->enableDataCollection(rl, m);
-	if (mi) {
-	    mi->users.add(this);
-	}
-    }
-    return(mi);
-}
-
-//
-// Turn off data collection for this perf stream.  Other streams may still
-//    get the data.
-//
-void performanceStream::disableDataCollection(metricInstance *mi)
-{
-    mi->count--;
-    mi->users.remove(this);
-    if (!mi->count) {
-	appl->disableDataCollection(mi);
-    }
-}
-
-
-void performanceStream::enableResourceCreationNotification(resource *r)
-{
-    r->notify.add(this);
-}
-
-void performanceStream::disableResourceCreationNotification(resource *r)
-{
-    r->notify.remove(this);
-}
-
-void performanceStream::callSampleFunc(metricInstance *mi,
-				       sampleValue *buckets,
-				       int count,
-				       int first)
-{
-    if (dataFunc.sample) {
-	dm->setTid(threadId);
-	dm->newPerfData(dataFunc.sample, this, mi, buckets, count, first);
-    }
-}
-
-void performanceStream::callResourceFunc(resource *p,
-				         resource *c,
-				         stringHandle name)
-{
-    if (controlFunc.rFunc) {
-	dm->setTid(threadId);
-	dm->newResourceDefined(controlFunc.rFunc, this, p, c, name);
-    }
-}
-
-void performanceStream::callResourceBatchFunc(batchMode mode)
-{
-    if (controlFunc.bFunc) {
-	dm->setTid(threadId);
-	dm->changeResourceBatchMode(controlFunc.bFunc, this, mode);
-    }
-}
-
-void performanceStream::callFoldFunc(timeStamp width)
-{
-    if (controlFunc.fFunc) {
-	dm->setTid(threadId);
-	dm->histFold(controlFunc.fFunc, this, width);
-    }
-}
-
-
-void performanceStream::callStateFunc(appState state)
-{
-    if (controlFunc.sFunc) {
-	dm->setTid(threadId);
-	dm->changeState(controlFunc.sFunc, this, state);
-    }
-}
-
-void performanceStream::callPhaseFunc(phaseInfo *phase)
-{
-    if (controlFunc.pFunc) {
-	dm->setTid(threadId);
-	dm->newPhaseInfo(controlFunc.pFunc,this,phase);
-    }
-}
 
 //
 // IO from application processes.
@@ -386,17 +322,16 @@ void dynRPCUser::applicationIO(int pid, int len, string data)
     }
     delete tp;
     extra = rest;
+    rest = 0;
 }
 
 extern status_line *DMstatus;
 
 void dynRPCUser::resourceBatchMode(bool onNow)
 {
-    int prev;
     static int count=0;
-    List<performanceStream*> curr;
 
-    prev = count;
+    int prev = count;
     if (onNow) {
 	count++;
     } else {
@@ -404,13 +339,9 @@ void dynRPCUser::resourceBatchMode(bool onNow)
     }
 
     if (count == 0) {
-	for (curr = applicationContext::streams; *curr; curr++) {
-	    (*curr)->callResourceBatchFunc(batchEnd);
-	}
+	performanceStream::ResourceBatchMode(batchEnd);
     } else if (!prev) {
-	for (curr = applicationContext::streams; *curr; curr++) {
-	    (*curr)->callResourceBatchFunc(batchStart);
-	}
+	performanceStream::ResourceBatchMode(batchStart);
     }
 }
 
@@ -419,10 +350,42 @@ void dynRPCUser::resourceBatchMode(bool onNow)
 //
 void dynRPCUser::resourceInfoCallback(int program,
 				      vector<string> resource_name,
-				      string abstr)
-{
-  resource *r = createResource(resource_name, abstr);
-  resourceInfoResponse(resource_name, r->id());
+				      string abstr) {
+#ifdef n_def
+    resourceHandle p_handle;
+    if(!resource::string_to_handle(parentString,&p_handle))
+       p_handle = 0;
+    string res = parentString += string("/"); 
+    res += newResource;
+
+    // TEMP: until this routine is called with vector of strings for new res
+    // create a vector of strings
+    vector<string> temp;
+    char word[255];  
+    const char *full_name = res.string_of();
+    unsigned j=0;
+    word[0] = '/';
+    string next;
+    for(unsigned i=1; i < res.length(); i++){
+        if(full_name[i] == '/'){
+          word[i] = '\0'; 
+	  next = &word[j];
+	  temp += next; 
+	  j = i+1; 
+	}
+	else{
+            word[i] = full_name[i];
+	}
+    }
+    word[i] = '\0'; 
+    next = &word[j];
+    temp += next;
+
+    createResource(p_handle,temp,res,abstr);
+#endif
+
+    resourceHandle r = createResource(resource_name, abstr);
+    resourceInfoResponse(resource_name, r);
 }
 
 void dynRPCUser::mappingInfoCallback(int program,
@@ -430,7 +393,6 @@ void dynRPCUser::mappingInfoCallback(int program,
 				     string type, 
 				     string key,
 				     string value)
-
 {
   AMnewMapping(abstraction.string_of(),type.string_of(),key.string_of(),
 	       value.string_of());    
@@ -455,7 +417,7 @@ char *dynRPCUser::getUniqueResource(int program,
     static List<uniqueName*> allUniqueNames;
 
     sprintf(newName, "%s/%s", parentString.string_of(), newResource.string_of());
-    ptr = resource::names.findAndAdd(newName);
+    ptr = dataManager::names.findAndAdd(newName);
 
     ret = allUniqueNames.find(ptr);
 
@@ -465,7 +427,7 @@ char *dynRPCUser::getUniqueResource(int program,
     }
     // changed from [] to {} due to TCL braindeadness.
     sprintf(newName, "%s{%d}", newResource.string_of(), ret->nextId++);
-    ptr = resource::names.findAndAdd(newName);
+    ptr = dataManager::names.findAndAdd(newName);
 
     return((char*)ptr);
 }
@@ -478,14 +440,13 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 					vector<string> argvString,
 					string machine_name)
 {
-     paradynDaemon *daemon;
-     List<paradynDaemon*> curr;
-
     // there better be a paradynd running on this machine!
-    for (curr=paradynDaemon::allDaemons, daemon = NULL; *curr; curr++) {
-	if ((*curr)->machine.length() &&
-	    ((*curr)->machine == machine_name))
-	    daemon = *curr;
+    paradynDaemon *pd, *daemon = NULL;
+    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+        pd = paradynDaemon::allDaemons[i];
+	if(pd->machine.length() && (pd->machine == machine_name)){
+	    daemon = pd;
+	}
     }
     // for now, abort if there is no paradynd, this should not happen
     if (!daemon) {
@@ -495,8 +456,7 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 	exit(-1);
     }
       
-   assert (dm->appContext);
-   assert (dm->appContext->addRunningProgram(pid, argvString, daemon));
+   assert (paradynDaemon::addRunningProgram(pid, argvString, daemon));
 }
 
 void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
@@ -510,12 +470,6 @@ void dynRPCUser::firstSampleCallback (int program,
   assert(0 && "Invalid virtual function");
 }
 
-void paradynDaemon::firstSampleCallback(int program,
-					double firstTime) {
-  assert(dm);
-  setEarliestFirstTime(dm->firstSampleTime(program, firstTime));
-}
-
 void dynRPCUser::sampleDataCallbackFunc(int program,
 					   int mid,
 					   double startTimeStamp,
@@ -525,124 +479,6 @@ void dynRPCUser::sampleDataCallbackFunc(int program,
     assert(0 && "Invalid virtual function");
 }
 
-paradynDaemon::paradynDaemon(const string m, const string u, const string c,
-			     const string n, const string f)
-: dynRPCUser(m, u, c, NULL, NULL, args, false, wellKnownPortFd),
-  machine(m), login(u), command(c), name(n), flavor(f),
-  activeMids(uiHash), earliestFirstTime(0)
-{
-  assert(m.length());
-  assert(c.length());
-  assert(n.length());
-
-  // if c includes a pathname, lose the pathname
-  char *loc = P_strrchr(c.string_of(), '/');
-  if (loc) {
-    loc = loc + 1;
-    command = loc;
-  }
-  
-  status = new status_line(machine.string_of());
-  allDaemons.add(this);
-}
-
-// machine, name, command, flavor and login are set via a callback
-paradynDaemon::paradynDaemon(int f)
-: dynRPCUser(f, NULL, NULL, false), flavor(0), activeMids(uiHash),
-  earliestFirstTime(0) {
-  allDaemons.add(this);
-}
-
-void paradynDaemon::sampleDataCallbackFunc(int program,
-					   int mid,
-					   double startTimeStamp,
-					   double endTimeStamp,
-					   double value)
-{
-    component *part;
-    metricInstance *mi;
-    struct sampleInterval ret;
-
-    // get the earliest first time that had been reported by any paradyn daemon
-    // to use as the base (0) time
-    
-    assert(getEarliestFirstTime());
-    startTimeStamp -= getEarliestFirstTime();
-    endTimeStamp -= getEarliestFirstTime();
-
-    // get a fresh version of the TC "printSampleArrival" for use in this routine
-    tunableBooleanConstant printSampleArrival = tunableConstantRegistry::findBoolTunableConstant("printSampleArrival");
-
-    if (printSampleArrival.getValue()) {
-      cout << "mid " << mid << " " << value << " from " 
-	<< startTimeStamp << " to " << endTimeStamp << "\n";
-    }
-    assert(mid >= 0);
-    if (!activeMids.defines((unsigned)mid)) {
-      bool found = false;
-      for (unsigned ve=0; ve<disabledMids.size(); ve++) {
-	if (disabledMids[ve] == (unsigned) mid) {
-	  found = true;
-	  break;
-	}
-      }
-      if (found) {
-	char msg[80];
-	// TODO -- data may be in transit when the disable request is made
-	sprintf(msg, "ERROR?:data for disabled mid: %d", mid);
-	DMstatus->message(msg);
-	return;
-      } else {
-	printf("ERROR: data for unknown mid: %d\n", mid);
-	uiMgr->showError (2, "");
-	exit(-1);
-      }
-    }
-    mi = activeMids[(unsigned)mid];
-    assert(mi);
-    if (mi->components.count() != 1) {
-	// find the right component.
-	part = mi->components.find(this);
-
-	if (!part) {
-	  uiMgr->showError(3, "Unable to find component!!!");
-	  exit(-1);
-	}
-	ret = part->sample.newValue(endTimeStamp, value);
-    }
-    ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
-
-    if (ret.valid) {
-	assert(ret.end >= 0.0);
-	assert(ret.start >= 0.0);
-	assert(ret.end >= ret.start);
-	mi->enabledTime += ret.end - ret.start;
-	mi->data->addInterval(ret.start, ret.end, ret.value, false);
-    }
-}
-
-//
-// paradyn daemon should never go away.  This represents an error state
-//    due to a paradynd being killed for some reason.
-//
-// TODO -- handle this better
-paradynDaemon::~paradynDaemon() {
-
-#ifdef notdef
-    metricInstance *mi;
-    HTable<metricInstance*> curr;
-
-    allDaemons.remove(this);
-
-    // remove the metric ID as required.
-    for (curr = activeMids; mi = *curr; curr++) {
-	mi->parts.remove(this);
-	mi->components.remove(this);
-    }
-#endif
-    printf("Inconsistant state\n");
-    abort();
-}
 
 //
 // When a paradynd is started remotely, ie not by paradyn, this upcall
@@ -655,62 +491,10 @@ dynRPCUser::reportSelf (string m, string p, int pd, string flavor)
   return;
 }
 
-//
-// When an error is determined on an igen call, this function is
-// called, since the default error handler will exit, and we don't
-// want paradyn to exit.
-//
-void paradynDaemon::handle_error()
-{
-   dm->appContext->removeDaemon(this, true);
-}
-
-//
-// When a paradynd is started remotely, ie not by paradyn, this upcall
-// reports the information for that paradynd to paradyn
-//
-// This must set command, name, machine and flavor fields
-//
-void 
-paradynDaemon::reportSelf (string m, string p, int pd, string flav)
-{
-  setPid(pd);
-  flavor = flav;
-  if (!m.length() || !p.length()) {
-    dm->appContext->removeDaemon(this, true);
-    printf("paradyn daemon reported bad info, removed\n");
-    // error
-  } else {
-    machine = m;
-    command = p;
-    status = new status_line(machine.string_of());
-
-    if (flavor == "pvm")
-      name = "pvmd";
-    else if (flavor == "cm5")
-      name = "cm5d";
-    else if (flavor == "unix")
-      name = "defd";
-    else
-      name = flavor;
-  }
-  return;
-}
-
 void 
 dynRPCUser::reportStatus (string line)
 {
     assert(0 && "Invalid virtual function");
-}
-
-//
-// When a paradynd reports status, send the status to the user
-//
-void 
-paradynDaemon::reportStatus (string line)
-{
-  if (status)
-    status->message(line.string_of());
 }
 
 // 
@@ -725,10 +509,10 @@ DMsetupSocket (int &sockfd, int &known_sock)
 	   RPC_setup_socket (sockfd, AF_INET, SOCK_STREAM)) >= 0);
 
   // this info is needed to create argument list for other paradynds
-  dm->socket = known_sock;
-  dm->sock_fd = sockfd;
+  dataManager::dm->socket = known_sock;
+  dataManager::dm->sock_fd = sockfd;
 
-  dm->firstTime = 0;
+   
   // bind fd for this thread
   msg_bind (sockfd, true);
 }
@@ -744,70 +528,15 @@ DMnewParadynd (int sockfd, dataManager *dm)
     uiMgr->showError(4, "unable to connect to new paradynd");
   }
 
-  assert (dm->appContext);
-  assert (dm->appContext->addDaemon(new_fd));
+  // add new daemon to dictionary of all deamons
+  paradynDaemon::addDaemon(new_fd); 
 }
 
-
-// TEMPORARY until new version of igen
-void DMstartPhase(timeStamp start_Time, string *name){
-
-    // update the histogram data structs assoc with each MI
-    // return a start time for the phase
-
-    // create a new phaseInfo object and add it to the list of phases
-    phaseHandle handle = (phaseHandle)phaseInfo::NumPhases();
-
-    string *n;
-    if (name){
-	n = new string(name->string_of());
-    }
-    else {
-	char s[20];
-        sprintf(s,"%s%d","phase_",handle);
-        n = new string(s);
-    }
-
-    phaseInfo *p = NULL;
-    timeStamp bin_width = (Histogram::bucketSize);
-    timeStamp start_time = bin_width*(Histogram::lastGlobalBin);
-    p = new phaseInfo(start_time,
-		      (timeStamp)-1.0,
-            	      bin_width,
-            	      handle,
-            	      n);
-    
-    phaseInfo::AddNewPhase(p);
-
-    // invoke newPhaseCallback for all perf. streams
-    performanceStream *ps;
-    for(unsigned i = 0; i < phase_notify_list.size() ; i++){
-        ps = phase_notify_list[i]; 
-	ps->callPhaseFunc(p);
-    }
-    p = 0;
-
+void DM_eFunction(int errno, char *message)
+{
+    printf("error: %s\b", message);
+    abort();
 }
-
-void DMaddPhaseNotify(performanceStream *p){
-
-   phase_notify_list +=p; 
-   p = 0;
-
-}
-
-void DMremovePhaseNotify(performanceStream *p){
-   unsigned size = phase_notify_list.size();
-   for(unsigned i = 0; i < size; i++){
-      if( phase_notify_list[i] == p){
-	  phase_notify_list[i] = phase_notify_list[size-1];
-          phase_notify_list.resize(size-1); 
-	  return;
-      }
-   }
-}
-
-
 
 //
 // Main loop for the dataManager thread.
@@ -820,47 +549,45 @@ void *DMmain(void* varg)
     //  tunables are now a no-no).  Note that the variable name (printCC) is
     // unimportant.   -AT
     tunableBooleanConstantDeclarator printCC("printChangeCollection", 
-			   "Print the name of metric/focus when enabled or disabled",
-			   false, // initial value
-			   NULL, // callback
-			   developerConstant);
+	      "Print the name of metric/focus when enabled or disabled",
+	      false, // initial value
+	      NULL, // callback
+	      developerConstant);
 
     // Now the same for "printSampleArrival"
     tunableBooleanConstantDeclarator printSA("printSampleArrival", 
-                                             "Print out status lines to show the arrival of samples",
-					     false, // initial value
-					     NULL, // callback
-					     developerConstant);
+              "Print out status lines to show the arrival of samples",
+	      false, // initial value
+	      NULL, // callback
+	      developerConstant);
 
     // Now for the float TC "samplingRate"
     tunableFloatConstantDeclarator sampR ("samplingRate",
-					  "how often to sample intermediate performance data (in seconds)",
-					  0.5, // initial value
-					  0.0, // min
-					  1000.0, // max
-					  newSampleRate, // callback
-					  userConstant);
+	      "how often to sample intermediate performance data (in seconds)",
+	      0.5, // initial value
+	      0.0, // min
+	      1000.0, // max
+	      newSampleRate, // callback
+	      userConstant);
 
     init_struct init; memcpy((void*) &init, varg, sizeof(init));
     string metric_file = init.met_file;
 
+    // int arg; memcpy((void *) &arg, varg, sizeof arg);
+
     int ret;
     unsigned int tag;
-    List<paradynDaemon*> curr;
     int known_sock, sockfd;
     char DMbuff[64];
     unsigned int msgSize = 64;
 
     thr_name("Data Manager");
 
-    dm = new dataManager(init.tid);
-    // this will be set on addExecutable
-    dm->appContext = 0;
+    dataManager::dm = new dataManager(init.tid);
 
     // supports argv passed to paradynDaemon
     // new paradynd's may try to connect to well known port
     DMsetupSocket (sockfd, known_sock);
-    wellKnownPortFd = sockfd;
 
     assert(RPC_make_arg_list(paradynDaemon::args, AF_INET, SOCK_STREAM,
 			     known_sock, 1, 1, "", false));
@@ -868,224 +595,194 @@ void *DMmain(void* varg)
     msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
     tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&tag, DMbuff, &msgSize);
-    
-    while (1) {
 
-        for (curr = paradynDaemon::allDaemons; *curr; curr++) {
-	  // handle up to max async requests that may have been buffered
-	  // while blocking on a sync request
-	  while ((*curr)->buffered_requests()) {
-	    if ((*curr)->process_buffered() == T_dyninstRPC::error) {
-	      // cleanup code here ?
-	      cout << "error on paradyn daemon\n";
-	      dm->appContext->removeDaemon(*curr, true);
-	    }
-	  }
-	}
+    paradynDaemon *pd = NULL;
+
+    while (1) {
+        for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+	    pd = paradynDaemon::allDaemons[i]; 
+	    // handle up to max async requests that may have been buffered
+	    // while blocking on a sync request
+	    while (pd->buffered_requests()){
+	        if(pd->process_buffered() == T_dyninstRPC::error) {
+		    cout << "error on paradyn daemon\n";
+		    paradynDaemon::removeDaemon(pd, true);
+	} } }
 
 	tag = MSG_TAG_ANY;
 	ret = msg_poll(&tag, true);
 	assert(ret != THR_ERR);
 
 	if (tag == MSG_TAG_FILE) {
-	  // must be an upcall on something speaking the dynRPC protocol.
-	  if (ret == sockfd)
-	    DMnewParadynd(sockfd, dm);        // set up a new paradynDaemon
-	  else {
-	    for (curr = paradynDaemon::allDaemons; *curr; curr++) {
-	      if ((*curr)->get_fd() == ret) {
-		if ((*curr)->waitLoop() == T_dyninstRPC::error) {
-		  // cleanup code here ?
-		  cout << "error on paradyn daemon\n";
-		  dm->appContext->removeDaemon(*curr, true);
-		}
-	      }
+	    // must be an upcall on something speaking the dynRPC protocol.
+	    if (ret == sockfd){
+	        DMnewParadynd(sockfd, dataManager::dm); // set up a new daemon
+            }
+	    else {
+                for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+	            pd = paradynDaemon::allDaemons[i]; 
+		    if(pd->get_fd() == ret){
+		        if(pd->waitLoop() == T_dyninstRPC::error) {
+			    cout << "error on paradyn daemon\n";
+			    paradynDaemon::removeDaemon(pd, true);
+	            }}
 
-	      // handle async requests that may have been buffered
-	      // while blocking on a sync request
-	      while ((*curr)->buffered_requests()) {
-		if ((*curr)->process_buffered() == T_dyninstRPC::error) {
-		  // cleanup code here ?
-		  cout << "error on paradyn daemon\n";
-		  dm->appContext->removeDaemon(*curr, true);
-		}
-	      }
+	            // handle async requests that may have been buffered
+	            // while blocking on a sync request
+                    while(pd->buffered_requests()){
+		        if(pd->process_buffered() == T_dyninstRPC::error) {
+			    cout << "error on paradyn daemon\n";
+			    paradynDaemon::removeDaemon(pd, true);
+		    }}
+	        }
 	    }
-	  }
-	} else if (dm->isValidTag((T_dataManager::message_tags)tag)) {
-	  if (dm->waitLoop(true, (T_dataManager::message_tags)tag) ==
-	      T_dataManager::error) {
-	    // handle error
-	    assert(0);
-	  }
+	} else if (dataManager::dm->isValidTag
+		  ((T_dataManager::message_tags)tag)) {
+	    if (dataManager::dm->waitLoop(true, 
+	       (T_dataManager::message_tags)tag) == T_dataManager::error) {
+	        // handle error
+	        assert(0);
+	    }
 	} else {
-	  cerr << "Unrecognized message in DMmain.C\n";
-	  assert(0);
+	    cerr << "Unrecognized message in DMmain.C\n";
+	    assert(0);
 	}
    }
 }
 
 
-void addMetric(T_dyninstRPC::metricInfo info)
+void addMetric(T_dyninstRPC::metricInfo &info)
 {
-    metric *met;
-    stringHandle iName;
-    performanceStream *stream;
-    List<performanceStream *> curr;
-
-    iName = metric::names.findAndAdd(info.name.string_of());
-    assert(iName);
-    met = metric::allMetrics.find(iName);
-    if (met) {
-	// check that it is compatible ????
-	return;
+    // if metric already exists return
+    if(metric::allMetrics.defines(info.name)){
+        return;
     }
-
-    //
-    // It's really new 
-    //
-    met = new metric(info);
-    metric::allMetrics.add(met, iName);
-
-    //
+    metric *met = new metric(info);
     // now tell all perfStreams
-    //
-    for (curr = applicationContext::streams; *curr; curr++) {
-	stream = *curr;
-	if (stream->controlFunc.mFunc) {
+    dictionary_hash_iter<perfStreamHandle,performanceStream*> 
+		allS(performanceStream::allStreams);
+    perfStreamHandle h;
+    performanceStream *ps;
+    while(allS.next(h,ps)){
+	if(ps->controlFunc.mFunc){
 	    // set the correct destination thread.
-	    dm->setTid(stream->threadId);
-	    dm->newMetricDefined(stream->controlFunc.mFunc, stream, met);
+	    dataManager::dm->setTid(ps->threadId);
+	    dataManager::dm->newMetricDefined(ps->controlFunc.mFunc, 
+					      ps->Handle(),
+					      met->getName(),
+					      met->getStyle(),
+					      met->getAggregate(),
+					      met->getUnits(),
+					      met->getHandle());
 	}
     }
 }
 
+
+#ifdef n_def
+resourceHandle createResource(resourceHandle parent, vector<string>& res_name,
+			 string& res_string,string& abstr)
+{
+    /* first check to see if the resource has already been defined */
+    resource *p = resource::resources[parent];
+    resourceHandle *child = p->findChild(res_string.string_of());
+    if (child){
+        return(*child); 
+	delete child;
+    }
+
+    // if abstr is not defined then use default abstraction 
+    if(!abstr.string_of()){
+        abstr = string("BASE");
+    }
+
+    /* then create it */
+    resource *ret =  new resource(parent,res_name,res_string,abstr);
+
+    /* inform others about it if they need to know */
+    dictionary_hash_iter<perfStreamHandle,performanceStream*> 
+			allS(performanceStream::allStreams);
+    perfStreamHandle h;
+    performanceStream *ps;
+    resourceHandle r_handle = ret->getHandle();
+    string name = ret->getFullName(); 
+    while(allS.next(h,ps)){
+	ps->callResourceFunc(parent,r_handle,name,abstr);
+    }
+    return(r_handle);
+}
+#endif
+
 // I don't want to parse for '/' more than once, thus the use of a string vector
-resource *createResource(vector<string>& resource_name, string& abstr) {
+resourceHandle createResource(vector<string>& resource_name, string& abstr) {
   resource *parent = NULL;
   unsigned r_size = resource_name.size();
   string p_name;
+
+
   switch (r_size) {
-  case 0:
-    // Should this case ever occur ?
-    assert(0); break;
-  case 1:
-    parent = resource::rootResource; break;
-  default:
-    for (unsigned ri=0; ri<(r_size-1); ri++) 
-      p_name += string("/") + resource_name[ri];
-    stringHandle iName = resource::names.find(p_name.string_of());
-    assert(iName);
-    parent = resource::allResources.find(iName);
-    break;
-  }
-  if (!parent) assert(0);
+    case 0:
+        // Should this case ever occur ?
+        assert(0); break;
+    case 1:
+        parent = resource::rootResource; break;
+    default:
+        for (unsigned ri=0; ri<(r_size-1); ri++) 
+            p_name += string("/") + resource_name[ri];
+        parent = resource::string_to_resource(p_name);
+        assert(parent);
+        break;
+    }
+    if (!parent) assert(0);
 
-  stringHandle myName = resource::names.findAndAdd(resource_name[r_size-1].string_of());
-  resource *temp = parent->children.find((char*)myName);
-  if (temp) return temp;
-  stringHandle absHandle;
+    /* first check to see if the resource has already been defined */
+    resource *p = resource::resources[parent->getHandle()];
+    string myName = p_name;
+    myName += "/";
+    myName += resource_name[r_size - 1];
+    resourceHandle *child = p->findChild(myName.string_of());
+    if (child){
+        return(*child); 
+        delete child;
+    }
 
-  if (abstr.length())
-    absHandle = resource::names.findAndAdd(abstr.string_of());
-  else
-    absHandle = resource::names.findAndAdd("BASE");
+    // if abstr is not defined then use default abstraction 
+    if(!abstr.string_of()){
+        abstr = string("BASE");
+    }
 
-  resource *ret = new resource(parent, myName, absHandle, resource_name);
+    /* then create it */
+    resource *ret =  new resource(parent->getHandle(),resource_name,
+				  myName,abstr);
 
-  stringHandle fullName = ret->getFullName();
-
-  /* inform others about it if they need to know */
-  List<performanceStream *> curr;
-  performanceStream *stream;
-  for (curr = applicationContext::streams; stream = *curr; curr++) {
-    stream->callResourceFunc(parent, ret, fullName);
-  }
-  return(ret);
-
+    /* inform others about it if they need to know */
+    dictionary_hash_iter<perfStreamHandle,performanceStream*> 
+			allS(performanceStream::allStreams);
+    perfStreamHandle h;
+    performanceStream *ps;
+    resourceHandle r_handle = ret->getHandle();
+    string name = ret->getFullName(); 
+    while(allS.next(h,ps)){
+	ps->callResourceFunc(parent->getHandle(),r_handle,ret->getFullName(),
+	ret->getAbstractionName());
+    }
+    return(r_handle);
 }
 
 void newSampleRate(float rate)
 {
-    List<paradynDaemon*> curr;
-
-    for (curr = paradynDaemon::allDaemons; *curr; curr++) {
-	(*curr)->setSampleRate(rate);
+    paradynDaemon *pd = NULL;
+    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+        pd = paradynDaemon::allDaemons[i]; 
+	pd->setSampleRate(rate);
     }
 }
 
-bool daemonEntry::setAll (const string m, const string c, const string n,
-			  const string l, const string d, string f)
-{
-  if (!n.length() || !c.length())
-    return false;
 
-  if (m.length()) machine = m;
-  if (c.length()) command = c;
-  if (n.length()) name = n;
-  if (l.length()) login = l;
-  if (d.length()) dir = d;
-  if (f.length()) flavor = f;
-
-  return true;
+// Note - the metric parser has been moved into the dataManager
+bool parse_metrics(string metric_file) {
+     bool parseResult = metMain(metric_file);
+    return parseResult;
 }
 
-void daemonEntry::print() 
-{
-  cout << "DAEMON ENTRY\n";
-  cout << "  name: " << name << endl;
-  cout << "  command: " << command << endl;
-  cout << "  dir: " << dir << endl;
-  cout << "  login: " << login << endl;
-  cout << "  machine: " << machine << endl;
-  cout << "  flavor: " << flavor << endl;
-}
-
-// This code does not work yet
-int paradynDaemon::read(const void* handle, char *buf, const int len) {
-  assert(0);
-  int ret, ready_fd;
-  assert(len > 0);
-  assert((int)handle<200);
-  assert((int)handle >= 0);
-  static vector<unsigned> fd_vect(1025, 0);
-
-  // must handle the msg_bind_buffered call here because xdr_read will be
-  // called in the constructor for paradynDaemon, before the previous call
-  // to msg_bind_buffered had been called
-
-  if (!fd_vect[(unsigned)handle]) {
-    List<paradynDaemon*> alld;
-    for (alld=paradynDaemon::allDaemons; *alld; alld++)
-      if ((*alld)->get_fd() == (int)handle)
-	break;
-    if (!(*alld))
-      return -1;
-    msg_bind_buffered((int)handle, true, (int(*)(void*))xdrrec_eof,
-		      (void*)(*alld)->net_obj());
-    fd_vect[(unsigned)handle] = 1;
-  }
-
-  do {
-    unsigned tag = (unsigned)handle;
-    errno = 0; ret = 0;
-    ready_fd = msg_poll(&tag, true);
-    if (ready_fd == (int) handle) 
-      ret = P_read((int)handle, buf, len);
-    else 
-      return -1;
-  } while (ret < 0 && errno == EINTR);
-
-  if (ret <= 0)
-    return (-1);
-  else
-    return ret;
-}
-
-
-// Note - the metric parser has been moved into the dataManager 
-bool parse_metrics(applicationContext *appCon, string metric_file) {
-  bool parseResult = metMain(appCon, metric_file);
-  return parseResult;
-}
 

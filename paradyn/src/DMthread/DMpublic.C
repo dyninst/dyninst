@@ -4,8 +4,18 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.39  1995/05/18 10:56:24  markc
- * Modified daemon definition
+ * Revision 1.40  1995/06/02 20:48:27  newhall
+ * * removed all pointers to datamanager class objects from datamanager
+ *    interface functions and from client threads, objects are now
+ *    refered to by handles or by passing copies of DM internal data
+ * * removed applicationContext class from datamanager
+ * * replaced List and HTable container classes with STL containers
+ * * removed global variables from datamanager
+ * * remove redundant lists of class objects from datamanager
+ * * some reorginization and clean-up of data manager classes
+ * * removed all stringPools and stringHandles
+ * * KLUDGE: there are PC friend members of DM classes that should be
+ *    removed when the PC is re-written
  *
  * Revision 1.38  1995/02/26  02:14:07  newhall
  * added some of the phase interface support
@@ -143,231 +153,402 @@ extern "C" {
 }
 
 #include <assert.h>
+#include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
 #include "dataManager.thread.CLNT.h"
 #include "dyninstRPC.xdr.CLNT.h"
 #include "util/h/sys.h"
-#include "DMinternals.h"
+#include "util/h/Vector.h"
+#include "util/h/Dictionary.h"
+#include "util/h/makenan.h"
+#include "DMmetric.h"
+#include "DMdaemon.h"
+#include "DMresource.h"
+#include "DMperfstream.h"
 #include "DMphase.h"
-
-// TEMPORARY until new version of igen
-extern void DMstartPhase(timeStamp, string*);
-extern void DMaddPhaseNotify(performanceStream *);
-extern void DMremovePhaseNotify(performanceStream *);
+#include "DMinclude.h"
 
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
 
-extern bool parse_metrics(applicationContext *appCon, string metric_file);
+extern bool parse_metrics(string metric_file);
 void dataManager::kludge(char *file) {
-  parse_metrics(appContext, file);
+  parse_metrics(file);
 }
 
-applicationContext *dataManager::createApplicationContext(errorHandler foo)
+void dataManager::setResourceSearchSuppress(resourceHandle res, bool newValue)
 {
-  appContext = new applicationContext(foo);
-  return appContext;
+    resource *r = resource::handle_to_resource(res);
+    if(r)
+        r->setSuppress(newValue);
 }
 
-void dataManager::setResourceSearchSuppress(applicationContext *app,
-					    resource *res, bool newValue)
-{
-    if (res) res->setSuppress(newValue);
-}
-
-void dataManager::setResourceSearchChildrenSuppress(applicationContext *app,
-						    resource *res, 
+void dataManager::setResourceSearchChildrenSuppress(resourceHandle res, 
 						    bool newValue)
 {
-    if (res) res->setSuppressChildren(newValue);
+    resource *r = resource::handle_to_resource(res);
+    if(r) r->setSuppressChildren(newValue);
 }
 
-void dataManager::setResourceInstSuppress(applicationContext *app,
-				      resource *res, bool newValue)
+void dataManager::setResourceInstSuppress(resourceHandle res, bool newValue)
 {
-    if (res) app->setInstSuppress(res, newValue);
+    resource *r = resource::handle_to_resource(res);
+    if (r) paradynDaemon::setInstSuppress(r, newValue);
 }
 
-bool dataManager::addDaemon(applicationContext *app,
-			       char *machine, char *login, char *name)
+bool dataManager::addDaemon(const char *machine,
+			    const char *login,
+			    const char *name)
 {
-  return (app->getDaemon(machine, login, name));
+  // fix args so that if char * points to "" then it pts to NULL
+  string m = 0;
+  if(machine && strlen(machine))  m = machine;
+  string l = 0;
+  if(login && strlen(login)) l = login;
+  string n = 0;
+  if(!name) { 
+      char *temp = 0; 
+      if(!paradynDaemon::setDefaultArgs(temp))
+	  return false;
+      n = temp;
+      delete temp;
+  }
+  else {
+      n = name;
+  }
+  return (paradynDaemon::getDaemon(m, l, n));
 }
 
-bool dataManager::addExecutable(applicationContext *app,
-				   char  *machine,
-				   char *login,
-				   char *name,
-				   char *dir,
-				   vector<string> *argv)
+#ifdef n_def
+//
+// define a new entry for the daemon dictionary
+//
+bool dataManager::defineDaemon(const char *command,
+			       const char *dir,
+			       const char *login,
+			       const char *name,
+			       const char *machine,
+			       const char *flavor)
 {
-    return(app->addExecutable(machine, login, name, dir, argv));
+  if(!name || !command)
+      return false;
+  string c = command;
+  string d = dir;
+  string l = login;
+  string n = name;
+  string m = machine;
+  string f = flavor;
+  return (paradynDaemon::defineDaemon(c, d, l, n, m, f));
 }
+#endif
 
-bool dataManager::applicationDefined(applicationContext *app)
+bool dataManager::addExecutable(const char *machine,
+				const char *login,
+				const char *name,
+				const char *dir,
+				const vector<string> *argv)
 {
-    return(app->applicationDefined());
+    string m = machine;
+    string l = login;
+    string n = name;
+    string d = dir;
+    return(paradynDaemon::newExecutable(m, l, n, d, *argv));
 }
 
-bool dataManager::startApplication(applicationContext *app)
+bool dataManager::applicationDefined()
 {
-    return(app->startApplication());
+    return(paradynDaemon::applicationDefined());
 }
 
-bool dataManager::pauseApplication(applicationContext *app)
+bool dataManager::startApplication()
 {
-    return(app->pauseApplication());
+    return(paradynDaemon::startApplication());
 }
 
-bool dataManager::pauseProcess(applicationContext *app, int pid)
+bool dataManager::pauseApplication()
 {
-    return(app->pauseProcess(pid));
+    return(paradynDaemon::pauseAll());
 }
 
-bool dataManager::continueApplication(applicationContext *app)
+bool dataManager::pauseProcess(int pid)
 {
-    return(app->continueApplication());
+    return(paradynDaemon::pauseProcess(pid));
 }
 
-bool dataManager::continueProcess(applicationContext *app, int pid)
+bool dataManager::continueApplication()
 {
-    return(app->continueProcess(pid));
+    return(paradynDaemon::continueAll());
 }
 
-bool dataManager::detachApplication(applicationContext *app, bool pause)
+bool dataManager::continueProcess(int pid)
 {
-   return(app->detachApplication(pause));
+    return(paradynDaemon::continueProcess(pid));
 }
 
-performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
-						        dataType dt,
-						        dataCallback dc,
-						        controlCallback cc)
+bool dataManager::detachApplication(bool pause)
+{
+   return(paradynDaemon::detachApplication(pause));
+}
+
+perfStreamHandle dataManager::createPerformanceStream(dataType dt,
+						      dataCallback dc,
+						      controlCallback cc)
 {
     int td;
     performanceStream *ps;
 
     td = getRequestingThread();
-    ps = new performanceStream(ap, dt, dc, cc, td);
-    ap->streams.add(ps);
-    DMaddPhaseNotify(ps);
-
-    return(ps);
+    ps = new performanceStream(dt, dc, cc, td);
+    return(ps->Handle());
+    ps = 0;
 }
 
-int dataManager::destroyPerformanceStream(applicationContext *ap,
-                                          performanceStream *ps){
-    int ok = 1;
-    performanceStream *temp;
+int dataManager::destroyPerformanceStream(perfStreamHandle handle){
 
-    if(temp = ap->streams.find(ps)){
-      DMremovePhaseNotify(ps);
-      ok = ap->streams.remove(ps);
+    performanceStream *ps = performanceStream::find(handle);
+    if(!ps) return(0);
+    delete ps;
+    return(1);
+}
+
+vector<string> *dataManager::getAvailableMetrics()
+{
+    return(metric::allMetricNames());
+}
+
+vector<met_name_id> *dataManager::getAvailableMetInfo()
+{
+    return(metric::allMetricNamesIds());
+}
+
+
+metricHandle *dataManager::findMetric(const char *name)
+{
+    string n = name;
+    const metricHandle *met = metric::find(n);
+    if(met){
+	metricHandle *ret = new metricHandle;
+	*ret = *met;
+	return(ret);
     }
-    return(ok);
+    return 0;
 }
 
-
-
-String_Array dataManager::getAvailableMetrics(applicationContext *ap)
-{
-    return(ap->getAvailableMetrics());
-}
-
-metric *dataManager::findMetric(applicationContext *ap, char *name)
-{
-    return(ap->findMetric(name));
-}
-
-resourceList *dataManager::getRootResources()
+vector<resourceHandle> *dataManager::getRootResources()
 {
     return(resource::rootResource->getChildren());
 }
 
-resource *dataManager::getRootResource()
+resourceHandle *dataManager::getRootResource()
 {
-    return(resource::rootResource);
+    resourceHandle *rh = new resourceHandle;
+    *rh = resource::rootResource->getHandle();
+    return(rh);
 }
 
-metricInstance *dataManager::enableDataCollection(performanceStream *ps,
-						  resourceList *rl,
-						  metric *m)
+metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
+					const vector<resourceHandle> *focus, 
+					metricHandle m)
 {
-    return(ps->enableDataCollection(rl, m));
+    if(!focus || !focus->size()){
+        if(focus) 
+	    printf("error in enableDataCollection size = %d\n",focus->size());
+        else
+	    printf("error in enableDataCollection focus is NULL\n");
+        return 0;
+    } 
+    resourceListHandle rl = resourceList::getResourceList(*focus);
+    // is this this metric/focus combination already enable?
+     metricInstance *mi = metricInstance::find(m,rl);
+     if(mi){
+	 mi->addUser(ps_handle); // add this ps to users list
+     }
+     else {
+        mi = paradynDaemon::enableData(rl,m);
+     }
+     if(mi){
+	mi->addUser(ps_handle); // add this ps to users list
+        metricInstInfo *temp = new metricInstInfo;
+	assert(temp);
+	temp->mi_id = mi->getHandle();
+	temp->m_id = m;
+	temp->r_id = rl;
+        metric *m_temp = metric::getMetric(m);
+	resourceList *rl_temp = resourceList::getFocus(rl);
+	temp->metric_name = m_temp->getName();
+	temp->metric_units = m_temp->getUnits();
+	temp->focus_name = rl_temp->getName();
+	return(temp);
+	temp = 0;
+     }
+     else {
+	/*
+        printf("error in DMenable\n");
+	for(unsigned i=0; i < focus->size(); i++){
+	    printf("resource %d\n",(*focus)[i]);  
+	}
+	printf("metric = %d\n",m);
+	*/
+     }
+     return 0;
 }
 
-void dataManager::disableDataCollection(performanceStream *ps, 
-					metricInstance *mi)
+void dataManager::disableDataCollection(perfStreamHandle handle, 
+					metricInstanceHandle mh)
 {
-    if (mi) ps->disableDataCollection(mi);
+    metricInstance *mi = metricInstance::getMI(mh);
+    if (mi){
+	mi->disableDataCollection(handle);
+	if(!mi->getCount()){ 
+            paradynDaemon::disableData(mi); // deletes the metricInstance 
+	}
+    }
 }
 
-void dataManager::enableResourceCreationNotification(performanceStream *ps, 
-							resource *r)
+metricHandle *dataManager::getMetric(metricInstanceHandle mh)
 {
-    ps->enableResourceCreationNotification(r);
+    metricInstance *mi = metricInstance::getMI(mh);
+    if(!mi) return 0;
+
+    metricHandle *handle = new metricHandle;
+    *handle = mi->getMetricHandle();
+    return(handle);
 }
 
-void dataManager::disableResourceCreationNotification(performanceStream *ps, 
-							 resource *r)
+string *dataManager::getMetricNameFromMI(metricInstanceHandle mh)
 {
-    ps->disableResourceCreationNotification(r);
+    metricInstance *mi = metricInstance::getMI(mh);
+    if(mi){ 
+	string *name = new string(metric::getName(mi->getMetricHandle()));
+        return(name);
+    }
+    return 0;
 }
 
-metric *dataManager::getMetric(metricInstance *mi)
+string *dataManager::getMetricName(metricHandle m)
 {
-    return(mi->met);
+    string *name = new string(metric::getName(m));
+    if(name->string_of())
+        return(name);
+    return 0;
 }
 
-stringHandle dataManager::getMetricNameFromMI(metricInstance *mi)
+sampleValue dataManager::getMetricValue(metricInstanceHandle mh)
 {
-    return(mi->met->getName());
+    metricInstance *mi = metricInstance::getMI(mh);
+    if(mi) 
+	return(mi->getValue());
+    float ret = PARADYN_NaN;
+    return(ret);
 }
 
-stringHandle dataManager::getMetricName(metric *m)
+sampleValue dataManager::getTotValue(metricInstanceHandle mh)
 {
-    return(m->getName());
+    metricInstance *mi = metricInstance::getMI(mh);
+    if(mi) 
+	return(mi->getTotValue());
+    float ret = PARADYN_NaN;
+    return(ret);
 }
 
-float dataManager::getMetricValue(metricInstance *mi)
+void dataManager::setSampleRate(perfStreamHandle handle, timeStamp rate)
 {
-    return(mi->getValue());
+    performanceStream *ps = performanceStream::find(handle);
+    if(ps)
+      ps->setSampleRate(rate);
 }
 
-float dataManager::getTotValue(metricInstance *mi)
+
+
+//
+// converts from a vector of resourceHandles to a resourceListHandle
+//
+resourceListHandle dataManager::getResourceList(const vector<resourceHandle> *h)
 {
-    return(mi->getTotValue());
+  
+    resourceListHandle r = resourceList::getResourceList(*h);
+    return r;
 }
 
-void dataManager::setSampleRate(performanceStream *ps, timeStamp rate)
+
+//
+// converts from a resourceListHandle to a vector of resourceHandles
+//
+vector<resourceHandle> *dataManager::getResourceHandles(resourceListHandle h)
 {
-    ps->setSampleRate(rate);
+    return resourceList::getResourceHandles(h);
 }
 
-float dataManager::getPredictedDataCost(applicationContext *a, 
-					resourceList *rl, 
-					metric *m)
-{
-    return(a->getPredictedDataCost(rl, m));
+//
+// converts from a resource name to a resourceHandle
+//
+resourceHandle *dataManager::findResource(const char *name){
+
+    resourceHandle *rl = new resourceHandle;
+    string r_name = name;
+    if(resource::string_to_handle(r_name,rl)){
+        return(rl);
+    }
+    return 0;
 }
 
-float dataManager::getCurrentHybridCost(applicationContext *a) 
-{
-    return(a->getCurrentHybridCost());
+//
+// returns resource name 
+//
+string *dataManager::getResourceName(resourceHandle h){
+
+     const char *s = resource::getName(h);
+     if(s){
+         string *name = new string(s);
+	 return(name);
+     }
+     return 0;
 }
 
-int dataManager::getSampleValues(metricInstance *mi,
+//
+// converts from a focus name to a resourceListHandle
+//
+resourceListHandle *dataManager::findResourceList(const char *name){
+
+    string n = name;
+    const resourceListHandle *temp = resourceList::find(n);
+    if(temp){
+        resourceListHandle *h = new resourceListHandle;
+	*h = *temp;
+	return(h);
+    }
+    return 0;
+}
+
+
+float dataManager::getPredictedDataCost(resourceListHandle rl_handle, 
+					metricHandle m_handle)
+{
+    metric *m = metric::getMetric(m_handle);
+    if(m){
+	resourceList *rl = resourceList::getFocus(rl_handle);
+        if(rl){
+            return(paradynDaemon::predictedDataCost(rl, m));
+    } }
+    float ret = PARADYN_NaN;
+    return(ret);
+}
+
+float dataManager::getCurrentHybridCost() 
+{
+    return(paradynDaemon::currentHybridCost());
+}
+
+// caller provides array of sampleValue to be filled
+int dataManager::getSampleValues(metricInstanceHandle mh,
 				 sampleValue *buckets,
 				 int numberOfBuckets,
 				 int first)
 {
-    Histogram *hist;
-
-    hist = mi->data;
-
-    if (!hist) return(-1);
-
-    return(hist->getBuckets(buckets, numberOfBuckets, first));
+    metricInstance *mi = metricInstance::getMI(mh);
+    if(mi) 
+        return(mi->getSampleValues(buckets, numberOfBuckets, first));
+    return(0); 
 }
 
 void dataManager::printResources()
@@ -375,92 +556,109 @@ void dataManager::printResources()
     printAllResources();
 }
 
-void dataManager::printStatus(applicationContext *appl)
+void dataManager::printStatus()
 {
-    appl->printStatus();
+    paradynDaemon::printStatus();
 }
 
-void dataManager::coreProcess(applicationContext *app, int pid)
+void dataManager::coreProcess(int pid)
 {
-    app->coreProcess(pid);
+    paradynDaemon::dumpCore(pid);
 }
 
-void dataManager::StartPhase(timeStamp start_Time, string *name)
+void dataManager::StartPhase(timeStamp start_Time, const char *name)
 {
-    DMstartPhase(start_Time,name);
+    string n = name;
+    phaseInfo::startPhase(start_Time,n);
 }
-
-
-
-
 
 //
 // Now for the upcalls.  We provide code that get called in the thread that
 //   requested the call back.
 //
 void dataManagerUser::newMetricDefined(metricInfoCallback cb,
-				  performanceStream *ps,
-				  metric *m)
+				  perfStreamHandle p_handle,
+				  const char *name,
+				  int style,
+				  int aggregate,
+				  const char *units,
+				  metricHandle handle)
 {
-    (cb)(ps, m);
+    
+    (cb)(p_handle, name, style, aggregate, units, handle);
 }
 
 void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
-					 performanceStream *ps,
-					 resource *parent,
-					 resource *newResource,
-					 stringHandle name)
+					 perfStreamHandle handle,
+					 resourceHandle parent,
+					 resourceHandle newResource,
+					 const char *name,
+					 const char *abstr)
 {
-    (cb)(ps, parent, newResource, name);
+    (cb)(handle, parent, newResource, name, abstr);
 }
 
 void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,
-					 performanceStream *ps,
+					 perfStreamHandle handle,
 					 batchMode mode)
 {
-    (cb)(ps, mode);
+    (cb)(handle, mode);
 }
 
 void dataManagerUser::histFold(histFoldCallback cb,
-			       performanceStream *ps,
+			       perfStreamHandle handle,
 			       timeStamp width)
 {
-    (cb)(ps, width);
+    (cb)(handle, width);
 }
 
 void dataManagerUser::changeState(appStateChangeCallback cb,
-			          performanceStream *ps,
+			          perfStreamHandle handle,
 			          appState state)
 {
-    (cb)(ps, state);
+    (cb)(handle, state);
 }
 
 void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
-                             performanceStream *ps,
-                             metricInstance *mi,
+                             perfStreamHandle handle,
+                             metricInstanceHandle mi,
 			     sampleValue *buckets,
 			     int count,
 			     int first)
 {
-    (func)(ps, mi, buckets, count, first);
+    (func)(handle, mi, buckets, count, first);
 }
 
 void dataManagerUser::newPhaseInfo(newPhaseCallback cb,
-				   performanceStream *ps,
-				   phaseInfo *phase) {
-    (cb)(ps,phase);
+				   perfStreamHandle handle,
+				   const char *name,
+				   phaseHandle phase,
+				   timeStamp begin,
+				   timeStamp end,
+				   float bucketwidth) {
+
+    (cb)(handle,name,phase,begin,end,bucketwidth);
 }
 
-T_dyninstRPC::metricInfo *dataManager::getMetricInfo(metric *met) {
-    return(met->getInfo());
+
+T_dyninstRPC::metricInfo *dataManager::getMetricInfo(metricHandle m_handle) {
+
+    const T_dyninstRPC::metricInfo *met = metric::getInfo(m_handle);
+    if(met){ 
+	T_dyninstRPC::metricInfo *copy = new T_dyninstRPC::metricInfo;
+	copy->style = met->style;
+	copy->units = met->units;
+	copy->name = met->name;
+	copy->aggregate = met->aggregate;
+	copy->handle = met->handle;
+	return(copy);
+    }
+    return 0;
 }
 
-resource *dataManager::newResource(applicationContext *app, 
-				   resource *res, 
-				   const char *name)
-{
-    resource *child;
-
+#ifdef n_def
+resourceHandle dataManager::newResource(resourceHandle parent, 
+					const char *newResource) {
     // rbi: kludge 
     // calls to this method should specify an abstraction,
     // but that involves a bunch of other changes that I don't want 
@@ -468,13 +666,59 @@ resource *dataManager::newResource(applicationContext *app,
     // the kludge works because we know that all calls to this method 
     // are for BASE abstraction resources.  
 
-    string abs = "BASE";
-    vector<string> parent_res = res->getParts();
-    parent_res += name;
-    child = createResource(parent_res, abs);
-    app->tellDaemonsOfResource(res->id(), child->id(), name);
-    return(child);
+    // TEMP: until this routine is called with vector of strings for new res
+    string res = resource::resources[parent]->getFullName();
+    res += string("/");
+    res += string(newResource);
+    char *word = strdup(res.string_of());
+    string next;
+    vector<string> temp;
+    unsigned j=1;
+    for(unsigned i=1; i < res.length(); i++){
+	if(word[i] == '/'){
+	    word[i] = '\0';
+	    next = &word[j];
+	    temp += next;
+	    j = i+1;
+        }
+    }
+    next = &word[j];
+    temp += next;
+    string base = string("BASE");
+    resourceHandle r = createResource(parent, temp, res, base);  
+    paradynDaemon::tellDaemonsOfResource(res.string_of(),newResource);
+    return(r);
 }
+#endif
+
+resourceHandle dataManager::newResource(resourceHandle parent,
+			                const char *name)
+{
+
+    // rbi: kludge
+    // calls to this method should specify an abstraction,
+    // but that involves a bunch of other changes that I don't want
+    // to make right now.
+    // the kludge works because we know that all calls to this method
+    // are for BASE abstraction resources.
+    
+    string abs = "BASE";
+    resource *parent_res = resource::handle_to_resource(parent);
+    vector<string> res_name = parent_res->getParts();
+    /*
+    for(unsigned i=0; i < res_name.size(); i++){
+        printf("parent part %d: %s\n",i,res_name[i].string_of());
+    }
+    */
+    res_name += name;
+    resourceHandle child = createResource(res_name,abs);
+    paradynDaemon::tellDaemonsOfResource(parent_res->getHandle(), 
+			       		 child, 
+			                 name);
+    return(child);
+
+}
+
 
 timeStamp dataManager::getCurrentBucketWidth()
 {
@@ -486,19 +730,12 @@ int dataManager::getMaxBins()
     return(Histogram::numBins);
 }
 
-void dataManager::printDaemons(applicationContext *app)
+void dataManager::printDaemons()
 {
-  app->printDaemons();
+  paradynDaemon::printDaemons();
 }
 
-String_Array dataManager::getAvailableDaemons(applicationContext *ap)
+vector<string> *dataManager::getAvailableDaemons()
 {
-    return(ap->getAvailableDaemons());
+    return(paradynDaemon::getAvailableDaemons());
 }
-
-double dataManager::firstSampleTime(int program, double first) {
-  if (!firstTime)
-    firstTime = first;
-  return firstTime;
-}
-
