@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.14 1994/09/30 19:17:51 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.15 1994/09/30 21:17:44 newhall Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.14  1994/09/30 19:17:51  rbi
+ * Revision 1.15  1994/09/30 21:17:44  newhall
+ * changed convertToStringList method function return value from
+ * stringHandle * to char**
+ *
+ * Revision 1.14  1994/09/30  19:17:51  rbi
  * Abstraction interface change.
  *
  * Revision 1.13  1994/09/22  00:57:16  markc
@@ -201,15 +205,15 @@ resource *resourceList::find(const char *name)
     return(ret);
 }
 
-stringHandle *resourceList::convertToStringList() 
+char **resourceList::convertToStringList() 
 {
     int i;
-    stringHandle *temp;
+    char **temp;
 
     lock();
-    temp = (stringHandle *) malloc(sizeof(stringHandle) * count);
+    temp = (char **) malloc(sizeof(char *) * count);
     for (i=0; i < count; i++) {
-	temp[i] = elements[i]->fullName;
+	temp[i] = (char *)elements[i]->fullName;
     }
     unlock();
     return(temp);
@@ -248,6 +252,7 @@ stringHandle resourceList::getCanonicalName()
 
 	fullName = names.findAndAdd(tempName);
 	delete(tempName);
+	delete(temp);
     }
     unlock();
     return(fullName);

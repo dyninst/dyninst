@@ -2,7 +2,11 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.11  1994/09/30 19:17:52  rbi
+ * Revision 1.12  1994/09/30 21:17:46  newhall
+ * changed convertToStringList method function return value from
+ * stringHandle * to char**
+ *
+ * Revision 1.11  1994/09/30  19:17:52  rbi
  * Abstraction interface change.
  *
  * Revision 1.10  1994/09/25  01:56:27  newhall
@@ -100,7 +104,7 @@ class resourceList {
       stringHandle getCanonicalName();
       int getCount()	{ return(count); }
       void print();
-      stringHandle *convertToStringList();
+      char **convertToStringList();
   private:
       // provide mutex so we can support shared access.
       void lock() { assert(!locked); locked = 1; }
