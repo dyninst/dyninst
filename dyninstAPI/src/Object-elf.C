@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.31 2001/12/18 16:23:13 pcroth Exp $
+ * $Id: Object-elf.C,v 1.32 2001/12/18 22:39:45 pcroth Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -244,7 +244,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 	  delete pd_shdrp;
       return false;
     }
-	allSectionHdrs += pd_shdrp;
+	allSectionHdrs.push_back( pd_shdrp );
 
     // resolve section name
     const char *name = (const char *)&shnames[pd_shdrp->pd_name];    
