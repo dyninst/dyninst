@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.6  1994/04/21 19:17:59  karavan
-/* Added initialization of tcl dag command.
+/* Revision 1.7  1994/04/21 19:42:51  karavan
+/* the *working* version, this time!
 /*
+ * Revision 1.6  1994/04/21  19:17:59  karavan
+ * Added initialization of tcl dag command.
+ *
  * Revision 1.5  1994/04/13  01:33:04  markc
  * Changed pointer to .tcl file.
  *
@@ -408,7 +411,6 @@ UImain(CLargStruct *clargs)
     printf ("**resource creation notification enabled\n");
 
     // Give the local paradynd a name
-    char machine_name[50];
     assert(!gethostname(machine_name, 49));
     dmret = dataMgr->addExecutable(context, machine_name, NULL, uiargv[1], uiargc-2, &uiargv[2]);
     if (dmret) 
