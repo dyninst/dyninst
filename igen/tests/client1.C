@@ -116,8 +116,8 @@ main()
     csa.count = 2;
     csa.data = new charStruct[2];
 
-    csa.data[0].cp = strdup("Sad");
-    csa.data[1].cp = strdup("Brown");
+    csa.data[0].cp = strdup("Hospital");
+    csa.data[1].cp = strdup("Accident");
 
     csap = new charStruct_Array;
     *csap = remote->echoCSA(csa);
@@ -133,6 +133,7 @@ main()
     delete csap1;
 
     remote->asyncClient();
+    sleep(3);
     delete remote;
 }
 

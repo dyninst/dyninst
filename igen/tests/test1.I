@@ -27,14 +27,14 @@ $remote test {
     float fadd(float, float);
     int sumVector(int_Array);
     int_Array retVector(int len, int start);
-    char *stringString(char *);
+    $noFree char *stringString(char *);
     void triggerAsyncUpcall(int val);
     int triggerSyncUpcall(int val);
     $upcall $async void asyncUpcall(int x);
     $upcall int SyncUpcall(int x);
     $noFree char_PTR_Array echoCPA(char_PTR_Array);
-    charStruct echoCS(charStruct);  
+    $noFree charStruct echoCS(charStruct);  
     $noFree charStruct *echoCSP(charStruct *);
-    charStruct_Array echoCSA(charStruct_Array);
+    $noFree charStruct_Array echoCSA(charStruct_Array);
     $noFree charStruct_Array *echoCSAP(charStruct_Array*);
 };

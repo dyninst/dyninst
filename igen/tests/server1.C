@@ -97,11 +97,15 @@ int test::triggerSyncUpcall(int val)
     return val;
 }
 
+void exitNow(test *me) {
+  delete me;
+  exit(1);
+}
+
 void test::asyncClient()
 {
   printf("In test::asyncClient(), goodbye!\n");
-  exit(-1);
-  delete this;
+  exitNow(this);
 }
 
 char_PTR_Array test::echoCPA(char_PTR_Array input) {
