@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-winnt.C,v $
+ * Revision 1.3  1999/07/07 16:18:03  zhichen
+ * tidy
+ *
  * Revision 1.2  1998/08/28 01:38:10  zhichen
  * Make sure the useCount of the DAG generated are correct
  *
@@ -62,20 +65,11 @@
 static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
 static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
 static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-#if defined(MT_THREAD)
-static AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
-#endif
 
 bool initOS() {
 
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
-
-#if defined(MT_THREAD)
-  initialRequests += new instMapping("MY_thr_create", "DYNINSTthreadCreate", 
-                                     FUNC_EXIT|FUNC_ARG, THRidArg);
-#endif
-
 
   AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
   initialRequests += new instMapping("execve", "DYNINSTexec",
