@@ -1,6 +1,6 @@
 BPatch.obj: ../src/BPatch.C ../h/BPatch.h ../h/BPatch_Vector.h \
  ../h/BPatch_thread.h ../h/BPatch_image.h ../h/BPatch_point.h \
- ../h/BPatch_snippet.h ../h/BPatch_module.h ../src/BPatch_type.h \
+ ../h/BPatch_snippet.h ../h/BPatch_module.h ../h/BPatch_type.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/refCounter.h ../../util/h/Dictionary.h \
@@ -35,7 +35,7 @@ BPatch_image.obj: ../src/BPatch_image.C ../src/process.h \
  ../../dyninstAPI/src/ntDL.h ../src/symtab.h ../h/BPatch.h \
  ../h/BPatch_Vector.h ../h/BPatch_thread.h ../h/BPatch_image.h \
  ../h/BPatch_point.h ../h/BPatch_snippet.h ../h/BPatch_module.h \
- ../src/BPatch_type.h
+ ../h/BPatch_type.h
 BPatch_snippet.obj: ../src/BPatch_snippet.C ../src/ast.h \
  ../../util/h/Vector.h ../../util/h/Dictionary.h ../../util/h/Pair.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
@@ -48,7 +48,7 @@ BPatch_snippet.obj: ../src/BPatch_snippet.C ../src/ast.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../h/BPatch.h ../h/BPatch_Vector.h \
  ../h/BPatch_thread.h ../h/BPatch_image.h ../h/BPatch_point.h \
- ../h/BPatch_snippet.h ../h/BPatch_module.h ../src/BPatch_type.h
+ ../h/BPatch_snippet.h ../h/BPatch_module.h ../h/BPatch_type.h
 BPatch_templates.obj: ../src/BPatch_templates.C ../h/BPatch_Vector.h \
  ../../util/h/refCounter.h ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/headers.h \
@@ -72,7 +72,7 @@ BPatch_thread.obj: ../src/BPatch_thread.C ../src/process.h \
  ../h/BPatch.h ../h/BPatch_Vector.h ../h/BPatch_thread.h \
  ../h/BPatch_image.h ../h/BPatch_point.h ../h/BPatch_snippet.h \
  ../h/BPatch_module.h
-BPatch_type.obj: ../src/BPatch_type.C ../src/BPatch_type.h \
+BPatch_type.obj: ../src/BPatch_type.C ../h/BPatch_type.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/refCounter.h ../../util/h/Dictionary.h \
@@ -138,7 +138,7 @@ ast.obj: ../src/ast.C ../../dyninstAPI/src/symtab.h ../../util/h/Pair.h \
  ../../dyninstAPI/h/BPatch_Vector.h ../../dyninstAPI/h/BPatch_thread.h \
  ../../dyninstAPI/h/BPatch_image.h ../../dyninstAPI/h/BPatch_point.h \
  ../../dyninstAPI/h/BPatch_snippet.h \
- ../../dyninstAPI/h/BPatch_module.h ../../dyninstAPI/src/BPatch_type.h \
+ ../../dyninstAPI/h/BPatch_module.h ../../dyninstAPI/h/BPatch_type.h \
  ../../dyninstAPI/src/inst-sparc.h ../../dyninstAPI/src/stats.h \
  ../../dyninstAPI/src/as-sparc.h
 inst.obj: ../src/inst.C ../../dyninstAPI/src/symtab.h \
