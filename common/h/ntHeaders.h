@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.14 2003/03/28 23:34:09 pcroth Exp $
+// $Id: ntHeaders.h,v 1.15 2003/04/26 04:09:04 igor Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -201,15 +201,15 @@ inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {
   return (select(wid, rd, wr, ex, tm));}
 
-extern char *cplus_demangle(char *, int);
+extern char *cplus_demangle(char *, int, bool includeTypes);
 /* symbol: is the mangled name
    prototype:  the unmangled name is saved in this buffer
    size: specifies the size of the buffer, prototype
    return 0 for success and non-zero for failure
 */
 inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
-			    bool /* nativeCompiler */) {
-   char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
+			    bool /* nativeCompiler */, bool includeTypes = false) {
+   char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0, includeTypes);
    if(demangled_sym==NULL || strlen(demangled_sym) >= size)
       return 1;
    

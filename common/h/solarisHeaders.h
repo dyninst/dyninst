@@ -249,17 +249,19 @@ extern "C" char *cplus_demangle(char *, int);
 */
 extern void dedemangle( const char * demangled, char * dedemangled );
 inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size, 
-			    bool nativeCompiler) {
+			    bool nativeCompiler, bool includeTypes=false) {
   char *demangled_sym;
 
 #if defined( __GNUC__ )
-
+#define DMGL_PARAMS      (1 << 0)       /* Include function args */
+#define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
   /* If the native demangler exists, try to demangled with it.
      Otherwise, use the GNU demangler. */
   if( ! nativeCompiler || P_native_demangle == NULL ) {
     /* If we've been compiled with GNU and we're
        demangling a GNU name, use cplus_demangle(). */
-    demangled_sym = cplus_demangle( const_cast<char *>( symbol ), 0 );
+    demangled_sym = cplus_demangle( const_cast<char *>( symbol ), 
+                                    includeTypes ? DMGL_PARAMS|DMGL_ANSI  : 0 );
     if( demangled_sym == NULL || strlen( demangled_sym ) >= size ) {
       return 1;
     } /* end if the GNU demangling failed. */
@@ -282,8 +284,10 @@ inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
   } /* end if the native demangling failed */
 
 #endif
-
-  dedemangle( demangled_sym, prototype );
+  if (!includeTypes)
+     dedemangle( demangled_sym, prototype );
+  else
+     strncpy(prototype, demangled_sym, size);
   free(demangled_sym);
   return 0;
 }

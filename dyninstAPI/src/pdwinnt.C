@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.96 2003/04/23 22:59:50 bernat Exp $
+// $Id: pdwinnt.C,v 1.97 2003/04/26 04:09:05 igor Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -1771,7 +1771,7 @@ static void stripAtSuffix(char *str)
     }
 }
 
-char *cplus_demangle(char *c, int) { 
+char *cplus_demangle(char *c, int, bool includeTypes) { 
     char buf[1000];
     if (c[0]=='_') {
         // VC++ 5.0 seems to decorate C symbols differently to C++ symbols
@@ -1786,12 +1786,20 @@ char *cplus_demangle(char *c, int) {
 	stripAtSuffix(buf);
         if (buf[0] == '\0') return 0; // avoid null names which seem to annoy Paradyn
         return strdup(buf);
+      } else {
+        if (includeTypes) {
+          if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
+            //   printf("Undecorate with types: %s = %s\n", c, buf);
+            stripAtSuffix(buf);
+            return strdup(buf);
+          }
+        }  else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
+          //     else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
+          //	printf("Undecorate: %s = %s\n", c, buf);
+          stripAtSuffix(buf);
+          return strdup(buf);
+        }
       }
-    else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
-	//printf("Undecorate: %s = %s\n", c, buf);
-	stripAtSuffix(buf);
-	return strdup(buf);
-    }
     return 0;
 }
 
