@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.18  1994/05/10 03:57:35  hollings
+ * Revision 1.19  1994/05/11 18:45:37  markc
+ * Put code in addExecutable to assign the machine name for paradynDaemons
+ * that are started on the local host.
+ *
+ * Revision 1.18  1994/05/10  03:57:35  hollings
  * Changed data upcall to return array of buckets.
  *
  * Revision 1.17  1994/05/09  20:56:18  hollings
@@ -177,9 +181,15 @@ int applicationContext::addExecutable(char  *machine,
      paradynDaemon *daemon;
      String_Array programToRun;
      List<paradynDaemon*> curr;
+     char local[50];
 
     // null machine & login are mapped empty strings to keep strcmp happy.
-    if (!machine) machine = "";
+    if (!machine) 
+      {
+         if (gethostname(local, 49)) assert(0);
+         machine = strdup(local);
+	 assert(machine);
+      }
     if (!login) login = "";
 
     // find out if we have a paradynd on this machine+login+paradynd
