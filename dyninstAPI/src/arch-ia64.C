@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.9 2002/08/01 18:37:28 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.10 2002/08/01 18:54:52 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -258,7 +258,7 @@ bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, u
         } /* end extractAllocatedRegisters() */
 
 /* For linux-ia64.C */
-IA64_instruction generateAlteredAlloc( uint64_t allocInsn, int deltaLocal, int deltaOutput, int deltaRotate ) {
+IA64_instruction generateAlteredAlloc( uint64_t allocInsn, int newLocal, int newOutput, int newRotate ) {
 	/* Extract the allocated sizes. */
 	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
 	if( ! extractAllocatedRegisters( allocInsn, & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
@@ -266,10 +266,11 @@ IA64_instruction generateAlteredAlloc( uint64_t allocInsn, int deltaLocal, int d
 		abort();
 		} /* end if not an alloc instruction */
 
-	/* Calculate the new sizes. */
-	uint64_t generatedLocal = allocatedLocal + deltaLocal;
-	uint64_t generatedOutput = allocatedOutput + deltaOutput;
-	uint64_t generatedRotate = allocatedRotate + deltaRotate;
+	/* Calculate the new sizes.  To avoid corrupting the NAT bits,
+	   we want to allocate our new locals after the end of the old outputs. */
+	uint64_t generatedLocal = allocatedLocal + allocatedOutput + newLocal;
+	uint64_t generatedOutput = newOutput;
+	uint64_t generatedRotate = newRotate;
 
 	/* Alter allocInsn. */
 	allocInsn = 0x0000000000000000 |
