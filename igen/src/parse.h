@@ -493,7 +493,7 @@ public:
       return (type_prefix()+name);
     else {
       abort();
-      return(NULL); // some compilers will complain if we don't return a value
+      return(""); // some compilers will complain if we don't return a value
     }
   }
   static bool stl_seen;
