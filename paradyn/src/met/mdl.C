@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.40 1999/07/07 15:57:48 zhichen Exp $
+// $Id: mdl.C,v 1.41 1999/11/11 01:02:41 wylie Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -1138,7 +1138,7 @@ bool mdl_check_node_constraints() {
         temp = P_strdup(mdl_data::lib_constraints[i].string_of());
 	// Doh!!!!  Changed exclude directive to have form /Code,
 	//  instead of Code/, so strip off leading '/'
-	first_slash = P_strchr(temp, RH_SEPERATOR);
+	first_slash = P_strchr(temp, RH_SEPARATOR);
 	if (first_slash != temp) {
 	    bad_string = 1;
 	    first_slash = NULL;
@@ -1148,25 +1148,27 @@ bool mdl_check_node_constraints() {
 	// This should place constraint in form which system previously
 	// expected....
 	if (first_slash != NULL) {
-	    second_slash = P_strchr(&first_slash[1], RH_SEPERATOR);
+	    second_slash = P_strchr(&first_slash[1], RH_SEPARATOR);
 	}
 	if (second_slash != NULL) {
 	    modified_constraint = string(&second_slash[1]);
-	    third_slash = P_strchr(&second_slash[1], RH_SEPERATOR);
+	    third_slash = P_strchr(&second_slash[1], RH_SEPARATOR);
 	}
 	if (third_slash != NULL) {
-	    fourth_slash = P_strchr(&third_slash[1], RH_SEPERATOR);
+	    fourth_slash = P_strchr(&third_slash[1], RH_SEPARATOR);
 	}
 	// excluded item should have at least 2 "/", e.g.
 	//  "/Code/module", or "/Code/module/func"....
 	if (first_slash == NULL || second_slash == NULL) {
 	    bad_string = 1; 
-	    cerr << "exclude syntax : could not find 2 seperators in resource hierarchy path" << endl;
+	    cerr << "exclude syntax : could not find 2 separators"
+                    " in resource hierarchy path" << endl;
 	}
 	// and at most most 2....
 	if (fourth_slash != NULL) {
 	    bad_string = 1;
-	    cerr << "exclude syntax : found too many seperators in resource hierarchy path" << endl;
+	    cerr << "exclude syntax : found too many separators"
+                    " in resource hierarchy path" << endl;
 	}
 	if (bad_string != 1) {
 	    // the substring between the first and second slash 

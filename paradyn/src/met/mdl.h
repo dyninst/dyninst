@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.22 1999/08/09 05:41:21 csserra Exp $
+// $Id: mdl.h,v 1.23 1999/11/11 01:02:41 wylie Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -56,8 +56,8 @@
 
 // Toplevel for code in resource heirarchy....
 #define CODE_RH_NAME "Code"
-// field seperator for resource heirarchy....
-#define RH_SEPERATOR '/'
+// field separator for resource heirarchy....
+const char RH_SEPARATOR = '/';
 
 #define MDL_FOLD_SUM 0
 #define MDL_FOLD_AVG 1
