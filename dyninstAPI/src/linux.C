@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.44 2000/11/16 19:20:19 bernat Exp $
+// $Id: linux.C,v 1.45 2000/11/20 23:13:59 schendel Exp $
 
 #include <fstream.h>
 
@@ -68,6 +68,11 @@
 #include "dyninstAPI/src/inst-x86.h"
 #ifndef BPATCH_LIBRARY
 #include "common/h/Time.h"
+#include "common/h/timing.h"
+#endif
+
+#ifdef HRTIME
+#include "rtinst/h/RThwtimer-x86.h"
 #endif
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
@@ -1655,7 +1660,11 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 
 #ifdef SHM_SAMPLING
 rawTime64 process::getRawCpuTime_hw(int /*lwp_id*/) {
-  return 0;
+  rawTime64 val = 0;
+#ifdef HRTIME
+  val = hrtimeGetVtime(hr_cpu_link);
+#endif
+  return val;
 }
 
 rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) /* const */ {
@@ -2120,11 +2129,33 @@ timeUnit calcJiffyUnit() {
   return jiffy;
 }
 
+bool process::isLibhrtimeAvail() {
+#ifdef HRTIME
+  int result = ::isLibhrtimeAvail(&hr_cpu_link, getPid());
+  return (result == 1);
+#else
+  return false;
+#endif
+}
+
+void process::free_hrtime_link() {
+#ifdef HRTIME
+  int error = free_hrtime_struct(hr_cpu_link);
+  if(error != 0) {
+    cerr << "process::free_hrtime_link- Error in unmapping hrtime_struct for "
+      " libhrtime\n";
+  }
+#endif
+}
+
 void process::initCpuTimeMgrPlt() {
-  timeUnit jiffy = calcJiffyUnit();
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, jiffy, 
-			   timeBase::bNone(), &process::getRawCpuTime_sw, 
-			   "DYNINSTgetCPUtime_sw");
+  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isLibhrtimeAvail,
+			   getCyclesPerSecond(), timeBase::bNone(), 
+			   &process::getRawCpuTime_hw, "DYNINSTgetCPUtime_hw",
+			   &process::free_hrtime_link);
+  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
+			   calcJiffyUnit(), timeBase::bNone(), 
+			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
 }
 #endif
 

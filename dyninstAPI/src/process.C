@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.237 2000/11/15 22:56:08 bernat Exp $
+// $Id: process.C,v 1.238 2000/11/20 23:14:00 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -81,6 +81,10 @@ int pvmendtask();
 #include "paradynd/src/main.h"
 #include "paradynd/src/init.h"
 #include "pdutil/h/pdDebugOstream.h"
+#endif
+
+#if defined(HRTIME) && !defined(BPATCH_LIBRARY)
+#include "rtinst/h/RThwtimer-x86.h"
 #endif
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD) //inst-sparc.C
@@ -1558,6 +1562,10 @@ process::~process()
 	}
     }
 }
+#else
+process::~process() {
+  cpuTimeMgr->destroyMechTimers(this);
+}
 #endif
 
 unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); }
@@ -1575,6 +1583,9 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 ) :
 #ifndef BPATCH_LIBRARY
              cpuTimeMgr(NULL),
+#ifdef HRTIME
+             hr_cpu_link(NULL),
+#endif
 #endif
              baseMap(ipHash), 
 #ifdef BPATCH_LIBRARY
@@ -1747,6 +1758,9 @@ process::process(int iPid, image *iSymbols,
                  ) :
 #ifndef BPATCH_LIBRARY
                 cpuTimeMgr(NULL),
+#ifdef HRTIME
+                hr_cpu_link(NULL),
+#endif
 #endif
                 baseMap(ipHash),
 #ifdef BPATCH_LIBRARY
@@ -1977,6 +1991,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                  ) :
 #ifndef BPATCH_LIBRARY
   cpuTimeMgr(NULL),
+#ifdef HRTIME
+  hr_cpu_link(NULL),
+#endif
 #endif
   baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
 #ifdef BPATCH_LIBRARY
@@ -6202,13 +6219,39 @@ void process::MonitorDynamicCallSites(string function_name){
 }
 #endif
 
+bool bForceSoftwareLevelCpuTimer() {
+  char *pdkill;
+  pdkill = getenv("SOFTWARE_LEVEL_CPU_TIMER");
+  if( pdkill )
+    return true;
+  else
+    return false;
+}
 
 #ifndef BPATCH_LIBRARY
 void process::initCpuTimeMgr() {
   if(cpuTimeMgr != NULL)  delete cpuTimeMgr;
   cpuTimeMgr = new cpuTimeMgr_t();
   initCpuTimeMgrPlt();
-  cpuTimeMgr->determineBestLevels(this);
+
+  if(bForceSoftwareLevelCpuTimer()) {
+    cpuTimeMgr_t::mech_t *tm=cpuTimeMgr->getMechLevel(cpuTimeMgr_t::LEVEL_TWO);
+    cpuTimeMgr->installMechLevel(cpuTimeMgr_t::LEVEL_BEST, tm);    
+    if(bShowTimerInfo())
+          cerr << "Forcing to software level cpu timer\n";
+    sampleVal_cerr << "Forcing to software level cpu timer\n";
+  } else {
+    cpuTimeMgr->determineBestLevels(this);
+  }
+  cpuTimeMgr_t::timeMechLevel ml = cpuTimeMgr->getBestLevel();
+  sampleVal_cerr << "Chosen cpu timer level: " << int(ml)+1 << "  "
+		 << *cpuTimeMgr->getMechLevel(ml)
+		 << "(timeBase is irrelevant for cpu time)\n\n";
+  if(bShowTimerInfo()) {
+    cerr << "Chosen cpu timer level: " << int(ml)+1 << "  "
+	 << *cpuTimeMgr->getMechLevel(ml)
+	 << "(timeBase is irrelevant for cpu time)\n\n";    
+  }
 }
 
 timeStamp process::getCpuTime(int lwp_id) {

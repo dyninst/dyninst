@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.150 2000/11/15 22:56:09 bernat Exp $
+/* $Id: process.h,v 1.151 2000/11/20 23:14:00 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -84,6 +84,10 @@
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
+#endif
+
+#if defined(HRTIME) && !defined(BPATCH_LIBRARY)
+#include "hrtime.h"
 #endif
 
 #include "dyninstAPI/src/sharedobject.h"
@@ -643,8 +647,8 @@ class process {
   bool continueProc();
 #ifdef BPATCH_LIBRARY
   bool terminateProc() { return terminateProc_(); }
-  ~process();
 #endif
+  ~process();
   bool pause();
 
   bool replaceFunctionCall(const instPoint *point,const function_base *newFunc);
@@ -697,6 +701,14 @@ class process {
   // as args.
   typedef timeMgr<process, int> cpuTimeMgr_t;
   cpuTimeMgr_t *cpuTimeMgr;
+
+#ifdef i386_unknown_linux2_0
+  bool isLibhrtimeAvail();           // for high resolution cpu timer on linux
+  void free_hrtime_link();
+#ifdef HRTIME
+  struct hrtime_struct *hr_cpu_link;
+#endif
+#endif
 
   // Verifies that the wall and cpu timer levels chosen by the daemon are
   // also available within the rtinst library.  This is an issue because the
