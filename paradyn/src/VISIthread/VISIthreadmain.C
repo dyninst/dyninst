@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.91 2001/06/20 20:33:43 schendel Exp $
+// $Id: VISIthreadmain.C,v 1.92 2001/08/23 14:43:54 schendel Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -66,6 +66,7 @@
 #include "paradyn/src/UIthread/minmax.h"
 #include "pdutil/h/hist.h"   // delete this after type conversion of visis
 #include "paradyn/src/DMthread/DMmetric.h" // delete after type convers. complt
+#include "pdutil/h/makenan.h"  // delete this after the type conv. of visis
 
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
@@ -237,6 +238,7 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
   metricInstance *minst = metricInstance::getMI(mi);
   metric *met = metric::getMetric(minst->getMetricHandle());
   double divisor = 0.0;
+
   if(met->getStyle() == SampledFunction) {
     divisor = 1.0;   // sampledFunction metrics aren't normalized
   } else {
@@ -246,24 +248,25 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
 		   << bucketWidth << "\n";
     divisor = bwidth_ns;
   }
-  double sample = 0.0;
+  double fval;
   if(value.isNaN()) {
-    sample = 0.0;
+    fval = make_Nan();
   } else {
-    sample = static_cast<double>(value.getValue());
+    double sample = static_cast<double>(value.getValue());
+    fval = static_cast<float>(sample / divisor);
   }
-  float ival = static_cast<float>(sample / divisor);
-  sampleVal_cerr << "sample: " << sample << ", value to visis: " 
-		 << ival << "\n";
+
+  sampleVal_cerr << "value to visis: " << fval << "\n";
   // -----------------------------------------------------
 
-  bufferEntry.data = ival;
+  bufferEntry.data = fval;
   bufferEntry.metricId = info->m_id;
   bufferEntry.resourceId = info->r_id; 
   bufferEntry.bucketNum = bucketNum;
+
   sampleVal_cerr << "VISIthreadDataHandler,  adding to buffer - bucket:" 
 		 << bucketNum << ",  value: " << value << ", float_val: "
-		 << ival << "\n";
+		 << fval << "\n";
   // if buffer is full, send buffer to visualization
   flush_buffer_if_full(ptr);
   info = 0;
@@ -279,6 +282,7 @@ void VISIthreadDataCallback(vector<dataValueType> *values,
 
   sampleVal_cerr << "VISIthreadDataCallback - num_values: " << num_values 
 		 << "\n";
+
   VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
       PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
@@ -451,7 +455,6 @@ void VISIthreadnewResourceCallback(perfStreamHandle,
 // TODO: do something with this phase_type info
 void VISIthreadFoldCallback(perfStreamHandle,
 			    timeLength *_newWidthPtr, phaseType phase_type){
-
  timeLength width = *_newWidthPtr;
  delete _newWidthPtr;
  VISIthreadGlobals *ptr;
@@ -498,6 +501,76 @@ void VISIthreadFoldCallback(perfStreamHandle,
   }
 
 }
+
+///////////////////////////////////////////////////////
+//  VISIthreadInitActualValCallback: callback for dataManager
+//     histFold upcall
+//
+//  if thread's local data buffer is not empty send
+//  the data buffer to the visualization process
+//  before sending Fold msg to visi process  
+///////////////////////////////////////////////////////
+// TODO: do something with this phase_type info
+void VISIthreadInitActualValCallback(perfStreamHandle, metricInstanceHandle mi,
+				     pdSample *_newInitActValPtr, phaseType) {
+ pdSample initActVal = *_newInitActValPtr;
+ delete _newInitActValPtr;
+ VISIthreadGlobals *ptr;
+ sampleVal_cerr << "VISIthreadInitActualValCallback- mi: " << mi << ", val: " 
+		<< initActVal << "\n";
+
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+     PARADYN_DEBUG(("thr_getspecific in VISIthreadFoldCallback"));
+     ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadFoldCallback");
+     return;
+  }
+
+  if(ptr->start_up || ptr->quit) // process has not been started or has exited 
+     return;
+
+  // find metricInstInfo for this metricInstanceHandle
+  metricInstInfo *info = NULL;
+  for(unsigned i=0; i < ptr->mrlist.size(); i++){
+      if(ptr->mrlist[i].mi_id == mi){
+          info = &(ptr->mrlist[i]);
+      }
+  }
+  if(!info) {
+    return;
+  }
+  int resourceId = info->r_id;
+  int metricId   = info->m_id;
+
+  // This normalizes the value before being sent to the visis.  The visis
+  // haven't been converted yet and are expecting the sample values to be
+  // normalized.  In the future, the visis will correctly handle the
+  // unnormalized sample values.
+  metricInstance *minst = metricInstance::getMI(mi);
+  metric *met = metric::getMetric(minst->getMetricHandle());
+  double divisor = 0.0;
+
+  if(met->getStyle() == SampledFunction) {
+    divisor = 1.0;   // sampledFunction metrics aren't normalized
+  } else {
+    timeLength bucketWidth = minst->getBucketWidth(ptr->args->phase_type);
+    double bwidth_ns = bucketWidth.getD(timeUnit::ns());
+    sampleVal_cerr << "bucket_width: " << bwidth_ns << ",  width: " 
+		   << bucketWidth << "\n";
+    divisor = bwidth_ns;
+  }
+  double sample = static_cast<double>(initActVal.getValue());
+  double fval = static_cast<float>(sample / divisor);
+  ptr->visip->setInitialActualValue(metricId, resourceId, fval);
+
+  if(ptr->visip->did_error_occur()){
+    PARADYN_DEBUG(("igen: after visip->setInitActVal() in VISIthreadInitActValCallback"));
+    ptr->quit = 1;
+    return;
+  }
+
+}
+
+
 ///////////////////////////////////////////////////////
 //  VISIthreadPhaseCallback: callback for dataManager
 //     new phase definition upcall 
@@ -546,7 +619,6 @@ void VISIthreadPhaseCallback(perfStreamHandle,
 // first set of valid metrics and resources is enabled
 ///////////////////////////////////////////////////////////
 int VISIthreadStartProcess(){
-
   VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -602,7 +674,6 @@ int VISIthreadStartProcess(){
 // reached and if there are still things to enable
 ///////////////////////////////////////////////////////////////////
 bool VISIMakeEnableRequest(){
-
   VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -841,16 +912,15 @@ bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 				 << ",  width: " << bucketWidth << "\n";
 		  divisor = bwidth_ns;
 		}
-		double sample = 0.0;
+		double fval;
 		if(buckets[ve].isNaN()) {
-		  sample = 0.0;
+		  fval = make_Nan();
 		} else {
-		  sample = static_cast<double>(buckets[ve].getValue());
+		  double sample = static_cast<double>(buckets[ve].getValue());
+		  fval = static_cast<float>(sample / divisor);
 		}
-		float ival = static_cast<float>(sample / divisor);
-		sampleVal_cerr << "BDsample: " << sample << ", val to visis: " 
-			      << ival << "\n";
-		bulk_data += ival;
+		sampleVal_cerr << "val to visis: " << fval << "\n";
+		bulk_data += fval;
 		//bulk_data += static_cast<float>(buckets[ve].getValue());
 		// -----------------------------------------------------
 
@@ -1065,6 +1135,7 @@ void *VISIthreadmain(void *vargs){
   callbacks.mFunc = VISIthreadnewMetricCallback;
   callbacks.rFunc = VISIthreadnewResourceCallback; 
   callbacks.fFunc = VISIthreadFoldCallback;
+  callbacks.avFunc= VISIthreadInitActualValCallback;
   callbacks.pFunc = VISIthreadPhaseCallback;
   callbacks.sFunc = 0;
   callbacks.bFunc = 0;
