@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.14 1998/04/02 18:42:58 wylie Exp $
+# $Id: make.program.tmpl,v 1.15 1998/05/06 01:19:38 wylie Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -38,17 +38,26 @@ endif
 ifndef UNCOMMON_LINK
 # The user may set APP_PURE_OPTIONS for application-specific purify options
 pure: $(OBJS) $(LIBS)
-	purify $(APP_PURE_OPTIONS) -cache-dir=/tmp -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	@$(MAKE) $(VOUCHER)
+	purify $(APP_PURE_OPTIONS) -cache-dir=/tmp \
+		-$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) \
+                $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
 endif
 
 ifndef UNCOMMON_LINK
 quantify: $(OBJS) $(LIBS)
-	quantify -cache-dir=/tmp -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	@$(MAKE) $(VOUCHER)
+	quantify -cache-dir=/tmp \
+                -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) \
+                $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
 endif
 
 ifndef UNCOMMON_LINK
 qpt: $(OBJS) $(LIBS)
-	$(MODCC) -Xlinker -Bstatic -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS) -Xlinker -Bdynamic -ldl -Xlinker -Bstatic -lintl
+	@$(MAKE) $(VOUCHER)
+	$(MODCC) -Xlinker -Bstatic -o $(TARGET) \
+                $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS) \
+                -Xlinker -Bdynamic -ldl -Xlinker -Bstatic -lintl
 	# qpt's quick profiling may produce incorrect results in programs
 	# executing interprocedural jumps; this includes setjmp/longjmp.
 	# Hence we must use the -s option for paradyn:
