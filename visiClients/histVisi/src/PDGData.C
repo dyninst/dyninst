@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGData.C,v 1.7 2004/03/23 01:12:48 eli Exp $
+// $Id: PDGData.C,v 1.8 2005/02/15 17:44:28 legendre Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream>
@@ -248,12 +248,6 @@ PDGraph::DataW::UpdateConfiguration( void )
 	int tkwidth = Tk_Width( tkwin );
 	int tkheight = Tk_Height( tkwin );
 
-	if( !Tk_IsMapped( tkwin ) )
-	{
-		tkwidth = Tk_ReqWidth( tkwin );
-		tkheight = Tk_ReqHeight( tkwin );
-	}
-
     // determine where we will draw
     dataRect.x = 0;
     dataRect.y = valLabelHeight;
@@ -290,12 +284,6 @@ PDGraph::DataW::HandleNewData( PDGraph::Curve* curve,
     XRectangle dataRect;
 	int tkwidth = Tk_Width( tkwin );
 	int tkheight = Tk_Height( tkwin );
-
-	if( !Tk_IsMapped( tkwin ) )
-	{
-		tkwidth = Tk_ReqWidth( tkwin );
-		tkheight = Tk_ReqHeight( tkwin );
-	}
 
     // determine where we can draw
     dataRect.x = 0;
