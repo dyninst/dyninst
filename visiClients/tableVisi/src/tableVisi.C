@@ -3,6 +3,10 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.4  1995/11/20 20:20:20  tamches
+ * horizontal & vertical grid lines no longer expand past the
+ * last cells.
+ *
  * Revision 1.3  1995/11/15 01:05:16  tamches
  * fixed bug which clipped cells incorrectly
  *
@@ -390,9 +394,12 @@ void tableVisi::drawMetricNames(Drawable theDrawable) const {
 }
 
 void tableVisi::drawMetricVertLine(Drawable theDrawable, int x) const {
+   int line_height = getMetricAreaPixHeight() + get_total_cell_y_pix();
+   ipmin(line_height, Tk_Height(theTkWindow));
+
    XDrawLine(Tk_Display(theTkWindow), theDrawable,
 	     lineColorGC,
-	     x, 0, x, Tk_Height(theTkWindow)-1);
+	     x, 0, x, 0+line_height-1);
 }
 
 unsigned tableVisi::getMetricAreaPixHeight() const {
@@ -463,9 +470,12 @@ void tableVisi::drawFocusNames(Drawable theDrawable) const {
 }
 
 void tableVisi::drawFocusHorizLine(Drawable theDrawable, int y) const {
+   int line_width = getFocusAreaPixWidth() + get_total_cell_x_pix();
+   ipmin(line_width, get_visible_x_pix());
+   
    XDrawLine(Tk_Display(theTkWindow), theDrawable,
 	     lineColorGC,
-	     0, y, Tk_Width(theTkWindow)-1, y);
+	     0, y, 0+line_width-1, y);
 }
 
 unsigned tableVisi::getFocusLinePixHeight() const {
