@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.39 2003/11/24 17:37:51 schendel Exp $
+// $Id: linux-x86.C,v 1.40 2004/01/19 21:53:42 schendel Exp $
 
 #include <fstream>
 
@@ -292,13 +292,18 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
 // getActiveFrame(): populate Frame object using toplevel frame
 Frame dyn_lwp::getActiveFrame()
 {
+   if(status() == running) {
+      cerr << "    performance problem in call to dyn_lwp::getActiveFrame\n"
+           << "       successive pauses and continues with ptrace calls\n";
+   }
+
    Address pc, fp, sp;
    fp = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
    if (errno) return Frame();
 
    pc = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
    if (errno) return Frame();
-   
+
    sp = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + UESP * INTREGSIZE, 0);
    if (errno) return Frame();
 
@@ -620,8 +625,12 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 
 Address dyn_lwp::readRegister(Register /*reg*/) {
    // On x86, the result is always stashed in %EAX
-   int ret;
-   ret = deliverPtraceReturn(PTRACE_PEEKUSER, EAX*4, 0);
+   if(status() == running) {
+      cerr << "    performance problem in call to dyn_lwp::getActiveFrame\n"
+           << "       successive pauses and continues with ptrace calls\n";
+   }
+
+   int ret = deliverPtraceReturn(PTRACE_PEEKUSER, EAX*4, 0);
    return (Address)ret;
 }
 
