@@ -218,7 +218,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool /*uppermo
     }
 }
 
-void *process::getRegisters(bool & /*syscall*/) {
+void *process::getRegisters() {
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);
 
@@ -1579,4 +1579,9 @@ string process::tryToFindExecutable(const string &progpath, int pid) {
 unsigned process::read_inferiorRPC_result_register(reg returnValReg) {
    assert(false); // not yet implemented!!!
    return 0;
+}
+
+bool process::set_breakpoint_for_syscall_completion() {
+   // We don't know how to do this on AIX
+   return false;
 }
