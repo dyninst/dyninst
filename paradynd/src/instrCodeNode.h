@@ -143,7 +143,7 @@ class instrCodeNode {
   //bool condMatch(instrCodeNode *mn, pdvector<dataReqNode*> &data_tuple1,
   //               pdvector<dataReqNode*> &data_tuple2);
   pdvector<instReqNode*> getInstRequests() { return V.getInstRequests(); }
-  instr_insert_result_t loadInstrIntoApp();
+  inst_insert_result_t loadInstrIntoApp();
   int getID() { return reinterpret_cast<int>(&V); }
   instrCodeNode_Val *getInternalData() { return &V; }
   // should make it private

@@ -41,7 +41,7 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.35 2002/12/20 07:50:04 jaw Exp $
+// $Id: shg.C,v 1.36 2003/05/23 07:27:57 pcroth Exp $
 // Ariel Tamches
 
 #include <assert.h>
@@ -68,9 +68,13 @@ pdvector<Tk_3DBorder> shg::listboxItemTk3DBordersByStyle; // inits to empty vect
 
 GC shg::rootItemInactiveTextGC, shg::rootItemActiveTextGC;
 GC shg::rootItemInactiveShadowTextGC, shg::rootItemActiveShadowTextGC;
+GC shg::rootItemDeferredTextGC;
+GC shg::rootItemDeferredShadowTextGC;
   
 GC shg::listboxInactiveItemGC, shg::listboxActiveItemGC;
 GC shg::listboxInactiveShadowItemGC, shg::listboxActiveShadowItemGC;
+GC shg::listboxDeferredItemGC;
+GC shg::listboxDeferredShadowItemGC;
 
 GC shg::whyRefinementRayGC;
 GC shg::whereRefinementRayGC;
@@ -100,11 +104,15 @@ void shg::initializeStaticsIfNeeded() {
    rootItemActiveTextGC = theShgConsts.rootItemActiveTextGC;
    rootItemInactiveShadowTextGC = theShgConsts.rootItemInactiveShadowTextGC;
    rootItemActiveShadowTextGC = theShgConsts.rootItemActiveShadowTextGC;
+   rootItemDeferredTextGC = theShgConsts.rootItemDeferredTextGC;
+   rootItemDeferredShadowTextGC = theShgConsts.rootItemDeferredShadowTextGC;
 
    listboxInactiveItemGC = theShgConsts.listboxItemInactiveTextGC;
    listboxActiveItemGC = theShgConsts.listboxItemActiveTextGC;
    listboxInactiveShadowItemGC = theShgConsts.listboxItemInactiveShadowTextGC;
    listboxActiveShadowItemGC = theShgConsts.listboxItemActiveShadowTextGC;
+   listboxDeferredItemGC = theShgConsts.listboxItemDeferredTextGC;
+   listboxDeferredShadowItemGC = theShgConsts.listboxItemDeferredShadowTextGC;
 
    whyRefinementRayGC = theShgConsts.whyRefinementRayGC;
    whereRefinementRayGC = theShgConsts.whereRefinementRayGC;
@@ -901,7 +909,9 @@ bool shg::recursiveUpdateHiddenNodes(where4tree<shgRootNode> *ptr) {
    return anyChanges;
 }
 
-void shg::addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalState,
+void shg::addNode(unsigned id, bool iActive,
+            shgRootNode::evaluationState iEvalState,
+            bool /* iDeferred */,
 		  const string &label, const string &fullInfo,
 		  bool rootNodeFlag, bool isCurrShg) {
    if (rootNodeFlag) {
@@ -950,6 +960,7 @@ void shg::addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalS
 
 shg::configNodeResult shg::configNode(unsigned id, bool newActive,
 				      shgRootNode::evaluationState newEvalState,
+                      bool newDeferred,
 				      bool isCurrShg,
 				      bool rethinkIfNecessary) {
    // Does not redraw.  Possible return values:
@@ -993,17 +1004,18 @@ shg::configNodeResult shg::configNode(unsigned id, bool newActive,
 
    const shgRootNode::evaluationState oldEvalState = ptr->getNodeData().getEvalState();
    const bool oldActive = ptr->getNodeData().isActive();
+   const bool oldDeferred = ptr->getNodeData().isDeferred();
    const bool oldHidden = state2hidden(oldEvalState, oldActive, false);
       // false --> we are not a shadow node
 
-   bool anyChanges = ptr->getNodeData().configStyle(newActive, newEvalState);
+   bool anyChanges = ptr->getNodeData().configStyle(newActive, newEvalState, newDeferred);
 
    if (shadowNodeHash.defines(id)) {
       // shadow nodes exist for this id.  configStyle() them, too.
       pdvector< where4tree<shgRootNode>* > &shadowList = shadowNodeHash[id];
       for (unsigned i=0; i < shadowList.size(); i++) {
          where4tree<shgRootNode>* shadowNode = shadowList[i];
-         if (shadowNode->getNodeData().configStyle(newActive, newEvalState))
+         if (shadowNode->getNodeData().configStyle(newActive, newEvalState, newDeferred))
             anyChanges = true;
       }
    }
@@ -1164,7 +1176,7 @@ bool shg::inactivateAll(bool isCurrShg) {
       if (nodePtr == rootPtr || hash2[nodePtr] != NULL) {
          configNodeResult localResult = configNode(nodeId, false,
 						      // false --> not active
-						   oldEvalState, isCurrShg,
+						   oldEvalState, false, isCurrShg,
 						   false // don't rethink
 						   );
 	 if (localResult != noChanges)
@@ -1179,7 +1191,7 @@ bool shg::inactivateAll(bool isCurrShg) {
       }
       else {
 	 // manual job on nodes which haven't yet been addEdge'd into the graph.
-	 (void)nodePtr->getNodeData().configStyle(false, oldEvalState);
+	 (void)nodePtr->getNodeData().configStyle(false, oldEvalState, false);
 	    // false --> inactivate
 	    // we ignore the return result; even if true, we don't want to redraw
       }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMinclude.h,v 1.20 2003/05/21 18:19:51 pcroth Exp $
+// $Id: DMinclude.h,v 1.21 2003/05/23 07:27:42 pcroth Exp $
 
 #ifndef dminclude_H
 #define dminclude_H
@@ -98,12 +98,14 @@ struct miInfoType{
     string metric_units;
     string focus_name;
     dm_MetUnitsType units_type;
+    bool deferred;
 
     string emsg;                // error message if not enabled
 
     miInfoType(){
         successfully_enabled = false; mi_id = 0; m_id=0; r_id=0; 
 	units_type=Normalized;
+    deferred = false;
     }
 };
 typedef struct miInfoType metricInstInfo;

@@ -112,7 +112,7 @@ class machineMetFocusNode : public metricFocusNode {
   bool isEnabled() { return enable; }
   void deleteProcNode(processMetFocusNode *procNode, 
                       bool auto_delete_mach_node = true);
-  instr_insert_result_t insertInstrumentation();
+  inst_insert_result_t insertInstrumentation();
   void initializeForSampling(timeStamp timeOfCont, pdSample initValue);
   bool hasDeferredInstr();
   bool instrInserted();

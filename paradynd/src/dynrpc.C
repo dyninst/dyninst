@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.102 2003/05/21 18:18:26 pcroth Exp $ */
+/* $Id: dynrpc.C,v 1.103 2003/05/23 07:28:04 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -255,17 +255,11 @@ void dynRPC::enableDataCollection(pdvector<T_dyninstRPC::focusStruct> focus,
    metFocInstResponse* cbi = new metFocInstResponse( request_id, daemon_id );
 
    for (u_int i=0; i<metric.size(); i++) {
-      instr_insert_result_t status = startCollecting( false,     // async mode
-                                                    metric[i], focus[i].focus,
-                                                    mi_ids[i],
-                                                    cbi);
+        startCollecting( metric[i], focus[i].focus, mi_ids[i], cbi );
    }
    
    totalInstTime.stop();
-   if( cbi->hasResponse() )
-   {
-      cbi->makeCallback();
-   }
+   cbi->makeCallback();
 }
 
 // synchronous, for propogating metrics
@@ -278,11 +272,7 @@ dynRPC::enableDataCollection2(pdvector<u_int> focus,
    totalInstTime.start();
 
    metFocInstResponse *cbi = new metFocInstResponse( mid, daemon_id );
-   instr_insert_result_t ret_status = startCollecting( true,    // sync mode
-                                                    met, focus,
-                                                    mid,
-                                                    cbi);
-
+   startCollecting( met, focus, mid, cbi );
    totalInstTime.stop();
 
    return *cbi;

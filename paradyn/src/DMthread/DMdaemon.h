@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.58 2003/05/21 18:19:51 pcroth Exp $
+// $Id: DMdaemon.h,v 1.59 2003/05/23 07:27:42 pcroth Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -73,39 +73,62 @@ class DM_enableType{
     friend class dynRPCUser;
     friend class phaseInfo;
     friend void DMenableResponse(DM_enableType&,pdvector<bool>&);
+    friend void DMenableDeferredResponse(DM_enableType&);
  public: 
     DM_enableType(perfStreamHandle ph,perfStreamHandle pth,phaseType t,phaseHandle ph_h,
 		  u_int rI,u_int cI,pdvector <metricInstance *> *r,
 		  pdvector <bool> *d,pdvector <bool> *e,u_int h,u_int pd,u_int pc,
-		  u_int ppd): ps_handle(ph),pt_handle(pth),ph_type(t), ph_handle(ph_h),
+		  u_int ppd) :
+          ps_handle(ph),pt_handle(pth),ph_type(t), ph_handle(ph_h),
 		  request_id(rI), client_id(cI), request(r),done(d),enabled(e),
 		  how_many_daemons(h), persistent_data(pd), persistent_collection(pc),
-		  phase_persistent_data(ppd), not_all_done(0) { 
+		  phase_persistent_data(ppd), not_all_done(0),
+          n_deferred( 0 )
+          { 
 			   for(u_int i=0; i < done->size(); i++){
 			       if(!(*done)[i]) not_all_done++;
 			   }
-            requests_received = new pdvector<unsigned>();
-            for(unsigned j=0; j<request->size(); j++) {
-               (*requests_received).push_back(0);
-            }
-            emsgs.resize( request->size() );
+                responses = new unsigned int*[request->size()];
+                for( unsigned int j = 0; j < request->size(); j++ )
+                {
+                    responses[j] = new unsigned int[how_many_daemons];
+                    for( unsigned int k = 0; k < how_many_daemons; k++ )
+                    {
+                        responses[j][k] = inst_insert_unknown;
+                    }
+                }
+                emsgs.resize( request->size() );
     }
     DM_enableType(){ ps_handle = 0; pt_handle = 0; ph_type = GlobalPhase; ph_handle= 0; 
 		request_id = 0; client_id = 0; request = 0; done = 0; 
 		enabled = 0; how_many_daemons =0; persistent_data = 0; 
 		persistent_collection = 0; phase_persistent_data = 0; 
+        responses = NULL;
+        n_deferred = 0;
     }
     ~DM_enableType() {
-       delete request;
-       delete done;
-       delete enabled;
-       delete requests_received;
+        if( request != NULL )
+        {
+            assert( responses != NULL );
+            for( unsigned int i = 0; i < request->size(); i++ )
+            {
+                delete[] responses[i];
+            }
+        }
+        delete[] responses;
+        delete request;
+        delete done;
+        delete enabled;
     }
 
     metricInstance *findMI(metricInstanceHandle mh);
-    void setDone(metricInstanceHandle mh);
-    void daemonRequestReceived(metricInstanceHandle mh);
-    bool allRequestsReceived();
+    void setDone( metricInstanceHandle mh );
+
+    void responseReceived( metricInstanceHandle mh,
+                            unsigned int daemonId,
+                            unsigned int status );
+    bool allResponsesReceived( void ) const;
+    bool hasDeferredResponse( void ) const      { return (n_deferred > 0); }
 
     void updateAny(pdvector<metricInstance *> &completed_mis,
 		   pdvector<bool> successful);
@@ -123,13 +146,14 @@ class DM_enableType{
     pdvector <metricInstance *> *request;  // MI's assoc. w/ enable request
     pdvector <bool> *done;         // which elements are waiting for replies
     pdvector <bool> *enabled;      // which elements were already enabled
-    pdvector<unsigned> *requests_received;
+    unsigned int** responses;
     u_int how_many_daemons;              // number of daemons 
     u_int persistent_data;
     u_int persistent_collection;
     u_int phase_persistent_data;
     u_int not_all_done;
     pdvector<string> emsgs;      // error messages
+    u_int n_deferred;               // total number of deferred responses
 };
 
 

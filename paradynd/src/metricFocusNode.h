@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.101 2003/05/21 18:18:28 pcroth Exp $ 
+// $Id: metricFocusNode.h,v 1.102 2003/05/23 07:28:05 pcroth Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -126,9 +126,6 @@ protected:
 };
 
 
-typedef enum { insert_success, insert_failure, insert_deferred } 
-                                                   instr_insert_result_t;
-
 class metFocInstResponse : public T_dyninstRPC::instResponse
 {
  public:
@@ -138,7 +135,13 @@ class metFocInstResponse : public T_dyninstRPC::instResponse
 
    bool hasResponse( void ) const           { return (rinfo.size() > 0); }
 
-   void addResponse( unsigned int mi_id, int return_id, string emsg = "" );
+   void addResponse( unsigned int mi_id,
+                        inst_insert_result_t res,
+                        string emsg = "" );
+
+   void updateResponse( unsigned int mi_id,
+                        inst_insert_result_t res,
+                        string emsg = "" );
 
    void makeCallback( void );
 };
@@ -177,10 +180,9 @@ extern void reportInternalMetrics(bool force);
  * procsToContinue      - a list of processes that had to be stopped to insert
  *                        instrumentation. The caller must continue these processes.
  */
-instr_insert_result_t startCollecting(bool syncMode,
-                            string& metricName, pdvector<u_int>& focus,
-                            int mid, 
-                            metFocInstResponse* cbi = NULL );
+void startCollecting(string& metricName, pdvector<u_int>& focus,
+                                        int mid, 
+                                        metFocInstResponse* cbi );
 
 /*
  * Return the expected cost of collecting performance data for a single

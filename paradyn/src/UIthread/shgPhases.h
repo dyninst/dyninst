@@ -44,7 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Id: shgPhases.h,v 1.23 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: shgPhases.h,v 1.24 2003/05/23 07:27:57 pcroth Exp $ */
 
 #ifndef _SHG_PHASES_H_
 #define _SHG_PHASES_H_
@@ -235,6 +235,7 @@ class shgPhases {
    bool addNode(int phaseId, unsigned nodeId,
                 bool active,
                 shgRootNode::evaluationState,
+                bool deferred,
                 const string &label, const string &fullInfo,
                 bool rootNodeFlag);
    bool addEdge(int phaseId, unsigned fromId, unsigned toId,
@@ -244,7 +245,7 @@ class shgPhases {
       // The evaluationState param decides whether to explicitly expand
       // the "to" node.  Rethinks the entire layout of the shg
    bool configNode(int phaseId, unsigned nodeId,
-                   bool active, shgRootNode::evaluationState);
+                   bool active, shgRootNode::evaluationState, bool deferred);
    bool inactivateEntireSearch(int phaseId);
 
    void addToStatusDisplay(int phaseId, const string &msg);

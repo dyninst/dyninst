@@ -43,7 +43,7 @@
 // Ariel Tamches
 // analagous to rootNode.h (for the where axis)
 
-/* $Id: shgRootNode.h,v 1.10 2003/03/06 18:50:23 willb Exp $ */
+/* $Id: shgRootNode.h,v 1.11 2003/05/23 07:27:57 pcroth Exp $ */
 
 #ifndef _SHG_ROOT_NODE_H_
 #define _SHG_ROOT_NODE_H_
@@ -78,6 +78,7 @@ class shgRootNode {
    // (active/es_never is undefined)
    bool active;
    evaluationState evalState;
+   bool deferred;
 
    // the following vrble tells whether, in the shg, this node is a why or a where
    // refinement of its parent node.  Presumably, outside code will use the value
@@ -152,11 +153,14 @@ class shgRootNode {
 
    bool isActive() const {return active;}
    evaluationState getEvalState() const {return evalState;}
+   bool isDeferred( void ) const { return deferred; }
 
    refinement getRefinement() const {return theRefinement;}
    void setRefinement(refinement newRefinement) {theRefinement = newRefinement;}
 
-   bool configStyle(bool newActive, evaluationState newEvalState);
+   bool configStyle(bool newActive,
+                    evaluationState newEvalState,
+                    bool newDeferred );
       // returns true iff any changes.  Does not redraw.
 
    void drawAsRoot(Tk_Window, int theDrawable,

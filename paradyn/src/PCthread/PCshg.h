@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.42 2003/05/21 18:21:17 pcroth Exp $
+ * $Id: PCshg.h,v 1.43 2003/05/23 07:27:44 pcroth Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -131,7 +131,7 @@ public:
   const char *getHypoName() {return why->getName();}
   focus getWhere() {return where;}
   void estimatedCostNotification(); 
-  void enableReply (bool, string = "");
+  void enableReply (bool, bool = false, string = "");
   void addActiveSearch();
   void retestAllChildren();
   void retest();
@@ -154,6 +154,7 @@ private:
   bool altMetricFlag;
   experiment *exp;
   bool active;
+  bool deferredInstrumentation;
   testResult truthValue;
   string name;
   refineType axis;
@@ -205,7 +206,8 @@ class searchHistoryGraph {
     ActiveTrueNodeStyle,
     ActiveUnknownNodeStyle,
     ActiveFalseNodeStyle,
-    InactiveTrueNodeStyle };
+    InactiveTrueNodeStyle,
+    DeferredUnknownNodeStyle };
 
   void initPersistentNodes();
   searchHistoryNode *addNode (searchHistoryNode *parent,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.152 2003/05/21 18:18:28 pcroth Exp $
+// $Id: perfStream.C,v 1.153 2003/05/23 07:28:05 pcroth Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -532,26 +532,29 @@ void doDeferredInstrumentation() {
          assert(false);
       }
 
-      instr_insert_result_t insert_status = machNode->insertInstrumentation();
+      inst_insert_result_t insert_status = machNode->insertInstrumentation();
       metFocInstResponse* cbi = machNode->getMetricFocusResponse();
+      assert( cbi != NULL );
       
-      if(insert_status == insert_success) {
+      if(insert_status == inst_insert_success) {
          deferredMetricIDs.erase(itr);
          machNode->initializeForSampling(getWallTime(), pdSample::Zero());
          
          if(cbi != NULL) {
-            cbi->addResponse( mid, mid );
+            cbi->updateResponse( mid, inst_insert_success );
             cbi->makeCallback();
          }
-      } else if(insert_status == insert_failure) {
+      } else if(insert_status == inst_insert_failure) {
          deferredMetricIDs.erase(itr);
 
          if(cbi != NULL) {
-            cbi->addResponse( mid, -1 );
+            cbi->updateResponse( mid,
+                                inst_insert_failure,
+                                mdl_env::getSavedErrorString() );
             cbi->makeCallback();
          }
          delete machNode;
-      } // else insert_status == insert_deferred
+      } // else insert_status == inst_insert_deferred
    }  
 }
 

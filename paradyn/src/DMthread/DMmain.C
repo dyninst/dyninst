@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.149 2003/05/21 18:19:51 pcroth Exp $
+// $Id: DMmain.C,v 1.150 2003/05/23 07:27:42 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -142,6 +142,7 @@ void newSampleRate(timeLength rate);
 extern void histDataCallBack(pdSample *buckets, relTimeStamp, int count, 
 			     int first, void *callbackData);
 extern void histFoldCallBack(const timeLength *_width, void *callbackData);
+
 
 //upcall from paradynd to notify the datamanager that the static
 //portion of the call graph is completely filled in.
@@ -482,8 +483,55 @@ void DMenableResponse(DM_enableType &enable, pdvector<bool> &successful)
             ps->callDataEnableFunc(response,enable.client_id);
             return;
     } }
+
+    // TODO isn't this a memory leak?
     response = 0;
 }
+
+
+void
+DMenableDeferredResponse( DM_enableType& enable )
+{
+    pdvector<metricInstance*>& mis = (*enable.request);
+    pdvector<metricInstInfo>* response = new pdvector<metricInstInfo>(mis.size()); 
+
+    for( unsigned int i = 0; i < mis.size(); i++ )
+    {
+	    (*response)[i].deferred = true;
+	    (*response)[i].mi_id = mis[i]->getHandle(); 
+	    (*response)[i].m_id = mis[i]->getMetricHandle();
+	    (*response)[i].r_id = mis[i]->getFocusHandle();
+	    (*response)[i].metric_name = mis[i]->getMetricName();
+	    (*response)[i].focus_name = mis[i]->getFocusName();
+	}
+
+    // deliver response to subscribers
+    performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
+    perfStreamHandle h; performanceStream *ps;
+    while(allS.next(h,ps))
+    {
+        if(h == (perfStreamHandle)(enable.ps_handle))
+        {
+            ps->callDataEnableFunc(response,enable.client_id);
+            return;
+        }
+    }
+
+    // trace data streams
+    allS.reset();
+    while(allS.next(h,ps))
+    {
+        if(h == (perfStreamHandle)(enable.pt_handle))
+        {
+            ps->callDataEnableFunc(response,enable.client_id);
+            return;
+        }
+    }
+
+    // TODO isn't this a memory leak?
+    response = NULL;
+}
+
 
 //
 // handle an enable response from a daemon. If all daemons have responded
@@ -494,143 +542,183 @@ void DMenableResponse(DM_enableType &enable, pdvector<bool> &successful)
 //
 void dynRPCUser::enableDataCallback( T_dyninstRPC::instResponse resp )
 {
-   // find element in outstanding_enables corr. to request_id
-   u_int which =0;
-   DM_enableType *request_entry = 0;
+    unsigned int i;
 
-   for(u_int i=0; i < paradynDaemon::outstanding_enables.size(); i++){
-      if((paradynDaemon::outstanding_enables[i])->request_id == resp.request_id){
-         which = i;
-         request_entry = paradynDaemon::outstanding_enables[i];
-         break;
-      }
-   }
+    // find request corresponding to this response
+    unsigned int req_entry_idx = 0;
+    DM_enableType* req_entry = NULL;
 
-   if(!request_entry){
-      // a request entry can be removed if a new phase event occurs
-      // between the enable request and response, so ignore the response
-      return;
-   }
-   assert(resp.daemon_id < paradynDaemon::allDaemons.size());
-   paradynDaemon *pd = paradynDaemon::allDaemons[resp.daemon_id];
+    for( i = 0; i < paradynDaemon::outstanding_enables.size(); i++)
+    {
+        DM_enableType* currEntry = paradynDaemon::outstanding_enables[i];
+
+        if( currEntry->request_id == resp.request_id)
+        {
+            req_entry_idx = i;
+            req_entry = currEntry;
+            break;
+        }
+    }
+    if( req_entry == NULL )
+    {
+        // a request entry can be removed if a new phase event occurs
+        // between the enable request and response, so ignore the response
+        return;
+    }
+    assert( resp.daemon_id < paradynDaemon::allDaemons.size() );
+    paradynDaemon* pd = paradynDaemon::allDaemons[resp.daemon_id];
+    assert( pd != NULL );
    
-   // for each mi in request update mi's components with new daemon if
-   // it was successfully enabled
-   for(u_int j=0; j< resp.rinfo.size(); j++){
-      metricInstanceHandle mh =  resp.rinfo[j].mi_id;
+    // update this request's responses with the new response
+    for( i = 0; i < resp.rinfo.size(); i++)
+    {
+        metricInstanceHandle mh = resp.rinfo[i].mi_id;
 
-      if( resp.rinfo[j].return_id != -1 )
-      {
-         metricInstance *mi = request_entry->findMI(mh);
-         assert(mi);
-         component *comp = new component(pd, resp.rinfo[j].return_id, mi);  
-         bool aflag;
-         aflag=(mi->addComponent(comp));
-         assert(aflag);
-         // if at least one daemon could enable, update done and enabled
-         request_entry->setDone(mh);
-      }
-      else
-      {
-        request_entry->setErrorString( mh, resp.rinfo[j].emsg );
-      }
-      request_entry->daemonRequestReceived(mh);
-   }
+        const T_dyninstRPC::indivInstResponse& currResp = resp.rinfo[i];
 
-   // all daemons have responded to enable request, send result to caller 
-   if(request_entry->allRequestsReceived()) { 
-      pdvector<bool> successful( request_entry->request->size());
-      for(u_int k=0; k < request_entry->request->size(); k++){
-         // if MI is 0 or if done is false
-         if(!((*(request_entry->done))[k]) 
-            || !((*(request_entry->request))[k])){
-            successful[k] = false;
-         }
-         else {
-            successful[k] = true;
-         }
-      }
-      // if all daemons have responded update state for request and send
-      // result to caller
-      // a successful enable has both the enabled flag set and an mi*
+        if( currResp.status == inst_insert_success )
+        {
+            metricInstance *mi = req_entry->findMI(mh);
+            assert(mi);
+            component *comp = new component(pd, currResp.mi_id, mi);  
+            bool aflag;
+            aflag=(mi->addComponent(comp));
+            assert(aflag);
+            // if at least one daemon could enable, update done and enabled
+            req_entry->setDone( mh );
+        }
+        else if( currResp.status == inst_insert_failure )
+        {
+            req_entry->setErrorString( mh, currResp.emsg );
+        }
+        req_entry->responseReceived( mh, resp.daemon_id, currResp.status );
+    }
 
-      // clear currentlyEnabling flag and decrement the count of 
-      // waiting enables for all MI's
-      for(u_int i1=0; i1 < request_entry->done->size(); i1++){
-         if((*request_entry->request)[i1]){
-            ((*request_entry->request)[i1])->clearCurrentlyEnabling();
-            if(request_entry->ph_type == CurrentPhase){
-               ((*request_entry->request)[i1])->decrCurrWaiting();
+    // check whether we have now received responses for all
+    // sub-items in this request
+    if( req_entry->allResponsesReceived() )
+    {
+        // for all sub-requests of this request,
+        // all daemons have reported a status -
+        //
+        // how we respond depends on whether any of the 
+        // responses indicated instrumentation was deferred
+        if( req_entry->hasDeferredResponse() )
+        {
+            // There is at least one sub-request for which
+            // at least one daemon reported it had to defer instrumentation.
+            //
+            // Report this status to the caller.
+            DMenableDeferredResponse( *req_entry );
+        }
+        else
+        {
+            // For all sub-requests of this request,
+            // all daemons have reported success or failure status.
+            // This response is complete.
+
+            // build vector indicating which sub-requests were
+            // successfully enabled
+            pdvector<bool> successful( req_entry->request->size() );
+            for(u_int k=0; k < req_entry->request->size(); k++){
+             // if MI is 0 or if done is false
+             if(!((*(req_entry->done))[k]) 
+                || !((*(req_entry->request))[k])){
+                successful[k] = false;
+             }
+             else {
+                successful[k] = true;
+             }
             }
-            else{
-               ((*request_entry->request)[i1])->decrGlobalWaiting();
-            }
-         }
-      }
 
-      // update MI state for this entry and send response to caller
-      DMenableResponse(*request_entry, successful);
+            // if all daemons have responded update state for request and send
+            // result to caller
+            // a successful enable has both the enabled flag set and an mi*
 
-      // remove this entry from the outstanding enables list 
-      u_int size = paradynDaemon::outstanding_enables.size();
-      paradynDaemon::outstanding_enables[which] =
-         paradynDaemon::outstanding_enables[size-1];
-      paradynDaemon::outstanding_enables.resize(size-1);
-      
-      // for each element on outstanding_enables, check to see if there are
-      // any outstatnding_enables that can be satisfied by this request
-      // if so, update state, and for any outstanding_enables that are 
-      // complete, send the result to the client thread  
-      // update not_all_done 
-      for(u_int i2=0; i2 < paradynDaemon::outstanding_enables.size(); i2++){
-         DM_enableType *next_entry = paradynDaemon::outstanding_enables[i2];
-         next_entry->updateAny(*(request_entry->request),successful);
-      }
-      delete request_entry;
-      request_entry = 0;
-      
-      if(paradynDaemon::outstanding_enables.size()){
-         bool done = false;
-         u_int i3 = 0;
-         while(!done){
-            if((paradynDaemon::outstanding_enables[i3])->not_all_done){
-               i3++;
+            // clear currentlyEnabling flag and decrement the count of 
+            // waiting enables for all MI's
+            for(u_int i1=0; i1 < req_entry->done->size(); i1++){
+             if((*req_entry->request)[i1]){
+                ((*req_entry->request)[i1])->clearCurrentlyEnabling();
+                if(req_entry->ph_type == CurrentPhase){
+                   ((*req_entry->request)[i1])->decrCurrWaiting();
+                }
+                else{
+                   ((*req_entry->request)[i1])->decrGlobalWaiting();
+                }
+             }
             }
-            else {  // this entry's request is complete
-               // update MI state for this entry and send response to caller
-               DM_enableType *temp = paradynDaemon::outstanding_enables[i3];
-               successful.resize(temp->request->size());
-               for(u_int k2=0; k2 < successful.size(); k2++){
-	               if(!((*(temp->done))[k2])) successful[k2] = false;
-                  else successful[k2] = true;
-               }
-               // decrement the number of waiting for enables for 
-               // each MI in this response
-               for(u_int k3=0; k3 < temp->request->size(); k3++){
-                  if((*temp->request)[k3]){
-                     if(temp->ph_type == CurrentPhase){
-                        ((*temp->request)[k3])->decrCurrWaiting();
-                     }
-                     else{
-                        ((*temp->request)[k3])->decrGlobalWaiting();
-                     }
-                  }
-               }
-               
-               DMenableResponse(*temp, successful);
 
-               // remove entry from outstanding_enables list
-               u_int newsize=paradynDaemon::outstanding_enables.size()-1;
-               paradynDaemon::outstanding_enables[i3] =
-                  paradynDaemon::outstanding_enables[newsize];
-               paradynDaemon::outstanding_enables.resize(newsize);
-               delete temp;
+            // update MI state for this entry and send response to caller
+            DMenableResponse(*req_entry, successful);
+
+            // remove this entry from the outstanding enables list 
+            u_int size = paradynDaemon::outstanding_enables.size();
+            paradynDaemon::outstanding_enables[req_entry_idx] =
+                paradynDaemon::outstanding_enables[size-1];
+            paradynDaemon::outstanding_enables.resize(size-1);
+
+            // for each element on outstanding_enables, check to see if there are
+            // any outstatnding_enables that can be satisfied by this request
+            // if so, update state, and for any outstanding_enables that are 
+            // complete, send the result to the client thread  
+            // update not_all_done 
+            for(u_int i2=0; i2 < paradynDaemon::outstanding_enables.size(); i2++){
+             DM_enableType *next_entry = paradynDaemon::outstanding_enables[i2];
+             next_entry->updateAny(*(req_entry->request),successful);
             }
-            if(i3 >= paradynDaemon::outstanding_enables.size()) done = true;
-         }
-      }
-   }
+            delete req_entry;
+            req_entry = NULL;
+
+            if(paradynDaemon::outstanding_enables.size()){
+             bool done = false;
+             u_int i3 = 0;
+             while(!done){
+                if((paradynDaemon::outstanding_enables[i3])->not_all_done){
+                   i3++;
+                }
+                else {  // this entry's request is complete
+                   // update MI state for this entry and send response to caller
+                   DM_enableType *temp = paradynDaemon::outstanding_enables[i3];
+                   successful.resize(temp->request->size());
+                   for(u_int k2=0; k2 < successful.size(); k2++){
+                       if(!((*(temp->done))[k2])) successful[k2] = false;
+                      else successful[k2] = true;
+                   }
+                   // decrement the number of waiting for enables for 
+                   // each MI in this response
+                   for(u_int k3=0; k3 < temp->request->size(); k3++){
+                      if((*temp->request)[k3]){
+                         if(temp->ph_type == CurrentPhase){
+                            ((*temp->request)[k3])->decrCurrWaiting();
+                         }
+                         else{
+                            ((*temp->request)[k3])->decrGlobalWaiting();
+                         }
+                      }
+                   }
+                   
+                   DMenableResponse(*temp, successful);
+
+                   // remove entry from outstanding_enables list
+                   u_int newsize=paradynDaemon::outstanding_enables.size()-1;
+                   paradynDaemon::outstanding_enables[i3] =
+                      paradynDaemon::outstanding_enables[newsize];
+                   paradynDaemon::outstanding_enables.resize(newsize);
+                   delete temp;
+                }
+                if(i3 >= paradynDaemon::outstanding_enables.size())
+                {
+                    done = true;
+                }
+             }
+            }
+        }
+    }
 }
+
+
+
 
 //
 // Upcall from daemon in response to getPredictedDataCost call

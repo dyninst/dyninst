@@ -472,41 +472,41 @@ void registerAsDeferred(int metricID) {
    deferredMetricIDs.push_back(metricID);
 }
 
-instr_insert_result_t processMetFocusNode::insertInstrumentation() {
+inst_insert_result_t processMetFocusNode::insertInstrumentation() {
     assert(dontInsertData() == false);  // code doesn't have allocated variables
     if(instrInserted()) {
-        return insert_success;
+        return inst_insert_success;
     }
    
    if(instrLoaded()) {
        assert(trampsHookedUp());
        assert(hasBeenCatchuped());
        instrInserted_ = true;
-       return insert_success;
+       return inst_insert_success;
    }
 
    pauseProcess();
    if(proc()->hasExited()) {
       // though technically we failed to insert instrumentation, from the
       // perspective of the machineMetFocusNode, it succeeded.
-      return insert_success;
+      return inst_insert_success;
    }
       
-   instr_insert_result_t insert_status = loadInstrIntoApp();
+   inst_insert_result_t insert_status = loadInstrIntoApp();
    
-   if(insert_status == insert_deferred) {
+   if(insert_status == inst_insert_deferred) {
        continueProcess();
        if(hasDeferredInstr()) {
            registerAsDeferred(getMetricID());
-           return insert_deferred;
+           return inst_insert_deferred;
        }
-   } else if(insert_status == insert_failure) {
+   } else if(insert_status == inst_insert_failure) {
        continueProcess();
        string msg = string("Unable to load instrumentation for metric focus ")
                     + getFullName() + " into process with pid " 
                     + string(proc()->getPid());
        showErrorCallback(126, msg);
-       return insert_failure;
+       return inst_insert_failure;
    }
 
    insertJumpsToTramps();
@@ -525,7 +525,7 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    
    instrInserted_ = true;
    continueProcess();
-   return insert_success;
+   return inst_insert_success;
 }
 
 //
@@ -812,7 +812,7 @@ void processMetFocusNode::initAggInfoObjects(timeStamp startTime,
   }
 }
 
-instr_insert_result_t processMetFocusNode::loadInstrIntoApp()
+inst_insert_result_t processMetFocusNode::loadInstrIntoApp()
 {
    pdvector<instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
@@ -821,14 +821,14 @@ instr_insert_result_t processMetFocusNode::loadInstrIntoApp()
    // one deferred component
    for (unsigned j=0; j<codeNodes.size(); j++) {
       instrCodeNode *codeNode = codeNodes[j];
-      instr_insert_result_t status = codeNode->loadInstrIntoApp();
+      inst_insert_result_t status = codeNode->loadInstrIntoApp();
       
-      if(status != insert_success) {
+      if(status != inst_insert_success) {
          return status;
       }
    }
 
-   return insert_success;
+   return inst_insert_success;
 }
 
 void processMetFocusNode::prepareForSampling() {

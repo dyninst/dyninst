@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.106 2003/05/21 18:19:46 pcroth Exp $
+/* $Id: dyninstRPC.I,v 1.107 2003/05/23 07:27:37 pcroth Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -400,16 +400,28 @@ $remote struct resourceInfoCallbackStruct {
 };
 
 
+typedef
+enum
+{
+    inst_insert_unknown,
+    inst_insert_success,
+    inst_insert_failure,
+    inst_insert_deferred
+} inst_insert_result_t;
+
+
 $remote struct indivInstResponse
 {
     u_int mi_id;
-    int return_id;
+    u_int status;       // one of the inst_insert_result_t values
     string emsg;
 
 $ignore
-    indivInstResponse( u_int mid = 0, int rid = 0, string msg = "" )
+    indivInstResponse( u_int mid = 0,
+                        inst_insert_result_t _status = inst_insert_failure,
+                        string msg = "" )
       : mi_id( mid ),
-        return_id( rid ),
+        status( _status ),
         emsg( msg )
     { }
 $ignore

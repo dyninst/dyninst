@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.C,v 1.42 2003/05/21 18:21:17 pcroth Exp $    
+ * $Id: PCfilter.C,v 1.43 2003/05/23 07:27:44 pcroth Exp $    
  */
 
 #include "PCfilter.h"
@@ -432,7 +432,7 @@ filteredDataServer::newDataEnabled(pdvector<metricInstInfo> *newlyEnabled)
       // this request was part of a PC pause; there is no pending
       // record and metricInstanceHandle is unchanged
       curr->sendEnableReply(miicurr->m_id, miicurr->r_id, 
-			    miicurr->mi_id, miicurr->successfully_enabled);
+			    miicurr->mi_id, miicurr->successfully_enabled, false);
       return;
     } 
     // mihandle not in use; get filter for this mh/f pair
@@ -458,7 +458,14 @@ filteredDataServer::newDataEnabled(pdvector<metricInstInfo> *newlyEnabled)
 	<< " mi=" << miicurr->mi_id << endl;
 #endif
     } else {
-      if (miicurr->successfully_enabled) {
+      if( miicurr->deferred )
+      {
+        curr->sendEnableReply( miicurr->mi_id,  miicurr->r_id,
+                                    0,
+                                    false,
+                                    true );     // this one has been deferred
+      }
+      else if (miicurr->successfully_enabled) {
 	curr->mi = miicurr->mi_id;
 	DataFilters[(fdsDataID) curr->mi] = curr;
 	curr->status = filter::Active;
@@ -468,7 +475,7 @@ filteredDataServer::newDataEnabled(pdvector<metricInstInfo> *newlyEnabled)
         //**
         curr->sendEnableReply(miicurr->m_id, miicurr->r_id,
                                 0,
-                                false, miicurr->emsg );
+                                false, false, miicurr->emsg );
         curr->status = filter::Inactive;
       }
     }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.240 2003/05/21 18:18:28 pcroth Exp $
+// $Id: metricFocusNode.C,v 1.241 2003/05/23 07:28:04 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -194,9 +194,30 @@ metricFocusNode::metricFocusNode()
 
 
 void
-metFocInstResponse::addResponse( u_int mi_id, int return_id, string emsg )
+metFocInstResponse::addResponse( u_int mi_id,
+                                inst_insert_result_t res,
+                                string emsg )
 {
-    rinfo.push_back( T_dyninstRPC::indivInstResponse( mi_id, return_id, emsg ));
+    rinfo.push_back( T_dyninstRPC::indivInstResponse( mi_id, res, emsg ));
+}
+
+
+void
+metFocInstResponse::updateResponse( u_int mi_id,
+                                    inst_insert_result_t res,
+                                    string emsg )
+{
+    for( pdvector<T_dyninstRPC::indivInstResponse>::iterator iter = rinfo.begin();
+            iter != rinfo.end();
+            iter++ )
+    {
+        if( mi_id == iter->mi_id )
+        {
+            iter->status = res;
+            iter->emsg = emsg;
+            break;
+        }
+    }
 }
 
 
@@ -457,9 +478,9 @@ void metricFocusNode::handleExec(pd_process *pd_proc) {
 // whether we indicate deferred instrumentation as a failure in 
 // the response object or not.
 //
-instr_insert_result_t startCollecting(bool syncMode,
-                                    string& metric_name, pdvector<u_int>& focus,
-                                    int mid, metFocInstResponse *cbi)
+void startCollecting(string& metric_name, pdvector<u_int>& focus,
+                                        int mid,
+                                        metFocInstResponse *cbi)
 {
    assert( cbi != NULL );
 
@@ -475,8 +496,10 @@ instr_insert_result_t startCollecting(bool syncMode,
    if (!machNode) {
       metric_cerr << "startCollecting for " << metric_name 
 		  << " failed because createMetricInstance failed" << endl;
-      cbi->addResponse( mid, -1, mdl_env::getSavedErrorString() );
-      return insert_failure;
+      cbi->addResponse( mid,
+                        inst_insert_failure,
+                        mdl_env::getSavedErrorString() );
+      return;
    }
 
    //cerr << "created metric-focus " << machNode->getFullName() << "\n";   
@@ -484,25 +507,22 @@ instr_insert_result_t startCollecting(bool syncMode,
    metResPairsEnabled++;
    
    if (machNode->isInternalMetric()) {
-      cbi->addResponse( mid, mid );
-      return insert_success;
+      cbi->addResponse( mid, inst_insert_success );
+      return;
    }
 
-   instr_insert_result_t insert_status =  machNode->insertInstrumentation();
-   if(insert_status == insert_deferred) {
+   inst_insert_result_t insert_status =  machNode->insertInstrumentation();
+   if(insert_status == inst_insert_deferred) {
       machNode->setMetricFocusResponse(cbi);
-      if( syncMode )
-      {
-        // note that we do not give a response if this
-        // instrumentation request was given in asynchronous mode
-        cbi->addResponse( mid, -1 );
-      }
-      return insert_deferred;
-   } else if(insert_status == insert_failure) {
+      cbi->addResponse( mid, inst_insert_deferred );
+      return;
+   } else if(insert_status == inst_insert_failure) {
       // error message already displayed in processMetFocusNode::insertInstrum.
       delete machNode;
-      cbi->addResponse( mid, -1, mdl_env::getSavedErrorString() );
-      return insert_failure;
+      cbi->addResponse( mid,
+                        inst_insert_failure,
+                        mdl_env::getSavedErrorString() );
+      return;
    }
 
    // This has zero for an initial value.  This is because for cpu_time and
@@ -517,9 +537,9 @@ instr_insert_result_t startCollecting(bool syncMode,
    // create a metric where it makes sense to send an initial actual value.
    machNode->initializeForSampling(getWallTime(), pdSample::Zero());
 
-   cbi->addResponse( mid, mid );
-   return insert_success;
+   cbi->addResponse( mid, inst_insert_success );
 }
+
 
 timeLength guessCost(string& metric_name, pdvector<u_int>& focus) {
     // called by dynrpc.C (getPredictedDataCost())

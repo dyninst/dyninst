@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.41 2003/05/09 20:14:17 pcroth Exp $ 
+// $Id: DMmetric.h,v 1.42 2003/05/23 07:27:43 pcroth Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -119,7 +119,7 @@ class metric {
             if(info.unitstype == 0) return(UnNormalized);
 	    else if(info.unitstype == 1) return(Normalized);
 	    else return(Sampled);}
-	metricHandle getHandle() { return(info.handle);}
+	metricHandle getHandle( void ) const { return(info.handle);}
 	metricStyle  getStyle() { return((metricStyle) info.style); }
         int   getAggregate() { return info.aggregate;}
 
@@ -195,7 +195,7 @@ class metricInstance {
         static unsigned  mhash(const metricInstanceHandle &val){
 	    return((unsigned)val);
 	}
-	metricInstanceHandle getHandle(){ return(id); }
+	metricInstanceHandle getHandle( void ) const { return(id); }
 	metricHandle getMetricHandle(){ return(met); }
 	resourceListHandle getFocusHandle(){ return(focus); }
 	const char *getMetricName(){ return(metric::getName(met));}

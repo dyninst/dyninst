@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetricInst.C,v 1.23 2003/05/21 18:21:17 pcroth Exp $
+// $Id: PCmetricInst.C,v 1.24 2003/05/23 07:27:44 pcroth Exp $
 // The PCmetricInst class and the PCmetricInstServer methods.
 
 /*
@@ -178,7 +178,7 @@ PCmetricInst::updateEstimatedCost(float costDiff)
 
 void 
 PCmetricInst::enableReply (unsigned token1, unsigned token2, unsigned token3,
-				bool successful, string msg)
+				bool successful, bool deferred, string msg)
 {
   if (EnableStatus == AllDataReady)
     // this is a duplicate; drop it on the floor
@@ -200,7 +200,7 @@ PCmetricInst::enableReply (unsigned token1, unsigned token2, unsigned token3,
     }
   } else {
     // ** need to cancel other subscriptions!
-    sendEnableReply (0, 0, 0, false, msg);
+    sendEnableReply (0, 0, 0, false, deferred, msg);
   }
 }
 

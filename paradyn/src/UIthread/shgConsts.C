@@ -41,7 +41,7 @@
 
 // shgConsts.C
 
-/* $Id: shgConsts.C,v 1.8 2000/08/11 16:32:13 pcroth Exp $ */
+/* $Id: shgConsts.C,v 1.9 2003/05/23 07:27:57 pcroth Exp $ */
 
 #include "shgConsts.h"
 
@@ -52,6 +52,8 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    assert(inactiveTextColor);
    activeTextColor = Tk_GetColor(interp, theTkWindow, Tk_GetUid("ivory"));
    assert(activeTextColor);
+   deferredTextColor = Tk_GetColor(interp, theTkWindow, Tk_GetUid("orange"));
+   assert(deferredTextColor);
 
    // Root Item FontStruct's:
    rootItemFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-r-*-14-*");
@@ -69,6 +71,12 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    rootItemInactiveTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont, &values);
    assert(rootItemInactiveTextGC);
 
+    values.foreground = deferredTextColor->pixel;
+    rootItemDeferredTextGC = Tk_GetGC(theTkWindow,
+                                        GCForeground | GCFont,
+                                        &values );
+    assert( rootItemDeferredTextGC );
+
    values.font = Tk_FontId(rootItemItalicFontStruct);
    values.foreground = activeTextColor->pixel;
    rootItemActiveShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
@@ -79,6 +87,11 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    rootItemInactiveShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
 					   &values);
    assert(rootItemInactiveShadowTextGC);
+
+   values.foreground = deferredTextColor->pixel;
+   rootItemDeferredShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
+					   &values);
+   assert(rootItemDeferredShadowTextGC);
 
    // Listbox FontStruct's:
    listboxItemFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-r-*-12-*");
@@ -95,6 +108,10 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    listboxItemInactiveTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont, &values);
    assert(listboxItemInactiveTextGC);
 
+   values.foreground = deferredTextColor->pixel;
+   listboxItemDeferredTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont, &values);
+   assert(listboxItemDeferredTextGC);
+
    values.font = Tk_FontId(listboxItemItalicFontStruct);
    values.foreground = activeTextColor->pixel;
    listboxItemActiveShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
@@ -104,7 +121,12 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    values.foreground = inactiveTextColor->pixel;
    listboxItemInactiveShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
 					      &values);
-   assert(listboxItemActiveShadowTextGC);
+   assert(listboxItemInactiveShadowTextGC);
+
+   values.foreground = deferredTextColor->pixel;
+   listboxItemDeferredShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
+					      &values);
+   assert(listboxItemDeferredShadowTextGC);
 
    // 3D Borders for root item:
    rootItemTk3DBordersByStyle.resize(4);

@@ -42,7 +42,7 @@
 // shgConsts.h
 // Ariel Tamches
 
-/* $Id: shgConsts.h,v 1.10 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: shgConsts.h,v 1.11 2003/05/23 07:27:57 pcroth Exp $ */
 
 #ifndef _SHG_CONSTS_H_
 #define _SHG_CONSTS_H_
@@ -61,11 +61,17 @@ struct shgConsts {
    Tk_Font rootItemFontStruct, rootItemItalicFontStruct;
    Tk_Font listboxItemFontStruct, listboxItemItalicFontStruct;
 
-   XColor *inactiveTextColor, *activeTextColor;
+   XColor* inactiveTextColor;
+   XColor* deferredTextColor;
+   XColor* activeTextColor;
    GC rootItemActiveTextGC, rootItemInactiveTextGC,
       rootItemActiveShadowTextGC, rootItemInactiveShadowTextGC;
+   GC rootItemDeferredTextGC;
+   GC rootItemDeferredShadowTextGC;
    GC listboxItemActiveTextGC, listboxItemInactiveTextGC,
       listboxItemActiveShadowTextGC, listboxItemInactiveShadowTextGC;
+   GC listboxItemDeferredTextGC;
+   GC listboxItemDeferredShadowTextGC;
 
    GC whyRefinementRayGC, whereRefinementRayGC;
    XColor *whyRefinementColor, *whereRefinementColor;

@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.58 2003/05/21 18:22:41 pcroth Exp $
+# $Id: errorList.tcl,v 1.59 2003/05/23 07:28:04 pcroth Exp $
 
 #
 # Error message format:
@@ -1138,10 +1138,20 @@ set pdError(127) {
 this platform.}
 }
 
+set pdError(128) {
+{Deferred instrumentation}
+{paradyn}
+{information}
+{Instrumentation for one or more of the requested metric/focus pairs\
+was deferred because it is unsafe to insert it at this time.  Paradyn\
+will insert the instrumentation for this metric/focus pair as soon as\
+it detects it is safe to do so.}
+}
+
 
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 125
+    return 128
 }

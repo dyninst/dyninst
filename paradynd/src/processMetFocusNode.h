@@ -182,9 +182,9 @@ class processMetFocusNode : public metricFocusNode {
   bool instrInserted() { return instrInserted_; }
   bool instrLoaded();
 
-  instr_insert_result_t loadInstrIntoApp();
+  inst_insert_result_t loadInstrIntoApp();
   void doCatchupInstrumentation();
-  instr_insert_result_t insertInstrumentation();
+  inst_insert_result_t insertInstrumentation();
   
   pdvector<const instrDataNode *> getFlagDataNodes() const;
   void prepareForSampling();

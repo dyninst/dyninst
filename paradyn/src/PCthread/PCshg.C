@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.69 2003/05/21 18:21:17 pcroth Exp $
+ * $Id: PCshg.C,v 1.70 2003/05/23 07:27:44 pcroth Exp $
  */
 
 #include "PCintern.h"
@@ -86,7 +86,8 @@ searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
 				     bool ns):
 why(why), where(whereowhere), 
 persistent(persist), altMetricFlag(amFlag), 
-exp(NULL), active(false), truthValue(tunknown), 
+exp(NULL), active(false), deferredInstrumentation( false ),
+truthValue(tunknown), 
 axis(axis), nodeID(newID), exStat(expandedNone),  
 mamaGraph (mama), sname(shortName)
 {
@@ -132,7 +133,8 @@ searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
 				     bool ns):
 why(why), where(whereowhere), 
 persistent(persist), altMetricFlag(amFlag), 
-exp(NULL), active(false), truthValue(tunknown), 
+exp(NULL), active(false), deferredInstrumentation( false ),
+truthValue(tunknown), 
 axis(axis), nodeID(newID), exStat(expandedNone),  
 mamaGraph (mama), sname(shortName), alreadySearched(as)
 {
@@ -203,30 +205,47 @@ searchHistoryNode::startExperiment()
 }
 
 void 
-searchHistoryNode::enableReply (bool successful, string msg)
+searchHistoryNode::enableReply (bool successful, bool deferred, string msg)
 {
-  if (successful) {
-    changeActive(true);
-#ifdef PCDEBUG
-    cout << "experiment started for node: " << nodeID << endl;
-#endif
-  } else {
-#ifdef PCDEBUG
-    cout << "unable to start experiment for node: " << nodeID << endl;
-#endif
-    if( msg.length() > 0 )
+    if( deferred )
     {
-        string statusMsg = "Unable to start experiment for ";
+        // dump a message to the status pane
+        string statusMsg = "Deferred instrumentation for ";
         statusMsg += getHypoName();
         statusMsg += " at focus ";
         statusMsg += string(dataMgr->getFocusNameFromHandle(where));
-        statusMsg += ": ";
-        statusMsg += msg;
         mamaGraph->updateDisplayedStatus( statusMsg.c_str() );
+
+        // update our GUI state
+        deferredInstrumentation = true;
+        changeDisplay();
     }
-  }
-  float mycost = getEstimatedCost();
-  mamaGraph->clearPendingSearch(mycost);
+    else if (successful) {
+        changeActive(true);
+#ifdef PCDEBUG
+        cout << "experiment started for node: " << nodeID << endl;
+#endif
+    } else {
+#ifdef PCDEBUG
+        cout << "unable to start experiment for node: " << nodeID << endl;
+#endif
+        if( msg.length() > 0 )
+        {
+            string statusMsg = "Unable to start experiment for ";
+            statusMsg += getHypoName();
+            statusMsg += " at focus ";
+            statusMsg += string(dataMgr->getFocusNameFromHandle(where));
+            statusMsg += ": ";
+            statusMsg += msg;
+            mamaGraph->updateDisplayedStatus( statusMsg.c_str() );
+        }
+    }
+
+    if( !deferred )
+    {
+        float mycost = getEstimatedCost();
+        mamaGraph->clearPendingSearch(mycost);
+    }
 }
 
 void 
@@ -280,8 +299,16 @@ searchHistoryNode::changeDisplay()
 			    searchHistoryGraph::InactiveFalseNodeStyle);
       break;
     case tunknown:
-      uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
+        if( deferredInstrumentation )
+        {
+            uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
+			    searchHistoryGraph::DeferredUnknownNodeStyle);
+        }
+        else
+        {
+            uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
 			    searchHistoryGraph::InactiveUnknownNodeStyle);
+        }
       break;
     };
   }
@@ -846,6 +873,7 @@ void
 searchHistoryNode::changeActive (bool live)
 {
   active = live;
+  deferredInstrumentation = false;
   changeDisplay();
 }
 

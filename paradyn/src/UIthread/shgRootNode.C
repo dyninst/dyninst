@@ -42,7 +42,7 @@
 // shgRootNode.C
 // Ariel Tamches
 
-/* $Id: shgRootNode.C,v 1.12 2003/03/06 18:50:23 willb Exp $ */
+/* $Id: shgRootNode.C,v 1.13 2003/05/23 07:27:57 pcroth Exp $ */
 
 #include "shg.h"
 #include "shgRootNode.h"
@@ -79,6 +79,7 @@ void shgRootNode::initialize(unsigned iId,
 
    active = iActive;
    evalState = iEvalState;
+   deferred = false;
 
    theRefinement = iRefinement;
 
@@ -130,6 +131,7 @@ shgRootNode::shgRootNode(const shgRootNode &src) : label(src.label),
    highlighted = src.highlighted;
    active = src.active;
    evalState = src.evalState;
+   deferred = src.deferred;
    theRefinement = src.theRefinement;
    shadowNode = src.shadowNode;
    pixWidthAsRoot = src.pixWidthAsRoot;
@@ -148,6 +150,7 @@ shgRootNode &shgRootNode::operator=(const shgRootNode &src) {
    highlighted = src.highlighted;
    active = src.active;
    evalState = src.evalState;
+   deferred = src.deferred;
    theRefinement = src.theRefinement;
    shadowNode = src.shadowNode;
    pixWidthAsRoot = src.pixWidthAsRoot;
@@ -157,13 +160,21 @@ shgRootNode &shgRootNode::operator=(const shgRootNode &src) {
    return *this;
 }
 
-bool shgRootNode::configStyle(bool newActive, evaluationState newEvalState) {
+bool shgRootNode::configStyle(bool newActive,
+                                evaluationState newEvalState,
+                                bool newDeferred)
+{
    // returns true iff any changes.  Does not redraw.
-   if (active == newActive && evalState == newEvalState)
+   if ((active == newActive) && 
+        (evalState == newEvalState) &&
+        (deferred == newDeferred) )
+    {
       return false;
+    }
 
    active = newActive;
    evalState = newEvalState;
+   deferred = newDeferred;
    return true;
 }
 
@@ -208,7 +219,7 @@ void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
 
 	Tk_DrawChars(Tk_Display(theTkWindow),
 		theDrawable,
-		shg::getRootItemTextGC(active, shadowNode),
+		shg::getRootItemTextGC(active, shadowNode, deferred),
 		shg::getRootItemFontStruct(shadowNode),
 		abbrevLabel.c_str(), abbrevLabel.length(),
 		textLeft, textBaseLine );
@@ -231,19 +242,27 @@ void shgRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 						XRectangle &listboxBounds) {
 #if !defined(i386_unknown_nt4_0)
    XSetClipRectangles(Tk_Display(theTkWindow),
-		      shg::getListboxItemGC(false, false), // inactive, not shadow
+		      shg::getListboxItemGC(false, false, false), // inactive, not shadow
 		      0, 0, &listboxBounds, 1, YXBanded);
 
    XSetClipRectangles(Tk_Display(theTkWindow),
-		      shg::getListboxItemGC(false, true), // inactive, shadow
+		      shg::getListboxItemGC(false, true, false), // inactive, shadow
 		      0, 0, &listboxBounds, 1, YXBanded);
 
    XSetClipRectangles(Tk_Display(theTkWindow),
-		      shg::getListboxItemGC(true, false), // active, not shadow
+		      shg::getListboxItemGC(false, false, true), // deferred, not shadow
 		      0, 0, &listboxBounds, 1, YXBanded);
 
    XSetClipRectangles(Tk_Display(theTkWindow),
-		      shg::getListboxItemGC(true, true), // active, shadow
+		      shg::getListboxItemGC(false, true, true), // deferred, shadow
+		      0, 0, &listboxBounds, 1, YXBanded);
+
+   XSetClipRectangles(Tk_Display(theTkWindow),
+		      shg::getListboxItemGC(true, false, false), // active, not shadow
+		      0, 0, &listboxBounds, 1, YXBanded);
+
+   XSetClipRectangles(Tk_Display(theTkWindow),
+		      shg::getListboxItemGC(true, true, false), // active, shadow
 		      0, 0, &listboxBounds, 1, YXBanded);
 
    for (unsigned theStyle=es_never; theStyle <= es_false; theStyle++) {
@@ -265,13 +284,17 @@ void shgRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 }
 
 void shgRootNode::doneDrawingListboxItems(Tk_Window theTkWindow) {
-   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(false, false),
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(false, false, false),
 		None); // inactive, not shadow
-   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(false, true),
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(false, true, false),
 		None); // inactive, shadow
-   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(true, false),
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(false, false, true),
+		None); // deferred, not shadow
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(false, true, true),
+		None); // deferred, shadow
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(true, false, false),
 		None); // active, not shadow
-   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(true, true),
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(true, true, false),
 		None); // active, shadow
 
    for (unsigned theStyle=es_never; theStyle <= es_false; theStyle++) {
@@ -302,7 +325,7 @@ void shgRootNode::drawAsListboxItem(Tk_Window theTkWindow, int theDrawable,
 
 	Tk_DrawChars(Tk_Display(theTkWindow),
 		theDrawable,
-		shg::getListboxItemGC(active, shadowNode),
+		shg::getListboxItemGC(active, shadowNode, deferred),
 		shg::getRootItemFontStruct(shadowNode),
 		abbrevLabel.c_str(), abbrevLabel.length(),
 		textLeft, textBaseline);

@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.79 2002/12/20 07:50:04 jaw Exp $
+/* $Id: UIpublic.C,v 1.80 2003/05/23 07:27:57 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -396,34 +396,50 @@ bool tryFirstGoodShgWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
    return true;
 }
 
-void int2style(int styleid, bool &active, shgRootNode::evaluationState &theEvalState) {
+void int2style(int styleid,
+                bool &active,
+                shgRootNode::evaluationState &theEvalState,
+                bool& deferred )
+{
    if (styleid == 0) {
       active = false;
       theEvalState = shgRootNode::es_never;
+        deferred = false;
    }
    else if (styleid == 1) {
       active = false;
       theEvalState = shgRootNode::es_unknown;
+        deferred = false;
    }
    else if (styleid == 2) {
       active = false;
       theEvalState = shgRootNode::es_false;
+        deferred = false;
    }
    else if (styleid == 3) {
       active = true;
       theEvalState = shgRootNode::es_true;
+        deferred = false;
    }
    else if (styleid == 4) {
       active = true;
       theEvalState = shgRootNode::es_unknown;
+        deferred = false;
    }
    else if (styleid == 5) {
       active = true;
       theEvalState = shgRootNode::es_false;
+        deferred = false;
    }
    else if (styleid == 6) {
       active = false;
       theEvalState = shgRootNode::es_true;
+        deferred = false;
+   }
+   else if (styleid == 7) {
+        active = false;
+        theEvalState = shgRootNode::es_unknown;
+        deferred = true;
    }
    else {
       cerr << "unrecognized style id " << styleid << endl;
@@ -454,10 +470,11 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
 {
    const bool isRootNode = (flags == 1);
    bool active;
+   bool deferred;
    shgRootNode::evaluationState theEvalState;
-   int2style(styleID, active, theEvalState);
+   int2style(styleID, active, theEvalState, deferred);
 
-   if (theShgPhases->addNode(dagID, nodeID, active, theEvalState,
+   if (theShgPhases->addNode(dagID, nodeID, active, theEvalState, deferred,
 			     label, shgname, isRootNode))
       // shouldn't we should only be redrawing for a root node?
       if (isRootNode)
@@ -531,10 +548,11 @@ int
 UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
 {
    bool active;
+   bool deferred;
    shgRootNode::evaluationState theEvalState;
-   int2style(styleID, active, theEvalState);
+   int2style(styleID, active, theEvalState, deferred);
   
-   if (theShgPhases->configNode(dagID, nodeID, active, theEvalState))
+   if (theShgPhases->configNode(dagID, nodeID, active, theEvalState, deferred))
       initiateShgRedraw(interp, true); // true --> double buffer
 
    return 1;

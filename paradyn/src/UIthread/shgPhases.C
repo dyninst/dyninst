@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: shgPhases.C,v 1.31 2002/08/02 21:00:32 pcroth Exp $
+// $Id: shgPhases.C,v 1.32 2003/05/23 07:27:57 pcroth Exp $
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
@@ -592,13 +592,15 @@ bool shgPhases::changeHiddenNodes(shg::changeType ct, bool show) {
 bool shgPhases::addNode(int phaseId, unsigned nodeId,
 			bool active,
 			shgRootNode::evaluationState es,
+            bool deferred,
 			const string &label, const string &fullInfo,
 			bool rootNodeFlag) {
    // returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
    const bool isCurrShg = (getCurrentId() == phaseId);
 
-   theShg.addNode(nodeId, active, es, label, fullInfo, rootNodeFlag, isCurrShg);
+   theShg.addNode(nodeId, active, es, deferred,
+                    label, fullInfo, rootNodeFlag, isCurrShg);
 
    return isCurrShg;
 }
@@ -618,13 +620,14 @@ bool shgPhases::addEdge(int phaseId, unsigned fromId, unsigned toId,
 }
 
 bool shgPhases::configNode(int phaseId, unsigned nodeId,
-			   bool active, shgRootNode::evaluationState es) {
+			   bool active, shgRootNode::evaluationState es, bool deferred)
+{
    // returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
    const bool isCurrShg = (getCurrentId() == phaseId);
 
    const shg::configNodeResult changes =
-      theShg.configNode(nodeId, active, es, isCurrShg, true);
+      theShg.configNode(nodeId, active, es, deferred, isCurrShg, true);
          // true --> rethink if needed
 
    return isCurrShg && (changes != shg::noChanges);

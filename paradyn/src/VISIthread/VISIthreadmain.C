@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.98 2003/04/15 18:09:53 pcroth Exp $
+// $Id: VISIthreadmain.C,v 1.99 2003/05/23 07:28:04 pcroth Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -969,7 +969,23 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int){
     // if it is not successfully enabled add it to the retry list
     u_int numEnabled = 0; // number enalbed
     for(u_int i=0; i < response->size(); i++){
-	if ((*response)[i].successfully_enabled) {
+    if((*response)[i].deferred)
+    {
+#if READY
+        // show which m/f pair was disabled?
+#else
+        string statusMsg = "Instrumentation for the metric/focus pair ";
+        statusMsg += (*response)[i].metric_name;
+        statusMsg += ": ";
+        statusMsg += (*response)[i].focus_name;
+        statusMsg += " was deferred because it is unsafe to insert it at this time.";
+        statusMsg += "Paradyn will insert the instrumentation for this metric/focus pair as soon as it detects it is safe to do so.";
+
+        uiMgr->showError(128,P_strdup(statusMsg.c_str()));
+#endif // READY
+        continue;
+    }
+    else if ((*response)[i].successfully_enabled) {
 	    bool found = false;
 	    for(u_int j=0; j < ptr->mrlist.size(); j++){
                 if((*response)[i].mi_id == ptr->mrlist[j].mi_id){

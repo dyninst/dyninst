@@ -384,9 +384,9 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
    //oldCatchUp(tid);
 }
 
-instr_insert_result_t instrCodeNode::loadInstrIntoApp() {
+inst_insert_result_t instrCodeNode::loadInstrIntoApp() {
    if(instrLoaded()) {
-      return insert_success;
+      return inst_insert_success;
    }
 
    V.trampsNeedHookup_ = true;
@@ -412,11 +412,11 @@ instr_insert_result_t instrCodeNode::loadInstrIntoApp() {
            markAsDeferred();
            // cerr << "marking " << (void*)this << " " << u1+1 << " / "
            //      << inst_size << " as deferred\n";
-           return insert_deferred;
+           return inst_insert_deferred;
            break;
         case failure_res:
            //cerr << "instRequest.insertInstr - wasn't successful\n";
-           return insert_failure;
+           return inst_insert_failure;
            break;
         case success_res:
            // cerr << "instrRequest # " << u1+1 << " / " << inst_size
@@ -439,7 +439,7 @@ instr_insert_result_t instrCodeNode::loadInstrIntoApp() {
       }
    }
    V.instrLoaded_ = true;
-   return insert_success;
+   return inst_insert_success;
 }
 
 void instrCodeNode::prepareForSampling(

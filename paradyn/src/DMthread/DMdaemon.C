@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.128 2003/05/21 21:30:14 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.129 2003/05/23 07:27:42 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -125,22 +125,56 @@ void DM_enableType::setDone(metricInstanceHandle mh){
     }
 }
 
-void DM_enableType::daemonRequestReceived(metricInstanceHandle mh) {
-   for(u_int i=0; i < request->size(); i++){
-      if(mh == ((*request)[i])->getHandle()) {
-         (*requests_received)[i]++;
-         return;
-      } 
-   }
+void
+DM_enableType::responseReceived( metricInstanceHandle mh,
+                                        unsigned int daemonId,
+                                        unsigned int status )
+{
+    for( unsigned int i = 0; i < request->size(); i++ )
+    {
+        const metricInstance* currMI = (*request)[i];
+        if( mh == currMI->getHandle() )
+        {
+            if( (status == inst_insert_deferred) &&
+                (responses[i][daemonId] != inst_insert_deferred) )
+            {
+                n_deferred++;   
+            }
+            else if( (responses[i][daemonId] == inst_insert_deferred) &&
+                        (status != inst_insert_deferred) )
+            {
+                assert( n_deferred != 0 );
+                n_deferred--;
+            }
+            responses[i][daemonId] = status;
+            break;
+        } 
+    }
 }
 
-bool DM_enableType::allRequestsReceived() {
-   for(u_int i=0; i < requests_received->size(); i++){
-      if((*requests_received)[i] < how_many_daemons)
-         return false;
-   }
-   return true;
+
+bool
+DM_enableType::allResponsesReceived( void ) const
+{
+    bool ret = true;
+
+    for( unsigned int i = 0; i < request->size(); i++ )
+    {
+        for( unsigned int j = 0; j < how_many_daemons; j++ )
+        {
+            if( responses[i][j] == inst_insert_unknown )
+            {
+                // we still have an unknown
+                ret = false;
+                break;
+            }
+        }
+    }
+    return ret;
 }
+
+
+
 
 // find any matching completed mids and update the done values 
 // if a matching value is successfully enabled done=true, else done= false
@@ -2361,8 +2395,8 @@ void paradynDaemon::propagateMetrics() {
                                                     (const char *) m->getName(),
                                                     mi->id, this->id );
 
-      if( (resp.rinfo[0].return_id > 0) && !did_error_occur() ) {
-        component *comp = new component(this, resp.rinfo[0].return_id, mi);
+      if( (resp.rinfo[0].status == inst_insert_success) && !did_error_occur() ) {
+        component *comp = new component(this, resp.rinfo[0].mi_id, mi);
         if (!mi->addComponent(comp)) {
 	        cout << "internal error in paradynDaemon::addRunningProgram" 
                 << endl;

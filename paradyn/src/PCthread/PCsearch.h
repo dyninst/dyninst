@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.h,v 1.22 2003/05/21 18:21:17 pcroth Exp $
+ * $Id: PCsearch.h,v 1.23 2003/05/23 07:27:44 pcroth Exp $
  * PCsearch.h: State information required throughout a search.
  */
 
@@ -165,7 +165,7 @@ class costModule : public dataSubscriber
 	      PCsearch::expandSearch(static_cast<float>(newVal.getValue()));
     }
   void updateEstimatedCost(float) {;}
-  void enableReply(unsigned, unsigned, unsigned, bool, string = "") {;}
+  void enableReply(unsigned, unsigned, unsigned, bool, bool = false, string = "") {;}
   PCmetInstHandle costFilter;
 };
 

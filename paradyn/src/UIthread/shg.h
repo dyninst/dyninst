@@ -44,7 +44,7 @@
 // of the new where axis user interface
 // Ariel Tamches
 
-/* $Id: shg.h,v 1.27 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: shg.h,v 1.28 2003/05/23 07:27:57 pcroth Exp $ */
 
 #ifndef _SHG_H_
 #define _SHG_H_
@@ -78,8 +78,12 @@ class shg {
       // array[shgRootNode::evaluationState]
    static GC rootItemInactiveTextGC, rootItemActiveTextGC,
              rootItemInactiveShadowTextGC, rootItemActiveShadowTextGC;
+   static GC rootItemDeferredTextGC;
+   static GC rootItemDeferredShadowTextGC;
    static GC listboxInactiveItemGC, listboxActiveItemGC,
              listboxInactiveShadowItemGC, listboxActiveShadowItemGC;
+   static GC listboxDeferredItemGC;
+   static GC listboxDeferredShadowItemGC;
    static GC whyRefinementRayGC;
    static GC whereRefinementRayGC;
    static GC listboxRayGC;
@@ -212,23 +216,45 @@ class shg {
       unsigned styleIndex = theEvalStyle;
       return rootItemTk3DBordersByStyle[styleIndex];
    }
-   static GC getRootItemTextGC(bool active, bool shadow) {
+   static GC getRootItemTextGC(bool active, bool shadow, bool deferred) {
       if (active)
          if (shadow)
             return rootItemActiveShadowTextGC;
          else
             return rootItemActiveTextGC;
+      else if( deferred )
+      {
+         if( shadow )
+         {
+            return rootItemDeferredShadowTextGC;
+         }
+         else
+         {
+            return rootItemDeferredTextGC;
+         }
+      }
       else if (shadow)
          return rootItemInactiveShadowTextGC;
       else
          return rootItemInactiveTextGC;
    }
-   static GC getListboxItemGC(bool active, bool shadow) {
+   static GC getListboxItemGC(bool active, bool shadow, bool deferred) {
       if (active)
          if (shadow)
             return listboxActiveShadowItemGC;
          else
             return listboxActiveItemGC;
+      else if( deferred )
+      {
+         if( shadow )
+         {
+            return listboxDeferredShadowItemGC;
+         }
+         else
+         {
+            return listboxDeferredItemGC;
+         }
+      }
       else if (shadow)
          return listboxInactiveShadowItemGC;
       else
@@ -325,7 +351,9 @@ class shg {
 
    // The following are very high-level routines; they tend to correspond
    // with shg-related igen calls in UI.I:
-   void addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalStyle,
+   void addNode(unsigned id, bool iActive,
+                shgRootNode::evaluationState iEvalStyle,
+                bool iDeferred,
 		const string &label, const string &fullInfo,
 		bool rootNodeFlag, bool isCurrShg);
       // unless we are adding the root node, this routine generally doesn't
@@ -334,7 +362,9 @@ class shg {
       // of the "graph".
    enum configNodeResult {noChanges, benignChanges, changesInvolvingJustExpandedness,
 			  changesInvolvingHiddenness};
-   configNodeResult configNode(unsigned id, bool active, shgRootNode::evaluationState,
+   configNodeResult configNode(unsigned id, bool active,
+                    shgRootNode::evaluationState,
+                    bool iDeferred,
 			       bool isCurrShg, bool rethinkIfNecessary);
       // Does not redraw, but may rethink layout and/or hide-ness.
       // Note: a change from "tentatively-true" to

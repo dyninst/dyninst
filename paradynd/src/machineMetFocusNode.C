@@ -202,24 +202,24 @@ void machineMetFocusNode::updateAllAggInterval(timeLength width) {
   }
 }
 
-instr_insert_result_t machineMetFocusNode::insertInstrumentation() {
+inst_insert_result_t machineMetFocusNode::insertInstrumentation() {
    bool deferred = false;
 
    for(unsigned i=0; i<procNodes.size(); i++) {
       // processMetFocusNode::insertInstrumentation pauses and continues
       // it's process when needed
-      instr_insert_result_t status = procNodes[i]->insertInstrumentation();
-      if(status == insert_failure) {
-	 return insert_failure;
-      } else if(status == insert_deferred) {
+      inst_insert_result_t status = procNodes[i]->insertInstrumentation();
+      if(status == inst_insert_failure) {
+	 return inst_insert_failure;
+      } else if(status == inst_insert_deferred) {
 	 deferred = true;
 	 // continue inserting remaining the processMetFocusNodes
       }
    }
 
-   if(deferred == true)  return insert_deferred;
+   if(deferred == true)  return inst_insert_deferred;
 
-   return insert_success;
+   return inst_insert_success;
 }
 
 void machineMetFocusNode::prepareForSampling() {
@@ -360,10 +360,10 @@ void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
   
    addCurrentPredictedCost(procNode->cost());
    
-   instr_insert_result_t insert_status = procNode->insertInstrumentation(); 
-   if(insert_status == insert_deferred) {
+   inst_insert_result_t insert_status = procNode->insertInstrumentation(); 
+   if(insert_status == inst_insert_deferred) {
       return ;
-   } else if(insert_status == insert_failure) {
+   } else if(insert_status == inst_insert_failure) {
       return ;
    }
 
