@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.12 2004/03/23 01:12:29 eli Exp $
+// $Id: callGraphDisplay.C,v 1.13 2005/02/11 19:33:15 mjbrim Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -125,6 +125,7 @@ callGraphDisplay::callGraphDisplay(int pid, resourceHandle rootId,
   executable_name(exe_name) {
 
   initializeStaticsIfNeeded();
+
   const resourceHandle rootResHandle = rootId;
   callGraphRootNode tempRootNode(rootResHandle, shortName, fullName,
 				 false, false);
@@ -151,7 +152,7 @@ void callGraphDisplay::changeNameStyle(bool fullName){
 void callGraphDisplay::recursiveChangeNameStyle(where4tree<callGraphRootNode> *ptr, bool fullName){
   callGraphRootNode &theRootNode = ptr->getNodeData();
   if(fullName)
-    theRootNode.showFullName();
+     theRootNode.showFullName();
   else theRootNode.showShortName();
   for (unsigned childlcv=0; childlcv < ptr->getNumChildren(); childlcv++)
     recursiveChangeNameStyle(ptr->getChildTree(childlcv), fullName);
@@ -408,17 +409,18 @@ void callGraphDisplay::draw(bool doubleBuffer,
 		  false // not listbox only
 		  );
   
-  if (doubleBuffer && !xsynchronize)
+  if (doubleBuffer && !xsynchronize) {
     // copy from offscreen pixmap onto the 'real' window
     XCopyArea(consts.display,
 	      theDrawable, // source pixmap
 	      Tk_WindowId(consts.theTkWindow), // dest pixmap
-	      consts.erasingGC, // ?????
+	      consts.listboxCopyAreaGC,
 	      0, 0, // source x,y pix
 	      Tk_Width(consts.theTkWindow),
 	      Tk_Height(consts.theTkWindow),
 	      0, 0 // dest x,y offset pix
 	      );
+  }
 }
 
 void callGraphDisplay::resize(bool currentlyDisplayedAbstraction) {
