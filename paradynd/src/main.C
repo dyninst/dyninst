@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.42  1996/05/08 23:54:50  mjrg
+ * Revision 1.43  1996/05/09 21:27:42  newhall
+ * increased the socket send buffer size from 4K to 32K on sunos and hpux
+ *
+ * Revision 1.42  1996/05/08  23:54:50  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
  * removed warnings
@@ -252,6 +255,11 @@ int main(int argc, char *argv[])
     vector<string> cmdLine;
     vector<string> envp;
 
+#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
+   int num_bytes =0;
+   int size = sizeof(num_bytes);
+#endif
+
     // for debugging
     // { int i= 1; while (i); }
 
@@ -323,6 +331,18 @@ int main(int argc, char *argv[])
       }
 
       tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, NULL, NULL, 0);
+
+// set socket buffer size to 64k to avoid write-write deadlock
+// between paradyn and paradynd
+//
+#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
+   num_bytes = 32768;
+   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
+		(char *)&num_bytes ,size) < 0){
+           fprintf(stdout,"DAEMON: setsockopt error\n");
+   }
+#endif
+
       tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
     } else if (!pd_flag) {
       // started via rsh/rexec --> use socket
@@ -337,6 +357,19 @@ int main(int argc, char *argv[])
 	// or else one of the daemons we start (in PDYN_initForPVM), may get our
 	// connection.
 	tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, NULL, NULL, 0);
+
+//
+// set socket buffer size to 16k to avoid write-write deadlock
+// between paradyn and paradynd
+//
+#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
+   num_bytes = 32768;
+   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
+		(char *)&num_bytes ,size) < 0){
+      fprintf(stdout,"DAEMON: setsockopt error\n");
+   }
+#endif
+
 	if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket, 1)) {
 	    cleanUpAndExit(-1);
 	}
@@ -363,6 +396,18 @@ int main(int argc, char *argv[])
       // disconnect from controlling terminal 
       OS::osDisconnect();
       tp = new pdRPC(0, NULL, NULL);
+//
+// set socket buffer size to 64k to avoid write-write deadlock
+// between paradyn and paradynd
+//
+#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
+   num_bytes = 32768;
+   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
+		(char *)&num_bytes ,size) < 0){
+           fprintf(stdout,"DAEMON: setsockopt error\n");
+   }
+#endif
+
     }
     assert(tp);
 #else
@@ -378,6 +423,17 @@ int main(int argc, char *argv[])
 	tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, 
 		       NULL, NULL, false);
 
+//
+// set socket buffer size to 64k to avoid write-write deadlock
+// between paradyn and paradynd
+//
+#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
+   num_bytes = 32768;
+   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
+		(char *)&num_bytes ,size) < 0){
+           fprintf(stdout,"DAEMON: setsockopt error\n");
+   }
+#endif
 	if (cmdLine.size()) {
 	    tp->reportSelf(machine_name, argv[0], getpid(), metPVM);
 	}
@@ -396,6 +452,18 @@ int main(int argc, char *argv[])
     } else {
       OS::osDisconnect();
       tp = new pdRPC(0, NULL, NULL);
+//
+// set socket buffer size to 64k to avoid write-write deadlock
+// between paradyn and paradynd
+//
+#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
+   num_bytes = 32768;
+   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
+		(char *)&num_bytes ,size) < 0){
+           fprintf(stdout,"DAEMON: setsockopt error\n");
+   }
+#endif
+
       // configStdIO(false);
     }
 #endif

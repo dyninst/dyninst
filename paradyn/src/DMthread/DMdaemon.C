@@ -25,6 +25,8 @@ double   quiet_nan();
 #include <stdio.h>
 }
 
+#include <sys/types.h>
+#include <sys/socket.h>
 #include "thread/h/thread.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "dataManager.thread.h"
@@ -130,6 +132,19 @@ bool paradynDaemon::addDaemon (int new_fd)
     uiMgr->showError(6,"");
     return(false);
   }
+
+//
+// KLUDGE:  set socket buffer size to 64k to avoid write-write deadlock
+//              between paradyn and paradynd
+//
+#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
+   int num_bytes =0;
+   int size = sizeof(num_bytes);
+   num_bytes = 32768;
+   if(setsockopt(new_daemon->get_fd(),SOL_SOCKET,SO_SNDBUF,(char *)&num_bytes ,size) < 0){
+      perror("setsocketopt SND_BUF error");
+   }
+#endif
 
   msg_bind_buffered (new_daemon->get_fd(), true, (int(*)(void*)) xdrrec_eof,
 		     (void*)new_daemon->net_obj());
@@ -262,6 +277,15 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
       uiMgr->showError(84,P_strdup(msg.string_of())); 
       return((paradynDaemon*) 0);
     }
+
+#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
+   int num_bytes =0;
+   int nb_size = sizeof(num_bytes);
+   num_bytes = 32768;
+   if(setsockopt(pd->get_fd(),SOL_SOCKET,SO_SNDBUF,(char *)&num_bytes ,nb_size) < 0){
+      perror("setsocketopt SND_BUF error");
+   }
+#endif
 
     paradynDaemon::args.resize(asize);
     if (def->getFlavorString() == "cm5") {
