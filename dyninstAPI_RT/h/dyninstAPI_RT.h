@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.2 1999/12/22 16:27:56 paradyn Exp $
+ * $Id: dyninstAPI_RT.h,v 1.3 2000/03/04 01:26:22 zandy Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -56,7 +56,7 @@
  *  mini-trampolines to reach within this area.
  */
 
-#define SYN_INST_BUF_SIZE 1024*1024*4
+#define SYN_INST_BUF_SIZE (1024*1024*4)
 
 /* We sometimes include this into assembly files, so guard the struct defs. */
 #if !defined(__ASSEMBLER__)
