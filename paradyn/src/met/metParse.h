@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParse.h,v 1.20 2001/04/25 18:41:38 wxd Exp $
+// $Id: metParse.h,v 1.21 2002/08/31 16:53:21 mikem Exp $
 
 #ifndef _MET_PARSE_H
 #define _MET_PARSE_H
@@ -80,6 +80,7 @@ typedef struct metricFld {
   string temps;
   unsigned base_type;
   vector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v;
+  string base_hwcntr_str;
 } metricFld;
 
 class metricDef {
@@ -107,6 +108,9 @@ public:
   void setBaseMstmtV(vector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v) 
 		     {base_m_stmt_v_ = base_m_stmt_v;
 		      base_m_stmt_v_flag = true;}
+
+  void setBaseHwStr(string hw_str) { base_hwcntr_str = hw_str; }
+
   void setField(metricFld &f) {
     switch(f.spec) {
       case SET_MNAME:
@@ -139,6 +143,7 @@ public:
       case SET_BASE:
 	this->setBaseType(f.base_type);
 	this->setBaseMstmtV(f.base_m_stmt_v);
+	this->setBaseHwStr(f.base_hwcntr_str);
 	break;
     }
   }
@@ -171,6 +176,7 @@ public:
 				  agg_,
 				  style_,
 				  base_type_,
+                                  base_hwcntr_str,
 				  base_m_stmt_v_,
 				  flavor_,
 				  constraint_list_,
@@ -210,6 +216,7 @@ private:
   vector<string> *temps_;
   unsigned base_type_; 
   vector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v_;
+  string base_hwcntr_str;
   bool base_m_stmt_v_flag;
   bool base_type_flag;
   bool temps_flag;
@@ -226,6 +233,7 @@ private:
 typedef struct mdl_base {
   vector<T_dyninstRPC::mdl_stmt*> *m_stmt_v;
   unsigned type;
+  string hwcntr_str;
 } mdl_base;
 
 typedef enum { ERR_NO_ERROR,

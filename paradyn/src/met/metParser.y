@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.40 2002/05/13 19:53:41 mjbrim Exp $
+// $Id: metParser.y,v 1.41 2002/08/31 16:53:23 mikem Exp $
 
 #include "paradyn/src/met/metParse.h"
 #include "paradyn/src/met/mdl.h"
@@ -66,7 +66,7 @@ extern void handle_error();
 %token tT_PROCEDURE tT_MODULE tT_STRING tT_INT tT_FLOAT tTRUE tFALSE tDEFAULT
 %token tFOREACH tLPAREN tRPAREN tLBLOCK tRBLOCK tDOLLAR tAMPERSAND
 %token tMETRIC tUNS tBASE tUNITS tIS tFUNCTION_CALL
-%token tCOUNTER tAGG tAVG tSUM tMIN tMAX tDOT tW_TIME tP_TIME
+%token tCOUNTER tAGG tAVG tSUM tMIN tMAX tDOT tW_TIME tP_TIME tHW_TIME tHW_COUNTER
 %token tAPPEND tPREPEND tDERIVED tIF tREPLACE tCONSTRAINT tCONSTRAINED
 %token tIN tLSQUARE tRSQUARE
 %token tSTYLE tEVENT_COUNTER tSAMPLE_FUNC tMODE tDEVELOPER tNORMAL
@@ -563,6 +563,20 @@ met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK
 		$$.base.type = MDL_T_WALL_TIMER;
 		$$.base.m_stmt_v = $5.m_stmt_v; 
 	}
+        | tBASE tIS tHW_COUNTER tLPAREN tLITERAL tRPAREN tLBLOCK metric_stmts tRBLOCK
+        {
+		$$.base.type = MDL_T_HW_COUNTER;
+		$$.base.m_stmt_v = $8.m_stmt_v; 
+                $$.base.hwcntr_str = *$5.sp; 
+                delete $5.sp;
+        }
+        | tBASE tIS tHW_TIME tLPAREN tLITERAL tRPAREN tLBLOCK metric_stmts tRBLOCK
+        {
+		$$.base.type = MDL_T_HW_TIMER;
+		$$.base.m_stmt_v = $8.m_stmt_v; 
+                $$.base.hwcntr_str = *$5.sp; 
+                delete $5.sp;
+        }
 	| tBASE tIS tVOID tLBLOCK metric_stmts tRBLOCK 
 	{
 		// for special un-sampled metrics.
@@ -648,6 +662,7 @@ metric_elem_list: met_name
     $$.mfld = new metricFld;
     $$.mfld->base_type = $1.base.type;
     $$.mfld->base_m_stmt_v = $1.base.m_stmt_v;
+    $$.mfld->base_hwcntr_str = $1.base.hwcntr_str;
     $$.mfld->spec = SET_BASE;
   }
   | met_unittype
@@ -714,6 +729,8 @@ ext_constraint_definition: tCONSTRAINT tIDENT match_path tIS tCOUNTER tLBLOCK me
 cons_type: tCOUNTER  { $$.u = MDL_T_COUNTER; }
   | tW_TIME    { $$.u = MDL_T_WALL_TIMER; }
   | tP_TIME    { $$.u = MDL_T_PROC_TIMER; }
+  | tHW_TIME   { $$.u = MDL_T_HW_TIMER; }
+  | tHW_COUNTER { $$.u = MDL_T_HW_COUNTER; }
   ;
 
 int_constraint_definition: tCONSTRAINT tIDENT match_path tIS tREPLACE cons_type tLBLOCK metric_stmts tRBLOCK 

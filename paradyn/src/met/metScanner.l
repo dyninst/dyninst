@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: metScanner.l,v 1.23 2001/04/25 18:41:38 wxd Exp $
+ * $Id: metScanner.l,v 1.24 2002/08/31 16:53:24 mikem Exp $
  */
 
 #include <stdio.h>
@@ -168,6 +168,8 @@ COMMENT	{SLASH}{SLASH}
 "counter"	{ return(tCOUNTER);}
 "processTimer"		{ return(tP_TIME);}
 "wallTimer"		{ return(tW_TIME);}
+"hwTimer"       {return(tHW_TIME);}
+"hwCounter"       {return(tHW_COUNTER);}
 "aggregateOperator" 	{ return(tAGG);}
 "style"			{ return(tSTYLE);}
 "EventCounter"		{ return(tEVENT_COUNTER); }

@@ -62,7 +62,7 @@ public:
 
   static vector<T_dyninstRPC::mdl_metric*> all_metrics;
   static bool new_metric(string id, string name, string units,
-			 u_int agg, u_int style, u_int type,
+			 u_int agg, u_int style, u_int type, string hwcntr, 
 			 vector<T_dyninstRPC::mdl_stmt*> *stmts, 
 			 vector<string> *flavs,
 			 vector<T_dyninstRPC::mdl_constraint*> *cons,
