@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.216 2005/03/17 19:40:55 jodom Exp $
+ * $Id: inst-power.C,v 1.217 2005/03/17 23:26:38 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1373,7 +1373,6 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
                                 Address exitTrampAddr = 0,
                                 Address baseAddr = 0)
 {
-
   trampTemplate *theTemplate;
   Address trampGuardFlagAddr = proc->trampGuardAddr();
   assert(trampGuardFlagAddr);
@@ -1985,31 +1984,33 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 	    location->absPointAddr(proc));
     */
   }
+
 #if defined(DEBUG)
   bperr( "------------\n");
   for (int i = 0; i < (theTemplate->size/4); i++)
     bperr( "0x%x,\n", tramp[i].raw);
   bperr( "------------\n");
   bperr( "\n\n\n");
-  bperr( "Dumping template: localPre %d, preReturn %d, localPost %d, postReturn %d\n",
+#endif
+#if defined(DEBUG)
+  fprintf(stderr, "Dumping template: localPre %d, preReturn %d, localPost %d, postReturn %d\n",
 	  theTemplate->localPreOffset, theTemplate->localPreReturnOffset, 
 	  theTemplate->localPostOffset, theTemplate->localPostReturnOffset);
-  bperr( "returnIns %d, skipPre %d, skipPost %d, emulate %d, updateCost %d\n",
+  fprintf(stderr, "returnIns %d, skipPre %d, skipPost %d, emulate %d, updateCost %d\n",
 	  theTemplate->returnInsOffset, theTemplate->skipPreInsOffset, theTemplate->skipPostInsOffset,
 	  theTemplate->emulateInsOffset,theTemplate->updateCostOffset);
-  bperr("savePre %d, restorePre %d, savePost %d, restorePost %d, guardPre %d, guardPost %d\n",
+  fprintf(stderr,"savePre %d, restorePre %d, savePost %d, restorePost %d, guardPre %d, guardPost %d\n",
 	  theTemplate->savePreInsOffset, theTemplate->restorePreInsOffset, theTemplate->savePostInsOffset, theTemplate->restorePostInsOffset, theTemplate->recursiveGuardPreJumpOffset,
 	  theTemplate->recursiveGuardPostJumpOffset);
-  bperr( "baseAddr = 0x%x\n", theTemplate->baseAddr);
+  fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
 #endif
-
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
-/*  
-  bperr( "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
+#if defined(DEBUG)
+  fprintf(stderr,  "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
           baseAddr, baseAddr+theTemplate->size, location->absPointAddr(proc), 
           location->pointFunc()->prettyName().c_str());
-*/
+#endif
   if (!isReinstall) {
       proc->addCodeRange(baseAddr, theTemplate);
       return theTemplate;
