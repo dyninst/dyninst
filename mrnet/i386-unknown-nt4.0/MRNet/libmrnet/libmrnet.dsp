@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "."
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "../../../mrnet" /I "../../../mrnet/h" /I "../.." /I "../../../" /I "../../../mrnet/xplat/include" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /D "NDEBUG" /D "os_windows" /D _WIN32_WINNT=0x0500 /D "WIN32" /D "_MBCS" /D "_LIB" /U "max" /U "min" /YX /FD /TP /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "../../../mrnet" /I "../../../mrnet/h" /I "../.." /I "../../../" /I "../../../mrnet/xplat/include" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /D "NDEBUG" /D "os_windows" /D _WIN32_WINNT=0x0500 /D "WIN32" /D "_MBCS" /D "_LIB" /U "max" /U "min" /YX /FD /TP /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "."
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "../../../mrnet" /I "../../../mrnet/h" /I "../.." /I "../../../" /I "../../../mrnet/xplat/include" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /D "_DEBUG" /D "os_windows" /D _WIN32_WINNT=0x0500 /D "WIN32" /D "_MBCS" /D "_LIB" /U "max" /U "min" /YX /FD /GZ /TP /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "../../../mrnet" /I "../../../mrnet/h" /I "../.." /I "../../../" /I "../../../mrnet/xplat/include" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /D "_DEBUG" /D "os_windows" /D _WIN32_WINNT=0x0500 /D "WIN32" /D "_MBCS" /D "_LIB" /U "max" /U "min" /YX /FD /GZ /TP /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -82,7 +82,7 @@ LIB32=link.exe -lib
 # Name "libmrnet - Win32 Debug"
 # Begin Group "Source Files"
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat,y,l"
+# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat,l,y"
 # Begin Source File
 
 SOURCE=..\..\..\mrnet\src\BackEndNode.C
@@ -117,7 +117,7 @@ SOURCE=..\..\..\mrnet\src\EndPointImpl.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\mrnet\src\Errors.C
+SOURCE=..\..\..\mrnet\src\Error.C
 # End Source File
 # Begin Source File
 
@@ -165,59 +165,6 @@ SOURCE=..\..\..\mrnet\src\ParentNode.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\mrnet\src\parser.y
-
-!IF  "$(CFG)" == "libmrnet - Win32 Release"
-
-# Begin Custom Build
-InputPath=..\..\..\mrnet\src\parser.y
-
-BuildCmds= \
-	bison -p mrn -d -y $(InputPath) \
-	perl ..\..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
-	del y.tab.c \
-	move y.tab.h parser.tab.h \
-	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
-	
-
-"parser.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-
-"parser.tab.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-
-"parser.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-# End Custom Build
-
-!ELSEIF  "$(CFG)" == "libmrnet - Win32 Debug"
-
-# Begin Custom Build
-InputPath=..\..\..\mrnet\src\parser.y
-
-BuildCmds= \
-	bison -p mrn -d -y $(InputPath) \
-	perl ..\..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
-	del y.tab.c \
-	move y.tab.h parser.tab.h \
-	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
-	
-
-"parser.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-
-"parser.tab.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-
-"parser.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-# End Custom Build
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\mrnet\src\pdr.c
 # End Source File
 # Begin Source File
@@ -242,6 +189,11 @@ SOURCE=..\..\..\mrnet\src\scanner.l
 InputPath=..\..\..\mrnet\src\scanner.l
 
 BuildCmds= \
+	bison -p mrn -d -y ..\..\..\mrnet\src\parser.y \
+	perl ..\..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
+	del y.tab.c \
+	move y.tab.h parser.tab.h \
+	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
 	flex  -Pmrn ..\..\..\mrnet\src\scanner.l \
 	perl ..\..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
 	del lex.mrn.c \
@@ -252,6 +204,15 @@ BuildCmds= \
    $(BuildCmds)
 
 "scanner.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.tab.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 # End Custom Build
 
@@ -261,6 +222,11 @@ BuildCmds= \
 InputPath=..\..\..\mrnet\src\scanner.l
 
 BuildCmds= \
+	bison -p mrn -d -y ..\..\..\mrnet\src\parser.y \
+	perl ..\..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
+	del y.tab.c \
+	move y.tab.h parser.tab.h \
+	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
 	flex  -Pmrn ..\..\..\mrnet\src\scanner.l \
 	perl ..\..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
 	del lex.mrn.c \
@@ -271,6 +237,15 @@ BuildCmds= \
    $(BuildCmds)
 
 "scanner.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.tab.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
    $(BuildCmds)
 # End Custom Build
 

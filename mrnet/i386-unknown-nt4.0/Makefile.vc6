@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile.vc6,v 1.4 2005/03/29 16:01:15 darnold Exp $
+# $Id: Makefile.vc6,v 1.5 2005/04/06 21:23:39 darnold Exp $
 #
 
 
@@ -52,10 +52,7 @@ $(XPLAT_LIB):
 ###NOTE: this uses an nmake makefile because i couldn't figure out how to tell
 ###       msdev to generate parser.C (and thus parser.tab.h) before scanner.C
 $(MRNET_LIB):
-    @cd MRNet\\libmrnet
-    @nmake /NOLOGO /F libmrnet.mak CFG="libmrnet - Win32 $(PROJCFG)"
-    @cd ..\\..
-#msdev MRNet\\libmrnet\\libmrnet.dsp /MAKE "libmrnet - Win32 $(PROJCFG)"
+    msdev MRNet\\libmrnet\\libmrnet.dsp /MAKE "libmrnet - Win32 $(PROJCFG)"
 
 $(TOPGEN_EXE):
     msdev MRNet\\topgen\\topgen.dsp /MAKE "topgen - Win32 $(PROJCFG)"
