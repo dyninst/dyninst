@@ -43,6 +43,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.59  1997/03/14 18:50:57  zhichen
+ * Added reportSelf in the case when the daemons were started by
+ * COW DJM. Search for 'Tempest' for the change
+ *
  * Revision 1.58  1997/02/26 23:46:35  mjrg
  * First part of WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C file
@@ -270,11 +274,10 @@ RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
 }
 
 int main(int argc, char *argv[]) {
-//    cerr << "welcome to paradynd, args are:" << endl;
-//    for (unsigned lcv=0; lcv < argc; lcv++) {
-//       cerr << argv[lcv] << endl;
-//    }
-//    cerr.flush();
+    //cerr << "welcome to paradynd, args are:" << endl;
+    //for (unsigned lcv=0; lcv < argc; lcv++) {
+    //   cerr << argv[lcv] << endl;
+    //}
 
     struct sigaction act;
 
@@ -329,7 +332,6 @@ int main(int argc, char *argv[]) {
 	     }
 	}
     }
-
 #ifdef PARADYND_PVM
     // There are 3 ways to get here
     //     started by pvm_spawn from first paradynd -- must report back
@@ -339,6 +341,7 @@ int main(int argc, char *argv[]) {
     // int pvm_id = pvm_mytid();
     int pvmParent = PvmSysErr;
 
+    cerr << "pd_flavor: " << pd_flavor.string_of() << endl ;
     if (pd_flavor == string("pvm")) {
        pvmParent = pvm_parent();
 
@@ -386,6 +389,14 @@ int main(int argc, char *argv[]) {
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine,
 		       NULL, NULL, 0);
 	assert(tp);
+	//Tempest, in the case of blizzard_cow, all daemons should report themselves
+    	if (pd_flavor == string("cow")) {
+		cerr << "rsh, rexec, reportSelf " 
+		     << machine_name.string_of() 
+		     << argv[0] << endl ;
+		tp->reportSelf (machine_name, argv[0], getpid(), "cow");
+	}
+      
 
 	if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1)) {
 	    cleanUpAndExit(-1);
@@ -453,19 +464,18 @@ int main(int argc, char *argv[]) {
     assert(aflag);
 
     initLibraryFunctions();
-    if (!init())
+    if (!init()) 
       abort();
 
     if (cmdLine.size()) {
-         //cerr << "paradynd: cmdLine is non-empty so we'll be calling addProcess now!" << endl;
-	 //cerr << "cmdLine is:" << endl;
-	 //for (unsigned lcv=0; lcv < cmdLine.size(); lcv++)
-	 //   cerr << cmdLine[lcv] << endl;
+         logLine("paradynd: cmdLine is non-empty so we'll be calling addProcess now!\n") ; 
+	 cerr << "cmdLine is:" << endl;
+	 for (unsigned lcv=0; lcv < cmdLine.size(); lcv++)
+	    cerr << cmdLine[lcv] << endl;
 
          vector<string> envp;
 	 addProcess(cmdLine, envp, string("")); // ignore return val (is this right?)
     }
-
 
     controllerMainLoop(true);
 }
