@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.28  1994/05/31 18:26:15  markc
+ * Revision 1.29  1994/06/02 23:25:19  markc
+ * Added virtual function 'handle_error' to pardynDaemon class which uses the
+ * error handling features that igen provides.
+ *
+ * Revision 1.28  1994/05/31  18:26:15  markc
  * strdup'd a string passed into createResource, since igen will free the memory
  * for the string on return from the function.
  *
@@ -407,6 +411,16 @@ dynRPCUser::reportSelf (String m, String p, int pd)
 {
   assert(0);
   return;
+}
+
+//
+// When an error is determined on an igen call, this function is
+// called, since the default error handler will exit, and we don't
+// want paradyn to exit.
+//
+void paradynDaemon::handle_error()
+{
+   dm->appContext->removeDaemon(this, TRUE);
 }
 
 //

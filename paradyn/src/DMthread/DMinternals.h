@@ -3,7 +3,11 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.14  1994/05/10 03:57:36  hollings
+ * Revision 1.15  1994/06/02 23:25:18  markc
+ * Added virtual function 'handle_error' to pardynDaemon class which uses the
+ * error handling features that igen provides.
+ *
+ * Revision 1.14  1994/05/10  03:57:36  hollings
  * Changed data upcall to return array of buckets.
  *
  * Revision 1.13  1994/05/09  20:56:19  hollings
@@ -103,6 +107,9 @@ class paradynDaemon: public dynRPCUser {
 
 	// all active metrics ids for this daemon.
 	HTable<metricInstance*> activeMids;
+
+	// replace the igen provided error handler
+	virtual void handle_error();
 };
 
 

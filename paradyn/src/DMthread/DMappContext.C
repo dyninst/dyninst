@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.22  1994/05/30 19:23:58  hollings
+ * Revision 1.23  1994/06/02 23:25:17  markc
+ * Added virtual function 'handle_error' to pardynDaemon class which uses the
+ * error handling features that igen provides.
+ *
+ * Revision 1.22  1994/05/30  19:23:58  hollings
  * Corrected call to change state for continue to be appRunning not appPaused.
  *
  * Revision 1.21  1994/05/23  20:28:04  karavan
@@ -227,11 +231,9 @@ int applicationContext::addExecutable(char  *machine,
     programToRun.count = argc;
     programToRun.data = argv;
     pid = daemon->addExecutable(argc, programToRun);
-    if (daemon->callErr == -1) {
-	removeDaemon(daemon, TRUE);
-    }
+
     // did the application get started ok?
-    if (pid > 0) {
+    if (pid > 0 && !daemon->did_error_occur()) {
 	// TODO
 	fprintf (stderr, "PID is %d\n", pid);
 	exec = new executable(pid, argc, argv, daemon);
@@ -369,9 +371,7 @@ void applicationContext::printStatus()
 
     for (curr = programs; exec = *curr; curr++) {
 	status = exec->controlPath->getStatus(exec->pid);
-	if (exec->controlPath->callErr < 0) {
-	    removeDaemon(exec->controlPath, TRUE);
-	} else {
+	if (!exec->controlPath->did_error_occur()) {
 	    printf("%s\n", status);
 	}
     }
@@ -439,9 +439,6 @@ float applicationContext::getPredictedDataCost(resourceList *rl, metric *m)
     for (curr = daemons; *curr; curr++) {
 	daemon = *curr;
 	val = daemon->getPredictedDataCost(ra, m->getName());
-	if (daemon->callErr == -1) {
-	    removeDaemon(daemon, TRUE);
-	}
 	if (val > max) val = max;
     }
     return(max);
@@ -500,9 +497,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     foundOne = FALSE;
     for (curr = daemons; daemon = *curr; curr++) {
 	id = daemon->enableDataCollection(ra, m->getName());
-	if (daemon->callErr == -1) {
-	    removeDaemon(daemon, TRUE);
-	} else if (id > 0) {
+	if (id > 0 && !daemon->did_error_occur()) {
 	    comp = new component(*curr, id, mi);
 	    mi->components.add(comp, (void *) *curr);
 	    mi->parts.add(&comp->sample, (void *) *curr);
