@@ -745,18 +745,107 @@ DMsetupSocket (int &sockfd)
 }
 
 
-void dataManager::printDaemonStartInfo() {
-  string msg = string("To start a paradyn daemon on a remote machine, logon to that machine and run paradynd with the following arguments:\n\n")
-    + string(" paradynd -p") + string(dataManager::dm->socket) + string(" -m")
-    + getHostName()
-    + string(" -l2 -v1 -z<flavor>")
-    + string("\n\nwhere flavor is the one of: unix, pvm, winnt, mpi\n")
-    + string("\nNote: paradyn daemons are usually started automatically.\nManual start-up is needed only when an rshd or rexecd is not available on the remote machine.\n");
+void dataManager::displayParadynGeneralInfo()
+{
+  uiMgr->showError(104, "\0");
+}
 
+void dataManager::displayParadynLicenseInfo()
+{
+  uiMgr->showError(105, "\0");
+}
+
+void dataManager::displayParadynReleaseInfo()
+{
+  uiMgr->showError(106, "\0");
+}
+
+void dataManager::displayParadynVersionInfo()
+{
+  string msg = string("Paradyn Version Identifier:\n")
+    + string("\n");
   static char buf[1000];
   sprintf(buf, "%s", msg.string_of());
-  uiMgr->showError(99, buf);
-  //fprintf(stderr, msg.string_of());
+  uiMgr->showError(107, buf);
+}
+
+// displayDaemonStartInfo() presents the information necessary to manually
+// start up a Paradyn daemon and have it connect to this Paradyn front-end.
+
+void dataManager::displayDaemonStartInfo() 
+{
+    const string machine = getHostName();
+    const string socket  = string(dataManager::dm->socket);
+    const string command = string("paradynd -z<flavor> -l2")
+                         + string(" -m") + machine + string(" -p") + socket;
+    static char buf[1000];
+
+    string msg = string("To start a paradyn daemon on a remote machine,")
+      + string(" login to that machine and run paradynd")
+      + string(" with the following arguments:\n\n    ") + command
+      + string("\n\n(where flavor is one of: unix, pvm, winnt, mpi).\n");
+    
+    sprintf(buf, "%s", msg.string_of());
+    uiMgr->showError(99, buf);
+    //fprintf(stderr, msg.string_of());
+}
+
+// printDaemonStartInfo() provides the information necessary to manually
+// start up a Paradyn daemon and have it connect to this Paradyn front-end,
+// writing this information to the file whose name is provided as argument
+// (after doing some sanity checks to ensure that the file can be written
+// and that it (probably) won't overwrite another file mistakenly).
+
+void dataManager::printDaemonStartInfo(const char *filename)
+{
+    const string machine = getHostName();
+    const string socket  = string(dataManager::dm->socket);
+    const string command = string("paradynd -z<flavor> -l2")
+                         + string(" -m") + machine + string(" -p") + socket;
+    static char buf[1000];
+
+    assert (filename && (filename[0]!='\0'));
+    //cerr << "dataManager::printDaemonStartInfo(" << filename << ")" << endl;
+
+    struct stat statBuf;
+    int rd = stat(filename, &statBuf);
+    if (rd == 0) {                                      // file already exists
+        if (S_ISDIR(statBuf.st_mode)) { // got a directory!
+            string msg = string("Paradyn connect file \"") + string(filename)
+                + string("\" is a directory! - skipped.\n");
+            sprintf(buf, "%s", msg.string_of());
+            uiMgr->showError(103, buf);
+            return;             
+        } else if (S_ISREG(statBuf.st_mode) && (statBuf.st_size > 0)) {
+            FILE *fp = fopen(filename, "r");        // check whether file exists
+            if (fp) {
+                int n=fscanf(fp, "paradynd");       // look for daemon info
+                if (n<0) {
+                    string msg = string("Aborted overwrite of unrecognized \"") 
+                      + string(filename)
+                      + string("\" contents with daemon start-up information.");
+                    sprintf(buf, "%s", msg.string_of());
+                    uiMgr->showError(103, buf);
+                    fclose(fp);
+                    return;
+                } else {
+                    //fprintf(stderr,"Overwriting daemon start-up information!\n");
+                }
+                fclose(fp);
+            }
+        }
+    }
+    FILE *fp = fopen(filename, "w");
+    if (fp) {
+        // go ahead and actually (re-)write the connect file
+        fprintf(fp, "%s\n", command.string_of());;
+        fclose(fp);
+    } else {
+        string msg = string("Unable to open file \"") + string(filename)
+          + string("\" to write daemon start information.");
+        sprintf(buf, "%s", msg.string_of());
+        uiMgr->showError(103, buf);
+    }
 }
 
 static void
@@ -777,7 +866,6 @@ bool dataManager::DM_sequential_init(const char* met_file){
 }
 
 int dataManager::DM_post_thread_create_init(int tid) {
-
 
     thr_name("Data Manager");
     dataManager::dm = new dataManager(tid);
@@ -922,8 +1010,9 @@ void addMetric(T_dyninstRPC::metricInfo &info)
 
 
 // I don't want to parse for '/' more than once, thus the use of a string vector
-resourceHandle createResource(unsigned res_id, vector<string>& resource_name, string& abstr, unsigned type) {
-
+resourceHandle createResource(unsigned res_id, vector<string>& resource_name,
+                              string& abstr, unsigned type) 
+{
   static const string slashStr = "/";
   static const string baseStr = "BASE";
 
@@ -949,7 +1038,7 @@ resourceHandle createResource(unsigned res_id, vector<string>& resource_name, st
 
 
     /* first check to see if the resource has already been defined */
-    resource *p = resource::resources[parent->getHandle()];
+    // resource *p = resource::resources[parent->getHandle()];
     string myName = p_name;
     myName += slashStr;
     myName += resource_name[r_size - 1];
