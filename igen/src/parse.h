@@ -2,7 +2,11 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.11  1994/08/18 05:56:57  markc
+ * Revision 1.12  1994/08/22 16:07:06  markc
+ * Moved inline functions used for bundling from header files to .SRVR. and
+ * .CLNT. .C files to decrease compiler warnings.
+ *
+ * Revision 1.11  1994/08/18  05:56:57  markc
  * Changed char*'s to stringHandles
  *
  * Revision 1.10  1994/08/17  17:52:00  markc
@@ -76,7 +80,7 @@ void addSMember (stringHandle type, stringHandle name, char *stars);
 extern void buildPVMfilters();
 extern void buildPVMincludes();
 extern void buildPVMargs();
-extern void buildFlagHeaders();
+extern void buildFlagHeaders(ofstream &);
 
 extern void genPVMServerCons(stringHandle );
 extern void genXDRServerCons(stringHandle );

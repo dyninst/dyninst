@@ -2,7 +2,11 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.28  1994/08/18 19:53:28  markc
+ * Revision 1.29  1994/08/22 16:07:03  markc
+ * Moved inline functions used for bundling from header files to .SRVR. and
+ * .CLNT. .C files to decrease compiler warnings.
+ *
+ * Revision 1.28  1994/08/18  19:53:28  markc
  * Added support for new files.
  * Removed compiler warnings for solaris2.3
  *
@@ -320,9 +324,6 @@ int main(int argc, char *argv[])
 	dot_h << "                       }  IGEN_ERR;\n\n";
 	dot_h << "#endif\n";
 
-	if (generatePVM || generateXDR) 
-	  buildFlagHeaders();
-
 	if (generatePVM) 
 	  buildPVMincludes();
       }
@@ -349,6 +350,8 @@ int main(int argc, char *argv[])
 	} else {
 	  dot_c << "#include \"" << protoFile << "h\"\n";
 	}
+
+	buildFlagHeaders(dot_c);
 
 	if (generatePVM)
 	  buildPVMfilters();
@@ -1296,39 +1299,40 @@ void verify_pointer_use(char *stars, stringHandle retType, stringHandle name)
   }
 }
 
-void buildFlagHeaders()
+void buildFlagHeaders(ofstream &current)
 {
-  dot_h << "#ifndef _IGEN_FLAG_DEF\n";
-  dot_h << "#define _IGEN_FLAG_DEF\n";
-  dot_h << "inline void igen_flag_set_null(unsigned long &f) {\n";
-  dot_h << "     f &= 0xfffffffe;\n";
-  dot_h << "}\n";
-  dot_h << "inline void igen_flag_set_nonull(unsigned long &f) {\n";
-  dot_h << "     f |= 1;\n";
-  dot_h << "}\n";
-  dot_h << "inline void igen_flag_set_shared(unsigned long &f) {\n";
-  dot_h << "     f |= 2;\n";
-  dot_h << "}\n";
-  dot_h << "inline void igen_flag_set_noshared(unsigned long &f) {\n";
-  dot_h << "     f &= 0xfffffffd;\n";
-  dot_h << "}\n";
-  dot_h << "inline unsigned char igen_flag_get_id(unsigned long f) {\n";
-  dot_h << "     f >>= 24;\n";
-  dot_h << "     return((unsigned char) f);\n";
-  dot_h << "}\n";
-  dot_h << "inline void igen_flag_set_id(const unsigned char &v, unsigned long &f) {\n";
-  dot_h << "     unsigned long rot;\n";
-  dot_h << "     rot = v;\n";
-  dot_h << "     rot <<= 24;\n";
-  dot_h << "     f |= rot;\n";
-  dot_h << "}\n";
-  dot_h << "inline int igen_flag_is_null(unsigned long f) {\n";
-  dot_h << "     return(f & 1);\n";
-  dot_h << "}\n";
-  dot_h << "inline int  igen_flag_is_shared(unsigned long f) {\n";
-  dot_h << "     return(f & 2);\n";
-  dot_h << "}\n";
-  dot_h << "#endif /* _IGEN_FLAG_DEF */\n";
+  current << "\n\n";
+  current << "#ifndef _IGEN_FLAG_DEF\n";
+  current << "#define _IGEN_FLAG_DEF\n";
+  current << "inline void igen_flag_set_null(unsigned long &f) {\n";
+  current << "     f &= 0xfffffffe;\n";
+  current << "}\n";
+  current << "inline void igen_flag_set_nonull(unsigned long &f) {\n";
+  current << "     f |= 1;\n";
+  current << "}\n";
+  current << "inline void igen_flag_set_shared(unsigned long &f) {\n";
+  current << "     f |= 2;\n";
+  current << "}\n";
+  current << "inline void igen_flag_set_noshared(unsigned long &f) {\n";
+  current << "     f &= 0xfffffffd;\n";
+  current << "}\n";
+  current << "inline unsigned char igen_flag_get_id(unsigned long f) {\n";
+  current << "     f >>= 24;\n";
+  current << "     return((unsigned char) f);\n";
+  current << "}\n";
+  current << "inline void igen_flag_set_id(const unsigned char &v, unsigned long &f) {\n";
+  current << "     unsigned long rot;\n";
+  current << "     rot = v;\n";
+  current << "     rot <<= 24;\n";
+  current << "     f |= rot;\n";
+  current << "}\n";
+  current << "inline int igen_flag_is_null(unsigned long f) {\n";
+  current << "     return(f & 1);\n";
+  current << "}\n";
+  current << "inline int  igen_flag_is_shared(unsigned long f) {\n";
+  current << "     return(f & 2);\n";
+  current << "}\n";
+  current << "#endif /* _IGEN_FLAG_DEF */\n\n\n";
 }
 
 
