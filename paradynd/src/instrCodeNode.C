@@ -446,8 +446,8 @@ inst_insert_result_t instrCodeNode::loadInstrIntoApp() {
       switch(res) {
         case deferred_res:
            markAsDeferred();
-           cerr << "marking " << (void*)this << " " << u1+1 << " / "
-                << inst_size << " as deferred\n";
+           //           cerr << "marking " << (void*)this << " " << u1+1 << " / "
+           //     << inst_size << " as deferred\n";
            return inst_insert_deferred;
            break;
         case failure_res:

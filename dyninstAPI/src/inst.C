@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.124 2005/02/17 02:16:21 rutar Exp $
+// $Id: inst.C,v 1.125 2005/03/16 20:56:00 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -300,7 +300,6 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    if (!mtHandle->baseTramp) 
    {
        delete mtHandle;
-       bperr( "No base tramp!\n");
        mtHandle = NULL;
 
        if(deferred) return deferred_res;

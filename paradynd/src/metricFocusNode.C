@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.257 2005/03/07 21:19:01 bernat Exp $
+// $Id: metricFocusNode.C,v 1.258 2005/03/16 20:56:02 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -114,8 +114,6 @@ metFocInstResponse::updateResponse( u_int mi_id,
                                     inst_insert_result_t res,
                                     pdstring emsg )
 {
-    fprintf(stderr,"metFocInstResponse::updateResponse\n");
-
     for( pdvector<T_dyninstRPC::indivInstResponse>::iterator iter = rinfo.begin();
             iter != rinfo.end();
             iter++ )
