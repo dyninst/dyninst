@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.6  1993/10/07 19:09:12  jcargill
+ * Revision 1.7  1993/10/19 15:29:58  hollings
+ * new simpler primitives.
+ *
+ * Revision 1.6  1993/10/07  19:09:12  jcargill
  * Added true combines for global instrumentation
  *
  * Revision 1.5  1993/10/01  18:15:53  hollings
@@ -129,7 +132,6 @@ retry:
 
 void DYNINSTstartWallTimer(tTimer *timer)
 {
-    if (timer->trigger && (!timer->trigger->value)) return;
     if (timer->counter == 0) {
 	 timer->start = getWallTime();
     }
@@ -141,7 +143,6 @@ void DYNINSTstopWallTimer(tTimer *timer)
 {
     time64 now;
 
-    if (timer->trigger && (timer->trigger->value <= 0)) return;
     if (!timer->counter) return;
 
     if (timer->counter == 1) {
@@ -158,7 +159,6 @@ void DYNINSTstopWallTimer(tTimer *timer)
 
 void DYNINSTstartProcessTimer(tTimer *timer)
 {
-    if (timer->trigger && (!timer->trigger->value)) return;
     if (timer->counter == 0) {
 	 timer->start = getProcessTime();
     }
@@ -169,6 +169,7 @@ void DYNINSTstartProcessTimer(tTimer *timer)
 void set_timer_buf(struct timer_buf *param)
 {
     asm("set 50,%g1");
+    /* asm("set 23,%g1"); */
     asm("retl");
     asm("ta 0x8");
 }
@@ -181,10 +182,10 @@ void DYNINSTstopProcessTimer(tTimer *timer)
     time64 elapsed;
     tTimer timerTemp;
 
-    if (timer->trigger && (timer->trigger->value <= 0)) return;
     if (!timer->counter) return;
 
     if (timer->counter == 1) {
+retry:
 	end = getProcessTime();
 	elapsed = end - timer->start;
 	timer->snapShot = elapsed + timer->total;
@@ -193,14 +194,20 @@ void DYNINSTstopProcessTimer(tTimer *timer)
 	/* read proces time again in case the value was sampled between
 	 *  last sample and mutex getting set.
 	 */
-	timer->total += getProcessTime() - timer->start;
+	if (timer->sampled) {
+	    goto retry;
+	}
+	timer->total = timer->snapShot;
+	timer->sampled = 0;
 	timer->mutex = 0;
 
+#ifdef notdef
 	/* for debugging */
 	if (timer->total < 0) {
 	    timerTemp = *timer;
 	    abort();
 	}
+#endif
 
     } else {
 	timer->counter--;
@@ -236,6 +243,7 @@ void DYNINSTreportTimer(tTimer *timer)
 
     if (timer->mutex) {
 	total = timer->snapShot;
+	timer->sampled = 1;
     } else if (timer->counter) {
 	/* timer is running */
 	if (timer->type == processTime) {
@@ -333,6 +341,8 @@ void DYNINSTreportAggregateTimer(tTimer *timer)
 	abort();
     }
 
+    timer->normalize = NI_CLK_USEC * MILLION;
+
     /* Combine all timers to get a single aggregate 64-bit timer */
     Add_combine_64bit (&total, &aggregate);
 
@@ -358,6 +368,7 @@ void DYNINSTreportAggregateTimer(tTimer *timer)
 
 static time64 startWall;
 int DYNINSTnoHandlers;
+static int DYNINSTinitDone;
 
 #define NI_BASE       (0x20000000)
 #define NI_TIME_A     	      (NI_BASE + 0x0070)
@@ -388,6 +399,7 @@ void DYNINSTinit()
     ni = (unsigned int *) NI_TIME_A;
     set_timer_buf(&timerBuffer);
 
+    DYNINSTinitDone = 1;
 /*     initTraceLibPN(); */
 }
 
@@ -422,21 +434,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     traceSample *sample;
     traceHeader header;
 
-    /* check and see if we should aggregate to other nodes */
-/*     if ((type == TR_SAMPLE) && (((traceSample*) eventData)->id.aggregate)) { */
-	 /* not ready yet! */
-/* 	 abort(); */
-
-	 /* use reduction net to compute aggregate */
-/* 	 sample = (traceSample*) eventData; */
-	 /* newVal = CMMD_reduce_float(sample->value, CMMD_combiner_fadd); */
-/* 	 newVal = CMCN_reduce_float(sample->value, CMMD_combiner_fadd); */
-/* 	 sample->value = newVal; */
-
-
-	 /* only node zero reports value */
-/* 	 if (CMMD_self_address()) return; */
-/*     } */
+    if (!DYNINSTinitDone) return;
 
     CMOS_get_time(&header.wall);
     header.wall += startWall;

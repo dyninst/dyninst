@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.2  1993/08/26 19:43:17  hollings
+ * Revision 1.3  1993/10/19 15:29:58  hollings
+ * new simpler primitives.
+ *
+ * Revision 1.2  1993/08/26  19:43:17  hollings
  * added uarea mapping code.
  *
  * Revision 1.1  1993/07/02  21:49:35  hollings
@@ -59,8 +62,6 @@ void DYNINSTstartProcessTimer(tTimer *timer)
 {
     time64 temp;
 
-    if (timer->trigger && (!timer->trigger->value)) return;
-
     if (timer->counter == 0) {
 	 temp = DYNINSTgetUserTime();
 	 timer->start = temp;
@@ -74,8 +75,6 @@ void DYNINSTstopProcessTimer(tTimer *timer)
 {
     time64 now;
     struct rusage ru;
-
-    if (timer->trigger && (timer->trigger->value <= 0)) return;
 
     /* don't stop a counter that is not running */
     if (!timer->counter) return;
@@ -109,8 +108,6 @@ void DYNINSTstartWallTimer(tTimer *timer)
 {
     struct timeval tv;
 
-    if (timer->trigger && (!timer->trigger->value)) return;
-
     if (timer->counter == 0) {
 	 gettimeofday(&tv, NULL);
 	 timer->start = tv.tv_sec;
@@ -126,8 +123,6 @@ void DYNINSTstopWallTimer(tTimer *timer)
 {
     time64 now;
     struct timeval tv;
-
-    if (timer->trigger && (timer->trigger->value <= 0)) return;
 
     /* don't stop a counter that is not running */
     if (!timer->counter) return;
@@ -342,11 +337,10 @@ void DYNINSTreportTimer(tTimer *timer)
     /* printf("raw sample %d = %f\n", sample.id.id, sample.value); */
 }
 
-DYNINSTfork(void *arg, parameters *param)
+DYNINSTfork(void *arg, int pid)
 {
     int sid = 0;
     traceFork forkRec;
-    int pid = param->arg1;
 
     printf("fork called with pid = %d\n", pid);
     if (pid > 0) {
