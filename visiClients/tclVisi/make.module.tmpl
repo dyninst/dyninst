@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.1  1995/01/30 18:12:20  jcargill
+# Revision 1.2  1995/01/30 21:23:03  jcargill
+# Removed BLT from the LIBS list; no longer used
+#
+# Revision 1.1  1995/01/30  18:12:20  jcargill
 # Major build system reorganization
 #
 #
@@ -16,6 +19,6 @@ SRCS	     += ../src/tclHack.c \
 		../src/DGclient.C
 
 LIBS         += -lvisi -lhist -lutil 
-SYSLIBS	     += -ltk -ltcl -lBLT -lXaw -lXext -lXmu -lXt -lX11 -lm
+SYSLIBS	     += -ltk -ltcl -lXaw -lXext -lXmu -lXt -lX11 -lm
 
 all:	$(TARGET)
