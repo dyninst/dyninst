@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.78 1999/05/21 17:32:13 wylie Exp $
+// $Id: inst-sparc.C,v 1.79 1999/05/25 17:29:57 zandy Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1071,7 +1071,7 @@ bool process::replaceFunctionCall(const instPoint *point,
         generateNoOp(this, point->addr);
     else
         generateCall(this, point->addr,
-                     (const_cast<function_base *>(func))->getAddress(this));
+                     func->getEffectiveAddress(this));
 
     return true;
 }
