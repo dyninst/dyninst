@@ -49,9 +49,12 @@
 #include "rtinst/h/rtinst.h"
 
 class shmMgr;
+class sharedMetaOffsetData;
 
 class sharedMetaData {
  private:
+  shmMgr &theShmMgr;
+   
   unsigned maxThreads;
   unsigned *cookie;
   unsigned *inferior_pid;
@@ -77,27 +80,17 @@ class sharedMetaData {
 
  public:
 
-  sharedMetaData(unsigned maxNumberOfThreads) : 
-    maxThreads(maxNumberOfThreads),
+  sharedMetaData(shmMgr &shmMgrToUse, unsigned maxNumberOfThreads) : 
+    theShmMgr(shmMgrToUse), maxThreads(maxNumberOfThreads),
     rpcPtrBufferSize(rpcPtrSize * maxThreads), malloced(false), 
     curBaseAddr(0)
   { 
-    pendingIRPCs = reinterpret_cast<rpcToDo **>(malloc(rpcPtrBufferSize));
+    pendingIRPCs = reinterpret_cast<rpcToDo **>(malloc(rpcPtrBufferSize *
+						       maxThreads));
   }
-  sharedMetaData(const sharedMetaData &par) : 
-    maxThreads(par.maxThreads), cookie(par.cookie),
-    inferior_pid(par.inferior_pid), daemon_pid(par.daemon_pid),
-    observed_cost(par.observed_cost), 
-    virtualTimers(par.virtualTimers), posToThread(par.posToThread),
-    rpcPtrBufferSize(par.rpcPtrBufferSize), malloced(par.malloced), 
-    curBaseAddr(par.curBaseAddr)
-  {
-    pendingIRPCs = reinterpret_cast<rpcToDo **>(malloc(rpcPtrBufferSize));
-    memcpy(pendingIRPCs, par.pendingIRPCs, rpcPtrBufferSize);
-  }
-  ~sharedMetaData() {
-    free(pendingIRPCs);
-  }
+  sharedMetaData(const sharedMetaData &par, shmMgr &shmMgrToUse);
+
+  ~sharedMetaData();  // free the memory from shmMgr we allocated
 
   unsigned *getObservedCost() { return observed_cost; }
   tTimer *getVirtualTimers() { return virtualTimers; }
@@ -106,7 +99,7 @@ class sharedMetaData {
   void setPosToThread(int pos, unsigned v) { posToThread[pos] = v; }
 
   // malloc some memory for the sharedMetaData in shared memory
-  void mallocInShm(shmMgr &theShmMgr);
+  void mallocInShm();
   void initialize(unsigned cookie_a, int dmnPid, int appPid);
   void initializeForkedProc(unsigned cookie_a, int appPid);
 
@@ -116,7 +109,23 @@ class sharedMetaData {
 
   // save the offsets of the shmMem malloced memory into a structure
   // which can be given to the run time library
-  void saveOffsetsIntoRTstructure(RTsharedData_t *RTdata);
+  void saveOffsetsIntoRTstructure(sharedMetaOffsetData *offsetData);
+};
+
+
+class sharedMetaOffsetData {
+  shmMgr &theShmMgr;
+  RTsharedData_t *rtData;
+
+ public:
+  sharedMetaOffsetData(shmMgr &shmMgrToUse, int maxNumThreads);
+  sharedMetaOffsetData(shmMgr &shmMgrToUse, sharedMetaOffsetData &parentData);
+
+  ~sharedMetaOffsetData();
+
+  Address getAddrInDaemon() { 
+    return reinterpret_cast<Address>(rtData);
+  }
 };
 
 
