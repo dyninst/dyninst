@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.4 2002/07/03 22:18:40 bernat Exp $
+// $Id: varInstanceHKs.C,v 1.5 2002/07/11 19:45:46 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -340,8 +340,7 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
    const rawTime64 start = (count > 0) ? theTimer->start : 0; // not needed if count==0
 
 #if defined(MT_THREAD)
-   RTsharedData_t *shared = (RTsharedData_t *)inferiorProc->getRTsharedDataInParadyndSpace();
-   tTimer *vt = &(shared->virtualTimers[theTimer->pos]);
+   tTimer *vt = &(inferiorProc->getVirtualTimerBase()[theTimer->pos]);
    rawTime64 inferiorCPUtime ;
    if (vt == (tTimer*) -1) {
      inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime() : 0;
