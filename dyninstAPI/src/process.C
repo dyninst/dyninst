@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.395 2003/03/10 23:15:35 bernat Exp $
+// $Id: process.C,v 1.396 2003/03/12 01:50:05 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -250,7 +250,7 @@ ostream& operator<<(ostream&s, const Frame &f) {
   if (f.thread_)
     s << " TID: " << f.thread_->get_tid();
   if (f.lwp_)
-    s << " LWP: " << f.lwp_->get_lwp();
+    s << " LWP: " << f.lwp_->get_lwp_id();
   
   return s;
 }
@@ -396,7 +396,7 @@ bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
   else { // Have threads defined
     for (unsigned i = 0; i < threads.size(); i++) {
       if (!threads[i]->walkStack(stackWalk))
-	return false;
+         return false;
       stackWalks.push_back(stackWalk);
       stackWalk.resize(0);
     }
@@ -1647,12 +1647,8 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 
   /* set lowmem to ensure there is space for inferior malloc */
   postRPCtoDo(code, true, // noCost
-	      &inferiorMallocCallback, 
-	      &ret,
-	      -1, 
-	      NULL, // No thread required 
-	      NULL,    // No lwp in particular
-	      true); // But use reserved memory
+              &inferiorMallocCallback, &ret, -1, // No particular thread or LWP
+              true); // But use reserved memory
   bool wasRunning = (status() == running);
   do {
       bool result = launchRPCs(wasRunning);
@@ -1931,6 +1927,14 @@ process::~process()
 #else
   cpuTimeMgr->destroyMechTimers(this);
 #endif
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
+   dyn_lwp *lwp;
+   unsigned index;
+   
+   while (lwp_iter.next(index, lwp)) {
+      deleteLWP(lwp);
+   }
+  
 }
 
 unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); }
@@ -2095,7 +2099,10 @@ process::process(int iPid, image *iImage, int iTraceLink
    resetForkTrapData();
 #endif
 
-   
+#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
+   createLWP(0);
+#endif   
+
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
       string msg = string("Warning: unable to attach to specified process :")
@@ -2250,6 +2257,10 @@ process::process(int iPid, image *iSymbols,
    // Now the actual attach...the moment we've all been waiting for
 
    attach_cerr << "process attach ctor: about to attach to pid " << getPid() << endl;
+
+#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
+   createLWP(0);
+#endif
 
    // It is assumed that a call to attach() doesn't affect the running status
    // of the process.  But, unfortunately, some platforms may barf if the
@@ -2532,6 +2543,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #if defined(SHM_SAMPLING) && defined(sparc_sun_sunos4_1_3)
    childUareaPtr = NULL;
 #endif
+
+#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
+   createLWP(0);
+#endif   
+
    if (!attach()) {     // moved from ::forkProcess
       showErrorCallback(69, "Error in fork: cannot attach to child process");
       status_ = exited;
@@ -2612,7 +2628,6 @@ process *createProcess(const string File, pdvector<string> argv,
                         pdvector<string> envp, const string dir = "", 
                         int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
-
 	// prepend the directory (if any) to the filename,
 	// unless the filename is an absolute pathname
 	// 
@@ -2720,7 +2735,6 @@ process *createProcess(const string File, pdvector<string> argv,
         cerr << "Failed to find exec descriptor" << endl;
         return NULL;
     }
-
     // What a hack... getExecFileDescriptor waits for a trap
     // signal on AIX and returns the code in status. So we basically
     // have a pending TRAP that we need to handle, but not right
@@ -2728,6 +2742,7 @@ process *createProcess(const string File, pdvector<string> argv,
 #if defined(rs6000_ibm_aix4_1)
     int fileDescSignal = WSTOPSIG(status);
 #endif
+
     image *img = image::parseImage(desc);
     if (!img) {
       // For better error reporting, two failure return values would be
@@ -2752,7 +2767,7 @@ process *createProcess(const string File, pdvector<string> argv,
 #endif
 			       );
     // change this to a ctor that takes in more args
-    
+
     assert(theProc);
 #ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
     //the MIPS instruction generator needs the Gp register value to
@@ -2775,11 +2790,11 @@ process *createProcess(const string File, pdvector<string> argv,
     // main thread of the process and is handled correctly
     
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-	 dyn_lwp *lwp = new dyn_lwp(tid, (void *)thrHandle_temp, theProc);
+    dyn_lwp *lwp = theProc->createLWP(tid, 0, (void*)thrHandle_temp);
 	 theProc->threads += new dyn_thread(theProc, tid, 0, lwp);
-	 theProc->lwps[0] = lwp;
 #else
     theProc->threads += new dyn_thread(theProc);
+    dyn_thread *new_thr = theProc->threads[theProc->threads.size()-1];
 #endif
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
@@ -2982,10 +2997,11 @@ bool process::loadDyninstLib() {
     }
 #if !defined(i386_unknown_nt4_0)
     // Check to see if the library given exists.
-    if (access(dyninstRT_name.c_str(), R_OK)) {
+    if (access(dyninstRT_name.c_str(), R_OK))
 #else
-    if (_access(dyninstRT_name.c_str(), 04)) {
+    if (_access(dyninstRT_name.c_str(), 04))
 #endif
+    {
         string msg = string("Runtime library ") + dyninstRT_name
         + string(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
@@ -3131,9 +3147,8 @@ bool process::iRPCDyninstInit() {
                 true, // Don't update cost
                 process::DYNINSTinitCompletionCallback,
                 NULL, // No user data
-                -1, // Not a metric definition
-                NULL, // Don't use a particular thread
-                NULL); // No particular LWP
+                -1); // Not a metric definition
+                // No particular thread or LWP
 
     // We loop until dyninst init has run (check via the callback)
     while (!reachedBootstrapState(bootstrapped)) {
@@ -3143,7 +3158,19 @@ bool process::iRPCDyninstInit() {
     return true;
 }
 
-
+bool process::attach() {
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
+   dyn_lwp *lwp;
+   unsigned index;
+   
+   while (lwp_iter.next(index, lwp)) {
+      if (!lwp->openFD()) {
+         deleteLWP(lwp);
+         return false;
+      }
+   }
+   return attach_();
+}
 
 void process::DYNINSTinitCompletionCallback(process* theProc,
                                             void* /*userData*/, // user data
@@ -3262,7 +3289,6 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     // it's ignored on other platforms
     fileDescriptor *desc = 
         getExecFileDescriptor(fullPathToExecutable, status, true);
-
     // What a hack... getExecFileDescriptor waits for a trap
     // signal on AIX and returns the code in status. So we basically
     // have a pending TRAP that we need to handle, but not right
@@ -3347,9 +3373,8 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
 
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
     //ccw 20 july 2000 : 29 mar 2001
-    dyn_lwp *lwp = new dyn_lwp(0, 0, ret);
+    dyn_lwp *lwp = ret->createLWP(0);
     ret->threads += new dyn_thread(ret, 0, 0, lwp);
-    ret->lwps[0] = lwp;
 #else
     ret->threads += new dyn_thread(ret);     
 #endif
@@ -4459,10 +4484,10 @@ bool process::getSymbolInfo( const string &name, Symbol &ret )
 
    bool sflag;
    sflag = symbols->symbol_info( name, ret );
-   
+
    if(sflag)
       return true;
-   
+
    if( dynamiclinking && shared_objects ) {
       for( u_int j = 0; j < shared_objects->size(); ++j ) {
          sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
@@ -5106,6 +5131,7 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
         return sym.addr()+baseAddr;
 #endif
      }
+
      if (warn) {
         string msg;
         msg = string("Unable to find symbol: ") + name;
@@ -5141,15 +5167,24 @@ bool process::continueProc() {
 }
 
 bool process::detach(const bool paused) {
-  if (paused) {
-    logLine("detach: pause not implemented\n"); // why not? --ari
-  }
-  bool res = detach_();
-  if (!res) {
-    // process may have exited
-    return false;
-  }
-  return true;
+   if (paused) {
+      logLine("detach: pause not implemented\n"); // why not? --ari
+   }
+
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
+   dyn_lwp *lwp;
+   unsigned index;
+   while (lwp_iter.next(index, lwp)) {
+      lwp->closeFD();
+   }
+
+   bool res = detach_();
+   
+   if (!res) {
+      // process may have exited
+      return false;
+   }
+   return true;
 }
 
 #ifdef BPATCH_LIBRARY
@@ -5365,7 +5400,7 @@ bool process::checkTrappedSyscallsInternal(Address syscall)
 }
 
 
-dyn_thread *process::checkSyscallExit() {
+dyn_lwp *process::checkSyscallExit() {
     // For each thread:
     // Get the LWP associated with the thread
     // Check to see if the LWP is at a syscall exit trap
@@ -5384,13 +5419,13 @@ dyn_thread *process::checkSyscallExit() {
             // and as such should silently disappear. For now, return
             // the thread that hit the trap, and the caller should 
             // determine there is nothing to be done.
-            return thr;
+            return thr->get_lwp();
         }
         else if (match_type == 2) {
             // Good, we did want a system call. Clear the
             // trap and return the thread for further processing
             thr->get_lwp()->clearSyscallExitTrap();
-            return thr;
+            return thr->get_lwp();
         }
         else assert(0 && "Invalid value from hasReachedSyscallTrap");
     }
@@ -6186,32 +6221,31 @@ timeLength process::units2timeLength(int64_t rawunits) {
 
 #endif
 
-
 #ifdef BPATCH_LIBRARY
 BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
 					   instPoint *ip,
 					   BPatch_procedureLocation pointType)
 {
-  Address addr = ip->iPgetAddress();
+   Address addr = ip->iPgetAddress();
 
-  if (ip->iPgetOwner() != NULL) {
-    Address baseAddr;
-    if (getBaseAddress(ip->iPgetOwner(), baseAddr)) {
-      addr += baseAddr;
-    }
-  }
+   if (ip->iPgetOwner() != NULL) {
+      Address baseAddr;
+      if (getBaseAddress(ip->iPgetOwner(), baseAddr)) {
+         addr += baseAddr;
+      }
+   }
 
-  if (instPointMap.defines(addr)) {
-    return instPointMap[addr];
-  } else {
-    if (bpfunc == NULL) {
-      bpfunc = findOrCreateBPFunc((pd_Function*)ip->iPgetFunction());
-    }
+   if (instPointMap.defines(addr)) {
+      return instPointMap[addr];
+   } else {
+      if (bpfunc == NULL) {
+         bpfunc = findOrCreateBPFunc((pd_Function*)ip->iPgetFunction());
+      }
 
-    BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);
-    instPointMap[addr] = pt;
-    return pt;
-  }
+      BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);
+      instPointMap[addr] = pt;
+      return pt;
+   }
 }
 
 BPatch_function *process::findOrCreateBPFunc(pd_Function* pdfunc,
@@ -6279,12 +6313,28 @@ void process::deleteBaseTramp(trampTemplate *baseTramp,
   pendingGCInstrumentation.push_back(toBeDeleted);
 }
 
+// Post on this process
 void process::postRPCtoDo(AstNode *action, bool noCost,
                           inferiorRPCcallbackFunc callbackFunc, void *userData,
-                          int mid,  dyn_thread *thr, dyn_lwp *lwp, bool lowmem)
+                          int mid, bool lowmem)
 {
+   theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData, mid, lowmem);
+}
+
+// Post on given thread
+void process::postRPCtoDo(AstNode *action, bool noCost,
+                          inferiorRPCcallbackFunc callbackFunc, void *userData,
+                          int mid, dyn_thread *thr, bool lowmem) {
+   theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData, 
+                          mid, thr, lowmem);
+}
+
+// Post on given lwp
+void process::postRPCtoDo(AstNode *action, bool noCost,
+                          inferiorRPCcallbackFunc callbackFunc, void *userData,
+                          int mid, dyn_lwp *lwp, bool lowmem) {
    theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData,
-                          mid, thr, lwp, lowmem);
+                          mid, lwp, lowmem);
 }
 
 bool process::launchRPCs(bool wasRunning) {
@@ -6409,19 +6459,35 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
 // Question: if we don't find, do we create?
 // For now, yes.
 
-dyn_lwp *process::getLWP(unsigned lwp)
+dyn_lwp *process::getLWP(unsigned lwp_id)
 {
   dyn_lwp *foundLWP;
-  if (lwps.find(lwp, foundLWP)) {
+  if (lwps.find(lwp_id, foundLWP)) {
     return foundLWP;
   }
-  foundLWP = new dyn_lwp(lwp, this);
+
+  foundLWP = createLWP(lwp_id);
   if (!foundLWP->openFD()) {
-    delete foundLWP;
-    return NULL;
+     deleteLWP(foundLWP);
+     return NULL;
   }
-  lwps[lwp] = foundLWP;
   return foundLWP;
+}
+
+dyn_lwp *process::createLWP(unsigned lwp_id) {
+   dyn_lwp *lwp = new dyn_lwp(lwp_id, this);
+   lwps[lwp_id] = lwp;
+   theRpcMgr->newLwpFound(lwp);
+   return lwp;
+}
+
+void process::deleteLWP(dyn_lwp *lwp_to_delete) {
+   if(lwps.size() > 0 && lwp_to_delete!=NULL) {
+      unsigned index = lwp_to_delete->get_lwp_id();
+      theRpcMgr->deleteLwp(lwp_to_delete);
+      lwps.undef(index);
+   }
+   delete lwp_to_delete;
 }
 
 dyn_lwp *process::getDefaultLWP() const
