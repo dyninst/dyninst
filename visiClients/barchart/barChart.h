@@ -1,13 +1,16 @@
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.7  1994/10/14 10:27:45  tamches
-/* Swapped the x and y axes -- now resources print vertically and
-/* metrics print horizontally.  Can fit many, many more resources
-/* on screen at once with no label overlap.  Multiple metrics
-/* are now shown in the metrics axis.  Metric names are shown in
-/* a "key" in the lower-left.
+/* Revision 1.8  1994/11/06 10:26:20  tamches
+/* removed fullResourceHeight as a member vrble
 /*
+ * Revision 1.7  1994/10/14  10:27:45  tamches
+ * Swapped the x and y axes -- now resources print vertically and
+ * metrics print horizontally.  Can fit many, many more resources
+ * on screen at once with no label overlap.  Multiple metrics
+ * are now shown in the metrics axis.  Metric names are shown in
+ * a "key" in the lower-left.
+ *
  * Revision 1.6  1994/10/13  00:51:03  tamches
  * Removed xoffsets and widths while implementing
  * sorting and bug-fixing deletion of resources.
@@ -66,8 +69,9 @@ class BarChart {
    dynamic1dArrayXColor metricColors;
       // each metric has its own color-code in which its bars are drawn
 
-   GC myGC; // we change colors here very frequently with XSetForeground/XSetBackground
-            // before actual drawing; hence, we could not use Tk_GetGC
+   GC myGC; // we change colors here very frequently with XSetForeground/
+            // XSetBackground before actual drawing; hence, we could not use
+            // Tk_GetGC
 
    enum DataFormats {Current, Average, Total};
    DataFormats DataFormat;
@@ -85,9 +89,8 @@ class BarChart {
       // which metrics and resources are valid and should be drawn?
 
    int totalResourceHeight; // same as tcl vrble "currResourceHeight"
-   int fullResourceHeight; // 90% of totalResourceHeight
-   int resourceBorderHeight;
-   int individualResourceHeight; // fullResourceHeight / numMetrics
+   int individualResourceHeight; // fullResourceHeight / numMetrics, but pinned to a max value (maxIndividualColorHeight tcl vrble)
+   int resourceBorderHeight; // vertical padding due to "90%" rule, above.
 
    dynamic2dArrayInt barWidths;
       // array [metric][rsrc] of pixel widths for each bar.  This
