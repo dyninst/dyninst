@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.335 2002/06/21 14:19:29 chadd Exp $
+// $Id: process.C,v 1.336 2002/06/25 20:26:19 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5760,40 +5760,6 @@ Address process::createRPCImage(AstNode *action,
   // Use -1 since 0 may be a valid pthread id, and -1 is equivalent to
   // "no thread" for Paradyn purposes.
   if (thr) {
-    
-    vector<AstNode* > param ;
-    param.push_back( new AstNode(AstNode::Constant,(void *) thr->get_tid()) );
-    param.push_back( new AstNode(AstNode::Constant,(void *) thr->get_pos()) );
-    
-    // If we're starting a (thread) timer, start it for the 
-    // thread we're acting as
-    function_base* DYNINSTstartThreadTimer = 
-      findOneFunction(string("DYNINSTstartThreadTimer"));
-    function_base* DYNINSTstartThreadTimer_inferiorRPC = 
-      findOneFunction(string("DYNINSTstartThreadTimer_inferiorRPC"));
-    action->replaceFuncInAst(DYNINSTstartThreadTimer, 
-			     DYNINSTstartThreadTimer_inferiorRPC, param, 1);
-    
-    // replace DYNINSTthreadPos with DYNINSTthreadPosTID
-    // Fake it as above :)
-    function_base* DYNINST_not_deleted =
-      findOneFunction(string("DYNINST_not_deleted"));
-    function_base* DYNINST_not_deletedTID =
-      findOneFunction(string("DYNINST_not_deletedTID"));
-    action->replaceFuncInAst(DYNINST_not_deleted, 
-			     DYNINST_not_deletedTID, param, 0);
-    
-    // replace DYNINSTloop with DYNINSTloopTID
-    // Same thing
-    function_base* DYNINSTloop =
-      findOneFunction(string("DYNINSTloop"));
-    function_base* DYNINSTloopTID =
-      findOneFunction(string("DYNINSTloopTID"));
-    action->replaceFuncInAst(DYNINSTloop, 
-			     DYNINSTloopTID, param, 0);
-    
-    for (unsigned i=0; i<param.size(); i++) removeAst(param[i]) ;
-    
     // We need to put in a branch past the rest of the RPC (to the trailer, actually)
     // if the MT information given is incorrect. That's the skipBRaddr part.
     skipBRAddr = generateMTRPCCode((char*)insnBuffer,count, thr->get_tid(), thr->get_pos());
@@ -7618,6 +7584,14 @@ void process::deleteInstInstance(instInstance *delInst)
   pendingGCInstrumentation.push_back(toBeDeleted);
   // Try to delete now? Why not.
   gcInstrumentation();
+}
+
+bool process::checkIfInstAlreadyDeleted(instInstance *delInst)
+{
+  for (unsigned i = 0; i < pendingGCInstrumentation.size(); i++)
+    if (pendingGCInstrumentation[i]->oldMini == delInst)
+      return true;
+  return false;
 }
 
 void process::deleteBaseTramp(trampTemplate *baseTramp, instInstance *lastMiniTramp)

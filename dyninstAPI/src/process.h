@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.203 2002/06/21 14:19:29 chadd Exp $
+/* $Id: process.h,v 1.204 2002/06/25 20:26:20 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1590,6 +1590,7 @@ private:
 
    // Closely related: deletion of minitramps
    void deleteInstInstance(instInstance *delInst);
+   bool checkIfInstAlreadyDeleted(instInstance *delInst);
    // And the associated deletion of a base tramp
    void deleteBaseTramp(trampTemplate *baseTramp, instInstance *lastMiniTramp);
 
