@@ -1317,6 +1317,10 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 
 	    case divOp:
 		op3 = SDIVop3;
+                //need to set the Y register to Zero, Zhichen
+                genImmInsn(insn, WRYop3, REG_G0, 0, 0);
+                base += sizeof(instruction);
+                insn = (instruction *) ((void*)&i[base]);
 		break;
 
 	    // Bool ops
