@@ -7,10 +7,6 @@ architecture) as discovered by autoconf. For the installation instructions, it i
 assumed that the current working directory is <envar>$MRNET_ROOT</envar>.
 </para>
 
-
-<note>We now provide pre-compiled binaries of the MRNet code for those
-who do not wish to compile the source code</note>
-
 <sect1><title>Supported Platforms and Compilers</title>
 <para>
 MRNet has been developed to be highly portable; we expect it to run properly

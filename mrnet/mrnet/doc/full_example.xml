@@ -100,7 +100,7 @@ int main( int argc, char** argv ){
 </programlisting>
 </example>
 
-<example><title>A MRNet Topology File</title>
+<example><title>An MRNet Topology File</title>
 <programlisting>
 nutmeg:0 => c01:0 c02:0 c03:0 c04:0 ;
 
@@ -130,6 +130,33 @@ c09:0 => c11:0 ;
 #          c06  c07 c08  c09
 #                    |    |
 #                   c10  c11 
+</programlisting>
+</example>
+
+<example><title>An MRNet Filter: Integer Maximum</title>
+<programlisting>
+//Must Declare the format of data expected by the filter
+const char * tfilter_int_max_format_str="%d";  
+
+void tfilter_int_max( const std::vector &lt; Packet &gt; &amp;packets_in,
+                      std::vector &lt; Packet &gt; &amp;packets_out )
+{
+    // initialize result to the value in first packet
+    int result = packets_in[0][0].get_int32_t();
+
+    for( unsigned int i = 1; i &lt; packets_in.size( ); i++ ) {
+        Packet cur_packet = packets_in[i];
+
+        // 1st and only data element in packet is an int ("%d")
+        result = max( result, cur_packet[0].get_int32_t() );
+    }
+    
+    Packet new_packet( packets_in[0].get_StreamId( ),
+                       packets_in[0].get_Tag( ),
+                       "%d", result );
+    packets_out.push_back( new_packet );
+}
+
 </programlisting>
 </example>
 </appendix>
