@@ -42,37 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-/* $Log: datagridP.h,v $
-/* Revision 1.5  1996/12/11 19:08:46  newhall
-/* fixed compile error with visi_GridHistoArray operator=
-/*
- * Revision 1.4  1996/12/10 16:20:47  newhall
- * added visi_PrintDataBuckets, changed the way data grid constructors are called
- *
- * Revision 1.3  1996/08/16 21:33:51  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.2  1996/01/19 20:55:42  newhall
- * more chages to visiLib interface
- *
- * Revision 1.1  1996/01/17 18:29:15  newhall
- * reorginization of visiLib
- *
- * Revision 1.22  1995/12/18 23:22:29  newhall
- * changed metric units type so that it can have one of 3 values (normalized,
- * unnormalized or sampled)
- *
- * Revision 1.21  1995/11/17  17:27:54  newhall
- * added normalized member to Metric class which specifies units type
- * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
- *
- * Revision 1.20  1995/11/12  23:29:24  newhall
- * removed warnings, removed error.C
- *
- * Revision 1.19  1995/11/12  00:45:05  newhall
- * added PARADYNEXITED event, added "InvalidSpans" dataGrid method
- *
- */ 
+// $Id: datagridP.h,v 1.6 1998/08/16 23:29:51 wylie Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -142,6 +112,24 @@ class PhaseInfo{
 	   bucketWidth = w;
 	   phaseName = n;
     }
+    PhaseInfo(const PhaseInfo &src) : phaseName(src.phaseName) {
+       phaseHandle = src.phaseHandle;
+       startTime = src.startTime;
+       endTime = src.endTime;
+       bucketWidth = src.bucketWidth;
+    }
+    PhaseInfo &operator=(const PhaseInfo &src) {
+       if (this == &src)
+	  return *this;
+
+       phaseHandle = src.phaseHandle;
+       startTime = src.startTime;
+       endTime = src.endTime;
+       bucketWidth = src.bucketWidth;
+       phaseName = src.phaseName;
+       return *this;
+    }
+       
     ~PhaseInfo(){
     }
     void setStartTime(visi_timeType s){ startTime = s;}
@@ -356,6 +344,9 @@ class  visi_GridHistoArray {
    private:
       visi_GridCellHisto *values;
       int size;
+
+      visi_GridHistoArray(const visi_GridHistoArray &);
+
    public:
       visi_GridHistoArray(){values = NULL; size = 0;}
       visi_GridHistoArray(int);
@@ -369,7 +360,7 @@ class  visi_GridHistoArray {
       }
 
       visi_GridHistoArray& operator= (visi_GridHistoArray &new_elm){
-	  values = new_elm.values;
+	  values = new_elm.values; // BUG -- make a real copy
 	  size = new_elm.size;
 	  new_elm.values = 0;
 	  new_elm.size = 0;
@@ -463,8 +454,45 @@ class visi_DataGrid {
 	 start_time = 0.0;
 	 phase_handle = -2;
      }
+     visi_DataGrid& operator= (const visi_DataGrid& v) { // copy assignment
+        if (this != &v) {       // beware of self-assignment!
+          delete[] metrics;
 
-     visi_DataGrid(int, int, Metric*, Resource*, int, visi_timeType, visi_timeType, int);
+          numMetrics = v.numMetrics;
+          metrics = new Metric[numMetrics];
+             // calls default ctor for class Metric
+          for (int m=0; m<numMetrics; m++)
+              metrics[m] = v.metrics[m]; // operator=() for class Metric
+
+          delete[] resources;
+          numResources = v.numResources;
+          resources = new Resource[numResources]; // calls default ctor
+          for (int r=0; r<numResources; r++)
+              resources[r] = v.resources[r]; // calls operator=()
+
+          delete[] data_values;
+          data_values = new visi_GridHistoArray[v.numMetrics]; // default ctor
+          for (int l=0; l<numMetrics; l++)
+              data_values[l] = v.data_values[l]; // operator=()
+
+          numBins = v.numBins;
+          binWidth = v.binWidth;
+          start_time = v.start_time;
+          phase_handle = v.phase_handle;
+
+          for (unsigned int p=0; p < phases.size(); p++)
+             delete phases[p];
+          phases.resize(v.phases.size());
+          for (unsigned int p=0; p < phases.size(); p++) {
+             const PhaseInfo *src_phase = v.phases[p];
+             phases[p] = new PhaseInfo(*src_phase); // copy-ctor for PhaseInfo
+          }
+        }
+        return *this;
+     }
+
+     visi_DataGrid(int, int, Metric*, Resource*,
+                   int, visi_timeType, visi_timeType, int);
      visi_DataGrid(int, int, visi_metricType*, visi_resourceType*,
 		   int, visi_timeType, visi_timeType, int);
      ~visi_DataGrid();

@@ -269,8 +269,8 @@ void visualization::TraceData(vector<T_visi::traceDataValue> traceData){
   if(!visi_initDone)
     visi_Init();
 
-  int noMetrics = visi_dataGrid.NumMetrics();
-  int noResources = visi_dataGrid.NumResources();
+  // int noMetrics = visi_dataGrid.NumMetrics();        // unused
+  // int noResources = visi_dataGrid.NumResources();    // unused
 
   // get metric and resource index into visi_dataGrid and add value if found
   for(unsigned i=0; i < traceData.size(); i++){
@@ -423,7 +423,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     }
 
     // construct new visi_dataGrid 
-    visi_dataGrid.visi_DataGrid(numMet,
+    visi_dataGrid = visi_DataGrid(numMet,
 			   numRes,
 			   mets,
 			   res,
@@ -433,7 +433,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 			   phase_handle);
     // trace data streams
     // construct new visi_traceData
-    visi_traceData.visi_TraceData();
+    visi_traceData = visi_TraceData();
   }
   else{ // add elements to existing data grid
 
@@ -521,13 +521,11 @@ void visualization::BulkDataTransfer(vector<float> values,
 				     u_int metricId,
 				     u_int resourceId){
 int lastBucket, temp, j;
-int noMetrics, noResources;
-int met,res;
-
+int met=-1, res=-1;
+int noMetrics = visi_dataGrid.NumMetrics();
+int noResources = visi_dataGrid.NumResources();
 
     // find datagrid indicies associated with metricId, resourceId 
-    noMetrics = visi_dataGrid.NumMetrics();
-    noResources = visi_dataGrid.NumResources();
     bool found = false;
     bool error = false;
     for(int i = 0; i < noMetrics; i++){
