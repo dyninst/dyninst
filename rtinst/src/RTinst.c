@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.55 2002/06/26 21:22:53 bernat Exp $
+ * $Id: RTinst.c,v 1.56 2002/07/03 22:18:45 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -70,6 +70,9 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+#if defined(MT_THREAD)
+#include "RTthread.h"
+#endif
 
 #ifdef PARADYN_MPI
 #include "/usr/lpp/ppe.poe/include/mpi.h"
@@ -89,6 +92,9 @@ int PARADYNdebugPrintRT = 1;
 #else
 int PARADYNdebugPrintRT = 0;
 #endif
+
+/* Pointer to the shared data structure */
+RTsharedData_t *RTsharedData;
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 extern unsigned DYNINSTtotalTraps;
@@ -132,11 +138,6 @@ int libdyninstRT_DLL_localtheKey=-1;
 int libdyninstRT_DLL_localshmSegNumBytes=-1;
 int libdyninstRT_DLL_localparadynPid=-1;
 
-
-#if !defined(MT_THREAD)
-#define MAX_NUMBER_OF_THREADS 1
-#endif
-unsigned DYNINST_tramp_guard[MAX_NUMBER_OF_THREADS] = {1};
 /************************************************************************/
 
 /************************************************************************/
@@ -492,10 +493,6 @@ void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) /* ccw 18 apr
 #endif
 
   initFPU();
-  for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
-    printf("%d: %d\n", i, DYNINST_tramp_guard[i]);
-    DYNINST_tramp_guard[i] = 1;
-  }
   DYNINSThasInitialized = 3;
 
   /* sanity check */
@@ -517,6 +514,7 @@ void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) /* ccw 18 apr
     
     DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegNumBytes, 
 						 &DYNINST_shmSegShmId);
+    RTsharedData = (RTsharedData_t *)DYNINST_shmSegAttachedPtr;
   }
   
   /*

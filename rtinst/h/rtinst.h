@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.51 2002/06/24 15:24:59 chadd Exp $
+ * $Id: rtinst.h,v 1.52 2002/07/03 22:18:44 bernat Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -51,8 +51,8 @@
 
 /* We sometimes include this into assembly files, so guard the struct defs. */
 #if !defined(__ASSEMBLER__)
-
-/*typedef void (*instFunc)(void *cdata, int type, char *eventData);*/
+#include "../src/RTconst.h" 
+#include "tc-lock.h" /* Locking structures */
 
 /* The rawTime64 type represents time in a native or raw time unit, as in the
    time samples taken from the rtinst library.  We're using this typedef'd
@@ -127,16 +127,11 @@ struct floatCounterRec {
 };
 typedef struct floatCounterRec floatCounter;
 
-#ifdef SHM_SAMPLING
 struct tTimerRec {
-   volatile rawTime64 total;
-   volatile rawTime64 start;
-   volatile int counter;
-#if defined(MT_THREAD)
-   volatile int lwp_id;  /* we need to save the lwp id so paradynd can sync */
-   volatile int in_inferiorRPC; /* flag to avoid time going backwards - naim */
-   volatile struct tTimerRec  *vtimer; /* position in the threadTable */
-#endif
+  volatile rawTime64 total;
+  volatile rawTime64 start;
+  volatile int counter;
+  unsigned pos; /* Unused for ST, but makes the size a power of 2 */
 
    /* the following 2 vrbles are used to implement consistent sampling.
       Updating by rtinst works as follows: bump protector1, do action, then
@@ -148,24 +143,7 @@ struct tTimerRec {
    volatile int protector1;
    volatile int protector2;
 };
-#else
-struct tTimerRec {
-    volatile int 	counter;	/* must be 0 to start; 1 to stop */
-    volatile time64	total;
-    volatile time64	start;
-    volatile time64     lastValue;      /* to check for rollback */
-    volatile time64	snapShot;	/* used to get consistant value 
-					   during st/stp */
-    volatile int	normalize;	/* value to divide total by to 
-					   get seconds */
-                                        /* always seems to be MILLION; 
-                                           can we get rid of this? --ari */
-    volatile timerType 	type;
-    volatile sampleId 	id;
-    volatile char mutex;
-    /*volatile char sampled;*/
-};
-#endif /* SHM_SAMPLING */
+
 typedef struct tTimerRec tTimer;
 
 typedef int traceStream;
@@ -203,10 +181,42 @@ extern timeQueryFuncPtr_t hwWallTimeFPtrInfo;
 #define DYNINSTgetCPUtime()   (*pDYNINSTgetCPUtime)()
 #define DYNINSTgetWalltime() (*pDYNINSTgetWalltime)()
 
-#if defined(MT_THREAD)
-extern rawTime64 DYNINSTgetCPUtime_LWP(int lwp_id);
-#include "rtinst/src/RTthread.h"
-#endif
+/* 
+   Define the shared data structure. 
+   The RT lib and the daemon share certain data. In the past this
+   was done via magic offsets -- UGLY. We now define it. 
+   1) Cookie value -- for identifying Paradyn shm segments
+   2) Process PID
+   3) Paradynd PID
+   4) Observed cost
+   (MT ONLY)
+   5) Array of per-thread virtual timers
+   6) Array of pending RPC lists
+   7) Array of POS->thread mappings
+
+   This structure is defined after we define the timer structure
+   since the virtual timers use the same structure. 
+*/
+
+#define MAX_PENDING_RPC  (20)
+typedef struct rpcToDo_s {
+  int flag; /* Indicates when done, and how */
+  void (*rpc) (void); /* Function to run */
+  tc_lock_t lock;
+} rpcToDo;
+
+typedef struct RTsharedData_rec {
+  unsigned cookie;
+  unsigned inferior_pid;
+  unsigned daemon_pid;
+  unsigned observed_cost;
+  /* MT */
+  tTimer virtualTimers[MAX_NUMBER_OF_THREADS];
+  rpcToDo pendingIRPCs[MAX_NUMBER_OF_THREADS][MAX_PENDING_RPC];
+  unsigned posToThread[MAX_NUMBER_OF_THREADS];
+} RTsharedData_t;
+
+extern RTsharedData_t *RTsharedData; /* Defined in RTinst.c */
 
 #endif /*!defined(__ASSEMBLER__)*/
 

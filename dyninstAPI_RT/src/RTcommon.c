@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.25 2002/06/17 21:31:16 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.26 2002/07/03 22:18:46 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -60,7 +60,10 @@
 extern void DYNINSTbreakPoint();
 extern void DYNINSTos_init(int calledByFork, int calledByAttach);
 
-unsigned int DYNINST_tramp_guard = 1;
+/* 
+   Problem: the tramp guards are in Dyninst, but Paradyn may be multithreaded.
+   Solution: make this an array temporarily
+*/
 unsigned int DYNINSTversion = 1;
 unsigned int DYNINSTobsCostLow;
 unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
