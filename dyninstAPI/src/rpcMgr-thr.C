@@ -64,14 +64,22 @@ bool rpcThr::isWaitingForBreakpoint() const {
 
 bool rpcThr::isReadyForIRPC() const {
     if (isProcessingIRPC()) {
+      inferiorrpc_printf("... thr %d currently processing, sorry\n",
+			 get_thr()->get_tid());
         return false;
     }
     if (postedRPCs_.size() > 0) {
+      inferiorrpc_printf("... thr %d with a thread RPC\n",
+			 get_thr()->get_tid());
         return true;
     }
     if (mgr_->postedProcessRPCs_.size() > 0) {
+      inferiorrpc_printf("... thr %d picking up a process RPC\n",
+			 get_thr()->get_tid());
         return true;
     }
+    inferiorrpc_printf("... thr %d with nothing to do\n",
+		       get_thr()->get_tid());
     return false;
 }
 
@@ -181,6 +189,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
     // Some platforms save daemon-side, some save process-side (on the stack)
     // Should unify this.
     bool status = lwp->getRegisters(theSavedRegs);
+    inferiorrpc_printf("RPC saved registers: %d\n", status);
     if (status == false) {
         // Can happen if we're in a syscall, which is caught above
         return irpcError;
@@ -218,6 +227,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
     // the PC back to the original value
     Frame curFrame = lwp->getActiveFrame();
     runningRPC_->origPC = curFrame.getPC();
+    inferiorrpc_cerr << "Thread currently at frame " << curFrame << endl;
 #endif    
 
     // Save the current stack (to fake stack walks while we're in
@@ -234,7 +244,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
         cerr << "launchRPC failed: couldn't set PC" << endl;
         return irpcError;
     }
-    
+    inferiorrpc_printf("Changed PC to addr 0x%x\n", runningRPC_->rpcStartAddr);
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       // handle system call interruption:
@@ -315,6 +325,8 @@ bool rpcThr::handleCompletedIRPC() {
         mgr_->processingProcessRPC = false;
     }
 #endif
+
+    inferiorrpc_cerr << "Completed thread RPC " << runningRPC_->rpc->id << " on thread " << thr_->get_tid() << endl;
 
     // step 1) restore registers:
     if (runningRPC_->savedRegs) {
@@ -428,13 +440,15 @@ irpcLaunchState_t rpcThr::launchProcIRPC(bool runProcWhenDone) {
     // process". In this case we try and set a breakpoint when we leave
     // the system call. If we can't set the breakpoint we poll.
     dyn_lwp *lwp = thr_->get_lwp();
-
+    
+    inferiorrpc_printf("Thread %d, lwp %d, checking status...\n", thr_->get_tid(), lwp->get_lwp_id());
+    
     // Check if we're in a system call
     if (lwp->executingSystemCall()) {
         // No RPCs anyway
         return irpcError;
     }
-
+    inferiorrpc_printf("Status is go, grabbing process RPC and running\n");
     // Get the RPC and slap it in the pendingRPC_ pointer
     pendingRPC_ = new inferiorRPCinProgress;
     // Take a process-wide RPC

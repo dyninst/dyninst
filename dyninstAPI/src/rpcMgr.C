@@ -86,6 +86,13 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     // Stick it in the global listing as well
     allPostedRPCs_.push_back(theStruct);
 
+    inferiorrpc_printf("Posting new RPC: seq %d", theStruct->id);
+    if (thr)
+      inferiorrpc_printf(", thread %d", thr->get_tid());
+    if (lwp)
+      inferiorrpc_printf(", lwp %d", lwp->get_lwp_id());
+    inferiorrpc_printf("\n");
+
     return theStruct->id;
 }
 
@@ -301,25 +308,30 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
       return false;
     }
 
+    inferiorrpc_cerr << "RPCs posted: " << allPostedRPCs_.size() << endl;
+    
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
-        rpcLWP *cur_rpc_lwp = (*rpc_iter);
-        if (cur_rpc_lwp) {
-            if(cur_rpc_lwp->isReadyForIRPC()) {
-                readyLWPRPC = true;
-                break;
-            }
-            if (cur_rpc_lwp->isProcessingIRPC()) {
-                processingLWPRPC = true;
-            }
-        }
-        rpc_iter++;
+      rpcLWP *cur_rpc_lwp = (*rpc_iter);
+      if (cur_rpc_lwp) {
+	if(cur_rpc_lwp->isReadyForIRPC()) {
+	  inferiorrpc_printf("LWP %d ready for RPC...\n", cur_rpc_lwp->get_lwp()->get_lwp_id());
+	  readyLWPRPC = true;
+	  break;
+	}
+	if (cur_rpc_lwp->isProcessingIRPC()) {
+	  inferiorrpc_printf("LWP %d currently processing RPC...\n", cur_rpc_lwp->get_lwp()->get_lwp_id());
+	  processingLWPRPC = true;
+	}
+      }
+      rpc_iter++;
     }
 
 #if defined(sparc_sun_solaris2_4)
     if(proc_->multithread_capable()) {
        if (!readyLWPRPC && !processingLWPRPC) {
 	 if (postedProcessRPCs_.size()) {
+	   inferiorrpc_printf("SOLARIS: waiting process RPC\n");
 	   readyProcessRPC = true;
 	 }
        }
@@ -327,22 +339,29 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
 #endif
     // Only run thread RPCs if there are no LWP RPCs either waiting or in flight.
 
-
     if (!readyLWPRPC && !processingLWPRPC && !readyProcessRPC && !processingProcessRPC) {
         for (unsigned i = 0; i < thrs_.size(); i++) {
            rpcThr *curThr = thrs_[i];
-           if(curThr == NULL)
-              continue;
-
-            if (curThr->isReadyForIRPC()) {
-                readyThrRPC = true;
-                break;
-            }
-            if (curThr->isRunningIRPC()) 
-                processingThrRPC = true;
+           if(curThr == NULL) {
+	     fprintf(stderr, "Odd case: RPC thread object is NULL for slot %d\n",
+		     i);
+	     continue;
+	   }
+	   if (curThr->isReadyForIRPC()) {
+	     inferiorrpc_printf("Thread %d ready for RPC...\n", curThr->get_thr()->get_tid());
+	     readyThrRPC = true;
+	     break;
+	   }
+	   if (curThr->isRunningIRPC()) {
+	     inferiorrpc_printf("Thread %d currently processing RPC...\n", curThr->get_thr()->get_tid());
+	     processingThrRPC = true;
+	   }
         }
     }
-
+    inferiorrpc_printf("RPC status dump: readyLWP %d, readyThr %d, readyProcess %d;\n",
+		       readyLWPRPC, readyThrRPC, readyProcessRPC);
+    inferiorrpc_printf("RPC status dump: wasRunning %d, processingLWP %d, processingThr %d\n",
+		       wasRunning, processingLWPRPC, processingThrRPC);
     if (!readyLWPRPC && !readyThrRPC && !readyProcessRPC) {
         if (wasRunning || processingLWPRPC || processingThrRPC) {
             // the caller expects the process to be running after
@@ -370,6 +389,9 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             rpcLWP *cur_rpc_lwp = (*lwp_iter);
             if (cur_rpc_lwp) {            
                 irpcLaunchState_t lwpState = cur_rpc_lwp->launchLWPIRPC(wasRunning);
+		inferiorrpc_printf("Result of posting RPC on LWP %d: %d\n",
+				   cur_rpc_lwp->get_lwp()->get_lwp_id(),
+				   lwpState);
                 if (lwpState == irpcBreakpointSet ||
                     lwpState == irpcAgain ||
                     lwpState == irpcStarted) {
@@ -387,6 +409,9 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             if (curThr == NULL) continue;
 
             irpcLaunchState_t thrState = curThr->launchProcIRPC(wasRunning);
+	    inferiorrpc_printf("Result of posting process-wide RPC on thread %d: %d\n",
+			       curThr->get_thr()->get_tid(),
+			       thrState);
             if (thrState == irpcStarted) {
                 processingProcessRPC = true;
                 break;
@@ -405,6 +430,10 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             // If an IRPC was launched we've got it in the allRunningRPCs
             // vector (For bookkeeping)
             // And pick out whether the process should be run
+
+	    inferiorrpc_printf("Result of posting RPC on thread %d: %d\n",
+			       curThr->get_thr()->get_tid(),
+			       thrState);
             
             if (thrState == irpcBreakpointSet ||
                 thrState == irpcAgain ||

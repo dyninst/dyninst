@@ -67,6 +67,7 @@ bool rpcLWP::isReadyForIRPC() const {
     if (postedRPCs_.size() > 0) {
         return true;
     }
+    
     return false;
 }
 
@@ -267,6 +268,9 @@ bool rpcLWP::cancelLWPIRPC(unsigned id) {
 
 
 bool rpcLWP::handleCompletedIRPC() {
+
+  inferiorrpc_cerr << "Completed lwp RPC " << runningRPC_->rpc->id << " on lwp " << lwp_->get_lwp_id() << endl;
+
     // step 1) restore registers:
     if (runningRPC_->savedRegs) {
         if (!lwp_->restoreRegisters(*runningRPC_->savedRegs)) {
