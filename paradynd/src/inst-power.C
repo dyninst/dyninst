@@ -673,7 +673,7 @@ unsigned emitFuncCall(opCode op,
 	    // only inuse registers permitted here are the parameters.
 	    unsigned u;
 	    for (u=0; u<srcs.size(); u++){
-		if (reg->number == srcs[i]) break;
+		if (reg->number == srcs[u]) break;
 	    }
 	    if (u == srcs.size()) {
 		// XXXX - caller saves register that is in use.  We have no
