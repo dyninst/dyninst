@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.17 2000/03/14 23:24:47 wylie Exp $
+// $Id: templates0.C,v 1.18 2000/03/18 21:53:59 tikir Exp $
 // Generate all the templates in one file.
 
 /*
@@ -67,11 +67,6 @@
 
 #pragma implementation "Symbol.h"
 #include "util/h/Symbol.h"
-
-#ifdef BPATCH_LIBRARY
-#pragma implementation "BPatch_Set.h"
-#include "dyninstAPI/h/BPatch_Set.h"
-#endif
 
 #include "util/h/String.h"
 
@@ -130,11 +125,4 @@ template class  vector<relocationEntry>;
 template class vector<FERNode>;
 template class vector<FERNode*>;
 template class vector<LocalAlteration*>;
-#endif
-
-#ifdef BPATCH_LIBRARY
-template struct comparison<unsigned short>;
-template class BPatch_Set<unsigned short>;
-template struct comparison<Address>;
-template class BPatch_Set<Address>;
 #endif

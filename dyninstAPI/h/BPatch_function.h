@@ -53,12 +53,18 @@ class process;
 class BPatch_localVarCollection;
 class BPatch_function;
 class BPatch_point;
+class BPatch_flowGraph;
 
 class BPatch_function: public BPatch_sourceObj {
+    friend class BPatch_flowGraph;
+
     process *proc;
     BPatch_type * retType;
     BPatch_Vector<BPatch_localVar *> params;
     BPatch_module *mod;
+    BPatch_flowGraph* cfg;
+
+    void         *getBaseAddrRelative();
 
 public:
     virtual	~BPatch_function();
@@ -95,12 +101,13 @@ public:
     BPatch_localVar * findLocalVar( const char * name);
     BPatch_localVar * findLocalParam(const char * name);
 
-    //method to retrieve addresses corresponding a line in the function
+//method to retrieve addresses corresponding a line in the function
     bool getLineToAddr (unsigned short lineNo,
 			BPatch_Vector<unsigned long>& buffer,
 			bool exactMatch = true);
+
+//method to create the control flow graph for the function
+    BPatch_flowGraph* getCFG();
 };
-
-
 
 #endif /* _BPatch_function_h_ */

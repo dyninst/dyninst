@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.3 2000/03/14 22:31:25 tikir Exp $
+// $Id: BPatch_function.C,v 1.4 2000/03/18 21:53:59 tikir Exp $
 
 #include <string.h>
 #include "symtab.h"
@@ -50,6 +50,7 @@
 #include "BPatch_type.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
+#include "BPatch_flowGraph.h"
 #include "LineInformation.h"
 
 /* XXX Should be in a dyninst API include file (right now in perfStream.h) */
@@ -67,7 +68,7 @@ extern double cyclesPerSecond;
  */
 BPatch_function::BPatch_function(process *_proc, function_base *_func,
 	BPatch_module *_mod) :
-	proc(_proc), mod(_mod), func(_func)
+	proc(_proc), mod(_mod), func(_func),cfg(NULL)
 {
 
   // there should be at most one BPatch_func for each function_base per process
@@ -90,7 +91,7 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
  */
 BPatch_function::BPatch_function(process *_proc, function_base *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
-	proc(_proc), mod(_mod), func(_func)
+	proc(_proc), mod(_mod), func(_func),cfg(NULL)
 {
   _srcType = BPatch_sourceFunction;
   localVariables = new BPatch_localVarCollection;
@@ -105,6 +106,7 @@ BPatch_function::~BPatch_function()
         // removeAst(ast);
     if (localVariables) delete localVariables;
     if (funcParameters) delete funcParameters;
+    if (cfg) delete cfg;
 }
 
 /* 
@@ -158,6 +160,17 @@ char *BPatch_function::getName(char *s, int len)
 void *BPatch_function::getBaseAddr()
 {
      return (void *)func->getEffectiveAddress(proc);
+}
+
+/*
+* BPatch_function::getBaseAddrRelative
+*
+* Returns the starting address of the function in the module, relative
+* to the module.
+*/
+void *BPatch_function::getBaseAddrRelative()
+{
+	return (void *)func->addr();
 }
 
 
@@ -352,3 +365,19 @@ bool BPatch_function::getLineToAddr(unsigned short lineNo,
 	
 	return true;
 }
+
+
+BPatch_flowGraph* BPatch_function::getCFG(){
+	if(cfg)
+		return cfg;
+
+#if defined(sparc_sun_solaris2_4)
+	cfg = new BPatch_flowGraph((BPatch_function*)this);
+#else
+	cerr << "WARNING : BPatch_function::getCFG is not implemented";
+	cerr << " for this platform\n";
+#endif
+
+	return cfg;
+}
+

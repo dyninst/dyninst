@@ -20,6 +20,8 @@
 class FileLineInformation{
 public:
 	friend class BPatch_thread;
+	friend ostream& operator<<(ostream&,FileLineInformation&);
+
 	/** structure to keep the mapping from line number to adress
 	  * or vice versa
 	  */
@@ -139,6 +141,7 @@ public:
 class LineInformation {
 private:
 	friend class BPatch_thread;
+	friend ostream& operator<<(ostream&,LineInformation&);
 
 	/** name of the module this object belongs to */
 	string moduleName;

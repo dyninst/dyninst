@@ -67,7 +67,7 @@ typedef enum BPatch_sourceType {
     BPatch_sourceFunction,
     BPatch_sourceOuterLoop,
     BPatch_sourceLoop,
-    BPatch_sourceBlock,
+    BPatch_srcBlock,
     BPatch_sourceStatement
 } BPatch_sourceType;
 

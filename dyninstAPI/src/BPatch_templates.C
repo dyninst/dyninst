@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.10 2000/03/14 22:31:31 tikir Exp $
+// $Id: BPatch_templates.C,v 1.11 2000/03/18 21:53:59 tikir Exp $
 
 #include <sys/types.h>
 
@@ -49,10 +49,16 @@
 #include "BPatch_Vector.h"
 
 #if !defined(i386_unknown_nt4_0)
+#pragma implementation "BPatch_Set.h"
+#endif
+#include "BPatch_Set.h"
+
+#if !defined(i386_unknown_nt4_0)
 #pragma implementation "refCounter.h"
 #endif
 #include "util/h/refCounter.h"
 #include "util/h/String.h"
+#include "util/h/Types.h"
 
 class BPatch_point;
 class BPatch_field;
@@ -80,3 +86,20 @@ template class BPatch_Vector<instInstance *>;
 template class BPatch_Vector<int>;
 template class BPatch_Vector<char *>;
 template class BPatch_Vector<unsigned long>;
+
+template struct comparison<unsigned short>;
+template class BPatch_Set<unsigned short>;
+template struct comparison<Address>;
+template class BPatch_Set<Address>;
+template class BPatch_Vector<unsigned short>;
+
+class BPatch_basicBlock;
+class BPatch_basicBlockLoop;
+
+template class BPatch_Vector<BPatch_basicBlock*>;
+template class BPatch_Vector<BPatch_basicBlockLoop*>;
+
+template struct comparison<BPatch_basicBlock*>;
+template class BPatch_Set<BPatch_basicBlock*>;
+template struct comparison<BPatch_basicBlockLoop*>;
+template class BPatch_Set<BPatch_basicBlockLoop*>;

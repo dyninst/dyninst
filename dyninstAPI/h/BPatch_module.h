@@ -60,6 +60,7 @@ class BPatch_module: public BPatch_sourceObj {
     friend class BPatch_function;
     friend class BPatch_image;
     friend class BPatch_thread;
+    friend class BPatch_flowGraph;
 
     process		*proc;
     pdmodule		*mod;
@@ -95,7 +96,7 @@ public:
 
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
 
-    //function to get addresses for a line of the module
+//function to get addresses for a line of the module
     bool getLineToAddr(unsigned short lineNo,
 		       BPatch_Vector<unsigned long>& buffer,
 		       bool exactMatch = true);

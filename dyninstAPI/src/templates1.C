@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.31 2000/02/15 23:48:01 hollings Exp $
+// $Id: templates1.C,v 1.32 2000/03/18 21:53:59 tikir Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
 
 #include "util/h/String.h"
+
+#include "BPatch_Set.h"
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -235,3 +237,12 @@ template class vector<process::inferiorRPCinProgress>;
 
 template class vector<dictionary_hash <unsigned int, Address>::entry>;
 
+
+#if defined(BPATCH_LIBRARY)
+
+class BPatch_basicBlock;
+
+template class  dictionary_hash<Address,BPatch_basicBlock*>;
+template class  vector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
+
+#endif

@@ -336,22 +336,6 @@ bool FileLineInformation::getAddrFromLine(string name,
 	return true;
 }
 
-//temporary function to print info about line information
-void FileLineInformation::print(){
-	cerr << "LINE TO ADDRESS :\n";
-	for(int j=0;j<size;j++)
-		cerr << dec << lineToAddr[j].lineNo << " ----> " << hex << lineToAddr[j].codeAddress << "\n";
-	for(int i=0;i<functionCount;i++){
-		FunctionInfo* funcinfo = lineInformationList[i];
-		cerr << "FUNCTION LINE : " << *functionNameList[i] << " : " ;
-		if(!funcinfo->validInfo)
-			continue;
-		cerr << dec << lineToAddr[funcinfo->startLinePtr].lineNo ;
-		cerr << " --- " << dec << lineToAddr[funcinfo->endLinePtr].lineNo << "\n";
-	}
-	
-}
-
 //constructor whose argument is the name of the module name
 LineInformation::LineInformation(string mName) 
 		: moduleName(mName),
@@ -520,14 +504,34 @@ bool LineInformation::findFunction(string functionName){
 	return ret;
 }
 
-//print the line information kept in the map
-void LineInformation::print(){
-	cerr << "**********************************************\n";
-	cerr << "MODULE : " << moduleName << "\n";  
-	cerr << "**********************************************\n";
-	for(int i=0;i<sourceFileCount;i++){
-		cerr << "FILE : " << *sourceFileList[i] << "\n";
-		lineInformationList[i]->print();
+ostream& operator<<(ostream& os,FileLineInformation& linfo){
+
+	cerr << "LINE TO ADDRESS :\n";
+	for(int j=0;j<linfo.size;j++){
+		os << dec << linfo.lineToAddr[j].lineNo << " ----> ";
+		os << hex << linfo.lineToAddr[j].codeAddress << "\n";
 	}
+	for(int i=0;i<linfo.functionCount;i++){
+		FileLineInformation::FunctionInfo* funcinfo = 
+				linfo.lineInformationList[i];
+		os << "FUNCTION LINE : " << *(linfo.functionNameList[i]) << " : " ;
+		if(!funcinfo->validInfo)
+			continue;
+		os << dec << linfo.lineToAddr[funcinfo->startLinePtr].lineNo << " --- ";
+		os << dec << linfo.lineToAddr[funcinfo->endLinePtr].lineNo << "\n";
+	}
+	return os;
+	
+}
+
+ostream& operator<<(ostream& os,LineInformation& linfo){
+	os << "**********************************************\n";
+	os << "MODULE : " << linfo.moduleName << "\n";  
+	os << "**********************************************\n";
+	for(int i=0;i<linfo.sourceFileCount;i++){
+		os << "FILE : " << *(linfo.sourceFileList[i]) << "\n";
+		os << *(linfo.lineInformationList[i]);
+	}
+	return os;
 }
 
