@@ -1,6 +1,6 @@
 #
 # main tool bar
-# $Id: mainMenu.tcl,v 1.67 1999/05/19 07:49:42 karavan Exp $
+# $Id: mainMenu.tcl,v 1.68 2000/03/23 01:30:34 wylie Exp $
 #
 
 ## changeApplicState
@@ -112,7 +112,7 @@ proc drawToolBar {} {
     pack  .parent.menub.left.top.title.versionFrame -side right -fill y -expand false
 	    
     label .parent.menub.left.top.title.versionFrame.version \
-            -text "v2.1" \
+            -text "v3.0" \
 	    -font { Helvetica 8 bold } \
 	    -background #b3331e1b53c7 \
 	    -foreground white \
@@ -167,6 +167,8 @@ proc drawToolBar {} {
             -command {tunableEntryPoint}
     .parent.menub.left.men.b1.m add command -label "Where Axis" \
 	    -command {wm deiconify .whereAxis; raise .whereAxis}
+    .parent.menub.left.men.b1.m add command -label "Call Graph" \
+            -command {callGraphEntryPoint}
 
 #
 #  added to support phase specification

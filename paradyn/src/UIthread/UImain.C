@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.91 1999/12/17 16:24:55 pcroth Exp $
+// $Id: UImain.C,v 1.92 2000/03/23 01:33:59 wylie Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -359,14 +359,17 @@ void tcShgHideShadowCallback(bool hide) {
    tcShgHideGeneric(shg::ct_shadow, hide);
 }
 
-void tcEnableCallGraphCallback(bool hide){
-  if(hide == true)
-    myTclEval(interp,".parent.menub.left.men.b1.m add command -label \"Call Graph\" -command {callGraphInitialize}");
-  else if(hide == false){
+#if 0
+void tcEnableCallGraphCallback(bool enable){
+  if (enable)
+    myTclEval(interp, ".parent.menub.left.men.b1.m add command"
+                      " -label \"Call Graph\" -command {callGraphInitialize}");
+  else {
     myTclEval(interp, ".parent.menub.left.men.b1.m delete \"Call Graph\"");
     myTclEval(interp, "destroy .callGraph");
   }
 }
+#endif
 
 void *UImain(void*) {
 	thread_t mtid;
@@ -381,76 +384,98 @@ void *UImain(void*) {
     PARADYN_DEBUG(("%s\n",V_paradyn));
 
     tunableBooleanConstantDeclarator tcWaShowTips("showWhereAxisTips",
-						  "If true, the where axis window will be drawn with helpful reminders on shortcuts for expanding, unexpanding, selecting, and scrolling.  A setting of false saves screen real estate.",
-						  true, // initial value
-						  whereAxisDrawTipsCallback,
-						  userConstant);
+        "If true, the WhereAxis window will be drawn with helpful reminders"
+        " on shortcuts for expanding, unexpanding, selecting, and scrolling."
+        "  A setting of false saves screen real estate.",
+        true, // default value
+        whereAxisDrawTipsCallback,
+        userConstant);
 						  
     tunableBooleanConstantDeclarator tcShgShowKey("showShgKey",
-						  "If true, the search history graph will be drawn with a key for decoding the meaning of the several background colors, text colors, italics, etc.  A setting of false saves screen real estate.",
-						  true, // initial value
-						  shgDrawKeyCallback,
-						  userConstant);
-						  
+	"If true, the search history graph will be drawn with a key for"
+        " decoding the meaning of the several background colors, text colors,"
+        " italics, etc.  A setting of false saves screen real estate.",
+	true, // default value
+	shgDrawKeyCallback,
+	userConstant);
 
     tunableBooleanConstantDeclarator tcShgShowTips("showShgTips",
-						  "If true, the search history graph will be drawn with reminders on shortcuts for expanding, unexpanding, selecting, and scrolling.  A setting of false saves screen real estate.",
-						  true, // initial value
-						  shgDrawTipsCallback,
-						  userConstant);
-						  
+	"If true, the search history graph will be drawn with reminders"
+        " on shortcuts for expanding, unexpanding, selecting, and scrolling."
+        "  A setting of false saves screen real estate.",
+	true, // default value
+	shgDrawTipsCallback,
+	userConstant);
 
     tunableBooleanConstantDeclarator tcHideTcl("tclPrompt",
-					       "Allow access to a command-line prompt accepting arbitrary tcl commands in the Paradyn process",
-					       false, // initial value
-					       tclPromptCallback,
-					       developerConstant);
+        "Allow access to a command-line prompt accepting arbitrary tcl"
+        " commands in the Paradyn process.",
+        false, // default value
+        tclPromptCallback,
+        developerConstant);
 
     tunableBooleanConstantDeclarator tcHideTrue("hideShgTrueNodes",
-						"To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all true nodes (background colored blue)",
-						false, // initial value
-						tcShgHideTrueCallback,
-						userConstant);
+        "To save space in the Performance Consultant Search History Graph,"
+        " a true setting of this tunable constant will hide all true nodes"
+        " (background colored blue).",
+        false, // default value
+        tcShgHideTrueCallback,
+        userConstant);
 
     tunableBooleanConstantDeclarator tcHideFalse("hideShgFalseNodes",
-						 "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all false nodes (background colored pink)",
-						 false, // initial value
-						 tcShgHideFalseCallback,
-						 userConstant);
+        "To save space in the Performance Consultant Search History Graph,"
+        " a true setting of this tunable constant will hide all false nodes"
+        " (background colored pink).",
+        false, // default value
+        tcShgHideFalseCallback,
+        userConstant);
 
     tunableBooleanConstantDeclarator tcHideUnknown("hideShgUnknownNodes",
-						   "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all nodes with an unknown value (background colored green)",
-						   false, // initial value
-						   tcShgHideUnknownCallback,
-						   userConstant);
+        "To save space in the Performance Consultant Search History Graph,"
+        " a true setting of this tunable constant will hide all nodes with"
+        " an unknown value (background colored green).",
+        false, // default value
+        tcShgHideUnknownCallback,
+        userConstant);
 
     tunableBooleanConstantDeclarator tcHideNever("hideShgNeverSeenNodes",
-						 "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all never-before-seen nodes (background colored gray)",
-						 false, // initial value
-						 tcShgHideNeverCallback,
-						 userConstant);
+        "To save space in the Performance Consultant Search History Graph,"
+        " a true setting of this tunable constant will hide all"
+        " never-before-seen nodes (background colored gray).",
+        false, // default value
+        tcShgHideNeverCallback,
+        userConstant);
 
     tunableBooleanConstantDeclarator tcHideActive("hideShgActiveNodes",
-						  "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all active nodes (foreground text white)",
-						  false, // initial value
-						  tcShgHideActiveCallback,
-						  userConstant);
+        "To save space in the Performance Consultant Search History Graph,"
+        " a true setting of this tunable constant will hide all active nodes"
+        " (foreground text white).",
+        false, // default value
+        tcShgHideActiveCallback,
+        userConstant);
 
     tunableBooleanConstantDeclarator tcHideInactive("hideShgInactiveNodes",
-						    "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all inactive nodes (foreground text black)",
-						    false, // initial value
-						    tcShgHideInactiveCallback,
-						    userConstant);
+        "To save space in the Performance Consultant Search History Graph,"
+        " a true setting of this tunable constant will hide all inactive nodes"
+        " (foreground text black).",
+        false, // default value
+        tcShgHideInactiveCallback,
+        userConstant);
 
     tunableBooleanConstantDeclarator tcHideShadow("hideShgShadowNodes",
-						  "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all true nodes",
-						  false, // initial value
-						  tcShgHideShadowCallback,
-						  userConstant);
+        "To save space in the Performance Consultant Search History Graph,"
+        " a true setting of this tunable constant will hide all true nodes.",
+        false, // default value
+        tcShgHideShadowCallback,
+        userConstant);
+
+#if 0
     tunableBooleanConstantDeclarator tcEnableCallGraph("callGraphEnabled", 
-			      "Allows usage of Paradyn's CallGraph Display", 
-			       false,tcEnableCallGraphCallback,developerConstant);
-    
+        "Allows use of Paradyn's Callgraph Display", 
+        true, // default value
+        tcEnableCallGraphCallback,
+        developerConstant);
+#endif
 
     // Add internal UIM command to the tcl interpreter.
     Tcl_CreateCommand(interp, "uimpd", 
@@ -489,7 +514,7 @@ void *UImain(void*) {
     if (V_id.OK())
         sprintf (buf, "setTitleVersion %s", V_id.release());
     else
-        sprintf (buf, "setTitleVersion v2");    // set a reasonable? default
+        sprintf (buf, "setTitleVersion v3");    // set a reasonable? default
     myTclEval(interp, buf);
 
     // initialize number of errors read in from error database 
@@ -558,7 +583,7 @@ void *UImain(void*) {
     // New Search History Graph: --ari
     installShgCommands(interp);
 
-    //New Call Graph --trey
+    // New Call Graph --trey
     installCallGraphCommands(interp);
 
     //

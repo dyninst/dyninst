@@ -1,5 +1,5 @@
 #This is used to create the actual call graph window. 
-# $Id: callGraph.tcl,v 1.3 1999/07/13 17:13:59 pcroth Exp $
+# $Id: callGraph.tcl,v 1.4 2000/03/23 01:30:34 wylie Exp $
 
 proc callGraphChangeCurrLabelHeight {numlines} {
    if {[winfo exists .callGraph.nontop.labelarea.current]} {
@@ -10,17 +10,17 @@ proc callGraphChangeCurrLabelHeight {numlines} {
 
 # ####################################################################
 
-proc callGraphInitialize {} {
+proc callGraphEntryPoint {} {
    if {![paradyn applicationDefined]} {
       # No application has been started yet!!!
       # Put up an error dialog:
       showError 110 {}
       return 
    }
-   return [callGraphInitialize2]
+   return [callGraphInitialize]
 }
 
-proc callGraphInitialize2 {} {
+proc callGraphInitialize {} {
    if {[winfo exists .callGraph]} {
       wm deiconify .callGraph
       raise .callGraph
@@ -91,7 +91,7 @@ proc callGraphInitialize2 {} {
 
    # -----------------------------------------------------------
 
-   frame .callGraph.nontop.main -width 6i -height 3.5i
+   frame .callGraph.nontop.main
    pack  .callGraph.nontop.main -side top -fill both -expand true
 
    scrollbar .callGraph.nontop.main.leftsb -orient vertical -width 16 \
@@ -107,7 +107,7 @@ proc callGraphInitialize2 {} {
    
    pack .callGraph.nontop.main.bottsb -side bottom -fill x -expand false
    
-   frame .callGraph.nontop.main.all -relief flat -width 6i -height 2i
+   frame .callGraph.nontop.main.all -relief flat -width 150m -height 75m
    pack .callGraph.nontop.main.all -side left -fill both -expand true
    
    # -----------------------------------------------------------

@@ -41,7 +41,7 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.11 1999/07/26 21:51:49 cain Exp $
+ * $Id: PCconstants.C,v 1.12 2000/03/23 01:33:55 wylie Exp $
  */
 
 #include "PCintern.h"
@@ -111,7 +111,8 @@ void initPCconstants ()
   floatInitializer = 1.5;
   tunableConstantRegistry::createFloatTunableConstant
     ("costLimit",
-     "Maximum allowable perturbation of the application, as a fraction of the program's CPU time.",
+     "Maximum allowable perturbation of the application,"
+        " as a proportion of the program's CPU time.",
      TCpredictedCostLimitCB, // callback routine
      userConstant,
      floatInitializer, // initial value
@@ -133,7 +134,8 @@ void initPCconstants ()
   floatInitializer = 1.0;
   tunableConstantRegistry::createFloatTunableConstant
     ("minObservationTime",
-     "Minimum time (in seconds) to wait after changing instrumentation to start try hypotheses.",
+     "Minimum time (in seconds) to wait after changing instrumentation to"
+        " start try hypotheses.",
      TCminObservationTimeCB, // callback
      userConstant,
      floatInitializer, // initial
@@ -144,7 +146,7 @@ void initPCconstants ()
   floatInitializer = 6.0;
   tunableConstantRegistry::createFloatTunableConstant      
     ("sufficientTime",
-     "How long to wait (in seconds) before we can conclude a hypothesis is false.",
+     "How long to wait (in seconds) before concluding a hypothesis is false.",
      TCsufficientTimeCB,
      userConstant,
      floatInitializer, // initial
@@ -152,10 +154,12 @@ void initPCconstants ()
      1000.0); // max
   TCsufficientTimeCB(floatInitializer);
 
-  boolInitializer = false;
+  // whether to default to (new) callgraph-based search
+  boolInitializer = performanceConsultant::useCallGraphSearch; 
   tunableConstantRegistry::createBoolTunableConstant
     ("PCuseCallGraphSearch", 
-     "Changes functionality of performance consultant to use call graph based searches", 
+     "Changes functionality of the Performance Consultant to use"
+        " callgraph-based searches.", 
      TCEnableCGSearchesCB, 
      developerConstant,
      boolInitializer);
@@ -203,7 +207,8 @@ void initPCconstants ()
   boolInitializer = false;
   tunableConstantRegistry::createBoolTunableConstant 
     ("PCcollectInstrTimings", 
-     "Time all instrumentation requests and save results in file TESTresult.out",
+     "Time all instrumentation requests and save results in file "
+        "TESTresult.out",
      TCcollectInstrTimingsCB, 
      developerConstant, 
      boolInitializer);
@@ -219,7 +224,8 @@ void initPCconstants ()
   boolInitializer = false;
   tunableConstantRegistry::createBoolTunableConstant 
     ("PCuseIndividualThresholds", 
-     "Use individually defined thresholds for all Performance Consultant hypotheses.",
+     "Use individually defined thresholds for all Performance Consultant"
+        " hypotheses.",
      TCuseIndividualThresholdsCB, 
      developerConstant, 
      boolInitializer);
