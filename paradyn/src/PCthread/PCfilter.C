@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.10  1996/04/22 17:59:23  newhall
+ * Revision 1.11  1996/04/24 15:01:19  naim
+ * Minor change to print message - naim
+ *
+ * Revision 1.10  1996/04/22  17:59:23  newhall
  * added comments, minor change to getPredictedDataCostAsync
  *
  * Revision 1.9  1996/04/21  21:45:38  newhall
@@ -445,7 +448,8 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 	<< "foc=" << dataMgr->getFocusNameFromMI(indexCopy) << endl;
   }
   if (performanceConsultant::collectInstrTimings) {
-    printf("==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(indexCopy),dataMgr->getFocusNameFromMI(indexCopy)); 
+    if ((t2-t1) > 1.0) 
+      printf("==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(indexCopy),dataMgr->getFocusNameFromMI(indexCopy)); 
   }
 #endif
   return indexCopy;
