@@ -3,6 +3,9 @@
 
 #
 # $Log: tableVisi.tcl,v $
+# Revision 1.4  1995/12/20 02:29:44  tamches
+# minor menu fix
+#
 # Revision 1.3  1995/11/29 00:44:19  tamches
 # We now call makeLogo
 #
@@ -109,7 +112,7 @@ proc initializeTableVisi {} {
    .top.left.menubar.opts.m add radio -label "6 significant digits" \
 	   -variable SignificantDigits -value 6 -command "sigFigChange "
    .top.left.menubar.opts.m add radio -label "7 significant digits" \
-	   -variable SignificantDigits -value 8 -command "sigFigChange "
+	   -variable SignificantDigits -value 7 -command "sigFigChange "
    .top.left.menubar.opts.m add radio -label "8 significant digits" \
 	   -variable SignificantDigits -value 8 -command "sigFigChange "
 
@@ -117,12 +120,7 @@ proc initializeTableVisi {} {
    pack .top.left.menubar.file .top.left.menubar.acts .top.left.menubar.opts \
    	-side left -padx 4
    
-   #  Logo:
-#   label .top.logo -relief raised \
-#                     -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
-#                     -foreground HotPink2
    makeLogo .top.logo paradynLogo raised 2 HotPink2
-
    pack .top.logo -side right
 
    # Horizontal Scrollbar
