@@ -2,8 +2,11 @@
 #  tabVis -- A tabular display visualization for Paradyn
 #
 #  $Log: tabVis.tcl,v $
-#  Revision 1.2  1994/06/01 16:59:30  rbi
-#  Better menu bar.  Short names option.
+#  Revision 1.3  1994/06/14 18:58:29  rbi
+#  Updated layout and added curve validation callback.
+#
+# Revision 1.2  1994/06/01  16:59:30  rbi
+# Better menu bar.  Short names option.
 #
 # Revision 1.1  1994/05/31  22:18:53  rbi
 # Fix for direct execution of tcl visis
@@ -13,99 +16,118 @@
 #
 #  default display options
 #
-option add *Table*background IndianRed3
-option add *Table*activeBackground IndianRed2
-option add *Table*font *-New*Century*Schoolbook-Bold-R-*-18-*
-option add *Table*foreground white
+option add *Visi*background Azure2
+option add *Visi*activeBackground Azure3
+option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-18-*
 option add *Data*font *-Helvetica-*-r-*-12-* 
 option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
 #
 #  Create the overall frame
 #
-frame .table -class Table
+set W .table
+frame $W -class Visi
+
+#
+#  Create the title bar, menu bar, and logo at the top
+#
+frame $W.top
+pack $W.top -side top -fill x -expand 1 -anchor n
+
+frame $W.top.left 
+pack $W.top.left -side left -fill both -expand 1
+
+label $W.top.left.title -relief raised -text "Table Visualization" \
+      -foreground white -background HotPink4
+
+pack $W.top.left.title -side top -fill both -expand 1
 
 #
 #  Create the menubar as a frame with many menu buttons
 #
-frame .table.menubar -class MyMenu -borderwidth 2 -relief raised
+frame $W.top.left.menubar -class MyMenu -borderwidth 2 -relief raised
+pack $W.top.left.menubar -side top -fill both -expand 1
 
 #
 #  File menu
 # 
-menubutton .table.menubar.file -text "File" -menu .table.menubar.file.m
-menu .table.menubar.file.m
-.table.menubar.file.m add command -label "Close" -command Shutdown
-
+menubutton $W.top.left.menubar.file -text "File" -menu $W.top.left.menubar.file.m
+menu $W.top.left.menubar.file.m
+$W.top.left.menubar.file.m add command -label "Close" -command Shutdown
 
 #
 #  Options menu
 #
-menubutton .table.menubar.opts -text "Options" -menu .table.menubar.opts.m
-menu .table.menubar.opts.m -selector black
-.table.menubar.opts.m add command -label "Signif. Digits" -command SetSignif
-.table.menubar.opts.m add check -label "Short Names" -variable ShortNames
-.table.menubar.opts.m add separator
-.table.menubar.opts.m add radio -label "Current Value" \
+menubutton $W.top.left.menubar.opts -text "Options" -menu $W.top.left.menubar.opts.m
+menu $W.top.left.menubar.opts.m -selector black
+$W.top.left.menubar.opts.m add command -label "Signif. Digits" -command SetSignif
+$W.top.left.menubar.opts.m add check -label "Short Names" -variable ShortNames
+$W.top.left.menubar.opts.m add separator
+$W.top.left.menubar.opts.m add radio -label "Current Value" \
     -variable DataFormat \
     -value Instantaneous
-.table.menubar.opts.m add radio -label "Average Value" \
+$W.top.left.menubar.opts.m add radio -label "Average Value" \
     -variable DataFormat \
     -value Average
-.table.menubar.opts.m add radio -label "Total Value" \
+$W.top.left.menubar.opts.m add radio -label "Total Value" \
     -variable DataFormat \
     -value Sum
-.table.menubar.opts.m invoke 3
-
-#
-#  Put in a frame to space the menu bar
-#
-frame .table.menubar.pad -width 2i
+$W.top.left.menubar.opts.m invoke 3
 
 #
 #  Help menu
 #
-menubutton .table.menubar.help -text "Help" -menu .table.menubar.help.m
-menu .table.menubar.help.m
-.table.menubar.help.m add command -label "General" -command "NotImpl"
-.table.menubar.help.m add command -label "Context" -command "NotImpl"
-.table.menubar.help.m disable 0
-.table.menubar.help.m disable 1
+menubutton $W.top.left.menubar.help -text "Help" -menu $W.top.left.menubar.help.m
+menu $W.top.left.menubar.help.m
+$W.top.left.menubar.help.m add command -label "General" -command "NotImpl"
+$W.top.left.menubar.help.m add command -label "Context" -command "NotImpl"
+$W.top.left.menubar.help.m disable 0
+$W.top.left.menubar.help.m disable 1
 
 #
 #  Build the menu bar and add to display
 #
-pack .table.menubar.file .table.menubar.opts -side left
-pack .table.menubar.help -side right
-
-blt_table .table .table.menubar 0,0 -cspan 50 -pady 2 -fill both
+pack $W.top.left.menubar.file $W.top.left.menubar.opts -side left 
+pack $W.top.left.menubar.help -side right 
 
 #
 #  Organize all menu buttons into a menubar
 #
-tk_menuBar .table.menubar .table.menubar.file .table.menubar.opts .table.menubar.help 
+tk_menuBar $W.top.left.menubar $W.top.left.menubar.file $W.top.left.menubar.opts $W.top.left.menubar.help 
+
+#
+#  Build the logo 
+#
+label $W.top.logo -relief raised -bitmap @~paradyn/core/paradyn/tcl/logo.xbm \
+                  -foreground #b3331e1b53c7
+
+pack $W.top.logo -side right
 
 #
 #  Data space initially blank
 #
-frame .table.data -height 1i -class Data
-blt_table .table .table.data 1,0 -cspan 50 -pady .25i
+frame $W.middle -height 1i -class Data
+pack $W.middle -side top -fill both -expand 1
 
 #
 #  Build close button and status field at the bottom
 #
-button .table.close -text "Close" -command Shutdown -activebackground IndianRed2 -padx 4 -pady 4
-label .table.status -text "No Data Yet" \
-      -font *-Helvetica-*-o-*-12-* \
-      -foreground yellow -padx 6
+frame $W.bottom
+pack $W.bottom -side bottom -fill x -expand 1 -anchor s
 
-blt_table .table .table.status 50,1 -cspan 4 \
-                 .table.close 50,0 
+button $W.bottom.close -text "Close" -command Shutdown -activebackground Azure3 -padx 4 -pady 4
+label $W.bottom.status -text "No Data Yet" \
+      -font *-Helvetica-*-o-*-12-* \
+      -foreground blue -padx 6
+
+pack $W.bottom.close -side left -fill both 
+pack $W.bottom.status -side left
 
 #
 #  Finally display everything
 #
-pack append . .table {fill expand frame center}
+pack append . $W {fill expand frame center}
+wm minsize . 50 50
 
 #
 #  Significant digits adjustment is done with a scale widget
@@ -116,12 +138,12 @@ proc SetSignif {{w .signif}} {
   global SignificantDigits
 
   catch {destroy $w}
-  toplevel $w -class Table
+  toplevel $w -class Visi
   wm geometry $w +300+300
   wm title $w "Signif Digits"
   wm iconname $w "SignifDigits"
   scale $w.scale -orient horizontal -length 280 -from 0 -to 8 \
-    -tickinterval 1 -bg IndianRed3 -command "set SignificantDigits " \
+    -tickinterval 1 -bg Azure1 -command "set SignificantDigits " \
     -borderwidth 5 -showvalue false -label "Significant Digits" \
     -font *-New*Century*Schoolbook-Bold-R-*-14-*
   $w.scale set $SignificantDigits
@@ -157,28 +179,30 @@ proc DgFoldCallback {} {
 #    we rebuild the table
 #
 proc DgConfigCallback {} {
-  catch {destroy .table.data}
-  frame .table.data -class Data 
-  blt_table .table .table.data 1,0 -cspan 50 -pady .25i 
+  global W
+
+  catch {destroy $W.middle.data}
+  frame $W.middle.data -class Data 
+  pack $W.middle.data -side top -fill both -expand 1
 
   set nM [Dg nummetrics]
   set nR [Dg numresources]
 
   for {set m 0} {$m < $nM} {incr m} {
     set row [expr $m+1]
-    label .table.data.rowlabel($m) -text [Dg metricname $m]
-    label .table.data.rowunits($m) -text [Dg metricunits $m]
-    blt_table .table.data .table.data.rowlabel($m) $row,0 -anchor e -pady 2 \
-                          .table.data.rowunits($m) $row,99 -anchor w -pady 2
+    label $W.middle.data.rowlabel($m) -text [Dg metricname $m]
+    label $W.middle.data.rowunits($m) -text [Dg metricunits $m]
+    blt_table $W.middle.data $W.middle.data.rowlabel($m) $row,0 -anchor e -pady 2 \
+                          $W.middle.data.rowunits($m) $row,99 -anchor w -pady 2
     for {set r 0} {$r < $nR} {incr r} {
       if {$row == 1} {
         set col [expr $r+1]
-        label .table.data.collabel($r) -text [GetResourceName $r]
-        blt_table .table.data .table.data.collabel($r) 0,$col -anchor e
-	blt_table column .table.data configure $col -padx 2
+        label $W.middle.data.collabel($r) -text [GetResourceName $r]
+        blt_table $W.middle.data $W.middle.data.collabel($r) 0,$col -anchor e
+	blt_table column $W.middle.data configure $col -padx 2
       }
-      label .table.data.label($m,$r)
-      blt_table .table.data .table.data.label($m,$r) $row,$col -anchor e
+      label $W.middle.data.label($m,$r)
+      blt_table $W.middle.data $W.middle.data.label($m,$r) $row,$col -anchor e
     }
   }
 
@@ -197,7 +221,7 @@ set DataFormat Average
 trace variable DataFormat w FormatChanged
 
 proc FormatChanged {name1 name2 how} {
-  DgDataCallback
+  DgDataCallback 0 0
   UpdateStatus
 }
 
@@ -212,9 +236,11 @@ set ShortNames 0
 trace variable ShortNames w UpdateResourceLabels
 
 proc UpdateResourceLabels {name1 name2 how} {
+  global W
+
   set nR [Dg numresources]
   for {set r 0} {$r < $nR} {incr r} {
-    .table.data.collabel($r) configure -text [GetResourceName $r]
+    $W.middle.data.collabel($r) configure -text [GetResourceName $r]
   }    
 }
 
@@ -232,9 +258,9 @@ proc GetResourceName {resid} {
 #  Update the status line
 #
 proc UpdateStatus {} {
-  global DataFormat
+  global DataFormat W
 
-  .table.status configure -text "Binwidth = [Dg binwidth], DataFormat: $DataFormat"
+  $W.bottom.status configure -text "Interval = [Dg binwidth] s, DataFormat: $DataFormat"
 }
 
 #
@@ -254,11 +280,18 @@ proc GetValue {m n} {
 }
 
 #
+# DgValidCallback -- visi calls this when curve becomes valid
+#
+proc DgValidCallback {m r} {
+  puts stderr [format "Curve %d %d is now valid" $m $r]
+}
+
+#
 #  DgDataCallback -- visi calls this command when new data is available
 #    we fill in all of the data labels with the new data values
 #
-proc DgDataCallback {} {
-  global SignificantDigits
+proc DgDataCallback {first last} {
+  global SignificantDigits W
 
   set nM [Dg nummetrics]
   set nR [Dg numresources]
@@ -266,7 +299,7 @@ proc DgDataCallback {} {
     for {set r 0} {$r < $nR} {incr r} {
       if {[Dg valid $m $r]} {
         set value [GetValue $m $r]
-        .table.data.label($m,$r) configure \
+        $W.middle.data.label($m,$r) configure \
            -text [format "%.[set SignificantDigits]f" $value]
       }
     }

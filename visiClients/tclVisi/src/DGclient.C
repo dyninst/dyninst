@@ -2,7 +2,10 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.1  1994/05/31 21:05:47  rbi
+ * Revision 1.2  1994/06/14 18:57:47  rbi
+ * Updated layout and added curve validation callback.
+ *
+ * Revision 1.1  1994/05/31  21:05:47  rbi
  * Initial version of tclVisi and tabVis
  *
  */
@@ -11,43 +14,150 @@
 #include <tk.h>
 #include "visi/h/visualization.h"
 
+extern "C" {
+  int Blt_GraphElement(Tcl_Interp *interp, char *pathName, char *elemName, 
+		       int numValues, double *valueArr);
+}
+
 extern Tcl_Interp *MainInterp;
 
 int Dg_Add(int dummy) {
+  int retval;
 
-  Tcl_Eval(MainInterp, "DgConfigCallback");
-  return(0);
+  retval = Tcl_Eval(MainInterp, "DgConfigCallback");
+  if (retval == TCL_ERROR) {
+    fprintf(stderr, "%s\n", MainInterp->result);
+  }
+  return(retval);
 }
 
 int Dg_Data(int dummy) {
+  int retval = TCL_OK, thislast = -1;
+  static LastBucket = 0;
+  char cmd[256];
 
-  Tcl_Eval(MainInterp, "DgDataCallback");
-  return(0);
+  /* 
+   *  Simulate valid callback
+   */
+  for (unsigned m = 0; m < dataGrid.NumMetrics(); m++) {
+    for (unsigned r = 0; r < dataGrid.NumResources(); r++) {
+      if(dataGrid[m][r].Valid){
+	if (! dataGrid[m][r].userdata) {
+	  sprintf(cmd,"DgValidCallback %d %d", m, r);
+	  retval = Tcl_Eval(MainInterp, cmd);
+	  if (retval == TCL_ERROR) {
+	    fprintf(stderr, "%s\n", MainInterp->result);
+	  }
+	  dataGrid[m][r].userdata = (void *) malloc(sizeof (int));
+	  *((int *) dataGrid[m][r].userdata) = 1;
+	}
+	if (thislast < 0) {
+	  thislast = dataGrid[m][r].LastBucketFilled();
+	}
+      }
+    }
+  }
+
+  /*
+   *  Send range to tcl
+   */
+  if (thislast < LastBucket) {
+    LastBucket = thislast-1;
+  }
+  if (thislast >= 0) {
+    sprintf(cmd,"DgDataCallback %d %d", LastBucket+1, thislast);
+    retval = Tcl_Eval(MainInterp, cmd);
+    if (retval == TCL_ERROR) {
+      fprintf(stderr, "%s\n", MainInterp->result);
+    }
+    LastBucket = thislast;
+  }
+
+  return(retval);
 }
 
 int Dg_Fold(int dummy) {
+  int retval;
 
-  Tcl_Eval(MainInterp, "DgFoldCallback");
-  return(0);
+  retval = Tcl_Eval(MainInterp, "DgFoldCallback");
+  if (retval == TCL_ERROR) {
+    fprintf(stderr, "%s\n", MainInterp->result);
+  }
+  return(retval);
 }
 
 int Dg_Invalid(int dummy) {
+  int retval;
 
-  Tcl_Eval(MainInterp, "DgInvalidateCallback");
-  return(0);
+  retval = Tcl_Eval(MainInterp, "DgInvalidCallback");
+  if (retval == TCL_ERROR) {
+    fprintf(stderr, "%s\n", MainInterp->result);
+  }
+  return(retval);
 }
 
 int Dg_New(int dummy) {
+  int retval;
 
-  Tcl_Eval(MainInterp, "DgConfigCallback");
-  return(0);
+  retval = Tcl_Eval(MainInterp, "DgConfigCallback");
+  if (retval == TCL_ERROR) {
+    fprintf(stderr, "%s\n", MainInterp->result);
+  }
+  return(retval);
 }
 
 int Dg_Phase(int dummy) {
+  int retval;
 
-  Tcl_Eval(MainInterp, "DgPhaseCallback");
-  return(0);
+  retval = Tcl_Eval(MainInterp, "DgPhaseCallback");
+  if (retval == TCL_ERROR) {
+    fprintf(stderr, "%s\n", MainInterp->result);
+  }
+  return(retval);
 }
+
+int Dg_GraphElem(Tcl_Interp *interp, char *path, char *elem, int mid, int rid) 
+{
+  static double *coords = NULL;
+  double *cptr, bwid;
+  float *vals, *vptr;
+  int numb, b;
+
+  /* Allocate an array for the coords */
+  if (coords == NULL) {
+    numb = dataGrid.NumBins();
+    coords = (double *) malloc(sizeof(double) * numb * 2);
+    if (!coords) {
+      sprintf(interp->result, "Dg_GraphElem: Could not allocate coords\n");
+      return TCL_ERROR;
+    }
+  }    
+
+  /* Binwidth and numbuckets give us the t coords */
+  numb = dataGrid[mid][rid].LastBucketFilled()+1;
+  bwid = dataGrid.BinWidth();
+
+  /* Get the data values */
+  vals = dataGrid[mid][rid].Value();
+
+  /* Fill the array */
+  cptr = coords;  
+  vptr = vals;
+  for (b = 0; b < numb; b++) {
+    *cptr++ = b*bwid;
+    if (isnan(*vptr)) {
+      *cptr = 0.0;
+    } else {
+      *cptr = (double) *vptr;
+    }
+    cptr++;
+    vptr++;
+  }
+
+  /* Give it to BLT */
+  return(Blt_GraphElement(interp, path, elem, numb*2, coords));
+}
+
 
 #define   AGGREGATE        0
 #define   BINWIDTH         1
@@ -62,10 +172,11 @@ int Dg_Phase(int dummy) {
 #define   STARTSTREAM      10
 #define   STOPSTREAM       11
 #define   DGSUM            12
-#define   DGVALID            13
+#define   DGVALID          13
 #define   VALUE            14
 #define   CMDERROR         15
 #define   LASTBUCKET       16
+#define   BLTGRAPHELEM     17
 
 struct cmdTabEntry 
 {
@@ -77,6 +188,7 @@ struct cmdTabEntry
 static struct cmdTabEntry Dg_Cmds[] = {
   {"aggregate",    AGGREGATE,       2},
   {"binwidth",     BINWIDTH,        0},
+  {"bltgraphelem", BLTGRAPHELEM,    4},
   {"foldmethod",   FOLDMETHOD,      2},
   {"lastbucket",   LASTBUCKET,      2},
   {"metricname",   METRICNAME,      1},
@@ -141,6 +253,11 @@ int Dg_TclCommand(ClientData clientData,
   case BINWIDTH:     
     sprintf(interp->result, "%g", dataGrid.BinWidth());
     return TCL_OK;
+
+  case BLTGRAPHELEM:     
+    m = atoi(argv[2]);
+    r = atoi(argv[3]);
+    return (Dg_GraphElem(interp, argv[4], argv[5], m, r));
 
   case FOLDMETHOD:
     m = atoi(argv[2]);
