@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.20  1994/05/17 00:17:06  hollings
+ * Revision 1.21  1994/05/23 20:28:04  karavan
+ * fixed return values for addExecutable
+ *
+ * Revision 1.20  1994/05/17  00:17:06  hollings
  * Made sure we did the correct thing on a callErrr.
  *
  * Revision 1.19  1994/05/11  18:45:37  markc
@@ -230,9 +233,9 @@ int applicationContext::addExecutable(char  *machine,
 	fprintf (stderr, "PID is %d\n", pid);
 	exec = new executable(pid, argc, argv, daemon);
 	programs.add(exec);
-	return(-1);
-    } else {
 	return(0);
+    } else {
+	return(-1);
     }
 }
 
