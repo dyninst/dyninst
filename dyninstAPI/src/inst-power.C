@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.161 2003/03/06 20:58:59 zandy Exp $
+ * $Id: inst-power.C,v 1.162 2003/03/14 23:18:30 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -3437,102 +3437,87 @@ void instWaitingList::cleanUp(process * , Address ) {
     P_abort();
 }
 
-bool completeTheFork(process *parentProc, int childpid) {
-   // no "process" structure yet exists for the child.
-   // a fork syscall has just happened.  On AIX, this means that
-   // the text segment of the child has been reset instead of copied
-   // from the parent process.  This routine "completes" the fork so that
-   // it behaves like a normal UNIX fork.
-
-   // First, we copy everything from the parent's inferior text heap
-   // to the child.  To do this, we loop thru every allocated item in
-
-   forkexec_cerr << "WELCOME to completeTheFork parent pid is " << parentProc->getPid()
-                 << ", child pid is " << childpid << endl;
-
-   pdvector<heapItem*> srcAllocatedBlocks = parentProc->heap.heapActive.values();
-
-   char buffer[2048];
-   const unsigned max_read = 1024;
-
-   for (unsigned lcv=0; lcv < srcAllocatedBlocks.size(); lcv++) {
-      const heapItem &srcItem = *srcAllocatedBlocks[lcv];
-
-      assert(srcItem.status == HEAPallocated);
-      unsigned addr = srcItem.addr;
-      int      len  = srcItem.length;
-      const unsigned last_addr = addr + len - 1;
-
-      unsigned start_addr = addr;
-      while (start_addr <= last_addr) {
-	 unsigned this_time_len = len;
-	 if (this_time_len > max_read)
-	    this_time_len = max_read;
-
-	 if (!parentProc->readDataSpace((const void*)addr, this_time_len, buffer, true))
-	    assert(0);
-	 
-	 // now write "this_time_len" bytes from "buffer" into the inferior
-	 // process, starting at "addr".  Will this have problems with the
-	 // 1024-byte-at-a-time limit?
-	 if (-1 == ptrace(PT_WRITE_BLOCK, childpid, (int*)addr, this_time_len,
-			  (int*)buffer))
-	    assert(0);
-
-	 start_addr += this_time_len;
-      }
-   }
-   
-   // Okay that completes the first part; the inferior text heap contents have
-   // been copied.  In other words, the base and mini tramps have been copied.
-   // But now we need to update parts where the code that jumped to the base
-   // tramps.
-   
-   // How do we do this?  We loop thru all instInstance's of the parent process.
-   // Fields of interest are:
-   // 1) location (type instPoint*) -- where the code was put
-   
-   pdvector<const instPoint*> allInstPoints = parentProc->baseMap.keys();
-   
-   int jj = 0;
-   for (unsigned u = 0; u < allInstPoints.size(); u++) {
-      jj++;
-      const instPoint *theLocation = allInstPoints[u];
-      unsigned addr = theLocation->addr;
-      
-      // So, we need to copy one word.  The word to copy can be found
-      // at address "theLocation->addr" for AIX.  The original instruction
-      // can be found at "theLocation->originalInstruction", but we don't
-      // need it.  So, we ptrace-read 1 word @ theLocation->addr from
-      // the parent process, and then ptrace-write it to the same location
-      // in the child process.
-      
-      // exit base trampolines inherently don't have branches to them
-      // they are activated by a "branch to link register" instruction
-      // so we don't need to copy over a branch instruction for exit tramps
-      // the exit base tramp will still get called in the child process
-      // because the entry base tramp will get copied over and this updates
-      // the link register appropriately so the exit tramp will get called
-      if(theLocation->ipLoc != ipFuncReturn) {
-	 // 64-bit problem
-	 int data; // big enough to hold 1 instr
-       
-	 errno = 0;
-	 data = ptrace(PT_READ_I, parentProc->getPid(), 
-		       (int*)addr, 0, 0);
-	 if (data == -1 && errno != 0) {
-	    fprintf(stderr, "Error in fork handler, parent proc %d, reading"
-		    " instr at %x\n", parentProc->getPid(), addr);
-	    perror("fork handler");
-	    assert(0);
-	 }
-	 errno = 0;
-	 if (-1 == ptrace(PT_WRITE_I, childpid, (int*)addr, data, 0) &&
-	     errno != 0)
-	    assert(0);
-      }
-   }
-   return true;
+bool copyInstrumentationToChild(process *parentProc, process *childProc) {
+    // a fork syscall has just happened.  On AIX, this means that
+    // the text segment of the child has been reset instead of copied
+    // from the parent process.  This routine "completes" the fork so that
+    // it behaves like a normal UNIX fork.
+    
+    // First, we copy everything from the parent's inferior text heap
+    // to the child.  To do this, we loop thru every allocated item in
+    
+    pdvector<heapItem*> srcAllocatedBlocks = parentProc->heap.heapActive.values();
+    
+    for (unsigned lcv=0; lcv < srcAllocatedBlocks.size(); lcv++) {
+        const heapItem &srcItem = *srcAllocatedBlocks[lcv];
+        
+        assert(srcItem.status == HEAPallocated);
+        unsigned addr = srcItem.addr;
+        int      len  = srcItem.length;
+        char buffer[len];
+        
+        if (!parentProc->readDataSpace((void*)addr, len, buffer, true))
+            assert(0);
+        
+        // now write "this_time_len" bytes from "buffer" into the inferior
+        // process, starting at "addr".  Will this have problems with the
+        // 1024-byte-at-a-time limit?
+        if (!childProc->writeDataSpace((void*)addr, len, (void *)buffer))
+            assert(0);
+    }
+    
+    // Okay that completes the first part; the inferior text heap contents have
+    // been copied.  In other words, the base and mini tramps have been copied.
+    // But now we need to update parts where the code that jumped to the base
+    // tramps.
+    
+    // How do we do this?  We loop thru all instInstance's of the parent process.
+    // Fields of interest are:
+    // 1) location (type instPoint*) -- where the code was put
+    
+    pdvector<const instPoint*> allInstPoints = parentProc->baseMap.keys();
+    
+    int jj = 0;
+    for (unsigned u = 0; u < allInstPoints.size(); u++) {
+        jj++;
+        const instPoint *theLocation = allInstPoints[u];
+        unsigned addr = theLocation->addr;
+        
+        // So, we need to copy one word.  The word to copy can be found
+        // at address "theLocation->addr" for AIX.  The original instruction
+        // can be found at "theLocation->originalInstruction", but we don't
+        // need it.  So, we ptrace-read 1 word @ theLocation->addr from
+        // the parent process, and then ptrace-write it to the same location
+        // in the child process.
+        
+        // exit base trampolines inherently don't have branches to them
+        // they are activated by a "branch to link register" instruction
+        // so we don't need to copy over a branch instruction for exit tramps
+        // the exit base tramp will still get called in the child process
+        // because the entry base tramp will get copied over and this updates
+        // the link register appropriately so the exit tramp will get called
+        if(theLocation->ipLoc != ipFuncReturn) {
+            // 64-bit problem
+            instruction insn; // big enough to hold 1 instr
+            
+            if (!parentProc->readDataSpace((void *)addr, sizeof(instruction),
+                                           (void *)&insn.raw, true)) {
+                fprintf(stderr, "Error in fork handler, parent proc %d, reading"
+                        " instr at %x\n", parentProc->getPid(), addr);
+                perror("fork handler");
+                assert(0);
+            }
+            if (!childProc->writeDataSpace((void *)addr, sizeof(instruction),
+                                           (void *)&insn.raw)) {
+                fprintf(stderr, "Error in fork handler, child proc %d, writing"
+                        " instr at %x\n", parentProc->getPid(), addr);
+                perror("fork handler");
+                assert(0);
+            }
+            
+        }
+    }
+    return true;
 }
 
 
