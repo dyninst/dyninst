@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.44 1994/11/10 21:03:42 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.45 1994/11/11 05:11:06 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.44  1994/11/10 21:03:42  markc
+ * Revision 1.45  1994/11/11 05:11:06  markc
+ * Turned off print message when internal metrics are enbled.
+ *
+ * Revision 1.44  1994/11/10  21:03:42  markc
  * metricValue gets intialized to 0.
  *
  * Revision 1.43  1994/11/10  18:58:06  jcargill
@@ -393,8 +396,8 @@ metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m, bool
       mn = new metricDefinitionNode(NULL, m->info.aggregate);
       im->enable(mn);
       ostrstream os(errorLine, 1024, ios::out);
-      os <<  "enabled internal metric " << m->info.name << "\n";
-      logLine(errorLine);
+      // os <<  "enabled internal metric " << m->info.name << "\n";
+      // logLine(errorLine);
       return(mn);
     }
 
