@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.6 2001/02/23 08:03:46 schendel Exp $
+// $Id: inst-linux.C,v 1.7 2001/12/06 20:57:46 schendel Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -116,19 +116,20 @@ void initPrimitiveCost()
 
     // Values (in cycles) benchmarked on a Pentium III 700MHz
     // Level 2 - Software Level
-    primitiveCosts["DYNINSTstartWallTimer"] = 719;
-    primitiveCosts["DYNINSTstopWallTimer"] = 737;
+    //primitiveCosts["DYNINSTstartWallTimer"] = 719;
+    //primitiveCosts["DYNINSTstopWallTimer"] = 737;
     primitiveCosts["DYNINSTstartProcessTimer"] = 587;
     primitiveCosts["DYNINSTstopProcessTimer"] = 607;
 
     /* Level 1 - Hardware Level
     // Implementation still needs to be added to handle start/stop
     // timer costs for multiple levels
+    */
     primitiveCosts["DYNINSTstartWallTimer"] = 145;
     primitiveCosts["DYNINSTstopWallTimer"] = 163;
-    primitiveCosts["DYNINSTstartProcessTimer"] = 195;
-    primitiveCosts["DYNINSTstopProcessTimer"] = 207;
-    */
+   
+    //primitiveCosts["DYNINSTstartProcessTimer"] = 195;
+    //primitiveCosts["DYNINSTstopProcessTimer"] = 207;
 
     // These happen async of the rest of the system.
     // 133.86 usecs * 67Mhz
