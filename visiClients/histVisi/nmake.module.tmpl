@@ -1,0 +1,51 @@
+#
+# Common makefile template for the histogram visi.
+# This file is not intended to be a useful Makefile in isolation; 
+# instead, it should be included from within an architecture-
+# specific Makefile.
+#
+# $Id: nmake.module.tmpl,v 1.1 1999/10/05 22:09:13 pcroth Exp $
+#
+
+TARGET	= rthist.exe
+
+IFLAGS	= $(IFLAGS) \
+			-I.. \
+			-I$(TO_CORE)/paradyn/src/UIthread
+
+PD_SRCS	= $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
+			$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
+			$(TO_CORE)/paradyn/src/UIthread/minmax.C
+MY_SRCS	= ../src/DGClient.C \
+			../src/HistVisi.C \
+			../src/init-nt.C \
+			../src/init.C \
+			../src/main-nt.C \
+			../src/main.C \
+			../src/PDGData.C \
+			../src/PDGraph.C \
+			../src/PDGTimeAxis.C \
+			../src/PDGValueAxis.C \
+			../src/templates.C
+TCL_SRCS	= ../tcl/histVisi.tcl ../tcl/pdgraph.tcl
+SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(TCL_SRCS)
+			
+
+# note: we cannot use TO_CORE here, since nmake does not 
+# expand variables in macro substitutions
+PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
+MY_TMPO	= $(MY_SRCS:../src/=)
+OBJS	= $(OBJS) $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj) $(TCL2C_GEN_SRCS:.C=.obj)
+
+LIBS	= $(LIBS) libvisi.lib libpdutil.lib
+SYSLIBS	= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
+
+
+all:	$(TARGET)
+
+$(TCL2C_GEN_SRCS): $(TCL_SRCS)
+	$(PERL) $(TCL2C) $** > $@
+
+{$(TO_CORE)\paradyn\src\UIthread}.C{}.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+

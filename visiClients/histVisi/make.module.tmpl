@@ -1,0 +1,47 @@
+#
+# Common makefile template for histogram visi.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 1999/10/05 22:09:13 pcroth Exp $
+#
+
+TARGET	      = rthist
+
+IFLAGS	     += -I.. -I$(TO_CORE)/paradyn/src/UIthread
+
+# if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
+# inserted by make.config won't be enough for the compiler to find,
+# say, visi/h/visualization.h.  We don't want to force the user to have
+# "visi" checked out in order to compile barChart.
+IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
+
+VPATH	     += ../src:$(TO_CORE)/paradyn/src/UIthread
+
+SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
+		$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
+		../src/DGClient.C \
+		../src/HistVisi.C \
+		../src/init.C \
+		../src/main.C \
+		../src/PDGData.C \
+		../src/PDGraph.C \
+		../src/PDGTimeAxis.C \
+		../src/PDGValueAxis.C \
+		../src/templates.C
+
+TCL_SRCS	= $(wildcard ../tcl/*.tcl)
+SRCS		+= $(TCL2C_GEN_SRCS)
+
+LIBS         += -lvisi -lpdutil 
+SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
+
+ifdef CROSSCOMPILER
+SYSLIBS		+= -lstdc++
+endif
+
+all:	$(TARGET)
+
+$(TCL2C_GEN_SRCS): $(TCL_SRCS)
+	$(PERL) $(TCL2C) $^ > $@
+
