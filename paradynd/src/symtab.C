@@ -45,6 +45,9 @@
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.47  1996/10/18 23:54:18  mjrg
+ * Solaris/X86 port
+ *
  * Revision 1.46  1996/10/08 19:30:01  lzheng
  * add notInstruFunction to class image (for stack walking)
  *
@@ -108,7 +111,6 @@
 #include "init.h"
 #include "showerror.h"
 
-vector<watch_data> image::watch_vec;
 vector<image*> image::allImages;
 
 extern "C" char *cplus_demangle(char *, int);
@@ -665,7 +667,7 @@ static void binSearch (const Symbol &lookUp, vector<Symbol> &mods,
   while ((start <= end) && !found) {
     index = (start+end)/2;
 
-    if ((index == (mods.size()-1)) ||
+    if ((index == (((int)mods.size())-1)) ||
 	((mods[index].addr() <= lookUp.addr()) && (mods[index+1].addr() > lookUp.addr()))) {
       modName = mods[index].name();
       modAddr = mods[index].addr();      
@@ -692,7 +694,7 @@ bool image::addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
   
   string progName = name_ + "_module";
 
-#if defined (sparc_sun_solaris2_4) 
+#if defined (sparc_sun_solaris2_4) || defined (i386_unknown_solaris2_5) 
   // In solaris there is no address for modules in the symbol table, 
   // so the binary search will not work. The module field in a symbol
   // already has the correct module name for a symbol, if it can be
@@ -756,14 +758,6 @@ bool image::addAllFunctions(vector<Symbol> &mods,
     return false;
   } else
     boundary_end = lookUp.addr();
-
-  // TODO - find main and exit since other symbols may be mapped to their
-  // addresses which makes things confusing
-  // The rule is - the first function to define an address, gets it
-  if (!findKnownFunctions(linkedFile, lib, dyn, startB, startAddr, 
-			  endB, endAddr, boundary_start, boundary_end, mods)) {
-    return false;
-  }
 
   // find the real functions -- those with the correct type in the symbol table
   while (symIter.next(symString, lookUp)) {
@@ -873,56 +867,6 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
   return true;
 } 
 
-// TODO - this should find all of the known functions in case 
-// one of these functions has several names in the symbol table
-// We want to declare the function by its known name and tag it
-// before it is declared by its unknown name - which would make
-// it untagged
-//
-
-bool image::findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
-			       const bool startB, const Address startAddr,
-			       const bool endB, const Address endAddr,
-			       const Address boundary_start, 
-			       const Address boundary_end,
-			       vector<Symbol> &mods) {
-  Symbol sym;
-  string s;
-  // TODO -- this will be redundant until the mdl replacement is final
-  unsigned wv_size = watch_vec.size();
-  for (unsigned wv=0; wv<wv_size; wv++) {
-    if (watch_vec[wv].is_func) {
-      unsigned non_size = watch_vec[wv].non_prefix.size();
-      for (unsigned non=0; non<non_size; non++) {
-	pdFunction *pdf;
-	string non_string(watch_vec[wv].non_prefix[non]);
-	string under_string(string("_") + non_string);
-
-	if (linkedFile.get_symbol(non_string, sym) ||
-	    linkedFile.get_symbol(under_string, sym)) {
-	  if (funcsByAddr.defines(sym.addr())) {
-	    pdf = funcsByAddr[sym.addr()];
-	    (*watch_vec[wv].funcs) += pdf;
-	  } else if (watch_vec[wv].is_lib ||
-		     inLibrary(sym.addr(), boundary_start, boundary_end, startAddr,
-			       startB, endAddr, endB)) {
-	    addInternalSymbol(sym.name(), sym.addr());
-	    if (defineFunction(dyn, sym, TAG_LIB_FUNC, pdf)) {
-	      assert(pdf); mdlLib += pdf; (*watch_vec[wv].funcs) += pdf;
-	    }
-	  } else {
-	    if (addOneFunction(mods, lib, dyn, sym, pdf)) {
-	      assert(pdf); mdlNormal += pdf; (*watch_vec[wv].funcs) += pdf;
-	    }
-	  }
-	}
-	// TODO -- get duplicates off of this list -- the watch_vec list
-	// Or let anyone who puts duplicate functions on a list suffer?
-      }
-    }
-  }
-  return true;
-}
 
 int symCompare(const void *s1, const void *s2) {
   const Symbol *sym1 = (const Symbol*)s1, *sym2 = (const Symbol*)s2;
@@ -931,7 +875,9 @@ int symCompare(const void *s1, const void *s2) {
 }
 
 
-
+unsigned addrHash(const unsigned &addr) {
+  return addr;
+}
 
 // Please note that this is now machine independent-almost.  Let us keep it that way
 // 
@@ -942,7 +888,8 @@ image::image(const string &fileName, bool &err)
     file_(fileName),
     linkedFile(fileName, pd_log_perror),
     iSymsMap(string::hash),
-    funcsByPretty(string::hash)
+    funcsByPretty(string::hash),
+    knownJumpTargets(addrHash, 8192)
 {
   codeOffset_ = linkedFile.code_off();
   dataOffset_ = linkedFile.data_off();
@@ -1095,7 +1042,8 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
     file_(fileName),
     linkedFile(fileName, baseAddr,pd_log_perror),
     iSymsMap(string::hash),
-    funcsByPretty(string::hash)
+    funcsByPretty(string::hash),
+    knownJumpTargets(addrHash, 8192)
 {
   codeOffset_ = linkedFile.code_off();
   dataOffset_ = linkedFile.data_off();
@@ -1296,65 +1244,18 @@ bool image::defineFunction(module *libModule, const Symbol &sym,
 // Note - this must define funcEntry and funcReturn
 // 
 pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
-		       Address adr, const unsigned size, const unsigned tg, const image *owner, bool &err)
-: tag_(tg),
+		       Address adr, const unsigned size, const unsigned tg, image *owner, bool &err)
+: funcEntry_(NULL),
+  tag_(tg),
   symTabName_(symbol),
   prettyName_(pretty),
   line_(0),
   file_(f),
   addr_(adr),
-  funcEntry_(NULL),
   size_(size)
+
 {
   err = findInstPoints(owner) == false;
 }
 
-// Store the mapping function:    name --> set of mdl resource lists
-void image::update_watch_map(unsigned index, vector<string> *vs,
-			     vector<string>& prefix,
-			     vector<string>& non_prefix) {
-  unsigned vs_size = vs->size();
-  for (unsigned v=0; v<vs_size; v++) {
-    unsigned len = (*vs)[v].length();
 
-    // Check for wildcard character
-    if (len && (((*vs)[v].string_of())[len-1] == '*')) {
-      char *buffer = new char[len+1];
-      P_strcpy(buffer, (*vs)[v].string_of());
-      assert(buffer[len-1] == '*');
-      buffer[len-1] = '\0';
-      prefix += buffer;
-      delete [] buffer;
-    } else {
-      non_prefix += (*vs)[v];
-    }
-  }
-}
-
-void image::watch_functions(string& name, vector<string> *vs, bool is_lib,
-			    vector<pdFunction*> *update) {
-  unsigned wv_size = watch_vec.size();
-  bool found = false; unsigned found_index=0;
-  for (unsigned wv=0; wv<wv_size; wv++)
-    if (watch_vec[wv].name == name) {
-      delete watch_vec[wv].funcs;
-      delete watch_vec[wv].mods;
-      found = true;
-      found_index = wv;
-    }
-
-  if (!found) {
-    watch_data wd;
-    found_index = watch_vec.size();
-    watch_vec += wd;
-  }
-
-  update_watch_map(found_index, vs, watch_vec[found_index].prefix, 
-		   watch_vec[found_index].non_prefix);
-
-  watch_vec[found_index].name = name;
-  watch_vec[found_index].is_lib = is_lib;
-  watch_vec[found_index].funcs = update;
-  watch_vec[found_index].mods = NULL;
-  watch_vec[found_index].is_func = true;
-}

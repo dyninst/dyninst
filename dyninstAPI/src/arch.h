@@ -41,6 +41,9 @@
 
 /*
  * $Log: arch.h,v $
+ * Revision 1.6  1996/10/18 23:54:05  mjrg
+ * Solaris/X86 port
+ *
  * Revision 1.5  1996/08/16 21:18:08  tamches
  * updated copyright for release 1.1
  *
@@ -69,3 +72,8 @@
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "arch-power.h"
 #endif
+
+#if defined(i386_unknown_solaris2_5)
+#include "arch-x86.h"
+#endif
+

@@ -47,7 +47,7 @@
 #if defined(sparc_sun_sunos4_1_3)
 #include "paradynd/src/sunosDL.h"
 
-#elif defined(sparc_sun_solaris2_4)
+#elif defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include "paradynd/src/solarisDL.h"
 
 #elif defined(hppa1_1_hp_hpux)

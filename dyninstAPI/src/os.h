@@ -51,6 +51,9 @@
 
 /*
  * $Log: os.h,v $
+ * Revision 1.10  1996/10/18 23:54:07  mjrg
+ * Solaris/X86 port
+ *
  * Revision 1.9  1996/08/16 21:19:28  tamches
  * updated copyright for release 1.1
  *
@@ -99,7 +102,7 @@
 
 #if defined(sparc_sun_sunos4_1_3)
 #include "sunos.h"
-#elif defined(sparc_sun_solaris2_4)
+#elif defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include "solaris.h"
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "aix.h"

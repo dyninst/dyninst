@@ -171,6 +171,12 @@ friend class ptraceKludge;
     splitHeaps = false;
     inExec = false;
     proc_fd = -1;
+
+    trampTableItems = 0;
+    memset(trampTable, 0, sizeof(trampTable));
+    currentPC_ = 0;
+    hasNewPC = false;
+
     inhandlestart = false;
     dynamiclinking = false;
     dyn = new dynamic_linking;
@@ -347,6 +353,30 @@ friend class ptraceKludge;
 #if defined(hppa1_1_hp_hpux)
   bool freeNotOK;
 #endif
+
+  trampTableEntry trampTable[TRAMPTABLESZ];
+  unsigned trampTableItems;
+
+  unsigned currentPC() {
+    int pc, fp;
+    if (hasNewPC)
+      return currentPC_;
+    else if (getActiveFrame(&fp, &pc)) {
+      currentPC_ = (unsigned) pc;
+      return currentPC_;
+    }
+    else abort();
+    return 0;
+  }
+  void setNewPC(unsigned newPC) {
+    currentPC_ = newPC;
+    hasNewPC = true;
+  }
+
+private:
+  unsigned currentPC_;
+  bool hasNewPC;
+
 
 private:
 

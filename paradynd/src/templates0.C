@@ -46,6 +46,9 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.9  1996/10/18 23:54:16  mjrg
+ * Solaris/X86 port
+ *
  * Revision 1.8  1996/10/09 14:03:17  mjrg
  * added template for class functionName
  *
@@ -167,7 +170,7 @@ template class  vector<unsigned>;
 template class  vector<disabledItem>;
 template class  vector<unsigVecType>;
 template class  vector<vector<string> >;
-template class  vector<watch_data>;
+//template class  vector<watch_data>;
 template class  vector<costMetric *>;
 template class  vector<sampleValue>;
 template class  vector<double>;

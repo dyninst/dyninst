@@ -46,6 +46,9 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.30  1996/10/18 23:54:16  mjrg
+ * Solaris/X86 port
+ *
  * Revision 1.29  1996/10/08 19:29:43  lzheng
  * add notInstruFunction to class image (for stack walking)
  *
@@ -150,18 +153,18 @@ class internalSym;
 class lineTable;
 
 // test if the passed instruction is a return instruction.
-extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
+//extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
 
 //Todo: move this class to machine dependent file?
 class pdFunction {
  public:
+
     pdFunction(const string symbol, const string &pretty, module *f, Address adr,
 	       const unsigned size,
-	       const unsigned tg, const image *owner, bool &err);
+	       const unsigned tg, image *owner, bool &err);
     ~pdFunction() { /* TODO */ }
 
-    bool findInstPoints(const image *owner);
-
+    bool findInstPoints(image *owner);
     void checkCallPoints();
     bool defineInstPoint();
     Address newCallPoint(Address adr, const instruction code, 
@@ -215,10 +218,8 @@ class pdFunction {
 				   define the function boundaries. This may not
 				   be exact, and may not be used on all 
 				   platforms. */
-
 };
 
-class instPoint;
 
 /* Stores source code to address in text association for modules */
 class lineDict {
@@ -288,15 +289,6 @@ private:
   Address addr;      /* absolute address of the symbol */
 };
 
-typedef struct watch_data {
-  string name;
-  bool is_lib;
-  vector<pdFunction*> *funcs;
-  vector<module*> *mods;
-  bool is_func;
-  vector<string> prefix;
-  vector<string> non_prefix;
-} watch_data;
 
 class process;
 
@@ -332,7 +324,7 @@ public:
 
   // data member access
   inline const Word get_instruction(Address adr) const;
-  inline bool modify_instruction(Address adr,instruction newInst) const;
+  inline unsigned char *getPtrToInstruction(Address adr) const;
 
   string file() {return file_;}
   string name() { return name_;}
@@ -354,10 +346,6 @@ public:
 
   // Return symbol table information
   inline bool symbol_info(string& symbol_name, Symbol& ret);
-
-  // Called from the mdl -- lists of functions to look for
-  static void watch_functions(string& name, vector<string> *vs, bool is_lib,
-			      vector<pdFunction*> *updateDict);
 
   // called from function/module destructor, removes the pointer from the watch list
   // TODO
@@ -406,12 +394,6 @@ private:
   module *getOrCreateModule (const string &modName, const Address modAddr);
   module *newModule(const string &name, Address addr);
 
-  bool findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
-			  const bool startB, const Address startAddr,
-			  const bool endB, const Address endAddr,
-			  const Address b_start, const Address b_end,
-			  vector<Symbol> &mods);
-
   bool addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
 		      const Symbol &lookUp, pdFunction *&retFunc);
 
@@ -433,11 +415,22 @@ private:
 		      pdFunction *&retFunc);
 
   bool heapIsOk(const vector<sym_data>&);
-  
-  static vector<watch_data> watch_vec;
-  static void update_watch_map(unsigned index, vector<string> *vs,
-			       vector<string>& pref,
-			       vector<string>& non_pref);
+
+  // knownJumpTargets: the addresses in this image that are known to 
+  // be targets of jumps. It is used to check points with multiple 
+  // instructions.
+  // This is a subset of the addresses that are actually targets of jumps.
+  dictionary_hash<Address, Address> knownJumpTargets;
+
+public:
+  void addJumpTarget(Address addr) {
+    if (!knownJumpTargets.defines(addr)) knownJumpTargets[addr] = addr; 
+  }
+
+  bool isJumpTarget(Address addr) { 
+    return knownJumpTargets.defines(addr); 
+  }
+
 };
 
 
@@ -520,38 +513,28 @@ inline const Word image::get_instruction(Address adr) const{
   }
 }
 
-//
-// replaces the instruction at addresss adr with newInst...used to modify 
-// instructions in the mmapped a.out that change when the child process 
-// executes (like PLT entries)
-//
-inline bool image::modify_instruction(Address adr,instruction newInst) const{
-  // TODO remove assert
+// return a pointer to the instruction at address adr
+inline unsigned char *image::getPtrToInstruction(Address adr) const {
   assert(isValidAddress(adr));
-
   if (isCode(adr)) {
     adr -= codeOffset_;
-    adr >>= 2;
-    // TODO: remove this very bad kludge
-    Word *inst = (Word *)linkedFile.code_ptr();
-    inst[adr] = newInst.raw;
-    return true;
+    unsigned char *inst = (unsigned char *)linkedFile.code_ptr();
+    return (&inst[adr]);
   } else if (isData(adr)) {
     adr -= dataOffset_;
-    adr >>= 2;
-    Word *inst = (Word *)linkedFile.data_ptr();
-    inst[adr] = newInst.raw;
-    return true;
+    unsigned char *inst = (unsigned char *)linkedFile.data_ptr();
+    return (&inst[adr]);
   } else {
     abort();
-    return false;
+    return 0;
   }
 }
+
 
 // Address must be in code or data range since some code may end up
 // in the data segment
 inline bool image::isValidAddress(const Address &where) const{
-    return (!(where & 0x3) && (isCode(where) || isData(where)));
+  return (isAligned(where) && (isCode(where) || isData(where)));
 }
 
 inline bool image::isCode(const Address &where)  const{

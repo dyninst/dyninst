@@ -62,6 +62,26 @@ extern int ioctl(int, int, ...);
 extern long sysconf(int);
 };
 
+/*
+   Define the indices of some registers to be used with pr_reg.
+   These values are different on sparc and x86 platforms.
+   RETVAL_REG: the registers that holds the return value of calls ($o0 on sparc,
+               %eax on x86).
+   PC_REG: program counter
+   FP_REG: frame pointer (%i7 on sparc, %ebp on x86) 
+*/
+#ifdef sparc_sun_solaris2_4
+#define RETVAL_REG (R_O0)
+#define PC_REG (R_PC)
+#define FP_REG (R_O6)
+#endif
+#ifdef i386_unknown_solaris2_5
+#define RETVAL_REG (EAX)
+#define PC_REG (EIP)
+#define FP_REG (EBP)
+#endif
+
+
 extern bool isValidAddress(process *proc, Address where);
 
 /*
@@ -118,10 +138,14 @@ bool OS::osForwardSignal (pid_t, int) { assert(0); }
 bool OS::osDumpImage(const string &, pid_t , const Address) { return false; }
 
 
-// return the result of an exec system call - true if succesful.
-// On sparc, if an exec is succesful, the C condition code is clear.
+/* 
+   execResult: return the result of an exec system call - true if succesful.
+   The traced processes will stop on exit of an exec system call, just before
+   returning to user code. At this point the return value (errno) is already
+   written to a register, and we need to check if the return value is zero.
+ */
 static inline bool execResult(prstatus_t stat) {
-  return ((stat.pr_reg[R_PSR] & 0x100000) == 0);
+  return (stat.pr_reg[RETVAL_REG] == 0);
 }
 
 /*
@@ -187,6 +211,7 @@ int process::waitProcs(int *status) {
 	 ret = processVec[curr]->getPid();
 	 break;
        case PR_REQUESTED:
+         assert(0);
        case PR_JOBCONTROL:
 	 assert(0);
 	 break;
@@ -224,7 +249,9 @@ bool process::attach() {
   sigset_t sigs;
   premptyset(&sigs);
   praddset(&sigs, SIGSTOP);
+#ifndef i386_unknown_solaris2_5
   praddset(&sigs, SIGTRAP);
+#endif
   if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     close(fd);
@@ -234,8 +261,9 @@ bool process::attach() {
   /* turn on the kill-on-last-close and inherit-on-fork flags. This will cause
      the process to be killed when paradynd exits.
      Also, any child of this process will stop at the exit of an exec call.
+     The breakpoint trap pc adjustment flag is used for the X86 platform.
   */
-  long flags = PR_KLC | PR_FORK;
+  long flags = PR_KLC | PR_FORK | PR_BPTADJ;
   if (ioctl (fd, PIOCSET, &flags) < 0) {
     fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
     close(fd);
@@ -259,7 +287,7 @@ bool process::continueProc_() {
   if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
       && (stat.pr_flags & PR_STOPPED)
       && (stat.pr_why == PR_SIGNALLED)
-      && (stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT)) {
+      && ((stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT))) {
     flags.pr_flags = PRSTOP;
     if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
       fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
@@ -271,6 +299,12 @@ bool process::continueProc_() {
     }
   }
   flags.pr_flags = PRCSIG; // clear current signal
+  if (hasNewPC) {
+    // set new program counter
+    flags.pr_vaddr = (caddr_t) currentPC_;
+    flags.pr_flags |= PRSVADDR;
+    hasNewPC = false;
+  }
   if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
     fprintf(stderr, "continueProc_: PIOCRUN 2 failed: %s\n", sys_errlist[errno]);
     return false;
@@ -386,14 +420,15 @@ int getNumberOfCPUs()
     return(1);
 }  
 
+
 bool process::getActiveFrame(int *fp, int *pc)
 {
   prgregset_t regs;
   bool ok=false;
 
   if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
-      *fp=regs[R_O6];
-      *pc=regs[R_PC];
+      *fp=regs[FP_REG];
+      *pc=regs[PC_REG];
       ok=true;
   }
 /*
@@ -405,6 +440,8 @@ bool process::getActiveFrame(int *fp, int *pc)
 */
   return(ok);
 }
+
+#ifdef sparc_sun_solaris2_4
 
 bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost)
 {
@@ -480,3 +517,42 @@ if ( (addrs.rtn!=0) && (!isValidAddress(this,(Address) addrs.rtn)) ) {
   return(readOK);
 }
 
+#endif
+
+#ifdef i386_unknown_solaris2_5
+
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool )
+{
+  bool readOK=true;
+  struct {
+    int fp;
+    int rtn;
+  } addrs;
+
+  //
+  // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
+  // and the saved return address is in EBP-4.
+  //
+
+  if (readDataSpace((caddr_t) (currentFP),
+                    sizeof(int)*2, (caddr_t) &addrs, true)) {
+    // this is the previous frame pointer
+    *fp = addrs.fp;
+    // return address
+    *rtn = addrs.rtn;
+
+    // if pc==0, then we are in the outermost frame and we should stop. We
+    // do this by making fp=0.
+
+    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
+      readOK=false;
+    }
+  }
+  else {
+    readOK=false;
+  }
+
+  return(readOK);
+}
+
+#endif

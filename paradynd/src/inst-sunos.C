@@ -43,6 +43,9 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
+ * Revision 1.41  1996/10/18 23:54:08  mjrg
+ * Solaris/X86 port
+ *
  * Revision 1.40  1996/08/16 21:19:03  tamches
  * updated copyright for release 1.1
  *
@@ -148,7 +151,24 @@ void initPrimitiveCost()
     // 240 ns
     primitiveCosts["DYNINSTdecrementCounter"] = 16;
 
-#ifdef sparc_sun_solaris2_4
+#if defined(i386_unknown_solaris2_5)
+    logLine("Solaris/x86 platform\n");
+    // Updated calculation of the cost for the following procedures.
+    // cost in cycles
+    primitiveCosts["DYNINSTstartWallTimer"] = 320;
+    primitiveCosts["DYNINSTstopWallTimer"] = 518;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 572;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 1143;
+
+    // These happen async of the rest of the system.
+    primitiveCosts["DYNINSTalarmExpire"] = 3724;
+    primitiveCosts["DYNINSTsampleValues"] = 13;
+    primitiveCosts["DYNINSTreportTimer"] = 1380;
+    primitiveCosts["DYNINSTreportCounter"] = 1270;
+    primitiveCosts["DYNINSTreportCost"] = 1350;
+    primitiveCosts["DYNINSTreportNewTags"] = 837;
+
+#elif defined(sparc_sun_solaris2_4)
     logLine("Solaris platform\n");
     // Updated calculation of the cost for the following procedures.
     // Clock rate = 37.04 Mhz (shemesh) - naim

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
 #error "invalid architecture-os inclusion"
 #endif
 
@@ -48,8 +48,11 @@
 
 #include <sys/param.h>
 
+#ifdef i386_unknown_solaris2_5
+#define EXIT_NAME "exithandle"
+#else
 #define EXIT_NAME "_exithandle"
-//#define EXIT_NAME "exit"
+#endif
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"

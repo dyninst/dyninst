@@ -137,19 +137,21 @@ void clearBaseBranch(process *proc, instInstance *inst)
     // stupid kludge because the instPoint class is defined in a .C file
     // so we can't access any of its member functions
     generateNoOp(proc, addr);
-
     // If there is no instrumentation at this point, skip.
     unsigned fromAddr, toAddr;
     if (inst->when == callPreInsn) {
-      fromAddr = (unsigned)inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
-      toAddr = (unsigned)inst->baseInstance->baseAddr+baseTemplate.emulateInsOffset;
+      fromAddr = (unsigned)inst->baseInstance->baseAddr
+	         + inst->baseInstance->skipPreInsOffset;
+      toAddr = (unsigned)inst->baseInstance->baseAddr
+	         + inst->baseInstance->emulateInsOffset;
     }
     else {
-      fromAddr = (unsigned)inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
-      toAddr = (unsigned)inst->baseInstance->baseAddr+baseTemplate.returnInsOffset;
+      fromAddr = (unsigned)inst->baseInstance->baseAddr 
+	         + inst->baseInstance->skipPostInsOffset; 
+      toAddr = (unsigned)inst->baseInstance->baseAddr 
+                 + inst->baseInstance->returnInsOffset;
     }
     generateBranch(proc,fromAddr,toAddr);
-
 #if defined(MT_DEBUG)
     sprintf(errorLine,"generating branch from address 0x%x to address 0x%x - CLEAR\n",fromAddr,toAddr);
     logLine(errorLine);
