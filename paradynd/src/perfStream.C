@@ -1,4 +1,4 @@
-//*
+/*
  * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.105 1999/11/11 00:47:29 wylie Exp $
+// $Id: perfStream.C,v 1.106 1999/11/11 15:37:04 wylie Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
