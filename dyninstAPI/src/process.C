@@ -1103,7 +1103,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 				);
 #endif
 
-    threads += new pdThread(this);
     parent = &parentProc;
     
     bufStart = 0;

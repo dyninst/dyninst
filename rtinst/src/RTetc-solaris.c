@@ -103,7 +103,9 @@ DYNINSTos_init(int calledByFork, int calledByAttach) {
     }
 #endif
 
-
+    /* It is necessary to call DYNINSTgetCPUtimeInitialize here to make sure
+       that it is called again for a child process during a fork - naim */
+    DYNINSTgetCPUtimeInitialize();
 }
 
 
@@ -219,7 +221,7 @@ static unsigned long long mulMillion(unsigned long long in) {
    return result;
 }
 
-static int firstTime = 1; /* boolean */
+/* static int firstTime = 1; */ /* boolean */
 static int procfd = -1;
 
 void DYNINSTgetCPUtimeInitialize(void) {
@@ -262,10 +264,12 @@ DYNINSTgetCPUtime(void) {
      struct prpsinfo theUsage; /* for /proc PIOCPSINFO call */
      time64 now;
 
+     /*
      if (firstTime) {
         DYNINSTgetCPUtimeInitialize();
 	firstTime = 0;
      }
+     */
 
      if (ioctl(procfd, PIOCPSINFO, &theUsage) < 0) {
         perror("rtinst get-cpu-time PIOCPSINFO");
