@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.18 2001/11/06 19:20:45 bernat Exp $
+// $Id: init-aix.C,v 1.19 2002/01/07 23:05:43 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -50,6 +50,10 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
 #include "common/h/timing.h"
+
+/* For read_real_time */
+#include <sys/systemcfg.h>
+
 
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode tagArg(AstNode::Param, (void *) 1);
@@ -256,12 +260,56 @@ bool initOS()
   return true;
 };
 
-rawTime64 getRawTime1970_ns() {
-  return getRawTime1970() * 1000;
+union bigWord {
+  uint64_t b64;
+  unsigned b32[2];
+} bitGrabber;
+
+rawTime64 getRawWallTime_fast() {
+  struct timebasestruct timestruct;
+  read_real_time(&timestruct, TIMEBASE_SZ);
+  bitGrabber.b32[0] = timestruct.tb_high;
+  bitGrabber.b32[1] = timestruct.tb_low;
+  return bitGrabber.b64;
+}
+
+rawTime64 fastUnits2ns(rawTime64 fastUnits) {
+  struct timebasestruct timestruct;
+  timestruct.flag = 2;
+  bitGrabber.b64 = fastUnits;
+  timestruct.tb_high = bitGrabber.b32[0];
+  timestruct.tb_low = bitGrabber.b32[1];    
+  time_base_to_time(&timestruct, TIMEBASE_SZ);
+  rawTime64 now = static_cast<rawTime64>(timestruct.tb_high);
+  now *= I64_C(1000000000);
+  now += static_cast<rawTime64>(timestruct.tb_low);
+  return now;
+}
+
+rawTime64 getRawWallTime_ns() {
+  struct timebasestruct timestruct;
+  read_real_time(&timestruct, TIMEBASE_SZ);
+  time_base_to_time(&timestruct, TIMEBASE_SZ);
+  /*   ts.tb_high is seconds, ts.tb_low is nanos */
+  rawTime64 now = static_cast<rawTime64>(timestruct.tb_high);
+  now *= I64_C(1000000000);
+  now += static_cast<rawTime64>(timestruct.tb_low);
+  return now;
 }
 
 void initWallTimeMgrPlt() {
+  timeStamp curTime = getCurrentTime();  // general util one
+  int64_t fastUnits = getRawWallTime_fast();
+  int64_t cur_ns = fastUnits2ns(fastUnits);
+  timeLength fast_timeLength(cur_ns, timeUnit::ns());
+  timeStamp beg_fasttime = curTime - fast_timeLength;
+  timeBase fastTimeBase(beg_fasttime);
+
+  getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_ONE, yesFunc,
+				&fastUnits2ns, fastTimeBase,
+				&getRawWallTime_fast, "hwWallTimeFPtrInfo");
+
   getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
 				timeUnit::ns(), timeBase::b1970(),
-				&getRawTime1970_ns, "swWallTimeFPtrInfo");
+				&getRawWallTime_ns, "swWallTimeFPtrInfo");
 }
