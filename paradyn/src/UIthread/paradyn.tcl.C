@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.27  1994/09/22 01:17:53  markc
-/* Cast stringHandles to char*s in printf statements
+/* Revision 1.28  1994/09/25 01:54:12  newhall
+/* updated to support changes in VM, and UI interface
 /*
+ * Revision 1.27  1994/09/22  01:17:53  markc
+ * Cast stringHandles to char*s in printf statements
+ *
  * Revision 1.26  1994/08/22  15:55:29  markc
  * Added extra argument to addExecutable call.
  *
@@ -696,7 +699,7 @@ int ParadynVisiCmd (ClientData clientData,
     int ok, i;
     if (Tcl_GetInt (interp, argv[2], &i) != TCL_OK) 
       return TCL_ERROR;
-    ok = vmMgr->VMCreateVisi(1,i,NULL,NULL); 
+    ok = vmMgr->VMCreateVisi(1,0,i,NULL,0); 
   } 
   else if (argv[1][0] == 'k') {
     int i;

@@ -3,10 +3,13 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.7  1994/09/24 01:10:00  rbi
-/* Added #include of stdlib.h to get correct prototype for atof()
-/* and thereby fix the SHG display bug.
+/* Revision 1.8  1994/09/25 01:54:14  newhall
+/* updated to support changes in VM, and UI interface
 /*
+ * Revision 1.7  1994/09/24  01:10:00  rbi
+ * Added #include of stdlib.h to get correct prototype for atof()
+ * and thereby fix the SHG display bug.
+ *
  * Revision 1.6  1994/09/22  01:17:26  markc
  * Added const to char* for args in compare function
  *
@@ -34,6 +37,7 @@ extern "C" {
 #include "../pdMain/paradyn.h"
 #include "UIglobals.h"
 #include "dag.h"
+#include "../VMthread/metrespair.h"
 extern resourceList *build_resource_list (Tcl_Interp *interp, char *list);
 extern int getDagToken ();
 extern int initWhereAxis (dag *wheredag, char *aName, char *title); 
@@ -58,6 +62,7 @@ int gotMetricsCmd(ClientData clientData,
   int retVal;
   chooseMandRCBFunc mcb;
   int msgID;
+  metrespair *pairList;
 
   numMetrics = atoi(argv[3]);
   Tcl_SplitList (interp, argv[2], &numMetrics, &chosenMets);
@@ -79,7 +84,23 @@ int gotMetricsCmd(ClientData clientData,
   Tcl_DeleteHashEntry (entry);   // cleanup hash table record
 
      /* send reply */
-  uim_server->chosenMetricsandResources(mcb, chosenMets, numMetrics, focus);
+
+  // temp. code to change chosenMets and focus to metrespair representation
+
+  if((pairList=(metrespair *)malloc(sizeof(metrespair)*numMetrics)) == NULL){
+      uim_server->chosenMetricsandResources(mcb, NULL, 0);
+  }
+  else {
+     for(int i = 0; i < numMetrics; i++){
+        if((pairList[i].met = dataMgr->findMetric(context,chosenMets[i])) == 0){
+	    uim_server->chosenMetricsandResources(mcb, NULL, 0);
+	} 
+        pairList[i].focus = focus; 
+     }
+     uim_server->chosenMetricsandResources(mcb, pairList, numMetrics);
+  }
+
+
   return TCL_OK;
 }
 

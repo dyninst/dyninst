@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.13  1994/09/22 01:16:53  markc
-/* Added const to char* arg in UIM::showError()
+/* Revision 1.14  1994/09/25 01:54:10  newhall
+/* updated to support changes in VM, and UI interface
 /*
+ * Revision 1.13  1994/09/22  01:16:53  markc
+ * Added const to char* arg in UIM::showError()
+ *
  * Revision 1.12  1994/09/13  05:07:29  karavan
  * improved error handling
  *
@@ -110,11 +113,10 @@ UIMUser::msgChoice(showMsgCBFunc cb,int userChoice)
 void
 UIMUser::chosenMetricsandResources
           (chooseMandRCBFunc cb,
-	   char **metricNames,
-	   int numMetrics,
-	   resourceList *focusChoice)
+	   metrespair *pairList,
+	   int numElements)
 {
-  (cb) (metricNames, numMetrics, focusChoice);
+  (cb) (pairList, numElements);
 }
 	
 void 
@@ -350,9 +352,8 @@ UIM::showMsgWait(char *displayMsg,
 
 void 
 UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
-			       char **metricNames,
-			       int numMetrics,
-			       resourceList* focusChoice)
+			       metrespair *pairList,
+			       int numElements)
 {
   char *ml;
   int retVal;
