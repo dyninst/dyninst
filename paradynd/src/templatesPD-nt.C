@@ -126,3 +126,5 @@ template class pdvector<baseVarInstance *>;
 template class dictionary_hash<pdstring,supportedLanguages>;
 template class pdvector<dictionary_hash<pdstring,supportedLanguages>::entry>;
 
+#include "dyninstAPI/h/BPatch_basicBlock.h"
+template class dictionary_hash <unsigned long, BPatch_basicBlock *>;
