@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.10  1994/08/05 16:04:14  hollings
+ * Revision 1.11  1994/09/22 01:03:47  markc
+ * Added const char* to PCmetric constructor
+ *
+ * Revision 1.10  1994/08/05  16:04:14  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.9  1994/08/03  19:09:52  hollings
@@ -94,7 +97,7 @@ extern dataManagerUser *dataMgr;
 typedef enum { 
     getCollectionCost, 
     enableCollection, 
-    disableCollection,
+    disableCollection
 } collectMode;
 
 
@@ -165,8 +168,8 @@ class PCmetric {
 	Boolean changeCollection(collectMode);		// currentFocus
 	Boolean changeCollection(focus*, collectMode);	// explicit focus.
 	Boolean changeCollection(focusList, collectMode);// explicit focus.
-	PCmetric(char *, int, calcType);
-	PCmetric(char *);
+	PCmetric(const char *, int, calcType);
+	PCmetric(const char *);
 
 	// Get back values.
 	sampleValue value();			// for current global state.
