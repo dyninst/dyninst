@@ -2485,7 +2485,10 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
 
             metric_cerr << "pdf->funcCalls() returned the following call sites:" 
               << endl;
-            for (unsigned u = 0; u < calls.size(); u++) 
+
+            unsigned oldSize;
+            for (unsigned u = 0; u < (oldSize = calls.size());
+                                 (oldSize == calls.size()) ? u++ : u) 
             {  // calls.size() can change!
               metric_cerr << u << ") ";
 
