@@ -87,9 +87,12 @@ BPatch_point::BPatch_point(process *_proc, BPatch_function *_func, instPoint *_p
  */
 
 void BPatch_point::setLoop(BPatch_basicBlockLoop *l) {
-  // No changing loops in the middle of the inst point!
-  assert(!loop ||
-	 (loop == l));
+  // We currently can use a single BPatch_point to represent
+  // multiple loops. This is a problem, since we would really
+  // like the points to label a unique loop. On the other hand,
+  // then multiple points would share the same physical address..
+  // not good.
+
 
   // Point must be for a loop.
   assert(pointType == BPatch_locLoopEntry ||
