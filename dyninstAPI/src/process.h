@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.270 2003/09/05 16:28:01 schendel Exp $
+/* $Id: process.h,v 1.271 2003/09/19 19:45:35 pcroth Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -968,30 +968,11 @@ class process {
                                function_base *&target,
                                Address target_addr, Address base_addr);
 #endif
-  // these routines are for testing, setting, and clearing the 
-  // waiting_for_resources flag, if this flag is true a process is not 
-  // started until all outstanding resourceInfoResponses have been received
-  void setWaitingForResources(){ waiting_for_resources = true; }
-  // called by perfStream.C on SIGSTOP if there are any
-  // resource::num_outstanding_creates,
-  // and process::handleStartProcess, also if there are any
-  // resource::num_outstanding_creates.
-  void clearWaitingForResources(){ waiting_for_resources = false; }
-  bool isWaitingForResources(){ return(waiting_for_resources); }
 
   // findSignalHandler: if signal_handler is 0, then it checks all images
   // associtated with this process for the signal handler function.
   // Otherwise, the signal handler function has already been found
   void findSignalHandler();
-
-  // continueProcessIfWaiting: if the waiting_for_resources flag
-  // is set then continue the process; in any event, clear that flag
-  void continueProcessIfWaiting(){
-      if(waiting_for_resources){
-          continueProc();
-      }
-      waiting_for_resources = false;
-  }
 
   void handleForkEntry();
   void handleForkExit(process *child);
@@ -1283,7 +1264,7 @@ private:
   // "excluded" now means never able to instrument
   pdvector<module *> *some_modules;  
   pdvector<function_base *> *some_functions; 
-  bool waiting_for_resources;  // true if waiting for resourceInfoResponse
+
 #if defined(i386_unknown_linux2_0)
   Address signal_restore;	// address of signal context restore function
 				// (for stack walking)

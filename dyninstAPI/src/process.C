@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.449 2003/09/11 18:20:16 chadd Exp $
+// $Id: process.C,v 1.450 2003/09/19 19:45:34 pcroth Exp $
 
 #include <ctype.h>
 
@@ -1719,7 +1719,6 @@ process::process(int iPid, image *iImage, int iTraceLink
     all_modules = 0;
     some_modules = 0;
     some_functions = 0;
-    waiting_for_resources = false;
 #if defined(i386_unknown_linux2_0)
     signal_restore = 0;
 #else
@@ -1880,7 +1879,6 @@ process::process(int iPid, image *iSymbols,
     all_modules = 0;
     some_modules = 0;
     some_functions = 0;
-    waiting_for_resources = false;
 #if defined(i386_unknown_linux2_0)
     signal_restore = 0;
 #else
@@ -2142,7 +2140,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
          (*some_functions).push_back((*parentProc.some_functions)[u5]);
    }
 
-   waiting_for_resources = false;
 #if defined(i386_unknown_linux2_0)
    signal_restore = parentProc.signal_restore;
 #else
