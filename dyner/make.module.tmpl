@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.17 2003/05/09 22:09:14 rchen Exp $
+# $Id: make.module.tmpl,v 1.18 2004/03/26 15:07:13 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -37,12 +37,6 @@ ifndef USES_LIBDYNINST_SO
 LIBS         += -lpdutil
 endif
 
-ifeq (aix,$(findstring aix,$(PLATFORM)))
-TEST_CC = $(CC)
-else
-TEST_CC = $(CXX)
-endif
-
 SYSLIBS      += -liberty -L$(TCLTK_DIR) $(TCL_LIB)
 
 all: $(TARGET) $(TEST_TARGET)
@@ -50,7 +44,7 @@ all: $(TARGET) $(TEST_TARGET)
 MUTATEE_CFLAGS += $(MODCFLAGS) -g
 
 $(TEST_TARGET): $(TEST_SRC)
-	$(TEST_CC) $(MUTATEE_CFLAGS) -o $(TEST_TARGET) $(TEST_SRC)
+	$(CXX) $(MUTATEE_CFLAGS) -o $(TEST_TARGET) $(TEST_SRC)
 
 LEXFLAGS += -P$(TARGET)
 YACCFLAGS += -d -b $(TARGET) -p $(TARGET)
