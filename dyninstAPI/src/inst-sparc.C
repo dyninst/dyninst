@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.109 2001/10/04 20:04:44 buck Exp $
+// $Id: inst-sparc.C,v 1.110 2001/10/26 23:34:56 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1538,6 +1538,11 @@ bool deleteBaseTramp(process *proc,instPoint* location,
 
 	assert(currentBaseTramp == instance->baseInstance);
 
+	if(location->func->isInstalled(proc) &&
+	   !location->relocated_)
+		location->func->modifyInstPoint((const instPoint *)location,
+						proc);
+
 	bool needToAdd = false;
 	if ((location->ipType == functionEntry) &&
 	    isInsnType(location->delaySlotInsn,CALLmask,CALLmatch)) 
@@ -1582,7 +1587,7 @@ bool deleteBaseTramp(process *proc,instPoint* location,
 		if(proc->getBaseAddress(location->image_ptr,locationAddress))
 			locationAddress += location->addr;
 
-		Address currentAddress = location->addr;
+		Address currentAddress = locationAddress;
 		if(in1BranchInsnRange(locationAddress,currentBaseTramp->baseAddr)){
 			if(location->isLongJump){
 				proc->writeTextWord((caddr_t)currentAddress,

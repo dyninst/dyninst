@@ -147,6 +147,9 @@ public:
 
 	unsigned short getFunctionCount();
 	string** getFunctionNameList();
+	FunctionInfo** getLineInformationList();
+	tuple** getLineToAddrMap();
+	tuple** getAddrToLineMap();
 
 	/** tempoprary method to be deleted in commit */
 	void print();

@@ -443,6 +443,15 @@ string** FileLineInformation::getFunctionNameList(){
 	return functionNameList;
 }
 
+tuple** FileLineInformation::getLineToAddrMap(){
+	return lineToAddr;	
+}
+tuple** FileLineInformation::getAddrToLineMap(){
+	return addrToLine;	
+}
+FunctionInfo** FileLineInformation::getLineInformationList(){
+	return lineInformationList;
+}
 
 //constructor whose argument is the name of the module name
 LineInformation::LineInformation(string mName) 
