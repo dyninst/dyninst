@@ -41,9 +41,8 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.169 2004/04/08 21:14:04 lharris Exp $
+ * $Id: inst-x86.C,v 1.170 2004/04/11 04:52:10 legendre Exp $
  */
-
 #include <iomanip>
 
 #include <limits.h>
@@ -5246,6 +5245,51 @@ bool PushEIPmov::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
 
 /****************************************************************************/
 /****************************************************************************/
+
+// This adds a jump from the end of the relocated function to the
+// byte following the original function.
+bool Fallthrough::RewriteFootprint(Address oldBaseAdr, Address &/*oldAdr*/, 
+                                  Address /*newBaseAdr*/, Address &newAdr, 
+				   instruction */*oldInstructions[]*/, 
+                                  instruction newInstructions[], 
+                                  int &oldOffset, int &newOffset,  
+				  int /*newDisp*/, unsigned &codeOffset,
+                                  unsigned char *code) 
+{
+#ifdef DEBUG_FUNC_RELOC
+  cerr << "Fallthrough::RewriteFootprint on " << function->prettyName() << endl;
+#endif 
+   
+   //Create the jump
+   Address origFuncEnd = oldBaseAdr + function->get_size();
+   int displacement = origFuncEnd - (newAdr + branchsize_);
+
+#ifdef DEBUG_FUNC_RELOC
+   cerr << std::hex <<
+     "  jump to " << origFuncEnd << " from " << newAdr <<
+     " gives a displacement of " << std::dec << displacement << endl;
+#endif
+
+   unsigned char *jmp = code + codeOffset;
+   emitJump(displacement, jmp);
+   jmp = code + codeOffset;
+
+   unsigned jmpInsnType;
+   get_instruction((const unsigned char *) jmp, jmpInsnType);
+
+   //Copy the jump
+   newInstructions[newOffset] = instruction(jmp, jmpInsnType, branchsize_);
+   codeOffset += branchsize_;
+   newOffset++;
+
+   //Update addresses
+   newAdr += branchsize_;
+   oldOffset++;
+   return true;
+}
+
+/****************************************************************************/
+/****************************************************************************/
 /****************************************************************************/
 
 // Find overlapping instrumentation points 
@@ -5493,10 +5537,34 @@ bool pd_Function::PA_attachGeneralRewrites(
             }
          }
       }
-
       // iterated over another instruction
       size = instr.size();
       offset += size;
+   }
+
+   /**
+    * Check if last instruction could fall through to the next
+    * function.  Note that we could be more precise than this,
+    * we really want to know if the last basic block falls through
+    * and is reachable.
+    **/
+   instr = loadedCode[numInstructions-1];
+   if (0 && !instr.isReturn() && !instr.isUncondJump())
+   {
+#ifdef DEBUG_FUNC_RELOC
+     cerr << std::hex 
+	  << "Adding fallthrough LocalAlteration at offset " 
+	  << offset << " of " << prettyName() << endl;
+#endif
+     Fallthrough *fall = new Fallthrough(this, offset);
+     temp_alteration_set->AddAlteration(fall);
+   }
+   else
+   {
+#ifdef DEBUG_FUNC_RELOC
+     cerr << "Decided not to add fallthrough for "
+	  << prettyName() << endl;
+#endif
    }
 
    return true;
@@ -5641,3 +5709,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
    delete[] oldCode;
 }
 
+int getMaxJumpSize()
+{
+  return JUMP_REL32_SZ;
+}
