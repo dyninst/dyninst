@@ -30,10 +30,15 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.17  1994/11/01 05:43:39  karavan
-/* changed window pathname in call to dag::createDisplay() to match
-/* update to createDisplay(); minor performance and warning fixes
+/* Revision 1.18  1994/11/02 04:40:44  karavan
+/* added new interface function UIM::readStartupFile which implements
+/* the new -s commandline option to read in a tcl script after initialization
+/* but before any other UI functions.
 /*
+ * Revision 1.17  1994/11/01  05:43:39  karavan
+ * changed window pathname in call to dag::createDisplay() to match
+ * update to createDisplay(); minor performance and warning fixes
+ *
  * Revision 1.16  1994/10/25  17:57:34  karavan
  * added Resource Display Objects, which support display of multiple resource
  * abstractions.
@@ -231,6 +236,21 @@ UIM::endBatchMode ()
   UIM_BatchMode--;
   if (UIM_BatchMode < 0)
     UIM_BatchMode = 0;
+}
+
+// 
+// Startup File
+void 
+UIM::readStartupFile(const char *script)
+{
+  char tcommand[300];
+  if (script != NULL) {   // script specified on paradyn command line
+    sprintf (tcommand, "source \"%s\"", script);
+    if (Tcl_Eval (interp, tcommand) == TCL_ERROR) {
+      //uiMgr->showError(25, "Error in specified tcl script");
+      printf ("Error in specified tcl script\n");
+    }
+  }
 }
 
 // ****************************************************************
