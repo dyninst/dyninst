@@ -107,6 +107,7 @@ class BPatch_thread {
     process		*proc;
     BPatch_image	*image;
     int			lastSignal;
+    int                 exitCode;
     bool		mutationsActive;
     bool		createdViaAttach;
     bool		detached;
@@ -156,6 +157,7 @@ public:
     bool	isStopped();
     int		stopSignal();
     bool	isTerminated();
+    int         terminationStatus();
 
     void	detach(bool cont);
 
