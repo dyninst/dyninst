@@ -39,44 +39,35 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef WAITSET_WIN_H
-#define WAITSET_WIN_H
+#ifndef PDTHREAD_UNIX_THR_MAILBOX_H
+#define PDTHREAD_UNIX_THR_MAILBOX_H
 
-#include "common/h/Vector.h"
-#include "pdthread/src/WaitSet.h"
+#include "pdthread/h/thread.h"
+#include "pdthread/src/thr_mailbox.h"
+#include "MsgAvailablePipe.h"
+
 
 namespace pdthr
 {
 
-class WinWaitSet : public WaitSet
+class unix_thr_mailbox : public thr_mailbox
 {
 private:
-    bool check_wmsg_q;
-    pdvector<PdSocket> socks;
-    pdvector<PdFile> files;
-    HANDLE hMsgAvailEvent;
+    MsgAvailablePipe msg_avail_pipe;
+    
+protected:
+    virtual void populate_wait_set( WaitSet* wset );
 
-    bool wmsg_q_hasdata;
-    int readySockIdx;
-    int readyFileIdx;
-
+	virtual void raise_msg_avail( void );
+	virtual void clear_msg_avail( void );
+    
 public:
-    WinWaitSet( void );
-    virtual ~WinWaitSet( void );
-
-    virtual void Add( const PdSocket& s )   { socks.push_back( s ); }
-    virtual void Add( const PdFile& f )     { files.push_back( f ); }
-    virtual void Clear( void );
-    virtual WaitReturn Wait( void );
-    virtual bool HasData( const PdSocket& s );
-    virtual bool HasData( const PdFile& f );
-
-    virtual void AddWmsgQueue( void )       { check_wmsg_q = true; }
-    virtual bool WmsgQueueHasData( void )   { return wmsg_q_hasdata; }
-
-    void AddMsgAvailableEvent( HANDLE h )   { hMsgAvailEvent = h; }
+    unix_thr_mailbox(thread_t owner)
+      : thr_mailbox( owner )
+    { }
+    virtual ~unix_thr_mailbox( void ) {}
 };
 
 } // namespace pdthr
 
-#endif // WAITSET_WIN_H
+#endif // PDTHREAD_UNIX_THR_MAILBOX_H

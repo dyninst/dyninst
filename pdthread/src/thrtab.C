@@ -52,6 +52,8 @@
 #if defined(i386_unknown_nt4_0)
 #include "win_thr_mailbox.h"
 #include "wmsg_q.h"
+#else
+#include "unix_thr_mailbox.h"
 #endif // defined(i386_unknown_nt4_0)
 
 
@@ -97,7 +99,7 @@ unsigned thrtab::create_main_thread() {
 #if defined(i386_unknown_nt4_0)
     main_thr->init(new win_thr_mailbox(main_tid), NULL, NULL);
 #else // defined(i386_unknown_nt4_0)
-    main_thr->init(new thr_mailbox(main_tid), NULL, NULL);
+    main_thr->init(new unix_thr_mailbox(main_tid), NULL, NULL);
 #endif // defined(i386_unknown_nt4_0)
 
     main_thr = lwp::get_main();    
@@ -115,7 +117,7 @@ thread_t thrtab::create_thread(lwp::task_t func, lwp::value_t arg, bool start) {
 #if defined(i386_unknown_nt4_0)
     thread->init(new win_thr_mailbox(new_tid), func, arg);
 #else // defined(i386_unknown_nt4_0)
-    thread->init(new thr_mailbox(new_tid), func, arg);
+    thread->init(new unix_thr_mailbox(new_tid), func, arg);
 #endif // defined(i386_unknown_nt4_0)
     if(start)
         thread->start();

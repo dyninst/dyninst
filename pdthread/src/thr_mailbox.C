@@ -315,10 +315,6 @@ SocketReadyBufferedVisitor::visit( PdSocket desc )
 void
 thr_mailbox::populate_wait_set( WaitSet* wset )
 {
-    // populate the set of sockets we will check for read readiness
-    // start with our "message available" pipe...
-    wset->Add( msg_avail_pipe.GetReadEndpoint() );
-
     // ...add our bound sockets that have not
     // already been indicated as "ready-to-read"
     SocketWaitSetPopulator sock_pop( *this, *wset );
@@ -549,9 +545,9 @@ find_msg:
 
 qmutex.Lock();
 
-	// TODO when is the correct place to clear the message available pipe?
-	// do we need to do it on each call?
-	clear_msg_avail();
+	    // TODO when is the correct place to clear the message 
+        // available indicator?
+	    clear_msg_avail();
 
     if(io_first)
 	{
@@ -792,27 +788,6 @@ done:
     COLLECT_MEASUREMENT(THR_MSG_TIMER_STOP);
 
     return retval;
-}
-
-
-void
-thr_mailbox::raise_msg_avail( void )
-{
-    if( !msg_avail_pipe.RaiseMsgAvailable() )
-    {
-        thr_debug_msg(CURRENT_FUNCTION,
-            "write to msg_avail pipe would've blocked\n" );
-    }
-}    
-
-void
-thr_mailbox::clear_msg_avail( void )
-{
-    if( !msg_avail_pipe.Drain() )
-    {
-        // there was an error
-        thr_debug_msg(CURRENT_FUNCTION, "failed to drain msg avail pipe\n" );
-    }
 }
 
 

@@ -42,14 +42,13 @@
 #ifndef __libthread_thr_mailbox_h__
 #define __libthread_thr_mailbox_h__
 
+#include "pdthread/h/thread.h"
 #include "message.h"
 #include "mailbox.h"
 #include "refarray.C"
 #include "dllist.C"
 #include "predicate.h"
 #include "DummyMonitor.h"
-#include "MsgAvailablePipe.h"
-#include "../h/thread.h"
 
 
 namespace pdthr
@@ -65,9 +64,6 @@ class thr_mailbox : public mailbox
 	friend class FileReadySetPopulator;
 
 private:
-    MsgAvailablePipe msg_avail_pipe;
-    
-
     // sets of bound sockets, ready-to-read sockets, and a mutex 
     // for access control
     dllist<PdSocket,DummyMonitor>* bound_socks;
@@ -89,15 +85,15 @@ private:
                           message** m = NULL, unsigned io_first = 1);
 	void wait_for_input( void );
 
-	void raise_msg_avail( void );
-	void clear_msg_avail( void );
-    
 	bool is_buffered_special_ready( thread_t* sender, tag_t* type );
 
 protected:
     virtual void populate_wait_set( WaitSet* wset );
     virtual void handle_wait_set_input( WaitSet* wset );
 
+	virtual void raise_msg_avail( void ) = NULL;
+	virtual void clear_msg_avail( void ) = NULL;
+    
 public:
     thr_mailbox(thread_t owner);
     virtual ~thr_mailbox();
@@ -140,12 +136,6 @@ public:
                     thread_t* ptid);
     void unbind( PdSocket s, bool getlock = true );
     bool is_bound( PdSocket s);
-
-#if defined(i386_unknown_nt4_0)
-    void bind_wmsg( void );
-    void unbind_wmsg( void );
-    bool is_wmsg_bound( void );
-#endif // defined(i386_unknown_nt4_0)
 
     void clear_ready( PdSocket sock );
     void clear_ready( PdFile fd );

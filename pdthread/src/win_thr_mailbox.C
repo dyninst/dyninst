@@ -47,18 +47,42 @@
 namespace pdthr
 {
 
+win_thr_mailbox::win_thr_mailbox(thread_t owner)
+  : thr_mailbox( owner ),
+    bound_tid( THR_TID_UNSPEC ),
+    hMsgAvailableEvent( CreateEvent( NULL,      // default security attrs
+                                        TRUE,   // manual reset
+                                        FALSE,  // initially nonsignaled
+                                        NULL ))  // unnamed
+{
+    // nothing else to do
+}
+
+
+win_thr_mailbox::~win_thr_mailbox( void )
+{
+    CloseHandle( hMsgAvailableEvent );
+}
+
+
+
 void
 win_thr_mailbox::populate_wait_set( WaitSet* wset )
 {
     // allow base class to populate
     thr_mailbox::populate_wait_set( wset );
 
+    WinWaitSet* wwset = (WinWaitSet*)wset;
+
+    // add the msg available event
+    wwset->AddMsgAvailableEvent( hMsgAvailableEvent );
+
     // add the Windows message queue if necessary
     if( bound_tid != THR_TID_UNSPEC )
     {
-        WinWaitSet* wwset = (WinWaitSet*)wset;
         wwset->AddWmsgQueue();
     }
+
 }
 
 
@@ -67,9 +91,9 @@ win_thr_mailbox::handle_wait_set_input( WaitSet* wset )
 {
     WinWaitSet* wwset = (WinWaitSet*)wset;
 
-    // we've been given indication that there is some input available
+    // we popped out of a wait - figure out why
 
-    // first check whether it was due to the Windows msg
+    // check whether it was due to the Windows msg
     if( wwset->WmsgQueueHasData() )
     {
         assert( bound_tid != THR_TID_UNSPEC );
@@ -79,6 +103,9 @@ win_thr_mailbox::handle_wait_set_input( WaitSet* wset )
         message* m = new io_message( wmsgQueueEntity, bound_tid, MSG_TAG_WMSG );
         put( m );
     }
+
+    // no need to check if it was due to an inter-thread message - 
+    // the sender puts this message directly into our queue
 
     // allow base class to check for input
     thr_mailbox::handle_wait_set_input( wset );
@@ -103,6 +130,18 @@ win_thr_mailbox::unbind_wmsg( void )
     }
 }
 
+
+void
+win_thr_mailbox::raise_msg_avail( void )
+{
+    SetEvent( hMsgAvailableEvent );    
+}
+
+void
+win_thr_mailbox::clear_msg_avail( void )
+{
+    ResetEvent( hMsgAvailableEvent );
+}
 
 } // namespace pdthr
 

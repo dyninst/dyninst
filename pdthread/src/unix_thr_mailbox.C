@@ -39,44 +39,55 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef WAITSET_WIN_H
-#define WAITSET_WIN_H
+#include <stdio.h>
+#include "pdthread/src/unix_thr_mailbox.h"
+#include "pdthread/src/WaitSet-unix.h"
 
-#include "common/h/Vector.h"
-#include "pdthread/src/WaitSet.h"
+#if DO_DEBUG_LIBPDTHREAD_THR_MAILBOX == 1
+#define DO_DEBUG_LIBPDTHREAD 1
+#else
+#define DO_DEBUG_LIBPDTHREAD 0
+#endif
 
+#define CURRENT_FILE unix_thr_mailbox_C
+#include "thr_debug.h"
+
+#undef DO_DEBUG_LIBPDTHREAD
 namespace pdthr
 {
 
-class WinWaitSet : public WaitSet
+
+void
+unix_thr_mailbox::populate_wait_set( WaitSet* wset )
 {
-private:
-    bool check_wmsg_q;
-    pdvector<PdSocket> socks;
-    pdvector<PdFile> files;
-    HANDLE hMsgAvailEvent;
+    // allow base class to populate
+    thr_mailbox::populate_wait_set( wset );
 
-    bool wmsg_q_hasdata;
-    int readySockIdx;
-    int readyFileIdx;
+    // add the "message available" pipe
+    wset->Add( msg_avail_pipe.GetReadEndpoint() );
+}
 
-public:
-    WinWaitSet( void );
-    virtual ~WinWaitSet( void );
 
-    virtual void Add( const PdSocket& s )   { socks.push_back( s ); }
-    virtual void Add( const PdFile& f )     { files.push_back( f ); }
-    virtual void Clear( void );
-    virtual WaitReturn Wait( void );
-    virtual bool HasData( const PdSocket& s );
-    virtual bool HasData( const PdFile& f );
+void
+unix_thr_mailbox::raise_msg_avail( void )
+{
+    if( !msg_avail_pipe.RaiseMsgAvailable() )
+    {
+        thr_debug_msg(CURRENT_FUNCTION,
+            "write to msg_avail pipe would've blocked\n" );
+    }
+}    
 
-    virtual void AddWmsgQueue( void )       { check_wmsg_q = true; }
-    virtual bool WmsgQueueHasData( void )   { return wmsg_q_hasdata; }
+void
+unix_thr_mailbox::clear_msg_avail( void )
+{
+    if( !msg_avail_pipe.Drain() )
+    {
+        // there was an error
+        thr_debug_msg(CURRENT_FUNCTION, "failed to drain msg avail pipe\n" );
+    }
+}
 
-    void AddMsgAvailableEvent( HANDLE h )   { hMsgAvailEvent = h; }
-};
 
 } // namespace pdthr
 
-#endif // WAITSET_WIN_H

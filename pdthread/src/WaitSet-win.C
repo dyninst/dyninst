@@ -47,6 +47,9 @@
 #define CURRENT_FILE WaitSet_win_C
 #include "thr_debug.h"
 
+extern thread_t PCthreadTid;
+extern thread_t DMthreadTid;
+
 namespace pdthr
 {
 
@@ -63,7 +66,8 @@ WinWaitSet::WinWaitSet( void )
   : check_wmsg_q( false ),
     wmsg_q_hasdata( false ),
     readySockIdx( -1 ),
-    readyFileIdx( -1 )
+    readyFileIdx( -1 ),
+    hMsgAvailEvent( INVALID_HANDLE_VALUE )
 {
     // nothing else to do
 }
@@ -85,6 +89,8 @@ WinWaitSet::Clear( void )
     wmsg_q_hasdata = false;
     readySockIdx = -1;
     readyFileIdx = -1;
+
+    hMsgAvailEvent = INVALID_HANDLE_VALUE;
 }
 
 
@@ -93,9 +99,7 @@ WinWaitSet::Wait( void )
 {
     WaitSet::WaitReturn ret = WaitSet::WaitNone;
 
-    if( check_wmsg_q || (socks.size() > 0) || (files.size() > 0) )
-    {
-        DWORD nWaitObjs = socks.size() + files.size();
+        DWORD nWaitObjs = socks.size() + files.size() + 1;
 
         // build the set of handles to wait over
         HANDLE* waitObjs = new HANDLE[nWaitObjs];
@@ -146,6 +150,11 @@ WinWaitSet::Wait( void )
             waitObjs[curIdx] = fileiter->fd;
             curIdx++;
         }
+
+        // add handle for msg-available event
+        assert( hMsgAvailEvent != INVALID_HANDLE_VALUE );
+        waitObjs[curIdx] = hMsgAvailEvent;
+        curIdx++;
 
         // wait for available input
         DWORD waitRet;
@@ -201,10 +210,25 @@ WinWaitSet::Wait( void )
                         readySockIdx = (int)ndx;
                     }
                 }
-                else
+                else if( ndx < (socks.size() + files.size()) )
                 {
                     // it was a file
                     readyFileIdx = (int)(ndx - socks.size());
+                }
+                else
+                {
+                    assert( ndx == (nWaitObjs - 1) );
+#if READY
+                    if( thr_self() == PCthreadTid )
+                    {
+                        fprintf( stderr, "PC: received msg\n" );
+                    }
+
+                    if( thr_self() == DMthreadTid )
+                    {
+                        fprintf( stderr, "DM: received msg\n" );
+                    }
+#endif // READY
                 }
             }
         }
@@ -257,7 +281,6 @@ WinWaitSet::Wait( void )
         }
 
         delete[] waitObjs;
-    }
     return ret;
 }
 
