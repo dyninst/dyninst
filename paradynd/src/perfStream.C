@@ -15,7 +15,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/perfStream.C,v
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.41  1995/09/26 20:28:49  naim
+ * Revision 1.42  1995/09/26 22:01:21  naim
+ * Minor comment added about function bzero.
+ *
+ * Revision 1.41  1995/09/26  20:28:49  naim
  * Minor warning fixes and some other minor error messages fixes
  *
  * Revision 1.40  1995/08/24  15:04:26  hollings
@@ -253,7 +256,9 @@ extern "C" {
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
 
-extern "C" void bzero(char *b, int length);
+// TODO: this eliminates a warning but creates a conflict when compiling
+// paradyndCM5.
+//extern "C" void bzero(char *b, int length);
 
 void createResource(traceHeader *header, struct _newresource *r);
 
