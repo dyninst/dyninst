@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.h,v 1.5 2000/07/28 17:21:45 pcroth Exp $
+// $Id: callGraphs.h,v 1.6 2001/02/12 14:53:06 wxd Exp $
 
 //callGraphs.h: the callGraphs class, whose code is taken  
 //from the shgPhases class, is just used to keep track of multiple 
@@ -213,6 +213,9 @@ class callGraphs {
    void addToStatusDisplay(int programId, const string &msg);
       // currently, we do not append the newline character for you
 
+   void map_from_WhereAxis(const string &module_name,const string &func_name,bool ishighlight) {
+   	getCurrent().map_from_WhereAxis(module_name,func_name,ishighlight);
+   }
 };
 
 #endif
