@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.30  1994/09/30 19:17:47  rbi
+ * Revision 1.31  1994/11/02 11:46:21  markc
+ * Changed shadowing nam.
+ *
+ * Revision 1.30  1994/09/30  19:17:47  rbi
  * Abstraction interface change.
  *
  * Revision 1.29  1994/09/22  00:56:05  markc
@@ -207,11 +210,11 @@ performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
 						        dataCallback dc,
 						        controlCallback cc)
 {
-    int tid;
+    int td;
     performanceStream *ps;
 
-    tid = getRequestingThread();
-    ps = new performanceStream(ap, dt, dc, cc, tid);
+    td = getRequestingThread();
+    ps = new performanceStream(ap, dt, dc, cc, td);
     ap->streams.add(ps);
 
     return(ps);
