@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.94 2002/04/05 19:38:37 schendel Exp $
+// $Id: ast.C,v 1.95 2002/05/04 21:47:13 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1869,11 +1869,14 @@ AstNode *addIndexToAddress(AstNode *addr, void *level, void *index, int type)
  */
 
 
-AstNode *computeTheAddress(void *level, void *index, int type) {
+AstNode *computeTheAddress(void *dataPtr) {
+  /*  need to implement
   AstNode* base = computeAddress(level, index, type) ;
   AstNode* addr = addIndexToAddress(base, level, index, type) ;
   removeAst(base) ;
   return addr ;
+  */
+  return &AstNode();
 }
 
 /*
@@ -1885,9 +1888,10 @@ AstNode *computeTheAddress(void *level, void *index, int type) {
  */
  
 
-AstNode *createTimer(const string &func, void *level, void *index,
+AstNode *createTimer(const string &func, void *dataPtr, 
                      vector<AstNode *> &ast_args)
 {
+  /*  Needs to be implemented
   AstNode *noop = new AstNode();
 
   vector<AstNode *> noArgs;
@@ -1903,7 +1907,7 @@ AstNode *createTimer(const string &func, void *level, void *index,
 
   //t1:
   // Timer
-  AstNode* structAddr = addIndexToAddress(baseAddress, level, index, 1); /* 1 means tTimer */
+  AstNode* structAddr = addIndexToAddress(baseAddress, level, index, 1); // 1 means tTimer 
   removeAst(baseAddress);
   ast_args += structAddr;
   AstNode* timer = new AstNode(func, ast_args);
@@ -1922,19 +1926,21 @@ AstNode *createTimer(const string &func, void *level, void *index,
 
   removeAst(notDeleted);
   removeAst(body);
-
   return(ret);
+*/
+  return &AstNode();
 }
 
-AstNode *createCounter(const string &func, void *level, void *index, 
+AstNode *createCounter(const string &func, void *dataPtr,
                        AstNode *ast) 
 { 
+  /*  need to implement
   AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
   AstNode *t4=NULL,*t5=NULL,*t6=NULL;
 
-  t0 = computeAddress(level, index, 0); /* 0 means intCounter */
+  t0 = computeAddress(level, index, 0); // 0 means intCounter
   t4 = compWithZero(t0, neOp);
-  t5 = addIndexToAddress(t0, level, index, 0); /* 0 means intCounter */
+  t5 = addIndexToAddress(t0, level, index, 0); // 0 means intCounter
   removeAst(t0) ;
 
   if (func == "addCounter") {
@@ -1957,6 +1963,8 @@ AstNode *createCounter(const string &func, void *level, void *index,
   removeAst(t3);
 
   return(t6);
+*/
+  return &AstNode();
 }
 
 #else
