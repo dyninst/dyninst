@@ -41,7 +41,7 @@
 
 /*
  * Generate code for template classes used by libutil
- * $Id: templates.C,v 1.11 2000/10/17 17:42:49 schendel Exp $
+ * $Id: templates.C,v 1.12 2001/06/20 20:43:35 schendel Exp $
  */
 
 #pragma implementation "Vector.h"
@@ -56,8 +56,6 @@
 #include "pdutil/h/rpcUtil.h"
 #include "pdutil/h/hist.h"
 template class vector<rpcBuffer*>;
-#ifdef notdef  // can put back in when front-end types get updated
 template class vector<Histogram*>;
-#endif
 template class dictionary_hash<string, Symbol>;
 template class vector<dictionary_hash <string, Symbol>::entry>;
