@@ -118,18 +118,7 @@ $W.top.left.menubar.help.m add command -label "Context" -command "NotImpl"
 pack $W.top.left.menubar.file $W.top.left.menubar.acts -side left -padx 2
 pack $W.top.left.menubar.help -side right 
 
-#
-#  Organize all menu buttons into a menubar
-#
-#tk_menuBar $W.top.left.menubar $W.top.left.menubar.file $W.top.left.menubar.acts $W.top.left.menubar.help 
-
-#
-#  Build the logo 
-#
-label $W.top.logo -relief raised \
-                  -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
-                  -foreground HotPink4
-
+makeLogo $W.top.logo paradynLogo raised 2 HotPink4
 pack $W.top.logo -side right
 
 
