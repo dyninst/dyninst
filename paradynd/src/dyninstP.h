@@ -14,7 +14,10 @@
  * This file will be empty during the restructuring of the paradyn daemon
  *
  * $Log: dyninstP.h,v $
- * Revision 1.4  1994/09/22 01:51:40  markc
+ * Revision 1.5  1994/11/02 11:04:16  markc
+ * Changed casts to remove compiler warnings.
+ *
+ * Revision 1.4  1994/09/22  01:51:40  markc
  * Added most of dyninst.h, temporary
  *
  * Revision 1.3  1994/08/08  20:13:35  hollings
@@ -60,35 +63,16 @@ class metricListRec;
 
 typedef enum { selfTermination, controlTermination } executableType;
 
-Boolean isApplicationPaused();
+bool isApplicationPaused();
 
 /* descriptive information about a resource */
 class resourceInfo {
  public:
-    stringHandle name;			/* name of actual resource */
-    stringHandle fullName;		/* full path name of resource */
-    stringHandle abstraction;          /* abstraction name */
+    string name;			/* name of actual resource */
+    string fullName;		/* full path name of resource */
+    string abstraction;          /* abstraction name */
     timeStamp creation;		/* when did it get created */
 };		
-
-class executableRec {
-    public:
-        executableRec() {
-	  name = NULL; machine = NULL; user = NULL;
-	  argc = 0; argv = NULL; type = selfTermination; state = neonatal;
-	  next = NULL; controlPath = NULL; proc = NULL;
-	}
-	char *name;
-	char *machine;
-	char *user;
-	int argc;
-	char **argv;
-	executableType type;
-	processState state;
-	executableRec *next;
-	FILE *controlPath;
-	process *proc;	/* for directly connected processes */
-};
 
 class resourceListRec {
     public:
@@ -103,19 +87,13 @@ class resourceListRec {
 /* something that data can be collected for */
 class resource {
     public:
-	char *getName()	{ return((char*)info.name); }
-	resource(Boolean full = True) {
-	    if (full) {
-		parent = NULL;
-		handle = NULL;
-		children = NULL;
-		info.name = pool.findAndAdd("");
-		info.fullName = pool.findAndAdd("");
-		info.creation = 0.0;
-		suppressed = False;
-	    }
-	};
-	Boolean suppressed;		/* don't collect data about this */
+	string getName() const { return(info.name); }
+	resource(bool suppress=false)
+	  : parent(NULL), children(NULL), handle(NULL), suppressed(suppress) {
+	    info.creation = 0.0;
+	  }
+
+	bool suppressed;		/* don't collect data about this */
 	resource *parent;		/* parent of this resource */
 	void *handle;		/* handle to resource specific data */
 	resourceListRec *children;	/* children of this resource */
@@ -139,16 +117,16 @@ typedef int (*errorHandler)(int errno, char *message);
 int addProcess(int argc, char*argv[], int nenv=0, char *envp[]=0);
 
 /*
- * Find out if an application has been defined yet.
+ * Find out if an application has been.defines yet.
  *
  */
-Boolean applicationDefined();
+bool applicationDefined();
 
 /*
  * Start an application running (This starts the actual execution).
  *  app - an application context from createPerformanceConext.
  */
-Boolean startApplication();
+bool startApplication();
 
 /*
  *   Stop all processes associted with the application.
@@ -158,13 +136,13 @@ Boolean startApplication();
  *      - Does this force buffered data to be delivered?
  *	- Does a paused application respond to enable/disable commands?
  */
-Boolean pauseAllProcesses();
+bool pauseAllProcesses();
 
 /*
  * Continue a paused application.
  *    app - an application context from createPerformanceConext.
  */
-Boolean continueAllProcesses();
+bool continueAllProcesses();
 
 
 /*
@@ -172,7 +150,7 @@ Boolean continueAllProcesses();
  *    pause - leave the process in a stopped state.
  *
  */
-Boolean detachProcess(int pid, Boolean pause);
+bool detachProcess(int pid, bool pause);
 
 /*
  * Routines to control data collection.
@@ -196,7 +174,7 @@ float guessCost(resourceListRec*, metric*);
  *
  * resource		- enable notification of children of this resource
  */
-Boolean enableResourceCreationNotification(resource*);
+bool enableResourceCreationNotification(resource*);
 
 /*
  * Resource utility functions.
@@ -206,15 +184,15 @@ resourceListRec *getRootResources();
 
 extern resource *rootResource;
 
-stringHandle getResourceName(resource*);
+string getResourceName(resource*);
 
 resource *getResourceParent(resource*);
 
 resourceListRec *getResourceChildren(resource*);
 
-Boolean isResourceDescendent(resource *parent, resource *child);
+bool isResourceDescendent(resource *parent, resource *child);
 
-resource *findChildResource(resource *parent, char *name);
+resource *findChildResource(resource *parent, const string name);
 
 int getResourceCount(resourceListRec*);
 
@@ -224,14 +202,14 @@ resourceInfo *getResourceInfo(resource*);
 
 resourceListRec *createResourceList();
 
-Boolean addResourceList(resourceListRec*, resource*);
+bool addResourceList(resourceListRec*, resource*);
 
 resource *newResource(resource *parent,
 		      void *handle,
-		      stringHandle abstraction,
-		      const char *name,
+		      const string abstraction,
+		      const string name,
 		      timeStamp creation,
-		      Boolean unique);
+		      bool unique);
 
 /*
  * manipulate user handle (a single void * to permit mapping between low level
@@ -254,13 +232,13 @@ metricListRec *getMetricList();
  * looks for a specifc metric instance in an application context.
  *
  */
-metric *findMetric(char *name);
+metric *findMetric(const string name);
 
 /*
  * Metric utility functions.
  *
  */
-char *getMetricName(metric*);
+string getMetricName(metric*);
 
 /*
  * Get metric out of a metric instance.
@@ -268,7 +246,9 @@ char *getMetricName(metric*);
  */
 metric *getMetric(metricDefinitionNode*);
 
-extern resource *findResource(const char *name);
+extern resource *findResource(const string name);
+
+const string nullString((char*) NULL);
 
 #endif
 
