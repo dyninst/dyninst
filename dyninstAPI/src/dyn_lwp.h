@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.18 2003/06/11 20:05:46 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.19 2003/10/07 19:06:02 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -73,7 +73,12 @@
 class papiMgr;
 #endif
 #endif
-  
+
+#if !defined(i386_unknown_nt4_0)  // so Windows code will compile on unix
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE 0
+#endif
+#endif
 
 /*
  * The dyn_lwp class wraps a kernel thread (lightweight process, or LWP)
@@ -86,11 +91,7 @@ class dyn_lwp
  public:
   // default constructor
   dyn_lwp();
-  // UNIX constructor: lwp ID and process pointer
   dyn_lwp(unsigned lwp, process *proc);
-  // NT constructor: pre-specified (or pre-open) file descriptor/handle
-  dyn_lwp(unsigned lwp, handleT fd, process *proc);
-
   dyn_lwp(const dyn_lwp &l);
 
   ~dyn_lwp();       // we only want process::deleteLWP to do this
@@ -153,6 +154,10 @@ class dyn_lwp
   bool markRunningIRPC();
   void markDoneRunningIRPC();
 
+#if defined(AIX_PROC)
+  void reopen_fds(); // Re-open whatever FDs might need to be
+#endif
+
   // This should be ifdef SOL_PROC or similar
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(AIX_PROC)
   // || defined(rs6000_ibm_aix4_1)
@@ -172,30 +177,71 @@ class dyn_lwp
   
   // Access methods
   unsigned get_lwp_id() const { return lwp_id_; };
+
+  int getPid() const;
   handleT get_fd() const { return fd_;  };
 
-  bool fd_opened() const    { return are_fd_opened; }
+  bool is_attached() const    { return is_attached_; }
+
   handleT ctl_fd() const { 
-     assert(fd_opened());
+     assert(is_attached());
      return ctl_fd_;
   };
   handleT status_fd() const {
-     assert(fd_opened());
+     assert(is_attached());
      return status_fd_;
   };
   handleT usage_fd() const {
-      if (!fd_opened())
-         cerr << "FD not opened for lwp: " << this << ", lwp_id: "
-              << get_lwp_id() << endl;
-      return usage_fd_;
-  };
+     assert(is_attached());
+     return usage_fd_;
+  };  
+  handleT as_fd() const {
+     assert(is_attached());
+     return as_fd_;
+  }
+  handleT auxv_fd() const {
+     assert(is_attached());
+     return auxv_fd_;
+  }
+  handleT map_fd() const {
+     assert(is_attached());
+     return map_fd_;
+  }
+  handleT ps_fd() const {
+     assert(is_attached());
+     return ps_fd_;
+  }
+
+  // ===  WINDOWS  ========================================
+  bool isProcessHandleSet() const {
+     return (procHandle_ != INVALID_HANDLE_VALUE);
+  }
+  handleT getProcessHandle() const {
+     assert(isProcessHandleSet());
+     return procHandle_;
+  }
+  void setProcessHandle( handleT h ) {
+     procHandle_ = h;
+  }
+
+  bool isFileHandleSet() const {
+     return (fd_ != INVALID_HANDLE_VALUE);
+  }
+  handleT getFileHandle() const {
+     assert(isFileHandleSet());
+     return fd_;
+  }
+  void setFileHandle( handleT h ) {
+     fd_ = h;
+  }
+
   
   // Open and close (if necessary) the file descriptor/handle. Used
   // by /proc-based platforms. Moved outside the constructor for
   // error reporting reasons. 
   // Platform-specific method
-  bool openFD();
-  void closeFD();
+  bool attach();
+  void detach();
   process *proc() { return proc_; }
 
 #if !defined(BPATCH_LIBRARY)
@@ -205,7 +251,9 @@ class dyn_lwp
 #endif
   
  private:
-  bool openFD_();   // os specific
+  void detach_();   // os specific
+  bool threadLWP_attach_();   // os specific
+  bool processLWP_attach_();  // os specific
   void closeFD_();  // os specific
   
   process *proc_;
@@ -216,7 +264,14 @@ class dyn_lwp
   handleT ctl_fd_;
   handleT status_fd_;
   handleT usage_fd_;
-  
+  handleT as_fd_; // Process memory image (/proc)
+  handleT auxv_fd_;
+  handleT map_fd_;
+  handleT ps_fd_; // ps (/proc)
+
+  handleT procHandle_; // Process-specific, as opposed to thread-specific,
+                       // handle. Currently used by NT
+
 #if !defined(BPATCH_LIBRARY)
   rawTime64 hw_previous_;
   rawTime64 sw_previous_;
@@ -248,7 +303,7 @@ class dyn_lwp
   pdvector<Frame> cachedStackWalk;
   bool isRunningIRPC;
 
-  bool are_fd_opened;  
+  bool is_attached_;
 };
 
 #endif
