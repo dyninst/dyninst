@@ -112,7 +112,7 @@ class BPatch_thread {
     bool		detached;
 
     bool		waitingForOneTimeCode;
-    unsigned		lastOneTimeCodeReturnValue;
+    void		*lastOneTimeCodeReturnValue;
 
     bool		unreportedStop;
     bool		unreportedTermination;
@@ -132,12 +132,12 @@ class BPatch_thread {
 
     static void		oneTimeCodeCallbackDispatch(process *theProc,
 						    void *userData,
-						    unsigned returnValue);
+						    void *returnValue);
 
     void		oneTimeCodeCallback(void *userData,
-					    unsigned returnValue);
+					    void *returnValue);
 
-    int			oneTimeCodeInternal(const BPatch_snippet &expr);
+    void		*oneTimeCodeInternal(const BPatch_snippet &expr);
 protected:
     BPatch_thread(char *path, char *argv[], char *envp[] = NULL);
     BPatch_thread(char *path, int pid);
