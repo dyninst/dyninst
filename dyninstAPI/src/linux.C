@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.109 2003/08/05 21:49:22 hollings Exp $
+// $Id: linux.C,v 1.110 2003/09/05 16:27:55 schendel Exp $
 
 #include <fstream>
 
@@ -73,11 +73,9 @@
 #include "paradynd/src/init.h"
 #endif
 
-#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
 // #include "saveSharedLibrary.h" 
-#endif
 
 #ifdef PAPI
 #include "papi.h"
@@ -614,7 +612,7 @@ bool process::continueProc_() {
       return false;
   
   ptraceOps++; ptraceOtherOps++;
-  
+
   ret = P_ptrace(PTRACE_CONT, getPid(), 1, 0);
 
   if (ret == -1)
@@ -625,7 +623,6 @@ bool process::continueProc_() {
   return ret != -1;
 }
 
-#ifdef BPATCH_LIBRARY
 bool process::terminateProc_()
 {
   if (!checkStatus()) 
@@ -636,7 +633,6 @@ bool process::terminateProc_()
   else
     return true;
 }
-#endif
 
 // TODO ??
 bool process::pause_() {

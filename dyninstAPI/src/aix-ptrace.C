@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.4 2003/07/15 22:43:55 schendel Exp $
+// $Id: aix-ptrace.C,v 1.5 2003/09/05 16:27:54 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -693,7 +693,6 @@ bool process::continueProc_() {
   return (ret != -1);
 }
 
-#ifdef BPATCH_LIBRARY
 bool process::terminateProc_()
 {
   if (!checkStatus())
@@ -709,7 +708,7 @@ bool process::terminateProc_()
 
   return true;
 }
-#endif
+
 
 // TODO ??
 bool process::pause_() {
