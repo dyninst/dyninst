@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.37 2000/03/22 03:56:25 tikir Exp $ */
+/* $Id: test1.mutatee.c,v 1.38 2000/03/22 19:09:27 tikir Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1904,13 +1904,12 @@ unsigned globalVariable30_8 = 0;
 unsigned globalVariable30_9 = 0;
 int func30_1()
 {
-    func30_2();
-    /*printf("VALUE %d  %x\n",globalVariable30_1,globalVariable30_2);*/
 
-    if(globalVariable30_8 != globalVariable30_2){
-	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-	return 0;
-    }
+#if defined(sparc_sun_solaris2_4) || \
+    defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0)
+
+    func30_2();
 
     passedTest[30] = !globalVariable30_3 ||
 		     ((globalVariable30_2 <= globalVariable30_3) &&
@@ -1945,6 +1944,11 @@ int func30_1()
 
     printf("Passed test #30 (line information)\n");
 
+#else
+    printf("Skipped test #30 (line information)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[30] = TRUE;
+#endif
     return 1;
 }
 
