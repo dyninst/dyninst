@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.102 2003/05/27 22:30:41 schendel Exp $
+// $Id: VISIthreadmain.C,v 1.103 2003/05/28 22:15:02 bernat Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -690,6 +690,7 @@ bool VISIMakeEnableRequest(){
   }
   
   if(!(ptr->request)) return false;
+
   if(ptr->next_to_enable >= ptr->request->size()) return false;
 
   // check to see if the limit has been reached
@@ -701,6 +702,7 @@ bool VISIMakeEnableRequest(){
           msg += string("\n");
           uiMgr->showError(97,P_strdup(msg.c_str()));
           // clean up state
+          
           if(ptr->request) delete ptr->request;
           if(ptr->retryList) delete ptr->retryList;
           ptr->request = 0;
@@ -711,21 +713,27 @@ bool VISIMakeEnableRequest(){
       }
   }
 
+  // We used to "batch" requests sent by the visi thread to the data manager/
+  // daemon. This has caused problems with the new "bundle" abstraction, and is
+  // being disabled. If there are problems, check here. 
+
+#if 0
   // get the TC value for the maximum packet size for an enable
   // request to the DM
   tunableFloatConstant packetSizeTC =
   tunableConstantRegistry::findFloatTunableConstant("EnableRequestPacketSize");
   u_int request_size = (u_int)packetSizeTC.getValue();
   if(request_size == 0) request_size = 2;
+#endif
+  u_int request_size = -1;
 
   // there is an enable limit for this visi: adjust the request_size 
   if(ptr->args->mi_limit > 0) {
-      if((ptr->args->mi_limit - ptr->mrlist.size()) < request_size){ 
-          request_size = (ptr->args->mi_limit - ptr->mrlist.size()); 
-      }
+      request_size = (ptr->args->mi_limit - ptr->mrlist.size()); 
   }
 
-  if(request_size > (ptr->request->size() - ptr->next_to_enable)){
+  if((request_size == -1) || 
+     (request_size > (ptr->request->size() - ptr->next_to_enable))) {
       request_size = (ptr->request->size() - ptr->next_to_enable); 
   }
 
@@ -736,10 +744,10 @@ bool VISIMakeEnableRequest(){
 
   for(u_int i=0; i < request_size; i++){
       (*metResParts)[i] = (*(ptr->request))[ptr->next_to_enable+i]; 
-
   }
   ptr->first_in_curr_request = ptr->next_to_enable;
   ptr->next_to_enable += request_size;
+  
   ptr->dmp->enableDataRequest(ptr->ps_handle, ptr->pt_handle, metResParts,0,
 			      ptr->args->phase_type,
 			      ptr->args->my_phaseId,0,0,0);
@@ -799,25 +807,25 @@ int VISIthreadchooseMetRes(pdvector<metric_focus_pair> *newMetRes){
 
     // there is not an enable currently in progress
     if(!(ptr->request)){ 
-       // check for invalid reply ==> user picked "Cancel" menu option
-       if(newMetRes == 0){
-          if(ptr->start_up){
-             ptr->quit = 1;
-          }
-          return 1;
-       }
-       else {
-          ptr->request = newMetRes;
-          newMetRes = 0;
-          ptr->next_to_enable = 0;
-          ptr->first_in_curr_request = 0;
-       }
-       if(!VISIMakeEnableRequest()){ 
-          assert(!(ptr->request));
-          assert(!(ptr->retryList));
-          assert(!(ptr->next_to_enable));
-          assert(!(ptr->first_in_curr_request));
-       }
+        // check for invalid reply ==> user picked "Cancel" menu option
+        if(newMetRes == 0){
+            if(ptr->start_up){
+                ptr->quit = 1;
+            }
+            return 1;
+        }
+        else {
+            ptr->request = newMetRes;
+            newMetRes = 0;
+            ptr->next_to_enable = 0;
+            ptr->first_in_curr_request = 0;
+        }
+        if(!VISIMakeEnableRequest()){ 
+            assert(!(ptr->request));
+            assert(!(ptr->retryList));
+            assert(!(ptr->next_to_enable));
+            assert(!(ptr->first_in_curr_request));
+        }
     }
     else { // add new elements to request list
        // check for invalid reply ==> user picked "Cancel" menu option
@@ -966,7 +974,7 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int,
         ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadEnableCallback");
         return;
     }
-
+    
     // for each successfully enabled pair, check to see if it is newly enabled
     // if it is not successfully enabled add it to the retry list
     u_int numEnabled = 0; // number enalbed
@@ -1054,9 +1062,11 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int,
     // if we have reached the limit display limit msg and clean-up state
     // else if there are more things to enable get the next set
     // else clean up state and if the retryList is non-empty send msgs
+    
     if(ptr->next_to_enable < ptr->request->size()){ // more to enable
        if((ptr->args->mi_limit > 0) &&  // this visi has a limit 
           ((int)(ptr->mrlist.size()) >= ptr->args->mi_limit)){ // limit reached 
+           
           string msg("A visi has enabled the maximum number of metric/");
           msg += string("focus pairs that it can enable. Some pairs may ");
           msg += string("not have been enabled.  limit =  ");
@@ -1106,6 +1116,7 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int,
        }
 
        // clean up state
+       
        if(ptr->request) delete ptr->request;
        ptr->next_to_enable = 0;
        ptr->first_in_curr_request = 0;
