@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.22 1999/11/05 23:20:03 paradyn Exp $
+// $Id: BPatch.C,v 1.23 1999/11/06 21:41:45 wylie Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -591,6 +591,10 @@ bool BPatch::getThreadEvent(bool block)
 		thread->lastSignal = WTERMSIG(status);
 		thread->setUnreportedTermination(true);
 	    } else if (WIFEXITED(status)) {
+#ifndef i386_unknown_nt4_0
+                thread->proc->exitCode_ = WEXITSTATUS(status);
+#endif
+                thread->exitCode = thread->proc->exitCode();
 		thread->lastSignal = 0; /* XXX Make into some constant */
 		thread->setUnreportedTermination(true);
 	    }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.26 1999/10/18 17:32:42 hollings Exp $
+// $Id: BPatch_thread.C,v 1.27 1999/11/06 21:41:45 wylie Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -80,7 +80,7 @@ int BPatch_thread::getPid()
  *              copied and passed to the child.
  */
 BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
-  : proc(NULL), image(NULL), lastSignal(-1), mutationsActive(true), 
+  : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
     createdViaAttach(false), detached(false), waitingForOneTimeCode(false),
     unreportedStop(false), unreportedTermination(false)
 {
@@ -133,7 +133,7 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
  * pid		Process ID of the target process.
  */
 BPatch_thread::BPatch_thread(char *path, int pid)
-  : proc(NULL), image(NULL), lastSignal(-1), mutationsActive(true), 
+  : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
     createdViaAttach(true), detached(false), waitingForOneTimeCode(false),
     unreportedStop(false), unreportedTermination(false)
 {
@@ -319,6 +319,20 @@ int BPatch_thread::stopSignal()
 	return -1;
     else
 	return lastSignal;
+}
+
+
+/*
+ * BPatch_thread::terminationStatus
+ *
+ * Returns the exit status code of the terminated thread.
+ */
+int BPatch_thread::terminationStatus()
+{
+    if (proc->status() != exited)
+	return -1;
+    else
+	return exitCode;
 }
 
 
