@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.283 2001/12/18 19:43:19 bernat Exp $
+// $Id: process.C,v 1.284 2001/12/20 23:10:36 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -918,7 +918,7 @@ bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
     }      
 #elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
 || defined(i386_unknown_linux2_0)
-    if ( point->address() == point->func()->addr() ) {
+    if ( point->address() == point->func()->getAddress( this ) ) {
       if ( pd_debug_catchup )
         cerr << "  pc not in instrumentation, requested instrumentation for function entry, returning true." << endl;
       retVal = true;
