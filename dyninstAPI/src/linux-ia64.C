@@ -349,8 +349,11 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 			// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): pc 0x%lx is in base or mini or multi tramp.\n", pid, ip );
 			isTrampoline = true;
 			}	
+		if( range->is_function() != NULL && range->is_function()->symTabName() == "__libc_start_main" ) {
+			isUppermost = true;
+			}
 		}
-	
+
 	/* Duplicate the current frame's cursor, since we'll be unwinding past it. */
 	unw_cursor_t currentFrameCursor = * unwindCursor;
 		
@@ -361,6 +364,10 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
   
 	if( status == -UNW_ENOINFO ) {
 	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): no unwind information available for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably an inferior RPC.)\n", pid, ip, sp, tp );
+		isUppermost = true;
+		}
+	else if( status == -UNW_EINVAL && range->is_function() != NULL ) {
+		// /* DEBUG */ bperr( "createFrameFromUnwindCursor(pid = %d): unwind information invalid for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably within a pre-main function.)\n", pid, ip, sp, tp );
 		isUppermost = true;
 		}
 	else if( status == 0 ) {
