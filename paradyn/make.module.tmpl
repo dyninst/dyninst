@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.13  1995/08/24 15:01:52  hollings
+# Revision 1.14  1995/09/20 01:32:01  tamches
+# Added tkTools.C; added /s/flex/lib (for -fl on instructional solaris machines)
+#
+# Revision 1.13  1995/08/24  15:01:52  hollings
 # AIX/SP-2 port (including option for split instruction/data heaps)
 # Tracing of rexec (correctly spawns a paradynd if needed)
 # Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -96,6 +99,7 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/UIthread/scrollbar.C \
 		../src/UIthread/whereAxisMisc.C \
 		../src/UIthread/whereAxisTcl.C \
+		../src/UIthread/tkTools.C \
 		../src/TCthread/TCmain.C \
 		../src/TCthread/tunableConst.C \
 		../src/met/metMain.C \
@@ -143,7 +147,7 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 
 
 IFLAGS       += -DPARADYN
-LIBDIR	     += -L/usr/psup/lib
+LIBDIR	     += -L/usr/psup/lib -L/s/flex/lib
 
 LIBS 	     += -lpdutil -lpdthread
 SYSLIBS	     += -ltk -ltcl -lX11 -lm -lfl
