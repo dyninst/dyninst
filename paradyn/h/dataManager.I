@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.6  1994/03/20 01:48:51  markc
+ * Revision 1.7  1994/03/31 01:37:21  markc
+ * added pause/continue Process.
+ *
+ * Revision 1.6  1994/03/20  01:48:51  markc
  * Added support for paradyn daemon name.  igen function to store name.
  *
  * Revision 1.5  1994/03/08  17:39:23  hollings
@@ -182,10 +185,27 @@ $remote dataManager {
     Boolean pauseApplication(applicationContext *app);
 
     //
+    //   Stop all processes associted with the application.
+    //	    app - an application context from createPerformanceConext.
+    //
+    // Pause a process in an application 
+    //      - Does this force buffered data to be delivered?
+    //	- Does a paused application respond to enable/disable commands?
+    //
+    Boolean pauseProcess(applicationContext *app, int pid);
+
+    //
+    //
     // Continue a paused application.
     //    app - an application context from createPerformanceConext.
     //
     Boolean continueApplication(applicationContext *app);
+
+    //
+    // Continue a paused process in an application.
+    //    app - an application context from createPerformanceConext.
+    //
+    Boolean continueProcess(applicationContext *app, int pid);
 
     //
     // Disconnect the tool from the process.

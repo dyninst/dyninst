@@ -39,15 +39,24 @@ $remote dynRPC {
     Boolean startProgram(int program);
 
     //
-    //   Stop all processes associted with the application.
+    //   Stop a process
     //
     Boolean pauseProgram(int program);
 
     //
-    // Continue a paused application.
+    //   Stop all processes associted with the application.
+    //
+    Boolean pauseApplication();
+
+    //
+    // Continue a paused process
     //
     void continueProgram(int program);
 
+    //
+    // Continue all of the processes
+    //
+    void continueApplication();
 
     //
     // Disconnect the tool from the process.
