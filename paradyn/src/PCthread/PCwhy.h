@@ -45,6 +45,9 @@
  * The hypothesis class and the why axis.
  * 
  * $Log: PCwhy.h,v $
+ * Revision 1.13  1996/12/08 17:36:23  karavan
+ * part 1 of 2 part commit to add new searching functionality
+ *
  * Revision 1.12  1996/08/16 21:03:49  tamches
  * updated copyright for release 1.1
  *
@@ -90,6 +93,8 @@
 typedef sampleValue (*thresholdFunction) (const char *tname, focus foo);
 typedef void (*explanationFunction)(searchHistoryNode*);
 typedef enum {gt, lt} compOperator;
+typedef enum {whereAndWhy, whyAndWhere, whyBeforeWhere, whereBeforeWhy, 
+		whyOnly, whereOnly} expandPolicy;
 class hypothesis;
 
 class hypothesis {
@@ -102,6 +107,7 @@ class hypothesis {
 	      const char *groupThresholdName,
 	      thresholdFunction getThreshold,
 	      compOperator compareOp,
+	      expandPolicy exPol,
 	      explanationFunction explanation, bool *success,
 	      vector<string*> *plums,
 	      vector<string*> *suppressions); 
@@ -111,6 +117,7 @@ class hypothesis {
   const char *getThresholdName () {return indivThresholdNm.string_of();}
   const char *getName() {return name.string_of();}
   PCmetric *getPcMet(bool altFlag);
+  expandPolicy getExpandPolicy() {return exType;}
   void addChild (hypothesis *child) {kids += child;}
   vector<hypothesis*> *expand();
   bool isVirtual() {return (pcMet == NULL);}
@@ -126,6 +133,7 @@ class hypothesis {
   string groupThresholdNm;
   thresholdFunction getThreshold;
   compOperator compOp;
+  expandPolicy exType;
   vector <hypothesis*> kids;
   vector<resourceHandle> pruneList;
   vector<resourceHandle> suppressList;
@@ -142,6 +150,7 @@ class whyAxis {
 		     const char *groupThresholdName,
 		     thresholdFunction getThreshold,
 		     compOperator compareOp,
+		     expandPolicy expandPol,
 		     explanationFunction explanation,
 		     vector<string*> *plumList,
 		     vector<string*> *suppressions); 

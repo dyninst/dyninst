@@ -45,6 +45,9 @@
  * The hypothesis class and the why axis.
  * 
  * $Log: PCwhy.C,v $
+ * Revision 1.18  1996/12/08 17:36:23  karavan
+ * part 1 of 2 part commit to add new searching functionality
+ *
  * Revision 1.17  1996/08/16 21:03:47  tamches
  * updated copyright for release 1.1
  *
@@ -105,13 +108,14 @@ hypothesis::hypothesis (const char *hypothesisName,
 			const char *groupThresholdName, 
 			thresholdFunction threshold,
 			compOperator compare,
+			expandPolicy exPol,
 			explanationFunction explanation, bool *success,
 			vector<string*> *plumList,
 			vector<string*> *suppressions) 
 :name(hypothesisName), explain(explanation), 
  indivThresholdNm(indivThresholdName), groupThresholdNm(groupThresholdName), 
  getThreshold(threshold),
- compOp(compare)
+ compOp(compare), exType(exPol)
 { 
   string mname = pcMetricName;
   string mname2 = pcMetric2Name;
@@ -156,7 +160,7 @@ hypothesis::hypothesis (const char *hypothesisName,
  pcMet ((PCmetric *)NULL), indivThresholdNm((const char *)NULL), 
  groupThresholdNm((const char *)NULL), 
  getThreshold((float (*)(const char *, unsigned int))NULL), 
- compOp(gt)
+ compOp(gt), exType (whereAndWhy)
 {
   *success = true;
 }
@@ -206,6 +210,7 @@ whyAxis::addHypothesis(const char *hypothesisName,
 		       const char *groupThresholdName,
 		       thresholdFunction getThreshold,
 		       compOperator compareOp,
+		       expandPolicy expandPol,
 		       explanationFunction explanation,
 		       vector<string*> *plumList,
 		       vector<string*> *suppressions)
@@ -222,8 +227,8 @@ whyAxis::addHypothesis(const char *hypothesisName,
   hypothesis *newhypo = 
     new hypothesis (hypothesisName, pcMetricName, pcMetric2Name, 
 		    indivThresholdName, groupThresholdName, 
-		    getThreshold, compareOp, explanation, &good, plumList,
-		    suppressions); 
+		    getThreshold, compareOp, expandPol, explanation, 
+		    &good, plumList, suppressions); 
   if (! (good))
     return false;
   mom->addChild (newhypo);

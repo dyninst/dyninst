@@ -45,6 +45,9 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.54  1996/12/08 17:36:21  karavan
+ * part 1 of 2 part commit to add new searching functionality
+ *
  * Revision 1.53  1996/08/16 21:03:44  tamches
  * updated copyright for release 1.1
  *
@@ -92,7 +95,7 @@ searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
 why(why), where(whereowhere), 
 persistent(persist), altMetricFlag(amFlag), 
 exp(NULL), active(false), truthValue(tunknown), 
-axis(axis), nodeID(newID), expanded(false),  
+axis(axis), nodeID(newID), exStat(expandedNone),  
 mamaGraph (mama), sname(shortName)
 {
   // full name of node (both why and where)
@@ -283,25 +286,15 @@ searchHistoryGraph::addActiveSearch ()
     PCsearch::addCurrentActiveExperiment();
 }
 
-void
-searchHistoryNode::expand ()
+bool
+searchHistoryNode::expandWhere()
 {
-  assert (children.size() == 0);
-#ifdef PCDEBUG
-  // debug print
-  if (performanceConsultant::printSearchChanges) {
-    cout << "EXPAND: why=" << why->getName() << endl
-      << "        foc=<" << dataMgr->getFocusNameFromHandle(where) 
-	<< ">" << endl
-	  << "       time=" << exp->getEndTime() << endl;
-  }
-#endif
-  expanded = true;
   searchHistoryNode *curr;
   bool newNodeFlag;
   bool altFlag;
-  
-  // first expand along where axis
+  bool expansionPossible = false;
+
+  // expand along where axis
   vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
   vector<resourceHandle> *currFocus;
   resourceHandle currHandle;
@@ -315,7 +308,9 @@ searchHistoryNode::expand ()
     if (!why->isPruned(currHandle)) {
       // prunes limit the resource trees along which we will expand this node
       kids = dataMgr->magnify(currHandle, where);
-      if (kids != NULL) {
+      if ( (kids != NULL) && (kids->size() > 1)) {
+	// note we don't bother refining if there's only a single child, 
+	// because the child would trivially test true.
 	for (unsigned j = 0; j < kids->size(); j++) {
 	  // eliminate all resources explicitly pruned for this hypothesis
 	  currFocus = dataMgr->getResourceHandles((*kids)[j].id);
@@ -327,6 +322,7 @@ searchHistoryNode::expand ()
 	    }
 	  }
 	  if (!suppressFound) {
+	    expansionPossible = true;
 	    curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
 				       refineWhereAxis,
 				       false,  
@@ -354,9 +350,20 @@ searchHistoryNode::expand ()
     }
   }
   delete parentFocus;
-  // second expand along why axis
+  return expansionPossible;
+}
+
+bool
+searchHistoryNode::expandWhy()
+{
+  searchHistoryNode *curr;
+  bool newNodeFlag;
+  bool expansionPossible = false;
+
+  // expand along why axis
   vector<hypothesis*> *hypokids = why->expand();
   if (hypokids != NULL) { 
+    expansionPossible = true;
     for (unsigned i = 0; i < hypokids->size(); i++) {
       curr = mamaGraph->addNode (this, (*hypokids)[i], where,
 				 refineWhyAxis, 
@@ -381,6 +388,50 @@ searchHistoryNode::expand ()
     }
     delete hypokids;
   }
+  return expansionPossible;
+}
+
+void
+searchHistoryNode::expand ()
+{
+  assert (children.size() == 0);
+  assert (exStat != expandedAll);
+
+#ifdef PCDEBUG
+  // debug print
+  if (performanceConsultant::printSearchChanges) {
+    cout << "EXPAND: why=" << why->getName() << endl
+      << "        foc=<" << dataMgr->getFocusNameFromHandle(where) 
+	<< ">" << endl
+	  << "       time=" << exp->getEndTime() << endl;
+  }
+#endif
+  exStat = expandedAll;
+  switch (getExpandPolicy()) {
+  case whyAndWhere:
+    expandWhy();
+    expandWhere();
+    break;
+  case whereAndWhy:
+    expandWhere();
+    expandWhy();
+    break;
+  case whyBeforeWhere:
+    if ( expandWhy() == false)
+      expandWhere();
+    break;
+  case whereBeforeWhy:
+    if (expandWhere() == false)
+      expandWhy();
+    break;
+  case whyOnly:
+    expandWhy();
+    break;
+  case whereOnly:
+    expandWhere();
+    break;
+  }  // end switch
+  
   mamaGraph->flushUIbuffer();
 }
 
@@ -500,7 +551,7 @@ searchHistoryNode::changeTruth (testResult newTruth)
       for (unsigned i = 0; i < parents.size(); i++) {
 	parents[i] -> percolateUp(ttrue);
       }
-      if (expanded) {
+      if (exStat != expandedNone) {
 	for (unsigned k = 0; k < children.size(); k++) {
 	  children[k]->percolateDown(ttrue);
 	}
@@ -533,7 +584,7 @@ searchHistoryNode::retest()
 void
 searchHistoryNode::retestAllChildren()
 {
-  if (expanded) {
+  if (exStat != expandedNone) {
     for (unsigned k = 0; k < children.size(); k++) {
       children[k]->retest();
     }

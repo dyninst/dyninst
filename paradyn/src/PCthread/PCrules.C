@@ -46,6 +46,9 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.41  1996/12/08 17:36:19  karavan
+ * part 1 of 2 part commit to add new searching functionality
+ *
  * Revision 1.40  1996/08/16 21:03:40  tamches
  * updated copyright for release 1.1
  *
@@ -265,6 +268,17 @@ void initPCmetrics()
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 #endif
+//****** testers ******
+  // metrics with single dm metric, with or without pause time
+  specs[0].mname = "active_processes";
+  specs[0].whichFocus = tlf;
+  specs[0].ft = averaging;
+  // 0 at end means without PauseTime 
+  // **this is just a test but should 
+  // be some way to catch these more generally
+  temp = new PCmetric( "PauseTime", specs, 1, NULL, NULL, 0);
+  cout << "PCmetric " << temp->getName() << " created." << endl;
+
 }
 
 sampleValue defaultGetThresholdFunc (const char *tname, focus)
@@ -273,6 +287,22 @@ sampleValue defaultGetThresholdFunc (const char *tname, focus)
   tunableFloatConstant threshtc = 
     tunableConstantRegistry::findFloatTunableConstant(tname);
   return threshtc.getValue();
+}
+
+sampleValue getOneThresholdFunc (const char *tname, focus)
+{
+  // get tunable constant value
+  tunableFloatConstant threshtc = 
+    tunableConstantRegistry::findFloatTunableConstant(tname);
+  return 0.5;
+}
+
+sampleValue getThreeThresholdFunc (const char *tname, focus)
+{
+  // get tunable constant value
+  tunableFloatConstant threshtc = 
+    tunableConstantRegistry::findFloatTunableConstant(tname);
+  return 3.0;
 }
 
 sampleValue SyncRegionGetThresholdFunc (const char *, focus)
@@ -301,7 +331,7 @@ void initPChypos()
 		   "highSyncThreshold", 
 		   "PC_SyncThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, &plumList, NULL);
+		   gt, whyOnly, (void *)NULL, &plumList, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveSyncWaitingTime" 
@@ -314,7 +344,7 @@ void initPChypos()
 		   "",
 		   "PC_SyncThreshold",
 		   SyncRegionGetThresholdFunc,
-		   lt, (void *)NULL, &plumList, NULL);
+		   lt, whyOnly, (void *)NULL, &plumList, NULL);
   if (!flag)
     cout << "hypothesis constructor failed for SyncRegionTooSmall" << endl;
 */
@@ -326,7 +356,7 @@ void initPChypos()
 		   "", "highIOthreshold", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, &plumList2, NULL);
+		   gt, whyOnly, (void *)NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveIOBlockingTime" << endl;
@@ -337,7 +367,7 @@ void initPChypos()
 		   "diskBlockSize", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, &plumList2, NULL);
+		   gt, whyOnly, (void *)NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for TooManySmallIOOps" << endl;
@@ -356,10 +386,49 @@ void initPChypos()
 		   "highCPUtoSyncRatioThreshold",
 		   "PC_CPUThreshold",
 		   defaultGetThresholdFunc,
-		   gt, (void *)NULL, &plumList3, NULL);
+		   gt, whyAndWhere, (void *)NULL, &plumList3, NULL);
 		   //gt, (void *)NULL, &plumList3, &suppress);
 
   if (!flag)
     cout << "hypothesis constructor failed for normCPUtimeTester" << endl;
+
+    //**** the test hypotheses  *****
+  flag = PCWhyAxis->
+    addHypothesis("tooMuchPauseTime", (const char *)NULL, 
+		  "PauseTime",
+		  "PauseTime",
+                  "highCPUtoSyncRatioThreshold",
+		  "PC_CPUThreshold",
+		  getOneThresholdFunc, 
+		  gt, whereOnly,  
+                  (void *)NULL, &plumList3, NULL);
+  //** how to handle this case?
+  if (!flag)
+    cout << "hypothesis constructor failed for PauseTime" << endl;
+
+  flag = PCWhyAxis->
+    addHypothesis("WAYtooMuchPauseTime", "tooMuchPauseTime", 
+		  "PauseTime",
+		  "PauseTime",
+                  "highCPUtoSyncRatioThreshold",
+		  "PC_CPUThreshold",
+		  getThreeThresholdFunc, 
+		  gt, whyOnly,  
+                  (void *)NULL, &plumList3, NULL);
+  //** how to handle this case?
+  if (!flag)
+    cout << "hypothesis constructor failed for PauseTime" << endl;
+  flag = PCWhyAxis->
+    addHypothesis("TeenytooMuchPauseTime", "tooMuchPauseTime", 
+		  "PauseTime",
+		  "PauseTime",
+                  "highCPUtoSyncRatioThreshold",
+		  "PC_CPUThreshold",
+		  getOneThresholdFunc, 
+		  gt, whyOnly,  
+                  (void *)NULL, &plumList3, NULL);
+  //** how to handle this case?
+  if (!flag)
+    cout << "hypothesis constructor failed for PauseTime" << endl;
 
 }

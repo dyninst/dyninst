@@ -45,6 +45,9 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.32  1996/12/08 17:36:22  karavan
+ * part 1 of 2 part commit to add new searching functionality
+ *
  * Revision 1.31  1996/08/16 21:03:46  tamches
  * updated copyright for release 1.1
  *
@@ -138,6 +141,8 @@ class PCsearch;
 class experiment;
 
 typedef enum {refineWhereAxis, refineWhyAxis} refineType;
+typedef enum {expandedNone, expandedWhy, expandedWhere, expandedAll} expandStatus;
+
 // forward declarations
 class searchHistoryNode;
 class searchHistoryGraph;
@@ -166,13 +171,15 @@ public:
   void changeDisplay ();
   void changeTruth (testResult newTruth);
   void expand();
-  bool alreadyExpanded() {return expanded;}
+  bool expandWhere();
+  bool expandWhy();
+  void setExpanded () {exStat = expandedAll;}
+  expandPolicy getExpandPolicy() {return why->getExpandPolicy();}
   bool setupExperiment();
   void startExperiment(); 
   void stopExperiment();
   unsigned getNodeId() {return nodeID;}
   void getInfo (shg_node_info *theInfo);
-  void setExpanded () {expanded = true;}
   unsigned getPhase();
   const char *getShortName() {return sname.string_of();}
   const char *getHypoName() {return why->getName();}
@@ -202,7 +209,8 @@ private:
   string name;
   refineType axis;
   unsigned nodeID; // used for display and for unique priority key
-  bool expanded;   // has this node ever been expanded in the past??
+  expandStatus exStat;   // has this node ever been expanded in the past??
+  expandPolicy exType;
   int numTrueParents;
   int numTrueChildren;
   bool virtualNode;
