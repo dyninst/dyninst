@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.82 1999/12/09 17:41:03 zandy Exp $
+// $Id: solaris.C,v 1.83 1999/12/15 18:55:59 zandy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1877,7 +1877,10 @@ bool process::executingSystemCall() {
 #endif
 
    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
-     if (theStatus.pr_syscall > 0) {
+     // PR_SYSEXIT is set when we have aborted a system call but not
+     // yet continued the process.  The process in that case is not
+     // executing a system call.  (pr_syscall is the aborted call.)
+     if (theStatus.pr_syscall > 0 && theStatus.pr_why != PR_SYSEXIT) {
        inferiorrpc_cerr << "pr_syscall=" << theStatus.pr_syscall << endl;
        return(true);
      }
