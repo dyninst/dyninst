@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.43 2004/08/16 04:34:24 rchen Exp $
+// $Id: sharedobject.h,v 1.44 2005/01/18 18:34:17 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -65,9 +65,13 @@ class shared_object : public codeRange {
 
 public:
     shared_object();
-    shared_object(pdstring &n, Address b, bool p,bool m, bool i, image *d);
-    shared_object(fileDescriptor *f, bool p, bool m, bool i, image *d);
-    ~shared_object(){ objs_image = 0;}
+    shared_object(pdstring &n, Address b, bool p,bool m, bool i, image *d, process *proc);
+    shared_object(fileDescriptor *f, bool p, bool m, bool i, image *d, process *proc);
+
+    // Copy constructor: for forks
+    shared_object(const shared_object &s, process *childproc);
+
+    ~shared_object();
 
     fileDescriptor *getFileDesc() { return desc; }
     const pdstring &getName(){ return name; }
@@ -79,8 +83,9 @@ public:
     unsigned get_size() const {
        return getImage()->get_size();
     }
+    // Used for codeRange ONLY! DON'T USE THIS! BAD USER!
     codeRange *copy() const {
-       return new shared_object(*this);
+      return new shared_object(*this);
     }
     bool  isProcessed() { return(processed); }
     bool  isMapped() { return(mapped); }
@@ -186,6 +191,7 @@ private:
   
     image  *objs_image; // pointer to image if processed is true 
     bool dlopenUsed; //mark this shared object as opened by dlopen
+    process *proc_; // Parent process
 
 };
 

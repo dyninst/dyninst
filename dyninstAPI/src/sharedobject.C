@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.24 2004/07/28 07:24:46 jaw Exp $
+// $Id: sharedobject.C,v 1.25 2005/01/18 18:34:16 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -53,37 +53,63 @@ shared_object::shared_object():
   processed(false),
   mapped(false),
   objs_image(0),
-  dlopenUsed(false)
+  dlopenUsed(false),
+  proc_(NULL)
 {
 }
-shared_object::shared_object(pdstring &n, Address b, bool p,bool m, bool i, image *d):
+shared_object::shared_object(pdstring &n, Address b, bool p,bool m, bool i, image *d, process *proc):
   name(n), 
   base_addr(b),
   processed(p),
   mapped(m),
   objs_image(d),
-  dlopenUsed(false) // ccw 8 mar 2004
-
+  dlopenUsed(false), // ccw 8 mar 2004
+  proc_(proc)
 { 
   desc = new fileDescriptor(n, b);
   set_short_name();
   dirty_=false; 
-	dirtyCalled_ = false;
+  dirtyCalled_ = false;
 }
 
 shared_object::shared_object(fileDescriptor *f,
-                             bool p, bool m, bool i, image *d):
+                             bool p, bool m, bool i, image *d, process *proc):
         desc(f),
         name(f->file()), 
         base_addr(f->addr()),
         processed(p),
         mapped(m),
         objs_image(d),
-        dlopenUsed(false)
+        dlopenUsed(false),
+	proc_(proc)
 { 
     set_short_name();
     dirty_=false;
 	dirtyCalled_ = false;
+}
+
+shared_object::shared_object(const shared_object &s, process *child) :
+  codeRange(),
+  desc(s.desc),
+  name(s.name),
+  short_name(s.short_name),
+  base_addr(s.base_addr),
+  processed(s.processed),
+  mapped(s.mapped),
+  dirty_(s.dirty_),
+  dirtyCalled_(s.dirtyCalled_),
+  dlopenUsed(s.dlopenUsed),
+  proc_(child)
+{
+  // Reference counting...
+  objs_image = s.objs_image->clone();
+}
+
+shared_object::~shared_object() {
+  if (objs_image) {
+    objs_image->cleanProcessSpecific(proc_);
+    image::removeImage(objs_image);
+  }
 }
 
 // TODO: this should probably not be a shared_object method, but since
