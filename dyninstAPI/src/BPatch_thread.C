@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.55 2002/05/14 20:20:50 chadd Exp $
+// $Id: BPatch_thread.C,v 1.56 2002/05/15 17:23:48 chadd Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1139,7 +1139,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
  *
  * libname	The name of the library to load.
  */
-bool BPatch_thread::loadLibrary(char *libname, bool reload = false)
+bool BPatch_thread::loadLibrary(char *libname, bool reload)
 {
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
