@@ -493,6 +493,10 @@ class process {
       waiting_for_resources = false;
   }
 
+  //  wasExeced: returns true is the process did an exec...this is set
+  //  in handleExec()
+  bool wasExeced(){ return execed_;}
+
   void handleExec();
   bool cleanUpInstrumentation(bool wasRunning);
   bool inExec;
@@ -620,6 +624,7 @@ private:
   unsigned lastObsCostLow; // in cycles
 
   int costAddr_; 
+  bool execed_;  // true if this process does an exec...set in handleExec
 
   // deal with system differences for ptrace
   bool writeDataSpace_(void *inTracedProcess, int amount, const void *inSelf);

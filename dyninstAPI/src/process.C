@@ -732,6 +732,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     some_functions = 0;
     waiting_for_resources = false;
     signal_handler = 0;
+    execed_ = false;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -894,6 +895,7 @@ process::process(const process &parentProc, int iPid
 
     waiting_for_resources = false;
     signal_handler = parentProc.signal_handler;
+    execed_ = false;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -2063,6 +2065,7 @@ void process::handleExec() {
     reachedFirstBreak = false;
     hasBootstrapped = false;
     status_ = stopped;
+    execed_ = true;
 }
 
 /* 

@@ -146,6 +146,7 @@ vector<shared_object *> *dynamic_linking::getSharedObjects(process *p) {
             }
 
 	    // get each link_map object
+	    bool first_time = true;
 	    Link_map *next_link_map = debug_elm.r_map;
 	    Address next_addr = (Address)next_link_map; 
 	    vector<shared_object*> *shared_objects = new vector<shared_object*>;
@@ -184,17 +185,25 @@ vector<shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     
 		string obj_name = string(f_name);
 		// create a shared_object and add it to the list
-		//
+		// kludge: ignore the entry if it has the same name as the
+		// executable file...this seems to be the first link-map entry
 		if((obj_name != p->getImage()->file()) && 
-		   (obj_name != p->getImage()->name())){
-		    //string blah = string("adding so: ");
-		    //blah += f_name;
-		    //blah += string("\n");
-		    //logLine(P_strdup(blah.string_of()));
-                    shared_object *newobj = new shared_object(obj_name,
+		   (obj_name != p->getImage()->name()) ){
+		   // kludge for when an exec occurs...the first element
+		   // in the link maps is the file name of the parent process
+		   // so in this case, we ignore the first entry
+		   if((!(p->wasExeced())) || (p->wasExeced() && !first_time)){ 
+		        //string blah = string("adding so: ");
+		        //blah += f_name;
+		        //blah += string("\n");
+		        //printf("%s",blah.string_of());
+		        //logLine(P_strdup(blah.string_of()));
+                        shared_object *newobj = new shared_object(obj_name,
 				link_elm.l_addr,false,true,true,0);
-		    *shared_objects += newobj;
+		        *shared_objects += newobj;
+		    }
 		}
+		first_time = false;
 		next_addr = (u_int)link_elm.l_next;
 	    }
 	    return shared_objects;
