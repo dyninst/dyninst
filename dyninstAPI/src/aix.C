@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.81 2001/08/20 19:59:04 bernat Exp $
+// $Id: aix.C,v 1.82 2001/08/20 22:23:46 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1819,47 +1819,59 @@ void process::initCpuTimeMgrPlt() {
  * variable
  */
 
-bool process::trapDueToDyninstLib()
-{
-  // Since this call requires a PTRACE, optimize it slightly
-  if (dyninstlib_brk_addr == 0x0) return false;
+/*
+ * return true if current PC is equal to the main_brk_addr
+ * variable
+ */
 
+bool checkAllThreadsForBreakpoint(int pid, Address break_addr)
+{
   // get the current PC. Ptrace call PTT_READ_SPRS, which requires a
   // kernel thread ID. Sheesh.
 
   // hey. Should we move the getPC part to somewhere else?
   
-  // get kernel thread
-  struct thrdsinfo thrd_buf[10]; // space for 10 threads, expecting 1
-  int num_thrds = getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
-			   0, // start at first thread 
-			   1); 
-  /*
-    For some reason, this _always_ returns -1, and then proceeds to 
-    work fine. WEIRD!
-    if (num_thrds == -1)
-    perror("Getting currently running thread information");
-  */
-  int kernel_thread = thrd_buf[0].ti_tid;
+  // Get the list of kernel threads
+  struct procsinfo pb;
+  int targpid = pid;
+
+  if ( getprocs (&pb, sizeof(struct procsinfo), 0, 0, &targpid, 1) != 1 )
+    perror("trapAtEntryPointOfMain: unable to get process info");
+
+  int num_thrds = pb.pi_thcount;
+
+  // Get kernel thread(s)
+
+  struct thrdsinfo thrd_buf[pb.pi_thcount];
+  getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
+	   0, // Start at first thread
+	   num_thrds);
 
   // Now that we have the correct thread ID, ptrace the sucker
   struct ptsprs spr_contents;
-  if (ptrace(PTT_READ_SPRS, kernel_thread, (int *)&spr_contents,
-	     0, 0)) {
-    perror("Getting PC");
-    return false;
-  }
-  Address prog_counter = (Address) spr_contents.pt_iar;
+  for ( int i; i < num_thrds; i++ )
+    {
+      int kernel_thread = thrd_buf[i].ti_tid;
+      
+      if (ptrace(PTT_READ_SPRS, kernel_thread, (int *)&spr_contents,
+		 0, 0) != -1) 
+	{
+	  Address prog_counter = (Address) spr_contents.pt_iar;
+	  
+	  if ((Address) prog_counter == (Address) break_addr)
+	    return true;
+	}
+    }
 
-  if ((Address) prog_counter == (Address) dyninstlib_brk_addr)
-    return true;
   return false;
 }
 
-/*
- * return true if current PC is equal to the main_brk_addr
- * variable
- */
+bool process::trapDueToDyninstLib()
+{
+  // Since this call requires a PTRACE, optimize it slightly
+  if (dyninstlib_brk_addr == 0x0) return false;
+  return checkAllThreadsForBreakpoint(pid, dyninstlib_brk_addr);
+}
 
 bool process::trapAtEntryPointOfMain()
 {
@@ -1867,33 +1879,7 @@ bool process::trapAtEntryPointOfMain()
   // This won't trigger (ever) if we are attaching, btw.
   if (main_brk_addr == 0x0) return false;
 
-  // get the current PC. Ptrace call PTT_READ_SPRS, which requires a
-  // kernel thread ID. Sheesh.
-
-  // hey. Should we move the getPC part to somewhere else?
-  
-  // get kernel thread
-  struct thrdsinfo thrd_buf[10]; // space for 10 threads, expecting 1
-  int num_thrds = getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
-			   0, // start at first thread 
-			   1); 
-  /*
-    This call always returns -1. STRANGE.
-  if (num_thrds == -1)
-    perror("Getting currently running thread information");
-  */
-  int kernel_thread = thrd_buf[0].ti_tid;
-
-  // Now that we have the correct thread ID, ptrace the sucker
-  struct ptsprs spr_contents;
-  if (ptrace(PTT_READ_SPRS, kernel_thread, (int *)&spr_contents,
-	     0, 0)) 
-    return false;
-  Address prog_counter = (Address) spr_contents.pt_iar;
-
-  if (prog_counter == main_brk_addr)
-    return true;
-  return false;
+  return checkAllThreadsForBreakpoint(pid, main_brk_addr);
 }
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.21 2001/08/20 19:59:12 bernat Exp $
+// $Id: sharedobject.h,v 1.22 2001/08/20 22:23:47 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -69,11 +69,11 @@ public:
       base_addr(0),
       processed(false),
       mapped(false),include_funcs(true), 
-      objs_image(0),some_funcs(0){}
+      objs_image(0),included_funcs(0){}
     shared_object(string &n, Address b, bool p,bool m, bool i, image *d):
       name(n), base_addr(b),
       processed(p),mapped(m),
-      include_funcs(i), objs_image(d),some_funcs(0){ 
+      include_funcs(i), objs_image(d),included_funcs(0){ 
       desc = new fileDescriptor(n, b);
       set_short_name();
     }
@@ -82,7 +82,7 @@ public:
       desc(f),
       name(f->file()), base_addr(0),
       processed(p),mapped(m),
-      include_funcs(i), objs_image(d),some_funcs(0){ 
+      include_funcs(i), objs_image(d),included_funcs(0){ 
       set_short_name();
     }
 
@@ -95,7 +95,7 @@ public:
       mapped = s_obj.mapped;
       include_funcs = s_obj.include_funcs;
       objs_image = s_obj.objs_image;
-      some_funcs = s_obj.some_funcs;
+      included_funcs = s_obj.included_funcs;
     }
     ~shared_object(){ objs_image = 0;}
 
@@ -221,7 +221,7 @@ private:
 			// - Conceptually assumes that shared object has 1
 			// and only 1 module.
     image  *objs_image; // pointer to image if processed is true 
-    vector<pd_Function *> *some_funcs; // all functions not excluded by 
+    vector<pd_Function *> *included_funcs; // all functions not excluded by 
 				       // exclude_func option
 
     void set_short_name();
