@@ -108,6 +108,7 @@ class resource {
     static const char *getFullName(resourceHandle);
     const vector<string>& getParts() const {return fullName;}
     static bool get_lib_constraints(vector<string>&);
+    static bool get_func_constraints(vector< vector<string> >&);
     static void saveHierarchiesToFile (ofstream& foo);
     void saveHierarchyToFile (ofstream& foo);
 
@@ -139,6 +140,8 @@ class resource {
     static dictionary_hash<unsigned, resource*> resources;  // indexed by resourceHandle
     static resource *rootResource;
     static vector<string> lib_constraints;
+    // each element is a module string and a function string
+    static vector< vector<string> > func_constraints;
 
     static resource *handle_to_resource(resourceHandle);
     static resource *string_to_resource(const string &);

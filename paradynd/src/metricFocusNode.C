@@ -1605,7 +1605,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
       // only use delta from last sample.
       if (value < cumulativeValue) {
         if ((value/cumulativeValue) < 0.99999) {
-          assert((value + 0.0001)  >= cumulativeValue);
+            assert((value + 0.0001)  >= cumulativeValue);
         } else {
           // floating point rounding error ignore
           cumulativeValue = value;

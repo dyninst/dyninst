@@ -41,6 +41,10 @@
 
 /*
  * $Log: mdld.h,v $
+ * Revision 1.9  1997/06/05 04:27:07  newhall
+ * changed exclude_lib to mean shared object is not instrumentable
+ * added exclude_func mdl option to exclude shared object functions
+ *
  * Revision 1.8  1997/02/21 20:15:54  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -108,5 +112,6 @@ extern bool mdl_can_do(string& metric_name);
 extern bool mdl_get_initial(string flavor, pdRPC*);
 
 extern bool mdl_get_lib_constraints(vector<string> &);
+extern bool mdl_get_func_constraints(vector<string> &);
 
 #endif

@@ -485,6 +485,11 @@ class process {
   // shared object images for this function
   function_base *findOneFunction(resource *func,resource *mod);
 
+  // returns all the functions in the module "mod" that are not excluded by
+  // exclude_lib or exclude_func
+  // return 0 on error.
+  vector<function_base *> *getIncludedFunctions(module *mod); 
+
   // findOneFunction: returns the function associated with function "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
@@ -503,7 +508,9 @@ class process {
   // findModule: returns the module associated with "mod_name" 
   // this routine checks both the a.out image and any shared object 
   // images for this module
-  module *findModule(const string &mod_name);
+  // if check_excluded is true it checks to see if the module is excluded
+  // and if it is it returns 0.  If check_excluded is false it doesn't check
+  module *findModule(const string &mod_name,bool check_excluded);
 
   // getSymbolInfo:  get symbol info of symbol associated with name n
   // this routine starts looking a.out for symbol and then in shared objects
@@ -747,13 +754,19 @@ private:
   bool dynamiclinking;   // if true this a.out has a .dynamic section
   vector<shared_object *> *shared_objects;  // list of dynamically linked libs
 
-  // The set of all functions and modules in the a.out and in the shared objects
+  // The set of all functions and modules from the shared objects that show
+  // up on the Where axis (both  instrumentable and uninstrumentable due to 
+  // exclude_lib or exclude_func),  and all the functions from the a.out that
+  // are between DYNINSTStart and DYNINSTend
+  // TODO: these lists for a.out functions and modules should be handled the 
+  // same way as for shared object functions and modules
   vector<function_base *> *all_functions;
   vector<module *> *all_modules;
+
   // these are a restricted set of functions and modules which are those  
-  // from shared objects that are not excluded through an mdl "exclude_library"
-  // option: these are used to satisfy foci that are not refined on the
-  // Code heirarchy
+  // from the a.out and shared objects that are instrumentable (not excluded 
+  // through the mdl "exclude_lib" or "exclude_func" option) 
+  // "excluded" now means never able to instrument
   vector<module *> *some_modules;  
   vector<function_base *> *some_functions; 
   bool waiting_for_resources;  // true if waiting for resourceInfoResponse

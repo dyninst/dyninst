@@ -3,6 +3,8 @@
 
 #include "util/h/String.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/symtab.h"
+#include "paradynd/src/mdld.h"
 
 /*
  * A class for link map information about a shared object that is mmapped 
@@ -16,10 +18,10 @@ class shared_object {
 
 public:
     shared_object():name(0),base_addr(0),processed(false),
-		 mapped(false),include_funcs(true), objs_image(0){}
+	 mapped(false),include_funcs(true), objs_image(0),some_funcs(0){}
     shared_object(string &n,u_int b, bool p,bool m, bool i, image *d):
-		name(n), base_addr(b),processed(p),mapped(m),
-		include_funcs(i), objs_image(d){ }
+	name(n), base_addr(b),processed(p),mapped(m),
+	include_funcs(i), objs_image(d),some_funcs(0){ }
     shared_object(const shared_object &s_obj){
 	name = s_obj.name;
 	base_addr = s_obj.base_addr;
@@ -27,6 +29,7 @@ public:
 	mapped = s_obj.mapped;
 	include_funcs = s_obj.include_funcs;
 	objs_image = s_obj.objs_image;
+	some_funcs = s_obj.some_funcs;
     }
     ~shared_object(){ objs_image = 0;}
 
@@ -56,6 +59,15 @@ public:
 	return 0;
     }
 
+    // from a string that is a complete path name to a function in a module
+    // (ie. "/usr/lib/libc.so.1/write") return a string with the function
+    // part removed.  return 0 on error
+    string *getModulePart(string &full_path_name) ;
+
+    // get only the functions not excluded by the mdl options exclude_lib
+    // or exclude_funcs
+    vector<pd_Function *> *getSomeFunctions();
+
     vector<pdmodule *> *getModules() {
         if(objs_image) {
 	    return (&(objs_image->mods));
@@ -75,15 +87,30 @@ public:
     }
     bool removeImage(){ return true;}
 
-    pd_Function *findOneFunction(string f_name){
+    pd_Function *findOneFunction(string f_name,bool check_excluded){
 	if (f_name.string_of() == 0) return 0;
         if(objs_image) {
+	    if(check_excluded){
+		// only search the some_funcs list
+		if(!some_funcs) getSomeFunctions();
+		if(some_funcs) {
+		    for(u_int i=0; i < some_funcs->size(); i++){
+			if(((*some_funcs)[i])->prettyName() == f_name){
+			    return (*some_funcs)[i];
+			}
+		    }
+		    return 0;
+		}
+	    }
             return (objs_image->findOneFunction(f_name));
 	}
 	return 0;
     }
-    pdmodule *findModule(string m_name){
+    pdmodule *findModule(string m_name,bool check_excluded){
         if(objs_image) {
+	    if(check_excluded && !include_funcs){
+		return 0;
+	    }
             return (objs_image->findModule(m_name));
 	}
 	return 0;
@@ -107,6 +134,8 @@ private:
 			// object in the set of all instrumentable functions
 			// (this is for foci not refined on the Code heirarchy)
     image  *objs_image; // pointer to image if processed is true 
+    vector<pd_Function *> *some_funcs; // all functions not excluded by 
+				       // exclude_func option
 };
 
 #endif

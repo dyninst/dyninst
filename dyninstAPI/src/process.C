@@ -2037,12 +2037,12 @@ bool process::addASharedObject(shared_object &new_obj){
 #endif
 
     if(new_obj.includeFunctions()){
-        if(some_modules){
+        if(some_modules) {
             *some_modules += *((vector<module *> *)(new_obj.getModules())); 
         }
-        if(some_functions){
+        if(some_functions) {
 	    *some_functions += 
-		*((vector<function_base *> *)(new_obj.getAllFunctions()));
+		*((vector<function_base *> *)(new_obj.getSomeFunctions()));
         }
     }
     return true;
@@ -2108,9 +2108,13 @@ function_base *process::findOneFunction(resource *func,resource *mod){
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
             module *next = 0;
-	    next = ((*shared_objects)[j])->findModule(mod_name);
+	    next = ((*shared_objects)[j])->findModule(mod_name,true);
 	    if(next){
-	        return(((*shared_objects)[j])->findOneFunction(func_name));
+	        if(((*shared_objects)[j])->includeFunctions()){	
+	            return(((*shared_objects)[j])->findOneFunction(func_name,
+								   true));
+		} 
+		else { return 0;} 
 	    }
         }
     }
@@ -2119,6 +2123,36 @@ function_base *process::findOneFunction(resource *func,resource *mod){
     return(symbols->findOneFunction(func_name));
 }
 #endif
+
+// returns all the functions in the module "mod" that are not excluded by
+// exclude_lib or exclude_func
+// return 0 on error.
+vector<function_base *> *process::getIncludedFunctions(module *mod) {
+
+    if((!mod)) { return 0; }
+
+    // KLUDGE: first search any shared libraries for the module name 
+    //  (there is only one module in each shared library, and that 
+    //  is the library name)
+    if(dynamiclinking && shared_objects){
+        for(u_int j=0; j < shared_objects->size(); j++){
+            module *next = 0;
+	    next = ((*shared_objects)[j])->findModule(mod->fileName(), true);
+	    if(next){
+	        if(((*shared_objects)[j])->includeFunctions()){	
+	            return((vector<function_base *> *)
+			   ((*shared_objects)[j])->getSomeFunctions());
+		} 
+		else { return 0;} 
+	    }
+        }
+    }
+
+    // this must be an a.out module so just return the list associated
+    // with the module
+    return(mod->getFunctions());
+}
+
 
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
@@ -2132,7 +2166,7 @@ function_base *process::findOneFunction(const string &func_name){
     // search any shared libraries for the file name 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	    pdf = ((*shared_objects)[j])->findOneFunction(func_name);
+	    pdf = ((*shared_objects)[j])->findOneFunction(func_name,false);
 	    if(pdf){
 	        return(pdf);
 	    }
@@ -2190,16 +2224,20 @@ function_base *process::findFunctionIn(Address adr){
 // findModule: returns the module associated with mod_name 
 // this routine checks both the a.out image and any shared object
 // images for this resource
-module *process::findModule(const string &mod_name){
+// if check_excluded is true it checks to see if the module is excluded
+// and if it is it returns 0.  If check_excluded is false it doesn't check
+module *process::findModule(const string &mod_name,bool check_excluded){
 
     // KLUDGE: first search any shared libraries for the module name 
     //  (there is only one module in each shared library, and that 
     //  is the library name)
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-            module *next = ((*shared_objects)[j])->findModule(mod_name);
-	    if(next)
+            module *next = ((*shared_objects)[j])->findModule(mod_name,
+			      check_excluded);
+	    if(next) {
 	        return(next);
+            }
 	}
     }
 
@@ -2296,7 +2334,7 @@ vector<function_base *> *process::getIncludedFunctions(){
 		// kludge: can't assign a vector<derived_class *> to 
 		// a vector<base_class *> so recast
 	        vector<function_base *> *funcs = (vector<function_base *> *)
-			(((*shared_objects)[j])->getAllFunctions());
+			(((*shared_objects)[j])->getSomeFunctions());
 	        if(funcs) { 
 	            *some_functions += (*funcs); 
 		} 
@@ -2366,7 +2404,7 @@ void process::findSignalHandler(){
         if(!signal_handler && dynamiclinking && shared_objects) { 
 	    for(u_int j=0;(j < shared_objects->size()) && !signal_handler; j++){
 	        signal_handler = 
-		      ((*shared_objects)[j])->findOneFunction(SIGNAL_HANDLER);
+		      ((*shared_objects)[j])->findOneFunction(SIGNAL_HANDLER,false);
 	} }
     }
 }

@@ -88,6 +88,7 @@ dictionary_hash<string,resourceList *> resourceList::allFoci(string::hash);
 
 dictionary_hash<unsigned, resource*>resource::resources(uiHash);
 vector<string> resource::lib_constraints;
+vector< vector<string> > resource::func_constraints;
 vector<metric*> metric::metrics;
 vector<paradynDaemon*> paradynDaemon::allDaemons;
 vector<daemonEntry*> paradynDaemon::allEntries;
@@ -949,12 +950,35 @@ resourceHandle createResource(unsigned res_id, vector<string>& resource_name, st
     // this resource is specifed in the mdl exclude_lib option
     vector<string> shared_lib_constraints;
     if(resource::get_lib_constraints(shared_lib_constraints) &&
-       (string(parent->getFullName()) == "/Code")){
+       (string(parent->getFullName()) == "/Code")) {
 	    for(u_int i=0; i < shared_lib_constraints.size(); i++){
                 if(shared_lib_constraints[i] == ret->getName()){
 		    ret->setSuppressMagnify();
 		}
 	    }
+    }
+
+    // check to see if the suppressMagnify option should be set if
+    // the resource is a function that is specified in the mdl exclude_func
+    // options
+    if(!ret->isMagnifySuppressed()){
+      if(parent != resource::rootResource) {
+	  // get parent of parent, if it is "/Code" then check the 
+	  // list of exculded_funcs
+	  resourceHandle pph = parent->getParent();
+	  resource *ppr = resource::handle_to_resource(pph);
+	  if( ppr && (string(ppr->getFullName()) == "/Code")) {
+	      vector< vector<string> > libs;
+	      if(resource::get_func_constraints(libs)) {
+	        for(u_int i=0; i < libs.size(); i++){
+		    if(((libs[i])[0] == parent->getName()) && 
+		       ((libs[i])[1] == ret->getName())) { 
+		       ret->setSuppressMagnify(); 
+		    }
+		} 
+	      } 
+	  }
+      }
     }
 
     /* inform others about it if they need to know */

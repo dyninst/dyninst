@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (c) 1996 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
@@ -70,7 +70,7 @@ string currentFocus;   // the focus
 
 static string daemon_flavor;
 static process *global_proc = NULL;
-static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
+static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false,mdl_funcs=false;
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
@@ -83,6 +83,7 @@ dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
 vector<mdl_focus_element> mdl_data::foci;
 vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 vector<string> mdl_data::lib_constraints;
+vector<string> mdl_data::func_constraints;
 
 static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name);
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
@@ -376,13 +377,7 @@ static bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 
 // update the interpreter environment for this processor
 // Variable updated: $procedures, $modules, $exit, $start
-// If the "get_all" flag is set, then  this routine includes procedures and
-// modlues from all shared objects as well as from the a.out.  If it is not
-// set, then this routine includes procedures and modlues from the a.out and 
-// from any shared libraries that are included in foci that are not refined
-// on the Code heirarcy (ex. WholeProgram). 
-
-static bool update_environment(process *proc, bool get_all) {
+static bool update_environment(process *proc) {
 
   // for cases when libc is dynamically linked, the exit symbol is not
   // correct
@@ -403,25 +398,14 @@ static bool update_environment(process *proc, bool get_all) {
 
   vname = "$procedures";
   mdl_env::add(vname, false, MDL_T_LIST_PROCEDURE);
-  // if get_all is set, get all the functions in the executable
-  // otherwise, only get those that are not excluded by the mdl option
-  if(get_all) {
-      mdl_env::set(proc->getAllFunctions(), vname);
-  }
-  else {
-      mdl_env::set(proc->getIncludedFunctions(), vname);
-  }
+  // only get the functions that are not excluded by exclude_lib or 
+  // exclude_func
+  mdl_env::set(proc->getIncludedFunctions(), vname);
 
   vname = "$modules";
   mdl_env::add(vname, false, MDL_T_LIST_MODULE);
-  // if get_all is set, get all the modules in the executable
-  // otherwise, only get those that are not excluded by the mdl option
-  if(get_all){
-      mdl_env::set(proc->getAllModules(), vname);
-  }
-  else {
-      mdl_env::set(proc->getIncludedModules(), vname);
-  }
+  // only get functions that are not excluded by exclude_lib or exclude_func
+  mdl_env::set(proc->getIncludedModules(), vname);
 
   //Blizzard
 
@@ -491,19 +475,8 @@ apply_to_process(process *proc,
 		 vector<string> *temp_ctr,
 		 bool replace_component,
 		 bool computingCost) {
-    // TODO: if this is a dynamic executable check the focus...
-    // if it is not refined on the /Code heirarchy then only get 
-    // functions and modules from shared libraries that are
-    // to be included in this focus, otherwise, get functions and
-    // modules from the a.out and from all shared libraries
-    bool get_all = false;
-    for(u_int i=0; i < focus.size(); i++){
-	if((focus[i][0] == "Code") && (focus[i].size() > 1)){
-	    get_all = true;
-	}
-    }
 
-    if (!update_environment(proc, get_all)) return NULL;
+    if (!update_environment(proc)) return NULL;
 
     // compute the flat_name for this component: the machine and process
     // are always defined for the component, even if they are not defined
@@ -858,7 +831,7 @@ static bool do_trailing_resources(vector<string>& resource_,
       break;
     }
     case MDL_T_MODULE: {
-      module *mod = proc->findModule(trailingRes);
+      module *mod = proc->findModule(trailingRes,true);
       if (!mod) return(false);
       mdl_env::add(caStr, false, MDL_T_MODULE);
       mdl_env::set(mod, caStr);
@@ -1507,7 +1480,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
 	if (!arg0.get(mod_name)) return false;
 	if (global_proc) {
 	  // TODO -- what if the function is not found ?
-	  module *mod = global_proc->findModule(mod_name);
+	  module *mod = global_proc->findModule(mod_name,false);
 	  if (!mod) { assert(0); return false; }
 	  return (ret.set(mod));
 	} else {
@@ -2003,8 +1976,7 @@ void dynRPC::send_stmts(vector<T_dyninstRPC::mdl_stmt*> *vs) {
   }
 }
 
-// recieves the list of shared libraries to exclude from 
-// foci that are not refined on the Code heirarchy
+// recieves the list of shared libraries to exclude 
 void dynRPC::send_libs(vector<string> *libs) {
 
     mdl_libs = true;
@@ -2014,11 +1986,26 @@ void dynRPC::send_libs(vector<string> *libs) {
 
 }
 
+// recieves the list of functions from  shared libraries to exclude 
+void dynRPC::send_funcs(vector<string> *funcs) {
+
+    mdl_funcs = true;
+    for(u_int i=0; i < funcs->size(); i++){
+	mdl_data::func_constraints += (*funcs)[i]; 
+    }
+}
+
 // recieves notification that there are no excluded libraries 
 void dynRPC::send_no_libs() {
 
     mdl_libs = true;
 
+}
+
+// recieves notification that there are no excluded functions 
+void dynRPC::send_no_funcs() {
+
+    mdl_funcs = true;
 }
 
 static bool do_operation(mdl_var& ret, mdl_var& left_val,
@@ -2184,7 +2171,15 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
       case 0: { string fileName = mod->fileName();
 		if (!ret.set(fileName)) return false; 
 	      } break;
-      case 1: if (!ret.set(mod->getFunctions())) return false; break;
+      case 1: {
+	if (global_proc) {
+	    if (!ret.set(global_proc->getIncludedFunctions(mod))) return false; 
+        }
+	else {
+	    if (!ret.set(mod->getFunctions())) return false; 
+	}
+	break;
+      }
       default: assert(0); break;	       
       }
       break;
@@ -2198,7 +2193,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 
 bool mdl_get_initial(string flavor, pdRPC *connection) {
   mdl_init(flavor);
-  while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs)) {
+  while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs && mdl_funcs)) {
     switch (connection->waitLoop()) {
     case T_dyninstRPC::error:
       return false;
@@ -2220,6 +2215,13 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
 bool mdl_get_lib_constraints(vector<string> &lc){
     for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
 	lc += mdl_data::lib_constraints[i];
+    }
+    return (lc.size()>0);
+}
+
+bool mdl_get_func_constraints(vector<string> &lc){
+    for(u_int i=0; i < mdl_data::func_constraints.size(); i++){
+        lc += mdl_data::func_constraints[i];
     }
     return (lc.size()>0);
 }

@@ -343,6 +343,52 @@ bool resource::get_lib_constraints(vector<string> &list){
     return lib_constraints.size();
 }
 
+
+// get_func_constraints: returns true if there is a list of func constraints
+// specified by the mdl exclude_func option.  If the list has not yet been 
+// created, this routine creates the list from the mdl_data list
+bool resource::get_func_constraints(vector< vector<string> > &list){
+ 
+    if(!(func_constraints.size())){
+        vector< string > temp;
+	// create list
+        if(mdl_get_func_constraints(temp)){
+	    for(u_int i=0; i < temp.size(); i++){
+		char *next = (char *)(temp[i].string_of());
+		u_int where = 0;
+		u_int prev_where = where;
+		for(u_int j=0; j< temp[i].length();j++){
+                    if(next[j] == '/'){
+		       prev_where = where;
+		       where = j+1; 
+		    }
+		}
+		assert(where < temp[i].length());
+		assert(where > prev_where);
+		vector<string> func_consts;
+		// module name
+		u_int size = where-prev_where;
+		char *temp_str = new char[size]; 
+	        if(P_strncpy(temp_str,&(next[prev_where]),size-1)){
+		  temp_str[size-1] = '\0';
+		  string blah(temp_str);
+		  func_consts += blah; 
+
+		  // function name
+		  func_consts += string(&(next[where])); 
+		  assert(func_consts.size() == 2);
+		  func_constraints += func_consts; 
+		}
+	        delete [] temp_str;	
+	    }
+        }
+    }
+    for(u_int i=0; i < func_constraints.size(); i++){
+            list += func_constraints[i];
+    }
+    return func_constraints.size();
+}
+
 int DMresourceListNameCompare(const void *n1, const void *n2){
     
     const string *s1 = (const string*)n1, *s2 = (const string*)n2;
