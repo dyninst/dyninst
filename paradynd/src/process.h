@@ -10,6 +10,9 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.38  1996/07/09 04:10:32  lzheng
+ * add variable freeNotOK for the stack walking on hpux
+ *
  * Revision 1.37  1996/05/31 23:59:22  tamches
  * inferiorHeap now uses addrHash16 instead of addrHash
  *
@@ -383,6 +386,10 @@ friend class ptraceKludge;
   string execFilePath;
 
   static int waitProcs(int *status);
+
+#if defined(hppa1_1_hp_hpux)
+  bool freeNotOK;
+#endif
 
 private:
 
