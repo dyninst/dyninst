@@ -73,7 +73,7 @@ inst-sunos.obj: ../../dyninstAPI/src/inst-sunos.C \
  ../../dyninstAPI/src/ptrace_emul.h ../../dyninstAPI/src/stats.h \
  ../../paradynd/src/main.h ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Queue.h ../../util/h/Stack.h \
+ ../../paradyn/src/met/mdl.h \
  ../../paradynd/src/pvm_support.h ../../paradynd/src/perfStream.h \
  ../../paradynd/src/context.h
 inst-x86.obj: ../../dyninstAPI/src/inst-x86.C ../../util/h/headers.h \
@@ -126,7 +126,6 @@ unix.obj: ../../dyninstAPI/src/unix.C ../../util/h/headers.h \
  ../../dyninstAPI/src/ntDL.h ../../paradynd/src/main.h \
  ../../paradynd/src/comm.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../util/h/rpcUtil.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Queue.h ../../util/h/Stack.h \
  ../../paradynd/src/pvm_support.h ../../dyninstAPI/src/instP.h \
  ../../dyninstAPI/src/stats.h
 association.obj: ../src/association.C ../../util/h/headers.h \
@@ -151,7 +150,7 @@ association.obj: ../src/association.C ../../util/h/headers.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/dyninstP.h \
  ../../paradynd/src/main.h ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Queue.h ../../util/h/Stack.h \
+ ../../paradyn/src/met/mdl.h \
  ../../paradynd/src/pvm_support.h
 ast.obj: ../../dyninstAPI/src/ast.C ../../dyninstAPI/src/symtab.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
@@ -178,7 +177,7 @@ comm.obj: ../src/comm.C ../../paradynd/src/comm.h dyninstRPC.xdr.SRVR.h \
  ../../util/h/debugOstream.h ../../util/h/refCounter.h \
  ../../util/h/Vector.h ../../util/h/Types.h ../../util/h/aggregation.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../util/h/Pair.h ../../util/h/Queue.h ../../util/h/Stack.h \
+ ../../util/h/Pair.h \
  ../../dyninstAPI/src/util.h ../../rtinst/h/rtinst.h \
  ../../paradynd/src/showerror.h ../../paradynd/src/main.h \
  ../../dyninstAPI/src/process.h ../../util/h/vectorSet.h \
@@ -262,7 +261,6 @@ dynrpc.obj: ../src/dynrpc.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/dyninstP.h ../../paradynd/src/internalMetrics.h \
  ../../paradynd/src/im_preds.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
  ../../paradyn/src/met/mdl.h dyninstRPC.xdr.SRVR.h \
- ../../util/h/Queue.h ../../util/h/Stack.h \
  ../../dyninstAPI/src/stats.h ../../paradynd/src/mdld.h \
  ../../paradynd/src/comm.h ../../paradynd/src/init.h \
  ../../paradynd/src/costmetrics.h
@@ -293,8 +291,7 @@ init.obj: ../src/init.C ../../dyninstAPI/src/dyninstP.h \
  ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../../paradynd/src/init.h \
- ../../paradynd/src/comm.h dyninstRPC.xdr.SRVR.h ../../util/h/Queue.h \
- ../../util/h/Stack.h
+ ../../paradynd/src/comm.h dyninstRPC.xdr.SRVR.h
 inst.obj: ../../dyninstAPI/src/inst.C ../../dyninstAPI/src/symtab.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
@@ -337,7 +334,7 @@ main.obj: ../src/main.C ../../util/h/headers.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
  ../../dyninstAPI/src/dyninstP.h ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Queue.h ../../util/h/Stack.h \
+ ../../paradyn/src/met/mdl.h \
  ../../paradynd/src/internalMetrics.h ../../paradynd/src/im_preds.h \
  ../../util/h/machineType.h ../../paradynd/src/init.h \
  ../../paradynd/src/costmetrics.h ../../paradynd/src/perfStream.h \
@@ -366,7 +363,7 @@ metric.obj: ../src/metric.C ../../util/h/headers.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
  ../../dyninstAPI/src/dyninstP.h ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Queue.h ../../util/h/Stack.h \
+ ../../paradyn/src/met/mdl.h \
  ../../paradynd/src/internalMetrics.h ../../paradynd/src/im_preds.h \
  ../../paradynd/src/init.h ../../paradynd/src/costmetrics.h \
  ../../paradynd/src/perfStream.h ../../paradynd/src/main.h \
@@ -446,7 +443,7 @@ metricDefs-critPath.obj: ../src/metricDefs-critPath.C \
  ../../dyninstAPI/src/dyninstP.h ../../paradynd/src/metricDef.h \
  ../../paradynd/src/main.h ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Queue.h ../../util/h/Stack.h \
+ ../../paradyn/src/met/mdl.h \
  ../../paradynd/src/pvm_support.h
 perfStream-def.obj: ../src/perfStream-def.C
 perfStream.obj: ../src/perfStream.C ../src/pvm_support.h \
@@ -474,7 +471,7 @@ perfStream.obj: ../src/perfStream.C ../src/pvm_support.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
  ../../dyninstAPI/src/dyninstP.h ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Queue.h ../../util/h/Stack.h \
+ ../../paradyn/src/met/mdl.h \
  ../../dyninstAPI/src/stats.h ../../paradynd/src/debugger.h \
  ../../paradynd/src/main.h ../../paradynd/src/pvm_support.h \
  ../../paradynd/src/association.h ../../paradynd/src/init.h \
@@ -506,7 +503,7 @@ process.obj: ../../dyninstAPI/src/process.C ../../util/h/headers.h \
  ../../paradynd/src/internalMetrics.h dyninstRPC.xdr.h \
  ../../util/h/rpcUtil.h ../../paradyn/src/met/mdl.h \
  ../../paradynd/src/mdld.h ../../paradynd/src/comm.h \
- dyninstRPC.xdr.SRVR.h ../../util/h/Queue.h ../../util/h/Stack.h \
+ dyninstRPC.xdr.SRVR.h \
  ../../paradynd/src/main.h ../../paradynd/src/pvm_support.h
 resource.obj: ../src/resource.C ../../dyninstAPI/src/symtab.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
@@ -529,7 +526,7 @@ resource.obj: ../src/resource.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/dyninstP.h \
  ../../paradynd/src/comm.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../util/h/rpcUtil.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Queue.h ../../util/h/Stack.h ../../paradynd/src/main.h \
+ ../../paradynd/src/main.h \
  ../../paradynd/src/pvm_support.h
 stats.obj: ../../dyninstAPI/src/stats.C ../../dyninstAPI/src/symtab.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
@@ -566,7 +563,6 @@ symtab.obj: ../../dyninstAPI/src/symtab.C ../../dyninstAPI/src/symtab.h \
  ../../paradynd/src/main.h ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
  ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Queue.h ../../util/h/Stack.h \
  ../../dyninstAPI/src/process.h ../../util/h/vectorSet.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
  ../../dyninstAPI/src/pdwinnt.h \
@@ -589,7 +585,7 @@ mdl.obj: ../src/mdl.C dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../util/h/debugOstream.h ../../util/h/refCounter.h \
  ../../util/h/Vector.h ../../util/h/Types.h ../../util/h/aggregation.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../util/h/Pair.h ../../util/h/Queue.h ../../util/h/Stack.h \
+ ../../util/h/Pair.h \
  ../../paradyn/src/met/globals.h ../../paradynd/src/metric.h \
  ../../util/h/aggregateSample.h ../../util/h/list.h \
  ../../util/h/hist.h ../../util/h/sys.h ../../util/h/makenan.h \
@@ -617,8 +613,7 @@ showerror.obj: ../src/showerror.C ../../paradynd/src/comm.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
  ../../util/h/refCounter.h ../../util/h/Vector.h ../../util/h/Types.h \
  ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../util/h/Pair.h ../../util/h/Queue.h \
- ../../util/h/Stack.h ../../dyninstAPI/src/dyninst.h \
+ ../../util/h/Dictionary.h ../../dyninstAPI/src/dyninst.h \
  ../../rtinst/h/trace.h ../../rtinst/h/rtinst.h ../../util/h/sys.h \
  ../../util/h/stringDecl.h ../../paradynd/src/resource.h \
  ../src/showerror.h
@@ -774,7 +769,7 @@ dyninstRPC.xdr.SRVR.obj: dyninstRPC.xdr.SRVR.C dyninstRPC.xdr.SRVR.h \
  ../../util/h/debugOstream.h ../../util/h/refCounter.h \
  ../../util/h/Vector.h ../../util/h/Types.h ../../util/h/aggregation.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../util/h/Pair.h ../../util/h/Queue.h ../../util/h/Stack.h
+ ../../util/h/Pair.h
 dyninstRPC.xdr.obj: dyninstRPC.xdr.C dyninstRPC.xdr.h \
  ../../util/h/rpcUtil.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../util/h/String.h \
