@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstP.h,v 1.16 1999/11/11 00:50:35 wylie Exp $
+/* $Id: dyninstP.h,v 1.17 1999/11/11 21:42:03 wylie Exp $
  *
  * private structures used by the implementation of the instrumentation 
  *   interface.  modules that use the instrumentation interface should not
@@ -111,6 +111,6 @@ bool detachProcess(int pid, bool pause);
 
 
 // TODO -- is this needed
-const string nullString(0);
+const string nullString("");
 
 #endif
