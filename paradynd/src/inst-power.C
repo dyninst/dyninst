@@ -1392,6 +1392,9 @@ void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
     P_abort();
 }
 
+void generateBreakPoint(instruction &insn) {
+    insn.raw = BREAK_POINT_INSN;
+}
 
 
 

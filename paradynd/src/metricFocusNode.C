@@ -43,6 +43,9 @@
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.105  1996/09/05 16:35:35  lzheng
+ * Move the architecture dependent definations to the architecture dependent files
+ *
  * Revision 1.104  1996/08/20 19:04:22  lzheng
  * Implementation of moving multiple instructions sequence and splitting
  * the instrumentation into two phases
@@ -508,10 +511,14 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
     mi->originalCost_ = cost;
 
     currentPredictedCost += cost;
+    //static timer inTimer;
+    //inTimer.start();
     if (!internal) {
 	mi->insertInstrumentation();
 	mi->checkAndInstallInstrumentation();
     }
+    //inTimer.stop();
+    //printf("It took %f:user %f:system %f:wall seconds\n", inTimer.usecs(), inTimer.ssecs(), inTimer.wsecs());
     metResPairsEnabled++;
     return(mi->id_);
 }
@@ -571,13 +578,13 @@ bool metricDefinitionNode::insertInstrumentation()
 
 bool metricDefinitionNode::checkAndInstallInstrumentation() {
 
-    int fp;
     int pc;
     Frame frame;
     instruction insn;
     instruction insnTrap;
 
-    insnTrap.raw = BREAK_POINT_INSN;
+    generateBreakPoint(insnTrap);
+    //insnTrap.raw = BREAK_POINT_INSN;
     bool needToCont = false;
 
     if (installed_) return(true);
@@ -597,7 +604,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
         frame.getActiveStackFrameInfo(proc_);
         pc = frame.getPC();
 
-        int rsize = returnInsts.size();
+        unsigned rsize = returnInsts.size();
         for (unsigned u=0; u<rsize; u++) {
 
             bool installSafe = returnInsts[u] -> checkReturnInstance(pc); 
@@ -609,7 +616,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
                 pc = frame.getPC();                            // for funcEntry.
 
                 proc_->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
-                proc_->writeTextWord((caddr_t)pc, insnTrap.raw);
+                proc_->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
 
                 returnInsts[u] -> addToReturnWaitingList(insn, pc);
             }

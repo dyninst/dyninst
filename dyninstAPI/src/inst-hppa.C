@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.19  1996/09/05 16:34:28  lzheng
+ * Move the architecture dependent definations to the architecture dependent files
+ *
  * Revision 1.18  1996/08/20 19:21:09  lzheng
  * Implementation of moving multiple instructions sequence and
  * splitting the instrumentation into two phases
@@ -1553,6 +1556,11 @@ void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
     instW->relocatedInsnAddr = pc;
 
     instWList.add(instW, (void *)pc);
+}
+
+
+void generateBreakPoint(instruction &insn) {
+    insn.raw = BREAK_POINT_INSN;
 }
 
 

@@ -43,6 +43,9 @@
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.61  1996/09/05 16:36:20  lzheng
+ * Move the architecture dependent definations to the architecture dependent files
+ *
  * Revision 1.60  1996/08/20 19:18:37  lzheng
  * Implementation of moving multiple instructions sequence and
  * splitting the instrumentation into two phases
@@ -1076,15 +1079,16 @@ void process::cleanUpInstrumentation() {
     needToCont = status() == running;
     bool res = pause();
     if (!res)
-    	return false;
+    	return;
 
     frame.getActiveStackFrameInfo(this);
     pc = frame.getPC();
 
     // Go thru the instWList to find out the ones to be deleted 
     instWaitingList *instW;
-    if (instW = instWList.find((void *)pc)) {
-	writeTextWord((caddr_t)pc, instW->relocatedInstruction.raw);
+    if ((instW = instWList.find((void *)pc)) != NULL) {
+	writeTextSpace((caddr_t)pc, sizeof(instW->relocatedInstruction),
+		       (caddr_t)&instW->relocatedInstruction);
 	writeTextSpace((caddr_t)instW->addr_, instW->instSeqSize, 
 			     (caddr_t)instW->instructionSeq);
 	
