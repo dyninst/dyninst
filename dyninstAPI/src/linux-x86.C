@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.45 2004/03/12 23:18:04 legendre Exp $
+// $Id: linux-x86.C,v 1.46 2004/03/16 18:15:49 schendel Exp $
 
 #include <fstream>
 
@@ -416,7 +416,7 @@ bool process::insertTrapAtEntryPointOfMain()
   }
   f_main = (function_base *) (*pdfv)[0];
   assert(f_main);
-  Address addr = f_main->addr();
+  Address addr = f_main->get_address();
   
   // save original instruction first
   if (!readDataSpace((void *)addr, 2, savedCodeBuffer, true))
@@ -606,11 +606,14 @@ static bool isPrevInstrACall(Address addr, process *p, pd_Function **callee)
 
    if (range == NULL)
      return false;
+   
+   relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
+   pd_Function *func_ptr = range->is_pd_Function();
 
-   if (range->reloc_ptr != NULL)
-      callsites = range->reloc_ptr->funcCallSites();
-   else if (range->function_ptr != NULL)
-      callsites = range->function_ptr->funcCalls(NULL);
+   if (reloc_ptr != NULL)
+      callsites = reloc_ptr->funcCallSites();
+   else if (func_ptr != NULL)
+      callsites = func_ptr->funcCalls(NULL);
    else
      return false;
       
@@ -1104,10 +1107,10 @@ void print_read_error_info(const relocationEntry entry,
 	    (target_pdf->symTabName()).c_str());
     logLine(errorLine);
     sprintf(errorLine , "              size %i\n",
-	    target_pdf->size());
+	    target_pdf->get_size());
     logLine(errorLine);
     sprintf(errorLine , "              addr 0x%x\n",
-	    (unsigned)target_pdf->addr());
+	    (unsigned)target_pdf->get_address());
     logLine(errorLine);
 
     sprintf(errorLine, "  base_addr  0x%x\n", (unsigned)base_addr);
@@ -1151,30 +1154,6 @@ bool process::hasBeenBound(const relocationEntry entry,
         return true;	
     }
     return false;
-}
-
-Address getSP(int pid) {
-   Address regaddr = UESP * sizeof(int);
-   int res;
-   res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
-   if( errno ) {
-     perror( "getSP" );
-     exit(-1);
-     return 0; // Shut up the compiler
-   } else {
-     assert(res);
-     return (Address)res;
-   }
-}
-
-bool changeSP(int pid, Address loc) {
-  Address regaddr = UESP * sizeof(int);
-  if (0 != P_ptrace (PTRACE_POKEUSER, pid, regaddr, loc )) {
-    perror( "process::changeSP - PTRACE_POKEUSER" );
-    return false;
-  }
-  
-  return true;
 }
 
 instruction generateTrapInstruction() {
