@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.505 2004/07/28 07:24:46 jaw Exp $
+// $Id: process.C,v 1.506 2004/08/13 19:33:22 legendre Exp $
 
 #include <ctype.h>
 
@@ -3585,6 +3585,18 @@ void process::set_status(processState st) {
    }
 }
 
+bool process::hasRunningLWP()
+{
+  pdvector<dyn_thread *>::iterator iter = threads.begin();
+  while(iter != threads.end()) {
+    dyn_lwp *lwp = (*iter)->get_lwp();
+    if(lwp->status() == running)
+      return true;
+    iter++;
+  }
+  return false;
+}
+
 void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st) {
    // any lwp status = stopped, means proc status = stopped
 
@@ -3636,7 +3648,7 @@ void process::clearCachedRegister() {
 }
 
 bool process::pause() {
-
+    bool result;
     if (!isAttached()) {
         bperr( "Warning: pause attempted on non-attached process\n");
         return false;
@@ -3654,54 +3666,35 @@ bool process::pause() {
    clearProcessEvents();
 #endif
 
-   /*   DEBUGGING
-      pdvector<dyn_thread *>::iterator iterA = threads.begin();
-
-      while(iterA != threads.end()) {
-         dyn_thread *thr = *(iterA);
-         dyn_lwp *lwp = thr->get_lwp();
-         assert(lwp);
-         if(lwp->status() == stopped)
-            cerr << "  lwp " << lwp->get_lwp_id() << " is stopped\n";
-         else if(lwp->status() == running)
-            cerr << "  lwp " << lwp->get_lwp_id() << " is running\n";
-         else if(lwp->status() == neonatal)
-            cerr << "  lwp " << lwp->get_lwp_id() << " is neonatal\n";
-         iterA++;
-      }
-   */
-
    // Let's try having stopped mean all lwps stopped and running mean
    // atleast one lwp running.
    
    if (status_ == stopped || status_ == neonatal) {
       return true;
    }
-   if(IndependentLwpControl()) {      
-     setSuppressEventConts(true);
-     pdvector<dyn_thread *>::iterator iter = threads.begin();
-     while(iter != threads.end()) {
-       dyn_thread *thr = *(iter);
-       dyn_lwp *lwp = thr->get_lwp();
-       assert(lwp);
-       lwp->pauseLWP(true);
-       iter++;
-     }
-     setSuppressEventConts(false);
-   } else {
-      assert(status_ == running);      
-      bool res = getRepresentativeLWP()->pauseLWP(true);
-      if (!res) {
-         sprintf(errorLine,
-                 "warn : in process::pause, pause_ unable to pause process\n");
-         logLine(errorLine);
-         return false;
-      }
-   }
+
+   result = stop_();
+   if (!result)
+      return false;
 
    status_ = stopped;
    return true;
 }
+
+//process::stop_ is only different on linux
+#if !defined(os_linux)
+bool process::stop_()
+{
+   assert(status_ == running);      
+   bool res = getRepresentativeLWP()->pauseLWP(true);
+   if (!res) {
+      sprintf(errorLine,
+              "warn : in process::pause, pause_ unable to pause process\n");
+      logLine(errorLine);
+      return false;
+   }
+}
+#endif
 
 // handleIfDueToSharedObjectMapping: if a trap instruction was caused by
 // a dlopen or dlclose event then return true
@@ -3871,7 +3864,6 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     pdstring msg;
 
     if(new_obj->getName().length() == 0) {
-        fprintf(stderr, "Null name on object\n");
         return false;
     }
 
@@ -4890,7 +4882,7 @@ bool process::detachProcess(const bool leaveRunning) {
     // First, remove all syscall tracing and notifications
     delete tracedSyscalls_;
     tracedSyscalls_ = NULL;
-    
+ 
     // Next, delete the dynamic linker instrumentation
     delete dyn;
     dyn = NULL;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.299 2004/07/28 07:24:46 jaw Exp $
+/* $Id: process.h,v 1.300 2004/08/13 19:33:23 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -414,6 +414,9 @@ class process {
 
   // update the status of the process and one particular lwp in the process
   void set_lwp_status(dyn_lwp *whichLWP, processState st);
+
+  //Does this process have a lwp that's running?
+  bool hasRunningLWP();
 
   // should only be called by dyn_lwp::continueLWP
   void clearCachedRegister();
@@ -1215,10 +1218,13 @@ private:
 
   dyn_lwp *query_for_stopped_lwp();
   dyn_lwp *stop_an_lwp(bool *wasRunning);
+  bool stop_();
 
-  // stops a process
+  // wait until the process stops 
   bool waitUntilStopped();
-
+  // wait until any lwp in a process stops
+  dyn_lwp *process::waitUntilLWPStops();
+  
  public:
 
   // returns true iff ok to operate on the process (attached)
