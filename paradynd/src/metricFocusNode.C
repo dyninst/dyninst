@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.55  1995/10/04 18:52:47  krisna
+ * for-loop-scope change
+ *
  * Revision 1.54  1995/09/26 20:17:50  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
@@ -517,8 +520,8 @@ bool metricDefinitionNode::insertInstrumentation()
       for (unsigned u=0; u<size; u++)
 	data[u]->insertInstrumentation(this);
       size = requests.size();
-      for (u=0; u<size; u++)
-	requests[u]->insertInstrumentation();
+      for (unsigned u1=0; u1<size; u1++)
+	requests[u1]->insertInstrumentation();
     }
     if (needToCont) continueAllProcesses();
     return(true);
@@ -569,8 +572,8 @@ void metricDefinitionNode::disable()
       for (unsigned u=0; u<size; u++)
 	data[u]->disable();
       size = requests.size();
-      for (u=0; u<size; u++)
-	requests[u]->disable();
+      for (unsigned u1=0; u1<size; u1++)
+	requests[u1]->disable();
     }
 
 }
@@ -588,8 +591,8 @@ metricDefinitionNode::~metricDefinitionNode()
       for (unsigned u=0; u<size; u++)
 	delete data[u];
       size = requests.size();
-      for (u=0; u<size; u++)
-	delete requests[u];
+      for (unsigned u1=0; u1<size; u1++)
+	delete requests[u1];
     }
 }
 
@@ -744,9 +747,9 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     // update total predicted cost.
     //
     totalPredictedCost->value = 0.0;
-    for (u=0; u<size; u++) {
-      if (processVec[u]->theCost.totalPredictedCost > totalPredictedCost->value) {
-	totalPredictedCost->value = processVec[u]->theCost.totalPredictedCost;
+    for (unsigned u1=0; u1<size; u1++) {
+      if (processVec[u1]->theCost.totalPredictedCost > totalPredictedCost->value) {
+	totalPredictedCost->value = processVec[u1]->theCost.totalPredictedCost;
       }
     }
 
