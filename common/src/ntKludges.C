@@ -53,7 +53,7 @@ int P_getopt(int argc, char *argv[], const char *optstring)
   static int lastArgSeen = 0;
   if (lastArgSeen >= argc) return EOF;
   for (i = lastArgSeen; i < argc; i++) {
-    int opt_index = 0;
+    unsigned int opt_index = 0;
     char *nextArg = argv[i];
     if (nextArg[0] != '-') continue;
     for (opt_index = 0; opt_index < P_strlen(optstring); opt_index++)
