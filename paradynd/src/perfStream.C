@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.20 1994/07/12 18:45:30 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.21 1994/07/14 14:35:37 jcargill Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.20  1994/07/12 18:45:30  jcargill
+ * Revision 1.21  1994/07/14 14:35:37  jcargill
+ * Removed some dead code, added called to processArchDependentTraceStream
+ *
+ * Revision 1.20  1994/07/12  18:45:30  jcargill
  * Got rid of old/unused trace-record types
  *
  * Revision 1.19  1994/07/05  03:26:17  hollings
@@ -164,7 +167,6 @@ extern "C" {
 	       int data,
 	       char *addr2);
 
-    void bzero (char*, int);
     int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
     int wait3(int *statusp, int options, struct rusage *ru);
 }
@@ -192,9 +194,8 @@ extern void PDYN_reportSIGCHLD (int pid, int exit_status);
 extern pdRPC *tp;
 extern void reportInternalMetrics();
 extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);
-extern void processPtraceAck (traceHeader *header, ptraceAck *ackRecord);
 extern void forkProcess(traceHeader *hr, traceFork *fr);
-extern void sendPtraceBuffer(process *proc);
+extern void processArchDependentTraceStream();
 extern void createResource(traceHeader *header, struct _newresource *res);
 extern void newAssoc(process *proc, char *a, char *t, char *k, char *v);
 
@@ -202,8 +203,8 @@ extern "C" Boolean synchronousMode;
 Boolean synchronousMode;
 Boolean firstSampleReceived;
 
-
 time64 firstRecordTime = 0;
+
 
 void processAppIO(process *curr)
 {
@@ -228,6 +229,7 @@ void processAppIO(process *curr)
 
 }
 
+
 char errorLine[1024];
 
 void logLine(char *line)
@@ -240,6 +242,7 @@ void logLine(char *line)
 	fullLine[0] = '\0';
     }
 }
+
 
 void processTraceStream(process *curr)
 {
@@ -388,6 +391,9 @@ int handleSigChild(int pid, int status)
 		 */
 		logLine("passed trap at start of program\n");
 		ptrace(PTRACE_CONT, pid, (char*)1, 0, 0);
+		// If this is a CM-process, we don't want to label it as
+		// running until the nodes get init'ed.  We need to test
+		// based on magic number, I guess...   XXXXXX
 #ifdef PARADYND_PVM
 		curr->status = neonatal;
 		pvm_perror("in SIGTRAP handler\n");
@@ -432,9 +438,17 @@ int handleSigChild(int pid, int status)
 	    case SIGUSR2:
 	    case SIGALRM:
 	    case SIGCONT:
-	    default:
+		printf("caught signal, forwarding...  (sig=%d)\n", 
+		       WSTOPSIG(status));
 		ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(status), 0);
 		break;
+
+	    default:
+		printf("ERROR: unhandled signal, not forwarding.  (sig=%d)\n", 
+		       WSTOPSIG(status));
+		ptrace(PTRACE_CONT, pid, (char*)1, 0, 0);
+		break;
+
 	}
     } else if (WIFEXITED(status)) {
 	extern void printDyninstStats();
@@ -546,7 +560,8 @@ void controllerMainLoop()
 		    FD_ISSET(curr->traceLink, &readSet)) {
 		    processTraceStream(curr);
 		    /* clear it in case another process is sharing it */
-		    if (curr->traceLink >= 0) FD_CLR(curr->traceLink, &readSet);
+		    if (curr->traceLink >= 0) 
+			FD_CLR(curr->traceLink, &readSet);
 		}
 
 		if ((curr->ioLink >= 0) && 
@@ -565,6 +580,7 @@ void controllerMainLoop()
 		    exit(-1);
 		}
 	    }
+
 #ifdef PARADYND_PVM
 	    // message on pvmd channel
 	    int res;
@@ -577,6 +593,8 @@ void controllerMainLoop()
 	    }
 #endif
 	}
+
+	processArchDependentTraceStream();
 
 	/* generate internal metrics */
 	reportInternalMetrics();
