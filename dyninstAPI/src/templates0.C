@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.26 2002/04/05 19:38:46 schendel Exp $
+// $Id: templates0.C,v 1.27 2002/04/09 18:05:02 mjbrim Exp $
 // Generate all the templates in one file.
 
 /*
@@ -57,11 +57,6 @@
  * remove their entries from the appropriate make.module.tmpl file).
  *
  */
-
-
-#pragma implementation "stl.h"
-#pragma implementation "Pair.h"
-#include "common/h/Pair.h"
 
 #pragma implementation "Vector.h"
 #include "common/h/Vector.h"
