@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.8 2000/02/15 23:53:10 hollings Exp $
+ * $Id: Object-nt.h,v 1.9 2000/02/21 20:12:20 pcroth Exp $
 ************************************************************************/
 
 
@@ -63,7 +63,7 @@
 #include "util/h/Symbol.h"
 #include "util/h/Types.h"
 #include "util/h/Vector.h"
-#include "util/h/CodeView.h"
+#include "dyninstAPI/src/CodeView.h"
 
 #include <stdlib.h>
 #include <winnt.h>

@@ -777,3 +777,19 @@ dyninstRPC.xdr.obj: dyninstRPC.xdr.C dyninstRPC.xdr.h \
  ../../util/h/Vector.h ../../util/h/Types.h ../../util/h/aggregation.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
  ../../util/h/Pair.h
+Object.obj: ../../dyninstAPI/src/Object.C ../../dyninstAPI/src/Object.h \
+ ../../util/h/Dictionary.h ../../util/h/Vector.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Symbol.h ../../util/h/Types.h \
+ ../../util/h/lprintf.h ../../dyninstAPI/src/Object-nt.h
+Object-nt.obj: ../../dyninstAPI/src/Object-nt.C \
+ ../../dyninstAPI/src/Object-nt.h \
+ ../../dyninstAPI/src/Object.h \
+ ../../util/h/String.h \
+ ../../util/h/Vector.h \
+ ../../dyninstAPI/src/CodeView.h
+CodeView.obj: ../../dyninstAPI/src/CodeView.C \
+ ../../dyninstAPI/src/CodeView.h \
+ ../../util/h/String.h \
+ ../../util/h/Vector.h

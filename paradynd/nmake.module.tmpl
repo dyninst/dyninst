@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.7 2000/02/15 23:54:21 hollings Exp $
+# $Id: nmake.module.tmpl,v 1.8 2000/02/21 20:12:23 pcroth Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -51,11 +51,17 @@ CXXFLAGS	= $(CXXFLAGS) -DPARADYND_PVM
 !endif
 
 !ifdef USES_SHM_SAMPLING
-SRCS 		+= ../src/fastInferiorHeap.C ../src/fastInferiorHeapHKs.C \
-		   ../src/fastInferiorHeapMgr.C
-CXXFLAGS	+= -DSHM_SAMPLING
-TFLAGS		+= -DSHM_SAMPLING
-CFLAGS		+= -DSHM_SAMPLING
+SRCS 		= $(SRCS) \
+			../src/fastInferiorHeap.C \
+			../src/fastInferiorHeapHKs.C \
+		   ../src/fastInferiorHeapMgr.C \
+		   ../src/baseTable.C \
+		   ../src/superTable.C \
+		   ../src/superVector.C \
+		   ../src/shmSegment-nt.C
+CXXFLAGS	= $(CXXFLAGS) -DSHM_SAMPLING
+TFLAGS		= $(TFLAGS) -DSHM_SAMPLING
+CFLAGS		= $(CFLAGS) -DSHM_SAMPLING
 !endif
 
 IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
@@ -93,6 +99,16 @@ OBJS      = $(OBJS) association.obj \
 		dyninstRPC.xdr.obj \
 		templates-nt.obj
 
+!ifdef USES_SHM_SAMPLING
+OBJS	= $(OBJS) \
+		fastInferiorHeap.obj \
+		fastInferiorHeapHKs.obj \
+		fastInferiorHeapMgr.obj \
+		baseTable.obj \
+		superTable.obj \
+		superVector.obj \
+		shmSegment-nt.obj
+!endif
 
 
 LIBS		= ..\..\..\lib\$(PLATFORM)\libpdutil.lib

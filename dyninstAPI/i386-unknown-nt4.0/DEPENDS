@@ -78,6 +78,32 @@ BPatch_type.obj: ../src/BPatch_type.C ../h/BPatch_type.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/refCounter.h ../../util/h/Dictionary.h \
  ../../util/h/Pair.h ../../util/h/Vector.h
+BPatch_function.obj: ../src/BPatch_function.C ../src/symtab.h \
+ ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
+ ../../util/h/list.h ../../dyninstAPI/src/Object.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/refCounter.h ../../util/h/ByteArray.h \
+ ../../util/h/Symbol.h ../../util/h/Types.h ../../util/h/lprintf.h \
+ ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/dyninst.h \
+ ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../util/h/stringDecl.h \
+ ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
+ ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
+ ../../dyninstAPI/src/ast.h ../../dyninstAPI/h/BPatch_type.h \
+ ../../dyninstAPI/h/BPatch_Vector.h \
+ ../../dyninstAPI/src/FunctionExpansionRecord.h ../src/process.h \
+ ../../util/h/vectorSet.h ../../util/h/Timer.h \
+ ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
+ ../../dyninstAPI/src/showerror.h ../h/BPatch.h ../h/BPatch_Vector.h \
+ ../h/BPatch_thread.h ../h/BPatch_image.h ../h/BPatch_point.h \
+ ../h/BPatch_snippet.h ../h/BPatch_type.h ../h/BPatch_module.h \
+ ../h/BPatch_function.h ../../dyninstAPI/src/symtab.h \
+ ../../dyninstAPI/src/sharedobject.h \
+ ../../dyninstAPI/src/dynamiclinking.h \
+ ../../dyninstAPI/src/ntDL.h ../src/instPoint.h \
+ ../src/instPoint-x86.h ../src/arch-x86.h \
+ ../src/BPatch_collections.h ../src/../../util/h/String.h \
+ ../src/../../util/h/Dictionary.h ../src/../../util/h/list.h
 BPatch_init.obj: ../src/BPatch_init.C ../../dyninstAPI/src/dyninstP.h \
  ../../util/h/Vector.h ../../util/h/String.h ../../util/h/Types.h \
  ../../util/h/debugOstream.h ../../util/h/headers.h \
@@ -226,4 +252,18 @@ arch-x86.obj: ../src/arch-x86.C ../../util/h/Types.h \
  ../../dyninstAPI/src/arch-x86.h
 inst-x86.obj: ../src/inst-x86.C 
 pdwinnt.obj: ../src/pdwinnt.C 
-
+Object.obj: ../src/Object.C ../src/Object.h \
+ ../../util/h/Dictionary.h ../../util/h/Vector.h ../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
+ ../../util/h/ByteArray.h ../../util/h/Symbol.h ../../util/h/Types.h \
+ ../../util/h/lprintf.h ../src/Object-nt.h
+Object-nt.obj: ../src/Object-nt.C ../src/Object-nt.h \
+ ../src/Object.h \
+ ../../util/h/String.h \
+ ../../util/h/Vector.h \
+ ../src/CodeView.h
+CodeView.obj: ../src/CodeView.C \
+ ../src/CodeView.h \
+ ../../util/h/String.h \
+ ../../util/h/Vector.h

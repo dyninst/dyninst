@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.4 2000/02/15 23:53:10 hollings Exp $
+// $Id: Object-nt.C,v 1.5 2000/02/21 20:12:20 pcroth Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -47,7 +47,7 @@
 
 #include "util/h/String.h"
 #include "util/h/Vector.h"
-#include "util/h/CodeView.h"
+#include "dyninstAPI/src/CodeView.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/Object-nt.h"
 
@@ -275,7 +275,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
         // sort list of modules by offset to give us our CodeView module map
         cvMods.sort( ModInfo::CompareByOffset );
 
-#ifdef _DEBUG
+#ifdef CV_DEBUG
         // dump the CodeView module map
         cout << "CodeView module .text map:\n";
         for( midx = 0; midx < cvMods.size(); midx++ )
@@ -293,7 +293,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
                 << dec
                 << endl;
         }
-#endif // _DEBUG
+#endif // CV_DEBUG
 
         // compute bounds for Paradyn modules
         for( midx = 0; midx < cvMods.size(); midx++ )
@@ -339,7 +339,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
             }
         }
 
-#ifdef _DEBUG
+#ifdef CV_DEBUG
         // dump the Paradyn module map
         cout << "Paradyn module .text map:\n";
         for( midx = 0; midx < pdMods.size(); midx++ )
@@ -356,7 +356,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
                 << dec
                 << endl;
         }
-#endif // _DEBUG
+#endif // CV_DEBUG
 
         // add entries for our Paradyn modules
         for( midx = 0; midx < pdMods.size(); midx++ )
@@ -497,7 +497,6 @@ Object::CVPatchSymbolSizes( vector<Symbol>& allSymbols )
                         cb = (data_off_ + data_len_*sizeof(Word)) - sym.addr();
                     }
                 }
-                assert( cb != 0 );
                 sym.change_size( cb );
             }
 

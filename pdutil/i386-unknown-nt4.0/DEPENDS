@@ -38,27 +38,12 @@ pathName.obj: ../src/pathName.C ../../util/h/pathName.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h
-Object.obj: ../src/Object.C ../../util/h/Object.h \
- ../../util/h/Dictionary.h ../../util/h/Vector.h ../../util/h/String.h \
- ../../util/h/debugOstream.h ../../util/h/headers.h \
- ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
- ../../util/h/ByteArray.h ../../util/h/Symbol.h ../../util/h/Types.h \
- ../../util/h/lprintf.h ../../util/h/Object-elf.h
-Object-nt.obj: ../src/Object-nt.C ../../util/h/Object-nt.h \
- ../../util/h/Object.h \
- ../../util/h/String.h \
- ../../util/h/Vector.h \
- ../../util/h/CodeView.h
 PriorityQueue.obj: ../src/PriorityQueue.C ../../util/h/PriorityQueue.h \
  ../../util/h/Vector.h
 odometer.obj: ../src/odometer.C ../../util/h/odometer.h \
  ../../util/h/Vector.h
 CircularBuffer.obj: ../src/CircularBuffer.C \
  ../../util/h/CircularBuffer.h
-CodeView.obj: ../src/CodeView.C \
- ../../util/h/CodeView.h \
- ../../util/h/String.h \
- ../../util/h/Vector.h
 vectorSet.obj: ../src/vectorSet.C ../../util/h/vectorSet.h \
  ../../util/h/Vector.h
 debugOstream.obj: ../src/debugOstream.C ../../util/h/debugOstream.h
