@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.70 2003/12/08 19:03:30 schendel Exp $
+// $Id: irix.C,v 1.71 2004/01/19 21:53:41 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -420,14 +420,9 @@ int decodeProcStatus(process *proc,
 // the queue until there are none left, then re-poll.
 // Return value: 0 if nothing happened, or process pointer
 
-process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
-                            procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block)
+bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
+                                          int wait_arg, bool block)
 {
-    why = procUndefined;
-    what = 0;
-    info = 0;
-
     extern pdvector<process*> processVec;
     static struct pollfd fds[OPEN_MAX];  // argument for poll
     // Number of file descriptors with events pending
@@ -435,6 +430,10 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
     // The current FD we're processing.
     static int curr = 0;
     prstatus_t stat;
+
+    procSignalWhy_t  why  = procUndefined;
+    procSignalWhat_t what = 0;
+    procSignalInfo_t info = 0;
 
     if (selected_fds == 0) {
         for (unsigned u = 0; u < processVec.size(); u++) {
@@ -477,7 +476,7 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
                 fprintf(stderr, "decodeProcessEvent: poll failed: %s\n", sys_errlist[errno]);
                 selected_fds = 0;
             }
-            return NULL;
+            return false;
         }
         
         // Reset the current pointer to the beginning of the poll list
@@ -515,9 +514,9 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
                 // is this the bug??
                 // processVec[curr]->continueProc_();
             }
-            if (!decodeWaitPidStatus(currProcess, status, why, what)) {
+            if (!decodeWaitPidStatus(currProcess, status, &why, &what)) {
                 cerr << "decodeProcessEvent: failed to decode waitpid return" << endl;
-                return NULL;
+                return false;
             }
         }
     } else {
@@ -528,8 +527,10 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
             // Check if the process is stopped waiting for us
             if (procstatus.pr_flags & PR_STOPPED ||
                 procstatus.pr_flags & PR_ISTOP) {
-                if (!decodeProcStatus(currProcess, procstatus, why, what, info))
-                    return NULL;
+                if (!decodeProcStatus(currProcess, procstatus, why, what,info))
+                {
+                   return false;
+                }
             }
         }
         else {
@@ -538,20 +539,28 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
     }
 
     if (currProcess) {
+        procevent *new_event = new procevent;
+        new_event->proc = currProcess;
+        new_event->why  = why;
+        new_event->what = what;
+        new_event->info = info;
+        (*events).push_back(new_event);
+
         // Processes' state is saved in preSignalStatus()
         currProcess->savePreSignalStatus();
         // Got a signal, process is stopped.
         currProcess->set_status(stopped);
     }
-    
+
     // Skip this FD the next time through
     --selected_fds;
     ++curr;    
-    return currProcess;
+    return true;
     
 } 
 
-bool dyn_lwp::continueLWP_()
+// TODO: this ignores the "sig" argument
+bool dyn_lwp::continueLWP_(int signalToContinueWith)
 {
    ptraceOps++; 
    ptraceOtherOps++;
@@ -569,9 +578,15 @@ bool dyn_lwp::continueLWP_()
       return false;
    }
   
+   void *arg3;
    prrun_t run;
-   run.pr_flags = PRCSIG; // clear current signal
-   if (ioctl(get_fd(), PIOCRUN, &run) == -1) {
+   if(signalToContinueWith == dyn_lwp::NoSignal) {
+      run.pr_flags = PRCSIG; // clear current signal
+      arg3 = &run;
+   }
+   else arg3 = NULL;
+
+   if (ioctl(get_fd(), PIOCRUN, arg3) == -1) {
       perror("dyn_lwp::continueProc_(PIOCRUN)");
       return false;
    }
@@ -815,17 +830,6 @@ int dyn_lwp::hasReachedSyscallTrap() {
     return 0;
 }
 
-// TODO: this ignores the "sig" argument
-bool process::continueWithForwardSignal(int /*sig*/)
-{
-    //fprintf(stderr, ">>> process::continueWithForwardSignal()\n");
-    if (ioctl(getRepresentativeLWP()->get_fd(), PIOCRUN, NULL) == -1) {
-        perror("process::continueWithForwardSignal(PIOCRUN)\n");
-        return false;
-    }
-    return true;
-}
-
 bool process::dumpCore_(const pdstring coreFile)
 {
   //fprintf(stderr, ">>> process::dumpCore_()\n");
@@ -847,14 +851,15 @@ dyn_lwp *process::createRepresentativeLWP() {
 
 bool process::terminateProc_()
 {
-  //fprintf(stderr, ">>> process::terminateProc_()\n");
-  long flags = PR_KLC;
-  if (ioctl(getRepresentativeLWP()->get_fd(), PIOCSET, &flags) == -1) {
-    // not an error: fd has probably been close()ed already
-    return false;
-  }  
-  handleProcessExit(0);
-  return true;
+   // these next two lines are a hack used to get the poll call initiated
+   // by checkForAndHandleProcessEvents() in process::terminateProc to
+   // still check process for events if it was previously stopped
+   if(status() == stopped)
+      status_ = running;
+
+   kill(getPid(), 9);
+
+   return true;
 }
 
 
