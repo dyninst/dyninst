@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2004/03/05 16:51:01 bernat Exp $
+# $Id: Makefile,v 1.11 2005/01/24 19:46:32 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,7 +37,6 @@ SRCS =		../../dyninstAPI/src/aix.C \
 		../../dyninstAPI/src/parseStab.C \
 		../../dyninstAPI/src/inst-aix.C \
 		../../dyninstAPI/src/Object-xcoff.C \
-		../../dyninstAPI/src/FunctionExpansionRecord.C \
 		../../dyninstAPI/src/unix.C \
 		../../dyninstAPI/src/InstrucIter-power.C \
       ../../dyninstAPI/src/writeBackXCOFF.C \
