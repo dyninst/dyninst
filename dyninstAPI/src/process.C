@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.264 2001/08/30 21:30:22 bernat Exp $
+// $Id: process.C,v 1.265 2001/09/05 21:59:01 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4079,7 +4079,7 @@ pd_Function *process::findFuncByAddr(Address adr)
   if (returned_functions.size())
     return returned_functions[0];
 
-  cerr << "Checking original address" << endl;
+  //cerr << "Checking original address" << endl;
 
   // So we checked by entry points and by absolute addresses, and got no
   // matches. Check by relocated addresses and (possibly) offsets within

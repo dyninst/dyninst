@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.130 2001/08/30 21:31:24 bernat Exp $
+// $Id: symtab.C,v 1.131 2001/09/05 21:59:02 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1581,12 +1581,14 @@ pd_Function *image::findFuncByAddr(const Address &addr,
   return NULL; 
 }
 
+// This function assumes the given address is an offset within
+// the file.
+
 pd_Function *image::findFuncByEntryAddr(const Address &addr, 
 					const process */*p*/) const
 {
   pd_Function *pdf;
 
-  // Quick check of funcsByAddr
   if (funcsByAddr.find(addr, pdf))
     return pdf;
 
