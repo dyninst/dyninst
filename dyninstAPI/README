@@ -1,0 +1,12 @@
+
+This directory contains the Dyninst API library.  To make the library, type
+"make install" in the subdirectory of this directory that is named after the
+platform that on which you are building the library.  The library also depends
+on code in the core/util and core/dyninstAPI_RT directories, so you will also
+need to go into the appropriate platform subdirectories of these directories
+and type "make install."  If you have built Paradyn, then the util library
+will have already been built.
+
+After the dyninstAPI_RT, util, and dyninstAPI libraries have been built and
+installed, you can test them using the programs in core/dyninstAPI/tests.  See
+the README file in that directory for information about the test programs.
