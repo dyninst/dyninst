@@ -47,9 +47,10 @@
 #ifndef __PD_PROCESS__
 #define __PD_PROCESS__
 
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/h/BPatch_thread.h"
 #include "paradynd/src/threadMgr.h"
 #include "paradynd/src/timeMgr.h"
+#include "dyninstAPI/src/process.h"
 
 class pd_image;
 
@@ -57,7 +58,7 @@ class pd_image;
 // having a process* member
 
 class pd_process {
-   process *dyninst_process;
+   BPatch_thread *dyninst_process;
 
    threadMgr thr_mgr;
 
@@ -77,20 +78,20 @@ class pd_process {
    unsigned numOfActWallTimers_is;
    
  public:
-  // Creation constructor
-  pd_process(const pdstring argv0, pdvector<pdstring> &argv,
-             const pdstring dir, int stdin_fd, int stdout_fd, int stderr_fd);
+   // Creation constructor
+   pd_process(const pdstring argv0, pdvector<pdstring> &argv,
+              const pdstring dir, int stdin_fd, int stdout_fd, int stderr_fd);
 
-  // Attach constructor
-  pd_process(const pdstring &progpath, int pid);
+   // Attach constructor
+   pd_process(const pdstring &progpath, int pid);
   
-  // fork constructor
-  pd_process(const pd_process &parent, process *childDynProc);
-  
-  ~pd_process();
-  
+   // fork constructor
+   pd_process(const pd_process &parent, BPatch_thread *childDynProc);
+   
+   ~pd_process();
+   
    void init();
-
+   
    threadMgr &thrMgr() { return thr_mgr; }
    void addThread(pd_thread *thr) { thr_mgr.addThread(thr); }
    void removeThread(pd_thread *thr) { thr_mgr.removeThread(thr); }
@@ -195,50 +196,89 @@ class pd_process {
   
    // ========  PASS THROUGH FUNCTIONS ===============================
 
-   process *get_dyn_process() { return dyninst_process; }
+   BPatch_thread *get_dyn_process() {
+      return dyninst_process;
+   }
 
+   processState status() const {
+      return dyninst_process->lowlevel_process()->status(); }
 
-   processState status() const { return dyninst_process->status(); }
+   bool continueProc() {
+      return dyninst_process->lowlevel_process()->continueProc();
+   }
+   bool pause() {
+      return dyninst_process->lowlevel_process()->pause();
+   }
 
-   bool continueProc() { return dyninst_process->continueProc(); }
-   bool pause() { return dyninst_process->pause(); }
-
-   void continueAfterNextStop() { dyninst_process->continueAfterNextStop(); }
+   void continueAfterNextStop() {
+      dyninst_process->lowlevel_process()->continueAfterNextStop();
+   }
 
    bool detach(const bool paused) { // why the param?
-      return dyninst_process->detach(paused);
+      return dyninst_process->lowlevel_process()->detach(paused);
    }
 
-   int getPid() const { return dyninst_process->getPid();  }
+   int getPid() const {
+      return dyninst_process->lowlevel_process()->getPid();
+   }
 
    bool cancelRPC(unsigned rpc_id) {
-      return dyninst_process->getRpcMgr()->cancelRPC(rpc_id);
+    return dyninst_process->lowlevel_process()->getRpcMgr()->cancelRPC(rpc_id);
    }
 
-   shmMgr *getSharedMemMgr() {  return dyninst_process->getSharedMemMgr();  }
+   shmMgr *getSharedMemMgr() {
+      return dyninst_process->lowlevel_process()->getSharedMemMgr();
+   }
+   
+   Address initSharedMetaData() {
+      return dyninst_process->lowlevel_process()->initSharedMetaData();
+   }
 
-   bool findInternalSymbol(const pdstring &name, bool warn, internalSym &ret_sym)
-      const {
-      return dyninst_process->findInternalSymbol(name, warn, ret_sym);
+   bool findInternalSymbol(const pdstring &name, bool warn,
+                           internalSym &ret_sym) const {
+      return dyninst_process->lowlevel_process()->findInternalSymbol(name, warn, ret_sym);
+   }
+
+   Address findInternalAddress(const pdstring &name, bool warn,
+                               bool &err) const {
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->findInternalAddress(name, warn, err);
    }
 
    bool writeDataSpace(void *inTracedProcess, u_int amount,
 		       const void *inSelf) {
-      return dyninst_process->writeDataSpace(inTracedProcess, amount, inSelf);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->writeDataSpace(inTracedProcess, amount, inSelf);
    }
 
    bool isBootstrappedYet() const {
-      return dyninst_process->isBootstrappedYet();
+      return dyninst_process->lowlevel_process()->isBootstrappedYet();
    }
 
-   bool hasExited() { return dyninst_process->hasExited(); }
+   bool hasExited() {
+      return dyninst_process->lowlevel_process()->hasExited();
+   }
 
    bool wasCreatedViaAttach() { 
-      return dyninst_process->wasCreatedViaAttach();
+      return dyninst_process->lowlevel_process()->wasCreatedViaAttach();
    }
 
    bool launchRPCs(bool wasRunning) {
-       return dyninst_process->getRpcMgr()->launchRPCs(wasRunning);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getRpcMgr()->launchRPCs(wasRunning);
+   }
+
+   bool readDataSpace(const void *inTracedProcess, u_int amount,
+                      void *inSelf, bool displayErrMsg) {
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->readDataSpace(inTracedProcess, amount, inSelf,
+                                   displayErrMsg);
+   }
+
+   bool writeTextSpace(void *inTracedProcess, u_int amount,
+                       const void *inSelf) {
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->writeTextSpace(inTracedProcess, amount, inSelf);
    }
 
    bool isPARADYNBootstrappedYet() const {
@@ -247,52 +287,77 @@ class pd_process {
    }
 
    bool catchupSideEffect(Frame &frame, instReqNode *inst) {
-      return dyninst_process->catchupSideEffect(frame, inst);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->catchupSideEffect(frame, inst);
    }
 
-   int getTraceLink() { return dyninst_process->traceLink; }
-   void setTraceLink(int v) { dyninst_process->traceLink = v; }
+   int getTraceLink() {
+      return dyninst_process->lowlevel_process()->traceLink;
+   }
+   void setTraceLink(int v) {
+      dyninst_process->lowlevel_process()->traceLink = v;
+   }
    dyn_lwp *getDefaultLWP() const {
-      return dyninst_process->getDefaultLWP();
+      return dyninst_process->lowlevel_process()->getDefaultLWP();
+   }
+
+   void installInstrRequests(const pdvector<instMapping*> &requests) {
+      dyninst_process->lowlevel_process()->installInstrRequests(requests);
    }
 
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
                         void *userData, bool lowmem,
                         dyn_thread *thr, dyn_lwp *lwp, Address aixHACK = 0) {
-       return dyninst_process->getRpcMgr()->postRPCtoDo(action, noCost,
-                                                        callbackFunc, userData,
-                                                        lowmem,
-                                                        thr, lwp, aixHACK);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getRpcMgr()->postRPCtoDo(action, noCost,
+                                            callbackFunc, userData,
+                                            lowmem,
+                                            thr, lwp, aixHACK);
    }
    
    bool triggeredInStackFrame(instPoint* point, Frame frame,
                               pd_Function *&func,
                               callWhen when, callOrder order) {
-      return dyninst_process->triggeredInStackFrame(point, frame, func, when, order);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->triggeredInStackFrame(point, frame, func, when, order);
    }
    
    bool walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
-       return dyninst_process->walkStacks(stackWalks);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->walkStacks(stackWalks);
    }
    
    function_base *findOnlyOneFunction(resource *func, resource *mod) {
-      return dyninst_process->findOnlyOneFunction(func, mod);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->findOnlyOneFunction(func, mod);
    }
 
    function_base *findOnlyOneFunction(const pdstring &func_name) const {
-      return dyninst_process->findOnlyOneFunction(func_name);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->findOnlyOneFunction(func_name);
    }
 
-   bool findAllFuncsByName(const pdstring &func_name, pdvector<function_base *> &res) {
-     return dyninst_process->findAllFuncsByName(func_name, res);
-   }
-   bool findAllFuncsByName(resource *func, resource *mod, pdvector<function_base *> &res) {
-     return dyninst_process->findAllFuncsByName(func, mod, res);
+   pdvector<module *> *getAllModules() {
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getAllModules();
    }
 
-   bool getSymbolInfo(const pdstring &n, Symbol &info, Address &baseAddr) const {
-      return dyninst_process->getSymbolInfo(n, info, baseAddr);
+   bool findAllFuncsByName(const pdstring &func_name,
+                           pdvector<function_base *> &res) {
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->findAllFuncsByName(func_name, res);
+   }
+   bool findAllFuncsByName(resource *func, resource *mod,
+                           pdvector<function_base *> &res) {
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->findAllFuncsByName(func, mod, res);
+   }
+
+   bool getSymbolInfo(const pdstring &n, Symbol &info,
+                      Address &baseAddr) const {
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getSymbolInfo(n, info, baseAddr);
    }
 
    pd_image *getImage() const {
@@ -300,51 +365,63 @@ class pd_process {
    }
 
    bool findCallee(instPoint &instr, function_base *&target) {
-      return dyninst_process->findCallee(instr, target);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->findCallee(instr, target);
    }
 
    pdvector<function_base *> *getIncludedFunctions(module *mod) {
-      return dyninst_process->getIncludedFunctions(mod);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getIncludedFunctions(mod);
    }
 
    pdvector<function_base *> *getIncludedFunctions() {
-      return dyninst_process->getIncludedFunctions();
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getIncludedFunctions();
    }
 
    pdvector<module *> *getIncludedModules() {
-      return dyninst_process->getIncludedModules();
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getIncludedModules();
    }
 
    module *findModule(const pdstring &mod_name,bool check_excluded) {
-      return dyninst_process->findModule(mod_name, check_excluded);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->findModule(mod_name, check_excluded);
    }
 
    bool isDynamicallyLinked() { 
-      return dyninst_process->isDynamicallyLinked();
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->isDynamicallyLinked();
    }
 
    pdvector<shared_object *> *sharedObjects() {
-      return dyninst_process->sharedObjects();
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->sharedObjects();
    }
 
    unsigned maxNumberOfThreads() {
-      return dyninst_process->maxNumberOfThreads();
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->maxNumberOfThreads();
    }
 
    function_base *getMainFunction() const {
-      return dyninst_process->getMainFunction();
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getMainFunction();
    }
 
    bool dumpCore(const pdstring coreFile) {
-      return dyninst_process->dumpCore(coreFile);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->dumpCore(coreFile);
    }
 
    pdstring getProcessStatus() const {
-      return dyninst_process->getProcessStatus();
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getProcessStatus();
    }
 
    virtualTimer *getVirtualTimer(int pos) {
-      return dyninst_process->getVirtualTimer(pos);
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->getVirtualTimer(pos);
    }
 
 #ifdef PAPI
@@ -352,10 +429,16 @@ class pd_process {
 #endif
 
    bool multithread_capable() {
-      return dyninst_process->multithread_capable();
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->multithread_capable();
    }
    bool multithread_ready() {
-      return dyninst_process->multithread_ready();
+      process *llproc = dyninst_process->lowlevel_process();
+      return llproc->multithread_ready();
+   }
+
+   bool wasRunningWhenAttached() { 
+      return dyninst_process->lowlevel_process()->wasRunningWhenAttached();
    }
 
    pd_thread *STthread() { 
@@ -370,18 +453,18 @@ class pd_process {
    *** Fork and Exec handling       ***
    ************************************/
   public:
-   static void paradynPreForkDispatch(process *p, void *data);
-   static void paradynPostForkDispatch(process *p, void *data, process *c);
-   static void paradynPreExecDispatch(process *p, void *data, char *arg0);
-   static void paradynPostExecDispatch(process *p, void *data);
-   static void paradynPreExitDispatch(process *p, void *data, int code);
+   static void paradynPreForkDispatch(BPatch_thread *parent,
+                                      BPatch_thread *child);
+   static void paradynPostForkDispatch(BPatch_thread *parent,
+                                       BPatch_thread *child);
+   static void paradynExecDispatch(BPatch_thread *thread);
+   static void paradynExitDispatch(BPatch_thread *thread, int exitCode);
 
   private:
-   void preForkHandler(process *p);
-   void postForkHandler(process *p, process *c);
-   void preExecHandler(process *p, char *arg0);
-   void postExecHandler(process *p);
-   void preExitHandler(process *p, int code);
+   void preForkHandler();
+   void postForkHandler(BPatch_thread *child);
+   void execHandler();
+   void exitHandler();
    
   /************************************
    *** Runtime library functions    ***
@@ -392,46 +475,46 @@ class pd_process {
    bool loadParadynLib(load_cause_t ldcause);
   
   private:
-  libraryState_t paradynRTState;
-  libraryState_t auxLibState; // Needed for solaris
-  
-  // We load via an inferior RPC, so we need a callback
-  static void paradynLibLoadCallback(process *, unsigned /* rpc_id */,
-                                     void *data, void *ret);
-  void setParadynLibLoaded() { setLibState(paradynRTState, libLoaded); }
-
-  // Replace with BPatch::loadLibrary
-  bool loadAuxiliaryLibrary(pdstring libname);
-  static void loadAuxiliaryLibraryCallback(process *, unsigned /* rpc_id */,
-                                           void *data, void *ret);
-  
-  // Sets the parameters to paradynInit
-  bool setParadynLibParams(load_cause_t ldcause);
-  // And associated callback function
-  static void setParadynLibParamsCallback(process *p, pdstring libname, 
-                                          shared_object *libobj, void *data);
-
-  // Handles final initialization
-  bool finalizeParadynLib();
-  // For when we can't call paradynInit from _init method
-  bool iRPCParadynInit();
-  static void paradynInitCompletionCallback(process *, unsigned /* rpc_id */,
+   libraryState_t paradynRTState;
+   libraryState_t auxLibState; // Needed for solaris
+   
+   // We load via an inferior RPC, so we need a callback
+   static void paradynLibLoadCallback(process *, unsigned /* rpc_id */,
+                                      void *data, void *ret);
+   void setParadynLibLoaded() { setLibState(paradynRTState, libLoaded); }
+   
+   // Replace with BPatch::loadLibrary
+   bool loadAuxiliaryLibrary(pdstring libname);
+   static void loadAuxiliaryLibraryCallback(process *, unsigned /* rpc_id */,
                                             void *data, void *ret);
+   
+   // Sets the parameters to paradynInit
+   bool setParadynLibParams(load_cause_t ldcause);
+   // And associated callback function
+   static void setParadynLibParamsCallback(process *p, pdstring libname, 
+                                           shared_object *libobj, void *data);
+   
+   // Handles final initialization
+   bool finalizeParadynLib();
+   // For when we can't call paradynInit from _init method
+   bool iRPCParadynInit();
+   static void paradynInitCompletionCallback(process *, unsigned /* rpc_id */,
+                                             void *data, void *ret);
+   
+   bool extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record);
+   
+   bool getParadynRTname();
+   
+   /*************************************************************
+    **** Process state variables                             ****
+    *************************************************************/
+ private:
+   
+   bool inExec;
   
-  bool extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record);
-
-  bool getParadynRTname();
-
-  /*************************************************************
-   **** Process state variables                             ****
-   *************************************************************/
-  private:
+   Address sharedMetaDataOffset;
   
-  bool inExec;
-
-  Address sharedMetaDataOffset;
-
-  pdstring paradynRTname;
+   pdstring paradynRTname;
 };
 
 
