@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.110 2002/10/14 21:02:05 bernat Exp $
+// $Id: aix.C,v 1.111 2002/10/28 04:54:44 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -584,17 +584,28 @@ bool dyn_lwp::executingSystemCall()
 {
   // lwp -- we may care about a particular thread.
   errno = 0;
+  int retCode = 0;
   if (lwp_) {
     // Easiest way to check: try to read GPRs and see
     // if we get EPERM back
     struct ptsprs spr_contents;
     P_ptrace(PTT_READ_SPRS, lwp_, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
   }
-  else
-    P_ptrace(PT_READ_GPR, proc_->getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
+  else {
+     // aix 4.1 likes int *
+     retCode = P_ptrace(PT_READ_GPR, proc_->getPid(), (int *) IAR, 0, 0); 
+  }
   
-  if (errno == EPERM) {
-    return true;
+  if(retCode == -1) {
+     if (errno == EPERM) {
+        return true;
+     } else {
+        if(lwp_)  perror("dyn_lwp::executingSystemCall() failed on call to "
+                         "P_ptrace(PTT_READ_SPRS");
+        else      perror("dyn_lwp::executingSystemCall() failed on call to "
+                         "PT_READ_GPR");
+        assert(false);
+     }
   }
   return false;
 }
@@ -1779,6 +1790,78 @@ pdyn_search_cpi(pm_info_t *myinfo, int evs[], int mappings[])
 
 #if !defined(BPATCH_LIBRARY)
 
+/*
+// Useful for debugging.  Keeps a history of last CT_MAXRECS of daemon
+// side time queries (along with the previous_time).
+#define CT_MAXRECS 20
+#define CT_NUMPOS 4
+
+typedef struct {
+   rawTime64 cpu_time;
+   rawTime64 prev_time;   
+   unsigned lwp;
+   unsigned thr;
+} rec_t;
+
+rec_t lastVT[CT_NUMPOS][CT_MAXRECS];
+int ct_index[CT_NUMPOS] = { -1, -1, -1, -1 };
+
+void ct_record(unsigned pos, rawTime64 cput, rawTime64 prevt, unsigned lwp_,
+               unsigned thr_) {
+   assert(pos != 0);
+   assert(pos < CT_NUMPOS);
+   int index, circ_index;
+   index = ++ct_index[pos];
+   circ_index = index % CT_MAXRECS;
+
+   rec_t *rec = &lastVT[pos][circ_index];
+   rec->cpu_time = cput;
+   rec->prev_time = prevt;
+   rec->lwp = lwp_;
+   rec->thr = thr_;
+}
+
+void ct_showTraceB(int pos) {
+   int index = ct_index[pos];   
+   int rctr = 1;
+   fprintf(stderr,"  ----- showTrace, pos = %d  ---------------------\n", pos);
+   int rnum;
+   for(rnum = index % CT_MAXRECS; rnum >= 0; rnum--, rctr++) {
+      rec_t *rec = &lastVT[pos][rnum];
+      fprintf(stderr, "%d, cput: %lld, prevt: %lld, lwp: %u, thr: %u", rctr,
+              rec->cpu_time, rec->prev_time, rec->lwp, rec->thr);
+      if(rec->cpu_time < rec->prev_time) fprintf(stderr, " (RB)\n");
+      else fprintf(stderr, "\n");
+   }
+
+   if(index > CT_MAXRECS) {
+      int circ_index = index % CT_MAXRECS;
+      for(rnum = CT_MAXRECS-1; rnum>circ_index; rnum--, rctr++) {
+         rec_t *rec = &lastVT[pos][rnum];
+         fprintf(stderr, "%d, cput: %lld, prevt: %lld, lwp: %d, thr: %d\n", 
+                 rctr, rec->cpu_time, rec->prev_time, rec->lwp, rec->thr);
+         if(rec->cpu_time < rec->prev_time) fprintf(stderr, " (RB)\n");
+         else fprintf(stderr, "\n");
+      }
+   }
+}
+
+void ct_showTrace(char *msg) {
+   fprintf(stderr, "======================================================\n");
+   fprintf(stderr, "   %s\n", msg);
+   int curPos;
+   for(curPos=0; curPos<CT_NUMPOS; curPos++) {
+      int index = ct_index[curPos];
+      if(index == -1)  { fprintf(stderr, "pos skipped\n"); continue; }
+      ct_showTraceB(curPos);
+   }
+   fprintf(stderr,"=======================================================\n");
+   fflush(stderr);
+}
+
+extern unsigned pos_junk;
+*/
+
 rawTime64 dyn_lwp::getRawCpuTime_hw() 
 {
 #ifdef USES_PMAPI
@@ -1841,6 +1924,9 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
     while(1);
   }
   result = data.accu[pdyn_counter_mapping[CYC_INDEX]];
+
+  //if(pos_junk != 101)
+  //  ct_record(pos_junk, result, hw_previous_, lwp_, thr);
 
   if (result < hw_previous_) {
     logLine("********* time going backwards in paradynd **********\n");
