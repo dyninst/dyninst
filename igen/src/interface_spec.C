@@ -162,7 +162,7 @@ bool interface_spec::gen_prelude(ofstream &out_stream, const bool &server) const
 }
 
 
-bool interface_spec::gen_stl_bundler(ofstream &out_h, ofstream &out_c) const {
+bool interface_spec::gen_stl_bundler(ofstream &out_h, ofstream &/*out_c*/) const {
   if (Options::ml->address_space() == message_layer::AS_one) 
     return true;
 
@@ -211,7 +211,7 @@ bool interface_spec::gen_stl_bundler(ofstream &out_h, ofstream &out_c) const {
   return true;
 }
 
-bool interface_spec::gen_stl_bundler_ptr(ofstream &out_h, ofstream &out_c) const {
+bool interface_spec::gen_stl_bundler_ptr(ofstream &out_h, ofstream &/*out_c*/) const {
   if (Options::ml->address_space() == message_layer::AS_one) 
     return true;
 
@@ -318,7 +318,7 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
   return true;
 }
 
-bool interface_spec::gen_inlines(ofstream &out_stream, const bool &server) const {
+bool interface_spec::gen_inlines(ofstream &/*out_stream*/, const bool &/*server*/) const {
 	    
   return true;
 }
@@ -454,7 +454,7 @@ bool interface_spec::gen_ctor_body(ofstream &out_stream, const bool &server) con
   return true;
 }
 
-bool interface_spec::gen_dtor_body(ofstream &out_stream, const bool &server) const {
+bool interface_spec::gen_dtor_body(ofstream &/*out_stream*/, const bool &/*server*/) const {
   // gen_dtor_hdr(out_stream, server, false);
   // out_stream << "{ }\n";
   return true;
@@ -608,7 +608,7 @@ bool interface_spec::gen_stl_temps() const {
 	Options::temp_dot_c << "#include "
 	  << Options::stl_types[stl_index].include_file << "\n";
       }
-      for (int el_index=0; el_index < Options::stl_types[stl_index].elements.size();
+      for (unsigned el_index=0; el_index < Options::stl_types[stl_index].elements.size();
 	   el_index++) {
 	Options::temp_dot_c << "template class " <<
 	  Options::stl_types[stl_index].name << "<"

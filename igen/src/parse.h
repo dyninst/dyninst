@@ -480,8 +480,10 @@ public:
       return name;
     else if (all_types.defines(type_prefix()+name))
       return (type_prefix()+name);
-    else 
+    else {
       abort();
+      return(NULL); // some compilers will complain if we don't return a value
+    }
   }
   static bool stl_seen;
   static bool dont_gen_handle_err;

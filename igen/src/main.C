@@ -588,7 +588,8 @@ bool arg::tag_bundle_send_many(ofstream &out_stream, const string bundle_val,
 bool arg::tag_bundle_send_one(ofstream &, const string,
 			  const string, const string) const 
 {
-  
+  abort();
+  return false;
 }
 
 string type_defn::qual_id() const { return (Options::type_prefix()+unqual_id());}
@@ -599,6 +600,7 @@ bool type_defn::assign_to(const string prefix, const vector<arg*> &alist,
   assert (alist.size() == arglist_.size());
   for (unsigned i=0; i<alist.size(); i++) 
     out_stream << prefix << arglist_[i]->name() << " = " << alist[i]->name() << ";\n";
+  return true;
 }
 
 bool type_defn::is_same_type(vector<arg*> *arglist) const {
@@ -788,7 +790,7 @@ bool type_defn::gen_bundler_ptr(const string class_prefix, const string bundler_
   if (pointer_used())
     do_it = true;
   else if (is_class()) {
-    type_defn *curr_defn = this;
+    const type_defn *curr_defn = this;
     while (curr_defn->is_derived()) {
       if (!Options::all_types.defines(curr_defn->parent())) {
 	cerr << "Parent " << curr_defn->parent() << " should be defined\n";
