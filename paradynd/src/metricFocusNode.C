@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.82  1996/03/06 19:59:25  naim
+ * Revision 1.83  1996/03/06 20:09:47  naim
+ * Yet another minor change - naim
+ *
+ * Revision 1.82  1996/03/06  19:59:25  naim
  * Minor fix - naim
  *
  * Revision 1.81  1996/03/06  19:32:49  naim
@@ -405,7 +408,7 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
 #include "costmetrics.h"
 
 #ifdef sparc_tmc_cmost7_3
-extern "C" int getNumberOfCPUs();
+extern int getNumberOfCPUs();
 #endif
 
 double currentPredictedCost = 0.0;
