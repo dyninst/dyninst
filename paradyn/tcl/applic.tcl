@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.7  1994/11/03 16:10:42  rbi
+# Revision 1.8  1994/11/03 17:59:38  rbi
+# Added a little bit of error handling.
+#
+# Revision 1.7  1994/11/03  16:10:42  rbi
 # New process definition interface.
 #
 # Revision 1.6  1994/08/23  18:01:11  karavan
@@ -34,7 +37,7 @@ global env
 
 # define all of the main frames
   set T $W.title
-  label $T -text "Define a Process" \
+  label $T -text "Define A Process" \
             -anchor center -relief raised \
             -font "-Adobe-times-bold-r-normal--*-120*" 
   set D $W.data
@@ -87,6 +90,7 @@ global env
     -command {destroy .pDefn}
   $B.cancel configure -activebackground red3
   pack $B.accept $B.cancel -side left -padx 8 -expand no -fill x
+  focus $D.user.ent
 }
 
 proc AcceptNewApplicDefn {user machine daemon cmd} {
@@ -109,7 +113,8 @@ proc AcceptNewApplicDefn {user machine daemon cmd} {
   set retval [catch $pcmd]
 
   if {$retval == 1} {
-     puts stdout "APPLICATION DEFINITION ERROR!!"
+    set result "Illegal Process Definition"
+    eval [list uimpd showError 25 $result]
   }
   destroy .pDefn
 }
