@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.19  1995/08/24 15:04:31  hollings
+ * Revision 1.20  1995/08/29 21:47:24  mjrg
+ * added third argument to declaration of initInferiorHeap.
+ *
+ * Revision 1.19  1995/08/24  15:04:31  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -336,7 +339,7 @@ bool process::writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf
 process *createProcess(const string file, vector<string> argv, vector<string> envp);
 process *allocateProcess(int pid, const string name);
 
-void initInferiorHeap(process *proc, bool globalHeap);
+void initInferiorHeap(process *proc, bool globalHeap, bool textHeap);
 void copyInferiorHeap(process *from, process *to);
 
 typedef enum { textHeap, dataHeap } inferiorHeapType;
