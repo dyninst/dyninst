@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdld.h,v 1.17 2002/05/14 19:00:29 schendel Exp $
+// $Id: mdld.h,v 1.18 2002/10/15 17:11:54 schendel Exp $
 
 #if !defined(mdl_daemon_hdr)
 #define mdl_daemon_hdr
@@ -57,11 +57,11 @@ extern bool mdl_metric_data(const string&, mdl_inst_data&);
 
 extern machineMetFocusNode *makeMachineMetFocusNode(int mid, 
                                     const Focus& focus, const string &met_name,
-				    vector<process *> procs,
+				    vector<pd_process *> procs,
 				    bool replace_components_if_present,
 				    bool enable);
 extern processMetFocusNode *makeProcessMetFocusNode(const Focus& focus, 
-				    const string &met_name, process * procs,
+				    const string &met_name, pd_process *procs,
 				    bool replace_components_if_present,
 				    bool enable);
 
