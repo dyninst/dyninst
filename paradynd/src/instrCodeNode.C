@@ -60,7 +60,6 @@ dictionary_hash<string, instrCodeNode_Val*>
                            instrCodeNode::allInstrCodeNodeVals(string::hash);
 
 instrCodeNode_Val::~instrCodeNode_Val() {
-  cerr << "Deleting code node_val" << endl;
   for (unsigned i=0; i<instRequests.size(); i++) {
     instRequests[i].disable(); // calls deleteInst()
   }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.4 2002/06/10 19:25:12 bernat Exp $
+/* $Id: shmMgr.C,v 1.5 2002/06/10 19:45:03 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -106,7 +106,6 @@ static unsigned align(unsigned num, unsigned alignmentFactor) {
 Address shmMgr::malloc(unsigned size) {
   if (freespace < size)
     return 0;
-  cerr << "Allocating size " << size << endl;
   num_allocated++;
   // Next, check to see if this size matches any of the preallocated
   // chunks
@@ -144,7 +143,6 @@ void shmMgr::free(Address addr)
 
 void shmMgr::preMalloc(unsigned size, unsigned num)
 {
-  cerr << "Preallocating " << num << " of size " << size << endl;
   Address baseAddr = this->malloc(size*num);
   shmMgrPreallocInternal *new_prealloc = new shmMgrPreallocInternal(size, num, baseAddr);
   prealloc.push_back(new_prealloc);
@@ -156,10 +154,9 @@ shmMgrPreallocInternal::shmMgrPreallocInternal(unsigned size, unsigned num, Addr
   size_ = size;
   numElems_ = num;
   currAlloc_ = 0;
-  cerr << "Created preallocated chunk of " << numElems_ << " pieces, size " << size_ << " at " << (void *)baseAddr_ << endl; 
   // Round up to 8 for purposes of bitmapping.
-  unsigned rounded_num;
-  if (num % 8) {
+  unsigned rounded_num = num;
+  if (rounded_num % 8) {
     rounded_num = num + 8;
     rounded_num -= (rounded_num % 8);
   }
@@ -211,9 +208,7 @@ Address shmMgrPreallocInternal::malloc()
   // and calculate the return address
   bitmap_[next_free_block] += 0x1 << next_free_slot;
   currAlloc_++;
-  cerr << "Returned preallocated, " << next_free_block << " " << next_free_slot << endl;
   Address retAddr = baseAddr_ + (((next_free_block * 8) + next_free_slot) * size_);
-  cerr << "Returning " << (void *) retAddr << endl;
   return retAddr;
 }
 

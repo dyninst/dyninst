@@ -156,13 +156,11 @@ void instrDataNode::disable()
 void instrDataNode::incRefCount()
 {
   refCount++;
-  cerr << "Incrementing ref count for " << (void *)this << ", " << refCount << endl;
 }
 
 void instrDataNode::decRefCount()
 {
   refCount--;
-  cerr << "Decrementing ref count for " << (void *)this << ", " << refCount << endl;
   if (refCount == 0)
     delete this;
 }
