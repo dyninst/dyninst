@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.32  1995/11/22 00:02:31  mjrg
+ * Revision 1.33  1995/12/08 16:07:27  naim
+ * Error message changed (adding newline) - naim
+ *
+ * Revision 1.32  1995/11/22  00:02:31  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
  * Removed -f and -t arguments to paradyn
@@ -219,7 +222,7 @@ void initPrimitiveCost()
     // cost per call DYNINSTstopWallTimer 22.550000 usec 
     // cost per call DYNINSTstartProcessTimer 14.650000 usec 
     // cost per call DYNINSTstopProcessTimer 24.550000 usec 
-    logLine("Solaris dyninst costs being used");
+    logLine("Solaris dyninst costs being used\n");
 
     primitiveCosts["DYNINSTstartWallTimer"] = 468;
     primitiveCosts["DYNINSTstopWallTimer"] = 900;
