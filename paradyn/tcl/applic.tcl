@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.11  1994/11/09 18:39:51  rbi
+# Revision 1.12  1994/11/11 23:00:49  rbi
+# added documentation and allowed definition of default daemon
+#
+# Revision 1.11  1994/11/09  18:39:51  rbi
 # the "Don't Blame Me" commit
 #
 # Revision 1.10  1994/11/04  16:30:00  rbi
@@ -36,8 +39,35 @@
 # initial version.
 #
 
-set applicDaemon defd
+#
+#  Process definitions depend on several global variables.
+#
+#  applicDaemon  -- name of the paradyn daemon
+#  applicUser    -- user name
+#  applicMachine -- machine to use
+#  applicCmd     -- command to run (including arguments)
+#
+#  It would be nice if there were a better way to specify defaults
+#  such as these.
+#
 
+#
+# this is a strange way to say "if default daemon name
+# is not set then set it to defd"
+#
+if {[catch {set applicDaemon}]} {
+  set applicDaemon defd
+}
+
+#
+#  display a dialog box that prompts for daemon, 
+#  user name, machine name, command and arguments
+#
+#  the user finishes selection, the dialog disappears, and 
+#  the new process is started
+#
+#  TODO -- use the dialog creation routine in uimpd file
+#
 proc DefineProcess {} {
   global env applicDaemon applicUser applicMachine applicCmd 
 
@@ -117,6 +147,19 @@ proc DefineProcess {} {
   focus $D.user.ent
 }
 
+#
+#  when the user has accepted a new application definition, 
+#  we invoke this command to start the process.
+#
+#  <cmd> is passed directly to execv() with no
+#  further parsing or substition
+#
+#  any errors in process startup are reported through error dialogs
+#  (i.e. there is no useful return value from this proc)
+#
+#  TODO: we must have very specific reporting of process startup
+#        failures.  the current error message is useless.
+#
 proc AcceptNewApplicDefn {user machine daemon cmd} {
   set pcmd [list paradyn process]
 
