@@ -646,11 +646,12 @@ void metricDefinitionNode::endOfDataCollection() {
 
 // remove a component from an aggregate.
 // "this" is an aggregate mi; "comp" is a component mi.
-void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp) {
+void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp, 
+					       int deleteComp = 1) {
   unsigned size = components.size();
   for (unsigned u = 0; u < size; u++) {
     if (components[u] == comp) {
-      delete components[u];
+      if (deleteComp) delete components[u];
       components[u] = NULL;
       components[u] = components[size-1];
       components.resize(size-1);
@@ -681,7 +682,7 @@ void metricDefinitionNode::removeThisInstance() {
   //for (unsigned u = 0; u < aggr_size; u++) {
   for (unsigned u = 0; u < aggregators.size() && u < samples.size(); u++) {
     aggregators[u]->aggSample.removeComponent(samples[u]);
-    aggregators[u]->removeFromAggregate(this); 
+    aggregators[u]->removeFromAggregate(this, 0); 
   }
 }
 
