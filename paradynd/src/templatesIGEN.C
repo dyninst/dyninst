@@ -129,6 +129,9 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_instr_
                         	      bool_t (*)(XDR*, T_dyninstRPC::mdl_instr_rand**),
 				      T_dyninstRPC::mdl_instr_rand**);
 
+template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::resourceInfoCallbackStruct> *, int (*)(XDR *, T_dyninstRPC::resourceInfoCallbackStruct *), T_dyninstRPC::resourceInfoCallbackStruct *);
+
+template class vector<T_dyninstRPC::resourceInfoCallbackStruct>;
 
 
 // added for batchSampleDataCallbackFunc
