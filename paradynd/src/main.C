@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.133 2005/03/07 21:36:21 mjbrim Exp $
+// $Id: main.C,v 1.134 2005/03/07 21:39:53 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -277,7 +277,7 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
 //which MPI implementation is used.
 void RPC_do_environment_work(pdstring pd_flavor, pdstring MPI_impl){
   if(pd_flavor == "mpi"){
-    char * temp = (char *)malloc((strlen("PARADYN_MPI=") + MPI_impl.length())*sizeof(char)) ;
+    char * temp = (char *)malloc((strlen("PARADYN_MPI=") + MPI_impl.length() + 1)*sizeof(char)) ;
     sprintf(temp, "PARADYN_MPI=%s",MPI_impl.c_str());
     //cerr<<"temp is "<<temp<<endl;
     putenv(temp);
