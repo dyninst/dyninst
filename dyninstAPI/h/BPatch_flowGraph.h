@@ -152,7 +152,9 @@ public:
   /** create the tree of loops/callees for this flow graph */
   void createLoopHierarchy();
   
-  void dfsVisit(BPatch_basicBlock*,int*); 
+  void dfsVisitWithTargets(BPatch_basicBlock*,int*); 
+
+  void dfsVisitWithSources(BPatch_basicBlock*,int*); 
   
   void findBackEdges(BPatch_Set<BPatch_basicBlock*>**);
   
@@ -172,6 +174,9 @@ public:
   void insertCalleeIntoLoopHierarchy(function_base * func, unsigned long addr);
 
   void dfsPrintLoops(BPatch_loopTreeNode *n);
+
+  void assignAnExitBlockIfNoneExists();
+
 };
 
 
