@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.50 2002/02/27 23:27:09 hollings Exp $
+// $Id: ast.h,v 1.51 2002/05/04 21:47:15 schendel Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -273,12 +273,12 @@ void removeAst(AstNode *&ast);
 void terminateAst(AstNode *&ast);
 AstNode *createIf(AstNode *expression, AstNode *action, process *proc=NULL);
 #if defined(MT_THREAD)
-AstNode *createCounter(const string &func, void *, void *, AstNode *arg);
-AstNode *createTimer(const string &func, void *, void *, 
+AstNode *createCounter(const string &func, void *, AstNode *arg);
+AstNode *createTimer(const string &func, void *, 
                      vector<AstNode *> &arg_args);
 AstNode *computeAddress(void *level, int type);
 AstNode *addIndexToAddress(AstNode *addr, void *index, int type);
-AstNode *computeTheAddress(void *level, void *index, int type);
+AstNode *computeTheAddress(void *);
 #else
 AstNode *createCounter(const string &func, void *, AstNode *arg);
 AstNode *createTimer(const string &func, void *, 
