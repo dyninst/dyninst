@@ -230,6 +230,7 @@ int Message::send( int sock_fd )
         error( EPACKING, "pdr_uint32() failed\n" );
         free( buf );
         free( iov );
+        free( packet_sizes );
         return -1;
     }
 
@@ -240,6 +241,7 @@ int Message::send( int sock_fd )
         _perror( "write()" );
         free( buf );
         free( iov );
+        free( packet_sizes );
         return -1;
     }
     mrn_printf( 3, MCFL, stderr, "write() succeeded" );
@@ -258,6 +260,7 @@ int Message::send( int sock_fd )
         error( EPACKING, "pdr_vector() failed\n" );
         free( buf );
         free( iov );
+        free( packet_sizes );
         return -1;
     }
 
@@ -269,8 +272,10 @@ int Message::send( int sock_fd )
         _perror( "write()" );
         free( buf );
         free( iov );
+        free( packet_sizes );
         return -1;
     }
+    free( packet_sizes );
     free( buf );
 
 

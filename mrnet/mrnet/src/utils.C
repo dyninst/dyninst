@@ -92,6 +92,9 @@ int execCmd( const std::string command,
         exit( -1 );
     }
 
+    for( i = 0; i < arglist_len+1; ++i ) {
+        free(arglist[i]);
+    }
     delete [] arglist;
     return ( ret == -1 ? -1 : 0 );
 }
