@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.6 1999/01/21 01:26:40 hollings Exp $
+// $Id: inst-alpha.C,v 1.7 1999/03/04 00:04:18 wylie Exp $
 
 #include "util/h/headers.h"
 
@@ -1674,7 +1674,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
 
   // check that we can get to our heap.
   const Address instHeapEnd = 
-        getMaxBranch()+(Address)(symbols->codeOffset)+SYN_INST_BUF_SIZE;
+        getMaxBranch()+(Address)(symbols->codeOffset())+SYN_INST_BUF_SIZE;
   if (instHeapStart > instHeapEnd) {
     logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
     sprintf(errorLine, "    heap starts at 0x%lx\n", instHeapStart);
