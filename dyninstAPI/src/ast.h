@@ -4,7 +4,10 @@
 
 /*
  * $Log: ast.h,v $
- * Revision 1.7  1995/02/16 08:52:55  markc
+ * Revision 1.8  1995/03/10 19:29:13  hollings
+ * Added code to include base tramp cost in first mini-tramp.
+ *
+ * Revision 1.7  1995/02/16  08:52:55  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.6  1995/02/16  08:32:50  markc
@@ -39,7 +42,7 @@ class dataReqNode;
 
 typedef enum { sequenceNode, opCodeNode, operandNode, callNode } nodeType;
 
-typedef enum { Constant, DataValue, DataPtr, Param } operandType;
+typedef enum { Constant, ConstantPtr, DataValue, DataPtr, Param } operandType;
 
 // a register.
 typedef int reg;
@@ -138,7 +141,8 @@ class AstNode {
 	    loperand = l;
 	    roperand = r;
 	};
-	int generateTramp(process *proc, char *i, unsigned &base);
+	int generateTramp(process *proc, char *i, unsigned &base,
+			  int baseTrampCost);
 	reg generateCode(process *proc, registerSpace *rs, char *i, 
 			 unsigned &base);
 	int cost();	// return the # of instruction times in the ast.

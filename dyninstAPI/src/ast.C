@@ -1,7 +1,10 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.12  1995/02/16 08:52:49  markc
+ * Revision 1.13  1995/03/10 19:29:12  hollings
+ * Added code to include base tramp cost in first mini-tramp.
+ *
+ * Revision 1.12  1995/02/16  08:52:49  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.11  1995/02/16  08:32:48  markc
@@ -87,7 +90,9 @@ void registerSpace::resetSpace() {
     highWaterRegister = 0;
 }
 
-int AstNode::generateTramp(process *proc, char *i, unsigned &count)
+int AstNode::generateTramp(process *proc, char *i, 
+			   unsigned &count,
+			   int trampCost)
 {
     int ret;
     int cycles;
@@ -97,7 +102,7 @@ int AstNode::generateTramp(process *proc, char *i, unsigned &count)
     static AstNode *preambleTemplate = new AstNode(trampPreamble, 
 	new AstNode(Constant, (void *) 0), NULL);
     
-    cycles = preambleTemplate->cost() + cost() + trailer->cost();
+    cycles = preambleTemplate->cost() + cost() + trailer->cost() + trampCost;
 
 #ifdef notdef
     print();
@@ -110,9 +115,13 @@ int AstNode::generateTramp(process *proc, char *i, unsigned &count)
 
     regSpace->resetSpace();
 
-    preamble->generateCode(proc, regSpace, i, count);
-    generateCode(proc, regSpace, i, count);
-    ret = trailer->generateCode(proc, regSpace, i, count);
+    if ((type != opCodeNode) || (op != noOp)) {
+	preamble->generateCode(proc, regSpace, i, count);
+	generateCode(proc, regSpace, i, count);
+	ret = trailer->generateCode(proc, regSpace, i, count);
+    } else {
+	return((unsigned) emit(op, 1, 0, 0, i, count));
+    }
 
     delete(preamble);
     return(ret);
@@ -176,6 +185,9 @@ reg AstNode::generateCode(process *proc,
 	dest = rs->allocateRegister();
 	if (oType == Constant) {
 	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base);
+	} else if (oType == ConstantPtr) {
+	    (void) emit(loadConstOp, (reg) (*(unsigned int *) oValue),
+		dest, dest, insn, base);
 	} else if (oType == DataPtr) {
 	    addr = dValue->getInferiorPtr();
 	    (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
