@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.99 2002/05/28 02:19:12 bernat Exp $
+// $Id: ast.C,v 1.100 2002/05/28 14:36:06 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1372,6 +1372,12 @@ Address AstNode::generateCode_phase2(process *proc,
 	Register temp;
 	int tSize;
 	int len;
+#if defined(BPATCH_LIBRARY)
+	BPatch_type *Type;
+	const BPatch_memoryAccess* ma;
+	BPatch_addrSpec_NP start;
+	BPatch_countSpec_NP count;
+#endif
 	switch (oType) {
 	case Constant:
 	  emitVload(loadConstOp, (Address)oValue, dest, dest, 
@@ -1389,7 +1395,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	case DataIndir:
 	  src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 #ifdef BPATCH_LIBRARY
-	  BPatch_type *Type = const_cast<BPatch_type *> (getType());
+	  Type = const_cast<BPatch_type *> (getType());
 	  assert(Type);
 	  tSize = Type->getSize();
 #else
@@ -1465,14 +1471,14 @@ Address AstNode::generateCode_phase2(process *proc,
 #ifdef BPATCH_LIBRARY
 	  // 1. get the point being instrumented & memory access info
 	  assert(location);
-	  const BPatch_memoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
+	  ma = location->getBPatch_point()->getMemoryAccess();
 	  if(!ma) {
 	    fprintf(stderr, "Memory access information not available at this point.\n");
 	    fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
 	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
 	    assert(0);
 	  }
-	  BPatch_addrSpec_NP start = ma->getStartAddr();
+	  start = ma->getStartAddr();
 	  emitASload(start, dest, insn, base, noCost);
 #else
 	  fprintf(stderr, "Effective address feature not supported w/o BPatch!\n");
@@ -1483,14 +1489,14 @@ Address AstNode::generateCode_phase2(process *proc,
 #ifdef BPATCH_LIBRARY
 	  // 1. get the point being instrumented & memory access info
 	  assert(location);
-	  const BPatch_memoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
+	  ma = location->getBPatch_point()->getMemoryAccess();
 	  if(!ma) {
 	    fprintf(stderr, "Memory access information not available at this point.\n");
 	    fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
 	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
 	    assert(0);
 	  }
-	  BPatch_countSpec_NP count = ma->getByteCount();
+	  count = ma->getByteCount();
 	  emitCSload(count, dest, insn, base, noCost);
 #else
 	  fprintf(stderr, "Byte count feature not supported w/o BPatch!\n");

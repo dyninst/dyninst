@@ -4746,7 +4746,7 @@ bool returnInstance::checkReturnInstance(const vector<Frame> &stackWalk, u_int &
   TRACE_B( "returnInstance::checkReturnInstance" );
 
   // if unsafe (ret=false), set "index" to first unsafe call stack index
-  for (u_int i=0; i < stack.size(); i++) {
+  for (u_int i=0; i < stackWalk.size(); i++) {
     index = i;
     if (stackWalk[i].getPC() >= addr_ && stackWalk[i].getPC() < addr_+size_) 
       {
