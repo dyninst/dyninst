@@ -52,8 +52,10 @@ class Histogram {
     public:
 	Histogram(metricStyle);
 	Histogram(Bin *buckets, metricStyle);
+#ifdef notdef
 	void enable() { status = histActive; }
 	void disable() { status = histInactive; }
+#endif
 	sampleValue getValue();
 	sampleValue getValue(timeStamp start, timeStamp end);
 	void addInterval(timeStamp start, timeStamp end, 
@@ -93,7 +95,9 @@ class Histogram {
 	    Interval *intervals;
 	} dataPtr; 
 	List<HistogramSubscriber*> subscribers;
+#ifdef notdef
 	histStatus status;
+#endif
 };
 
 #endif

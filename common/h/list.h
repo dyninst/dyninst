@@ -7,7 +7,13 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.11  1994/02/09 22:37:09  hollings
+ * Revision 1.12  1994/02/10 23:08:21  hollings
+ * Fixed list.h ++ function to work when a hash table has an element at
+ * slot zero in the table.
+ *
+ * Removed unused fields in hist class.
+ *
+ * Revision 1.11  1994/02/09  22:37:09  hollings
  * Added print routines to list and hash table.
  *
  * Revision 1.10  1994/02/08  00:30:32  hollings
@@ -230,9 +236,21 @@ template <class Type> class HTable {
 	}
 	Type find(void *key);
 	Boolean remove(void *key);
-        Type operator *() {
-            Type curr;
+        Type operator =(HTable<Type> arg) {
+	    table = arg.table;
+	    tableSize = arg.tableSize;
 
+	    // find the first item.
+	    currHid = -1;
+	    (*this)++;
+	}
+        Type operator *() {
+            return(*currList);
+        }
+	Type operator ++() {
+	    Type curr;
+
+	    currList++;
             curr = *currList;
             if (curr) return(curr);
             for (currHid++; currHid < tableSize; currHid++) {
@@ -241,15 +259,8 @@ template <class Type> class HTable {
                     curr = *currList;
                     if (curr) return(curr);
                 }
-            }
-            return(NULL);
-        }
-	Type operator ++() {
-	    Type curr;
-
-	    curr = *currList;
-	    currList++;
-	    return(curr);
+	    }
+	    return(NULL);
 	}
 	int count()	{
 	    int i, total;

@@ -16,7 +16,13 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.3  1994/02/08 00:30:39  hollings
+ * Revision 1.4  1994/02/10 23:08:26  hollings
+ * Fixed list.h ++ function to work when a hash table has an element at
+ * slot zero in the table.
+ *
+ * Removed unused fields in hist class.
+ *
+ * Revision 1.3  1994/02/08  00:30:39  hollings
  * Make libutil more compatable with ATT CC.
  *
  * Revision 1.2  1994/01/26  04:53:42  hollings
@@ -111,7 +117,7 @@ void Histogram::addInterval(timeStamp start,
     lastBin = (int) (end / bucketSize);
     lastGlobalBin = lastBin;
     for (h=allHist; h; h=h->next) {
-	if ((h->status == histActive) && (h->lastBin < lastGlobalBin)) {
+	if ((h->lastBin < lastGlobalBin)) {
 	    lastGlobalBin = h->lastBin;
 	}
     }
