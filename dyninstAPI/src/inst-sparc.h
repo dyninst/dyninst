@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.45 2000/08/02 22:00:24 tikir Exp $
+// $Id: inst-sparc.h,v 1.46 2000/08/22 16:33:25 pcroth Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -120,31 +120,6 @@ inline Address ABS(int x) {
 
 #define MAX_IMM13       (4095)
 #define MIN_IMM13       (-4096)
-
-
-#define REG_G0          0
-/* #ifdef REG_G5 */
-/* #undef REG_G5 */
-/* #endif */
-/* #define	REG_G5		5 */
-/* #ifdef REG_G6 */
-/* #undef REG_G6 */
-/* #endif */
-/* #define	REG_G6		6 */
-/* #ifdef REG_G7 */
-/* #undef REG_G7 */
-/* #endif */
-/* #define	REG_G7		7 */
-
-/* #ifdef REG_O7 */
-/* #undef REG_O7 */
-/* #endif */
-/* #define REG_O7    	15 */
-/* #define REG_I7    	31 */
-
-#define REG_L0          16
-#define REG_L1          17
-#define REG_L2          18
 
 #define REG_SPTR          14
 #define REG_FPTR          30

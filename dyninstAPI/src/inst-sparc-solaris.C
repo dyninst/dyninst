@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.69 2000/08/02 22:00:22 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.70 2000/08/22 16:33:26 pcroth Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -552,15 +552,15 @@ void generate_base_tramp_recursive_guard_code( process & p,
   /* fill the 'guard on' pre-instruction instrumentation */
   curr_instr = code + templ.guardOnPre_beginOffset / sizeof( instruction );
   curr_addr = base_addr + templ.guardOnPre_beginOffset;
-  generateSetHi( curr_instr, guard_flag_address, REG_L0 );
+  generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
   curr_instr++; curr_addr += sizeof( instruction );
-  genSimpleInsn( curr_instr, ADDop3, REG_G0, REG_G0, REG_L1 );
+  genSimpleInsn( curr_instr, ADDop3, REG_G(0), REG_G(0), REG_L(1) );
   curr_instr++; curr_addr += sizeof( instruction );
-  generateLoad( curr_instr, REG_L0, LOW10( guard_flag_address ), REG_L2 );
+  generateLoad( curr_instr, REG_L(0), LOW10( guard_flag_address ), REG_L(2) );
   curr_instr++; curr_addr += sizeof( instruction );
-  generateStore( curr_instr, REG_L1, REG_L0, LOW10( guard_flag_address ) );
+  generateStore( curr_instr, REG_L(1), REG_L(0), LOW10( guard_flag_address ) );
   curr_instr++; curr_addr += sizeof( instruction );
-  genSimpleInsn( curr_instr, SUBop3cc, REG_L2, REG_G0, REG_G0 );
+  genSimpleInsn( curr_instr, SUBop3cc, REG_L(2), REG_G(0), REG_G(0) );
   curr_instr++; curr_addr += sizeof( instruction );
   int branch_offset_in_bytes =
     ( base_addr + templ.guardOffPre_endOffset )
@@ -577,24 +577,24 @@ void generate_base_tramp_recursive_guard_code( process & p,
   /* fill the 'guard off' pre-instruction instrumentation */
   curr_instr = code + templ.guardOffPre_beginOffset / sizeof( instruction );
   curr_addr = base_addr + templ.guardOffPre_beginOffset;
-  generateSetHi( curr_instr, guard_flag_address, REG_L0 );
+  generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
   curr_instr++; curr_addr += sizeof( instruction );
-  genImmInsn( curr_instr, ADDop3, REG_G0, 1, REG_L1 );
+  genImmInsn( curr_instr, ADDop3, REG_G(0), 1, REG_L(1) );
   curr_instr++; curr_addr += sizeof( instruction );
-  generateStore( curr_instr, REG_L1, REG_L0, LOW10( guard_flag_address ) );
+  generateStore( curr_instr, REG_L(1), REG_L(0), LOW10( guard_flag_address ) );
 
   /* fill the 'guard on' post-instruction instrumentation */
   curr_instr = code + templ.guardOnPost_beginOffset / sizeof( instruction );
   curr_addr = base_addr + templ.guardOnPost_beginOffset;
-  generateSetHi( curr_instr, guard_flag_address, REG_L0 );
+  generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
   curr_instr++; curr_addr += sizeof( instruction );
-  genSimpleInsn( curr_instr, ADDop3, REG_G0, REG_G0, REG_L1 );
+  genSimpleInsn( curr_instr, ADDop3, REG_G(0), REG_G(0), REG_L(1) );
   curr_instr++; curr_addr += sizeof( instruction );
-  generateLoad( curr_instr, REG_L0, LOW10( guard_flag_address ), REG_L2 );
+  generateLoad( curr_instr, REG_L(0), LOW10( guard_flag_address ), REG_L(2) );
   curr_instr++; curr_addr += sizeof( instruction );
-  generateStore( curr_instr, REG_L1, REG_L0, LOW10( guard_flag_address ) );
+  generateStore( curr_instr, REG_L(1), REG_L(0), LOW10( guard_flag_address ) );
   curr_instr++; curr_addr += sizeof( instruction );
-  genSimpleInsn( curr_instr, SUBop3cc, REG_L2, REG_G0, REG_G0 );
+  genSimpleInsn( curr_instr, SUBop3cc, REG_L(2), REG_G(0), REG_G(0) );
   curr_instr++; curr_addr += sizeof( instruction );
   branch_offset_in_bytes =
     ( base_addr + templ.guardOffPost_endOffset )
@@ -611,11 +611,11 @@ void generate_base_tramp_recursive_guard_code( process & p,
   /* fill the 'guard off' post-instruction instrumentation */
   curr_instr = code + templ.guardOffPost_beginOffset / sizeof( instruction );
   curr_addr = base_addr + templ.guardOffPost_beginOffset;
-  generateSetHi( curr_instr, guard_flag_address, REG_L0 );
+  generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
   curr_instr++; curr_addr += sizeof( instruction );
-  genImmInsn( curr_instr, ADDop3, REG_G0, 1, REG_L1 );
+  genImmInsn( curr_instr, ADDop3, REG_G(0), 1, REG_L(1) );
   curr_instr++; curr_addr += sizeof( instruction );
-  generateStore( curr_instr, REG_L1, REG_L0, LOW10( guard_flag_address ) );
+  generateStore( curr_instr, REG_L(1), REG_L(0), LOW10( guard_flag_address ) );
 }
 
 /****************************************************************************/
