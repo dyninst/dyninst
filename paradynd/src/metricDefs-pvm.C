@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.13 1994/08/17 18:15:34 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.14 1994/09/22 02:18:57 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.13  1994/08/17 18:15:34  markc
+ * Revision 1.14  1994/09/22 02:18:57  markc
+ * Added static class initializers for DYNINSTallMetrics
+ *
+ * Revision 1.13  1994/08/17  18:15:34  markc
  * Removed finishMsgBytesMetric.
  * Moved code to check number of bytes sent to the function entry since
  * the send buffer will be freed by the function exit.
@@ -112,10 +115,13 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  *
  */
+
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+}
 
 #include "symtab.h"
 #include "process.h"
@@ -127,10 +133,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "rtinst/h/trace.h"
 #include "metricDefs-common.h"
 
-extern libraryList msgFilterFunctions;
-extern libraryList msgByteFunctions;
-extern libraryList msgByteSentFunctions;
-extern libraryList msgByteRecvFunctions;
+extern List<libraryFunc*> msgFilterFunctions;
+extern List<libraryFunc*> msgByteFunctions;
+extern List<libraryFunc*> msgByteSentFunctions;
+extern List<libraryFunc*> msgByteRecvFunctions;
 
 // A wall timer is used because the process timer will be stopped
 // on blocking system calls.
@@ -160,13 +166,13 @@ void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
 // ***** Warning this metric is pvm specific. *****
 //
 void createMsgBytesRecvMetric(metricDefinitionNode *mn,
-			      libraryList *funcs,
+			      List<libraryFunc*> *funcs,
 			      AstNode *trigger,
 			      dataReqNode *dataPtr,
 			      dataReqNode *tempCounter)
 {
   AstNode *msgBytesAst;
-  function *func;
+  pdFunction *func;
 
   msgBytesAst =
     new AstNode (
@@ -197,13 +203,13 @@ void createMsgBytesRecvMetric(metricDefinitionNode *mn,
 // ***** Warning this metric is pvm specific. *****
 //
 void createMsgBytesSentMetric(metricDefinitionNode *mn,
-			      libraryList *funcs,
+			      List<libraryFunc*> *funcs,
 			      AstNode *trigger,
 			      dataReqNode *dataPtr,
 			      dataReqNode *tempCounter)
 {
   AstNode *msgBytesAst;
-  function *func;
+  pdFunction *func;
 
   msgBytesAst =
     new AstNode (
@@ -269,7 +275,7 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 			        char *tag, AstNode *trigger)
 {
     int iTag;
-    function *func;
+    pdFunction *func;
     dataReqNode *data;
     AstNode *tagTest;
     AstNode *filterNode, *clearNode;
@@ -411,40 +417,29 @@ resourcePredicate globalOnlyPredicates[] = {
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
-struct _metricRec DYNINSTallMetrics[] = {
-    { { "active_processes", SampledFunction, aggSum, "Processes" },
-      { (createMetricFunc) createActiveProcesses, defaultPredicates },
-    },
-    { { "observed_cost", EventCounter, aggMax, "# CPUs" },
-      { (createMetricFunc) createObservedCost, observedCostPredicates },
-    },
-    { { "cpu", EventCounter, aggSum, "# CPUs" },
-      { (createMetricFunc) createCPUTime, cpuTimePredicates },
-    },
-    { { "exec_time", EventCounter, aggSum, "%Time" },
-      { (createMetricFunc) createExecTime, wallTimePredicates },
-    },
-    { { "procedure_calls", EventCounter, aggSum, "Calls/sec" },
-      { (createMetricFunc) createProcCalls, procCallsPredicates },
-    },
-    { { "msgs", EventCounter, aggSum, "Ops/sec" },
-      { (createMetricFunc) createMsgs, defaultPredicates },
-    },
-    { { "msg_bytes", EventCounter, aggSum, "Bytes/Sec" },
-      { (createMetricFunc) createMsgBytesTotal, defaultPredicates },
-    },
-    { { "msg_bytes_sent", EventCounter, aggSum, "Bytes/Sec" },
-      { (createMetricFunc) createMsgBytesSent, defaultPredicates },
-    },
-    { { "msg_bytes_recv", EventCounter, aggSum, "Bytes/Sec" },
-      { (createMetricFunc) createMsgBytesRecv, defaultPredicates },
-    },
-    { { "sync_ops", EventCounter, aggSum, "Ops/sec" },
-      { (createMetricFunc) createSyncOps, msgPredicates },
-    },
-    { { "sync_wait", EventCounter, aggSum, "# Waiting" },
-      { (createMetricFunc) createSyncWait, msgPredicates },
-    },
+metric DYNINSTallMetrics[] = {
+  metric (dynMetricInfo("active_processes", SampledFunction, aggSum, "Processes"),
+	  metricDefinition((createMetricFunc) createActiveProcesses, defaultPredicates)),
+  metric (dynMetricInfo("observed_cost", EventCounter, aggMax, "# CPUs"),
+	  metricDefinition((createMetricFunc) createObservedCost, observedCostPredicates)),
+  metric (dynMetricInfo("cpu", EventCounter, aggSum, "# CPUs"),
+	  metricDefinition((createMetricFunc) createCPUTime, cpuTimePredicates)),
+  metric (dynMetricInfo("exec_time", EventCounter, aggSum, "%Time"),
+	  metricDefinition((createMetricFunc) createExecTime, wallTimePredicates)),
+  metric (dynMetricInfo("procedure_calls", EventCounter, aggSum, "Calls/sec"),
+	  metricDefinition((createMetricFunc) createProcCalls, procCallsPredicates)),
+  metric (dynMetricInfo( "msgs", EventCounter, aggSum, "Ops/sec"),
+	  metricDefinition((createMetricFunc) createMsgs, defaultPredicates)),
+  metric (dynMetricInfo( "msg_bytes", EventCounter, aggSum, "Bytes/Sec"),
+	  metricDefinition((createMetricFunc) createMsgBytesTotal, defaultPredicates)),
+  metric (dynMetricInfo("msg_bytes_sent", EventCounter, aggSum, "Bytes/Sec"),
+	  metricDefinition((createMetricFunc) createMsgBytesSent, defaultPredicates)),
+  metric (dynMetricInfo("msg_bytes_recv", EventCounter, aggSum, "Bytes/Sec"),
+	  metricDefinition((createMetricFunc) createMsgBytesRecv, defaultPredicates)),
+  metric (dynMetricInfo( "sync_ops", EventCounter, aggSum, "Ops/sec"),
+	  metricDefinition((createMetricFunc) createSyncOps, msgPredicates)),
+   metric (dynMetricInfo( "sync_wait", EventCounter, aggSum, "# Waiting"),
+	   metricDefinition((createMetricFunc) createSyncWait, msgPredicates))
 };
 
 int metricCount = sizeof(DYNINSTallMetrics)/sizeof(DYNINSTallMetrics[0]);
