@@ -574,8 +574,8 @@ apply_to_process(process *proc,
 	// TODO -- cache these created flags
 	dataReqNode *flag = NULL;
 	if (! (flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc, computingCost))) {
-	  //delete mn;
 	  mn->disable();
+          delete mn;
 	  return NULL;
 	}
 	assert(flag);
@@ -588,8 +588,8 @@ apply_to_process(process *proc,
       dataReqNode *flag = NULL;
       if (!base_use->apply(mn, flag, focus[base_dex], proc, computingCost)) {
 	// cout << "apply of " << name << " failed\n";
-	//delete mn;
 	mn->disable();
+        delete mn;
 	return NULL;
       }
     } else {
@@ -597,16 +597,16 @@ apply_to_process(process *proc,
       for (unsigned u=0; u<size; u++) {
 	if (!(*stmts)[u]->apply(mn, flags)) { // virtual fn call depending on the statement type
 	  // cout << "apply of " << name << " failed\n";
-	  //delete mn;
-	  mn->disable();  
+	  mn->disable();
+	  delete mn;
 	  return NULL;
 	}
       }
     }
 
     if (!mn->nonNull()) {
-      //delete mn;
       mn->disable();
+      delete mn;
       return NULL;
     }
 

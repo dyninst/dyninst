@@ -1433,8 +1433,13 @@ metricDefinitionNode::~metricDefinitionNode()
     } else {
       allMIComponents.undef(flat_name_);
       unsigned size = dataRequests.size();
-      for (unsigned u=0; u<size; u++)
-        delete dataRequests[u];
+      vector< vector<unsigned> > pointsToCheck;
+      while (size>0) {
+         dataRequests[size-1]->disable(proc_,pointsToCheck);
+         delete dataRequests[size-1];
+         dataRequests.resize(size-1);
+         size=dataRequests.size();
+      }
     }
 }
 
