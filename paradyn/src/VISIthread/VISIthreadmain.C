@@ -21,269 +21,6 @@
 //   		VISIthreadnewMetricCallback, VISIthreadFoldCallback 
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
-/* $Log: VISIthreadmain.C,v $
-/* Revision 1.74  1996/05/31 23:51:14  tamches
-/* removed globals->pid (no longer used) to correspond to
-/* new syntax of RPCprocessCreate.
-/*
- * Revision 1.73  1996/05/07 18:05:22  newhall
- * added call to UI routine threadExiting before exiting VISIthread
- *
- * Revision 1.72  1996/05/06  17:13:11  newhall
- * changed arguments to enableDataRequest
- *
- * Revision 1.71  1996/05/01  18:56:03  newhall
- * bug fix: check size of partPair after call to VISIthreadWaitForEnableResponse
- *
- * Revision 1.70  1996/05/01  18:08:03  newhall
- * purify fixes
- *
- * Revision 1.69  1996/04/30  18:55:31  newhall
- * changes to support the asynchrounous enable data calls to the DM
- * this code contains a kludge to make the VISIthread wait for the DM's
- * async response
- *
- * Revision 1.68  1996/04/21  22:08:56  newhall
- * added callbacks.cFunc
- *
- * Revision 1.67  1996/04/19  21:25:10  newhall
- * replaced call to msg_poll with msg_poll_preference
- *
- * Revision 1.66  1996/04/04  21:54:24  newhall
- * changes to enable routines so that they only enable mi_limit metric/focus
- * pairs if mi_limit has a positive value, also use the value of DM_DATABUF_LIMIT
- * to limit the size of the buffer used to send data values to the visi
- *
- * Revision 1.65  1996/03/14  14:22:23  naim
- * Batching enable data requests for better performance - naim
- *
- * Revision 1.64  1996/02/21  22:28:49  tamches
- * added \n to showError 86 call
- *
- * Revision 1.63  1996/02/19 18:19:11  newhall
- * fix to avoid error #16 when a visi exits
- *
- * Revision 1.62  1996/02/13  06:24:41  newhall
- * removed assert stmts that shouldn't have been there.
- *
- * Revision 1.61  1996/02/07  18:51:02  tamches
- * oops;undid the changes of previous version.
- *
- * Revision 1.60  1996/02/06 23:10:01  tamches
- * don't delete newMetRes...
- *
- * Revision 1.59  1996/02/05 18:51:55  newhall
- * Change to DM interface: StartPhase and newPhaseCallback
- *
- * Revision 1.58  1996/01/31  19:56:18  newhall
- * added comments
- *
- * Revision 1.57  1996/01/05 20:01:00  newhall
- * removed warnings
- *
- * Revision 1.56  1995/12/18 23:21:58  newhall
- * changed metric units type so that it can have one of 3 values (normalized,
- * unnormalized or sampled)
- *
- * Revision 1.55  1995/12/13 03:19:25  newhall
- * update for new return values from some DM interface functions
- *
- * Revision 1.54  1995/12/03 21:33:00  newhall
- * changes to support new sampleDataCallbackFunc
- *
- * Revision 1.53  1995/11/30 16:51:53  naim
- * Minor fix: abbreviating focusName for error message displaying  - naim
- *
- * Revision 1.52  1995/11/21  15:17:25  naim
- * Changing the way we were displaying error messages when a metric was not
- * enabled. Currently, if a selected metric has already been enabled, then we
- * take no action. If the metric cannot be enabled then we display an error
- * message including the name of the metric and the corresponding focus - naim
- *
- * Revision 1.51  1995/11/20  03:33:28  tamches
- * Changed buffer variables; optimized code that write to & flushes it.
- * Added flush_buffer_if_full() and flush_buffer_if_nonempty() helper routines.
- * No more checks for a null buffer.  No need to create a temporary buffer
- * (and do a copy) when sending a full buffer (however, still need to when sending
- * a less-than-full one).
- *
- * Revision 1.50  1995/11/17 17:21:04  newhall
- * added normalized field to metrics
- *
- * Revision 1.49  1995/11/08  06:26:56  tamches
- * removed some warnings
- *
- * Revision 1.48  1995/11/03 00:07:27  newhall
- * removed sending SIGKILL signal to visi process before thread exits
- *
- * Revision 1.47  1995/10/13  22:08:54  newhall
- * added phaseType parameter to VISIthreadDataHandler.   Purify fixes.
- *
- * Revision 1.46  1995/10/12  19:44:29  naim
- * Adding error recovery when a visi cannot be created. This change
- * implies that whenever the visiUser constructor is used, it
- * is the user's responsability to check whether the new object have been
- * successfully created or not (i.e. by checking the public method
- * bool errorConditionFound in class visualizationUser) - naim
- *
- * Revision 1.45  1995/09/26  20:48:43  naim
- * Minor error messages changes
- *
- * Revision 1.44  1995/09/18  18:22:34  newhall
- * changes to avoid for-scope problem
- *
- * Revision 1.43  1995/08/08  03:13:10  newhall
- * updates due to changes in DM: newPerfData, sampleDataCallbackFunc defs.
- *
- * Revision 1.42  1995/08/05  17:10:46  krisna
- * use `0' for `NULL'
- *
- * Revision 1.41  1995/08/01 02:18:41  newhall
- * changes to support phase interface
- *
- * Revision 1.40  1995/07/06  01:53:58  newhall
- * fixed arguments to RPCprocessCreate (I have no idea why this worked before)
- *
- * Revision 1.39  1995/06/02  20:54:34  newhall
- * made code compatable with new DM interface
- * replaced List templates  with STL templates
- *
- * Revision 1.38  1995/02/26  02:08:34  newhall
- * added some of the support for the phase interface
- * fix so that the vector of data values are being
- * correctly filled before call to BulkDataTransfer
- *
- * Revision 1.37  1995/02/16  19:10:56  markc
- * Removed start slash from comments
- * Removed start slash from comments
- *
- * Revision 1.36  1995/02/16  08:22:29  markc
- * Changed Boolean to bool
- * Changed wait loop code for igen messages - check for buffered messages
- * Changed char igen-array code to use strings/vectors for igen functions
- *
- * Revision 1.35  1995/01/26  17:59:12  jcargill
- * Changed igen-generated include files to new naming convention; fixed
- * some bugs compiling with gcc-2.6.3.
- *
- * Revision 1.34  1995/01/05  19:23:10  newhall
- * changed the size of the data buffer to be proportional
- * to the number of enabled metric/focus pairs.
- *
- * Revision 1.33  1994/11/04  06:41:03  newhall
- * removed printfs
- *
- * Revision 1.32  1994/11/03  05:17:43  newhall
- * removed trailing comma in AbbreviatedFocus
- *
- * Revision 1.31  1994/10/10  21:41:15  newhall
- * more changes to support new UI metric/focus selections
- *
- * Revision 1.30  1994/10/10  02:51:15  newhall
- * purify fixes, fixes to support new metric/focus choices
- *
- * Revision 1.29  1994/09/30  21:21:14  newhall
- * purify related fixes
- *
- * Revision 1.28  1994/09/30  19:18:45  rbi
- * Abstraction interface change.
- *
- * Revision 1.27  1994/09/25  01:52:08  newhall
- * updated to support the changes to the  visi, UI and VM interfaces having
- * to do with a new representation of metric/focus lists as a list of
- * metric/focus pairs.
- *
- * Revision 1.26  1994/09/22  01:19:43  markc
- * RPCprocessCreate takes &int, not int*, changed args to call
- * typecast args for msg_bind_buffered
- * access igen class members using methods
- *
- * Revision 1.25  1994/09/05  19:10:53  newhall
- * changed AbbreviatedFocus to produce entire path from root node
- *
- * Revision 1.24  1994/08/13  20:52:38  newhall
- * changed when a visualization process is started
- * added new file VISIthreadpublic.C
- *
- * Revision 1.23  1994/08/11  02:19:23  newhall
- * added call to dataManager routine destroyPerformanceStream
- *
- * Revision 1.22  1994/08/10  17:20:59  newhall
- * changed call to chooseMetricsandResources to conform to new UI interface
- *
- * Revision 1.21  1994/08/05  16:04:33  hollings
- * more consistant use of stringHandle vs. char *.
- *
- * Revision 1.20  1994/08/03  20:46:53  newhall
- * removed calls to visi interface routine Enabled()
- * added error detection code
- *
- * Revision 1.19  1994/08/02  17:12:19  newhall
- * bug fix to StopMetricResource
- *
- * Revision 1.18  1994/08/01  17:28:57  markc
- * Removed uses of getCurrent, setCurrent.  Replaced with list iterators.
- *
- * Revision 1.17  1994/07/30  20:38:05  newhall
- * Added calls to visi interface routines Enabled and BulkDataTransfer
- * durring the processing of new metric choices
- *
- * Revision 1.16  1994/07/28  22:32:59  krisna
- * proper starting sequence for VISIthreadmain thread
- *
- * Revision 1.15  1994/07/12  17:03:09  newhall
- * added error handling, changed msg binding for the visualization
- * file discriptor
- *
- * Revision 1.14  1994/07/07  17:27:14  newhall
- * fixed compile warnings
- *
- * Revision 1.13  1994/07/02  01:44:32  markc
- * Removed aggregation operator from enableDataCollection call.
- * Remove aggregation operator from enableDataCollection call.
- *
- * Revision 1.12  1994/06/29  21:46:40  hollings
- * fixed malloc on default focus case.
- *
- * Revision 1.11  1994/06/27  21:25:54  rbi
- * New abstraction parameter for performance streams
- *
- * Revision 1.10  1994/06/17  18:15:25  newhall
- * removed debug stmts
- *
- * Revision 1.9  1994/06/17  00:13:35  hollings
- * Fixed error in malloc of the string longName.
- *
- * Revision 1.8  1994/06/16  18:28:30  newhall
- * added short focus names
- *
- * Revision 1.7  1994/06/14  15:19:15  markc
- * Added new param to enableDataCollection call which specifies how a metric is
- * to be aggregated.  This is probably temporary, since the data manager or the
- * configuration language should specify this info.
- *
- * Revision 1.6  1994/06/07  18:16:32  newhall
- * support for adding metrics/resources to an existing set
- *
- * Revision 1.5  1994/06/03  18:22:51  markc
- * Changes to support igen error handling.
- *
- * Revision 1.4  1994/05/17  00:53:14  hollings
- * Changed waiting time to transfer data to visi process to 0.  We used to wait
- * for the buffer to fill which delayed the data too much.
- *
- * Revision 1.3  1994/05/11  17:21:32  newhall
- * Changes to handle multiple curves on one visualization
- * and multiple visualizations.  Fixed problems with folding
- * and resource name string passed to visualization.  Changed
- * data type from double to float.
- *
- * Revision 1.2  1994/04/28  22:08:10  newhall
- * test version 2
- *
- * Revision 1.1  1994/04/09  21:23:21  newhall
- * test version
- * */
 #include <signal.h>
 #include <math.h>
 #include <stdlib.h>
@@ -301,16 +38,8 @@
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
 #define  min(a,b) ((a)<(b) ? (a):(b))
-/*
-#define DEBUG3
-*/
 
 char *AbbreviatedFocus(const char *);
-
-/*
-#define  ASSERTTRUE(x) assert(x); 
-*/
-#define  ASSERTTRUE(x) 
 
 void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
    assert(ptr->buffer_next_insert_index <= ptr->buffer.size());
@@ -324,7 +53,6 @@ void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
       ptr->quit = 1;
       return;
    }
-
    ptr->buffer_next_insert_index = 0;
 }
 
@@ -355,7 +83,6 @@ void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
       return;
     }
     ptr->buffer_next_insert_index = 0;
-
 }
 
 /////////////////////////////////////////////////////////////
@@ -408,17 +135,8 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
   bufferEntry.resourceId = info->r_id; 
   bufferEntry.bucketNum = bucketNum;
 
-#ifdef DEBUG3
-  if((bucketNum % 100) == 0){ 
-      fprintf(stderr,"VISIthr %d: bucket = %d value = %f met = %d res = %d\n",
-	      thr_self(),bucketNum,value,info->m_id,info->r_id);
-  }
-#endif
-
-
   // if buffer is full, send buffer to visualization
   flush_buffer_if_full(ptr);
-
   info = 0;
 }
 
@@ -490,13 +208,12 @@ void VISIthreadnewResourceCallback(perfStreamHandle,
 				   const char *,
 				   const char *){
 
-VISIthreadGlobals *ptr;
-
-if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+  VISIthreadGlobals *ptr;
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
    PARADYN_DEBUG(("thr_getspecific in VISIthreadnewResourceCallback"));
    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadnewResourceCallback");
    return;
-}
+  }
 
   if(ptr->start_up || ptr->quit)  // process not started or exiting 
     return;
@@ -535,12 +252,6 @@ void VISIthreadFoldCallback(perfStreamHandle,
      ptr->quit = 1;
      return;  
   }
-
-#ifdef DEBUG3
-    PARADYN_DEBUG(("Fold: new width = %f phaseType = %d\n",width,phase_type));
-    PARADYN_DEBUG(("    my phaseType = %d\n",ptr->args->phase_type));
-    PARADYN_DEBUG(("    my curr Width = %f\n",ptr->bucketWidth));
-#endif
 
   // ignore folds for other phase types 
   if(ptr->args->phase_type != phase_type) return;
@@ -586,18 +297,8 @@ void VISIthreadPhaseCallback(perfStreamHandle,
       return;
    }
 
-  if(ptr->start_up || ptr->quit)  // process not been started yet or exiting 
+   if(ptr->start_up || ptr->quit)  // process not been started yet or exiting 
      return;
-
-
-#ifdef DEBUG3
-   fprintf(stderr,"in VISIthreadPhaseCallback\n");
-   fprintf(stderr,"phase name = %s\n",name);
-   fprintf(stderr,"phase begin = %f\n",begin);
-   fprintf(stderr,"phase end = %f\n",end);
-   fprintf(stderr,"phase width = %f\n",bucketWidth);
-   fprintf(stderr,"phase handle = %d\n",handle);
-#endif
 
    // send visi phase end call for current phase
    // if(ptr->currPhaseHandle != -1)
@@ -607,29 +308,8 @@ void VISIthreadPhaseCallback(perfStreamHandle,
 
    // send visi phase start call for new phase
    ptr->visip->PhaseStart((double)begin,(double)end,bucketWidth,name,handle);
-
-   // if this visi is defined for the current phase then data values 
-   // will stop arriving so remove all mrlist elements
-//   if(ptr->args->phase_type == CurrentPhase){ 
-//      for(unsigned i=0; i < ptr->mrlist.size(); i++){
-//         metricInstInfo *next = ptr->mrlist[i]; 
-//        delete(next);
-//      }
-//       ptr->mrlist.resize(0);
-//      assert(!(ptr->mrlist.size()));
-//   }
 }
 
-//
-// callback routine for enable data calls to the DM
-// currently this routine never executes due to a kludge in 
-// TryToEnableAll and TryToEnableSome that explictly wait for the 
-// dataManager's response
-//
-void VISIthreadEnableCallback(vector<metricInstInfo>*, u_int){
-
-    cout << "THIS SHOULD NEVER EXECUTE: void VISIthreadEnableCallback" << endl;
-}
 
 /////////////////////////////////////////////////////////////
 // Start the visualization process:  this is called when the
@@ -645,7 +325,6 @@ int VISIthreadStartProcess(){
     return(0);
   }
 
-
   // start the visualization process
   if(ptr->start_up){
     PARADYN_DEBUG(("start_up in VISIthreadStartProcess"));
@@ -656,8 +335,8 @@ int VISIthreadStartProcess(){
       av += ptr->args->argv[index];
       index++;
     }
-    ptr->fd = RPCprocessCreate("localhost", "",
-			       ptr->args->argv[0], av);
+    ptr->fd = RPCprocessCreate("localhost","",ptr->args->argv[0], av);
+
     if (ptr->fd < 0) {
       PARADYN_DEBUG(("Error in process Create: RPCprocessCreate"));
       ERROR_MSG(14,"");
@@ -672,8 +351,8 @@ int VISIthreadStartProcess(){
       return(0);
     }
 
-    if(msg_bind_buffered(ptr->fd,0, (int(*)(void*)) xdrrec_eof,ptr->visip->net_obj()) 
-       != THR_OKAY) {
+    if(msg_bind_buffered(ptr->fd,0,
+	(int(*)(void*)) xdrrec_eof,ptr->visip->net_obj()) != THR_OKAY) {
       PARADYN_DEBUG(("Error in msg_bind(ptr->fd)"));
       ERROR_MSG(14,"");
       ptr->quit = 1;
@@ -685,427 +364,167 @@ int VISIthreadStartProcess(){
   return(1);
 }
 
+///////////////////////////////////////////////////////////////////
+// make an enable request to the DM if the enable limit hasn't been
+// reached and if there are still things to enable
+///////////////////////////////////////////////////////////////////
+bool VISIMakeEnableRequest(){
 
-sampleValue getPacketSizeTC ()
-{
-  // get tunable constant value
-  tunableFloatConstant packetSizeTC = 
-  tunableConstantRegistry::findFloatTunableConstant("EnableRequestPacketSize");
-  return packetSizeTC.getValue();
-}
+  VISIthreadGlobals *ptr;
 
-void GetPacketSize(unsigned nSize,unsigned &pSize,unsigned &lPacket, 
-		   unsigned &nTimes){ 
-  //
-  // This section of the code will select the current packet size for batching
-  // the enable requests.
-  // Example:
-  // (packet size) d = 10
-  // (metric/focus pair to be enabled) nSize = 73
-  // (numbe of iterations) quo = nSize/d = 73/10 = 7
-  // Since r=nSize%d=73%10=3 is not zero, and r<=d/2 (r<=5), then we will
-  // send 6 packets of size 10 (6x10) and one packet of size 10+3=13 
-  // (lPacket=13).
-  //
-  int quo,r,d;
-  d = (int) getPacketSizeTC();
-
-  quo = nSize/d;
-  r = nSize%d;
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+    PARADYN_DEBUG(("thr_getspecific in MakeEnableRequest"));
+    ERROR_MSG(13,"Error in VISIMakeEnableRequest: thr_getspecific");
+    return(0);
+  }
   
-  if (quo == 0) {
-    nTimes = 1;
-    pSize = r;
-    lPacket = 0;
-  }
-  else if (r == 0) {
-    nTimes = quo;
-    pSize = d;
-    lPacket = 0;
-  }
-  else if (r > d/2) {
-    nTimes = quo+1;
-    pSize = d;
-    lPacket = r;
-  } 
-  else {
-    nTimes = quo;
-    if (nTimes == 1) {
-      pSize = lPacket = d+r;
-    }
-    else {
-      pSize = d;
-      lPacket = d+r;
-    }
-  }
-}
+  if(!(ptr->request)) return false;
+  if(ptr->next_to_enable >= ptr->request->size()) return false;
 
-//
-// KLUDGE: this routine forces the VISIthread to explictly wait for 
-//         an enable response from the DM
-//
-void VISIthreadWaitForEnableResponse(vector<metricInstInfo> *&response,
-				     u_int &request_id){
-
-    bool ready=false;
-    while(!ready){
-        T_dataManager::msg_buf buffer;
-        T_dataManager::message_tags waitTag;
-        tag_t tag = T_dataManager::enableDataCallback_REQ;
-	int from = msg_poll(&tag, true);
-        assert(from != THR_ERR);
-	if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
-	    waitTag = dataMgr->waitLoop(true,
-		      (T_dataManager::message_tags)tag,&buffer);
-            if(waitTag == T_dataManager::enableDataCallback_REQ){
-		ready = true;
-		response = buffer.enableDataCallback_call.response;
-		request_id = buffer.enableDataCallback_call.request_id; 
-		buffer.enableDataCallback_call.response = 0;
-	    }
-	    else {
-                cout << "error VISIthread tag invalid" << endl;
-	        assert(0);
-	    }
-        }
-	else {
-            cout << "error VISIthreadWaitForEnableResponse tag invalid" << endl;
-	    assert(0);
-	}
-    }
-}
-
-// used for testing persistence flags
-// static u_int VISIenablenum = 0;
-
-//
-// try to enable all pairs, returns true if no error
-//
-bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
-		    vector<metricInstInfo> &newEnabled,  // list of enabled
-		    vector<metric_focus_pair>  *retryList, // list unenabled
-		    u_int &numEnabled,                    // number enalbed
-		    VISIthreadGlobals *ptr)
-{
-  vector<metric_focus_pair> *metResParts;
-  vector<metricInstInfo> *newPair = 0;
-  vector<metricInstInfo> *partPair = 0;
-  u_int current =0;
-
-  // get the packet size for data enable requests
-  u_int nTimes=0,lPacket=0,pSize=0;
-  GetPacketSize(newMetRes->size(),pSize,lPacket,nTimes);
-
-  //
-  // Next, we will batch enable requests by packets of size "pSize" and
-  // we will collect the result in "newPair" until we have finished.
-  // if there is an mi_limit then we only enable upto mi_limit pairs
-  //
-  newPair = new vector<metricInstInfo> ((*newMetRes).size());
-
-  for (u_int i=0;i<nTimes;i++) {
-      if ((lPacket > 0) && (i==(nTimes-1))) pSize=lPacket;    
-
-        metResParts = new vector<metric_focus_pair> (pSize);
-        for (u_int k=0;k<pSize;k++) (*metResParts)[k]=(*newMetRes)[current+k];
-
-        u_int requestId = 0;
-
-        ptr->dmp->enableDataRequest(ptr->ps_handle, metResParts,requestId,
-				ptr->args->phase_type,
-			 	ptr->args->my_phaseId,0,0,0);
-
-// Code to test persistence flags: also uncomment VISIenablenum above this func
-/************************************************************************* 
-        switch (VISIenablenum % 4){ 
-            case 0:
-		cout << "ENABLING 0 0" << endl;
-		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
-					requestId,ptr->args->phase_type,
-		    			ptr->args->my_phaseId,0,0,0);
-                break;
-            case 1:
-		cout << "ENABLING 1 0" << endl;
-		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
-					requestId,ptr->args->phase_type,
-		    			ptr->args->my_phaseId,1,0,0);
-                break;
-            case 2:
-		cout << "ENABLING 0 1" << endl;
-		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
-					requestId,ptr->args->phase_type,
-		    			ptr->args->my_phaseId,0,1,0);
-                break;
-            case 3:
-		cout << "ENABLING 0 0 1" << endl;
-		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
-					requestId,ptr->args->phase_type,
-		    			ptr->args->my_phaseId,0,0,1);
-                break;
-        }
-	VISIenablenum++;
-************************************************************/
-
-       // wait for DM response
-       VISIthreadWaitForEnableResponse(partPair,requestId);
-
-	if(partPair && partPair->size()){
-            for (unsigned int k=0;k<(*partPair).size();k++) {
-              (*newPair)[k+current].successfully_enabled = 
-				 (*partPair)[k].successfully_enabled;
-              (*newPair)[k+current].mi_id = (*partPair)[k].mi_id;
-              (*newPair)[k+current].m_id = (*partPair)[k].m_id;
-              (*newPair)[k+current].r_id = (*partPair)[k].r_id;
-              (*newPair)[k+current].metric_name = (*partPair)[k].metric_name;
-              (*newPair)[k+current].metric_units = (*partPair)[k].metric_units;
-              (*newPair)[k+current].focus_name = (*partPair)[k].focus_name;
-              (*newPair)[k+current].units_type = (*partPair)[k].units_type;
-            }
-        }
-	if(partPair) delete partPair;
-	partPair=0;
-        current+=pSize;
-  }
-
-  if (newPair->size()) {
-      for (unsigned int j=0;j<(*newPair).size();j++) {
-          if ((*newPair)[j].successfully_enabled) {
-              // check to see if this pair has already been enabled
-              bool found = false;
-              for(unsigned i = 0; i < ptr->mrlist.size(); i++){
-                  if((ptr->mrlist[i].mi_id == (*newPair)[j].mi_id)) {
-                      found = true;
-                      break;
-                  }
-              }
-              if(!found){  // this really is a new metric/focus pair
-                  ptr->mrlist += (*newPair)[j];
-		  numEnabled++;
-                  newEnabled += (*newPair)[j];
-              }
-          }
-          else {  // add to retry list        
-            *retryList += (*newMetRes)[j];
-          }
+  // check to see if the limit has been reached
+  if(ptr->args->mi_limit > 0){
+      if(ptr->args->mi_limit <= (int)ptr->mrlist.size()){
+          string msg("A visi has enabled the maximum number of metric/focus ");
+          msg += string("pairs that it can enable. limit = ");
+          msg += string(ptr->args->mi_limit); 
+          msg += string("\n");
+          uiMgr->showError(97,P_strdup(msg.string_of()));
+	  // clean up state
+	  if(ptr->request) delete ptr->request;
+	  if(ptr->retryList) delete ptr->retryList;
+	  ptr->request = 0;
+	  ptr->retryList = 0;
+	  ptr->next_to_enable = 0;
+	  ptr->first_in_curr_request = 0;
+          return false;
       }
   }
-  return(true);
+
+  // get the TC value for the maximum packet size for an enable
+  // request to the DM
+  tunableFloatConstant packetSizeTC =
+  tunableConstantRegistry::findFloatTunableConstant("EnableRequestPacketSize");
+  u_int request_size = (u_int)packetSizeTC.getValue();
+  if(request_size == 0) request_size = 2;
+
+  // there is an enable limit for this visi: adjust the request_size 
+  if(ptr->args->mi_limit > 0) {
+      if((ptr->args->mi_limit - ptr->mrlist.size()) < request_size){ 
+          request_size = (ptr->args->mi_limit - ptr->mrlist.size()); 
+      }
+  }
+
+  if(request_size > (ptr->request->size() - ptr->next_to_enable)){
+      request_size = (ptr->request->size() - ptr->next_to_enable); 
+  }
+
+  // create the request vector of pairs and make enable request to DM
+  vector<metric_focus_pair> *metResParts = 
+		             new vector<metric_focus_pair>(request_size);
+  assert(request_size == metResParts->size());
+
+  for(u_int i=0; i < request_size; i++){
+      (*metResParts)[i] = (*(ptr->request))[ptr->next_to_enable+i]; 
+
+  }
+  ptr->first_in_curr_request = ptr->next_to_enable;
+  ptr->next_to_enable += request_size;
+  ptr->dmp->enableDataRequest(ptr->ps_handle, metResParts,0,
+			      ptr->args->phase_type,
+			      ptr->args->my_phaseId,0,0,0);
+  return true;
 }
 
-//
-// try to enable num_to_enable pairs, returns true if no error
-//
-bool TryToEnableSome(int num_to_enable,		// max num to enable
-		    vector<metric_focus_pair> *newMetRes,  // list of choces
-		    vector<metricInstInfo> &newEnabled, // list of enabled
-		    vector<metric_focus_pair>  *retryList, // list unenabled
-		    u_int &numEnabled,                    // number enalbed
-		    VISIthreadGlobals *ptr)
-{
-
-
-  if(num_to_enable <= 0){ // if can't enable any more  
-     string msg("A visi has enabled the maximum number of metric/focus ");
-     msg += string("pairs that it can enable. limit = ");
-     msg += string(ptr->args->mi_limit); 
-     msg += string("\n");
-     uiMgr->showError(97,P_strdup(msg.string_of()));
-     numEnabled = 0;
-     return true;
-  }
-
-  vector<metric_focus_pair> *metResParts;
-  vector<metricInstInfo> *newPair = NULL;
-  vector<metricInstInfo> *partPair = NULL;
-
-  // get the packet size for data enable requests
-  u_int nTimes=0,lPacket=0,pSize=0;
-  GetPacketSize(newMetRes->size(),pSize,lPacket,nTimes);
-
-  u_int total_num = (*newMetRes).size();
-  newPair = new vector<metricInstInfo> (total_num);
-  u_int current = 0;
-
-  // keep trying to enable stuff until the mi_limit is reached or
-  // until there is nothing left to try to enable 
-  while ((num_to_enable) && (current < total_num )){
-
-      if(num_to_enable > (int)(total_num - current)) 
-	  num_to_enable = (int)(total_num - current); 
-      if((int)pSize > num_to_enable) 
-	  pSize = num_to_enable;
-      assert(num_to_enable >= pSize);
-      metResParts = new vector<metric_focus_pair> (pSize);
-
-      for (u_int k=0;k<pSize;k++) (*metResParts)[k]=(*newMetRes)[current+k];
-      u_int requestId = 0;
-      ptr->dmp->enableDataRequest(ptr->ps_handle, metResParts, requestId,
-				  ptr->args->phase_type,ptr->args->my_phaseId,
-				  0,0,0);
-
-       // wait for DM response
-       VISIthreadWaitForEnableResponse(partPair,requestId);
-      
-      if(partPair && partPair->size()){
-        for (u_int m=0;m<(*partPair).size();m++){
-          (*newPair)[m+current].successfully_enabled = 
-				 (*partPair)[m].successfully_enabled;
-          (*newPair)[m+current].mi_id = (*partPair)[m].mi_id;
-          (*newPair)[m+current].m_id = (*partPair)[m].mi_id;
-          (*newPair)[m+current].r_id = (*partPair)[m].r_id;
-          (*newPair)[m+current].metric_name = (*partPair)[m].metric_name;
-          (*newPair)[m+current].metric_units = (*partPair)[m].metric_units;
-          (*newPair)[m+current].focus_name = (*partPair)[m].focus_name;
-          (*newPair)[m+current].units_type = (*partPair)[m].units_type;
-      } }
-
-      if (partPair && partPair->size()) {
-          for (unsigned int j=current;j<((*partPair).size()+ current);j++) {
-              if ((*newPair)[j].successfully_enabled) {
-                  // check to see if this pair has already been enabled
-                  bool found = false;
-                  for(unsigned i = 0; i < ptr->mrlist.size(); i++){
-                      if((ptr->mrlist[i].mi_id == (*newPair)[j].mi_id)) {
-                          found = true;
-                          break;
-                      }
-                  }
-                  if(!found){  // this really is a new metric/focus pair
-                      ptr->mrlist += (*newPair)[j];
-		      numEnabled++;
-                      newEnabled += (*newPair)[j];
-		      num_to_enable--;
-                  }
-              }
-              else {  // add to retry list        
-                *retryList += (*newMetRes)[j];
-              }
-      } }
-      if(partPair) delete partPair;
-      partPair = 0;
-      current+=pSize;
-  }
-
-  if(current < total_num){
-     string msg("A visi has enabled the maximum number of metric/focus ");
-     msg += string("pairs that it can enable. Some pairs may not have ");
-     msg += string("been enabled.  limit =  ");
-     msg += string(ptr->args->mi_limit); 
-     msg += string("\n");
-     uiMgr->showError(97,P_strdup(msg.string_of()));
-  }
-  return(true);
-}
 
 ///////////////////////////////////////////////////////////////////
 //  VISIthreadchooseMetRes: callback for User Interface Manager 
 //    chooseMetricsandResources upcall
 //    input: list of metric/focus matrices 
 //
-//  if the focus has already been enabled, make enable requests to
-//  the dataManager for only those metric/focus pairs that have not
-//  been previously enabled for this visualization
-//  else try to enable all metric/focus pairs
-//
-//  send each successfully enabled metric and focus to visualization 
-//  process (call visualizationUser::AddMetricsResources)
-//
-//  the visi process is started only after the first set of enabled
-//  metrics and resources has been obtained 
+//  If there is not an enable request already in progress for this
+//  visi, then update request info. and call VISIMakeEnableRequest
+//  Otherwise, just update request info. (a call to VISIMakeEnableRequest
+//  will occur when the response to the request in progress is received)
 ///////////////////////////////////////////////////////////////////
 int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 
-  if(newMetRes)
+    if(newMetRes)
       PARADYN_DEBUG(("In VISIthreadchooseMetRes size = %d",newMetRes->size()));
 
-  VISIthreadGlobals *ptr;
-  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
-    ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadchooseMetRes");
+    VISIthreadGlobals *ptr;
+    if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+        PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
+        ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadchooseMetRes");
+        return 1;
+    }
+
+    // there is not an enable currently in progress
+    if(!(ptr->request)){ 
+        // check for invalid reply ==> user picked "Cancel" menu option
+	if(newMetRes == 0){
+	   if(ptr->start_up){
+	       ptr->quit = 1;
+	   }
+	   return 1;
+	}
+	else {
+            ptr->request = newMetRes;
+	    newMetRes = 0;
+	    ptr->next_to_enable = 0;
+	    ptr->first_in_curr_request = 0;
+	}
+        if(!VISIMakeEnableRequest()){ 
+	    assert(!(ptr->request));
+	    assert(!(ptr->retryList));
+	    assert(!(ptr->next_to_enable));
+	    assert(!(ptr->first_in_curr_request));
+        }
+    }
+    else { // add new elements to request list
+        *(ptr->request) += *newMetRes;
+        newMetRes = 0;
+    }
     return 1;
-  }
+}
 
-  // check for invalid reply  ==> user picked "Cancel" menu option
-  if(newMetRes == NULL){
-      if(ptr->start_up){
-          ptr->quit = 1;
-      }
-      return 1;
-  }
+///////////////////////////////////////////////////////////////////
+// send new set of metric/foci to visi along with old data buckets for
+// each pair
+///////////////////////////////////////////////////////////////////
+bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 
-  // try to enable metric/focus pairs
-  vector<metric_focus_pair>  *retryList = new vector<metric_focus_pair> ;
-  u_int  numEnabled = 0;
-  vector<metricInstInfo> newEnabled;
-
-  // if there is no upper limit on number of MI's that can be enabled
-  // or if the number of new pairs + num already enabled is less than 
-  // the limit, then try to enable all of them
-  if((ptr->args->mi_limit <= 0) 
-    ||((newMetRes->size() + ptr->mrlist.size()) <= (u_int)ptr->args->mi_limit)){
-      if(!TryToEnableAll(newMetRes,newEnabled,retryList,numEnabled,ptr)){
-          ptr->quit = 1;
-	  delete newMetRes;
-	  delete(retryList);
-	  return 1;
-      }
-  }
-  else {  // else try to enable only upto mi_limit 
-     if(!TryToEnableSome((ptr->args->mi_limit - ptr->mrlist.size()),
-		     newMetRes,newEnabled,retryList,numEnabled,ptr)){
-          ptr->quit = 1;
-	  delete newMetRes;
-	  delete(retryList);
-	  return 1;
-     }
-  }
-
-  // something was enabled
-  if(numEnabled > 0){
-      // increase the buffer size
-      flush_buffer_if_nonempty(ptr);
-
-      unsigned newMaxBufferSize = min(ptr->buffer.size()+numEnabled,
-					DM_DATABUF_LIMIT);
-      ptr->buffer.resize(newMaxBufferSize); // new
-
-      // if this is the first set of enabled values, start visi process
-      if(ptr->start_up){
-          if(!VISIthreadStartProcess()){
-              ptr->quit = 1;
-              return 1;
-          }
-      }
-      ASSERTTRUE(!ptr->start_up);
-      vector<T_visi::visi_matrix> pairList;
       // create a visi_matrix_Array to send to visualization
-      for(unsigned l=0; l < numEnabled; l++){
+      vector<T_visi::visi_matrix> pairList;
+      // the newly enabled pairs are the last numEnabled in the list
+      u_int start = ptr->mrlist.size() - numEnabled; 
+      assert((start+numEnabled) == ptr->mrlist.size());
+
+      for(unsigned i=start; i < ptr->mrlist.size(); i++){
 	  T_visi::visi_matrix matrix;
-          matrix.met.Id = newEnabled[l].m_id;
-	  matrix.met.name = newEnabled[l].metric_name; 
-	  matrix.met.units = newEnabled[l].metric_units;
-	  if(newEnabled[l].units_type == UnNormalized){
+          matrix.met.Id = ptr->mrlist[i].m_id;
+	  matrix.met.name = ptr->mrlist[i].metric_name; 
+	  matrix.met.units = ptr->mrlist[i].metric_units;
+	  if(ptr->mrlist[i].units_type == UnNormalized){
 	      matrix.met.unitstype = 0;
 	  }
-	  else if (newEnabled[l].units_type == Normalized){
+	  else if (ptr->mrlist[i].units_type == Normalized){
 	      matrix.met.unitstype = 1;
 	  }
 	  else{
 	      matrix.met.unitstype = 2;
 	  }
 	  matrix.met.aggregate = AVE;
-	  matrix.res.Id = newEnabled[l].r_id;
+	  matrix.res.Id = ptr->mrlist[i].r_id;
 	  if((matrix.res.name = 
-	      AbbreviatedFocus(newEnabled[l].focus_name.string_of()))
+	      AbbreviatedFocus(ptr->mrlist[i].focus_name.string_of()))
 	      ==0){
 	      ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	      ptr->quit = 1;
-	      delete newMetRes;
-              delete(retryList);
-	      return 1;
+	      return false;
           }
           pairList += matrix;
       }
+
 
       PARADYN_DEBUG(("before call to AddMetricsResources\n"));
       if(ptr->args->phase_type == GlobalPhase){
@@ -1125,101 +544,174 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       if(ptr->visip->did_error_occur()){
           PARADYN_DEBUG(("igen: visip->AddMetsRess(): VISIthreadchooseMetRes"));
           ptr->quit = 1;
-	  delete newMetRes;
-          delete(retryList);
-          return 1;
+          return false;
       }
 
       // get old data bucket values for new metric/resources and
       // send them to visualization
       sampleValue *buckets = new sampleValue[1001];
-      for(unsigned q=0;q<numEnabled;q++){
-        int howmany = ptr->dmp->getSampleValues(newEnabled[q].mi_id,
+      for(unsigned q = start; q < ptr->mrlist.size(); q++){
+          int howmany = ptr->dmp->getSampleValues(ptr->mrlist[q].mi_id,
 					    buckets,1000,0,
 					    ptr->args->phase_type);
-        // send visi all old data bucket values
-	if(howmany > 0){
-	    vector<sampleValue> bulk_data;
-	    for (u_int ve=0; ve< ((u_int)howmany); ve++){
-	      bulk_data += buckets[ve];
-            }
-            ptr->visip->BulkDataTransfer(bulk_data, (int)newEnabled[q].m_id,
-		                        (int)newEnabled[q].r_id);
-            if(ptr->visip->did_error_occur()){
-            PARADYN_DEBUG(("igen:visip->BulkDataTransfer():VISIthreadchoose"));
-                ptr->quit = 1;
-	        delete newMetRes;
-                delete(retryList);
-                return 1;
-            }
-	    bulk_data.resize(0);
-	}
-      }
-      // if remenuFlag is set and retry list is not empty
-      // send retry list to UIM to deal with 
-      if((ptr->args->remenuFlag) && (retryList->size())){
-        // don't free retryList since it is passed to UI
-	ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,newMetRes);
-	string msg("Cannot enable the following metric/focus pair(s):\n");
-        for (u_int ii=0;ii<retryList->size();ii++) {
-	  string *focusName=NULL;
-	  focusName = 
-	      new string(dataMgr->getFocusName(&((*retryList)[ii].res)));
-          msg += string(dataMgr->getMetricName((*retryList)[ii].met));
-	  if (focusName) {
-	    msg += string("(");
-	    msg += string(AbbreviatedFocus((*focusName).string_of()));
-	    msg += string(")");
-          }
-	  msg += string(" ");
-	}
-	uiMgr->showError(86,P_strdup(msg.string_of()));
-      }
-      else { // else ignore, and set remenuFlag
-        ptr->args->remenuFlag = 1;     
-        delete(retryList);
-      }
-      delete newMetRes;
-      delete(buckets);
-  }
-  else {
-      // if nothing was enabled, and remenuflag is set make remenu request
-      PARADYN_DEBUG(("No enabled Metric/focus pairs: VISIthreadchooseMetRes"));
-      // remake menuing call with 
-      if (ptr->args->remenuFlag) {
-	if (retryList->size()) {
-	  ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,newMetRes);
-          string msg("Cannot enable the following metric/focus pair(s):\n");
-	  for (u_int ii=0;ii<retryList->size();ii++) {
-	    string *focusName=NULL;
-	    focusName = new 
-		string(dataMgr->getFocusName(&((*retryList)[ii].res)));
-	    msg += string (dataMgr->getMetricName((*retryList)[ii].met));
-	    if (focusName) {
-	      msg += string("(");
-	      msg += string(AbbreviatedFocus((*focusName).string_of()));
-	      msg += string(")");
-	    }
-	    msg += string(" ");
+          // send visi all old data bucket values
+	  if(howmany > 0){
+	      vector<sampleValue> bulk_data;
+	      for (u_int ve=0; ve< ((u_int)howmany); ve++){
+	          bulk_data += buckets[ve];
+              }
+              ptr->visip->BulkDataTransfer(bulk_data, (int)ptr->mrlist[q].m_id,
+		                        (int)ptr->mrlist[q].r_id);
+              if(ptr->visip->did_error_occur()){
+              PARADYN_DEBUG(("igen:vp->BulkDataTransfer():VISIthreadchoose"));
+                  ptr->quit = 1;
+                  return false;
+              }
+	      bulk_data.resize(0);
 	  }
-	  uiMgr->showError(86,P_strdup(msg.string_of()));
-	}
       }
-      else{ // if nothing was enabled, and remenuflag is not set quit
-	 ptr->quit = 1;
-      }
-  }
-  return 1;
+      return true;
 }
 
+///////////////////////////////////////////////////////////////////
+// Callback routine for enable data calls to the DM
+//     response: the response vector from the DM corr. to the request
+//     
+// Checks to see if something new has been enabled, if so it sends new
+// pairs to visi process (starting visi process first if it has not already
+// done so).  If there are more things to enable, then a call to 
+// VISIMakeEnableRequest is made, otherwise a remenuing call could be made
+// to the UI with all pairs that were requested, but not enabled
+///////////////////////////////////////////////////////////////////
+void VISIthreadEnableCallback(vector<metricInstInfo> *response, u_int){
+
+    VISIthreadGlobals *ptr;
+    if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+        PARADYN_DEBUG(("thr_getspecific in VISIthreadEnableCallback"));
+        ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadEnableCallback");
+        return;
+    }
+
+    // for each successfully enabled pair, check to see if it is newly enabled
+    // if it is not successfully enabled add it to the retry list
+    u_int numEnabled = 0; // number enalbed
+    for(u_int i=0; i < response->size(); i++){
+	if ((*response)[i].successfully_enabled) {
+	    bool found = false;
+	    for(u_int j=0; j < ptr->mrlist.size(); j++){
+                if((*response)[i].mi_id == ptr->mrlist[j].mi_id){
+		    found = true;
+		    break;
+	    } }
+	    if(!found){ // this is a new metric/focus pair
+	        ptr->mrlist += (*response)[i];
+	        numEnabled++;
+	    }
+	}
+	else { // add it to retry list
+	    if(ptr->retryList){
+	        *(ptr->retryList) += 
+		     (*ptr->request)[i+ptr->first_in_curr_request];
+            }
+	    else {
+		ptr->retryList = new vector<metric_focus_pair>;
+	        *(ptr->retryList) += 
+		     (*ptr->request)[i+ptr->first_in_curr_request];
+	    }
+	}
+    }
+
+    // if something was enabled and if process is not started, then start it
+    if(numEnabled > 0){
+        // increase the buffer size
+        flush_buffer_if_nonempty(ptr);
+
+        unsigned newMaxBufferSize = min(ptr->buffer.size()+numEnabled,
+					DM_DATABUF_LIMIT);
+        ptr->buffer.resize(newMaxBufferSize); // new
+
+        // if this is the first set of enabled values, start visi process
+        if(ptr->start_up){
+            if(!VISIthreadStartProcess()){
+                ptr->quit = 1;
+                return;
+            }
+        }
+        assert(!ptr->start_up);
+
+        // send new set of metric/focus pairs to visi
+	if(!VISISendResultsToVisi(ptr,numEnabled)){
+            cout << "error after call to VISISendResultsToVisi\n";
+	}
+    }
+
+    // if we have reached the limit display limit msg and clean-up state
+    // else if there are more things to enable get the next set
+    // else clean up state and if the retryList is non-empty send msgs
+    if(ptr->next_to_enable < ptr->request->size()){ // more to enable
+       if((ptr->args->mi_limit > 0) &&  // this visi has a limit 
+	  ((int)(ptr->mrlist.size()) >= ptr->args->mi_limit)){ // limit reached 
+            string msg("A visi has enabled the maximum number of metric/");
+            msg += string("focus pairs that it can enable. Some pairs may ");
+            msg += string("not have been enabled.  limit =  ");
+            msg += string(ptr->args->mi_limit); 
+            msg += string("\n");
+            uiMgr->showError(97,P_strdup(msg.string_of()));
+	    // clean up state
+	    if (ptr->request) delete ptr->request;
+	    if (ptr->retryList) delete ptr->retryList;
+	    ptr->next_to_enable = 0;
+	    ptr->first_in_curr_request = 0;
+	    ptr->request = 0;
+	    ptr->retryList = 0;
+        }
+	else { // try to enable more
+            if(!VISIMakeEnableRequest()) 
+	        cout << "error after call to VISIMakeEnableRequest\n";
+        }
+
+    }
+    else {  // enable request is complete, send retry list and cleanup
+	// if remenuFlag is set and retry list is not empty: remenu
+	if((ptr->args->remenuFlag)&&ptr->retryList&&(ptr->retryList->size())){
+            // don't free retryList since it is passed to UI
+	    string msg("Cannot enable the following metric/focus pair(s):\n");
+            for (u_int ii=0; ii < ptr->retryList->size(); ii++) {
+	        string *focusName=NULL;
+	        focusName = new 
+		   string(dataMgr->getFocusName(&((*ptr->retryList)[ii].res)));
+                msg +=  
+		   string(dataMgr->getMetricName((*ptr->retryList)[ii].met));
+	        if (focusName) {
+	            msg += string("(");
+	            msg += string(AbbreviatedFocus((*focusName).string_of()));
+	            msg += string(")");
+                }
+	        msg += string(" ");
+	    }
+	    ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,
+						ptr->retryList);
+	    ptr->ump->showError(86,P_strdup(msg.string_of()));
+        }
+	else if (ptr->start_up && (!ptr->mrlist.size())) { 
+	    // if nothing was ever enabled, and remenuflag is not set quit
+            ptr->quit = 1;
+	    if(ptr->retryList) delete ptr->retryList;
+	}
+	// clean up state
+	if(ptr->request) delete ptr->request;
+	ptr->next_to_enable = 0;
+	ptr->first_in_curr_request = 0;
+	ptr->request = 0;
+	ptr->retryList = 0;
+    }
+}
 
 ////////////////////////////////////////////////////////
 //  VISIthreadshowMsgREPLY: callback for User Interface 
 //    Manager showMsgREPLY upcall (not currently implemented) 
 ///////////////////////////////////////////////////////
 void VISIthreadshowMsgREPLY(int){
-
-
 }
 
 ////////////////////////////////////////////////////////
@@ -1227,10 +719,7 @@ void VISIthreadshowMsgREPLY(int){
 //    Manager showErrorREPLY upcall (not currently implemented)
 ///////////////////////////////////////////////////////
 void VISIthreadshowErrorREPLY(int){
-  
-
 }
-
 
 ///////////////////////////////////////////////////////////////////
 //  VISIthread main routine
@@ -1262,6 +751,12 @@ void *VISIthreadmain(void *vargs){
   globals->fd = -1;
   globals->quit = 0;
   globals->bucketWidth = globals->args->bucketWidth;
+
+  globals->request = 0;
+  globals->retryList = 0;
+  globals->num_Enabled = 0;
+  globals->next_to_enable = 0;
+  globals->first_in_curr_request = 0;
 
   // set control callback routines 
   controlCallback callbacks;
@@ -1377,9 +872,6 @@ void *VISIthreadmain(void *vargs){
 	  cerr << "Error in VISIthreadmain.C\n";
 	  assert(0);
 	}
-//        while (msg_poll_head(IGEN_CALL_NEW_DATA, 0)) {
-//           do the waitLoop above
-//	}
       } else {
 	cerr << "Unrecognized message in VISIthreadmain.C\n";
 	assert(0);
@@ -1393,11 +885,6 @@ void *VISIthreadmain(void *vargs){
         globals->dmp->disableDataCollection(globals->ps_handle,handle,
 					    globals->args->phase_type);
   }
-
-  // kill visi process
-  // if(!globals->start_up){
-  //     kill(globals->pid,SIGKILL);
- //  }
 
   PARADYN_DEBUG(("before destroy perfomancestream"));
   if(!(globals->dmp->destroyPerformanceStream(globals->ps_handle))){
