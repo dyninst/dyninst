@@ -3,7 +3,11 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.6  1994/08/30 16:27:34  karavan
+# Revision 1.7  1994/10/09 01:15:24  karavan
+# Implemented new UIM/visithread interface with metrespair data structure
+# and selection of resources directly on the where axis.
+#
+# Revision 1.6  1994/08/30  16:27:34  karavan
 # added silent node trimming.
 #
 # Revision 1.5  1994/08/01  20:26:31  karavan
@@ -41,7 +45,7 @@
 proc hideCurrentSelection {whoCan dagID} {
     global currentSelection$dagID
     set nodeID [lindex [$whoCan gettags current] 0]
-    if [string match n* $nodeID] { 
+    if [string match {[nt]*} $nodeID] { 
 	set newID [string range $nodeID 1 end]
 	set currentSelection$dagID $newID
 	uimpd hideSubgraph $dagID currentSelection$dagID
@@ -49,25 +53,83 @@ proc hideCurrentSelection {whoCan dagID} {
     }
 }
 
+# this differs from addSelection in the constraint it adds that only 
+# one node per resource hierarchy may be selected per focus
 
-proc initWHERE {dagID wwindow wtitle} {
-    toplevel $wwindow
-    #allow interactive sizing
-    wm minsize $wwindow 200 200      
+proc addWhereSelection {whoCan dagID} {
+    set nodeID [lindex [$whoCan gettags current] 0]
+    if [string match {[nt]*} $nodeID] { 
+        set newID [string range $nodeID 1 end]
+        uimpd highlightNode $newID $dagID 1
+        return $newID
+    }
+}
 
-    frame $wwindow.buttons -geometry 200x20
+
+# Store current focus selection, and batch with metric selection if one 
+# already made; update state variable
+
+proc acceptFocusChoice {token} {
+    global tclSelectionState tclSelectedMetrics
+    if {$tclSelectionState == 2} {
+	puts "CHOOSE METRIC FIRST"
+    } else {
+	uimpd processResourceSelection $token
+	if {$tclSelectionState == 1} {
+	    uimpd processVisiSelection $tclSelectedMetrics
+	    set tclSelectionState 3
+	} else { 
+	    set tclSelectionState 2
+	}
+    }
+}
+
+proc addDefaultWhereSettings {cname token} {
+
+    $cname bind all <1> "updateCurrentSelection $cname $token"
+    $cname bind all <2> "addWhereSelection $cname $token"
+    $cname bind all <3> "hideCurrentSelection $cname $token"
+    $cname bind all <Shift-3> "uimpd showAllNodes $token"
+
+    uimpd addNStyle $token 1 "#d04b8b3edcab" black  \
+			    "-*-Times-Bold-R-Normal--*-100*" black r 1.0
+
+    uimpd addEStyle $token 1 0 #c99e5f54dcab b 2.0
+
+}
+
+proc initWHERE {dagID wwindow wtitle topLevelFlag } {
+    global currentSelection$dagID
+    set mprompt "Select Visualization Metric(s) and press ACCEPT"
+    set currentSelection$dagID -1      
+
+    if {$topLevelFlag == 1} {
+	toplevel $wwindow
+	#allow interactive sizing
+	wm minsize $wwindow 200 200      
+	frame $wwindow.buttons -geometry 200x20
+	button $wwindow.buttons.b1 -text "CLOSE" -width 10 -height 1 \
+		-command "uimpd closeDAG $dagID; destroy $wwindow"
+	pack $wwindow.buttons -side top -expand 1 -fill both
+	pack $wwindow.buttons.b1 -side left  -padx 20 -pady 1
+    }
     label $wwindow.title -text $wtitle -fg black \
 	-font *-New*Century*Schoolbook-Bold-R-*-14-* \
 	-relief raised
     frame $wwindow.dag -class Dag -geometry 200x100
 
+    # selection button window allocated but packed only at time of 
+    #  metric/resource selection
+    frame $wwindow.sbutts 
+    button $wwindow.sbutts.b1 -text "ACCEPT" \
+	    -command "acceptFocusChoice $dagID; \
+	    set selectionPrompt \"$mprompt\""
+    button $wwindow.sbutts.b2 -text "CLEAR" \
+	    -command "uimpd clearResourceSelection $dagID"
+    pack $wwindow.sbutts.b1 $wwindow.sbutts.b2 -side left
     pack $wwindow.title -side top -fill x -expand 1 
     pack $wwindow.dag -side top -fill both -expand 1
-
-    button $wwindow.buttons.b1 -text "CLOSE" -width 10 -height 1 \
-	    -command "uimpd closeDAG $dagID; destroy $wwindow"
-    pack $wwindow.buttons -side top -expand 1 -fill both
-    pack $wwindow.buttons.b1 -side left  -padx 20 -pady 1
+    pack $wwindow.sbutts -side top -fill x -expand 1
 
 }
 

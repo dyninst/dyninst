@@ -5,7 +5,11 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.5  1994/09/13 05:06:36  karavan
+# Revision 1.6  1994/10/09 01:15:28  karavan
+# Implemented new UIM/visithread interface with metrespair data structure
+# and selection of resources directly on the where axis.
+#
+# Revision 1.5  1994/09/13  05:06:36  karavan
 # changes to accommodate multiple simultaneous menus.
 #
 # Revision 1.4  1994/07/21  01:53:33  rbi
@@ -21,72 +25,102 @@
 # initial version
 #
 
-# bldMetResult
-# constructs a list of chosen metrics, based on the variable values for 
-# the metric checkbuttons when the user selected "OK"
 
-proc bldMetResult { msgID mList mCount resList} {
-	global metmenuCB
-	set newList ""
-	for {set i 0} {$i < $mCount} {incr i} {
-		if {[expr $metmenuCB($i)] > 0} {
-		   lappend newList [lindex $mList $i]
-         	} 	
-        }
-       uimpd gotMetrics $msgID $newList $i $resList
+proc acceptMetChoices {} {
+    global tclSelectedMetrics tclSelectionState metCount metmenuCB
+    if {($tclSelectionState == 1) || ($tclSelectionState == 4)} {
+	puts "Please Choose a Focus First"
+    } else {
+	set tclSelectedMetrics ""
+	for {set i 0} {$i < $metCount} {incr i} {
+	    if {[expr $metmenuCB($i)] > 0} {
+		lappend tclSelectedMetrics $i
+	    } 	
+	}
+	# update state variable to reflect metric choices made; 
+	# if focus already chosen, save metric-focus pairs
+	if {$tclSelectionState == 2} {
+	    incr tclSelectionState 
+	    uimpd processVisiSelection $tclSelectedMetrics
+	} else { 
+	    set tclSelectionState 1
+	}
+    }
 }
 
+proc sendAllSelections {visiToken cancelFlag} {
+    uimpd sendVisiSelections $visiToken $cancelFlag
+}
+	
 proc getMetsAndRes {metsAndResID} {
-	global metCount metList w metMenuCtr
-	set resList ""
+    global metCount metList w metMenuCtr tclSelectionState selectionPrompt
+    set tclSelectionState 0
     incr metMenuCtr
-	set w .metmenunew$metMenuCtr
-	set ret 0
-	set msg1 "Select Visualization Metric(s)"
-	set msg2 "Enter Focus:"
-	set msg3 "No Metrics Currently Defined"
+    set w .metmenunew$metMenuCtr
+    set ret 0
+    set selectionPrompt "Select Visualization Metric(s) and press ACCEPT"
+    set msg2 "Select Visualization Metric(s) and press ACCEPT"
+    set msg3 "No Metrics Currently Defined"
+    set msg4 "\"Now Accept a Focus on the Where Axis Display\""
 
     # toplevel window
     toplevel $w  -bd 0
     wm title $w "Paradyn Metrics Menu"
     wm iconname $w "PD Metrics Menu"
-    wm geometry $w +425+300
+    wm geometry $w +425+100
     focus $w
 
     mkFrame $w.top {top fill expand} -relief raised -border 1
-    mkMessage $w.top.msg $msg1 {top expand padx 20 pady 20} \
-	    -aspect 1000 -font -Adobe-times-bold-r-normal--*-120*
-
-	if {$metCount == 0} {
-	  mkMessage $w.top.nometsmsg $msg3 {top expand} \
+    mkMessage $w.top.msg "" {top expand padx 20 pady 20} \
+	    -aspect 1000 -textvariable selectionPrompt \
+	    -font -Adobe-times-bold-r-normal--*-120*
+    
+    if {$metCount == 0} {
+	mkMessage $w.top.nometsmsg $msg3 {top expand} \
 		-font -Adobe-times-medium-r-normal--*-120*
-        } else {
-	 for {set i 0} {$i < $metCount} {incr i} {
-	  checkbutton $w.top.cb$i  -width 20 -anchor w -padx 2 \
-	    -variable metmenuCB([expr $i]) \
-	    -text [lindex $metList [expr $i]]
-	  pack $w.top.cb$i -side top
-         }
-        }
+    } else {
+	frame $w.top.1 
+	frame $w.top.2
+	frame $w.top.3
+	if { [expr $metCount % 3] > 0} {
+	    set colSize [expr (($metCount/3) + 1)]
+	} else {
+	    set colSize [expr ($metCount/3)]
+	}
+	set colNum 1
+	set cCnt 1
+	for {set i 0} {$i < $metCount} {incr i} {
+	    checkbutton $w.top.$colNum.cb$i  -width 20 -anchor w -padx 2 \
+		    -variable metmenuCB([expr $i]) \
+		    -text [lindex $metList [expr $i]]
+	    pack $w.top.$colNum.cb$i -side top
+	    if { $cCnt >= $colSize} { 
+		incr colNum
+		set cCnt 1
+	    } else {
+		incr cCnt
+	    }
+	}
+	pack $w.top.1 $w.top.2 $w.top.3 -side left -fill both -expand 1
+    }
 
-	# typed, text focus selection
-        mkFrame $w.mid {top fill expand} -relief raised -border 1
-        mkMessage $w.mid.msg $msg2 {top expand padx 20 pady 20} \
-                -aspect 1000 -font -Adobe-times-medium-r-normal--*-140*
+    # buttons
 
-        set f [mkEntry $w.mid.file {top expand padx 20 pady 20} -textvar \
-		resList -bg white -borderwidth 2 -width 80]
+    mkFrame $w.bot {top fill expand} -relief raised -border 1
+    button $w.bot.b1 -text "CANCEL" -bg red -fg white\
+	    -command  \
+	    "sendAllSelections $metsAndResID 1; unset metList; destroy $w"
 
-        mkFrame $w.bot {top fill expand} -relief raised -border 1
-	button $w.bot.b1 -text "Cancel" -command {destroy $w} -bg red -fg white
+    button $w.bot.b2 -text "DONE" -bg white \
+	    -command \
+	    "sendAllSelections $metsAndResID 0; unset metList; destroy $w " 
 
-	# buttons
-     button $w.bot.b2 -text "Accept" \
-       -command \
-       "bldMetResult $metsAndResID \$metList \$metCount \$resList; destroy $w" \
-	-bg white
-	pack $w.bot.b1 -side left -expand yes
-	pack $w.bot.b2 -side right -expand yes
+    button $w.bot.b3 -text "ACCEPT" \
+	    -command "acceptMetChoices; set selectionPrompt $msg4"
+    
+    pack $w.bot.b1 -side left -expand yes
+    pack $w.bot.b3 -side left -expand yes
+    pack $w.bot.b2 -side right -expand yes
 }
 
 

@@ -1,7 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.16  1994/09/13 05:07:03  karavan
+# Revision 1.17  1994/10/09 01:15:26  karavan
+# Implemented new UIM/visithread interface with metrespair data structure
+# and selection of resources directly on the where axis.
+#
+# Revision 1.16  1994/09/13  05:07:03  karavan
 # initialize new global: metMenuCtr
 #
 # Revision 1.15  1994/08/01  20:26:33  karavan
@@ -167,8 +171,8 @@ proc drawToolBar {} {
     menu .menub.left.men.b2.m 
     .menub.left.men.b2.m add command -label "Error History" \
 	    -command {showErrorHistory}
-    .menub.left.men.b2.m add command -label "Display Where Axis" \
-	    -command {uimpd showWhereAxis}
+#    .menub.left.men.b2.m add command -label "Display Where Axis" \
+#	    -command {uimpd showWhereAxis}
     .menub.left.men.b2.m add command -label "Where Axis Postscript C" \
 	    -command ".baseWA.dag._c_ postscript -colormode color \
 	    -file cwhere.ps -pageheight 3.0i"
