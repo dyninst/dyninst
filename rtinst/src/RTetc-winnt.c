@@ -49,10 +49,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <winsock2.h> // must include winsock2.h before windows.h
 #include <windows.h>
-#include <winbase.h>
-#include <winuser.h>
 #include <mmsystem.h>
 #include <errno.h>
 
