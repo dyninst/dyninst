@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.74 2005/02/15 17:44:02 legendre Exp $
+// $Id: DMresource.C,v 1.75 2005/03/10 21:37:19 mjbrim Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -980,7 +980,15 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
                            temp.id = resourceList::getResourceList(new_focus);
                            temp.res_name = loop_children[k]->getName();
                            *return_list += temp;
-                        }                        
+                        } 
+			else {
+			   // Since a call can be nested several levels deep
+			   // within a loop, we need to recursively descend 
+			   // all subloops to find any non-loop children.
+			   // Easily accomplished by appending grandchildren 
+			   // to loop_children 
+			   loop_children += MagnifyManager::getChildren(loop_children[k], type);
+			}
                      }
                   }
                   else {
