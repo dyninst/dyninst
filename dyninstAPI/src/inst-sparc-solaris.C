@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.150 2004/04/02 06:34:12 jaw Exp $
+// $Id: inst-sparc-solaris.C,v 1.151 2004/05/11 20:41:26 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3166,7 +3166,7 @@ bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *,
    allBlocks.elements(belements);
    
    BPatch_Set<Address> blockEnds;
-   for (int i = 0; i < allBlocks.size(); i++) {
+   for (unsigned i = 0; i < allBlocks.size(); i++) {
       void *bbsa, *bbea;
       belements[i]->getAddressRange(bbsa, bbea);
       blockEnds.insert((Address) bbea);

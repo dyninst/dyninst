@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.19 2004/03/23 01:11:58 eli Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.20 2004/05/11 20:41:23 legendre Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -66,11 +66,17 @@ bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
                                   int /* newDisp */, unsigned &codeOffset,
                                   unsigned char* /* code */) {
 
-
-    // copy the instruction we are inserting nops after into NEW_CODE 
-    function->copyInstruction(newInstructions[newOffset], 
-                              oldInstructions[oldOffset], codeOffset);
-    newOffset++;
+   if (oldOffset == getOffset())
+   {
+      // We only copy the instruction if it hasn't been copied by 
+      //   another alteration.
+      function->copyInstruction(newInstructions[newOffset], 
+                                oldInstructions[oldOffset], codeOffset);
+      newOffset++;
+      oldOffset++;
+      oldAdr += sizeof(instruction);
+      newAdr += sizeof(instruction);
+   }
 
     // make sure # of new nops is int....
     assert((sizeNopRegion % sizeof(instruction)) == 0);
@@ -83,12 +89,8 @@ bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
         codeOffset += sizeof(instruction); 
     }
 
-    // Add size of instruction that was copied originally to oldAdr
-    oldAdr += sizeof(instruction);
-    oldOffset++;
-
     // Add size of instructions that were inserted in newInstructions[]
-    newAdr += sizeof(instruction) + sizeNopRegion;
+    newAdr += sizeNopRegion;
 
     return true;
 }
@@ -732,6 +734,7 @@ int CallRestoreTailCallOptimization::getShift() const {
  
     // Should never get here
     assert(false);
+    return 0;
 }
 
 // the number of machine instructions added during the rewriting of the
