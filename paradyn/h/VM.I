@@ -1,8 +1,13 @@
 /* $Log: VM.I,v $
-/* Revision 1.5  1994/08/17 17:55:25  markc
-/* Incremented version numbers because a new version of igen has been
-/* committed.
+/* Revision 1.6  1994/09/22 00:42:31  markc
+/* Changed "String" to "char*"
+/* Declared $array types explicitly
+/* Incremented version number
 /*
+# Revision 1.5  1994/08/17  17:55:25  markc
+# Incremented version numbers because a new version of igen has been
+# committed.
+#
 # Revision 1.4  1994/08/13  20:49:57  newhall
 # changed parameters to VMCreateVisi
 #
@@ -19,23 +24,26 @@
 $remote typedef struct {
   int visiNum; // tid of active visi used to kill visi (VMDestroyVisi)
   int visiTypeId;  
-  String name;
+  char *name;
 }VM_activeVisiInfo;
 
 $remote typedef struct {
   int visiTypeId;  // id of visi used to start visi (VMCreateVisi)
-  String name;
+  char *name;
 }VM_visiInfo;
 
+$remote array VM_activeVisiInfo VM_activeVisiInfo_Array;
+
+$remote array VM_visiInfo VM_visiInfo_Array;
 
 $remote VM{
 
   $base 5000;
-  $version 3;
+  $version 4;
 
   // for comm. with PC and UIM 
-  $array VM_activeVisiInfo VMActiveVisis(); 
-  $array VM_visiInfo VMAvailableVisis(); 
+  VM_activeVisiInfo_Array VMActiveVisis(); 
+  VM_visiInfo_Array VMAvailableVisis(); 
   
   //  name: string representation of visi, for UIM menuing
   //  args: command line arguments for the visualiztion, argv[0]
