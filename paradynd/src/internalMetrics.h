@@ -4,6 +4,10 @@
 
 /*
  * $Log: internalMetrics.h,v $
+ * Revision 1.12  1995/12/18 23:26:59  newhall
+ * changed metric's units type to have one of three values (normalized,
+ * unnormalized, or sampled)
+ *
  * Revision 1.11  1995/11/29 18:45:22  krisna
  * added inlines for compiler. added templates
  *
@@ -39,10 +43,10 @@ class internalMetric {
  public:
   internalMetric(const string n, metricStyle style, int a, const string units,
 		 sampleValueFunc f, im_pred_struct& im_preds, 
-		 bool developermode, bool normalized) 
+		 bool developermode, int unitstype) 
     : value(0.0), cumulativeValue(0.0), func(f), node(NULL), name_(n), 
       agg_(a), style_(style), units_(units), pred(im_preds), 
-      developermode_(developermode), normalized_(normalized) { }
+      developermode_(developermode), unitstype_(unitstype) { }
 
   inline float getValue();
   void enable(metricDefinitionNode *n) { node = n; }
@@ -58,7 +62,7 @@ class internalMetric {
 					   sampleValueFunc f, 
 					   im_pred_struct& preds,
 					   bool developerMode,
-					   bool normalized);
+					   int unitstype);
   float value;
   float cumulativeValue;
   sampleValueFunc func;
@@ -70,7 +74,7 @@ class internalMetric {
     ret.name = name_; ret.style = style_;
     ret.aggregate = agg_; ret.units = units_;
     ret.developerMode = developermode_;
-    ret.normalized = normalized_;
+    ret.unitstype = unitstype_;
     return ret;
   }
   bool legalToInst(vector< vector<string> >& focus);
@@ -82,7 +86,7 @@ private:
   string units_;
   im_pred_struct pred;
   bool developermode_;
-  bool normalized_;
+  int unitstype_;
 };
 
 inline float internalMetric::getValue() {

@@ -14,6 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.63  1995/12/18 23:27:04  newhall
+ * changed metric's units type to have one of three values (normalized,
+ * unnormalized, or sampled)
+ *
  * Revision 1.62  1995/12/15 14:40:54  naim
  * Changing "hybrid_cost" by "smooth_obs_cost" - naim
  *
@@ -1047,9 +1051,9 @@ internalMetric *internalMetric::newInternalMetric(const string n,
 						  sampleValueFunc f,
 						  im_pred_struct& im_pred,
 						  bool developerMode,
-						  bool normalized) {
+						  int unitstype) {
   internalMetric *im = new internalMetric(n, style, a, units, f, im_pred,
-					  developerMode, normalized);
+					  developerMode, unitstype);
   assert(im);
   unsigned size = allInternalMetrics.size();
   for (unsigned u=0; u<size; u++)

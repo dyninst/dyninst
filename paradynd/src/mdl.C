@@ -3,6 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.15  1995/12/18 23:27:02  newhall
+ * changed metric's units type to have one of three values (normalized,
+ * unnormalized, or sampled)
+ *
  * Revision 1.14  1995/12/15 22:26:54  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
@@ -162,11 +166,11 @@ T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units,
 				    vector<T_dyninstRPC::mdl_constraint*> *cons,
 				    vector<string> *temp_counters,
 				    bool developerMode,
-				    bool normalized)
+				    int unitstype)
 : id_(id), name_(name), units_(units), agg_op_(agg), style_(sty),
   type_(type), stmts_(mv), flavors_(flav), constraints_(cons),
   temp_ctr_(temp_counters), developerMode_(developerMode),
-  normalized_(normalized) { }
+  unitstype_(unitstype) { }
 
 T_dyninstRPC::mdl_metric::mdl_metric() { }
 
@@ -195,14 +199,14 @@ bool mdl_data::new_metric(string id, string name, string units,
 			  vector<T_dyninstRPC::mdl_constraint*> *cons,
 			  vector<string> *temp_counters,
 			  bool developerMode,
-			  bool normalized) {
+			  int unitstype) {
   T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, 
 							     units, agg,
 							     sty, type, mv,
 							     flav, cons,
 							     temp_counters,
 							     developerMode,
-							     normalized);
+							     unitstype);
   if (!m)
     return false;
   else {
@@ -1694,7 +1698,7 @@ void mdl_get_info(vector<T_dyninstRPC::metricInfo>& metInfo) {
     element.aggregate = mdl_data::all_metrics[u]->agg_op_;
     element.units = mdl_data::all_metrics[u]->units_;
     element.developerMode = mdl_data::all_metrics[u]->developerMode_;
-    element.normalized = mdl_data::all_metrics[u]->normalized_;
+    element.unitstype = mdl_data::all_metrics[u]->unitstype_;
     metInfo += element;
   }
 }
