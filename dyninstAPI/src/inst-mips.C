@@ -3534,7 +3534,7 @@ trampTemplate *findAndInstallBaseTramp(process *p,
   instruction *insn = new instruction[2];
   genJump(insn, ipAddr, ret->baseAddr);
   genNop(insn+1);
-  retInst = new returnInstance(insn, 2*INSN_SIZE, ipAddr, 2*INSN_SIZE);
+  retInst = new returnInstance(2, insn, 2*INSN_SIZE, ipAddr, 2*INSN_SIZE);
   
   if (ret) p->baseMap[ip] = ret;
 

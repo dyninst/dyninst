@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.34 2001/05/12 21:29:37 ning Exp $
+// $Id: inst-alpha.C,v 1.35 2001/05/23 21:58:58 ning Exp $
 
 #include "common/h/headers.h"
 
@@ -1651,7 +1651,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	}
 	generateBranchInsn(insn, ret->baseAddr - (pointAddr+4));
 	globalProc->baseMap[location] = ret;
-	retInstance = new returnInstance((instruction *)insn,sizeof(instruction), 
+	retInstance = new returnInstance(1, (instruction *)insn,sizeof(instruction), 
 	    pointAddr, sizeof(instruction)); 
     } else {
         ret = globalProc->baseMap[location];

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.79 2001/05/21 23:25:24 gurari Exp $
+ * $Id: inst-x86.C,v 1.80 2001/05/23 21:58:59 ning Exp $
  */
 
 #include <iomanip.h>
@@ -1695,7 +1695,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 
 	if (size == 0)
 	  return NULL;
-	retInstance = new returnInstance(new instruction(insn, 0, size), size,
+	retInstance = new returnInstance(location->insns(), new instruction(insn, 0, size), size,
 					 location->jumpAddr() + imageBaseAddr, size);
     } else {
         ret = proc->baseMap[location];

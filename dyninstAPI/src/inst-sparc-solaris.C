@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.80 2001/05/23 18:01:05 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.81 2001/05/23 21:58:59 ning Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1041,7 +1041,6 @@ trampTemplate * installBaseTramp( instPoint * & location,
  */ 
 trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 				       process *proc,
-				       vector<instruction>& /* extra_instrs */,
 				       bool trampRecursiveDesired = false )
 {
   trampTemplate* current_template = &nonRecursiveBaseTemplate;
@@ -1236,9 +1235,9 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
        }
        // Install Base Tramp for the functions which are 
        // relocated to the heap.
-       vector<instruction> extra_instrs;
+       // vector<instruction> extra_instrs;  // not any more
 
-       ret = installBaseTrampSpecial(cLocation, proc,extra_instrs, trampRecursionDesired );
+       ret = installBaseTrampSpecial(cLocation, proc, trampRecursionDesired );
        if(!ret) return NULL;
 
        // add a branch from relocated function to the base tramp
@@ -1270,26 +1269,25 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
        // which is in heap.
        if (!location->func->isInstalled(proc)){
           location->func->setInstalled(proc);
-          u_int e_size = extra_instrs.size();
+
           Address adr = location-> func -> getAddress(0);
           instruction *insn;
           unsigned branchSize ;
           if (in1BranchInsnRange(adr+baseAddress, location->func->getAddress(proc))) {
             branchSize = 1 ;
-            insn = new instruction[branchSize + e_size];
+            insn = new instruction[branchSize];
             generateBranchInsn(insn,(int)(location->func->getAddress(proc)-(adr+baseAddress)));
           } else {
             branchSize = 3 ;
-            insn = new instruction[branchSize + e_size];
+            insn = new instruction[branchSize];
             genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
             generateCallInsn(insn+1, adr+baseAddress+4, location->func->getAddress(proc));
             genSimpleInsn(insn+2, RESTOREop3, 0, 0, 0);
           }
-          for(u_int i=0; i < e_size; i++){
-            insn[branchSize+i] = extra_instrs[i];
-          }
-          retInstance = new returnInstance((instructUnion *)insn,
-                                           (branchSize+e_size)*sizeof(instruction),
+
+	  // set unknown the number of instructions to be overwritten 
+          retInstance = new returnInstance(0/*branchSize*/, (instructUnion *)insn,
+                                           branchSize*sizeof(instruction),
                                            adr+baseAddress,
                                            location->func->size());
           assert(retInstance);
@@ -1333,7 +1331,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	  if (location -> isLongJump == false) {
 	     instruction *insn = new instruction;
 	     generateBranchInsn(insn, (int)(ret->baseAddr-adr));
-	     retInstance = new returnInstance((instructUnion *)insn,
+	     retInstance = new returnInstance(1, (instructUnion *)insn,
 					      sizeof(instruction), adr, 
 					      sizeof(instruction));
 	  } else if (need_to_add) {
@@ -1341,7 +1339,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	     instruction *insn = new instruction[2];
 	     generateCallInsn(insn, adr+4, (int) ret->baseAddr);
 	     genImmInsn(insn+1,ADDop3,REG_O(7),4,REG_O(7));
-	     retInstance = new returnInstance((instructUnion *)insn,
+	     retInstance = new returnInstance(2, (instructUnion *)insn,
 				 2*sizeof(instruction), adr+4,
 			         2*sizeof(instruction));
 	  } else {
@@ -1365,7 +1363,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	             instruction *insn = new instruction[2];
 	             generateCallInsn(insn, adr+4, (int) ret->baseAddr);
 	             generateNOOP(insn+1);
-	             retInstance = new returnInstance((instructUnion *)insn, 
+	             retInstance = new returnInstance(2, (instructUnion *)insn, 
 					     2*sizeof(instruction), adr+4, 
 					     2*sizeof(instruction));
 
@@ -1378,7 +1376,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	         genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
 	         generateCallInsn(insn+1, adr+4, (int) ret->baseAddr);
 	         generateNOOP(insn+2);
-	         retInstance = new returnInstance((instructUnion *)insn, 
+	         retInstance = new returnInstance(3, (instructUnion *)insn, 
 					     3*sizeof(instruction), adr, 
 					     3*sizeof(instruction));
 	     }	
@@ -1399,7 +1397,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	      generateCallInsn(insn, adr, (int) ret->baseAddr);
 	      assert(location->ipType == functionEntry);
 	      generateNOOP(insn+1);
-	      retInstance = new returnInstance((instructUnion *)insn, 
+	      retInstance = new returnInstance(2, (instructUnion *)insn, 
 					      2*sizeof(instruction), adr, 
 					      2*sizeof(instruction));
 	      assert(retInstance);
@@ -1407,13 +1405,13 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	      instruction *insn = new instruction;
 	      if (location -> ipType == functionEntry) {
 	          generateBranchInsn(insn, (int)(ret->baseAddr-adr+sizeof(instruction))); 
-		  retInstance = new returnInstance((instructUnion *)insn,
+		  retInstance = new returnInstance(1, (instructUnion *)insn,
 						   sizeof(instruction), 
 						   adr - sizeof(instruction), 
 						   sizeof(instruction));
 	      } else {
 	          generateBranchInsn(insn,(int)(ret->baseAddr-adr));
-		  retInstance = new returnInstance((instructUnion *)insn,
+		  retInstance = new returnInstance(1, (instructUnion *)insn,
 						   sizeof(instruction), 
 						   adr, 
 						   sizeof(instruction));
@@ -1429,7 +1427,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	     generateCallInsn(insn, adr, (int) ret->baseAddr);
 	     generateNOOP(insn+1);
 	     genImmInsn(insn+2,ADDop3,REG_O(7),4,REG_O(7));
-	     retInstance = new returnInstance((instructUnion *)insn, 
+	     retInstance = new returnInstance(3, (instructUnion *)insn, 
 					      3*sizeof(instruction), adr, 
 					      3*sizeof(instruction));
 	  } else {
@@ -1443,7 +1441,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	     } else
 	        generateNOOP(insn+1);
 
-	     retInstance = new returnInstance((instructUnion *)insn, 
+	     retInstance = new returnInstance(2, (instructUnion *)insn, 
 					      2*sizeof(instruction), adr, 
 					      2*sizeof(instruction));
 	     assert(retInstance);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.11 2001/05/12 21:29:38 ning Exp $
+// $Id: instPoint-x86.h,v 1.12 2001/05/23 21:59:00 ning Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -129,6 +129,19 @@ class instPoint {
 
   image *owner() const { return func()->file()->exec(); }
 
+  // return the number of instructions in this point
+  // that will be overwritten when a returnInstance is installed
+  unsigned insns() const {
+    unsigned size = 1;
+
+    if (insnBeforePt_)
+      size += (*insnBeforePt_).size();
+    if (insnAfterPt_)
+      size += (*insnAfterPt_).size();
+
+    return size;
+  }
+  
   // return the size of all instructions in this point
   // size may change after point is checked
   unsigned size() const {

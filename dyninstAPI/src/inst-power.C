@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.105 2001/05/12 21:29:37 ning Exp $
+ * $Id: inst-power.C,v 1.106 2001/05/23 21:58:59 ning Exp $
  */
 
 #include "common/h/headers.h"
@@ -1622,7 +1622,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	  instruction *insn = new instruction;
 	  generateBranchInsn(insn, ret->baseAddr - newLoc2->addr);
 	  globalProc->baseMap[newLoc2] = ret;
-	  retInstance = new returnInstance((instruction *)insn, 
+	  retInstance = new returnInstance(1, (instruction *)insn, 
 					   sizeof(instruction), newLoc2->addr,
 					   sizeof(instruction));
 	  
@@ -1634,7 +1634,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	  instruction *insn = new instruction;
 	  generateBranchInsn(insn, ret->baseAddr - location->addr);
 	  globalProc->baseMap[location] = ret;
-	  retInstance = new returnInstance((instruction *)insn, 
+	  retInstance = new returnInstance(1, (instruction *)insn, 
 					   sizeof(instruction), location->addr,
 					   sizeof(instruction));
 	}

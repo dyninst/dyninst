@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.186 2001/05/12 21:29:54 ning Exp $
+// $Id: metricFocusNode.C,v 1.187 2001/05/23 21:59:06 ning Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -801,12 +801,12 @@ void metricDefinitionNode::handleExec(process *proc) {
 	 // except to update allMIComponents.
 
 #if defined(MT_THREAD)
-	 for (unsigned u=0; u<componentMI->comp_flat_names.size(); u++)
-	   if (allMIComponents.defines(componentMI->comp_flat_names[u]))
-	     allMIComponents.undef(componentMI->comp_flat_names[u]);
+	 for (unsigned u1=0; u1<componentMI->comp_flat_names.size(); u1++)
+	   if (allMIComponents.defines(componentMI->comp_flat_names[u1]))
+	     allMIComponents.undef(componentMI->comp_flat_names[u1]);
 
-	 for (unsigned u=0; u<componentMI->components.size(); u++)
-	   componentMI->removeComponent(componentMI->components[u]);
+	 for (unsigned u2=0; u2<componentMI->components.size(); u2++)
+	   componentMI->removeComponent(componentMI->components[u2]);
 	 componentMI->components.resize(0);
 #else
 	 assert(replaceWithComponentMI->flat_name_ == componentMI->flat_name_);
@@ -991,19 +991,19 @@ void metricDefinitionNode::removeThisInstance() {
 
   if (PROC_COMP == aggLevel) {
     assert(aggr_size == comp_flat_names.size());
-    for (unsigned u=0; u<aggr_size; u++)
+    for (unsigned t=0; t<aggr_size; t++)
       rmCompFlatName(0);
   }
   assert(0 == comp_flat_names.size());
   // remove comp_flat_names, undef from allMIComponents
 
   // now remove components
-  for (unsigned u=0; u<components.size(); u++) {
-    metric_cerr << "   removeThisInstance: this calls removeComponent for " << u << "th component " << endl;
-    removeComponent(components[u]);
+  for (unsigned u1=0; u1<components.size(); u1++) {
+    metric_cerr << "   removeThisInstance: this calls removeComponent for " << u1 << "th component " << endl;
+    removeComponent(components[u1]);
 
-    // if (0 == component[u]->aggregators.size())
-    // delete components[u];
+    // if (0 == component[u1]->aggregators.size())
+    // delete components[u1];
   }
   components.resize(0);
 
@@ -1031,12 +1031,12 @@ void metricDefinitionNode::removeThisInstance() {
   samples.resize(0);
 
   // now remove components
-  for (unsigned u=0; u<components.size(); u++) {
-    metric_cerr << "   removeThisInstance: this calls removeComponent for " << u << "th component " << endl;
-    removeComponent(components[u]);
+  for (unsigned u1=0; u1<components.size(); u1++) {
+    metric_cerr << "   removeThisInstance: this calls removeComponent for " << u1 << "th component " << endl;
+    removeComponent(components[u1]);
 
-    // if (0 == component[u]->aggregators.size())
-    // delete components[u];
+    // if (0 == component[u1]->aggregators.size())
+    // delete components[u1];
   }
   components.resize(0);
 
@@ -1418,14 +1418,15 @@ bool metricDefinitionNode::unFork(dictionary_hash<instInstance*, instInstance*> 
    // ones instrument DYNINSTsampleValues.
 
    bool result = true;
+   unsigned lcv;
 
    if (unForkInstRequests)
-      for (unsigned lcv=0; lcv < instRequests.size(); lcv++)
+      for (lcv=0; lcv < instRequests.size(); lcv++)
          if (!instRequests[lcv].unFork(map))
 	    result = false; // failure
 
    if (unForkDataRequests)
-      for (unsigned lcv=0; lcv < dataRequests.size(); lcv++)
+      for (lcv=0; lcv < dataRequests.size(); lcv++)
          if (!dataRequests[lcv]->unFork(map))
 	    result = false; // failure
 
@@ -1577,70 +1578,87 @@ bool metricDefinitionNode::anythingToManuallyTrigger() const {
 
 void metricDefinitionNode::adjustManuallyTrigger()
 {
-  vector<instPoint*> instPts;
-  unsigned i, j, k;
-  pd_Function *stack_func;
-  instPoint *point;
-  Address stack_pc;
-  
   // aggregate metricDefinitionNode - decide whether to manually trigger 
   //  instrumentation corresponding to each component node individually.
 #if defined(MT_THREAD)
-  if (aggLevel == AGG_LEV || aggLevel == THR_LEV || aggLevel == PROC_COMP) // ! PROC_PRIM
+  if (aggLevel == AGG_LEV || aggLevel == THR_LEV)
 #else
-  if (mdn_type_ == AGG_MDN || mdn_type_ == COMP_MDN)
+  if (mdn_type_ == AGG_MDN)
 #endif
   {
-    for (i=0; i < components.size(); i++) {
+    for (unsigned i=0; i < components.size(); i++) {
       components[i]->adjustManuallyTrigger();
     }
   }
   // non-aggregate:
-  else {
 #if defined(MT_THREAD)
-    assert(aggLevel == PROC_PRIM);
+  else if (aggLevel == PROC_COMP)
 #else
-    assert(mdn_type_ == PRIM_MDN);
+  else if (mdn_type_ == COMP_MDN)
 #endif
-
-    string prettyName; // not really a good name
-    if (pd_debug_catchup) {
-      prettyName = met_ + string(": <");;
-
-      bool first = true;
-      for (unsigned h=0; h<focus_.size(); h++) {
-	if (focus_[h].size() > 1) {
-	  if (!first) prettyName += string(",");
-	  first = false;
-	  for (unsigned c=0; c< focus_[h].size(); c++) {
-	    prettyName += string("/");
-	    prettyName += focus_[h][c];
-	  }
-	}
-      }
-      prettyName += string(">");
-    }
-
+  {
 //
 #if defined(MT_THREAD)
     vector<Address> stack_pcs;
     vector<vector<Address> > pc_s = proc_->walkAllStack();
-    for (i=0; i< pc_s.size(); i++) {
+    for (int i=0; i< pc_s.size(); i++) {
       stack_pcs += pc_s[i];
     }
 //
 #else
     vector<Address> stack_pcs = proc_->walkStack();
 #endif
-    if( stack_pcs.size() == 0 )
-      cerr << "WARNING -- process::walkStack returned an empty stack" << endl;
-    vector<pd_Function *> stack_funcs = proc_->convertPCsToFuncs(stack_pcs);
-    proc_->correctStackFuncsForTramps( stack_pcs, stack_funcs );
-    bool badReturnInst = false;
 
-    unsigned i = stack_funcs.size();
-    //for(i=0;i<stack_funcs.size();i++) {
-    if (i!=0)
+    for (unsigned i1=0; i1 < components.size(); i1++) {
+      components[i1]->adjustManuallyTrigger(stack_pcs);
+    }
+  }
+  else {
+    assert(0);  // PROC_PRIM or PRIM_MDN
+  }
+}
+
+void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs)
+{
+#if defined(MT_THREAD)
+  assert(aggLevel == PROC_PRIM);
+#else
+  assert(mdn_type_ == PRIM_MDN);
+#endif
+
+  vector<instPoint*> instPts;
+  unsigned j, k;
+  pd_Function *stack_func;
+  instPoint *point;
+  Address stack_pc;
+  
+  string prettyName; // not really a good name
+  if (pd_debug_catchup) {
+    prettyName = met_ + string(": <");;
+
+    bool first = true;
+    for (unsigned h=0; h<focus_.size(); h++) {
+      if (focus_[h].size() > 1) {
+	if (!first) prettyName += string(",");
+	first = false;
+	for (unsigned c=0; c< focus_[h].size(); c++) {
+	  prettyName += string("/");
+	  prettyName += focus_[h][c];
+	}
+      }
+    }
+    prettyName += string(">");
+  }
+
+  if( stack_pcs.size() == 0 )
+    cerr << "WARNING -- process::walkStack returned an empty stack" << endl;
+  vector<pd_Function *> stack_funcs = proc_->convertPCsToFuncs(stack_pcs);
+  proc_->correctStackFuncsForTramps( stack_pcs, stack_funcs );
+  bool badReturnInst = false;
+
+  unsigned i = stack_funcs.size();
+  //for(i=0;i<stack_funcs.size();i++) {
+  if (i!=0)
     do {
       --i;
       stack_func = stack_funcs[i];
@@ -1772,11 +1790,11 @@ void metricDefinitionNode::adjustManuallyTrigger()
 
 #if defined(MT_THREAD)
 
-    oldCatchUp();
+  oldCatchUp();
 
 #endif  // not OLD_CATCHUP, but MT_THREAD
-  }
 }
+
 
 void metricDefinitionNode::oldCatchUp() {
 
@@ -2176,6 +2194,7 @@ bool metricDefinitionNode::insertInstrumentation()
        return true;
 
     inserted_ = true;
+    unsigned u, u1;
 
 #if defined(MT_THREAD)
     if (aggLevel == AGG_LEV) {
@@ -2183,7 +2202,7 @@ bool metricDefinitionNode::insertInstrumentation()
     if (mdn_type_ == AGG_MDN) {
 #endif
       unsigned c_size = components.size();
-      for (unsigned u=0; u<c_size; u++)
+      for (u=0; u<c_size; u++)
 	if (!components[u]->insertInstrumentation())
 	  return false; // shouldn't we try to undo what's already put in?
     }
@@ -2205,8 +2224,8 @@ bool metricDefinitionNode::insertInstrumentation()
 	return false;
 
       unsigned c_size = components.size();
-      for (unsigned u=0; u<c_size; u++)
-	if (!components[u]->insertInstrumentation())
+      for (u1=0; u1<c_size; u1++)
+	if (!components[u1]->insertInstrumentation())
 	  return false; // shouldn't we try to undo what's already put in?
 
       if (needToCont) {
@@ -2238,7 +2257,7 @@ bool metricDefinitionNode::insertInstrumentation()
       // stick in any code, except (if appropriate) that we'll instrument the
       // application's alarm-handler when not shm sampling.
       unsigned size = dataRequests.size();
-      for (unsigned u=0; u<size; u++) {
+      for (u=0; u<size; u++) {
 	// the following allocs an object in inferior heap and arranges for
         // it to be alarm sampled, if appropriate.
         // Note: this is not necessary anymore because we are allocating the
@@ -2258,7 +2277,7 @@ bool metricDefinitionNode::insertInstrumentation()
       // Loop thru "instRequests", an array of instReqNode:
       // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
       unsigned int inst_size = instRequests.size();
-      for (unsigned u1=0; u1<inst_size; u1++) {
+      for (u1=0; u1<inst_size; u1++) {
 	  // code executed later (adjustManuallyTrigger) may also manually trigger 
 	  // the instrumentation via inferiorRPC.
 	  returnInstance *retInst=NULL;
@@ -2273,13 +2292,44 @@ bool metricDefinitionNode::insertInstrumentation()
       
 #if defined(MT_THREAD)
       unsigned c_size = components.size();
-      for (unsigned u=0; u<c_size; u++)
+      for (u=0; u<c_size; u++)
 	if (!components[u]->insertInstrumentation())
 	  return false; // shouldn't we try to undo what's already put in?
 #endif
     }
 
     return(true);
+}
+
+// this function checks if we need to do stack walk
+// if all returnInstance's overwrite only 1 instruction, no stack walk necessary
+bool metricDefinitionNode::needToWalkStack() const
+{
+#if defined(MT_THREAD)
+  assert(PROC_COMP == aggLevel || PROC_PRIM == aggLevel);
+  if (PROC_COMP == aggLevel)
+#else
+  assert(COMP_MDN == mdn_type_ || PRIM_MDN == mdn_type_);
+  if (COMP_MDN == mdn_type_)
+#endif
+  {
+    for (unsigned u=0; u<components.size(); u++)
+      if (components[u]->needToWalkStack())
+	return true;
+  }
+  else {
+#if defined(MT_THREAD)
+    assert(PROC_PRIM == aggLevel);
+#else
+    assert(PRIM_MDN == mdn_type_);
+#endif
+    for (unsigned u1=0; u1<returnInsts.size(); u1++) {
+      if (returnInsts[u1]->needToWalkStack())
+	return true;
+    }
+  }
+
+  return false;
 }
 
 
@@ -2317,8 +2367,8 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
     if (mdn_type_ == AGG_MDN) {
 #endif
       unsigned c_size = components.size();
-      for (unsigned u=0; u<c_size; u++)
-	components[u]->checkAndInstallInstrumentation();
+      for (unsigned u1=0; u1<c_size; u1++)
+	components[u1]->checkAndInstallInstrumentation();
       // why no checking of the return value?
     }
 #if defined(MT_THREAD)
@@ -2338,7 +2388,20 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 	return false;
       }
 
-      // do stack walk only ONCE for all primitives
+      // only overwrite 1 instruction on power arch (2 on mips arch)
+      // always safe to instrument without stack walk
+      if (!needToWalkStack()) {
+	// NO stack walk necessary
+
+	vector<Address> pc;  // empty
+	unsigned c_size = components.size();
+
+	for (unsigned u=0; u<c_size; u++)
+	  components[u]->checkAndInstallInstrumentation(pc);
+	// why no checking of the return value?
+      }
+      else {
+	// stack walk necessary, do stack walk only ONCE for all primitives
 
         // NOTE: walkStack should walk all the threads' staks! It doesn't do
 	// that right now... naim 1/28/98
@@ -2406,10 +2469,12 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 #endif  // WALK_ALL_STACKS
 	///////////////////////
 
-      unsigned c_size = components.size();
-      for (unsigned u=0; u<c_size; u++)
-	components[u]->checkAndInstallInstrumentation(pc);
-      // why no checking of the return value?
+	unsigned c_size = components.size();
+	for (unsigned u2=0; u2<c_size; u2++)
+	  components[u2]->checkAndInstallInstrumentation(pc);
+	// why no checking of the return value?
+
+      } // else of needToWalkStack();
 
       if (needToCont) {
 #ifdef DETATCH_ON_THE_FLY
@@ -2447,9 +2512,12 @@ bool metricDefinitionNode::checkAndInstallInstrumentation(vector<Address>& pc) {
     // the stack where all can be inserted, and set a break point  
     for (unsigned u=0; u<rsize; u++) {
       u_int index = 0;
-#if defined(MT_THREAD)
+#if defined(MT_THREAD) 
       bool installSafe = true; 
 #else
+      // only overwrite 1 instruction on power arch (2 on mips arch)
+      // always safe to instrument without stack walk
+      // pc is empty for those didn't do a stack walk, will return safe.
       bool installSafe = returnInsts[u] -> checkReturnInstance(pc,index);
 #endif
       // if unsafe, index will be set to the first unsafe stack walk ndx
@@ -2524,8 +2592,8 @@ timeLength metricDefinitionNode::cost() const
 	return ret;
 #endif
       unsigned c_size = components.size();
-      for (unsigned u=0; u<c_size; u++) {
-	ret += components[u]->cost();
+      for (unsigned u1=0; u1<c_size; u1++) {
+	ret += components[u1]->cost();
       }
     }
     else {
@@ -2541,8 +2609,8 @@ timeLength metricDefinitionNode::cost() const
       // if (originalCost_ > ret)  // > 0, already computed
       // ret = originalCost_;
       // else {
-      for (unsigned u=0; u<instRequests.size(); u++)
-	ret += instRequests[u].cost(proc_);
+      for (unsigned u2=0; u2<instRequests.size(); u2++)
+	ret += instRequests[u2].cost(proc_);
       // originalCost_ = ret;
       //}
     }
@@ -2553,10 +2621,11 @@ timeLength metricDefinitionNode::cost() const
 #if !defined(MT_THREAD)
 void metricDefinitionNode::disable()
 {
+
   // check for internal metrics
   unsigned ai_size = internalMetric::allInternalMetrics.size();
-  for (unsigned u=0; u<ai_size; u++) {
-    internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
+  for (unsigned t=0; t<ai_size; t++) {
+    internalMetric *theIMetric = internalMetric::allInternalMetrics[t];
     if (theIMetric->disableByMetricDefinitionNode(this)) {
       //logLine("disabled internal metric\n");
       return;
@@ -2577,16 +2646,17 @@ void metricDefinitionNode::disable()
   if (aggregators.size() == 0)
     inserted_ = false;
 
+  unsigned u, u1;
 
   if ((mdn_type_ == AGG_MDN) || (mdn_type_ == COMP_MDN)) {
     /* disable components of aggregate metrics */
-    for (unsigned u=0; u<components.size(); u++) {
+    for (u=0; u<components.size(); u++) {
       metricDefinitionNode *m = components[u];
 
       unsigned aggr_size = m->aggregators.size();
       assert(aggr_size == m->samples.size());
 
-      for (unsigned u1=0; u1 < aggr_size; u1++) {
+      for (u1=0; u1 < aggr_size; u1++) {
 	if (m->aggregators[u1] == this) {
 	  m->aggregators[u1] = m->aggregators[aggr_size-1];
 	  m->aggregators.resize(aggr_size-1);
@@ -2626,7 +2696,7 @@ void metricDefinitionNode::disable()
     assert(aggregators.size() == 0);
     vector<addrVecType> pointsToCheck;
 
-    for (unsigned u1=0; u1<instRequests.size(); u1++) {
+    for (u1=0; u1<instRequests.size(); u1++) {
       addrVecType pointsForThisRequest =
 	getAllTrampsAtPoint(instRequests[u1].getInstance());
 
@@ -2635,7 +2705,7 @@ void metricDefinitionNode::disable()
       instRequests[u1].disable(pointsForThisRequest); // calls deleteInst()
     }
 
-    for (unsigned u=0; u<dataRequests.size(); u++) {
+    for (u=0; u<dataRequests.size(); u++) {
       unsigned mid = dataRequests[u]->getSampleId();
       dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
       assert(midToMiMap.defines(mid));
@@ -2657,8 +2727,8 @@ void metricDefinitionNode::disable()
   // check for internal metrics
 
   unsigned ai_size = internalMetric::allInternalMetrics.size();
-  for (unsigned u=0; u<ai_size; u++) {
-    internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
+  for (unsigned t=0; t<ai_size; t++) {
+    internalMetric *theIMetric = internalMetric::allInternalMetrics[t];
     if (theIMetric->disableByMetricDefinitionNode(this)) {
       //logLine("disabled internal metric\n");
       return;
@@ -2854,6 +2924,8 @@ void metricDefinitionNode::disable()
 // or proc_prim(comp thr_lev)
 // so, comp is proc_comp or thr_lev
 void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
+    unsigned u;
+
 #if defined(MT_THREAD)
     if ( !comp ) {
       metric_cerr << "   --- removeComponent: component does not exist " << endl;
@@ -2873,7 +2945,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
     }
 
     // component has more than one aggregator. Remove this from list of aggregators
-    for (unsigned u = 0; u < aggr_size; u++) {
+    for (u = 0; u < aggr_size; u++) {
       if (comp->aggregators[u] == this) {
 	found = u;
 	break;
@@ -2899,7 +2971,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
     // metric_cerr << "   --- removeComponent: this removed from component's " << found << "th aggregator " << endl;
 
     if (1 == aggr_size) {
-      for (unsigned u=0; u<comp->components.size(); u++) {
+      for (u=0; u<comp->components.size(); u++) {
 	comp->removeComponent(comp->components[u]);
       }
       (comp->components).resize(0);
@@ -2918,7 +2990,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
       if (AGG_LEV == comp->aggregators[0]->aggLevel) { // first PROC_PRIM has been removed
 	metric_cerr << " remove this thr_lev mn's agg_lev aggregators " << endl;
 
-	for (unsigned u=0; u<aggr_size-1; u++) {
+	for (u=0; u<aggr_size-1; u++) {
 	  comp->aggregators[u]->aggSample.removeComponent(comp->samples[u]);
 	  comp->aggregators[u]->removeFromAggregate(comp, false);
 	}
@@ -2963,7 +3035,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
     }
 
     // component has more than one aggregator. Remove this from list of aggregators
-    for (unsigned u = 0; u < aggr_size; u++) {
+    for (u = 0; u < aggr_size; u++) {
       if (comp->aggregators[u] == this) {
 	found = u;
 	break;
@@ -2985,7 +3057,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
 
     if (aggr_size == 1) {
       // newly added
-      for (unsigned u=0; u<comp->components.size(); u++) {
+      for (u=0; u<comp->components.size(); u++) {
 	comp->removeComponent(comp->components[u]);
       }
       (comp->components).resize(0);
@@ -3068,17 +3140,18 @@ metricDefinitionNode::~metricDefinitionNode()  // call removeComponent before de
 #if defined(MT_THREAD)
 void metricDefinitionNode::cleanup_drn()
 {
+  unsigned u;
   // we assume that it is safe to delete a dataReqNode at this point, 
   // otherwise, we would need to do something similar as in the disable
   // method for metricDefinitionNode - naim
   if (aggLevel == PROC_PRIM) {
-    for (unsigned u=0; u<components.size(); u++) {
+    for (u=0; u<components.size(); u++) {
       components[u]->cleanup_drn();
     }
   }
   else if (aggLevel == THR_LEV) {
     vector<addrVecType> pointsToCheck;
-    for (unsigned u=0; u<dataRequests.size(); u++) {
+    for (u=0; u<dataRequests.size(); u++) {
       metric_cerr << " clean " << u << "th data request " << endl;
       dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
     }
@@ -4917,9 +4990,9 @@ void metricDefinitionNode::addThread(pdThread *thr)
 	  if (cons_component_focus_thr[i][0] == "Machine")
 	    cons_component_focus_thr[i] += thrName;
 	}
-	for (unsigned i=0;i<cons_focus_thr.size();i++) {
-	  if (cons_focus_thr[i][0] == "Machine")
-	    cons_focus_thr[i] += thrName;
+	for (unsigned j=0;j<cons_focus_thr.size();j++) {
+	  if (cons_focus_thr[j][0] == "Machine")
+	    cons_focus_thr[j] += thrName;
 	}
 	string cons_flat_name_thr = metricAndCanonFocus2FlatName(cons_met_thr,cons_component_focus_thr);
 
@@ -4958,9 +5031,9 @@ void metricDefinitionNode::addThread(pdThread *thr)
     if (component_focus_thr[i][0] == "Machine")
       component_focus_thr[i] += thrName;
   }
-  for (unsigned i=0;i<focus_thr.size();i++) {
-    if (focus_thr[i][0] == "Machine")
-      focus_thr[i] += thrName;
+  for (unsigned j=0;j<focus_thr.size();j++) {
+    if (focus_thr[j][0] == "Machine")
+      focus_thr[j] += thrName;
   }
   string component_flat_name_thr = metricAndCanonFocus2FlatName(met_thr,component_focus_thr);
 
@@ -5252,6 +5325,8 @@ bool AstNode::condMatch(AstNode* a,
 			vector<dataReqNode*> datareqs1,
 			vector<dataReqNode*> datareqs2)
 {
+  unsigned i;
+
   if (this == a)
     return true;
   
@@ -5411,10 +5486,11 @@ bool AstNode::condMatch(AstNode* a,
       if (operands.size() != a->operands.size())
 	return false;
       
-      for (unsigned i=0; i<operands.size(); i++)
+      for (i=0; i<operands.size(); i++) {
 	if (!operands[i]->condMatch(a->operands[i], data_tuple1, data_tuple2,
 				    datareqs1, datareqs2))
 	  return false;
+	  }
       
       return true;
       
@@ -5545,9 +5621,9 @@ bool toDeletePrimitiveMDN(metricDefinitionNode *prim)
     prim->dataRequests[i]->disable(prim->proc_, pointsToCheck);  // deinstrument
   }
 
-  for (unsigned i=0; i<prim->instRequests.size(); i++) {
-    assert(prim->instRequests[i].getInstance() == NULL);
-    removeAst(prim->instRequests[i].ast);
+  for (unsigned j=0; j<prim->instRequests.size(); j++) {
+    assert(prim->instRequests[j].getInstance() == NULL);
+    removeAst(prim->instRequests[j].ast);
   }
 
   return true;

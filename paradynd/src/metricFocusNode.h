@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.67 2001/05/12 21:29:54 ning Exp $ 
+// $Id: metricFocusNode.h,v 1.68 2001/05/23 21:59:07 ning Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -891,6 +891,7 @@ public:
   bool anythingToManuallyTrigger() const;
 
   void adjustManuallyTrigger();
+  void adjustManuallyTrigger(vector<Address> stack_pcs); // should make it private
 #if defined(MT_THREAD)
   void adjustManuallyTrigger0();
 #endif
@@ -974,6 +975,9 @@ private:
   void removeFromAggregate(metricDefinitionNode *comp, int deleteComp = 1);
 
   void updateAggregateComponent();
+  // this function checks if we need to do stack walk
+  // if all returnInstance's overwrite only 1 instruction, no stack walk necessary
+  bool needToWalkStack() const;
 
   metricStyle metStyle() { return style_; }
 

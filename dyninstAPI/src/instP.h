@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.30 2000/02/18 20:40:54 bernat Exp $
+// $Id: instP.h,v 1.31 2001/05/23 21:58:59 ning Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -120,23 +120,37 @@ class returnInstance {
 	installed = false;
     }
 
-    returnInstance(instruction *instSeq, int seqSize, Address addr, int size) 
-		   :instructionSeq(instSeq), instSeqSize(seqSize), 
+    returnInstance(unsigned insnsOver, instruction *instSeq, int seqSize, Address addr, int size)
+		   :insnsOverwritten(insnsOver), instructionSeq(instSeq), instSeqSize(seqSize), 
 		   addr_(addr), size_(size), installed(false) {};
 
     bool checkReturnInstance(const vector<Address> &adr, u_int &index);
     void installReturnInstance(process *proc);
     void addToReturnWaitingList(Address pc, process *proc);
 
-	bool Installed() const { return installed; }
-	Address addr() const { return addr_; }
+    bool Installed() const { return installed; }
+    Address addr() const { return addr_; }
+
+    // return the number of instructions this instructionSeq is going to overwrite
+    // to return true or false: if this instructionSeq will require a stack walk or not
+    //   or if the instructionSeq is going to overwrite more than 1 instruction or not
+    //
+    // 1 for alpha and power, 2 for mips
+    // could be 1, 2, 3, ... for sparc, 0 for unknown
+    // 1 + insnsBefore + insnsAfter at the inst point (location) for x86
+    unsigned InsnsOverwritten() const { return insnsOverwritten; }
+    bool needToWalkStack() const {
+      return (1 != insnsOverwritten);
+    }
 
   private:
-    instruction *instructionSeq;     /* instructions to be installed */
+    unsigned insnsOverwritten;      // number of instructions that will be overwritten
+                                    // when this instructionSeq is installed; 0 means unknown
+    instruction *instructionSeq;    // instructions to be installed
     int instSeqSize;
-    Address addr_;                  /* beginning address */
+    Address addr_;                  // beginning address
     int size_;
-	bool installed;
+    bool installed;
 }; 
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.88 2001/05/12 21:29:54 ning Exp $
+// $Id: mdl.C,v 1.89 2001/05/23 21:59:06 ning Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1251,8 +1251,9 @@ bool allDataGenCode_for_threads(
     string thr_component_flat_name(name);
     metricDefinitionNode* thr_mn;
     vector <pdThread *>& allThr = proc->threads ;
+    unsigned i;
 
-    for (unsigned i=0;i<allThr.size();i++) {
+    for (i=0;i<allThr.size();i++) {
       if (allThr[i] != NULL) {
         string thrName;
         thrName = string("thr_") + allThr[i]->get_tid()
@@ -1306,7 +1307,7 @@ bool allDataGenCode_for_threads(
     // generate code for one thread since all threads share code
     // but data need to be allocated for all threads
     assert(allThr.size()==parts.size());
-    for (unsigned i=0; i<allThr.size(); i++) {
+    for (i=0; i<allThr.size(); i++) {
        pdThread *thr = allThr[i];
        thr_mn = parts[i];
 
