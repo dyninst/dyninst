@@ -44,6 +44,9 @@
 
 /*
  * $Log: tvCell.h,v $
+ * Revision 1.6  2005/02/15 17:44:26  legendre
+ * Made the table visi resize its columns based on the size of the data its displaying
+ *
  * Revision 1.5  2004/03/23 01:12:49  eli
  * Updated copyright string
  *
@@ -88,7 +91,7 @@ class tvCell {
    tvCell &operator=(const tvCell &src);
 
    bool isValid() const {return validData;}
-   double getData() const {assert(validData); return data;}
+   double getData() const { assert(validData); return data;}
 
    void invalidate() {validData = false;}
    void setValidData(double newData) {

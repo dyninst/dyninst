@@ -43,7 +43,7 @@
 // Ariel Tamches
 
 /*
- * $Id: tableVisi.C,v 1.21 2004/03/23 01:12:49 eli Exp $
+ * $Id: tableVisi.C,v 1.22 2005/02/15 17:44:24 legendre Exp $
  */
 
 #include <iostream>
@@ -404,7 +404,28 @@ void tableVisi::drawHighlightBackground(Drawable theDrawable) const {
 		  left, top, width, height);
 }
 
-void tableVisi::draw(bool xsynch) const {
+void tableVisi::calcColumnWidths()
+{
+   static char buffer[200];
+   for (unsigned metriclcv=0; metriclcv < indirectMetrics.size(); metriclcv++)
+   {
+      tvMetric &theMetric = metrics[indirectMetrics[metriclcv]];
+      const pdvector<tvCell> thisMetricCells = cells[indirectMetrics[metriclcv]];
+      for (unsigned focuslcv=0; focuslcv < indirectFoci.size(); focuslcv++)
+      {
+         const tvCell &theCell = thisMetricCells[indirectFoci[focuslcv]];
+         if (!theCell.isValid())
+            continue;
+         double2string(buffer, theCell.getData());
+         unsigned pix_width = Tk_TextWidth(cellFont, buffer, strlen(buffer));
+         
+         if (pix_width > theMetric.getUnitsPixWidth())
+            theMetric.setUnitsPixWidth(pix_width);
+      }
+   }
+}
+
+void tableVisi::draw(bool xsynch) {
    if (!offscreenPixmap)
       return; // we haven't done a tryFirst() yet
 
@@ -417,6 +438,8 @@ void tableVisi::draw(bool xsynch) const {
 		  backgroundGC,
 		  0, 0, // x, y offset
 		  Tk_Width(theTkWindow), Tk_Height(theTkWindow));
+
+   calcColumnWidths();
 
    // Is anything (a cell, an entire row, an entire column) highlighted?
    // If so, let's do that now
@@ -754,7 +777,7 @@ void tableVisi::drawCells1Col(Drawable theDrawable, int middle_x, int top_y,
 
       int buffer_len = strlen(buffer);
       int string_pix_width = Tk_TextWidth(cellFont, buffer, buffer_len);
- 
+      
       Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  cellGC,
 		  cellFont,

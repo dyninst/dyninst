@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.14  2005/02/15 17:44:25  legendre
+ * Made the table visi resize its columns based on the size of the data its displaying
+ *
  * Revision 1.13  2004/03/23 01:12:49  eli
  * Updated copyright string
  *
@@ -210,9 +213,10 @@ class tableVisi {
       // returns the y coord where this row starts.  Do not adjust for the scrollbar;
       // we do that for you.
 
+   void calcColumnWidths();
    // private cell helper functions
    void drawCells(Drawable) const;
-   void drawCells1Col(Drawable, int middle_x, int top_y,
+   void drawCells1Col(Drawable theDrawable, int middle_x, int top_y,
                       const pdvector<tvCell> &thisMetricCells) const;
    unsigned getVertPixCellTop2Baseline() const;
 
@@ -245,7 +249,7 @@ class tableVisi {
    bool tryFirst();
    void resize(Tcl_Interp *); // does not redraw
 
-   void draw(bool xsynch) const;
+   void draw(bool xsynch);
 
    unsigned getNumMetrics() const {return metrics.size();}
    unsigned getNumFoci()    const {return foci.size();}

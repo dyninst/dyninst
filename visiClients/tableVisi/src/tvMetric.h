@@ -92,9 +92,9 @@ class tvMetric {
    }
 
    void changeNumSigFigs(unsigned newSigFigs, Tk_Font valuesFont);
-   
+   void setUnitsPixWidth(unsigned u) { unitsPixWidth = u; }
+   unsigned getUnitsPixWidth() const { return unitsPixWidth; }
    unsigned getNamePixWidth() const {return namePixWidth;}
-   unsigned getUnitsPixWidth() const {return unitsPixWidth;}
    unsigned getColPixWidth() const; // width of whole column (incl. horiz padding)
 };
 
