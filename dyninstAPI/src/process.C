@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.298 2002/02/13 20:30:47 gurari Exp $
+// $Id: process.C,v 1.299 2002/02/14 16:26:47 gurari Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5409,11 +5409,13 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    inProgStruct.firstInstrAddr = tempTrampBase;
 
 #ifndef BPATCH_LIBRARY
+#ifdef MT_THREAD
    if (todo.thrId > 0) {
      inProgStruct.lwp = findLWPbyPthread(todo.thrId);
    } else {
      inProgStruct.lwp = (unsigned) -1;
    }
+#endif
 #endif
 
    currRunningRPCs += inProgStruct;
