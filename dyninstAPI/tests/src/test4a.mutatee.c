@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4a.mutatee.c,v 1.9 2004/04/19 20:12:59 chadd Exp $ */
+/* $Id: test4a.mutatee.c,v 1.10 2005/01/18 18:34:24 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -147,7 +147,7 @@ void func2_1()
 	}
 #endif
 
-
+	dprintf("Mutatee %d exiting...\n", getpid());
         exit(getpid());
     } else if (pid < 0) {
         /* error case */
