@@ -824,6 +824,18 @@ DYNINSTinit(int doskip) {
     const char*      interval;
 #endif
 
+    // In accordance with usual stdio rules, stdout is line-buffered and
+    // stderr is non-buffered.  Unfortunately, stdio is a little clever and
+    // when it detects stdout/stderr redirected to a pipe/file/whatever, it
+    // changes to fully-buffered.  This indeed occurs with us (see paradynd/src/process.C
+    // to see how a program's stdout/stderr are redirected to a pipe).
+    // So, we reset back to the desired "bufferedness" here.  See stdio.h for these calls.
+    setvbuf(stdout, NULL, _IOLBF, 0);
+       // stdout line-buffered
+       // "setlinebuf(stdout)" is cleaner but HP doesn't define setlinebuf in its library
+    setvbuf(stderr, NULL, _IONBF, 0);
+       // stderr non-buffered
+
     DYNINSTos_init();
 
     startWall = 0;
