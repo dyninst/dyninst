@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.49 2004/04/11 04:52:06 legendre Exp $
+ * $Id: func-reloc.C,v 1.50 2004/04/12 21:07:24 legendre Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -779,8 +779,11 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
   norm_alt_set.Collapse(); 
 
   // iterate over all instructions in function....
+#if defined(os_linux) && defined(arch_x86)
   while (oldOffset < codeSize || nextAlter != NULL) {
-
+#else
+  while (oldOffset < codeSize) {
+#endif
     // next alteration
     nextAlter = norm_alt_set.iterNext();
   
