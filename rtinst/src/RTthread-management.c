@@ -156,48 +156,6 @@ void DYNINSTthreadDelete(void) {
 
 }
 
-int DYNINSTregister_running_thread(void) {
-   char line[120];
-   int tid;
-   int index;
-   virtualTimer *vt;
-/*
-   sprintf(line, "REGISTER: tid: %d, lwp: %d\n",
-           P_thread_self(), P_lwp_self());
-   write(2, line, strlen(line));
-*/ 
-   tid = P_thread_self();
-   if(tid == 0) {
-       /* the daemon will recognize this failed RPC and handle it accordingly*/
-/*
-       sprintf(line, "  register, tid: %d, lwp: %d, returning\n",
-               tid, P_lwp_self());
-       write(2, line, strlen(line));
-*/
-       return 0;
-   }
-   index = DYNINST_lookup_index(tid);
-   if(index == MAX_NUMBER_OF_THREADS) {
-/*
-       sprintf(line, "  couldn't find corresponding index, tid: %d, lwp %d\n",
-              tid, P_lwp_self());
-      write(2, line, strlen(line));
-*/
-      return 0;
-   }
-   vt = &(virtualTimers[index]);
-/*
-   sprintf(line, "  register, tid: %d, index: %d, lwp: %d, addr: %p\n",
-           tid, index, P_lwp_self(), vt);
-   write(2, line, strlen(line));
-*/
-   _VirtualTimerDestroy(vt);
-   _VirtualTimerStart(vt, 0);
-   DYNINST_reportNewThread(index, tid);
-
-   return 1;
-}
-
 /* Returns new INDEX */
 
 unsigned DYNINSTthreadCreate(int tid)
