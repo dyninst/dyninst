@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.4 1999/07/08 00:22:30 nash Exp $
+// $Id: instPoint-mips.h,v 1.5 1999/07/13 04:32:54 csserra Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -69,7 +69,7 @@ class instPoint {
     flags(info),
     vectorId(-1),
     func_(fn),
-    hint_(0),
+    hint_got_(0),
     callee_(NULL),
     owner_(fn->file()->exec()),
     addr_(fn->getAddress(0) + offset),
@@ -119,15 +119,15 @@ class instPoint {
   unsigned       flags;
   int            vectorId;
   // protected:
-  function_base *func_;     // function containing this instPoint
-  Address        hint_;     // callee hint (relative address of GOT entry) 
-  function_base *callee_;   // function being called (if call point)
-  image         *owner_;    // image containing "func_"
-  Address        addr_;     // address of this instPoint
-  Offset         offset_;   // offset of instPoint from function start
+  function_base *func_;      // function containing this instPoint
+  Address        hint_got_;  // callee hint (relative vaddr of GOT entry) 
+  function_base *callee_;    // function being called (if call point)
+  image         *owner_;     // image containing "func_"
+  Address        addr_;      // address of this instPoint
+  Offset         offset_;    // offset of instPoint from function start
   instPointType  ipType_;
-  int            size_;     // instPoint footprint
-  instruction    origInsn_; // instruction being instrumented
+  int            size_;      // instPoint footprint
+  instruction    origInsn_;  // instruction being instrumented
 
   instruction    delayInsn_;
   Offset         origOffset_;
