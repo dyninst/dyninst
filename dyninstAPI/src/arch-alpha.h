@@ -10,7 +10,8 @@ typedef enum {
     noneType,
     functionEntry,
     functionExit,
-    callSite
+    callSite,
+    otherPoint
 } instPointType;
 
 
@@ -377,7 +378,22 @@ inline bool isJmpType(const instruction& insn) {
 }
 
 inline bool isBranchType(const instruction& insn) {
-  return ((insn.branch.opcode == OP_BSR) || (insn.branch.opcode == OP_BR));
+  return ((insn.branch.opcode == OP_BSR) ||
+          (insn.branch.opcode == OP_BR) ||
+          (insn.branch.opcode == OP_BLBC) ||
+          (insn.branch.opcode == OP_BLBS) ||
+          (insn.branch.opcode == OP_FBEQ) ||
+          (insn.branch.opcode == OP_FBNE) ||
+          (insn.branch.opcode == OP_BEQ) ||
+          (insn.branch.opcode == OP_BNE) ||
+          (insn.branch.opcode == OP_FBLT) ||
+          (insn.branch.opcode == OP_FBGE) ||
+          (insn.branch.opcode == OP_BLT) ||
+          (insn.branch.opcode == OP_BGE) ||
+          (insn.branch.opcode == OP_FBLE) ||
+          (insn.branch.opcode == OP_FBGT) ||
+          (insn.branch.opcode == OP_BLE) ||
+          (insn.branch.opcode == OP_BGT));
 }
 
 inline bool isBsr(const instruction& insn) {
@@ -421,11 +437,12 @@ inline bool IS_VALID_INSN(const instruction& insn) {
 	  (insn.mem.opcode == 0x08) ||
 	  (insn.mem.opcode == 0x09) ||
 	  ((insn.mem.opcode == 0x18) && 
-	   (insn.mem.disp == 0x8000) ||
 	   (insn.mem.disp == 0x0000) ||
-	   (insn.mem.disp == 0xe000) ||
-	   (insn.mem.disp == 0x4000) ||
-	   (insn.mem.disp == 0xf000)) ||
+	   (insn.mem.disp == 0x4000)) ||
+	   // these are are larger than the field - jkh 12/1/98
+	   // (insn.mem.disp == 0x8000) ||
+	   // (insn.mem.disp == 0xe000) ||
+	   // (insn.mem.disp == 0xf000) ||
 	  (insn.mem.opcode == 0x1a) ||
 	  ((insn.branch.opcode >= 0x30) &&
 	   (insn.branch.opcode <= 0x3f)) ||

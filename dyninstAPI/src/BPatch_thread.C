@@ -756,8 +756,15 @@ void BPatch_thread::oneTimeCodeCallback(void * /*userData*/, void *returnValue)
  */
 void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
 {
-    if (!statusIsStopped())
-	return NULL;
+    bool needToResume = false;
+
+    if (!statusIsStopped()) {
+        stopExecution();
+        if (!statusIsStopped()) {
+            return -1;
+        }
+        needToResume = true;
+    }
 
     proc->postRPCtoDo(expr.ast,
 		      false, // XXX = calculate cost - is this what we want?
@@ -772,6 +779,10 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
 	proc->launchRPCifAppropriate(false, false);
 	BPatch::bpatch->getThreadEvent(false);
     } while (waitingForOneTimeCode && !statusIsTerminated());
+
+    if (needToResume) {
+        continueExecution();
+    }
 
     return lastOneTimeCodeReturnValue;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.9 1998/12/25 21:58:04 wylie Exp $
+// $Id: BPatch_image.C,v 1.10 1999/01/21 01:26:38 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -199,7 +199,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
     }
 
     /* We don't have an instPoint for this address, so make one. */
-#ifdef rs6000_ibm_aix4_1
+#if defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
     /*
      * XXX This is machine dependent and should be moved to somewhere else.
      */
@@ -209,12 +209,22 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
     instruction instr;
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
 
+#if defined(rs6000_ibm_aix4_1)
     instPoint *newpt = new instPoint((pd_Function *)func,
 				     instr,
 				     NULL, // image *owner - this is ignored
 				     (Address)address,
 				     false, // bool delayOk - this is ignored
 				     ipOther);
+#elif defined(alpha_dec_osf4_0)
+    instPoint *newpt = new instPoint((pd_Function *)func,
+				    (const instructUnion &) instr,
+				    (const image *) NULL, // image * - ignored
+				    (Address &)address,
+				    false, // bool delayOk - ignored
+				    otherPoint);
+#endif
+
 
     proc->instPointMap[(Address)address] = newpt; // Save this instPoint
 

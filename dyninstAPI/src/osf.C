@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.3 1998/12/25 22:29:02 wylie Exp $
+// $Id: osf.C,v 1.4 1999/01/21 01:26:41 hollings Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -73,6 +73,10 @@ int getNumberOfCPUs()
 
 bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
 
+  extern void emitSaveConservative(process *, char *, unsigned &baseBytes);
+
+  emitSaveConservative(this, (char *) insnPtr, baseBytes);
+
   return true;
 }
 
@@ -84,7 +88,11 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
   instruction *insn = (instruction *)insnPtr;
   unsigned baseInstruc = baseBytes / sizeof(instruction);
 
+
   extern void generateBreakPoint(instruction &);
+  extern void emitRestoreConservative(process *, char *, unsigned &baseBytes);
+
+  emitRestoreConservative(this, (char *) insnPtr, baseBytes);
 
   if (stopForResult) {
     generateBreakPoint(insn[baseInstruc]);
@@ -367,7 +375,7 @@ bool process::dumpCore_(const string coreFile) {
   char name[] = "./test1.mutatee";
   sprintf(temp,"file = %s",coreFile.string_of());
   logLine(temp);
-  assert(osDumpImage(name, pid, NULL));
+  assert(dumpImage(name));
   //  assert(OS::osDumpImage(symbols->file(), pid, symbols->codeOffset()));
   errno = 0;
   (void) ptrace(PT_CONTINUE, pid, (Address*)1, SIGBUS);
@@ -392,8 +400,14 @@ string process::tryToFindExecutable(const string &progpath, int pid) {
 // Write out the current contents of the text segment to disk.  This is useful
 //    for debugging dyninst.
 //
-bool process::osDumpImage(const string &imageFileName,  pid_t pid, Address codeOff)
+#ifdef BPATCH_LIBRARY
+bool process::dumpImage(string outFile)
 {
+#else
+bool process::dumpImage()
+{
+    string outFile = getImage()->file() + ".real";
+#endif
     int i;
     int rd;
     int ifd;
@@ -404,18 +418,21 @@ bool process::osDumpImage(const string &imageFileName,  pid_t pid, Address codeO
     int length;
     Address baseAddr;
     extern int errno;
-    char buffer[4096];
-    char outFile[256];
+    const int COPY_BUF_SIZE = 4*4096;
+    char buffer[COPY_BUF_SIZE];
     struct filehdr hdr;
     struct stat statBuf;
-    bool needsCont = false;
     SCNHDR sectHdr;
     LDFILE      *ldptr = NULL;
+    image       *im;
     long text_size , text_start,file_ofs;
 
-    ifd = open(imageFileName.string_of(), O_RDONLY, 0);
+    im = getImage();
+    string origFile = im->file();
+
+    ifd = open(origFile.string_of(), O_RDONLY, 0);
     if (ifd < 0) {
-      sprintf(errorLine, "Unable to open %s\n", outFile);
+      sprintf(errorLine, "Unable to open %s\n", origFile.string_of());
       logLine(errorLine);
       showErrorCallback(41, (const char *) errorLine);
       perror("open");
@@ -425,17 +442,17 @@ bool process::osDumpImage(const string &imageFileName,  pid_t pid, Address codeO
     rd = fstat(ifd, &statBuf);
     if (rd != 0) {
       perror("fstat");
-      sprintf(errorLine, "Unable to stat %s\n", outFile);
+      sprintf(errorLine, "Unable to stat %s\n", origFile.string_of());
       logLine(errorLine);
       showErrorCallback(72, (const char *) errorLine);
       return true;
     }
     length = statBuf.st_size;
-    sprintf(outFile, "%s.real", imageFileName.string_of());
-    sprintf(errorLine, "saving program to %s\n", outFile);
+
+    sprintf(errorLine, "saving program to %s\n", outFile.string_of());
     logLine(errorLine);
 
-    ofd = open(outFile, O_WRONLY|O_CREAT, 0777);
+    ofd = open(outFile.string_of(), O_WRONLY|O_CREAT, 0777);
     if (ofd < 0) {
       perror("open");
       exit(-1);
@@ -444,33 +461,31 @@ bool process::osDumpImage(const string &imageFileName,  pid_t pid, Address codeO
     /* read header and section headers */
     /* Uses ldopen to parse the section headers */
     /* try */ 
-     if (!(ldptr = ldopen(imageFileName.string_of(), ldptr))) {
+    if (!(ldptr = ldopen(origFile.string_of(), ldptr))) {
        perror("Error in Open");
        exit(-1);
      }
      
      if (TYPE(ldptr) != ALPHAMAGIC) {
-       printf("%s is not an alpha executable\n", imageFileName.string_of());
+       printf("%s is not an alpha executable\n", outFile.string_of());
        exit(-1);
      }
      // Read the text and data sections
      hdr = HEADER(ldptr);
      /* Find text segment and then */
      /* compute text segment length and start offset */
-     for (int k=0;k<hdr.f_nscns;k++)
-       {
+     for (int k=0;k<hdr.f_nscns;k++) {
 	 if (ldshread(ldptr, k , &sectHdr) == SUCCESS) {
-	   sprintf(errorLine,"Section: %s  Start: %ld ",sectHdr.s_name,sectHdr.s_vaddr);
-	   logLine(errorLine);
-	   cout << "Section: " << sectHdr.s_name << "\tStart: " << sectHdr.s_vaddr 
-		<< "\tEnd: " << sectHdr.s_vaddr + sectHdr.s_size << endl;
-	   cout.flush();
-	 }
-	 else
-	   {
+	   // sprintf(errorLine,"Section: %s  Start: %ld ",sectHdr.s_name,
+	   //  sectHdr.s_vaddr); 
+	   // logLine(errorLine);
+	   // cout << "Section: " << sectHdr.s_name << "\tStart: " << sectHdr.s_vaddr 
+	   // << "\tEnd: " << sectHdr.s_vaddr + sectHdr.s_size << endl;
+	   // cout.flush();
+	 } else {
 	     perror("Error reading section header");
 	     exit(-1);
-	   }
+	 }
 
 	 if (!P_strcmp(sectHdr.s_name, ".text")) {
 	   text_size = sectHdr.s_size;
@@ -484,17 +499,10 @@ bool process::osDumpImage(const string &imageFileName,  pid_t pid, Address codeO
     /* now copy the entire file */
     lseek(ofd, 0, SEEK_SET);
     lseek(ifd, 0, SEEK_SET);
-    for (i=0; i < length; i += 4096) {
-        rd = read(ifd, buffer, 4096);
+    for (i=0; i < length; i += COPY_BUF_SIZE) {
+        rd = read(ifd, buffer, COPY_BUF_SIZE);
         write(ofd, buffer, rd);
         total += rd;
-    }
-
-    if (!stopped) {
-        // make sure it is stopped.
-        stop_();
-        waitpid(pid, NULL, WUNTRACED);
-	needsCont = true;
     }
 
     baseAddr = (Address) text_start;
@@ -504,40 +512,21 @@ bool process::osDumpImage(const string &imageFileName,  pid_t pid, Address codeO
     sprintf(errorLine, " code offset= %d\n", baseAddr);
     logLine(errorLine);
 
-#ifdef notdef
-    // Use the /proc file system to read in the text segment from memory
-	char procName[128];
-
-	sprintf(procName,"/proc/%05d", (int)pid);
-	int proc_fd = P_open(procName, O_RDWR, 0);
-	if (proc_fd < 0) {
-	  fprintf(stderr, "attach: open failed: %s\n", sys_errlist[errno]);
-	  return false;
-	}
-#endif
-	
     /* seek to the text segment */
     lseek(ofd, file_ofs, SEEK_SET);
     for (i=0; i < text_size; i+= 1024) {
         errno = 0;
         length = ((i + 1024) < text_size) ? 1024 : text_size -i;
-	if (lseek(proc_fd, (long)(baseAddr + i), SEEK_SET) != (long)(baseAddr + i))
-	  {
+	if (lseek(proc_fd, (long)(baseAddr + i), SEEK_SET) != (long)(baseAddr + i)) {
 	    fprintf(stderr,"Error_:%s\n",sys_errlist[errno]);
 	    fprintf(stderr,"[%d] Couldn't lseek to the designated point\n",i);
-	  }
+	}
 	read(proc_fd,buffer,length);
 	write(ofd, buffer, length);
     }
 
-    
-    if (needsCont) {
-	ptrace(PT_CONTINUE, pid, (Address*) 1, SIGCONT);
-    }
-
     close(ofd);
     close(ifd);
-    close(proc_fd);
 
     return true;
 }

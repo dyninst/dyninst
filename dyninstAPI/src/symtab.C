@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.88 1998/12/25 22:06:13 wylie Exp $
+// $Id: symtab.C,v 1.89 1999/01/21 01:26:50 hollings Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -828,6 +828,7 @@ void pdmodule::define() {
   unsigned f_size = funcs.size();
 
   for (unsigned f=0; f<f_size; f++) {
+#ifndef BPATCH_LIBRARY
     pd_Function *pdf = funcs[f];
 #ifdef DEBUG_MODS
     of << fileName << ":  " << pdf->prettyName() <<  "  "
@@ -835,7 +836,6 @@ void pdmodule::define() {
 #endif
     // ignore line numbers for now 
 
-#ifndef BPATCH_LIBRARY
     //if (!(pdf->isLibTag())) {
     if (1) {
       // see if we have created module yet.

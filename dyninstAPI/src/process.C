@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.159 1998/12/25 22:12:19 wylie Exp $
+// $Id: process.C,v 1.160 1999/01/21 01:26:43 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1805,10 +1805,8 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
     processVec += ret;
     activeProcesses++;
 
-#ifndef BPATCH_LIBRARY
     if (!costMetric::addProcessToAll(ret))
        assert(false);
-#endif
 
     // We used to do a ret->attach() here...it was moved to the fork ctor, so it's
     // been done already.
@@ -3308,21 +3306,24 @@ Address process::createRPCtempTramp(AstNode *action,
    regSpace->resetSpace();
 
    unsigned count = 0; // number of bytes required for RPCtempTramp
+   Address aCount;	// need to explictly assign this between address and 
+			// unsigned (casting won't work) for Alpha - jkh 1/20/99
 
    // The following is implemented in an arch-specific source file...
-   if (!emitInferiorRPCheader(insnBuffer, count)) {
+   if (!emitInferiorRPCheader(insnBuffer, (unsigned&)count)) {
       // a fancy dialog box is probably called for here...
       cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed." << endl;
       return 0;
    }
+   aCount = count;
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-   generateMTpreamble((char*)insnBuffer,(Address&)count,this);
+   generateMTpreamble((char*)insnBuffer,(Address&)aCount,this);
 #endif
 
    resultReg = (Register)action->generateCode(this, regSpace,
 				    (char*)insnBuffer,
-				    (Address&)count, noCost, true);
+				    (Address&)aCount, noCost, true);
 
    if (!shouldStopForResult) {
       regSpace->freeRegister(resultReg);
@@ -3334,7 +3335,8 @@ Address process::createRPCtempTramp(AstNode *action,
    // (the following is implemented in an arch-specific source file...)
 
    unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
-   if (!emitInferiorRPCtrailer(insnBuffer, count,
+   count = aCount;
+   if (!emitInferiorRPCtrailer(insnBuffer, (unsigned&)count,
 		       breakOffset, shouldStopForResult, stopForResultOffset,
 		       justAfter_stopForResultOffset)) {
       // last 4 args except shouldStopForResult are modified by the call
@@ -3506,19 +3508,12 @@ bool process::handleTrapIfDueToRPC() {
      if (continueProc()) statusLine("application running");
    }
 
-   delete [] theStruct.savedRegs;
-
    // step 2) delete temp tramp
    vector<addrVecType> pointsToCheck;
       // blank on purpose; deletion is safe to take place even right now
    inferiorFree(this, theStruct.firstInstrAddr, textHeap, pointsToCheck);
 
    // step 3) continue process, if appropriate
-#if defined(alpha_dec_osf4_0)
-   if (!continueProc()){
-     cerr << "RPC completion: continueProc failed" << endl;
-   }
-#else
    if (theStruct.wasRunning) {
       inferiorrpc_cerr << "end of rpc -- continuing process, since it had been running" << endl;
 
@@ -3528,8 +3523,6 @@ bool process::handleTrapIfDueToRPC() {
    }
    else
       inferiorrpc_cerr << "end of rpc -- leaving process paused, since it wasn't running before" << endl;
-#endif
-
    // step 4) invoke user callback, if any
    // note: I feel it's important to do the user callback last, since it
    // may perform arbitrary actions (such as making igen calls) which can lead
@@ -3545,6 +3538,8 @@ bool process::handleTrapIfDueToRPC() {
       theStruct.callbackFunc(this, theStruct.userData, theStruct.resultValue);
 
    inferiorrpc_cerr << "handleTrapIfDueToRPC match type 2 -- done with callbackFunc, if any" << endl;
+
+   delete [] theStruct.savedRegs;
 
    return true;
 }
@@ -3603,14 +3598,18 @@ void process::installBootstrapInst() {
       "viaCreateProcess", -1);
 #else
    function_base *func = getMainFunction();
-   assert(func);
-   instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
-   addInstFunc(this, func_entry, ast, callPreInsn,
-	       orderFirstAtPoint,
-	       true // true --> don't try to have tramp code update the cost
-	       );
-   // returns an "instInstance", which we ignore (but should we?)
-   removeAst(ast);
+   if (func) {
+       instPoint *func_entry = (instPoint *)func->funcEntry(this);
+       addInstFunc(this, func_entry, ast, callPreInsn,
+               orderFirstAtPoint,
+               true // true --> don't try to have tramp code update the cost
+               );
+       // returns an "instInstance", which we ignore (but should we?)
+       removeAst(ast);
+    } else {
+       printf("no main function, skipping DYNINSTinit\n");
+       hasBootstrapped = true;
+    }
 #endif
 }
 

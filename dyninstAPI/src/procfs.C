@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.2 1998/12/25 22:09:17 wylie Exp $
+// $Id: procfs.C,v 1.3 1999/01/21 01:26:47 hollings Exp $
 
 #include "symtab.h"
 #include "util/h/headers.h"
@@ -247,8 +247,9 @@ bool process::attach() {
 }
 
 bool process::restoreRegisters(void *buffer) {
-   // The fact that this routine can be shared between solaris/sparc and
-   // solaris/x86 is just really, really cool.  /proc rules!
+   Address addr;
+   prrun_t flags;
+   prstatus_t stat;
 
    assert(status_ == stopped); // /proc requires it
 
@@ -273,7 +274,32 @@ bool process::restoreRegisters(void *buffer) {
       return false;
    }
 
-   return true;
+   addr = theIntRegs.regs[PC_REGNUM];
+
+   if (ioctl(proc_fd, PIOCSTATUS, &stat) == -1) {
+         fprintf(stderr, "unable to get process status\n");
+         return false;
+   }
+   if (!((stat.pr_flags & PR_STOPPED) && (stat.pr_why == PR_FAULTED))) {
+             fprintf(stderr, "unexpected state\n");
+             return false;
+   }
+
+   flags.pr_flags = PRCFAULT || PRSTOP || PRSVADDR;
+   flags.pr_vaddr = addr;
+
+   if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
+        fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n",
+             sys_errlist[errno]);
+        return false;
+    }
+
+    if (ioctl(proc_fd, PIOCWSTOP, 0) == -1) {
+        fprintf(stderr, "continueProc_: PIOCWSTOP failed: %s\n",
+                sys_errlist[errno]);
+        return false;
+    }
+    return true;
 }
 
 bool process::continueProc_(Address vaddr)
@@ -364,13 +390,9 @@ bool process::continueWithForwardSignal(int) {
    return true;
 }
 
-bool process::dumpImage(string outFile) {return false;}
 
 
 void *process::getRegisters() {
-   // Astonishingly, this routine can be shared between solaris/sparc and
-   // solaris/x86.  All hail /proc!!!
-
    // assumes the process is stopped (/proc requires it)
    assert(status_ == stopped);
 
@@ -393,7 +415,6 @@ void *process::getRegisters() {
       else if (errno == EINVAL)
 	 // what to do in this case?  Probably shouldn't even do a print, right?
 	 // And it certainly shouldn't be an error, right?
-	 // But I wonder if any sparcs out there really don't have floating point.
 	 cerr << "It appears that this machine doesn't have floating-point instructions" << endl;
 
       return NULL;

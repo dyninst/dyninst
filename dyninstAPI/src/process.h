@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.102 1998/12/25 22:12:17 wylie Exp $
+/* $Id: process.h,v 1.103 1999/01/21 01:26:46 hollings Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -103,7 +103,7 @@ typedef enum { HEAPfree, HEAPallocated } heapStatus;
 typedef enum { textHeap=0, dataHeap=1 } inferiorHeapType;
 typedef vector<Address> addrVecType;
 
-const int LOAD_DYNINST_BUF_SIZE = 64;
+const int LOAD_DYNINST_BUF_SIZE = 256;
 
 class heapItem {
  public:
@@ -237,6 +237,7 @@ class process {
  friend class ptraceKludge;
 #ifdef BPATCH_LIBRARY
  friend class BPatch_image;
+ friend Address loadDyninstDll(process *, char Buffer[]);
 #endif
 
   //  

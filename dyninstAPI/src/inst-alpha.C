@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.5 1998/12/25 23:18:45 wylie Exp $
+// $Id: inst-alpha.C,v 1.6 1999/01/21 01:26:40 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -750,8 +750,17 @@ trampTemplate *installBaseTramp(Address baseAddr,
   assert(baseTemplate.size > 0);
   instruction *code = new instruction[baseTemplate.size]; assert(code);
 
-  function_base *fun_save = proc->findOneFunction("DYNINSTsave_temp");
-  function_base *fun_restore = proc->findOneFunction("DYNINSTrestore_temp");
+  function_base *fun_save;
+  function_base *fun_restore;
+
+  if (location->ipType == otherPoint) {
+      fun_save = proc->findOneFunction("DYNINSTsave_conservative");
+      fun_restore = proc->findOneFunction("DYNINSTrestore_conservative");
+  } else {
+      fun_save = proc->findOneFunction("DYNINSTsave_temp");
+      fun_restore = proc->findOneFunction("DYNINSTrestore_temp");
+  }
+
   assert(fun_save && fun_restore);
   Address dyn_save = fun_save->addr();
   Address dyn_restore = fun_restore->addr();
@@ -834,6 +843,80 @@ trampTemplate *installBaseTramp(Address baseAddr,
 
   proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size, (caddr_t) code);
   delete (code);
+}
+
+/*
+ * emitSaveConservative - generate code to save all registers
+ *      used as part of inferrior RPC
+ *      We don't know where this will be located, so generate absolute addr
+ *          for the function call.
+ *
+ */
+void emitSaveConservative(process *proc, char *code, unsigned &offset)
+{
+  unsigned count = 0;
+  function_base *fun_save;
+  instruction *insn = (instruction *) ((void*)&code[offset]);
+
+  fun_save = proc->findOneFunction("DYNINSTsave_conservative");
+  assert(fun_save);
+
+  Address dyn_save = fun_save->addr();
+
+  // decrement stack by 16
+  count += generate_lda(&insn[count], REG_SP, REG_SP, -16, true);
+
+  // push T10 onto the stack
+  count += generate_store(&insn[count], REG_T10, REG_SP, 0, dw_quad);
+
+  // push ra onto the stack
+  count += generate_store(&insn[count], REG_RA, REG_SP, 8, dw_quad);
+
+  // Call to DYNINSTsave_conservative
+  int remainder;
+  count += generate_address(&insn[count], REG_T10, dyn_save, remainder);
+  if (remainder)
+    count += generate_lda(&insn[count], REG_T10, REG_T10, remainder, true);
+  count += generate_jump(&insn[count], REG_T10, MD_JSR, REG_RA, remainder);
+
+  offset += count * sizeof(instruction);
+}
+
+/*
+ * emitSaveConservative - generate code to restore all registers
+ *      used as part of inferrior RPC
+ *      We don't know where this will be located, so generate absolute addr
+ *          for the function call.
+ *
+ */
+void emitRestoreConservative(process *proc, char *code, unsigned &offset)
+{
+  unsigned count = 0;
+  function_base *fun_restore;
+  instruction *insn = (instruction *) ((void*)&code[offset]);
+
+  fun_restore = proc->findOneFunction("DYNINSTrestore_conservative");
+  assert(fun_restore);
+
+  Address dyn_restore = fun_restore->addr();
+
+  // Call to DYNINSTrestore_temp
+  int remainder;
+  count += generate_address(&insn[count], REG_T10, dyn_restore, remainder);
+  if (remainder)
+    count += generate_lda(&insn[count], REG_T10, REG_T10, remainder, true);
+  count += generate_jump(&insn[count], REG_T10, MD_JSR, REG_RA, remainder);
+
+  // load t10 from the stack
+  count += generate_load(&insn[count], REG_T10, REG_SP, 0, dw_quad);
+
+  // load ra from the stack
+  count += generate_load(&insn[count], REG_RA, REG_SP, 8, dw_quad);
+
+  // increment stack by 16
+  count += generate_lda(&insn[count], REG_SP, REG_SP, 16, true);
+
+  offset += count * sizeof(instruction);
 }
 
 //

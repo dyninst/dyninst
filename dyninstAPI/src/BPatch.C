@@ -364,7 +364,9 @@ BPatch_thread *BPatch::createProcess(char *path, char *argv[], char *envp[])
 
     BPatch_thread *ret = new BPatch_thread(path, argv, envp);
 
-    if (getLastError()) {
+    if (!ret->proc ||
+       (ret->proc->status() != stopped) ||
+       !ret->proc->isBootstrappedYet()) {
 	delete ret;
 	return NULL;
     }
