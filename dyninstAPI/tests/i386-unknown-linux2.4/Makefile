@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2000/04/20 20:18:27 jasonxie Exp $
+# $Id: Makefile,v 1.3 2000/04/24 03:22:19 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -18,9 +18,15 @@ include $(TO_CORE)/make.config
 CXXFLAGS += 
 CFLAGS +=
 
-SYSLIBS   += -lelf -lnsl
+SYSLIBS += -lelf -lnsl
 GNU_CXX = g++
-
+# there is no "native" or OS-provided compiler for Linux!
+# we use the Portland Group compilers, as that's what we've currently got
+# (in future we probably also want to test with the KAI/Intel compilers)
+ifdef PGI
+NATIVE_CC = pgcc
+NATIVE_CXX = pgCC
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -29,14 +35,24 @@ include ../make.module.tmpl
 
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
+MUTATEE_CFLAGS = -g $(ARCH_DEF)
+
+ifeq ($(MUTATEE_CC),gcc)
+MUTATEE_CFLAGS += -rdynamic
+endif
+ifeq ($(MUTATEE_CC),$(GNU_CXX))
+MUTATEE_CFLAGS += -rdynamic
+endif
+
 ifdef USES_LIBDYNINSTRT_SO
 $(TARGET2): $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(MODCFLAGS) -g $(MUTATEE_SRC) -rdynamic -ldl -o $(TARGET2)
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $@ $(MUTLIBS)
 else
 DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o
 
 $(TARGET2): $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(DYNINSTAPI_RT_LIB) -g $(MUTATEE_SRC) -ldl -o $(TARGET2)
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(DYNINSTAPI_RT_LIB) $(MUTATEE_SRC) \
+                -o $@ $(MUTLIBS)
 endif
 
 libtestA.o:
