@@ -26,6 +26,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.9  1996/04/10 18:01:19  lzheng
+ * Changes to support multiple arguments to calls
+ *
  * Revision 1.8  1996/04/08 21:43:09  lzheng
  * removed use of function funcReturn()
  *
@@ -941,23 +944,10 @@ pdFunction *getFunction(instPoint *point)
 }
 
 
-unsigned emitFuncCall(opCode op, vector<reg> srcs, char *i, unsigned &base,
-		      string callee, process *proc)
+unsigned emitFuncCall(opCode op, char *i, unsigned &base, string callee, process *proc)
 {
         // TODO cast
         instruction *insn = (instruction *) ((void*)&i[base]);
-
-        for (unsigned u=0; u<srcs.size(); u++){
-            if (u >= 4) {
-                 string msg = "Too many arguments to function call in instrumentation code:
- only 4 arguments can be passed on the sparc architecture.\n";
-                 fprintf(stderr, msg.string_of());
-                 showErrorCallback(94,msg);
-                 cleanUpAndExit(-1);
-            }
-	    genArithLogInsn(insn, ORop, ORext7, srcs[u], 0, 26-u); insn++;
-            base += sizeof(instruction);
-        }
 
         unsigned dest;
         bool err;
@@ -1022,6 +1012,12 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	generateLoadConst(insn, dest, src2, base);
         insn = (instruction *) ((void*)&i[base]);
 	generateStore(insn, src1, src2);
+	base += sizeof(instruction);
+    } else if (op ==  storeMemOp) {
+	generateStore(insn, src1, src2, dest);
+	base += sizeof(instruction);
+    } else if (op ==  loadMemOp) {
+	generateLoad(insn, src1, src2, dest);
 	base += sizeof(instruction);
     } else if (op ==  ifOp) {
 	generateCompareBranch(insn, src1, 0, dest); insn++;
