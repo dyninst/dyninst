@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.39  1996/03/11 19:02:08  mjrg
+ * Revision 1.40  1996/03/14 14:23:25  naim
+ * Batching enable data requests for better performance - naim
+ *
+ * Revision 1.39  1996/03/11  19:02:08  mjrg
  * Fixed a bug in getTime, the return was missing.
  *
  * Revision 1.38  1996/03/05 16:14:02  naim
@@ -311,6 +314,27 @@ void dynRPC::enableDataCollection(vector<u_int> focus, string met,
     totalInstTime.stop();
     // cout << "Enabled " << met << " = " << id << endl;
     enableDataCallback(daemon_id, id);
+}
+
+void 
+dynRPC::enableDataCollectionBatch(vector<T_dyninstRPC::focusStruct> focus, 
+                                  vector<string> met,
+				  vector<int> gid, int daemon_id)
+{
+    vector<int> return_id;
+    assert(focus.size() == met.size());
+    return_id.resize(met.size());
+    totalInstTime.start();
+    for (int i=0;i<met.size();i++) {
+      if (gid[i]>=0) {
+        return_id[i] = startCollecting(met[i], focus[i].focus, gid[i]);
+      }
+      else {
+        return_id[i] = gid[i];
+      }        
+    }
+    totalInstTime.stop();
+    enableDataCallbackBatch(daemon_id, return_id);
 }
 
 int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)

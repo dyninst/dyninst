@@ -437,6 +437,10 @@ $remote struct metricInfo {
     u_int handle;  // this is currently ignored by the daemons 
 };
 
+$remote struct focusStruct {
+  vector<u_int> focus;
+};
+
 /*
  * Create a paradynd process.
  *
@@ -449,7 +453,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 34;
+    $version 35;
 
     //
     // Define a program to run. 
@@ -597,7 +601,10 @@ $remote dynRPC {
     //
     $async void enableDataCollection(vector<u_int> focus, string metric,
 				     int id, int daemon_id);
-
+    $async void enableDataCollectionBatch(
+                                      vector<focusStruct> focus, 
+                                      vector<string> metric,
+				      vector<int> id, int daemon_id);
     int enableDataCollection2(vector<u_int> focus, string metric, int id);
 
     //
@@ -605,12 +612,14 @@ $remote dynRPC {
     // enable request
     //
     $upcall $async void enableDataCallback(int daemon_id, int return_id);
+    $upcall $async void enableDataCallbackBatch(int daemon_id, 
+                                                vector<int> return_id);
 
     //
     // stop collecting data for the named mi.
     //     mi		- a metricInstance returned by enableDataCollection.
     //
-    void disableDataCollection(int mi);
+    $async void disableDataCollection(int mi);
 
     // 
     // called by a daemon when there is no more data to be sent for a metric

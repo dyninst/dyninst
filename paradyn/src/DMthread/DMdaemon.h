@@ -170,7 +170,13 @@ class paradynDaemon: public dynRPCUser {
   	static bool pauseAll();	
 	static bool continueAll();
 	static bool setInstSuppress(resource *, bool);
-	static bool enableData(resourceListHandle,metricHandle,metricInstance*);
+	static bool enableData(resourceListHandle,metricHandle,
+                               metricInstance*);
+        static bool enableDataBatch(vector<resourceListHandle> *r_handle, 
+			           vector<metricHandle> *m_handle,
+			           vector<metricInstance *> *&mi,
+                                   vector<bool> miEnabled);
+
 	static void tellDaemonsOfResource(u_int parent,
 					  u_int res,const char *name, u_int type);
         // sets the name of the daemon to use
@@ -189,6 +195,7 @@ class paradynDaemon: public dynRPCUser {
 	static vector<string> *getAvailableDaemons();
 	static float predictedDataCost(resourceList*, metric*);
 	static float currentSmoothObsCost();
+        string getDaemonMachineName() {return machine;};
 
     private:
         bool   dead;	// has there been an error on the link.

@@ -75,7 +75,13 @@ class metric {
     friend metricInstance *DMenableData(perfStreamHandle, metricHandle,
 	 			        resourceListHandle, phaseType,
 					unsigned, unsigned);
-
+    friend vector<metricInstance *> *DMenableDataBatch(
+                             perfStreamHandle ps_handle,
+			     vector<metricHandle> *m, 
+			     vector<resourceListHandle> *rl,
+			     phaseType type,
+			     unsigned persistent_data, 
+			     unsigned persistent_collection);
     friend void histDataCallBack(sampleValue *, timeStamp , 
 				 int , int , void *, bool);
     public:
@@ -123,6 +129,13 @@ class metricInstance {
     friend metricInstance *DMenableData(perfStreamHandle,metricHandle,
 					resourceListHandle,phaseType,
 					unsigned, unsigned);
+    friend vector<metricInstance *> *DMenableDataBatch(
+                             perfStreamHandle ps_handle,
+			     vector<metricHandle> *m, 
+			     vector<resourceListHandle> *rl,
+			     phaseType type,
+			     unsigned persistent_data, 
+			     unsigned persistent_collection);
     public:
 	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);
 	~metricInstance(); 

@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.91  1996/03/05 16:12:20  naim
+ * Revision 1.92  1996/03/14 14:21:57  naim
+ * Batching enable data requests for better performance - naim
+ *
+ * Revision 1.91  1996/03/05  16:12:20  naim
  * Making enableDataCollection asynchronous in order to improve performance - naim
  *
  * Revision 1.90  1996/03/01  22:46:59  mjrg
@@ -510,6 +513,10 @@ class uniqueName {
 // enable request
 //
 void dynRPCUser::enableDataCallback(int daemon_id, int return_id)
+{
+}
+
+void dynRPCUser::enableDataCallbackBatch(int daemon_id, vector<int> return_id)
 {
 }
 

@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.71  1996/03/01 22:47:02  mjrg
+ * Revision 1.72  1996/03/14 14:22:02  naim
+ * Batching enable data requests for better performance - naim
+ *
+ * Revision 1.71  1996/03/01  22:47:02  mjrg
  * Added type to resources.
  *
  * Revision 1.70  1996/02/22 23:38:37  newhall
@@ -624,6 +627,134 @@ metricInstance *DMenableData(perfStreamHandle ps_handle,
     return mi;
 }
 
+vector<metricInstance *> *DMenableDataBatch(perfStreamHandle ps_handle,
+			     vector<metricHandle> *m, 
+			     vector<resourceListHandle> *rl,
+			     phaseType type,
+			     unsigned persistent_data, 
+			     unsigned persistent_collection)
+{
+  assert((*m).size() == (*rl).size());
+  vector<metricInstance *> *miVec;
+  vector<bool> miVecEnabled;
+  miVec = new vector<metricInstance *>((*m).size());
+  miVecEnabled.resize((*m).size());
+  assert((*miVec).size() == miVecEnabled.size());
+ 
+  bool newly_enabled = false;
+  for (unsigned int i=0;i<(*m).size();i++) {
+    miVecEnabled[i] = false;
+  
+    // does this this metric/focus combination already exist? 
+    metricInstance *mi = metricInstance::find((*m)[i],(*rl)[i]);
+
+    if (!mi) {  // create new metricInstance
+      if(!(mi = new metricInstance((*rl)[i],(*m)[i],
+                                   phaseInfo::CurrentPhaseHandle()))) {
+        (*miVec)[i] = NULL;
+#ifdef DMDEBUG
+        printf("TEST: DMenableDataBatch, miVec[%d] is NULL\n",i);
+#endif
+      }
+      else {
+        (*miVec)[i] = mi;
+      }
+    }
+    else {
+      (*miVec)[i] = mi;
+    }
+    if ((*miVec)[i]) {
+      if ( !((*miVec)[i]->isEnabled()) ) {
+        newly_enabled = true;
+      }
+      else {
+        miVecEnabled[i] = true;
+      }
+    }
+#ifdef DMDEBUG
+    else printf("TEST: DMenableDataBatch, mi is NULL\n");
+#endif
+  }
+    
+  if (newly_enabled) {
+    if (!(paradynDaemon::enableDataBatch(rl,m,miVec,miVecEnabled))) {
+      return miVec;
+    }
+  }
+
+  for (unsigned int i=0;i<(*m).size();i++) {
+    if ((*miVec)[i]) {
+#ifdef DMDEBUG
+      printf("TEST: DMenableDataBatch, miVecEnable[%d] is %d\n",i,miVecEnabled[i]);
+#endif
+      metric *metricptr = metric::getMetric((*m)[i]);
+
+      // update appropriate MI info. 
+      if (type == CurrentPhase) {
+	 u_int old_current = (*miVec)[i]->currUsersCount();
+	 bool current_data = (*miVec)[i]->isCurrHistogram();
+	 (*miVec)[i]->newCurrDataCollection(metricptr->getStyle(),
+				   histDataCallBack,
+				   histFoldCallBack);
+	 (*miVec)[i]->newGlobalDataCollection(metricptr->getStyle(),
+				   histDataCallBack,
+				   histFoldCallBack);
+         (*miVec)[i]->addCurrentUser(ps_handle);
+
+	 // set sample rate to match current phase hist. bucket width
+	 if(!metricInstance::numCurrHists()){
+	   float rate = phaseInfo::GetLastBucketWidth();
+	   newSampleRate(rate);
+	 }
+
+	 // new active curr. histogram added if there are no previous
+	 // curr. subscribers and either persistent_collection is clear
+	 // or there was no curr. histogram prior to this
+	 if((!old_current) 
+	    && ((*miVec)[i]->currUsersCount() == 1)
+	    && ((!(*miVec)[i]->isCollectionPersistent()) || (!current_data))){ 
+	     metricInstance::incrNumCurrHists();
+	 }
+	 // new global histogram added if this metricInstance was just enabled
+	 if(!miVecEnabled[i]){ 
+	     metricInstance::incrNumGlobalHists();
+	 }
+      }
+      else {
+	 (*miVec)[i]->newGlobalDataCollection(metricptr->getStyle(),
+				   histDataCallBack,
+				   histFoldCallBack);
+         (*miVec)[i]->addGlobalUser(ps_handle);
+
+	 // if this is first global histogram enabled and there are no
+	 // curr hists, then set sample rate to match global hist. bucket width
+	 if(!metricInstance::numCurrHists()){
+	    if(!metricInstance::numGlobalHists()){ 
+	      float rate = Histogram::getGlobalBucketWidth();
+	      newSampleRate(rate);
+	 }}
+
+	 // new global hist added: update count
+	 if(!miVecEnabled[i]){  // new active global histogram added
+	     metricInstance::incrNumGlobalHists();
+	 }
+      }
+
+      // update persistence flags:  the OR of new and previous values
+      if(persistent_data) {
+	(*miVec)[i]->setPersistentData();
+      }
+      if(persistent_collection) {
+	(*miVec)[i]->setPersistentCollection();
+      }
+    }
+#ifdef DMDEBUG
+    else printf("TEST: DMenableDataBatch, miVec[%d] is NULL 2\n",i);
+#endif
+  }
+  return miVec;
+}
+
 metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
 					const vector<resourceHandle> *focus, 
 					metricHandle m,
@@ -641,7 +772,7 @@ metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
     resourceListHandle rl = resourceList::getResourceList(*focus);
 
     metricInstance *mi = DMenableData(ps_handle,m,rl,type,persistent_data,
-    				     persistent_collection);
+    				      persistent_collection);
     if(!mi) return 0;
     metricInstInfo *temp = new metricInstInfo;
     assert(temp);
@@ -658,6 +789,66 @@ metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
     return(temp);
     temp = 0;
 }
+
+vector<metricInstInfo *> 
+*dataManager::enableDataCollectionBatch(perfStreamHandle ps_handle,
+                                        vector<metric_focus_pair> *metResPair,
+					phaseType type,
+					unsigned persistent_data,
+					unsigned persistent_collection)
+{
+    assert(metResPair);
+    vector<resourceListHandle> rl;
+    vector<metricHandle> met;
+    rl.resize((*metResPair).size());
+    met.resize((*metResPair).size());
+    assert(rl.size());
+    assert(met.size());
+    for (unsigned int i=0;i<(*metResPair).size();i++) {
+      if( !((*metResPair)[i].res).size() ) {
+	printf("error in enableDataCollection size = %d\n",
+               ((*metResPair)[i].res).size());
+        return NULL;
+      } 
+      rl[i] = resourceList::getResourceList((*metResPair)[i].res);
+      met[i] = (*metResPair)[i].met;
+    }
+
+    vector<metricInstance *> *mi = DMenableDataBatch(ps_handle,
+                                              &met,
+                                              &rl,type,persistent_data,
+      			                      persistent_collection);
+    if(!mi) return NULL;
+    vector<metricInstInfo *> *temp;
+    temp = new vector<metricInstInfo *> ((*metResPair).size());
+    assert(temp);
+    assert((*mi).size() == (*metResPair).size());
+    for (unsigned int i=0;i<(*metResPair).size();i++) {
+      if ((*mi)[i]) {
+        metric *metricptr = metric::getMetric((*metResPair)[i].met);
+        assert(metricptr);
+        (*temp)[i] = new metricInstInfo;
+        assert((*temp)[i]);
+        (*temp)[i]->mi_id = (*mi)[i]->getHandle();
+        (*temp)[i]->m_id = (*metResPair)[i].met;
+        (*temp)[i]->r_id = rl[i];
+        resourceList *rl_temp = resourceList::getFocus(rl[i]);
+        (*temp)[i]->metric_name = metricptr->getName();
+        (*temp)[i]->metric_units = metricptr->getUnits();
+        (*temp)[i]->focus_name = rl_temp->getName();
+        (*temp)[i]->units_type = metricptr->getUnitsType();
+      }
+      else {
+#ifdef DMDEBUG
+        printf("TEST: enableDataCollectionBatch, mi[%d] is NULL\n",i);
+#endif
+        // metric wasn't enabled
+        (*temp)[i] = NULL;
+      }
+    }  
+    return(temp);
+}
+
 
 //
 // same as other enableDataCollection routine, except takes focus handle

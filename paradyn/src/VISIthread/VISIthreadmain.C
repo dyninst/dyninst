@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.64  1996/02/21 22:28:49  tamches
-/* added \n to showError 86 call
+/* Revision 1.65  1996/03/14 14:22:23  naim
+/* Batching enable data requests for better performance - naim
 /*
+ * Revision 1.64  1996/02/21  22:28:49  tamches
+ * added \n to showError 86 call
+ *
  * Revision 1.63  1996/02/19 18:19:11  newhall
  * fix to avoid error #16 when a visi exits
  *
@@ -261,6 +264,8 @@
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
+#include "paradyn/src/TCthread/tunableConst.h"
+
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
 
@@ -274,6 +279,19 @@ char *AbbreviatedFocus(const char *);
 #define  ASSERTTRUE(x) assert(x); 
 */
 #define  ASSERTTRUE(x) 
+
+
+#ifdef VISIDEBUG
+#include <sys/time.h>
+double VISIgetTime()
+{
+  double now;
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  now = (double) tv.tv_sec + ((double)tv.tv_usec/(double)1000000.0);
+  return(now);
+}
+#endif
 
 
 void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
@@ -638,6 +656,16 @@ int VISIthreadStartProcess(){
   return(1);
 }
 
+
+sampleValue getPacketSizeTC ()
+{
+  // get tunable constant value
+  tunableFloatConstant packetSizeTC = 
+  tunableConstantRegistry::findFloatTunableConstant("EnableRequestPacketSize");
+  return packetSizeTC.getValue();
+}
+
+
 #ifdef n_def
 // this is used in persistence flag test code in VISIchooseMetRes
 static u_int VISIthread_num_enabled = 0;
@@ -659,6 +687,10 @@ static u_int VISIthread_num_enabled = 0;
 //  metrics and resources has been obtained 
 ///////////////////////////////////////////////////////////////////
 int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
+
+#ifdef VISIDEBUG
+int VISIcount=0;
+#endif
 
   if(newMetRes)
       PARADYN_DEBUG(("In VISIthreadchooseMetRes size = %d",newMetRes->size()));
@@ -682,72 +714,133 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   vector<metric_focus_pair>  *retryList = new vector<metric_focus_pair> ;
 
   u_int  numEnabled = 0;
-  metricInstInfo *newPair = NULL;
   metricInstInfo **newEnabled = new (metricInstInfo *)[newMetRes->size()];
 
-  for(unsigned k=0; k < newMetRes->size(); k++){
+  vector<metric_focus_pair> *metResParts;
+  vector<metricInstInfo *> *newPair = NULL;
+  vector<metricInstInfo *> *partPair = NULL;
 
-#ifdef n_def
-// *********************************************************
-// this code tests enabling with each combo. of persistent flags
-      switch (VISIthread_num_enabled % 4) {
-            case 0:
-		cout << "enabling with persistent data 0 collection 0" << endl;
-                newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
-			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
-			      ptr->args->phase_type,0,0);
-                
-                break;
-            case 1:
-		cout << "enabling with persistent data 1 collection 0" << endl;
-                newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
-			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
-			      ptr->args->phase_type,1,0);
-                break;
-            case 2:
-		cout << "enabling with persistent data 0 collection 1" << endl;
-                newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
-			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
-			      ptr->args->phase_type,0,1);
-                break;
-            case 3:
-		cout << "enabling with persistent data 1 collection 1" << endl;
-                newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
-			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
-			      ptr->args->phase_type,1,1);
-                break;
-      }
+#ifdef VISIDEBUG
+double t1,t2;
+t1=VISIgetTime();
+#endif  
 
-      VISIthread_num_enabled++;
-      if(newPair)  // replace this if stmt with if stmt below 
-// ***********************************************************
+  //
+  // This section of the code will select the current packet size for batching
+  // the enable requests.
+  // Example:
+  // (packet size) d = 10
+  // (metric/focus pair to be enabled) nSize = 73
+  // (numbe of iterations) quo = nSize/d = 73/10 = 7
+  // Since r=nSize%d=73%10=3 is not zero, and r<=d/2 (r<=5), then we will
+  // send 6 packets of size 10 (6x10) and one packet of size 10+3=13 
+  // (lPacket=13).
+  //
+  int nTimes,lPacket,nSize,pSize,quo,r,d,current=0;
+  nSize = newMetRes->size();
+  d = (int) getPacketSizeTC();
+
+#ifdef VISIDEBUG
+  printf("==> TEST <== Packet Size = %d\n",d);
 #endif
-  
-      if((newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
-		    &((*newMetRes)[k].res), (*newMetRes)[k].met,
-		    ptr->args->phase_type,0,0))){
 
-          // check to see if this pair has already been enabled
-          bool found = false;
-	  for(unsigned i = 0; i < ptr->mrlist.size(); i++){
-	      if((ptr->mrlist[i]->mi_id == newPair->mi_id)){
-                  found = true;
-		  break;
-	      }
-	  }
-	  if(!found){  // this really is a new metric/focus pair
-              ptr->mrlist += newPair;
-	      newEnabled[numEnabled++] = newPair;
-          }
-      }
-      else {  // add to retry list
-	  *retryList += (*newMetRes)[k];
-      }
+  quo = nSize/d;
+  r = nSize%d;
+  
+  if (quo == 0) {
+    nTimes = 1;
+    pSize = r;
+    lPacket = 0;
+  }
+  else if (r == 0) {
+    nTimes = quo;
+    pSize = d;
+    lPacket = 0;
+  }
+  else if (r > d/2) {
+    nTimes = quo+1;
+    pSize = d;
+    lPacket = r;
+  } 
+  else {
+    nTimes = quo;
+    if (nTimes == 1) {
+      pSize = lPacket = d+r;
+    }
+    else {
+      pSize = d;
+      lPacket = d+r;
+    }
   }
 
+#ifdef VISIDEBUG
+  printf("==> TEST <== VISI: nSize=%d, nTimes=%d, r=%d, quo=%d, pSize=%d, lPacket=%d, d=%d\n",nSize,nTimes,r,quo,pSize,lPacket,d);
+#endif
 
+  //
+  // Next, we will batch enable requests by packets of size "pSize" and
+  // we will collect the result in "newPair" until we have finished.
+  //
+  newPair = new vector<metricInstInfo *> ((*newMetRes).size());
+  for (int i=0;i<nTimes;i++) {
+    if ((lPacket > 0) && (i==(nTimes-1)))
+      pSize=lPacket;    
+
+#ifdef VISIDEBUG
+    printf("==> TEST <== VISI: Time (%d), Packet Size=%d, current=%d\n",i,pSize,current);
+#endif
+
+    metResParts = new vector<metric_focus_pair> (pSize);
+    for (int k=0;k<pSize;k++) 
+      (*metResParts)[k]=(*newMetRes)[current+k];
+
+    partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
+	                 metResParts,ptr->args->phase_type,0,0);
+  
+    for (unsigned int k=0;k<(*partPair).size();k++) 
+      (*newPair)[k+current] = (*partPair)[k];
+    current+=pSize;
+    delete metResParts;
+  }
+
+#ifdef VISIDEBUG
+t2=VISIgetTime();
+printf("==> TEST %d <== VISI: enableDataCollection took %5.2f secs\n",VISIcount++,t2-t1);
+#endif
+
+  if (newPair) {
+    for (unsigned int j=0;j<(*newPair).size();j++) {
+      if ((*newPair)[j]) {
+        // check to see if this pair has already been enabled
+        bool found = false;
+        for(unsigned i = 0; i < ptr->mrlist.size(); i++){
+          if((ptr->mrlist[i]->mi_id == (*newPair)[j]->mi_id)) {
+            found = true;
+            break;
+          }
+        }
+        if(!found){  // this really is a new metric/focus pair
+          ptr->mrlist += (*newPair)[j];
+          newEnabled[numEnabled++] = (*newPair)[j];
+        }
+      }
+      else {  // add to retry list        
+
+#ifdef VISIDEBUG
+        printf("TEST: VISI, newPair[%d] = NULL\n",j);
+#endif
+
+        *retryList += (*newMetRes)[j];
+      }
+    }
+  }
+
+#ifdef VISIDEBUG
+  printf("==> TEST <== VISI: numEnabled = %d\n",numEnabled);
+#endif
 
   // something was enabled
+
   if(numEnabled > 0){
       // increase the buffer size
       flush_buffer_if_nonempty(ptr);

@@ -46,6 +46,7 @@ template class vector<T_dyninstRPC::mdl_stmt*>;
 template class vector<T_dyninstRPC::mdl_icode*>;
 template class vector<T_dyninstRPC::mdl_constraint*>;
 template class vector<T_dyninstRPC::metricInfo>;
+template class vector<T_dyninstRPC::focusStruct>;
 template class vector<T_dyninstRPC::mdl_metric*>;
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*, 
 	bool_t (*)(XDR*, string*), string*);
@@ -53,6 +54,8 @@ template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
 	bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**), T_dyninstRPC::mdl_expr**);
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*, 
 	bool_t (*)(XDR*, u_int*), u_int*);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<int>*, 
+	bool_t (*)(XDR*, int*), int*);
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_stmt*>*,
 	bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**), T_dyninstRPC::mdl_stmt**);
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_icode*>*,
@@ -63,6 +66,10 @@ template bool_t T_dyninstRPC_P_xdr_stl(XDR*,
 	T_dyninstRPC::mdl_constraint**);
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*,
 	bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::focusStruct>*,
+	bool_t (*)(XDR*, T_dyninstRPC::focusStruct*), T_dyninstRPC::focusStruct*);
+
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
  	bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**), 
 	T_dyninstRPC::mdl_metric**);
@@ -73,6 +80,8 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*,
 	bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**), T_dyninstRPC::mdl_expr**);
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
 	vector<u_int>**, bool_t (*)(XDR*, u_int*), u_int*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
+	vector<int>**, bool_t (*)(XDR*, int*), int*);
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
 	vector<T_dyninstRPC::mdl_stmt*>**, 
 	bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**), 
@@ -89,6 +98,12 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*,
 	vector<T_dyninstRPC::metricInfo>**, 
 	bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), 
 	T_dyninstRPC::metricInfo*);
+
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
+	vector<T_dyninstRPC::focusStruct>**, 
+	bool_t (*)(XDR*, T_dyninstRPC::focusStruct*), 
+	T_dyninstRPC::focusStruct*);
+
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
 	vector<T_dyninstRPC::mdl_metric*>**, 
 	bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**), 
@@ -112,6 +127,9 @@ template class vector< vector< dictionary_hash<unsigned, vector<mdl_type_desc> >
 
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
 			       bool_t (*)(XDR*, u_int*), u_int*);
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<int>*,
+			       bool_t (*)(XDR*, int*), int*);
 
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
 			       bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),

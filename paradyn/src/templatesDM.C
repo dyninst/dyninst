@@ -76,6 +76,7 @@ template class vector<component*>;
 template class vector<sampleInfo*>;
 template class vector<bool>;
 template class vector<metric_focus_pair>;
+template class vector<metricInstInfo>;
 template class vector<met_name_id>;
 template class vector<metric*>;
 template class vector<resource*>;

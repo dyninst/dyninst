@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.65  1996/03/01 22:42:37  mjrg
+ * Revision 1.66  1996/03/14 14:20:22  naim
+ * Batching enable data requests for better performance - naim
+ *
+ * Revision 1.65  1996/03/01  22:42:37  mjrg
  * Added type to resources.
  *
  * Revision 1.64  1996/02/22 23:39:18  newhall
@@ -368,7 +371,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 37;
+    $version 38;
 
     //
     // Start a paradyn daemon
@@ -492,6 +495,14 @@ $remote dataManager {
 					 phaseType,
 					 unsigned persistent_data,
 					 unsigned persistent_collection);
+
+    vector<metricInstInfo *> *enableDataCollectionBatch(
+                                        perfStreamHandle,
+                                        vector<metric_focus_pair> *,
+					phaseType,
+					unsigned persistent_data,
+					unsigned persistent_collection);
+
     //
     // same as other enableDataCollection routine, except takes focus handle
     // argument and returns metricInstanceHandle on successful enable 

@@ -1,8 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.39  1996/02/02 02:08:20  karavan
-/* moved performance consultant related tunable constant definitions to the
-/* PC thread.
+/* Revision 1.40  1996/03/14 14:22:42  naim
+/* Batching enable data requests for better performance - naim
 /*
+ * Revision 1.39  1996/02/02  02:08:20  karavan
+ * moved performance consultant related tunable constant definitions to the
+ * PC thread.
+ *
  * Revision 1.38  1996/01/29 22:12:59  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines
@@ -307,6 +310,15 @@ main (int argc, char **argv)
 	 false, // initial value
 	 develModeCallback,
          userConstant);
+
+    tunableConstantRegistry::createFloatTunableConstant
+    ("EnableRequestPacketSize",
+     "Enable request packet size",
+     NULL,
+     developerConstant,
+     5.0, // initial value
+     1.0,  // min
+     100.0); // max
 
   //
   // We check our own read/write events.

@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.28  1996/03/12 20:48:42  mjrg
+ * Revision 1.29  1996/03/14 14:23:27  naim
+ * Batching enable data requests for better performance - naim
+ *
+ * Revision 1.28  1996/03/12  20:48:42  mjrg
  * Improved handling of process termination
  * New version of aggregateSample to support adding and removing components
  * dynamically
@@ -139,6 +142,9 @@
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
 				       bool_t (*)(XDR*, u_int*), u_int*);
 
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<int>*,
+				       bool_t (*)(XDR*, int*), int*);
+
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*,
 				       bool_t (*)(XDR*, string*), string*);
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**,
@@ -147,6 +153,11 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**,
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*,
 				       bool_t (*)(XDR*, T_dyninstRPC::metricInfo*),
 				       T_dyninstRPC::metricInfo*);
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, 
+                                  vector<T_dyninstRPC::focusStruct>*,
+				  bool_t (*)(XDR*, T_dyninstRPC::focusStruct*),
+				  T_dyninstRPC::focusStruct*);
 
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
 				       bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
@@ -214,6 +225,7 @@ template class  vector<T_dyninstRPC::mdl_icode *>;
 template class  vector<T_dyninstRPC::mdl_metric *>;
 template class  vector<T_dyninstRPC::mdl_stmt *>;
 template class  vector<T_dyninstRPC::metricInfo>;
+template class  vector<T_dyninstRPC::focusStruct>;
 template class  vector<dataReqNode*>;
 template class  vector<float>;
 template class  vector<heapItem*>;

@@ -109,8 +109,10 @@ void paradynDaemon::removeDaemon(paradynDaemon *d, bool informUser)
 {
 
     if (informUser) {
-        string msg = string("paradynd process has died on machine ") + d->machine;
-        uiMgr->showError (5, msg.string_of());
+      string msg;
+      msg = string("paradynd has died on host <") + d->getDaemonMachineName()
+	    + string(">");
+      uiMgr->showError(5, P_strdup(msg.string_of()));
     }
 
     d->dead = true;
@@ -653,7 +655,7 @@ bool paradynDaemon::enableData(resourceListHandle r_handle,
 
         if (printChangeCollection.getValue()) {
             cout << "EDC:  " << m->getName()
-   	            << rl->getName() << " " << id <<"\n";
+ 	         << rl->getName() << " " << id <<"\n";
         }
 	if (id > 0 && !pd->did_error_occur()) {
 	    component *comp = new component(pd, id, mi);
@@ -673,6 +675,138 @@ bool paradynDaemon::enableData(resourceListHandle r_handle,
     }
     return foundOne;
 }
+
+bool paradynDaemon::enableDataBatch(vector<resourceListHandle> *r_handle, 
+			            vector<metricHandle> *m_handle,
+			            vector<metricInstance *> *&mi,
+                                    vector<bool> miEnabled) 
+{
+  vector<T_dyninstRPC::focusStruct> vs;
+  vector<string> m;
+  vector<int> miId;
+  metric *mt;
+
+  vs.resize((*m_handle).size());
+  m.resize((*m_handle).size());
+  miId.resize((*m_handle).size());
+  assert((*r_handle).size() == (*m_handle).size());
+  assert(mi && ((*mi).size() == (*m_handle).size()));
+  assert(miId.size() == (*m_handle).size());
+  assert(vs.size() == (*m_handle).size());
+  assert(m.size() == (*m_handle).size());
+  
+  for (unsigned int k=0;k<(*m_handle).size();k++) {
+    if ((*mi)[k]) {
+      if (!miEnabled[k]) {
+        resourceList *rl = resourceList::getFocus((*r_handle)[k]);
+        mt = metric::getMetric((*m_handle)[k]);
+        if(!rl || !mt) 
+          miId[k] = -1;
+        m[k] = mt->getName();
+        miId[k] = (*mi)[k]->id;
+        if(!(rl->convertToIDList(vs[k].focus)))
+	  miId[k] = -1;
+      }
+      else miId[k] = -2; // don't enable metric (metric already enabled)
+    }
+    else {
+#ifdef DMDEBUG
+      printf("TEST: enableDataBatch, mi[%d] is NULL from the begining\n",k);
+#endif
+      miId[k] = -1; 
+    }
+  }
+
+    // 
+    // for each daemon request the data to be enabled.
+    //
+    vector<int> returnIds;
+    vector<bool> foundOne;
+    foundOne.resize((*m_handle).size());
+    returnIds.resize((*m_handle).size());
+
+    for (unsigned int i=0;i<(*m_handle).size();i++) {
+      foundOne[i]=false;
+      returnIds[i]=0;
+    }
+
+    // get a fresh copy of the TC "printChangeCollection"
+    tunableBooleanConstant printChangeCollection = 
+			tunableConstantRegistry::findBoolTunableConstant(
+			"printChangeCollection");
+        
+    int id;
+    paradynDaemon *pd;
+
+    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+        pd = paradynDaemon::allDaemons[i];
+        pd->enableDataCollectionBatch(vs, m, miId, i);
+    }
+
+    for(unsigned int i = 0; i < paradynDaemon::allDaemons.size(); i++){
+	T_dyninstRPC::message_tags tag1 = T_dyninstRPC::enableDataCallbackBatch_REQ;
+	unsigned tag2 = MSG_TAG_FILE;
+        int ready_fd;
+        T_dyninstRPC::T_enableDataCallbackBatch buffer;
+        buffer.return_id.resize((*m_handle).size());
+
+        //
+        // Since enableDataCollection is now async, we have to wait until
+        // every daemon is finished with its enable request
+        //
+        bool foundDaemon;
+        do {
+          foundDaemon=false;
+          ready_fd = msg_poll(&tag2, true);
+          for(unsigned j = 0; j < paradynDaemon::allDaemons.size(); j++) {
+            pd = paradynDaemon::allDaemons[j];
+            if (pd->get_fd() == ready_fd) {
+              foundDaemon=true;
+              break;
+	    }
+	  }
+        } while (!foundDaemon || !pd->wait_for_and_read(tag1,&buffer));
+
+        for (unsigned int k=0;k<(*m_handle).size();k++) {        
+          id = buffer.return_id[k];
+#ifdef DMDEBUG
+          printf("TEST: enableDataBatch, id=%d\n",id);
+          if (!(*mi)[k]) printf("TEST: enableDataBatch, mi[%d] is NULL\n",k);
+#endif
+          if (printChangeCollection.getValue()) {
+            if (id > 0) {
+              resourceList *rl = resourceList::getFocus((*r_handle)[k]);
+              cout << "EDC:  " << m[k]
+   	           << rl->getName() << " " << id <<"\n";
+	    }
+          }
+	  if (id > 0 && !pd->did_error_occur()) {
+	    component *comp = new component(pd, id, (*mi)[k]);
+	    if(!(*mi)[k]->addComponent(comp)){
+              cout << "internal error in paradynDaemon::enableData" << endl;
+	      abort();
+            } 
+            foundOne[k] = true;
+          }
+          if (id == -1) returnIds[k] += -1;
+        }
+    }
+
+    bool foundTrue=false;
+    for (unsigned int i=0;i<(*m_handle).size();i++) {
+      if (foundOne[i]) {
+        foundTrue=true;
+        (*mi)[i]->setEnabled();	
+      }
+      if (returnIds[i] == (-paradynDaemon::allDaemons.size()))
+        (*mi)[i] = NULL;
+    }
+#ifdef DMDEBUG
+    printf("TEST: enableDataBatch, returning found=%d\n",foundTrue);
+#endif
+    return foundTrue;
+}
+
 
 // propagateMetrics:
 // called when a new process is started, to propagate all enabled metrics to
