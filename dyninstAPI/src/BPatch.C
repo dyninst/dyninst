@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.40 2001/09/07 21:15:07 tikir Exp $
+// $Id: BPatch.C,v 1.41 2001/09/12 19:36:22 tikir Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1148,6 +1148,45 @@ BPatch_type * BPatch::createTypedef( const char * name, BPatch_type * ptr)
     APITypes->addType(newType);
   
     return newType;
+}
+
+bool BPatch::waitUntilStopped(BPatch_thread *appThread){
+	while (!appThread->isStopped() && !appThread->isTerminated())
+		this->waitForStatusChange();
+
+	if (!appThread->isStopped())
+	{
+		cerr << "ERROR : process did not signal mutator via stop"
+		     << endl;
+		return false;
+	}
+#if defined(i386_unknown_nt4_0) || \
+    defined(mips_unknown_ce2_11)
+	else if((appThread->stopSignal() != SIGTRAP) && 
+		(appThread->stopSignal() != -1))
+	{
+		cerr << "ERROR : process stopped on signal different"
+		     << " than SIGTRAP" << endl;
+		return false;
+	}
+#else
+#ifdef DETACH_ON_THE_FLY
+	else if ((appThread->stopSignal() != SIGSTOP) &&
+		 (appThread->stopSignal() != SIGHUP) &&
+		 (appThread->stopSignal() != SIGILL)) {
+#else
+	else if ((appThread->stopSignal() != SIGSTOP) &&
+#ifdef USE_IRIX_FIXES
+		 (appThread->stopSignal() != SIGEMT) &&
+#endif /* USE_IRIX_FIXES */
+		 (appThread->stopSignal() != SIGHUP)) {
+#endif /* DETACH_ON_THE_FLY */
+		cerr << "ERROR :  process stopped on signal "
+		     << "different than SIGSTOP" << endl;
+		return false;
+	}
+#endif
+	return true;
 }
 
 #ifdef IBM_BPATCH_COMPAT

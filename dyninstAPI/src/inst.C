@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.84 2001/09/10 04:02:48 tikir Exp $
+// $Id: inst.C,v 1.85 2001/09/12 19:36:22 tikir Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -767,7 +767,7 @@ void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
 	if(deleteBaseTramp(old->proc,old->location,old)){
 		activePoints.undef((const instPoint*)(old->location));
                 old->proc->baseMap.undef((const instPoint*)(old->location));
-                delete[] old->baseInstance->trampTemp;
+                //delete[] old->baseInstance->trampTemp;
                 delete old->baseInstance;
         }
     }
