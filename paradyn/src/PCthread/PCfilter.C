@@ -40,59 +40,7 @@
  */
 
 /*
- * PCfilter.C
- *
- * Data filter class performs initial processing of raw DM data arriving 
- * in the Performance Consultant.  
- *
- * $Log: PCfilter.C,v $
- * Revision 1.34  1999/03/03 18:15:12  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.33  1997/12/18 17:07:38  newhall
- * add trace perfStreamHandle to disableData calls
- *
- * Revision 1.32  1997/10/28 20:34:30  tamches
- * dictionary_lite --> dictionary_hash to take advantage of the new
- * and improved dictionary_hash class
- *
- * Revision 1.31  1997/03/29 02:03:48  sec
- * Adding some debugging stuff.
- *
- * Revision 1.30  1996/08/16 21:03:25  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.29  1996/07/26 18:01:46  karavan
- * removed debug prints.
- *
- * Revision 1.28  1996/07/26 07:28:11  karavan
- * bug fix: eliminated race condition from data subscription code.  Changed
- * data structures used as indices in class filteredDataServer.  Obsoleted
- * class fmf.
- *
- * Revision 1.27  1996/07/23 20:28:01  karavan
- * second part of two-part commit.
- *
- * implements new search strategy which retests false nodes under certain
- * circumstances.
- *
- * change in handling of high-cost nodes blocking the ready queue.
- *
- * code cleanup.
- *
- * Revision 1.26  1996/07/22 18:55:40  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.25  1996/05/15 04:42:02  karavan
- * oops! removed debugging print!
- *
- * Revision 1.24  1996/05/15 04:35:11  karavan
- * bug fixes: changed pendingCost pendingSearches and numexperiments to
- * break down by phase type, so starting a new current phase updates these
- * totals correctly; fixed error in estimated cost propagation.
- *
+ * $Id: PCfilter.C,v 1.35 2000/06/08 15:27:17 pcroth Exp $    
  */
 
 #include "PCfilter.h"
@@ -163,8 +111,18 @@ filter::updateNextSendTime(timeStamp startTime)
   } else {
     // need the loop here in case there's been an interruption in data 
     // values.
-    while (nextSendTime < (startTime + newint))
+	//
+	// note that we check for closeness of the proposed nextSendTime 
+	// with the startTime + newint, to avoid situations where floating
+	// point roundoff error has produced a value that "should be" the
+	// same, but isn't.  If we don't have this check, on some processors
+	// (e.g., some x86) we see the performance consultant search stall
+	// as unaligned interval endpoints cause data to be thrown away
+    while ( (nextSendTime < (startTime + newint)) && 
+			(fabs(nextSendTime - (startTime + newint)) > 0.0001) )
+	{
       nextSendTime += newint;
+	}
   }
 }
 
@@ -177,8 +135,19 @@ void filter::getInitialSendTime(timeStamp startTime)
   // intervalLength sized increments till first send will be a complete 
   // interval.
   nextSendTime = server->nextSendTime;
-  while (nextSendTime < (startTime + intervalLength))
+
+	//
+	// note that we check for closeness of the proposed nextSendTime 
+	// with the startTime + newint, to avoid situations where floating
+	// point roundoff error has produced a value that "should be" the
+	// same, but isn't.  If we don't have this check, on some processors
+	// (e.g., some x86) we see the performance consultant search stall
+	// as unaligned interval endpoints cause data to be thrown away
+  while ( (nextSendTime < (startTime + intervalLength)) &&
+		  (fabs(nextSendTime - (startTime + intervalLength)) > 0.0001) )
+  {
     nextSendTime += intervalLength;
+  }
 }
 
 void filter::wakeUp()
