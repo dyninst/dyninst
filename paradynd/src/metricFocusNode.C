@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.217 2002/02/12 23:50:26 schendel Exp $
+// $Id: metricFocusNode.C,v 1.218 2002/02/13 18:53:20 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -2557,11 +2557,22 @@ bool sampleMetFocusNode::insertInstrumentation(pd_Function **func) {
   return true;
 }
 
+bool threadMetFocusNode::insertInstrumentation(pd_Function **func)
+{
+  // handles the link AGG-THR-COMP for now
+  unsigned c_size = components.size();
+  for (unsigned u=0; u<c_size; u++)
+    if (!components[u]->insertInstrumentation(func)) {
+      return false; // shouldn't we try to undo what's already put in?
+    }
+  return true;
+}
+
 bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
 {
-   // cerr << "mdn: " << this << ", insertInstrum, type: " 
-   // << typeStr(getMdnType()) << "), mid: " << getMId() << ", inserted: " 
-   // << inserted_ << "\n";
+   //cerr << "mdn: " << this << ", insertInstrum, type: " 
+   //     << typeStr(getMdnType()) << "), mid: " << getMId() << ", inserted: " 
+   //     << inserted_ << "\n";
    // returns true iff successful
    if (instrInserted()) {
       return true;

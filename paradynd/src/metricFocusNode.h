@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.86 2002/02/12 23:50:27 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.87 2002/02/13 18:53:23 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -1031,7 +1031,7 @@ class threadMetFocusNode : public metricDefinitionNode {
   void reUseIndexAndLevel(unsigned &p_allocatedIndex, 
 			  unsigned &p_allocatedLevel);
 #endif
-
+  bool insertInstrumentation(pd_Function **func);
   vector<dataReqNode *> getDataRequests() { return dataRequests; }      
   bool nonNull() const { return (dataRequests.size() > 0);  }
   void disable(vector< vector<Address> > pointsToCheck);
