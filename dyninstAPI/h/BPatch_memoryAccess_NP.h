@@ -1,4 +1,4 @@
-/* $Id: BPatch_memoryAccess_NP.h,v 1.7 2002/08/04 17:29:50 gaburici Exp $ */
+/* $Id: BPatch_memoryAccess_NP.h,v 1.8 2002/08/05 23:07:22 gaburici Exp $ */
 
 #ifndef _MemoryAccess_h_
 #define _MemoryAccess_h_
@@ -55,10 +55,15 @@ class BPatch_memoryAccess
 
  public:
   // maximum number of memory accesses per instruction; platform dependent
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0)
+  // Translation from C++ to VC++ 6.0
+#define nmaxacc_NP 2
+#else
+#if defined(i386_unknown_linux2_0)
   static const unsigned int nmaxacc_NP = 2;
 #else
   static const unsigned int nmaxacc_NP = 1;
+#endif
 #endif
 
  private:

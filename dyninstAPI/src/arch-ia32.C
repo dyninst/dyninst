@@ -1,4 +1,4 @@
-// $Id: arch-ia32.C,v 1.6 2002/08/04 17:29:52 gaburici Exp $
+// $Id: arch-ia32.C,v 1.7 2002/08/05 23:07:22 gaburici Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
 //                                   volume 2: Instruction Set Reference
@@ -2039,7 +2039,7 @@ template ia32_instruction& ia32_decode<IA32_DECODE_MEMACCESS>(const unsigned cha
 
 ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
                                  const unsigned char* addr, ia32_instruction& instruct,
-                                 ia32_memacc *mac = NULL)
+                                 ia32_memacc *mac)
 {
   unsigned int nib = byteSzB; // modRM
   unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2); // 32-bit mode implicit
@@ -2203,7 +2203,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const unsigned char* addr,
-                                      ia32_memacc* macadr = NULL)
+                                      ia32_memacc* macadr)
 {
   unsigned char modrm = addr[0];
   unsigned char mod = modrm >> 6;
@@ -2501,7 +2501,7 @@ static inline int type2size(unsigned int optype, unsigned int operSzAttr)
 
 unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
                                    const unsigned char* addr, ia32_instruction& instruct,
-                                   ia32_memacc *mac = NULL)
+                                   ia32_memacc *mac)
 {
   unsigned int nib = 0 /* # of bytes in instruction */;
   unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2); // 32-bit mode implicit

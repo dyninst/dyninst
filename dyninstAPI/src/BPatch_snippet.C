@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.40 2002/08/04 17:29:51 gaburici Exp $
+// $Id: BPatch_snippet.C,v 1.41 2002/08/05 23:07:22 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -917,7 +917,11 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
  */
 BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
 {
+#ifdef i386_unknown_nt4_0
+  assert(_which >= 0 && _which <= 2);
+#else
   assert(_which >= 0 && _which <= BPatch_memoryAccess::nmaxacc_NP);
+#endif
   ast = new AstNode(AstNode::EffectiveAddr, _which);
 };
 
@@ -929,6 +933,10 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
  */
 BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 {
+#ifdef i386_unknown_nt4_0
+  assert(_which >= 0 && _which <= 2);
+#else
   assert(_which >= 0 && _which <= BPatch_memoryAccess::nmaxacc_NP);
+#endif
   ast = new AstNode(AstNode::BytesAccessed, _which);
 };
