@@ -5,7 +5,10 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.program.tmpl,v $
-# Revision 1.1  1995/01/30 18:08:21  jcargill
+# Revision 1.2  1995/01/30 21:26:15  jcargill
+# Better use of TO_CORE for modules below top-level (e.g. visiClients)
+#
+# Revision 1.1  1995/01/30  18:08:21  jcargill
 # Major build system reorganization
 #
 #
@@ -23,10 +26,10 @@ $(TARGET): $(OBJS) $(LIBS)
 endif
 
 ifndef DEST
-DEST		= ../../../bin/$(PLATFORM)
+DEST		= $(TO_CORE)/../bin/$(PLATFORM)
 endif
 
-VPATH		+= ../src:../../../lib/$(PLATFORM):/p/paradyn/lib/$(PLATFORM)
+VPATH		+= ../src:$(TO_CORE)/../lib/$(PLATFORM):/p/paradyn/lib/$(PLATFORM)
 
 
 echo:
