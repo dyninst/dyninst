@@ -1499,11 +1499,18 @@ bool process::triggeredInStackFrame(Frame &frame,
         if(collapsedFrameAddr >= func->addr() && 
            collapsedFrameAddr <= (func->addr() + func->size())) {
 
+           /*
+             // This could happen because for functions that we think
+             // are short running that are on the stack when we relocate,
+             // we're still instrumenting the relocated function.
+             // One could argue that since it's a short running function,
+             // any time we miss (for timer metrics) is negligible.
            if(point->isRelocatedPointType()) {
               cerr << "Warning, not executing catchup for instrumented "
                    << "function that is on the stack, because the relocated "
                    << "function was instrumented, not the original function.";
            }
+           */
         }
 
         /*
