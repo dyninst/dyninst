@@ -2820,6 +2820,10 @@ void mutatorTest27(BPatch_thread *, BPatch_image *appImage)
 {
 #if !defined(mips_sgi_irix6_4)
 
+    if (mutateeFortran) {
+	return;
+    }
+
     BPatch_type *type27_1 = appImage->findType("type27_1");
     BPatch_type *type27_2 = appImage->findType("type27_2");
     BPatch_type *type27_3 = appImage->findType("type27_3");
