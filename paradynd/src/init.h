@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.33 2002/08/31 16:53:29 mikem Exp $
+// $Id: init.h,v 1.34 2002/11/25 23:52:59 schendel Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
@@ -107,7 +107,7 @@ extern internalMetric *pauseTime;
 extern costMetric *totalPredictedCost;
 extern costMetric *observed_cost;
 
-extern bool init();
+extern bool paradyn_init();
 extern bool initOS();
 extern void instMPI();
 extern vector<instMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT

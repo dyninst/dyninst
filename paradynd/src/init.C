@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.69 2002/10/15 17:11:39 schendel Exp $
+// $Id: init.C,v 1.70 2002/11/25 23:52:58 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -225,7 +225,7 @@ pdSample computeNumOfActiveThreads(const machineMetFocusNode *) {
 #endif
 
 
-bool init() {
+bool paradyn_init() {
   string hostName = getNetworkName();
   rootResource = new resource;
 

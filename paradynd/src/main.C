@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.108 2002/10/28 04:54:30 schendel Exp $
+// $Id: main.C,v 1.109 2002/11/25 23:53:00 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -740,7 +740,7 @@ main( int argc, char* argv[] )
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 	sighupInit();
 #endif
-	if (!init()) 
+	if (!paradyn_init()) 
 	{
 		abort();
 	}
