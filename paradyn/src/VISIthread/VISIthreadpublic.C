@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.15  1996/02/05 18:51:57  newhall
-/* Change to DM interface: StartPhase and newPhaseCallback
+/* Revision 1.16  1996/02/19 18:19:13  newhall
+/* fix to avoid error #16 when a visi exits
 /*
+ * Revision 1.15  1996/02/05  18:51:57  newhall
+ * Change to DM interface: StartPhase and newPhaseCallback
+ *
  * Revision 1.14  1996/01/05 20:01:03  newhall
  * removed warnings
  *
@@ -167,7 +170,7 @@ PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
 				     NULL);
 }
 
-
+extern void flush_buffer_if_nonempty(VISIGlobalsStruct *);
 //////////////////////////////////////////////////////////////////////
 //  StopMetricResource: visualizationUser routine (called by visi process)
 //  input: metric and resource Ids 
@@ -198,13 +201,14 @@ void visualizationUser::StopMetricResource(u_int metricId,
 	  // make disable request to DM
           ptr->dmp->disableDataCollection(ptr->ps_handle,mi_handle,
 					  ptr->args->phase_type);
+
+          // new; avoids losing data when we shrink buffer
+          flush_buffer_if_nonempty(ptr);
+	  assert(ptr->buffer_next_insert_index == 0);
+
 	  // remove mi from mrlist
 	  ptr->mrlist[i] = ptr->mrlist[size - 1];
 	  ptr->mrlist.resize(size - 1);
-
-          extern void flush_buffer_if_nonempty(VISIGlobalsStruct *);
-          flush_buffer_if_nonempty(ptr);
-             // new; avoids losing data when we shrink buffer
 
           assert(ptr->buffer.size() > 0);
           unsigned newMaxBufferSize = ptr->buffer.size() - 1;

@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.62  1996/02/13 06:24:41  newhall
-/* removed assert stmts that shouldn't have been there.
+/* Revision 1.63  1996/02/19 18:19:11  newhall
+/* fix to avoid error #16 when a visi exits
 /*
+ * Revision 1.62  1996/02/13  06:24:41  newhall
+ * removed assert stmts that shouldn't have been there.
+ *
  * Revision 1.61  1996/02/07  18:51:02  tamches
  * oops;undid the changes of previous version.
  *
@@ -290,8 +293,10 @@ void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
    const unsigned num_to_send = ptr->buffer_next_insert_index;
    assert(num_to_send <= ptr->buffer.size());
 
-   if (num_to_send == 0)
+   if (num_to_send == 0){
+      ptr->buffer_next_insert_index = 0;
       return;
+   }
 
    if (num_to_send < ptr->buffer.size()) {
       // send less than the full buffer --> need to make a temporary buffer
@@ -306,11 +311,12 @@ void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
 
    if (ptr->visip->did_error_occur()) {
       PARADYN_DEBUG(("igen: after visip->Data() in VISIthreadDataHandler"));
+      ptr->buffer_next_insert_index = 0;
       ptr->quit = 1;
       return;
     }
+    ptr->buffer_next_insert_index = 0;
 
-   ptr->buffer_next_insert_index = 0;
 }
 
 /////////////////////////////////////////////////////////////
@@ -332,7 +338,7 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
       return;
   }
 
-  if(ptr->start_up)  // if visi process has not been started yet return
+  if(ptr->start_up || ptr->quit) // process has not been started or has exited 
       return;
 
   // if visi has not allocated buffer space yet
@@ -344,7 +350,7 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
       PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadDataCallback")); 
       ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadDataCallback");
       ptr->quit = 1;
-      return;  // don't put an assert here
+      return; 
   }
 
   // find metricInstInfo for this metricInstanceHandle
@@ -394,8 +400,9 @@ void VISIthreadDataCallback(vector<dataValueType> *values,
   }
 
   if(!ptr) return;
-  if(ptr->start_up)  // if visi process has not been started yet return
-      return;
+
+  // if visi process has not been started yet or if visi process has exited 
+  if(ptr->start_up || ptr->quit)  return;
 
   if (values->size() < num_values) num_values = values->size();
   for(unsigned i=0; i < num_values;i++){
@@ -429,7 +436,7 @@ void VISIthreadnewMetricCallback(perfStreamHandle,
     ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadnewMetricCallback");
     return;
   }
-  if(ptr->start_up)  // if visi process has not been started yet return
+  if(ptr->start_up || ptr->quit)  // visi process has not started or exiting 
     return;
 }
 
@@ -452,7 +459,7 @@ if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
    return;
 }
 
-  if(ptr->start_up)  // if visi process has not been started yet return
+  if(ptr->start_up || ptr->quit)  // process not started or exiting 
     return;
 
 }
@@ -478,7 +485,7 @@ void VISIthreadFoldCallback(perfStreamHandle,
      return;
   }
 
-  if(ptr->start_up)  // if visi process has not been started yet return
+  if(ptr->start_up || ptr->quit) // process has not been started or has exited 
      return;
 
   
@@ -487,7 +494,7 @@ void VISIthreadFoldCallback(perfStreamHandle,
      PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadFoldCallback")); 
      ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadFoldCallback");
      ptr->quit = 1;
-     return; // don't put an assert here 
+     return;  
   }
 
 #ifdef DEBUG3
@@ -540,7 +547,7 @@ void VISIthreadPhaseCallback(perfStreamHandle,
       return;
    }
 
-  if(ptr->start_up)  // if visi process has not been started yet return
+  if(ptr->start_up || ptr->quit)  // process not been started yet or exiting 
      return;
 
 
@@ -815,7 +822,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 					    ptr->args->phase_type);
         // send visi all old data bucket values
 	if(howmany > 0){
-	    vector<float> bulk_data;
+	    vector<sampleValue> bulk_data;
 	    for (u_int ve=0; ve< ((u_int)howmany); ve++){
 	      bulk_data += buckets[ve];
             }
@@ -828,9 +835,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
                 delete(retryList);
                 return 1;
             }
-	    for(int j=bulk_data.size(); j>0; j--){
-               bulk_data.resize(bulk_data.size()-1);
-	    }
+	    bulk_data.resize(0);
 	}
       }
       // if remenuFlag is set and retry list is not empty
