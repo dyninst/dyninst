@@ -21,10 +21,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.52  1996/04/16 18:37:27  karavan
-/* fine-tunification of UI-PC batching code, plus addification of some
-/* Ari-like verbification commentification.
+/* Revision 1.53  1996/04/18 20:46:35  tamches
+/* new DAGaddBatchOfEdges to correspond with PCthread/PCshg.C changes
 /*
+ * Revision 1.52  1996/04/16 18:37:27  karavan
+ * fine-tunification of UI-PC batching code, plus addification of some
+ * Ari-like verbification commentification.
+ *
  * Revision 1.51  1996/04/13 04:39:39  karavan
  * better implementation of batching for edge requests
  *
@@ -432,16 +435,27 @@ void
 UIM::DAGaddBatchOfEdges (int dagID, vector<uiSHGrequest> *requests,
 			 unsigned numRequests)
 {
-  uiSHGrequest *curr;
+  // "requests" was allocated (using new) by the producer (PCshg.C code); we
+  // delete it here.
   bool redraw = false;
+  assert(requests->size() == numRequests); // a sanity check just for fun
+
   for (unsigned i = 0; i < numRequests; i++) {
-    curr = &((*requests)[i]);
-    shgRootNode::refinement theRefinementStyle = int2refinement(curr->styleID);
-    if (theShgPhases->addEdge(dagID, curr->srcNodeID, curr->dstNodeID, theRefinementStyle,
-			      curr->label, i==numRequests-1)) redraw = true;
+    const uiSHGrequest &curr = (*requests)[i];
+    if (theShgPhases->addEdge(dagID,
+			      curr.srcNodeID, // parent
+			      curr.dstNodeID, // child
+			      int2refinement(curr.styleID),
+			      curr.label,
+			      i==numRequests-1 // rethink only once, at the end
+			      ))
+       redraw = true;
   }
-  if (redraw) initiateShgRedraw(interp, true); // true --> double buffer
+
   delete requests;
+
+  if (redraw)
+     initiateShgRedraw(interp, true); // true --> double buffer
 }
 
 int 
@@ -451,12 +465,10 @@ UIM::DAGaddEdge (int dagID, unsigned srcID,
 		 const char *label // only used for shadow node; else NULL
 		 )
 {
-   shgRootNode::refinement theRefinementStyle = int2refinement(styleID);
-
    if (theShgPhases->addEdge(dagID, 
 			     srcID, // parent
 			     dstID, // child
-			     theRefinementStyle,
+			     int2refinement(styleID),
 			     label, true)) // true --> rethink
      initiateShgRedraw(interp, true); // true --> double buffer
 
