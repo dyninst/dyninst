@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.92 2003/05/08 23:48:42 bernat Exp $
+// $Id: unix.C,v 1.93 2003/05/12 15:15:52 chadd Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -613,6 +613,18 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
         return handleExecExit(proc, 0);
     }
 #endif
+
+#if defined(rs6000_ibm_aix4_1)  
+    // On AIX 4.3 we get a spurrious SIGTRAP from the child process
+    // after a fork().  The SIGTRAP originates in __fork().
+    // As a last resort on AIX, we check to see if this is the
+    // cause of the SIGTRAP before we give up.
+    if(proc->nextTrapIsFork){
+	    proc->continueProc();
+	    proc->nextTrapIsFork = false;
+    }
+    return 1;
+#endif
     // Forward the trap to the process
 
     return 0;
@@ -842,6 +854,14 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
                 copyInstrumentationToChild(proc, theChild);
 #endif
                 proc->handleForkExit(theChild);
+
+#if defined(rs6000_ibm_aix4_1)
+		//on AIX 4.3 we receive an extra SIGTRAP from within __fork() from
+		//the child. I dont know why.  If we catch it and eat it
+		//and continue the child process we are good.  This flag
+		//lets us know (in handleSigTrap) that the next SIGTRAP should be eaten
+		theChild->nextTrapIsFork = true;  
+#endif
                 
             }
             else {
