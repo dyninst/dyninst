@@ -39,23 +39,25 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.8 2003/07/15 22:43:58 schendel Exp $
+// $Id: api_showerror.C,v 1.9 2003/09/05 16:27:37 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
 #include "BPatch.h"
 #include "dyninstAPI/src/showerror.h"
 
+
+void showInfoCallback(pdstring msg)
+{
+    BPatch::reportError(BPatchWarning, 0, msg.c_str());
+}
+
+#if defined(BPATCH_LIBRARY)
 char errorLine[1024];
 
 void showErrorCallback(int num, pdstring msg)
 {
     BPatch::reportError(BPatchSerious, num, msg.c_str());
-}
-
-void showInfoCallback(pdstring msg)
-{
-    BPatch::reportError(BPatchWarning, 0, msg.c_str());
 }
 
 void logLine(char const *line)
@@ -67,3 +69,4 @@ void statusLine(char const *line)
 {
     BPatch::reportError(BPatchInfo, 0, line);
 }
+#endif
