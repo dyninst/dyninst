@@ -29,14 +29,14 @@ q1) What files are used?
 
 q2) Where are these files located?
      The system configuration file is searched for in 
-     $(PARADYN_ROOT)/Paradynrc, and then in $(CWD)/Paradynrc if it
+     $(PARADYN_ROOT)/paradyn.rc, and then in $(CWD)/paradyn.rc if it
      is not found in the first location.
 
-     The user configuration file is searched for in $HOME/.Paradynrc
+     The user configuration file is searched for in $HOME/.paradynrc
 
      The application configuration file is specified on the command
      line when paradyn is started.  The command line has one option,
-     -c <app file>.  So, 'paradyn -c App' would cause paradyn to attempt
+     -f <app file>.  So, 'paradyn -f App' would cause paradyn to attempt
      to open the file 'App' in the current working directory and parse
      that file.
 
@@ -116,24 +116,25 @@ q4) What can be defined?
 	    command <cmd string>;
 	    [flavor <flavor type>;]
 	    [user <user name>;]
-            [dir <directory name>;]
+        [dir <directory name>;]
 	    [host <host name>;]
  	}
 
-        REQUIRED:
-        <name>: IDENTIFIER, the name of the daemon, this allows daemon
+    REQUIRED:
+    <name>: IDENTIFIER, the name of the daemon, this allows daemon
 		definitions to be looked up and replaced.
 	<cmd string>: LITERAL, the command to use to start this paradyn
                       daemon (for exec's)
 
-        OPTIONAL:
-	<host name>: IDENTIFIER, no effect now
-        <user name>: IDENTIFIER, no effect now
-        <directory name>: IDENTIFIER, no effect now
+    OPTIONAL:
+	<host name>: IDENTIFIER, same as <host name> in the process
+		definition below.
+    <user name>: IDENTIFIER, same as <user name> in the process
+		definition below.
+    <directory name>: IDENTIFIER, same as <directory name> in the
+		process definition below.
 	<flavor type> a keyword that represents the environment type
-	   the possible choices are enumerated in the next section 
-	   If flavor type is not declared, the default value for cm5
-	   is used.
+	   the possible choices are enumerated in the next section.
 
         Effects:
            This enters this data structure into a daemon dictionary
@@ -158,7 +159,7 @@ q4) What can be defined?
 	    daemon <daemon string>;
 	    [host <host string>;]
 	    [user <user name>;]
-            [dir <directory name>;]
+        [dir <directory name>;]
 	}
 
         REQUIRED:
@@ -170,8 +171,13 @@ q4) What can be defined?
                          daemon dictionary
 
         OPTIONAL:
-        <user name>: IDENTIFIER, no effect now
-        <directory name>: IDENTIFIER, no effect now
+        <user name>: IDENTIFIER, specifies the user name (login) under which
+                     the process will run. If no user field is present, it
+                     will default to the same user name under which Paradyn 
+                     was started.
+        <directory name>: IDENTIFIER, specifies the working directory for the
+                     process. If no dir field is present, it will default to
+                     user's home directory on the remote machine.
         <host string>: IDENTIFIER, the name of the host on which the process
                        should be started.  If this field is not specified, the
                        process is started on the local machine.
@@ -200,6 +206,7 @@ q4) What can be defined?
             [host <host string>;]
             [dir <directory>;]
 	    [force <int >;]
+		[limit <int>; ]
 	}
 
         REQUIRED:
@@ -234,9 +241,9 @@ q5) What keywords exist?
     dir
     user
     tunable_constant
-    flavor - one of {pvm, cm5}
+    flavor - one of {pvm, unix}
     pvm -  a flavor
-    cm5 - a flavor
+    unix - a flavor
 
 q6) Any 'host' field that is not specified implies that the local
     host should be used.
