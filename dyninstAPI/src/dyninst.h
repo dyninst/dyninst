@@ -7,7 +7,10 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.1  1994/01/27 20:31:17  hollings
+ * Revision 1.2  1994/02/01 18:46:50  hollings
+ * Changes for adding perfConsult thread.
+ *
+ * Revision 1.1  1994/01/27  20:31:17  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.5  1994/01/26  06:57:07  hollings
@@ -34,9 +37,6 @@
 #include "rtinst/h/trace.h"
 
 typedef enum { EventCounter, SampledFunction } metricStyle;
-
-/* sequence of peformance data (trace|sample) */
-typedef struct _perfStreamRec *performanceStream;	
 
 /* time */
 typedef double timeStamp;		
@@ -114,72 +114,8 @@ Boolean continueApplication();
  */
 Boolean detachProcess(int pid, Boolean pause);
 
-
 /*
- * Handler that gets called when new sample data is delivered.
- *
- *   ps - a performanceStream from createPerformanceStream
- *   mi - a metricInstance returned by enableDataCollection
- *   startTimeStamp - starting time of the interval covered by this sample.
- *   endTimeStamp - ending time of the interval covered by this sample.
- *   value - the value of this sample
- *    
- */
-typedef (*sampleDataCallbackFunc)(performanceStream ps, metricInstance mi,
-    timeStamp startTimeStamp, timeStamp endTimeStamp, sampleValue value);
-
-/*
- * Handler that gets called when new trace data is available.
- *   
- *   ps - a performanceStream from createPerformanceStream
- *   mi - a metricInstance returned by enableDataCollection
- *   time - time of the event.
- *   eventSize - size of the event specific data.
- *   eventData - event specific data.
- */
-typedef (*traceDataCallbackFunc)(performanceStream ps, metricInstance mi,
-    timeStamp time, int eventSize, void *eventData);
-
-/*
- * union to hold two types of data callback.
- *
- */
-typedef union {
-    sampleDataCallbackFunc 	sample;
-    traceDataCallbackFunc	trace;
-} dataCallback;
-
-
-/*
- * Handler that gets called when a new metric is defined.
- *
- * performanceStream	- a stream returned by createPerformanceStream
- * metric		- a metric
- *
- */
-typedef void (*metricInfoCallback)(performanceStream, metric);
-
-/*
- * Handler that gets called when a new resource is defined.
- *
- * performanceStream	- a stream returned by createPerformanceStream
- * parent		- parent of new resource
- * newResource		- new resource being created
- * name			- name of the new resource
- *
- */
-typedef void (*resourceInfoCallback)(performanceStream, resource parent, 
-    resource newResource, char *name);
-
-typedef struct {
-    metricInfoCallback mFunc;
-    resourceInfoCallback rFunc;
-} controlCallback;
-
-void setSampleRate(performanceStream stream, timeStamp sampleInterval);
-
-/*
- * Routines to control data collection on a performanceStream.
+ * Routines to control data collection.
  *
  * resourceList		- a list of resources
  * metric		- what metric to collect data for
@@ -198,20 +134,9 @@ float guessCost(resourceList, metric);
 /*
  * Control information arriving about a resource Classes
  *
- * performanceStream	- a stream returned by createPerformanceStream
  * resource		- enable notification of children of this resource
  */
 Boolean enableResourceCreationNotification(resource);
-
-/*
- * Turn off notification of creation of descendants of this resource.
- * 
- * performanceStream	- a stream returned by createPerformanceStream
- * resource		- disable notification of descendants of this resource
- *
- */
-Boolean disableResourceCreationNotification(performanceStream, resource);
-
 
 /*
  * Resource utility functions.

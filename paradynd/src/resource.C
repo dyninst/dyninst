@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.1 1994/01/27 20:31:41 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.2 1994/02/01 18:46:55 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.1  1994/01/27 20:31:41  hollings
+ * Revision 1.2  1994/02/01 18:46:55  hollings
+ * Changes for adding perfConsult thread.
+ *
+ * Revision 1.1  1994/01/27  20:31:41  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.3  1993/07/13  18:30:02  hollings
@@ -31,6 +34,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "symtab.h"
 #include "process.h"
@@ -234,6 +238,14 @@ Boolean isResourceDescendent(resource parent, resource child)
     return(False);
 }
 
+//
+// Find this passed focus if its resource compoents are valid for this paradynd.
+//    We treat "unknown" top level resources as a specical case since the
+//    meaning is that we are at the top level of refinement of an unsupported
+//    resource hierarchy.  In this case, we simply create the resource, and
+//    the focus is valid.  Any other resource that can't be found results in
+//    an invalid focus.  jkh 1/29/94.
+//
 resourceList findFocus(int count, char **data)
 {
     int i;
@@ -245,8 +257,26 @@ resourceList findFocus(int count, char **data)
     for (i=0; i < count; i++) {
 	iName = pool.findAndAdd(data[i]);
 	res = allResources.find(iName);
-	if (!res) return(NULL);
+	if (!res && (strchr(iName, '/') == strrchr(iName, '/'))) {
+	    res = newResource(rootResource, NULL, ++iName, 0.0);
+	} else if (!res) {
+	    return(NULL);
+	}
 	addResourceList(rl, res);
     }
     return(rl);
+}
+
+resource findResource(char *name)
+{
+    char *iName;
+    resource res;
+
+    if (*name == '\0') {
+	return(rootResource);
+    } else {
+	iName = pool.findAndAdd(name);
+	res = allResources.find(iName);
+	return(res);
+    }
 }

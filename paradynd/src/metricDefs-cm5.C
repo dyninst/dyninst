@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.1 1994/01/27 20:31:30 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.2 1994/02/01 18:46:54 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.1  1994/01/27 20:31:30  hollings
+ * Revision 1.2  1994/02/01 18:46:54  hollings
+ * Changes for adding perfConsult thread.
+ *
+ * Revision 1.1  1994/01/27  20:31:30  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.10  1993/12/13  19:55:26  hollings
@@ -462,6 +465,9 @@ resourcePredicate cpuTimePredicates[] = {
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
@@ -481,6 +487,9 @@ resourcePredicate wallTimePredicates[] = {
   { "/Procedure",	
     replaceBase,		
     (createPredicateFunc) perProcedureWallTime },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
@@ -490,6 +499,9 @@ resourcePredicate wallTimePredicates[] = {
 resourcePredicate procCallsPredicates[] = {
   { "/SyncObject",	
     invalidPredicate,		
+    (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
     (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		
@@ -507,6 +519,9 @@ resourcePredicate msgPredicates[] = {
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
@@ -522,6 +537,9 @@ resourcePredicate defaultPredicates[] = {
     (createPredicateFunc) defaultMSGTagPredicate },
   { "/SyncObject",	
     invalidPredicate,		
+    (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
     (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		

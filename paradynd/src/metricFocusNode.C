@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.1 1994/01/27 20:31:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.2 1994/02/01 18:46:52 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.1  1994/01/27 20:31:28  hollings
+ * Revision 1.2  1994/02/01 18:46:52  hollings
+ * Changes for adding perfConsult thread.
+ *
+ * Revision 1.1  1994/01/27  20:31:28  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.17  1994/01/20  17:47:16  hollings
@@ -666,19 +669,6 @@ metricInfo *getMetricInfo(metric m)
 metric getMetric(metricInstance mi)
 {
     return(mi->met);
-}
-
-void metricNotification(performanceStream perf)
-{
-    int i;
-    struct _metricRec *curr;
-
-    if (!perf->controlFunc.mFunc) return;
-
-    for (i=0; i < metricCount; i++) {
-	curr = &DYNINSTallMetrics[i];
-	perf->controlFunc.mFunc(perf, curr);
-    }
 }
 
 /*

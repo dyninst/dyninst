@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.1  1994/01/27 20:31:27  hollings
+ * Revision 1.2  1994/02/01 18:46:52  hollings
+ * Changes for adding perfConsult thread.
+ *
+ * Revision 1.1  1994/01/27  20:31:27  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  *
@@ -32,6 +35,8 @@ extern void initLibraryFunctions();
 
 main(int argc, char *argv[])
 {
+    int i;
+    metricList stuff;
 
     initLibraryFunctions();
 
@@ -41,7 +46,24 @@ main(int argc, char *argv[])
     }
     tp = new dynRPC(0, NULL, NULL);
 
+    //
+    // tell client about our metrics.
+    //
+    stuff = getMetricList();
+    for (i=0; i < stuff->count; i++) {
+	tp->newMetricCallback(stuff->elements[i].info);
+    }
+
     controllerMainLoop();
+}
+
+void dynRPC::addResource(String parent, String name)
+{
+    resource pr;
+    extern resource findResource(char*);
+
+    pr = findResource(parent);
+    if (pr) (void) newResource(pr, NULL, name, 0.0);
 }
 
 void dynRPC::coreProcess(int pid)
@@ -93,7 +115,7 @@ double dynRPC::getPredictedDataCost(String_Array focusString, String metric)
 
     m = findMetric(metric);
     l = findFocus(focusString.count, focusString.data);
-    assert(l);
+    if (!l) return(0.0);
     val = guessCost(l, m);
 
     return(val);
@@ -122,7 +144,7 @@ int dynRPC::enableDataCollection(String_Array foucsString,String metric)
 
     m = findMetric(metric);
     l = findFocus(foucsString.count, foucsString.data);
-    assert(l);
+    if (!l) return(-1);
     id = startCollecting(l, m);
     return(id);
 }

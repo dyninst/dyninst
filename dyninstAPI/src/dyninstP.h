@@ -9,7 +9,10 @@
  *   include this file.
  *
  * $Log: dyninstP.h,v $
- * Revision 1.1  1994/01/27 20:31:18  hollings
+ * Revision 1.2  1994/02/01 18:46:51  hollings
+ * Changes for adding perfConsult thread.
+ *
+ * Revision 1.1  1994/01/27  20:31:18  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.6  1993/08/23  23:14:58  hollings
@@ -51,23 +54,6 @@ class executableRec {
 	process *proc;	/* for directly connected processes */
 };
 
-class _perfStreamRec {
-    public:
-	dataType		type;
-	dataCallback		dataFunc;
-	controlCallback		controlFunc;
-	List<metricInstance>	enabledMetrics;
-};
-
-class _applicationRec {
-    public:
-	executableRec 	*programs;
-	errorHandler 		errorFunc;
-	List<performanceStream>	streams;
-};
-
-typedef List<performanceStream> perfStreamList;
-
 class _resourceRec {
     public:
 	_resourceRec(Boolean full = True) {
@@ -84,7 +70,6 @@ class _resourceRec {
 	void *handle;		/* handle to resource specific data */
 	resourceList children;	/* children of this resource */
 	resourceInfo info;
-	perfStreamList notifyList;	/* who to inform of creations */
 };
 
 class _resourceListRec {
@@ -100,8 +85,5 @@ class _metricListRec {
 	int count;		/* number of items in the list */
 	int maxItems;	/* limit of current array */
 };
-
-void invokeSampleCallback(metricInstance mi, timeStamp start, 
-    timeStamp end, sampleValue value);
 
 Boolean isApplicationPaused();
