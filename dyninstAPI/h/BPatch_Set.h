@@ -354,17 +354,18 @@ DO_INLINE_F BPatch_Set<T,Compare>& BPatch_Set<T,Compare>::operator= (const BPatc
 }
 template <class T,class Compare>
 DO_INLINE_F bool BPatch_Set<T,Compare>::operator== (const BPatch_Set<T,Compare>& newBPatch_Set) const{
+	int i;
 	if(this == &newBPatch_Set)
 		return true;
 	T* all = new T[newBPatch_Set.size()];
 	newBPatch_Set.elements(all);
-	for(int i=0;i<newBPatch_Set.size();i++)
+	for(i=0;i<newBPatch_Set.size();i++)
 		if(!contains(all[i]))
 			return false;
 	delete[] all;
 	all = new T[setSize];
 	elements(all);
-	for(int i=0;i<setSize;i++)
+	for(i=0;i<setSize;i++)
 		if(!newBPatch_Set.contains(all[i]))
 			return false;
 	delete[] all;
