@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.44 1999/06/17 22:08:13 wylie Exp $
+ * $Id: inst-x86.C,v 1.45 1999/06/24 18:19:24 pcroth Exp $
  */
 
 #include <limits.h>
@@ -331,11 +331,7 @@ bool checkJumpTable(image *im, instruction insn, Address addr,
       }
     }
     else {
-      const unsigned char *ptr = im->getPtrToInstruction(tableBase);
-      for ( ; *(const unsigned *)ptr >= funcBegin && *(const unsigned *)ptr <= funcEnd; 
-	   ptr += sizeof(unsigned)) {
-	//fprintf(stderr, " jump table entry = 0x%lx\n", *(unsigned *)ptr);
-      }
+        // fprintf(stderr, "Ignoring external jump table at 0x%lx.\n", tableBase);
     }
   }
   return true;
