@@ -79,8 +79,7 @@ class instReqNode {
    instReqNode(instPoint *iPoint, AstNode *iAst, callWhen iWhen,
 	       callOrder o) : point(iPoint), ast(assignAst(iAst)),
       when(iWhen), order(o), loadedIntoApp_(false), trampsHookedUp_(false),
-      hasBeenCatchuped_(false), rinstance(NULL), rpcCount(0), 
-      loadInstAttempts(0) 
+      rinstance(NULL), rpcCount(0), loadInstAttempts(0) 
    {
       mtHandle.location = iPoint;
       mtHandle.when = iWhen;
@@ -93,8 +92,8 @@ class instReqNode {
       point(par.point), ast(assignAst(par.ast)), when(par.when), 
       order(par.order), mtHandle(par.mtHandle), 
       loadedIntoApp_(par.loadedIntoApp_), trampsHookedUp_(par.trampsHookedUp_),
-      hasBeenCatchuped_(par.hasBeenCatchuped_), rinstance(par.rinstance), 
-      rpcCount(par.rpcCount), loadInstAttempts(par.loadInstAttempts)
+      rinstance(par.rinstance), rpcCount(par.rpcCount), 
+      loadInstAttempts(par.loadInstAttempts)
    { }
    
    // special copy constructor used for fork handling
@@ -102,8 +101,7 @@ class instReqNode {
 
    bool instrLoaded()      { return loadedIntoApp_;    }
    bool trampsHookedUp()   { return trampsHookedUp_;   }
-   bool hasBeenCatchuped() { return hasBeenCatchuped_; }
-   
+
    loadMiniTramp_result loadInstrIntoApp(pd_process *theProc, 
 					 returnInstance *&retInstance);
    void hookupJumps(pd_process *proc);
@@ -121,17 +119,6 @@ class instReqNode {
    AstNode* Ast()  {return ast;}
    callWhen When() {return when;}
    callOrder Order() { return order; }
-   void markAsHavingBeenCatchuped() { hasBeenCatchuped_ = true; }
-
-   void changePoint(instPoint *newPt) { point = newPt; }
-   void resetInsertedState() {
-      loadedIntoApp_ = false;
-      trampsHookedUp_ = false;
-      hasBeenCatchuped_ = false;
-      mtHandle.inst = NULL;
-      mtHandle.location = NULL;
-      loadInstAttempts = 0;
-   }
 
  private:
    instPoint *point;
@@ -143,7 +130,6 @@ class instReqNode {
 
    bool loadedIntoApp_;
    bool trampsHookedUp_;
-   bool hasBeenCatchuped_;
    
    returnInstance *rinstance;
    
