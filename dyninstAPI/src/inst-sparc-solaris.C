@@ -1505,7 +1505,7 @@ static inline bool CallRestoreTC(instruction instr, instruction nexti) {
     Current heuristic to detect such sequences :
      look for jmp %reg, nop in function w/ no stack frame, if jmp, nop
      are last 2 instructions, return 1 (definate TC), at any other point,
-     return 2 (possible TC).  Otherwise, return 0 (no TC).
+     return 0 (not TC).  Otherwise, return 0 (no TC).
      w/ no stack frame....
     instr is instruction being examioned.
     nexti is instruction after
@@ -1513,7 +1513,7 @@ static inline bool CallRestoreTC(instruction instr, instruction nexti) {
     func is pointer to function class object describing function
      instructions come from....
  */
-static inline int JmpNopTC(instruction instr, instruction nexti, \
+static inline bool JmpNopTC(instruction instr, instruction nexti, \
 			    Address addr, pd_Function *func) {
 
     if (!isInsnType(instr, JMPLmask, JMPLmatch)) {
@@ -1559,7 +1559,7 @@ static inline int JmpNopTC(instruction instr, instruction nexti, \
     //  (last 2 instructions....), return value indicating possible TC.
     //  This should (eventually) mark the fn as uninstrumenatble....
     if (addr != (func->getAddress(0) + func->size() - 8)) {
-        return 2;
+        return 0;
     }
 
     return 1;
@@ -1573,7 +1573,7 @@ bool pd_Function::findInstPoints(const image *owner) {
     bool call_restore_tc;
     int jmp_nop_tc;
 
-   //cerr << "pd_Function::findInstPoints called " << *this;
+    //cerr << "pd_Function::findInstPoints called " << *this;
    if (size() == 0) {
      //cerr << " size = 0, returning FALSE" << endl;
      return false;
@@ -1625,17 +1625,6 @@ bool pd_Function::findInstPoints(const image *owner) {
        //  own register frame.
        call_restore_tc = CallRestoreTC(instr, nexti);
        jmp_nop_tc = JmpNopTC(instr, nexti, adr1, this);
-       // TEMPORARY HACK to get release out door which supports 
-       //  Solaris 2.6 - mark any function w/o stack frame which 
-       //  has a jmp, nop sequence inside it, but not at end, 
-       //  (may or may not be tail-call opt. sequence) as 
-       //  uninstrumentable....
-       if (jmp_nop_tc == 2) {
-	   cerr << "WARN : Function " << prettyName().string_of() << \
-	     " jmp, nop sequence detected in interior of function," <<
-	     " marking uninstrumentable" << endl;
-	   return false;
-       }
        if (call_restore_tc || jmp_nop_tc) {
            isTrap = true;
 	   // ALERT ALERT
@@ -1713,6 +1702,9 @@ bool pd_Function::findInstPoints(const image *owner) {
        if(instr.call.op == CALLop) { 
            Address call_target = adr + (instr.call.disp30 << 2);
            if(call_target == adr){ 
+	        cerr << "WARN : function " << prettyName().string_of() << \
+		  " has call to same location as call, NOT instrumenting" \
+		  << endl;
 	        return false;
 	   }
        }
@@ -1725,11 +1717,8 @@ bool pd_Function::findInstPoints(const image *owner) {
        instruction nexti; 
        nexti.raw = owner->get_instruction(adr+4);
 
-       if (nexti.rest.op == 2 
-	   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
-	      || nexti.rest.op3 == RESTOREop3)) {
-	 // ALERT ALERT
-         //cerr << "tail-call optimization detected for function " << prettyName().string_of() << endl;
+       if (CallRestoreTC(instr, nexti)) {
+         //cerr << "CALL, RESTORE tail-call optimization detected for function " << prettyName().string_of() << endl;
 	 funcReturns += new instPoint(this, instr, owner, adr, false,
 				      functionExit);
 
@@ -1743,7 +1732,11 @@ bool pd_Function::findInstPoints(const image *owner) {
 	 adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
        }
      }
-
+     else if (JmpNopTC(instr, nexti, adr, this)) {
+         //cerr << "JMP, NOP tail-call optimization detected for function " << prettyName().string_of() << endl;
+	 funcReturns += new instPoint(this, instr, owner, adr, false,
+				      functionExit);
+     }
      else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
        /* A register indirect jump. Some jumps may exit the function 
           (e.g. read/write on SunOS). In general, the only way to 
@@ -1806,16 +1799,16 @@ bool pd_Function::checkInstPoints(const image *owner) {
 #ifndef BPATCH_LIBRARY /* XXX Users of libdyninstAPI might not agree. */
     // The function is too small to be worthing instrumenting.
     if (size() <= 12){
-        cerr << "WARN : function " << prettyName().string_of() \
-	     << " too small (size <= 12), can't instrument" << endl;
+        //cerr << "WARN : function " << prettyName().string_of() \
+        //	     << " too small (size <= 12), can't instrument" << endl;
 	return false;
     }
 #endif
 
     // No function return! return false;
     if (sizeof(funcReturns) == 0) {
-        cerr << "WARN : function " << prettyName().string_of() \
-	     << " no return point found, can't instrument" << endl;
+        //cerr << "WARN : function " << prettyName().string_of() \
+        //	     << " no return point found, can't instrument" << endl;
 	return false;
     }
 
@@ -1840,8 +1833,8 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	    if ((target > funcEntry_->addr)&&
 		(target < (funcEntry_->addr + funcEntry_->size))) {
 		if (adr > (funcEntry_->addr+funcEntry_->size)){
-		    cerr << "WARN : function " << prettyName().string_of() \
-			 << " has branch target inside fn entry point, can't instrument" << endl;
+		    //cerr << "WARN : function " << prettyName().string_of() \
+		    //	 << " has branch target inside fn entry point, can't instrument" << endl;
 		    return false;
 	    } }
 
@@ -1850,8 +1843,9 @@ bool pd_Function::checkInstPoints(const image *owner) {
 		    (target < (funcReturns[i]->addr + funcReturns[i]->size))) {
 		    if ((adr < funcReturns[i]->addr)||
 			(adr > (funcReturns[i]->addr + funcReturns[i]->size))){
-			cerr << "WARN : function " << prettyName().string_of() \
-			 << " has branch target inside fn return point, can't instrument" << endl;
+		        //cerr << "WARN : function " << prettyName().string_of() \
+		        //  << " has branch target inside fn return point, " \
+		        //  << "can't instrument" << endl;
 		        return false;
 		} }
 	    }
@@ -1863,9 +1857,10 @@ bool pd_Function::checkInstPoints(const image *owner) {
     // we can't deal with this...the only example I can find is _cerror
     // and _cerror64 in libc.so.1
     if(retl_inst && !noStackFrame){ 
-         cerr << "WARN : function " << prettyName().string_of() \
-	      << " retl instruction in non-leaf function, can't instrument function" << endl;
-	 return false;
+        //cerr << "WARN : function " << prettyName().string_of() \
+        //     << " retl instruction in non-leaf function, can't instrument" \
+        //      << endl;
+	return false;
     }
 
     // check that no instrumentation points could overlap
@@ -1877,8 +1872,9 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	if(i >= 1){ // check if return points overlap
 	    Address prev_exit = funcReturns[i-1]->addr+funcReturns[i-1]->size;  
 	    if(funcReturns[i]->addr < prev_exit) {
-	        cerr << "WARN : function " << prettyName().string_of() \
-	             << " overlapping instrumentation points, can't instrument function" << endl;
+	        //cerr << "WARN : function " << prettyName().string_of() \
+	        //     << " overlapping instrumentation points, can't instrument" \
+	        //     << endl;
 		return false;
 	    } 
 	}
@@ -2026,9 +2022,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 				      functionExit, adr);
            funcReturns += point;
            funcReturns[retId] -> instId = retId++;
-     } else if (jmp_nop_tc == 2) {
-           return false;
-     }
+     } 
      else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
        /* A register indirect jump. Some jumps may exit the function 
           (e.g. read/write on SunOS). In general, the only way to 
