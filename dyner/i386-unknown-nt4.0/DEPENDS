@@ -1,0 +1,25 @@
+dyner.obj: ../src/dyner.C ../src/dynerList.h \
+ ../../dyninstAPI/h/BPatch.h ../../dyninstAPI/h/BPatch_Vector.h \
+ ../../dyninstAPI/h/BPatch_thread.h ../../dyninstAPI/h/BPatch_image.h \
+ ../../dyninstAPI/h/BPatch_sourceObj.h \
+ ../../dyninstAPI/h/BPatch_point.h ../../dyninstAPI/h/BPatch_snippet.h \
+ ../../dyninstAPI/h/BPatch_type.h ../../dyninstAPI/h/BPatch_module.h \
+ ../../dyninstAPI/h/BPatch_function.h \
+ ../../dyninstAPI/src/BPatch_collections.h \
+ ../../dyninstAPI/src/../../util/h/String.h \
+ ../../util/h/debugOstream.h ../../util/h/headers.h \
+ ../../util/h/solarisHeaders.h ../../util/h/refCounter.h \
+ ../../dyninstAPI/src/../../util/h/Dictionary.h ../../util/h/Vector.h \
+ ../../dyninstAPI/src/../../util/h/list.h ../src/breakpoint.h
+lex.dyner.obj: lex.dyner.C ../../dyninstAPI/h/BPatch_snippet.h \
+ ../../dyninstAPI/h/BPatch_Vector.h \
+ ../../dyninstAPI/h/BPatch_sourceObj.h \
+ ../../dyninstAPI/h/BPatch_point.h ../../dyninstAPI/h/BPatch_type.h \
+ ../../dyninstAPI/h/BPatch_module.h \
+ ../../dyninstAPI/h/BPatch_function.h dyner.tab.h
+dyner.tab.obj: dyner.tab.C ../../dyninstAPI/h/BPatch_thread.h \
+ ../../dyninstAPI/h/BPatch_Vector.h ../../dyninstAPI/h/BPatch_image.h \
+ ../../dyninstAPI/h/BPatch_sourceObj.h \
+ ../../dyninstAPI/h/BPatch_point.h ../../dyninstAPI/h/BPatch_snippet.h \
+ ../../dyninstAPI/h/BPatch_type.h ../../dyninstAPI/h/BPatch_module.h \
+ ../../dyninstAPI/h/BPatch_function.h ../src/breakpoint.h
