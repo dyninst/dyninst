@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.115 2003/10/21 22:40:55 bernat Exp $
+// $Id: linux.C,v 1.116 2003/10/22 16:00:48 schendel Exp $
 
 #include <fstream>
 
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 
 #include <sys/ptrace.h>
@@ -130,70 +131,46 @@ extern void generateBreakPoint(instruction &insn);
 static bool debug_ptrace = false;
 #endif
 
-bool ptraceKludge::haltProcess(process *p) {
-  bool wasStopped = (p->status() == stopped);
-  if (p->status() != neonatal && !wasStopped) {
-    p->pause();
-/*
-    if (!p->loopUntilStopped()) {
-      assert(0);
-    }
-*/
-  }
+bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
+   bool needToCont = false;
   
-  return wasStopped;
-}
+   if(request != PT_DETACH  &&  status() == running) {
+      if(pauseLWP() == true)
+         needToCont = true;
+   }
 
-void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
-  // First handle the cases where we shouldn't issue a PTRACE_CONT:
-  if (p->status() == neonatal) return;
-  if (wasStopped) return;
+   bool ret = (P_ptrace(request, get_lwp_id(), addr, data) != -1);
 
-  // Choose either one of the following methods to continue a process.
-  // The choice must be consistent with that in process::continueProc_ and stop_
-
-  p->continueProc();
-/*
-  if (P_ptrace(PTRACE_CONT, p->pid, 1, SIGCONT) == -1) {
-      perror("error in continueProcess");
-      assert(0);
-  }
-*/
-}
-
-bool ptraceKludge::deliverPtrace(process *p, int req, Address addr,
-				 Address data ) {
-  bool halted = haltProcess(p);
-  bool ret = (P_ptrace(req, p->getPid(), addr, data) != -1);
-  continueProcess(p, halted);
-  return ret;
+   if(request != PTRACE_DETACH  &&  needToCont == true)
+      continueLWP();
+   
+   return ret;
 }
 
 
 // Some ptrace requests in Linux return the value rather than storing at the address in data
 // (especially PEEK requests)
 // - nash
-int ptraceKludge::deliverPtraceReturn(process *p, int req, Address addr,
-				 Address data ) {
-  bool halted = true;
+int dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
+   bool needToCont = false;
+  
+   if(request != PT_DETACH  &&  status() == running) {
+      if(pauseLWP() == true)
+         needToCont = true;
+   }
 
-  if (req != PTRACE_DETACH){
-	halted = haltProcess(p);
-  }
+   int ret = P_ptrace(request, get_lwp_id(), addr, data);
 
-  int ret = P_ptrace(req, p->getPid(), addr, data);
-
-  if (req != PTRACE_DETACH){
-	continueProcess(p, halted);
-  }
-
-  return ret;
+   if(request != PTRACE_DETACH  &&  needToCont == true)
+      continueLWP();
+   
+   return ret;
 }
 
 /* ********************************************************************** */
 
 void printStackWalk( process *p ) {
-  Frame theFrame = p->getProcessLWP()->getActiveFrame();
+  Frame theFrame = p->getRepresentativeLWP()->getActiveFrame();
   while (true) {
     // do we have a match?
     const Address framePC = theFrame.getPC();
@@ -216,8 +193,8 @@ void OS::osDisconnect(void) {
   P_close (ttyfd);
 }
 
-bool process::stop_() {
-     return (P_kill(getPid(), SIGSTOP) != -1); 
+bool dyn_lwp::stop_() {
+     return (P_kill(get_lwp_id(), SIGSTOP) != -1); 
 }
 
 bool process::continueWithForwardSignal( int sig ) {
@@ -305,93 +282,129 @@ int decodeRTSignal(process *proc,
 
 }
 
-process *decodeProcessEvent(int pid, 
-                            procSignalWhy_t &why,
-                            procSignalWhat_t &what,
-                            procSignalInfo_t &info,
-                            bool block) {
-    int options = 0;
-    if (!block) options |= WNOHANG;
-    
-    int result = 0, status = 0;
-    process *proc = NULL;
-    result = waitpid( pid, &status, options );
-    // Translate the signal into a why/what combo.
-    // We can fake results here as well: translate a stop in fork
-    // to a (SYSEXIT,fork) pair. Don't do that yet.
-    if (result > 0) {
-        proc = process::findProcess(result);
+process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
+                            procSignalWhy_t &why, procSignalWhat_t &what,
+                            procSignalInfo_t &info, bool block,
+                            int wait_options) {
+   int result = 0, status = 0;
+   process *pertinantProc = NULL;
 
-        if (proc) {
-            // Processes' state is saved in preSignalStatus()
-            proc->savePreSignalStatus();
-            // Got a signal, process is stopped.
-            proc->status_ = stopped;
-        }
-        
-        if (WIFEXITED(status)) {
-            // Process exited via signal
-            why = procExitedNormally;
-            what = WEXITSTATUS(status);
-            }
-        else if (WIFSIGNALED(status)) {
-            why = procExitedViaSignal;
-            what = WTERMSIG(status);
-        }
-        else if (WIFSTOPPED(status)) {
-            // More interesting (and common) case
-            // This is where return value faking would occur
-            // as well. procSignalled is a generic return.
-            // For example, we translate SIGILL to SIGTRAP
-            // in a few cases
-            why = procSignalled;
-            what = WSTOPSIG(status);
+   if (!block) {
+      wait_options |= WNOHANG;
+   }
 
-            if (what == SIGILL) {
-                // Check for system call exit and handle
-                // We're aborting on Linux, can ignore this
-                
-            }
+   result = waitpid( wait_arg, &status, wait_options );
 
-            if (what == SIGSTOP) {
-                decodeRTSignal(proc, why, what, info);
-            }
-	    
-	    if (what == SIGTRAP) {
-	      // We use int03s (traps) to do instrumentation when there
-	      // isn't enough room to insert a branch.
-	      why = procInstPointTrap;
-	    }
+   if (result < 0 && errno == ECHILD) {
+      return NULL; /* nothing to wait for */
+   } else if (result < 0) {
+      perror("decodeProcessEvent: waitpid failure");
+   } else if(result == 0)
+      return NULL;
 
-	    if (what == SIGCHLD) {
-	      // Linux fork() sends a SIGCHLD once the fork has been created
-	      why = procForkSigChild;
-	    }
+   int pertinantPid = result;
 
-            if (what == SIGILL) {
-                // The following is more correct, but breaks.
-                // Problem is getting the frame requires a ptrace...
-                // which calls loopUntilStopped. Which calls us.
-                //Frame frame = proc->getProcessLWP()->getActiveFrame();
-                //Address pc = frame.getPC();
-                Address pc = getPC(proc->getPid());
-                
-                if (pc == proc->rbrkAddr() ||
-                    pc == proc->main_brk_addr ||
-                    pc == proc->dyninstlib_brk_addr) {
-                    what = SIGTRAP;
-                }
-            }
-        }
-    }
-    else if (result < 0 && errno == ECHILD)
-	    return NULL; /* nothing to wait for */
-    else if (result < 0) {
-        perror("decodeProcessEvent: waitpid failure");
-    }
-    return proc;
+   // Translate the signal into a why/what combo.
+   // We can fake results here as well: translate a stop in fork
+   // to a (SYSEXIT,fork) pair. Don't do that yet.
+   pertinantProc = process::findProcess(pertinantPid);
+   if(pertinantProc) {
+      // Processes' state is saved in preSignalStatus()
+      pertinantProc->savePreSignalStatus();
+      // Got a signal, process is stopped.
+      dyn_lwp *pertLWP = pertinantProc->getRepresentativeLWP();
+      pertinantProc->set_status(stopped, pertLWP);
+      if(pertinantLWP != NULL)
+         (*pertinantLWP) = pertLWP;
+   } else {
+      extern pdvector<process*> processVec;
+      for (unsigned u = 0; u < processVec.size(); u++) {
+         process *curproc = processVec[u];
+         if(! curproc)
+            continue;
+         dyn_lwp *curlwp = NULL;
+         if( (curlwp = curproc->lookupLWP(pertinantPid)) ) {
+            pertinantProc = curproc;
+            if(pertinantLWP)
+               (*pertinantLWP) = curlwp;
+            pertinantProc->set_status(stopped, curlwp);
+            break;
+         }
+      }
+   }
+   
+   if (WIFEXITED(status)) {
+      // Process exited via signal
+      why = procExitedNormally;
+      what = WEXITSTATUS(status);
+   }
+   else if (WIFSIGNALED(status)) {
+      why = procExitedViaSignal;
+      what = WTERMSIG(status);
+   }
+   else if (WIFSTOPPED(status)) {
+      // More interesting (and common) case.  This is where return value
+      // faking would occur as well. procSignalled is a generic return.  For
+      // example, we translate SIGILL to SIGTRAP in a few cases
+      why = procSignalled;
+      what = WSTOPSIG(status);
+
+      switch(what) {
+        case SIGSTOP:
+           decodeRTSignal(pertinantProc, why, what, info);
+           break;
+        case SIGTRAP:
+           // We use int03s (traps) to do instrumentation when there
+           // isn't enough room to insert a branch.
+           why = procInstPointTrap;
+           break;
+        case SIGCHLD:
+           // Linux fork() sends a SIGCHLD once the fork has been created
+           why = procForkSigChild;
+           break;
+        case SIGILL:
+           // The following is more correct, but breaks.  Problem is getting
+           // the frame requires a ptrace...  which calls
+           // loopUntilStopped. Which calls us.
+           //Frame frame = proc->getDefaultLWP()->getActiveFrame();
+           //Address pc = frame.getPC();
+           Address pc = getPC(pertinantPid);
+           
+           if(pc == pertinantProc->rbrkAddr() ||
+              pc == pertinantProc->main_brk_addr ||
+              pc == pertinantProc->dyninstlib_brk_addr) {
+              what = SIGTRAP;
+           }
+           break;
+      }
+   }
+   
+   return pertinantProc;
 }
 
+void process::independentLwpControlInit() {
+   if(multithread_capable()) {
+      // On linux, if process found to be MT, there will be no
+      // representativeLWP since there is no lwp which controls the entire
+      // process for MT linux.
+      real_lwps[representativeLWP->get_lwp_id()] = representativeLWP;
+      representativeLWP = NULL;
+   }
+}
+
+dyn_lwp *process::createRepresentativeLWP() {
+   // the initial lwp has a lwp_id with the value of the pid
+
+   // if we identify this linux process as multi-threaded, then later we will
+   // adjust this lwp to be identified as a real lwp.
+   dyn_lwp *initialLWP = createFictionalLWP(getPid());
+   representativeLWP = initialLWP;
+   // Though on linux, if process found to be MT, there will be no
+   // representativeLWP since there is no lwp which controls the entire
+   // process for MT linux.
+
+   return initialLWP;
+}
 
 bool process::installSyscallTracing() {
     // We mimic system call tracing via instrumentation
@@ -463,6 +476,88 @@ Address process::get_dlopen_addr() const {
     return(0);
 }
 
+/* Input P points to a buffer containing the contents of
+   /proc/PID/stat.  This buffer will be modified.  Output STATUS is
+   the status field (field 3), and output SIGPEND is the pending
+   signals field (field 31).  As of Linux 2.2, the format of this file
+   is defined in /usr/src/linux/fs/proc/array.c (get_stat). */
+static void parse_procstat_status(char *statfile, char *status) {
+   char *t = strstr(statfile, "State:");
+   assert(t);
+   char *stat_str = t + 7;
+   
+   *status = stat_str[0];
+}
+
+static bool parse_procstat_pending(char *statfile, unsigned long *shgsigpend) {
+     /* Advance to sigpending int */
+   char *t = strstr(statfile, "ShdPnd:");
+   if(! t)
+      return false;
+
+   char *res = t+8;
+   res[16] = 0;
+   *shgsigpend = strtoul(res, NULL, 8);
+   return true;
+}
+
+bool dyn_lwp::isRunning() const {
+   int fd;
+   char name[32];
+   char buf[400];
+   char status;
+   
+   sprintf(name, "/proc/%d/status", get_lwp_id());
+
+   /* Read current contents of /proc/pid/status */
+   fd = open(name, O_RDONLY);
+   assert(fd >= 0);
+   assert(read(fd, buf, sizeof(buf)) > 0);
+   close(fd);
+   buf[399] = 0;
+   
+   /* Parse status and pending signals */
+   parse_procstat_status(buf, &status);   
+   //cerr << "  isRunning, got status: " << status << endl;
+
+   if(status == 'T')
+      return false;
+   else
+      return true;
+}
+
+bool dyn_lwp::isStopPending() const {
+   int fd;
+   char name[32];
+   char buf[400];
+   unsigned long shdsigpend;
+   
+   sprintf(name, "/proc/%d/status", get_lwp_id());
+
+   /* Read current contents of /proc/pid/status */
+   fd = open(name, O_RDONLY);
+   assert(fd >= 0);
+   assert(read(fd, buf, sizeof(buf)) > 0);
+   close(fd);
+   buf[399] = 0;
+   
+   /* Parse status and pending signals */
+   bool couldparse = parse_procstat_pending(buf, &shdsigpend);
+
+   /*
+   cerr << "  got status number of " << shdsigpend;
+   if(shdsigpend & 040000)
+      cerr << ", yes stop pending\n";
+   else
+      cerr << ", no stop pending\n";
+   */
+   if(couldparse) {
+      if(shdsigpend & 040000)
+         return true;
+   }
+   return false;
+}
+
 bool process::isRunning_() const {
    // determine if a process is running by doing low-level system checks, as
    // opposed to checking the 'status_' member vrble.  May assume that attach()
@@ -490,21 +585,18 @@ bool process::isRunning_() const {
 
 
 // TODO is this safe here ?
-bool process::continueProc_() {
-  int ret;
-  if (!checkStatus()) 
-      return false;
-  
-  ptraceOps++; ptraceOtherOps++;
+bool dyn_lwp::continueLWP_() {
+   // we don't want to operate on the process in this state
+   ptraceOps++; 
+   ptraceOtherOps++;
 
-  ret = P_ptrace(PTRACE_CONT, getPid(), 1, 0);
-
-  if (ret == -1)
-  {
+   int ret = P_ptrace(PTRACE_CONT, get_lwp_id(), 0, 0);
+   if (ret == -1) {
       perror("continueProc_()");
-  }
-  
-  return ret != -1;
+      return false;
+   }
+
+   return true;
 }
 
 bool process::terminateProc_()
@@ -518,33 +610,111 @@ bool process::terminateProc_()
     return true;
 }
 
-// TODO ??
-bool process::pause_() {
-  if (!checkStatus()) 
-    return false;
-  ptraceOps++; ptraceOtherOps++;
-  bool wasStopped = (status() == stopped);
-  if (status() != neonatal && !wasStopped)
-    return (loopUntilStopped());
-  else
-    return true;
+bool process::waitUntilStopped() {
+   bool result = true;
+   pdvector<dyn_thread *>::iterator iter = threads.begin();
+
+   while(iter != threads.end()) {
+      dyn_thread *thr = *(iter);
+      dyn_lwp *lwp = thr->get_lwp();
+      assert(lwp);
+
+      if(! lwp->waitUntilStopped()) {
+         result = false;
+      }
+      iter++;
+   }
+
+   return result;
 }
 
-bool process::detach_() {
-   if (!checkStatus())
-      return false;
+
+bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
+   /* make sure the process is stopped in the eyes of ptrace */
+   bool haveStopped = false;
+    
+   // Loop handling signals until we receive a sigstop. Handle
+   // anything else.
+   while (!haveStopped) {
+      procSignalWhy_t why;
+      procSignalWhat_t what;
+      procSignalInfo_t info;
+      if(lwp->proc()->hasExited()) {
+         return false;
+      }
+      dyn_lwp *chosen_lwp = NULL;
+      process *proc = decodeProcessEvent(&chosen_lwp, lwp->get_lwp_id(), why,
+                                         what, info, true, options);
+      
+      if (didProcReceiveSignal(why) && what == SIGSTOP) {
+         if(chosen_lwp == lwp) {
+            haveStopped = true;
+         }
+         // Don't call the general handler
+      }
+      else {
+         if(proc) {
+            handleProcessEvent(proc, why, what, info);
+         }
+      }
+   }
+
+   return true;
+}
+
+bool dyn_lwp::waitUntilStopped() {
+   bool looped_flag = false;
+
+   //int total_loop_count = 0;   
+   while(this->isRunning()==true && this->isStopPending()==true) {
+      looped_flag = true;
+      struct timeval timeout;
+      timeout.tv_sec = 0;
+      timeout.tv_usec = 40;
+      select(0, NULL, NULL, NULL, &timeout);
+      //total_loop_count++;
+   }
+
+   if(proc_->getRepresentativeLWP() == this) {
+      return waitUntilStoppedGeneral(this, 0);
+   } else {
+      return waitUntilStoppedGeneral(this, __WCLONE);
+   }
+}
+
+
+void dyn_lwp::realLWP_detach_() {
+   if(! proc_->checkStatus())
+      return;
+
    ptraceOps++;
    ptraceOtherOps++;
-   return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
+   deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
+   return;
+}
+
+void dyn_lwp::representativeLWP_detach_() {
+   if(! proc_->checkStatus())
+      return;
+
+   if (fd_) close(fd_);
+
+   ptraceOps++;
+   ptraceOtherOps++;
+   deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
+   return;
 }
 
 bool process::API_detach_(const bool cont) {
-//  assert(cont);
-  if (!checkStatus())
-    return false;
-  ptraceOps++; ptraceOtherOps++;
-  if (!cont) P_kill(pid, SIGSTOP);
-  return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
+   if (!checkStatus())
+      return false;
+  
+   ptraceOps++; ptraceOtherOps++;
+
+   if (!cont)
+      P_kill(pid, SIGSTOP);
+
+   return getRepresentativeLWP()->deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
 }
 
 bool process::dumpCore_(const pdstring/* coreFile*/) { return false; }
@@ -931,33 +1101,6 @@ bool process::catchupSideEffect( Frame & /* frame */, instReqNode * /* inst */ )
 }
 #endif
 
-bool process::loopUntilStopped() {
-    /* make sure the process is stopped in the eyes of ptrace */
-    bool haveStopped = false;
-    stop_();
-    
-    // Loop handling signals until we receive a sigstop. Handle
-    // anything else.
-    while (!haveStopped) {
-        procSignalWhy_t why;
-        procSignalWhat_t what;
-        procSignalInfo_t info;
-        if(hasExited()) return false;
-        process *proc = decodeProcessEvent(getPid(), why, what, info, true);
-        assert(proc == NULL ||
-               proc == this);
-        if (didProcReceiveSignal(why) &&
-            what == SIGSTOP) {
-            haveStopped = true;
-            // Don't call the general handler
-        }
-        else {
-           if(proc)  handleProcessEvent(this, why, what, info);
-        }
-    }
-    return true;
-}
-
 procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t what)
 {
     switch (what) {
@@ -1302,12 +1445,12 @@ void process::inferiorMallocAlign(unsigned &size)
 #endif
 
 
-bool dyn_lwp::threadLWP_attach_() {
+bool dyn_lwp::realLWP_attach_() {
    assert( false && "threads not yet supported on Linux");
    return false;
 }
 
-bool dyn_lwp::processLWP_attach_() {
+bool dyn_lwp::representativeLWP_attach_() {
    // step 1) /proc open: attach to the inferior process memory file
    char procName[128];
    sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
@@ -1387,16 +1530,10 @@ bool dyn_lwp::processLWP_attach_() {
          return false;
       }
 
-      proc_->status_ = neonatal;
+      proc_->set_status(neonatal);
    } // end - if createdViaAttachToCreated
 
    return true;
-}
-
-void dyn_lwp::detach_()
-{
-   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
-   if (fd_) close(fd_);
 }
 
 void loadNativeDemangler() {}
