@@ -442,6 +442,7 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
             fds_monitor->lock();
             ready_fds->yank(fd);
             fds_monitor->unlock();
+            signal_fd_selector();
         }
 
         if((*m)->type() == MSG_TAG_SOCKET) {
@@ -449,6 +450,7 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
             sock_monitor->lock();
             ready_socks->yank(sock);
             sock_monitor->unlock();
+            signal_sock_selector();           
         }
     }       
 
@@ -511,11 +513,9 @@ void thr_mailbox::signal_sock_selector() {
 
 int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
                       unsigned fd_first) { 
-    if (fd_first) {
-        // FIXME: implement poll_preference
-        
-        fprintf(stderr, "poll_preference not implemented yet\n");
-    }
+    // FIXME: implement poll_preference
+    //        by passing fd_first to check_for and then implementing 
+    //        poll_preference semantics there
     
     signal_fd_selector();
     signal_sock_selector();
