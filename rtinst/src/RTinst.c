@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.81 2004/05/11 19:02:11 bernat Exp $
+ * $Id: RTinst.c,v 1.82 2004/07/23 20:39:18 tlmiller Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -326,7 +326,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
 ************************************************************************/
 static void
 saveFPUstate(float* base) {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
     /* kludge for the pentium: we need to reset the FPU here, or we get 
        strange results on fp operations.
     */
