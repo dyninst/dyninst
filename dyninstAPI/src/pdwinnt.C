@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.26 2000/11/15 22:56:08 bernat Exp $
+// $Id: pdwinnt.C,v 1.27 2001/02/01 01:11:26 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1287,19 +1287,17 @@ bool OS::osKill(int pid) {
     return res;
 }
 
+#ifdef SHM_SAMPLING
+rawTime64 process::getRawCpuTime_hw(int lwp_id) {
+  lwp_id = 0;  // to turn off warning for now
+  return 0;
+}
 
 rawTime64
 FILETIME2rawTime64( FILETIME& ft )
 {
     return (((rawTime64)(ft).dwHighDateTime<<32) | 
 	    ((rawTime64)(ft).dwLowDateTime));
-}
-
-
-#ifdef SHM_SAMPLING
-rawTime64 process::getRawCpuTime_hw(int lwp_id) {
-  lwp_id = 0;  // to turn off warning for now
-  return 0;
 }
 
 /* return unit: nsecs */
