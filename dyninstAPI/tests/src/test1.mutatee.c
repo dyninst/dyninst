@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.49 2000/06/26 17:01:20 wylie Exp $ */
+/* $Id: test1.mutatee.c,v 1.50 2000/07/06 19:09:47 altinel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2241,6 +2241,7 @@ void arg_test::call_cpp(const int arg1, int & arg2, int arg3)
    if ( arg1 == arg2 )  arg2 = CPP_DEFLT_ARG;
 }
 
+
 void overload_func_test::func_cpp()
 {
    call_cpp("test overload function");
@@ -2268,6 +2269,7 @@ void overload_func_test::call_cpp(int arg1, float arg2)
   DUMMY_FN_BODY;
 }
 
+
 void overload_op_test::func_cpp()
 {
    overload_op_test test;
@@ -2289,6 +2291,8 @@ int overload_op_test::operator++()
 {
   return (cpp_test_util::CPP_TEST_UTIL_VAR);
 }
+
+
 void static_test_call_cpp(int test)
 {
    passedTest[test] = TRUE;
@@ -2299,12 +2303,20 @@ int static_test::count = 0;
 
 void static_test::func_cpp()
 {
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #36 (static member)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[36] = TRUE;
+
+#else
+
    static_test obj1, obj2;
 
    if ((obj1.call_cpp()+1) != obj2.call_cpp()) {
       cerr << "**Failed** test #36 (static member)" << endl;
       cerr << "    C++ objects of the same class have different static members " << endl;
    }
+#endif
 }
 
 static int local_file_var = 35;
@@ -2347,6 +2359,13 @@ void exception_test::call_cpp()
 
 void exception_test::func_cpp()
 {
+#if !defined(sparc_sun_solaris2_4) 
+    printf("Skipped test #38 (exception)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[38] = TRUE;
+
+#else
+
    try {
           int testno = 38;
           call_cpp();
@@ -2359,6 +2378,7 @@ void exception_test::func_cpp()
      cerr << "    Does not catch appropriate exception" << endl;
      throw;
    }
+#endif
 }
 
 #ifdef rs6000_ibm_aix4_1
@@ -2417,9 +2437,12 @@ void decl_test::call_cpp(int test)
    cpp_test_util::call_cpp(test);
 }
 
+
 void derivation_test::func_cpp()
 {
-  DUMMY_FN_BODY;
+   passedTest[41] = TRUE;
+   cout << "Passed test #41 (derivation)" << endl;
+
 }
 
 void stdlib_test1::func_cpp()
@@ -2470,6 +2493,22 @@ void func_test::func_cpp()
    int int44 = func2_cpp();
    call_cpp(int44);
 }
+
+
+//Global Vars for C++ tests
+
+arg_test test33; 
+overload_func_test test34;
+overload_op_test test35;
+static_test test36;
+namespace_test test37;
+exception_test test38;
+template_test test39;
+decl_test test40; 
+derivation_test test41;
+stdlib_test1 test42;
+stdlib_test2 test43;
+func_test test44;
 
 #endif
 
@@ -2613,62 +2652,19 @@ int main(int iargc, char *argv[])
 
 #ifdef __cplusplus
    
-    if (runTest[33]) {
-       arg_test test33;
-       test33.func_cpp();
-    }
+    if (runTest[33]) test33.func_cpp();
+    if (runTest[34]) test34.func_cpp();
+    if (runTest[35]) test35.func_cpp();
+    if (runTest[36]) test36.func_cpp();
+    if (runTest[37]) test37.func_cpp();
+    if (runTest[38]) test38.func_cpp();
+    if (runTest[39]) test39.func_cpp();
+    if (runTest[40]) test40.func_cpp();
+    if (runTest[41]) test41.func_cpp();
+    if (runTest[42]) test42.func_cpp();
+    if (runTest[43]) test43.func_cpp();
+    if (runTest[44]) test44.func_cpp();
 
-    if (runTest[34]) {
-       overload_func_test test34;
-       test34.func_cpp();
-    }
-
-    if (runTest[35]) {
-         overload_op_test test35;
-         test35.func_cpp();
-    }
-
-    if (runTest[36]) {
-         static_test test36;
-         test36.func_cpp();
-    }
-
-    if (runTest[37]) {
-         namespace_test test37;
-         test37.func_cpp();
-    }
-
-    if (runTest[38]) {
-	 exception_test test38;
-         test38.func_cpp();
-    }
-
-    if (runTest[39]) {
-         template_test test39;
-         test39.func_cpp();
-    }
-
-    if (runTest[40]) {
-         decl_test test40;
-         test40.func_cpp();
-    }
-
-    if (runTest[41]) {
-         derivation_test test41;
-         test41.func_cpp();
-    }
-    if (runTest[42]) {
-         stdlib_test1 test42;
-         test42.func_cpp();
-    }
-    if (runTest[43]) {
-         stdlib_test2 test43;
-         test43.func_cpp();
-    }
-    if (runTest[44]) {
-         func_test test44;
-         test44.func_cpp();
-    }
 #endif
 
     /* See how we did running the tests. */
