@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.464 2003/12/08 19:03:39 schendel Exp $
+// $Id: process.C,v 1.465 2003/12/11 16:29:18 bernat Exp $
 
 #include <ctype.h>
 
@@ -5045,9 +5045,7 @@ bool process::continueProc() {
 }
 
 bool process::detach(const bool paused) {
-   if (paused) {
-      logLine("detach: pause not implemented\n"); // why not? --ari
-   }
+    // paused appears to be ignored...
 
    assert(getRepresentativeLWP());  // we expect this to be defined
    // Though on linux, if process found to be MT, there will be no
@@ -5142,10 +5140,20 @@ void process::handleProcessExit(int exitCode) {
    --activeProcesses;
    
    BPatch::bpatch->registerExit(bpatch_thread, exitCode);
-
-   // Let the process die
-   //continueProc();
    
+   // LINUX: the process is stopped by a self-sent SIGSTOP at the
+   // entry to exit(). Continue it past that point
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+   continueProc();
+#endif
+   // AIX/proc: despite setting "kill on last close" the process isn't being killed.
+   // Work around that by continuing the process
+   // AIX/ptrace: we use the same mechanism as Linux
+#if defined(rs6000_ibm_aix4_1)
+   continueProc();
+#endif
+   // Solaris, IRIX, Alpha, NT: no manual intervention is necessary
+
    set_status(exited);
    detach(false);
 
