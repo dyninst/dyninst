@@ -3,7 +3,11 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.13  1994/09/20 18:27:17  hollings
+ * Revision 1.14  1994/10/27 16:15:53  hollings
+ * Temporary hack to normalize cost data until the CM-5 inst supports a max
+ * operation.
+ *
+ * Revision 1.13  1994/09/20  18:27:17  hollings
  * removed hard coded clock value.
  *
  * Revision 1.12  1994/08/02  18:18:56  hollings
@@ -62,6 +66,8 @@
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
 
+/* see note below - jkh 10/19/94 */
+int DYNINSTnprocs;
 int DYNINSTnumSampled;
 int DYNINSTnumReported;
 int DYNINSTtotalSamples;
@@ -133,12 +139,13 @@ void DYNINSTsampleValues()
 
 #define FOUR_BILLION (((double) 1.0) * 1024 * 1024 * 1024 * 4)
 
+
 /* 
  * Define a union to let us get at the bits of a 64 bit integer.
  *
  *  This is needed since gcc doesn't support 64 bit ints fully. 
  *
- *  Think at least twice before changing this. 	jkh 7/2/94
+ *  Think at least twice before changing this.        jkh 7/2/94
  */
 union timeUnion {
     unsigned int array[2];
@@ -149,7 +156,7 @@ union timeUnion {
  * Return the observed cost of instrumentation in machine cycles.
  *
  */
-int64 DYNINSTgetObservedCycles(Boolean inSignal)
+int64 DYNINSTgetObservedCycles(Boolean inSignal) 
 {
     static union timeUnion value;
     static union timeUnion previous;
@@ -159,7 +166,7 @@ int64 DYNINSTgetObservedCycles(Boolean inSignal)
 
     value.array[1] = lowBits;
     if (lowBits < previous.array[1]) {
-	/*  add to high word 
+	/*  add to high word
 	 *
 	 ************************** WARNING ***************************
 	 *     this assumes we sample frequenly enough to catch these *
@@ -183,7 +190,6 @@ void DYNINSTreportBaseTramps()
 
     sample.observedCost = ((double) DYNINSTgetObservedCycles(1)) *
 	(DYNINSTcyclesToUsec / 1000000.0);
-
 
     currentCPU = DYNINSTgetCPUtime();
     currentWall = DYNINSTgetWallTime();
@@ -221,6 +227,9 @@ void DYNINSTreportCost(intCounter *counter)
     }
 
     prevCost = cost;
+
+    /* temporary until CM-5 aggregation code can handle avg operator */
+    if (DYNINSTnprocs) cost /= DYNINSTnprocs;
 
     sample.value = cost;
     sample.id = counter->id;

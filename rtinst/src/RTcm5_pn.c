@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.19  1994/10/04 18:52:54  jcargill
+ * Revision 1.20  1994/10/27 16:15:49  hollings
+ * Temporary hack to normalize cost data until the CM-5 inst supports a max
+ * operation.
+ *
+ * Revision 1.19  1994/10/04  18:52:54  jcargill
  * Got rid of "previous" array; now uses the per-timer lastValue instead
  *
  * Revision 1.18  1994/08/02  18:18:52  hollings
@@ -405,6 +409,7 @@ extern double DYNINSTsamplingRate;
  */
 void DYNINSTinit()
 {
+    extern int DYNINSTnprocs;
     char *interval;
     struct itimerval timeInterval;
     int sampleInterval;
@@ -414,6 +419,10 @@ void DYNINSTinit()
     extern int DYNINSTsampleMultiple;
 
     asm("mov 0,	%g7");
+
+    /* temporary correction until we can make the CM-5 aggregation code
+       perform a max operation in addition to sum - jk 10/19/94 */
+    DYNINSTnprocs = 32;
 
     CMOS_get_time(&startNItime);
     gettimeofday(&tv, NULL);
