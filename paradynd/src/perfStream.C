@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.25 1994/08/02 18:24:16 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.26 1994/08/17 18:17:02 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.25  1994/08/02 18:24:16  hollings
+ * Revision 1.26  1994/08/17 18:17:02  markc
+ * Call installDefaultInst when SIGTRAP is seen.
+ * Cleaned up error messages.
+ *
+ * Revision 1.25  1994/08/02  18:24:16  hollings
  * added clock speed argument to printAppStats
  *
  * Revision 1.24  1994/07/26  20:01:14  hollings
@@ -184,7 +188,6 @@ extern "C" {
 }
 
 #include <assert.h>
-#include <unistd.h>
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -202,6 +205,8 @@ extern "C" {
 extern int PDYN_handle_pvmd_message();
 extern void PDYN_reportSIGCHLD (int pid, int exit_status);
 #endif
+
+extern instMaping initialRequests[];
 
 extern pdRPC *tp;
 extern void reportInternalMetrics();
@@ -415,26 +420,33 @@ int handleSigChild(int pid, int status)
 		/* trap at the start of a ptraced process 
 		 *   continue past it.
 		 */
-		logLine("passed trap at start of program\n");
+		sprintf(errorLine, "PID=%d, passed trap at start of program\n", pid);
+		logLine(errorLine);
+
+		// the process is stopped as a result of the initial SIGTRAP
+		curr->status = stopped;
+
+		// query default instrumentation here - not done yet
+		installDefaultInst(curr, initialRequests);
+
 		ptrace(PTRACE_CONT, pid, (char*)1, 0, 0);
 		// If this is a CM-process, we don't want to label it as
 		// running until the nodes get init'ed.  We need to test
 		// based on magic number, I guess...   XXXXXX
-#ifdef PARADYND_PVM
-		curr->status = neonatal;
-		pvm_perror("in SIGTRAP handler\n");
-#else
+
 		curr->status = running;
-#endif
 		break;
 
 	    case SIGSTOP:
 		// sprintf(errorLine, "CONTROLLER: Breakpoint reached %d\n", pid);
 		// logLine(errorLine);
+		
 #ifdef PARADYND_PVM
-		pvm_perror("CONTROLLER: Breakpoint reached\n");
+		sprintf(errorLine, "PID=%d, CONTROLLER: Breakpoint reached\n",pid);
+		logLine(errorLine);
 #endif
 		curr->status = stopped;
+		curr->reachedFirstBreak = 1;
 
 		// The Unix process should be stopped already, 
 		// since it's blocked on ptrace and we didn't forward
