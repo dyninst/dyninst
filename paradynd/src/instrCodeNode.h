@@ -140,7 +140,7 @@ class instrCodeNode {
   //               pdvector<dataReqNode*> &data_tuple2);
   pdvector<instReqNode*> getInstRequests() { return V.getInstRequests(); }
   inst_insert_result_t loadInstrIntoApp();
-  int getID() { return reinterpret_cast<int>(&V); }
+  long getID() { return reinterpret_cast<long>(&V); }
   instrCodeNode_Val *getInternalData() { return &V; }
   // should make it private
 
