@@ -3,9 +3,13 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.11  1994/10/26 23:14:09  tamches
-/* Added tclTunable sub-command to command uimpd (see tclTunable.h and .C)
+/* Revision 1.12  1994/11/01 05:44:26  karavan
+/* changed resource selection process to support multiple focus selection
+/* on a single display
 /*
+ * Revision 1.11  1994/10/26  23:14:09  tamches
+ * Added tclTunable sub-command to command uimpd (see tclTunable.h and .C)
+ *
  * Revision 1.10  1994/10/25  17:57:37  karavan
  * added Resource Display Objects, which support display of multiple resource
  * abstractions.
@@ -43,16 +47,13 @@
 #include <stdlib.h>
 
 extern "C" {
-  #include "tk.h"
   int atoi(const char*);
 }
+#include "UIglobals.h"
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMresource.h"
-#include "UIglobals.h"
 #include "../VMthread/metrespair.h"
 #include "dag.h"
-
-#include "tclTunable.h"
 
 extern resourceList *build_resource_list (Tcl_Interp *interp, char *list);
 extern int getDagToken ();
@@ -89,32 +90,22 @@ int sendVisiSelectionsCmd(ClientData clientData,
   UIMReplyRec *msgRec;
   chooseMandRCBFunc mcb;
   int msgID, cancelFlag;
-  List<metrespair *> localSelectList;
-  metrespair *metricFocusPairs = NULL;
 
-
+#if UIM_DEBUG
   printf ("sendVisiSelectionsCmd: %s %s\n", argv[1], argv[2]);
+#endif
 
   cancelFlag = atoi(argv[2]);
   if (cancelFlag == 1) {
     uim_VisiSelectionsSize = 0;
-    uim_VisiSelections.removeAll();
   }    
+#if UIM_DEBUG
+  printf ("processing %d visiselections...\n", uim_VisiSelectionsSize);
   if (uim_VisiSelectionsSize > 0) {
-    // build array of metrespair's
-    if ((metricFocusPairs = new metrespair [uim_VisiSelectionsSize]) == NULL) {
-      printf ("malloc error!\n");
-      thr_exit(0);
-    }
-    localSelectList = uim_VisiSelections;
-    for (int i = 0; i < uim_VisiSelectionsSize; i++) {
-      metricFocusPairs[i].met = (*localSelectList)->met;
-      metricFocusPairs[i].focus = (*localSelectList)->focus;
-      localSelectList++;
-    }
-    printMFPlist (metricFocusPairs, uim_VisiSelectionsSize);
+    printMFPlist (uim_VisiSelections, uim_VisiSelectionsSize);
   }
-
+#endif
+  
   // get callback and thread id for this msg
   msgID = atoi(argv[1]);
   if (!(entry = Tcl_FindHashEntry (&UIMMsgReplyTbl, (char *) msgID))) {
@@ -127,39 +118,197 @@ int sendVisiSelectionsCmd(ClientData clientData,
   uim_server->setTid(msgRec->tid);
   mcb = (chooseMandRCBFunc) msgRec->cb;
 
-  uim_server->chosenMetricsandResources(mcb, metricFocusPairs, 
+  uim_server->chosenMetricsandResources(mcb, uim_VisiSelections, 
 					uim_VisiSelectionsSize);
   // cleanup data structures
   Tcl_DeleteHashEntry (entry);   // cleanup hash table record
   uim_VisiSelectionsSize = 0;
-//  uim_VisiSelections.removeAll(); *** no way to clear list w/out delete!
+  free (uim_AvailMets.data);
   return TCL_OK;
+}
+
+void printResSelectList(List<resource **>& res, int size) 
+{
+  List<resource **> tmp;
+  resource **thisptr;
+  tmp += res;
+  
+  while (*tmp) {
+    thisptr = *tmp;
+    for (int i = 0; i < size; i++) {
+      printf ("%s ", (char *)(thisptr[i])->getName());
+    }
+    printf ("\n");
+    tmp++;
+  }
+}
+
+/* parseSelections
+ * takes a list with one resourceList per resource hierarchy; result 
+ * is the cross product list of valid focii, represented as resourceLists
+ */
+List<resourceList *> *parseSelections (List<resourceList *>& res, int size)
+{
+    List<resourceList *> tmpsel, *retList;
+    List<resource **> result, resultb, tmpres, tmpres2;
+    resource **newentry, **oldentry;
+    resourceList *tmp;
+    int cnt = 1;
+
+    // parse first resourceList
+    tmpsel += res;
+    tmp = *tmpsel;
+    for (int i = 0; i < tmp->getCount(); i++) {
+      if ((newentry = (resource **) calloc (1, sizeof(resource **))) == NULL) {
+	printf ("calloc failed in UI\n");
+	thr_exit(0);
+      }
+      newentry[0] = tmp->getNth(i);
+      result.add(newentry);
+    }
+
+    // parse remaining resourceList's
+    tmpsel++;
+    cnt++;
+    while (*tmpsel) { 
+      tmp = *tmpsel;
+      tmpres.removeAll();
+      tmpres += result;
+      while (*tmpres) { // for each partial result on list "result"
+	oldentry = *tmpres;
+	for (int i = 0; i < tmp->getCount(); i++) { //for each resource
+	  if ((newentry = (resource **) calloc (cnt, sizeof(resource **))) 
+	      == NULL) {
+	    printf ("calloc failed in UI\n");
+	    thr_exit(0);
+	  }
+	  for (int j = 0; j < (cnt - 1); j++) {
+	    newentry[j] = oldentry[j];
+	  }
+	  newentry[cnt-1] = tmp->getNth(i);
+	  resultb.add(newentry);
+	}
+	tmpres++;
+      }
+      result.removeAll();
+      result += resultb;
+      resultb.removeAll();
+      cnt++;
+      tmpsel++;
+    }
+    cnt--;
+
+#if UIM_DEBUG
+    printResSelectList(result, cnt);
+#endif
+  // result is list of resource * arrays; now 
+  // make resourceList's out of these arrays
+    retList = new List<resourceList *>;
+
+    tmpres2 += result;
+    while (*tmpres2) {
+      oldentry = *tmpres2;
+      tmp = new resourceList;
+      for (int j = 0; j < cnt; j++) {
+	tmp->add(oldentry[j]);
+      }
+      retList->add(tmp);
+      tmpres2++;
+    }
+    return retList;
+  }
+
+void getSubtreeSelections (dag *dagptr, rNode curr, resourceList *selection) 
+{
+  if (dagptr->isHighlighted (curr))
+      selection->add ((resource *) curr->aObject);
+  for (int i = 0; i < curr->downSize; i++)
+    getSubtreeSelections (dagptr, curr->downList[i].dest, selection);
 }
 
 /* arguments:
        0: processVisiSelection
-       1: list of selected metrics
+       1: rdo token
+       2: list of selected metrics
 */
 int processVisiSelectionCmd(ClientData clientData, 
 			    Tcl_Interp *interp, 
 			    int argc, 
 			    char *argv[])
 {
+  int rdoToken;
+  dag *currDag;
+  resourceList *selection;
+  List<resourceList *> allSelections, tmpall, *retList;
+  rNode me;
+  resourceDisplayObj *currRDO;
   int metcnt, metindx;
-  metrespair *mfp;
   char **metlst;
+  int mfpindex, total = 0;
 
-  if (Tcl_SplitList (interp, argv[1], &metcnt, &metlst) == TCL_OK) {
+  // get rdo ptr from token
+  rdoToken = atoi(argv[1]);
+#if UIM_DEBUG
+  printf ("processVisiSelection::rdoToken: %d\n", rdoToken);
+#endif
+  currRDO = resourceDisplayObj::allRDOs.find((void *)rdoToken);
+#if UIM_DEBUG
+  printf ("processVisiSelection::lookuptoken: %d\n", currRDO->getToken());
+#endif
+
+  // get currently displayed dag
+  currDag = currRDO->getTopDag();
+#if UIM_DEBUG
+  printf ("processVisiSelection::lookupDag: %s\n", currDag->getCanvasName());
+#endif
+  // parse resource selections
+  me = currDag->graph->row[0].first;
+  while (me != NULL) {
+    selection = new resourceList;
+    getSubtreeSelections (currDag, me, selection);
+    // if no selections highlighted, go back to menu stage
+    if (selection->getCount() == 0) {
+      /*** delete resourceLists here!!! */
+      sprintf (interp->result, "%d", 0);
+      return TCL_OK;
+    }
+    allSelections.add(selection);
+    total++;
+    me = me->forw;
+  }
+
+  retList = parseSelections (allSelections, total);
+//  allSelections.removeAll();
+  allSelections = *retList;
+
+  if (Tcl_SplitList (interp, argv[2], &metcnt, &metlst) == TCL_OK) {
+    metric *currmet;
+
+    // build array of metrespair's
+    if ((uim_VisiSelections = new metrespair [metcnt * retList->count()]) 
+	== NULL) {
+      printf ("malloc error!\n");
+      thr_exit(0);
+    }
+    mfpindex = 0;
     for (int i = 0; i < metcnt; i++) {
       metindx = atoi(metlst[i]);
-      mfp = new metrespair;
-      mfp->met = dataMgr->findMetric(context, uim_AvailMets.data[metindx]);
-      mfp->focus = uim_SelectedFocus;
-      uim_VisiSelections.add (mfp);
-      uim_VisiSelectionsSize++;
+      currmet = dataMgr->findMetric(context, uim_AvailMets.data[metindx]);
+      tmpall += allSelections;
+      while (*tmpall) {
+	uim_VisiSelections[mfpindex].met = currmet;
+	uim_VisiSelections[mfpindex].focus = *tmpall;
+	uim_VisiSelectionsSize++;
+	tmpall++;
+	mfpindex++;
+      }
     }
     free (metlst);
   }
+//  allSelections.removeAll();
+//  tmpall.removeAll();
+//  retList->removeAll();
+  sprintf (interp->result, "%d", 1);
   return TCL_OK;
 }
 
@@ -179,7 +328,9 @@ int closeDAGCmd (ClientData clientData,
   dagID = atoi(argv[1]);
   currDag = ActiveDags[dagID];
   currDag->destroyDisplay();
+#if UIM_DEBUG
   printf ("dag %d destroyed\n", dagID);
+#endif
   return TCL_OK;
 }
 
@@ -217,7 +368,9 @@ int addNStyleCmd (ClientData clientData,
   int dagID;
   dag *currDag;
   dagID = atoi(argv[1]);
+#if UIM_DEBUG
   printf ("adding style for dagtoken = %d\n", dagID);
+#endif
   currDag = ActiveDags[dagID];
   currDag->AddNStyle(atoi(argv[2]), argv[3], argv[4], NULL,
 		     argv[5], argv[6], argv[7][0], atof(argv[8]));
@@ -302,26 +455,6 @@ int showAllNodesCmd (ClientData clientData,
 }
 
 /*
-  showWhereAxisCmd
-  binding set in tcl procedure initWHERE,
-  looks up dag * for this display and calls function to display
-  arguments: dagID
-*/
-int showWhereAxisCmd (ClientData clientData, 
-		      Tcl_Interp *interp, 
-		      int argc, 
-		      char *argv[])
-{
-  /*** this for compile only --- arguments to initWhereAxis have changed!!!
-  if (initWhereAxis (baseWhere, 0))
-*/
-    return TCL_OK;
-/***  else 
-    return TCL_ERROR;
-*/
-}
-
-/*
   shgShortExplain
   called from tcl procedure shgFullName.
   looks up and displays full pathname for node.
@@ -337,7 +470,6 @@ int shgShortExplainCmd (ClientData clientData,
   Tk_Uid nodeID;
   char *nodeExplain;
 
-  printf ("shgShortExplain\n");
   // get string for this nodeID
   nodeID = Tk_GetUid (argv[1]);
   if (!(entry = Tcl_FindHashEntry (&shgNamesTbl, nodeID))) {
@@ -415,51 +547,6 @@ int unhighlightNodeCmd (ClientData clientData,
   }
 }
 
-/* 
- * args: 0 processResourceSelection
- *       1 rdo token
- */
-int processResourceSelectionCmd (ClientData clientData, 
-                      Tcl_Interp *interp, 
-                      int argc, 
-                      char *argv[])
-{
-  int rdoToken;
-  dag *currDag;
-  resourceList *selection;
-  rNode me;
-  int r;
-  resourceDisplayObj *currRDO;
-
-  // get rdo ptr from token
-  rdoToken = atoi(argv[1]);
-  printf ("processResourceSelection::rdoToken: %d\n", rdoToken);
-  currRDO = resourceDisplayObj::allRDOs.find((void *)rdoToken);
-  printf ("processResourceSelection::lookuptoken: %d\n", currRDO->getToken());
-
-  // get currently displayed dag
-  currDag = currRDO->getTopDag();
-  printf ("processResourceSelection::lookupDag: %s\n", currDag->getCanvasName());
-  selection = new resourceList;
-  for (r = 0; r < currDag->graph->rSize; r++) {
-    me = currDag->graph->row[r].first;
-    while (me != NULL) {
-      if (currDag->isHighlighted (me))
-        selection->add ((resource *) me->aObject);
-      me = me->forw;
-    }
-  }
-  printf ("DONE WITH LOOP\n");
-  if (selection->getCount() == 0)
-    return TCL_ERROR;
-  uim_SelectedFocus = selection;
-#ifdef UIM_DEBUG
-  printf ("resource selection %s added\n", 	    
-	  (char *) uim_SelectedFocus->getCanonicalName());
-#endif
-  return TCL_OK;
-}
-
 int clearResourceSelectionCmd (ClientData clientData, 
                       Tcl_Interp *interp, 
                       int argc, 
@@ -468,10 +555,18 @@ int clearResourceSelectionCmd (ClientData clientData,
   int dagID;
   dag *currDag;
 
-  // get dag ptr from token
-  dagID = atoi (argv[1]);
-
-  currDag = ActiveDags[dagID];
+  if (!strcmp (argv[1], "rdo")) {
+    // need to get dag from rdo
+    int rdoID;
+    resourceDisplayObj *rdo;
+    rdoID = atoi (argv[2]);
+    rdo = resourceDisplayObj::allRDOs.find((void *)rdoID);
+    currDag = rdo->getTopDag();
+  } else {
+    // get dag ptr from token
+    dagID = atoi (argv[2]);
+    currDag = ActiveDags[dagID];
+  }
   currDag->clearAllHighlighting();
   currDag->highlightAllRootNodes();
   return TCL_OK;
@@ -499,8 +594,8 @@ int compare_visi_names (void *viptr1, void *viptr2) {
    visi thread
 */
 int compare_visi_names (const void *viptr1, const void *viptr2) {
-  const VM_visiInfo *p1 = (VM_visiInfo *)viptr1;
-  const VM_visiInfo *p2 = (VM_visiInfo *)viptr2;
+  const VM_visiInfo *p1 = (const VM_visiInfo *)viptr1;
+  const VM_visiInfo *p2 = (const VM_visiInfo *)viptr2;
   return strcmp (p1->name, p2->name);
 }
 
@@ -538,6 +633,7 @@ int drawStartVisiMenuCmd (ClientData clientData,
   Tcl_SetVar (interp, "vcount", num, 0);
   Tcl_SetVar (interp, "title", argv[1], 0);
 
+  free (via.data);
   if (Tcl_VarEval (interp, "drawVisiMenu $title $vnames $vnums $vcount",
 		   0) == TCL_ERROR) {
     printf ("%s", interp->result);
@@ -558,7 +654,6 @@ int switchRDOdagCmd (ClientData clientData,
   int rdoToken;
   resourceDisplayObj *trdo;
   rdoToken = atoi(argv[1]);
-  printf ("switchRDOdag %d\n", rdoToken);
   trdo = resourceDisplayObj::allRDOs.find((void *)rdoToken);
   trdo->cycle(argv[2]);
   return TCL_OK;
@@ -571,7 +666,6 @@ struct cmdTabEntry uimpd_Cmds[] = {
   {"sendVisiSelections", sendVisiSelectionsCmd},
   {"shgShortExplain", shgShortExplainCmd},
   {"closeDAG", closeDAGCmd}, 
-  {"showWhereAxis", showWhereAxisCmd},
   {"highlightNode", highlightNodeCmd},
   {"unhighlightNode", unhighlightNodeCmd},
   {"refineSHG", refineSHGCmd},
@@ -581,10 +675,9 @@ struct cmdTabEntry uimpd_Cmds[] = {
   {"addNStyle", addNStyleCmd},
   {"processVisiSelection", processVisiSelectionCmd},
   {"clearResourceSelection", clearResourceSelectionCmd},
-  {"processResourceSelection", processResourceSelectionCmd},
   {"switchRDOdag", switchRDOdagCmd},
   {"tclTunable", TclTunableCommand},
- {NULL, NULL}
+  { NULL, NULL}
 };
 
 int UimpdCmd(ClientData clientData, 

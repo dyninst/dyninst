@@ -1,8 +1,12 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.9  1994/10/25 17:57:31  karavan
-/* added Resource Display Objects, which support display of multiple resource
-/* abstractions.
+/* Revision 1.10  1994/11/01 05:44:27  karavan
+/* changed resource selection process to support multiple focus selection
+/* on a single display
 /*
+ * Revision 1.9  1994/10/25  17:57:31  karavan
+ * added Resource Display Objects, which support display of multiple resource
+ * abstractions.
+ *
  * Revision 1.8  1994/10/09  01:24:45  karavan
  * A large number of changes related to the new UIM/visiThread metric&resource
  * selection interface and also to direct selection of resources on the
@@ -35,6 +39,8 @@
 
 #ifndef _ui_globals_h
 #define _ui_globals_h
+
+#define UIM_DEBUG 0
 
 #include "dataManager.CLNT.h"
 #include "performanceConsultant.CLNT.h"
@@ -71,17 +77,14 @@ class resourceDisplayObj {
   void print ();
   friend void resourceAddedCB (performanceStream *ps , resource *parent, 
 			       resource *newResource, char *name);
-  friend int switchRDOdagCmd (ClientData clientData, 
-                Tcl_Interp *interp, 
-                int argc, 
-                char *argv[]);
-  friend int processResourceSelectionCmd (ClientData clientData, 
-		      Tcl_Interp *interp, 
-                      int argc, 
-                      char *argv[]); 
+  friend int switchRDOdagCmd (ClientData clientData, Tcl_Interp *interp, 
+                int argc, char *argv[]);
+  friend int processVisiSelectionCmd(ClientData clientData, Tcl_Interp *interp, 
+			    int argc, char *argv[]);
+  friend int clearResourceSelectionCmd (ClientData clientData, 
+                      Tcl_Interp *interp, int argc, char *argv[]);
   friend void UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
-					     metrespair *pairList,
-					     int numElements);
+		      metrespair *pairList, int numElements);
  private: 
   int token;
   dag *topdag;
@@ -96,7 +99,7 @@ class resourceDisplayObj {
 
 struct cmdTabEntry 
 {
-  char *cmdname;
+  const char *cmdname;
   int (*func)(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]);
 };
 
@@ -136,6 +139,7 @@ extern Tcl_HashTable UIMMsgReplyTbl;
 extern int UIMMsgTokenID;
 //extern tokenHandler tokenClerk; 
 extern Tcl_HashTable shgNamesTbl;
+extern char *SHGwinName;
 
 // this tcl interpreter used for entire UI
 extern Tcl_Interp *interp;   
@@ -157,9 +161,12 @@ extern List<stringHandle> uim_knownAbstractions;
 // metric-resource selection 
 extern int uim_ResourceSelectionStatus;
 extern List<resourceList *> uim_CurrentResourceSelections;
-extern List<metrespair *> uim_VisiSelections;
+extern metrespair *uim_VisiSelections;
 extern int uim_VisiSelectionsSize;
 extern String_Array uim_AvailMets;
 extern resourceList *uim_SelectedFocus;
+
+int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
+                      int argc, char **argv);
 
 #endif
