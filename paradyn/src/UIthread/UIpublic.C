@@ -21,9 +21,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.45  1996/02/21 22:28:10  tamches
-/* correct handling of blank 2d arg to showError
+/* Revision 1.46  1996/02/23 22:10:01  naim
+/* Adding igen call to display status line (fixes a deadlock situation) - naim
 /*
+ * Revision 1.45  1996/02/21  22:28:10  tamches
+ * correct handling of blank 2d arg to showError
+ *
  * Revision 1.44  1996/02/15 23:08:02  tamches
  * added correct support for why vs. where axis refinement in the shg
  *
@@ -124,6 +127,16 @@ UIM::showError(int errCode, const char *errString)
     else
        tcommand += string("{") + string(errString) + string("}");
     myTclEval(interp, tcommand);
+}
+
+// ****************************************************************
+// Status Line Display Service
+// ****************************************************************
+
+void
+UIM::updateStatus(status_line *status, const char *msg)
+{
+  status->message(msg);
 }
 
 // ****************************************************************

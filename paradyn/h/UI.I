@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.21  1996/02/07 19:02:09  tamches
-/* got rid of initSHG
+/* Revision 1.22  1996/02/23 22:09:16  naim
+/* Adding igen call to display status line (fixes a deadlock situation) - naim
 /*
+# Revision 1.21  1996/02/07  19:02:09  tamches
+# got rid of initSHG
+#
  * Revision 1.20  1996/02/02 02:17:50  karavan
  * Changes for new performance consultant.
  *
@@ -95,6 +98,7 @@
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
+#include "paradyn/src/UIthread/Status.h"
 
 /* 
  * Handler that gets called when user-selected metric and focus choices
@@ -143,6 +147,10 @@ $remote UIM {
         //  and lookup in error database for explanation
 
 	$async void showError (int errCode, const char *errString);
+
+	// update status display
+
+	$async void updateStatus(status_line *status, const char *msg);
 
 	// used to tell UI to source a tcl file after initialization
         // (but of course the -s option is for us developers only...)

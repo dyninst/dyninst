@@ -186,7 +186,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 
     char statusLine[256];
     sprintf(statusLine, "Starting daemon on %s",m.string_of());
-    (*DMstatus) << statusLine;
+    uiMgr->updateStatus(DMstatus,P_strdup(statusLine));
 
     string flav_arg(string("-z") + def->getFlavor());
     unsigned asize = paradynDaemon::args.size();
@@ -207,10 +207,10 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     if (def->getFlavorString() == "cm5") {
       // if the daemon flavor is cm5, we have to wait until the node
       // daemon starts 
-       (*DMstatus) << "Waiting for CM5 node daemon ...";
+      uiMgr->updateStatus(DMstatus,P_strdup("Waiting for CM5 node daemon ..."));
     }
      else  
-       (*DMstatus) << "ready";
+       uiMgr->updateStatus(DMstatus,P_strdup("ready"));
 
     if (pd->get_fd() < 0) {
         uiMgr->showError (6, "unable to start paradynd");
@@ -392,7 +392,7 @@ bool paradynDaemon::newExecutable(const string &machine,
   if (pid > 0 && !daemon->did_error_occur()) {
       // TODO
       sprintf (tmp_buf, "%sPID=%d ", tmp_buf, pid);
-      PROCstatus->message(tmp_buf);
+      uiMgr->updateStatus(PROCstatus,P_strdup(tmp_buf));
 #ifdef notdef
       executable *exec = new executable(pid, argv, daemon);
       paradynDaemon::programs += exec;
@@ -876,7 +876,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 		 string msg;
 		 msg = string("ERROR?:data for disabled mid: ") + string(mid);
 		 cout << msg.string_of() << endl;
-		 DMstatus->message(P_strdup(msg.string_of()));
+		 uiMgr->updateStatus(DMstatus,P_strdup(msg.string_of()));
 	      }
 #endif
 	      return;
@@ -1034,7 +1034,7 @@ paradynDaemon::reportSelf (string m, string p, int pd, string flav)
   getDaemonTime(this);
 
   if (machine == "CM5 node daemon") {
-    (*DMstatus) << "ready";
+    uiMgr->updateStatus(DMstatus,P_strdup("ready"));
   }
 
   return;
@@ -1047,7 +1047,7 @@ void
 paradynDaemon::reportStatus (string line)
 {
   if (status)
-    status->message(line.string_of());
+    uiMgr->updateStatus(status, P_strdup(line.string_of()));
 }
 
 /***
