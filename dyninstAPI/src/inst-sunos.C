@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.22  1994/11/11 10:44:03  markc
+ * Revision 1.23  1995/01/26 18:12:00  jcargill
+ * Updated igen-generated includes to new naming convention
+ *
+ * Revision 1.22  1994/11/11  10:44:03  markc
  * Remove non-emergency prints
  * Changed others to use statusLine
  *
@@ -85,7 +88,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.22 1994/11/11 10:44:03 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.23 1995/01/26 18:12:00 jcargill Exp $";
 
 #include "util/h/kludges.h"
 #include "os.h"
@@ -98,7 +101,7 @@ char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core
 #include "instP.h"
 #include "ast.h"
 #include "ptrace_emul.h"
-#include "dyninstRPC.SRVR.h"
+#include "dyninstRPC.xdr.SRVR.h"
 #include "util.h"
 #include "stats.h"
 #include "main.h"

@@ -4,7 +4,10 @@
  * defaults.
  * 
  * $Log: comm.h,v $
- * Revision 1.2  1994/08/17 18:03:41  markc
+ * Revision 1.3  1995/01/26 18:11:52  jcargill
+ * Updated igen-generated includes to new naming convention
+ *
+ * Revision 1.2  1994/08/17  18:03:41  markc
  * Changed variable names to remove compiler warnings.
  *
  * Revision 1.1  1994/06/02  23:26:55  markc
@@ -16,7 +19,7 @@
 #ifndef _COMM_H_IGEN_
 #define _COMM_H_IGEN_
 
-#include "dyninstRPC.SRVR.h"
+#include "dyninstRPC.xdr.SRVR.h"
 
 class pdRPC : public dynRPC
 {

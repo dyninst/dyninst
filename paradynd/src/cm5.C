@@ -1,7 +1,10 @@
 
 /*
  * $Log: cm5.C,v $
- * Revision 1.1  1994/11/01 16:49:25  markc
+ * Revision 1.2  1995/01/26 18:11:50  jcargill
+ * Updated igen-generated includes to new naming convention
+ *
+ * Revision 1.1  1994/11/01  16:49:25  markc
  * Initial files that will provide os support.  This should limit os
  * specific features to these files.
  *
@@ -28,7 +31,7 @@ extern "C" {
 #include "inst.h"
 #include "instP.h"
 #include "ast.h"
-#include "dyninstRPC.SRVR.h"
+#include "dyninstRPC.xdr.SRVR.h"
 #include "util.h"
 #include "stats.h"
 #include "ptrace_emul.h"

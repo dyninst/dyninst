@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.21 1994/11/09 18:40:05 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.22 1995/01/26 18:11:57 jcargill Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.21  1994/11/09 18:40:05  rbi
+ * Revision 1.22  1995/01/26 18:11:57  jcargill
+ * Updated igen-generated includes to new naming convention
+ *
+ * Revision 1.21  1994/11/09  18:40:05  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.20  1994/11/02  11:06:16  markc
@@ -167,7 +170,7 @@ extern "C" {
 #include "inst.h"
 #include "instP.h"
 #include "ast.h"
-#include "dyninstRPC.SRVR.h"
+#include "dyninstRPC.xdr.SRVR.h"
 #include "util.h"
 #include "stats.h"
 #include "util/h/kludges.h"
