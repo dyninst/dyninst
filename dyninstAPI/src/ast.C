@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.110 2002/07/10 17:29:33 mirg Exp $
+// $Id: ast.C,v 1.111 2002/08/01 18:57:09 tlmiller Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -877,6 +877,12 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
                   // leaking memory?
 
     regSpace->resetSpace();
+
+#if defined( ia64_unknown_linux2_4 )
+	fprintf( stderr, "Defining base tramp register space for function starting at 0x%lx\n", location->iPgetFunction()->addr() );
+	defineBaseTrampRegisterSpaceFor( location, regSpace );	
+#endif
+
     Address ret=0;
     if (type != opCodeNode || op != noOp) {
         Register tmp;
