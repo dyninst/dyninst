@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.5  1995/02/16 08:53:13  markc
+ * Revision 1.6  1995/05/18 10:35:02  markc
+ * Removed resource preds
+ *
+ * Revision 1.5  1995/02/16  08:53:13  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.4  1995/02/16  08:33:20  markc
@@ -33,29 +36,31 @@
 #include "inst.h"
 #include "process.h"
 
-extern resourcePredicate *observedCostPredicates;
-extern resourcePredicate *defaultIMpreds;
-extern resourcePredicate *cpuTimePredicates;
-extern resourcePredicate *wallTimePredicates;
-extern resourcePredicate *procCallsPredicates;
-extern resourcePredicate *msgPredicates;
-extern resourcePredicate *globalOnlyPredicates;
-extern resourcePredicate *defaultPredicates;
-extern resourcePredicate *ioPredicates;
-
-extern metric *DYNINSTallMetrics;
-extern int metricCount;
-
 extern internalMetric *activeProcs;
 extern internalMetric *pauseTime;
 extern internalMetric *totalPredictedCost;
 extern internalMetric *hybridPredictedCost;
 extern internalMetric *activeSlots;
 
+extern internalMetric *cpu_daemon;
+extern internalMetric *sys_daemon;
+
+extern internalMetric *minflt_daemon;
+extern internalMetric *majflt_daemon;
+extern internalMetric *swap_daemon;
+extern internalMetric *io_in_daemon;
+extern internalMetric *io_out_daemon;
+extern internalMetric *msg_send_daemon;
+extern internalMetric *msg_recv_daemon;
+extern internalMetric *sigs_daemon;
+extern internalMetric *vol_csw_daemon;
+extern internalMetric *inv_csw_daemon;
+
 extern bool init();
 extern bool initOS();
 extern void osDependentInst(process *proc);
-extern instMapping *initialRequests;
+extern vector<instMapping*> initialRequests;
+extern vector<metric*> globalMetricVec;
 
 extern vector<sym_data> syms_to_find;
 
