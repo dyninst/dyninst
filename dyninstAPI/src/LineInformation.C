@@ -555,7 +555,7 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 
 	tuple* newTuple = new tuple(lineNo,codeAddress);
 
-	short index1; 
+	unsigned short index1; 
 	for(index1=size-1;index1>=0;index1--)
 		if(lineToAddr[index1]->lineNo > lineNo){
 			lineToAddr[index1+1] = lineToAddr[index1];
@@ -566,13 +566,14 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 	lineToAddr[index1] = newTuple;
 	lineToAddr[index1]->linePtr = (unsigned)index1; 
 
-	short index2; 
+	unsigned short index2; 
 	for(index2=size-1;index2>=0;index2--)
 		if(addrToLine[index2]->codeAddress > codeAddress){
 			addrToLine[index2+1] = addrToLine[index2];
 			addrToLine[index2+1]->addrPtr = (unsigned)(index2+1);
 		}
 		else break;
+
 	index2++;
 	addrToLine[index2] = newTuple;
 	addrToLine[index2]->addrPtr = (unsigned)index2;
