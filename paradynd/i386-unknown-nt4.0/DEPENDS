@@ -9,7 +9,7 @@ pdwinnt.obj: ../../dyninstAPI/src/pdwinnt.C \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/os.h \
  ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
- ../../dyninstAPI/src/ast.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -35,7 +35,7 @@ init-sunos.obj: ../src/init-sunos.C ../../paradynd/src/metric.h \
  ../../paradynd/src/costmetrics.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h \
  ../../dyninstAPI/src/dyninst.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
@@ -61,7 +61,7 @@ inst-sunos.obj: ../../dyninstAPI/src/inst-sunos.C \
  ../../dyninstAPI/src/util.h ../../paradynd/src/resource.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
- ../../dyninstAPI/src/ast.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -88,7 +88,7 @@ inst-x86.obj: ../../dyninstAPI/src/inst-x86.C ../../util/h/headers.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -103,7 +103,7 @@ arch-x86.obj: ../../dyninstAPI/src/arch-x86.C ../../util/h/Types.h \
 unix.obj: ../../dyninstAPI/src/unix.C ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/refCounter.h \
- ../../util/h/Vector.h ../../paradynd/src/showerror.h \
+ ../../util/h/Vector.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
  ../../util/h/Types.h ../../dyninstAPI/src/util.h \
  ../../rtinst/h/rtinst.h ../../paradynd/src/perfStream.h \
@@ -139,7 +139,7 @@ association.obj: ../src/association.C ../../util/h/headers.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -162,7 +162,7 @@ ast.obj: ../../dyninstAPI/src/ast.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -179,7 +179,7 @@ comm.obj: ../src/comm.C ../../paradynd/src/comm.h dyninstRPC.xdr.SRVR.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
  ../../util/h/Pair.h \
  ../../dyninstAPI/src/util.h ../../rtinst/h/rtinst.h \
- ../../paradynd/src/showerror.h ../../paradynd/src/main.h \
+ ../../dyninstAPI/src/showerror.h ../../paradynd/src/main.h \
  ../../dyninstAPI/src/process.h ../../util/h/vectorSet.h \
  ../../util/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/os.h \
@@ -206,7 +206,7 @@ context.obj: ../src/context.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -229,7 +229,7 @@ debugger.obj: ../src/debugger.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -249,7 +249,7 @@ dynrpc.obj: ../src/dynrpc.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -280,7 +280,7 @@ init.obj: ../src/init.C ../../dyninstAPI/src/dyninstP.h \
  ../../paradynd/src/costmetrics.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h \
  ../../dyninstAPI/src/dyninst.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
@@ -302,7 +302,7 @@ inst.obj: ../../dyninstAPI/src/inst.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -324,7 +324,7 @@ main.obj: ../src/main.C ../../util/h/headers.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -354,7 +354,7 @@ metric.obj: ../src/metric.C ../../util/h/headers.h \
  ../../dyninstAPI/src/process.h ../../util/h/vectorSet.h \
  ../../util/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -378,7 +378,7 @@ internalMetrics.obj: ../src/internalMetrics.C \
  ../../util/h/Dictionary.h ../../util/h/Pair.h ../../util/h/Types.h \
  ../../util/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/symtab.h ../../util/h/Object.h \
  ../../util/h/lprintf.h ../../util/h/list.h \
  ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
@@ -407,7 +407,7 @@ costmetrics.obj: ../src/costmetrics.C ../../paradynd/src/costmetrics.h \
  ../../rtinst/h/rtinst.h ../../rtinst/h/trace.h \
  ../../dyninstAPI/src/process.h ../../util/h/vectorSet.h \
  ../../util/h/Types.h ../../util/h/Timer.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/symtab.h ../../util/h/Object.h \
  ../../util/h/lprintf.h ../../dyninstAPI/src/dyninst.h \
  ../../util/h/stringDecl.h ../../dyninstAPI/src/arch.h \
@@ -431,7 +431,7 @@ metricDefs-critPath.obj: ../src/metricDefs-critPath.C \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -460,7 +460,7 @@ perfStream.obj: ../src/perfStream.C ../src/pvm_support.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -489,7 +489,7 @@ process.obj: ../../dyninstAPI/src/process.C ../../util/h/headers.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -515,7 +515,7 @@ resource.obj: ../src/resource.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -538,7 +538,7 @@ stats.obj: ../../dyninstAPI/src/stats.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -559,7 +559,7 @@ symtab.obj: ../../dyninstAPI/src/symtab.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
  ../../dyninstAPI/src/util.h ../../paradynd/src/resource.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/dyninstP.h \
- ../../util/h/Timer.h ../../paradynd/src/showerror.h \
+ ../../util/h/Timer.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/main.h ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
  ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
@@ -595,7 +595,7 @@ mdl.obj: ../src/mdl.C dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../paradynd/src/comm.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h \
  ../../dyninstAPI/src/dyninst.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
@@ -628,7 +628,7 @@ templates0.obj: ../../dyninstAPI/src/templates0.C ../../util/h/Pair.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -651,7 +651,7 @@ templates05.obj: ../../dyninstAPI/src/templates05.C \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -674,7 +674,7 @@ templates1.obj: ../../dyninstAPI/src/templates1.C \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -701,7 +701,7 @@ templatesPD.obj: ../src/templatesPD.C ../../util/h/Dictionary.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../paradynd/src/fastInferiorHeapMgr.h \
  ../../paradynd/src/fastInferiorHeap.h \
  ../../paradynd/src/fastInferiorHeapHKs.h ../../paradynd/src/metric.h \
@@ -744,7 +744,7 @@ fastInferiorHeapHKs.obj: ../src/fastInferiorHeapHKs.C \
  ../../util/h/Dictionary.h ../../util/h/Pair.h ../../util/h/Types.h \
  ../../util/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/pdwinnt.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/pdwinnt.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/symtab.h ../../util/h/Object.h \
  ../../util/h/lprintf.h ../../util/h/list.h \
  ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \

@@ -9,7 +9,7 @@ BPatch.obj: ../src/BPatch.C ../h/BPatch.h ../h/BPatch_Vector.h \
  ../../dyninstAPI/src/util.h ../../util/h/vectorSet.h \
  ../../util/h/Types.h ../../util/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/src/os.h \
- ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
  ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
  ../../util/h/sys.h ../../util/h/stringDecl.h \
@@ -25,7 +25,7 @@ BPatch_image.obj: ../src/BPatch_image.C ../src/process.h \
  ../../util/h/Vector.h ../../util/h/Dictionary.h ../../util/h/Pair.h \
  ../../util/h/Types.h ../../util/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/src/os.h \
- ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
  ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
  ../../util/h/sys.h ../../util/h/stringDecl.h \
@@ -61,7 +61,7 @@ BPatch_thread.obj: ../src/BPatch_thread.C ../src/process.h \
  ../../util/h/Vector.h ../../util/h/Dictionary.h ../../util/h/Pair.h \
  ../../util/h/Types.h ../../util/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/src/os.h \
- ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
  ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
  ../../util/h/sys.h ../../util/h/stringDecl.h \
@@ -101,7 +101,7 @@ BPatch_point.obj: ../src/BPatch_point.C ../h/BPatch_point.h \
  ../../util/h/Vector.h ../../util/h/Dictionary.h ../../util/h/Pair.h \
  ../../util/h/Types.h ../../util/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/src/os.h \
- ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
  ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
  ../../util/h/sys.h ../../util/h/stringDecl.h \
@@ -117,7 +117,7 @@ dummy.obj: ../src/dummy.C ../../util/h/String.h \
 api_showerror.obj: ../src/api_showerror.C ../h/BPatch.h \
  ../h/BPatch_Vector.h ../h/BPatch_thread.h ../h/BPatch_image.h \
  ../h/BPatch_point.h ../h/BPatch_snippet.h ../h/BPatch_module.h \
- ../../paradynd/src/showerror.h ../../util/h/String.h \
+ ../../dyninstAPI/src/showerror.h ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../util/h/refCounter.h
 ast.obj: ../src/ast.C ../../dyninstAPI/src/symtab.h ../../util/h/Pair.h \
@@ -130,7 +130,7 @@ ast.obj: ../src/ast.C ../../dyninstAPI/src/symtab.h ../../util/h/Pair.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/pdThread.h \
  ../../dyninstAPI/src/process.h ../../util/h/vectorSet.h \
  ../../util/h/Timer.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/solaris.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/solaris.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
@@ -151,7 +151,7 @@ inst.obj: ../src/inst.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/solaris.h \
- ../../paradynd/src/showerror.h ../../dyninstAPI/src/sharedobject.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
  ../../dyninstAPI/src/stats.h
@@ -166,7 +166,7 @@ process.obj: ../src/process.C ../../util/h/headers.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/pdThread.h \
  ../../dyninstAPI/src/process.h ../../util/h/vectorSet.h \
  ../../util/h/Timer.h ../../dyninstAPI/src/os.h \
- ../../dyninstAPI/src/solaris.h ../../paradynd/src/showerror.h \
+ ../../dyninstAPI/src/solaris.h ../../dyninstAPI/src/showerror.h \
  ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
@@ -185,7 +185,7 @@ stats.obj: ../src/stats.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/process.h \
  ../../util/h/vectorSet.h ../../util/h/Timer.h \
  ../../dyninstAPI/src/os.h ../../dyninstAPI/src/solaris.h \
- ../../paradynd/src/showerror.h ../../dyninstAPI/src/sharedobject.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
  ../../dyninstAPI/src/dyninstP.h
@@ -197,7 +197,7 @@ symtab.obj: ../src/symtab.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/dyninstP.h \
- ../../util/h/Timer.h ../../paradynd/src/showerror.h \
+ ../../util/h/Timer.h ../../dyninstAPI/src/showerror.h \
  ../../util/h/Object-nt.h
 util.obj: ../src/util.C ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../dyninstAPI_RT/h/rtinst.h \
