@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.6 2000/03/09 16:30:31 hollings Exp $
+// $Id: Object-coff.C,v 1.7 2000/06/26 17:00:38 paradyn Exp $
 
 #include "util/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -503,7 +503,8 @@ void Object::load_object(bool sharedLibrary) {
 	// I will include all other contiguous data sections
 	// Determine the size of the data section(s)
 	if (all_disk[K_D_INDEX]) {
-	    if (!find_data_region(all_addr, all_size, all_disk,data_len_,data_off_)) {
+	    if (!find_data_region(all_addr, all_size, all_disk,
+                                  data_len_, data_off_)) {
 	      success = false;
 	      printf("failed find data region\n");
 	      ldclose(ldptr);
@@ -518,21 +519,33 @@ void Object::load_object(bool sharedLibrary) {
 	if (!read_data_region(all_addr, all_size, all_disk,
 			      data_len_, data_off_, buffer, ldptr)) {
 	  success = false;
+          printf("failed read data region\n");
 	  ldclose(ldptr);
 	  free(file);
 	  return;
+	}
+
+        // Check for the symbol table
+	if (!(sym_tab_ptr = PSYMTAB(ldptr))) {
+	    success = false;
+            printf("failed check for symbol table - object may be strip'd!\n");
+	    ldclose(ldptr);
+	    free(file);
+	    return;
 	}
 
 	// Read the symbol table
 	sym_hdr = SYMHEADER(ldptr);
 	if (sym_hdr.magic != magicSym) {
 	    success = false;
+            printf("failed check for magic symbol\n");
 	    ldclose(ldptr);
 	    free(file);
 	    return;
         }
 	if (!(sym_tab_ptr = SYMTAB(ldptr))) {
 	    success = false;
+            printf("failed read symbol table\n");
 	    ldclose(ldptr);
 	    free(file);
 	    return;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.11 2000/06/15 17:45:47 paradyn Exp $
+// $Id: osfDL.C,v 1.12 2000/06/26 17:00:41 paradyn Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -496,6 +496,13 @@ void process::insertTrapAtEntryPointOfMain()
   // TODO: use start of "_main" if exists?
   bool err;
   main_brk_addr = findInternalAddress("main", false, err);
+  if (!main_brk_addr) {
+      // failed to locate main
+      showErrorCallback(108,"Failed to locate main().\n");
+      extern void cleanUpAndExit(int);
+      cleanUpAndExit(-1);
+      return;
+  }
   assert(main_brk_addr);
 
   // dumpMap(proc_fd);
