@@ -20,7 +20,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/clock.C,v 1.2 1994/09/22 01:45:55 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/clock.C,v 1.4 1994/10/25 22:16:34 hollings Exp $";
 #endif
 
 /*
@@ -30,7 +30,14 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * This may need to be made specific to different platforms.
  *
  * $Log: clock.C,v $
- * Revision 1.2  1994/09/22 01:45:55  markc
+ * Revision 1.4  1994/10/25 22:16:34  hollings
+ * added default clock speed to prevent divide by zero problems with
+ * the cost model.
+ *
+ * Revision 1.3  1994/10/13  07:24:30  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.2  1994/09/22  01:45:55  markc
  * Made system includes extern "C"
  *
  * Revision 1.1  1994/09/20  18:18:23  hollings
@@ -51,9 +58,11 @@ extern "C" {
 //
 float guessClock()
 {
-    return(0.0);
+    printf("pid %d: using default clock speed of %d\n", getpid(), 33000000);
+    return(33000000.0);
 }
 
+#if defined(SPARC_SUN_SUNOS4_1_3)
 #define PATTERN	"\tclock-frequency:"
 //
 // find the number of cycles per second on this machine.
@@ -83,3 +92,55 @@ float getCyclesPerSecond()
     logLine(line);
     return(speed);
 }
+#endif
+
+#if defined(SPARC_SUN_SOLARIS2_3)
+
+/************************************************************************
+ * header files.
+************************************************************************/
+
+#include <sys/types.h>
+#include <sys/time.h>
+
+
+
+
+
+/************************************************************************
+ * float getCyclesPerSecond()
+ *
+ * need a well-defined method for finding the CPU cycle speed
+ * on each CPU.
+************************************************************************/
+
+static const double BILLION = 1.0e9;
+
+#define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
+#define NOPS_16 NOPS_4; NOPS_4; NOPS_4; NOPS_4
+
+float
+getCyclesPerSecond() {
+    int            i;
+    hrtime_t       start_cpu;
+    hrtime_t       end_cpu;
+    hrtime_t       elapsed;
+    double         speed;
+    const unsigned LOOP_LIMIT = 50000;
+
+    start_cpu = gethrvtime();
+    for (i = 0; i < LOOP_LIMIT; i++) {
+        NOPS_16; NOPS_16; NOPS_16; NOPS_16;
+        NOPS_16; NOPS_16; NOPS_16; NOPS_16;
+        NOPS_16; NOPS_16; NOPS_16; NOPS_16;
+        NOPS_16; NOPS_16; NOPS_16; NOPS_16;
+    }
+    end_cpu = gethrvtime();
+    elapsed = end_cpu - start_cpu;
+    speed   = (BILLION*256*LOOP_LIMIT)/elapsed;
+
+printf("clock speed = %g\n", speed);
+
+    return speed;
+}
+#endif
