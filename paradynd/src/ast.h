@@ -4,6 +4,9 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.13  1996/04/26 20:04:32  lzheng
+ * Moved the defination of emitFuncCall from inst.h to here.
+ *
  * Revision 1.12  1996/03/25 20:20:06  tamches
  * the reduce-mem-leaks-in-paradynd commit
  *
@@ -147,5 +150,9 @@ class AstNode {
 AstNode createPrimitiveCall(const string &func, dataReqNode *, int param2);
 AstNode createIf(const AstNode &expression, const AstNode &action);
 AstNode createCall(const string &func, dataReqNode *, const AstNode &arg);
+
+unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
+		      vector<AstNode> operands, string func, process *proc);
+
 
 #endif
