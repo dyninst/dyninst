@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: MagnifyManager.C,v 1.2 1999/06/04 16:05:39 cain Exp $
+// $Id: MagnifyManager.C,v 1.3 1999/07/27 17:21:46 cain Exp $
 
 #include "DMinclude.h"
 #include "MagnifyManager.h"
@@ -65,10 +65,7 @@ printf("in getchildren, original magnify type\n");
 #ifdef PCDEBUG
 printf("in getchildren, CallGraph magnify type\n");
 #endif
-	    // ALERT ALERT - needs to be replaced w/ actual program
-	    //  number if different programs being examined in single
-	    //  paradyn get different call graphs....
-	    cg = CallGraph::FindCallGraph(0);
+	    cg = CallGraph::FindCallGraph();
 	    assert(cg);
 	    return cg->getChildren(rh);
 	    break;
