@@ -3,9 +3,15 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.16  1995/06/11 22:59:47  karavan
-/* changed error handling for new node type.
+/* Revision 1.17  1995/07/17 05:09:06  tamches
+/* Many changes related to the new where axis.  Some code was
+/* no longer needed and hence commented out.  Other code unrelated
+/* to the where axis was left alone.  But nothing much was added to
+/* this file
 /*
+ * Revision 1.16  1995/06/11  22:59:47  karavan
+ * changed error handling for new node type.
+ *
  * Revision 1.15  1995/06/02  20:50:44  newhall
  * made code compatable with new DM interface
  *
@@ -67,6 +73,8 @@ extern "C" {
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMinclude.h"
 #include "dag.h"
+
+#include "abstractions.h"
 
 extern int getDagToken ();
 extern int initWhereAxis (dag *wheredag, stringHandle abs); 
@@ -172,7 +180,57 @@ void printResSelectList (vector<numlist> *v, char *name)
   cout << endl;
 }
 
-#ifdef n_def
+//#ifdef n_def
+///* parseSelections
+// * takes a list with one resourceHandle vector per resource hierarchy; result 
+// * is the cross product list of valid focii, represented as vectors of 
+// * nodeID vectors; each element on resulting list can be converted into 
+// * one focus.
+// */
+//vector<numlist> *
+//parseSelections (vector<numlist> *bytree) {
+//
+//  vector<numlist> *result2;
+//
+//  int totsize = 1;
+//  for (int m = 0; m < bytree->size(); m++) {
+//    totsize = totsize * (*bytree)[m].size();
+//  }
+//  result2 = new vector<numlist> (totsize);
+//  int y;
+//  int mul = 1;
+//
+//
+//  for (int v = 0; v < bytree->size(); v++) {
+//    vector<unsigned> *tmp = &(*bytree)[v];
+//
+//    for (int z = 0; z < tmp->size(); z++) {
+//      y = z * mul;
+//      while (y < totsize) {
+//	int u = y;
+//	while ((u < totsize) && (u < (y + mul))) {
+//	  (*result2)[u] += (*tmp)[z];
+//	  u++;
+//	}
+//	y = y + (mul * tmp->size());
+//      }
+//    }
+//
+//    mul = mul * 2;
+//  }
+//  /*
+//  for(unsigned i = 0; i < result2->size(); i++){
+//      printf("focus %d:\n",i);
+//      for(unsigned j = 0; j < (*result2)[i].size(); j++){
+//	  printf("     part %d:%d\n",j,(*result2)[i][j]);
+//      }
+//  }
+//  */
+//  return result2;
+//}
+//#endif
+
+
 /* parseSelections
  * takes a list with one resourceHandle vector per resource hierarchy; result 
  * is the cross product list of valid focii, represented as vectors of 
@@ -180,81 +238,29 @@ void printResSelectList (vector<numlist> *v, char *name)
  * one focus.
  */
 vector<numlist> *
-parseSelections (vector<numlist> *bytree) {
-
-  vector<numlist> *result2;
-
-  int totsize = 1;
-  for (int m = 0; m < bytree->size(); m++) {
-    totsize = totsize * (*bytree)[m].size();
-  }
-  result2 = new vector<numlist> (totsize);
-  int y;
-  int mul = 1;
-
-
-  for (int v = 0; v < bytree->size(); v++) {
-    vector<unsigned> *tmp = &(*bytree)[v];
-
-    for (int z = 0; z < tmp->size(); z++) {
-      y = z * mul;
-      while (y < totsize) {
-	int u = y;
-	while ((u < totsize) && (u < (y + mul))) {
-	  (*result2)[u] += (*tmp)[z];
-	  u++;
-	}
-	y = y + (mul * tmp->size());
-      }
-    }
-
-    mul = mul * 2;
-  }
-  /*
-  for(unsigned i = 0; i < result2->size(); i++){
-      printf("focus %d:\n",i);
-      for(unsigned j = 0; j < (*result2)[i].size(); j++){
-	  printf("     part %d:%d\n",j,(*result2)[i][j]);
-      }
-  }
-  */
-  return result2;
-}
-#endif
-
-
-/* parseSelections
- * takes a list with one resourceHandle vector per resource hierarchy; result 
- * is the cross product list of valid focii, represented as vectors of 
- * nodeID vectors; each element on resulting list can be converted into 
- * one focus.
- */
-vector<numlist> *
-parseSelections (vector<numlist> *bytree) {
+parseSelections (vector<numlist> &bytree) {
 
   // figure out size of result vector 
   unsigned totsize = 1;
-  for(unsigned i=0; i < bytree->size(); i++){
-    totsize = totsize * (*bytree)[i].size();
+  for(unsigned i=0; i < bytree.size(); i++){
+    totsize = totsize * bytree[i].size();
   }
-  vector<numlist> *result = new vector<numlist> (totsize);
+  vector<numlist> *presult = new vector<numlist> (totsize);
+  vector<numlist> &result = *presult;
 
   // create the cross product of all elements in bytree
   unsigned iterations = 1;
-  for(i=0; i < bytree->size(); i++){
-      unsigned element_size = (*bytree)[i].size();
+  for(i=0; i < bytree.size(); i++){
+      unsigned element_size = bytree[i].size();
       unsigned r_index = 0;
       totsize = totsize / element_size; 
 
-      // distribute the elements of the ith list over the results vector
-      for(unsigned j=0; j < iterations; j++){
-          for(unsigned k = 0; k < element_size; k++){
-              for(unsigned m = 0; m < totsize; m++){
-                  (*result)[r_index] += (*bytree)[i][k];
-	          r_index++;
-              }
-	  }
-      }
+      // distribute the elements of the ith list over the result vector
+      for (unsigned j=0; j < iterations; j++)
+          for (unsigned k = 0; k < element_size; k++)
+              for (unsigned m = 0; m < totsize; m++)
+                  result[r_index++] += bytree[i][k];
+
       iterations = iterations*element_size;
   }
 
@@ -266,13 +272,16 @@ parseSelections (vector<numlist> *bytree) {
       }
   }
   */
-  return result;
+  return presult;
 }
+
+//vector< vector<resourceHandle> > ariParseSelections(vector< vector<resourceHandle> > &theHierarchySelections) {
+//}
 
 
 
 /* arguments:
-       0: processVisiSelection
+       0: "processVisiSelection"
        1: rdo token
        2: list of selected metrics
 */
@@ -281,45 +290,59 @@ int processVisiSelectionCmd(ClientData clientData,
 			    int argc, 
 			    char *argv[])
 {
-  int rdoToken;
-  dag *currDag;
-  resourceDisplayObj *currRDO;
-  int metcnt, metindx;
-  char **metlst;
-  metric_focus_pair *currpair;
-
   // get rdo ptr from token
-  rdoToken = atoi(argv[1]);
+//  int rdoToken = atoi(argv[1]);
+//  dag *currDag;
+//  resourceDisplayObj *currRDO;
+//
+//#if UIM_DEBUG
+//  printf ("processVisiSelection::rdoToken: %d\n", rdoToken);
+//#endif
+//  currRDO = resourceDisplayObj::allRDOs.find((void *)rdoToken);
+//#if UIM_DEBUG
+//  printf ("processVisiSelection::lookuptoken: %d\n", currRDO->getToken());
+//#endif
+//
+//  // get currently displayed dag
+//  currDag = currRDO->getTopDag();
+//#if UIM_DEBUG
+//  printf ("processVisiSelection::lookupDag: %s\n", currDag->getCanvasName());
+//#endif
+//  // parse resource selections
+
+   //cout << "Welcome to processVisiSelectionCmd" << endl;
+
+//    vector<numlist> *allsels = currDag->listAllHighlightedNodes ();
+//      // vector[numHierarchies] of numlist, where numlist is an arbitrary-sized
+//      // vector of resourceHandle.
+
+//#if UIM_DEBUG
+//  cout << allsels->size() << endl;
+//  for (int i = 0; i < allsels->size(); i++) {
+//    cout << "resHierarchy " << i << " Selections: ";
+//    vector<nodeIdType> tmp = (*allsels)[i];
+//    for (int j = 0; j < tmp.size(); j++) {
+//      cout << " " << tmp[j];
+//    }
+//    cout << endl;
+//  }
+//  cout << endl;
+//#endif
+
+   extern abstractions<resourceHandle> *theAbstractions;
+   vector< vector<resourceHandle> > theHierarchySelections = theAbstractions->getCurrAbstractionSelections();
+
 #if UIM_DEBUG
-  printf ("processVisiSelection::rdoToken: %d\n", rdoToken);
-#endif
-  currRDO = resourceDisplayObj::allRDOs.find((void *)rdoToken);
-#if UIM_DEBUG
-  printf ("processVisiSelection::lookuptoken: %d\n", currRDO->getToken());
+   for (int i=0; i < theHierarchySelections.size(); i++) {
+      cout << "ResHierarchy " << i << " selections: ";
+      for (int j=0; j < theHierarchySelections[i].size(); j++)
+         cout << " " << theHierarchySelections[i][j];
+      cout << endl;
+   }
 #endif
 
-  // get currently displayed dag
-  currDag = currRDO->getTopDag();
-#if UIM_DEBUG
-  printf ("processVisiSelection::lookupDag: %s\n", currDag->getCanvasName());
-#endif
-  // parse resource selections
-
-    vector<numlist> *allsels = currDag->listAllHighlightedNodes ();
-
-#if UIM_DEBUG
-  cout << allsels->size() << endl;
-  for (int i = 0; i < allsels->size(); i++) {
-    cout << "resHierarchy " << i << " Selections: ";
-    vector<nodeIdType> tmp = (*allsels)[i];
-    for (int j = 0; j < tmp.size(); j++) {
-      cout << " " << tmp[j];
-    }
-  }
-  cout << endl;
-#endif
-
-  vector<numlist> *retList = parseSelections (allsels);
+//  vector<numlist> *retList = parseSelections (*allsels);
+  vector<numlist> *retList = parseSelections (theHierarchySelections);
 
 #if UIM_DEBUG
   printResSelectList(retList, "list of selected focii");
@@ -327,22 +350,25 @@ int processVisiSelectionCmd(ClientData clientData,
 
 //** and, list of metric indices from selections put into metlst
 
+  int metcnt;
+  char **metlst;
+  // reminder: argv[2] is the list of selected metrics (each is an integer id)
   if (Tcl_SplitList (interp, argv[2], &metcnt, &metlst) == TCL_OK) {
     metricHandle currmet;
     
     uim_VisiSelections = new vector<metric_focus_pair>;
     for (unsigned i = 0; i < metcnt; i++) {
-      metindx = atoi(metlst[i]);
+      int metindx = atoi(metlst[i]);
       currmet = uim_AvailMetHandles[metindx];
       for (unsigned j = 0; j < retList->size(); j++) {
-	currpair = new metric_focus_pair;
+	metric_focus_pair *currpair = new metric_focus_pair;
 	currpair->met = currmet;
 	currpair->res = (*retList)[j];
 	*uim_VisiSelections += *currpair;
       }
     }
     free (metlst);   // cleanup after Tcl_SplitList
-    delete allsels;
+//    delete allsels;
     delete retList;
   }
 
@@ -588,30 +614,30 @@ int unhighlightNodeCmd (ClientData clientData,
   }
 }
 
-int clearResourceSelectionCmd (ClientData clientData, 
-                      Tcl_Interp *interp, 
-                      int argc, 
-                      char *argv[])
-{
-  int dagID;
-  dag *currDag;
-
-  if (!strcmp (argv[1], "rdo")) {
-    // need to get dag from rdo
-    int rdoID;
-    resourceDisplayObj *rdo;
-    rdoID = atoi (argv[2]);
-    rdo = resourceDisplayObj::allRDOs.find((void *)rdoID);
-    currDag = rdo->getTopDag();
-  } else {
-    // get dag ptr from token
-    dagID = atoi (argv[2]);
-    currDag = ActiveDags[dagID];
-  }
-  currDag->clearAllHighlighting();
-  currDag->highlightAllRootNodes();
-  return TCL_OK;
-}
+//int clearResourceSelectionCmd (ClientData clientData, 
+//                      Tcl_Interp *interp, 
+//                      int argc, 
+//                      char *argv[])
+//{
+//  int dagID;
+//  dag *currDag;
+//
+//  if (!strcmp (argv[1], "rdo")) {
+//    // need to get dag from rdo
+//    int rdoID;
+//    resourceDisplayObj *rdo;
+//    rdoID = atoi (argv[2]);
+//    rdo = resourceDisplayObj::allRDOs.find((void *)rdoID);
+//    currDag = rdo->getTopDag();
+//  } else {
+//    // get dag ptr from token
+//    dagID = atoi (argv[2]);
+//    currDag = ActiveDags[dagID];
+//  }
+//  currDag->clearAllHighlighting();
+//  currDag->highlightAllRootNodes();
+//  return TCL_OK;
+//}
   
 /* 
    drawStartVisiMenuCmd
@@ -671,18 +697,18 @@ int drawStartVisiMenuCmd (ClientData clientData,
  * argv[1] = rdoToken
  * argv[2] = abstraction
  */
-int switchRDOdagCmd (ClientData clientData, 
-                Tcl_Interp *interp, 
-                int argc, 
-                char *argv[])
-{
-  int rdoToken;
-  resourceDisplayObj *trdo;
-  rdoToken = atoi(argv[1]);
-  trdo = resourceDisplayObj::allRDOs.find((void *)rdoToken);
-  trdo->cycle(argv[2]);
-  return TCL_OK;
-}
+//int switchRDOdagCmd (ClientData clientData, 
+//                Tcl_Interp *interp, 
+//                int argc, 
+//                char *argv[])
+//{
+//  int rdoToken;
+//  resourceDisplayObj *trdo;
+//  rdoToken = atoi(argv[1]);
+//  trdo = resourceDisplayObj::allRDOs.find((void *)rdoToken);
+//  trdo->cycle(argv[2]);
+//  return TCL_OK;
+//}
 
 /*
  * argv[1] = error number
@@ -712,8 +738,8 @@ struct cmdTabEntry uimpd_Cmds[] = {
   {"addEStyle", addEStyleCmd},
   {"addNStyle", addNStyleCmd},
   {"processVisiSelection", processVisiSelectionCmd},
-  {"clearResourceSelection", clearResourceSelectionCmd},
-  {"switchRDOdag", switchRDOdagCmd},
+//  {"clearResourceSelection", clearResourceSelectionCmd},
+//  {"switchRDOdag", switchRDOdagCmd},
   {"tclTunable", TclTunableCommand},
   {"showError", showErrorCmd},
   { NULL, NULL}
