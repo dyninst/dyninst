@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.106 2001/11/01 20:22:25 schendel Exp $
+ * $Id: DMdaemon.C,v 1.107 2001/11/07 19:39:14 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1297,7 +1297,7 @@ mpichUnlinkWrappers()
 				cmd += wrapper.remoteShell;
 				cmd += " ";
 				cmd += wrapper.remoteMachine;
-				cmd += " rm ";
+				cmd += " /bin/rm ";
 				cmd += wrapper.filename;
 				execl( "/bin/sh",
 					"sh",
