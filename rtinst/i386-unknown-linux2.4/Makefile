@@ -1,10 +1,18 @@
 #
-# $Id: Makefile,v 1.4 2000/08/08 15:34:33 wylie Exp $
+# $Id: Makefile,v 1.5 2000/11/20 23:16:46 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 USES_SHM_SAMPLING = true
+
+#If libhrtime is not installed on your computer and you have no interest
+#  in using it, then comment out the following line (with a #), remove
+#  the DEPENDS file in this directory, and recompile with make.
+#If you have libhrtime, but it can't be found, the libhrtime path can 
+#  be adjusted in ../../make.config.  You'll need to remake DEPENDS if
+#  this path is adjusted.
+USES_LIBHRTIME = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -44,11 +52,17 @@ SRCS	     += ../src/RTfirst.c \
 		../../dyninstAPI_RT/src/RTlinux.c \
 		../src/RTetc-posix.c \
 		../src/RTetc-linux.c \
+		../src/RThwtimer-x86.c \
 		../src/RTrexec.c
 
 ifdef DETACH_ON_THE_FLY
 CFLAGS += -DDETACH_ON_THE_FLY
-SRCS += ../../dyninstAPI_RT/src/RTsigill-x86.S
+SRCS 	+= ../../dyninstAPI_RT/src/RTsigill-x86.S
+endif
+
+ifdef USES_LIBHRTIME
+CFLAGS  += -I$(HRTIME_INCDIR) -DHRTIME
+LIBS	+= -L$(HRTIME_LIBDIR) $(HRTIME_LIB)
 endif
 
 #CFLAGS += -DSHM_SAMPLING_DEBUG
