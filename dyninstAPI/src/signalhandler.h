@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.7 2003/12/18 17:15:35 schendel Exp $
+/* $Id: signalhandler.h,v 1.8 2004/01/19 21:53:54 schendel Exp $
  */
 
 /*
@@ -62,19 +62,7 @@
 class process;
 class dyn_lwp;
 
-/* Included from the unix/NT file:
- * procSignalWhy_t: What event
- * procSignalWhat_t: Which signal in particular
- * procSignalInfo_t: Any information required by the handler
- */
 
-// The new checkProcStatus()
-// Does all work internally. 
-void decodeAndHandleProcessEvent(bool block);
-
-// decodeProcessEvent: check whether there is an event
-// on any process we're debugging. If one is found decode
-// it and return
 // Return code:
 // 0: no event
 // 1: event fount
@@ -85,16 +73,44 @@ void decodeAndHandleProcessEvent(bool block);
 // block: block waiting for a signal?
 // waitProcs replacement
 
-process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
-                            procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block);
+class signalHandler {
+   pdvector<process *> procs_with_locked_statuses;
+   int numEventsToProcess;
+   int numEventsProcessed;
+   int handleProcessEventInternal(const procevent &event);
 
-// Takes the data above and performs whatever handling is necessary
-int handleProcessEvent(process *proc,
-                       dyn_lwp *relevantLWP,
-                       procSignalWhy_t why,
-                       procSignalWhat_t what,
-                       procSignalInfo_t info);
+ public:
+   signalHandler() : numEventsToProcess(0), numEventsProcessed(0) { }
+
+   // checks for process events and handles any events that were found
+   void checkForAndHandleProcessEvents(bool block);
+
+   // checkForProcessEvents: check whether there is an event on any process
+   // we're debugging. If one is found decode it and return.  Returns true if
+   // found events, otherwise false.
+   bool checkForProcessEvents(pdvector<procevent *> *events,
+                              int wait_arg, bool block);
+
+   // handles process events, unlocks locked processes, deletes proc events
+   void handleProcessEvents(pdvector<procevent *> &foundEvents);
+
+   // if handelProecssEventWithUnlock or handleProcessEventNoUnlock
+   // is used, then need to call beginEventHandling before start handling
+   // events
+   void beginEventHandling(int numEvents) {
+      numEventsToProcess = numEvents;
+   }
+   
+   int handleProcessEventWithUnlock(const procevent &event);
+
+   // if use this nounlock function, need to call continueLockedProcesses
+   // after done handling all of the signals
+   int handleProcessEventKeepLocked(const procevent &event);
+   void continueLockedProcesses();
+};
+
+extern signalHandler *global_sh;
+signalHandler *getSH();
 
 /////////////////////
 // Callbacks.

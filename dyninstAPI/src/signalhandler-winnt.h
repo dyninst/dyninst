@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-winnt.h,v 1.1 2003/03/10 23:15:41 bernat Exp $
+/* $Id: signalhandler-winnt.h,v 1.2 2004/01/19 21:53:52 schendel Exp $
  */
 
 /*
@@ -75,6 +75,7 @@ typedef enum {
     procProcessCreate,
     procThreadExit,
     procProcessExit,
+    procProcessSelfTermination,  // caused by BPatch_thread::terminateExec...
     procDllLoad,
     procUndefined
 } procSignalWhy_t;
@@ -106,6 +107,8 @@ typedef DEBUG_EVENT procSignalInfo_t;
 // the signal handler executes, and is re-run at the end. If the process
 // should stay stopped the handlers must pause it explicitly.
 
+
+#include "dyninstAPI/src/signalhandler-event.h"
 
 DWORD handleBreakpoint(process *proc, procSignalInfo_t info);
 DWORD handleIllegal(process *proc, procSignalInfo_t info);

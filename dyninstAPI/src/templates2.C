@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.30 2003/10/21 17:22:34 bernat Exp $
+// $Id: templates2.C,v 1.31 2004/01/19 21:54:11 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -59,6 +59,7 @@
 #include "dyninstAPI/src/libState.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+#include "dyninstAPI/src/signalhandler.h"
 
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/src/LineInformation.h"
@@ -179,6 +180,8 @@ template class pdvector<dictionary_hash <int, BPatch_thread *>::entry>;
 template class pdvector<BPatch_localVar *>;
 template class pdvector<BPatch_field *>;
 //#endif
+
+template class pdvector<procevent *>;
 
 template class pdvector<pdpair<pdstring, pdvector<pdstring> *> >;
 template class dictionary_hash <pdstring, pdvector<pdstring> *>;

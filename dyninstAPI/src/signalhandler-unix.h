@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.9 2003/09/05 16:28:04 schendel Exp $
+/* $Id: signalhandler-unix.h,v 1.10 2004/01/19 21:53:51 schendel Exp $
  */
 
 /*
@@ -155,14 +155,16 @@ typedef enum {
     procSysOther
 } procSyscall_t;
 
+#include "dyninstAPI/src/signalhandler-event.h"
+
 procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall);
 
 // waitPid status -> what/why format
 typedef int procWaitpidStatus_t;
 int decodeWaitPidStatus(process *proc,
                         procWaitpidStatus_t status,
-                        procSignalWhy_t &why,
-                        procSignalWhat_t &what);
+                        procSignalWhy_t *why,
+                        procSignalWhat_t *what);
 
 // proc decode
 // There are two possible types of data structures:
@@ -192,51 +194,45 @@ int decodeProcStatus(process *proc,
 // needs to be handled (0 return)
 
 // forwardSigToProcess: continue the process with the (unhandled) signal
-int forwardSigToProcess(process *proc,
-                        procSignalWhat_t what,
-                        procSignalInfo_t info);
+int forwardSigToProcess(const procevent &event);
 
 
 /////////////////////
 // Handle individual signal types
 /////////////////////
 
-int handleSigTrap(process *proc, procSignalInfo_t info);
+int handleSigTrap(const procevent &event);
 
-int handleSigStopNInt(process *proc, procSignalInfo_t info);
+int handleSigStopNInt(const procevent &event);
 
 // A signal where we may want to dump proc core/debug it
-int handleSigCritical(process *proc, procSignalWhat_t what,
-                      procSignalInfo_t info);
+int handleSigCritical(const procevent &event);
 
 // And the dispatcher
-int handleSignal(process *proc, procSignalWhat_t what,
-                 procSignalInfo_t info);
+int handleSignal(const procevent &event);
 
 
 /////////////////////
 // Handle syscall entries
 /////////////////////
 
-int handleForkEntry(process *proc, procSignalInfo_t info);
-int handleExecEntry(process *proc, procSignalInfo_t info);
+int handleForkEntry(const procevent &event);
+int handleExecEntry(const procevent &event);
 
 // And the dispatcher
-int handleSyscallEntry(process *proc, procSignalWhat_t what,
-                       procSignalInfo_t info);
+int handleSyscallEntry(const procevent &event);
 
 
 /////////////////////
 // Handle syscall exits
 /////////////////////
 
-int handleForkExit(process *proc, procSignalInfo_t info);
-int handleExecExit(process *proc, procSignalInfo_t info);
-int handleLoadExit(process *proc, procSignalInfo_t info);
+int handleForkExit(const procevent &event);
+int handleExecExit(const procevent &event);
+int handleLoadExit(const procevent &event);
 
 // And the dispatcher
-int handleSyscallExit(process *proc, procSignalWhat_t what,
-                      procSignalInfo_t info);
+int handleSyscallExit(const procevent &event);
 
 /////////////////////
 // Translation mechanisms

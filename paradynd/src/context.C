@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.109 2003/12/18 17:15:41 schendel Exp $ */
+/* $Id: context.C,v 1.110 2004/01/19 21:53:57 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -564,7 +564,7 @@ void wait_for_thread_creation(process *childDynProc,
    int ct;
    while(! allThreadCreatesReceived(childDynProc, num_expected)) {
        if(childDynProc->hasExited()) return;
-       //decodeAndHandleProcessEvent(false);
+       //getSH()->checkForAndHandleProcessEvent(false);
 
       int width = 0;
       struct timeval pollTimeStruct;
