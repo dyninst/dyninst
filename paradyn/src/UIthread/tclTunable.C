@@ -2,10 +2,14 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.1  1994/10/26 23:12:52  tamches
-/* First version of tclTunable.C; provides "tclTunable" tcl command that
-/* can access tunable constants.
-/* */
+/* Revision 1.2  1994/11/04 15:51:26  tamches
+/* Fixed a bug when searching for tunable constants by name.
+/* Added some extra error checking.
+/*
+ * Revision 1.1  1994/10/26  23:12:52  tamches
+ * First version of tclTunable.C; provides "tclTunable" tcl command that
+ * can access tunable constants.
+ * */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -102,29 +106,38 @@ tunableConstant *tunableConstantListEntryByIndex(int index) {
       iterList++;
    }
 
-
-//   ListIterator<tunableConstant *> iter(tunableConstant::allConstants);
-//
-//   while (!iter.done()) {
-//      tunableConstant *tc = iter.getCurrentData();
-//      
-//      if (--index < 0)
-//         return tc; // normal return
-//
-//      iter.nextItem();
-//   }
-
    cerr << "Tunable constant #" << index << " looks out of range." << endl;
    return NULL;
 }
 
 tunableConstant *findTunableConstantListEntryByName(char *name) {
    assert(NULL != tunableConstant::allConstants);
-   return tunableConstant::allConstants->find(name); // will be NULL if not found...
+
+   List<tunableConstant *> iterList = *tunableConstant::allConstants;
+
+   tunableConstant *tc;
+   while (NULL != (tc = *iterList)) {
+      if (0==strcmp(tc->getName(), name))
+         return tc;
+      iterList++;
+   }
+
+   cerr << "findTunableConstantListEntryByName: could not find tc with name=" << name << endl;
+   return NULL;
+
+//   tunableConstant *result = tunableConstant::allConstants->find(name);
+//      // will be NULL if not found...
+//
+//   if (result==NULL)
+//
+//   return result;
 }
 
 int getValue(Tcl_Interp *interp, tunableConstant *tc) {
-   if (NULL==tc) return TCL_ERROR;
+   if (NULL==tc) {
+      sprintf(interp->result, "getValue error: no tunable constant");
+      return TCL_ERROR;
+   }
 
    // stick value into interp->result as a string
    if (tc->getType() == tunableBoolean)
