@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.25 2002/12/14 16:37:59 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.26 2003/07/25 20:40:49 schendel Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -72,7 +72,7 @@
 #endif
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-#include <thread.h>
+#include <pthread.h>
 #endif
 
 /*extern int    gettimeofday(struct timeval *, struct timezone *);*/
@@ -315,27 +315,32 @@ DYNINSTgetWalltime_sw(void) {
 }
 
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-extern unsigned DYNINST_hash_lookup(unsigned key);
-extern unsigned DYNINST_initialize_done;
-extern void DYNINST_initialize_hash(unsigned total);
-extern void DYNINST_initialize_free(unsigned total);
-extern unsigned DYNINST_hash_insert(unsigned k);
-
-int DYNINSTthreadSelf(void) {
-  return(thr_self());
+/* Need to implement the following */
+unsigned PARADYNgetFD(unsigned lwp)
+{
+  return 0;
 }
 
-int DYNINSTthreadPos(void) {
-  if (initialize_done) {
-    return(DYNINST_hash_lookup(DYNINSTthreadSelf()));
-  } else {
-    DYNINST_initialize_free(MAX_NUMBER_OF_THREADS);
-    DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
-    DYNINST_initialize_done=1;
-    return(DYNINST_hash_insert(DYNINSTthreadSelf()));
-  }
+unsigned DYNINSTthreadIndexFAST() {
+   return 0;
 }
+
+
+#ifdef MT_THREAD
+// Need to implement
+rawTime64 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
+  return 0;
+}
+
+// Need to implement
+int tc_lock_lock(tc_lock_t * lck) {
+   return 0;
+}
+
+// Need to implement
+int thread_self() {
+   return 0;
+}
+
 #endif
-
 
