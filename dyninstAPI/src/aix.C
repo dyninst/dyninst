@@ -647,7 +647,7 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
  * The choice must be consistent with that in process::continueProc_ and stop_
  */
 
-#if !defined(PTRACE_ATTACH_DETACH)
+#ifndef PTRACE_ATTACH_DETACH
     if (ptrace(PT_CONTINUE, p->pid, (int *) 1, SIGCONT, NULL) == -1) {
 #else
     //if (ptrace(PT_DETACH, p->pid, (int *) 1, SIGCONT, NULL) == -1) {
@@ -674,7 +674,7 @@ bool process::stop_() {
  * The choice must be consistent with that in process::continueProc_ 
  * and ptraceKludge::continueProcess
  */
-#if !defined(PTRACE_ATTACH_DETACH)
+#ifndef PTRACE_ATTACH_DETACH
 	return (P_kill(pid, SIGSTOP) != -1); 
 #else
 	// attach generates a SIG TRAP which we catch
@@ -753,7 +753,7 @@ bool process::continueProc_() {
  * The choice must be consistent with that in process::continueProc_ and stop_
  */
 
-#if !defined(PTRACE_ATTACH_DETACH)
+#ifndef PTRACE_ATTACH_DETACH
   // switch these to not detach after every call.
   ret = ptrace(PT_CONTINUE, pid, (int *)1, 0, NULL);
 #else
@@ -846,7 +846,12 @@ bool process::loopUntilStopped() {
   while (!isStopped) {
     int ret = waitpid(pid, &waitStatus, WUNTRACED);
     if ((ret == -1) && (errno == EINTR)) continue;
-    if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
+    // these two ifs (ret==-1&&errno==ECHILD)||(WIF..) used to be together
+    // but had to seperate them, we were receiving ECHILD in a different
+    // situation, for some reason..
+    // if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
+    if ((ret == -1) && (errno == ECHILD)) return true;
+    if(WIFEXITED(waitStatus)) {
       // the child is gone.
       //status_ = exited;
       handleProcessExit(this, WEXITSTATUS(waitStatus));
@@ -1340,15 +1345,15 @@ bool establishBaseAddrs(int pid, int &status, bool waitForTrap)
 
     // check that the program was loaded at the correct address.
 
+    // wait for the TRAP point.
+    if (waitForTrap)
+      waitpid(pid, &status, WUNTRACED);
+
     /* It seems that AIX has some timing problems and
      when the user stack grows, the kernel doesn't update the stack info in time
      and ptrace calls step on user stack. This is the reason why call sleep 
      here, giving the kernel some time to update its internals. */
     usleep (36000);
-
-    // wait for the TRAP point.
-    if (waitForTrap)
-      waitpid(pid, &status, WUNTRACED);
 
     ret = ptrace(PT_LDINFO, pid, (int *) &info, sizeof(info), (int *) &info);
     if (ret != 0) {
