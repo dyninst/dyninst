@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.40 2003/03/29 01:43:01 pcroth Exp $
+ * $Id: Object.h,v 1.41 2003/04/18 22:35:27 tlmiller Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -171,6 +171,8 @@ public:
     bool have_deferred_parsing( void ) const        { return deferredParse; }
     // for debuggering....
     const ostream &dump_state_info(ostream &s);
+
+    void * getErrFunc() const { return (void *) err_func_; }
 
 protected:
     virtual ~AObject() {}
