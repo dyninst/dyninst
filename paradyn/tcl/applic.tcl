@@ -1,7 +1,11 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.2  1994/05/26 21:23:10  karavan
+# Revision 1.3  1994/06/18 20:31:10  hollings
+# Changed default host to empty string since the environment variable host is
+# not guarnteed to be defined.
+#
+# Revision 1.2  1994/05/26  21:23:10  karavan
 # changed parent window name.
 #
 # Revision 1.1  1994/05/23  01:56:22  karavan
@@ -55,7 +59,7 @@ bind $ADparent.applic.top.user.ent <Return> \
 	"focus $ADparent.applic.top.machine.ent"
 entry $ADparent.applic.top.machine.ent -width 80 -textvariable applicMachine \
 	-relief sunken
-$ADparent.applic.top.machine.ent insert end $env(HOST)
+$ADparent.applic.top.machine.ent insert end ""
 bind $ADparent.applic.top.machine.ent <Return> \
 	"focus $ADparent.applic.top.daemon.ent"
 
