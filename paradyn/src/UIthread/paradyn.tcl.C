@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.65  1996/02/16 20:11:58  tamches
-/* paradynProcessCmd now calls expand_tilde_pathname
+/* Revision 1.66  1996/02/19 14:41:35  naim
+/* Fixing problem when pressing RUN or PAUSE buttons "continously" - naim
 /*
+ * Revision 1.65  1996/02/16  20:11:58  tamches
+ * paradynProcessCmd now calls expand_tilde_pathname
+ *
  * Revision 1.64  1996/02/15 22:46:02  tamches
  * added applicationDefined
  *
@@ -263,12 +266,43 @@ extern appState PDapplicState;
 
 status_line *app_name=NULL;
 
+void disablePAUSEandRUN()
+{
+  string msg = string("Tcl interpreter failed in routine changeApplicState: ");
+  if (Tcl_VarEval(interp,"changeApplicState 2",0)==TCL_ERROR) {
+    msg += string((const char *) interp->result);
+    uiMgr->showError(83, P_strdup(msg.string_of()));
+  }
+}
+
+void enablePAUSEorRUN()
+{
+  string msg = string("Tcl interpreter failed in routine changeApplicState: ");
+  if (PDapplicState==appRunning) {
+    if (Tcl_VarEval(interp,"changeApplicState 1",0)==TCL_ERROR) {
+      msg += string((const char *) interp->result);
+      uiMgr->showError(83, P_strdup(msg.string_of()));
+    }   
+  }
+  else {
+    if (Tcl_VarEval(interp,"changeApplicState 0",0)==TCL_ERROR) {
+      msg += string((const char *) interp->result);
+      uiMgr->showError(83, P_strdup(msg.string_of()));
+    }
+  }
+}
+
 int ParadynPauseCmd(ClientData,
 		Tcl_Interp *,
 		int,
 		char **)
 {
-  dataMgr->pauseApplication();
+  static bool inPause=0;
+  if (!inPause) {
+    inPause=1;
+    dataMgr->pauseApplication();
+    inPause=0;
+  }
   return TCL_OK;
 }
 
@@ -277,7 +311,12 @@ int ParadynContCmd(ClientData,
 		int,
 		char **)
 {
-  dataMgr->continueApplication();
+  static bool inCont=0;
+  if (!inCont) {
+    inCont=1;
+    dataMgr->continueApplication();
+    inCont=0;
+  }
   return TCL_OK;
 }
 
@@ -460,32 +499,6 @@ int ParadynPrintCmd (ClientData,
 void processUsage()
 {
   printf("USAGE: process <-user user> <-machine machine> <-daemon> daemon> <-dir> directory \"command\"\n");
-}
-
-void disablePAUSEandRUN()
-{
-  string msg = string("Tcl interpreter failed in routine changeApplicState: ");
-  if (Tcl_VarEval(interp,"changeApplicState 2",0)==TCL_ERROR) {
-    msg += string((const char *) interp->result);
-    uiMgr->showError(83, P_strdup(msg.string_of()));
-  }
-}
-
-void enablePAUSEorRUN()
-{
-  string msg = string("Tcl interpreter failed in routine changeApplicState: ");
-  if (PDapplicState==appRunning) {
-    if (Tcl_VarEval(interp,"changeApplicState 1",0)==TCL_ERROR) {
-      msg += string((const char *) interp->result);
-      uiMgr->showError(83, P_strdup(msg.string_of()));
-    }   
-  }
-  else {
-    if (Tcl_VarEval(interp,"changeApplicState 0",0)==TCL_ERROR) {
-      msg += string((const char *) interp->result);
-      uiMgr->showError(83, P_strdup(msg.string_of()));
-    }
-  }
 }
 
 /****
