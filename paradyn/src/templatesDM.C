@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.35 2004/06/21 19:37:06 pcroth Exp $
+// $Id: templatesDM.C,v 1.36 2004/07/14 18:23:59 eli Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -105,7 +105,6 @@ class cpContext;
 #include "paradyn/src/DMthread/DMresource.h"
 #include "paradyn/src/DMthread/DMperfstream.h"
 #include "paradyn/src/DMthread/DMinclude.h"
-#include "paradyn/src/DMthread/DMabstractions.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 
 template class pdvector<phaseInfo *>;
@@ -122,7 +121,6 @@ template class pdvector<metric*>;
 template class pdvector<resource*>;
 template class pdvector<const resource*>;
 template class pdvector<resourceList*>;
-template class pdvector<abstraction*>;
 template class pdvector<metricInstance*>;
 template class pdvector<ArchiveType *>;
 template class pdvector<rlNameIdType>;
@@ -156,9 +154,6 @@ template class pdvector<cpContext *>;
 
 template class dictionary_hash<pdstring, resourceList*>;
 template class pdvector<dictionary_hash<pdstring, resourceList*>::entry>;
-
-template class dictionary_hash<pdstring, abstraction*>;
-template class pdvector<dictionary_hash<pdstring, abstraction*>::entry>;
 
 template class dictionary_hash<perfStreamHandle,performanceStream*>;
 template class pdvector<dictionary_hash<perfStreamHandle,performanceStream*>::entry>;
