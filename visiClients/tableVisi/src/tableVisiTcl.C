@@ -3,6 +3,10 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
+ * Revision 1.3  1995/11/15 01:07:15  tamches
+ * redrawing of a cell takes place as soon as new data arrives for it; we no
+ * longer redraw only last-common-bucket-among-all-mids
+ *
  * Revision 1.2  1995/11/08 21:56:05  tamches
  * when-idle routine does a tryFirst()
  * fold, invalidmetrics, phasename callbacks gone since unused
@@ -42,7 +46,7 @@ tkInstallIdle tableDrawWhenIdle(&tableWhenIdleDrawRoutine);
 
 /* ************************************************************* */
 
-int Dg2NewDataCallback(int lastBucket) {
+int Dg2NewDataCallback(int barf) {
 //   cout << "Dg2NewDataCallback (c++)" << endl;
    if (theTableVisi == NULL) { 
       cout << "Dg2NewDataCallback tableVisi: missed an early sample since not yet initialized" << endl;
@@ -57,12 +61,14 @@ int Dg2NewDataCallback(int lastBucket) {
     
       for (unsigned focuslcv=0; focuslcv < numFoci; focuslcv++) {
          visi_GridCellHisto &theCell = metricValues[focuslcv];
+         // const unsigned bucketToUse = lastBucket;
+         const unsigned bucketToUse = theCell.LastBucketFilled();
 
          if (!theCell.Valid)
             theTableVisi->invalidateCell(metriclcv, focuslcv);
          else if (currFormat==0) // current values
             theTableVisi->setCellValidData(metriclcv, focuslcv,
-					   theCell.Value(lastBucket));
+					   theCell.Value(bucketToUse));
          else if (currFormat==1) // average values
             theTableVisi->setCellValidData(metriclcv, focuslcv,
 					   dataGrid.AggregateValue(metriclcv,
