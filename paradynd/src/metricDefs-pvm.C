@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.4 1994/04/18 15:11:00 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.5 1994/04/18 15:54:41 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.4  1994/04/18 15:11:00  markc
+ * Revision 1.5  1994/04/18 15:54:41  markc
+ * Changed defaultMSGTagPredicate to look at the second parameter which is the
+ * message tag in pvm.
+ *
+ * Revision 1.4  1994/04/18  15:11:00  markc
  * Changed tag test in defaultMSGTagPredicate to original value.
  *
  * Revision 1.3  1994/04/13  16:48:13  hollings
@@ -398,7 +402,7 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 
     // TODO why a 2 here?
     // (== param2, iTag)
-    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 1),
+    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 2),
 				new AstNode(Constant, (void *) iTag));
 
     filterNode = createIf(tagTest, createPrimitiveCall("addCounter", data, 1));
