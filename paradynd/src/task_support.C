@@ -17,11 +17,14 @@
 
 
 /* $Log: task_support.C,v $
-/* Revision 1.2  1996/02/09 22:13:55  mjrg
-/* metric inheritance now works in all cases
-/* paradynd now always reports to paradyn when a process is ready to run
-/* fixed aggregation to handle first samples and addition of new components
+/* Revision 1.3  1996/03/11 19:04:14  mjrg
+/* commented out an error message that is not needed.
 /*
+ * Revision 1.2  1996/02/09 22:13:55  mjrg
+ * metric inheritance now works in all cases
+ * paradynd now always reports to paradyn when a process is ready to run
+ * fixed aggregation to handle first samples and addition of new components
+ *
  * Revision 1.1  1995/12/15 22:27:06  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
@@ -158,7 +161,8 @@ PDYN_reportSIGCHLD (int pid, int exit_status)
 #endif
 
   if (!(tp = mytasks.find((void*) pid))) {
-    pvm_perror("PDYN_reportSIGCHILD: could not find pid.\n");
+    // This is OK. The first process started is not in mytasks.
+    //pvm_perror("PDYN_reportSIGCHILD: could not find pid.\n");
     return;
   }
 
