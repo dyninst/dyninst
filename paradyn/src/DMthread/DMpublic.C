@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.51  1995/11/03 00:05:25  newhall
+ * Revision 1.52  1995/11/17 17:18:12  newhall
+ * added normalized member to metric class, support for MDL unitsType option
+ *
+ * Revision 1.51  1995/11/03  00:05:25  newhall
  * second part of sampling rate change
  *
  * Revision 1.50  1995/10/13  22:06:52  newhall
@@ -583,6 +586,7 @@ metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
     temp->metric_name = metricptr->getName();
     temp->metric_units = metricptr->getUnits();
     temp->focus_name = rl_temp->getName();
+    temp->normalized = metricptr->getNormalized();
     return(temp);
     temp = 0;
 }
@@ -1032,10 +1036,11 @@ void dataManagerUser::newMetricDefined(metricInfoCallback cb,
 				  int style,
 				  int aggregate,
 				  const char *units,
-				  metricHandle handle)
+				  metricHandle handle,
+				  bool normalized)
 {
     
-    (cb)(p_handle, name, style, aggregate, units, handle);
+    (cb)(p_handle, name, style, aggregate, units, handle, normalized);
 }
 
 void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
@@ -1102,6 +1107,7 @@ T_dyninstRPC::metricInfo *dataManager::getMetricInfo(metricHandle m_handle) {
 	copy->name = met->name;
 	copy->aggregate = met->aggregate;
 	copy->handle = met->handle;
+	copy->normalized = met->normalized;
 	return(copy);
     }
     return 0;

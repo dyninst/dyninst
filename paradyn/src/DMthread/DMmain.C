@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.80  1995/11/13 14:48:59  naim
+ * Revision 1.81  1995/11/17 17:18:02  newhall
+ * added normalized member to metric class, support for MDL unitsType option
+ *
+ * Revision 1.80  1995/11/13  14:48:59  naim
  * Fixing return value for function DM_sequential_init - naim
  *
  * Revision 1.79  1995/11/11  00:45:58  tamches
@@ -562,6 +565,8 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 
 void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
 {
+    cout << "IN DM: dynRPCUser::newMetricCallback called " 
+	 << " metric " << info.name.string_of() << endl;
     addMetric(info);
 }
 
@@ -710,19 +715,6 @@ void *DMmain(void* varg)
 	      printSampleArrivalCallback,
 	      developerConstant);
 
-// TODO remove this
-#ifdef ndef
-    // Now for the float TC "samplingRate"
-    tunableFloatConstantDeclarator sampR ("samplingRate",
-	      "how often to sample intermediate performance data (in seconds)",
-	      0.5, // initial value
-	      0.0, // min
-	      1000.0, // max
-	      DMchangeSampleRate, // callback
-	      userConstant);
-
-#endif
-
     int tid; memcpy((void*)&tid,varg, sizeof(int));
     dataManager::DM_post_thread_create_init(tid);
 
@@ -789,6 +781,7 @@ void addMetric(T_dyninstRPC::metricInfo &info)
         return;
     }
     metric *met = new metric(info);
+
     // now tell all perfStreams
     dictionary_hash_iter<perfStreamHandle,performanceStream*> 
 		allS(performanceStream::allStreams);
@@ -804,7 +797,8 @@ void addMetric(T_dyninstRPC::metricInfo &info)
 					      met->getStyle(),
 					      met->getAggregate(),
 					      met->getUnits(),
-					      met->getHandle());
+					      met->getHandle(),
+					      met->getNormalized());
 	}
     }
 }

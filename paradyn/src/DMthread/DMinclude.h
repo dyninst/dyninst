@@ -29,6 +29,7 @@ struct miInfoType{
     string metric_name;
     string metric_units;
     string focus_name;
+    bool normalized;
 };
 typedef struct miInfoType metricInstInfo;
 

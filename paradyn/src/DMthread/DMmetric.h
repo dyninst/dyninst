@@ -79,7 +79,8 @@ class metric {
     // TODO: remove these when PC is re-written ***************
     friend void PCmetricFunc(perfStreamHandle, const char *name,
 			     int style, int aggregate,
-			     const char *units, metricHandle m_handle);
+			     const char *units, metricHandle m_handle,
+			     bool normalized);
     friend void PCmain(void* varg);
     friend class PCmetric;
     friend void PCnewData(perfStreamHandle,metricInstanceHandle,
@@ -90,6 +91,7 @@ class metric {
 	const T_dyninstRPC::metricInfo  *getInfo() { return(&info); }
 	const char *getName() { return((info.name.string_of()));}
 	const char *getUnits() { return((info.units.string_of()));}
+	bool  getNormalized() { return((info.normalized));}
 	metricHandle getHandle() { return(info.handle);}
 	metricStyle  getStyle() { return((metricStyle) info.style); }
         int   getAggregate() { return info.aggregate;}
