@@ -335,6 +335,15 @@ class vector {
    DO_INLINE_F iterator       end()       { return begin() + sz_; }
    DO_INLINE_F const_iterator end() const { return begin() + sz_; }
 
+   DO_INLINE_F iterator       getIter(unsigned index)       { 
+     assert(index < sz_);
+     return data_ + index; 
+   }
+   DO_INLINE_F const_iterator getIter(unsigned index) const { 
+     assert(index < sz_);
+     return data_ + index;
+   }
+
  private:
    DO_INLINE_P
    static void deconstruct_items(T *first, T *last) {
