@@ -1,6 +1,11 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
+# Revision 1.15  1995/11/16 00:48:25  tamches
+# logo is now looked for in $PdBitmapDir, instead of being hard-coded in.
+# selecting "tunable constants" when the window already exists will now
+# de-iconify and raise it (instead of doing nothing)
+#
 # Revision 1.14  1995/10/12 18:34:10  tamches
 # Got rid of boolTunableDescriptionU and floatTunableDescriptionUMM,
 # which were causing mysterious tcl code crashes.  Replaced with the
@@ -142,9 +147,10 @@ proc tunableInitialize {} {
       # expand is false; if the window is made taller, we don't want the extra height
    
    # .tune.top.logo -- paradyn logo
+   global PdBitmapDir
    label .tune.top.logo -relief raised \
-                     -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
-                     -foreground #b3331e1b53c7
+                     -bitmap @$PdBitmapDir/logo.xbm \
+                     -foreground cornflowerblue
    pack  .tune.top.logo -side right
       # expand is false; if the window is made wider, we don't want the extra width
    
@@ -168,7 +174,8 @@ proc tunableInitialize {} {
 
    # .tune.top.left.titlebar -- Title ("Tunable Constants") (above menu bar)
    label .tune.top.left.titlebar -text "Tunable Constants" -foreground white \
-	   -background "cornflower blue" -font *-New*Century*Schoolbook-Bold-R-*-14-*
+	   -background "cornflower blue" -font *-New*Century*Schoolbook-Bold-R-*-14-* \
+	   -anchor c -relief raised
    pack  .tune.top.left.titlebar -side top -fill both -expand true
       # expand is true; we want to fill up .tune.top.left (which itself won't enlarge so OK)
 
@@ -1034,7 +1041,11 @@ proc tunableEntryPoint {} {
    global lastVisibleWidth lastVisibleHeight
 
    if {[winfo exists .tune]} {
-      # tunable constants is already up!
+      # tunable constants window already exists; let's de-iconify it
+      # (if necessary) and raise it to the front of all other toplevel windows.
+      wm deiconify .tune
+      raise .tune
+
       return
    }
 
