@@ -378,6 +378,9 @@ bool BPatch_thread::dumpCore(const char *file, bool terminate)
  */
 bool BPatch_thread::dumpImage(const char *file)
 {
+#ifdef i386_unknown_nt4_0
+    return false;
+#else
     bool was_stopped;
     bool had_unreportedStop = unreportedStop;
     if (isStopped()) was_stopped = true;
@@ -393,6 +396,7 @@ bool BPatch_thread::dumpImage(const char *file)
     }
 
     return ret;
+#endif
 }
 
 
@@ -730,7 +734,7 @@ void BPatch_thread::oneTimeCodeCallback(void */*userData*/, unsigned returnValue
 int BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
 {
     if (!statusIsStopped())
-	return;
+	return -1;
 
     proc->postRPCtoDo(expr.ast,
 		      false, // XXX = calculate cost - is this what we want?
@@ -760,6 +764,9 @@ int BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
 bool BPatch_thread::loadLibrary(char *libname)
 {
 #ifdef sparc_sun_solaris2_4
+    if (!statusIsStopped())
+	return false;
+
     BPatch_Vector<BPatch_snippet *> args;
 
     BPatch_constExpr nameArg(libname);

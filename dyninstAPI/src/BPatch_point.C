@@ -92,7 +92,7 @@ BPatch_function *BPatch_point::getCalledFunction()
  */
 void *BPatch_point::getAddress()
 {
-    return point->iPgetAddress();
+    return (void *)point->iPgetAddress();
 }
 
 

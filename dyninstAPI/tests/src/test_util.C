@@ -32,7 +32,7 @@ void waitUntilStopped(BPatch_thread *appThread, int testnum, char *testname)
 	exit(-1);
     }
 #ifdef i386_unknown_nt4_0
-    else if (appThread->stopSignal() != SIGTRAP) {
+    else if (appThread->stopSignal() != SIGTRAP && appThread->stopSignal() != -1) {
 	printf("**Failed test #%d (%s)\n", testnum, testname);
 	printf("    process stopped on signal %d, not SIGTRAP\n", 
 		appThread->stopSignal());
