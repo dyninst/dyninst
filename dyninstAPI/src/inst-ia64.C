@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.1 2002/02/11 22:01:48 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.2 2002/02/21 19:15:19 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -2926,7 +2926,10 @@ bool process::emitInferiorRPCtrailer(void *void_insnPtr, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool shouldStopForResult,
 				     unsigned &stopForResultOffset,
-				     unsigned &justAfter_stopForResultOffset) {
+				     unsigned &justAfter_stopForResultOffset,
+                                     int /* thrId */,
+                                     bool /* isMT */) {
+
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
       // unsigned char * is the most natural to work with on x86, since instructions
       // are always an integral # of bytes.  Besides, it makes the following line easy:

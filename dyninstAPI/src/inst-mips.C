@@ -2813,7 +2813,9 @@ bool process::emitInferiorRPCtrailer(void *code_, Address &base,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
-				     unsigned &justAfter_stopForResultOffset)
+				     unsigned &justAfter_stopForResultOffset,
+                                     int /* thrId */,
+                                     bool /* isMT */)
 {
   TRACE_B( "process::emitInferiorRPCtrailer" );
 
