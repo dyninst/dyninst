@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: ntHeaders.h,v 1.2 1998/03/01 18:51:01 wylie Exp $
+
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
 
@@ -55,9 +57,9 @@
 #include <malloc.h>
 
 extern "C" {
+#include "rpc/rpc.h"
 #include "rpc/types.h"
 #include "rpc/xdr.h"
-#include "rpc/rpc.h"
 }
 
 #include <winnt.h>
@@ -72,7 +74,6 @@ extern "C" {
 #include <sys/stat.h>
 #include <float.h>
 
-//#include <rpc/xdr.h>
 #define isnan _isnan
 #define alloca _alloca
 
