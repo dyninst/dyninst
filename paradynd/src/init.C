@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.66 2002/06/17 21:31:16 chadd Exp $
+// $Id: init.C,v 1.67 2002/06/25 20:27:36 bernat Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -387,10 +387,6 @@ bool init() {
   activeProcs->setStyle(SampledFunction);
 
   sym_data sd;
-
-#if defined(MT_THREAD)
-  sd.name = "DYNINSTthreadTable"; sd.must_find = true; syms_to_findPARADYN += sd;
-#endif
 
   sd.name = "DYNINST_bootstrap_info"; sd.must_find = true; syms_to_findPARADYN += sd;
 

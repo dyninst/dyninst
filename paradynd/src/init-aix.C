@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.22 2002/06/17 21:31:16 chadd Exp $
+// $Id: init-aix.C,v 1.23 2002/06/25 20:27:35 bernat Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -182,28 +182,23 @@ bool initOS()
   // Official gotten-from-tracing name. While pthread_create() is the
   // call made from user space, _pthread_body is the parent of any created
   // thread, and so is a good place to instrument.
+
   initialRequestsPARADYN += new instMapping("_pthread_body",
-				     "DYNINST_VirtualTimerCREATE",
-				     FUNC_ENTRY, callPreInsn,
-				     orderLastAtPoint) ;
-  /*
-  initialRequestsPARADYN += new instMapping("pthread_create",
-				     "DYNINST_VirtualTimerCREATE",
-				     FUNC_ENTRY, callPreInsn,
-				     orderLastAtPoint) ;
-  */
+					    "DYNINST_dummy_create",
+					    FUNC_ENTRY, callPreInsn,
+					    orderFirstAtPoint);
   initialRequestsPARADYN += new instMapping("pthread_exit", "DYNINSTthreadDelete", 
-                                     FUNC_ENTRY, callPreInsn, 
-				     orderLastAtPoint);
+					    FUNC_ENTRY, callPreInsn, 
+					    orderLastAtPoint);
   // Should really be the longjmp in the pthread library
   initialRequestsPARADYN += new instMapping("_longjmp",
-				     "DYNINSTthreadStart",
-				     FUNC_ENTRY, callPreInsn,
-				     orderLastAtPoint) ;
+					    "DYNINSTthreadStart",
+					    FUNC_ENTRY, callPreInsn,
+					    orderLastAtPoint) ;
   initialRequestsPARADYN += new instMapping("_usched_swtch",
-				     "DYNINSTthreadStop",
-				     FUNC_ENTRY, callPreInsn,
-				     orderLastAtPoint) ;
+					    "DYNINSTthreadStop",
+					    FUNC_ENTRY, callPreInsn,
+					    orderLastAtPoint) ;
   // Thread SyncObjects
   // mutex
   AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
