@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-irix.c,v 1.8 2000/10/17 17:42:51 schendel Exp $ */
+/* $Id: RTetc-irix.c,v 1.9 2001/02/23 23:25:34 shergali Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -60,6 +60,9 @@
 #include <sys/timers.h>               /* PTIMER macros */
 #include <invent.h>                   /* getinvent() */
 #include <limits.h>                   /* for INT_MAX */
+#include <sys/timers.h>
+#include <sys/hwperfmacros.h>	      /* r10k_counter macros */
+#include <sys/hwperftypes.h>	      /* r10k_counter types */
 
 
 /*
@@ -68,6 +71,45 @@
 /* timer state */
 static int ctr_procFd = -1;
 uint64_t *walltime_ctr_addr  = NULL;
+int generation1 = 0;	/* virtualized counter generation number */
+
+/* check for harware counter availability */
+char ctr_HardwareCpuAvailable()
+{
+    int i=0;
+    hwperf_profevctrarg_t* evctr_args;
+
+    if(!(evctr_args=malloc(sizeof(hwperf_profevctrarg_t))))
+    {
+	fprintf(stderr,"Out of memory hwperf\n");
+	abort();
+    }
+
+    for(i = 0; i < HWPERF_EVENTMAX; ++i)
+    {
+	if(i==0)
+	{
+	    evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_creg.hwp_mode = HWPERF_CNTEN_U;
+	    evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_creg.hwp_ie = 1;
+	    evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_creg.hwp_ev = i;
+	    evctr_args->hwp_ovflw_freq[i] = 0;
+	} else {
+	    evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_spec = 0;
+	    evctr_args->hwp_ovflw_freq[i] = 0;
+	}
+    }
+    evctr_args->hwp_ovflw_sig = 0;
+    generation1 = ioctl(ctr_procFd, PIOCENEVCTRS, (void *)evctr_args);
+    free(evctr_args);
+    if( generation1 < 0) {
+	return 0;
+    }
+    else
+    {
+	return 1;
+    }
+}
+
 
 int ctr_mapCycleCounter(uint64_t **ctr_addr)
 {
@@ -110,7 +152,17 @@ void PARADYNos_init(int calledByFork, int calledByAttach)
     perror("PARADYNos_init - open()");
     abort();
   }
-  hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
+
+  if(ctr_HardwareCpuAvailable())
+  {
+      /* virtualized hardware counters available */
+      hintBestCpuTimerLevel = HARDWARE_TIMER_LEVEL;
+  }
+  else
+  {
+      hintBestCpuTimerLevel = SOFTWARE_TIMER_LEVEL;
+  }
+
   if (ctr_mapCycleCounter(&walltime_ctr_addr) == 0) {
     // high resolution wall time initialization successful
     hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
@@ -136,10 +188,49 @@ static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 
 
 /* --- CPU time retrieval functions --- */
-/* Hardware Level --- */
+/* Hardware Level --- 
+ * method:	gets out of proc fs
+ * return unit:	cycles
+*/
 rawTime64 
 DYNINSTgetCPUtime_hw(void) {
-  return 0;
+    static rawTime64 cpuPrevious;
+    static int cpuRollbackOccurred = 0;
+    rawTime64 ret, tmp_cpuPrevious=cpuPrevious;
+	
+    hwperf_cntr_t cnts;
+    int generation2 = ioctl(ctr_procFd, PIOCGETEVCTRS, (void *)&cnts);
+
+    if(generation2 < 0) {
+	perror("PIOCGETEVCTRS returns error");
+	abort();
+    }
+    else if (generation2 != generation1) {
+	fprintf(stderr,"program lost even counters\n");
+	abort();
+    }
+    else {
+	ret = cnts.hwp_evctr[0];
+    }
+    if(ret < tmp_cpuPrevious) {
+	if(cpuRollbackOccurred < MaxRollbackReport) {
+	    rtUIMsg traceData;
+	    sprintf(traceData.msgString, "CPU Time rollback %lld with current "
+		    "time: %lld cycles, using previous value %lld cycles.",
+		    tmp_cpuPrevious-ret,ret,tmp_cpuPrevious);
+	    traceData.errorNum = 112;
+	    traceData.msgType = rtWarning;
+	    DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
+		    &traceData,1,1,1);
+	}
+	cpuRollbackOccurred++;
+	ret = cpuPrevious;
+    }
+    else {
+	cpuPrevious = ret;
+    }
+
+    return ret;
 }
 
 /* Software Level ---
