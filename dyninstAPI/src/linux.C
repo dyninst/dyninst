@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.38 2000/07/28 17:21:15 pcroth Exp $
+// $Id: linux.C,v 1.39 2000/08/18 20:10:50 zandy Exp $
 
 #include <fstream.h>
 
@@ -583,7 +583,7 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 
      /* Resume the process.  We expect it to re-execute the code that
         generated the SIGILL.  Now that we are attached, we'll get the
-        SIGILL event and handle it as usual. */
+        SIGILL event and handle it with handleSigChild as usual. */
      if (!p->continueProc())
 	  assert(0);
 }
