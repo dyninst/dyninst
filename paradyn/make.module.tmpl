@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.20  1995/12/12 22:33:07  newhall
+# divided templates.C into 3 template files
+#
 # Revision 1.19  1995/11/29 00:14:52  tamches
 # added pdLogo.C
 #
@@ -131,7 +134,9 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		metParser.C \
 		metScanner.C \
 		../src/met/metClass.C \
-		../src/templates.C  \
+		../src/templatesIGENMDL.C  \
+		../src/templatesDMPCV.C  \
+		../src/templatesUI.C  \
                 ../src/met/mdl.C
 
 IGEN_GEN_SRCS =	dataManager.thread.C \
@@ -190,8 +195,12 @@ metTester: metParser.o metTester.o metScanner.o metTemplates.o metClass.o
 	$(CXX) $(LIBDIR) -o metTester metTemplates.o metParser.o metTester.o \
 	metScanner.o metClass.o -lfl
 
-templates.o: ../src/templates.C
-	$(CXX) $(TFLAGS) -c ../src/templates.C
+templatesIGENMDL.o: ../src/templatesIGENMDL.C
+	$(CXX) $(TFLAGS) -c ../src/templatesIGENMDL.C
+templatesDMPCV.o: ../src/templatesDMPCV.C
+	$(CXX) $(TFLAGS) -c ../src/templatesDMPCV.C
+templatesUI.o: ../src/templatesUI.C
+	$(CXX) $(TFLAGS) -c ../src/templatesUI.C
 
 $(TCL2C_GEN_SRCS):	$(TCL_SRCS)
 	$(TCL2C) $^ > $@
