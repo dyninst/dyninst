@@ -62,6 +62,11 @@ static int (*visi_eventCallbacks[EVENTSIZE])(int);
 static int visi_initDone = 0;
 static visualization *visi_vp;
 
+#ifdef SAMPLEVALUE_DEBUG
+debug_ostream sampleVal_cerr(cerr, true);
+#else
+debug_ostream sampleVal_cerr(cerr, false);
+#endif
 
 int
 visi_callback( void )
@@ -262,7 +267,7 @@ void visi_DefinePhase(char *name, unsigned withPerfConsult,
 //  DATAVALUES event.
 ///////////////////////////////////////////////////////////
 void visualization::Data(vector<T_visi::dataValue> data){
-
+  sampleVal_cerr << "visualization::Data\n";
   if(!visi_initDone)
     visi_Init();
 
@@ -274,6 +279,10 @@ void visualization::Data(vector<T_visi::dataValue> data){
       int metric = visi_dataGrid.MetricIndex(data[i].metricId);
       int j = visi_dataGrid.ResourceIndex(data[i].resourceId);
       if((j >= 0) && (metric >= 0)){
+	sampleVal_cerr << "  " << i <<" "<<visi_dataGrid.MetricName(metric)
+		       << " - " << visi_dataGrid.ResourceName(j) 
+		       << "   AddValue  bucket: " << data[i].bucketNum 
+		       << "  data: " << data[i].data << "\n";
          visi_dataGrid.AddValue(metric,j,
 		         data[i].bucketNum,
 		         data[i].data);

@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.8 1999/12/06 23:07:08 pcroth Exp $
+// $Id: datagridP.h,v 1.9 2000/07/18 17:14:33 schendel Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -144,6 +144,7 @@ class PhaseInfo{
     visi_timeType getBucketWidth() const{ return(bucketWidth);}
 };
 
+extern debug_ostream sampleVal_cerr;
 
 ///////////////////////////////////////////////////////////////////
 // visi_GridCellHisto: 
@@ -258,9 +259,13 @@ class visi_GridCellHisto {
 	       sum += value[i]; 
 	     }
 	   }
+	   sampleVal_cerr << "  numBuckets: " << size << "  sum: " << sum 
+			  << "  width: " << width << "  sum*width: " 
+			  << sum*width << "\n"; 
 	   return(sum*width);
 	}
 	else{
+	  sampleVal_cerr << " value == NULL\n";
 	  return(VISI_ERROR);
 	}
      }
@@ -268,7 +273,6 @@ class visi_GridCellHisto {
      visi_sampleType  AggregateValue(){
 	int i,num;
 	visi_sampleType sum;
-
         if(value != NULL){
            for(sum=0.0,num=i=0; i< size; i++){
 	     if(!isnan(value[i])){
@@ -278,6 +282,8 @@ class visi_GridCellHisto {
 	   }
 
            if(num != 0){
+	     sampleVal_cerr << "  sum: " << sum << "  num: " << num 
+			    << "  sum/num: " << (sum/(1.0*num)) << "\n";
 	     return(sum/(1.0*num));
 	   }
 	   else{
@@ -561,6 +567,8 @@ class visi_DataGrid {
      }
 
      visi_sampleType AggregateValue(int i,int j){
+       sampleVal_cerr << "AggregateValue (avg)-  " << MetricName(i) << " "
+		      << ResourceName(j) << "\n";
        if((i>=0)&&(i<numMetrics))
 	 return(data_values[i].AggregateValue(j)); 
        else
@@ -568,6 +576,8 @@ class visi_DataGrid {
      }
 
      visi_sampleType  SumValue(int i,int j){
+       sampleVal_cerr << "datagrid::SumValue()-  " << MetricName(i) << " "
+		      << ResourceName(j) << "\n";
        if((i>=0)&&(i<numMetrics))
 	 return(data_values[i].SumValue(j,binWidth)); 
        else
