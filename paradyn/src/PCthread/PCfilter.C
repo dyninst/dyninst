@@ -21,7 +21,11 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.13  1996/04/30 18:56:57  newhall
+ * Revision 1.14  1996/05/01 14:06:55  naim
+ * Multiples changes in PC to make call to requestNodeInfoCallback async.
+ * (UI<->PC). I also added some debugging information - naim
+ *
+ * Revision 1.13  1996/04/30  18:56:57  newhall
  * changes to support the asynchrounous enable data calls to the DM
  * this code contains a kludge to make the PC wait for the DM's async response
  *
@@ -88,8 +92,9 @@
 #include "PCfilter.h"
 #include "PCintern.h"
 #include "PCmetricInst.h"
+#include "dataManager.thread.h"
 
-#ifdef PCDEBUG
+#ifdef MYPCDEBUG
 #include <sys/time.h>
 double TESTgetTime()
 {
@@ -99,6 +104,8 @@ double TESTgetTime()
   now = (double) tv.tv_sec + ((double)tv.tv_usec/(double)1000000.0);
   return(now);
 }
+static double enableTotTime=0.0,enableWorstTime=0.0;
+static int enableCounter=0;
 #endif
 
 extern performanceConsultant *pc;
@@ -182,6 +189,10 @@ void filter::getInitialSendTime(timeStamp startTime)
 void
 avgFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
 {
+#ifdef MYPCDEBUG
+    double t1,t2,t3,t4;
+    t1=TESTgetTime();
+#endif
   // lack of forward progress signals a serious internal data handling error
   // in paradyn DM and will absolutely break the PC
   assert (end > lastDataSeen);
@@ -231,8 +242,14 @@ avgFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
     timeStamp pieceOfInterval = nextSendTime - start;
     workingValue += newVal * (pieceOfInterval);
     workingInterval += pieceOfInterval;
+#ifdef MYPCDEBUG
+    t3=TESTgetTime();
+#endif
     sendValue(mi, workingValue/workingInterval, partialIntervalStartTime, 
               nextSendTime, 0);
+#ifdef MYPCDEBUG
+    t4=TESTgetTime();
+#endif
 #ifdef PCDEBUG
     // debug printing
     if (performanceConsultant::printDataTrace) {
@@ -265,6 +282,13 @@ avgFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
   if (performanceConsultant::printDataTrace) {
     cout << *this;
   }
+#endif
+
+#ifdef MYPCDEBUG
+    t2=TESTgetTime();
+    if ((t2-t1) > 1.0) {
+      printf("********** filter::newData took %5.2f seconds, sendValue took %5.2f seconds\n",t2-t1,t4-t3);
+    }
 #endif
 }
 
@@ -405,10 +429,12 @@ void
 filteredDataServer::resubscribeAllData() 
 {
   metricInstanceHandle *curr;
+#ifdef MYPCDEBUG
   double t1,t2;
+#endif
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
-#ifdef PCDEBUG
+#ifdef MYPCDEBUG
       if (performanceConsultant::collectInstrTimings) {
 	t1=TESTgetTime(); 
       }
@@ -458,12 +484,15 @@ filteredDataServer::resubscribeAllData()
 	  *curr = (*response)[0].mi_id; 
       }
 
-#ifdef PCDEBUG
+#ifdef MYPCDEBUG
       // -------------------------- PCDEBUG ------------------
       if (performanceConsultant::collectInstrTimings) {
         t2=TESTgetTime();
+        enableTotTime += t2-t1;
+        enableCounter++;
+        if ((t2-t1) > enableWorstTime) enableWorstTime = t2-t1;
         if ((t2-t1) > 1.0) 
-	  printf("==> TEST <== PCfilter 1, enableDataCollection2 took %5.2f secs\n",t2-t1); 
+	  printf("=-=-=-=> PCfilter 1, enableDataRequest2 took %5.2f secs, avg=%5.2f, worst=%5.2f\n",t2-t1,enableTotTime/enableCounter,enableWorstTime); 
       }
       // -------------------------- PCDEBUG ------------------
 #endif
@@ -478,17 +507,17 @@ filteredDataServer::resubscribeAllData()
 void
 filteredDataServer::unsubscribeAllData() 
 {
-  double t1,t2;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
-#ifdef PCDEBUG
+#ifdef MYPCDEBUG
+      double t1,t2;
       if (performanceConsultant::collectInstrTimings) {
 	t1=TESTgetTime(); 
-    }
+      }
 #endif
       dataMgr->disableDataCollection(filteredDataServer::pstream, 
 				     AllDataFilters[i]->getMI(), phType);
-#ifdef PCDEBUG
+#ifdef MYPCDEBUG
       // -------------------------- PCDEBUG ------------------
       if (performanceConsultant::collectInstrTimings) {
         t2=TESTgetTime();
@@ -505,6 +534,9 @@ filteredDataServer::~filteredDataServer ()
 {
   unsubscribeAllData();
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
+#ifdef MYPCDEBUG
+    if (!AllDataFilters[i]) printf("++++++++++++++ AllDataFilters[%d] is NULL\n",i);
+#endif
     delete AllDataFilters[i];
   }
 }
@@ -519,9 +551,11 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   filter *subfilter;
   metricInstanceHandle *index;
   metricInstanceHandle indexCopy;
+#ifdef MYPCDEBUG
   double t1,t2;
+#endif
   // does filter already exist?
-#ifdef PCDEBUG
+#ifdef MYPCDEBUG
   if (performanceConsultant::collectInstrTimings) {
     t1=TESTgetTime(); 
   }
@@ -571,11 +605,14 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 	  *index = (*response)[0].mi_id; 
       }
 
-#ifdef PCDEBUG
+#ifdef MYPCDEBUG
   if (performanceConsultant::collectInstrTimings) {
     t2=TESTgetTime();
+    enableTotTime += t2-t1;
+    enableCounter++;
+    if ((t2-t1) > enableWorstTime) enableWorstTime = t2-t1;
     if ((t2-t1) > 1.0)
-      printf("==> TEST <== PCfilter 2, enableDataCollection2 took %5.2f secs\n",t2-t1); 
+      printf("=-=-=-=> PCfilter 2, enableDataRequest2 took %5.2f secs, avg=%5.2f, worst=%5.2f\n",t2-t1,enableTotTime/enableCounter,enableWorstTime);
   }
 #endif
   if (index == NULL) {
@@ -603,6 +640,9 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
       << dataMgr->getMetricNameFromMI(indexCopy) << " methandle=" << mh << endl
 	<< "foc=" << dataMgr->getFocusNameFromMI(indexCopy) << endl;
   }
+#endif
+
+#ifdef MYPCDEBUG
   if (performanceConsultant::collectInstrTimings) {
     if ((t2-t1) > 1.0) 
       printf("==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(indexCopy),dataMgr->getFocusNameFromMI(indexCopy)); 
@@ -636,20 +676,20 @@ void
 filteredDataServer::endSubscription(fdsSubscriber sub, 
 				    fdsDataID subID)
 {
-  double t1,t2;
   // find filter by subID
   int subsLeft;
   if (DataFilters.defines((unsigned)subID)) { 
     subsLeft = DataFilters[(unsigned)subID]->rmConsumer(sub);
     if (subsLeft == 0) {
-#ifdef PCDEBUG
+#ifdef MYPCDEBUG
+      double t1,t2;
       if (performanceConsultant::collectInstrTimings) {
 	t1=TESTgetTime();
       }
 #endif
       dataMgr->clearPersistentData(subID);
       dataMgr->disableDataCollection (pstream, subID, phType);
-#ifdef PCDEBUG
+#ifdef MYPCDEBUG
       if (performanceConsultant::collectInstrTimings) {
         t2=TESTgetTime();
         if ((t2-t1) > 1.0) 

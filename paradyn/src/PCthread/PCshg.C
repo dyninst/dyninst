@@ -20,7 +20,11 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
- * Revision 1.41  1996/04/30 06:27:09  karavan
+ * Revision 1.42  1996/05/01 14:07:05  naim
+ * Multiples changes in PC to make call to requestNodeInfoCallback async.
+ * (UI<->PC). I also added some debugging information - naim
+ *
+ * Revision 1.41  1996/04/30  06:27:09  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
  *
@@ -108,6 +112,10 @@
 #include "PCshg.h"
 #include "PCexperiment.h"
 #include "PCsearch.h"
+
+#ifdef MYPCDEBUG
+extern double TESTgetTime();
+#endif
 
 //
 // default explanation functions
@@ -292,7 +300,15 @@ searchHistoryGraph::flushUIbuffer()
   if (uiRequestBuff) {
     unsigned bufSize = uiRequestBuff->size();
     if (!bufSize) return; // avoid sending empty buffer
+#ifdef MYPCDEBUG
+  double t2,t1=TESTgetTime();
+#endif
     uiMgr->DAGaddBatchOfEdges(guiToken, uiRequestBuff, bufSize);
+#ifdef MYPCDEBUG
+  t2=TESTgetTime();
+  if ((t2-t1)>1.0) 
+    printf("********* DAGaddBatchOfEdges took %5.2f seconds\n",t2-t1);
+#endif
     uiRequestBuff = 0;
   }
 }

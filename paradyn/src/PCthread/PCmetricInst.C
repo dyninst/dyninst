@@ -20,7 +20,11 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
- * Revision 1.7  1996/04/30 06:27:00  karavan
+ * Revision 1.8  1996/05/01 14:06:59  naim
+ * Multiples changes in PC to make call to requestNodeInfoCallback async.
+ * (UI<->PC). I also added some debugging information - naim
+ *
+ * Revision 1.7  1996/04/30  06:27:00  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
  *
@@ -91,6 +95,10 @@
 #include "PCmetricInst.h"
 
 typedef experiment* PCmiSubscriber;
+
+#ifdef MYPCDEBUG
+extern double TESTgetTime();
+#endif
 
 ostream& operator <<(ostream &os, PCmetricInst &pcm)
 {
@@ -339,7 +347,16 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
       pauseNorm = AllCurrentValues[0];
 
     // notify all consumers of this PCmi of the new value
+#ifdef MYPCDEBUG
+    double t1,t2;
+    t1=TESTgetTime();
+#endif
     sendValue (0, newguy, start, end, pauseNorm);
+#ifdef MYPCDEBUG
+    t2=TESTgetTime();
+    if ((t2-t1) > 1.0)
+      printf("-------------> sendValue in PCmetricInst took %5.2f seconds\n",t2-t1);
+#endif
   }
 }
 

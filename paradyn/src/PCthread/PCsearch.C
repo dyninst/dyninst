@@ -20,7 +20,11 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
- * Revision 1.10  1996/04/30 06:26:41  karavan
+ * Revision 1.11  1996/05/01 14:07:03  naim
+ * Multiples changes in PC to make call to requestNodeInfoCallback async.
+ * (UI<->PC). I also added some debugging information - naim
+ *
+ * Revision 1.10  1996/04/30  06:26:41  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
  *
@@ -93,6 +97,11 @@
 #include <iostream.h>
 #include <fstream.h>
 
+// for debugging purposes
+#ifdef MYPCDEBUG
+extern double TESTgetTime();
+#endif
+
 extern void initPChypos();
 extern void initPCmetrics();
 extern sampleValue DivideEval (focus, sampleValue *data, int dataSize);
@@ -117,6 +126,12 @@ bool PChyposDefined = false;
 void 
 PCsearch::expandSearch (sampleValue estimatedCost)
 {
+#ifdef MYPCDEBUG
+  double t1,t2;
+  static double totTime=0.0,worstTime=0.0;
+  static int TESTcounter=0;
+  t1=TESTgetTime();
+#endif
   bool costLimitReached = false;
   searchHistoryNode *curr;
 #ifdef PCDEBUG
@@ -160,6 +175,13 @@ PCsearch::expandSearch (sampleValue estimatedCost)
       q->delete_first();
     } 
   }
+#ifdef MYPCDEBUG
+  t2=TESTgetTime();
+  totTime += t2-t1;
+  TESTcounter++;
+  if ((t2-t1) > worstTime) worstTime = t2-t1;
+  if ((t2-t1) > 1.0) printf("*****+++++***** expandSearch took %5.2f seconds, avg=%5.2f, worst=%5.2f\n",t2-t1,totTime/TESTcounter,worstTime);
+#endif
 }
 
 PCsearch::PCsearch(unsigned phaseID, phaseType phase_type)

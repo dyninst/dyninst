@@ -21,7 +21,11 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
- * Revision 1.33  1996/04/21 21:44:23  newhall
+ * Revision 1.34  1996/05/01 14:07:01  naim
+ * Multiples changes in PC to make call to requestNodeInfoCallback async.
+ * (UI<->PC). I also added some debugging information - naim
+ *
+ * Revision 1.33  1996/04/21  21:44:23  newhall
  * removed performanceConsultant::getPredictedDataCostCallbackPC
  *
  * Revision 1.32  1996/04/18  22:01:57  naim
@@ -104,16 +108,19 @@ performanceConsultant::endSearch(unsigned phaseID)
 // Get loads of information about an SHG node:
 // "theInfo" gets filled in.  Returns true iff successful.
 
-bool
-performanceConsultant::getNodeInfo(unsigned phaseID, int nodeID, 
-				   shg_node_info *theInfo)
+void
+performanceConsultant::requestNodeInfo(unsigned phaseID, int nodeID) 
 {
-  // find appropriate search object
-  if (PCsearch::AllPCSearches.defines(phaseID)) {
-    if (PCsearch::AllPCSearches[phaseID]->getNodeInfo(nodeID, theInfo))
-      return true;
+  shg_node_info *theInfo = new shg_node_info;
+  bool ok=false;
+  if (theInfo) {
+    // find appropriate search object
+    if (PCsearch::AllPCSearches.defines(phaseID)) {
+      if (PCsearch::AllPCSearches[phaseID]->getNodeInfo(nodeID,theInfo))
+        ok=true;
+    }
   }
-    return false;
+  uiMgr->requestNodeInfoCallback(phaseID,nodeID,theInfo,ok);
 }
 
 

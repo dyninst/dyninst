@@ -20,7 +20,11 @@
  * dataSubscriber and dataProvider base classes
  *
  * $Log: PCdata.C,v $
- * Revision 1.1  1996/02/02 02:06:29  karavan
+ * Revision 1.2  1996/05/01 14:06:53  naim
+ * Multiples changes in PC to make call to requestNodeInfoCallback async.
+ * (UI<->PC). I also added some debugging information - naim
+ *
+ * Revision 1.1  1996/02/02  02:06:29  karavan
  * A baby Performance Consultant is born!
  *
  */
@@ -60,6 +64,9 @@ dataProvider::sendValue(PCmetDataID which, sampleValue newval, timeStamp begin,
 			timeStamp end, sampleValue norm)
 {
   unsigned size = allConsumers.size();
+#ifdef MYPCDEBUG
+  if (size > 500) printf("================> allConsumers.size() = %d\n",size);
+#endif
   for (unsigned i = 0; i < size; i++) {
     if (allConsumers[i] != NULL)
       (allConsumers[i])->newData (which, newval, begin, end, norm);

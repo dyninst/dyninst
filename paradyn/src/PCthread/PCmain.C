@@ -16,10 +16,14 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.56  1996/04/30 18:56:59  newhall
-/* changes to support the asynchrounous enable data calls to the DM
-/* this code contains a kludge to make the PC wait for the DM's async response
+/* Revision 1.57  1996/05/01 14:06:57  naim
+/* Multiples changes in PC to make call to requestNodeInfoCallback async.
+/* (UI<->PC). I also added some debugging information - naim
 /*
+ * Revision 1.56  1996/04/30  18:56:59  newhall
+ * changes to support the asynchrounous enable data calls to the DM
+ * this code contains a kludge to make the PC wait for the DM's async response
+ *
  * Revision 1.55  1996/04/30  06:26:55  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -118,6 +122,12 @@ extern thread_t MAINtid;
 // 
 extern void initPCconstants();
 const unsigned GlobalPhaseID = 0;
+
+// for debugging purposes
+#ifdef MYPCDEBUG
+extern double TESTgetTime();
+#endif
+
 //
 // pc thread globals
 //
@@ -195,6 +205,14 @@ float getPredictedDataCostAsync(perfStreamHandle pstream,
 				resourceListHandle foc, 
 				metricHandle metric) {
 
+#ifdef MYPCDEBUG
+  double t1,t2;
+  static double worstTime=0.0;
+  static double totTime=0.0;
+  static int TESTcounter=0;
+  t1=TESTgetTime();
+#endif
+
   dataMgr->getPredictedDataCost(pstream,metric,foc);
 
   // KLUDGE: make the PC wait for the async response from the DM
@@ -224,6 +242,13 @@ float getPredictedDataCostAsync(perfStreamHandle pstream,
           assert(0);
       }
   }
+#ifdef MYPCDEBUG
+  t2=TESTgetTime();
+  totTime += t2-t1;
+  TESTcounter++;
+  if ((t2-t1) > worstTime) worstTime = t2-t1;
+  if ((t2-t1) > 1.0) printf("=======> getPredictedDataCostAsync took %5.2f seconds, avg=%5.2f, worst=%5.2f\n",t2-t1,totTime/TESTcounter,worstTime);
+#endif
   return(result);
 }
 
@@ -233,6 +258,10 @@ float getPredictedDataCostAsync(perfStreamHandle pstream,
 void PCnewDataCallback(vector<dataValueType> *values,
 		       u_int num_values) 
 {
+#ifdef MYPCDEBUG
+    double t1,t2;
+    t1=TESTgetTime();
+#endif
     if (values->size() < num_values) num_values = values->size();
     dataValueType *curr;
 
@@ -260,6 +289,16 @@ void PCnewDataCallback(vector<dataValueType> *values,
     // dealloc dm buffer space
     // (leave this next line in or die a horrible slow memory leak death!) 
     datavalues_bufferpool.dealloc(values);
+#ifdef MYPCDEBUG
+    t2=TESTgetTime();
+    if ((t2-t1) > 1.0) {
+      printf("********** PCnewDataCallback took %5.2f seconds\n",t2-t1);
+      const char *metname = dataMgr->getMetricNameFromMI(curr->mi);
+      const char *focname = dataMgr->getFocusNameFromMI(curr->mi);
+      if (metname && focname) 
+        printf("********** metric=%s, focus=%s\n",metname,focname);
+    }
+#endif
 }
 
 //
@@ -299,6 +338,28 @@ void PCphase (perfStreamHandle,
   //
   // notify UI of new phase 
   uiMgr->newPhaseNotification ( phase+1, name, searchFlag);
+}
+
+void readTag(unsigned tag)
+{
+  if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
+    if (dataMgr->waitLoop(true, (T_dataManager::message_tags)tag) ==
+	                         T_dataManager::error) 
+    {
+      cerr << "Error in PCmain.C, needs to be handled\n";
+      assert(0);
+    }
+  } else if (pc->isValidTag((T_performanceConsultant::message_tags)tag)) {
+    if (pc->waitLoop(true, (T_performanceConsultant::message_tags)tag) ==
+	                    T_performanceConsultant::error) 
+    {
+      cerr << "Error in PCmain.C, needs to be handled\n";
+      assert(0);
+    }
+  } else {
+    cerr << "Message sent that is not recognized in PCmain.C\n";
+    assert(0);
+  }
 }
 
 void PCmain(void* varg)
@@ -350,30 +411,46 @@ void PCmain(void* varg)
     // Note: remaining initialization is application- and/or phase-specific and
     // is done after the user requests a search.
 
+#ifdef MYPCDEBUG
+    double t1=TESTgetTime();
+    double t2;
+    double TIME_TO_CHECK=2.0;
+#endif
     while (1) {
-	tag = MSG_TAG_ANY;
+#ifdef MYPCDEBUG
+        t2=TESTgetTime();
+        if ((t2-t1) > TIME_TO_CHECK) {
+          unsigned loopLimit, loopStart;
+          for (unsigned j=1;j<=1;j++) {
+            if (j==1) {
+              loopStart = (unsigned)T_performanceConsultant::verify + 1;
+              loopLimit = (unsigned)T_performanceConsultant::last;
+            }
+            else {
+              loopStart = (unsigned)T_dataManager::verify + 1;
+              loopLimit = (unsigned)T_dataManager::last;
+            }
+            for (unsigned i=loopStart;i<loopLimit;i++) {
+              tag = i;
+              //printf("********** waiting for tag=%d\n",tag);
+              if (msg_poll(&tag, false) != THR_ERR) {
+                readTag(tag);
+              }
+            }
+          }
+          t1=TESTgetTime();
+        }
+        else {
+	  tag = MSG_TAG_ANY;
+	  from = msg_poll(&tag, true);
+	  assert(from != THR_ERR);
+          readTag(tag);
+        }
+#else
+        tag = MSG_TAG_ANY;
 	from = msg_poll(&tag, true);
 	assert(from != THR_ERR);
-	if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
-	  if (dataMgr->waitLoop(true, (T_dataManager::message_tags)tag) ==
-	      T_dataManager::error) {
-	    // handle error
-	    // TODO
-	    cerr << "Error in PCmain.C, needs to be handled\n";
-	    assert(0);
-	  }
-	} else if (pc->isValidTag((T_performanceConsultant::message_tags)tag)) {
-	  if (pc->waitLoop(true, (T_performanceConsultant::message_tags)tag) ==
-	      T_performanceConsultant::error) {
-	    // handle error
-	    // TODO
-	    cerr << "Error in PCmain.C, needs to be handled\n";
-	    assert(0);
-	  }
-	} else {
-	  // TODO
-	  cerr << "Message sent that is not recognized in PCmain.C\n";
-	  assert(0);
-	}
-   }
+        readTag(tag);
+#endif
+    }
 }
