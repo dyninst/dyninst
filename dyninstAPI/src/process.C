@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.307 2002/02/27 19:44:05 bernat Exp $
+// $Id: process.C,v 1.308 2002/03/01 16:55:50 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1367,8 +1367,6 @@ bool process::initTrampGuard()
   // Set after this is called: trampGuardAddr_
   // Returns: true on success, false on failure (can be asserted against).
   
-  assert(runtime_lib);
-
   const string vrbleName = "DYNINST_tramp_guard";
   internalSym sym;
   bool flag = findInternalSymbol(vrbleName, true, sym);
