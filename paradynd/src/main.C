@@ -2,7 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.28  1994/11/10 22:22:58  markc
+ * Revision 1.29  1994/11/11 07:04:25  markc
+ * Fixed the code to allow paradyndPVM to be started via rsh/rexec.  This had been
+ * ignored in the past and paradyndPVM would block on rsh starts.
+ *
+ * Revision 1.28  1994/11/10  22:22:58  markc
  * "Ported" remote execution to pvm.  It was only working for the non-pvm case.
  * Made all cases of remote execution call report_self.
  *
@@ -142,6 +146,9 @@ pdRPC *tp;
 
 #ifdef PARADYND_PVM
 #include "paradyndPVM/h/pvm_support.h"
+extern "C" {
+#include "pvm3.h"
+}
 #endif     
 
 static char machine_name[80];
@@ -193,49 +200,91 @@ int main(int argc, char *argv[])
     // process command line args passed in
     // pd_flag == 1 --> started by paradyn
 
+    int pvm_first;
     assert (RPC_undo_arg_list (argc, argv, &pd_machine, pd_family, pd_type,
-		       pd_known_socket, pd_flag) == 0);
+		       pd_known_socket, pd_flag, pvm_first) == 0);
+    assert(!gethostname(machine_name, 99));
+ 
+#ifdef PARADYND_PVM
+    // There are 3 ways to get here
+    //     started by pvm_spawn from first paradyndPVM, must report back
+    //     started by rsh, rexec, ugly code --> connect via socket
+    //     started by exec --> use pipe
+    
+    int pvm_id = pvm_mytid();
+
+    if (pvm_parent() != PvmNoParent) {
+      // started by pvm_spawn
+      assert(!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 0));
+      tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, NULL, NULL, 0);
+      tp->reportSelf (machine_name, argv[0], getpid(), metPVM);
+    } else if (!pd_flag) {
+      // started via rsh/rexec --> use socket
+      int pid;
+      pid = fork();
+      if (pid == 0) {
+	// configStdIO(true);
+	// setup socket
+	assert(!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 1));
+	tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, NULL, NULL, 0);
+      } else if (pid > 0) {
+	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
+	sprintf(errorLine, "PARADYND %d\n", pid);
+	//logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
+	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
+	fflush(stdout);
+	_exit(-1);
+      } else {
+	fflush(stdout);
+	exit(-1);
+      }
+     } else {
+      // started via exec   --> use pipe
+      assert(!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 1));
+      // already setup on this FD.
+      // disconnect from controlling terminal 
+      int ttyfd = open ("/dev/tty", O_RDONLY);
+      ioctl (ttyfd, TIOCNOTTY, NULL); 
+      close (ttyfd);
+      tp = new pdRPC(0, NULL, NULL);
+    }
+    assert(tp);
+#else
 
     if (!pd_flag) {
-	int pid;
+      int pid;
 
-	pid = fork();
-	if (pid == 0) {
-//	    configStdIO(true);
-	    // setup socket
-	    tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, 
-			    NULL, NULL, 0);
-	    assert(!gethostname(machine_name, 99));
-	    tp->reportSelf (machine_name, argv[0], getpid(), metPVM);
-	    // TODO - please port pvm code with non-pvm code
-#ifdef PARADYND_PVM
-	    assert(!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket,
-				     pd_flag));
-#endif
-	} else if (pid > 0) {
-           // Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
-	  sprintf(errorLine, "PARADYND %d\n", pid);
-	  //logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
-          fprintf(stdout, errorLine); // this works just fine...no need for logLine()
-	  fflush(stdout);
-	  _exit(-1);
-	} else {
-	    fflush(stdout);
-	    exit(-1);
-	}
+      pid = fork();
+      if (pid == 0) {
+	// configStdIO(true);
+	// setup socket
+	tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, 
+		       NULL, NULL, 0);
+      } else if (pid > 0) {
+	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
+	sprintf(errorLine, "PARADYND %d\n", pid);
+	//logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
+	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
+	fflush(stdout);
+	_exit(-1);
+      } else {
+	fflush(stdout);
+	exit(-1);
+      }
     } else {
-	int ttyfd;
-	// already setup on this FD.
+      int ttyfd;
+      // already setup on this FD.
 
-	/* disconnect from controlling terminal */
-	ttyfd = open ("/dev/tty", O_RDONLY);
-	ioctl (ttyfd, TIOCNOTTY, NULL); 
-	close (ttyfd);
+      /* disconnect from controlling terminal */
+      ttyfd = open ("/dev/tty", O_RDONLY);
+      ioctl (ttyfd, TIOCNOTTY, NULL); 
+      close (ttyfd);
 
-	tp = new pdRPC(0, NULL, NULL);
+      tp = new pdRPC(0, NULL, NULL);
 
-//	configStdIO(false);
+      // configStdIO(false);
     }
+#endif
 
     cyclesPerSecond = getCyclesPerSecond();
 
