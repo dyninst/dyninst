@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.50 2002/05/13 19:52:54 mjbrim Exp $
+// $Id: DMdaemon.h,v 1.51 2002/08/24 20:40:06 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -142,12 +142,11 @@ public:
   const char *getLogin() const { return login.c_str();}
   const char *getDir() const { return dir.c_str();}
   const char *getMachine() const { return machine.c_str();}
-  const char *getRemoteShell() const { return remote_shell.c_str();}
   const char *getFlavor() const { return flavor.c_str();}
   const string &getNameString() const { return name;}
   const string &getMachineString() const { return machine;}
   const string &getCommandString() const { return command;}
-  const string &getRemoteShellString() const { return remote_shell;}
+  const string getRemoteShellString() const;
   const string &getFlavorString() const { return flavor;}
 
 private:
