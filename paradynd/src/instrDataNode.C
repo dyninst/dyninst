@@ -75,11 +75,18 @@ instrDataNode::instrDataNode(process *proc_, unsigned type,
 
   variableMgr &varMgr = proc->getVariableMgr();
   varIndex = varMgr.allocateForInstVar(varType);
+  refCount = 0;
 }
 
 
 // the disable method should be called before this destructor
 instrDataNode::~instrDataNode() {
+  // Should call deletion method of the variable mgr
+  if(! dontInsertData_) {
+    variableMgr &varMgr = proc->getVariableMgr();
+    varMgr.free(varType, varIndex);
+  }
+
 }
 
 // obligatory definition of static member vrble:
@@ -136,20 +143,34 @@ void instrDataNode::stopSampling(unsigned thrPos) {
   variableMgr &varMgr = proc->getVariableMgr();
   varMgr.markVarAsNotSampled(varType, varIndex, thrPos);
 }
-
-void instrDataNode::disableAndDelete(vector<addrVecType> pointsToCheck) {
-  vector<Address> trampsMaybeUsing;
-  for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
-    for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); 
-	 tramplcv++) {
-      trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
-    }
-  
-  if(! dontInsertData_) {
-    variableMgr &varMgr = proc->getVariableMgr();
-    varMgr.makePendingFree(varType, varIndex, trampsMaybeUsing);
-  }
-  delete this;
+/*
+void instrDataNode::disable()
+{
+  // Umm... what does this do now?
+  // Don't delete, there may be outstanding tramps still using this
+  // data node.
+  // Don't delete 
+  //delete this;
+}
+*/
+void instrDataNode::incRefCount()
+{
+  refCount++;
+  cerr << "Incrementing ref count for " << (void *)this << ", " << refCount << endl;
 }
 
+void instrDataNode::decRefCount()
+{
+  refCount--;
+  cerr << "Decrementing ref count for " << (void *)this << ", " << refCount << endl;
+  if (refCount == 0)
+    delete this;
+}
 
+void instrDataNode::decRefCountCallback(void *temp, instInstance *)
+{
+  vector<instrDataNode *> *dataNodes = (vector<instrDataNode *> *)temp;
+  for (unsigned i = 0; i < dataNodes->size(); i++) {
+    (*dataNodes)[i]->decRefCount();
+  }
+}

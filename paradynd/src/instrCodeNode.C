@@ -60,37 +60,33 @@ dictionary_hash<string, instrCodeNode_Val*>
                            instrCodeNode::allInstrCodeNodeVals(string::hash);
 
 instrCodeNode_Val::~instrCodeNode_Val() {
-  vector<addrVecType> pointsToCheck;
-
+  cerr << "Deleting code node_val" << endl;
   for (unsigned i=0; i<instRequests.size(); i++) {
-    addrVecType pointsForThisRequest =
-      getAllTrampsAtPoint(instRequests[i].getInstance());
-    pointsToCheck += pointsForThisRequest;
-    
-    instRequests[i].disable(pointsForThisRequest); // calls deleteInst()
+    instRequests[i].disable(); // calls deleteInst()
   }
 
   if(sampledDataNode != NULL) {
-    sampledDataNode->disableAndDelete(pointsToCheck);
+    //sampledDataNode->disable();
     sampledDataNode = NULL;
   }
   if(constraintDataNode != NULL) {
-    constraintDataNode->disableAndDelete(pointsToCheck);
+    //constraintDataNode->disable();
     constraintDataNode = NULL;
   }
   for (int u=(int)tempCtrDataNodes.size()-1; u>=0; u--) {
-    tempCtrDataNodes[u]->disableAndDelete(pointsToCheck);
+    //tempCtrDataNodes[u]->disable();
     tempCtrDataNodes.erase(u);
   }
 }
 
-vector<instrDataNode *> instrCodeNode_Val::getDataNodes() { 
-  vector<instrDataNode*> buff;
-  if(sampledDataNode != NULL)  buff.push_back(sampledDataNode);
-  if(constraintDataNode != NULL)  buff.push_back(constraintDataNode);
+
+vector<instrDataNode *> *instrCodeNode_Val::getDataNodes() { 
+  vector<instrDataNode*> *buff = new vector<instrDataNode *>();
+  if(constraintDataNode != NULL)  buff->push_back(constraintDataNode);
   for(unsigned i=0; i<tempCtrDataNodes.size(); i++) {
-    buff.push_back(tempCtrDataNodes[i]);
+    buff->push_back(tempCtrDataNodes[i]);
   }
+  if(sampledDataNode != NULL)  buff->push_back(sampledDataNode);
   return buff;
 }
 
@@ -292,7 +288,12 @@ bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
       return false; // shouldn't we try to undo what's already put in?
     } else {
       V.miniTrampInstances += mtInst;
-
+      // Interesting... it's possible that this minitramp writes to more than
+      // one variable (data, constraint, "temp" vector)
+      vector <instrDataNode *> *affectedNodes = V.getDataNodes();
+      for (unsigned i = 0; i < affectedNodes->size(); i++)
+	(*affectedNodes)[i]->incRefCount();
+      mtInst->registerCallback(instrDataNode::decRefCountCallback, (void *)affectedNodes);
       //cerr << "instrRequest # " << u1+1 << " / " << inst_size
       //     << "inserted\n";
     }

@@ -46,6 +46,7 @@
 #include "common/h/Dictionary.h"
 #include "paradynd/src/instReqNode.h"
 #include "paradynd/src/focus.h"
+#include "paradynd/src/instrDataNode.h"
 
 class instrDataNode;
 class Focus;
@@ -104,7 +105,7 @@ class instrCodeNode_Val {
   void incrementRefCount() { referenceCount++; }
   void decrementRefCount() { referenceCount--; }
   int getRefCount() { return referenceCount; }
-  vector<instrDataNode *> getDataNodes();
+  vector<instrDataNode *> *getDataNodes();
   process *proc() {  return proc_;  }
   string getName() { return name; }
 };
@@ -156,7 +157,7 @@ class instrCodeNode {
   }
     
   // ---------------------------------------
-  vector<instrDataNode *> getDataNodes() { return V.getDataNodes(); }
+  vector<instrDataNode *> *getDataNodes() { return V.getDataNodes(); }
   void manuallyTrigger(int mid);
   void prepareForSampling(const vector<threadMetFocusNode *> &thrNodes);
   void prepareForSampling(threadMetFocusNode *thrNode);
@@ -184,6 +185,7 @@ class instrCodeNode {
   timeLength cost() const;
   void oldCatchUp(int tid);
   void disable();
+
   void cleanup_drn();
   bool nonNull() const { return (V.instRequests.size() > 0);  }
 #if defined(MT_THREAD)

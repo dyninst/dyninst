@@ -92,8 +92,7 @@ bool instReqNode::unFork(dictionary_hash<instInstance*,instInstance*> &map)
   if (!map.find(parentInstance, childInstance)) // writes to childInstance
     assert(false);
   
-  vector<Address> pointsToCheck; // is it right leaving this empty on a fork()???
-  deleteInst(childInstance, pointsToCheck);
+  deleteInst(childInstance);
   
   map[parentInstance] = NULL; // since we've deleted...
   
@@ -125,16 +124,12 @@ instInstance * instReqNode::loadInstrIntoApp(process *theProc,
   return instance;
 }
 
-void instReqNode::disable(const vector<Address> &pointsToCheck)
+void instReqNode::disable()
 {
   //cerr << "in instReqNode::disable - " << pointsToCheck.size()
   //     << " points to check\n";
-#if defined(MT_THREAD)
   if (instance) 
-    deleteInst(instance, pointsToCheck);
-#else
-  deleteInst(instance, pointsToCheck);
-#endif
+    deleteInst(instance);
   instance = NULL;
 }
 

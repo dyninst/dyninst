@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.3 2002/05/10 18:36:58 schendel Exp $
+// $Id: variableMgr.C,v 1.4 2002/06/10 19:25:10 bernat Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -55,23 +55,27 @@
 #include "paradynd/src/varInstance.h"
 
 
-// do garbage collection for every 200K allocated in shmMgr
-const unsigned variableMgr::garbageCollectionThreshhold(200000);
-
 variableMgr::variableMgr(process *proc, shmMgr *shmMgr_, 
 			 unsigned maxNumberOfThreads) : 
   maxNumberOfThreads(maxNumberOfThreads), applicProcess(proc), 
-  theShmMgr(*shmMgr_), memUsed_lastGarbageCollect(0)
+  theShmMgr(*shmMgr_)
 {
   // One instance per process object.
 #if defined(MT_THREAD)
   maxNumberOfThreads = MAX_NUMBER_OF_THREADS;
+#else
+  maxNumberOfThreads = 1;
 #endif
   varTables.resize(3);
   varTables[Counter] = new varTable<intCounterHK>(*this);
   varTables[WallTimer] = new varTable<wallTimerHK>(*this);
   varTables[ProcTimer] = new varTable<processTimerHK>(*this);
   // Insert other timer/counter types here...
+
+  // Preallocate for the varTables
+  // What's a good number? Well... start with 200 and see?
+  for (unsigned i = 0; i < varTables.size(); i++)
+    theShmMgr.preMalloc(varTables[i]->getVarSize()*maxNumberOfThreads, 200);
 
 }
 
@@ -81,8 +85,7 @@ variableMgr::variableMgr(const variableMgr &parentVarMgr, process *proc,
 			 shmMgr *shmMgr_) :
           maxNumberOfThreads(parentVarMgr.maxNumberOfThreads),
           applicProcess(proc),
-	  theShmMgr(*shmMgr_),
-	  memUsed_lastGarbageCollect(0)
+	  theShmMgr(*shmMgr_)
 {
 
 }
@@ -97,14 +100,6 @@ variableMgr::~variableMgr()
 
 inst_var_index variableMgr::allocateForInstVar(inst_var_type varType)
 {
-  unsigned curMemUsed = theShmMgr.memAllocated();
-  // for every additional 200K mem allocated, do garbage collection
-  if(int(curMemUsed) - int(memUsed_lastGarbageCollect) > 
-     int(garbageCollectionThreshhold)) {
-    garbageCollect();
-    memUsed_lastGarbageCollect = curMemUsed;
-  }
-
   return varTables[varType]->allocateVar();
 }
 
@@ -130,42 +125,10 @@ void *variableMgr::shmVarApplicAddr(inst_var_type varType,
   return varTables[varType]->shmVarApplicAddr(varIndex);
 }
 
-void variableMgr::makePendingFree(inst_var_type varType, 
-				 inst_var_index varIndex,
-				 const vector<Address> &trampsUsing)
+void variableMgr::free(inst_var_type varType, 
+		       inst_var_index varIndex)
 {
-  varTables[varType]->makePendingFree(varIndex, trampsUsing);
-}
-
-void variableMgr::garbageCollect() {
-  bool needToCont = (applicProcess->status() == running);
-#ifdef DETACH_ON_THE_FLY
-  if ( !applicProcess->reattachAndPause())
-#else
-  if ( !applicProcess->pause() )
-#endif
-  {
-    cerr << "garbage collect -- pause failed" << endl;
-    return;
-  }
-
-  vector<Frame> stackWalk;
-  applicProcess->walkStack(applicProcess->getActiveFrame(), stackWalk);
-  // We can continue right away because we want to know if a variable has a
-  // minitramp associated with it which is currently being run.  In the case
-  // that it's in the minitramp now but by the time we get to freeing the
-  // variable it's no longer in the minitramp, we'll still not free the
-  // variable.  This is the same result if we had left the processes paused.
-  if( needToCont && (applicProcess->status() != running)) {
-#ifdef DETACH_ON_THE_FLY
-    applicProcess->detachAndContinue();
-#else
-    applicProcess->continueProc();
-#endif
-  }
-  for (unsigned iter = 0; iter < varTables.size(); iter++) {
-    varTables[iter]->garbageCollect(stackWalk);
-  }
+  varTables[varType]->free(varIndex);
 }
 
 bool variableMgr::doMajorSample()

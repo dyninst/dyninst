@@ -49,6 +49,7 @@ class instrCodeNode_Val;
 class threadMetFocusNode_Val;
 class pdThread;
 class process;
+class instInstance;
 
 class instrDataNode {
  private:
@@ -58,6 +59,7 @@ class instrDataNode {
   
   bool thrNodeClientSet;
   bool dontInsertData_;
+  int refCount;
 
   /* unique id for a counter or timer */
   static int counterId;
@@ -76,9 +78,12 @@ class instrDataNode {
   void print();
   void prepareForSampling(unsigned thrPos, threadMetFocusNode_Val *thrClient);
   void stopSampling(unsigned thrPos);
-  void disableAndDelete(vector< vector<Address> > pointsToCheck);
+  //void disable();
+
+  void incRefCount();
+  void decRefCount();
+  static void decRefCountCallback(void *, instInstance *);
+
 };
-
-
 
 #endif

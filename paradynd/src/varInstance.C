@@ -133,90 +133,12 @@ bool varInstance<HK>::doMinorSample() {
   return (currentSamplingSet.size() == 0);
 }
 
-// returns true if variable was freed, returns false if can't be freed
 template <class HK>
-bool varInstance<HK>::attemptToFree(const vector<Frame> &stackWalk) {
-   // is it ok to free
-   bool isFreed = false;
-   if(varState == varPendingFree) {
-      if(tryGarbageCollect(stackWalk)) {
-	 Address baseAddr = reinterpret_cast<Address>(baseAddrInDaemon);
-	 theShmMgr.free(baseAddr);
-	 isFreed = true;
-	 varState = varFree;
-      }
-   }
-   return isFreed;
-}
-
-template <class HK>
-void varInstance<HK>::makePendingFree(const vector<Address> &iTrampsUsing) {
-   //cerr << " in genericHK::makePendingFree - this: " << (void*)this << ",
-   //iTrampsUsing: " << iTrampsUsing.size() << "\n"; now we initialize
-   //trampsUsingMe.  iTrampsUsing provides us with the starting addr of each
-   //such tramp, but we need to look at the old-style inferiorHeap (process.C)
-   //to find the tramp length and hence its endAddr.  Yuck.
-   
+varInstance<HK>::~varInstance()
+{
    assert(varState == varAllocated);
-   trampsUsingMe.resize(iTrampsUsing.size());
-      // we may shrink it later if some entries are shown to be unneeded
-
-   unsigned actualNumTramps=0;
-
-   for (unsigned lcv=0; lcv < iTrampsUsing.size(); lcv++) {
-      const dictionary_hash<Address, heapItem*> &heapActivePart =
-	(*proc).heap.heapActive;
-      const Address trampBaseAddr = iTrampsUsing[lcv];
-      heapItem *trampHeapItem;
-      // fills in "trampHeapItem" if found:
-
-      if (!heapActivePart.find(trampBaseAddr, trampHeapItem)) {
-         // hmmm...the trampoline was deleted, so I guess we don't need to check it
-         //        in the future.
-	 continue; // next trampoline check
-      }
-
-      trampRange tempTrampRange;
-      tempTrampRange.startAddr = trampBaseAddr;
-      tempTrampRange.endAddr = trampBaseAddr + trampHeapItem->length - 1;
-      trampsUsingMe[actualNumTramps++] = tempTrampRange;
-   }
-   varState = varPendingFree;
-
-   trampsUsingMe.resize(actualNumTramps);
+   theShmMgr.free((Address) baseAddrInDaemon);
 }
-
-template <class HK>
-bool varInstance<HK>::tryGarbageCollect(const vector<Frame> &stackWalk) {
-   // returns true iff GC succeeded.  We may of course assume that this
-   // routine is only called if the item in question is in pending-free
-   // state.  Similar to isFreeOK of process.C...  PCs is a list of
-   // PC-register values representing a stack trace in the inferior process.
-   // It's OK to garbage collect (and we turn true) if none of the PCs in the
-   // stack trace fall within any of the trampolines who are using us.
-
-   for (unsigned pointlcv=0; pointlcv < trampsUsingMe.size(); pointlcv++) {
-      const trampRange &theTrampRange = trampsUsingMe[pointlcv];
-
-      // If any of the PCs of the stack trace are within theTrampRange, then
-      // it's unsafe to delete us.
-
-      for (unsigned stacklcv=0; stacklcv < stackWalk.size(); stacklcv++) {
-         const Address stackPC = stackWalk[stacklcv].getPC();
-
-         // If this PC falls within the range of the trampoline we're currently
-         // looking at, then it's unsafe to delete it.
-         if (stackPC >= theTrampRange.startAddr &&
-             stackPC <= theTrampRange.endAddr)
-            return false; // sorry, can't delete
-      }
-   }
-
-   // GC has succeeded!  Do some cleanup and return true:
-   trampsUsingMe.resize(0); // we won't be needing this anymore
-   return true;
-}
-
 
 template <class HK>
 void varInstance<HK>::deleteThread(unsigned thrPos) {

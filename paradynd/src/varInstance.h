@@ -63,8 +63,6 @@ class baseVarInstance {
   virtual void markVarAsSampled(unsigned thrPos, 
 				threadMetFocusNode_Val *thrNval) = 0;
   virtual void markVarAsNotSampled(unsigned thrPos) = 0;
-  virtual void makePendingFree(const vector<Address> &trampsUsing) = 0;
-  virtual bool attemptToFree(const vector<Frame> &stackWalk) = 0;
   virtual void deleteThread(unsigned thrPos) = 0;
 };
 
@@ -91,18 +89,15 @@ class varInstance : public baseVarInstance {
   RAWTYPE  initValue;
   shmMgr &theShmMgr;
 
-  // Needed for GC use:
-  vector<trampRange> trampsUsingMe;
-
   vector<unsigned> permanentSamplingSet;
   vector<unsigned> currentSamplingSet;
   element_state varState;
   void createHKifNotPresent(unsigned thrPos);
   bool removeFromSamplingSet(vector<unsigned> *set, unsigned thrPosToRemove);
-  bool tryGarbageCollect(const vector<Frame> &stackWalk);
 
  public:
   varInstance(variableMgr &varMgr, const RAWTYPE &initValue);
+  ~varInstance();
   void allocateVar() {
     varState = varAllocated;
   }
@@ -130,8 +125,6 @@ class varInstance : public baseVarInstance {
   bool doMinorSample();
   void markVarAsSampled(unsigned thrPos, threadMetFocusNode_Val *thrNval);
   void markVarAsNotSampled(unsigned thrPos);
-  void makePendingFree(const vector<Address> &trampsUsing);
-  bool attemptToFree(const vector<Frame> &stackWalk);
   void deleteThread(unsigned thrPos);
 };
 

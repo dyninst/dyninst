@@ -108,7 +108,7 @@ class instReqNode {
   instInstance* loadInstrIntoApp(process *theProc, 
 				 returnInstance *&retInstance, bool *deferred);
   
-  void disable(const vector<Address> &pointsToCheck);
+  void disable();
   timeLength cost(process *theProc) const;
   
   static instReqNode forkProcess(const instReqNode &parent,

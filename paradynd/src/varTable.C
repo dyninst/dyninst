@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.2 2002/05/04 21:47:05 schendel Exp $
+// $Id: varTable.C,v 1.3 2002/06/10 19:25:08 bernat Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -98,21 +98,6 @@ inst_var_index varTable<HK>::allocateVar()
 }
 
 template <class HK>
-void varTable<HK>::garbageCollect(const vector<Frame> &stackWalk) {
-  unsigned bufsize = varInstanceBuf.size();
-  for(unsigned i=0; i<bufsize; i++) {
-    if(varInstanceBuf[i] == NULL) continue;
-    if(varInstanceBuf[i]->attemptToFree(stackWalk) == true) {
-      delete varInstanceBuf[i];
-      varInstanceBuf[i] = NULL;
-      // need to leave this entry in varInstanceBuf since it indicates
-      // the index and removing the entry would change all of the indexes
-      freeIndexes.push_back(i);
-    }
-  }
-}
-
-template <class HK>
 void varTable<HK>::markVarAsSampled(inst_var_index varIndex, unsigned thrPos,
 				    threadMetFocusNode_Val *thrNval) 
 {
@@ -148,11 +133,12 @@ void *varTable<HK>::shmVarApplicAddr(inst_var_index varIndex) const
 // Mark as deleted, clean up once we are sure that the
 // process isn't using the counter any more.
 template <class HK>
-void varTable<HK>::makePendingFree(inst_var_index varIndex,
-				   const vector<Address> &trampsUsing)
+void varTable<HK>::free(inst_var_index varIndex)
 {
   assert(varInstanceBuf[varIndex] != NULL);
-  varInstanceBuf[varIndex]->makePendingFree(trampsUsing);
+  delete varInstanceBuf[varIndex];
+  varInstanceBuf[varIndex] = NULL;
+  freeIndexes.push_back(varIndex);
 }
 
 template <class HK>

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.h,v 1.3 2002/05/10 18:36:57 schendel Exp $
+// $Id: variableMgr.h,v 1.4 2002/06/10 19:25:11 bernat Exp $
 // The variableMgr class is the top-level view of the actual
 // shared, sampled counters and timers. The provides a logical way 
 // to reference the counters and timers (called variables) for creation,
@@ -73,14 +73,9 @@ class variableMgr {
   process *applicProcess;
   shmMgr &theShmMgr;
 
-  static const unsigned garbageCollectionThreshhold;
-  unsigned memUsed_lastGarbageCollect;
-  
   // since we don't define them, make sure they're not used:
   variableMgr(const variableMgr &);
   variableMgr &operator=(const variableMgr &);
-  void garbageCollect();
-
  public:
   variableMgr(process *proc, shmMgr *shmMgr, 
 	      unsigned i_currMaxNumberOfThreads);
@@ -102,8 +97,7 @@ class variableMgr {
   void markVarAsNotSampled(inst_var_type varType, inst_var_index varIndex,
 			   unsigned thrPos) const;
   
-  void makePendingFree(inst_var_type varType, inst_var_index varIndex,
-		       const vector<Address> &trampsUsing);
+  void free(inst_var_type varType, inst_var_index varIndex);
   
   void *shmVarDaemonAddr(inst_var_type varType, inst_var_index varIndex) const;
   
