@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.5 2002/06/10 19:45:03 bernat Exp $
+/* $Id: shmMgr.C,v 1.6 2002/06/10 21:30:12 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -196,14 +196,18 @@ Address shmMgrPreallocInternal::malloc()
   // for one that is less than 0xff
   unsigned next_free_block = 0;
   for (next_free_block = 0; next_free_block < bitmap_size_; next_free_block++)
-    if (bitmap_[next_free_block] < 0xff)
+    if (bitmap_[next_free_block] != (char) 0xff)
       break;
+  int foo = 0;
+  foo = bitmap_[next_free_block];
   assert(next_free_block < bitmap_size_); // Should have been bounced by oneAvailable
   // Next: find slot within that is empty
   unsigned next_free_slot = 0;
   for (next_free_slot = 0; next_free_slot < 8; next_free_slot++)
     if (!(bitmap_[next_free_block] &(0x1 << next_free_slot))) // logical AND, right?
       break;
+
+  assert(next_free_slot < 8);
   // Okay, we have our man... mark it as active, decrease available count,
   // and calculate the return address
   bitmap_[next_free_block] += 0x1 << next_free_slot;
