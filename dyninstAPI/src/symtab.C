@@ -383,6 +383,24 @@ pdFunction *image::findOneFunction(const string &name)
     return NULL;
 }
 
+// This function supposely is only used to find function that
+// is not instrumentable which may not be totally defined.
+// Use with caution.  
+pdFunction *image::findOneFunctionFromAll(const string &name) {
+
+    pdFunction *ret;
+    if (ret = findOneFunction(name)) 
+	return ret;
+    else {
+	for (unsigned i = 0; i < notInstruFunction.size(); i++) {
+	    ret = notInstruFunction[i];
+	    if (ret->prettyName() == name)
+		return ret;
+	}
+    }
+    return NULL;
+}
+
 bool image::findFunction(const string &name, vector<pdFunction*> &retList) {
 
   if (funcsByPretty.defines(name)) {
@@ -422,6 +440,7 @@ pdFunction *image::findFunctionIn(const Address &addr,const process *p)
 
   return NULL; 
 }
+
 
 void image::changeLibFlag(resource *res, const bool setSuppress)
 {
