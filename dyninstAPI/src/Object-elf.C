@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.72 2004/05/28 22:50:16 legendre Exp $
+ * $Id: Object-elf.C,v 1.73 2004/06/01 22:07:28 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2599,7 +2599,7 @@ static int read_except_table_gcc3(Elf_Scn *except_table,
      pdvector<ExceptionBlock> &addresses)
 {
    Elf_Data *elf_data;
-   Dwarf_Error err;
+   Dwarf_Error err = (Dwarf_Error) NULL;
    Dwarf_Addr low_pc, except_ptr;
    Dwarf_Unsigned fde_byte_length, bytes_in_cie,
       outlen;
@@ -2813,7 +2813,7 @@ static bool find_catch_blocks(Elf *elf, Elf_Scn *eh_frame, Elf_Scn *except_scn,
    Dwarf_Cie *cie_data;
    Dwarf_Fde *fde_data;
    Dwarf_Signed cie_count, fde_count;
-   Dwarf_Error err;
+   Dwarf_Error err = (Dwarf_Error) NULL;
    Dwarf_Unsigned bytes_in_cie;
    Address eh_frame_base, except_base;
    Elf32_Shdr *frame_hdr, *except_hdr;
