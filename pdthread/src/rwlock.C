@@ -1,0 +1,178 @@
+/*
+ * Copyright (c) 1996-1999 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+
+
+
+
+/************************************************************************
+ * rwlock.c: implementation of reader-writer lock classes.
+ *
+ * $Revision: 1.1 $
+************************************************************************/
+
+/************************************************************************
+ * header files.
+************************************************************************/
+#include "rwlock.h"
+
+
+inline
+int rwlock::start_reading() { 
+    int status = 0, doblock=0;
+#if USE_PTHREADS_BASED_LIBTHREAD
+    status = pthread_mutex_lock(&mutex);
+    if (status != 0) 
+        return status;
+    doblock = active_writers || (preference == rwlock::favor_writers && waiting_writers);
+    
+    if (doblock) {
+        waiting_readers++;
+        while(doblock) {
+            status = pthread_cond_wait(&read_cond, &mutex);
+            doblock = active_writers || (preference == rwlock::favor_writers && waiting_writers);
+            if(status != 0)
+                break;
+        }
+        waiting_readers--;
+    }
+    
+    if(status == 0)
+        active_readers++;
+    pthread_mutex_unlock(&mutex);
+#endif
+    return status;
+}
+
+inline
+int rwlock::start_writing() {
+    int status = 0;
+#if USE_PTHREADS_BASED_LIBTHREAD
+    status = pthread_mutex_lock(&mutex);
+    if (status != 0) 
+        return status;
+    
+    if (active_writers || active_readers > 0) {
+        waiting_writers++;
+        while(active_writers || active_readers > 0) {
+            status = pthread_cond_wait(&write_cond, &mutex);
+            if(status != 0)
+                break;
+        }
+        waiting_writers--;
+    }
+    if(status == 0)
+        active_writers = 1;
+    pthread_mutex_unlock(&mutex);
+#endif
+    return status;
+}
+
+inline
+int rwlock::stop_reading() {
+    int status = 0, status2 = 0;
+#if USE_PTHREADS_BASED_LIBTHREAD
+    status = pthread_mutex_lock(&mutex);
+    if (status != 0)
+        return status;
+    active_readers--;
+    if (active_readers == 0 && waiting_writers > 0)
+        status = pthread_cond_signal(&write_cond);
+    status2 = pthread_mutex_unlock(&mutex);
+#endif
+    return (status || status2);
+}
+
+inline
+int rwlock::stop_writing() {
+    int status = 0;
+#if USE_PTHREADS_BASED_LIBTHREAD
+    status = pthread_mutex_lock(&mutex);
+    if (status != 0)
+        return status;
+    active_writers = 0;
+    if (preference == rwlock::favor_writers) {
+        if (waiting_writers > 0) {
+            pthread_cond_signal(&write_cond);
+            status = pthread_mutex_unlock(&mutex);
+            if (status != 0)
+                return status;
+        } else if (waiting_readers > 0) {
+            pthread_cond_broadcast(&read_cond);
+            status = pthread_mutex_unlock(&mutex);
+            if (status != 0)
+                return status;
+        }
+    } else {
+            /* favoring readers */
+        if (waiting_readers > 0) {
+            pthread_cond_broadcast(&read_cond);
+            status = pthread_mutex_unlock(&mutex);
+            if (status != 0)
+                return status;
+        } else if (waiting_writers > 0) {
+            pthread_cond_signal(&write_cond);
+            status = pthread_mutex_unlock(&mutex);
+            if (status != 0)
+                return status;
+        }
+    }
+    
+    status = pthread_mutex_unlock(&mutex);
+#endif
+    return status;
+}
+
+int rwlock::acquire(rwlock::locktype lt) { 
+    switch(lt) {
+        case rwlock::read: return start_reading();
+        case rwlock::write: return start_writing();
+    }
+    return 0;
+}
+
+int rwlock::release(rwlock::locktype lt) { 
+    switch(lt) {
+        case rwlock::read: return stop_reading();
+        case rwlock::write: return stop_writing();
+    }
+    return 0;
+}
