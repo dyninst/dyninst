@@ -1,7 +1,12 @@
 /* $Log: main.C,v $
-/* Revision 1.29  1995/10/30 23:08:03  naim
-/* Taking the comment out of Tcl_DeleteInterp call - naim
+/* Revision 1.30  1995/11/06 02:48:59  tamches
+/* used tkTools.h
+/* removed code to pass args to UIthread (no longer used)
+/* changed hysteresisRange to a developer mode TC
 /*
+ * Revision 1.29  1995/10/30 23:08:03  naim
+ * Taking the comment out of Tcl_DeleteInterp call - naim
+ *
  * Revision 1.28  1995/10/19  22:43:04  mjrg
  * Read both -s and -f files.
  *
@@ -126,6 +131,7 @@
 #include "thread/h/thread.h"
 #include "dataManager.thread.SRVR.h"
 #include "VM.thread.SRVR.h"
+#include "../UIthread/tkTools.h" // tclpanic
 
 extern void *UImain(void *);
 extern void *DMmain(void *);
@@ -144,7 +150,14 @@ thread_t VMtid;
 //thread_t TCtid; // tunable constants
 
 // expanded stack by a factor of 10 to support AIX - jkh 8/14/95
+// wrapped it in an ifdef so others don't pay the price --ari 10/95
+#ifdef rs6000_ibm_aix3_2
 char UIStack[327680];
+#else
+char UIStack[32768];
+#endif
+
+
 
 // applicationContext *context;
 dataManagerUser *dataMgr;
@@ -174,7 +187,7 @@ void print_debug_macro(const char* format, ...){
 
 void eFunction(int errno, char *message)
 {
-    printf("error: %s\b", message);
+    printf("error #%d: %s\b", errno, message);
     abort();
 }
 
@@ -185,7 +198,7 @@ extern bool metDoProcess();
 extern bool metDoDaemon();
 
 
-extern void tclpanic(Tcl_Interp *, const char *msg);
+//extern void tclpanic(Tcl_Interp *, const char *msg);
 Tcl_Interp *interp;
 Tk_Window   mainWindow;
 int         tty;
@@ -221,6 +234,8 @@ main (int argc, char **argv)
      tclpanic(interp, "tcl_init() failed (perhaps TCL_LIBRARY not set?)");
   if (Tk_Init(interp) == TCL_ERROR)
      tclpanic(interp, "tk_init() failed (perhaps TK_LIBRARY not set?");
+//  if (Tix_Init(interp) == TCL_ERROR)
+//     tclpanic(interp, "tix_init() failed (perhaps TIX_LIBRARY not set?");
 
   // copy command-line arguments into tcl vrbles argc / argv
   char *args = Tcl_Merge(argc - 1, (const char **) (argv + 1));
@@ -321,7 +336,7 @@ main (int argc, char **argv)
 					  0.0, // min
 					  1.0, // max
 					  NULL, // callback
-					  userConstant);
+					  developerConstant);
 
   //
   // Fix this soon... This should be based on some real information.
@@ -381,15 +396,6 @@ main (int argc, char **argv)
 
 // initialize UIM 
  
-//  if ((clargs = (CLargStruct *) malloc(sizeof(CLargStruct))) == 0) {
-//    perror("malloc(ClargsStruct)");
-//    return -1;
-//  }
-//  clargs->clargc = argc;	
-//  clargs->clargv = argv; 
-
-//  if (thr_create (UIStack, sizeof(UIStack), &UImain, (void *) clargs, 
-//		  0, &UIMtid) == THR_ERR) 
   if (thr_create (UIStack, sizeof(UIStack), &UImain, NULL,
 		  0, &UIMtid) == THR_ERR) 
     exit(1);
