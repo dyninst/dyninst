@@ -737,12 +737,16 @@ Address pd_Function::findStackFrame(const image *owner)
 {
   TRACE_B( "pd_Function::findStackFrame" );
 
+  bool foundRest;
+  int lastRestore;
+  InactiveFrameRange ifr;
+  
   /*
-  fprintf(stderr, ">>> findStackFrame(): <0x%016lx:\"%s\"> %i insns\n",
-	  owner->getObject().get_base_addr() + getAddress(0), 
-	  prettyName().string_of(), size() / INSN_SIZE);
+    fprintf(stderr, ">>> findStackFrame(): <0x%016lx:\"%s\"> %i insns\n",
+    owner->getObject().get_base_addr() + getAddress(0), 
+    prettyName().string_of(), size() / INSN_SIZE);
   */
-
+ 
   // initialize stack frame info
   for (int i = 0; i < NUM_REGS; i++) {
     reg_saves[i].slot = -1;
@@ -777,51 +781,93 @@ Address pd_Function::findStackFrame(const image *owner)
 
     // stack frame (save): "[d]addiu sp,sp,-XX" insn
     if ((itype.op == ADDIUop || itype.op == DADDIUop) && 
-	itype.rs == REG_SP &&
-	itype.rt == REG_SP &&
-	itype.simm16 < 0 &&
-	noStackFrame == true)
+        itype.rs == REG_SP &&
+        itype.rt == REG_SP &&
+        itype.simm16 < 0 &&
+        noStackFrame == true)
     {
       noStackFrame = false;
       sp_mod = off;
       frame_size = -itype.simm16;
     }
+    // stack frame (save, large): "[d]subu sp,sp,at" insn,
+    //  which usually follows an "ori at, 0, XX" insn,
+    //  with possibly a lui preceeding the ori
+    else if ((rtype.ops == SUBUops || rtype.ops == DSUBUops) &&
+             rtype.rd == REG_SP &&
+             rtype.rs == REG_SP &&
+             noStackFrame == true)
+    {
+      instruction tempInsn;
+      tempInsn.raw = owner->get_instruction(start + off - INSN_SIZE);
+      struct fmt_itype &tempItype = tempInsn.itype;
+
+      if ( tempItype.op == ORIop && 
+           rtype.rt == tempItype.rt )
+      {
+        int totFrameSize = tempItype.simm16 & 0xffff;
+
+        noStackFrame = false;
+        sp_mod = off;
+
+        tempInsn.raw = owner->get_instruction(start + off - (2*INSN_SIZE));
+        if ( tempItype.op == LUIop && 
+             rtype.rt == tempItype.rt )
+        {
+          totFrameSize |= (tempItype.simm16 << 16);
+        }
+
+        frame_size = totFrameSize;
+      }
+    }
     // stack frame (restore): "[d]addiu sp,sp,<frame_size>" insn
     else if ((itype.op == ADDIUop || itype.op == DADDIUop) && 
-	     itype.rs == REG_SP &&
-	     itype.rt == REG_SP &&
-	     itype.simm16 == frame_size &&
-	     noStackFrame == false)
+             itype.rs == REG_SP &&
+             itype.rt == REG_SP &&
+             itype.simm16 == frame_size &&
+             noStackFrame == false)
     {
-      sp_ret += off;
+      lastRestore = off;
+      foundRest = true;
     }
     // stack frame (restore from $fp): "move sp,s8" insn
     else if (rtype.op == SPECIALop &&
-	     rtype.ops == ORops &&
-	     rtype.rt == REG_ZERO &&
-	     rtype.rs == REG_S8 &&
-	     rtype.rd == REG_SP &&
-	     uses_fp == true)
+             rtype.ops == ORops &&
+             rtype.rt == REG_ZERO &&
+             rtype.rs == REG_S8 &&
+             rtype.rd == REG_SP &&
+             uses_fp == true)
     {
-      sp_ret += off;
+      lastRestore = off;
+      foundRest = true;
     }
 
     // frame pointer #1: "[d]addiu s8,sp,<frame_size>" insn
     else if ((itype.op == ADDIUop || itype.op == DADDIUop) &&
-	     itype.rs == REG_SP &&
-	     itype.rt == REG_S8 &&
-	     itype.simm16 == frame_size)
+             itype.rs == REG_SP &&
+             itype.rt == REG_S8 &&
+             itype.simm16 == frame_size)
     {
       fp_mod = off;
       uses_fp = true;
     }
     // frame pointer #2: "move s8,sp" insn
     else if (rtype.op == SPECIALop &&
-	     rtype.ops == ORops &&
-	     rtype.rt == REG_ZERO &&
-	     rtype.rs == REG_SP &&
-	     rtype.rd == REG_S8 &&
-	     frame_size == 0)
+             rtype.ops == ORops &&
+             rtype.rt == REG_ZERO &&
+             rtype.rs == REG_SP &&
+             rtype.rd == REG_S8 &&
+             frame_size == 0)
+    {
+      fp_mod = off;
+      uses_fp = true;
+    }
+
+    // frame pointer #3: "daddu s8,sp, at" insn
+    else if (rtype.op == SPECIALop &&
+             rtype.ops == DADDUops &&
+             rtype.rs == REG_SP &&
+             rtype.rd == REG_S8)
     {
       fp_mod = off;
       uses_fp = true;
@@ -829,60 +875,99 @@ Address pd_Function::findStackFrame(const image *owner)
 
     // register aliasing: "move R2,R1" insn
     else if (rtype.op  == SPECIALop &&
-	     rtype.ops == ORops &&
-	     rtype.rt  == REG_ZERO &&
-	     rtype.rs  != REG_ZERO)
+             rtype.ops == ORops &&
+             rtype.rt  == REG_ZERO &&
+             rtype.rs  != REG_ZERO)
     {
       int r_src = aliases[rtype.rs];
       // check if register has been saved yet
       if (reg_saves[r_src].slot == -1) {
-	int r_dst = rtype.rd;
-	/*
-	if (aliases[r_dst] != r_dst) {
-	  fprintf(stderr, "!!! <0x%016lx:\"%s\" multiple aliasing\n",
-		  iaddr, prettyName().string_of());
-	} */
-	aliases[r_dst] = r_src;
+        int r_dst = rtype.rd;
+        /*
+          if (aliases[r_dst] != r_dst) {
+          fprintf(stderr, "!!! <0x%016lx:\"%s\" multiple aliasing\n",
+          iaddr, prettyName().string_of());
+          } */
+        aliases[r_dst] = r_src;
       }
     }
 
     // register save #1: "sd/sw RR,XX(sp)" insn
     else if ((itype.op == SDop || itype.op == SWop) &&
-	     itype.rs == REG_SP &&
-	     itype.simm16 >= 0)
+             itype.rs == REG_SP &&
+             itype.simm16 >= 0)
     {
       assert(isAligned(itype.simm16));
       int r = aliases[itype.rt];
       regSave_t &save = reg_saves[r];
       // check if register has been saved yet
       if (save.slot == -1) {
-	// convert positive $sp offset to negative $fp offset
-	save.slot = itype.simm16 - frame_size;
-	save.dword = (itype.op == SDop);
-	save.insn = off;
+        // convert positive $sp offset to negative $fp offset
+        save.slot = itype.simm16 - frame_size;
+        save.dword = (itype.op == SDop);
+        save.insn = off;
       }
     }
     // register save #2: "sd/sw RR,-XX(s8)" insn
     else if ((itype.op == SDop || itype.op == SWop) &&
-	     uses_fp && itype.rs == REG_S8 &&
-	     itype.simm16 < 0)
+             uses_fp && itype.rs == REG_S8 &&
+             itype.simm16 < 0)
     {
       int r = aliases[itype.rt];
       regSave_t &save = reg_saves[r];
       // check if register has been saved yet
       if (save.slot == -1) {
-	save.slot = itype.simm16; // negative $fp offset
-	save.dword = (itype.op == SDop);
-	save.insn = off;
+        save.slot = itype.simm16; // negative $fp offset
+        save.dword = (itype.op == SDop);
+        save.insn = off;
+      }
+    }
+    //  return : "jr ra" insn
+    else if ( rtype.op == SPECIALop && rtype.ops == JRops ) 
+    {
+      if ( frame_size > 0 )
+      {
+        instruction tempInsn;
+        struct fmt_itype &itype = tempInsn.itype;
+        struct fmt_rtype &rtype = tempInsn.rtype;
+        Address fn_addr = owner->getObject().get_base_addr() + getAddress(0);
+        tempInsn.raw = owner->get_instruction(start + off + INSN_SIZE);
+
+        //  check if frame pop is in delay slot
+        //  if so, don't save pop/return offsets to
+        //  identify inactive frame range
+
+        if ( ((itype.op == ADDIUop || itype.op == DADDIUop) && 
+              itype.rs == REG_SP &&
+              itype.rt == REG_SP &&
+              itype.simm16 == frame_size &&
+              noStackFrame == false) || 
+
+             (rtype.op == SPECIALop &&
+              rtype.ops == ORops &&
+              rtype.rt == REG_ZERO &&
+              rtype.rs == REG_S8 &&
+              rtype.rd == REG_SP &&
+              uses_fp == true) )
+        {
+          off += INSN_SIZE;
+        }
+        else
+        {
+          if ( foundRest )
+          {
+            //fprintf(stderr, "\n\n  in function %s, saving pop %d and ret %d\n", prettyName().string_of(), lastRestore, off);
+            ifr.popOffset = lastRestore;
+            ifr.retOffset = off;
+            inactiveRanges += ifr;
+          }
+        }
+
+        foundRest = false;
       }
     }
   }
-  // must have at least one stack frame restore
-  if (sp_mod != (Address)-1) {
-    //assert(sp_ret.size() != 0);
-    sp_ret += (Address)-1;
-  }
-
+  
   TRACE_E( "pd_Function::findStackFrame" );
 
   // default return value (entry point = first insn of fn)

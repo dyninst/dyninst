@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.136 2000/05/11 04:52:23 zandy Exp $
+/* $Id: process.h,v 1.137 2000/05/12 17:30:25 chambrea Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -291,6 +291,9 @@ class Frame {
     Address   pc_;
     Address   fp_;
     Address   sp_;     // NOTE: this is not always populated
+#if defined(mips_sgi_irix6_4)
+    Address   saved_fp;
+#endif
 #if defined(MT_THREAD)
     int       lwp_id_; // kernel-level thread (LWP)
     pdThread *thread_; // user-level thread

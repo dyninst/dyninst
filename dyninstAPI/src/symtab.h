@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.71 2000/04/28 23:13:33 altinel Exp $
+// $Id: symtab.h,v 1.72 2000/05/12 17:30:25 chambrea Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -351,6 +351,13 @@ class pd_Function : public function_base {
     // $fp-style frame (rare)
     Address         fp_mod;     // offset of insn that modifies $fp
     bool            uses_fp;    // does this fn use $s8 as a frame pointer?
+
+    typedef struct inactiveRange {
+       int popOffset;
+       int retOffset;
+       } InactiveFrameRange;
+
+       vector<InactiveFrameRange> inactiveRanges;
 #endif
 
 #ifndef BPATCH_LIBRARY

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.13 1999/12/22 22:03:34 wylie Exp $
+// $Id: irix.C,v 1.14 2000/05/12 17:30:25 chambrea Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -81,6 +81,26 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach);
 int masterMPIfd;
 int masterMPIpid;
 
+// constants derived from "tramp-mips.s" (must remain consistent)
+// size of basetramp stack frame
+// offset of save insns from basetramp "daddiu sp,sp,-512"
+static const int bt_ra_save_off = (64 * INSN_SIZE); 
+static const int bt_fp_save_off = (63 * INSN_SIZE); 
+// basetramp stack frame slots
+static const int bt_ra_slot = -512;
+static const int bt_fp_slot = -504;
+static const int bt_frame_size = 512;
+
+static Address adjustedPC(Address pc, Address fn_addr,
+			  instPoint *ip,
+			  trampTemplate *bt,
+			  instInstance *mt);
+static bool nativFrameActive(instPoint* ip, Address pc_off,
+                             pd_Function *callee, process* p);
+static bool instrFrameActive(Address pc,
+			     instPoint *ip, 
+			     trampTemplate *bt, 
+			     instInstance *mt);
 
 void print_proc_flags(int fd)
 {
@@ -1068,6 +1088,7 @@ bool process::dumpImage() {
 // getActiveFrame(): populate Frame object using toplevel frame
 void Frame::getActiveFrame(process *p)
 {
+  // Get current register values
   gregset_t regs;
   int proc_fd = p->getProcFileDescriptor();
   if (ioctl(proc_fd, PIOCGREG, &regs) == -1) {
@@ -1077,8 +1098,64 @@ void Frame::getActiveFrame(process *p)
   
   pc_ = regs[PROC_REG_PC];
   sp_ = regs[PROC_REG_SP];
-  fp_ = regs[PROC_REG_FP];
+  saved_fp = regs[PROC_REG_FP];
+
+  //  Determine the value of the conceptual frame pointer
+  //  for this function (not necessarily s8).
+  instPoint     *ip = NULL;
+  trampTemplate *bt = NULL;
+  instInstance  *mt = NULL;
+  pd_Function *currFunc = findAddressInFuncsAndTramps(p, pc_, ip, bt, mt);
+
+  if ( currFunc )
+  {
+    Address base_addr;
+    p->getBaseAddress(currFunc->file()->exec(), base_addr);
+    Address fn_addr = base_addr + currFunc->getAddress(0);
   
+    // adjust $pc for active instrumentation 
+    Address pc_adj = adjustedPC(pc_, fn_addr, ip, bt, mt);
+    Address pc_off = pc_adj - fn_addr;
+    bool nativeFrameActive = nativFrameActive(ip, pc_off, currFunc, p);
+    bool basetrampFrameActive = instrFrameActive(pc_, ip, bt, mt);
+
+    if ( currFunc->uses_fp )
+    {
+      if ( basetrampFrameActive ) // use s8 value stored in bt frame
+      {
+        Address fp_bt = sp_;
+        fp_bt += bt_frame_size;
+        Address fp_addr = fp_bt + bt_fp_slot;
+        fp_ = readAddressInMemory(p, fp_addr, true);
+      }
+      else if ( nativeFrameActive )
+        fp_ = saved_fp;
+      else
+        fp_ = sp_;
+    }
+    else
+    {
+      fp_ = sp_;
+      if ( basetrampFrameActive )
+        fp_ += bt_frame_size;
+      if ( nativeFrameActive )
+        fp_ += currFunc->frame_size;
+    }
+  }
+  else
+    fp_ = sp_;
+
+  /*
+  if ( currFunc )
+  {
+    fprintf(stderr, "\nin getActiveFrame for function %s\n", currFunc->prettyName().string_of());
+    fprintf(stderr, "  pc_ is      %x\n", pc_);
+    fprintf(stderr, "  sp_ is      %x\n", sp_);
+    fprintf(stderr, "  fp_ is      %x\n", fp_);
+    fprintf(stderr, "  saved_fp is %x\n", saved_fp);
+    fprintf(stderr, "  uses fp is %s\n\n", currFunc->uses_fp ? "true" : "false");
+    }*/
+
   // sometimes the actual $fp is zero
   // (kludge for stack walk code)
   if (fp_ == 0) fp_ = sp_;
@@ -1110,34 +1187,57 @@ static bool instrFrameActive(Address pc,
 }
 
 /* nativeFrameActive(): determine if the (relative) $pc is between the
-   stack frame save and restore insns */
-/* TODO: To handle functions with multiple exit points (and restores),
-   the $pc should be considered "after" a given insn only if the $pc
-   is within some proximity.  This heuristic is a poor imitation of
-   dataflow analysis. */
-#define STACK_RESTORE_PROXIMITY (4*INSN_SIZE)
-static bool nativFrameActive(Address pc_off, pd_Function *callee)
+   stack frame save and restore insns.  Functions are parsed to identify
+   instructions that pop the stack frame and return.  If the pc is between
+   a pair of these instructions, then the frame is not active.
+*/
+static bool nativFrameActive(instPoint* ip, Address pc_off,
+                             pd_Function *callee, process* p)
 {
+  unsigned int idx;
+
   if (callee->frame_size == 0) return false;
 
-  if (pc_off > callee->sp_mod) {
-    int nret = callee->sp_ret.size();
-    Address last_ret = callee->sp_ret[nret-1];
-    if (pc_off <= last_ret) return true;
+  if (pc_off > callee->sp_mod) 
+  {
+    //  check if pc is between pop & return instructions
+    for ( idx = 0; idx < callee->inactiveRanges.size(); idx++ )
+    {
+      //  Although not an issue at the time of this writing, there is the
+      //  possibility that inactive-frame groups of instructions will be
+      //  relocated to the basetramp in the future.  This will allow
+      //  pre-insn instrumentation to execute at exit points with an active
+      //  frame, and post-insn instrumentation to execute with the
+      //  understanding that the frame has already been popped.
+      //
+      //  In order to account for this possibility, the current approach to
+      //  identify if the pc is in code where the frame is inactive is :
+      //    if the pc is within instrumentation, the inst point matches the
+      //      frame pop instruction address, and the corrected pc offset
+      //      is after the pop insn.
+      //    if the pc is within identified ranges of pop/return instructions
+
+      if ( ip &&
+           ip->func_->getEffectiveAddress(p) ==
+           callee->getEffectiveAddress(p) +
+           callee->inactiveRanges[idx].popOffset )
+      {
+        if ( pc_off > callee->inactiveRanges[idx].popOffset )
+          return false;
+      }
+      else if ( pc_off > callee->inactiveRanges[idx].popOffset &&
+                pc_off <= callee->inactiveRanges[idx].retOffset )
+      {
+      	return false;
+      }
+    }
+    
+    return true;
   }
 
   return false;
 }
 
-// constants derived from "tramp-mips.s" (must remain consistent)
-// size of basetramp stack frame
-static const int bt_frame_size = 512;
-// offset of save insns from basetramp "daddiu sp,sp,-512"
-static const int bt_ra_save_off = (64 * INSN_SIZE); 
-static const int bt_fp_save_off = (63 * INSN_SIZE); 
-// basetramp stack frame slots
-static const int bt_ra_slot = -512;
-static const int bt_fp_slot = -504;
 
 static bool basetrampRegSaved(Address pc, Register reg,
 			      instPoint *ip,
@@ -1244,6 +1344,7 @@ Frame Frame::getCallerFrameNormal(process *p) const
     fprintf(stderr, "!!! <0x%016lx:???> unknown callee\n", pc_);
     return Frame(); // zero frame
   }
+
   Address base_addr;
   p->getBaseAddress(callee->file()->exec(), base_addr);
   Address fn_addr = base_addr + callee->getAddress(0);
@@ -1274,7 +1375,7 @@ Frame Frame::getCallerFrameNormal(process *p) const
 
   // which frames (native/basetramp) are active?
   Address pc_off = pc_adj - fn_addr;
-  bool nativeFrameActive = nativFrameActive(pc_off, callee);
+  bool nativeFrameActive = nativFrameActive(ip, pc_off, callee, p);
   bool basetrampFrameActive = instrFrameActive(pc_, ip, bt, mt);
 
   // frame pointers for native and basetramp frames
@@ -1287,7 +1388,7 @@ Frame Frame::getCallerFrameNormal(process *p) const
     fp_native += callee->frame_size;
   }
   // override calculated $fp if frame pointer conventions used
-  if (callee->uses_fp) fp_native = fp_;
+  if (callee->uses_fp) fp_native = saved_fp;
 
   // which frames is $ra saved in?
   pd_Function::regSave_t &ra_save = callee->reg_saves[REG_RA];
@@ -1317,14 +1418,13 @@ Frame Frame::getCallerFrameNormal(process *p) const
     // non-toplevel basetramp frames should always be fully saved
     if (basetrampFrameActive) {
       /*
-      if (!fp_saved_bt || !ra_saved_bt) {
+      if (!fp_saved_bt || !ra_saved_bt) 
 	fprintf(stderr, "!!! $fp or $ra not saved in basetramp frame\n");
-	fprintf(stderr, "    0x%016lx $pc\n", pc_);
+      fprintf(stderr, "    0x%016lx $pc\n", pc_);
 	if (bt) { 
 	  fprintf(stderr, "     [in basetramp]\n");
 	  fprintf(stderr, "     0x%016lx basetramp\n", bt->baseAddr);
 	} else if (mt) { fprintf(stderr, "     [in minitramp]\n"); }
-      }
       assert(fp_saved_bt && ra_saved_bt);
       */
     }
@@ -1335,6 +1435,7 @@ Frame Frame::getCallerFrameNormal(process *p) const
   Address ra_addr = 0;
   char ra_debug[256];
   sprintf(ra_debug, "<unknown>");
+
   if (nativeFrameActive && ra_saved_native) {
     // $ra saved in native frame
     ra_addr = fp_native + ra_save.slot;
@@ -1371,7 +1472,13 @@ Frame Frame::getCallerFrameNormal(process *p) const
     }
   }
 
-  // find caller $fp
+  // determine location of caller $pc (native code, basetramp, minitramp)
+  instPoint *ip2 = NULL;
+  trampTemplate *bt2 = NULL;
+  instInstance *mt2 = NULL;
+  pd_Function *caller = findAddressInFuncsAndTramps(p, ra, ip2, bt2, mt2);
+
+  // Check for saved $fp value
   Address fp2;
   Address fp_addr = 0;
   char fp_debug[256];
@@ -1381,26 +1488,37 @@ Frame Frame::getCallerFrameNormal(process *p) const
     fp_addr = fp_native + fp_save.slot;
     fp2 = readAddressInMemory(p, fp_addr, fp_save.dword);
     sprintf(fp_debug, "[$fp - %i]", -fp_save.slot);
+    //fprintf(stderr, "  read fp_saved_native at %x from fp_native %x and slot %d\n", fp_addr, fp_native, fp_save.slot);
   } else if (basetrampFrameActive && fp_saved_bt) {
     // $ra saved in basetramp frame
     fp_addr = fp_bt + bt_fp_slot;
     fp2 = readAddressInMemory(p, fp_addr, true);
     sprintf(fp_debug, "[$fp - %i]", -bt_fp_slot);
+    //fprintf(stderr, "  read fp_saved_bt at %x from fp_native %x and slot %d\n", fp_addr, fp_bt, bt_fp_slot);
   } else {
     // $fp not saved in any frame
     // pass up callee $fp
-    fp2 = fp_;
+    fp2 = saved_fp;
     sprintf(fp_debug, "(callee $fp)");
   }
   // sometimes the retrieved $fp is zero
   // (kludge for stack walk code)
-  if (fp2 == 0) fp2 = fp_;
+  if (fp2 == 0) fp2 = saved_fp;
 
-  // determine location of caller $pc (native code, basetramp, minitramp)
-  instPoint *ip2 = NULL;
-  trampTemplate *bt2 = NULL;
-  instInstance *mt2 = NULL;
-  pd_Function *caller = findAddressInFuncsAndTramps(p, ra, ip2, bt2, mt2);
+  // Sometimes we have identified functions with a stack frame
+  // ra slot that do not store the ra in the slot.  The following
+  // code accounts for this situation.
+  if (caller == NULL && uppermost_) {
+    // $ra in live register
+    gregset_t regs;
+    int proc_fd = p->getProcFileDescriptor();
+    if (ioctl(proc_fd, PIOCGREG, &regs) == -1) {
+      perror("process::readDataFromFrame(PIOCGREG)");
+      return Frame(); // zero frame
+    }
+    ra = regs[PROC_REG_RA];
+    caller = findAddressInFuncsAndTramps(p, ra, ip2, bt2, mt2);
+  }
 
   /* 
   // debug
@@ -1468,7 +1586,17 @@ Frame Frame::getCallerFrameNormal(process *p) const
   Frame ret;
   ret.pc_ = ra;
   ret.sp_ = fp_native;
-  ret.fp_ = fp2;
+  if ( caller )
+  {
+    if ( caller->uses_fp )
+      ret.fp_ = fp2;
+    else
+      ret.fp_ = fp_native + caller->frame_size;
+  }
+  else 
+    ret.fp_ = sp_;
+
+  ret.saved_fp = fp2;
 
   /* 
   // debug
