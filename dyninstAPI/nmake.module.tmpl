@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.14 2000/07/28 20:30:14 hollings Exp $
+# $Id: nmake.module.tmpl,v 1.15 2000/08/21 22:03:20 schendel Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -37,7 +37,7 @@ SRCS	     = $(SRCS) BPatch.C \
 		dummy.C \
 		api_showerror.C \
 		ast.C \
-		Codeview.C \
+		CodeView.C \
 		inst.C \
 		Object.C \
 		Object-nt.C \
@@ -76,7 +76,7 @@ OBJS         = $(OBJS) BPatch.obj \
 		dummy.obj \
 		api_showerror.obj \
 		ast.obj \
-		Codeview.obj \
+		CodeView.obj \
 		inst.obj \
 		Object.obj \
 		Object-nt.obj \

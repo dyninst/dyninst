@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.5 2000/07/28 20:30:13 hollings Exp $
+// $Id: ntHeaders.h,v 1.6 2000/08/21 22:03:11 schendel Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -67,9 +67,9 @@ typedef void *caddr_t;
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-#include "rpc/rpc.h"
-#include "rpc/types.h"
-#include "rpc/xdr.h"
+#include <rpc/rpc.h>
+#include <rpc/types.h>
+#include <rpc/xdr.h>
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
