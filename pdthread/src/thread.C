@@ -29,6 +29,10 @@ int thr_create(void* stack, unsigned stack_size, void* (*func)(void*),
     return THR_OKAY;
 }
 
+const char*	thr_name(const char* name) {
+    return (const char*)0;
+}
+
 
 thread_t thr_self(void) {
     return lwp::get_self();

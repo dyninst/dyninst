@@ -21,7 +21,8 @@ class message {
         this->sender = sender;
         this->tag = tag;
         if(count != 0) {
-            this->buf = malloc(count);
+            // NB: assuming that char is 8 bits
+            this->buf = (void*)new char[count];
             this->buf = memcpy(this->buf, buf, count);
         }
         this->size = count;
@@ -29,7 +30,7 @@ class message {
     
     virtual ~message() {
         if(size != 0)
-            free(buf);
+            delete [] (char*)buf;
     }
     
     /**

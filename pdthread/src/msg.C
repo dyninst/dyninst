@@ -47,6 +47,7 @@ int msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize) {
 
 int msg_bind(PDDESC fd, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid) {
     ;
+    return -1;
 }
 
 
@@ -56,11 +57,17 @@ int msg_bind_sig(int sig, thread_t* tid) {
 }
 
 
-int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid);
+int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid) {
+    ;
+    return -1;
+}
 
 #if defined(i386_unknown_nt4_0)
 int msg_bind_wmsg(thread_t* tid);
 #endif /* defined(i386_unknown_nt4_0) */
 
-int msg_unbind(thread_t tid);
+int msg_unbind(thread_t tid) {
+    ;
+    return -1;
+}
 

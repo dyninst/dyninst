@@ -55,7 +55,7 @@ struct ready_fds_populator {
 void* thr_mailbox::fds_select_loop(void* which_mailbox) {
     thr_mailbox* owner = (thr_mailbox*)which_mailbox;
 
-    fd_set* readable_fds = (fd_set*)malloc(sizeof(fd_set));
+    fd_set* readable_fds = new fd_set;
     fd_set_populator fd_visitor;
     ready_fds_populator ready_visitor;
     
@@ -64,7 +64,8 @@ void* thr_mailbox::fds_select_loop(void* which_mailbox) {
 
     while(1) {
         int select_status;
-
+        char buf[256];
+        
         fd_visitor.already_ready = owner->ready_fds;
         
         if(owner->kill_fd_selector) goto done;
@@ -78,6 +79,9 @@ void* thr_mailbox::fds_select_loop(void* which_mailbox) {
 
         select_status = 
             select(fd_visitor.count,fd_visitor.to_populate,NULL,NULL,NULL);
+
+        if(FD_ISSET(owner->fds_selector_pipe[0],fd_visitor.to_populate))
+            read(owner->fds_selector_pipe[0],buf,256);
         
         if(select_status == -1) {
             perror("select thread");
@@ -132,7 +136,7 @@ void* thr_mailbox::fds_select_loop(void* which_mailbox) {
     close(owner->fds_selector_pipe[0]);
     close(owner->fds_selector_pipe[1]);
     
-    free(readable_fds);
+    delete readable_fds;
     return 0;
 }
 
@@ -184,7 +188,7 @@ struct ready_socks_populator {
 void* thr_mailbox::sock_select_loop(void* which_mailbox) {
     thr_mailbox* owner = (thr_mailbox*)which_mailbox;
 
-    fd_set* readable_socks = (fd_set*)malloc(sizeof(fd_set));
+    fd_set* readable_socks = new fd_set;
     sock_set_populator sock_visitor;
     ready_socks_populator ready_visitor;
     
@@ -193,7 +197,8 @@ void* thr_mailbox::sock_select_loop(void* which_mailbox) {
 
     while(1) {
         int select_status;
-
+        char buf[256];
+        
         sock_visitor.already_ready = owner->ready_socks;
         
         if(owner->kill_sock_selector) goto done;
@@ -207,7 +212,10 @@ void* thr_mailbox::sock_select_loop(void* which_mailbox) {
 
         select_status = 
             select(sock_visitor.count,sock_visitor.to_populate,NULL,NULL,NULL);
-        
+
+        if(FD_ISSET(owner->sock_selector_pipe[0],sock_visitor.to_populate))
+            read(owner->sock_selector_pipe[0],buf,256);
+
         if(select_status == -1) {
             perror("select thread");
         } else if (select_status == 1 && 
@@ -262,7 +270,7 @@ void* thr_mailbox::sock_select_loop(void* which_mailbox) {
     close(owner->sock_selector_pipe[0]);
     close(owner->sock_selector_pipe[1]);
     
-    free(readable_socks);
+    delete readable_socks;
     return 0;
 }
 
@@ -285,8 +293,8 @@ thr_mailbox::thr_mailbox(thread_t owner)
     kill_fd_selector = 0;
     kill_sock_selector = 0;
 
-    fds_selector_pipe = (int*)malloc(2 * sizeof(int));
-    sock_selector_pipe = (int*)malloc(2 * sizeof(int));
+    fds_selector_pipe = new int[2];
+    sock_selector_pipe = new int[2];
 
     int pipe_success = pipe(fds_selector_pipe);
     assert(pipe_success == 0);    
@@ -311,8 +319,8 @@ thr_mailbox::~thr_mailbox() {
     close(sock_selector_pipe[0]);
     close(sock_selector_pipe[1]);
 
-    free(fds_selector_pipe);
-    free(sock_selector_pipe);
+    delete [] fds_selector_pipe;
+    delete [] sock_selector_pipe;
 }
 
 inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block, 
