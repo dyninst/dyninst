@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.215 2002/08/29 19:53:32 chadd Exp $
+/* $Id: process.h,v 1.216 2002/08/31 16:53:14 mikem Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -85,6 +85,12 @@
 #include "paradynd/src/shmMgr.h"
 #include "paradynd/src/variableMgr.h"
 #include "paradynd/src/sharedMetaData.h"
+#endif
+
+#ifndef BPATCH_LIBRARY
+#ifdef PAPI
+#include "paradynd/src/papiMgr.h"
+#endif
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
@@ -740,6 +746,7 @@ void saveWorldData(Address address, int size, const void* src);
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
   bool isLibhrtimeAvail();           // for high resolution cpu timer on linux
+  bool isPapiAvail();           
   void free_hrtime_link();
 #ifdef HRTIME
   struct hrtime_struct *hr_cpu_link;
@@ -844,6 +851,15 @@ void saveWorldData(Address address, int size, const void* src);
  public:
   bool splitHeaps;              /* are there separate code/data heaps? */
   inferiorHeap heap;            /* the heap */
+
+
+#ifndef BPATCH_LIBRARY
+#ifdef PAPI
+  papiMgr* papi;
+  papiMgr* getPapiMgr() { return papi; }
+#endif
+
+#endif
 
   //
   //  PRIVATE DATA MEMBERS (and structure definitions)....
@@ -1242,6 +1258,8 @@ void saveWorldData(Address address, int size, const void* src);
   unsigned getShmHeapTotalNumBytes() {
      return theSharedMemMgr->getHeapTotalNumBytes();
   }
+
+  
 
   Address initSharedMetaData();
   sharedMetaData *shmMetaData;

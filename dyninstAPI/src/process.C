@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.352 2002/08/29 00:33:26 rchen Exp $
+// $Id: process.C,v 1.353 2002/08/31 16:53:12 mikem Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -86,9 +86,15 @@ int pvmendtask();
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/main.h"
-#include "paradynd/src/init.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/int64iostream.h"
+#endif
+
+#include "paradynd/src/init.h"
+#ifndef BPATCH_LIBRARY
+#ifdef PAPI
+#include "paradynd/src/papiMgr.h"
+#endif
 #endif
 
 #ifndef BPATCH_LIBRARY
@@ -2076,6 +2082,9 @@ process::process(int iPid, image *iImage, int iTraceLink
 #ifdef HRTIME
   hr_cpu_link(NULL),
 #endif
+#ifdef PAPI
+  papi(NULL),
+#endif
 #endif
   baseMap(ipHash), 
 #ifdef BPATCH_LIBRARY
@@ -2236,6 +2245,14 @@ process::process(int iPid, image *iImage, int iTraceLink
                    + string(pid);
       showErrorCallback(26, msg.c_str());
    }
+  
+#ifndef BPATCH_LIBRARY
+#ifdef PAPI
+   if (isPapiInitialized()) {
+     papi = new papiMgr(this);
+   }
+#endif
+#endif
 } // end of normal constructor
 
 
@@ -2266,6 +2283,9 @@ process::process(int iPid, image *iSymbols,
 #ifdef HRTIME
   hr_cpu_link(NULL),
 #endif // HRTIME
+#ifdef PAPI
+  papi(NULL),
+#endif
 #endif // BPATCH
   baseMap(ipHash),
 #if defined(BPATCH_LIBRARY)
@@ -2501,6 +2521,15 @@ process::process(int iPid, image *iSymbols,
    // note: we don't call getSharedObjects() yet; that happens once DYNINSTinit
    //       finishes (handleStartProcess)
 
+
+#ifndef BPATCH_LIBRARY
+#ifdef PAPI
+   if (isPapiInitialized()) {
+     papi = new papiMgr(this);
+   }
+#endif
+#endif
+
    // Everything worked
    success = true;
 }
@@ -2545,6 +2574,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   cpuTimeMgr(NULL),
 #ifdef HRTIME
   hr_cpu_link(NULL),
+#endif
+#ifdef PAPI
+  papi(NULL),
 #endif
 #endif
   baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
@@ -2761,6 +2793,14 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    else
            status_ = stopped;
    // would neonatal be more appropriate?  Nah, we've reached the first trap
+
+#ifndef BPATCH_LIBRARY
+#ifdef PAPI
+   if (isPapiInitialized()) {
+     papi = new papiMgr(this);
+   }
+#endif
+#endif
 
    initTrampGuard();
 }
