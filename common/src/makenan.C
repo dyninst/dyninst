@@ -39,20 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: makenan.C,v 1.9 1998/08/27 21:22:53 nash Exp $
+// $Id: makenan.C,v 1.10 1999/02/08 14:06:23 nash Exp $
+
+// This isn't needed in Linux, see makenan.h -- DAN
+#if !defined(i386_unknown_linux2_0)
 
 #include "util/h/makenan.h"
 #include "util/h/headers.h"
-
-#if defined(i386_unknown_linux2_0)
-
-#include <nan.h>
-
-float make_Nan() {
-  return NAN;
-}
-
-#else // !i386_unknown_linux2_0
 
 float f_paradyn_nan = 0.0;
 bool nan_created = false;
@@ -86,3 +79,4 @@ int matherr(struct MATH_EXCEPTION_STRUCT *x) {
 }
 
 #endif // !i386_unknown_linux2_0
+
