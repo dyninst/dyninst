@@ -14,26 +14,33 @@
 #include <vector>
 #include "mrnet/FilterIds.h"
 
-
 namespace MRN
 {
 const int FIRST_CTL_TAG=100;
 const int FIRST_APPL_TAG=200;
+
+// pretty names for MRNet port and rank types.
+typedef unsigned short Port;
+typedef unsigned int Rank;
+
+extern const Port UnknownPort;
+extern const Rank UnknownRank;
+
 
 class EndPointImpl;
 class EndPoint{
     friend class Network;
 
  private:
-    EndPoint(int _id, const char * _hostname, unsigned short _port);
+    EndPoint(Rank _rank, const char * _hostname, Port _port);
     EndPointImpl * endpoint;
 
  public:
     ~EndPoint();
-    bool compare(const char * _hostname, unsigned short _port)const;
+    bool compare(const char * _hostname, Port _port)const;
     const char * get_HostName()const;
-    unsigned short get_Port()const;
-    unsigned int get_Id()const;
+    Port get_Port()const;
+    Rank get_Rank()const;
 };
 
 class CommunicatorImpl;
@@ -51,12 +58,12 @@ class Communicator{
 
     ~Communicator();
 
-    int add_EndPoint(const char * hostname, unsigned short port);
+    int add_EndPoint(const char * hostname, Port port);
     void add_EndPoint(EndPoint *);
     unsigned int size( void ) const;
     const char * get_HostName(int) const; 
-    unsigned short get_Port(int) const;
-    unsigned int get_Id(int) const;
+    Port get_Port(int) const;
+    Rank get_Rank(int) const;
     const std::vector<EndPoint *> & get_EndPoints( void ) const;
 };
 
@@ -97,7 +104,7 @@ typedef enum {
 } EventType;
 
 extern std::string LocalHostName;
-extern unsigned short LocalPort;
+extern Port LocalPort;
 
 class Event{
     friend class EventImpl;
@@ -107,7 +114,7 @@ class Event{
  public:
     static Event * new_Event( EventType t, std::string desc="",
                               std::string h=LocalHostName,
-                              unsigned short p=LocalPort );
+                              Port p=LocalPort );
     static bool have_Event();
     static bool have_RemoteEvent();
     static void add_Event( Event & );
@@ -118,14 +125,13 @@ class Event{
 
     virtual EventType get_Type( )=0;
     virtual const std::string & get_HostName( )=0;
-    virtual unsigned short get_Port( )=0;
+    virtual Port get_Port( )=0;
     virtual const std::string & get_Description( )=0;
 };
 
 class NetworkImpl;
 class FrontEndNode;
 class BackEndNode;
-
 class Network{
     friend class StreamImpl;
 
@@ -140,22 +146,27 @@ class Network{
     class LeafInfo {
     public:
         virtual const char* get_Host( void ) const = 0;
-        virtual unsigned short get_Rank( void ) const   = 0;
-        virtual unsigned short get_Id( void ) const   = 0;
-        virtual const char* get_ParHost( void ) const   = 0;
-        virtual unsigned short get_ParPort( void ) const   = 0;
-        virtual unsigned short get_ParRank( void ) const   = 0;
+        virtual Port get_Port( void ) const = 0;
+        virtual Rank get_Rank( void ) const = 0;
+        virtual const char* get_ParHost( void ) const = 0;
+        virtual Port get_ParPort( void ) const = 0;
     };
 
+    // FE constructors
+    // The first two take the process network configuration from
+    // the file named by '_filename'.  The second two take the
+    // configuration from a buffer in memory.  (The extra bool argument
+    // in the second two is used only to distinguish the 
+    // constructor signatures.)
     Network(const char * _filename, const char * _backend);
     Network(const char * _filename, LeafInfo*** leafInfo,
             unsigned int* nLeaves );
-    Network(const char *hostname, const char *port,
-            const char *phostname, const char *pport,
-            const char *pid);
-    Network(const char *hostname, unsigned int backend_id,
-            const char *phostname, unsigned int pport,
-            unsigned int pid);
+    Network(const char * _configBuf, bool unused, const char * _backend);
+    Network(const char * _configBuf, bool unused, LeafInfo*** leafInfo,
+            unsigned int* nLeaves );
+
+    // BE constructors
+    Network(const char *phostname, Port pport, Rank myrank = UnknownRank );
     ~Network();
 
     int connect_Backends( void );
@@ -167,12 +178,12 @@ class Network{
                                 bool is_trans_filter=true );
     Communicator * get_BroadcastCommunicator( void );
 
-    EndPoint * get_EndPoint(const char*, short unsigned int);
+    EndPoint * get_EndPoint(const char*, Port);
     Communicator * new_Communicator( void );
     Communicator * new_Communicator( Communicator& );
     Communicator * new_Communicator( std::vector <EndPoint *> & );
 
-    static EndPoint * new_EndPoint(int id, const char * hostname, unsigned short port);
+    static EndPoint * new_EndPoint(Rank rank, const char * hostname, Port port);
 
     Stream * new_Stream( Communicator *,
                          int us_filter_id=TFILTER_NULL,
