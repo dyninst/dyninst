@@ -10,7 +10,7 @@ class DynerList {
 	struct ListItem {
 		T _item;
 		ListItem *_next;
-		ListItem() {_item = _nullT; _next = NULL; }
+		ListItem() {_item = DynerList<T>::_nullT; _next = NULL; }
 		ListItem(const T& item) { _item = item; _next = NULL; }
 	};
 
@@ -41,12 +41,12 @@ class DynerList {
 		}
 	};
 
-	T _nullT;
 	iterType _begin;
 	iterType _end;
 	ListItem *_vector;
 	int _size;
 public:
+	static T _nullT;
 	typedef iterType iterator;
 
         DynerList();
@@ -153,6 +153,9 @@ void DynerList<T>::push_front(const T& x) {
 	item->_next = _vector;
 	_vector = item;
 }
+
+template<class T> T DynerList<T>::_nullT;
+
 #endif
 
 #endif //__DYNERLIST__
