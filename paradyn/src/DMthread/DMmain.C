@@ -2,7 +2,12 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.40  1994/07/26 20:03:05  hollings
+ * Revision 1.41  1994/07/28 22:31:08  krisna
+ * include <rpc/types.h>
+ * stringCompare to match qsort prototype
+ * proper prorotypes for starting DMmain
+ *
+ * Revision 1.40  1994/07/26  20:03:05  hollings
  * added suppressSearch.
  *
  * Revision 1.39  1994/07/25  14:55:36  hollings
@@ -594,8 +599,10 @@ DMnewParadynd (int sockfd, dataManager *dm)
 //
 // Main loop for the dataManager thread.
 //
-void *DMmain(int arg)
+void *DMmain(void* varg)
 {
+    int arg; memcpy((void *) &arg, varg, sizeof arg);
+
     int ret;
     unsigned int tag;
     List<paradynDaemon*> curr;

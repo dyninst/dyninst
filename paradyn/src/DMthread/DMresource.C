@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.10 1994/07/26 20:03:06 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.11 1994/07/28 22:31:09 krisna Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.10  1994/07/26 20:03:06  hollings
+ * Revision 1.11  1994/07/28 22:31:09  krisna
+ * include <rpc/types.h>
+ * stringCompare to match qsort prototype
+ * proper prorotypes for starting DMmain
+ *
+ * Revision 1.10  1994/07/26  20:03:06  hollings
  * added suppressSearch.
  *
  * Revision 1.9  1994/07/14  23:45:31  hollings
@@ -197,13 +202,19 @@ char ** resourceList::convertToStringList()
     return(temp);
 }
 
+static int stringCompare(const void* p1, const void* p2) {
+    extern int strCompare(char** a, char** b);
+    char** q1 = (char **) p1;
+    char** q2 = (char **) p2;
+    return strCompare(q1, q2);
+}
+
 char *resourceList::getCanonicalName()
 {
     int i;
     int total;
     char *tempName;
     char **temp;
-    extern int strCompare(char **a, char **b);
 
     lock();
     if (!fullName) {
@@ -211,7 +222,7 @@ char *resourceList::getCanonicalName()
 	for (i=0; i < count; i++) {
 	    temp[i] = elements[i]->fullName;
 	}
-	qsort(temp, count, sizeof(char *), strCompare);
+	qsort(temp, count, sizeof(char *), stringCompare);
 
 	total = 3;
 	for (i=0; i < count; i++) total += strlen(temp[i])+2;

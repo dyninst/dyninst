@@ -2,7 +2,12 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.33  1994/07/25 14:55:34  hollings
+ * Revision 1.34  1994/07/28 22:31:06  krisna
+ * include <rpc/types.h>
+ * stringCompare to match qsort prototype
+ * proper prorotypes for starting DMmain
+ *
+ * Revision 1.33  1994/07/25  14:55:34  hollings
  * added suppress resource option.
  *
  * Revision 1.32  1994/07/14  23:46:23  hollings
@@ -125,6 +130,7 @@ extern "C" {
 double   quiet_nan(int unused);
 #include <malloc.h>
 #include "thread/h/thread.h"
+#include <rpc/types.h>
 #include <rpc/xdr.h>
 }
 
