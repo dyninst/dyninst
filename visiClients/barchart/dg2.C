@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.6  1994/11/06 10:24:04  tamches
-/* minor cleanups (especially commenting)
+/* Revision 1.7  1995/02/26 02:01:48  newhall
+/* added callback functions for new visiLib phase info.
 /*
+ * Revision 1.6  1994/11/06  10:24:04  tamches
+ * minor cleanups (especially commenting)
+ *
  * Revision 1.5  1994/10/11  21:59:47  tamches
  * Removed extra StartVisi() bug.
  * Implemented dataGrid[][].Enabled()
@@ -216,7 +219,7 @@ int Dg_TclCommand(ClientData clientData,
     return TCL_OK;
 
   case DEFINEPHASE:       
-    NamePhase(atof(argv[2]), atof(argv[3]), argv[4]);
+    DefinePhase(-1.0,NULL);
     return TCL_OK;
 
   case RESOURCENAME:
@@ -294,7 +297,7 @@ int Dg2_Init(Tcl_Interp *interp) {
    if (RegistrationCallback(INVALIDMETRICSRESOURCES, Dg2InvalidMetricsOrResources) != 0)
       panic("Dg2_Init() -- couldn't install INVALID callback");
 
-   if (RegistrationCallback(PHASENAME, Dg2PhaseNameCallback) != 0)
+   if (RegistrationCallback(PHASESTART, Dg2PhaseNameCallback) != 0)
       panic("Dg2_Init() -- couldn't install PHASENAME callback");
 
    if (RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)

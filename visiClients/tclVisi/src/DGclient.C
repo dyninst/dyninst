@@ -2,7 +2,10 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.6  1994/11/08 00:20:26  tamches
+ * Revision 1.7  1995/02/26 02:02:02  newhall
+ * added callback functions for new visiLib phase info.
+ *
+ * Revision 1.6  1994/11/08  00:20:26  tamches
  * removed blt-ish influences
  * sped up processing of new data callbacks
  * very close now to dg2.C of barchart
@@ -78,8 +81,28 @@ int Dg_Invalid(int dummy) {
    return retval;
 }
 
-int Dg_Phase(int dummy) {
-   const int retval=Tcl_Eval(MainInterp, "DgPhaseCallback");
+int Dg_PhaseStart(int which) {
+   char buffer[100];
+   sprintf(buffer, "DgPhaseStartCallback %d", which);
+   const int retval = Tcl_Eval(MainInterp, buffer);
+   if (retval == TCL_ERROR)
+      cerr << MainInterp->result << endl;
+
+  return retval;
+}
+
+int Dg_PhaseEnd(int which) {
+   char buffer[100];
+   sprintf(buffer, "DgPhaseEndCallback %d", which);
+   const int retval = Tcl_Eval(MainInterp, buffer);
+   if (retval == TCL_ERROR)
+      cerr << MainInterp->result << endl;
+
+  return retval;
+}
+
+int Dg_PhaseData(int dummy) {
+   const int retval=Tcl_Eval(MainInterp, "DgPhaseDataCallback");
    if (retval == TCL_ERROR)
       cerr << MainInterp->result << endl;
 
@@ -105,6 +128,10 @@ int Dg_Phase(int dummy) {
 #define   CMDERROR         16
 #define   LASTBUCKET       17
 #define   FIRSTBUCKET      18
+#define   NUMPHASES        19
+#define   PHASENAME        20
+#define   PHASESTARTTIME   21
+#define   PHASEENDTIME     22
 
 struct cmdTabEntry {
    char *cmdname;
@@ -123,7 +150,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"numbins",      NUMBINS,         0},
   {"nummetrics",   NUMMETRICS,      0},
   {"numresources", NUMRESOURCES,    0},
-  {"phase",        DEFINEPHASE,     3},
+  {"phase",        DEFINEPHASE,     0},
   {"resourcename", RESOURCENAME,    1},
   {"start",        STARTSTREAM,     2},
   {"stop",         STOPSTREAM,      2},
@@ -131,6 +158,10 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"valid",        DGVALID,         2},
   {"enabled",      DGENABLED,       2},
   {"value",        VALUE,           3},
+  {"phasename",    PHASENAME,       1},
+  {"phasestartT",  PHASESTARTTIME,  1},
+  {"phaseendT",    PHASEENDTIME,    1},
+  {"numphases",    NUMPHASES,       0},
   {NULL,           CMDERROR,        0}
 };
 
@@ -165,6 +196,7 @@ int Dg_TclCommand(ClientData clientData,
      return TCL_ERROR;
 
   int m, r, buck;
+  PhaseInfo *p;
 
   switch(cmdDex) {
   case AGGREGATE:   
@@ -217,7 +249,8 @@ int Dg_TclCommand(ClientData clientData,
     return TCL_OK;
 
   case DEFINEPHASE:       
-    NamePhase(atof(argv[2]), atof(argv[3]), argv[4]);
+    // DefinePhase(atof(argv[2]), argv[3]);
+    DefinePhase(-1.0, NULL);
     return TCL_OK;
 
   case RESOURCENAME:
@@ -262,6 +295,29 @@ int Dg_TclCommand(ClientData clientData,
     buck = atoi(argv[4]);
     sprintf(interp->result,"%g", dataGrid[m][r].Value(buck));
     return TCL_OK;
+
+  case NUMPHASES:
+    sprintf(interp->result, "%d", dataGrid.NumPhases());
+    return TCL_OK;
+
+  case PHASENAME:
+    m = atoi(argv[2]);
+    p = dataGrid.GetPhaseInfo(m);
+    sprintf(interp->result, "%s", p->getName());
+    return TCL_OK;
+
+  case PHASESTARTTIME:
+    m = atoi(argv[2]);
+    p = dataGrid.GetPhaseInfo(m);
+    sprintf(interp->result, "%f", p->getStartTime());
+    return TCL_OK;
+
+  case PHASEENDTIME:
+    m = atoi(argv[2]);
+    p = dataGrid.GetPhaseInfo(m);
+    sprintf(interp->result, "%f", p->getEndTime());
+    return TCL_OK;
+
   }
 
   sprintf(interp->result, "Internal error (func findCommand)\n");
@@ -279,7 +335,9 @@ int Dg_Init(Tcl_Interp *interp) {
   (void) RegistrationCallback(DATAVALUES,Dg_Data); 
   (void) RegistrationCallback(FOLD,Dg_Fold); 
   (void) RegistrationCallback(INVALIDMETRICSRESOURCES,Dg_Invalid);
-  (void) RegistrationCallback(PHASENAME,Dg_Phase);
+  (void) RegistrationCallback(PHASESTART,Dg_PhaseStart);
+  (void) RegistrationCallback(PHASEEND,Dg_PhaseEnd);
+  (void) RegistrationCallback(PHASEDATA,Dg_PhaseData);
 
   Tcl_CreateCommand(interp, "Dg", Dg_TclCommand, 
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);

@@ -2,11 +2,14 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.15  1994/11/11 06:46:34  tamches
-#  more configure event handlers for other subwindows has helped fix
-#  some resize bugs, especially when switching from short to long
-#  names.  Window now does not resize itself when adding new resources
-#  with longer names; pack propagate for the toplevel is off.
+#  Revision 1.16  1995/02/26 02:01:45  newhall
+#  added callback functions for new visiLib phase info.
+#
+# Revision 1.15  1994/11/11  06:46:34  tamches
+# more configure event handlers for other subwindows has helped fix
+# some resize bugs, especially when switching from short to long
+# names.  Window now does not resize itself when adding new resources
+# with longer names; pack propagate for the toplevel is off.
 #
 # Revision 1.14  1994/11/09  04:44:40  tamches
 # Deleting multiple metrics at a time is now supported.
@@ -1193,7 +1196,7 @@ proc dragAndDropTargetHandler {} {
    addResource $DragDrop(text)
 }
 
-#blt_drag&drop target . handler text dragAndDropTargetHandler
+# blt_drag&drop target . handler text dragAndDropTargetHandler
 #...that cryptic line reads: "declare the window '.' to be a drag n' drop
 #   handler for sources of type 'text'; routine dragAndDropTargetHandler
 #   gets called (via a "send" from the source...)  Using window '.' means
@@ -1279,6 +1282,10 @@ proc DgConfigCallback {} {
    # #resources, etc.)
    resourcesAxisHasChanged [getWindowHeight $W.left.resourcesAxisCanvas]
    metricsAxisHasChanged   [getWindowWidth $W.metricsAxisCanvas]
+}
+# ###########  Callback invoked on a PHASESTART event from paradyn  ########
+proc DgPhaseCallback {} {
+  return
 }
 
 # ###########  AddMetricDialog -- Ask paradyn for another metric ########
