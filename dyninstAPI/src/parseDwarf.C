@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+
 /*
  * Copyright (c) 2003 Barton P. Miller
  * 
