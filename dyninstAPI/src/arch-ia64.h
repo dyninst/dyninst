@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.18 2003/09/23 17:28:50 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.19 2003/11/03 19:20:56 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -83,7 +83,7 @@ class IA64_instruction {
 	friend class IA64_bundle;
 
 	public:
-		IA64_instruction( uint64_t insn = 0, uint8_t templ = 0x20, const IA64_bundle * mybl = 0, uint8_t slotN = 3 );
+		IA64_instruction( uint64_t insn = 0, uint8_t templ = 0x20, uint8_t slotN = 3 );
 
 		const void * ptr() const;
 		uint32_t size() const { return 16; }
@@ -99,11 +99,8 @@ class IA64_instruction {
 
 		uint8_t getTemplateID() const { return templateID; }
 		uint8_t getSlotNumber() const { return slotNumber; }
-		const IA64_bundle * getMyBundle() const { return myBundle; }
 
 	protected:
-		const IA64_bundle * myBundle;
-
 		uint64_t instruction;
 		uint8_t templateID;
 		uint8_t slotNumber;
@@ -113,7 +110,7 @@ class IA64_instruction_x : public IA64_instruction {
 	friend class IA64_bundle;
 
 	public:
-		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0x20, const IA64_bundle * mybl = 0 );
+		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0x20 );
 
 		ia64_bundle_t getMachineCode() const { ia64_bundle_t r = { instruction, instruction_x }; return r; }	
 
@@ -137,7 +134,7 @@ class IA64_bundle {
 		ia64_bundle_t getMachineCode() const { return myBundle; }
 		const ia64_bundle_t * getMachineCodePtr() const { return & myBundle; }
 
-		uint8_t getTemplateID() { return templateID; }
+		uint8_t getTemplateID() const { return templateID; }
 		IA64_instruction getInstruction0() const { return instruction0; }
 		IA64_instruction getInstruction1() const { return instruction1; }
 		IA64_instruction getInstruction2() const { return instruction2; }
@@ -222,9 +219,10 @@ IA64_instruction generateShortImmediateAdd( Register destination, int immediate,
 IA64_instruction generateIndirectCallTo( Register indirect, Register rp );
 IA64_instruction generatePredicatesToRegisterMove( Register destination );
 IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t imm17 );
-IA64_instruction generateRegisterStore( Register address, Register source, int imm9 = 0 );
-IA64_instruction generateRegisterLoad( Register destination, Register address );
-IA64_instruction generateRegisterLoad( Register destination, Register address, int imm9 );
+IA64_instruction generateRegisterStore( Register address, Register source, int size = 8 );
+IA64_instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size = 8 );
+IA64_instruction generateRegisterLoad( Register destination, Register address, int size = 8 );
+IA64_instruction generateRegisterLoadImmediate( Register destination, Register address, int imm9, int size = 8 );
 IA64_instruction generateRegisterToApplicationMove( Register source, Register destination );
 IA64_instruction generateApplicationToRegisterMove( Register source, Register destination );
 
@@ -265,6 +263,14 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 #define REGISTER_TP		13	/* thread pointer */
 #define AR_PFS			64	/* application register: previous function state */
 #define AR_UNAT			36	/* application register: User Not-a-Thing collection */
+#define AR_CCV			32	/* application register: Compare & exchange Compare Value register */
+#define AR_CSD			25	/* application register: reserved for future implicit operands */
+#define AR_SSD			26	/* application register: reserved for future implicit operands */
+#define AR_RSC			16 	/* application register: Register Stack engine Configuration register */
+#define AR_FPSR			40	/* application register: Floating-Point Status Register */
+
+/* (left-aligned) instruction bit masks. */
+#define MAJOR_OPCODE_MASK   0xF000000000000000  /* bits 37 - 40 */
 
 /* (right-aligned) Template IDs. */
 const uint8_t MIIstop = 0x01;
