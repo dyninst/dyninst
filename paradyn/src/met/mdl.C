@@ -41,6 +41,16 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.33  1998/01/19 21:05:47  czhang
+ * Massive changes for MDL expression.
+ * Changes to tokens are in metScanner.l.  This includes adding of new
+ * operators.  Some obsolete keywords are removed.
+ * Changes to the mdl expression are in metParser.y.  Rules associated with
+ * the instrumentation expression (obsolete) are removed and the mdl expression
+ * is expanded.
+ * Other files, mdl.C, mdl.h, metParse.h contain changes due to the grammer,
+ * this includes support for new mdl expression types, etc.
+ *
  * Revision 1.32  1997/12/03 20:38:27  mcheyney
  * Fixed problem bwylie found with mdl.C for fully optimized code.
  *
@@ -114,17 +124,6 @@
 #include "paradyn/src/met/metricExt.h"
 
 #include <iostream.h>
-#include <stdio.h>
-
-extern FILE *yyin;
-extern int yyparse();
-
-#ifdef notdef
-// Determine the type of "$constraint"
-bool hack_in_cons=false;
-void hack_cons_type(vector<string>*);
-unsigned hacked_cons_type = MDL_T_NONE;
-#endif
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
@@ -139,6 +138,7 @@ vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 vector<string> mdl_data::lib_constraints;
 
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
+static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool is_preop);
 
 
 void mdl_data::unique_name(string name) {
@@ -173,7 +173,7 @@ void mdl_data::unique_name(string name) {
     if (mdl_data::all_metrics[u]->id_ == name) {
       delete mdl_data::all_metrics[u];
       for (unsigned v = u; v < sz-1; v++) {
-	mdl_data::all_metrics[v] = mdl_data::all_metrics[v+1];
+        mdl_data::all_metrics[v] = mdl_data::all_metrics[v+1];
       }
       mdl_data::all_metrics.resize(sz-1);
       break;
@@ -233,15 +233,6 @@ bool mdl_data::new_metric(string id, string name, string units,
     return false;
   else {
     mdl_data::unique_name(id);
-#ifdef notdef
-    unsigned am_size = all_metrics.size();
-    for (unsigned am=0; am<am_size; am++)
-      if (all_metrics[am]->id_ == name) {
-	delete all_metrics[am];
-	all_metrics[am] = m;
-	return true;
-      }
-#endif
     all_metrics += m;
     return true;
   }
@@ -257,34 +248,43 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
   unsigned tc_size = temp_ctr_->size();
   for (unsigned tc=0; tc<tc_size; tc++)
     if (!mdl_env::add((*temp_ctr_)[tc], true, MDL_T_COUNTER)) return NULL;
+
+  // apply 'base' statements
   assert(stmts_);
   unsigned size = stmts_->size();
-
   vector<dataReqNode*> flags;
   for (unsigned u=0; u<size; u++) {
     if (!(*stmts_)[u]->apply(NULL, flags)) {
-      // cout << "apply of " << name_ << " failed\n";
+      cerr << "In metric " << name_ << ": apply of " << u 
+        << "th base statement failed." << endl;
       return NULL;
     }
   }
+
+  // apply constraints
   size = constraints_->size();
   for (unsigned u1=0; u1<size; u1++) {
     if ((*constraints_)[u1]->match_path_) {
       // inlined constraint def
-      dataReqNode *drn = NULL; vector<string> res;
+      dataReqNode *drn = NULL;
+      vector<string> res;
       if (!(*constraints_)[u1]->apply(NULL, drn, res, NULL, false)) {
-	return NULL;
+        cerr << "In metric " << name_ << ": apply of " << u1
+          << "th constraint failed." << endl;
+        return NULL;
       }
     } else {
       // name of global constraint
-      unsigned gl_size = mdl_data::all_constraints.size(); bool found=false;
+      unsigned gl_size = mdl_data::all_constraints.size();
+      bool found=false;
       for (unsigned in=0; in<gl_size; in++)
-	if (mdl_data::all_constraints[in]->id_ == (*constraints_)[u1]->id_) {
-	  found = true; break;
-	}
+        if (mdl_data::all_constraints[in]->id_ == (*constraints_)[u1]->id_) {
+          found = true; break;
+        }
       if (!found) {
-	  cout << "unable to find global constraint " << (*constraints_)[u1]->id_ << endl;
-	  return NULL;            // The global constraint does not exist
+        cerr << "In metric " << name_ << ": global constraint " 
+          << (*constraints_)[u1]->id_ << " undefined." << endl;
+        return NULL;
       }
     }
   }
@@ -310,41 +310,51 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
 
   unsigned size = match_path->size();
 
-  if (match_path && size) {
-//    if ((*match_path)[0] == "Procedure") {
-    if ((*match_path)[0] == "Code") {
+  if (match_path && size) 
+  {
+    if ((*match_path)[0] == "Code") 
+    {
       hierarchy_ = MDL_RES_CODE;
       type_ = (size == 1) ? MDL_T_MODULE : MDL_T_PROCEDURE;
-    } else if ((*match_path)[0] == "Process") {
+    }
+    else if ((*match_path)[0] == "Process") 
       hierarchy_ = MDL_RES_PROCESS;
-    } else if ((*match_path)[0] == "Machine") {
+    else if ((*match_path)[0] == "Machine")
       hierarchy_ = MDL_RES_MACHINE;
-    } else if((*match_path)[0] == "Memory") {
+    else if((*match_path)[0] == "Memory") 
+    {
       hierarchy_ = MDL_RES_MEMORY;
-      type_ = MDL_T_INT ;
-    } else if ((*match_path)[0] == "SyncObject") {
+      if (size == 1)
+        type_ = MDL_T_VARIABLE;
+      else
+        type_ = MDL_T_INT;
+    }
+    else if ((*match_path)[0] == "SyncObject") 
+    {
       hierarchy_ = MDL_RES_SYNCOBJECT;
-      if (size == 1) {
+      if (size == 1)
 	type_ = MDL_T_STRING;
-//    }
-//    if (size != 2) {
-//	type_ = MDL_T_NONE;
-      } else if ((*match_path)[1] == "SpinLock") {
+      else if ((*match_path)[1] == "SpinLock")
 	type_ = MDL_T_INT;
-      } else if ((*match_path)[1] == "Barrier") {
+      else if ((*match_path)[1] == "Barrier")
 	type_ = MDL_T_INT;
-      } else if ((*match_path)[1] == "Message") {
+      else if ((*match_path)[1] == "Message")
 	type_ = MDL_T_INT;
-      } else if ((*match_path)[1] == "Semaphore") {
+      else if ((*match_path)[1] == "Semaphore")
 	type_ = MDL_T_INT;
-      } else {
-	printf("Error in constraint '%s': unknown resource '%s'\n", 
-	     id.string_of(), (*match_path)[1].string_of());
+      else 
+      {
+        cout << "Error in constraint '" << id.string_of()
+          << "': unknown resource '" << (*match_path)[1].string_of()
+          << "'" << endl;
 	error = true;
       }
-    } else {
-      printf("Error in constraint '%s': unknown resource '%s'\n", 
-	     id.string_of(), (*match_path)[0].string_of());
+    }
+    else 
+    {
+      cout << "Error in constraint '" << id.string_of()
+        << "': unknown resource '" << (*match_path)[0].string_of()
+        << "'" << endl;
       error = true;
     }
   }
@@ -377,11 +387,11 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode * ,
 
   if (!mdl_env::add(id_, true, data_type_)) return false;
   
-  // find the type for "$constraint"
+  // find the type for "$constraint*"
   if (!stmts_ || !match_path_) return false;
   unsigned size = match_path_->size();
   if (!size) return false;
-  for(int dx = 0; dx < size; dx++) {
+  for(unsigned dx = 0; dx < size; dx++) {
     string s = string("$constraint") + string(dx);
     if (!mdl_env::add(s, false, type_)) {
       mdl_env::pop(); return false;
@@ -399,146 +409,18 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode * ,
   return true;
 }
 
-T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, vector<string> *path,
-						vector<T_dyninstRPC::mdl_stmt*> *stmts,
-						bool replace, u_int d_type) {
+T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, 
+  vector<string> *path, vector<T_dyninstRPC::mdl_stmt*> *stmts, 
+  bool replace, u_int d_type) 
+{
   bool error;
-  T_dyninstRPC::mdl_constraint *cons = new T_dyninstRPC::mdl_constraint(id, path, stmts,
-									replace, d_type,
-									error);
+  T_dyninstRPC::mdl_constraint *cons = new T_dyninstRPC::mdl_constraint(
+    id, path, stmts, replace, d_type, error);
   if (error) {
     delete cons;
     return NULL;
   } else
     return cons;
-}
-
-
-T_dyninstRPC::mdl_rand::mdl_rand() {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand() {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type)
-  : type_(type), val_(0), name_("") {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, u_int val)
-  : type_(type), val_(val), name_("") {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name)
-  : type_(type), val_(0), name_(name) {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name, vector<mdl_instr_rand *>args)
-: type_(type), val_(0), name_(name) {
-  for (unsigned u = 0; u < args.size(); u++)
-    args_ += args[u];
-}
-
-T_dyninstRPC::mdl_instr_rand::~mdl_instr_rand() { } 
-
-
-bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&) {
-  AstNode *ast=NULL;
-  switch (type_) {
-  case MDL_T_INT:
-    break;
-  case MDL_ARG:
-    // TODO -- check arg_ that is used as register index
-    // Check the legality of this -- or allow to be used anywhere ?
-    break;
-  case MDL_RETURN:
-    break;
-  case MDL_READ_SYMBOL:
-    break;
-  case MDL_READ_ADDRESS:
-    break;
-  case MDL_CALL_FUNC:
-    for (unsigned u = 0; u < args_.size(); u++)
-      if (!args_[u]->apply(ast))
-	return false;
-    break;
-  case MDL_T_COUNTER:
-    break;
-  case MDL_T_COUNTER_PTR:
-    break;
-  case MDL_T_RECORD:
-    break;
-  default:
-    cout << "invalid operand\n";
-    return false;
-  }
-  return true;
-}
-
-
-T_dyninstRPC::mdl_instr_req::mdl_instr_req() { }
-
-T_dyninstRPC::mdl_instr_req::mdl_instr_req(T_dyninstRPC::mdl_instr_rand *rand,
-					   u_int type, string obj_name)
-: type_(type), rand_(rand), timer_counter_name_(obj_name) { }
-
-T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type, string obj_name)
-: type_(type), rand_(0), timer_counter_name_(obj_name) { }
-
-T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type,
-					   T_dyninstRPC::mdl_instr_rand *rand)
-: type_(type), rand_(rand), timer_counter_name_("") { }
-
-T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
-
-//
-// XXXX - This entire routine needs to be gutted. At minimum any condition that
-// XXXX   produces a false return value should log a warning.  Right now it 
-// XXXX   silently deletes metrics from considuration.  Debugging MDL is almost
-// XXXX   impossible.  jkh 7/6/95.
-//
-bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&, AstNode *, bool) {
-  // the args aren't used here, but they must be kept since paradynd's mdl
-  // uses them, or something like that...
-  AstNode *ast;
-  switch (type_) {
-  case MDL_SET_COUNTER:
-  case MDL_ADD_COUNTER:
-  case MDL_SUB_COUNTER:
-  case MDL_CALL_FUNC:
-    if (!rand_->apply(ast))
-      return false;
-    break;
-  }
-
-  // skip all this crude for a function call, must check at runtime in
-  //   paradynd.
-  if (type_ == MDL_CALL_FUNC) return true;
-
-  mdl_var timer;
-  if (!mdl_env::get(timer, timer_counter_name_)) return false;
-
-  switch (type_) {
-  case MDL_SET_COUNTER:
-  case MDL_ADD_COUNTER:
-  case MDL_SUB_COUNTER:
-  // should not have a timer as the first argument here. - jkh 7/6/95.
-  // case MDL_CALL_FUNC:
-    if (timer.type() != MDL_T_COUNTER) return false;
-    break;
-  case MDL_START_WALL_TIMER:
-  case MDL_STOP_WALL_TIMER:
-    if (timer.type() != MDL_T_WALL_TIMER) {
-	cout << "operand of timer operation is not a wall timer\n";
-	return false;
-    }
-    break;
-  case MDL_START_PROC_TIMER:
-  case MDL_STOP_PROC_TIMER:
-    if (timer.type() != MDL_T_PROC_TIMER) {
-	cout << "operand of timer operation is not a process timer\n";
-	return false;
-    }
-    break;
-  default:
-      cout << "unkown instrumentation request type\n";
-      return false;
-  }
-  return true;
 }
 
 T_dyninstRPC::mdl_stmt::mdl_stmt() { }
@@ -554,6 +436,7 @@ T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt() {
 bool T_dyninstRPC::mdl_for_stmt::apply(metricDefinitionNode *mn,
 					 vector<dataReqNode*>& flags) {
   mdl_env::push();
+
   if (!mdl_env::add(index_name_, false)) return false;
   mdl_var list_var(false);
   if (!list_expr_->apply(list_var))
@@ -593,180 +476,482 @@ bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * ,
 }
 
 T_dyninstRPC::mdl_icode::mdl_icode() {}
-T_dyninstRPC::mdl_icode::mdl_icode(T_dyninstRPC::mdl_instr_rand *iop1,
-				   T_dyninstRPC::mdl_instr_rand *iop2,
-				   u_int bin_op, bool use_if,
-				   T_dyninstRPC::mdl_instr_req *ireq)
-: if_op1_(iop1),
-  if_op2_(iop2),
-  bin_op_(bin_op), use_if_(use_if), req_(ireq) { }
-T_dyninstRPC::mdl_icode::~mdl_icode() { delete req_; }
+T_dyninstRPC::mdl_icode::mdl_icode(
+    T_dyninstRPC::mdl_expr *expr1, T_dyninstRPC::mdl_expr *expr2)
+    : if_expr_(expr1), expr_(expr2) { }
+T_dyninstRPC::mdl_icode::~mdl_icode() { delete if_expr_; delete expr_; }
 
-bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized) {
-  if (!req_) return false;
-  if (use_if_) {
-    string empty;
-    AstNode *ast=NULL;
-    if (!if_op1_->apply(ast)) return false;
-    switch (bin_op_) {
-    case MDL_LT:  case MDL_GT:  case MDL_LE:  case MDL_GE:  case MDL_EQ:  case MDL_NE:
-      if (!if_op2_->apply(ast)) return false;
-      break;
-    case MDL_T_NONE:
-      break;
-    default:
-      return false;
-    }
+bool T_dyninstRPC::mdl_icode::apply(AstNode *&, bool)
+{
+  if (!expr_) return false;
+  AstNode* ast = NULL;
+  if (!expr_->apply(ast)) return false;
+  if (if_expr_)
+  {
+    AstNode* pred = NULL;
+    if (!if_expr_->apply(pred)) return false;
   }
-  return (req_->apply(mn, NULL, mn_initialized)); // NULL --> no predicate
+  return true;
 }
 
 T_dyninstRPC::mdl_expr::mdl_expr() { }
 T_dyninstRPC::mdl_expr::~mdl_expr() { }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr() 
-: args_(NULL), literal_(0), arg_(0), left_(NULL), right_(NULL), type_(MDL_T_NONE),
-  ok_(false) { }
+: type_(MDL_T_NONE), int_literal_(0), bin_op_(0), u_op_(0),
+  left_(NULL), right_(NULL), args_(NULL), ok_(false) 
+{ assert(0); }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, vector<string> fields) 
-: var_(var), fields_(fields),
-  args_(NULL), literal_(0), arg_(0), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_DEREF), do_type_walk_(false), ok_(false) { }
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(int int_lit) 
+: type_(MDL_EXPR_INT), int_literal_(int_lit), bin_op_(0), u_op_(0),
+  left_(NULL), right_(NULL), args_(NULL), do_type_walk_(false), ok_(false) 
+{ }
+
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(string a_str, bool is_literal) 
+: int_literal_(0), bin_op_(0), u_op_(0), left_(NULL), 
+  right_(NULL), args_(NULL), do_type_walk_(false), ok_(false) 
+{
+  if (is_literal)
+  {
+    type_ = MDL_EXPR_STRING;
+    str_literal_ = a_str;
+  }
+  else
+  {
+    type_ = MDL_EXPR_VAR;
+    var_ = a_str;
+  }
+}
+
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(mdl_expr* expr, vector<string> fields) 
+: type_(MDL_EXPR_DOT), int_literal_(0), bin_op_(0), 
+  u_op_(0), left_(expr), right_(NULL), args_(NULL),
+  fields_(fields), do_type_walk_(false), ok_(false) 
+{ }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(string func_name,
 				     vector<T_dyninstRPC::mdl_expr *> *a) 
-: var_(func_name), args_(a),
-  literal_(0), arg_(100000), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_FUNC), do_type_walk_(false), ok_(false) { }
-
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(int int_lit) 
-: args_(NULL), literal_(int_lit), arg_(0), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_INT), do_type_walk_(false), ok_(false) { }
-
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string string_lit) 
-: var_(string_lit),
-  args_(NULL), literal_(0), arg_(0), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_STRING), do_type_walk_(false), ok_(false) { }
+: type_(MDL_EXPR_FUNC), int_literal_(0), var_(func_name), bin_op_(100000),
+  u_op_(0), left_(NULL), right_(NULL), args_(a),
+  do_type_walk_(false), ok_(false)
+{ }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int bin_op, T_dyninstRPC::mdl_expr *left,
 				 T_dyninstRPC::mdl_expr *right) 
-: args_(NULL), literal_(0),
-  arg_(bin_op), left_(left), right_(right),
-  type_(MDL_RVAL_EXPR), do_type_walk_(false), ok_(false) { }
+: type_(MDL_EXPR_BINOP), int_literal_(0), bin_op_(bin_op), u_op_(0),
+  left_(left), right_(right), args_(NULL), do_type_walk_(false), ok_(false) 
+{ }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, u_int array_index) 
-: var_(var), args_(NULL), literal_(0), arg_(array_index), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_ARRAY), do_type_walk_(false), ok_(false) { }
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, u_int assign_op, 
+	T_dyninstRPC::mdl_expr *expr)
+: type_(MDL_EXPR_ASSIGN), int_literal_(0), var_(var), bin_op_(assign_op), 
+  u_op_(0), left_(expr), right_(NULL), args_(NULL), 
+  do_type_walk_(false), ok_(false) 
+{ }
 
-T_dyninstRPC::mdl_v_expr::~mdl_v_expr() {
-  delete args_; delete left_; delete right_;
-  if (args_) {
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int u_op, T_dyninstRPC::mdl_expr *expr,
+				 bool is_preop)
+: int_literal_(0), bin_op_(0), u_op_(u_op), left_(expr), right_(NULL), 
+  args_(NULL), do_type_walk_(false), ok_(false) 
+{ 
+  if (is_preop)
+    type_ = MDL_EXPR_PREUOP;
+  else
+    type_ = MDL_EXPR_POSTUOP;
+}
+
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, mdl_expr* index_expr) 
+: type_(MDL_EXPR_INDEX), int_literal_(0), var_(var), bin_op_(0),
+  u_op_(0), left_(index_expr), right_(NULL), args_(NULL),
+  do_type_walk_(false), ok_(false)
+{ }
+
+T_dyninstRPC::mdl_v_expr::~mdl_v_expr() 
+{
+  if (args_) 
+  {
     unsigned size = args_->size();
     for (unsigned u=0; u<size; u++)
       delete (*args_)[u];
     delete args_;
   }
+  delete left_; delete right_;
 }
 
-bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
-  switch (type_) {
-  case MDL_RVAL_INT: 
-    ok_ = true;
-    return (ret.set(literal_));
-  case MDL_RVAL_STRING:
-    ok_ = true;
-    return (ret.set(var_));
-  case MDL_RVAL_ARRAY:
+bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
+{
+  switch (type_) 
+  {
+    case MDL_EXPR_INT: 
+    case MDL_EXPR_STRING:
+      ok_ = true;
+      return ok_;
+    case MDL_EXPR_INDEX:
     {
+      if (var_ == string("$arg"))
+      {
+        mdl_var temp(false);
+        if (!left_->apply(temp))
+          return false;
+        int x;
+        if (!temp.get(x)) return false;
+        ok_ = true;
+        return ok_;
+      }
+      else if (var_ == string("$constraint"))
+      {
+        mdl_var temp(false);
+        if (!left_->apply(temp))
+          return false;
+        int x;
+        if (!temp.get(x))
+          return false;
+        ok_ = true;
+        return ok_;
+      }
       mdl_var array(false);
       if (!mdl_env::get(array, var_)) return false;
       if (!array.is_list()) return false;  
+      mdl_var temp (false);
+      if (!left_->apply (temp)) return false;
+      int x;
+      if (!temp.get(x)) return false;
       ok_ = true;
-      ret.set_type(array.element_type());
+      return ok_;
+    }
+    case MDL_EXPR_BINOP:
+    {
+      if (!left_ || !right_) return false;
+      AstNode *lnode, *rnode;
+      if (!left_->apply (lnode)) return false;
+      if (!right_->apply (rnode)) return false;
+      ok_ =  true;
+      return ok_;
+    }
+    case MDL_EXPR_FUNC:
+    {
+      if (var_ == "startWallTimer" || var_ == "stopWallTimer"
+      || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
+      {
+        if (!args_) return false;
+        unsigned size = args_->size();
+        if (size != 1) return false;
+
+        mdl_var timer(false);
+        if (!(*args_)[0]->apply(timer)) return false;
+        if (timer.type() != MDL_T_WALL_TIMER 
+          && timer.type() != MDL_T_PROC_TIMER)
+        {
+          cerr << "operand of timer operation is not a timer." << endl;
+          return false;
+        }
+        ok_ = true;
+      }
+      else if (var_ == "readSymbol" || var_ == "readAddress")
+        ok_ = true;
+      else
+      {
+        AstNode *tmparg=NULL;
+        for (unsigned u = 0; u < args_->size(); u++) 
+        {
+          if (!(*args_)[u]->apply(tmparg)) 
+          {
+            ok_ = false; break;
+          }
+        }
+        ok_ = true;
+      }
+      return ok_;
+    }
+    case MDL_EXPR_DOT:
+    {
+      mdl_var dot_var;
+      if (!left_->apply(dot_var))
+      {
+        cerr << "Invalid expression on the left of DOT." << endl;
+        return false;
+      }
+      if (dot_var.get_type() != MDL_T_VARIABLE)
+      {
+        cerr << "Invalid expression type on the left of DOT." << endl;
+        return false;
+      }
+      ok_ = true;
+      return ok_;
+    }
+    case MDL_EXPR_ASSIGN:
+    {
+      mdl_var lvar;
+      if (!mdl_env::get(lvar, var_))
+      {
+        cerr << "variable '" << var_ 
+          << "' undeclared on the left hand side of the assignment."
+          << endl;
+        return false;
+      }
+      if (lvar.type() != MDL_T_COUNTER)
+      {
+        cerr << "variable '" << var_ << "' must be a counter." << endl;
+        return false;
+      }
+
+      AstNode* ast_arg;
+      if (!left_->apply(ast_arg))
+      {
+        cerr << "Invalid right hand side of assignment." << endl;
+        return false;
+      }
+      ok_ = true;
+      return ok_;
+    }
+    case MDL_EXPR_VAR:
+    {
+      if (var_ == "$cmin" || var_ == "$cmax")
+      {
+        ok_ = true; return true;
+      }
+      mdl_var get_drn;
+      assert (mdl_env::get(get_drn, var_));
+      switch (get_drn.type())
+      {
+        case MDL_T_INT:
+        case MDL_T_COUNTER:
+        case MDL_T_DRN:
+          ok_ = true;
+          return true;
+        default:
+          cerr << "type of variable " << var_.string_of()
+            << " is not known" << endl;
+          return false;
+      }
+    }
+    case MDL_EXPR_PREUOP:
+    {
+      switch (u_op_)
+      {
+        case MDL_ADDRESS:
+        {
+          mdl_var get_drn;
+          if (!left_->apply(get_drn)) return false;
+          dataReqNode *drn;
+          if (!get_drn.get(drn)) return false;
+          break;
+        }
+        case MDL_MINUS:
+        {
+          mdl_var tmp;
+          if (!left_->apply (tmp)) return false;
+          int value;
+          if (!tmp.get(value)) return false;
+          break;
+        }
+        default:
+          return false;
+      }
+      ok_ = true;
       return true;
     }
-  case MDL_RVAL_EXPR:
+    case MDL_EXPR_POSTUOP:
+    {
+      switch (u_op_)
+      {
+        case MDL_PLUSPLUS:
+        {
+          mdl_var tmp;
+          if (!left_->apply (tmp)) return false;
+          if (tmp.type() != MDL_T_COUNTER) return false;
+          break;
+        }
+        default: return false;
+      }
+      ok_ = true;
+      return true;
+    }
+    default:
+      return false;
+  }
+  return true;
+}
+
+bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) 
+{
+  switch (type_) 
+  {
+    case MDL_EXPR_INT: 
+      ok_ = ret.set(int_literal_);
+      return ok_;
+    case MDL_EXPR_STRING:
+      ok_ = ret.set(str_literal_);
+      return ok_;
+    case MDL_EXPR_INDEX:
+    {
+      if (var_ == string("$arg"))
+      {
+        // we only allow $arg to appear inside the icode. is this
+        // correct? -chun.
+        assert(0);
+      }
+      else if (var_ == string("$constraint"))
+      {
+        mdl_var temp(false);
+        if (!left_->apply(temp))
+          return false;
+        int x;
+        if (!temp.get(x))
+          return false;
+        ok_ = mdl_env::get(ret, var_+string(x));
+        return ok_;
+      }
+      mdl_var array(false);
+      if (!mdl_env::get(array, var_)) return false;
+      if (!array.is_list()) return false;  
+      mdl_var temp (false);
+      if (!left_->apply (temp)) return false;
+      int x;
+      if (!temp.get(x)) return false;
+      ok_ = array.get_ith_element(ret, x); //set_type(array.element_type());
+      return ok_;
+    }
+    case MDL_EXPR_BINOP:
     {
       mdl_var left_val(false), right_val(false);
       if (!left_ || !right_) return false;
-      if (!left_->apply(left_val)) return false;
-      if (!right_->apply(right_val)) return false;
-      ok_ =  do_operation(ret, left_val, right_val, arg_);
+      if (!left_->apply(left_val) || !right_->apply(right_val))
+        return false;
+      ok_ =  do_operation(ret, left_val, right_val, bin_op_);
       return ok_;
     }
-  case MDL_RVAL_FUNC:
-    if (!args_) return false;
-    else {  // DO NOT DEFINE VARIABLES ACROSS LABEL JUMPS
-    unsigned size = args_->size();
-
-    if (var_ == "lookupFunction") {
-      if (size != 1) return false;
-      mdl_var arg1(false);
-      if (!(*args_)[0]->apply(arg1)) return false;
-      if (arg1.type() != MDL_T_STRING) return false;
-      arg_ = 0;
-      ret.set_type(MDL_T_PROCEDURE);
-      ok_ = true;
-    } else if (var_ == "lookupModule") {
-      if (size != 1) return false;
-      mdl_var arg1(false);
-      if (!(*args_)[0]->apply(arg1)) return false;
-      if (arg1.type() != MDL_T_STRING) return false;
-      arg_ = 1;
-      ret.set_type(MDL_T_MODULE);
-      ok_ = true;
-    } else if (var_ == "libraryTag") {
-      if (size != 1) return false;
-      mdl_var arg1(false);
-      if (!(*args_)[0]->apply(arg1)) return false;
-      if (arg1.type() != MDL_T_INT) return false;
-      arg_ = 2;
-      int res = 1;
-      ok_ = ret.set(res);
-    } else
-      return false;
-    return ok_;
-    }
-  case MDL_RVAL_DEREF:
-    if (!fields_.size()) {
-      do_type_walk_ = false;
-      ok_ = mdl_env::get(ret, var_);
-      return ok_;
-    } else {
-      // TODO -- build type_walk here
-      do_type_walk_ = true;
-      mdl_var temp(false);
-      if (!mdl_env::get(temp, var_)) return false;
-
-      vector<mdl_type_desc> found;
-      unsigned v_index = 0, v_max = fields_.size();
-      unsigned current_type = temp.type();
-      if (current_type == MDL_T_PROCEDURE_NAME)
-	current_type = MDL_T_PROCEDURE;
-
-      while (v_index < v_max) {
-	if (!mdl_data::fields.defines(current_type)) return false;
-	found = mdl_data::fields[current_type];
-	string next_field = fields_[v_index];
-	bool type_found=false;
-	unsigned size = found.size();
-	for (unsigned u=0; u<size; u++) 
-	  if (found[u].name == next_field) {
-	    type_found = true;
-	    type_walk += current_type;
-	    type_walk += u;
-	    current_type = found[u].type;
-	    break;
-	  }
-	if (!type_found) return false; 
-	v_index++;
+    case MDL_EXPR_ASSIGN:
+    {
+      // we only support the assignment of an expression to a variable
+      mdl_var lval(false), rval(false);
+      if (!mdl_env::get(lval, var_)) return false;
+      if (!left_ || !left_->apply(rval))
+        return false;
+      if (rval.type() == MDL_T_NONE)
+      {
+        ok_ = true;
+        return ok_;
       }
-      ok_ = true;
-      ret.set_type(current_type);
+      switch (bin_op_)
+      {
+        case MDL_ASSIGN:
+          ok_ = true; break;
+        case MDL_PLUSASSIGN:
+          ok_ = do_operation(ret, lval, rval, MDL_PLUS); break;
+        case MDL_MINUSASSIGN:
+          ok_ = do_operation(ret, lval, rval, MDL_MINUS); break;
+        default:
+          ok_ = false; break;
+      }
       return ok_;
     }
-  default:
-    return false;
+    case MDL_EXPR_FUNC:
+    {
+      unsigned arg_size = 0;
+      if (args_)
+        arg_size = args_->size();
+
+      if (var_ == "startWallTimer" || var_ == "stopWallTimer")
+      {
+        assert (0);
+        ok_ = false;
+      }
+      else if (var_ == "startProcessTimer" || var_ == "stopProcessTimer")
+      {
+        assert (0);
+        ok_ = false;
+      }
+      else
+      {
+        mdl_var temp(false);
+        for (unsigned u = 0; u < arg_size; u++)
+          if (!(*args_)[u]->apply(temp))
+            return false;
+        ok_ = true;
+      }
+      return ok_;
+    }
+    case MDL_EXPR_DOT:
+    {
+      if (!fields_.size()) 
+      {
+        cout << "Error: empty fields followed by '.'" << endl;
+        return false;
+      }
+      else 
+      {
+        // build type_walk here
+        do_type_walk_ = true;
+        mdl_var temp(false);
+        if (!left_->apply(temp)) return false;
+
+        //
+        // check if all the fields are valid.  for example, the only 
+        // fields MDL_T_VARIABLEs can have are "upper" or "lower".
+        // these fields are registered in mdl_init().  -chun.
+        //
+
+        vector<mdl_type_desc> acceptable_fdlst;
+        unsigned v_index = 0, v_max = fields_.size();
+        unsigned current_type = temp.type();
+
+        while (v_index < v_max) 
+        {
+          if (!mdl_data::fields.defines(current_type))
+          {
+            cerr << "Invalid field type." << endl;
+            return false;
+          }
+          acceptable_fdlst = mdl_data::fields[current_type];
+          string next_field = fields_[v_index];
+          bool type_found=false;
+          unsigned size = acceptable_fdlst.size();
+          for (unsigned u=0; u<size; u++) 
+            if (acceptable_fdlst[u].name == next_field) 
+            {
+              type_found = true;
+              type_walk += current_type;
+              type_walk += u;
+              current_type = acceptable_fdlst[u].type;
+              break;
+            }
+          if (!type_found)
+          {
+            cerr << "Invalid field type." << endl;
+            return false; 
+          }
+          v_index++;
+        }
+        ret.set_type(current_type);
+        ok_ = true;
+        return ok_;
+      }
+    }
+    case MDL_EXPR_VAR:
+    {
+      if (var_ == string("$cmin") || var_ == string("$cmax"))
+        ok_ = true;
+      else
+        ok_ = mdl_env::get (ret, var_);
+      return ok_;
+    }
+    case MDL_EXPR_PREUOP:
+    {
+      mdl_var lval(false);
+      if (!left_ || !left_->apply (lval)) return false;
+      ok_ = do_operation(ret, lval, u_op_, true);
+      return ok_;
+    }
+    case MDL_EXPR_POSTUOP:
+    {
+      mdl_var lval(false);
+      if (!left_ || !left_->apply (lval)) return false;
+      ok_ = do_operation(ret, lval, u_op_, false);
+      return ok_;
+    }
+    default:
+      return false;
   }
   return false;
 }
@@ -782,13 +967,10 @@ bool T_dyninstRPC::mdl_if_stmt::apply(metricDefinitionNode * ,
   mdl_var res(false); int iv;
   if (!expr_->apply(res))
     return false;
-  switch (res.type()) {
+  switch (res.get_type()) {
   case MDL_T_INT:
     if (!res.get(iv))
       return false;
-    iv = 1;
-    if (!iv)
-      return true;
     break;
   default:
     return false;
@@ -844,7 +1026,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode * ,
     return false;
 
   // It is illegal to add postInsn to a function exit point
-  if (temp.type() == MDL_T_POINT_RETURN) {
+  if (temp.get_type() == MDL_T_POINT_RETURN) {
     if (where_instr_ == MDL_POST_INSN) {
       cout << "MDL error: you can't insert postInsn at a procedure exit point." << endl;
       return false;
@@ -852,7 +1034,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode * ,
     temp.set_type(MDL_T_POINT);
   }
 
-  if (temp.type() != MDL_T_POINT)
+  if (temp.get_type() != MDL_T_POINT)
     return false;
   instPoint *p;
   if (!temp.get(p))
@@ -877,7 +1059,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode * ,
 
   AstNode *an=NULL;
   for (unsigned u=0; u<size; u++)
-    if (!(*icode_reqs_)[u]->apply(an, u > 0)) // an initialized if u > 0
+    if (!(*icode_reqs_)[u]->apply(an, u))
       return false;
   return true;
 }
@@ -919,23 +1101,11 @@ bool mdl_init() {
   mdl_data::foci += fe;
 
   mdl_env::push();
-  // mdl_env::add(string("$procedures"), false, MDL_T_LIST_PROCEDURE);
-  // mdl_env::add(string("$modules"), false, MDL_T_LIST_MODULE);
-  // mdl_env::add(string("$start"), false, MDL_T_PROCEDURE);
-  // mdl_env::add(string("$exit"), false, MDL_T_PROCEDURE);
-  // mdl_env::add(string("$machine"), false, MDL_T_STRING);
-
-  string s = "$procedures";
-  mdl_env::add(s, false, MDL_T_LIST_PROCEDURE);
-  s = "$modules";
-  mdl_env::add(s, false, MDL_T_LIST_MODULE);
-  s = "$start";
-  mdl_env::add(s, false, MDL_T_PROCEDURE);
-  s = "$exit";
-  mdl_env::add(s, false, MDL_T_PROCEDURE);
-  s = "$machine";
-  mdl_env::add(s, false, MDL_T_STRING);
-
+  mdl_env::add(string("$procedures"), false, MDL_T_LIST_PROCEDURE);
+  mdl_env::add(string("$modules"), false, MDL_T_LIST_MODULE);
+  mdl_env::add(string("$start"), false, MDL_T_PROCEDURE);
+  mdl_env::add(string("$exit"), false, MDL_T_PROCEDURE);
+  mdl_env::add(string("$machine"), false, MDL_T_STRING);
 
   /* Are these entered by hand at the new scope ? */
   /* $constraint, $arg, $return */
@@ -946,8 +1116,9 @@ bool mdl_init() {
   desc.name = "calls"; desc.type = MDL_T_LIST_POINT; field_list += desc;
   desc.name = "entry"; desc.type = MDL_T_POINT; field_list += desc;
   desc.name = "return"; desc.type = MDL_T_POINT_RETURN; field_list += desc;
-//  desc.name = "tag"; desc.type = MDL_T_INT; field_list += desc;
+  //desc.name = "tag"; desc.type = MDL_T_INT; field_list += desc;
   mdl_data::fields[MDL_T_PROCEDURE] = field_list;
+  mdl_data::fields[MDL_T_PROCEDURE_NAME] = field_list;
   field_list.resize(0);
 
   desc.name = "name"; desc.type = MDL_T_STRING; field_list += desc;
@@ -958,8 +1129,6 @@ bool mdl_init() {
   desc.name = "upper"; desc.type = MDL_T_INT; field_list += desc;
   desc.name = "lower"; desc.type = MDL_T_INT; field_list += desc;
   mdl_data::fields[MDL_T_VARIABLE] = field_list;
-  field_list.resize(0);
-
   field_list.resize(0);
 
   return true;
@@ -1079,20 +1248,19 @@ bool mdl_check_node_constraints() {
     return true;
 }
 
-// TODO -- if this fails, all metrics are unusable ?
 bool mdl_apply() {
+  //
+  // apply resource list statements
+  //
   unsigned size = mdl_data::stmts.size();
-
   vector<dataReqNode*> flags;
   for (unsigned u=0; u<size; u++)
     if (!mdl_data::stmts[u]->apply(NULL, flags))
       return false;
 
-  // TODO -- use a proper vector
-  vector< vector<string> >vs;
-  string empty;
-  vector<process*> emptyP;
-
+  //
+  // apply constraints
+  //
   vector<T_dyninstRPC::mdl_constraint*> ok_cons;
   size = mdl_data::all_constraints.size();
   for (unsigned u1=0; u1<size; u1++) {
@@ -1102,12 +1270,19 @@ bool mdl_apply() {
       ok_cons += mdl_data::all_constraints[u1];
       // cout << "constraint defined: " << mdl_data::all_constraints[u1]->id_ << endl;
     } else {
-      cout << "Error in constraint '" << mdl_data::all_constraints[u1]->id_ << 
+      cerr << "Error in constraint '" << mdl_data::all_constraints[u1]->id_ << 
 	   "'. Constraint deleted." << endl;
       delete mdl_data::all_constraints[u1];
     }
   }
   mdl_data::all_constraints = ok_cons;
+
+  //
+  // apply metrics
+  //
+  vector< vector<string> >vs;
+  string empty;
+  vector<process*> emptyP;
 
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
@@ -1116,7 +1291,7 @@ bool mdl_apply() {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else {
-      cout << "Error in metric '" << mdl_data::all_metrics[u2]->id_ << 
+      cerr << "Error in metric '" << mdl_data::all_metrics[u2]->id_ << 
 	   "'. Metric deleted." << endl;
       delete mdl_data::all_metrics[u2];
     }
@@ -1136,17 +1311,6 @@ bool mdl_send(dynRPCUser *remote) {
   else {
       remote->send_no_libs();
   }
-
-#ifdef notdef
-  unsigned size = mdl_data::all_metrics.size(), index;
-  for (index=0; index<size; index++) {
-    cout << *(mdl_data::all_metrics[index]) << endl;
-  }
-  size = mdl_data::all_constraints.size();
-  for (index=0; index<size; index++) {
-    cout << *(mdl_data::all_constraints[index]) << endl;
-  }
-#endif
 
   return true;
 }
@@ -1175,58 +1339,87 @@ void mdl_destroy() {
     delete mdl_data::stmts[u2];
 }
 
-static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val, unsigned bin_op) {
+static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val, 
+  unsigned bin_op) 
+{
+  int ltype = left_val.get_type();
+  int rtype = right_val.get_type();
 
-  switch (bin_op) {
+  if (ltype == MDL_T_NONE || rtype == MDL_T_NONE)
+    return true;
+
+  switch (bin_op) 
+  {
   case MDL_PLUS:
   case MDL_MINUS:
   case MDL_DIV:
   case MDL_MULT:
-    if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) {
+  {
+    if ((ltype == MDL_T_INT) && (rtype == MDL_T_INT)) 
+    {
       int v1, v2;
       if (!left_val.get(v1)) return false;
       if (!right_val.get(v2)) return false;
-      switch (bin_op) {
+      switch (bin_op) 
+      {
       case MDL_PLUS: return (ret.set(v1+v2));
       case MDL_MINUS: return (ret.set(v1-v2));
       case MDL_DIV: return (ret.set(v1/v2));
       case MDL_MULT: return (ret.set(v1*v2));
       }
-    } else if (((left_val.type() == MDL_T_INT) || (left_val.type() == MDL_T_FLOAT)) &&
-	       ((right_val.type() == MDL_T_INT) || (right_val.type() == MDL_T_FLOAT))) {
+    } 
+    else if (((ltype == MDL_T_INT)||(ltype == MDL_T_FLOAT)) 
+      && ((rtype == MDL_T_INT) || (rtype == MDL_T_FLOAT)))
+    {
       float v1, v2;
-      if (left_val.type() == MDL_T_INT) {
-	int i1; if (!left_val.get(i1)) return false; v1 = i1;
-      } else {
-	if (!left_val.get(v1)) return false;
+      if (ltype == MDL_T_INT) 
+      {
+        int i1;
+        if (!left_val.get(v1)) return false; 
+        v1 = i1;
       }
-      if (right_val.type() == MDL_T_INT) {
-	int i1; if (!right_val.get(i1)) return false; v2 = i1;
-      } else {
-	if (!right_val.get(v2)) return false;
+      else 
+      {
+        if (!left_val.get(v1)) return false;
       }
-      switch (bin_op) {
+
+      if (rtype == MDL_T_INT) 
+      {
+        int i1; if (!right_val.get(i1)) return false; v2 = i1;
+      }
+      else 
+      {
+        if (!right_val.get(v2)) return false;
+      }
+      switch (bin_op) 
+      {
       case MDL_PLUS: return (ret.set(v1+v2));
       case MDL_MINUS: return (ret.set(v1-v2));
       case MDL_DIV: return (ret.set(v1/v2));
       case MDL_MULT: return (ret.set(v1*v2));
       }
-    } else
+    }
+    else
       return false;
+  }
   case MDL_LT:
   case MDL_GT:
   case MDL_LE:
   case MDL_GE:
   case MDL_EQ:
   case MDL_NE:
-    if ((left_val.type() == MDL_T_STRING) && (right_val.type() == MDL_T_STRING)) {
+  {
+    if ((ltype == MDL_T_STRING) && (rtype == MDL_T_STRING))
+    {
       return ret.set(1); 
     }
-    if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) {
+    if ((ltype == MDL_T_INT) && (rtype == MDL_T_INT)) 
+    {
       int v1, v2;
       if (!left_val.get(v1)) return false;
       if (!right_val.get(v2)) return false;
-      switch (bin_op) {
+      switch (bin_op) 
+      {
       case MDL_LT: return (ret.set(v1 < v2));
       case MDL_GT: return (ret.set(v1 > v2));
       case MDL_LE: return (ret.set(v1 <= v2));
@@ -1234,20 +1427,28 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val, un
       case MDL_EQ: return (ret.set(v1 == v2));
       case MDL_NE: return (ret.set(v1 != v2));
       }
-    } else if (((left_val.type() == MDL_T_INT) || (left_val.type() == MDL_T_FLOAT)) &&
-	       ((right_val.type() == MDL_T_INT) || (right_val.type() == MDL_T_FLOAT))) {
+    }
+    else if (((ltype == MDL_T_INT)||(ltype == MDL_T_FLOAT))
+      && ((rtype == MDL_T_INT) || (rtype == MDL_T_FLOAT)))    {
       float v1, v2;
-      if (left_val.type() == MDL_T_INT) {
-	int i1; if (!left_val.get(i1)) return false; v1 = i1;
-      } else {
-	if (!left_val.get(v1)) return false;
+      if (ltype == MDL_T_INT) 
+      {
+        int i1; if (!left_val.get(i1)) return false; v1 = i1;
       }
-      if (right_val.type() == MDL_T_INT) {
-	int i1; if (!right_val.get(i1)) return false; v2 = i1;
-      } else {
-	if (!right_val.get(v2)) return false;
+      else 
+      {
+        if (!left_val.get(v1)) return false;
       }
-      switch (bin_op) {
+      if (rtype == MDL_T_INT) 
+      {
+        int i1; if (!right_val.get(i1)) return false; v2 = i1;
+      }
+      else 
+      {
+        if (!right_val.get(v2)) return false;
+      }
+      switch (bin_op) 
+      {
       case MDL_LT: return (ret.set(v1 < v2));
       case MDL_GT: return (ret.set(v1 > v2));
       case MDL_LE: return (ret.set(v1 <= v2));
@@ -1255,30 +1456,78 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val, un
       case MDL_EQ: return (ret.set(v1 == v2));
       case MDL_NE: return (ret.set(v1 != v2));
       }
-    } else
+    }
+    else
       return false;
+  }
   case MDL_AND:
   case MDL_OR:
-    if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) {
+  {
+    if ((ltype == MDL_T_INT) && (rtype == MDL_T_INT)) 
+    {
       int v1, v2;
       if (!left_val.get(v1)) return false;
       if (!right_val.get(v2)) return false;
-      switch (bin_op) {
+      switch (bin_op) 
+      {
       case MDL_AND: return (ret.set(v1 && v2));
       case MDL_OR: return (ret.set(v1 || v2));
       }
-    } else
+    }
+    else
       return false;
+  }
   default:
       return false;
   }
   return false;
 }
 
-bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &) {}
-bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &) {}
-bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &) {}
-bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &) {}
-bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &) {}
-bool T_dyninstRPC::mdl_constraint::mk_list(vector<string> &) {}
-bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &) {}
+static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool/*is_preop*/) 
+{
+  switch (u_op) 
+  {
+    case MDL_PLUSPLUS:
+    {
+      if (lval.get_type() == MDL_T_INT)
+      {
+        int x;
+        if (!lval.get(x)) return false;
+        return (ret.set(x++));
+      }
+      else
+      {
+        cerr << "Invalid type for operator ++" << endl;
+        return false;
+      }
+    }
+    case MDL_MINUS:
+    {
+      if (lval.get_type() == MDL_T_INT)
+      {
+        int x;
+        if (!lval.get(x)) return false;
+        return ret.set(-x);
+      }
+      else
+      {
+        cerr << "Invalid type for operator -" << endl;
+        return false;
+      }
+    }
+    case MDL_ADDRESS:
+      return true;
+    case MDL_NOT:
+    default:
+      return false;
+  }
+  return false;
+}
+
+bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &) {return true;}
+bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &) {return true;}
+bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &) {return true;}
+bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &) {return true;}
+bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &) {return true;}
+bool T_dyninstRPC::mdl_constraint::mk_list(vector<string> &) {return true;}
+bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &) {return true;}

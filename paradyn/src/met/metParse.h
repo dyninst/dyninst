@@ -41,6 +41,16 @@
 
 /*
  * $Log: metParse.h,v $
+ * Revision 1.15  1998/01/19 21:05:50  czhang
+ * Massive changes for MDL expression.
+ * Changes to tokens are in metScanner.l.  This includes adding of new
+ * operators.  Some obsolete keywords are removed.
+ * Changes to the mdl expression are in metParser.y.  Rules associated with
+ * the instrumentation expression (obsolete) are removed and the mdl expression
+ * is expanded.
+ * Other files, mdl.C, mdl.h, metParse.h contain changes due to the grammer,
+ * this includes support for new mdl expression types, etc.
+ *
  * Revision 1.14  1997/05/02 18:23:40  mjrg
  * Removed use of class objects from struct parseStack which is allocated
  * with malloc
@@ -275,11 +285,15 @@ class tunableMet;
 extern metError metParseError;
 extern const char *metParseError_list[6];
 
+// struct for instr_expr, since I unified it with metric_expr,
+// don't need it anymore  --chun
+/*
 typedef struct ie_struct {
   T_dyninstRPC::mdl_instr_rand *rand1;
   T_dyninstRPC::mdl_instr_rand *rand2;
   unsigned bin_op;
 } ie_struct;
+*/
 
 typedef struct field {
   string *val;
@@ -315,11 +329,10 @@ struct parseStack {
   daemonMet *dm;
   visiMet *vm;
   vector<string> *vs;
-  ie_struct expr;
-  T_dyninstRPC::mdl_instr_rand *rand;
-//  iop_struct rand;
-  vector<T_dyninstRPC::mdl_instr_rand *> *pars;
-  T_dyninstRPC::mdl_instr_req *instr_req;
+  //ie_struct expr;
+  //T_dyninstRPC::mdl_instr_rand *rand;
+  //vector<T_dyninstRPC::mdl_instr_rand *> *pars;
+  //T_dyninstRPC::mdl_instr_req *instr_req;
   vector <T_dyninstRPC::mdl_icode*> *icode_v;
   T_dyninstRPC::mdl_stmt *m_stmt;
   vector<T_dyninstRPC::mdl_stmt*> *m_stmt_v;

@@ -41,6 +41,16 @@
  */
 /*
  * $Log: metScanner.l,v $
+ * Revision 1.18  1998/01/19 21:05:53  czhang
+ * Massive changes for MDL expression.
+ * Changes to tokens are in metScanner.l.  This includes adding of new
+ * operators.  Some obsolete keywords are removed.
+ * Changes to the mdl expression are in metParser.y.  Rules associated with
+ * the instrumentation expression (obsolete) are removed and the mdl expression
+ * is expanded.
+ * Other files, mdl.C, mdl.h, metParse.h contain changes due to the grammer,
+ * this includes support for new mdl expression types, etc.
+ *
  * Revision 1.17  1997/06/24 17:13:19  newhall
  * changed exclude_node to exclude
  *
@@ -117,12 +127,11 @@
 #include "y.tab.h"
 #include "paradyn/src/met/metParse.h"
 
-int cur_line = 1;
-char cur_file[80];
-
-int yylook();
-int yyback(int*,int);
-
+// Seems that these are not used anywhere. Comment them out. --chun
+//int cur_line = 1;
+//char cur_file[80];
+//int yylook();
+//int yyback(int*,int);
 
 extern void yyerror(const char *);
 
@@ -135,20 +144,26 @@ char line[MDL_MAX];
 #undef getc
 int getScanChar(FILE *file)
 {
-    char *ret;
+  char *ret;
 
-    if (curr == len) {
-	ret = fgets(line, MDL_MAX, file);
-	if (!ret) return(EOF);
-	lineNo++;
-	len = strlen(line);
-	curr = 0;
-    }
-    return(line[curr++]);
+  if (curr == len) {
+    ret = fgets(line, MDL_MAX, file);
+    if (!ret) return(EOF);
+    lineNo++;
+    len = strlen(line);
+    curr = 0;
+  }
+  return(line[curr++]);
 }
 
 #ifdef FLEX_SCANNER
 #undef YY_INPUT
+//
+//chun??  This doesn't seem quite right. It's trying to make the input
+// processing to occur one character at a time, but getScanChar()
+// consumes a whole line. It's like keeping a private buffer other than
+// that maintained by flex.
+//
 #define YY_INPUT(buf,result,max_size)   \
 {                                       \
     int c = getScanChar(yyin);		\
@@ -165,12 +180,15 @@ ALPHA	[A-Za-z]
 SLASH	\/
 IDENT	{DOLLAR}?{ALPHA}({ALPHA}|{DIGIT}|_)*
 COMMENT	{SLASH}{SLASH}
+%x mdlcomment mdlstr
+
 %%
-i
 "&"             { return(tAMPERSAND);}
 "$"		{ return(tDOLLAR);}
 "="		{ return(tASSIGN);}
 "+"		{ return(tPLUS);}
+"+="    { return(tPLUSASSIGN);}
+"-="    { return(tMINUSASSIGN);}
 "-"		{ return(tMINUS);}
 "/"		{ return(tDIV);}
 "*"		{ return(tMULT);}
@@ -179,7 +197,6 @@ i
 "<="		{ return(tLE);}
 ">="		{ return(tGE);}
 "=="		{ return(tEQ);}
-"!"		{ return(tNOT);}
 "!="		{ return(tNE);}
 "&&"		{ return(tAND);}
 "||"		{ return(tOR);}
@@ -190,14 +207,14 @@ i
 "["		{ return(tLSQUARE);}
 "]"		{ return(tRSQUARE);}
 ","		{ return(tCOMMA); }
-":"		{ return(tCOLON); }
 ";"		{ return(tSEMI); }
 "."		{ return(tDOT); }
+"++"    { return(tPLUSPLUS); }
 "(*"		{ return(tLC); }
 "*)"		{ return(tRC); }
 "true"          { return(tTRUE); }
 "false"         { return(tFALSE); }
-"functionCall"	{ return(tFUNCTION_CALL); }
+"Call"	{ return(tFUNCTION_CALL); }
 "resourceList"	{ return(tRES_LIST); }
 "procedure"	{ return(tT_PROCEDURE); }
 "module"	{ return(tT_MODULE); }
@@ -228,8 +245,6 @@ i
 "if"		{ return(tIF);}
 "replace"	{ return(tREPLACE);}
 "constraint"	{ return(tCONSTRAINT);}
-"type"		{ return(tTYPE);}
-"at"		{ return(tAT);}
 "constrained"	{ return(tCONSTRAINED);}
 "in"		{ return(tIN);}
 "counter"	{ return(tCOUNTER);}
@@ -239,19 +254,10 @@ i
 "style"			{ return(tSTYLE);}
 "EventCounter"		{ return(tEVENT_COUNTER); }
 "SampledFunction"	{ return(tSAMPLE_FUNC); }
-"startProcessTimer"	{ return(tSTART_PROC_TIMER);}
-"stopProcessTimer"	{ return(tSTOP_PROC_TIMER);}
-"startWallTimer"	{ return(tSTART_WALL_TIMER);}
-"stopWallTimer"		{ return(tSTOP_WALL_TIMER);}
-"setCounter"		{ return(tSET_COUNTER);}
-"addCounter"		{ return(tADD_COUNTER);}
-"subCounter"		{ return(tSUB_COUNTER);}
 "preInsn"		{ return(tPRE_INSN); }
 "postInsn"		{ return(tPOST_INSN); }
-"readSymbol"		{ return(tREAD_SYMBOL); }
-"readAddress"		{ return(tREAD_ADDRESS); }
 \$return		{ return(tRETURN);}
-\$arg			{ return(tARG);}
+\$arg           { return(tARG);}
 "daemon"		{ return(tDAEMON); }
 "process"		{ return(tPROCESS); }
 "visi"		{ return(tVISI); }
@@ -273,57 +279,27 @@ i
 		  yylval.f = atof(yytext);
 		  return(tFLOAT);
 		}
-{COMMENT}	{
-		    char ch;
-		    while (1) {
-			ch = getScanChar(yyin);
-			if (ch == '\n') break;
-		    }
-		}
-{IDENT}		{ /* it's an identifier */
-                  yylval.sp = new string(yytext);
-		  return(tIDENT);
-		}
+{COMMENT}	BEGIN(mdlcomment);
+<mdlcomment>[^\n]*\n	{lineNo++; BEGIN(INITIAL); }
+{IDENT}		{
+            yylval.sp = new string(yytext);
+            return(tIDENT);
+            }
 {INT}           {
 		  int i = atoi(yytext);
                   assert(i >= 0);
                   yylval.u = (unsigned) i;
 		  return(tUNS);
 		}
-[ \n\t]		{ }
-\"              {
-                          extern void doString();
-                          doString();
-                          yylval.sp = new string(yytext+1);
-                          return(tLITERAL);
-                }
+[ \n\t]+		{ }
+\"              BEGIN(mdlstr);
+<mdlstr>\n	{ lineNo++; yyerror("Unterminated string literal"); }
+<mdlstr>\"	{ /* we are done with the string */
+			BEGIN(INITIAL); return (tLITERAL); 
+			}
+<mdlstr>[^\"\n]*	{yylval.sp = new string(yytext); }
 .       	{ yyerror("invalid character"); }
 %%
-
-void doString()
-{
-    char ch;
-
-    while (1) {
-	ch = getScanChar(yyin);
-	switch (ch) {
-	    case '"':
-		yytext[yyleng] = '\0';
-		return;
-		break;
-	    
-	    case '\n':
-		yyerror("Unterminated string literal");
-		return;
-		break;
-
-	    default:
-		yytext[yyleng] = ch;
-		break;
-	}
-	yyleng++;
-    }
-}
 
 void yyerror(const char *message)
 {
@@ -331,7 +307,7 @@ void yyerror(const char *message)
     printf("line %d, col %d:%s\n", lineNo, curr, message);
     printf(line);
     for (i=0; i < curr; i++) {
-	printf(" ");
+        printf(" ");
     }
     printf("^\n");
 }
