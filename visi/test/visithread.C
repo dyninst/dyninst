@@ -1,4 +1,7 @@
-/* $Log $  */ 
+/* $Log: visithread.C,v $
+/* Revision 1.2  1994/03/29 02:55:58  newhall
+/* *** empty log message ***
+/*  */ 
 #include "visi.CLNT.h" 
 
 
