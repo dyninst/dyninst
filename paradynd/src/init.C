@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.20  1995/12/19 20:18:43  newhall
+ * Revision 1.21  1995/12/27 20:16:41  naim
+ * Minor change to internal metric definition - naim
+ *
+ * Revision 1.20  1995/12/19  20:18:43  newhall
  * changed param to newInternalMetric from bool to int
  *
  * Revision 1.19  1995/12/18 15:03:07  naim
@@ -134,7 +137,7 @@ bool init() {
 						   NULL,
 						   default_im_preds,
 						   true,
-						   0);
+						   2);
 
   totalPredictedCost = internalMetric::newInternalMetric("predicted_cost",
 							 EventCounter,
@@ -152,7 +155,7 @@ bool init() {
 						      NULL,
 						      default_im_preds,
 						      true,
-						      1);
+						      2);
 
   observed_cost = internalMetric::newInternalMetric("observed_cost",
 						   EventCounter,
