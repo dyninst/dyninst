@@ -1,10 +1,10 @@
 #
-# $Id: Makefile,v 1.5 2002/06/03 17:42:57 tlmiller Exp $
+# $Id: Makefile,v 1.6 2003/01/13 03:56:06 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-DEBUG_FLAG = -g -gstabs+
+DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything

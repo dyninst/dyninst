@@ -51,40 +51,7 @@ IA64_bundle generateTrapBundle() {
  * pt_regs only, but only syscalls are that well behaved.
  * We must support running arbitrary code.
  */
-void *dyn_lwp::getRegisters()
-{
-    int i;
-    long int *memptr, stateSize = 0;
-    void *membuf;
-
-    // Bad things happen if you use ptrace on a running process.
-    assert(proc_->status_ == stopped);
-
-    //
-    // Insure the structure sizes are multiples of 8 bytes.
-    // stateSize should probably be a calculated constant.
-    //
-    stateSize += (PT_F9 + 16) - PT_CR_IPSR;
-    stateSize += (PT_AR_LC + 8) - PT_NAT_BITS;
-
-    //
-    // Allocate memory and copy user state.
-    //
-    membuf = malloc(stateSize);
-    assert(membuf);
-
-    memptr = (long int *)membuf;
-    for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
-	*memptr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), i, 0);
-	++memptr;
-    }
-    for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
-	*memptr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), i, 0);
-	++memptr;
-    }
-    return membuf;
-} /* end getRegisters() */
-
+dyn_saved_regs * dyn_lwp::getRegisters() { return NULL; }
 
 bool changePC( int pid, Address loc ) { 
 	/* We assume until further notice that all of our jumps
@@ -95,11 +62,8 @@ bool changePC( int pid, Address loc ) {
 	return P_ptrace( PTRACE_POKEUSER, pid, PT_CR_IIP, loc );
 	} /* end changePC() */
 
-bool dyn_lwp::changePC( Address loc, const void * regs ) {
-	/* FIXME: we cast away const-ness here to avoid changing
-	   the global headers until we've got something more worthwhile
-	   for which to test across so many platforms. */
-	if( regs != NULL ) { restoreRegisters( (void *)regs ); }
+bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
+	if( regs != NULL ) { restoreRegisters( regs ); }
 
 	return ::changePC( proc_->getPid(), loc );
 	} /* end changePC() */
@@ -161,26 +125,7 @@ bool dyn_lwp::executingSystemCall()
     return (pr && instruction == SYSCALL_MASK);
 } /* end executingSystemCall() */
 
-bool dyn_lwp::restoreRegisters( void * buffer )
-{
-    int i;
-    const long int *memptr;
-
-    // Bad things happen if you use ptrace on a running process.
-    assert(proc_->status_ == stopped);
-
-    memptr = (const long int *)buffer;
-    for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
-	P_ptrace(PTRACE_POKEUSER, proc_->getPid(), i, *memptr);
-	++memptr;
-    }
-    for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
-	P_ptrace(PTRACE_POKEUSER, proc_->getPid(), i, *memptr);
-	++memptr;
-    }
-
-    return true;
-}
+bool dyn_lwp::restoreRegisters( dyn_saved_regs * /* regs */ ) { return false; }
 
 Address getPC( int pid ) {
 	
@@ -456,7 +401,7 @@ bool process::set_breakpoint_for_syscall_completion() {
 } /* end set_breakpoint_for_syscall_completion() */
 
 /* Required by process.C */
-break process::clear_breakpoint_for_syscall_completion() {
+bool process::clear_breakpoint_for_syscall_completion() {
     uint64_t codeBase = getPC(pid);
 
     return writeDataSpace((void *)codeBase, 16, savedCodeBuffer);

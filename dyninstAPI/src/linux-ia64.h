@@ -9,4 +9,6 @@ IA64_bundle generateTrapBundle();
 /* Removes a #ifdef in linux.C to include this here. */
 #include <asm/ptrace_offsets.h>
 
+struct dyn_saved_regs { int placeholder; };
+
 #endif
