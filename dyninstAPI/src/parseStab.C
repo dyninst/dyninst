@@ -201,6 +201,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
     /* get type or variable name */
     char *mangledname = getIdentifier(stabstr, cnt);
+    if (!mangledname) {
+	mangledname = "";
+    }
+
     currentRawSymbolName = mangledname;
     char *name = (char *) malloc(1000 * sizeof(char));
     if (P_cplus_demangle(mangledname, name, 1000, mod->isNativeCompiler())) {
@@ -1593,7 +1597,6 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	// parse member functions
 	cnt++;
 	while (stabstr[cnt] && (stabstr[cnt] != ';')) {
-	    printf("    looking for identifier at %s\n", &stabstr[cnt]);
 	    char *funcName = getIdentifier(stabstr, cnt, true);
 
 	    if (!funcName) break;
@@ -1613,7 +1616,6 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 
 	    assert(name && methodName);
 	    sprintf(methodName, "%s%s_", className, funcName);
-	    printf("    got method %s\n", methodName);
 	    if (!P_cplus_demangle(methodName, name, 1000, mod->isNativeCompiler())) {
 		funcName = strrchr(name, ':');
 		if (funcName) {
@@ -1623,7 +1625,6 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 		}
 	    } 
 	    // should include position for virtual methods
-	    printf("    got funcNam %s\n", funcName);
 	    BPatch_type *fieldType = mod->moduleTypes->findType("void");
 	    newType->addField(funcName, BPatch_dataMethod, fieldType, 0, 0);
 

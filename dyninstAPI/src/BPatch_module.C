@@ -1070,7 +1070,7 @@ void BPatch_module::parseStabTypes()
 	  temp = parseStabString(this, mostRecentLinenum, (char *)ptr, stabptr[i].val, commonBlock);
 	else
 	  temp = parseStabString(this, stabptr[i].desc, (char *)ptr, stabptr[i].val, commonBlock);
-	if (*temp) {
+	if (temp && *temp) {
 	  //Error parsing the stabstr, return should be \0
 	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
 		  temp);
