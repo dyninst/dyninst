@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.12 2003/01/02 19:51:52 schendel Exp $
+// $Id: linux-x86.C,v 1.13 2003/01/03 21:57:36 bernat Exp $
 
 #include <fstream.h>
 
@@ -708,12 +708,10 @@ bool process::set_breakpoint_for_syscall_completion() {
 	return true;
 }
 
-void process::clear_breakpoint_for_syscall_completion() {
+bool process::clear_breakpoint_for_syscall_completion() {
 	Address codeBase;
 	codeBase = getPC( getPid() );
-	writeDataSpace( (void*)codeBase, 2, savedCodeBuffer );
-
-	inferiorrpc_cerr << "Cleared breakpoint at " << (void*)codeBase << endl;
+	return writeDataSpace( (void*)codeBase, 2, savedCodeBuffer );
 }
 
 void print_read_error_info(const relocationEntry entry, 

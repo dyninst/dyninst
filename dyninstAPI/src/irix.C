@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.44 2002/12/20 07:49:57 jaw Exp $
+// $Id: irix.C,v 1.45 2003/01/03 21:57:34 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -973,7 +973,7 @@ bool process::set_breakpoint_for_syscall_completion()
   return true;
 }
 
-void process::clear_breakpoint_for_syscall_completion() { return; }
+bool process::clear_breakpoint_for_syscall_completion() { return true; }
 
 // TODO: this ignores the "sig" argument
 bool process::continueWithForwardSignal(int /*sig*/)

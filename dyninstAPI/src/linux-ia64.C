@@ -456,13 +456,10 @@ bool process::set_breakpoint_for_syscall_completion() {
 } /* end set_breakpoint_for_syscall_completion() */
 
 /* Required by process.C */
-void process::clear_breakpoint_for_syscall_completion() {
+break process::clear_breakpoint_for_syscall_completion() {
     uint64_t codeBase = getPC(pid);
 
-    if (writeDataSpace((void *)codeBase, 16, savedCodeBuffer))
-	inferiorrpc_cerr << "Cleared breakpoint at " << (void*)codeBase << endl;
-    else
-	inferiorrpc_cerr << "Error clearing breakpoint at " << (void*)codeBase << endl;
+    return writeDataSpace((void *)codeBase, 16, savedCodeBuffer);
 } /* end clear_breakpoint_for_syscall_completion() */
 
 /* Required by linux.C */
