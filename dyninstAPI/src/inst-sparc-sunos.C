@@ -43,6 +43,8 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "util/h/debugOstream.h"
 
+#include "dyninstAPI/src/FunctionExpansionRecord.h"
+
 // Another constructor for the class instPoint. This one is called
 // for the define the instPoints for regular functions which means
 // multiple instructions is going to be moved to based trampoline.
@@ -1453,7 +1455,9 @@ bool pd_Function::findNewInstPoints(const image *owner,
 				Address newAdr,
 				process *proc,
 				vector<instruction> &,
-				relocatedFuncInfo *reloc_info) {
+				relocatedFuncInfo *reloc_info, 
+				FunctionExpansionRecord *fer, 
+				int size_change) {
 
    int i;
    if (size() == 0) {
@@ -1665,6 +1669,14 @@ bool pd_Function::findNewInstPoints(const image *owner,
    return true;
 }
 
+bool pd_Function::calcRelocationExpansions(const image *owner, \
+    FunctionExpansionRecord *fer, int *size_change) {
+    
+    // on sunos, assumes at most 1 tail-call optimization.... 
+    *size_change = 8;
+    fer->Collapse();
+}
+
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform
 bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
@@ -1680,3 +1692,9 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     }
     return false;
 }
+
+
+
+
+
+
