@@ -4,7 +4,7 @@
 # instead, it should be included from within an architecture-
 # specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 2001/11/07 05:03:17 darnold Exp $
+# $Id: nmake.module.tmpl,v 1.5 2001/11/08 14:53:27 pcroth Exp $
 #
 
 TARGET	= rthist.exe
@@ -32,7 +32,7 @@ MY_SRCS	= ../src/DGClient.C \
 			../src/templates.C
 
 TCL_SRCS	= ../tcl/histVisi.tcl ../tcl/pdgraph.tcl \
-                  $(TO_CORE)/visiClients/auxiliary/src/Export.tcl
+                  $(TO_CORE)/visiClients/auxiliary/tcl/Export.tcl
 
 SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(AUX_SRCS) $(TCL_SRCS)
 			

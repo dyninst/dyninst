@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.3 2001/11/07 05:03:15 darnold Exp $
+# $Id: nmake.module.tmpl,v 1.4 2001/11/08 14:53:25 pcroth Exp $
 #
 
 TARGET	= barChart.exe
@@ -24,7 +24,7 @@ MY_SRCS	= ../src/barChart.C \
 			../src/main-nt.C \
 			../src/dg2.C \
 			../src/templates.C
-TCL_SRCS	= ../tcl/barchart.tcl ../../auxiliary/src/Export.tcl
+TCL_SRCS	= ../tcl/barchart.tcl ../../auxiliary/tcl/Export.tcl
 
 SRCS	= $(SRCS) $(AUX_SRCS) $(PD_SRCS) $(MY_SRCS) $(TCL_SRCS)
 			
