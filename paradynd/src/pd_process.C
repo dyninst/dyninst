@@ -225,7 +225,8 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
         dyninst_process(childDynProc), 
         paradynRTState(libLoaded),
         wasCreated(parent.wasCreated), wasAttached(parent.wasAttached),
-        wasForked(true), wasExeced(false), inExec(false)
+        wasForked(true), wasExeced(false), inExec(false),
+        paradynRTname(parent.paradynRTname)
 {
    setLibState(paradynRTState, libReady);
    for(unsigned i=0; i<childDynProc->threads.size(); i++) {
@@ -409,7 +410,7 @@ void pd_process::postExecHandler(process *p) {
     wasExeced = true;
 
     // Renew the metadata: it's been scribbled on
-    //sharedMetaDataOffset = dyninst_process->initSharedMetaData();
+    sharedMetaDataOffset = dyninst_process->initSharedMetaData();
 
     loadParadynLib();
 }
@@ -457,7 +458,7 @@ bool pd_process::loadParadynLib() {
 
     pdvector<AstNode*> loadLibAstArgs(1);
     loadLibAstArgs[0] = new AstNode(AstNode::ConstantString, 
-                                    (void *)paradynRTname.c_str());
+                                   (void *)paradynRTname.c_str());
     AstNode *loadLib = new AstNode("DYNINSTloadLibrary", loadLibAstArgs);
     removeAst(loadLibAstArgs[0]);
 
@@ -474,6 +475,7 @@ bool pd_process::loadParadynLib() {
     // We block on paradynRTState, which is set to libLoaded
     // via the inferior RPC callback
     while (!reachedLibState(paradynRTState, libLoaded)) {
+        if(hasExited()) return false;
         launchRPCs(false);
         
         decodeAndHandleProcessEvent(true);
@@ -759,6 +761,7 @@ bool pd_process::iRPCParadynInit() {
     // And force a flush...
     
     while(!reachedLibState(paradynRTState, libReady)) {
+       if(hasExited()) return false;
         launchRPCs(false);
         decodeAndHandleProcessEvent(true);
     }
@@ -890,6 +893,7 @@ bool pd_process::loadAuxiliaryLibrary(string libname) {
     // We block on paradynRTState, which is set to libLoaded
     // via the inferior RPC callback
     while (!reachedLibState(auxLibState, libLoaded)) {
+        if(hasExited()) return false;
         launchRPCs(false);
         decodeAndHandleProcessEvent(true);
     }
