@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.h,v 1.3 2003/01/02 19:52:01 schendel Exp $ */
+/* $Id: test1.mutateeCommon.h,v 1.4 2003/03/06 21:00:01 zandy Exp $ */
 
 /* Empty functions are sometimes compiled too tight for entry and exit
    points.  The following macro is used to flesh out these
@@ -58,7 +58,7 @@ extern void verifyValue(const char *name, int *a, int index, int value,
 #define TEST20_TIMES 41
 
 
-#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0)
 #if defined(mips_sgi_irix6_4) && (_MIPS_SIM == _MIPS_SIM_NABI32)
 static const char *libNameA = "libtestA_n32.so";
 #else

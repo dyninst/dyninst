@@ -2175,7 +2175,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 // test2.
 void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
     if (mutateeFortran) {
 	return;
@@ -2194,7 +2194,7 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
          exit(1);
     }
     // Lookup the libtestA.so and libtestB.so modules
-    for (int i = 0; i < mods->size() && !(modA && modB); i++) {
+    for (unsigned int i = 0; i < mods->size() && !(modA && modB); i++) {
 	 char buf[1024];
 	 BPatch_module *m = (*mods)[i];
 	 m->getName(buf, 1024);
