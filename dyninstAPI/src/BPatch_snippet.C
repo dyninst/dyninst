@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.60 2004/07/28 07:24:46 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.61 2004/08/16 04:32:02 rchen Exp $
 
 #define BPATCH_FILE
 
@@ -757,7 +757,7 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
 					 process *in_process,
 					 void *in_address,
 					 const BPatch_type *type) :
-    name(in_name), proc(in_process), address(in_address), scope(NULL),isLocal(false)
+    name(in_name), proc(in_process), address(in_address), scope(NULL), isLocal(false)
 {
     ast = new AstNode(AstNode::DataAddr, address);
 
@@ -785,7 +785,7 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
                                          AstNode *_ast,
                                          const BPatch_type *type,
                                          void* in_address) :
-  name(in_name), proc(in_process), address(in_address), scope(NULL),isLocal(false)
+    name(in_name), proc(in_process), address(in_address), scope(NULL), isLocal(false)
 {
     ast = _ast;
 
@@ -849,23 +849,46 @@ void BPatch_variableExpr::setType(BPatch_type *newType)
  *
  * in_process	The process that the variable resides in.
  * in_address	The address of the variable in the inferior's address space.
+ * in_register	The register of the variable in the inferior's address space.
  * type		The type of the variable.
- * frameRelative	Is the address a frame offset, not absolute address
+ * in_storage	Enum of how this variable is stored.
  *
  */
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
                                          void *in_address,
+					 int in_register,
                                          const BPatch_type *type,
-                                         bool frameRelative,
+                                         BPatch_storageClass in_storage,
 					 BPatch_point *scp) :
     proc(in_process), address(in_address)
 {
-    if (frameRelative) {
-        ast = new AstNode(AstNode::FrameAddr, address);
-        isLocal = true;
-    } else {
-        ast = new AstNode(AstNode::DataAddr, address);
-        isLocal = false;
+    switch (in_storage) {
+	case BPatch_storageAddr:
+	    ast = new AstNode(AstNode::DataAddr, address);
+	    isLocal = false;
+	    break;
+	case BPatch_storageAddrRef:
+	    assert( 0 ); // Not implemented yet.
+	    isLocal = false;
+	    break;
+	case BPatch_storageReg:
+	    ast = new AstNode(AstNode::PreviousStackFrameDataReg, in_register);
+	    isLocal = true;
+	    break;
+	case BPatch_storageRegRef:
+	    assert( 0 ); // Not implemented yet.
+	    isLocal = true;
+	    break;
+	case BPatch_storageRegOffset:
+	    ast = new AstNode(AstNode::DataAddr, address);
+	    ast = new AstNode(AstNode::RegOffset, ast);
+	    ast->setOValue( (void *)in_register );
+	    isLocal = true;
+	    break;
+	case BPatch_storageFrameOffset:
+	    ast = new AstNode(AstNode::FrameAddr, address);
+	    isLocal = true;
+	    break;
     }
 
     assert(BPatch::bpatch != NULL);
@@ -1046,13 +1069,13 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
 
         // VG(03/02/02): What about setting the base address??? Here we go:
 	if( field->_type != NULL ) {
-		newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
-			    proc, fieldExpr, const_cast<BPatch_type *>(field->_type),
-                                         (char*)address + offset);
-		retList->push_back(newVar);
-		} else {
-		bperr( "Warning: not returning field '%s' with NULL type.\n", field->getName() );
-		}
+	    newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
+					     proc, fieldExpr, const_cast<BPatch_type *>(field->_type),
+					     (char*)address + offset);
+	    retList->push_back(newVar);
+	} else {
+	    bperr( "Warning: not returning field '%s' with NULL type.\n", field->getName() );
+	}
     }
 
     return retList;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.140 2004/07/01 20:11:48 tlmiller Exp $
+// $Id: ast.C,v 1.141 2004/08/16 04:32:20 rchen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -137,14 +137,16 @@ Register registerSpace::allocateRegister(char *insn, Address &base, bool noCost)
     // now consider ones that need saving
     for (i=0; i < numRegisters; i++) {
 	if (registers[i].refCount == 0) {
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix4_1) && !defined(ia64_unknown_linux2_4)
             // MT_AIX: we are not saving registers on demand on the power
             // architecture. Instead, we save/restore registers in the base
             // trampoline - naim
+	    // 
+	    // Same goes for ia64 - rchen
  	    emitV(saveRegOp, registers[i].number, 0, 0, insn, base, noCost);
 #endif
 	    registers[i].refCount = 1;
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix4_1) && !defined(ia64_unknown_linux2_4)
             // MT_AIX
 	    registers[i].mustRestore = true;
 #endif
@@ -1217,6 +1219,14 @@ Address AstNode::generateCode_phase2(process *proc,
             emitVload(loadFrameAddr, addr, temp, dest, insn, 
                       base, noCost, size, location, proc, rs );
             rs->freeRegister(temp);
+         } else if (loperand->oType == RegOffset) {
+	    assert(loperand->loperand);
+
+            // load the address reg + addr into dest
+            dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+            addr = (Address) loperand->loperand->oValue;
+            emitVload(loadRegRelativeAddr, addr, (long)loperand->oValue, dest, insn, 
+                      base, noCost, size, location, proc, rs );
          } else if (loperand->oType == DataIndir) {	
             // taking address of pointer de-ref returns the original
             //    expression, so we simple generate the left child's 
@@ -1263,6 +1273,20 @@ Address AstNode::generateCode_phase2(process *proc,
                          base, noCost, size, location, proc, rs);
               loperand->decUseCount(rs);
               break;
+	   case RegOffset: {
+	      assert(loperand->loperand);
+	      addr = (Address) loperand->loperand->oValue;
+
+	      // This is cheating, but I need to pass 4 data values into emitVstore, and
+	      // it only allows for 3.  Prepare the dest address in scratch register src2.
+	      emitVload(loadRegRelativeAddr, addr, (long)loperand->oValue, src2,
+			insn, base, noCost, size, location, proc, rs );
+
+	      // Same as DataIndir at this point.
+	      emitV(storeIndirOp, src1, 0, src2, insn, base, noCost, size, location, proc, rs);
+	      loperand->decUseCount(rs);
+	      break;
+           }
            case DataIndir: {
               // store to a an expression (e.g. an array or field use)
               // *(+ base offset) = src1
@@ -1538,6 +1562,13 @@ Address AstNode::generateCode_phase2(process *proc,
            emitVload(loadFrameRelativeOp, addr, temp, dest, insn, base, noCost, size, location, proc, rs );
            rs->freeRegister(temp);
            break;
+        case RegOffset:
+	   // Prepare offset from value in any general register (not just fp).
+	   // This AstNode holds the register number, and loperand holds offset.
+	   assert(loperand);
+	   addr = (Address) loperand->oValue;
+	   emitVload(loadRegRelativeOp, addr, (long)oValue, dest, insn, base, noCost, size, location, proc, rs );
+	   break;
         case EffectiveAddr:
            // VG(11/05/01): get effective address
            // VG(07/31/02): take care which one
@@ -1706,6 +1737,7 @@ pdstring getOpString(opCode op)
 	case loadIndirOp: return("load&");
 	case storeIndirOp: return("=&");
 	case loadFrameRelativeOp: return("load $fp");
+	case loadRegRelativeOp: return("load $reg");
         case loadFrameAddr: return("$fp");
 	case storeFrameRelativeOp: return("store $fp");
 	case getAddrOp: return("&");
@@ -1830,6 +1862,8 @@ void AstNode::print() const {
 	fprintf(stderr," [0x%lx]", (long) oValue);
       } else if (oType == FrameAddr)  {
 	fprintf(stderr," [$fp + %d]", (int)(Address) oValue);
+      } else if (oType == RegOffset)  {
+	fprintf(stderr," [$%d + %d]", (int)(Address) loperand->oValue, (int)(Address) oValue);
       } else if (oType == EffectiveAddr)  {
 	fprintf(stderr," <<effective address>>");
       } else if (oType == BytesAccessed)  {

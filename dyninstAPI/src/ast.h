@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.71 2004/04/09 03:07:13 tlmiller Exp $
+// $Id: ast.h,v 1.72 2004/08/16 04:32:32 rchen Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -77,6 +77,8 @@ typedef enum { plusOp,
                loadConstOp,
 	       loadFrameRelativeOp,
 	       loadFrameAddr,
+	       loadRegRelativeOp,	// More general form of loadFrameRelativeOp
+	       loadRegRelativeAddr,	// More general form of loadFrameAddr
                storeOp,
 	       storeFrameRelativeOp,
                ifOp,
@@ -110,6 +112,10 @@ class registerSlot {
     bool mustRestore;   // need to restore it before we are done.		
     bool startsLive;	// starts life as a live register.
 };
+
+#if defined(ia64_unknown_linux2_4)
+#include "inst-ia64.h"
+#endif
 
 class registerSpace {
  public:
@@ -152,6 +158,11 @@ public:
 	int originalLocals;
 	int originalOutputs;
 	int originalRotates;
+	int sizeOfStack;
+
+	// storageMap[] needs to be of type 'int' as opposed to
+	// 'Register' becuase negative values may be used.
+	int storageMap[ BP_R_MAX ];
 #endif
 
 };
@@ -167,7 +178,7 @@ class AstNode {
 			                        //     or                 index * tSize  for index
 			   DataValue, DataPtr,  // restore AstNode::DataValue and AstNode::DataPtr
                            DataId, DataIndir, DataReg,
-			   Param, ReturnVal, DataAddr, FrameAddr,
+			   Param, ReturnVal, DataAddr, FrameAddr, RegOffset,
 			   SharedData, PreviousStackFrameDataReg,
 			   EffectiveAddr, BytesAccessed };
         AstNode(); // mdl.C

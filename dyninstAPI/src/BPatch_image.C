@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.59 2004/07/28 07:24:45 jaw Exp $
+// $Id: BPatch_image.C,v 1.60 2004/08/16 04:31:54 rchen Exp $
 
 #define BPATCH_FILE
 
@@ -734,7 +734,7 @@ BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
 	// create a local expr with the correct frame offset or absolute
 	//   address if that is what is needed
 	return new BPatch_variableExpr(proc, (void *) lv->getFrameOffset(), 
-	    lv->getType(), lv->getFrameRelative(), &scp);
+	    lv->getRegister(), lv->getType(), lv->getStorageClass(), &scp);
     }
 
     // finally check the global scope.

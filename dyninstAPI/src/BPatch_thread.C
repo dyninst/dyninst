@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.108 2004/05/21 14:14:39 legendre Exp $
+// $Id: BPatch_thread.C,v 1.109 2004/08/16 04:32:11 rchen Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -630,7 +630,7 @@ BPatch_variableExpr *BPatch_thread::malloc(int n)
     }
 
     BPatch_variableExpr *ret;
-    ret =  new BPatch_variableExpr(proc, ptr, BPatch::bpatch->type_Untyped);
+    ret =  new BPatch_variableExpr(proc, ptr, Null_Register, BPatch::bpatch->type_Untyped);
     return ret;
 }
 
@@ -656,7 +656,7 @@ BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
 
     if (!mem) return NULL;
 
-    return new BPatch_variableExpr(proc, mem, &type);
+    return new BPatch_variableExpr(proc, mem, Null_Register, &type);
 }
 
 
@@ -695,7 +695,7 @@ BPatch_variableExpr *BPatch_thread::getInheritedVariable(
     // parent process
     return NULL;
   }
-  return new BPatch_variableExpr(proc, parentVar.getBaseAddr(),
+  return new BPatch_variableExpr(proc, parentVar.getBaseAddr(), Null_Register,
 				 parentVar.getType());
 }
 

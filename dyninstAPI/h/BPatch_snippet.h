@@ -187,15 +187,13 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet {
     process		*proc;
     void		*address;
     int			size;
-    BPatch_point	*scope; 
-    bool                isLocal;
+    BPatch_point	*scope;
+    bool		isLocal;
+
 public:
 // The following functions are for internal use by the library only:
     BPatch_variableExpr(char *name, process *in_process, void *in_address,
 			const BPatch_type *type);
-    BPatch_variableExpr(process *in_process, void *in_address,
-			const BPatch_type *type, bool frameRelative = false,
-			BPatch_point *sc = NULL);
     BPatch_variableExpr(process *in_process, void *in_address,
 			int in_size);
     BPatch_variableExpr(char *in_name, process *in_process, AstNode *_ast,
@@ -205,6 +203,9 @@ public:
                         AstNode *_ast,
                         const BPatch_type *type,
                         void* in_address);
+    BPatch_variableExpr(process *in_process, void *in_address, int in_register,
+			const BPatch_type *type, BPatch_storageClass storage = BPatch_storageAddr,
+			BPatch_point *scp = NULL);
 
 // Public functions for use by users of the library:
     bool readValue(void *dst);
@@ -217,6 +218,9 @@ public:
 
 #ifdef IBM_BPATCH_COMPAT
     char *getName(char *buffer, int max);
+#if defined(ia64_unknown_linux2_4)
+    void *getAddress() const { return address; }
+#else
     long long int getAddress() { 
       // FIXME:  This seems dangerous!
       long long int ret = 0;
@@ -224,6 +228,7 @@ public:
       memcpy(retptr+1,address,sizeof(address));
       return ret;
 }
+#endif
 #endif
 
     unsigned int getSize() const { return size; }
