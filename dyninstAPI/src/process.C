@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.531 2005/03/14 22:29:38 legendre Exp $
+// $Id: process.C,v 1.532 2005/03/16 20:53:22 bernat Exp $
 
 #include <ctype.h>
 
@@ -2090,7 +2090,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   multiTrampMap(addrHash16)
 #endif
 {
-
+  forkexec_printf("Welcome to process fork constructor...\n");
     costAddr_ = parentProc.costAddr_;
     
    // This is the "fork" ctor
@@ -2237,22 +2237,28 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    execed_ = false;
 
    createRepresentativeLWP();
-
+   forkexec_printf("Attaching to child process...\n");
    if (!attach()) {     // moved from ::forkProcess
        status_ = detached;
       showErrorCallback(69, "Error in fork: cannot attach to child process");
       set_status(exited);
       return;
    }
-
+   
    if(! multithread_capable()) {
-      // for single thread, add the single thread
-      assert(parentProc.threads.size() == 1);
-      dyn_thread *parent_thr = parentProc.threads[0];
-      dyn_thread *new_thr = new dyn_thread(this, parent_thr);
-      threads.push_back(new_thr);      
+     forkexec_printf("Creating dummy thread for single-threaded process...\n");
+     // for single thread, add the single thread
+     assert(parentProc.threads.size() == 1);
+     dyn_thread *parent_thr = parentProc.threads[0];
+     dyn_thread *new_thr = new dyn_thread(this, parent_thr);
+     threads.push_back(new_thr);      
    }
-   // the threads for MT programs are added through later, through function
+   else {
+     // Multithreaded!
+     forkexec_printf("Recognizing child threads...\n");
+     process *fixme = const_cast<process *>(&parentProc);
+     recognize_threads(fixme);
+   }
 
    if( isRunning_() )
       set_status(running);
@@ -5050,10 +5056,10 @@ void process::handleForkExit(process *child) {
     if(pdFlavor == "mpi") {
        child->detachProcess(true);
        child->deleteProcess();
+       return;
     }
-    else
 #endif
-       BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
+    BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
 }
 
 void process::handleExecEntry(char *arg0) {
@@ -5800,7 +5806,6 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
   if (representativeLWP && representativeLWP->get_lwp_id() == lwp_id)
     return representativeLWP;
 
-
   foundLWP = createRealLWP(lwp_id, lwp_id);
 
   if (!foundLWP->attach()) {
@@ -6017,74 +6022,67 @@ void process::updateThreadIndexAddr(Address addr) {
     threadIndexAddr = addr;
 }
 
-static unsigned rpcs_completed;
-static pdvector<unsigned> *successful_lwps;
+void process::recognize_threads(process *parent) {
+  pdvector<unsigned> lwp_ids;
+  determineLWPs(lwp_ids);
 
-static void doneRegistering(process *, unsigned, void *data, void *result_arg) 
-{
-  dyn_lwp *lwp = (dyn_lwp *) data;
-  rpcs_completed++;
+  // We have LWPs with objects. The parent has a vector of threads.
+  // Hook them up.
 
-  if (result_arg == (void *) 0x1 && successful_lwps)
-    successful_lwps->push_back(lwp->get_lwp_id());
-}
+  threads.clear();
 
-void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
-   pdvector<unsigned> found_lwps;
-   determineLWPs(&found_lwps);
+  for (unsigned thr_iter = 0; thr_iter < parent->threads.size(); thr_iter++) {
+    unsigned matching_lwp = 0;
+    dyn_thread *par_thread = parent->threads[thr_iter];
+    forkexec_printf("Updating thread %d (tid %d)\n",
+		    thr_iter, par_thread->get_tid());
 
-   if (!multithread_capable())
-     return;
+    for (unsigned lwp_iter = 0; lwp_iter < lwp_ids.size(); lwp_iter++) {
+      if (lwp_ids[lwp_iter] == 0) continue;
+      dyn_lwp *lwp = getLWP(lwp_ids[lwp_iter]);
 
-   rpcs_completed = 0;
-   // Used by callback
-   successful_lwps = completed_lwps;
-
-   pdvector <unsigned> posted_irpcs;
-
-   for (unsigned i = 0; i < found_lwps.size(); i++)
-   {
-     unsigned lwp_id = found_lwps[i];
-     dyn_lwp *lwp = getLWP(lwp_id);
-
-     pdvector<AstNode *> ast_args;
-     AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
-     unsigned id = getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, lwp, 
-					    false, NULL, lwp);          
-     posted_irpcs.push_back(id);
-   }
-
-   unsigned iter = 0;
-   // We may start an irpc on an LWP that doesn't "exist" for various reasons.
-   // So we don't endless loop here, instead counting up to a small iteration 
-   // and breaking out of the loop.
-
-   // Each LWP will take two pauses, one for result and one for finish. One extra
-   // just in case.
-   const int max = found_lwps.size() * 3;
-
-   while(rpcs_completed != found_lwps.size() && (iter < max) ) {
-     // Give the iRPC a bit of time to finish...
-     getRpcMgr()->launchRPCs(false);
-#if !defined(os_windows)
-     usleep(1);
-#endif
-     if(hasExited())  return;
-     getSH()->checkForAndHandleProcessEvents(false);
-     iter++;
-   }
-   cerr << "Hit max iterations, giving up" << endl;
-
-   // And reset to being paused
-   pause();
-
-   if (iter == max) {
-     // Pull all the iRPCs that are still pending.
-     for (unsigned j = 0; j < posted_irpcs.size(); j++) {
-       getRpcMgr()->cancelRPC(posted_irpcs[j]);
-     }
-   }
-
-   cerr << "Cancelled RPCs" << endl;
-   return;
+      forkexec_printf("... checking against LWP %d\n", lwp->get_lwp_id());
+      
+      if (par_thread->get_lwp()->executingSystemCall()) {
+	// Must be the forking thread. Look for an LWP in a matching call
+	Address par_syscall = par_thread->get_lwp()->getCurrentSyscall();
+	if (!lwp->executingSystemCall())
+	  continue;
+	Address cur_syscall = lwp->getCurrentSyscall();
+	if (par_syscall == cur_syscall) {
+	  matching_lwp = lwp_ids[lwp_iter];
+	  forkexec_printf("... Match: syscall %d = %d\n",
+			  par_syscall, cur_syscall);
+	  break;
+	}
+      }
+      else {
+	// Not in a system call, match active frames
+	Frame parFrame = par_thread->get_lwp()->getActiveFrame();
+	Frame lwpFrame = lwp->getActiveFrame();
+	if ((parFrame.getPC() == lwpFrame.getPC()) &&
+	    (parFrame.getFP() == lwpFrame.getFP()) &&
+	    (parFrame.getSP() == lwpFrame.getSP())) {
+	  forkexec_cerr << "... Match: " << lwpFrame << endl;
+	  matching_lwp = lwp_ids[lwp_iter];
+	  break;
+	}
+      }
+    }
+    if (matching_lwp) {
+      // Make a new thread with details from the old
+      dyn_thread *new_thr = new dyn_thread(this, 
+					   par_thread);
+      new_thr->update_lwp(getLWP(matching_lwp));
+      threads.push_back(new_thr);
+      forkexec_printf("Creating new thread %d (tid %d) on lwp %d, parent was on %d\n",
+		      thr_iter, new_thr->get_tid(), new_thr->get_lwp()->get_lwp_id(),
+		      par_thread->get_lwp()->get_lwp_id());
+    }
+    else {
+      forkexec_printf("Failed to find match for thread %d (tid %d), assuming deleted\n",
+		      thr_iter, par_thread->get_tid());
+    }
+  }
+  return;
 }
