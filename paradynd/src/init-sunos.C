@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.28 2000/03/03 22:09:09 mirg Exp $ */
+/* $Id: init-sunos.C,v 1.29 2000/04/28 22:43:04 mirg Exp $ */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -62,14 +62,37 @@ bool initOS() {
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
-  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-  initialRequests += new instMapping("fork", "DYNINSTfork", 
-				     FUNC_EXIT|FUNC_ARG, retVal);
+  if (process::pdFlavor == "mpi") {
+#ifndef sparc_sun_solaris2_4
+	  instMPI();
+#endif
+	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+	  initialRequests += new instMapping("fork", "DYNINSTmpi_fork", 
+					     FUNC_EXIT|FUNC_ARG, retVal);
+	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+	  initialRequests += new instMapping("_fork", "DYNINSTmpi_fork", 
+					     FUNC_EXIT|FUNC_ARG, retVal);
+  } else { /* Fork and exec */
+	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+	  initialRequests += new instMapping("fork", "DYNINSTfork", 
+					     FUNC_EXIT|FUNC_ARG, retVal);
 
-  //libthread _fork
-  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-  initialRequests += new instMapping("_fork", "DYNINSTfork", 
-				     FUNC_EXIT|FUNC_ARG, retVal);
+	  //libthread _fork
+	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+	  initialRequests += new instMapping("_fork", "DYNINSTfork", 
+					     FUNC_EXIT|FUNC_ARG, retVal);
+
+
+	  //initialRequests += new instMapping("execve", "DYNINSTexec",
+	  //			               FUNC_ENTRY|FUNC_ARG, tidArg);
+	  //initialRequests += new instMapping("execve", "DYNINSTexecFailed", 
+	  //                                   FUNC_EXIT);
+	  AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
+	  initialRequests += new instMapping("_execve", "DYNINSTexec",
+					     FUNC_ENTRY|FUNC_ARG, tidArg);
+	  initialRequests += new instMapping("_execve", "DYNINSTexecFailed", 
+					     FUNC_EXIT);
+  }
   
 #if defined(MT_THREAD)
   initialRequests += new instMapping("_thread_start",
@@ -123,14 +146,6 @@ bool initOS() {
                                      FUNC_ENTRY|FUNC_ARG, 
   				     arg0);
 #endif
-
-    //initialRequests += new instMapping("execve", "DYNINSTexec",
-    //			     FUNC_ENTRY|FUNC_ARG, tidArg);
-    //initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
-    AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-    initialRequests += new instMapping("_execve", "DYNINSTexec",
-				     FUNC_ENTRY|FUNC_ARG, tidArg);
-    initialRequests += new instMapping("_execve", "DYNINSTexecFailed", FUNC_EXIT);
 
 #ifndef SHM_SAMPLING
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
