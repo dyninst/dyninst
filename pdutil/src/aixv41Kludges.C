@@ -42,11 +42,11 @@
 #include "util/h/headers.h"
 
 extern "C" {
-extern int accept(int, struct sockaddr *addr, int *);
+//extern int accept(int, struct sockaddr *addr, int *);
 extern void bzero(char *b, int length);
 extern int gethostname(char*, int);
 extern int getrusage(int, struct rusage*);
-extern int getsockname(int, struct sockaddr*, int *);
+//extern int getsockname(int, struct sockaddr*, int *);
 extern int listen(int, int);
 extern int rexec(char **ahost, u_short inport, char *user, char *passwd,
 		 char *cmd, int *fd2p);
@@ -142,7 +142,7 @@ unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE){
 /* BSD */
 
 int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (accept(SOCK, ADDR, (int*) LENGTH_PTR));}
+  return (accept(SOCK, ADDR, LENGTH_PTR));}
 
 int P_bind(int socket, struct sockaddr *addr, size_t len) {
   return (bind(socket, addr, len));}
@@ -163,7 +163,7 @@ struct servent *P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
 
 int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (getsockname(SOCKET, ADDR, (int*) LENGTH_PTR));}
+  return (getsockname(SOCKET, ADDR, LENGTH_PTR));}
 
 /* int P_gettimeofday (struct timeval *TP, struct timezone *TZP) {
   return (gettimeofday(TP, TZP));} */
