@@ -43,6 +43,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.39  1996/10/31 09:25:59  tamches
+ * the shm-sampling commit; completely redesigned dataReqNode; designed
+ * a handful of derived classes of dataReqNode, which replaces a lot of
+ * existing code.
+ *
  * Revision 1.38  1996/10/03 22:12:03  mjrg
  * Removed multiple stop/continues when inserting instrumentation
  * Fixed bug on process termination
@@ -70,15 +75,6 @@
  * use /proc instead of ptrace on solaris
  * removed warnings
  *
- * Revision 1.31  1996/04/29 03:40:03  tamches
- * added getFocus() member func
- *
- * Revision 1.30  1996/04/03 14:27:48  naim
- * Implementation of deallocation of instrumentation for solaris and sunos - naim
- *
- * Revision 1.29  1996/03/25  20:22:58  tamches
- * the reduce-mem-leaks-in-paradynd commit
- *
  */
 
 #ifndef METRIC_H
@@ -88,101 +84,341 @@
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/aggregateSample.h"
-#include "process.h"
-#include "dyninstP.h"
-#include <strstream.h>
-#include "inst.h"
 #include "ast.h"
-#include "paradynd/src/process.h"
-#include "dyninstRPC.xdr.h"
-
-/*
- * internal representation of an inst. request.
- *
- */
-typedef enum { INTCOUNTER, TIMER } dataObjectType;
-
-class metricDefinitionNode;
-class metric;
 
 class dataReqNode {
-public:
-  dataReqNode(dataObjectType, process*, int, bool iReport, timerType);
-  ~dataReqNode();
-  float getMetricValue();
-  float cost();
-  void insertGlobal();    // allow a global "variable" to be inserted
-  bool insertInstrumentation(metricDefinitionNode *mi);
-  void disable(const vector<unsigVecType> &pointsToCheck);
+ private:
+  // Since we don't define these, make sure they're not used:
+  dataReqNode &operator=(const dataReqNode &src);
+  dataReqNode (const dataReqNode &src);
 
-  // return a pointer in the inferior address space of this data object.
-  unsigned getInferiorPtr();
-  intCounterHandle *returnCounterInstance() { return((intCounterHandle *) instance); }
-  int getSampleId()	{ return(id.id); }
-  dataObjectType getType() { return(type); }
+ protected:
+  dataReqNode() {}
 
-  static dataReqNode *forkProcess(metricDefinitionNode *childMi, dataReqNode *parent);
+ public:
+  virtual ~dataReqNode() {};
 
-private:
-  timerHandle *createTimerInstance();
-  intCounterHandle *createCounterInstance();
+  virtual unsigned getInferiorPtr() const = 0;
+  virtual int getSampleId() const = 0;
 
-  dataObjectType	type;
-  process		*proc;
-  int		initialValue;
-  bool		report;
-  timerType	tType;
-  sampleId	id;	// unique id for this sample
+//  float getMetricValue();
+//  virtual float cost() const = 0;
 
-  void		*instance;
+  virtual bool insertInstrumentation(process *, metricDefinitionNode *) = 0;
+     // Allocates stuff from inferior heap, instrumenting DYNINSTreportCounter
+     // as appropriate.  
+     // Returns true iff successful.
+
+  virtual void disable(process *,
+		       const vector< vector<unsigned> > &pointsToCheck) = 0;
+     // the opposite of insertInstrumentation.  Deinstruments, deallocates
+     // from inferior heap, etc.
+
+  virtual dataReqNode *dup(process *childProc, int iCounterId) const = 0;
+     // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 };
+
+//#ifndef SHM_SAMPLING
+class sampledIntCounterReqNode : public dataReqNode {
+ private:
+   // The following fields are always properly initialized in ctor:
+   int sampleId;
+   int initialValue; // needed when dup()'ing
+
+   // The following fields are NULL until insertInstrumentation() called:   
+   intCounter *counterPtr;		/* NOT in our address space !!!! */
+   instInstance *sampler;		/* function to sample value */
+
+   // Since we don't use these, disallow:
+   sampledIntCounterReqNode &operator=(const sampledIntCounterReqNode &);
+   sampledIntCounterReqNode(const sampledIntCounterReqNode &);
+
+   // private fork-ctor called by dup():
+   sampledIntCounterReqNode(const sampledIntCounterReqNode &src,
+                    process *childProc, int iCounterId);
+
+   void writeToInferiorHeap(process *theProc, const intCounter &src) const;
+
+ public:
+   sampledIntCounterReqNode(int iValue, int iCounterId);
+  ~sampledIntCounterReqNode() {}
+      // Hopefully, disable() has already been called.  A bit of a complication
+      // since disable() needs an arg passed, which we can't do here.  Too bad.
+
+   dataReqNode *dup(process *, int iCounterId) const;
+
+   bool insertInstrumentation(process *, metricDefinitionNode *);
+      // allocates from inferior heap; initializes it; instruments
+      // DYNINSTsampleValues
+
+   void disable(process *, const vector< vector<unsigned> > &);
+
+   unsigned getInferiorPtr() const {
+      assert(counterPtr != NULL); // NULL until insertInstrumentation()
+      return (unsigned)counterPtr;
+   }
+
+   int getSampleId() const {return sampleId;}
+};
+//#endif
+
+#ifdef SHM_SAMPLING
+class sampledShmIntCounterReqNode : public dataReqNode {
+ private:
+   // The following fields are always properly initialized in ctor:
+   int sampleId;
+   int initialValue; // needed when dup()'ing
+
+   // The following fields are NULL until insertInstrumentation() called:
+   unsigned allocatedIndex; // probably redundant w/ next field; can be removed
+   intCounter *inferiorCounterPtr;	/* NOT in our address space !!!! */
+
+   // Since we don't use these, disallow:
+   sampledShmIntCounterReqNode &operator=(const sampledShmIntCounterReqNode &);
+   sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &);
+
+   // private fork-ctor called by dup():
+   sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
+                               process *childProc, int iCounterId);
+
+ public:
+   sampledShmIntCounterReqNode(int iValue, int iCounterId);
+  ~sampledShmIntCounterReqNode() {}
+      // Hopefully, disable() has already been called.
+      // A bit of a complication since disable() needs an
+      // arg passed, which we can't do here.  Too bad.
+
+   dataReqNode *dup(process *, int iCounterId) const;
+
+   bool insertInstrumentation(process *, metricDefinitionNode *);
+      // allocates from inferior heap; initializes it, etc.
+
+   void disable(process *, const vector< vector<unsigned> > &);
+
+   unsigned getInferiorPtr() const {
+      assert(inferiorCounterPtr != NULL); // NULL until insertInstrumentation()
+      return (unsigned)inferiorCounterPtr;
+   }
+
+   int getSampleId() const {return sampleId;}
+};
+#endif
+
+class nonSampledIntCounterReqNode : public dataReqNode {
+ private:
+   // The following fields are always properly initialized in ctor:
+   int sampleId;
+   int initialValue; // needed when dup()'ing
+
+   // The following is NULL until insertInstrumentation() called:   
+   intCounter *counterPtr;		/* NOT in our address space !!!! */
+
+   // Since we don't use these, disallow:
+   nonSampledIntCounterReqNode &operator=(const nonSampledIntCounterReqNode &);
+   nonSampledIntCounterReqNode(const nonSampledIntCounterReqNode &);
+
+   // private fork-ctor called by dup():
+   nonSampledIntCounterReqNode(const nonSampledIntCounterReqNode &src,
+                               process *childProc, int iCounterId);
+
+   void writeToInferiorHeap(process *theProc, const intCounter &src) const;
+
+ public:
+   nonSampledIntCounterReqNode(int iValue, int iCounterId);
+  ~nonSampledIntCounterReqNode() {}
+      // Hopefully, disable() has already been called.
+      // A bit of a complication since disable() needs an
+      // arg passed, which we can't do here.  Too bad.
+
+   dataReqNode *dup(process *, int iCounterId) const;
+
+   bool insertInstrumentation(process *, metricDefinitionNode *);
+      // allocates from inferior heap; initializes it
+
+   void disable(process *, const vector< vector<unsigned> > &);
+
+   unsigned getInferiorPtr() const {
+      assert(counterPtr != NULL); // NULL until insertInstrumentation()
+      return (unsigned)counterPtr;
+   }
+
+   int getSampleId() const {return sampleId;}
+};
+
+//#ifndef SHM_SAMPLING
+class sampledTimerReqNode : public dataReqNode {
+ private:
+   // The following fields are always initialized in the ctor:   
+   int sampleId;
+   timerType theTimerType;
+
+   // The following fields are NULL until insertInstrumentation():
+   tTimer *timerPtr;			/* NOT in our address space !!!! */
+   instInstance *sampler;		/* function to sample value */
+
+   // since we don't use these, disallow:
+   sampledTimerReqNode(const sampledTimerReqNode &);
+   sampledTimerReqNode &operator=(const sampledTimerReqNode &);
+
+   // fork ctor:
+   sampledTimerReqNode(const sampledTimerReqNode &src, process *childProc,
+		       int iCounterId);
+
+   void writeToInferiorHeap(process *theProc, const tTimer &dataSrc) const;
+
+ public:
+   sampledTimerReqNode(timerType iType, int iCounterId);
+  ~sampledTimerReqNode() {}
+      // hopefully, freeInInferior() has already been called
+      // a bit of a complication since freeInInferior() needs an
+      // arg passed, which we can't do here.  Too bad.
+
+   dataReqNode *dup(process *childProc, int iCounterId) const;
+
+   bool insertInstrumentation(process *, metricDefinitionNode *);
+   void disable(process *, const vector< vector<unsigned> > &);
+
+   unsigned getInferiorPtr() const {
+      assert(timerPtr != NULL); // NULL until insertInstrumentation()
+      return (unsigned)timerPtr;
+   }
+
+   int getSampleId() const {return sampleId;}
+};
+//#endif
+
+#ifdef SHM_SAMPLING
+class sampledShmWallTimerReqNode : public dataReqNode {
+ private:
+   // The following fields are always initialized in the ctor:   
+   int sampleId;
+
+   // The following fields are NULL until insertInstrumentatoin():
+   unsigned allocatedIndex;  // probably redundant w/ next field; can be removed
+   tTimer *inferiorTimerPtr; // NOT in our address space !!!!
+
+   // since we don't use these, disallow:
+   sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &);
+   sampledShmWallTimerReqNode &operator=(const sampledShmWallTimerReqNode &);
+
+   // fork ctor:
+   sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src, process *childProc,
+			      int iCounterId);
+
+ public:
+   sampledShmWallTimerReqNode(int iCounterId);
+  ~sampledShmWallTimerReqNode() {}
+      // hopefully, freeInInferior() has already been called
+      // a bit of a complication since freeInInferior() needs an
+      // arg passed, which we can't do here.  Too bad.
+
+   dataReqNode *dup(process *childProc, int iCounterId) const;
+
+   bool insertInstrumentation(process *, metricDefinitionNode *);
+   void disable(process *, const vector< vector<unsigned> > &);
+
+   unsigned getInferiorPtr() const {
+      assert(inferiorTimerPtr != NULL); // NULL until insertInstrumentation()
+      return (unsigned)inferiorTimerPtr;
+   }
+
+   int getSampleId() const {return sampleId;}
+};
+
+class sampledShmProcTimerReqNode : public dataReqNode {
+ private:
+   // The following fields are always initialized in the ctor:   
+   int sampleId;
+
+   // The following fields are NULL until insertInstrumentatoin():
+   unsigned allocatedIndex;  // probably redundant w/ next field; can be removed
+   tTimer *inferiorTimerPtr; // NOT in our address space !!!!
+
+   // since we don't use these, disallow:
+   sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &);
+   sampledShmProcTimerReqNode &operator=(const sampledShmProcTimerReqNode &);
+
+   // fork ctor:
+   sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src, process *childProc,
+			      int iCounterId);
+
+ public:
+   sampledShmProcTimerReqNode(int iCounterId);
+  ~sampledShmProcTimerReqNode() {}
+      // hopefully, freeInInferior() has already been called
+      // a bit of a complication since freeInInferior() needs an
+      // arg passed, which we can't do here.  Too bad.
+
+   dataReqNode *dup(process *childProc, int iCounterId) const;
+
+   bool insertInstrumentation(process *, metricDefinitionNode *);
+   void disable(process *, const vector< vector<unsigned> > &);
+
+   unsigned getInferiorPtr() const {
+      assert(inferiorTimerPtr != NULL); // NULL until insertInstrumentation()
+      return (unsigned)inferiorTimerPtr;
+   }
+
+   int getSampleId() const {return sampleId;}
+};
+#endif
+
+/* ************************************************************************ */
 
 class instReqNode {
 public:
-  instReqNode(process*, instPoint*, const AstNode &, callWhen, callOrder order);
+  instReqNode(instPoint*, const AstNode &, callWhen, callOrder order,
+              bool iManuallyTrigger);
  ~instReqNode();
 
   instReqNode() {
      // needed by Vector class
-     proc = NULL; point=NULL; instance = NULL;
+     point=NULL; instance = NULL; manuallyTrigger = false;
   }
 
   instReqNode(const instReqNode &src) : ast(src.ast) {
-     proc = src.proc;
      point = src.point;
      when = src.when;
      order = src.order;
      instance = src.instance;
+     manuallyTrigger = src.manuallyTrigger;
   }
   instReqNode &operator=(const instReqNode &src) {
      if (this == &src)
         return *this;
 
-     proc = src.proc;
      point = src.point;
      ast = src.ast;
      when = src.when;
      order = src.order;
      instance = src.instance;
+     manuallyTrigger = src.manuallyTrigger;
 
      return *this;
   }
 
-  bool insertInstrumentation(returnInstance *&retInstance);
+  bool insertInstrumentation(process *theProc,
+			     returnInstance *&retInstance);
+
   void disable(const vector<unsigned> &pointsToCheck);
-  float cost();
+  float cost(process *theProc) const;
 
-  static instReqNode instReqNode::forkProcess(const instReqNode &parent, process *child);
+  static instReqNode forkProcess(const instReqNode &parent, process *child);
 
-  instInstance *getInstance() { return instance; }
+  instInstance *getInstance() const { return instance; }
+
+  bool anythingToManuallyTrigger() const {return manuallyTrigger;}
+  bool triggerNow(process *theProc);
 
 private:
-  process	*proc;
   instPoint	*point;
   AstNode	ast;
   callWhen	when;
   callOrder	order;
   instInstance	*instance;
+  bool manuallyTrigger;
+     // if true, then 'ast' is manually executed (inferiorRPC) when
+     // inserting instrumentation.
 };
 
 
@@ -192,7 +428,7 @@ private:
    two).
    Aggregate nodes represent a metric instance with one or more components.
    Each component is represented by a non-aggregate metricDefinitionNode, and
-   is associated with a process.
+   is associated with a different process.
    All metric instance have an aggregate metricDefinitionNode, even if it has 
    only one component (this simplifies doing metric propagation when new 
    processes start).
@@ -203,7 +439,11 @@ private:
 */
 class metricDefinitionNode {
 friend int startCollecting(string&, vector<u_int>&, int id, 
-			   vector<process *> &procsToContinue);
+			   vector<process *> &procsToContinue); // called by dynrpc.C
+
+ private:
+   /* unique id for a counter or timer */
+   static int counterId=0;
 
 public:
   // styles are enumerated in util/h/aggregation.h
@@ -224,34 +464,48 @@ public:
 
   process *proc() const { return proc_; }
 
-  bool nonNull() { return (requests.size() || data.size()); }
+  bool nonNull() const { return (instRequests.size() || dataRequests.size()); }
   bool insertInstrumentation();
+
+  float cost() const;
   bool checkAndInstallInstrumentation();
-  float cost();
+
   float originalCost() const { return originalCost_; }
 
-  // used by controller.
-  float getMetricValue();
-
-  inline dataReqNode *addIntCounter(int inititalValue, bool report);
-  inline dataReqNode *addTimer(timerType type);
-  inline void addInst(instPoint *point, const AstNode &, callWhen when, callOrder o);
-  void set_inform(bool new_val) { inform_ = new_val; }
+  // The following routines are (from the outside world's viewpoint)
+  // the heart of it all.  They append to dataRequets or instRequests, so that
+  // a future call to metricDefinitionNode::insertInstrumentation() will
+  // "do their thing".
+  dataReqNode *addSampledIntCounter(int initialValue);
+  dataReqNode *addUnSampledIntCounter(int initialValue);
+  dataReqNode *addWallTimer();
+  dataReqNode *addProcessTimer();
+  inline void addInst(instPoint *point, const AstNode &, callWhen when, callOrder o,
+		      bool manuallyTrigger);
 
   // propagate this metric instance to process p
   void propagateMetricInstance(process *p);  
 
+  // what is the difference between the following 2?
   metricDefinitionNode *forkProcess(process *child);
-  static void handleFork(process *parent, process *child);
+  static void handleFork(const process *parent, process *child);
 
   // remove an instance from an aggregate metric
   void removeThisInstance();
 
+  bool anythingToManuallyTrigger() const;
+
+  void manuallyTrigger();
+
 private:
+  // Since we don't define these, make sure they're not used:
+  metricDefinitionNode &operator=(const metricDefinitionNode &src);
+  metricDefinitionNode(const metricDefinitionNode &src);
 
   void removeComponent(metricDefinitionNode *comp);
   void endOfDataCollection();
   void removeFromAggregate(metricDefinitionNode *comp);
+
   void updateAggregateComponent();
 
   bool			aggregate_;
@@ -267,10 +521,11 @@ private:
   aggregateSample aggSample;    // current aggregate value
 
   /* for non-aggregate metrics */
-  vector<dataReqNode*>	data;
+  vector<dataReqNode*>	dataRequests;
 
-  vector<instReqNode> requests;
+  vector<instReqNode> instRequests;
   vector<returnInstance *> returnInsts;
+
   sampleValue cumulativeValue; // cumulative value for this metric
 
   // which metricDefinitionNode depend on this value.
@@ -282,7 +537,8 @@ private:
   float originalCost_;
 
   // is this a final value or a component of a larger metric.
-  bool inform_;
+//  bool inform_;
+
   process *proc_;
 
   string metric_name_;
@@ -290,46 +546,28 @@ private:
 
 };
 
-inline dataReqNode *metricDefinitionNode::addIntCounter(int inititalValue, bool report) {
-  dataReqNode *tp;
-  tp = new dataReqNode(INTCOUNTER, proc_, inititalValue, report, processTime);
-  assert(tp);
-  data += tp;
-  return(tp);
-};
-
-inline dataReqNode *metricDefinitionNode::addTimer(timerType type) {
-  dataReqNode *tp;
-  tp = new dataReqNode(TIMER, proc_, 0, true, type);
-  assert(tp);
-  data += tp;
-  return(tp);
-};
-
 inline void metricDefinitionNode::addInst(instPoint *point, const AstNode &ast,
 					  callWhen when,
-					  callOrder o) {
+					  callOrder o,
+                                          bool manuallyTrigger) {
   if (!point) return;
 
-  instReqNode temp(proc_, point, ast, when, o);
-  requests += temp;
+  instReqNode temp(point, ast, when, o, manuallyTrigger);
+  instRequests += temp;
 };
 
 extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
+
 // allMIComponents: the metric components indexed by flat_name.
 extern dictionary_hash<string, metricDefinitionNode*> allMIComponents;
 
-//
-// Return the current wall time -- 
-//
-//    If firstRecordRelative is true, time starts at the arrival of record 0.
-//    otherwise it starts at 1/1/1970 0:00 GMT.
-//
-timeStamp getCurrentTime(bool firstRecordRelative);
-
 extern double currentPredictedCost;
+
+#ifndef SHM_SAMPLING
 extern void processCost(process *proc, traceHeader *h, costUpdate *s);
-extern void reportInternalMetrics();
+#endif
+
+extern void reportInternalMetrics(bool force);
 
 /*
  * Routines to control data collection.
@@ -355,7 +593,8 @@ float guessCost(string& metric_name, vector<u_int>& focus);
  * process a sample ariving from an inferior process
  *
  */
+#ifndef SHM_SAMPLING
 void processSample(traceHeader*, traceSample *);
-
+#endif
 
 #endif
