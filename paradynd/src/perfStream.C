@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.129 2002/05/13 19:53:52 mjbrim Exp $
+// $Id: perfStream.C,v 1.130 2002/05/14 19:00:40 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -446,32 +446,26 @@ void processTraceStream(process *curr)
     curr->bufEnd = curr->bufEnd - curr->bufStart;
 }
 
-
-extern vector<defInst*> instrToDo;
+extern vector<int> deferredMetricIDs;
 
 void doDeferredInstrumentation() {
-  for (int i=(int)instrToDo.size()-1; i>=0; i--) {
-    int id     = instrToDo[i]->id();
-
+  for (int i=(int)deferredMetricIDs.size()-1; i>=0; i--) {
+    int id = deferredMetricIDs[i];
     machineMetFocusNode *machNode;
     machNode = machineMetFocusNode::lookupMachNode(id);
 
     if(machNode == NULL) {
-      cerr << "Can't find machineMetFocusNode which should exist\n";
       assert(false);
     }
-    machNode->pauseProcesses();
+
     bool instrumented = machNode->insertInstrumentation();
 
     if(instrumented) {
-      delete instrToDo[i];
-      instrToDo.erase(i);
+      deferredMetricIDs.erase(i);
     
       machNode->initializeForSampling(getWallTime(), pdSample::Zero());
     }
-    machNode->continueProcesses();
   }
-
 
 }
 
