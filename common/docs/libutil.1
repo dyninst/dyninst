@@ -1,0 +1,242 @@
+.\"
+.\"
+.TH LIBUTIL 1L PARADYN "\\n(mo/\\n(dy/19\\n(yr"
+.SH NAME
+libutil \- Support Library
+.SH DESCRIPTION
+.PP
+This library provides utility functions.  It provides a list class, a hash table class, and functions to support client-server communications using XDR/pvm/threads.
+.SH "LIST CLASS SYNOPSIS"
+.B template <class Type> class List {
+.br
+.B	public:
+.br
+.B	List();
+.br
+.B	int  empty();
+.br
+.B	friend ostream &operator<<(ostream&, List<Type>&);
+.br
+.B	void print();
+.br
+.B	void add(Type data, void *key);
+.br
+.B	void add(Type data);
+.br
+.B	Boolean addUnique(Type data);
+.br
+.B	Boolean addUnique(Type data, void *key);
+.br
+.B	Type find(void *key);
+.br
+.B	Boolean remove(void *key);
+.br
+.B	int count();
+.br
+.B	Type operator *();
+.br
+.B	void operator +=(List<Type> mergee);
+.br
+.B	Type operator ++();
+.br
+.B	void map (void (*map_function)(const Type item));
+.br
+.B	void setCurrent();
+.br
+.B	const Type getCurrent();
+.br
+.B	const Type next();
+.br
+.B	void advanceCurrent();
+.br
+.B	protected:
+.br
+.B	ListItem<Type>	*head;
+.br
+.B	ListItem<Type>  *current;
+.br
+};
+.br
+.SH "HASH TABLE CLASS SYNOPSIS"
+.PP
+.B template <class Type> class HTable {
+.br
+.B    public:
+.br
+.B	friend ostream &operator<<(ostream&, HTable<Type>&);
+.br
+.B	void print();
+.br
+.B	HTable(Type data);
+.br
+.B	void add(Type data, void *key);
+.br
+.B	HTable(); 
+.br
+.B	Boolean addUnique(Type data, void *key);
+.br
+.B	Type find(void *key);
+.br
+.B	Boolean remove(void *key);
+.br
+.B	Type operator =(HTable<Type> arg);
+.br
+.B	Type operator *();
+.br
+.B	Type operator ++();
+.br
+.B	int count();
+.br
+.B	private:
+.br
+.B	List<Type> **table;
+.br
+.B	List<Type> currList;
+.br
+.B	int currHid;
+.br
+.B	int tableSize;
+.br
+};
+.br
+.SH "LIBRARY SYNOPSIS"
+.TP 8
+.B int RPCprocessCreate (pid, host, User, command,
+.B	 args)
+.br
+.B int *pid;
+.br
+.B char *host;  
+.br
+.B char *User;           
+.br
+.B char *command; 
+.br
+.B char **args;   
+.TP 8
+.B int RPC_readReady (fd)
+.br
+.B int fd;
+.TP 8
+.B int RPC_setup_socket (socket_fd, family, type)
+.br
+.B int *socket_fd;
+.br
+.B int family;
+.br
+.B int type;
+.TP 8
+.B char **RPC_make_arg_list (program, family, type,
+.B			     port, flag)
+.br
+.B char *program;
+.br
+.B int family;
+.br
+.B int type;
+.br
+.B int port;
+.br
+.B int flag;
+.TP 8
+.B int RPC_undo_arg_list (argc, arg_list, machine,
+.B	                   family, type, socket, flag)
+.br
+.B int argc;
+.br
+.B char **arg_list;
+.br
+.B char **machine;
+.br
+.B int *family;
+.br
+.B int *type;
+.br
+.B int *socket;
+.br
+.B int *flag;
+.TP 8
+.B int RPC_getConnect (fd)
+.br
+.B int fd;
+
+.SH "LIST CLASS DESCRIPTION"
+.PP
+.SH "HASH TABLE DESCRIPTION"
+.PP
+.SH "LIBRARY DESCRIPTION"
+.PP
+.B int RPCprocessCreate (pid, host, User, command,
+.B	 args)
+.br
+.B int *pid;
+.br
+.B char *host;  
+.br
+.B char *User;           
+.br
+.B char *command; 
+.br
+.B char **args;   
+.br
+stdout will be closed for the exec'd program.  The pid is returned in pid.
+Host is the name of the host to start the program on.  Command is the name
+of the command to exec.  If args is non-null, it will be used as an argument 
+for the exec.  Thus, command should be the first entry in args.  If args is
+null, command is passed as the argument list.
+.TP 8
+.B int RPC_readReady (fd)
+.br
+.B int fd;
+.TP 8
+.B int RPC_setup_socket (socket_fd, family, type)
+.br
+.B int *socket_fd;
+.br
+.B int family;
+.br
+.B int type;
+.TP 8
+.B char **RPC_make_arg_list (program, family, type,
+.B			     port, flag)
+.br
+.B char *program;
+.br
+.B int family;
+.br
+.B int type;
+.br
+.B int port;
+.br
+.B int flag;
+.TP 8
+.B int RPC_undo_arg_list (argc, arg_list, machine,
+.B	                   family, type, socket, flag)
+.br
+.B int argc;
+.br
+.B char **arg_list;
+.br
+.B char **machine;
+.br
+.B int *family;
+.br
+.B int *type;
+.br
+.B int *socket;
+.br
+.B int *flag;
+.TP 8
+.B int RPC_getConnect (fd)
+.br
+.B int fd;
+
+.SH "SEE ALSO"
+Paradyn(1).
+.SH COPYRIGHT
+Copyright 1994, The Paradyn Software Team.
+.SH AUTHOR
+Mark Callaghan     (markc@cs.wisc.edu)
+
+
+
