@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.40 2000/09/21 20:14:06 zandy Exp $
+// $Id: linux.C,v 1.41 2000/10/06 20:25:42 zandy Exp $
 
 #include <fstream.h>
 
@@ -639,8 +639,14 @@ int process::detach()
              better. */
 	  goto out;
      }
-     res = P_ptrace(PTRACE_DETACH, pid, 0, 0);
-     assert(res >= 0);
+     if (this->pendingSig) {
+	  res = P_ptrace(PTRACE_DETACH, pid, 0, this->pendingSig);
+	  assert(res >= 0);
+	  this->pendingSig = 0;
+     } else {
+	  res = P_ptrace(PTRACE_DETACH, pid, 0, 0);
+	  assert(res >= 0);
+     }
      this->haveDetached = true;
      this->juststopped = false;
      this->needsDetach = false;
@@ -673,11 +679,28 @@ int process::reattach()
              better. */
 	  goto out;
      }
-     res = P_ptrace(PTRACE_ATTACH, pid, 0, 0);
-     assert(res >= 0);
-     /* Every attach must be followed by a wait to consume the stop event */
-     res = waitpid(pid, 0, 0);
-     assert(res >= 0);
+
+     /* Here we attach to the process and call waitpid to process the
+	associated stop event.  The process may be about to handle a
+	trap, in which case waitpid will indicate a SIGTRAP.  We
+	detach and reattach to clear this event, but we'll resend
+	SIGTRAP when we detach. */
+     while (1) {
+	  int stat;
+	  res = P_ptrace(PTRACE_ATTACH, pid, 0, 0);
+	  assert(res >= 0);
+	  res = waitpid(pid, &stat, 0);
+	  assert(res >= 0);
+	  if (WIFSTOPPED(stat) && WSTOPSIG(stat) != SIGSTOP) {
+	       assert(!this->pendingSig);
+	       assert(WSTOPSIG(stat) == SIGTRAP); /* We only expect traps */
+	       this->pendingSig = SIGTRAP;
+	       ret = P_ptrace(PTRACE_DETACH, pid, 0, 0);
+	       continue;
+	  }
+	  break;
+     }
+
      this->haveDetached = 0;
      this->juststopped = true;
      this->status_ = stopped;

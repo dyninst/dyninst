@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.147 2000/08/22 20:07:47 zandy Exp $
+/* $Id: process.h,v 1.148 2000/10/06 20:25:44 zandy Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -511,6 +511,7 @@ class process {
   bool haveDetached;
   bool juststopped;
   bool needsDetach;
+  int pendingSig;
   int detach();
   int reattach();
   int reattachAndPause();

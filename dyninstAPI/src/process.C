@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.234 2000/08/21 00:28:42 paradyn Exp $
+// $Id: process.C,v 1.235 2000/10/06 20:25:43 zandy Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1583,6 +1583,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
   haveDetached = 0;
   juststopped = 0;
   needsDetach = 0;
+  pendingSig = 0;
 #endif /* DETACH_ON_THE_FLY */
 
 #if defined(MT_THREAD)
@@ -1749,6 +1750,7 @@ process::process(int iPid, image *iSymbols,
   haveDetached = 0;
   juststopped = 0;
   needsDetach = 0;
+  pendingSig = 0;
 #endif /* DETACH_ON_THE_FLY */
 
 
@@ -1965,6 +1967,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   haveDetached = 0;
   juststopped = 0;
   needsDetach = 0;
+  pendingSig = 0;
 #endif /* DETACH_ON_THE_FLY */
 
     // This is the "fork" ctor

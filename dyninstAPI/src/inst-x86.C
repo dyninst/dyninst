@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.70 2000/09/21 20:14:02 zandy Exp $
+ * $Id: inst-x86.C,v 1.71 2000/10/06 20:25:42 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -648,20 +648,6 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    for (u = 0; u < npoints; u++)
 	points[u].point->checkInstructions();
 
-#ifdef DETACH_ON_THE_FLY
-   /* On Linux, trap-based instrumentation points must have at least
-      two bytes.  Make the function uninstrumentable if we find an 
-      trap-based inst point that is too small. */
-   for (u = 0; u < npoints; u++) {
-	instPoint *p = points[u].point;
-        if (_usesTrap(p, funcEntry_, funcReturns) && p->size() < 2) {
-	     delete [] points;
-	     delete [] allInstr;
-	     return false;
-	}
-   }
-#endif /* DETACH_ON_THE_FLY */
-
    delete [] points;
    delete [] allInstr;
 
@@ -1039,20 +1025,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
      if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
 	  return 0;
      *insn++ = 0xCC;
-     
-#ifdef DETACH_ON_THE_FLY
-     /* On Linux, we need two trap instructions.  Usually the first
-	works.  But sometimes the trap signal gets lost when we attach
-	to the process as it executes a trap.  Control falls through to
-	the next instruction.  Execution of the second trap is certain. */
-     assert(point->size() >= 2);
-     if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr+1, baseAddr))
-	  return 0;
-     *insn = 0xCC;
-     return 2;
-#else  /* DETACH_ON_THE_FLY */
      return 1;
-#endif /* DETACH_ON_THE_FLY */
 }
 
 /****************************************************************************/
@@ -2984,9 +2957,9 @@ bool process::MonitorCallSite(instPoint *callSite){
 					      disp);
 	    }
 	    else 
-	      AstNode *effective_address =  new AstNode(plusOp, 
-							index_scale_product,
-							disp);
+	      effective_address = new AstNode(plusOp, 
+					       index_scale_product,
+					       disp);
 	    the_args[0] = new AstNode(AstNode::DataIndir, effective_address);
 	    
 	    the_args[1] = new AstNode(AstNode::Constant,
