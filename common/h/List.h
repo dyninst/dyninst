@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.6  1993/12/15 21:06:54  hollings
+ * Revision 1.7  1994/01/19 20:46:17  hollings
+ * guardef defn of true/false.
+ *
+ * Revision 1.6  1993/12/15  21:06:54  hollings
  * removed destructors.  Our current list semantics don't support auto
  * destruction of list comonents since list elements can be shared between
  * lists.
@@ -39,8 +42,10 @@
 
 typedef char Boolean;
 
+#ifndef FALSE
 #define FALSE 0
 #define TRUE  1
+#endif
 
 inline static int ListHash(void *ptr, int size)
 {
