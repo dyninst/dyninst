@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.32 2001/08/23 14:44:06 schendel Exp $ */
+/* $Id: init-sunos.C,v 1.33 2001/10/11 23:58:04 schendel Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/metric.h"
@@ -219,5 +219,6 @@ void initWallTimeMgrPlt() {
   timeBase hrtimeBase(beghrtime);
   getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
 				timeUnit::ns(), hrtimeBase, 
-			       &getRawWallTime_hrtime,"DYNINSTgetWalltime_sw");
+			       &getRawWallTime_hrtime,"swWallTimeFPtrInfo");
 }
+

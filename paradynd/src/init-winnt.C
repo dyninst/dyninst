@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.6 2001/02/01 01:04:57 schendel Exp $
+// $Id: init-winnt.C,v 1.7 2001/10/11 23:58:05 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -124,7 +124,7 @@ void initWallTimeMgrPlt() {
     timeBase hrtimeBase(beghrtime);
     getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_ONE, &dm_isTSCAvail,
 				  getCyclesPerSecond(), hrtimeBase,
-				  &dm_getTSC, "DYNINSTgetWalltime_hw");
+				  &dm_getTSC, "hwWallTimeFPtrInfo");
   }
 
   LARGE_INTEGER time;
@@ -143,6 +143,6 @@ void initWallTimeMgrPlt() {
 
   getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
 				perfCtrFreq, hrtimeBase,&getRawWallTime_hrtime,
-				"DYNINSTgetWalltime_sw");
+				"swWallTimeFPtrInfo");
 }
 

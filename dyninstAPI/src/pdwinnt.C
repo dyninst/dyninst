@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.39 2001/08/28 18:07:11 chadd Exp $
+// $Id: pdwinnt.C,v 1.40 2001/10/11 23:58:00 schendel Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2890,6 +2890,6 @@ fileDescriptor *getExecFileDescriptor(string filename,
 void process::initCpuTimeMgrPlt() {
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
 			   timeUnit(fraction(100)), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
+			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
 }
 #endif

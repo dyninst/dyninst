@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-irix.C,v 1.5 2000/10/17 17:42:34 schendel Exp $
+// $Id: init-irix.C,v 1.6 2001/10/11 23:58:02 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -228,11 +228,11 @@ void initWallTimeMgrPlt() {
     timeBase hrtimeBase(beghrtime);
     getWallTimeMgr().installLevel(
          wallTimeMgr_t::LEVEL_ONE, &isFreeRunningHwCounterAvail, frcRes, 
-         hrtimeBase, &getRawWallTime_frhc, "DYNINSTgetWalltime_hw");
+         hrtimeBase, &getRawWallTime_frhc, "hwWallTimeFPtrInfo");
   }
 
   getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, &yesFunc,
 				timeUnit::us(), timeBase::b1970(), 
-				&getRawTime1970, "DYNINSTgetWalltime_sw");
+				&getRawTime1970, "swWallTimeFPtrInfo");
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.50 2001/10/08 20:51:41 zandy Exp $
+// $Id: linux.C,v 1.51 2001/10/11 23:57:59 schendel Exp $
 
 #include <fstream.h>
 
@@ -2167,11 +2167,11 @@ void process::free_hrtime_link() {
 void process::initCpuTimeMgrPlt() {
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isLibhrtimeAvail,
 			   getCyclesPerSecond(), timeBase::bNone(), 
-			   &process::getRawCpuTime_hw, "DYNINSTgetCPUtime_hw",
+			   &process::getRawCpuTime_hw, "hwCpuTimeFPtrInfo",
 			   &process::free_hrtime_link);
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
 			   calcJiffyUnit(), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
+			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
 }
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.83 2001/08/22 18:26:54 bernat Exp $
+// $Id: aix.C,v 1.84 2001/10/11 23:57:57 schendel Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1793,7 +1793,7 @@ void inferiorMallocAlign(unsigned &size)
 void process::initCpuTimeMgrPlt() {
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
 			   timeUnit::us(), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
+			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
 }
 #endif
 
