@@ -60,8 +60,8 @@ dictionary_hash<string, instrCodeNode_Val*>
 
 
 instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
-				    pd_process *proc, bool arg_dontInsertData, 
-                                    string hw_cntr_str)
+				                        pd_process *proc, bool arg_dontInsertData, 
+															  string hw_cntr_str)
 {
   instrCodeNode_Val *nodeVal;
   // it's fine to use a code node with data inserted for a code node
@@ -71,10 +71,7 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
   //if(foundIt) cerr << "found instrCodeNode " << key_name << " (" << nodeVal
   //		   << "), using it, , arg_proc=" << (void*)proc << "\n";
 
-
-
   if(! foundIt) {
-
     HwEvent* hw = NULL;
     /* if PAPI isn't available, hw_cntr_str should always be "" */
     if (hw_cntr_str != "") {
@@ -84,8 +81,9 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
       assert(papi);
       hw = papi->createHwEvent(hw_cntr_str);
       if (hw == NULL) {
-        string msg = string("unable to add PAPI hardware event: " + hw_cntr_str);
-        showErrorCallback(125,msg.c_str());
+	string msg = string("unable to add PAPI hardware event: ") 
+	             + hw_cntr_str;
+        showErrorCallback(125, msg.c_str());
         return NULL;
       }
 #endif
@@ -96,6 +94,7 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
     //     << ") doesn't exist, creating one (proc=" << (void*)proc << ")\n";
     registerCodeNodeVal(nodeVal);
   }
+
   nodeVal->incrementRefCount();
   instrCodeNode *retNode = new instrCodeNode(nodeVal);
   return retNode;
@@ -136,51 +135,53 @@ instrCodeNode::instrCodeNode(const instrCodeNode &par, pd_process *childProc)
 
 instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 				     pd_process *childProc) :
-  name(par.name), focus(adjustFocusForPid(par.focus, childProc->getPid())), 
+  name(par.name), focus(adjustFocusForPid(par.focus, childProc->getPid())),
+  thrStartFuncBuf(par.thrStartFuncBuf), thridsCatchuped(ui_hash__),
   hwEvent(par.hwEvent)
 {
-  if(par.sampledDataNode)
-    sampledDataNode = new instrDataNode(*par.sampledDataNode, childProc);
-  else sampledDataNode = NULL;
+   if(par.sampledDataNode)
+      sampledDataNode = new instrDataNode(*par.sampledDataNode, childProc);
+   else sampledDataNode = NULL;
 
-  if(par.constraintDataNode)
-    constraintDataNode = new instrDataNode(*par.constraintDataNode, childProc);
-  else constraintDataNode = NULL;
-
-  for(unsigned i=0; i<par.tempCtrDataNodes.size(); i++) {
-    tempCtrDataNodes.push_back(new instrDataNode(*(par.tempCtrDataNodes[i]), 
-						 childProc));
-  }
-  for(unsigned j=0; j<par.instRequests.size(); j++) {
-    instReqNode *newInstReq = new instReqNode(par.instRequests[j],childProc);
-    instRequests.push_back(*newInstReq);
-    // update the data assocated with the minitramp deletion callback
-    vector<instrDataNode *> *affectedNodes = new vector<instrDataNode *>;
-    getDataNodes(affectedNodes);
-    for (unsigned i = 0; i < affectedNodes->size(); i++) {
-      (*affectedNodes)[i]->incRefCount();
-    }    
-    newInstReq->setAffectedDataNodes(instrDataNode::decRefCountCallback, 
-				     affectedNodes);
-  }
-  baseTrampInstances = par.baseTrampInstances;
-  _trampsHookedUp = par._trampsHookedUp;
-  instrDeferred_ = par.instrDeferred_;
-  instrLoaded_ = par.instrLoaded_;
-  hasBeenCatchuped_ = par.hasBeenCatchuped_;
-  proc_ = childProc;
-
-  dontInsertData_ = par.dontInsertData_;
-  referenceCount = 0;  // this node when created, starts out unshared
+   if(par.constraintDataNode)
+      constraintDataNode = new instrDataNode(*par.constraintDataNode, 
+                                             childProc);
+   else constraintDataNode = NULL;
+   
+   for(unsigned i=0; i<par.tempCtrDataNodes.size(); i++) {
+      tempCtrDataNodes.push_back(new instrDataNode(*(par.tempCtrDataNodes[i]), 
+                                                   childProc));
+   }
+   for(unsigned j=0; j<par.instRequests.size(); j++) {
+      instReqNode *newInstReq = new instReqNode(*par.instRequests[j], 
+                                                childProc);
+      instRequests.push_back(newInstReq);
+      // update the data assocated with the minitramp deletion callback
+      vector<instrDataNode *> *affectedNodes = new vector<instrDataNode *>;
+      getDataNodes(affectedNodes);
+      for (unsigned i = 0; i < affectedNodes->size(); i++) {
+         (*affectedNodes)[i]->incRefCount();
+      }    
+      newInstReq->setAffectedDataNodes(instrDataNode::decRefCountCallback, 
+                                       affectedNodes);
+   }
+   baseTrampInstances = par.baseTrampInstances;
+   _trampsHookedUp = par._trampsHookedUp;
+   instrDeferred_ = par.instrDeferred_;
+   instrLoaded_ = par.instrLoaded_;
+   proc_ = childProc;
+   
+   dontInsertData_ = par.dontInsertData_;
+   referenceCount = 0;  // this node when created, starts out unshared
 #if defined(MT_THREAD)
-  // remember names of each of its threads (tid + start_func_name)
-  thr_names = par.thr_names;
+   // remember names of each of its threads (tid + start_func_name)
+   thr_names = par.thr_names;
 #endif
 }
 
 instrCodeNode_Val::~instrCodeNode_Val() {
   for (unsigned i=0; i<instRequests.size(); i++) {
-    instRequests[i].disable(proc()); // calls deleteInst()
+    instRequests[i]->disable(proc()); // calls deleteInst()
   }
 
   if(sampledDataNode != NULL) {
@@ -191,10 +192,19 @@ instrCodeNode_Val::~instrCodeNode_Val() {
     //constraintDataNode->disable();
     constraintDataNode = NULL;
   }
-  for (int u=(int)tempCtrDataNodes.size()-1; u>=0; u--) {
-    //tempCtrDataNodes[u]->disable();
-    tempCtrDataNodes.erase(u);
+  
+  vector<instrDataNode*>::iterator itr = tempCtrDataNodes.end();
+  while(itr != tempCtrDataNodes.begin()) {
+     itr--;
+     //tempCtrDataNodes[u]->disable();
+     tempCtrDataNodes.erase(itr);
   }
+
+  for(unsigned j=0; j<instRequests.size(); j++)
+     delete instRequests[j];
+
+  // don't delete startThreadInstRequests since these objects are also
+  // in instRequests and would have been already deleted (above)
 }
 
 
@@ -228,6 +238,14 @@ void instrCodeNode::cleanup_drn() {
   //  for (unsigned u=0; u<V.dataNodes.size(); u++) {
     //    dataNodes[u]->cleanup_drn();
   //}
+}
+
+void instrCodeNode::markAsCatchuped(const pd_thread *thr) {
+   V.thridsCatchuped[thr->get_tid()] = 1;
+}
+
+bool instrCodeNode::hasBeenCatchuped(const pd_thread *thr) {
+   return V.thridsCatchuped.defines(thr->get_tid());
 }
 
 // A debug function for prepareCatchupInstr
@@ -290,13 +308,23 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
 //
 }
 
-void instrCodeNode::prepareCatchupInstr(vector<vector<catchupReq *> > &allStackWalks)
+void instrCodeNode::prepareCatchupInstr(pd_thread *thr,
+                                        vector<catchupReq *> &stackWalk)
 {
-   V.hasBeenCatchuped_ = true;
-   // Okay, we have a list of stack frames (allStackWalks[stackIter]), 
-   // and a list of instPoints (instRequests). We want to get a list of
-   // the instRequests that are on the stack. So, we loop through the 
-   // instrumentation requests (the instPoints), checking to see if:
+   // do catchup on a per thread basis, this is needed because want to skip
+   // catchup on threads already catchuped, this arises when new threads are
+   // created;
+
+   // don't check for whether it's been catchuped here, because this
+   // depends on the thread, do this up a level in procMetFocusNode
+   if(hasBeenCatchuped(thr)) {
+      return;
+   }
+
+   // Okay, we have a stack frame and a list of instPoints (instRequests). We
+   // want to get a list of the instRequests that are on the stack. So, we
+   // loop through the instrumentation requests (the instPoints), checking to
+   // see if:
    //   1) the instPoint would have been triggered (triggeredInStackFrame)
    //   2) the instPoint takes no arguments from the function it is in
    //      (knowledge that we no longer have)
@@ -306,91 +334,99 @@ void instrCodeNode::prepareCatchupInstr(vector<vector<catchupReq *> > &allStackW
    // Note: we repeat this for each stack walk we have (The above for loop)
    
    // Note: the matchup is probably sparse, and so this is extremely
-   // inefficient O(#threads*#instrequests*#of frames on stack), where
-   // realistically it should be O(#threads*#instrequests).
+   // inefficient O(#threads * #instrequests * #of frames on stack), where
+   // realistically it should be O(#threads * #instrequests).
    
    // We loop through the inst requests first, since an inst request might
-   // not be suitable for catchup. If we don't like an inst request, we can skip
-   // it once and for all.
-   
+   // not be suitable for catchup. If we don't like an inst request, we can
+   // skip it once and for all.
    for (unsigned instIter = 0; instIter < V.instRequests.size(); instIter++)
    {
+      instReqNode *curInstReq = V.instRequests[instIter];
       //prepareCatchupInstr_debug(V.instRequests[instIter]);
+
+      // Only do catchup on instReqNodes which haven't already been
+      // catchuped, necessary because instReqNodes can be added to
+      // instrCodeNode when new thread is recognized; 
+
+      // Also, fixes the following case.  Let's say a metric-focus is active
+      // on a function when a new thread is recognized.  We don't need to
+      // insert instr. since it's already been inserted.  We also don't want
+      // to run catchup on instrum. for this function because the app
+      // continues to run when we receive notice that the thread is created.
+      // The instrumentation instrumentation that's already present for this
+      // function will get executed appropriately so no catchup is needed.
+      if(curInstReq->hasBeenCatchuped() == true)
+         continue;
+
       // If the instRequest was not installed, skip...
-      if ( (V.instRequests[instIter].getRInstance() != NULL) &&
-	   !(V.instRequests[instIter].getRInstance()->Installed())) {
-	 if (pd_debug_catchup) {
-	    cerr << "Skipped, not installed" << endl;
-	 }
+      if( (curInstReq->getRInstance() != NULL) &&
+	  !(curInstReq->getRInstance()->Installed())) {
+	 if (pd_debug_catchup)   cerr << "Skipped, not installed\n";
 	 continue; // skip it (case 3 above)
       }
       // If it accesses parameters, skip it...
-      if (V.instRequests[instIter].Ast()->accessesParam()) {
-	 if (pd_debug_catchup) {
-	    cerr << "Skipped, accesses parameters" << endl;
-	 }
+      if(curInstReq->Ast()->accessesParam()) {
+	 if (pd_debug_catchup)   cerr << "Skipped, accesses parameters\n";
 	 continue; // Case 2
       }
+
       // Finally, test if it is active in any stack frame. Note: we can
       // get multiple starts this way, which is good. The counter variable
-      // in the timer takes care of that.
-    
-      for (unsigned stackIter = 0; stackIter < allStackWalks.size(); 
-	   stackIter++)
-      {    
-	 for (unsigned frameIter=0; frameIter < allStackWalks[stackIter].size();
-	      frameIter++)
-	 {
-	    Frame thisFrame = (allStackWalks[stackIter])[frameIter]->frame;
-     
-	    bool triggered = 
-	       V.instRequests[instIter].triggeredInStackFrame(thisFrame,proc());
-	    if (triggered) {
-	       // Push this instRequest onto the list of ones to execute
-	       allStackWalks[stackIter][frameIter]->reqNodes.push_back(
-						 &(V.instRequests[instIter]));
-	    } // If we want catchup
-	 } // loop through instrumentation requests
-      } // loop through a stack walk.
-   } // loop through all stack walks
+      // in the timer takes care of that.    
+      for(unsigned frameIter=0; frameIter < stackWalk.size(); frameIter++)
+      {
+	 Frame thisFrame = stackWalk[frameIter]->frame;
+	 bool triggered = 
+	    curInstReq->triggeredInStackFrame(thisFrame, proc());
+	 if(triggered) {
+	    // Push this instRequest onto the list of ones to execute
+	    stackWalk[frameIter]->reqNodes.push_back(curInstReq);
+	 }
+      }
+      curInstReq->markAsHavingBeenCatchuped();
+   }
+
+   markAsCatchuped(thr);
    // if MTHREAD
    // Not sure what the following did: figure it out and set it up.
    //oldCatchUp(tid);
 }
 
-instr_insert_result_t instrCodeNode::loadInstrIntoApp(pd_Function **func) {
+instr_insert_result_t instrCodeNode::loadInstrIntoApp() {
+   if(instrLoaded()) {
+      return insert_success;
+   }
+
    // Loop thru "instRequests", an array of instReqNode:
    // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
    unsigned int inst_size = V.instRequests.size();
    //cerr << "instrCodeNode id: " << getID() << " attempted insert of " 
    //     << inst_size << " instRequests\n";
-   for (unsigned u1=0; u1<inst_size; u1++) {
+   for(unsigned u1=0; u1<inst_size; u1++) {
       // code executed later (prepareCatchupInstr) may also manually trigger 
       // the instrumentation via inferiorRPC.
       returnInstance *retInst=NULL;
-      instReqNode *instReq = &V.instRequests[u1];
+      instReqNode *instReq = V.instRequests[u1];
+      if(instReq->instrLoaded())  continue;
 
       loadMiniTramp_result res = instReq->loadInstrIntoApp(proc(), retInst);
       
       unmarkAsDeferred();
       switch(res) {
 	case deferred_res:
-	   *func = dynamic_cast<pd_Function *>(const_cast<function_base *>(
-                            instReq->Point()->iPgetFunction()));
 	   markAsDeferred();
-	   //cerr << "marking " << (void*)this << " " << u1+1 << " / "
-	   //     << inst_size << " as deferred\n";
-	   //cerr << "deferred on function " << (*func)->prettyName() << "\n";
+	   // cerr << "marking " << (void*)this << " " << u1+1 << " / "
+	   //      << inst_size << " as deferred\n";
 	   return insert_deferred;
 	   break;
 	case failure_res:
 	   //cerr << "instRequest.insertInstr - wasn't successful\n";
-	   //assert (*func != NULL);
 	   return insert_failure;
 	   break;
 	case success_res:
-	   //cerr << "instrRequest # " << u1+1 << " / " << inst_size
-	   //     << "inserted\n";
+	   // cerr << "instrRequest # " << u1+1 << " / " << inst_size
+	   //      << "inserted\n";
 	   // Interesting... it's possible that this minitramp writes to more
 	   // than one variable (data, constraint, "temp" vector)
 	   {
@@ -431,6 +467,38 @@ void instrCodeNode::prepareForSampling(
 
 }
 
+// returns true if new instReqNodes were added to the code node
+bool instrCodeNode::updateForNewThread(pd_thread *thr) {
+   // duplicates instReqNodes associated with thread start functions ($start in
+   // mdl) for new threads with different start functions
+   assert(proc()->multithread_ready());
+
+   function_base* start_func = thr->get_start_func();
+   if (!start_func) return false;
+   
+   string start_func_str = start_func->prettyName();
+   if(handledThrStartFunc(start_func_str))  return false;
+   markAsHandledThrStartFunc(start_func_str);
+
+   int size_before = V.instRequests.size();
+   for(unsigned i=0; i<V.startThreadInstRequest.size(); i++) {
+      instPoint *entryPt = const_cast<instPoint *>(
+                             start_func->funcEntry(proc()->get_dyn_process()));
+      instReqNode *newThrInstReq = 
+	 new instReqNode(*V.startThreadInstRequest[i]);
+      newThrInstReq->changePoint(entryPt);
+      newThrInstReq->resetInsertedState();
+      V.instRequests.push_back(newThrInstReq);
+   }
+   // cerr << "there are " << V.instRequests.size() - size_before
+   //      << " new instRequests\n";
+   if(V.instRequests.size() > size_before) {
+      resetInsertedState();
+      return true;
+   }
+   else  return false;
+}
+
 void instrCodeNode::prepareForSampling(threadMetFocusNode *thrNode) {
   V.sampledDataNode->prepareForSampling(thrNode->getThreadPos(), 
 					thrNode->getValuePtr());
@@ -452,7 +520,7 @@ bool instrCodeNode::insertJumpsToTramps(vector<vector<Frame> > &stackWalks) {
    if(trampsHookedUp()) return true;
 
    for(unsigned k=0; k<V.instRequests.size(); k++) {
-      V.instRequests[k].hookupJumps(proc());
+      V.instRequests[k]->hookupJumps(proc());
    }
    
    vector<returnInstance *> &baseTrampInstances = V.getBaseTrampInstances();
@@ -465,16 +533,17 @@ bool instrCodeNode::insertJumpsToTramps(vector<vector<Frame> > &stackWalks) {
    // the stack where all can be inserted, and set a break point  
 
    for (unsigned u=0; u<rsize; u++) {
+      returnInstance *curBaseTramp = baseTrampInstances[u];
+
       // checkReturnInstance lives in the inst-<arch>.C files
-      bool installSafe = baseTrampInstances[u]->checkReturnInstance(stackWalks);
+      bool installSafe = curBaseTramp->checkReturnInstance(stackWalks);
 
       if (installSafe) {
-	 baseTrampInstances[u]->installReturnInstance(
-						    proc()->get_dyn_process());
-	 delay_elm[u] = false;
+         curBaseTramp->installReturnInstance(proc()->get_dyn_process());
+         delay_elm[u] = false;
       } else {
-	 delay_install = true;
-	 delay_elm[u] = true;
+         delay_install = true;
+         delay_elm[u] = true;
       }
    }
    markTrampsAsHookedUp();
@@ -485,7 +554,7 @@ timeLength instrCodeNode::cost() const {
   timeLength ret = timeLength::Zero();
   
   for (unsigned i=0; i<V.instRequests.size(); i++) {
-    ret += V.instRequests[i].cost(proc());
+    ret += V.instRequests[i]->cost(proc());
   }
   return ret;
 }
@@ -587,12 +656,19 @@ const instrDataNode *instrCodeNode::getFlagDataNode() const {
 }
 
 void instrCodeNode::addInst(instPoint *point, AstNode *ast,
-			    callWhen when, callOrder o)
+			    callWhen when, callOrder o,
+			    bool refersToStartThreadPoint)
 {
   if (!point) return;
 
-  instReqNode temp(point, ast, when, o);
-  V.instRequests += temp;
+  instReqNode *newInstReqNode = new instReqNode(point, ast, when, o);
+  V.instRequests.push_back(newInstReqNode);
+
+  if(refersToStartThreadPoint && V.getDontInsertData() == false) {
+     V.startThreadInstRequest.push_back(newInstReqNode);
+  }
+
+  resetInsertedState();
 }
 
 
