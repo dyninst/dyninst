@@ -21,6 +21,10 @@
 #
 #
 
+CFLAGS		     += $(TCLFRIENDLYWARNINGS)
+CXXFLAGS	     += $(TCLFRIENDLYWARNINGS)
+TFLAGS		     += $(TCLFRIENDLYWARNINGS)
+
 TARGET	      = paradynd
 
 VPATH	     += ../../paradynd/src:../../paradyn/h
@@ -48,6 +52,7 @@ SRCS	     += ../src/association.C \
 		../src/util.C \
  		../src/mdl.C \
 		../src/templates0.C \
+		../src/templates05.C \
 		../src/templates1.C \
 		../src/templatesIGEN.C
 
@@ -63,6 +68,13 @@ LIBS	     +=	-lpvm3
 
 endif
 
+ifdef USES_SHM_SAMPLING
+SRCS 		+= ../src/fastInferiorHeap.C ../src/fastInferiorHeapHKs.C
+CXXFLAGS	+= -DSHM_SAMPLING
+TFLAGS		+= -DSHM_SAMPLING
+CFLAGS		+= -DSHM_SAMPLING
+endif
+
 IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
 		dyninstRPC.xdr.C
 
@@ -72,12 +84,14 @@ LIBS		+= -lpdutil
 SYSLIBS		+= -liberty
 
 IFLAGS       += -I../$(PLATFORM) -I../src
-# CXXFLAGS     += $(USEFULWARNINGS) 
 
 all:    $(TARGET)
 
 templates0.o: ../src/templates0.C
 	$(CXX) $(TFLAGS) -c ../src/templates0.C
+
+templates05.o: ../src/templates05.C
+	$(CXX) $(TFLAGS) -c ../src/templates05.C
 
 templates1.o: ../src/templates1.C
 	$(CXX) $(TFLAGS) -c ../src/templates1.C
