@@ -3,6 +3,9 @@
 
 /*
  * $Log: main.C,v $
+ * Revision 1.4  1995/11/18 08:34:45  tamches
+ * initial # of sig figs is now 3
+ *
  * Revision 1.3  1995/11/08 21:53:57  tamches
  * changed focus color from tomato to maroon3
  * cleaner initialization since dg2.C now strictly handles just the "Dg" tcl cmd
@@ -125,7 +128,7 @@ int main(int argc, char **argv) {
 				"maroon3", // focus color
 				"black", // cell color
 				"gray", // background color
-				2 // initial # sig figs
+				3 // initial # sig figs
 				);
    assert(theTableVisi);
 
