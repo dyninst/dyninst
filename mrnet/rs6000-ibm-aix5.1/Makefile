@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile,v 1.2 2004/03/03 15:11:40 pcroth Exp $
+# $Id: Makefile,v 1.3 2004/03/15 18:45:07 pcroth Exp $
 #
 
 USES_FLEX   = true
@@ -68,6 +68,6 @@ configure-build:
 	fi
 
 clean:  configure-build
-	cd ./build; ${MAKE} $@
+	cd ./build; ${MAKE} distclean
 
 
