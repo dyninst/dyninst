@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.84 2003/04/08 20:53:04 darnold Exp $
+// $Id: rpcUtil.C,v 1.85 2003/04/14 16:33:46 pcroth Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -927,6 +927,7 @@ PDSOCKET RPCprocessCreate(const string hostName, const string userName,
 
     if ((hostName == "") ||
 	(hostName == "localhost") ||
+    (hostName == getNetworkName()) ||
 	(getNetworkName(hostName) == getNetworkName()) ||
 	(getNetworkAddr(hostName) == getNetworkAddr()) )
       ret = execCmd(command, arg_list);
