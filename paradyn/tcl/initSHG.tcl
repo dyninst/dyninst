@@ -3,7 +3,10 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.12  1995/06/11 22:57:41  karavan
+# Revision 1.13  1995/07/01 22:49:12  rbi
+# Updated "toplevel" command for tk 4.0
+#
+# Revision 1.12  1995/06/11  22:57:41  karavan
 # nodeID type changed to unsigned from integer.
 #
 # Revision 1.11  1994/11/07  05:41:50  karavan
@@ -129,7 +132,7 @@ proc initSHG {SHGname dagID} {
     set clrSHGAUTOBUTTbg "#fb63e620d36b"
     set clrSHGPAUSEBUTTbg "#fb63e620d36b"
 
-    toplevel $SHGname -class "Paradyn.Shg" -geometry 600x400 
+    toplevel $SHGname -class "Paradyn.Shg" 
     option add *Shg*background #fb63e620d36b
     wm minsize $SHGname 650 500
     frame $SHGname.dag -class Dag 
