@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.71 2005/02/17 02:19:53 rutar Exp $
+ * $Id: inst-ia64.C,v 1.72 2005/02/24 20:06:13 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -3228,6 +3228,7 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 	// /* DEBUG */ fprintf( stderr, "* Installed base tramp at 0x%lx, from 0x%lx (local 0x%lx)\n", baseTramp->baseAddr, installationPoint, (Address)instructions );
 	// /* DEBUG */ fprintf( stderr, "Installed base tramp of size 0x%x (of 0x%x) at 0x%lx.\n", baseTramp->size, MAX_BASE_TRAMP_SIZE, allocatedAddress );
 	assert( baseTramp->size < MAX_BASE_TRAMP_SIZE );
+	proc->addCodeRange( allocatedAddress, baseTramp );
 	return baseTramp;
 	} /* end installBaseTramp() */
 
@@ -3327,6 +3328,11 @@ Address installMultiTramp(instPoint * & location, process *proc)
 	
 	insertAndRegisterDynamicUnwindInformation( multiTrampDynamicInfo, proc );
 
+	/* It's apparently normal to duplicate the value of ->get_addr() in the call to addCodeRange(). */
+	multitrampTemplate * mttemplate = new multitrampTemplate( allocatedAddress, 10 * 0x10, location );
+	assert( mttemplate != NULL );
+	proc->addCodeRange( allocatedAddress, mttemplate );
+	
 	return allocatedAddress;
 }
 
@@ -3956,44 +3962,40 @@ int BPatch_point::getDisplacedInstructionsInt( int maxSize, void * insns ) {
 	return sizeof( ia64_bundle_t );
 	} /* end getDisplacedInstructions() */
 
-//XXX loop port
-BPatch_point *
-createInstructionEdgeInstPoint(process* proc, 
-			       int_function *func, 
-			       BPatch_edge *edge)
-{
+/* For edge (loop) instrumentation. */
+BPatch_point * createInstructionEdgeInstPoint( process* proc, int_function *func, BPatch_edge *edge ) {
+	assert( 0 );
     return NULL;
-}
+	} /* end createInstructionEdgeInstPoint() */
 
-//XXX loop port
-void 
-createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
-{
+/* For edge (loop) instrumentation. */
+void createEdgeTramp( process * proc, image * img, BPatch_edge * edge ) {
+	assert( 0 );
+	} /* end createEdgeTramp() */
 
-}
+/* For AIX "on the fly" register allocation. */
+bool registerSpace::clobberRegister( Register reg ) {
+	return false;
+	} /* end clobberRegister() */
 
+/* For AIX "on the fly" register allocation; currently all calls
+   are comment out. (2005-02-23) */
+unsigned saveGPRegister( char *baseInsn, Address & base, Register reg ) {
+	assert( 0 );
+	return 0;
+	} /* end saveGPRegister() */
 
-bool registerSpace::clobberRegister(Register reg) 
-{
-  return false;
-}
+/* For AIX "on the fly" register allocation; currently not called
+   from anywhere.  (2005-020-23) */
+bool registerSpace::clobberFPRegister( Register reg ) {
+	assert( 0 );
+	return false;
+	} /* end clobberFPRegister() */
 
-unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
-{
-}
-
-
-bool registerSpace::clobberFPRegister(Register reg)
-{
-  return false;
-}
-
-unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
-					 registerSpace * rs)
-{
-  return 0;
-}
-
+/* For AIX "on the fly" register allocation. */
+unsigned saveRestoreRegistersInBaseTramp( process * proc, trampTemplate * bt, registerSpace * rs ) {
+	return 0;
+	} /* end saveRestoreRegistersInBaseTramp() */
 
 #if ! defined( BPATCH_LIBRARY )
 
