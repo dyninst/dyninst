@@ -17,10 +17,13 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.13  1995/12/18 17:22:02  naim
-/* Adding function showErrorVisiCallback to display error messages from
-/* visis - naim
+/* Revision 1.14  1995/12/20 18:35:02  newhall
+/* including matherr.h so that it does not need to be included by visis
 /*
+ * Revision 1.13  1995/12/18 17:22:02  naim
+ * Adding function showErrorVisiCallback to display error messages from
+ * visis - naim
+ *
  * Revision 1.12  1995/12/15  20:15:12  naim
  * Adding call back function to display error messages from visis - naim
  *
@@ -67,6 +70,7 @@
 
 #include "datagrid.h"
 #include "visiTypes.h"
+#include "util/h/matherr.h"
 
 #define FILETABLESIZE  64
 #define EVENTSIZE      FOLD+1
