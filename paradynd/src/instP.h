@@ -7,6 +7,9 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.11  1996/04/26 19:49:21  lzheng
+ * remove a #ifdef for hpux
+ *
  * Revision 1.10  1996/04/08 21:24:08  lzheng
  * added generateToBranch, an HP-specific routine
  *
@@ -120,9 +123,6 @@ void generateNoOp(process *proc, int addr);
 
 void initTramps();
 void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);
-#if defined(hppa1_1_hp_hpux)
-void generateToBranch(process *proc, unsigned fromAddr, unsigned dest);
-#endif
 void removeTramp(process *proc, instPoint *location);
 
 int flushPtrace();
