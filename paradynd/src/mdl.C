@@ -576,7 +576,7 @@ apply_to_process(process *proc,
 	dataReqNode *flag = NULL;
 	// The following calls mdl_constraint::apply():
 	if (!flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc, computingCost)) {
-          mn->cleanup_drn();
+          if (!computingCost) mn->cleanup_drn();
           delete mn;
 	  return NULL;
 	}
@@ -589,7 +589,7 @@ apply_to_process(process *proc,
     if (base_use) {
       dataReqNode *flag = NULL;
       if (!base_use->apply(mn, flag, focus[base_dex], proc, computingCost)) {
-	mn->cleanup_drn();  
+	if (!computingCost) mn->cleanup_drn();  
         delete mn;
 	return NULL;
       }
@@ -597,7 +597,7 @@ apply_to_process(process *proc,
       unsigned size = stmts->size();
       for (unsigned u=0; u<size; u++) {
 	if (!(*stmts)[u]->apply(mn, flags)) { // virtual fn call depending on stmt type
-	  mn->cleanup_drn();  
+	  if (!computingCost) mn->cleanup_drn();  
 	  delete mn;
 	  return NULL;
 	}
@@ -605,7 +605,7 @@ apply_to_process(process *proc,
     }
 
     if (!mn->nonNull()) {
-      mn->cleanup_drn();
+      if (!computingCost) mn->cleanup_drn();
       delete mn;
       return NULL;
     }
