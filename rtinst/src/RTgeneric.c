@@ -89,6 +89,9 @@ DYNINSTos_init(void) {
 /* 
  * The compilng warning could be eliminated if we use cc instead
  * of gcc. Change it if you think that's good. --ling
+ *
+ * The cpu time I got in this way is not good. Absolutely 
+ * needs improvement 
  */
 
 time64
@@ -96,18 +99,18 @@ DYNINSTgetCPUtime(void) {
     time64 now;
     static time64 previous=0;
     struct pst_status pst;
-    int target = (int)getppid();
+    int target = (int)getpid();
 
   try_again:
     if (pstat_getproc(&pst, sizeof(pst), (size_t)0, target) != -1) {
-      now = (time64)pst.pst_utime + (time64)pst.pst_stime;
-      now *= (time64)1000000;
+      now = (time64)pst.pst_cptickstotal + (time64)pst.pst_cpticks;
+      now *= (time64)10000;
       if (now<previous) {
         goto try_again;
-    }
+      }
       previous=now;
       return(now);
-  }
+    }
     else {
       perror("pstat_getproc");
       abort();
