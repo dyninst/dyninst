@@ -1087,7 +1087,6 @@ DYNINSTfork(int pid) {
 	/* get the socket port number for traces from the environment */
         char *traceEnv = getenv("PARADYND_TRACE_SOCKET");
 	int tracePort;
-	int ioPort;
 	assert(traceEnv);
 	tracePort = atoi(traceEnv);
 	assert(tracePort);
@@ -1251,17 +1250,6 @@ void
 DYNINSTrecordTag(int tag) {
     int i;
 
-    int bytes;
-    int msgtag;
-    int tid;
-/*
-    int bufid = pvm_getrbuf();
-    if (pvm_bufinfo(bufid, &bytes, &msgtag, &tid) < 0) {
-      printf("DYNINSTrecordTag: pvm_bufinfo failed.\n");
-      return;
-    }
-    tag = msgtag;
-*/
     if (DYNINSTtagCount >= DYNINSTtagLimit) return;
 
     for (i=0; i < DYNINSTtagCount; i++) {
