@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.324 2002/05/13 19:52:35 mjbrim Exp $
+// $Id: process.C,v 1.325 2002/05/14 19:00:32 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -82,7 +82,7 @@ int pvmendtask();
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "paradynd/src/perfStream.h"
-#include "paradynd/src/machineMetFocusNode.h"
+#include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/main.h"
@@ -6540,14 +6540,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
          // aggregate mi having the parent as a component, except for
          // aggregate mi's whose focus is specifically refined to the
          // parent).
- 	 vector<machineMetFocusNode *> allMachNodes;
-	 machineMetFocusNode::getMachineNodes(&allMachNodes);
-
-         for (unsigned j=0; j < allMachNodes.size(); j++) {
-            allMachNodes[j]->propagateToNewProcess(this);
-            // change to a process:: method which takes in the
-            // metricFocusNode
-         }
+	metricFocusNode::handleNewProcess(this);
       }
       else {
          // exec propagates in its own, special way that differs from a new
