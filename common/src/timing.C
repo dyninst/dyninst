@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.22 2004/03/23 01:11:54 eli Exp $
+// $Id: timing.C,v 1.23 2005/02/24 10:14:47 rchen Exp $
 
 #include "common/h/Timer.h"
 #include "common/h/timing.h"
@@ -48,16 +48,21 @@
 
 #if defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
-#elif defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 1 aug 2000 : 29 mar 2001
+
+#elif defined(i386_unknown_nt4_0) \
+   || defined(mips_unknown_ce2_11) //ccw 1 aug 2000 : 29 mar 2001
 #define NOPS_4 { __asm nop __asm nop __asm nop __asm nop }
+
 #elif defined(mips_sgi_irix6_4)
 #  ifndef USES_NATIVE_CC
 #define NOPS_4  __asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop")
 #  else
 #define NOPS_4  ; ; ; 
 #  endif
+
 #elif defined(ia64_unknown_linux2_4)
 #define NOPS_4  asm("nop 0x0"); asm("nop 0x0"); asm("nop 0x0"); asm("nop 0x0");
+
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
 #endif
@@ -137,6 +142,7 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
 #if defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_nt4_0) \
  || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
   // the speed of the pentium is being overestimated by a factor of 2
   max_speed /= 2;
@@ -159,7 +165,8 @@ timeStamp getCurrentTime() {
   return timeStamp(getRawTime1970(), timeUnit::us(), timeBase::b1970());
 }
 
-#if !(defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11)) //ccw 6 apr 2001
+#if !defined(i386_unknown_nt4_0) \
+ && !defined(mips_unknown_ce2_11) //ccw 6 apr 2001
 
 // returns us since 1970
 int64_t getRawTime1970() {

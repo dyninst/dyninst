@@ -39,16 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.h,v 1.6 2004/03/23 19:10:51 eli Exp $ */
+/* $Id: addLibraryLinux.h,v 1.7 2005/02/24 10:15:10 rchen Exp $ */
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 #include <unistd.h>
-#include  <fcntl.h>
-#include  <stdio.h>
-#include  <libelf.h>
-#include  <stdlib.h>
-#include  <string.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <libelf.h>
+#include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 
 

@@ -62,7 +62,10 @@
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/instPoint.h"
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) // Blind duplication - Ray
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/LocalAlteration-x86.h"
@@ -92,7 +95,11 @@ class process;
 class int_function;
 
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication. - TLM */
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4) /* Temporary duplication. - TLM */
 
 // Check for ExpandInstruction alterations that have already been found.
 // Sparc does not use ExpandInstruction alterations
@@ -164,11 +171,4 @@ class relocatedFuncInfo : public codeRange {
    int_function *func_;         // "Parent" function pointer
 };
 
-
-
 #endif
-
-
-
-
-

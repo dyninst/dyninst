@@ -65,7 +65,7 @@ edge_type_string(BPatch_edgeType t)
 }
 
 
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
 BPatch_edgeType 
 BPatch_edge::getType()
 {

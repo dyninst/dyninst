@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.26 2005/02/22 20:03:23 mirg Exp $
+ * $Id: RTlinux.c,v 1.27 2005/02/24 10:14:59 rchen Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -176,6 +176,14 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
 
 #ifndef ia64_unknown_linux2_4
 
+#ifndef IP_REG
+#if defined(__x86_64__) && __WORDSIZE == 64
+#define IP_REG rip	// 64-bit x86 ip
+#else
+#define IP_REG eip
+#endif
+#endif
+
 trampTableEntry DYNINSTtrampTable[TRAMPTABLESZ];
 unsigned DYNINSTtotalTraps = 0;
 
@@ -195,7 +203,7 @@ static unsigned lookup(unsigned key) {
 }
 
 void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
-    unsigned pc = uap.eip;
+    unsigned pc = uap.IP_REG;
     unsigned nextpc;
 
     /* If we're in the process of running an inferior RPC, we'll
@@ -255,7 +263,7 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
     if (nextpc) {
       RTprintf("DYNINST trap [%d] 0x%08X -> 0x%08X\n",
                DYNINSTtotalTraps, pc, nextpc);
-      uap.eip = nextpc;
+      uap.IP_REG = nextpc;
     } else {
       if ((DYNINSTactTrapApp.sa_flags&SA_SIGINFO)) {
         if (DYNINSTactTrapApp.sa_sigaction != NULL) {
@@ -380,7 +388,7 @@ int DYNINSTloadLibrary(char *libname)
 
 void DYNINSTlock_spinlock(dyninst_spinlock *mut)
 {
-#if defined (arch_x86)
+#if defined (arch_x86) || (defined(arch_x86_64) && __WORDSIZE == 32)
   /*  same assembly as for x86 windows, just different format for asm stmt */
   /*  so if you change one, make the same changes in the other, please */
 
@@ -392,6 +400,21 @@ void DYNINSTlock_spinlock(dyninst_spinlock *mut)
          "  lock  \n"
          "  cmpxchgl    %edx, (%ecx)   # try to atomically store edx (1 = locked) \n"
          "                             # only if we are unlocked (ecx == eax) \n"
+         "  jnz         .Loop          # if failure, zero flag set, spin again. \n"
+     );
+
+#elif defined(arch_x86_64) && __WORDSIZE == 64
+  /*  same assembly as for x86 windows, just different format for asm stmt */
+  /*  so if you change one, make the same changes in the other, please */
+
+ asm (
+         "  .Loop: \n"
+         "  movq        8(%rbp), %rcx  # &mut in rcx \n"
+         "  movq        $0, %rax       # 0 (unlocked) in rax\n"
+         "  movq        $1, %rdx       # 1 (locked) in rdx \n"
+         "  lock  \n"
+         "  cmpxchgq    %rdx, (%rcx)   # try to atomically store rdx (1 = locked) \n"
+         "                             # only if we are unlocked (rcx == rax) \n"
          "  jnz         .Loop          # if failure, zero flag set, spin again. \n"
      );
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.133 2005/01/21 23:44:55 bernat Exp $
+// $Id: unix.C,v 1.134 2005/02/24 10:17:22 rchen Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -585,13 +585,15 @@ int handleSigTrap(const procevent &event) {
     // On Linux we see a trap when the process execs. However,
     // there is no way to distinguish this trap from any other,
     // and so it is special-cased here.
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4)
     if (proc->nextTrapIsExec) {
         return handleExecExit(event);
     }
 #endif
 
-#if defined(rs6000_ibm_aix4_1)  && !defined(AIX_PROC)
+#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
     // On AIX 4.3 we get a spurrious SIGTRAP from the child process
     // after a fork().  The SIGTRAP originates in __fork().
     // As a last resort on AIX, we check to see if this is the

@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.34 2004/03/23 19:11:26 eli Exp $ */
+/* $Id: test2.mutatee.c,v 1.35 2005/02/24 10:17:48 rchen Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -58,10 +58,14 @@
 #include <unistd.h>
 #endif
 
-#if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) || \
-    defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(mips_sgi_irix6_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(ia64_unknown_linux2_4)
 #include <dlfcn.h>
 #endif
 
@@ -191,10 +195,14 @@ void stop_process()
 
 void func6_1()
 {
-#if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) || \
-    defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(mips_sgi_irix6_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(ia64_unknown_linux2_4)
 
     void *ref;
     /* now use the dlopen interface to force an object to load. */

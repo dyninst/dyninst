@@ -231,9 +231,19 @@ inline int P_recv(int s, void *buf, size_t len, int flags) {
 }
 
 /* Ugly */
-
-inline long int P_ptrace(int req, pid_t pid, Address addr, Address data) {
-  return (ptrace((enum __ptrace_request)req, pid, addr, data));}
+#if 1
+inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int word_len = -1) {
+    if (word_len != -1 && word_len != sizeof(Address)) {
+	return (ptrace((enum __ptrace_request)req, pid, (uint32_t)addr, (uint32_t)data));
+    } else {
+	return (ptrace((enum __ptrace_request)req, pid, addr, data));
+    }
+}
+// long int P_ptrace(int req, pid_t pid, Address addr, Address data, int word_len);
+#else
+inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int word_len = -1) {
+	return (ptrace((enum __ptrace_request)req, pid, addr, data));}
+#endif
 
 inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {

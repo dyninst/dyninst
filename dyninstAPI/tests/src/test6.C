@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.C,v 1.27 2005/02/09 03:27:49 jaw Exp $
+// $Id: test6.C,v 1.28 2005/02/24 10:17:59 rchen Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -240,7 +240,7 @@ void instEffAddr(BPatch_thread* bpthr, const char* fname,
 
   BPatch_callWhen whenToCall = BPatch_callBefore;
   for(unsigned int i=0;i<(*res).size();i++){
-#if defined(rs6000_ibm_aix4_1)  && defined(AIX5) 
+#if defined(rs6000_ibm_aix4_1) && defined(AIX5) 
   	const BPatch_memoryAccess* memAccess;
 
 	memAccess = (*res)[i]->getMemoryAccess() ;
@@ -255,7 +255,9 @@ void instEffAddr(BPatch_thread* bpthr, const char* fname,
 	  }
   }
 
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0)
   BPatch_effectiveAddressExpr eae2(1);
   BPatch_Vector<BPatch_snippet*> listArgs2;
   listArgs2.push_back(&eae2);
@@ -315,7 +317,9 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
 	  }
   }
 
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0)
   BPatch_bytesAccessedExpr bae2(1);
   BPatch_Vector<BPatch_snippet*> listArgs2;
   listArgs2.push_back(&bae2);
@@ -550,7 +554,9 @@ void init_test_data()
 }
 #endif
 
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0)
 const unsigned int nloads = 65;
 const unsigned int nstores = 23;
 const unsigned int nprefes = 2;
@@ -866,7 +872,12 @@ void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 1, 
                   const char* testdesc = "load instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> loads;
@@ -908,7 +919,12 @@ void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 2,
                   const char* testdesc = "store instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> stores;
@@ -949,7 +965,12 @@ void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 3, 
                   const char* testdesc = "prefetch instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> prefes;
@@ -992,7 +1013,12 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 4,
                   const char* testdesc = "access instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1025,7 +1051,9 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
              "Number of accesses seems wrong in function \"loadsnstores\".\n");
 
   instCall(bpthr, "Access", res1);
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0)
   const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res1, 2);
   instCall(bpthr, "Access", res2);
 #endif
@@ -1039,7 +1067,12 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 5,
                   const char* testdesc = "instrumentation w/effective address snippet")
 {
-#if !defined(sparc_sun_solaris2_4) &&  ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ &&(!defined(rs6000_ibm_aix4_1) || defined(AIX5)) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1077,7 +1110,12 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 6,
                   const char* testdesc ="instrumentation w/byte count snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1115,7 +1153,12 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
                   const char* testdesc = "conditional instrumentation w/effective address snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ &&(!defined(rs6000_ibm_aix4_1) || defined(AIX5)) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1151,7 +1194,12 @@ void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
 void mutatorTest8(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 8,
                   const char* testdesc = "conditional instrumentation w/byte count snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1238,7 +1286,8 @@ void mutatorMAIN(char *pathname)
 
   BPatch_image *bpimg = bpthr->getImage();
 
-#if defined( i386_unknown_linux2_0 )
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
   get_vars_addrs(bpimg);
 #endif
   init_test_data();
@@ -1357,7 +1406,11 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined( ia64_uknown_linux2_4 )
+#if defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4) \
+ || defined(ia64_uknown_linux2_4)
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif

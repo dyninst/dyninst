@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.20 2005/02/09 03:27:49 jaw Exp $
+ * $Id: dyninstAPI_RT.h,v 1.21 2005/02/24 10:14:53 rchen Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -64,7 +64,9 @@
 #include <stdio.h>
 #include "common/h/Types.h"
 
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4)
 #include "dyninstAPI/src/linux-signals.h"  // jaw 06-02 -- source definition of SIG_REATTACH
 #endif
 
@@ -84,8 +86,12 @@ struct DYNINST_bootstrapStruct {
    int ppid; /* parent of forked process */
 };
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) /*ccw 26 july 2000 : 29 mar 2001*/ || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0) \
+ || defined(mips_unknown_ce2_11) /*ccw 26 july 2000 : 29 mar 2001*/ \
+ || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 /*
    The tramp table is used when we need to insert traps in instrumentation
    points. It is used by the trap handler to lookup the base tramp for

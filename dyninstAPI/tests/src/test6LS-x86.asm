@@ -1,4 +1,4 @@
-; $Id: test6LS-x86.asm,v 1.5 2005/02/09 03:27:49 jaw Exp $
+; $Id: test6LS-x86.asm,v 1.6 2005/02/24 10:18:02 rchen Exp $
 ;
 ; This file must be assembled with nasm  - http://freshmeat.net/projects/nasm/
 
@@ -19,6 +19,25 @@
     mov eax,4      ; sys_write
     int 0x80       ; call linux kernel
 %endmacro
+
+%elifidn PLATFORM,x86_64-unknown-linux2.4
+; assuming linux==elf
+%macro global_function 1
+; nasm elf extension for type/size symbol info... there MUST be a blank after "
+    global %1:function (%1.end - %1)
+%endmacro
+%macro global_data 2
+    global %1:data (%2)
+%endmacro
+%macro saymsg 1
+; write our message to stdout
+    mov edx,len_%1
+    mov ecx,msg_%1
+    mov ebx,1      ;  stdout
+    mov eax,4      ;  sys_write
+    int 0x80       ;  call linux kernel
+%endmacro
+
 ; assuming nt==win32
 %elifidn PLATFORM,i386-unknown-nt4.0 
 

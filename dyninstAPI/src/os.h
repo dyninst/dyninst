@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.27 2005/01/18 18:34:13 bernat Exp $
+// $Id: os.h,v 1.28 2005/02/24 10:16:45 rchen Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -53,23 +53,32 @@
 
 #if defined(sparc_sun_sunos4_1_3)
 #include "dyninstAPI/src/sunos.h"
-#elif defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+
+#elif defined(sparc_sun_solaris2_4) \
+   || defined(i386_unknown_solaris2_5)
 #include "dyninstAPI/src/solaris.h"
-#elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+
+#elif defined(rs6000_ibm_aix3_2) \
+   || defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/aix.h"
+
 #elif defined(alpha_dec_osf4_0)
 #include "dyninstAPI/src/alpha.h"
+
 #elif defined(hppa1_1_hp_hpux)
 #include "dyninstAPI/src/hpux.h"
-#elif defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+
+#elif defined(i386_unknown_nt4_0) \
+   || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #include "dyninstAPI/src/pdwinnt.h"
-#elif defined(i386_unknown_linux2_0)
+
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) \
+   || defined(ia64_unknown_linux2_4)
 #include "dyninstAPI/src/linux.h"
-#elif defined(ia64_unknown_linux2_4)
-#include "dyninstAPI/src/linux.h"
+
 #elif defined(mips_sgi_irix6_4)
 #include "dyninstAPI/src/irix.h"
-
 #endif
 
 #include "common/h/String.h"

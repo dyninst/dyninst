@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.7 2005/02/17 21:10:48 bernat Exp $
+// $Id: function.C,v 1.8 2005/02/24 10:15:47 rchen Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
@@ -493,8 +493,6 @@ void int_function::cleanProcessSpecific(process *p) {
     }
   }      
 }
-
-
 
 void print_func_vector_by_pretty_name(pdstring prefix,
 				      pdvector<int_function *>*funcs) {

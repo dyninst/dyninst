@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.h,v 1.6 2004/03/23 01:12:16 eli Exp $ */
+/* $Id: RTheap.h,v 1.7 2005/02/24 10:14:57 rchen Exp $ */
 
 #ifndef _RT_HEAP_H
 #define _RT_HEAP_H
@@ -55,7 +55,9 @@
 #include <sys/procfs.h>
 typedef prmap_t dyninstmm_t;
 
-#elif defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+   || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 
 /* LINUX */
 typedef struct {

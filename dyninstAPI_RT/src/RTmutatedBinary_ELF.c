@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.9 2004/03/23 19:11:45 eli Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.10 2005/02/24 10:15:04 rchen Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -62,7 +62,8 @@
 
 
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 #define __USE_GNU
 #endif
 
@@ -78,17 +79,38 @@
 
 #if defined(sparc_sun_solaris2_4)
 extern void* _DYNAMIC;
-#elif defined(i386_unknown_linux2_0)
+
+#if defined(__arch64__)
+#define __ELF_NATIVE_CLASS 64
+#else
+#define __ELF_NATIVE_CLASS 32
+#endif
+
+/* Borrowed from Linux's link.h:  Allows us to use data types
+   from libelf regardless of word size. */
+#define ElfW(type)      _ElfW (Elf, __ELF_NATIVE_CLASS, type)
+#define _ElfW(e,w,t)    _ElfW_1 (e, w, _##t)
+#define _ElfW_1(e,w,t)  e##w##t
+
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 extern ElfW(Dyn) _DYNAMIC[];
 
 #endif
+
+/* Borrowed from Linux's link.h: Allows us to use functions from
+   libelf regardless of word size. */
+#define ELF_FUNC(type)      _ELF_FUNC (elf, __ELF_NATIVE_CLASS, type)
+#define _ELF_FUNC(e,w,t)    _ELF_FUNC_1 (e, w, _##t)
+#define _ELF_FUNC_1(e,w,t)  e##w##t
+
 typedef struct {
-      Elf32_Sword d_tag;
+      ElfW(Sword) d_tag;
       union {
-          Elf32_Sword d_val;
-          Elf32_Addr d_ptr;
+          ElfW(Sword) d_val;
+          ElfW(Addr) d_ptr;
       } d_un;
-  } __Elf32_Dyn;
+  } __Elf_Dyn;
 
 unsigned int checkAddr;
 /*extern int isMutatedExec;
@@ -332,7 +354,8 @@ void findMap(){ /* ccw 12 mar 2004*/
 }
 #endif
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 unsigned int loadAddr;
 void dyninst_dl_debug_state(){
 	asm("nop");
@@ -365,7 +388,7 @@ void dyninst_dl_debug_state(){
 
 }
 
-void hack_ld_linux_plt(unsigned int pltEntryAddr){ 
+void hack_ld_linux_plt(unsigned long pltEntryAddr){ 
 /* this is ugly.
  * save the world needs to check each shared library
  * that is loaded to ensure that it is loaded at the
@@ -383,8 +406,8 @@ void hack_ld_linux_plt(unsigned int pltEntryAddr){
  *
  * dont try this at home
  */
-	unsigned int mprotectAddr = pltEntryAddr - (pltEntryAddr % getpagesize());	
-	unsigned int newTarget = (unsigned int) &dyninst_dl_debug_state ;
+	unsigned long mprotectAddr = pltEntryAddr - (pltEntryAddr % getpagesize());	
+	unsigned long newTarget = (unsigned long) &dyninst_dl_debug_state ;
 	
 	mprotect( (void*) mprotectAddr, pltEntryAddr - mprotectAddr + 4, 
 				PROT_READ|PROT_WRITE|PROT_EXEC);
@@ -397,8 +420,8 @@ void hack_ld_linux_plt(unsigned int pltEntryAddr){
 
 
 int checkSO(char* soName){
-	Elf32_Shdr *shdr;
-        Elf32_Ehdr *   ehdr;
+	ElfW(Shdr) *shdr;
+        ElfW(Ehdr) *   ehdr;
         Elf *          elf;
         int       fd;
         Elf_Data *strData;
@@ -418,11 +441,11 @@ int checkSO(char* soName){
                 return;
         }
 
-        ehdr = elf32_getehdr(elf);
+        ehdr = ELF_FUNC( getehdr(elf) );
         scn = elf_getscn(elf, ehdr->e_shstrndx);
         strData = elf_getdata(scn,NULL);
    	for( scn = NULL; !result && (scn = elf_nextscn(elf, scn)); ){
-                shdr = elf32_getshdr(scn);
+                shdr = ELF_FUNC( getshdr(scn) );
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".dyninst_mutated")) {
 			result = 1;
 		}
@@ -436,8 +459,8 @@ int checkSO(char* soName){
 int checkMutatedFile(){
 
 
-	Elf32_Shdr *shdr;
-        Elf32_Ehdr *   ehdr;
+	ElfW(Shdr) *shdr;
+        ElfW(Ehdr) *   ehdr;
         Elf *          elf;
         int       cnt,fd;
         Elf_Data *elfData,*strData;
@@ -460,7 +483,8 @@ int checkMutatedFile(){
 
 #if defined(sparc_sun_solaris2_4)
         sprintf(execStr,"/proc/%d/object/a.out",getpid());
-#elif defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 	sprintf(execStr,"/proc/%d/exe",getpid());
 #endif
 
@@ -477,13 +501,13 @@ int checkMutatedFile(){
                 return;
         }
 
-        ehdr = elf32_getehdr(elf);
+        ehdr = ELF_FUNC( getehdr(elf) );
         scn = elf_getscn(elf, ehdr->e_shstrndx);
         strData = elf_getdata(scn,NULL);
 	pageSize =  getpagesize();
 
    	for(cnt = 0, scn = NULL; !soError &&  (scn = elf_nextscn(elf, scn));cnt++){
-                shdr = elf32_getshdr(scn);
+                shdr = ELF_FUNC( getshdr(scn) );
 		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
 			elfData = elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
@@ -517,7 +541,7 @@ int checkMutatedFile(){
 				/* solaris does not make _r_debug available by
 				default, we have to find it in the _DYNAMIC table */
 
-				__Elf32_Dyn *_dyn = (__Elf32_Dyn*)& _DYNAMIC;	
+				__Elf_Dyn *_dyn = (__Elf_Dyn*)& _DYNAMIC;	
 				while(_dyn && _dyn->d_tag != 0 && _dyn->d_tag != 21){
 					_dyn ++;
 				}
@@ -557,10 +581,11 @@ int checkMutatedFile(){
 			char *soNames;
 			int mutatedFlag = 0;
 			int totallen=0;
-			__Elf32_Dyn *_dyn = (__Elf32_Dyn*)& _DYNAMIC;	
+			__Elf_Dyn *_dyn = (__Elf_Dyn*)& _DYNAMIC;	
 #if defined(sparc_sun_solaris2_4)
 			Link_map *lmap=0;
-#elif defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 			struct link_map *lmap=0;
 #endif
 			char *loadedname, *dyninstname;
@@ -570,7 +595,7 @@ int checkMutatedFile(){
 			sharedLibraryInfo = (char*) malloc(elfData->d_size);
 			memcpy(sharedLibraryInfo, elfData->d_buf, elfData->d_size);
 			lmap = _r_debug.r_map;
-		
+
 			for(soNames = (char*) elfData->d_buf ; totallen<elfData->d_size; 
 				soNames = &((char*) elfData->d_buf)[strlen(soNames)+1+sizeof(unsigned int) +sizeof(unsigned int)]){
 				/* added a +sizeof(unsigned int) above for flag */
@@ -602,8 +627,8 @@ int checkMutatedFile(){
 			}
 		}
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_SharedLibraries")){
-			unsigned int diffAddr;
-			unsigned int ld_linuxBaseAddr, baseAddr, size;
+			unsigned long diffAddr;
+			unsigned long ld_linuxBaseAddr, baseAddr, size;
 #if defined(sparc_sun_solaris2_4)
 			unsigned int *overWriteInsn;
 			unsigned int *pltEntry, *PLTEntry, *dyninst_jump_templatePtr, pltInsn;
@@ -628,7 +653,8 @@ int checkMutatedFile(){
 					if(diffAddr){
 						fixInstrumentation(map->l_name, map->l_addr, diffAddr);
 					}
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 					if(strstr(map->l_name, "ld-linux.so")){
 						ld_linuxBaseAddr =map->l_addr;
 					}	
@@ -654,7 +680,7 @@ int checkMutatedFile(){
 				*/
 
 			/* WHY IS THERE A POUND DEFINE HERE? 
-				
+
 				well, we need to intercept the dlopen calls from the mutated binary
 				because our trampolines expect the shared libraries to be in
 				a particular location and if they are not where they are expected
@@ -754,7 +780,8 @@ int checkMutatedFile(){
 			*pltEntry = 0x81c06000;
 			*pltEntry |=  ( ((unsigned int ) &__dyninst_jump_template__ ) & 0x00003ff );
 
-#elif defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 			/* install jump to catch call to _dl_debug_state */
 			/* see comment int hack_ld_linux_plt for explainations */
 			hack_ld_linux_plt(ld_linuxBaseAddr + shdr->sh_addr); 

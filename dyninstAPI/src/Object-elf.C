@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.81 2005/02/15 17:43:52 legendre Exp $
+ * $Id: Object-elf.C,v 1.82 2005/02/24 10:16:38 rchen Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -73,7 +73,7 @@
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
 
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 static bool find_catch_blocks(Elf *elf, Elf_Scn *eh_frame, Elf_Scn *except_scn,
                               pdvector<ExceptionBlock> &catch_addrs);
 #endif
@@ -333,7 +333,8 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
       plt_scnp = scnp;
       plt_addr_ = pd_shdrp->pd_addr;
       plt_size_ = pd_shdrp->pd_size;
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       //
       // On x86, the GNU linker purposefully sets the PLT
 	  // table entry size to an incorrect value to be
@@ -369,7 +370,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 	  assert( plt_entry_size_ == 16 );
 #else
       plt_entry_size_ = pd_shdrp->pd_entsize;
-#endif // defined(i386_unknown_linux2_0)
+#endif // defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
     }
     else if (strcmp(name, GOT_NAME) == 0) {
       got_scnp = scnp;
@@ -402,9 +403,10 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     }
 
 //TODO clean up this. it is ugly
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) 
     else if( strcmp( name, DYNAMIC_NAME ) == 0 )
     {
 	dynamic_addr_ = pd_shdrp->pd_addr;
@@ -550,7 +552,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 
   loadAddress_ = 0x0;
 #if defined(os_linux) 
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
   Elf32_Ehdr *ehdr = elf32_getehdr(elfp);
   Elf32_Phdr *phdr = elf32_getphdr(elfp);
 #elif defined(arch_ia64)
@@ -672,7 +674,9 @@ bool Object::get_relocation_entries( Elf_Scn*& rel_plt_scnp,
 				    Elf_Scn*& dynsym_scnp, 
 				    Elf_Scn*& dynstr_scnp )
 {
-#if defined( i386_unknown_solaris2_5 ) || defined( i386_unknown_linux2_0 )
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 	#define ELF_RELOCATION_ENTRY Elf32_Rel
 	#define ELF_SYMBOL Elf32_Sym
 	#define ELF_WORD Elf32_Word
@@ -723,7 +727,9 @@ bool Object::get_relocation_entries( Elf_Scn*& rel_plt_scnp,
 		unsigned long long * bufferPtr = (unsigned long long*)elf_vaddr_to_ptr( next_plt_entry_addr );
 		if( bufferPtr[0] == 0 && bufferPtr[1] == 0 ) { next_plt_entry_addr += 0x10; }
 		
-#elif defined( i386_unknown_solaris2_5 ) || defined( i386_unknown_linux2_0 )
+#elif defined(i386_unknown_solaris2_5) \
+   || defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 		next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 #else
 		next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
@@ -854,7 +860,7 @@ void Object::load_object()
     pdstring      module = "DEFAULT_MODULE";
     pdstring      name   = "DEFAULT_NAME";
     
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
     if (eh_frame_scnp != 0 && gcc_except != 0)
     {
        find_catch_blocks(elfp, eh_frame_scnp, gcc_except, catch_addrs_);
@@ -986,7 +992,7 @@ void Object::load_shared_object()
     pdstring module = file;
     pdstring name   = "DEFAULT_NAME";
 
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
     if (eh_frame_scnp != 0 && gcc_except != 0)
     {
        find_catch_blocks(elfp, eh_frame_scnp, gcc_except, catch_addrs_);
@@ -1095,9 +1101,10 @@ findMain: we parse _start for the address of main.  _start pushes the address
 
 assumptions: (address of _start) == (address of .text)
 ******************************************************************************/
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0)
 Symbol Object::findMain( pdvector< Symbol > &allsymbols )
 {
     //TODO add function to get push operand to machine dependent files
@@ -1281,9 +1288,10 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
     }
 
   }
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) 
   
   if( dynamic_addr_ )
   {
@@ -1965,39 +1973,50 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
     // The symbols appear in the stab section by module. A module begins
     // with a symbol of type N_UNDF and ends with a symbol of type N_ENDM.
     // All the symbols in between those two symbols belong to the module.
+/*
     Elf_Data* stabdatap = elf_getdata(stabscnp, 0);
     Elf_Data* stabstrdatap = elf_getdata(stabstrscnp, 0);
     if (!stabdatap || !stabstrdatap) {
       return false;
     }
 
-    struct stab_entry *stabsyms = (struct stab_entry *) stabdatap->d_buf;
+    stab_entry *stabsyms = (struct stab_entry *) stabdatap->d_buf;
     unsigned stab_nsyms = stabdatap->d_size / sizeof(struct stab_entry);
     const char *stabstrs = (const char *) stabstrdatap->d_buf;
+*/
+    stab_entry *stabptr = get_stab_info();
+    const char *next_stabstr = stabptr->getStringBase();
     pdstring module = "DEFAULT_MODULE";
 
     // the stabstr contains one string table for each module.
     // stabstr_offset gives the offset from the begining of stabstr of the
     // string table for the current module.
     // stabstr_nextoffset gives the offset for the next module.
-    unsigned stabstr_offset = 0;
+//    unsigned stabstr_offset = 0;
     unsigned stabstr_nextoffset = 0;
 
     bool is_fortran = false;  // is the current module fortran code?
-    for (unsigned i = 0; i < stab_nsyms; i++) {
-	// bperr("parsing #%d, %s\n", stabsyms[i].type, &stabstrs[stabstr_offset+stabsyms[i].name]);
-        switch(stabsyms[i].type) {
+    for (unsigned i = 0; i < stabptr->count(); i++) {
+	// bperr("parsing #%d, %s\n", stabptr->type(i), stabptr->name(i));
+        switch(stabptr->type(i)) {
 	case N_UNDF: /* start of object file */
 /*
-#if !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4) && !defined(ia64_unknown_linux2_4)
-	    assert(stabsyms[i].name == 1);
+#if !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) \
+ && !defined(mips_sgi_irix6_4) \
+ && !defined(ia64_unknown_linux2_4)
+	    assert(stabptr->nameIdx(i) == 1);
 #endif
 */
+            stabptr->setStringBase(next_stabstr);
+            next_stabstr = stabptr->getStringBase() + stabptr->val(i);
+/*
 	    stabstr_offset = stabstr_nextoffset;
 	    // stabsyms[i].val has the size of the string table of this module.
 	    // We use this value to compute the offset of the next string table.
 	    stabstr_nextoffset = stabstr_offset + stabsyms[i].val;
 	    module = pdstring(&stabstrs[stabstr_offset+stabsyms[i].name]);
+*/
 	    break;
 
 	case N_ENDM: /* end of object file */
@@ -2006,10 +2025,10 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 	    break;
 
 	case N_SO: /* compilation source or file name */
-  	    if ((stabsyms[i].desc == N_SO_FORTRAN) || (stabsyms[i].desc == N_SO_F90))
+  	    if ((stabptr->desc(i) == N_SO_FORTRAN) || (stabptr->desc(i) == N_SO_F90))
 	      is_fortran = true;
 
-	    module = pdstring(&stabstrs[stabstr_offset+stabsyms[i].name]);
+	    module = pdstring(stabptr->name(i));
 	    break;
 
         case N_ENTRY: /* fortran alternate subroutine entry point */
@@ -2019,9 +2038,9 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 	    // where <symbol descriptor> is a one char code.
 	    // we must extract the name and descriptor from the string
           {
-	    const char *p = &stabstrs[stabstr_offset+stabsyms[i].name];
-	    // bperr("got %d type, str = %s\n", stabsyms[i].type, p);
-            if ((stabsyms[i].type==N_FUN) && (strlen(p)==0)) {
+	    const char *p = stabptr->name(i);
+	    // bperr("got %d type, str = %s\n", stabptr->type(i), p);
+            if (stabptr->type(i) == N_FUN && strlen(p) == 0) {
                 // GNU CC 2.8 and higher associate a null-named function
                 // entry with the end of a function.  Just skip it.
                 break;
@@ -2058,7 +2077,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 	  break;
 
 	case N_FUN: /* function */ {
-	    const char *p = &stabstrs[stabstr_offset+stabsyms[i].name];
+	    const char *p = stabptr->name(i);
             if (strlen(p) == 0) {
                 // Rumours are that GNU CC 2.8 and higher associate a
                 // null-named function entry with the end of a
@@ -2077,7 +2096,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 		break;
 	    }
 
-	    unsigned long entryAddr = stabsyms[i].val;
+	    unsigned long entryAddr = stabptr->val(i);
 	    if (entryAddr == 0) {
 		// The function stab doesn't contain a function address
 		// (happens with the Solaris native compiler). We have to
@@ -2241,23 +2260,21 @@ const char *Object::elf_vaddr_to_ptr(Address vaddr) const
   return ret;
 }
 
-void Object::get_stab_info(void **stabs, int &nstabs, void **stabstr) const
+stab_entry *Object::get_stab_info() const
 {
-  // check that file has .stab info
-  if (!stab_off_) goto fail;
-  if (!stab_size_) goto fail;
-  if (!stabstr_off_) goto fail;
-  
-  *stabs = (void *)(file_ptr_ + stab_off_);
-  nstabs = stab_size_ / sizeof(struct stab_entry);
-  *stabstr = (void *)(file_ptr_ + stabstr_off_);
-  return;
-
- fail:
-    *stabs = NULL;
-    nstabs = 0;
-    *stabstr = NULL;
-    return;
+    // check that file has .stab info
+    if (stab_off_ && stab_size_ && stabstr_off_) 
+	switch (addressWidth_nbytes) {
+	case 4: // 32-bit object
+	    return new stab_entry_32(file_ptr_ + stab_off_,
+				     file_ptr_ + stabstr_off_,
+				     stab_size_ / sizeof(stab32));
+	case 8: // 64-bit object
+	    return new stab_entry_64(file_ptr_ + stab_off_,
+				     file_ptr_ + stabstr_off_,
+				     stab_size_ / sizeof(stab64));
+	}
+    return new stab_entry_64();
 }
 
 Object::Object(const pdstring file, void (*err_func)(const char *))
@@ -2486,41 +2503,37 @@ void Object::get_valid_memory_areas(Elf *elfp) {
 //
 bool parseCompilerType(Object *objPtr) 
 {
+    stab_entry *stabptr = objPtr->get_stab_info();
+    const char *next_stabstr = stabptr->getStringBase();
 
-  int stab_nsyms;
-  char *stabstr_nextoffset;
-  const char *stabstrs = 0;
-  struct stab_entry *stabptr = NULL;
+    for (int i=0; i < stabptr->count(); ++i) {
+	// if (stabstrs) bperr("parsing #%d, %s\n", stabptr->type(i), stabptr->name(i));
+	switch (stabptr->type(i)) {
 
-  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
-	(void **) &stabstr_nextoffset);
+	case N_UNDF: /* start of object file */
+	    /* value contains offset of the next string table for next module */
+	    // assert(stabptr.nameIdx(i) == 1);
+	    stabptr->setStringBase(next_stabstr);
+	    next_stabstr = stabptr->getStringBase() + stabptr->val(i);
+	    break;
 
-  for(int i=0;i<stab_nsyms;i++){
-    // if (stabstrs) bperr("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
-    switch(stabptr[i].type){
-
-    case N_UNDF: /* start of object file */
-      /* value contains offset of the next string table for next module */
-      // assert(stabptr[i].name == 1);
-      stabstrs = stabstr_nextoffset;
-      stabstr_nextoffset = const_cast<char*>(stabstrs) + stabptr[i].val;
-      
-      break;
-    case N_OPT: /* Compiler options */
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)      
-      if (strstr(&stabstrs[stabptr[i].name], "Sun") != NULL ||
-	  strstr(&stabstrs[stabptr[i].name], "Forte") != NULL)
-	return true;
+	case N_OPT: /* Compiler options */
+	    delete stabptr;
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5)      
+	    if (strstr(stabptr->name(i), "Sun") != NULL ||
+		strstr(stabptr->name(i), "Forte") != NULL)
+		return true;
 #endif
-      return false;
+	    return false;
+	}
     }
-
-  }
-  return false; // Shouldn't happen - maybe N_OPT stripped
+    delete stabptr;
+    return false; // Shouldn't happen - maybe N_OPT stripped
 }
 
 
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 
 static unsigned long read_uleb128(char *data, unsigned *bytes_read)
 {
@@ -2698,15 +2711,15 @@ static int read_except_table_gcc3(Elf_Scn *except_table,
       if (status != DW_DLV_OK) {
          pd_dwarf_handler(err, NULL);
          return false;
-      }      
-      lsda = ((char *) fde_bytes) + sizeof(long)*4;
+      }
+      lsda = ((char *) fde_bytes) + sizeof(int) * 4;
       if (lsda == outinstrs)
       {
          continue;
       }
       lsda_size = (unsigned) read_uleb128((char *) lsda, &bytes_read);
       lsda = ((char *) lsda) + bytes_read;
-      
+
       //Read the exception table pointer from the LSDA, adjust for PIC
       except_ptr = (Dwarf_Addr) *((long *) lsda);
       if (!except_ptr)
@@ -2717,9 +2730,9 @@ static int read_except_table_gcc3(Elf_Scn *except_table,
       }
       if (is_pic)
       {
-         low_pc = eh_frame_base + fde_offset + sizeof(long)*2 + (signed) low_pc;
+         low_pc = eh_frame_base + fde_offset + sizeof(int)*2 + (signed) low_pc;
          except_ptr += eh_frame_base + fde_offset + 
-            sizeof(long)*4 + bytes_read;
+            sizeof(int)*4 + bytes_read;
       }
       except_ptr -= except_base;
 
@@ -2872,7 +2885,13 @@ static bool find_catch_blocks(Elf *elf, Elf_Scn *eh_frame, Elf_Scn *except_scn,
    status = dwarf_elf_init(elf, DW_DLC_READ, &pd_dwarf_handler, NULL, 
                           &dbg, &err);
    if( status != DW_DLV_OK ) {
+#if !defined(x86_64_unknown_linux2_4)
+      // GCC 3.3.3 seems to generate incorrect DWARF entries
+      // on the x86_64 platform right now.  Hopefully this will
+      // be fixed, and this #if macro can be removed.
+
       pd_dwarf_handler(err, NULL);
+#endif
       goto err_noclose;
    }
 

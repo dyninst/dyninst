@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: test6.mutatee.c,v 1.27 2004/04/26 21:41:44 rchen Exp $ */
+/* $Id: test6.mutatee.c,v 1.28 2005/02/24 10:18:05 rchen Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -247,7 +247,9 @@ extern void* getsp();
 }
 #endif
 
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0)
 unsigned int loadExp=65;
 unsigned int storeExp=23;
 unsigned int prefeExp=2;
@@ -569,7 +571,12 @@ void check3()
 
 void check4()
 {
-#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ &&(!defined(rs6000_ibm_aix4_1) || defined(AIX5)) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(4, "access instrumentation");
 #else
   passorfail(4, accessCnt == accessExp, "access instrumentation", "access counter seems wrong.");
@@ -579,7 +586,12 @@ void check4()
 
 void check5()
 {
-#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ &&(!defined(rs6000_ibm_aix4_1) || defined(AIX5)) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(5, "instrumentation w/ [unconditional] effective address snippet");
 #else
   passorfail(5, !doomEA && validateEA(eaExp, eaList, accessExp),
@@ -589,7 +601,12 @@ void check5()
 
 void check6()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(6, "instrumentation w/ [unconditional] byte count snippet");
 #else
   passorfail(6, !doomBC && validateBC(bcExp, bcList, accessExp),
@@ -599,7 +616,12 @@ void check6()
 
 void check7()
 {
-#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ &&(!defined(rs6000_ibm_aix4_1) || defined(AIX5)) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(7, "instrumentation w/ conditional effective address snippet");
 #else
   passorfail(7, !doomEAcc && validateEA(eaExpCC, eaListCC, accessExpCC),
@@ -609,14 +631,18 @@ void check7()
 
 void check8()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
   skiptest(8, "instrumentation w/ conditional byte count snippet");
 #else
   passorfail(8, !doomBCcc && validateBC(bcExpCC, bcListCC, accessExpCC),
 	     "conditional byte count snippet", "count sequences are different");
 #endif
 }
-
 
 /* functions called by the simple instrumentation points */
 void countLoad()

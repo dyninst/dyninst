@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.15 2005/02/09 03:27:47 jaw Exp $
+// $Id: instPoint.h,v 1.16 2005/02/24 10:15:52 rchen Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -150,22 +150,33 @@ class instPointBase {
 
 
 // architecture-specific implementation of class instPoint
-#if defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(sparc_sun_sunos4_1_3)
 #include "instPoint-sparc.h"
+
 #elif defined(rs6000_ibm_aix4_1)
 #include "instPoint-power.h"
+
 #elif defined(i386_unknown_nt4_0)
 #include "instPoint-x86.h"
+
 #elif defined(i386_unknown_solaris2_5)
 #include "instPoint-x86.h"
+
 #elif defined(alpha_dec_osf4_0)
 #include "instPoint-alpha.h"
-#elif defined(i386_unknown_linux2_0)
+
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 #include "instPoint-x86.h"
+
 #elif defined(ia64_unknown_linux2_4)
 #include "instPoint-ia64.h"
-#elif defined(mips_sgi_irix6_4)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+
+#elif defined(mips_sgi_irix6_4) \
+   || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #include "instPoint-mips.h"
+
 #else
 #error unknown architecture
 #endif

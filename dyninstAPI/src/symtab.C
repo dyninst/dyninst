@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.231 2005/02/17 21:10:56 bernat Exp $
+ // $Id: symtab.C,v 1.232 2005/02/24 10:17:12 rchen Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -451,9 +451,10 @@ bool image::addAllVariables()
    /* Eventually we'll have to do this on all platforms (because we'll retrieve
     * the type information here).
     */
-#if defined( i386_unknown_nt4_0 ) ||\
-    defined( mips_unknown_ce2_11 ) ||\
-    defined( i386_unknown_linux2_4 )
+#if defined(i386_unknown_nt4_0) \
+ || defined(mips_unknown_ce2_11) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
    
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -1249,15 +1250,16 @@ supportedLanguages pickLanguage(pdstring &working_module, char *working_options,
 }
 void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs)
 {
-#if defined(sparc_sun_solaris2_4) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */
 
    // check .stabs section to get language info for modules:
-   int stab_nsyms;
-   char *stabstr_nextoffset;
-   const char *stabstrs = 0;
+//   int stab_nsyms;
+//   char *stabstr_nextoffset;
+//   const char *stabstrs = 0;
 
    char *ptr;
    pdstring mod_string;
@@ -1282,7 +1284,8 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
    supportedLanguages working_lang = lang_Unknown;
    char *working_options = NULL, *working_name = NULL;
 
-   struct stab_entry *stabptr = NULL;
+   stab_entry *stabptr = NULL;
+   const char *next_stabstr = NULL;
 #if defined(TIMED_PARSE)
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
@@ -1290,24 +1293,24 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
 
    //Using the Object to get the pointers to the .stab and .stabstr
    // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-   linkedFile.get_stab_info((void **) &stabptr, stab_nsyms, 
-                            (void **) &stabstr_nextoffset);
+   stabptr = linkedFile.get_stab_info();
+   next_stabstr = stabptr->getStringBase();
 
-   for(int i=0;i<stab_nsyms;i++){
-      if (stabptr[i].type == N_UNDF) {/* start of object file */
+   for (int i = 0; i < stabptr->count(); i++) {
+      if (stabptr->type(i) == N_UNDF) {/* start of object file */
          /* value contains offset of the next string table for next module */
-         // assert(stabptr[i].name == 1);
-         stabstrs = stabstr_nextoffset;
-         stabstr_nextoffset = const_cast<char *>(stabstrs + stabptr[i].val);
+         // assert(stabptr->nameIdx(i) == 1);
+	 stabptr->setStringBase(next_stabstr);
+	 next_stabstr = stabptr->getStringBase() + stabptr->val(i); 
       }
-      else if (stabptr[i].type == N_OPT){
+      else if (stabptr->type(i) == N_OPT){
          //  We can use the compiler option string (in a pinch) to guess at the source file language
          //  There is possibly more useful information encoded somewhere around here, but I lack
          //  an immediate reference....
          if (working_name)
-            working_options = const_cast<char *> (&stabstrs[stabptr[i].name]); 
+            working_options = const_cast<char *> (stabptr->name(i)); 
       }
-      else if ((stabptr[i].type == N_SO)  || (stabptr[i].type == N_ENDM)){ /* compilation source or file name */
+      else if ((stabptr->type(i) == N_SO)  || (stabptr->type(i) == N_ENDM)){ /* compilation source or file name */
          // We have arrived at the next source file, finish up with the last one and reset state
          // before starting next
 
@@ -1329,13 +1332,13 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
 
          //  Now:  out with the old, in with the new
 
-         if (stabptr[i].type == N_ENDM) {
+         if (stabptr->type(i) == N_ENDM) {
             // special case:
             // which is most likely both broken (and ignorable ???)
             working_name = "DEFAULT_MODULE";
          }
          else {
-            working_name = const_cast<char*>(&stabstrs[stabptr[i].name]);
+            working_name = const_cast<char*>(stabptr->name(i));
             ptr = strrchr(working_name, '/');
             if (ptr) {
                ptr++;
@@ -1352,8 +1355,8 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
             continue;
          } 
          else {
-            //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr[i].desc << endl;  
-            switch (stabptr[i].desc) {
+            //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr->desc(i) << endl;  
+            switch (stabptr->desc(i)) {
               case N_SO_FORTRAN: 
                  working_lang = lang_Fortran;
                  break;
@@ -1383,18 +1386,18 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
       else {
          //  This is here only to trace the parse, for my edification and knowledge, should be removed
          //  Throw away most known symbols here
-         if ( (N_FUN != stabptr[i].type) &&
-              (N_GSYM != stabptr[i].type) &&
-              (N_STSYM != stabptr[i].type) &&
-              (N_LCSYM != stabptr[i].type) &&
-              (N_ROSYM != stabptr[i].type) &&
-              (N_SLINE != stabptr[i].type) &&
-              (N_SOL != stabptr[i].type) &&
-              (N_ENTRY != stabptr[i].type) &&
-              (N_BCOMM != stabptr[i].type) &&
-              (N_ECOMM != stabptr[i].type)) {
+         if ( (N_FUN != stabptr->type(i)) &&
+              (N_GSYM != stabptr->type(i)) &&
+              (N_STSYM != stabptr->type(i)) &&
+              (N_LCSYM != stabptr->type(i)) &&
+              (N_ROSYM != stabptr->type(i)) &&
+              (N_SLINE != stabptr->type(i)) &&
+              (N_SOL != stabptr->type(i)) &&
+              (N_ENTRY != stabptr->type(i)) &&
+              (N_BCOMM != stabptr->type(i)) &&
+              (N_ECOMM != stabptr->type(i))) {
             char hexbuf[10];
-            sprintf(hexbuf, "%p",stabptr[i].type );
+            sprintf(hexbuf, "%p",stabptr->type(i) );
             cerr << __FILE__ << __LINE__ << ":  got " << hexbuf << endl;
          }
       }
@@ -1857,7 +1860,7 @@ bool image::analyzeImage()
       assert( func1->get_address() != func2->get_address() );
       
       //look for overlapping functions
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
       if ((func2->get_address() < func1->get_address() + func1->get_size()) &&
 	  (strstr(func2->prettyName().c_str(), "nocancel") ||
 	   strstr(func2->prettyName().c_str(), "_L_mutex_lock")))
@@ -2036,11 +2039,12 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    }
   
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(rs6000_ibm_aix4_1)
    // make sure we're using the right demangler
 
    nativeCompiler = parseCompilerType(&linkedFile);
-
 #endif
 
    // define all of the functions
@@ -2160,7 +2164,9 @@ pdmodule::findFunction( const pdstring &name, pdvector<int_function *> * found )
 } /* end findFunction() */
 
 
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
+#if !defined(i386_unknown_nt4_0) \
+ && !defined(mips_unknown_ce2_11)
+
 /* private refactoring functions */
 typedef pdpair< pdstring, int_function * > nameFunctionPair;
 typedef pdpair< pdstring, pdvector< int_function * > * > nameFunctionListPair;
@@ -2222,7 +2228,8 @@ pdmodule::findFunctionFromAll(const pdstring &name,
   
   /* We're doing a regular expression search, which is not yet implemented
      on Microsoft platforms. */
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
+#if !defined(i386_unknown_nt4_0) \
+ && !defined(mips_unknown_ce2_11)
   regex_t comp_pat;
   int err = 0;
   int cflags = REG_NOSUB | REG_EXTENDED;
@@ -2445,7 +2452,8 @@ void image::updateForFork(process *childProcess, const process *parentProcess)
   }
 }
 
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+#if !defined(i386_unknown_nt4_0) \
+ && !defined(mips_unknown_ce2_11) // no regex for M$
 int image::findFuncVectorByPrettyRegex(pdvector<int_function *> *found, pdstring pattern,
 				       bool case_sensitive)
 {
@@ -2565,7 +2573,8 @@ pdvector<int_function *> *image::findFuncVectorByMangled(functionNameSieve_t bps
   return NULL;
 }
 
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+#if !defined(i386_unknown_nt4_0) \
+ && !defined(mips_unknown_ce2_11) // no regex for M$
 bool regex_filter_func(const pdstring &test, void *comp_pat)
 {
 
@@ -2829,9 +2838,9 @@ pdstring* pdmodule::processDirectories(pdstring* fn){
 LineInformation*
 pdmodule::getLineInformation(process *proc)
 {
-#if !defined(mips_sgi_irix6_4) && \
-    !defined(alpha_dec_osf4_0) && \
-    !defined(i386_unknown_nt4_0)  
+#if !defined(mips_sgi_irix6_4) \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(i386_unknown_nt4_0)
   if (!lineInformation) {
     parseFileLineInfo(proc);
   }
@@ -2867,7 +2876,11 @@ pdmodule::~pdmodule()
 
 // Parses symtab for file and line info. Should not be called before
 // parseTypes. The ptr to lineInformation should be NULL before this is called.
-#if !defined(rs6000_ibm_aix4_1) && !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(i386_unknown_nt4_0) && !defined( USES_DWARF_DEBUG )
+#if !defined(rs6000_ibm_aix4_1) \
+ && !defined(mips_sgi_irix6_4) \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined( USES_DWARF_DEBUG )
 void pdmodule::
 parseFileLineInfo(process * proc) 
 {
@@ -2875,11 +2888,14 @@ parseFileLineInfo(process * proc)
   char *modName;
   image * imgPtr=NULL;
   char *ptr;
-  int stab_nsyms;
-  char *stabstr_nextoffset;
-  const char *stabstrs = 0;
-  struct stab_entry *stabptr = NULL;
+//  int stab_nsyms;
+//  char *stabstr_nextoffset;
+//  const char *stabstrs = 0;
+//  struct stab_entry *stabptr = NULL;
   int parseActive = false; 
+
+  stab_entry *stabptr = NULL;
+  const char *next_stabstr = NULL;
 
   if (lineInformation) {
     cerr << __FILE__ << ":" << __LINE__ << ": Internal error, not fatal, probabl:, duplicated call to"
@@ -2909,9 +2925,8 @@ parseFileLineInfo(process * proc)
 
   //Using the Object to get the pointers to the .stab and .stabstr
   // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-  objPtr.get_stab_info((void **) &stabptr, stab_nsyms, 
-		       (void **) &stabstr_nextoffset);
-
+  stabptr = objPtr.get_stab_info();
+  next_stabstr = stabptr->getStringBase();
 
   //these variables are used to keep track of the source files
   //and function names being processes at a moment
@@ -2923,15 +2938,15 @@ parseFileLineInfo(process * proc)
   FunctionInfo* currentFuncInfo = NULL;
   FileLineInformation* currentFileInfo = NULL;
 
-  for(i=0;i<stab_nsyms;i++){
-    // if (stabstrs) bperr("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
-    switch(stabptr[i].type){
+  for (i = 0; i < stabptr->count(); i++) {
+    // if (stabstrs) bperr("parsing #%d, %s\n", stabptr->type(i), stabptr->name(i));
+    switch(stabptr->type(i)){
 
     case N_UNDF: /* start of object file */
 	    /* value contains offset of the next string table for next module */
-	    // assert(stabptr[i].name == 1);
-	    stabstrs = stabstr_nextoffset;
-	    stabstr_nextoffset = const_cast<char *>(stabstrs) + stabptr[i].val;
+	    // assert(stabptr->nameIdx(i) == 1);
+	    stabptr->setStringBase(next_stabstr);
+	    next_stabstr = stabptr->getStringBase() + stabptr->val(i);
 
 	    //N_UNDF is the start of object file. It is time to 
 	    //clean source file name at this moment.
@@ -2957,7 +2972,7 @@ parseFileLineInfo(process * proc)
       //current_func = NULL;
 
 	    //  JAW -- not sure we need this block here
-            modName = const_cast<char *>(&stabstrs[stabptr[i].name]);
+            modName = const_cast<char *>(stabptr->name(i));
             ptr = strrchr(modName, '/');
             if (ptr) {
                 ptr++;
@@ -2971,17 +2986,17 @@ parseFileLineInfo(process * proc)
 	    //time to create the source file name to be used
 	    //for latter processing of line information
 	    if(!currentSourceFile){
-		currentSourceFile = new pdstring(&stabstrs[stabptr[i].name]);
+		currentSourceFile = new pdstring(stabptr->name(i));
 	    	absoluteDirectory = new pdstring(*currentSourceFile);
 	    }
-	    else if(!strlen(&stabstrs[stabptr[i].name])){
+	    else if(!strlen(stabptr->name(i))){
 		delete currentSourceFile;
 		currentSourceFile = NULL;
 		delete absoluteDirectory;
 		absoluteDirectory = NULL;
 	    }
 	    else
-		*currentSourceFile += &stabstrs[stabptr[i].name];
+		*currentSourceFile += stabptr->name(i);
 
 	    currentSourceFile = processDirectories(currentSourceFile);
  
@@ -2997,14 +3012,14 @@ parseFileLineInfo(process * proc)
     }
 
     if( parseActive || isShared())
-      switch(stabptr[i].type){
+      switch(stabptr->type(i)){
       case N_SOL:
 #ifdef TIMED_PARSE
 	sol_count++;
 	gettimeofday(&t1, NULL);
 #endif
 	if(absoluteDirectory){
-	  const char* newSuffix = &stabstrs[stabptr[i].name];
+	  const char* newSuffix = stabptr->name(i);
 	  if(newSuffix[0] == '/'){
 	    delete currentSourceFile;
 	    currentSourceFile = new pdstring;
@@ -3028,7 +3043,7 @@ parseFileLineInfo(process * proc)
 						  &currentFileInfo,&currentFuncInfo);
 	}
 	else{
-	  currentSourceFile = new pdstring(&stabstrs[stabptr[i].name]);
+	  currentSourceFile = new pdstring(stabptr->name(i));
 	  currentSourceFile = processDirectories(currentSourceFile);
 	  if(currentFunctionName)
 	    lineInformation->insertSourceFileName(
@@ -3052,8 +3067,8 @@ parseFileLineInfo(process * proc)
 	if(!currentFunctionName) break;
 	if(currentFileInfo)
 	  currentFileInfo->insertLineAddress(currentFuncInfo,
-					     stabptr[i].desc,
-					     stabptr[i].val+currentFunctionBase);
+					     stabptr->desc(i),
+					     stabptr->val(i)+currentFunctionBase);
 #ifdef TIMED_PARSE
 	gettimeofday(&t2, NULL);
 	sline_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
@@ -3071,13 +3086,13 @@ parseFileLineInfo(process * proc)
       //if it is a function stab then we have to insert an entry 
       //to initialize the entries in the line information object
       int currentEntry = i;
-      int funlen = strlen(&stabstrs[stabptr[currentEntry].name]);
+      int funlen = strlen(stabptr->name(currentEntry));
       ptr = new char[funlen+1];
-      strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+      strcpy(ptr,stabptr->name(currentEntry));
       while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
 	ptr[strlen(ptr)-1] = '\0';
 	currentEntry++;
-	strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+	strcat(ptr,stabptr->name(currentEntry));
       }
       
       char* colonPtr = NULL;
@@ -3369,7 +3384,7 @@ void pdmodule::parseFileLineInfo(process* proc)
 
 /* mips-sgi-irix6.5 uses DWARF debug, but the rest of the code
    isn't set up to take advantage of this. */
-#if defined( USES_DWARF_DEBUG ) && ! defined( mips_sgi_irix6_4 )
+#if defined(USES_DWARF_DEBUG) && !defined(mips_sgi_irix6_4)
 
 #include "elf.h"
 #include "libelf.h"

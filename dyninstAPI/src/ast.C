@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.147 2005/02/23 18:26:06 gquinn Exp $
+// $Id: ast.C,v 1.148 2005/02/24 10:15:16 rchen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -63,21 +63,32 @@
 #include "rtinst/h/rtinst.h"
 #endif
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)
 #include "dyninstAPI/src/inst-sparc.h"
+
 #elif defined(hppa1_1_hp_hpux)
 #include "dyninstAPI/src/inst-hppa.h"
-#elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+
+#elif defined(rs6000_ibm_aix3_2) \
+   || defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/inst-power.h"
-#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+
+#elif defined(i386_unknown_solaris2_5) \
+   || defined(i386_unknown_nt4_0) \
+   || defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4)
 #include "dyninstAPI/src/inst-x86.h"
+
 #elif defined(ia64_unknown_linux2_4) /* Why is this done here, instead of, e.g., inst.h? */
 #include "dyninstAPI/src/inst-ia64.h"
+
 #elif defined(alpha_dec_osf4_0)
 #include "dyninstAPI/src/inst-alpha.h"
-#elif defined(mips_sgi_irix6_4) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+
+#elif defined(mips_sgi_irix6_4) \
+   || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "dyninstAPI/src/inst-mips.h"
-#else
 #endif
 
 extern registerSpace *regSpace;
@@ -89,8 +100,11 @@ registerSpace::registerSpace(const unsigned int deadCount, Register *dead,
                              bool multithreaded) :
   is_multithreaded(multithreaded)
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-  initTramps(is_multithreaded);
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4)
+   initTramps(is_multithreaded);
 #endif
   
   unsigned i;
@@ -156,7 +170,8 @@ Register registerSpace::allocateRegister(char *insn, Address &base, bool noCost)
     // now consider ones that need saving
     for (i=0; i < numRegisters; i++) {
 	if (registers[i].refCount == 0) {
-#if !defined(rs6000_ibm_aix4_1) && !defined(ia64_unknown_linux2_4)
+#if !defined(rs6000_ibm_aix4_1) \
+ && !defined(ia64_unknown_linux2_4)
             // MT_AIX: we are not saving registers on demand on the power
             // architecture. Instead, we save/restore registers in the base
             // trampoline - naim
@@ -165,7 +180,8 @@ Register registerSpace::allocateRegister(char *insn, Address &base, bool noCost)
  	    emitV(saveRegOp, registers[i].number, 0, 0, insn, base, noCost);
 #endif
 	    registers[i].refCount = 1;
-#if !defined(rs6000_ibm_aix4_1) && !defined(ia64_unknown_linux2_4)
+#if !defined(rs6000_ibm_aix4_1) \
+ && !defined(ia64_unknown_linux2_4)
             // MT_AIX
 	    registers[i].mustRestore = true;
 #endif
@@ -432,7 +448,8 @@ AstNode &AstNode::operator=(const AstNode &src) {
    roperand = assignAst(src.roperand);
    eoperand = assignAst(src.eoperand);
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)
    astFlag = src.astFlag;
 #endif
    
@@ -463,7 +480,8 @@ AstNode::AstNode() {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
    // used in mdl.C
@@ -483,7 +501,8 @@ AstNode::AstNode(const pdstring &func, AstNode *l, AstNode *r) {
 #if defined(ASTDEBUG)
     ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
     referenceCount = 1;
@@ -504,7 +523,8 @@ AstNode::AstNode(const pdstring &func, AstNode *l) {
 #if defined(ASTDEBUG)
     ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
     referenceCount = 1;
@@ -524,7 +544,8 @@ AstNode::AstNode(const pdstring &func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
    referenceCount = 1;
@@ -548,7 +569,8 @@ AstNode::AstNode(int_function *func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
    referenceCount = 1;
@@ -573,7 +595,8 @@ AstNode::AstNode(int_function *func) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
    referenceCount = 1;
@@ -594,7 +617,8 @@ AstNode::AstNode(operandType ot, void *arg) {
 #if defined(ASTDEBUG)
     ASTcounterNP();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
     referenceCount = 1;
@@ -620,7 +644,8 @@ AstNode::AstNode(operandType ot, int which) : whichMA(which)
 #if defined(ASTDEBUG)
   ASTcounterNP();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
   astFlag = false;
 #endif
   referenceCount = 1;
@@ -649,7 +674,8 @@ AstNode::AstNode(operandType ot, AstNode *l) {
 #if defined(ASTDEBUG)
     ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
     referenceCount = 1;
@@ -671,7 +697,8 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
    referenceCount = 1;
@@ -690,7 +717,8 @@ AstNode::AstNode(opCode ot) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
    // a private constructor
@@ -709,7 +737,8 @@ AstNode::AstNode(opCode ot, AstNode *l) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
    // a private constructor
@@ -730,7 +759,8 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
    referenceCount = 1;
@@ -752,7 +782,8 @@ AstNode::AstNode(AstNode *src) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
    referenceCount = 1;
@@ -1438,7 +1469,8 @@ Address AstNode::generateCode_phase2(process *proc,
          return emitA(op, 0, 0, 0, insn, base, noCost);
       } else if (op == trampPreamble) {
          // This ast cannot be shared because it doesn't return a register
-#if defined (i386_unknown_solaris2_5) || (sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(sparc_sun_solaris2_4)
          // loperand is a constant AST node with the cost, in cycles.
          //int cost = noCost ? 0 : (int) loperand->oValue;
          Address costAddr = 0; // for now... (won't change if noCost is set)
@@ -1628,7 +1660,8 @@ Address AstNode::generateCode_phase2(process *proc,
            emitVload(loadOp, addr, dest, dest, insn, base, noCost);
            break;
       case ReturnVal:
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
 	if (loperand) {
               instruction instr;
               instr.raw = (unsigned)(loperand->oValue);
@@ -1649,7 +1682,8 @@ Address AstNode::generateCode_phase2(process *proc,
            }
            break;
         case Param:
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)  
            // Here is what a "well-named" astFlag seems to mean.
            // astFlag is true iff the function does not begin with a save
            // or our instumentation is placed before the save instruction.

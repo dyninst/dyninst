@@ -103,7 +103,7 @@ ThreadLibrary::ThreadLibrary(BPatch_thread *thr, const char *libName) :
         }
         threadModule = (*mods)[i];
       }
-    } 
+    }
   }
   if (!threadModule) {
     //fprintf(stderr, "%s[%d]:  Thread module %s not found, assuming single threaded\n",
@@ -125,19 +125,19 @@ ThreadLibrary::ThreadLibrary(BPatch_thread *thr, const char *libName) :
   strcpy(libname, tmp_libname);
 
   //  find the dyninst RT Library
-  char *rtname = getenv("DYNINSTAPI_RT_LIB");
+  const char *rtname = thr->proc->dyninstRT_name.c_str();
   assert(rtname);
 
 #if defined(os_windows)
-  char *short_rtname = strrchr(rtname, '\\') + 1; /*ignore slash*/
+  const char *short_rtname = strrchr(rtname, '\\') + 1; /*ignore slash*/
 #else
-  char *short_rtname = strrchr(rtname, '/') + 1; /*ignore slash*/
+  const char *short_rtname = strrchr(rtname, '/') + 1; /*ignore slash*/
 #endif
 
   dyninst_rt = appImage->findModuleInt(short_rtname ? short_rtname : rtname);
   if (!dyninst_rt) {
     bpfatal("%s[%d]:  Cannot find dyninst rt lib: %s\n", __FILE__, __LINE__,
-            short_rtname);
+            short_rtname ? short_rtname : rtname);
     return;
   }
 

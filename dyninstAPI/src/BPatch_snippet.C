@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.64 2005/02/17 21:10:28 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.65 2005/02/24 10:15:33 rchen Exp $
 
 #define BPATCH_FILE
 
@@ -667,7 +667,9 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 		to see if func is in a shared lib. if it
 		is marked that shared lib as dirtyCalled()
 	*/
-#if defined(sparc_sun_solaris2_4) ||  defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 	process *proc = func.getProc();
 	if( proc->collectSaveWorldData && ((BPatch_function &)func).isSharedLib()){
@@ -705,7 +707,12 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
     const BPatch_function &func)
 {
-#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) || defined( ia64_unknown_linux2_4 )
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0) \
+ || defined(ia64_unknown_linux2_4)
     ast = new AstNode(func.func);
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1106,7 +1113,10 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool saveWorld)
 
     if (size) {
 	appThread->lowlevel_process()->writeDataSpace(address, size, src);
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 	if(saveWorld) { //ccw 26 nov 2001
 		appThread->lowlevel_process()->saveWorldData((Address) address,size,src);
 	}
@@ -1136,7 +1146,10 @@ bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool sa
     return false;
   }
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
     if(saveWorld) { //ccw 26 nov 2001
 	appThread->lowlevel_process()->saveWorldData((Address) address,len,src);
     }

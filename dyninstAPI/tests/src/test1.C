@@ -2216,6 +2216,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
  || defined(alpha_dec_osf4_0) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) \
  || defined(mips_sgi_irix6_4) \
  || defined(rs6000_ibm_aix4_1)
@@ -2319,7 +2320,11 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 // test2.
 void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0) || defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(alpha_dec_osf4_0) \
+ || defined(ia64_unknown_linux2_4)
 
     if (mutateeFortran) {
 	return;
@@ -2711,13 +2716,14 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     //     globalVariable25_2 = &globalVariable25_1
-#if !defined(sparc_sun_solaris2_4) && \
-    !defined(rs6000_ibm_aix4_1) && \
-    !defined(alpha_dec_osf4_0) && \
-    !defined(i386_unknown_linux2_0) && \
-    !defined(ia64_unknown_linux2_4) && \
-    !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_nt4_0)
 
     // without type info need to inform
     BPatch_type *type = appImage->findType("void *");
@@ -3321,13 +3327,14 @@ void mutatorTest29(BPatch_thread *, BPatch_image *appImage)
 void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
-#if defined(sparc_sun_solaris2_4) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(ia64_unknown_linux2_4) || \
-    defined(i386_unknown_nt4_0) ||\
-    defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(alpha_dec_osf4_0)
 
   unsigned long n;
   unsigned long baseAddr,lastAddr;
@@ -4273,7 +4280,10 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 // Start Test Case #35 - (function relocation)
 void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4)
 
     if (mutateeFortran)
 	return;
@@ -4774,6 +4784,7 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
  || defined(alpha_dec_osf4_0) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) \
  || defined(mips_sgi_irix6_4) \
  || defined(rs6000_ibm_aix4_1)
@@ -4860,8 +4871,10 @@ void setVar40(const char *vname, void *addr, BPatch_image *appImage)
 void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
-#if !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4) \
-    && !defined(mips_sgi_irix6_4) && !defined(os_windows)
+#if !defined(alpha_dec_osf4_0) \
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(mips_sgi_irix6_4) \
+ && !defined(os_windows)
 
    if (mutateeFortran) return;
    // xlc does not produce the intended dynamic call points for this example
@@ -4988,7 +5001,10 @@ int mutatorMAIN(char *pathname, bool useAttach)
 	fprintf(stderr, "Unable to run test program.\n");
 	exit(1);
     }
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
     /* this is only supported on sparc solaris  and linux*/
 	/* this call tells the process to collect data for the 
 	save the world functionality
@@ -5120,7 +5136,10 @@ int mutatorMAIN(char *pathname, bool useAttach)
 	work.
 */
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
     /* this is only supported on sparc solaris and linux*/
 
     	if( saveWorld ) {
@@ -5210,7 +5229,10 @@ main(unsigned int argc, char *argv[])
         if (strncmp(argv[i], "-v++", 4) == 0)   errorPrint++;
 	if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 	}else if (!strcmp(argv[i], "-saveworld")) {
 		saveWorld = 1;
 #endif
@@ -5264,7 +5286,10 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4)
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif
@@ -5280,7 +5305,10 @@ main(unsigned int argc, char *argv[])
 #if defined(mips_sgi_irix6_4)
 		    "[-n32] "
 #endif
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 		    "[-saveworld] "
 #endif 
                     "[-mutatee <test1.mutatee>] "

@@ -39,10 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.22 2005/02/07 16:58:27 gquinn Exp $
+// $Id: arch-x86.h,v 1.23 2005/02/24 10:15:14 rchen Exp $
 // x86 instruction declarations
 
-#if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
+#if !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4)
 #error "invalid architecture-os inclusion"
 #endif
 

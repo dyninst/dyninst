@@ -475,9 +475,10 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
 unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT 
 {
     Address imgBaseAddr = 0;   
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0)
     
      //all other platforms have absolute addresses for basic blocks
      //at this point
@@ -495,9 +496,10 @@ unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT
 unsigned long BPatch_basicBlock::getLastInsnAddressInt() CONST_EXPORT 
 {
     Address imgBaseAddr = 0;   
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) 
     
      //all other platforms have absolute addresses for basic blocks
      //at this point
@@ -514,13 +516,14 @@ unsigned long BPatch_basicBlock::getLastInsnAddressInt() CONST_EXPORT
 
 unsigned BPatch_basicBlock::sizeInt() CONST_EXPORT
 {
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0)
     //variable length instructions on x86
     return endAddr - startAddress;
-#elif defined(ia64_unknown_linux2_0 )
-    //16 byte bundly size on ia64
+#elif defined(ia64_unknown_linux2_4)
+    //16 byte bundle size on ia64
     return 16 + lastInsnAddress - startAddress;
 #else
     //4 byte instructions on all other platforms

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.46 2005/01/21 23:44:52 bernat Exp $
+// $Id: templates0.C,v 1.47 2005/02/24 10:17:18 rchen Exp $
 // Generate all the templates in one file.
 
 /*
@@ -160,7 +160,10 @@ template class pdvector<FERNode*>;
 #endif
 template class pdvector<process::instPendingDeletion *>;
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 template class pdvector<imageUpdate*>;//ccw 28 oct 2001
 template class pdvector<dataUpdate*> ;//ccw 26 nov 2001
 #endif

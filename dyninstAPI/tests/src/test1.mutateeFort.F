@@ -47,7 +47,11 @@
 
 ! AIX xlf90 does not insert underscores at end
 
-#if	defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined( ia64_unknown_linux2_4 )
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4)
 #define stop_process_ stop_process
 #endif
 
@@ -1454,8 +1458,8 @@
 
 	SUBROUTINE func22_1
 #include "test1_common.h"
-#if	!defined(sparc_sun_solaris2_4) && \
-	!defined(alpha_dec_osf4_0)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(alpha_dec_osf4_0)
 
 	print *, 'Skipped test #22 (replace function)'
 	print *, '       - not implemented on this platform'
@@ -1974,7 +1978,11 @@ C	INTRINSIC IEOR, IAND, IOR
 	SUBROUTINE func35_1
 #include "test1_common.h"
 	passedTest (35) = .true.
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4) \
+ || defined(ia64_unknown_linux2_4)
 	print *, 'Skipped test #35 (function relocation)'
 	print *, '       - not tested for Fortran'
 #else
@@ -2031,7 +2039,7 @@ C	INTRINSIC IEOR, IAND, IOR
 		failure = 1
 	endif
 
-#if	defined(rs6000_ibm_aix4_1) && !defined(AIX5)
+#if defined(rs6000_ibm_aix4_1) && !defined(AIX5)
 	call xlf90_41_hack()
 #endif
 
@@ -2074,7 +2082,7 @@ C	INTRINSIC IEOR, IAND, IOR
 	if (globalVariable36_7 .ne. 7) then
 		print *, '  for test 36, expecting arg7 value of 7, got ',
      &		globalVariable36_7
-#if     defined(alpha_dec_osf4_0)
+#if defined(alpha_dec_osf4_0)
 		print *, '  not an error since it needs to be implemented',
      &		' on this platform'
 #else
@@ -2085,7 +2093,7 @@ C	INTRINSIC IEOR, IAND, IOR
 	if (globalVariable36_8 .ne. 8) then
 		print *, '  for test 36, expecting arg8 value of 8, got ',
      &		globalVariable36_8
-#if     defined(alpha_dec_osf4_0)
+#if defined(alpha_dec_osf4_0)
 		print *, '  not an error since it needs to be implemented',
      &		' on this platform'
 #else
@@ -2096,7 +2104,8 @@ C	INTRINSIC IEOR, IAND, IOR
 	if (globalVariable36_9 .ne. 9) then
 		print *, '  for test 36, expecting arg9 value of 9, got ',
      &		globalVariable36_9
-#if	defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0)
 		print *, '  not an error since it needs to be implemented',
      &		' on this platform'
 #else
@@ -2107,7 +2116,8 @@ C	INTRINSIC IEOR, IAND, IOR
 	if (globalVariable36_10 .ne. 10) then
 		print *, '  for test 36, expecting arg10 value of 10, got ',
      &		globalVariable36_10
-#if	defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0)
 		print *, '  not an error since it needs to be implemented',
      &		' on this platform'
 #else

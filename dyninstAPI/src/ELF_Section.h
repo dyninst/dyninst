@@ -39,11 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: ELF_Section.h,v 1.5 2004/03/23 19:10:34 eli Exp $ */
+/* $Id: ELF_Section.h,v 1.6 2005/02/24 10:15:39 rchen Exp $ */
 
 /* ccw 21 nov 2001 */
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4)
 
 #ifndef ELF_Section__
 #define ELF_Section__

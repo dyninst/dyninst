@@ -39,9 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.16 2004/12/03 21:15:06 legendre Exp $
+// $Id: linux.h,v 1.17 2005/02/24 10:16:25 rchen Exp $
 
-#if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
+#if !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(ia64_unknown_linux2_4)
+
 #error "invalid architecture-os inclusion"
 #endif
 
@@ -67,7 +70,8 @@ typedef int handleT; // a /proc file descriptor
 
 #if defined( ia64_unknown_linux2_4 )
 #include "linux-ia64.h"
-#elif defined( i386_unknown_linux2_0 )
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4)
 #include "linux-x86.h"
 #else
 #error Invalid or unknown architecture-os inclusion

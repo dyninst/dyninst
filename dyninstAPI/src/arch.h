@@ -39,21 +39,27 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.h,v 1.15 2004/03/23 01:12:02 eli Exp $
+// $Id: arch.h,v 1.16 2005/02/24 10:15:12 rchen Exp $
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)
 #include "arch-sparc.h"
 
-#elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+#elif defined(rs6000_ibm_aix3_2) \
+   || defined(rs6000_ibm_aix4_1)
 #include "arch-power.h"
 
 #elif defined(alpha_dec_osf4_0)
 #include "arch-alpha.h"
 
-#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_solaris2_5) \
+   || defined(i386_unknown_nt4_0) \
+   || defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4)
 #include "arch-x86.h"
 
-#elif defined(mips_sgi_irix6_4) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#elif defined(mips_sgi_irix6_4) \
+   || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "arch-mips.h"
 
 #elif defined(ia64_unknown_linux2_4)

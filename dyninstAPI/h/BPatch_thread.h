@@ -196,6 +196,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     friend class process;
     friend bool pollForStatusChange();
     friend class BPatch_asyncEventHandler;
+    friend class ThreadLibrary;
 
     process *proc;
     BPatch_image *image;

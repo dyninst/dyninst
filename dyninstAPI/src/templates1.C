@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.61 2005/01/21 23:44:53 bernat Exp $
+//$Id: templates1.C,v 1.62 2005/02/24 10:17:20 rchen Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -162,10 +162,11 @@ template class  dictionary_hash <unsigned long, unsigned long>;
 template class  pdvector<dictionary_hash <unsigned long, unsigned long>::entry>;
 template class  dictionary_hash_iter <unsigned long, unsigned long>;
 
-#if defined(i386_unknown_linux2_0) || \
-	defined(i386_unknown_solaris2_4) || \
-	defined(sparc_sun_solaris2_4) || \
-	defined(mips_sgi_irix_6_4) || \
-	defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_4) \
+ || defined(sparc_sun_solaris2_4) \
+ || defined(mips_sgi_irix_6_4) \
+ || defined(ia64_unknown_linux2_4)
 template class pdvector<pdElfShdr*>;
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: headers.h,v 1.21 2004/03/23 01:11:52 eli Exp $
+// $Id: headers.h,v 1.22 2005/02/24 10:14:35 rchen Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
@@ -60,16 +60,17 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 
 #include "common/h/Types.h"
 
-#if defined(sparc_sun_solaris2_4) || defined(sparc_sun_solaris2_6) || defined(sparc_sun_solaris2_7)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(sparc_sun_solaris2_6) \
+ || defined(sparc_sun_solaris2_7)
 #include "common/h/solarisHeaders.h"
 
 #elif defined(i386_unknown_solaris2_5)
 #include "common/h/solarisHeaders.h"
 
-#elif defined(i386_unknown_linux2_0)
-#include "common/h/linuxHeaders.h"
-
-#elif defined(ia64_unknown_linux2_4)
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+   || defined(ia64_unknown_linux2_4)
 #include "common/h/linuxHeaders.h"
 
 #elif defined(rs6000_ibm_aix4_1)
@@ -78,7 +79,8 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 #elif defined(alpha_dec_osf4_0)
 #include "common/h/osfHeaders.h"
 
-#elif defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#elif defined(i386_unknown_nt4_0) \
+   || defined (mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #include "common/h/ntHeaders.h"
 
 #elif defined(mips_sgi_irix6_4)

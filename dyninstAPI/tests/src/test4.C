@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4.C,v 1.27 2005/02/09 03:27:49 jaw Exp $
+// $Id: test4.C,v 1.28 2005/02/24 10:17:53 rchen Exp $
 //
 
 #include <stdio.h>
@@ -504,10 +504,13 @@ void contAndWaitForAllThreads(BPatch_thread *appThread)
 
 void mutatorTest1(char *pathname)
 {
-#if defined(i386_unknown_nt4_0) || defined(alpha_dec_osf4_0)
+#if defined(i386_unknown_nt4_0) \
+ || defined(alpha_dec_osf4_0)
+
     printf("Skipping test #1 (exit callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[1] = true;
+
 #else
     int n = 0;
     const char *child_argv[MAX_TEST+5];
@@ -541,10 +544,13 @@ void mutatorTest1(char *pathname)
 
 void mutatorTest2(char *pathname)
 {
-#if defined(i386_unknown_nt4_0) || defined(alpha_dec_osf4_0)
+#if defined(i386_unknown_nt4_0) \
+ || defined(alpha_dec_osf4_0)
+
     printf("Skipping test #2 (fork callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[2] = true;
+
 #else
     int n = 0;
     const char *child_argv[MAX_TEST+5];
@@ -577,10 +583,13 @@ void mutatorTest2(char *pathname)
 
 void mutatorTest3(char *pathname)
 {
-#if defined(i386_unknown_nt4_0) || defined(alpha_dec_osf4_0)
+#if defined(i386_unknown_nt4_0) \
+ || defined(alpha_dec_osf4_0)
+
     printf("Skipping test #3 (exec callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[3] = true;
+
 #else
     int n = 0;
     const char *child_argv[MAX_TEST+5];
@@ -612,10 +621,13 @@ void mutatorTest3(char *pathname)
 
 void mutatorTest4(char *pathname)
 {
-#if defined(i386_unknown_nt4_0) || defined(alpha_dec_osf4_0)
+#if defined(i386_unknown_nt4_0) \
+ || defined(alpha_dec_osf4_0)
+
     printf("Skipping test #4 (fork & exec)\n");
     printf("    not implemented on this platform\n");
     passedTest[4] = true;
+
 #else
     int n = 0;
     const char *child_argv[MAX_TEST+5];
@@ -765,7 +777,11 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4) \
+ || defined(ia64_unknown_linux2_4)
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif

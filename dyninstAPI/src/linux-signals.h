@@ -39,9 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-signals.h,v 1.2 2004/03/23 01:12:05 eli Exp $
+// $Id: linux-signals.h,v 1.3 2005/02/24 10:16:30 rchen Exp $
 
-#if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
+#if !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(ia64_unknown_linux2_4)
 #error "invalid architecture-os inclusion"
 #endif
 

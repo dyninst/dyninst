@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.112 2005/02/09 03:27:48 jaw Exp $ */
+/* $Id: test1.mutatee.c,v 1.113 2005/02/24 10:17:34 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -64,11 +64,12 @@
 #include <iostream>
 #endif
 
-#if defined(sparc_sun_solaris2_4) || \
-    defined(alpha_dec_osf4_0) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(ia64_unknown_linux2_4)
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -514,13 +515,14 @@ void call22_7(int x)
      globalVariable22_4 += MAGIC22_7;
 }
 
-#if defined(sparc_sun_solaris2_4) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_nt4_0) ||\
-    defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0) || \
-    defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(ia64_unknown_linux2_4)
 
 /* this function has to be only 1 line for test30 to pass */
 /* these two lines has to be together otherwise test30 will fail */
@@ -978,7 +980,8 @@ void func15_1()
     check15result("globalVariable15_1", globalVariable15_1, 1,
 		  "after first call to instrumented function", &failed);
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)
     /* Test a function that makes a system call (is a special case on Sparc) */
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 2,
@@ -997,7 +1000,8 @@ void func15_1()
     check15result("globalVariable15_1", globalVariable15_1, 1,
 		  "after second call to instrumented function", &failed);
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 2,
 		  "after second call to instrumented function", &failed);
@@ -1015,7 +1019,8 @@ void func15_1()
     check15result("globalVariable15_1", globalVariable15_1, 2,
 		  "after third call to instrumented function", &failed);
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3) \
+ || defined(sparc_sun_solaris2_4)
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 4,
 		  "after third call to instrumented function", &failed);
@@ -1263,6 +1268,7 @@ void func21_1()
  || defined(mips_sgi_irix6_4) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(alpha_dec_osf4_0) \
  || defined(rs6000_ibm_aix4_1) \
  || defined(ia64_unknown_linux2_4)
@@ -1288,7 +1294,11 @@ volatile int _unused;	/* move decl here to dump compiler warning - jkh */
 
 void func22_1()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(ia64_unknown_linux2_4)
 
     printf("Skipped test #22 (replace function)\n");
     printf("\t- not implemented on this platform\n");
@@ -1413,13 +1423,14 @@ void call23_1()
 
 void func23_1()
 {
-#if !defined(sparc_sun_solaris2_4) && \
-    !defined(alpha_dec_osf4_0) && \
-    !defined(rs6000_ibm_aix4_1) && \
-    !defined(i386_unknown_linux2_0) && \
-    !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_nt4_0) && \
-    !defined(ia64_unknown_linux2_4)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
 
     printf("Skipped test #23 (local variables)\n");
     printf("\t- not implemented on this platform\n");
@@ -1489,13 +1500,14 @@ void call24_1()
 
 void func24_1()
 {
-#if !defined(sparc_sun_solaris2_4) && \
-    !defined(rs6000_ibm_aix4_1) && \
-    !defined(alpha_dec_osf4_0) && \
-    !defined(i386_unknown_linux2_0) && \
-    !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_nt4_0) && \
-    !defined(ia64_unknown_linux2_4)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
 
     printf("Skipped test #24 (arrary variables)\n");
     printf("\t- not implemented on this platform\n");
@@ -1690,13 +1702,14 @@ void call26_1()
 
 void func26_1()
 {
-#if !defined(sparc_sun_solaris2_4) && \
-    !defined(alpha_dec_osf4_0) && \
-    !defined(rs6000_ibm_aix4_1) && \
-    !defined(i386_unknown_linux2_0) && \
-    !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_nt4_0) && \
-    !defined(ia64_unknown_linux2_4)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
 
     printf("Skipped test #26 (struct elements)\n");
     printf("\t- not implemented on this platform\n");
@@ -1776,13 +1789,14 @@ type27_4 dummy4;
 
 void func27_1()
 {
-#if !defined(sparc_sun_solaris2_4) && \
-    !defined(rs6000_ibm_aix4_1) && \
-    !defined(alpha_dec_osf4_0) && \
-    !defined(i386_unknown_linux2_0) && \
-    !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_nt4_0) && \
-    !defined(ia64_unknown_linux2_4)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ia64_unknown_linux2_4)
 
     printf("Skipped test #27 (type compatibility)\n");
     printf("\t- not implemented on this platform\n");
@@ -1884,13 +1898,14 @@ int func30_1()
     kludge = 1;	/* Here so that the following function call isn't the first
 		   instruction */
 
-#if defined(sparc_sun_solaris2_4) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(ia64_unknown_linux2_4) || \
-    defined(i386_unknown_nt4_0) ||\
-    defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(alpha_dec_osf4_0)
     
     func30_2();
 
@@ -2240,7 +2255,11 @@ void func34_1()
     printf( "Passed test #34 (loop information)\n" );
 }
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4)
+
 #ifndef Fortran
 #ifdef __cplusplus
 extern "C" int call35_1();
@@ -2252,7 +2271,11 @@ extern int call35_1();
 
 void func35_1()
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4)
+
 #if !defined Fortran
 
     int value;
@@ -2283,7 +2306,7 @@ void func35_1()
 #if defined(i386_unknown_nt4_0)
     printf( "\t- test not implemented for this platform\n" );
 #else
-#if defined( ia64_unknown_linux2_4)
+#if defined(ia64_unknown_linux2_4)
     printf( "\t- not applicable to this platform.\n" );
 #else
     printf( "\t- not implemented on this platform\n" );
@@ -2563,6 +2586,7 @@ void func39_1() {
  || defined(alpha_dec_osf4_0) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) \
  || defined(mips_sgi_irix6_4) \
  || defined(rs6000_ibm_aix4_1)
@@ -2658,8 +2682,10 @@ void func40_1(void)
    return;
 #endif
    
-#if !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4)\
-    && !defined(mips_sgi_irix6_4) && !defined(os_windows)
+#if !defined(alpha_dec_osf4_0) \
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(mips_sgi_irix6_4) \
+ && !defined(os_windows)
     
     passedTest [40 ] = TRUE;  /* lets be optimistic  -- ha! */
 

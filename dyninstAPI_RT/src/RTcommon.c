@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.39 2005/02/09 03:27:50 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.40 2005/02/24 10:14:55 rchen Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -133,7 +133,10 @@ static void initFPU()
        DYNINSTdummydouble *= x;
 }
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 int isMutatedExec = 0;
 #else
 void RTmutatedBinary_init() {
@@ -153,7 +156,10 @@ void DYNINSTinit(int cause, int pid)
     
     DYNINST_mutatorPid = pid;
     
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 	/* this checks to see if this is a restart or a
 	  	normal attach  ccw 19 nov 2001*/
 	

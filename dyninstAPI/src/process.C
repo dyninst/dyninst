@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.521 2005/02/17 21:10:54 bernat Exp $
+// $Id: process.C,v 1.522 2005/02/24 10:16:54 rchen Exp $
 
 #include <ctype.h>
 
@@ -73,7 +73,9 @@
 
 #include "dyninstAPI/h/BPatch.h"
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 #include "dyninstAPI/src/writeBackElf.h"
 #include "dyninstAPI/src/saveSharedLibrary.h" 
 #elif defined(rs6000_ibm_aix4_1)
@@ -204,7 +206,8 @@ pdstring process::pdFlavor;
 extern pdstring osName;
 #endif
 
-#if defined (i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 extern void cleanupVsysinfo(void *ehd);
 #endif
 
@@ -232,7 +235,8 @@ void setLibState(libraryState_t &lib, libraryState_t state) {
 }
 
 /* AIX method defined in aix.C; hijacked for IA-64's GP. */
-#if !defined(rs6000_ibm_aix4_1) && !defined( ia64_unknown_linux2_4 )
+#if !defined(rs6000_ibm_aix4_1) \
+ && !defined(ia64_unknown_linux2_4)
 Address process::getTOCoffsetInfo(Address /*dest */)
 {
   Address tmp = 0;
@@ -267,7 +271,7 @@ Address process::getTOCoffsetInfo(Address dest)
 
 #endif
 
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 extern void calcVSyscallFrame(process *p);
 #endif
 
@@ -304,7 +308,7 @@ bool process::walkStackFromFrame(Frame startFrame,
     /* Suppress this frame; catch-up doesn't need it, and the user shouldn't see it. */
     currentFrame = currentFrame.getCallerFrame(); 
   }
-#elif defined(arch_x86)
+#elif defined(arch_x86) || defined(arch_x86_64)
   calcVSyscallFrame(this);
   if (next_pc >= getVsyscallStart() && next_pc < getVsyscallEnd()) {
      currentFrame = currentFrame.getCallerFrame();
@@ -321,7 +325,8 @@ bool process::walkStackFromFrame(Frame startFrame,
 
     // Check that we are not moving up the stack
     // successive frame pointers might be the same (e.g. leaf functions)
-#if !defined(i386_unknown_linux2_0)
+#if !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     if (fpOld > fpNew) {
       
       // AIX:
@@ -604,7 +609,7 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
  */
 bool process::isInSignalHandler(Address addr)
 {
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
   for (unsigned int i = 0; i < signal_restore.size(); i++)
   {
     if (addr == signal_restore[i])
@@ -639,7 +644,10 @@ bool process::isInSignalHandler(Address addr)
  * been written by the mutator //ccw 26 nov 2001
  */
  
-#if defined( sparc_sun_solaris2_4 ) || defined( i386_unknown_linux2_0 ) || defined( rs6000_ibm_aix4_1 )
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 
 void process::saveWorldData( Address address, int size, const void * src ) {
 	if( collectSaveWorldData ) {
@@ -658,7 +666,10 @@ void process::saveWorldData( Address, int, const void* ) { ; }
 
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 /* || defined(rs6000_ibm_aix4_1)*/
 
 char* process::saveWorldFindDirectory(){
@@ -702,7 +713,9 @@ char* process::saveWorldFindDirectory(){
 }
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, 
                                  unsigned int &dyninst_SharedLibrariesSize, 
                                  char* directoryName, unsigned int &count) {
@@ -880,7 +893,10 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 }
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 void process::saveWorldCreateHighMemSections(
                         pdvector<imageUpdate*> &compactedHighmemUpdates, 
                         pdvector<imageUpdate*> &highmem_updates,
@@ -895,7 +911,9 @@ void process::saveWorldCreateHighMemSections(
    int startIndex, stopIndex;
    void *data;
    char name[50];
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 	writeBackElf *newFile = (writeBackElf*) ptr;
 #elif defined(rs6000_ibm_aix4_1)
 	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
@@ -981,7 +999,9 @@ void process::saveWorldCreateHighMemSections(
 
       //bperr(" NUMBER OF UPDATES 0x%x  %d %x\n\n",numberUpdates,dataSize,dataSize);
       sprintf(name,"dyninstAPIhighmem_%08x",j);
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       newFile->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);
 #elif defined(rs6000_ibm_aix4_1)
 	  sprintf(name, "dyH_%03x",j);
@@ -998,7 +1018,9 @@ void process::saveWorldCreateHighMemSections(
 
 void process::saveWorldCreateDataSections(void* ptr){
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 	writeBackElf *newFile = (writeBackElf*) ptr;
 #elif defined(rs6000_ibm_aix4_1)
 	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
@@ -1029,7 +1051,9 @@ void process::saveWorldCreateDataSections(void* ptr){
 		*(int*) ptr=0;
 		ptr += sizeof(int);
 		*(unsigned int*) ptr=0;
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 		newFile->addSection(0/*lastCompactedUpdateAddress*/, dataUpdatesData, 
 			sizeofDataUpdatesData + (sizeof(int) + sizeof(Address)), "dyninstAPI_data", false);
 #elif defined(rs6000_ibm_aix4_1)
@@ -1044,13 +1068,18 @@ void process::saveWorldCreateDataSections(void* ptr){
 }
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 
 void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002 
 
 	int dataSize=0;
 	char *data, *dataptr;
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 	writeBackElf *newFile = (writeBackElf*) ptr;
 #elif defined(rs6000_ibm_aix4_1)
 	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
@@ -1074,7 +1103,9 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 	}
 	*dataptr = '\0'; //mark the end
 	if(dataSize > 1){
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 		newFile->addSection(0, data, dataSize, "dyninstAPI_loadLib", false);
 #elif  defined(rs6000_ibm_aix4_1)
 		newFile->addSection("dyn_lib",0,0, dataSize, data);
@@ -1497,12 +1528,16 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 //		bperr(" \n ALLOCATION: %lx %lx ntry: %d\n", h->addr, size,ntry);
 //		fflush(stdout);
 //	}
-#if defined(sparc_sun_solaris2_4 ) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
    if(collectSaveWorldData){
       
 #if defined(sparc_sun_solaris2_4)
       if(h->addr < 0xF0000000)
-#elif defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       if(h->addr < 0x40000000)
 #elif defined(rs6000_ibm_aix4_1)
 	if(h->addr < 0x20000000)
@@ -1647,7 +1682,7 @@ void process::deleteProcess() {
     }
 
     // Signal handler
-#if !(defined(os_linux) && defined(arch_x86))
+#if !(defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64)))
    signal_handler = 0;
 #endif
 
@@ -1709,7 +1744,8 @@ process::~process()
         }        
     }
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     cleanupVsysinfo(getVsyscallData());
 #endif
 
@@ -1747,7 +1783,8 @@ process::process(int iPid, image *iImage, int iTraceLink) :
 #if !defined(BPATCH_LIBRARY)
   previous(0),
 #endif
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
+#if defined(i386_unknown_nt4_0) \
+ || (defined mips_unknown_ce2_11)
   windows_termination_requested(false),
 #endif
   representativeLWP(NULL),
@@ -1824,14 +1861,15 @@ process::process(int iPid, image *iImage, int iTraceLink) :
    all_modules = 0;
    some_modules = 0;
    some_functions = 0;
-#if !(defined(os_linux) && defined(arch_x86))
+#if !(defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64)))
    signal_handler = 0;
 #endif
    execed_ = false;
 
    inInferiorMallocDynamic = false;
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     vsyscall_start_ = 0x0;
     vsyscall_end_ = 0x0;
     vsyscall_text_ = 0x0;
@@ -1840,7 +1878,9 @@ process::process(int iPid, image *iImage, int iTraceLink) :
 
    splitHeaps = false;
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
+#if defined(rs6000_ibm_aix3_2) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(alpha_dec_osf4_0)
    // XXXX - move this to a machine dependant place.
 
    // create a seperate text heap.
@@ -1876,6 +1916,8 @@ process::process(int iPid, image *iImage, int iTraceLink) :
 #endif
 #endif
 
+   // Set name of RT library.
+   getDyninstRTLibName();
 } // end of normal constructor
     
 
@@ -1903,10 +1945,11 @@ process::process(int iPid, image *iSymbols,
 #endif
   savedRegs(NULL),
   pid(iPid),
-#if !defined(BPATCH_LIBRARY)  && defined(i386_unknown_nt4_0)
+#if !defined(BPATCH_LIBRARY) && defined(i386_unknown_nt4_0)
   previous(0), //ccw 8 jun 2002
 #endif
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
+#if defined(i386_unknown_nt4_0) \
+ || (defined mips_unknown_ce2_11)
   windows_termination_requested(false),
 #endif
   representativeLWP(NULL),
@@ -1971,13 +2014,15 @@ process::process(int iPid, image *iSymbols,
     all_modules = 0;
     some_modules = 0;
     some_functions = 0;
-#if !(defined(os_linux) && defined(arch_x86))
+#if !(defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64)))
     signal_handler = 0;
 #endif
     execed_ = false;
 
     splitHeaps = false;
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
+#if defined(rs6000_ibm_aix3_2) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(alpha_dec_osf4_0)
         // XXXX - move this to a machine dependant place.
 
         // create a seperate text heap.
@@ -1985,7 +2030,8 @@ process::process(int iPid, image *iSymbols,
         splitHeaps = true;
 #endif
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     vsyscall_start_ = 0x0;
     vsyscall_end_ = 0x0;
     vsyscall_text_ = 0x0;
@@ -2020,7 +2066,8 @@ process::process(int iPid, image *iSymbols,
       return;
    }
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix3_2) \
+ || defined(rs6000_ibm_aix4_1)
    // Now that we're attached, we can reparse the image with correct
    // settings.
    // Process is paused 
@@ -2072,6 +2119,9 @@ process::process(int iPid, image *iSymbols,
 #endif
 #endif
 
+   // Set name of RT library.
+   getDyninstRTLibName();
+
    // Everything worked
    success = true;
 }
@@ -2100,7 +2150,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #if !defined(BPATCH_LIBRARY)
   previous(0),
 #endif
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
+#if defined(i386_unknown_nt4_0) \
+ || defined(mips_unknown_ce2_11)
   windows_termination_requested(false),
 #endif
   representativeLWP(NULL),
@@ -2209,7 +2260,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    cumObsCost = 0;
    lastObsCostLow = 0;
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     vsyscall_start_ = 0x0;
     vsyscall_end_ = 0x0;
     vsyscall_text_ = 0x0;
@@ -2250,7 +2302,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
          (*some_functions).push_back((*parentProc.some_functions)[u5]);
    }
 
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
    signal_restore = parentProc.signal_restore;
 #else
    signal_handler = parentProc.signal_handler;
@@ -2290,6 +2342,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #endif
 
    initTrampGuard();
+
+   // Set name of RT library.
+   getDyninstRTLibName();
 }
 
 // #endif
@@ -2493,7 +2548,8 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 
     theProc->createInitialThread();
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix3_2) \
+ || defined(rs6000_ibm_aix4_1)
     // XXXX - this is a hack since getExecFileDescriptor needed to wait for
     //    the TRAP signal.
     // We really need to move most of the above code (esp parse image)
@@ -2990,7 +3046,7 @@ bool process::finalizeDyninstLib() {
        // Install our system call tracing
        tracedSyscalls_ = new syscallNotification(this);
 
-       //#ifdef i386_unknown_linux2_4
+       //#ifdef i386_unknown_linux2_0
        //if(pdFlavor != "mpi") {
        //#endif
           // TODO: prefork and pre-exit should depend on whether a callback is defined
@@ -3004,7 +3060,7 @@ bool process::finalizeDyninstLib() {
              cerr << "Warning: failed post-exec notification setup" << endl;
           if (!tracedSyscalls_->installPreExit()) 
              cerr << "Warning: failed pre-exit notification setup" << endl;
-          //#ifdef i386_unknown_linux2_4
+          //#ifdef i386_unknown_linux2_0
           //}
           //#endif
    }
@@ -3163,7 +3219,8 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
     // initializing hash table for threads. This table maps threads to
     // positions in the superTable - naim 4/14/97
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix3_2) \
+ || defined(rs6000_ibm_aix4_1)
     // XXXX - this is a hack since getExecFileDescriptor needed to wait for
     //        the TRAP signal.
     // We really need to move most of the above code (esp parse image)
@@ -3907,7 +3964,8 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
         addInferiorHeap(img, newBaseAddr);
 
 
-#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#if !defined(i386_unknown_nt4_0) \
+ && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     /* If we're not currently trying to load the runtime library,
        check whether this shared object is the runtime lib. */
     if (!(bootstrapState == loadingRT)
@@ -3948,7 +4006,8 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     }
 
     // if the signal handler function has not yet been found search for it
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     if(signal_restore.size() == 0){
       Symbol s;
       if (img->symbol_info(SIGNAL_HANDLER, s)) {
@@ -3959,8 +4018,8 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
 #else
     //  JAW -- 04-03  SIGNAL HANDLER seems to only be validly defined for solaris/linux/mips
     //      I don't know if this is correct, but given this fact, I'm putting in the following #if
-#if defined(sparc_sun_solaris2_4)  \
-    || defined(sparc_sun_solaris2_5)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(sparc_sun_solaris2_5)
  
     if(!signal_handler){
       pdvector<int_function *> *pdfv;
@@ -4669,7 +4728,8 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
     return false;
 }
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 // findSignalHandler: if signal_restore is empty, then it checks all images
 // associated with this process for the signal restore function.
 // Otherwise, the signal restore function has already been found
@@ -4759,6 +4819,7 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
      Address baseAddr;
      static const pdstring underscore = "_";
 #if !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(ia64_unknown_linux2_4) \
  && !defined(alpha_dec_osf4_0) \
  && !defined(i386_unknown_nt4_0) \
@@ -4859,7 +4920,9 @@ bool process::detachProcess(const bool leaveRunning) {
 // Note: this may happen when the process is already gone. 
 bool process::detach(const bool leaveRunning ) {
 
-#if !defined(i386_unknown_linux2_0) && !defined(ia64_unknown_linux2_4)
+#if !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(ia64_unknown_linux2_4)
     // Run the process if desired
     // Linux does not support this for two reasons: 1) the process must be paused
     // when we detach, and 2) the process is _always_ continued when we detach
@@ -4881,7 +4944,9 @@ bool process::detach(const bool leaveRunning ) {
         lwp->detach();
     }
 
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4)
     // On Lee-nucks the process occasionally does _not_ continue. On the
     // other hand, we've detached from it. So here we send a SIGCONT
     // to continue the proc (if the user wants it) and SIGSTOP to stop it
@@ -4915,7 +4980,7 @@ bool process::handleSyscallExit(procSignalWhat_t, dyn_lwp *lwp_with_event)
    for (unsigned iter = 0; iter < threads.size(); iter++) {
       dyn_thread *thr = threads[iter];
       dyn_lwp *lwp = thr->get_lwp();
-#if !defined(rs6000_ibm_aix4_1)  || defined(AIX_PROC)  // non AIX-PTRACE
+#if !defined(rs6000_ibm_aix4_1) || defined(AIX_PROC)  // non AIX-PTRACE
       if(lwp != lwp_with_event)
          continue;
 #endif
@@ -5108,7 +5173,8 @@ void process::handleExecExit() {
 	heap.bufferPool.resize(0);
 
     // initInferiorHeap can only be called after symbols is set!
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#if defined(i386_unknown_nt4_0) \
+ || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     initInferiorHeap();
 #endif
 

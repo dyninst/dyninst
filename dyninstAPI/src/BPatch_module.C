@@ -173,7 +173,7 @@ BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img 
 			setLanguage( BPatch_unknownLanguage );
 			break;
 	} /* end language switch */
-	
+
 	pdvector< int_function * > * functions = mod->getFunctions();
 	for( unsigned int i = 0; i < functions->size(); i++ ) {
 	  /* The bpfs for a shared object module won't have been built by now,
@@ -195,7 +195,6 @@ BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img 
 	}
 	moduleTypes = NULL;
 	parseTypesIfNecessary();
-
 
 #if defined(TIMED_PARSE)
     struct timeval endtime;
@@ -651,10 +650,11 @@ void BPatch_module::parseTypes()
 
 #endif
 
-#if defined(sparc_sun_solaris2_4) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4)
 
 
 void BPatch_module::parseTypes() 
@@ -681,10 +681,9 @@ void BPatch_module::parseTypes()
 // does NOT parse file-line info anymore, this is done later, upon request.
 void BPatch_module::parseStabTypes() 
 {
-  int stab_nsyms;
-  char *stabstr_nextoffset;
-  const char *stabstrs = 0;
-  struct stab_entry *stabptr = NULL;
+  stab_entry *stabptr;
+  const char *next_stabstr;
+
   int i;
   char *modName;
   char * temp=NULL;
@@ -717,17 +716,17 @@ void BPatch_module::parseStabTypes()
 
   //Using the Object to get the pointers to the .stab and .stabstr
   // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-  objPtr.get_stab_info((void **) &stabptr, stab_nsyms, 
-		       (void **) &stabstr_nextoffset);
+  stabptr = objPtr.get_stab_info();
+  next_stabstr = stabptr->getStringBase();
 
-  for (i=0; i<stab_nsyms; i++) {
-    switch(stabptr[i].type){
+  for (i=0; i<stabptr->count(); i++) {
+    switch(stabptr->type(i)){
     case N_UNDF: /* start of object file */
       /* value contains offset of the next string table for next module */
-      // assert(stabptr[i].name == 1);
-      stabstrs = stabstr_nextoffset;
-      stabstr_nextoffset = const_cast<char*>(stabstrs) + stabptr[i].val;
-      
+      // assert(stabptr->nameIdx(i) == 1);
+      stabptr->setStringBase(next_stabstr);
+      next_stabstr = stabptr->getStringBase() + stabptr->val(i);
+
       //N_UNDF is the start of object file. It is time to 
       //clean source file name at this moment.
       /*
@@ -757,7 +756,7 @@ void BPatch_module::parseStabTypes()
       current_mangled_func_name = NULL; // reset for next object file
       current_func = NULL;
 
-      modName = const_cast<char*>(&stabstrs[stabptr[i].name]);
+      modName = const_cast<char*>(stabptr->name(i));
       // cerr << "checkpoint B" << endl;
       ptr = strrchr(modName, '/');
       //  cerr << "checkpoint C" << endl;
@@ -771,7 +770,7 @@ void BPatch_module::parseStabTypes()
         moduleTypes->clearNumberedTypes();
 	BPatch_language lang;
 	// language should be set in the constructor, this is probably redundant
-	switch (stabptr[i].desc) {
+	switch (stabptr->desc(i)) {
 	case N_SO_FORTRAN:
 	  lang = BPatch_fortran;
 	  break;
@@ -810,7 +809,7 @@ void BPatch_module::parseStabTypes()
 #endif
 	    break;
     case N_SLINE:
-      mostRecentLinenum = stabptr[i].desc;
+      mostRecentLinenum = stabptr->desc(i);
       break;
     default:
       break;
@@ -819,7 +818,7 @@ void BPatch_module::parseStabTypes()
 
     if(parseActive || mod->isShared()) {
       BPatch_Vector<BPatch_function *> bpfv;
-      switch(stabptr[i].type){
+      switch(stabptr->type(i)){
       case N_FUN:
 #ifdef TIMED_PARSE
 	fun_count++;
@@ -829,15 +828,15 @@ void BPatch_module::parseStabTypes()
 	//properly set the var currentFunctionName for the later case of (parseActive)
       current_func = NULL;
       int currentEntry = i;
-      int funlen = strlen(&stabstrs[stabptr[currentEntry].name]);
+      int funlen = strlen(stabptr->name(currentEntry));
       ptr = new char[funlen+1];
-      strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+      strcpy(ptr, stabptr->name(currentEntry));
       while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
 	ptr[strlen(ptr)-1] = '\0';
 	currentEntry++;
-	strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+	strcat(ptr,stabptr->name(currentEntry));
       }
-      
+
       char* colonPtr = NULL;
       if(currentFunctionName) delete currentFunctionName;
       if(!ptr || !(colonPtr = strchr(ptr,':')))
@@ -885,10 +884,10 @@ void BPatch_module::parseStabTypes()
       }
     if (!parseActive) continue;
 
-    switch(stabptr[i].type){
+    switch(stabptr->type(i)){
       case N_BCOMM:	{
 	// begin Fortran named common block 
-	commonBlockName = const_cast<char*>(&stabstrs[stabptr[i].name]);
+	commonBlockName = const_cast<char*>(stabptr->name(i));
 
 	// find the variable for the common block
 	BPatch_image *progam = (BPatch_image *) getObjParent();
@@ -947,11 +946,11 @@ void BPatch_module::parseStabTypes()
 	pss_count++;
 	gettimeofday(&t1, NULL);
 #endif
-        if (stabptr[i].type == N_FUN) current_func = NULL;
-	ptr = const_cast<char *>(&stabstrs[stabptr[i].name]);
+        if (stabptr->type(i) == N_FUN) current_func = NULL;
+	ptr = const_cast<char *>(stabptr->name(i));
 	while (ptr[strlen(ptr)-1] == '\\') {
 	  //ptr[strlen(ptr)-1] = '\0';
-	  ptr2 =  const_cast<char *>(&stabstrs[stabptr[i+1].name]);
+	  ptr2 =  const_cast<char *>(stabptr->name(i+1));
 	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
 	  strcpy(ptr3, ptr);
 	  ptr3[strlen(ptr)-1] = '\0';
@@ -965,9 +964,9 @@ void BPatch_module::parseStabTypes()
 	// bperr("stab #%d = %s\n", i, ptr);
 	// may be nothing to parse - XXX  jdd 5/13/99
 	if (nativeCompiler)
-	  temp = parseStabString(this, mostRecentLinenum, (char *)ptr, stabptr[i].val, commonBlock);
+	  temp = parseStabString(this, mostRecentLinenum, (char *)ptr, stabptr->val(i), commonBlock);
 	else
-	  temp = parseStabString(this, stabptr[i].desc, (char *)ptr, stabptr[i].val, commonBlock);
+	  temp = parseStabString(this, stabptr->desc(i), (char *)ptr, stabptr->val(i), commonBlock);
 	if (temp && *temp) {
 	  //Error parsing the stabstr, return should be \0
 	  bperr( "Stab string parsing ERROR!! More to parse: %s\n",
@@ -1036,7 +1035,8 @@ void BPatch_module::parseTypes()
 
 
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
+#if defined(i386_unknown_nt4_0) \
+ || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
 
 // Parsing symbol table for NT platform
 // Mehmet 7/24/00
@@ -1138,10 +1138,10 @@ bool BPatch_module::getLineToAddrInt(unsigned short lineNo,
 	//if the line information is not created yet return false
 
 	if(!mod->lineInformation){
-#if !defined(rs6000_ibm_aix4_1) && \
-    !defined(mips_sgi_irix6_4) && \
-    !defined(alpha_dec_osf4_0) && \
-    !defined(i386_unknown_nt4_0)  
+#if !defined(rs6000_ibm_aix4_1) \
+ && !defined(mips_sgi_irix6_4) \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(i386_unknown_nt4_0)
 
 	  mod->parseFileLineInfo(proc);
 #else

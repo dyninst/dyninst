@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.60 2005/02/18 22:21:41 bernat Exp $
+// $Id: linux-x86.C,v 1.61 2005/02/24 10:16:33 rchen Exp $
 
 #include <fstream>
 
@@ -146,7 +146,7 @@ static bool debug_ptrace = false;
 #define NUM_FREGS 8
 #define FP0_REGNUM NUM_REGS
 #define FP7_REGNUM (FP0_REGNUM+7)
-#define INTREGSIZE (sizeof(int))
+#define INTREGSIZE (sizeof(long))
 #define FPREGSIZE 10
 #define MAX_REGISTER_RAW_SIZE 10
 
@@ -169,12 +169,12 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
    int error;
    bool errorFlag = false;
    assert(get_lwp_id() != 0);
-   error = P_ptrace(PTRACE_GETREGS, get_lwp_id(), 0, (int)&(regs->gprs) );
+   error = P_ptrace(PTRACE_GETREGS, get_lwp_id(), 0, (long)&(regs->gprs) );
    if( error ) {
       perror("dyn_lwp::getRegisters PTRACE_GETREGS" );
       errorFlag = true;
    } else {
-      error = P_ptrace(PTRACE_GETFPREGS, get_lwp_id(), 0, (int)&(regs->fprs));
+      error = P_ptrace(PTRACE_GETFPREGS, get_lwp_id(), 0, (long)&(regs->fprs));
       if( error ) {
          perror("dyn_lwp::getRegisters PTRACE_GETFPREGS" );
          errorFlag = true;
@@ -190,7 +190,7 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
 bool dyn_lwp::changePC(Address loc,
                        struct dyn_saved_regs */*ignored registers*/)
 {
-   Address regaddr = EIP * INTREGSIZE;
+   Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_IP);
    assert(get_lwp_id() != 0);
    if (0 != P_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc )) {
       perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
@@ -201,7 +201,7 @@ bool dyn_lwp::changePC(Address loc,
 }
 
 bool dyn_lwp::clearOPC() {
-   Address regaddr = ORIG_EAX * INTREGSIZE;
+   Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_ORIG_AX);
    assert(get_lwp_id() != 0);
    if (0 != P_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, -1UL)) {
       perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
@@ -211,35 +211,37 @@ bool dyn_lwp::clearOPC() {
 }
 
 static bool changeBP(int pid, Address loc) {
-   Address regaddr = EBP * INTREGSIZE;
+   Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_BP);
    if (0 != P_ptrace(PTRACE_POKEUSER, pid, regaddr, loc )) {
       perror( "process::changeBP - PTRACE_POKEUSER" );
       return false;
    }
-   
+
    return true;
 }
 
+#define REG_STR(x)	REG_STR_(x)
+#define REG_STR_(x)	#x
 void printRegs( void *save ) {
-	user_regs_struct *regs = (user_regs_struct*)save;
-	cerr
-		<< " eax: " << (void*)regs->eax
-		<< " ebx: " << (void*)regs->ebx
-		<< " ecx: " << (void*)regs->ecx
-		<< " edx: " << (void*)regs->edx << endl
-		<< " edi: " << (void*)regs->edi
-		<< " esi: " << (void*)regs->esi << endl
-		<< " xcs: " << (void*)regs->xcs
-		<< " xds: " << (void*)regs->xds
-		<< " xes: " << (void*)regs->xes
-		<< " xfs: " << (void*)regs->xfs
-		<< " xgs: " << (void*)regs->xgs
-		<< " xss: " << (void*)regs->xss << endl
-		<< " eip: " << (void*)regs->eip
-		<< " esp: " << (void*)regs->esp
-		<< " ebp: " << (void*)regs->ebp << endl
-		<< " orig_eax: " << (void*)regs->orig_eax
-		<< " eflags: " << (void*)regs->eflags << endl;
+    user_regs_struct *regs = (user_regs_struct*)save;
+    cerr
+	<< REG_STR( PTRACE_REG_AX ) ": " << (void*)regs->PTRACE_REG_AX
+	<< REG_STR( PTRACE_REG_BX ) ": " << (void*)regs->PTRACE_REG_BX
+	<< REG_STR( PTRACE_REG_CX ) ": " << (void*)regs->PTRACE_REG_CX
+	<< REG_STR( PTRACE_REG_DX ) ": " << (void*)regs->PTRACE_REG_DX << endl
+	<< REG_STR( PTRACE_REG_DI ) ": " << (void*)regs->PTRACE_REG_DI
+	<< REG_STR( PTRACE_REG_SI ) ": " << (void*)regs->PTRACE_REG_SI << endl
+	<< REG_STR( PTRACE_REG_CS ) ": " << (void*)regs->PTRACE_REG_CS
+	<< REG_STR( PTRACE_REG_DS ) ": " << (void*)regs->PTRACE_REG_DS
+	<< REG_STR( PTRACE_REG_ES ) ": " << (void*)regs->PTRACE_REG_ES
+	<< REG_STR( PTRACE_REG_FS ) ": " << (void*)regs->PTRACE_REG_FS
+	<< REG_STR( PTRACE_REG_GS ) ": " << (void*)regs->PTRACE_REG_GS
+	<< REG_STR( PTRACE_REG_SS ) ": " << (void*)regs->PTRACE_REG_SS << endl
+	<< REG_STR( PTRACE_REG_IP ) ": " << (void*)regs->PTRACE_REG_IP
+	<< REG_STR( PTRACE_REG_SP ) ": " << (void*)regs->PTRACE_REG_SP
+	<< REG_STR( PTRACE_REG_BP ) ": " << (void*)regs->PTRACE_REG_BP << endl
+	<< REG_STR( PTRACE_REG_ORIG_AX ) ": " << (void*)regs->PTRACE_REG_ORIG_AX
+	<< REG_STR( PTRACE_REG_FLAGS ) ": " << (void*)regs->PTRACE_REG_FLAGS << endl;
 }
 
 bool dyn_lwp::executingSystemCall() 
@@ -254,13 +256,13 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
    bool retVal = true;
    
    assert(get_lwp_id() != 0);
-   if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(int)&(regs.gprs) ) )
+   if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(long)&(regs.gprs) ) )
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
       retVal = false;
    }
    
-   if( P_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (int)&(regs.fprs)))
+   if( P_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (long)&(regs.fprs)))
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
       retVal = false;
@@ -278,13 +280,15 @@ Frame dyn_lwp::getActiveFrame()
    }
 
    Address pc, fp, sp;
-   fp = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
+
+   errno = 0;
+   fp = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_BP), 0);
    if (errno) return Frame();
 
-   pc = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
+   pc = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_IP), 0);
    if (errno) return Frame();
 
-   sp = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + UESP * INTREGSIZE, 0);
+   sp = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_SP), 0);
    if (errno) return Frame();
 
    return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
@@ -293,7 +297,7 @@ Frame dyn_lwp::getActiveFrame()
 // MT problem FIXME
 
 Address getPC(int pid) {
-   Address regaddr = EIP * INTREGSIZE;
+   Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_IP);
    int res;
    res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
    if(errno == ESRCH) { //ccw 6 sep 2002
@@ -335,17 +339,17 @@ bool process::loadDYNINSTlibCleanup()
 
   // restore the stack frame of _start()
   user_regs_struct *theIntRegs = (user_regs_struct *)savedRegs;
-  RegValue theEBP = theIntRegs->ebp;
+  RegValue theBP = theIntRegs->PTRACE_REG_BP;
 
-  if( !theEBP )
+  if( !theBP )
   {
-	  theEBP = theIntRegs->esp;
+	  theBP = theIntRegs->PTRACE_REG_SP;
   }
 
-  assert (theEBP);
+  assert (theBP);
   // this is pretty kludge. if the stack frame of _start is not the right
   // size, this would break.
-  if (!writeDataSpace ((void*)(theEBP-6*sizeof(int)),6*sizeof(int),savedStackFrame)) return false;
+  if (!writeDataSpace ((void*)(theBP-6*sizeof(int)),6*sizeof(int),savedStackFrame)) return false;
 
   delete savedRegs;
   savedRegs = NULL;
@@ -699,7 +703,14 @@ extern int tramp_pre_frame_size;
 
 //The estimated maximum frame size when having to do an 
 // exhaustive search for a frame.
-#define MAX_STACK_FRAME 8192
+#define MAX_STACK_FRAME_SIZE 8192
+
+// x86_64 uses a different stack address than standard x86.
+#if defined(x86_64_unknown_linux2_4)
+#define MAX_STACK_FRAME_ADDR 0xffffffffffffffff
+#else
+#define MAX_STACK_FRAME_ADDR 0xbfffffff
+#endif
 
 //Constant values used for the registers in the vsyscall page.
 #define DW_CFA  0
@@ -845,10 +856,10 @@ Frame Frame::getCallerFrame()
        *  - Peek ahead.  If the stack trace from following the address doesn't
        *     end with the top of the stack, we probably shouldn't follow it.
        **/
-      unsigned int estimated_sp;
-      unsigned int estimated_ip;
-      unsigned int estimated_fp;
-      unsigned int stack_top;
+      unsigned long estimated_sp;
+      unsigned long estimated_ip;
+      unsigned long estimated_fp;
+      unsigned long stack_top;
       int_function *callee;
       bool result;
 
@@ -856,20 +867,21 @@ Frame Frame::getCallerFrame()
        * Calculate the top of the stack.
        **/
       stack_top = 0;
-      if (sp_ < 0xbfffffff && sp_ > 0xbfffffff - 0x200000)
+      if (sp_ < MAX_STACK_FRAME_ADDR && sp_ > MAX_STACK_FRAME_ADDR - 0x200000)
       {
-         //If we're within two megs of the linux x86 default stack, we'll
-         // assume that's the one in use.
-        stack_top = 0xc0000000 - 4;
+	  //If we're within two megs of the linux x86 default stack, we'll
+	  // assume that's the one in use.
+	  stack_top = MAX_STACK_FRAME_ADDR - 3; // Points to first possible integer
+						// ** SIZE ISSUE **
       }
       else if (getProc()->multithread_capable() && thread_ != NULL)
       {
          int stack_diff = thread_->get_stack_addr() - sp_;
-         if (stack_diff < MAX_STACK_FRAME && stack_diff > 0)
+         if (stack_diff < MAX_STACK_FRAME_SIZE && stack_diff > 0)
             stack_top = thread_->get_stack_addr();
       }
       if (stack_top == 0)
-         stack_top = sp_ + MAX_STACK_FRAME;
+         stack_top = sp_ + MAX_STACK_FRAME_SIZE;
       assert(sp_ < stack_top);
 
       /**
@@ -1131,7 +1143,7 @@ Address dyn_lwp::readRegister(Register /*reg*/) {
            << "       successive pauses and continues with ptrace calls\n";
    }
 
-   int ret = deliverPtraceReturn(PTRACE_PEEKUSER, EAX*4, 0);
+   int ret = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_AX), 0);
    return (Address)ret;
 }
 
@@ -1297,6 +1309,27 @@ bool process::getDyninstRTLibName() {
             return false;
         }
     }
+
+    // Automatically choose 32-bit library if necessary.
+    const char *modifier = "_m32";
+    const char *name = dyninstRT_name.c_str();
+
+    if (getAddressWidth() != sizeof(void *) && !P_strstr(name, modifier)) {
+	const char *split = P_strrchr(name, '/');
+
+	if (!split) split = name;
+	split = P_strchr(split, '.');
+	if (!split) {
+	    // We should probably print some error here.
+	    // Then, of course, the user will find out soon enough.
+	    return false;
+	}
+
+	dyninstRT_name = pdstring(name, split - name) +
+			 pdstring(modifier) +
+			 pdstring(split);
+    }
+
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {
         pdstring msg = pdstring("Runtime library ") + dyninstRT_name
@@ -1414,28 +1447,9 @@ bool process::loadDYNINSTlib() {
   count += 2;
 
   //ccw 29 apr 2002 : SPLIT3
-  const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
-
-/*  if (dyninstRT_name.length()) { //ccw 28 aug 2002 
-    // use the library name specified on the start-up command-line
-  } else {*/
-    // check the environment variable
-    if (getenv(DyninstEnvVar) != NULL) {
-      dyninstRT_name = getenv(DyninstEnvVar);
-    } else {
-      pdstring msg = pdstring("Environment variable " + pdstring(DyninstEnvVar)
-                   + " has not been defined for process ") + pdstring(pid);
-      showErrorCallback(101, msg);
-      return false;
-    }
-/*  }*/
-  if (access(dyninstRT_name.c_str(), R_OK)) {
-    pdstring msg = pdstring("Runtime library ") + dyninstRT_name
-        + pdstring(" does not exist or cannot be accessed!");
-    showErrorCallback(101, msg);
-    return false;
-  }
-
+  // process::getDyninstRTLibName() must be called prior to running
+  // the following code.  Usually from process::loadDyninstLib() in
+  // process.C.
   Address dyninstlib_addr = (Address) (codeBase + count);
   writeDataSpace((void *)(codeBase + count), dyninstRT_name.length()+1,
 		 (caddr_t)const_cast<char*>(dyninstRT_name.c_str()));
@@ -1490,23 +1504,23 @@ bool process::loadDYNINSTlib() {
   memcpy(&new_regs, savedRegs, sizeof(struct dyn_saved_regs));
 
   user_regs_struct *regs = (user_regs_struct*) &(savedRegs->gprs);
-  
-  RegValue theEBP = regs->ebp;
+
+  RegValue theBP = regs->PTRACE_REG_BP;
   // Under Linux, at the entry point to main, ebp is 0
   // the first thing main usually does is to push ebp and
   // move esp -> ebp, so we'll do that, too
-  if( !theEBP )
+  if( !theBP )
   {
-	  theEBP = regs->esp;
-	  attach_cerr << "eBP at 0x0, creating fake stack frame with eSP == "
-				  << (void*)theEBP << endl;
-	  changeBP( getPid(), theEBP );
+	  theBP = regs->PTRACE_REG_SP;
+	  attach_cerr << "BP at 0x0, creating fake stack frame with SP == "
+				  << (void*)theBP << endl;
+	  changeBP( getPid(), theBP );
   }
 
-  assert( theEBP );
+  assert( theBP );
   // this is pretty kludge. if the stack frame of _start is not the right
   // size, this would break.
-  readDataSpace((void*)(theEBP-6*sizeof(int)),6*sizeof(int), savedStackFrame, true);
+  readDataSpace((void*)(theBP-6*sizeof(int)),6*sizeof(int), savedStackFrame, true);
   attach_cerr << "Changing PC to " << (void*)codeBase << endl;
 
   lwp_to_use = NULL;
@@ -1528,12 +1542,12 @@ bool process::loadDYNINSTlib() {
   {
       user_regs_struct *reg_ptr = (user_regs_struct *)&(new_regs.gprs);
       
-      reg_ptr->eip = codeBase;
+      reg_ptr->PTRACE_REG_IP = codeBase;
 
       if( libc_21 ) {
-          reg_ptr->eax = dyninstlib_addr;
-          reg_ptr->edx = DLOPEN_MODE;
-          reg_ptr->ecx = codeBase;
+          reg_ptr->PTRACE_REG_AX = dyninstlib_addr;
+          reg_ptr->PTRACE_REG_DX = DLOPEN_MODE;
+          reg_ptr->PTRACE_REG_CX = codeBase;
       }
 
       if(! lwp_to_use->restoreRegisters(new_regs) )

@@ -343,13 +343,16 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
 					 instruction& maxSwitchInsn,
                      bool isAddressInJmp )
 { 
+    int addrWidth = addressImage->getObject().getAddressWidth();
     Address backupAddress = currentAddress;
     bool isWordAddr,isWordOp;
     
     unsigned maxSwitch = 0;
     const unsigned char* ptr = 
         skip_headers(maxSwitchInsn.ptr(),isWordAddr,isWordOp);
-    //get the imm value from the compare instruction and store in in 
+
+
+    //get the imm value from the compare instruction and store it in 
     //maxSwitch
     if( *ptr == 0x3d )
     {
@@ -415,33 +418,40 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
             else
                 ptr += 2;
             
-            if(isWordAddr)
-            {
+            if(isWordAddr) {
                 jumpTable |= *(ptr+1);
                 jumpTable <<= 8;
                 jumpTable |= *ptr;
-            }
-            else
-                jumpTable = *(const Address*)ptr;
+
+            } else if (addrWidth == sizeof(Address)) {
+		jumpTable = *(const Address *)ptr;
+
+	    } else {
+		jumpTable = *(const int *)ptr;
+	    }
         }
     }
-    
+
     if(!jumpTable)
     {
         result += backupAddress;	
         return false;
     }
-    
+
     for(unsigned int i=0;i<maxSwitch;i++)
     {
-        Address tableEntry = jumpTable + (i * sizeof(Address));
+        Address tableEntry = jumpTable + (i * addrWidth);
         int jumpAddress = 0;
         if( addressImage->isValidAddress( tableEntry ) )
-        {    
-            jumpAddress = *(int*)addressImage->getPtrToInstruction(tableEntry);
+        {
+	    if (addrWidth == sizeof(Address))
+		jumpAddress = *(const Address *)addressImage->getPtrToInstruction(tableEntry);
+	    else
+		jumpAddress = *(const int *)addressImage->getPtrToInstruction(tableEntry);
+
             result.push_back( jumpAddress );
         }
-    }   
+    }
     return true;
 }
 
@@ -490,7 +500,9 @@ void InstrucIter::setCurrentAddress(Address addr)
     currentAddress = addr;
 }
 
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0)
 bool InstrucIter::isInstruction()
 {
     return false;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.14 2004/03/24 23:30:11 bernat Exp $
+// $Id: inst-x86.h,v 1.15 2005/02/24 10:16:10 rchen Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -52,6 +52,58 @@
 //#ifndef DEBUG_FUNC_RELOC
 //#define DEBUG_FUNC_RELOC
 //#endif
+
+// Macro for single x86/x86_64 register access
+// Register names for use with ptrace calls, not instruction generation.
+#if defined(__x86_64__) && __WORDSIZE == 64
+#define PTRACE_REG_15		r15
+#define PTRACE_REG_14		r14
+#define PTRACE_REG_13		r13
+#define PTRACE_REG_12		r12
+#define PTRACE_REG_BP		rbp
+#define PTRACE_REG_BX		rbx
+#define PTRACE_REG_11		r11
+#define PTRACE_REG_10		r10
+#define PTRACE_REG_9		r9
+#define PTRACE_REG_8		r8
+#define PTRACE_REG_AX		rax
+#define PTRACE_REG_CX		rcx
+#define PTRACE_REG_DX		rdx
+#define PTRACE_REG_SI		rsi
+#define PTRACE_REG_DI		rdi
+#define PTRACE_REG_ORIG_AX	orig_rax
+#define PTRACE_REG_IP		rip
+#define PTRACE_REG_CS		cs
+#define PTRACE_REG_FLAGS	eflags
+#define PTRACE_REG_SP		rsp
+#define PTRACE_REG_SS		ss
+#define PTRACE_REG_FS_BASE	fs_base
+#define PTRACE_REG_GS_BASE	gs_base
+#define PTRACE_REG_DS		ds
+#define PTRACE_REG_ES		es
+#define PTRACE_REG_FS		fs
+#define PTRACE_REG_GS		gs
+
+#else
+#define PTRACE_REG_BX		ebx
+#define PTRACE_REG_CX		ecx
+#define PTRACE_REG_DX		edx
+#define PTRACE_REG_SI		esi
+#define PTRACE_REG_DI		edi
+#define PTRACE_REG_BP		ebp
+#define PTRACE_REG_AX		eax
+#define PTRACE_REG_DS		xds
+#define PTRACE_REG_ES		xes
+#define PTRACE_REG_FS		xfs
+#define PTRACE_REG_GS		xgs
+#define PTRACE_REG_ORIG_AX	orig_eax
+#define PTRACE_REG_IP		eip
+#define PTRACE_REG_CS		xcs
+#define PTRACE_REG_FLAGS	eflags
+#define PTRACE_REG_SP		esp
+#define PTRACE_REG_SS		xss
+
+#endif
 
 // Define access method for saved register (GPR)
 #define GET_GPR(x, insn) emitMovRMToReg(EAX, EBP, SAVED_EAX_OFFSET-(x*4), insn)

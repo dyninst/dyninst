@@ -42,7 +42,9 @@
 #include "saveSharedLibrary.h"
 #include "util.h"
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 void saveSharedLibrary::openElf(){
 	elf_version(EV_CURRENT);

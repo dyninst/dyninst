@@ -180,7 +180,8 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
         return irpcError;
     }
 
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
+#if !defined(i386_unknown_nt4_0) \
+ && !defined(mips_unknown_ce2_11)
     // Actually, only need this if a restoreRegisters won't reset
     // the PC back to the original value
     Frame curFrame = lwp_->getActiveFrame();
@@ -199,7 +200,8 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
         return irpcError;
     }
     
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       // handle system call interruption:
       // if we interupted a system call, this clears the state that
       // would cause the OS to restart the call when we run the rpc.

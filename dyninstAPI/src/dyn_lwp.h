@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.34 2005/01/11 22:46:33 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.35 2005/02/24 10:15:37 rchen Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -57,7 +57,8 @@
 #include "rtinst/h/rtinst.h"
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5)
 #include <procfs.h>
 #endif
 
@@ -114,7 +115,8 @@ class dyn_lwp
   // Changes PC to the given address. If regs is non-NULL,
   // sets register values as above (restoreRegisters), then changes PC
   bool changePC(Address addr, struct dyn_saved_regs *regs);
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
   bool clearOPC();
 #endif
   // Partially implemented: will return default iRPC result value
@@ -333,7 +335,9 @@ class dyn_lwp
   // to avoid platform-dependent initialization in process ctor.)
   bool stoppedInSyscall_;  
   Address postsyscallpc_;  // PC after the syscall is interrupted
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(AIX_PROC)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(AIX_PROC)
   // These variables are meaningful only when `stoppedInSyscall' is true.
   int stoppedSyscall_;     // The number of the interrupted syscall
   dyn_saved_regs *syscallreg_; // Registers during sleeping syscall

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.54 2005/01/21 23:44:19 bernat Exp $
+ * $Id: func-reloc.C,v 1.55 2005/02/24 10:15:41 rchen Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -155,7 +155,10 @@ bool int_function::branchInsideRange(instruction insn, Address branchAddress,
   disp = get_disp(&insn);
 
   // get target of branch instruction
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
   target = branchAddress + disp + insn.size();
 #elif defined(sparc_sun_solaris2_4)
   target = branchAddress + disp;
@@ -197,7 +200,10 @@ bool int_function::trueCallInsideRange(instruction insn, Address callAddress,
   disp = get_disp(&insn);
    
   // get target of call instruction
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
   target = callAddress + disp + insn.size();
 #elif defined(sparc_sun_solaris2_4)
   target = callAddress + disp;
@@ -462,7 +468,10 @@ relocatedFuncInfo *int_function::findAndApplyAlterations(const image *owner,
       return NULL;
    } 
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
    // Upper bound on the number of instructions in the relocated function. 
    // The original function has getNumInstructions instructions and so the
    // relocated function has at least that many functions. At most, each byte
@@ -649,7 +658,10 @@ bool int_function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
     // if instruction needs to be expanded 
     if (size_of_expansion1) {
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
       // expansion was not already found
       if (!alreadyExpanded(oldOffset, size_of_expansion1, &norm_alt_set)) {
@@ -689,7 +701,10 @@ bool int_function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
       // of function, not both
       assert(!size_of_expansion1);
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
       // expansion was not already found
       if (!alreadyExpanded(oldOffset, size_of_expansion2, &norm_alt_set)) {
@@ -864,7 +879,11 @@ bool int_function::applyAlterations(LocalAlterationSet &norm_alt_set,
 
             // updated disp for relative branch or call insn to target 
             // outside function
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+
             int origAddr = (mutatee + oldOffset + oldInsnSize + oldDisp);
             int targetAddr = (newAdr + newOffset + oldInsnSize + 
                     set_disp(false, &oldInstructions[oldInsnOffset], newDisp, true));

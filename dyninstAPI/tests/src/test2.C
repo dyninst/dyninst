@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2.C,v 1.59 2005/02/09 03:27:48 jaw Exp $
+// $Id: test2.C,v 1.60 2005/02/24 10:17:44 rchen Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -272,6 +272,7 @@ void test6(BPatch_thread *thread, BPatch_image *img)
 #if !defined(sparc_sun_solaris2_4) \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(mips_sgi_irix6_4) \
  && !defined(alpha_dec_osf4_0) \
  && !defined(rs6000_ibm_aix4_1) \
@@ -291,7 +292,7 @@ void test6(BPatch_thread *thread, BPatch_image *img)
     for (unsigned i=0; i < m->size(); i++) {
 	    char name[80];
 	    (*m)[i]->getName(name, sizeof(name));
-	    if (strstr(name, TEST_DYNAMIC_LIB) == 0 ||
+	    if (strstr(name, TEST_DYNAMIC_LIB) ||
 #ifdef rs6000_ibm_aix4_1
 		strcmp(name, TEST_DYNAMIC_LIB_NOPATH) == 0 ||
 #endif
@@ -321,6 +322,7 @@ void test7(BPatch_thread *thread, BPatch_image *img)
 #if !defined(sparc_sun_solaris2_4) \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(mips_sgi_irix6_4) \
  && !defined(rs6000_ibm_aix4_1) \
  && !defined(ia64_unknown_linux2_4)
@@ -341,7 +343,7 @@ void test7(BPatch_thread *thread, BPatch_image *img)
 	for (unsigned int i=0; i < m->size(); i++) {
 		char name[80];
 		(*m)[i]->getName(name, sizeof(name));
-		if (strstr(name, TEST_DYNAMIC_LIB2) == 0 ||
+		if (strstr(name, TEST_DYNAMIC_LIB2) ||
 #ifdef rs6000_ibm_aix4_1
 		    strcmp(name, TEST_DYNAMIC_LIB2_NOPATH) == 0 ||
 #endif
@@ -472,6 +474,7 @@ void test10(BPatch_thread *thread)
  && !defined(sparc_sun_sunos4_1_3) \
  && !defined(sparc_sun_solaris2_4) \
  && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(mips_sgi_irix6_4) \
  && !defined(alpha_dec_osf4_0) \
  && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
@@ -624,7 +627,8 @@ void llErrorFunc(BPatchErrorLevel level, int num, const char **params)
 void test13( BPatch_thread * appThread, BPatch_image * appImage )
 {
 
-#if !defined(i386_unknown_nt4_0) && !defined(alpha_dec_osf4_0)
+#if !defined(i386_unknown_nt4_0) \
+ && !defined(alpha_dec_osf4_0)
 
   if (appThread->isTerminated()) {
     printf( "**Failed** test #13 (dlopen failure reporting test)\n" );
@@ -835,7 +839,11 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4) \
+ || defined(ia64_unknown_linux2_4)
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif

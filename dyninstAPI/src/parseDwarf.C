@@ -1822,7 +1822,7 @@ void BPatch_module::parseDwarfTypes() {
 	} /* end parseDwarfTypes() */
 
 
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 
 typedef struct dwarfEHFrame_t
 {

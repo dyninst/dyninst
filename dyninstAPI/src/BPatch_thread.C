@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.120 2005/02/17 21:10:29 bernat Exp $
+// $Id: BPatch_thread.C,v 1.121 2005/02/24 10:15:35 rchen Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -120,7 +120,8 @@ static void insertVForkInst(BPatch_thread *thread)
     BPatch_image *appImage = thread->getImage();
     if (!appImage) return;
 
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if !defined(i386_unknown_nt4_0) \
+ && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 
     BPatch_Vector<BPatch_function *>  dyninst_vforks;
     if (NULL == appImage->findFunction("DYNINSTvfork", dyninst_vforks) || 
@@ -206,7 +207,8 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
 
     pdstring directoryName = "";
 
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // i.e. for all unixes
+#if !defined(i386_unknown_nt4_0) \
+ && !defined(mips_unknown_ce2_11) // i.e. for all unixes
 
     // this fixes a problem on linux and alpha platforms where pathless
     // filenames are searched for either in a standard, predefined path, or
@@ -622,7 +624,10 @@ bool BPatch_thread::dumpCoreInt(const char *file, bool terminate)
  */
 char* BPatch_thread::dumpPatchedImageInt(const char* file){ //ccw 28 oct 2001
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(rs6000_ibm_aix4_1)
 	return NULL;
 #else
     bool was_stopped;
@@ -653,7 +658,8 @@ char* BPatch_thread::dumpPatchedImageInt(const char* file){ //ccw 28 oct 2001
  */
 bool BPatch_thread::dumpImageInt(const char *file)
 {
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if defined(i386_unknown_nt4_0) \
+ || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
     return false;
 #else
     bool was_stopped;
@@ -941,7 +947,8 @@ BPatchSnippetHandle *BPatch_thread::insertSnippetWhen(const BPatch_snippet &expr
       return NULL;
     }
 
-#if defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
+#if defined(rs6000_ibm_aix4_1) \
+ || defined(rs6000_ibm_aix5_1)
 
 	bool isMain=false;
 	BPatch_function *tmpFunc = const_cast<BPatch_function *>(point.getFunction());
@@ -975,7 +982,8 @@ BPatchSnippetHandle *BPatch_thread::insertSnippetWhen(const BPatch_snippet &expr
                                            point.getPointType() == BPatch_arbitrary ?  true : 
 #endif
                                            
-#if defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
+#if defined(rs6000_ibm_aix4_1) \
+ || defined(rs6000_ibm_aix5_1)
                                            (isMain ? true :BPatch::bpatch->isTrampRecursive()),
 #else
                                            BPatch::bpatch->isTrampRecursive(),
@@ -1200,7 +1208,12 @@ bool BPatch_thread::removeFunctionCallInt(BPatch_point &point)
 bool BPatch_thread::replaceFunctionInt(BPatch_function &oldFunc,
 				    BPatch_function &newFunc)
 {
-#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0) \
+ || defined(ia64_unknown_linux2_4)
     // Can't make changes to code when mutations are not active.
     if (!mutationsActive)
 	return false;
@@ -1379,10 +1392,15 @@ bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  */
 bool BPatch_thread::loadLibraryInt(const char *libname, bool reload)
 {
-#if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) || \
-    defined(ia64_unknown_linux2_4) ||  defined(i386_unknown_nt4_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(mips_sgi_irix6_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(ia64_unknown_linux2_4) \
+ || defined(i386_unknown_nt4_0)
     if (!statusIsStopped()) {
         cerr << "Process not stopped in loadLibrary" << endl;
         return false;
@@ -1427,7 +1445,11 @@ bool BPatch_thread::loadLibraryInt(const char *libname, bool reload)
     }
 
 #ifdef BPATCH_LIBRARY //ccw 14 may 2002
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1) || defined(r6000_ibm_aix5_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(r6000_ibm_aix5_1)
 	if(proc->collectSaveWorldData && reload){
 		proc->saveWorldloadLibrary(libname);	
 	}

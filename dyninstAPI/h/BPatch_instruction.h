@@ -53,7 +53,8 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
 #if defined(i386_unknown_nt4_0)
   // Translation from C++ to VC++ 6.0
 #define nmaxacc_NP 2
-#elif defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
   static const unsigned int nmaxacc_NP = 2;
 #elif defined (__XLC__)
 #define nmaxacc_NP 1

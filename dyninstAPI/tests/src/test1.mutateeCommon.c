@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.7 2004/03/23 19:11:18 eli Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.8 2005/02/24 10:17:37 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -72,11 +72,12 @@ extern int mutateeCplusplus;
 #endif
 const char Builder_id[]=COMPILER; /* defined on compile line */
 
-#if defined(sparc_sun_solaris2_4) || \
-    defined(alpha_dec_osf4_0) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5) ||\
-    defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(ia64_unknown_linux2_4)
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 

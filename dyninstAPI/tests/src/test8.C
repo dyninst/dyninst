@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.15 2005/02/09 03:27:49 jaw Exp $
+// $Id: test8.C,v 1.16 2005/02/24 10:18:10 rchen Exp $
 //
 
 #include <stdio.h>
@@ -283,7 +283,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(alpha_dec_osf4_0)
     static const frameInfo_t correct_frame_info[] = {
-#if defined( os_linux ) && defined( arch_x86 )
+#if defined( os_linux ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
 	{ true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
 #endif
 #if !defined(rs6000_ibm_aix4_1)
@@ -318,9 +318,14 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 
 void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined( ia64_unknown_linux2_4 )
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4) \
+ || defined(ia64_unknown_linux2_4)
+
     static const frameInfo_t correct_frame_info[] = {
-#if defined( os_linux ) && defined( arch_x86 )
+
+#if defined( os_linux ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
 	{ true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
 #endif
 #if !defined(rs6000_ibm_aix4_1)
@@ -359,22 +364,22 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
 
-#if (defined( arch_alpha ) && defined( os_osf )) ||	\
-    (defined( arch_sparc ) && defined( os_solaris ))
+#if (defined( arch_alpha ) && defined( os_osf )) \
+ || (defined( arch_sparc ) && defined( os_solaris ))
 	printf("Skipping test #3 (getCallStack through instrumentation)\n");
 	printf("    unwinding through base & minitramps not implemented on this platform\n");
 	passedTest[3] = true;
 #else
 	static const frameInfo_t correct_frame_info[] = {
 	
-#if defined( os_linux ) && defined( arch_x86 )
+#if defined( os_linux ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
 	  { true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
 #endif
 #if defined( os_aix ) && defined( arch_power )
 		/* AIX uses kill(), but the PC of a process in a syscall can
 		   not be correctly determined, and appears to be the address
 		   to which the syscall function will return. */
-#elif defined( os_windows ) && defined( arch_x86 )
+#elif defined( os_windows ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
 		/* Windows/x86 does not use kill(), so its lowermost frame will be 
 		   something unidentifiable in a system DLL. */
 		{ false, false, BPatch_frameNormal, NULL },
@@ -677,7 +682,11 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4) \
+ || defined(ia64_unknown_linux2_4)
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif

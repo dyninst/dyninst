@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.157 2005/02/22 22:53:42 legendre Exp $
+// $Id: linux.C,v 1.158 2005/02/24 10:16:14 rchen Exp $
 
 #include <fstream>
 
@@ -142,14 +142,15 @@ static bool debug_ptrace = false;
 
 bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
    bool needToCont = false;
-  
+   int len = proc_->getAddressWidth();
+
    if(request != PT_DETACH  &&  status() == running) {
       cerr << "  potential performance problem with use of dyn_lwp::deliverPtrace\n";
       if(pauseLWP() == true)
          needToCont = true;
    }
 
-   bool ret = (P_ptrace(request, get_lwp_id(), addr, data) != -1);
+   bool ret = (P_ptrace(request, get_lwp_id(), addr, data, len) != -1);
    if (!ret) perror("Internal ptrace");
    
    if(request != PTRACE_DETACH  &&  needToCont == true)
@@ -163,7 +164,8 @@ bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
 // - nash
 int dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
    bool needToCont = false;
-  
+   int len = proc_->getAddressWidth();
+
    if(request != PT_DETACH  &&  status() == running) {
       cerr << "  potential performance problem with use of "
            << "dyn_lwp::deliverPtraceReturn\n";
@@ -171,7 +173,7 @@ int dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
          needToCont = true;
    }
 
-   int ret = P_ptrace(request, get_lwp_id(), addr, data);
+   int ret = P_ptrace(request, get_lwp_id(), addr, data, len);
 
    if(request != PTRACE_DETACH  &&  needToCont == true)
       continueLWP();
@@ -962,14 +964,15 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
    unsigned char *ap = (unsigned char*) inTraced;
    const unsigned char *dp = (const unsigned char*) inSelf;
    Address w;               /* ptrace I/O buffer */
-   unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
+   int len = sizeof(Address); /* address alignment of ptrace I/O requests */
    unsigned cnt;
 
    //cerr << "writeDataSpace pid=" << getPid() << ", @ " << (void *)inTraced
    //    << " len=" << nbytes << endl; cerr.flush();
 
 #if defined(BPATCH_LIBRARY)
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
    if (proc_->collectSaveWorldData) {
        codeRange *range = NULL;
 	proc_->codeRangesByAddr_->precessor((Address)inTraced, range); //findCodeRangeByAddress((Address)inTraced);
@@ -1020,7 +1023,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
    }	  
 	  
    /* Copy aligned portion */
-   while (nbytes >= len) {
+   while (nbytes >= (u_int)len) {
       assert(0 == ((Address)ap) % len);
       memcpy(&w, dp, len);
       int retval =  P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w);
@@ -1062,11 +1065,119 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
    return true;
 }
 
+#if 0
+bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
+{
+   unsigned char *ap = (unsigned char*) inTraced;
+   const unsigned char *dp = (const unsigned char*) inSelf;
+   Address w;               /* ptrace I/O buffer */
+   int len = proc_->getAddressWidth(); /* address alignment of ptrace I/O requests */
+   unsigned cnt;
+
+   //cerr << "writeDataSpace pid=" << getPid() << ", @ " << (void *)inTraced
+   //    << " len=" << nbytes << endl; cerr.flush();
+
+#if defined(BPATCH_LIBRARY)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+   if (proc_->collectSaveWorldData) {
+       codeRange *range = NULL;
+	proc_->codeRangesByAddr_->precessor((Address)inTraced, range); //findCodeRangeByAddress((Address)inTraced);
+	if(range){
+	        shared_object *sharedobj_ptr = range->is_shared_object();
+	       if (sharedobj_ptr) {
+        	   // If we're writing into a shared object, mark it as dirty.
+	           // _Unless_ we're writing "__libc_sigaction"
+        	   int_function *func = range->is_function();
+	           if ((! func) || (func->prettyName() != "__libc_sigaction")){
+        	      sharedobj_ptr->setDirty();
+		   }
+	       }
+	}
+   }
+#endif
+#endif
+
+   ptraceOps++; ptraceBytes += nbytes;
+
+   if (0 == nbytes)
+      return true;
+
+   if ((cnt = ((Address)ap) % len)) {
+      /* Start of request is not aligned. */
+      unsigned char *p = (unsigned char*) &w;	  
+
+      /* Read the segment containing the unaligned portion, edit
+         in the data from DP, and write the segment back. */
+      errno = 0;
+      w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) (ap-cnt), 0, len);
+
+      if (errno)
+         return false;
+
+      for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
+         p[cnt+i] = dp[i];
+
+      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) (ap-cnt), w, len))
+         return false;
+
+      if (len-cnt >= nbytes) 
+         return true; /* done */
+	  
+      dp += len-cnt;
+      ap += len-cnt;
+      nbytes -= len-cnt;
+   }	  
+	  
+   /* Copy aligned portion */
+   while (nbytes >= (u_int)len) {
+      assert(0 == ((Address)ap) % len);
+      memcpy(&w, dp, len);
+      int retval =  P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w, len);
+      if (retval < 0)
+         return false;
+
+      // Check...
+      /*
+      Address test;
+      fprintf(stderr, "Writing %x... ", w);
+      test = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0, len);
+      fprintf(stderr, "... got %x, lwp %d\n", test, get_lwp_id());
+      */      
+      dp += len;
+      ap += len;
+      nbytes -= len;
+   }
+
+   if (nbytes > 0) {
+      /* Some unaligned data remains */
+      unsigned char *p = (unsigned char *) &w;
+
+      /* Read the segment containing the unaligned portion, edit
+         in the data from DP, and write it back. */
+      errno = 0;
+      w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0, len);
+
+      if (errno)
+         return false;
+
+      for (unsigned i = 0; i < nbytes; i++)
+         p[i] = dp[i];
+
+      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w, len))
+         return false;
+
+   }
+
+   return true;
+}
+#endif
+
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
      const unsigned char *ap = (const unsigned char*) inTraced;
      unsigned char *dp = (unsigned char*) inSelf;
      Address w;               /* ptrace I/O buffer */
-     unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
+     int len = proc_->getAddressWidth(); /* address alignment of ptrace I/O requests */
      unsigned cnt;
 
      ptraceOps++; ptraceBytes += nbytes;
@@ -1081,7 +1192,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
 	  /* Read the segment containing the unaligned portion, and
              copy what was requested to DP. */
 	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) (ap-cnt), w);
+	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) (ap-cnt), w, len);
 	  if (errno)
 	       return false;
 	  for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
@@ -1096,11 +1207,11 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
      }
 
      /* Copy aligned portion */
-     while (nbytes >= len) {
+     while (nbytes >= (u_int)len) {
 	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0);
+	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0, len);
 	  if (errno)
-	       return false;
+	      return false;
 	  memcpy(dp, &w, len);
 	  dp += len;
 	  ap += len;
@@ -1114,7 +1225,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
 	  /* Read the segment containing the unaligned portion, and
              copy what was requested to DP. */
 	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0);
+	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0, len);
 	  if (errno)
 	       return false;
 	  for (unsigned i = 0; i < nbytes; i++)
@@ -1711,7 +1822,7 @@ bool dyn_lwp::representativeLWP_attach_() {
    return true;
 }
 
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
 //These constants are not defined in all versions of elf.h
 #ifndef AT_NULL
 #define AT_NULL 0

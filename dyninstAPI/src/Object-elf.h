@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.61 2004/05/28 22:50:17 legendre Exp $
+ * $Id: Object-elf.h,v 1.62 2005/02/24 10:16:41 rchen Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -77,14 +77,73 @@ extern "C" {
 // These are not declared in any system header files, so we must provide our own
 // declarations. The declarations below were taken from:
 //       SPARCWorks 3.0.x Debugger Interface, July 1994
+// 
+struct stab32 {
+    unsigned int name;  // stabstr table index for this symbol
+    unsigned char type; // type of this symbol
+    unsigned char other;
+    unsigned short desc;
+    unsigned int val;   // value of this symbol -- usually zero. The real value must
+			// be obtained from the symtab section
+};
+struct stab64 {
+    unsigned long name; // stabstr table index for this symbol
+    unsigned char type; // type of this symbol
+    unsigned char other;
+    unsigned short desc;
+    unsigned long val;  // value of this symbol -- usually zero. The real value must
+			// be obtained from the symtab section
+};
 
-struct stab_entry { // an entry in the stab section
-  unsigned long name;  // stabstr table index for this symbol
-  unsigned char type; // type of this symbol
-  unsigned char other; 
-  unsigned short desc; 
-  unsigned long val; // value of this symbol -- usually zero. The real value must
-                     // be obtained from the symtab section
+// 
+// Extended to a class for 32/64-bit stab entries at runtime. - Ray
+// 
+class stab_entry {
+  public:
+    stab_entry(void *_stabptr = 0, char *_stabstr = 0, long _nsyms = 0)
+	: stabptr(_stabptr), stabstr(_stabstr), nsyms(_nsyms) { }
+
+    virtual const char *name(int i) = 0;
+    virtual unsigned long nameIdx(int i) = 0;
+    virtual unsigned char type(int i) = 0;
+    virtual unsigned char other(int i) = 0;
+    virtual unsigned short desc(int i) = 0;
+    virtual unsigned long val(int i) = 0;
+
+    unsigned long count() { return nsyms; }
+    void setStringBase(const char *ptr) { stabstr = const_cast<char *>(ptr); }
+    const char *getStringBase() { return stabstr; }
+
+  protected:
+    void *stabptr;
+    char *stabstr;
+    long nsyms;
+};
+
+class stab_entry_32 : public stab_entry {
+  public:
+    stab_entry_32(void *_stabptr = 0, char *_stabstr = 0, long _nsyms = 0)
+	: stab_entry(_stabptr, _stabstr, _nsyms) { }
+
+    const char *name(int i = 0) { return stabstr + ((stab32 *)stabptr)[i].name; }
+    unsigned long nameIdx(int i = 0) { return ((stab32 *)stabptr)[i].name; }
+    unsigned char type(int i = 0) { return ((stab32 *)stabptr)[i].type; }
+    unsigned char other(int i = 0) { return ((stab32 *)stabptr)[i].other; }
+    unsigned short desc(int i = 0) { return ((stab32 *)stabptr)[i].desc; }
+    unsigned long val(int i = 0) { return ((stab32 *)stabptr)[i].val; }
+};
+
+class stab_entry_64 : public stab_entry {
+  public:
+    stab_entry_64(void *_stabptr = 0, char *_stabstr = 0, long _nsyms = 0)
+	: stab_entry(_stabptr, _stabstr, _nsyms) { }
+
+    const char *name(int i = 0) { return stabstr + ((stab64 *)stabptr)[i].name; }
+    unsigned long nameIdx(int i = 0) { return ((stab64 *)stabptr)[i].name; }
+    unsigned char type(int i = 0) { return ((stab64 *)stabptr)[i].type; }
+    unsigned char other(int i = 0) { return ((stab64 *)stabptr)[i].other; }
+    unsigned short desc(int i = 0) { return ((stab64 *)stabptr)[i].desc; }
+    unsigned long val(int i = 0) { return ((stab64 *)stabptr)[i].val; }
 };
 
 // Types 
@@ -148,7 +207,7 @@ class Object : public AObject {
   const char *elf_vaddr_to_ptr(Address vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
-  void get_stab_info(void **stabs, int &nstabs, void **stabstr) const;
+  stab_entry * get_stab_info() const;
   const char * getFileName() const { return fileName; }
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 

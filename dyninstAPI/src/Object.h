@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.47 2004/03/23 01:12:00 eli Exp $
+ * $Id: Object.h,v 1.48 2005/02/24 10:16:43 rchen Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -247,25 +247,19 @@ private:
  * include the architecture-operating system specific object files.
 ************************************************************************/
 
-#if defined(sparc_sun_solaris2_4)
-#include "dyninstAPI/src/Object-elf.h"
-
-#elif defined(i386_unknown_solaris2_5)
-#include "dyninstAPI/src/Object-elf.h"
-
-#elif defined(i386_unknown_linux2_0)
-#include "dyninstAPI/src/Object-elf.h"
-
-#elif defined(ia64_unknown_linux2_4)
-#include "dyninstAPI/src/Object-elf.h"
-
-#elif defined(mips_sgi_irix6_4)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) \
+ || defined(ia64_unknown_linux2_4) \
+ || defined(mips_sgi_irix6_4)
 #include "dyninstAPI/src/Object-elf.h"
 
 #elif defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/Object-xcoff.h"
 
-#elif defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#elif defined(i386_unknown_nt4_0) \
+   || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "dyninstAPI/src/Object-nt.h"
 
 #elif defined(alpha_dec_osf4_0)

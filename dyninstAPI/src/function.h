@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.5 2005/02/17 21:10:49 bernat Exp $
+// $Id: function.h,v 1.6 2005/02/24 10:15:49 rchen Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -152,7 +152,7 @@ class int_function : public codeRange {
    bool isInstrumentable() { return isInstrumentable_; }
 
 
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
    //Replaces the function with a 'return val' statement.
    // currently needed only on Linux/x86
    // Defined in inst-x86.C
@@ -165,7 +165,6 @@ class int_function : public codeRange {
    }
    // ----------------------------------------------------------------------
 #endif
-
 
    ////////////////////////////////////////////////
    // Relocation
@@ -378,7 +377,7 @@ class int_function : public codeRange {
 
    pdvector<InactiveFrameRange> inactiveRanges;
 
-#elif defined(arch_ia64) || defined(arch_x86)
+#elif defined(arch_ia64) || defined(arch_x86) || defined(arch_x86_64)
 
    void instrAroundPt(instPoint *p, instruction allInstr[], int numBefore, 
                       int numAfter, unsigned type, int index);

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.191 2005/02/21 22:28:49 legendre Exp $
+ * $Id: inst-x86.C,v 1.192 2005/02/24 10:16:05 rchen Exp $
  */
 #include <iomanip>
 
@@ -1533,7 +1533,7 @@ void initTramps(bool is_multithreaded)
 
 static void emitJump(unsigned disp32, unsigned char *&insn);
 static void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
-static void emitPushImm(unsigned long imm, unsigned char *&insn); 
+static void emitPushImm(unsigned int imm, unsigned char *&insn); 
 static void emitMovRegToReg(Register dest, Register src, unsigned char *&insn);
 static void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
 static void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
@@ -1946,9 +1946,10 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
 /****************************************************************************/
 /****************************************************************************/
 
-#if defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0)
 int guard_code_before_pre_instr_size  = 21; /* size in bytes */
 int guard_code_after_pre_instr_size   = 16; /* size in bytes */
 int guard_code_before_post_instr_size = 21; /* size in bytes */
@@ -2018,7 +2019,7 @@ static inline void emitJcc(int condition, int offset,
 /****************************************************************************/
 /****************************************************************************/
 
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
 void generate_guard_code( unsigned char * buffer,
                           const NonRecursiveTrampTemplate & base_template,
                           Address /* base_address */,
@@ -2996,7 +2997,7 @@ static inline void emitSimpleInsn(unsigned op, unsigned char *&insn) {
    *insn++ = op;
 }
 
-static inline void emitPushImm(unsigned long imm, unsigned char *&insn)
+static inline void emitPushImm(unsigned int imm, unsigned char *&insn)
 {
 	unsigned i;
 	unsigned char *p = (unsigned char*)&imm;
@@ -4754,7 +4755,9 @@ bool process::MonitorCallSite(instPoint *callSite){
 }
 #endif
 
-#if (defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0))
+#if defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 #include <sys/signal.h>
 //#include <sys/ucontext.h>
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.311 2005/02/17 21:10:55 bernat Exp $
+/* $Id: process.h,v 1.312 2005/02/24 10:16:57 rchen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -417,7 +417,7 @@ class process {
           }
           return false;
   }
-                  
+
   void continueAfterNextStop() { continueAfterNextStop_ = true; }
   static process *findProcess(int pid);
   bool findInternalSymbol(const pdstring &name, bool warn, internalSym &ret_sym)
@@ -425,7 +425,10 @@ class process {
 
   Address findInternalAddress(const pdstring &name, bool warn, bool &err) const;
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
   char* dumpPatchedImage(pdstring outFile);//ccw 28 oct 2001
 #else
   char* dumpPatchedImage(pdstring outFile) { return NULL; } 
@@ -447,6 +450,7 @@ class process {
      assert(symbols);
      return symbols;
   }
+  int getAddressWidth() { return getImage()->getObject().getAddressWidth(); }
 
   // this is only used on aix so far - naim
   // And should really be defined in a arch-dependent place, not process.h - bernat
@@ -467,7 +471,7 @@ class process {
 
   bool getCurrPCVector(pdvector <Address> &currPCs);
 
-#if defined(os_solaris) && defined(arch_x86)
+#if defined(os_solaris) && (defined(arch_x86) || defined(arch_x86_64))
   bool changeIntReg(int reg, Address addr);
 #endif
 
@@ -673,7 +677,8 @@ class process {
   // Trap address to base tramp address (for trap instrumentation)
   dictionary_hash<Address, Address> trampTrapMapping;
 
- #if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
   public:
   Address getVsyscallStart() { return vsyscall_start_; }
   Address getVsyscallEnd() { return vsyscall_end_; }
@@ -732,7 +737,7 @@ class process {
   //
  private:
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
   unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
 
@@ -1267,7 +1272,7 @@ private:
   pdvector<int_function *> *some_functions; 
 
   
-#if defined(os_linux) && defined(arch_x86)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 public:
   void addSignalHandlerAddr(Address a) { signal_restore.push_back(a); }
   

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.48 2005/02/02 17:27:34 bernat Exp $
+// $Id: sharedobject.h,v 1.49 2005/02/24 10:17:09 rchen Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -101,7 +101,9 @@ public:
       objs_image->updateForFork(childProcess, parentProcess);
     }
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 	bool isinText(Address addr){ 
 		return objs_image->getObject().isinText(addr, base_addr);
 	}
@@ -153,7 +155,9 @@ public:
             return NULL;
     }
     
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 	//this marks the shared object as dirty, mutated
 	//so it needs saved back to disk during saveworld 
 

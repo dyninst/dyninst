@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.12 2004/04/20 01:27:56 jaw Exp $
+// $Id: test9.C,v 1.13 2005/02/24 10:18:14 rchen Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -65,7 +65,9 @@
 #include <stdarg.h>
 #include <dirent.h>
 
-#if defined(i386_unknown_linux2_0) || defined (sparc_sun_solaris2_4)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4)
 #include <sys/types.h>
 #include <sys/wait.h>
 #endif
@@ -252,13 +254,15 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
    int status, died;
  	char *mutatedBinary;
 
-#if defined(rs6000_ibm_aix4_1)	 || defined(rs6000_ibm_aix5_1)	
+#if defined(rs6000_ibm_aix4_1) \
+ || defined(rs6000_ibm_aix5_1)
 	char *aixBinary="dyninst_mutatedBinary";
 #endif
 	char *realfileName;
 
 	realfileName = fileName;
-#if defined(rs6000_ibm_aix4_1)	 || defined(rs6000_ibm_aix5_1)	
+#if defined(rs6000_ibm_aix4_1) \
+ || defined(rs6000_ibm_aix5_1)
 	realfileName = aixBinary;
 #endif
 
@@ -276,7 +280,8 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 		case 0 : 
 			//child
 			fprintf(stderr," running: %s %s %s\n", mutatedBinary, realfileName, testID);
-#if defined(rs6000_ibm_aix5_1) || defined(rs6000_ibm_aix4_1) 
+#if defined(rs6000_ibm_aix5_1) \
+ || defined(rs6000_ibm_aix4_1)
 			changePath(path);
 #endif
 
@@ -288,13 +293,19 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 		default: 
 			//parent
 			delete [] mutatedBinary;
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) ||defined(rs6000_ibm_aix5_1)	
-
-
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix5_1)
 			died= waitpid(pid, &status, 0); 
 #endif
    	}
- #if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  ||defined(rs6000_ibm_aix5_1)	
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix5_1)
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
 
@@ -357,12 +368,20 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 		default: 
 			//parent
 			delete [] mutatedBinary;
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  ||defined(rs6000_ibm_aix5_1)	
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix5_1)
 			died= waitpid(pid, &status, 0); 
 #endif
    	}
 
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix5_1)	
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix5_1)
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
 
@@ -504,7 +523,11 @@ void mutatorTest1(char *pathname)
   char* testName = "instrument one simple function call and save the world";
   int testNo = 1;
  
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix5_1)	
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix5_1)
 
 	const char* child_argv[MAX_TEST+5];
 	
@@ -549,7 +572,11 @@ void mutatorTest2(char *pathname)
 	int testNo = 2;
 		//for(i in 1 to 1000)
 	//	instrument func2_i to call call2_i
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix5_1)	
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix5_1)
 	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
 
@@ -596,8 +623,10 @@ void mutatorTest3(char *pathname)
 {
   const char* testName = "four parameter function";
   int testNo = 3;
- #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix5_1) ||  defined(rs6000_ibm_aix4_1) 
-
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(rs6000_ibm_aix5_1) \
+ || defined(rs6000_ibm_aix4_1)
 //||  defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 //mutated binary works fine when it is run by hand 
 
@@ -710,7 +739,10 @@ void mutatorTest4(char *pathname)
 {
 	int testNo = 4;
 
-#if defined(sparc_sun_solaris2_4) ||  defined(i386_unknown_linux2_0) ||  defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 //||  defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 //mutated binary works fine when it is run by hand 
 
@@ -787,7 +819,10 @@ void mutatorTest4(char *pathname)
 //
 void mutatorTest5(char *pathname)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1) 
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 	int testNo = 5;
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
@@ -829,8 +864,9 @@ void mutatorTest5(char *pathname)
 //
 void mutatorTest6(char *pathname)
 {
-#if defined(i386_unknown_linux2_0) 	
-//	 defined(sparc_sun_solaris2_4) ||
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */	
+//  defined(sparc_sun_solaris2_4) 
 	int testNo = 6;
 	char *testName = "instrument a shared library and save the world";
 	BPatch_image *appImage;
@@ -1020,14 +1056,20 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_nt4_0) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4)
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif
 	} else {
 	    fprintf(stderr, "Usage: test9 "
 		    "[-V] [-verbose]  "
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 		    "[-saveworld] "
 #endif 
                     "[-mutatee <test1.mutatee>] "

@@ -95,9 +95,9 @@ BPatch_flowGraph::BPatch_flowGraph(int_function *func,
       return;
    }
    
-#if ! defined( arch_x86 )
+#if ! defined( arch_x86 ) && !defined( arch_x86_64 )
    findAndDeleteUnreachable();
-#endif /* defined( arch_x86 ) */
+#endif /* !defined( arch_x86 ) && !defined( arch_x86_64 ) */
 
    // this may be a leaf function - if so, we won't have figure out what
    // the exit blocks are.  But we can assume that all blocks that don't
@@ -609,7 +609,7 @@ BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 bool BPatch_flowGraph::createBasicBlocks()
 { 
 
-#if defined( arch_x86 )
+#if defined( arch_x86 ) || defined( arch_x86_64 )
  
     pdvector<BPatch_basicBlock *> *blocks = func->blocks();
     
@@ -628,7 +628,7 @@ bool BPatch_flowGraph::createBasicBlocks()
     
     return true;
 
-#else /* [not] defined( arch_x86 ) */
+#else /* [not] defined( arch_x86 ) and [not] defined( arch_x86_64 ) */
 
    // assign sequential block numbers to basic blocks
    int bno = 0;
@@ -951,7 +951,7 @@ bool BPatch_flowGraph::createBasicBlocks()
    delete[] elements;
          
    return true;
-#endif /* defined( arch_x86 ) */
+#endif /* defined( arch_x86 ) or defined( arch_x86_64 ) */
 }
 
 

@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.7 2004/03/23 19:11:41 eli Exp $ */
+/* $Id: test9.mutatee.c,v 1.8 2005/02/24 10:18:17 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -99,11 +99,12 @@ extern void func6_2(); /*this is in libInstMe.so */
  
 void func6_1(){
 
-#if !defined(i386_unknown_linux2_0) 
-	/* !defined(sparc_sun_solaris2_4) && */
-   fprintf(stderr,"Skipped test #6 (instrument a shared library and save the world)\n");
-   fprintf(stderr,"\t- not implemented on this platform\n");
-    passedTest[6] = TRUE;
+#if !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+ /* !defined(sparc_sun_solaris2_4) */
+	fprintf(stderr,"Skipped test #6 (instrument a shared library and save the world)\n");
+	fprintf(stderr,"\t- not implemented on this platform\n");
+	passedTest[6] = TRUE;
 #else
 
 	func6_2(); /*this is in libInstMe.so */
@@ -12114,7 +12115,11 @@ void call2_1(){
 }
 
 int func2_1(){
-#if !defined(sparc_sun_solaris2_4) &&  !defined(rs6000_ibm_aix4_1) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(rs6000_ibm_aix5_1)
 
    fprintf(stderr,"Skipped test #2 (instrument many simple function calls and save the world)\n");
    fprintf(stderr,"\t- not implemented on this platform\n");
@@ -12151,7 +12156,11 @@ void call1_1(){
 
 
 int func1_1(){
-#if !defined(sparc_sun_solaris2_4) &&  !defined(rs6000_ibm_aix4_1) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(rs6000_ibm_aix5_1)
 
    fprintf(stderr,"Skipped test #1 (instrument one simple function call and save the world)\n");
    fprintf(stderr,"\t- not implemented on this platform\n");
@@ -12177,7 +12186,11 @@ int func1_1(){
  * Start of Test #3
  */
 void func3_1() {
-#if !defined(sparc_sun_solaris2_4) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1) && !defined(rs6000_ibm_aix4_1) 
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(rs6000_ibm_aix5_1) \
+ && !defined(rs6000_ibm_aix4_1) 
 /* 
 	&&  !defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 	mutated binary works fine when it is run by hand 
@@ -12221,7 +12234,10 @@ fprintf(stderr,"**Failed** test #3 (four parameter function)\n");
  */
 void func4_1()
 {
-#if !defined(sparc_sun_solaris2_4) &&!defined(i386_unknown_linux2_0) &&  !defined(rs6000_ibm_aix4_1) 
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(rs6000_ibm_aix4_1) 
 /* 
 	&&  !defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 	mutated binary works fine when it is run by hand 
@@ -12251,7 +12267,10 @@ void func4_1()
 }
 
 void func5_1(){
-#if !defined(sparc_sun_solaris2_4) &&  !defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ && !defined(rs6000_ibm_aix4_1)
 
    fprintf(stderr,"Skipped test #5 (use loadLibrary and save the world)\n");
    fprintf(stderr,"\t- not implemented on this platform\n");

@@ -145,9 +145,10 @@ public:
                                 (void *)func->get_address() :
                                 (void *)func->getEffectiveAddress(proc)))
     {
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0)
         instPtr = mod->exec()->getPtrToInstruction( func->get_address() );
         insn.getNextInstruction( instPtr );
 #endif
@@ -160,9 +161,10 @@ public:
        range( bpBasicBlock->size() ),
        currentAddress(bpBasicBlock->startAddress)
     {
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0)
         instPtr =addressImage->getPtrToInstruction(bpBasicBlock->startAddress);
         insn.getNextInstruction( instPtr ); 
 #endif
@@ -179,9 +181,10 @@ public:
         range(ii.range),
         currentAddress(ii.currentAddress)
     {
-#if defined(i386_unknown_linux2_0) ||\
-     defined(i386_unknown_solaris2_5) ||\
-     defined(i386_unknown_nt4_0)    
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0)
         instPtr = ii.addressImage->getPtrToInstruction( ii.baseAddress );
         insn.getNextInstruction( instPtr );
 #endif
@@ -192,7 +195,7 @@ public:
                  bool useRelativeAddr = true ) :
         currentAddress( addr )
     {
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
         addressImage = img;
         baseAddress = base;
         instPtr = img->getPtrToInstruction( addr );
@@ -215,9 +218,10 @@ public:
    * multi branch instruction
    */
 
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)	
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0)
 bool getMultipleJumpTargets( pdvector<Address>& result, 
                              instruction& tableInsn, 
                              instruction& maxSwitchInsn, 
@@ -247,7 +251,9 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
    */
   void setCurrentAddress(Address);
 
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0)
   /** does the address point to an instruction */
   bool isInstruction();
 #endif
