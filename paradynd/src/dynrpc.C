@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.83 2001/06/23 19:07:05 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.84 2001/08/23 14:44:04 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -60,6 +60,7 @@
 #include "paradynd/src/context.h"
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
+#include "pdutil/h/hist.h"
 
 // The following were defined in process.C
 extern debug_ostream attach_cerr;
@@ -174,7 +175,6 @@ void dynRPC::disableDataCollection(int mid)
 
     mi = allMIs[mid];
     // cout << "disable of " << mi->getFullName() << endl; 
-
     // timeLength cost = mi->originalCost();
     timeLength cost = mi->cost();
     
@@ -216,7 +216,7 @@ void dynRPC::disableDataCollection(int mid)
 #endif
 }
 
-bool dynRPC::setTracking(unsigned target, bool mode)
+bool dynRPC::setTracking(unsigned target, bool /* mode */)
 {
     resource *res = resource::findResource(target);
     if (res) {
@@ -270,7 +270,7 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
     end_timing(0,"enable");
 #endif
-
+    
     // continue the processes that were stopped in start collecting
     for (unsigned u = 0; u < procsToContinue.size(); u++) {
 #ifdef DETACH_ON_THE_FLY
@@ -286,6 +286,7 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
     enableDataCallback(daemon_id,return_id,mi_ids,request_id);
 }
 
+// synchronous, for propogating metrics
 int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)
 {
   int id;
@@ -320,29 +321,8 @@ void dynRPC::setSampleRate(double sampleInterval)
     // if the sampleInterval is less than the BASESAMPLEINTERVAL ignore
     // use currSamplingRate to determine if the change to DYNINSTsampleMultiple
     // needs to be made
+    timeLength newSampleRate(timeLength(sampleInterval, timeUnit::sec()));
 
-    // TODO:
-    // Update the value of bucket_width, an internal metric.
-    // (Code used to be here to update the value, but it wasn't quite enough.
-    //  In particular, if there were no enabled instances of bucket_width, then
-    //  no updating would be done; thus the update could get lost.
-    //  Example: put up table with active_processes; run program 5 seconds;
-    //           then add bucket_width to the table.  The bucket width will be 0
-    //           because the routine that updated bucket width (i.e. right here)
-    //           was called only after active_processes was added; not after
-    //           bucket_width was added.
-    // In metric.C, we work around the problem by putting in a kludge for reporting
-    // the internal metric bucket_width; we simply ignore the value stored in the
-    // internalMetrics class and instead return the extern float "sampleInterval" --ari
-    //
-    // We keep the following code because it's harmless; but remember, it's also
-    // not really being used at this time:
-    timeLength newSampleRate(timeLength(sampleInterval, timeUnit::sec()));  
-    if (bucket_width->num_enabled_instances() > 0) {
-       pdSample newInterv(newSampleRate);
-       bucket_width->getEnabledInstance(0).setValue(newInterv);
-    }
-    
     if(newSampleRate != getCurrSamplingRate()){
       // sample_multiple:  .2 sec  => 1 ;  .4 sec => 2 ;  .8 sec => 4
          int sample_multiple = static_cast<int>(
@@ -370,8 +350,8 @@ void dynRPC::setSampleRate(double sampleInterval)
 					  (caddr_t)&sample_multiple);
 	  }
         }
-
 	setCurrSamplingRate(newSampleRate);
+	metricDefinitionNode::updateAllAggInterval(newSampleRate);
     }
     return;
 }
