@@ -1,6 +1,9 @@
 
 /*
  * $Log: init.C,v $
+ * Revision 1.33  1996/05/31 23:54:37  tamches
+ * minor change to string usage
+ *
  * Revision 1.32  1996/05/03 17:05:57  tamches
  * a don't blame me commit: active_processes can now be enabled for
  * any focus, not just processes, machines, and whole program.
@@ -171,15 +174,15 @@ bool init() {
   string hostName(un.nodename);
   rootResource = new resource;
   machineRoot = resource::newResource(rootResource, NULL, nullString,
-				      "Machine", 0.0, "", MDL_T_STRING);
+				      string("Machine"), 0.0, "", MDL_T_STRING);
   machineResource = resource::newResource(machineRoot, NULL, nullString, hostName, 
 					  0.0, "", MDL_T_STRING);
   processResource = resource::newResource(rootResource, NULL, nullString,
-					  "Process", 0.0, "", MDL_T_STRING);
+					  string("Process"), 0.0, "", MDL_T_STRING);
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
-				     "Code", 0.0, "", MDL_T_STRING);
+				     string("Code"), 0.0, "", MDL_T_STRING);
   syncRoot = resource::newResource(rootResource, NULL, nullString, 
-				   "SyncObject", 0.0, "", MDL_T_STRING);
+				   string("SyncObject"), 0.0, "", MDL_T_STRING);
   // TODO -- should these be detected and built ?
   resource::newResource(syncRoot, NULL, nullString, "MsgTag", 0.0, "", MDL_T_STRING);
   resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "", MDL_T_STRING);
@@ -277,6 +280,7 @@ bool init() {
   numberOfCPUs = getNumberOfCPUs();
 
   initDefaultPointFrequencyTable();
+
   return (initOS());
 }
 
