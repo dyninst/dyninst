@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.196 2003/11/03 19:21:03 tlmiller Exp $
+// $Id: symtab.C,v 1.197 2003/11/24 17:37:57 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -770,54 +770,58 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
 
 bool image::addAllVariables()
 {
-/* Eventually we'll have to do this on all platforms (because we'll retrieve
- * the type information here).
- */
+   /* Eventually we'll have to do this on all platforms (because we'll retrieve
+    * the type information here).
+    */
 #if defined( i386_unknown_nt4_0 ) ||\
     defined( mips_unknown_ce2_11 ) ||\
     defined( i386_unknown_linux2_4 )
+   
+#if defined(TIMED_PARSE)
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
+#endif
+
+   pdstring mangledName; 
+   Symbol symInfo;
+
+   for(SymbolIter symIter(linkedFile); symIter; symIter++) {
+      const pdstring &mangledName = symIter.currkey();
+      const Symbol &symInfo = symIter.currval();
+      
+      if (symInfo.type() == Symbol::PDST_OBJECT) {
+         char * unmangledName =
+            P_cplus_demangle( mangledName.c_str(), nativeCompiler );
+         
+         if( unmangledName == NULL ) {
+            unmangledName = strdup( mangledName.c_str() );
+            assert( unmangledName != NULL );
+         }
+
+         if (varsByPretty.defines(unmangledName)) {
+            (*(varsByPretty[unmangledName])).push_back(pdstring(mangledName));
+         } else {
+            pdvector<pdstring> *varEntry = new pdvector<pdstring>;
+            (*varEntry).push_back(pdstring(mangledName));
+            varsByPretty[unmangledName] = varEntry;
+         }
+
+         free( unmangledName );
+      }
+   }
 
 #if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
-#endif
-
-  pdstring mangledName; 
-  Symbol symInfo;
-
-  for(SymbolIter symIter(linkedFile); symIter; symIter++) {
-     const pdstring &mangledName = symIter.currkey();
-     const Symbol &symInfo = symIter.currval();
-
-    if (symInfo.type() == Symbol::PDST_OBJECT) {
-       char * unmangledName = P_cplus_demangle( mangledName.c_str(), nativeCompiler );
- 
-       if( unmangledName == NULL ) { unmangledName = strdup( mangledName.c_str() ); assert( unmangledName != NULL ); }
-
-       if (varsByPretty.defines(unmangledName)) {
-	  (*(varsByPretty[unmangledName])).push_back(pdstring(mangledName));
-       } else {
-	  pdvector<pdstring> *varEntry = new pdvector<pdstring>;
-	  (*varEntry).push_back(pdstring(mangledName));
-	  varsByPretty[unmangledName] = varEntry;
-       }
-
-       free( unmangledName );
-    }
-  }
-
-#if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << __FILE__ << ":" << __LINE__ <<": addAllVariables took "<<dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << __FILE__ << ":" << __LINE__ <<": addAllVariables took "<<dursecs <<" msecs" << endl;
 #endif
 
 #endif
-  return true;
+   return true;
 }
 
 /*
@@ -1514,8 +1518,9 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   // about it. If so, yank the old one out of the images vector -- replace
   // it, basically.
   for (unsigned u=0; u<numImages; u++)
-    if ((*desc) == *(allImages[u]->desc()))
-      return allImages[u];
+     if ((*desc) == *(allImages[u]->desc())) {
+        return allImages[u];
+     }
 
   /*
    * load the symbol table. (This is the a.out format specific routine).
@@ -1532,10 +1537,10 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   image *ret = new image(desc, err, newBaseAddr); 
 
   if (err || !ret) {
-      if (ret) {
-	  delete ret;
-      }
-    return NULL;
+     if (ret) {
+        delete ret;
+     }
+     return NULL;
   }
 
   bool beenReplaced = false;
@@ -2052,6 +2057,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
     // nothing else to do here
     return;
   }
+
   // initialize (data members) codeOffset_, dataOffset_,
   //  codeLen_, dataLen_.
   codeOffset_ = linkedFile.code_off();
@@ -2063,7 +2069,6 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   dataValidStart_ = linkedFile.data_vldS();
   dataValidEnd_ = linkedFile.data_vldE();
 
-  
   // if unable to parse object file (somehow??), try to
   //  notify luser/calling process + return....    
   if (!codeLen_ || !linkedFile.code_ptr()) {
