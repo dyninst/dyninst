@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.175 2003/07/31 19:01:33 schendel Exp $
+// $Id: symtab.C,v 1.176 2003/08/05 21:49:23 hollings Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -863,6 +863,7 @@ pdmodule *image::findModule(const pdstring &name)
   return NULL;
 }
 
+#ifndef BPATCH_LIBRARY
 /* 
  * return 0 if symbol <symname> exists in image, non-zero if it does not
  */
@@ -878,7 +879,6 @@ bool image::symbolExists(const pdstring &symname)
   return false;
 }
 
-#ifndef BPATCH_LIBRARY
 void image::postProcess(const pdstring pifname)
 {
   FILE *Fil;
@@ -1933,27 +1933,6 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
   return true;
 }
 
-// findAllInstPoints goes through each function and calls f->findInstPoints
-void image::findAllInstPoints()
-{
-  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
-  Address adr;
-  pd_Function *pdf;
-  int count_removed = 0;
-
-  while (mi.next(adr, pdf)) {
-    assert(pdf);
-    if (!pdf->findInstPoints(this)) {
-      // function is not instrumentable
-      removeFuncFromInstrumentable(pdf);
-      addNotInstruFunc(pdf, pdf->file());
-      count_removed++;
-    }
-  }
-  // Remove next line:
-  cerr << __FILE__ << __LINE__ << ":  findAllInstPoints() had to reclassify " << count_removed 
-       << " function(s) as uninstrumentable" << endl;
-}
 // Constructor for the image object. The fileDescriptor simply
 // wraps (in the normal case) the object name and a relocation
 // address (0 for a.out file). On the following platforms, we
@@ -2429,7 +2408,7 @@ pd_Function::pd_Function(const pdstring &symbol,
   //  We used to call findInstPoints here, but since this function sometimes makes
   //  use of a pretty name to determine if the function should not be instrumented
   //  it had to be relocated to a later point in the parsing process...  after 
-  //  names have been demangled.  See findAllInstPoints();
+  //  names have been demangled.  
 #ifdef NOTDEF 
  err = findInstPoints(owner) == false;
 

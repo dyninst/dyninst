@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.26 2003/04/23 22:59:51 bernat Exp $
+// $Id: procfs.C,v 1.27 2003/08/05 21:49:23 hollings Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -570,51 +570,3 @@ bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *in
 bool process::loopUntilStopped() {
   assert(0);
 }
-
-#ifdef notdef
-// TODO -- only call getrusage once per round
-static struct rusage *get_usage_data() {
-  return NULL;
-}
-#endif
-
-float OS::compute_rusage_cpu() {
-  return 0;
-}
-
-float OS::compute_rusage_sys() {
-  return 0;
-}
-
-float OS::compute_rusage_min() {
-  return 0;
-}
-float OS::compute_rusage_maj() {
-  return 0;
-}
-
-float OS::compute_rusage_swap() {
-  return 0;
-}
-float OS::compute_rusage_io_in() {
-  return 0;
-}
-float OS::compute_rusage_io_out() {
-  return 0;
-}
-float OS::compute_rusage_msg_send() {
-  return 0;
-}
-float OS::compute_rusage_msg_recv() {
-  return 0;
-}
-float OS::compute_rusage_sigs() {
-  return 0;
-}
-float OS::compute_rusage_vol_cs() {
-  return 0;
-}
-float OS::compute_rusage_inv_cs() {
-  return 0;
-}
-

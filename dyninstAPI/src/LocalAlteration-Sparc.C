@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.16 2003/05/06 20:44:50 mirg Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.17 2003/08/05 21:49:22 hollings Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -279,10 +279,6 @@ int JmpNopTailCallOptimization::getShift() const {
 // function
 int JmpNopTailCallOptimization::numInstrAddedAfter() { 
     return (getShift() % sizeof(instruction));
-}
-
-int fubar() {
-    return 1;
 }
 
 MovCallMovTailCallOptimization::MovCallMovTailCallOptimization(

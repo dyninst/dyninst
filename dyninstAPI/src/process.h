@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.268 2003/08/03 04:20:24 pcroth Exp $
+/* $Id: process.h,v 1.269 2003/08/05 21:49:23 hollings Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -403,7 +403,6 @@ class process {
   void continueAfterNextStop() { continueAfterNextStop_ = true; }
   void Exited();
   bool hasExited() { return (status_ == exited); }
-  void Stopped();
   static process *findProcess(int pid);
   bool findInternalSymbol(const pdstring &name, bool warn, internalSym &ret_sym)
          const;
@@ -451,8 +450,6 @@ class process {
 
   rpcMgr *getRpcMgr() const { return theRpcMgr; }
 
-  void SendAppIRPCInfo(int runningRPC, unsigned begRPC, unsigned endRPC);
-  void SendAppIRPCInfo(Address curPC);
 #ifdef INFERIOR_RPC_DEBUG
   void CheckAppTrapIRPCInfo();
 #endif
@@ -824,11 +821,13 @@ void saveWorldData(Address address, int size, const void* src);
     callWhen when;
     installed_miniTramps_list *mtList;
   } mtListInfo;
-  void getMiniTrampLists(pdvector<mtListInfo> *vecBuf);
-
   void newMiniTrampList(const instPoint *loc, callWhen when,
 			installed_miniTramps_list **mtList);
   
+#ifndef BPATCH_LIBRARY
+  installed_miniTramps_list* getMiniTrampList(instPoint*&, callWhen&, installed_miniTramps_list**);
+#endif
+
   installed_miniTramps_list* getMiniTrampList(const instPoint *loc,
                                                 callWhen when );
 
@@ -1062,8 +1061,6 @@ void saveWorldData(Address address, int size, const void* src);
   // the dyninst RT lib)
   bool inExec;
   
-  bool cleanUpInstrumentation(bool wasRunning); // called on exit (also exec?)
-
   dyn_thread *getThread(unsigned tid);
   dyn_lwp *getLWP(unsigned lwp_id);
   dyn_lwp *getDefaultLWP() const;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.147 2003/08/01 22:58:44 jodom Exp $
+// $Id: inst-sparc.C,v 1.148 2003/08/05 21:49:22 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -998,19 +998,6 @@ void generateCall(process *proc, Address fromAddr, Address newAddr)
 
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-void genImm(process *proc, Address fromAddr, int op, 
-                        Register rs1, int immd, Register rd)
-{
-    instruction insn;
-    genImmInsn(&insn, op, rs1, immd, rd);
-
-    proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 }
 
 /****************************************************************************/

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.11 2003/07/15 22:43:53 schendel Exp $
+// $Id: Object.C,v 1.12 2003/08/05 21:49:22 hollings Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -67,17 +67,6 @@ int symbol_compare(const Symbol &s1, const Symbol &s2) {
     return(0);    
 }
 
-ostream & relocationEntry::operator<< (ostream &s) const {
-    s << "target_addr_ = " << target_addr_ << endl;
-    s << "rel_addr_ = " << rel_addr_ << endl;
-    s << "name_ = " << name_ << endl;
-    return s; 
-}
-
-ostream &operator<<(ostream &os, relocationEntry &q) {
-    return q.operator<<(os);
-}
-
 bool AObject::needs_function_binding() const {
     return false;
 }
@@ -88,6 +77,17 @@ bool AObject::get_func_binding_table(pdvector<relocationEntry> &) const {
 
 bool AObject::get_func_binding_table_ptr(const pdvector<relocationEntry> *&) const {
     return false;
+}
+
+ostream & relocationEntry::operator<< (ostream &s) const {
+    s << "target_addr_ = " << target_addr_ << endl;
+    s << "rel_addr_ = " << rel_addr_ << endl;
+    s << "name_ = " << name_ << endl;
+    return s; 
+}
+
+ostream &operator<<(ostream &os, relocationEntry &q) {
+    return q.operator<<(os);
 }
 
 /**************************************************
@@ -124,6 +124,7 @@ const ostream &AObject::dump_state_info(ostream &s) {
     s << " data_len_ = " << data_len_ << endl;
     return s;
 }
+
 
 
 

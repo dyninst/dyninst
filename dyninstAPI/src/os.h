@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.22 2002/02/11 22:02:21 tlmiller Exp $
+// $Id: os.h,v 1.23 2003/08/05 21:49:22 hollings Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -81,20 +81,6 @@ public:
   static void osDisconnect(void);
   static bool osKill(int);
 
-  // getrusage is a bsd system call, sunos, solaris, and hp seem to support it
-  // TODO -- what if this sys call is unsupported
-  static float compute_rusage_cpu();
-  static float compute_rusage_sys();
-  static float compute_rusage_min();
-  static float compute_rusage_maj();
-  static float compute_rusage_swap();
-  static float compute_rusage_io_in();
-  static float compute_rusage_io_out();
-  static float compute_rusage_msg_send();
-  static float compute_rusage_msg_recv();
-  static float compute_rusage_sigs();
-  static float compute_rusage_vol_cs();
-  static float compute_rusage_inv_cs();
 };
 
 #endif

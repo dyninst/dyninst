@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.108 2003/07/31 19:01:25 schendel Exp $
+// $Id: linux.C,v 1.109 2003/08/05 21:49:22 hollings Exp $
 
 #include <fstream>
 
@@ -1178,34 +1178,6 @@ bool process::dumpImage(pdstring imageFileName)
 
     return true;
 }
-#endif
-
-#ifndef BPATCH_LIBRARY
-
-float OS::compute_rusage_cpu() { return 0; }
-
-float OS::compute_rusage_sys() { return 0; }
-
-float OS::compute_rusage_min() { return 0; }
-
-float OS::compute_rusage_maj() { return 0; }
-
-float OS::compute_rusage_swap() { return 0; }
-
-float OS::compute_rusage_io_in() { return 0; }
-
-float OS::compute_rusage_io_out() { return 0; }
-
-float OS::compute_rusage_msg_send() { return 0; }
-
-float OS::compute_rusage_msg_recv() { return 0; }
-
-float OS::compute_rusage_sigs() { return 0; }
-
-float OS::compute_rusage_vol_cs() { return 0; }
-
-float OS::compute_rusage_inv_cs() { return 0; }
-
 #endif
 
 int getNumberOfCPUs()

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.132 2003/08/01 22:57:15 jodom Exp $
+// $Id: symtab.h,v 1.133 2003/08/05 21:49:23 hollings Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -422,8 +422,6 @@ class pd_Function : public function_base {
     // NEW routines for function code rewrites using peephole alterations....
     //
     bool readFunctionCode(const image *owner, instruction *into);
-    int moveOutOfDelaySlot(int offset, instruction loadedCode[],
-	  int codeSize);
 #elif defined(mips_sgi_irix6_4)  || defined(mips_unknown_ce2_11) //ccw 29 mar 2001
     bool    checkInstPoints();
     Address findTarget(instPoint *p);
@@ -1112,7 +1110,6 @@ public:
   void setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
 
   bool buildFunctionMaps(pdvector<pd_Function *> *);
-  void findAllInstPoints();
   //
   //  ****  PRIVATE DATA MEMBERS  ****
   //

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.33 2003/07/25 15:52:20 chadd Exp $
+// $Id: linux-x86.C,v 1.34 2003/08/05 21:49:22 hollings Exp $
 
 #include <fstream>
 
@@ -179,31 +179,6 @@ const int FPREGS_STRUCT_SIZE = sizeof( user_fpregs_struct );
 #else
 const int FPREGS_STRUCT_SIZE = sizeof( user_i387_struct );
 #endif
-
-int register_addr (int regno )
-{
-  int addr;
-
-  if ( (regno < 0 || regno >= NUM_REGS)
-       && (regno < FP0_REGNUM || regno > FP7_REGNUM) )
-    {
-      fprintf ( stderr, "Invalid register number %d.", regno);
-      assert(0);
-      return -1;
-    }
-
-  if (regno >= FP0_REGNUM && regno <= FP7_REGNUM) 
-    {
-      int fpstate;
-      struct user *u = NULL;
-      fpstate = (int)(&u->i387.st_space);
-      addr = fpstate + 10 * (regno - FP0_REGNUM);
-    }
-  else
-    addr = INTREGSIZE * regmap[regno];
-
-  return addr;
-}
 
 /* ********************************************************************** */
 

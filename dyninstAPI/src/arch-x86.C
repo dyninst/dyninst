@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.17 2002/06/17 17:04:04 gaburici Exp $
+// $Id: arch-x86.C,v 1.18 2003/08/05 21:49:22 hollings Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -91,6 +91,8 @@ struct x86_insn {
   unsigned insnType;       // the type of the instruction (e.g. (IS_CALL | REL_W))
 };
 
+
+#ifdef DEBUG_CMPDEC
 
 /* groupMap: opcodes determined by bits 5,4,3 of the MOD/RM byte.
    For some instructions in this table, the operands are defined in the
@@ -213,6 +215,7 @@ static x86_insn groupMap[10][8] = {
   { 0, Ill, 0, { 0, 0, 0 }, 0 }
  },
 };
+
 
 // twoByteMap: two byte opcode instructions (first byte is 0x0F)
 static x86_insn twoByteMap[256] = {
@@ -403,6 +406,8 @@ static x86_insn twoByteMap[256] = {
   {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
   {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
 };
+
+#endif
 
 
 // oneByteMap: one byte opcode map
@@ -697,6 +702,7 @@ static x86_insn oneByteMap[256] = {
   { 0, Grp5, true, { 0, 0, 0 }, 0 }
 };
 
+#ifdef DEBUG_CMPDEC
 
 /* decodes an operand especified in the ModRM byte. Return the size in bytes of the
    operand field, not counting the ModRM byte.
@@ -1025,6 +1031,8 @@ unsigned get_instruction2(const unsigned char* addr, unsigned &insnType)
 
   return (nextb - addr);
 }
+
+#endif
 
 /* decode instruction at address addr, return size of instruction */
 unsigned get_instruction(const unsigned char* addr, unsigned &insnType)

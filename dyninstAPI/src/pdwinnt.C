@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.106 2003/07/31 19:01:26 schendel Exp $
+// $Id: pdwinnt.C,v 1.107 2003/08/05 21:49:22 hollings Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1272,20 +1272,6 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 
 
 bool process::loopUntilStopped() { assert(0); return false; }
-
-float OS::compute_rusage_cpu() { return 0.0; }
-float OS::compute_rusage_sys() { return 0.0; }
-float OS::compute_rusage_min() { return 0.0; }
-float OS::compute_rusage_maj() { return 0.0; }
-float OS::compute_rusage_swap() { return 0.0; }
-float OS::compute_rusage_io_in() { return 0.0; }
-float OS::compute_rusage_io_out() { return 0.0; }
-float OS::compute_rusage_msg_send() { return 0.0; }
-float OS::compute_rusage_msg_recv() { return 0.0; }
-float OS::compute_rusage_sigs() { return 0.0; }
-float OS::compute_rusage_vol_cs() { return 0.0; }
-float OS::compute_rusage_inv_cs() { return 0.0; }
-
 
 int getNumberOfCPUs() {
     SYSTEM_INFO info;

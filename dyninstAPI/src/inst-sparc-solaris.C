@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.135 2003/07/18 20:07:00 schendel Exp $
+// $Id: inst-sparc-solaris.C,v 1.136 2003/08/05 21:49:22 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3267,22 +3267,6 @@ bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *,
 }
 
 
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-// Return the offset (in bytes) of the next instruction at or after
-//  offset (again bytes) which is NOT in the delay slot of another
-//  instruction....
-int pd_Function::moveOutOfDelaySlot(int offset, instruction loadedCode[],
-	  int codeSize) {
-    assert(offset >= 0 && offset < codeSize);
-    if (isDCTI(loadedCode[offset/sizeof(instruction)-1])) {
-        return offset + sizeof(instruction);
-    }
-    return offset;
-}
 
 /****************************************************************************/
 /****************************************************************************/

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.129 2003/07/15 22:43:59 schendel Exp $
+// $Id: ast.C,v 1.130 2003/08/05 21:49:22 hollings Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -750,8 +750,6 @@ AstNode::AstNode(AstNode *src) {
 #if defined(ASTDEBUG)
 #define AST_PRINT
 #endif
-
-#define AST_PRINT
 
 #if defined(AST_PRINT)
 void AstNode::printRC()
@@ -1951,6 +1949,7 @@ void AstNode::print() const {
 }
 #endif
 
+#ifndef BPATCH_LIBRARY
 // If a process is passed, the returned Ast code will also update the
 // observed cost of the process according to the cost of the if-body when the
 // if-body is executed.  However, it won't add the the update code if it's
@@ -1961,7 +1960,6 @@ void AstNode::print() const {
 AstNode *createIf(AstNode *expression, AstNode *action, process *proc) 
 {
   if(proc != NULL) {
-#ifndef BPATCH_LIBRARY
     // add code to the AST to update the global observed cost variable
     // we want to add the minimum cost of the body.  Observe the following 
     // example
@@ -1988,13 +1986,13 @@ AstNode *createIf(AstNode *expression, AstNode *action, process *proc)
     const int updateThreshFactor = 5;
     if(costOfIfBody > updateThreshFactor * updateCost)
       action = new AstNode(newAction, updateCode);
-#endif
   }
 
   AstNode *t = new AstNode(ifOp, expression, action);
 
   return(t);
 }
+#endif
 
 
 #ifdef BPATCH_LIBRARY

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.164 2003/07/23 22:32:15 bernat Exp $
+// $Id: aix.C,v 1.165 2003/08/05 21:49:22 hollings Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -347,22 +347,6 @@ void OS::osDisconnect(void) {
   close (ttyfd);
 }
 
-
-//
-// dummy versions of OS statistics.
-//
-float OS::compute_rusage_cpu() { return(0.0); }
-float OS::compute_rusage_sys() { return(0.0); }
-float OS::compute_rusage_min() { return(0.0); }
-float OS::compute_rusage_maj() { return(0.0); }
-float OS::compute_rusage_swap() { return(0.0); }
-float OS::compute_rusage_io_in() { return(0.0); }
-float OS::compute_rusage_io_out() { return(0.0); }
-float OS::compute_rusage_msg_send() { return(0.0); }
-float OS::compute_rusage_sigs() { return(0.0); }
-float OS::compute_rusage_vol_cs() { return(0.0); }
-float OS::compute_rusage_inv_cs() { return(0.0); }
-float OS::compute_rusage_msg_recv() { return(0.0); }
 
 int getNumberOfCPUs()
 {

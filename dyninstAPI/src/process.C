@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.444 2003/08/03 04:20:24 pcroth Exp $
+// $Id: process.C,v 1.445 2003/08/05 21:49:23 hollings Exp $
 
 #include <ctype.h>
 
@@ -215,33 +215,11 @@ void printLoadDyninstLibraryError() {
 }
 
 
-bool reachedLibState(libraryState_t lib, libraryState_t state) {
-   return (lib >= state);
-}
-
 void setLibState(libraryState_t &lib, libraryState_t state) {
     if (lib > state) cerr << "Error: attempting to revert library state" << endl;
     else lib = state;
 }
 
-bool waitingPeriodIsOver()
-{
-  static timeStamp initPrevious = timeStamp::ts1970();
-  static timeStamp previous = initPrevious;
-  bool waiting=false;
-  if (previous == initPrevious) {
-    previous=getCurrentTime();
-    waiting=true;
-  }
-  else {
-    timeStamp current=getCurrentTime();
-    if ( (current-previous) > MaxWaitingTime ) {
-      previous=getCurrentTime();
-      waiting=true;
-    }
-  }
-  return(waiting);
-}
 ostream& operator<<(ostream&s, const Frame &f) {
     fprintf(stderr, "PC: 0x%lx, FP: 0x%lx, PID: %d",
             f.pc_, f.fp_, f.pid_);
@@ -426,399 +404,10 @@ bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
   return true;
 }
 
-// triggeredInStackFrame is used to determine whether instrumentation
-//   added at the specified instPoint/callWhen/callOrder would have been
-//   executed based on the supplied pc.
-//
-// If the pc is within instrumentation for the instPoint, the callWhen
-//   and callOrder must be examined.  triggeredInStackFrame will return
-//   true if the pc is located after the identified point of
-//   instrumentation.
-//   
-// If the pc is not in instrumentation for the supplied instPoint, and
-//   the instPoint is located at the function entry or if the instPoint
-//   is for preInsn at a function call and the pc is located at the
-//   return address of the callsite (indicating that the call is
-//   currently executing), triggeredInStackFrame will return true.
-
-bool process::triggeredInStackFrame(instPoint* point,  Frame &frame, 
-                                    pd_Function *&func,
-                                    callWhen when, callOrder order)
-{
-    //this->print(stderr, ">>> triggeredInStackFrame(): ");
-    trampTemplate *tempTramp;
-    bool retVal = false;
-    pd_Function *instPoint_fn = dynamic_cast<pd_Function *>
-      (const_cast<function_base *>(point->iPgetFunction()));
-    pd_Function *stack_fn = func;
-    if (!func) {
-        stack_fn = findAddressInFuncsAndTramps(frame.getPC());
-        func = stack_fn;
-    }
-    
-    if (pd_debug_catchup) {
-        char line[200];
-        bool didA = false;
-        if (stack_fn) {
-            pdvector<pdstring> name = stack_fn->prettyNameVector();
-            if (name.size()) {
-                sprintf(line, "stack_func: %-20.20s ", name[0].c_str());
-                didA = true;
-            }
-        }
-        if(!didA)  sprintf(line, "stack_func: %-20.20s ", "");
-        
-        if (instPoint_fn) {
-            pdvector<pdstring> name = instPoint_fn->prettyNameVector();
-            strcat(line, "instP_func: ");
-            if (name.size())
-                strcat(line, name[0].c_str());
-        }
-        cerr << "triggeredInStackFrame- " << line << endl;
-    }
-    if (stack_fn != instPoint_fn) {
-        if (stack_fn && instPoint_fn &&
-            (stack_fn->prettyName() == instPoint_fn->prettyName()))
-            if (pd_debug_catchup)
-                fprintf(stderr, "Equal names, ptr %p != %p\n",
-                        stack_fn, instPoint_fn);
-        return false;
-    }
-  Address pc = frame.getPC();
-  if ( pd_debug_catchup )
-     cerr << "  Stack function matches function containing instPoint" << endl;
-
-  if (pc == point->iPgetAddress()) {
-      if (pd_debug_catchup) {
-          fprintf(stderr, "Found pc at start of instpoint, returning false\n");
-      }
-      return false;
-  }
-  
-  
-  //  Is the pc within the instPoint instrumentation?
-  instPoint* currentIp = findInstPointFromAddress(pc);
-
-  if ( currentIp && currentIp == point )
-  {
-    tempTramp = findBaseTramp(currentIp, this);
-
-    if ( tempTramp )
-    {
-      //  Check if pc in basetramp
-        if ( tempTramp->inBasetramp(pc) )
-      {
-        if ( pd_debug_catchup )
-        {
-          cerr << "  Found pc in BaseTramp" << endl;
-          fprintf(stderr, "    baseTramp range is (%lx - %lx)\n",
-                  tempTramp->baseAddr,
-                  (tempTramp->baseAddr + tempTramp->size));
-          fprintf(stderr, "    localPreReturnOffset is %lx\n",
-                  tempTramp->baseAddr+tempTramp->localPreReturnOffset);
-          fprintf(stderr, "    localPostReturnOffset is %lx\n",
-                  tempTramp->baseAddr+tempTramp->localPostReturnOffset);
-        }
-        
-        if ( (when == callPreInsn && 
-            pc >= tempTramp->baseAddr+tempTramp->localPreReturnOffset) ||
-          (when == callPostInsn &&
-            pc >= tempTramp->baseAddr+tempTramp->localPostReturnOffset) )
-        {
-          if ( pd_debug_catchup )
-            cerr << "  pc is after requested instrumentation point, returning true." << endl;
-          retVal = true;
-        }
-        else
-        {
-          if ( pd_debug_catchup )
-            cerr << "  pc is before requested instrumentation point, returning false." << endl;
-        }
-      }
-      else //  pc is in a mini-tramp
-      {
-	installed_miniTramps_list* mtList = getMiniTrampList(currentIp, when);
-    if( mtList == NULL )
-    {
-        newMiniTrampList( currentIp, when, &mtList );
-    }
-	List<instInstance*>::iterator curMT = mtList->get_begin_iter();
-	List<instInstance*>::iterator endMT = mtList->get_end_iter();	 
-
-        bool pcInTramp = false;
-
-	for(; curMT != endMT && !pcInTramp; curMT++)
-        {
-	  instInstance *currInstance = *curMT;
-          if ( pd_debug_catchup )
-          {
-            fprintf(stderr, "  Checking for pc in mini-tramp (%lx - %lx)\n",
-                    currInstance->trampBase, currInstance->returnAddr);
-          }
-          
-          if ( pc >= currInstance->trampBase &&
-                pc <= currInstance->returnAddr )
-          {
-            // We have found the mini-tramp that is currently being executed
-            pcInTramp = true;
-
-            if ( pd_debug_catchup )
-            {
-              cerr << "  Found pc in mini-tramp" << endl;
-              cerr << "    Requested instrumentation is for ";
-              switch(when) {
-                case callPreInsn:
-                  cerr << "PreInsn ";
-                  break;
-                case callPostInsn:
-                  cerr << "PostInsn ";
-                  break;
-              }
-              switch(order) {
-                case orderFirstAtPoint:
-                  cerr << "prepend ";
-                  break;
-                case orderLastAtPoint:
-                  cerr << "append ";
-                  break;
-              }
-              cerr << endl;
-
-              cerr << "    The pc is in ";
-              switch(when) {
-                case callPreInsn:
-                  cerr << "PreInsn ";
-                  break;
-                case callPostInsn:
-                  cerr << "PostInsn ";
-                  break;
-              }
-              cerr << "instrumentation\n";
-            }
-            
-            // The request should be triggered if it is for:
-            //   1)  pre-instruction instrumentation to prepend
-            //   2)  pre-instruction instrumentation to append
-            //         and the pc is in PostInsn instrumentation
-            //   3)  post-instruction instrumentation to prepend
-            //         and the pc is in PostInsn instrumentation
-            if ( (when == callPreInsn && (order == orderFirstAtPoint || 
-                  (order == orderLastAtPoint &&
-                    when == callPostInsn))) ||
-                 (when == callPostInsn && order == orderFirstAtPoint &&
-		    when == callPostInsn) )
-            {
-              if ( pd_debug_catchup )
-                cerr << "  pc is after requested instrumentation point, returning true." << endl;
-              retVal = true;
-            }
-            else
-            {
-              if ( pd_debug_catchup )
-                cerr << "  pc is before requested instrumentation point, returning false." << endl;
-            }
-          }
-        }
-      }
-    } 
-  }
-  else  // pc not in instrumentation
-  {
-    //  If the instrumentation point is located at the entry of the
-    //    function, it would be triggered.
-    //  If the instrumentation point is a call site, the instrumentation
-    //    is preInsn and the pc points to the return address of the call,
-    //    the instrumentation should be triggered as any postInsn instrumentation
-    //    will be executed.
-#if defined(mips_sgi_irix6_4) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    if (point->ipType_ == IPT_ENTRY) {
-      if ( pd_debug_catchup )
-        cerr << "  pc not in instrumentation, requested instrumentation for function entry, returning true." << endl;
-      retVal = true;
-    } else if (point->ipType_ == IPT_CALL && when == callPreInsn) {
-      // check if the $pc corresponds to the native call insn
-      Address base;
-      getBaseAddress(stack_fn->file()->exec(), base);
-      Address native_ra = base + stack_fn->getAddress(0) + point->offset_ + point->size_;
-      if (pc == native_ra)
-      {
-        if ( pd_debug_catchup )
-          cerr << "  Requested instrumentation is preInsn for callsite being executed.  Returning true." << endl;
-        retVal = true;
-      }
-      else
-      {
-        if ( pd_debug_catchup )
-          cerr << "  Function at requested preInsn callsite is not being executed.  Returning false." << endl;
-      }
-    }
-    else
-    {
-      if ( pd_debug_catchup )
-        cerr << "  Requested instrumentation point is not appropriate for catchup, returning false." << endl;
-    }      
-#elif defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
-
-    if (point->ipType == functionEntry) {
-      if ( pd_debug_catchup )
-        cerr << "  pc not in instrumentation, requested instrumentation for function entry, returning true." << endl;
-      retVal = true;
-    } else if (point->ipType == callSite && when == callPreInsn) {
-      // looking at gdb, sparc-solaris seems to record PC of the 
-      //  call site + 8, as opposed to the PC of the call site.
-      Address base, target;
-      getBaseAddress( stack_fn->file()->exec(), base );
-      target = base + point->addr + 2 * sizeof(instruction);
-      if (pc == target) {
-        if ( pd_debug_catchup )
-          cerr << "  Requested instrumentation is preInsn for callsite being executed.  Returning true." << endl;
-        retVal = true;
-      } else {
-        trampTemplate *bt = findBaseTramp( point, this );
-        Address target = bt->baseAddr + bt->emulateInsOffset + 2 * sizeof(instruction);
-        if( pc == target )
-        {
-          if ( pd_debug_catchup )
-            cerr << "  Requested instrumentation is preInsn for callsite being executed.  Returning true." << endl;
-          retVal = true;
-        }
-        else
-        {
-          if ( pd_debug_catchup )
-            cerr << "  Function at requested preInsn callsite is not being executed.  Returning false." << endl;
-        }
-      }
-    }
-    else
-    {
-      if ( pd_debug_catchup )
-        cerr << "  Requested instrumentation point is not appropriate for catchup, returning false." << endl;
-    }      
-#elif defined(rs6000_ibm_aix4_1)
-    if ( point->ipLoc == ipFuncEntry ) {
-      if ( pd_debug_catchup )
-        cerr << "  pc not in instrumentation, requested instrumentation for function entry, returning true." << endl;
-      retVal = true;
-    } else if ( point->ipLoc == ipFuncCallPoint && when == callPreInsn ) {
-      // check if the stack_pc points to the instruction after the call site
-      Address base, target;
-      getBaseAddress( stack_fn->file()->exec(), base );
-      target = base + point->addr + sizeof(instruction);
-      //cerr << " stack_pc should be " << (void*)target;
-      if ( pc == target ) {
-        if ( pd_debug_catchup )
-          cerr << "  Requested instrumentation is preInsn for callsite being executed.  Returning true." << endl;
-        retVal = true;
-      }
-      else
-      {
-        if ( pd_debug_catchup )
-          cerr << "  Function at requested preInsn callsite is not being executed.  Returning false." << endl;
-      }
-      //cerr << endl;
-    }
-    else
-    {
-      //if ( pd_debug_catchup )
-        //cerr << "  Requested instrumentation point is not appropriate for catchup, returning false." << endl;
-    }      
-#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
-    if ( point->address() == point->func()->getAddress( this ) ) {
-      if ( pd_debug_catchup )
-        cerr << "  pc not in instrumentation, requested instrumentation for function entry, returning true." << endl;
-      retVal = true;
-    } else if ( point->insnAtPoint().isCall() && when == callPreInsn ) {
-      // check if the pc points to the instruction after the call site
-      Address base, target;
-      getBaseAddress( stack_fn->file()->exec(), base );
-      target = base + point->address() + point->insnAtPoint().size();
-      //cerr << " pc should be " << (void*)target;
-      if ( pc == target ) {
-        if ( pd_debug_catchup )
-          cerr << "  Requested instrumentation is preInsn for callsite being executed." << endl;
-        //cerr << " -- HIT";
-        retVal = true;
-      }
-      else
-      {
-        if ( pd_debug_catchup )
-          cerr << "  Function at requested preInsn callsite is not being executed.  Returning false." << endl;
-      }
-      //cerr << endl;
-    }
-    else
-    {
-      if ( pd_debug_catchup )
-        cerr << "  Requested instrumentation point is not appropriate for catchup, returning false." << endl;
-    }      
-#endif
-  }
-
-  return retVal;
-}
-
 
 static Address alignAddress(Address addr, unsigned align) {
   Address skew = addr % align;
   return (skew) ? (((addr/align)+1)*align) : addr;
-}
-
-// disItem was previously declared const, but heap management
-// occasionally deletes such items
-bool isFreeOK(process *proc, disabledItem &dis, pdvector<Frame> stackWalk)
-{
-  Address disPointer = dis.block.addr;
-  inferiorHeap *hp = &proc->heap;
-
-#if defined(hppa1_1_hp_hpux)
-  if (proc->freeNotOK) return false;
-#endif
-
-  heapItem *ptr = NULL;
-  if (!hp->heapActive.find(disPointer, ptr)) {
-    sprintf(errorLine,"Warning: attempt to free undefined heap entry "
-            "0x%p (pid=%d, heapActive.size()=%d)\n", 
-            (void*)disPointer, proc->getPid(), 
-            hp->heapActive.size());
-    logLine(errorLine);
-    return false;
-  }
-  assert(ptr);
-
-  pdvector<addrVecType> &points = dis.pointsToCheck; 
-  for (unsigned pci = 0; pci < stackWalk.size(); pci++) {
-    Address pc = stackWalk[pci].getPC();
-    // Condition 1: PC is inside current block
-    if ((pc >= ptr->addr) && (pc <= ptr->addr + ptr->length)) {
-      return false;
-    }
-    
-    for (unsigned j = 0; j < points.size(); j++) {
-      for (unsigned k = 0; k < points[j].size(); k++) {
-        Address predStart = points[j][k]; // start of predecessor code block
-        heapItem *pred = NULL;
-        if (!hp->heapActive.find(predStart, pred)) {
-          // predecessor code already freed: remove from list
-          int size = points[j].size();
-          points[j][k] = points[j][size-1];
-          points[j].resize(size-1);
-          k--; // move index back to account for resize()
-          continue;
-        }
-        assert(pred);
-
-        // Condition 2: current block is subset of predecessor block ???
-        if ((ptr->addr >= pred->addr) && (ptr->addr <= pred->addr + pred->length)) {
-          return false;
-        }
-        // Condition 3: PC is inside predecessor block
-        if ((pc >= pred->addr) && (pc <= pred->addr + pred->length)) {
-          return false;     
-        }
-      }
-    }
-  }
-  return true;
 }
 
 extern "C" int heapItemCmpByAddr(const heapItem **A, const heapItem **B)
@@ -5040,35 +4629,6 @@ void process::newMiniTrampList(const instPoint *loc, callWhen when,
   }
 }
 
-void process::getMiniTrampLists(pdvector<mtListInfo> *vecBuf) {
-  dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
-    befIter = installedMiniTramps_beforePt;
-
-  for(; befIter; befIter++) {
-    const instPoint *theLoc = befIter.currkey();
-    installed_miniTramps_list *curList = befIter.currval();
-    mtListInfo listInfo;
-    listInfo.loc = theLoc;
-    listInfo.when = callPreInsn;
-    listInfo.mtList = curList;
-    (*vecBuf).push_back(listInfo);
-  }
-
-  dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
-    aftIter = installedMiniTramps_afterPt;
-
-  for(; aftIter; aftIter++) {
-    const instPoint *theLoc = aftIter.currkey();
-    installed_miniTramps_list *curList = aftIter.currval();
-    mtListInfo listInfo;
-    listInfo.loc = theLoc;
-    listInfo.when = callPostInsn;
-    listInfo.mtList = curList;
-    (*vecBuf).push_back(listInfo);
-  }
-}
-
-
 installed_miniTramps_list*
 process::getMiniTrampList(const instPoint *loc, callWhen when)
 {
@@ -5745,47 +5305,6 @@ void process::handleExitEntry(int code) {
 #endif
 }
 
-/* 
-   process::cleanUpInstrumentation called when paradynd catch
-   a SIGTRAP to find out if there's any previous unfinished instrumentation
-   requests 
-*/
-bool process::cleanUpInstrumentation(bool wasRunning) {
-  // Try to process an item off of the waiting list 'instWlist'.
-  // If something was found & processed, then true will be returned.
-  // Additionally, if true is returned, the process will be continued
-  // if 'wasRunning' is true.
-  // But if false is returned, then there should be no side effects: noone
-  // should be continued, nothing removed from 'instWList', no change
-  // to this->status_, and so on (this is important to avoid bugs).
-  
-  assert(status_ == stopped); // since we're always called after a SIGTRAP
-  
-  Address pc = 0; //FIXME
-  assert(0 && "Fix the above PC to be correct");
-  // Go thru the instWList to find out the ones to be deleted 
-  bool done = false;
-  u_int i=0;
-  bool found = false;
-  while(!done){
-    //process *p = (instWList[i])->which_proc;
-    if(((instWList[i])->pc_ == pc) && ((instWList[i])->which_proc == this)){
-      (instWList[i])->cleanUp(this,pc);
-      u_int last = instWList.size()-1;
-      delete (instWList[i]);
-      instWList[i] = instWList[last];
-      instWList.resize(last);
-      found = true;
-    }
-    else {
-      i++;
-    }
-    if(i >= instWList.size()) done = true;
-  }
-  if(found && wasRunning) continueProc();
-  return found;
-}
-
 bool process::checkTrappedSyscallsInternal(Address syscall)
 {
     for (unsigned i = 0; i < syscallTraps_.size(); i++) {
@@ -5796,64 +5315,6 @@ bool process::checkTrappedSyscallsInternal(Address syscall)
     return false;
 }
 
-/* If the PC is at a tramp instruction, then the trap may have been
-   decoded but not yet delivered to the application, when the pause
-   was done.  When the app is restarted the trap is delivered before
-   the inferior rpc (irpc) can run, which causes an assert in the rt
-   library trap handler.  So we set a flag in the application
-   indicating we're in an irpc.  The rt library trap handler when this
-   flag is set (ie. the irpc is running) will not act upon the trap.
-   The trap will get regenerated after the irpc is completed since the
-   PC will be reset to it's previous value, which in this case is the
-   trap instruction.  I suppose it could be also the case that the
-   pause is done when the PC is at the trap instruction but before the
-   trap is decoded and therefore pending.  The default behavior of the
-   PC getting reset to it's previous value, obviously works in this
-   case also.
-
-   We also set variables in the applicatoin that indicate the starting
-   and ending addresses of the irpc.  This is used for the trap handler
-   to check the current PC against these addresses.  If the PC is in the
-   irpc, then it's a previous trap that's interrupting the irpc.  If the
-   PC isn't in the irpc then it's a trap caused by instrumentation called
-   by an inferior rpc, in which case we process the trap as usual.
-*/
-
-void process::SendAppIRPCInfo(int runningRPC, unsigned begRPC, unsigned endRPC) {
-   if (pd_debug_infrpc)
-     inferiorrpc_cerr << "SendAppIRPCInfo(), flag: " << runningRPC<< ", begRPC: "
-                      << begRPC << ", endRPC: " << endRPC << "\n";
-   bool err = false;
-   Address addr = 0;
-   addr = findInternalAddress("curRPC",true, err);
-   assert(err==false);
-   rpcInfo newRPCInfo;
-   newRPCInfo.runningInferiorRPC = runningRPC;
-   newRPCInfo.begRPCAddr = begRPC;
-   newRPCInfo.endRPCAddr = endRPC;
-
-   bool retv = writeTextSpace((caddr_t)addr,
-                              sizeof(rpcInfo), (caddr_t)&newRPCInfo);
-   if(retv == false) {
-     cerr << "!!!  Couldn't write rpcInfo structure into rt library !!\n";
-   }
-}
-
-void process::SendAppIRPCInfo(Address curPC) {
-   bool err = false;
-   if (pd_debug_infrpc)
-     inferiorrpc_cerr << "SendAppIRPCInfo(), lastPC: " << curPC << "\n";
-   err = false;
-   Address lastpcAddr = findInternalAddress("pcAtLastIRPC",true, err);
-   assert(err==false);
-   int lastPC = curPC;
-
-   bool retv = writeTextSpace((caddr_t)lastpcAddr, sizeof(unsigned), 
-                              (caddr_t)&lastPC);
-   if(retv == false) {
-     cerr << "!!!  Couldn't write pcAtLastIRPC variable into rt library !!\n";
-   }
-}
 
 /*
 If you want to check that ignored traps associated with irpcs are getting
@@ -6080,24 +5541,6 @@ bool process::dumpCore(const pdstring fileOut) {
 
 
 /*
- * The process was stopped by a signal. Update its status and notify Paradyn.
- */
-void process::Stopped() {
-  if (status_ == exited) return;
-  if (status_ != stopped) {
-    status_ = stopped;
-#ifndef BPATCH_LIBRARY
-    tp->processStatus(pid, procPaused);
-#endif
-
-    if ( checkContinueAfterStop() ) {
-       if (!continueProc())
-          assert(false);
-    }
-  }
-}
-
-/*
  *  The process has exited. Close it down.  Notify Paradyn.
  */
 void process::Exited() {
@@ -6125,6 +5568,7 @@ process *process::findProcess(int pid) {
   return NULL;
 }
 
+#ifdef DEBUG
 pdstring process::getBootstrapStateAsString() const {
    // useful for debugging
    switch(bootstrapState) {
@@ -6144,6 +5588,7 @@ pdstring process::getBootstrapStateAsString() const {
    assert(false);
    return "???";
 }
+#endif
 
 pdstring process::getStatusAsString() const {
    // useful for debugging
