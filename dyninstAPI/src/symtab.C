@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.96 1999/06/17 06:14:15 csserra Exp $
+// $Id: symtab.C,v 1.97 1999/06/17 21:54:20 wylie Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1668,7 +1668,7 @@ void image::initialize(const string &fileName, bool &err,
         return;
     }
 
-#if !defined(i386_unknown_nt4_0) && !defined(USES_LIBDYNINSTRT_SO)
+#if !defined(USES_LIBDYNINSTRT_SO)
     // on architectures where statically linked programs to be run 
     //  w/ paradyn need to link with the DYNINST library, try to find
     //  the paradyn lib version # (DYNINSTversion or _DYNINSTversion
@@ -1750,7 +1750,7 @@ void image::initialize(const string &fileName, bool &err,
     // I am guessing are modules
     vector<Symbol> uniq;
 
-    int num_zeros = 0;
+    unsigned int num_zeros = 0;
     // must use loop+1 not mods.size()-1 since it is an unsigned compare
     //  which could go negative - jkh 5/29/95
     for (unsigned loop=0; loop < tmods.size(); loop++) {
