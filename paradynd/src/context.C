@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.111 2004/03/23 01:12:34 eli Exp $ */
+/* $Id: context.C,v 1.112 2004/05/11 19:01:51 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -129,32 +129,32 @@ bool applicationDefined()
 extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid);
 
 void createThread(traceThread *fr) {
-   assert(fr);
-   process *dyn_proc = process::findProcess(fr->ppid);
-
-   if(fr->tid == 0) {
-      // we see these at times from a multi-threaded forked off child process
-      dyn_proc->receivedInvalidThrCreateMsg();
-      return;
-   }
-
-   dyn_thread *foundThr = dyn_proc->getThread(fr->tid);
-   if(foundThr != NULL) {
-      // received a duplicate thread create, can happen if rpcs launched on
-      // lwps of a MT forked off child process get run on same threads, since
-      // lwps changed between threads
-      dyn_proc->receivedInvalidThrCreateMsg();
-      return;
-   }
+    assert(fr);
+    process *dyn_proc = process::findProcess(fr->ppid);
     
-   // creating new thread
-   dyn_thread *thr =
-      dyn_proc->createThread(fr->tid, fr->index, fr->stack_addr, fr->start_pc,
-                             fr->resumestate_p, fr->context==FLAG_SELF);
-   assert(thr);
-
-   pd_process *proc=NULL;
-   proc = getProcMgr().find_pd_process(fr->ppid);
+    if(fr->tid == 0) {
+        // we see these at times from a multi-threaded forked off child process
+        dyn_proc->receivedInvalidThrCreateMsg();
+        return;
+    }
+    
+    dyn_thread *foundThr = dyn_proc->getThread(fr->tid);
+    if(foundThr != NULL) {
+        // received a duplicate thread create, can happen if rpcs launched on
+        // lwps of a MT forked off child process get run on same threads, since
+        // lwps changed between threads
+        dyn_proc->receivedInvalidThrCreateMsg();
+        return;
+    }
+    
+    // creating new thread
+    dyn_thread *thr =
+    dyn_proc->createThread(fr->tid, fr->index, fr->lwp, fr->stack_addr, fr->start_pc,
+                           fr->resumestate_p, fr->context==FLAG_SELF);
+    assert(thr);
+    
+    pd_process *proc=NULL;
+    proc = getProcMgr().find_pd_process(fr->ppid);
 
    if(! proc) {
       // child pd_process not defined so returning, can happen when handling
@@ -214,8 +214,8 @@ void updateThreadId(traceThread *fr) {
    resource *rid;
    process *dynproc = pdproc->get_dyn_process()->lowlevel_process();
    if(fr->context == FLAG_ATTACH) {
-      dynproc->updateThread(thr, fr->tid, fr->index, 
-			    fr->stack_addr, fr->start_pc, fr->resumestate_p);
+       dynproc->updateThread(thr, fr->tid, fr->index, fr->lwp,
+                            fr->stack_addr, fr->start_pc, fr->resumestate_p);
       // computing resource id
       pdstring pretty_name = pdstring(thr->get_start_func()->prettyName().c_str());
       buffer = pdstring("thr_") + pdstring(fr->tid) + pdstring("{") + 
@@ -224,7 +224,7 @@ void updateThreadId(traceThread *fr) {
       buffer = pdstring("thr_") + pdstring(fr->tid) + pdstring("{main}") ;
       
       // updating main thread
-      dynproc->updateThread(thr, fr->tid, fr->index, fr->resumestate_p);
+      dynproc->updateThread(thr, fr->tid, fr->index, fr->lwp, fr->resumestate_p);
    }
 
    rid = resource::newResource(pdproc->get_rid(),
