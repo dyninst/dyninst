@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.59 2000/08/21 01:22:34 buck Exp $ */
+/* $Id: test1.mutatee.c,v 1.60 2000/09/21 20:14:43 zandy Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1266,13 +1266,21 @@ void func19_1()
 {
     stop_process();
 
-    if (globalVariable19_1 == MAGIC19_1) {
+    if (globalVariable19_1 != MAGIC19_1) {
+	printf("**Failed test #19 (oneTimeCode)\n");
+	printf("    globalVariable19_1 contained %d, not %d as expected\n",
+		globalVariable19_1, MAGIC19_1);
+    }
+
+    stop_process();
+
+    if (globalVariable19_2 == MAGIC19_2) {
 	printf("Passed test #19 (oneTimeCode)\n");
 	passedTest[19] = TRUE;
     } else {
 	printf("**Failed test #19 (oneTimeCode)\n");
-	printf("    globalVariable19_1 contained %d, not %d as expected\n",
-		globalVariable19_1, MAGIC19_1);
+	printf("    globalVariable19_2 contained %d, not %d as expected\n",
+		globalVariable19_2, MAGIC19_2);
     }
 }
 
