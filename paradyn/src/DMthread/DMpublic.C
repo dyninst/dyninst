@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.35  1995/01/26 17:58:23  jcargill
+ * Revision 1.36  1995/02/16 08:16:42  markc
+ * Changed Bool to bool
+ * Changed igen-xdr functions to use string/vectors rather than char*/igen-arrays
+ *
+ * Revision 1.35  1995/01/26  17:58:23  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -136,7 +140,7 @@ extern "C" {
 #include <assert.h>
 
 // the argument list passed to paradynds
-char **paradynDaemon::args = 0;
+vector<string> paradynDaemon::args = 0;
 
 applicationContext *dataManager::createApplicationContext(errorHandler foo)
 {
@@ -145,31 +149,31 @@ applicationContext *dataManager::createApplicationContext(errorHandler foo)
 }
 
 void dataManager::setResourceSearchSuppress(applicationContext *app,
-					    resource *res, Boolean newValue)
+					    resource *res, bool newValue)
 {
     if (res) res->setSuppress(newValue);
 }
 
 void dataManager::setResourceSearchChildrenSuppress(applicationContext *app,
 						    resource *res, 
-						    Boolean newValue)
+						    bool newValue)
 {
     if (res) res->setSuppressChildren(newValue);
 }
 
 void dataManager::setResourceInstSuppress(applicationContext *app,
-				      resource *res, Boolean newValue)
+				      resource *res, bool newValue)
 {
     if (res) app->setInstSuppress(res, newValue);
 }
 
-Boolean dataManager::addDaemon(applicationContext *app,
+bool dataManager::addDaemon(applicationContext *app,
 			       char *machine, char *login, char *name)
 {
   return (app->getDaemon(machine, login, name));
 }
 
-Boolean dataManager::defineDaemon(applicationContext *app,
+bool dataManager::defineDaemon(applicationContext *app,
 				  const char *command,
 				  const char *dir,
 				  const char *login,
@@ -180,48 +184,47 @@ Boolean dataManager::defineDaemon(applicationContext *app,
   return (app->defineDaemon(command, dir, login, name, machine, flavor));
 }
 
-Boolean dataManager::addExecutable(applicationContext *app,
+bool dataManager::addExecutable(applicationContext *app,
 				   char  *machine,
 				   char *login,
 				   char *name,
 				   char *dir,
-				   int argc,
-				   char **argv)
+				   vector<string> *argv)
 {
-    return(app->addExecutable(machine, login, name, dir, argc, argv));
+    return(app->addExecutable(machine, login, name, dir, *argv));
 }
 
-Boolean dataManager::applicationDefined(applicationContext *app)
+bool dataManager::applicationDefined(applicationContext *app)
 {
     return(app->applicationDefined());
 }
 
-Boolean dataManager::startApplication(applicationContext *app)
+bool dataManager::startApplication(applicationContext *app)
 {
     return(app->startApplication());
 }
 
-Boolean dataManager::pauseApplication(applicationContext *app)
+bool dataManager::pauseApplication(applicationContext *app)
 {
     return(app->pauseApplication());
 }
 
-Boolean dataManager::pauseProcess(applicationContext *app, int pid)
+bool dataManager::pauseProcess(applicationContext *app, int pid)
 {
     return(app->pauseProcess(pid));
 }
 
-Boolean dataManager::continueApplication(applicationContext *app)
+bool dataManager::continueApplication(applicationContext *app)
 {
     return(app->continueApplication());
 }
 
-Boolean dataManager::continueProcess(applicationContext *app, int pid)
+bool dataManager::continueProcess(applicationContext *app, int pid)
 {
     return(app->continueProcess(pid));
 }
 
-Boolean dataManager::detachApplication(applicationContext *app, Boolean pause)
+bool dataManager::detachApplication(applicationContext *app, bool pause)
 {
    return(app->detachApplication(pause));
 }
@@ -421,7 +424,7 @@ void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
     (func)(ps, mi, buckets, count, first);
 }
 
-metricInfo *dataManager::getMetricInfo(metric *met) {
+T_dyninstRPC::metricInfo *dataManager::getMetricInfo(metric *met) {
     return(met->getInfo());
 }
 
