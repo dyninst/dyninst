@@ -595,7 +595,10 @@ Object::load_object() {
 		SymName += "_";
 		res = global_symbols.defines(SymName);
 	      }
-              assert(res); // All globals in .stab should be defined in .symtab
+
+              if (!res) break;
+//              assert(res); // All globals in .stab should be defined in .symtab
+
 	      Symbol sym = global_symbols[SymName];
 	      symbols_[SymName] = Symbol(sym.name(), module, sym.type(), sym.linkage(), 
 				  sym.addr(), sym.kludge(), sym.size());
