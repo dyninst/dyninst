@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.7 1999/04/15 21:23:10 nash Exp $
+// $Id: linux.C,v 1.8 1999/04/16 21:33:56 nash Exp $
 
 #include <fstream.h>
 
@@ -86,7 +86,7 @@ const int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 2;
 
 const char DL_OPEN_FUNC_NAME[] = "_dl_open";
 
-#ifdef PTRACEDEBUG
+#if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
 #endif
 
@@ -275,6 +275,16 @@ static bool changePC(int pid, Address loc) {
   return true;
 }
 
+static bool changeBP(int pid, Address loc) {
+  Address regaddr = EBP * INTREGSIZE;
+  if (0 != P_ptrace (PTRACE_POKEUSER, pid, regaddr, loc )) {
+    perror( "process::changeBP - PTRACE_POKEUSER" );
+    return false;
+  }
+
+  return true;
+}
+
  Address getPC(int pid) {
    Address regaddr = EIP * INTREGSIZE;
    int res;
@@ -446,14 +456,15 @@ int process::waitProcs(int *status) {
     if( result > 0 && WIFSTOPPED(*status) ) {
 		process *p = findProcess( result );
 		sig = WSTOPSIG(*status);
+		if( sig == SIGTRAP && !p->reachedVeryFirstTrap )
+			; // Report it
 #ifdef CHECK_SYSTEM_CALLS
-		if( sig == SIGTRAP && p->isRPCwaitingForSysCallToComplete() )
+		else if( sig == SIGTRAP && p->isRPCwaitingForSysCallToComplete() )
 		{
 			assert( !p->isRunning_() );
 		}
-		else 
 #endif
-		if( sig != SIGSTOP && sig != SIGILL ) {
+		else if( sig != SIGSTOP && sig != SIGILL ) {
 			ignore = true;
 			if( sig != SIGTRAP )
 			{
@@ -523,7 +534,8 @@ bool process::attach() {
   // is automatically generated)
 
   // step 1) /proc open: attach to the inferior process memory file
-  sprintf(procName,"/proc/%05d/mem", (int)getPid());
+  sprintf(procName,"/proc/%d/mem", (int)getPid());
+  attach_cerr << "Opening memory space for process #" << getPid() << " at " << procName << endl;
   int fd = P_open(procName, O_RDWR, 0);
   if (fd < 0 ) {
     fprintf(stderr, "attach: open failed on %s: %s\n", procName, sys_errlist[errno]);
@@ -600,8 +612,14 @@ void process::handleIfDueToDyninstLib()
   restoreRegisters(savedRegs); 
 
   // restore the stack frame of _start()
-  int *theIntRegs = (int *)savedRegs;
-  Address theEBP = theIntRegs[EBP];
+  user_regs_struct *theIntRegs = (user_regs_struct *)savedRegs;
+  Address theEBP = theIntRegs->ebp;
+
+  if( !theEBP )
+  {
+	  theEBP = theIntRegs->esp;
+  }
+
   assert (theEBP);
   // this is pretty kludge. if the stack frame of _start is not the right
   // size, this would break.
@@ -659,22 +677,27 @@ bool process::dlopenDYNINSTlib() {
   //Address codeBase = this->getImage()->codeOffset();
   // ...let's try "_start" instead
   //  Address codeBase = (this->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTION))->getAddress(this);
-  Address codeBase = (Address)NULL;
+  Address codeBase = 0;
   int i;
 
   for( i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
-    function_base *tmpFunc = symbols->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTIONS[i]);
-    if( tmpFunc )
-      codeBase = tmpFunc->getAddress(this);
-	if( codeBase )
-	  break;
+	  codeBase = 0;
+	  function_base *f = symbols->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTIONS[i]);
+	  if( f )
+		  codeBase = f->getAddress(this);
+	  if( codeBase )
+		  break;
   }
 
   if( !codeBase || i >= N_DYNINST_LOAD_HIJACK_FUNCTIONS )
-    return false;
+  {
+	  attach_cerr << "Couldn't find a point to insert dlopen call" << endl;
+	  return false;
+  }
 
   attach_cerr << "Inserting dlopen call in " << DYNINST_LOAD_HIJACK_FUNCTIONS[i] << " at "
-			  << (void*)codeBase << endl;
+      << (void*)codeBase << endl;
+  attach_cerr << "Process at " << (void*)getPC( getPid() ) << endl;
 
   // Or should this be readText... it seems like they are identical
   // the remaining stuff is thanks to Marcelo's ideas - this is what 
@@ -770,20 +793,29 @@ bool process::dlopenDYNINSTlib() {
   savedRegs = getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
-  int *regs = (int*)savedRegs;
-  Address theEBP = regs[EBP];
-  if( theEBP ) {
-  //assert (theEBP);
+  user_regs_struct *regs = (user_regs_struct*)savedRegs;
+  Address theEBP = regs->ebp;
+
+  // Under Linux, at the entry point to main, ebp is 0
+  // the first thing main usually does is to push ebp and
+  // move esp -> ebp, so we'll do that, too
+  if( !theEBP )
+  {
+	  theEBP = regs->esp;
+	  changeBP( getPid(), theEBP );
+  }
+
+  assert( theEBP );
   // this is pretty kludge. if the stack frame of _start is not the right
   // size, this would break.
   readDataSpace((void*)(theEBP-6*sizeof(int)),6*sizeof(int), savedStackFrame, true);
-  }
+
   isLoadingDyninstLib = true;
 
   if (!changePC(codeBase,savedRegs))
   {
-    logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
-    assert(0);
+	  logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+	  assert(0);
   }
 
 /*#ifdef PTRACEDEBUG
@@ -868,7 +900,7 @@ bool process::terminateProc_()
   if (!checkStatus()) 
     return false;
 
-  if (P_ptrace(PTRACE_KILL, pid, 0, 0) != 0)
+  if( kill( getPid(), SIGKILL ) != 0 )
     return false;
   else
     return true;
@@ -1026,7 +1058,10 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
     }
   }
 
-#ifdef PTRACEDEBUG_EXCESSIVE
+#if defined(PTRACEDEBUG_EXCESSIVE)
+#if !defined(PTRACEDEBUG_ALWAYS)
+  if( debug_ptrace )
+#endif
   fprintf( stderr, "\n" );
 #endif
 
@@ -1043,6 +1078,8 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     fprintf( stderr, "(linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n", amount, (int)inSelf, (int)inTraced );
 #endif
 
+  int tries = 5;
+
   if( proc_fd != -1 ) {
     while (true) {
       if((lseek(proc_fd, (off_t)inTraced, SEEK_SET)) != (off_t)inTraced) {
@@ -1055,17 +1092,22 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 	//perror( "process::readDataSpace_ - read" );
 	return false;
       } else if( result == 0 ) {
-	if( errno )
+		  //if( errno )
 		//perror( "process::readDataSpace_" );
-	fprintf( stderr, "process::readDataSpace_ -- Failed to read( /proc/*/mem ), trying ptrace\n" );
-	break;
+		  if( tries-- == 0 )
+		  {
+#if defined(PDYN_DEBUG) || defined(PTRACEDEBUG)
+			  fprintf( stderr, "process::readDataSpace_ -- Failed to read( /proc/*/mem ), trying ptrace\n" );
+#endif
+			  break;
+		  }
       }
 	  u_int res = result;
       assert( res <= amount );
       if( res == amount )
 	return true;
       // We weren't able to read atomically, so reseek and reread.
-#ifdef PDYN_DEBUG
+#if defined(PDYN_DEBUG) || defined(PTRACEDEBUG)
 	  fprintf( stderr, "process::readDataSpace_ -- Failed atomic read, reseeking and rereading\n" );
 #endif
     }
@@ -1079,27 +1121,48 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 
   if( amount % sizeof(int) != 0 ||
       (int)inTraced % sizeof(int) != 0 ||
-      (int)inSelf % sizeof(int) != 0 ) {
-#ifdef PTRACEDEBUG
-    fprintf( stderr, "couldn't do (linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n", amount, (int)inSelf, (int)inTraced );
-#endif
-    return false;
+      (int)inSelf % sizeof(int) != 0 )
+  {
+	  unsigned char buf[sizeof(int)];
+	  u_int count, off, addr = (int)inTraced, dat = (int)inSelf;
+	  bool begin = true;
+
+	  off = addr % sizeof(int);
+	  addr -= off;
+
+	  for( count = 0; count < amount; count++ ) {
+		  if( !off || begin ) {
+			  begin = false;
+			  *((int*)buf) = P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, 0 );
+			  if( errno )
+			  {
+				  perror( "process::readDataSpace, ptrace PTRACE_PEEKTXT" );
+				  return false;
+			  }
+			  addr += sizeof(int);
+		  }
+		  *((unsigned char*)(dat+count)) = buf[off];
+		  off++; off %= sizeof(int);
+	  }
+	  return true;
   }
 
-  u_int count, result;
-  int *dst = (int*)inSelf;
-  const int *addr = (const int*)inTraced;
+  {
+	  u_int count, result;
+	  int *dst = (int*)inSelf;
+	  const int *addr = (const int*)inTraced;
 
-  for( count = 0; count < amount; count += sizeof(int), addr++, dst++ ) {
-    result = P_ptrace( PTRACE_PEEKTEXT, getPid(), (int)addr, 0 );
-    if( errno ) {
-		//perror( "process::writeDataSpace, ptrace PTRACE_POKETXT" );
-      return false;
-    }
-    *dst = result;
-  }
+	  for( count = 0; count < amount; count += sizeof(int), addr++, dst++ ) {
+		  result = P_ptrace( PTRACE_PEEKTEXT, getPid(), (int)addr, 0 );
+		  if( errno ) {
+			  perror( "process::readDataSpace, ptrace PTRACE_PEEKTXT" );
+			  return false;
+		  }
+		  *dst = result;
+	  }
   
-  return true;
+	  return true;
+  }
 }
 
 /*
