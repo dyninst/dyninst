@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.115 2004/06/21 19:36:34 pcroth Exp $
+ * $Id: dataManager.I,v 1.116 2004/07/14 18:23:57 eli Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -98,8 +98,7 @@ typedef void (*resourceInfoCallback)(perfStreamHandle handle,
 
 typedef void (*resourceRetireCallback)(perfStreamHandle handle, 
 				       resourceHandle uniqueID, 
-				       const char *name,
-                                       const char *abstr);
+				       const char *name);
 
 typedef enum { batchStart, batchEnd } batchMode;
 
@@ -685,8 +684,7 @@ $remote dataManager {
     $upcall $async void retireResource_(resourceRetireCallback,
 				        perfStreamHandle, 
                                         resourceHandle uniqueID, 
-					const char *name,
-                                        const char *abstr);
+					const char *name);
 
     $upcall $async void changeResourceBatchMode(resourceBatchModeCallback,
 					        perfStreamHandle, 
