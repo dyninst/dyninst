@@ -47,6 +47,7 @@
 
 class pd_process;
 class process;
+class BPatch_thread;
 
 class processMgr {
    pdvector<pd_process *> procBuf;
@@ -119,7 +120,7 @@ class processMgr {
       exitedProcs.push_back(p);
    }
    
-   pd_process *find_pd_process(process *dyn_proc);
+   pd_process *find_pd_process(BPatch_thread *dyn_proc);
    pd_process *find_pd_process(int pid);
    bool hasProcessExited(int pid);
 };
