@@ -43,6 +43,9 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.30  1997/03/05 21:33:23  naim
+ * Minor change to fix warning message about MAX macro - naim
+ *
  * Revision 1.29  1997/02/26 23:49:53  mjrg
  * First part of WindowsNT commit: changes for compiling with VisualC++;
  * moved includes to platform header files
@@ -212,8 +215,9 @@ Histogram::~Histogram(){
     }
 }
 
-
+#if !defined(MAX)
 #define MAX(a, b)	((a) > (b) ? (a):(b))
+#endif
 
 /*
  * addInterval - add a value to a histogram from start to end.
