@@ -1,11 +1,14 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.9  1996/01/10 02:24:25  tamches
-/* dataFormatHasChangedCommand now takes in an arg
-/* added getMetricColorNameCommand
-/* hardcoded barColorNames here
+/* Revision 1.10  1996/01/10 19:36:12  tamches
+/* launchBarChart now takes 4 args instead of 7
 /*
+ * Revision 1.9  1996/01/10 02:24:25  tamches
+ * dataFormatHasChangedCommand now takes in an arg
+ * added getMetricColorNameCommand
+ * hardcoded barColorNames here
+ *
  * Revision 1.8  1995/09/22 19:25:29  tamches
  * removed warnings under g++ 2.7.0
  *
@@ -111,12 +114,11 @@ int metricsAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) {
       return TCL_ERROR;
 }
 
-int newScrollPositionCommand(ClientData, Tcl_Interp *, int, char **argv) {
+int newScrollPositionCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
    // called by tcl code when it's time to scroll the bars to a given value.
-   // argument: new scrollbar position, in pixels.  Note: this is a bit old;
-   // shouldn't we change to tk4.0's floating point representation???
+   // argument: new first-visible-pixel.
 
-   if (barChartIsValid) {
+   if (barChartIsValid && argc==2) {
       int newPos = atoi(argv[1]);
       theBarChart->processNewScrollPosition(newPos);
       return TCL_OK;
@@ -181,13 +183,12 @@ int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
 
    // cout << "Welcome to launchBarChartCommand()" << endl;
    
-   if (argc != 7)
+   if (argc != 4)
       panic("launchBarChartCommand() -- cannot create barchart (incorrect #args)");
 
    char *wname = argv[1];
-   const int iNumMetrics   = atoi(argv[4]);
-   const int iNumResources = atoi(argv[5]);
-//   const bool iFlushFlag = (0==strcmp("1", argv[6]));
+   const int iNumMetrics   = atoi(argv[2]);
+   const int iNumResources = atoi(argv[3]);
 
    // bar colors: (see /usr/lib/X11/rgb.txt)
    vector<string> barColorNames;
