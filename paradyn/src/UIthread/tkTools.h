@@ -6,6 +6,9 @@
 
 /*
  * $Log: tkTools.h,v $
+ * Revision 1.4  1996/02/02 18:54:33  tamches
+ * added setResultBool
+ *
  * Revision 1.3  1995/11/29 00:20:37  tamches
  * added tcl_cmd_installer
  *
@@ -17,8 +20,8 @@
 #ifndef _TK_TOOLS_H_
 #define _TK_TOOLS_H_
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
 #ifdef PARADYN
 #include "util/h/String.h"
@@ -78,6 +81,8 @@ bool processScrollCallback(Tcl_Interp *interp,
 
 void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
                      int total_width, int visible_width);
+
+void setResultBool(Tcl_Interp *interp, bool val);
 
 class tcl_cmd_installer {
  private:

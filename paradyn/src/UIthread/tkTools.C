@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: tkTools.C,v $
-/* Revision 1.3  1995/11/28 15:50:04  naim
-/* Minor fix. Changing char[number] by string - naim
+/* Revision 1.4  1996/02/02 18:54:46  tamches
+/* added setResultBool
 /*
+ * Revision 1.3  1995/11/28 15:50:04  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
  * Revision 1.2  1995/11/06  02:29:18  tamches
  * added tclpanic and resizeScrollbar
  *
@@ -212,4 +215,11 @@ void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
 
    string commandStr = sbName + " set " + string(newFirst) + " " + string(newLast);
    myTclEval(interp, commandStr);
+}
+
+void setResultBool(Tcl_Interp *interp, bool val) {
+   if (val)
+      strcpy(interp->result, "true");
+   else
+      strcpy(interp->result, "false");
 }
