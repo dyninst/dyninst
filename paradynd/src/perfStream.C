@@ -371,12 +371,11 @@ void doDeferredRPCs() {
       if (proc->status() == exited) continue;
       if (proc->status() == neonatal) continue; // not sure if this is appropriate
       
-      bool wasLaunched = proc->launchRPCifAppropriate(proc->status() == running);
+      bool wasLaunched = proc->launchRPCifAppropriate(proc->status() == running,
+						      false);
       // do we need to do anything with 'wasLaunched'?
-      if (wasLaunched) {
-	 inferiorrpc_cerr << "launched an inferior RPC";
-	 inferiorrpc_cerr << endl;
-      }
+      if (wasLaunched)
+ 	 inferiorrpc_cerr << "fyi: launched an inferior RPC" << endl;
    }
 }
 
