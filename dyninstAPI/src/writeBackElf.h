@@ -1,5 +1,5 @@
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.h,v 1.13 2003/10/22 16:01:12 schendel Exp $ */
+/* $Id: writeBackElf.h,v 1.14 2003/11/04 21:09:40 jaw Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -10,10 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(sparc_sun_solaris2_4)
 #include <libelf.h>
-#elif defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-#include <libelf/libelf.h>
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 #include "linux.h"
 #endif
 #include "common/h/Vector.h"

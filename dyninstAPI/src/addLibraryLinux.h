@@ -1,11 +1,11 @@
-/* $Id: addLibraryLinux.h,v 1.4 2003/09/05 16:28:35 schendel Exp $ */
+/* $Id: addLibraryLinux.h,v 1.5 2003/11/04 21:09:40 jaw Exp $ */
 
 #if defined(i386_unknown_linux2_0)
 
 #include <unistd.h>
 #include  <fcntl.h>
 #include  <stdio.h>
-#include  <libelf/libelf.h>
+#include  <libelf.h>
 #include  <stdlib.h>
 #include  <string.h>
 #include <errno.h>

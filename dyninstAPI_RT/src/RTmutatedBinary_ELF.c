@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_ELF.c,v 1.5 2003/07/25 15:52:32 chadd Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.6 2003/11/04 21:09:40 jaw Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -9,10 +9,8 @@
 #include  <fcntl.h>
 #include <string.h>
 
-#if defined(sparc_sun_solaris2_4)
 #include <libelf.h>
-#elif defined(i386_unknown_linux2_0)
-#include <libelf/libelf.h>
+#if defined(i386_unknown_linux2_0)
 #define __USE_GNU
 #endif
 
