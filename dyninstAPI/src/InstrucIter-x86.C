@@ -354,10 +354,15 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
 	ptr = skip_headers(tableInsn.ptr(),isWordAddr,isWordOp);
 	if(isAddressInJmp || (!isAddressInJmp && (*ptr == 0x8b))){
 		ptr++;
-		if(((*ptr & 0xc7) == 0x04) &&
-		   ((*(ptr+1) & 0xc7) == 0x85))
+		if((((*ptr & 0xc7) == 0x04) &&
+		    ((*(ptr+1) & 0xc7) == 0x85)) ||
+		   ((*ptr & 0xc7) == 0x80))
 		{
-			ptr += 2;
+			if((*ptr & 0xc7) == 0x80)
+				ptr += 1;
+			else
+				ptr += 2;
+
 			if(isWordAddr){
 				jumpTable |= *(ptr+1);
 				jumpTable <<= 8;
