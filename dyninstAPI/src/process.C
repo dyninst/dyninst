@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.480 2004/03/11 22:20:36 bernat Exp $
+// $Id: process.C,v 1.481 2004/03/12 21:12:55 tikir Exp $
 
 #include <ctype.h>
 
@@ -6090,7 +6090,17 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
                 if (range->basetramp_ptr == deletedInst->oldBase)
                     safeToDelete = false;
                 // If we're in a child minitramp, we also can't delete
-                if ((range->minitramp_ptr) && 
+
+				// IMPORTANT NOTE: This is a temporary fix. Drew is gonna
+				// fix gcInstrumentation problem. Initially the following
+				// line was (range->minitramp_ptr) &&
+				// however it stalled code coverage. And later we have seen
+				// that frame.getPC() values might be some random numbers
+				// this fix solves the code coverage stall problem but
+				// it still needs to be investigated why frame.getPC()
+				// are somehow strange, and Drew will work on it soon.
+
+                if (!range->minitramp_ptr ||
                     (range->minitramp_ptr->baseTramp == deletedInst->oldBase))
                     safeToDelete = false;
             }
