@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.46 1999/07/07 16:07:02 zhichen Exp $
+// $Id: inst.h,v 1.47 1999/07/13 13:55:25 zhichen Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -127,26 +127,29 @@ public:
   instMapping(const string f, const string i, const int w, 
 	      callWhen wn, callOrder o, AstNode *a=NULL)
     : func(f), inst(i), where(w), when(wn), order(o)  {
-    if(a) args += (a);
+    if(a) args += assignAst(a);
   }
 
   instMapping(const string f, const string i, const int w, AstNode *a=NULL)
     : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint)  {
-    if(a) args += (a);
+    if(a) args += assignAst(a);
   }
 
   instMapping(const string f, const string i, const int w, 
 	      vector<AstNode*> &aList) : func(f), inst(i), where(w),
 	      when(callPreInsn), order(orderLastAtPoint) {
     for(unsigned u=0; u < aList.size(); u++) {
-      if(aList[u]) args += (aList[u]);
+      if(aList[u]) args += assignAst(aList[u]);
     }
   };
 
   ~instMapping() {
+    // an AstNode has referenceCount = 1 when first created, 
+    // we perform removeAst when we installInitialRequests in process.C
     for(unsigned i=0; i < args.size(); i++) {
       if(args[i]) removeAst(args[i]);
     }
+    args.resize(0);
   }
 
 public:
