@@ -39,9 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Status.C,v 1.6 1998/03/04 19:53:18 wylie Exp $
+// $Id: Status.C,v 1.7 2002/04/17 16:07:23 willb Exp $
 
 #include "Status.h"
+#include <string.h>
 
 /************************************************************************
  * static data structures.
@@ -51,13 +52,23 @@ unsigned    status_line::n_lines_ = 0;
 unsigned    status_line::n_procs_ = 0;
 Tcl_Interp* status_line::interp_  = 0;
 
+status_line::status_pair* status_line::registry = status_line::reg_init();
+
 /************************************************************************
  * implementations of member functions
 ************************************************************************/
 
 status_line::status_line(const char* title, const LineType type)
     : type_(type) {
+
+    my_pair = n_procs_ + n_lines_;
+    status_pair* pair = &(registry[my_pair]);
+    
+    pair->name = title;
+    pair->sl = this;
+    
     if (type_==PROCESS) id_=n_procs_++; else id_=n_lines_++;
+    
     create(title);
 }
 
@@ -70,6 +81,11 @@ status_line::~status_line() {
         fprintf(stderr, "status_line::~status_line: command `%s' -> `%s'\n",
             buf, interp_->result);
     }
+
+    status_pair* pair = &(registry[my_pair]);
+    
+    pair->name = NULL;
+    pair->sl = NULL;
     // assert(ret == TCL_OK);
 }
 
@@ -125,4 +141,21 @@ status_line::create(const char* title) {
     // assert(ret == TCL_OK);
 }
 
+status_line::status_pair*
+status_line::reg_init() {
+    status_pair* retval = new status_pair[MAX_STATUS_LINES];
+    for(int i = 0; i < MAX_STATUS_LINES; i++) {
+        (retval[i]).name = NULL;
+        (retval[i]).sl = NULL;
+    }
+    
+    return retval;
+}
+
+status_line*
+status_line::find(const char* name) {
+    for(int i = 0; i <= (n_lines_ + n_procs_); i++)
+        if(strcmp(name, (registry[i]).name) == 0) return (registry[i]).sl;
+    return NULL;
+}
 

@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.74 2001/10/08 20:51:42 zandy Exp $
+/* $Id: UIpublic.C,v 1.75 2002/04/17 16:07:23 willb Exp $
  */
 
 #include <stdio.h>
@@ -112,9 +112,36 @@ UIM::showError(int errCode, const char *errString)
 // ****************************************************************
 
 void
-UIM::updateStatus(status_line *status, const char *msg)
+UIM::updateStatus(status_line* status, const char *msg)
 {
   status->message(msg);
+}
+
+void
+UIM::updateStatusLine(const char* sl_name, const char *msg)
+{
+    status_line *status = status_line::find(sl_name);
+    assert(status);
+    
+  status->message(msg);
+}
+
+void
+UIM::createStatusLine(const char* sl_name) {
+    status_line *status = new status_line(sl_name);
+}
+
+void
+UIM::createProcessStatusLine(const char* sl_name) {
+    status_line *status = new status_line(sl_name, status_line::PROCESS);
+}
+
+void
+UIM::destroyStatusLine(const char* sl_name) {
+    status_line *status = status_line::find(sl_name);
+    assert(status);
+
+    delete status;
 }
 
 void UIM::enablePauseOrRun() {

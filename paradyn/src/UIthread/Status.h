@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Status.h: tcl/tk text-widget based status lines.
- * $Id: Status.h,v 1.10 1998/03/04 19:53:19 wylie Exp $
+ * $Id: Status.h,v 1.11 2002/04/17 16:07:23 willb Exp $
 ************************************************************************/
 
 
@@ -64,6 +64,7 @@ static const unsigned BUF_LENGTH     = 256;
 static const unsigned TITLE_LENGTH   = 20;
 static const unsigned MESG_LENGTH    = 200;
 
+static const unsigned MAX_STATUS_LINES = 65536;
 
 class status_line {
 public:
@@ -86,12 +87,25 @@ public:
 
     static void status_init (Tcl_Interp *);
 
+    static status_line* find(const char* name);
+    
 private:
+    class status_pair {
+      public:
+        const char* name;
+        status_line* sl;
+    };
+
     void             create (const char *);
 
     LineType type_;
     unsigned id_;
 
+    static status_pair* registry;
+    static status_pair* reg_init();
+
+    unsigned my_pair;
+    
     static unsigned    n_lines_;
     static unsigned    n_procs_;
     static Tcl_Interp* interp_;
@@ -101,3 +115,5 @@ private:
 };
 
 #endif /* !defined(_Status_h_) */
+
+
