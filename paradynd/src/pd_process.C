@@ -165,6 +165,7 @@ void pd_process::init() {
     statusLine(buffer.c_str());
 
     process *lowlevel_proc = get_dyn_process()->lowlevel_process();
+
     for(unsigned i=0; i<lowlevel_proc->threads.size(); i++) {
         pd_thread *thr = new pd_thread(lowlevel_proc->threads[i], this);
         addThread(thr);
@@ -396,7 +397,7 @@ bool pd_process::doMajorShmSample() {
    // values).  Come to think of it: the same may have to be done for the 
    // wall time too!!!
 
-   const timeStamp theProcTime = getCpuTime(0);
+   const timeStamp theProcTime = getCpuTime();
    const timeStamp curWallTime = getWallTime();
 
    // need to check this again, process could have execed doMajorSample
@@ -1097,12 +1098,24 @@ bool pd_process::yesAvail() {
 
 rawTime64 pd_process::getRawCpuTime_hw(int lwp)
 {
-   return dyninst_process->lowlevel_process()->lwps[lwp]->getRawCpuTime_hw();
+   if(lwp == time_for_whole_program) {
+      // get cpu time for whole process
+      return getAllLwpRawCpuTime_hw();
+   } else {
+      dyn_lwp *thelwp = dyninst_process->lowlevel_process()->lookupLWP(lwp);
+      return thelwp->getRawCpuTime_hw();
+   }
 }
 
 rawTime64 pd_process::getRawCpuTime_sw(int lwp)
 {
-   return dyninst_process->lowlevel_process()->lwps[lwp]->getRawCpuTime_sw();
+   if(lwp == time_for_whole_program) {
+      // get cpu time for whole process
+      return getAllLwpRawCpuTime_sw();      
+   } else {
+      dyn_lwp *thelwp = dyninst_process->lowlevel_process()->lookupLWP(lwp);
+      return thelwp->getRawCpuTime_sw();
+   }
 }
 
 rawTime64 pd_process::getRawCpuTime(int lwp) {
