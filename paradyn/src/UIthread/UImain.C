@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.9  1994/05/02 20:38:30  hollings
-/* added search pause command and shg commands.
+/* Revision 1.10  1994/05/05 23:35:00  karavan
+/* changed tcl calls to procedures.  removed conflicting def'n of read.
+/* changed name of tcl initialization script.
 /*
+ * Revision 1.9  1994/05/02  20:38:30  hollings
+ * added search pause command and shg commands.
+ *
  * Revision 1.8  1994/04/21  23:24:50  hollings
  * added process command.
  *
@@ -94,7 +98,7 @@ static Tk_Window mainWindow;	/* The main window for the application.  If
   /* this is the tcl script which paints the main toolbar on the screen. 
      Toolbar will be painted, then commands accepted interactively.
    */
-char *tcl_RcFileName = "/usr/home/paradyn/core/paradyn/src/UIthread/mainMenu.tcl";
+char *tcl_RcFileName = "../src/UIthread/pdStartup.tcl";
 
 static Tcl_DString command;	/* Used to assemble lines of terminal input
 				 * into Tcl commands. */
@@ -108,6 +112,8 @@ int                       uim_eid;
 List<metricInstance*>     uim_enabled;
 performanceStream         *uim_defaultStream;
 UIM                       *uim_server;
+Tcl_HashTable UIMMsgReplyTbl;
+int UIMMsgTokenID;
 
 /*
  * Command-line options:
@@ -147,6 +153,10 @@ extern "C" {
 
 
 extern void initParadynCmd(Tcl_Interp *interp);
+extern int UimpdCmd(ClientData clientData, 
+		Tcl_Interp *interp, 
+		int argc, 
+		char *argv[]);
 
 /*
  * Forward declarations for procedures defined later in this file:
@@ -232,14 +242,10 @@ UImain(CLargStruct *clargs)
     Display *UIMdisplay;
     tag_t mtag;
     int retVal;
-    Boolean dmret;
     unsigned msgSize;
     char UIMbuff[UIMBUFFSIZE];
     controlCallback controlFuncs;
     dataCallback dataFunc;
-    char *uimInitTclProcs = 
-      "/usr/home/paradyn/core/paradyn/src/UIthread/uimProcs.tcl";
-    char updatecmd[] = "update";
 
     printf ("starting mainUI\n");
 
@@ -327,11 +333,11 @@ UImain(CLargStruct *clargs)
     Tcl_CreateCommand(interp, "dag", Tk_DagCmd, (ClientData) mainWindow,
 	    (Tcl_CmdDeleteProc *) NULL);
 
-     // Read in uim tcl procedures (temporary)
+     // Add internal UIM command to the tcl interpreter.
 
-    if (Tcl_EvalFile(interp, uimInitTclProcs) == TCL_ERROR) {
-      printf ("%s\n", interp->result);
-    }
+    Tcl_CreateCommand(interp, "uimpd", 
+		      UimpdCmd, (ClientData) mainWindow,
+		      (Tcl_CmdDeleteProc *) NULL);
 
     /*
      * Set the geometry of the main window, if requested.
@@ -345,22 +351,25 @@ UImain(CLargStruct *clargs)
       }
 
     /*
-     * Invoke the script to display the main paradyn menu bar
+     * paradyn tcl initialization script
      */
     {
-      char *fullName;
       FILE *f;
     
-      fullName = tcl_RcFileName;
-      f = fopen(fullName, "r");
+      f = fopen(tcl_RcFileName, "r");
       if (f != NULL) {
-	code = Tcl_EvalFile(interp, fullName);
+	code = Tcl_EvalFile(interp, tcl_RcFileName);
 	if (code != TCL_OK) {
 	  fprintf(stderr, "%s\n", interp->result);
 	}
  	fclose(f);
       }
     }
+   /* display the paradyn main menu tool bar */
+
+    if (Tcl_VarEval (interp, "drawToolBar", 0) == TCL_ERROR)
+      printf ("NOTOOLBAR:: %s\n", interp->result);
+
    // first take care of any events caused by initialization.
 
     while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
@@ -389,6 +398,10 @@ UImain(CLargStruct *clargs)
     UIMdisplay = Tk_Display (mainWindow);
     xfd = XConnectionNumber (UIMdisplay);
     retVal = msg_bind (xfd, 1);
+
+    // initialize hash table for async call replies
+    Tcl_InitHashTable (&UIMMsgReplyTbl, TCL_ONE_WORD_KEYS);
+    UIMMsgTokenID = 0;
 
    // wait for all other main module threads to complete initialization
    //  before continuing.
@@ -441,13 +454,13 @@ UImain(CLargStruct *clargs)
 
 	if (dataMgr->isValidUpCall(mtag)) {
 	  dataMgr->awaitResponce(-1);
-	  Tcl_Eval (interp, updatecmd);
+	  Tcl_VarEval (interp, "update", 0);
 	} 
 	else { 
          
 // check for incoming client requests
 	  uim_server->mainLoop();
-	  Tcl_Eval (interp, updatecmd);
+	  Tcl_VarEval (interp, "update", 0);
 	}
     }
 
