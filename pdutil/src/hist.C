@@ -16,6 +16,9 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.22  1996/02/12 19:54:19  karavan
+ * bug fix: changed arguments to histFoldCallBack
+ *
  * Revision 1.21  1996/02/12 08:07:14  karavan
  *  added new data member, bool globalData, set to true if this histogram
  *  contains global phase data, and used in histDataCallBack.
@@ -354,7 +357,7 @@ void Histogram::foldAllHist()
 	    if((allHist[i])->foldFunc) 
 		((allHist[i])->foldFunc)((allHist[i])->bucketWidth, 
 					(allHist[i])->cData,
-					(allHist[i])->startTime);
+					(allHist[i])->globalData);
 	}
     }
 }

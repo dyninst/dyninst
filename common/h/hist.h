@@ -9,7 +9,7 @@ typedef enum { HistInterval, HistBucket } histType;
 typedef enum { HistNewValue, HistNewTimeBase } callType;
 typedef sampleValue Bin;
 
-typedef void (*foldCallBack)(timeStamp, void* userData,timeStamp);
+typedef void (*foldCallBack)(timeStamp, void* userData, bool globalFlag);
 
 typedef void (*dataCallBack)(sampleValue *buckets,
 			     timeStamp start_time,
