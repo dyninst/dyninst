@@ -951,8 +951,8 @@ DYNINSTreportTimer(tTimer *timer) {
     traceSample sample;
 
 #ifdef COSTTEST
-    time64 startT, endT;
-    startT = DYNINSTgetCPUtime();
+    time64 endT;
+    time64 startT = DYNINSTgetCPUtime();
 #endif
 
     time64 process_time = DYNINSTgetCPUtime();
@@ -1330,8 +1330,8 @@ DYNINSTreportCounter(intCounter* counter) {
     traceSample sample;
 
 #ifdef COSTTEST
-    time64 startT, endT;
-    startT=DYNINSTgetCPUtime();
+    time64 endT;
+    time64 startT=DYNINSTgetCPUtime();
 #endif
     time64 process_time = DYNINSTgetCPUtime();
     time64 wall_time = DYNINSTgetWalltime();
