@@ -248,6 +248,8 @@ void getMultipleJumpTargets( pdvector<Address>& result
   bool isACallInstruction();
   bool isAnneal();
   bool isStackFramePreamble();
+  bool InstrucIter::isFramePush();
+  bool InstrucIter::isFrameSetup();
   bool isANopInstruction();
   Address getBranchTargetAddress( Address pos );
   Address getBranchTarget();

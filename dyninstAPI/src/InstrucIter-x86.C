@@ -78,6 +78,20 @@ bool InstrucIter::isStackFramePreamble()
             && q[1] == 0xe5);    
 }
 
+bool InstrucIter::isFramePush()
+{
+   // test for
+   //   push %ebp
+   return (insn.size() == 1 && insn.ptr()[0] == 0x55);
+}
+
+bool InstrucIter::isFrameSetup()
+{
+   //test for
+   //   movl %esp,%ebp
+   return (insn.size() == 2 && 
+           insn.ptr()[0] == 0x89 && insn.ptr()[1] == 0xe5);
+}
 
 /** is the instruction a conditional branch instruction 
  * @param i the instruction value 

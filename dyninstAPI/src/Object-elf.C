@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.60 2004/03/11 05:29:15 lharris Exp $
+ * $Id: Object-elf.C,v 1.61 2004/03/12 23:18:01 legendre Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1430,7 +1430,8 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr userData)
 {
   void (*errFunc)(const char *) = (void (*)(const char *))userData;
   char *dwarf_msg = dwarf_errmsg(error);
-  log_printf(errFunc, "DWARF error: %s", dwarf_msg);
+  if (errFunc != NULL)
+    log_printf(errFunc, "DWARF error: %s", dwarf_msg);
 }
 
 Dwarf_Signed declFileNo = 0;

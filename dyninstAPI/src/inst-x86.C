@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.153 2004/03/12 06:16:25 lharris Exp $
+ * $Id: inst-x86.C,v 1.154 2004/03/12 23:18:03 legendre Exp $
  */
 
 #include <iomanip>
@@ -598,11 +598,12 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
 		       ah.getInstruction() );
     funcEntry_ = p;
     points_.push_back( point_( p, numInsns, EntryPt ) );   
-    
+
     if( ah.isStackFramePreamble() )
     {
-        noStackFrame = false;       
+        noStackFrame = false;
     }
+    savesFP_ = ah.isFramePush();
     
     canFuncBeRelocated( canBeRelocated );
     
@@ -649,7 +650,11 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 currBlk->isExitBasicBlock = true;
                 break;
             }
-            
+         
+            if (ah.isFrameSetup() && savesFP_)
+            {
+               noStackFrame = false;
+            }
             
             if( ah.isACondBranchInstruction() )
             {
