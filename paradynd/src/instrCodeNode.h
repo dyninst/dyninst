@@ -67,7 +67,6 @@ class instrCodeNode_Val {
   const Focus focus;
   vector<instReqNode> instRequests;
   vector<returnInstance *> baseTrampInstances;
-  vector<catchupReq *> manuallyTriggerNodes;
   bool _trampsHookedUp;
   bool instrDeferred_;
   bool instrLoaded_;
@@ -86,11 +85,16 @@ class instrCodeNode_Val {
     return (metricStr + "-" + focusStr);
   }
 
-  instrCodeNode_Val(const string &name_, const Focus &f, process *p) : 
+  instrCodeNode_Val(const string &name_, const Focus &f, process *p,
+		    bool dontInsertData) : 
     sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
     _trampsHookedUp(false), instrDeferred_(false), instrLoaded_(false), 
-    hasBeenCatchuped_(false), proc_(p), referenceCount(0)
+    hasBeenCatchuped_(false), proc_(p), dontInsertData_(dontInsertData),
+    referenceCount(0)
   { }
+
+  instrCodeNode_Val(const instrCodeNode_Val &par, process *childProc);
+  
   ~instrCodeNode_Val();
 
   string getKeyName();
@@ -98,12 +102,13 @@ class instrCodeNode_Val {
   vector<returnInstance *> &getBaseTrampInstances() { 
     return baseTrampInstances;
   }
+  bool getDontInsertData() const { return dontInsertData_; }
   void incrementRefCount() { referenceCount++; }
   void decrementRefCount() { referenceCount--; }
   int getRefCount() { return referenceCount; }
-  vector<instrDataNode *> *getDataNodes();
+  void getDataNodes(vector<instrDataNode *> *saveBuf);
   process *proc() {  return proc_;  }
-  string getName() { return name; }
+  string getName() const { return name; }
 };
 
 class instrCodeNode {
@@ -113,9 +118,17 @@ class instrCodeNode {
 
  private:
   instrCodeNode(instrCodeNode_Val *val) : V(*val) { }
+  static void registerCodeNodeVal(instrCodeNode_Val *nodeVal);
+
+  // a copy constructor variation
+  instrCodeNode(const instrCodeNode &par, process *childProc);
+
  public:
   static instrCodeNode *newInstrCodeNode(string name_, const Focus &f,
 				       process *proc, bool arg_dontInsertData);
+  static instrCodeNode *copyInstrCodeNode(const instrCodeNode &par,
+					  process *childProc);
+
   ~instrCodeNode();
   //bool condMatch(instrCodeNode *mn, vector<dataReqNode*> &data_tuple1,
   //               vector<dataReqNode*> &data_tuple2);
@@ -128,13 +141,7 @@ class instrCodeNode {
   bool hasBeenCatchuped() const { return V.hasBeenCatchuped_;};
   void prepareCatchupInstr(vector<vector<catchupReq *> >&); 
 
-  string getName() { return V.getName(); }
-  /*
-  bool catchupInstrNeeded() const {
-    if( V.manuallyTriggerNodes.size() > 0 )  return true;
-    else  return false;
-  }
-  */
+  string getName() const { return V.getName(); }
   int numDataNodes() { 
     return (((V.sampledDataNode != NULL) ? 1 : 0) +
 	    ((V.constraintDataNode != NULL) ? 1 : 0) +
@@ -153,7 +160,9 @@ class instrCodeNode {
   }
     
   // ---------------------------------------
-  vector<instrDataNode *> *getDataNodes() { return V.getDataNodes(); }
+  void getDataNodes(vector<instrDataNode *> *saveBuf) { 
+    V.getDataNodes(saveBuf);
+  }
   void manuallyTrigger(int mid);
   void prepareForSampling(const vector<threadMetFocusNode *> &thrNodes);
   void prepareForSampling(threadMetFocusNode *thrNode);
@@ -165,7 +174,7 @@ class instrCodeNode {
   process *proc() {  return V.proc(); }
   process *proc() const {  return V.proc(); }
   void print();
-
+  const Focus& getFocus() const { return V.focus; }
   static string collectThreadName;
   const instrDataNode* getFlagDataNode() const;
   void markTrampsAsHookedUp() { V._trampsHookedUp = true; }
