@@ -131,7 +131,7 @@ extern BPatch_point *createInstructionEdgeInstPoint(process* proc,
                                                     int_function *func,
                                                     BPatch_edge *edge);
 
-extern void createEdgeTramp(process *proc, image *img, BPatch_edge *edge);
+extern edgeTrampTemplate *createEdgeTramp(process *proc, image *img, BPatch_edge *edge);
 
 
 BPatch_point *BPatch_flowGraph::createInstPointAtEdgeInt(BPatch_edge *edge)
