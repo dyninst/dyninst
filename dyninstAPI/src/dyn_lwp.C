@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.24 2004/04/11 04:52:08 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.25 2004/04/14 19:39:07 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -251,6 +251,11 @@ int dyn_lwp::getPid() const {
 }
 
 bool dyn_lwp::getRegisters(struct dyn_saved_regs *regs) {
+#if defined(cap_proc_fd)
+    // There is a bug somewhere in our register caching that leads to segfaults
+    // and SIGBUS errors.
+    return getRegisters_(regs);
+#else
    if(cached_regs == NULL) {
       bool result = getRegisters_(regs);
       if(cached_regs == NULL) {
@@ -262,9 +267,15 @@ bool dyn_lwp::getRegisters(struct dyn_saved_regs *regs) {
       memcpy(regs, cached_regs, sizeof(struct dyn_saved_regs));
       return true;
    }
+#endif
 }
 
 bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs) {
+#if defined(cap_proc_fd)
+    // There is a bug somewhere in our register caching that leads to segfaults
+    // and SIGBUS errors.
+    return restoreRegisters_(regs);
+#else
    if(cached_regs != NULL) {
       delete cached_regs;
       cached_regs = NULL;
@@ -276,8 +287,8 @@ bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs) {
    if(! res) {
       delete cached_regs;
    }
-
    return res;
+#endif
 }
 
 // Find out some info about the system call we're waiting on,
