@@ -39,14 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.32 2000/03/18 21:53:59 tikir Exp $
+// $Id: templates1.C,v 1.33 2000/03/18 23:07:11 wylie Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
 
 #include "util/h/String.h"
-
-#include "BPatch_Set.h"
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -61,6 +59,7 @@
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 #if defined(BPATCH_LIBRARY)
+#include "dyninstAPI/h/BPatch_Set.h"
 #include "dyninstAPI/h/BPatch_type.h"
 
 class BPatch_thread;
