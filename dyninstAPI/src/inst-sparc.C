@@ -42,7 +42,9 @@
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
 
-instruction newInstr[1024];
+#include "dyninstAPI/src/FunctionExpansionRecord.h"
+
+instruction newInstr[NEW_INSTR_ARRAY_LEN];
 static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
 
 trampTemplate baseTemplate;
@@ -705,6 +707,9 @@ bool pd_Function::relocateFunction(process *proc,
 				 vector<instruction> &extra_instrs) {
 
     relocatedFuncInfo *reloc_info = 0;
+    FunctionExpansionRecord fer;
+    int size_change;
+
     // check to see if this process already has a relocation record 
     // for this function
     for(u_int i=0; i < relocatedByProcess.size(); i++){
@@ -712,19 +717,29 @@ bool pd_Function::relocateFunction(process *proc,
 	    reloc_info = relocatedByProcess[i];
 	}
     }
+
     u_int ret = 0;
+    // try to compute how much function will need to be expanded....
+    if (!calcRelocationExpansions(location->image_ptr, &fer, &size_change)) {
+       return false;
+    }
+
     if(!reloc_info){
         //Allocate the heap for the function to be relocated
-        ret = inferiorMalloc(proc, size()+RELOCATED_FUNC_EXTRA_SPACE,
+        ret = inferiorMalloc(proc, size() + size_change,
 			     textHeap);
 	if(!ret)  return false;
         reloc_info = new relocatedFuncInfo(proc,ret);
 	relocatedByProcess += reloc_info;
     }
+
+    // tell fer to compute total expansions for regions based on the individual
+    //  expansions its seen....
+    fer.Collapse();
     if(!(findNewInstPoints(location->image_ptr, location, ret, proc, 
-			   extra_instrs, reloc_info))){
+			   extra_instrs, reloc_info, &fer, size_change))){
     }
-    proc->writeDataSpace((caddr_t)ret, size()+RELOCATED_FUNC_EXTRA_SPACE,
+    proc->writeDataSpace((caddr_t)ret, size()+ size_change,
 			 (caddr_t) newInstr);
     return true;
 }
