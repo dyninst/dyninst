@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia32.C,v 1.13 2004/03/23 19:10:54 eli Exp $
+// $Id: arch-ia32.C,v 1.14 2004/03/29 21:28:27 jodom Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2611,7 +2611,9 @@ static inline int type2size(unsigned int optype, unsigned int operSzAttr)
   case op_w:
     return wordSzB;
   case op_lea:
-    assert(!"Should not be evaluated");
+    //    assert(!"Should not be evaluated");
+    // We might be called, if we don't know this is an lea ahead of time
+    // It's okay to return 0 here, because we really don't load/store
     return 0;
   case op_allgprs:
     return 8 * wordSzB * operSzAttr;
