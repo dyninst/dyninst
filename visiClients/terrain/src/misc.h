@@ -16,6 +16,9 @@
  * misc.h - header file of misc.c
  *
  * $Log: misc.h,v $
+ * Revision 1.3  1997/05/21 03:20:32  tung
+ * Revised.
+ *
  * Revision 1.2  1997/05/19 16:03:41  tung
  * Remove unused files.
  *
@@ -31,9 +34,10 @@
 #ifndef TERRAIN_MISC_GUARD
 #define TERRAIN_MISC_GUARD
 
-void terrain_error();
-char *terrain_mem_error();
-int free_surface();
+void terrain_error(char*);
+char *terrain_mem_error(char*);
+void terrain_warning(char*);
+extern void free_surface();
 int quit3d();
 
 extern char *ta_new_mem;

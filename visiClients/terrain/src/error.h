@@ -2,7 +2,7 @@
 #define ERROR_H
 
 void ErrorWarpup(int pressed);
-void popUpMsgs(int title, char *message);
+extern void popUpMsgs();
 
 
 #endif

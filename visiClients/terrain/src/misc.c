@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/misc.c,v 1.3 1997/05/19 01:00:09 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/misc.c,v 1.4 1997/05/21 03:20:32 tung Exp $";
 #endif
 
 /*
  * misc.c - misc utility routines.
  *
  * $Log: misc.c,v $
+ * Revision 1.4  1997/05/21 03:20:32  tung
+ * Revised.
+ *
  * Revision 1.3  1997/05/19 01:00:09  tung
  * Eliminate ips dependent library files.
  *
@@ -45,28 +48,28 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 /* #include <strings.h> */
 
 #include "misc.h"
 #include "plot.h"
 #include "terrain.h"
 #include "command.h"
+#include "error.h"
 
 char *ta_new_mem;		/* allocated memory */
 
 
-char*
-terrain_mem_error(msgs)
-char *msgs;
+char* terrain_mem_error(char* msgs)
 {
    fprintf(stderr, "%s\n", msgs);
    quit3d();
+   return NULL;
 }
 
 
 void
-terrain_error(msgs)
-char *msgs;
+terrain_error(char* msgs)
 {
    char *dupMsgs;		/* Copy of the message */
    /* popUpMsgs is distructive to the message string */
@@ -76,12 +79,12 @@ char *msgs;
  
    popUpMsgs("Terrain Error", dupMsgs);
    quit3d();
+   
 }
 
 
 void
-terrain_warning(msgs)
-char *msgs;
+terrain_warning(char* msgs)
 {
    char *dupMsgs;		/* Copy of the message */
    /* popUpMsgs is distructive to the message string */
@@ -95,16 +98,14 @@ char *msgs;
 }
 
 
-
-free_surface(surface)
-struct surface_points *surface;
+void free_surface(struct surface_points* surface)
 {
    free(surface->points);
    free(surface);
 }
     
 
-quit3d()
+int quit3d()
 {
   kill_surface();
    

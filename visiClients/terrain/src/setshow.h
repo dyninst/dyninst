@@ -37,6 +37,9 @@
  * setshow.h - oheader file of setshow.c
  *
  * $Log: setshow.h,v $
+ * Revision 1.3  1997/05/21 03:20:33  tung
+ * Revised.
+ *
  * Revision 1.2  1997/05/21 02:27:30  tung
  * Revised.
  *
@@ -53,6 +56,10 @@
  * global variables to hold status of 'set' options
  *
  */
+
+#ifndef SETSHOW_H
+#define SETSHOW_H
+
 extern BOOLEAN			autoscale_t;
 extern BOOLEAN			autoscale_u;
 extern BOOLEAN			autoscale_v;
@@ -136,6 +143,10 @@ extern struct arrow_def *first_arrow;
 /* color flags */
 extern int color_mode;
 
-extern void load_tic_user();
-extern void free_marklist();
-extern void changeDecimal();
+extern void load_tic_user(struct ticdef*);
+extern void free_marklist(struct ticmark*);
+extern void changeDecimal(int);
+
+
+
+#endif

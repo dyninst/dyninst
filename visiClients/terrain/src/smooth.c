@@ -23,11 +23,14 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/smooth.c,v 1.1 1997/05/12 20:15:41 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/smooth.c,v 1.2 1997/05/21 03:20:34 tung Exp $";
 #endif
 
 /*
  * $Log: smooth.c,v $
+ * Revision 1.2  1997/05/21 03:20:34  tung
+ * Revised.
+ *
  * Revision 1.1  1997/05/12 20:15:41  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -56,7 +59,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  * Initial revision (adapted from IPS)
  *
  * Revision 2.5  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/smooth.c,v 1.1 1997/05/12 20:15:41 naim Exp $ definition.
+ * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/smooth.c,v 1.2 1997/05/21 03:20:34 tung Exp $ definition.
  *
  * Revision 2.4  1990/09/05  16:38:56  rbi
  * Sequent merge.
@@ -78,8 +81,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  * 
  */
 
-#include "stdio.h"
+#include <stdlib.h>
+#include <stdio.h>
 #include "plot.h"
+#include "smooth.h"
 #include "setshow.h"
 #include "misc.h"
 
@@ -89,11 +94,22 @@ static int win_coeffs[MAX_WIN_SIZE];	/* indicate weighting for each slot */
 static int coeff_sum;			/* sum of all window coefficients */
 static int win_size;
 
-smooth (new_surface, surface, wsize, endIndex)
-struct surface_points *new_surface;
-struct surface_points *surface;
-int wsize;		  /* number of elements in sliding window */
-int endIndex;
+
+static void shift_win (float window[], float newelem)
+{
+    int i;
+    
+    for (i=0; i < win_size-1; i++)
+        window[i] = window[i+1];  
+    window[win_size-1] = newelem;
+}
+
+
+
+
+
+void smooth (struct surface_points *new_surface, struct surface_points *surface,
+	     int wsize)
 {
     float avg_elem();
     float window[MAX_WIN_SIZE];	
@@ -156,12 +172,10 @@ int endIndex;
 	shift_win (window, surface->points[row_pt + surface->samples-1].z);
       }
     }
-    return 0;
 }
 
 
-static float avg_elem (window)
-float window[];
+static float avg_elem (float window[])
 {
     int i;
     float avg = 0.0;
@@ -173,10 +187,8 @@ float window[];
 }
 
 
-smooth_med (new_surface, surface, wsize)
-struct surface_points *new_surface;
-struct surface_points *surface;
-int wsize;		  /* number of elements in sliding window */
+void smooth_med (struct surface_points *new_surface, struct surface_points *surface,
+		 int wsize)
 {
     float med_elem();
     float window[MAX_WIN_SIZE];	
@@ -240,14 +252,12 @@ int wsize;		  /* number of elements in sliding window */
 	shift_win (window, surface->points[row_pt + surface->samples-1].z);
       }
     }
-    return 0;
 }
 
 
 static float sort_array[MAX_WIN_SIZE];
 
-static float med_elem (window)
-float window[];
+static float med_elem (float window[])
 {
 
     int i,j;
@@ -273,19 +283,6 @@ float window[];
 	return (sort_array[win_size/2] + sort_array[(win_size + 1)/2])/2;
     
 }
-
-
-static shift_win (window, newelem)
-float window[], newelem;
-{
-    int i;
-
-    for (i=0; i < win_size-1; i++)
-	window[i] = window[i+1];
-    window[win_size-1] = newelem;
-}
-
-
 
 
 

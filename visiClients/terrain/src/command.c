@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.10 1997/05/21 02:27:23 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.11 1997/05/21 03:20:29 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.11  1997/05/21 03:20:29  tung
+ * Revised.
+ *
  * Revision 1.10  1997/05/21 02:27:23  tung
  * Revised.
  *
@@ -292,7 +295,7 @@ void ReDisplayGraph()
      }
      else
      {
-        smooth(thisCurve, curves, WIN_SIZE, curves->lastprintIndex);
+        smooth(thisCurve, curves, WIN_SIZE);
         del = 1;
      }
   }
@@ -364,7 +367,7 @@ void ProcessNewSegments(int printIndex)
 	 }
 	 else
 	 {
-          smooth(thisCurve, curves, WIN_SIZE, printIndex);
+          smooth(thisCurve, curves, WIN_SIZE);
             del = 1;
 	 }
       }

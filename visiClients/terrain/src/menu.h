@@ -15,6 +15,9 @@
 
 /*
  * $Log: menu.h,v $
+ * Revision 1.3  1997/05/21 03:20:31  tung
+ * Revised.
+ *
  * Revision 1.2  1997/05/21 02:27:29  tung
  * Revised.
  *
@@ -64,13 +67,13 @@ struct menuDefintion {
 };
 
 /* Simple interface to menu code. */
-Widget CreateMenu();
+Widget CreateMenu(Widget, char*, struct menuItem*, caddr_t);
 void DestroyMenu(Widget currMenu);
 
 /* more complex interface required to get back widgets for each item or
  *  to set margins.
  */
-Widget CreateAdvancedMenu();
+Widget CreateAdvancedMenu(struct menuDefintion *);
 
 /*
  * Psuedo menu items.

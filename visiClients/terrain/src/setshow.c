@@ -33,13 +33,16 @@
  *
  */
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/setshow.c,v 1.2 1997/05/19 01:00:11 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/setshow.c,v 1.3 1997/05/21 03:20:33 tung Exp $";
 #endif
 
 /*
  * setshow.c - option settings for GNUPlot.
  *
  * $Log: setshow.c,v $
+ * Revision 1.3  1997/05/21 03:20:33  tung
+ * Revised.
+ *
  * Revision 1.2  1997/05/19 01:00:11  tung
  * Eliminate ips dependent library files.
  *
@@ -53,6 +56,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include "plot.h"
 #include "setshow.h"
@@ -172,8 +176,7 @@ int color_mode = 1;
  * Left paren is already scanned off before entry.
  */
 
-void load_tic_user(tdef)
-struct ticdef *tdef;
+void load_tic_user(struct ticdef* tdef)
 {
     struct ticmark *list = NULL; /* start of list */
     struct ticmark *last = NULL; /* end of list */
@@ -216,9 +219,7 @@ struct ticdef *tdef;
     tdef->def.user = list;
 }
 
-void
-free_marklist(list)
-	struct ticmark *list;
+void free_marklist(struct ticmark* list)
 {
     register struct ticmark *freeable;
 
@@ -232,8 +233,7 @@ free_marklist(list)
 }
 
 void
-changeDecimal(decimal)
-int decimal;
+changeDecimal(int decimal)
 {
    switch(decimal)
    {

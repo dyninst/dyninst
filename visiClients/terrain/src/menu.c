@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/menu.c,v 1.3 1997/05/21 02:27:28 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/menu.c,v 1.4 1997/05/21 03:20:31 tung Exp $";
 #endif
 
 /*
  * menu.c - menu handler code.
  *
  * $Log: menu.c,v $
+ * Revision 1.4  1997/05/21 03:20:31  tung
+ * Revised.
+ *
  * Revision 1.3  1997/05/21 02:27:28  tung
  * Revised.
  *
@@ -83,6 +86,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include <X11/Xaw/Sme.h>
 #include <X11/Xaw/SmeLine.h>
 #include <X11/Xaw/SmeBSB.h>
+#include <stdlib.h>
 
 #include "menu.h"
 #include "misc.h"
@@ -94,13 +98,13 @@ struct menuDefintion *def;
     int total;
     int acount;
     Arg args[100];
-    char name[100];
+//    char name[100];
     Widget menu, entry;
 
     acount = 0;
     //XtSetArg(args[acount], XtNlabel, def->title); acount++;
     menu = XtCreatePopupShell("menu", simpleMenuWidgetClass, def->parent, 
-	args, acount);
+	args, (unsigned)acount);
 
     for (i=0, total = 0; def->data[i].name; i++, total++);
     def->items = (Widget *) terrain_alloc(sizeof(Widget) * total);
@@ -109,14 +113,14 @@ struct menuDefintion *def;
 	acount = 0;
 	if (def->data[i].name == MENU_LINE) {
 	    entry = XtCreateManagedWidget("line", smeLineObjectClass,
-		menu, args, acount);
+		menu, args, (unsigned)acount);
 	    def->items[i] = entry;
 	} else {
 	    XtSetArg(args[acount], XtNlabel, def->data[i].name); acount++;
 	    XtSetArg(args[acount], XtNleftMargin, def->leftMargin); acount++;
 	    XtSetArg(args[acount], XtNrightMargin, def->rightMargin); acount++;
 	    entry = XtCreateManagedWidget(def->data[i].name, smeBSBObjectClass, 
-		menu, args, acount);
+		menu, args, (unsigned)acount);
 	    def->items[i] = entry;
 	    /* fix call back data */
 	    XtAddCallback(entry, XtNcallback, def->data[i].func, def->cdata);
