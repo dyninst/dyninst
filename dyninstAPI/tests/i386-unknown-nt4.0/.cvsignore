@@ -1,1 +1,1 @@
-DEPENDS test1.* test2.*
+DEPENDS test1.* test2.* V_*.c
