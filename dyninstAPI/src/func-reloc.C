@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.44 2003/10/21 17:21:57 bernat Exp $
+ * $Id: func-reloc.C,v 1.45 2004/02/25 04:36:40 schendel Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -394,98 +394,98 @@ bool expanded = true;
 
 /* IMPORTANT: The function is not actually relocated in this method */
 
-bool pd_Function::findAndApplyAlterations(const image *owner, 
-			                  instPoint *&location,
-      				          u_int &newAdr, 
+// creates a new relocatedFuncInfo if successful
+relocatedFuncInfo *pd_Function::findAndApplyAlterations(const image *owner, 
+                                          instPoint *&location,
+                                          u_int &newAdr, 
                                           process *proc, 
-                                          relocatedFuncInfo *&reloc_info, 
                                           unsigned &size_change) {
-	
-  instruction *oldInstructions = 0, *newInstructions = 0;
-  Address mutator, mutatee;
-  int totalSizeChange = 0;
-  LocalAlterationSet normalized_alteration_set(this); 
-
-  // assumes delete NULL ptr safe....
-  oldInstructions = NULL;
-
+   instruction *oldInstructions = 0, *newInstructions = 0;
+   Address mutator, mutatee;
+   int totalSizeChange = 0;
+   LocalAlterationSet normalized_alteration_set(this); 
+   
+   // assumes delete NULL ptr safe....
+   oldInstructions = NULL;
+  
 #ifdef DEBUG_FUNC_RELOC
-    cerr << "pd_Function::findAndApplyAlterations called " << endl;
-    cerr << " prettyName = " << prettyName().c_str() << endl;
-    cerr << " size() = " << size() << endl;
-    cerr << " this = " << this << endl;
+   cerr << "pd_Function::findAndApplyAlterations called " << endl;
+   cerr << " prettyName = " << prettyName().c_str() << endl;
+   cerr << " size() = " << size() << endl;
+   cerr << " this = " << this << endl;
 #endif
+   
+   // Find the alterations that need to be applied
+   totalSizeChange = findAlterations(owner, proc, oldInstructions,
+                                     normalized_alteration_set,
+                                     mutator, mutatee);  
 
-  // Find the alterations that need to be applied
-  totalSizeChange = findAlterations(owner, proc, oldInstructions,
-                                    normalized_alteration_set,
-                                    mutator, mutatee);  
-
-  if (totalSizeChange == -1) {
-
-    // Do not relocate function
-    delete []oldInstructions;
-    return false;
-  }
+   if (totalSizeChange == -1) {  
+      // Do not relocate function
+      delete []oldInstructions;
+      return NULL;
+   }
 
 
 #ifdef DEBUG_FUNC_RELOC
-    cerr << " Allocate memory: " << size() + totalSizeChange << endl;
+   cerr << " Allocate memory: " << size() + totalSizeChange << endl;
 #endif
 
-    // Allocate the memory on the heap to which the function will be relocated
-    if(!reloc_info){  
-      Address ipAddr = 0;
-      proc->getBaseAddress(owner,ipAddr);
-      ipAddr += location->iPgetAddress();
-      u_int ret = proc->inferiorMalloc(size() + totalSizeChange, textHeap, ipAddr);
-      newAdr = ret;
-      if(!newAdr) {
-        delete []oldInstructions; 
-        return false;
-      }
-      reloc_info = new relocatedFuncInfo(proc,newAdr,size()+totalSizeChange,this);
-      relocatedByProcess.push_back(reloc_info);
-    }
-
-    // Allocate the memory in paradyn to hold a copy of the rewritten function
-    relocatedCode = new unsigned char[size() + totalSizeChange];
-    if(!relocatedCode) {
+   // Allocate the memory on the heap to which the function will be relocated
+   relocatedFuncInfo *reloc_info = NULL;
+   Address ipAddr = 0;
+   proc->getBaseAddress(owner,ipAddr);
+   ipAddr += location->pointAddr();
+   u_int ret = proc->inferiorMalloc(size() + totalSizeChange, textHeap, ipAddr);
+   newAdr = ret;
+   if(!newAdr) {
+      delete []oldInstructions; 
+      delete reloc_info;
+      return NULL;
+   }
+   reloc_info = new relocatedFuncInfo(proc,newAdr,size()+totalSizeChange,this);
+   
+   // Allocate the memory in paradyn to hold a copy of the rewritten function
+   relocatedCode = new unsigned char[size() + totalSizeChange];
+   if(!relocatedCode) {
       cerr << "WARNING: Allocation of space for relocating function "
            << prettyName() << " failed." << endl;
-       delete []oldInstructions;  
-       return false;
-    } 
+      delete []oldInstructions;  
+      delete reloc_info;
+      return NULL;
+   } 
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-    // Upper bound on the number of instructions in the relocated function. 
-    // The original function has getNumInstructions instructions and so the
-    // relocated function has at least that many functions. At most, each byte
-    // added to the new function is an instruction, so the maximum number of 
-    // instructions in the new function is getNumInstructions + totalSizeChange
-    newInstructions = new instruction[getNumInstructions() + totalSizeChange];
+   // Upper bound on the number of instructions in the relocated function. 
+   // The original function has getNumInstructions instructions and so the
+   // relocated function has at least that many functions. At most, each byte
+   // added to the new function is an instruction, so the maximum number of 
+   // instructions in the new function is getNumInstructions + totalSizeChange
+   newInstructions = new instruction[getNumInstructions() + totalSizeChange];
 #elif defined(sparc_sun_solaris2_4)
-    newInstructions = reinterpret_cast<instruction *> (relocatedCode);
+   newInstructions = reinterpret_cast<instruction *> (relocatedCode);
 #endif
 
-    // Apply the alterations needed for relocation. The expanded function 
-    // will be written to relocatedCode.
-    if (!(applyAlterations(normalized_alteration_set, mutator, mutatee, 
-                           newAdr, oldInstructions, size(), newInstructions) )) {
+   // Apply the alterations needed for relocation. The expanded function 
+   // will be written to relocatedCode.
+   if (!(applyAlterations(normalized_alteration_set, mutator, mutatee, 
+                          newAdr, oldInstructions, size(), newInstructions) ))
+   {
       delete []oldInstructions;
-      return false;
-    }
-
-    // Fill reloc_info up with relocated (and altered by alterations) inst 
-    // points. Do AFTER all alterations are attached AND applied....
-    fillInRelocInstPoints(owner, proc, location, reloc_info, 
-                          mutatee, mutator, oldInstructions, newAdr, 
-                          newInstructions, normalized_alteration_set);
-    
-    size_change = totalSizeChange;  
-
-    delete []oldInstructions;
-    return true;
+      delete reloc_info;
+      return NULL;
+   }
+   
+   // Fill reloc_info up with relocated (and altered by alterations) inst 
+   // points. Do AFTER all alterations are attached AND applied....
+   fillInRelocInstPoints(owner, proc, location, reloc_info, 
+                         mutatee, mutator, oldInstructions, newAdr, 
+                         newInstructions, normalized_alteration_set);
+   
+   size_change = totalSizeChange;  
+   
+   delete []oldInstructions;
+   return reloc_info;
 }
 
 /****************************************************************************/
@@ -1079,147 +1079,162 @@ pdvector<pd_Function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
 
 // Relocate "this" function
 
-bool pd_Function::relocateFunction(process *proc, 
-                                   instPoint *&location,
+bool pd_Function::relocateFunction(process *proc, instPoint *&location,
                                    bool &deferred) {
+   relocatedFuncInfo *reloc_info = NULL;
 
-    relocatedFuncInfo *reloc_info = 0;
+   // silence compiler warnings
+   assert(deferred || true);
 
-    // silence compiler warnings
-    assert(deferred || true);
-
-    // how many bytes the function was expanded by
-    unsigned size_change;
+   // how many bytes the function was expanded by
+   unsigned size_change;
 
 #ifdef DEBUG_FUNC_RELOC 
-    cerr << "pd_Function::relocateFunction " << endl;
-    cerr << " prettyName = " << prettyName().c_str() << endl;
-    cerr << " size() = " << size() << endl;
-    cerr << " this = " << this << endl;
+   cerr << "pd_Function::relocateFunction " << endl;
+   cerr << " prettyName = " << prettyName().c_str() << endl;
+   cerr << " size() = " << size() << endl;
+   cerr << " this = " << this << endl;
 #endif
 
 #ifdef BPATCH_LIBRARY
-    if (BPatch::bpatch->autoRelocationOn() == false) {
+   if (BPatch::bpatch->autoRelocationOn() == false) {
       BPatch_reportError(BPatchSerious, 125,
-			 "Function required relocation but auto-relocation disabled.\n");
+                         "Function required relocation but auto-relocation disabled.\n");
       return false;
-    }
+   }
 #endif
 
 
-    // check if this process already has a relocation record for this 
-    // function, meaning that the.function has already been relocated
-    for(u_int j=0; j < relocatedByProcess.size(); j++){
-        if((relocatedByProcess[j])->getProcess() == proc){        
-            reloc_info = relocatedByProcess[j];
+   // check if this process already has a relocation record for this 
+   // function, meaning that the.function has already been relocated
+   for(u_int j=0; j < relocatedByProcess.size(); j++){
+      if((relocatedByProcess[j])->getProcess() == proc){        
+         reloc_info = relocatedByProcess[j];
 	    
 #ifdef DEBUG_FUNC_RELOC
-            cerr << "pd_Function::relocateFunction " << endl;
-            cerr << " prettyName = " << prettyName().c_str() << endl;      
-            cerr << " previously relocated." << endl; 
+         cerr << "pd_Function::relocateFunction " << endl;
+         cerr << " prettyName = " << prettyName().c_str() << endl;      
+         cerr << " previously relocated." << endl; 
 #endif
-        }
-    }
-
+      }
+   }
+   if(reloc_info)    // already relocated
+      return false;
    
-  /* Check if we are currently executing inside the function we want to */ 
-  /* instrument. If so, don't relocate the function.                    */
-  /* this code was copied from metricFocusNode::adjustManuallyTrigger() */
-  /* in metric.C -itai                                                  */
+   /* Check if we are currently executing inside the function we want to */ 
+   /* instrument. If so, don't relocate the function.                    */
+   /* this code was copied from metricFocusNode::adjustManuallyTrigger() */
+   /* in metric.C -itai                                                  */
 
+   Address begAddr = getAddress(proc);
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-    unsigned i;
-    pd_Function *stack_func;
+   unsigned i;
+   pd_Function *stack_func;
+    
+   pdvector<pdvector<Frame> > stackWalks;
+   if (!proc->walkStacks(stackWalks)) return false;
 
-    pdvector<pdvector<Frame> > stackWalks;
-    if (!proc->walkStacks(stackWalks)) return false;
+   // for every vectors of frame, ie. thread stack walk
+   for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
+      pdvector<pd_Function *> stack_funcs =
+         proc->pcsToFuncs(stackWalks[walk_iter]);
 
-    for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
-      pdvector<pd_Function *> stack_funcs = proc->pcsToFuncs(stackWalks[walk_iter]);
+      // for every frame in thread stack walk
       for(i=0;i<stack_funcs.size();i++) {
-	stack_func = stack_funcs[i];
-	
-	if (i == 0 && (stackWalks[walk_iter][i].getPC() == this->getEffectiveAddress(proc))) {
-          /* okay if we haven't really entered the function yet */
-          continue;
-	}
-	
-	if( stack_func == this ) {
-	  
-#ifdef DEBUG_FUNC_RELOC
-	  cerr << "pd_Function::relocateFunction" << endl;
-	  cerr << "currently in Function " << prettyName() << endl;
-#endif
-	  
-	  // Defer relocation and instrumentation for Paradyn only
-	  deferred = true;
-	  return false;
-	}
-      }
-    }
+         stack_func = stack_funcs[i];
+         Address pc = stackWalks[walk_iter][i].getPC();
+          
+         if (i == 0 && (pc == this->getEffectiveAddress(proc)))
+         {
+            /* okay if we haven't really entered the function yet */
+            continue;
+         }
+          
+         if( stack_func == this ) {
+#ifdef notdef
+            // Catchup doesn't occur on instPoinst in relocated function when
+            // the original function is on the stack.  This leads to the
+            // timer never being called for timer metrics.  A solution still
+            // needs to be worked out.
+            if(pc >= begAddr && pc <= begAddr+5) {
+               cerr << "      can't relocate since within first five bytes\n";
+            } else {                
+               if(!hasJumpToFirstFiveBytes()) {
+                  cerr << "      func doesn't have jump to or call within "
+                       << "first five bytes, can proceed w/ relocation\n";
+                  continue;
+               }
+            }
 #endif
 
-    /* We are not currently executing in this function, 
-       so proceed with the relocation */
+#ifdef DEBUG_FUNC_RELOC
+            cerr << "pd_Function::relocateFunction" << endl;
+            cerr << "currently in Function " << prettyName() << endl;
+#endif
+             
+            // Defer relocation and instrumentation for Paradyn only
+            deferred = true;
+            return false;
+         }
+      }
+   }
+#endif
+
+   /* We are not currently executing in this function, 
+      so proceed with the relocation */
     
-    Address baseAddress = 0;
-    if(!(proc->getBaseAddress(location->iPgetOwner(),baseAddress))){
+   Address baseAddress = 0;
+   if(!(proc->getBaseAddress(location->getOwner(),baseAddress))){
       baseAddress = 0;
-    }
+   }
     
-    // original address of function (before relocation)
-    u_int origAddress = baseAddress + getAddress(0);    
-    
- 
-    // address to which function will be relocated.
-    // memory is not allocated until total size change of function is known
-    u_int ret = 0;
+   // original address of function (before relocation)
+   u_int origAddress = baseAddress + getAddress(0);    
+     
+   // address to which function will be relocated.
+   // memory is not allocated until total size change of function is known
+   u_int ret = 0;
 
-    if (!reloc_info) {
-      // findAndApplyAlterations expands and updates the function, 
-      // storing the expanded function with relocated addresses in 
-      // the buffer relocatedCode.
-      if (findAndApplyAlterations(location->iPgetOwner(), location, ret, proc, 
-                                  reloc_info, size_change)) {
+   // findAndApplyAlterations expands and updates the function, 
+   // storing the expanded function with relocated addresses in 
+   // the buffer relocatedCode.
+   reloc_info = findAndApplyAlterations(location->getOwner(), location, ret,
+                                        proc, size_change);
+   if(reloc_info == NULL) {
+#ifdef DEBUG_FUNC_RELOC
+      cerr << "Warning: Unable to relocate function"
+           << prettyName() << endl;
+#endif
+      return false;
+   }
 
-        // Copy the expanded and updated function into the mutatee's 
-        // address space
-        proc->writeDataSpace((caddr_t)ret, size() + size_change,
-                             relocatedCode);
-        proc->addCodeRange(ret, reloc_info);
+   // Copy the expanded and updated function into the mutatee's 
+   // address space
+   proc->writeDataSpace((caddr_t)ret, size() + size_change,
+                        relocatedCode);
+   proc->addCodeRange(ret, reloc_info);
 
-        // branch from original function to relocated function
+   // branch from original function to relocated function
 #if defined(sparc_sun_solaris2_4)
-	extern void generateBranchOrCall(process* , Address , Address);
-        generateBranchOrCall(proc, origAddress, ret);
+   extern void generateBranchOrCall(process* , Address , Address);
+   generateBranchOrCall(proc, origAddress, ret);
 #else
-	generateBranch(proc, origAddress, ret);
+   generateBranch(proc, origAddress, ret);
 #endif
-        reloc_info->setInstalled();
+   relocatedByProcess.push_back(reloc_info);
 
 #ifdef DEBUG_FUNC_RELOC
-        cerr << "pd_Function::relocateFunction " << endl;
-        cerr << " prettyName = " << prettyName().c_str() << endl;      
-        cerr << " relocated from 0x" << std::hex << origAddress
-             << " with size 0x" << size() << endl;
-        cerr << " to 0x" << std::hex << ret 
-             << " with size 0x" << size()+size_change << endl;
-        cerr << " copy original code at " << &originalCode << endl;
-        cerr << " copy relocated code at " << &relocatedCode << endl;
+   cerr << "pd_Function::relocateFunction " << endl;
+   cerr << " prettyName = " << prettyName().c_str() << endl;      
+   cerr << " relocated from 0x" << std::hex << origAddress
+        << " with size 0x" << size() << endl;
+   cerr << " to 0x" << std::hex << ret 
+        << " with size 0x" << size()+size_change << endl;
+   cerr << " copy original code at " << &originalCode << endl;
+   cerr << " copy relocated code at " << &relocatedCode << endl;
 #endif
-
-      } else {
-
-#ifdef DEBUG_FUNC_RELOC
-        cerr << "Warning: Unable to relocate function"
-             << prettyName() << endl;
-#endif
-          return false;
-      }
-
-      return true;
-    }
-    return false;
+   
+   return true;
 }
 
 /****************************************************************************/
@@ -1232,44 +1247,44 @@ bool pd_Function::relocateFunction(process *proc,
 
 // Fill up vector with instPoints and then sort it 
 
-void pd_Function::sorted_ips_vector(pdvector<instPoint*>&fill_in) {
-    unsigned int returns_idx, calls_idx;
-    Address returns_ip_addr, calls_ip_addr;
+void pd_Function::sorted_ips_vector(pdvector<instPoint*> &fill_in) {
+   unsigned int returns_idx, calls_idx;
+   Address returns_ip_addr, calls_ip_addr;
 
-    // sorted vector of inst points starts with funcEntry_  ....
-    fill_in.push_back(funcEntry_);
+   // sorted vector of inst points starts with funcEntry_  ....
+   fill_in.push_back(funcEntry_);
 
-    returns_idx = calls_idx = 0;
+   returns_idx = calls_idx = 0;
 
-    // step through funcReturns and calls, popping element off of each and
-    // looking at insnAddress() to see which one to stick onto fill_in next...
-    while (returns_idx < funcReturns.size() || calls_idx < calls.size()) {
-        if (returns_idx < funcReturns.size()) {
-	    returns_ip_addr = funcReturns[returns_idx]->insnAddress();
-        } else {
-	    returns_ip_addr = MAX_ADDRESS;
-	}
+   // step through funcReturns and calls, popping element off of each and
+   // looking at insnAddress() to see which one to stick onto fill_in next...
+   while (returns_idx < funcReturns.size() || calls_idx < calls.size()) {
+      if (returns_idx < funcReturns.size()) {
+         returns_ip_addr = funcReturns[returns_idx]->insnAddress();
+      } else {
+         returns_ip_addr = MAX_ADDRESS;
+      }
 	
-        if (calls_idx < calls.size()) {
-	    calls_ip_addr = calls[calls_idx]->insnAddress();
-        } else {
-	    calls_ip_addr = MAX_ADDRESS;
-	}
+      if (calls_idx < calls.size()) {
+         calls_ip_addr = calls[calls_idx]->insnAddress();
+      } else {
+         calls_ip_addr = MAX_ADDRESS;
+      }
 
-	// 2 inst points at same location????
-        if (returns_ip_addr == calls_ip_addr) {
-          cerr << "return = " << returns_ip_addr << ", "
-               << "call = " << calls_ip_addr << endl;
-	}
-	assert(returns_ip_addr != calls_ip_addr);
+      // 2 inst points at same location????
+      if (returns_ip_addr == calls_ip_addr) {
+         cerr << "return = " << returns_ip_addr << ", "
+              << "call = " << calls_ip_addr << endl;
+      }
+      assert(returns_ip_addr != calls_ip_addr);
 
-	// if next call inst point comes before next return inst point, add
-	//  the call inst point....
-	if (calls_ip_addr < returns_ip_addr) {
-	    fill_in.push_back(calls[calls_idx++]);
-	} else {
-	    fill_in.push_back(funcReturns[returns_idx++]);
-	}
-    }
+      // if next call inst point comes before next return inst point, add
+      //  the call inst point....
+      if (calls_ip_addr < returns_ip_addr) {
+         fill_in.push_back(calls[calls_idx++]);
+      } else {
+         fill_in.push_back(funcReturns[returns_idx++]);
+      }
+   }
 }
 
