@@ -5,7 +5,11 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.program.tmpl,v $
-# Revision 1.3  1995/02/16 07:56:46  markc
+# Revision 1.4  1995/02/27 17:37:06  jcargill
+# Added support for suppressing implicit dependency generation
+# (EXPLICIT_DEPENDS) and removed PD_NO_DEPENDS support
+#
+# Revision 1.3  1995/02/16  07:56:46  markc
 # Added flag to prevent generation of DEPENDS file if PD_NO_DEPENDS is true
 # to save time during recompiles.
 #
@@ -47,7 +51,10 @@ install:  $(DEST)/$(TARGET)
 $(DEST)/$(TARGET): $(TARGET)
 	cp $(TARGET) $(DEST)
 
-depend: DEPENDS
+.PHONY : depend
+depend:
+	rm -f DEPENDS
+	$(MAKE) DEPENDS
 
 # 
 # Define DEPENDS dependencies such that the DEPENDS files depends on
@@ -55,23 +62,27 @@ depend: DEPENDS
 # all the time.  We do need to build the Igen-generated files before
 # updating DEPENDS, however,
 #
-
-ifdef PD_NO_DEPENDS
-DEPENDS:
-
-else
 ifdef IGEN_ISRCS
+ifdef EXPLICIT_DEPENDS
+DEPENDS:
+else
 DEPENDS: $(SRCS) $(IGEN_ISRCS)
+endif
 	touch DEPENDS
 	$(MAKE) $(IGEN_GEN_SRCS)
+	$(MAKE) $(SRCS)
 	$(MODCC) -MM $(MODCFLAGS) $(SRCS) $(IGEN_GEN_SRCS) > DEPENDS
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
 else
+ifdef EXPLICIT_DEPENDS
+DEPENDS:
+else
 DEPENDS: $(SRCS)
+endif
 	touch DEPENDS
+	$(MAKE) $(SRCS)
 	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
-endif
 endif
 
 pure:

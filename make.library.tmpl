@@ -5,7 +5,11 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.library.tmpl,v $
-# Revision 1.4  1995/02/21 16:34:06  jcargill
+# Revision 1.5  1995/02/27 17:37:04  jcargill
+# Added support for suppressing implicit dependency generation
+# (EXPLICIT_DEPENDS) and removed PD_NO_DEPENDS support
+#
+# Revision 1.4  1995/02/21  16:34:06  jcargill
 # Allow module-specific linking and installing where desired
 #
 # Revision 1.3  1995/02/17  22:19:21  markc
@@ -76,7 +80,10 @@ endif      # ifndef UNCOMMON_INSTALL
 # dependency generation definitions
 #
 
-depend: DEPENDS
+.PHONY : depend
+depend:
+	rm -f DEPENDS
+	$(MAKE) DEPENDS
 
 # 
 # Define DEPENDS dependencies such that the DEPENDS files depends on
@@ -85,15 +92,25 @@ depend: DEPENDS
 # updating DEPENDS, however,
 #
 ifdef IGEN_ISRCS
+ifdef EXPLICIT_DEPENDS
+DEPENDS:
+else
 DEPENDS: $(SRCS) $(IGEN_ISRCS)
+endif
 	touch DEPENDS
 	$(MAKE) $(IGEN_GEN_SRCS)
-	$(MODCC) -MM $(MODCFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS) > DEPENDS
+	$(MAKE) $(SRCS)
+	$(MODCC) -MM $(MODCFLAGS) $(SRCS) $(IGEN_GEN_SRCS) > DEPENDS
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
 else
+ifdef EXPLICIT_DEPENDS
+DEPENDS:
+else
 DEPENDS: $(SRCS)
+endif
 	touch DEPENDS
-	$(MODCC) -MM $(MODCFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS) > DEPENDS
+	$(MAKE) $(SRCS)
+	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 endif
 
