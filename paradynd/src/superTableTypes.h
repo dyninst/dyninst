@@ -1,5 +1,3 @@
-// heapStates.h
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -41,11 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: superTableTypes.h,v 1.4 2000/03/12 22:29:47 wylie Exp $
+
 #ifndef _HEAP_STATES_H_
 #define _HEAP_STATES_H_
 
 // the prefix FIH stands for fast-inferior-heap
-enum states {FIHallocated, FIHfree, FIHpendingfree, FIHmaybeAllocatedByFork, FIHallocatedButDoNotSample, FIHmaybeAllocatedByForkButDoNotSample};
+enum states {FIHallocated, FIHfree, FIHpendingfree, FIHmaybeAllocatedByFork,
+        FIHallocatedButDoNotSample, FIHmaybeAllocatedByForkButDoNotSample};
 
 enum sampling_states {FIHactive, FIHinactive};
 

@@ -40,7 +40,8 @@
  */
 
 /* 
- * pvm_support.C supports the paradyn daemon in the pvm environment.  There are
+ * $Id: pvm_support.C,v 1.7 2000/03/12 22:34:07 wylie Exp $
+ *      Supports the paradyn daemon in the PVM environment.  There are
  *      two main functions that must be supported, task management and host
  *      management.  task_support.C provides the specific task support.  
  *      host_support.C provides specific host support.  pvm_support is the 
@@ -52,35 +53,7 @@
  *              environment
  */
 
-/* pvm_support.C,v
- * Revision 1.15  1995/05/18  11:06:05  markc
- * added mdl source
- *
- * cleaned up pvm exports
- *
- * Revision 1.14  1995/02/26  22:43:18  markc
- * Updated to compile under new build system.
- * Updated interfaces to use strings.
- *
- * Revision 1.13  1994/11/11  07:01:35  markc
- * Added code to handle extra command line argument to tell the daemon
- * if is the first daemon started.
- *
- * Revision 1.12  1994/11/01  16:25:50  markc
- * Removed compiler warnings.
- * Compiles on solaris
- *
- * Revision 1.11  1994/09/22  02:59:12  markc
- * Added stronger compiler warnings
- * Removed compiler warnings
- *
- * Revision 1.10  1994/06/22  03:46:57  markc
- * Removed compiler warnings.
- *
- */
-
 #include "util/h/String.h"
-//#include "util/h/rpcUtilPVM.h"
 #include "util/h/rpcUtil.h"
 #include "pvm_support.h"
 #include <assert.h>

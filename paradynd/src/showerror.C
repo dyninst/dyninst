@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: showerror.C,v 1.3 2000/03/12 22:34:07 wylie Exp $
+
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "paradynd/src/resource.h"

@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: costmetrics.C,v 1.15 2000/03/12 22:34:07 wylie Exp $
+
 #include "paradynd/src/costmetrics.h"
 #include "dyninstAPI/src/process.h"
 

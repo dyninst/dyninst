@@ -40,8 +40,8 @@
  */
 
 /*
+ * $Id: templatesIGEN.C,v 1.8 2000/03/12 22:34:07 wylie Exp $
  * Generate all the templates in one file.
- *
  */
 
 #pragma implementation "Pair.h"

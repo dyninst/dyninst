@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: hashTable.C,v 1.4 2000/03/12 22:34:07 wylie Exp $
+
 #include "hashTable.h"
 
 hashTable::hashTable(unsigned size, 

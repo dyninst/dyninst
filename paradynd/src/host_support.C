@@ -40,19 +40,15 @@
  */
 
 /*
- * host_support.C : code that enable paradyndPVM to function as the hoster process
- *    in the pvm environment.  Which means that it will be responsible for 
- *    starting new pvm daemons.
- *
- * The major functions are:
- *
- *
+ * $Id: host_support.C,v 1.12 2000/03/12 22:34:07 wylie Exp $
+ *    code that enables paradyndPVM to function as the hoster process
+ *    in the PVM environment, which means that it will be responsible for 
+ *    starting new PVM daemons.
  */
 
 /*
  * Most of the code in this file was copied from the pvm distribution and
  * slightly modified.
- *
  */
 
 /*
@@ -80,36 +76,6 @@
  *
  * PVM version 3 was funded in part by the U.S. Department of Energy,
  * the National Science Foundation and the State of Tennessee.
- */
-
-
-/* host_support.C,v
- * Revision 1.8  1995/05/18  11:06:01  markc
- * added mdl source
- *
- * cleaned up pvm exports
- *
- * Revision 1.7  1995/02/26  22:43:16  markc
- * Updated to compile under new build system.
- * Updated interfaces to use strings.
- *
- * Revision 1.6  1994/11/01  16:25:46  markc
- * Removed compiler warnings.
- * Compiles on solaris
- *
- * Revision 1.5  1994/09/22  02:59:10  markc
- * Added stronger compiler warnings
- * Removed compiler warnings
- *
- * Revision 1.4  1994/06/30  17:22:18  markc
- * Changed rsh to use "rsh" rather than "/usr/ucb/rsh".  The users path must
- * have the kerberos path in front of /usr/ucb if they want kerberos to be
- * used.  Added suport to prepend $HOME to the path name of the file to
- * be started if a relative path name is given.
- *
- * Revision 1.3  1994/06/22  03:46:55  markc
- * Removed compiler warnings.
- *
  */
 
 #include "util/h/headers.h"
