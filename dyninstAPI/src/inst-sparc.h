@@ -1,3 +1,14 @@
+
+#ifndef INST_SPARC_H
+#define INST_SPARC_H
+
+/*
+ * $Log: inst-sparc.h,v $
+ * Revision 1.3  1994/11/02 11:07:46  markc
+ * Moved defines to arch-sparc.h
+ *
+ */
+
 /*
  *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
  *
@@ -7,7 +18,10 @@
  * inst-sparc.h - Common definitions to the SPARC specific instrumentation code.
  *
  * $Log: inst-sparc.h,v $
- * Revision 1.2  1994/07/26 19:57:28  hollings
+ * Revision 1.3  1994/11/02 11:07:46  markc
+ * Moved defines to arch-sparc.h
+ *
+ * Revision 1.2  1994/07/26  19:57:28  hollings
  * moved instruction definitions to seperate header file.
  *
  * Revision 1.1  1994/01/27  20:31:23  hollings
@@ -23,36 +37,19 @@
  */
 
 
+#include "ast.h"
+#include "as-sparc.h"
+
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
  *   to patch up.   This must be invalid instructions (any instruction with
  *   its top 10 bits as 0 is invalid (technically UNIMP).
  *
  */
 
-/* place to put the ba,a insn to return to main code */
-#define END_TRAMP	0x1
+extern registerSpace *regSpace;
 
-/* place to put call to inst primative */
-#define CALL_PRIMITIVE	0x2
+extern trampTemplate baseTemplate;
+extern trampTemplate noArgsTemplate;
+extern trampTemplate withArgsTemplate;
 
-/* place to put arg to inst function */
-#define PRIMITIVE_ARG	0x3
-
-/* place to put the re-located instruction we replaced */
-#define EMULATE_INSN	0x4
-
-/* branch back instruction */
-#define RETURN_INSN	0x7
-
-/* branch to first local pre insn mini-tramp */
-#define LOCAL_PRE_BRANCH	0x8
-
-/* branch to first global pre insn mini-tramp */
-#define GLOBAL_PRE_BRANCH	0xa
-
-/* branch to first local post insn mini-tramp */
-#define LOCAL_POST_BRANCH	0xb
-
-/* branch to first global post insn mini-tramp */
-#define GLOBAL_POST_BRANCH	0xc
-
+#endif
