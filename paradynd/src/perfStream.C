@@ -82,6 +82,7 @@ extern debug_ostream sharedobj_cerr;
 string traceSocketPath; /* file path for trace socket */
 
 void createResource(int pid, traceHeader *header, struct _newresource *r);
+static void reportMemory(int pid, traceHeader *header, struct _traceMemory *r) ;
 
 bool firstSampleReceived = false;
 
@@ -260,6 +261,10 @@ void processTraceStream(process *curr)
 		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
 		   // createResource() is in this file, below
 		break;
+
+            case TR_NEW_MEMORY:
+                reportMemory(curr->getPid(), &header, (struct _traceMemory *) ((void*)recordData));
+                break;
 
 	    case TR_NEW_ASSOCIATION:
 		a = (struct _association *) ((void*)recordData);
@@ -812,3 +817,18 @@ void createResource(int pid, traceHeader *header, struct _newresource *r)
     }
 
 }
+
+// report a piece of shared-memory
+static void reportMemory(int pid, traceHeader *header, struct _traceMemory *r)
+{
+    char        *name   = r->name;
+    int         va = r->va ;
+    unsigned    memSize = r->memSize ;
+    unsigned    blkSize = r->blkSize ;
+
+    printf("reportMemory(%d, %s, %d, %u, %u)\n", pid, name, va, memSize, blkSize) ;
+    tp->resourceBatchMode(true);
+    tp->memoryInfoCallback(0, name, va, memSize, blkSize) ;
+    tp->resourceBatchMode(false);
+}
+
