@@ -1,11 +1,12 @@
 #
-# $Id: Makefile,v 1.27 2002/12/13 23:36:49 buck Exp $
+# $Id: Makefile,v 1.28 2003/03/13 19:51:17 mirg Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../../..
 NO_OPT_FLAG=true
-NO_IMPLICIT_TEMPLATES = true
+INSTANTIATE_TEMPLATES = true
+# NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
