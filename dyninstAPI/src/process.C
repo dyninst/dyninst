@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.16 1994/07/26 20:01:41 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.17 1994/08/17 18:17:43 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.16  1994/07/26 20:01:41  hollings
+ * Revision 1.17  1994/08/17 18:17:43  markc
+ * Changed execv to execvp.
+ *
+ * Revision 1.16  1994/07/26  20:01:41  hollings
  * fixed heap allocation to use hash tables.
  *
  * Revision 1.15  1994/07/20  23:23:39  hollings
@@ -293,6 +296,9 @@ process *allocateProcess(int pid, char *name)
     ret->rid = newResource(processResource, ret, NULL, name, 0.0, TRUE);
 
     ret->bufEnd = 0;
+
+    // this process won't be paused until this flag is set
+    ret->reachedFirstBreak = 0;
     return(ret);
 }
 
@@ -352,6 +358,7 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 #ifdef PARADYND_PVM
 // must use fork, since pvmendtask will do some writing in the address space
     pid = fork();
+    fprintf(stderr, "FORK: pid=%d\n", pid);
 #else
     pid = vfork();
 #endif
@@ -441,7 +448,7 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
  	while (nenv-- > 0)
 		pvmputenv(envp[nenv]);
 #endif
-	execv(file, argv);
+	execvp(file, argv);
 	perror("exev");
 	_exit(-1);
 	return(NULL);
