@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.38 2001/06/20 20:33:41 schendel Exp $
+ * $Id: PCshg.h,v 1.39 2001/12/06 16:14:11 pcroth Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -120,6 +120,7 @@ public:
   bool expandWhy();
   void setExpanded () {exStat = expandedAll;}
   expandPolicy getExpandPolicy() {return why->getExpandPolicy();}
+  expandStatus getExpandStatus() { return exStat; }
   bool setupExperiment();
   void startExperiment(); 
   void stopExperiment();
