@@ -1,4 +1,4 @@
-#include "../src/visithread.h"
+#include "../h/visithread.h"
 
 #define TESTMETRIC	"blah,blah blah,metric 3,metric 4,last metric"
 #define TESTRESOURCE	"resource1/blah1/foo1,resource2/foo2,resource3"
