@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-nt.C,v 1.2 2000/07/28 17:22:33 pcroth Exp $
+// $Id: shmSegment-nt.C,v 1.3 2003/03/20 23:20:58 mjbrim Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -135,6 +135,7 @@ ShmSegment::Create( key_t& key, unsigned int size, void* addr )
         else
         {
             // we created the new mapping successfully
+	    key = curr_key;
             break;
         }
 
