@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.8  1994/06/22 22:58:23  hollings
+ * Revision 1.9  1994/06/27 18:55:11  hollings
+ * Added compiler flag to add SHG nodes to dag only on first evaluation.
+ *
+ * Revision 1.8  1994/06/22  22:58:23  hollings
  * Compiler warnings and copyrights.
  *
  * Revision 1.7  1994/05/30  19:35:02  hollings
@@ -85,7 +88,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.8 1994/06/22 22:58:23 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.9 1994/06/27 18:55:11 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -120,6 +123,7 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t)
     when = t;
     status = FALSE;
     active = FALSE;
+    beenActive = FALSE;
     beenTested = FALSE;
     nodeId = ++nextId;
     children = new(searchHistoryNodeList);
@@ -220,8 +224,22 @@ inline void searchHistoryNode::changeColor()
 
 void searchHistoryNode::changeActive(Boolean newact)
 {
-  active = newact;
-  changeColor();
+    searchHistoryNodeList parent;
+
+    active = newact;
+#ifdef SHG_ADD_ON_EVAL
+    if (newact && !beenActive) {
+	beenActive = TRUE;
+        // make sure we have the node in the SHG
+	for (parent = this->parents; *parent; parent++) {
+	    uiMgr->DAGaddNode (SHGid, this->nodeId, UNTESTEDNODESTYLE,
+			       this->shortName, this->name, 0);
+	    uiMgr->DAGaddEdge(SHGid, (*parent)->nodeId, this->nodeId, 
+				WHEREEDGESTYLE);
+        }
+    }
+#endif
+    changeColor();
 }    
 
 void searchHistoryNode::changeStatus(Boolean newstat)

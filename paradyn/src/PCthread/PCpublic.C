@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.11  1994/06/22 22:58:21  hollings
+ * Revision 1.12  1994/06/27 18:55:09  hollings
+ * Added compiler flag to add SHG nodes to dag only on first evaluation.
+ *
+ * Revision 1.11  1994/06/22  22:58:21  hollings
  * Compiler warnings and copyrights.
  *
  * Revision 1.10  1994/05/19  00:00:29  hollings
@@ -96,7 +99,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.11 1994/06/22 22:58:21 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.12 1994/06/27 18:55:09 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -164,18 +167,22 @@ searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
     for (hl = *of->why->children; h = *hl; hl++) {
 	newNode = findAndAddSHG(of, h, of->where, of->when);
 	ret.add(newNode);
+
+	newNode->parents.addUnique(of);
 	newArc = of->children->addUnique(newNode);
 
 	  // extract display label string from node name
 	nptr = strchr (newNode->name, ' ');
 	*newNode->shortName = '\0';
 	strncat (newNode->shortName, newNode->name, (nptr-newNode->name));
+#ifndef SHG_ADD_ON_EVAL
 	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
 			   newNode->shortName, newNode->name, 0);
 	if (newArc) {
 	    uiMgr->DAGaddEdge(SHGid, of->nodeId, 
 			      newNode->nodeId, WHYEDGESTYLE);
 	}
+#endif
     }
     return(ret);
 }
@@ -210,7 +217,9 @@ searchHistoryNodeList BuildWhenRefinements(searchHistoryNode *of)
 	newNode = findAndAddSHG(of, of->why, of->where, i);
 	ret.add(newNode);
 	newArc = of->children->addUnique(newNode);
+	newNode->parents.addUnique(of);
 
+#ifndef SHG_ADD_ON_EVAL
         // note:  this will draw the nodeID# as the shg node label!!
 	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
 			   newNode->shortName, newNode->name, 0);
@@ -218,6 +227,7 @@ searchHistoryNodeList BuildWhenRefinements(searchHistoryNode *of)
 	    uiMgr->DAGaddEdge(SHGid, of->nodeId, 
 			      newNode->nodeId, WHENEDGESTYLE);
 	}
+#endif
     }
     return(ret);
 }
@@ -238,6 +248,40 @@ SHNptr_Array performanceConsultant::getWhenRefinements(searchHistoryNode *node)
     return(ret);
 }
 
+//
+// get label name for shg display
+// by comparing full names of parent and newNode and 
+// setting shortName to the end of the different path
+// Best feature of the following code: it works. :-P
+//
+char *makeShortName(char *parent, char *child)
+{
+    char *ret;
+    char *childf;
+    char sep[] = ",";
+    char *tempa, *tempb, *c;
+
+    childf = new char[strlen (child) + 1];
+    strcpy (childf, child);
+    c = strchr(childf, ' ');
+    c++; c++;
+    tempa = strtok(c, sep);
+    if (strstr(parent, tempa) != NULL) 
+      while ((tempa = strtok(NULL, sep)) != NULL) {
+	if (strstr(parent, tempa) == NULL) {
+	break;
+      }
+    }
+    tempb = strrchr (tempa, '/');
+    tempb++;
+    if (tempa = strchr (tempb, '>'))
+      *tempa = '\0';
+
+    ret = strdup(tempb);
+    delete (childf);
+    return(ret);
+}
+
 searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
 {
     focus *f;
@@ -245,9 +289,6 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
     focusList newFoci;
     searchHistoryNodeList ret;
     searchHistoryNode *newNode;
-    char *childf;
-    char *tempa, *tempb, *c;
-    char sep[] = ",";
 
     if (!of) return(ret);
 
@@ -256,38 +297,21 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
     for (; *newFoci; newFoci++){
 	f = *newFoci;
 	newNode = findAndAddSHG(of, of->why, f, of->when);
+	newNode->shortName = makeShortName(of->name, newNode->name);
 
-	    // get label name for shg display
-            // by comparing full names of parent and newNode and 
-            // setting shortName to the end of the different path
-            // Best feature of the following code: it works. :-P
-
-	childf = new char[strlen (newNode->name) + 1];
-	strcpy (childf, newNode->name);
-	c = strchr(childf, ' ');
-	c++; c++;
-	tempa = strtok(c, sep);
-	if (strstr(of->name, tempa) != NULL) 
-	  while ((tempa = strtok(NULL, sep)) != NULL) {
-	    if (strstr(of->name, tempa) == NULL) {
-	    break;
-	  }
-	}
-	tempb = strrchr (tempa, '/');
-	tempb++;
-	if (tempa = strchr (tempb, '>'))
-	  *tempa = '\0';
-	*newNode->shortName = '\0';
-	strcat (newNode->shortName, tempb);
-	delete (childf);
+#ifndef SHG_ADD_ON_EVAL
 	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
 			   newNode->shortName, newNode->name, 0);
+#endif
 	
+	newNode->parents.addUnique(of);
 	newArc = of->children->addUnique(newNode);
+#ifndef SHG_ADD_ON_EVAL
 	if (newArc) {
 	    uiMgr->DAGaddEdge(SHGid, of->nodeId, newNode->nodeId, 
 		WHEREEDGESTYLE);
 	}
+#endif
 	ret.add(newNode);
     }
     // delete(newFoci);

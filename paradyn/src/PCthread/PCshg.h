@@ -1,7 +1,10 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.4  1994/05/19 00:00:31  hollings
+ * Revision 1.5  1994/06/27 18:55:12  hollings
+ * Added compiler flag to add SHG nodes to dag only on first evaluation.
+ *
+ * Revision 1.4  1994/05/19  00:00:31  hollings
  * Added tempaltes.
  * Fixed limited number of nodes being evaluated on once.
  * Fixed color coding of nodes.
@@ -69,6 +72,7 @@ class searchHistoryNode {
 	Boolean resetActive();
 	Boolean marked;			// for print.
 	searchHistoryNodeList *children;
+	searchHistoryNodeList parents;
 	void resetStatus();
 	int nodeId;			// unique id for this node.
 	char *name;			// name of this node.
@@ -82,6 +86,7 @@ class searchHistoryNode {
 	Boolean getStatus() { return(status); }
     private:
 	void changeColor();		// update node color.
+	Boolean beenActive;		// ever been tried
 	Boolean active;			// currently at or along path to 	
 					// root of item(s) under test.
 	Boolean beenTested;	

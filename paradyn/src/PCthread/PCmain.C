@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.15  1994/06/22 22:58:19  hollings
-/* Compiler warnings and copyrights.
+/* Revision 1.16  1994/06/27 18:55:08  hollings
+/* Added compiler flag to add SHG nodes to dag only on first evaluation.
 /*
+ * Revision 1.15  1994/06/22  22:58:19  hollings
+ * Compiler warnings and copyrights.
+ *
  * Revision 1.14  1994/06/17  00:12:28  hollings
  * fixed the init of the control callback structure.
  *
@@ -54,7 +57,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.15 1994/06/22 22:58:19 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.16 1994/06/27 18:55:08 hollings Exp $";
 #endif
 
 #include <assert.h>
@@ -133,7 +136,11 @@ void PCmetricFunc(performanceStream *ps, metric *met)
     name = PCmetricStrings.findAndAdd(dataMgr->getMetricName(met));
     pcMet = (PCmetric *) allMetrics.find(name);
     if (!pcMet) {
-        printf("WARNING performance consultant has no use for %s\n", name);
+	// This warning was intended to make it easy to catch typos in metric
+	//   names between paradynd and the PC.  However, there are now several
+	//   metrics that paradynd defines that the PC doesn't need.
+	//   - jkh 6/25/94
+        // printf("WARNING performance consultant has no use for %s\n", name);
         pcMet = new PCmetric(name);
     }
     pcMet->met = met;
