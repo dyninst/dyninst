@@ -20,6 +20,12 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.3  1996/02/22 18:29:24  karavan
+ * changed min time to conclusion to 10 (temporary)
+ *
+ * changed debug print calls from dataMgr->getFocusName to
+ * dataMgr->getFocusNameFromHandle
+ *
  * Revision 1.2  1996/02/08 19:52:39  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -41,14 +47,14 @@
 #include "PCsearch.h"
 
 //**
-#define PCminTimeToFalse 40
-#define PCminTimeToTrue 20
+#define PCminTimeToFalse 10
+#define PCminTimeToTrue 10
 
 
 ostream& operator <<(ostream &os, experiment& ex)
 {
-  os << "experiment " << ex.pcmih << ":" << "\n" 
-    << "/tcost:/t" << ex.estimatedCost << "\n"
+  os << "experiment: " << ex.pcmih << ":" << "\n" 
+    << "\tcost:\t" << ex.estimatedCost << 
       << endl;
     
   return os;
@@ -62,12 +68,11 @@ experiment::drawConclusion (testResult newConclusion)
 #ifdef PCDEBUG
   // debug printing
   if (performanceConsultant::printSearchChanges) {
-    const vector<resourceHandle> *longname = dataMgr->getResourceHandles(where);
     cout << "CONCLUDE for "<< why->getName() << endl
-      << "          focus = <" << dataMgr->getFocusName(longname) 
+      << "          focus = <" << dataMgr->getFocusNameFromHandle(where) 
 	<< ">" << endl
-	<< "          time = " << endTime << endl
-	  << "         concl= " << currentConclusion << endl;
+	  << "          time = " << endTime << endl
+	    << "         concl= " << currentConclusion << endl;
   }
 #endif
 }
@@ -114,9 +119,9 @@ experiment::newData(PCmetDataID, float val, double start, double end,
 #ifdef PCDEBUG
   // debug printing
   if (performanceConsultant::printTestResults) {
-  const vector<resourceHandle> *longname = dataMgr->getResourceHandles(where);
   cout << "TESTEVAL for "<< why->getName() << endl 
-    << "            focus = <" << dataMgr->getFocusName(longname) << ">" 
+    << "            focus = <" 
+      << dataMgr->getFocusNameFromHandle(where) << ">" 
       << endl
       << "            time = " << endTime << endl;
     if (why->compOp == gt) {
