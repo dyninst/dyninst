@@ -56,6 +56,7 @@ int DYNINST_reportThreadUpdate(int flag) {
   long  startpc ;
   int   lwpid ;
   void*  resumestate_p ;
+
   if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
       tid = pthread_self();
       index = DYNINSTthreadIndexSLOW(tid) ;
@@ -92,32 +93,30 @@ int DYNINST_reportThreadUpdate(int flag) {
  */
 void DYNINST_reportNewThread(unsigned index, int tid) 
 {
-  void* stackbase ;
-  long  startpc ;
-  int   lwpid ; /* Ignored */
-  void*  resumestate_p ;
-  extern int pipeOK(void); /* RTindexix.c */
-
-  if (pipeOK())
-      if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
-          traceThread traceRec ;
-          traceRec.ppid   = getpid();
-          traceRec.tid    = tid;
-          traceRec.ntids  = 1;
-          traceRec.stride = 0;
-          traceRec.stack_addr = (unsigned) stackbase;
-          traceRec.start_pc = (unsigned) startpc ;
-          traceRec.resumestate_p = resumestate_p ;
-          traceRec.index=index ;
-          traceRec.context = FLAG_SELF ;
-          
-          DYNINSTgenerateTraceRecord(0,
-                                     TR_THR_CREATE,sizeof(traceRec),
-                                     &traceRec,
-                                     1,
-                                     DYNINSTgetWalltime(),
-                                     DYNINSTgetCPUtime());
-      }
+    void* stackbase ;
+    long  startpc ;
+    int   lwpid ; /* Ignored */
+    void*  resumestate_p ;
+    extern int pipeOK(void); /* RTindexix.c */
+    if (pipeOK())
+        if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
+            traceThread traceRec ;
+            traceRec.ppid   = getpid();
+            traceRec.tid    = tid;
+            traceRec.ntids  = 1;
+            traceRec.stride = 0;
+            traceRec.stack_addr = (unsigned) stackbase;
+            traceRec.start_pc = (unsigned) startpc ;
+            traceRec.resumestate_p = resumestate_p ;
+            traceRec.index=index ;
+            traceRec.context = FLAG_SELF ;
+            DYNINSTgenerateTraceRecord(0,
+                                       TR_THR_CREATE,sizeof(traceRec),
+                                       &traceRec,
+                                       1,
+                                       DYNINSTgetWalltime(),
+                                       DYNINSTgetCPUtime());
+        }
 }
 
 void DYNINST_reportThreadDeletion(unsigned index, int tid) {
@@ -160,26 +159,36 @@ int DYNINSTregister_running_thread(void) {
    int tid;
    int index;
    virtualTimer *vt;
-
+/*
+   sprintf(line, "REGISTER: tid: %d, lwp: %d\n",
+           P_thread_self(), P_lwp_self());
+   write(2, line, strlen(line));
+*/ 
    tid = P_thread_self();
    if(tid == 0) {
-      // the daemon will recognize this failed RPC and handle it accordingly
-      //sprintf(line, "  register, tid: %d, lwp: %d, returning\n",
-      //        tid, P_lwp_self());
-      //write(2, line, strlen(line));
-      return 0;
+       /* the daemon will recognize this failed RPC and handle it accordingly*/
+/*
+       sprintf(line, "  register, tid: %d, lwp: %d, returning\n",
+               tid, P_lwp_self());
+       write(2, line, strlen(line));
+*/
+       return 0;
    }
    index = DYNINST_lookup_index(tid);
    if(index == MAX_NUMBER_OF_THREADS) {
-      sprintf(line, "  couldn't find corresponding index, tid: %d, lwp %d\n",
+/*
+       sprintf(line, "  couldn't find corresponding index, tid: %d, lwp %d\n",
               tid, P_lwp_self());
       write(2, line, strlen(line));
+*/
+      return 0;
    }
    vt = &(RTsharedData.virtualTimers[index]);
-   //sprintf(line, "  register, tid: %d, index: %d, lwp: %d, addr: %p\n",
-   //        tid, index, P_lwp_self(), vt);
-   //write(2, line, strlen(line));
-
+/*
+   sprintf(line, "  register, tid: %d, index: %d, lwp: %d, addr: %p\n",
+           tid, index, P_lwp_self(), vt);
+   write(2, line, strlen(line));
+*/
    _VirtualTimerDestroy(vt);
    _VirtualTimerStart(vt, 0);
    DYNINST_reportNewThread(index, tid);
@@ -205,13 +214,15 @@ unsigned DYNINSTthreadCreate(int tid)
     return index;
   index = DYNINST_alloc_index(tid);
   lwpid = P_lwp_self();
-  /* Report new thread */
-  DYNINST_reportNewThread(index, tid);
   /* Set up virtual timers */
   if (&(RTsharedData.virtualTimers[index])) {
       _VirtualTimerDestroy(&(RTsharedData.virtualTimers[index]));
       _VirtualTimerStart(&(RTsharedData.virtualTimers[index]), THREAD_CREATE) ;
   }
+
+  /* Report new thread */
+  DYNINST_reportNewThread(index, tid);
+
   return index;
 }
 
