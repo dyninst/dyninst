@@ -5,7 +5,11 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.7  1995/08/30 19:35:56  mjrg
+# Revision 1.8  1996/07/30 19:02:19  mjrg
+# Changed libdyninstRT.a to libdyninstRT.o
+# Link libdyninstRT.o with libgcc
+#
+# Revision 1.7  1995/08/30  19:35:56  mjrg
 # Fixed install for cm5 libraries.
 #
 # Revision 1.6  1995/08/29  23:21:44  hollings
@@ -37,7 +41,7 @@
 #
 
 ifndef TARGET
-TARGET	      = libdyninstRT.a
+TARGET	      = libdyninstRT.o
 ALT_TARGET    = DYNINSTstartCode.o DYNINSTendCode.o RTpvmPiggy.o RTcriticalPath.o
 endif
 
@@ -64,7 +68,7 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
 $(TARGET): $(OBJS) $(LIBS)
-	$(LD) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
+	$(LD) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -lgcc
 
 #
 # override standard install rule; provide a default DEST if not already set
@@ -82,8 +86,8 @@ install: $(DEST)/$(TARGET) \
 else
 install: $(DEST)/$(TARGET) $(DEST)/$(TARGET2)
 endif
-$(DEST)/libdyninstRT.a:       libdyninstRT.a
-	cp libdyninstRT.a ../../../lib/$(PLATFORM)
+$(DEST)/libdyninstRT.o:       libdyninstRT.o
+	cp libdyninstRT.o ../../../lib/$(PLATFORM)
 
 $(DEST)/RTpvmPiggy.o: RTpvmPiggy.o
 	cp RTpvmPiggy.o ../../../lib/$(PLATFORM)
