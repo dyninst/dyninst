@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.96 2002/06/10 19:24:53 bernat Exp $
+// $Id: inst.C,v 1.97 2002/06/25 20:26:17 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -748,6 +748,17 @@ void deleteInst(instInstance *old)
       // logLine("Internal error in inst.C: instInstance pointer \"old\" is NULL\n");
       return;
     }
+
+    // First check: have we started to delete this guy already?
+    // This happens when we try to delete an instInstance and GC it
+    // We then pause the process, but if the process is exited Paradyn
+    // tries to disable all instrumentation... thus causing this one
+    // to be deleted again. Sigh. 
+
+    // Better fix: figure out why we're double-deleting instrCodeNodes.
+    
+    if (old->proc->checkIfInstAlreadyDeleted(old))
+      return;
 
     /* check if there are other inst points at this location. */
     othersAtPoint = NULL;
