@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.1 2002/02/21 21:47:45 bernat Exp $
+// $Id: aixMT.C,v 1.2 2002/04/18 19:39:39 bernat Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
 #include "dyninstAPI/src/pdThread.h"
@@ -130,7 +130,10 @@ pdThread *process::createThread(
 //
 // CALLED for mainThread
 //
-void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource *rid) {
+void process::updateThread(pdThread *thr, int tid, 
+			   unsigned pos, void* resumestate_p, 
+			   resource *rid)
+{
   unsigned pd_pos;
   assert(thr);
   thr->update_tid(tid, pos);
@@ -243,45 +246,11 @@ void process::deleteThread(int tid)
     logLine(errorLine);
   }
 }
-
-bool process::getLWPFrame(int lwp_id, Address* fp, Address* pc) {
-  // Doesn't this seem familiar?
-  // Should use the frame mechanism.
-  *pc = 0;
-  *fp = 0;
-
-  fprintf(stderr, "Getting LWP frame data for thread %d\n", lwp_id);
-
-  struct ptsprs spr_contents;
-  if (ptrace(PTT_READ_SPRS, lwp_id, (int *)&spr_contents,
-	     0, 0) == -1) {
-
-    perror("Failed to read SPR data in getLWPFrame");
-    fprintf(stderr, "errno = %d\n", errno);
-    return false;
-  }
-  *pc = spr_contents.pt_iar;
-  int gpr_contents[32];
-  if (ptrace(PTT_READ_GPRS, lwp_id, (int *)gpr_contents, 0, 0) == -1) {
-    perror("Failed to read GPR data in getLWPFrame");
-    return false;
-  }
-  *fp = gpr_contents[1];
-
-  Address linkarea;
-  readDataSpace((void *)*fp, sizeof(linkarea), &linkarea, false);
-  fprintf(stderr, "getLWPFrame: Returning pc 0x%x, sp 0x%x, and fp 0x%x\n",
-	  (unsigned) *pc, (unsigned) *fp, (unsigned) linkarea);
-  *fp = linkarea;
-
-  return true;
-}
-
 /* 
  * Get the stack frame, given a (p)thread ID 
  */
 
-Frame::Frame(pdThread* thr) {
+Frame pdThread::getActiveFrame() {
   pthdb_context_t context;
 
   //static int init = 0;
@@ -289,16 +258,13 @@ Frame::Frame(pdThread* thr) {
   //static pthdb_callbacks_t callbacks;
   unsigned ret;
 
-  process *proc = thr->get_proc();
+  process *proc = get_proc();
   // process object holds a pointer to the appropriate thread session
   session_ptr = proc->get_pthdb_session();
 
-  fp_ = pc_ = 0 ;
-  uppermost_ = true ;
-  lwp_id_ = 0 ;
-  thread_ = thr ;
+  Frame newFrame;
 
-  fprintf(stderr, "pthread debug session update\n");
+  fprintf(stderr, "pthread debug session update for getActiveFrame\n");
   ret = pthdb_session_update(*session_ptr);
   if (ret) fprintf(stderr, "update: returned %d\n", ret);
 
@@ -312,8 +278,10 @@ Frame::Frame(pdThread* thr) {
   if (ret) { 
     fprintf(stderr, "pthread translation failed: %d\n", ret);
   }
+
+  fprintf(stderr, "Looking for thread ID %d\n", get_tid());
  
-  while (pthread != (unsigned) thread_->get_tid()) {
+  while (pthread != (unsigned) get_tid()) {
     ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
     if (ret) fprintf(stderr, "next pthread: returned %d\n", ret);
     ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
@@ -327,23 +295,24 @@ Frame::Frame(pdThread* thr) {
       // Succeeded in call
       fprintf(stderr, "Returned context data: instruction pointer = 0x%llx, stack pointer = 0x%llx, link register = 0x%llx\n",
 	      context.iar, context.gpr[1], context.lr);
-      pc_ = (Address) context.iar;
-      fp_ = (Address) context.gpr[1];
-      
-      
+      newFrame = Frame(context.iar, context.gpr[1], 
+		       proc->getPid(), this, 0, true);
     }
   else
     {
       // Thread is currently scheduled. Find out to which kernel lwp,
       // and pull the data from there
+      fprintf(stderr, "pdThread::getActiveFrame, got ret of %d from pthread_context\n", ret);
       int lwp; 
       ret = pthdb_pthread_tid(*session_ptr, pthreadp, &lwp);
       if (ret) fprintf(stderr, "Translating pthread to lwp failed: %d\n", ret);
       fprintf(stderr, "Getting kernel thread data for thread %d, lwp %d\n",
-	      thread_->get_tid(), lwp); 
-      proc->getLWPFrame(lwp, &fp_, &pc_);
-      
+	      get_tid(), lwp); 
+      Frame lwpFrame = proc->getActiveFrame(lwp);
+      newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
+		       lwpFrame.getPID(), this, lwp, true);
     }
+  return newFrame;
 }
 
 int PTHDB_read_data(pthdb_user_t user,
@@ -378,21 +347,21 @@ int PTHDB_write_data(pthdb_user_t user,
   return 0;
 }
 
-int PTHDB_read_regs(pthdb_user_t /*user*/,
-		    tid_t /*tid*/,
-		    unsigned long long /*flags*/,
-		    pthdb_context_t */*context*/)
+int PTHDB_read_regs(pthdb_user_t user,
+		    tid_t tid,
+		    unsigned long long flags,
+		    pthdb_context_t * context)
 {
-  fprintf(stderr, "UNWRITTEN\n");
+  fprintf(stderr, "UNWRITTEN read regs, tid %d, flags %lld\n", tid, flags);
   return 1;
 }
 
-int PTHDB_write_regs(pthdb_user_t /*user*/,
-		     tid_t /*tid*/,
-		     unsigned long long /*flags*/,
-		     pthdb_context_t */*context*/)
+int PTHDB_write_regs(pthdb_user_t user,
+		     tid_t tid,
+		     unsigned long long flags,
+		     pthdb_context_t *context)
 {
-  fprintf(stderr, "UNWRITTEN\n");
+  fprintf(stderr, "UNWRITTEN write regs, tid %d, flags %lld\n", tid, flags);
   return 1;
 }
   
@@ -443,7 +412,7 @@ int PTHDB_print(pthdb_user_t user, char *str)
 int process::findLWPbyPthread(int tid)
 {
   pthdb_session_t *session_ptr;
-  tid_t lwp = -1;
+  tid_t lwp = 0;
   pthdb_pthread_t pthreadp;
   session_ptr = get_pthdb_session();
   fprintf(stderr, "findLWPbyPthread, looking for kernel thread for pthread %d\n", tid);
@@ -479,213 +448,3 @@ int process::findLWPbyPthread(int tid)
   fprintf(stderr, "find LWP by pthread: returning %d\n", lwp);
   return lwp;
 }
-#if 0
-
-#if defined(MT_THREAD)
-
-/* 
- * Get the stack frame, given a (p)thread ID 
- */
-
-Frame::Frame(pdThread* thr) {
-  pthdb_context_t context;
-
-  //static int init = 0;
-  pthdb_session_t *session_ptr;
-  //static pthdb_callbacks_t callbacks;
-  unsigned ret;
-
-  process *proc = thr->get_proc();
-  // process object holds a pointer to the appropriate thread session
-  session_ptr = proc->get_pthdb_session();
-
-  fp_ = pc_ = 0 ;
-  uppermost_ = true ;
-  lwp_id_ = 0 ;
-  thread_ = thr ;
-
-  fprintf(stderr, "pthread debug session update\n");
-  ret = pthdb_session_update(*session_ptr);
-  if (ret) fprintf(stderr, "update: returned %d\n", ret);
-
-  pthdb_pthread_t pthreadp;
-  pthread_t pthread = (unsigned) -1;
-
-  ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_FIRST);
-  if (ret) fprintf(stderr, "Getting first pthread data structure failed: %d\n", ret);
-
-  ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-  if (ret) { 
-    fprintf(stderr, "pthread translation failed: %d\n", ret);
-  }
- 
-  while (pthread != (unsigned) thread_->get_tid()) {
-    ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
-    if (ret) fprintf(stderr, "next pthread: returned %d\n", ret);
-    ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-    if (ret) fprintf(stderr, "check pthread: returned %d\n", ret);
-  }
-  ret = pthdb_pthread_context(*session_ptr,
-			      pthreadp,
-			      &context);
-  if (!ret)
-    {
-      // Succeeded in call
-      fprintf(stderr, "Returned context data: instruction pointer = 0x%llx, stack pointer = 0x%llx, link register = 0x%llx\n",
-	      context.iar, context.gpr[1], context.lr);
-      pc_ = (Address) context.iar;
-      fp_ = (Address) context.gpr[1];
-      
-      
-    }
-  else
-    {
-      // Thread is currently scheduled. Find out to which kernel lwp,
-      // and pull the data from there
-      int lwp; 
-      ret = pthdb_pthread_tid(*session_ptr, pthreadp, &lwp);
-      if (ret) fprintf(stderr, "Translating pthread to lwp failed: %d\n", ret);
-      fprintf(stderr, "Getting kernel thread data for thread %d, lwp %d\n",
-	      thread_->get_tid(), lwp); 
-      proc->getLWPFrame(lwp, &fp_, &pc_);
-      
-    }
-}
-
-#endif
-
-int PTHDB_read_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len)
-{
-  // We hide the process pointer in the user data. Heh.
-  process *p = (process *)user;
-  /*
-  fprintf(stderr, "read_data(0x%x, 0x%x, 0x%x, %d)\n",
-	  (int) user, (int) buf, (int) addr, (int) len);
-  */
-  if (!p->readDataSpace((void *)addr, len, buf, false))
-    fprintf(stderr, "Error reading data space\n");
-  return 0;
-}
-
-int PTHDB_write_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len)
-{
-  // We hide the process pointer in the user data. Heh.
-  process *p = (process *)user;
-  /*
-  fprintf(stderr, "write_data(0x%x, 0x%x, 0x%x, %d)\n",
-	  (int) user, (int) buf, (int) addr, (int) len);
-  */
-  if (!p->writeDataSpace((void *)addr, len, buf))
-    fprintf(stderr, "Error writing data space\n");
-  return 0;
-}
-
-int PTHDB_read_regs(pthdb_user_t /*user*/,
-		    tid_t /*tid*/,
-		    unsigned long long /*flags*/,
-		    pthdb_context_t */*context*/)
-{
-  fprintf(stderr, "UNWRITTEN\n");
-  return 1;
-}
-
-int PTHDB_write_regs(pthdb_user_t /*user*/,
-		     tid_t /*tid*/,
-		     unsigned long long /*flags*/,
-		     pthdb_context_t */*context*/)
-{
-  fprintf(stderr, "UNWRITTEN\n");
-  return 1;
-}
-  
-
-int PTHDB_alloc(pthdb_user_t /*user*/,
-		size_t len,
-		void **bufp)
-{
-  *bufp = malloc(len);
-  /*
-  fprintf(stderr, "alloc(0x%x, %d), returning 0x%x\n",
-	  (int) user, (int) len, (int) *bufp);
-  */
-  return 0;
-}
-
-int PTHDB_dealloc(pthdb_user_t /*user*/,
-		  void *buf)
-{
-  /*  fprintf(stderr, "dealloc(0x%x, 0x%x)\n",
-	  (int) user, (int) buf);
-  */
-  free(buf);
-  return 0;
-}
-
-int PTHDB_realloc(pthdb_user_t user,
-		  void *buf,
-		  size_t len,
-		  void **bufp)
-{
-  /*
-  fprintf(stderr, "realloc(0x%x, 0x%x, %d)\n",
-	  (int) user, (int) buf, (int) len);
-  */
-  PTHDB_dealloc(user, buf);
-  PTHDB_alloc(user, len, bufp);
-  return 0;
-}
-
-int PTHDB_print(pthdb_user_t user, char *str)
-{
-  fprintf(stderr, "print(0x%x, %s)\n",
-	  (int) user, str);
-  return 0;
-}
-
-int process::findLWPbyPthread(int tid)
-{
-  pthdb_session_t *session_ptr;
-  tid_t lwp = -1;
-  pthdb_pthread_t pthreadp;
-  session_ptr = get_pthdb_session();
-  fprintf(stderr, "findLWPbyPthread, looking for kernel thread for pthread %d\n", tid);
-  int ret;
-  ret = pthdb_session_update(*session_ptr);
-  if (ret) {
-    fprintf(stderr, "update: returned %d\n", ret);
-    return -1;
-  }
-  pthread_t pthread = 0;
-    
-  ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_FIRST);
-  if (ret) {
-    fprintf(stderr, "first pthread returned %d\n", ret);
-    return -1;
-  }
-  ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-  if (ret) { 
-    fprintf(stderr, "pthread translation failed: %d\n", ret);
-    return -1;
-  }
-    
-  while (pthread != (unsigned) tid) {
-    ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
-    if (ret) fprintf(stderr, "next pthread: returned %d\n", ret);
-    ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-    if (ret) fprintf(stderr, "check pthread: returned %d\n", ret);
-  }
-  fprintf(stderr, "Got pthread value of %d\n", pthread);
-    
-  ret = pthdb_pthread_tid(*session_ptr, pthreadp, &lwp);
-  if (ret) fprintf(stderr, "pthread_tid returned %d\n", ret);
-  fprintf(stderr, "find LWP by pthread: returning %d\n", lwp);
-  return lwp;
-}
-
-#endif

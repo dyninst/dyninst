@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.93 2002/03/14 23:26:34 bernat Exp $
+// $Id: aix.C,v 1.94 2002/04/18 19:39:38 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/instP.h" // class instInstance
 #include "common/h/pathName.h"
+#include "dyninstAPI/src/instPoint.h"
 
 #include <procinfo.h>
 
@@ -78,6 +79,7 @@
 #include "common/h/Time.h"
 #include "common/h/timing.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/instReqNode.h"
 #endif
 
 #ifdef USES_PMAPI
@@ -132,42 +134,64 @@ bool ptraceKludge::haltProcess(process *p) {
 }
 
 // getActiveFrame(): populate Frame object using toplevel frame
-void Frame::getActiveFrame(process *p)
+Frame process::getActiveFrame(unsigned lwp = 0)
 {
+  unsigned pc, fp;
+  errno = 0;
+  if (!lwp) lwp = curr_lwp;
+
+  if (lwp) { // We have a kernel thread to target. Nifty, eh?
+    struct ptsprs spr_contents;
+    bool kernel_mode = false;
+    P_ptrace(PTT_READ_SPRS, lwp, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
+    pc = spr_contents.pt_iar;
+    if (errno) perror("----------Error getting IAR in getActiveFrame");
+    if (errno) fprintf(stderr, "------------Err number %d (EPERM %d)\n", errno, EPERM);
+    if (errno == EPERM) kernel_mode = true; // This is going to be... annoying
     errno = 0;
-    if (lwp_id_) { // We have a kernel thread to target. Nifty, eh?
-      cerr << "Getting active frame for kernel thread " << lwp_id_ << endl;
-      struct ptsprs spr_contents;
-      P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
-      pc_ = spr_contents.pt_iar;
-      if (errno != 0) return;
-      
-      errno = 0;
-      // To get the GPRs we actually get all of them (32*4=128 bytes)
-      // and pick out the one we want.
+
+    if (!kernel_mode) {
       unsigned allRegs[64];
-      P_ptrace(PTT_READ_GPRS, lwp_id_, (int *)allRegs, 0, 0); // aix 4.1 likes int *
+      P_ptrace(PTT_READ_GPRS, lwp, (int *)allRegs, 0, 0); // aix 4.1 likes int *
       // Register 1 is the current stack pointer. It must contain
       // a back chain to the caller's stack pointer.
       // Note: things like the LR are stored in the "parent's" stack frame.
       // This allows leaf functions to store the LR, even without a 
       // stack frame.
-      fp_ = allRegs[1];
-      if (errno != 0) return;
+      fp = allRegs[1];
+      if (errno != 0) {
+	perror("Problem reading stack pointer in getActiveFrame");
+	return Frame();
+      }
     }
-    else { // Old behavior, pid-based. 
-      pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
-      if (errno != 0) return;
-      
-      errno = 0;
-      fp_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
-      if (errno != 0) return;
+    else { // We're in the kernel. Any idea how to get the (old) PC and FP?
+      struct thrdsinfo thrd_buf[1000]; // 1000 should be enough for anyone!
+      getthrds(getPid(), thrd_buf, sizeof(struct thrdsinfo), 0, 1000);
+      unsigned foo = 0;
+      while (thrd_buf[foo].ti_tid != lwp) foo++;
+      fprintf(stderr, "Kernel mode dump: tid %d, scount %d, ustack %x\n",
+	      thrd_buf[foo].ti_tid, 
+	      thrd_buf[foo].ti_scount,
+	      thrd_buf[foo].ti_ustk);
+      fp = thrd_buf[foo].ti_ustk;
+      pc = -1; // ???
     }
+
+  }
+  else { // Old behavior, pid-based. 
+    pc = P_ptrace(PT_READ_GPR, getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
+    if (errno != 0) return Frame();
     
+    errno = 0;
+    fp = P_ptrace(PT_READ_GPR, getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
+      if (errno != 0) return Frame();
+    }
+  return Frame(pc, fp, getPid(), NULL, lwp, true);
 }
 
+// We don't have leaf frames yet (should we?)
 bool process::needToAddALeafFrame(Frame, Address &){
-    return false;
+  return false;
 }
 
 
@@ -198,8 +222,9 @@ Frame Frame::getCallerFrame(process *p) const
   pd_Function *func = p->findFuncByAddr(pc_);
   bool isLeaf = false;
   bool noFrame = false;
-  ret.lwp_id_ = lwp_id_;
+  ret.pid_ = pid_;
   ret.thread_ = thread_;
+  ret.lwp_ = lwp_;
   if (func && uppermost_) {
     isLeaf = func->makesNoCalls();
     noFrame = func->hasNoStackFrame();
@@ -226,20 +251,20 @@ Frame Frame::getCallerFrame(process *p) const
     //    if not, get it from the pthread debug library
     // LWP: call ptrace(lwp)
     struct ptsprs spr_contents;
-    if (lwp_id_) {
-      if (P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents,
+    if (lwp_) {
+      if (P_ptrace(PTT_READ_SPRS, lwp_, (int *)&spr_contents,
 		 0, 0) == -1) {
 	perror("Failed to read SPR data in getCallerFrameLWP");
 	fprintf(stderr, "errno = %d\n", errno);
 	return Frame();
       }
-      ret.pc_ = spr_contents.pt_iar;
+      ret.pc_ = spr_contents.pt_lr;
     }
     else if (thread_) {
 	cerr << "NOT IMPLEMENTED YET" << endl;
       }
     else { // normal
-      ret.pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (void *)LR, 0, 0);
+      ret.pc_ = P_ptrace(PT_READ_GPR, pid_, (void *)LR, 0, 0);
     }
   }
   else { // Not a leaf function, grab the LR from the stack
@@ -258,8 +283,9 @@ Frame Frame::getCallerFrame(process *p) const
       }
     }
   }
-  if (noFrame) // We never shifted the stack down, so recycle
+  if (noFrame) { // We never shifted the stack down, so recycle
     ret.fp_ = fp_;
+  }
   else
     ret.fp_ = thisStackFrame.oldFp;
 #ifdef DEBUG_STACKWALK
@@ -339,12 +365,12 @@ void decodeInstr(unsigned instr_raw) {
   return;
 }      
 
-
 void *process::getRegisters() {
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);
 
-   const u_int num_bytes = 32 * 4 // 32 general purpose integer registers
+   const u_int num_bytes = 4      // Space for the LWP id (if there)
+                         + 32 * 4 // 32 general purpose integer registers
                          + 32 * 8 // 32 floating point registers @ 8 bytes each
                          + 9 * 4; // 9 special registers
    // special registers are:
@@ -364,6 +390,8 @@ void *process::getRegisters() {
    assert(buffer);
 
    unsigned *bufferPtr = (unsigned *)buffer;
+
+   *bufferPtr = 0; bufferPtr++; // Set the LWP slot to 0
 
    // First, the general-purpose integer registers:
 
@@ -449,6 +477,78 @@ void *process::getRegisters() {
    return buffer;
 }
 
+void *process::getRegisters(unsigned lwp) {
+  // assumes the process is stopped (ptrace requires it)
+
+  if (!lwp) return getRegisters();
+  
+  assert(status_ == stopped);
+  
+  const u_int num_bytes = 4      // LWP save slot
+                        + 32 * 4 // 32 general purpose integer registers
+                        + 32 * 8 // 32 floating point registers @ 8 bytes each
+                        + 9 * 4; // 9 special registers
+   void *buffer = new char[num_bytes];
+   assert(buffer);
+
+   unsigned *bufferPtr = (unsigned *)buffer;
+
+   *bufferPtr = lwp; bufferPtr++; // Store the LWP id for a later assert
+
+   // First, the general-purpose integer registers: 0 - 31
+   // When we have a specific LWP, we use PTT_READ_GPRS which
+   // returns a block of all GPRs instead of a specific one.
+   // ptrace(PTT_READ_GPRS, lwp, &buffer (at least 4*32=128 large), 0, 0);
+
+   errno = 0;
+   P_ptrace(PTT_READ_GPRS, lwp, (void *)bufferPtr, 0, 0);
+   if (errno != 0) {
+     perror("ptrace PTT_READ_GPRS");
+     return NULL;
+   }
+   bufferPtr += 32; // Number of GPRs
+
+   // Next, the general purpose floating point registers.
+   // Again, we read as a block. 
+   // ptrace(PTT_READ_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
+   errno = 0;
+   P_ptrace(PTT_READ_FPRS, lwp, (void *)bufferPtr, 0, 0);
+   if (errno != 0) {
+     perror("ptrace PTT_READ_FPRS");
+     return NULL;
+   }
+   bufferPtr += (32*2); // Each FPR is 2*sizeof(unsigned)
+
+   // We get the SPRs in a special structure. We'll then copy to
+   // our buffer for later retrieval. We could save the lot, I suppose,
+   // but there's a _lot_ of extra space that is unused.
+   struct ptsprs spr_contents;
+   errno = 0;
+   P_ptrace(PTT_READ_SPRS, lwp, (void *)&spr_contents, 0, 0);
+   if (errno) {
+     perror("PTT_READ_SPRS");
+     return NULL;
+   }
+   // Now we save everything out. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
+   *bufferPtr++ = spr_contents.pt_iar;
+   *bufferPtr++ = spr_contents.pt_msr;
+   *bufferPtr++ = spr_contents.pt_cr;
+   *bufferPtr++ = spr_contents.pt_lr;
+   *bufferPtr++ = spr_contents.pt_ctr;
+   *bufferPtr++ = spr_contents.pt_xer;
+   *bufferPtr++ = spr_contents.pt_mq;
+   *bufferPtr++ = spr_contents.pt_reserved_0; // Match for TID, whatever that is
+   *bufferPtr++ = spr_contents.pt_fpscr;
+
+   fprintf(stderr, "Bufferptr: %x, buffer: %x, num_bytes: %x\n",
+	   (unsigned) bufferPtr, (unsigned) buffer, (unsigned) num_bytes);
+
+   assert((unsigned)bufferPtr - (unsigned)buffer == num_bytes);
+
+   // Whew, finally done.
+   return buffer;
+}
+
 static bool executeDummyTrap(process *theProc) {
    assert(theProc->status_ == stopped);
    
@@ -486,60 +586,6 @@ static bool executeDummyTrap(process *theProc) {
       // them now?
    assert(errno == 0);
 
-while (true) {
-   int status, pid;
-   do {
-      pid = waitpid(theProc->getPid(), &status, WUNTRACED);
-      if (pid == 0)
-	 cerr << "waitpid returned special case of 0 (?)" << endl;
-      else if (pid == -1) {
-	 if (errno == ECHILD)
-	    // the child has died
-	    assert(false);
-	 else
-	    perror("executeDummyTrap waitpid()");
-      }
-      else {
-//	 cerr << "waitpid result was " << pid << endl;
-//	 if (pid == theProc->getPid())
-//	    cerr << "which was the pid, as expected" << endl;
-      }
-
-//      cerr << "did a wait" << endl; cerr.flush();
-   } while (pid != theProc->getPid());
-
-   if (WIFEXITED(status))
-      // the child died
-      assert(false);
-
-   assert(WIFSTOPPED(status));
-
-   int sig = WSTOPSIG(status);
-   if (sig == SIGTRAP) {
-#ifdef INFERIOR_RPC_DEBUG
-      cerr << "executeDummyTrap: got SIGTRAP, as expected!" << endl;
-#endif
-      break;
-   }
-   else {
-      // handle an 'ordinary' signal, e.g. SIGALRM
-#ifdef INFERIOR_RPC_DEBUG
-      cerr << "executeDummyTrap: got unexpected signal " << sig << "...ignoring" << endl;
-#endif
-
-      // We bypass continueProc() because continueProc() changes theProc->status_, which
-      // we don't want to do here
-      errno = 0;
-      P_ptrace(PT_CONTINUE, theProc->getPid(), (void *)1, 0, 0);
-         // what if there are any pending signals?  Don't we lose the chance to forward
-         // them now?
-      assert(errno == 0);
-
-//      extern int handleSigChild(int, int);
-//      (void)handleSigChild(pid, status);
-   }
-}
-
    // Restore the old PC register value
    errno = 0;
    P_ptrace(PT_WRITE_GPR, theProc->getPid(), (void *)IAR, oldpc, 0);
@@ -555,9 +601,22 @@ while (true) {
    return true;
 }
 
-bool process::executingSystemCall() {
-   // this is not implemented yet - naim 5/15/97
-   return false;
+bool process::executingSystemCall(unsigned lwp = 0) {
+  // lwp -- we may care about a particular thread.
+  errno = 0;
+  if (lwp) {
+    // Easiest way to check: try to read GPRs and see
+    // if we get EPERM back
+    struct ptsprs spr_contents;
+    P_ptrace(PTT_READ_SPRS, lwp, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
+  }
+  else
+    P_ptrace(PT_READ_GPR, getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
+  
+  if (errno == EPERM) {
+    return true;
+  }
+  return false;
 }
 
 bool process::changePC(Address loc) {
@@ -576,19 +635,15 @@ bool process::changePC(Address loc, const void *) {
    // Returns -1 on failure; else, returns the 'data' parameter
    // Errors:
    //    EIO: 3d param not a valid register; must be 0-31 or 128-136
-// gdb hack: execute 1 dummy insn
-#ifdef INFERIOR_RPC_DEBUG
-   cerr << "changePC: about to exec dummy trap" << endl;
-#endif
-   /*
-   if (!executeDummyTrap(this)) {
-      cerr << "changePC failed because executeDummyTrap failed" << endl;
-      return false;
-   }
-   */
 
    if (curr_lwp) { // We have a current LWP to use
      return changePC(loc, NULL, curr_lwp);
+   }
+
+   errno = 0;
+   if ( !P_ptrace(PT_READ_GPR, pid, (void *)IAR, 0, 0)) {
+      cerr << "changePC failed because couldn't re-read IAR register" << endl;
+      return false;
    }
 
    errno = 0;
@@ -609,21 +664,21 @@ bool process::changePC(Address loc, const void *) {
    return true;
 }
 
-bool process::changePC(Address loc, const void *ignored, int lwp_id) {
+bool process::changePC(Address loc, const void *ignored, int lwp) {
   // Write the new PC to a _specific_ running kernel thread
   // Slightly more difficult -- you can't write a single register
   // to a single kernel thread. So we read 'em all, change one, write 'em
   // back.
 
-  if (lwp_id <= 0) return changePC(loc, ignored);
+  if (lwp <= 0) return changePC(loc, ignored);
 
   fprintf(stderr, "changePC(kernel thread=%d, location=%x)\n",
-	  (unsigned) lwp_id, (unsigned) loc);
+	  (unsigned) lwp, (unsigned) loc);
 
   struct ptsprs spr_contents;
   
   errno = 0;
-  P_ptrace(PTT_READ_SPRS, lwp_id, (void *)&spr_contents, 0, 0);
+  P_ptrace(PTT_READ_SPRS, lwp, (void *)&spr_contents, 0, 0);
   if (errno) {
     perror("changePC: PTT_READ_SPRS failed");
     return false;
@@ -633,13 +688,12 @@ bool process::changePC(Address loc, const void *ignored, int lwp_id) {
   
   // Write the registers back in
   errno = 0;
-  int ret = P_ptrace(PTT_WRITE_SPRS, lwp_id, (void *)&spr_contents, 0, 0);
-  if (ret)
-    {
-      perror("changePC: PTT_WRITE_SPRS failed");
-      fprintf(stderr, "Returned %d, errno %d\n", ret, errno);
-      return false;
-    }
+  int ret = P_ptrace(PTT_WRITE_SPRS, lwp, (void *)&spr_contents, 0, 0);
+  if (ret) {
+    perror("changePC: PTT_WRITE_SPRS failed");
+    fprintf(stderr, "Returned %d, errno %d\n", ret, errno);
+    return false;
+  }
   assert(errno == 0);
   
   return true;
@@ -659,6 +713,10 @@ bool process::restoreRegisters(void *buffer) {
 
    unsigned *bufferPtr = (unsigned *)buffer;
 
+   unsigned lwp = *bufferPtr; bufferPtr++;
+
+   if (lwp) return restoreRegisters(buffer, lwp); // We need to target a kernel thread
+   
    // First, the general-purpose registers:
    // Format for PT_WRITE_GPR:
    // 3d param ('address'): specifies the register (must be 0-31 or 128-136)
@@ -722,6 +780,67 @@ bool process::restoreRegisters(void *buffer) {
    }
 
    return true; // success
+}
+
+bool process::restoreRegisters(void *buffer, unsigned lwp) {
+   // assumes process is stopped (ptrace requires it)
+   assert(status_ == stopped);
+
+   // WARNING: gdb has indications that one should execute a dummy instr (breakpoint)
+   // in order to let the kernel do housekeeping necessary to avoid corruption of
+   // the user stack (rs6000-nat.c).  Should we worry about that?
+   // gdb's method (exec_one_dummy_insn()) works as follows: put a breakpoint
+   // instruction somewhere in the inferior, save the PC, write the PC to
+   // this dummy instr location, do a ptrace PT_CONTINUE, wait() for the signal,
+   // restore the PC, free up the breakpoint.  But again, why is this needed?
+
+   unsigned *bufferPtr = (unsigned *)buffer;
+
+   unsigned lwp_check = *bufferPtr; bufferPtr++;
+   assert(lwp == lwp_check);
+
+   errno = 0;
+   P_ptrace(PTT_WRITE_GPRS, lwp, (void *)bufferPtr, 0, 0);
+   if (errno != 0) {
+     perror("ptrace PTT_WRITE_GPRS");
+     return false;
+   }
+   bufferPtr += 32; // Number of GPRs
+
+   // Next, the general purpose floating point registers.
+   // ptrace(PTT_WRITE_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
+   errno = 0;
+   P_ptrace(PTT_WRITE_FPRS, lwp, (void *)bufferPtr, 0, 0);
+   if (errno != 0) {
+     perror("ptrace PTT_WRITE_FPRS");
+     return false;
+   }
+   bufferPtr += (32*2); // Each FPR is 2*sizeof(unsigned)
+
+   // We get the SPRs in a special structure. We'll then copy to
+   // our buffer for later retrieval. We could save the lot, I suppose,
+   // but there's a _lot_ of extra space that is unused.
+   struct ptsprs spr_contents;
+
+   // Restore. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
+   spr_contents.pt_iar = *bufferPtr++;
+   spr_contents.pt_msr = *bufferPtr++;
+   spr_contents.pt_cr = *bufferPtr++;
+   spr_contents.pt_lr = *bufferPtr++;
+   spr_contents.pt_ctr = *bufferPtr++;
+   spr_contents.pt_xer = *bufferPtr++;
+   spr_contents.pt_mq = *bufferPtr++;
+   spr_contents.pt_reserved_0 = *bufferPtr++;
+   spr_contents.pt_fpscr = *bufferPtr++;
+
+   errno = 0;
+   P_ptrace(PTT_WRITE_SPRS, lwp, (void *)&spr_contents, 0, 0);
+   if (errno) {
+     perror("PTT_WRITE_SPRS");
+     return false;
+   }
+
+   return true;
 }
 
 bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
@@ -1977,6 +2096,53 @@ void process::initCpuTimeMgrPlt() {
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
 			   timeUnit::us(), timeBase::bNone(), 
 			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
+}
+
+class instReqNode;
+
+bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
+{
+  // Okay, here's what we need to do: when a base tramp is
+  // entered, we change the link register to point to the
+  // exit tramp. We need to repeat that behavior. It
+  // consists of:
+  //   Get the address of the exit tramp for the current
+  //     function.
+  //   Write the old LR to the save slot.
+  //   Write this address to where the LR is stored (or the 
+  //     register if we have a leaf func)
+  //   Layout: (starting at 0 and proceeding upwards)
+  //        0: stack backchain
+  //        4: saved TC
+  //        8: saved LR
+  //       12: our save slot for the LR
+
+  Address exitTrampAddr;
+  pd_Function *instFunc = (pd_Function *)(inst->Point()->iPgetFunction());
+
+  // Check: see if the PC is within the instFunc. We might be within
+  // an entry or exit tramp, at which point we don't need to fix anything.
+  if ((frame.getPC() < instFunc->addr()) || (frame.getPC() > instFunc->addr() + instFunc->size()))
+    return true;
+
+  const vector <instPoint *>exitPoints = instFunc->funcExits(this);
+  exitTrampAddr = baseMap[exitPoints[0]]->baseAddr;
+
+  // Get the old value (assumes LR is always saved)
+  // Here's the fun bit. We actually store the LR in the parent's frame. So 
+  // we need to backtrace a bit.
+  if (frame.isLastFrame())
+    return false;
+  Frame parentFrame = frame.getCallerFrame(this);
+  Address oldReturnAddr;
+  readDataSpace((void *)(parentFrame.getFP()+8), sizeof(Address), &oldReturnAddr, false);
+  // Write it into the save slot
+  writeDataSpace((void*)(parentFrame.getFP()+12), sizeof(Address), &oldReturnAddr);
+  writeDataSpace((void*)(parentFrame.getFP()+8), sizeof(Address), &exitTrampAddr);
+
+
+  return true;
+
 }
 #endif
 
