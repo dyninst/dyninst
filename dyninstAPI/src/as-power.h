@@ -44,6 +44,11 @@
 
 /*
  * $Log: as-power.h,v $
+ * Revision 1.3  1996/10/04 15:01:02  naim
+ * Changes in the base-trampoline to support arrays of counters and timers
+ * (multithreaded case). On AIX registers are saved only when needed, so we
+ * don't need to move save/restores to base-tramp - naim
+ *
  * Revision 1.2  1996/08/16 21:18:09  tamches
  * updated copyright for release 1.1
  *
@@ -91,5 +96,10 @@
 
 /* branch to first global post insn mini-tramp */
 #define GLOBAL_POST_BRANCH	0xc
+
+/* branch back to the application if there is no instrumentation at 
+   this point */
+#define SKIP_PRE_INSN           0xd
+#define SKIP_POST_INSN          0xe
 
 #endif

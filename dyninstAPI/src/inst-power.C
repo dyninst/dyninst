@@ -350,8 +350,8 @@ int getPointCost(process *proc, instPoint *point)
     if (proc->baseMap.defines(point)) {
 	return(0);
     } else {
-	// 8 cycles for base tramp
-	return(8);
+	// 35 cycles for base tramp
+	return(35);
     }
 }
 
@@ -417,6 +417,18 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	    case GLOBAL_POST_BRANCH:
 		thisTemp->globalPostOffset = ((void*)temp - (void*)tramp);
 		break;
+	    case SKIP_PRE_INSN:
+                thisTemp->skipPreInsOffset = ((void*)temp - (void*)tramp);
+                break;
+	    case SKIP_POST_INSN:
+                thisTemp->skipPostInsOffset = ((void*)temp - (void*)tramp);
+                break;
+	    case RETURN_INSN:
+                thisTemp->returnInsOffset = ((void*)temp - (void*)tramp);
+                break;
+	    case EMULATE_INSN:
+                thisTemp->emulateInsOffset = ((void*)temp - (void*)tramp);
+                break;
   	}	
     }
     thisTemp->size = (int) temp - (int) tramp;
@@ -468,6 +480,14 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	} else if (temp->raw == RETURN_INSN) {
 	    generateBranchInsn(temp, 
 		(location->addr+sizeof(instruction) - currAddr));
+        } else if (temp->raw == SKIP_PRE_INSN) {
+          unsigned offset;
+          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
+          generateBranchInsn(temp,offset);
+        } else if (temp->raw == SKIP_POST_INSN) {
+          unsigned offset;
+          offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+          generateBranchInsn(temp,offset);
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
 		   (temp->raw == GLOBAL_PRE_BRANCH) ||
 		   (temp->raw == LOCAL_POST_BRANCH) ||
@@ -534,6 +554,15 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     
     // TODO cast
     (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+
+    unsigned atAddr;
+    if (inst->when == callPreInsn) {
+      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+    }
+    else {
+      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+    }
+    generateNoOp(inst->proc, atAddr);
 }
 
 /*
@@ -602,7 +631,10 @@ pdFunction *getFunction(instPoint *point)
     base += sizeof(instruction);		\
 }	\
 
-
+unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
+                 unsigned &base)
+{
+}
 
 //
 // Author: Jeff Hollingsworth (3/26/96)
@@ -1429,6 +1461,15 @@ void generateBreakPoint(instruction &insn) {
     insn.raw = BREAK_POINT_INSN;
 }
 
+bool doNotOverflow(int value)
+{
+  //
+  // this should be changed by the correct code. If there isn't any case to
+  // be checked here, then the function should return TRUE. If there isn't
+  // any immediate code to be generated, then it should return FALSE - naim
+  //
+  return(false);
+}
 
 void instWaitingList::cleanUp(process * , Address ) {
     P_abort();
