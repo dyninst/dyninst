@@ -254,3 +254,6 @@ template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<float>**,
 template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::traceDataValue>**,
         bool_t (*)(XDR*, T_visi::traceDataValue*), T_visi::traceDataValue*);
 
+
+
+template class refCounter<string_ll>;
