@@ -1419,7 +1419,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 }
 
 
-bool pdFunction::findInstPoints(const image *owner) 
+bool pdFunction::findInstPoints(image *owner) 
 {  
   Address adr = addr();
   instruction instr;

@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.24  1996/10/18 23:52:39  mjrg
+ * Changed argument of findInstPoints
+ *
  * Revision 1.23  1996/10/07 22:01:47  lzheng
  * Adding the function emitImm
  *
@@ -1519,7 +1522,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 
 
 
-bool pdFunction::findInstPoints(const image *owner) {
+bool pdFunction::findInstPoints(image *owner) {
 
   Address adr = addr();
   instruction instr;

@@ -43,6 +43,9 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc-solaris.C,v $
+ * Revision 1.7  1996/10/18 23:52:33  mjrg
+ * Changed argument of findInstPoints
+ *
  * Revision 1.6  1996/10/15 20:11:05  newhall
  * fix to relocating functions with a call instruction immediately following
  * the save instruction, don't instrument functions with retl instruction and
@@ -2001,7 +2004,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 /*
  * Find the instPoints of this function.
  */
-bool pdFunction::findInstPoints(const image *owner) {
+bool pdFunction::findInstPoints(image *owner) {
 
    if (size() == 0) {
      return false;

@@ -1826,7 +1826,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 /*
  * Find the instPoints of this function.
  */
-bool pdFunction::findInstPoints(const image *owner) {
+bool pdFunction::findInstPoints(image *owner) {
 
    if (size() == 0) {
      return false;
