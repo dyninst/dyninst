@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.1 2000/03/21 21:37:54 altinel Exp $
+# $Id: nmake.module.tmpl,v 1.2 2000/03/22 21:27:55 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -25,8 +25,7 @@ IFLAGS       = $(IFLAGS) -I$(TO_CORE)/dyninstAPI/h -I../src
 LIBS		= $(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI.lib \
                   $(TO_CORE)/$(LIBRARY_DEST)/libpdutil.lib
 
-#SYSLIBS		= j:/altinel/cygwin/cygwin-b20/H-i586-cygwin32/lib/libtcl80.a \
-SYSLIBS		= j:/altinel/winnt/lib/tcl82.lib \
+SYSLIBS		= -LIBPATH:$(TCLTK_DIR)\lib tcl82.lib \
 		  imagehlp.lib
 
 all: $(TARGET) $(TEST_TARGET)
