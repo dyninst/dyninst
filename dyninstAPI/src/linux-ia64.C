@@ -67,7 +67,7 @@ dyn_saved_regs *dyn_lwp::getRegisters()
     dyn_saved_regs *result;
 
     // Bad things happen if you use ptrace on a running process.
-    assert(proc_->status_ == stopped);
+    assert(proc_->status() == stopped);
 
     // Allocate memory.
     result = (dyn_saved_regs *)malloc(sizeof(dyn_saved_regs));
@@ -137,7 +137,7 @@ bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
     const long int *memptr;
 
     // Bad things happen if you use ptrace on a running process.
-    assert(proc_->status_ == stopped);
+    assert(proc_->status() == stopped);
 
     memptr = (const long int *)(&regs->pt);
     for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
