@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2004/11/30 21:10:51 tlmiller Exp $
+# $Id: Makefile,v 1.11 2005/02/03 16:23:05 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,7 +17,8 @@ include ../../make.config
 CC			= $(GCC)
 LD			= $(GCC)
 CFLAGS		+= -I. -I../.. -fpic 
-LDFLAGS		+= -shared -ldl -Wl,-init,_start
+LDFLAGS		+=	-shared -ldl -Wl,-init,_start -L$(LIBUNWIND_LIB) \
+				-Wl,--whole-archive -Wl,-Bstatic -lunwind -Wl,-Bdynamic -Wl,--no-whole-archive
 
 ASFLAGS		= 
 
