@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.27 2002/02/18 19:05:43 gurari Exp $
+// $Id: irix.C,v 1.28 2002/02/21 21:47:49 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1854,7 +1854,8 @@ void OS::osDisconnect(void) {
   P_close(fd);
 }
 
-#ifdef SHM_SAMPLING
+#if !defined(BPATCH_LIBRARY)
+
 rawTime64 process::getRawCpuTime_hw(int lwp_id) {
   rawTime64 ret = 0;
   hwperf_cntr_t cnts;
@@ -1904,9 +1905,7 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
 
   return ret;
 }
-
-#endif // SHM_SAMPLING
-
+#endif
 
 //  Here we start the MPI application by fork/exec.
 //
@@ -2067,6 +2066,11 @@ void process::initCpuTimeMgrPlt() {
 			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
 }
 #endif
+
+bool getLWPIDs(vector <unsigned> &LWPids)
+{
+  assert (0 && "Not implemented");
+}
 
 
 

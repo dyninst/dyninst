@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.109 2002/02/15 18:57:07 gurari Exp $
+// $Id: solaris.C,v 1.110 2002/02/21 21:47:49 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -177,7 +177,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	char name[50];	
 	vector<imageUpdate*> compactedUpdates;
 	vector<imageUpdate*> compactedHighmemUpdates;
-	Address guardFlagAddr= getTrampGuardFlagAddr();
+	Address guardFlagAddr= trampGuardAddr();
 	unsigned int lastCompactedUpdateAddress;
 	char *mutatedSharedObjects=0;
 	int mutatedSharedObjectsSize = 0, mutatedSharedObjectsIndex=0;
@@ -1181,8 +1181,8 @@ void process::insertTrapAtEntryPointOfMain()
   if (!f_main) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");
-    extern void cleanUpAndExit(int);
-    cleanUpAndExit(-1); 
+    //extern void cleanUpAndExit(int);
+    //cleanUpAndExit(-1); 
     return;
   }
   assert(f_main);
@@ -2093,19 +2093,17 @@ void Frame::getActiveFrame(process *p)
   }
 }
 
-#if defined(MT_THREAD)
 // It is the caller's responsibility to do a "delete [] (*IDs)"
-bool process::getLWPIDs(int** IDs) {
+bool process::getLWPIDs(vector <unsigned> &LWPids) {
    int nlwp;
    prstatus_t the_psinfo;
    if (-1 !=  ioctl(proc_fd, PIOCSTATUS, &the_psinfo)) {
      nlwp =  the_psinfo.pr_nlwp ;
      id_t *id_p = new id_t [nlwp+1] ;
      if (-1 != ioctl(proc_fd, PIOCLWPIDS, id_p)) {
-       *IDs = new int [nlwp+1];
        unsigned i=0; 
        do { 
-	 (*IDs)[i] = (int) id_p[i]; 
+	 LWPids.push_back(id_p[i]);
        } while (id_p[i++]);
        delete [] id_p;
        return true ;
@@ -2131,38 +2129,14 @@ bool process::getLWPFrame(int lwp_id, Address* fp, Address *pc) {
   return false ;
 }
 
-Frame::Frame(pdThread* thr) {
-  typedef struct {
-    long    sp;
-    long    pc;
-    long    l1; //fsr
-    long    l2; //fpu_en;
-    long    l3; //g2, g3, g4
-    long    l4; 
-    long    l5; 
-  } resumestate_t;
 
-  fp_ = pc_ = 0 ;
-  uppermost_ = true ;
-  lwp_id_ = 0 ;
-  thread_ = thr ;
-
-  process* proc = thr->get_proc();
-  resumestate_t rs ;
-  if (thr->get_start_pc() &&
-      proc->readDataSpace((caddr_t) thr->get_resumestate_p(),
-                    sizeof(resumestate_t), (caddr_t) &rs, false)) {
-    fp_ = rs.sp;
-    pc_ = rs.pc;
-  } 
-}
-#endif
-
-#ifdef sparc_sun_solaris2_4
-
-Frame Frame::getCallerFrameNormal(process *p) const
+Frame Frame::getCallerFrame(process *p) const
 {
   prgregset_t regs;
+  Frame ret;
+  ret.lwp_id_ = lwp_id_;
+  ret.thread_ = thread_;
+
 #ifdef PURE_BUILD
   // explicitly initialize "regs" struct (to pacify Purify)
   // (at least initialize those components which we actually use)
@@ -2174,12 +2148,32 @@ Frame Frame::getCallerFrameNormal(process *p) const
     if (func) {
       if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 	int proc_fd = p->getProcFileDescriptor();
-	if (ioctl(proc_fd, PIOCGREG, &regs) != -1) {
-	  Frame ret;
-	  ret.pc_ = regs[R_O7] + 8;
-	  ret.fp_ = fp_; // frame pointer unchanged
-	  return ret;
-	}    
+	if (lwp_id_) { // We have a LWP and are prepared to use it
+	  	  int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id_));
+
+	  if (lwp_fd == -1) {
+	    cerr << "process::getCallerFrameLWP, cannot get lwp_fd" << endl ;
+	    return Frame();
+	  }
+
+  	  if (ioctl(lwp_fd, PIOCGREG, &regs) != -1) {
+	    ret.pc_ = regs[R_O7] + 8;
+	    ret.fp_ = fp_; // frame pointer unchanged
+	    close(lwp_fd);
+	    return ret;
+	  }
+	  close(lwp_fd);
+	}
+	else if (thread_) 
+	  cerr << "Not implemented yet" << endl;
+	else if (!lwp_id_) {
+	  if (ioctl(proc_fd, PIOCGREG, &regs) != -1) {
+	    Frame ret;
+	    ret.pc_ = regs[R_O7] + 8;
+	    ret.fp_ = fp_; // frame pointer unchanged
+	    return ret;
+	  }    
+	}
       }
     }
   }
@@ -2210,77 +2204,6 @@ Frame Frame::getCallerFrameNormal(process *p) const
   return Frame(); // zero frame
 }
 
-Frame Frame::getCallerFrameThread(process *p) const
-{
-  Frame ret;
-  ret.lwp_id_ = lwp_id_;
-  ret.thread_ = NULL ;
-
-  // For kernel level threads
-  if (!thread_ && lwp_id_) {
-    prgregset_t regs;
-
-    if (uppermost_) {
-      function_base *func = p->findFuncByAddr(pc_);
-      if (func) {
-        if (func->hasNoStackFrame()) {
-	  int proc_fd = p->getProcFileDescriptor();
-	  int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id_));
-
-	  if (lwp_fd == -1) {
-	    cerr << "process::getCallerFrameLWP, cannot get lwp_fd" << endl ;
-	    return Frame();
-	  }
-
-  	  if (ioctl(lwp_fd, PIOCGREG, &regs) != -1) {
-	    ret.pc_ = regs[R_O7] + 8;
-	    ret.fp_ = fp_; // frame pointer unchanged
-	    close(lwp_fd);
-	    return ret;
-	  }
-	  close(lwp_fd);
-	}
-      }
-    }
-  }
-
-
-  // For the sparc, register %i7 is the return address - 8 and the fp is
-  // register %i6. These registers can be located in %fp+14*5 and
-  // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
-  // we bring both together (i.e. 8 bytes of memory starting at %fp+14*4
-  // or %fp+56).
-  // These values are copied to the stack when the application is paused,
-  // so we are assuming that the application is paused at this point
-
-  struct {
-    Address fp;
-    Address rtn;
-  } addrs;
-
-  if (p->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int)*2, 
-		    (caddr_t)&addrs, true))
-  {
-    ret.fp_ = addrs.fp;
-    ret.pc_ = addrs.rtn + 8;
-  }
-
-/*
-  PIOCGWIN
-       This  operation  applies  only  to SPARC machines.  p is a
-       pointer to a gwindows_t structure, defined in <sys/reg.h>,
-       that  is  filled with the contents of those SPARC register
-       windows that could not be stored on the stack when the lwp
-       stopped.   Conditions under which register windows are not
-       stored on the stack  are:  the  stack  pointer  refers  to
-       nonexistent process memory or the stack pointer is improp-
-       erly aligned.  If  the  specific  or  chosen  lwp  is  not
-       stopped, the operation returns undefined values.
-*/
-
-  return ret;
-}
-#endif
 
 #ifdef SHM_SAMPLING
 rawTime64 process::getRawCpuTime_hw(int lwp_id) {
@@ -2562,41 +2485,6 @@ bool process::restoreRegisters(void *buffer) {
    return true;
 }
 
-#ifdef i386_unknown_solaris2_5
-
-Frame Frame::getCallerFrameNormal(process *p) const
-{
-  //
-  // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
-  // and the saved return address is in EBP-4.
-  //
-  struct {
-    Address fp;
-    Address rtn;
-  } addrs;
-
-  if (p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
-		       (caddr_t)&addrs, true)) 
-  {
-    Frame ret;
-    ret.fp_ = addrs.fp;
-    ret.pc_ = addrs.rtn;
-    return ret;
-  }
-  
-  return Frame(); // zero frame
-}
-
-#endif
-
-#ifdef i386_unknown_solaris2_5
-// ******** TODO **********
-bool process::needToAddALeafFrame(Frame , Address &) {
-  return false;
-}
-
-#else
-
 // needToAddALeafFrame: returns true if the between the current frame 
 // and the next frame there is a leaf function (this occurs when the 
 // current frame is the signal handler and the function that was executing
@@ -2633,7 +2521,6 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
    }
    return false;
 }
-#endif
 
 string process::tryToFindExecutable(const string &iprogpath, int pid) {
    // returns empty string on failure.
@@ -3004,196 +2891,6 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     target = 0;
     return false;  
 }
-
-#if defined(MT_THREAD) 
-pdThread *process::createThread(
-  int tid, 
-  unsigned pos, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p,  
-  bool bySelf)
-{
-  pdThread *thr;
-
-  // creating new thread
-  thr = new pdThread(this, tid, pos);
-  threads += thr;
-
-  unsigned pd_pos;
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    if (getTable().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-	// we should be able to add more threads! - naim
-	assert(0);
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0);
-    }
-  }
-  thr->update_pd_pos(pd_pos);
-  thr->update_resumestate_p(resumestate_p);
-  function_base *pdf ;
-
-  if (startpc) {
-    thr->update_stack_addr(stackbase) ;
-    thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
-    thr->update_start_func(pdf) ;
-  } else {
-    pdf = findOneFunction("main");
-    assert(pdf);
-    //thr->update_start_pc(pdf->addr()) ;
-    thr->update_start_pc(0);
-    thr->update_start_func(pdf) ;
-
-    prstatus_t theStatus;
-    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
-      thr->update_stack_addr((stackbase=(unsigned)theStatus.pr_stkbase));
-    } else {
-      assert(0);
-    }
-  }
-
-  getTable().addThread(thr);
-
-  //  
-  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-	  pdf->prettyName().string_of(), pd_pos,pos,tid,stackbase,resumestate_p, bySelf?"Self":"Parent");
-  logLine(errorLine);
-
-  return(thr);
-}
-
-//
-// CALLED for mainThread
-//
-void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource *rid) {
-  unsigned pd_pos;
-  assert(thr);
-  thr->update_tid(tid, pos);
-  assert(threadMap);
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    if (getTable().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-        // we should be able to add more threads! - naim
-        assert(0);
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0);
-    }
-  }
-  thr->update_pd_pos(pd_pos);
-  thr->update_rid(rid);
-  thr->update_resumestate_p(resumestate_p);
-  function_base *f_main = findOneFunction("main");
-  assert(f_main);
-
-  //unsigned addr = f_main->addr();
-  //thr->update_start_pc(addr) ;
-  thr->update_start_pc(0) ;
-  thr->update_start_func(f_main) ;
-
-  prstatus_t theStatus;
-  if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
-    thr->update_stack_addr((unsigned)theStatus.pr_stkbase);
-  } else {
-    assert(0);
-  }
-
-  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x\n",pd_pos,pos,tid,theStatus.pr_stkbase, resumestate_p);
-  logLine(errorLine);
-}
-
-//
-// CALLED from Attach
-//
-void process::updateThread(
-  pdThread *thr, 
-  int tid, 
-  unsigned pos, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p) 
-{
-  unsigned pd_pos;
-  assert(thr);
-  //  
-  sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
-	 tid, pos, stackbase, startpc);
-  logLine(errorLine);
-
-  thr->update_tid(tid, pos);
-  assert(threadMap);
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    if (getTable().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-	// we should be able to add more threads! - naim
-	assert(0);
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0);
-    }
-  }
-
-  thr->update_pd_pos(pd_pos);
-  thr->update_resumestate_p(resumestate_p);
-
-  function_base *pdf;
-
-  if(startpc) {
-    thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
-    thr->update_start_func(pdf) ;
-    thr->update_stack_addr(stackbase) ;
-  } else {
-    pdf = findOneFunction("main");
-    assert(pdf);
-    thr->update_start_pc(startpc) ;
-    //thr->update_start_pc(pdf->addr()) ;
-    thr->update_start_func(pdf) ;
-
-    prstatus_t theStatus;
-    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
-      thr->update_stack_addr((stackbase=(unsigned)theStatus.pr_stkbase));
-    } else {
-      assert(0);
-    }
-  } //else
-
-  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-    pdf->prettyName().string_of(), pd_pos, pos, tid, stackbase, resumestate_p);
-  logLine(errorLine);
-}
-
-void process::deleteThread(int tid)
-{
-  pdThread *thr=NULL;
-  unsigned i;
-
-  for (i=0;i<threads.size();i++) {
-    if (threads[i]->get_tid() == tid) {
-      thr = threads[i];
-      break;
-    }   
-  }
-  if (thr != NULL) {
-    getTable().deleteThread(thr);
-    unsigned theSize = threads.size();
-    threads[i] = threads[theSize-1];
-    threads.resize(theSize-1);
-    delete thr;    
-    sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",tid,threads.size());
-    logLine(errorLine);
-  }
-}
-#endif
 
 #ifndef BPATCH_LIBRARY
 void process::initCpuTimeMgrPlt() {

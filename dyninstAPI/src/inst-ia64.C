@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.2 2002/02/21 19:15:19 gurari Exp $
+ * $Id: inst-ia64.C,v 1.3 2002/02/21 21:47:46 bernat Exp $
  */
 
 #include <iomanip.h>
@@ -1721,21 +1721,7 @@ trampTemplate *installBaseTramp( const instPoint *location,
   if( ! trampRecursiveDesired )
     {
       /* prepare guard flag memory, if needed */
-      Address guardFlagAddress = proc->getTrampGuardFlagAddr();
-      if( guardFlagAddress == 0 )
-	{
-	  int initial_value = 1;
-
-	  guardFlagAddress = inferiorMalloc( proc, sizeof( int ), dataHeap );
-	  // cout << "installBaseTramp(): flag address = 0x"
-	  //      << setw( 8 ) << setfill( '0' ) << hex << guardFlagAddress << dec << endl;
-
-	  /* Initialize the new value */
-	  proc->writeDataSpace( ( void * )guardFlagAddress, sizeof( int ), & initial_value );
-
-	  proc->setTrampGuardFlagAddr( guardFlagAddress );
-	}
-
+      Address guardFlagAddress = proc->trampGuardAddr();
       NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
       generate_guard_code( code, * temp_ret, baseAddr, guardFlagAddress );
     }

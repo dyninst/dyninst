@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.90 2002/02/15 18:57:06 gurari Exp $
+// $Id: aix.C,v 1.91 2002/02/21 21:47:45 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -82,12 +82,6 @@
 
 #ifdef USES_PMAPI
 #include <pmapi.h>
-#endif
-
-#ifdef MT_THREAD
-#include "dyninstAPI/src/pdThread.h"
-
-#include <sys/pthdebug.h>
 #endif
 
 /* Getprocs() should be defined in procinfo.h, but it's not */
@@ -200,7 +194,7 @@ bool process::needToAddALeafFrame(Frame, Address &){
 // The behavior is identical unless we're in a leaf node where
 // the LR is in a register, then it's different.
 
-Frame Frame::getCallerFrameNormal(process *p) const
+Frame Frame::getCallerFrame(process *p) const
 {
   struct {
     unsigned oldFp;
@@ -217,10 +211,8 @@ Frame Frame::getCallerFrameNormal(process *p) const
   pd_Function *func = p->findFuncByAddr(pc_);
   bool isLeaf = false;
   bool noFrame = false;
-#ifdef MT_THREAD
   ret.lwp_id_ = lwp_id_;
   ret.thread_ = thread_;
-#endif
   if (func && uppermost_) {
     isLeaf = func->makesNoCalls();
     noFrame = func->hasNoStackFrame();
@@ -248,10 +240,9 @@ Frame Frame::getCallerFrameNormal(process *p) const
     // Thread: (not implemented) if bound to a kernel thread, go to LWP
     //    if not, get it from the pthread debug library
     // LWP: call ptrace(lwp)
-#ifdef MT_THREAD
     struct ptsprs spr_contents;
     if (lwp_id_) {
-      if (ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents,
+      if (P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents,
 		 0, 0) == -1) {
 	perror("Failed to read SPR data in getCallerFrameLWP");
 	fprintf(stderr, "errno = %d\n", errno);
@@ -263,11 +254,8 @@ Frame Frame::getCallerFrameNormal(process *p) const
 	cerr << "NOT IMPLEMENTED YET" << endl;
       }
     else { // normal
-      ret.pc_ = ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0);
+      ret.pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (void *)LR, 0, 0);
     }
-#else
-    ret.pc_ = ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0);
-#endif
   }
   else  // Not a leaf function, grab the LR from the stack
     ret.pc_ = linkArea.savedLR;
@@ -294,10 +282,6 @@ Frame Frame::getCallerFrameNormal(process *p) const
   return ret;
 }
 
-Frame Frame::getCallerFrameThread(process *p) const
-{
-  return getCallerFrameNormal(p);
-}
 
 void decodeInstr(unsigned instr_raw) {
   // Decode an instruction. Fun, eh?
@@ -605,11 +589,6 @@ bool process::changePC(Address loc, const void *) {
    // Returns -1 on failure; else, returns the 'data' parameter
    // Errors:
    //    EIO: 3d param not a valid register; must be 0-31 or 128-136
-
-#ifdef INFERIOR_RPC_DEBUG
-   cerr << "welcome to changePC with loc=" << (void *)loc << endl;
-#endif
-
 // gdb hack: execute 1 dummy insn
 #ifdef INFERIOR_RPC_DEBUG
    cerr << "changePC: about to exec dummy trap" << endl;
@@ -639,7 +618,6 @@ bool process::changePC(Address loc, const void *) {
    return true;
 }
 
-#ifdef MT_THREAD
 bool process::changePC(Address loc, const void *ignored, int lwp_id) {
   // Write the new PC to a _specific_ running kernel thread
   // Slightly more difficult -- you can't write a single register
@@ -659,6 +637,7 @@ bool process::changePC(Address loc, const void *ignored, int lwp_id) {
     perror("changePC: PTT_READ_SPRS failed");
     return false;
   }
+  fprintf(stderr, "PC at 0x%x, changing to 0x%x\n", spr_contents.pt_iar, loc);
   spr_contents.pt_iar = loc;
   
   // Write the registers back in
@@ -674,7 +653,6 @@ bool process::changePC(Address loc, const void *ignored, int lwp_id) {
   
   return true;
 }
-#endif
 
 bool process::restoreRegisters(void *buffer) {
    // assumes process is stopped (ptrace requires it)
@@ -753,29 +731,6 @@ bool process::restoreRegisters(void *buffer) {
    }
 
    return true; // success
-}
-
-
-bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
-   // TODO: write me!
-   instruction *insn = (instruction *)insnPtr;
-   Address baseInstruc = baseBytes / sizeof(instruction);
-
-//   extern void generateBreakPoint(instruction &);
-//   generateBreakPoint(insn[baseInstruc++]);
-//   extern void generateIllegalInsn(instruction &);
-//   generateIllegalInsn(insn[baseInstruc++]); 
-
-   // MT_AIX: since we don't have a base-trampoline here, we need to save
-   // registers before we can continue - naim
-   instruction *tmp_insn = (instruction *) (&insn[baseInstruc]);
-   extern void saveAllRegistersThatNeedsSaving(instruction *, Address &);
-   saveAllRegistersThatNeedsSaving(tmp_insn,baseInstruc);
-
-   // Convert back:
-   baseBytes = baseInstruc * sizeof(instruction);
-
-   return true;
 }
 
 bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
@@ -1156,7 +1111,10 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
   while (amount > 1024) {
     ptraceOps++;
     if (!ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
-			     1024, const_cast<void*>(inSelf))) return false;
+				     1024, const_cast<void*>(inSelf))) {
+      perror("Failed write");
+      return false;
+    }
     amount -= 1024;
     inTraced = (char *)inTraced + 1024;
     inSelf = (char *)const_cast<void*>(inSelf) + 1024;
@@ -1164,9 +1122,10 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 
   ptraceOps++;
   if (!ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
-				   amount, const_cast<void*>(inSelf)))
+				   amount, const_cast<void*>(inSelf))) {
+    perror("Failed write2");
     return false;
-
+  }
   return true;
 }
 
@@ -1780,8 +1739,7 @@ pdyn_search_cpi(pm_info_t *myinfo, int evs[], int mappings[])
 
 #endif
 
-
-#ifdef SHM_SAMPLING
+#if !defined(BPATCH_LIBRARY)
 rawTime64 process::getRawCpuTime_hw(int lwp_id) {
 #ifdef USES_PMAPI
   // Hardware method, using the PMAPI
@@ -1948,8 +1906,8 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
   return result;
 
 }
-#endif
 
+#endif
 
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address branch_range = 0x01fffffc;
@@ -2033,509 +1991,50 @@ void process::initCpuTimeMgrPlt() {
 
 bool process::getCurrPCVector(vector <Address> &currPCs)
 {
-  // get the current PC. Ptrace call PTT_READ_SPRS, which requires a
-  // kernel thread ID. Sheesh.
+  vector<unsigned> lwpIDs;
+  if (!getLWPIDs(lwpIDs)) return false;
 
-  // hey. Should we move the getPC part to somewhere else?
+  // This handles running threads, but what about paused ones in the
+  // multithread case?
   
-  // Get the list of kernel threads
-  struct procsinfo pb;
-  int targpid = pid;
-
-  if ( getprocs (&pb, sizeof(struct procsinfo), 0, 0, &targpid, 1) != 1 ) {
-    perror("getCurrPCVector: unable to get process status");
-    return false;
-  }
-
-  int num_thrds = pb.pi_thcount;
-
-  // Get kernel thread(s)
-
-  struct thrdsinfo thrd_buf[pb.pi_thcount];
-  getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
-	   0, // Start at first thread
-	   num_thrds);
-
   // Now that we have the correct thread ID, ptrace the sucker
   struct ptsprs spr_contents;
-  for ( int i = 0; i < num_thrds; i++ )
+  for (unsigned i = 0; i < lwpIDs.size(); i++ )
     {
-      int kernel_thread = thrd_buf[i].ti_tid;
-      if (ptrace(PTT_READ_SPRS, kernel_thread, (int *)&spr_contents,
+      if (ptrace(PTT_READ_SPRS, lwpIDs[i], (int *)&spr_contents,
 		 0, 0) != -1) {
-	/*
-	fprintf(stderr, "Added kernel thread %d, PC %x\n", kernel_thread, spr_contents.pt_iar);
-	*/
 	currPCs.push_back((Address) spr_contents.pt_iar);
       }
     }  
   return true;
-}  
-
-#ifdef MT_THREAD
-
-/* Necessary functions:
-  bool getLWPIDs(int **IDs_p); //caller should do a "delete [] *IDs_p"
-  bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
-
-  // Notify daemon of threads
-  pdThread *createThread(
-    int tid, 
-    unsigned pos, 
-    unsigned stack_addr, 
-    unsigned start_pc, 
-    void* resumestate_p, 
-    bool);
-  void updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p,
-                    resource* rid) ;
-  void updateThread(
-    pdThread *thr, 
-    int tid, 
-    unsigned pos, 
-    unsigned stack_addr, 
-    unsigned start_pc, 
-    void* resumestate_p);
-  void deleteThread(int tid);
-
-*/
-
-pdThread *process::createThread(
-  int tid, 
-  unsigned pos, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p,  
-  bool bySelf)
-{
-  pdThread *thr;
-
-  // creating new thread
-  thr = new pdThread(this, tid, pos);
-  threads += thr;
-
-  unsigned pd_pos;
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    if (getTable().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-	// we should be able to add more threads! - naim
-	assert(0 && "Could not add thread");
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0 && "Could not create more space for threads");
-    }
-  }
-  thr->update_pd_pos(pd_pos);
-  thr->update_resumestate_p(resumestate_p);
-  function_base *pdf ;
-
-  if (startpc) {
-    /* AIX: "start"pc is actually current pc. We could also grab and return
-       the initial function (__pi_func) */
-    thr->update_stack_addr(stackbase) ;
-    thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
-    thr->update_start_func(pdf) ;
-  } else {
-    cerr << "createThread: zero startPC found!" << endl;
-    pdf = findOneFunction("main");
-    assert(pdf);
-    //thr->update_start_pc(pdf->addr()) ;
-    thr->update_start_pc(0);
-    thr->update_start_func(pdf);
-    thr->update_stack_addr(stackbase);
-  }
-
-  getTable().addThread(thr);
-
-  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-	  pdf->prettyName().string_of(), pd_pos,pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
-  logLine(errorLine);
-
-  return(thr);
 }
-
-//
-// CALLED for mainThread
-//
-void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource *rid) {
-  unsigned pd_pos;
-  assert(thr);
-  thr->update_tid(tid, pos);
-  assert(threadMap);
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    if (getTable().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-        // we should be able to add more threads! - naim
-        assert(0 && "Could not add thread!");
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0 && "Could not add space for new thread");
-    }
-  }
-  thr->update_pd_pos(pd_pos);
-  thr->update_rid(rid);
-  thr->update_resumestate_p(resumestate_p);
-  function_base *f_main = findOneFunction("main");
-  assert(f_main);
-
-  //unsigned addr = f_main->addr();
-  //thr->update_start_pc(addr) ;
-  thr->update_start_pc(0) ;
-  thr->update_start_func(f_main) ;
-
-  /* Need stack. Got pthread debug library. Any questions? */
-  /* Yeah... how do we get a stack base addr? :) */
-
-  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pd_pos=%u, pos=%u, tid=%d, resumestate=0x%x\n",pd_pos,pos,tid, (unsigned) resumestate_p);
-  logLine(errorLine);
-}
-
-//
-// CALLED from Attach
-//
-void process::updateThread(
-  pdThread *thr, 
-  int tid, 
-  unsigned pos, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p) 
-{
-  unsigned pd_pos;
-  assert(thr);
-  //  
-  sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
-	 tid, pos, stackbase, startpc);
-  logLine(errorLine);
-
-  thr->update_tid(tid, pos);
-  assert(threadMap);
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    if (getTable().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-	// we should be able to add more threads! - naim
-	assert(0);
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0);
-    }
-  }
-
-  thr->update_pd_pos(pd_pos);
-  thr->update_resumestate_p(resumestate_p);
-
-  function_base *pdf;
-
-  if(startpc) {
-    thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
-    thr->update_start_func(pdf) ;
-    thr->update_stack_addr(stackbase) ;
-  } else {
-    pdf = findOneFunction("main");
-    assert(pdf);
-    thr->update_start_pc(startpc) ;
-    //thr->update_start_pc(pdf->addr()) ;
-    thr->update_start_func(pdf);
-    thr->update_stack_addr(stackbase);
-  } //else
-
-  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-    pdf->prettyName().string_of(), pd_pos, pos, tid, stackbase, (unsigned) resumestate_p);
-  logLine(errorLine);
-}
-
-void process::deleteThread(int tid)
-{
-  pdThread *thr=NULL;
-  unsigned i;
-
-  for (i=0;i<threads.size();i++) {
-    if (threads[i]->get_tid() == tid) {
-      thr = threads[i];
-      break;
-    }   
-  }
-  if (thr != NULL) {
-    getTable().deleteThread(thr);
-    unsigned theSize = threads.size();
-    threads[i] = threads[theSize-1];
-    threads.resize(theSize-1);
-    delete thr;    
-    sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",tid,threads.size());
-    logLine(errorLine);
-  }
-}
-
 
 // It is the caller's responsibility to do a "delete [] (*IDs)"
-bool process::getLWPIDs(int** IDs) {
+bool process::getLWPIDs(vector <unsigned> &LWPids) 
+{
   // Since we only care about thread IDs, this is actually pretty easy
-    // Get the list of kernel threads
+  // Get the list of kernel threads
   struct procsinfo pb;
   int targpid = pid;
-
+  
   if ( getprocs (&pb, sizeof(struct procsinfo), 0, 0, &targpid, 1) != 1 ) {
     perror("checkAllThreadsForBreakpoint: unable to get process info"); 
     return false;
   }
   int num_thrds = pb.pi_thcount;
-
+  
   // Get kernel thread(s)
-
+  
   struct thrdsinfo thrd_buf[pb.pi_thcount];
   getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
 	   0, // Start at first thread
 	   num_thrds);
-  *IDs = new int [num_thrds+1];
   for (int i = 0; i < num_thrds; i++) {
-    // Note: it's possible that we're returning a thread in kernel mode
-    (*IDs)[i] = thrd_buf[i].ti_tid;
+    // Note: it's possible that we're returning a thread in kernel mode, i.e.
+    // unptraceable. 
+    LWPids.push_back(thrd_buf[i].ti_tid);
     fprintf(stderr, "Added thread %ld, state %ld\n", thrd_buf[i].ti_tid, thrd_buf[i].ti_state);
   }
-  (*IDs)[num_thrds] = 0;
   return true;
 }
 
-bool process::getLWPFrame(int lwp_id, Address* fp, Address* pc) {
-  // Doesn't this seem familiar?
-
-  *pc = 0;
-  *fp = 0;
-
-  fprintf(stderr, "Getting LWP frame data for thread %d\n", lwp_id);
-
-  struct ptsprs spr_contents;
-  if (ptrace(PTT_READ_SPRS, lwp_id, (int *)&spr_contents,
-	     0, 0) == -1) {
-
-    perror("Failed to read SPR data in getLWPFrame");
-    fprintf(stderr, "errno = %d\n", errno);
-    return false;
-  }
-  *pc = spr_contents.pt_iar;
-  int gpr_contents[32];
-  if (ptrace(PTT_READ_GPRS, lwp_id, (int *)gpr_contents, 0, 0) == -1) {
-    perror("Failed to read GPR data in getLWPFrame");
-    return false;
-  }
-  *fp = gpr_contents[1];
-
-  Address linkarea;
-  readDataSpace((void *)*fp, sizeof(linkarea), &linkarea, false);
-  fprintf(stderr, "getLWPFrame: Returning pc 0x%x, sp 0x%x, and fp 0x%x\n",
-	  (unsigned) *pc, (unsigned) *fp, (unsigned) linkarea);
-  *fp = linkarea;
-
-  return true;
-}
-
-/* 
- * Get the stack frame, given a (p)thread ID 
- */
-
-Frame::Frame(pdThread* thr) {
-  pthdb_context_t context;
-
-  //static int init = 0;
-  pthdb_session_t *session_ptr;
-  //static pthdb_callbacks_t callbacks;
-  unsigned ret;
-
-  process *proc = thr->get_proc();
-  // process object holds a pointer to the appropriate thread session
-  session_ptr = proc->get_pthdb_session();
-
-  fp_ = pc_ = 0 ;
-  uppermost_ = true ;
-  lwp_id_ = 0 ;
-  thread_ = thr ;
-
-  fprintf(stderr, "pthread debug session update\n");
-  ret = pthdb_session_update(*session_ptr);
-  if (ret) fprintf(stderr, "update: returned %d\n", ret);
-
-  pthdb_pthread_t pthreadp;
-  pthread_t pthread = (unsigned) -1;
-
-  ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_FIRST);
-  if (ret) fprintf(stderr, "Getting first pthread data structure failed: %d\n", ret);
-
-  ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-  if (ret) { 
-    fprintf(stderr, "pthread translation failed: %d\n", ret);
-  }
- 
-  while (pthread != (unsigned) thread_->get_tid()) {
-    ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
-    if (ret) fprintf(stderr, "next pthread: returned %d\n", ret);
-    ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-    if (ret) fprintf(stderr, "check pthread: returned %d\n", ret);
-  }
-  ret = pthdb_pthread_context(*session_ptr,
-			      pthreadp,
-			      &context);
-  if (!ret)
-    {
-      // Succeeded in call
-      fprintf(stderr, "Returned context data: instruction pointer = 0x%llx, stack pointer = 0x%llx, link register = 0x%llx\n",
-	      context.iar, context.gpr[1], context.lr);
-      pc_ = (Address) context.iar;
-      fp_ = (Address) context.gpr[1];
-      
-      
-    }
-  else
-    {
-      // Thread is currently scheduled. Find out to which kernel lwp,
-      // and pull the data from there
-      int lwp; 
-      ret = pthdb_pthread_tid(*session_ptr, pthreadp, &lwp);
-      if (ret) fprintf(stderr, "Translating pthread to lwp failed: %d\n", ret);
-      fprintf(stderr, "Getting kernel thread data for thread %d, lwp %d\n",
-	      thread_->get_tid(), lwp); 
-      proc->getLWPFrame(lwp, &fp_, &pc_);
-      
-    }
-}
-
-int PTHDB_read_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len)
-{
-  // We hide the process pointer in the user data. Heh.
-  process *p = (process *)user;
-  /*
-  fprintf(stderr, "read_data(0x%x, 0x%x, 0x%x, %d)\n",
-	  (int) user, (int) buf, (int) addr, (int) len);
-  */
-  if (!p->readDataSpace((void *)addr, len, buf, false))
-    fprintf(stderr, "Error reading data space\n");
-  return 0;
-}
-
-int PTHDB_write_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len)
-{
-  // We hide the process pointer in the user data. Heh.
-  process *p = (process *)user;
-  /*
-  fprintf(stderr, "write_data(0x%x, 0x%x, 0x%x, %d)\n",
-	  (int) user, (int) buf, (int) addr, (int) len);
-  */
-  if (!p->writeDataSpace((void *)addr, len, buf))
-    fprintf(stderr, "Error writing data space\n");
-  return 0;
-}
-
-int PTHDB_read_regs(pthdb_user_t /*user*/,
-		    tid_t /*tid*/,
-		    unsigned long long /*flags*/,
-		    pthdb_context_t */*context*/)
-{
-  fprintf(stderr, "UNWRITTEN\n");
-  return 1;
-}
-
-int PTHDB_write_regs(pthdb_user_t /*user*/,
-		     tid_t /*tid*/,
-		     unsigned long long /*flags*/,
-		     pthdb_context_t */*context*/)
-{
-  fprintf(stderr, "UNWRITTEN\n");
-  return 1;
-}
-  
-
-int PTHDB_alloc(pthdb_user_t /*user*/,
-		size_t len,
-		void **bufp)
-{
-  *bufp = malloc(len);
-  /*
-  fprintf(stderr, "alloc(0x%x, %d), returning 0x%x\n",
-	  (int) user, (int) len, (int) *bufp);
-  */
-  return 0;
-}
-
-int PTHDB_dealloc(pthdb_user_t /*user*/,
-		  void *buf)
-{
-  /*  fprintf(stderr, "dealloc(0x%x, 0x%x)\n",
-	  (int) user, (int) buf);
-  */
-  free(buf);
-  return 0;
-}
-
-int PTHDB_realloc(pthdb_user_t user,
-		  void *buf,
-		  size_t len,
-		  void **bufp)
-{
-  /*
-  fprintf(stderr, "realloc(0x%x, 0x%x, %d)\n",
-	  (int) user, (int) buf, (int) len);
-  */
-  PTHDB_dealloc(user, buf);
-  PTHDB_alloc(user, len, bufp);
-  return 0;
-}
-
-int PTHDB_print(pthdb_user_t user, char *str)
-{
-  fprintf(stderr, "print(0x%x, %s)\n",
-	  (int) user, str);
-  return 0;
-}
-
-int process::findLWPbyPthread(int tid)
-{
-  pthdb_session_t *session_ptr;
-  tid_t lwp = -1;
-  pthdb_pthread_t pthreadp;
-  session_ptr = get_pthdb_session();
-  fprintf(stderr, "findLWPbyPthread, looking for kernel thread for pthread %d\n", tid);
-  int ret;
-  ret = pthdb_session_update(*session_ptr);
-  if (ret) {
-    fprintf(stderr, "update: returned %d\n", ret);
-    return -1;
-  }
-  pthread_t pthread = 0;
-    
-  ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_FIRST);
-  if (ret) {
-    fprintf(stderr, "first pthread returned %d\n", ret);
-    return -1;
-  }
-  ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-  if (ret) { 
-    fprintf(stderr, "pthread translation failed: %d\n", ret);
-    return -1;
-  }
-    
-  while (pthread != (unsigned) tid) {
-    ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
-    if (ret) fprintf(stderr, "next pthread: returned %d\n", ret);
-    ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-    if (ret) fprintf(stderr, "check pthread: returned %d\n", ret);
-  }
-  fprintf(stderr, "Got pthread value of %d\n", pthread);
-    
-  ret = pthdb_pthread_tid(*session_ptr, pthreadp, &lwp);
-  if (ret) fprintf(stderr, "pthread_tid returned %d\n", ret);
-  fprintf(stderr, "find LWP by pthread: returning %d\n", lwp);
-  return lwp;
-}
-#endif

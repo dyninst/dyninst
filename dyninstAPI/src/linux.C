@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.60 2002/02/18 19:05:44 gurari Exp $
+// $Id: linux.C,v 1.61 2002/02/21 21:47:49 bernat Exp $
 
 #include <fstream.h>
 
@@ -1622,7 +1622,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 }
 */
 
-Frame Frame::getCallerFrameNormal(process *p) const
+Frame Frame::getCallerFrame(process *p) const
 {
   //
   // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
@@ -1644,9 +1644,6 @@ Frame Frame::getCallerFrameNormal(process *p) const
 
   return Frame(); // zero frame
 }
-
-// Currently no linux multi-threaded
-Frame Frame::getCallerFrameThread(process *p) const { return Frame(); }
 
 // You know, /proc/*/exe is a perfectly good link (directly to the inode) to
 // the executable file, who cares where the executable really is, we can open
@@ -1754,7 +1751,7 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 }
 */
 
-#ifdef SHM_SAMPLING
+#if !defined(BPATCH_LIBRARY)
 rawTime64 process::getRawCpuTime_hw(int /*lwp_id*/) {
   rawTime64 val = 0;
 #ifdef HRTIME
@@ -1809,8 +1806,7 @@ rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) /* const */ {
 
   return now;
 }
-
-#endif // SHM_SAMPLING
+#endif
 
 bool process::loopUntilStopped() {
      int flags = WUNTRACED | WNOHANG;
@@ -1871,7 +1867,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	unsigned int errFlag=0;
 	char name[50];
 	vector<imageUpdate*> compactedHighmemUpdates;
-	Address guardFlagAddr= getTrampGuardFlagAddr();
+	Address guardFlagAddr= trampGuardAddr();
 	unsigned int lastCompactedUpdateAddress;
 	char *mutatedSharedObjects=0;
 	int mutatedSharedObjectsSize = 0, mutatedSharedObjectsIndex=0;
@@ -2485,3 +2481,7 @@ void inferiorMallocAlign(unsigned &size)
 }
 #endif
 
+bool getLWPIDs(vector <unsigned> &LWPids)
+{
+  assert (0 && "Not implemented");
+}

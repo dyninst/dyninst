@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.15 2001/11/28 05:44:11 gaburici Exp $
+ * $Id: inst-power.h,v 1.16 2002/02/21 21:47:47 bernat Exp $
  */
 
 #ifndef INST_POWER_H
@@ -49,7 +49,6 @@
 
 
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/as-power.h"
 
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
  *   to patch up.   This must be invalid instructions (any instruction with
@@ -66,19 +65,49 @@ extern trampTemplate conservativeTemplate;
 extern trampTemplate noArgsTemplate;
 extern trampTemplate withArgsTemplate;
 
+#define GPRSIZE               4
+#define FPRSIZE               8
+
 #define REG_SP		      1		
 #define REG_TOC               2   /* TOC anchor                            */
-#define REG_MT               12   /* register saved to keep the address of */
-                                  /* the current vector of counter/timers  */
-                                  /* for each thread.                      */
-#define NUM_INSN_MT_PREAMBLE 22   /* number of instructions required for   */
+#define REG_GUARD_ADDR        5   /* Arbitrary                             */
+#define REG_GUARD_VALUE       6
+#define REG_GUARD_OFFSET      7
+#define REG_MT_POS           11   /* Hashed thread ID                      */
+#define REG_MT_BASE          12   /* Base addr of the vector of counter/timers */
+#define NUM_INSN_MT_PREAMBLE 26   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
 
-#ifdef BPATCH_LIBRARY
+#define STACKSKIP 220
+#define GPRSAVE   (14*4)
+#define FPRSAVE   (14*8)
+#define SPRSAVE   (6*4+8)
+#define PDYNSAVE  (4)
+#define FUNCSAVE  (14*4)
+#define FUNCARGS  32
+#define LINKAREA  24
+
+// Okay, now that we have those defined, let's define the offsets upwards
+#define TRAMP_FRAME_SIZE (STACKSKIP + GPRSAVE + FPRSAVE + SPRSAVE + PDYNSAVE + \
+                          FUNCSAVE + FUNCARGS + LINKAREA)
+#define PDYN_RESERVED (LINKAREA + FUNCARGS + FUNCSAVE)
+#define PDYN_MT_POS (PDYN_RESERVED + 0)
+#define TRAMP_SPR_OFFSET (PDYN_RESERVED + PDYNSAVE) /* 4 for LR */
+#define STK_LR    (           0)
+#define STK_CR    (STK_LR   + 4)
+#define STK_CTR   (STK_CR   + 4)
+#define STK_XER   (STK_CTR  + 4)
+#define STK_SPR0  (STK_XER  + 4)
+#define STK_FP_CR (STK_SPR0 + 4)
+
+#define TRAMP_FPR_OFFSET (TRAMP_SPR_OFFSET + SPRSAVE)
+#define TRAMP_GPR_OFFSET (TRAMP_FPR_OFFSET + FPRSAVE)
+
+#define FUNC_CALL_SAVE (LINKAREA + FUNCARGS)
+
+/* ipOther is never used in Paradyn, but simplifies code to unify */
 enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint, ipOther };
-#else
-enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint };
-#endif
+
 
 bool isCallInsn(const instruction);
 bool isReturnInsn(const image *, Address);

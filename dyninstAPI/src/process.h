@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.184 2002/02/17 00:41:11 gurari Exp $
+/* $Id: process.h,v 1.185 2002/02/21 21:47:49 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -67,6 +67,7 @@
 #include "dyninstAPI/src/os.h"
 // #include "paradynd/src/main.h"
 #include "dyninstAPI/src/showerror.h"
+
 #if defined(MT_THREAD) && defined(rs6000_ibm_aix4_1)
 #include <sys/pthdebug.h>
 #endif
@@ -385,10 +386,6 @@ class Frame {
 
     // platform-dependent component of Frame::Frame(process *)
     void getActiveFrame(process *);
-
-    // platform-dependent components of getCallerFrame()
-    Frame getCallerFrameNormal(process *) const;
-    Frame getCallerFrameThread(process *) const;
 };
 
 typedef void (*continueCallback)(timeStamp timeOfCont);
@@ -453,8 +450,7 @@ class process {
   vector<Address> walkStack(bool noPause=false);
   bool triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
                              Address pc, callWhen when, callOrder order);
-#if defined(MT_THREAD)  
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
   // We have the pthread debug library to deal with
   pthdb_session_t *get_pthdb_session() { return &pthdb_session_; }
   pthdb_session_t pthdb_session_;
@@ -465,8 +461,6 @@ class process {
   vector<vector<Address> > walkAllStack(bool noPause=false);
   void walkAStack(int, Frame, Address sig_addr, u_int sig_size,
                   vector<Address>&pcs, vector<Address>&fps);
-  bool getLWPIDs(int **IDs_p); //caller should do a "delete [] *IDs_p"
-  bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
   bool readDataFromLWPFrame(int lwp_id, 
                          Address currentFP, 
                          Address *previousFP, 
@@ -480,6 +474,7 @@ class process {
   bool getActiveFrame(Address *fp, Address *pc, int *lwpid);
 
   // Notify daemon of threads
+#if defined(MT_THREAD)
   pdThread *createThread(
     int tid, 
     unsigned pos, 
@@ -500,7 +495,14 @@ class process {
 
   // SAFE inferiorRPC
   bool     handleDoneSAFEinferiorRPC(void);
+
+  // Given a thread ID, find the associated LWP
+  int findLWPbyPthread(int tid);
 #endif
+
+  bool getLWPIDs(vector <unsigned> &LWPids);
+  bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
+
 
   processState status() const { return status_;}
   int exitCode() const { return exitCode_; }
@@ -638,6 +640,9 @@ class process {
 
   void initInferiorHeap();
 
+  /* Find the tramp guard addr and set it */
+  bool initTrampGuard();
+
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
   bool isAddrInHeap(Address addr) 
     {
@@ -701,8 +706,7 @@ class process {
 #endif
 
   // Trampoline guard get/set functions
-  unsigned long getTrampGuardFlagAddr(void) { return trampGuardFlagAddr; }
-  void setTrampGuardFlagAddr(unsigned long t) { trampGuardFlagAddr = t;  }
+  Address trampGuardAddr(void) { return trampGuardAddr_; }
 
   // Cpu time related functions and members
 #ifndef BPATCH_LIBRARY
@@ -892,8 +896,8 @@ class process {
   void *save_exitset_ptr; // platform-specific (for now, just solaris;
                           // it's actually a sysset_t*)
  
-  // Trampoline guard location
-  unsigned long trampGuardFlagAddr;
+  // Trampoline guard location -- actually an addr in the runtime library.
+  Address trampGuardAddr_;
                                                
   struct inferiorRPCinProgress {
      // This structure keeps track of a launched inferiorRPC which we're
@@ -965,18 +969,9 @@ class process {
                 const void *savedRegs // returned by getRegisters()
                 );
 
-#if defined(rs6000_ibm_aix4_1)
- public:
-  int findLWPbyPthread(int tid);
  private:
   bool changePC(Address addr, const void *ignored,
 		int thrId);
-#else
- public:
-  int findLWPbyPthread(int tid) { return tid; }
- private:
-#endif
-
 
   bool executingSystemCall();
 
@@ -1308,6 +1303,7 @@ private:
 
   const process *parent;        /* parent of this process */
   image *symbols;               /* information related to the process */
+  const image *runtime_lib;           /* shortcut to the runtime library */
   int pid;                      /* id of this process */
 
 #ifdef SHM_SAMPLING

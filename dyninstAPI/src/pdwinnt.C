@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.45 2002/02/18 19:05:44 gurari Exp $
+// $Id: pdwinnt.C,v 1.46 2002/02/21 21:47:49 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2776,7 +2776,7 @@ bool OS::osKill(int pid) {
     return res;
 }
 
-#ifdef SHM_SAMPLING
+#if !defined(BPATCH_LIBRARY)
 rawTime64 process::getRawCpuTime_hw(int lwp_id) {
   lwp_id = 0;  // to turn off warning for now
   return 0;
@@ -2814,7 +2814,7 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
 
   return now;
 }
-#endif // SHM_SAMPLING
+#endif
 
 #ifdef mips_unknown_ce2_11 //ccw 2 aug 2000 : 29 mar 2001
 
@@ -2882,3 +2882,8 @@ void process::initCpuTimeMgrPlt() {
 			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
 }
 #endif
+
+bool getLWPIDs(vector <unsigned> &LWPids)
+{
+  assert (0 && "Not implemented");
+}

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.120 2002/02/13 20:30:47 gurari Exp $
+ * $Id: inst-power.C,v 1.121 2002/02/21 21:47:46 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -86,6 +86,7 @@ extern bool isPowerOf2(int value, int &result);
 #define SPR_XER	1
 #define SPR_LR	8
 #define SPR_CTR	9
+#define SPR_SPR0 0 
 #define DISTANCE(x,y)   ((x<y) ? (y-x) : (x-y))
 
 Address getMaxBranch() {
@@ -102,10 +103,12 @@ dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
 inline void generateBranchInsn(instruction *insn, int offset)
 {
     if (ABS(offset) > MAX_BRANCH) {
+      fprintf(stderr, "Error: attempted a branch of 0x%x\n", offset);
 	logLine("a branch too far\n");
 	showErrorCallback(52, "Internal error: branch too far");
 	fprintf(stderr, "Attempted to make a branch of offset %x\n", offset);
-	return;
+	while (1) ;
+	return;	
     }
 
     insn->raw = 0;
@@ -519,111 +522,17 @@ void relocateInstruction(instruction *insn, Address origAddr, Address targetAddr
     /* The rest of the instructions should be fine as is */
 }
 #endif
-
-trampTemplate baseTemplate;
-
-// New version of the base tramp -- will not enter instrumentation recursively
-trampTemplate baseTemplateNonRecursive;
-
-#ifdef BPATCH_LIBRARY
-trampTemplate conservativeTemplate;
-#endif
-
-extern "C" void baseTramp();
-#ifdef BPATCH_LIBRARY
-extern "C" void conservativeTramp();
-#endif
-
-void initATramp(trampTemplate *thisTemp, instruction *tramp, bool guardDesired = true)
-{
-    instruction *temp;
-
-    // TODO - are these offsets always positive?
-    thisTemp->trampTemp = (void *) tramp;
-    for (temp = tramp; temp->raw != END_TRAMP; temp++) {
-	switch (temp->raw) {
-	    case LOCAL_PRE_BRANCH:
-		thisTemp->localPreOffset = ((char*)temp - (char*)tramp);
-		thisTemp->localPreReturnOffset = thisTemp->localPreOffset
-		                                 + 4 * sizeof(temp->raw);
-		break;
-	    case GLOBAL_PRE_BRANCH:
-		thisTemp->globalPreOffset = ((char*)temp - (char*)tramp);
-		break;
-	    case LOCAL_POST_BRANCH:
-		thisTemp->localPostOffset = ((char*)temp - (char*)tramp);
-		thisTemp->localPostReturnOffset = thisTemp->localPostOffset
-		                                  + 4 * sizeof(temp->raw);
-		break;
-	    case GLOBAL_POST_BRANCH:
-		thisTemp->globalPostOffset = ((char*)temp - (char*)tramp);
-		break;
-	    case SKIP_PRE_INSN:
-                thisTemp->skipPreInsOffset = ((char*)temp - (char*)tramp);
-                break;
-	    case UPDATE_COST_INSN:
-		thisTemp->updateCostOffset = ((char*)temp - (char*)tramp);
-		break;
-	    case SKIP_POST_INSN:
-                thisTemp->skipPostInsOffset = ((char*)temp - (char*)tramp);
-                break;
-	    case RETURN_INSN:
-                thisTemp->returnInsOffset = ((char*)temp - (char*)tramp);
-                break;
-	    case EMULATE_INSN:
-                thisTemp->emulateInsOffset = ((char*)temp - (char*)tramp);
-                break;
-	    case SAVE_PRE_INSN:
-                thisTemp->savePreInsOffset = ((char*)temp - (char*)tramp);
-                break;
-	    case RESTORE_PRE_INSN:
-                thisTemp->restorePreInsOffset = ((char*)temp - (char*)tramp);
-                break;
-	    case SAVE_POST_INSN:
-                thisTemp->savePostInsOffset = ((char*)temp - (char*)tramp);
-                break;
-	    case RESTORE_POST_INSN:
-                thisTemp->restorePostInsOffset = ((char*)temp - (char*)tramp);
-                break;
-	    case REENTRANT_PRE_INSN_JUMP:
-	        thisTemp->recursiveGuardPreJumpOffset = ((char*)temp - (char*)tramp);
-	        break;
-   	    case REENTRANT_POST_INSN_JUMP:
-	        thisTemp->recursiveGuardPostJumpOffset = ((char*)temp - (char*)tramp);
-       	        break;
-	    default:
-	        break;
-  	}	
-    }
-    thisTemp->cost = 8;
-    thisTemp->prevBaseCost = 20;
-    thisTemp->postBaseCost = 30;
-    if (!guardDesired)
-      {
-	thisTemp->recursiveGuardPreJumpOffset = 0;
-	thisTemp->recursiveGuardPostJumpOffset = 0;
-      }
-    else // Update the costs
-      {
-	thisTemp->prevBaseCost += 11;  
-	thisTemp->postBaseCost += 11;
-      }
-    thisTemp->prevInstru = thisTemp->postInstru = false;
-    thisTemp->size = (int) temp - (int) tramp;
-}
-
 registerSpace *regSpace;
-#ifdef BPATCH_LIBRARY
+
 // This register space should be used with the conservative base trampoline.
 // Right now it's only used for purposes of determining which registers must
 // be saved and restored in the base trampoline.
 registerSpace *conservativeRegSpace;
-#endif
 
 // 11-12 are defined not to have live values at procedure call points.
 // reg 3-10 are used to pass arguments to functions.
 //   We must save them before we can use them.
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
 Register deadRegList[] = { 11 };
 #else
 Register deadRegList[] = { 11, 12 };
@@ -632,30 +541,20 @@ Register deadRegList[] = { 11, 12 };
 // allocate in reverse order since we use them to build arguments.
 Register liveRegList[] = { 10, 9, 8, 7, 6, 5, 4, 3 };
 
-#ifdef BPATCH_LIBRARY
 // If we're being conservative, we don't assume that any registers are dead.
 Register conservativeDeadRegList[] = { };
 // The registers that aren't preserved by called functions are considered live.
 Register conservativeLiveRegList[] = { 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 0 };
-#endif
 
 void initTramps()
 {
     static bool inited=false;
-
     if (inited) return;
     inited = true;
-
-    initATramp(&baseTemplateNonRecursive, (instruction *) baseTramp);
-    initATramp(&baseTemplate, (instruction *) baseTramp, false);
-#ifdef BPATCH_LIBRARY
-    initATramp(&conservativeTemplate, (instruction *) conservativeTramp);
-#endif
 
     regSpace = new registerSpace(sizeof(deadRegList)/sizeof(Register), deadRegList, 
 				 sizeof(liveRegList)/sizeof(Register), liveRegList);
 
-#ifdef BPATCH_LIBRARY
     // Note that we don't always use this with the conservative base tramp --
     // see the message where we declare conservativeRegSpace.
     conservativeRegSpace =
@@ -663,96 +562,21 @@ void initTramps()
 		        conservativeDeadRegList, 
 		        sizeof(conservativeLiveRegList)/sizeof(Register),
 			conservativeLiveRegList);
-#endif
 }
 
 /*
  * Saving and restoring registers
- *
- * The base trampoline needs somewhere to save registers to. We currently
- * save registers based on a negative offset from the stack pointer (on
- * AIX, the stack grows down). This avoids having to construct a "dummy" stack
- * frame when building the base tramp. To avoid overwriting program data, 
- * we shift our save down by an arbitrary "stack pad" value. This is currently 24K.
- * Basically, we're fine unless we instrument a function with a 24K array. 
- * I've unified the Dyninst/Paradyn register saving behavior. When paradyn is used,
- * we "allocate" some extra space. This really isn't a problem, and if we don't emit
- * a function call, the stack pointer is never even shifted.
- *
- *       Stack:    ________________________
- *             SP  |                      |
- *                 |                      |
- *    SP-STKPAD (0)| Begin saving here    |
- *              -4 |      GPR 0           | actually, I'm not sure if GPRs are
- *             ... |      GPRs            | saved high first or low first.
- *  -(13+1)*4  -56 |      Last GPR        |
- *             -64 |      LR              | LR and CTR are the two registers used
- *             -68 |      CTR             | in indirect branches.
- *             -72 |      CR              |
- *             -76 |      XER             |
- *             -80 |      SPR0            |
- *             -88 |      FPSCR           | We allocate 8 bytes for this one.
- *             -96 | FPR save space       | Allow a little extra room 
- *            -104 |      FPR             |
- *             ... |                      |
+ * We create a new stack frame in the base tramp and save registers
+ * above it. Currently, the plan is this:
+ *                 < 220 bytes as per system spec      >
+ *                 < 14 GPR slots @ 4 bytes each       >
+ *                 < 14 FPR slots @ 8 bytes each       >
+ *                 < 6 SPR slots @ 4 bytes each        >
+ *                 < 1 FP SPR slot @ 8 bytes           >
+ *                 < Space to save live regs at func call >
+ *                 < Func call overflow area, 32 bytes > 
+ *                 < Linkage area, 24 bytes            >
  */
-
-
-/* VG(11/18/01): The above picture is not entirely correct.
-   The order actually is:
-
-0x10001d70:     stw     r12,-24636(r1)
-0x10001d74:     stw     r11,-24632(r1)
-0x10001d78:     stw     r10,-24628(r1)
-0x10001d7c:     stw     r9,-24624(r1)
-0x10001d80:     stw     r8,-24620(r1)
-0x10001d84:     stw     r7,-24616(r1)
-0x10001d88:     stw     r6,-24612(r1)
-0x10001d8c:     stw     r5,-24608(r1)
-0x10001d90:     stw     r4,-24604(r1)
-0x10001d94:     stw     r3,-24600(r1)
-0x10001d98:     stw     r0,-24588(r1)
-0x10001d9c:     mflr    r10
-0x10001da0:     stw     r10,-24640(r1)
-0x10001da4:     mfctr   r10
-0x10001da8:     stw     r10,-24652(r1)
-0x10001dac:     mfcr    r10
-0x10001db0:     stw     r10,-24644(r1)
-0x10001db4:     mfxer   r10
-0x10001db8:     stw     r10,-24648(r1)
-0x10001dbc:     mfmq    r10
-0x10001dc0:     stw     r10,-24656(r1)
-0x10001dc4:     stfd    f0,-24672(r1)
-0x10001dc8:     stfd    f1,-24680(r1)
-0x10001dcc:     stfd    f2,-24688(r1)
-0x10001dd0:     stfd    f3,-24696(r1)
-0x10001dd4:     stfd    f4,-24704(r1)
-0x10001dd8:     stfd    f5,-24712(r1)
-0x10001ddc:     stfd    f6,-24720(r1)
-0x10001de0:     stfd    f7,-24728(r1)
-0x10001de4:     stfd    f8,-24736(r1)
-0x10001de8:     stfd    f9,-24744(r1)
-0x10001dec:     stfd    f10,-24752(r1)
-0x10001df0:     stfd    f11,-24760(r1)
-0x10001df4:     stfd    f12,-24768(r1)
-0x10001df8:     stfd    f13,-24776(r1)
-0x10001dfc:     mffs    f13
-0x10001e00:     stfd    f13,-24664(r1)
-
-*/
-
-
-/* PROBLEM WITH MT_THREAD -- stacks are only 8K!!! */
-#define STKPAD ( 24 * 1024 )
-#define STKLR    ( -(8 + (13+1)*4) )
-#define STKCR    (STKLR - 4)
-#define STKXER   (STKLR - 8)
-#define STKCTR   (STKLR - 12)
-#define STKSPR0  (STKLR - 16)
-#define STKFPSCR (STKLR - 24)
-#define STKFP    (- STKFPSCR)
-#define STKFCALLREGS (STKFP+(14*8))
-#define STKKEEP (STKFCALLREGS+((13+1)*4)+STKPAD)
 
     ////////////////////////////////////////////////////////////////////
     //Generates instructions to save a special purpose register onto
@@ -766,7 +590,6 @@ void initTramps()
 // opcode:6 ; RT: 5 ; SPR: 10 ; const 339:10 ; Rc: 1
 // However, the two 5-bit halves of the SPR field are reversed
 // so just using the xfxform will not work
-#ifdef BPATCH_LIBRARY
 static int saveSPR(instruction *&insn,     //Instruction storage pointer
 		   Register    scratchReg, //Scratch register
 		   int         sprnum,     //SPR number
@@ -784,7 +607,7 @@ static int saveSPR(instruction *&insn,     //Instruction storage pointer
   insn->dform.op      = 36;
   insn->dform.rt      = scratchReg;
   insn->dform.ra      = 1;
-  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn->dform.d_or_si = stkOffset;
   insn++;
 
   return 2 * sizeof(instruction);
@@ -807,7 +630,7 @@ static int restoreSPR(instruction *&insn,       //Instruction storage pointer
   insn->dform.op      = 32;
   insn->dform.rt      = scratchReg;
   insn->dform.ra      = 1;
-  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn->dform.d_or_si = stkOffset;
   insn++;
 
   insn->raw = 0;                    //mtspr:  mtlr scratchReg
@@ -820,7 +643,6 @@ static int restoreSPR(instruction *&insn,       //Instruction storage pointer
 
   return 2 * sizeof(instruction);
 }
-#endif
            ////////////////////////////////////////////////////////////////////
 	   //Generates instructions to save link register onto stack.
 	   //  Returns the number of bytes needed to store the generated
@@ -842,7 +664,7 @@ static int saveLR(instruction *&insn,       //Instruction storage pointer
   insn->dform.op      = 36;
   insn->dform.rt      = scratchReg;
   insn->dform.ra      = 1;
-  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn->dform.d_or_si = stkOffset;
   insn++;
 
   return 2 * sizeof(instruction);
@@ -863,7 +685,7 @@ static int restoreLR(instruction *&insn,       //Instruction storage pointer
   insn->dform.op      = 32;
   insn->dform.rt      = scratchReg;
   insn->dform.ra      = 1;
-  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn->dform.d_or_si = stkOffset;
   insn++;
 
   insn->raw = 0;                    //mtspr:  mtlr scratchReg
@@ -943,7 +765,6 @@ void resetBRL(process  *p,   //Process to write instructions into
     //  The instruction storage pointer is advanced the number of 
     //    instructions generated.
     //
-#ifdef BPATCH_LIBRARY
 static int saveCR(instruction *&insn,       //Instruction storage pointer
 		  Register      scratchReg, //Scratch register
 		  int           stkOffset)  //Offset from stack pointer
@@ -958,12 +779,11 @@ static int saveCR(instruction *&insn,       //Instruction storage pointer
   insn->dform.op      = 36;
   insn->dform.rt      = scratchReg;
   insn->dform.ra      = 1;
-  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn->dform.d_or_si = stkOffset;
   insn++;
 
   return 2 * sizeof(instruction);
 }
-#endif
 
     ///////////////////////////////////////////////////////////////////////////
     //Generates instructions to restore the condition codes register from stack.
@@ -972,7 +792,6 @@ static int saveCR(instruction *&insn,       //Instruction storage pointer
     //  The instruction storage pointer is advanced the number of 
     //    instructions generated.
     //
-#ifdef BPATCH_LIBRARY
 static int restoreCR(instruction *&insn,       //Instruction storage pointer
 		     Register      scratchReg, //Scratch register
 		     int           stkOffset)  //Offset from stack pointer
@@ -981,7 +800,7 @@ static int restoreCR(instruction *&insn,       //Instruction storage pointer
   insn->dform.op      = 32;
   insn->dform.rt      = scratchReg;
   insn->dform.ra      = 1;
-  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn->dform.d_or_si = stkOffset;
   insn++;
 
   insn->raw = 0;                    //mtcrf:  scratchReg
@@ -993,7 +812,6 @@ static int restoreCR(instruction *&insn,       //Instruction storage pointer
 
   return 2 * sizeof(instruction);
 }
-#endif
     /////////////////////////////////////////////////////////////////////////
     //Generates instructions to save the floating point status and control
     //register on the stack.
@@ -1002,7 +820,6 @@ static int restoreCR(instruction *&insn,       //Instruction storage pointer
     //  The instruction storage pointer is advanced the number of 
     //    instructions generated.
     //
-#ifdef BPATCH_LIBRARY
 static int saveFPSCR(instruction *&insn,       //Instruction storage pointer
 		     Register      scratchReg, //Scratch fp register
 		     int           stkOffset)  //Offset from stack pointer
@@ -1014,12 +831,12 @@ static int saveFPSCR(instruction *&insn,       //Instruction storage pointer
   insn++;
 
   //st:     st scratchReg, stkOffset(r1)
-  genImmInsn(insn, STFDop, scratchReg, 1, stkOffset - STKPAD);
+  genImmInsn(insn, STFDop, scratchReg, 1, stkOffset);
   insn++;
 
   return 2 * sizeof(instruction);
 }
-#endif
+
 
     ///////////////////////////////////////////////////////////////////////////
     //Generates instructions to restore the floating point status and control
@@ -1029,12 +846,11 @@ static int saveFPSCR(instruction *&insn,       //Instruction storage pointer
     //  The instruction storage pointer is advanced the number of 
     //    instructions generated.
     //
-#ifdef BPATCH_LIBRARY
 static int restoreFPSCR(instruction *&insn,       //Instruction storage pointer
 		        Register      scratchReg, //Scratch fp register
 		        int           stkOffset)  //Offset from stack pointer
 {
-  genImmInsn(insn, LFDop, scratchReg, 1, stkOffset - STKPAD);
+  genImmInsn(insn, LFDop, scratchReg, 1, stkOffset);
   insn++;
 
   insn->raw = 0;                    //mtfsf:  scratchReg
@@ -1046,7 +862,6 @@ static int restoreFPSCR(instruction *&insn,       //Instruction storage pointer
 
   return 2 * sizeof(instruction);
 }
-#endif
      //////////////////////////////////////////////////////////////////////////
      //Writes out a `br' instruction
      //
@@ -1061,40 +876,48 @@ void resetBR(process  *p,    //Process to write instruction into
 }
 
 static void saveRegister(instruction *&insn, Address &base, Register reg,
-		  int offset)
+			 int offset)
 {
-  genImmInsn(insn, STop, reg, 1, -1*((reg+1)*4 + offset + STKPAD));
+  genImmInsn(insn, STop, reg, 1, offset + reg*GPRSIZE);
+  //  fprintf(stderr, "Saving reg %d at 0x%x off the stack\n", reg, offset + reg*GPRSIZE);
+  insn++;
+  base += sizeof(instruction);
+}
+
+// Dest != reg : optimizate away a load/move pair
+
+static void restoreRegister(instruction *&insn, Address &base, Register reg,
+			    int dest, int offset)
+{
+  genImmInsn(insn, Lop, dest, 1, offset + reg*GPRSIZE);
+  //fprintf(stderr, "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
+  //  reg, dest, offset + reg*GPRSIZE);
   insn++;
   base += sizeof(instruction);
 }
 
 static void restoreRegister(instruction *&insn, Address &base, Register reg,
-		      int dest, int offset)
-{
-  genImmInsn(insn, Lop, dest, 1, -1*((reg+1)*4 + offset + STKPAD));
-  //fprintf(stderr, "rr:%d\n", -1*((reg+1)*4 + offset + STKPAD));
-  insn++;
-  base += sizeof(instruction);
-}
-
-static void restoreRegister(instruction *&insn, Address &base, Register reg,
-		     int offset)
+			    int offset)
 {
   restoreRegister(insn, base, reg, reg, offset);
-}	
+}
 
 static void saveFPRegister(instruction *&insn, Address &base, Register reg,
 		    int offset)
 {
-  genImmInsn(insn, STFDop, reg, 1, -1*((reg+1)*8 + offset + STKPAD));
+  genImmInsn(insn, STFDop, reg, 1, offset + reg*FPRSIZE);
+  //fprintf(stderr, "Saving FP reg %d at 0x%x off the stack\n", 
+  //  reg, offset + reg*FPRSIZE);
   insn++;
   base += sizeof(instruction);
 }
 
 static void restoreFPRegister(instruction *&insn, Address &base, Register reg,
-		        int dest, int offset)
+			      int dest, int offset)
 {
-  genImmInsn(insn, LFDop, dest, 1, -1*((reg+1)*8 + offset + STKPAD));
+  genImmInsn(insn, LFDop, dest, 1, offset + reg*FPRSIZE);
+  //  fprintf(stderr, "Loading FP reg %d (into %d) at 0x%x off the stack\n", 
+  //  reg, dest, offset + reg*FPRSIZE);
   insn++;
   base += sizeof(instruction);
 }
@@ -1105,196 +928,233 @@ static void restoreFPRegister(instruction *&insn, Address &base, Register reg,
   restoreFPRegister(insn, base, reg, reg, offset);
 }	
 
-void saveAllRegistersThatNeedsSaving(instruction *insn, Address &base)
-{
-   unsigned long numInsn=0;
-   for (u_int i = 0; i < regSpace->getRegisterCount(); i++) {
-     registerSlot *reg = regSpace->getRegSlot(i);
-     if (reg->startsLive) {
-       saveRegister(insn,numInsn,reg->number,8);
-     }
-   }
-   base += numInsn/sizeof(instruction);
-}
+/*
+ * Objective: get the base address of the vector of counter/timers
+ *            in REG_MT_BASE
+ *            Get the hashed thread ID on the stack and in REG_MT_POS
+ *            hashed thread ID * sizeof(int) in REG_GUARD_OFFSET
+ *
+ * So: call DYNINSTthreadPos, which returns the POS value. This is
+ *     done automatically (AST), the rest by hand. Save the POS,
+ *     multiply by sizeof(unsigned), and add to the addr of threadTable
+ *
+ * If the POS returned is -2, we need to skip the instrumentation
+ *   because the appropriate counter/timers aren't set yet. So we return
+ *   the addr of the branch, and fill it in later to hit emulateIns or
+ *   returnIns
+ */
 
-void restoreAllRegistersThatNeededSaving(instruction *insn, Address &base)
+unsigned generateMTTrampCode(instruction *insn, Address &base, process *proc)
 {
-   unsigned long numInsn=0;
-   for (u_int i = 0; i < regSpace->getRegisterCount(); i++) {
-     registerSlot *reg = regSpace->getRegSlot(i);
-     if (reg->startsLive) {
-       restoreRegister(insn,numInsn,reg->number,8);
-     }
-   }
-   base += numInsn/sizeof(instruction);
-}
-
-#if defined(MT_THREAD)
-void generateMTpreamble(char *insn, Address &base, process *proc)
-{
-  AstNode *t1,*t2,*t3,*t4,*t5;
+  AstNode *threadPOS;
+  Address scratchBase = 0;
+  Address returnVal;
   vector<AstNode *> dummy;
-  Address tableAddr;
-  int value; 
   bool err;
   Register src = Null_Register;
 
   // registers cleanup
   regSpace->resetSpace();
 
-  /* t3=DYNINSTthreadTable[thr_self()] */
-  /* threadPos returns -2 if the thread_id reported by the OS is 0,
-     and  */
-  t1 = new AstNode("DYNINSTthreadPos", dummy);
-  value = sizeof(unsigned);
-  t4 = new AstNode(AstNode::Constant,(void *)value);
-  // t2 = DYNINSTthreadPos * sizeof(unsigned)
-  t2 = new AstNode(timesOp, t1, t4);
-  removeAst(t1);
-  removeAst(t4);
+  /* Get the hashed value of the thread */
+  threadPOS = new AstNode("DYNINSTthreadPos", dummy);
+  src = threadPOS->generateCode(proc, regSpace, (char *)insn,
+				scratchBase, 
+				false, // noCost 
+				true); // root node
+  instruction *tmp_insn = (instruction *) ((void*)&insn[scratchBase/4]);
+  if ((src) != REG_MT_POS) {
+    cerr << "Source reg " << src << " neq " << REG_MT_POS << endl;
+    genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
+    tmp_insn++; scratchBase+=sizeof(instruction);
+  }
+  // Compare immediate with -2, branch if true: two ops
+  genImmInsn(tmp_insn, CMPIop, 0, REG_MT_POS, (unsigned) -2);
+  tmp_insn++; scratchBase+=sizeof(instruction);
+  returnVal = scratchBase + base;
+  generateNOOP(tmp_insn);
+  tmp_insn++; scratchBase+=sizeof(instruction);
 
-  tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
-  assert(!err);
-  t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
-  // t3 = DYNINSTthreadTable + t2 = DYNINSTthreadTable + (DYNINSTthreadPos * sizeof(unsigned))
-  t3 = new AstNode(plusOp, t2, t5);
-  removeAst(t2);
-  removeAst(t5);
-  src = t3->generateCode(proc, regSpace, insn, base, false, true);
-  removeAst(t3);
-  //emitV(orOp, src, 0, REG_MT, insn, base, false);
-  instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
-  genImmInsn(tmp_insn, ORILop, src, REG_MT, 0);  
-  base += sizeof(instruction);
-  regSpace->freeRegister(src);
+  // Store POS on the stack
+  saveRegister(tmp_insn, scratchBase, REG_MT_POS, PDYN_MT_POS);
+  // Get sizeof (int) and multiply
+  base += scratchBase; scratchBase = 0; // reset
+  emitImm(timesOp, REG_MT_POS, sizeof(int), REG_GUARD_OFFSET, 
+	  (char *)tmp_insn, scratchBase, true);
+  
+  // Now we leave that be. Build the addr of threadTable in REG_MT_BASE
+  // and add REG_MT_POS to it
+  emitVload(loadConstOp, proc->findInternalAddress("DYNINSTthreadTable",true,err),
+	    REG_MT_BASE, REG_MT_BASE, (char *)tmp_insn, scratchBase, false);
+  emitV(plusOp, REG_GUARD_OFFSET, REG_MT_BASE, REG_MT_BASE, 
+	(char *)tmp_insn, scratchBase, false);
+  base += scratchBase;
+
+  return returnVal;
 }
 
-void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos)
+/*
+ * Emit code to push down the stack, AST-generate style
+ */
+
+void pushStack(char *i, Address &base)
 {
-  AstNode *t1 ;
-  Address tableAddr;
-  int value; 
-  bool err;
-  Register src = Null_Register;
+  instruction *insn = (instruction *) ((void*)&i[base]);
+  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
+  base += sizeof(instruction);
+}
 
-  if (tid != -1)  {
+void popStack(char *i, Address &base)
+{
+  instruction *insn = (instruction *) ((void*)&i[base]);
+  genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
+  base += sizeof(instruction);
+}
 
-    // Pseudocode:
-    /*
-      t1 = DYNINSTthreadPosTID(tid, pos);
-      t2 = t1 * sizeof(unsigned);
-      t3 = DYNINSTthreadtable + t2;
-      if (t1 == -2)
-        return; //basically, skip forward by a given offset
-    */
-    // Check to see if POS is valid or return -2
-    // t1 = DYNINSTthreadPosTID(tid, pos);
-    vector<AstNode *> param;
-    param += new AstNode(AstNode::Constant,(void *)tid);
-    param += new AstNode(AstNode::Constant,(void *)pos);
-    t1 = new AstNode("DYNINSTthreadPosTID", param);
-    for (unsigned i=0; i<param.size(); i++) 
-      removeAst(param[i]) ;
+/*
+ * Save necessary registers on the stack
+ * insn, base: for code generation. Offset: regs saved at offset + reg
+ * Returns: number of registers saved.
+ * Side effects: instruction pointer and base param are shifted to 
+ *   next free slot.
+ */
 
-    // Multiply POS by size of unsigned (not void *)?
+unsigned saveGPRegisters(instruction *&insn, Address &base, Address offset, registerSpace *theRegSpace)
+{
+  unsigned numRegs = 0;
+  for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
+    registerSlot *reg = theRegSpace->getRegSlot(i);
+    if (reg->startsLive) {
+      saveRegister(insn, base, reg->number, offset);
+      numRegs++;
+    }
+  }
+  return numRegs;
+}
 
-    value = sizeof(unsigned);
-    AstNode* t4 = new AstNode(AstNode::Constant,(void *)value);
-    AstNode* t2 = new AstNode(timesOp, t1, t4);
-    // Don't remove, we use it further down.
-    //removeAst(t1) ;
-    removeAst(t4) ;
+/*
+ * Restore necessary registers from the stack
+ * insn, base: for code generation. Offset: regs restored from offset + reg
+ * Returns: number of registers restored.
+ * Side effects: instruction pointer and base param are shifted to 
+ *   next free slot.
+ */
 
-    // t3 = DYNINSTthreadTable + POS*sizeof(unsigned)
+unsigned restoreGPRegisters(instruction *&insn, Address &base, Address offset, registerSpace *theRegSpace)
+{
+  unsigned numRegs = 0;
+  for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
+    registerSlot *reg = theRegSpace->getRegSlot(i);
+    if (reg->startsLive) {
+      restoreRegister(insn, base, reg->number, offset);
+      numRegs++;
+    }
+  }
+  return numRegs;
+}
 
-    tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
-    assert(!err);
-    AstNode* t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
-    AstNode* t3 = new AstNode(plusOp, t2, t5);
-    removeAst(t2);
-    removeAst(t5);
+/*
+ * Save FPR registers on the stack. (0-13)
+ * insn, base: for code generation. Offset: regs saved at offset + reg
+ * Returns: number of regs saved.
+ */
 
-    //if (t1 == -2) go forward by offset
+unsigned saveFPRegisters(instruction *&insn, Address &base, Address offset)
+{
+  unsigned numRegs = 0;
+  for (unsigned i = 0; i <= 13; i++) {
+    numRegs++;
+    saveFPRegister(insn, base, i, offset);
+  }
+  return numRegs;
+}
 
-    AstNode* t7 = new AstNode(AstNode::Constant,(void *)-2);
-    AstNode* t8 = new AstNode(eqOp, t1, t7);
-    removeAst(t1);
-    removeAst(t7);
-    AstNode* t9 = new AstNode(AstNode::Constant, (void *)(offset));
-    AstNode* t10 = new AstNode(branchOp, t9);
-    removeAst(t9);
-    AstNode* t11 = new AstNode(ifOp, t8, t10);
-    removeAst(t8);
-    removeAst(t10);
-    AstNode *t6= new AstNode(t11, t3);
+/*
+ * Restore FPR registers from the stack. (0-13)
+ * insn, base: for code generation. Offset: regs restored from offset + reg
+ * Returns: number of regs restored.
+ */
 
-    removeAst(t11);
-    removeAst(t3);
-    src = t6->generateCode(proc, regSpace, insn, base, false, true);
-    removeAst(t6);
+unsigned restoreFPRegisters(instruction *&insn, Address &base, Address offset)
+{
+  unsigned numRegs = 0;
+  for (unsigned i = 0; i <= 13; i++) {
+    numRegs++;
+    restoreFPRegister(insn, base, i, offset);
+  }
+  return numRegs;
+}
 
-    //emitVload(loadOp, (unsigned) -1, 0, 0, insn, base, false, 0);
-    //(void) emitV(orOp, src, 0, REG_MT, insn, base, false);
-    instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
-    genImmInsn(tmp_insn, ORILop, src, REG_MT, 0);  
-    base += sizeof(instruction);
-    //regSpace->freeRegister(src);
+/*
+ * Save the special purpose registers (for Dyninst conservative tramp)
+ * CTR, CR, XER, SPR0, FPSCR
+ */
+
+unsigned saveSPRegisters(instruction *&insn, Address &base, Address offset)
+{
+  base += saveCR(insn, 10, offset + STK_CR);
+  base += saveSPR(insn, 10, SPR_CTR, offset + STK_CTR);
+  base += saveSPR(insn, 10, SPR_XER, offset + STK_XER);
+  base += saveSPR(insn, 10, SPR_SPR0, offset + STK_SPR0);
+  base += saveFPSCR(insn, 10, offset + STK_FP_CR);
+  return 5;
+}
+
+/*
+ * Restore the special purpose registers (for Dyninst conservative tramp)
+ * CTR, CR, XER, SPR0, FPSCR
+ */
+
+unsigned restoreSPRegisters(instruction *&insn, Address &base, Address offset)
+{
+  base += restoreCR(insn, 10, offset + STK_CR);
+  base += restoreSPR(insn, 10, SPR_CTR, offset + STK_CTR);
+  base += restoreSPR(insn, 10, SPR_XER, offset + STK_XER);
+  base += restoreSPR(insn, 10, SPR_SPR0, offset + STK_SPR0);
+  base += restoreFPSCR(insn, 10, offset + STK_FP_CR);
+  return 5;
+}
+
+/*
+ * Restore the LR from the stored location (stack + 12)
+ */
+void loadOrigLR(instruction *&insn, Address &base)
+{
+  genImmInsn(insn, Lop, 0, 1, 12);
+  insn++; base += sizeof(instruction);
+  insn->raw = MTLR0raw;
+  insn++; base += sizeof(instruction);
+}
+
+/*
+ * Modify the LR to point to our exit tramp instead of the caller
+ */
+void stompLRForExit(instruction *&insn, Address &base, Address newReturnAddr)
+{
+  // First, save the old LR
+  Address newBase = 0;
+  insn->raw = MFLR0raw;
+  insn++; base += sizeof(instruction);
+  genImmInsn(insn, STop, 0, 1, 12);
+  insn++; base += sizeof(instruction);
+  // Calculate and store the new LR
+  emitVload(loadConstOp, newReturnAddr /* src */, 0 /* ignored */,
+	    0 /* dest */, (char *)insn, newBase, false, 0 /*ignored */);
+  base += newBase; insn += (newBase/sizeof(instruction));
+  insn->raw = MTLR0raw;
+  insn++; base += sizeof(instruction);
+}
+
+/*
+ * Write out enough noops for the cost section to fill later
+ */
+void generateCostSection(instruction *&insn, Address &base)
+{
+  for (unsigned i = 0; i < 6; i++) {
+    insn->raw = NOOPraw;
+    insn++; base += sizeof(instruction);
   }
 }
-
-#endif
-
-void generateBreakPoint(instruction &);
-
-bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
-				     unsigned &breakOffset,
-				     bool stopForResult,
-				     unsigned &stopForResultOffset,
-                                     unsigned &justAfter_stopForResultOffset,
-                                     int /* thrId */,
-                                     bool isSafeRPC) {
-
-   // The sequence we want is: (restore), trap, illegal,
-   // where (restore) undoes anything done in emitInferiorRPCheader(), above.
-
-   instruction *insn = (instruction *)insnPtr;
-   Address baseInstruc = baseBytes / sizeof(instruction);
-
-   if (stopForResult) {
-      generateBreakPoint(insn[baseInstruc]);
-      stopForResultOffset = baseInstruc * sizeof(instruction);
-      baseInstruc++;
-
-      justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
-   }
-
-   // MT_AIX: restoring previously saved registers - naim
-   instruction *tmp_insn = (instruction *) (&insn[baseInstruc]);
-   extern void restoreAllRegistersThatNeededSaving(instruction *, Address &);
-   restoreAllRegistersThatNeededSaving(tmp_insn,baseInstruc);
-
-#if defined(MT_THREAD)
-   // Safe RPCs are run as function-lets
-   if (isSafeRPC) // ret instruction?
-     {
-       insn[baseInstruc++].raw = BRraw;
-     }
-#endif
-   // Trap instruction (breakpoint):
-   generateBreakPoint(insn[baseInstruc]);
-   breakOffset = baseInstruc * sizeof(instruction);
-   baseInstruc++;
-
-   // And just to make sure that we don't continue, we put an illegal
-   // insn here:
-   extern void generateIllegalInsn(instruction &);
-   generateIllegalInsn(insn[baseInstruc++]);
-
-   baseBytes = baseInstruc * sizeof(instruction); // convert back
-
-   return true;
-}
-
 
 /*
  * Install a base tramp -- fill calls with nop's for now.
@@ -1309,407 +1169,462 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
  * the existing tramp. 
  *
  */
+
 trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 				bool trampRecursiveDesired = false,
-				trampTemplate *templateType = NULL,
+				trampTemplate *oldTemplate = NULL,
                                 Address exitTrampAddr = 0,
 				Address baseAddr = 0)
 {
-    unsigned long trampGuardFlagAddr = proc->getTrampGuardFlagAddr();
-    Address currAddr;
-    instruction *code;
-    instruction *temp;
-    unsigned offset;
-    unsigned long numInsn;
-    trampTemplate *theTemplate = NULL;
-    bool isReinstall = (baseAddr != 0);
-#ifdef BPATCH_LIBRARY
-    registerSpace *theRegSpace = NULL;
-    if (location->ipLoc == ipOther)
-      theRegSpace = conservativeRegSpace;
-    else theRegSpace = regSpace;
-#endif
+  trampTemplate *theTemplate;
+  Address trampGuardFlagAddr = proc->trampGuardAddr();
+  assert(trampGuardFlagAddr);
+  registerSpace *theRegSpace;
+  if (location->ipLoc == ipOther)
+    theRegSpace = conservativeRegSpace;
+  else
+    theRegSpace = regSpace;
 
-    if (templateType) // Already have a preferred template type
-      {
-	theTemplate = templateType;
-      }
-    else
-      {
-#ifdef BPATCH_LIBRARY
-	if (location->ipLoc == ipOther) {
-	  theTemplate = &conservativeTemplate;
-	}
-	else
-#endif
-	{
-	  if (trampRecursiveDesired)
-	    theTemplate = &baseTemplate;
-	  else
-	    theTemplate = &baseTemplateNonRecursive;
-        }
-      }
+  bool wantTrampGuard = true;
+  if (oldTemplate && oldTemplate->recursiveGuardPreJumpOffset == -1) {
+    wantTrampGuard = false;
+  }
+  else if (trampRecursiveDesired == true) {
+    wantTrampGuard = false;
+  }
+  if (oldTemplate) // Already have a preferred template type
+    theTemplate = oldTemplate;
+  else
+    theTemplate = new trampTemplate;
 
-    // Have we allocated space for the flag yet?
-    if (trampGuardFlagAddr == 0)
-      {
-	int zeroval = 0;
-        trampGuardFlagAddr = inferiorMalloc(proc, sizeof(int), dataHeap);
-        // Zero out the new value
-        proc->writeDataSpace((void *)trampGuardFlagAddr, sizeof(int), &zeroval);
-	// Keep track in the process space
-	proc->setTrampGuardFlagAddr(trampGuardFlagAddr);
-      }
-    if (! isReinstall) 
-      baseAddr = inferiorMalloc(proc, theTemplate->size, anyHeap, location->addr);
-    // InferiorMalloc can ignore our "hints" when necessary, but that's 
-    // bad here because we don't have a fallback position
-#ifdef DEBUG
-    fprintf(stderr, "Installing a base tramp at %x, jumping from %s(%x)\n",
-	    baseAddr, location->func->prettyName().string_of(), location->addr);
-#endif    
-    if (DISTANCE(location->addr, baseAddr) > MAX_BRANCH)
-      {
-	fprintf(stderr, "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
-		(unsigned) location->addr, (unsigned) baseAddr,
-		location->func->prettyName().string_of());
-	assert(0);
-      }
-    code = new instruction[theTemplate->size / sizeof(instruction)];
-    memcpy((char *) code, (char*) theTemplate->trampTemp, theTemplate->size);
-    // bcopy(theTemplate->trampTemp, code, theTemplate->size);
+  // Initialize some bits of the template
+  theTemplate->prevInstru = false;
+  theTemplate->postInstru = false;
+  theTemplate->MTpreBranch = -1;
+  theTemplate->MTpostBranch = -1;
+  theTemplate->prevBaseCost = 0;
+  theTemplate->postBaseCost = 0;
+  theTemplate->cost = 0;
+  
+  // New model: build the tramp from code segments. Get rid of the
+  // tramp-power.S file.
+  /*
+   * Tramp bits:
+   * If at function entry: stomp the LR for function exit
+   * If at function exit: restore LR
+   * If no instrumentation: pre insn skip
+   *   Make new stack frame & save LR
+   *   Save all registers (+ possibly conservative ones)
+   *   If MT, get the POS (hashed thread ID)
+   *   If not, set POS to 0
+   *   Pretramp guard code
+   *   Minitramp (at last!)
+   *   Posttramp guard code
+   *   Update costs
+   *   Restore
+   * Emulated insn
+   *   If not exit, do it all over again (post-instrumentation)
+   */
+  
+  // Generate the tramp, figure out how big it is, (possibly)
+  // allocate memory for it in the inferior.
 
-    for (temp = code, currAddr = baseAddr; 
-	(int) (currAddr - baseAddr) < theTemplate->size;
-	temp++, currAddr += sizeof(instruction)) {
-      switch (temp->raw) {
-	
-      case UPDATE_LR:
-	if(location->ipLoc == ipFuncReturn) {
-	  // loading the old LR from the 4th word from the stack, 
-	  // in the link-area
-	  genImmInsn(&code[0], Lop, 0, 1, 12);
-	  code[1].raw = MTLR0raw;
-	  // the rest of the instrs are already NOOPs
-	} else if((location->ipLoc == ipFuncEntry) && (exitTrampAddr != 0)) {
-	  code[0].raw = MFLR0raw;
-	  // storing the old LR in the 4th word from the stack, 
-	  // in the link-area
-	  genImmInsn(&code[1], STop, 0, 1, 12); 
-	  genImmInsn(&code[2], CAUop, 0, 0, HIGH(exitTrampAddr));
-	  genImmInsn(&code[3], ORILop, 0, 0, LOW(exitTrampAddr));
-	  code[4].raw = MTLR0raw;
-	} else {
-	  generateNOOP(temp);
-            // the rest of the instrs are already NOOPs
-	}
-	break;
-      case EMULATE_INSN:
-	if(location->ipLoc == ipFuncReturn) {
-	  generateNOOP(temp);
-	} else {
-	  *temp = location->originalInstruction;
-	  relocateInstruction(temp, location->addr, currAddr);
-	}
-	break;
-      case RETURN_INSN:
-	if(location->ipLoc == ipFuncReturn) {
-	  temp->raw = BRraw;
-	} else {
-	  generateBranchInsn(temp, (location->addr + 
-				    sizeof(instruction) - currAddr));
-	}
-	break;
-      case SKIP_PRE_INSN:
-	//offset = baseAddr+theTemplate->updateCostOffset-currAddr;
-	offset = baseAddr+theTemplate->emulateInsOffset-currAddr;
-	generateBranchInsn(temp,offset);
-	break;
-      case SKIP_POST_INSN:
-	offset = baseAddr+theTemplate->returnInsOffset-currAddr;
-	generateBranchInsn(temp,offset);
-	break;
-      case UPDATE_COST_INSN:
-	theTemplate->costAddr = currAddr;
-	generateNOOP(temp);
-	break;
-      case SAVE_PRE_INSN:
-      case SAVE_POST_INSN:
-	// Note: we're saving the registers 24K down the stack.
-	// This is necessary since the near area around the stack pointer
-	// can contain useful data, and we can't tell when this is.
-	// So we can't shift the SP down a little ways, and in most
-	// cases we don't care about shifting it down a long way here.
-	// If we make a function call (emitFuncCall), it handles
-	// shifting the SP down. See comment at the STKPAD definition.
+  instruction tramp[2048]; // Should be big enough, right?
+  instruction *insn = (instruction *)tramp;
+  Address currAddr = 0;
+  Address spareAddr = 0;
+  
+  // Put in the function stomping at the beginning
+  switch (location->ipLoc) {
+  case ipFuncReturn:
+    //fprintf(stderr, "Base tramp at function entry\n");
+    loadOrigLR(insn, currAddr);
+    break;
+  case ipFuncEntry:
+    //fprintf(stderr, "Base tramp at function exit\n");
+    stompLRForExit(insn, currAddr, exitTrampAddr);
+    break;
+  case ipOther:
+    //fprintf(stderr, "Base tramp at arbitrary point\n");
+    break;
+  default:
+    //fprintf(stderr, "Base tramp at function call\n");
+    break;
+  }
 
-#ifdef BPATCH_LIBRARY
-      for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
-        registerSlot *reg = theRegSpace->getRegSlot(i);
-#else
-        for(u_int i = 0; i < regSpace->getRegisterCount(); i++) {
-          registerSlot *reg = regSpace->getRegSlot(i);
+  /////////////////////////////////////////////////////////////
+  ////////////////////// PRE //////////////////////////////////
+  /////////////////////////////////////////////////////////////
+
+  // Jump past save/restore if there's no instru
+  // But we don't know how far to jump. Stick a placeholder here and fix
+  // later
+  theTemplate->skipPreInsOffset = currAddr;
+  insn++; currAddr += sizeof(instruction);
+
+  // Push a new stack frame
+  theTemplate->savePreInsOffset = currAddr;
+  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+  // Save registers
+  saveGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+  saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  if (location->ipLoc == ipOther) {
+    // Save special purpose registers
+    saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+    // Save GPR0 here also? 
+  }
+  
+  currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+ 
+#if defined(MT_THREAD)
+  // MT: thread POS calculation. If not, stick a 0 here
+  theTemplate->MTpreBranch = generateMTTrampCode(insn, currAddr, proc);
+  // GenerateMT will push forward the currAddr, but not insn
+  insn = &tramp[currAddr/4];
 #endif
-	  if (reg->startsLive) {
-	    numInsn = 0;
-	    saveRegister(temp,numInsn,reg->number,8);
-	    assert(numInsn > 0);
-	    currAddr += numInsn;
-	  }
-	}
-	currAddr += saveLR(temp, 10, STKLR);   //Save link register on stack
-	
-#ifdef BPATCH_LIBRARY
-	// If this is a point where we're using a conservative base tramp,
-	// we need to save some more registers.
-	if (location->ipLoc == ipOther) {
-	  currAddr += saveSPR(temp, 10, SPR_CTR, STKCTR); // & count reg
-	  currAddr += saveCR(temp, 10, STKCR); // Save the condition codes
-	  currAddr += saveSPR(temp, 10, SPR_XER, STKXER); // & XER
-	  currAddr += saveSPR(temp, 10, 0, STKSPR0);      // & SPR0
-	}
+  if (wantTrampGuard) {
+    // Tramp guard
+    spareAddr = 0;
+    // Load the base address of the guard
+    emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
+	      (char *)insn, spareAddr, false);
+#if defined(MT_THREAD)
+    // Add on the offset (for MT)
+    emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+	  (char *)insn, spareAddr, false);
 #endif
-	  
-	  // Also save the floating point registers which could
-	  // be modified, f0-r13
-	  for(unsigned i=0; i <= 13; i++) {
-	    numInsn = 0;
-	    saveFPRegister(temp,numInsn,i,STKFP);
-	    currAddr += numInsn;
-	  }
-	  
-#ifdef BPATCH_LIBRARY
-	  if (location->ipLoc == ipOther) {
-	    // Save the floating point status and control register
-	    // (we have to do it after saving the floating point registers,
-	    // because we need to use one as a temporary)
-	    currAddr += saveFPSCR(temp, 13, STKFPSCR);
-	  }
-#endif
-	  
-	  temp--;
-	  currAddr -= sizeof(instruction);
-	  
-	  break;
-	case RESTORE_PRE_INSN:
-	case RESTORE_POST_INSN:
-	  // See comment above for why we don't shift SP.
-	  // However, the LR is stored in its normal place (at SP+8)
-          currAddr += restoreLR(temp, 10, STKLR); //Restore link register from
-	  
-#ifdef BPATCH_LIBRARY
-	  // If this is a point where we're using a conservative base tramp,
-	  // we need to restore some more registers.
-	  if (location->ipLoc == ipOther) {
-	  currAddr += restoreSPR(temp, 10, SPR_CTR, STKCTR); // & count reg
-	    currAddr += restoreCR(temp, 10, STKCR); // Restore condition codes
-	    currAddr += restoreSPR(temp, 10, SPR_XER, STKXER); // & XER
-	    currAddr += restoreSPR(temp, 10, 0, STKSPR0); // & SPR0
-	    currAddr += restoreFPSCR(temp, 13, STKFPSCR); // & FPSCR
-	  }
-#endif
-	  
-#ifdef BPATCH_LIBRARY
-	  for (u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
-	    registerSlot *reg = theRegSpace->getRegSlot(i);
-#else
-          for (u_int i = 0; i < regSpace->getRegisterCount(); i++) {
-	    registerSlot *reg = regSpace->getRegSlot(i);
-#endif
-	    if (reg->startsLive) {
-	      numInsn = 0;
-	      restoreRegister(temp,numInsn,reg->number,8);
-	      assert(numInsn > 0);
-	      currAddr += numInsn;
-	    }
-	  }
-	  // A commented-out closing brace to satisfy the auto-indentation
-	  // programs -- uncomment if they get picky
-	  //}
-	
-	  // Also load the floating point registers which were saved
-	  // since they could have been modified, f0-r13
-	  for(u_int i=0; i <= 13; i++) {
-	    numInsn = 0;
-	    restoreFPRegister(temp,numInsn,i,STKFP);
-	    currAddr += numInsn;
-	  }
-	  
-	  // "Undo" the for loop step, since we've advanced the FP also.
-	  temp--;
-	  currAddr -= sizeof(instruction);
-	  break;
-	case LOCAL_PRE_BRANCH:
-	case GLOBAL_PRE_BRANCH:
-	case LOCAL_POST_BRANCH:
-	case GLOBAL_POST_BRANCH:
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-	  if ((temp->raw == LOCAL_PRE_BRANCH) ||
-	      (temp->raw == LOCAL_POST_BRANCH)) {
-	    temp -= NUM_INSN_MT_PREAMBLE;
-	    Address numIns=0;
-	    generateMTpreamble((char *)temp, numIns, proc);
-	    numIns = numIns/sizeof(instruction);
-	    if(numIns != NUM_INSN_MT_PREAMBLE) {
-	      cerr << "numIns = " << numIns << endl;
-	      assert(numIns<=NUM_INSN_MT_PREAMBLE);
-	    }
-	    // if numIns!=NUM_INSN_MT_PREAMBLE then we should update the
-	    // space reserved for generateMTpreamble in the base-tramp
-	    // template file (tramp-power.S) - naim
-	    temp += NUM_INSN_MT_PREAMBLE;
-	  }
-#endif
-	  currAddr += setBRL(temp, 10, 0, NOOPraw); //Basically `nop'
-	  
-	  temp--;                                   //`for' loop compensate
-	  currAddr -= sizeof(instruction);          //`for' loop compensate
-	  break;
-        case REENTRANT_GUARD_ADDR:
-	  if (theTemplate->recursiveGuardPreJumpOffset)
-	    {
-	      // Need to write the following instructions:
-	      // cau 7,0,HIGH(baseAddr)
-	      genImmInsn(temp,
-			 CAUop,   // Add immediate and shift
-			 6,       // Destination
-			 0,       // Source
-			 HIGH((int)trampGuardFlagAddr));
-	      temp++; currAddr += sizeof(instruction); // Step for loop
-	      // oril 6,7,LOW(baseAddr)
-	      genImmInsn(temp,
-			 ORILop,  // OR immediate
-			 6,       // Destination
-			 6,       // Source
-			 LOW((int)trampGuardFlagAddr));
-	    }
-	  else // No guard wanted, so overwrite with noop
-	    temp->raw = NOOPraw;
-	  break;
-	case REENTRANT_GUARD_LOAD:
-	  if (theTemplate->recursiveGuardPreJumpOffset)
-	    {
-	      // load (addr: 6, dest: 5)
-	      genImmInsn(temp,   // instruction
-			 Lop,    // Load
-			 5,      // Into register 5
-			 6,      // Addr in register 6
-			 0);     // No offset
-	    }
-	  else
-	    temp->raw = NOOPraw;
-	  break;
-        case REENTRANT_PRE_INSN_JUMP:
-	  if (theTemplate->recursiveGuardPreJumpOffset)
-	    {
-	      // Need to write the following instruction:
-	      // cmp (addr: 5 != 0)
-	      genImmInsn(temp,   // Instruction
-			 CMPIop, // Compare immediate
-			 0,      // CR 0, L=0
-			 5,      // Source,
-			 0);     // Compare to 0
-	      temp++; currAddr += sizeof(instruction);
-	      // bcxxx (4, 2, reentrant(Pre|Post)GuardJump);
-	      temp->raw = 0;
-	      temp->bform.op = BCop; // Branch conditional
-	      temp->bform.bo = BFALSEcond; // Branch if false
-	      temp->bform.bi = EQcond;
-	      temp->bform.bd = ( theTemplate->restorePreInsOffset - 
-				 theTemplate->recursiveGuardPreJumpOffset) / 4;
-	      temp->bform.aa = 0; // Relative branch
-	      temp->bform.lk = 0; // No link req'd
-	    }
-	  else
-	    temp->raw = NOOPraw;
-	  break;
-        case REENTRANT_POST_INSN_JUMP:
-	  if (theTemplate->recursiveGuardPostJumpOffset)
-	    {
-	      // Need to write the following instruction:
-	      // cmp (addr: 5 != 0)
-	      genImmInsn(temp,   // Instruction
-			 CMPIop, // Compare immediate
-			 0,      // CR 0, L=0
-			 5,      // Source,
-			 0);     // Compare to 0
-	      temp++; currAddr += sizeof(instruction);
-	      // bcxxx (4, 2, reentrant(Pre|Post)GuardJump);
-	      temp->raw = 0;
-	      temp->bform.op = BCop; // Branch conditional
-	      temp->bform.bo = BFALSEcond; // Branch if false
-	      temp->bform.bi = EQcond;
-	      temp->bform.bd = ( theTemplate->restorePostInsOffset - 
-				 theTemplate->recursiveGuardPostJumpOffset) / 4;
-	      temp->bform.aa = 0; // Relative branch
-	      temp->bform.lk = 0; // No link req'd
-	    }
-	  else
-	    temp->raw = NOOPraw;
-	  break;
-        case REENTRANT_GUARD_INC:
-	  if (theTemplate->recursiveGuardPreJumpOffset)
-	    {
-	      // Need to write:
-	      // cal 5,1(0) -- set register 5 to value 1
-	      genImmInsn(temp,  // instruction 
-			 CALop, // add immediate
-			 5,     // Destination
-			 0,     // Source
-			 1);    // Value of 1
-	    }
-	  else
-	    temp->raw = NOOPraw;
-	  break;
-        case REENTRANT_GUARD_DEC:
-	  if (theTemplate->recursiveGuardPreJumpOffset)
-	    {
-	      // Need to write:
-	      // cal 5,0(0)
-	      genImmInsn(temp,  // instruction,
-			 CALop, // Add immediate
-			 5,     // Destination 
-			 0,     // Source
-			 0);    // Set to 0
-	    }
-	  else
-	    temp->raw = NOOPraw;
-	  break;
-	case REENTRANT_GUARD_STORE: 
-	  if (theTemplate->recursiveGuardPreJumpOffset)
-	    {
-	      // stw 5,0(6)
-	      genImmInsn(temp,
-			 STop,
-			 5,         // Register 5 
-			 6,         // Dest addr in reg 6
-			 0);        // 0 offset
-	    }
-	  else
-	    temp->raw = NOOPraw;
-	  break;
-	default:
-          break;
-      }
+    // Load value
+    emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
+	  (char *)insn, spareAddr, false);
+    // Previous functions increased spareAddr, but not insn. Recalculate
+    currAddr += spareAddr; insn = &tramp[currAddr/4];
+    // Compare with 0
+    genImmInsn(insn, CMPIop, 0, REG_GUARD_VALUE, 1);
+    insn++; currAddr += sizeof(instruction);
+    
+    // And record the offset for a later jump instruction
+    theTemplate->recursiveGuardPreJumpOffset = currAddr;
+    insn++; currAddr += sizeof(instruction);
+    
+    // Store 0 in the slot
+    spareAddr = 0;
+    emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE,
+	      (char *)insn, spareAddr, false);
+    currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
+    // Store
+    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    insn++; currAddr += sizeof(instruction);
+    // Store the flag addr?
+    genImmInsn(insn, STop, REG_GUARD_ADDR, 1, 16); // 16 is offset up from SP
+    insn++; currAddr += sizeof(instruction);
+  }
+  else
+    theTemplate->recursiveGuardPreJumpOffset = -1;
+
+  // At last we come to the fun bit: the minitramp! Of course,
+  // this is just a noop... sigh.
+  // Four instructions: generateBranch(null)
+  theTemplate->localPreOffset = currAddr;
+  currAddr += setBRL(insn, 10 /*scratch reg*/, 0, NOOPraw);
+  theTemplate->localPreReturnOffset = currAddr;
+  // Tramp guard shtuff. 
+  // Reload the addr of the guard from the stack
+  if (wantTrampGuard) {
+    genImmInsn(insn, Lop, REG_GUARD_ADDR, 1, 16);
+    insn++; currAddr += sizeof(instruction);
+    // store immediate
+    spareAddr = 0;
+    emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE,
+	      (char *)insn, spareAddr, false);
+    currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
+    
+    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    insn++; currAddr += sizeof(instruction);
+  }
+  // Update the cost: a series of noops for now
+  theTemplate->updateCostOffset = currAddr; 
+  generateCostSection(insn, currAddr); 
+
+  // Register restore. 
+  theTemplate->restorePreInsOffset = currAddr;
+
+  currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+
+  if (location->ipLoc == ipOther)
+    restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+  restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+  // Pop stack flame, could also be a load indirect R1->R1
+  genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+  // FINALLY, we get to the original instruction! W00T!
+  generateNOOP(insn);
+  theTemplate->emulateInsOffset = currAddr;  
+  insn++; currAddr += sizeof(instruction);
+  // The fun isn't over. If we're dyninst, we stick four more
+  // noops here to cover all eventualities
+  if (location->ipLoc == ipOther)
+    for (unsigned i = 0; i < 4; i++) {
+      generateNOOP(insn);
+      insn++; currAddr += sizeof(instruction);
     }
-	/*
-    for (temp = code, currAddr = baseAddr; 
-	(int) (currAddr - baseAddr) < theTemplate->size;
-	temp++, currAddr += sizeof(instruction))
-      fprintf(stderr, "Op: %u; RT: %u; RA: %u; D: %u\n", temp->dform.op,
-	      temp->dform.rt, temp->dform.ra, temp->dform.d_or_si);
-	*/
-    // TODO cast
-    proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) code);
 
-    free(code);
+  // That was it? I somehow expected... more. Now handle the post-bits
 
-    if (isReinstall) return NULL;
+  /////////////////////////////////////////////////////////////
+  ////////////////////// POST /////////////////////////////////
+  /////////////////////////////////////////////////////////////
 
-    trampTemplate *baseInst = new trampTemplate;
-    *baseInst = *theTemplate;
-    baseInst->baseAddr = baseAddr;
-    return baseInst;
+
+  // Jump past save/restore if there's no instru
+  // But we don't know how far to jump. Stick a placeholder here and fix
+  // later
+  theTemplate->skipPostInsOffset = currAddr;
+  insn++; currAddr += sizeof(instruction);
+
+  // Push a new stack frame
+  theTemplate->savePostInsOffset = currAddr;
+  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+  // Save registers
+  saveGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+  saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  if (location->ipLoc == ipOther) {
+    // Save special purpose registers
+    saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+    // Save GPR0 here also? 
+  }
+  currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+ 
+  // MT: thread POS calculation. If not, stick a 0 here
+#if defined(MT_THREAD)
+  theTemplate->MTpostBranch = generateMTTrampCode(insn, currAddr, proc);
+  // GenerateMT will push forward the currAddr, but not insn
+  insn = &tramp[currAddr/4];
+#endif
+  
+  // Tramp guard
+  // Load the base address of the guard
+  if (wantTrampGuard) {
+    spareAddr = 0;
+    emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
+	      (char *)insn, spareAddr, false);
+#if defined(MT_THREAD)
+    // Add on the offset (for MT)
+    emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+	  (char *)insn, spareAddr, false);
+#endif
+    // Load value
+    emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
+	  (char *)insn, spareAddr, false);
+    // Previous functions increased spareAddr, but not insn. Recalculate
+    currAddr += spareAddr; insn = &tramp[currAddr/4];
+    // Compare with 1
+    genImmInsn(insn, CMPIop, 0, REG_GUARD_VALUE, 1);
+    insn++; currAddr += sizeof(instruction);
+    
+    // And record the offset for a later jump instruction
+    theTemplate->recursiveGuardPostJumpOffset = currAddr;
+    insn++; currAddr += sizeof(instruction);
+    
+    // Store 0 in the slot
+    spareAddr = 0;
+    emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE, 
+	      (char *)insn, spareAddr, false);
+    currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
+    // Store
+    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    insn++; currAddr += sizeof(instruction);
+    // Store the flag addr?
+    genImmInsn(insn, STop, REG_GUARD_ADDR, 1, 16); // 16 is offset up from SP
+    insn++; currAddr += sizeof(instruction);
+  }
+  else
+    theTemplate->recursiveGuardPostJumpOffset = -1;
+  // At last we come to the fun bit: the minitramp! Of course,
+  // this is just a noop... sigh.
+  // Four instructions: generateBranch(null)
+  theTemplate->localPostOffset = currAddr;
+  currAddr += setBRL(insn, 10 /*scratch reg*/, 0, NOOPraw);
+  theTemplate->localPostReturnOffset = currAddr;
+
+  // Tramp guard shtuff. 
+  // Reload the addr of the guard from the stack
+  if (wantTrampGuard) {
+    genImmInsn(insn, Lop, REG_GUARD_ADDR, 1, 16);
+    insn++; currAddr += sizeof(instruction);
+    // store immediate
+    spareAddr = 0;
+    emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE, 
+	      (char *)insn, spareAddr, false);
+    currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
+    
+    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    insn++; currAddr += sizeof(instruction);
+  }
+  /*
+  // Update the cost: a series of noops for now
+  theTemplate->updateCostOffset = currAddr; 
+  writeCostSection(insn, currAddr); 
+  */
+
+  // Register restore. 
+  theTemplate->restorePostInsOffset = currAddr;
+  currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+
+  if (location->ipLoc == ipOther)
+    restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+  restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+  // Pop stack flame, could also be a load indirect R1->R1
+  genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+  theTemplate->returnInsOffset = currAddr;
+  if (location->ipLoc == ipFuncReturn)
+    insn->raw = BRraw;
+  // Otherwise will get handled below
+
+  insn++; currAddr += sizeof(instruction);
+
+  theTemplate->size = currAddr;
+
+  ////////////////////////////////////////////////////////////////////
+  //////////////////////// FIXUP /////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////
+
+  // We have the following jumps that need to be written in:
+  // 1) skipPreIns (from theTemplate->skipPreInsOffset to
+  //      emulateInsOffset
+  // 2) skipPostIns (from theTemplate->skipPostInsOffset to
+  //      returnInsOffset
+  // 3) preTrampGuard (recursiveGuardPreJumpOffset to restorePreInsn)
+  // 4) postTrampGuard (recursiveGuardPostJumpOffset to restorePostInsn)
+  // 5) Return jump (returnInsOffset to location->addr)
+  // 6) Emulated instruction (well, kinda)
+  // (MT)
+  // 7) MTpreBranch (MTpreBranch to restorePreInsn)
+  // 8) MTpostBranch (MTpostBranch to restorePostInsn) 
+
+  // 1
+  instruction *temp = &(tramp[theTemplate->skipPreInsOffset/sizeof(instruction)]);
+  generateBranchInsn(temp, theTemplate->emulateInsOffset - theTemplate->skipPreInsOffset);
+  // 2
+  temp = &(tramp[theTemplate->skipPostInsOffset/sizeof(instruction)]);
+  generateBranchInsn(temp, theTemplate->returnInsOffset - theTemplate->skipPostInsOffset);
+  // 3
+  if (theTemplate->recursiveGuardPreJumpOffset != -1) {
+    temp = &(tramp[theTemplate->recursiveGuardPreJumpOffset/sizeof(instruction)]);
+    Address offset = ((theTemplate->restorePreInsOffset -
+		       theTemplate->recursiveGuardPreJumpOffset))/4;
+    // Set it up by hand
+    temp->raw = 0; temp->bform.op = BCop; // conditional
+    temp->bform.bo = BFALSEcond; // Branch if false
+    temp->bform.bi = EQcond; temp->bform.bd = offset; 
+    temp->bform.aa = 0; temp->bform.lk = 0;
+
+  }
+  // 4
+  if (theTemplate->recursiveGuardPostJumpOffset != -1) {
+    temp = &(tramp[theTemplate->recursiveGuardPostJumpOffset/sizeof(instruction)]);
+    Address offset = ((theTemplate->restorePostInsOffset -
+		      theTemplate->recursiveGuardPostJumpOffset))/4;
+    // Set it up by hand
+    temp->raw = 0; temp->bform.op = BCop; // conditional
+    temp->bform.bo = BFALSEcond; // Branch if false
+    temp->bform.bi = EQcond; temp->bform.bd = offset; 
+    temp->bform.aa = 0; temp->bform.lk = 0;
+  }
+  // 7
+  if (theTemplate->MTpreBranch != -1) {
+    temp = &(tramp[theTemplate->MTpreBranch/sizeof(instruction)]);
+    Address offset = ((theTemplate->restorePreInsOffset -
+		       theTemplate->MTpreBranch))/4;
+    // Set it up by hand
+    temp->raw = 0; temp->bform.op = BCop; // conditional
+    temp->bform.bo = BTRUEcond; // Branch if false
+    temp->bform.bi = EQcond; temp->bform.bd = offset; 
+    temp->bform.aa = 0; temp->bform.lk = 0;
+  }
+  // 8
+  if (theTemplate->MTpostBranch != -1) {
+    temp = &(tramp[theTemplate->MTpostBranch/sizeof(instruction)]);
+    Address offset = ((theTemplate->restorePostInsOffset -
+		       theTemplate->MTpostBranch))/4;
+    // Set it up by hand
+    temp->raw = 0; temp->bform.op = BCop; // conditional
+    temp->bform.bo = BTRUEcond; // Branch if false
+    temp->bform.bi = EQcond; temp->bform.bd = offset; 
+    temp->bform.aa = 0; temp->bform.lk = 0;
+  }
+  // Okay, actually build this sucker.
+  bool isReinstall = true;
+  if (!baseAddr) {
+    baseAddr = inferiorMalloc(proc, theTemplate->size, anyHeap, location->addr);
+    isReinstall = false;
+  }
+  // InferiorMalloc can ignore our "hints" when necessary, but that's 
+  // bad here because we don't have a fallback position
+  if (DISTANCE(location->addr, baseAddr) > MAX_BRANCH)
+    {
+      fprintf(stderr, "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
+	      (unsigned) location->addr, (unsigned) baseAddr,
+	      location->func->prettyName().string_of());
+      assert(0);
+    }
+
+  theTemplate->baseAddr = baseAddr;
+  theTemplate->costAddr = baseAddr + theTemplate->updateCostOffset;
+
+  // Relocate now
+  if (location->ipLoc != ipFuncReturn) {
+    // If it was func return, we slapped in a noop earlier.
+    temp = &(tramp[theTemplate->emulateInsOffset/sizeof(instruction)]);
+    // Copy in the original instruction
+    *temp = location->originalInstruction;
+    relocateInstruction(temp, location->addr, 
+			baseAddr + theTemplate->emulateInsOffset);
+  }
+
+  // 5
+  if (location->ipLoc != ipFuncReturn) {
+    temp = &(tramp[theTemplate->returnInsOffset/sizeof(instruction)]);
+    generateBranchInsn(temp, location->addr + sizeof(instruction) - 
+		       (baseAddr + theTemplate->returnInsOffset));
+    /*
+    fprintf(stderr, "Installing jump at 0%x, offset 0x%x, going to 0x%x\n",
+	    (baseAddr + theTemplate->returnInsOffset), 
+	    location->addr - (baseAddr + theTemplate->returnInsOffset),
+	    location->addr);
+    */
+  }
+  fprintf(stderr, "------------\n");
+  for (int i = 0; i < (theTemplate->size/4); i++)
+    fprintf(stderr, "0x%x,\n", tramp[i].raw);
+  fprintf(stderr, "------------\n");
+  fprintf(stderr, "\n\n\n");
+  /*
+  fprintf(stderr, "Dumping template: localPre %d, preReturn %d, localPost %d, postReturn %d\n",
+	  theTemplate->localPreOffset, theTemplate->localPreReturnOffset, 
+	  theTemplate->localPostOffset, theTemplate->localPostReturnOffset);
+  fprintf(stderr, "returnIns %d, skipPre %d, skipPost %d, emulate %d, updateCost %d\n",
+	  theTemplate->returnInsOffset, theTemplate->skipPreInsOffset, theTemplate->skipPostInsOffset,
+	  theTemplate->emulateInsOffset,theTemplate->updateCostOffset);
+  fprintf(stderr, "savePre %d, restorePre %d, savePost %d, restorePost %d, guardPre %d, guardPost %d\n",
+	  theTemplate->savePreInsOffset, theTemplate->restorePreInsOffset, theTemplate->savePostInsOffset, theTemplate->restorePostInsOffset, theTemplate->recursiveGuardPreJumpOffset,
+	  theTemplate->recursiveGuardPostJumpOffset);
+  fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
+  */
+  // TODO cast
+  proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
+  
+  if (isReinstall) return NULL;
+
+  return theTemplate;
 }
 
 void generateNoOp(process *proc, Address addr)
@@ -1799,6 +1714,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
       
       const instPoint* newLoc1 = location->func->funcExits(globalProc)[0];
       exTramp = installBaseTramp(newLoc1, globalProc, trampRecursiveDesired);
+      
       globalProc->baseMap[newLoc1] = exTramp;
       
       const instPoint* newLoc2 = location->func->funcEntry(globalProc);
@@ -1871,25 +1787,17 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 {
     totalMiniTramps++;
     insnGenerated += codeSize/sizeof(int);
-    
     // TODO cast
     (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
-
-#ifdef BPATCH_LIBRARY
-    trampTemplate *theTemplate;
-
-    if (inst->location->ipLoc == ipOther)
-	theTemplate = &conservativeTemplate;
-    else
-	theTemplate = &baseTemplate;
-#else
-    const trampTemplate *theTemplate = &baseTemplate;
-#endif
 
     Address atAddr;
     if (inst->when == callPreInsn) {
 	if (inst->baseInstance->prevInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+theTemplate->skipPreInsOffset;
+	  //fprintf(stderr, "Base addr %x, skipPre %x\n",
+	  //  inst->baseInstance->baseAddr,
+	  //  inst->baseInstance->skipPreInsOffset);
+	    atAddr = inst->baseInstance->baseAddr+
+	      inst->baseInstance->skipPreInsOffset;
 	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
 	    inst->baseInstance->prevInstru = true;
 	    generateNoOp(inst->proc, atAddr);
@@ -1897,7 +1805,8 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     }
     else {
 	if (inst->baseInstance->postInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+theTemplate->skipPostInsOffset; 
+	    atAddr = inst->baseInstance->baseAddr +
+	      inst->baseInstance->skipPostInsOffset; 
 	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
 	    inst->baseInstance->postInstru = true;
 	    generateNoOp(inst->proc, atAddr);
@@ -1916,7 +1825,6 @@ void generateBranch(process *proc, Address fromAddr, Address newAddr)
 
     disp = newAddr-fromAddr;
     generateBranchInsn(&insn, disp);
-
     // TODO cast
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 }
@@ -1939,6 +1847,161 @@ int callsTrackedFuncP(instPoint *point)
 	    return(false);
 	}
     }
+}
+
+#if defined(MT_THREAD)
+/*
+ * offset: if the hash value comes back negative, jump forward this
+ *         (effectively skipping the RPC, do we want error handling?)
+ * tid:    Use this TID
+ * pos:    Use this POS
+ */
+
+unsigned generateMTRPCCode(char *insn, Address &base, process *proc, 
+			   unsigned offset, int tid, unsigned pos)
+{
+  AstNode *t1 ;
+  Address tableAddr;
+  int value; 
+  bool err;
+  Register src = Null_Register;
+  cerr << "In generateMTRPC" << endl;
+  if (tid != -1)  {
+
+    // Pseudocode:
+    /*
+      t1 = DYNINSTthreadPosTID(tid, pos);
+      t2 = t1 * sizeof(unsigned);
+      t3 = DYNINSTthreadtable + t2;
+      if (t1 == -2)
+        return; //basically, skip forward by a given offset
+    */
+    // Check to see if POS is valid or return -2
+    // t1 = DYNINSTthreadPosTID(tid, pos);
+    vector<AstNode *> param;
+    param += new AstNode(AstNode::Constant,(void *)tid);
+    param += new AstNode(AstNode::Constant,(void *)pos);
+    t1 = new AstNode("DYNINSTthreadPosTID", param);
+    for (unsigned i=0; i<param.size(); i++) 
+      removeAst(param[i]) ;
+
+    // Multiply POS by size of unsigned (not void *)?
+
+    value = sizeof(unsigned);
+    AstNode* t4 = new AstNode(AstNode::Constant,(void *)value);
+    AstNode* t2 = new AstNode(timesOp, t1, t4);
+    // Don't remove, we use it further down.
+    //removeAst(t1) ;
+    removeAst(t4) ;
+
+    // t3 = DYNINSTthreadTable + POS*sizeof(unsigned)
+
+    tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+    assert(!err);
+    AstNode* t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
+    AstNode* t3 = new AstNode(plusOp, t2, t5);
+    removeAst(t2);
+    removeAst(t5);
+
+    //if (t1 == -2) go forward by offset
+
+    AstNode* t7 = new AstNode(AstNode::Constant,(void *)-2);
+    AstNode* t8 = new AstNode(eqOp, t1, t7);
+    removeAst(t1);
+    removeAst(t7);
+    AstNode* t9 = new AstNode(AstNode::Constant, (void *)(offset));
+    AstNode* t10 = new AstNode(branchOp, t9);
+    removeAst(t9);
+    AstNode* t11 = new AstNode(ifOp, t8, t10);
+    removeAst(t8);
+    removeAst(t10);
+    AstNode *t6= new AstNode(t11, t3);
+
+    removeAst(t11);
+    removeAst(t3);
+    src = t6->generateCode(proc, regSpace, insn, base, false, true);
+    removeAst(t6);
+
+    instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
+    genImmInsn(tmp_insn, ORILop, src, REG_MT_BASE, 0);  
+    base += sizeof(instruction);
+    //regSpace->freeRegister(src);
+  }
+
+  return 0;
+}
+
+#endif
+
+void generateBreakPoint(instruction &insn) { // instP.h
+    insn.raw = BREAK_POINT_INSN;
+}
+
+void generateIllegalInsn(instruction &insn) { // instP.h
+   insn.raw = 0; // I think that on power, this is an illegal instruction (someone check this please) --ari
+}
+
+
+bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
+  instruction *tmp = (instruction *)insnPtr;
+  // A miracle of casting...
+  instruction *insn = (instruction *) (&tmp[baseBytes/sizeof(instruction)]);
+  
+  // Make a stack frame
+  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
+  insn++; baseBytes += sizeof(instruction);
+  
+  // Save registers
+  saveGPRegisters(insn, baseBytes, TRAMP_GPR_OFFSET, conservativeRegSpace);
+  return true;
+}
+
+bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
+                                     unsigned &breakOffset,
+                                     bool stopForResult,
+                                     unsigned &stopForResultOffset,
+                                     unsigned &justAfter_stopForResultOffset,
+                                     int /* thrId */,
+                                     bool isSafeRPC) {
+
+  // The sequence we want is: (restore), trap, illegal,
+  // where (restore) undoes anything done in emitInferiorRPCheader(), above.
+  instruction *tmp = (instruction *)insnPtr;
+  // A miracle of casting...
+  instruction *insn = (instruction *) (&tmp[baseBytes/sizeof(instruction)]);
+  
+  if (stopForResult) {
+    generateBreakPoint(*insn);
+    stopForResultOffset = baseBytes;
+    baseBytes += sizeof(instruction); insn++;
+    justAfter_stopForResultOffset = baseBytes;
+  }
+  
+  restoreGPRegisters(insn, baseBytes, TRAMP_GPR_OFFSET, conservativeRegSpace);
+  
+  // Pop the stack
+  genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
+  insn++; baseBytes += sizeof(instruction);
+  
+  
+  // Safe RPCs are run as function-lets
+  if (isSafeRPC) // ret instruction?
+    {
+      insn->raw = BRraw;
+    }
+  else {
+    // Trap instruction (breakpoint):
+    generateBreakPoint(*insn);
+  }
+  breakOffset = baseBytes;
+  baseBytes += sizeof(instruction); insn++;
+  
+  // And just to make sure that we don't continue, we put an illegal
+  // insn here:
+  generateIllegalInsn(*insn);
+  baseBytes += sizeof(instruction); insn++;
+    
+  return true;
 }
 
 /*
@@ -2083,11 +2146,12 @@ Register emitFuncCall(opCode /* ocode */,
 		      const function_base *calleefunc,
 		      const instPoint *location = NULL)
 {
+
+  Address initBase = base;
   Address dest;
   Address toc_anchor;
   bool err;
   vector <Register> srcs;
-  
   if (calleefunc)
     {
       dest = calleefunc->getEffectiveAddress(proc);
@@ -2107,7 +2171,6 @@ Register emitFuncCall(opCode /* ocode */,
        }
   }
 
-
   // Now that we have the destination address (unique, hopefully) 
   // get the TOC anchor value for that function
   toc_anchor = proc->getTOCoffsetInfo(dest);
@@ -2116,6 +2179,8 @@ Register emitFuncCall(opCode /* ocode */,
   // of what registers they're in.
   for (unsigned u = 0; u < operands.size(); u++) {
     if (operands[u]->getSize() == 8) {
+      // What does this do?
+      fprintf(stderr, "in weird code\n");
         Register dummyReg = rs->allocateRegister(iPtr, base, noCost);
 	srcs.push_back(dummyReg);
 	instruction *insn = (instruction *) ((void*)&iPtr[base]);
@@ -2123,32 +2188,32 @@ Register emitFuncCall(opCode /* ocode */,
 	base += sizeof(instruction);
     }
     srcs.push_back(operands[u]->generateCode(proc, rs, iPtr, base, false, false, location));
+    //fprintf(stderr, "Generated operand %d, base %d\n", u, base);
   }
   
   // generateCode can shift the instruction pointer, so reset insn
   instruction *insn = (instruction *) ((void*)&iPtr[base]);
   vector<int> savedRegs;
   
-  //     Save the link register.
+  //  Save the link register.
   // mflr r0
   insn->raw = MFLR0raw;
   insn++;
   base += sizeof(instruction);
-
   // Register 0 is actually the link register, now. However, since we
   // don't want to overwrite the LR slot, save it as "register 0"
-  saveRegister(insn, base, 0, STKFCALLREGS);
+  saveRegister(insn, base, 0, FUNC_CALL_SAVE);
   // Add 0 to the list of saved registers
   savedRegs.push_back(0);
   
   // Save register 2 (TOC)
-  saveRegister(insn, base, 2, STKFCALLREGS);
+  saveRegister(insn, base, 2, FUNC_CALL_SAVE);
   savedRegs.push_back(2);
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  // save REG_MT
-  saveRegister(insn,base,REG_MT,STKFCALLREGS);
-  savedRegs += REG_MT;
+#if defined(MT_THREAD)
+  // save REG_MT_BASE
+  saveRegister(insn,base,REG_MT_BASE, FUNC_CALL_SAVE);
+  savedRegs += REG_MT_BASE;
 #endif
 
   // see what others we need to save.
@@ -2181,8 +2246,9 @@ Register emitFuncCall(opCode /* ocode */,
       // since the register should be free
       // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
       if(u == srcs.size()) {
-	saveRegister(insn, base, reg->number, STKFCALLREGS);
+	saveRegister(insn, base, reg->number, FUNC_CALL_SAVE);
 	savedRegs.push_back(reg->number);
+	cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
       }
     } else if (reg->inUse) {
       // only inuse registers permitted here are the parameters.
@@ -2229,48 +2295,11 @@ Register emitFuncCall(opCode /* ocode */,
     genImmInsn(insn, ORILop, srcs[u], u+3, 0);
     insn++;
     base += sizeof(instruction);
-    
     // source register is now free.
     regSpace->freeRegister(srcs[u]);
   }
-  // 
-  // Update the stack pointer
-  //   argarea  =  8 words  (8 registers)
-  //   linkarea =  6 words  (6 registers)
-  //   nfuncrs  =  32 words (area we use when saving the registers above 
-  //                         ngprs at the beginning of this function call; 
-  //                         this area saves the registers already being
-  //                         used in the mini trampoline, registers which
-  //                         need to be accessed after this function call;
-  //                         this area is used in emitFuncCall--not all the
-  //                         registers are being saved, only the necessary
-  //                         ones)
-  //   nfprs    =  14 words (area we use to save the floatpoing registers,
-  //                         not all the fprs, only the volatile ones 0-13)
-  //   ngprs    =  32 words (area we use when saving the registers above the
-  //                         stack pointer, at the beginning of the base
-  //                         trampoline--not all the gprs are saved, only the
-  //   ???      =  2  words  (two extra word was added on for extra space, 
-  //                          and to make sure the floatpings are aligned)
-  // OLD STACK POINTER
-  //   szdsa    =  4*(argarea+linkarea+nfuncrs+nfprs+ngprs) = 368 + 8 = 376
-  // TODO: move this to arch-power. Here for compiling speed reasons.
-#define emitFuncCallStackSpace 376
 
-  // So as of now, we have a big chunk of space at SP-24K (approx) which
-  // is used. This is not a good situation, as we have _no clue_ what 
-  // our instrumentation is going to do. Simple answer: shift the stack
-  // pointer past our saved area. Not efficient in terms of space (at 24K
-  // a pop), but safe.
-  // Take current SP, decrease by frame amount, and store (both) in
-  // register 1 and in memory. Back chain to "caller"
-  genImmInsn(insn, STUop, REG_SP, REG_SP, -emitFuncCallStackSpace - STKKEEP);
-  insn++;
-  base += sizeof(instruction);
-
-  // save the TOC 
-  // Done above, right after we save the LR
-  // Push in the value of the TOC anchor to register 2
+  // Set up the new TOC value
 
   genImmInsn(insn, CAUop, 2, 0, HIGH(toc_anchor));
   insn++;
@@ -2279,17 +2308,9 @@ Register emitFuncCall(opCode /* ocode */,
   insn++;
   base += sizeof(instruction);
 
-  // cout << "Dummy" << dummy[0] << "\t" << dummy[1]<< "\t" << dummy[2]<<endl;
-
-  // generate a to the subroutine to be called.
+  // generate a branch to the subroutine to be called.
   // load r0 with address, then move to link reg and branch and link.
   
-  // TODO: can we do this with a branch to fixed, instead of a
-  // branch-to-link-register?
-  // Yes, but we then have to put all of the minitramps in
-  // the text heap (which is limited), not the data heap (which isn't).
-  // We can't guarantee that we can reach a function from the data
-  // heap, and odds are against us. 
   // Set the upper half of the link register
   genImmInsn(insn, CAUop, 0, 0, HIGH(dest));
   insn++;
@@ -2311,22 +2332,6 @@ Register emitFuncCall(opCode /* ocode */,
   insn++;
   base += sizeof(instruction);
 
-  // should there be a nop of some sort here?, sec
-  // No: AFAIK, the nop is an artifact of the linker, which we bypass.
-  // ld replaces the nop with a instr to reload the TOC anchor, below.
-  // -- bernat
-  //insn->raw = 0x4ffffb82;  // nop
-  //insn++;
-  //base += sizeof(instruction);
-
-  // restore TOC
-  // Implicitly done by restoreRegs below (it was saved above)
-
-  // now cleanup.
-  genImmInsn(insn, CALop, REG_SP, REG_SP, emitFuncCallStackSpace + STKKEEP);
-  insn++;
-  base += sizeof(instruction);
-  
   // get a register to keep the return value in.
   Register retReg = rs->allocateRegister(iPtr, base, noCost);
 
@@ -2340,15 +2345,20 @@ Register emitFuncCall(opCode /* ocode */,
   
   // restore saved registers.
   for (u_int ui = 0; ui < savedRegs.size(); ui++) {
-    restoreRegister(insn,base,savedRegs[ui],STKFCALLREGS);
+    restoreRegister(insn,base,savedRegs[ui],FUNC_CALL_SAVE);
   }
   
   // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
   insn->raw = MTLR0raw;
   insn++;
   base += sizeof(instruction);
+
+  insn = (instruction *) iPtr;
+  for (unsigned foo = initBase/4; foo < base/4; foo++)
+    fprintf(stderr, "0x%x,\n", insn[foo].raw);
   
   // return value is the register with the return value from the called function
+
   return(retReg);
 }
 
@@ -2466,9 +2476,10 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       // src1 is the argument number 0..X, the first 8 are stored in registers
       // r3 and 
       if(src1 < 8) {
-	restoreRegister(insn, base, src1+3, dest, 8);
+	restoreRegister(insn, base, src1+3, dest, TRAMP_GPR_OFFSET);
 	return(dest);
       } else {
+	assert(0 && "This is broken severely");
         genImmInsn(insn, Lop, dest, 1, (src1+6)*4);
         insn++;	
         base += sizeof(instruction);
@@ -2630,7 +2641,7 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
 	    assert(0);
 	} else {
-	    genImmInsn(insn, Lop, dest, REG_SP, offset);
+	    genImmInsn(insn, Lop, dest, REG_SP, offset + TRAMP_FRAME_SIZE);
 	    insn++;
             base += sizeof(instruction)*2;
 	}
@@ -2641,7 +2652,7 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
 	  assert(0);
 	} else {
-	    genImmInsn(insn, CALop, dest, REG_SP, offset);
+	    genImmInsn(insn, CALop, dest, REG_SP, offset + TRAMP_FRAME_SIZE);
 	    insn++;
 	    base += sizeof(instruction);
 	}
@@ -2702,7 +2713,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
 	  assert(0);
 	} else {
-	    genImmInsn(insn, STop, src1, REG_SP, offset);
+	    genImmInsn(insn, STop, src1, REG_SP, offset + TRAMP_FRAME_SIZE);
 	    base += sizeof(instruction);
 	    insn++;
 	}
@@ -3427,14 +3438,6 @@ void returnInstance::addToReturnWaitingList(Address , process * ) {
     P_abort();
 }
 
-void generateBreakPoint(instruction &insn) { // instP.h
-    insn.raw = BREAK_POINT_INSN;
-}
-
-void generateIllegalInsn(instruction &insn) { // instP.h
-   insn.raw = 0; // I think that on power, this is an illegal instruction (someone check this please) --ari
-}
-
 bool doNotOverflow(int value)
 {
   // we are assuming that we have 15 bits to store the immediate operand.
@@ -3738,8 +3741,9 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
   switch ( (int) register_num)
     {
     case REG_LR:
+      assert(0 && "Need to fix this");
       // LR is saved down the stack
-      offset = STKLR - STKPAD; 
+      offset = TRAMP_SPR_OFFSET + STK_LR; 
       // Get address (SP + offset) and stick in register dest.
       emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
 	      base, noCost);

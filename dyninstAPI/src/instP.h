@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.32 2001/07/02 22:45:18 gurari Exp $
+// $Id: instP.h,v 1.33 2002/02/21 21:47:49 bernat Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -75,6 +75,9 @@ class trampTemplate {
 
     int recursiveGuardPreJumpOffset;
     int recursiveGuardPostJumpOffset;
+
+    int MTpreBranch;
+    int MTpostBranch;
 
     int cost;			/* cost in cycles for this basetramp. */
     Address costAddr;           /* address of cost in this tramp      */

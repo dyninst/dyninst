@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.25 2002/02/18 19:05:44 gurari Exp $
+// $Id: osf.C,v 1.26 2002/02/21 21:47:49 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -62,9 +62,7 @@
 #include <sys/poll.h>
 #include <sys/fault.h>
 
-#ifdef SHM_SAMPLING
 #include "common/h/osfKludges.h"
-#endif
 
 #define V0_REGNUM 0	/* retval from integer funcs */
 #define PC_REGNUM 31
@@ -976,8 +974,7 @@ bool process::dumpImage()
 }
 
 
-
-#ifdef SHM_SAMPLING
+#if !defined(BPATCH_LIBRARY)
 rawTime64 process::getRawCpuTime_hw(int lwp_id) {
   lwp_id = 0;  // to turn off warning for now
   return 0;
@@ -1044,3 +1041,7 @@ void process::initCpuTimeMgrPlt() {
 }
 #endif
 
+bool getLWPIDs(vector <unsigned> &LWPids)
+{
+  assert (0 && "Not implemented");
+}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.114 2002/02/20 22:22:05 gurari Exp $
+// $Id: inst-sparc.C,v 1.115 2002/02/21 21:47:48 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -978,7 +978,7 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
   removeAst(t3);
   src = t6->generateCode(proc, regSpace, insn, base, false, true);
   removeAst(t6);
-  (void) emitV(orOp, src, 0, REG_MT, insn, base, false);
+  (void) emitV(orOp, src, 0, REG_MT_BASE, insn, base, false);
   regSpace->freeRegister(src);
 }
 #endif
@@ -987,7 +987,11 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
 /****************************************************************************/
 /****************************************************************************/
 
-void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos)
+// Fake the POS calculation
+
+void generateMTRPCCode(char *insn, Address &base, 
+		       process *proc, unsigned offset, 
+		       int tid, unsigned pos)
 {
   AstNode *t1 ;
   Address tableAddr;
@@ -1034,7 +1038,7 @@ void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offs
     src = t6->generateCode(proc, regSpace, insn, base, false, true);
     removeAst(t6);
     unsigned first_insn=base;
-    (void) emitV(orOp, src, 0, REG_MT, insn, base, false);
+    (void) emitV(orOp, src, 0, REG_MT_BASE, insn, base, false);
     regSpace->freeRegister(src);
   }
 }

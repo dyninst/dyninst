@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.50 2002/02/20 22:22:06 gurari Exp $
+// $Id: inst-sparc.h,v 1.51 2002/02/21 21:47:48 bernat Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -94,7 +94,7 @@ public:
 
 #define INSN_SIZE ( sizeof( instruction ) )
 
-#define REG_MT               23   /* register saved to keep the address of */
+#define REG_MT_BASE          23   /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread. Reg L7               */
 #define NUM_INSN_MT_PREAMBLE 27   /* number of instructions required for   */

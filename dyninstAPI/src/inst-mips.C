@@ -2809,7 +2809,7 @@ bool process::emitInferiorRPCheader(void *code_, Address &base)
 /****************************************************************************/
 
 // TODO: should offset parameters be Address's?
-bool process::emitInferiorRPCtrailer(void *code_, Address &base,
+bool process::emitInferiorRPCtrailer(void *code_, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
@@ -2824,29 +2824,29 @@ bool process::emitInferiorRPCtrailer(void *code_, Address &base,
 
   // optional code for grabbing RPC result
   if (stopForResult) {
-    instruction *insn = (instruction *)(code + base);
+    instruction *insn = (instruction *)(code + baseBytes);
     genTrap(insn); // trap to grab result
-    stopForResultOffset = base;
-    base += INSN_SIZE;
-    justAfter_stopForResultOffset = base;
+    stopForResultOffset = baseBytes;
+    baseBytes += INSN_SIZE;
+    justAfter_stopForResultOffset = baseBytes;
   }
 
   // mandatory RPC trailer: restore, trap, illegal
-  instruction *insn = (instruction *)(code + base);
+  instruction *insn = (instruction *)(code + baseBytes);
   // daddiu sp,sp,512
 #ifdef mips_unknown_ce2_11 //ccw 5 nov 2000 : 28 mar 2001
 	genItype(insn, ADDIUop, REG_SP, REG_SP, 512); //ccw 5 nov 2000 : was 512
 #else
 	genItype(insn, DADDIUop, REG_SP, REG_SP, 512);
 #endif
-  base += INSN_SIZE;
+  baseBytes += INSN_SIZE;
   // trap insn
   genTrap(insn+1);
-  breakOffset = base;
-  base += INSN_SIZE;
+  breakOffset = baseBytes;
+  baseBytes += INSN_SIZE;
   // illegal insn
   genIll(insn+2);
-  base += INSN_SIZE;
+  baseBytes += INSN_SIZE;
 
   TRACE_E( "process::emitInferiorRPCtrailer" );
 
@@ -3685,20 +3685,7 @@ void generate_base_tramp_recursive_guard_code( process * p,
 
 
   /* prepare guard flag memory, if needed */
-  Address guardFlagAddress = p->getTrampGuardFlagAddr();
-  if( guardFlagAddress == 0 )
-    {
-	int initial_value = 1;
-	DEBUG( "Attempting to allocate guard space." );
-	guardFlagAddress = inferiorMalloc( p, sizeof( int ), dataHeap );
-	DEBUG( "Address of guard is 0x" << setw( 16 ) << setfill( '0' ) << setbase(16)
-	       << guardFlagAddress << dec << "." );
-	// Zero out the new value
-	p->writeDataSpace( ( void * )guardFlagAddress, sizeof( int ), & initial_value );
-	DEBUG( "Initialized guardFlagAddress." );
-
-	p->setTrampGuardFlagAddr( guardFlagAddress );
-    }
+  Address guardFlagAddress = p->trampGuardAddr();
 
   /* The 64-bit address is split into 4 16-bit chunks: A, B, C, D */
   /* A is the most significant chunk, D the least significant.    */
@@ -4706,8 +4693,6 @@ void initPrimitiveCost()
   primitiveCosts["DYNINSTreportNewTags"] = 1; // calls TraceRecord
   primitiveCosts["DYNINSTbreakPoint"] = 1;
 
-  // below functions are not used on this platform
-  // (obviated by SHM_SAMPLING)
   primitiveCosts["DYNINSTalarmExpire"] =      1;
   primitiveCosts["DYNINSTsampleValues"] =     1;
   primitiveCosts["DYNINSTreportTimer"] =      1;

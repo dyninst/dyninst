@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.14 2001/12/18 19:43:19 bernat Exp $
+// $Id: aixDL.C,v 1.15 2002/02/21 21:47:45 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -336,7 +336,7 @@ bool checkAllThreadsForBreakpoint(int pid, Address break_addr, unsigned &curr_lw
   // kernel thread ID. Sheesh.
 
   struct ptsprs spr_contents;
-
+  fprintf(stderr, "Checking all threads for breakpoint %x\n", break_addr);
   // Check the current (cached) kernel thread ID
   if (curr_lwp) {
     if (P_ptrace(PTT_READ_SPRS, curr_lwp, (int *)&spr_contents,
@@ -436,7 +436,7 @@ void process::handleTrapAtEntryPointOfMain()
 {
   function_base *f_main = findOneFunction("main");
   assert(f_main);
-
+  cerr << "handleTrapAtEntryPointofMain" << endl;
   Address addr = f_main->addr();
   // Put back the original insn
   writeDataSpace((void *)addr, sizeof(instruction), 
@@ -456,6 +456,7 @@ void process::handleTrapAtEntryPointOfMain()
 void process::insertTrapAtEntryPointOfMain()
 {
   function_base *f_main = findOneFunction("main");
+  cerr << "insertTrap..." << endl;
   if (!f_main) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");
@@ -533,6 +534,9 @@ bool getRTLibraryName(string &dyninstName, int pid)
  * and continue.
  */
 
+extern void pushStack(char *i, Address &base);
+extern void popStack(char *i, Address &base);
+
 bool process::dlopenDYNINSTlib()
 {
   // This is actually much easier than on other platforms, since
@@ -557,6 +561,7 @@ bool process::dlopenDYNINSTlib()
   // Round it up to the nearest instruction. 
   codeBase += sizeof(instruction) - (codeBase % sizeof(instruction));
 
+  cerr << "dlopenDYNINSTlib" << endl;
 
   int count = 0; // how much we've written
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE]; // space
@@ -594,16 +599,16 @@ bool process::dlopenDYNINSTlib()
   vector<AstNode*> dlopenAstArgs(2);
   AstNode *dlopenAst;
 
-  // at this time, we know the offset for the library name, so we fix the
-  // call to dlopen and we just write the code again! This is probably not
-  // very elegant, but it is easy and it works - naim
   dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
   dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
   dlopenAst = new AstNode("dlopen", dlopenAstArgs);
   removeAst(dlopenAstArgs[0]);
   removeAst(dlopenAstArgs[1]);
+  // We need to push down the stack before we call this
+  pushStack((char *)scratchCodeBuffer, dyninst_count);
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
 			  dyninst_count, true, true);
+  popStack((char *)scratchCodeBuffer, dyninst_count);
   dlopencall_addr = codeBase + count;
   writeDataSpace((void *)dlopencall_addr, dyninst_count, 
 		 (char *)scratchCodeBuffer);
@@ -628,7 +633,8 @@ bool process::dlopenDYNINSTlib()
     logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
     assert(0);
   }
-
+  fprintf(stderr, "Wrote trap at addr 0x%x, starting at 0x%x\n",
+	  dlopentrap_addr, dlopencall_addr);
   return true;
 }
 

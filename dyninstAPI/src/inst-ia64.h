@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.1 2002/02/11 22:01:55 tlmiller Exp $
+// $Id: inst-ia64.h,v 1.2 2002/02/21 21:47:46 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
 
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
 
-#define REG_MT NUM_VIRTUAL_REGISTERS /* register saved to keep the address */
+#define REG_MT_BASE NUM_VIRTUAL_REGISTERS /* register saved to keep the address */
                                      /* of the current vector of           */
                                      /* counter/timers for each thread     */
 

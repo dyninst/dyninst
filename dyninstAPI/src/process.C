@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.301 2002/02/17 00:41:11 gurari Exp $
+// $Id: process.C,v 1.302 2002/02/21 21:47:49 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -89,12 +89,6 @@ int pvmendtask();
 #ifndef BPATCH_LIBRARY
 extern void generateRPCpreamble(char *insn, Address &base, process *proc, 
                                 unsigned offset, int tid, unsigned pos);
-#endif
-#if defined(SHM_SAMPLING) && defined(MT_THREAD) //inst-sparc.C
-extern void generateMTpreamble(char *insn, Address &base, process *proc);
-#ifdef rs6000_ibm_aix4_1
-#include <sys/pthdebug.h>
-#endif
 #endif
 
 #include "common/h/debugOstream.h"
@@ -205,39 +199,12 @@ bool waitingPeriodIsOver()
   }
   return(waiting);
 }
-
-
+// Frame(process *): return toplevel (active) stack frame
+// (platform-independent wrapper)
 Frame::Frame(process *p, unsigned curr_lwp)
   : uppermost_(true), pc_(0), fp_(0), lwp_id_(curr_lwp), thread_(NULL)
 {
-  // platform-dependent implementation
   getActiveFrame(p);
-}
-
-
-// getCallerFrame(): return stack frame of caller, 
-// relative to current (callee) stack frame
-// (platform-independent wrapper)
-Frame Frame::getCallerFrame(process *p) const
-{
-  // if no previous frame exists, return zero frame
-  Frame ret; // zero frame
-  if (fp_ == 0) return Frame(); // zero frame
-
-  // platform-dependent implementation
-  if (thread_ || lwp_id_) {
-    ret = getCallerFrameThread(p);
-  } else {
-    ret = getCallerFrameNormal(p);
-  }
-
-  // if this is the outermost frame, stop by returning zero frame
-  extern bool isValidAddress(process *, Address);
-  if (ret.pc_ == 0 || !isValidAddress(p, ret.pc_)) {
-    return Frame(); // zero frame
-  }
-
-  return ret;
 }
 
 #if defined(USE_STL_VECTOR)
@@ -288,9 +255,9 @@ vector<Address> process::walkStack(bool noPause)
       if (spOld < spNew) {
         // not moving up stack
         if (!noPause && needToCont && !continueProc())
-			  cerr << "walkStack: continueProc failed" << endl;
-	       vector<Address> ev; // empty vector
-		   return ev;
+	  cerr << "walkStack: continueProc failed" << endl;
+	vector<Address> ev; // empty vector
+	return ev;
       }
       spOld = spNew;
 
@@ -434,13 +401,11 @@ void process::walkAStack(int /*id*/,
   pcs.resize(0);
   fps.resize(0);
   Address fpOld = 0;
-  fprintf(stderr, "Starting frame is: 0x%x, 0x%x\n", currentFrame.getPC(), currentFrame.getFP());
   while (!currentFrame.isLastFrame()) {
       Address fpNew = currentFrame.getFP();
       fpOld = fpNew;
 
       Address next_pc = currentFrame.getPC();
-      fprintf(stderr, "pc: 0x%x, fp: 0x%x\n", (unsigned) next_pc, (unsigned) fpOld);
       pcs += next_pc;
       fps += fpOld ;
       // is this pc in the signal_handler function?
@@ -587,13 +552,14 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
 
     // Walk the lwp stack first, walk a thread stack only if it is not active
     // If we walk an active thread stack, information may be incorrect. 
-    int *IDs, i=0;
+    int i=0;
     vector<Address> lwp_stack_lo;
     vector<Address> lwp_stack_hi;
+    vector<unsigned> lwpIDs;
 
-    if (getLWPIDs(&IDs)) {
-      while(IDs[i] != 0) {
-        int lwp_id = IDs[i] ;
+    if (getLWPIDs(lwpIDs)) {
+      for (unsigned iter = 0; iter < lwpIDs.size(); iter++){
+        int lwp_id = lwpIDs[i] ;
         Address fp, pc;
         if (getLWPFrame(lwp_id, &fp, &pc)) {
           Frame currentFrame(lwp_id, fp, pc, true);
@@ -605,7 +571,6 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
         }
         i++ ;
       }
-      delete [] IDs;
     }
 
     for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
@@ -1300,6 +1265,10 @@ void process::saveWorldData(Address address, int size, const void* src){
 	newData->value = new char[size];
 	memcpy(newData->value, src, size);
 	dataUpdates.push_back(newData);
+#else /* Get rid of annoying warnings */
+	Address tempaddr = address;
+	int tempsize = size;
+	const void *bob = src;
 #endif
 #endif
 }
@@ -1403,6 +1372,30 @@ void process::initInferiorHeap()
   }
   inferiorMemAvailable = hp->totalFreeMemAvailable;
 }
+
+bool process::initTrampGuard()
+{
+  // The runtime lib has a variable called DYNINST_tramp_guard
+  // that acts as a flag determining whether or not it is safe
+  // to enter instrumentation code. Basically, when we enter 
+  // a base tramp first check to see if the flag is set. If
+  // so, we skip instrumentation. If not, we set the flag and 
+  // continue.
+  // MT_THREAD: addr points to a vector, one per POS
+  // Set after this is called: trampGuardAddr_
+  // Returns: true on success, false on failure (can be asserted against).
+  
+  assert(runtime_lib);
+
+  const string vrbleName = "DYNINST_tramp_guard";
+  internalSym sym;
+  bool flag = findInternalSymbol(vrbleName, true, sym);
+  assert(flag);
+  trampGuardAddr_ = sym.getAddr();
+  fprintf(stderr, "Found tramp guard at addr %x\n", (unsigned) trampGuardAddr_);
+  return true;
+}
+  
 
 // create a new inferior heap that is a copy of src. This is used when a process
 // we are tracing forks.
@@ -1778,6 +1771,7 @@ bool process::initDyninstLib() {
 #endif
 
   initInferiorHeap();
+  initTrampGuard();
   extern vector<sym_data> syms_to_find;
   if (!heapIsOk(syms_to_find))
     return false;
@@ -1835,36 +1829,36 @@ process::process(int iPid, image *iImage, int iTraceLink
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 ) :
+  collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
-             cpuTimeMgr(NULL),
+  cpuTimeMgr(NULL),
 #ifdef HRTIME
-             hr_cpu_link(NULL),
+  hr_cpu_link(NULL),
 #endif
 #endif
-             baseMap(ipHash), 
+  baseMap(ipHash), 
 #ifdef BPATCH_LIBRARY
-	     PDFuncToBPFuncMap(hash_bp),
-	     instPointMap(hash_address),
+  PDFuncToBPFuncMap(hash_bp),
+  instPointMap(hash_address),
 #endif
-             trampGuardFlagAddr(0),
-             savedRegs(NULL),
-             pid(iPid) // needed in fastInferiorHeap ctors below
-#if defined(SHM_SAMPLING)
-             ,previous(0),
-             inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
-             theSuperTable(this,
-                        iShmHeapStats[0].maxNumElems,
-                        iShmHeapStats[1].maxNumElems,
+  savedRegs(NULL),
+  pid(iPid), // needed in fastInferiorHeap ctors below
+#if !defined(BPATCH_LIBRARY)
+  previous(0),
+  inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
+  theSuperTable(this,
+		iShmHeapStats[0].maxNumElems,
+		iShmHeapStats[1].maxNumElems,
 #if defined(MT_THREAD)  
-                        iShmHeapStats[2].maxNumElems,
-                        MAX_NUMBER_OF_THREADS/4)
+		iShmHeapStats[2].maxNumElems,
+		MAX_NUMBER_OF_THREADS/4
 #else
-                        iShmHeapStats[2].maxNumElems)
+		iShmHeapStats[2].maxNumElems
 #endif
+		),
 #endif
-             ,callBeforeContinue(NULL),
-             curr_lwp(0),
-		collectSaveWorldData(true) 
+  callBeforeContinue(NULL),
+  curr_lwp(0)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -1900,14 +1894,16 @@ process::process(int iPid, image *iImage, int iTraceLink
     reachedVeryFirstTrap = false;
     createdViaAttach = false;
     createdViaFork = false;
-    createdViaAttachToCreated = false;
+    if (iTraceLink != -1 ) createdViaAttachToCreated = false; 
+    else 
+       createdViaAttachToCreated = true; // indicates the unique case where paradynd is attached to
+                                         // a stopped application just after executing the execv() --Ana 
 
 #ifndef BPATCH_LIBRARY
       if (iTraceLink == -1 ) createdViaAttachToCreated = true;
                          // indicates the unique case where paradynd is attached to
                          // a stopped application just after executing the execv() --Ana
 #endif
-
     needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button
 
     symbols = iImage;
@@ -1954,6 +1950,7 @@ process::process(int iPid, image *iImage, int iTraceLink
     dynamiclinking = false;
     dyn = new dynamic_linking;
     shared_objects = 0;
+    runtime_lib = 0;
     all_functions = 0;
     all_modules = 0;
     some_modules = 0;
@@ -2020,41 +2017,41 @@ process::process(int iPid, image *iImage, int iTraceLink
 process::process(int iPid, image *iSymbols,
                  int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
                  bool &success
-#ifdef SHM_SAMPLING
+#if !defined(BPATCH_LIBRARY)
                  , key_t theShmKey,
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
                  ) :
-#ifndef BPATCH_LIBRARY
-                cpuTimeMgr(NULL),
+  collectSaveWorldData(true),
+#if !defined(BPATCH_LIBRARY)
+  cpuTimeMgr(NULL),
 #ifdef HRTIME
-                hr_cpu_link(NULL),
+  hr_cpu_link(NULL),
+#endif // HRTIME
+#endif // BPATCH
+  baseMap(ipHash),
+#if defined(BPATCH_LIBRARY)
+  PDFuncToBPFuncMap(hash_bp),
+  instPointMap(hash_address),
 #endif
-#endif
-                baseMap(ipHash),
-#ifdef BPATCH_LIBRARY
-	        PDFuncToBPFuncMap(hash_bp),
-		instPointMap(hash_address),
-#endif
-                trampGuardFlagAddr(0),
-                savedRegs(NULL),
-                pid(iPid)
-#ifdef SHM_SAMPLING
-             ,previous(0),
-             inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
-             theSuperTable(this,
-                           iShmHeapStats[0].maxNumElems,
-                           iShmHeapStats[1].maxNumElems,
+  savedRegs(NULL),
+  pid(iPid),
+#if !defined(BPATCH_LIBRARY)
+  previous(0),
+  inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
+  theSuperTable(this,
+		iShmHeapStats[0].maxNumElems,
+		iShmHeapStats[1].maxNumElems,
 #if defined(MT_THREAD)
-                           iShmHeapStats[2].maxNumElems,
-                           MAX_NUMBER_OF_THREADS/4)
+		iShmHeapStats[2].maxNumElems,
+		MAX_NUMBER_OF_THREADS/4
 #else
-                           iShmHeapStats[2].maxNumElems)
+  iShmHeapStats[2].maxNumElems
 #endif
+		),
 #endif
-             ,callBeforeContinue(NULL),
-             curr_lwp(0),
-		collectSaveWorldData(true) 
+  callBeforeContinue(NULL),
+  curr_lwp(0)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2064,7 +2061,7 @@ process::process(int iPid, image *iSymbols,
 #endif /* DETACH_ON_THE_FLY */
 
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
    inThreadCreation=false;
    preambleForDYNINSTinit=true;
    DYNINSTthreadRPC = 0 ;
@@ -2083,46 +2080,46 @@ process::process(int iPid, image *iSymbols,
     main_brk_addr = 0;
 #endif
 
-#ifndef BPATCH_LIBRARY
+#if !defined(BPATCH_LIBRARY)
    //  When running an IRIX MPI program, the IRIX MPI job launcher
    //  "mpirun" creates all the processes.  When we create process
    //  objects for these processes we aren't actually "attaching" to
    //  the program, but we use most of this constructor since we
    //  don't actually create the processes.
 
-   if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") )
-   {
-      needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button         
-      reachedFirstBreak = false; // haven't yet seen first trap
-      createdViaAttach = false;
-   }
-   else
+    if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") )
+      {
+	needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button         
+	reachedFirstBreak = false; // haven't yet seen first trap
+	createdViaAttach = false;
+      }
+    else
 #endif
-   {
-      reachedFirstBreak = true;
-      createdViaAttach = true;
-   }
-
-   hasBootstrapped = false;
-   reachedVeryFirstTrap = true;
-   createdViaFork = false;
-   createdViaAttachToCreated = false; 
-
-   // the next two variables are used only if libdyninstRT is dynamically linked
-   hasLoadedDyninstLib = false;
-   isLoadingDyninstLib = false;
-
-   symbols = iSymbols;
-   mainFunction = NULL; // set in platform dependent function heapIsOk
-
-   status_ = neonatal;
-   exitCode_ = -1;
-   continueAfterNextStop_ = 0;
-   deferredContinueProc = false;
-
+      {
+	reachedFirstBreak = true;
+	createdViaAttach = true;
+      }
+    
+    hasBootstrapped = false;
+    reachedVeryFirstTrap = true;
+    createdViaFork = false;
+    createdViaAttachToCreated = false; 
+    
+    // the next two variables are used only if libdyninstRT is dynamically linked
+    hasLoadedDyninstLib = false;
+    isLoadingDyninstLib = false;
+    
+    symbols = iSymbols;
+    mainFunction = NULL; // set in platform dependent function heapIsOk
+    
+    status_ = neonatal;
+    exitCode_ = -1;
+    continueAfterNextStop_ = 0;
+    deferredContinueProc = false;
+    
 #ifndef BPATCH_LIBRARY
     initCpuTimeMgr();
-
+    
     string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
 				(void*)this, // handle
@@ -2156,6 +2153,7 @@ process::process(int iPid, image *iSymbols,
     dynamiclinking = false;
     dyn = new dynamic_linking;
     shared_objects = 0;
+    runtime_lib = 0;
     all_functions = 0;
     all_modules = 0;
     some_modules = 0;
@@ -2284,6 +2282,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
                  ) :
+  collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
   cpuTimeMgr(NULL),
 #ifdef HRTIME
@@ -2295,7 +2294,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
 #endif
-  trampGuardFlagAddr(0),
   savedRegs(NULL)
 #ifdef SHM_SAMPLING
   ,previous(0),
@@ -2303,8 +2301,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                   theShmKey, iShmHeapStats, iPid),
   theSuperTable(parentProc.getTable(), this)
 #endif
-  ,callBeforeContinue(parentProc.callBeforeContinue), curr_lwp(0),
-collectSaveWorldData(true) 
+  ,callBeforeContinue(parentProc.callBeforeContinue), curr_lwp(0)
+
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2410,6 +2408,7 @@ collectSaveWorldData(true)
     dynamiclinking = parentProc.dynamiclinking;
     dyn = new dynamic_linking;
     *dyn = *parentProc.dyn;
+    runtime_lib = parentProc.runtime_lib;
 
     shared_objects = 0;
 
@@ -3751,6 +3750,7 @@ bool process::handleIfDueToSharedObjectMapping(){
 		 if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
 		   hasLoadedDyninstLib = true;
 		   isLoadingDyninstLib = false;
+		   runtime_lib = ((*changed_objects)[i])->getImage();
 		 }
                } else {
                  //logLine("Error after call to addASharedObject\n");
@@ -5000,10 +5000,6 @@ void process::handleExec() {
    theSuperTable.handleExec();
 #endif
 
-   // this is a new process, so we have to invalidate
-   // the address of the guard flag
-   trampGuardFlagAddr = 0;
-
    inExec = false;
    execed_ = true;
 }
@@ -5425,8 +5421,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
      inferiorrpc_cerr << "Changing pc (" << (void*)tempTrampBase << ") and exec.." << endl;
 
    // change the PC and nPC registers to the addr of the temp tramp
-   if (!todo.isSafeRPC)
-
+   if (!todo.isSafeRPC) {
 #if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
      // Take advantage of the fact that on AIX we can target an RPC
      // to a specific kernel thread. 
@@ -5440,6 +5435,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	   (void)continueProc();
 	 return false;
        }
+   }
    
    /* Flag in app is set when running irpc.  Used by app to ignore traps
       which are delivered before or during the irpc.  Also set beginning
@@ -5493,7 +5489,6 @@ Address process::createRPCtempTramp(AstNode *action,
 {
    // Returns addr of temp tramp, which was allocated in the inferior heap.
    // You must free it yourself when done.
-
    // Note how this is, in many ways, a greatly simplified version of
    // addInstFunc().
 
@@ -5517,7 +5512,6 @@ Address process::createRPCtempTramp(AstNode *action,
            << endl;
       return 0;
    }
-
 
 #if defined(MT_THREAD)
 
@@ -5572,17 +5566,16 @@ Address process::createRPCtempTramp(AstNode *action,
      Address cnt = 0 ;
      action->generateCode(this, regSpace, (char*) tmp, cnt, noCost, true) ;
      regSpace->resetSpace();
-
+     extern void generateMTRPCCode(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos);
      // FIXME: 7*sizeof(instruction)? 
-     generateRPCpreamble((char*)insnBuffer,count,this,
-                         (cnt)+7*sizeof(instruction), thrId, pos);
+     generateMTRPCCode((char*)insnBuffer,count,this,
+		       (cnt)+7*sizeof(instruction), thrId, pos);
    }
 #endif
 
    resultReg = (Register)action->generateCode(this, regSpace,
                                     (char*)insnBuffer,
                                     count, noCost, true);
-
    if (!shouldStopForResult) {
       regSpace->freeRegister(resultReg);
    }
@@ -5603,7 +5596,6 @@ Address process::createRPCtempTramp(AstNode *action,
 
       return 0;
    }
-
    Address tempTrampBase;
    if (lowmem)
      {
@@ -5843,7 +5835,6 @@ bool process::handleTrapIfDueToRPC() {
    unsigned k;
    unsigned rSize = 0 ;
    for (k=0; k<currRunningRPCs.size(); k++) {
-fprintf(stderr, "Checking currRunning %d\n", k);
      if (!currRunningRPCs[k].isSafeRPC)
        rSize ++ ;
    }
@@ -5863,7 +5854,7 @@ fprintf(stderr, "Checking currRunning %d\n", k);
    int match_type = 0;
    int the_index = 0;
    vector <Address> currPCs;
-   Address currPC;
+   Address currPC = 0;
    Frame theFrame(this);
 #ifdef rs6000_ibm_aix4_1
    if (!getCurrPCVector(currPCs)) return false;
@@ -6052,7 +6043,7 @@ void process::installBootstrapInst() {
 
    the_args.push_back(new AstNode(AstNode::Constant, (void*)1));
    the_args.push_back(new AstNode(AstNode::Constant, (void*)getpid()));
-#endif
+#endif // STL_VECTOR
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
    removeAst(the_args[0]) ;
@@ -6064,15 +6055,11 @@ void process::installBootstrapInst() {
    // for fork)
    unsigned numBytes = 0;
    
-#ifdef SHM_SAMPLING
    key_t theKey   = getShmKeyUsed();
    numBytes = getShmHeapTotalNumBytes();
    if (this->createdViaAttachToCreated) { // If we are dealing with the hybrid case indicated by this flag
             theKey  *= -1;                 // we should do this trick to indicate DYNINSTinit() this specific
    }                                      // situation. -- Ana 
-#else
-   int theKey = 0;
-#endif
 
 #ifdef SHM_SAMPLING_DEBUG
    cerr << "paradynd inst.C: about to call DYNINSTinit() with key=" << theKey
@@ -6081,17 +6068,12 @@ void process::installBootstrapInst() {
 
    the_args[0] = new AstNode(AstNode::Constant, (void*)theKey);
    the_args[1] = new AstNode(AstNode::Constant, (void*)numBytes);
-#ifdef BPATCH_LIBRARY
-   // Unused by the dyninstAPI library
-   the_args[2] = new AstNode(AstNode::Constant, (void *)0);
-#else
    //  for IRIX MPI, we want to appear to be attaching 
    if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") 
                                    && traceConnectInfo > 0 )
        traceConnectInfo *= -1;
 
    the_args[2] = new AstNode(AstNode::Constant, (void*)traceConnectInfo);
-#endif
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
    for (unsigned j=0; j<the_args.size(); j++) {
@@ -6107,15 +6089,15 @@ void process::installBootstrapInst() {
             // we can't instrument main's entry with a trap yet
             // since DYNINSTinit installs our instrumentation trapHandler
             showErrorCallback(108,"main() entry uninstrumentable (w/o trap)");
-            extern void cleanUpAndExit(int);
-            cleanUpAndExit(-1); 
+            //extern void cleanUpAndExit(int);
+            //cleanUpAndExit(-1); 
             return;
        }
 #endif
        addInstFunc(this, func_entry, ast, callPreInsn,
-               orderFirstAtPoint,
-               true, // true --> don't try to have tramp code update the cost
-               false // Use recursive guard
+		   orderFirstAtPoint,
+		   true, // true --> don't try to have tramp code update the cost
+		   true // Don't care about recursion -- it's DYNINSTinit
                );   
        // returns an "instInstance", which we ignore (but should we?)
        removeAst(ast);

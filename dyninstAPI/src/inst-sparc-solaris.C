@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.102 2002/02/20 22:22:05 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.103 2002/02/21 21:47:47 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -287,17 +287,8 @@ void generate_base_tramp_recursive_guard_code( process & p,
 					       NonRecursiveTrampTemplate & templ )
 {
   /* prepare guard flag memory, if needed */
-  Address guard_flag_address = p.getTrampGuardFlagAddr();
-  if( guard_flag_address == 0 )
-    {
-	int initial_value = 1;
-	guard_flag_address = inferiorMalloc( & p, sizeof( int ), dataHeap );
-	/* initialize the new value */
-	p.writeDataSpace( ( void * )guard_flag_address, sizeof( int ), & initial_value );
-
-	p.setTrampGuardFlagAddr( guard_flag_address );
-    }
-
+  Address guard_flag_address = p.trampGuardAddr();
+  
   instruction * curr_instr;
   Address curr_addr;
 
@@ -1432,7 +1423,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
       case getParamOp: {
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
         // saving CT/vector address on the stack
-        generateStore(insn, REG_MT, REG_FPTR, -40);
+        generateStore(insn, REG_MT_BASE, REG_FPTR, -40);
         insn++;
 #endif
 	// first 8 parameters are in register bank I (24..31)
@@ -1449,8 +1440,8 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
 	insn++;
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-        // restoring CT/vector address back in REG_MT
-        generateLoad(insn, REG_FPTR, -40, REG_MT);
+        // restoring CT/vector address back in REG_MT_BASE
+        generateLoad(insn, REG_FPTR, -40, REG_MT_BASE);
         insn++;
         base += 6*sizeof(instruction);
 #else
