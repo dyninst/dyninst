@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.14  1994/04/11 23:18:49  hollings
+ * Revision 1.15  1994/04/12 15:32:00  hollings
+ * added tunable constant samplingRate to control the frequency of sampling.
+ *
+ * Revision 1.14  1994/04/11  23:18:49  hollings
  * added checks to make sure time moves forward.
  *
  * Revision 1.13  1994/04/04  21:36:12  newhall
@@ -61,6 +64,7 @@ double   quiet_nan(int unused);
 #include "thread/h/thread.h"
 }
 
+#include "util/h/tunableConst.h"
 #include "dataManager.SRVR.h"
 #include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
@@ -70,6 +74,11 @@ static dataManager *dm;
 stringPool metric::names;
 HTable<metric *> metric::allMetrics;
 List<paradynDaemon*> paradynDaemon::allDaemons;
+
+void newSampleRate(float rate);
+
+tunableConstant samplingRate(0.5, 0.0, 1000.0, newSampleRate, "samplingRate",
+   "how often to sample intermediate performance data (in seconds)");
 
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
 							metric *m)
@@ -437,4 +446,13 @@ resource *createResource(resource *p, char *newResource)
     }
 
     return(ret);
+}
+
+void newSampleRate(float rate)
+{
+    List<paradynDaemon*> curr;
+
+    for (curr = paradynDaemon::allDaemons; *curr; curr++) {
+	(*curr)->setSampleRate(rate);
+    }
 }
