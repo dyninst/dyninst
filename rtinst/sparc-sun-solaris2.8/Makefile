@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2003/09/19 19:17:35 jodom Exp $
+# $Id: Makefile,v 1.7 2004/03/06 14:19:18 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -14,7 +14,7 @@ USES_SHM_SAMPLING = true
 include ../../make.config 
 
 # Now make any necessary architecture-specific changes to variables:
-
+USES_NATIVE_CC = true
 NATIVE_CC = cc
 ifneq (,$(findstring WorkShop,$(shell $(NATIVE_CC) -V 2>&1)))
 USES_NATIVE_CC = true
@@ -24,13 +24,14 @@ USES_NATIVE_CC = true
 endif
 
 
-CFLAGS		= -g -I. -I../.. -Dsparc_sun_solaris2_4
 ifdef INCLUDE_CP_PROFILING
 CFLAGS		+= -I$(PVM_INCDIR)
 endif
 ifdef USES_NATIVE_CC
 CC		= $(NATIVE_CC)
 LD		= $(NATIVE_CC)
+# OVERRIDE CFLAGS
+CFLAGS		= $(IFLAGS) $(UNIFIED_DEF) $(COMMON_WARNINGS)
 CFLAGS		+= -Kpic -O
 LDFLAGS		= -dy -G -z text -z initarray=libparadynRT_init
 else
