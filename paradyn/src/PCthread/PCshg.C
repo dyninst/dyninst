@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.10  1994/06/29 02:56:24  hollings
+ * Revision 1.11  1994/07/14 23:47:56  hollings
+ * added beenTrue.
+ *
+ * Revision 1.10  1994/06/29  02:56:24  hollings
  * AFS path changes?  I am not sure why this changed.
  *
  * Revision 1.9  1994/06/27  18:55:11  hollings
@@ -91,7 +94,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.10 1994/06/29 02:56:24 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.11 1994/07/14 23:47:56 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -101,6 +104,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCshg.h"
 #include "PCglobals.h"
 #include "../pdMain/paradyn.h"
+#include "util/h/tunableConst.h"
 
 // ugly global to relate back cost of collecting data for a given test.
 float globalPredicatedCost;
@@ -127,6 +131,7 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t)
     status = FALSE;
     active = FALSE;
     beenActive = FALSE;
+    beenTrue = FALSE;
     beenTested = FALSE;
     nodeId = ++nextId;
     children = new(searchHistoryNodeList);
@@ -225,13 +230,17 @@ inline void searchHistoryNode::changeColor()
   }
 }
 
+tunableConstant supressSHG(0.0, 0.0, 1.0, NULL, "supressSHG",
+    "Don't print the SHG");
+
 void searchHistoryNode::changeActive(Boolean newact)
 {
     searchHistoryNodeList parent;
 
     active = newact;
 #ifdef SHG_ADD_ON_EVAL
-    if (newact && !beenActive) {
+    if (!supressSHG.getValue()) {
+      if (newact && !beenActive) {
 	beenActive = TRUE;
         // make sure we have the node in the SHG
 	for (parent = this->parents; *parent; parent++) {
@@ -240,6 +249,7 @@ void searchHistoryNode::changeActive(Boolean newact)
 	    uiMgr->DAGaddEdge(SHGid, (*parent)->nodeId, this->nodeId, 
 				WHEREEDGESTYLE);
         }
+      }
     }
 #endif
     changeColor();
@@ -248,6 +258,9 @@ void searchHistoryNode::changeActive(Boolean newact)
 void searchHistoryNode::changeStatus(Boolean newstat)
 {
   status = newstat;
+  if (status == TRUE) {
+     beenTrue = TRUE;
+  }
   changeColor();
 }
     
