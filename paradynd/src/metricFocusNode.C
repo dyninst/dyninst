@@ -677,8 +677,6 @@ void metricDefinitionNode::removeThisInstance() {
   }
 
   assert(aggregators.size() == samples.size());
-  unsigned aggr_size = aggregators.size();
-  assert(aggr_size > 0);
 
   for (unsigned u = 0; u < aggregators.size() && u < samples.size(); u++) {
     aggregators[u]->aggSample.removeComponent(samples[u]);
