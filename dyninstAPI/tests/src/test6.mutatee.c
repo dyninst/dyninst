@@ -65,10 +65,12 @@ extern long double dfvarq;
 {
   int i=0;
 
+  /*
   printf("&divarw = %p\n", &divarw);
   printf("&dfvars = %p\n", &dfvars);
   printf("&dfvard = %p\n", &dfvard);
   printf("&dfvarq = %p\n", &dfvarq);
+  */
 
   for(; i<10; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
