@@ -597,7 +597,7 @@ Address lookup_fn(process *p, const pdstring &f)
  *   funcEntry_
  *   funcReturns
  *   calls
- *   relocatable_
+ *   needs_relocation_
  *   noStackFrame
  *   isTrap
  *
@@ -629,7 +629,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   // default values
   isTrap = false;
-  relocatable_ = false;
+  needs_relocation_ = false;
   noStackFrame = true;
 
   // parse instPoints
@@ -1189,13 +1189,13 @@ unsigned
     instPoint *p = pts[i];
     instPoint *p2 = pts[i+1];
     if (p2->offset() < p->offset() + p->size()) {
-      relocatable_ = true;
-      isTrap = true; // alias for relocatable_ (TODO)
-      p2->flags |= IP_Overlap;
+       needs_relocation_ = true;
+       isTrap = true; // alias for needs_relocation_ (TODO)
+       p2->flags |= IP_Overlap;
     }
   }
   // TODO: function relocation not yet implemented
-  if (relocatable_) {
+  if (needsRelocation()) {
     ret = false;
   }
   

@@ -91,7 +91,7 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
       pd_Function *function_not_inserted = point->pointFunc();
 
       if(function_not_inserted != NULL)
-         function_not_inserted->setRelocatable(false);
+         function_not_inserted->markAsNeedingRelocation(false);
    }
    
    // NEW: We may manually trigger the instrumentation, via a call to
