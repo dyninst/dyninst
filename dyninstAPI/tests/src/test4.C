@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.6 2000/08/01 02:32:18 hollings Exp $
+// $Id: test4.C,v 1.7 2000/08/07 00:41:39 wylie Exp $
 //
 
 #include <stdio.h>
@@ -150,7 +150,7 @@ void exitFunc(BPatch_thread *thread, int code)
 		passedTest[1] = false;
 	    }
 	} else {
-	    printf("**Failed** test 1\n");
+	    printf("**Failed** test #1 (exit callback)\n");
 	    printf("    exit code = %d, was not equal to pid\n", code);
 	}
     } else if (inTest == 2) {
@@ -207,7 +207,7 @@ void exitFunc(BPatch_thread *thread, int code)
 		failedTest[4] = true;
 	    }
 	} else {
-	    // exit from un-known thread
+	    // exit from unknown thread
 	    printf("Failed test #4 (fork callback)\n");
 	    printf("    exit from unknown pid = %d\n", code);
 	    failedTest[4] = true;
@@ -341,6 +341,9 @@ void mutatorTest1(char *pathname)
     child_argv[n++] = "1";
     child_argv[n] = NULL;
 
+    // Start the mutatee
+    printf("Starting \"%s\"\n", pathname);
+
     BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
     if (appThread == NULL) {
 	fprintf(stderr, "Unable to run test program.\n");
@@ -375,6 +378,9 @@ void mutatorTest2(char *pathname)
     child_argv[n++] = "2";
     child_argv[n] = NULL;
 
+    // Start the mutatee
+    printf("Starting \"%s\"\n", pathname);
+
     BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
     if (appThread == NULL) {
 	fprintf(stderr, "Unable to run test program.\n");
@@ -407,6 +413,9 @@ void mutatorTest3(char *pathname)
     child_argv[n++] = "3";
     child_argv[n] = NULL;
 
+    // Start the mutatee
+    printf("Starting \"%s\"\n", pathname);
+
     BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
     if (appThread == NULL) {
 	fprintf(stderr, "Unable to run test program.\n");
@@ -421,8 +430,9 @@ void mutatorTest3(char *pathname)
 
 void mutatorTest4(char *pathname)
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(alpha_dec_osf4_0) && !defined(mips_sgi_irix6_4)
-    printf("Skipping test #4 (fork callback)\n");
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) \
+ && !defined(alpha_dec_osf4_0) && !defined(mips_sgi_irix6_4)
+    printf("Skipping test #4 (fork & exec)\n");
     printf("    not implemented on this platform\n");
     passedTest[4] = true;
 #else
@@ -438,6 +448,9 @@ void mutatorTest4(char *pathname)
     child_argv[n++] = "-run";
     child_argv[n++] = "4";
     child_argv[n] = NULL;
+
+    // Start the mutatee
+    printf("Starting \"%s\"\n", pathname);
 
     test4Parent = bpatch->createProcess(pathname, child_argv,NULL);
     if (test4Parent == NULL) {
@@ -463,9 +476,6 @@ void mutatorMAIN(char *pathname)
     bpatch->registerPostForkCallback(forkFunc);
     bpatch->registerExecCallback(execFunc);
     bpatch->registerExitCallback(exitFunc);
-
-    // Start the mutatee
-    printf("Starting \"%s\"\n", pathname);
 
     if (runTest[1]) mutatorTest1(pathname);
     if (runTest[2]) mutatorTest2(pathname);
