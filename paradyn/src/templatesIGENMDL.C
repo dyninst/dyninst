@@ -56,6 +56,8 @@
 #include "dyninstRPC.xdr.h"
 #pragma implementation "visi.xdr.h"
 #include "visi.xdr.h"
+#pragma implementation "termWin.xdr.h"
+#include "termWin.xdr.h"
 
 /* ***********************************
  * met stuff
@@ -208,5 +210,7 @@ template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::traceDataValue>**,
         bool_t (*)(XDR*, T_visi::traceDataValue*), T_visi::traceDataValue*);
 
 
+// termWin igen interface template instantiations
+template class vector<T_termWin::buf_struct*>;
 
 template class refCounter<string_ll>;

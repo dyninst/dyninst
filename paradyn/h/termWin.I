@@ -39,40 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Id: templates.C,v 1.2 2001/11/02 16:05:27 pcroth Exp $
+/* $Id: termWin.I,v 1.1 2001/11/02 16:05:17 pcroth Exp $
  */
 
-#pragma implementation "Vector.h"
-#include "common/h/Vector.h"
-//#include "visi/h/visiTypes.h"
-//
 
-#pragma implementation "termWin.xdr.h"
-#include "termWin.xdr.h"
+$remote termWin
+{
+    $base 8500;
+    $version 1;
 
-class clientConn;
-
-template class vector<clientConn *>;
-
-// logo stuff:
-#include "paradyn/src/UIthread/minmax.C"
-template float max(const float, const float);
-
-#include "common/h/String.h"
-#include "common/src/Dictionary.C"
-#include "pdLogo.h"
-template class dictionary_hash<string, pdLogo *>;
-template class vector<dictionary_hash<string, pdLogo *>::entry>;
-template class vector<pdLogo*>;
-
-template class dictionary_hash<string, pdLogo::logoStruct>;
-template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
-template class vector<pdLogo::logoStruct>;
-
-template class vector<unsigned int>;
-template class refCounter<string_ll>;
-
-// termWin igen interface template instantiations
-template class vector<T_termWin::buf_struct*>;
+    // notify termWin that Paradyn is shutting down gracefully
+    $async void shutdown();
+};
 

@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.49 2001/04/25 18:41:39 wxd Exp $
+# $Id: errorList.tcl,v 1.50 2001/11/02 16:05:23 pcroth Exp $
 
 #
 # Error message format:
@@ -1075,9 +1075,20 @@ name of legal metric, name of legal focus\
 example: metfocus "cpu,/Code/anneal.c,/Machine,/SyncObject";\
 .}
 }
+
+set pdError(121) {
+{Unable to start terminal window}
+{ui}
+{fatal error}
+{Paradyn was not able to start its terminal window.  Paradyn must start the \
+terminal window to collect application output.  Please check that the \
+termWin program is in your PATH and that you have permissions to run \
+the program.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 120
+    return 121
 }

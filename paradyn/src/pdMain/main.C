@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.59 2001/06/20 20:33:44 schendel Exp $
+// $Id: main.C,v 1.60 2001/11/02 16:05:21 pcroth Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -55,6 +55,7 @@
 #include "../UIthread/tkTools.h" // tclpanic
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
+#include "termWin.xdr.CLNT.h"
 
 #include "tcl.h"
 #include "tk.h"
@@ -71,6 +72,7 @@ extern void *UImain(void *);
 extern void *DMmain(void *);
 extern void *PCmain(void *);
 extern void *VMmain (void *);
+extern termWinUser* twUser;
 
 extern bool mpichUnlinkWrappers();
 
@@ -377,6 +379,12 @@ main (int argc, char **argv)
 #endif // !defined(i386_unknown_nt4_0)
 
   Tcl_DeleteInterp(interp);
+
+  // notify termWin of our demise
+  if( twUser != NULL )
+  {
+	  twUser->shutdown();
+  }
 
   return 0;
 }

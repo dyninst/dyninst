@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.125 2001/10/11 23:58:12 schendel Exp $
+// $Id: DMpublic.C,v 1.126 2001/11/02 16:05:20 pcroth Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -68,10 +68,14 @@ extern "C" {
 #include "paradyn/src/DMthread/DVbufferpool.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "CallGraph.h"
+#include "termWin.xdr.CLNT.h"
 
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
 extern bool our_print_sample_arrival;
+
+// client side of termWin igen interface
+termWinUser* twUser = NULL;
 
 #ifdef SAMPLEVALUE_DEBUG
 pdDebug_ostream sampleVal_cerr(cerr, true);
@@ -222,6 +226,8 @@ bool dataManager::defineDaemon(const char *command,
 #if !defined(i386_unknown_nt4_0)
 void startTermWin()
 {
+	bool sawStartupError = false;
+
     if (dataManager::termWin_sock == INVALID_PDSOCKET)
     //termWin process has already started
     	return ;
@@ -230,7 +236,32 @@ void startTermWin()
     sprintf(buffer,"%d",dataManager::termWin_sock);
     vector<string> *av = new vector<string>;
     *av += buffer;
-    RPCprocessCreate("localhost","","termWin","",*av);
+    PDSOCKET tw_sock = RPCprocessCreate("localhost","","termWin","",*av);
+    if( tw_sock != PDSOCKET_ERROR )
+    {
+		twUser = new termWinUser( tw_sock, NULL, NULL, 0 );
+		if( twUser->errorConditionFound )
+		{
+			// the termWin igen interface handshake failed
+			sawStartupError = true;
+		}
+    }
+    else
+    {
+		// the creation of the termWin process failed
+		sawStartupError = true;
+    }
+
+	if( sawStartupError )
+	{
+		// report the error to the user
+		uiMgr->showError( 121, "Paradyn failed to start the terminal window." );
+
+		// ensure that we know we don't have a termWin connection
+		delete twUser;
+		twUser = NULL;
+	}
+
     delete av;
     P_close(dataManager::termWin_sock);
     dataManager::termWin_sock = INVALID_PDSOCKET;
@@ -243,9 +274,8 @@ bool dataManager::addExecutable(const char *machine,
 				const char *dir,
 				const vector<string> *argv)
 {
-#if !defined(i386_unknown_nt4_0)
-    startTermWin();
-#endif
+	bool added = false;
+
   // This is the implementation of an igen call...usually from the UI thread
   // when a new process is defined in the dialog box.
   string m = machine;
@@ -253,7 +283,20 @@ bool dataManager::addExecutable(const char *machine,
   string n = name;
   string d = dir;
 
-  return(paradynDaemon::newExecutable(m, l, n, d, *argv));
+
+#if !defined(i386_unknown_nt4_0)
+    startTermWin();
+  	if( twUser != NULL )
+	{
+		// we have a termWin, so try to start the executable
+		added = paradynDaemon::newExecutable(m, l, n, d, *argv);
+	}
+#else
+	// Windows does not yet support the termWin
+	added = paradynDaemon::newExecutable(m, l, n, d, *argv);
+#endif
+
+	return added;
 }
 
 

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.1 2001/04/25 20:07:51 wxd Exp $
+# $Id: make.module.tmpl,v 1.2 2001/11/02 16:05:26 pcroth Exp $
 #
 
 TARGET	      = termWin
@@ -12,12 +12,18 @@ SRCS	     += ../../../paradyn/src/UIthread/pdLogo.C \
 		../../../paradyn/src/UIthread/tkTools.C \
 		../../../paradyn/src/UIthread/minmax.C \
 		../src/templates.C \
-		../src/main.C \
+		../src/main.C
 
 VPATH 	     += ../../../paradyn/src/UIthread \
-		../../tclVisi/src
+		../../tclVisi/src \
+		../../../paradyn/h
 
 IFLAGS	     += -I../../../paradyn/src/UIthread
+
+IGEN_GEN_SRCS	= termWin.xdr.SRVR.C \
+					termWin.xdr.C
+
+IGEN_ISRCS	= termWin.I
 
 # if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
 # inserted by make.config won't be enough for the compiler to find,

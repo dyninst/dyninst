@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.3 2001/06/11 15:21:51 pcroth Exp $
+// $Id: main.C,v 1.4 2001/11/02 16:05:27 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -59,15 +59,35 @@
 
 #include "clientConn.h"
 
+#include "termWin.xdr.h"
+#include "termWin.xdr.SRVR.h"
+
 #include "common/h/Ident.h"
 extern "C" const char V_libpdutilOld[];
 Ident V_Uid(V_libpdutilOld,"Paradyn");
 
 Tcl_Interp *MainInterp;
+termWin* twServer = NULL;
+PDSOCKET serv_sock = -1;
+vector<clientConn *> conn_pool;
+thread_t stdin_tid = 0;
+
 
 #define PARADYN_EXIT 0
 #define PERSISTENT   1
 int close_mode = PARADYN_EXIT;
+
+
+void
+sighup_handler( int )
+{
+	// we get SIGHUP when Paradyn closes our connection
+	// but we are persistent.
+	//
+	// swallow the signal
+	// cerr << "termWin received SIGHUP" << endl;
+}
+
 
 int CloseOptionCmd(ClientData,Tcl_Interp *,int argc, char **argv)
 {
@@ -130,9 +150,9 @@ void print_data(char *buffer,int num, int from_paradynd)
 	Tcl_Eval(MainInterp,command);
 }
 
+
 int main(int argc, char **argv) {
 //sigpause(0);
-   PDSOCKET serv_sock = -1;
    if (argc == 1)
    	return -1;
    serv_sock = atoi(argv[1]);
@@ -146,11 +166,8 @@ int main(int argc, char **argv) {
    if (TCL_OK != app_init()) // formerly Tcl_AppInit()
       tclpanic(MainInterp, "PhaseTable: app_init() failed");
 
-   vector<clientConn *> conn_pool;
-
    thread_t xtid;
    int retVal=-1;
-   thread_t stdin_tid;
    thread_t stid;
 
 #if !defined(i386_unknown_nt4_0)
@@ -174,6 +191,23 @@ int main(int argc, char **argv) {
   //retVal = msg_bind_socket(fileno(stdin),1,NULL,NULL,&stdin_tid);
   retVal = msg_bind_socket(serv_sock,1,NULL,NULL,&stid);
 #endif // !defined(i386_unknown_nt4_0)
+
+	// wrap a termWin server around our connection to Paradyn
+	twServer = new termWin( fileno(stdin), NULL, NULL, 0 );
+
+	// ensure that we don't die from SIGHUP when our connection
+	// to Paradyn closes
+	struct sigaction act;
+
+	act.sa_handler = sighup_handler;
+	act.sa_flags = 0;
+	sigfillset( &act.sa_mask );
+
+	if( sigaction( SIGHUP, &act, 0 ) == -1 )
+	{
+		cerr << "Failed to install SIGHUP handler: " << errno << endl;
+		// this isn't a fatal error for us
+	}
    
    while (Tk_GetNumMainWindows() > 0) {
    	
@@ -240,14 +274,23 @@ int main(int argc, char **argv) {
 		//if (conn_pool.size() > 1)
 			//fprintf(stderr,"current conn_pool size %d\n",conn_pool.size());
      	 }else if (pollsender == stdin_tid)
-	 {//nothing from paradyn to termWin now.
-	 	//fprintf(stderr,"get input from stdin\n");
-#if !defined(i386_unknown_nt4_0)
-		msg_unbind(stdin_tid);
-#endif
-		if (close_mode == PARADYN_EXIT)
-			break;
-	 }else {
+	 {
+	     	bool doneWithInput = false;
+
+		// there's input on the stdin (i.e., igen) connection
+		// so we handle the message
+		while( !doneWithInput )
+		{
+			twServer->waitLoop();
+
+			if( xdrrec_eof( twServer->net_obj() ) )
+			{
+				// there is no more input
+				doneWithInput = true;
+			}
+		}
+	 }
+	 else {
 	 	int	client_is_sender = 0;
 	 	for (int i=0;i<conn_pool.size();i++)
 		{
@@ -333,10 +376,20 @@ int main(int argc, char **argv) {
 #endif // defined(i386_unknown_nt4_0)
   }
 
+   return 0;
+}
+
+
+void
+do_graceful_shutdown( void )
+{
+   delete twServer;
+   twServer = NULL;
+
    Tcl_DeleteCommand(MainInterp, "close_mode");
 
    P_close(serv_sock);
-   for (int i=0;i<conn_pool.size();i++)
+   for(unsigned int i=0;i<conn_pool.size();i++)
    {
    	clientConn *client = (clientConn *)conn_pool[i];
 	if (client->done == 0)
@@ -344,6 +397,26 @@ int main(int argc, char **argv) {
    }
    Tcl_DeleteInterp(MainInterp);
 
-   return 0;
+   exit( 0 );
 }
+
+
+void
+termWin::shutdown( void )
+{
+	// Paradyn is telling us that it is shutting down
+
+	// break our connection to Paradyn
+	msg_unbind(stdin_tid);
+
+	// shut ourselves down gracefully if we aren't set to be persistent
+	if( close_mode != PERSISTENT )
+	{
+		// shut ourselves down
+		do_graceful_shutdown();
+		// not reached
+		assert( false );
+	}
+}
+
 

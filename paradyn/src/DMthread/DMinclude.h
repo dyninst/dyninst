@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMinclude.h,v 1.17 2001/06/20 20:33:38 schendel Exp $
+// $Id: DMinclude.h,v 1.18 2001/11/02 16:05:20 pcroth Exp $
 
 #ifndef dminclude_H
 #define dminclude_H
@@ -116,5 +116,9 @@ struct rlNameIdType {
     const char *res_name;	
 };
 typedef struct rlNameIdType rlNameId;
+
+// client side of termWin igen interface
+class termWinUser;
+extern termWinUser* twUser;
 
 #endif
