@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.13  1995/12/15 20:13:48  naim
+# Revision 1.14  1995/12/18 17:19:50  naim
+# Minor change to error message 87 - naim
+#
+# Revision 1.13  1995/12/15  20:13:48  naim
 # Adding error msg #87: max. number of curves in Histogram has been exceeded.
 #
 # Revision 1.12  1995/11/30  22:00:36  naim
@@ -889,12 +892,11 @@ to the whole program and we have selected a particular process).
 }}
 
 set pdError(87) {
-{Maximum number of curves that can be displayed has been exceeded. 
+{Error in external visualization process. 
 } {vi
 } {information
 } {
-Some visis have a maximum number of curves that can be displayed. For this
-particular one, no more curves can be added to the display.
+An error has occurred during the execution of an external visualization process.
 }}
 
 set numPdErrors 87
