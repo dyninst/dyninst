@@ -1,9 +1,12 @@
 /* $Log: main.C,v $
-/* Revision 1.23  1995/08/16 15:17:40  krisna
-/* double-bug fix.
-/*   * do not pass addresses of stack variables into thread functions
-/*   * do not use the first item of a struct as a scalar
+/* Revision 1.24  1995/08/18 22:00:16  mjrg
+/* Added calls to metDoProcess, metDoDaemon, metDoTunable.
 /*
+ * Revision 1.23  1995/08/16  15:17:40  krisna
+ * double-bug fix.
+ *   * do not pass addresses of stack variables into thread functions
+ *   * do not use the first item of a struct as a scalar
+ *
  * Revision 1.22  1995/08/14 22:49:49  tamches
  * Removed the TC thread.
  * The main tunable constant dictionaries are global variables
@@ -154,6 +157,9 @@ void eFunction(int errno, char *message)
 
 extern bool metDoTunable();
 extern bool metMain(string&);
+extern bool metDoProcess();
+extern bool metDoDaemon();
+
 
 extern void tclpanic(Tcl_Interp *, const char *msg);
 Tcl_Interp *interp;
@@ -406,6 +412,11 @@ main (int argc, char **argv)
   // move this elsewhere to create a race condition
   if (sname)
     uiMgr->readStartupFile (sname);
+
+  // execute the commands in the configuration files
+  metDoTunable();
+  metDoDaemon();
+  metDoProcess();
 
 // wait for UIM thread to exit 
 
