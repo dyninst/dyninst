@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.41 1999/11/06 21:47:00 wylie Exp $
+// $Id: test1.C,v 1.42 1999/11/07 21:48:46 wylie Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -46,7 +46,7 @@ template class BPatch_Vector<BPatch_variableExpr*>;
 BPatch *bpatch;
 
 #if defined(i386_unknown_nt4_0)
-char *mutateeName = "test1.mutatee.exe";
+char *mutateeName = "test1.mutatee_cl.exe";
 static char *libNameA = "libtestA.dll";
 static char *libNameB = "libtestB.dll";
 #else
@@ -2050,7 +2050,6 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
 
     assert(point28 && (point28->size() == 1));
 
-    BPatch_variableExpr *lvar;
     BPatch_variableExpr *gvar[8];
 
     for (i=1; i <= 7; i++) {

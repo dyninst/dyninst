@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.13 1999/11/06 21:47:01 wylie Exp $
+// $Id: test3.C,v 1.14 1999/11/07 21:48:47 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -46,7 +46,7 @@ template class BPatch_Vector<BPatch_variableExpr*>;
 BPatch *bpatch;
 
 #if defined(i386_unknown_nt4_0)
-static char *mutateeName = "test3.mutatee.exe";
+static char *mutateeName = "test3.mutatee_cl.exe";
 #else
 static char *mutateeName = "test3.mutatee_gcc";
 #endif

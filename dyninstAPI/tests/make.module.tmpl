@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.16 1999/11/06 21:36:02 wylie Exp $
+# $Id: make.module.tmpl,v 1.17 1999/11/07 21:47:10 wylie Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -21,9 +21,9 @@ TARGETS        = test1 test2 test3 \
 		 test3.mutatee_gcc
 
 ifdef NATIVE_CC
-TARGETS      +=  test1.mutatee_cc \
-		 test2.mutatee_cc \
-		 test3.mutatee_cc
+TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
+		 test2.mutatee_$(NATIVE_CC) \
+		 test3.mutatee_$(NATIVE_CC)
 endif
 
 ifdef USES_LIBDYNINSTRT_SO
@@ -52,9 +52,9 @@ all:
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test3 TARGET2=test3.mutatee_gcc
 	$(MAKE) testlibs
 ifdef NATIVE_CC
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_cc
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_cc
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_cc
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_$(NATIVE_CC)
 endif
 
 pc:

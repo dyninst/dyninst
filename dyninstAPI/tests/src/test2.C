@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.32 1999/11/06 21:47:00 wylie Exp $
+// $Id: test2.C,v 1.33 1999/11/07 21:48:47 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -55,7 +55,7 @@ bool passedTest[MAX_TEST+1];
 BPatch *bpatch;
 
 #if defined(i386_unknown_nt4_0)
-static char *mutateeName = "test2.mutatee.exe";
+static char *mutateeName = "test2.mutatee_cl.exe";
 #else
 static char *mutateeName = "test2.mutatee_gcc";
 #endif
@@ -215,8 +215,6 @@ void test5(BPatch_image *img)
 
 void test6(BPatch_thread *thread, BPatch_image *img)
 {
-    int i;
-
 #if !defined(sparc_sun_solaris2_4) \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_linux2_0) \
@@ -233,7 +231,7 @@ void test6(BPatch_thread *thread, BPatch_image *img)
     char match2[256];
     sprintf(match2, "%s_module", TEST_DYNAMIC_LIB);
     BPatch_Vector<BPatch_module *> *m = img->getModules();
-    for (i=0; i < m->size(); i++) {
+    for (unsigned i=0; i < m->size(); i++) {
 	    char name[80];
 	    (*m)[i]->getName(name, sizeof(name));
 	    if (strcmp(name, TEST_DYNAMIC_LIB) == 0 ||
@@ -753,6 +751,7 @@ main(unsigned int argc, char *argv[])
     ret = mutatorMAIN(mutateeName);
     if (!ret || gotError) {
 	printf("*ERROR*: unable to create handle for executable\n");
+        exit(-1);
     }
 
     BPatch_image *img = ret->getImage();
