@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-mips.S,v 1.8 2000/07/24 19:55:09 buck Exp $ */
+/* $Id: tramp-mips.S,v 1.9 2003/10/21 17:22:35 bernat Exp $ */
 
 /*  base trampoline template layout: 
  *
@@ -194,10 +194,6 @@ _baseTramp_skipPreInsn:
 	nop
 	nop
 	
-baseTramp_globalPreBranch:
-_baseTramp_globalPreBranch:	
-/* what is this slot for? */
-
 baseTramp_localPreBranch:	
 _baseTramp_localPreBranch:	
 /* just in case, leave enough room for a long jump (8-insn sequence) */
@@ -383,10 +379,6 @@ _baseTramp_savePostInsn:
 	sd	 $29, 16($sp)
 	sd	 $30,  8($sp)
 	sd	 $31,  0($sp)
-
-baseTramp_globalPostBranch:	
-_baseTramp_globalPostBranch:	
-/* what is this slot for? */
 
 baseTramp_localPostBranch:	
 _baseTramp_localPostBranch:	
@@ -669,10 +661,6 @@ _baseNonRecursiveTramp_guardOnPre_begin:
 baseNonRecursiveTramp_guardOnPre_end:
 _baseNonRecursiveTramp_guardOnPre_end:
 
-baseNonRecursiveTramp_globalPreBranch:
-_baseNonRecursiveTramp_globalPreBranch:	
-/* what is this slot for? */
-
 baseNonRecursiveTramp_localPreBranch:	
 _baseNonRecursiveTramp_localPreBranch:	
 /* just in case, leave enough room for a long jump (8-insn sequence) */
@@ -698,9 +686,6 @@ _baseNonRecursiveTramp_guardOffPre_begin:
 	or $13, $12, $13	/* or $t1, $t0, $t1                    */
 	addi $12, $0, 1		/* addi $t0, $zero, 1                  */
 	sw $12, 0($13)		/* sw $zero, 0($t1)                    */
-baseNonRecursiveTramp_guardOffPre_end:
-_baseNonRecursiveTramp_guardOffPre_end:
-
 baseNonRecursiveTramp_updateCostInsn:
 _baseNonRecursiveTramp_updateCostInsn:
 /* must be big enough for emitted "updateCost" code */
@@ -723,6 +708,8 @@ _baseNonRecursiveTramp_updateCostInsn:
 	nop
 
 /* restore registers */
+baseNonRecursiveTramp_restorePreInsn:	
+_baseNonRecursiveTramp_restorePreInsn:
 	ldc1	 $f0,504($sp)
 	ldc1	 $f1,496($sp)
 	ldc1	 $f2,488($sp)
@@ -787,8 +774,6 @@ _baseNonRecursiveTramp_updateCostInsn:
 	ld	 $29, 16($sp)
 	ld	 $30,  8($sp)
 	ld	 $31,  0($sp)
-baseNonRecursiveTramp_restorePreInsn:	
-_baseNonRecursiveTramp_restorePreInsn:
 	daddiu	$sp,$sp,512
 	
 baseNonRecursiveTramp_emulateInsn:	
@@ -886,10 +871,6 @@ _baseNonRecursiveTramp_guardOnPost_begin:
 baseNonRecursiveTramp_guardOnPost_end:
 _baseNonRecursiveTramp_guardOnPost_end:
 
-baseNonRecursiveTramp_globalPostBranch:	
-_baseNonRecursiveTramp_globalPostBranch:	
-/* what is this slot for? */
-
 baseNonRecursiveTramp_localPostBranch:	
 _baseNonRecursiveTramp_localPostBranch:	
 /* just in case, leave enough room for a long jump (8-insn sequence) */
@@ -915,10 +896,9 @@ _baseNonRecursiveTramp_guardOffPost_begin:
 	or $13, $12, $13	/* or $t1, $t0, $t1                    */
 	addi $12, $0, 1		/* addi $t0, $zero, 1                  */
 	sw $12, 0($13)		/* sw 1, 0($t1)                        */
-baseNonRecursiveTramp_guardOffPost_end:
-_baseNonRecursiveTramp_guardOffPost_end:
-
 /* restore registers */
+baseNonRecursiveTramp_restorePostInsn:	
+_baseNonRecursiveTramp_restorePostInsn:
 	ldc1	 $f0,504($sp)
 	ldc1	 $f1,496($sp)
 	ldc1	 $f2,488($sp)
@@ -983,8 +963,6 @@ _baseNonRecursiveTramp_guardOffPost_end:
 	ld	 $29, 16($sp)
 	ld	 $30,  8($sp)
 	ld	 $31,  0($sp)
-baseNonRecursiveTramp_restorePostInsn:	
-_baseNonRecursiveTramp_restorePostInsn:
 	daddiu	$sp,$sp,512
 	
 baseNonRecursiveTramp_returnInsn:	

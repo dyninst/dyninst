@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-sparc.s,v 1.28 2003/07/18 20:06:50 schendel Exp $ */
+/* $Id: tramp-sparc.s,v 1.29 2003/10/21 17:22:36 bernat Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -59,7 +59,6 @@
  *   _savePreInsn
  *   . SKIP_PRE_INSN
  *   .
- *   .   GLOBAL_PRE_BRANCH
  *   .   RECURSIVE_GUARD_ON_PRE_INSN
  *   .     LOCAL_PRE_BRANCH
  *   .   RECURSIVE_GUARD_OFF_PRE_INSN
@@ -71,7 +70,6 @@
  *
  *   SKIP_POST_INSN
  *
- *     GLOBAL_POST_BRANCH
  *     _savePostInsn
  *     . RECURSIVE_GUARD_ON_POST_INSN
  *     .   LOCAL_POST_BRANCH
@@ -103,14 +101,14 @@ _baseTramp:
 	/* should update cost of base tramp here, but we don't have a
 	   register to use!
 	*/
+	.word   SKIP_PRE_INSN
+	nop			/* delay slot for jump if there is no inst. */
 	.global baseTramp_savePreInsn
 	.global	_baseTramp_savePreInsn
 baseTramp_savePreInsn:
 _baseTramp_savePreInsn:
 	save  %sp, -120, %sp	/* saving registers before jumping to */
-	.word   SKIP_PRE_INSN
-	nop			/* delay slot for jump if there is no inst. */
-	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
+	std  %g0, [ %fp + -8 ]  /* to a minitramp		      */
 	std  %g2, [ %fp + -16 ]
 	std  %g4, [ %fp + -24 ]
 	std  %g6, [ %fp + -32 ]
@@ -142,10 +140,6 @@ _baseTramp_savePreInsn:
 	nop
 	nop
 /* #endif */
-	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
-	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
-	ldd  [ %fp + -24 ], %g4
-	ldd  [ %fp + -32 ], %g6
 	.word  UPDATE_COST_INSN /* updating the cost for this inst point */ 
 	nop
 	nop
@@ -156,6 +150,10 @@ _baseTramp_savePreInsn:
 	.global	_baseTramp_restorePreInsn
 baseTramp_restorePreInsn:
 _baseTramp_restorePreInsn:
+	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
+	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
+	ldd  [ %fp + -24 ], %g4
+	ldd  [ %fp + -32 ], %g6
 	restore
 	.word 	EMULATE_INSN
 	nop			/* second instruction if it's leaf */
@@ -175,15 +173,6 @@ _baseTramp_savePostInsn:
 	std  %g2, [ %fp + -16 ]
 	std  %g4, [ %fp + -24 ]
 	std  %g6, [ %fp + -32 ]
-	nop			/* fill this in with instructions to  */
-	nop			/* compute the address of the vector  */
-	nop			/* of counter/timers for each thread  */
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
 /* #if defined(MT _THREAD) */
 	.word MT_POS_CALC
 	nop
@@ -211,14 +200,14 @@ _baseTramp_savePostInsn:
 	nop
 	nop
 /* #endif */
-	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
-	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
-	ldd  [ %fp + -24 ], %g4
-	ldd  [ %fp + -32 ], %g6
 	.global baseTramp_restorePostInsn
 	.global	_baseTramp_restorePostInsn
 baseTramp_restorePostInsn:
 _baseTramp_restorePostInsn:
+	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
+	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
+	ldd  [ %fp + -24 ], %g4
+	ldd  [ %fp + -32 ], %g6
 	restore
 	.word	RETURN_INSN
 	nop			/* see if this prevents crash jkh 4/4/95 */
@@ -243,9 +232,9 @@ _conservativeBaseTramp:
 	.global	_conservativeBaseTramp_savePreInsn
 conservativeBaseTramp_savePreInsn:
 _conservativeBaseTramp_savePreInsn:
-	save  %sp, -256, %sp	/* saving registers before jumping to */
 	.word   SKIP_PRE_INSN
 	nop			/* delay slot for jump if there is no inst. */
+	save  %sp, -256, %sp	/* saving registers before jumping to */
 	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
 	std  %g2, [ %fp + -16 ]
 	std  %g4, [ %fp + -24 ]
@@ -296,6 +285,16 @@ _conservativeBaseTramp_savePreInsn:
 	nop
 	nop
 /* #endif */
+	.word  UPDATE_COST_INSN /* updating the cost for this inst point */ 
+	nop
+	nop
+	nop
+	nop
+	nop
+	.global conservativeBaseTramp_restorePreInsn
+	.global	_conservativeBaseTramp_restorePreInsn
+conservativeBaseTramp_restorePreInsn:
+_conservativeBaseTramp_restorePreInsn:
 	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
 	.word CONSERVATIVE_TRAMP_WRITE_CONDITION
 	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
@@ -318,16 +317,6 @@ _conservativeBaseTramp_savePreInsn:
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
 	ldd  [ %fp + -24 ], %g4
 	ldd  [ %fp + -32 ], %g6
-	.word  UPDATE_COST_INSN /* updating the cost for this inst point */ 
-	nop
-	nop
-	nop
-	nop
-	nop
-	.global conservativeBaseTramp_restorePreInsn
-	.global	_conservativeBaseTramp_restorePreInsn
-conservativeBaseTramp_restorePreInsn:
-_conservativeBaseTramp_restorePreInsn:
 	restore
 	.word 	EMULATE_INSN
 	nop			/* second instruction if it's leaf */
@@ -392,6 +381,10 @@ _conservativeBaseTramp_savePostInsn:
 	nop
 	nop
 /* #endif */
+	.global conservativeBaseTramp_restorePostInsn
+	.global	_conservativeBaseTramp_restorePostInsn
+conservativeBaseTramp_restorePostInsn:
+_conservativeBaseTramp_restorePostInsn:
 	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
 	.word CONSERVATIVE_TRAMP_WRITE_CONDITION
 	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
@@ -414,10 +407,6 @@ _conservativeBaseTramp_savePostInsn:
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
 	ldd  [ %fp + -24 ], %g4
 	ldd  [ %fp + -32 ], %g6
-	.global conservativeBaseTramp_restorePostInsn
-	.global	_conservativeBaseTramp_restorePostInsn
-conservativeBaseTramp_restorePostInsn:
-_conservativeBaseTramp_restorePostInsn:
 	restore
 	.word	RETURN_INSN
 	nop
