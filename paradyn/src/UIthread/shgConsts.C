@@ -42,9 +42,13 @@
 // shgConsts.C
 
 /* $Log: shgConsts.C,v $
-/* Revision 1.5  1996/08/16 21:07:13  tamches
-/* updated copyright for release 1.1
+/* Revision 1.6  1997/09/24 19:23:50  tamches
+/* Tk_GetFontStruct --> Tk_GetFont; XFontStruct --> Tk_Font
+/* for tcl 8.0
 /*
+ * Revision 1.5  1996/08/16 21:07:13  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.4  1996/02/15 23:10:59  tamches
  * added code to support why vs. where axis refinement
  *
@@ -71,18 +75,14 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    assert(activeTextColor);
 
    // Root Item FontStruct's:
-   rootItemFontStruct = Tk_GetFontStruct(interp, theTkWindow,
-					 Tk_GetUid("*-Helvetica-*-r-*-14-*"));
-   assert(rootItemFontStruct);
+   rootItemFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-r-*-14-*");
 
-   rootItemItalicFontStruct = Tk_GetFontStruct(interp, theTkWindow,
-					       Tk_GetUid("*-Helvetica-*-o-*-14-*"));
-   assert(rootItemItalicFontStruct);
+   rootItemItalicFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-o-*-14-*");
 
    // Root Item Text GCs:
    XGCValues values;
    values.foreground = activeTextColor->pixel;
-   values.font = rootItemFontStruct->fid;
+   values.font = Tk_FontId(rootItemFontStruct);
    rootItemActiveTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont, &values);
    assert(rootItemActiveTextGC);
 
@@ -90,7 +90,7 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    rootItemInactiveTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont, &values);
    assert(rootItemInactiveTextGC);
 
-   values.font = rootItemItalicFontStruct->fid;
+   values.font = Tk_FontId(rootItemItalicFontStruct);
    values.foreground = activeTextColor->pixel;
    rootItemActiveShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
 					 &values);
@@ -101,18 +101,14 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
 					   &values);
    assert(rootItemInactiveShadowTextGC);
 
-   // Listbox FontStruct's:   
-   listboxItemFontStruct = Tk_GetFontStruct(interp, theTkWindow,
-					    Tk_GetUid("*-Helvetica-*-r-*-12-*"));
-   assert(listboxItemFontStruct);
+   // Listbox FontStruct's:
+   listboxItemFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-r-*-12-*");
 
-   listboxItemItalicFontStruct = Tk_GetFontStruct(interp, theTkWindow,
-						  Tk_GetUid("*-Helvetica-*-o-*-12-*"));
-   assert(listboxItemItalicFontStruct);
+   listboxItemItalicFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-o-*-12-*");
 
    // Listbox Item Text GCs:
    values.foreground = activeTextColor->pixel;
-   values.font = listboxItemFontStruct->fid;
+   values.font = Tk_FontId(listboxItemFontStruct);
    listboxItemActiveTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont, &values);
    assert(listboxItemActiveTextGC);
 
@@ -120,7 +116,7 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    listboxItemInactiveTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont, &values);
    assert(listboxItemInactiveTextGC);
 
-   values.font = listboxItemItalicFontStruct->fid;
+   values.font = Tk_FontId(listboxItemItalicFontStruct);
    values.foreground = activeTextColor->pixel;
    listboxItemActiveShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
 					       &values);
@@ -177,10 +173,10 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
 }
 
 shgConsts::~shgConsts() {
-   Tk_FreeFontStruct(rootItemFontStruct);
-   Tk_FreeFontStruct(rootItemItalicFontStruct);
-   Tk_FreeFontStruct(listboxItemFontStruct);
-   Tk_FreeFontStruct(listboxItemItalicFontStruct);
+   Tk_FreeFont(rootItemFontStruct);
+   Tk_FreeFont(rootItemItalicFontStruct);
+   Tk_FreeFont(listboxItemFontStruct);
+   Tk_FreeFont(listboxItemItalicFontStruct);
  
    Tk_FreeColor(activeTextColor);
    Tk_FreeColor(inactiveTextColor);
