@@ -5,7 +5,10 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.9  1995/03/15 20:12:22  jcargill
+ * Revision 1.10  1995/03/24 04:49:46  krisna
+ * added instantiations for lists within hash tables
+ *
+ * Revision 1.9  1995/03/15  20:12:22  jcargill
  * Added instantiation of templates used by TCthread; this caused link
  * problems only on HPUX for some strange reason.
  *
@@ -86,9 +89,12 @@ template class List<performanceStream *>;
 template class List<daemonEntry*>;
 template class List<component*>;
 template class HTable<metric*>;
+template class List<metric*>;
 template class List<sampleInfo*>;
 template class HTable<resource*>;
+template class List<resource*>;
 template class HTable<abstraction*>;
+template class List<abstraction*>;
 template class dictionary_hash<unsigned, metricInstance*>;
 template class vector<unsigned>;
 template class vector<phaseInfo *>;
@@ -111,6 +117,7 @@ template class List<focusList *>;
 template class List<metricInstance *>;
 
 template class HTable<PCmetric *>;
+template class List<PCmetric *>;
 template class HTable<datum *>;
 template class HTable<focus *>;
 
