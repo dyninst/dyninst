@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.91 2003/08/22 21:15:46 jodom Exp $ */
+/* $Id: test1.mutatee.c,v 1.92 2003/09/10 17:50:55 eli Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2295,6 +2295,123 @@ void func36_1()
    }
 }
 
+/* Test #37 (loop instrumentation) */
+
+int globalVariable37_1 = 0;
+
+void inc37_1() { globalVariable37_1++; }
+
+void call37_1()
+{
+    int i, j, k, m;
+
+    /* inserting a call to inc37_1 in each loop body in call37_1 should make
+       the total 17200 = 200 + (100 * 20) + (100 * 10 * 14) + (10 * 100) */
+    for (i = 0; i < 100; i++) {
+	globalVariable37_1++;
+
+	for (j = 0; j < 10; j++) {
+	    globalVariable37_1++;
+
+	    for (k = 0; k < 7; k++) {
+		globalVariable37_1++;
+	    }
+	}
+
+	m = 0;
+	do {
+	    globalVariable37_1++;
+	    m++;
+	} while (m < 5);
+    }
+}
+
+int globalVariable37_2 = 0;
+
+void inc37_2() { globalVariable37_2++; }
+
+/* test with small loop bodies. since there are no statements right after the
+   start of the outer two loops there isn't much space to instrument. */
+void call37_2()
+{
+    int i = 0;
+    int j = 0;
+    int k = 0;
+
+    /* inserting a call to inc37_2 in each loop body in call37_2 should make
+       the total 42. 40 for the inner loop plus two for the outer loops. */
+    while (i < 5) {
+	while (j < 10) {
+	    do {
+		globalVariable37_2++;
+		i++; j++; k++;
+	    } while (k < 20);
+	}
+    }
+}
+
+
+int globalVariable37_3 = 0;
+
+void inc37_3() { globalVariable37_3++; }
+
+/* test with if statements as the only statements in a loop body. */
+void call37_3()
+{
+    int i, j;
+
+    /* inserting a call to inc37_3 in each loop body in call37_3 should make
+       the total 1650 = 100 + 50 + 100*10 + (100*10) / 2 */
+    for (i = 0; i < 100; i++) {
+	if (0 == (i % 2)) {            
+	    globalVariable37_1++;     
+	}
+	for (j = 0; j < 10; j++) {     
+	    if (0 == (i % 2)) {
+		globalVariable37_3++; 
+	    }
+	}
+    }
+}
+
+
+void func37_1() {
+    const int ANSWER37_1 = 17200;
+    const int ANSWER37_2 = 42;
+    const int ANSWER37_3 = 1650;
+
+    call37_1();
+    call37_2();
+    call37_3();
+
+    passedTest[ 37 ] = TRUE;
+
+    if (globalVariable37_1 != ANSWER37_1) {
+	passedTest[ 37 ] = FALSE;
+	printf( "**Failed** test #37 (instrument loops)\n");
+	printf( "  globalVariable37_1 is %d, should have been %d.\n",
+		globalVariable37_1, ANSWER37_1);
+    }
+    if (globalVariable37_2 != ANSWER37_2) {
+	passedTest[ 37 ] = FALSE;
+	printf( "**Failed** test #37 (instrument loops)\n");
+	printf( "  globalVariable37_2 is %d, should have been %d.\n",
+		globalVariable37_2, ANSWER37_2);
+    } 
+    if (globalVariable37_3 != ANSWER37_3) {
+	passedTest[ 37 ] = FALSE;
+	printf( "**Failed** test #37 (instrument loops)\n");
+	printf( "  globalVariable37_3 is %d, should have been %d.\n",
+		globalVariable37_3, ANSWER37_3);
+    } 
+    
+    if (passedTest[ 37 ]) {
+	printf( "Passed test #37 (instrument loops)\n" );    
+    }
+
+}
+
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -2368,4 +2485,7 @@ void runTests()
     if (runTest[34]) func34_1();
     if (runTest[35]) func35_1();
     if (runTest[36]) func36_1();    
+
+    passedTest [37] = TRUE; 
+    /*if (runTest[37]) func37_1();   */
 }

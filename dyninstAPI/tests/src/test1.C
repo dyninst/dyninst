@@ -44,7 +44,7 @@ int mutateeCplusplus = 0;
 int mutateeFortran = 0;
 int mutateeF77 = 0;
 bool runAllTests = true;
-const unsigned int MAX_TEST = 36;
+const unsigned int MAX_TEST = 37;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 int saveWorld = 0;
@@ -4267,6 +4267,138 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 
+
+//
+// Start Test Case #37 - (loop instrumentation)
+//
+
+// sort basic blocks ascending by block number
+void sort_blocks(BPatch_Vector<BPatch_basicBlock*> &a, int n) {
+    for (int i=0; i<n-1; i++) {
+	for (int j=0; j<n-1-i; j++)
+	    if (a[j+1]->getBlockNumber() < a[j]->getBlockNumber()) {    
+		BPatch_basicBlock* tmp = a[j]; 
+		a[j] = a[j+1];
+		a[j+1] = tmp;
+	    }
+    }
+}
+
+// instrument the body of each loop in loops with callInc
+void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
+		     BPatch_Vector<BPatch_basicBlockLoop*> &loops,
+		     BPatch_funcCallExpr &callInc) 
+{
+    // for each loop (set of basic blocks)
+    for (unsigned int i = 0; i < loops.size(); i++) {
+
+	// get the basic blocks of this loop's body (not the blocks of its 
+	// sub loops) and sort them according to block number
+	BPatch_Vector<BPatch_basicBlock*> blocks;
+	loops[i]->getLoopBasicBlocksExclusive(blocks);
+	sort_blocks(blocks, blocks.size());
+
+	BPatch_point *p = NULL;
+
+	if (blocks.size() == 0) {
+	    // if there are no basic blocks then we can't instrument
+	    // the body of this loop
+	}
+	else if (blocks.size() == 1) {
+	    // if the loop body has a single block then we try to create
+	    // an inst point after the start of this block. 
+	    void *start, *end;
+	    blocks[0]->getAddressRange(start, end);
+	    p = appImage->createInstPointAtAddr((char *)start);
+	}
+	else {
+	    // there are at least 2 basic blocks. try to create an inst point
+	    // after the start of the second block. the rationale is that the
+	    // first block may contain the loop predicate and instrumentation 
+	    // needs to be inserted after this block's final jump instruction
+	    // in order to be part of the loop's body
+	    void *start, *end;
+	    blocks[1]->getAddressRange(start, end);
+	    p = appImage->createInstPointAtAddr((char *)start);	    
+	}
+
+	// was an inst point created?
+	if (p == NULL) {
+	    fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
+	    fprintf(stderr,"   Unable to create inst point at loop %d.\n",i);
+	}
+	else {
+	    // insert a call to the function which increments the global
+	    BPatchSnippetHandle * han = 
+		appThread->insertSnippet(callInc, *p, BPatch_callAfter);
+	    
+	    // did we insert the snippet?
+	    if (han == NULL) {
+		fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
+		fprintf(stderr,"   Unable to insert snippet at loop %s.\n", i);
+	    }
+	}
+
+	BPatch_Vector<BPatch_basicBlockLoop*> lps;
+	loops[i]->getOuterLoops(lps);
+
+	// recur with this loop's outer loops
+	instrumentLoops(appThread, appImage, lps, callInc);
+    }
+}
+
+
+void instrumentFuncLoopsWithCall(BPatch_thread *appThread, 
+				 BPatch_image *appImage,
+				 char * call_func,
+				 char * inc_func)
+{
+    // get function * for call_func
+    BPatch_Vector<BPatch_function *> funcs;
+
+    appImage->findFunction(call_func, funcs);
+    BPatch_function *func = funcs[0];
+
+    // get function * for inc_func
+    BPatch_Vector<BPatch_function *> funcs2;
+    appImage->findFunction(inc_func, funcs2);
+    BPatch_function *incVar = funcs2[0];
+
+    if (func == NULL || incVar == NULL) {
+	fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
+	fprintf(stderr,"    Unable to get funcions.\n");
+	exit(1);
+    }
+
+    // create func expr for incVar
+    BPatch_Vector<BPatch_snippet *> nullArgs;
+    BPatch_funcCallExpr callInc(*incVar, nullArgs);
+    checkCost(callInc);
+
+    // instrument the function's loops
+    BPatch_flowGraph *cfg = func->getCFG();
+    BPatch_Vector<BPatch_basicBlockLoop*> loops;
+    cfg->getOuterLoops(loops);
+
+    instrumentLoops(appThread, appImage, loops, callInc);
+}
+
+
+void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    BPatchErrorCallback oldError =
+    	bpatch->registerErrorCallback(createInstPointError);
+
+    instrumentFuncLoopsWithCall(appThread, appImage,"call37_1", "inc37_1");
+
+    instrumentFuncLoopsWithCall(appThread, appImage,"call37_2", "inc37_2");
+
+    instrumentFuncLoopsWithCall(appThread, appImage,"call37_3", "inc37_3");
+    
+    bpatch->registerErrorCallback(oldError);
+}
+
+
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -4433,6 +4565,8 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if( runTest[ 35 ] ) mutatorTest35( appThread, appImage );
 
     if( runTest[ 36 ] ) mutatorTest36( appThread, appImage );
+    
+    //if( runTest[ 37 ] ) mutatorTest37( appThread, appImage );
 
     
     /* the following bit of code saves the mutatee in its mutated state to the
