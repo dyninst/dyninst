@@ -1,36 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- *
- * Revision 1.79  1997/04/14 19:54:00  zhichen
- * Added memoryInfoCallback, getMemoryBounds, newMemoryDefined
- * Revision 1.78  1997/01/30 17:55:09  tamches
- * added "afterAttach" param to attach()
- *
- * Revision 1.77  1997/01/16 21:56:16  tamches
- * bumped up version number
- *
- * Revision 1.76  1997/01/16 21:55:24  tamches
- * extra params to attach()
- *
- * Revision 1.75  1997/01/15 00:04:57  tamches
- * added attach()
- *
- * Revision 1.74  1996/05/06 17:14:02  newhall
- * added disableDataAndClearPersistentData, and added phase_persistent_data flag
- * to enableDataRequest routines
- *
- * Revision 1.73  1996/05/02  19:52:15  karavan
- * removed obsolete parameters from predicted cost callback defn
- *
- * Revision 1.72  1996/05/01 18:06:31  newhall
- * added param to predicted cost routines
- *
- * Revision 1.71  1996/04/30  18:57:37  newhall
- * changes to enableDataCollection calls and upcalls
- *
- * Revision 1.70  1996/04/22  17:56:40  newhall
- * minor change to predictedDataCost
- *
+ * $Id: dataManager.I,v 1.84 1998/03/03 23:28:18 wylie Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -674,12 +644,20 @@ $remote dataManager {
     //
     void printDaemons();
 
-
     //
-    // daemonStartInfo: prints a message with the command line to start a 
+    // daemonStartInfo: provides information about the command line to start a 
     // daemon manually (needed if a rshd is not available on a remote machine)
     //
-    void printDaemonStartInfo();
+    void displayDaemonStartInfo();
+    void printDaemonStartInfo(const char *filename);
+
+    //
+    // display information about Paradyn
+    //
+    void displayParadynGeneralInfo();
+    void displayParadynLicenseInfo();
+    void displayParadynReleaseInfo();
+    void displayParadynVersionInfo();
 
     //
     // return a list of daemon names
