@@ -48,6 +48,8 @@
    of here is as a memory barrier 
 */
 #define MEMORY_BARRIER     asm volatile ("sync")
+#elif defined( arch_ia64 )
+#define MEMORY_BARRIER     asm volatile ( "mf" )
 #else
 #define MEMORY_BARRIER
 #endif
