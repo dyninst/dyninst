@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.5 2001/03/30 03:46:35 bernat Exp $
+// $Id: aixDL.C,v 1.6 2001/04/02 17:54:39 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -125,21 +125,24 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 	// Solution: take the pathname we have and construct a new
 	// handle.
 	ptr->ldinfo_fd = open(ptr->ldinfo_filename, O_RDONLY);
-	if (ptr->ldinfo_fd == -1)
+	if (ptr->ldinfo_fd == -1) {
 	  // Sucks to be us
 	  fprintf(stderr, "aixDL.C:getSharedObjects: library %s has disappeared!\n", ptr->ldinfo_filename);
-      }
+	  // Set the memory offsets to -1 so we don't try to parse it.
+	  ptr->ldinfo_textorg = -1;
+	  ptr->ldinfo_dataorg = -1;
+	}
 
       string obj_name = string(ptr->ldinfo_filename);
       string member = string(ptr->ldinfo_filename + 
 			     (strlen(ptr->ldinfo_filename) + 1));
       Address text_org =(Address) ptr->ldinfo_textorg;
       Address data_org =(Address) ptr->ldinfo_dataorg;
-
+#ifdef DEBUG
       fprintf(stderr, "%s:%s (%x/%x)\n",
 	      obj_name.string_of(), member.string_of(),
 	      text_org, data_org);
-
+#endif /* DEBUG */
       // I believe that we need to pass this as a pointer so that
       // subclassing will work
       fileDescriptor_AIX *fda = new fileDescriptor_AIX(obj_name, member,
