@@ -43,6 +43,31 @@
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/pd_thread.h"
+
+rawTime64 pd_process::getAllLwpRawCpuTime_hw() {
+   rawTime64 total = 0;
+   threadMgr::thrIter itr = thrMgr().begin();
+   for(; itr != thrMgr().end(); itr++) {
+      pd_thread *thr = *itr;
+      dyn_lwp *lwp = thr->get_dyn_thread()->get_lwp();
+      total += lwp->getRawCpuTime_hw();
+   }
+   return total;
+}
+
+rawTime64 pd_process::getAllLwpRawCpuTime_sw() {
+   rawTime64 total = 0;
+   threadMgr::thrIter itr = thrMgr().begin();
+
+   for(; itr != thrMgr().end(); itr++) {
+      pd_thread *thr = *itr;
+      dyn_lwp *lwp = thr->get_dyn_thread()->get_lwp();
+      total += lwp->getRawCpuTime_sw();
+   }
+   return total;
+}
+
 
 timeUnit calcJiffyUnit() {
    // Determine the number of jiffies/sec by checking the clock idle time in

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.19 2003/06/24 19:41:49 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.20 2003/10/22 16:01:08 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -385,7 +385,7 @@ bool processTimerHK::perform(const tTimer *theTimer,
       assert(thr != NULL);
 
       if (vt == (virtualTimer*) -1) {
-         inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
+         inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime() : 0;
       } else {
          bool success = true ; // count <=0 should return true
          inferiorCPUtime =(count>0)?thr->getInferiorVtime(vt, success) : 0;
@@ -396,7 +396,7 @@ bool processTimerHK::perform(const tTimer *theTimer,
       if(inferiorCPUtime == -1)  //getRawCpuTime failed (perhaps process ended)
          return false;
    } else {
-      inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
+      inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime() : 0;
       if(inferiorCPUtime == -1)  //getRawCpuTime failed (perhaps process ended)
          return false;
    }

@@ -43,10 +43,21 @@
 
 #include "paradynd/src/pd_process.h"
 
+
 void pd_process::initCpuTimeMgrPlt() {
    cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &pd_process::yesAvail, 
                             timeUnit::ns(), timeBase::bNone(), 
                             &pd_process::getRawCpuTime_sw,"swCpuTimeFPtrInfo");
 }
 
+rawTime64 pd_process::getAllLwpRawCpuTime_hw() {
+   process *pr = get_dyn_process()->lowlevel_process();
+   dyn_lwp *lwp = pr->getRepresentativeLWP();
+   return lwp->getRawCpuTime_hw();
+}
 
+rawTime64 pd_process::getAllLwpRawCpuTime_sw() {
+   process *pr = get_dyn_process()->lowlevel_process();
+   dyn_lwp *lwp = pr->getRepresentativeLWP();
+   return lwp->getRawCpuTime_sw();
+}
