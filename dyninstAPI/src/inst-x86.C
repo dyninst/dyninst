@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.74 2001/02/20 21:36:36 gurari Exp $
+ * $Id: inst-x86.C,v 1.75 2001/03/09 17:50:06 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -583,6 +583,10 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	 instPoint *p = new instPoint(this, owner, adr, insn);
 	 calls += p;
 	 points[npoints++] = point_(p, numInsns, CallPt);
+       } else {
+	   // Temporary: Currently we can't relocate a function if it
+	   // contains a call to adr+5  
+           canBeRelocated = false;
        }
      }
 
@@ -3250,6 +3254,38 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
     insnSize = get_instruction(p, type);
     insn = new instruction(p, type, insnSize);   
     insnVec += *insn;
+
+    // check for the following instruction sequence:
+    //
+    //  call (0)       (PC relative address, where the target of call (0)
+    //                  is the next instruction
+    //  pop  %ebx      (pops return address of call instruction off of the
+    //                  stack and places it in the ebx reg. The value in
+    //                  ebx becomes the address of the pop instruction
+    //
+    // This sequence is used to get the address of the currently 
+    // executing instruction. Presently we don't relocate a function 
+    // with this sequence of instructions 
+
+    // A call instruction whose target is the next instruction, is generally
+    // used to obtain the address of the next instruction. 
+    // Presently we don't relocate a functions with such calls
+    if ( isTrueCallInsn((const instruction)(*insn)) && 
+         get_disp(insn) == 0 && *(p + insnSize) == 0x5b ) {
+
+#if DEBUG_FUNC_RELOC
+         cerr << "WARNING: " << prettyName()  
+         cerr << "WARNING: " << prettyName()  
+              << " has a call to the next instruction." << endl;
+         cerr << " ...CANNOT RELOCATE FUNCTION" << endl;
+#endif
+
+         relocatable_ = false;
+
+         delete insn;
+         return false;
+    }
+  
 
     // update p so it points to the next machine code instruction
     p = p + insnSize; 

@@ -285,7 +285,7 @@ bool expanded = true;
     cerr << "WARN : attempting to relocate function " \
        	 << prettyName().string_of() << " with size 0, unable to instrument" \
          <<  endl;
-    return false;
+    return -1;
   }
 
   // get baseAddress if this is a shared object
@@ -298,7 +298,7 @@ bool expanded = true;
 
   // create a buffer of instruction objects 
   if (!(loadCode(owner, proc, oldInstructions, numberOfInstructions, mutatee))) {
-    return false;  
+    return -1;  
   }
 
   // address of copy of function (in mutator)
@@ -381,8 +381,6 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
                                     mutator, mutatee);  
 
   if (totalSizeChange == -1) {
-
-    cerr << "ERROR: UNABLE TO RELOCATE FUNCTION" << endl;
 
     // Do not relocate function
     delete []oldInstructions;
@@ -1121,7 +1119,15 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
              << " with size 0x" << size()+size_change << endl;
 #endif
 
+      } else {
+
+#ifdef DEBUG_FUNC_RELOC
+        cerr << "Warning: Unable to relocate function"
+             << prettyName() << endl;
+#endif
+          return false;
       }
+
       return true;
     }
     return false;
