@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.10 2003/03/04 19:16:19 willb Exp $
+// $Id: sampleAggregator.C,v 1.11 2003/03/21 19:58:36 willb Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -367,7 +367,7 @@ void sampleAggregator::actuallyAggregate(struct sampleInterval *ret) {
       // Remember the point in time is actually at the end of the intervals
       // since we've waited until the intervals are filled.
       if(compActualVal > aggActualVal)  aggActualVal = compActualVal;
-    } else if(aggOp == aggMax) {
+    } else if(aggOp == aggMin) {
       if(compActualVal < aggActualVal)  aggActualVal = compActualVal;   
     }
   }
