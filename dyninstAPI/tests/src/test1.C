@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.34 1999/07/29 14:02:16 hollings Exp $
+// $Id: test1.C,v 1.35 1999/08/09 05:51:38 csserra Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -386,8 +386,8 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
     }
     // see if we can find the address
     if (expr3_1->getBaseAddr() <= 0) {
-	printf("*Error*: address %d for globalVariable3_1 is not valid\n",
-		(int) expr3_1->getBaseAddr());
+	printf("*Error*: address %p for globalVariable3_1 is not valid\n",
+	       expr3_1->getBaseAddr());
     }
 
     BPatch_variableExpr *expr3_2 = appThread->malloc(*appImage->findType("int"));
@@ -1400,11 +1400,11 @@ void readyTest21or22(BPatch_thread *appThread)
 
 void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(mips_sgi_irix6_4) \
+ || defined(alpha_dec_osf4_0)
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
      
@@ -1733,6 +1733,7 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#ifndef mips_sgi_irix6_4
     //     First verify that we can find a local variable in call25_1
     BPatch_Vector<BPatch_point *> *point25_1 =
 	appImage->findProcedurePoint("call25_1", BPatch_entry);
@@ -1781,6 +1782,8 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_arithExpr assignment4(BPatch_assign, *gvar[7],
 	BPatch_arithExpr(BPatch_negate, *gvar[6]));
     appThread->insertSnippet(assignment4, *point25_1);
+
+#endif
 }
 
 

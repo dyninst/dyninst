@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.26 1999/07/29 14:02:17 hollings Exp $
+// $Id: test2.C,v 1.27 1999/08/09 05:51:39 csserra Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -217,9 +217,11 @@ void test6(BPatch_thread *thread, BPatch_image *img)
 {
     int i;
 
-#if !defined(sparc_sun_solaris2_4)  && !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4) && \
-    !defined(alpha_dec_osf4_0)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(mips_sgi_irix6_4) \
+ && !defined(alpha_dec_osf4_0)
     printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
     printf("    feature not implemented on this platform\n");
     passedTest[6] = true;
@@ -258,8 +260,10 @@ void test6(BPatch_thread *thread, BPatch_image *img)
 //
 void test7(BPatch_thread *thread, BPatch_image *img)
 {
-#if !defined(sparc_sun_solaris2_4)  && !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4)
+#if !defined(sparc_sun_solaris2_4) \
+ && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(mips_sgi_irix6_4)
     printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     printf("    feature not implemented on this platform\n");
     passedTest[7] = true;
@@ -312,7 +316,7 @@ void test8a(BPatch_thread *appThread, BPatch_image *appImage)
 	appImage->findProcedurePoint("func8_1", BPatch_entry);
     if (points == NULL) {
 	printf("**Failed** test #8 (BPatch_breakPointExpr)\n");
-	printf("    unable to locate function \"func10_1\".\n");
+	printf("    unable to locate function \"func8_1\".\n");
 	exit(1);
     }
 
@@ -343,7 +347,9 @@ void test8b(BPatch_thread *thread)
 //      
 void test9(BPatch_thread *thread)
 {
-#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4) && !defined(mips_sgi_irix6_4)
+#if !defined(sparc_sun_sunos4_1_3) \
+ && !defined(sparc_sun_solaris2_4) \
+ && !defined(mips_sgi_irix6_4)
     printf("Skipping test #9 (dump core but do not terminate)\n");
     printf("    BPatch_thread::dumpCore not implemented on this platform\n");
     passedTest[9] = true;
@@ -386,9 +392,12 @@ void test9(BPatch_thread *thread)
 //
 void test10(BPatch_thread *thread)
 {
-#if !defined(rs6000_ibm_aix4_1)    && !defined(sparc_sun_sunos4_1_3)  && \
-    !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && \
-    !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
+#if !defined(rs6000_ibm_aix4_1) \
+ && !defined(sparc_sun_sunos4_1_3) \
+ && !defined(sparc_sun_solaris2_4) \
+ && !defined(i386_unknown_linux2_0) \
+ && !defined(mips_sgi_irix6_4) \
+ && !defined(alpha_dec_osf4_0)
     printf("Skipping test #10 (dump image)\n");
     printf("    BPatch_thread::dumpImage not implemented on this platform\n");
     passedTest[10] = true;

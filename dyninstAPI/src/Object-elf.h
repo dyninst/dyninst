@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.36 1999/07/13 22:12:50 wylie Exp $
+ * $Id: Object-elf.h,v 1.37 1999/08/09 05:52:30 csserra Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -213,17 +213,26 @@ class Object : public AObject {
        dictionary_hash<string, Symbol> &global_symbols);
 
 #if defined(mips_sgi_irix6_4)
+
  public:
   Address     get_gp_value()  const { return gp_value; }
   Address     get_rbrk_addr() const { return rbrk_addr; }
   Address     get_base_addr() const { return base_addr; }
   const char *got_entry_name(Address entry_off) const;
+  int         got_gp_disp(const char *entry_name) const;
+
+  Address     MIPS_stubs_addr_;   // .MIPS.stubs section
+  Address     MIPS_stubs_off_;    // .MIPS.stubs section
+  unsigned    MIPS_stubs_size_;   // .MIPS.stubs section
+
  private:
   Address     gp_value;
   Address     rbrk_addr;
   Address     base_addr;
+
   int         got_zero_index_;
   int         dynsym_zero_index_;
+
 #endif /* mips_sgi_irix6_4 */
 };
  

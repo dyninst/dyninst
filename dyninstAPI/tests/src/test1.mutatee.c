@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.22 1999/07/29 14:02:16 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.23 1999/08/09 05:51:39 csserra Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -19,6 +19,18 @@
 
 #if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
 #include <dlfcn.h> // For replaceFunction test
+#endif
+
+/* Empty functions are sometimes compiled too tight for entry and exit
+   points.  The following macro is used to flesh out these
+   functions. */
+#if defined(mips_sgi_irix6_4)
+#define DUMMY_FN_BODY \
+  int dummy1__ = 1; \
+  int dummy2__ = 2; \
+  int dummy3__ = dummy1__ + dummy2__
+#else
+#define DUMMY_FN_BODY
 #endif
 
 /* XXX Currently, there's a bug in the library that prevents a subroutine call
@@ -828,6 +840,7 @@ void func11_1()
 //	
 void func12_2()
 {
+    DUMMY_FN_BODY;
 }
 
 void func12_1()
@@ -929,6 +942,7 @@ void check15result(char *varname, int value, int expected,
 
 void func15_2()
 {
+  DUMMY_FN_BODY;
 }
 
 void func15_3()
@@ -1235,7 +1249,11 @@ void func20_1()
 void func21_1()
 {
      // Nothing for the mutatee to do in this test (findFunction in module)
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(mips_sgi_irix6_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(alpha_dec_osf4_0)
      printf("Passed test #21 (findFunction in module)\n");
      passedTest[21] = TRUE;
 #else
@@ -1524,10 +1542,17 @@ int globalVariable25_7;
 
 void call25_1() 
 { 
+  DUMMY_FN_BODY;
 }
 
 void func25_1()
 {
+#if defined(mips_sgi_irix6_4)
+    printf("Skipped test #25 (unary operators)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[25] = TRUE;
+#else
+
     passedTest[25] = TRUE;
 
     globalVariable25_1 = 25000001;
@@ -1548,34 +1573,35 @@ void func25_1()
     call25_1();
 
     if ((int *) globalVariable25_2 != &globalVariable25_1) {
-	if (passedTest[25]) printf("**Failed** test #25 (unary operatos)\n");
+	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
 	printf("    globalVariable25_2 = %lx, not %lx\n", 
 	    globalVariable25_2, (void *) &globalVariable25_1);
     }
 
     if (globalVariable25_3 != globalVariable25_1) {
-	if (passedTest[25]) printf("**Failed** test #25 (unary operatos)\n");
+	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
 	printf("    globalVariable25_3 = %d, not %d\n", 
 	    globalVariable25_3, globalVariable25_1);
     }
 
     if (globalVariable25_5 != -globalVariable25_4) {
-	if (passedTest[25]) printf("**Failed** test #25 (unary operatos)\n");
+	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
 	printf("    globalVariable25_5 = %d, not %d\n", 
 	    globalVariable25_5, -globalVariable25_4);
     }
 
     if (globalVariable25_7 != -globalVariable25_6) {
-	if (passedTest[25]) printf("**Failed** test #25 (unary operatos)\n");
+	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
 	printf("    globalVariable25_7 = %d, not %d\n", 
 	    globalVariable25_7, -globalVariable25_6);
     }
 
     if (passedTest[25]) printf("Passed test #25 (unary operators)\n");
+#endif
 }
 
 //
@@ -1663,6 +1689,17 @@ void func26_1()
     if (passedTest[26]) printf("Passed test #26 (field operators)\n");
 #endif
 }
+
+/* "replaceFunctionCall()" on Irix usually requires that the new
+   callee have a GOT entry.  This dummy function forces GOT entries to
+   be created for these functions. */
+#if defined(mips_sgi_irix6_4)
+void dummy_force_got_entries()
+{
+    call14_1();
+    call15_3();
+}
+#endif
 
 #ifdef i386_unknown_nt4_0
 #define USAGE "Usage: test1 [-attach] [-verbose]"

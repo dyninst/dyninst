@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.15 1999/07/29 14:02:17 hollings Exp $ */
+/* $Id: test2.mutatee.c,v 1.16 1999/08/09 05:51:40 csserra Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -24,11 +24,22 @@
 
 #include "test2.h"
 
+/* Empty functions are sometimes compiled too tight for entry and exit
+   points.  The following macro is used to flesh out these
+   functions. */
+#if defined(mips_sgi_irix6_4)
+#define DUMMY_FN_BODY \
+  int dummy1__ = 1; \
+  int dummy2__ = 2; \
+  int dummy3__ = dummy1__ + dummy2__
+#else
+#define DUMMY_FN_BODY
+#endif
+
 /* XXX Currently, there's a bug in the library that prevents a subroutine call
  * instrumentation point from being recognized if it is the first instruction
  * in a function.  The following variable is used in this program in a number
- * of kludges to get around this.
- */
+ * of kludges to get around this.  */
 int kludge;
 
 /* control debug printf statements */
@@ -95,16 +106,19 @@ void func6_1()
 void func8_1()
 {
     /* Does nothing.  Will be instrumented with a BPatch_breakPointExpr */
+    DUMMY_FN_BODY;
 }
 
 void func11_1()
 {
     /* Does nothing. */
+    DUMMY_FN_BODY;
 }
 
 void func12_1()
 {
     /* Does nothing. */
+    DUMMY_FN_BODY;
 }
 
 #ifdef i386_unknown_nt4_0

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.13 1999/07/13 22:08:03 wylie Exp $
+ * $Id: Object-elf.C,v 1.14 1999/08/09 05:52:33 csserra Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -192,6 +192,13 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   stab_off_ = 0;
   stab_size_ = 0;
   stabstr_off_ = 0;
+#if defined(mips_sgi_irix6_4)
+  MIPS_stubs_addr_ = 0;
+  MIPS_stubs_off_ = 0;
+  MIPS_stubs_size_ = 0;
+  got_zero_index_ = -1;
+  dynsym_zero_index_ = -1;
+#endif
 
   Elf_Scn *scnp = NULL;
   while ((scnp = elf_nextscn(elfp, scnp)) != NULL) {
@@ -270,6 +277,11 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
       if (!bssaddr) bssaddr = pd_shdrp->pd_addr;	  
     }
 #if defined(mips_sgi_irix6_4)
+    else if (strcmp(name, ".MIPS.stubs") == 0) {
+      MIPS_stubs_addr_ = pd_shdrp->pd_addr;
+      MIPS_stubs_size_ = pd_shdrp->pd_size;
+      MIPS_stubs_off_ = pd_shdrp->pd_offset;
+    }
     else if (strcmp(name, MIPS_OPTIONS) == 0) {
       // see <sys/elf.h>, ".MIPS.options" section
       Elf_Data *datap = elf_getdata(scnp, 0);
@@ -391,6 +403,9 @@ const char *Object::got_entry_name(Address entry_raddr) const
 {
   const char *ret = NULL;
 
+  if (got_zero_index_ == -1) return NULL;
+  if (dynsym_zero_index_ == -1) return NULL;
+
   // mapped ELF sections: .dynsym .dynstr
   const char *dynsym_ptr = elf_vaddr_to_ptr(dynsym_addr_);
   const char *dynstr_ptr = elf_vaddr_to_ptr(dynstr_addr_);
@@ -424,6 +439,32 @@ const char *Object::got_entry_name(Address entry_raddr) const
 
   //fprintf(stderr, ">>> got_entry_name(0x%016lx): \"%s\"\n", entry_raddr, ret);
   return ret;
+}
+
+int Object::got_gp_disp(const char *fn_name) const
+{
+  // check against every external GOT entry
+  int got_entry_size = (is_elf64_) ? (sizeof(Elf64_Got)) : (sizeof(Elf32_Got));
+  int n = got_size_ / got_entry_size;
+  for (int i = got_zero_index_; i < n; i++) {
+    Address got_entry = got_addr_ + (i * got_entry_size);
+
+    // lookup name by GOT entry
+    const char *got_str = got_entry_name(got_entry - base_addr);
+    if (!got_str) continue;
+    string got_name = got_str;
+
+    // check against variations of GOT name
+    if (strcmp(fn_name, (got_name).string_of()) == 0 ||       // default
+	strcmp(fn_name, ("_" + got_name).string_of()) == 0 || // C
+	strcmp(fn_name, (got_name + "_").string_of()) == 0 || // Fortran
+	strcmp(fn_name, ("__" + got_name).string_of()) == 0)  // libm
+      {
+      int gp_off = (long int)got_entry - (long int)gp_value;
+      return gp_off;
+    }
+  }
+  return -1;
 }
 #endif /* mips_sgi_irix6_4 */
 
@@ -899,7 +940,7 @@ static string find_global_symbol(string name,
   name2 = "_" + name;
   if (global_symbols.defines(name2)) return name2;
 
-  // pass #2: trailing underscore (Fortran)
+  // pass #3: trailing underscore (Fortran)
   name2 = name + "_";
   if (global_symbols.defines(name2)) return name2;
 
@@ -919,7 +960,8 @@ static string find_global_symbol(string name,
 void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr userData)
 {
   void (*errFunc)(const char *) = (void (*)(const char *))userData;
-  log_printf(errFunc, "DWARF error: %s", dwarf_errmsg(error));
+  char *dwarf_msg = dwarf_errmsg(error);
+  log_printf(errFunc, "DWARF error: %s", dwarf_msg);
 }
 bool Object::fix_global_symbol_modules_static_dwarf(
        dictionary_hash<string, Symbol> &global_symbols,
@@ -933,7 +975,7 @@ bool Object::fix_global_symbol_modules_static_dwarf(
   Dwarf_Attribute attr;
   Dwarf_Debug dbg;
 
-  ret = dwarf_elf_init(elfp, DW_DLC_READ, &pd_dwarf_handler, &err_func_, &dbg, NULL);
+  ret = dwarf_elf_init(elfp, DW_DLC_READ, &pd_dwarf_handler, err_func_, &dbg, NULL);
   if (ret != DW_DLV_OK) return false;
 
   while (dwarf_next_cu_header(dbg, NULL, NULL, NULL, NULL, &hdr, NULL)
