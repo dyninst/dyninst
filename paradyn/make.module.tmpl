@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.24  1996/02/07 00:05:27  tamches
+# added templatesPCV.C
+#
 # Revision 1.23  1996/02/06 16:27:43  mjrg
 # Invoke tcl2c with perl, to avoid problems on HP.
 #
@@ -93,7 +96,11 @@ TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 TARGET	      = paradyn
 
 VPATH	     += ../h:$(wildcard ../src/*thread):\
-                ../src/pdMain:../src/met:../../visi/h:
+                ../src/pdMain:../src/met
+
+# We don't want to force the user to have "visi" checked out in order
+# to compile paradyn:
+VPATH	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ":../../visi/h"; else echo ":/p/paradyn/core/visi/h"; fi )
 
 SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/DMthread/DMdaemon.C \
@@ -150,6 +157,7 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/met/metClass.C \
 		../src/templatesIGENMDL.C  \
 		../src/templatesDMPCV.C  \
+		../src/templatesPCV.C  \
 		../src/templatesUI.C  \
                 ../src/met/mdl.C
 
@@ -191,7 +199,6 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 
 
 IFLAGS       += -DPARADYN
-#LIBDIR	     += -L/usr/psup/lib -L/s/flex/lib
 
 LIBS 	     += -lpdutil -lpdthread
 #SYSLIBS	     += -ltix -ltk -ltcl -lX11 -lm -lfl
@@ -211,6 +218,8 @@ templatesIGENMDL.o: ../src/templatesIGENMDL.C
 	$(CXX) $(TFLAGS) -c ../src/templatesIGENMDL.C
 templatesDMPCV.o: ../src/templatesDMPCV.C
 	$(CXX) $(TFLAGS) -c ../src/templatesDMPCV.C
+templatesPCV.o: ../src/templatesPCV.C
+	$(CXX) $(TFLAGS) -c ../src/templatesPCV.C
 templatesUI.o: ../src/templatesUI.C
 	$(CXX) $(TFLAGS) -c ../src/templatesUI.C
 
