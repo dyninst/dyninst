@@ -77,13 +77,10 @@ extern "C" {
 #else
 #include <wtypes.h>
 #endif /* !defined(i386_unknown_nt4_0) */
-#if 0
+
 #include "pdutil/h/pdsocket.h"
 #include "pdutil/h/pddesc.h"
-#else
-#include "/p/paradyn/development/willb/core/pdutil/h/pdsocket.h"
-#include "/p/paradyn/development/willb/core/pdutil/h/pddesc.h"
-#endif
+
     
 
 
@@ -133,10 +130,25 @@ typedef enum {
 #endif /* defined(i386_uknown_nt4_0) */
 }	item_t;
 
+typedef enum {
+        action_read,
+        action_write
+}       action_t;
+
+typedef enum {
+        rwlock_favor_read,
+        rwlock_favor_write
+}       pref_t;
+
+class pthread_sync;
+class rwlock;
+    
 typedef	unsigned thread_t;
 typedef pthread_key_t thread_key_t;
 typedef unsigned tag_t;
-
+typedef pthread_sync* thread_monitor_t;
+typedef rwlock* thread_rwlock_t;    
+    
 
 
 
@@ -203,6 +215,22 @@ void    thr_update_socket_data_state( PDSOCKET sock );
 
 
 
+/* synchronization primitives */
+
+int thr_monitor_create(thread_monitor_t* mon);
+int thr_monitor_destroy(thread_monitor_t* mon);
+int thr_monitor_enter(thread_monitor_t* mon);
+int thr_monitor_leave(thread_monitor_t* mon);
+
+int thr_cond_register(thread_monitor_t* mon, unsigned cond_no);
+int thr_cond_wait(thread_monitor_t* mon, unsigned cond_no);
+int thr_cond_signal(thread_monitor_t* mon, unsigned cond_no);
+
+int thr_rwlock_create(thread_rwlock_t* rw);
+int thr_rwlock_destroy(thread_rwlock_t* rw);
+
+int thr_rwlock_acquire(thread_rwlock_t* rw, action_t action);
+int thr_rwlock_release(thread_rwlock_t* rw, action_t action);
 
 #if defined(__cplusplus)
 }
