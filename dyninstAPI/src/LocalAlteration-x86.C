@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.C,v 1.2 2001/02/20 21:40:51 gurari Exp $
+// $Id: LocalAlteration-x86.C,v 1.3 2001/03/07 21:03:25 pcroth Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/LocalAlteration-x86.h"
@@ -66,11 +66,11 @@ bool ExpandInstruction::UpdateInstPoints(FunctionExpansionRecord* /* ips */) {
     return true;
 }
 
-int ExpandInstruction::getOffset() {
+int ExpandInstruction::getOffset() const {
     return beginning_offset;
 }
  
-int ExpandInstruction::getShift() {
+int ExpandInstruction::getShift() const {
     return extra_bytes;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.h,v 1.5 2001/02/20 21:40:50 gurari Exp $
+// $Id: LocalAlteration-Sparc.h,v 1.6 2001/03/07 21:03:25 pcroth Exp $
 
 #ifndef __LocalAlteration_SPARC_H__
 #define __LocalAlteration_SPARC_H__
@@ -100,9 +100,9 @@ class CallRestoreTailCallOptimization : public TailCallOptimization {
                                    int newDisp,
                                    unsigned &codeOffset, 
                                    unsigned char *code);
-     virtual int getShift();
+     virtual int getShift() const;
      virtual int numInstrAddedAfter();
-     virtual int getOffset() { return beginning_offset; }
+     virtual int getOffset() const { return beginning_offset; }
 };
 
 // used to unwind tail-call optimizations which match the pattern:
@@ -125,9 +125,9 @@ class JmpNopTailCallOptimization : public TailCallOptimization {
                                    int newDisp,
                                    unsigned &codeOffset, 
                                    unsigned char *code);
-     virtual int getShift();
+     virtual int getShift() const;
      virtual int numInstrAddedAfter();
-     virtual int getOffset() { return beginning_offset; }
+     virtual int getOffset() const { return beginning_offset; }
 };
 
 //class SecondInsnCall : public LocalAlteration {
@@ -172,8 +172,8 @@ class SetO7 : public LocalAlteration {
                                    unsigned char *code);
 
     
-    virtual int getOffset() { return beginning_offset; }
-    virtual int getShift() { return sizeof(instruction); }
+    virtual int getOffset() const { return beginning_offset; }
+    virtual int getShift() const { return sizeof(instruction); }
     virtual int numInstrAddedAfter();
 };
 

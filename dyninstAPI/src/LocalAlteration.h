@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.h,v 1.3 2001/02/20 21:40:51 gurari Exp $
+// $Id: LocalAlteration.h,v 1.4 2001/03/07 21:03:25 pcroth Exp $
 
 #ifndef __LocalAlteration_H__
 #define __LocalAlteration_H__
@@ -97,8 +97,8 @@ class LocalAlteration {
                                   unsigned &codeOffset,
                                   unsigned char *insn) = 0;
 
-    virtual int getOffset() = 0;
-    virtual int getShift() = 0;
+    virtual int getOffset() const = 0;
+    virtual int getShift() const = 0;
     virtual int numInstrAddedAfter() = 0;
 };
 
@@ -124,8 +124,8 @@ class InsertNops : public LocalAlteration {
     //  specifying how many BYTES of nop....
     InsertNops(pd_Function *f, int offset, int size);
 
-    virtual int getOffset();
-    virtual int getShift();
+    virtual int getOffset() const;
+    virtual int getShift() const;
     virtual int sizeOfNop();
     virtual int numInstrAddedAfter();
     virtual bool UpdateExpansions(FunctionExpansionRecord *fer);

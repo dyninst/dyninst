@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.6 2001/02/20 21:40:50 gurari Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.7 2001/03/07 21:03:25 pcroth Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -265,7 +265,7 @@ bool JmpNopTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *ips) 
     return true;
 } 
 
-int JmpNopTailCallOptimization::getShift() {
+int JmpNopTailCallOptimization::getShift() const {
     return 16 * sizeof(instruction);
 }
 
@@ -535,7 +535,7 @@ bool CallRestoreTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *
     return true;
 }
 
-int CallRestoreTailCallOptimization::getShift() {
+int CallRestoreTailCallOptimization::getShift() const {
     assert(jmpl_call || true_call);
     if (true_call) {
         // call ADDR results in 15 extra instructions....
