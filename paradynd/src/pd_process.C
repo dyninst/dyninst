@@ -246,7 +246,7 @@ void pd_process::init() {
 
     for(unsigned i=0; i<lowlevel_proc->threads.size(); i++) {
         pd_thread *thr = new pd_thread(lowlevel_proc->threads[i], this);
-        addThread(thr);
+	addThread(thr);
     }
     
     theVariableMgr = new variableMgr(this, getSharedMemMgr(),
@@ -424,7 +424,6 @@ pd_process::pd_process(const pdstring &progpath, int pid, bool loops)
 
 extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid);
 
-
 // fork constructor
 pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
         dyninst_process(childDynProc), 
@@ -450,7 +449,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
    }
    BPatch_funcCallExpr fork_init_expr(*(fork_init_func[0]), fork_init_args);
 
-    
+   fprintf(stderr, " ************** Running init_child_after_fork...\n");
    if (dyninst_process->oneTimeCode(fork_init_expr) != (void *)123)
        fprintf(stderr, "Error running forked child init function\n");
    
@@ -474,36 +473,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
 
    setLibState(paradynRTState, libReady);
 
-   process *llproc = dyninst_process->lowlevel_process();
-   for(unsigned i=0; i<llproc->threads.size(); i++) {
-      pd_thread *pd_thr = new pd_thread(llproc->threads[i], this);
-      thr_mgr.addThread(pd_thr);
-      dyn_thread *thr = pd_thr->get_dyn_thread();
-
-      if(! multithread_ready()) continue;
-      // computing resource id
-      pdstring buffer;
-      pdstring pretty_name = pdstring(thr->get_start_func()->prettyName().c_str());
-      buffer = pdstring("thr_") + pdstring(thr->get_tid()) + pdstring("{")
-               + pretty_name + pdstring("}");
-      resource *rid;
-      rid = resource::newResource(get_rid(), (void *)thr, nullString, 
-                                  buffer, timeStamp::ts1970(), "",
-                                  ThreadResourceType,
-                                  MDL_T_STRING,
-                                  true);
-      pd_thr->update_rid(rid);
-      // tell front-end about thread start function for newly created threads
-      // We need the module, which could be anywhere (including a library)
-      int_function *func = thr->get_start_func();
-      pdmodule *foundMod = func->pdmod();
-      assert(foundMod != NULL);
-      resource *modRes = foundMod->getResource();
-      pdstring start_func_str = thr->get_start_func()->prettyName();
-      pdstring res_string = modRes->full_name() + "/" + start_func_str;
-      CallGraphSetEntryFuncCallback(getImage()->get_file(), res_string, 
-                                    thr->get_tid());
-   }
+   fprintf(stderr, " ************** new shared_mem and meta data\n");
 
    // Okay, time to rock and roll... that is, make a copy of the parent's
    // shared memory
@@ -519,6 +489,54 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
    theVariableMgr->initializeVarsAfterFork();
 
    created_via_attach = parent.wasCreatedViaAttach();
+
+   // And the time manager...
+   initCpuTimeMgr();
+   tp->newProgramCallbackFunc(getPid(), arg_list, 
+                              machineResource->part_name(),
+                              false, wasRunningWhenAttached());
+   
+   // Thread time. We keep our own list of threads in the process.
+
+   // Back off the paradyn bootstrap level
+
+   fprintf(stderr, "BTW: this is %p\n", this);
+
+   // DYNINST SEP
+   process *cp = childDynProc->PDSEP_process();
+   if (parent.dyninst_process->PDSEP_process()->multithread_ready()) {
+     for (unsigned i = 0; i < cp->threads.size(); i++) {
+       fprintf(stderr, "********** adding thread %d of %d\n", i+1, cp->threads.size());
+       dyn_thread *thr = cp->threads[i];
+       pd_thread *pd_thr = new pd_thread(thr, this);
+       fprintf(stderr, "... new pdthread...\n");
+       addThread(pd_thr);
+       // This is mostly duplicated from context.C::createThread.
+       // Problem is, in this case we _have_ threads already...     
+       resource *rid;
+       pdstring buffer;
+       buffer = pdstring("thr_") + 
+	 pdstring(thr->get_tid()) + 
+	 pdstring("{") + 
+	 thr->get_start_func()->prettyName() +
+	 pdstring("}");
+       rid = resource::newResource(get_rid(),
+				   (void *)cp->threads[i],
+				   nullString, 
+				   buffer,
+				   timeStamp::ts1970(),
+				   "",
+				   ThreadResourceType,
+				   MDL_T_STRING,
+				   true);
+       fprintf(stderr, ".... new resource....\n");
+       pd_thr->update_rid(rid);
+       fprintf(stderr, "... resetting vtime...\n");
+       fprintf(stderr, "Getting virtual timer %p for index %d\n",
+	       getVirtualTimer(thr->get_index()), thr->get_index());
+       pd_thr->resetInferiorVtime(getVirtualTimer(thr->get_index()));
+     }
+   }
 }
 
 pd_process::~pd_process() {
@@ -696,9 +714,8 @@ void pd_process::paradynExitDispatch(BPatch_thread *thread,
 }
 
 void pd_process::preForkHandler() {
+  // Nothing to do here...
 }
-
-extern void MT_lwp_setup(process *parentDynProc, process *childDynProc);
 
 // this is the parent
 void pd_process::postForkHandler(BPatch_thread *child) {
@@ -707,30 +724,34 @@ void pd_process::postForkHandler(BPatch_thread *child) {
    process *childDynProc  = child->lowlevel_process();
    assert(childDynProc->status() == stopped);
 
-   if(childDynProc->multithread_capable())
-      MT_lwp_setup(parentDynProc, childDynProc);
+   pd_process *parentProc = 
+     getProcMgr().find_pd_process(parentDynProc->getPid());
+   if (!parentProc) {
+     logLine("Error in forkProcess: could not find parent process\n");
+     return;
+   }
+
+   fprintf(stderr, "******************** postFork new pd_process\n");
+   
+   pd_process *childProc = new pd_process(*parentProc, child);
+
+   fprintf(stderr, "******************** postFork have new pd_process\n");
+
+   getProcMgr().addProcess(childProc);
+
+   fprintf(stderr, "******************** postFork process added\n");
+
+   metricFocusNode::handleFork(parentProc, childProc);
+
+   fprintf(stderr, "******************** postFork mfnode::handleFork\n");
 
    childDynProc->setParadynBootstrap();
 
-   assert(childDynProc->status() == stopped);
-
-   pd_process *parentProc = 
-      getProcMgr().find_pd_process(parentDynProc->getPid());
-   if (!parentProc) {
-      logLine("Error in forkProcess: could not find parent process\n");
-      return;
-   }
-
-   pd_process *childProc = new pd_process(*parentProc, child);
-   getProcMgr().addProcess(childProc);
-
-   childProc->initAfterFork(parentProc);
-   metricFocusNode::handleFork(parentProc, childProc);
+   fprintf(stderr, "******************** postFork process paradyn bootstrapped\n");
 
    // I don't think we want to continue the process here... hand it back
    // to Dyninst -- bernat, 28APR04
-   //if (childProc->status() == stopped)
-   //childProc->continueProc();
+   childProc->continueProc();
    // parent process will get continued by unix.C/handleSyscallExit
 }
 
