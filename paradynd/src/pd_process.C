@@ -103,12 +103,13 @@ pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, str
     }
     // Load the paradyn runtime lib
     proc->loadParadynLib();
+    
     // Run necessary initialization
     proc->init();
-
+    
     // Lower batch mode
     tp->resourceBatchMode(false); 
-
+    
 	if (!costMetric::addProcessToAll(proc->get_dyn_process()))
         assert(false);
     
@@ -117,7 +118,7 @@ pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, str
     string buffer = string("PID=") + string(proc->getPid());
     buffer += string(", ready");
     statusLine(buffer.c_str());
-
+    
     return proc;
 }
 
@@ -146,6 +147,7 @@ pd_process *pd_attachProcess(const string &progpath, int pid) {
 }
 
 void pd_process::init() {
+    
     string buffer = string("PID=") + string(getPid());
     buffer += string(", initializing daemon-side data");
     statusLine(buffer.c_str());
@@ -160,13 +162,11 @@ void pd_process::init() {
     buffer = string("PID=") + string(getPid());
     buffer += string(", posting call graph information");
     statusLine(buffer.c_str());
+    
     dyninst_process->FillInCallGraphStatic();
     if (resource::num_outstanding_creates)
         dyninst_process->setWaitingForResources();
-
-    // HACK: this should be part of the pd_process object. Move
-    // later.
-    dyninst_process->setParadynBootstrap();
+    
 }
 
 // Creation constructor
@@ -339,6 +339,8 @@ bool pd_process::loadParadynLib() {
     // Force a load of the paradyn runtime library. We use
     // the dyninst runtime DYNINSTloadLibrary call, as in
     // BPatch_thread::loadLibrary
+    
+    assert(dyninst_process->status() == stopped);
     
     string buffer = string("PID=") + string(getPid());
     buffer += string(", loading Paradyn RT lib via iRPC");       
@@ -531,6 +533,10 @@ bool pd_process::finalizeParadynLib() {
     dyninst_process->registerInferiorAttachedSegs(bs_record.appl_attachedAtPtr.ptr);
 
     if (!calledFromFork) {
+        // MT: need to set Paradyn's bootstrap state or the instrumentation
+        // basetramps will be created in ST mode
+        dyninst_process->setParadynBootstrap();
+
         // Install initial instrumentation requests
         extern pdvector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
         dyninst_process->installInstrRequests(initialRequestsPARADYN); 
