@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.3 2002/05/22 19:03:24 bernat Exp $
+/* $Id: shmMgr.C,v 1.4 2002/06/10 19:25:12 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -57,7 +57,7 @@ shmMgr::shmMgr()
 
 shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
   shmSize(shmSize_), baseAddrInDaemon(0), baseAddrInApplic(0),
-  highWaterMark(0)
+  num_allocated(0)
 {
   // Try to allocate shm segment now
   key_t key = shmSegKey;
@@ -83,8 +83,15 @@ shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
   ptr += 4096;
 #endif
   Address endAddr = reinterpret_cast<Address>(ptr);
-  highWaterMark +=  endAddr - baseAddrInDaemon;
-  
+  freespace = shmSize - (endAddr - baseAddrInDaemon);  
+  highWaterMark = endAddr;
+}
+
+shmMgr::~shmMgr()
+{
+  assert(num_allocated == 0);
+  for (unsigned i = 0; i < prealloc.size(); i++)
+    delete prealloc[i];
 }
 
 static unsigned align(unsigned num, unsigned alignmentFactor) {
@@ -97,21 +104,127 @@ static unsigned align(unsigned num, unsigned alignmentFactor) {
 }
 
 Address shmMgr::malloc(unsigned size) {
-  Address retAddr = 0;
-  if ((highWaterMark+size) <= shmSize) {
-    retAddr = baseAddrInDaemon + highWaterMark;
-    highWaterMark += size;
-  } else {
-    cerr << "Not enough space to allocate memory chunk of size " << size 
-	 << "\n";
-  }
+  if (freespace < size)
+    return 0;
+  cerr << "Allocating size " << size << endl;
+  num_allocated++;
+  // Next, check to see if this size matches any of the preallocated
+  // chunks
+  for (unsigned i = 0; i < prealloc.size(); i++)
+    if ((size == prealloc[i]->size_) &&
+	(prealloc[i]->oneAvailable()))
+      return prealloc[i]->malloc();
+
+  // Grump. Nothing available.. so do it the hard way
+  // Cheesed, again
+  Address retAddr = highWaterMark;
+  highWaterMark += size;
   return retAddr;
 }
 
-void shmMgr::free(Address /* addr */) {
-  // not implemented yet
+void shmMgr::free(Address addr) 
+{
+  // First, check if the addr is within any of the preallocated
+  // chunks
+  for (unsigned i = 0; i < prealloc.size(); i++)
+    if ((addr >= prealloc[i]->baseAddr_) &&
+	(addr < (prealloc[i]->baseAddr_ + (prealloc[i]->size_*prealloc[i]->numElems_)))) {
+      prealloc[i]->free(addr);
+      break;
+    }
+  num_allocated--;
+  // Otherwise ignore (for now)
 }
- 
 
-    
+// Preallocates a chunk of memory for a certain number of elements,
+// all of size 'size'. This is a mechanism for speeding up common
+// cases for malloc and free.
+// Question... is allocating more than one 'chunk' with a given 
+// data size allowable? For now I'll say yes.
 
+void shmMgr::preMalloc(unsigned size, unsigned num)
+{
+  cerr << "Preallocating " << num << " of size " << size << endl;
+  Address baseAddr = this->malloc(size*num);
+  shmMgrPreallocInternal *new_prealloc = new shmMgrPreallocInternal(size, num, baseAddr);
+  prealloc.push_back(new_prealloc);
+}
+
+shmMgrPreallocInternal::shmMgrPreallocInternal(unsigned size, unsigned num, Address baseAddr)
+{
+  baseAddr_ = baseAddr;
+  size_ = size;
+  numElems_ = num;
+  currAlloc_ = 0;
+  cerr << "Created preallocated chunk of " << numElems_ << " pieces, size " << size_ << " at " << (void *)baseAddr_ << endl; 
+  // Round up to 8 for purposes of bitmapping.
+  unsigned rounded_num;
+  if (num % 8) {
+    rounded_num = num + 8;
+    rounded_num -= (rounded_num % 8);
+  }
+  bitmap_size_ = rounded_num/8;
+  assert((bitmap_size_ * 8) >= rounded_num);
+  bitmap_ = new char[bitmap_size_];
+  for (unsigned i = 0; i < rounded_num/8; i++)
+    bitmap_[i] = 0;
+  // If num wasn't a multiple of 8, mark the final slots as taken.
+  if (rounded_num != num) {
+    // rounded is going to be bigger...
+    int difference = rounded_num - num;
+    int counter = 7;
+    while (difference > 0) {
+      bitmap_[(rounded_num/8)-1] += 1 << counter;
+      counter--;
+      difference--;
+    }
+  }
+}
+
+shmMgrPreallocInternal::~shmMgrPreallocInternal()
+{
+  assert(currAlloc_ == 0);
+  delete [] bitmap_;
+}
+
+bool shmMgrPreallocInternal::oneAvailable()
+{
+  return (currAlloc_ < numElems_);
+}
+
+Address shmMgrPreallocInternal::malloc()
+{
+  if (!oneAvailable()) return 0;
+  // Well, there's one here... let's try and find it. Scan the bitmaps
+  // for one that is less than 0xff
+  unsigned next_free_block = 0;
+  for (next_free_block = 0; next_free_block < bitmap_size_; next_free_block++)
+    if (bitmap_[next_free_block] < 0xff)
+      break;
+  assert(next_free_block < bitmap_size_); // Should have been bounced by oneAvailable
+  // Next: find slot within that is empty
+  unsigned next_free_slot = 0;
+  for (next_free_slot = 0; next_free_slot < 8; next_free_slot++)
+    if (!(bitmap_[next_free_block] &(0x1 << next_free_slot))) // logical AND, right?
+      break;
+  // Okay, we have our man... mark it as active, decrease available count,
+  // and calculate the return address
+  bitmap_[next_free_block] += 0x1 << next_free_slot;
+  currAlloc_++;
+  cerr << "Returned preallocated, " << next_free_block << " " << next_free_slot << endl;
+  Address retAddr = baseAddr_ + (((next_free_block * 8) + next_free_slot) * size_);
+  cerr << "Returning " << (void *) retAddr << endl;
+  return retAddr;
+}
+
+void shmMgrPreallocInternal::free(Address addr)
+{
+  // Reverse engineer allocation, above...
+  unsigned freed_block;
+  unsigned freed_slot;
+  freed_block = ((addr - baseAddr_)/size_)/8;
+  freed_slot =  ((addr - baseAddr_)/size_) % 8;
+  assert(bitmap_[freed_block] & (0x1 << freed_slot));
+  bitmap_[freed_block] = bitmap_[freed_block] - (0x1 << freed_slot);
+  currAlloc_--;
+}

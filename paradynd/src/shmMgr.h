@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.2 2002/05/03 15:50:04 schendel Exp $
+/* $Id: shmMgr.h,v 1.3 2002/06/10 19:25:13 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -50,26 +50,59 @@
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
+#include "common/h/Vector.h"
 
 class ShmSegment;
 class process;
 
+class shmMgrPreallocInternal
+{
+  friend class shmMgr;
+ private:
+  Address baseAddr_; // Where the preallocated segment starts
+  unsigned size_; // size of each element
+  unsigned numElems_; // Number of elements
+  char *bitmap_;
+  unsigned bitmap_size_;
+  unsigned currAlloc_;
+
+ public:
+  shmMgrPreallocInternal(unsigned size, unsigned num, Address baseAddr);
+  ~shmMgrPreallocInternal();
+
+  Address malloc();
+  void free(Address addr);
+  bool oneAvailable();
+};
+
+#define SHM_COOKIE 0
+#define SHM_PROC (SHM_COOKIE + sizeof(unsigned))
+#define SHM_PID  (SHM_PROC + sizeof(unsigned))
+#define SHM_COST (SHM_PID + sizeof(unsigned))
+
+
 class shmMgr {
+
   key_t keyUsed;
   ShmSegment* theShm;
   unsigned shmSize;
+  unsigned freespace;
   Address baseAddrInDaemon;
   Address baseAddrInApplic;
-  Address highWaterMark;  
+  Address highWaterMark;
+  vector<shmMgrPreallocInternal *> prealloc;
+  unsigned num_allocated; // Allocated tracker
 
  public:
   static const unsigned cookie;
 
   shmMgr();
-
   shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_);
+  ~shmMgr();
 
-  ~shmMgr() {};
+  // Tell the manager to preallocate a chunk of space
+  // Can be called repeatedly to allocate multiple sizes
+  void preMalloc(unsigned size, unsigned num);
 
   /* Do all the work of creating a new shared memory segment
      and getting the RT lib to hook to it */
@@ -88,28 +121,26 @@ class shmMgr {
     if(baseAddrInApplic == 0)
       return NULL;
     
-    return reinterpret_cast<void*>(baseAddrInApplic + 12);
+    return reinterpret_cast<void*>(baseAddrInApplic + SHM_COST);
   }
   void *getObsCostAddrInParadyndSpace() { 
     if(baseAddrInApplic == 0)
       return NULL;
     
-    return reinterpret_cast<void*>(baseAddrInDaemon + 12);
+    return reinterpret_cast<void*>(baseAddrInDaemon + SHM_COST);			  
   }
   void registerInferiorAttachedAt(void *applicAttachedAt) { 
     baseAddrInApplic = reinterpret_cast<Address>(applicAttachedAt);
   }
 
   Address malloc(unsigned size);
+  void free(Address addr);
+
   void handleExec() { }
   // detach from old segment (and delete it); create new segment & attach to
   // it...inferior attached at undefined.  Pretty much like a call to the
   // dtor following by a call to constructor (maybe this should be
   // operator=() for maximum cuteness)
-
-
-  /* Don't do anything as yet. */
-  void free(Address addr);
 };
 
 
