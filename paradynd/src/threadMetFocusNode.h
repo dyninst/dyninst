@@ -44,6 +44,7 @@
 
 #include "paradynd/src/metric.h"
 #include "common/h/Dictionary.h"
+#include "paradynd/src/focus.h"
 
 class processMetFocusNode;
 
@@ -54,23 +55,34 @@ template<class ParentType> class parentDataRec {
 };
 
 class threadMetFocusNode_Val {
- public:
+  friend threadMetFocusNode;
+
   enum { NON_THREAD = -1};
-  string name;
+  const string &metric_name;
+  const Focus focus;
   vector< parentDataRec<processMetFocusNode> > parentsBuf;
   pdSample cumulativeValue;
   bool allAggInfoInitialized;
   pdThread *pdThr;
   int referenceCount;
 
-  threadMetFocusNode_Val(string name_, pdThread *pdthr) : 
-    name(name_), cumulativeValue(pdSample::Zero()), 
+ public:
+  static string construct_key_name(const string &metricStr, 
+				   const string &focusStr) {
+    return (metricStr + "-" + focusStr);
+  }
+
+  threadMetFocusNode_Val(const string &met, const Focus &f, pdThread *pdthr) : 
+    metric_name(met), focus(f), cumulativeValue(pdSample::Zero()), 
     allAggInfoInitialized(false), pdThr(pdthr), referenceCount(0)
   { }
   ~threadMetFocusNode_Val();
+
+  string getKeyName();
   void updateValue(timeStamp, pdSample);
   void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
 			    pdSample value);
+
   unsigned getThreadID();
   unsigned getThreadPos();
   bool instrInserted();
@@ -99,7 +111,7 @@ class threadMetFocusNode : public metricDefinitionNode {
 
  public:
   static threadMetFocusNode *threadMetFocusNode::newThreadMetFocusNode(
-					     string arg_name, pdThread *pdthr);
+		   const string &metric_name, const Focus &f, pdThread *pdthr);
 
   virtual ~threadMetFocusNode();
   void recordAsParent(processMetFocusNode *procNode, 
