@@ -19,12 +19,18 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.8 1994/09/30 19:47:10 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.9 1994/11/02 11:12:52 markc Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.8  1994/09/30 19:47:10  rbi
+ * Revision 1.9  1994/11/02 11:12:52  markc
+ * Removed static lists and replaced them with lists initialized
+ * int init-<>.C
+ *
+ * Rewrote module constraint handling.
+ *
+ * Revision 1.8  1994/09/30  19:47:10  rbi
  * Basic instrumentation for CMFortran
  *
  * Revision 1.7  1994/09/22  02:18:08  markc
@@ -63,11 +69,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * pvm and a process timer in cm5 because of this.
  */
 
+#include "util/h/kludges.h"
+
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <string.h>
 }
 
 #include "symtab.h"
@@ -79,7 +86,74 @@ extern "C" {
 #include "ast.h"
 #include "util.h"
 #include "rtinst/h/trace.h"
+#include "metricDef.h"
+#include "os.h"
 
+//
+// input: 
+//    constraint = "<module name>[/<procedure name>]"
+//
+// output:
+//    returns true when successful
+//    mod = the module pointer
+//    func = the pdFunction pointer if the constraint is for functions
+//    func = NULL if the constraint is for a module only
+// 
+// given a constraint, finds the module and function from the image
+//
+// It is not an error if the module or function are not found
+//
+bool getModuleAndFunction(char *constraint, image *im, module *&mod, pdFunction *&func) {
+  mod = NULL; func = NULL;
+  bool byFunc = false;
+  string funcCons, modCons;
+  char *buffer, *funcName;
+
+  assert(constraint);
+  buffer = new char[strlen(constraint)];
+  strcpy(buffer, constraint);
+
+  // is this <module>/<procedure> or just <module>
+
+  if (funcName = strchr(buffer, '/')) {
+    // split the string
+    *funcName = 0;
+    funcName++;
+    funcCons = funcName;
+    byFunc = true;
+  }
+  modCons = buffer;
+
+  // find the module
+  mod = im->findModule(modCons);
+  if (!mod) {
+    // no such module 
+    // ostrstream os(errorLine, 1024, ios::out);
+    // os << "Module " << modCons << " not found \n";
+    // logLine(errorLine);
+    delete buffer;
+    return false;
+  }
+
+  // find the function, if it had been specified
+  if (byFunc) {
+    // do one function in the module
+    func = mod->findFunction(funcCons);
+    if (!func) {
+      // ostrstream os(errorLine, 1024, ios::out);
+      // os << "Module " << modCons << " not found \n";
+      // logLine(errorLine);
+      mod = NULL;
+      delete buffer;
+      return false;
+    }
+  }
+  delete buffer;
+  return true;
+}
+
+// The functions may have "siblings" in which case this should be
+// called more than once
 void createDefaultFuncPred(metricDefinitionNode *mn,
 			   pdFunction *func, 
 			   dataReqNode *dataPtr, 
@@ -96,92 +170,100 @@ void createDefaultFuncPred(metricDefinitionNode *mn,
 	leaveNode = createIf(pred, leaveNode);
     }
 
-    for (; func; func=func->sibling) {
-	for (i = 0; i < func->callCount; i++) {
-	    if (callsTrackedFuncP(func->calls[i])) {
-		mn->addInst(func->calls[i], leaveNode,
+    for (i = 0; i < func->calls.size(); i++) {
+      if (callsTrackedFuncP(func->calls[i])) {
+	mn->addInst(func->calls[i], leaveNode,
 		    callPreInsn, orderLastAtPoint);
-		mn->addInst(func->calls[i], enterNode,
+	mn->addInst(func->calls[i], enterNode,
 		    callPostInsn, orderFirstAtPoint);
-	    }
-	}
-	mn->addInst(func->funcEntry, enterNode, callPreInsn, orderLastAtPoint);
-
-	mn->addInst(func->funcReturn, leaveNode, callPreInsn,orderFirstAtPoint);
+      }
     }
+    mn->addInst(func->funcEntry, enterNode, callPreInsn, orderLastAtPoint);
+    mn->addInst(func->funcReturn, leaveNode, callPreInsn,orderFirstAtPoint);
 }
 
-AstNode *defaultProcedurePredicate(metricDefinitionNode *mn, char *funcName,
-    AstNode *pred)
+// TODO - is this needed?
+// defaultModulePredicate seems to have removed the need for this - mdc
+#ifdef notdef
+void defaultProcedurePredicate(metricDefinitionNode *mn,
+			       pdFunction *func,
+			       AstNode *pred)
 {
-    pdFunction *func;
     dataReqNode *dataPtr;
 
-    func = findFunction(mn->proc->symbols, funcName);
-    if (!func) {
-	/* no such function in this process */
-	// 0 predicate if always false.
-	return(new AstNode(Constant, 0));
+    vector<pdFunction*> a;
+
+    if (!((mn->proc->symbols)->findFunction(funcName, a))) {
+      /* no such function in this process */
+      // 0 predicate if always false.
+      return(new AstNode(Constant, 0));
     }
 
-    dataPtr = mn->addIntCounter(0, False);
+    dataPtr = mn->addIntCounter(0, false);
 
-    createDefaultFuncPred(mn, func, dataPtr, pred);
+    int i;
+    for (i=0; i<a.size(); i++)
+      createDefaultFuncPred(mn, a[i], dataPtr, pred);
 
-    return(new AstNode(DataValue, dataPtr));
+    // return(new AstNode(DataValue, dataPtr));
 }
+#endif
 
-AstNode *defaultModulePredicate(metricDefinitionNode *mn, char *constraint,
-    AstNode *pred)
+AstNode *defaultModulePredicate(metricDefinitionNode *mn,
+				char *constraint,
+				AstNode *pred)
 {
     module *mod;
     pdFunction *func;
-    char *funcName;
     dataReqNode *dataPtr;
-    List<pdFunction *> curr;
 
-    if (funcName = strchr(constraint, '/')) {
-	funcName++;
-	return(defaultProcedurePredicate(mn, funcName, pred));
-    } else {
-	// its for a module.
-	mod = findModule(mn->proc->symbols, constraint);
-	if (!mod) {
-	    /* no such module in this process */
-	    // 0 predicate if always false.
-	    return(new AstNode(Constant, 0));
-	}
 
-	dataPtr = mn->addIntCounter(0, False);
-	for (curr = mod->funcs; func = *curr; curr++) {
-	    createDefaultFuncPred(mn, func, dataPtr, pred);
-	}
-	return(new AstNode(DataValue, dataPtr));
+    if (!getModuleAndFunction(constraint, mn->proc->symbols, mod, func)) {
+      // logLine("In default module predicate, module/function lookup failed\n");
+      // assert(0);
+      return (new AstNode(Constant, 0));
     }
+
+    dataPtr = mn->addIntCounter(0, false);
+
+    if (func) {
+      // function in a module
+      createDefaultFuncPred(mn, func, dataPtr, pred);
+    } else {
+      // module only
+      // TODO make this private
+      dictionary_hash_iter<string, pdFunction*> mi(mod->funcMap);
+      string pds; pdFunction *pdf;
+      while (mi.next(pds, pdf))
+	createDefaultFuncPred(mn, pdf, dataPtr, pred);
+
+    }
+    return (new AstNode(DataValue, dataPtr));
 }
 
 AstNode *defaultProcessPredicate(metricDefinitionNode *mn, char *process,
-    AstNode *pred)
-{
-    abort();
+				 AstNode *pred) {
+  abort();
+  return NULL;    // get rid of compiler warning
 }
 
 
 void createProcCalls(metricDefinitionNode *mn, AstNode *pred)
 {
-    pdFunction *func;
+
     AstNode *newCall;
     dataReqNode *counter;
 
-    counter = mn->addIntCounter(0, True);
+    counter = mn->addIntCounter(0, true);
     newCall = createPrimitiveCall("addCounter", counter, 1);
 
-    for (func = mn->proc->symbols->funcs; func; func = func->next) {
-	if (!func->tag & TAG_LIB_FUNC) {
-	    mn->addInst(func->funcEntry, newCall, callPreInsn,orderLastAtPoint);
-	}
+    dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
+    unsigned u; pdFunction *pdf;
+    while (fi.next(u, pdf)) {
+      if (!pdf->tag & TAG_LIB_FUNC) {
+	mn->addInst(pdf->funcEntry, newCall, callPreInsn,orderLastAtPoint);
+      }
     }
-    return;
 }
 
 void instAllFunctions(metricDefinitionNode *nm,
@@ -189,9 +271,12 @@ void instAllFunctions(metricDefinitionNode *nm,
 		      AstNode *enterAst,
 		      AstNode *leaveAst)
 {
-    pdFunction *func;
+    pdFunction *func; unsigned u;
 
-    for (func = nm->proc->symbols->funcs; func; func=func->next) {
+    dictionary_hash_iter<unsigned, pdFunction*> fi(nm->proc->symbols->funcsByAddr);
+
+
+    while (fi.next(u, func)) {
 	if (func->tag & tag) {
 	    if (enterAst) {
 		nm->addInst(func->funcEntry,
@@ -205,28 +290,26 @@ void instAllFunctions(metricDefinitionNode *nm,
     }
 }
 
-dataReqNode *createObservedCost(metricDefinitionNode *mn, AstNode *pred)
+void createObservedCost(metricDefinitionNode *mn, AstNode *pred)
 {
     pdFunction *sampler;
     AstNode *reportNode;
     dataReqNode *dataPtr;
 
-    dataPtr = mn->addIntCounter(0, False);
+    dataPtr = mn->addIntCounter(0, false);
 
-    sampler = findFunction(mn->proc->symbols, "DYNINSTsampleValues");
+    sampler = (mn->proc->symbols)->findOneFunction("DYNINSTsampleValues");
     assert(sampler);
     reportNode = new AstNode("DYNINSTreportCost", 
 		 new AstNode(DataPtr, dataPtr), new AstNode(Constant, 0));
     mn->addInst(sampler->funcEntry, reportNode, callPreInsn, orderLastAtPoint);
-    return (dataPtr);
 }
 
-dataReqNode *createCPUTime(metricDefinitionNode *mn, AstNode *pred)
+void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
 {
     pdFunction *func;
     dataReqNode *dataPtr;
     AstNode *stopNode, *startNode;
-
 
     dataPtr = mn->addTimer(processTime);
 
@@ -240,23 +323,23 @@ dataReqNode *createCPUTime(metricDefinitionNode *mn, AstNode *pred)
 
     instAllFunctions(mn, TAG_CPU_STATE, stopNode, startNode);
 
-    func = findFunction(mn->proc->symbols, "main");
+    func = (mn->proc->symbols)->findOneFunction("main");
+    assert(func);
     mn->addInst(func->funcEntry, startNode,callPreInsn,orderLastAtPoint);
 
     mn->addInst(func->funcReturn, stopNode,callPreInsn,orderLastAtPoint);
 
-    func = findFunction(mn->proc->symbols, "exit");
+    func = (mn->proc->symbols)->findOneFunction(EXIT_NAME);
     assert(func);
 
     mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint);
 
-    func = findFunction(mn->proc->symbols, "CMNA_dispatch_idle"); 
+    // TODO - why is this in a common file -> CM is a CM-5 function
+    func = (mn->proc->symbols)->findOneFunction("CMNA_dispatch_idle"); 
     if (func) {
       mn->addInst(func->funcReturn, startNode, callPreInsn,orderLastAtPoint); 
       mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint); 
     } 
-
-    return(dataPtr);
 }
 
 void createExecTime(metricDefinitionNode *mn, AstNode *pred)
@@ -273,12 +356,13 @@ void createExecTime(metricDefinitionNode *mn, AstNode *pred)
     stopNode = createPrimitiveCall("DYNINSTstopWallTimer", dataPtr, 0);
     if (pred) stopNode = createIf(pred, stopNode);
 
-    func = findFunction(mn->proc->symbols, "main");
+    func = (mn->proc->symbols)->findOneFunction("main");
+    assert(func);
     mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
 
     mn->addInst(func->funcReturn, stopNode, callPreInsn, orderLastAtPoint);
 
-    func = findFunction(mn->proc->symbols, "exit");
+    func = (mn->proc->symbols)->findOneFunction(EXIT_NAME);
     assert(func);
 
     mn->addInst(func->funcEntry, stopNode, callPreInsn, orderLastAtPoint);
@@ -289,7 +373,7 @@ void createSyncOps(metricDefinitionNode *mn, AstNode *trigger)
     AstNode *newSyncOp;
     dataReqNode *counter;
     
-    counter = mn->addIntCounter(0, True);
+    counter = mn->addIntCounter(0, true);
 
     newSyncOp = createPrimitiveCall("addCounter", counter, 1);
     if (trigger) newSyncOp = createIf(trigger, newSyncOp);
@@ -299,7 +383,7 @@ void createSyncOps(metricDefinitionNode *mn, AstNode *trigger)
 
 void createActiveProcesses(metricDefinitionNode *mn, AstNode *trigger)
 {
-    mn->addIntCounter(1, True);
+    mn->addIntCounter(1, true);
 
     return;
 }
@@ -309,38 +393,30 @@ void createMsgs(metricDefinitionNode *mn, AstNode *trigger)
     AstNode *newMsgOp;
     dataReqNode *counter;
     
-    counter = mn->addIntCounter(0, True);
+    counter = mn->addIntCounter(0, true);
 
     newMsgOp = createPrimitiveCall("addCounter", counter, 1);
     if (trigger) newMsgOp = createIf(trigger, newMsgOp);
 
-    instAllFunctions(mn, TAG_MSG_FUNC, newMsgOp, NULL);
-
+    instAllFunctions(mn, TAG_MSG_SEND | TAG_MSG_RECV, newMsgOp, NULL);
 }
 
 //
 // place holder for pause time metric.
 //
-void dummyCreate(metricDefinitionNode *mn, AstNode *trigger)
-{
-}
+void dummyCreate(metricDefinitionNode *mn, AstNode *trigger) {  }
 
 
 void perProcedureWallTime(metricDefinitionNode *mn, 
-			  char *funcName, 
+			  pdFunction *func,
 			  AstNode *pred,
-			  dataReqNode *dataPtr,
-			  Boolean skipSiblings)
+			  dataReqNode *dataPtr)
 {
     int i;
-    pdFunction *func;
+
     AstNode *startNode, *stopNode;
 
     if (!dataPtr) dataPtr = mn->addTimer(wallTime);
-
-    /* function does not exhist in this process */
-    func = findFunction(mn->proc->symbols, funcName);
-    if (!func) return;
 
     startNode = createPrimitiveCall("DYNINSTstartWallTimer", dataPtr, 0);
     if (pred) startNode = createIf(pred, startNode);
@@ -348,66 +424,59 @@ void perProcedureWallTime(metricDefinitionNode *mn,
     stopNode = createPrimitiveCall("DYNINSTstopWallTimer", dataPtr, 0);
     if (pred) stopNode = createIf(pred, stopNode);
 
-    for (; func; func=func->sibling) {
-	for (i = 0; i < func->callCount; i++) {
-	    if (callsTrackedFuncP(func->calls[i])) {
-		mn->addInst(func->calls[i], stopNode,
+    for (i = 0; i < func->calls.size(); i++) {
+      if (callsTrackedFuncP(func->calls[i])) {
+	mn->addInst(func->calls[i], stopNode,
 		    callPreInsn, orderLastAtPoint);
-
-		mn->addInst(func->calls[i], startNode,
+	
+	mn->addInst(func->calls[i], startNode,
 		    callPostInsn, orderFirstAtPoint);
-	    }
-	}
-	mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
-	mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
-	if (skipSiblings) break;
+      }
     }
+    mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
+    mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
 }
 
-void perModuleWallTime(metricDefinitionNode *mn, 
-			  char *constraint, 
-			  AstNode *pred)
+AstNode *perModuleWallTime(metricDefinitionNode *mn, 
+			   char *constraint, 
+			   AstNode *trigger)
 {
-    module *mod;
-    pdFunction *func;
-    char *funcName;
-    dataReqNode *result;
-    List<pdFunction *> curr;
+  module *mod;
+  pdFunction *func;
+  dataReqNode *result;
 
-    if (funcName = strchr(constraint, '/')) {
-	funcName++;
-	perProcedureWallTime(mn, funcName, pred, NULL, FALSE);
-    } else {
-	mod = findModule(mn->proc->symbols, constraint);
-	if (!mod) {
-	    /* no such module in this process */
-	    return;
-	}
+  if (!getModuleAndFunction(constraint, mn->proc->symbols, mod, func)) {
+    // logLine("In default module predicate, module/function lookup failed\n");
+    // assert(0);
+    return NULL;
+  }
 
-	result = mn->addTimer(wallTime);
-	for (curr = mod->funcs; func = *curr; curr++) {
-	    perProcedureWallTime(mn, (char*)func->prettyName, pred, result, TRUE);
-	}
+  result = mn->addTimer(wallTime);
 
-	return;
-    }
+  if (func) {
+    // do one function in one module
+    perProcedureWallTime(mn, func, trigger, result);
+    return NULL;
+  } else {
+    // do all the functions in this module
+    dictionary_hash_iter<string, pdFunction*> fi(mod->funcMap);
+    string pds; pdFunction *pdf;
+    while (fi.next(pds, pdf)) 
+      perProcedureWallTime(mn, pdf, trigger, result);
+    return NULL;
+  }
 }
 
+// this function should be used for replaceBase
+// it always returns NULL
 AstNode *perProcedureCPUTime(metricDefinitionNode *mn, 
-			     char *funcName, 
+			     pdFunction *func,
 			     AstNode *trigger,
-			     dataReqNode *dataPtr,
-			     Boolean skipSiblings)
+			     dataReqNode *dataPtr)
 {
 
     int i;
-    pdFunction *func;
     AstNode *startNode, *stopNode;
-
-    func = findFunction(mn->proc->symbols, funcName);
-
-    /* function does not exhist in this process */
-    if (!func) return(NULL);
 
     if (!dataPtr) dataPtr = mn->addTimer(processTime);
 
@@ -419,126 +488,101 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
 	new AstNode(DataValue, dataPtr), NULL);
     if (trigger) stopNode = createIf(trigger, stopNode);
 
-    for (; func; func=func->sibling) {
-	for (i = 0; i < func->callCount; i++) {
-	    if (callsTrackedFuncP(func->calls[i])) {
-		mn->addInst(func->calls[i], stopNode,
+    for (i = 0; i < func->calls.size(); i++) {
+      if (callsTrackedFuncP(func->calls[i])) {
+	mn->addInst(func->calls[i], stopNode,
 		    callPreInsn, orderFirstAtPoint);
-		
-		mn->addInst(func->calls[i], startNode,
+	
+	mn->addInst(func->calls[i], startNode,
 		    callPostInsn, orderFirstAtPoint);
-	    }
-	}
-	mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
-
-	mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
-
-	// for the module we pick up all siblings at once.
-	if (skipSiblings) break;
+      }
     }
+    mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
 
-    return(NULL);
+    mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
+    return NULL;
 }
 
-void perModuleCPUTime(metricDefinitionNode *mn, 
-		      char *constraint, 
-		      AstNode *trigger)
+// this function should be used for replaceBase
+// it always returns NULL
+AstNode *perModuleCPUTime(metricDefinitionNode *mn, 
+			  char *constraint, 
+			  AstNode *trigger)
 {
-    module *mod;
-    pdFunction *func;
-    char *funcName;
-    dataReqNode *result;
-    List<pdFunction *> curr;
+  module *mod;
+  pdFunction *func;
+  dataReqNode *result;
 
-    if (funcName = strchr(constraint, '/')) {
-	funcName++;
-	perProcedureCPUTime(mn, funcName, trigger, NULL, FALSE);
-    } else {
-	mod = findModule(mn->proc->symbols, constraint);
-	if (!mod) {
-	    /* no such module in this process */
-	    return;
-	}
+  if (!getModuleAndFunction(constraint, mn->proc->symbols, mod, func)) {
+    // logLine("In default module predicate, module/function lookup failed\n");
+    // assert(0);
+    return NULL;
+  }
 
-	result = mn->addTimer(processTime);
-	for (curr = mod->funcs; func = *curr; curr++) {
-	    perProcedureCPUTime(mn, (char*)func->prettyName, trigger, result, TRUE);
-	}
-    }
+  result = mn->addTimer(processTime);
+
+  if (func) {
+    // do one function in one module
+    perProcedureCPUTime(mn, func, trigger, result);
+    return NULL;
+  } else {
+    // do all the functions in this module
+    dictionary_hash_iter<string, pdFunction*> fi(mod->funcMap);
+    string pds; pdFunction *pdf;
+    while (fi.next(pds, pdf)) 
+      perProcedureCPUTime(mn, pdf, trigger, result);
+    return NULL;
+  }
 }
 
-void perProcedureCalls(metricDefinitionNode *mn, 
-		       char *funcName, 
-		       AstNode *trigger)
+// this function should be used for replaceBase
+// it always returns NULL
+AstNode *perProcedureCalls(metricDefinitionNode *mn, 
+			   pdFunction *func,
+			   AstNode *trigger,
+			   dataReqNode *counter)
 {
-    pdFunction *func;
     AstNode *newCall;
-    dataReqNode *counter;
 
-    counter = mn->addIntCounter(0, True);
-
-    func = findFunction(mn->proc->symbols, funcName);
-
-    /* function does not exhist in this process */
-    if (!func) return;
+    assert(counter);
 
     newCall = createPrimitiveCall("addCounter", counter, 1);
     if (trigger) newCall = createIf(trigger, newCall);
 
-    for (; func; func=func->sibling) {
-	mn->addInst(func->funcEntry, newCall, callPreInsn, orderLastAtPoint);
-    }
-
-    return;
+    mn->addInst(func->funcEntry, newCall, callPreInsn, orderLastAtPoint);
+    return NULL;
 }
 
-void perModuleCalls(metricDefinitionNode *mn, 
-		    char *constraint, 
-		    AstNode *trigger)
+// this function should be used for replaceBase
+// it always returns NULL
+AstNode *perModuleCalls(metricDefinitionNode *mn, 
+			char *constraint, 
+			AstNode *trigger)
 {
-    module *mod;
-    char *funcName;
-    pdFunction *func;
-    AstNode *newCall;
-    dataReqNode *counter;
-    List<pdFunction *> curr;
+  module *mod;
+  pdFunction *func;
+  dataReqNode *counter;
 
-    if (funcName = strchr(constraint, '/')) {
-	funcName++;
-	perProcedureCalls(mn, funcName, trigger);
-	return;
-    } else {
-	counter = mn->addIntCounter(0, True);
-	mod = findModule(mn->proc->symbols, constraint);
-	if (!mod) {
-	    /* no such module in this process */
-	    return;
-	}
+  if (!getModuleAndFunction(constraint, mn->proc->symbols, mod, func)) {
+    // logLine("In default module predicate, module/function lookup failed\n");
+    // assert(0);
+    return NULL;
+  }
 
-	newCall = createPrimitiveCall("addCounter", counter, 1);
-	// if (trigger) newCall = createIf(trigger, newCall);
+  counter = mn->addIntCounter(0, true);
 
-	for (curr = mod->funcs; func = *curr; curr++) {
-	    mn->addInst(func->funcEntry, newCall, callPreInsn,orderLastAtPoint);
-	}
-	return;
-    }
+  if (func) {
+    // do one function in one module
+    perProcedureCalls(mn, func, trigger, counter);
+    return NULL;
+  } else {
+    // do all the functions in this module
+    dictionary_hash_iter<string, pdFunction*> fi(mod->funcMap);
+    string pds; pdFunction *pdf;
+    while (fi.next(pds, pdf)) 
+      perProcedureCalls(mn, pdf, trigger, counter);
+    return NULL;
+  }
 }
 
-
-resourcePredicate observedCostPredicates[] = {
-  { "/SyncObject",	
-    invalidPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Machine",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Process",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Procedure",	
-    invalidPredicate,		
-    (createPredicateFunc) NULL },
-  { NULL, nullPredicate, (createPredicateFunc) NULL },
-};
 
