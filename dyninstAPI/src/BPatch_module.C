@@ -242,8 +242,12 @@ void BPatch_module::parseTypesIfNecessary() {
 #endif
   } /* end if we're supposed to parse debug information */
   else {
+    /*
+      // Well, no... the user said "don't parse debug info", so we're
+      // not parsing debug info.
     cerr	<< __FILE__ << __LINE__ << ":  WARNING:  skipping parse of debug info for " 
 		<< mod->fileName() << endl;
+    */
   } /* end if we're not supposed to parse debug information */
 #endif /* ! defined( mips_sgi_irix6_4 ) */
 }
