@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.29 1999/06/30 16:11:30 davisj Exp $
+// $Id: test1.C,v 1.30 1999/06/30 23:08:00 wylie Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -35,7 +35,7 @@ extern "C" const char V_libdyninstAPI[];
 int debugPrint = 0;
 
 bool runAllTests = true;
-const int MAX_TEST = 22;
+const unsigned int MAX_TEST = 22;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -1323,7 +1323,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
-    for (int i = 0; i < f->getSize(); i+= 4) {
+    for (unsigned int i = 0; i < f->getSize(); i+= 4) {
 	void *addr = (char *)f->getBaseAddr() + i;
 
 	p = appImage->createInstPointAtAddr((char *)f->getBaseAddr() + i);
@@ -1357,8 +1357,9 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 // But this is already checked by the "non-existent function" test in
 // test2.
 
-readyTest21or22(BPatch_thread *appThread)
+void readyTest21or22(BPatch_thread *appThread)
 {
+#if !defined(rs6000_ibm_aix4_1)
     if (! appThread->loadLibrary("./libtestA.so")) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	 fprintf(stderr, "  Mutator couldn't load libtestA.so into mutatee\n");
@@ -1369,6 +1370,7 @@ readyTest21or22(BPatch_thread *appThread)
 	 fprintf(stderr, "  Mutator couldn't load libtestB.so into mutatee\n");
 	 exit(1);
     }
+#endif
 }
 
 void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
@@ -1551,14 +1553,14 @@ void mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
 
-    // Create an instance of the bpatch library
+    // Create an instance of the BPatch library
     bpatch = new BPatch;
-    
+
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.
-    bpatch->setTypeChecking(false);   
+    bpatch->setTypeChecking(false);
 #endif
-    
+
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
 
@@ -1573,7 +1575,7 @@ void mutatorMAIN(char *pathname, bool useAttach)
 
     if (!runAllTests) {
 	child_argv[n++] = "-run";
-	for (int j=0; j <= MAX_TEST; j++) {
+	for (unsigned int j=0; j <= MAX_TEST; j++) {
 	    if (runTest[j]) {
 		char str[5];
 		sprintf(str, "%d", j);
@@ -1673,7 +1675,7 @@ void mutatorMAIN(char *pathname, bool useAttach)
 // main - decide our role and call the correct "main"
 //
 int
-main(int argc, char *argv[])
+main(unsigned int argc, char *argv[])
 {
     char libname[256];
     bool useAttach = false;
@@ -1717,8 +1719,8 @@ main(int argc, char *argv[])
 	    runAllTests = false;
             for (j=0; j <= MAX_TEST; j++) runTest[j] = false;
             for (j=i+1; j < argc; j++) {
-                int testId;
-                if (testId = atoi(argv[j])) {
+                unsigned int testId;
+                if ((testId = atoi(argv[j]))) {
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         runTest[testId] = true;
                     } else {
@@ -1739,7 +1741,7 @@ main(int argc, char *argv[])
 
     if (!runAllTests) {
         printf("Running Tests: ");
-	for (int j=1; j <= MAX_TEST; j++) {
+	for (unsigned int j=1; j <= MAX_TEST; j++) {
 	    if (runTest[j]) printf("%d ", j);
 	}
 	printf("\n");
