@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.14  1994/03/07 02:35:17  markc
+ * Revision 1.15  1994/03/07 02:50:56  markc
+ * Set callErr to 0 in constructors.
+ *
+ * Revision 1.14  1994/03/07  02:35:17  markc
  * Added code to detect failures for xdr code.  Provides member instance
  * callErr which is set to -1 on failures.
  *
@@ -387,14 +390,22 @@ void interfaceSpec::genProtoVerify()
     printf("}\n");
     printf("\n\n");
     printf("%sUser::%sUser(int fd, xdrIOFunc r, xdrIOFunc w, int nblock):\n", name, name);
-    printf("XDRrpc(fd, r, w, nblock) { if (__xdrs__) verifyProtocolAndVersion(); }\n");
+    printf("XDRrpc(fd, r, w, nblock) {\n");
+    printf("    if (__xdrs__) verifyProtocolAndVersion();\n");
+    printf ("   callErr = 0;\n");
+    printf ("}\n");
 
     printf("%sUser::%sUser(int family, int port, int type, char *machine, xdrIOFunc rf, xdrIOFunc wr, int nblock):\n", name, name);
-    printf("XDRrpc(family, port, type, machine, rf, wr, nblock) { if (__xdrs__) verifyProtocolAndVersion(); }\n");
+    printf("XDRrpc(family, port, type, machine, rf, wr, nblock) {\n");
+    printf("    if (__xdrs__) verifyProtocolAndVersion();\n");
+    printf ("   callErr = 0;\n");
+    printf ("}\n");
 
     printf("%sUser::%sUser(char *m,char *l,char *p,xdrIOFunc r,xdrIOFunc w, char **args, int nblock):\n", name, name);
-    printf("    XDRrpc(m, l, p, r, w, args, nblock) { if (__xdrs__) \n");
-    printf("       verifyProtocolAndVersion(); }\n");
+    printf("    XDRrpc(m, l, p, r, w, args, nblock) {\n");
+    printf("    if (__xdrs__) verifyProtocolAndVersion();\n");
+    printf ("   callErr = 0;\n");
+    printf ("}\n");
 
     printf("\n");
 }
@@ -428,11 +439,22 @@ void interfaceSpec::genProtoVerifyPVM()
     printf("}\n");
     printf("\n\n");
     printf("%sUser::%sUser(char *w, char *p, char **a, int f):\n", name, name);
-    printf("PVMrpc(w, p, a, f) { if (get_error() != -1) verifyProtocolAndVersion(); }\n");
+    printf("PVMrpc(w, p, a, f) {\n");
+    printf("if (get_error() != -1) verifyProtocolAndVersion();\n");
+    printf(" callErr = 0;\n");
+    printf("}\n");
+
     printf("%sUser::%sUser(int o):\n", name, name);
-    printf("PVMrpc(o) { if (get_error() != -1) verifyProtocolAndVersion(); }\n");
+    printf("PVMrpc(o) {\n");
+    printf("if (get_error() != -1) verifyProtocolAndVersion();\n");
+    printf(" callErr = 0;\n");
+    printf("}\n");
+
     printf("%sUser::%sUser():\n", name, name);
-    printf("PVMrpc() { if (get_error() != -1) verifyProtocolAndVersion(); }\n");
+    printf("PVMrpc() {\n");
+    printf("if (get_error() != -1) verifyProtocolAndVersion();\n");
+    printf(" callErr = 0;\n");
+    printf("}\n");
     printf("\n");
 }
 
