@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.103 2004/04/02 06:34:11 jaw Exp $
+// $Id: BPatch_thread.C,v 1.104 2004/04/06 16:37:05 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -52,10 +52,12 @@
 #include "signalhandler.h"
 #include "inst.h"
 #include "instP.h"
+#include "instPoint.h"
 
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "LineInformation.h"
+
 
 /*
  * class OneTimeCodeInfo
@@ -1479,14 +1481,77 @@ void BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
     // multiple threads.
     assert(stackWalks.size() == 1);
 
+    // The internal representation of a stack walk treats instrumentation
+    // as part of the original instrumented function. That is to say, if A() 
+    // calls B(), and B() is instrumented, the stack will appear as so:
+    // A()
+    // instrumentation
+
+    // We want it to look like so:
+    // A()
+    // B()
+    // instrumentation
+
+    // We handle this by adding a synthetic frame to the stack walk whenever
+    // we discover an instrumentation frame.
+
     for (unsigned int i = 0; i < stackWalks[0].size(); i++) {
-	stack.push_back(BPatch_frame(this,
-				     (void*)stackWalks[0][i].getPC(),
-				     (void*)stackWalks[0][i].getFP(),
-				     stackWalks[0][i].isSignalFrame(),
-				     stackWalks[0][i].isTrampoline()));
+        bool isSignalFrame = false;
+        bool isInstrumentation = false;
+
+        Frame frame = stackWalks[0][i];
+        if (frame.frameType_ != FRAME_unset) {
+            isSignalFrame = frame.isSignalFrame();
+            isInstrumentation = frame.isInstrumentation();
+        }
+        else {
+            codeRange *range = proc->findCodeRangeByAddress(frame.getPC());
+            if (range) {
+                // Check if we're in a base or minitramp
+                trampTemplate *bt = range->is_basetramp();
+                miniTrampHandle *mt = range->is_minitramp();
+                if (bt || mt) isInstrumentation = true;
+            }
+        }
+
+        stack.push_back(BPatch_frame(this,
+                                     (void*)stackWalks[0][i].getPC(),
+                                     (void*)stackWalks[0][i].getFP(),
+                                     isSignalFrame, isInstrumentation));
+        if (isInstrumentation) {
+            // Fake a frame at the address of the instrumentation
+            codeRange *range = frame.getRange();
+            if (!range) {
+                range = proc->findCodeRangeByAddress(frame.getPC());
+            }
+            if (range) {
+                // Get the minitramp -> base tramp -> location
+                trampTemplate *bt = range->is_basetramp();
+                miniTrampHandle *mt = range->is_minitramp();
+                if (!bt && mt)
+                    bt = mt->baseTramp;
+                if (bt) {
+                    Address ipAddr = bt->location->absPointAddr(proc);
+#if defined(os_aix) 
+                    // Funfun... if this is an exit point then the address is _not_ within
+                    // the function -- it's 1 byte after the function.
+                    if (ipAddr % 4) {
+                        ipAddr -= ipAddr % 4;
+                    }
+#endif
+                    stack.push_back(BPatch_frame(this,
+                                                 (void *)ipAddr,
+                                                 // Fake this
+                                                 (void *)frame.getFP(),
+                                                 false, // not signal handler,
+                                                 false)); // not inst.
+                }
+            }
+        }
     }
 }
+
+
 
 /***************************************************************************
  * BPatch_snippetHandle
@@ -1545,18 +1610,9 @@ bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadad
  */
 BPatch_frameType BPatch_frame::getFrameType()
 {
-#if ! defined( ia64_unknown_linux2_4 )
-	if (thread->proc->isInSignalHandler((Address)getPC())) {
-		return BPatch_frameSignal;
-		}
-	else {
-		return BPatch_frameNormal;
-		}
-#else
 	if( isSignalFrame ) { return BPatch_frameSignal; }
 	else if( isTrampoline ) { return BPatch_frameTrampoline; }
 	else { return BPatch_frameNormal; } 
-#endif			
 }
 
 /*
