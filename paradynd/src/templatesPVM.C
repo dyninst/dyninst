@@ -46,6 +46,9 @@
 
 /* 
  * $Log: templatesPVM.C,v $
+ * Revision 1.4  2000/07/27 15:24:47  hollings
+ * Missed Commit of changes in include file location.
+ *
  * Revision 1.3  2000/05/31 18:33:25  schendel
  * updates the daemon, util library, igen, dyninstAPI, and dyninstAPI test suite
  * to use the -fno-impilicit-templates flag instead of the -fexplicit-templates
@@ -71,7 +74,7 @@
  */
 #pragma implementation  "list.h"
 
-#include "util/h/list.h"
+#include "common/h/list.h"
 
 typedef struct task;
 

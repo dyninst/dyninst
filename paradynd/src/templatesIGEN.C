@@ -40,29 +40,29 @@
  */
 
 /*
- * $Id: templatesIGEN.C,v 1.8 2000/03/12 22:34:07 wylie Exp $
+ * $Id: templatesIGEN.C,v 1.9 2000/07/27 15:24:47 hollings Exp $
  * Generate all the templates in one file.
  */
 
 #pragma implementation "Pair.h"
-#include "util/h/Pair.h"
+#include "common/h/Pair.h"
 
 #pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 #pragma implementation "Dictionary.h"
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 
 #pragma implementation "list.h"
-#include "util/h/list.h"
+#include "common/h/list.h"
 
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"
 
 #pragma implementation "Symbol.h"
-#include "util/h/Symbol.h"
+#include "common/h/Symbol.h"
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
                                        bool_t (*)(XDR*, u_int*), u_int*);
