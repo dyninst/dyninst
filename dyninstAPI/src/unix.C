@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.88 2003/04/16 21:07:28 bernat Exp $
+// $Id: unix.C,v 1.89 2003/04/23 22:59:58 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -58,6 +58,7 @@
 #include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/stats.h"
 
@@ -568,6 +569,7 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     // we're waiting for a syscall to complete
     if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
         signal_cerr << "processed RPC response in SIGTRAP" << endl;
+        
         return 1;
     }
     
@@ -595,6 +597,9 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     // they are coming from (and they're not at all deterministic) so 
     // we're ignoring them for now. 
 #if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
+    // Check to see if this is a syscall exit
+    proc->handleSyscallExit(0);
+    
     proc->continueProc();
     return 1;
 #else
@@ -682,10 +687,14 @@ int handleSignal(process *proc, procSignalWhat_t what,
   case SIGINT:
       ret = handleSigStopNInt(proc, info);
       break;
-  case SIGILL:
-      if (proc->getRpcMgr()->handleSignalIfDueToIRPC())
-          ret = 1;
+ case SIGILL: 
+ {
+     
+     if (proc->getRpcMgr()->handleSignalIfDueToIRPC())
+         ret = 1;
       break;
+ }
+ 
   case SIGCHLD:
       // Ignore
       ret = 1;
