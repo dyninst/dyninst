@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.2  1994/01/26 06:50:10  hollings
+ * Revision 1.3  1994/01/27 20:36:29  hollings
+ * changes in include syntax round 2 or 3.
+ *
+ * Revision 1.2  1994/01/26  06:50:10  hollings
  * made the output of igen pass through g++ -Wall.
  *
  * Revision 1.1  1994/01/25  20:48:43  hollings
@@ -365,6 +368,11 @@ int main(int argc, char *argv[])
     if (emitHeader) {
 	fflush(stdout);
 	fclose(of);
+    }
+
+    if (!currentInterface) {
+	printf("no interface defined\n");
+	exit(-1);
     }
 
     if (emitCode) {
