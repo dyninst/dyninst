@@ -5,7 +5,10 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.program.tmpl,v $
-# Revision 1.4  1995/02/27 17:37:06  jcargill
+# Revision 1.5  1995/03/15 19:12:13  jcargill
+# Added real pure rule, and fixed LDFLAGS
+#
+# Revision 1.4  1995/02/27  17:37:06  jcargill
 # Added support for suppressing implicit dependency generation
 # (EXPLICIT_DEPENDS) and removed PD_NO_DEPENDS support
 #
@@ -30,8 +33,14 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 
 ifndef UNCOMMON_LINK
 $(TARGET): $(OBJS) $(LIBS)
-	$(MODCC) -o $(TARGET) $(MODCFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	$(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
 endif
+
+ifndef UNCOMMON_LINK
+pure: $(OBJS) $(LIBS)
+	purify -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+endif
+
 
 ifndef DEST
 DEST		= $(TO_CORE)/../bin/$(PLATFORM)
@@ -85,7 +94,6 @@ endif
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 endif
 
-pure:
 
 
 # A few pattern rules for simplicity.  The default lex rule is
