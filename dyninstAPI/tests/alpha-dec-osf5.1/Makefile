@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2003/09/20 17:21:29 jodom Exp $
+# $Id: Makefile,v 1.4 2003/12/11 21:23:52 rchen Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -15,7 +15,6 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-CXXFLAGS += -mcpu=ev56 
 CFLAGS += -g
 MUTATEE_FFLAGS += -Dalpha_dec_osf4_0 -g
 
@@ -73,10 +72,6 @@ EMPTY:=
 BLANK:=$(EMPTY) $(EMPTY)
 COMPILER = $(subst $(BLANK),_,$(COMPILERT))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
-
-ifdef GCC_2_95
-MUTATEE_CFLAGS += -gcoff
-endif
 
 #$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
 #	-$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2) $(MUTLIBS)
