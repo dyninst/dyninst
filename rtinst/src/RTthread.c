@@ -66,14 +66,6 @@
 
 #include <stdlib.h>
 
-#if !defined(rs6000_ibm_aix4_1)
-void *pthread_getspecific(pthread_key_t key) {
-  void *foo = 0;
-  thr_getspecific(key, &foo);
-  return foo;
-}
-#endif
-
 unsigned          DYNINST_initialize_done=0;
 unsigned          DYNINSTthreadTable[MAX_NUMBER_OF_THREADS][MAX_NUMBER_OF_LEVELS];
 void*             DYNINST_allthreads_p = NULL ;
@@ -122,9 +114,10 @@ unsigned *rpc_maxIndex_ptr ;
 dyninst_t  DYNINSTthreadRPC_threadId ;
 
 void DYNINSTthread_init(char *DYNINST_shmSegAttachedPtr) {
-  void DYNINST_initialize_RPCthread(void) ;
+
+  /*  void DYNINST_initialize_RPCthread(void) ;*/
   RTsharedData = (RTINSTsharedData*)((char*) DYNINST_shmSegAttachedPtr + 16) ;
-  DYNINST_initialize_RPCthread();
+  /*  DYNINST_initialize_RPCthread();*/
 
   DYNINST_thr_vtimers = RTsharedData->virtualTimers ;
   memset((char*)DYNINST_thr_vtimers, '\0', sizeof(tTimer)*MAX_NUMBER_OF_THREADS) ;
@@ -386,7 +379,7 @@ static int POS_thread_local[MAX_NUMBER_OF_THREADS] ;
 int _threadPos(int tid, int oldpos) {
   int *pos_p ;
   /*  fprintf(stderr, "_threadPos(%x, %x)\n", tid, oldpos); */
-  pos_p = (int *)pthread_getspecific(DYNINST_thread_key);
+  pos_p = (int *)P_thread_getspecific(DYNINST_thread_key);
   if (pos_p == NULL) {
     int pos = DYNINST_hash_insertPOS(tid, oldpos) ;
     fprintf(stderr, "new POS == %x\n", pos);
@@ -395,7 +388,7 @@ int _threadPos(int tid, int oldpos) {
 #endif
     pos_p = POS_thread_local + pos ;
     *pos_p = pos ;
-    pthread_setspecific(DYNINST_thread_key, pos_p) ;
+    P_thread_setspecific(DYNINST_thread_key, pos_p) ;
   }
 #ifdef PROFILE_BASETRAMP
   btramp_slow++;
@@ -499,7 +492,7 @@ void DYNINST_initialize_once(void) {
     DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
     DYNINST_initialize_ThreadCreate() ;
     tc_lock_unlock(&DYNINST_initLock);
-    pthread_key_create(&DYNINST_thread_key, DYNINST_dummy_free) ;
+    P_thread_key_create(&DYNINST_thread_key, DYNINST_dummy_free) ;
 #ifdef PROFILE_CONTEXT_SWITCH
     DYNINST_initialize_context_prof() ;
 #endif
@@ -516,7 +509,7 @@ void DYNINST_initialize_once_per_process(void) {
     DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
     DYNINST_initialize_ThreadCreate() ;
     tc_lock_unlock(&DYNINST_initLock);
-    pthread_key_create(&DYNINST_thread_key, DYNINST_dummy_free) ;
+    P_thread_key_create(&DYNINST_thread_key, DYNINST_dummy_free) ;
 #ifdef PROFILE_CONTEXT_SWITCH
     DYNINST_initialize_context_prof() ;
 #endif
@@ -840,7 +833,7 @@ void DYNINST_VirtualTimerCREATE() {
   int pos;
   pos = DYNINSTthreadPosFAST() ; 
   if (pos >= 0) {
-    int lwpid = pthread_self() ;
+    int lwpid = P_lwp_self() ;
     VIRTUAL_TIMER_MARK_LWPID(DYNINST_thr_vtimers+pos, lwpid) ;
     VIRTUAL_TIMER_MARK_CREATION(DYNINST_thr_vtimers+pos);
     _VirtualTimerStart(DYNINST_thr_vtimers+pos, VIRTUAL_TIMER_CREATE) ;
@@ -858,8 +851,7 @@ void DYNINSTthreadStart() {
   DYNINST_resume++ ;
 #endif
   if (pos >= 0) {
-    int lwpid = pthread_self() ;
-    fprintf(stderr, "Thread %d was scheduled on kernel thread %d\n", pthread_self(), thread_self());
+    int lwpid = P_lwp_self() ;
 #ifdef PROFILE_CONTEXT_SWITCH
     DYNINST_VirtualTimer_on[pos]++ ;
 #endif
@@ -892,7 +884,6 @@ DYNINST_preempt++ ;
 #ifdef PROFILE_CONTEXT_SWITCH
 DYNINST_VirtualTimer_off[pos]++ ;
 #endif
-    fprintf(stderr, "Thread %d was descheduled on kernel thread %d\n", pthread_self(), thread_self());
     _VirtualTimerStop(DYNINST_thr_vtimers+pos) ;
   }
   /*  fprintf(stderr, "DYNINSTVirtualTimerStop_end\n"); */
@@ -1231,49 +1222,6 @@ void DYNINST_initialize_SyncObj(void) {
   initialize_SyncObj_of_1_kind(DYNINSTmutexRes, DYNINSTmutexResLock, MAX_MUTEX_RES);
   initialize_SyncObj_of_1_kind(DYNINSTrwlockRes, DYNINSTrwlockResLock, MAX_RWLOCK_RES);
   initialize_SyncObj_of_1_kind(DYNINSTsemaRes, DYNINSTsemaResLock, MAX_SEMA_RES);
-}
-
-void* DYNINST_RPC_Thread(void * garbage) {
-
-  while(1) {
-    pthread_mutex_lock(rpc_mutex_ptr);
-    while (!(*rpc_pending_ptr)) { 
-      /* fprintf(stderr, "RPC Thread is Waiting ...\n"); */
-      pthread_cond_wait(rpc_cv_ptr, rpc_mutex_ptr);  
-    }
-    /* fprintf(stderr, "RPC Thread, Signaled....\n"); */
-    DYNINSTthreadCheckRPC2();
-    /* fprintf(stderr, "RPC Thread, RPC performed....\n"); */
-    *rpc_pending_ptr = 0 ;
-    pthread_mutex_unlock(rpc_mutex_ptr);
-  }
-}
-
-#ifdef USE_RPC_TO_TRIGGER_RPC
-void* DYNINSTsignalRPCthread(void) {
-  int ret;
-  pthread_mutex_lock(rpc_mutex_ptr);
-  (*rpc_pending_ptr) = 1;
-  ret = pthread_cond_signal(rpc_cv_ptr);
-  pthread_mutex_unlock(rpc_mutex_ptr);
-  return (void*) ret;
-}
-#endif
-
-void DYNINSTlaunchRPCthread(void) {
-  pthread_mutex_init(rpc_mutex_ptr, NULL);
-  pthread_cond_init(rpc_cv_ptr, NULL);
-  /* thr_create(NULL, 0, DYNINST_RPC_Thread, NULL, THR_NEW_LWP|THR_BOUND, &DYNINSTthreadRPC_threadId) ; */
-}
-
-void DYNINST_initialize_RPCthread(void) {
-  DYNINSTthreadRPC = RTsharedData->rpcToDoList ;
-  rpc_mutex_ptr  = &(RTsharedData->rpc_mutex) ;
-  rpc_cv_ptr = &(RTsharedData->rpc_cv);
-  rpc_pending_ptr = &(RTsharedData->rpc_pending);
-  rpc_maxIndex_ptr = &(RTsharedData->rpc_indexMax);
-  *rpc_pending_ptr = 0 ;
-  *rpc_maxIndex_ptr = 0 ;
 }
 
 void mt_printf(const char *fmt, ...) {

@@ -48,23 +48,9 @@
 #else /* solaris threads */
 #include <thread.h>
 #include <synch.h>
-
-typedef thread_key_t dyninst_key_t;
-typedef mutex_t dyninst_mutex_t;
-typedef cond_t dyninst_cond_t;
-typedef thread_t dyninst_t;
-typedef rwlock_t dyninst_rwlock_t;
-typedef sema_t dyninst_sema_t;
-#define pthread_setspecific(key,val) thr_setspecific(key, val)
-#define pthread_key_create(key,dest) thr_keycreate(key, dest)
-#define pthread_self() thr_self()
-#define pthread_mutex_lock(mutex) mutex_lock(mutex)
-#define pthread_mutex_unlock(mutex) mutex_unlock(mutex)
-#define pthread_cond_wait(cond, mutex) cond_wait(cond, mutex)
-#define pthread_mutex_init(mutex, arg) mutex_init(mutex, USYNC_PROCESS, arg)
-#define pthread_cond_init(cond, arg) cond_init(cond, USYNC_PROCESS, arg)
 #endif
 
+#include "thread-compat.h"
 #include "tc-lock.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -78,11 +64,6 @@ typedef struct rpcToDo_s {
 
 typedef struct sharedData_s {
   tTimer virtualTimers[MAX_NUMBER_OF_THREADS] ;
-  rpcToDo rpcToDoList [MAX_PENDING_RPC];
-  unsigned rpc_indexMax ;
-  pthread_mutex_t rpc_mutex ;
-  pthread_cond_t  rpc_cv ;
-  int     rpc_pending ;
   rpcToDo pendingIRPCs [MAX_NUMBER_OF_THREADS][MAX_PENDING_RPC];
 } RTINSTsharedData ;
 
