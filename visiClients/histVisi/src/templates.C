@@ -45,19 +45,31 @@
 // Explicit instantiation for templates needed by the runtime histogram visi.
 //
 //----------------------------------------------------------------------------
-// $Id: templates.C,v 1.2 2000/07/27 17:42:42 pcroth Exp $
+// $Id: templates.C,v 1.3 2002/04/09 18:06:40 mjbrim Exp $
 //----------------------------------------------------------------------------
+
+#include "minmax.C"
+template float max(const float, const float);
+
+#if !defined(i386_unknown_nt4_0)
+
 #include "common/h/Vector.h"
 #include "common/h/String.h"
 template class  refCounter<string_ll>;
 template class vector<string>;
 
-#include "minmax.C"
-template float max(const float, const float);
-
 #include "pdLogo.h"
 #include "common/h/Dictionary.h"
 #include "common/src/Dictionary.C"
+
+template class pair<string, pdLogo *>;
+template class pair<string, pdLogo::logoStruct>;
+
+template pair<string, pdLogo *> make_pair<string, pdLogo *>(const string &, pdLogo * const &);
+template pair<string, pdLogo::logoStruct> make_pair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
+
+template class vector<pair<string, pdLogo *> >;
+template class vector<pair<string, pdLogo::logoStruct> >;
 
 template class dictionary_hash<string, pdLogo*>;
 template class vector<dictionary_hash<string, pdLogo*>::entry>;
@@ -67,3 +79,9 @@ template class dictionary_hash<string, pdLogo::logoStruct>;
 template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
 template class vector<pdLogo::logoStruct>;
 
+#include "tk.h"
+template class pair<Tk_Window_ *, void *>;
+template class vector<pair<Tk_Window_ *, void *> >;
+template pair<Tk_Window_ *, void *> make_pair<Tk_Window_ *, void *>(Tk_Window_ * const &, void * const &);
+
+#endif //!defined(i386_unknown_nt4_0)

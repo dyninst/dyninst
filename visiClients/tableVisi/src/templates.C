@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.11 2000/07/27 17:42:45 pcroth Exp $
+// $Id: templates.C,v 1.12 2002/04/09 18:06:43 mjbrim Exp $
 // for table visi
 
 #include "common/h/Vector.h"
@@ -64,8 +64,19 @@ template void ipmin(int&, const int);
 template int min(const int, const int);
 template int max(const int, const int);
 
+#if !defined(i386_unknown_nt4_0)
+
 #include "common/src/Dictionary.C"
 #include "paradyn/src/UIthread/pdLogo.h"
+
+template class pair<string, pdLogo *>;
+template class pair<string, pdLogo::logoStruct>;
+
+template pair<string, pdLogo *> make_pair<string, pdLogo *>(const string &, pdLogo * const &);
+template pair<string, pdLogo::logoStruct> make_pair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
+
+template class vector<pair<string, pdLogo *> >;
+template class vector<pair<string, pdLogo::logoStruct> >;
 
 template class dictionary_hash<string, pdLogo *>;
 template class vector<dictionary_hash<string, pdLogo *>::entry>;
@@ -77,3 +88,5 @@ template class vector<pdLogo::logoStruct>;
 
 template class vector<string>;
 template class refCounter<string_ll>;
+
+#endif //!defined(i386_unknown_nt4_0)

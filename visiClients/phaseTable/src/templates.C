@@ -41,6 +41,11 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.10  2002/04/09 18:06:42  mjbrim
+ * Updates to allow sharing of common/pdutil/igen between Paradyn
+ * & Kerninst, which in turn allows them to share binary visis  - - - - - -
+ * added vector and pair instantiations
+ *
  * Revision 1.9  2000/07/27 17:42:43  pcroth
  * Updated #includes to reflect new locations of util headers
  *
@@ -70,21 +75,28 @@
  *
  */
 
+// logo stuff:
+#include "paradyn/src/UIthread/minmax.C"
+template float max(const float, const float);
+
+#if !defined(i386_unknown_nt4_0)
+
 #pragma implementation "Vector.h"
 #include "common/h/Vector.h"
 #include "visi/h/visiTypes.h"
 
 class PhaseInfo;
-
 template class vector<PhaseInfo *>;
-
-// logo stuff:
-#include "paradyn/src/UIthread/minmax.C"
-template float max(const float, const float);
 
 #include "common/h/String.h"
 #include "common/src/Dictionary.C"
 #include "pdLogo.h"
+
+template class pair<string, pdLogo *>;
+template class pair<string, pdLogo::logoStruct>;
+template class vector<pair<string, pdLogo *> >;
+template class vector<pair<string, pdLogo::logoStruct> >;
+
 template class dictionary_hash<string, pdLogo *>;
 template class vector<dictionary_hash<string, pdLogo *>::entry>;
 template class vector<pdLogo*>;
@@ -95,3 +107,5 @@ template class vector<pdLogo::logoStruct>;
 
 template class vector<unsigned int>;
 template class refCounter<string_ll>;
+
+#endif //!defined(i386_unknown_nt4_0)

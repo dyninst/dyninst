@@ -41,30 +41,44 @@
 
 // templates.C
 
+
+#include "minmax.C"
+template float max(const float, const float);
+
+#if !defined(i386_unknown_nt4_0)
+
 #include "pdLogo.h"
 #include "common/h/Vector.h"
 #include "common/h/String.h"
 #include "common/src/Dictionary.C"
 #include <X11/Xlib.h> // XColor
 
-#include "minmax.C"
-template float max(const float, const float);
-
 template class vector<unsigned>;
+template class vector<double>;
+template class vector<int>;
 template class vector< vector<double> >;
 template class vector< vector<int> >;
 template class vector<XColor *>;
 template class vector<bool>;
-template class vector<double>;
-template class vector<int>;
 
 template class dictionary_hash<string, pdLogo *>;
 template class vector<dictionary_hash<string, pdLogo *>::entry>;
 template class vector<string>;
 template class vector<pdLogo *>;
 
+template class pair<string, pdLogo *>;
+template class pair<string, pdLogo::logoStruct>;
+
+template pair<string, pdLogo *> make_pair<string, pdLogo *>(const string &, pdLogo * const &);
+template pair<string, pdLogo::logoStruct> make_pair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
+
+template class vector<pair<string, pdLogo *> >;
+template class vector<pair<string, pdLogo::logoStruct> >;
+
 template class dictionary_hash<string, pdLogo::logoStruct>;
 template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
 template class vector<pdLogo::logoStruct>;
 
 template class  refCounter<string_ll>;
+
+#endif //!defined(i386_unknown_nt4_0)

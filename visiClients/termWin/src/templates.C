@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates.C,v 1.2 2001/11/02 16:05:27 pcroth Exp $
+ * $Id: templates.C,v 1.3 2002/04/09 18:06:45 mjbrim Exp $
  */
 
 #pragma implementation "Vector.h"
@@ -62,6 +62,12 @@ template float max(const float, const float);
 #include "common/h/String.h"
 #include "common/src/Dictionary.C"
 #include "pdLogo.h"
+
+template class pair<string, pdLogo *>;
+template class pair<string, pdLogo::logoStruct>;
+template class vector<pair<string, pdLogo *> >;
+template class vector<pair<string, pdLogo::logoStruct> >;
+
 template class dictionary_hash<string, pdLogo *>;
 template class vector<dictionary_hash<string, pdLogo *>::entry>;
 template class vector<pdLogo*>;
