@@ -1,6 +1,9 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.7  1994/09/13 05:05:47  karavan
+# Revision 1.8  1994/11/03 20:48:11  karavan
+# removed error message
+#
+# Revision 1.7  1994/09/13  05:05:47  karavan
 # improved error handling
 #
 # Revision 1.6  1994/08/01  20:26:34  karavan
@@ -143,7 +146,7 @@ proc showError {errorCode errorStr} {
     set buttonfg red
     set buttonbg white
     set retval [catch {set errRec $pdError($errorCode)}]
-    puts "showError $retval"
+#    puts "showError $retval"
     if {$retval == 1} {
 	set errorStr "No entry in error database for this error code."
 	set etype serious
