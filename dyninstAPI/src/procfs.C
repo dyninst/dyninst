@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.8 2000/03/09 16:30:32 hollings Exp $
+// $Id: procfs.C,v 1.9 2000/03/14 00:49:22 hollings Exp $
 
 #include "symtab.h"
 #include "util/h/headers.h"
@@ -272,9 +272,17 @@ bool process::continueProc_() {
 
   memset(&flags, '\0', sizeof(flags));
   flags.pr_flags = PRCFAULT; 
-  if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
-      && (stat.pr_flags & PR_STOPPED)
-      && (stat.pr_why == PR_SIGNALLED)) {
+
+  int ret = ioctl(proc_fd, PIOCSTATUS, &stat);
+
+  assert(ret != -1);
+  if (!(stat.pr_flags & PR_STOPPED)) {
+	// not stopped, our work is done.
+	assert(!changedPCvalue);
+	return true;
+  }
+
+  if ((stat.pr_flags & PR_STOPPED) && (stat.pr_why == PR_SIGNALLED)) {
       flags.pr_flags |= PRCSIG; // clear current signal
   }
 
@@ -299,7 +307,28 @@ bool process::continueProc_() {
 */
 bool process::pause_() {
   ptraceOps++; ptraceOtherOps++;
-  return (ioctl(proc_fd, PIOCSTOP, 0) != -1);
+
+  sysset_t scexit, scsavedexit;
+  prstatus_t prstatus;
+  int ioctl_ret;
+
+  ioctl_ret = ioctl(proc_fd, PIOCSTOP, &prstatus);
+  if (ioctl_ret == -1) {
+      sprintf(errorLine,
+      "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
+      perror("warn : process::pause_ ioctl PICOSTOP: ");
+      logLine(errorLine);
+      return 0;
+  }
+
+  if (isRunning_()) {
+      sprintf(errorLine,
+      "warn : process::pause_ PICOSTOP's process, but still running\n");
+      logLine(errorLine);
+      return 0;
+  }
+
+  return 1;
 }
 
 /*
@@ -463,14 +492,48 @@ bool process::API_detach_(const bool cont)
 
   // Set the run-on-last-close-flag if necessary
   if (cont) {
-    long pr_flags = 0;
+    long pr_flags = 1;
     if (ioctl (proc_fd,PIOCSRLC, &pr_flags) < 0) {
       fprintf(stderr, "detach: PIOCSET failed: %s\n", sys_errlist[errno]);
       close(proc_fd);
       return false;
     }
   }
-  
+
+  sigset_t sigs;
+  premptyset(&sigs);
+  if (ioctl(proc_fd, PIOCSTRACE, &sigs) < 0) {
+    fprintf(stderr, "detach: PIOCSTRACE failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+  if (ioctl(proc_fd, PIOCSHOLD, &sigs) < 0) {
+    fprintf(stderr, "detach: PIOCSHOLD failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  fltset_t faults;
+  premptyset(&faults);
+  if (ioctl(proc_fd, PIOCSFAULT, &faults) < 0) {
+    fprintf(stderr, "detach: PIOCSFAULT failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  sysset_t syscalls;
+  premptyset(&syscalls);
+  if (ioctl(proc_fd, PIOCSENTRY, &syscalls) < 0) {
+    fprintf(stderr, "detach: PIOCSENTRY failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+  if (ioctl(proc_fd, PIOCSEXIT, &syscalls) < 0) {
+    fprintf(stderr, "detach: PIOCSEXIT failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
   close(proc_fd);
   return true;
 }

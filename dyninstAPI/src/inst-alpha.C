@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.23 2000/03/09 16:30:31 hollings Exp $
+// $Id: inst-alpha.C,v 1.24 2000/03/14 00:49:21 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -2159,10 +2159,10 @@ bool process::terminateProc_()
     if (ioctl (proc_fd, PIOCSSPCACT, &flags) < 0)
         return false;
 
-    Exited();
-
     // just to make sure it is dead
     kill(getPid(), 9);
+
+    Exited();
 
     return true;
 }

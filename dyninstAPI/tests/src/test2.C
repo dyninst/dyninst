@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.34 1999/11/11 17:38:40 wylie Exp $
+// $Id: test2.C,v 1.35 2000/03/14 00:49:22 hollings Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -808,6 +808,8 @@ main(unsigned int argc, char *argv[])
     }
 #else
     kill(pid, SIGKILL);
+    // Alpha seems to take to kills to work - jkh 3/13/00
+    kill(pid, SIGKILL);		
 #endif
 
     delete (ret);
