@@ -43,6 +43,9 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.60  1997/01/30 18:18:22  tamches
+ * attach no longer takes in a dir; takes in afterAttach
+ *
  * Revision 1.59  1997/01/27 19:40:40  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -451,14 +454,16 @@ int dynRPC::addExecutable(vector<string> argv, string dir)
 
 //
 // Attach is the other way to start a process (application?)
-// dir + cmd are used _only_ to read the symbol table off disk.
+// path gives the full path name to the executable, used _only_ to read
+// the symbol table off disk.
+// values for 'afterAttach': 1 --> pause, 2 --> run, 0 --> leave as is
 //
-bool dynRPC::attach(string dir, string cmd, int pid)
+bool dynRPC::attach(string progpath, int pid, int afterAttach)
 {
     attach_cerr << "WELCOME to dynRPC::attach" << endl;
-    attach_cerr << "dir=" << dir << endl;
-    attach_cerr << "cmd=" << cmd << endl;
+    attach_cerr << "progpath=" << progpath << endl;
     attach_cerr << "pid=" << pid << endl;
+    attach_cerr << "afterAttach=" << afterAttach << endl;
 
     char *str = getenv("PARADYND_ATTACH_DEBUG");
     if (str != NULL) {
@@ -466,7 +471,7 @@ bool dynRPC::attach(string dir, string cmd, int pid)
        kill(getpid(), SIGSTOP);
     }
 
-    return attachProcess(dir, cmd, pid); // process.C
+    return attachProcess(progpath, pid, afterAttach); // process.C
 }
 
 //
