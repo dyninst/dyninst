@@ -1,15 +1,7 @@
 #
-# $Log: Makefile,v $
-# Revision 1.1  2000/03/31 02:00:10  wylie
-# Platform migration
+# $Id: Makefile,v 1.2 2000/08/23 19:09:30 paradyn Exp $
 #
-# Revision 1.1  1997/10/15 21:19:53  tung
-# Linux/X86 Port
-#
-# Revision 1.1  1996/10/18 23:43:11  mjrg
-# Solaris/X86 port
-#
-#
+
 # Define any symbols needed to invoke configuration changes in make.config
 
 USES_TCLTK	= true

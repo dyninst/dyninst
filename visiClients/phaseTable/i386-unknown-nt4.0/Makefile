@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 1999/03/12 23:10:56 pcroth Exp $
+# $Id: Makefile,v 1.2 2000/08/23 19:09:34 paradyn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,6 +7,7 @@
 USES_TCLTK	= true
 USES_X11	= true
 TO_CORE		= ../../..
+NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.

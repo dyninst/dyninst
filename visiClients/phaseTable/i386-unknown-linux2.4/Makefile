@@ -1,20 +1,13 @@
 #
-# $Log: Makefile,v $
-# Revision 1.1  2000/03/31 02:00:24  wylie
-# Platform migration
+# $Id: Makefile,v 1.2 2000/08/23 19:09:33 paradyn Exp $
 #
-# Revision 1.1  1997/10/15 21:20:41  tung
-# Linux/X86 Port
-#
-# Revision 1.1  1996/10/18 23:43:18  mjrg
-# Solaris/X86 port
-#
-#
-#
+
+# Define any symbols needed to invoke configuration changes in make.config
 
 USES_TCLTK	= true
 USES_X11	= true
 TO_CORE		= ../../..
+NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
