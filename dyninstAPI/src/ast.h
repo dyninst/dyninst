@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.68 2003/10/24 21:25:52 jaw Exp $
+// $Id: ast.h,v 1.69 2003/11/01 20:58:02 mirg Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -125,10 +125,6 @@ class registerSpace {
 
 	// Check to see if the register is free
 	bool isFreeRegister(Register k);
-
-	// Check to see if the register is use in multiple places
-	// (if refCount > 1)
-	bool isSharedRegister(Register k);
 
 	// Manually set the reference count of the specified register
 	// we need to do so when reusing an already-allocated register
@@ -260,14 +256,6 @@ class AstNode {
 				 const pdvector<AstNode*> &ifForks,
 				 char *insn, Address &base, bool noCost);
 
-        // Sometimes we can reuse one of the source registers to store
-        // the result. We must make sure that the source is
-        // not shared between tree nodes.
-	Register shareOrAllocate(Register left, Register right,
-				 registerSpace *rs, 
-				 const pdvector<AstNode*> &ifForks,
-				 char *insn, Address &base, bool noCost);
-	
 	// Check to see if path1 is a subpath of path2
 	bool subpath(const pdvector<AstNode*> &path1, 
 		     const pdvector<AstNode*> &path2) const;

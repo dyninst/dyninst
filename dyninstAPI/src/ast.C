@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.133 2003/10/24 21:25:52 jaw Exp $
+// $Id: ast.C,v 1.134 2003/11/01 20:56:32 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -198,18 +198,6 @@ bool registerSpace::isFreeRegister(Register reg) {
 	}
     }
     return true;
-}
-
-// Check to see if the register is use in multiple places (if refCount > 1)
-bool registerSpace::isSharedRegister(Register reg) 
-{
-    for (u_int i=0; i < numRegisters; i++) {
-	if ((registers[i].number == reg) &&
-	    (registers[i].refCount > 1)) {
-	    return true;
-	}
-    }
-    return false;
 }
 
 // Manually set the reference count of the specified register
@@ -1007,61 +995,6 @@ Register AstNode::allocateAndKeep(registerSpace *rs,
     return dest;
 }
 
-// Sometimes we can reuse one of the source registers to store
-// the result. We must make sure that the source is
-// not shared between tree nodes.
-Register AstNode::shareOrAllocate(Register left, Register right, 
-				  registerSpace *rs, 
-				  const pdvector<AstNode*> &ifForks,
-				  char *insn, Address &base, bool noCost)
-{
-   Register dest;
-
-   enum assign_todo { assign_left, assign_right, assign_alloc, unalloc };
-   enum assign_todo todo = unalloc;
-   if(rs->for_multithreaded()) {
-      if(left != Null_Register &&
-         left != REG_MT_POS && // MT code uses this reg, but marks it as free
-         !rs->isSharedRegister(left)) {
-         todo = assign_left;
-      } else if(right != Null_Register &&
-                right != REG_MT_POS && // MT code uses this reg
-                !rs->isSharedRegister(right)) {
-         todo = assign_right;
-      } else
-         todo = assign_alloc;
-   }
-   else {
-      if(left != Null_Register && !rs->isSharedRegister(left)) {
-         todo = assign_left;
-      } else if (right != Null_Register && !rs->isSharedRegister(right)) {
-         todo = assign_right;
-      } else {
-         todo = assign_alloc;
-      }
-   }
-   
-   if(todo == assign_left)
-      dest = left;
-   else if(todo == assign_right)
-      dest = right;
-   else if(todo == assign_alloc)
-      dest = rs->allocateRegister(insn, base, noCost);
-   else
-      assert(false);
-   
-   // dest should get its proper reference count, not inherit it
-   // from left or right
-   rs->fixRefCount(dest, useCount+1);
-   
-   // Finally, make this register available for sharing
-   if (useCount > 0) {
-      keepRegister(dest, ifForks);
-   }
-   
-   return dest;
-}
-
 //
 // This procedure generates code for an AST DAG. If there is a sub-graph
 // being shared between more than 1 node, then the code is generated only
@@ -1455,8 +1388,8 @@ Address AstNode::generateCode_phase2(process *proc,
              doNotOverflow((RegValue)right->oValue) &&
              (type == opCodeNode))
          {
-            dest = shareOrAllocate(src, Null_Register, rs, ifForks,
-                                   insn, base, noCost);
+	     rs->freeRegister(src); // may be able to reuse it for dest
+	     dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
 #ifdef alpha_dec_osf4_0
             if (op == divOp)
             {
@@ -1483,8 +1416,9 @@ Address AstNode::generateCode_phase2(process *proc,
          else {
             if (right)
                right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-            dest = shareOrAllocate(src, right_dest, rs, ifForks,
-                                   insn, base, noCost);
+	    rs->freeRegister(src); // may be able to reuse it for dest
+	    rs->freeRegister(right_dest); // may be able to reuse it for dest
+            dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
 	      
 #ifdef alpha_dec_osf4_0
             if (op == divOp)
@@ -1505,12 +1439,6 @@ Address AstNode::generateCode_phase2(process *proc,
             else
 #endif
                emitV(op, src, right_dest, dest, insn, base, noCost, size, location, proc, rs);
-            if (right_dest != Null_Register && right_dest != dest) {
-               rs->freeRegister(right_dest);
-            }
-         }
-         if (src != Null_Register && src != dest) {
-            rs->freeRegister(src);
          }
          removeAst(left);
          removeAst(right);
