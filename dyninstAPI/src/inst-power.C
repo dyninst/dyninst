@@ -931,35 +931,35 @@ bool baseTrampExists(process  *p,         //Process to check into
 }
 
      //////////////////////////////////////////////////////////////////////////
-     //Given a process and a vector of instInstance's, reinstall all the base
-     //  trampolines that have been damaged.
+     //Given a process and a vector of instPoint's, reinstall all the 
+     //  base trampolines that have been damaged by an AIX load.
      //
-void findAndReinstallBaseTramps(process               *p, 
-				vector<instInstance*> &allInstInstances)
+void findAndReinstallBaseTramps(process                  *p,
+				vector<const instPoint*> &allInstPoints)
 {
   if (! p) return;
 
-  for (unsigned u = 0; u < allInstInstances.size(); u++) {
-    if (allInstInstances[u]->prevAtPoint) continue;   //Not first at inst point
-    if (baseTrampExists(p, allInstInstances[u]->baseInstance->baseAddr))
-      continue;
+  for (unsigned u = 0; u < allInstPoints.size(); u++) {
+    const instPoint *ip = allInstPoints[u];
+    trampTemplate   *bt = p->baseMap[ip];                       //Base tramp
+    if (baseTrampExists(p, bt->baseAddr)) continue;
 
-    instPoint *ip = allInstInstances[u]->location;
     if ((ip->ipLoc == ipFuncEntry) || (ip->ipLoc == ipFuncReturn)) {
       instPoint     *rp = ip->iPgetFunction()->funcExits(p)[0]; //Return point
       trampTemplate *rt = p->baseMap[rp];                       //Return tramp
       installBaseTramp(rp, p, 0, rt->baseAddr);
+      rt->updateTrampCost(p, 0);
 
       instPoint     *ep = ip->iPgetFunction()->funcEntry(p);    //Entry point
       trampTemplate *et = p->baseMap[ep];                       //Entry tramp
       installBaseTramp(ep, p, rt->baseAddr, et->baseAddr);
-
+      et->updateTrampCost(p, 0);
       generateBranch(p, ep->iPgetAddress(), et->baseAddr);
     }
     else {
-      installBaseTramp(ip, p, 0, allInstInstances[u]->baseInstance->baseAddr);
-      generateBranch(p, ip->iPgetAddress(),
-		        allInstInstances[u]->baseInstance->baseAddr);
+      installBaseTramp(ip, p, 0, bt->baseAddr);
+      bt->updateTrampCost(p, 0);
+      generateBranch(p, ip->iPgetAddress(), bt->baseAddr);
     }
   }
 }
@@ -1020,30 +1020,28 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 
 
      //////////////////////////////////////////////////////////////////////////
-     //Given a process and a vector of instInstance's, reconstruct 
-     //  1.  branches from base trampolines to their mini trampolines
-     //  2.  base trampoline instructions that update cost
+     //Given a process and a vector of instInstance's, reconstruct branches 
+     //  from base trampolines to their mini trampolines
      //
-void reattachMiniTramps(process              *p,
+void reattachMiniTramps(process               *p,
 			vector<instInstance*> &allInstInstances)
 {
   if (! p) return;
 
   for (unsigned u = 0; u < allInstInstances.size(); u++) {
-    if (allInstInstances[u]->prevAtPoint) continue;   //Not first at inst point
+    instInstance *ii = allInstInstances[u];
+    if (ii->prevAtPoint) continue;              //Not first at inst point
 
-    unsigned skipAddr = allInstInstances[u]->baseInstance->baseAddr;
-    if (allInstInstances[u]->when == callPreInsn)
-      skipAddr += allInstInstances[u]->baseInstance->skipPreInsOffset;
+    trampTemplate *bt       = ii->baseInstance; //Base trampoline
+    unsigned       skipAddr = bt->baseAddr;
+    if (ii->when == callPreInsn)
+      skipAddr += bt->skipPreInsOffset;
     else
-      skipAddr += allInstInstances[u]->baseInstance->skipPostInsOffset;
-    generateNoOp(p, skipAddr);                //Clear "skip" branch
-                                              //Restore branch from base tramp
+      skipAddr += bt->skipPostInsOffset;
+    generateNoOp(p, skipAddr);                  //Clear "skip" branch
+                                                //Restore branch from base tramp
     extern int getBaseBranchAddr(process *, instInstance *);
-    resetBRL(p, getBaseBranchAddr(p, allInstInstances[u]),
-		allInstInstances[u]->trampBase);
-                                              //Restore update cost instructions
-    allInstInstances[u]->baseInstance->updateTrampCost(p, 0);
+    resetBRL(p, getBaseBranchAddr(p, ii), ii->trampBase);
   }
 }
 
