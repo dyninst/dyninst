@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.81 2001/08/20 19:59:09 bernat Exp $
+// $Id: inst.C,v 1.82 2001/08/23 14:43:17 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -56,9 +56,7 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/instPoint.h"
 #ifndef BPATCH_LIBRARY
-#include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
 #include "paradynd/src/init.h"
-#include "paradynd/src/context.h"    // elapsedPauseTime, startPause
 #endif
 
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
@@ -107,7 +105,7 @@ bool pd_Function::getStaticCallees(process *proc,
     //   callee....
     for(u=0;u<calls.size();u++) {
       //this call to iPgetCallee is platform specific
-      f = (function_base *) calls[u]->iPgetCallee();
+      f = const_cast<function_base *>(calls[u]->iPgetCallee());
       
       if (f == NULL) {
 	//cerr << " unkown call destination";
@@ -881,20 +879,3 @@ void cleanInstFromActivePoints(process *proc)
     }
 }
 
-#ifndef BPATCH_LIBRARY
-pdSample computePauseTimeMetric(const metricDefinitionNode *) {
-    // we don't need to use the metricDefinitionNode
-
-    timeStamp now = getWallTime();
-    if (isInitFirstRecordTime()) {
-	timeLength elapsed = elapsedPauseTime;
-	if (isApplicationPaused())
-	    elapsed += now - startPause;
-
-	assert(elapsed >= timeLength::Zero()); 
-	return pdSample(elapsed);
-    } else {
-	return pdSample(timeLength::Zero());
-    }
-}
-#endif
