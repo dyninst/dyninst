@@ -14,6 +14,7 @@
 #define DO_DEBUG_LIBPDTHREAD 0
 #endif
 
+#define CURRENT_FILE msg_C
 #include "thr_debug.h"
 
 #undef DO_DEBUG_LIBPDTHREAD
