@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.108 2002/05/04 21:46:55 schendel Exp $
+// $Id: mdl.C,v 1.109 2002/05/09 21:42:36 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -63,6 +63,7 @@
 #include "common/h/debugOstream.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "dyninstAPI/src/instPoint.h" // new...for class instPoint
+#include "paradynd/src/focus.h"
 
 #include <ctype.h>
 
@@ -319,118 +320,32 @@ bool mdl_data::new_metric(string id, string name, string units,
   }
 }
 
-static bool other_machine_specified(vector< vector<string> > &focus,
-				    string& machine) {
-  assert(focus[resource::machine][0] == "Machine");
 
-  switch (focus[resource::machine].size()) {
-  case 1: break;
-  case 2: //Machine/grilled
-  case 3: //Machine/grilled/process
-  case 4: //Machine/grilled/process/thread
-    if (machine != focus[resource::machine][1]) return true;
-    break;
-  default:
-    assert(0);
-  }
-  return false;
-}
-
-static void add_processes(vector< vector<string> > &focus,
-				 vector<process*> procs,
-#if defined(MT_THREAD)
-			  vector<process*> &ip,
-			  vector< vector<pdThread *> >& threadsVec,
-			  vector< vector<pdThread *> >& instThreadsVec) {
-#else
-				 vector<process*> &ip) {
-#endif
-  assert(focus[resource::machine][0] == "Machine");
-  unsigned pi, ps;
-
-  switch(focus[resource::machine].size()) {
-  case 1:
-  case 2:
-    ip = procs;
-#if defined(MT_THREAD)
-    instThreadsVec = threadsVec;
-#endif
-    break;
-  case 3:
-    ps = procs.size();
-    for (pi=0; pi<ps; pi++)
-      if (procs[pi]->rid->part_name() == focus[resource::machine][2]) {
-	ip += procs[pi];
-	break;
+// will filter out processes from fromProcs that match the given focus
+// and places the result in filteredOutProcs
+static void filter_processes(const Focus &focus, vector<process*> fromProcs,
+			     vector<process*> *filteredOutProcs) {
+  // assumes that the machine we're on (and thus the daemon we're using)
+  // matches the focus
+   if(focus.process_defined()) {
+      for (unsigned i=0; i<fromProcs.size(); i++) {
+	 if (fromProcs[i]->rid->part_name() == focus.get_process()) {
+	    (*filteredOutProcs).push_back(fromProcs[i]);
+	    break;
+	 }    
       }
-#if defined(MT_THREAD)
-    for (pi=0; pi<ip.size(); pi++) {
-      instThreadsVec += ip[pi]->threads;
-    }
-#endif
-    break;
-#if defined(MT_THREAD)
-  case 4:
-    ps = threadsVec.size();
-    for (pi=0; pi<ps; pi++) {
-      vector<pdThread *> tmpThrVec; 
-      if (procs[pi]->rid->part_name() == focus[resource::machine][2]) {
-	ip += procs[pi];
-	for (unsigned ti=0; ti<threadsVec[pi].size(); ti++) {
-	  pdThread *thr;
-	  thr = (threadsVec[pi])[ti];
-	  if (thr && thr->get_rid()) {
-	    if (thr->get_rid()->part_name() == focus[resource::machine][3]) {
-	      tmpThrVec += thr;
-	      break;
-	    }
-	  }
-	}
-      }
-      if (tmpThrVec.size() > 0) instThreadsVec += tmpThrVec;
-    }
-    break;
-#endif
-  default:
-    assert(0);
-  }
-#if defined(TEST_DEL_DEBUG)
-  sprintf(errorLine,"--> instThreadsVec.size()=%d\n",instThreadsVec.size());
-  logLine(errorLine);
-  for (unsigned i=0;i<instThreadsVec.size();i++) {
-    sprintf(errorLine,"--> instThreadsVec[%d].size()=%d\n",i,(instThreadsVec[i]).size());
-    logLine(errorLine);
-    for (unsigned j=0;j<(instThreadsVec[i]).size();j++) {
-      pdThread *thr;
-      thr = (instThreadsVec[i])[j];
-      sprintf(errorLine,"--> thread %d has been selected\n",thr->get_tid());
-      logLine(errorLine);
-    }
-  }
-#endif
+   } else {
+      // if process isn't defined, then thread shouldn't be defined either
+      assert(focus.thread_defined() == false);
+      // if there's no process specified in the focus, then all of the 
+      // processes on this machine (with this daemon) are selected
+      (*filteredOutProcs) = fromProcs;
+   }
 }
-
-static bool focus_matches(vector<string>& focus, vector<string> *match_path) {
-  unsigned mp_size = match_path->size();
-  unsigned f_size = focus.size();
-
-  if ((mp_size < 1) || (f_size < 2) || (mp_size != (f_size-1))) {
-    return false;
-  }
-
-  for (unsigned u = 0; u < mp_size; u++) {
-    if(((*match_path)[u] != "*") && (focus[u] != (*match_path)[u])) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 
 // Global constraints are specified by giving their name within a metric def
 // Find the real constraint by searching the dictionary using this name
-static T_dyninstRPC::mdl_constraint *flag_matches(vector<string>& focus, 
+static T_dyninstRPC::mdl_constraint *flag_matches(const Hierarchy* hier, 
 						  T_dyninstRPC::mdl_constraint *match_me,
 						  bool& is_default) 
 {
@@ -438,7 +353,7 @@ static T_dyninstRPC::mdl_constraint *flag_matches(vector<string>& focus,
   for (unsigned cs=0; cs<c_size; cs++) 
     if (mdl_data::all_constraints[cs]->id_ == match_me->id_) {
       match_me = mdl_data::all_constraints[cs];
-      if (focus_matches(focus, mdl_data::all_constraints[cs]->match_path_)) {
+      if (hier->focus_matches(*(mdl_data::all_constraints[cs]->match_path_))) {
 	if (mdl_data::all_constraints[cs]->data_type_ == MDL_T_NONE)
 	  is_default = true;
 	else
@@ -454,59 +369,69 @@ static T_dyninstRPC::mdl_constraint *flag_matches(vector<string>& focus,
 // Global constraints that are applicable are put on flag_cons
 // repl_cons returns the ONE replace constraint that matches
 
-static bool check_constraints(vector<T_dyninstRPC::mdl_constraint*> *flag_cons,
-			      T_dyninstRPC::mdl_constraint **repl_cons,
-			      vector< vector<string> >& focus,
-			      vector<T_dyninstRPC::mdl_constraint*> *cons,
-			      vector<unsigned> *flag_dex,
-			      unsigned *base_dex) {
-  unsigned size = cons->size();
+// Goes through vector of constraints, cons, and selects the constraints
+// that match against the given focus.
+// Matched external (flag) constraints are written into vector flag_cons.
+// If the metric is defined as a replace constraint, this constraint is
+//    written into repl_cons.
+// The focus data for constraints in flag_cons is in flags_focus_data and
+//     the focus data for a replace constraint is written in repl_cons.
+static bool pick_out_matched_constraints(
+			     const vector<T_dyninstRPC::mdl_constraint*> &cons,
+			      const Focus& focus,			      
+			      vector<T_dyninstRPC::mdl_constraint*> *flag_cons,
+			      T_dyninstRPC::mdl_constraint **repl_cons,	      
+			      vector<const Hierarchy *> *flags_focus_data,
+			      const Hierarchy **repl_focus) {
+   bool aMatch = false;
+   bool aReplConsMatch = false;
+   const codeHierarchy *codeHier    = focus.getCodeHierarchy();
+   const syncObjHierarchy *syncHier = focus.getSyncObjHierarchy();
 
-  unsigned foc_size = focus.size();
-  for (unsigned fi=0; fi<foc_size; fi++) {
-    unsigned el_size = focus[fi].size();
-    if ((focus[fi][0] == "Machine") || (focus[fi][0] == "Process")) {
-      // do nothing, can't specify constraints for machine or process
-      ;
-    } else if (el_size) {
-      bool matched = false;
-      // Hack allow constraints such as "/SyncObject"
-      // However, these don't have to match
-      // Otherwise a failure to match means that the metric is invalid for the resource
-      unsigned ci=0;
-      while ((ci < size) && !matched) {
-	if (!(*cons)[ci]->match_path_) {
-	  // this is an external constraint, apply if applicable
-	  T_dyninstRPC::mdl_constraint *mc;
-	  bool is_default;
-	  if ((mc = flag_matches(focus[fi], (*cons)[ci], is_default))) {
-	    matched = true;
-	    if (!is_default) {
-	      (*flag_cons).push_back(mc); 
-	      (*flag_dex).push_back(fi);
+   for(unsigned i=0; i<2; i++) {
+      const Hierarchy *curHierarchy;
+      if(i==0)      curHierarchy = codeHier;
+      else if(i==1) curHierarchy = syncHier;
+
+      //cerr << "  filtering through " << cons.size() << " constraints\n";
+      for(unsigned j=0; j<cons.size(); j++) {
+	 T_dyninstRPC::mdl_constraint *curCons = cons[j];
+	 if (! curCons->match_path_) { 
+	    //cerr << "    ok, it's an external constraint\n";
+	    //like: constraint procedureConstraint;
+	    T_dyninstRPC::mdl_constraint *mc;
+	    bool is_default;
+	    if ((mc = flag_matches(curHierarchy, curCons, is_default))) {
+	       // we can have multiple external constraints match the focus
+	       aMatch = true;
+	       //cerr << "      got a match\n";
+	       if (!is_default) {
+		  (*flag_cons).push_back(mc);
+		  (*flags_focus_data).push_back(curHierarchy);
+	       }
 	    }
-	  }
-	} else {
-	  // this could be the real constraint to use
-	  // this guarantees that the first match is used
-	  // TODO -- first matching replace constraint wins
-	  // CHANGE: get all that match
-	  if (focus_matches(focus[fi], (*cons)[ci]->match_path_)) {
-	    matched = true;
-	    *repl_cons = (*cons)[ci]; 
-	    *base_dex = fi; 
-	  }
-	}
-	ci++;
-      }
-      if (!matched && (el_size>1)) {
-	return false;
-      }
-    } else {
+	 } else {
+	    //cerr << "    ok, it's a replace constraint\n";
+	    //like: constraint moduleConstraint /Code is replace processTimer {
+	    if( curHierarchy->focus_matches(*(curCons->match_path_))) {
+	       //cerr << "      got a match\n";
+	       if(aReplConsMatch == true) {
+		  cerr << "error in pcl file, (at least) two replace "
+		       << "constraints match the selected focus\n";
+		  assert(false);
+	       }
+	       aMatch = true;   aReplConsMatch = true;
+	       *repl_cons = curCons;
+	       (*repl_focus) = curHierarchy;
+	    }
+	 }
+      } 
+   }
+   if((!codeHier->allCode() || !syncHier->allSync()) && !aMatch) {
       return false;
-    }
-  }
-  return true;
+   }
+      
+   return true;
 }
 
 // update the interpreter environment for this processor
@@ -544,83 +469,39 @@ static bool update_environment(process *proc) {
   return true;
 }
 
-// returns the instrumentation variable index in the superTable
-inst_var_index allocateInstVarForAllThreads(unsigned mdl_data_type,
-			       instrCodeNode *codeNode, bool bDontInsertData) {
-  inst_var_index allocatedIndex;
-
-  if(bDontInsertData) {
-    allocatedIndex = 0;
-  } else {
-    inst_var_type varType;
-    switch (mdl_data_type) {
-      case MDL_T_COUNTER:
-	varType = Counter;
-	break;
-      case MDL_T_WALL_TIMER:
-	varType = WallTimer;
-	break;
-      case MDL_T_PROC_TIMER:
-	varType = ProcTimer;
-	break;
-      case MDL_T_NONE:
-	// just to keep mdl apply allocate a dummy un-sampled counter.
-	varType = Counter;
-	break;
-      default:
-	assert(0);  break;
-    }
-    allocatedIndex = codeNode->allocateInstVarForThreads(varType);
-  }
-
-  return allocatedIndex;
-}
-
-
-extern string metricAndCanonFocus2FlatName(const string &met, const vector< vector<string> > &focus);
-
-//extern string metricAndCanonFocus2FlatName(const string &met, const vector< vector<string> > &focus);
-
 // allocate data and generate code for all threads
-bool setup_sampledNodes(const processMetFocusNode* procNode,
-			instrCodeNode* codeNode, process *proc,
-			const string &id, unsigned type,
-			T_dyninstRPC::mdl_constraint *repl_cons,
-			vector<T_dyninstRPC::mdl_stmt*> *stmts,
-			const vector<string> &temp_ctr, 
-			const vector< vector<string> > &focus,
-			unsigned base_dex,
-			bool dontInsertData)
+bool setup_sampled_code_node(const processMetFocusNode* procNode,
+			     instrCodeNode* codeNode, process *proc,
+			     const string &id, unsigned type,
+			     T_dyninstRPC::mdl_constraint *repl_cons,
+			     vector<T_dyninstRPC::mdl_stmt*> *stmts,
+			     const vector<string> &temp_ctr, 
+			     const Hierarchy &repl_focus_data,
+			     bool dontInsertData)
 {
-   inst_var_index sampledVarIndex = 
-      allocateInstVarForAllThreads(type, codeNode, dontInsertData);
    instrDataNode *sampledDataNode = 
-      new instrDataNode(proc, type, sampledVarIndex, dontInsertData);
+      new instrDataNode(proc, type, dontInsertData);
    codeNode->setSampledDataNode(sampledDataNode);
    mdl_env::set(sampledDataNode, id);
-   
+
    // Create the temporary counters 
    for (unsigned tc=0; tc < temp_ctr.size(); tc++) {
-      unsigned tempVarIndex = 
-	 allocateInstVarForAllThreads(MDL_T_COUNTER, codeNode, dontInsertData);
       instrDataNode *tempCtrDataNode = 
-	 new instrDataNode(proc, MDL_T_COUNTER, tempVarIndex, dontInsertData);
+	 new instrDataNode(proc, MDL_T_COUNTER, dontInsertData);
       codeNode->addTempCtrDataNode(tempCtrDataNode);
       mdl_env::set(tempCtrDataNode, temp_ctr[tc]);
    }
-   
+
    // create the ASTs for the code
    if(repl_cons!=NULL) {
       // mdl_constraint::apply()
-      inst_var_index replConsDataIndex;  // not sure about this data
       instrDataNode *notAssignedToDataNode;
-      if (!repl_cons->apply(codeNode, &notAssignedToDataNode, focus[base_dex], 
-			    proc, &replConsDataIndex)) {
+      if (!repl_cons->apply(codeNode, &notAssignedToDataNode, 
+			    repl_focus_data, proc, dontInsertData)) {
 	 return false;
       }
    } else {
       vector<const instrDataNode*> flagNodes = procNode->getFlagDataNodes();
-      // metric_cerr << "!repl_cons" << endl ;
       unsigned size = stmts->size();
       for (unsigned u=0; u<size; u++) {
 	 // virtual fn call depending on stmt type
@@ -629,124 +510,36 @@ bool setup_sampledNodes(const processMetFocusNode* procNode,
 	 }
       }
    }
-   
+
    return true;
 }
 
-bool setup_constraints(instrCodeNode* codeNode, process *proc,
-		       const vector< vector<string> > &focus,
-		       T_dyninstRPC::mdl_constraint *flag_con,
-		       const unsigned& flag_dex,
-		       bool dontInsertData) 
+bool setup_constraint_code_node(instrCodeNode* codeNode, process *proc,
+				T_dyninstRPC::mdl_constraint *flag_con,
+				const Hierarchy &flag_focus_data,
+				bool dontInsertData) 
 {
    instrDataNode *consDataNode;
    // The following calls mdl_constraint::apply():
-   if (!flag_con->apply(codeNode, &consDataNode, focus[flag_dex], proc,
-			dontInsertData)) {
+   if (!flag_con->apply(codeNode, &consDataNode, flag_focus_data,
+			proc, dontInsertData)) {
       return false;
    }
    return true;
 }
 
-
-//            Compute the flat_name for this component
-// Machine and process must always be defined for a component mdn, 
-// even if they were not defined for the aggregate mdn.
-vector< vector<string > > addProcessInfo2Focus(
-					const vector< vector<string> > &focus,
-					process *proc)
-{
-   vector< vector<string> > component_focus(focus);
-   for (unsigned i=0; i<component_focus.size(); i++) {
-      if (component_focus[i][0] == "Machine") {
-	 switch ( (component_focus[i].size()) ) {
-	   case 1: {
-            // There was no refinement to a specific machine
-	    string tmp_part_name = machineResource->part_name();
-            component_focus[i] += tmp_part_name;
-	    // no break
-	   }
-	   case 2: {
-	    // There was no refinement to a specific process
-	    string tmp_part_name = proc->rid->part_name();
-            component_focus[i] += tmp_part_name;
-	    break;
-	   }
-	 }
-      }
-   }
-   return component_focus;
-}
-
-vector< vector<string> > stripThrInfoFromFocus(
-					const vector< vector<string> > &focus)
-{
-   vector< vector<string> > component_focus(focus);
-   for (unsigned i=0; i<component_focus.size(); i++) {
-      if (component_focus[i][0] == "Machine") {
-	 if(component_focus[i].size() == 4) {
-	    component_focus[i].erase(3);
-	 }
-	 break;
-      }
-   }
-   return component_focus;
-}
-
-vector< vector<string> > addThrInfo2Focus(
-					const vector< vector<string> > &focus,
-					pdThread *thr)
-{
-   vector< vector<string> > component_focus(focus);
-   for (unsigned i=0; i<component_focus.size(); i++) {
-      if (component_focus[i][0] == "Machine") {
-	 assert(component_focus[i].size() == 3);
-	 string thrName;
-	 thrName = string("thr_") + thr->get_tid() +
-	    string("{") + 
-	    string(thr->get_start_func()->prettyName().string_of()) +
-	    string("}"); 
-	 component_focus[i].push_back(thrName);
-	 break;
-      }
-   }
-   return component_focus;
-}
-
-int getThrSelected(const vector< vector<string> > &focus) {
-   int thr_id_selected = -1;
-   for(unsigned i=0; i<focus.size(); i++) {
-      if (focus[i][0] == "Machine") {
-	 if(focus[i].size() == 4) {
-            // There was a refinement to a thread
-	    string thrString = focus[i][3];
-	    char *begNum = strstr(thrString.string_of(), "thr_");
-	    begNum += 4;  // bypass "thr_"
-	    if(begNum != NULL) {
-	       char tempBuf[50];
-	       char *ts = tempBuf;
-	       for(char *fs = begNum; isdigit(*fs); fs++, ts++) 
-		  *ts = *fs;
-	       *ts = 0;
-	       thr_id_selected = atoi(tempBuf);
-	    }
-	 }
-      }
-   }
-   return thr_id_selected;
-}
-
 // returns true if success, false if failure
-bool createDataNodes(processMetFocusNode **procNode_arg,
+bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 		     const string &id, const string &name, 
-		     const vector< vector<string> > &focus,
-		     const vector< vector<string> > &component_focus,
+		     const Focus &no_thr_focus,
 		     unsigned type,
 		     vector<T_dyninstRPC::mdl_constraint*> &flag_cons,
 		     T_dyninstRPC::mdl_constraint *repl_cons,
 		     vector<T_dyninstRPC::mdl_stmt*> *stmts,
-		     const vector<unsigned> &flag_dex, unsigned base_dex,
-		    const vector<string> &temp_ctr, bool /*replace_component*/)
+		     vector<const Hierarchy *> flags_focus_data, 
+		     const Hierarchy &repl_focus_data,
+		     const vector<string> &temp_ctr, 
+		     bool /*replace_component*/)
 {
    processMetFocusNode *procNode = (*procNode_arg);
    process *proc = procNode->proc();
@@ -758,21 +551,17 @@ bool createDataNodes(processMetFocusNode **procNode_arg,
       metric_cerr << " there are " << flag_size << " flags (constraints)\n";
 
       for (unsigned fs=0; fs < flag_size; fs++) {
-	 instrCodeNode *consCodeNode = NULL;
 	 string cons_name(flag_cons[fs]->id());
-	 string cons_flat_name = 
-	    metricAndCanonFocus2FlatName(cons_name, component_focus);
-	 metric_cerr << "  create " << fs << " of " << flag_size 
-	       << " constraint codenode: " << "    " << cons_flat_name << "\n";
-	
-	 consCodeNode = instrCodeNode::newInstrCodeNode(cons_flat_name,
-							proc, dontInsertData);
+	 
+	 instrCodeNode *consCodeNode = 
+	    instrCodeNode::newInstrCodeNode(cons_name, no_thr_focus,
+					    proc, dontInsertData);
 	 bool consCodeNodeComplete = (consCodeNode->numDataNodes() > 0);
 	 
 	 if (! consCodeNodeComplete) {
 	    metric_cerr << "  flag not already there " << endl;
-	    if (! setup_constraints(consCodeNode, proc, focus, flag_cons[fs], 
-				    flag_dex[fs], dontInsertData)) 
+	    if (! setup_constraint_code_node(consCodeNode, proc, flag_cons[fs],
+				       *flags_focus_data[fs], dontInsertData)) 
 	    {
 	       delete consCodeNode;
 	       return false;
@@ -784,22 +573,21 @@ bool createDataNodes(processMetFocusNode **procNode_arg,
 	 procNode->addConstraintCodeNode(consCodeNode);	    
       }
    }
-   string comp_flat_name = metricAndCanonFocus2FlatName(name, component_focus);
    instrCodeNode *metCodeNode = 
-      instrCodeNode::newInstrCodeNode(comp_flat_name, proc, dontInsertData);
+      instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc,dontInsertData);
 
    bool metCodeNodeComplete = (metCodeNode->numDataNodes() > 0);
    if(! metCodeNodeComplete) {
       // Create the data objects (timers/counters) and create the
       // astNodes which will be used to generate the instrumentation
-      if ( !setup_sampledNodes(procNode, metCodeNode, proc, id, type, 
-			       repl_cons, stmts, temp_ctr, focus, base_dex, 
-			       dontInsertData)) {
+      if ( !setup_sampled_code_node(procNode, metCodeNode, proc, id, type, 
+				    repl_cons, stmts, temp_ctr,
+				    repl_focus_data, dontInsertData)) {
 	 delete metCodeNode;
 	 return false;
       }
    } else {
-     //cerr << "  met code node already there, reuse it! " << endl;
+      //cerr << "  met code node already there, reuse it! " << endl;
    }
 
    if (!metCodeNode->nonNull()) {
@@ -814,8 +602,8 @@ bool createDataNodes(processMetFocusNode **procNode_arg,
 
 void createThreadNodes(processMetFocusNode **procNode_arg,
 		       const string &metname, 
-		       const vector< vector<string> > &component_focus,
-		       const vector< vector<string> > &focus_with_thr) 
+		       const Focus &no_thr_focus,
+		       const Focus &full_focus) 
 {
    processMetFocusNode *procNode = (*procNode_arg);
 
@@ -824,31 +612,29 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 
    vector<threadMetFocusNode *> threadNodeBuf;
    if(! bMT) {   // --- single-threaded ---
-      string comp_flat_name = metricAndCanonFocus2FlatName(metname, 
-							   component_focus);
       threadMetFocusNode *thrNode = 
-	 threadMetFocusNode::newThreadMetFocusNode(comp_flat_name, 
+	 threadMetFocusNode::newThreadMetFocusNode(metname, no_thr_focus,
 						   proc->STpdThread());
       threadNodeBuf.push_back(thrNode);
    } else {      // --- multi-threaded ---
-      string thr_flat_name;
-      int thrSelected = getThrSelected(focus_with_thr);
+      int thrSelected = full_focus.getThreadID();
       if(thrSelected == -1) {
 	 vector <pdThread *>& allThr = proc->threads ;
+	 Focus focus_with_thr = no_thr_focus;
 	 for(unsigned u=0; u<allThr.size(); u++) {
-	    vector< vector<string> > thr_focus =
-	       addThrInfo2Focus(component_focus, allThr[u]);
-	    thr_flat_name = metricAndCanonFocus2FlatName(metname, thr_focus);
-	    threadMetFocusNode *thrNode = 
-	       threadMetFocusNode::newThreadMetFocusNode(
-					     thr_flat_name, allThr[u]);
+	    pdThread *thr = allThr[u];
+	    string thrName = string("thr_") + thr->get_tid() + "{" + 
+	                      thr->get_start_func()->prettyName() + "}";
+	    focus_with_thr.set_thread(thrName);
+	    threadMetFocusNode *thrNode = threadMetFocusNode::
+	       newThreadMetFocusNode(metname, focus_with_thr, thr);
 	    threadNodeBuf.push_back(thrNode);
 	 }
       } else {
-	 thr_flat_name = metricAndCanonFocus2FlatName(metname, focus_with_thr);
 	 pdThread *selThr = proc->getThread(thrSelected);
 	 threadMetFocusNode *thrNode = 
-	    threadMetFocusNode::newThreadMetFocusNode(thr_flat_name, selThr);
+	    threadMetFocusNode::newThreadMetFocusNode(metname, full_focus,
+						      selThr);
 	 threadNodeBuf.push_back(thrNode);
       }
 #if defined(MT_THREAD)
@@ -873,58 +659,64 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 processMetFocusNode *
 apply_to_process(process *proc,
                  string& id, string& name,
-                 vector< vector<string> >& focus,
+		 const Focus &focus,
                  unsigned agg_op,
                  unsigned type,
                  vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
                  T_dyninstRPC::mdl_constraint *repl_cons,
                  vector<T_dyninstRPC::mdl_stmt*> *stmts,
-                 vector<unsigned>& flag_dex,
-                 unsigned base_dex,
+		 vector<const Hierarchy *> &flags_focus_data,
+                 const Hierarchy &repl_focus_data,
                  const vector<string> &temp_ctr,
                  bool replace_component,
                  bool dontInsertData) {
 
    metric_cerr << "apply_to_process()" << endl;
    if (!update_environment(proc)) return NULL;
-    
-   vector< vector<string> > focus_with_thr = addProcessInfo2Focus(focus,proc);
-   vector< vector<string> > component_focus = 
-      stripThrInfoFromFocus(focus_with_thr);
+
+   Focus full_focus = focus;
+   if(! full_focus.machine_defined())
+      full_focus.set_machine(machineResource->part_name());
+   if(! full_focus.process_defined())
+      full_focus.set_process(proc->rid->part_name());
+   // full_focus, has the select. machine, process, and possible thread defined
+
+   Focus no_thr_focus = full_focus;
+   no_thr_focus.set_thread(string(""));
+   // no_thr_focus, has the thr info stripped
 
    processMetFocusNode *procNode = 
-      processMetFocusNode::newProcessMetFocusNode(proc, component_focus, 
+      processMetFocusNode::newProcessMetFocusNode(proc, no_thr_focus, 
 					  aggregateOp(agg_op), dontInsertData);
-   
+
 #ifdef MT_THREAD    
    // memorizing stuff
    procNode->setMetricRelated(type, dontInsertData, temp_ctr,flag_cons,repl_cons);
 #endif
 
-   bool ret = createDataNodes(&procNode, id, name, focus, component_focus, 
-			      type, flag_cons, repl_cons, stmts, flag_dex, 
-			      base_dex, temp_ctr, replace_component);
+   bool ret = createCodeAndDataNodes(&procNode, id, name, no_thr_focus, 
+			      type, flag_cons, repl_cons, stmts, 
+			      flags_focus_data, repl_focus_data, temp_ctr, 
+			      replace_component);
    if(ret == false) {
       return NULL;
    }
-   createThreadNodes(&procNode, name, component_focus, focus_with_thr);
+   createThreadNodes(&procNode, name, no_thr_focus, full_focus);
+
    return procNode;
 }
 
 static bool apply_to_process_list(vector<process*>& instProcess,
-#if defined(MT_THREAD)
-				  vector< vector<pdThread *> >& threadsVec,
-#endif
 				  vector<processMetFocusNode*>& procParts,
 				  string& id, string& name,
-				  vector< vector<string> >& focus,
+				  const Focus& focus,
 				  unsigned& agg_op,
 				  unsigned& type,
 			      vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 				  T_dyninstRPC::mdl_constraint *repl_cons,
 				  vector<T_dyninstRPC::mdl_stmt*> *stmts,
-				  vector<unsigned>& flag_dex,
-				  unsigned base_dex,
+				  vector<const Hierarchy *> &flags_focus_data,
+				  const Hierarchy &repl_focus_data,
 				  const vector<string> &temp_ctr,
 				  bool replace_components_if_present,
 				  bool dontInsertData) {
@@ -955,13 +747,6 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     process *proc = instProcess[p]; assert(proc);
     global_proc = proc;     // TODO -- global
 
-#if defined(MT_THREAD)
-    //check that this vector of threads corresponds to this process
-    assert(p<threadsVec.size());
-    vector<pdThread *> thrForThisProc = threadsVec[p];
-    for (unsigned i=0;i<thrForThisProc.size();i++) 
-      assert(thrForThisProc[i]->get_proc() == proc);
-#endif
     // skip neonatal and exited processes.
     if (proc->status() == exited || proc->status() == neonatal) continue;
 
@@ -969,7 +754,7 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     processMetFocusNode *procRetNode = 
                   apply_to_process(proc, id, name, focus, agg_op,
 				   type, flag_cons, repl_cons, stmts, 
-				   flag_dex, base_dex, temp_ctr,
+				   flags_focus_data, repl_focus_data, temp_ctr,
 				   replace_components_if_present,
 				   dontInsertData);
     if(procRetNode)  procParts += procRetNode;
@@ -1004,10 +789,8 @@ vector<string>global_excluded_funcs;
 
 
 machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int mid,
-         vector< vector<string> > &focus, string& flat_name,
-	 vector<process *> procs, 
-	 vector< vector<pdThread *> >& threadsVec,
-	 bool replace_components_if_present, bool enable) {
+                            const Focus &focus, vector<process *> procs, 
+	                    bool replace_components_if_present, bool enable) {
   // TODO -- check to see if this is active ?
   // TODO -- create counter or timer
   // TODO -- put it into the environment ?
@@ -1034,18 +817,15 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int mid,
     machine = getNetworkName();
   }
 
-  if (other_machine_specified(focus, machine)) return NULL;
+  // if another machine was specified, return NULL
+  if(! (focus.allMachines() || focus.get_machine() == machine)) {
+    return NULL;
+  }
+
   vector<process*> instProcess;
-#if defined(MT_THREAD)
-  vector< vector<pdThread *> > instThreadsVec;
-  add_processes(focus, procs, instProcess, threadsVec, instThreadsVec);
+  filter_processes(focus, procs, &instProcess);
 
-  if (!instProcess.size() || !instThreadsVec.size()) return NULL;
-#else
-  add_processes(focus, procs, instProcess);
-
-  if (!instProcess.size()) return NULL;
-#endif
+  if (!instProcess.size()) { return NULL; }
 
   // build the list of constraints to use
   vector<T_dyninstRPC::mdl_constraint*> flag_cons;
@@ -1054,11 +834,12 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int mid,
   T_dyninstRPC::mdl_constraint *repl_cons = NULL;
 
   // build list of global constraints that match and choose local replace constraint
-  unsigned base_dex;
-  vector<unsigned> flag_dex;
-  if (!check_constraints(&flag_cons, &repl_cons, focus, constraints_, 
-			 &flag_dex, &base_dex))
+  const Hierarchy *repl_focus;
+  vector<const Hierarchy *> flags_focus_data;
+  if (! pick_out_matched_constraints(*constraints_, focus, &flag_cons,
+				 &repl_cons, &flags_focus_data, &repl_focus)) {
     return NULL;
+  }
 
   //////////
   /* 
@@ -1095,25 +876,23 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int mid,
   else dontInsertData = true;
 
   vector<processMetFocusNode*> procParts; // one per process
- 
+
   if (!apply_to_process_list(instProcess, 
-#if defined(MT_THREAD)
-                             instThreadsVec, 
-#endif
                              procParts, id_, name_,
 			     focus, agg_op_, 
 			     type_, flag_cons, repl_cons,
-			     stmts_, flag_dex, base_dex, *temp_ctr_,
+			     stmts_, flags_focus_data, *repl_focus, *temp_ctr_,
 			     replace_components_if_present,
-			     dontInsertData))
+			     dontInsertData)) {
     return NULL;
+  }
 
   // construct aggregate for the metric instance parts
   machineMetFocusNode *ret = NULL;
 
   if (procParts.size()) {
      // create aggregate mi, containing the process components "parts"
-     ret = new machineMetFocusNode(mid, name_, focus, flat_name, procParts,  
+     ret = new machineMetFocusNode(mid, name_, focus, procParts,  
 				   aggregateOp(agg_op_), enable);
   }
 
@@ -1223,7 +1002,7 @@ static bool do_trailing_resources(const vector<string>& resource_,
 // Flag constraints need to return a handle to a data request node -- the flag
 bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
 					 instrDataNode **dataNode,
-					 const vector<string>& resource,
+					 const Hierarchy &resource,
 					 process *proc,
 					 bool dontInsertData)
 {
@@ -1246,9 +1025,7 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
     // counter - naim 4/22/97
     // By default, the last parameter is false - naim 4/23/97
 
-    inst_var_index index = 
-       allocateInstVarForAllThreads(MDL_T_COUNTER, codeNode, dontInsertData);
-    (*dataNode) = new instrDataNode(proc, MDL_T_COUNTER, index,dontInsertData);
+    (*dataNode) = new instrDataNode(proc, MDL_T_COUNTER, dontInsertData);
     codeNode->setConstraintDataNode(*dataNode);
 
     // this flag will construct a predicate for the metric -- have to return it
@@ -1256,7 +1033,7 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
   }
 
   // put $constraint[X] in the environment
-  if(!do_trailing_resources(resource, proc)) {
+  if(!do_trailing_resources(resource.tokenized(), proc)) {
     mdl_env::pop();
     return(false);
   }
@@ -1408,7 +1185,7 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized,
     mn = new AstNode(tmp, code);
     removeAst(tmp);
   }
-  else 
+  else
     mn = assignAst(code);
 
   removeAst(code);
@@ -2313,6 +2090,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
          // instrumentation only
          // takes place when mn->loadInstrIntoApp() is later called.
   }
+
   removeAst(code); 
   return true;
 }
@@ -2334,10 +2112,9 @@ bool mdl_can_do(string& met_name) {
   return false;
 }
 
-machineMetFocusNode *mdl_do(int mid, vector< vector<string> >& canon_focus, 
-	     string& met_name, string& flat_name, vector<process *> procs,
-	     vector< vector<pdThread *> >& threadsVec,
-	     bool replace_components_if_present, bool enable) {
+machineMetFocusNode *mdl_do(int mid, const Focus& focus, string& met_name, 
+			    vector<process *> procs,
+			    bool replace_components_if_present, bool enable) {
   currentMetric = met_name;
   unsigned size = mdl_data::all_metrics.size();
   // NOTE: We can do better if there's a dictionary of <metric-name> to <metric>!
@@ -2345,8 +2122,8 @@ machineMetFocusNode *mdl_do(int mid, vector< vector<string> >& canon_focus,
      T_dyninstRPC::mdl_metric *curMetric = mdl_data::all_metrics[u];
      if (curMetric->name_ == met_name) {
       machineMetFocusNode *machNode =
-	 curMetric->apply(mid, canon_focus, flat_name,procs, threadsVec,
-			  replace_components_if_present, enable);
+	 curMetric->apply(mid, focus, procs, replace_components_if_present, 
+			  enable);
       return machNode;
       // calls mdl_metric::apply()
     }
