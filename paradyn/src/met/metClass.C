@@ -1,4 +1,13 @@
 
+/*
+ * Implements classes used for metric description language
+ *
+ * $Log: metClass.C,v $
+ * Revision 1.2  1994/08/31 22:21:01  markc
+ * Added log entries to metClass
+ *
+ */
+
 #include "metParse.h"
 #include <assert.h>
 
