@@ -1,10 +1,10 @@
-/* $Id: writeBackElf.h,v 1.2 2002/02/12 15:42:05 chadd Exp $ */
+/* $Id: writeBackElf.h,v 1.3 2002/03/13 19:53:15 tlmiller Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
 
 #if defined(BPATCH_LIBRARY) 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@
 #if defined(sparc_sun_solaris2_4)
 #include <libelf.h>
 #include "process.h"
-#elif defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 #include <libelf/libelf.h>
 #include "linux.h"
 #  define INT64_C(c)       c ## LL
