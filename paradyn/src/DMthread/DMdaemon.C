@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.116 2002/11/04 23:24:31 schendel Exp $
+ * $Id: DMdaemon.C,v 1.117 2002/11/25 23:51:43 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1987,6 +1987,12 @@ void paradynDaemon::resourceBatchMode(bool onNow){
     }
 }
 
+extern void ps_retiredResource(string resource_name);
+
+void paradynDaemon::retiredResource(string resource_name) {
+   ps_retiredResource(resource_name);
+}
+
 //
 //  reportResources:  send new resource ids to daemon
 //
@@ -2004,7 +2010,8 @@ void paradynDaemon::resourceInfoCallback(u_int temporaryId,
 			      vector<string> resource_name,
 		   	      string abstr, u_int type) {
 
-    resourceHandle r = createResource(temporaryId, resource_name, abstr, type);
+    resourceHandle r = resource::createResource(temporaryId, resource_name, 
+                                                abstr, type);
     if(!count){
       if (r != temporaryId) {
 	vector<u_int>tempIds; vector<u_int>rIds;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.131 2002/10/28 04:54:59 schendel Exp $
+// $Id: DMpublic.C,v 1.132 2002/11/25 23:51:46 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -473,13 +473,13 @@ metricHandle *dataManager::findMetric(const char *name)
 
 vector<resourceHandle> *dataManager::getRootResources()
 {
-    return(resource::rootResource->getChildren());
+    return(resource::getRootResource()->getChildren());
 }
 
 resourceHandle *dataManager::getRootResource()
 {
     resourceHandle *rh = new resourceHandle;
-    *rh = resource::rootResource->getHandle();
+    *rh = resource::getRootResource()->getHandle();
     return(rh);
 }
 
@@ -626,8 +626,8 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
             (*response)[i].successfully_enabled = false;	    
 	}
 	// make response call
-	dictionary_hash_iter<perfStreamHandle,performanceStream*>
-		allS(performanceStream::allStreams);
+        performanceStream::psIter_t allS = 
+           performanceStream::getAllStreamsIter();
 	perfStreamHandle h; performanceStream *ps;
 	while(allS.next(h,ps)){
 	    if(h == (perfStreamHandle)(ps_handle)){
@@ -683,9 +683,10 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
             (*response)[i].successfully_enabled = false;	    
 	}
 	// make response call
-	dictionary_hash_iter<perfStreamHandle,performanceStream*>
-		allS(performanceStream::allStreams);
-	perfStreamHandle h; performanceStream *ps;
+        performanceStream::psIter_t allS = 
+           performanceStream::getAllStreamsIter();
+	perfStreamHandle h;
+        performanceStream *ps;
 	while(allS.next(h,ps)){
 	    if(h == (perfStreamHandle)(Address)(ps)){
 	        ps->callDataEnableFunc(response,request_Id);
@@ -1154,7 +1155,7 @@ int dataManager::getArchiveValues(metricInstanceHandle mh,
 
 void dataManager::printResources()
 {
-    printAllResources();
+    resource::printAllResources();
 }
 
 void dataManager::printStatus()
@@ -1219,6 +1220,15 @@ void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
 					 const char *abstr)
 {
     (cb)(handle, parent, newResource, name, abstr);
+}
+
+void dataManagerUser::retireResource_(resourceRetireCallback cb,
+                                      perfStreamHandle handle,
+                                      resourceHandle uniqueID,
+                                      const char *name,
+                                      const char *abstr)
+{
+   (cb)(handle, uniqueID, name, abstr);
 }
 
 void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,
@@ -1357,7 +1367,7 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     next = &word[j];
     temp += next;
     string base = string("BASE");
-    resourceHandle r = createResource(parent, temp, res, base);  
+    resourceHandle r = resource::createResource(parent, temp, res, base);  
     paradynDaemon::tellDaemonsOfResource(res.c_str(),newResource);
     return(r);
 }
@@ -1378,7 +1388,7 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     resource *parent_res = resource::handle_to_resource(parent);
     vector<string> res_name = parent_res->getParts();
     res_name += name;
-    resourceHandle child = createResource(0,res_name,abs, type);
+    resourceHandle child = resource::createResource(0, res_name, abs, type);
     paradynDaemon::tellDaemonsOfResource(parent_res->getHandle(), 
 			       		 child, 
 			                 name, type);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.141 2002/10/28 04:54:13 schendel Exp $
+// $Id: DMmain.C,v 1.142 2002/11/25 23:51:44 schendel Exp $
 
 #include <assert.h>
 extern "C" {
@@ -324,6 +324,13 @@ printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 
 }
 
+//
+// upcalls from remote process.
+//
+void dynRPCUser::retiredResource(string) {
+   printf("error calling virtual func: dynRPCUser::retiredResource\n");
+}
+
 void dynRPCUser::severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct>) {
 printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
 }
@@ -460,8 +467,7 @@ void DMenableResponse(DM_enableType &enable, vector<bool> &successful)
     }
 
     // make response call
-    dictionary_hash_iter<perfStreamHandle,performanceStream*>
-	    allS(performanceStream::allStreams);
+    performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
     perfStreamHandle h; performanceStream *ps;
     while(allS.next(h,ps)){
 	if(h == (perfStreamHandle)(enable.ps_handle)){
@@ -634,8 +640,7 @@ void dynRPCUser::getPredictedDataCostCallback(u_int id,
 					      u_int clientID)
 {
     // find the assoc. perfStream and update it's pred data cost value
-    dictionary_hash_iter<perfStreamHandle,performanceStream*> 
-		allS(performanceStream::allStreams);
+    performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
     perfStreamHandle h; performanceStream *ps;
     while(allS.next(h,ps)){
 	if(h == (perfStreamHandle)id){
@@ -1103,15 +1108,15 @@ void addMetric(T_dyninstRPC::metricInfo &info)
     metric *met = new metric(info);
 
     // now tell all perfStreams
-    dictionary_hash_iter<perfStreamHandle,performanceStream*> 
-		allS(performanceStream::allStreams);
+    performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
     perfStreamHandle h;
     performanceStream *ps;
     while(allS.next(h,ps)){
-	if(ps->controlFunc.mFunc){
+       controlCallback controlData = ps->getControlCallbackData();
+	if(controlData.mFunc) {
 	    // set the correct destination thread.
-	    dataManager::dm->setTid(ps->threadId);
-	    dataManager::dm->newMetricDefined(ps->controlFunc.mFunc, 
+	    dataManager::dm->setTid(ps->getThreadID());
+	    dataManager::dm->newMetricDefined(controlData.mFunc, 
 					      ps->Handle(),
 					      met->getName(),
 					      met->getStyle(),
@@ -1123,206 +1128,24 @@ void addMetric(T_dyninstRPC::metricInfo &info)
     }
 }
 
+void ps_retiredResource(string resource_name) {
+   resource *res = resource::string_to_resource(resource_name);
+   if(! res) {
+      cerr << "Couldn't find resource " << resource_name << "\n";
+      return;
+   }
+   res->markAsRetired();
 
-// I don't want to parse for '/' more than once, thus the use of a string vector
-resourceHandle createResource(unsigned res_id, vector<string>& resource_name,
-                              string& abstr, unsigned type) 
-{
-  static const string slashStr = "/";
-  static const string baseStr = "BASE";
-
-  resource *parent = NULL;
-  unsigned r_size = resource_name.size();
-  string p_name;
-
-
-  switch (r_size) {
-    case 0:
-        // Should this case ever occur ?
-        assert(0); break;
-    case 1:
-        parent = resource::rootResource; break;
-    default:
-        for (unsigned ri=0; ri<(r_size-1); ri++) 
-            p_name += slashStr + resource_name[ri];
-        parent = resource::string_to_resource(p_name);
-        assert(parent);
-        break;
-    }
-    if (!parent) assert(0);
-
-
-    /* first check to see if the resource has already been defined */
-    // resource *p = resource::resources[parent->getHandle()];
-    string myName = p_name;
-    myName += slashStr;
-    myName += resource_name[r_size - 1];
-
-    resource *child;
-    if (resource::allResources.find(myName.c_str(), child)) {
-      return child->getHandle();
-    }
-
-    // if abstr is not defined then use default abstraction 
-    if(!abstr.c_str()){
-        abstr = baseStr;
-    }
-
-    /* then create it */
-    resource *ret =  new resource(parent->getHandle(),res_id, resource_name,
-				  myName,abstr, type);
-
-    // check to see if the suppressMagnify option should be set...if
-    // this resource is specifed in the mdl exclude_lib option
-    vector<string> shared_lib_constraints;
-	vector<unsigned> constraint_flags;
-    if(resource::get_lib_constraints(shared_lib_constraints, constraint_flags) &&
-       (string(parent->getFullName()) == "/Code")) {
-	    for(u_int i=0; i < shared_lib_constraints.size(); i++){
-
-			// grab the exclude flags
-			bool checkCase = ( constraint_flags[i] & LIB_CONSTRAINT_NOCASE_FLAG ) == 0;
-			bool regex = ( constraint_flags[i] & LIB_CONSTRAINT_REGEX_FLAG ) != 0;
-
-			// A regular expression will match any location within the string,
-			// unless otherwise specified with ^ and $
-			if( regex )
-				shared_lib_constraints[i] = "^" + shared_lib_constraints[i] + "$";
-
-			// By default (!regex), check using wildcardEquiv, if the REGEX flag is
-			// set, then use regexEquiv, passing the NOCASE flag as needed
-
-			if( ( regex && shared_lib_constraints[i].regexEquiv( ret->getName(), checkCase ) )
-				|| ( !regex && shared_lib_constraints[i].wildcardEquiv( ret->getName(), checkCase ) ) )
-			{
-				ret->setSuppressMagnify();
-#ifdef notdef
-				cerr << '\"' << ret->getName() << "\" hit against exclude \""
-				     << shared_lib_constraints[i] << '\"';
-				if( regex ) cerr << " using regex";
-				cerr << endl;
-#endif
-			}
-	    }
-    }
-
-    // check to see if the suppressMagnify option should be set if
-    // the resource is a function that is specified in the mdl exclude_func
-    // options
-    if(!ret->isMagnifySuppressed()){
-      if(parent != resource::rootResource) {
-	  // get parent of parent, if it is "/Code" then check the 
-	  // list of exculded_funcs
-	  resourceHandle pph = parent->getParent();
-	  resource *ppr = resource::handle_to_resource(pph);
-	  if( ppr && (string(ppr->getFullName()) == "/Code")) {
-	      vector< vector<string> > libs;
-		  constraint_flags.resize( 0 );
-	      if(resource::get_func_constraints(libs, constraint_flags)) {
-			  for(u_int i=0; i < libs.size(); i++){
-
-				  // grab the exclude flags
-				  bool checkCase = ( constraint_flags[i] & LIB_CONSTRAINT_NOCASE_FLAG ) == 0;
-				  bool regex = ( constraint_flags[i] & LIB_CONSTRAINT_REGEX_FLAG ) != 0;
-
-				  // By default (!regex), check using wildcardEquiv, if the REGEX flag is
-				  // set, then use regexEquiv, passing the NOCASE flag as needed
-
-				  if( regex ) {
-					  // A regular expression will match any location within the string,
-					  // unless otherwise specified with ^ and $
-					  (libs[i])[0] = "^" + (libs[i])[0] + "$";
-					  (libs[i])[1] = "^" + (libs[i])[1] + "$";
-				  }
-
-				  if(  ( regex && 
-						 ( (libs[i])[0].regexEquiv( parent->getName(), checkCase )) && 
-						 ( (libs[i])[1].regexEquiv( ret->getName(), checkCase )) )
-					|| ( !regex &&
-						 ( (libs[i])[0].wildcardEquiv( parent->getName(), checkCase )) && 
-						 ( (libs[i])[1].wildcardEquiv( ret->getName(), checkCase )) ) )
-				  {
-					  ret->setSuppressMagnify(); 
-#ifdef notdef
-					  cerr << '\"' << parent->getName() << '/' << ret->getName()
-					       << "\" hit against exclude \""
-					       << (libs[i])[0] << '/' << (libs[i])[1] << '\"';
-					  if( regex ) cerr << " using regex";
-					  cerr << endl;
-#endif
-				  }
-			  } 
-	      } 
-	  }
-      }
-    }
-
-    /* inform others about it if they need to know */
-    dictionary_hash_iter<perfStreamHandle,performanceStream*> 
-			allS(performanceStream::allStreams);
-    perfStreamHandle h;
-    performanceStream *ps;
-    resourceHandle r_handle = ret->getHandle();
-    string name = ret->getFullName(); 
-    while(allS.next(h,ps)){
-	ps->callResourceFunc(parent->getHandle(),r_handle,ret->getFullName(),
-	ret->getAbstractionName());
-    }
-    return(r_handle);
-}
-
-resourceHandle createResource_ncb(vector<string>& resource_name, string& abstr, unsigned type,
-				  resourceHandle &p_handle, bool &exist
-				 ) 
-{
-  resource *parent = NULL;
-  unsigned r_size = resource_name.size();
-  string p_name;
-
-
-  switch (r_size) {
-    case 0:
-        // Should this case ever occur ?
-        assert(0); break;
-    case 1:
-        parent = resource::rootResource; break;
-    default:
-        for (unsigned ri=0; ri<(r_size-1); ri++) 
-            p_name += string("/") + resource_name[ri];
-        parent = resource::string_to_resource(p_name);
-        assert(parent);
-        break;
-    }
-    if (!parent) assert(0);
-
-
-    /* first check to see if the resource has already been defined */
-    p_handle = parent->getHandle() ;
-    resource *p = resource::resources[parent->getHandle()];
-    string myName = p_name;
-    myName += "/";
-    myName += resource_name[r_size - 1];
-    if(!exist) {
-    	resourceHandle *child = p->findChild(myName.c_str());
-    	if (child){
-        	return(*child); 
-        	delete child;
-    	}
-    } else {
-     	exist = false ;
-    }
-
-    // if abstr is not defined then use default abstraction 
-    if(!abstr.c_str()){
-        abstr = string("BASE");
-    }
-
-    /* then create it */
-    resource *ret =  new resource(parent->getHandle(),resource_name,
-				  myName,abstr, type);
-
-    resourceHandle r_handle = ret->getHandle() ;
-    return(r_handle);
+   /* inform others about it if they need to know */
+   performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
+   perfStreamHandle h;
+   performanceStream *ps;
+   resourceHandle r_handle = res->getHandle();
+   assert(res->getAbstractionName());
+   while(allS.next(h,ps)) {
+      ps->callResourceRetireFunc(r_handle, res->getFullName(), 
+                                 res->getAbstractionName());
+   }
 }
 
 void newSampleRate(timeLength rate)

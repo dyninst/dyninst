@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.h,v 1.23 2001/08/23 14:43:45 schendel Exp $
+// $Id: DMperfstream.h,v 1.24 2002/11/25 23:51:45 schendel Exp $
 
 #ifndef dmperfstream_H
 #define dmperfstream_H
@@ -77,90 +77,90 @@ typedef struct pred_Cost_Type predCostType;
 // A consumer of performance data.
 //
 class performanceStream {
-      friend class paradynDaemon;
-      friend void phaseInfo::startPhase(const string &name, bool with_new_pc, 
-			      bool with_visis, const relTimeStamp startTime);
-      friend void addMetric(T_dyninstRPC::metricInfo &info);
-      friend resourceHandle createResource(unsigned, vector<string>&, string&, unsigned);
-      friend resourceHandle createResource(vector<string>&, string&, unsigned);
-      friend resourceHandle createResource_ncb(vector<string>&, string&, unsigned, 
-					       resourceHandle&, bool&);
-      friend class dynRPCUser;
-      friend void DMenableResponse(DM_enableType&,vector<bool>&);
-      friend void dataManager::enableDataRequest(perfStreamHandle,perfStreamHandle,
-	    vector<metric_focus_pair>*,u_int,phaseType,phaseHandle,
-	    u_int,u_int,u_int);
-      friend void dataManager::enableDataRequest2(perfStreamHandle,
-	    vector<metricRLType>*,u_int,phaseType,phaseHandle,
-	    u_int,u_int,u_int);
-    public:
-	performanceStream(dataType t, dataCallback dc,
-			  controlCallback cc, int tid); 
-	~performanceStream();
-	void callSampleFunc(metricInstanceHandle mi, pdSample *buckets,
-			    int count, int first, phaseType type);
-	void callResourceFunc(resourceHandle parent, resourceHandle child, 
-			      const char *name, const char *abstr);
-	void callResourceBatchFunc(batchMode mode);
-	void callFoldFunc(timeLength width, phaseType phase_type);
-	void callInitialActualValueFunc(metricHandle mi, pdSample initActVal,
-					phaseType phase_type);
-	void callStateFunc(appState state);
-	void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
-	void callPredictedCostFuc(metricHandle,resourceListHandle,float,u_int);
-	void callDataEnableFunc(vector<metricInstInfo> *response,
-				u_int request_Id);
-	perfStreamHandle Handle(){return(handle);}
-	void flushBuffer();   // send data to client thread
-	void signalToFlush();
-	void predictedDataCostCallback(u_int,float,u_int);
-	static void notifyAllChange(appState state);
-	static void ResourceBatchMode(batchMode mode);
-	static void foldAll(timeLength width, phaseType phase_type); 
-	static performanceStream *find(perfStreamHandle psh);
+   friend class paradynDaemon;
+   friend class dynRPCUser;
 
-	// these routines change the size of my_buffer 
-	static void addCurrentUser(perfStreamHandle psh);
-	static void addGlobalUser(perfStreamHandle psh);
-	static void removeCurrentUser(perfStreamHandle psh);
-	static void removeGlobalUser(perfStreamHandle psh);
-	static void removeAllCurrUsers();
-	static bool addPredCostRequest(perfStreamHandle,u_int&,
-				       metricHandle,resourceListHandle,u_int);
-        // trace data streams
-        void callTraceFunc(metricInstanceHandle, const void *, int);
-        void flushTraceBuffer(); 
-        static void addTraceUser(perfStreamHandle psh);
-        static void removeTraceUser(perfStreamHandle psh);
+ public:
+   typedef dictionary_hash<perfStreamHandle,performanceStream*>::iterator
+      psIter_t;
 
-	// send data to client thread
-	// static flushBuffer(perfStreamHandle psh);
+   performanceStream(dataType t, dataCallback dc, controlCallback cc,
+                     int tid); 
+   ~performanceStream();
+   void callSampleFunc(metricInstanceHandle mi, pdSample *buckets,
+                       int count, int first, phaseType type);
+   void callResourceFunc(resourceHandle parent, resourceHandle child, 
+                         const char *name, const char *abstr);
+   void callResourceRetireFunc(resourceHandle uniqueID, const char *name,
+                               const char *abstr);
+   void callResourceBatchFunc(batchMode mode);
+   void callFoldFunc(timeLength width, phaseType phase_type);
+   void callInitialActualValueFunc(metricHandle mi, pdSample initActVal,
+                                   phaseType phase_type);
+   void callStateFunc(appState state);
+   void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
+   void callPredictedCostFuc(metricHandle,resourceListHandle,float,u_int);
+   void callDataEnableFunc(vector<metricInstInfo> *response,
+                           u_int request_Id);
+   perfStreamHandle Handle(){return(handle);}
+   void flushBuffer();   // send data to client thread
+   void signalToFlush();
+   void predictedDataCostCallback(u_int,float,u_int);
+   static void notifyAllChange(appState state);
+   static void ResourceBatchMode(batchMode mode);
+   static void foldAll(timeLength width, phaseType phase_type); 
+   static performanceStream *find(perfStreamHandle psh);
 
-	static unsigned pshash(const perfStreamHandle &val) {
-		    return((unsigned)val);
-	}
-    private:
-	dataType                type;   // Trace or Sample
-	dataCallback            dataFunc;
-	controlCallback         controlFunc;
-	int 			threadId;
-	perfStreamHandle	handle;
-	u_int 			num_global_mis;  // num MI's for global phase
-	u_int 			num_curr_mis;    // num MI's for curr phase
-	u_int			my_buffer_size;  // total number of MI's enabled
- 	u_int			next_buffer_loc;  // next buffer loc. to fill
-	u_int		        nextpredCostReqestId;    
-	vector<dataValueType>	*my_buffer;	// buffer of dataValues
-	vector<predCostType*>   pred_Cost_buff; // outstanding predCost events
-	static u_int 		next_id;
-        // trace data streams
-        u_int                   num_trace_mis;   // num MI's for trace
-        u_int                   my_traceBuffer_size; // fixed; 10
-        u_int                   next_traceBuffer_loc; // next buffer loc. to fill
-        vector<traceDataValueType>   *my_traceBuffer; // buffer of trace data
-        bool                    reallocTraceBuffer();  
-	// dictionary rather than vector since perfStreams can be destroyed
-	static dictionary_hash<perfStreamHandle,performanceStream*> allStreams;
-	bool			reallocBuffer();
+   // these routines change the size of my_buffer 
+   static void addCurrentUser(perfStreamHandle psh);
+   static void addGlobalUser(perfStreamHandle psh);
+   static void removeCurrentUser(perfStreamHandle psh);
+   static void removeGlobalUser(perfStreamHandle psh);
+   static void removeAllCurrUsers();
+   static bool addPredCostRequest(perfStreamHandle,u_int&,
+                                  metricHandle,resourceListHandle,u_int);
+   // trace data streams
+   void callTraceFunc(metricInstanceHandle, const void *, int);
+   void flushTraceBuffer();
+   controlCallback getControlCallbackData() const { return controlFunc; }
+   int getThreadID() const { return threadId; }
+   static void addTraceUser(perfStreamHandle psh);
+   static void removeTraceUser(perfStreamHandle psh);
+
+   static psIter_t getAllStreamsIter() {
+      return allStreams.begin();
+   }
+
+   // send data to client thread
+   // static flushBuffer(perfStreamHandle psh);
+
+   static unsigned pshash(const perfStreamHandle &val) {
+      return((unsigned)val);
+   }
+
+ private:
+   dataType           type;   // Trace or Sample
+   dataCallback       dataFunc;
+   controlCallback    controlFunc;
+   int 		      threadId;
+   perfStreamHandle   handle;
+   u_int              num_global_mis;   // num MI's for global phase
+   u_int              num_curr_mis;     // num MI's for curr phase
+   u_int              my_buffer_size;   // total number of MI's enabled
+   u_int              next_buffer_loc;  // next buffer loc. to fill
+   u_int              nextpredCostReqestId;    
+   vector<dataValueType>   *my_buffer;	// buffer of dataValues
+   vector<predCostType*>   pred_Cost_buff; // outstanding predCost events
+   static u_int       next_id;
+   // trace data streams
+   u_int              num_trace_mis;   // num MI's for trace
+   u_int              my_traceBuffer_size; // fixed; 10
+   u_int              next_traceBuffer_loc; // next buffer loc. to fill
+   vector<traceDataValueType>   *my_traceBuffer; // buffer of trace data
+
+   bool reallocTraceBuffer();  
+   // dictionary rather than vector since perfStreams can be destroyed
+   static dictionary_hash<perfStreamHandle,performanceStream*> allStreams;
+   bool	reallocBuffer();
 };
 #endif
