@@ -1,5 +1,5 @@
-
 //
+// $Id: test_util.C,v 1.7 1999/05/21 17:26:40 wylie Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -120,7 +120,7 @@ int startNewProcessForAttach(char *pathname, char *argv[])
 
     int i;
     for (i = 0; argv[i] != NULL; i++) ;
-    char **attach_argv = malloc(sizeof(char *) * (i + 3));
+    char **attach_argv = (char**)malloc(sizeof(char *) * (i + 3));
 
     for (i = 0; argv[i] != NULL; i++)
 	attach_argv[i] = argv[i];

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.3 1998/12/25 23:33:39 wylie Exp $
+// $Id: superVector.C,v 1.4 1999/05/21 17:25:19 wylie Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -352,7 +352,7 @@ void superVector<HK, RAW>::makePendingFree(unsigned ndx,
        const unsigned oldPermanentSamplingSetSize = theSuperVector[idx]->getPermanentSamplingSetSize();
 
        if (oldEqualsPermanent)
-         assert(oldPermanentSamplingSetSize >= 0);
+         ; //assert(oldPermanentSamplingSetSize >= 0);
        else
          assert(oldPermanentSamplingSetSize > 0);
 
@@ -441,7 +441,13 @@ void superVector<HK, RAW>::updateThreadTable(RAW *shmAddr, unsigned pos,
 #endif
 
 template <class HK, class RAW>
-void superVector<HK, RAW>::setBaseAddrInApplic(RAW *addr, unsigned level) {
+void superVector<HK, RAW>::setBaseAddrInApplic(RAW *addr, 
+#if defined(MT_THREAD)
+        unsigned level)
+#else
+        unsigned /*level*/)
+#endif
+{
    for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
      unsigned idx;
      idx = inferiorProcess->threads[i]->get_pd_pos();
