@@ -188,64 +188,21 @@ parser: $(OBJDIR)/scanner.C $(OBJDIR)/parser.tab.C $(LIBMC_OBJS) $(AUX_OBJS) \
 #################################
 clean:
 	echo Cleaning $(PLATFORM) platform ...
-	$(RM) -r $(OBJDIR)/* $(BINDIR)/* $(LIBDIR)/* $(OBJDIR)/parser.tab.* \
-	      $(OBJDIR)/scanner.C
+	$(RM) -r $(OBJDIR) $(BINDIR) $(LIBDIR)
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
 CLEAN:
 	echo Cleaning all platforms ...
-	$(RM) -r $(DEPENDDIR)
-	$(RM) -r $(OBJDIR) $(BINDIR) $(LIBDIR) $(OBJDIR)/parser.tab.* $(OBJDIR)/scanner.C
+	$(RM) -r $(DEPENDDIR) bin lib obj
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
 distclean: CLEAN
 	$(RM)  config.* conf/Makefile*.inc src/config.h ; $(RM) Makefile
 
-files = mrnet/*/*.[C,h,c,y,l] \
-	    mrnet/src/config.h.in \
-	    mrnet/configure \
-	    mrnet/configure.in \
-	    mrnet/conf/Makefile.generic-arch.in \
-	    mrnet/conf/Makefile.in \
-	    mrnet/conf/Makefile.inc.in \
-	    mrnet/conf/aclocal.m4 \
-	    mrnet/conf/install-sh \
-	    mrnet/conf/config.guess \
-	    mrnet/conf/config.sub \
-	    mrnet/conf/check_configuration \
-	    mrnet/conf/check-up \
-	    mrnet/conf/clean-up \
-	    mrnet/conf/keystash
-
 BACKUPDIR = /p/paradyn/development/darnold/mrnet-backups
 tar:
 	echo "Tarring $(files) =>  mrnet.`date +"%d_%b_%H-%M"`.tgz ..."
 	cd ..; tar czf mrnet.`date +"%d_%b_%H-%M"`.tgz $(files)
-
-files2 = conf/Makefile.in  \
-	     $(SRCDIR)/src/CommunicatorImpl.C \
-	     $(SRCDIR)/src/CommunicatorImpl.h \
-	     $(SRCDIR)/src/StreamImpl.C \
-	     $(SRCDIR)/src/StreamImpl.h \
-	     $(SRCDIR)/src/NetworkImpl.C \
-	     $(SRCDIR)/src/NetworkImpl.h \
-	     $(SRCDIR)/src/Network.C \
-	     $(SRCDIR)/h/Network.h \
-	     $(SRCDIR)/src/StreamManager.C \
-	     $(SRCDIR)/src/StreamManager.h \
-	     $(SRCDIR)/src/Filter.C \
-	     $(SRCDIR)/src/Filter.h \
-	     $(SRCDIR)/src/Message.C \
-	     $(SRCDIR)/src/Message.h \
-	     $(SRCDIR)/src/NetworkGraph.C \
-	     $(SRCDIR)/src/NetworkGraph.h \
-	     $(SRCDIR)/src/CommunicationNode.C \
-	     $(SRCDIR)/src/CommunicationNode.h \
-	     $(SRCDIR)/src/CommunicationNodeMain.C
-
-edit:
-	echo Editing $(files2) ...
-	xemacs $(files2) &
 
 #################################
 # Defining Default Build rules
@@ -261,17 +218,6 @@ $(OBJDIR)/%.o: %.c $(FRC)
 $(OBJDIR)/%.o: %.C $(FRC)
 	echo Compiling `basename $@` ...
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
-
-
-#$(OBJDIR)/%.d: %.c $(FRC)
-#echo Building Depends File `basename $@` ...
-#$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
-#	[ -s $@ ] || rm -f $@
-
-#$(OBJDIR)/%.d: %.C $(FRC)
-#echo Building Depends File `basename $@` ...
-#$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
-#	[ -s $@ ] || rm -f $@
 
 $(DEPENDDIR)/%.d: %.c $(FRC)
 	echo Building Depends File `basename $@` ...
