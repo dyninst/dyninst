@@ -1,18 +1,5 @@
 #
-# $Log: phasetbl.tcl,v $
-# Revision 1.4  1996/03/11 17:44:49  newhall
-# changed params to PhaseDef
-#
-# Revision 1.3  1996/02/23  17:49:07  tamches
-# starting a phase now properly sends "with pc/with visis" flags
-#
-# Revision 1.2  1996/02/11 21:22:40  tamches
-# Now have a "Phase" menu just like the main paradyn window does.
-# Dimmed the help menu since not yet implemented
-#
-# Revision 1.1  1995/12/15 22:01:56  tamches
-# first version of phaseTable
-#
+# $Id: phasetbl.tcl,v 1.5 1999/07/05 22:03:12 wylie Exp $
 #
 
 if {[string match [winfo depth .] color] == 1} {

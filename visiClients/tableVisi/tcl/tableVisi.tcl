@@ -1,29 +1,5 @@
-# tableVisi.tcl
-# Ariel Tamches
-
 #
-# $Log: tableVisi.tcl,v $
-# Revision 1.6  1996/04/30 20:19:50  tamches
-# added label w/ phase name
-#
-# Revision 1.5  1995/12/29 08:16:46  tamches
-# added sort foci by value menu item
-# removed some old and obsolete code
-# added binding for left mouse button (for selection)
-#
-# Revision 1.4  1995/12/20 02:29:44  tamches
-# minor menu fix
-#
-# Revision 1.3  1995/11/29 00:44:19  tamches
-# We now call makeLogo
-#
-# Revision 1.2  1995/11/08 21:15:33  tamches
-# choosing sig figs is no longer a slider widget; it is a bunch of menu
-# choices
-#
-# Revision 1.1  1995/11/04 00:43:12  tamches
-# First version of new table visi
-#
+# $Id: tableVisi.tcl,v 1.7 1999/07/05 22:03:40 wylie Exp $
 #
 
 proc initializeTableVisi {} {
