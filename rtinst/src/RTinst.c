@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.28 2000/03/17 21:57:44 schendel Exp $
+ * $Id: RTinst.c,v 1.29 2000/04/20 22:50:25 mirg Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1216,6 +1216,20 @@ DYNINSTfork(int pid) {
 	forkexec_printf("dyninst-fork child done...running freely.\n");
     }
 }
+
+void DYNINSTmpi_fork(int pid) {
+	if (pid == 0) {
+		forkexec_printf("DYNINSTmpi_fork: child\n");
+
+		/* we are the child process */
+		makeNewShmSegCopy();
+		
+		if (DYNINSTnullTrace() < 0) {
+			return;
+		}
+		forkexec_printf("DYNINSTmpi_fork: child done\n");
+	}
+}
 #endif
 
 
@@ -1763,9 +1777,9 @@ int DYNINSTTGroup_CreateLocalId(int tgUniqueId)
 /************************************************************************
  *
  ************************************************************************/
-int DYNINSTTGroup_FindUniqueId(int groupId)
+int DYNINSTTGroup_FindUniqueId(unsigned int groupId)
 {
-  int           groupDx = groupId % DYNINSTTagGroupsLimit;
+  unsigned int groupDx = groupId % DYNINSTTagGroupsLimit;
   DynInstTagSt* tagSt;
 
   for(tagSt = TagGroupInfo.GroupTable[groupDx]; tagSt != NULL;
