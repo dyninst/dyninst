@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.63  1996/02/19 18:19:11  newhall
-/* fix to avoid error #16 when a visi exits
+/* Revision 1.64  1996/02/21 22:28:49  tamches
+/* added \n to showError 86 call
 /*
+ * Revision 1.63  1996/02/19 18:19:11  newhall
+ * fix to avoid error #16 when a visi exits
+ *
  * Revision 1.62  1996/02/13  06:24:41  newhall
  * removed assert stmts that shouldn't have been there.
  *
@@ -843,7 +846,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       if((ptr->args->remenuFlag) && (retryList->size())){
         // don't free retryList since it is passed to UI
 	ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,newMetRes);
-	string msg("Cannot enable the following metric/focus pair(s): ");
+	string msg("Cannot enable the following metric/focus pair(s):\n");
         for (u_int ii=0;ii<retryList->size();ii++) {
 	  string *focusName=NULL;
 	  focusName = 
@@ -872,7 +875,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       if (ptr->args->remenuFlag) {
 	if (retryList->size()) {
 	  ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,newMetRes);
-          string msg("Cannot enable the following metric/focus pair(s): ");
+          string msg("Cannot enable the following metric/focus pair(s):\n");
 	  for (u_int ii=0;ii<retryList->size();ii++) {
 	    string *focusName=NULL;
 	    focusName = new 
