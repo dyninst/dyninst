@@ -113,22 +113,23 @@ template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
 template class  dictionary_hash_iter <unsigned, pdFunction*>;
 template class  vector<shared_object *> ;
 
-#ifdef paradyndCM5_blizzard
-//=============================added by zxu for sampleNodes
-#include "util/h/sys.h"
-#include "rtinst/h/trace.h"
-#include "../../paradyndCM5_blizzard/src/sample_nodes.h"
+/* ***************************************************************************** */
 
-//template class vector<unsigned> ;
-template class vector<time64> ;
-//template class vector<sampleValue> ;
-template class vector<stamped_sample> ;
-template class vector<per_node_buffer> ;
-template class dictionary_hash <unsigned, sampleVec *>  ;
-template class dictionary_hash <unsigned, traceHeaderVec *>  ;
-template class dictionary_hash_iter<unsigned, sampleVec *> ;
-template class dictionary_hash_iter<unsigned, per_mid_buffer *> ;
-template class dictionary_hash<unsigned, per_mid_buffer *>;
+#ifdef SHM_SAMPLING
+#include "fastInferiorHeap.C"
+#include "fastInferiorHeapHKs.h"
+template class vector<genericHK::trampRange>;
+
+template class fastInferiorHeap<intCounterHK, intCounter>;
+template class vector< fastInferiorHeap<intCounterHK, intCounter>::states >;
+
+template class fastInferiorHeap<wallTimerHK, tTimer>;
+template class vector< fastInferiorHeap<wallTimerHK, tTimer>::states >;
+
+template class fastInferiorHeap<processTimerHK, tTimer>;
+template class vector< fastInferiorHeap<processTimerHK, tTimer>::states >;
 #endif
 
-
+#include "util/src/vectorSet.C"
+template class vectorSet<process::inferiorRPCtoDo>;
+template class vectorSet<process::inferiorRPCinProgress>;
