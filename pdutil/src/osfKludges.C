@@ -193,7 +193,7 @@ caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags,
 int P_munmap(caddr_t ca, int i) {return (munmap(ca, i));}
 
 int P_select (int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval *tm) {
-  return (select((unsigned long)wid, (void *)rd, (void *)wr, (void *)ex, tm));}
+  return (select((unsigned long)wid, rd, wr, ex, tm));}
 
 int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
   return (socket(NAMESPACE, STYLE, PROTOCOL));}
@@ -230,8 +230,8 @@ void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
 		     const caddr_t handle, 
 		     xdr_rd_func readit, xdr_wr_func writeit) {
   xdrrec_create(x, send_sz, rec_sz, handle, 
-		(int(*)(void *, char *, int))readit, 
-		(int(*)(void *, char *, int))writeit);}
+		(int(*)(...))readit, 
+		(int(*)(...))writeit);}
 
 
 

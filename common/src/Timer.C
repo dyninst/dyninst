@@ -250,7 +250,7 @@ timer::get_current(double& u, double& s, double& w) {
 #include <sys/time.h>
 #include <sys/times.h>
 
-#if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
+#if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0)
    // aix 4.1 and linux don't need or agree with the following declaration:
 extern "C" gettimeofday(struct timeval *tp, struct timezone *tzp);
 #endif
