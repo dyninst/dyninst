@@ -1080,11 +1080,10 @@ bool pd_Function::relocateFunction(process *proc,
         cerr << "pd_Function::relocateFunction" << endl;
         cerr << "currently in Function " << prettyName() << endl;
 #endif
-#ifndef BPATCH_LIBRARY
+
         // Defer relocation and instrumentation for Paradyn only
         deferred = true;
         return false;
-#endif
       }
     }
 #endif
