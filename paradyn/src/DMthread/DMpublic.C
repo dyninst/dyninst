@@ -959,8 +959,8 @@ void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
 }
 
 void dataManagerUser::predictedDataCost(predDataCostCallbackFunc func, 
-				  metricHandle m_handle,
-				  resourceListHandle rl_handle,
+				  metricHandle,
+				  resourceListHandle,
 				  float cost,
 				  u_int clientID){
 
