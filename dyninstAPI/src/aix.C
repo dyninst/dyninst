@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.136 2003/04/07 20:04:07 chadd Exp $
+// $Id: aix.C,v 1.137 2003/04/11 22:46:19 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -154,8 +154,6 @@ extern unsigned enable_pd_fork_exec_debug;
 #else
 #define forkexec_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern process* findProcess(int);
 
 class ptraceKludge {
 public:
@@ -877,7 +875,17 @@ int decodeRTSignal(process *proc,
                              &arg, true))
         assert(0);
     info = (procSignalInfo_t)arg;
-    
+
+    // We need to clear out the DYNINST_instSyscallState variable
+    // immediately.  I've run into a problem where we handle a fork (ie.  a
+    // stop in the application initiated from our instrumenting fork exit)
+    // and then we issue SIGSTOP in loopUntilStopped but we're still stopped
+    // here after the fork.  We'll think this second stop at the fork exit is
+    // for handling the fork, when really it was just an ordinary stop
+    // initiated through loopUntilStopped.
+    int init_status = 0;
+    proc->writeDataSpace((void*)status_addr, sizeof(int), &init_status);
+
     switch(status) {
   case 1:
       /* Entry to fork */
@@ -927,13 +935,14 @@ process *decodeProcessEvent(int pid,
     int sig = 0;
     bool ignore;
     int status;
+
     result = waitpid( pid, &status, options );
     
     // Translate the signal into a why/what combo.
     // We can fake results here as well: translate a stop in fork
     // to a (SYSEXIT,fork) pair. Don't do that yet.
     if (result > 0) {
-        proc = findProcess(result);
+        proc = process::findProcess(result);
 
         if (!proc) {
             // This happens if we fork -- we get a trap from both the
@@ -967,6 +976,7 @@ process *decodeProcessEvent(int pid,
             // in a few cases    
             why = procSignalled;
             what = WSTOPSIG(status);
+
             // AIX returns status information in the guise
             // of a trap. In this case, fake the info to 
             // the form we want.
@@ -977,67 +987,83 @@ process *decodeProcessEvent(int pid,
                 decodeRTSignal(proc, why, what, info);
             }
             else if (what == SIGTRAP) {
-                switch(status & 0x7f) {
-              case W_SLWTED:
-                  // Load
-                  why = procSyscallExit;
-                  what = SYS_load;
-                  break;
-              case W_SFWTED:
-                  // Fork
-                  why = procSyscallExit;
-                  what = SYS_fork;
-                  
-                  if (proc) {
-                      // We're the parent, since the child doesn't have a
-                      // process object
-                      int childPid = proc-> childHasSignalled();
-                      if (childPid) {
+               if(proc->childHasSignalled() && status==0x57f) {
+                  // This admittedly is a hack.  Occasionally, we'll get the
+                  // trap from the child indicating fork exit, but we'll
+                  // never get the trap from the parent indicating fork exit.
+                  // In this case though, we do appear to reliably get a trap
+                  // from the parent with an unexpected status value (0x57f).
+                  // We're using this trap as the fork event from the parent.
+                  status = W_SFWTED;
+               }
+
+               switch(status & 0x7f) {
+                 case W_SLWTED:
+                    // Load
+                    why = procSyscallExit;
+                    what = SYS_load;
+                    break;
+                 case W_SFWTED:
+                    // Fork
+                    why = procSyscallExit;
+                    what = SYS_fork;
+                    
+                    if (proc) {
+                       // We're the parent, since the child doesn't have a
+                       // process object
+                       int childPid = proc->childHasSignalled();
+                       if (childPid) {
                           info = childPid;
-                      }
-                      else {
+                          // successfully noticed a fork (both parent and
+                          // child), reset state variables this allows
+                          // successive forks to work
+                          proc->setChildHasSignalled(0);
+                          proc->setParentHasSignalled(0);
+                       }
+                       else {
                           // Haven't seen the child yet, so 
                           // discard this signal. We'll use the child
                           // trap to begin fork handling
                           proc->setParentHasSignalled(result);
-                          return NULL;
-                      }
-                  }
-                  else {
-                      // Child-side. See if the parent has trapped yet.
-                      // Uh... who is our parent?
-                      struct procsinfo psinfo;
-                      pid_t temp_child_pid = result;
-                      if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
-                          == -1) {
+                       }
+                    }
+                    else {
+                       // Child-side. See if the parent has trapped yet.
+                       // Uh... who is our parent?
+                       struct procsinfo psinfo;
+                       pid_t temp_child_pid = result;
+                       if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
+                           == -1) {
                           assert(false);
                           return false;
-                      }
-                      
-                      assert((pid_t)psinfo.pi_pid == result);
-                      
-                      int parentPid = psinfo.pi_ppid;
-                      process *parent = findProcess(parentPid);
-                      if (parent->parentHasSignalled()) {
+                       }
+                       
+                       assert((pid_t)psinfo.pi_pid == result);
+                       
+                       int parentPid = psinfo.pi_ppid;
+                       process *parent = process::findProcess(parentPid);
+                       if (parent->parentHasSignalled()) {
                           // Parent trap was already hit, so do the work here
                           proc = parent;
                           info = result;
-                      }
-                      else {
-                          // Parent hasn't been seen yet, set variables and wait
+                          // successfully noticed a fork, reset state variables
+                          proc->setChildHasSignalled(0);
+                          proc->setParentHasSignalled(0);
+                       }
+                       else {
+                          //Parent hasn't been seen yet, set variables and wait
                           parent->setChildHasSignalled(result);
-                          proc = NULL;
-                      }
-                  }
-                  break;
-              case W_SEWTED:
-                  // Exec
-                  why = procSyscallExit;
-                  what = SYS_exec;
-                  break;
-              default:                  
-                  break;
-                }
+                       }
+                    }
+                    break;
+                 case W_SEWTED:
+                    // Exec
+                    why = procSyscallExit;
+                    what = SYS_exec;
+                    break;
+                 default:                  
+                    break;
+               }
             }
         }
         else {
@@ -1052,7 +1078,7 @@ process *decodeProcessEvent(int pid,
         proc = NULL;
         perror("waitpid");
     }
-    
+
     return proc;
 }
 
@@ -1350,6 +1376,10 @@ bool process::loopUntilStopped() {
         }
         else {
             handleProcessEvent(this, why, what, info);
+            // if handleProcessEvent left the proc stopped, continue
+            // it so we that we will get the SIGSTOP signal we sent the proc
+            if(status() == stopped)
+               continueProc();
         }
     }
     return true;
@@ -1501,7 +1531,7 @@ bool process::dumpImage(string outFile) {
 
     if (!stopped) {
         // make sure it is stopped.
-        findProcess(pid)->stop_();
+        process::findProcess(pid)->stop_();
 
         waitpid(pid, NULL, WUNTRACED);
 	needsCont = true;
@@ -1988,6 +2018,71 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 
 #endif
 
+unsigned get_childproc_lwp(process *proc) {
+   pdvector<unsigned> lwpid_buf;
+   tid_t indexPtr = 0;   
+   struct thrdsinfo thrd_info;
+   int found_lwp = -1;
+   int num_found = 0;
+   do {
+      num_found = getthrds(proc->getPid(), &thrd_info,
+                           sizeof(struct thrdsinfo), &indexPtr, 1);
+      //cerr << "called getthrds, ret: " << num_found << ", indexPtr: "
+      //     << indexPtr << ", tid; " << thrd_info.ti_tid << endl;
+      if(found_lwp == -1)
+         found_lwp = thrd_info.ti_tid;
+      else if(num_found > 0) {
+         // this warning shouldn't occur because on pthreads only the thread
+         // which initiated the fork should be duplicated in the child process
+         cerr << "warning, multiple threads found in child process when "
+              << "only one thread is expected\n";
+      }
+   } while(num_found > 0);
+
+   return static_cast<unsigned>(found_lwp);
+}
+
+unsigned recognize_thread(process *proc, unsigned lwp_id) {
+   dyn_lwp *lwp = proc->getLWP(lwp_id);
+
+   pdvector<AstNode *> ast_args;
+   AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
+
+   return proc->postRPCtoDo(ast, true, NULL, (void *)lwp_id, lwp);
+}
+
+// run rpcs on each lwp in the child process that will start the virtual
+// timer of each thread and cause the rtinst library to notify the daemon of
+// a new thread.  For pthreads though, which AIX uses, there should only be
+// one thread in the child process (ie. the thread which initiated the fork).
+
+void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
+   unsigned found_lwp = get_childproc_lwp(this);
+   //cerr << "chosen lwp = " << found_lwp << endl;
+
+   unsigned rpc_id = recognize_thread(this, found_lwp);
+   bool cancelled = false;
+
+   do {
+      launchRPCs(false);
+      if(hasExited())
+         return;
+      decodeAndHandleProcessEvent(false);
+
+      irpcState_t rpc_state = getRPCState(rpc_id);
+      if(rpc_state == irpcWaitingForTrap) {
+         //cerr << "rpc_id: " << rpc_id << " is in syscall, cancelling rpc\n";
+         cancelRPC(rpc_id);
+         cancelled = true;
+         break;
+      }
+   } while(getRPCState(rpc_id) != irpcNotValid); // Loop rpc is done
+   
+   if(! cancelled) {
+      (*completed_lwps).push_back(found_lwp);
+   }
+}
+
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address branch_range = 0x01fffffc;
 static const Address lowest_addr = 0x10000000;
@@ -2170,7 +2265,6 @@ void dyn_lwp::closeFD_()
 {
   return;
 }
-
 
 //////////////////////////////////////////////////////////
 // This code is for when IBM gets the PMAPI interface working
