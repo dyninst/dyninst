@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.41 2004/02/07 18:34:07 schendel Exp $
+// $Id: linux-x86.C,v 1.42 2004/02/25 04:36:43 schendel Exp $
 
 #include <fstream>
 
@@ -625,7 +625,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 Address dyn_lwp::readRegister(Register /*reg*/) {
    // On x86, the result is always stashed in %EAX
    if(status() == running) {
-      cerr << "    performance problem in call to dyn_lwp::getActiveFrame\n"
+      cerr << "    performance problem in call to dyn_lwp::readRegister\n"
            << "       successive pauses and continues with ptrace calls\n";
    }
 
