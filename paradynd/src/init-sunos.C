@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.39 2002/09/17 20:08:10 bernat Exp $ */
+/* $Id: init-sunos.C,v 1.40 2002/12/12 20:21:05 mirg Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -69,9 +69,7 @@ bool initOS() {
   initialRequestsPARADYN += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   if (process::pdFlavor == "mpi") {
-#ifndef sparc_sun_solaris2_4
 	  instMPI();
-#endif
 	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
 	  initialRequestsPARADYN += new instMapping("fork", "DYNINSTmpi_fork", 
 					     FUNC_EXIT|FUNC_ARG, retVal);
