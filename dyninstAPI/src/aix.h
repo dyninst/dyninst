@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.12 2001/06/04 18:42:16 bernat Exp $
+// $Id: aix.h,v 1.13 2001/11/06 19:20:20 bernat Exp $
 
 #if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1)
 #error "invalid architecture-os inclusion"
@@ -53,14 +53,19 @@
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
+
+#if defined(MT_THREAD)
+#define START_PROC_TIMER           "DYNINSTstartThreadTimer"
+#define STOP_PROC_TIMER            "DYNINSTstopThreadTimer" 
+#define DESTROY_PROC_TIMER         "DYNINSTdestroyThreadTimer"
+#define START_PROC_TIMER_LWP       "DYNINSTstartThreadTimer"
+#define START_PROC_TIMER_LWP_IRPC  "DYNINSTstartThreadTimer_inferiorRPC"
+#else
 #define START_PROC_TIMER "DYNINSTstartProcessTimer"
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
-#define SIGNAL_HANDLER  0
+#endif
 
-/* Unused
-extern unsigned AIX_TEXT_OFFSET_HACK;
-extern unsigned AIX_DATA_OFFSET_HACK;
-*/
+#define SIGNAL_HANDLER  0
 
 /* How many bytes our insertion of "dlopen <libname>" needs */
 /* Should be set dynamically */

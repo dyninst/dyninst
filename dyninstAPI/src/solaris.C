@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.103 2001/11/06 00:30:27 gurari Exp $
+// $Id: solaris.C,v 1.104 2001/11/06 19:20:21 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1035,7 +1035,7 @@ bool process::dlopenDYNINSTlib() {
 #else
   const char DyninstEnvVar[]="PARADYN_LIB";
 #endif MT_THREAD
-#endif
+#endif BPATCH_LIBRARY
 
   if (dyninstName.length()) {
     // use the library name specified on the start-up command-line
@@ -2116,6 +2116,10 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
    }
    result =  theUsage.pr_utime.tv_sec * 1000000000LL;
    result += theUsage.pr_utime.tv_nsec;
+
+   // Note: not thread safe. Value of "result" from one timer could easily
+   // be less than the value of "result" from another, without anything being
+   // wrong.
 
    if (result<previous) {
      // time shouldn't go backwards, but we have seen this happening

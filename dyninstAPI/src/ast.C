@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.84 2001/08/01 15:39:55 chadd Exp $
+// $Id: ast.C,v 1.85 2001/11/06 19:20:20 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1297,8 +1297,11 @@ Address AstNode::generateCode_phase2(process *proc,
       } else if (type == operandNode) {
 	dest = rs->allocateRegister(insn, base, noCost);
         if (useCount>0) {
+#if !defined(rs6000_ibm_aix4_1)
+	  /* TODO: this code is BROKEN on aix. Kept registers are not saved properly */
           kept_register=dest;
           rs->keep_register(dest);
+#endif
         }
 	if (oType == Constant) {
 	    emitVload(loadConstOp, (Address)oValue, dest, dest, 
@@ -1709,7 +1712,12 @@ AstNode *createTimer(const string &func, void *level, void *index,
   //
   vector<AstNode *> dummy ;
   AstNode* t30 = new AstNode("DYNINSTloop", dummy) ;
-  AstNode* end = new AstNode(AstNode::Constant, (void*) 36) ;
+  // WHY IS THIS CONSTANT HERE? FIXME
+#ifdef rs6000_ibm_aix4_1
+  AstNode* end = new AstNode(AstNode::Constant, (void*) (3*sizeof(int))) ;
+#else // sparc
+  AstNode* end = new AstNode(AstNode::Constant, (void *)36);
+#endif
   AstNode* t32 = new AstNode(branchOp, end) ;
   removeAst(end) ;
   AstNode* t31 = new AstNode(ifOp, t30, t32) ;

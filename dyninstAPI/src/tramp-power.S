@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-power.S,v 1.16 2000/11/15 22:56:11 bernat Exp $ */
+/* $Id: tramp-power.S,v 1.17 2001/11/06 19:20:21 bernat Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -72,6 +72,7 @@ _baseTramp:
 	nop
 	.long   SKIP_PRE_INSN		/* if no instrumentation, then skip */
 	.long	SAVE_PRE_INSN		/* save registers */    /* GPR10 */
+	nop							/* GPR11 */
 	nop                                                     /* GPR9  */
 	nop                                                     /* GPR8  */
 	nop                                                     /* GPR7  */
@@ -131,6 +132,31 @@ _baseTramp:
 	nop
 	nop
 	nop
+/* Multi-thread nops (NUM_INSN_MT_PREAMBLE insns) */
+#ifdef MT_THREAD
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop	
+#endif
 	.long	LOCAL_PRE_BRANCH	/* cau   */
 	nop				/* oril  */
 	nop				/* mtspr */
@@ -150,6 +176,7 @@ _baseTramp:
 	nop                                                    /* mtspr ""   */
 	nop				                       /* l CTR      */
 	nop				                       /* mfspr ""   */
+	nop							     /* GRP11*/
 	nop                                                          /* GPR10*/
 	nop                                                          /* GPR9 */
 	nop                                                          /* GPR8 */
@@ -176,6 +203,7 @@ _baseTramp:
 	nop
         .long	SKIP_POST_INSN		/* if no instrumentation, then skip */
 	.long	SAVE_POST_INSN		/* save registers */    /* GPR10 */
+	nop	
 	nop                                                     /* GPR9  */
 	nop                                                     /* GPR8  */
 	nop                                                     /* GPR7  */
@@ -233,6 +261,31 @@ _baseTramp:
 	nop
 	nop
 	nop
+/* Multi-thread nops (NUM_INSN_MT_PREAMBLE insns) */
+#ifdef MT_THREAD
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop	
+#endif
 	.long	LOCAL_POST_BRANCH	/* cau   */
 	nop				/* oril  */
 	nop				/* mtspr */
@@ -246,6 +299,7 @@ _baseTramp:
 	nop                                                    /* mtspr ""   */
 	nop				                       /* l CTR      */
 	nop				                       /* mfspr ""   */
+	nop
 	nop                                                          /* GPR10*/
 	nop                                                          /* GPR9 */
 	nop                                                          /* GPR8 */
@@ -351,6 +405,31 @@ _conservativeTramp:
 	nop
 	nop
 	nop
+/* Multi-thread nops (NUM_INSN_MT_PREAMBLE insns) */
+#ifdef MT_THREAD
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop	
+#endif
 	.long	LOCAL_PRE_BRANCH	/* cau   */
 	nop				/* oril  */
 	nop				/* mtspr */
@@ -466,6 +545,31 @@ _conservativeTramp:
 	nop
 	nop
 	nop
+/* Multi-thread nops (NUM_INSN_MT_PREAMBLE insns) */
+#ifdef MT_THREAD
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop	
+#endif
 	.long	LOCAL_POST_BRANCH	/* cau   */
 	nop				/* oril  */
 	nop				/* mtspr */

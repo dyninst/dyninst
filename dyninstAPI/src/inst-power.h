@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.13 2000/11/15 22:56:07 bernat Exp $
+ * $Id: inst-power.h,v 1.14 2001/11/06 19:20:20 bernat Exp $
  */
 
 #ifndef INST_POWER_H
@@ -71,7 +71,7 @@ extern trampTemplate withArgsTemplate;
 #define REG_MT               12   /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread.                      */
-#define NUM_INSN_MT_PREAMBLE 21   /* number of instructions required for   */
+#define NUM_INSN_MT_PREAMBLE 22   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
 
 #ifdef BPATCH_LIBRARY

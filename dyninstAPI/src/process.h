@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.166 2001/10/24 21:24:55 bernat Exp $
+/* $Id: process.h,v 1.167 2001/11/06 19:20:21 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -48,7 +48,6 @@
 
 #ifndef PROCESS_H
 #define PROCESS_H
-
 #include <stdio.h>
 #include <assert.h>
 #ifdef BPATCH_LIBRARY
@@ -68,6 +67,9 @@
 #include "dyninstAPI/src/os.h"
 // #include "paradynd/src/main.h"
 #include "dyninstAPI/src/showerror.h"
+#if defined(MT_THREAD) && defined(rs6000_ibm_aix4_1)
+#include <sys/pthdebug.h>
+#endif
 
 #include "dyninstAPI/src/symtab.h" // internalSym
 
@@ -351,12 +353,13 @@ class Frame {
     /* platform-dependent methods */
 
 #if defined(MT_THREAD)
-    // thread-specific ctors (see solaris.C)
+    // thread-specific ctors (see solaris.C, aix.C)
     Frame(pdThread *);
     Frame(int lwpid, Address fp, Address pc, bool uppermost)
       : uppermost_(uppermost), pc_(pc), fp_(fp), 
       lwp_id_(lwpid), thread_(NULL)
       {}
+    int getLWP() const { return lwp_id_;}
 #endif
 
  private:
@@ -435,6 +438,13 @@ class process {
   bool triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
                              Address pc, callWhen when, callOrder order);
 #if defined(MT_THREAD)  
+#if defined(rs6000_ibm_aix4_1)
+  // We have the pthread debug library to deal with
+  pthdb_session_t *get_pthdb_session() { return &pthdb_session_; }
+  pthdb_session_t pthdb_session_;
+  bool init_pthdb_library();
+#endif
+
   // Walk threads stacks
   vector<vector<Address> > walkAllStack(bool noPause=false);
   void walkAStack(int, Frame, Address sig_addr, u_int sig_size,
@@ -584,6 +594,9 @@ class process {
      // additionally does a 'launchRPCifAppropriate' to fire off the next
      // waiting RPC, if any.
   bool changePC(Address addr);
+
+  bool getCurrPCVector(vector <Address> &currPCs);
+
 #if defined(i386_unknown_solaris2_5)
   bool changeIntReg(int reg, Address addr);
 #endif
@@ -883,6 +896,7 @@ class process {
 #if defined(MT_THREAD)
      bool isSafeRPC ;
 #endif
+    unsigned lwp; // Target the RPC to a specific kernel thread?
   };
   vectorSet<inferiorRPCinProgress> currRunningRPCs;
       // see para above for reason why this 'vector' can have at most 1 elem!
@@ -932,6 +946,19 @@ class process {
   bool changePC(Address addr,
                 const void *savedRegs // returned by getRegisters()
                 );
+#if defined(MT_THREAD)
+#if defined(rs6000_ibm_aix4_1)
+ public:
+  int findLWPbyPthread(int tid);
+ private:
+  bool changePC(Address addr, const void *ignored,
+		int thrId);
+#else
+ public:
+  int findLWPbyPthread(int tid) { return tid; }
+ private:
+#endif
+#endif
 
   bool executingSystemCall();
 

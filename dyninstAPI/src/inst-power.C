@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.114 2001/10/24 21:24:54 bernat Exp $
+ * $Id: inst-power.C,v 1.115 2001/11/06 19:20:20 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -625,7 +625,6 @@ Register deadRegList[] = { 11, 12 };
 
 // allocate in reverse order since we use them to build arguments.
 Register liveRegList[] = { 10, 9, 8, 7, 6, 5, 4, 3 };
-int liveRegListSize = 8;
 
 #ifdef BPATCH_LIBRARY
 // If we're being conservative, we don't assume that any registers are dead.
@@ -1097,24 +1096,154 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
   t1 = new AstNode("DYNINSTthreadPos", dummy);
   value = sizeof(unsigned);
   t4 = new AstNode(AstNode::Constant,(void *)value);
+  // t2 = DYNINSTthreadPos * sizeof(unsigned)
   t2 = new AstNode(timesOp, t1, t4);
   removeAst(t1);
-   removeAst(t4);
+  removeAst(t4);
 
   tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
   assert(!err);
   t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
+  // t3 = DYNINSTthreadTable + t2 = DYNINSTthreadTable + (DYNINSTthreadPos * sizeof(unsigned))
   t3 = new AstNode(plusOp, t2, t5);
   removeAst(t2);
   removeAst(t5);
   src = t3->generateCode(proc, regSpace, insn, base, false, true);
   removeAst(t3);
+  //emitV(orOp, src, 0, REG_MT, insn, base, false);
   instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
   genImmInsn(tmp_insn, ORILop, src, REG_MT, 0);  
   base += sizeof(instruction);
   regSpace->freeRegister(src);
 }
+
+void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos)
+{
+  AstNode *t1 ;
+  Address tableAddr;
+  int value; 
+  bool err;
+  Register src = Null_Register;
+
+  if (tid != -1)  {
+
+    // Pseudocode:
+    /*
+      t1 = DYNINSTthreadPosTID(tid, pos);
+      t2 = t1 * sizeof(unsigned);
+      t3 = DYNINSTthreadtable + t2;
+      if (t1 == -2)
+        return; //basically, skip forward by a given offset
+    */
+    // Check to see if POS is valid or return -2
+    // t1 = DYNINSTthreadPosTID(tid, pos);
+    vector<AstNode *> param;
+    param += new AstNode(AstNode::Constant,(void *)tid);
+    param += new AstNode(AstNode::Constant,(void *)pos);
+    t1 = new AstNode("DYNINSTthreadPosTID", param);
+    for (unsigned i=0; i<param.size(); i++) 
+      removeAst(param[i]) ;
+
+    // Multiply POS by size of unsigned (not void *)?
+
+    value = sizeof(unsigned);
+    AstNode* t4 = new AstNode(AstNode::Constant,(void *)value);
+    AstNode* t2 = new AstNode(timesOp, t1, t4);
+    // Don't remove, we use it further down.
+    //removeAst(t1) ;
+    removeAst(t4) ;
+
+    // t3 = DYNINSTthreadTable + POS*sizeof(unsigned)
+
+    tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+    assert(!err);
+    AstNode* t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
+    AstNode* t3 = new AstNode(plusOp, t2, t5);
+    removeAst(t2);
+    removeAst(t5);
+
+    //if (t1 == -2) go forward by offset
+
+    AstNode* t7 = new AstNode(AstNode::Constant,(void *)-2);
+    AstNode* t8 = new AstNode(eqOp, t1, t7);
+    removeAst(t1);
+    removeAst(t7);
+    AstNode* t9 = new AstNode(AstNode::Constant, (void *)(offset));
+    AstNode* t10 = new AstNode(branchOp, t9);
+    removeAst(t9);
+    AstNode* t11 = new AstNode(ifOp, t8, t10);
+    removeAst(t8);
+    removeAst(t10);
+    AstNode *t6= new AstNode(t11, t3);
+
+    removeAst(t11);
+    removeAst(t3);
+    src = t6->generateCode(proc, regSpace, insn, base, false, true);
+    removeAst(t6);
+
+    //emitVload(loadOp, (unsigned) -1, 0, 0, insn, base, false, 0);
+    //(void) emitV(orOp, src, 0, REG_MT, insn, base, false);
+    instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
+    genImmInsn(tmp_insn, ORILop, src, REG_MT, 0);  
+    base += sizeof(instruction);
+    //regSpace->freeRegister(src);
+  }
+}
+
 #endif
+
+void generateBreakPoint(instruction &);
+
+bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
+				     unsigned &breakOffset,
+				     bool stopForResult,
+				     unsigned &stopForResultOffset,
+#if defined(MT_THREAD)
+                                     unsigned &justAfter_stopForResultOffset,
+                                     bool isSafeRPC) {
+#else
+                                     unsigned &justAfter_stopForResultOffset) {
+#endif
+  // The sequence we want is: (restore), trap, illegal,
+   // where (restore) undoes anything done in emitInferiorRPCheader(), above.
+
+   instruction *insn = (instruction *)insnPtr;
+   Address baseInstruc = baseBytes / sizeof(instruction);
+
+   if (stopForResult) {
+      generateBreakPoint(insn[baseInstruc]);
+      stopForResultOffset = baseInstruc * sizeof(instruction);
+      baseInstruc++;
+
+      justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
+   }
+
+   // MT_AIX: restoring previously saved registers - naim
+   instruction *tmp_insn = (instruction *) (&insn[baseInstruc]);
+   extern void restoreAllRegistersThatNeededSaving(instruction *, Address &);
+   restoreAllRegistersThatNeededSaving(tmp_insn,baseInstruc);
+
+#if defined(MT_THREAD)
+   // Safe RPCs are run as function-lets
+   if (isSafeRPC) // ret instruction?
+     {
+       insn[baseInstruc++].raw = BRraw;
+     }
+#endif
+   // Trap instruction (breakpoint):
+   generateBreakPoint(insn[baseInstruc]);
+   breakOffset = baseInstruc * sizeof(instruction);
+   baseInstruc++;
+
+   // And just to make sure that we don't continue, we put an illegal
+   // insn here:
+   extern void generateIllegalInsn(instruction &);
+   generateIllegalInsn(insn[baseInstruc++]);
+
+   baseBytes = baseInstruc * sizeof(instruction); // convert back
+
+   return true;
+}
 
 
 /*
@@ -1369,12 +1498,12 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	  if ((temp->raw == LOCAL_PRE_BRANCH) ||
 	      (temp->raw == LOCAL_POST_BRANCH)) {
 	    temp -= NUM_INSN_MT_PREAMBLE;
-	    unsigned numIns=0;
+	    Address numIns=0;
 	    generateMTpreamble((char *)temp, numIns, proc);
 	    numIns = numIns/sizeof(instruction);
 	    if(numIns != NUM_INSN_MT_PREAMBLE) {
 	      cerr << "numIns = " << numIns << endl;
-	      assert(numIns==NUM_INSN_MT_PREAMBLE);
+	      assert(numIns<=NUM_INSN_MT_PREAMBLE);
 	    }
 	    // if numIns!=NUM_INSN_MT_PREAMBLE then we should update the
 	    // space reserved for generateMTpreamble in the base-tramp

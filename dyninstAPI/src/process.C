@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.276 2001/11/06 00:30:27 gurari Exp $
+// $Id: process.C,v 1.277 2001/11/06 19:20:21 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -89,6 +89,9 @@ int pvmendtask();
 #if defined(SHM_SAMPLING) && defined(MT_THREAD) //inst-sparc.C
 extern void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos);
 extern void generateMTpreamble(char *insn, Address &base, process *proc);
+#ifdef rs6000_ibm_aix4_1
+#include <pthdb.h>
+#endif
 #endif
 
 #include "common/h/debugOstream.h"
@@ -422,10 +425,93 @@ void process::walkAStack(int /*id*/,
     }
     pcs += currentFrame.getPC();
     fps += fpOld ;
+
+    /*
+    // Go back and print out the walk
+    int lwp = currentFrame.getLWP();
+    fprintf(stderr, "*******Stack begins*******\n");
+    for (unsigned it = 0; it < pcs.size(); it++)
+      fprintf(stderr, "Frame %d(%d): pc=0x%x, fp=0x%x\n",
+	      it, lwp, pcs[it], fps[it]);
+
+    fprintf(stderr, "******Stack ends******\n");
+    */
 }
+
+/*
+ * On AIX there is a pthread debugging library which allows us to 
+ * access most of the internal data for a pthread. This is much
+ * preferable to the situation on Solaris, where we use magic offsets
+ * gotten from examining header files. However, their mechanism uses
+ * callbacks, which we have to define and initialize. 
+ */
+#ifdef rs6000_ibm_aix4_1
+// Prototypes, oh boy.
+
+int PTHDB_read_data(pthdb_user_t user,
+		    void *buf,
+		    pthdb_addr_t addr,
+		    size_t len);
+int PTHDB_write_data(pthdb_user_t user,
+		    void *buf,
+		    pthdb_addr_t addr,
+		    size_t len);
+int PTHDB_read_regs(pthdb_user_t user,
+		    tid_t tid,
+		    unsigned long long flags,
+		    pthdb_context_t *context);
+int PTHDB_write_regs(pthdb_user_t user,
+		    tid_t tid,
+		    unsigned long long flags,
+		    pthdb_context_t *context);
+int PTHDB_alloc(pthdb_user_t user,
+		size_t len,
+		void **bufp);
+int PTHDB_realloc(pthdb_user_t user,
+		  void *buf,
+		  size_t len,
+		  void **bufp);
+int PTHDB_dealloc(pthdb_user_t user,
+		  void *buf);
+int PTHDB_print(pthdb_user_t user, char *str);
+
+
+bool process::init_pthdb_library()
+{
+  static int initialized = 0;
+
+  if (initialized) return false;
+  
+  // Use our address as the unique user value
+  pthdb_user_t user = (pthdb_user_t) this;
+  pthdb_callbacks_t callbacks;
+  callbacks.symbol_addrs = NULL;
+  callbacks.read_data = PTHDB_read_data;
+  callbacks.write_data = PTHDB_write_data;
+  callbacks.read_regs = NULL;
+  callbacks.write_regs = NULL;
+  callbacks.alloc = PTHDB_alloc;
+  callbacks.realloc = PTHDB_realloc;
+  callbacks.dealloc = PTHDB_dealloc;
+  callbacks.print = PTHDB_print;
+  int ret;
+  ret = pthdb_session_init(user, PEM_32BIT, 
+			   PTHDB_FLAG_GPRS | PTHDB_FLAG_SPRS | PTHDB_FLAG_FPRS | PTHDB_FLAG_SUSPEND,
+			   &callbacks, &pthdb_session_);
+  if (ret) {
+    fprintf(stderr, "Initializing pthread debug library returned %d\n", ret);
+    return false;
+  }
+  initialized = true;
+  return true;
+}
+    
+#endif
+
 
 vector<vector<Address> > process::walkAllStack(bool noPause) {
   vector<vector<Address> > result ;
+  vector<vector<Address> > stack_buffer;
   vector<Address> pcs;
   vector<Address> fps ;
   bool needToCont = noPause ? false : (status() == running);
@@ -459,9 +545,13 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
   }
 
   if (pause()) {
-    // take a look at mmaps
+#ifdef rs6000_ibm_aix4_1
+    // AIX: initialize the pthread debug library
+    init_pthdb_library();
+#endif
 
     // Walk the lwp stack first, walk a thread stack only if it is not active
+    // If we walk an active thread stack, information may be incorrect. 
     int *IDs, i=0;
     vector<Address> lwp_stack_lo;
     vector<Address> lwp_stack_hi;
@@ -473,7 +563,7 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
         if (getLWPFrame(lwp_id, &fp, &pc)) {
           Frame currentFrame(lwp_id, fp, pc, true);
           walkAStack(lwp_id, currentFrame, sig_addr, sig_size, pcs, fps);
-          result += pcs ;
+	  stack_buffer += pcs;
           lwp_stack_hi += fps[fps.size()-1];
           lwp_stack_lo += fps[0];
         }
@@ -492,13 +582,20 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
     for (unsigned i=0; i<threads.size(); i++) {
       Frame   currentFrame(threads[i]);
       Address stack_lo = currentFrame.getFP();
+
       //sprintf(errorLine, "stack_lo[%d]=0x%lx\n", i, stack_lo);
       //logLine(errorLine);
 
-      bool active = false ;
+      bool active = false;
+
+      // If we find a match in the non-running list (stack_buffer), 
+      // add it to result. This basically sorts the resulting buffer
+      // by lwp id. The sorting is assumed in the catchup code. 
+      // Alternative: use a structure which is a (thread id, vector) pair.
       for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
         if (stack_lo >= lwp_stack_lo[j] && stack_lo <= lwp_stack_hi[j]){
           active = true;
+	  result += stack_buffer[j];
           break;
         }
       }
@@ -1372,7 +1469,9 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   imd_rpc_ret ret = { false, NULL };
   /* set lowmem to ensure there is space for inferior malloc */
 #if defined(MT_THREAD)
-  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, -1, false, true);
+  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, 
+		 -1, // don't care about thread
+		 false, true);
 #else
   p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, true);
 #endif
@@ -3369,10 +3468,15 @@ bool process::handleIfDueToSharedObjectMapping(){
              // This is what we really want to do:
 	    // Paradyn -- don't add new symbols unless it's the runtime
 	    // library
+	    // UGLY. 
 #if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
 	    //if (((*changed_objects)[i])->getImage()->isDyninstRTLib())
-	    if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB")) || ((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB_MT")))
-	      {
+#ifdef MT_THREAD
+	    if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB_MT")))
+#else
+	    if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB")))
+#endif
+	    {
 #endif
                if(addASharedObject(*((*changed_objects)[i]))){
                  (*shared_objects).push_back((*changed_objects)[i]);
@@ -5046,6 +5150,13 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
    inProgStruct.firstInstrAddr = tempTrampBase;
 
+#ifdef MT_THREAD
+   if (todo.thrId > 0)
+     inProgStruct.lwp = findLWPbyPthread(todo.thrId);
+   else
+     inProgStruct.lwp = (unsigned) -1;
+#endif
+
    currRunningRPCs += inProgStruct;
 
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
@@ -5059,12 +5170,19 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 #if defined(MT_THREAD)
    if (!todo.isSafeRPC)
 #endif
-     if (!changePC(tempTrampBase, theSavedRegs)) {
-        cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
-        if (wasRunning)
-          (void)continueProc();
-        return false;
-     }
+#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
+     // Take advantage of the fact that on AIX we can target an RPC
+     // to a specific kernel thread. 
+     if (!changePC(tempTrampBase, theSavedRegs, inProgStruct.lwp))
+#else
+     if (!changePC(tempTrampBase, theSavedRegs))
+#endif
+       {
+	 cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
+	 if (wasRunning)
+	   (void)continueProc();
+	 return false;
+       }
    
    /* Flag in app is set when running irpc.  Used by app to ignore traps
       which are delivered before or during the irpc.  Also set beginning
@@ -5159,8 +5277,9 @@ Address process::createRPCtempTramp(AstNode *action,
 
 #if defined(MT_THREAD)
    if (thrId != -1) {
-     //
-     unsigned pos = 0;
+     // Use -1 since 0 may be a valid pthread id, and -1 is equivalent to
+     // "no thread" for Paradyn purposes.
+     unsigned pos = (unsigned) -1;
      for (unsigned u=0; u<threads.size(); u++) {
        // Find our hashed version of the thread ID
        if (thrId == threads[u]->get_tid()) {
@@ -5495,52 +5614,48 @@ bool process::handleTrapIfDueToRPC() {
    // inline their trap/ill instruction instead of make a fn call e.g. to
    // DYNINSTbreakPoint(), we can probably get rid of the stack walk.
 
-   int match_type = 0; // 1 --> stop for result, 2 --> really done
+   bool find_match = false;
+   int match_type = 0;
+   int the_index;
+   vector <Address> currPCs;
+   Address currPC;
    Frame theFrame(this);
- 
-   unsigned the_index = 0;
-
-   while (true) {
-      // do we have a match?
-      const Address framePC = theFrame.getPC();
-
-      bool find_match = false;
-      for (the_index=0; the_index<currRunningRPCs.size(); the_index++) {
-         if ((Address)framePC == currRunningRPCs[the_index].breakAddr) {
-           // we've got a match!
-           match_type = 2;
-           find_match = true;
-           break;
-         }
-         else if (currRunningRPCs[the_index].callbackFunc != NULL &&
-                 ((Address)framePC == currRunningRPCs[the_index].stopForResultAddr)) {
-           match_type = 1;
-           find_match = true;
-           break;
-         }
-      }
-
-      if (find_match) {
-        sprintf(errorLine, "handleTrapIfDueToRPC found matching RPC, "
-                "pc=%s, match_type=%d, the_index=%u", 
-                Address_str(framePC), match_type, the_index);
-        if (pd_debug_infrpc)
-          cerr << errorLine << endl;
-        break;
-      }
-
-      if (theFrame.isLastFrame()) {
-         // well, we've gone as far as we can, with no match.
-          if (pd_debug_infrpc) {
-            sprintf(errorLine, "handleTrapIfDuetoRPC, "
-                "cannot find match for PC=%s", Address_str(framePC));
-            cerr << errorLine << endl;
-          }
-         return false;
-      }
-
-      // else, backtrace 1 more level
-      theFrame = theFrame.getCallerFrame(this);
+#ifdef rs6000_ibm_aix4_1
+   if (!getCurrPCVector(currPCs)) return false;
+#else
+   currPCs.push_back(theFrame.getPC());
+#endif
+   for (unsigned i = 0; i < currPCs.size(); i++) {
+     currPC = currPCs[i];
+     // Check to see if it matches a "finished" RPC
+     for (the_index = 0; the_index < currRunningRPCs.size(); the_index++)
+       if (currPC == currRunningRPCs[the_index].breakAddr) {
+	 match_type = 2;
+	 find_match = true;
+	 break;
+       }
+       else if (currRunningRPCs[the_index].callbackFunc != NULL &&
+		currPC == currRunningRPCs[the_index].stopForResultAddr) {
+	 match_type = 1;
+	 find_match = true;
+	 break;
+       }
+   }
+   if (find_match) {
+     sprintf(errorLine, "handleTrapIfDueToRPC found matching RPC, "
+	     "pc=%s, match_type=%d, the_index=%u", 
+	     Address_str(currPC), match_type, the_index);
+     
+     if (pd_debug_infrpc)
+       cerr << errorLine << endl;
+   }
+   else {
+     // well, we've gone as far as we can, with no match.
+     if (pd_debug_infrpc) {
+       sprintf(errorLine, "handleTrapIfDuetoRPC: no match found");
+       cerr << errorLine << endl;
+     }
+     return false;
    }
 
    assert(match_type == 1 || match_type == 2);
@@ -5577,11 +5692,15 @@ bool process::handleTrapIfDueToRPC() {
       // we continue the process...but not quite at the PC where we left off, since
       // that will just re-do the trap!  Instead, we need to continue at the location
       // of the next instruction.
+#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
+      if (!changePC(theStruct.justAfter_stopForResultAddr, NULL, theStruct.lwp))
+#else
       if (!changePC(theStruct.justAfter_stopForResultAddr))
-            assert(false);
+#endif
+	assert(false);
 
       if (!continueProc())
-          cerr << "RPC getting result: continueProc failed" << endl;
+	cerr << "RPC getting result: continueProc failed" << endl;
       return true;
    }
 
