@@ -3,14 +3,12 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.2 2000/03/22 21:27:55 hollings Exp $
+# $Id: nmake.module.tmpl,v 1.3 2000/03/22 22:59:27 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
 RELEASE_NUM	= 2.0beta
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
-
-DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs
 
 TARGET          = dyner.exe
 TEST_TARGET     = testDyner.exe
@@ -45,10 +43,3 @@ lex.$(TARGET:.exe=.c): ../src/cmdline.l
 
 $(TARGET:.exe=.tab).c $(TARGET:.exe=.tab).h: ../src/cmdline.y
 	$(YACC) $(YACCFLAGS) ../src/cmdline.y
-
-UNCOMMON_INSTALL=true
-
-install: all
-	-$(MKDIR) $(DEST)
-	-$(CP) $(TARGETS) $(DEST)
-
