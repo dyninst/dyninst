@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.272 2001/10/30 21:02:45 gaburici Exp $
+// $Id: process.C,v 1.273 2001/11/01 00:16:01 gaburici Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3685,19 +3685,19 @@ bool process::getSharedObjects() {
 #endif
 	// for each element in shared_objects list process the 
 	// image file to find new instrumentaiton points
-	for(u_int j=0; j < shared_objects->size(); j++){
-	    string temp2 = string(j);
-	    temp2 += string(" ");
-	    temp2 += string("the shared obj, addr: ");
-	    temp2 += string(((*shared_objects)[j])->getBaseAddress());
-	    temp2 += string(" name: ");
-	    temp2 += string(((*shared_objects)[j])->getName());
-	    temp2 += string("\n");
-	    logLine(P_strdup(temp2.string_of()));
-	    if(!addASharedObject(*((*shared_objects)[j]))){
-	      logLine("Error after call to addASharedObject\n");
-	    }
-	}
+// 	for(u_int j=0; j < shared_objects->size(); j++){
+// 	    string temp2 = string(j);
+// 	    temp2 += string(" ");
+// 	    temp2 += string("the shared obj, addr: ");
+// 	    temp2 += string(((*shared_objects)[j])->getBaseAddress());
+// 	    temp2 += string(" name: ");
+// 	    temp2 += string(((*shared_objects)[j])->getName());
+// 	    temp2 += string("\n");
+// 	    logLine(P_strdup(temp2.string_of()));
+// 	    if(!addASharedObject(*((*shared_objects)[j]))){
+// 	      logLine("Error after call to addASharedObject\n");
+// 	    }
+//	}
 
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(false);
