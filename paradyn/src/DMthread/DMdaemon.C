@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.91 2000/04/21 14:35:35 paradyn Exp $
+ * $Id: DMdaemon.C,v 1.92 2000/05/14 18:35:37 mirg Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -521,6 +521,13 @@ vector<paradynDaemon*> paradynDaemon::machineName2Daemon(const string &mach) {
    return v;
 }
 
+static bool hostIsLocal(const string &machine)
+{
+	return (machine.length() == 0 || machine == "localhost" || 
+		getNetworkName(machine) == getNetworkName() ||
+		getNetworkAddr(machine) == getNetworkAddr());
+}
+
 static bool execPOE(const string /* &machine*/, const string /* &login */,
                     const string /* &name   */, const string         &dir,
                     const vector<string> &argv, const vector<string>  args,
@@ -653,8 +660,7 @@ static bool startPOE(const string         &machine, const string         &login,
 
   if (fork()) return(true);
 
-  if ((machine.length() == 0) || (machine == "localhost") || 
-      (machine == getHostName()) || (machine == getNetworkName()))
+  if (hostIsLocal(machine))
     return(execPOE(machine, login, name, dir, argv, args, de));
   else
     return( rshPOE(machine, login, name, dir, argv, args, de));
@@ -1122,8 +1128,7 @@ static bool startIrixMPI(const string         &machine, const string         &lo
    
    if (fork()) return(true);
 
-   if ((machine.length() == 0) || (machine == "localhost") || 
-       (machine == getHostName()))
+   if (hostIsLocal(machine))
       return(execIrixMPI(dir, cmdLineVec));
    else
       return(rshIrixMPI(machine, login, dir, de, cmdLineVec));
@@ -1181,7 +1186,7 @@ bool mpichCreateWrapper(const char           *script,
 			const vector<string> args,
 			daemonEntry          *de)
 {
-	const char *preamble = "#!/bin/sh\necho 'args: ' $*\ncd ";
+	const char *preamble = "#!/bin/sh\ncd ";
 	string buffer;
 	FILE *f;
 	unsigned int j;
@@ -1228,7 +1233,7 @@ void mpichRemote(const string &machine, const string &login,
 	if (rsh.length() > 0) {
 		appendParsedString(params, rsh);
 	} else {
-		params += string("ssh");
+		params += string("rsh");
 	}
 	if (login.length() != 0) {
 		params += string("-l");
@@ -1352,7 +1357,7 @@ static bool startMPICH(const string &machine, const string &login,
 	string app_name;
 	vector<string> params;
 	const char *script;
-	unsigned int pid, i;
+	unsigned int i;
 	char cwd[PATH_MAX];
 	char **s;
 
@@ -1364,8 +1369,8 @@ static bool startMPICH(const string &machine, const string &login,
 	} else {
 		getcwd(cwd, PATH_MAX);
 	}
-	if (machine.length() != 0 && machine != "localhost" && 
-	    machine != getHostName()) {
+	if (!hostIsLocal(machine)) {
+		// Prepend "rsh ..." to params
 		mpichRemote(machine, login, cwd, de, params);
 	}
 	if ((script = mpichNameWrapper(cwd)) == 0) {
@@ -1387,7 +1392,7 @@ static bool startMPICH(const string &machine, const string &login,
 	}
 	s[i] = 0;
 
-	if ((pid = fork())) {
+	if (fork()) {
 		return true;
 	}
 
@@ -1441,7 +1446,7 @@ bool paradynDaemon::newExecutable(const string &machine,
 #else
       string os;
 
-      if ( machine.length() == 0 || machine == "localhost" || machine == getHostName() )
+      if (hostIsLocal(machine))
       {
           struct utsname unameInfo;
           if ( P_uname(&unameInfo) == -1 )
