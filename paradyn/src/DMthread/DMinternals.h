@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.8  1994/03/22 21:02:54  hollings
+ * Revision 1.9  1994/03/24 16:41:19  hollings
+ * Added support for multiple paradynd's at once.
+ *
+ * Revision 1.8  1994/03/22  21:02:54  hollings
  * Made it possible to add new processes (& paradynd's) via addExecutable.
  *
  * Revision 1.7  1994/03/21  20:32:47  hollings
@@ -35,6 +38,7 @@
  */
 #include "util/h/list.h"
 #include "util/h/hist.h"
+#include "util/h/aggregateSample.h"
 #include "DMresource.h"
 #include <string.h>
 
@@ -192,6 +196,7 @@ class component {
 	~component() {
 	    daemon->disableDataCollection(id);
 	}
+	sampleInfo sample;
     private:
 	paradynDaemon *daemon;
 	int id;
@@ -236,6 +241,8 @@ class metricInstance {
 	int count;		// active users (perfStreams)
 	resourceList *focus;
 	metric *met;
+	sampleInfo sample;
+	List<sampleInfo*> parts;
 	List<component*> components;
 	List<performanceStream*> users;
 	Histogram *data;

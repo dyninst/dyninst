@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.9  1994/03/21 20:32:48  hollings
+ * Revision 1.10  1994/03/24 16:41:20  hollings
+ * Added support for multiple paradynd's at once.
+ *
+ * Revision 1.9  1994/03/21  20:32:48  hollings
  * Changed the mid to mi mapping to be per paradyn daemon.  This is required
  * because mids are asigned by the paradynd's, and are not globally unique.
  *
@@ -164,7 +167,7 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
      List<paradynDaemon*> curr;
      int i;
 
-	// there better be a paradynd running on this machine!
+    // there better be a paradynd running on this machine!
     for (curr=paradynDaemon::allDaemons, daemon = NULL; *curr; curr++) {
 	if (!strcmp((*curr)->machine, machine_name))
 	    daemon = *curr;
@@ -212,7 +215,9 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 					   double endTimeStamp,
 					   double value)
 {
+    component *part;
     metricInstance *mi;
+    struct sampleInterval ret;
 
     mi = activeMids.find((void*) mid);
     if (!mi) {
@@ -221,13 +226,21 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     }
 
     if (mi->components.count() != 1) {
-	printf("ERROR: multiple data sources for one mi, not supported yet\n");
-	exit(-1);
+	// find the right component.
+	part = mi->components.find(this);
+
+	if (!part) {
+	    printf("Unable to find component!!!\n");
+	    exit(-1);
+	}
+	ret = part->sample.newValue((time64) endTimeStamp, value);
     }
+    ret = mi->sample.newValue(mi->parts, (time64) endTimeStamp, value);
 
-    mi->enabledTime += endTimeStamp - startTimeStamp;
-    mi->data->addInterval(startTimeStamp, endTimeStamp, value, FALSE);
-
+    if (ret.valid) {
+	mi->enabledTime += ret.end - ret.start;
+	mi->data->addInterval(ret.start, ret.end, ret.value, FALSE);
+    }
 }
 
 //

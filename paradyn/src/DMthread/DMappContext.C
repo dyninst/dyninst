@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.11  1994/03/22 21:02:53  hollings
+ * Revision 1.12  1994/03/24 16:41:18  hollings
+ * Added support for multiple paradynd's at once.
+ *
+ * Revision 1.11  1994/03/22  21:02:53  hollings
  * Made it possible to add new processes (& paradynd's) via addExecutable.
  *
  * Revision 1.10  1994/03/20  01:49:46  markc
@@ -342,6 +345,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 							 metric *m)
 {
     int id;
+    component *comp;
     String_Array ra;
     Boolean foundOne;
     metricInstance *mi;
@@ -357,7 +361,9 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     for (curr = daemons; *curr; curr++) {
 	id = (*curr)->enableDataCollection(ra, m->getName());
 	if (id > 0) {
-	    mi->components.add(new component(*curr, id, mi));
+	    comp = new component(*curr, id, mi);
+	    mi->components.add(comp, (void *) *curr);
+	    mi->parts.add(&comp->sample, (void *) *curr);
 	    foundOne = TRUE;
 	}
     }
