@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.243 2001/02/27 16:26:17 pcroth Exp $
+// $Id: process.C,v 1.244 2001/02/28 23:59:24 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3259,7 +3259,6 @@ bool process::handleIfDueToSharedObjectMapping(){
   bool error_occured = false;
   bool ok = dyn->handleIfDueToSharedObjectMapping(this,&changed_objects,
                                                   change_type,error_occured);
-
   // if this trap was due to dlopen or dlclose, and if something changed
   // then figure out how it changed and either add or remove shared objects
   if(ok && !error_occured && (change_type != SHAREDOBJECT_NOCHANGE)) {
@@ -3273,9 +3272,9 @@ bool process::handleIfDueToSharedObjectMapping(){
              // This is what we really want to do:
 	    // Paradyn -- don't add new symbols unless it's the runtime
 	    // library
-#ifndef BPATCH_LIBRARY
-             if (((*changed_objects)[i])->getName() == dyninstName)
-             {
+#if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
+	    if (((*changed_objects)[i])->getName() == dyninstName)
+	    {
 #endif
                if(addASharedObject(*((*changed_objects)[i]))){
                  *shared_objects += (*changed_objects)[i];
@@ -3306,11 +3305,11 @@ bool process::handleIfDueToSharedObjectMapping(){
                }
 #endif//MT_THREAD
 */
-#ifndef BPATCH_LIBRARY
-             } else {
+#if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
+	       } else {
                // for now, just delete shared_objects to avoid memory leeks
                delete (*changed_objects)[i];
-             }
+	       }
 #endif
           }
           delete changed_objects;
