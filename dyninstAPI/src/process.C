@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.500 2004/05/12 18:07:33 bernat Exp $
+// $Id: process.C,v 1.501 2004/05/12 22:37:50 legendre Exp $
 
 #include <ctype.h>
 
@@ -2693,7 +2693,14 @@ bool process::loadDyninstLib() {
     statusLine(buffer.c_str());
 
     // Perform initialization...
-    if (!dyn->initialize()) assert (0 && "Static executable: unhandled");
+    if (!dyn->initialize()) 
+    {
+       cerr << "Dyninst was unable to load the dyninst runtime library "
+            << "into the application.  This may be caused by statically "
+            << "linked executables, or by having dyninst linked against a "
+            << "different version of libelf than it was built with." << endl;
+       return false;
+    }
 
     // And get the list of all shared objects in the process. More properly,
     // get the address of dlopen.
