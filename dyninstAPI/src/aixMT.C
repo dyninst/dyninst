@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.11 2002/08/21 19:42:00 schendel Exp $
+// $Id: aixMT.C,v 1.12 2002/09/17 20:07:59 bernat Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
 #include "dyninstAPI/src/pdThread.h"
@@ -49,169 +49,8 @@
   bool getLWPIDs(int **IDs_p); //caller should do a "delete [] *IDs_p"
   bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
 
-  // Notify daemon of threads
-  pdThread *createThread(
-    int tid, 
-    unsigned pos, 
-    unsigned stack_addr, 
-    unsigned start_pc, 
-    void* resumestate_p, 
-    bool);
-  void updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p,
-                    resource* rid) ;
-  void updateThread(
-    pdThread *thr, 
-    int tid, 
-    unsigned pos, 
-    unsigned stack_addr, 
-    unsigned start_pc, 
-    void* resumestate_p);
-  void deleteThread(int tid);
-
 */
 
-pdThread *process::createThread(
-  int tid, 
-  unsigned pos, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p,  
-  bool bySelf)
-{
-  pdThread *thr;
-  fprintf(stderr, "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
-  // creating new thread
-  thr = new pdThread(this, tid, pos);
-  threads += thr;
-
-  thr->update_resumestate_p(resumestate_p);
-  function_base *pdf ;
-
-  if (startpc) {
-    thr->update_stack_addr(stackbase) ;
-    thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
-    thr->update_start_func(pdf) ;
-  } else {
-    cerr << "createThread: zero startPC found!" << endl;
-    pdf = findOneFunction("main");
-    assert(pdf);
-    //thr->update_start_pc(pdf->addr()) ;
-    thr->update_start_pc(0);
-    thr->update_start_func(pdf);
-    thr->update_stack_addr(stackbase);
-  }
-
-  cerr << "aix.C: adding thread...";
-  metricFocusNode::handleNewThread(thr);
-  cerr << " done." << endl;
-
-  sprintf(errorLine,"+++++ creating new thread{%s}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-	  pdf->prettyName().c_str(), pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
-  logLine(errorLine);
-
-  return(thr);
-}
-
-//
-// CALLED for mainThread
-//
-void process::updateThread(pdThread *thr, int tid, 
-			   unsigned pos, void* resumestate_p, 
-			   resource *rid)
-{
-  assert(thr);
-  thr->update_tid(tid, pos);
-  thr->update_rid(rid);
-  thr->update_resumestate_p(resumestate_p);
-  function_base *f_main = findOneFunction("main");
-  assert(f_main);
-
-  //unsigned addr = f_main->addr();
-  //thr->update_start_pc(addr) ;
-  thr->update_start_pc(0) ;
-  thr->update_start_func(f_main) ;
-
-  /* Need stack. Got pthread debug library. Any questions? */
-  /* Yeah... how do we get a stack base addr? :) */
-
-  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pos=%u, tid=%d, resumestate=0x%x\n", pos,tid, (unsigned) resumestate_p);
-  logLine(errorLine);
-}
-
-//
-// CALLED from Attach
-//
-void process::updateThread(
-  pdThread *thr, 
-  int tid, 
-  unsigned pos, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p) 
-{
-  assert(thr);
-  //  
-  sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
-	 tid, pos, stackbase, startpc);
-  logLine(errorLine);
-
-  thr->update_tid(tid, pos);
-  thr->update_resumestate_p(resumestate_p);
-
-  function_base *pdf;
-
-  if(startpc) {
-    thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
-    thr->update_start_func(pdf) ;
-    thr->update_stack_addr(stackbase) ;
-  } else {
-    pdf = findOneFunction("main");
-    assert(pdf);
-    thr->update_start_pc(startpc) ;
-    //thr->update_start_pc(pdf->addr()) ;
-    thr->update_start_func(pdf);
-    thr->update_stack_addr(stackbase);
-  } //else
-
-  sprintf(errorLine,"+++++ creating new thread{%s}, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-    pdf->prettyName().c_str(), pos, tid, stackbase, (unsigned) resumestate_p);
-  logLine(errorLine);
-}
-
-void process::deleteThread(int tid)
-{
-  pdThread *thr=NULL;
-  unsigned i;
-
-  for (i=0;i<threads.size();i++) {
-    if (threads[i]->get_tid() == (unsigned) tid) {
-      thr = threads[i];
-      break;
-    }   
-  }
-  if (thr != NULL) {
-    getVariableMgr().deleteThread(thr);
-    unsigned theSize = threads.size();
-    threads[i] = threads[theSize-1];
-    threads.resize(theSize-1);
-
-    /* Set the POS to "reusable" */
-    /* Note: we don't acquire a lock. This is okay, because we're simply clearing
-       the bit, which was not usable before now anyway. */
-    assert(shmMetaData->getPosToThread(thr->get_pos()) 
-	   == THREAD_AWAITING_DELETION);
-    shmMetaData->setPosToThread(thr->get_pos(), 0);
-
-    delete thr;    
-    sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",tid,threads.size());
-    logLine(errorLine);
-
-    // And we need to handle thread deletion in the MDNs
-
-  }
-}
 /* 
  * Get the stack frame, given a (p)thread ID 
  */
@@ -258,7 +97,10 @@ Frame pdThread::getActiveFrame() {
       ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
       if (ret) fprintf(stderr, "next pthread: returned %d\n", ret);
       ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-      if (ret) fprintf(stderr, "check pthread: returned %d\n", ret);
+      if (ret) {
+	fprintf(stderr, "check pthread: returned %d\n", ret);
+	return Frame();
+      }
     }
     ret = pthdb_pthread_context(*session_ptr,
 				pthreadp,
@@ -266,6 +108,8 @@ Frame pdThread::getActiveFrame() {
     if (!ret)
       {
 	// Succeeded in call
+	fprintf(stderr, "Pthread is suspended at IAR 0x%x and SP 0x%x\n",
+		context.iar, context.gpr[1]);
 	newFrame = Frame(context.iar, context.gpr[1], 
 			 proc->getPid(), this, 0, true);
       }
@@ -379,22 +223,3 @@ int PTHDB_print(pthdb_user_t user, char *str)
   return 0;
 }
 
-int process::findLWPbyPthread(int tid)
-{
-  // We store the current lwp in the appropriate virtual
-  // timer for each thread
-  pdThread *thr = NULL;
-  for (unsigned i=0;i<threads.size();i++) {
-    if (threads[i]->get_tid() == (unsigned) tid) {
-      thr = threads[i];
-      break;
-    }   
-  }
-  if (thr == NULL) return -1;
-  return shmMetaData->getVirtualTimer(thr->get_pos()).pos;
-}
-
-int process::findLWPbyPOS(int pos)
-{
-  return shmMetaData->getVirtualTimer(pos).pos;
-}

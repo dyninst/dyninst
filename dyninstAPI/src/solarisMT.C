@@ -39,175 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.7 2002/07/29 18:39:12 schendel Exp $
+// $Id: solarisMT.C,v 1.8 2002/09/17 20:08:00 bernat Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "paradynd/src/metricFocusNode.h"
 
-int process::findLWPbyPthread(int pthread) {
-  // Unimplemented
-  return -1;
-}
-
-pdThread *process::createThread(
-  int tid, 
-  unsigned pos, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p,  
-  bool bySelf)
-{
-  pdThread *thr;
-
-  // creating new thread
-  thr = new pdThread(this, tid, pos);
-  threads += thr;
-
-  thr->update_resumestate_p(resumestate_p);
-  function_base *pdf ;
-
-  if (startpc) {
-    thr->update_stack_addr(stackbase) ;
-    thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
-    thr->update_start_func(pdf) ;
-  } else {
-    pdf = findOneFunction("main");
-    assert(pdf);
-    //thr->update_start_pc(pdf->addr()) ;
-    thr->update_start_pc(0);
-    thr->update_start_func(pdf) ;
-
-    prstatus_t theStatus;
-    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
-      thr->update_stack_addr((stackbase=(unsigned)theStatus.pr_stkbase));
-    } else {
-      assert(0);
-    }
-  }
-
-  metricFocusNode::handleNewThread(thr);
-
-  //  
-  sprintf(errorLine,"+++++ creating new thread{%s}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-	  pdf->prettyName().c_str(),
-	  pos,
-	  tid,
-	  stackbase,
-	  (unsigned)resumestate_p,
-	  bySelf?"Self":"Parent");
-  logLine(errorLine);
-
-  return(thr);
-}
-
-//
-// CALLED for mainThread
-//
-void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource *rid) {
-  assert(thr);
-  thr->update_tid(tid, pos);
-  thr->update_rid(rid);
-  thr->update_resumestate_p(resumestate_p);
-  function_base *f_main = findOneFunction("main");
-  assert(f_main);
-
-  //unsigned addr = f_main->addr();
-  //thr->update_start_pc(addr) ;
-  thr->update_start_pc(0) ;
-  thr->update_start_func(f_main) ;
-
-  prstatus_t theStatus;
-  if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
-    thr->update_stack_addr((unsigned)theStatus.pr_stkbase);
-  } else {
-    assert(0);
-  }
-
-  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x\n",
-	  pos,
-	  tid,
-	  theStatus.pr_stkbase, 
-	  (unsigned) resumestate_p);
-  logLine(errorLine);
-}
-
-//
-// CALLED from Attach
-//
-void process::updateThread(
-  pdThread *thr, 
-  int tid, 
-  unsigned pos, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p) 
-{
-  assert(thr);
-  //  
-  sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
-	 tid, 
-	  pos, 
-	  stackbase, 
-	  startpc);
-  logLine(errorLine);
-
-  thr->update_tid(tid, pos);
-  thr->update_resumestate_p(resumestate_p);
-
-  function_base *pdf;
-
-  if(startpc) {
-    thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
-    thr->update_start_func(pdf) ;
-    thr->update_stack_addr(stackbase) ;
-  } else {
-    pdf = findOneFunction("main");
-    assert(pdf);
-    thr->update_start_pc(startpc) ;
-    //thr->update_start_pc(pdf->addr()) ;
-    thr->update_start_func(pdf) ;
-
-    prstatus_t theStatus;
-    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
-      thr->update_stack_addr((stackbase=(unsigned)theStatus.pr_stkbase));
-    } else {
-      assert(0);
-    }
-  } //else
-
-  sprintf(errorLine,"+++++ creating new thread{%s}, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-	  pdf->prettyName().c_str(), pos, tid, stackbase, (unsigned) resumestate_p);
-  logLine(errorLine);
-}
-
-void process::deleteThread(int tid)
-{
-  pdThread *thr=NULL;
-  unsigned i;
-
-  for (i=0;i<threads.size();i++) {
-    if (threads[i]->get_tid() == tid) {
-      thr = threads[i];
-      break;
-    }   
-  }
-  if (thr != NULL) {
-    getVariableMgr().deleteThread(thr);
-    unsigned theSize = threads.size();
-    threads[i] = threads[theSize-1];
-    threads.resize(theSize-1);
-    delete thr;    
-    sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",tid,threads.size());
-    logLine(errorLine);
-  }
-}
+// As of solaris 8, threads are bound 1:1 with lwps. So this will always
+// end up querying an lwp.
 
 Frame pdThread::getActiveFrame() {
-  // FIXME: needs to find whether we're running on an active
-  // thread and pop to process::getActiveFrame(lwp) in that case.
+
   typedef struct {
     long    sp;
     long    pc;
@@ -220,20 +62,27 @@ Frame pdThread::getActiveFrame() {
 
   Address fp = 0, pc = 0;
 
-  process* proc = get_proc();
-  resumestate_t rs ;
-  if (get_start_pc() &&
-      proc->readDataSpace((caddr_t) get_resumestate_p(),
-			  sizeof(resumestate_t), (caddr_t) &rs, false)) {
-    fp = rs.sp;
-    pc = rs.pc;
-  } 
-  return Frame(pc, fp, proc->getPid(), this, 0, true);
-}
+  Frame newFrame;
 
-int process::findLWPbyPOS(int pos)
-{
-  //  return RTsharedData.virtualTimers[pos].pos;
-  return 0;
-}
+  process* proc = get_proc();
+
+  int lwp = proc->findLWPbyPOS(pos);
+  if (lwp > 0) {
+    Frame lwpFrame = proc->getActiveFrame(lwp);
+    newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
+		     lwpFrame.getPID(), this, lwp, true);
+  }
+  else {
+    resumestate_t rs ;
+    if (get_start_pc() &&
+	proc->readDataSpace((caddr_t) get_resumestate_p(),
+			    sizeof(resumestate_t), (caddr_t) &rs, false)) {
+      fp = rs.sp;
+      pc = rs.pc;
+    } 
+    newFrame = Frame(pc, fp, proc->getPid(), this, 0, true);
+  }
+  return newFrame;
+}  
+
 
