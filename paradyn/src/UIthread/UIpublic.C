@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.29  1995/11/08 05:10:26  tamches
-/* removed reference to obsolete file dag.h
+/* Revision 1.30  1995/11/08 06:25:03  tamches
+/* removed some warnings by including tclclean.h and tkclean.h
 /*
+ * Revision 1.29  1995/11/08 05:10:26  tamches
+ * removed reference to obsolete file dag.h
+ *
  * Revision 1.28  1995/11/06 18:02:56  tamches
  * changed nodeIdType to unsigned (nodeIdType is no longer used)
  * Added an shg hack s.t. the root node appears as "Whole Program" instead of "1"
@@ -137,6 +140,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+
+#include "tclclean.h"
+#include "tkclean.h"
+
 #include "UI.thread.CLNT.h"
 #include "UI.thread.SRVR.h"
 #include "UI.thread.h"
