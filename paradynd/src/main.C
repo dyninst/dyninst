@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.107 2002/10/15 17:11:51 schendel Exp $
+// $Id: main.C,v 1.108 2002/10/28 04:54:30 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -173,12 +173,13 @@ void cleanUpAndExit(int status) {
       int pid = theProc->getPid();
       bool wasAttachedTo = theProc->wasCreatedViaAttach();
 #endif
-      delete theProc; // calls pd_process::~pd_process, which fries the shm seg
+
 #if defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0) || defined(ia64_unknown_linux2_4)
       if (!wasAttachedTo) OS::osKill(pid);
 #endif
       
       getProcMgr().removeProcess(theProc);
+      delete theProc; // calls pd_process::~pd_process, which fries the shm seg
   }
 
   P_exit(status);
