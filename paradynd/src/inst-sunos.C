@@ -3,7 +3,11 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.13  1994/09/20 18:18:25  hollings
+ * Revision 1.14  1994/09/22 01:58:53  markc
+ * Enter handles for primitiveCosts into stringPool
+ * changed libraryList to List<libraryFunc*>
+ *
+ * Revision 1.13  1994/09/20  18:18:25  hollings
  * added code to use actual clock speed for cost model numbers.
  *
  * Revision 1.12  1994/08/17  18:11:59  markc
@@ -55,8 +59,9 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.13 1994/09/20 18:18:25 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.14 1994/09/22 01:58:53 markc Exp $";
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -64,13 +69,10 @@ char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core
 #include <sys/wait.h>
 #include <sys/errno.h>
 #include <machine/reg.h>
-
-extern "C" {
 #include <sys/ptrace.h>
-int ptrace();
+int ptrace(enum ptracereq, int, char*, int, char*);
 }
 
-#include "dyninst.h"
 #include "rtinst/h/trace.h"
 #include "symtab.h"
 #include "process.h"
@@ -80,6 +82,7 @@ int ptrace();
 #include "ptrace_emul.h"
 #include "dyninstRPC.SRVR.h"
 #include "util.h"
+#include "dyninstP.h"
 
 
 process *nodePseudoProcess;
@@ -121,33 +124,33 @@ void initPrimitiveCost()
     /* Need to add code here to collect values for other machines */
 
     // these happen async of the rest of the system.
-    primitiveCosts.add(1, (void *) "DYNINSTalarmExpire");
-    primitiveCosts.add(1, (void *) "DYNINSTsampleValues");
-    primitiveCosts.add(1, (void *) "DYNINSTreportTimer");
-    primitiveCosts.add(1, (void *) "DYNINSTreportCounter");
-    primitiveCosts.add(1, (void *) "DYNINSTreportCost");
-    primitiveCosts.add(1, (void *) "DYNINSTreportNewTags");
-    primitiveCosts.add(1, (void *) "DYNINSTprintCost");
+    primitiveCosts.add(1, pool.findAndAdd("DYNINSTalarmExpire"));
+    primitiveCosts.add(1, pool.findAndAdd("DYNINSTsampleValues"));
+    primitiveCosts.add(1, pool.findAndAdd("DYNINSTreportTimer"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportCounter"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportCost"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportNewTags"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTprintCost"));
 
     // this doesn't really take any time
-    primitiveCosts.add(1, (void *) "DYNINSTbreakPoint");
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTbreakPoint"));
 
     // this happens before we start keeping time.
-    primitiveCosts.add(1, (void *) "DYNINSTinit");
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTinit"));
 
     // isthmus acutal numbers from 7/3/94 -- jkh
     // 240 ns
-    primitiveCosts.add(16, (void *) "DYNINSTincrementCounter");
+    primitiveCosts.add(16, pool.findAndAdd( "DYNINSTincrementCounter"));
     // 240 ns
-    primitiveCosts.add(16, (void *) "DYNINSTdecrementCounter");
+    primitiveCosts.add(16, pool.findAndAdd("DYNINSTdecrementCounter"));
     // 7.4 usec * 70 mhz (SS-5)
-    primitiveCosts.add(518, (void *) "DYNINSTstartWallTimer");
+    primitiveCosts.add(518, pool.findAndAdd("DYNINSTstartWallTimer"));
     // 9.6 usec * 70 mhz (SS-5)
-    primitiveCosts.add(841, (void *) "DYNINSTstopWallTimer");
+    primitiveCosts.add(841, pool.findAndAdd("DYNINSTstopWallTimer"));
     // 1.80 usec * 70 Mhz (measured on a SS-5)
-    primitiveCosts.add(126, (void *) "DYNINSTstartProcessTimer");
+    primitiveCosts.add(126, pool.findAndAdd("DYNINSTstartProcessTimer"));
     // 3.46 usec * 70 mhz (measured on a SS-5)
-    primitiveCosts.add(242, (void *) "DYNINSTstopProcessTimer");
+    primitiveCosts.add(242, pool.findAndAdd("DYNINSTstopProcessTimer"));
 }
 
 
@@ -178,7 +181,7 @@ int flushPtrace()
  * The performance consultant's ptrace, it calls CM_ptrace and ptrace as needed.
  *
  */
-int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
+int PCptrace(ptracereq  request, process *proc, void *addr, int data, void *addr2)
 {
     int ret;
     int sig;
@@ -266,7 +269,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     arg_list = RPC_make_arg_list (pd_family, pd_type, 
 				  pd_known_socket, pd_flag, pd_machine);
     sprintf (command, "%sCM5", programName);
-    sprintf (application, "%s", curr->symbols->file);
+    sprintf (application, "%s", (char*) curr->symbols->file);
     sprintf (app_pid, "%d", curr->pid);
     sprintf (num_nodes, "%d", fr->npids);
 
@@ -306,14 +309,14 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 
 
 
-libraryList msgFilterFunctions;
-libraryList msgByteSentFunctions;
-libraryList msgByteRecvFunctions;
-libraryList msgByteFunctions;
-libraryList fileByteFunctions;
-libraryList libraryFunctions;
+List<libraryFunc*> msgFilterFunctions;
+List<libraryFunc*> msgByteSentFunctions;
+List<libraryFunc*> msgByteRecvFunctions;
+List<libraryFunc*> msgByteFunctions;
+List<libraryFunc*> fileByteFunctions;
+List<libraryFunc*> libraryFunctions;
 
-void addLibFunc(libraryList *list, char *name, int arg)
+void addLibFunc(List<libraryFunc*> *list, const char *name, int arg)
 {
     libraryFunc *temp = new libraryFunc(name, arg);
     list->add(temp, (void *) temp->name);
