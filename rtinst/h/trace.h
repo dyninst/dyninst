@@ -64,7 +64,6 @@
 
 #define ALIGN_TO_WORDSIZE(x)    (((x) + (WORDSIZE-1)) & ~(WORDSIZE-1))
 
-#define CONTROLLER_FD       3
 /* 
  * configuration notification stream id.
  *
