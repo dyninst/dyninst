@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.60 2002/08/01 19:59:13 cortes Exp $
+ * $Id: RTinst.c,v 1.61 2002/08/02 21:25:47 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -467,7 +467,6 @@ void pDYNINSTinit(int paradyndPid,
 		  int theKey, 
 		  unsigned shmSegSize,
 		  unsigned offsetToSharedData)
-     //void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid, unsigned numThreads)
 {
   /* If offsetToSharedData is -1 then we're being called from fork */
   /* If the last 3 parameters are 0, we're not shm sampling (DEPRECATED) */
@@ -513,7 +512,6 @@ void pDYNINSTinit(int paradyndPid,
  
   if (calledFromAttach)
     paradyndPid = -paradyndPid;
-  
   DYNINST_mutatorPid = paradyndPid; /* important -- needed in case we fork() */
   
   /* initialize the tag and group info */
@@ -526,7 +524,6 @@ void pDYNINSTinit(int paradyndPid,
     unsigned i;
     DYNINST_shmSegKey = theKey;
     DYNINST_shmSegNumBytes = shmSegSize;
-    
     DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
 						 &DYNINST_shmSegShmId);
     shmBase = (Address) DYNINST_shmSegAttachedPtr;
@@ -549,6 +546,8 @@ void pDYNINSTinit(int paradyndPid,
       ((Address) RTsharedInShm->posToThread + shmBase);
     RTsharedData.pendingIRPCs = 
       malloc(sizeof(rpcToDo *)*MAX_NUMBER_OF_THREADS);
+    RTsharedInShm->pendingIRPCs = (rpcToDo **) 
+      ((unsigned) RTsharedInShm->pendingIRPCs + (unsigned) shmBase);
     for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
       RTsharedData.pendingIRPCs[i] = (rpcToDo *)
 	((Address) RTsharedInShm->pendingIRPCs[i] + shmBase);
@@ -751,6 +750,7 @@ BOOL WINAPI DllMain(
 		pDllMainCalledOnce++;
 		if(libdyninstRT_DLL_localtheKey != -1 ||  libdyninstRT_DLL_localshmSegNumBytes != -1 ||
 					libdyninstRT_DLL_localparadynPid != -1){
+
 		  pDYNINSTinit(libdyninstRT_DLL_localparadynPid,
 			       libdyninstRT_DLL_localmaxThreads, /* Number of threads */
 			       libdyninstRT_DLL_localtheKey,
