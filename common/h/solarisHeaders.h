@@ -270,7 +270,10 @@ inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
 #else
   if (cplus_demangle(symbol, demangled_sym, size))
 #endif
+  {
+    free(demangled_sym);
     return 1;
+  }
 
   char *sym_begin, *ptr;
   if (demangled_sym[0] == '(' &&
@@ -296,7 +299,7 @@ inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
     free(demangled_sym);
     return 1;
   }
-  strcpy(prototype, demangled_sym);
+  strcpy(prototype, sym_begin);
   free(demangled_sym);
   return 0;
 }
