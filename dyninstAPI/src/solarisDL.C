@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.38 2005/03/07 21:19:48 bernat Exp $
+// $Id: solarisDL.C,v 1.39 2005/03/16 22:59:46 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -393,75 +393,93 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
     link_addresses = 0;
 }
 
-// getNewSharedObjects: returns a vector of shared_object one element for
-// newly mapped shared object.  old_addrs contains the addresses of the
-// currently mapped shared objects. Sets error_occured to true, and 
-// returns 0 on error.
-pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(pdvector<Address> *old_addrs,
-						bool &error_occured)
+// getNewSharedObjects: returns a vector of shared_object one element for 
+// newly mapped shared object. 
+// Returns NULL if there is an error. 
+// And the returned vector needs to be cleaned up.
+pdvector<shared_object *> *dynamic_linking::getNewSharedObjects()
 {
    r_debug debug_elm;
    if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
       // bperr("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
-      error_occured = true;
-      return 0;
+     return NULL;
    }
 
    // get each link_map object
-   bool first_time = true;
    Link_map *next_link_map = debug_elm.r_map;
    Address next_addr = (Address)next_link_map; 
-   pdvector<shared_object*> *new_shared_objects = new pdvector<shared_object*>;
-   while(next_addr != 0){
-      Link_map link_elm;
-      if(!proc->readDataSpace((caddr_t)(next_addr),
-                           sizeof(Link_map),(caddr_t)&(link_elm),true)) {
-         logLine("read next_link_map failed\n");
-         delete new_shared_objects;
-         error_occured = true;
-         return 0;
-      }
 
-      // kludge: ignore the entry 
-      if(!first_time){
-         // check to see if this is a new shared object 
-         bool found = false;
-         for(u_int i=0; i < old_addrs->size(); i++){
-            if((*old_addrs)[i] == link_elm.l_addr) {
-               found = true; 
-               break;
-            }
-         }
-         if (!found) {  
-            // this is a new shared object, create a shrared_object for it 
-            char f_name[256];// assume no file names greater than 256 chars
-            // check to see if reading 256 chars will go out of bounds
-            // of data segment
-            u_int f_amount = 256;
-            bool done = false;
-            for(u_int i=0; (i<256) && (!done); i++){
-               if(!proc->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
-                                    sizeof(char),(caddr_t)(&(f_name[i])),true)){
-               }
-	            if(f_name[i] == '\0'){
-                  done = true;
-                  f_amount = i+1;
-	            }
-            }
-            f_name[f_amount-1] = '\0';
-            pdstring obj_name = pdstring(f_name);
-            shared_object *newobj =
-               new shared_object(obj_name, link_elm.l_addr, false,true,true,0, proc);
-            (*new_shared_objects).push_back(newobj);
-         }
-      }
-      first_time = false;
-      next_addr = (Address)link_elm.l_next;
+   pdvector<shared_object*> *cur_objs = proc->sharedObjects();
+   pdvector<shared_object*> *new_objs = new pdvector<shared_object*>;
+
+   // Explicitly skip the first entry - == to the a.out.
+   // You know, when we go to a unified list of objects this skip can
+   // be removed....
+
+   Link_map link_elm;
+   if(!proc->readDataSpace((caddr_t)(next_addr),
+			   sizeof(Link_map),(caddr_t)&(link_elm),true)) {
+     logLine("read next_link_map failed\n");
+     delete new_objs;
+     return NULL;
    }
-   error_occured = false;
-   return new_shared_objects;
-   new_shared_objects = 0;
+   next_addr = (Address)link_elm.l_next;
+
+   while(next_addr != 0){
+
+     if(!proc->readDataSpace((caddr_t)(next_addr),
+			     sizeof(Link_map),(caddr_t)&(link_elm),true)) {
+       logLine("read next_link_map failed\n");
+       delete new_objs;
+       return NULL;
+     }
+
+     // check to see if this is a new shared object 
+     bool found = false;
+     for(u_int i=0; i < cur_objs->size(); i++){
+       shared_object *cur_obj = (*cur_objs)[i];
+       // Base address might be 0. If that's true, check by name.
+       // Otherwise check by base addr
+       if (cur_obj->getBaseAddress() != 0) {
+	 if (cur_obj->getBaseAddress() == link_elm.l_addr) {
+	   // Already got this one...
+	   found = true;
+	   break;
+	 }
+       }
+       else {
+	 // Not handled yet
+	 assert(0 && "Shared object with 0 base address, need to fix!");
+       }
+     }
+     if (!found) {  
+       // this is a new shared object, create a shrared_object for it 
+       char f_name[256];// assume no file names greater than 256 chars
+       // check to see if reading 256 chars will go out of bounds
+       // of data segment
+       u_int f_amount = 256;
+       bool done = false;
+       for(u_int i=0; (i<256) && (!done); i++){
+	 if(!proc->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
+				 sizeof(char),(caddr_t)(&(f_name[i])),true)){
+	 }
+	 if(f_name[i] == '\0'){
+	   done = true;
+	   f_amount = i+1;
+	 }
+       }
+       f_name[f_amount-1] = '\0';
+       pdstring obj_name = pdstring(f_name);
+       shared_object *newobj =
+	 new shared_object(obj_name, link_elm.l_addr, false,true,true,0, proc);
+       (*new_objs).push_back(newobj);
+     }
+
+     next_addr = (Address)link_elm.l_next;
+   }
+
+   return new_objs;
 }
 
 
@@ -491,7 +509,7 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects() {
 // that have been deleted or added to the link maps as indicated by
 // change_type.  If an error occurs it sets error_occured to true.
 pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(u_int change_type,
-						   bool &error_occured) {
+								  bool &error_occured) {
    // get list of current shared objects
    pdvector<shared_object *> *curr_list = proc->sharedObjects();
    if((change_type == 2) && !curr_list) {
@@ -502,17 +520,10 @@ pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(u_int change_t
    // if change_type is add then figure out what has been added
    if(change_type == 1){
       // create a vector of addresses of the current set of shared objects
-      pdvector<Address> *addr_list =  new pdvector<Address>;
-      for (u_int i=0; i < curr_list->size(); i++) {
-         (*addr_list).push_back(((*curr_list)[i])->getBaseAddress());
-      }
-      pdvector <shared_object *> *new_shared_objs = 
-         getNewSharedObjects(addr_list,error_occured);
-      if(!error_occured){
-         delete addr_list;
-         return new_shared_objs; 
-         new_shared_objs = 0;
-      }
+     pdvector <shared_object *> *new_shared_objs = getNewSharedObjects();
+     if (new_shared_objs == NULL)
+       error_occured = true;
+     return new_shared_objs; 
    }
    // if change_type is remove then figure out what has been removed
    else if((change_type == 2) && curr_list) {
