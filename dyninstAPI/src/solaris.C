@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.64 1999/01/21 20:52:34 wylie Exp $
+// $Id: solaris.C,v 1.65 1999/04/13 22:43:56 paradyn Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -733,9 +733,10 @@ bool process::dlopenDYNINSTlib() {
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
 			  count, true, true);
   writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
-#if defined(sparc_sun_solaris2_4)
-  count += sizeof(instruction);
-#endif
+// the following seems to be a redundant relic
+//#if defined(sparc_sun_solaris2_4)
+//  count += sizeof(instruction);
+//#endif
 #endif
 
   // we need to make 2 calls to dlopen: one to load libsocket.so.1 and another
@@ -756,9 +757,10 @@ bool process::dlopenDYNINSTlib() {
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
 			  dyninst_count, true, true);
   writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
-#if defined(sparc_sun_solaris2_4)
-  dyninst_count += sizeof(instruction);
-#endif
+// the following seems to be a redundant relic
+//#if defined(sparc_sun_solaris2_4)
+//  dyninst_count += sizeof(instruction);
+//#endif
   count += dyninst_count;
 
   instruction insnTrap;
