@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.19 2003/04/25 22:31:15 jaw Exp $
+// $Id: test4.C,v 1.20 2003/05/25 01:06:41 rchen Exp $
 //
 
 #include <stdio.h>
@@ -414,7 +414,7 @@ void contAndWaitForAllThreads(BPatch_thread *appThread)
 
 void mutatorTest1(char *pathname)
 {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(alpha_dec_osf4_0)
     printf("Skipping test #1 (exit callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[1] = true;
@@ -450,7 +450,7 @@ void mutatorTest1(char *pathname)
 
 void mutatorTest2(char *pathname)
 {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(alpha_dec_osf4_0)
     printf("Skipping test #2 (fork callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[2] = true;
@@ -485,7 +485,7 @@ void mutatorTest2(char *pathname)
 
 void mutatorTest3(char *pathname)
 {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(alpha_dec_osf4_0)
     printf("Skipping test #3 (exec callback)\n");
     printf("    not implemented on this platform\n");
     passedTest[3] = true;
@@ -520,7 +520,7 @@ void mutatorTest3(char *pathname)
 
 void mutatorTest4(char *pathname)
 {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) || defined(alpha_dec_osf4_0)
     printf("Skipping test #4 (fork & exec)\n");
     printf("    not implemented on this platform\n");
     passedTest[4] = true;
