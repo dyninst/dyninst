@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.28  1997/10/28 20:24:16  tamches
+ * changed entry to the_entry to avoid a conflict
+ *
  * Revision 1.27  1997/09/28 22:22:31  buck
  * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
  * library dependencies on files in rtinst.
@@ -172,6 +175,7 @@
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
 #endif
+#include "util/h/Dictionary.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -1000,14 +1004,14 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, unsigned b
         break;
     }
     if (canUse) {
-      const instPoint *entry = f->funcEntry(proc);
-      if (proc->baseMap.defines(entry) && entry->size() >= 2*JUMP_SZ) {
-	assert(point->jumpAddr() > entry->address());
+      const instPoint *the_entry = f->funcEntry(proc);
+      if (proc->baseMap.defines(the_entry) && the_entry->size() >= 2*JUMP_SZ) {
+	assert(point->jumpAddr() > the_entry->address());
 	// actual displacement needs to subtract size of instruction (2 bytes)
-	int displacement = entry->address() + 5 - point->jumpAddr();
+	int displacement = the_entry->address() + 5 - point->jumpAddr();
 	assert(displacement < 0);
 	if (point->size() >= 2 && (displacement-2) > SCHAR_MIN) {
-	  generateBranch(proc, entry->address()+5, baseAddr);
+	  generateBranch(proc, the_entry->address()+5, baseAddr);
 	  *insn++ = 0xEB;
 	  *insn++ = (char)(displacement-2);
 	  return 2;
