@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeFortC.c,v 1.4 2003/04/28 19:30:24 hollings Exp $ */
+/* $Id: test1.mutateeFortC.c,v 1.5 2003/05/02 21:31:10 hollings Exp $ */
 
 #include <stdlib.h>
 #include "test1.mutateeCommon.h"
@@ -171,6 +171,8 @@ int mutateeF77 = 1;
 int mutateeF77 = 0;
 #endif
 
+int globalVariable29_1;
+
 void runTests()
 {
     int i, j;
@@ -196,6 +198,12 @@ void runTests()
     *pp6 = 6; *pp7 = 7; *pp8 = 8; *pp9 = 9; *pp10 = 10;
 
     init_globals();
+
+    /* XXX Hack, AIX 4.2 xlf90/parseStab doesn't get scoping rules right for Fortran. This lets
+       the C global override the local scope in this case - jkh 5/2/3 */
+    if (globalVariable29_1) {
+	    globals.globalVariable29_1 = globalVariable29_1;
+    }
 
     if (runTest[1]) func1_1();
     if (runTest[2]) func2_1();

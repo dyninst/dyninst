@@ -3131,7 +3131,7 @@ void mutatorTest29(BPatch_thread *, BPatch_image *appImage)
 
     if (expr29_1 == NULL) {
 	fprintf(stderr, "**Failed** test #29 (class BPatch_srcObj)\n");
-	fprintf(stderr, "    Unable to locate globalVariable27_1\n");
+	fprintf(stderr, "    Unable to locate globalVariable29_1\n");
 	return;
     }
     expectError = DYNINST_NO_ERROR;
