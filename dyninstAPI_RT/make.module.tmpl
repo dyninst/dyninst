@@ -2,10 +2,10 @@
 # Common makefile template for rtinst library.  This file is not
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
-# $Id: make.module.tmpl,v 1.6 1998/09/16 16:23:37 wylie Exp $
+# $Id: make.module.tmpl,v 1.7 1999/05/29 23:36:50 wylie Exp $
 #
 
-SUITE_NAME	= DynInst
+SUITE_NAME	= Dyninst
 RELEASE_NUM	= 1.2
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
@@ -23,15 +23,11 @@ CFLAGS	+= -DSHM_SAMPLING
 endif
 
 ifdef USES_LIBDYNINSTRT_SO
-all: $(TARGET3)
+TARGET3_SO=libdyninstAPI_RT.so.1
+all: $(TARGET3_SO)
 else
 all: $(TARGET) $(TARGET2) $(ALT_TARGET)
 endif
-
-#
-# override standard link rule; libdyninst is not really a library or a program.
-#
-UNCOMMON_LINK= true
 
 OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
@@ -40,28 +36,22 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
 ifndef USES_LIBDYNINSTRT_SO
-$(TARGET): $(OBJS) $(LIBS)
+#
+# override standard link rule; libdyninst is not really a library or a program.
+#
+UNCOMMON_LINK=true
+$(TARGET): $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(LD) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS) -lgcc
-endif
 
-#
-# override standard install rule; provide a default DEST if not already set
-#
 ifndef DEST
 DEST		= $(TO_CORE)/$(LIBRARY_DEST)
 endif
 
-UNCOMMON_INSTALL= true
-
-ifdef USES_LIBDYNINSTRT_SO
-install: $(DEST)/$(TARGET3)
-else
+UNCOMMON_INSTALL=true
 install: $(DEST)/$(TARGET) $(SYSEXTRAS)
-endif
 
-$(DEST)/libdyninstAPI_RT.o: libdyninstAPI_RT.o
-	$(CP) libdyninstAPI_RT.o $(DEST)
+$(DEST)/$(TARGET):  $(TARGET)
+	-$(CP) $(TARGET) $(DEST)
 
-$(DEST)/libdyninstAPI_RT.so.1: libdyninstAPI_RT.so.1
-	$(CP) libdyninstAPI_RT.so.1 $(DEST)
+endif #USES_LIBDYNINSTRT_SO
