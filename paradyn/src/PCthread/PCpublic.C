@@ -45,6 +45,10 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.42  1999/05/20 21:41:34  pcroth
+ * Changed saveSHG to not delete its argument, rather argument is now
+ * deleted by caller
+ *
  * Revision 1.41  1999/05/19 07:50:25  karavan
  *
  * Added new shg save feature.
@@ -230,7 +234,6 @@ performanceConsultant::saveSHG(const char *filename, int flag)
     }
     saveFile.close();
   }
-  delete filename;
   uiMgr->shgSaved(success);
 }
 
