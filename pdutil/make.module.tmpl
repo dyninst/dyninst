@@ -4,6 +4,9 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.13  1996/02/16 20:09:08  tamches
+# added pathName
+#
 # Revision 1.12  1996/01/11 03:43:53  tamches
 # added odometer
 #
@@ -57,13 +60,14 @@ SRCS	     += ../src/String.C \
 		../src/timing.C \
 		../src/Timer.C \
 		../src/makenan.C \
+		../src/pathName.C \
 		../src/PriorityQueue.C \
 		../src/odometer.C
 
 OBJS         += String.o DictionaryLite.o \
 		lprintf.o rpcUtil.o aggregateSample.o \
  		stringPool.o hist.o timing.o \
-		makenan.o \
+		makenan.o pathName.o \
 		PriorityQueue.C
 
 SRCS2	     += rpcUtilPVM.C
