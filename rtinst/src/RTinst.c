@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.80 2004/04/06 21:58:35 mirg Exp $
+ * $Id: RTinst.c,v 1.81 2004/05/11 19:02:11 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -82,8 +82,6 @@
 #include "RTcompat.h"
 #include "pdutil/h/resource.h"
 
-extern void makeNewShmSegCopy();
-
 #if defined(MT_THREAD)
 extern const char V_libparadynMT[];
 #else
@@ -96,8 +94,12 @@ int PARADYNdebugPrintRT = 1;
 int PARADYNdebugPrintRT = 0;
 #endif
 
-/* Pointer to the shared data structure */
-RTsharedData_t RTsharedData;
+virtualTimer *virtualTimers = 0;
+unsigned *RTobserved_cost = 0;
+
+unsigned *tramp_guards = 0;
+unsigned *indexToThreads = 0;
+
 /* And max # of threads allowed */
 unsigned MAX_NUMBER_OF_THREADS;
 
@@ -443,9 +445,8 @@ static void initFPU()
 void PARADYNinit(int paradyndPid,
                  int creationMethod,
                  int numThreads,
-                 int theKey, 
-                 unsigned shmSegSize,
-                 unsigned offsetToSharedData) {
+                 virtualTimer *virtualTimersAddr,
+                 int *obsCostAddr) {
     /* On many platforms we can't call this function directly, so
        at initialization we write values into global variables and
        then call a wrapper function (below) */
@@ -455,15 +456,15 @@ void PARADYNinit(int paradyndPid,
     int calledFromFork = (creationMethod == 2);
     int calledFromAttach = (creationMethod == 1);
     int calledFromExec = (creationMethod == 4);
-
-    MAX_NUMBER_OF_THREADS = numThreads;
     
+    MAX_NUMBER_OF_THREADS = numThreads;
+
 #ifdef SHM_SAMPLING_DEBUG
     char thehostname[80];
     extern int gethostname(char*,int);
     
-   (void)gethostname(thehostname, 80);
-   thehostname[79] = '\0';
+    (void)gethostname(thehostname, 80);
+    thehostname[79] = '\0';
    
    /*  
        shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
@@ -484,48 +485,16 @@ void PARADYNinit(int paradyndPid,
   
    /* initialize the tag and group info */
    DYNINSTtagGroupInfo_Init();
-   
-   if (!calledFromFork) {
-      RTsharedData_t *RTsharedInShm;
-      char *endOfShared;
-      Address shmBase;
-      unsigned i;
-      rpcToDo **pendingRPCs;
-      
-      DYNINST_shmSegKey = theKey;
-      DYNINST_shmSegNumBytes = shmSegSize;
-      DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
-                                                   &DYNINST_shmSegShmId);      
-      shmBase = (Address) DYNINST_shmSegAttachedPtr;
 
-      /* Yay, pointer arithmetic */
-      RTsharedInShm = (RTsharedData_t *)
-         (shmBase + offsetToSharedData);
-      RTsharedData.cookie = (unsigned *)
-         ((Address) RTsharedInShm->cookie + shmBase);
-      RTsharedData.inferior_pid = (unsigned *)
-         ((Address) RTsharedInShm->inferior_pid + shmBase);
-      RTsharedData.daemon_pid = (unsigned *)
-         ((Address) RTsharedInShm->daemon_pid + shmBase);
-      RTsharedData.observed_cost = 
-         (unsigned *) ((Address) RTsharedInShm->observed_cost + shmBase);
+   tramp_guards = (unsigned *)malloc(numThreads * sizeof(unsigned));
+   for (i = 0; i < numThreads; i++)
+      tramp_guards[i] = 1; /* default value */
 
-      RTsharedData.virtualTimers = (virtualTimer *)
-         ((Address) RTsharedInShm->virtualTimers + shmBase);
-      RTsharedData.indexToThread = (unsigned *)
-         ((Address) RTsharedInShm->indexToThread + shmBase);
-      RTsharedData.pendingIRPCs = 
-         malloc(sizeof(rpcToDo *)*MAX_NUMBER_OF_THREADS);
-      RTsharedData.pendingIRPCs[0] = NULL;
-      
-      pendingRPCs = (rpcToDo **)
-      ((unsigned) RTsharedInShm->pendingIRPCs + (unsigned) shmBase);
- 
-      for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) { 
-          RTsharedData.pendingIRPCs[i] = (rpcToDo *)
-          ((Address) pendingRPCs[i] + shmBase);
-      }
-   }
+   indexToThreads = (unsigned *)malloc(numThreads * sizeof(unsigned));
+   // Initialization is done in the thread code
+
+   virtualTimers = virtualTimersAddr;
+   RTobserved_cost = obsCostAddr;
    
    /*
      In accordance with usual stdio rules, stdout is line-buffered and stderr
@@ -580,11 +549,6 @@ void PARADYNinit(int paradyndPid,
    PARADYN_bootstrap_info.ppid = -1; /* not needed really */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
 
   
-   if (!calledFromFork) {
-      shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record"
-                         " to 0x%x\n", (Address)DYNINST_shmSegAttachedPtr);
-      PARADYN_bootstrap_info.appl_attachedAtPtr.ptr = DYNINST_shmSegAttachedPtr;
-   }
    PARADYN_bootstrap_info.pid = getpid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */ 
 #if !defined(i386_unknown_nt4_0)
    if (calledFromFork)
@@ -593,8 +557,9 @@ void PARADYNinit(int paradyndPid,
    PARADYN_bootstrap_info.ppid = 0; /* was DYNINST_ ccw 18 apr 2002 SPLIT */
 #endif 
 
-   PARADYN_bootstrap_info.tramp_guard_base = (int *)
-      malloc(numThreads*sizeof(int));
+   PARADYN_bootstrap_info.tramp_guard_base = tramp_guards;
+   PARADYN_bootstrap_info.thread_index_base = indexToThreads;
+   
    for (i = 0; i < numThreads; i++)
       PARADYN_bootstrap_info.tramp_guard_base[i] = 1; /* default value */
 
@@ -703,10 +668,8 @@ void PARADYNinit(int paradyndPid,
 int libparadynRT_init_localparadynPid=-1;
 int libparadynRT_init_localcreationMethod=-1;
 int libparadynRT_init_localmaxThreads=-1;
-int libparadynRT_init_localtheKey=-1;
-int libparadynRT_init_localshmSegNumBytes=-1;
-int libparadynRT_init_localoffset=-1;
-
+virtualTimer *libparadynRT_init_localVirtualTimers=NULL;
+int *libparadynRT_init_localObservedCost=NULL;
 
 #if defined(i386_unknown_nt4_0)  /*ccw 4 jun 2002*/
 #include <windows.h>
@@ -728,16 +691,13 @@ BOOL WINAPI DllMain(
 	if(pDllMainCalledOnce){
 	}else{
 		if(libparadynRT_init_localparadynPid != -1 &&
-           libparadynRT_init_localcreationMethod != -1 &&
-           libparadynRT_init_localtheKey != -1 &&
-           libparadynRT_init_localshmSegNumBytes != -1){
+           libparadynRT_init_localcreationMethod != -1) {
             pDllMainCalledOnce++;
             PARADYNinit(libparadynRT_init_localparadynPid,
                         libparadynRT_init_localcreationMethod,
                         libparadynRT_init_localmaxThreads, /* Number of threads */
-                        libparadynRT_init_localtheKey,
-                        libparadynRT_init_localshmSegNumBytes,
-                        libparadynRT_init_localoffset);
+                        libparadynRT_init_localVirtualTimers,
+			libparadynRT_init_localObservedCost);
 		}
 	}
 	return 1; 
@@ -758,17 +718,15 @@ int PARADYNinitCalledOnce=0;
 void libparadynRT_init() {
     if(PARADYNinitCalledOnce) return;
     else {
-		if(libparadynRT_init_localparadynPid != -1 &&
-           libparadynRT_init_localcreationMethod != -1 &&
-           libparadynRT_init_localtheKey != -1 &&
-           libparadynRT_init_localshmSegNumBytes != -1){
+        if(libparadynRT_init_localparadynPid != -1 &&
+           libparadynRT_init_localcreationMethod != -1) {
+            
             PARADYNinitCalledOnce++;
             PARADYNinit(libparadynRT_init_localparadynPid,
                         libparadynRT_init_localcreationMethod,
                         libparadynRT_init_localmaxThreads, /* Number of threads */
-                        libparadynRT_init_localtheKey,
-                        libparadynRT_init_localshmSegNumBytes,
-                        libparadynRT_init_localoffset);
+                        libparadynRT_init_localVirtualTimers,
+                        libparadynRT_init_localObservedCost);
 		}
 	}
 }
@@ -778,8 +736,6 @@ void libparadynRT_init() {
 
 /* bootstrap structure extraction info (see rtinst/h/trace.h) */
 static struct PARADYN_bootstrapStruct _bs_dummy;
-int32_t PARADYN_attachPtrSize = sizeof(_bs_dummy.appl_attachedAtPtr.ptr);
-
 
 /* debug code should call forkexec_printf as a way of avoiding
    putting #ifdef FORK_EXEC_DEBUG around their fprintf(stderr, ...) statements,
@@ -827,11 +783,6 @@ int PARADYN_init_child_after_fork() {
    setvbuf(stderr, NULL, _IONBF, 0);
    /* make stderr non-buffered */
    
-   /* Here, we need to detach from the old shm segment, create a new one
-      (in the same virtual memory location as the old one), and attach 
-      to it */
-   makeNewShmSegCopy();
-
    /* Some aspects of initialization need to occur right away (such
       as resetting the PMAPI counters on AIX) because the daemon
       may use aspects of the process before pDYNINSTinit is called */
@@ -856,9 +807,6 @@ void DYNINSTmpi_fork(int pid) {
 	if (pid == 0) {
 		forkexec_printf("DYNINSTmpi_fork: child\n");
 
-		/* we are the child process */
-		makeNewShmSegCopy();
-		
 		if (DYNINSTnullTrace() < 0) {
 			return;
 		}
@@ -893,14 +841,12 @@ DYNINSTexecFailed() {
 void
 DYNINSTprintCost(void) {
     FILE *fp;
-    int64_t value;
     struct endStatsRec stats;
 
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
     DYNINSTstopWallTimer(&DYNINSTelapsedTime);
 
-    value = *(unsigned*)((char*)PARADYN_bootstrap_info.appl_attachedAtPtr.ptr + 12);
-    stats.instCycles = value;
+    stats.instCycles = *RTobserved_cost;
     stats.alarms      = 0;
     stats.numReported = DYNINSTnumReported;
     /* used only by alarm sampling */
