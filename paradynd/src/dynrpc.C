@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.97 2003/03/04 19:16:17 willb Exp $ */
+/* $Id: dynrpc.C,v 1.98 2003/04/11 22:46:31 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -210,22 +210,7 @@ void dynRPC::disableDataCollection(int mid)
     else 
         subCurrentPredictedCost(cost);
 
-    pdvector<pd_process *> procsToCont;
-    processMgr::procIter itr = getProcMgr().begin();
-    while(itr != getProcMgr().end()) {
-        pd_process *proc = *itr++;
-        if (proc->status()==running) {
-            proc->pause();
-            procsToCont += proc;
-        }
-        if (proc->existsRPCPending()) {
-            proc->cleanRPCreadyToLaunch(mid);
-        }
-    }
-    
-    for (unsigned i=0; i<procsToCont.size(); i++) {
-      procsToCont[i]->continueProc();
-    }
+    mi->cancelPendingRPCs();
     delete mi;
 
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
@@ -278,11 +263,11 @@ void dynRPC::enableDataCollection(pdvector<T_dyninstRPC::focusStruct> focus,
       instr_insert_result_t status = startCollecting(metric[i], 
 			     focus[i].focus, mi_ids[i], cbi);
       if(status == insert_success) {
-	 send_mi_ids.push_back(mi_ids[i]);
-	 send_return_ids.push_back(mi_ids[i]);
+         send_mi_ids.push_back(mi_ids[i]);
+         send_return_ids.push_back(mi_ids[i]);
       } else if (status == insert_failure) {
-	 send_mi_ids.push_back(mi_ids[i]);
-	 send_return_ids.push_back(-1);
+         send_mi_ids.push_back(mi_ids[i]);
+         send_return_ids.push_back(-1);
       }
       // do nothing if status == instr_inserted_deferred
    }
