@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.105 2001/12/11 20:22:25 chadd Exp $
+// $Id: solaris.C,v 1.106 2002/01/30 17:48:41 hollings Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -182,10 +182,10 @@ bool process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	newElf = new writeBackElf(( char*) getImage()->file().string_of(),"/tmp/dyninstMutatee",errFlag);
 	newElf->registerProcess(this);
 
-	imageUpdates.sort(imageUpdate::imageUpdateSort);// imageUpdate::mysort ); 
+	VECTOR_SORT(imageUpdates, imageUpdate::imageUpdateSort);// imageUpdate::mysort ); 
 	newElf->compactSections(imageUpdates,compactedUpdates);
 
-	highmemUpdates.sort( imageUpdate::imageUpdateSort);
+	VECTOR_SORT(highmemUpdates, imageUpdate::imageUpdateSort);
 	newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
 	newElf->alignHighMem(compactedHighmemUpdates);

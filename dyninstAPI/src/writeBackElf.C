@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.1 2001/12/11 20:22:26 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.2 2002/01/30 17:48:40 hollings Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 
@@ -827,7 +827,7 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
 			}
 
 		}
-		imagePatches.sort(imageUpdate::imageUpdateSort);
+		VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
 	}
 
 
@@ -862,7 +862,7 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
 				}
 			}  
 		}
-		imagePatches.sort(imageUpdate::imageUpdateSort);
+		VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
 	}
 
 	unsigned int k=0;
