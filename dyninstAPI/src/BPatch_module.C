@@ -500,7 +500,6 @@ void BPatch_module::parseTypes()
 
 	      // find the variable for the common block
 	      BPatch_image *progam = (BPatch_image *) getObjParent();
-
 	      
 	      commonBlockVar = progam->findVariable(commonBlockName);
 	      if (!commonBlockVar) {
@@ -535,9 +534,29 @@ void BPatch_module::parseTypes()
 	      commonBlockVar = NULL;
 	      commonBlock = NULL;
 	  } else if (sym->n_sclass == C_BSTAT) {
+	      char *staticName, tempName[9];
 	      // begin static block
+	      // find the variable for the common block
 	      tsym = (SYMENT *) (((unsigned) syms) + sym->n_value * SYMESZ);
-	      staticBlockBaseAddr = tsym->n_value;
+
+	      if (!tsym->n_zeroes) {
+		  staticName = &stringPool[tsym->n_offset];
+	      } else {
+		  memset(tempName, 0, 9);
+		  strncpy(tempName, tsym->n_name, 8);
+		  staticName = tempName;
+	      }
+	      BPatch_image *progam = (BPatch_image *) getObjParent();
+
+	      BPatch_variableExpr *staticBlockVar = progam->findVariable(staticName);
+	      if (!staticBlockVar) {
+		  printf("unable to find static block %s\n", staticName);
+		  staticBlockBaseAddr = 0;
+	      } else {
+		  printf("found static block variable %s, at %x\n", staticName,
+		      (unsigned) staticBlockVar->getBaseAddr());
+		  staticBlockBaseAddr = (Address) staticBlockVar->getBaseAddr();
+	      }
 	  } else if (sym->n_sclass == C_ESTAT) {
 	      staticBlockBaseAddr = 0;
 	  }
