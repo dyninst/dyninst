@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.46 2003/07/15 22:43:38 schendel Exp $
+// $Id: BPatch_image.C,v 1.47 2003/09/05 16:27:32 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -388,30 +388,31 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
 void BPatch_image::findFunctionInImage(
 	const char *name, image *img, BPatch_Vector<BPatch_function*> *funcs)
 {
-    pd_Function *pdf;
-    pdvector<pd_Function*> *pdfv;
+   pd_Function *pdf;
+   pdvector<pd_Function*> *pdfv;
 
-    if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
-	assert(pdfv->size() > 0);
+   if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
+      assert(pdfv->size() > 0);
 
-	for (unsigned int i = 0; i < pdfv->size(); i++) {
-		BPatch_function * foo = proc->findOrCreateBPFunc((*pdfv)[i]);
-	  	funcs->push_back( foo );
+      for (unsigned int i = 0; i < pdfv->size(); i++) {
+         BPatch_function * foo = proc->findOrCreateBPFunc((*pdfv)[i]);
+         funcs->push_back( foo );
 		}
 
 	
-    } else {
+   } else {
 
-	if ((pdf = img->findFuncByMangled(name)) != NULL)
-	    funcs->push_back(proc->findOrCreateBPFunc(pdf));
-    }
+      if ((pdf = img->findFuncByMangled(name)) != NULL)
+         funcs->push_back(proc->findOrCreateBPFunc(pdf));
+   }
 
-    // Note that we can only return one non instrumentable function right now.
-    if ((pdf = img->findNonInstruFunc(name)) != NULL)
-	funcs->push_back(proc->findOrCreateBPFunc(pdf));
+   // Note that we can only return one non instrumentable function right now.
+   if ((pdf = img->findNonInstruFunc(name)) != NULL)
+      funcs->push_back(proc->findOrCreateBPFunc(pdf));
 
-    // Note:  there used to be a call to findExcludedFunction here, which properly
-    //        does not belong in the dyninstAPI -- removed by JAW 02-03
+
+   // Note: there used to be a call to findExcludedFunction here, which
+   // properly does not belong in the dyninstAPI -- removed by JAW 02-03
 }
 
 /*
@@ -466,81 +467,81 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 	bool regex_case_sensitive)
 {
 
-  if (NULL == strpbrk(name, REGEX_CHARSET)) {
-    //  usual case, no regex
-    findFunctionInImage(name, proc->symbols, &funcs);
-    
-    if (proc->dynamiclinking && proc->shared_objects) {
-      for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
-	const image *obj_image = ((*proc->shared_objects)[j])->getImage();
-	if (obj_image) {
-	  findFunctionInImage(name, (image*)obj_image, &funcs);
-	}
-      }
-    }
-    
-    if (funcs.size() > 0) {
-      return &funcs;
-    } else {
+   if (NULL == strpbrk(name, REGEX_CHARSET)) {
+      //  usual case, no regex
+      findFunctionInImage(name, proc->getImage(), &funcs);
       
-      if (showError) {
-         pdstring msg = pdstring("Image: Unable to find function: ") + 
-                        pdstring(name);
-         BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      if (proc->dynamiclinking && proc->shared_objects) {
+         for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
+            const image *obj_image = ((*proc->shared_objects)[j])->getImage();
+            if (obj_image) {
+               findFunctionInImage(name, (image*)obj_image, &funcs);
+            }
+         }
       }
-      return NULL;
-    }
-  }
+
+      if (funcs.size() > 0) {
+         return &funcs;
+      } else {
+         
+         if (showError) {
+            pdstring msg = pdstring("Image: Unable to find function: ") + 
+               pdstring(name);
+            BPatch_reportError(BPatchSerious, 100, msg.c_str());
+         }
+         return NULL;
+      }
+   }
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
-  // REGEX falls through:
-  regex_t comp_pat;
-  int err, cflags = REG_NOSUB | REG_EXTENDED;
+   // REGEX falls through:
+   regex_t comp_pat;
+   int err, cflags = REG_NOSUB | REG_EXTENDED;
+   
+   if( !regex_case_sensitive )
+      cflags |= REG_ICASE;
   
-  if( !regex_case_sensitive )
-    cflags |= REG_ICASE;
-  
-  cerr << "compiling regex: " <<name<<endl;
+   cerr << "compiling regex: " <<name<<endl;
 
-  if (0 != (err = regcomp( &comp_pat, name, cflags ))) {
-    char errbuf[80];
-    regerror( err, &comp_pat, errbuf, 80 );
-    if (showError) {
-      cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-      pdstring msg = pdstring("Image: Unable to find function pattern: ") 
-	+ pdstring(name) + ": regex error --" + pdstring(errbuf);
-      BPatch_reportError(BPatchSerious, 100, msg.c_str());
-    }
-    // remove this line
-    cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-    return NULL;
-  }
-    
-  findFunctionPatternInImage(&comp_pat, proc->symbols, &funcs);
-  cerr << "matched regex: " <<name<<"in symbols, results: "<<funcs.size()<<endl;
-
-  if (proc->dynamiclinking && proc->shared_objects) {
-    for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
-      const image *obj_image = ((*proc->shared_objects)[j])->getImage();
-      if (obj_image) {
-	findFunctionPatternInImage(&comp_pat, (image*)obj_image, &funcs);
-	cerr << "matched regex: " <<name<<"in so, results: "<<funcs.size()<<endl;
+   if (0 != (err = regcomp( &comp_pat, name, cflags ))) {
+      char errbuf[80];
+      regerror( err, &comp_pat, errbuf, 80 );
+      if (showError) {
+         cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+         pdstring msg = pdstring("Image: Unable to find function pattern: ") 
+            + pdstring(name) + ": regex error --" + pdstring(errbuf);
+         BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
-    }
-  }
-  
-  regfree(&comp_pat);
+      // remove this line
+      cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+      return NULL;
+   }
+   
+   findFunctionPatternInImage(&comp_pat, proc->getImage(), &funcs);
+   cerr << "matched regex: " <<name<<"in symbols, results: "<<funcs.size()<<endl;
 
-  if (funcs.size() > 0) {
-    return &funcs;
-  } 
-    
-  if (showError) {
-    pdstring msg = pdstring("Unable to find pattern: ") + pdstring(name);
-    BPatch_reportError(BPatchSerious, 100, msg.c_str());
-  }
+   if (proc->dynamiclinking && proc->shared_objects) {
+      for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
+         const image *obj_image = ((*proc->shared_objects)[j])->getImage();
+         if (obj_image) {
+            findFunctionPatternInImage(&comp_pat, (image*)obj_image, &funcs);
+            cerr << "matched regex: " <<name<<"in so, results: "<<funcs.size()<<endl;
+         }
+      }
+   }
+  
+   regfree(&comp_pat);
+
+   if (funcs.size() > 0) {
+      return &funcs;
+   } 
+   
+   if (showError) {
+      pdstring msg = pdstring("Unable to find pattern: ") + pdstring(name);
+      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+   }
 #endif
-  return NULL;
+   return NULL;
 }
 
 void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_function *> *funcs,
@@ -581,7 +582,7 @@ BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs,
 			   void *user_data, int showError)
 {
 
-  sieveFunctionsInImage(proc->symbols, &funcs, bpsieve, user_data);
+  sieveFunctionsInImage(proc->getImage(), &funcs, bpsieve, user_data);
   
   if (proc->dynamiclinking && proc->shared_objects) {
     for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
