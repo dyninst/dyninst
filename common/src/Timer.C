@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// Timer.C
+// $Id: Timer.C,v 1.8 2000/06/15 19:43:36 wylie Exp $
 
 #include "util/h/Timer.h"
 
@@ -252,7 +252,7 @@ timer::get_current(double& u, double& s, double& w) {
 
 #if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0)
    // aix 4.1 and linux don't need or agree with the following declaration:
-extern "C" gettimeofday(struct timeval *tp, struct timezone *tzp);
+extern "C" int gettimeofday(struct timeval *tp, struct timezone *tzp);
 #endif
 
 void
