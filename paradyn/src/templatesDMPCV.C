@@ -113,6 +113,8 @@ template class dictionary_iter<unsigned, metricInstance *>;
 template class List<sampleInfo*>;
 template class ListItem<sampleInfo*>;
 
+template class vector<T_dyninstRPC::batch_buffer_entry>;
+template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *) ;
 /* ********************************
  * PCthread stuff
  */
