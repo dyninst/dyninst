@@ -47,10 +47,10 @@ protected:
 	int* executionCounts;
 
 	/** name of the function */
-	char* functionName;
+	const char* functionName;
 
 	/** source file name the function is in */
-	char* fileName;
+	const char* fileName;
 
 	/* the id of the function */
 	int id;
@@ -65,14 +65,22 @@ protected:
 	BPatch_Set<BPatch_basicBlock*> exitBlock;
 
 	bool isPrecise;
+
+	unsigned short lineCount;
+	BPatch_Set<unsigned short> executedLines;
+	BPatch_Set<unsigned short> unExecutedLines;
+
+	float executionPercentage;
+
 public:
 	/** friend class */
 	friend class CCOnDemandInstrument;
+	friend class CodeCoverage;
 	
 	/** friend function that is used to sort Function Coverage 
 	  * objects according to the function names
 	  */
-	friend int FCSort(const void* arg1,const void* arg2);
+	friend int FCSortByFileName(const void* arg1,const void* arg2);
 
 protected:
 	/** method to print error message for this class */
@@ -96,6 +104,8 @@ protected:
 	  */
 	virtual int updateExecutionCounts(BPatch_basicBlock* bb,int ec);
 public:
+	pthread_mutex_t updateLock;
+
 	/** constructor of the class */
 	FunctionCoverage(); 
 
@@ -139,11 +149,17 @@ public:
 	  */
 	int updateExecutionCounts();
 
+	/** method to update line stuctures */
+	int updateLinesCovered(BPatch_sourceBlock* sb);
+
 	/** method to print coverage results to the given file
 	  * @param cf file to print the results to
 	  * @param isInst flag whether the function is executed at all or not
 	  */
-	int printCoverageInformation(ofstream& cf,bool isInst);
+	int printCoverageInformation(ofstream& cf);
+
+	/** method to initialize lines that are not executed */
+	void initializeLines(BPatch_Set<unsigned short>& lines);
 
 	/** destructor of the class */
 	virtual ~FunctionCoverage();

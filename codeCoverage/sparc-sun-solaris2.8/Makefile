@@ -2,6 +2,7 @@
 
 #UNCOMMON_INSTALL = true
 
+USES_TCLTK = true
 NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
@@ -18,12 +19,14 @@ SRCS =		../src/FCAllBlocks.C \
 		../src/CCOnDemandInstrument.C \
 		../src/CodeCoverage.C 
 
+IFLAGS		+= -I/usr/imports/include
 
 CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0
 CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY 
 TFLAGS		+= -DUSES_ELF32_ONLY 
 
-SYSLIBS = -lelf -lsocket -lnsl
+TCLTK_LIBS	= -ltk8.0 -ltcl
+SYSLIBS 	= -lelf -lX11 $(TCLTK_LIBS) -ldl -lsocket -lnsl -lpthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

@@ -64,6 +64,19 @@ protected:
 	/** pointer to the global object used for interval callback */
 	static CodeCoverage* globalObject;
 
+	/** array to represent files in the executable 
+	  * sorted by fileName. Each entry in the array
+	  * stores index to the entry in array of CodeCoverage records
+	  * Note that CodeCoverage records are sorted according to
+	  * file name and then function name
+	  */
+	static unsigned short fileCount;
+	static unsigned short* fileStartIndex;
+	static unsigned short* fileLineCount;
+
+	Tcl_Interp* globalInterp;
+	const char* statusBarName;
+
 protected:
 	/** interval callback function is defined to be friend*/
 	friend void intervalCallback(int signalNo);
@@ -106,7 +119,12 @@ protected:
 	  */
 	virtual bool isInstrumented(int i);
 
+	/** method that creates an array of files in the executable*/
+	void createFileStructure();
+
 public:
+	pthread_mutex_t updateLock;
+
 	/** constructor of the class */
 	CodeCoverage();
 
@@ -150,6 +168,21 @@ public:
 	  * @param fN file name of the binary output file
 	  */
 	static int viewCodeCoverageInfo(char* fN);
+
+	/** method that prints the tcl/tk command to create
+	  * global data structure to be used for menu/list creation
+	  */
+	void getTclTkMenuListCreation(ofstream& file);
+ 
+	/** method that retrieves all executed line information
+	  */
+	void getTclTkExecutedLines(ofstream& file);
+
+	/** method to set tcl/tk related things to CodeCoverage */
+	void setTclTkSupport(Tcl_Interp* interp,const char* statusBar);
+
+	/** method that prepares the file for menu creation for view only */
+	static int getTclTkMenuListForView(char* fN,ofstream& file);
 
 	/** destructor of the class */
 	virtual ~CodeCoverage();
