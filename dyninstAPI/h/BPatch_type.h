@@ -281,6 +281,9 @@ public:
   BPatch_type(const char *_name, BPatch_dataClass _type, int _size,
 	      BPatch_type * _ptr);
 			    
+  // Simple Destructor
+  ~BPatch_type();
+
   int  getID(){ return ID;}
   void setID(int typeId) { ID = typeId; }
   void setDataClass(BPatch_dataClass p1) { type_ = p1; }
@@ -293,8 +296,11 @@ public:
   BPatch_dataClass type() { return type_; }
 #endif
 
+  void setLow(const char *cPtr);
+  void setHigh(const char *cPtr);
   const char *getLow() { return low; }
   const char *getHigh() { return hi; }
+
   BPatch_type *getConstituentType() { return ptr; }
   bool isCompatible(BPatch_type *otype);
   BPatch_dataClass getDataClass() { return type_; }

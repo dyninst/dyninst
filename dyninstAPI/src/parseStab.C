@@ -260,9 +260,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      /* Get variable type number */
 	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
-	      if (stabstr[cnt]) 
+	      if (stabstr[cnt]) {
 		  fprintf(stderr, "\tMore to parse %s\n", &stabstr[cnt]);
-
+		  fprintf(stderr, "\tFull String: %s\n", stabstr);
+	      }
 	      // lookup symbol and set type
 	      BPatch_type *BPtype;
       
@@ -292,6 +293,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  cnt = strlen(stabstr);
 	      } else if (stabstr[cnt]) {
 		  fprintf(stderr, "\tMore to parse %s\n", &stabstr[cnt]);
+		  fprintf(stderr, "\tFull String: %s\n", stabstr);
 	      }
 
 	      ptrType = mod->moduleTypes->findType(symdescID);
@@ -399,6 +401,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		// AIX seems to append an semi at the end of these
 		if (stabstr[0] && strcmp(stabstr, ";")) {
 		    fprintf(stderr, "\tMore to parse %s\n", stabstr);
+		  fprintf(stderr, "\tFull String: %s\n", stabstr);
 		}
 	      } else {
 		//Create BPatch_type defined as a pre-exisitng type.
@@ -440,6 +443,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  cnt = 0;
 		  if (stabstr[0]) {
 		      fprintf(stderr, "\tMore to parse %s\n", (&stabstr[cnt]));
+		  fprintf(stderr, "\tFull String: %s\n", stabstr);
 		  }
 	      } else {
 		  //Create BPatch_type defined as a pre-exisitng type.
@@ -455,9 +459,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      // printf("parsing 'v' type of %s\n", stabstr);
 	      /* Get variable type number */
 	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
-	      if (stabstr[cnt]) 
+	      if (stabstr[cnt]) {
 		  fprintf(stderr, "\tMore to parse %s\n", &stabstr[cnt]);
-
+		  fprintf(stderr, "\tFull String: %s\n", stabstr);
+	}
 	      // lookup symbol and set type
 	      BPtype = mod->moduleTypes->findType(symdescID);
 	      if (!BPtype) {
@@ -864,6 +869,7 @@ static char *parseRangeType(BPatch_module *mod,char *name,int ID, char *stabstr)
       cnt++;
     if( stabstr[cnt] ) {
       fprintf(stderr, "ERROR: More to parse in type-r- %s\n", &(stabstr[cnt]));
+		  fprintf(stderr, "\tFull String: %s\n", stabstr);
     }
     
     return(&(stabstr[cnt]));
@@ -981,6 +987,7 @@ static void parseAttrType(BPatch_module *mod, char *name,
 			 int ID, char *stabstr, int &cnt)
 {
     bool includesRange = false;
+    char *low = NULL, *high = NULL;
 
     // format @s(size in bits); negative type number;
     BPatch_dataClass typdescr = BPatch_dataTypeAttrib;
@@ -997,7 +1004,7 @@ static void parseAttrType(BPatch_module *mod, char *name,
       if (stabstr[cnt] == 'r') {
 	  // include range at end
 	  cnt++;
-	  //includesRange++;
+	  includesRange = true;
       }
 
       int type = parseSymDesc(stabstr, cnt);
@@ -1005,17 +1012,31 @@ static void parseAttrType(BPatch_module *mod, char *name,
       cnt++;
 
       if (includesRange) {
-	  if (stabstr[cnt] == '-' ) cnt++;
-	  while (isdigit(stabstr[cnt])) cnt++;
+	  int len;
 
-	  // skip ';'
-	  cnt++;
+	  // Parse out low range string.
+	  len = 0;
+	  if (stabstr[cnt] == '-' ) cnt++, len++;
+	  while (isdigit(stabstr[cnt])) cnt++, len++;
+	  cnt++;    // skip ';'
 
-	  if (stabstr[cnt] == '-' ) cnt++;
-	  while (isdigit(stabstr[cnt])) cnt++;
+	  // Store the low range string.
+	  low = (char *)malloc(sizeof(char) * (len + 1));
+	  assert(low);
+	  strncpy(low, &stabstr[cnt - (len + 1)], len);
+	  low[len] = '\0';
 
-	  // skip ';'
-	  cnt++;
+	  // Parse out high range string.
+	  len = 0;
+	  if (stabstr[cnt] == '-' ) cnt++, len++;
+	  while (isdigit(stabstr[cnt])) cnt++, len++;
+	  cnt++;    // skip ';'
+
+	  // Store the high range string.
+	  high = (char *)malloc(sizeof(char) * (len + 1));
+          assert(high);
+          strncpy(high, &stabstr[cnt - (len + 1)], len);
+          high[len] = '\0';
       }
 
       // Create a new B_type that points to a builtInTypes
@@ -1024,14 +1045,21 @@ static void parseAttrType(BPatch_module *mod, char *name,
       if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
       
       BPatch_type *newType = new BPatch_type(name, ID, typdescr, size/8, ptrType);
-      
-      // Add type to collection
-      if(newType) mod->moduleTypes->addType(newType);
       if(!newType) {
 	    printf(" Can't Allocate new type ");
 	    exit(-1);
       }
-      
+
+      if (includesRange) {
+	  newType->setLow(low);
+	  newType->setHigh(high);
+	  free(low);
+	  free(high);
+      }
+
+      // Add type to collection
+      mod->moduleTypes->addType(newType);
+
       if (stabstr[cnt]) {
 	  printf("More Type Attribute to Parse: %s ID %d : %s\n", name,
 	       ID, &(stabstr[cnt]));

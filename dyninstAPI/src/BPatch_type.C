@@ -642,6 +642,16 @@ nullType(false)
   ptr = _ptr;
 }
 
+/* BPatch_type destructor
+ * Basic destructor for proper memory management.
+ */
+BPatch_type::~BPatch_type()
+{
+    if (name) free(name);
+    if (low)  free(low);
+    if (hi)   free(hi);
+}
+
 void BPatch_type::beginCommonBlock()
 {
     BPatch_Vector<BPatch_field*> emptyList;
@@ -1019,6 +1029,40 @@ void BPatch_type::addField(const char * _fieldname, BPatch_dataClass _typeDes,
 }
 
 /*
+ * void BPatch_type::setLow
+ * Sets the lower bound of this BPatch_type.  Typically filled with
+ * information from symbol table.
+ */
+void BPatch_type::setLow(const char *cPtr)
+{
+    if (low) free(low);
+
+    if (cPtr) {
+	low = strdup(cPtr);
+	assert(low);
+    } else {
+	low = NULL;
+    }
+}
+
+/*
+ * void BPatch_type::setHigh
+ * Sets the upper bound of this BPatch_type.  Typically filled with
+ * information from symbol table.
+ */
+void BPatch_type::setHigh(const char *cPtr)
+{
+    if (hi) free(hi);
+
+    if (cPtr) {
+        hi = strdup(cPtr);
+        assert(hi);
+    } else {
+        hi = NULL;
+    }
+}
+
+/*
  * BPatch_field::BPatch_field
  *
  * Constructor for BPatch_field.  Creates a field object for 
@@ -1132,8 +1176,6 @@ BPatch_localVar::BPatch_localVar(char * _name,  BPatch_type * _type,
  */
 BPatch_localVar::~BPatch_localVar()
 {
-
   //XXX jdd 5/25/99 More to do later
 
 }
-
