@@ -4,9 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.18  1996/04/13 04:39:46  karavan
-/* better implementation of batching for edge requests
+/* Revision 1.19  1996/04/16 18:37:31  karavan
+/* fine-tunification of UI-PC batching code, plus addification of some
+/* Ari-like verbification commentification.
 /*
+ * Revision 1.18  1996/04/13 04:39:46  karavan
+ * better implementation of batching for edge requests
+ *
  * Revision 1.17  1996/04/09 19:25:10  karavan
  * added batch mode to cut down on shg redraw time.
  *
@@ -1121,7 +1125,8 @@ bool shg::configNode(unsigned id, bool newActive,
 void shg::addEdge(unsigned fromId, unsigned toId,
 		  shgRootNode::refinement theRefinement,
 		  const char *label, // only used for shadow nodes; else NULL
-		  bool isCurrShg) {
+		  bool isCurrShg,
+		  bool rethinkFlag) {
    // What to do about hidden nodes?
    // 1) If child is a shadow node then we must initialize the hidden flag properly
    // 2) If not a shadow node then probably nothing to do, assuming the hidden
@@ -1212,5 +1217,5 @@ void shg::addEdge(unsigned fromId, unsigned toId,
 		       );
 
    // rethink layout of entire shg (slow...):
-   rethink_entire_layout(isCurrShg);
+   if (rethinkFlag) rethink_entire_layout(isCurrShg);
 }

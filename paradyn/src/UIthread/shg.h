@@ -4,9 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.12  1996/04/13 04:39:49  karavan
-/* better implementation of batching for edge requests
+/* Revision 1.13  1996/04/16 18:37:33  karavan
+/* fine-tunification of UI-PC batching code, plus addification of some
+/* Ari-like verbification commentification.
 /*
+ * Revision 1.12  1996/04/13 04:39:49  karavan
+ * better implementation of batching for edge requests
+ *
  * Revision 1.11  1996/04/09 19:25:13  karavan
  * added batch mode to cut down on shg redraw time.
  *
@@ -329,7 +333,8 @@ class shg {
    void addEdge(unsigned fromId, unsigned toId,
                 shgRootNode::refinement, // why vs. where refinement.
                 const char *label, // only used for shadow nodes; else NULL
-                bool isCurrShg);
+                bool isCurrShg, 
+		bool rethinkFlag); // if false, avoids rethinkification
       // The evaluationState param decides whether to explicitly expand
       // the "to" node.  Rethinks the entire layout of the shg
 };

@@ -4,9 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.12  1996/04/13 04:39:44  karavan
-/* better implementation of batching for edge requests
+/* Revision 1.13  1996/04/16 18:37:38  karavan
+/* fine-tunification of UI-PC batching code, plus addification of some
+/* Ari-like verbification commentification.
 /*
+ * Revision 1.12  1996/04/13 04:39:44  karavan
+ * better implementation of batching for edge requests
+ *
  * Revision 1.11  1996/04/09 19:25:18  karavan
  * added batch mode to cut down on shg redraw time.
  *
@@ -246,8 +250,8 @@ class shgPhases {
                 bool rootNodeFlag);
    bool addEdge(int phaseId, unsigned fromId, unsigned toId,
                 shgRootNode::refinement,
-                const char *label // used only for shadow nodes, else NULL
-                );
+                const char *label, // used only for shadow nodes, else NULL
+                bool rethinkFlag); // if false avoids rethinkification
       // The evaluationState param decides whether to explicitly expand
       // the "to" node.  Rethinks the entire layout of the shg
    bool configNode(int phaseId, unsigned nodeId,

@@ -4,9 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.16  1996/04/13 04:39:42  karavan
-/* better implementation of batching for edge requests
+/* Revision 1.17  1996/04/16 18:37:36  karavan
+/* fine-tunification of UI-PC batching code, plus addification of some
+/* Ari-like verbification commentification.
 /*
+ * Revision 1.16  1996/04/13 04:39:42  karavan
+ * better implementation of batching for edge requests
+ *
  * Revision 1.15  1996/04/09 19:25:15  karavan
  * added batch mode to cut down on shg redraw time.
  *
@@ -609,14 +613,14 @@ bool shgPhases::addNode(int phaseId, unsigned nodeId,
 
 bool shgPhases::addEdge(int phaseId, unsigned fromId, unsigned toId,
 			shgRootNode::refinement theRefinement,
-			const char *label // used only for shadow nodes, else NULL
-			) {
+			const char *label, // used only for shadow nodes, else NULL
+			bool rethinkFlag) {
    // The evaluationState param decides whether to explicitly expand
    // the "to" node.  Rethinks the entire layout of the shg
    // Returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
    const bool isCurrShg = (getCurrentId() == phaseId);
-   theShg.addEdge(fromId, toId, theRefinement, label, isCurrShg);
+   theShg.addEdge(fromId, toId, theRefinement, label, isCurrShg, rethinkFlag);
 
    return isCurrShg;
 }
@@ -648,12 +652,12 @@ void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
    shgStruct &theShgStruct = getByIDLL(phaseId);
 
    //const string msg = iMsg + "\n";
-   const string msg = iMsg;
+   //const string msg = iMsg;
 
-   theShgStruct.msgText += msg;
+   theShgStruct.msgText += iMsg;
 
    if (isCurrShg) {
-      string commandStr = msgTextWindowName + " insert end {" + msg + "}";
+      string commandStr = msgTextWindowName + " insert end {" + iMsg + "}";
       myTclEval(interp, commandStr);
 
       commandStr = msgTextWindowName + " yview -pickplace end";

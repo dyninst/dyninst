@@ -21,9 +21,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.51  1996/04/13 04:39:39  karavan
-/* better implementation of batching for edge requests
+/* Revision 1.52  1996/04/16 18:37:27  karavan
+/* fine-tunification of UI-PC batching code, plus addification of some
+/* Ari-like verbification commentification.
 /*
+ * Revision 1.51  1996/04/13 04:39:39  karavan
+ * better implementation of batching for edge requests
+ *
  * Revision 1.50  1996/04/09 19:25:07  karavan
  * added batch mode to cut down on shg redraw time.
  *
@@ -296,9 +300,10 @@ void UIM::newPhaseNotification (unsigned ph, const char *name, bool with_new_pc)
 }
 
 void
-UIM::updateStatusDisplay (int dagid, const char *info)
+UIM::updateStatusDisplay (int dagid, string *info)
 {
-   theShgPhases->addToStatusDisplay(dagid, info);
+   theShgPhases->addToStatusDisplay(dagid, *info);
+   delete info;
 }
 
 bool haveSeenFirstGoodShgWid = false;
@@ -433,7 +438,7 @@ UIM::DAGaddBatchOfEdges (int dagID, vector<uiSHGrequest> *requests,
     curr = &((*requests)[i]);
     shgRootNode::refinement theRefinementStyle = int2refinement(curr->styleID);
     if (theShgPhases->addEdge(dagID, curr->srcNodeID, curr->dstNodeID, theRefinementStyle,
-			      curr->label)) redraw = true;
+			      curr->label, i==numRequests-1)) redraw = true;
   }
   if (redraw) initiateShgRedraw(interp, true); // true --> double buffer
   delete requests;
@@ -452,7 +457,7 @@ UIM::DAGaddEdge (int dagID, unsigned srcID,
 			     srcID, // parent
 			     dstID, // child
 			     theRefinementStyle,
-			     label))
+			     label, true)) // true --> rethink
      initiateShgRedraw(interp, true); // true --> double buffer
 
    return 1;
