@@ -26,6 +26,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.8  1996/04/08 21:43:09  lzheng
+ * removed use of function funcReturn()
+ *
  * Revision 1.7  1996/04/08 21:13:20  lzheng
  * The working version of paradynd/HP
  *
@@ -913,7 +916,9 @@ unsigned functionKludge(pdFunction *func, process *proc)
 	printf("Internal Error: wrong with function return\n");
 	abort();
     } 
-    address = ((func->funcReturn())->addr)+4;
+    // warning: the following code assumes one exit point!
+//    address = ((func->funcReturn())->addr)+4;
+    address = func->funcReturns[func->funcReturns.size()-1]->addr + 4;
     proc->writeTextWord((caddr_t)address ,(func->exitPoint).raw);
 
     Address ret = func -> addr(); 
