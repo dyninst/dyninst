@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.93 2003/02/04 14:59:39 bernat Exp $ */
+/* $Id: dynrpc.C,v 1.94 2003/02/04 22:42:43 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -71,6 +71,9 @@ extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
 extern debug_ostream signal_cerr;
+
+int StartOrAttach( void );
+extern bool startOnReportSelfDone;
 
 timeLength *imetricSamplingRate = NULL;
 timeLength *currSamplingRate = NULL;
@@ -486,3 +489,19 @@ bool dynRPC::attach(string progpath, int pid, int afterAttach)
 double dynRPC::getTime() {
   return getWallTime().getD(timeUnit::sec(), timeBase::bStd());
 }
+
+
+void
+dynRPC::reportSelfDone( void )
+{
+    std::cout << "in reportSelfDone" << std::endl;
+
+    if( startOnReportSelfDone )
+    {
+        // The front-end is done handling our reportSelf request
+        // We can start our process now
+        StartOrAttach();
+    }
+}
+
+

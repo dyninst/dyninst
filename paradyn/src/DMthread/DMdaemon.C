@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.119 2003/01/29 21:27:26 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.120 2003/02/04 22:42:43 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2638,6 +2638,12 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
       addMetric(info[u]);
 
   this->updateTimeAdjustment();
+
+#if !defined(NO_SYNC_REPORT_SELF)
+    // tell the daemon we're done with this call
+    // it can go off and ignore its event loop for awhile
+    reportSelfDone();
+#endif // !defined(NO_SYNC_REPORT_SELF)
 
   return;
 }

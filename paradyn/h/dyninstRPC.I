@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.104 2002/12/20 07:50:00 jaw Exp $
+/* $Id: dyninstRPC.I,v 1.105 2003/02/04 22:42:42 pcroth Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -411,7 +411,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 58;
+    $version 59;
 
     //
     // Define a program to run. 
@@ -711,11 +711,25 @@ $remote dynRPC {
    //
    // For paradynd's that may get started, but not by paradyn
    // This allows them to report system information
-   // flavor = programming environment {"pvm", "cm5", ... }
+   //
    $virtual $upcall $async void reportSelf(string machine, 
 					   string program, 
 					   int pid,
 					   string flavor);
+
+    //
+    // The front end is done handling this daemon's reportSelf call.
+    // A daemon should put off doing anything that will cause it
+    // to ignore its event loop for an extended time until it sees
+    // this message from the front end, so that the front-end
+    // doesn't get delayed waiting for responses to its synchronous calls
+    // in its reportSelf handler.
+    //
+    // Note: only used when reportSelf is used (i.e., only when 
+    // some external job launcher like mpirun starts our daemons for us)
+    //
+    $virtual $async void reportSelfDone();
+
 
    //
    // this call is used by paradynd to inform paradyn of a change in

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.112 2003/02/04 14:59:40 bernat Exp $
+// $Id: main.C,v 1.113 2003/02/04 22:42:43 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -78,6 +78,13 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
 
+
+int StartOrAttach( void );
+bool isInfProcAttached = false;
+string* newProcDir = NULL;
+pdvector<string> newProcCmdLine;
+static bool reportedSelf = false;
+       bool startOnReportSelfDone = false;
 
 pdRPC *tp = NULL;
 
@@ -357,14 +364,13 @@ InitForMPI( char* argv[], const string& pd_machine )
 	assert(tp != NULL);
 
 	tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
+    reportedSelf = true;
 }
 
 static
 void
 InitManuallyStarted( char* argv[],  const string& pd_machine )
 {
-	bool reported = false;
-
 	// report back to our front end
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
 					pd_machine, NULL, NULL, 2);
@@ -376,7 +382,7 @@ InitManuallyStarted( char* argv[],  const string& pd_machine )
 		cleanUpAndExit(-1);
 	}
 	tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
-	reported = true;
+	reportedSelf = true;
 
 #if defined(PARADYND_PVM)
 	// are we designated for monitoring a PVM application?
@@ -408,10 +414,11 @@ InitRemotelyStarted( char* argv[], const string& pd_machine, bool report )
   
   // ??? is this the right thing to do? it was in the
   // non-PVM version of the code, but not in the PVM version
-  // we decide whether to report if the cmdLine was empty or not
+  // we decide whether to report if the command line was empty or not
   if( report )
     {
       tp->reportSelf( machine_name, argv[0], getpid(), pd_flavor );
+      reportedSelf = true;
     }
 }
 
@@ -488,6 +495,7 @@ InitForPVM( char* argv[], const string& pd_machine )
 		assert(tp);
 
 		tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
+        reportedSelf = true;
     }
 }
 #endif // PARADYND_PVM
@@ -633,12 +641,11 @@ main( int argc, char* argv[] )
 
    // We want to find two things
    // First, get the current working dir (PWD)
-   string* dir = new string(getenv("PWD"));
+   newProcDir = new string(getenv("PWD"));
 
    // Second, put the inferior application and its command line
-   // arguments into cmdLine. Basically, loop through argv until
-   // we find -runme, and put everything after it into cmdLine.
-   pdvector<string> cmdLine;
+   // arguments into the command line. Basically, loop through argv until
+   // we find -runme, and put everything after it into the command line
    unsigned int argNum = 0;
    while ((argNum < (unsigned int)argc) && (strcmp(argv[argNum], "-runme")))
    {
@@ -650,9 +657,9 @@ main( int argc, char* argv[] )
    // this is the command that is to be issued
    for (unsigned int i = argNum; i < (unsigned int)argc; i++)
    {
-      cmdLine += argv[i];
+      newProcCmdLine += argv[i];
    }
-   // note - cmdLine could be empty here, if the -runme flag were not given
+   // note - newProcCmdLine could be empty here, if the -runme flag is not given
    
 
    // There are several ways that we might have been started.
@@ -694,7 +701,7 @@ main( int argc, char* argv[] )
       else if( pd_flag == 0 )
       {
          // we are a remote daemon started by rsh/rexec or some other
-         InitRemotelyStarted( argv, pd_machine, (cmdLine.size() > 0) );
+         InitRemotelyStarted( argv, pd_machine, (newProcCmdLine.size() > 0) );
       }
       else if( pd_flag == 1 )
       {
@@ -745,6 +752,38 @@ main( int argc, char* argv[] )
    {
       abort();
    }
+
+
+    // check whether we are supposed to start or attach to the process now
+    // otherwise, we wait till we get the reportSelfDone call from the
+    // front-end
+#if !defined(NO_SYNC_REPORT_SELF)
+    if( reportedSelf )
+    {
+        // we want to use the synchronous reportSelfDone call
+        startOnReportSelfDone = true;
+    }
+#endif // defined(NO_SYNC_REPORT_SELF)
+
+    // start or attach to the process now if desired
+    if( !startOnReportSelfDone )
+    {
+        int soaRet = StartOrAttach();
+        if( soaRet != 0 )
+        {
+            return soaRet;
+        }
+    }
+
+    // start handling requests
+    controllerMainLoop( true );
+    return 0;
+}
+
+
+int
+StartOrAttach( void )
+{
    bool startByAttach = false;
    bool startByCreateAttach = false;
 #ifdef mips_sgi_irix6_4
@@ -760,18 +799,18 @@ main( int argc, char* argv[] )
    
    if ( pd_flavor == "mpi" && osName.prefixed_by("IRIX") )
    {
-      if ( !execIrixMPIProcess(cmdLine) )
+      if ( !execIrixMPIProcess(newProcCmdLine) )
          return(0);
    }
    else
 #endif
       
       // spawn the given process, if necessary
-      if (cmdLine.size() && (pd_attpid==0))
+      if (newProcCmdLine.size() && (pd_attpid==0))
       {
          pdvector<string> envp;
          // ignore return val (is this right?)
-         pd_createProcess(cmdLine, envp, *dir); 
+         pd_createProcess(newProcCmdLine, envp, *newProcDir); 
       } 
       else if (pd_attpid && (pd_flag==2))
       {
@@ -796,13 +835,14 @@ main( int argc, char* argv[] )
        p->pause();
 
    } else if (startByCreateAttach) {
-      if (cmdLine.size()){
-         AttachToCreatedProcess(pd_attpid,cmdLine[0]); 
+      if (newProcCmdLine.size()){
+         AttachToCreatedProcess(pd_attpid,newProcCmdLine[0]); 
       } else {
          AttachToCreatedProcess(pd_attpid,"");
       }
    }
    
-   controllerMainLoop(true);
-   return(0);
+   isInfProcAttached = true;
+   return 0;
 }
+

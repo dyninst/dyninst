@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.142 2003/01/02 19:52:19 schendel Exp $
+// $Id: perfStream.C,v 1.143 2003/02/04 22:42:43 pcroth Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -97,6 +97,8 @@ int traceSocketPort;
 
 static void createResource(int pid, traceHeader *header, struct _newresource *r);
 bool firstSampleReceived = false;
+
+extern bool isInfProcAttached;
 
 /*removed for output redirection
 // Read output data from process curr. 
@@ -723,8 +725,11 @@ void controllerMainLoop(bool check_buffer_first)
       // process signals before igen requests: this is to avoid problems when
       // an inferiorRPC is waiting for a system call to complete and an igen
       // requests arrives at that moment - naim
-      extern void checkProcStatus(); // check status of inferior processes
-      checkProcStatus();
+      if( isInfProcAttached )
+      {
+            extern void checkProcStatus(); // check status of inferior processes
+            checkProcStatus();
+      }
       
       FD_ZERO(&readSet);
       FD_ZERO(&errorSet);
