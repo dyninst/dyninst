@@ -46,7 +46,7 @@
 #define __RPCMGR__
 
 
-#include "common/h/vectorSet.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/inferiorRPC.h"
 #include "common/h/Dictionary.h"
 
@@ -55,14 +55,14 @@ class dyn_lwp;
 
 class rpcLwp {
    dyn_lwp *lwp;
-   vectorSet<inferiorRPCtoDo> thrRPCsWaitingToStart;
+   pdvector<inferiorRPCtoDo> thrRPCsWaitingToStart;
+   inferiorRPCtoDo *activeRPC;
    inferiorRPCinProgress thrCurrRunningRPC;
-   irpcState_t irpcState_;
    bool wasRunningBeforeSyscall_;
 
  public:
 
-   rpcLwp(dyn_lwp *lwp_) : lwp(lwp_), irpcState_(irpcNotValid)  { }
+   rpcLwp(dyn_lwp *lwp_) : lwp(lwp_), activeRPC(NULL) { }
    
    dyn_lwp *get_lwp() { return lwp; }
 
@@ -84,17 +84,31 @@ class rpcLwp {
   // After a syscall completes, launch an RPC. Special case
   // of launchThreadIRPC
   irpcLaunchState_t launchPendingIRPC();
+  irpcState_t getActiveRPCState() const {
+     if(activeRPC)
+        return activeRPC->irpcState_;
+     else
+        return irpcNotRunning;
+  }
+  unsigned getActiveRPCid() const {
+     if(activeRPC)
+        return activeRPC->seq_num;
+     else
+        return 0;
+  }
+  irpcState_t getRPCState(unsigned rpc_id);
+  bool cancelRPC(unsigned rpc_id);
 
   // Clear/query whether we're waiting for a trap (for signal handling)
-  bool isIRPCwaitingForSyscall() { return irpcState_ == irpcWaitingForTrap; }
+  bool isIRPCwaitingForSyscall() { 
+     return (getActiveRPCState() == irpcWaitingForTrap);
+  }
 
   // Handle completing IRPCs
   Address getIRPCRetValAddr();
   bool handleRetValIRPC();
   Address getIRPCFinishedAddr();
   bool handleCompletedIRPC();
-
-  irpcState_t getLastIRPCState() { return irpcState_; }
 };
 
 static inline unsigned rpcLwpHash(dyn_lwp * const &lwp_addr)
@@ -108,6 +122,7 @@ static inline unsigned rpcLwpHash(dyn_lwp * const &lwp_addr)
 }
 
 class rpcMgr {
+   static unsigned rpc_sequence_num;
    process *proc;
 
   // This structure keeps track of an inferiorRPC that we will start sometime
@@ -115,8 +130,7 @@ class rpcMgr {
   // which have been launched and which we're waiting to finish.
   // Don't confuse the two!
 
-  vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
-  irpcState_t irpcState_;
+  pdvector<inferiorRPCtoDo> RPCsWaitingToStart;
 
   inferiorRPCinProgress currRunningIRPC;
   bool wasRunningBeforeSyscall_;   
@@ -131,8 +145,7 @@ class rpcMgr {
    bool thr_IRPC();
 
  public:
-   rpcMgr(process *proc_) : proc(proc_), irpcState_(irpcNotValid),
-      rpcLwpBuf(rpcLwpHash) { };
+   rpcMgr(process *proc_) : proc(proc_), rpcLwpBuf(rpcLwpHash) { };
 
    void newLwpFound(dyn_lwp *lwp);
    void deleteLwp(dyn_lwp *lwp);
@@ -152,16 +165,9 @@ class rpcMgr {
    }
 
    bool launchRPCs(bool wasRunning);
-   bool handleCompletedIRPC();
-   Address getIRPCRetValAddr();
    bool handleRetValIRPC();
-   Address getIRPCFinishedAddr();
    bool handleTrapIfDueToRPC();
    bool rpcSavesRegs();
-
-   bool isIRPCwaitingForSyscall() const {
-      return irpcState_ == irpcWaitingForTrap;
-   }
 
    bool isRunningIRPC() const;
    bool readyIRPC() const;
@@ -169,23 +175,23 @@ class rpcMgr {
    bool existsRPCinProgress() const;
    bool existsRPCPending() const;
 
-   void cleanRPCreadyToLaunch(int mid);
+   irpcState_t getRPCState(unsigned rpc_id);
+   bool cancelRPC(unsigned rpc_id);
 
    // posting RPC on a process
-   void postRPCtoDo(AstNode *action, bool noCost,
-                    inferiorRPCcallbackFunc callbackFunc,
-                    void *userData, int mid, bool lowmem);
+   unsigned postRPCtoDo(AstNode *action, bool noCost,
+                        inferiorRPCcallbackFunc callbackFunc,
+                        void *userData, bool lowmem);
 
    // posting RPC on a thread
-   void postRPCtoDo(AstNode *action, bool noCost,
-                    inferiorRPCcallbackFunc callbackFunc,
-                    void *userData, int mid, dyn_thread *thr, bool lowmem);
+   unsigned postRPCtoDo(AstNode *action, bool noCost,
+                        inferiorRPCcallbackFunc callbackFunc,
+                        void *userData, dyn_thread *thr, bool lowmem);
 
    // posting RPC on a lwp
-   void postRPCtoDo(AstNode *action, bool noCost,
-                    inferiorRPCcallbackFunc callbackFunc, void *userData,
-                    int mid,  dyn_lwp *lwp, bool lowmem);
-
+   unsigned postRPCtoDo(AstNode *action, bool noCost,
+                        inferiorRPCcallbackFunc callbackFunc, void *userData,
+                        dyn_lwp *lwp, bool lowmem);
 
    Address createRPCImage(AstNode *action, bool noCost,
                           bool shouldStopForResult, Address &breakAddr,
