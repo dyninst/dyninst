@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.168 2004/04/06 21:47:22 legendre Exp $
+ * $Id: inst-x86.C,v 1.169 2004/04/08 21:14:04 lharris Exp $
  */
 
 #include <iomanip>
@@ -1046,7 +1046,8 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             } 
             else if( ah.isACallInstruction() ) 
             {
-                window = 0;
+                //Uncomment this and run paradyn on eon to reproduce bug# 440
+                //window = 0;
                 entryblock = false;
                 //validTarget is set to false if the call target is not a 
                 //valid address in the applications process space 
