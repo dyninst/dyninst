@@ -39,13 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.79 1999/10/29 22:32:32 zandy Exp $
+// $Id: solaris.C,v 1.80 1999/11/11 00:50:35 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
+#ifndef BPATCH_LIBRARY
 #include "dyninstAPI/src/pdThread.h"
+#endif
 #include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
 #include <sys/ioctl.h>

@@ -43,57 +43,7 @@
 #ifndef PERF_STREAM_H
 #define PERF_STREAM_H
 
-/*
- * $Log: perfStream.h,v $
- * Revision 1.10  1997/04/29 23:17:43  mjrg
- * Changes for WindowsNT port
- * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
- * Changed way paradyn and paradynd generate resource ids
- * Changes to instPoint class in inst-x86.C to reduce size of objects
- * Added initialization for process->threads to fork and attach constructors
- *
- * Revision 1.9  1997/03/18 19:45:58  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- * Revision 1.8  1997/01/21 20:07:53  mjrg
- * Changed to unix domain socket for trace stream
- * Replaced calls to uname by calls to libutil function getHostName
- *
- * Revision 1.7  1996/10/31 09:04:41  tamches
- * removed 2 unused cm5 vrbles
- *
- * Revision 1.6  1996/08/16 21:19:33  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/03/12 20:48:34  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.4  1995/05/18  10:43:26  markc
- * Removed declarations for unused functions
- *
- * Revision 1.3  1995/02/16  08:53:56  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.2  1995/02/16  08:34:26  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.1  1994/11/01  16:58:08  markc
- * Prototypes
- *
- */
+// $Id: perfStream.h,v 1.11 1999/11/11 00:47:29 wylie Exp $
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"

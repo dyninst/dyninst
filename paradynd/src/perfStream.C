@@ -1,4 +1,4 @@
-/*
+//*
  * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.104 1999/11/09 19:18:45 cain Exp $
+// $Id: perfStream.C,v 1.105 1999/11/11 00:47:29 wylie Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -205,7 +205,7 @@ void processTraceStream(process *curr)
 	//statusLine(P_strdup(buffer.string_of()));
 	//showErrorCallback(11, P_strdup(buffer.string_of()));
 	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
-	statusLine(msg.string_of()); 
+	statusLine(msg.string_of());
 	P_close(curr->traceLink);
   	curr->traceLink = -1;
 	handleProcessExit(curr,0);
@@ -231,7 +231,8 @@ void processTraceStream(process *curr)
 
 	curr->bufStart = ALIGN_TO_WORDSIZE(curr->bufStart);
 	if (header.length % WORDSIZE != 0) {
-	  sprintf(errorLine, "Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
+	  sprintf(errorLine, "Warning: non-aligned length (%d) received"
+                " on traceStream.  Type=%d\n", header.length, header.type);
 	  logLine(errorLine);
 	  showErrorCallback(36,(const char *) errorLine);
 	}
@@ -278,7 +279,8 @@ void processTraceStream(process *curr)
 	        break;
 #endif
 	    case TR_NEW_RESOURCE:
-	      //cerr << "paradynd: received a new resource from pid " << curr->getPid() << "; processing now" << endl;
+	      //cerr << "paradynd: received a new resource from pid " 
+              //     << curr->getPid() << "; processing now" << endl;
 		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
 		   // createResource() is in this file, below
 		break;
@@ -676,7 +678,7 @@ void controllerMainLoop(bool check_buffer_first)
 
     while (1) {
         // we have moved this code at the beginning of the loop, so we will
-        // process signals before igen requets. this is to avoid problems when
+        // process signals before igen requests: this is to avoid problems when
         // an inferiorRPC is waiting for a system call to complete and an igen
         // requests arrives at that moment - naim
 	extern void checkProcStatus(); // check status of inferior processes

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.62 1999/10/25 15:14:25 bernat Exp $
+// $Id: aix.C,v 1.63 1999/11/11 00:50:34 wylie Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -789,7 +789,7 @@ bool process::terminateProc_()
   if (!checkStatus())
     return false;
 
-  if (P_ptrace(PT_KILL, pid, NULL, NULL, NULL) != 0) {
+  if (P_ptrace(PT_KILL, pid, NULL, 0, NULL) != 0) {
     // For some unknown reason, the above ptrace sometimes fails with a "no
     // such process" error, even when there is such a process and the process
     // is runnable.  So, if the above fails, we try killing it another way.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.15 1998/12/25 22:20:40 wylie Exp $
+// $Id: solarisDL.C,v 1.16 1999/11/11 00:50:35 wylie Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -287,7 +287,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	   obj_name != p->getArgv0()) {
 	   sharedobj_cerr << 
 	       "file name doesn't match image, so not ignoring it...firsttime=" 
-	       << first_time << endl;
+	       << (int)first_time << endl;
 
 	   // kludge for when an exec occurs...the first element
 	   // in the link maps is the file name of the parent process
@@ -301,7 +301,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	else {
 	   sharedobj_cerr << 
 	       "file name matches that of image, so ignoring...firsttime=" 
-	       << first_time << endl;
+	       << (int)first_time << endl;
         }
 
 	first_time = false;
