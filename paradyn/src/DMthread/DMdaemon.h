@@ -231,9 +231,9 @@ class paradynDaemon: public dynRPCUser {
 				 const char *login, const char *name,
 				 const char *machine, const char *flavor);
 
-	static bool addRunningProgram(int pid, const vector<string> &argv, 
+	static bool addRunningProgram(int pid, const vector<string> &paradynd_argv, 
 			              paradynDaemon *daemon,
-                                      bool calledFromExec);
+                                      bool calledFromExec, bool isInitiallyRunning);
            // start a new program; propagate all enabled metrics to it
 
 	static bool newExecutable(const string &machine, const string &login,
@@ -242,11 +242,13 @@ class paradynDaemon: public dynRPCUser {
            // launch new process
 
         static bool attachStub(const string &machine, const string &user,
-                               const string &dir, const string &cmd, int pid,
-                               const string &daemonName);
+                               const string &cmd, int pid,
+                               const string &daemonName,
+                               int afterAttach // 0 --> as is, 1 --> pause, 2 --> run
+                               );
            // attach to an already-running process.
-           // dir + cmd are used to get a path to the executable, which we use just
-           // to read the symbol table.
+           // cmd gives the full path to the executable, used just to parse the
+           // symbol table.
            // the word Stub was appended to the name to avoid conflict with the
            // igen call "attach"
 

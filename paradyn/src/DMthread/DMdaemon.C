@@ -126,14 +126,15 @@ void DM_enableType::updateAny(vector<metricInstance *> &completed_mis,
 // an exec syscall?
 //
 // The new program inherits all enabled metrics, and if the application is 
-// running the new program must run too.
+// running, the new program must run too.
 // 
+// Called by the igen routine newProgramCallbackFunc()
+
 bool paradynDaemon::addRunningProgram (int pid,
-				       const vector<string> &argv,
+				       const vector<string> &paradynd_argv,
 				       paradynDaemon *daemon,
-				       bool calledFromExec
-				       )
-{
+				       bool calledFromExec,
+				       bool attached_runMe) {
     executable *exec = NULL;
 
     if (calledFromExec) {
@@ -145,12 +146,14 @@ bool paradynDaemon::addRunningProgram (int pid,
        }
        assert(exec);
 
-       // exec() doesn't change the pid, but argv changes (big deal).
-       exec->argv = argv;
+       // exec() doesn't change the pid, but paradynd_argv changes (big deal).
+       exec->argv = paradynd_argv;
+
+       // fall through (we probably want to execute the daemon->continueProcess())
     }
     else {
        // the non-exec (the normal) case follows:
-       exec = new executable (pid, argv, daemon);
+       exec = new executable (pid, paradynd_argv, daemon);
        programs += exec;
        ++procRunning;
 
@@ -161,9 +164,17 @@ bool paradynDaemon::addRunningProgram (int pid,
        daemon->propagateMetrics();
     }
 
-    if (applicationState == appRunning) {
+    if (applicationState == appRunning || attached_runMe) {
       //cerr << "paradyn: calling daemon->continueProcess off of addRunningProgram (machine " << daemon->getDaemonMachineName() << "; pid=" << pid << ") !" << endl;
       daemon->continueProcess(pid);
+    }
+
+    if (procRunning == 1 && attached_runMe) {
+       // currently, Paradyn believes that the application is paused.
+       // Let's change that to 'running'.
+       if (!continueAll())
+	  cerr << "warning: continueAll failed" << endl;
+       uiMgr->enablePauseOrRun();
     }
 
     return true;
@@ -513,8 +524,6 @@ bool paradynDaemon::newExecutable(const string &machine,
 				  const string &dir, 
 				  const vector<string> &argv){
 
-  static char tmp_buf[256];
-
   if (! DMstatus)
       DMstatus = new status_line("Data Manager");
 
@@ -532,8 +541,9 @@ bool paradynDaemon::newExecutable(const string &machine,
   // did the application get started ok?
   if (pid > 0 && !daemon->did_error_occur()) {
       // TODO
-      sprintf (tmp_buf, "%sPID=%d ", tmp_buf, pid);
-      uiMgr->updateStatus(PROCstatus, tmp_buf);
+      char tmp_buf[80];
+      sprintf (tmp_buf, "PID=%d", pid);
+      uiMgr->updateStatus(PROCstatus, P_strdup(tmp_buf));
 #ifdef notdef
       executable *exec = new executable(pid, argv, daemon);
       paradynDaemon::programs += exec;
@@ -547,10 +557,14 @@ bool paradynDaemon::newExecutable(const string &machine,
 
 bool paradynDaemon::attachStub(const string &machine,
 			       const string &userName,
-			       const string &dir,
-			       const string &cmd, // program name
+			       const string &cmd, // program name (full path)
 			       int the_pid,
-			       const string &daemonName) {
+			       const string &daemonName,
+			       int afterAttach // 0 --> as is, 1 --> pause, 2 --> run
+			       ) {
+  // Note: by this time, both the RUN and PAUSE buttons have been disabled in the
+  // user interface...
+
   if (! DMstatus)
       DMstatus = new status_line("Data Manager");
 
@@ -561,8 +575,12 @@ bool paradynDaemon::attachStub(const string &machine,
   if (daemon == NULL)
       return false;
 
+  char tmp_buf[128];
+  sprintf (tmp_buf, "attaching to PID=%d...", the_pid);
+  uiMgr->updateStatus(PROCstatus, P_strdup(tmp_buf));
+
   performanceStream::ResourceBatchMode(batchStart);
-  bool success = daemon->attach(dir, cmd, the_pid);
+  bool success = daemon->attach(cmd, the_pid, afterAttach);
   performanceStream::ResourceBatchMode(batchEnd);
 
   if (daemon->did_error_occur())
@@ -571,9 +589,8 @@ bool paradynDaemon::attachStub(const string &machine,
   if (!success)
      return false;
 
-  char tmp_buf[128];
-  sprintf (tmp_buf, "%sPID=%d ", tmp_buf, the_pid);
-  uiMgr->updateStatus(PROCstatus, tmp_buf);
+  sprintf (tmp_buf, "PID=%d", the_pid);
+  uiMgr->updateStatus(PROCstatus, P_strdup(tmp_buf));
   return true; // success
 }
 
