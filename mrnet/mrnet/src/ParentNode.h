@@ -11,6 +11,9 @@
 #include "mrnet/src/RemoteNode.h"
 #include "mrnet/src/pthread_sync.h"
 
+namespace MRN
+{
+
 class ParentNode{
   friend class Aggregator;
   friend class Synchronizer;
@@ -91,5 +94,7 @@ class ParentNode{
 
 bool lt_RemoteNodePtr(RemoteNode *p1, RemoteNode *p2);
 bool equal_RemoteNodePtr(RemoteNode *p1, RemoteNode *p2);
+
+} // namespace MRN
 
 #endif /* __parentnode_h */

@@ -3,6 +3,9 @@
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/utils.h"
 
+namespace MRN
+{
+
 /*======================================*
  *    Filter Class Definition        *
  *======================================*/
@@ -379,3 +382,4 @@ void sync_TimeOut(std::list <Packet *> &packets_in,
 {
 }
 
+} // namespace MRN

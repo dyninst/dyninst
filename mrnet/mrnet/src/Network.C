@@ -19,7 +19,9 @@
 #include "mrnet/src/EndPointImpl.h"
 
 #include "mrnet/h/MR_NetworkC.h"
-using namespace MRN;
+
+namespace MRN
+{
 
 NetworkImpl * Network::network = NULL;
 BackEndNode * Network::back_end = NULL;
@@ -224,4 +226,5 @@ EndPoint * EndPoint::new_EndPoint(int _id, const char * _hostname,
 }
 
 
+} // namespace MRN
 

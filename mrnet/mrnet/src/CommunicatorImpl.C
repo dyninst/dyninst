@@ -7,6 +7,9 @@
 #include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/utils.h"
 
+namespace MRN
+{
+
 CommunicatorImpl * CommunicatorImpl::comm_Broadcast=NULL;
 
 CommunicatorImpl * CommunicatorImpl::get_BroadcastCommunicator(void)
@@ -111,3 +114,5 @@ const std::vector <EndPoint *> * CommunicatorImpl::get_EndPoints() const
 {
   return endpoints;
 }
+
+} // namespace MRN

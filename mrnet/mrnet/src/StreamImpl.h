@@ -11,6 +11,9 @@ using namespace MRN;
 #include "mrnet/src/Message.h"
 #include "mrnet/src/CommunicatorImpl.h"
 
+namespace MRN
+{
+
 class StreamImpl: public Stream {
   friend class Network;
 
@@ -45,5 +48,7 @@ class StreamImpl: public Stream {
     int send_aux(int tag, const char * format_str, va_list arg_list ); 
     static int unpack(char* buf, const char* fmt, va_list arg_list );
 };
+
+} // namespace MRN
 
 #endif /* __streamimpl_h */

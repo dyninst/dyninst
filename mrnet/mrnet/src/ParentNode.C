@@ -6,6 +6,9 @@
 #include "mrnet/src/utils.h"
 #include "src/config.h"
 
+namespace MRN
+{
+
 /*====================================================*/
 /*  ParentNode CLASS METHOD DEFINITIONS            */
 /*====================================================*/
@@ -1123,4 +1126,6 @@ ParentNode::getConnections( int** conns, unsigned int* nConns )
     }
     return ret;
 }
+
+} // namespace MRN
 

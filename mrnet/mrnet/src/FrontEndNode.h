@@ -5,6 +5,9 @@
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/Message.h"
 
+namespace MRN
+{
+
 class FrontEndNode: public ParentNode, public CommunicationNode{
  private:
     std::string commnode;
@@ -40,4 +43,5 @@ class FrontEndNode: public ParentNode, public CommunicationNode{
     }
 };
 
+} // namespace MRN
 #endif /* __frontendnode_h */

@@ -4,6 +4,9 @@
 
 #include "mrnet/src/EndPointImpl.h"
 
+namespace MRN
+{
+
 EndPointImpl::EndPointImpl(int _id, const char * _hostname,
                                  unsigned short _port)
   :id(_id), hostname(_hostname), port(_port)
@@ -41,3 +44,5 @@ bool EndPointImpl::compare(const char * _hostnamestr, unsigned short _port)
     return false;
   }
 }
+
+} // namespace MRN

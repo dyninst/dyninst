@@ -4,7 +4,10 @@
 #include <vector>
 
 #include "mrnet/h/MR_Network.h"
-using namespace MRN;
+
+
+namespace MRN
+{
 
 class RemoteNode;
 class CommunicatorImpl: public Communicator{
@@ -35,5 +38,7 @@ class CommunicatorImpl: public Communicator{
   virtual unsigned short get_Port(int) const;
   virtual unsigned int get_Id(int) const;
 };
+
+} // namespace MRN
 
 #endif /* __communicator_h */

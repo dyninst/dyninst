@@ -1,6 +1,9 @@
 #include "mrnet/src/CommunicationNode.h"
 #include "mrnet/src/utils.h"
 
+namespace MRN
+{
+
 /*===========================================================*/
 /*  CommunicationNode CLASS METHOD DEFINITIONS            */
 /*===========================================================*/
@@ -43,3 +46,5 @@ int CommunicationNode::get_BlockingTimeOut( )
 {
     return poll_timeout;
 }
+
+} // namespace MRN

@@ -9,6 +9,9 @@
 #include "mrnet/src/Message.h"
 #include "mrnet/src/pthread_sync.h"
 
+namespace MRN
+{
+
 class ChildNode;
 class ParentNode;
 class RemoteNode:public CommunicationNode{
@@ -57,5 +60,7 @@ class RemoteNode:public CommunicationNode{
   const pollfd& get_pollfd( void ) const    { return poll_struct; }
   int get_sockfd( void ) const              { return sock_fd; }
 };
+
+} // namespace MRN
 
 #endif /* __remotenode_h  */

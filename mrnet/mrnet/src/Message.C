@@ -8,6 +8,9 @@
 #include "mrnet/src/Message.h"
 #include "mrnet/src/utils.h"
 
+namespace MRN
+{
+
 void Message::add_Packet(Packet *packet)
 {
   assert(packet);
@@ -1009,3 +1012,5 @@ int readmsg(int fd, struct msghdr *msg){
   //should do a recursive call checking for syscall interuption
   return recvmsg(fd, msg, MSG_WAITALL); 
 }
+
+} // namespace MRN

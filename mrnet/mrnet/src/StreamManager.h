@@ -4,6 +4,9 @@
 #include <list>
 #include "mrnet/src/Filter.h"
 
+namespace MRN
+{
+
 class RemoteNode;
 class StreamManager{
   friend class ParentNode;
@@ -21,5 +24,7 @@ class StreamManager{
 		   std::list <RemoteNode *> &_downstream);
   int push_packet(Packet *, std::list<Packet *> &);
 };
+
+} // namespace MRN
 
 #endif /* __streammanager_h  */

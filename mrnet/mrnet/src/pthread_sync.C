@@ -3,6 +3,9 @@
 #include<stdlib.h>
 #include <stdio.h>
 
+namespace MRN
+{
+
 #define MAX_CONDS 512
 
 pthread_sync::pthread_sync() {
@@ -57,4 +60,6 @@ void pthread_sync::signal(unsigned cond_num) {
 void pthread_sync::wait(unsigned cond_num) {
     pthread_cond_wait(conds[cond_num], mutex);
 }
+
+} // namespace MRN
 

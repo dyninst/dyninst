@@ -2,6 +2,9 @@
 #include "mrnet/src/FrontEndNode.h"
 #include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
+
+namespace MRN
+{
 /*======================================================*/
 /*  FrontEndNode CLASS METHOD DEFINITIONS            */
 /*======================================================*/
@@ -241,3 +244,4 @@ FrontEndNode::deliverLeafInfoResponse( Packet* pkt )
     return 0;
 }
 
+} // namespace MRN

@@ -4,6 +4,9 @@
 #include "mrnet/src/Message.h"
 #include <list>
 
+namespace MRN
+{
+
 #define AGGR_NULL 0
 #define AGGR_NULL_FORMATSTR ""
 
@@ -38,5 +41,7 @@ void sync_DontWait(std::list <Packet *>&, std::list <Packet *>&,
 #define SYNC_TIMEOUT 2005
 void sync_TimeOut(std::list <Packet *>&, std::list <Packet *>&,
                   std::list <RemoteNode *> &, void **);
+
+} // namespace MRN
 
 #endif /* filterdefinitions_h */

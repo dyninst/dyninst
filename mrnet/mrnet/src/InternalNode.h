@@ -10,6 +10,9 @@
 #include "mrnet/src/Message.h"
 #include "mrnet/src/pthread_sync.h"
 
+namespace MRN
+{
+
 class InternalNode: public ParentNode, public ChildNode,
 		       public CommunicationNode
 {
@@ -29,4 +32,5 @@ class InternalNode: public ParentNode, public ChildNode,
   virtual int proc_DataFromDownStream(Packet *);
 };
 
+} // namespace MRN
 #endif /* __internalnode_h */

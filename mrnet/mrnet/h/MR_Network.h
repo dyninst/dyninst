@@ -5,12 +5,12 @@
 #  define NULL (0)
 #endif // NULL
 
-class NetworkImpl;
-class BackEndNode;
-
 #include "mrnet/src/FilterDefinitions.h"
 namespace MRN
 {
+class NetworkImpl;
+class BackEndNode;
+
 const int FIRST_CTL_TAG=100;
 const int FIRST_APPL_TAG=200;
 

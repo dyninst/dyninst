@@ -10,6 +10,9 @@
 #include "mrnet/src/Errors.h"
 #include "mrnet/src/pdr.h"
 
+namespace MRN
+{
+
 class RemoteNode;
 class Packet;
 typedef enum {UNKNOWN_T, CHAR_T, UCHAR_T,
@@ -101,4 +104,7 @@ int readmsg(int fd, struct msghdr *msg);
 int write(int fd, const void * buf, int size);
 
 DataType Fmt2Type(const char * cur_fmt);
+
+} // namespace MRN
+
 #endif /* Message_h */

@@ -7,6 +7,9 @@
 #include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/utils.h"
 
+namespace MRN
+{
+
 unsigned int StreamImpl::cur_stream_idx=0;
 unsigned int StreamImpl::next_stream_id=0;
 std::map <unsigned int, StreamImpl *>* StreamImpl::streams = NULL;
@@ -265,3 +268,5 @@ StreamImpl::unpack( char* buf, const char* fmt_str, va_list arg_list )
 
   return ret;
 }
+
+} // namespace MRN

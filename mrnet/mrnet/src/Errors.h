@@ -2,6 +2,9 @@
 #define __Error_h
 
 
+namespace MRN
+{
+
 enum ErrorCodes{MRN_ENONE=0,
                    MRN_EBADCONFIG_IO,
                    MRN_EBADCONFIG_FMT,
@@ -44,4 +47,6 @@ class Error{
   bool fail();
   void perror(const char *);
 };
+
+} // namespace MRN
 #endif /* __Error_h */

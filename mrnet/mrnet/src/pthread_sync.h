@@ -4,6 +4,9 @@
 #include<pthread.h>
 #include<stdlib.h>
 
+namespace MRN
+{
+
 class pthread_sync {
   private:
     pthread_mutex_t *mutex;
@@ -20,5 +23,7 @@ class pthread_sync {
     void signal(unsigned cond_num);
     void wait(unsigned cond_num);
 };
+
+} // namespace MRN
 
 #endif

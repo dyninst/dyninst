@@ -3,6 +3,9 @@
 #include "mrnet/src/ChildNode.h"
 #include "mrnet/src/utils.h"
 
+namespace MRN
+{
+
 /*===================================================*/
 /*  ChildNode CLASS METHOD DEFINITIONS            */
 /*===================================================*/
@@ -58,3 +61,4 @@ ChildNode::getConnections( int** conns, unsigned int* nConns )
     return ret;
 }
 
+} // namespace MRN

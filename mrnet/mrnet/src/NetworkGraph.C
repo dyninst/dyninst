@@ -6,6 +6,9 @@
 #include "mrnet/src/utils.h"
 #include "src/config.h"
 
+namespace MRN
+{
+
 /***************************************************
  * NetworkNode
  **************************************************/
@@ -394,3 +397,5 @@ void SerialGraph::find_NumBackends()
     }
   }
 }
+
+} // namespace MRN

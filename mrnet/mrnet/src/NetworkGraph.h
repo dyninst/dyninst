@@ -10,7 +10,9 @@
 #include "mrnet/src/Errors.h"
 #include "mrnet/src/Message.h"
 #include "mrnet/h/MR_Network.h"
-using namespace MRN;
+
+namespace MRN
+{
 
 class NetworkGraph;
 
@@ -87,5 +89,7 @@ class NetworkGraph{
   SerialGraph & get_SerialGraph();
   void add_Node(NetworkNode*);
 };
+
+} // namespace MRN
 
 #endif /* NetworkGraph_h */

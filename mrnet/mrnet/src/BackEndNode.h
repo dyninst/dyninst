@@ -7,6 +7,9 @@
 #include "mrnet/src/ChildNode.h"
 #include "mrnet/src/Message.h"
 
+namespace MRN
+{
+
 class BackEndNode: public ChildNode, public CommunicationNode {
  private:
     unsigned int backend_id;    // id in the backend namespace
@@ -22,5 +25,7 @@ class BackEndNode: public ChildNode, public CommunicationNode {
   int flush();
   int recv( bool blocking=true );
 };
+
+} // namespace MRN
 
 #endif /* __backendnode_h */

@@ -12,7 +12,9 @@
 #include "mrnet/src/FrontEndNode.h"
 
 #include "mrnet/h/MR_Network.h"
-using namespace MRN;
+
+namespace MRN
+{
 
 class NetworkImpl: public Error {
   friend class NetworkGraph;
@@ -74,6 +76,10 @@ public:
   int parse_configfile();
 
  public:
+  static std::list <NetworkNode *>* hostlist;
+  static std::list <NetworkNode *>* potential_root;
+  static NetworkGraph* parsed_graph;
+
   NetworkGraph * graph;  /* heirarchical DAG of tree nodes */
   static void error_str(const char *);
   static int recv( bool blocking=true );
@@ -93,4 +99,5 @@ public:
         }
 };
 
+} // namespace MRN
 #endif /* __networkimpl_h */

@@ -6,6 +6,9 @@
 #include "mrnet/src/Message.h"
 #include "mrnet/src/RemoteNode.h"
 
+namespace MRN
+{
+
 class ChildNode{
  protected:
   RemoteNode * upstream_node;
@@ -30,5 +33,7 @@ class ChildNode{
 
   int getConnections( int** conns, unsigned int* nConns );
 };
+
+} // namespace MRN
 
 #endif /* __childnode_h */

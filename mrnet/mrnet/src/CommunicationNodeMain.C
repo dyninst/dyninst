@@ -10,6 +10,8 @@
 #include "mrnet/src/InternalNode.h"
 #include "mrnet/src/utils.h"
 
+using namespace MRN;
+
 void BeDaemon( void );
 
 int main(int argc, char **argv)

@@ -18,6 +18,10 @@
 
 #include <string>
 
+
+namespace MRN
+{
+
 static int get_local_ip_address(std::string &ip_address);
 
 #define SA struct sockaddr
@@ -805,3 +809,6 @@ int mrn_printf(int level, const char * file, int line, FILE * fp,
 
   return retval;
 }
+
+} // namespace MRN
+

@@ -6,6 +6,9 @@
 #include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
 
+namespace MRN
+{
+
 /*=====================================================*/
 /*  BackEndNode CLASS METHOD DEFINITIONS            */
 /*=====================================================*/
@@ -153,3 +156,6 @@ int BackEndNode::recv( bool blocking )
   mrn_printf(3, MCFL, stderr, "Leaving backend.recv().\n");
   return 1;
 }
+
+} // namespace MRN
+

@@ -5,6 +5,9 @@
 #include "mrnet/src/Errors.h"
 #include "mrnet/h/MR_Network.h"
 
+namespace MRN
+{
+
 enum ProtocolTags{MRN_NEW_SUBTREE_PROT=MRN::FIRST_CTL_TAG, MRN_DEL_SUBTREE_PROT,
                      MRN_RPT_SUBTREE_PROT,
                      MRN_NEW_APPLICATION_PROT, MRN_DEL_APPLICATION_PROT,
@@ -31,5 +34,7 @@ class CommunicationNode: public Error{
     static int get_BlockingTimeOut( );
     static int poll_timeout;
 };
+
+} // namespace MRN
 
 #endif /* __MRN_communicationnode_h */

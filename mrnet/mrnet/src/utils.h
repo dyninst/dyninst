@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+namespace MRN
+{
+
 int createProcess(const std::string &remote_shell,
                   const std::string &hostName,
                   const std::string &userName,
@@ -80,4 +83,5 @@ class tsd_t{
 #define MCFL  __FILE__,__LINE__  //used to call mrn_printf(MCFL, ...)
 int mrn_printf(int level, const char * file, int line, FILE * fp, const char * format, ...);
 
+} // namespace MRN
 #endif /* utils_h */

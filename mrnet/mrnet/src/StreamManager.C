@@ -2,6 +2,9 @@
 #include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
 
+namespace MRN
+{
+
 StreamManager::StreamManager(int sid, int fid, int sync_id,
 		   std::list <RemoteNode *> &_downstream)
   : stream_id(sid),
@@ -37,3 +40,6 @@ StreamManager::push_packet(Packet *packet,
   mrn_printf(3, MCFL, stderr, "Leaving stream_mgr.push_packet()\n");
   return 0;
 }
+
+} // namespace MRN
+

@@ -3,6 +3,9 @@
 
 #include "mrnet/src/Errors.h"
 
+namespace MRN
+{
+
 static struct ErrorDefs errors[]= {
    { MRN_ENONE, MRN_INFO, MRN_IGNORE, "No Error"},
    { MRN_EBADCONFIG_IO, MRN_CRIT, MRN_ABORT, "Config File Input Error"},
@@ -39,3 +42,5 @@ void Error::perror(const char *str)
   fprintf(stderr, "%s: %s\n", str, errors[MRN_errno].msg);
   return;
 }
+
+} // namespace MRN

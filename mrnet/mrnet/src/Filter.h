@@ -8,6 +8,9 @@
 #include "mrnet/src/pthread_sync.h"
 #include "mrnet/src/FilterDefinitions.h"
 
+namespace MRN
+{
+
 class Filter{
  protected:
   unsigned short filter_id;
@@ -53,4 +56,5 @@ class Synchronizer: public Filter{
 			   std::list <Packet *> &packets_out);
 };
 
+} // namespace MRN
 #endif /* __filter_h */

@@ -3,7 +3,9 @@
 
 #include <string>
 #include "mrnet/h/MR_Network.h"
-using namespace MRN;
+
+namespace MRN
+{
 
 class NetworkNode;
 class EndPointImpl: public EndPoint{
@@ -21,5 +23,7 @@ class EndPointImpl: public EndPoint{
   virtual unsigned int get_Id();
   virtual bool compare(const char * _hostname, unsigned short _port);
 };
+
+} // namespace MRN
 
 #endif /* endpoint_h 1 */

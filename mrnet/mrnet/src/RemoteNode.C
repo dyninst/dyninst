@@ -5,6 +5,9 @@
 #include "mrnet/src/utils.h"
 #include "src/config.h"
 
+namespace MRN
+{
+
 /*====================================================*/
 /*  RemoteNode CLASS METHOD DEFINITIONS            */
 /*====================================================*/
@@ -458,3 +461,4 @@ bool RemoteNode::is_upstream(){
   return _is_upstream;
 }
 
+} // namespace MRN

@@ -3,6 +3,9 @@
 #include "mrnet/src/InternalNode.h"
 #include "mrnet/src/utils.h"
 
+namespace MRN
+{
+
 /*======================================================*/
 /*  InternalNode CLASS METHOD DEFINITIONS            */
 /*======================================================*/
@@ -378,3 +381,4 @@ InternalNode::deliverConnectLeavesResponse( Packet* pkt )
 }
 
 
+} // namespace MRN

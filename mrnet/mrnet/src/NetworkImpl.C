@@ -8,9 +8,16 @@
 #include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/utils.h"
 
-std::list <NetworkNode *>* hostlist = NULL;
-std::list <NetworkNode *>* potential_root = NULL;
-NetworkGraph* parsed_graph = NULL;
+extern FILE* mrnin;
+extern int mrndebug;
+
+namespace MRN
+{
+int mrnparse();
+
+std::list <NetworkNode *>* NetworkImpl::hostlist = NULL;
+std::list <NetworkNode *>* NetworkImpl::potential_root = NULL;
+NetworkGraph* NetworkImpl::parsed_graph = NULL;
 
 NetworkImpl::NetworkImpl(const char * _filename, const char * _application)
   :filename(_filename),
@@ -82,9 +89,6 @@ NetworkImpl::NetworkImpl(const char * _filename, const char * _application)
   return;
 }
 
-extern FILE * mrnin;
-int mrnparse();
-extern int mrndebug;
 
 int NetworkImpl::parse_configfile()
 {
@@ -351,3 +355,4 @@ NetworkImpl::connect_Backends( void )
     return ret;
 }
 
+} // namespace MRN
