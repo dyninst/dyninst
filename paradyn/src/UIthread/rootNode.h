@@ -4,9 +4,15 @@
 // Basically, this file exists just to make where4tree.h that much shorter.
 
 /* $Log: rootNode.h,v $
-/* Revision 1.3  1995/09/20 01:18:03  tamches
-/* minor cleanifications hardly worth mentioning
+/* Revision 1.4  1995/10/17 20:56:44  tamches
+/* Changed class name from "rootNode" to "whereAxisRootNode".
+/* More versatile -- now holds pixWidthAsRoot and pixWidthAsListboxItem.
+/* Added static members prepareForDrawingListboxItems and
+/* doneDrawingListboxItems.  Added drawAsRoot() and drawAsListboxItem().
 /*
+ * Revision 1.3  1995/09/20 01:18:03  tamches
+ * minor cleanifications hardly worth mentioning
+ *
  * Revision 1.2  1995/07/18  03:41:18  tamches
  * Added ctrl-double-click feature for selecting/unselecting an entire
  * subtree (nonrecursive).  Added a "clear all selections" option.
@@ -20,61 +26,82 @@
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_
 
-extern "C" {
-   #include <tcl.h>
-   #include <tk.h>
-   #include <X11/Xlib.h>
-}
+#include <tclclean.h>
+#include <tkclean.h>
 
 #ifndef PARADYN
 // the where axis test program has the proper -I settings
 #include "String.h"
+#include "DMinclude.h" // resourceHandle
 #else
 #include "util/h/String.h"
+#include "paradyn/src/DMthread/DMinclude.h" // resourceHandle
 #endif
 
 #include "where4treeConstants.h"
 
-class rootNode {
- friend class whereAxis;
+// This class is intended to be used as the template type of where4tree<>
+// for the where axis.  For the search history graph, try some other type.
+// In particular, this class contains a resourceHandle, while is not applicable
+// in the searc history graph.
 
+class whereAxisRootNode {
  private:
+   resourceHandle uniqueId;
+
    string name; // name of the root of this subtree
-   bool highlighted; // true iff the root of this subtree is highlighted.  Must set
-                     // this flag recursively if you want entire subtree highlighted.
-   int pixWidth, pixHeight;
-      // keeping track of these values speeds up draw()
+   bool highlighted;
+
+   int pixWidthAsRoot, pixHeightAsRoot;
+   int pixWidthAsListboxItem;
+
+   // note: we use the following static members of
+   //       our "parent" class (whereAxis):
+   //       getRootItemFontStruct(), getListboxItemFontStruct(),
+   //       getRootItemTk3DBorder(), getRootItemTextGC()
 
    static int borderPix; // both horiz & vertical [Tk_Fill3DRectangle forces these
                          // to be the same]
    static int horizPad, vertPad;
 
- private:
-
-   int wouldbe_width(const where4TreeConstants &tc) const;
-   int wouldbe_height(const where4TreeConstants &tc) const;
-
-   void manual_construct(const char *init_str, const where4TreeConstants &tc,
-			 const bool init_highlighted);
-
  public:
 
-   rootNode(const string &init_str, const where4TreeConstants &tc, const bool hilited);
-   rootNode(const char *init_str, const where4TreeConstants &tc, const bool hilited);
-  ~rootNode() {}
+   whereAxisRootNode(resourceHandle uniqueId, const string &init_str);
+   whereAxisRootNode(const whereAxisRootNode &src)  : name(src.name) {
+      uniqueId = src.uniqueId;
+      highlighted = src.highlighted;
+      pixWidthAsRoot = src.pixWidthAsRoot;
+      pixHeightAsRoot = src.pixHeightAsRoot;
+      pixWidthAsListboxItem = src.pixWidthAsListboxItem;
+   }
+  ~whereAxisRootNode() {}
 
-   const string &getName() const;
+   bool operator<(const whereAxisRootNode &other) {return name < other.name;}
+   bool operator>(const whereAxisRootNode &other) {return name > other.name;}
 
-   int getWidth() const;
-   int getHeight() const;
-   bool getHighlighted() const;
+   resourceHandle getUniqueId() const {return uniqueId;}
+   const string &getName() const {return name;}
+
+   int getWidthAsRoot()  const {return pixWidthAsRoot;}
+   int getHeightAsRoot() const {return pixHeightAsRoot;}
+   int getWidthAsListboxItem() const {return pixWidthAsListboxItem;}
    
-   void draw(const where4TreeConstants &tc, int theDrawable,
-	     const int root_middlex, const int topy) const;
+   bool getHighlighted() const {return highlighted;}
+
+   static void prepareForDrawingListboxItems(Tk_Window, XRectangle &);
+   static void doneDrawingListboxItems(Tk_Window);
+   void drawAsRoot(Tk_Window theTkWindow,
+		   int theDrawable, // could be offscren pixmap
+		   int root_middlex, int topy) const;
+   void drawAsListboxItem(Tk_Window theTkWindow,
+			  int theDrawable, // could be offscreen pixmap
+			  int boxLeft, int boxTop,
+			  int boxWidth, int boxHeight,
+			  int textLeft, int textBaseline) const;
 
    // Mouse clicks and node expansion
-   int pointWithin(const int xpix, const int ypix,
-		   const int root_centerx, const int root_topy) const;
+   int pointWithinAsRoot(int xpix, int ypix,
+			 int root_centerx, int root_topy) const;
       // return values:
       // 1 -- yes
       // 2 -- no, point is north of root (or northwest or northeast)
@@ -83,9 +110,9 @@ class rootNode {
       // 5 -- no, point is east of root (but not north or south or root)
 
    // The following 3 routines don't redraw:
-   void highlight();
-   void unhighlight();
-   void toggle_highlight();
+   void highlight() {highlighted=true;}
+   void unhighlight() {highlighted=false;}
+   void toggle_highlight() {highlighted = !highlighted;}
 };
 
 #endif
