@@ -1,6 +1,6 @@
 %{
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -80,7 +80,7 @@ interfacePreamble: interfaceName tLBLOCK interfaceBase interfaceVersion {
   is = new interface_spec($1.cp, $3.u, $4.u);
   delete ($1.cp);
   Options::current_interface = $$.spec = is;
-} 
+}; 
 
 interface_spec: interfacePreamble definitionList tRBLOCK tSEMI { } ;
 
@@ -108,7 +108,7 @@ optUpcall:   { $$.fd.call = remote_func::sync_call; $$.fd.is_virtual = false; }
 				 $$.fd.is_virtual = true;};
 
 optFree:        { $$.b = false;}
-        | tFREE { $$.b = true;}
+        | tFREE { $$.b = true;};
 
 optRef:         { $$.b = false;}
         | tREF  { $$.b = true;};
