@@ -25,9 +25,13 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.19  1994/08/02 17:12:19  newhall
-/* bug fix to StopMetricResource
+/* Revision 1.20  1994/08/03 20:46:53  newhall
+/* removed calls to visi interface routine Enabled()
+/* added error detection code
 /*
+ * Revision 1.19  1994/08/02  17:12:19  newhall
+ * bug fix to StopMetricResource
+ *
  * Revision 1.18  1994/08/01  17:28:57  markc
  * Removed uses of getCurrent, setCurrent.  Replaced with list iterators.
  *
@@ -162,11 +166,13 @@ void VISIthreadDataHandler(performanceStream *ps,
   if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
     PARADYN_DEBUG(("bufferSize out of range: VISIthreadDataCallback")); 
     ERROR_MSG(16,"bufferSize out of range: VISIthreadDataCallback");
+    ptr->quit = 1;
     return;
   }
   if((ptr->buffer == NULL)){
     PARADYN_DEBUG(("buffer error: VISIthreadDataCallback")); 
     ERROR_MSG(16,"buffer error: VISIthreadDataCallback");
+    ptr->quit = 1;
     return;
   }
   // add data value to buffer
@@ -192,6 +198,11 @@ if((bucketNum % 100) == 0){
     temp.count = ptr->bufferSize;
     temp.data = ptr->buffer;
     ptr->visip->Data(temp);
+    if(ptr->visip->did_error_occur()){
+       PARADYN_DEBUG(("igen: after visip->Data() in VISIthreadDataHandler"));
+       ptr->quit = 1;
+       return;
+    }
     ptr->bufferSize = 0;
   }
 }
@@ -243,13 +254,13 @@ void VISIthreadnewResourceCallback(performanceStream *ps,
 			           resource *newResource, 
 				   char *name){
 
- VISIthreadGlobals *ptr;
+VISIthreadGlobals *ptr;
 
-  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in VISIthreadnewResourceCallback"));
-    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadnewResourceCallback");
-    return;
-  }
+if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+   PARADYN_DEBUG(("thr_getspecific in VISIthreadnewResourceCallback"));
+   ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadnewResourceCallback");
+   return;
+}
 
 }
 
@@ -276,11 +287,13 @@ void VISIthreadFoldCallback(performanceStream *ps,
   if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
      PARADYN_DEBUG(("bufferSize out of range: VISIthreadFoldCallback")); 
      ERROR_MSG(16,"bufferSize out of range: VISIthreadFoldCallback");
+     ptr->quit = 1;
      return;
   }
   if((ptr->buffer == NULL)){
      PARADYN_DEBUG(("buffer error: VISIthreadFoldCallback")); 
      ERROR_MSG(16,"buffer error: VISIthreadFoldCallback");
+     ptr->quit = 1;
      return;
   }
   // if new Width is same as old width ignore Fold 
@@ -290,17 +303,21 @@ void VISIthreadFoldCallback(performanceStream *ps,
         temp.count = ptr->bufferSize;
         temp.data = ptr->buffer;
         ptr->visip->Data(temp);
-	/*
-	if(ptr->visip->err_state < 0){
-           PARADYN_DEBUG(("igen error: VISIthreadFoldCallback")); 
-	   return;
-	}
-	*/
+        if(ptr->visip->did_error_occur()){
+           PARADYN_DEBUG(("igen: visip->Data() in VISIthreadFoldCallback"));
+           ptr->quit = 1;
+           return;
+        }
         ptr->bufferSize = 0;
      }
      ptr->bucketWidth = width;
      // call visualization::Fold routine
      ptr->visip->Fold((double)width);
+     if(ptr->visip->did_error_occur()){
+        PARADYN_DEBUG(("igen: after visip->Fold() in VISIthreadFoldCallback"));
+        ptr->quit = 1;
+        return;
+     }
   }
 
 }
@@ -343,7 +360,6 @@ void VISIthreadchooseMetRes(char **metricNames,
  char *key;
  int  numFoci = 0;
  char *tempName;
- int  not_nan_count;
  float_Array bulk_data;
  int_Array metricIds;
  List<metricInstance*> walk;
@@ -356,7 +372,7 @@ void VISIthreadchooseMetRes(char **metricNames,
     return;
   }
 
-  // temp. check for invalid reply, this will be handled by error msgs later
+  // check for invalid reply
   if((numMetrics <= 0) || (focusChoice == NULL)){
     PARADYN_DEBUG(("no metric and resource in VISIthreadchooseMetRes"));
     ERROR_MSG(17,"Incomplete metric or focus list::VISIthreadchooseMetRes");
@@ -383,7 +399,7 @@ void VISIthreadchooseMetRes(char **metricNames,
     for(i=0;i<numMetrics;i++){
 
       // convert metricName to metric* 
-      if((currMetric = ptr->dmp->findMetric(context,metricNames[i])) != 0){
+      if((currMetric= ptr->dmp->findMetric(context,metricNames[i])) != 0){
         // make enable request to DM
         //if successful, add metricInstance to mrlist  
 	PARADYN_DEBUG(("before enable metric/focus\n"));
@@ -403,6 +419,7 @@ void VISIthreadchooseMetRes(char **metricNames,
          // there is an error with findMetric
          sprintf(errorString,"dataManager::findMetric failed (returned NULL)for metric %s.",metricNames[i]);
          ERROR_MSG(17,errorString);
+         ptr->quit = 1;
 	 return;
       }
     }
@@ -446,12 +463,14 @@ void VISIthreadchooseMetRes(char **metricNames,
     if((resources.data=(resourceType *)malloc(sizeof(resourceType)))
         == (resourceType *)NULL){
 	ERROR_MSG(12,"in VISIthreadchooseMetRes");
+        ptr->quit = 1;
         return;
     }
 
     if((metrics.data=(metricType *)malloc(sizeof(metricType)*numEnabled))
 	== (metricType *)NULL){
 	ERROR_MSG(12,"in VISIthreadchooseMetRes");
+        ptr->quit = 1;
         return;
     }
 
@@ -482,6 +501,7 @@ void VISIthreadchooseMetRes(char **metricNames,
     if((tempName = 
 	(char *)malloc(sizeof(char)*(totalSize +1))) == NULL){
 	ERROR_MSG(12,"in VISIthreadchooseMetRes");
+        ptr->quit = 1;
         return ;
     }
     where = 0;
@@ -490,6 +510,7 @@ void VISIthreadchooseMetRes(char **metricNames,
         if((strncpy(&(tempName[where]),y[i],strlen(y[i])))
 	    ==NULL){
 	    ERROR_MSG(12,"strncpy in VISIthreadchooseMetRes");
+            ptr->quit = 1;
             return;
         }
         where += strlen(y[i]);
@@ -510,23 +531,21 @@ void VISIthreadchooseMetRes(char **metricNames,
 	  tempdata.count = ptr->bufferSize;
           tempdata.data = ptr->buffer;
 	  ptr->visip->Data(tempdata);
+          if(ptr->visip->did_error_occur()){
+             PARADYN_DEBUG(("igen: visip->Data() in VISIthreadchooseMetRes"));
+             ptr->quit = 1;
+             return;
+          }
 	  ptr->bufferSize = 0;
     }
 
+    PARADYN_DEBUG(("before call to AddMetricsResources\n"));
     ptr->visip->AddMetricsResources(metrics,resources,binWidth,numBins);
-
-    // send list of enabled metrics to visualizaion
-    if((metricIds.data=(int *)malloc(sizeof(int)*numEnabled))
-        == (int *)NULL){
-	ERROR_MSG(12,"in VISIthreadchooseMetRes");
+    if(ptr->visip->did_error_occur()){
+        PARADYN_DEBUG(("igen: visip->AddMetricsResources() in VISIthreadchooseMetRes"));
+        ptr->quit = 1;
         return;
     }
-    metricIds.count = numEnabled;
-    for(i=0;i<numEnabled;i++){
-       metricIds.data[i] = (int)newEnabled[i]->met; 
-    }
-    ptr->visip->Enabled(metricIds,
-			(int)newEnabled[0]->focus->getCanonicalName());
 
 
     // get old data bucket values for new metric/resources and
@@ -545,6 +564,11 @@ void VISIthreadchooseMetRes(char **metricNames,
             ptr->visip->BulkDataTransfer(bulk_data,
 		   (int)newEnabled[i]->met,
 		   (int)newEnabled[0]->focus->getCanonicalName());
+            if(ptr->visip->did_error_occur()){
+                PARADYN_DEBUG(("igen: visip->BulkDataTransfer() in VISIthreadchooseMetRes"));
+                ptr->quit = 1;
+                return;
+            }
 	}
 
     }
@@ -675,6 +699,7 @@ void visualizationUser::StopMetricResource(int metricId,
       if(!(ptr->mrlist->remove(listItem))){
         perror("ptr->mrlist->remove"); 
 	ERROR_MSG(16,"remove() in StopMetricResource()");
+	ptr->quit = 1;
         return;
       }
     }
@@ -807,12 +832,15 @@ void *VISIthreadmain(void *vargs){
     }
     else if (tag == MSG_TAG_FILE){
         globals->visip->awaitResponce(-1);
+        if(globals->visip->did_error_occur()){
+           PARADYN_DEBUG(("igen: visip->awaitResponce() in VISIthreadmain"));
+            globals->quit = 1;
+        }
     }
     else {
        vtp->mainLoop();
     }
   }
-
 
   // disable all metricInstance data collection
   for (walk= *globals->mrlist; listItem= *walk; ++walk) {
@@ -825,6 +853,15 @@ void *VISIthreadmain(void *vargs){
 
   // notify VM 
   globals->vmp->VMVisiDied(thr_self());
+
+  // unbind file descriptor associated with visualization
+  if(msg_unbind(globals->fd) == THR_ERR){
+    PARADYN_DEBUG(("Error in msg_unbind(globals->fd)"));
+    ERROR_MSG(14,"Error in VISIthreadmain: msg_unbind");
+  }
+
+  delete globals->mrlist;
+  free (globals);
 
   PARADYN_DEBUG(("leaving visithread main"));
   thr_exit(0);
