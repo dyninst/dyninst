@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.13  1994/07/21 17:47:44  rbi
+# Revision 1.14  1994/07/25 16:18:59  rbi
+# Scrollbars are even more comely than before.
+#
+# Revision 1.13  1994/07/21  17:47:44  rbi
 # No more jumpy resizes.
 #
 # Revision 1.12  1994/07/21  01:53:32  rbi
@@ -87,7 +90,7 @@ proc drawToolBar {} {
       option add *Scrollbar*foreground grey
       option add *activeBackground LightGrey
       option add *activeForeground black
-      option add *Scrollbar*activeBackground DimGray
+      option add *Scrollbar*activeForeground LightGrey
       option add *Entry.relief sunken
     } else {
       option add *Background white
