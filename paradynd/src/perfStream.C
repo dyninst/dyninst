@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.143 2003/02/04 22:42:43 pcroth Exp $
+// $Id: perfStream.C,v 1.144 2003/02/21 20:06:25 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -202,6 +202,8 @@ dictionary_hash<unsigned, unsigned> traceOn(mid_hash);
 // Read trace data from process proc.
 void processTraceStream(pd_process *proc)
 {
+    cerr << "processTraceStream" << endl;
+    
     int ret;
     traceStream sid;
     char *recordData;
@@ -491,23 +493,25 @@ void doDeferredInstrumentation() {
 
 void doDeferredRPCs() {
    // Any RPCs waiting to be performed?  If so, and if it's safe to
-   // perform one, then launch one.
-   processMgr::procIter itr = getProcMgr().begin();
-   while(itr != getProcMgr().end()) {
-      pd_process *proc = *itr++;
-      if (proc == NULL) continue; // proc must've died and has itself cleaned up
-      if (proc->status() == exited) continue;
-      if (proc->status() == neonatal) continue; // not sure if this is appropriate
-      
-      bool wasLaunched = proc->launchRPCifAppropriate(proc->status() == running);
-#if defined(TEST_DEL_DEBUG)
-   if (wasLaunched) logLine("***** inferiorRPC launched, perfStream.C\n");
-#endif
+    // perform one, then launch one.
+    processMgr::procIter itr = getProcMgr().begin();
+    while(itr != getProcMgr().end()) {
+        pd_process *proc = *itr++;
+        if (proc == NULL) continue; // proc must've died and has itself cleaned up
+        if (proc->status() == exited) continue;
+        if (proc->status() == neonatal) continue; // not sure if this is appropriate
 
-      // do we need to do anything with 'wasLaunched'?
-      if (wasLaunched)
- 	 inferiorrpc_cerr << "fyi: launched an inferior RPC" << endl;
-   }
+        if (!proc->existsRPCPending()) continue;
+
+        bool wasLaunched = proc->launchRPCs(proc->status() == running);
+#if defined(TEST_DEL_DEBUG)
+        if (wasLaunched) logLine("***** inferiorRPC launched, perfStream.C\n");
+#endif
+        
+        // do we need to do anything with 'wasLaunched'?
+        if (wasLaunched)
+            inferiorrpc_cerr << "fyi: launched an inferior RPC" << endl;
+    }
 }
 
 void ioFunc()
@@ -818,18 +822,19 @@ void controllerMainLoop(bool check_buffer_first)
 	    pd_process *curProc = *itr++;
 	    if(curProc == NULL)
 	       continue; // process structure has been deallocated
-	    
+	    cerr << "Checking trace link" << endl;
+        
 	    if(curProc && curProc->getTraceLink() >= 0 && 
 	       FD_ISSET(curProc->getTraceLink(), &readSet)) {
-	       processTraceStream(curProc);
-	       /* in the meantime, the process may have died, setting
-		  curProc to NULL */
-	       
-	       /* clear it in case another process is sharing it */
-	       if (curProc && curProc->getTraceLink() >= 0) {
-		  // may have been set to -1
-		  FD_CLR(curProc->getTraceLink(), &readSet);
-	       }
+            processTraceStream(curProc);
+            /* in the meantime, the process may have died, setting
+               curProc to NULL */
+            
+            /* clear it in case another process is sharing it */
+            if (curProc && curProc->getTraceLink() >= 0) {
+                // may have been set to -1
+                FD_CLR(curProc->getTraceLink(), &readSet);
+            }
 	    }
 	 }
 #if !defined(i386_unknown_nt4_0)
@@ -855,17 +860,22 @@ void controllerMainLoop(bool check_buffer_first)
 	 
 	 bool delayIGENrequests=false;
 	 processMgr::procIter itrB = getProcMgr().begin();
+#if 0
+     // Need to take another look at this... it REALLY hoses
+     // the response of the daemon to the frontend in the MT
+     // case (where we can be waiting for a syscall for a long time)
 	 while(itrB != getProcMgr().end()) {
-	    pd_process *curProc = *itrB++;
-	    if(curProc == NULL)
-	       continue; // process structure has been deallocated
-	    
-	    if((curProc->isAnyIRPCwaitingForSyscall()) &&
-	       curProc->status() == running) {
-	       delayIGENrequests=true;
-	       break;
-	    }
+         pd_process *curProc = *itrB++;
+         if(curProc == NULL)
+             continue; // process structure has been deallocated
+         
+         if((curProc->isAnyIRPCwaitingForSyscall()) &&
+            curProc->status() == running) {
+             delayIGENrequests=true;
+             break;
+         }
 	 }
+#endif
 	 // if we are waiting for a system call to complete in order to
 	 // launch an inferiorRPC, we will avoid processing any igen
 	 // request - naim
