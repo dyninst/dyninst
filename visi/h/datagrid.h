@@ -1,8 +1,12 @@
 /* $Log: datagrid.h,v $
-/* Revision 1.2  1994/03/15 02:03:19  newhall
-/* added public member "userdata" to class visi_GridCellHisto
-/* to allow visi writer to add info to grid cells
+/* Revision 1.3  1994/03/17 05:17:25  newhall
+/* added lastBucketFilled data member to class visi_GridCellHisto:  value of
+/* the largest bucket number for which new data values have been added
 /*
+ * Revision 1.2  1994/03/15  02:03:19  newhall
+ * added public member "userdata" to class visi_GridCellHisto
+ * to allow visi writer to add info to grid cells
+ *
  * Revision 1.1  1994/03/14  20:27:26  newhall
  * changed visi subdirectory structure
  *  */ 
@@ -50,11 +54,13 @@ class visi_GridCellHisto {
      float *value;
      int   valid;
      int   size;
+     int   lastBucketFilled;  // bucket number of last data value added   
   public: 
      void *userdata;  // to allow visi writer to add info to grid cells
-     visi_GridCellHisto(){value = NULL; valid = 0; size = 0; userdata = NULL;}
+     visi_GridCellHisto(){value = NULL; valid = 0; size = 0; userdata = NULL; lastBucketFilled = -1;}
      visi_GridCellHisto(int);
      ~visi_GridCellHisto(){delete[] value;}
+     int    LastBucketFilled(){return(lastBucketFilled);}
      float  *Value(){ return(value);}
      float  Value(int i) { 
 	    if((i < 0) || (i > size)){
@@ -64,7 +70,7 @@ class visi_GridCellHisto {
      }
      int    Size(){return(size);}
      int    Valid(){return(valid);}
-     void   Invalidate(){delete[] value; value = NULL; size = 0; valid = 0;}
+     void   Invalidate(){delete[] value; value = NULL; size = 0; valid = 0; lastBucketFilled = -1;}
      void   Fold(int method){
        int i,j;
        if(valid){
@@ -74,11 +80,12 @@ class visi_GridCellHisto {
            else
 	     value[i] = ERROR;
 	   if((method == AVE) && (value[i] != ERROR))
-	     value[i] /= 2; 
+	     value[i] = value[i]/2; 
 	 }
 	 for(i=(size/2); i < size; i++){
            value[i] = ERROR;
 	 }
+	 lastBucketFilled = (size/2)-1;
        }
      }
      float  AggregateValue(int method){
@@ -121,6 +128,8 @@ class visi_GridCellHisto {
        if((i < 0) || (i >= size))
 	 return(ERROR_SUBSCRIPT);
        value[i] = x;
+       if(i > lastBucketFilled)
+        lastBucketFilled = i;
        return(OK);
      }
 
@@ -142,6 +151,12 @@ class  visi_GridHistoArray {
       visi_GridHistoArray(){values = NULL; size = 0;}
       visi_GridHistoArray(int);
       ~visi_GridHistoArray();
+      int LastBucketFilled(int resource){
+         if((resource < 0) || (resource >= size))
+	   return(ERROR_SUBSCRIPT);
+         else
+	   return(values[resource].LastBucketFilled());
+      }
       int    AddValue(float x,int resource,int bucketNum,int numBuckets){
 	if((resource < 0) || (resource >= size))
 	   return(ERROR_SUBSCRIPT);
@@ -225,6 +240,11 @@ class visi_DataGrid {
 	 return(data_values[0]);
        }
        return(data_values[i]);
+     }
+     int LastBucketFilled(int metric,int resource){
+        if((metric < 0) || (metric >= numMetrics))
+	  return(ERROR_SUBSCRIPT);
+        return(data_values[metric].LastBucketFilled(resource));
      }
 
 };
