@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.356 2002/09/12 19:03:30 bernat Exp $
+// $Id: process.C,v 1.357 2002/09/17 20:08:06 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -404,133 +404,6 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
   return true;
 }
 #endif
-
-#if defined(MT_THREAD)
-/*
- * On AIX there is a pthread debugging library which allows us to 
- * access most of the internal data for a pthread. This is much
- * preferable to the situation on Solaris, where we use magic offsets
- * gotten from examining header files. However, their mechanism uses
- * callbacks, which we have to define and initialize. 
- */
-#ifdef rs6000_ibm_aix4_1
-// Prototypes, oh boy.
-
-int PTHDB_read_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len);
-int PTHDB_write_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len);
-int PTHDB_read_regs(pthdb_user_t user,
-		    tid_t tid,
-		    unsigned long long flags,
-		    pthdb_context_t *context);
-int PTHDB_write_regs(pthdb_user_t user,
-		    tid_t tid,
-		    unsigned long long flags,
-		    pthdb_context_t *context);
-int PTHDB_alloc(pthdb_user_t user,
-		size_t len,
-		void **bufp);
-int PTHDB_realloc(pthdb_user_t user,
-		  void *buf,
-		  size_t len,
-		  void **bufp);
-int PTHDB_dealloc(pthdb_user_t user,
-		  void *buf);
-int PTHDB_print(pthdb_user_t user, char *str);
-
-
-bool process::init_pthdb_library()
-{
-  static int initialized = 0;
-
-  if (initialized) return false;
-  
-  // Use our address as the unique user value
-  pthdb_user_t user = (pthdb_user_t) this;
-  pthdb_callbacks_t callbacks;
-  callbacks.symbol_addrs = NULL;
-  callbacks.read_data = PTHDB_read_data;
-  callbacks.write_data = PTHDB_write_data;
-  callbacks.read_regs = PTHDB_read_regs;
-  callbacks.write_regs = PTHDB_write_regs;
-  callbacks.alloc = PTHDB_alloc;
-  callbacks.realloc = PTHDB_realloc;
-  callbacks.dealloc = PTHDB_dealloc;
-  callbacks.print = PTHDB_print;
-  int ret;
-  ret = pthdb_session_init(user, PEM_32BIT, 
-			   PTHDB_FLAG_GPRS | PTHDB_FLAG_SPRS | PTHDB_FLAG_FPRS | PTHDB_FLAG_SUSPEND,
-			   &callbacks, &pthdb_session_);
-  if (ret) {
-    fprintf(stderr, "Initializing pthread debug library returned %d\n", ret);
-    return false;
-  }
-  initialized = true;
-  return true;
-}
-    
-#endif
-
-
-bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused)
-{
-  if (!hasRunSincePreviousWalk) {
-    allStackWalks = previousAllStackWalk;
-    return true;
-  }
-
-  vector<Frame> stackWalk;
-  bool needToCont = paused ? false : (status() == running);
-  allStackWalks.resize(0);
-
-  if (!paused && !pause()) {
-     cerr << "walkAllStack: pause failed" << endl;
-     return false;
-  }
- 
-#ifndef BPATCH_LIBRARY
-  startTimingStackwalk();
-#endif
-
-
-#ifdef rs6000_ibm_aix4_1
-  // AIX: initialize the pthread debug library
-  // Should do this in a one-time-initialization place
-  init_pthdb_library();
-#endif
-  bool retval = true;
-  if (pause()) {
-    //Walk thread stacks
-    // Assume that the frame constructor will tell if the
-    // thread is currently scheduled, and if so walk via LWP
-    // id if necessary
-    for (unsigned i=0; i<threads.size(); i++) {
-      Frame currentFrame = threads[i]->getActiveFrame();
-      if (!walkStack(currentFrame, stackWalk, paused))
-	retval = false;
-      allStackWalks.push_back(stackWalk);
-      stackWalk.resize(0);
-    }
-  }
-
-  if (!paused && needToCont) {
-     if (!continueProc()){
-        cerr << "walkAllStack: continueProc failed" << endl;
-     }
-  }
-    
-#ifndef BPATCH_LIBRARY
-  stopTimingStackwalk();
-#endif
-  previousAllStackWalk = allStackWalks;
-  return true;
-}
-#endif //MT_THREAD
 
 // triggeredInStackFrame is used to determine whether instrumentation
 //   added at the specified instPoint/callWhen/callOrder would have been
@@ -4098,29 +3971,28 @@ bool process::handleIfDueToSharedObjectMapping(){
 	    // Paradyn -- don't add new symbols unless it's the runtime
 	    // library
 	    // UGLY.
- 
+	    
 #if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
 	    //if (((*changed_objects)[i])->getImage()->isDyninstRTLib())
 
             string rtlibrary;
 
-            if (is_multithreaded()) {
+	    // This is ugly. is_multithreaded() currently means "Are we ready to
+	    // handle MT programs". As of this point we aren't -- the RT lib isn't
+	    // loaded. Split is_multithreaded() into two functions. 
+#if defined(MT_THREAD)
 	        rtlibrary = string(getenv("PARADYN_LIB_MT"));
-            } else {
+#else
 	        rtlibrary = string(getenv("PARADYN_LIB"));
-	    }
+#endif
 		//ccw 22 apr 2002 : SPLIT
 
 		const char * myChar =  ((*changed_objects)[i])->getName().c_str() ;
-		//printf(" LOADING LIBRARY: %s \n", myChar );
-		//fflush(stdout);
+		fflush(stdout);
 
             if (((*changed_objects)[i])->getName() == rtlibrary || //ccw 19 apr 2002 : SPLIT
 		((*changed_objects)[i])->getName() == string(getenv("DYNINSTAPI_RT_LIB"))) {
 #endif
-	      //cerr << "Loading library " 
-               //      << ((*changed_objects)[i])->getName() << endl;
-
               if(addASharedObject(*((*changed_objects)[i]))){
                 (*shared_objects).push_back((*changed_objects)[i]);
 	        if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
@@ -5714,7 +5586,24 @@ int process::findLWPbyPOS(int /*tid*/)
 {
   return 0;
 }
+
+bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused)
+{
+  if (is_multithreaded()) assert(0); 
+  vector<Frame> stackWalk;
+  if (!walkStack(getActiveFrame(), stackWalk)) return false;
+  allStackWalks.push_back(stackWalk);
+}
+
 #endif
+
+bool process::thrInSyscall()
+{
+  for (unsigned i = 0; i < threads.size(); i++)
+    if (threads[i]->isInSyscall())
+      return true;
+  return false;
+}
 
 // Get a list of all RPCs ready to run
 // Limits: one per thread (MT case) or one period (ST case)
@@ -5824,6 +5713,8 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	}
 	thrInSyscall = true;
 	was_running_before_RPC_syscall_complete = wasRunning;
+	cerr << "Warning: thread running on LWP " << todo.lwp 
+	     << " is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
 	continue;
       }
     }
@@ -5841,6 +5732,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	}
 	was_running_before_RPC_syscall_complete = wasRunning;
 	thrInSyscall = true;
+	cerr << "Warning: The program is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
 	continue;
       }
     }
@@ -5985,7 +5877,8 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
   }
   return true; // success
 }
- 
+
+void generateMTpreamble(char *, Address &, process *);
 
 Address process::createRPCImage(AstNode *action,
 				bool noCost,
@@ -6027,17 +5920,13 @@ Address process::createRPCImage(AstNode *action,
   }
   
   
-#if defined(MT_THREAD)
-  Address skipBRAddr = 0;
-  // Use -1 since 0 may be a valid pthread id, and -1 is equivalent to
-  // "no thread" for Paradyn purposes.
-  if (thr) {
+  if (is_multithreaded()) {
     // We need to put in a branch past the rest of the RPC (to the trailer, actually)
     // if the MT information given is incorrect. That's the skipBRaddr part.
-    skipBRAddr = generateMTRPCCode((char*)insnBuffer,count, thr->get_tid(), thr->get_pos());
+    generateMTpreamble((char*)insnBuffer,count, this);
     
   }
-#endif
+
   resultReg = (Register)action->generateCode(this, regSpace,
 					     (char*)insnBuffer,
 					     count, noCost, true);
@@ -6046,10 +5935,6 @@ Address process::createRPCImage(AstNode *action,
   }
   else
     ; // in this case, we'll call freeRegister() the inferior rpc completes
-  
-#if defined(MT_THREAD)
-  Address skipOffset = count;
-#endif
   
   // Now, the trailer (restore, TRAP, illegal)
   // (the following is implemented in an arch-specific source file...)   
@@ -6064,14 +5949,6 @@ Address process::createRPCImage(AstNode *action,
     
     return 0;
   }
-  
-  // Patch up the MT skip jump if required
-#if defined(MT_THREAD)
-  if (skipBRAddr) {
-    extern void generateMTSkipBranch(void *insn, Address addr, Address offset);
-    generateMTSkipBranch(insnBuffer, skipBRAddr, skipOffset);
-  }
-#endif
   
   Address tempTrampBase;
   if (lowmem)
@@ -6242,13 +6119,14 @@ bool process::handleTrapIfDueToRPC() {
     return false;
 
   vector< vector<Frame> > stackWalks;
-#if defined(MT_THREAD)
-  if (!walkAllStack(stackWalks)) return false;
-#else
-  vector<Frame> stackWalk;
-  if (!walkStack(getActiveFrame(), stackWalk)) return false;
-  stackWalks.push_back(stackWalk);
-#endif
+  if (is_multithreaded()) {
+    if (!walkAllStack(stackWalks)) return false;
+  }
+  else {
+    vector<Frame> stackWalk;
+    if (!walkStack(getActiveFrame(), stackWalk)) return false;
+    stackWalks.push_back(stackWalk);
+  }
 
   // One trap per RPC.. so we process only one RPC at a time.
   // If multiple IRPCs finish simultaneously, we will get multiple traps
@@ -6964,7 +6842,6 @@ void process::callpDYNINSTinit(){
    //  is being used more than once.
    //  if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) ) //FIX THIS !!! ccw
    for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
-   cerr << "Posting RPC for pDyninstINIT" << endl;
    postRPCtoDo(the_ast,
 	       true, // true --> don't try to update cost yet
 	       process::pDYNINSTinitCompletionCallback, // callback
@@ -7957,14 +7834,15 @@ void process::gcInstrumentation()
   }
 
   vector< vector<Frame> > stackWalks;
-#if defined(MT_THREAD)
-  if (!walkAllStack(stackWalks)) return;
-#else
-  vector<Frame> stackWalk;
-  Frame frame = getActiveFrame();
-  if (!walkStack(frame, stackWalk)) return;
-  stackWalks.push_back(stackWalk);
-#endif
+  if (is_multithreaded()) {
+    if (!walkAllStack(stackWalks)) return;
+  }
+  else {
+    vector<Frame> stackWalk;
+    Frame frame = getActiveFrame();
+    if (!walkStack(frame, stackWalk)) return;
+    stackWalks.push_back(stackWalk);
+  }
   gcInstrumentation(stackWalks);
   if(!wasPaused) {
 #ifdef DETACH_ON_THE_FLY
@@ -8038,3 +7916,299 @@ void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
     }
   }
 }
+
+#if defined(MT_THREAD)
+
+
+int process::findLWPbyPthread(int tid)
+{
+  // We store the current lwp in the appropriate virtual
+  // timer for each thread
+  pdThread *thr = NULL;
+  for (unsigned i=0;i<threads.size();i++) {
+    if (threads[i]->get_tid() == (unsigned) tid) {
+      thr = threads[i];
+      break;
+    }   
+  }
+  if (thr == NULL) return -1;
+  return shmMetaData->getVirtualTimer(thr->get_pos()).pos;
+}
+
+int process::findLWPbyPOS(int pos)
+{
+  return shmMetaData->getVirtualTimer(pos).pos;
+}
+
+pdThread *process::createThread(
+  int tid, 
+  unsigned pos, 
+  unsigned stackbase, 
+  unsigned startpc, 
+  void* resumestate_p,  
+  bool bySelf)
+{
+  pdThread *thr;
+  fprintf(stderr, "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
+  // creating new thread
+  thr = new pdThread(this, tid, pos);
+  threads += thr;
+
+  thr->update_resumestate_p(resumestate_p);
+  function_base *pdf ;
+
+  if (startpc) {
+    thr->update_stack_addr(stackbase) ;
+    thr->update_start_pc(startpc) ;
+    pdf = findFuncByAddr(startpc) ;
+    thr->update_start_func(pdf) ;
+  } else {
+    cerr << "createThread: zero startPC found!" << endl;
+    pdf = findOneFunction("main");
+    assert(pdf);
+    //thr->update_start_pc(pdf->addr()) ;
+    thr->update_start_pc(0);
+    thr->update_start_func(pdf);
+    thr->update_stack_addr(stackbase);
+  }
+
+  cerr << "aix.C: adding thread...";
+  metricFocusNode::handleNewThread(thr);
+  cerr << " done." << endl;
+
+  sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
+	  pdf->prettyName().c_str(), startpc, pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
+  logLine(errorLine);
+
+  return(thr);
+}
+
+//
+// CALLED for mainThread
+//
+void process::updateThread(pdThread *thr, int tid, 
+			   unsigned pos, void* resumestate_p, 
+			   resource *rid)
+{
+  assert(thr);
+  thr->update_tid(tid, pos);
+  thr->update_rid(rid);
+  thr->update_resumestate_p(resumestate_p);
+  function_base *f_main = findOneFunction("main");
+  assert(f_main);
+
+  //unsigned addr = f_main->addr();
+  //thr->update_start_pc(addr) ;
+  thr->update_start_pc(0) ;
+  thr->update_start_func(f_main) ;
+
+  /* Need stack. Got pthread debug library. Any questions? */
+  /* Yeah... how do we get a stack base addr? :) */
+
+  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pos=%u, tid=%d, resumestate=0x%x\n", pos,tid, (unsigned) resumestate_p);
+  logLine(errorLine);
+}
+
+//
+// CALLED from Attach
+//
+void process::updateThread(
+  pdThread *thr, 
+  int tid, 
+  unsigned pos, 
+  unsigned stackbase, 
+  unsigned startpc, 
+  void* resumestate_p) 
+{
+  assert(thr);
+  //  
+  sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
+	 tid, pos, stackbase, startpc);
+  logLine(errorLine);
+
+  thr->update_tid(tid, pos);
+  thr->update_resumestate_p(resumestate_p);
+
+  function_base *pdf;
+
+  if(startpc) {
+    thr->update_start_pc(startpc) ;
+    pdf = findFuncByAddr(startpc) ;
+    thr->update_start_func(pdf) ;
+    thr->update_stack_addr(stackbase) ;
+  } else {
+    pdf = findOneFunction("main");
+    assert(pdf);
+    thr->update_start_pc(startpc) ;
+    //thr->update_start_pc(pdf->addr()) ;
+    thr->update_start_func(pdf);
+    thr->update_stack_addr(stackbase);
+  } //else
+
+  sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
+    pdf->prettyName().c_str(), startpc, pos, tid, stackbase, (unsigned) resumestate_p);
+  logLine(errorLine);
+}
+
+void process::deleteThread(int tid)
+{
+  pdThread *thr=NULL;
+  unsigned i;
+
+  for (i=0;i<threads.size();i++) {
+    if (threads[i]->get_tid() == (unsigned) tid) {
+      thr = threads[i];
+      break;
+    }   
+  }
+  if (thr != NULL) {
+    getVariableMgr().deleteThread(thr);
+    unsigned theSize = threads.size();
+    threads[i] = threads[theSize-1];
+    threads.resize(theSize-1);
+
+    /* Set the POS to "reusable" */
+    /* Note: we don't acquire a lock. This is okay, because we're simply clearing
+       the bit, which was not usable before now anyway. */
+    assert(shmMetaData->getPosToThread(thr->get_pos()) 
+	   == THREAD_AWAITING_DELETION);
+    shmMetaData->setPosToThread(thr->get_pos(), 0);
+
+    delete thr;    
+    sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",tid,threads.size());
+    logLine(errorLine);
+
+    // And we need to handle thread deletion in the MDNs
+
+  }
+}
+
+/*
+ * On AIX there is a pthread debugging library which allows us to 
+ * access most of the internal data for a pthread. This is much
+ * preferable to the situation on Solaris, where we use magic offsets
+ * gotten from examining header files. However, their mechanism uses
+ * callbacks, which we have to define and initialize. 
+ */
+#ifdef rs6000_ibm_aix4_1
+// Prototypes, oh boy.
+
+int PTHDB_read_data(pthdb_user_t user,
+		    void *buf,
+		    pthdb_addr_t addr,
+		    size_t len);
+int PTHDB_write_data(pthdb_user_t user,
+		    void *buf,
+		    pthdb_addr_t addr,
+		    size_t len);
+int PTHDB_read_regs(pthdb_user_t user,
+		    tid_t tid,
+		    unsigned long long flags,
+		    pthdb_context_t *context);
+int PTHDB_write_regs(pthdb_user_t user,
+		    tid_t tid,
+		    unsigned long long flags,
+		    pthdb_context_t *context);
+int PTHDB_alloc(pthdb_user_t user,
+		size_t len,
+		void **bufp);
+int PTHDB_realloc(pthdb_user_t user,
+		  void *buf,
+		  size_t len,
+		  void **bufp);
+int PTHDB_dealloc(pthdb_user_t user,
+		  void *buf);
+int PTHDB_print(pthdb_user_t user, char *str);
+
+
+bool process::init_pthdb_library()
+{
+  static int initialized = 0;
+
+  if (initialized) return false;
+  
+  // Use our address as the unique user value
+  pthdb_user_t user = (pthdb_user_t) this;
+  pthdb_callbacks_t callbacks;
+  callbacks.symbol_addrs = NULL;
+  callbacks.read_data = PTHDB_read_data;
+  callbacks.write_data = PTHDB_write_data;
+  callbacks.read_regs = PTHDB_read_regs;
+  callbacks.write_regs = PTHDB_write_regs;
+  callbacks.alloc = PTHDB_alloc;
+  callbacks.realloc = PTHDB_realloc;
+  callbacks.dealloc = PTHDB_dealloc;
+  callbacks.print = PTHDB_print;
+  int ret;
+  ret = pthdb_session_init(user, PEM_32BIT, 
+			   PTHDB_FLAG_GPRS | PTHDB_FLAG_SPRS | PTHDB_FLAG_FPRS | PTHDB_FLAG_SUSPEND,
+			   &callbacks, &pthdb_session_);
+  if (ret) {
+    fprintf(stderr, "Initializing pthread debug library returned %d\n", ret);
+    return false;
+  }
+  initialized = true;
+  return true;
+}
+    
+#endif
+
+
+bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused)
+{
+  vector<Frame> stackWalk;
+
+  if (!hasRunSincePreviousWalk) {
+    allStackWalks = previousAllStackWalk;
+    return true;
+  }
+
+  bool needToCont = paused ? false : (status() == running);
+  allStackWalks.resize(0);
+
+  if (!paused && !pause()) {
+     cerr << "walkAllStack: pause failed" << endl;
+     return false;
+  }
+ 
+#ifndef BPATCH_LIBRARY
+  startTimingStackwalk();
+#endif
+
+
+#ifdef rs6000_ibm_aix4_1
+  // AIX: initialize the pthread debug library
+  // Should do this in a one-time-initialization place
+  init_pthdb_library();
+#endif
+  bool retval = true;
+  if (pause()) {
+    //Walk thread stacks
+    // Assume that the frame constructor will tell if the
+    // thread is currently scheduled, and if so walk via LWP
+    // id if necessary
+    for (unsigned i=0; i<threads.size(); i++) {
+      Frame currentFrame = threads[i]->getActiveFrame();
+      if (!walkStack(currentFrame, stackWalk, paused))
+	retval = false;
+      allStackWalks.push_back(stackWalk);
+      stackWalk.resize(0);
+    }
+  }
+
+  if (!paused && needToCont) {
+     if (!continueProc()){
+        cerr << "walkAllStack: continueProc failed" << endl;
+     }
+  }
+    
+#ifndef BPATCH_LIBRARY
+  stopTimingStackwalk();
+#endif
+  previousAllStackWalk = allStackWalks;
+  return true;
+}
+
+
+
+#endif
