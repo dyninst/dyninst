@@ -1,6 +1,6 @@
 /*
  * input file for igen for User Interface Manager (UIM) interface to Paradyn
- * $Id: UI.I,v 1.39 1999/07/26 21:50:35 cain Exp $
+ * $Id: UI.I,v 1.40 2002/04/17 16:06:23 willb Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -76,7 +76,14 @@ $remote UIM {
 
 	// update status display
 
-	$async void updateStatus(status_line *status, const char *msg);
+	$async void updateStatus(status_line* sl, const char *msg);
+
+	$async void updateStatusLine(const char* sl_name, const char *msg);
+	
+	$async void createStatusLine(const char* sl_name);
+	$async void createProcessStatusLine(const char* sl_name);
+
+	$async void destroyStatusLine(const char* sl_name);
 
 	$async void enablePauseOrRun();
 
