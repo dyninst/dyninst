@@ -1,15 +1,19 @@
+/* $Log: server1.C,v $
+/* Revision 1.4  1994/03/26 04:37:05  newhall
+/* change all floats to double
+/* */
 #include "../h/visualization.h"
 
 int dv(int dummy){
 
 int i,j,k,noBins,noMetrics,noResources;
-float value;
+double value;
 
   fprintf(stderr,"@@@@call back routine for DATAVALUES\n");
   noMetrics = dataGrid.NumMetrics();
   noResources = dataGrid.NumResources();
   noBins = dataGrid.NumBins();
-  fprintf(stderr,"@@@@ ERRROR = %f quiet_nan = %lf\n",ERROR,quiet_nan());
+  fprintf(stderr,"@@@@ ERRROR = %lf quiet_nan = %lf\n",ERROR,quiet_nan());
   if(ERROR == quiet_nan()){
   fprintf(stderr,"@@@@ ERRROR == quiet_nan \n");
   }
@@ -17,7 +21,7 @@ float value;
     for(j = 0; j < noResources; j++){
       for(k = 0; k < noBins; k++)
        if((value = dataGrid[i][j][k]) != ERROR)
-         fprintf(stderr,"@@@@dataGrid[%d,%d,%d] = %f\n",i,j,k,value);
+         fprintf(stderr,"@@@@dataGrid[%d,%d,%d] = %lf\n",i,j,k,value);
        else
          fprintf(stderr,"@@@@dataGrid[%d,%d,%d] = NaN\n",i,j,k);
 
@@ -73,7 +77,7 @@ int i,j,k,noBins,noMetrics,noResources;
   for(i = 0; i < noMetrics; i++)
     for(j = 0; j < noResources; j++){
       for(k = 0; k < noBins; k++)
-       fprintf(stderr,"@@@@dataGrid[%d,%d,%d] = %f\n",i,j,k,dataGrid[i][j][k]);
+       fprintf(stderr,"@@@@dataGrid[%d,%d,%d] = %lf\n",i,j,k,dataGrid[i][j][k]);
       printf("\n");
     }
     (char *)dataGrid[0][0].userdata =  strdup("blah");

@@ -1,10 +1,14 @@
-#include "../h/visithread.h"
+/* $Log: client2.C,v $
+/* Revision 1.2  1994/03/26 04:37:03  newhall
+/* change all floats to double
+/* */
+#include "visi.CLNT.h"
 
 #define TESTMETRIC	"blah,blah blah,metric 3,metric 4,last metric"
 #define TESTRESOURCE	"resource1/blah1/foo1,resource2/foo2,resource3"
 
 int numMets,numRes,numBuckets,lastBucketcollected = 0;
-float bucketwidth;
+double bucketwidth;
 visualizationUser *vup;
 
 void Phase(){
@@ -173,8 +177,8 @@ int numtimes;
     numMets = atoi(argv[2]);
     numRes  = atoi(argv[3]);
     numBuckets  = atoi(argv[4]);
-    bucketwidth  = (float)atof(argv[5]);
-    fprintf(stdout," numMets = %d numRes = %d numBuckets = %d bucketwidth = %f\n",numMets,numRes,numBuckets,bucketwidth);
+    bucketwidth  = (double)atof(argv[5]);
+    fprintf(stdout," numMets = %d numRes = %d numBuckets = %d bucketwidth = %lf\n",numMets,numRes,numBuckets,bucketwidth);
   }
   else{
     numMets = 3;

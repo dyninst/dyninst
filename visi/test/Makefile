@@ -6,13 +6,13 @@ LIBRARY	      = visilib.a
 
 SRVROBJ       = server1.o
 
-CLNTOBJS      = client1.o
+CLNTOBJS      = client1.o visithread.o
 
-CLNT2OBJS      = client2.o
+CLNT2OBJS      = client2.o visithread.o
 
-OBJS	      = client1.o server1.o xtext.o xtext2.o client2.o
+OBJS	      = client1.o server1.o xtext.o xtext2.o client2.o visithread.o
 
-SRCS	      = client1.C server1.C xtext.C xtext.C client2.C
+SRCS	      = client1.C server1.C xtext.C xtext.C client2.C visithread.C
 
 PRINT	      = pr
 
@@ -54,8 +54,8 @@ update:         $(DEST)/$(LIBRARY)
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-client1.o: ../h/visithread.h visi.CLNT.h visi.h ../../util/h/rpcUtil.h
-client1.o: /usr/include/stdio.h /usr/include/strings.h /usr/include/string.h
+client1.o: visi.CLNT.h visi.h ../../util/h/rpcUtil.h /usr/include/stdio.h
+client1.o: /usr/include/strings.h /usr/include/string.h
 client1.o: /usr/include/sys/stdtypes.h /usr/include/stdlib.h
 client1.o: /usr/include/errno.h /usr/include/sys/errno.h
 client1.o: /usr/include/assert.h /usr/include/fcntl.h
@@ -137,8 +137,8 @@ xtext.o: /usr/include/netdb.h /usr/include/sys/time.h /usr/include/sys/time.h
 xtext.o: /usr/include/unistd.h /usr/include/sys/file.h
 xtext.o: /usr/include/rpc/types.h /usr/include/malloc.h
 xtext.o: /usr/include/rpc/xdr.h ../h/mrlist.h visi.SRVR.h
-client2.o: ../h/visithread.h visi.CLNT.h visi.h ../../util/h/rpcUtil.h
-client2.o: /usr/include/stdio.h /usr/include/strings.h /usr/include/string.h
+client2.o: visi.CLNT.h visi.h ../../util/h/rpcUtil.h /usr/include/stdio.h
+client2.o: /usr/include/strings.h /usr/include/string.h
 client2.o: /usr/include/sys/stdtypes.h /usr/include/stdlib.h
 client2.o: /usr/include/errno.h /usr/include/sys/errno.h
 client2.o: /usr/include/assert.h /usr/include/fcntl.h
@@ -150,3 +150,16 @@ client2.o: /usr/include/sys/time.h /usr/include/sys/time.h
 client2.o: /usr/include/unistd.h /usr/include/sys/file.h
 client2.o: /usr/include/rpc/types.h /usr/include/malloc.h
 client2.o: /usr/include/rpc/xdr.h
+visithread.o: visi.CLNT.h visi.h ../../util/h/rpcUtil.h /usr/include/stdio.h
+visithread.o: /usr/include/strings.h /usr/include/string.h
+visithread.o: /usr/include/sys/stdtypes.h /usr/include/stdlib.h
+visithread.o: /usr/include/errno.h /usr/include/sys/errno.h
+visithread.o: /usr/include/assert.h /usr/include/fcntl.h
+visithread.o: /usr/include/sys/fcntlcom.h /usr/include/sys/stat.h
+visithread.o: /usr/include/sys/types.h /usr/include/sys/sysmacros.h
+visithread.o: /usr/include/memory.h /usr/include/sys/socket.h
+visithread.o: /usr/include/netinet/in.h /usr/include/netdb.h
+visithread.o: /usr/include/sys/time.h /usr/include/sys/time.h
+visithread.o: /usr/include/unistd.h /usr/include/sys/file.h
+visithread.o: /usr/include/rpc/types.h /usr/include/malloc.h
+visithread.o: /usr/include/rpc/xdr.h

@@ -1,4 +1,8 @@
-#include "../h/visithread.h"
+/* $Log: client1.C,v $
+/* Revision 1.4  1994/03/26 04:37:01  newhall
+/* change all floats to double
+/* */
+#include "visi.CLNT.h"
 
 #define TESTMETRIC	"blah,blah blah,metric 3,metric 4,last metric"
 #define TESTRESOURCE	"resource1/blah1/foo1,resource2/foo2,resource3"
@@ -21,9 +25,9 @@ resourceType_Array res;
 dataValue   *data;
 dataValue_Array blah;
 int mId,rId,bNum,nval;
-float num,num2;
+double num,num2;
 int nMets,nRes;
-float bWidth;
+double bWidth;
 
 
   if(argc < 2){
@@ -53,7 +57,6 @@ float bWidth;
   fprintf(stderr,"in client before new visualizationUser\n");
   vup = new visualizationUser(fd,NULL,NULL);
 
-  fprintf(stderr,"in client before while loop\n");
   done = 0;
   while(!done){
 
@@ -85,8 +88,8 @@ float bWidth;
               scanf("%d",&data[i].resourceId);
 	      fprintf(stdout,"enter bucketNum (int)\n");   
               scanf("%d",&data[i].bucketNum);
-	      fprintf(stdout,"enter data value (float)\n");   
-              scanf("%f",&num);
+	      fprintf(stdout,"enter data value (double)\n");   
+              scanf("%lf",&num);
 	      data[i].data = num;
 	    }
 
@@ -97,8 +100,8 @@ float bWidth;
 	    break;
 	case 1:
 	    fprintf(stdout,"\nFold:\n");   
-	    fprintf(stdout,"enter new bucket width value (float)\n");
-            scanf("%f",&num);
+	    fprintf(stdout,"enter new bucket width value (double)\n");
+            scanf("%lf",&num);
 	    vup->Fold(num);
 	    break;
 	case 2:
@@ -134,8 +137,8 @@ float bWidth;
 	    res.data = resources;
 	    fprintf(stdout,"enter numBuckets (int)\n");
             scanf("%d",&bNum);
-	    fprintf(stdout,"enter bucket width (float)\n");
-            scanf("%f",&bWidth);
+	    fprintf(stdout,"enter bucket width (double)\n");
+            scanf("%lf",&bWidth);
 	    vup->AddMetricsResources(mets,res,bWidth,bNum);
 	    for(i=0;i<nMets;i++){
 	      free(metrics[i].name);
@@ -183,8 +186,8 @@ float bWidth;
 	    break;
 	case 5:
 	    fprintf(stdout,"\nPhase:\n");   
-	    fprintf(stdout,"enter phase name(string), begin(float), end(float)\n"); 
-	    scanf("%s%f%f",temp,&num,&num2);
+	    fprintf(stdout,"enter phase name(string), begin(double), end(doulbe)\n"); 
+	    scanf("%s%lf%lf",temp,&num,&num2);
 	    vup->Phase(num,num2,temp);
 	    break;
 	case 6:

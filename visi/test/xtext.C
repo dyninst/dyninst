@@ -1,3 +1,7 @@
+/* $Log: xtext.C,v $
+/* Revision 1.4  1994/03/26 04:37:08  newhall
+/* change all floats to double
+/* */
 /*
  * xtext.c
  *
@@ -114,7 +118,7 @@ int fd_input(int dummy){
   int i,j,k;
   int noMetrics,noResources,noBins;
   int size;
-  float value;
+  double value;
 
   XtSetArg(args[0], XtNinsertPosition, &pos);
   XtGetValues(text, args, ONE);
@@ -127,7 +131,7 @@ int fd_input(int dummy){
    for(j=0;j<noResources;j++){
     for(k=0;k<noBins;k++){
       if((value = dataGrid[i][j][k]) != ERROR){
-      sprintf(&buf[0],"%s%d%s%d%s%d%s%f\n","dataGrid[",i,"][",j,"][",k,
+      sprintf(&buf[0],"%s%d%s%d%s%d%s%lf\n","dataGrid[",i,"][",j,"][",k,
 	      "] = ",value); 
       }
       else{
@@ -172,7 +176,7 @@ int fd_input2(int dummy){
   int size;
   int noMetrics,noResources,noBins;
   int aggr;
-  float value;
+  double value;
 
   XtSetArg(args[0], XtNinsertPosition, &pos);
   XtGetValues(text, args, ONE);
@@ -181,7 +185,7 @@ int fd_input2(int dummy){
   noBins = dataGrid.NumBins();
   value  = dataGrid.BinWidth();
   aggr   = dataGrid.FoldMethod(0);
-  sprintf(&buf[0],"\n%s%d%s%d%s%d%s%f%s%d\n","noMetrics = ",noMetrics,
+  sprintf(&buf[0],"\n%s%d%s%d%s%d%s%lf%s%d\n","noMetrics = ",noMetrics,
 	 ", no resources = ",noResources,", num Bins = ",noBins,
 	 "\nbinWidth = ",value,", Fold Method = ",aggr);
 
@@ -206,9 +210,7 @@ int fd_input2(int dummy){
 //
 static void GetMetsRes(Widget w,XtAppContext app_con,XtPointer call_data){
 
- fprintf(stderr,"@@@@ in GetMetsRes before call\n"); 
   vp->GetMetricResource(" "," ",0);  
- fprintf(stderr,"@@@@ in GetMetsRes after call\n"); 
 }
 /////////////////////////////////////
 

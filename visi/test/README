@@ -1,3 +1,7 @@
+/* $Log: README,v $
+/* Revision 1.3  1994/03/26 04:36:59  newhall
+/* change all floats to double
+/* */
 directions to incorporate a visualization  (an example is in xtext.C)
 -----------------------------------------
 in main():
@@ -45,6 +49,16 @@ in main():
 
 (5) call Xt main loop
 
+
+getting values out of the datagrid
+----------------------------------
+information about metrics, resources, and data values can be obtained
+by calling the visi_DataGrid method functions in ~paradyn/visi/h/datagrid.h
+
+data values can be retrieved in one of two ways:
+ 1) datagrid[metricNum][resourceNum][bucketNum] returns a single bucket value
+ 2) datagrid[metricNum][resourceNum].Value() returns a ptr to an array of
+    bucket values
 
 
 interface test programs

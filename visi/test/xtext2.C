@@ -1,3 +1,7 @@
+/* $Log: xtext2.C,v $
+/* Revision 1.4  1994/03/26 04:37:11  newhall
+/* change all floats to double
+/* */
 /*
  * xtext.c
  *
@@ -82,7 +86,7 @@ int fd_input(int dummy){
   int i,j,k;
   int noMetrics,noResources,noBins;
   int size;
-  float value;
+  double value;
 
   XtSetArg(args[0], XtNinsertPosition, &pos);
   XtGetValues(text, args, ONE);
@@ -96,7 +100,7 @@ int fd_input(int dummy){
    for(j=0;j<noResources;j++){
     for(k=0;k<noBins;k++){
       if((value = dataGrid[i][j][k]) != ERROR){
-      sprintf(&buf[0],"%s%d%s%d%s%d%s%f\n","dataGrid[",i,"][",j,"][",k,
+      sprintf(&buf[0],"%s%d%s%d%s%d%s%lf\n","dataGrid[",i,"][",j,"][",k,
 	      "] = ",value); 
       }
       else{
@@ -115,7 +119,7 @@ int fd_input(int dummy){
       XtSetArg(args[0], XtNinsertPosition, pos);
       XtSetValues(text, args, ONE);
     }
-    
+
     sprintf(&buf[0],"\n");
     size = strlen(buf);  
     tb.firstPos = 0;
@@ -129,7 +133,7 @@ int fd_input(int dummy){
     XtSetArg(args[0], XtNinsertPosition, pos);
     XtSetValues(text, args, ONE);
   }
-  fprintf(stderr,"@@@@ leaving callback for datavalues and fold\n");
+
 
 }
 
@@ -142,8 +146,9 @@ int fd_input2(int dummy){
   int size;
   int noMetrics,noResources,noBins;
   int aggr;
-  float value;
+  double value;
 
+  fprintf(stderr,"@@@@ in callback for ADDMETRICSRESOURCES\n");
   XtSetArg(args[0], XtNinsertPosition, &pos);
   XtGetValues(text, args, ONE);
   noMetrics = dataGrid.NumMetrics();
@@ -151,7 +156,7 @@ int fd_input2(int dummy){
   noBins = dataGrid.NumBins();
   value  = dataGrid.BinWidth();
   aggr   = dataGrid.FoldMethod(0);
-  sprintf(&buf[0],"\n%s%d%s%d%s%d%s%f%s%d\n","noMetrics = ",noMetrics,
+  sprintf(&buf[0],"\n%s%d%s%d%s%d%s%lf%s%d\n","noMetrics = ",noMetrics,
 	 ", no resources = ",noResources,", num Bins = ",noBins,
 	 "\nbinWidth = ",value,", Fold Method = ",aggr);
 
@@ -166,7 +171,6 @@ int fd_input2(int dummy){
   pos += size;
   XtSetArg(args[0], XtNinsertPosition, pos);
   XtSetValues(text, args, ONE);
-
   return(OK);
 }
 
@@ -200,23 +204,20 @@ int fd_input3(int dummy){
 /////////////////////////////////////
 static void GetMetsRes(Widget w,XtAppContext app_con,XtPointer call_data){
 
- fprintf(stderr,"@@@@ in GetMetsRes before call\n"); 
+ fprintf(stderr,"@@@@ in GetMetsRes upcall\n"); 
   vp->GetMetricResource(" "," ",0);  
- fprintf(stderr,"@@@@ in GetMetsRes after call\n"); 
 }
 
 static void StopMetsRes(Widget w,XtAppContext app_con,XtPointer call_data){
 
- fprintf(stderr,"@@@@ in StopMetsRes before call\n"); 
+ fprintf(stderr,"@@@@ in StopMetsRes upcall\n"); 
   vp->StopMetricResource(0,0);  
- fprintf(stderr,"@@@@ in StopMetsRes after call\n"); 
 }
 
 static void PName(Widget w,XtAppContext app_con,XtPointer call_data){
 
- fprintf(stderr,"@@@@ in PName before call\n"); 
+ fprintf(stderr,"@@@@ in PName upcall\n"); 
   vp->PhaseName(0.0,1.0," ");  
- fprintf(stderr,"@@@@ in PName after call\n"); 
 }
 /////////////////////////////////////
 
