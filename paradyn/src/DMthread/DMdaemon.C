@@ -37,7 +37,8 @@ double   quiet_nan();
 
 
 // TEMP this should be part of a class def.
-status_line *DMstatus;
+status_line *DMstatus=NULL;
+status_line *PROCstatus=NULL;
 
 // change a char* that points to "" to point to NULL
 // NULL is used to signify "NO ARGUMENT"
@@ -333,11 +334,13 @@ bool paradynDaemon::newExecutable(const string &machine,
 				  const string &dir, 
 				  const vector<string> &argv){
 
-  static status_line pidnum("Processes");
   static char tmp_buf[256];
 
   if (! DMstatus) {
       DMstatus = new status_line("Data Manager");
+  }
+  if (! PROCstatus) {
+      PROCstatus = new status_line("Processes");
   }
 
   paradynDaemon *daemon;
@@ -352,7 +355,7 @@ bool paradynDaemon::newExecutable(const string &machine,
   if (pid > 0 && !daemon->did_error_occur()) {
       // TODO
       sprintf (tmp_buf, "%sPID=%d ", tmp_buf, pid);
-      pidnum.message(tmp_buf);
+      PROCstatus->message(tmp_buf);
 
       executable *exec = new executable(pid, argv, daemon);
       paradynDaemon::programs += exec;

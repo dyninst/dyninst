@@ -5,9 +5,15 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.49  1995/10/17 20:54:56  tamches
-/* class abstractions is no longer templated
+/* Revision 1.50  1995/10/30 23:07:07  naim
+/* Minor fix: eliminating error message from status_line destructor by relocating
+/* object declarations to a better place in the code. "static" declarations were
+/* also changed to global declarations, so we use "new" the first time were we
+/* reference them - naim
 /*
+ * Revision 1.49  1995/10/17  20:54:56  tamches
+ * class abstractions is no longer templated
+ *
  * Revision 1.48  1995/10/13 19:37:26  naim
  * Minor change for handling PAUSE and RUN buttons when a process is created
  * from a MDL file - naim
@@ -199,6 +205,8 @@
 extern bool detachApplication(bool);
 
 extern appState PDapplicState;
+
+status_line *app_name=NULL;
 
 int ParadynPauseCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
@@ -498,12 +506,14 @@ int ParadynProcessCmd(ClientData clientData,
     }
   }
 
-  static status_line app_name("Application name");
+  if (!app_name) {
+    app_name = new status_line("Application name");
+  }
   static char tmp_buf[1024];
   sprintf(tmp_buf, "program: %s, machine: %s, user: %s, daemon: %s",
 	  argv[i], machine?machine:"(local)", user?user:"(self)",
 	  paradynd?paradynd:"(default)");
-  app_name.message(tmp_buf);
+  app_name->message(tmp_buf);
   
   vector<string> av;
   unsigned ve=i;
