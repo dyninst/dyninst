@@ -164,6 +164,7 @@ void * MC_RemoteNode::send_thread_main(void * args)
 
     mc_printf(MCFL, stderr, "send_thread_main() sending packets ...\n");
     if( remote_node->msg_out.send(remote_node->sock_fd) == -1 ){
+        fprintf(stderr, "RN: send_thread_main: send failed\n" );
       mc_printf(MCFL, stderr, "msg.send() failed. Thread Exiting\n");
       remote_node->msg_out_sync.unlock();
       pthread_exit(args);
@@ -332,6 +333,14 @@ int MC_RemoteNode::send(MC_Packet *packet)
   }
 
   msg_out.add_Packet(packet);
+  if( msg_out.size_Packets() == IOV_MAX )
+  {
+    int sret = msg_out.send( sock_fd );
+    if( sret == -1 )
+    {
+        mc_printf(MCFL, stderr, "RemoteNode.send, flush forced, but failed\n" );
+    }
+  }
 
   if(threaded){
     msg_out_sync.signal(MC_MESSAGEOUT_NONEMPTY);
