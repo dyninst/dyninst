@@ -626,7 +626,6 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
    // the catchup request list.
    for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
       constraintCodeNodes[cIter]->prepareCatchupInstr(catchupWalk);
-   
    // Get the metric code node catchup list
    metricVarCodeNode->prepareCatchupInstr(catchupWalk);
    
@@ -666,7 +665,6 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
       //conglomerate->print();
       catchup.ast = conglomerate;
       catchup.thread = catchupWalk[0]->frame.getThread();
-      catchup.lwp = catchupWalk[0]->frame.getLWP();
       catchupASTList.push_back(catchup);
    }
 }
@@ -721,14 +719,16 @@ bool processMetFocusNode::postCatchupRPCs()
    for (unsigned i=0; i < catchupASTList.size(); i++) {
       if (pd_debug_catchup) {
          cerr << "metricID: " << getMetricID() << ", posting ast " << i 
-              << " with lwp: " 
-              << catchupASTList[i].lwp->get_lwp_id() << ", lwp-fd: "
-              << catchupASTList[i].lwp->get_fd() << "\n";
+              << " on thread: " 
+              << catchupASTList[i].thread->get_tid() << endl;
+         
       }
       catchupPosted = true;
-      unsigned rpc_id = proc_->postRPCtoDo(catchupASTList[i].ast, false,
-                             NULL, //processMetFocusNode::catchupRPC_Complete,
-                                           this, catchupASTList[i].lwp, false);
+
+      unsigned rpc_id = proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
+                                           getMetricID(), false,  // lowmem parameter
+                                           catchupASTList[i].thread,
+                                           NULL);
       rpc_id_buf.push_back(rpc_id);
    }
    

@@ -64,7 +64,6 @@ class dyn_lwp;
 struct catchup_t {
   AstNode *ast;
   dyn_thread *thread;
-  dyn_lwp *lwp;
 };
 
 struct sideEffect_t {
