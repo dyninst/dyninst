@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: test6.mutatee.c,v 1.26 2004/03/23 19:11:35 eli Exp $ */
+/* $Id: test6.mutatee.c,v 1.27 2004/04/26 21:41:44 rchen Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -569,8 +569,12 @@ void check3()
 
 void check4()
 {
+#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
+  skiptest(4, "access instrumentation");
+#else
   passorfail(4, accessCnt == accessExp, "access instrumentation", "access counter seems wrong.");
   dprintf("accessCnt = %d    accessExp = %d\n", accessCnt, accessExp);
+#endif
 }
 
 void check5()
