@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.163 2003/07/23 22:27:54 bernat Exp $
+// $Id: aix.C,v 1.164 2003/07/23 22:32:15 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -214,17 +214,14 @@ Frame Frame::getCallerFrame(process *p) const
   if ((stackFrame.binderInfo & MODIFIED_LR_MASK) == MODIFIED_LR) {
       // The actual LR is stored in the "compilerInfo" word
       ret.pc_ = stackFrame.compilerInfo;
-      fprintf(stderr, "Using stored LR 0x%x\n", ret.pc_);
   }
   else if ((stackFrame.binderInfo & IN_ENTRY_EXIT_TRAMP_MASK) == IN_ENTRY_EXIT_TRAMP) {
       p->readDataSpace((caddr_t)thisStackFrame.oldFp-TRAMP_FRAME_SIZE+TRAMP_SPR_OFFSET+STK_LR, sizeof(int),
                        (caddr_t)&ret.pc_, false);
-      fprintf(stderr, "In tramp, using LR 0x%x\n", ret.pc_);
   }
   else if ((stackFrame.binderInfo & IN_OTHER_TRAMP_MASK) == IN_OTHER_TRAMP) {
       // Skip this one and return the next frame
       ret.fp_ = thisStackFrame.oldFp;
-      fprintf(stderr, "In tramp already: skipping\n");
       return ret.getCallerFrame(p);
   }  
   else if (isLeaf) {
@@ -253,7 +250,6 @@ Frame Frame::getCallerFrame(process *p) const
       // Oh lordy... but NOT if we're at the entry of the function. See, we haven't
       // saved the LR on the stack frame yet!
       ret.pc_ = stackFrame.savedLR;
-      fprintf(stderr, "Plain old: 0x%x\n", ret.pc_);
   }
   
   if (noFrame) { // We never shifted the stack down, so recycle
