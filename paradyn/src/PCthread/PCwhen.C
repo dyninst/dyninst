@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCwhen.C,v $
- * Revision 1.5  1994/07/28 22:34:05  krisna
+ * Revision 1.6  1994/09/22 01:07:31  markc
+ * Made char* in timeInterval::timeInterval const
+ *
+ * Revision 1.5  1994/07/28  22:34:05  krisna
  * proper starting code for PCmain thread
  * stringCompare matches qsort prototype
  * changed infinity() to HUGE_VAL
@@ -61,7 +64,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.5 1994/07/28 22:34:05 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.6 1994/09/22 01:07:31 markc Exp $";
 #endif
 
 
@@ -69,18 +72,22 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 #include "dataManager.h"
 #include "PCwhen.h"
 
 static int nextId;
 
-timeInterval::timeInterval(timeInterval* parent,timeStamp s,timeStamp e,char *n)
+timeInterval::timeInterval(timeInterval* parent,timeStamp s,timeStamp e, const char *n)
 {
 
     start = s;
     end = e;
-    name = n;
+    if (n)
+      name = strdup(n);
+    else
+      name = 0;
     id = nextId++;
     subIntervals = new(timeIntervalList);
     allTimeIntervals.add(this);
@@ -110,7 +117,7 @@ void timeInterval::print(int level, char *str)
 	if (name) sprintf(str, "name = %s ", name);
 	sprintf(str, "start = %f, end = %f\n", start, end);
 	if (subIntervals) {
-	    for (curr = *subIntervals; *curr; curr++) {
+	    for (curr = *subIntervals; *curr; ++curr) {
 		(*curr)->print(level+1);
 	    }
 	}
