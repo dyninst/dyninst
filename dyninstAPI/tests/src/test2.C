@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.54 2003/09/23 17:28:59 tlmiller Exp $
+// $Id: test2.C,v 1.55 2004/01/19 21:54:23 schendel Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <stdarg.h>
 #ifdef i386_unknown_nt4_0
 #include <io.h>
 #define WIN32_LEAN_AND_MEAN
@@ -60,7 +61,17 @@ static const char *mutateeNameRoot = "test2.mutatee";
 char mutateeName[128];
 
 // control debug printf statements
-#define dprintf	if (debugPrint) printf
+void dprintf(const char *fmt, ...) {
+   va_list args;
+   va_start(args, fmt);
+
+   if(debugPrint)
+      vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+}
 
 //
 // Test #1 - run an executable that does not exist

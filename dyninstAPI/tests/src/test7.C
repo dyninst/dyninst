@@ -1,4 +1,4 @@
-// $Id: test7.C,v 1.8 2003/11/13 19:23:40 hollings Exp $
+// $Id: test7.C,v 1.9 2004/01/19 21:54:25 schendel Exp $
 //
 
 #include <stdio.h>
@@ -7,6 +7,7 @@
 #include <sys/msg.h>
 #include <iostream>
 #include <errno.h>
+#include <stdarg.h>
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
 #include <winbase.h>
@@ -30,7 +31,19 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool forceRelocation = false;  // Force relocation upon instrumentation
 
-#define dprintf if (debugPrint) printf
+// control debug printf statements
+void dprintf(const char *fmt, ...) {
+   va_list args;
+   va_start(args, fmt);
+
+   if(debugPrint)
+      vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+}
+
 
 bool runAllTests = true;
 const unsigned int MAX_TEST = 9;

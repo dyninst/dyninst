@@ -1,8 +1,9 @@
-// $Id: test6.C,v 1.20 2003/08/02 00:10:41 jodom Exp $
+// $Id: test6.C,v 1.21 2004/01/19 21:54:24 schendel Exp $
  
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdarg.h>
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
 #include <winbase.h>
@@ -28,7 +29,18 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool forceRelocation = false;  // Force relocation upon instrumentation
 
-#define dprintf if (debugPrint) printf
+// control debug printf statements
+void dprintf(const char *fmt, ...) {
+   va_list args;
+   va_start(args, fmt);
+
+   if(debugPrint)
+      vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+}
 
 bool runAllTests = true;
 const unsigned int MAX_TEST = 8;
