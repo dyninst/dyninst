@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.22  1995/02/16 09:07:10  markc
+ * Revision 1.23  1995/03/13 16:05:47  jcargill
+ * fixed Double/float mix-up; could cause store-double instruction to an
+ * incorrectly aligned address.
+ *
+ * Revision 1.22  1995/02/16  09:07:10  markc
  * Made Boolean type RT_Boolean to prevent picking up a different boolean
  * definition.
  *
@@ -405,7 +409,7 @@ static int DYNINSTinitDone;
 time64 DYNINSTelapsedTime;
 tTimer DYNINSTelapsedCPUTime;
 
-extern double DYNINSTsamplingRate;
+extern float DYNINSTsamplingRate;
 
 #define NI_BASE       (0x20000000)
 #define NI_TIME_A     	      (NI_BASE + 0x0070)
