@@ -1,1234 +1,1225 @@
-/*
- * main.C - main function of the interface compiler igen.
- *
- * $Log: main.C,v $
- * Revision 1.32  1995/01/18 23:25:37  markc
- * Renamed the files that igen creates.
- * Removed reliance on assignment operator for class ofstream.
- *
- * Revision 1.31  1994/09/22  00:37:58  markc
- * Made all templates external
- * Made array declarations separate
- * Add class support
- * Add support for "const"
- * Bundle pointers for xdr
- *
- * Revision 1.30  1994/08/22  20:06:32  markc
- * Stopped generating inline functions that are not used for threads.
- *
- * Revision 1.29  1994/08/22  16:07:03  markc
- * Moved inline functions used for bundling from header files to .SRVR. and
- * .CLNT. .C files to decrease compiler warnings.
- *
- * Revision 1.28  1994/08/18  19:53:28  markc
- * Added support for new files.
- * Removed compiler warnings for solaris2.3
- *
- * Revision 1.27  1994/08/18  05:56:54  markc
- * Changed char*'s to stringHandles
- *
- * Revision 1.26  1994/08/17  17:51:57  markc
- * Added Makefile for Linux.
- * Support new source files for igen.
- * Separate source files.  ClassDefns supports classes, typeDefns supports
- * structures.
- *
- * Revision 1.24  1994/06/02  23:34:26  markc
- * New igen features: error checking, synchronous upcalls.
- *
- * Revision 1.23  1994/04/07  19:03:33  markc
- * Fixed bug for async client calls with threads.  Removed msg_recv.
- *
- * Revision 1.22  1994/04/06  21:28:45  markc
- * Added constructor for client side of xdr based code.
- *
- * Revision 1.21  1994/04/01  04:57:50  markc
- * Added checks in bundlers.  Fixed xdrrec_endofrecord.
- *
- * Revision 1.20  1994/03/31  22:57:52  hollings
- * Fixed xdr_endofrecord bug and added wellKnownScoket parameter.
- *
- * Revision 1.19  1994/03/31  02:12:18  markc
- * Added code to initialize versionVerifyDone
- *
- * Revision 1.18  1994/03/25  22:35:21  hollings
- * Get the test for callErr right.
- *
- * Revision 1.17  1994/03/25  20:57:02  hollings
- * Changed all asserts to set the error member variable.  This makes it
- * possible to detect/continue when the remote process dies.
- *
- * Revision 1.16  1994/03/07  23:28:46  markc
- * Added support to free arrays of classes.
- *
- * Revision 1.15  1994/03/07  02:50:56  markc
- * Set callErr to 0 in constructors.
- *
- * Revision 1.14  1994/03/07  02:35:17  markc
- * Added code to detect failures for xdr code.  Provides member instance
- * callErr which is set to -1 on failures.
- *
- * Revision 1.13  1994/03/06  20:51:09  markc
- * Added float as a basic type.
- *
- * Revision 1.12  1994/03/01  21:39:37  jcargill
- * Rearranged order of includes for igen-generated code, so that it compiles
- * on MIPS.  Some of the Ultrix headers really suck.
- *
- * Revision 1.11  1994/03/01  01:50:46  markc
- * Fixed memory access errors.
- *
- * Revision 1.10  1994/02/25  11:41:32  markc
- * Fixed bug.  Igen generated versionVerify tests for client code when async.
- *
- * Revision 1.9  1994/02/24  05:14:32  markc
- * Man page for igen.
- * Initial version for solaris2.2.
- * Dependencies changed.
- * Added pvm support, virtual function support, inclusion of data members,
- * separate client and header include files.
- *
- * Revision 1.8  1994/02/08  00:17:55  hollings
- * Fixed pointer problems to work on DECstations.
- *
- * Revision 1.7  1994/02/04  01:25:46  hollings
- * *** empty log message ***
- *
- * Revision 1.6  1994/02/04  00:35:01  hollings
- * constructor inheritance round two.
- *
- * Revision 1.5  1994/01/31  20:05:57  hollings
- * Added code to check the protocol name and version tests are run
- * before any upcalls get invoked.
- *
- * Revision 1.4  1994/01/28  19:42:30  hollings
- * Fixed max variable name length.
- *
- * Revision 1.3  1994/01/27  20:36:29  hollings
- * changes in include syntax round 2 or 3.
- *
- * Revision 1.2  1994/01/26  06:50:10  hollings
- * made the output of igen pass through g++ -Wall.
- *
- * Revision 1.1  1994/01/25  20:48:43  hollings
- * New utility for interfaces.
- * new utility for interfaces.
- *
- *
- */
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <sys/file.h>
-
-int generateXDR;
-int generateTHREAD;
 
 #include "parse.h"
+#include <iostream.h>
+#include <stdio.h>
 
-stringPool namePool;
-
-// how are pointer to the same memory to be handled
-PTR_TYPE ptrMode = ptrIgnore;
-
-int yyparse();
-int emitCode;
-int emitHeader;
-char *protoFile;
-
-List<userDefn*> userPool;
-
-userDefn *foundType;
+dictionary_hash<string, type_defn*> Options::all_types(string::hash);
+vector<message_layer*> Options::all_ml;
+vector<Options::stl_data> Options::stl_types;
 
 extern FILE *yyin;
-char *transportBase;
-char *serverTypeName;
+extern int yyparse();
 
-extern interfaceSpec *currentInterface;
+static bool set_ml(const string);
+static void init_ml();
+static void open_interface_file(int argc, char *argv[]);
+static void open_output_files();
+static void do_opts(int argc, char *argv[]);
+static void usage();
+static void init_header_files();
+static void end_header_files();
+static void init_types();
 
-List <pvm_args*> pvm_types;
-void PVM_map_scalar_includes (pvm_args *);
-void PVM_map_array_includes (pvm_args *);
-void templatePVMscalar (pvm_args *);
-void templatePVMarray (pvm_args *);
-List<char*> client_pass_thru;
-List<char*> server_pass_thru;
+interface_spec *Options::current_interface;
+ifstream Options::input;
+ofstream Options::dot_h;
+ofstream Options::dot_c;
+ofstream Options::clnt_dot_h;
+ofstream Options::clnt_dot_c;
+ofstream Options::srvr_dot_h;
+ofstream Options::temp_dot_c;
+ofstream Options::srvr_dot_c;
+string Options::file_base_;
+string Options::input_file_;
+bool Options::profile_;
+unsigned Options::var_count_ = 0;
+Options::mem_type Options::mem_;
+message_layer *Options::ml;
+bool Options::stl_seen = false;
 
-void usage(char *name)
-{
-    printf("%s -xdr | -thread | -pvm [-header | -code]\n", name);
-    printf("      [-ignore | -detect | -handle] <fileName>\n");
-    printf("  CODE OPTIONS\n");
-    printf("  -xdr     -->  produce code for sockets/xdr\n");
-    printf("  -pvm     -->  produce code for PVM\n");
-    printf("  -thread  -->  produce code for threads\n");
-    printf("  MARSHALLING OPTIONS\n");
-    printf("  -ignore  -->  don't detect pointers to the same memory\n");
-    printf("  -detect  -->  detect (and assert) duplicate pointers\n");
-    printf("  -handle  -->  handle duplicate\n");
-    exit(-1);
+static void usage() {
+  cerr << "igen " << "[-prof] -xdr | -thread | -pvm [-header | -code]\n";
+  cerr << "      [-ignore | -detect | -handle] [-input <file>] <fileName>\n";
+  cerr << "  CODE OPTIONS\n";
+  cerr << "    -xdr     -->  produce code for sockets/xdr\n";
+  cerr << "    -pvm     -->  produce code for PVM\n";
+  cerr << "    -thread  -->  produce code for threads\n";
+  cerr << "    -sas     -->  produce code for unknown threading systems\n";
+  cerr << "    -mas     -->  produce code for unknown multi-process message passing\n";
+  cerr << "  DATA OPTIONS\n";
+  cerr << "    -input <file> --> file that supplies data for unknown systems\n";
+  cerr << "  MARSHALLING OPTIONS\n";
+  cerr << "     currently unsupported\n";
+  cerr << "    -ignore  -->  don't detect pointers to the same memory\n";
+  cerr << "    -detect  -->  detect (and assert) duplicate pointers\n";
+  cerr << "    -handle  -->  handle duplicate\n";
+  cerr << "  PROFILE OPTIONS\n";
+  cerr << "     currently unsupported\n";
+  cerr << "    -prof    -->  generate profile code\n";
 }
 
+static void do_opts(int argc, char *argv[]) {
+  Options::current_interface = NULL;
 
-int main(int argc, char *argv[])
-{
-    int i;
-    char *temp;
-    typeDefn *ign;
-
-    /* define pre-defined types */
-    /* assign value to remove compiler warnings */
-    ign = new typeDefn(namePool.findAndAdd("int"));
-    ign = new typeDefn(namePool.findAndAdd("double"));
-    ign = new typeDefn(namePool.findAndAdd("void"));
-    ign = new typeDefn(namePool.findAndAdd("Boolean"));
-    ign = new typeDefn(namePool.findAndAdd("u_int"));
-    ign = new typeDefn(namePool.findAndAdd("float"));
-    ign = new typeDefn(namePool.findAndAdd("u_char"));
-    ign = new typeDefn(namePool.findAndAdd("char"));
-
-    emitCode = 1;
-    emitHeader = 1;
-    for (i=0; i < argc-1; i++) {
-	if (!strcmp("-pvm", argv[i])) {
-	    generateXDR = 0;
-	    generateTHREAD = 0;
-	    transportBase = strdup("PVMrpc");
-	    printf("Sorry, pvm is not currently supported\n");
-	    exit(0);
-	} if (!strcmp("-xdr", argv[i])) {
-	    generateXDR = 1;
-	    generateTHREAD = 0;
-	    ign = new typeDefn(namePool.findAndAdd("XDRptr"));
-	    transportBase = strdup("XDRrpc");
-	} if (!strcmp("-thread", argv[i])) {
-	    generateXDR = 0;
-	    generateTHREAD = 1;
-	    transportBase = strdup("THREADrpc");
-	} else if (!strcmp("-header", argv[i])) {
-	    emitCode = 0;
-	    emitHeader = 1;
-	} else if (!strcmp("-code", argv[i])) {
-	    emitCode = 1;
-	    emitHeader = 0;
-	} else if (!strcmp("-ignore", argv[i])) {
-	  ptrMode = ptrIgnore;
-	} else if (!strcmp("-detect", argv[i])) {
-	  ptrMode = ptrDetect;
-	} else if (!strcmp("-handle", argv[i])) {
-	  ptrMode = ptrHandle;
-	}
-    }
-    if (!emitHeader && !emitCode) {
-	usage(argv[0]);
-    }
-    if (!generateXDR && !generateTHREAD) {
-	usage(argv[0]);
-    }
-
-    /*
-    // build the list that contains PVM type information
-    if (generatePVM)
-      buildPVMargs();
-      */
-
-    protoFile = argv[argc-1];
-
-    yyin = fopen(protoFile, "r");
-    if (!yyin) {
-	printf("unable to open %s\n", protoFile);
+  for (int i=0; i<argc-1; i++) {
+    if (!strcmp("-pvm", argv[i])) {
+      if (!set_ml("pvm")) {
+	cerr << "Message layer 'pvm' unknown\n";
 	exit(-1);
-    }
-
-    // skip to trailing component of file name.
-    temp = strrchr(protoFile, '/');
-    if (temp) protoFile = temp+1;
-
-    temp = strstr(protoFile, ".I");
-    if (!temp) {
-	printf("file names must end in .I\n");
+      }
+    } else if (!strcmp("-xdr", argv[i])) {
+      if (!set_ml("xdr")) {
+	cerr << "Message layer 'xdr' unknown\n";
 	exit(-1);
-    }
-    *(temp+1) = '\0';
-
-
-    // open the files for output
-    char *dump_to = new char[strlen(protoFile) + 20];
-    assert(dump_to);
-
-    sprintf(dump_to, "%s%sh", protoFile, (generateXDR ? "xdr." : "thread."));
-    dot_h.open(dump_to, ios::out);
-    assert(dot_h.good());
-
-    sprintf(dump_to, "%s%sC", protoFile, (generateXDR ? "xdr." : "thread."));
-    dot_c.open(dump_to, ios::out);
-    assert(dot_c.good());
-
-    sprintf(dump_to, "%s%sSRVR.h", protoFile, (generateXDR ? "xdr." : "thread."));
-    srvr_dot_h.open(dump_to, ios::out);
-    assert(srvr_dot_h.good());
-
-    sprintf(dump_to, "%s%sCLNT.h", protoFile, (generateXDR ? "xdr." : "thread."));
-    clnt_dot_h.open(dump_to, ios::out);
-    assert(clnt_dot_h.good());
-
-    if (generateXDR)
-      {
-	sprintf(dump_to, "%s%sSRVR.C", protoFile, (generateXDR ? "xdr." : "thread."));
-	srvr_dot_c.open(dump_to, ios::out);
-	assert(srvr_dot_c.good());
-
-	sprintf(dump_to, "%s%sCLNT.C", protoFile, (generateXDR ? "xdr." : "thread."));
-	(generateXDR ? clnt_dot_c : dot_c).open(dump_to, ios::out);
-	assert((generateXDR ? clnt_dot_c : dot_c).good());
       }
-    else
-      {
-	// srvr_dot_c = dot_c;
-	// (generateXDR ? clnt_dot_c : dot_c) = dot_c;
-	// assert((generateXDR ? clnt_dot_c : dot_c).good());
-	// assert(srvr_dot_c.good());
-      }
+    } else if (!strcmp("-sas", argv[i])) {
 
-    if (emitHeader) {
-        char *prefix;
-	int len;
-	len = strlen(protoFile);
-	prefix = new char[len];
-	strncpy (prefix, protoFile, len - 1);
-	prefix[len-1] = '\0';
+    } else if (!strcmp("-mas", argv[i])) {
 
-	dot_h << "#ifndef " << prefix << "BASE_H\n";
-	dot_h << "#define " << prefix << "BASE_H\n";
-	delete [] prefix;
-	dot_h << "#include \"util/h/rpcUtil.h\"\n";
-
-	dot_h << "extern \"C\" {\n";
-	dot_h << "#include <sys/types.h>\n";
-	dot_h << "#include <assert.h>\n";
-	dot_h << "}\n";
-
-	dot_h << "#ifdef IGEN_ERR_ASSERT_ON\n";
-	dot_h << "#ifndef IGEN_ERR_ASSERT\n";
-	dot_h << "#define IGEN_ERR_ASSERT assert(0)\n";
-	dot_h << "#endif\n";
-	dot_h << "#else\n";
-	dot_h << "#define IGEN_ERR_ASSERT\n";
-	dot_h << "#endif\n\n";
-
-	dot_h << "\n // Errors that can occur internal to igen\n";
-	dot_h << "#ifndef _IGEN_ERR_DEF\n";
-	dot_h << "#define _IGEN_ERR_DEF\n";
-	dot_h << "typedef enum e_IGEN_ERR {\n";
-	dot_h << "                       igen_no_err=0,\n";
-	dot_h << "                       igen_encode_err,\n";
-	dot_h << "                       igen_decode_err,\n";
-	dot_h << "                       igen_send_err,\n";
-	dot_h << "                       igen_read_err,\n";
-	dot_h << "                       igen_request_err,\n";
-	dot_h << "                       igen_call_err,\n";
-	dot_h << "                       igen_proto_err\n";
-	dot_h << "                       }  IGEN_ERR;\n\n";
-	dot_h << "#endif\n";
-      }
-
-    yyparse();
-
-    // this is opened in genClass
-    if (emitHeader) {
-      dot_h << "\n#endif\n";
-      dot_h << endl;
-    }
-
-    if (!currentInterface) {
-	printf("no interface defined\n");
+    } else if (!strcmp("-prof", argv[i])) {
+      cerr << "-prof is currently unsupported, bye\n"; exit(-1);
+    } else if (!strcmp("-thread", argv[i])) {
+      if (!set_ml("thread")) {
+	cerr << "Message layer 'thread' unknown\n";
 	exit(-1);
-    }
-
-    if (emitCode) {
-        currentInterface->genIncludes(dot_c, 1);
-	
-	if (generateTHREAD) {
-	  dot_c << "#include \"" << protoFile << (generateXDR ? "xdr" : "thread") 
-	    << ".SRVR.h\"\n";
-	  dot_c << "#include \"" << protoFile << (generateXDR ? "xdr" : "thread") 
-	    << ".CLNT.h\"\n";
-	} else {
-	  dot_c << "#include \"" << protoFile << (generateXDR ? "xdr" : "thread") 
-	    << ".h\"\n";
-	}
-
-	if (generateXDR)
-	  buildFlagHeaders(dot_c);
-
-	/*
-	if (generatePVM)
-	  buildPVMfilters();
-	  */
-
-	if (generateXDR)
-	  currentInterface->generateBundlers();
-	
-	currentInterface->generateServerCode();
-
-	currentInterface->generateClientCode();
-	fflush(stdout);
-    }
-
-    
-    if (generateTHREAD)
-      {
       }
-    else
-      {
-	srvr_dot_c.close();
-	clnt_dot_c.close();
+    } else if (!strcmp("-ignore", argv[i])) {
+      cerr << "-ignore is currently unsupported, bye\n"; exit(-1);
+    } else if (!strcmp("-detect", argv[i])) {
+      cerr << "-detect is currently unsupported, bye\n"; exit(-1);
+    } else if (!strcmp("-handle", argv[i])) {
+      cerr << "-handle is currently unsupported, bye\n"; exit(-1);
+    } else if (!strcmp("-input", argv[i])) {
+      if (!argv[i+1]) {
+	cerr << "-input specified with no filename, goodbye!\n";
+	exit(-1);
       }
-    exit(0);
+      Options::set_input_file(argv[i+1]);
+    }
+  }
 
-    srvr_dot_h.close();
-    clnt_dot_h.close();
-
-    dot_c.close();
-    dot_h.close();
-}
-
-void check_stars (const char *s, const char *t, const char *n,
-		  userDefn *uType, char *&mName) {
-  int slen;
-  char strBuf[100];
-
-  if (s)
-    slen = strlen(s);
-  else
-    slen = 0;
-
-  if (mName) {
-    printf("Exiting, marshall pointer non-null\n");
+  if (Options::ml->med() == message_layer::Med_none) {
+    cerr << "No message layer defined\n";
+    usage();
     exit(-1);
   }
 
-  switch (slen) {
-  case 0:
-    ; // no indirection
-    mName = strdup(t);
-    break;
-  case 1:
-    if (generateXDR && 
-	!(uType->getIsChar() || uType->getUserDefined())) {
-      cout << "Too many levels of indirection for type " << t <<
-	" variable name " << n << endl;
-      exit(0);
+  char *buffer = strdup(argv[argc-1]);
+  char *temp = strrchr(buffer, '/');
+  if (temp)
+    temp++;
+  else
+    temp = buffer;
+
+  char *temp2 = strstr(temp, ".I");
+  if (!temp2) {
+    cerr << "The file " << argv[argc-1] << " must end with the suffix '.I' \n";
+    usage();
+    exit(-1);
+  }
+  *(temp2) = '\0';
+  Options::set_file_base(temp);
+  delete [] buffer;
+  
+  if ((Options::input_file()).length()) {
+    Options::input.open((Options::input_file()).string_of(), ios::in);
+    if (!Options::input.good()) {
+      cerr << "Could not open " << Options::input_file() << " for input, goodbye\n";
+      usage();
+      exit(-1);
     }
-    sprintf(strBuf, "%s_PTR", t);
-    mName = strdup(strBuf);
+  }
+}
+
+static void open_interface_file(int argc, char *argv[]) {
+
+  if (argc < 2) {
+    cerr << "Not enough arguments\n";
+    usage();
+    exit(-1);
+  }
+
+  if (!(yyin = fopen(argv[argc-1], "r"))) {
+    cerr << "Unable to open " << argv[argc-1] << endl;
+    usage();
+    exit(-1);
+  }
+}
+
+static void open_output_files() {
+  string base(Options::file_base() + "." + Options::ml->name() + ".");
+  string cpp_base(Options::file_base() + "_" + Options::ml->name() + "_");
+
+  string dump_to = base + "temp.C";
+  Options::temp_dot_c.open(dump_to.string_of(), ios::out);
+  if (!Options::temp_dot_c.good()) {
+    cerr << "Could not open " << dump_to << " for output\n";
+    exit(-1);
+  }
+
+  dump_to = base + "h";
+  Options::dot_h.open(dump_to.string_of(), ios::out);
+  if (!Options::dot_h.good()) {
+    cerr << "Could not open " << dump_to << " for output\n";
+    exit(-1);
+  }
+
+  dump_to = base + "C";
+  Options::dot_c.open(dump_to.string_of(), ios::out);
+  if (!Options::dot_c.good()) {
+    cerr << "Could not open " << dump_to << " for output\n";
+    exit(-1);
+  }
+
+  dump_to = base + "SRVR.h";
+  Options::srvr_dot_h.open(dump_to.string_of(), ios::out);
+  if (!Options::srvr_dot_h.good()) {
+    cerr << "Could not open " << dump_to << " for output\n";
+    exit(-1);
+  }
+
+  dump_to = base + "SRVR.C";
+  Options::srvr_dot_c.open(dump_to.string_of(), ios::out);
+  if (!Options::srvr_dot_c.good()) {
+    cerr << "Could not open " << dump_to << " for output\n";
+    exit(-1);
+  }
+
+  dump_to = base + "CLNT.C";
+  Options::clnt_dot_c.open(dump_to.string_of(), ios::out);
+  if (!Options::clnt_dot_c.good()) {
+    cerr << "Could not open " << dump_to << " for output\n";
+    exit(-1);
+  }
+
+  dump_to = base + "CLNT.h";
+  Options::clnt_dot_h.open(dump_to.string_of(), ios::out);
+  if (!Options::clnt_dot_h.good()) {
+    cerr << "Could not open " << dump_to << " for output\n";
+    exit(-1);
+  }
+}
+
+static void init_header_files() {
+  string base(Options::file_base() + "." + Options::ml->name() + ".");
+  string cpp_base(Options::file_base() + "_" + Options::ml->name() + "_");
+
+  Options::temp_dot_c << "#pragma implementation \"Vector.h\"\n";
+  Options::temp_dot_c << "#include \"util/h/Vector.h\"\n";
+  Options::temp_dot_c << "#pragma implementation \"Queue.h\"\n";
+  Options::temp_dot_c << "#include \"util/h/Queue.h\"\n";
+  Options::temp_dot_c << "#pragma implementation \"" << base << "h\"\n";
+  Options::temp_dot_c << "#include \"" << base << "h\"\n";
+  Options::temp_dot_c << "#include \"util/h/String.h\"\n";
+
+  Options::dot_h << "#ifndef " << cpp_base << "BASE_H\n";
+  Options::dot_h << "#define " << cpp_base << "BASE_H\n";
+
+  Options::dot_h << "#include \"util/h/rpcUtil.h\"\n";
+  Options::dot_h << Options::ml->includes() << endl;
+
+  Options::dot_h << "#ifdef IGEN_ERR_ASSERT_ON\n";
+  Options::dot_h << "#ifndef IGEN_ERR_ASSERT\n";
+  Options::dot_h << "#define IGEN_ERR_ASSERT assert(0)\n";
+  Options::dot_h << "#endif\n";
+  Options::dot_h << "#else\n";
+  Options::dot_h << "#define IGEN_ERR_ASSERT\n";
+  Options::dot_h << "#endif\n\n";
+
+  Options::dot_h << "\n // Errors that can occur internal to igen\n";
+  Options::dot_h << "#ifndef _IGEN_ERR_DEF\n";
+  Options::dot_h << "#define _IGEN_ERR_DEF\n";
+  Options::dot_h << "typedef enum e_IGEN_ERR {\n";
+  Options::dot_h << "                       igen_no_err=0,\n";
+  Options::dot_h << "                       igen_encode_err,\n";
+  Options::dot_h << "                       igen_decode_err,\n";
+  Options::dot_h << "                       igen_send_err,\n";
+  Options::dot_h << "                       igen_read_err,\n";
+  Options::dot_h << "                       igen_request_err,\n";
+  Options::dot_h << "                       igen_call_err,\n";
+  Options::dot_h << "                       igen_proto_err\n";
+  Options::dot_h << "                       }  IGEN_ERR;\n\n";
+  Options::dot_h << "#endif\n";
+
+  Options::dot_c << "#include \"" << base << "h\"\n";
+
+  Options::clnt_dot_h << "#ifndef " << cpp_base << "CLNT_H\n";
+  Options::clnt_dot_h << "#define " << cpp_base << "CLNT_H\n";
+  Options::clnt_dot_h << "#include \"" << base << "h\"\n";
+
+  Options::clnt_dot_h << "#include \"util/h/Queue.h\"\n";
+
+  Options::srvr_dot_h << "#ifndef " << cpp_base << "SRVR_H\n";
+  Options::srvr_dot_h << "#define " << cpp_base << "SRVR_H\n";
+  Options::srvr_dot_h << "#include \"" << base << "h\"\n";
+  Options::srvr_dot_h << "#include \"util/h/Queue.h\"\n";
+
+  Options::clnt_dot_c << "#include \"" << base << "CLNT.h\"\n";
+  Options::srvr_dot_c << "#include \"" << base << "SRVR.h\"\n";
+}
+
+static void end_header_files() {
+  Options::dot_h << "\n#endif\n";
+  Options::dot_h << endl;
+
+  Options::clnt_dot_h << "#endif\n" << endl;
+  Options::srvr_dot_h << "#endif\n" << endl;
+}
+
+static void close_files() {
+  Options::srvr_dot_h.close();
+  Options::clnt_dot_h.close();
+  Options::dot_c.close();
+  Options::dot_h.close();
+
+  Options::srvr_dot_c.close();
+  Options::clnt_dot_c.close();
+}
+
+static void init_types() {
+  Options::stl_data sd;
+  sd.name = "vector"; sd.include_file = "util/h/Vector.h";
+  sd.need_include = false; sd.pragma_name = "Vector.h";
+  Options::stl_types += sd;
+  Options::el_data el;
+  el.name = "string"; el.type = "string"; el.stars = 0;
+  Options::stl_types[0].elements += el;
+
+  Options::add_type("int", type_defn::TYPE_SCALAR, false, true, NULL);
+  Options::add_type("double", type_defn::TYPE_SCALAR, false, true, NULL);
+  Options::add_type("void", type_defn::TYPE_SCALAR, false, true, NULL);
+  Options::add_type("bool", type_defn::TYPE_SCALAR, false, true, NULL, "Boolean");
+  Options::add_type("u_int", type_defn::TYPE_SCALAR, false, true, NULL);
+  Options::add_type("float", type_defn::TYPE_SCALAR, false, true, NULL);
+  Options::add_type("u_char", type_defn::TYPE_SCALAR, false, true, NULL);
+  Options::add_type("char", type_defn::TYPE_SCALAR, false, true, NULL);
+  Options::add_type("string", type_defn::TYPE_SCALAR, false, true, NULL, "string_pd");
+}
+
+static bool set_ml(const string ml_name) {
+  for (int i=0; i<Options::all_ml.size(); i++) {
+    if (Options::all_ml[i]->name() == ml_name) {
+      Options::ml = Options::all_ml[i];
+      return true;
+    }
+  }
+  return false;
+}
+
+static void init_ml() {
+  message_layer * xdr_ml = new message_layer("xdr",
+					     message_layer::Med_xdr,
+					     "P_xdr_",
+					     "bool_t",
+					     "*",
+					     "XDR",
+					     "*",
+					     message_layer::AS_many,
+					     "FALSE",
+					     "TRUE",
+					     "x_op",
+					     "XDR_ENCODE",
+					     "XDR_DECODE", 
+					     "XDR_FREE",
+					     "XDRrpc",
+					     "P_xdrrec_endofrecord(net_obj(), TRUE)",
+					     true,
+					     "P_xdrrec_skiprecord(net_obj())",
+					     "XXX_RECV",
+					     " ",
+					     true,
+					     "setDirEncode()",
+					     "setDirDecode()",
+					     true);
+  
+  message_layer * thrd_ml = new message_layer("thread",
+					      message_layer::Med_thread,
+					      "P_thread_",
+					      "int",
+					      "*",
+					      "XDR",
+					      "*",
+					      message_layer::AS_one,
+					      "THR_ERR",
+					      "THR_OKAY",
+					      "x_op",
+					      "XX_ENCODE",
+					      "XX_DECODE", 
+					      "XX_FREE",
+					      "THREADrpc",
+					      "msg_send",
+					      true,
+					      "XXX_skip",
+					      "msg_recv",
+				      "#include \"thread/h/thread.h\"\n",
+					      false,
+					      " ",
+					      " ",
+					      false);
+
+  /*
+  message_layer pvm_ml("pvm", message_layer::Med_pvm, "pvm_", "bool_t", "*", "XDR", "*",
+		       message_layer::AS_many, "FALSE", "TRUE");
+  message_layer tcp_ml("tcp", message_layer::Med_other, "", "bool_t", "*", "XDR", "*",
+		       message_layer::AS_many, "false", "true");
+		       */
+  Options::all_ml += xdr_ml; Options::all_ml += thrd_ml;
+}
+
+int main(int argc, char *argv[]) {
+  init_ml();
+  init_types();
+  do_opts(argc, argv);
+  open_interface_file(argc, argv);
+  open_output_files();
+  init_header_files();
+  yyparse();
+
+  if (!Options::current_interface) {
+    cerr << "no interface defined\n";
+    exit(-1);
+  }
+
+  Options::current_interface->gen_interface();
+  end_header_files();
+  close_files();
+  exit(0);
+}
+
+void dump_to_dot_h(const char *msg) {
+  Options::dot_h << msg << endl;
+}
+
+
+string Options::make_ptrs(unsigned count) {
+  static char buffer[100];
+  assert(count < 100);
+
+  buffer[0] = (char)0;
+  for (int i=0; i<count; i++)
+    buffer[i] = '*';
+  buffer[count] = '\0';
+  return buffer;
+}
+
+string arg::gen_bundler_name() const {
+  string suffix;
+  switch (stars_) {
+  case 0: break;
+  case 1: suffix = "_PTR";
+  default: abort();
+  }
+  return ((Options::all_types[base_type()])->gen_bundler_name() + suffix);
+}
+
+
+void arg::gen_bundler(ofstream &out_stream, const string obj_name,
+		      const string data_name) const
+{
+  out_stream <<
+    (Options::all_types[base_type()])->gen_bundler_call(obj_name,
+							data_name+name_, stars_);
+}
+
+arg::arg(const string *type, const unsigned star_count,
+	 const bool b, const string *name) 
+: pointers_(Options::make_ptrs(star_count)), type_(*type),
+  constant_(b), stars_(star_count) {
+  if (name)
+    name_ = *name;
+  else
+    name_ = Options::gen_name();
+
+  if (!(Options::all_types[type_])->can_point() &&
+      (star_count>1) &&
+      (Options::ml->address_space() == message_layer::AS_many)) {
+    cerr << "Sorry, pointers not handled for this type, goodbye\n";
+    cerr << "Type = " << *type << "  name = " << *name << endl;
+    exit(-1);
+  }
+  if (star_count)
+    (Options::all_types[type_])->set_pointer_used();
+}
+
+bool arg::tag_bundle_send(ofstream &out_stream, const string bundle_val,
+			  const string tag_val, const string return_value) const
+{
+  if (Options::ml->address_space() == message_layer::AS_many)
+    return (tag_bundle_send_many(out_stream, bundle_val,
+				 tag_val, return_value));
+  else
+    return (tag_bundle_send_one(out_stream, bundle_val,
+				tag_val, return_value));
+}
+
+bool arg::tag_bundle_send_many(ofstream &out_stream, const string bundle_val,
+			       const string tag_val, const string return_value) const
+{
+  // set direction encode
+  out_stream << Options::set_dir_encode() << ";\n";
+
+  // bundle individual args
+  out_stream << "if (!" << Options::ml->read_tag("net_obj()", tag_val) << "\n";
+
+  if (type_ != "void") {
+    out_stream << " || !" <<
+      (Options::all_types[type_])->gen_bundler_call("net_obj()",
+						    string("&")+bundle_val, stars_)
+	<< "\n";
+  }
+  
+  out_stream << ") ";
+  out_stream << Options::error_state("igen_encode_err", return_value);
+
+  // send message
+  out_stream << "if (!" << Options::ml->send_message() << ") ";
+  out_stream << Options::error_state("igen_send_err", return_value);
+
+  return true;
+}
+
+bool arg::tag_bundle_send_one(ofstream &out_stream, const string bundle_val,
+			  const string tag_val, const string return_value) const 
+{
+  
+}
+
+bool type_defn::assign_to(const string prefix, const vector<arg*> &alist,
+			  ofstream &out_stream) const
+{
+  assert (alist.size() == arglist_.size());
+  for (int i=0; i<alist.size(); i++)
+    out_stream << prefix << arglist_[i]->name() << " = " << alist[i]->name() << ";\n";
+}
+
+bool type_defn::is_same_type(vector<arg*> *arglist) const {
+  assert(arglist);
+  if (arglist_.size() != arglist->size())
+    return false;
+
+  for (int i=0; i<arglist_.size(); i++) {
+    if (arglist_[i]->type() != (*arglist)[i]->type())
+      return false;
+  }
+  return true;
+}
+
+string type_defn::gen_bundler_name() const {
+  return (prefix_ +
+	  Options::ml->bundler_prefix() +
+	  bundle_name_);
+}
+
+string type_defn::gen_bundler_call(const string obj, const string data,
+				   const unsigned pointer_count) const
+{
+  string pointer_suffix;
+  switch (pointer_count) {
+  case 0: pointer_suffix = ""; break;
+  case 1: pointer_suffix = "_PTR"; break;
+  default: assert(0);
+  }
+
+  if (!is_stl())
+    return (gen_bundler_name() + pointer_suffix + "(" + obj + ", " + data + ")");
+  else 
+    return (gen_bundler_name() + pointer_suffix + "(" + obj + ", " + data + ", " +
+	    stl_arg_->gen_bundler_name() + ", (" + stl_arg_->type() + "*)NULL)");
+}
+
+string type_defn::dump_args(const string data_name, const string sep) const {
+  string ret("");
+
+  if (my_type_ == type_defn::TYPE_SCALAR) {
+    if (name_ != "void")
+      ret = data_name;
+  } else if (is_stl()) {
+    ret = data_name;
+  } else {
+    switch (arglist_.size()) {
+    case 0:
+      break;
+    case 1:
+      ret = data_name;
+      break;
+    default:
+      for (int i=0; i<arglist_.size(); i++) {
+	ret += string(data_name + sep + arglist_[i]->name());
+	if (i < (arglist_.size() - 1))
+	  ret += string(", ");
+      }
+      break;
+    }
+  }
+  return ret;
+}
+
+type_defn::type_defn(string stl_name, string element_name, const unsigned ct,
+		     const bool in_lib)
+: my_type_(type_defn::TYPE_COMPLEX), 
+  in_lib_(in_lib), is_stl_(true),
+  pointer_used_(false), can_point_(true) 
+{
+  string ptrs = Options::make_ptrs(ct);
+  string waste="dummy";
+  name_ = stl_name + "<" + element_name +
+    ptrs + ">";
+  stl_arg_ = new arg(&element_name, ct, false, &waste);
+  if (Options::all_types.defines(name_)) {
+    cerr << name_ << " is already defined\n";
+    exit(-1);
+  }
+  prefix_ = Options::type_class() + "_";
+  unqual_name_ = name_;
+  bundle_name_ = "stl";
+}
+
+type_defn::type_defn(const string name, const type_type type,
+		     vector<arg*> *arglist, const bool can_point, 
+		     bool in_lib, const string bundle_name)
+: my_type_(type), bundle_name_(bundle_name), in_lib_(in_lib),
+  is_stl_(false), pointer_used_(false), can_point_(can_point)
+{
+  stl_arg_ = NULL;
+  if (Options::all_types.defines(name)) {
+    cerr << name << " is already defined\n";
+    exit(-1);
+  }
+  if (in_lib || Options::ml->AS_one) {
+    name_ = name;
+    prefix_ = "";
+  } else {
+    name_ = Options::type_prefix() + name;
+    prefix_ = Options::type_prefix();
+  }
+  unqual_name_ = name;
+
+  if (!bundle_name_.length())
+    bundle_name_ = unqual_name_;
+  
+  if (arglist) {
+    for (int i=0; i< arglist->size(); i++)
+      arglist_ += (*arglist)[i];
+  }
+}
+
+bool type_defn::gen_class(const string bundler_prefix, ofstream &out_stream) {
+
+  out_stream << "struct " << unqual_name() << "{ \n";
+  
+  for (int i=0; i<arglist_.size(); i++) 
+    out_stream << arglist_[i]->type() << " " << arglist_[i]->name() << ";\n";
+  out_stream << "};\n";
+  out_stream << "typedef struct " << unqual_name() << " " << unqual_name() << ";\n";
+  return true;
+}
+
+bool type_defn::gen_bundler_ptr(const string class_prefix, const string bundler_prefix,
+				ofstream &out_c, ofstream &out_h) const 
+{
+  if (!pointer_used())
+    return true;
+
+  out_h << "static " << Options::ml->bundler_return_type() << " "
+    << bundler_prefix << unqual_name() << "_PTR" << "(" << Options::ml->marshall_obj()
+      << " " << Options::ml->marshall_obj_ptr() << " obj, "
+	<< unqual_name() << Options::ml->marshall_data_ptr() << "*"
+	  << " data)" << ";" << endl;
+
+  out_c << Options::ml->bundler_return_type() << " "  << class_prefix;
+  out_c << bundler_prefix << unqual_name() << "_PTR" << "("
+    << Options::ml->marshall_obj() << " " << Options::ml->marshall_obj_ptr() << " obj, ";
+  out_c << class_prefix << unqual_name() << Options::ml->marshall_data_ptr() << "*" 
+    << " data) {\n";
+  out_c << "assert(obj);\n";
+  out_c << "assert(" << Options::obj_ptr() << " != " << Options::ml->free_const() << ");\n";
+  out_c << "switch (" << Options::obj_ptr() << ") {\n";
+  out_c << "case " << Options::ml->pack_const() << ":\n";
+  out_c << "if (!*data) return " << Options::ml->bundle_fail() << ";\n";
+  out_c << "break;\n";
+  out_c << "case " << Options::ml->unpack_const() << ":\n";
+  out_c << "*data = new " << name() << ";\n";
+  out_c << "break;\n";
+  out_c << "}\n";
+  out_c << "return " << class_prefix << bundler_prefix << unqual_name() << "(obj, *data);\n";
+  out_c << "}\n";
+  return true;
+}
+
+bool type_defn::gen_bundler_body(const string bundler_prefix, const string class_prefix,
+				 ofstream &out_stream) const
+{
+  gen_bundler_sig(false, class_prefix, bundler_prefix, out_stream);
+  out_stream << "{\n";
+  out_stream << "assert(obj);\n";
+  out_stream << "assert(" << Options::obj_ptr() << " != "
+    << Options::ml->free_const() << ");\n";
+
+  for (int i=0; i<arglist_.size(); i++) {
+    out_stream << " if (!";
+    arglist_[i]->gen_bundler(out_stream, "obj", "&data->");
+    out_stream << ")\n";
+    out_stream << "return " << Options::ml->bundle_fail() << ";\n";
+  }
+  
+  out_stream << "return " << Options::ml->bundle_ok() << " ;\n}\n";
+  return true;
+}
+
+bool type_defn::gen_bundler_sig(const bool &print_extern, const string class_prefix,
+				const string &bundler_prefix,
+				ofstream &out_stream) const
+{
+  if (print_extern) 
+    out_stream << "static ";
+
+  out_stream << Options::ml->bundler_return_type() << " ";
+
+  if (!print_extern) 
+    out_stream << class_prefix;
+
+  out_stream << bundler_prefix
+    << unqual_name() << "(" << Options::ml->marshall_obj() << " "
+      << Options::ml->marshall_obj_ptr() << " obj, ";
+
+  if (!print_extern) 
+    out_stream << class_prefix;
+
+  out_stream << unqual_name() << Options::ml->marshall_data_ptr() << " data)";
+    
+  if (print_extern)
+    out_stream << ";";
+  out_stream << endl;
+  return true;
+}
+
+void type_defn::dump_type() {
+  cerr << "Type " << name_ << "  in_lib=" << in_lib_ << endl;
+  for (int i=0; i<arglist_.size(); i++)
+    cerr << "   " << arglist_[i]->type() << "    "  << arglist_[i]->name() << endl;
+}
+
+string Options::qual_to_unqual(const string type_name) {
+  assert(Options::all_types.defines(type_name));
+  type_defn *td = Options::all_types[type_name];
+  return (td->unqual_name());
+}
+
+string Options::set_dir_decode() {
+  return (Options::ml->set_dir_decode());
+  //  return (string("setDirDecode()"));
+}
+string Options::set_dir_encode() {
+  return (Options::ml->set_dir_encode());
+  // return (string("setDirEncode()"));
+}
+
+string Options::error_state(const string err_name, const string return_value) {
+  return (string("{\n ") +
+	  "IGEN_ERR_ASSERT;\n " +
+	  "set_err_state(" + err_name + ");\n " +
+	  "handle_error();\n " +
+	  "return " + return_value + ";\n " +
+	  "}\n");
+}
+
+string Options::gen_name() {
+  char number[20];
+  sprintf(number, "%d", var_count_++);
+  return (string("var_") + number);
+}
+
+string Options::allocate_stl_type(string stl_type, string element_name,
+				  const unsigned star_count, const bool in_lib) {
+  type_defn *ign = new type_defn(stl_type, element_name, star_count, in_lib);
+  assert(ign);
+  Options::all_types[ign->name()] = ign;
+  return (ign->name());
+}
+
+string Options::allocate_type(const string name, const type_defn::type_type &typ,
+			      const bool can_point, const bool &in_lib,
+			      vector<arg*> *arglist, const string bundle_name) {
+  return (Options::add_type(name, typ, can_point, in_lib, arglist, bundle_name));
+}
+
+
+string Options::add_type(const string name, const type_defn::type_type &type,
+			 const bool can_point, const bool in_lib,
+			 vector<arg*> *arglist, const string bundler_name) {
+  type_defn *ign = new type_defn(name, type, arglist, can_point, in_lib, bundler_name);
+  assert(ign);
+  Options::all_types[ign->name()] = ign;
+  return (ign->name());
+}
+			    
+
+message_layer::message_layer(const string nm, const medium md, const string bp,
+			     const string brt, const string mdp, const string mo,
+			     const string mop, const AS as, const string bfail,
+			     const string bok, const string dir_f, const string pack_f,
+			     const string unpack_f, const string free_f,
+			     const string rpc_par, const string send_msg,
+			     const bool r_used, const string skip_msg,
+			     const string recv_msg, const string incs,
+			     const bool do_serial, 
+			     const string enc, const string dec,
+			     const bool do_skip)
+: name_(nm), med_(md), bundler_prefix_(bp), bundler_return_type_(brt),
+  marshall_data_ptr_(mdp), marshall_obj_(mo), marshall_obj_ptr_(mop), address_space_(as),
+  bundle_fail_(bfail), bundle_ok_(bok), dir_field_(dir_f), pack_const_(pack_f), 
+  unpack_const_(unpack_f), free_const_(free_f), rpc_parent_(rpc_par),
+  send_message_(send_msg), records_used_(r_used), skip_message_(skip_msg),
+  recv_message_(recv_msg), incs_(incs), serial_(do_serial), 
+  encode_(enc), decode_(dec), skip_(do_skip)
+{
+  
+}
+
+string message_layer::read_tag(const string obj_name, const string tag_s) const {
+  return(Options::ml->bundler_prefix() + "u_int(" + obj_name + ", (u_int*) &" + tag_s + ")");
+}
+
+void Options::dump_types() {
+  dictionary_hash_iter<string, type_defn*> dhi(Options::all_types);
+  string s; type_defn *td;
+  while (dhi.next(s, td)) 
+    td->dump_type();
+}
+
+string remote_func::request_tag(bool unqual) const {
+  return((unqual ? string("") : Options::type_prefix()) + name() + "_REQ");}
+
+string remote_func::response_tag(bool unqual) const {
+  return((unqual ? string("") : Options::type_prefix()) + name() + "_RESP");}
+
+remote_func::remote_func(const string name, vector<arg*> *arglist, const call_type &ct,
+			 const bool &is_v, const arg &return_arg, const bool do_free)
+: name_(name), function_type_(ct), is_virtual_(is_v),
+  call_sig_(arglist, name_), return_arg_(return_arg), do_free_(do_free)
+{
+}
+
+// If I am generating code for the server, I don't handle async upcalls since
+// these are calls that the server makes, not receives
+// And the opposite applies for the client
+bool remote_func::handle_request(ofstream &out_stream, const bool srvr) const {
+  if (is_srvr_call()) {
+    if (srvr) return false;
+  } else {
+    if (!srvr) return false;
+  }
+  out_stream << "case " << request_tag() << ":\n";
+  out_stream << "{\n";
+  if (call_sig_.type() != "void") {
+    if (Options::ml->address_space() == message_layer::AS_many) {
+      out_stream << call_sig_.type() << " message;\n";
+      out_stream << "if (!" <<
+	call_sig_.gen_bundler_call("net_obj()", "&message") << ") ";
+      out_stream << Options::error_state("igen_decode_err",
+					 Options::type_prefix() + "error");
+    }
+  }
+
+  if (return_arg_.base_type() != "void") 
+    out_stream << return_arg_.type() << " ret = ";
+  out_stream << name() << "(";
+
+  if (Options::ml->address_space() == message_layer::AS_one) {
+    out_stream << call_sig_.dump_args(string("KLUDGE_msg_buf.")+name()+"_call", ".");
+  } else {
+    out_stream << call_sig_.dump_args("message", ".");
+  }
+
+  out_stream << ")" << ";\n";
+
+  // reply
+  if (Options::ml->address_space() == message_layer::AS_many) {
+    if (!is_async_call()) {
+      out_stream << "unsigned ret_tag = " << response_tag() << ";\n";
+      return_arg_.tag_bundle_send(out_stream, "ret", "ret_tag", 
+				  Options::type_prefix() + "error");
+    }
+  } else {
+    if (!is_async_call()) {
+      string size, msg;
+      out_stream << "val = msg_send(getRequestingThread(), " << response_tag();
+      if (return_arg_.type() == "void") {
+	size = ", 0"; msg = ", (void*)NULL";
+      } else {
+	size = ", sizeof(ret)"; msg = ", (void*) &ret";
+      }
+      out_stream << msg << size << ");\n";
+    }
+  }
+
+  // only attempt to free the return value, the user should free the call_sig args
+  // only if there is a return arg
+  if ((Options::ml->address_space() != message_layer::AS_one) && do_free() &&
+      (return_arg_.base_type() != "void")) {
+    out_stream << "delete ret;\n";
+  }
+
+  out_stream << "}\n";
+  out_stream << "break;\n";
+  return true;
+}
+
+bool remote_func::free_async(ofstream &out_stream, const bool srvr) const {
+  if (is_srvr_call()) {
+    if (srvr) return false;
+  } else {
+    if (!srvr) return false;
+  }
+  if (!is_async_call()) return false;
+  out_stream << "case " << request_tag() << ":\n";
+  out_stream << "{\n";
+  if (call_sig_.type() != "void") {
+    out_stream << call_sig_.type() << " *message = (" << call_sig_.type() <<
+      "*)(item->data_ptr);\n";
+  }
+
+  out_stream << name() << "(";
+  out_stream << call_sig_.dump_args("(*message)", ".");
+  // out_stream << (Options::all_types[call_sig_.base_type()])->dump_args("(*message)", ".");
+  out_stream << ");\n";
+
+  if (call_sig_.type() != "void") {
+    out_stream << "assert(item->data_ptr);\n";
+    out_stream << "delete (" << call_sig_.type() << "*) (item->data_ptr);\n";
+  }
+
+  out_stream << "}\n";
+
+  out_stream << "break;\n";
+  return true;
+}
+
+// If I am generating code for the server, I don't handle async upcalls since
+// these are calls that the server makes, not receives
+// And the opposite applies for the client
+bool remote_func::save_async_request(ofstream &out_stream, const bool srvr) const {
+  if (is_srvr_call()) {
+    if (srvr) return false;
+  } else {
+    if (!srvr) return false;
+  }
+  if (!is_async_call()) return false;
+
+  out_stream << "case " << request_tag() << ":\n";
+  out_stream << "{\n";
+
+  if (call_sig_.type() != "void") {
+    out_stream << call_sig_.type() << " *message = new " << call_sig_.type()
+      << ";\n" << "if (!"
+	<< call_sig_.gen_bundler_call("net_obj()", "message") << ") ";
+    out_stream << Options::error_state("igen_decode_err", "false");
+  }
+  out_stream << Options::type_prefix()
+    << "buf_struct *buffer = new " << Options::type_prefix() << "buf_struct;\n";
+  out_stream << "assert(buffer);\n";
+  out_stream << "buffer->data_type = " << request_tag() << ";\n";
+
+  if (call_sig_.type() != "void")
+    out_stream << "buffer->data_ptr = (void*) message" << ";\n";
+  else
+    out_stream << "buffer->data_ptr = NULL;\n";
+
+  out_stream << "async_buffer.enqueue(buffer);\n";
+  out_stream << "}\n";
+  out_stream << "break;\n";
+  return true;
+}
+
+bool remote_func::gen_async_struct(ofstream &out_stream) const { return true; }
+
+bool remote_func::gen_signature(ofstream &out_stream, const bool &hdr,
+				const bool server) const
+{
+  if (hdr)
+    if ((server && !is_srvr_call()) ||
+        (!server && is_srvr_call()))
+      if (is_virtual())
+         out_stream << " virtual ";
+
+  out_stream << return_arg_.type() << " ";
+
+  if (!hdr)
+    out_stream << Options::current_interface->gen_class_prefix(is_srvr_call());
+
+  out_stream << name() << "(";
+  call_sig_.gen_sig(out_stream);
+  out_stream << ")" << (hdr ? ";\n" : "");
+  return true;
+}
+
+bool remote_func::gen_stub(ofstream &out_srvr, ofstream &out_clnt) const 
+{
+  switch (function_type_) {
+  case async_upcall:
+    gen_stub_helper(out_srvr, out_clnt, true);
+    break;
+  case async_call:
+  case sync_call:
+    gen_stub_helper(out_srvr, out_clnt, false);
     break;
   default:
-    if (generateXDR) {
-      cout << "Too many levels of indirection for type " << t <<
-	" variable name " << n << endl;
-      exit(0);
-    }
+    abort();
   }
+  return true;
 }
 
-// in_client == 1 when client headers are being generated
-void remoteFunc::genMethodHeader(char *className, int in_client,
-				 ofstream &current)
+bool remote_func::gen_stub_helper(ofstream &out_srvr, ofstream &out_clnt,
+				  const bool srvr) const 
 {
-  int spitOne=0;
-  List<argument*> lp;
+  if (Options::ml->address_space() == message_layer::AS_one) 
+    return (gen_stub_helper_one(out_srvr, out_clnt, srvr));
+  else
+    return (gen_stub_helper_many(out_srvr, out_clnt, srvr));
+	    
+}
+
+bool remote_func::gen_stub_helper_many(ofstream &out_srvr, ofstream &out_clnt,
+				       const bool srvr) const
+{
+  gen_signature((srvr ? out_srvr : out_clnt), false, srvr);
+  (srvr ? out_srvr : out_clnt) << "{\n";
+  if (!is_async_call() && !is_void()) 
+    (srvr ? out_srvr : out_clnt) << return_arg_.type() << " ret_arg;\n";
+
+  (srvr ? out_srvr : out_clnt) << "if (get_err_state() != igen_no_err) {\n"
+    << "IGEN_ERR_ASSERT;\nreturn " << return_value() << ";\n}\n";
   
-  if (className) {
-    current << getConstRFType() << " " << className << "::" << getRFName() << "(";
-  } else {
-    // figure out if "virtual" should be printed
-    // here is the logic
-    // for the client --> if it is an upcall then print virtual
-    // for the server --> if it is not an upcall the print virtual
-    // for both an additional constraint is that virtual_f must be true
-    if ((((upcall == syncUpcall) || (upcall == asyncUpcall)) &&
-	 virtual_f && in_client) ||
-	(!in_client && virtual_f && ((upcall == asyncCall) || (upcall == syncCall))))
-      {
-	// print virtual
-	current << "virtual " << getConstRFType() << " " << getRFName() << "(";
-      }
-    else
-      {
-	// don't print virtual
-	current << getConstRFType() << " " << getRFName() << "(";
-      }
+  if (srvr) {
+    out_srvr << "if (!getVersionVerifyDone()) {\n";
+    out_srvr << "if (!verify_protocol()) ";
+    out_srvr << Options::error_state("igen_proto_err", return_value());
+    out_srvr << "\n}\n";
   }
 
-  for (lp=args; *lp; ++lp) {
-    if (spitOne) {
-      current << ",";
-    }      
-    current << (*lp)->getConstAType() << " ";
-    current << (*lp)->getAName();
-    spitOne = 1;
-  }
-  if (!spitOne) current << "void";
-  current << ") ";
-}
+  (srvr ? out_srvr : out_clnt) << "unsigned tag = " << request_tag() << ";\n";
+  call_sig_.tag_bundle_send((srvr ? out_srvr : out_clnt), return_value(),
+			    request_tag());
 
-// forUpcalls == TRUE -> when client code is being generated
-// client code is being generated to handle upcalls in awaitResponce
-//
-// this procedure prints code under 2 circumstances
-// 1-  (client code) forUpcalls == TRUE, call must be an upcall
-// 2-  (server code) forUpcalls == FALSE, call must not be an upcall
-//
-void remoteFunc::genSwitch(int forUpcalls, const char *ret_str, ofstream &output)
-{
-    int first;
-    List<argument*> ca;
+  if (!is_async_call()) {
+    (srvr?out_srvr:out_clnt) << "assert(awaitResponse(" << response_tag() << "));\n";
 
-    // return if generating client code, and call is not an upcall
-    if (forUpcalls &&
-	((upcall == syncCall) || (upcall == asyncCall)))
-      return;
+    // set direction decode 
+    if (!is_void()) {
+    // (srvr?out_srvr:out_clnt) << Options::set_dir_decode() << ";\n";
 
-    // return if generating server code, and call is an upcall
-    if (!forUpcalls && (upcall != syncCall) && (upcall != asyncCall))
-      return;
-
-    output << "        case " << (char*)spec->getName() << "_" << getRFName() << "_REQ:\n";
-
-    // print out the return type
-    if ((generateTHREAD) && (upcall != asyncUpcall) && (upcall != asyncCall))
-      // output << "	        int __val__;\n";
-      ;
-
-    output << "           {\n";
-    if (!getRetVoid())
-      output << "	        " << getConstRFType() << " __ret__;\n";
-
-    // print out the local types
-    if (generateXDR) {
-      if (args.count()) {
-	output << "            " << structName << " __recvBuffer__;\n";
-	for (ca = args; *ca; ++ca) {
-	  output << "            if (!xdr_" << (*ca)->getAMarshallName() <<
-	    "(getXdrs(), &__recvBuffer__.";
-	  output << (*ca)->getAName() << ")) {\n";
-	  output << "                set_err_state(igen_decode_err);\n";
-	  output << "                handle_error();\n";
-	  output << "                return " << ret_str << ";\n";
-	  output << "            }\n";
-	}
-      }
+      // decode something
+      (srvr?out_srvr:out_clnt) << "if(!"
+	<< (Options::all_types[return_arg_.base_type()])->gen_bundler_call("net_obj()",
+								      "&ret_arg",
+								      return_arg_.stars())
+	  << ") ";
+      (srvr?out_srvr:out_clnt) << Options::error_state("igen_decode_err", return_value());
     }
 
-    // to determine when sync upcalls cannot be made
-    if (generateXDR &&
-        (upcall == asyncUpcall || upcall == asyncCall))
-      output << "                 IGEN_in_call_handler = 1;\n";
+    (srvr?out_srvr:out_clnt) << "return " << return_value() << ";\n";
+  }
 
-    if (!retVoid) {
-	output << "                __ret__ = " << getRFName() << "(";
+  (srvr ? out_srvr : out_clnt) << "}\n";
+  return true;
+}
+
+bool remote_func::gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
+				      const bool srvr) const
+{
+  gen_signature((srvr ? out_srvr : out_clnt), false, srvr);
+  (srvr ? out_srvr : out_clnt) << "{\n";
+  if (!is_async_call() && !is_void()) 
+    (srvr ? out_srvr : out_clnt) << return_arg_.type() << " ret_arg;\n";
+
+  (srvr ? out_srvr : out_clnt) << "if (get_err_state() != igen_no_err) {\n"
+    << "IGEN_ERR_ASSERT;\nreturn " << return_value() << ";\n}\n";
+  
+  call_sig_.tag_bundle_send((srvr ? out_srvr : out_clnt), return_value(),
+			    request_tag());
+
+  if (!is_async_call()) {
+    if (return_arg_.type() != "void") {
+      (srvr?out_srvr:out_clnt) << "unsigned len = sizeof(ret_arg);\n";
+    } else
+      (srvr?out_srvr:out_clnt) << "unsigned len = 0;\n";
+
+    (srvr?out_srvr:out_clnt) << "unsigned tag = " << response_tag() << ";\n";
+
+    string rb;
+    string lb;
+    if (return_arg_.type() != "void") {
+      rb = "(void*)&ret_arg, ";
+      lb = "sizeof(ret_arg)";
     } else {
-	output << "                 " << getRFName() <<  "(";
+      rb = "(void*) NULL, ";
+      lb = "0";
     }
 
-    for (ca = args, first = 1; *ca; ++ca) {
-	if (!first) output << ",";
-	first = 0;
-	if (generateTHREAD) {
-	    output << "__recvBuffer__." << getRFName() << "." << (*ca)->getAName();
-	} else if (generateXDR) {
-	    output << "__recvBuffer__." << (*ca)->getAName();
-	}
-    }
-    output << ");\n";
-
-    // to determine when sync upcalls cannot be made
-    if (generateXDR &&
-        (upcall == asyncUpcall || upcall == asyncCall))
-      output << "                 IGEN_in_call_handler = 0;\n";
-
-    // generate return value
-    if (generateTHREAD && (upcall != asyncUpcall) && (upcall != asyncCall)) {
-	if (!retVoid) {
-	    output << "               __val__ = msg_send(getRequestingThread(), ";
-	    output << (char*)spec->getName();
-	    output << "_" << getRFName() << "_RESP, (void *) &__ret__, sizeof(";
-	    output << getRFNonConstName() << "));\n";
-	} else {
-	  output << "                 __val__ = msg_send(getRequestingThread(), ";
-	  output << (char*)spec->getName();
-	  output << "_" << getRFName() << "_RESP, NULL, 0);\n";
-	}
-	// output << "         if (__val__ != THR_OKAY)\n";
-	// output << "            {\n";
-	// output << "                 set_err_state(igen_send_error);\n";
-	// output << "                 handle_error();\n";
-	// output << "                 return " << ret_str << ";\n";
-	// output << "            }\n";
-    } else if (generateXDR &&
-	       (upcall != asyncUpcall) &&
-	       (upcall != asyncCall)) {
-	output << "       	    setDir(XDR_ENCODE);\n";
-	output << "                 __tag__ = " <<
-	  (char*)spec->getName() << "_" << getRFName();
-	output << "_RESP;\n";
-	output << "                if (!xdr_u_int(getXdrs(), &__tag__)) {\n";
-	output << "                   set_err_state(igen_encode_err);\n";
-	output << "                   handle_error();\n";
-	output << "                   return " << ret_str << ";\n";
-	output << "                }\n";
-	if (!retVoid) {
-	  if (ptrMode == ptrHandle &&
-	      isPointer())
-	    output << "              __ptrTable__.destroy();\n";
-	  output << "                   if (!xdr_" << getRFMarshallName()
-	    << "(getXdrs(),&__ret__)) {\n";
-	  output << "                      set_err_state(igen_encode_err);\n";
-	  output << "                      handle_error();\n";
-	  output << "                      return " << ret_str << ";\n";
-	  output << "                   }\n";
-	}
-	output << "	    if (!xdrrec_endofrecord(getXdrs(), TRUE)) {\n";
-	output << "            set_err_state(igen_send_err);\n";
-	output << "            handle_error();\n";
-	output << "            return " << ret_str << ";\n";
-	output << "         }\n";
-    }
-
-    // free allocated memory
-    if (generateTHREAD) {
-    } else if (generateXDR) {
-      output << "            setDir(XDR_FREE);\n";
-      if (args.count()) {
-	for (ca = args; *ca; ++ca) {
-	  // only if Array or string or user defined
-	  if ((*ca)->getDoFree())
-	    output << "            xdr_" << (*ca)->getAMarshallName() <<
-	      "(getXdrs(), &__recvBuffer__." << (*ca)->getAName() << ");\n";
-	}
-      }
-      if (!getDontFree() && (getRFMyType())->getDoFree())
-	output << "            xdr_" << getRFMarshallName() <<
-	  "(getXdrs(), &__ret__);\n";
-    }
-    output << "           }\n              break;\n\n";
-}
- 
-
-// generates the stub code for the client or the server
-//
-void remoteFunc::genThreadStub(char *className, ofstream &output)
-{
-    List<argument*> lp;
-    char *retVar;
-    char *structUseName = spec->genVariable();
-
-    genMethodHeader(className, 0, output);
-    output << " {\n";
-
-    if (*args)
-      output << "    struct " << structName << " " << structUseName << ";\n";
-    if ((upcall != asyncUpcall) && (upcall != asyncCall))
-      output << "    unsigned int __tag__;\n";
-    if (!retVoid)
-      output << "    unsigned int __len__;\n";
-    output << "    int __val__;\n";
-    if (!retVoid) {
-      retVar = spec->genVariable();
-      output << "    " << getConstRFType() << " " << retVar << ";\n";
-    }
-    else
-      retVar = strdup(" ");
-
-    output << "    if (get_err_state() != igen_no_err)\n";
-    output << "      {\n";
-    output << "        IGEN_ERR_ASSERT;\n";
-    output << "        return " << retVar << ";\n";
-    output << "      }\n";
-
-    for (lp = args; *lp; ++lp) {
-	output << "    " << structUseName << "." << (*lp)->getAName() << " = ";
-	output << (*lp)->getAName() << ";  \n";
-    }
-    if (*args) {
-	output << "    __val__ = msg_send(getTid(), " << (char*)spec->getName() << "_";
-	output << getRFName() << "_REQ, (void *) &";
-	output << structUseName << ", sizeof(" << structUseName << "));\n";
-    } else {
-	output << "    __val__ = msg_send(getTid(), " << (char*)spec->getName() << "_";
-	output << getRFName() <<  "_REQ, NULL, 0); \n";
-    }
-    output << "    if (__val__ != THR_OKAY)\n";
-    output << "      {\n";
-    output << "          set_err_state(igen_send_err);\n";
-    output << "          handle_error();\n";
-    output << "          return " << retVar << " ;\n";
-    output << "      }\n";
-    if ((upcall != asyncUpcall) && (upcall != asyncCall)) {
-	output << "    __tag__ = " << (char*)spec->getName() << "_" <<
-	  getRFName() << "_RESP;\n";
-	if (!retVoid) {
-	    output << "    __len__ = sizeof(" << retVar << ");\n";
-	    output << "    if (msg_recv(&__tag__, (void *) &" << retVar;
-	    output << ", &__len__)\n        == THR_ERR) \n";
-	    output << "      {\n";
-	    output << "          set_err_state(igen_read_err);\n";
-	    output << "          handle_error();\n";
-	    output << "          return " << retVar << " ;\n";
-	    output << "      }\n";
-	    output << "    if (__len__ != sizeof(" << retVar << "))\n";
-	    output << "      {\n";
-	    output << "          set_err_state(igen_read_err);\n";
-	    output << "          handle_error();\n";
-	    output << "          return " << retVar << " ;\n";
-	    output << "      }\n";
-	} else {
-	    output << "    if (msg_recv(&__tag__, NULL, 0) == THR_ERR)\n";
-	    output << "      {\n";
-	    output << "          set_err_state(igen_read_err);\n";
-	    output << "          handle_error();\n";
-	    output << "          return " << retVar << " ;\n";
-	    output << "      }\n";
-
-	}
-	output << "    if (__tag__ != " << (char*)spec->getName() << "_" << getRFName();
-	output << "_RESP)\n";
-	output << "      {\n";
-	output << "          set_err_state(igen_read_err);\n";
-	output << "          handle_error();\n";
-	output << "          return " << retVar << " ;\n";
-	output << "      }\n";
-
-	output << "    return " << retVar << " ;\n";
-    }
-    output << "}\n\n";
-}
-
-void remoteFunc::genXDRStub(char *className, ofstream &output)
-{
-  List<argument*> lp;
-  char *retVar;
-  int retS = 0;
-
-  genMethodHeader(className, 0, output);
-  output << "\n {\n";
-
-  output << "    unsigned int __tag__;\n";
-  if (!retVoid) {
-    retVar = spec->genVariable();
-    output << "    " << getConstRFType() << " " << retVar << ";\n";
-    retS = 1;
-  } else
-    retVar = strdup(" ");
-
-  output << "    if (get_err_state() != igen_no_err) {\n";
-  output << "      IGEN_ERR_ASSERT;\n";
-  output << "      return " << retVar << ";\n";
-  output << "    }\n";
-
-  if ((upcall == syncUpcall) || (upcall == syncCall)) {
-    output << "       if (IGEN_in_call_handler) {\n";
-    output <<
-      "          fprintf(stderr, \"cannot do sync call when in async call handler\\n\");\n";
-    output << "          IGEN_ERR_ASSERT;\n";
-    output << "          set_err_state(igen_call_err);\n";
-    output << "          return " << retVar << ";\n";
-    output << "       }\n";
-    }
-
-  // check to see protocol verify has been done.
-  if ((upcall != syncCall) && (upcall != asyncCall)) {
-    output << "    if (!getVersionVerifyDone()) {\n";
-    output << "    // handle error is called for errors\n";
-    output << "        if (!look_for_verify() && !verify_protocol())\n";
-    output << "            setVersionVerifyDone();\n";
-    output << "        else\n";
-    output << "            return " << retVar << " ;\n";
-    output << "    }\n";
-  }
-  output << "    __tag__ = " << (char*)spec->getName() << "_" << getRFName() << "_REQ;\n";
-  output << "    setDir(XDR_ENCODE);\n";
-
-  if (ptrMode == ptrHandle && ArgsRPtr())
-    output << "   __ptrTable__.destroy();\n";
-
-  // the error check depends on short circuit boolean expression evaluation
-  output << "    if (!xdr_u_int(getXdrs(), &__tag__)\n";
-  for (lp = args; *lp; ++lp) {
-    output << "      ||  !xdr_" << (*lp)->getAMarshallName() << "(getXdrs(), &";
-    output << (*lp)->getAName() << ")\n";
-    if (ptrMode == ptrDetect && (*lp)->isPointer())
-      output << "      || !__ptrTable__.destroy()\n";
-  }
-  output << " ) {\n";
-  output << "      set_err_state(igen_encode_err);\n";
-  output << "      handle_error();\n";
-  output << "      return " << retVar << " ;\n";
-  output << "   }\n";
-  output << "       if(!xdrrec_endofrecord(getXdrs(), TRUE)) {\n";
-  output << "          set_err_state(igen_send_err);\n";
-  output << "          handle_error();\n";
-  output << "          return " << retVar << " ;\n";
-  output << "       }\n";
-
-  if ((upcall != asyncUpcall) && (upcall != asyncCall)) {
-    if (upcall == syncCall) {
-      output << "    awaitResponce(" << (char*)spec->getName() << "_";
-      output << getRFName() << "_RESP);\n";
-    } else if (upcall == syncUpcall) {
-      output << " int res;\n";
-      output << " while (!(res = mainLoop())) ;\n";
-      output << " if (res != " << (char*)spec->getName() << "_" <<
-	getRFName() << "_RESP)\n";
-      output << "        { set_err_state(igen_request_err); handle_error(); return ";
-      if (retS)
-	output << "(" << retVar << ");}\n";
-      else
-	output << ";}\n";
-    }
-    output << "    if (get_err_state() != igen_no_err)\n";
-    output << "    return " << retVar << ";\n";
+    (srvr?out_srvr:out_clnt) << "if (" << Options::ml->recv_message()
+      << "(&tag, " << rb << "&len) == " << Options::ml->bundle_fail() << ") ";
+    (srvr?out_srvr:out_clnt) << Options::error_state("igen_read_err", return_value());
     
-    if (!retVoid) {
-      output << "    setDir(XDR_DECODE);\n";
-      output << "    if (!xdr_" << getRFMarshallName() << "(getXdrs(), &(";
-      output << retVar << "))) {\n";
-      output << "        set_err_state(igen_decode_err);\n";
-      output << "        handle_error();\n";
-      output << "        return " << retVar << " ;\n";
-      output << "    }\n";
-      output << "    return(" << retVar << ");\n";
-      }
+    (srvr?out_srvr:out_clnt) << "if (len != " << lb << ") ";
+    (srvr?out_srvr:out_clnt) << Options::error_state("igen_read_err", return_value());
+
+    (srvr?out_srvr:out_clnt) << "if (tag != " << response_tag() << ") ";
+    (srvr?out_srvr:out_clnt) << Options::error_state("igen_read_err", return_value());
+
+    (srvr?out_srvr:out_clnt) << "return " << return_value() << ";\n";
+  }
+
+  (srvr ? out_srvr : out_clnt) << "}\n";
+  return true;
+}
+
+signature::signature(vector<arg*> *alist, const string rf_name) : stars_(0) {
+  assert(alist);
+  for (int i=0; i<alist->size(); i++) 
+    args += (*alist)[i];
+
+  switch (args.size()) {
+  case 0: type_ = "void"; break;
+  case 1:
+    type_ = args[0]->base_type();
+    stars_ = args[0]->stars();
+    break;
+  default:
+    type_defn *td; string s;
+    dictionary_hash_iter<string, type_defn*> tdi(Options::all_types);
+    bool match = false;
+    while (!match && tdi.next(s, td))
+      match = td->is_same_type(alist);
+    if (match) {
+      type_ = td->name();
+      for (int q=0; q<args.size(); ++q)
+	delete args[q];
+      args.resize(0);
+      args = td->copy_args();
+      // get names here
     }
-  output << "}\n\n";
+    else 
+      type_ = Options::allocate_type(string("T_") + rf_name,
+				     type_defn::TYPE_COMPLEX,
+				     true, false, &args);
+    break;
+  }
 }
 
-void remoteFunc::genStub(char *className, int forUpcalls, ofstream &output)
-{
-    if (forUpcalls && ((upcall == syncCall) || (upcall == asyncCall))) return;
-    if (!forUpcalls && (upcall != syncCall) && (upcall != asyncCall)) return;
+string signature::type() const { return (type_+ Options::make_ptrs(stars_));}
 
-    output << "\n";
-
-    if (generateXDR) {
-	genXDRStub(className, output);
-    } else if (generateTHREAD) {
-	genThreadStub(className, output);
-    }
+string signature::gen_bundler_call(const string obj_nm, const string data_nm) const {
+  return ((Options::all_types[base_type()])->gen_bundler_call(obj_nm,
+							      data_nm, stars_));
 }
 
-void remoteFunc::genHeader()
+bool signature::tag_bundle_send(ofstream &out_stream, const string return_value,
+				const string req_tag) const
 {
-    List<argument*> lp;
-
-    // if (!retVoid) {
-    if (1) {
-      dot_h << "struct " << structName << " {\n";
-/*
-      dot_h << "       " << structName << " {\n";
-      for (lp = args; *lp; ++lp)
-	(*lp)->genConstructor();
-      dot_h << "        }\n";
-      dot_h << "       ~" << structName << " {\n";
-      for (lp = args; *lp; ++lp)
-	(*lp)->genDestructor();
-      dot_h << "        }\n";
-*/
-      for (lp = args; *lp; ++lp) {
-	dot_h << "    " << (*lp)->getANonConstName() << " ";
-	dot_h << (*lp)->getAName();
-	dot_h << ";\n";
-      }
-      dot_h << "};\n\n";
-    }
-
-    dot_h << "#define " << (char*)spec->getName() << "_" << getRFName() <<
-      "_REQ " << spec->getNextTag() << "\n";
-    dot_h << "#define " << (char*)spec->getName() << "_" << getRFName() <<
-      "_RESP " << spec->getNextTag() << "\n";
+  if (Options::ml->address_space() == message_layer::AS_many)
+    return (tag_bundle_send_many(out_stream, return_value, req_tag));
+  else
+    return (tag_bundle_send_one(out_stream, return_value, req_tag));
 }
 
-
-//
-// builds filters for PVM to go into *.C
-// these filters are similar to the xdr_TYPE {TYPE = int, char...}
-// these filters are meant to be bidirectional
-// these filters will malloc for arrays and strings
-//
-void
-buildPVMfilters()
+bool signature::tag_bundle_send_many(ofstream &out_stream, const string return_value,
+				     const string req_tag) const
 {
-  dot_c << "bool_t IGEN_pvm_char_PTR (IGEN_PVM_FILTER direction, char **data) {\n";
-  dot_c << "   int buf_id, bytes, msgtag, tid;\n";
-  dot_c << "   assert(data);\n";
-  dot_c << "   switch (direction) \n";
-  dot_c << "       {\n";
-  dot_c << "         case IGEN_PVM_DECODE:\n";
-  dot_c << "             buf_id = pvm_getrbuf();\n";
-  dot_c << "             if (buf_id == 0) return (FALSE);\n";
-  dot_c << "             if (pvm_bufinfo(buf_id, &bytes, &msgtag, &tid) < 0) return(FALSE);\n";
-  dot_c << "             *data = (char *) new char[bytes+1];\n";
-  dot_c << "             if (!(*data)) return (FALSE);\n";
-  dot_c << "             data[bytes] = '\\0';\n";
-  dot_c << "             if (pvm_upkstr(*data) < 0) return (FALSE);\n";
-  dot_c << "             break;\n";
-  dot_c << "         case IGEN_PVM_ENCODE:\n";
-  dot_c << "             if (pvm_pkstr (*data) < 0) return (FALSE);\n";
-  dot_c << "             break;\n";
-  dot_c << "         case IGEN_PVM_FREE:\n";
-  dot_c << "             delete [] (*data);\n";
-  dot_c << "             *data = 0;\n";
-  dot_c << "             break;\n";
-  dot_c << "         default:\n";
-  dot_c << "             assert(0);\n";
-  dot_c << "        }\n";
-  dot_c << "   return(TRUE);\n}\n";
+  // set direction encode
+  out_stream << Options::set_dir_encode() << ";\n";
 
-  pvm_types.map(&templatePVMscalar);
-  pvm_types.map(&templatePVMarray);
-}
+  // bundle individual args
+  out_stream << "if (!" << Options::ml->read_tag("net_obj()", "tag") << "\n";
 
-
-void
-templatePVMscalar (pvm_args *the_arg)
-{
-  if ((!the_arg->type_name) || (!the_arg->pvm_name)) return;
-  dot_c << "\n";
-  dot_c << "bool_t IGEN_pvm_" << (char*)the_arg->type_name << " (IGEN_PVM_FILTER direction,";
-  dot_c << (char*)the_arg->type_name << " *data) {\n";
-  dot_c << "   assert(data);\n";
-  dot_c << "   switch (direction)\n";
-  dot_c << "     {\n";
-  dot_c << "        case IGEN_PVM_DECODE:\n";
-  dot_c << "            if (pvm_upk" << (char*)the_arg->pvm_name <<
-    " (data, 1, 1) < 0)\n";
-  dot_c << "                return (FALSE);\n";
-  dot_c << "            break;\n";
-  dot_c << "        case IGEN_PVM_ENCODE:\n";
-  dot_c << "            if (pvm_pk" << (char*)the_arg->pvm_name <<
-    " (data, 1, 1) < 0)\n";
-  dot_c << "                return (FALSE);\n";
-  dot_c << "            break;\n";
-  dot_c << "        case IGEN_PVM_FREE:\n";
-  dot_c << "            break;\n";
-  dot_c << "        default:\n";
-  dot_c << "            assert(0);\n";
-  dot_c << "     }\n";
-  dot_c << "   return(TRUE);\n";
-  dot_c << "}\n\n";
-}
-
-void
-templatePVMarray (pvm_args *the_arg)
-{
-  if ((!the_arg->type_name) ||
-      (!the_arg->pvm_name) ||
-      (!the_arg->arg)) 
-    return;
-  dot_c << "bool_t IGEN_pvm_Array_of_" << (char*)the_arg->type_name <<
-    " (IGEN_PVM_FILTER dir, ";
-  dot_c << (char*)the_arg->type_name << " **data, unsigned int *count) {\n";
-  dot_c << "   int bytes, msgtag, tid;\n";
-  dot_c << "   switch (dir)\n";
-  dot_c << "     {\n";
-  dot_c << "        case IGEN_PVM_DECODE:\n";
-  dot_c << "           int buf_id = pvm_getrbuf();\n";
-  dot_c << "           if (buf_id == 0) return (FALSE);\n";
-  dot_c << "           if (pvm_bufinfo(buf_id, &bytes, &msgtag, &tid) < 0) return(FALSE);\n";
-  dot_c << "           *count = bytes " << the_arg->arg << ";\n";
-  dot_c << "           *data = (" << (char*)the_arg->type_name << " *) new char[*count];\n";
-  dot_c << "           if (!(*data)) return (FALSE);\n";
-  dot_c << "           if (pvm_upk" << (char*)the_arg->pvm_name <<
-    " (*data, *count, 1) < 0) return (FALSE);\n";
-  dot_c << "           break;\n";
-  dot_c << "        case IGEN_PVM_ENCODE:\n";
-  dot_c << "           if (pvm_pk" << (char*)the_arg->pvm_name <<
-    " (*data, *count, 1) < 0) return (FALSE);\n";
-  dot_c << "           break;\n";
-  dot_c << "        case IGEN_PVM_FREE:\n";
-  dot_c << "           delete [] (*data);\n";
-  dot_c << "           break;\n";
-  dot_c << "        default:\n";
-  dot_c << "           assert(0);\n";
-  dot_c << "     }\n";
-  dot_c << "   return(TRUE);\n";
-  dot_c << "}\n\n";
-}
-
-
-//
-// generate the pvm specific includes for _.h
-//
-void
-buildPVMincludes()
-{
-  dot_h << "enum IGEN_PVM_FILTER {IGEN_PVM_ENCODE, IGEN_PVM_DECODE, IGEN_PVM_FREE};\n\n";
-  dot_h << "bool_t IGEN_pvm_char_PTR (IGEN_PVM_FILTER direction, char **data);\n";
-  pvm_types.map(&PVM_map_scalar_includes);
-  pvm_types.map(&PVM_map_array_includes);
-}
-
-// the constructor for the pvm constructor class
-void genPVMServerCons(stringHandle name)
-{
-  srvr_dot_c << (char*)name << "::" << (char*)name <<
-    " (char *w, char *p, char **a, int f):\n";
-  srvr_dot_c << "PVMrpc(w, p, a, f) {\n";
-  srvr_dot_c <<
-    "    IGEN_in_call_handler = 0;}\n";
-  srvr_dot_c << (char*)name << "::" << (char*)name << " (int o):\n";
-  srvr_dot_c << "PVMrpc(o) {\n";
- srvr_dot_c <<
-   "    IGEN_in_call_handler = 0;}\n";
-  srvr_dot_c << (char*)name << "::" << (char*)name << " ():\n";
-  srvr_dot_c << "PVMrpc() {\n";
-  srvr_dot_c <<
-    "    IGEN_in_call_handler = 0;}\n";
-}
-
-// the constructor for the xdr server class
-void genXDRServerCons(stringHandle name)
-{
-  srvr_dot_c << (char*)name << "::" << (char*)name <<
-    "(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock):\n";
-  srvr_dot_c << "XDRrpc(family, port, type, host, rf, wf, nblock),\n";
-  srvr_dot_c << "RPCBase(igen_no_err, 0)\n";
-  srvr_dot_c <<
-    "  { IGEN_in_call_handler = 0;}\n";
-  srvr_dot_c << (char*)name << "::" << (char*)name <<
-    "(int fd, xdrIOFunc r, xdrIOFunc w, int nblock):\n";
-  srvr_dot_c << "XDRrpc(fd, r, w, nblock),\n";
-  srvr_dot_c << "RPCBase(igen_no_err, 0)\n";
-  srvr_dot_c <<
-    "  { IGEN_in_call_handler = 0;}\n";
-
-  srvr_dot_c << (char*)name << "::" << (char*)name <<
-    "(char *m,char *l,char *p,xdrIOFunc r,xdrIOFunc w, char **args, int nblock):\n";
-  srvr_dot_c << "    XDRrpc(m, l, p, r, w, args, nblock),\n";
-  srvr_dot_c << "    RPCBase(igen_no_err, 0)\n";
-  srvr_dot_c <<
-    "  { IGEN_in_call_handler = 0;}\n";
-}
-
-pvm_args 
-buildPVMargs_ptr (stringHandle type_name, stringHandle pvm_name, const char *arg)
-{
-  pvm_args arg_ptr;
+  for (int i=0; i<args.size(); i++) {
+    out_stream << " || !";
+    args[i]->gen_bundler(out_stream, "net_obj()", "&");
+    out_stream << "\n";
+  }
   
-  if (!pvm_name || !type_name)
-    return arg_ptr;
+  out_stream << ") ";
+  out_stream << Options::error_state("igen_encode_err", return_value);
 
-  arg_ptr.type_name = type_name;
-  arg_ptr.pvm_name = pvm_name;
-  if (arg)
-    arg_ptr.arg = strdup(arg);
+  // send message
+  out_stream << "if (!" << Options::ml->send_message() << ") ";
+  out_stream << Options::error_state("igen_send_err", return_value);
+
+  return true;
+}
+
+bool signature::tag_bundle_send_one(ofstream &out_stream, const string return_value,
+				    const string req_tag) const
+{
+  if (type() != "void")
+    out_stream << type() << " send_buffer;\n";
+
+  switch (args.size()) {
+  case 0:
+    break;
+  case 1:
+    out_stream << "send_buffer = " <<  args[0]->name() << ";\n";
+    break;
+  default:
+    (Options::all_types[type()])->assign_to("send_buffer.", args, out_stream);
+    break;
+  }
+
+  string sb;
+  if (type() != "void")
+    sb = "(void*) &send_buffer, sizeof(send_buffer));\n";
   else
-    arg_ptr.arg = 0;
+    sb = "(void*) NULL, 0);\n";
 
-  return arg_ptr;
+  out_stream << Options::ml->bundler_return_type() << " res = "
+    << Options::ml->send_message() << "(net_obj(), " << req_tag
+      << ", " << sb;
+
+  out_stream << "if (res != " << Options::ml->bundle_ok() << ") ";
+  out_stream << Options::error_state("igen_send_err", return_value);
+
+  return true;
 }
 
-//
-// builds List pvm_types with PVM type information
-// this list is used by 2 procedures
-//
-void
-buildPVMargs()
-{
-  pvm_args *arg_ptr = new pvm_args;
-  stringHandle s;
-
-  *arg_ptr = buildPVMargs_ptr (s=namePool.findAndAdd("int"), s, " >> 2 ");
-  pvm_types.add(arg_ptr);
-
-  *arg_ptr = buildPVMargs_ptr (namePool.findAndAdd("char"), namePool.findAndAdd("byte"),
-			       "  ");
-  pvm_types.add(arg_ptr);
-
-  *arg_ptr = buildPVMargs_ptr (s=namePool.findAndAdd("float"), s, " >> 2 ");
-  pvm_types.add(arg_ptr);
-
-  *arg_ptr = buildPVMargs_ptr (s=namePool.findAndAdd("double"), s, " >> 3 ");
-  pvm_types.add(arg_ptr);
-
-  *arg_ptr = buildPVMargs_ptr (namePool.findAndAdd("u_int"), namePool.findAndAdd("uint"),
-			       " >> 2 ");
-  pvm_types.add(arg_ptr);
-}
-
-void
-PVM_map_scalar_includes (pvm_args *the_arg)
-{
-  if (!the_arg->type_name)
-    return;
-  dot_h << "bool_t IGEN_pvm_" << (char*)the_arg->type_name <<
-    " (IGEN_PVM_FILTER direction, ";
-  dot_h << (char*)the_arg->type_name << " *data);\n";
-}
-
-void
-PVM_map_array_includes (pvm_args *the_arg)
-{
-  if (!the_arg->type_name)
-    return;
-  dot_h << "bool_t IGEN_pvm_Array_of_" << (char*)the_arg->type_name <<
-    " (IGEN_PVM_FILTER ";
-  dot_h << "direction, " << (char*)the_arg->type_name << " **data, unsigned int *count);\n";
-}
-
-void
-add_to_list (stringHandle type, stringHandle name, char *stars,
-	     List<char*> &holder) 
-{
-  int new_length;
-  char *new_string;
-
-  if (!type || !name) return;
-  new_length = strlen((char*)type) + strlen((char*)name);
-  if (stars)
-    new_length += strlen(stars);
-  new_length += 3;
-
-  new_string = new char[new_length];
-
-  if (stars)
-    sprintf(new_string, "%s %s %s", (char*)type, stars, (char*)name);
-  else
-    sprintf(new_string, "%s %s", (char*)type, (char*)name);
-
-  holder.add (new_string);
-}
-
-void 
-addCMember (stringHandle type, stringHandle name, char *stars) {
-  add_to_list (type, name, stars, client_pass_thru);
-}
-
-void 
-addSMember (stringHandle type, stringHandle name, char *stars) {
-  add_to_list (type, name, stars, server_pass_thru);
-}
-
-void
-dump_to_dot_h(char *msg) {
-  dot_h << msg;
-}
-
-
-remoteFunc::remoteFunc(interfaceSpec *sp,
-		       char *s,
-		       stringHandle n,
-		       List <argument*> &a, 
-		       enum upCallType uc,
-		       int v_f,
-		       userDefn *my_type,
-		       int df) : varHolder (n, s, 0, my_type) {
-  spec = sp;
-  dontFree = df;
-  structName = spec->genVariable();
-  args = a;
-  upcall = uc;
-  virtual_f = v_f;
-  retVoid = 0;
-
-  int ct;
-  if (!s)
-    ct = 0;
-  else
-    ct = strlen(s);
-
-  if (!ct) {
-    if (!strcmp("void", my_type->getUname()))
-      retVoid = 1;
+string signature::dump_args(const string data_name, const string sep) const {
+  string ret;
+  switch (args.size()) {
+  case 0:
+    // out_stream << "void";
+    return "";
+  case 1:
+    return data_name;
+  default:
+    for (int i=0; i<args.size(); i++) {
+      ret += data_name + sep + args[i]->name();
+      if (i < (args.size() - 1))
+	ret += ", ";
+    }
+    return ret;
   }
 }
 
-varHolder::varHolder (stringHandle n, char *st, int isC, userDefn *my_type)
-{
-  char makeFull[100], *ts = strdup("");
-
-  stars = st;
-  myType = my_type;
-  isConst = isC;
-  vName = n;
-  if (st)
-    ts = st;
-
-  marshallName = 0;
-  // this sets marshallName
-  check_stars(st, my_type->getUname(), (const char *) n, my_type, marshallName);
-
-  if (isC)
-    sprintf(makeFull, "const %s %s", my_type->getUname(), ts);
-  else
-    sprintf(makeFull, "%s %s", my_type->getUname(), ts);
-  constVname = strdup(makeFull);
-  sprintf(makeFull, "%s %s", my_type->getUname(), ts);
-  nonConstName = strdup(makeFull);
-}
-
-void field::genBundler(ofstream &ofile, const char *obj) {
-  if (generateXDR) {
-    ofile << "    if (!xdr_" << getFMarshallName() <<
-      "(__xdrs__, " << obj << getFName() << "))) return FALSE;\n";
+bool signature::gen_sig(ofstream &out_stream) const {
+  switch (args.size()) {
+  case 0:
+    out_stream << "void";
+    break;
+  case 1:
+  default:
+    for (int i=0; i<args.size(); i++) {
+      if (args[i]->is_const())
+	out_stream << " const ";
+      out_stream << args[i]->type() << " " << args[i]->name();
+      if (i < (args.size()-1))
+	out_stream << ", ";
+    }
+    break;
   }
+  return true;
 }
 
-void field::genHeader(ofstream &ofile) {
-  ofile << "    " << getFNonConstName() << " " << getFName() << ";\n";
+bool signature::arg_struct(ofstream &out_stream) const {
+  for (int i=0; i<args.size(); i++)
+    out_stream << args[i]->type() << " " << args[i]->name() << ";\n";
+  return true;
 }
-
-int isClass(stringHandle cName)
-{
-  userDefn *res;
-  res = userPool.find((char*)cName);
-  return(res->whichType() == CLASS_DEFN);
-}
-
-int isStruct(stringHandle sName)
-{
-  userDefn *res;
-  res = userPool.find((char*)sName);
-  return(res->whichType() == TYPE_DEFN);
-}
-
-void buildFlagHeaders(ofstream &current)
-{
-  current << "\n\n";
-  current << "#ifndef _IGEN_FLAG_DEF\n";
-  current << "#define _IGEN_FLAG_DEF\n";
-  current << "inline void igen_flag_set_null(unsigned long &f) {\n";
-  current << "     f &= 0xfffffffe;\n";
-  current << "}\n";
-  current << "inline void igen_flag_set_nonull(unsigned long &f) {\n";
-  current << "     f |= 1;\n";
-  current << "}\n";
-  current << "inline void igen_flag_set_shared(unsigned long &f) {\n";
-  current << "     f |= 2;\n";
-  current << "}\n";
-  current << "inline void igen_flag_set_noshared(unsigned long &f) {\n";
-  current << "     f &= 0xfffffffd;\n";
-  current << "}\n";
-  current << "inline unsigned char igen_flag_get_id(unsigned long f) {\n";
-  current << "     f >>= 24;\n";
-  current << "     return((unsigned char) f);\n";
-  current << "}\n";
-  current << "inline void igen_flag_set_id(const unsigned char &v, unsigned long &f) {\n";
-  current << "     unsigned long rot;\n";
-  current << "     rot = v;\n";
-  current << "     rot <<= 24;\n";
-  current << "     f |= rot;\n";
-  current << "}\n";
-  current << "inline int igen_flag_is_null(unsigned long f) {\n";
-  current << "     return(f & 1);\n";
-  current << "}\n";
-  current << "inline int  igen_flag_is_shared(unsigned long f) {\n";
-  current << "     return(f & 2);\n";
-  current << "}\n";
-  current << "#endif /* _IGEN_FLAG_DEF */\n\n\n";
-}
-
 

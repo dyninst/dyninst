@@ -1,362 +1,434 @@
+
+#ifndef PARSE_H
+#define PARSE_H
+
 /*
- * parse.h - define the classes that are used in parsing an interface.
- *
- * $Log: parse.h,v $
- * Revision 1.13  1994/09/22 00:38:02  markc
- * Made all templates external
- * Made array declarations separate
- * Add class support
- * Add support for "const"
- * Bundle pointers for xdr
- *
- * Revision 1.12  1994/08/22  16:07:06  markc
- * Moved inline functions used for bundling from header files to .SRVR. and
- * .CLNT. .C files to decrease compiler warnings.
- *
- * Revision 1.11  1994/08/18  05:56:57  markc
- * Changed char*'s to stringHandles
- *
- * Revision 1.10  1994/08/17  17:52:00  markc
- * Added Makefile for Linux.
- * Support new source files for igen.
- * Separate source files.  ClassDefns supports classes, typeDefns supports
- * structures.
- *
- * Revision 1.8  1994/06/02  23:34:27  markc
- * New igen features: error checking, synchronous upcalls.
- *
- * Revision 1.7  1994/04/01  04:58:10  markc
- * Added checks in genBundler.
- *
- * Revision 1.6  1994/03/07  02:35:18  markc
- * Added code to detect failures for xdr code.  Provides member instance
- * callErr which is set to -1 on failures.
- *
- * Revision 1.5  1994/02/24  05:14:33  markc
- * Man page for igen.
- * Initial version for solaris2.2.
- * Dependencies changed.
- * Added pvm support, virtual function support, inclusion of data members,
- * separate client and header include files.
- *
- * Revision 1.4  1994/02/08  00:17:56  hollings
- * Fixed pointer problems to work on DECstations.
- *
- * Revision 1.3  1994/01/31  20:05:59  hollings
- * Added code to check the protocol name and version tests are run
- * before any upcalls get invoked.
- *
- * Revision 1.2  1994/01/26  06:50:11  hollings
- * made the output of igen pass through g++ -Wall.
- *
- * Revision 1.1  1994/01/25  20:48:44  hollings
- * new utility for interfaces.
- *
+ * Parse.h - define the classes that are used in parsing an interface.
  */
 
-#include "util/h/stringPool.h"
-#include "util/h/list.h"
-
-#include <iostream.h>
+#include "util/h/String.h"
+#include "util/h/Vector.h"
+#include "util/h/Dictionary.h"
 #include <fstream.h>
 
-//  the files to write the generated code to
-extern ofstream dot_h;
-extern ofstream dot_c;
-extern ofstream srvr_dot_c;
-extern ofstream srvr_dot_h;
-extern ofstream clnt_dot_c;
-extern ofstream clnt_dot_h;
+extern void dump_to_dot_h(const char*);
 
-typedef enum { USER_DEFN, CLASS_DEFN, TYPE_DEFN } TYPE_ENUM;
-typedef enum { ptrIgnore, ptrDetect, ptrHandle } PTR_TYPE;
-extern PTR_TYPE ptrMode;
+// forward decl
+class type_defn;
+class remote_func;
+class signature;
+class interface_spec;
 
-class userDefn;         // base for user defined types
-class typeDefn;		// forward decl
-class classDefn;        // forward decl
-class remoteFunc;
-class argument;
-class field;
+class arg {
+public:
+  // gen_variable()
+  arg(const string *type, const unsigned star_count, const bool b, const string *name);
+  arg() { }
+  ~arg() { }
+  bool operator== (const arg &other) const { return (type_ == other.type()); }
 
-extern void dump_to_dot_h(char*);
+  bool is_void() const { return (type_ == "void");}
+  string gen_bundler_name() const;
+  void gen_bundler(ofstream &outStream, const string obj_name,
+		   const string data_name) const;
 
-void addCMember (stringHandle type, stringHandle name, char *stars);
-void addSMember (stringHandle type, stringHandle name, char *stars);
+  string pointers() const { return pointers_; }
+  string base_type() const { return type_;}
+  string type() const { return (type_+pointers_); }
+  string name() const { return name_; }
+  bool is_const() const { return constant_;}
+  bool tag_bundle_send(ofstream &out_stream, const string bundle_value, 
+		       const string tag_value, const string return_value) const;
+  unsigned stars() const { return stars_;}
 
-extern void buildPVMfilters();
-extern void buildPVMincludes();
-extern void buildPVMargs();
-extern void buildFlagHeaders(ofstream &);
+private:
+  string pointers_;
+  string type_;
+  string name_;
+  bool constant_;
+  unsigned stars_;
 
-extern void genPVMServerCons(stringHandle );
-extern void genXDRServerCons(stringHandle );
+  bool tag_bundle_send_one(ofstream &out_stream, const string bundle_value, 
+		       const string tag_value, const string return_value) const;
+  bool tag_bundle_send_many(ofstream &out_stream, const string bundle_value, 
+		       const string tag_value, const string return_value) const;
+};
 
-enum upCallType { syncUpcall,       // from server to client, sync (not allowed)
-		  asyncUpcall,      // from server to client, async
-		  syncCall,         // from client to server, sync
-		  asyncCall         // from client to server, async
-		  };
+class type_defn {
+public:
+  typedef enum { TYPE_SCALAR, TYPE_COMPLEX } type_type;
 
-class interfaceSpec;
+  type_defn(string stl_name, string element_name, const unsigned star_count,
+	    const bool in_lib);
+  type_defn(const string name, const type_type type, vector<arg*> *arglist = NULL, 
+	    const bool can_point=false, bool in_lib=false, const string bundle_name="");
+  ~type_defn() { }
 
-typedef struct type_data {
-  stringHandle cp;
-  userDefn *f_type;
-} type_data;
+  string gen_bundler_name() const;
+  string gen_bundler_call(const string obj_name, const string data_name,
+			  const unsigned pointer_count) const;
+  bool gen_bundler_body(const string bundler_prefix, const string class_prefix,
+			ofstream &out_stream) const;
+  bool gen_bundler_sig(const bool &print_extern, const string class_prefix,
+		       const string &bundler_prefix, ofstream &out_stream) const;
+  bool gen_bundler_ptr(const string bundler_prefix, const string class_prefix,
+		       ofstream &out_c, ofstream &out_h) const;
+  bool gen_class(const string bundler_prefix, ofstream &out_stream);
 
-typedef struct pvm_args {
-  stringHandle type_name;
-  stringHandle pvm_name;
-  stringHandle arg;
-} pvm_args;
+  string name() const { return name_;}
+  string bundle_name() const { return bundle_name_;}
+  type_type my_type() const { return my_type_;}
+  bool is_in_library() const { return in_lib_;}
+  bool operator== (const type_defn &other) const { return (other.name() == name_); }
+  bool is_same_type(vector<arg*> *arglist) const;
+  string dump_args(const string data_name, const string sep) const;
+  void dump_type();
+  string unqual_name() const { return unqual_name_;}
+  bool is_stl() const { return is_stl_;}
+  string prefix() const { return prefix_;}
+  bool assign_to(const string prefix, const vector<arg*> &alist, ofstream &out_stream) const;
+  bool pointer_used() const { return pointer_used_;}
+  void set_pointer_used() { pointer_used_ = true;}
+  bool can_point() const { return can_point_;}
+  const vector<arg*> &copy_args() const { return (arglist_);}
+
+private:
+  type_type my_type_;
+  string name_;
+  string bundle_name_;
+  bool in_lib_;
+  vector<arg*> arglist_;
+  string unqual_name_;
+  bool is_stl_;
+  string prefix_;
+  bool pointer_used_;
+  bool can_point_;
+  arg *stl_arg_;
+};
+
+class signature {
+public:
+  signature(vector<arg*> *alist, const string rf_name);
+  ~signature() { }
+
+  string type() const;
+  string base_type() const { return type_;}
+  void type(const string t, const unsigned star);
+  bool gen_sig(ofstream &out_stream) const;
+  bool tag_bundle_send(ofstream &out_stream, const string return_value,
+		       const string req_tag) const;
+  bool tag_bundle_send_many(ofstream &out_stream, const string return_value,
+			    const string req_tag) const;
+  bool tag_bundle_send_one(ofstream &out_stream, const string return_value,
+			   const string req_tag) const;
+  bool arg_struct(ofstream &out_stream) const;
+  string dump_args(const string message, const string sep) const;
+  string gen_bundler_call(const string obj_name, const string data_name) const;
+
+private:
+  vector<arg*> args;
+  string type_;
+  unsigned stars_;
+};
+
+class remote_func { 
+public:
+  typedef enum { async_upcall,      // from server to client, async
+		 sync_call,         // from client to server, sync
+		 async_call         // from client to server, async
+		 } call_type; 
+
+  remote_func(const string name, vector<arg*> *arglist, const call_type &ct,
+	      const bool &is_v, const arg &return_arg, const bool do_free);
+  ~remote_func() { }
+  bool operator== (const remote_func &other) const { return (other.name() == name_);}
+
+  bool gen_stub(ofstream &out_srvr, ofstream &out_clnt) const;
+  bool gen_signature(ofstream &out_stream, const bool &hdr, const bool srvr) const;
+  bool gen_async_struct(ofstream &out_stream) const;
+  bool save_async_request(ofstream &out_stream, const bool srvr) const;
+  bool free_async(ofstream &out_stream, const bool srvr) const;
+  bool handle_request(ofstream &out_stream, const bool srvr) const;
+
+  string request_tag(bool unqual=false) const;
+  string response_tag(bool unqual=false) const;
+
+  bool is_virtual() const { return is_virtual_;}
+  bool is_void() const { return (return_arg_.is_void());}
+  bool is_srvr_call() const { return (function_type_ == async_upcall);}
+  bool is_async_call() const {
+    return ((function_type_ == async_upcall) || (function_type_ == async_call));}
+
+  string name() const { return name_; }
+  call_type function_type() const { return function_type_;}
+  string return_value() const
+    { return ((is_async_call()||is_void()) ? string("") : string("ret_arg"));}
+  bool do_free() const { return do_free_;}
+  string sig_type() const { return call_sig_.type();}
+  string ret_type() const { return return_arg_.type();}
+
+private:
+  string name_;
+  call_type function_type_;
+  bool is_virtual_;
+  signature call_sig_;
+  arg return_arg_;
+  bool do_free_;
+
+  bool gen_stub_helper(ofstream &out_srvr, ofstream &out_clnt,
+		       const bool server) const;
+  bool gen_stub_helper_many(ofstream &out_srvr,
+			    ofstream &out_clnt, const bool server) const;
+  bool gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
+			   const bool server) const;
+};
+
+class interface_spec {
+public:
+  interface_spec(const string *name, const unsigned &b, const unsigned &v);
+  ~interface_spec();
+
+  bool gen_interface() const;
+
+  // TODO reverse arg list ?
+  bool new_remote_func(const string *name, vector<arg*> *arglist,
+		       const remote_func::call_type &callT,
+		       const bool &is_virtual, const arg &return_arg,
+		       const bool do_free);
+  
+  void ignore(bool is_srvr, char *text);
+  bool are_bundlers_generated() const;
+  string name() const { return name_;}
+  unsigned base() const { return base_;}
+  unsigned version() const { return version_;}
+
+  string gen_class_name(const bool &server) const { 
+    return (server ? server_name_ : client_name_); }
+  string gen_class_prefix(const bool &server) const {
+    return (server ? server_prefix_ : client_prefix_);}
+  bool gen_process_buffered(ofstream &out_stream, const bool &srvr) const;
+  bool gen_await_response(ofstream &out_stream, const bool srvr) const;
+  bool gen_wait_loop(ofstream &out_stream, const bool srvr) const;
+  bool gen_scope(ofstream &out_h, ofstream &out_c) const;
+  bool gen_client_verify(ofstream &out_stream) const;
+  bool gen_server_verify(ofstream &out_stream) const;
+
+private:
+  string name_;
+  unsigned base_;
+  unsigned version_;
+  string client_prefix_;
+  string server_prefix_;
+  string client_name_;
+  string server_name_;
+
+  vector<string> client_ignore;
+  vector<string> server_ignore;
+
+  bool gen_stl_temps() const;
+  bool gen_stl_bundler(ofstream &out_h, ofstream &out_c) const;
+  bool gen_stl_bundler_ptr(ofstream &out_h, ofstream &out_c) const;
+  bool gen_header(ofstream &out_stream, const bool &server) const;
+  bool gen_inlines(ofstream &out_stream, const bool &server) const;
+  bool gen_prelude(ofstream &out_stream, const bool &server) const;
+  bool gen_dtor_hdr(ofstream &out_stream, const bool &server, const bool &hdr) const;
+  bool gen_ctor_hdr(ofstream &out_stream, const bool &server) const;
+  bool gen_dtor_body(ofstream &out_stream, const bool &server) const;
+  bool gen_ctor_body(ofstream &out_stream, const bool &server) const;
+  bool gen_ctor_helper(ofstream &out_stream, const bool &server) const;
+  bool gen_ctor_1(ofstream &out_stream, const bool &server,
+		  const bool &hdr) const;
+  bool gen_ctor_2(ofstream &out_stream, const bool &server,
+		  const bool &hdr) const;
+  bool gen_ctor_3(ofstream &out_stream, const bool &server,
+		  const bool &hdr) const;
+  bool gen_ctor_4(ofstream &out_stream, const bool &server,
+		  const bool &hdr) const;
+
+  dictionary_hash<string, remote_func*> all_functions_;
+};
+
+class message_layer {
+public:
+  typedef enum { AS_one, AS_many, AS_none } AS;
+  typedef enum { Med_xdr, Med_pvm, Med_thread, Med_other, Med_none } medium;
+
+  message_layer() { med_ = Med_none; }
+  message_layer(const string fileName) { }
+  message_layer(const string nm, const medium md, const string bp, const string brt,
+		const string mdp, const string mo, const string mop, const AS as,
+		const string bfail, const string bok, const string dir_f,
+		const string pack_f, const string unpack_f, const string free_c,
+		const string rpc_par, const string send_msg, const bool r_used,
+		const string skip_msg, const string r_msg, const string incs,
+		const bool do_serial, const string enc, const string dec,
+		const bool do_skip);
+  ~message_layer() { }
+  bool operator== (const message_layer &other) const { return (name_ == other.name());}
+
+  string name() const { return name_;}
+  medium med() const { return med_;}
+  string bundler_prefix() const { return bundler_prefix_;}
+  string bundler_return_type() const { return bundler_return_type_;}
+  string marshall_data_ptr() const { return marshall_data_ptr_;}
+  string marshall_obj() const { return marshall_obj_;}  
+  string marshall_obj_ptr() const { return marshall_obj_ptr_;}
+  AS address_space() const { return address_space_;}
+  string bundle_fail() const { return bundle_fail_;}
+  string bundle_ok() const { return bundle_ok_;}
+  string dir_field() const { return dir_field_;}
+  string pack_const() const { return pack_const_;}
+  string unpack_const() const { return unpack_const_;}
+  string free_const() const { return free_const_;}
+  string rpc_parent() const { return rpc_parent_;}
+  string send_message() const { return send_message_;}
+  string read_tag(const string obj_name, const string tag) const;
+  bool records_used() const { return records_used_;}
+  string skip_message() const { return skip_message_;}
+  string recv_message() const { return recv_message_;}
+  string includes() const { return incs_;}
+  bool serial() const { return serial_;}
+  string set_dir_decode() const { return decode_;}
+  string set_dir_encode() const { return encode_;}
+  bool skip() const { return skip_;}
+
+private:
+  string name_;
+  medium med_;
+  string bundler_prefix_;
+  string bundler_return_type_;
+  string dir_is_free_;
+  string marshall_data_ptr_;
+  string marshall_obj_;
+  string marshall_obj_ptr_;
+  AS address_space_;
+  string bundle_fail_;
+  string bundle_ok_;
+  string dir_field_;
+  string pack_const_;
+  string unpack_const_;
+  string free_const_;
+  string rpc_parent_;
+  string send_message_;
+  bool records_used_;
+  string skip_message_;
+  string recv_message_;
+  string incs_;
+  bool serial_;
+  string encode_;
+  string decode_;
+  bool skip_;
+};
+
+class Options {
+public:
+  typedef enum { Mem_ignore, Mem_detect, Mem_handle } mem_type;
+
+  static string make_ptrs(unsigned count);
+  static string qual_to_unqual(const string type);
+  static string file_base() { return file_base_;}
+  static void set_file_base(const string f) { file_base_ = f;}
+  static string input_file() { return input_file_;}
+  static void set_input_file(const string f) { input_file_ = f;}
+
+  static bool profile() { return profile_;}
+  static void set_profile(const bool b) { profile_ = b;}
+  static mem_type mem() { return mem_;}
+  static void set_mem(const mem_type m) { mem_ = m;}
+
+  static string error_state(const string err_name, const string return_value);
+  static interface_spec *current_interface;
+  static dictionary_hash<string, type_defn*> all_types;
+  static vector<message_layer*> all_ml;
+  static message_layer *ml;
+
+  typedef struct el_data {
+    string type;
+    unsigned stars;
+    string name;
+  } el_data;
+
+  typedef struct stl_data {
+    string include_file;
+    string name;
+    bool need_include;
+    string pragma_name;
+    vector<el_data> elements;
+  } stl_data;
+  static vector<stl_data> stl_types;
+
+  static ifstream input;
+  static ofstream dot_h;
+  static ofstream dot_c;
+  static ofstream clnt_dot_h;
+  static ofstream clnt_dot_c;
+  static ofstream srvr_dot_h;
+  static ofstream srvr_dot_c;
+  static ofstream temp_dot_c;
+
+  static void dump_types();
+
+  static string allocate_stl_type(string stl_type, string element_name,
+				  const unsigned star_count, const bool in_lib);
+  static string allocate_type(const string name, const type_defn::type_type &typ,
+			      const bool can_point, const bool &in_lib,
+			      vector<arg*> *arglist=NULL, const string bundle_name="");
+
+  static string add_type(const string name, const type_defn::type_type &type, 
+			 const bool can_point, const bool in_lib,
+			 vector<arg*> *arglist=NULL, const string bundler_name="");
+
+  static string obj() { return (string("obj"));}
+  static string obj_ptr() { return (string("obj->") + Options::ml->dir_field());}
+  static string gen_name();
+  static string set_dir_encode();
+  static string set_dir_decode();
+  static string type_class() { return (string("T_") + file_base_);}
+  static string type_prefix() { return (type_class() + "::");}
+  static bool types_defined(const string name) {
+    return (all_types.defines(name) || all_types.defines(type_prefix()+name));
+  }
+  static string get_type(const string name) {
+    if (all_types.defines(name))
+      return name;
+    else if (all_types.defines(type_prefix()+name))
+      return (type_prefix()+name);
+    else 
+      abort();
+  }
+  static bool stl_seen;
+
+private:
+  static string file_base_;
+  static string input_file_;
+  static bool profile_;
+  static mem_type mem_;
+  static unsigned var_count_;
+};
 
 
 typedef struct func_data {
-  enum upCallType uc;
-  int virtual_f;
-} func_data;
+  remote_func::call_type call;
+  bool is_virtual;
+} Type_data;
 
-class userDefn {
-public:
-  userDefn(stringHandle n, int userD, List<field*> &f, char *st, int at=FALSE);
-  userDefn(stringHandle n, int userD, char *st, int at=FALSE);
-  virtual void genHeader() = 0;
-  virtual void genBundler() = 0; 
-  virtual TYPE_ENUM whichType() { return USER_DEFN;}
-  int getUserDefined() { return userDefined;}
-  int getArrayType() { return arrayType;}
-  stringHandle getUsh() { return name;}
-  const char *getUname() { return ((const char*) name);}
-  int getDoBundler() { return doBundler;}
-  int getDoFree() { return doFree;}
-  int getIsChar() { return isChar;}
-  const char *getMarshallName() { return ((const char*) marshallName);}
-  List<field*> getFields() { return (fields);}
-  int getDoPtr() { return do_ptr;}
-  int getDontGen() { return dontGen;}
-private:
-  int dontGen;
-  int isChar;
-  int doBundler;
-  int doFree;
-  stringHandle name;
-  int userDefined;
-  List<field*> fields;
-  int arrayType;
-  int do_ptr;
-  char *marshallName;
-};
+typedef struct derived_data {
+  bool is_derived;
+  string *name;
+} Derived_data;
 
-
-class classDefn : public userDefn {
-
-friend void dump_child_id (classDefn *sibling, ofstream &file_id);
-friend void handle_parent_fields_free(classDefn *self);
-friend void handle_parent_fields(classDefn *self);
-
-public: 
-  classDefn(stringHandle declared_name, List<field*> &f,
-	    classDefn *par, char *pt);
-  int generateClassId() {
-    int ret = nextTypeId;
-    nextTypeId++;
-    if (nextTypeId > 255) {
-      printf("OVERFLOW, TOO MANY CLASSES\n");
-      exit(0);
-    }
-    return ret;
-  }
-  void addChild(classDefn *kid);
-
-  // used to unbundle virtual class derived from a base
-  // if I know a class member is a pointer to a class, I
-  // I can call the bundler as a virtual function, and the
-  // correct bundler is invoked
-  // but unbundling is done by looking at a byte stream, so I
-  // must switch on the type id read from the byte stream
-  int type_id;
-
-  virtual TYPE_ENUM whichType() { return CLASS_DEFN;}
-
-  virtual void genHeader();
-  virtual void genBundler();
-
-private:
-  // the classes that are derived from this class
-  List<classDefn*> children;
-
-  // the class that this class is derived from
-  classDefn *parent;
-
-  static int nextTypeId;
-
-  void genPtrBundlerXDR();
-  void genBundlerXDR();
-  char *passThru;
-};
-
-class typeDefn : public userDefn {
-public:
-  typeDefn(stringHandle i, List<field*> &f);
-  typeDefn(stringHandle i, char *st=0);
-  typeDefn(stringHandle i, userDefn *elem, char *st=0);	// for arrays types.
-
-  const char *getElemUname() { return (arrayElement->getUname());}
-  const char *getElemMarshall() { return (arrayElement->getMarshallName());}
-  int getElemDoFree() { return (arrayElement->getDoFree());}
-  virtual TYPE_ENUM whichType() { return TYPE_DEFN;}
-
-  virtual void genHeader();
-  virtual void genBundler();
-
-private:
-  userDefn *arrayElement;
-  void genPtrBundlerXDR();
-  void genBundlerXDR();
-};
-
-class varHolder {
-public: 
-  varHolder (stringHandle n, char *st, int isC, userDefn *my_type);
-  const char* getVType() { return (myType->getUname());}
-  const char* getConstVType() { return((const char*) constVname); }
-  const char* getVName() { return ((const char*) vName); }
-  userDefn *getVMyType() { return myType;}
-  const char *getMarshallName() { return ((const char*) marshallName);}
-  const char *getVNonConstName() { return ((const char*) nonConstName);}
-  int getDoFree() {
-    return(myType->getDoFree() ||
-	   (myType->getIsChar() && stars));
-  }
-  int isPointer() { return(stars ? 1 : 0);}
-
-private:
-  userDefn *myType;
-  stringHandle vName;
-  char *stars;
-  int isConst;
-  char *constVname;
-  char *marshallName;
-  char *nonConstName;
-};
-
-class argument : public varHolder {
-public: 
-  argument(stringHandle n, char *st, int isC, userDefn *my_type)
-    : varHolder (n, st, isC, my_type) { }
-  
-  const char* getAType() { return (getVType());}
-  const char* getConstAType() { return (getConstVType());}
-  const char* getAName() { return (getVName());}
-  userDefn *getAMyType() { return (getVMyType());}
-  const char *getANonConstName() { return (getVNonConstName());}
-  const char *getAMarshallName() { return (getMarshallName());}
-};
-
-class field  : public varHolder {
-public:
-  field(stringHandle n, char *st, int isC, userDefn *my_type)
-    : varHolder (n, st, isC, my_type) { }
-  
-  const char* getFType() { return (getVType());}
-  const char* getConstFType() { return (getConstVType());}
-  const char* getFName() { return (getVName());}
-  userDefn *getFMyType() { return (getVMyType());}
-  const char *getFMarshallName() { return (getMarshallName());}
-  const char *getFNonConstName() { return (getVNonConstName());}
-
-  void genBundler(ofstream &ofile, const char *obj="&(__ptr__->");
-  void genHeader(ofstream &ofile);
-};
-
-class remoteFunc : public varHolder {
-public:
-  remoteFunc(interfaceSpec *sp, char *st, stringHandle n, List <argument*> &a,
-	     enum upCallType uc, int v_f, userDefn *my_type, int df);
-
-  const char* getRFType() { return (getVType());}
-  const char* getConstRFType() { return (getConstVType());}
-  const char* getRFName() { return (getVName());}
-  userDefn *getRFMyType() { return (getVMyType());}
-  const char *getRFMarshallName() { return (getMarshallName());}
-  const char *getRFNonConstName() { return  (getVNonConstName());}
-
-  void genSwitch(int, const char*, ofstream &);
-  void genStub(char *interfaceName, int forUpcalls, ofstream &ofile);
-  void genXDRStub(char *, ofstream &ofile);
-  void genThreadStub(char*, ofstream &outfile);
-  void genHeader();
-  void genMethodHeader(char *className, int in_client, ofstream &output);
-
-  int getRetVoid() { return retVoid;}
-  // at least one arg is a pointer
-  int ArgsRPtr() {return 1;}
-
-  // return type is a pointer
-  int isPointer() {return 1;}
-  const char *getStructName() { return ((const char*) structName);}
-  int getDontFree() { return dontFree;}
-
-private:
-  int dontFree;
-  char *structName;
-  List<argument*> args;
-  enum upCallType upcall;
-  int retVoid;
-  int virtual_f;
-  interfaceSpec *spec;
-};
-
-class interfaceSpec {
-public:
-  interfaceSpec( stringHandle n, int v, int lowTag) {
-    name = n;
-    version = v;
-    baseTag = boundTag = lowTag;
-  }
-  void newMethod(remoteFunc *f) { methods.add(f); }
-  void genClass();
-  void generateStubs(ofstream &ofile);
-  void genErrHandler(ofstream &ofile, int client);
-  void generateClientCode();
-  void generateThreadLoop();
-  void generateXDRLoop();
-  void generateServerCode();
-  void genWaitLoop();
-  void genProtoVerify();
-  void generateBundlers();
-  void genIncludes(ofstream &output, int inBase=0);
-  void genXDRServerVerifyProtocol();
-  void genXDRLookForVerify();
-  int getNextTag();
-  char *genVariable();
-  stringHandle getName() { return(name); }
-  int getVersion() { return(version); }
-private:
-  stringHandle name;
-  stringHandle unionName;
-  int version;
-  int baseTag;
-  int boundTag;
-  List<remoteFunc*> methods;
-};
-
-extern interfaceSpec *currentInterface;
-
-extern List<userDefn*> userPool;
-extern stringPool namePool;
-
-union parseStack {
-  type_data td;
-  char *charp;
-  stringHandle cp;
+union parse_stack {
+  string *cp;
   int i;
+  unsigned u;
   float f;
-  argument *arg;
-  field *fld;
+  bool b;
+  arg *args;
   func_data fd;
-  List<argument*> *args;
-  List<field*> *fields;
-  interfaceSpec *spec;
+  derived_data derived;
+  vector<arg*> *arg_vector;
+  interface_spec *spec;
+  char *charp;
 };
+
+#endif

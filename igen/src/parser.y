@@ -1,229 +1,201 @@
 %{
-#include <string.h>
-
-extern int generateXDR;
-extern int generateTHREAD;
 extern int ignoring;
-
 #include "parse.h"
 
-#define YYSTYPE union parseStack
+#define YYSTYPE union parse_stack
 
-int firstTag;
+extern int parsing;
 extern int yylex();
-extern int emitHeader;
-extern char *serverTypeName;
 extern void *yyerror(char*);
-extern interfaceSpec *currentInterface;
-extern int isClass(stringHandle);
-extern int isStruct(stringHandle);
 
 %}
 
-%token tIDENT tCOMMA tARRAY tSTAR tNAME tBASE tINT tUPCALL tASYNC
-%token tLPAREN tRPAREN tSEMI tLBLOCK tRBLOCK tCMEMBER tSMEMBER
+%token tIDENT tCOMMA tARRAY tSTAR tNAME tBASE tINT tUNS tUPCALL tASYNC
+%token tLPAREN tRPAREN tSEMI tLBLOCK tRBLOCK 
 %token tTYPEDEF tSTRUCT tVERSION tVIRTUAL
-%token tCLASS tCOLON tIGNORE tLINE tCONST tDONTFREE
+%token tCLASS tCOLON tCIGNORE tSIGNORE tLINE tCONST tIGNORE
+%token tANGLE_L tANGLE_R tFREE
 %%
 
 completeDefinition: parsableUnitList { return 0;}
-                  | error
-                     {
-		       char str[80];
-		       sprintf(str, "Sorry, unrecoverable error, exiting\n\n");
-		       yyerror(str);
-		       exit(0);
-                     };
+| error {
+  char str[80];
+  sprintf(str, "Sorry, unrecoverable error, exiting\n\n");
+  yyerror(str);
+  exit(0);
+};
 
 parsableUnitList: 
-		| parsableUnit { extern int parsing; parsing = 0; }parsableUnitList;
+| parsableUnit { parsing = 0; }parsableUnitList;
 
-parsableUnit: interfaceSpec 
-            | classSpec
-            | typeSpec
-            | arraySpec;
+parsableUnit: interface_spec 
+| typeSpec;
 
 interfacePreamble: interfaceName tLBLOCK interfaceBase interfaceVersion {
-    interfaceSpec *is;
+  interface_spec *is;
 
-    is = new interfaceSpec($1.cp, $4.i, $3.i);
-    currentInterface = $$.spec = is;
+  is = new interface_spec($1.cp, $3.u, $4.u);
+  delete ($1.cp);
+  Options::current_interface = $$.spec = is;
 } 
 
-interfaceSpec: interfacePreamble definitionList tRBLOCK tSEMI {
-    $1.spec->genClass();
-}
+interface_spec: interfacePreamble definitionList tRBLOCK tSEMI { } ;
 
 interfaceName: tIDENT { $$.cp = $1.cp; };
 
-interfaceBase: tBASE tINT tSEMI { $$.i = $2.i; };
+interfaceBase: tBASE tUNS tSEMI { $$.u = $2.u; };
 
-interfaceVersion: tVERSION tINT tSEMI { $$.i = $2.i; };
+interfaceVersion: tVERSION tUNS tSEMI { $$.u = $2.u; };
 
 definitionList:
 	      | definitionList definition
 	      ;
 
-optUpcall:
-                        { $$.fd.uc = syncCall; $$.fd.virtual_f = 0; }
-             | tVIRTUAL { $$.fd.uc = asyncCall; $$.fd.virtual_f = 1;}
-             | tASYNC 	 { $$.fd.uc = asyncCall; $$.fd.virtual_f = 0;}
-             | tVIRTUAL tASYNC { $$.fd.uc = asyncCall; $$.fd.virtual_f = 1;}
-             | tUPCALL { $$.fd.uc = syncUpcall; $$.fd.virtual_f = 0; }
-             | tVIRTUAL tUPCALL {$$.fd.uc = syncUpcall; $$.fd.virtual_f = 1; }
-             | tUPCALL tASYNC { $$.fd.uc = asyncUpcall; $$.fd.virtual_f = 0;}
-             | tVIRTUAL tUPCALL tASYNC { $$.fd.uc = asyncUpcall; $$.fd.virtual_f = 1;}
+optUpcall:   { $$.fd.call = remote_func::sync_call; $$.fd.is_virtual = false; }
+     | tVIRTUAL { $$.fd.call = remote_func::async_call; $$.fd.is_virtual = true;}
+     | tASYNC 	 { $$.fd.call = remote_func::async_call; $$.fd.is_virtual = false;}
+     | tVIRTUAL tASYNC { $$.fd.call = remote_func::async_call; $$.fd.is_virtual = true;}
+     | tUPCALL tASYNC { $$.fd.call = remote_func::async_upcall; $$.fd.is_virtual = false;}
+     | tVIRTUAL tUPCALL tASYNC { $$.fd.call = remote_func::async_upcall;
+				 $$.fd.is_virtual = true;};
 
-optDontFree: { $$.i=0;}
-           |  tDONTFREE { $$.i = 1;};
+optFree:        { $$.b = false;}
+        | tFREE { $$.b = true;}
 
-definition: optUpcall optDontFree typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
-	remoteFunc *tf;
-	List <argument *> lp, args;
+definition: optFree optUpcall typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
+  arg a($3.cp, $4.u, false, NULL);
+  if (!Options::current_interface->new_remote_func($5.cp, $7.arg_vector,
+						   $2.fd.call, $2.fd.is_virtual,
+						   a, $1.b))
+    abort();
+  delete ($5.cp); delete ($3.cp); delete ($7.arg_vector);
 
-	/* reverse arg list */
-	for (lp = *$7.args; *lp; ++lp) {
-	    args.add(*lp);
-	}
-
-	tf = new remoteFunc(currentInterface, $4.charp, $5.cp, 
-	    args, $1.fd.uc, $1.fd.virtual_f, $3.td.f_type, $2.i);
-	currentInterface->newMethod(tf);
-
-	if (emitHeader) {
-	    tf->genHeader();
-	}
-      }
-         | tCMEMBER typeName pointers tIDENT tSEMI {
-	   addCMember ($2.td.cp, $4.cp, $3.charp); }
-         |  tSMEMBER typeName pointers tIDENT tSEMI {
-	   addSMember ($2.td.cp, $4.cp, $3.charp);}
-
-optIgnore: tIGNORE { $$.charp = $1.charp;}
-         | { $$.charp = 0; };
-
-classSpec: tCLASS tIDENT optDerived tLBLOCK fieldDeclList optIgnore tRBLOCK tSEMI
-              {
-		int slen, i; 
-		classDefn *cl=0; userDefn *f=0;
-		List<field *> lp, fields;
-		
-		/* reverse field list */
-		for (lp = *$5.fields; *lp; ++lp) {
-		  fields.add(*lp);
-		}
-		
-		$5.fields->removeAll();
-		delete ($5.fields);
-
-		// remove ignore tokens
-		if ($6.charp) {
-		  for (i=0; i<7; i++)
-		    ($6.charp)[i] = ' ';
-		  slen = strlen($6.charp);
-		  for (i=(slen-7); i<slen; ++i)
-		    ($6.charp)[i] = ' ';
-		}
-		if ($3.cp) {
-		  f = userPool.find($3.cp);
-		  if (f->whichType() != CLASS_DEFN) {
-		    char str[80];
-		    sprintf(str, "unknown parent class %s, exiting", (char*)$3.cp);
-		    yyerror(str);
-		  }
-		  cl = (classDefn*) f;
-		}
-		cl = new classDefn($2.cp, fields, cl, $6.charp);
-		cl->genHeader();
-              };
-
-optDerived: {$$.cp = 0;}
-          | tCOLON tIDENT {$$.cp = $2.cp;};
-
-arraySpec: tARRAY typeName pointers tIDENT tSEMI {
-  char str[80];
-  userDefn *ptrD;
-
-  if ($3.charp) {
-    ptrD = new typeDefn (($2.td.f_type)->getUsh(), $3.charp);
-    ptrD->genHeader();
-  }
-  else
-    ptrD = $2.td.f_type;
-
-  if (!ptrD) {
-    sprintf(str, "%s cannot be an array, bad element, exiting \n", $4.cp);
-    yyerror(str);
-    exit(0);
-  }
-  typeDefn *newType = new typeDefn($4.cp, ptrD, 0);
-  if (!newType) {
-    sprintf(str, "%s cannot be an array, exiting \n", $4.cp);
-    yyerror(str);
-    exit(0);
-  }
-  newType->genHeader();
+} | tCIGNORE {
+ Options::current_interface->ignore(false, $1.charp);
+} | tSIGNORE {
+ Options::current_interface->ignore(true, $1.charp);
 };
 
-typeSpec: tTYPEDEF tSTRUCT tLBLOCK fieldDeclList tRBLOCK tIDENT tSEMI {
-	   typeDefn *s;
-	   List<field *> lp, fields;
+optIgnore: tIGNORE { $$.charp = $1.charp;}
+           |        { $$.charp = NULL; };
 
-	   /* reverse field list */
-	   for (lp = *$4.fields; *lp; ++lp) {
-		fields.add(*lp);
-	   }
+classOrStruct: tCLASS | tSTRUCT;
 
-	   $4.fields->removeAll();
-	   delete ($4.fields);
+typeSpec: classOrStruct tIDENT optDerived
+                        tLBLOCK fieldDeclList optIgnore tRBLOCK tSEMI {
+   // remove ignore tokens -- later
+   // is derived? -- later
+   if (Options::types_defined(*$2.cp)) {
+     char str[80];
+     
+     sprintf(str, "Duplicate type %s, exiting", ($2.cp)->string_of());
+     yyerror(str);
+     exit(0);
+   }
 
-	   s = new typeDefn($6.cp, fields);
-	   s->genHeader();
-       }
-   ;
+   // FREE ALL MEMORY
+   $$.cp = new string(Options::allocate_type(*$2.cp,
+					     type_defn::TYPE_COMPLEX, true, false,
+					     $5.arg_vector));
+   delete ($2.cp); delete($3.derived.name); delete ($5.arg_vector); delete($6.cp);
+   parsing = 0;
+ }; 
 
-fieldDeclList:	{ $$.fields = new List<field*>; }
-	| fieldDeclList fieldDecl { $1.fields->add($2.fld); }
-	;
+optDerived: {$$.derived.is_derived = false; $$.derived.name = NULL;}
+          | tCOLON tIDENT {$$.derived.is_derived=true; $$.derived.name = $2.cp;};
+
+fieldDeclList:  { $$.arg_vector = new vector<arg*>; }
+| fieldDeclList fieldDecl {
+  (*$1.arg_vector)+= $2.args;
+};
+
+fieldDecl: optConst typeName pointers tIDENT tSEMI {
+  $$.args = new arg($2.cp, $3.u, $1.b, $4.cp);
+  delete($2.cp); delete($4.cp);
+};
 
 typeName: tIDENT {
-                userDefn *foundType=0;
 
-		if (!(foundType = userPool.find($1.cp))) {
-		  char str[80];
+  if (!Options::types_defined(*$1.cp)) {
+    char str[80];
 
-		  if (generateTHREAD) {
-		    foundType = new typeDefn($1.cp);
-		  } else {
-		    sprintf(str, "unknown type %s, exiting", (char*)$1.cp);
-		    yyerror(str);
-		    exit(0);
-		  }
-		}
-		$$.td.f_type = foundType;
-		$$.td.cp = $1.cp;
-	      };
+    bool in_lib = false;
+    if (Options::current_interface->are_bundlers_generated()) {
+      sprintf(str, "unknown type %s, exiting", ($1.cp)->string_of());
+      yyerror(str);
+      exit(0);
+    } else
+      in_lib = true;
 
-optConst:  { $$.i = 0; }
-        |  tCONST { $$.i = 1;};
+    $$.cp = new string(Options::allocate_type(*$1.cp,
+					      type_defn::TYPE_COMPLEX, true, in_lib));
+    delete ($1.cp);
+  } else
+    $$.cp = new string(Options::get_type(*$1.cp));
+} | tIDENT tCOLON tCOLON tIDENT {
+  string tname = *$1.cp + "::" + *$4.cp;
+  if (!Options::types_defined(tname)) {
+    char str[80];
 
-fieldDecl: optConst typeName pointers tIDENT tSEMI { 
-		$$.fld = new field($4.cp, $3.charp, $1.i, $2.td.f_type);
-	 }
-	 ;
+    bool in_lib = false;
+    if (Options::current_interface->are_bundlers_generated()) {
+      sprintf(str, "unknown type %s, exiting", tname.string_of());
+      yyerror(str);
+      exit(0);
+    } else
+      in_lib = true;
 
-pointers:		 { $$.charp = 0; }
-	| pointers tSTAR { 
-	                   int len=0, i;
-			   if ($1.charp)
-			     len = strlen($1.charp);
-			   len += 2;
-			   $$.charp = new char[len];
-			   for (i=0; i<(len-1); ++i)
-			     $$.charp[i] = '*';
-			   $$.charp[len-1] = (char)0;
-	                 }
-	;
+    $$.cp = new string(Options::allocate_type(tname, 
+					      type_defn::TYPE_COMPLEX, true, in_lib));
+  } else
+    $$.cp = new string(Options::get_type(tname));
+} | tIDENT tANGLE_L typeName pointers tANGLE_R {
+  char str[80];
+  int stl_index;
+  bool in_lib = false;
+  if (Options::current_interface->are_bundlers_generated()) {
+    bool found = false;
+    for (stl_index=0; stl_index<Options::stl_types.size(); stl_index++)
+      if (Options::stl_types[stl_index].name == *$1.cp) {
+	found = true;
+	break;
+      }
+    if (!found) {
+      sprintf(str, "unknown type %s, exiting", ($1.cp)->string_of());
+      yyerror(str);
+      exit(0);
+    }
+  }
+  Options::el_data el_data;
+  el_data.type = *$3.cp; el_data.stars = $4.u;
+  el_data.name = el_data.type + Options::make_ptrs($4.u);
+
+  in_lib = false;
+  if (Options::current_interface->are_bundlers_generated()) {
+    bool element_found = false;
+    for (unsigned z=0; z<Options::stl_types[stl_index].elements.size(); z++) {
+      if (Options::stl_types[stl_index].elements[z].name == el_data.name)
+	element_found = true;
+    }
+    if (!element_found)
+      Options::stl_types[stl_index].elements += el_data;
+  } else
+    in_lib = true;
+
+  string tname = string(*$1.cp) + "<" + *$3.cp + ">";
+  Options::stl_seen = true;
+  if (!Options::types_defined(tname)) {
+    $$.cp = new string(Options::allocate_stl_type(*$1.cp, *$3.cp, $4.u, in_lib));
+    delete ($1.cp); delete ($3.cp);
+  } else
+    $$.cp = new string(tname);
+};
+
+optConst:  { $$.b = false; }
+        |  tCONST { $$.b = true;};
+
+pointers:		 { $$.u = 0; }
+	| tSTAR pointers { $$.u = $2.u + 1; };
 
 // when is it ok to use pointers?
 // if thread code is generated, it is always ok
@@ -232,25 +204,26 @@ pointers:		 { $$.charp = 0; }
 //       classes
 // ...but only 1 level of indirection
 //
-argument: optConst typeName pointers tIDENT {
-             // this may exit
-              $$.arg = new argument($4.cp, $3.charp, $1.i, $2.td.f_type);
-	    }
-        | optConst typeName pointers {
-	    $$.arg = new argument(currentInterface->genVariable(),
-				  $3.charp, $1.i, $2.td.f_type);
-	    }
-	;
 
-nonEmptyArg: argument	{    
-		$$.args = new(List<argument*>);
-		$$.args->add($1.arg);
-	    }
-           | nonEmptyArg tCOMMA argument {
-	       $1.args->add($3.arg);
-	   }
-	   ;
+funcArg: optConst typeName pointers tIDENT {
+  // this may exit
+  $$.args = new arg($2.cp, $3.u, $1.b, $4.cp);
+  delete ($2.cp); delete($4.cp);
+}
+| optConst typeName pointers {
+  $$.args = new arg($2.cp, $3.u, $1.b, NULL);
+  delete ($2.cp);
+};
 
-arglist:		{ $$.args = new(List<argument*>); }
-       | nonEmptyArg	{ $$.args = $1.args; }
-       ;
+nonEmptyArg: funcArg {    
+  $$.arg_vector = new vector<arg*>;
+  (*$$.arg_vector)+= $1.args;
+}
+| nonEmptyArg tCOMMA funcArg {
+  (*$1.arg_vector)+= $3.args;
+};
+
+arglist:		{ $$.arg_vector = new vector<arg*>; }
+| nonEmptyArg	{
+  $$.arg_vector = $1.arg_vector;
+};

@@ -7,23 +7,20 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.8 1994/09/22 00:38:06 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.9 1995/02/16 07:49:07 markc Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define YYSTYPE union parseStack
+#define YYSTYPE union parse_stack
 #include "y.tab.h"
-extern int generatePVM;
-extern int generateXDR;
 #include "parse.h"
 
 int parsing;
 int cur_line = 1;
 char cur_file[80];
-extern int emitHeader;
 
 int yylook();
 int yyback(int*,int);
@@ -41,8 +38,8 @@ extern void yyerror(char *);
 int curr;
 int len;
 int lineNo = 0;
-#define MAX 255
-char line[MAX];
+#define MAX_LINE 255
+char line[MAX_LINE];
 extern char *serverTypeName;
 
 #undef getc
@@ -51,7 +48,7 @@ int getScanChar(FILE *file)
     char *ret;
 
     if (curr == len) {
-	ret = fgets(line, MAX, file);
+	ret = fgets(line, MAX_LINE, file);
 	if (!ret) return(EOF);
 	lineNo++;
 	len = strlen(line);
@@ -73,6 +70,7 @@ int getScanChar(FILE *file)
 DIGIT	[0-9]
 DOLLAR	\$
 INT	{DIGIT}+
+UNS	{DIGIT}+
 FIX	{INT}"."{INT}
 ALPHA	[A-Za-z]
 IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
@@ -85,25 +83,25 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 				 strlen("$remote"))) {
 		      REJECT;
 		    } else {
-		      if (emitHeader) dump_to_dot_h(yytext) ;
+		      dump_to_dot_h(yytext) ;
 		    }
                   } else
 		    REJECT;
 		}
 \$upcall	{ return(tUPCALL); }
-\$cmember	{ return(tCMEMBER); }
-\$smember	{ return(tSMEMBER); }
 \$virtual	{ return(tVIRTUAL); }
 \$base		{ return(tBASE); }
 \$name		{ return(tNAME); }
 \$version	{ return(tVERSION); }
 \$async		{ return(tASYNC); }
-\$noFree	{ return(tDONTFREE); }
+\$free		{ return(tFREE); }
 "("		{ return(tLPAREN); }
 ")"		{ return(tRPAREN); }
 "{"		{ return(tLBLOCK); }
 "}"		{ return(tRBLOCK); }
 ","		{ return(tCOMMA); }
+"<"		{ return(tANGLE_L);}
+">"		{ return(tANGLE_R);}
 "[]"		{ return(tARRAY); }
 "*"		{ return(tSTAR); }
 ":"		{ return(tCOLON); }
@@ -115,12 +113,20 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 "typedef"	{ return(tTYPEDEF); }
 "struct"	{ return(tSTRUCT); }
 "class"		{ return(tCLASS); }
-\$ignore[^$]*\$ignore		{ yylval.cp = strdup(yytext); return(tIGNORE); }
+\$cignore[^$]*\$cignore		{ yylval.charp = yytext; return(tCIGNORE); }
+\$signore[^$]*\$signore		{ yylval.charp = yytext; return(tSIGNORE); }
+\$ignore[^$]*\$ignore		{ yylval.charp = yytext; return(tIGNORE); }
 {IDENT}		{ /* it's an identifier */
-		  yylval.cp = namePool.findAndAdd(yytext);
+                  yylval.cp = new string(yytext);
 		  return(tIDENT);
 		}
 [ \n\t]		{ }
+{INT}           {
+		  int i = atoi(yytext);
+                  assert(i >= 0);
+                  yylval.u = (unsigned) i;
+		  return(tUNS);
+		}
 {INT}           {
 		  yylval.i = atoi(yytext);
 		  return(tINT);
