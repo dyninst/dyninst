@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.12 2004/04/20 01:27:56 jaw Exp $
+// $Id: test8.C,v 1.13 2004/04/26 20:53:46 rchen Exp $
 //
 
 #include <stdio.h>
@@ -135,6 +135,30 @@ const char *frameTypeString(BPatch_frameType frameType)
     };
 
     return "UNKNOWN";
+}
+
+bool hasExtraUnderscores(const char *str)
+{
+    assert( str );
+    int len = strlen(str) - 1;
+    return (str[0] == '_' || str[len] == '_');
+}
+
+/* WARNING: This function is not thread safe. */
+const char *fixUnderscores(const char *str)
+{
+    static char buf[256];
+
+    assert( str );
+    assert( strlen(str) < sizeof(buf) );
+
+    while (*str == '_') ++str;
+    strncpy(buf, str, 256);
+
+    char *ptr = buf + strlen(buf) - 1;
+    while (ptr > buf && *ptr == '_') *(ptr--) = 0;
+
+    return buf;
 }
 
 bool checkStack(BPatch_thread *appThread,
@@ -233,6 +257,9 @@ bool checkStack(BPatch_thread *appThread,
 		    failed = true;
 		    break;
 		} else { /* func != NULL */
+		    if (!hasExtraUnderscores(correct_frame_info[i].function_name))
+			strncpy(name, fixUnderscores(name), name_max);
+
 		    if (strcmp(name, correct_frame_info[i].function_name) != 0) {
 		        if (correct_frame_info[i].optional) {
 			    j--;
@@ -325,18 +352,15 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
 
-#if defined( arch_alpha ) && defined( os_osf )
+#if (defined( arch_alpha ) && defined( os_osf )) ||	\
+    (defined( arch_sparc ) && defined( os_solaris ))
 	printf("Skipping test #3 (getCallStack through instrumentation)\n");
 	printf("    unwinding through base & minitramps not implemented on this platform\n");
 	passedTest[3] = true;
 #else
 	static const frameInfo_t correct_frame_info[] = {
 	
-#if defined( os_linux ) && defined( arch_x86 )
-		{ true, false, BPatch_frameNormal, "__kill" },
-#elif defined( os_solaris ) && defined( arch_sparc )
-		{ true, false, BPatch_frameNormal, "_kill" },
-#elif defined( os_aix ) && defined( arch_power )
+#if defined( os_aix ) && defined( arch_power )
 		/* AIX uses kill(), but the PC of a process in a syscall can
 		   not be correctly determined, and appears to be the address
 		   to which the syscall function will return. */
@@ -419,40 +443,40 @@ void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
 	appThread->continueExecution();
 	  
 	/* Wait for the mutatee to stop because of the instrumentation we just inserted. */
-    waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (entry)" );
+	waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (entry)" );
 
-    passedTest[3] = true;
-    if(	checkStack(	appThread, correct_frame_info,
-					sizeof(correct_frame_info)/sizeof(frameInfo_t),
-					3, "getCallStack through instrumentation (entry)" ) ) {
-		printf("Passed test #3 (unwind through base and mini tramps)\n");
-    	} /* end the stack was right */
-    else { passedTest[3] = false; }
+	passedTest[3] = true;
+	if( !checkStack( appThread, correct_frame_info,
+			 sizeof(correct_frame_info)/sizeof(frameInfo_t),
+			 3, "getCallStack through instrumentation (entry)" ) ) {
+	    passedTest[3] = false;
+    	}
 
 	/* Repeat for other two types of instpoints. */
-    appThread->continueExecution();	
+	appThread->continueExecution();	
 
 	/* Wait for the mutatee to stop because of the instrumentation we just inserted. */
-    waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (call)" );
+	waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (call)" );
 
-    if(	checkStack(	appThread, correct_frame_info,
-					sizeof(correct_frame_info)/sizeof(frameInfo_t),
-					3, "getCallStack through instrumentation (call)" ) ) {
-		printf("Passed test #3 (unwind through base and mini tramps)\n");
-    	} /* end the stack was right */
-    else { passedTest[3] = false; }
+	if( !checkStack( appThread, correct_frame_info,
+			 sizeof(correct_frame_info)/sizeof(frameInfo_t),
+			 3, "getCallStack through instrumentation (call)" ) ) {
+	    passedTest[3] = false;
+    	}
     	
-    appThread->continueExecution();	
+	appThread->continueExecution();	
 
 	/* Wait for the mutatee to stop because of the instrumentation we just inserted. */
-    waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (exit)" );
+	waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (exit)" );
 
-    if(	checkStack(	appThread, correct_frame_info,
-					sizeof(correct_frame_info)/sizeof(frameInfo_t),
-					3, "getCallStack through instrumentation (exit)" ) ) {
-		printf("Passed test #3 (unwind through base and mini tramps)\n");
-    	} /* end the stack was right */
-    else { passedTest[3] = false; }
+	if( !checkStack( appThread, correct_frame_info,
+			 sizeof(correct_frame_info)/sizeof(frameInfo_t),
+			 3, "getCallStack through instrumentation (exit)" ) ) {
+	    passedTest[3] = false;
+    	}
+
+	if (passedTest[3])
+	    printf("Passed test #3 (unwind through base and mini tramps)\n");
 
 	/* Return the mutatee to its normal state. */
 	appThread->continueExecution();	
