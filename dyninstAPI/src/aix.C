@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.99 2002/06/17 21:31:14 chadd Exp $
+// $Id: aix.C,v 1.100 2002/06/26 21:14:38 schendel Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1692,11 +1692,12 @@ void resurrectBaseTramps(process *p)
   extern void findAndReinstallBaseTramps(process *, vector<const instPoint*> &);
   findAndReinstallBaseTramps(p, allInstPoints);
 
-  vector<instInstance*> allInstInstances;             //Get all mini trampolines
-  getAllInstInstancesForProcess(p, allInstInstances);
+  vector<process::mtListInfo> allMTlistsInfo;
+  p->getMiniTrampLists(&allMTlistsInfo);
 
-  extern void reattachMiniTramps(process *, vector<instInstance*> &);
-  reattachMiniTramps(p, allInstInstances);
+  extern void reattachMiniTramps(process *, 
+			   const vector<process::mtListInfo> &allMTlistsInfo);
+  reattachMiniTramps(p, allMTlistsInfo);
 }
 
 
