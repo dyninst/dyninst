@@ -41,6 +41,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.53  1998/08/26 20:56:41  zhichen
+ * fixed dag code generation.
+ *
  * Revision 1.52  1998/08/25 19:35:03  buck
  * Initial commit of DEC Alpha port.
  *
@@ -494,7 +497,7 @@ void ASTcounter()
 {
   ASTcount++;
   sprintf(errorLine,"AstNode CONSTRUCTOR - ASTcount is %d\n",ASTcount);
-  logLine(errorLine);
+  //logLine(errorLine);
 }
 
 void ASTcounterNP()
@@ -534,6 +537,7 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
     kept_register = -1;
     type = callNode;
     callee = func;
+    loperand = roperand = eoperand = NULL;
     if (l) operands += assignAst(l);
     if (r) operands += assignAst(r);
     bptype = NULL;
@@ -550,10 +554,8 @@ AstNode::AstNode(const string &func, AstNode *l) {
     referenceCount = 1;
     useCount = 0;
     kept_register = -1;
-    loperand = assignAst(l);
-    roperand = NULL;
-    eoperand = NULL;
     type = callNode;
+    loperand = roperand = eoperand = NULL;
     callee = func;
     if (l) operands += assignAst(l);
     bptype = NULL;
@@ -760,7 +762,7 @@ AstNode::~AstNode() {
 #if defined(ASTDEBUG)
   ASTcount--;
   sprintf(errorLine,"AstNode DESTRUCTOR - ASTcount is %d\n",ASTcount);
-  logLine(errorLine);
+  //logLine(errorLine);
 #endif
   if (loperand) {
     removeAst(loperand);
@@ -804,7 +806,6 @@ void AstNode::updateOperandsRC(bool flag)
 AstNode *assignAst(AstNode *src) {
   if (src) {
     src->referenceCount++;
-    src->updateOperandsRC(true);
   }
   return(src);
 }
@@ -820,9 +821,7 @@ void removeAst(AstNode *&ast) {
     if (ast->referenceCount==0) {
       delete ast;
       ast=NULL;
-    } else {
-      ast->updateOperandsRC(false);
-    }
+    } 
   }
 }
 
@@ -866,11 +865,11 @@ int AstNode::generateTramp(process *proc, char *i,
     reg return_reg;
     if (type != opCodeNode || op != noOp) {
         reg tmp;
-	preamble->generateCode(proc, regSpace, i, count, noCost);
+	preamble->generateCode(proc, regSpace, i, count, noCost, true);
         removeAst(preamble);
-	tmp = generateCode(proc, regSpace, i, count, noCost);
+	tmp = generateCode(proc, regSpace, i, count, noCost, true);
         regSpace->freeRegister(tmp);
-        return_reg = trailer->generateCode(proc, regSpace, i, count, noCost);
+        return_reg = trailer->generateCode(proc, regSpace, i, count, noCost, true);
     } else {
         removeAst(preamble);
         return_reg = (unsigned) emit(op, 1, 0, 0, i, count, noCost);
@@ -896,45 +895,52 @@ bool isPowerOf2(int value, int &result)
 
 void AstNode::setUseCount(void)
 {
-  useCount++;
-  if (useCount>1) return;
+
+  useCount=referenceCount ;
   kept_register=-1;
   if (loperand) loperand->setUseCount();
   if (roperand) roperand->setUseCount();
   if (eoperand) eoperand->setUseCount();
+  for (unsigned i=0;i<operands.size(); i++)
+    operands[i]->setUseCount() ;
 }
 
 void AstNode::cleanUseCount(void)
 {
+/*
   useCount=0;
   kept_register=-1;
   if (loperand) loperand->cleanUseCount();
   if (roperand) roperand->cleanUseCount();
   if (eoperand) eoperand->cleanUseCount();
+  for (unsigned i=0;i<operands.size(); i++)
+    operands[i]->cleanUseCount() ;
+*/
 }
+
+#if defined(ASTDEBUG)
+bool AstNode::checkUseCount(registerSpace* rs, bool& err)
+{
+  if (useCount>0) {
+    sprintf(errorLine, "[ERROR] kept register, useCount=%d\n", useCount) ;
+    logLine(errorLine) ;
+    logLine("++++++\n") ; 
+    print() ; 
+    logLine("\n------\n") ;
+    err = true ;
+  }
+  if (loperand) loperand->checkUseCount(rs, err);
+  if (roperand) roperand->checkUseCount(rs, err);
+  if (eoperand) eoperand->checkUseCount(rs, err);
+  for (unsigned i=0;i<operands.size(); i++)
+    operands[i]->checkUseCount(rs, err) ;
+  return err ;
+}
+#endif
 
 #if defined(ASTDEBUG)
 void AstNode::printUseCount(void)
 {
-  static int i=0;
-  i++;
-  sprintf(errorLine,"(%d)=>useCount is %d\n",i,useCount);
-  logLine(errorLine);
-  if (loperand) {
-    sprintf(errorLine,"(%d)=>loperand\n",i);
-    logLine(errorLine);
-    loperand->printUseCount();
-  }
-  if (roperand) {
-    sprintf(errorLine,"(%d)=>roperand\n",i);
-    logLine(errorLine);
-    roperand->printUseCount();  
-  }
-  if (eoperand) {
-    sprintf(errorLine,"(%d)=>eoperand\n",i);
-    logLine(errorLine);
-    eoperand->printUseCount();  
-  }
 }
 #endif
 
@@ -964,10 +970,22 @@ void AstNode::printUseCount(void)
 reg AstNode::generateCode(process *proc,
 			  registerSpace *rs,
 			  char *insn, 
-			  Address &base, bool noCost) {
-  cleanUseCount();
-  setUseCount();
+			  Address &base, bool noCost, bool root) {
+  if (root) {
+    setUseCount();
+#if defined(ASTDEBUG)
+    print() ;
+#endif
+  }
+  unsigned start_insn = base ;
   reg tmp=generateCode_phase2(proc,rs,insn,base,noCost);
+
+#if defined(ASTDEBUG)
+  if (root) {
+    bool err = false ;
+    checkUseCount(rs, err) ;
+  }
+#endif
   return(tmp);
 }
 
@@ -984,16 +1002,16 @@ reg AstNode::generateCode_phase2(process *proc,
     reg right_dest = -1;
 
     useCount--;
-    if (kept_register>=0) {
+    if (kept_register>=0) { 
 #if defined(ASTDEBUG)
       sprintf(errorLine,"==> Returning register %d <==\n",kept_register);
       logLine(errorLine);
 #endif
-      if (useCount==0) {
-        rs->unkeep_register(kept_register);
-        reg tmp=kept_register;
-        kept_register=-1;
-        return(tmp);
+      if (useCount==0) { 
+          rs->unkeep_register(kept_register);
+          reg tmp=kept_register;
+          kept_register=-1;
+          return(tmp);
       }
       return(kept_register);
     }
@@ -1001,7 +1019,9 @@ reg AstNode::generateCode_phase2(process *proc,
     if (type == opCodeNode) {
         if (op == branchOp) {
 	    assert(loperand->oType == Constant);
-	    Address offset = (Address)loperand->oValue;
+	    unsigned offset = (unsigned)loperand->oValue;
+	    loperand->useCount--;
+	    loperand->kept_register = -1 ;
             emit(branchOp, (reg) 0, (reg) 0, (int)offset, insn, base, noCost);
         } else if (op == ifOp) {
             // This ast cannot be shared because it doesn't return a register
@@ -1015,10 +1035,9 @@ reg AstNode::generateCode_phase2(process *proc,
 	    // Is there and else clause?  If yes, generate branch over it
 	    Address else_fromAddr;
 	    Address else_startInsn = base;
-	    if (eoperand) {
-		else_fromAddr = emit(branchOp, (reg) 0, (reg) 0, (reg) 0,
+	    if (eoperand) 
+	      else_fromAddr = emit(branchOp, (reg) 0, (reg) 0, (reg) 0,
 				     insn, base, noCost);
-	    }
 
 	    // call emit again now with correct offset.
 	    (void) emit(op, src, (reg) 0, (reg) ((long)base - (long)fromAddr), 
@@ -1037,14 +1056,34 @@ reg AstNode::generateCode_phase2(process *proc,
 		     ((long)base - (long)else_fromAddr),
 		     insn, else_startInsn, noCost);
 	    }
+	} else if (op == whileOp) {
+	    unsigned top = base ;
+	    src = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    startInsn = base;
+	    fromAddr = emit(ifOp, src, (reg) 0, (reg) 0, insn, base, noCost);
+            rs->freeRegister(src);
+	    if (roperand) {
+                reg tmp=roperand->generateCode_phase2(proc, rs, insn, base, noCost);
+                rs->freeRegister(tmp);
+	    }
+	    //jump back
+	    (void) emit(branchOp, (reg) 0, (reg) 0, ((int) top - (int) base),
+			insn, base, noCost) ;
+
+	    // call emit again now with correct offset.
+	    (void) emit(ifOp, src, (reg) 0, (reg) ((int)base - (int)fromAddr), 
+			insn, startInsn, noCost);
+            // sprintf(errorLine,branch forward %d\n", base - fromAddr);
+	} else if (op == doOp) {
+	     assert(0) ;
 	} else if (op == storeOp) {
             // This ast cannot be shared because it doesn't return a register
             // Check loperand because we are not generating code for it on
             // this node.
             loperand->useCount--;
             if (loperand->useCount==0 && loperand->kept_register>=0) {
-              rs->unkeep_register(loperand->kept_register);
-              loperand->kept_register=-1;
+                rs->unkeep_register(loperand->kept_register);
+                loperand->kept_register=-1;
 	    }
 	    src1 = roperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    src2 = rs->allocateRegister(insn, base, noCost);
@@ -1064,7 +1103,7 @@ reg AstNode::generateCode_phase2(process *proc,
 	    return((unsigned) emit(op, 0, 0, 0, insn, base, noCost));
 	} else if (op == trampPreamble) {
             // This ast cannot be shared because it doesn't return a register
-#ifdef i386_unknown_solaris2_5
+#if defined (i386_unknown_solaris2_5) || (sparc_sun_solaris2_4)
 	    // loperand is a constant AST node with the cost, in cycles.
 	    int cost = noCost ? 0 : (int) loperand->oValue;
             int costAddr = 0; // for now... (won't change if noCost is set)
@@ -1176,7 +1215,7 @@ reg AstNode::generateCode_phase2(process *proc,
             removeAst(left);
             removeAst(right);
 	}
-    } else if (type == operandNode) {
+      } else if (type == operandNode) {
 	dest = rs->allocateRegister(insn, base, noCost);
         if (useCount>0) {
           kept_register=dest;
@@ -1199,10 +1238,6 @@ reg AstNode::generateCode_phase2(process *proc,
             rs->unkeep_register(dest);
             rs->freeRegister(dest);
             dest = (reg)oValue;
-            if (useCount>0) {
-              kept_register=dest;
-              rs->keep_register(dest);
-            }
 	} else if (oType == DataId) {
 	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base, noCost);
 	} else if (oType == DataValue) {
@@ -1217,17 +1252,13 @@ reg AstNode::generateCode_phase2(process *proc,
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
 	    if (loperand) {
 		unsigned emitOptReturn(unsigned, reg, char *, unsigned &, bool);
-		dest = emitOptReturn(loperand -> oValue, src, insn, base, noCost);
+		dest = emitOptReturn((unsigned)loperand->oValue, src, insn, base, noCost);
 	    }
 	    else if (astFlag)
 		dest = emit(getSysRetValOp, 0, 0, src, insn, base, noCost);
 	    else 
 #endif
 	        dest = emit(getRetValOp, 0, 0, src, insn, base, noCost);
-            if (useCount>0) {
-              kept_register=dest;
-              rs->keep_register(dest);
-	    }
 	    if (src != dest) {
 		rs->freeRegister(src);
 	    }
@@ -1242,10 +1273,6 @@ reg AstNode::generateCode_phase2(process *proc,
 	    else 
 #endif
 		dest = emit(getParamOp, (reg)oValue, 0, src, insn, base, noCost);
-            if (useCount>0) {
-              kept_register=dest;
-              rs->keep_register(dest);
-	    }
 	    if (src != dest) {
 		rs->freeRegister(src);
 	    }
@@ -1259,7 +1286,7 @@ reg AstNode::generateCode_phase2(process *proc,
 	  addr = (Address) inferiorMalloc(proc, len, dataHeap);
 	  proc->writeDataSpace((char *)addr, len, (char *)oValue);
 	  emit(loadConstOp, (reg) addr, dest, dest, insn, base, noCost);
-	}
+	} 
     } else if (type == callNode) {
 	dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc, noCost);
         if (useCount>0) {
@@ -1293,8 +1320,11 @@ string getOpString(opCode op)
 	case loadConstOp: return("load");
 	case storeOp: return("=");
 	case ifOp: return("if");
+	case whileOp: return("while") ;
+	case doOp: return("while") ;
 	case trampPreamble: return("preTramp");
 	case trampTrailer: return("goto");
+	case branchOp: return("goto");
 	case noOp: return("nop");
 	case andOp: return("and");
 	case orOp: return("or");
@@ -1373,48 +1403,54 @@ int AstNode::cost() const {
 
 #if defined(ASTDEBUG)
 void AstNode::print() const {
+  if (this) {
+    sprintf(errorLine,"{%d}", referenceCount) ;
+    logLine(errorLine) ;
     if (type == operandNode) {
-	if (oType == Constant) {
-	    sprintf(errorLine, " %d", (int) oValue);
-	    logLine(errorLine);
-	} else if (oType == DataPtr) {
-	    sprintf(errorLine, " %d", (int) oValue);
-	    logLine(errorLine);
-	} else if (oType == DataValue) {
-	    sprintf(errorLine, "@%d", (int) oValue);
-	    logLine(errorLine);
-	} else if (oType == DataIndir) {
-	    logLine("@[");
-            loperand->print();
-	    logLine("]");
-	} else if (oType == DataReg) {
-	    sprintf(errorLine," reg%d ",(int)oValue);
-            logLine(errorLine);
-            loperand->print();
-	} else if (oType == Param) {
-	    sprintf(errorLine, "param[%d]", (int) oValue);
-	    logLine(errorLine);
-	}
+      if (oType == Constant) {
+	sprintf(errorLine, " %d", (int) oValue);
+	logLine(errorLine);
+      } else if (oType == DataPtr) {
+	sprintf(errorLine, " %d", (int) oValue);
+	logLine(errorLine);
+      } else if (oType == DataValue) {
+	sprintf(errorLine, "@%d", (int) oValue);
+	logLine(errorLine);
+      } else if (oType == DataIndir) {
+	logLine("@[");
+        loperand->print();
+	logLine("]");
+      } else if (oType == DataReg) {
+	sprintf(errorLine," reg%d ",(int)oValue);
+        logLine(errorLine);
+        loperand->print();
+      } else if (oType == Param) {
+	sprintf(errorLine, "param[%d]", (int) oValue);
+	logLine(errorLine);
+      }
+
     } else if (type == opCodeNode) {
-        ostrstream os(errorLine, 1024, ios::out);
-	os << "(" << getOpString(op) << ends;
-	logLine(errorLine);
-	if (loperand) loperand->print();
-	if (roperand) roperand->print();
-	if (eoperand) eoperand->print();
-	logLine(")");
+      ostrstream os(errorLine, 1024, ios::out);
+      os << "(" << getOpString(op) << ends;
+      logLine(errorLine);
+      if (loperand) loperand->print();
+      if (roperand) roperand->print();
+      if (eoperand) eoperand->print();
+      logLine(")\n");
     } else if (type == callNode) {
-        ostrstream os(errorLine, 1024, ios::out);
-	os << "(" << callee << ends;
-	logLine(errorLine);
-	for (unsigned u = 0; u < operands.size(); u++)
-	  operands[u]->print();
-	logLine(")");
+      ostrstream os(errorLine, 1024, ios::out);
+      os << "(" << callee << ends;
+      logLine(errorLine);
+      for (unsigned u = 0; u < operands.size(); u++)
+	operands[u]->print();
+      logLine(")\n");
     } else if (type == sequenceNode) {
-	if (loperand) loperand->print();
-	logLine(",");
-	if (roperand) roperand->print();
+      if (loperand) loperand->print();
+      logLine(",");
+      if (roperand) roperand->print();
+      logLine("\n");
     }
+  }
 }
 #endif
 
@@ -1652,3 +1688,64 @@ BPatch_type *AstNode::checkType()
     return ret;
 }
 #endif
+
+bool AstNode::findFuncInAst(string func) {
+  if (type == callNode && callee == func) 
+      return true ;
+
+  if (loperand && loperand->findFuncInAst(func))
+      return true ;
+
+  if (roperand && roperand->findFuncInAst(func))
+      return true ;
+
+  for (unsigned i=0; i<operands.size(); i++)
+    if (operands[i]->findFuncInAst(func))
+      return true ;
+
+  return false ;
+} 
+
+// Looks for function func1 in ast and replaces it with function func2
+void AstNode::replaceFuncInAst(string func1, string func2)
+{
+  if (type == callNode) {
+    if (callee == func1) {
+      callee = func2;
+    }
+  }
+  if (loperand) loperand->replaceFuncInAst(func1,func2);
+  if (roperand) roperand->replaceFuncInAst(func1,func2);
+  for (unsigned i=0; i<operands.size(); i++)
+    operands[i]->replaceFuncInAst(func1, func2) ;
+} 
+
+void AstNode::replaceFuncInAst(string func1, string func2, vector<AstNode *> &more_args, int index)
+{
+  unsigned i ;
+  /*
+  cerr << "AstNode::replaceFuncInAst(" 
+       << func1.string_of() << "' "
+       << func2.string_of() << ", ..."
+       << index << ")" << endl ;
+  */
+  if (type == callNode) {
+      if (callee == func1 || callee == func2) {
+	  callee = func2 ;
+	  int j = 0 ;
+	  for (i=index; i< operands.size() && j <more_args.size(); i++){
+	    removeAst(operands[i]) ;
+	    operands[i] = assignAst(more_args[j++]) ;
+	  }
+	  while (j<more_args.size()) {
+	    operands += assignAst(more_args[j++]) ;
+	  }
+      }
+  }
+  if (loperand) loperand->replaceFuncInAst(func1, func2, more_args, index) ;
+  if (roperand) roperand->replaceFuncInAst(func1, func2, more_args, index) ;
+  for (unsigned i=0; i<operands.size(); i++)
+    operands[i]->replaceFuncInAst(func1, func2, more_args, index) ;
+}
+
+
