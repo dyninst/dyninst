@@ -45,7 +45,7 @@
 #include "paradynd/src/metricFocusNode.h"
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/frame.h"
-#include "focus.h"
+#include "paradynd/src/focus.h"
 
 class machineMetFocusNode;
 class instrCodeNode;
@@ -56,7 +56,6 @@ class catchupReq;
 class AstNode;
 class pdThread;
 class instReqNode;
-class Focus;
 
 struct catchup_t {
   AstNode *ast;
@@ -81,8 +80,9 @@ class processMetFocusNode : public metricFocusNode {
   aggregateOp aggOp;
   timeStamp procStartTime;    // the time that this metric started
                               // need this in updateWithDeltaValue()
-  const string &metric_name;
+  const string metric_name;
   const Focus focus;
+
   bool dontInsertData_;
   bool catchupNotDoneYet_;
   bool currentlyPaused;
@@ -112,9 +112,14 @@ class processMetFocusNode : public metricFocusNode {
   static void getProcNodes(vector<processMetFocusNode*> *procNodes, int pid);
   static void getMT_ProcNodes(vector<processMetFocusNode*> *MT_procNodes);
 
+  // use this function to create a new processMetFocusNode in the general case
   static processMetFocusNode *newProcessMetFocusNode(process *p, 
 				 const string &metname, const Focus &focus_,
 				 aggregateOp agg_op, bool arg_dontInsertData);
+
+  // a copy constructor variant, used when handling fork
+  processMetFocusNode(const processMetFocusNode &par, process *childProc);
+
   ~processMetFocusNode();
 
   const Focus getFocus() const { 
@@ -167,7 +172,7 @@ class processMetFocusNode : public metricFocusNode {
   bool loadInstrIntoApp(pd_Function **func);
   void doCatchupInstrumentation();
   bool insertInstrumentation();
-
+  
   vector<const instrDataNode *> getFlagDataNodes() const;
   void prepareForSampling();
   void prepareForSampling(threadMetFocusNode *thrNode);
@@ -181,6 +186,7 @@ class processMetFocusNode : public metricFocusNode {
 
   void pauseProcess();
   void continueProcess();
+  void unFork();
 };
 
 
