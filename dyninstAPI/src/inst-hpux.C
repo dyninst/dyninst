@@ -117,11 +117,6 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTstopProcessTimer"] = 111;
 }
 
-int flushPtrace()
-{
-    return(0);
-}
-
 /*
  * Define the various classes of library functions to inst. 
  *

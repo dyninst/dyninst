@@ -43,6 +43,9 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
+ * Revision 1.43  1997/01/16 22:04:46  tamches
+ * removed flushPtrace
+ *
  * Revision 1.42  1996/10/31 08:50:33  tamches
  * removed a warning
  *
@@ -237,11 +240,6 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportCost"] = 167;
     primitiveCosts["DYNINSTreportNewTags"] = 40; 
 #endif
-}
-
-int flushPtrace()
-{
-    return(0);
 }
 
 /*

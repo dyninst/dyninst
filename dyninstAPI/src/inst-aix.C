@@ -161,11 +161,6 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportNewTags"] = 42;
 }
 
-int flushPtrace()
-{
-    return(0);
-}
-
 /*
  * Define the various classes of library functions to inst. 
  *

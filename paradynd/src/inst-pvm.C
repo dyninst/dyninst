@@ -44,6 +44,9 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
+ * Revision 1.25  1997/01/16 22:04:34  tamches
+ * removed flushPtrace
+ *
  * Revision 1.24  1996/10/31 08:48:12  tamches
  * removed forkNodeProcess
  *
@@ -183,10 +186,6 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTstopProcessTimer"] = 111;
 }
 
-int flushPtrace() {
-    return(0);
-}
-
 /*
  * Define the various classes of library functions to inst. 
  *
@@ -232,6 +231,3 @@ float computePauseTimeMetric(const metricDefinitionNode *) {
 	return(0.0);
     }
 }
-
-
-
