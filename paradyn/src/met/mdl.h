@@ -145,10 +145,12 @@
 #define MDL_RES_CODE       501
 #define MDL_RES_PROCESS    502
 #define MDL_RES_MACHINE    503
+#define MDL_RES_MEMORY    504
 
 #define MDL_T_CONSTRAINT   600
 
-
+#define MDL_T_MEMORY       700
+#define MDL_T_VARIABLE     701
 
 typedef struct {
   unsigned type;
