@@ -3,9 +3,12 @@
 // The scrollbar class for where4tree.h/.C
 
 /* $Log: scrollbar.C,v $
-/* Revision 1.1  1995/07/17 04:58:59  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/09/20 01:18:29  tamches
+/* Some routines didn't need where4TreeConstants
 /*
+ * Revision 1.1  1995/07/17  04:58:59  tamches
+ * First version of the new where axis
+ *
  */
 
 #include "minmax.h"
@@ -62,7 +65,7 @@ void scrollbar::draw(const where4TreeConstants &tc,
    // slider:
    int sliderPixTop;
    int sliderPixHeight;
-   getSliderCoords(tc, toppix, botpix,
+   getSliderCoords(toppix, botpix,
 		   viewableDataPix,
 		   totalFullDataPix,
 		   sliderPixTop, // filled in
@@ -91,24 +94,26 @@ void scrollbar::updateForNewBounds(const unsigned actualAvailDataPix,
 		);
 }
 
-void scrollbar::getSliderCoords(const where4TreeConstants &tc,
-				const int scrollBarTop, const int scrollBarBottom,
+void scrollbar::getSliderCoords(const int scrollBarTop, const int scrollBarBottom,
 				const unsigned viewableDataPix,
 				const unsigned totalDataPix,
 				int &sliderPixTop,
 				int &sliderPixHeight) const {
    const int scrollBarHeight = scrollBarBottom - scrollBarTop + 1;
-   const int totalSliderRealEstate = scrollBarHeight - 2*arrowHeight; // what about -2*borderWidth?
+   const int totalSliderRealEstate = scrollBarHeight - 2*arrowHeight;
+      // what about -2*borderWidth?
 
    const double fractionOfDataViewable = (double)viewableDataPix / 
                                          (double)totalDataPix;
 
    sliderPixHeight = max(10, (int)(fractionOfDataViewable * totalSliderRealEstate));
-   sliderPixTop = scrollBarTop + arrowHeight + pixFirst*totalSliderRealEstate/totalDataPix; // what about +borderWidth?
+   sliderPixTop = scrollBarTop + arrowHeight +
+                  pixFirst*totalSliderRealEstate/totalDataPix;
+      // what about +borderWidth?
 }
 
-int scrollbar::pixFirstFromAbsoluteCoord(const where4TreeConstants &tc,
-					 const int scrollBarTop, const int scrollBarBottom,
+int scrollbar::pixFirstFromAbsoluteCoord(const int scrollBarTop,
+					 const int scrollBarBottom,
 					 const unsigned totalDataPix,
 					 const int tentativeNewSliderPixTop) const {
    // This routine simply solves for "pixFirst" in the "sliderPixTop=....." equation

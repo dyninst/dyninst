@@ -3,9 +3,12 @@
 // The scrollbar class for where4tree.h/.C
 
 /* $Log: scrollbar.h,v $
-/* Revision 1.1  1995/07/17 04:58:58  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/09/20 01:18:28  tamches
+/* Some routines didn't need where4TreeConstants
 /*
+ * Revision 1.1  1995/07/17  04:58:58  tamches
+ * First version of the new where axis
+ *
  */
 
 #ifndef _SCROLLBAR_H_
@@ -45,15 +48,13 @@ class scrollbar {
    void updateForNewBounds(const unsigned actualAvailDataPix,
 			   const unsigned totalFullDataPix);
 
-   void getSliderCoords(const where4TreeConstants &tc,
-			const int scrollBarTop, const int ScrollBarBottom,
+   void getSliderCoords(const int scrollBarTop, const int ScrollBarBottom,
 			const unsigned viewableDataPix,
 			const unsigned totalDataPix,
 			int &sliderPixTop,
 			int &sliderPixHeight) const;
 
-   int pixFirstFromAbsoluteCoord(const where4TreeConstants &tc,
-				 const int scrollBarTop, const int scrollBarBottom,
+   int pixFirstFromAbsoluteCoord(const int scrollBarTop, const int scrollBarBottom,
 				 const unsigned totalDataPix,
 				 const int tentativeNewSliderPixTop) const;
 
