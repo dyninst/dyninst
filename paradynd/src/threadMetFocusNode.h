@@ -103,7 +103,7 @@ class threadMetFocusNode : public metricFocusNode {
   threadMetFocusNode_Val &V;
   processMetFocusNode *parent;
 
-  void initAggInfoObjects(timeStamp startTime, pdSample initValue);
+  void updateAllAggInfoInitialized();
 
  protected:
   static dictionary_hash<string, threadMetFocusNode_Val*> 
@@ -124,9 +124,9 @@ class threadMetFocusNode : public metricFocusNode {
   bool isReadyForUpdates() { return V.isReadyForUpdates(); }
   int getThreadID()  const { return V.getThreadID(); }
   int getThreadPos() const { return V.getThreadPos(); }
-  void updateAllAggInfoInitialized();
   threadMetFocusNode_Val *getValuePtr() { return &V; }
   void initializeForSampling(timeStamp startTime, pdSample initValue);
+  void initAggInfoObjects(timeStamp startTime, pdSample initValue);
 };
 
 
