@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.16 1995/05/18 10:36:42 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.17 1995/08/05 17:15:28 krisna Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.16  1995/05/18 10:36:42  markc
+ * Revision 1.17  1995/08/05 17:15:28  krisna
+ * deleted redundant AND WRONG definition of ipHash
+ *
+ * Revision 1.16  1995/05/18  10:36:42  markc
  * removed tag dictionary
  *
  * Revision 1.15  1995/03/10  19:33:51  hollings
@@ -186,10 +189,6 @@ void clearBaseBranch(process *proc, instInstance *inst)
 
 // implicit assumption that tramps generate to less than 64K bytes!!!
 static char insn[65536];
-
-static unsigned ipHash(instPoint *&val) {
-  return ((unsigned) val);
-}
 
 static dictionary_hash<instPoint*, point*> activePoints(ipHash);
 
