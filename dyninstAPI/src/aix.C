@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.149 2003/05/23 21:11:44 bernat Exp $
+// $Id: aix.C,v 1.150 2003/05/30 04:34:15 mjbrim Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -482,8 +482,8 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
     }
     
     else {
-        P_ptrace(PTT_READ_GPRS, lwp_id_, (void *)regs->gprs, 0, 0);
-        if (errno != 0) {
+        errno = 0;
+        if((P_ptrace(PTT_READ_GPRS, lwp_id_, (void *)regs->gprs, 0, 0) == -1) && errno) {
             perror("ptrace PTT_READ_GPRS");
             return NULL;
         }
@@ -491,8 +491,8 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
         // Again, we read as a block. 
         // ptrace(PTT_READ_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
         
-        P_ptrace(PTT_READ_FPRS, lwp_id_, (void *)regs->fprs, 0, 0);
-        if (errno != 0) {
+	errno = 0;
+        if((P_ptrace(PTT_READ_FPRS, lwp_id_, (void *)regs->fprs, 0, 0) == -1) && errno) {
             perror("ptrace PTT_READ_FPRS");
             return NULL;
         }
@@ -502,8 +502,8 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
         // but there's a _lot_ of extra space that is unused.
         struct ptsprs spr_contents;
         
-        P_ptrace(PTT_READ_SPRS, lwp_id_, (void *)&spr_contents, 0, 0);
-        if (errno) {
+        errno = 0;
+        if((P_ptrace(PTT_READ_SPRS, lwp_id_, (void *)&spr_contents, 0, 0) == -1) && errno) {
             perror("PTT_READ_SPRS");
             return NULL;
         }
