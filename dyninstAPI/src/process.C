@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.418 2003/04/25 22:52:33 mjbrim Exp $
+// $Id: process.C,v 1.419 2003/04/26 20:27:09 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6824,7 +6824,7 @@ dyn_thread *process::createThread(
   }
 
   //sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-	  pdf->prettyName().c_str(), startpc, pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
+  //pdf->prettyName().c_str(), startpc, pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
 //logLine(errorLine);
   return(thr);
 }
