@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.32  1997/12/03 20:38:27  mcheyney
+ * Fixed problem bwylie found with mdl.C for fully optimized code.
+ *
  * Revision 1.31  1997/11/26 21:47:49  mcheyney
  * Changed syntax of exclude statement:
  * Old:
@@ -1007,6 +1010,8 @@ bool mdl_check_node_constraints() {
     char *temp, *first_slash, *second_slash, *third_slash, *fourth_slash;
     string modified_constraint;
     bool bad_string;
+
+    first_slash = second_slash = third_slash = fourth_slash = NULL;
 
     // temp vector to hold lib constraints with leading 
     //  "Code/" stripped off....
