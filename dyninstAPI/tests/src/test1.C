@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.51 2000/03/22 03:56:25 tikir Exp $
+// $Id: test1.C,v 1.52 2000/03/22 19:08:48 tikir Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -2221,6 +2221,11 @@ void mutatorTest29(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 {
+
+#if defined(sparc_sun_solaris2_4) || \
+    defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0)
+
   unsigned n;
   unsigned long baseAddr,lastAddr;
   unsigned int call30_1_line_no;
@@ -2348,6 +2353,7 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 		n = lineNo;
 		expr30_6->writeValue(&n);
 	}
+#endif
 }
 
 /*******************************************************************************/
