@@ -16,9 +16,13 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.14  1994/08/01 17:20:32  newhall
-/* bug fixes to VMVisiDied and VMCreateVisi
+/* Revision 1.15  1994/08/13 20:54:26  newhall
+/* visi_thread_args def. changed
+/* VMCreateVisi arguments changed
 /*
+ * Revision 1.14  1994/08/01  17:20:32  newhall
+ * bug fixes to VMVisiDied and VMCreateVisi
+ *
  * Revision 1.13  1994/07/28  22:33:07  krisna
  * proper starting sequence for VMmain thread
  *
@@ -169,11 +173,11 @@ int id;
   if((temp = (VMvisis *)malloc(sizeof(VMvisis))) == NULL){
     perror("malloc in VM::VMAddNewVisualization");
     ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-    return(VMERROR_MALLOC);
+    return(VMERROR);
   }
-  if((temp->argv = (char **)malloc(sizeof(char *)*argc)) == NULL){
+  if((temp->argv = (char **)malloc(sizeof(char *)*(argc+1))) == NULL){
     ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-    return(VMERROR_MALLOC);
+    return(VMERROR);
   }
 
   // argv must be null terminated
@@ -181,12 +185,12 @@ int id;
   for(i=0;i<argc;i++){
     if((temp->argv[i] = strdup(argv[i])) == NULL){
       ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
-      return(VMERROR_MALLOC);
+      return(VMERROR);
     }
   }
   if((temp->name = strdup(name)) == NULL){
     ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
-    return(VMERROR_MALLOC);
+    return(VMERROR);
   }
   temp->argc = argc;
   temp->Id = id;
@@ -197,7 +201,10 @@ int id;
 }
 
 
-int  VM::VMCreateVisi(int visiTypeId){
+int  VM::VMCreateVisi(int remenuFlag,
+		      int visiTypeId,
+		      char *metList,
+		      char *resList){
 
 thread_t  tid;
 visi_thread_args *temp;
@@ -208,13 +215,34 @@ VMvisis *visitemp;
   if((visitemp = visiList.find((void *)visiTypeId))==NULL){
     PARADYN_DEBUG(("in VM::VMCreateVisi"));
     ERROR_MSG(20,"Error in find() in VM::VMCreateVisi");
-    return(VMERROR_VISINOTFOUND);
+    return(VMERROR);
   }
 
   temp = (visi_thread_args *)malloc(sizeof(visi_thread_args));
   temp->argc = visitemp->argc;
   temp->argv = (char **)visitemp->argv;
   temp->parent_tid = thr_self();
+  if(metList != NULL){
+    if((temp->metricList = strdup(metList)) == NULL){
+       PARADYN_DEBUG(("strdup in VM::VMCreateVisi"));
+       ERROR_MSG(19,"strdup in VM::VMCreateVisi");
+       temp->metricList = NULL;
+       return(VMERROR);
+    }
+  }
+  else
+    temp->metricList = NULL;
+  if(resList != NULL){
+    if((temp->resourceList = strdup(resList)) == NULL){
+       PARADYN_DEBUG(("strdup in VM::VMCreateVisi"));
+       ERROR_MSG(19,"strdup in VM::VMCreateVisi");
+       temp->metricList = NULL;
+       return(VMERROR);
+    }
+  }
+  else
+    temp->resourceList = NULL;
+  temp->remenuFlag = remenuFlag;
 
 
   // create a visi thread  
@@ -223,7 +251,7 @@ VMvisis *visitemp;
   // create a new visipointer
   if((temp2 = (VMactiveVisi  *)malloc(sizeof(VMactiveVisi))) == NULL){
     ERROR_MSG(18,"malloc in VM::VMCreateVisi");
-    return(VMERROR_MALLOC);
+    return(VMERROR);
   }
 
   temp2->visip = new VISIthreadUser(tid);
