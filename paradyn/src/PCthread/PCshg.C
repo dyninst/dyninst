@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.61 2000/03/06 21:41:23 zhichen Exp $
+ * $Id: PCshg.C,v 1.62 2000/03/23 01:33:08 wylie Exp $
  */
 
 #include "PCintern.h"
@@ -773,18 +773,32 @@ searchHistoryNode::makeTrue()
 {
   truthValue = ttrue;
   changeDisplay();
-  // update Search Display Status Area (eventually this will be printed 
-  // some better way, but this will have to do...)
-  string *status = new string (why->getName());
-  *status += string(" tested true for ");
-  *status += string(dataMgr->getFocusNameFromHandle(where));
-  *status += string("\n");
-  mamaGraph->updateDisplayedStatus (status);
+  if (exp != NULL) {
+      // update Search Display Status Area (eventually this will be printed 
+      // some better way, but this will have to do...)
+      string *status = new string("+");
+      *status += string((int)exp->getEndTime());
+      *status += string(") ");
+      *status += string(why->getName());
+      *status += string(" tested true for ");
+      *status += string(dataMgr->getFocusNameFromHandle(where));
+      mamaGraph->updateDisplayedStatus (status);
+  }
 }
 
 void
 searchHistoryNode::makeFalse()
 {
+  if ((truthValue == ttrue) && (exp != NULL)) { 
+      // report change from true to false
+      string *status = new string("+");
+      *status += string((int)exp->getEndTime());
+      *status += string(") ");
+      *status += string(why->getName());
+      *status += string(" became false for");
+      *status += string(dataMgr->getFocusNameFromHandle(where));
+      mamaGraph->updateDisplayedStatus (status);
+  }
   truthValue = tfalse;
   // if this node contains an experiment (ie, its non-virtual) then 
   // we want to halt the experiment for now
@@ -1075,11 +1089,11 @@ searchHistoryGraph::finalizeSearch(timeStamp searchEndTime)
   // right now search only terminates if phase ends, so just
   // update Search Display Status Area (eventually this will be printed 
   // some better way, but this will have to do...)
-  string *status = new string("\nSearch for Phase "); 
+  string *status = new string ("=");
+  *status += string(int(searchEndTime));
+  *status += string(") Search for Phase "); 
   *status += string(performanceConsultant::DMcurrentPhaseToken);
-  *status += string (" ended due to end of phase at time ");
-  *status += string (searchEndTime);
-  *status += string(".\n");
+  *status += string(" ended due to end of phase.");
   updateDisplayedStatus(status);
   // change display of all nodes to indicate "inactive"; no 
   // change to truth value displayed

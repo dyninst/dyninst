@@ -39,12 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// shgPhases.C
-// Ariel Tamches
+// $Id: shgPhases.C,v 1.28 2000/03/23 01:33:12 wylie Exp $
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
-
-/* $Id: shgPhases.C,v 1.27 1999/12/17 16:24:56 pcroth Exp $ */
 
 #include <limits.h>
 #include "util/h/headers.h"
@@ -654,10 +651,15 @@ void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
    const bool isCurrShg = (getCurrentId() == phaseId);
    shgStruct &theShgStruct = getByIDLL(phaseId);
 
-   theShgStruct.msgText += iMsg;
+   string Msg;
+   // auto-prepend "\n" for all but first message
+   if (theShgStruct.msgText.length() > 1) Msg = string("\n") + iMsg;
+   else Msg=iMsg;
+
+   theShgStruct.msgText += Msg;
 
    if (isCurrShg) {
-      string commandStr = msgTextWindowName + " insert end {" + iMsg + "}";
+      string commandStr = msgTextWindowName + " insert end {" + Msg + "}";
       myTclEval(interp, commandStr);
 
       commandStr = msgTextWindowName + " yview -pickplace end";

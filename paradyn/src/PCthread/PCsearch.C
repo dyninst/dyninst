@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.C,v 1.28 1999/05/19 07:50:28 karavan Exp $
+ * $Id: PCsearch.C,v 1.29 2000/03/23 01:33:08 wylie Exp $
  * class PCsearch
  */
 
@@ -64,6 +64,7 @@ extern sampleValue DivideEval (focus, sampleValue *data, int dataSize);
 
 unsigned int PCunhash (const unsigned &val) {return (val >> 3);} 
 
+timeStamp PCsearch::phaseChangeTime = 0;
 unsigned PCsearch::PCactiveCurrentPhase = 0;  // init to undefined
 dictionary_hash<unsigned, PCsearch*> PCsearch::AllPCSearches(PCunhash);
 PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::GlobalSearchQueue;
@@ -143,12 +144,12 @@ PCsearch::expandSearch (sampleValue estimatedCost)
       // **for now just get it out of the way
       int dispToken = curr->getGuiToken();
       q->delete_first();
-      string *ds = new string 
-	("WARNING:  Predicted Node Search Cost exceeds limit.  Skipped node: ");
+      string *ds = new string("WARNING:  Predicted node search cost ");
+      *ds += candidateCost;
+      *ds += " exceeds limit.  Skipped node: ";
       *ds += curr->getShortName();
       *ds += "||";
       *ds += curr->getHypoName();
-      *ds += "\n";
       uiMgr->updateStatusDisplay(dispToken, ds);
     } else if ((1 / (1 - estimatedCost - candidateCost - 
 		     PCsearch::getPendingCost())) > predMax) {
@@ -157,7 +158,7 @@ PCsearch::expandSearch (sampleValue estimatedCost)
       if ( !PCsearch::SearchThrottledBack && 
 	  (curr != PCsearch::SearchThrottleNode)) {
 	int dispToken = curr->getGuiToken();
-	string *ds = new string ("Search Slowed:  Cost Limit Reached.\n");
+	string *ds = new string ("Search slowed:  Cost limit reached.");
 	uiMgr->updateStatusDisplay(dispToken, ds);
 	PCsearch::SearchThrottleNode = curr;
 	PCsearch::SearchThrottledBack = true;
@@ -166,7 +167,7 @@ PCsearch::expandSearch (sampleValue estimatedCost)
       curr->startExperiment();
       if (PCsearch::SearchThrottledBack) {
 	int dispToken = curr->getGuiToken();
-	string *ds = new string ("Search Resumed.\n");
+	string *ds = new string ("Search resumed.");
 	uiMgr->updateStatusDisplay(dispToken, ds);
 	PCsearch::SearchThrottledBack = false;
 	PCsearch::SearchThrottleNode = NULL;
@@ -184,13 +185,13 @@ PCsearch::expandSearch (sampleValue estimatedCost)
   if ((PCsearch::getNumActiveExperiments() >=  MaxActiveExperiments) 
       && (!PCsearch::SearchThrottledBack)) {
     int dispToken = curr->getGuiToken();
-    string *ds = new string ("Search Slowed:  max active nodes reached.\n");
+    string *ds = new string ("Search Slowed:  max active nodes reached.");
     uiMgr->updateStatusDisplay(dispToken, ds);
     PCsearch::SearchThrottledBack = true;
   } else if ((PCsearch::getNumPendingSearches() >=  MaxPendingSearches)
 	     && (!PCsearch::SearchThrottledBack)) {
     int dispToken = curr->getGuiToken();
-    string *ds = new string ("Search Slowed:  max pending nodes.\n");
+    string *ds = new string ("Search Slowed:  max pending nodes reached.");
     uiMgr->updateStatusDisplay(dispToken, ds);
     PCsearch::SearchThrottledBack = true;
   }
@@ -206,7 +207,7 @@ PCsearch::expandSearch (sampleValue estimatedCost)
 }
 
 PCsearch::PCsearch(unsigned phaseID, phaseType phase_type)
-: searchStatus(schNeverRun),  phaseToken(phaseID), phType(phase_type)
+: searchStatus(schNeverRun), phaseToken(phaseID), phType(phase_type)
 {
   if (phaseID == GlobalPhaseID)
     database = performanceConsultant::globalPCMetricServer;
@@ -240,21 +241,30 @@ PCsearch::initCostTracker ()
 bool
 PCsearch::addSearch(unsigned phaseID)
 {
-  string *msg;
   phaseType pType;
-  // we can't use the dm token really, cause there's no dm token for 
+  // we can't use the DM token really, cause there's no DM token for 
   // global search, which throws our part of the universe into total 
   // confusion.  So, internally and in communication with the UI, we always
-  // use dm's number plus one, and 0 for global phase.  
+  // use DM's number plus one, and 0 for global phase.  
+  string *msg = new string;
+  if (int(PCsearch::phaseChangeTime) != 0) {
+    *msg += string("=");
+    *msg += string(int(PCsearch::phaseChangeTime));
+    *msg += string(") ");
+  }
+  if (performanceConsultant::useCallGraphSearch)
+    *msg += string("Callgraph-based");
+  else
+    *msg += string("Module-based");
   if (phaseID > 0) {
     // non-global search
     performanceConsultant::currentPhase = phaseID;
-    msg = new string ("Initializing Search for Current Phase ");
+    *msg += string(" search for Phase ");
     *msg += (phaseID-1);
-    *msg += string(".\n");
+    *msg += string(".");
     pType = CurrentPhase;
   } else {
-    msg =  new string ("Initializing Search for Global Phase.\n");
+    *msg += string(" search for Global Phase.");
     pType = GlobalPhase;
   }
 
@@ -303,7 +313,7 @@ PCsearch::pause()
     else 
       // no nodes will be started off the current search queue until false
       CurrentSearchPaused = true;
-    shg->updateDisplayedStatus ("Search Paused by User.\n");
+    shg->updateDisplayedStatus ("Search paused by user.");
     database->unsubscribeAllRawData();
   }
 }
@@ -318,7 +328,7 @@ PCsearch::resume()
     else
       CurrentSearchPaused = false;
     database->resubscribeAllRawData();
-    shg->updateDisplayedStatus ("Search Resumed.\n");
+    shg->updateDisplayedStatus ("Search resumed.");
   }
 }
 
@@ -351,10 +361,12 @@ void
 PCsearch::updateCurrentPhase (unsigned newPhaseID, timeStamp phaseEndTime) 
 {
   unsigned phaseID = performanceConsultant::currentPhase;
+
   // the UI may be notified of the new phase, and the user select a 
   // search for it, before the PC gets this callback from the DM.  So
   // we must check here if we are already searching this "new" phase.
   if (phaseID == newPhaseID) return;
+
   // here if this is the first we're hearing of this phase.  If a search
   // is in progress for the old current phase, we need to end it.
   if (phaseID && AllPCSearches.defines(phaseID) ) {
@@ -364,6 +376,8 @@ PCsearch::updateCurrentPhase (unsigned newPhaseID, timeStamp phaseEndTime)
   // 0 indicates no current phase search in progress
   performanceConsultant::currentPhase = 0;
   PCsearch::numActiveCurrentExperiments = 0;
+  //cerr << "New phase starting at T=" << phaseEndTime << endl;
+  PCsearch::phaseChangeTime = phaseEndTime;
 }
 
 bool 

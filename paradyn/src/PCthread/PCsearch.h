@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.h,v 1.18 1999/11/09 19:26:34 cain Exp $
+ * $Id: PCsearch.h,v 1.19 2000/03/23 01:33:09 wylie Exp $
  * PCsearch.h: State information required throughout a search.
  */
 
@@ -127,12 +127,13 @@ public:
   static void clearPendingGlobalCost(float val) 
     { PCsearch::PendingGlobalCost -= val; }
 private:
-  schState searchStatus;  // schNeverRun/schPaused/schRunning/schEnded
+  schState searchStatus;        // schNeverRun/schPaused/schRunning/schEnded
   unsigned phaseToken;          // identifier for phase of this search
-  phaseType phType;     // global or current; need for DM interface
+  phaseType phType;             // global or current; need for DM interface
   PCmetricInstServer *database;
   searchHistoryGraph *shg;
   bool isGlobal() {return (phType == GlobalPhase);}
+  static timeStamp phaseChangeTime;     // last phase start time
   static dictionary_hash<unsigned, PCsearch*>AllPCSearches;
   static unsigned PCactiveCurrentPhase;
   static costModule *costTracker;
