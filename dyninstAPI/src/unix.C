@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.99 2003/05/30 21:32:36 bernat Exp $
+// $Id: unix.C,v 1.100 2003/06/11 20:05:51 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -406,8 +406,6 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
 	  args[ai] = P_strdup(argv[ai].c_str());
 	args[argv.size()] = NULL;
 	P_execvp(file.c_str(), args);
-    fprintf(stderr, "Exec failed\n");
-    
 	sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
 	logLine(errorLine);
     
@@ -608,7 +606,7 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     }
 #endif
 
-#if defined(rs6000_ibm_aix4_1)  
+#if defined(rs6000_ibm_aix4_1)  && !defined(AIX_PROC)
     // On AIX 4.3 we get a spurrious SIGTRAP from the child process
     // after a fork().  The SIGTRAP originates in __fork().
     // As a last resort on AIX, we check to see if this is the
@@ -735,7 +733,7 @@ int handleSignal(process *proc, procSignalWhat_t what,
      // Big one's up top. We use traps for most of our process control
      ret = handleSigTrap(proc, info);
 
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
 	//after we have handled a trap on AIX, be sure we reset the
 	//nextTrapIsFork flag. This flag may be reset in handleSigTrap 
 	//on AIX 4.x  It will not be reset in that function on AIX 5.
@@ -870,14 +868,13 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
         if (i== processVec.size()) {
             // this is a new child, register it with dyninst
             int parentPid = proc->getPid();
-
             process *theChild = new process(*proc, (int)childPid, -1);
             if (theChild) {
                 processVec.push_back(theChild);
                 activeProcesses++;
                 
                 theChild->status_ = stopped;
-                
+
 #if defined(rs6000_ibm_aix4_1)
                 // AIX has interesting fork behavior: the program image is
                 // loaded from disk instead of copied over. This means we 
@@ -888,39 +885,39 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
                 proc->handleForkExit(theChild);
 
 #if defined(rs6000_ibm_aix4_1)
-		//on AIX 4.3 we receive an extra SIGTRAP from within __fork() from
-		//the child. I dont know why.  If we catch it and eat it
-		//and continue the child process we are good.  This flag
-		//lets us know (in handleSigTrap) that the next SIGTRAP should be eaten
-		theChild->nextTrapIsFork = true;  
-
-		// On AIX, we don't continue the process elsewhere because we
-		// want to wait until we've seen the fork exit in both the
-		// parent and the child.  This is so that the
-		// copyInstrumentationToChild above will work - without
-		// leaving the parent paused, it may, for instance, exit
-		// before we copy the instrumentation.  Now that we've handled
-		// that, continue both the parent and the child.
-		proc->continueProc();
-		theChild->continueProc();
+                //on AIX 4.3 we receive an extra SIGTRAP from within __fork() from
+                //the child. I dont know why.  If we catch it and eat it
+                //and continue the child process we are good.  This flag
+                //lets us know (in handleSigTrap) that the next SIGTRAP should be eaten
+                theChild->nextTrapIsFork = true;  
+                
+                // On AIX, we don't continue the process elsewhere because we
+                // want to wait until we've seen the fork exit in both the
+                // parent and the child.  This is so that the
+                // copyInstrumentationToChild above will work - without
+                // leaving the parent paused, it may, for instance, exit
+                // before we copy the instrumentation.  Now that we've handled
+                // that, continue both the parent and the child.
+                proc->continueProc();
+                theChild->continueProc();
 #endif
             }
             else {
                 // Can happen if we're forking something we can't trace
                 cerr << "Process forked, but unable to initialize child" << endl;
-#if defined(rs6000_ibm_aix4_1)
-		// It's not clear what we want to do on AIX with the parent
-		// in this case.  For now, we'll just continue it.
-		proc->continueProc();
+#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
+                // It's not clear what we want to do on AIX with the parent
+                // in this case.  For now, we'll just continue it.
+                proc->continueProc();
 #endif
             }
         }
-#if defined(rs6000_ibm_aix4_1)
-	else {
-	    // Continue both parent and child (see above)
-	    proc->continueProc();
-	    processVec[i]->continueProc();
-	}
+#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
+        else {
+            // Continue both parent and child (see above)
+            proc->continueProc();
+            processVec[i]->continueProc();
+        }
 #endif
     }
 
@@ -987,7 +984,6 @@ int handleExecExit(process *proc, procSignalInfo_t info) {
         }
         proc->setBootstrapState(begun);
         if (!proc->insertTrapAtEntryPointOfMain()) {
-            cerr << "Failed to initialize exec'ed process, assuming exit..." << endl;
             proc->continueProc();
             // We should actually delete any mention of this process... including
             // (for Paradyn) removing it from the frontend.
