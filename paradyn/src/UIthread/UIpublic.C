@@ -21,9 +21,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.39  1996/02/02 01:01:28  karavan
-/* Changes to support the new PC/UI interface
+/* Revision 1.40  1996/02/02 18:42:17  tamches
+/* Global search initialized when the shg window is
+/* UIM::initShg should now be unused
+/* new cleaner shgPhases routines corresponding to the PC-->UI igen calls
 /*
+ * Revision 1.39  1996/02/02 01:01:28  karavan
+ * Changes to support the new PC/UI interface
+ *
  * Revision 1.38  1996/01/30 23:04:22  tamches
  * removed include to obsolete file shgDisplay.h
  *
@@ -294,10 +299,7 @@ extern shgPhases *theShgPhases;
 void
 UIM::updateStatusDisplay (int shgToken, const char *info)
 {
-   if (theShgPhases->existsCurrent())
-      theShgPhases->getByID(shgToken).addToStatusDisplay(info);
-
-//   cout << "STATUS (" << shgToken << "): " << info << endl; // ari temp hack
+   theShgPhases->addToStatusDisplay(shgToken, info);
 }
 
 bool haveSeenFirstGoodShgWid = false;
@@ -322,12 +324,23 @@ bool tryFirstGoodShgWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
 
    /* *********************************************************** */
 
+   // Why don't we construct "theShgPhases" earlier (perhaps at startup)?
+   // Why do we wait until the shg window has been opened?
+   // Because the constructor requires window names as arguments.
    theShgPhases = new shgPhases(".shg.titlearea.left.menu.mbar.phase.m",
                                 ".shg.nontop.main.bottsb",
                                 ".shg.nontop.main.leftsb",
 				".shg.nontop.labelarea.current",
                                 interp, theTkWindow);
    assert(theShgPhases);
+
+   // Now is as good a time as any to define the global phase.
+   const int GlobalPhaseId = 0; // a hardcoded constant
+   theShgPhases->defineNewSearch(GlobalPhaseId,
+				 "Global Phase");
+
+   // ...and inform the performance consultant:
+   perfConsult->newSearch(GlobalPhase);
 
    initiateShgRedraw(interp, true);
 
@@ -343,17 +356,22 @@ bool tryFirstGoodShgWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
 int 
 UIM::initSHG(const char *phaseName, int phaseID) 
 {
+   // This routine is mostly obsolete.  But until the new pc commit,
+   // we use it for a single purpose: to assign a name and an id to the 
+   // most recent shg creation which up till now is "incomplete".
    assert(theShgPhases);
 
-   shg *theNewShg = new shg(phaseID, interp,
-			    theShgPhases->getTkWindow(), // _not_ the main window!
-			    theShgPhases->getHorizSBName(),
-			    theShgPhases->getVertSBName(),
-			    theShgPhases->getCurrItemLabelName());
-   assert(theNewShg);
-
-   //theShgPhases->add(theNewShg, phaseID, phaseName);
-   theShgPhases->add(theNewShg, phaseName);
+   theShgPhases->defineNewSearch(phaseID,
+				 phaseName);
+//   shg *theNewShg = new shg(phaseID, interp,
+//			    theShgPhases->getTkWindow(), // _not_ the main window!
+//			    theShgPhases->getHorizSBName(),
+//			    theShgPhases->getVertSBName(),
+//			    theShgPhases->getCurrItemLabelName());
+//   assert(theNewShg);
+//
+//   //theShgPhases->add(theNewShg, phaseID, phaseName);
+//   theShgPhases->add(theNewShg, phaseName);
 
    assert(theShgPhases->existsCurrent());
    theShgPhases->getCurrent().resize(theShgPhases->getCurrentId()==phaseID);
@@ -407,22 +425,16 @@ int
 UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID, 
 		const char *label, const char *shgname, int flags)
 {
-   shg &theShg = theShgPhases->getByID(dagID);
-
    const bool isRootNode = (flags == 1);
    bool active;
    shgRootNode::evaluationState theEvalState;
    int2style(styleID, active, theEvalState);
 
    // A temporary hack for the mysterious "1" that appears for the root node:
-   theShg.addNode(nodeID, active, theEvalState,
-		  isRootNode ? "Whole Program" : label,
-		  shgname, isRootNode);
-
-   // note: we _intentionally_ don't redraw...do you see why?
-   // (no edge connections to this node --> it shouldn't appear yet) 
-   // exception: the root node
-   if (isRootNode)
+   if (theShgPhases->addNode(dagID, nodeID, active, theEvalState,
+			     isRootNode ? "Whole Program" : label,
+			     shgname, isRootNode))
+      // we should only be redrawing for a root node...
       initiateShgRedraw(interp, true);
 
    return 1;
@@ -434,17 +446,16 @@ UIM::DAGaddEdge (int dagID, unsigned srcID,
 		 const char *label // only used for shadow node; else NULL
 		 )
 {
-   shg &theShg = theShgPhases->getByID(dagID);
    bool active;
    shgRootNode::evaluationState theEvalState;
    int2style(styleID, active, theEvalState);
 
-   theShg.addEdge(srcID, // parent
-		  dstID, // child
-		  theEvalState,
-		  label);
-
-   initiateShgRedraw(interp, true); // true --> double buffer
+   if (theShgPhases->addEdge(dagID, 
+			     srcID, // parent
+			     dstID, // child
+			     theEvalState,
+			     label))
+      initiateShgRedraw(interp, true); // true --> double buffer
 
    return 1;
 }
@@ -453,12 +464,11 @@ UIM::DAGaddEdge (int dagID, unsigned srcID,
 int 
 UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
 {
-   shg &theShg = theShgPhases->getByID(dagID);
    bool active;
    shgRootNode::evaluationState theEvalState;
    int2style(styleID, active, theEvalState);
   
-   if (theShg.configNode(nodeID, active, theEvalState))
+   if (theShgPhases->configNode(dagID, nodeID, active, theEvalState))
       initiateShgRedraw(interp, true); // interp --> double buffer
 
    return 1;
