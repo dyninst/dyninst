@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.66 2000/07/28 17:21:14 pcroth Exp $
+ * $Id: inst-x86.C,v 1.67 2000/08/04 19:49:50 hollings Exp $
  */
 
 #include <iomanip.h>
@@ -3074,4 +3074,52 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 	"BPatch_image::createInstPointAtAddr unimplemented on this platform");
     return NULL;
 }
+
+/*
+ * BPatch_point::getDisplacedInstructions
+ *
+ * Returns the instructions to be relocated when instrumentation is inserted
+ * at this point.  Returns the number of bytes taken up by these instructions.
+ *
+ * maxSize      The maximum number of bytes of instructions to return.
+ * insns        A pointer to a buffer in which to return the instructions.
+ */
+
+int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
+{
+    void *code;
+    char copyOut[1024];
+    unsigned int count = 0;
+
+    if (point->insnsBefore()) {
+	for (unsigned int i=0; i < point->insnsBefore(); i++) {
+	    code = const_cast<unsigned char *>(point->insnBeforePt(i).ptr());
+	    memcpy(&copyOut[count], code, point->insnBeforePt(i).size());
+	    count += point->insnBeforePt(i).size();
+	    assert(count < sizeof(copyOut));
+	}
+    }
+
+    code = const_cast<unsigned char *>(point->insnAtPoint().ptr());
+    memcpy(&copyOut[count], code, point->insnAtPoint().size());
+    count += point->insnAtPoint().size();
+    assert(count < sizeof(copyOut));
+
+    if (point->insnsAfter()) {
+	for (unsigned int i=0; i < point->insnsAfter(); i++) {
+	    code = const_cast<unsigned char *>(point->insnAfterPt(i).ptr());
+	    memcpy(&copyOut[count], code, point->insnAfterPt(i).size());
+	    count += point->insnAfterPt(i).size();
+	    assert(count < sizeof(copyOut));
+	}
+    }
+
+    if (count <= (unsigned) maxSize) {
+	memcpy(insns, copyOut, count);
+	return(count);
+    } else {
+	return -1;
+    }
+}
+
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.93 2000/08/02 22:00:23 tikir Exp $
+// $Id: inst-sparc.C,v 1.94 2000/08/04 19:49:49 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1685,4 +1685,83 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
 
 }
+
+/*
+ * BPatch_point::getDisplacedInstructions
+ *
+ * Returns the instructions to be relocated when instrumentation is inserted
+ * at this point.  Returns the number of bytes taken up by these instructions.
+ *
+ * maxSize      The maximum number of bytes of instructions to return.
+ * insns        A pointer to a buffer in which to return the instructions.
+ */
+int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
+{
+    int count = 0;
+    instruction copyOut[10];	// I think 7 is the max - jkh 8/3/00
+
+    //
+    // This function is based on what is contained in the instPoint 
+    //    constructor in the file inst-sparc-solaris.C
+    //
+    if (!point->hasNoStackFrame()) {
+	if (point->ipType == functionEntry) {
+	    copyOut[count++].raw = point->saveInsn.raw;
+	    copyOut[count++].raw = point->originalInstruction.raw;
+	    copyOut[count++].raw = point->delaySlotInsn.raw;
+	    if (point->isDelayed) {
+		copyOut[count++].raw = point->isDelayedInsn.raw;
+		if (point->callAggregate) {
+		    copyOut[count++].raw = point->aggregateInsn.raw;
+		}
+	    }
+	} else if (point->ipType == callSite) {
+	    copyOut[count++].raw = point->originalInstruction.raw;
+	    copyOut[count++].raw = point->delaySlotInsn.raw;
+	    if (point->callAggregate) {
+		copyOut[count++].raw = point->aggregateInsn.raw;
+	    }
+	} else {
+	    copyOut[count++].raw = point->originalInstruction.raw;
+	    copyOut[count++].raw = point->delaySlotInsn.raw;
+	}
+    } else {
+	if (point->ipType == functionEntry) {
+	    copyOut[count++].raw = point->originalInstruction.raw;
+	    copyOut[count++].raw = point->otherInstruction.raw;
+	    copyOut[count++].raw = point->delaySlotInsn.raw;
+	    if (point->isDelayed) {
+		copyOut[count++].raw = point->isDelayedInsn.raw;
+	    }
+	} else if (point->ipType == functionExit) {
+	    copyOut[count++].raw = point->originalInstruction.raw;
+	    copyOut[count++].raw = point->otherInstruction.raw;
+	    copyOut[count++].raw = point->delaySlotInsn.raw;
+	    if (point->inDelaySlot) {
+		copyOut[count++].raw = point->inDelaySlotInsn.raw;
+		if (point->firstIsConditional) {
+		    copyOut[count++].raw = point->extraInsn.raw;
+		}
+	    }
+	} else if(point->ipType == otherPoint) {
+	   copyOut[count++].raw = point->originalInstruction.raw;
+	   copyOut[count++].raw = point->otherInstruction.raw;
+	} else {
+	   assert(point->ipType == callSite);
+	   copyOut[count++].raw = point->originalInstruction.raw;
+	   copyOut[count++].raw = point->delaySlotInsn.raw;
+	   if (point->callAggregate) {
+	       copyOut[count++].raw = point->aggregateInsn.raw;
+	   }
+	}
+    }
+
+    if (count * sizeof(instruction) > maxSize) {
+	return -1;
+    } else {
+	memcpy(insns, copyOut, count * sizeof(instruction));
+	return count * sizeof(instruction);
+    }
+}
+
 #endif

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.94 2000/07/28 17:21:13 pcroth Exp $
+ * $Id: inst-power.C,v 1.95 2000/08/04 19:49:48 hollings Exp $
  */
 
 #include "common/h/headers.h"
@@ -3339,6 +3339,23 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 				     ipOther);
 
     return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
+}
+
+/*
+ * BPatch_point::getDisplacedInstructions
+ *
+ * Returns the instructions to be relocated when instrumentation is inserted
+ * at this point.  Returns the number of bytes taken up by these instructions.
+ *
+ * maxSize      The maximum number of bytes of instructions to return.
+ * insns        A pointer to a buffer in which to return the instructions.
+ */
+int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
+{
+    if (maxSize >= sizeof(instruction))
+        memcpy(insns, &point->originalInstruction.raw, sizeof(instruction));
+
+    return sizeof(instruction);
 }
 
 #endif

@@ -101,32 +101,6 @@ void *BPatch_point::getAddress()
 
 
 /*
- * BPatch_point::getDisplacedInstructions
- *
- * Returns the instructions to be relocated when instrumentation is inserted
- * at this point.  Returns the number of bytes taken up by these instructions.
- *
- * maxSize	The maximum number of bytes of instructions to return.
- * insns	A pointer to a buffer in which to return the instructions.
- */
-#ifdef rs6000_ibm_aix4_1
-int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
-{
-    if (maxSize >= sizeof(instruction))
-	memcpy(insns, &point->originalInstruction.raw, sizeof(instruction));
-
-    return sizeof(instruction);
-}
-#else
-    // Not implemented except on AIX
-int BPatch_point::getDisplacedInstructions(int /*maxSize*/, void* /*insns*/)
-{
-    return -1;
-}
-#endif
-
-
-/*
  * BPatch_point::usesTrap_NP
  *
  * Returns true if this point is or would be instrumented with a trap, rather

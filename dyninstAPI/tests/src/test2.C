@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.38 2000/06/20 21:45:57 wylie Exp $
+// $Id: test2.C,v 1.39 2000/08/04 19:49:52 hollings Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -433,11 +433,6 @@ void test10(BPatch_thread *thread)
 //
 void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
-#if !defined(rs6000_ibm_aix4_1)
-    // Test getDisplacedInstructions
-    printf("Skipping test #11 (getDisplacedInstructions)\n");
-    printf("         - not implemented on this platform\n");
-#else
     BPatch_Vector<BPatch_point*> *points =
 	appImage->findProcedurePoint("func11_1", BPatch_entry);
     if (points == NULL) {
@@ -464,7 +459,6 @@ void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
         return;
     }
     printf("Passed test #11 (getDisplacedInstructions)\n");
-#endif
     passedTest[11] = true;
 }
 

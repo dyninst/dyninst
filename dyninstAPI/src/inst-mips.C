@@ -4604,4 +4604,22 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 
     return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
 }
+
+/*
+ * BPatch_point::getDisplacedInstructions
+ *
+ * Returns the instructions to be relocated when instrumentation is inserted
+ * at this point.  Returns the number of bytes taken up by these instructions.
+ *
+ * maxSize      The maximum number of bytes of instructions to return.
+ * insns        A pointer to a buffer in which to return the instructions.
+ */
+int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
+{
+    if (maxSize >= sizeof(instruction))
+        memcpy(insns, &point->origInsn_.raw, sizeof(instruction));
+
+    return sizeof(instruction);
+}
+
 #endif
