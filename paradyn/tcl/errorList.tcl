@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.55 2002/08/31 16:53:25 mikem Exp $
+# $Id: errorList.tcl,v 1.56 2002/09/07 16:15:30 schendel Exp $
 
 #
 # Error message format:
@@ -1118,6 +1118,15 @@ set pdError(125) {
 {warning}
 {A metric has attempted to use an invalid hardware performance counter. }
 } 
+
+set pdError(126) {
+{instrumentation insertion failed}
+{paradynd}
+{serious error}
+{An instrumentation insertion request failed because instrumentation failed
+to load into the inferior application.}
+}
+
 
 #
 # be sure to change this value if you add/delete an entry to the database
