@@ -153,6 +153,7 @@ BPatch_thread *mutatorMAIN(char *pathname, bool useAttach)
     } else {
 	appThread = bpatch->createProcess(pathname, child_argv);
     }
+
     return appThread;
 }
 
@@ -345,7 +346,8 @@ main(int argc, char *argv[])
 
     ret->continueExecution();
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(i386_unknown_linux2_0)
+#if !defined(sparc_sun_solaris2_4)  && !defined(i386_unknown_solaris2_5) && \
+    !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4)
     printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
     printf("    feature not implemented on this platform\n");
 
@@ -356,11 +358,14 @@ main(int argc, char *argv[])
 
     // see if the dlopen happended.
     bool found = false;
+    char match2[256];
+    sprintf(match2, "%s_module", TEST_DYNAMIC_LIB);
     BPatch_Vector<BPatch_module *> *m = img->getModules();
     for (i=0; i < m->size(); i++) {
 	    char name[80];
 	    (*m)[i]->getName(name, sizeof(name));
-	    if (strcmp(name, TEST_DYNAMIC_LIB) == 0) {
+	    if (strcmp(name, TEST_DYNAMIC_LIB) == 0 ||
+		strcmp(name, match2) == 0) {
 		found = true;
 		break;
 	    }
@@ -381,11 +386,14 @@ main(int argc, char *argv[])
     } else {
 	// see if it worked
 	found = false;
+	char match2[256];
+	sprintf(match2, "%s_module", TEST_DYNAMIC_LIB2);
 	BPatch_Vector<BPatch_module *> *m = img->getModules();
 	for (i=0; i < m->size(); i++) {
 		char name[80];
 		(*m)[i]->getName(name, sizeof(name));
-		if (strcmp(name, TEST_DYNAMIC_LIB2) == 0) {
+		if (strcmp(name, TEST_DYNAMIC_LIB2) == 0 ||
+		    strcmp(name, match2) == 0) {
 		    found = true;
 		    break;
 		}
@@ -407,7 +415,7 @@ main(int argc, char *argv[])
     // waitUntilStopped would not return is we didn't stop
     printf("Passed test #8 (BPatch_breakPointExpr)\n");
 
-#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4) && !defined(mips_sgi_irix6_4)
     printf("Skipping test #9 (dump core but do not terminate)\n");
     printf("    BPatch_thread::dumpCore not implemented on this platform\n");
 #else
@@ -436,7 +444,9 @@ main(int argc, char *argv[])
     }
 #endif
 
-#if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
+#if !defined(rs6000_ibm_aix4_1)    && !defined(sparc_sun_sunos4_1_3)  && \
+    !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && \
+    !defined(mips_sgi_irix6_4)
     printf("Skipping test #10 (dump image)\n");
     printf("    BPatch_thread::dumpImage not implemented on this platform\n");
 #else
