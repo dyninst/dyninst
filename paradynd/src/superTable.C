@@ -39,18 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.9 2002/02/21 21:48:32 bernat Exp $
+// $Id: superTable.C,v 1.10 2002/04/05 19:39:05 schendel Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. For more info, please look at
 // the .h file for this class. 
 
 #include <sys/types.h>
-#include <limits.h>
+#include "common/h/Types.h"
 #include "common/h/headers.h"
 #include "paradynd/src/superTable.h"
 #include "rtinst/h/rtinst.h" // for time64 and MAX_NUMBER_OF_THREADS
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
+#include "paradynd/src/processMetFocusNode.h"
 
 superTable::superTable(process *proc,
 		       unsigned maxNumberOfIntCounters,
@@ -150,7 +151,7 @@ bool superTable::allocIntCounter(const intCounter &iRawValue,
 {
 #if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
-  if (allocatedIndex != UINT_MAX && allocatedLevel!=UINT_MAX) {
+  if (allocatedIndex != UI32_MAX && allocatedLevel!=UI32_MAX) {
     sprintf(errorLine,"=====> in allocIntCounter, re-using index=%d, level=%d",allocatedIndex,allocatedLevel);
   } else {
     sprintf(errorLine,"=====> in allocIntCounter, not-reusing index and level");
@@ -196,7 +197,7 @@ bool superTable::allocWallTimer(const tTimer &iRawValue,
 {
 #if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
-  if (allocatedIndex != UINT_MAX && allocatedLevel!=UINT_MAX) {
+  if (allocatedIndex != UI32_MAX && allocatedLevel!=UI32_MAX) {
     sprintf(errorLine,"=====> in allocWallTimer, re-using index=%d, level=%d",allocatedIndex,allocatedLevel);
   } else {
     sprintf(errorLine,"=====> in allocWallTimer, not-reusing index and level");
@@ -236,7 +237,7 @@ bool superTable::allocProcTimer(const tTimer &iRawValue,
 {
 #if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
-  if (allocatedIndex != UINT_MAX && allocatedLevel!=UINT_MAX) {
+  if (allocatedIndex != UI32_MAX && allocatedLevel!=UI32_MAX) {
     sprintf(errorLine,"=====> in allocProcTimer, re-using index=%d, level=%d",allocatedIndex,allocatedLevel);
   } else {
     sprintf(errorLine,"=====> in allocProcTimer, not-reusing index and level");
@@ -332,6 +333,41 @@ void *superTable::index2InferiorAddr(unsigned type,
   return ((void*)0);
 }
 
+void *superTable::getHouseKeeping(unsigned type, 
+#if defined(MT_THREAD)
+				  pdThread *thr,
+#endif
+				  unsigned allocatedIndex,
+				  unsigned allocatedLevel) const
+{
+  unsigned pd_pos;
+#if defined(MT_THREAD)
+  pd_pos = thr->get_pd_pos();
+#else
+  pd_pos = 0;
+#endif
+  switch (type) {
+    case 0:
+      // intCounter
+      return(theIntCounterSuperTable->getHouseKeeping(pd_pos, allocatedIndex,
+						      allocatedLevel));
+      break;
+    case 1:
+      // wallTimer
+      return(theWallTimerSuperTable->getHouseKeeping(pd_pos, allocatedIndex,
+						     allocatedLevel));
+      break;
+    case 2:
+      // procTimer
+      return(theProcTimerSuperTable->getHouseKeeping(pd_pos, allocatedIndex,
+						     allocatedLevel));
+      break;
+    default:
+      assert(0);
+  }  
+  return ((void*)0);
+}
+
 #if defined(MT_THREAD)
 void superTable::makePendingFree(pdThread *thr, unsigned type,
 #else
@@ -341,6 +377,8 @@ void superTable::makePendingFree(unsigned type,
 				 unsigned allocatedLevel, 
 				 const vector<Address> &trampsUsing)
 {
+  //cerr << "superTable::makePendingFree - type: " << type << ", allocIndex: "
+  //   << allocatedIndex << ", allocLevel: " << allocatedLevel << "\n";
 #if defined(MT_THREAD)
   assert(thr);
   unsigned pd_pos = thr->get_pd_pos();
@@ -479,19 +517,16 @@ void superTable::addThread(pdThread *thr)
   sprintf(errorLine,"=====> allMIComponentsWithThreads size=%d\n",inferiorProcess->allMIComponentsWithThreads.size());
   logLine(errorLine);
 #endif
-  cerr << "Finished adding data structures, going to add MIs" << endl;
   for (unsigned i=0;i<inferiorProcess->allMIComponentsWithThreads.size();i++) {
     processMetFocusNode *mi = inferiorProcess->allMIComponentsWithThreads[i];
     if (mi)  
       mi->addThread(thr); 
   }
-  cerr << "Done adding MIs" << endl;
-  // Add the pointers after setting up the instrumentation -- otherwise the thread
-  // will start using the counters/timers before they've been cleared.
+  // Add the pointers after setting up the instrumentation -- otherwise the
+  // thread will start using the counters/timers before they've been cleared.
   theIntCounterSuperTable->addThread(pos,pd_pos);
   theWallTimerSuperTable->addThread(pos,pd_pos);
   theProcTimerSuperTable->addThread(pos,pd_pos);  
-  cerr << "Done with the super table stuff" << endl;
 }
 
 void superTable::deleteThread(pdThread *thr)

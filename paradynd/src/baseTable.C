@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.C,v 1.8 2000/10/17 17:42:31 schendel Exp $
+// $Id: baseTable.C,v 1.9 2002/04/05 19:39:04 schendel Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
-#include <limits.h>
 #include "common/h/headers.h"
+#include "common/h/Types.h"
 #include "baseTable.h"
 #include "rtinst/h/rtinst.h" // for time64
 
@@ -136,9 +136,9 @@ bool baseTable<HK, RAW>::alloc(const RAW &iRawValue,
   for (unsigned i=0; i<theBaseTable.size(); i++) {
     assert(theBaseTable[i] != NULL);
 #if defined(MT_THREAD)
-    // if allocated!=UINT_MAX, we will re-use this position because we are
+    // if allocated!=UI32_MAX, we will re-use this position because we are
     // trying to enable a counter/timer that has been already allocated - naim
-    if (allocatedLevel == UINT_MAX || allocatedIndex == UINT_MAX) {
+    if (allocatedLevel == UI32_MAX || allocatedIndex == UI32_MAX) {
       allocatedLevel=levelMap[i];    
       foundFreeLevel=theBaseTable[i]->alloc(thr_pos,iRawValue,iHouseKeepingValue,allocatedIndex,doNotSample);
     } else if (allocatedLevel == levelMap[i]) {
@@ -209,6 +209,22 @@ RAW *baseTable<HK, RAW>::index2InferiorAddr(unsigned position,
   }
   assert(i<levelMap.size());
   return(theBaseTable[i]->index2InferiorAddr(position,allocatedIndex));
+}
+
+template <class HK, class RAW>
+HK *baseTable<HK, RAW>::getHouseKeeping(unsigned position,
+					unsigned allocatedIndex,
+					unsigned allocatedLevel) const
+{
+  //cerr << "baseTable::getHouseKeeping, levelMap.size: " << levelMap.size()
+  //   << ", allocatedLevel: " << allocatedLevel << "\n";
+  unsigned i;
+  for (i=0; i<levelMap.size(); i++) {
+    if (levelMap[i] == allocatedLevel) break;
+  }
+  assert(i<levelMap.size());
+
+  return(theBaseTable[i]->getHouseKeeping(position,allocatedIndex));
 }
 
 template <class HK, class RAW>
