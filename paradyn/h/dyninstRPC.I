@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.119 2005/01/28 18:12:02 legendre Exp $
+/* $Id: dyninstRPC.I,v 1.120 2005/02/15 17:44:00 legendre Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -544,7 +544,7 @@ $remote dynRPC {
     // Define a program to run. 
     // argv: the command and arguments
     // dir: working directory where program will run.
-    int addExecutable(pdvector<pdstring> argv, pdstring dir);
+    int addExecutable(pdvector<pdstring> argv, pdstring dir, bool parse_loops);
 
     //
     // Connect up with a running program (not possible on all platforms).
@@ -552,7 +552,7 @@ $remote dynRPC {
     // the symbol table.
     // values for 'afterAttach': 1 --> pause, 2 --> run, 0 --> leave as is
     //
-    bool attach(pdstring path, int pid, int afterAttach);
+    bool attach(pdstring path, int pid, int afterAttach, bool parse_loops);
 
     //
     // Start an application running (This starts the actual execution).

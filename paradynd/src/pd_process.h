@@ -147,9 +147,6 @@ public:
 
 class pd_image;
 
-// Someday this class will inherit from BPatch_thread instead of
-// having a process* member
-
 class pd_process {
    BPatch_thread *dyninst_process;
 
@@ -161,6 +158,7 @@ class pd_process {
    resource *rid;
    bool created_via_attach;
    BPatch_function *monitorFunc; // func in RT lib used for monitoring call sites
+   bool use_loops;
  public:
    // Paradyn daemon arguments, etc.
    static pdvector<pdstring> arg_list; // the arguments of paradynd
@@ -174,10 +172,11 @@ class pd_process {
  public:
    // Creation constructor
    pd_process(const pdstring argv0, pdvector<pdstring> &argv,
-              const pdstring dir, int stdin_fd, int stdout_fd, int stderr_fd);
+              const pdstring dir, int stdin_fd, int stdout_fd, int stderr_fd,
+              bool loops);
 
    // Attach constructor
-   pd_process(const pdstring &progpath, int pid);
+   pd_process(const pdstring &progpath, int pid, bool loops);
   
    // fork constructor
    pd_process(const pd_process &parent, BPatch_thread *childDynProc);
@@ -603,8 +602,10 @@ class pd_process {
 
 
 // Shouldn't these be static members of class pd_process?
-pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir);
-pd_process *pd_attachProcess(const pdstring &progpath, int pid);
+pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir, 
+                             bool parse_loops);
+pd_process *pd_attachProcess(const pdstring &progpath, int pid,
+                             bool parse_loops);
 
 #endif
 

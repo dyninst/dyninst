@@ -51,6 +51,7 @@
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 extern bool module_is_excluded(BPatch_module *m);
 extern bool function_is_excluded(BPatch_function *f, pdstring modname);
+extern bool should_report_loops;
 extern pdRPC *tp;
 
 pd_module::pd_module(BPatch_module *dmod) : dyn_module(dmod) 
@@ -234,8 +235,13 @@ void pd_module::FillInCallGraphStatic(process *proc) {
       appImage->getProgramFileName(buf, 1024);
       pdstring exe_name = pdstring(buf);
 
-      if (getenv("PARADYN_LOOPS") != NULL) {
-	  //if (true) {
+      /**
+       * The 'should_report_loops' global variable is a bad hack that should go
+       * away once the Paradyn/Dyninst seperation is complete, and this function
+       * take a pd_process* instead of a process* (it should start using 
+       * 'use_loops', which is a pd_process private variable).
+       **/
+      if (should_report_loops) {
           // add nested loops and function calls
           BPatch_loopTreeNode *root = pdf->getLoopTree(proc);
           FillInCallGraphNodeNested(exe_name, resource_full_name,

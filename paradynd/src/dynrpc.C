@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.118 2005/02/02 22:04:48 bernat Exp $ */
+/* $Id: dynrpc.C,v 1.119 2005/02/15 17:44:04 legendre Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -501,9 +501,10 @@ void dynRPC::MonitorDynamicCallSites(pdstring function_name){
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir)
+int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir, 
+                          bool parse_loops)
 {
-  pd_process *p = pd_createProcess(argv, dir);
+  pd_process *p = pd_createProcess(argv, dir, parse_loops);
 
   metricFocusNode::handleNewProcess(p);
 
@@ -518,23 +519,15 @@ int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir)
 // the symbol table off disk.
 // values for 'afterAttach': 1 --> pause, 2 --> run, 0 --> leave as is
 //
-bool dynRPC::attach(pdstring progpath, int pid, int afterAttach)
+bool dynRPC::attach(pdstring progpath, int pid, int afterAttach, 
+                    bool parse_loops)
 {
     attach_cerr << "WELCOME to dynRPC::attach" << endl;
     attach_cerr << "progpath=" << progpath << endl;
     attach_cerr << "pid=" << pid << endl;
     attach_cerr << "afterAttach=" << afterAttach << endl;
 
-#ifdef notdef
-    // This code is for Unix platforms only, it will not compile on Windows NT.
-    char *str = getenv("PARADYND_ATTACH_DEBUG");
-    if (str != NULL) {
-       cerr << "pausing paradynd pid " << getpid() << " before attachProcess()" << endl;
-       kill(getpid(), SIGSTOP);
-    }
-#endif
-
-    pd_process *p = pd_attachProcess(progpath, pid);
+    pd_process *p = pd_attachProcess(progpath, pid, parse_loops);
     if (!p) return false;
     
     metricFocusNode::handleNewProcess(p);

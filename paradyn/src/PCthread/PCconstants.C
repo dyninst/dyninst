@@ -41,7 +41,7 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.17 2005/01/11 22:45:00 legendre Exp $
+ * $Id: PCconstants.C,v 1.18 2005/02/15 17:44:03 legendre Exp $
  */
 
 #include "PCintern.h"
@@ -96,7 +96,7 @@ void TCuseIndividualThresholdsCB (bool newval)
 
 void TCuseLoopsCB (bool newval)
 {
-  performanceConsultant::useIndividualThresholds = newval;
+  performanceConsultant::useLoops = newval;
 }
 
 void TCEnableCGSearchesCB (bool newval){
@@ -193,7 +193,7 @@ void initPCconstants ()
   // whether to default to (new) callgraph-based search
   boolInitializer = performanceConsultant::useLoops;
   tunableConstantRegistry::createBoolTunableConstant
-    ("PCuseLoops", 
+    ("EnableLoops", 
      "Changes functionality of the Performance Consultant to use"
         " loops in searches.", 
      TCuseLoopsCB,

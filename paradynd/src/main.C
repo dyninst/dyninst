@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.128 2005/01/28 18:12:05 legendre Exp $
+// $Id: main.C,v 1.129 2005/02/15 17:44:05 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -763,7 +763,7 @@ StartOrAttach( void )
       if (newProcCmdLine.size() && (pd_attpid==0))
       {
          // ignore return val (is this right?)
-         pd_createProcess(newProcCmdLine, *newProcDir); 
+         pd_createProcess(newProcCmdLine, *newProcDir, true); 
       } 
       else if (pd_attpid && (pd_flag==2))
       {
@@ -777,7 +777,7 @@ StartOrAttach( void )
       }
    
    if (startByAttach) {
-       pd_process *p = pd_attachProcess("", pd_attpid);
+       pd_process *p = pd_attachProcess("", pd_attpid, true);
        
        if (!p) return -1;
        // Leave process paused in this case

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.73 2005/02/14 23:19:45 mjbrim Exp $
+// $Id: DMresource.C,v 1.74 2005/02/15 17:44:02 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -900,7 +900,7 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
    }
    if(rIndex == not_found_indicator)  return NULL;
 
-   bool useLoops = tunableConstantRegistry::findBoolTunableConstant("useLoops").getValue();
+   bool useLoops = tunableConstantRegistry::findBoolTunableConstant("EnableLoops").getValue();
 
    return_list = new pdvector<rlNameId>;
 
