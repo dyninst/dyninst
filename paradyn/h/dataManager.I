@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.55  1995/11/28 15:42:08  naim
+ * Revision 1.56  1995/12/03 21:29:40  newhall
+ * change sampleDataCallbackFunc to take a vector of data values
+ *
+ * Revision 1.55  1995/11/28  15:42:08  naim
  * Adding the boolean parameter "all" to getAvailableMetric. If this value is
  * true, then all metrics are passed regardless the mode - naim
  *
@@ -216,6 +219,7 @@
 #include "util/h/aggregation.h"
 #include "util/h/stringPool.h"
 #include "paradyn/src/DMthread/DMinclude.h"
+#include "paradyn/src/DMthread/DVbufferpool.h"
 
 typedef enum { Trace, Sample } dataType;
 
@@ -235,11 +239,16 @@ typedef void (*errorHandler)(int errno, char *message);
  *   count - number of bucket values in buckets
  *    
  */
+#ifdef ndef
 typedef void (*sampleDataCallbackFunc)(perfStreamHandle handle, 
 				       metricInstanceHandle mi,
 				       int bucketNum,
 				       sampleValue value,
 				       phaseType type);
+#endif
+
+typedef void (*sampleDataCallbackFunc)(vector<dataValueType> *data,
+				       u_int num_data_values);
 
 /*
  * Handler that gets called when new trace data is available.
@@ -327,7 +336,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 27;
+    $version 29;
 
     //
     // Start a paradyn daemon
@@ -431,12 +440,6 @@ $remote dataManager {
     // perfStreamHandle   - a handle returned by createPerformanceStream
     //
     int  destroyPerformanceStream(perfStreamHandle);
-
-    // TODO: this should go:  use a tunable const to get initial rate
-    //       and use phase mechanism as way to change rate after that 
-    //
-    void setSampleRate(perfStreamHandle handle, timeStamp sampleInterval);
-
 
     //
     // Routines to control data collection on a performance Stream.
@@ -768,19 +771,17 @@ $remote dataManager {
 					        perfStreamHandle, 
 						batchMode mode);
 
-    $upcall $async void newPerfData(sampleDataCallbackFunc, 
-				    perfStreamHandle,
-				    metricInstanceHandle mi,
-				    int bucketNum,
-				    sampleValue value,
-				    phaseType type);
+//     $upcall $async void newPerfData(sampleDataCallbackFunc, 
+// 				    perfStreamHandle,
+// 				    metricInstanceHandle mi,
+// 				    int bucketNum,
+// 				    sampleValue value,
+// 				    phaseType type);
 
-//    $upcall $async void newPerfData(sampleDataCallbackFunc, 
-//				    perfStreamHandle,
-//				    metricInstanceHandle mi,
-//				    sampleValue *buckets,
-//				    int total,
-//				    int first);
+    $upcall $async void newPerfData(sampleDataCallbackFunc, 
+				    vector<dataValueType> *data,
+				    u_int num_data_values);
+
 
     $upcall $async void histFold(histFoldCallback, 
 				 perfStreamHandle, 
