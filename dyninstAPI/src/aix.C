@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.88 2001/12/18 19:43:19 bernat Exp $
+// $Id: aix.C,v 1.89 2002/01/30 20:24:44 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -142,6 +142,7 @@ void Frame::getActiveFrame(process *p)
 {
     errno = 0;
     if (lwp_id_) { // We have a kernel thread to target. Nifty, eh?
+      cerr << "Getting active frame for kernel thread " << lwp_id_ << endl;
       struct ptsprs spr_contents;
       P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
       pc_ = spr_contents.pt_iar;
@@ -152,6 +153,8 @@ void Frame::getActiveFrame(process *p)
       // and pick out the one we want.
       unsigned allRegs[64];
       P_ptrace(PTT_READ_GPRS, lwp_id_, (int *)allRegs, 0, 0); // aix 4.1 likes int *
+      // Register 1 is the current stack pointer. It must contain
+      // a back chain to the caller's stack pointer.
       fp_ = allRegs[1];
       if (errno != 0) return;
       
@@ -159,8 +162,15 @@ void Frame::getActiveFrame(process *p)
 	 in the memory location pointed to by $sp.  However, there is no
 	 $pc stored there, it's the place to store a $pc if the current
 	 function makes a call. */
+      /*
       Frame dummy = getCallerFrame(p);
-      fp_ = dummy.fp_;
+      */
+      Address linkarea;
+      p->readDataSpace((void *)fp_, sizeof(linkarea), &linkarea, false);
+      fprintf(stderr, "Returning pc 0x%x, sp 0x%x, and fp 0x%x\n",
+	      (unsigned) sp_, (unsigned) fp_, (unsigned) linkarea);
+      fp_ = linkarea;
+      
     }
     else { // Old behavior, pid-based. 
       pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
@@ -185,21 +195,13 @@ bool process::needToAddALeafFrame(Frame, Address &){
 }
 
 
-//
-// given the pointer to a frame (currentFP), return 
-//     (1) the saved frame pointer (fp)
-//            NULL -> that currentFP is the bottom (last) frame.	
-//     (2) the return address of the function for that frame (rtn).
-//     (3) return true if we are able to read the frame.
-//
+// The frame threesome: normal (singlethreaded), thread (given a pthread ID),
+// and LWP (given an LWP/kernel thread).
+// The behavior is identical unless we're in a leaf node where
+// the LR is in a register, then it's different.
+
 Frame Frame::getCallerFrameNormal(process *p) const
 {
-  //
-  // define the linkage area of an activation record.
-  //    This information is based on the data obtained from the
-  //    info system (search for link area). - jkh 4/5/96
-  //
-
   struct {
     unsigned oldFp;
     unsigned savedCR;
@@ -209,36 +211,102 @@ Frame Frame::getCallerFrameNormal(process *p) const
     unsigned savedTOC;
   } linkArea;
 
-  // If we have a curr_lwp stored, then use that as a pointer
-  if (p->readDataSpace((caddr_t)fp_, sizeof(linkArea),
-		       (caddr_t)&linkArea, false))
-  {
-    Frame ret;
-    ret.lwp_id_ = lwp_id_;
-    ret.fp_ = linkArea.oldFp;
-    ret.pc_ = linkArea.savedLR;
+  Frame ret; // zero frame
 
-    if (uppermost_) {
-      // use the value stored in the link register instead.
-      errno = 0;
-      if (lwp_id_) {
-	struct ptsprs spr_contents;
-	if (P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents, 0, 0) == -1) {
-	  perror("getCallerFrameNormal");
-	  ret.pc_ = -1;
-	}
-	else ret.pc_ = spr_contents.pt_lr;
-      }
-      else
-	ret.pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0); // aix 4.1 likes int *
-      if (errno != 0) return Frame(); // zero frame
-    }
-
-    return ret;
+  // Are we in a leaf function?
+  pd_Function *func = p->findFuncByAddr(pc_);
+  bool isLeaf = false;
+  bool noFrame = false;
+#ifdef MT_THREAD
+  ret.lwp_id_ = lwp_id_;
+  ret.thread_ = thread_;
+#endif
+  if (func && uppermost_) {
+    isLeaf = func->makesNoCalls();
+    noFrame = func->hasNoStackFrame();
   }
 
-  return Frame(); // zero frame
+  // DEBUG
+#ifdef DEBUG_STACKWALK
+  if (func) {
+    cerr << "Walking stack in function " << func->prettyName(); 
+    if (isLeaf) cerr << " leaf func...";
+    if (noFrame) cerr << " no stack frame...";
+    cerr << endl;
+  }
+#endif
+  // If we're in a leaf, we don't necessarily have a stack frame
+  // (is there ever a case where we do?) So the LR is in the register,
+  // and the FP's unchanged. If we push back up, 
+  if (!p->readDataSpace((caddr_t)fp_, sizeof(linkArea),
+			(caddr_t)&linkArea, false))
+    return Frame();
+  
+  if (isLeaf) {
+    // So:
+    // Normal: call ptrace(pid)
+    // Thread: (not implemented) if bound to a kernel thread, go to LWP
+    //    if not, get it from the pthread debug library
+    // LWP: call ptrace(lwp)
+#ifdef MT_THREAD
+    struct ptsprs spr_contents;
+    if (lwp_id_) {
+      if (ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents,
+		 0, 0) == -1) {
+	perror("Failed to read SPR data in getCallerFrameLWP");
+	fprintf(stderr, "errno = %d\n", errno);
+	return Frame();
+      }
+      ret.pc_ = spr_contents.pt_iar;
+    }
+    else if (thread_) {
+	cerr << "NOT IMPLEMENTED YET" << endl;
+      }
+    else { // normal
+      ret.pc_ = ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0);
+    }
+#else
+    ret.pc_ = ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0);
+#endif
+  }
+  else  // Not a leaf function, grab the LR from the stack
+    ret.pc_ = linkArea.savedLR;
+  
+  // If we're in instrumented functions, then the actual LR is stored
+  // in the stack in the compilerInfo word. But how can we tell this?
+  // Well... if there's an exit tramp at the LR addr, then it's the wrong one.
+  if (func) {
+    instPoint *exitInst = func->funcExits(p)[0];
+    if (p->baseMap.defines(exitInst)) { // should always be true
+      if (p->baseMap[exitInst]->baseAddr == ret.pc_) {
+	ret.pc_ = linkArea.compilerInfo;
+      }
+    }
+  }
+  if (noFrame) // We never shifted the stack down, so recycle
+    ret.fp_ = fp_;
+  else
+    ret.fp_ = linkArea.oldFp;
+#ifdef DEBUG_STACKWALK
+  fprintf(stderr, "PC %x, FP %x\n", ret.pc_, ret.fp_);
+#endif
+
+  return ret;
 }
+
+#ifdef MT_THREAD
+
+Frame Frame::getCallerFrameThread(process *p) const
+{
+  return getCallerFrameNormal(p);
+}
+
+Frame Frame::getCallerFrameLWP(process* p) const
+{
+  return getCallerFrameNormal(p);
+}
+
+#endif
 
 void decodeInstr(unsigned instr_raw) {
   // Decode an instruction. Fun, eh?
@@ -590,7 +658,7 @@ bool process::changePC(Address loc, const void *ignored, int lwp_id) {
   if (lwp_id <= 0) return changePC(loc, ignored);
 
   fprintf(stderr, "changePC(kernel thread=%d, location=%x)\n",
-	  lwp_id, loc);
+	  (unsigned) lwp_id, (unsigned) loc);
 
   struct ptsprs spr_contents;
   
@@ -1416,7 +1484,6 @@ fileDescriptor *getExecFileDescriptor(string filename,
 		 (int *) ptr, 1024 * sizeof(struct ld_info), (int *)ptr);
 
     if (ret != 0) {
-      int foo = errno;
       // Two possible problems here -- one, the process didn't exist. We
       // need to handle this. Second, we haven't attached yet. Work around
       if (0) { // Proc doesn't exist
@@ -1761,8 +1828,8 @@ rawTime64 process::getRawCpuTime_hw(int lwp_id) {
     // Arbitrarily (for now) pick the first thread in the list
     // We need to get the lwp_id for the running thread. 
     struct thrdsinfo thrd_buf[10]; // max 10 threads
-    int num_thrds = getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
-			     0, 1);
+    getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
+	     0, 1);
     thr_id = thrd_buf[0].ti_tid;
   }
   // PM counters are only valid when the process is paused. 
@@ -2216,95 +2283,6 @@ void process::deleteThread(int tid)
 }
 
 
-Frame Frame::getCallerFrameThread(process *p) const
-{
-
-  //
-  // define the linkage area of an activation record.
-  //    This information is based on the data obtained from the
-  //    info system (search for link area). - jkh 4/5/96
-  //
-
-  struct {
-    unsigned oldFp;
-    unsigned savedCR;
-    unsigned savedLR;
-    unsigned compilerInfo;
-    unsigned binderInfo;
-    unsigned savedTOC;
-  } linkArea;
-  
-  if (p->readDataSpace((caddr_t)fp_, sizeof(linkArea),
-		       (caddr_t)&linkArea, false))
-  {
-    Frame ret;
-    ret.lwp_id_ = 0;
-    ret.thread_ = thread_;
-    ret.fp_ = linkArea.oldFp;
-    ret.pc_ = linkArea.savedLR;
-
-    if (uppermost_) {
-      // use the value stored in the link register instead.
-      errno = 0;
-      ret.pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0); // aix 4.1 likes int *
-      if (errno != 0) return Frame(); // zero frame
-    }
-
-    return ret;
-  }
-
-  return Frame(); // zero frame
-}
-
-// Okay, here's what's going on, as far as I know:
-// This function is basically identical to the above, since we
-// don't need to ptrace any registers -- we're walking a stack,
-// which is unique. Right? I hope?
-
-Frame Frame::getCallerFrameLWP(process* p) const
-{
-  Frame ret; // zero frame
-  ret.lwp_id_ = lwp_id_;
-  ret.thread_ = NULL ;
-  //
-  // define the linkage area of an activation record.
-  //    This information is based on the data obtained from the
-  //    info system (search for link area). - jkh 4/5/96
-  //
-
-  struct {
-    unsigned oldFp;
-    unsigned savedCR;
-    unsigned savedLR;
-    unsigned compilerInfo;
-    unsigned binderInfo;
-    unsigned savedTOC;
-  } linkArea;
-  
-  if (p->readDataSpace((caddr_t)fp_, sizeof(linkArea),
-		       (caddr_t)&linkArea, false))
-  {
-    Frame ret;
-    ret.lwp_id_ = lwp_id_;
-    ret.thread_ = NULL;
-    ret.fp_ = linkArea.oldFp;
-    ret.pc_ = linkArea.savedLR;
-
-    if (uppermost_) {
-      // use the value stored in the link register instead.
-      errno = 0;
-      ret.pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0); // aix 4.1 likes int *
-      if (errno != 0) return Frame(); // zero frame
-    }
-
-    return ret;
-  }
-
-  return Frame(); // zero frame
-
-
-}
-
 // It is the caller's responsibility to do a "delete [] (*IDs)"
 bool process::getLWPIDs(int** IDs) {
   // Since we only care about thread IDs, this is actually pretty easy
@@ -2328,7 +2306,7 @@ bool process::getLWPIDs(int** IDs) {
   for (int i = 0; i < num_thrds; i++) {
     // Note: it's possible that we're returning a thread in kernel mode
     (*IDs)[i] = thrd_buf[i].ti_tid;
-    fprintf(stderr, "Added thread %d, state %d\n", thrd_buf[i].ti_tid, thrd_buf[i].ti_state);
+    fprintf(stderr, "Added thread %ld, state %ld\n", thrd_buf[i].ti_tid, thrd_buf[i].ti_state);
   }
   (*IDs)[num_thrds] = 0;
   return true;
@@ -2358,6 +2336,12 @@ bool process::getLWPFrame(int lwp_id, Address* fp, Address* pc) {
   }
   *fp = gpr_contents[1];
 
+  Address linkarea;
+  readDataSpace((void *)*fp, sizeof(linkarea), &linkarea, false);
+  fprintf(stderr, "getLWPFrame: Returning pc 0x%x, sp 0x%x, and fp 0x%x\n",
+	  (unsigned) *pc, (unsigned) *fp, (unsigned) linkarea);
+  *fp = linkarea;
+
   return true;
 }
 
@@ -2368,10 +2352,10 @@ bool process::getLWPFrame(int lwp_id, Address* fp, Address* pc) {
 Frame::Frame(pdThread* thr) {
   pthdb_context_t context;
 
-  static int init = 0;
+  //static int init = 0;
   pthdb_session_t *session_ptr;
-  static pthdb_callbacks_t callbacks;
-  int ret;
+  //static pthdb_callbacks_t callbacks;
+  unsigned ret;
 
   process *proc = thr->get_proc();
   // process object holds a pointer to the appropriate thread session
@@ -2387,7 +2371,7 @@ Frame::Frame(pdThread* thr) {
   if (ret) fprintf(stderr, "update: returned %d\n", ret);
 
   pthdb_pthread_t pthreadp;
-  pthread_t pthread = -1;
+  pthread_t pthread = (unsigned) -1;
 
   ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_FIRST);
   if (ret) fprintf(stderr, "Getting first pthread data structure failed: %d\n", ret);
@@ -2397,7 +2381,7 @@ Frame::Frame(pdThread* thr) {
     fprintf(stderr, "pthread translation failed: %d\n", ret);
   }
  
-  while (pthread != thread_->get_tid()) {
+  while (pthread != (unsigned) thread_->get_tid()) {
     ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
     if (ret) fprintf(stderr, "next pthread: returned %d\n", ret);
     ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
@@ -2462,28 +2446,26 @@ int PTHDB_write_data(pthdb_user_t user,
   return 0;
 }
 
-int PTHDB_read_regs(pthdb_user_t user,
-		    tid_t tid,
-		    unsigned long long flags,
-		    pthdb_context_t *context)
+int PTHDB_read_regs(pthdb_user_t /*user*/,
+		    tid_t /*tid*/,
+		    unsigned long long /*flags*/,
+		    pthdb_context_t */*context*/)
 {
+  fprintf(stderr, "UNWRITTEN\n");
   return 1;
 }
 
-int PTHDB_write_regs(pthdb_user_t user,
-		    tid_t tid,
-		    unsigned long long flags,
-		    pthdb_context_t *context)
+int PTHDB_write_regs(pthdb_user_t /*user*/,
+		     tid_t /*tid*/,
+		     unsigned long long /*flags*/,
+		     pthdb_context_t */*context*/)
 {
-  /*
-  fprintf(stderr, "write_regs(0x%x, %d, 0x%x, 0x%x)\n",
-	  (int) user, (int) tid, (int) flags, (int) context);
-  */
+  fprintf(stderr, "UNWRITTEN\n");
   return 1;
 }
   
 
-int PTHDB_alloc(pthdb_user_t user,
+int PTHDB_alloc(pthdb_user_t /*user*/,
 		size_t len,
 		void **bufp)
 {
@@ -2495,7 +2477,7 @@ int PTHDB_alloc(pthdb_user_t user,
   return 0;
 }
 
-int PTHDB_dealloc(pthdb_user_t user,
+int PTHDB_dealloc(pthdb_user_t /*user*/,
 		  void *buf)
 {
   /*  fprintf(stderr, "dealloc(0x%x, 0x%x)\n",
@@ -2540,7 +2522,7 @@ int process::findLWPbyPthread(int tid)
     return -1;
   }
   pthread_t pthread = 0;
-
+    
   ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_FIRST);
   if (ret) {
     fprintf(stderr, "first pthread returned %d\n", ret);
@@ -2551,15 +2533,15 @@ int process::findLWPbyPthread(int tid)
     fprintf(stderr, "pthread translation failed: %d\n", ret);
     return -1;
   }
- 
-  while (pthread != tid) {
+    
+  while (pthread != (unsigned) tid) {
     ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
     if (ret) fprintf(stderr, "next pthread: returned %d\n", ret);
     ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
     if (ret) fprintf(stderr, "check pthread: returned %d\n", ret);
   }
   fprintf(stderr, "Got pthread value of %d\n", pthread);
-
+    
   ret = pthdb_pthread_tid(*session_ptr, pthreadp, &lwp);
   if (ret) fprintf(stderr, "pthread_tid returned %d\n", ret);
   fprintf(stderr, "find LWP by pthread: returning %d\n", lwp);

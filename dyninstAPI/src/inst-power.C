@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.118 2001/12/14 17:57:01 gaburici Exp $
+ * $Id: inst-power.C,v 1.119 2002/01/30 20:24:44 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1369,8 +1369,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 #ifdef DEBUG
     fprintf(stderr, "Installing a base tramp at %x, jumping from %s(%x)\n",
 	    baseAddr, location->func->prettyName().string_of(), location->addr);
-#endif
-    
+#endif    
     if (DISTANCE(location->addr, baseAddr) > MAX_BRANCH)
       {
 	fprintf(stderr, "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
@@ -1789,52 +1788,52 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 				       bool /*noCost*/,
                                        bool& /*deferred*/)
 {
-    trampTemplate *ret = NULL;
-    process *globalProc;
-    retInstance = NULL;
-
-    globalProc = proc;
-    if (!globalProc->baseMap.defines(location)) {      
-        if((location->ipLoc == ipFuncEntry) ||
-	   (location->ipLoc == ipFuncReturn)) {
-	  trampTemplate* exTramp;
-	  //instruction    code[5];
-	  
-	  const instPoint* newLoc1 = location->func->funcExits(globalProc)[0];
-	  exTramp = installBaseTramp(newLoc1, globalProc, trampRecursiveDesired);
-	  globalProc->baseMap[newLoc1] = exTramp;
-
-	  const instPoint* newLoc2 = location->func->funcEntry(globalProc);
-	  assert(newLoc2->ipLoc == ipFuncEntry);
-          assert(exTramp->baseAddr != 0);
-	  ret = installBaseTramp(newLoc2, globalProc, trampRecursiveDesired,
-				 NULL, // Don't have a previous trampType to pass in
-				 exTramp->baseAddr);
-
-	  instruction *insn = new instruction;
-	  generateBranchInsn(insn, ret->baseAddr - newLoc2->addr);
-	  globalProc->baseMap[newLoc2] = ret;
-	  retInstance = new returnInstance(1, (instruction *)insn, 
-					   sizeof(instruction), newLoc2->addr,
-					   sizeof(instruction));
-	  
-	  if(location->ipLoc == ipFuncReturn) {
-	    ret = exTramp;
-	  }
-        } else {
-	  ret = installBaseTramp(location, globalProc, trampRecursiveDesired);
-	  instruction *insn = new instruction;
-	  generateBranchInsn(insn, ret->baseAddr - location->addr);
-	  globalProc->baseMap[location] = ret;
-	  retInstance = new returnInstance(1, (instruction *)insn, 
-					   sizeof(instruction), location->addr,
-					   sizeof(instruction));
-	}
-    } else {
-        ret = globalProc->baseMap[location];
-    }
+  trampTemplate *ret = NULL;
+  process *globalProc;
+  retInstance = NULL;
+  
+  globalProc = proc;
+  if (!globalProc->baseMap.defines(location)) {      
+    if((location->ipLoc == ipFuncEntry) ||
+       (location->ipLoc == ipFuncReturn)) {
+      trampTemplate* exTramp;
+      //instruction    code[5];
       
-    return(ret);
+      const instPoint* newLoc1 = location->func->funcExits(globalProc)[0];
+      exTramp = installBaseTramp(newLoc1, globalProc, trampRecursiveDesired);
+      globalProc->baseMap[newLoc1] = exTramp;
+      
+      const instPoint* newLoc2 = location->func->funcEntry(globalProc);
+      assert(newLoc2->ipLoc == ipFuncEntry);
+      assert(exTramp->baseAddr != 0);
+      ret = installBaseTramp(newLoc2, globalProc, trampRecursiveDesired,
+			     NULL, // Don't have a previous trampType to pass in
+			     exTramp->baseAddr);
+      
+      instruction *insn = new instruction;
+      generateBranchInsn(insn, ret->baseAddr - newLoc2->addr);
+      globalProc->baseMap[newLoc2] = ret;
+      retInstance = new returnInstance(1, (instruction *)insn, 
+				       sizeof(instruction), newLoc2->addr,
+				       sizeof(instruction));
+      
+      if(location->ipLoc == ipFuncReturn) {
+	ret = exTramp;
+      }
+    } else {
+      ret = installBaseTramp(location, globalProc, trampRecursiveDesired);
+      instruction *insn = new instruction;
+      generateBranchInsn(insn, ret->baseAddr - location->addr);
+      globalProc->baseMap[location] = ret;
+      retInstance = new returnInstance(1, (instruction *)insn, 
+				       sizeof(instruction), location->addr,
+				       sizeof(instruction));
+    }
+  } else {
+    ret = globalProc->baseMap[location];
+  }
+  
+  return(ret);
 }
 
 
@@ -3215,6 +3214,24 @@ bool pd_Function::findInstPoints(const image *owner)
     return false;
   }
 
+  //cerr << "Finding inst points for " << this->prettyName();
+
+  // This is for stack walks. If we don't make any calls, then we never
+  // save the link register and (for stack walks) the correct value is in
+  // the LR. If we do make calls, then the correct value is on the stack.
+  // By observation, the first instruction in the function is always mfspr
+  // in the second case. 
+  makesNoCalls_ = true;
+  noStackFrame = true;
+
+  if (instr.raw == MFLR0raw) {
+    makesNoCalls_ = false;
+    //cerr << " saves LR...";
+  }
+  // Do we make a stack frame? Umm... well... it's hard to tell. If we spot
+  // the instruction used (stwu) on r1, then we assume we make a frame. If
+  // not, no.
+
   funcEntry_ = new instPoint(this, instr, owner, adr, true, ipFuncEntry);
   assert(funcEntry_);
 
@@ -3248,12 +3265,17 @@ bool pd_Function::findInstPoints(const image *owner)
       adr = newCallPoint(adr, instr, owner, err);
       if (err) return false;
     }
-
+    else if ((instr.dform.op == STUop) &&
+	     (instr.dform.rt == 1) &&
+	     (instr.dform.ra == 1)) {
+      //cerr << " saves stack frame...";
+      noStackFrame = false;
+    }
     // now do the next instruction
     adr += sizeof(instruction);
     instr.raw = owner->get_instruction(adr);
   }
-
+  //cerr << endl;
   // Check for linkage code, and if so enter the call site as 
   // a static call.
   // Linkage template:

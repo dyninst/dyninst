@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.288 2002/01/25 18:51:55 schendel Exp $
+// $Id: process.C,v 1.289 2002/01/30 20:24:44 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -90,7 +90,7 @@ int pvmendtask();
 extern void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos);
 extern void generateMTpreamble(char *insn, Address &base, process *proc);
 #ifdef rs6000_ibm_aix4_1
-#include <pthdb.h>
+#include <sys/pthdebug.h>
 #endif
 #endif
 
@@ -361,7 +361,6 @@ vector<Address> process::walkStack(bool noPause)
 #endif
      return pcs;
   }
-
   Address sig_addr = 0;
   u_int sig_size = 0;
   if(signal_handler){
@@ -380,10 +379,20 @@ vector<Address> process::walkStack(bool noPause)
     // The curr_lwp parameter is IGNORED on non-AIX platforms.
     Frame currentFrame(this, curr_lwp);
     Address fpOld = 0;
+    Address pcOld = 0;
     while (!currentFrame.isLastFrame()) {
       Address fpNew = currentFrame.getFP();
+      Address pcNew = currentFrame.getPC();
       // successive frame pointers might be the same (e.g. leaf functions)
       if (fpOld > fpNew) {
+
+	// AIX:
+	// There's a signal function in the MPI library that we're not
+	// handling properly. Instead of returning an empty stack,
+	// return what we have.
+	// One thing that makes me feel better: gdb is getting royally
+	// confused as well. This sucks for catchup.
+
         // not moving up stack
         if (!noPause && needToCont && !continueProc())
           cerr << "walkStack: continueProc failed" << endl;
@@ -391,12 +400,16 @@ vector<Address> process::walkStack(bool noPause)
 #ifndef BPATCH_LIBRARY
         stopTimingStackwalk();
 #endif
+#ifdef rs6000_ibm_aix4_1
+	return pcs;
+#else
         return ev;
+#endif
       }
       fpOld = fpNew;
+      pcOld = pcNew;
 
       Address next_pc = currentFrame.getPC();
-      // printf("currentFrame pc = %p\n",next_pc);
       pcs.push_back(next_pc);
       // is this pc in the signal_handler function?
       if(signal_handler && (next_pc >= sig_addr)
@@ -434,15 +447,17 @@ void process::walkAStack(int /*id*/,
   u_int sig_size, 
   vector<Address>&pcs,
   vector<Address>&fps) {
-
+  cerr << "Walking stack... " << endl;
   pcs.resize(0);
   fps.resize(0);
   Address fpOld = 0;
+  fprintf(stderr, "Starting frame is: 0x%x, 0x%x\n", currentFrame.getPC(), currentFrame.getFP());
   while (!currentFrame.isLastFrame()) {
       Address fpNew = currentFrame.getFP();
       fpOld = fpNew;
 
       Address next_pc = currentFrame.getPC();
+      fprintf(stderr, "pc: 0x%x, fp: 0x%x\n", (unsigned) next_pc, (unsigned) fpOld);
       pcs += next_pc;
       fps += fpOld ;
       // is this pc in the signal_handler function?
@@ -599,6 +614,7 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
         Address fp, pc;
         if (getLWPFrame(lwp_id, &fp, &pc)) {
           Frame currentFrame(lwp_id, fp, pc, true);
+	  cerr << "Walking stack, lwp_id " << lwp_id << endl;
           walkAStack(lwp_id, currentFrame, sig_addr, sig_size, pcs, fps);
 	  stack_buffer += pcs;
           lwp_stack_hi += fps[fps.size()-1];
@@ -609,11 +625,11 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
       delete [] IDs;
     }
 
-    //for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
-    //  sprintf(errorLine, "lwp[%d], stack_lo=0x%lx, stack_hi=0x%lx\n", 
-    //    j, lwp_stack_lo[j], lwp_stack_hi[j]);
-    //  logLine(errorLine);
-    //}
+    for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
+      sprintf(errorLine, "lwp[%d], stack_lo=0x%lx, stack_hi=0x%lx\n", 
+	      j, lwp_stack_lo[j], lwp_stack_hi[j]);
+      logLine(errorLine);
+    }
 
     //Walk thread stacks
     for (unsigned i=0; i<threads.size(); i++) {
@@ -3555,6 +3571,7 @@ bool process::handleIfDueToSharedObjectMapping(){
 #endif
 	    {
 #endif
+	      //cerr << "Loading library " << ((*changed_objects)[i])->getName() << endl;
                if(addASharedObject(*((*changed_objects)[i]))){
                  (*shared_objects).push_back((*changed_objects)[i]);
 		 if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
@@ -5682,6 +5699,7 @@ bool process::handleTrapIfDueToRPC() {
    unsigned k;
    unsigned rSize = 0 ;
    for (k=0; k<currRunningRPCs.size(); k++) {
+fprintf(stderr, "Checking currRunning %d\n", k);
      if (!currRunningRPCs[k].isSafeRPC)
        rSize ++ ;
    }
@@ -5699,7 +5717,7 @@ bool process::handleTrapIfDueToRPC() {
 
    bool find_match = false;
    int match_type = 0;
-   int the_index;
+   int the_index = 0;
    vector <Address> currPCs;
    Address currPC;
    Frame theFrame(this);
@@ -5708,21 +5726,28 @@ bool process::handleTrapIfDueToRPC() {
 #else
    currPCs.push_back(theFrame.getPC());
 #endif
+   // Big assumption: the found address will always be unique. If we ever
+   // get two RPCs finishing simultaneously, this logic will break.
    for (unsigned i = 0; i < currPCs.size(); i++) {
      currPC = currPCs[i];
      // Check to see if it matches a "finished" RPC
-     for (the_index = 0; the_index < currRunningRPCs.size(); the_index++)
-       if (currPC == currRunningRPCs[the_index].breakAddr) {
+     for (unsigned j = 0; j < currRunningRPCs.size(); j++) {
+       if (currPC == currRunningRPCs[j].breakAddr) {
 	 match_type = 2;
 	 find_match = true;
+         the_index = j;
 	 break;
        }
-       else if (currRunningRPCs[the_index].callbackFunc != NULL &&
-		currPC == currRunningRPCs[the_index].stopForResultAddr) {
-	 match_type = 1;
-	 find_match = true;
-	 break;
+       else  {
+         if (currRunningRPCs[j].callbackFunc != NULL &&
+		 currPC == currRunningRPCs[j].stopForResultAddr) {
+	   match_type = 1;
+    	   find_match = true;
+           the_index = j;
+	   break;
+         }
        }
+     }
    }
    if (find_match) {
      sprintf(errorLine, "handleTrapIfDueToRPC found matching RPC, "
@@ -5742,7 +5767,6 @@ bool process::handleTrapIfDueToRPC() {
    }
 
    assert(match_type == 1 || match_type == 2);
-
    inferiorRPCinProgress &theStruct = currRunningRPCs[the_index];
 
    if (match_type == 1) {

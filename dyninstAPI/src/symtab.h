@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.103 2002/01/29 16:40:28 gurari Exp $
+// $Id: symtab.h,v 1.104 2002/01/30 20:24:45 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -188,6 +188,7 @@ public:
        // formerly "isLeafFunc()" but that led to confusion, since people assign two
        // different meanings to "leaf" fns: (1) has no stack frame, (2) makes no calls.
        // By renaming this fn, we make clear that we're returning (1), not (2).
+    virtual bool makesNoCalls() const = 0;
 
     // extra debuggering info....
     ostream & operator<<(ostream &s) const;
@@ -313,6 +314,7 @@ class pd_Function : public function_base {
        // formerly "isLeafFunc()" but that led to confusion, since people assign two
        // different meanings to "leaf" fns: (1) has no stack frame, (2) makes no calls.
        // By renaming this fn, we make clear that we're returning (1), not (2).
+    bool makesNoCalls() const {return makesNoCalls_;}
 
     bool isTrapFunc() {return isTrap;}
     bool needsRelocation() {return relocatable_;}
@@ -558,6 +560,7 @@ class pd_Function : public function_base {
                                    // original function 
 
     bool noStackFrame; // formerly "leaf".  True iff this fn has no stack frame.
+    bool makesNoCalls_;
 
     bool isTrap; 		// true if function contains a trap instruct
     bool isInstrumentable_;     // true if the function is instrumentable
