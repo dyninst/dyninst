@@ -39,19 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.54 2003/03/08 01:23:32 bernat Exp $
+// $Id: BPatch.C,v 1.55 2003/03/10 23:15:25 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
 
 #define BPATCH_FILE
+#include "signalhandler.h"
 #include "BPatch.h"
 #include "BPatch_libInfo.h"
 #include "process.h"
 #include "BPatch_collections.h"
 #include "common/h/timing.h"
-#include "signalhandler.h"
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "nt_signal_emul.h"
@@ -865,10 +865,10 @@ bool BPatch::getThreadEventOnly(bool block)
    bool	result = false;
    procSignalWhy_t why;
    procSignalWhat_t what;
-   int retval;
+   procSignalInfo_t info;
    process *proc;
    
-   if ( (proc = decodeProcessEvent(-1, why, what, retval, block)) != NULL) {
+   if ( (proc = decodeProcessEvent(-1, why, what, info, block)) != NULL) {
        // There's been a change in a child process
        result = true;
        // Since we found something, we don't want to block anymore
@@ -878,7 +878,7 @@ bool BPatch::getThreadEventOnly(bool block)
        BPatch_thread *thread = getThreadByPid(proc->getPid(), &exists);
        if (thread == NULL) {
            if (exists) {
-               if (why == procExitedNormally || why == procExitedViaSignal)
+               if (didProcExit(why) || didProcExitOnSignal(why))
                    unRegisterThread(proc->getPid());
            } else {
                fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n",
@@ -886,28 +886,24 @@ bool BPatch::getThreadEventOnly(bool block)
            }
        }
        if (thread != NULL) {
-           switch(why) {
-         case procSignalled:
-             thread->lastSignal = what;
-             thread->setUnreportedStop(true);
-             break;
-         case procExitedViaSignal:
-             thread->lastSignal = why;
-             thread->setUnreportedTermination(true);
-             break;
-         case procExitedNormally:
-             thread->proc->exitCode_ = what;
-             thread->exitCode = thread->proc->exitCode();
-             thread->lastSignal = 0; /* XXX Make into some constant */
-             thread->setUnreportedTermination(true);
-             break;
-         default:
-             break;
+           if (didProcReceiveSignal(why)) {
+               thread->lastSignal = what;
+               thread->setUnreportedStop(true);
+           }
+           else if (didProcExitOnSignal(why)) {
+               thread->lastSignal = what;
+               thread->setUnreportedTermination(true);
+           }
+           else if (didProcExit(why)) {
+               thread->proc->exitCode_ = what;
+               thread->exitCode = thread->proc->exitCode();
+               thread->lastSignal = 0; /* XXX Make into some constant */
+               thread->setUnreportedTermination(true);
            }
        }
        
        // Do standard handling
-       handleProcessEvent(proc, why, what, retval);
+       handleProcessEvent(proc, why, what, info);
    }
    return result;
 }
@@ -1234,7 +1230,7 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 	}
 #if defined(i386_unknown_nt4_0) || \
     defined(mips_unknown_ce2_11)
-	else if((appThread->stopSignal() != SIGTRAP) && 
+	else if((appThread->stopSignal() != EXCEPTION_BREAKPOINT) && 
 		(appThread->stopSignal() != -1))
 	{
 		cerr << "ERROR : process stopped on signal different"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.75 2003/03/08 01:23:38 bernat Exp $
+// $Id: BPatch_thread.C,v 1.76 2003/03/10 23:15:26 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -49,6 +49,7 @@
 
 
 #include "process.h"
+#include "signalhandler.h"
 #include "inst.h"
 #include "instP.h"
 
