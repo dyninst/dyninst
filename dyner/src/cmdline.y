@@ -1,5 +1,9 @@
-
 %{
+#if defined(i386_unknown_nt4_0)
+#include <malloc.h>
+#include <string.h>
+#endif
+
 #include "BPatch_thread.h"
 #include "BPatch_image.h"
 #include "BPatch_type.h"
@@ -9,10 +13,10 @@
 extern "C" {
 void yyerror(char *s);
 int yyparse(void);
+}
 
 extern BPatch_thread *appThread;
 extern BPatch_image *appImage;
-}
 
 int yylex();
 

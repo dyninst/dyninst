@@ -1,23 +1,37 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "tcl.h"
-#include "dynerList.h"
+#include <string.h>
+
+#if defined(i386_unknown_nt4_0)
+#include <windows.h>
+#include <winbase.h>
+#else
+#include <unistd.h>
+#endif
+
 #include "BPatch.h"
 #include "BPatch_type.h"
-#include "BPatch_collections.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "tcl.h"
+#include "dynerList.h"
 #include "breakpoint.h"
 
 extern "C" {
+#if !defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0)
+	void usleep(unsigned int);
+#else
 	int usleep(useconds_t);
+#endif
+#endif
 
 	void set_lex_input(char *s);
 	int dynerparse();
 }
 
-extern "C" int dynerdebug;
+extern int dynerdebug;
 
 int debugPrint = 0;
 BPatch_point *targetPoint;
@@ -66,7 +80,7 @@ public:
     ~IPListElem();
 };
 
-BPatch bpatch;
+BPatch *bpatch;
 BPatch_thread *appThread = NULL;
 BPatch_image *appImage = NULL;
 static BPatch_variableExpr *bpNumber = NULL;
@@ -189,12 +203,12 @@ BPListElem *findBP(int n)
     return NULL;
 }
 
-int help(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int help(ClientData, Tcl_Interp *, int, char **)
 {
 
     printf("at <function> [entry|exit|preCall|postCall] <statement> - insert statement\n");
     printf("at termination <statement> - Execute <statement> at program exit callback\n");
-    printf("declare <variable> <type> - create a new variable of type <type>\n");
+    printf("declare <type> <variable> - create a new variable of type <type>\n");
     printf("deletebreak <breakpoint number ...> - delete breakpoint(s)\n");
     printf("break <function> [entry|exit|preCall|postCall] [<condition>] - set a (conditional)\n");
     printf("     break point at specified points of <function>\n");
@@ -202,7 +216,10 @@ int help(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     printf("     point at <line number> of <file name>\n");
     printf("listbreak - list break points\n");
     printf("load <program> [arguments] [< filename] [> filename] - load a program\n");
-    printf("     library <lib name> - load a dynamically linked library\n");
+    printf("load library <lib name> - load a dynamically linked library\n");
+    printf("load source <C++ file name> - Create a dynamically linked library from a \n");
+    printf("     C++ source file and load it to address space. All the functions and variables \n");
+    printf("     in the source file will be available for instrumentation\n");
     printf("run - run or continue the loaded program\n");
     printf("show [modules|functions|variables] - display module names, global functions\n");
     printf("      and variables\n");
@@ -220,14 +237,16 @@ int help(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     printf("untrace <function> - Undo the effects of trace command for <function>\n");
     printf("untrace functions in <module> - Undo the effects of trace command for all functions\n");
     printf("     declared in <module>\n");
-    printf("add <C++ file> - Create a dynamically linked library from a C++ source file and load\n");
-    printf("     it to address space. All the functions and variables will be available for \n");
-    printf("     instrumentation\n");
     printf("mutations [enable|disable] - Enable or disable the execution of snippets\n");
     printf("removecall <function>[:n] - Remove all the calls or n'th call in <function>\n");
     //printf("dump <file name> - Write the in-memory version of the program to the specified file\n");
     printf("detach - remove all the code inserted into target program\n");
     printf("source <file name> - Execute dyner commands stored in the file <file name>\n");
+    printf("kill - Terminate the execution of target program\n");
+    printf("print <Variable> - Display the data type and value of dyner variable\n");
+    printf("whatis [-scope <function>] <variable> - Display detailed information about\n");
+    printf("     variables in the target program. Local variables and parameters are\n");
+    printf("     searched in the <function>.\n");
     return TCL_OK;
 }
 
@@ -284,7 +303,7 @@ int loadApp(char *pathname, char **args)
     bplist.clear();
     iplist.clear();
     varList.clear();
-    appThread = bpatch.createProcess(pathname, args);
+    appThread = bpatch->createProcess(pathname, args);
     bpNumber = NULL;
 
     if (!appThread || appThread->isTerminated()) {
@@ -315,21 +334,66 @@ int loadLib(char *libName) {
     return TCL_ERROR;
 }
 
-int loadCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int loadSource(char *inp) {
+    if (!haveApp()) return TCL_ERROR;
+
+    //Create shared object file name
+    char *ptr = strrchr(inp, '/');
+    if (ptr)
+	ptr++;
+    else
+	ptr = inp;
+
+    char fname[1024];
+    sprintf(fname, "./%s", ptr);
+
+    ptr = strrchr(fname+2, '.'); //Ignore first 2 chars ('./')
+    if (ptr)
+	sprintf(ptr+1,"so");
+    else
+	strcat(fname,".so");
+
+    //First ensure that there is no .so file for the input file
+    unlink(fname);
+    
+    //Create a shared object from input file
+    char cmdBuf[1024];
+    sprintf(cmdBuf,"g++ -g -fPIC -shared -o %s %s", fname, inp);
+
+    system(cmdBuf);
+
+    //Test whether or not shared object is created
+    FILE *fp = fopen(fname,"rb");
+    if (!fp) {
+	printf("Error in compilation of %s\n", inp);
+	return TCL_ERROR;
+    }
+    fclose(fp);
+
+    //Now dynamically link the file
+    return loadLib(fname);
+}
+
+int loadCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
-    if ( (argc == 3) && (!strcmp(argv[1], "library")) )
-	return loadLib(argv[2]);
+    if (argc == 3) {
+	if (!strcmp(argv[1], "library"))
+		return loadLib(argv[2]);
+	if (!strcmp(argv[1], "source"))
+		return loadSource(argv[2]);
+    }
 
     if (argc < 2) {
 	printf("Usage load <program> [<arguments>]\n");
 	printf("or    load library <lib name>\n");
+	printf("or    load source <C++ file name>\n");
 	return TCL_ERROR;
     }
 
     return loadApp(argv[1], &argv[1]);
 }
 
-int listBreak(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int listBreak(ClientData, Tcl_Interp *, int, char **)
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -340,9 +404,11 @@ int listBreak(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 	curr = (BPListElem *) *i;
 	curr->Print();
     }
+
+    return TCL_OK;
 }
 
-int deleteBreak(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int deleteBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -370,7 +436,7 @@ int deleteBreak(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     return ret;
 }
 
-int runApp(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int runApp(ClientData, Tcl_Interp *, int, char **)
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -384,7 +450,11 @@ int runApp(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     appThread->continueExecution();
 
     while (!appThread->isStopped() && !appThread->isTerminated())
+#if defined(i386_unknown_nt4_0)
+	Sleep(1);
+#else
 	usleep(250);
+#endif
 
     int bp = -1;
     if (bpNumber) bpNumber->readValue(&bp);
@@ -405,7 +475,7 @@ int runApp(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     return TCL_OK;
 }
 
-int killApp(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int killApp(ClientData, Tcl_Interp *, int, char **)
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -415,7 +485,7 @@ int killApp(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 }
 
 extern BPatch_snippet *parse_result;
-int condBreak(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int condBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (argc < 2) {
 	printf("Usage: break <function> [entry|exit|preCall|postCall] [<condition>]\n");
@@ -478,13 +548,14 @@ int condBreak(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     if (argc > 3) {
 	// Count up how large a buffer we need for the whole line
 	int line_len = 0;
-	for (int i = expr_start; i < argc; i++)
+	int i = 0;
+	for (i = expr_start; i < argc; i++)
 		line_len += strlen(argv[i]) + 1;
 	line_len++;
 	// Make the buffer and copy the line into it
 	line_buf = new char[line_len];
 	*line_buf = '\0';
-	for (int i = expr_start; i < argc; i++) {
+	for (i = expr_start; i < argc; i++) {
 		strcat(line_buf, argv[i]);
 		if (i != argc-1) strcat(line_buf, " ");
 	}
@@ -644,7 +715,7 @@ void printArray(BPatch_type * type )
 
 BPatch_snippet *termStatement = NULL;
 
-void exitCallback(BPatch_thread *thread, int code) {
+void exitCallback(BPatch_thread *thread, int) {
     if (termStatement == NULL)
 	return;
 
@@ -660,13 +731,14 @@ int instTermStatement(int argc, char *argv[])
 
     // Count up how large a buffer we need for the whole line
     int line_len = 0;
-    for (int i = expr_start; i < argc; i++)
+    int i = 0;
+    for (i = expr_start; i < argc; i++)
 	line_len += strlen(argv[i]) + 1;
     line_len += 2;
     // Make the buffer and copy the line into it
     char *line_buf = new char[line_len];
     *line_buf = '\0';
-    for (int i = expr_start; i < argc; i++) {
+    for (i = expr_start; i < argc; i++) {
 	strcat(line_buf, argv[i]);
 	if (i != argc-1) strcat(line_buf, " ");
     }
@@ -691,7 +763,7 @@ int instTermStatement(int argc, char *argv[])
     return TCL_OK;
 }
 
-int instStatement(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int instStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -741,13 +813,14 @@ int instStatement(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 
     // Count up how large a buffer we need for the whole line
     int line_len = 0;
-    for (int i = expr_start; i < argc; i++)
+    int i = 0;
+    for (i = expr_start; i < argc; i++)
 	line_len += strlen(argv[i]) + 1;
     line_len += 2;
     // Make the buffer and copy the line into it
     char *line_buf = new char[line_len];
     *line_buf = '\0';
-    for (int i = expr_start; i < argc; i++) {
+    for (i = expr_start; i < argc; i++) {
 	strcat(line_buf, argv[i]);
 	if (i != argc-1) strcat(line_buf, " ");
     }
@@ -832,7 +905,7 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
     }
 }
 
-int printVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int printVar(ClientData, Tcl_Interp *, int, char *argv[])
 {
     //if (!haveApp()) return TCL_ERROR;
 
@@ -851,7 +924,7 @@ int printVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 /*
  * declare <type> <variable name>
  */
-int newVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int newVar(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (argc != 3) {
 	printf("Usage: declare <type> <variable name>\n");
@@ -868,11 +941,13 @@ int newVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 
     BPatch_variableExpr *newVar = appThread->malloc(*type);
     if (!newVar) {
-	printf("unable to create variable.\n");
+	printf("Unable to create variable.\n");
 	return TCL_ERROR;
     }
 
     varList.push_back(new runtimeVar(newVar, argv[2]));
+
+    return TCL_OK;
 }
 
 BPatch_variableExpr *findVariable(char *name)
@@ -916,11 +991,11 @@ BPatch_variableExpr *findVariable(char *name)
  * <variable> is not found, then "<variable> is not defined" is reported
  * to the user. --jdd 5/27/98
  */
-int whatisParam(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int whatisParam(ClientData, Tcl_Interp *, int, char *argv[])
 {
   if (!haveApp()) return TCL_ERROR;
   BPatch_function * func = appImage->findBPFunction(argv[2]);
-  printf("func is %x\n", func);
+  //printf("func is %x\n", func);
   if(!func){
     printf("%s is not defined\n", argv[3]);
     return TCL_ERROR;
@@ -1019,7 +1094,7 @@ int whatisParam(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
  * be executed in the search for argv[1]. --jdd 5/27/99
  */
  
-int whatisFunc(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int whatisFunc(ClientData, Tcl_Interp *, int, char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
     // If the function is found it returns the BPatch_function.
@@ -1339,8 +1414,8 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
 	 return;
     }
 
-    const char *msg = bpatch.getEnglishErrorString(num);
-    bpatch.formatErrorString(line, sizeof(line), msg, params);
+    const char *msg = bpatch->getEnglishErrorString(num);
+    bpatch->formatErrorString(line, sizeof(line), msg, params);
 
     if (num != DYNINST_NO_ERROR) {
         printf("Error #%d (level %d): %s\n", num, level, line);
@@ -1468,7 +1543,7 @@ int ShowLocalVars(char *funcName) {
 	return TCL_ERROR;
     }
 
-    BPatch_Vector<BPatch_localVar *> *vars = fp->localVariables->getAllVars();
+    BPatch_Vector<BPatch_localVar *> *vars = fp->getVars();
     for(int i=0; i<vars->size(); ++i) {
 	PrintTypeInfo((char *) (*vars)[i]->getName(), (*vars)[i]->getType());
     }
@@ -1509,7 +1584,7 @@ int ShowVariables(int argc, char *argv[])
 
 /* Displays either modules or functions in a specific module in the executable */
 
-int showCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int showCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -1537,7 +1612,7 @@ int showCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 }
 
 /* Displays how many times input fcn is called */
-int countCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int countCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -1662,7 +1737,7 @@ int repCall(char *func1, char *func2) {
 /*
  * Replaces functions or function calls with input function
  */
-int replaceCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int replaceCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -1737,7 +1812,7 @@ int traceMod(Tcl_Interp *interp, char *name) {
 /*
  * Trace functions alone or in a module
  */
-int traceCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int traceCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -1806,7 +1881,7 @@ int untraceMod(char *name)
 /*
  * Deletes trace effects
  */
-int untraceCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int untraceCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -1826,59 +1901,9 @@ int untraceCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 }
 
 /*
- * Compiles a C++ source file and dynamically adds it to address space
- */
-int addCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
-{
-    if (argc != 2) {
-	printf("Usage: add <C++ file>\n");
-	return TCL_ERROR;
-    }
-
-    if (!haveApp()) return TCL_ERROR;
-
-    //Create shared object file name
-    char *ptr = strrchr(argv[1], '/');
-    if (ptr)
-	ptr++;
-    else
-	ptr = argv[1];
-
-    char fname[1024];
-    strcpy(fname, ptr);
-
-    ptr = strrchr(fname, '.');
-    if (ptr)
-	sprintf(ptr+1,"so");
-    else
-	strcat(fname,".so");
-
-    //First ensure that there is no .so file for the input file
-    unlink(fname);
-    
-    //Create a shared object from input file
-    char cmdBuf[1024];
-    sprintf(cmdBuf,"g++ -g -fPIC -shared -o %s %s", fname, argv[1]);
-
-    system(cmdBuf);
-
-    //Test whether or not shared object is created
-    FILE *fp = fopen(fname,"rb");
-    if (!fp) {
-	printf("Error in compilation of %s\n", argv[1]);
-	return TCL_ERROR;
-    }
-    fclose(fp);
-
-    //Now dynamically link the file
-    sprintf(cmdBuf,"load library ./%s", fname);
-    return Tcl_Eval(interp, cmdBuf);
-}
-
-/*
  * Enable or disable the execution of snippets
  */
-int mutationsCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int mutationsCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (argc != 2) {
 	printf("Usage: mutations [enable|disable]\n");
@@ -1904,7 +1929,7 @@ int mutationsCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 /*
  * Remove all or n'th function call in the input function
  */
-int removeCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int removeCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (argc != 2) {
 	printf("Usage: removecall <function>[:n]\n");
@@ -1964,7 +1989,7 @@ int removeCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 /*
  * Write the in-memory version of the program to the specified file
  */
-int dumpCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int dumpCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (argc != 2) {
 	printf("Usage: dump <file name>\n");
@@ -1981,7 +2006,7 @@ int dumpCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
 /*
  * remove all the code inserted into target program
  */
-int detachCommand(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int detachCommand(ClientData, Tcl_Interp *, int argc, char **)
 {
     if (argc != 1) {
 	printf("Usage: detach\n");
@@ -2003,6 +2028,11 @@ int Tcl_AppInit(Tcl_Interp *interp)
 	return TCL_ERROR;
     }
     
+    //Create BPatch library
+    bpatch = new BPatch;
+    if (!bpatch)
+	return TCL_ERROR;
+
     Tcl_CreateCommand(interp, "at", instStatement, NULL, NULL);
     Tcl_CreateCommand(interp, "break", condBreak, NULL, NULL);
     Tcl_CreateCommand(interp, "declare", newVar, NULL, NULL);
@@ -2019,15 +2049,14 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "replace", replaceCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "trace", traceCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "untrace", untraceCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "add", addCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "mutations", mutationsCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "removecall", removeCommand, NULL, NULL);
     //Tcl_CreateCommand(interp, "dump", dumpCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "detach", detachCommand, NULL, NULL);
 
-    bpatch.registerErrorCallback(errorFunc);
-    bpatch.setTypeChecking(false);
-    bpatch.registerExitCallback(&exitCallback);
+    bpatch->registerErrorCallback(errorFunc);
+    bpatch->setTypeChecking(false);
+    bpatch->registerExitCallback(&exitCallback);
 
     return TCL_OK;
 }

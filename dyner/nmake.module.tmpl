@@ -1,0 +1,55 @@
+# 
+# Common makefile template for dyninst Tests.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: nmake.module.tmpl,v 1.1 2000/03/21 21:37:54 altinel Exp $
+#
+
+SUITE_NAME	= Dyninst
+RELEASE_NUM	= 2.0beta
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs
+
+TARGET          = dyner.exe
+TEST_TARGET     = testDyner.exe
+
+SRCS	      = ../src/$(TARGET:.exe=.C) lex.$(TARGET:.exe=.c) $(TARGET:.exe=.tab).c
+TEST_SRC      = ../tests/$(TEST_TARGET:.exe=.C)
+
+OBJS	      = $(TARGET:.exe=.obj) lex.$(TARGET:.exe=.obj) $(TARGET:.exe=.tab).obj
+
+IFLAGS       = $(IFLAGS) -I$(TO_CORE)/dyninstAPI/h -I../src
+
+LIBS		= $(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI.lib \
+                  $(TO_CORE)/$(LIBRARY_DEST)/libpdutil.lib
+
+#SYSLIBS		= j:/altinel/cygwin/cygwin-b20/H-i586-cygwin32/lib/libtcl80.a \
+SYSLIBS		= j:/altinel/winnt/lib/tcl82.lib \
+		  imagehlp.lib
+
+all: $(TARGET) $(TEST_TARGET)
+
+$(TEST_TARGET:.exe=.obj): $(TEST_SRC)
+	$(CC) $(CXXFLAGS) -c -o $(TEST_TARGET:.exe=.obj) $(TEST_SRC)
+
+$(TEST_TARGET): $(TEST_TARGET:.exe=.obj)
+	$(LINK) -out:$(TEST_TARGET) $(LDFLAGS) -debug -pdb:none \
+		$(TEST_TARGET:.exe=.obj)
+
+LEXFLAGS = -P$(TARGET:.exe=)
+YACCFLAGS = -d -b $(TARGET:.exe=) -p $(TARGET:.exe=)
+
+lex.$(TARGET:.exe=.c): ../src/cmdline.l
+	$(LEX) $(LEXFLAGS) ../src/cmdline.l
+
+$(TARGET:.exe=.tab).c $(TARGET:.exe=.tab).h: ../src/cmdline.y
+	$(YACC) $(YACCFLAGS) ../src/cmdline.y
+
+UNCOMMON_INSTALL=true
+
+install: all
+	-$(MKDIR) $(DEST)
+	-$(CP) $(TARGETS) $(DEST)
+

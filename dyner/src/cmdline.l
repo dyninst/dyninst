@@ -1,5 +1,14 @@
-
 %{
+#if defined(i386_unknown_nt4_0)
+#define YY_SKIP_YYWRAP
+#define YY_NEVER_INTERACTIVE 1
+
+int yywrap()
+{
+    return 1;
+}
+#endif
+
 #include <string.h>
 #include "BPatch_snippet.h"
 #include "dyner.tab.h"
@@ -155,7 +164,9 @@ int my_yyinput(char *buf, int max_size)
 }
 #endif
 
+#if !defined(i386_unknown_nt4_0)
 int yywrap()
 {
     return 1;
 }
+#endif

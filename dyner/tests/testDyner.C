@@ -6,15 +6,7 @@ int findSQ(int inp) {
 	return res;
 }
 
-void fcn1(float par) {
-	float dummy = par / 2;
-}
-
-double fcn2() {
-	return 3.0;
-}
-
-int fcn3(int inp) {
+int AddTwo(int inp) {
 	return inp+2;
 }
 
