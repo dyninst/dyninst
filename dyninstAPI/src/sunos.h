@@ -3,6 +3,6 @@
 #define SUNOS_PD_HDR
 
 #include <sys/param.h>
-#define EXIT_NAME "_exit"
+#define EXIT_NAME "_cleanup"
 
 #endif
