@@ -82,6 +82,11 @@ public:
     Address rel_addr() const { return rel_addr_; }
     const string &name() const { return name_; }
 
+    // dump output.  Currently setup as a debugging aid, not really
+    //  for object persistance....
+    ostream & operator<<(ostream &s) const;
+    friend ostream &operator<<(ostream &os, relocationEntry &q);
+
 private:
    Address target_addr_;	// target address of call instruction 
    Address rel_addr_;		// address of corresponding relocation entry 
@@ -90,6 +95,12 @@ private:
 
 /************************************************************************
  * class AObject
+ *
+ *  WHAT IS THIS CLASS????  COMMENTS????
+ *  Looks like it has a dictionary hash of symbols, as well as
+ *   a ptr to to the code section, an offset into the code section,
+ *   and a length of the code section, and ditto for the data
+ *   section....
 ************************************************************************/
 
 class AObject {
@@ -117,6 +128,9 @@ public:
     virtual  bool   get_func_binding_table(vector<relocationEntry> &) const;
     virtual  bool   get_func_binding_table_ptr(const vector<relocationEntry> *&) const;
     
+    // for debuggering....
+    const ostream &dump_state_info(ostream &s);
+
 protected:
     virtual ~AObject() {}
     // explicitly protected
