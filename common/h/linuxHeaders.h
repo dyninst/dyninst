@@ -77,6 +77,9 @@ typedef int (*P_xdrproc_t)(XDR*, ...);
 extern const char *sys_errlist[];
 */
 
+#ifndef SYS_tkill
+#define SYS_tkill 238
+#endif
 /* POSIX */
 int P_getopt(int argc, char *argv[], const char *optstring);
 inline void P_abort (void) { abort();}
