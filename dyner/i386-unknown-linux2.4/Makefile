@@ -7,6 +7,7 @@ USES_TCLTK = true
 TO_CORE =       ../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES=true
+USES_DWARF_DEBUG=true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
