@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.2 2000/03/12 22:26:56 wylie Exp $
+// $Id: shmSegment-unix.C,v 1.3 2000/06/14 23:04:24 wylie Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -101,7 +101,7 @@ ShmSegment::~ShmSegment( void )
 // our address space at the indicated address (if specified).
 // 
 ShmSegment*
-ShmSegment::Create( key_t& key, unsigned int size, void* addr )
+ShmSegment::Create( key_t& key, unsigned int size, void* /*addr*/ )
 {
     ShmSegment* seg = NULL;
     

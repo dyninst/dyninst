@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.81 2000/05/11 04:52:27 zandy Exp $
+// $Id: mdl.C,v 1.82 2000/06/14 23:04:23 wylie Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1236,9 +1236,11 @@ T_dyninstRPC::mdl_constraint::mdl_constraint()
 T_dyninstRPC::mdl_constraint::mdl_constraint(string id, 
                                         vector<string> *match_path,
 					vector<T_dyninstRPC::mdl_stmt*> *stmts,
-					bool replace, u_int d_type, bool& error)
+					bool replace, u_int d_type, bool& err)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
-  data_type_(d_type), hierarchy_(0), type_(0) { assert(0); error = false; }
+  data_type_(d_type), hierarchy_(0), type_(0) 
+{ assert(0); err = false; }
+
 T_dyninstRPC::mdl_constraint::~mdl_constraint() {
   assert (0);
   delete match_path_;
@@ -1412,11 +1414,11 @@ string T_dyninstRPC::mdl_constraint::id() {
 
 T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, 
                                         vector<string> *path,
-					vector<T_dyninstRPC::mdl_stmt*> *stmts,
+					vector<T_dyninstRPC::mdl_stmt*> *Cstmts,
 					bool replace, u_int d_type) {
   assert (0);
   bool error;
-  return (new T_dyninstRPC::mdl_constraint(id, path, stmts, replace, d_type, error));
+  return (new T_dyninstRPC::mdl_constraint(id, path, Cstmts, replace, d_type, error));
 }
 
 T_dyninstRPC::mdl_stmt::mdl_stmt() { }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.52 2000/04/20 22:45:45 mirg Exp $
+// $Id: init.C,v 1.53 2000/06/14 23:04:23 wylie Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -108,13 +108,13 @@ bool init() {
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      string("Machine"), 0.0, "", MDL_T_STRING,
 				      false);
-  machineResource = resource::newResource(machineRoot, NULL, nullString, hostName, 
-					  0.0, "", MDL_T_STRING,
+  machineResource = resource::newResource(machineRoot, NULL, nullString, 
+					  hostName, 0.0, "", MDL_T_STRING,
 					  false);
 //
 // processResource = resource::newResource(machineResource, NULL, nullString,
-//					  string("Process"), 0.0, "", MDL_T_STRING,
-//					  false);
+//				  string("Process"), 0.0, "", MDL_T_STRING,
+//				  false);
 //
 
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
@@ -124,21 +124,21 @@ bool init() {
 				   string("SyncObject"), 0.0, "", MDL_T_STRING,
 				   false);
   // TODO -- should these be detected and built ?
-  resource::newResource(syncRoot, NULL, nullString, "Message", 0.0, "", MDL_T_STRING,
-			false);
-  resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "", MDL_T_STRING,
-			false);
-  resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "", MDL_T_STRING,
-			false);
-  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "", MDL_T_STRING,
-			false);
+  resource::newResource(syncRoot, NULL, nullString, "Message", 0.0, "", 
+			MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "", 
+			MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "", 
+			MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "", 
+			MDL_T_STRING, false);
 #if defined(MT_THREAD)
-  resource::newResource(syncRoot, NULL, nullString, "Mutex", 0.0, "", MDL_T_STRING,
-			false);
-  resource::newResource(syncRoot, NULL, nullString, "RwLock", 0.0, "", MDL_T_STRING,
-			false);
-  resource::newResource(syncRoot, NULL, nullString, "CondVar", 0.0, "", MDL_T_STRING,
-			false);
+  resource::newResource(syncRoot, NULL, nullString, "Mutex", 0.0, "", 
+			MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "RwLock", 0.0, "", 
+			MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "CondVar", 0.0, "", 
+			MDL_T_STRING, false);
 
 #endif
   /*
@@ -178,7 +178,7 @@ bool init() {
   number_of_cpus = internalMetric::newInternalMetric("number_of_cpus", 
 						   EventCounter,
 						   aggSum,
-						   "#CPUs",
+						   "CPUs",
 						   NULL,
 						   default_im_preds,
 						   false,
@@ -205,7 +205,7 @@ bool init() {
                                                 "numOfCurrentLevels", 
 						EventCounter,
 						aggMax,
-						"ops",
+						"ops",//operations
 						NULL,
 						default_im_preds,
 						true,
@@ -215,7 +215,7 @@ bool init() {
                                                 "numOfCurrentThreads", 
 						EventCounter,
 						aggMax,
-						"ops",
+						"ops",//operations
 						NULL,
 						default_im_preds,
 						true,
@@ -236,7 +236,7 @@ bool init() {
                                                 "numOfActCounters", 
 						EventCounter,
 						aggMax,
-						"operations",
+						"ops",//operations
 						NULL,
 						default_im_preds,
 						true,
@@ -246,7 +246,7 @@ bool init() {
                                                 "numOfActProcTimers", 
 						EventCounter,
 						aggMax,
-						"operations",
+						"ops",//operations
 						NULL,
 						default_im_preds,
 						true,
@@ -256,7 +256,7 @@ bool init() {
                                                 "numOfActWallTimers", 
 						EventCounter,
 						aggMax,
-						"operations",
+						"ops",//operations
 						NULL,
 						default_im_preds,
 						true,
@@ -300,7 +300,7 @@ bool init() {
 					   Normalized,
 					   aggSum);
 
- pauseTime = internalMetric::newInternalMetric("pause_time",
+  pauseTime = internalMetric::newInternalMetric("pause_time",
 					       EventCounter,
 					       aggMax,
 					       "CPUs",
@@ -313,7 +313,7 @@ bool init() {
   activeProcs = internalMetric::newInternalMetric("active_processes",
 						  EventCounter,
 						  aggSum,
-						  "ops",
+						  "ops",//operations
 						  activeProcessesProc,
 						  active_procs_preds,
 						  false,

@@ -43,6 +43,9 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.31  2000/06/14 23:04:24  wylie
+ * Tidy to remove compiler warnings
+ *
  * Revision 1.30  2000/03/06 21:41:25  zhichen
  * Moved /Process hierarchy to /Machine hierarchy.
  *
@@ -288,29 +291,29 @@ bool resource::foc_to_strings(vector< vector<string> >& string_foc,
 void resource::make_canonical(const vector< vector<string> >& focus,
 			      vector< vector<string> >& ret) {
   unsigned size = focus.size();
-  bool machine=false, procedure=false, process=false, sync=false, memory = false;
+  bool Machine=false, Procedure=false, SyncObj=false, Memory=false;
   ret.resize(4); 
   for (unsigned f=0; f<size; f++) {
     assert(focus[f].size() > 0);
     if (focus[f][0] == "Machine") {
-      machine = true;
+      Machine = true;
       ret[resource::machine] = focus[f];
     } else if (focus[f][0] == "Code") {      
-      procedure = true;
+      Procedure = true;
       ret[resource::procedure] = focus[f];
     } else if (focus[f][0] == "SyncObject") {
-      sync = true;
+      SyncObj = true;
       ret[resource::sync_object] = focus[f];
     } else if (focus[f][0] == "Memory") {
-      memory = true ;
-      ret[resource::memory] = focus[f] ;
+      Memory = true;
+      ret[resource::memory] = focus[f];
     }
   }
 
   vector<string> temp(1); // 1 entry vector
 
-  if (!machine) {temp[0]="Machine"; ret[resource::machine] = temp;}
-  if (!procedure) {temp[0]="Code"; ret[resource::procedure] = temp;}
-  if (!sync) {temp[0]="SyncObject"; ret[resource::sync_object] = temp;}
-  if (!memory) {temp[0]="Memory"; ret[resource::memory] = temp; }
+  if (!Machine) {temp[0]="Machine"; ret[resource::machine] = temp;}
+  if (!Procedure) {temp[0]="Code"; ret[resource::procedure] = temp;}
+  if (!SyncObj) {temp[0]="SyncObject"; ret[resource::sync_object] = temp;}
+  if (!Memory) {temp[0]="Memory"; ret[resource::memory] = temp;}
 }

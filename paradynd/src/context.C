@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.65 2000/06/02 17:25:43 mirg Exp $ */
+/* $Id: context.C,v 1.66 2000/06/14 23:04:23 wylie Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -366,20 +366,19 @@ void processNewTSConnection(int tracesocket_fd) {
    if (sizeof(cookie) != read(fd, &cookie, sizeof(cookie)))
       assert(false);
 
-   bool calledFromFork = false;
-   bool calledFromAttach = false;
-
    const unsigned cookie_fork   = 0x11111111;
    const unsigned cookie_attach = 0x22222222;
 
-   calledFromFork   = (cookie == cookie_fork);
-   calledFromAttach = (cookie == cookie_attach);
+   bool calledFromFork   = (cookie == cookie_fork);
+   bool calledFromAttach = (cookie == cookie_attach);
 
    string str;
    if (calledFromFork)
       str = string("getting new connection from forked process");
-   else
+   else if (calledFromAttach)
       str = string("getting new connection from attached process");
+   else
+      str = string("getting unexpected process connection");
    statusLine(str.string_of());
 
    int pid;
