@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.241 2005/03/24 00:47:22 jodom Exp $
+ // $Id: symtab.C,v 1.242 2005/03/24 16:26:00 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1276,6 +1276,7 @@ supportedLanguages pickLanguage(pdstring &working_module, char *working_options,
 void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs)
 {
    char *ptr;
+   pdstring working_module;
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
@@ -1305,7 +1306,6 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
    //  A final module<->language decision is not made until we have arrived at the
    //  next module entry, at which point we use any and all info we have to 
    //  make the most sensible guess
-   pdstring working_module;
    supportedLanguages working_lang = lang_Unknown;
    char *working_options = NULL, *working_name = NULL;
 
