@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.16  1996/01/09 00:45:15  tamches
+ * added phaseID argument to getNodeInfo
+ *
  * Revision 1.15  1996/01/08 22:07:15  tamches
  * Added igen call getNodeInof() and related struct shg_node_info
  *
@@ -142,6 +145,6 @@ $remote performanceConsultant {
     $async void resetRefinement();
 
     // Get loads of information about a node:
-    bool getNodeInfo(int nodeID, shg_node_info *theInfo);
+    bool getNodeInfo(int phaseID, int nodeID, shg_node_info *theInfo);
        // "theInfo" gets filled in for you.  Returns true iff successful.
 };
