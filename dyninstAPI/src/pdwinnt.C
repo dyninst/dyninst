@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.90 2003/04/11 22:46:23 schendel Exp $
+// $Id: pdwinnt.C,v 1.91 2003/04/14 16:21:20 pcroth Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -879,7 +879,7 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
                    NULL, NULL, dllFilename, NULL);
         
         // See if there is a callback registered for this library
-        proc->runLibraryCallback(string(dllFilename));
+        proc->runLibraryCallback(string(dllFilename), so);
     }
     
     // WinCE used to check for "coredll.dll" here to see if the process
