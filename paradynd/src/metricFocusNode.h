@@ -43,6 +43,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.44  1997/02/24 14:22:58  naim
+ * Minor fix to my previous commit - naim
+ *
  * Revision 1.43  1997/02/21 20:15:59  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -220,7 +223,9 @@ class sampledIntCounterReqNode : public dataReqNode {
    void disable(process *, const vector< vector<unsigned> > &);
 
    unsigned getInferiorPtr() const {
-      assert(counterPtr != NULL); // NULL until insertInstrumentation()
+      // counterPtr could be NULL if we are building AstNodes just to compute
+      // the cost - naim 2/18/97
+      //assert(counterPtr != NULL); // NULL until insertInstrumentation()
       return (unsigned)counterPtr;
    }
 
@@ -281,7 +286,9 @@ class sampledShmIntCounterReqNode : public dataReqNode {
    void disable(process *, const vector< vector<unsigned> > &);
 
    unsigned getInferiorPtr() const {
-      assert(inferiorCounterPtr != NULL); // NULL until insertInstrumentation()
+      // counterPtr could be NULL if we are building AstNodes just to compute
+      // the cost - naim 2/18/97
+      //assert(inferiorCounterPtr != NULL); // NULL until insertInstrumentation
       return (unsigned)inferiorCounterPtr;
    }
 
@@ -396,7 +403,9 @@ class sampledTimerReqNode : public dataReqNode {
    void disable(process *, const vector< vector<unsigned> > &);
 
    unsigned getInferiorPtr() const {
-      assert(timerPtr != NULL); // NULL until insertInstrumentation()
+      // counterPtr could be NULL if we are building AstNodes just to compute
+      // the cost - naim 2/18/97
+      //assert(timerPtr != NULL); // NULL until insertInstrumentation()
       return (unsigned)timerPtr;
    }
 
@@ -452,7 +461,9 @@ class sampledShmWallTimerReqNode : public dataReqNode {
    void disable(process *, const vector< vector<unsigned> > &);
 
    unsigned getInferiorPtr() const {
-      assert(inferiorTimerPtr != NULL); // NULL until insertInstrumentation()
+      // counterPtr could be NULL if we are building AstNodes just to compute
+      // the cost - naim 2/18/97
+      //assert(inferiorTimerPtr != NULL); // NULL until insertInstrumentation()
       return (unsigned)inferiorTimerPtr;
    }
 
@@ -503,7 +514,9 @@ class sampledShmProcTimerReqNode : public dataReqNode {
    void disable(process *, const vector< vector<unsigned> > &);
 
    unsigned getInferiorPtr() const {
-      assert(inferiorTimerPtr != NULL); // NULL until insertInstrumentation()
+      // counterPtr could be NULL if we are building AstNodes just to compute
+      // the cost - naim 2/18/97
+      //assert(inferiorTimerPtr != NULL); // NULL until insertInstrumentation()
       return (unsigned)inferiorTimerPtr;
    }
 
