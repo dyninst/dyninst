@@ -1,7 +1,10 @@
 
 /*
  * $Log: metParse.h,v $
- * Revision 1.1  1994/07/07 03:25:26  markc
+ * Revision 1.2  1994/08/17 17:57:30  markc
+ * Removed typedef for metArchType, replaced with #defines.
+ *
+ * Revision 1.1  1994/07/07  03:25:26  markc
  * Configuration language parser.
  *
  */
@@ -18,7 +21,7 @@ typedef struct daemonStruct {
     char *name;
     char *command;
     char *host;
-    metArchType flavor;
+    int flavor;
 } daemonStruct;
 
 typedef struct processStruct {
@@ -28,7 +31,7 @@ typedef struct processStruct {
     int args_used;
     char *host;
     char *daemon;
-    metArchType flavor;
+    int flavor;
 } processStruct;
 
 typedef struct visiStruct {
@@ -48,7 +51,7 @@ struct parseStack {
     char *cp;
     int i;
     float f;
-    metArchType flav;
+    int flav;
     processStruct ps;
     tunableStruct ts;
     daemonStruct ds;
