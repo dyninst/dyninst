@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.125 2003/05/06 21:39:20 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.126 2003/05/07 16:18:48 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1375,16 +1375,46 @@ bool writeMPICHWrapper(int fd, const string& buffer )
 bool mpichCreateWrapper(const string& machine, bool localMachine,
 			const string& script, const char *dir,
 			const string& app_name, const pdvector<string> args,
-			daemonEntry *de)
+			daemonEntry *de,
+                        bool has_explicit_wd)
 {
-    const char *preamble = "#!/bin/sh\ncd ";
+    const char* shellspec = "#!/bin/sh\n";
     string buffer;
     unsigned int j;
+
+    assert( (dir != NULL) && (strlen(dir) != 0) );
     
-    buffer = string(preamble) + string(dir) + 
-    string("\nPWD=") + string(dir) + string("; export PWD\n") + 
-    string(de->getCommand());
-    
+    // dump the shell specifier
+    buffer = string(shellspec);
+
+    // Set up for using the correct working directory for the process.
+    // We have to be careful to respect the user's desire if
+    // the user has explicitly specified a working directory for the process
+    // If they have, we recognized it when we parsed the command line
+    // and we don't mess with the process arguments as given by mpirun.
+    // If they haven't, we need to modify the "working directory" argument
+    // specified by mpirun to ensure it is the directory specified by
+    // the user via the Paradyn PCL file or the Paradyn GUI.
+    buffer += (string("cd ") + string(dir) + 
+                string("\nPWD=") + string(dir) + string("; export PWD\n"));
+    if( !has_explicit_wd )
+    {
+        // The user didn't specify a working directory in the mpirun
+        // command, so we need to munge the MPI process arguments to use the
+        // directory given via Paradyn.
+        // This method works for the non-MPD MPICH device, which uses
+        // the p4wd specifier to give its working directory.
+        // TODO how does MPD specify its working directory?
+        buffer += (string("substdir=") + string(dir) + "\n");
+        buffer += string("appargs=`echo $* | sed \"s,p4wd [ ]*[^ ]*,p4wd $substdir,\"`\n");
+    }
+    else
+    {
+        buffer += string("appargs=$*\n");
+    }
+
+    // dump the daemon command
+    buffer += string(de->getCommand());
     for (j=0; j < args.size(); j++) {
         if (!strcmp(args[j].c_str(), "-l1")) {
             buffer += " -l0";
@@ -1393,9 +1423,10 @@ bool mpichCreateWrapper(const string& machine, bool localMachine,
         }
     }
     
-    buffer += string(" -z") + string(de->getFlavor()) + 
-    string(" -runme ") + app_name +
-    string(" $*\n");
+    buffer += (string(" -z") + string(de->getFlavor()));
+
+    // Next add the arguments that define the process to be created.
+    buffer += (string(" -runme ") + app_name + string(" $appargs\n"));
     
     if(localMachine) {
         // the file named by script is our wrapper - write the script to the
@@ -1525,7 +1556,9 @@ struct known_arguments {
   Insert the script name instead of the application name
 */
 bool mpichParseCmdline(const string& script, const pdvector<string> &argv,
-		       string& app_name, pdvector<string> &params)
+		       string& app_name,
+                        pdvector<string> &params,
+                        bool& has_explicit_wd)
 {
    const unsigned int NKEYS = 35;
    struct known_arguments known[NKEYS] = {
@@ -1562,6 +1595,7 @@ bool mpichParseCmdline(const string& script, const pdvector<string> &argv,
       return false;
    }
 
+   has_explicit_wd = false;
    while (!app && i < argv.size()) {
       app = true;
       
@@ -1575,6 +1609,12 @@ bool mpichParseCmdline(const string& script, const pdvector<string> &argv,
 	       uiMgr->showError(113, strdup(msg.c_str()));
 	       return false;
 	    }
+
+        // check whether the user explicitly specified a working directory
+        if( (argv[i] == "-p4wd") )
+        {
+            has_explicit_wd = true;
+        }
 	    
 	    params += argv[i++];
 	    
@@ -1648,12 +1688,25 @@ static bool startMPICH(const string &machine, const string &login,
 
 	string script = mpichNameWrapper( cwd );
 
-	if (!mpichParseCmdline(script, argv, app_name, params)) {
+        bool has_explicit_wd = false;
+        bool parseRet = mpichParseCmdline(script,
+                                        argv,
+                                        app_name,
+                                        params,
+                                        has_explicit_wd);
+	if (!parseRet) {
 	   return false;
 	}
 
-	if (!mpichCreateWrapper(machine, localMachine, script, cwd, app_name, 
-				args, de)) {
+        bool createRet = mpichCreateWrapper(machine,
+                                            localMachine,
+                                            script,
+                                            cwd,
+                                            app_name, 
+				            args,
+                                            de,
+                                            has_explicit_wd);
+	if (!createRet) {
 	   return false;
 	}
 
