@@ -2,7 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.44  1996/05/31 23:57:48  tamches
+ * Revision 1.45  1996/07/18 19:39:14  naim
+ * Minor fix to give proper error message when the pvm daemon runs out of
+ * virtual memory - naim
+ *
+ * Revision 1.44  1996/05/31  23:57:48  tamches
  * code to change send socket buffer size moved to comm.h
  * removed handshaking code w/paradyn (where we sent "PARADYND" plus
  * the pid) [wasn't being used and contributed to freeze in paradyn UI]
@@ -49,6 +53,7 @@
 #include "perfStream.h"
 #include "clock.h"
 #include "paradynd/src/mdld.h"
+#include <sys/signal.h>
 
 pdRPC *tp;
 
@@ -95,12 +100,35 @@ void configStdIO(bool closeStdIn)
     if (nullfd > 2) close(nullfd);
 }
 
+void sigtermHandler(int signo) {
+  showErrorCallback(98,"paradynd has been terminated");
+}
 
 int main(int argc, char *argv[])
 {
     int i;
     vector<string> cmdLine;
     vector<string> envp;
+    struct sigaction act;
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+    act.sa_handler = (void (*)(...)) sigtermHandler;
+#else
+    act.sa_handler = (void (*)(int)) sigtermHandler;
+#endif
+    act.sa_flags   = 0;
+
+    /* for AIX - default (non BSD) library does not restart - jkh 7/26/95 */
+#if defined(SA_RESTART)
+    act.sa_flags  |= SA_RESTART;
+#endif
+
+    sigfillset(&act.sa_mask);
+
+    if (sigaction(SIGTERM, &act, 0) == -1) {
+        perror("sigaction(SIGTERM)");
+        abort();
+    }
 
     // for debugging
     // { int i= 1; while (i); }

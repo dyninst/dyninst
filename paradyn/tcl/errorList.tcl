@@ -1,6 +1,10 @@
 #
 # $Log: errorList.tcl,v $
-# Revision 1.26  1996/04/30 19:02:23  newhall
+# Revision 1.27  1996/07/18 19:39:09  naim
+# Minor fix to give proper error message when the pvm daemon runs out of
+# virtual memory - naim
+#
+# Revision 1.26  1996/04/30  19:02:23  newhall
 # added more info. to error #86
 #
 # Revision 1.25  1996/04/29  03:29:53  tamches
@@ -768,4 +772,12 @@ set pdError(97) {
 }
 }
 
-set numPdErrors 97
+set pdError(98) {
+{paradynd has been terminated}
+{pd}
+{serious}
+{The paradyn daemon has received a SIGTERM signal probably because the PVM daemon has ran out of virtual memory. Please, check the memory usage of your application.
+}
+}
+
+set numPdErrors 98
