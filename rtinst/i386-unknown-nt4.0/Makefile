@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2000/02/22 23:12:56 pcroth Exp $
+# $Id: Makefile,v 1.11 2000/08/08 15:34:33 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,9 +27,12 @@ LDFLAGS		= -DLL -debug -debugtype:cv -PDB:NONE -base:0x60000000
 
 #TARGET2		= libdyninstCP.a
 
-SRCS	     = $(SRCS) ../src/RTfirst.c ../src/RTwinnt.c
+SRCS		= ../../dyninstAPI_RT/src/RTwinnt.c ../src/RTetc-winnt.c
 
-OBJS		= RTfirst.obj RTwinnt.obj
+OBJS		= RTwinnt.obj RTetc-winnt.obj
+
+# enable debug/trace messages from runtime library
+#CFLAGS		= $(CFLAGS) -DDEBUG_PRINT_RT
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -40,6 +43,9 @@ include ../nmake.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../nmake.library.tmpl
+
+{../../dyninstAPI_RT/src/}.c.obj:
+	$(CC) -c $(CFLAGS) $<
 
 {../src/}.c.obj:
 	$(CC) -c $(CFLAGS) $<
