@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.4  1994/04/09 18:37:20  hollings
-/* Fixed paramter to tunable constant to work.
+/* Revision 1.5  1994/04/10 19:12:12  newhall
+/* added visi command
 /*
+ * Revision 1.4  1994/04/09  18:37:20  hollings
+ * Fixed paramter to tunable constant to work.
+ *
  * Revision 1.3  1994/04/06  22:40:15  markc
  * Included assert.h.
  *
@@ -23,9 +26,7 @@ extern "C" {
  #include "tcl.h"
 }
 #include "util/h/tunableConst.h"
-/*
- #include "visiMgrCLNT.h"
-*/
+#include "VM.CLNT.h"
 #include "thread/h/thread.h"
 #include "paradyn.h"
 #include "UIglobals.h"
@@ -158,6 +159,7 @@ resourceList *build_resource_list (Tcl_Interp *interp, char *list)
   resource *parent, *child;
   int res, el;
 
+printf("list is %s\n",list);
   ret = dataMgr->createResourceList();
 
   if (Tcl_SplitList(interp, list, &argc1, &argv1) != TCL_OK) {
@@ -317,7 +319,7 @@ int ParadynSearchCmd (ClientData clientData,
     return TCL_OK;
   }
 }
-/*
+
 int ParadynVisiCmd (ClientData clientData,
 		    Tcl_Interp *interp,
 		    int argc,
@@ -362,7 +364,6 @@ int ParadynVisiCmd (ClientData clientData,
   }
   return TCL_OK;
 }
-*/
 struct cmdTabEntry 
 {
   char *cmdname;
@@ -381,7 +382,7 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"core", ParadynCoreCmd},
   {"refine", ParadynRefineCmd},
   {"search", ParadynSearchCmd},
-//  {"visi", ParadynVisiCmd},
+  {"visi", ParadynVisiCmd},
   {NULL, NULL}
 };
 
