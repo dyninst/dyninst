@@ -53,6 +53,14 @@
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
 #include "process.h"
+#include "util/h/debugOstream.h"
+
+// The following vrbles were defined in process.C:
+extern debug_ostream attach_cerr;
+extern debug_ostream inferiorrpc_cerr;
+extern debug_ostream shmsample_cerr;
+extern debug_ostream forkexec_cerr;
+extern debug_ostream metric_cerr;
 
 #ifdef paradyndCM5_blizzard
 // START_NAME corresponds some routine with $start of your mdl
@@ -461,7 +469,8 @@ apply_to_process(process *proc,
 		 vector<T_dyninstRPC::mdl_stmt*> *stmts,
 		 vector<unsigned>& flag_dex,
 		 unsigned& base_dex,
-		 vector<string> *temp_ctr) {
+		 vector<string> *temp_ctr,
+		 bool replace_component) {
 
 
     // TODO: if this is a dynamic executable check the focus...
@@ -481,31 +490,69 @@ apply_to_process(process *proc,
     // compute the flat_name for this component: the machine and process
     // are always defined for the component, even if they are not defined
     // for the aggregate metric.
-    string flat_name(name);
+    vector< vector<string> > component_focus(focus); // they start off equal
+
+    string component_flat_name(name);
     for (unsigned u1 = 0; u1 < focus.size(); u1++) {
-      if (focus[u1][0] == "Process")
-	flat_name += focus[u1][0] + proc->rid->part_name();
-      else if (focus[u1][0] == "Machine")
-	flat_name += focus[u1][0] + machineResource->part_name();
+      if (focus[u1][0] == "Process") {
+	component_flat_name += focus[u1][0] + proc->rid->part_name();
+	if (focus[u1].size() == 1) {
+	   // there was no refinement to a specific process...but the component
+	   // focus must have such a refinement.
+	   component_focus[u1] += proc->rid->part_name();
+	}
+      }
+      else if (focus[u1][0] == "Machine") {
+	component_flat_name += focus[u1][0] + machineResource->part_name();
+	if (focus[u1].size() == 1) {
+	   // there was no refinement to a specific machine...but the component focus
+	   // must have such a refinement.
+	   component_focus[u1] += machineResource->part_name();
+	}
+      }
       else
 	for (unsigned u2 = 0; u2 < focus[u1].size(); u2++)
-	  flat_name += focus[u1][u2];
+	  component_flat_name += focus[u1][u2];
     }
+
+    // now assert that focus2flatname(component_focus) equals component_flat_name
+    extern string metricAndCanonFocus2FlatName(const string &met,
+					       const vector< vector<string> > &focus);
+    assert(component_flat_name == metricAndCanonFocus2FlatName(name, component_focus));
 
     metricDefinitionNode *existingMI;
-    if (allMIComponents.find(flat_name, existingMI)) {
-      //sprintf(errorLine,"Found component for %s\n", flat_name.string_of());
-      //logLine(errorLine);
+    const bool alreadyThere = allMIComponents.find(component_flat_name, existingMI);
+    if (alreadyThere) {
+       if (replace_component) {
+	  // fry old entry...
+	  metric_cerr << "apply_to_process: found " << component_flat_name
+	              << " but continuing anyway since replace_component flag set"
+		      << endl;
+	  // note that we don't call 'delete'.
+	  allMIComponents.undef(component_flat_name);
+       }
+       else {
+	 metric_cerr << "mdl apply_to_process: found component for "
+	             << component_flat_name << "...reusing it" << endl;
 
-      return existingMI;
+	 return existingMI;
+       }
     }
+    else
+       metric_cerr << "MDL: creating new component mi since flatname "
+	           << component_flat_name << " doesn't exist" << endl;
+
+    // If the component exists, then we've either already returned, or fried it.
+    assert(!allMIComponents.defines(component_flat_name));
 
     // TODO -- Using aggOp value for this metric -- what about folds
-    metricDefinitionNode *mn = new metricDefinitionNode(proc, name,
-							focus, flat_name, agg_op);
+    metricDefinitionNode *mn = new metricDefinitionNode(proc, name, focus,
+							component_focus,
+							component_flat_name, agg_op);
     assert(mn);
 
-    allMIComponents[flat_name] = mn;
+    assert(!allMIComponents.defines(component_flat_name));
+    allMIComponents[component_flat_name] = mn;
 
     // Create the timer, counter
     dataReqNode *the_node = create_data_object(type, mn);
@@ -574,7 +621,8 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 				  vector<T_dyninstRPC::mdl_stmt*> *stmts,
 				  vector<unsigned>& flag_dex,
 				  unsigned& base_dex,
-				  vector<string> *temp_ctr) {
+				  vector<string> *temp_ctr,
+				  bool replace_components_if_present) {
 #ifdef DEBUG_MDL
   timer loadTimer, totalTimer;
   static ofstream *of=NULL;
@@ -602,11 +650,13 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     // skip neonatal and exited processes.
     if (proc->status() == exited || proc->status() == neonatal) continue;
 
-    metricDefinitionNode *mn = apply_to_process(proc, id, name, focus, agg_op, type,
-						flag_cons, base_use, stmts, flag_dex,
-						base_dex, temp_ctr);
-    if (mn)
-      parts += mn;
+    metricDefinitionNode *comp = apply_to_process(proc, id, name, focus, agg_op, type,
+						  flag_cons, base_use, stmts, flag_dex,
+						  base_dex, temp_ctr,
+						  replace_components_if_present);
+    if (comp)
+      // we have another component (i.e. process-specific) mi
+      parts += comp;
 
 #ifdef DEBUG_MDL
     loadTimer.stop();
@@ -627,20 +677,21 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 #endif
 
   if (parts.size() == 0)
+    // no components!
     return false;
 
   return true;
 }
 
 metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &focus,
-						      string& flat_name, vector<process *> procs) {
-
+						      string& flat_name,
+						      vector<process *> procs,
+						      bool replace_components_if_present) {
   // TODO -- check to see if this is active ?
   // TODO -- create counter or timer
   // TODO -- put it into the environment ?
   // TODO -- this can be passed directly -- faster - later
   // TODO -- internal metrics
-  // TODO -- what the heck is nodePseudoProcess, why should I care about it
   // TODO -- assume no constraints, all processes instrumented
   // TODO -- support two-level aggregation: one at the daemon, one at paradyn
   // TODO -- how is folding specified ?
@@ -649,7 +700,6 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   mdl_env::push();
   mdl_env::add(id_, false, MDL_T_DRN);
   assert(stmts_);
-  vector<metricDefinitionNode*> parts;
 
   const unsigned tc_size = temp_ctr_->size();
   for (unsigned tc=0; tc<tc_size; tc++) {
@@ -688,24 +738,19 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
     return NULL;
 
   // build the instrumentation request
+  vector<metricDefinitionNode*> parts; // one per process
   if (!apply_to_process_list(instProcess, parts, id_, name_, focus,
 			     agg_op_, type_, flag_cons, base_used,
-			     stmts_, flag_dex, base_dex, temp_ctr_))
+			     stmts_, flag_dex, base_dex, temp_ctr_,
+			     replace_components_if_present))
     return NULL;
 
   // construct aggregate for the metric instance parts
   metricDefinitionNode *ret = NULL;
 
-  //  switch (parts.size()) {
-  //  case 0: break;
-  //  case 1: ret = parts[0]; break;
-  //  default: ret = new metricDefinitionNode(name_, focus, flat_name, parts);
-  //  }
-
   if (parts.size())
+    // create aggregate mi, containing the process components "parts"
     ret = new metricDefinitionNode(name_, focus, flat_name, parts, agg_op_);
-
-//  if (ret) ret->set_inform(true);
 
   // cout << "apply of " << name_ << " ok\n";
   mdl_env::pop();
@@ -1492,18 +1537,18 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   if (icode_reqs_ == NULL)
     return false; // no instrumentation code to put in!
 
-  mdl_var temp(false);
-  if (!point_expr_->apply(temp)) // process the 'point(s)' e.g. "$start.entry"
+  mdl_var pointsVar(false);
+  if (!point_expr_->apply(pointsVar)) // process the 'point(s)' e.g. "$start.entry"
     return false;
 
   vector<instPoint *> points;
-  if (temp.type() == MDL_T_LIST_POINT) {
+  if (pointsVar.type() == MDL_T_LIST_POINT) {
     vector<instPoint *> *pts;
-    if (!temp.get(pts)) return false;
+    if (!pointsVar.get(pts)) return false;
     points = *pts;
-  } else if (temp.type() == MDL_T_POINT) {
+  } else if (pointsVar.type() == MDL_T_POINT) {
     instPoint *p;
-    if (!temp.get(p)) return false; // where the point is located...
+    if (!pointsVar.get(p)) return false; // where the point is located...
       points += p;
   } else {
     return false;
@@ -1573,21 +1618,20 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 
   if (points.size() == 1) {
      // now look at the mdl variable to check for $start.entry.
-     if (temp.name() == "$start" && temp.type()==MDL_T_POINT) {
+     if (pointsVar.name() == "$start" && pointsVar.type()==MDL_T_POINT) {
         // having a type of MDL_T_POINT should mean $start.entry as opposed to
         // $start.exit, since $start.exit would yield a type of MDL_T_LIST_POINT,
         // since exit locations are always a list-of-points.  Sorry for the kludge.
 
         instPoint *theVrbleInstPoint; // NOTE: instPoint is defined in arch-specific files!!!
-	bool aflag;
-        aflag=(temp.get(theVrbleInstPoint)); 
+	bool aflag = pointsVar.get(theVrbleInstPoint);
         // theVrbleInstPoint set to equiv of points[0]
         assert(aflag);
 
 	assert(theVrbleInstPoint == points[0]); // just a sanity check
 
 	mdl_var theVar;
-        aflag=mdl_env::get(theVar, temp.name());
+        aflag=mdl_env::get(theVar, pointsVar.name());
 	assert(aflag);
 
 	pdFunction *theFunction;
@@ -1626,14 +1670,17 @@ bool mdl_can_do(string& met_name) {
 
 metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus, 
                              string& met_name,
-			     string& flat_name, vector<process *> procs) 
-{
+			     string& flat_name,
+			     vector<process *> procs,
+			     bool replace_components_if_present) {
   currentMetric = met_name;
   unsigned size = mdl_data::all_metrics.size();
-  // NOTE: We can do better if there's a dictionary of <metric-name> to <metric>
+  // NOTE: We can do better if there's a dictionary of <metric-name> to <metric>!
   for (unsigned u=0; u<size; u++) 
     if (mdl_data::all_metrics[u]->name_ == met_name) {
-      return (mdl_data::all_metrics[u]->apply(canon_focus, flat_name, procs));
+      return (mdl_data::all_metrics[u]->apply(canon_focus, flat_name, procs,
+					      replace_components_if_present));
+         // calls mdl_metric::apply()
     }
   return NULL;
 }
@@ -2016,7 +2063,7 @@ void mdl_get_info(vector<T_dyninstRPC::metricInfo>& metInfo) {
   }
 }
 
-bool mdl_metric_data(string& met_name, mdl_inst_data& md) {
+bool mdl_metric_data(const string& met_name, mdl_inst_data& md) {
   unsigned size = mdl_data::all_metrics.size();
   for (unsigned u=0; u<size; u++)
     if (mdl_data::all_metrics[u]->name_ == met_name) {
