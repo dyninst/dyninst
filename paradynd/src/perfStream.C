@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.160 2003/07/31 19:01:14 schendel Exp $
+// $Id: perfStream.C,v 1.161 2003/09/05 16:28:29 schendel Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -145,46 +145,46 @@ bool firstSampleReceived = false;
 
 extern bool isInfProcAttached;
 
-/*removed for output redirection
+/* removed for output redirection
 // Read output data from process curr. 
 void processAppIO(process *curr)
 {
-    int ret;
-    char lineBuf[256];
-
+   int ret;
+   char lineBuf[256];
+   
 #if !defined(i386_unknown_nt4_0)
-    ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
+   ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
 #else
-    ret = P_recv(curr->ioLink, lineBuf, sizeof(lineBuf)-1, 0);
+   ret = P_recv(curr->ioLink, lineBuf, sizeof(lineBuf)-1, 0);
 #endif
-    if (ret < 0) {
-        //statusLine("read error");
-	//showErrorCallback(23, "Read error");
-	//cleanUpAndExit(-2);
-        pdstring msg = pdstring("Read error on IO stream from PID=") +
-	             pdstring(curr->getPid()) + pdstring(": ") +
-		     pdstring(sys_errlist[errno]) + 
-		     pdstring("\nNo more data will be received from this process.");
-	showErrorCallback(23, msg);
-	P_close(curr->ioLink);
-	curr->ioLink = -1;
-	return;
-    } else if (ret == 0) {
-	// end of file -- process exited 
-        P_close(curr->ioLink);
-	curr->ioLink = -1;
-	string msg = pdstring("Process ") + pdstring(curr->getPid()) + pdstring(" exited");
-	statusLine(msg.c_str());
-	handleProcessExit(curr,0);
-	
-	return;
-    }
-
-    // null terminate it
-    lineBuf[ret] = '\0';
-    // forward the data to the paradyn process.
-    tp->applicationIO(curr->getPid(), ret, lineBuf);
-       // note: this is an async igen call, so the results may not appear right away.
+   if (ret < 0) {
+      //statusLine("read error");
+      //showErrorCallback(23, "Read error");
+      //cleanUpAndExit(-2);
+      pdstring msg = pdstring("Read error on IO stream from PID=") +
+         pdstring(curr->getPid()) + pdstring(": ") +
+         pdstring(sys_errlist[errno]) + 
+         pdstring("\nNo more data will be received from this process.");
+      showErrorCallback(23, msg);
+      P_close(curr->ioLink);
+      curr->ioLink = -1;
+      return;
+   } else if (ret == 0) {
+      // end of file -- process exited 
+      P_close(curr->ioLink);
+      curr->ioLink = -1;
+      string msg = pdstring("Process ") + pdstring(curr->getPid()) + pdstring(" exited");
+      statusLine(msg.c_str());
+      curr->handleProcessExit(0);
+      
+      return;
+   }
+   
+   // null terminate it
+   lineBuf[ret] = '\0';
+   // forward the data to the paradyn process.
+   tp->applicationIO(curr->getPid(), ret, lineBuf);
+   // note: this is an async igen call, so the results may not appear right away.
 }
 */
 
@@ -290,7 +290,7 @@ void processTraceStream(process *dproc)
        statusLine(msg.c_str());
        P_close(dproc->traceLink);
        dproc->traceLink = -1;
-       handleProcessExit(dproc, 0);
+       dproc->handleProcessExit(0);
        return;
     }
 
@@ -376,7 +376,7 @@ void processTraceStream(process *dproc)
                printDyninstStats();
                P_close(dproc->traceLink);
                dproc->traceLink = -1;
-               handleProcessExit(dproc, 0);
+               dproc->handleProcessExit(0);
                break;
             }
 
@@ -391,8 +391,9 @@ void processTraceStream(process *dproc)
             { 
                int pid = *(int *)recordData;
                pd_process *p = getProcMgr().find_pd_process(pid);
-               p->get_dyn_process()->inExec = false;
-               p->get_dyn_process()->execFilePath = pdstring("");
+               p->get_dyn_process()->lowlevel_process()->inExec = false;
+               p->get_dyn_process()->lowlevel_process()->execFilePath =
+                  pdstring("");
             }
             break;
             
@@ -886,7 +887,7 @@ void controllerMainLoop(bool check_buffer_first)
             continue; // process structure has been deallocated
          if(curProc && curProc->getTraceLink() >= 0 && 
             FD_ISSET(curProc->getTraceLink(), &readSet)) {
-            processTraceStream(curProc->get_dyn_process());
+            processTraceStream(curProc->get_dyn_process()->lowlevel_process());
             /* in the meantime, the process may have died, setting
                curProc to NULL */
             
