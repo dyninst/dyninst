@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.21 2000/05/12 20:54:35 zandy Exp $ */
+/* $Id: test2.mutatee.c,v 1.22 2000/05/15 16:35:18 paradyn Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -70,13 +70,12 @@ void stop_process()
 {
 #ifdef i386_unknown_nt4_0
     DebugBreak();
-    return;
-#endif
-
+#else
 #ifdef DETACH_ON_THE_FLY
     kill(getpid(), SIGILL);
 #else
     kill(getpid(), SIGSTOP);
+#endif
 #endif
 }
 
