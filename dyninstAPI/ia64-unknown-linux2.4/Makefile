@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2002/02/11 22:01:25 tlmiller Exp $
+# $Id: Makefile,v 1.2 2002/03/13 19:28:45 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -9,6 +9,12 @@ NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
+
+# -O2 or higher breaks Object-elf in interesting ways.
+# (Assembler segfaults.)
+# (02/27/2002, Todd L Miller; gcc 2.96 (RH 7.1) and gcc 3.0.3 (RH 7.2))
+NO_OPT_FLAG = true
+OPT_FLAG = -O
 
 include ../../make.config 
 
@@ -43,12 +49,6 @@ TFLAGS           += $(MYFLAGS)
 SYSLIBS = -lelf -ldl
 
 AS		= /usr/bin/as
-
-# no support for elf64_XXX() functions
-# FIXME -- ia64 probably needs elf64_XXX()
-CXXFLAGS	+= -DUSES_ELF32_ONLY
-CFLAGS		+= -DUSES_ELF32_ONLY
-TFLAGS		+= -DUSES_ELF32_ONLY
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
