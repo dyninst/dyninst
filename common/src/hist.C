@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.13  1995/07/06 01:52:13  newhall
+ * Revision 1.14  1995/07/20 22:30:13  rbi
+ * Fixed a folding bug
+ *
+ * Revision 1.13  1995/07/06  01:52:13  newhall
  * support for Histograms with non-zero start time
  *
  * Revision 1.12  1995/06/02  21:00:08  newhall
@@ -283,10 +286,10 @@ void Histogram::foldAllHist()
 	    if((allHist[i])->storageType == HistBucket){
                 Bin *bins = (allHist[i])->dataPtr.buckets;
 		for(unsigned j=0; j < numBins/2; j++){
-                    bins[i] = (bins[i*2] + bins[i*2+1]) / 2.0;
+                    bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0;
 		}
 	        (allHist[i])->lastBin = j - 1; 
-		memset(&bins[i], '\0', (numBins - i) * sizeof(Bin));
+		memset(&bins[j], '\0', (numBins - j) * sizeof(Bin));
 	    }
 	    (allHist[i])->total_time = startTime + 
 				       numBins*(allHist[i])->bucketWidth;
