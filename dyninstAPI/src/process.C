@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.256 2001/07/18 13:29:13 bernat Exp $
+// $Id: process.C,v 1.257 2001/07/26 16:43:44 gurari Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3723,44 +3723,134 @@ vector<function_base *> *process::getIncludedFunctions(module *mod) {
 #endif /* BPATCH_LIBRARY */
 
 
+// Parse name into library name and function name. If no library is specified,
+// lib gets the empty string "". 
+//
+// e.g. libc.so/read => lib_name = libc.so, func_name = read
+//              read => lib_name = "", func_name = read
+void getLibAndFunc(const string &name, string &lib_name, string &func_name) {
+
+  unsigned index = 0;
+  unsigned length = name.length();
+  bool hasNoLib = true;
+ 
+  // clear the strings 
+  lib_name = "";
+  func_name = "";
+
+  // Locate "/" seperating lib name and func name   
+  string slash = "/";
+
+  for (unsigned i = length-1; i > 0 && hasNoLib; i--) {
+    if (name[i] == slash[0]) {
+      index = i;
+      hasNoLib = false; 
+    } 
+  }
+
+  if (hasNoLib) {
+    // No library specified  
+    func_name = name;
+  } else { 
+      // Grab library name and function name 
+      lib_name = name.substr(0, index);
+      func_name = name.substr(index+1, length-index);
+  }
+}
+
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
-function_base *process::findOneFunction(const string &func_name){
-    // first check a.out for function symbol
-    function_base *pdf = symbols->findOneFunction(func_name);
-    if(pdf) {
-      return pdf;
+function_base *process::findOneFunction(const string &name){
+
+    string lib_name;
+    string func_name;
+
+    // Split name into library and function
+    getLibAndFunc(name, lib_name, func_name);
+
+    // If no library was specified, grab the first function we find
+    if (lib_name == "") {
+
+      // first check a.out for function symbol
+      function_base *pdf = symbols->findOneFunction(func_name);
+      if(pdf) {
+        return pdf;
+      }
+
+      // search any shared libraries for the file name 
+      if(dynamiclinking && shared_objects){
+        for(u_int j=0; j < shared_objects->size(); j++){
+          pdf = ((*shared_objects)[j])->findOneFunction(func_name,false);
+          if(pdf){
+            return(pdf);
+          }
+        }
+      }
+
+    } else {
+      
+        // Search specified shared library for function 
+        if(dynamiclinking && shared_objects){ 
+          for(u_int j=0; j < shared_objects->size(); j++){
+            shared_object *so = (*shared_objects)[j];
+
+            // Add wildcards to make name matching easy
+            lib_name = "*" + lib_name + "*";
+            if(lib_name.wildcardEquiv(so->getName(), false)) {
+              return(so->findOneFunction(func_name, false));
+            }
+	  }
+	}
     }
 
-    // search any shared libraries for the file name 
-    if(dynamiclinking && shared_objects){
-        for(u_int j=0; j < shared_objects->size(); j++){
-            pdf = ((*shared_objects)[j])->findOneFunction(func_name,false);
-            if(pdf){
-                return(pdf);
-            }
-    } }
     return(0);
 }
 
 // findOneFunctionFromAll: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
-function_base *process::findOneFunctionFromAll(const string &func_name){
-    
-    // first check a.out for function symbol
-    function_base *pdf = symbols->findOneFunctionFromAll(func_name);
-    if(pdf) return pdf;
+function_base *process::findOneFunctionFromAll(const string &name){
 
-    // search any shared libraries for the file name 
-    if(dynamiclinking && shared_objects){
+    string lib_name;
+    string func_name;
+
+    // Split name into library and function
+    getLibAndFunc(name, lib_name, func_name);
+
+    // If no library was specified, grab the first function we find
+    if (lib_name == "") {
+    
+      // first check a.out for function symbol
+      function_base *pdf = symbols->findOneFunctionFromAll(func_name);
+      if(pdf) return pdf;
+
+      // search any shared libraries for the file name 
+      if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-            pdf=((*shared_objects)[j])->findOneFunctionFromAll(func_name,false);
+          pdf=((*shared_objects)[j])->findOneFunctionFromAll(func_name, false);
             if(pdf){
-                return(pdf);
+              return(pdf);
             }
-    } }
+	}
+      }
+
+    } else {
+      
+        // Library was specified, search lib for function func_name 
+        if(dynamiclinking && shared_objects){ 
+          for(u_int j=0; j < shared_objects->size(); j++){
+            shared_object *so = (*shared_objects)[j];
+
+            // Add wildcards to make name matching easy
+            lib_name = "*" + lib_name + "*";
+            if(lib_name.wildcardEquiv(so->getName(), false)) {
+              return(so->findOneFunction(func_name, false));
+            }
+	  }
+	}
+    }
+
     return(0);
 }
 
