@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.14 2001/08/01 15:39:49 chadd Exp $
+ * $Id: Types.h,v 1.15 2001/08/07 20:49:02 chadd Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -81,7 +81,7 @@ WindowsNT    nonexistant
   # we rename all of the 64 bit literal macros to our shortened name
 */
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) /*ccw 20 july 2000 : 29 mar 2001*/
 /* nt -------------------------- */
 typedef __int64 int64_t;
 typedef __int32 int32_t;
@@ -121,7 +121,7 @@ typedef unsigned long uint64_t;
 #elif defined(alpha_dec_osf4_0)     /* osf ---------------------------- */
 #define I64_C(x)  (x##l)
 #define UI64_C(x) (x##ul)
-#elif defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 mar 2001
+#elif defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) /*ccw 20 mar 2001*/
 				   /* nt ----------------------------- */
 #define I64_C(x)  (x##i64)
 #define UI64_C(x) (x##ui64)
@@ -151,7 +151,7 @@ typedef unsigned long uint64_t;
    warning is printed when the ...808 int64 minimum is used, so we'll get the
    value with some trickery */
 #define I64_MIN    (-I64_MAX-1)
-#elif defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 20 mar 2001
+#elif defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) /*ccw 20 mar 2001*/
 			 /* nt ----------------------------- */
 #include <limits.h>
 #define I64_MAX  _I64_MAX

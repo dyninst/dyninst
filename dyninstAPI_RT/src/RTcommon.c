@@ -39,18 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.16 2001/08/01 15:39:59 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.17 2001/08/07 20:49:01 chadd Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
 #define getpid _getpid
 #else
-#if !defined(mips_unknown_ce2_11) //ccw 15 may 2000 : 29 mar 2001
+#if !defined(mips_unknown_ce2_11) /*ccw 15 may 2000 : 29 mar 2001*/
 #include <unistd.h>
 #endif
 
 #endif
-#if !defined(mips_unknown_ce2_11) //ccw 15 may 2000 : 29 mar 2001
+#if !defined(mips_unknown_ce2_11) /*ccw 15 may 2000 : 29 mar 2001*/
 #include <assert.h>
 #endif
 
@@ -65,7 +65,7 @@ unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
 					   2 : initialized by Dyninst
 					   3 : initialized by Paradyn */
 
-struct DYNINST_bootstrapStruct DYNINST_bootstrap_info ={0,0,0,'\0'} ; //ccw 10 oct 2000 : 29 mar 2001
+struct DYNINST_bootstrapStruct DYNINST_bootstrap_info ={0,0,0,'\0'} ; /*ccw 10 oct 2000 : 29 mar 2001*/
 
 double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)];
 double DYNINSTstaticHeap_32K_lowmemHeap_1[32*1024/sizeof(double)];
@@ -99,10 +99,10 @@ static void initFPU()
        DYNINSTdummydouble *= x;
 }
 
-#if defined(i386_unknown_nt4_0)  //ccw 13 june 2001
-// these variables are used by the mutator to pass values to the dll
-// they are only used by the win2k/nt40 dyninstAPI
-int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; //ccw 2 may 2001
+#if defined(i386_unknown_nt4_0)  /*ccw 13 june 2001*/
+/* these variables are used by the mutator to pass values to the dll
+ they are only used by the win2k/nt40 dyninstAPI*/
+int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; /*ccw 2 may 2001*/
 #endif
 
 
@@ -121,18 +121,18 @@ void DYNINSTinit(int cause, int pid)
     else if (cause == 3) calledByAttach = 1;
 
     /* sanity check */
-#if !defined(mips_unknown_ce2_11) //ccw 15 may 2000 : 29 mar 2001
+#if !defined(mips_unknown_ce2_11) /*ccw 15 may 2000 : 29 mar 2001*/
     assert(sizeof(int64_t) == 8);
     assert(sizeof(int32_t) == 4);
 #endif
 
-#ifndef mips_unknown_ce2_11 //ccw 23 july 2001
+#ifndef mips_unknown_ce2_11 /*ccw 23 july 2001*/
     RTprintf("%s\n", V_libdyninstAPI_RT);
 #endif
 
     DYNINSTos_init(calledByFork, calledByAttach);
 
-#if !defined(mips_unknown_ce2_11) //ccw 16 may 2000 : 29 mar 2001
+#if !defined(mips_unknown_ce2_11) /*ccw 16 may 2000 : 29 mar 2001*/
     DYNINST_bootstrap_info.pid = getpid();
 #endif
     DYNINST_bootstrap_info.ppid = pid;
@@ -140,32 +140,33 @@ void DYNINSTinit(int cause, int pid)
 
     DYNINST_mutatorPid = pid;
 
-#ifndef i386_unknown_nt4_0 //ccw 13 june 2001
+#ifndef i386_unknown_nt4_0 /*ccw 13 june 2001*/
 
 #ifndef mips_unknown_ce2_11 
    DYNINSTbreakPoint();
 #else
-	__asm("break 1"); //ccw 25 oct 2000 : 29 mar 2001
-	__asm("nop");//ccw 30 jan 2001
+	__asm("break 1"); /*ccw 25 oct 2000 : 29 mar 2001*/
+	__asm("nop");
 #endif
 
 #endif
 }
 
-#if defined(i386_unknown_nt4_0)  //ccw 13 june 2001
+#if defined(i386_unknown_nt4_0)  /*ccw 13 june 2001*/
 #include <windows.h>
 
-// this function is automatically called when windows loads this dll
-// if we are launching a mutatee to instrument, dyninst will place
-// the correct values in libdyninstAPI_RT_DLL_localPid and
-// libdyninstAPI_RT_DLL_localCause and they will be passed to
-// DYNINSTinit to correctly initialize the dll.  this keeps us
-// from having to instrument two steps from the mutator (load and then 
-// the execution of DYNINSTinit()
+/* this function is automatically called when windows loads this dll
+ if we are launching a mutatee to instrument, dyninst will place
+ the correct values in libdyninstAPI_RT_DLL_localPid and
+ libdyninstAPI_RT_DLL_localCause and they will be passed to
+ DYNINSTinit to correctly initialize the dll.  this keeps us
+ from having to instrument two steps from the mutator (load and then 
+ the execution of DYNINSTinit()
+*/
 BOOL WINAPI DllMain(
-  HINSTANCE hinstDLL,  // handle to DLL module
-  DWORD fdwReason,     // reason for calling function
-  LPVOID lpvReserved   // reserved
+  HINSTANCE hinstDLL,  /* handle to DLL module */
+  DWORD fdwReason,     /* reason for calling function */
+  LPVOID lpvReserved   /* reserved */
 ){
 
 	if(libdyninstAPI_RT_DLL_localPid != -1 || libdyninstAPI_RT_DLL_localCause != -1){
@@ -177,7 +178,7 @@ BOOL WINAPI DllMain(
 
 #endif
 
-#if !defined(i386_unknown_nt4_0)  && !defined(mips_unknown_ce2_11)//ccw 2 may 2000 : 29 mar 2001
+#if !defined(i386_unknown_nt4_0)  && !defined(mips_unknown_ce2_11)/*ccw 2 may 2000 : 29 mar 2001*/
 /*
  * handle vfork special case
  */
