@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.23 2004/07/28 07:24:47 jaw Exp $
+/* $Id: shmMgr.C,v 1.24 2004/08/13 19:33:25 legendre Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -76,7 +76,6 @@ bool shmMgr::initialize() {
         fprintf(stderr, "Failed to load shared memory library\n");
         return false;
     }
-    fprintf(stderr, "%s[%d]: Loaded library %s\n", __FILE__, __LINE__, shm_lib_name); 
     BPatch_Vector<BPatch_module *> * mods = app_thread->getImage()->getModules();
     static char mnamebuf[512];
     BPatch_module *shm_mod = NULL;
