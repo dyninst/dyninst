@@ -534,6 +534,11 @@ static bool changePC_common(int pid, unsigned flagsReg, unsigned loc) {
    return true;
 }
 
+bool process::executingSystemCall() {
+   // this is not implemented yet - naim 5/15/97
+   return false;
+}
+
 bool process::changePC(unsigned loc) {
    // first we need to get the flags register, so we can check to see
    // if we're in the middle of a system call.

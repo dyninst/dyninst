@@ -433,6 +433,11 @@ while (true) {
    return true;
 }
 
+bool process::executingSystemCall() {
+   // this is not implemented yet - naim 5/15/97
+   return false;
+}
+
 bool process::changePC(unsigned loc) {
    return changePC(loc, NULL);
 }

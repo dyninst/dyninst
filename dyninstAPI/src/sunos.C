@@ -41,6 +41,10 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.27  1997/05/16 18:48:26  naim
+ * Fixing problem when inferiorRPC was launched and the application was in
+ * the middle of a system call - naim
+ *
  * Revision 1.26  1997/04/14 00:22:26  newhall
  * removed class pdFunction and replaced it with base class function_base and
  * derived class pd_Function
@@ -255,6 +259,11 @@ static bool changePC(int pid, struct regs &theIntRegs, unsigned loc) {
    }
 
    return true;
+}
+
+bool process::executingSystemCall() {
+   // this is not implemented yet - naim 5/15/97
+   return false;
 }
 
 bool process::changePC(unsigned loc, const void *savedRegs) {

@@ -365,6 +365,8 @@ class process {
                 const void *savedRegs // returned by getRegisters()
                 );
 
+  bool executingSystemCall();
+
   bool restoreRegisters(void *buffer);
      // input is the opaque type returned by getRegisters()
 

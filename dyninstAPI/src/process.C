@@ -2591,6 +2591,11 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
       // duh, no RPC is waiting to run, so there's nothing to do.
       return false;
 
+   // Are we in the middle of a system call? If we are, it's not safe to
+   // launch an inferiorRPC - naim 5/16/97
+   if (executingSystemCall())
+     return false;
+
    /* ****************************************************** */
 
    if (status_ == exited)
@@ -2947,8 +2952,9 @@ bool process::handleTrapIfDueToRPC() {
 
    // step 3) continue process, if appropriate
    if (theStruct.wasRunning) {
-      if (!continueProc())
+      if (!continueProc()) {
 	 cerr << "RPC completion: continueProc failed" << endl;
+      }
    }
 
    // step 4) invoke user callback, if any

@@ -715,6 +715,18 @@ void *process::getRegisters(bool &) {
    return buffer;
 }
 
+bool process::executingSystemCall() {
+   prstatus theStatus;
+   if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
+     if (theStatus.pr_syscall > 0) {
+       sprintf(errorLine,"--> (pid=%d) trying to launch inferiorRPC in the middle of a syscall (pr_syscall=%d)\n",pid,theStatus.pr_syscall);
+       logLine(errorLine);
+       return(true);
+     }
+   } else assert(0);
+   return(false);
+}
+
 bool process::changePC(unsigned addr, const void *savedRegs) {
    assert(status_ == stopped);
 
