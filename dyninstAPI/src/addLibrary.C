@@ -43,7 +43,7 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.16 2005/03/18 04:34:56 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.17 2005/03/20 19:24:36 chadd Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
@@ -413,7 +413,7 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 	}
 
 
-	int currentOffset;//ccw 6 mar 2005 
+	int currentOffset=0;//ccw 6 mar 2005 
 	bool bssSeen = false; //ccw 6 mar 2005
 	newSegments = (Elf32_Shdr**) new char[sizeof(Elf32_Shdr*) * (numberExtraSegs+1)]; //INSURE ERROR
 	for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
@@ -428,6 +428,9 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
                         realData->d_buf = new char[newElfFileSec[cnt].sec_data->d_size];
                         memcpy(realData->d_buf, newElfFileSec[cnt].sec_data->d_buf, newElfFileSec[cnt].sec_data->d_size);
                 }
+		if(currentOffset){
+			realShdr->sh_offset = currentOffset;
+		}
 
 		if(!foundDynstr){
 			if(!strcmp(".hash", (char *)l_strTabData->d_buf+realShdr->sh_name)){
@@ -470,20 +473,24 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 			pastPhdr = 1;
 		}
 		if( !strncmp("dyninstAPI",(char *)l_strTabData->d_buf+realShdr->sh_name, 10)){
-	
-			if(!strncmp("dyninstAPIhighmem_",(char *)l_strTabData->d_buf+realShdr->sh_name, 18)){
+			//fprintf(stderr,"CURR OFFSET: %x\n", currentOffset);
+			realShdr->sh_offset = currentOffset;
+
+			if(!strstr((char *)l_strTabData->d_buf+realShdr->sh_name,"dyninstAPIhighmem")){
 				//since this is not loaded by the loader, ie it is mmaped (maybe)
 				//by libdyninstAPI_RT.so it only needs aligned on the real pag size
-				realShdr->sh_offset +=extraSegmentPad; //ccw 23 jul 2003
+				//realShdr->sh_offset +=extraSegmentPad; //ccw 23 jul 2003
+				//fprintf(stderr,"highmem offset: %x\n",realShdr->sh_offset);
 				while( (realShdr->sh_offset)%realPageSize ){
 					realShdr->sh_offset ++;
 					extraSegmentPad++;
 				}
+				//fprintf(stderr,"NEW highmem offset: %x\n",realShdr->sh_offset);
 				foundExtraSegment = 1;
 			}else if(strcmp("dyninstAPI_mutatedSO", (char *)l_strTabData->d_buf+realShdr->sh_name)  &&
 				strcmp("dyninstAPI_data", (char *)l_strTabData->d_buf+realShdr->sh_name) 	){
 	
-				realShdr->sh_offset += extraSegmentPad;
+				//realShdr->sh_offset += extraSegmentPad;
 				while( (realShdr->sh_addr - realShdr->sh_offset)%0x10000 ){
 					realShdr->sh_offset ++;
 					extraSegmentPad++;
@@ -492,8 +499,11 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 				foundExtraSegment = 1;
 				newSegments[atoi(& ( ((char *)l_strTabData->d_buf+realShdr->sh_name )[11]))] = realShdr;
 			} else{
-				realShdr->sh_offset += extraSegmentPad;
-			}	
+				//realShdr->sh_offset += extraSegmentPad;
+			}
+			currentOffset = realShdr->sh_offset + realShdr->sh_size;
+			elf_flagscn(realScn,ELF_C_SET,ELF_F_LAYOUT);
+			elf_flagshdr(realScn,ELF_C_SET,ELF_F_LAYOUT);
 
 		}else if(foundExtraSegment){
 			realShdr->sh_offset += extraSegmentPad;
@@ -501,7 +511,7 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 		if( !strcmp("rtlib_addr", (char *)l_strTabData->d_buf+realShdr->sh_name) ){
 			bssSeen = true;
 			currentOffset = realShdr->sh_offset+realShdr->sh_size;
-		}//else{
+		}else if(strncmp("dyninstAPI",(char *)l_strTabData->d_buf+realShdr->sh_name, 10)){
 
 			/************************************/
 			if( bssSeen ){
@@ -527,7 +537,8 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 			}
 			/***********************************/
 
-		//}
+		}
+
 	}
 	realEhdr ->e_shoff += _pageSize + extraSegmentPad;	
 	if( realEhdr->e_shoff  % 16 !=0 ){ //ccw 10 mar 2005

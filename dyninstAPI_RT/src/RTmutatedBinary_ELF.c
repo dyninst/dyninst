@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.11 2005/03/18 04:34:57 chadd Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.12 2005/03/20 19:24:37 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -346,18 +346,6 @@ void dyninst_jump_template(){
 #endif
 
 #if defined (sparc_sun_solaris2_4)
-int checkMap(unsigned int addr){
-	int index=0;
-	
-	while(index < procMemMapSize){
-		if( procMemMap[index].pr_vaddr <= addr && (procMemMap[index].pr_vaddr + (unsigned int)procMemMap[index].pr_size) > addr){
-			return 1;
-		}
-		index++;
-	}
-	return 0;
-}
-
 void findMap(){ /* ccw 12 mar 2004*/
 
 	Dl_info dlip;
@@ -369,12 +357,12 @@ void findMap(){ /* ccw 12 mar 2004*/
 	int offset = 0;
 	struct stat statInfo;
 
-	if( procMemMap ){
-		return;
-	}
 	sprintf(fileName, "/proc/%d/map", me);
 	
 	stat(fileName, &statInfo);
+	if( procMemMap ) {
+		free(procMemMap);
+	}
 	procMemMap = (prmap_t*) malloc(statInfo.st_size);
 
 	fd = open(fileName, O_RDONLY);
@@ -383,8 +371,22 @@ void findMap(){ /* ccw 12 mar 2004*/
 		offset += sizeof(prmap_t);
 		index++;
 	}
+	close(fd);
 	procMemMapSize = index;
 
+}
+
+int checkMap(unsigned int addr){
+	int index=0;
+
+	findMap();	
+	while(index < procMemMapSize){
+		if( procMemMap[index].pr_vaddr <= addr && (procMemMap[index].pr_vaddr + (unsigned int)procMemMap[index].pr_size) > addr){
+			return 1;
+		}
+		index++;
+	}
+	return 0;
 }
 #endif
 
@@ -601,15 +603,17 @@ int checkMutatedFile(){
 
 				if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
 					/* this is a heap tramp section */
-					if( sawFirstHeapTrampSection ){
+				/*	if( sawFirstHeapTrampSection ){
 						result = (int) mmap((void*) shdr->sh_addr, shdr->sh_size, 
 	        	                           PROT_READ|PROT_WRITE|PROT_EXEC,
                         		           MAP_FIXED|MAP_PRIVATE,fd,shdr->sh_offset);
-					}else{
+						fprintf(stderr,"%s mmap res: %d :: %x %x\n",((char *)strData->d_buf + shdr->sh_name),result,shdr->sh_addr,shdr->sh_size);
+					}else{*/
 						elfData = elf_getdata(scn, NULL);
 						memcpy((void*)shdr->sh_addr, elfData->d_buf, shdr->sh_size);
 						sawFirstHeapTrampSection = 1;
-					}
+						/*fprintf(stderr,"%s memcpy %d\n",((char *)strData->d_buf + shdr->sh_name),shdr->sh_addr);*/
+				/*	}*/
 				}
 			}
 		}
@@ -905,16 +909,23 @@ int checkMutatedFile(){
 			*/
 
 			int oldPageDataSize;
+			int count =0;
 
 			retVal = 1; /* just to be sure */
 			elfData = elf_getdata(scn, NULL);
-			numberUpdates = (unsigned int) ( ((unsigned int*) elfData->d_buf)[
-				(elfData->d_size - sizeof(unsigned int))/ sizeof(unsigned int) ]);
+			numberUpdates = 0;
+			
+			/*this section may be padded out with zeros to align the next section
+			  so we need to look backwards until we find a nonzero value */
+			while(numberUpdates == 0){
+				count++;
+				numberUpdates = (unsigned int) ( ((unsigned int*) elfData->d_buf)[
+					(elfData->d_size - (sizeof(unsigned int)*count))/ sizeof(unsigned int) ]);
+			}
 
 			/*fprintf(stderr," numberUpdates: %d :: (%d - 4) / 4  %x\n", numberUpdates, elfData->d_size, (unsigned int*) &elfData->d_buf );*/
 
-			oldPageDataSize = shdr->sh_size-((2*numberUpdates+1)*
-				sizeof(unsigned int)) ;
+			oldPageDataSize = shdr->sh_size-(((2*numberUpdates)* sizeof(unsigned int)) +((sizeof(unsigned int)*count))) ;
 
 
 			oldPageData = (char*) malloc(oldPageDataSize+sizeof(unsigned int));
@@ -935,7 +946,7 @@ int checkMutatedFile(){
 #endif
 
 
-			updateSize  = shdr->sh_size-((2*numberUpdates+1)* sizeof(unsigned int));
+			updateSize  = shdr->sh_size-((2*numberUpdates)* (sizeof(unsigned int)) -(count* (sizeof(unsigned int))));
 			/*fprintf(stderr," updateSize : %d-((2 * %d + 1) * 4))",shdr->sh_size, numberUpdates);*/
 	
 			if(!checkAddr){ 
@@ -944,11 +955,14 @@ int checkMutatedFile(){
                         	mmapAddr = shdr->sh_offset;
                         	mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,oldPageDataSize,
                                 	PROT_READ|PROT_WRITE|PROT_EXEC,MAP_FIXED|MAP_PRIVATE,fd,mmapAddr);
+					/*fprintf(stderr,"MMAP %x %d %x size: %x\n",shdr->sh_addr, mmapAddr,shdr->sh_offset,oldPageDataSize);*/
+					
 
 			}else{
 				/*we own it, finish the memcpy */
 				mmapAddr = (unsigned int) memcpy((void*) oldPageData, 
-                                      (const void*) shdr->sh_addr, updateSize);
+                                      (const void*) shdr->sh_addr, oldPageDataSize);
+				/*fprintf(stderr,"memcpy %x %d\n",shdr->sh_addr, updateSize);*/
 
 			}
 
@@ -960,8 +974,7 @@ int checkMutatedFile(){
 
 				updateOffset = updateAddress - shdr->sh_addr;
 				/*do update*/	
-				/*fprintf(stderr,"updateAddress %x : %x %x %d %d\n",updateAddress,&( oldPageData[updateOffset]),
-						&(((char*)elfData->d_buf)[updateOffset]) , updateSize,updateOffset);*/
+				/*fprintf(stderr,"updateAddress %x : %x %x %d %d\n",updateAddress,&( oldPageData[updateOffset]), &(((char*)elfData->d_buf)[updateOffset]) , updateSize,updateOffset);*/
 				memcpy(&( oldPageData[updateOffset]),
 						&(((char*)elfData->d_buf)[updateOffset]) , updateSize);	
 
@@ -975,11 +988,13 @@ int checkMutatedFile(){
 				mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,oldPageDataSize, 
 					PROT_READ|PROT_WRITE|PROT_EXEC, MAP_FIXED| MAP_PRIVATE,fd,mmapAddr);
 
+					/*fprintf(stderr,"2MMAP %x %d\n",shdr->sh_addr, mmapAddr);*/
 
 
 			}else{
 
 				memcpy((void*) shdr->sh_addr, oldPageData,oldPageDataSize );
+				/*fprintf(stderr,"2memcpy %x %d\n",shdr->sh_addr, oldPageDataSize);*/
 
 			}
 		}

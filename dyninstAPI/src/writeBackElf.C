@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.24 2005/03/18 04:34:57 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.25 2005/03/20 19:24:36 chadd Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -368,20 +368,30 @@ void writeBackElf::parseOldElf(){
 
 bool writeBackElf::createElf(){
 	unsigned int i;
-	for(i=0;i< newSectionsSize && newSections[i].loadable;i++); // find the last loadable section
-	if(i ||  oldLastPage == newSections[0].vaddr/pageSize  ){
-		//if we find a loadable sectin
-		//OR the first section is immediately after
-		//.bss but not loadable
-		if(!i){ //pretend we found a loadalbe seciton at position 0
-			i++;
-		}
-		newHeapAddr = newSections[i-1].vaddr +newSections[i-1].dataSize;
-		
-		while(newHeapAddr % 0x8){
-			newHeapAddr++;
+	for(i=0;i< newSectionsSize ;i++){
+
+	/* move the heap address beyond the last dyninstAPI_######## section */
+		if( newSections[i].name ){
+			char *strStart = strstr(newSections[i].name,"dyninstAPI_");
+
+			if(strStart){
+				strStart =  strstr(newSections[i].name,"_");
+				strStart ++;
+				/*make sure this is a dyninstAPI_######## section*/
+				if( *strStart>=0x30 && *strStart <= 0x39 ) {
+
+					newHeapAddr = newSections[i].vaddr +newSections[i].dataSize;
+
+       			        	while(newHeapAddr % pageSize){
+                       				newHeapAddr++;
+                			}
+				}
+
+			}
+
 		}
 	}
+
 	driver();
 	return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.14 2005/03/18 04:34:57 chadd Exp $
+// $Id: test9.C,v 1.15 2005/03/20 19:24:37 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -192,32 +192,6 @@ BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
     delete [] lowercase;
     return ret;
 }
-
-// check that the cost of a snippet is sane.  Due to differences between
-//   platforms, it is impossible to check this exactly in a machine independent
-//   manner.
-void checkCost(BPatch_snippet snippet)
-{
-    float cost;
-    BPatch_snippet copy;
-
-    // test copy constructor too.
-    copy = snippet;
-
-    cost = snippet.getCost();
-    dprintf("Snippet cost=%g\n", cost);
-    if (cost < 0.0) {
-fprintf(stderr,"*Error*: negative snippet cost\n");
-    } else if (cost == 0.0) {
-#if !defined(alpha_dec_osf4_0)
-fprintf(stderr,"*Warning*: zero snippet cost\n");
-#endif
-    } else if (cost > 0.01) {
-fprintf(stderr,"*Error*: snippet cost of %f, exceeds max expected of 0.1",
-	    cost);
-    }
-}
-
 
 char* saveWorld(BPatch_thread *appThread){
 
@@ -500,7 +474,6 @@ void instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, c
   BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
   
   dprintf("Inserted snippet2\n");
-  checkCost(call1Expr);
   appThread->insertSnippet(call1Expr, *point1_1);
 
 
@@ -747,7 +720,6 @@ void mutatorTest3(char *pathname)
     BPatch_funcCallExpr call2Expr(*call2_func, call2_args);
 
     dprintf("Inserted snippet2\n");
-    checkCost(call2Expr);
     appThread->insertSnippet(call2Expr, *point3_1, BPatch_callBefore, BPatch_lastSnippet);
 
 	char * dirname = saveWorld(appThread);

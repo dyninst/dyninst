@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.177 2005/03/18 04:34:57 chadd Exp $
+// $Id: solaris.C,v 1.178 2005/03/20 19:24:36 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -225,6 +225,23 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
 	unsigned int dyninst_SharedLibrariesSize = 0, mutatedSharedObjectsNumb;
 
+	newElf = new writeBackElf(( char*) getImage()->file().c_str(),
+		"/tmp/dyninstMutatee",errFlag);
+	newElf->registerProcess(this);
+	//add section that has, as its address, the original load address of
+	//libdyninstAPI_RT.so.  The RT lib will check to see that it is loaded
+	//in the correct place when the mutated binary is run.
+
+	Address rtlibAddr;
+	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
+		sh_obj = (*shared_objects)[i];
+		if( strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) {
+			rtlibAddr = sh_obj->getBaseAddress();
+		}
+	}
+
+	/*fprintf(stderr,"SAVING RTLIB ADDR: %x\n",rtlibAddr);*/
+	newElf->addSection(0,&rtlibAddr,sizeof(Address),"rtlib_addr",false);
 /*
 	//save the RT lib to the new directory using dldump in the RT lib.
 	if(!dldumpSharedLibrary(dyninstRT_name, directoryName)){
@@ -308,9 +325,9 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	}
 	char *dyninst_SharedLibrariesData = saveWorldCreateSharedLibrariesSection(dyninst_SharedLibrariesSize);
 
-	newElf = new writeBackElf(( char*) getImage()->file().c_str(),
+	/*newElf = new writeBackElf(( char*) getImage()->file().c_str(),
 		"/tmp/dyninstMutatee",errFlag);
-	newElf->registerProcess(this);
+	newElf->registerProcess(this);*/
 
 	imageUpdates.sort(imageUpdateSort);// imageUpdate::mysort ); 
 
@@ -446,7 +463,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	saveWorldAddSharedLibs((void*)newElf); // ccw 14 may 2002 
 
 	saveWorldCreateDataSections((void*)newElf);
-
+/*
 	//add section that has, as its address, the original load address of
 	//libdyninstAPI_RT.so.  The RT lib will check to see that it is loaded
 	//in the correct place when the mutated binary is run.
@@ -458,9 +475,9 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 			rtlibAddr = sh_obj->getBaseAddress();
 		}
 	}
-
+*/
 	/*fprintf(stderr,"SAVING RTLIB ADDR: %x\n",rtlibAddr);*/
-	newElf->addSection(0,&rtlibAddr,sizeof(Address),"rtlib_addr",false);
+//	newElf->addSection(0,&rtlibAddr,sizeof(Address),"rtlib_addr",false);
 
 	newElf->createElf();
 	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
