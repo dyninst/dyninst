@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphTcl.C,v 1.1 1999/05/24 16:58:47 cain Exp $
+// $Id: callGraphTcl.C,v 1.2 1999/06/04 16:07:44 cain Exp $
 
 //CallGraphTcl.C: this file contains all of the tcl routines necessary
 //to control the callGraph. These are all modified versions of the functions
@@ -107,7 +107,7 @@ int callGraphExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 
 //NEED TO IMPLEMENT????
 int callGraphVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
-				       int argc, char **argv) {
+				       int argc, char **) {
    cerr << "In callGraphVisibilityCallbackCommand\n";
    if (!tryFirstGoodCallGraphWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
@@ -189,8 +189,8 @@ int callGraphAltPressCommand(ClientData, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int callGraphAltReleaseCommand(ClientData, Tcl_Interp *interp,
-			       int argc, char **argv) {
+int callGraphAltReleaseCommand(ClientData, Tcl_Interp *,
+			       int, char **) {
 
    if (haveSeenFirstGoodCallGraphWid)
      theCallGraphPrograms->altRelease();
@@ -198,20 +198,20 @@ int callGraphAltReleaseCommand(ClientData, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int callGraphShowFullPathCommand(ClientData, Tcl_Interp *interp,
-				 int argc, char **argv){
+int callGraphShowFullPathCommand(ClientData, Tcl_Interp *,
+				 int, char **){
   theCallGraphPrograms->changeNameStyle(true);
   return TCL_OK;
 }
 
-int callGraphHideFullPathCommand(ClientData, Tcl_Interp *interp,
-				 int argc, char **argv){
+int callGraphHideFullPathCommand(ClientData, Tcl_Interp *,
+				 int, char **){
   theCallGraphPrograms->changeNameStyle(false);
   return TCL_OK;
 }
 
-int callGraphCreateCommand(ClientData, Tcl_Interp *interp,
-		     int argc, char **argv){
+int callGraphCreateCommand(ClientData, Tcl_Interp *,
+		     int, char **){
   dataMgr->createCallGraph();
   return TCL_OK;
 }
