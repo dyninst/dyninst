@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.89 2003/07/18 15:45:14 schendel Exp $
+// $Id: rpcUtil.C,v 1.90 2004/03/21 00:23:23 pcroth Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -676,98 +676,170 @@ XDRrpc::XDRrpc(int family,
 PDSOCKET
 execCmd(const pdstring command, const pdvector<pdstring> &arg_list)
 {
-  PDSOCKET ret;
-  PDSOCKET sv[2];
+    PDSOCKET ret;
+    PDSOCKET sv[2];
 
 #if !defined(i386_unknown_nt4_0)
-  int execlERROR;
+    int execlERROR;
 
-  errno = 0;
-  ret = P_socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
-  if (ret==-1) return(ret);
-  execlERROR = 0;
-  int al_len = arg_list.size();
-  char **new_al = new char*[al_len+2];
-  // TODO argv[0] should not include path
-  new_al[0] = P_strdup(command.c_str());
-  new_al[al_len+1] = NULL;
-  for (int i=0; i<al_len; ++i)
+    errno = 0;
+    ret = P_socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
+    if (ret==-1) return(ret);
+    execlERROR = 0;
+    int al_len = arg_list.size();
+    char **new_al = new char*[al_len+2];
+    // TODO argv[0] should not include path
+    new_al[0] = P_strdup(command.c_str());
+    new_al[al_len+1] = NULL;
+    for (int i=0; i<al_len; ++i)
     new_al[i+1] = P_strdup(arg_list[i].c_str());
-  ret = -1;
+    ret = -1;
 
-  int pid;
-  pid = vfork();
-  // close sv[0] after exec 
-  P_fcntl(sv[0],F_SETFD,1);  
+    // build a pipe we can use to tell whether the child exec'd successfully
+    int epipe[2];
+    int pret = pipe( epipe );
+    if( pret == -1 )
+    {
+        // we failed to create the "exec failed" pipe
+        return -1;
+    }
 
-  if (pid == 0) {
-    if (P_close(sv[0])) { execlERROR = errno; _exit(-1);}
-    if (P_dup2(sv[1], 0)) { execlERROR = errno; _exit(-1);}
-    P_execvp(new_al[0], new_al);
-    execlERROR = errno;
-    _exit(-1);
-  } else if (pid > 0 && !execlERROR) {
-    P_close(sv[1]);
-    ret = sv[0];
-  }
+    // set the child's pipe endpoint to close automatically when it execs
+    int fret = fcntl( epipe[1], F_GETFD );
+    if( fret == -1 )
+    {
+        // we failed to retrieve the child endpoint descriptor flags
+        return -1;
+    }
+    fret = fcntl( epipe[1], F_SETFD, fret | FD_CLOEXEC );
+    if( fret == -1 )
+    {
+        // we failed to set the child endpoint descriptor flags
+        return -1;
+    }
 
-  al_len=0;
-  while (new_al[al_len]) {
-    free(new_al[al_len]);
-    al_len++;
-  }
-  delete [] new_al;
+    pid_t pid = fork();
+
+    // close sv[0] after exec 
+    P_fcntl(sv[0],F_SETFD,1);  
+
+    if( pid > 0 )
+    {
+        // we're the parent
+
+        // close the child's end of the "exec failed" pipe
+        close( epipe[1] );
+
+        // determine whether the child exec'd successfully
+        ssize_t nread = read( epipe[0], &execlERROR, sizeof(execlERROR) );
+        close( epipe[0] );
+        if( nread == sizeof(execlERROR) )
+        {
+            // the child wrote to the "exec failed" pipe
+            // so we know it failed the exec
+            return -1;
+        }
+
+        P_close(sv[1]);
+        ret = sv[0];
+    }
+    else if( pid == 0 )
+    {
+        // we're the child
+
+        // close the parent's end of the "exec failed" pipe
+        close( epipe[0] );
+
+        if (P_close(sv[0]))
+        {
+            execlERROR = errno; 
+            write( epipe[1], &execlERROR, sizeof(execlERROR) );
+            close( epipe[1] );
+            _exit(-1);
+        }
+        if (P_dup2(sv[1], 0))
+        {
+            execlERROR = errno; 
+            write( epipe[1], &execlERROR, sizeof(execlERROR) );
+            close( epipe[1] );
+            _exit(-1);
+        }
+        P_execvp(new_al[0], new_al);
+        execlERROR = errno; 
+        write( epipe[1], &execlERROR, sizeof(execlERROR) );
+        close( epipe[1] );
+
+        _exit(-1);
+    } 
+    else
+    {
+        // the fork failed - clean up
+        close( epipe[0] );
+        close( epipe[1] );
+        close( sv[0] );
+        close( sv[1] );
+
+        return -1;
+    }
+
+
+    al_len=0;
+    while (new_al[al_len]) {
+        free(new_al[al_len]);
+        al_len++;
+    }
+    delete [] new_al;
 
 #else // !defined(i386_unknown_nt4_0)
 
-  // create a pair of socket endpoints and connect them
-  // 
-  // note that we create TCP/IP sockets here rather than
-  // using a named pipe because the socket returned from
-  // this function is used to communicate with a Paradyn
-  // daemon, and the communication between the WinNT
-  // Paradyn front end and a Paradyn daemon is implemented
-  // using a socket to support communication with daemons
-  // on remote machines
-  if( !CreateSocketPair( sv[0], sv[1] ) ) {
+    // create a pair of socket endpoints and connect them
+    // 
+    // note that we create TCP/IP sockets here rather than
+    // using a named pipe because the socket returned from
+    // this function is used to communicate with a Paradyn
+    // daemon, and the communication between the WinNT
+    // Paradyn front end and a Paradyn daemon is implemented
+    // using a socket to support communication with daemons
+    // on remote machines
+    if( !CreateSocketPair( sv[0], sv[1] ) ) {
     return INVALID_PDSOCKET;
-  }
+    }
 
-  // build a command line for the new process
-  pdstring cmdLine( command );
-  unsigned i;
-  for( i = 0; i < arg_list.size(); i++ ) {
+    // build a command line for the new process
+    pdstring cmdLine( command );
+    unsigned i;
+    for( i = 0; i < arg_list.size(); i++ ) {
     cmdLine += " ";
     cmdLine += arg_list[i];
-  }
+    }
 
-  // set up the standard input of the new process to 
-  // be connected to our shared socket, and make sure
-  // that the new process inherits our standard
-  // output and standard error
-  STARTUPINFO startInfo;
-  ZeroMemory( &startInfo, sizeof(startInfo) );
-  startInfo.cb = sizeof( startInfo );
+    // set up the standard input of the new process to 
+    // be connected to our shared socket, and make sure
+    // that the new process inherits our standard
+    // output and standard error
+    STARTUPINFO startInfo;
+    ZeroMemory( &startInfo, sizeof(startInfo) );
+    startInfo.cb = sizeof( startInfo );
 
-  startInfo.hStdInput = (HANDLE)sv[1];
-  startInfo.hStdOutput = GetStdHandle( STD_OUTPUT_HANDLE );
-  startInfo.hStdError = GetStdHandle( STD_ERROR_HANDLE );
-  startInfo.dwFlags |= STARTF_USESTDHANDLES;
+    startInfo.hStdInput = (HANDLE)sv[1];
+    startInfo.hStdOutput = GetStdHandle( STD_OUTPUT_HANDLE );
+    startInfo.hStdError = GetStdHandle( STD_ERROR_HANDLE );
+    startInfo.dwFlags |= STARTF_USESTDHANDLES;
 
-  // actually create the process
-  PROCESS_INFORMATION procInfo;
-  BOOL bCreated = CreateProcess( NULL,
-				 (char*)cmdLine.c_str(),
-				 NULL,
-				 NULL,
-				 TRUE,
-				 NORMAL_PRIORITY_CLASS | CREATE_DEFAULT_ERROR_MODE,
-				 NULL,
-				 NULL,
-				 &startInfo,
-				 &procInfo );
+    // actually create the process
+    PROCESS_INFORMATION procInfo;
+    BOOL bCreated = CreateProcess( NULL,
+                 (char*)cmdLine.c_str(),
+                 NULL,
+                 NULL,
+                 TRUE,
+                 NORMAL_PRIORITY_CLASS | CREATE_DEFAULT_ERROR_MODE,
+                 NULL,
+                 NULL,
+                 &startInfo,
+                 &procInfo );
 
-  if( bCreated ) {
+    if( bCreated ) {
     // We want to close our end of the connected socket
     // pair, but we have a race condition between our 
     // closing of the socket and the initialization of
@@ -778,11 +850,11 @@ execCmd(const pdstring command, const pdvector<pdstring> &arg_list)
     bool bOKToContinue = false;
     while( !bOKToContinue ) {
       HANDLE hProc = OpenProcess( PROCESS_QUERY_INFORMATION,
-				  NULL,
-				  procInfo.dwProcessId );
+                  NULL,
+                  procInfo.dwProcessId );
       if( hProc != NULL ) {
-	CloseHandle( hProc );
-	bOKToContinue = true;
+    CloseHandle( hProc );
+    bOKToContinue = true;
       }
     }
 
@@ -790,18 +862,18 @@ execCmd(const pdstring command, const pdvector<pdstring> &arg_list)
     // and keep hold of our own endpoint
     CLOSEPDSOCKET( sv[1] );
     ret = sv[0];
-  } else {
+    } else {
     // cleanup
     CLOSEPDSOCKET( sv[0] );
     CLOSEPDSOCKET( sv[1] );
 
     // indicate the error
     ret = INVALID_PDSOCKET;
-  }
+    }
 
 #endif // !defined(i386_unknown_nt4_0)
 
-  return ret;
+return ret;
 }
 
 // Parse an input string into space-delimited substrings, and add each as a
