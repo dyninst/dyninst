@@ -16,7 +16,12 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.37  1996/03/25 22:58:15  hollings
+ * Revision 1.38  1996/04/06 21:25:33  hollings
+ * Fixed inst free to work on AIX (really any platform with split I/D heaps).
+ * Removed the Line class.
+ * Removed a debugging printf for multiple function returns.
+ *
+ * Revision 1.37  1996/03/25  22:58:15  hollings
  * Support functions that have multiple exit points.
  *
  * Revision 1.36  1996/03/01  22:36:00  mjrg
@@ -1246,9 +1251,6 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
     if (isReturnInsn(owner, adr, done)) {
       // define the return point
       funcReturns += new instPoint(this, instr, owner, adr, false);
-      if (funcReturns.size() > 1) {
-	 cerr <<  symbol << " has multiple return instructions\n";
-      }
 
       // see if this return is the last one 
       if (done) return;

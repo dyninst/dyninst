@@ -10,7 +10,12 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.30  1996/04/03 14:27:54  naim
+ * Revision 1.31  1996/04/06 21:25:31  hollings
+ * Fixed inst free to work on AIX (really any platform with split I/D heaps).
+ * Removed the Line class.
+ * Removed a debugging printf for multiple function returns.
+ *
+ * Revision 1.30  1996/04/03  14:27:54  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
  * Revision 1.29  1996/03/12  20:48:37  mjrg
@@ -172,7 +177,7 @@ class image;
 
 typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
-typedef enum { textHeap, dataHeap } inferiorHeapType;
+typedef enum { textHeap=0, dataHeap=1 } inferiorHeapType;
 typedef vector<unsigned> unsigVecType;
 
 class heapItem {
@@ -185,11 +190,28 @@ class heapItem {
   heapStatus status;
 };
 
+//
+// an item on the heap that we are trying to free.
+//
 class disabledItem {
  public:
   disabledItem() { pointer = 0; }
-  unsigned pointer;
-  vector<unsigVecType> pointsToCheck;
+  unsigned pointer;			// address in heap
+  inferiorHeapType whichHeap;		// which heap is it in
+  vector<unsigVecType> pointsToCheck;	// range of addrs to check
+};
+
+class inferriorHeap {
+ public:
+  inferriorHeap(): heapActive(uiHash) {
+      freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
+  }
+  dictionary_hash<unsigned, heapItem*> heapActive; // active part of heap 
+  vector<heapItem*> heapFree;  		// free block of data inferrior heap 
+  vector<disabledItem> disabledList;	// items waiting to be freed.
+  int disabledListTotalMem;		// total size of item waiting to free
+  int totalFreeMemAvailable;		// total free memory in the heap
+  int freed;				// total reclaimed (over time)
 };
 
 //
@@ -206,26 +228,20 @@ class process {
 public:
 friend class ptraceKludge;
 
-  process() : dataHeapActive(uiHash), textHeapActive(uiHash),
-	      baseMap(ipHash), firstRecordTime(0) {
+  process() : baseMap(ipHash), firstRecordTime(0) {
     symbols = NULL; traceLink = 0; ioLink = 0;
     status_ = neonatal; pid = 0; thread = 0;
     aggregate = false; rid = 0; parent = NULL;
     bufStart = 0; bufEnd = 0; pauseTime = 0.0;
-    freed = 0; reachedFirstBreak = 0; 
+    reachedFirstBreak = 0; 
     stopAtFirstBreak = false;
     splitHeaps = false;
     waitingForNodeDaemon = false;
-    disabledListTotalMem=0;
-    totalFreeMemAvailable=SYN_INST_BUF_SIZE;
   }
 
   static string programName;
   static vector<string> arg_list;
 
-  vector<disabledItem> disabledList;
-  int disabledListTotalMem;
-  int totalFreeMemAvailable;
   vector<Address> walkStack();
   //
   // getActiveFrame and readDataFromFrame are platform dependant
@@ -247,10 +263,7 @@ friend class ptraceKludge;
   // on some platforms we use one heap for text and data so textHeapFree is not
   // used.
   bool splitHeaps;		/* are the inferior heap split I/D ? */
-  dictionary_hash<unsigned, heapItem*> dataHeapActive; // active part of heap 
-  dictionary_hash<unsigned, heapItem*> textHeapActive; // active part of heap 
-  vector<heapItem*> dataHeapFree;  /* free block of data inferrior heap */
-  vector<heapItem*> textHeapFree;  /* free block of text inferrior heap */
+  inferriorHeap	heaps[2];	// the heaps text and data
   resource *rid;		/* handle to resource for this process */
   process *parent;		/* parent of this proces */
   dictionary_hash<instPoint*, unsigned> baseMap;	/* map and inst point to its base tramp */
@@ -261,7 +274,6 @@ friend class ptraceKludge;
   time64 timeLastTrampSample;
   float pauseTime;		/* only used on the CM-5 version for now 
 				   jkh 7/21/94 */
-  int freed;
   int reachedFirstBreak;
   bool stopAtFirstBreak;      // true if the process must stop when it reaches the
                               // ptrace trap at the start of the program.

@@ -5,7 +5,12 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.32  1996/04/03 14:28:00  naim
+ * Revision 1.33  1996/04/06 21:25:36  hollings
+ * Fixed inst free to work on AIX (really any platform with split I/D heaps).
+ * Removed the Line class.
+ * Removed a debugging printf for multiple function returns.
+ *
+ * Revision 1.32  1996/04/03  14:28:00  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
  * Revision 1.31  1996/03/25  20:25:58  tamches
@@ -297,10 +302,7 @@ template class  dictionary<unsigned int, pdFunction *>;
 template class  dictionary<unsigned int, unsigned int>;
 template class  dictionary<unsigned int, resource *>;
 template class  dictionary<string, resource *>;
-template class  dictionary_hash_iter<unsigned int, Line>;
-template class  dictionary_iter<unsigned int, Line>;
 template class  dictionary_iter<string, Symbol>;
-template class  dictionary<unsigned int, Line>;
 template class  dictionary<string, Symbol>;
 
 template class  dictionary_hash <Address, Symbol*>;
@@ -313,7 +315,6 @@ template class  dictionary_hash <string, pdFunction*>;
 template class  dictionary_hash <string, resource*>;
 template class  dictionary_hash <string, unsigned>;
 template class  dictionary_hash <string, vector<pdFunction*>*>;
-template class  dictionary_hash <unsigned, Line>;
 template class  dictionary_hash <unsigned, cpSample*>;
 template class  dictionary_hash <unsigned, heapItem*>;
 template class  dictionary_hash <unsigned, metricDefinitionNode*>;

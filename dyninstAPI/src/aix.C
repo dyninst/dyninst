@@ -1,7 +1,12 @@
 
 /* 
  * $Log: aix.C,v $
- * Revision 1.7  1996/03/12 20:48:16  mjrg
+ * Revision 1.8  1996/04/06 21:25:24  hollings
+ * Fixed inst free to work on AIX (really any platform with split I/D heaps).
+ * Removed the Line class.
+ * Removed a debugging printf for multiple function returns.
+ *
+ * Revision 1.7  1996/03/12  20:48:16  mjrg
  * Improved handling of process termination
  * New version of aggregateSample to support adding and removing components
  * dynamically
@@ -44,6 +49,7 @@
 #include "stats.h"
 #include "util/h/Types.h"
 #include "util/h/Object.h"
+
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <assert.h>
@@ -55,6 +61,11 @@
 #include <xcoff.h>
 #include <scnhdr.h>
 #include <sys/time.h>
+#include <sys/reg.h>
+#include <sys/user.h>
+#include <sys/wait.h>
+#include <sys/ptrace.h>
+
 #include "showerror.h"
 
 extern "C" {
@@ -82,6 +93,77 @@ bool ptraceKludge::haltProcess(process *p) {
     }
   }
   return wasStopped;
+}
+
+// what is the top most frame.
+static int firstFrame;
+
+//
+// return the current frame pointer (fp) and program counter (pc). 
+//    returns true if we are able to read the regsiters.
+//
+bool process::getActiveFrame(int *fp, int *pc)
+{
+    int sp;
+    bool ret;
+    int dummy;
+
+    errno = 0;
+    sp = ptrace(PT_READ_GPR, pid, (char *) STKP, 0, 0);
+    if (errno != 0) return false;
+
+    errno = 0;
+    *pc = ptrace(PT_READ_GPR, pid, (char *) IAR, 0, 0);
+    if (errno != 0) return false;
+
+    // now we need to read the first frame from memory.
+    //   The first frame pointer in in the memory location pointed to be sp
+    //   However, there is no pc stored there, its the place to store a pc
+    //      if the current function makes a call.
+    ret = readDataFromFrame(sp, fp, &dummy);
+    firstFrame = *fp;
+    return(ret);
+}
+
+//
+// given the pointer to a frame (currentFP), return 
+//     (1) the saved frame pointer (fp)
+//            NULL -> that currentFP is the bottom (last) frame.	
+//     (2) the return address of the function for that frame (rtn).
+//     (3) return true if we are able to read the frame.
+//
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
+{
+    //
+    // define the linkage area of an activation record.
+    //    This information is based on the data obtained from the
+    //    info system (search for link area). - jkh 4/5/96
+    //
+    struct {
+        unsigned oldFp;
+        unsigned savedCR;
+        unsigned savedLR;
+	unsigned compilerInfo;
+	unsigned binderInfo;
+	unsigned savedTOC;
+    } linkArea;
+
+    if (readDataSpace((caddr_t) currentFP, 
+		      sizeof(linkArea), 
+		      (caddr_t) &linkArea,
+		      true)) {
+        *fp = linkArea.oldFp;
+        *rtn = linkArea.savedLR;
+        if (currentFP == firstFrame) {
+            // use the value stored in the link register instead.
+            errno = 0;
+            *rtn = ptrace(PT_READ_GPR, pid, LR, 0, 0);
+            if (errno != 0) return false;
+        }
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool ptraceKludge::deliverPtrace(process *p, int req, char *addr,
@@ -338,7 +420,7 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
 
     sectHdr = (struct scnhdr *) calloc(sizeof(struct scnhdr), hdr.f_nscns);
     cnt = read(ifd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
-    if (cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
+    if ((unsigned) cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
 	sprintf(errorLine, "section headers\n");
 	logLine(errorLine);
 	return false;
@@ -469,7 +551,7 @@ void Object::load_object()
     sectHdr = (struct scnhdr *) malloc(sizeof(struct scnhdr) * hdr.f_nscns);
     assert(sectHdr);
     cnt = read(fd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
-    if (cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
+    if ((unsigned) cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
         sprintf(errorLine, "Error reading executable file %s\n", 
 	    file_.string_of());
 	statusLine(errorLine);
@@ -499,7 +581,7 @@ void Object::load_object()
     }
 
     // identify the code region.
-    if (aout.tsize != sectHdr[aout.o_sntext-1].s_size) {
+    if ((unsigned) aout.tsize != sectHdr[aout.o_sntext-1].s_size) {
 	// consistantcy check failed!!!!
         sprintf(errorLine, 
 	    "Executable header file interal error: text segment size %s\n", 
@@ -518,7 +600,7 @@ void Object::load_object()
     code_len_ = aout.tsize;
 
     // now the init data segment.
-    if (aout.dsize != sectHdr[aout.o_sndata-1].s_size) {
+    if ((unsigned) aout.dsize != sectHdr[aout.o_sndata-1].s_size) {
 	// consistantcy check failed!!!!
         sprintf(errorLine, 
 	    "Executable header file interal error: data segment size %s\n", 

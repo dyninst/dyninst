@@ -4,17 +4,22 @@
  */
 
 #ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
+char process_Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.26 1995/05/18 10:41:09 markc Exp";
+char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.26 1995/05/18 10:41:09 markc Exp";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.38  1996/04/03 14:27:52  naim
+ * Revision 1.39  1996/04/06 21:25:28  hollings
+ * Fixed inst free to work on AIX (really any platform with split I/D heaps).
+ * Removed the Line class.
+ * Removed a debugging printf for multiple function returns.
+ *
+ * Revision 1.38  1996/04/03  14:27:52  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
  * Revision 1.37  1996/03/14  14:23:42  naim
@@ -194,7 +199,7 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
 
 extern "C" {
 #ifdef PARADYND_PVM
-int pvmputenv (char *);
+int pvmputenv (const char *);
 int pvmendtask();
 #endif
 }
@@ -211,7 +216,7 @@ int pvmendtask();
 #include "costmetrics.h"
 #include "perfStream.h"
 
-#define FREE_WATERMARK (proc->totalFreeMemAvailable/2)
+#define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 50
 
 unsigned activeProcesses; // number of active processes
@@ -236,24 +241,42 @@ vector<Address> process::walkStack()
   return(pcs);
 }  
 
-bool isFreeOK(process *proc, disabledItem disItem, 
-              dictionary_hash<unsigned, heapItem*> *heapActive,
-	      vector<Address> pcs)
+bool isFreeOK(process *proc, disabledItem disItem, vector<Address> pcs)
 {
   heapItem *ptr;
   unsigned pointer;
 
-  if (!heapActive->defines(disItem.pointer)) {
-    showErrorCallback(96,"");
+  if (!proc->heaps[disItem.whichHeap].heapActive.defines(disItem.pointer)) {
+    sprintf(errorLine,"Attempt to free already free heap entry %x\n", pointer);
+    logLine(errorLine);
+    showErrorCallback(67, (const char *)errorLine); 
     return(false);
   }
-  ptr = (*heapActive)[disItem.pointer];
+  ptr = proc->heaps[disItem.whichHeap].heapActive[disItem.pointer];
+
+#ifdef FREEDEBUG1
+  sprintf(errorLine, "IS ok called on 0x%x\n", ptr->addr);
+  logLine(errorLine);
+#endif
 
   for (unsigned int j=0;j<disItem.pointsToCheck.size();j++) {
     for (unsigned int k=0;k<disItem.pointsToCheck[j].size();k++) {
       heapItem *np;
       pointer = (disItem.pointsToCheck[j])[k];
-      if (!heapActive->defines(pointer)) {
+#ifdef FREEDEBUG1
+      sprintf(errorLine, "checking 0x%x\n", pointer);
+      logLine(errorLine);
+#endif
+   
+      if ((proc->splitHeaps && 
+	   !proc->heaps[textHeap].heapActive.defines(pointer)) ||
+          (!proc->splitHeaps &&
+	   !proc->heaps[dataHeap].heapActive.defines(pointer))) {
+#ifdef FREEDEBUG1
+	    sprintf(errorLine, "something freed addr 0x%x from us\n", pointer);
+	    logLine(errorLine);
+#endif
+        
         // 
         // This point was deleted already and we don't need it anymore in
         // pointsToCheck
@@ -261,9 +284,15 @@ bool isFreeOK(process *proc, disabledItem disItem,
         int size=disItem.pointsToCheck[j].size();
         (disItem.pointsToCheck[j])[k]=(disItem.pointsToCheck[j])[size-1];
         (disItem.pointsToCheck[j]).resize(size-1);
-      }
-      else {
-        np = (*heapActive)[pointer];
+
+	// need to make sure we check the next item too 
+	k--;
+      } else {
+	if (proc->splitHeaps) {
+	    np = proc->heaps[textHeap].heapActive[pointer];
+	} else {
+	    np = proc->heaps[dataHeap].heapActive[pointer];
+	}
 
         for (unsigned int l=0;l<pcs.size();l++) {
           if ((pcs[l] >= ptr->addr) && 
@@ -271,7 +300,8 @@ bool isFreeOK(process *proc, disabledItem disItem,
           {
 
 #ifdef FREEDEBUG1
-    sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (1) we found PC in our inst. range!\n",proc->pid);
+    sprintf(errorLine,"      IN isFreeOK: we found 0x%x in our inst. range!\n",
+	ptr->addr);
     logLine(errorLine);
 #endif
 
@@ -294,28 +324,29 @@ bool isFreeOK(process *proc, disabledItem disItem,
   return(true);
 }
 
-void inferiorFreeDefered(process *proc, vector<heapItem*> *heapFree,
-                         dictionary_hash<unsigned, heapItem*> *heapActive)
+void inferiorFreeDefered(process *proc, inferriorHeap *hp)
 {
   unsigned int i=0;
   vector<Address> pcs;
   disabledItem item;
+  vector<disabledItem> *disList;
 
   pcs = proc->walkStack();
 
-  while (i<proc->disabledList.size()) {
-    item = proc->disabledList[i];
-    if (isFreeOK(proc,item,heapActive,pcs))
-    {
+  // this is a while loop since we don't update i if an item is deleted.
+  disList = &hp->disabledList;
+  while (i < disList->size()) {
+    item = (*disList)[i];
+    if (isFreeOK(proc,item,pcs)) {
       heapItem *np;
       unsigned pointer;
 
-      pointer = proc->disabledList[i].pointer;
-      if (!heapActive->defines(pointer)) {
+      pointer = item.pointer;
+      if (!hp->heapActive.defines(pointer)) {
         showErrorCallback(96,"");
         return;
       }
-      np = (*heapActive)[pointer];
+      np = hp->heapActive[pointer];
 
       if (np->status != HEAPallocated) {
         sprintf(errorLine,"Attempt to free already free heap entry %x\n", pointer);
@@ -326,38 +357,43 @@ void inferiorFreeDefered(process *proc, vector<heapItem*> *heapFree,
       np->status = HEAPfree;      
 
       // remove from active list.
-      heapActive->undef(pointer);
+      hp->heapActive.undef(pointer);
 
 #ifdef FREEDEBUG1
-    sprintf(errorLine,"<delete> TEST <delete> In inferiorFreeDefered: deleting %d from heapActive\n",pointer);
+    sprintf(errorLine,"inferiorFreeDefered: deleting 0x%x from heap\n",pointer);
     logLine(errorLine);
 #endif
 
-      // back onto free list.
-      (*heapFree) += np;
-      proc->freed += np->length;
+      hp->heapFree += np;
+      hp->freed += np->length;
 
       // updating disabledList
-      proc->disabledList[i]=proc->disabledList[proc->disabledList.size()-1];
-      proc->disabledList.resize(proc->disabledList.size()-1);
-      proc->disabledListTotalMem -= np->length;
-      proc->totalFreeMemAvailable += np->length;
-    }
-    else {
+      hp->disabledList[i]=hp->disabledList[hp->disabledList.size()-1];
+      hp->disabledList.resize(hp->disabledList.size()-1);
+      hp->disabledListTotalMem -= np->length;
+      hp->totalFreeMemAvailable += np->length;
+    } else {
       i++;
     }
   }
 }
 
-void initInferiorHeap(process *proc, bool globalHeap, bool textHeap)
+void initInferiorHeap(process *proc, bool globalHeap, bool initTextHeap)
 {
     heapItem *np;
+    inferriorHeap *hp;
     bool err;
 
     assert(proc->symbols);
 
+    if (initTextHeap) {
+	hp = &proc->heaps[textHeap];
+    } else {
+	hp = &proc->heaps[dataHeap];
+    }
+
     np = new heapItem;
-    if (textHeap) {
+    if (initTextHeap) {
 	np->addr = 
 	  (proc->symbols)->findInternalAddress("DYNINSTtext", true,err);
 	if (err)
@@ -383,46 +419,14 @@ void initInferiorHeap(process *proc, bool globalHeap, bool textHeap)
       np->addr = base + 32;
       np->length -= (32 - diff);
     }
-    proc->totalFreeMemAvailable = np->length;
 
-    if (textHeap) {
-	proc->textHeapFree += np;
-    } else {
-	proc->dataHeapFree += np;
-    }
-}
-
-void copyInferiorHeap(process *from, process *to)
-{
-    abort();
-
-#ifdef notdef
-    heapItem *curr;
-    heapItem *newEntry;
-
-    // not done jkh 7/22/94
-
-    assert(from->symbols);
-    assert(to->symbols);
-
-    // to->heapActive = NULL;
-    /* copy individual elements */
-    for (curr=from->heap; curr; curr=curr->next) {
-	newEntry = new heapItem;
-	*newEntry = *curr;
-
-	/* setup next pointers */
-	newEntry->next = to->heap;
-	to->heap = newEntry;
-    }
-    to->heap->status = HEAPfree;
-#endif
+    hp->totalFreeMemAvailable = np->length;
+    hp->heapFree += np;
 }
 
 unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 {
-    vector<heapItem*> *heapFree;
-    dictionary_hash<unsigned, heapItem*> *heapActive;
+    inferriorHeap *hp;
     heapItem *np=NULL, *newEntry = NULL;
     
     assert(size > 0);
@@ -431,11 +435,9 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
     size = (size + 0x1f) & ~0x1f; 
 
     if ((type == textHeap) && (proc->splitHeaps)) {
-	heapFree = &proc->textHeapFree;
-	heapActive = &proc->textHeapActive;
+	hp = &proc->heaps[textHeap];
     } else {
-	heapFree = &proc->dataHeapFree;
-	heapActive = &proc->dataHeapActive;
+	hp = &proc->heaps[dataHeap];
     }
 
     bool secondChance=true, found=false;
@@ -446,9 +448,9 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 
       if (countingChances==2) secondChance=false;
 
-      for (unsigned i=0; i < heapFree->size(); i++) {
-        if (((*heapFree)[i])->length >= size) {
-	  np = (*heapFree)[i];
+      for (unsigned i=0; i < hp->heapFree.size(); i++) {
+        if ((hp->heapFree[i])->length >= size) {
+	  np = hp->heapFree[i];
 	  found = true;
   	  foundIndex = i;
           secondChance = false;
@@ -463,13 +465,13 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
         logLine(errorLine);
 #endif
 
-        inferiorFreeDefered(proc,heapFree,heapActive);
+        inferiorFreeDefered(proc, hp);
       }
       countingChances++;
     } while (secondChance);      
 
     if (!found) {
-      sprintf(errorLine, "Inferior heap overflow: %d bytes freed, %d bytes requested\n", proc->freed, size);
+      sprintf(errorLine, "Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
       logLine(errorLine);
       showErrorCallback(66, (const char *) errorLine);
       return(0);
@@ -480,21 +482,21 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 	newEntry = new heapItem;
 	newEntry->length = np->length - size;
 	newEntry->addr = np->addr + size;
-        proc->totalFreeMemAvailable -= size;
+        hp->totalFreeMemAvailable -= size;
 	
 	// overwrite the old entry
-	(*heapFree)[foundIndex] = newEntry;
+	hp->heapFree[foundIndex] = newEntry;
 
 	/* now split curr */
 	np->length = size;
     } else {
-      unsigned i = heapFree->size();
+      unsigned i = hp->heapFree.size();
       // copy the last element over this element
       if (foundIndex < (i-1)) {
-	(*heapFree)[foundIndex] = (*heapFree)[i-1];
-	heapFree->resize(i-1);
+	hp->heapFree[foundIndex] = hp->heapFree[i-1];
+	hp->heapFree.resize(i-1);
       } else if (i == 1) {
-        sprintf(errorLine, "Inferior heap overflow: %d bytes freed, %d bytes requested\n", proc->freed, size);
+        sprintf(errorLine, "Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
         logLine(errorLine);
         showErrorCallback(66, (const char *) errorLine);
         return(0);
@@ -505,7 +507,10 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
     np->status = HEAPallocated;
 
     // onto in use list
-    (*heapActive)[np->addr] = np;
+    hp->heapActive[np->addr] = np;
+
+    // make sure its a valid pointer.
+    assert(np->addr);
 
     return(np->addr);
 }
@@ -514,22 +519,21 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
                   vector<unsigVecType> pointsToCheck)
 {
     heapItem *np;
-    vector<heapItem*> *heapFree;
-    dictionary_hash<unsigned, heapItem*> *heapActive;
+    inferriorHeap *hp;
+    inferiorHeapType which;
 
     if ((type == textHeap) && (proc->splitHeaps)) {
-	heapFree = &proc->textHeapFree;
-	heapActive = &proc->textHeapActive;
+	which = textHeap;
     } else {
-	heapFree = &proc->dataHeapFree;
-	heapActive = &proc->dataHeapActive;
+	which = dataHeap;
     }
+    hp = &proc->heaps[which];
 
-    if (!heapActive->defines(pointer)) {
+    if (!hp->heapActive.defines(pointer)) {
       showErrorCallback(96,"");
       return;
     }
-    np = (*heapActive)[pointer];
+    np = hp->heapActive[pointer];
 
 #ifndef sparc_tmc_cmost7_3
     //
@@ -540,12 +544,17 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
     disabledItem newItem;
     newItem.pointer = pointer;
     newItem.pointsToCheck = pointsToCheck;
-    proc->disabledList += newItem;
-    proc->disabledListTotalMem += np->length;
+    newItem.whichHeap = which;
+    hp->disabledList += newItem;
+    hp->disabledListTotalMem += np->length;
 
 #ifdef FREEDEBUG1
-    sprintf(errorLine,"==> TEST <== In inferiorFree: disabledList has %d items, %d bytes, and FREE_WATERMARK is %d\n",proc->disabledList.size(),proc->disabledListTotalMem,FREE_WATERMARK);
+    sprintf(errorLine,"==> TEST <== In inferiorFree: disabledList has %d items, %d bytes, and FREE_WATERMARK is %d\n",hp->disabledList.size(),hp->disabledListTotalMem,FREE_WATERMARK);
     logLine(errorLine);
+    for (unsigned i=0; i < hp->disabledList.size(); i++) {
+	sprintf(errorLine, "   %x is on list\n", hp->disabledList[i].pointer);
+	logLine(errorLine);
+    }
 #endif
 
     //
@@ -555,20 +564,21 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
     // time to proceed with the defered delete since this is an expensive
     // procedure and should not be executed often - naim 03/19/96
     //
-    if ( (proc->disabledListTotalMem > FREE_WATERMARK) ||
-         (proc->disabledList.size() > SIZE_WATERMARK) ) {
+    if ( (hp->disabledListTotalMem > FREE_WATERMARK) ||
+         (hp->disabledList.size() > SIZE_WATERMARK) ) {
 
 #ifdef FREEDEBUG
 timeStamp t1,t2;
 t1=getCurrentTime(false);
 #endif
 
-      inferiorFreeDefered(proc,heapFree,heapActive);
+      inferiorFreeDefered(proc, hp);
 
 #ifdef FREEDEBUG
 t2=getCurrentTime(false);
 if ((float)(t2-t1) > 1.0) {
-  sprintf(errorLine,">>>> TEST <<<< (pid=%d) inferiorFreeDefered took %5.2f secs, heapFree=%d, heapActive=%d\n",proc->pid,(float) (t2-t1),(*heapFree).size(),(*heapActive).size());
+  sprintf(errorLine,">>>> TEST <<<< (pid=%d) inferiorFreeDefered took %5.2f secs, heapFree=%d, heapActive=%d\n",
+      proc->pid,(float) (t2-t1), hp->heapFree.size(),hp->heapActive.size());
   logLine(errorLine);
 }
 #endif
