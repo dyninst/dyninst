@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.57 2003/04/27 04:17:34 schendel Exp $
+# $Id: errorList.tcl,v 1.58 2003/05/21 18:22:41 pcroth Exp $
 
 #
 # Error message format:
@@ -762,7 +762,9 @@ set pdError(92) {
 {paradynd}
 {warning}
 {A error was found while evaluating a metric for a focus.  The metric\
-cannot be enabled for this focus.
+cannot be enabled for this focus.  The problem could be that the focus\
+is no longer relevant for the target process (e.g., the process has\
+exec'd a different executable with different resources).
 }
 } 
 
