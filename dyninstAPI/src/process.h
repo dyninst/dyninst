@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.304 2004/12/02 00:57:09 tlmiller Exp $
+/* $Id: process.h,v 1.305 2004/12/03 18:33:30 tlmiller Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -53,10 +53,6 @@
 #include <assert.h>
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-
-#ifdef BPATCH_LIBRARY
-#include "rtinst/h/rtinst.h"
-#endif
 
 #include "dyninstAPI/src/Object.h"
 #include "common/h/String.h"
