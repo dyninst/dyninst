@@ -42,7 +42,7 @@
 #ifndef THR_MET_FOCUS_NODE
 #define THR_MET_FOCUS_NODE
 
-#include "paradynd/src/metric.h"
+#include "paradynd/src/metricFocusNode.h"
 #include "common/h/Dictionary.h"
 #include "paradynd/src/focus.h"
 
@@ -83,8 +83,8 @@ class threadMetFocusNode_Val {
   void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
 			    pdSample value);
 
-  unsigned getThreadID();
-  unsigned getThreadPos();
+  unsigned getThreadID() const;
+  unsigned getThreadPos()const ;
   bool instrInserted();
   bool isReadyForUpdates();
   process *proc();
@@ -98,10 +98,12 @@ class threadMetFocusNode_Val {
 };
 
 
-class threadMetFocusNode : public metricDefinitionNode {
+class threadMetFocusNode : public metricFocusNode {
  private:
   threadMetFocusNode_Val &V;
   processMetFocusNode *parent;
+
+  void initAggInfoObjects(timeStamp startTime, pdSample initValue);
 
  protected:
   static dictionary_hash<string, threadMetFocusNode_Val*> 
@@ -120,10 +122,11 @@ class threadMetFocusNode : public metricDefinitionNode {
   process *proc();
   bool instrInserted()     { return V.instrInserted(); }
   bool isReadyForUpdates() { return V.isReadyForUpdates(); }
-  int getThreadID() { return V.getThreadID(); }
-  int getThreadPos() { return V.getThreadPos(); }
+  int getThreadID()  const { return V.getThreadID(); }
+  int getThreadPos() const { return V.getThreadPos(); }
   void updateAllAggInfoInitialized();
   threadMetFocusNode_Val *getValuePtr() { return &V; }
+  void initializeForSampling(timeStamp startTime, pdSample initValue);
 };
 
 
