@@ -38,6 +38,9 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+
+// $Id: solarisDL.C,v 1.15 1998/12/25 22:20:40 wylie Exp $
+
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
 #include "dyninstAPI/src/process.h"
@@ -54,22 +57,31 @@ extern debug_ostream sharedobj_cerr;
 
 // get_ld_base_addr: This routine returns the base address of ld.so.1
 // it returns true on success, and false on error
-bool dynamic_linking::get_ld_base_addr(u_int &addr, int proc_fd){
+bool dynamic_linking::get_ld_base_addr(Address &addr, int proc_fd){
 
     // get number of auxv_t structs
-    int auxvnum;
+    int auxvnum=-1;
     if(ioctl(proc_fd, PIOCNAUXV, &auxvnum) != 0) { return false;}    
     if(auxvnum < 1) { return false; }
 
     // get the array of auxv_t structs
     auxv_t *auxv_elms = new auxv_t[auxvnum];
     // auxv_t auxv_elms[auxvnum];
+#ifdef PURE_BUILD
+    // explicitly initialize "auxv_elms" struct (to pacify Purify)
+    // (at least initialize those components which we actually use)
+    for(int i=0; i < auxvnum; i++) {
+        auxv_elms[i].a_type=0;
+        auxv_elms[i].a_un.a_ptr=(void*)0;
+    }
+#endif
+
     if(ioctl(proc_fd, PIOCAUXV, auxv_elms) != 0) { return false; }
 
     // find the base address of ld.so.1
     for(int i=0; i < auxvnum; i++){
         if(auxv_elms[i].a_type == AT_BASE) {
-	    addr = (u_int)(auxv_elms[i].a_un.a_ptr);
+	    addr = (Address)(auxv_elms[i].a_un.a_ptr);
 	    // cout << "ld.so.1 base addr = " << addr << "num " 
 	    // << auxvnum << endl;
 	    delete [] auxv_elms;
@@ -82,7 +94,9 @@ bool dynamic_linking::get_ld_base_addr(u_int &addr, int proc_fd){
 // findFunctionIn_ld_so_1: this routine finds the symbol table for ld.so.1 and 
 // parses it to find the address of symbol r_debug
 // it returns false on error
-bool dynamic_linking::findFunctionIn_ld_so_1(string f_name, u_int ld_fd, u_int ld_base_addr, u_int *f_addr, int st_type){
+bool dynamic_linking::findFunctionIn_ld_so_1(string f_name, int ld_fd, 
+					     Address ld_base_addr, 
+					     Address *f_addr, int st_type){
 
     Elf *elfp = 0;
     if ((elfp = elf_begin(ld_fd, ELF_C_READ, 0)) == 0) {return false;}
@@ -143,15 +157,17 @@ bool dynamic_linking::findFunctionIn_ld_so_1(string f_name, u_int ld_fd, u_int l
 // find_r_debug: this routine finds the symbol table for ld.so.1, and 
 // parses it to find the address of symbol r_debug
 // it returns false on error
-bool dynamic_linking::find_r_debug(u_int ld_fd,u_int ld_base_addr){
-  return findFunctionIn_ld_so_1("r_debug", ld_fd, ld_base_addr, &r_debug_addr, STT_OBJECT);
+bool dynamic_linking::find_r_debug(int ld_fd, Address ld_base_addr){
+  return findFunctionIn_ld_so_1("r_debug", ld_fd, ld_base_addr, &r_debug_addr,
+        STT_OBJECT);
 }
 
 // find_dlopen: this routine finds the symbol table for ld.so.1, and 
 // parses it to find the address of symbol dlopen
 // it returns false on error
-bool dynamic_linking::find_dlopen(u_int ld_fd,u_int ld_base_addr){
-  return findFunctionIn_ld_so_1("_dlopen", ld_fd, ld_base_addr, &dlopen_addr, STT_FUNC);
+bool dynamic_linking::find_dlopen(int ld_fd, Address ld_base_addr){
+  return findFunctionIn_ld_so_1("_dlopen", ld_fd, ld_base_addr, &dlopen_addr,
+        STT_FUNC);
 }
 
 // set_r_brk_point: this routine instruments the code pointed to by
@@ -180,7 +196,7 @@ bool dynamic_linking::set_r_brk_point(process *proc) {
     // insert base tramp and minitrap code here.  Instead we replace the 
     // retl instruction  with a trap instruction.   Then in paradynd in  
     // the routine that handles the sigtrap for this case we will simulate
-    // the retl instruction by changing the value of the o7 register
+    // the retl instruction by changing the value of the %o7 register
     // so that it looks like the retl instruction has executed
     instruction trap_insn;
     trap_insn.raw = BREAK_POINT_INSN;
@@ -189,7 +205,8 @@ bool dynamic_linking::set_r_brk_point(process *proc) {
 	return false;
     }
 #else // x86
-    instruction trap_insn((const unsigned char*)"\017\013\0220\0220", ILLEGAL, 4);
+    instruction trap_insn((const unsigned char*)"\017\013\0220\0220",
+        ILLEGAL, 4);
     if (!proc->writeDataSpace((void *)r_brk_addr, 4, trap_insn.ptr()))
         return false;
     //proc->SetIllForTrap();
@@ -222,7 +239,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
     r_debug debug_elm;
     if(!p->readDataSpace((caddr_t)(r_debug_addr),
         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-        // printf("read d_ptr_addr failed r_debug_addr = 0x%x\n",r_debug_addr);
+        // printf("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
         return 0;
     }
 
@@ -288,7 +305,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
         }
 
 	first_time = false;
-	next_addr = (u_int)link_elm.l_next;
+	next_addr = (Address)link_elm.l_next;
     }
     p->setDynamicLinking();
     dynlinked = true;
@@ -299,19 +316,19 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 
 // getLinkMapAddrs: returns a vector of addresses corresponding to all 
 // base addresses in the link maps.  Returns 0 on error.
-vector<u_int> *dynamic_linking::getLinkMapAddrs(process *p) {
+vector<Address> *dynamic_linking::getLinkMapAddrs(process *p) {
 
     r_debug debug_elm;
     if(!p->readDataSpace((caddr_t)(r_debug_addr),
         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-        // printf("read d_ptr_addr failed r_debug_addr = 0x%x\n",r_debug_addr);
+        // printf("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
         return 0;
     }
 
     bool first_time = true;
     Link_map *next_link_map = debug_elm.r_map;
     Address next_addr = (Address)next_link_map; 
-    vector<u_int> *link_addresses = new vector<u_int>;
+    vector<Address> *link_addresses = new vector<Address>;
     while(next_addr != 0) {
 	Link_map link_elm;
         if(!p->readDataSpace((caddr_t)(next_addr),
@@ -328,7 +345,7 @@ vector<u_int> *dynamic_linking::getLinkMapAddrs(process *p) {
 	}
 
 	first_time = false;
-	next_addr = (u_int)link_elm.l_next;
+	next_addr = (Address)link_elm.l_next;
     }
     return link_addresses;
     link_addresses = 0;
@@ -339,13 +356,13 @@ vector<u_int> *dynamic_linking::getLinkMapAddrs(process *p) {
 // currently mapped shared objects. Sets error_occured to true, and 
 // returns 0 on error.
 vector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
-						vector<u_int> *old_addrs,
+						vector<Address> *old_addrs,
 						bool &error_occured){
 
     r_debug debug_elm;
     if(!p->readDataSpace((caddr_t)(r_debug_addr),
         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-        // printf("read d_ptr_addr failed r_debug_addr = 0x%x\n",r_debug_addr);
+        // printf("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
 	error_occured = true;
         return 0;
     }
@@ -383,7 +400,7 @@ vector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
 	        u_int f_amount = 256;
                 bool done = false;
 	        for(u_int i=0; (i<256) && (!done); i++){
-                    if(!p->readDataSpace((caddr_t)((u_int)(link_elm.l_name)+i),
+                    if(!p->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
 		        sizeof(char),(caddr_t)(&(f_name[i])),true)){
                     }
 	            if(f_name[i] == '\0'){
@@ -399,7 +416,7 @@ vector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
             }
 	}
 	first_time = false;
-	next_addr = (u_int)link_elm.l_next;
+	next_addr = (Address)link_elm.l_next;
     }
     error_occured = false;
     return new_shared_objects;
@@ -425,13 +442,13 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     // step 1: figure out if this is a dynamic executable
     string dyn_str = string("DYNAMIC");
     internalSym dyn_sym;
-    bool flag = p->findInternalSymbol(dyn_str,true, dyn_sym);
+    bool flag = p->findInternalSymbol(dyn_str, true, dyn_sym);
     if(!flag){ return 0;}
     int proc_fd = p->getProcFileDescriptor();
     if(!proc_fd){ return 0;}
 
     // step 2: find the base address and file descriptor of ld.so.1
-    u_int ld_base = 0;
+    Address ld_base = 0;
     int ld_fd = -1;
     if(!(this->get_ld_base_addr(ld_base,proc_fd))) { return 0;}
     if((ld_fd = ioctl(proc_fd, PIOCOPENM, (caddr_t *)&ld_base)) == -1) { 
@@ -483,7 +500,7 @@ vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
     // if change_type is add then figure out what has been added
     if(change_type == 1){
         // create a vector of addresses of the current set of shared objects
-	vector<u_int> *addr_list =  new vector<u_int>;
+	vector<Address> *addr_list =  new vector<Address>;
 	for (u_int i=0; i < curr_list->size(); i++) {
 	    *addr_list += ((*curr_list)[i])->getBaseAddress();
 	}
@@ -500,12 +517,12 @@ vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
 	// create a list of base addresses from the linkmaps and
 	// compare them to the addr in vector of shared object to see
 	// what has been removed
-	vector<u_int> *addr_list = getLinkMapAddrs(p);
+	vector<Address> *addr_list = getLinkMapAddrs(p);
 	if(addr_list) {
 	    vector <shared_object *> *remove_list = new vector<shared_object*>;
 	    // find all shared objects that have been removed
 	    for(u_int i=0; i < curr_list->size(); i++){
-		u_int curr_addr = ((*curr_list)[i])->getBaseAddress(); 
+		Address curr_addr = ((*curr_list)[i])->getBaseAddress(); 
 		bool found = false;
 		for(u_int j=0; j < addr_list->size(); j++){
                     if(curr_addr == (*addr_list)[j]){
@@ -543,6 +560,12 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 				bool &error_occured){ 
 
   prgregset_t regs;
+#ifdef PURE_BUILD
+  // explicitly initialize "regs" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+#endif
+
   error_occured = false;
   int proc_fd = proc->getProcFileDescriptor(); 
   if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
@@ -583,8 +606,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 	// retl has already happend
 
 	// first get the value of the stackpointer
-	u_int o7reg = regs[R_O7];
-        o7reg += 8;
+	Address o7reg = regs[R_O7];
+        o7reg += 2*sizeof(instruction);
 	if(!(proc->changePC(o7reg))) {
 	      // printf("error in changePC handleIfDueToSharedObjectMapping\n");
 	      error_occured = true;
@@ -592,7 +615,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
         }
 #else //x86
 	// set the pc to the "ret" instruction
-	u_int next_pc = regs[R_PC] + 4;
+	Address next_pc = regs[R_PC] + sizeof(instruction);
 	if (!proc->changePC(next_pc))
 	    error_occured = true;
 #endif
@@ -602,6 +625,3 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 
   return false; 
 }
-
-
-
