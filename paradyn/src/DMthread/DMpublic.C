@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.32  1994/11/04 16:30:41  rbi
+ * Revision 1.33  1994/11/07 08:24:37  jcargill
+ * Added ability to suppress search on children of a resource, rather than
+ * the resource itself.
+ *
+ * Revision 1.32  1994/11/04  16:30:41  rbi
  * added getAvailableDaemons()
  *
  * Revision 1.31  1994/11/02  11:46:21  markc
@@ -134,9 +138,16 @@ applicationContext *dataManager::createApplicationContext(errorHandler foo)
 }
 
 void dataManager::setResourceSearchSuppress(applicationContext *app,
-				      resource *res, Boolean newValue)
+					    resource *res, Boolean newValue)
 {
     if (res) res->setSuppress(newValue);
+}
+
+void dataManager::setResourceSearchChildrenSuppress(applicationContext *app,
+						    resource *res, 
+						    Boolean newValue)
+{
+    if (res) res->setSuppressChildren(newValue);
 }
 
 void dataManager::setResourceInstSuppress(applicationContext *app,

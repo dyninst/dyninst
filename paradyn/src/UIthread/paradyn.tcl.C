@@ -5,9 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.31  1994/11/04 16:29:08  rbi
-/* Added paradyn daemon command
+/* Revision 1.32  1994/11/07 08:25:14  jcargill
+/* Added ability to suppress search on children of a resource, rather than
+/* the resource itself.
 /*
+ * Revision 1.31  1994/11/04  16:29:08  rbi
+ * Added paradyn daemon command
+ *
  * Revision 1.30  1994/11/03  20:25:08  krisna
  * added status_lines for application name and application status
  *
@@ -682,11 +686,11 @@ int ParadynSuppressCmd (ClientData clientData,
     int limit;
     resource *r;
     stringHandle name;
-    Boolean suppressInst;
+    Boolean suppressInst, suppressChildren;
     resourceList *resList;
 
     if (argc != 3) {
-	printf("Usage: paradyn suppress <search|inst> <resource list>\n");
+	printf("Usage: paradyn suppress <search|inst|searchChildren> <resource list>\n");
 	return TCL_ERROR;
     }
     resList = build_resource_list (interp, argv[2]);
@@ -698,8 +702,12 @@ int ParadynSuppressCmd (ClientData clientData,
 
     if (!strcmp(argv[1], "search")) {
 	suppressInst = False;
+	suppressChildren = False;
     } else if (!strcmp(argv[1], "inst")) {
 	suppressInst = True;
+    } else if (!strcmp(argv[1], "searchChildren")) {
+	suppressInst = False;
+	suppressChildren = True;
     } else {
 	sprintf (interp->result, "suppress option (%s) not search or inst",
 	    argv[1]);
@@ -715,7 +723,10 @@ int ParadynSuppressCmd (ClientData clientData,
 	if (suppressInst) {
 	    dataMgr->setResourceInstSuppress(context, r, TRUE);
 	} else {
-	    dataMgr->setResourceSearchSuppress(context, r, TRUE);
+	    if (suppressChildren)
+	        dataMgr->setResourceSearchChildrenSuppress(context, r, TRUE);
+	    else
+	        dataMgr->setResourceSearchSuppress(context, r, TRUE);
 	}
     }
     return TCL_OK;

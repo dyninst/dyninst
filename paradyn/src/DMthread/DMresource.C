@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.16 1994/11/04 08:46:00 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.17 1994/11/07 08:24:40 jcargill Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.16  1994/11/04 08:46:00  jcargill
+ * Revision 1.17  1994/11/07 08:24:40  jcargill
+ * Added ability to suppress search on children of a resource, rather than
+ * the resource itself.
+ *
+ * Revision 1.16  1994/11/04  08:46:00  jcargill
  * Made suppressSearch flag be inherited from parent resource.  Solves the
  * problem of having to wait for processes to be defined to suppress them.
  *
@@ -95,6 +99,7 @@ resource::resource()
     fullName = names.findAndAdd("");
     parent = NULL;
     suppressSearch = FALSE;
+    suppressChildSearch = FALSE;
     abstr = NULL;            // We cannot give it a real abstraction
                              // because abstractions have not been initialized
                              // yet.  This is UGLY.  We need a better way
@@ -119,8 +124,12 @@ resource::resource(resource *p, char *newResource, const char *a)
 
     abstr = AMfind(a);
 
-    suppressSearch = p->getSuppress(); // inherit search suppression from
-				       // parent resource
+    suppressChildSearch = FALSE;
+    suppressSearch = p->getSuppressChildren(); // check for suppress of
+					       // parent's children
+    if (!suppressSearch) 
+      suppressSearch = p->getSuppress(); // inherit search suppression from
+					 // parent resource
     parent->children.add(this);
 }
 

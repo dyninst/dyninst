@@ -2,7 +2,11 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.13  1994/11/02 11:46:55  markc
+ * Revision 1.14  1994/11/07 08:24:42  jcargill
+ * Added ability to suppress search on children of a resource, rather than
+ * the resource itself.
+ *
+ * Revision 1.13  1994/11/02  11:46:55  markc
  * Made sure that functions that have a return type, return that type.
  *
  * Revision 1.12  1994/09/30  21:17:46  newhall
@@ -142,7 +146,9 @@ class resource {
     resource *getParent()	{ return(parent); }
     static resource *rootResource;
     void setSuppress(Boolean nv)	{ suppressSearch = nv; }
+    void setSuppressChildren(Boolean nv){ suppressChildSearch = nv; }
     Boolean getSuppress()		{ return(suppressSearch); }
+    Boolean getSuppressChildren()	{ return(suppressChildSearch); }
     abstraction *getAbstraction() { return(abstr); }
   protected:
     resource();
@@ -164,7 +170,10 @@ class resource {
     static stringPool names;
     static HTable<resource*> allResources;
 
-    Boolean suppressSearch;		// user want's to ignore this one.
+    Boolean suppressSearch;		// user wants to ignore this one.
+    Boolean suppressChildSearch;	// user wants to ignore children of
+					// this one.  Important for top-level
+					// resources, which are in all foci.
 };
 #endif
 
