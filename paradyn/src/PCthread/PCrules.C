@@ -46,6 +46,9 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.43  1997/11/01 05:19:38  tamches
+ * removed some warnings
+ *
  * Revision 1.42  1996/12/12 20:04:47  karavan
  * removed test hypothesis I accidentally committed
  *
@@ -396,7 +399,7 @@ void initPChypos()
     cout << "hypothesis constructor failed for normCPUtimeTester" << endl;
 
 /*
-    //**** the test hypotheses  *****
+    // **** the test hypotheses  *****
   flag = PCWhyAxis->
     addHypothesis("tooMuchPauseTime", (const char *)NULL, 
 		  "PauseTime",
@@ -406,7 +409,7 @@ void initPChypos()
 		  getOneThresholdFunc, 
 		  gt, whereOnly,  
                   (void *)NULL, &plumList3, NULL);
-  //** how to handle this case?
+  // ** how to handle this case?
   if (!flag)
     cout << "hypothesis constructor failed for PauseTime" << endl;
 
@@ -419,7 +422,7 @@ void initPChypos()
 		  getThreeThresholdFunc, 
 		  gt, whyOnly,  
                   (void *)NULL, &plumList3, NULL);
-  //** how to handle this case?
+  // ** how to handle this case?
   if (!flag)
     cout << "hypothesis constructor failed for PauseTime" << endl;
 
@@ -432,7 +435,7 @@ void initPChypos()
 		  getOneThresholdFunc, 
 		  gt, whyOnly,  
                   (void *)NULL, &plumList3, NULL);
-  //** how to handle this case?
+  // ** how to handle this case?
   if (!flag)
     cout << "hypothesis constructor failed for PauseTime" << endl;
 */
