@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.13 2003/06/24 19:41:31 schendel Exp $
+// $Id: linux.h,v 1.14 2004/02/16 23:41:55 tlmiller Exp $
 
 #if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
 #error "invalid architecture-os inclusion"
@@ -51,7 +51,13 @@
 #include <sys/param.h>
 #include "common/h/Types.h"
 
+#if !defined( ia64_unknown_linux2_4 )
 #define BYTES_TO_SAVE   256
+#else
+/* More than the number of bundles necessary for loadDYNINSTlib()'s code. */
+#define CODE_BUFFER_SIZE	512
+#define BYTES_TO_SAVE		(CODE_BUFFER_SIZE * 16)
+#endif
 
 #define EXIT_NAME "_exit"
 
