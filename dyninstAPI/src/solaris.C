@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.69 1999/05/21 18:17:30 wylie Exp $
+// $Id: solaris.C,v 1.70 1999/05/21 18:49:24 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -630,7 +630,7 @@ void process::handleIfDueToDyninstLib()
 
 #if defined(i386_unknown_solaris2_5)
   // restore the stack frame of _start()
-  prgregset_t theIntRegs = *(prgregset_t *)savedRegs;
+  prgregset_t theIntRegs; theIntRegs = *(prgregset_t *)savedRegs;
   Address theEBP = theIntRegs[EBP];
   assert (theEBP);
   // this is pretty kludge. if the stack frame of _start is not the right
@@ -863,7 +863,7 @@ bool process::dlopenDYNINSTlib() {
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
 #if defined(i386_unknown_solaris2_5)
   // save the stack frame of _start()
-  prgregset_t regs = *(prgregset_t*)savedRegs;
+  prgregset_t regs; regs = *(prgregset_t*)savedRegs;
   Address theEBP = regs[EBP];
   assert (theEBP);
   // this is pretty kludge. if the stack frame of _start is not the right
