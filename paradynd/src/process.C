@@ -14,7 +14,10 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.47  1996/05/08 18:25:58  naim
+ * Revision 1.48  1996/05/08 19:30:51  naim
+ * Minor fix - naim
+ *
+ * Revision 1.47  1996/05/08  18:25:58  naim
  * Eliminating warning messages - naim
  *
 <<<<<<< 1.46
@@ -396,11 +399,7 @@ bool isFreeOK(process *proc, disabledItem disItem, vector<Address> pcs)
 //
 void inferiorFreeCompact(inferiorHeap *hp)
 {
-<<<<<<< 1.46
-  int size;
-=======
   unsigned size;
->>>>>>> /tmp/T4a12600
   heapItem *np;
   size = hp->heapFree.size();
   unsigned j,i=0;
