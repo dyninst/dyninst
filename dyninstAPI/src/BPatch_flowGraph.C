@@ -360,23 +360,6 @@ bool BPatch_flowGraph::createBasicBlocks(){
 	Address* elements = new Address[leaders.size()];
 	leaders.elements(elements);
 
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
-	/*
-	 * On x86, check that all leaders point to actual instructions (not
-	 * into the middle of an instruction).  If not, delete what we've
-	 * built and return an error.
-	 */
-	for(i=0;i<leaders.size();i++){
-		ah.setCurrentAddress(elements[i]);
-		if (!ah.isInstruction()) {
-			delete [] elements;
-			BPatch_reportError(BPatchSerious, 42,
-					   "unable to determine control flow graph");
-			return false;
-		}
-	}
-#endif
-
 	//insert the first leaders corresponding basic block as a entry
 	//block to the control flow graph.
 
@@ -389,6 +372,17 @@ bool BPatch_flowGraph::createBasicBlocks(){
 	for(i=0;i<leaders.size();i++){
 		//set the value of address handle to be the value of the leader
 		ah.setCurrentAddress(elements[i]);
+#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+		// If the position of this leader does not match the start
+		// of an instruction, then the leader must be invalid.
+		// This can happen, for instance, when we parse a section
+		// of data as if it were code, and some part of the data
+		// looks like a branch.  If this happens, don't process
+		// the leader (the associated BPatch_basicBlock will be
+		// removed later when we remove unreachable blocks).
+		if (!ah.isInstruction())
+			continue;
+#endif
 		BPatch_basicBlock * bb = leaderToBlock[elements[i]];
 		bb->startAddress = (Address)(elements[i]+diffAddress);
 
