@@ -39,32 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: visualization.C,v $
-/* Revision 1.44  1996/08/16 21:33:55  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.43  1996/03/11 17:42:21  newhall
- * changed bool to int params in visi_DefinePhase, changed some params to
- * unsigned
- *
- * Revision 1.42  1996/02/23  17:47:16  tamches
- * added 2 bool params to visi_DefinePhase
- *
- * Revision 1.41  1996/01/26 19:24:26  newhall
- * changes so that visiLib can be used by C visis
- *
- * Revision 1.40  1996/01/19  20:55:44  newhall
- * more chages to visiLib interface
- *
- * Revision 1.39  1996/01/17 18:29:18  newhall
- * reorginization of visiLib
- *
- * Revision 1.38  1996/01/05 20:02:43  newhall
- * changed parameters to showErrorVisiCallback, so that visilib users are
- * not forced into using our string class
- *
- */ 
-
 #include <stream.h> 
 #include "visi/src/visualizationP.h"
 #include "visi/src/datagridP.h"
@@ -603,7 +577,7 @@ void visualization::PhaseEnd(double end, u_int handle){
    // update phase end time for phase assoc w/handle
    int ok;
    if(!(ok = visi_dataGrid.AddEndTime(end,handle))){
-       fprintf(stderr,"in visualization::PhaseEnd: phase end not added\n");
+       // fprintf(stderr,"in visualization::PhaseEnd: phase end not added\n");
    }
    
   //call callback routine assoc. w/event PHASEEND
@@ -921,8 +895,7 @@ int visi_SetUserData(int metric_num, int resource_num, void *data){
     return 0;
 }
 
-#ifdef ndef
-void PrintDataBuckets(int step){
+void visi_PrintDataBuckets(int step){
 
     int noMetrics = visi_dataGrid.NumMetrics();
     int noResources = visi_dataGrid.NumResources();
@@ -941,5 +914,4 @@ void PrintDataBuckets(int step){
     }
 
 }
-#endif
 

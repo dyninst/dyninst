@@ -39,29 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: datagrid.C,v $
-/* Revision 1.22  1996/08/16 21:33:50  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.21  1996/01/19 20:55:40  newhall
- * more chages to visiLib interface
- *
- * Revision 1.20  1996/01/17 18:29:13  newhall
- * reorginization of visiLib
- *
- * Revision 1.19  1995/12/18 23:22:03  newhall
- * changed metric units type so that it can have one of 3 values (normalized,
- * unnormalized or sampled)
- *
- * Revision 1.18  1995/11/17  17:28:37  newhall
- * added normalized member to Metric class which specifies units type
- * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
- *
- * Revision 1.17  1995/11/12  23:29:48  newhall
- * removed warnings, removed error.C
- *
- */
-
 ///////////////////////////////////////////////
 // Member functions for the following classes:
 //  Metric, Resource, visi_GridCellHisto,
@@ -273,17 +250,17 @@ int i;
   resources    = new Resource[noResources];
 
   for(i = 0; i < noMetrics; i++){
-    metrics[i].Metric(metricList[i].Units(),metricList[i].Name(),
+    metrics[i] = Metric(metricList[i].Units(),metricList[i].Name(),
 		      metricList[i].Identifier(),metricList[i].Aggregate(),
 		      metricList[i].UnitsType());
   }
   for(i = 0; i < noResources; i++){
-    resources[i].Resource(resourceList[i].Name(),resourceList[i].Identifier());
+    resources[i] = Resource(resourceList[i].Name(),resourceList[i].Identifier());
   }
 
   data_values = new visi_GridHistoArray[noMetrics];
   for (i = 0; i < noMetrics; i++)
-    data_values[i].visi_GridHistoArray(noResources);
+    data_values[i] = visi_GridHistoArray(noResources);
   numBins  = noBins;
   binWidth = width;
   start_time = startTime;
@@ -312,16 +289,16 @@ int i;
   resources    = new Resource[noResources];
 
   for(i = 0; i < noMetrics; i++){
-    metrics[i].Metric(metricList[i].units,metricList[i].name,
+    metrics[i] = Metric(metricList[i].units,metricList[i].name,
 		      metricList[i].Id,metricList[i].aggregate,
 		      metricList[i].unitstype);
   }
   for(i = 0; i < noResources; i++){
-    resources[i].Resource(resourceList[i].name,resourceList[i].Id);
+    resources[i] = Resource(resourceList[i].name,resourceList[i].Id);
   }
   data_values = new visi_GridHistoArray[noMetrics];
   for (i = 0; i < noMetrics; i++)
-    data_values[i].visi_GridHistoArray(noResources);
+    data_values[i] = visi_GridHistoArray(noResources);
   numBins  = noBins;
   binWidth = width;
   start_time = startTime;
@@ -494,10 +471,10 @@ int i,ok;
   resources = new Resource[numResources + howmany];
 
   for(i = 0; i < numResources; i++){
-      resources[i].Resource(temp[i].Name(),temp[i].Identifier());
+      resources[i] = Resource(temp[i].Name(),temp[i].Identifier());
   }
   for(i = numResources; i < (numResources + howmany); i++){
-      resources[i].Resource(rlist[i-numResources].name,
+      resources[i] = Resource(rlist[i-numResources].name,
 			  rlist[i-numResources].Id);
   }
 
@@ -532,12 +509,12 @@ int i;
   metrics = new Metric[numMetrics + howmany];
 
   for(i = 0; i < numMetrics; i++){
-    metrics[i].Metric(temp[i].Units(),temp[i].Name(),
+    metrics[i] = Metric(temp[i].Units(),temp[i].Name(),
 		      temp[i].Identifier(),temp[i].Aggregate(),
 		      temp[i].UnitsType());
   }
   for(i = numMetrics; i < (numMetrics + howmany); i++){
-    metrics[i].Metric(mlist[i-numMetrics].units, mlist[i-numMetrics].name,
+    metrics[i] = Metric(mlist[i-numMetrics].units, mlist[i-numMetrics].name,
 		       mlist[i-numMetrics].Id, mlist[i-numMetrics].aggregate,
 		       mlist[i-numMetrics].unitstype);
   }
@@ -556,7 +533,7 @@ int i;
   }
 
   for(i=numMetrics; i < (numMetrics + howmany); i++){
-    data_values[i].visi_GridHistoArray(numResources);
+    data_values[i] = visi_GridHistoArray(numResources);
   }
 
   numMetrics += howmany;

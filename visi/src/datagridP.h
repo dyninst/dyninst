@@ -43,9 +43,12 @@
 #define _datagrid_h
 
 /* $Log: datagridP.h,v $
-/* Revision 1.3  1996/08/16 21:33:51  tamches
-/* updated copyright for release 1.1
+/* Revision 1.4  1996/12/10 16:20:47  newhall
+/* added visi_PrintDataBuckets, changed the way data grid constructors are called
 /*
+ * Revision 1.3  1996/08/16 21:33:51  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.2  1996/01/19 20:55:42  newhall
  * more chages to visiLib interface
  *
@@ -360,6 +363,11 @@ class  visi_GridHistoArray {
 	   return(ERROR_INT);
          else
 	   return(values[resource].LastBucketFilled());
+      }
+
+      visi_GridHistoArray& operator= (visi_GridHistoArray &new_elm){
+          this = &new_elm; 
+	  return *this;
       }
 
       int AddValue(visi_sampleType x,
