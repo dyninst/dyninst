@@ -2,10 +2,15 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.1  1994/09/29 19:49:50  tamches
-#  rewritten for new version of barchart; the bars are now drawn
-#  with xlib code in C++ (no more blt_barchart) in barChart.C.
-#  See also barChartTcl.C and barChartDriver.C
+#  Revision 1.2  1994/10/01 02:22:25  tamches
+#  Fixed some bugs related to scrolling; now, the user can't accidentally
+#  scroll to the left of the leftmost bar or to the right of the rightmost
+#  bar.
+#
+# Revision 1.1  1994/09/29  19:49:50  tamches
+# rewritten for new version of barchart; the bars are now drawn
+# with xlib code in C++ (no more blt_barchart) in barChart.C.
+# See also barChartTcl.C and barChartDriver.C
 #
 # Revision 1.5  1994/09/08  00:10:43  tamches
 # Added preliminary blt_drag&drop interface.
@@ -30,6 +35,7 @@
 
 # ######################################################
 # TO DO LIST:
+# 0) a min and max resource width
 # 1) draw numerical values on the bars (menu option) (default=on?)
 # 2) option to sort resources (will be difficult--would need to map resourceid
 #    as given by visi to our new ordering)
@@ -211,13 +217,6 @@ pack $W.sbRegion.xAxisScrollbar -side right -fill x -expand true
    # expand is set to true; if the window is made wider, we want
    # extra width.
 
-# ####################  Barchart Y Axis Title (units of the given metrix) ###########
-# ####################  requires the ability to rotate text               ###########
-#label $W.yAxisTitle -text "(no metric yet specified)" \
-#                    -font "-adobe-helvetica-bold-o-*-*-*-*-*-*-*-*-iso8859-1"
-#                    -rotate 90
-#pack  $W.yAxisTitle -side left -fill y -expand true
-
 # #############  A sub-window to hold x-axis canvas & some padding #########
 
 canvas $W.bottom -height $xAxisHeight
@@ -289,7 +288,10 @@ proc Initialize {} {
 
    global numResources
    global resourceNames
-   global resourceWidth
+
+   global currResourceWidth
+   global minResourceWidth
+   global maxResourceWidth
 
    global DataFormat
 
@@ -322,9 +324,15 @@ proc Initialize {} {
       set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
    }
 
-   set resourceWidth 90
-      # in the future, with >1 metric allowed, this number would depend
-      # on the number of metrics currently in operation...
+   set minResourceWidth 45
+   set maxResourceWidth 90
+   set currResourceWidth $maxResourceWidth
+      # as resources are added, we try to shrink the resource width down to a minimum of
+      # (minResourceWidth) rather than having to invoke the scrollbar.
+      # The question then becomes, if the window is made wider, should we
+      # tend "resourceWidth" back toward "maxResourceWidth", if it had been shrunk
+      # toward "minResourceWidth"?  Or once a resource is shrunk, should it never
+      # be enlarged?
 
    # launch our C++ barchart code
    # launchBarChart $W.body.barCanvas doublebuffer noflicker $numMetrics $numResources 0
@@ -339,8 +347,6 @@ proc Initialize {} {
 
    # [sec 19.2: 'event patterns' in tk/tcl manual]
 
-   #bind $W.body.barCanvas <Configure> +{myConfigureEventHandler}
-   #bind $W.body.barCanvas <Expose>    +{myExposeEventHandler}
    bind $W.body <Configure> +{myConfigureEventHandler}
    bind $W.body <Expose>    +{myExposeEventHandler}
 }
@@ -447,6 +453,22 @@ proc processExitResource {widgetName} {
    }
 }
 
+proc rethinkResourceWidths {} {
+   # When resources are added or deleted, this routine is called.
+   # Its sole purpose is to rethink the value of currResourceWidth,
+   # depending on the resources.
+
+   global minResourceWidth
+   global maxResourceWidth
+   global currResourceWidth
+
+   puts stderr "Welcome to rethinkResourceWidths"
+   
+   # do calculation here!!!!!!!
+
+   puts stderr "Leaving rethinkResourceWidths; we have decided upon $currResourceWidth"
+}
+
 proc drawXaxis {} {
    # how it works: deletes all canvas items with the tag "xAxisItemTag", including
    # the window items.  message widgets have to be deleted separately, notwithstanding
@@ -467,7 +489,10 @@ proc drawXaxis {} {
    global resourceNames
    global clickedOnResource
    global clickedOnResourceText
-   global resourceWidth
+
+   global minResourceWidth
+   global maxResourceWidth
+   global currResourceWidth
 
    global LongNames
    global SortPrefs
@@ -495,8 +520,8 @@ proc drawXaxis {} {
 
    set right 0
    for {set rindex 0} {$rindex < $numResources} {incr rindex} {
-      set left [expr $rindex * $resourceWidth]
-      set right [expr $left + $resourceWidth - 1]
+      set left [expr $rindex * $currResourceWidth]
+      set right [expr $left + $currResourceWidth - 1]
       set middle [expr ($left + $right) / 2]
 
       # create a tick line
@@ -511,7 +536,7 @@ proc drawXaxis {} {
       }
 
       message $Wxcanvas.message$rindex -text $theText \
-                                           -justify center -width $resourceWidth \
+                                           -justify center -width $currResourceWidth \
 					   -font $resourceNameFont
       bind $Wxcanvas.message$rindex <Enter> \
                           {processEnterResource %W}
@@ -881,12 +906,31 @@ proc processNewScrollPosition {newTop} {
    # the -command configuration of the scrollbar is fixed to call this procedure.
    # This happens whenever scrolling takes place.  We update the x-axis canvas
    global Wxcanvas
+   global W
 
-   # puts stderr "welcome to processNewScrollPosition: newTop is now: $newTop"
+   # puts stderr "barChart.tcl: welcome to processNewScrollPosition: newTop is now: $newTop"
 
+   if {$newTop < 0} {
+      set newTop 0
+   }
+
+   # if max <= visible then set newTop 0
+   set currSettings [$W.sbRegion.xAxisScrollbar get]
+   set totalSize [lindex $currSettings 0]
+   set visibleSize [lindex $currSettings 1]
+
+   if {$visibleSize > $totalSize} {
+      set newTop 0
+   } elseif {[expr $newTop + $visibleSize] > $totalSize} {
+      set newTop [expr $totalSize - $visibleSize]
+   }
+
+   # update the x-axis canvas
+   # will automatically generate a call to myXScroll, which then updates the
+   # look of the scrollbar to reflect the new position...
    $Wxcanvas xview $newTop
 
-   # inform barChart.C
+   # call our C++ code to update the bars
    newScrollPosition $newTop
 }
 
@@ -899,8 +943,6 @@ proc myXScroll {totalSize visibleSize left right} {
    # command of the scrollbar
 
    global W
-
-   # puts stderr "welcome to myXScroll; total=$totalSize visi=$visibleSize left=$left right=$right"
 
    $W.sbRegion.xAxisScrollbar set $totalSize $visibleSize $left $right
 }
@@ -978,6 +1020,7 @@ proc DgConfigCallback {} {
    }
 
    # rethink the layout of the axes
+   rethinkResourceWidths
    drawXaxis
    drawYaxis
    drawTitle
