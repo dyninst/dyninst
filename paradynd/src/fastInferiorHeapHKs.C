@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.22 2002/01/09 01:28:22 bernat Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.23 2002/01/17 16:22:52 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -146,12 +146,23 @@ intCounterHK &intCounterHK::operator=(const intCounterHK &src) {
    return *this;
 }
 
+#if defined(rs6000_ibm_aix4_1)
+/* sync on powerPC is actually more general than just a memory barrier,
+   more like a total execution barrier, but the general use we are concerned
+   of here is as a memory barrier 
+*/
+#define MEMORY_BARRIER     asm volatile ("sync")
+#else
+#define MEMORY_BARRIER
+#endif
+
 bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
    // returns true iff the process succeeded; i.e., if we were able to grab a
-   // consistent value for the intCounter and process without any waiting.  Otherwise,
-   // we return false and don't process and don't wait.
+   // consistent value for the intCounter and process without any waiting.
+   // Otherwise, we return false and don't process and don't wait.
 
    int64_t val;
+
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
    // the 32 bit platforms require a special method load the value atomically
    __asm__ volatile ("fildq %0"  : : "g" (dataValue.value));
@@ -178,12 +189,6 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
    switchedSample.u32[1] = curSample.u32[0];
    val = switchedSample.i64;
 #endif
-
-      // that was the sampling.  Currently, we don't check to make sure that we
-      // sampled a consistent value, since we assume that writes to integers
-      // are never partial.  Once we extent intCounters to, say, 64 bits, we'll
-      // need to be more careful and use a scheme similar to that used by the
-      // process and wall timers...
 
    // To avoid race condition, don't use 'dataValue' after this point!
 
@@ -258,7 +263,7 @@ static rawTime64 calcTimeValueToUse(int count, rawTime64 start,rawTime64 total,
      // < start, which should never happen.  In that case, we'll just report
      // total (why is it happening?)
      cerr << "Current time less than start time in wall time sample" << endl;
-      retVal = total;
+     retVal = total;
    }
    else {
       retVal = total + (currentTime - start);
@@ -268,36 +273,50 @@ static rawTime64 calcTimeValueToUse(int count, rawTime64 start,rawTime64 total,
 }
 
 bool wallTimerHK::perform(const tTimer &theTimer, process *) {
-   // returns true iff the process succeeded; i.e., if we were able to read
-   // a consistent value of the tTimer, and process it.  Otherwise, returns false,
-   // doesn't process and doesn't wait.
+   // returns true iff the process succeeded; i.e., if we were able to read a
+   // consistent value of the tTimer, and process it.  Otherwise, returns
+   // false, doesn't process and doesn't wait.
 
-   // We sample like this:
-   // read protector2, read values, read protector1.  If protector values are equal,
-   // then process using a copy of the read values.  Otherwise, return false.
-   // This algorithm is from [Lamport 77], and allows concurrent reading and writing.
-   // If someday there becomes multiple writers, then we'll have to make changes...
+   // We sample like this: read protector2, read values, read protector1.  If
+   // protector values are equal, then process using a copy of the read
+   // values.  Otherwise, return false.  This algorithm is from [Lamport 77],
+   // and allows concurrent reading and writing.  If someday there becomes
+   // multiple writers, then we'll have to make changes...
 
-   // We used to take in a wall time to use as the time-of-sample.  But we've found
-   // that the wall time (when used as fudge factor when sampling an active process
-   // timer) must be taken at the same time the sample is taken to avoid incorrectly
-   // scaled fudge factors, leading to jagged spikes in the histogram (i.e.
-   // incorrect samples).  This is too bad; it would be nice to read the wall time
-   // just once per paradynd sample, instead of once per timer per paradynd sample.
+   // We used to take in a wall time to use as the time-of-sample.  But we've
+   // found that the wall time (when used as fudge factor when sampling an
+   // active process timer) must be taken at the same time the sample is
+   // taken to avoid incorrectly scaled fudge factors, leading to jagged
+   // spikes in the histogram (i.e.  incorrect samples).  This is too bad; it
+   // would be nice to read the wall time just once per paradynd sample,
+   // instead of once per timer per paradynd sample.
 
    volatile const int prot2 = theTimer.protector2;
-
+   MEMORY_BARRIER;  // restricts processor from doing reads out-of-order
    // Do these 4 need to be volatile as well to ensure that they're read
-   // between the reading of protector2 and protector1?  Probably not, since those
-   // two are volatile; but let's keep an eye on the generated assembly code...
+   // between the reading of protector2 and protector1?  Probably not, since
+   // those two are volatile; but let's keep an eye on the generated assembly
+   // code...
    volatile const rawTime64 start = theTimer.start;
    volatile const rawTime64 total = theTimer.total;
    volatile const int    count = theTimer.counter;
-
-   volatile const int prot1 = theTimer.protector1;
-
    const rawTime64 rawCurrWallTime = 
                   getWallTimeMgr().getRawTime(wallTimeMgr_t::LEVEL_BEST);
+   MEMORY_BARRIER;
+   volatile const int prot1 = theTimer.protector1;
+
+   // Wall time querying needs to occur in the critical section, otherwise...
+   // DAEMON                       RTINST
+   // read timer 
+   // CONTEXT SWITCH               stopTimer (curR = query-wall-time;
+   //                                         totalR += curR - start)
+   // curD = query-wall-time       
+   // totalD = curD - start
+   // 
+   // SAMPLE-TIMER (count==0 so totalD'=totalR)
+   // --------------------------------------------------------------------
+   // From above, totalD > totalR, or totalD > totalD' (a rollback)
+
    timeStamp currWallTime(getWallTimeMgr().units2timeStamp(rawCurrWallTime));
 
    if (prot1 != prot2)
@@ -369,26 +388,27 @@ processTimerHK &processTimerHK::operator=(const processTimerHK &src) {
 }
 
 bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
-   // returns true iff the process succeeded; i.e., if we were able to grab the
-   // mutex for this tTimer and process without any waiting.  Otherwise,
+   // returns true iff the process succeeded; i.e., if we were able to grab
+   // the mutex for this tTimer and process without any waiting.  Otherwise,
    // we return false and don't process and don't wait.
 
-   // Timer sampling is trickier than counter sampling.  There are more
-   // race conditions and other factors to carefully consider.
+   // Timer sampling is trickier than counter sampling.  There are more race
+   // conditions and other factors to carefully consider.
 
-   // see the corresponding wall-timer routine for comments on how we guarantee
-   // a consistent read value...
+   // see the corresponding wall-timer routine for comments on how we
+   // guarantee a consistent read value...
 
-   // We used to take in a wall time to use as the time-of-sample, and a process
-   // time to use as the current-process-time for use in fudge factor when sampling
-   // an active process timer.  But we've found that both values must be taken at
-   // the same time the sample is taken to avoid incorrect values, leading to
-   // jagged spikes in the histogram (i.e. incorrect samples).  This is too bad; it
-   // would be nice to read these times just once per paradynd sample, instead of
-   // once per timer per paradynd sample.
+   // We used to take in a wall time to use as the time-of-sample, and a
+   // process time to use as the current-process-time for use in fudge factor
+   // when sampling an active process timer.  But we've found that both
+   // values must be taken at the same time the sample is taken to avoid
+   // incorrect values, leading to jagged spikes in the histogram
+   // (i.e. incorrect samples).  This is too bad; it would be nice to read
+   // these times just once per paradynd sample, instead of once per timer
+   // per paradynd sample.
 
    volatile const int protector2 = theTimer.protector2;
-
+   MEMORY_BARRIER;   // restricts processor from doing reads out-of-order
    // Do the following vrbles need to be volatile to ensure that they're read
    // between the reading of protector2 and protector1?  Probably not, but
    // we should keep an eye on the generated assembly to be sure...
@@ -406,26 +426,28 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    } else {
      if (vt) {
        RTINSTsharedData *RTsharedDataInParadynd 
-	   =((RTINSTsharedData*) inferiorProc->getRTsharedDataInParadyndSpace()) ; 
+	 =((RTINSTsharedData*) inferiorProc->getRTsharedDataInParadyndSpace());
        RTINSTsharedData *RTsharedDataInApplic 
-	   =((RTINSTsharedData*) inferiorProc->getRTsharedDataInApplicSpace()) ; 
+	 =((RTINSTsharedData*) inferiorProc->getRTsharedDataInApplicSpace()); 
        vTimer = RTsharedDataInParadynd->virtualTimers + 
 	   (int)(vt- RTsharedDataInApplic->virtualTimers);
      }
      bool success = true ; // count <=0 should return true
-     inferiorCPUtime =(count>0)?pdThread::getInferiorVtime(vTimer,inferiorProc, success):0 ; 
+     inferiorCPUtime =(count>0)?pdThread::getInferiorVtime(vTimer,inferiorProc,
+							   success) : 0;
      if (!success)
        return false ;
    }
 #else   
    const rawTime64 inferiorCPUtime = (count>0) ? 
-                            inferiorProc->getRawCpuTime(/*theTimer.lwp_id*/) : 0;
+                         inferiorProc->getRawCpuTime(/*theTimer.lwp_id*/) : 0;
 #endif 
 
-   // This protector read and comparison must happen *after* we obtain the inferior
-   // CPU time or thread virtual time, or we have a race condition resulting in lots
-   // of annoying timer rollback warnings.  In the long run, our data is still 
-   // correct, but individual samples will be bad.
+   // This protector read and comparison must happen *after* we obtain the
+   // inferior CPU time or thread virtual time, or we have a race condition
+   // resulting in lots of annoying timer rollback warnings.  In the long
+   // run, our data is still correct, but individual samples will be bad.
+   MEMORY_BARRIER;
    volatile const int protector1 = theTimer.protector1;
    if (protector1 != protector2)
       return false;
@@ -443,16 +465,16 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
 					     inferiorCPUtime, theTimer.id.id);
    // this is where conversion from native units to real time units is done
    timeLength timeValueToUse=inferiorProc->units2timeLength(rawTimeValueToUse);
-   sampleVal_cerr << "raw-total: " << total << ", timeValueToUse: " << timeValueToUse << "\n";
+   sampleVal_cerr << "raw-total: " << total << ", timeValueToUse: " 
+		  << timeValueToUse << "\n";
    
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
    // cerr <<"lastTimeValueUsed="<< lastTimeValueUsed << endl ;
    if (timeValueToUse < lastTimeValueUsed) {
 #if  !defined(MT_THREAD)
-   // Timer could roll back in the case that the per-thread
-   // virtual timer is reused by another thread, to avoid this to happen, we should
-   // reuse them with a least recently used strategy.
-   // See DYNINST_hash_delete in RTinst.c
+   // Timer could roll back if the per-thread virtual timer is reused by
+   // another thread, to avoid this to happen, we should reuse them with a
+   // least recently used strategy.  See DYNINST_hash_delete in RTinst.c
       const char bell = ' '; //07;
       cerr << "processTimerHK::perform(): process timer rollback (" 
 	   << timeValueToUse << "," << lastTimeValueUsed << ")" 
