@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.15 2001/02/01 01:07:31 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.16 2001/02/01 16:24:24 pcroth Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -65,7 +65,7 @@ CFLAGS       = $(CFLAGS) -I../../h
 
 LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
 
-SYSLIBS		= imagehlp.lib advapi32.lib
+SYSLIBS		= 
 
 all:
 	$(MAKE) aTest TARGET=test1.exe
