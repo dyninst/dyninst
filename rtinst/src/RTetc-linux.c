@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.29 2004/03/23 01:12:43 eli Exp $ */
+/* $Id: RTetc-linux.c,v 1.30 2004/04/08 21:15:49 legendre Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -322,10 +322,6 @@ unsigned PARADYNgetFD(unsigned lwp)
   return 0;
 }
 
-unsigned DYNINSTthreadIndexFAST() {
-   return 0;
-}
-
 
 #ifdef MT_THREAD
 
@@ -366,14 +362,10 @@ DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd)
 }
 
 
-// Need to implement
-int tc_lock_lock(tc_lock_t * lck) {
-   return 0;
-}
 
 // Need to implement
 int thread_self() {
-   return 0;
+  return 0;
 }
 
 #endif
