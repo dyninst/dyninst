@@ -46,6 +46,9 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.27  1996/09/05 16:32:20  lzheng
+ * Removing some warning and clean up the code a little bit.
+ *
  * Revision 1.26  1996/08/20 19:01:00  lzheng
  * Implementation of moving multiple instructions sequence
  * Added a few variable. (need to change them to private member later)
@@ -183,7 +186,7 @@ class pdFunction {
     bool notInstalled;
     bool checkInstPoints(const image *owner);
     bool findInstPoints(const image *owner, Address adr, process *proc);
-    bool relocateFunction(process *proc, instPoint *location);
+    void relocateFunction(process *proc);
     Address newCallPoint(Address &adr, const instruction code, const 
                          image *owner, bool &err, int &id, Address &addr);
     Address newAddr;
