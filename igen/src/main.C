@@ -303,7 +303,7 @@ static void init_types() {
   Options::add_type("void", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
 		    NULL);
   Options::add_type("bool", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
-		    NULL, NULL, "Boolean");
+		    NULL, "", "Boolean");
   Options::add_type("u_int", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
 		    NULL);
   Options::add_type("float", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
@@ -313,7 +313,7 @@ static void init_types() {
   Options::add_type("char", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
 		    NULL);
   Options::add_type("string", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
-		    NULL, NULL, "string_pd");
+		    NULL, "", "string_pd");
 }
 
 static bool set_ml(const string ml_name) {
