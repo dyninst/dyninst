@@ -39,11 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.16 2003/06/24 19:41:20 schendel Exp $
+// $Id: aixMT.C,v 1.17 2003/07/29 00:32:36 eli Exp $
 
 //#include <sys/pthdebug.h> // Pthread debug library, disabled
 #include "dyninstAPI/src/dyn_thread.h"
-#include "paradynd/src/metricFocusNode.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 
 /* Necessary functions:
