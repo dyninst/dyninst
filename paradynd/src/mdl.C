@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.171 2005/02/21 22:28:54 legendre Exp $
+// $Id: mdl.C,v 1.172 2005/02/24 20:06:19 tlmiller Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -2368,34 +2368,99 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
    processMetFocusNode *procNode = (*procNode_arg);
    pd_process *proc = procNode->proc();
    bool dontInsertData = procNode->dontInsertData();
-   // create the instrCodeNodes and instrDataNodes for the flag constraints
    
-   if(repl_cons == NULL) {
-      unsigned flag_size = flag_cons.size(); // could be zero
-      
-      for(unsigned fs=0; fs<flag_size; fs++) {
-         pdstring cons_name(flag_cons[fs]->id());
-
-         instrCodeNode *consCodeNode = 
-            instrCodeNode::newInstrCodeNode(cons_name, no_thr_focus,
-                                            proc, dontInsertData);
-         bool consCodeNodeComplete = (consCodeNode->numDataNodes() > 0);
-         
-         if(! consCodeNodeComplete) {
-            if(! setup_constraint_code_node(consCodeNode, proc, flag_cons[fs],
-                                        *flags_focus_data[fs], dontInsertData))
-            {
-               delete consCodeNode;
-               return false;
-            }
-         } else {
-            metric_cerr << "  flag already there " << endl;
-            assert(consCodeNode);
-         }
-         procNode->addConstraintCodeNode(consCodeNode);	    
-      }
-   }
-
+	/* Are normal constraints disallowed if the metric specifies "replacement" constraints? */
+	if( repl_cons == NULL ) {
+		for( unsigned int flag = 0; flag < flag_cons.size(); flag++ ) {
+			pdstring constraintName( flag_cons[flag]->id() );
+			
+			/* We can share flags if and only if three conditions hold:
+			   [1] They're for the same focus.
+			   [2] They instrument the same points.
+			   [3] The code they insert at those points is the same.
+			   
+			   We can check [1] by comparing focus names.
+			   Because every constraint name is unique and invariant, we can check [2]
+			     by comparing constraint names.
+			   To check [3], we need a list of instPoints.  setup_constraint_code_node()
+			     will generate a list of instReqNodes.
+			     
+			   Since newInstrCodeNode() checks [1] and [2] for us, we need to check [3].
+			   We'll cheat.  (See more below.) */
+			   
+			instrCodeNode * cachedConstraintCodeNode =
+				instrCodeNode::newInstrCodeNode( constraintName, no_thr_focus, proc, dontInsertData );
+				
+			if( cachedConstraintCodeNode->numDataNodes() <= 0 ) {
+				/* Then we haven't inserted instrumentation for this constraint/focus pair before. */
+				bool okay = setup_constraint_code_node(	cachedConstraintCodeNode, proc, 
+														flag_cons[flag], * flags_focus_data[flag],
+														dontInsertData );
+				if( ! okay ) {
+					delete cachedConstraintCodeNode;
+					return false;
+					}
+								
+				/* Since we haven't seen it before, just add it and move on. */
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: uncached constraint/focus pair (%s, %s) detected.\n", __FILE__, __LINE__, constraintName.c_str(), no_thr_focus.getName().c_str() );
+				procNode->addConstraintCodeNode( cachedConstraintCodeNode );
+				continue;
+				} /* end if the node was not cached. */
+				
+			/* We've instrumented this constraint/focus pair before.  See if we did it with the same
+			   set of instrumentation (set of excluded functions). */
+			instrCodeNode * uncachedConstraintCodeNode = 
+				instrCodeNode::newInstrCodeNode( constraintName + "@" + name, no_thr_focus, proc, dontInsertData );
+				
+			if( uncachedConstraintCodeNode->numDataNodes() <= 0 ) {
+				/* Then we haven't inserted instrumentation for this constraint/focus/metric trio before. */
+				bool okay = setup_constraint_code_node(	uncachedConstraintCodeNode, proc, 
+														flag_cons[flag], * flags_focus_data[flag],
+														dontInsertData );
+				if( ! okay ) {
+					delete uncachedConstraintCodeNode;
+					return false;
+					}
+				} /* end if cachedConstraintCodeNode is incomplete. */
+			else {
+				/* Then we've inserted instrumentation for this constraint/focus/metric trio before.
+				   I'm pretty sure this should be caught in the front-end. */
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: duplicate constraint/focus/metric (%s, %s, %s) detected.\n", __FILE__, __LINE__, constraintName.c_str(), no_thr_focus.getName().c_str(), name.c_str() );
+				procNode->addConstraintCodeNode( uncachedConstraintCodeNode );
+				continue;
+				}
+				
+			/* Now we can compare the instrument request lists. */
+			bool theSame = true;
+			
+			pdvector< instReqNode * > cachedInstrumentationRequests = cachedConstraintCodeNode->getInstRequests();
+			pdvector< instReqNode * > uncachedInstrumentationRequests = uncachedConstraintCodeNode->getInstRequests();
+			
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: %d cached addresses vs %d uncached addresses.\n", __FILE__, __LINE__, cachedInstrumentationRequests.size(), uncachedInstrumentationRequests.size() );
+			if( cachedInstrumentationRequests.size() == uncachedInstrumentationRequests.size() ) {
+				for( unsigned int i = 0; i < cachedInstrumentationRequests.size(); i++ ) {
+					instReqNode * cachedIRN = cachedInstrumentationRequests[i];
+					instReqNode * uncachedIRN = uncachedInstrumentationRequests[i];
+					
+					// /* DEBUG */ fprintf( stderr, "%s[%d]: address 0x%lx (cached) vs 0x%lx (uncached).\n", __FILE__, __LINE__, cachedIRN->Point()->getAddress(), uncachedIRN->Point()->getAddress() );
+					if( cachedIRN->Point()->getAddress() != uncachedIRN->Point()->getAddress() ) {
+						theSame = false;
+						}
+					} /* end iteration of the requests in the vector */
+				} /* end if the size is the same */
+			else { theSame = false; }
+			
+			if( theSame ) {
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: decided that metric %s can share constraint/focus pair (%s, %s).\n", __FILE__, __LINE__, name.c_str(), constraintName.c_str(), no_thr_focus.getName().c_str() );			
+				procNode->addConstraintCodeNode( cachedConstraintCodeNode );
+				delete uncachedConstraintCodeNode; 
+				} else {
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: decided that metric %s could NOT share constraint/focus pair (%s, %s).\n", __FILE__, __LINE__, name.c_str(), constraintName.c_str(), no_thr_focus.getName().c_str() );			
+				procNode->addConstraintCodeNode( uncachedConstraintCodeNode );
+				}				
+			} /* end iteration over normal constraints. */
+		} /* end there are no replacement-type constraints. */
+               
    instrCodeNode *metCodeNode = 
       instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc,
                                       dontInsertData, hw_cntr_str);
