@@ -540,7 +540,7 @@ unsigned long long process::getInferiorProcessCPUtime() const {
 }
 #endif
 
-void *process::getRegisters() {
+void *process::getRegisters(bool &syscall) {
    // Astonishingly, this routine can be shared between solaris/sparc and
    // solaris/x86.  All hail /proc!!!
 

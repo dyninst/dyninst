@@ -100,11 +100,11 @@ bool waiting=false;
 }
 
 Frame::Frame(process *proc) {
-   if (!proc->getActiveFrame(&frame_, &pc_)) {
-      // failure
-      frame_ = pc_ = 0;
-   }
-   uppermostFrame = true;
+
+    frame_ = pc_ = 0;
+    proc->getActiveFrame(&frame_, &pc_);
+
+    uppermostFrame = true;
 }
 
 Frame Frame::getPreviousStackFrameInfo(process *proc) const {
@@ -2060,7 +2060,8 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
       return false;
    }
 
-   void *theSavedRegs = getRegisters(); // machine-specific implementation
+   bool syscall = false;
+   void *theSavedRegs = getRegisters(syscall); // machine-specific implementation
       // result is allocated via new[]; we'll delete[] it later.
       // return value of NULL indicates total failure.
       // return value of (void *)-1 indicates that the state of the machine isn't quite
@@ -2069,7 +2070,7 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
       //    the vrble 'RPCsWaitingToStart' untouched).
 
    if (theSavedRegs == (void *)-1) {
-      cerr << "launchRPCifAppropriate: deferring" << endl;
+      // cerr << "launchRPCifAppropriate: deferring" << endl;
       if (wasRunning)
 	 (void)continueProc();
       return false;
@@ -2088,11 +2089,11 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
 
 // Code for the HPUX version of inferiorRPC exists, but crashes, so
 // for now, don't do inferiorRPC on HPUX!!!!
-#if defined(hppa1_1_hp_hpux)
+/* #if defined(hppa1_1_hp_hpux)
 if (wasRunning)
   (void)continueProc();
 return false;
-#endif
+#endif */
 
    inferiorRPCinProgress inProgStruct;
    inProgStruct.callbackFunc = todo.callbackFunc;
@@ -2120,12 +2121,49 @@ return false;
    currRunningRPCs += inProgStruct;
 
    // change the PC and nPC registers to the addr of the temp tramp
-   if (!changePC(tempTrampBase, theSavedRegs)) {
-      cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
-      if (wasRunning)
-	 (void)continueProc();
-      return false;
+#if defined(hppa1_1_hp_hpux)
+   if (syscall) {
+       // within system call, just directly change the PC
+       if (!changePC(tempTrampBase, theSavedRegs)) {
+	   cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
+	   if (wasRunning)
+	       (void)continueProc();
+	   return false;
+       }
+   } else {
+       pdFunction *f = symbols->findOneFunctionFromAll("$$dyncall");
+       if (!f) {
+	   cerr << "$$dyncall was not found, inferior RPC won't work!" << endl;   
+	
+	   //       if (wasRunning)
+	   //	   (void)continueProc();
+	   //       return false;
+       }
+       
+       int errno = 0;
+       ptrace(PT_WUREGS, getPid(), 22 * 4, tempTrampBase, 0);
+       if (errno != 0) {
+	   perror("process::changePC");
+	   cerr << "reg num was 22." << endl;
+	   return false;
+       }
+       
+       int miniAddr = f -> getAddress(this);
+       if (!changePC(miniAddr, theSavedRegs)) {
+	    cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
+	   if (wasRunning)
+	       (void)continueProc();
+	   return false;
+	}
    }
+#else
+       if (!changePC(tempTrampBase, theSavedRegs)) {
+	   cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
+	   if (wasRunning)
+	       (void)continueProc();
+	   return false;
+       }
+#endif
 
    if (!continueProc()) {
       cerr << "launchRPCifAppropriate: continueProc() failed" << endl;

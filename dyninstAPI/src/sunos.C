@@ -41,6 +41,9 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.21  1996/11/23 22:46:41  lzheng
+ * Finished the implementation of inferiorPRC on HPUX platfrom
+ *
  * Revision 1.20  1996/11/19 16:28:24  newhall
  * Fix to stack walking on Solaris: find leaf functions in stack (these can occur
  * on top of stack or in middle of stack if the signal handler is on the stack)
@@ -191,7 +194,7 @@ bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, void *addr,
 
 /* ********************************************************************** */
 
-void *process::getRegisters() {
+void *process::getRegisters(bool &syscall) {
    // ptrace - GETREGS call
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);

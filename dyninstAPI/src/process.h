@@ -352,7 +352,8 @@ class process {
                               unsigned &firstPossibBreakAddr,
                               unsigned &lastPossibleBreakAddr);
 
-  void *getRegisters();
+  // The parameter syscall is noly used for hpux platform right now
+  void *getRegisters(bool &syscall);
      // ptrace-GETREGS and ptrace-GETFPREGS.  Result is returned in an opaque type
      // which is allocated with new[]
   bool changePC(unsigned addr,
@@ -790,7 +791,7 @@ class Frame {
     int getPC() const { return pc_; }
     int getFramePtr(){ return frame_;}
     bool isLastFrame() const { 
-	if (frame_ == 0) return(true);
+	if (pc_ == 0) return(true);
 	else return(false); 
     }
 

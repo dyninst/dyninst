@@ -319,9 +319,10 @@ static const unsigned getRegistersNumBytes =
 			   + 4 // pcspace, to be restored as PCSQ_TAIL
 			   ;
 
-void *process::getRegisters() {
+void *process::getRegisters(bool &syscall) {
    // ptrace - GETREGS call
    // assumes the process is stopped (ptrace requires it)
+   syscall = false;
 
    assert(status_ == stopped);
 
@@ -344,11 +345,6 @@ void *process::getRegisters() {
    }
 
    *resultPtr++ = saveStateFlags;
-
-   if (saveStateFlags & SS_INSYSCALL) {
-      cerr << "hpux getRegisters(): SS_INSYSCALL is true, so deferring..." << endl;
-      return (void *)-1;
-   }
 
    // Now set 'thePCspace' to the value of PCSQ_HEAD_REGNUM,
    // and save registers "normally" (as read from ptrace).
@@ -435,6 +431,13 @@ void *process::getRegisters() {
 
    assert((char *)resultPtr - (char *)result == getRegistersNumBytes);
 
+   if (saveStateFlags & SS_INSYSCALL) {
+       cerr << "DEFER: Currently, the pc is " << readCurrPC(getPid(), saveStateFlags)
+       <<endl;
+       // cerr << "hpux getRegisters(): SS_INSYSCALL is true, so deferring..." << endl;
+       syscall = true;
+   }
+
    return result;
 }
 
@@ -493,7 +496,81 @@ bool process::restoreRegisters(void *buffer) {
    assert(savedPCSQ_TAIL == savedPCSQ_HEAD); // they're always equal when saved
    assert(savedPCOQ_TAIL == savedPCOQ_HEAD + 4); // it's always this way when saved
 
-   errno = 0;
+   // First step, skip the breakpoint by incrementing the PC by 4
+   Frame theFrame(this);
+   int framePC = theFrame.getPC();
+
+   ptrace(PT_WUREGS, getPid(), 33*4, framePC+4, 0);
+   if (errno != 0) {
+      perror("PT_WUREGS for PCOQ_HEAD");
+      return false;
+   }
+
+   ptrace(PT_WUREGS, getPid(), 35*4, framePC+8, 0);
+   if (errno != 0) {
+      perror("PT_WUREGS for PCOQ_TAIL");
+      return false;
+   }
+
+   // Second step, assign the correct SR and PC value to the register.
+   ptrace(PT_WUREGS, getPid(), 21*4, savedPCSQ_HEAD, 0);
+   if (errno != 0) {
+      perror("PT_WUREGS for PCSQ_HEAD");
+      return false;
+   }
+   
+   ptrace(PT_WUREGS, getPid(), 22*4, savedPCOQ_HEAD, 0);
+   if (errno != 0) {
+      perror("PT_WUREGS for PCOQ_HEAD");
+      return false;
+   }
+
+   // Third step, generate any breakpoint instruction at the the new pc
+   // and continue the process. After two instructions being executed,
+   // the program should reach this trap instruction. then we replace
+   // this instruction with the original instruction and restore all
+   // the old registers.
+   char buf[4];
+   readDataSpace((caddr_t)(savedPCOQ_HEAD), sizeof(int), buf, true);
+   instruction bp;
+   extern void generateBreakPoint(instruction &);
+   generateBreakPoint(bp);
+   writeTextSpace((caddr_t)(savedPCOQ_HEAD), sizeof(int), (caddr_t)&bp);
+   continueProc();
+       
+   bool isStopped = false;
+   int waitStatus;
+   while (!isStopped) {
+       int ret = P_waitpid(pid, &waitStatus, WUNTRACED);
+       if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
+	   // the child is gone.
+	   //status_ = exited;
+	   handleProcessExit(this, WEXITSTATUS(waitStatus));
+	   return(false);
+       }
+       if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
+	   printf("problem stopping process\n");
+	   assert(0);
+       }
+       int sig = WSTOPSIG(waitStatus);
+       // printf("signal is %d\n", sig); fflush(stdout); 
+       if (sig == SIGTRAP) {
+	   status_ = stopped;
+	   isStopped = true;
+       } else {
+	   if (sig > 0) {
+	       if (P_ptrace(PT_CONTIN, pid, 1, WSTOPSIG(waitStatus), 0) == -1) {
+		   cerr << "Ptrace error\n";
+		   assert(0);
+	       }
+	   }
+	   stop_();
+       }
+   }
+
+   writeTextSpace((caddr_t)(savedPCOQ_HEAD), sizeof(int), (caddr_t)&buf);
+
+   /* errno = 0;
    ptrace(PT_WUREGS, getPid(), 33*4, savedPCOQ_HEAD, 0); // 33 --> PCOQ_HEAD
    if (errno != 0) {
       perror("PT_WUREGS for PCOQ_HEAD");
@@ -521,9 +598,9 @@ bool process::restoreRegisters(void *buffer) {
    if (errno != 0) {
       perror("PT_WUREGS for PCSQ_TAIL");
       return false;
-   }
+   } */
 
-   cerr << "restoreRegisters: got past the hard part!" << endl;
+   // cerr << "restoreRegisters: got past the hard part!" << endl;
 
    // Now restore the integer registers
    bufferPtr = (unsigned *)buffer;
@@ -541,16 +618,21 @@ bool process::restoreRegisters(void *buffer) {
    }
 
    // Now restore the floating point registers 0 thru 31, @ 8 bytes each
-   for (unsigned regnum = 64; regnum < 96; regnum++) {
+   // We are not able to write the floating point register 0-3
+   for (unsigned regnum = 64; regnum < 128; regnum+=2) {
       const unsigned part1 = *bufferPtr++;
       const unsigned part2 = *bufferPtr++;
+
+      // The first four register are not allowed to write 
+      if (regnum < 64 + 8)
+	  continue;
 
       errno = 0;
       ptrace(PT_WUREGS, getPid(), regnum * 4, part1, 0);
       if (errno != 0) {
 	 perror("PT_WUREGS for part 1 of an fp register");
 	 cerr << "the fp register num was " << regnum-64 << endl;
-	 return false;
+	 // return false;
       }
 
       errno = 0;
@@ -558,14 +640,14 @@ bool process::restoreRegisters(void *buffer) {
       if (errno != 0) {
 	 perror("PT_WUREGS for part 2 of an fp register");
 	 cerr << "the fp register num was " << regnum-64 << endl;
-	 return false;
+	 // return false;
       }
    }
 
    // Lastly, restore IPSW (cr 22, aka reg num 41) and SAR (cr 11, aka reg num 32)
    const unsigned savedIPSW = *bufferPtr++;
    const unsigned savedSAR  = *bufferPtr++;
-   assert((unsigned)bufferPtr - (unsigned)buffer == getRegistersNumBytes);
+   // assert(((unsigned)bufferPtr - (unsigned)buffer) == (getRegistersNumBytes-16));
 
    errno = 0;
    ptrace(PT_WUREGS, getPid(), 4 * 41, savedIPSW, 0);

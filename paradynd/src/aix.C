@@ -200,7 +200,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
     }
 }
 
-void *process::getRegisters() {
+void *process::getRegisters(bool &syscall) {
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);
 

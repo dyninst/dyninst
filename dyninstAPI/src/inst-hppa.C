@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.31  1996/11/23 22:49:45  lzheng
+ * Finished the implementation of inferiorPRC on HPUX platfrom
+ *
  * Revision 1.30  1996/11/19 16:27:55  newhall
  * Fix to stack walking on Solaris: find leaf functions in stack (these can occur
  * on top of stack or in middle of stack if the signal handler is on the stack)
@@ -1354,12 +1357,15 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
    // Sequence: trap, 2 special instructions to restore PCSQ, illegal
    // (the 2 special instructions should never return)
 
-//   generateBreakPoint(insn[baseInstruc]);
-//   firstPossibBreakOffset = lastPossibBreakOffset = baseInstruc * sizeof(instruction);
-//   baseInstruc++;
+    instruction *insn = (instruction *)insnPtr;
+    unsigned baseInstruc = baseBytes / sizeof(instruction);
+
+    generateBreakPoint(insn[baseInstruc]);
+    firstPossibBreakOffset = lastPossibBreakOffset = baseInstruc * sizeof(instruction);
+    baseInstruc++;
 
    // Call DYNINSTbreakPoint, with no arguments
-   vector<AstNode *> args; // no arguments to DYNINSTbreakPoint
+   /*  vector<AstNode *> args; // no arguments to DYNINSTbreakPoint
    AstNode *ast = new AstNode("DYNINSTbreakPoint", args);
 
    initTramps();
@@ -1368,10 +1374,8 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
 
    reg resultReg = ast->generateCode(this, regSpace, (char*)insnPtr, baseBytes, false);
    regSpace->freeRegister(resultReg);
-
-   instruction *insn = (instruction *)insnPtr;
-   unsigned baseInstruc = baseBytes / sizeof(instruction);
-
+   */
+   
    // Put 2 special instructions here:
    // the special instructions are:
    // mtsp r21, sr0  (move value from r21 to space register 0)
@@ -1382,12 +1386,17 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
    // NOT YET IMPLEMENTED!!!
 
    // And just to make sure that the special instructions don't fall through:
-   genIllegalInsn(insn[baseInstruc++]);
-   genIllegalInsn(insn[baseInstruc++]);
 
-   baseBytes = baseInstruc * sizeof(instruction); // convert back
+    unsigned long  dummy[] = {0x00151820, 0xe6c00002};
+    for (int i = 0; i < (int) (sizeof (dummy) / sizeof (dummy[0])); i++)
+	insn[baseInstruc++].raw = dummy[i];
 
-   return true;
+    genIllegalInsn(insn[baseInstruc++]);
+    genIllegalInsn(insn[baseInstruc++]);
+    
+    baseBytes = baseInstruc * sizeof(instruction); // convert back
+    
+    return true;
 }
 
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
