@@ -393,6 +393,20 @@ int handleSigChild(int pid, int status)
             sig = SIGTRAP;
           }
         }
+#elif defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_linux2_0)
+        // we put an illegal instead of a trap at the following places, but 
+        // the illegal instructions are really for trapping purpose, so the
+        // handling should be the same as for trap
+		{
+		  Address pc = getPC( pid );
+          if ( (sig == SIGILL)
+          && (pc==(Address)curr->rbrkAddr()
+            ||pc==(Address)curr->main_brk_addr
+            ||pc==(Address)curr->dyninstlib_brk_addr)) {
+			  signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
+			  sig = SIGTRAP;
+          }
+        }
 #endif
 
 	switch (sig) {
@@ -448,6 +462,7 @@ int handleSigChild(int pid, int status)
 		// this code has to go after we have handle the trap
 		// due to the call to dlopen - naim
 		if (curr->trapDueToDyninstLib()) {
+			// signal_cerr << "trapDueToDyninstLib returned true, trying to handle" << endl;
 		  curr->handleIfDueToDyninstLib();
 		  // fall through...
 		}
@@ -456,7 +471,7 @@ int handleSigChild(int pid, int status)
 		//If the list is not empty, it means some previous
 		//instrumentation has yet need to be finished.
 		if (instWList.size() != 0) {
-	            // cerr << "instWList is full" << endl;
+			cerr << "instWList is full" << endl;
 		    if(curr -> cleanUpInstrumentation(wasRunning)){
 		        break; // successfully processed the SIGTRAP
                     }
@@ -499,24 +514,25 @@ int handleSigChild(int pid, int status)
 		   // fall through...
 		}
 
-                // Now we expect that this TRAP is the initial trap sent when a ptrace'd
+		// Now we expect that this TRAP is the initial trap sent when a ptrace'd
 		// process completes startup via exec (or when an exec syscall was
 		// executed in an already-running process).
-                // But we must query 'reachedFirstBreak' because on machines where we
+		// But we must query 'reachedFirstBreak' because on machines where we
 		// attach/detach on pause/continue, a TRAP is generated on each pause!
 
 #if defined(USES_LIBDYNINSTRT_SO)
-                if (!curr->reachedVeryFirstTrap) {
+		if (!curr->reachedVeryFirstTrap) {
 		  // we haven't executed main yet, so we can insert a trap
 		  // at the entry point of main - naim
 		  curr->reachedVeryFirstTrap = true;
+		  signal_cerr << "Inserting trap at entry point of main" << endl;
 		  curr->insertTrapAtEntryPointOfMain();
 		  if (!curr->continueProc()) {
 		    assert(0);
 		  }
 		  break;
 		} else {
-                  if (curr->trapAtEntryPointOfMain() &&
+			if (curr->trapAtEntryPointOfMain() &&
 		      !curr->dyninstLibAlreadyLoaded() &&
 		      !curr->dyninstLibIsBeingLoaded()) {
 		     curr->handleTrapAtEntryPointOfMain();
@@ -592,7 +608,10 @@ int handleSigChild(int pid, int status)
 		   }
 		}
 		else {
-		   signal_cerr << "SIGTRAP not handled for pid " << pid << " so just leaving process in stopped state" << endl << flush;
+#ifdef i386_unknown_linux2_0
+			Address pc = getPC( pid );
+			signal_cerr << "SIGTRAP not handled for pid " << pid << " at " << (void*)pc << ", so leaving process in current state" << endl << flush;
+#endif
 		}
 
 		break;
@@ -654,7 +673,7 @@ int handleSigChild(int pid, int status)
 		}
 #endif /* BPATCH_LIBRARY */
 		else {
-		   forkexec_cerr << "unhandled SIGSTOP for pid " << curr->getPid() << " so just leaving process in paused state." << endl << flush;
+		   signal_cerr << "unhandled SIGSTOP for pid " << curr->getPid() << " so just leaving process in paused state." << endl << flush;
 		}
 		curr->status_ = prevStatus; // so Stopped() below won't be a nop
 		curr->Stopped();

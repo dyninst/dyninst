@@ -797,7 +797,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
  */
 bool BPatch_thread::loadLibrary(char *libname)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
     if (!statusIsStopped())
 	return false;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.103 1999/01/21 01:26:46 hollings Exp $
+/* $Id: process.h,v 1.104 1999/02/08 13:57:39 nash Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -462,7 +462,7 @@ class process {
  private:
 #if defined(USES_LIBDYNINSTRT_SO)
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
-#if defined(i386_unknown_solaris2_5)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
   unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
 #endif

@@ -39,43 +39,43 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.3 1998/12/25 22:30:16 wylie Exp $
+// $Id: linux.C,v 1.4 1999/02/08 13:57:31 nash Exp $
 
-#include "dyninstAPI/src/symtab.h"
-#include "util/h/headers.h"
-#include "dyninstAPI/src/os.h"
+#include <fstream.h>
+
 #include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/stats.h"
-#include "util/h/Types.h"
+
+//extern "C" {
+//extern int ioctl(int, int, ...);
+//extern int getrusage(int, struct rusage*);
+//#include <a.out.h>
+//#include <sys/exec.h>
+//#include <stab.h>
+//extern struct rusage *mapUarea();
+
+//#include <machine/reg.h> // for ptrace_getregs call
+//};
+
+#include <sys/ptrace.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
-#include <sys/termios.h>
-#include <unistd.h>
-#include "dyninstAPI/src/showerror.h"
-#include "util/h/pathName.h" // concat_pathname_components()
-#include "util/h/debugOstream.h"
-#include "util/h/solarisKludges.h"
-
-#if defined (sparc_sun_solaris2_4)
-#include "dyninstAPI/src/inst-sparc.h"
-#else
-#include "dyninstAPI/src/inst-x86.h"
-#endif
-
-#include "instPoint.h"
-
-#include <sys/procfs.h>
-//#include <poll.h>
-#include <limits.h>
-#include <link.h>
 #include <dlfcn.h>
+#include <sys/user.h> // for u-area stuff
+#include <sys/time.h>
+#include <sys/resource.h>
+
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/instPoint.h"
+#include "util/h/headers.h"
+#include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/stats.h"
+#include "util/h/Types.h"
+#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/util.h" // getCurrWallTime
+#include "util/h/pathName.h"
+#include "dyninstAPI/src/inst-x86.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
-
-extern "C" {
-extern int ioctl(int, int, ...);
-extern long sysconf(int);
-};
 
 // The following were defined in process.C
 extern debug_ostream attach_cerr;
@@ -85,129 +85,515 @@ extern debug_ostream forkexec_cerr;
 extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
 
-/*
-   Define the indices of some registers to be used with pr_reg.
-   These values are different on sparc and x86 platforms.
-   RETVAL_REG: the registers that holds the return value of calls ($o0 on sparc,
-               %eax on x86).
-   PC_REG: program counter
-   FP_REG: frame pointer (%i7 on sparc, %ebp on x86) 
-*/
-#ifdef sparc_sun_solaris2_4
-#define RETVAL_REG (R_O0)
-#define PC_REG (R_PC)
-#define FP_REG (R_O6)
-#endif
-#ifdef i386_unknown_solaris2_5
-#define RETVAL_REG (EAX)
-#define PC_REG (EIP)
-#define FP_REG (EBP)
-#endif
-
-
 extern bool isValidAddress(process *proc, Address where);
 extern void generateBreakPoint(instruction &insn);
 
-/*
-   osTraceMe is called after we fork a child process to set
-   a breakpoint on the exit of the exec system call.
-   When /proc is used, this breakpoint **will not** cause a SIGTRAP to 
-   be sent to the process. The parent should use PIOCWSTOP to wait for 
-   the child.
-*/
-void OS::osTraceMe(void) {
+extern struct rusage *mapUarea();
 
-  return;
+const char DYNINST_LOAD_HIJACK_FUNCTIONS[][15] = {
+  "_start",
+  "_init"
+};
+const int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 2;
+
+const char DL_OPEN_FUNC_NAME[] = "_dl_open";
+
+#ifdef PTRACEDEBUG
+static bool debug_ptrace = false;
+#endif
+
+/* ********************************************************************** */
+
+/* this table must line up with REGISTER_NAMES */
+/* symbols like 'EAX' come from <sys/reg.h> */
+static int regmap[] = 
+{
+  EAX, ECX, EDX, EBX,
+  UESP, EBP, ESI, EDI,
+  EIP, EFL, CS, SS,
+  DS, ES, FS, GS,
+};
+
+#define FP0_REGNUM 16
+#define FP7_REGNUM (FP0_REGNUM+7)
+#define NUM_FREGS 8
+#define NUM_REGS (16 /*+ NUM_FREGS*/)
+
+#define INTREGSIZE (sizeof(int))
+#define FPREGSIZE 10
+#define MAX_REGISTER_RAW_SIZE 10
+
+#define REGISTER_RAW_SIZE(N) (((N) < FP0_REGNUM) ? INTREGSIZE : FPREGSIZE)
+#define REGS_SIZE ( NUM_REGS * REGISTER_RAW_SIZE(0) + NUM_FREGS * REGISTER_RAW_SIZE(FP0_REGNUM) )
+#define REGS_INTS ( REGS_SIZE / INTREGSIZE )
+
+int register_addr (int regno )
+{
+  int addr;
+
+  if ( (regno < 0 || regno >= NUM_REGS)
+       && (regno < FP0_REGNUM || regno > FP7_REGNUM) )
+    {
+      fprintf ( stderr, "Invalid register number %d.", regno);
+      assert(0);
+      return -1;
+    }
+
+  if (regno >= FP0_REGNUM && regno <= FP7_REGNUM) 
+    {
+      int fpstate;
+      struct user *u = NULL;
+      fpstate = (int)(&u->i387.st_space);
+      addr = fpstate + 10 * (regno - FP0_REGNUM);
+    }
+  else
+    addr = INTREGSIZE * regmap[regno];
+
+  return addr;
 }
 
+class ptraceKludge {
+private:
+  static bool haltProcess(process *p);
+  static void continueProcess(process *p, const bool halted);
+
+public:
+  static bool deliverPtrace(process *p, int req, int addr, int data);
+  static int deliverPtraceReturn(process *p, int req, int addr, int data);
+};
+
+bool ptraceKludge::haltProcess(process *p) {
+  bool wasStopped = (p->status() == stopped);
+  if (p->status() != neonatal && !wasStopped) {
+    if (!p->loopUntilStopped()) {
+      cerr << "error in loopUntilStopped\n";
+      assert(0);
+    }
+  }  return wasStopped;
+}
+
+void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
+  // First handle the cases where we shouldn't issue a PTRACE_CONT:
+  if (p->status() == neonatal) return;
+  if (wasStopped) return;
+
+  // Choose either one of the following methods to continue a process.
+  // The choice must be consistent with that in process::continueProc_ and stop_
+
+#ifndef PTRACE_ATTACH_DETACH
+  if (P_ptrace(PTRACE_CONT, p->pid, 1, SIGCONT) == -1) {
+#else
+  if (P_ptrace(PTRACE_DETACH, p->pid, 1, SIGCONT) == -1) {
+#endif
+      perror("error in continueProcess");
+      assert(0);
+  }
+}
+
+bool ptraceKludge::deliverPtrace(process *p, int req, int addr,
+				 int data ) {
+  bool halted = true;
+
+  if (req != PTRACE_DETACH)
+     halted = haltProcess(p);
+
+  bool ret = (P_ptrace(req, p->getPid(), addr, data) != -1);
+
+  if (req != PTRACE_DETACH)
+     continueProcess(p, halted);
+
+  return ret;
+}
+
+
+// Some ptrace requests in Linux return the value rather than storing at the address in data
+// (especially PEEK requests)
+// -DAN
+int ptraceKludge::deliverPtraceReturn(process *p, int req, int addr,
+				 int data ) {
+  bool halted = true;
+
+  if (req != PTRACE_DETACH)
+     halted = haltProcess(p);
+
+  int ret = P_ptrace(req, p->getPid(), addr, data);
+
+  if (req != PTRACE_DETACH)
+     continueProcess(p, halted);
+
+  return ret;
+}
+
+/* ********************************************************************** */
+
+void *process::getRegisters() {
+   // assumes the process is stopped (ptrace requires it)
+   assert(status_ == stopped);
+
+   // Cycle through all registers, reading each from the
+   // process user space with ptrace(PTRACE_PEEKUSR ...
+   int regaddr, regno;
+   int *buffer = new int[ REGS_INTS ];
+
+   for (regno = 0; regno < NUM_REGS; regno++) {
+     regaddr = register_addr (regno);
+     buffer[ regno ] = P_ptrace (PTRACE_PEEKUSR, pid, regaddr, 0);
+     if( errno ) {
+       perror("process::getRegisters PTRACE_PEEKUSR");
+       return NULL;
+     }
+   }
+
+   int baddr = register_addr ( FP0_REGNUM );
+   int eaddr = register_addr ( FP7_REGNUM ) + REGISTER_RAW_SIZE( FP7_REGNUM );
+   int count;
+   for (regaddr = baddr, count = NUM_REGS; regaddr < eaddr; regaddr += sizeof(int), count++ ) {
+     buffer[ count ] = P_ptrace( PTRACE_PEEKUSR, pid, regaddr, 0);
+     if( errno ) {
+       perror("process::getRegisters PTRACE_PEEKUSR fp");
+       return NULL;
+     }
+   }
+
+   return (void*)buffer;
+}
+
+static bool changePC(int pid, Address loc) {
+  Address regaddr = EIP * INTREGSIZE;
+  if (0 != P_ptrace (PTRACE_POKEUSR, pid, regaddr, loc )) {
+    perror( "process::changePC - PTRACE_POKEUSR" );
+    return false;
+  }
+
+  return true;
+}
+
+ Address getPC(int pid) {
+   Address regaddr = EIP * INTREGSIZE;
+   int res;
+   res = P_ptrace (PTRACE_PEEKUSR, pid, regaddr, 0);
+   if( errno ) {
+     perror( "getPC" );
+     exit(-1);
+     return 0; // Shut up the compiler
+   } else
+     return (Address)res;
+ }
+
+bool process::executingSystemCall() {
+  // this is not implemented yet - I don't know how in Linux
+  // we assume we're not in a syscall - 7/28/98
+  // Another note: there is a PTRACE_SYSCALL to wait for the
+  // inferior process to return from a system call, but I
+  // don't know how to find out if it's in one to begin with. - DAN
+  return false;
+}
+
+bool process::changePC(Address loc, const void * /* savedRegs */ ) {
+  assert(status_ == stopped);
+
+  return ::changePC(pid, loc);
+}
+
+bool process::changePC(Address loc) {
+  assert(status_ == stopped);
+
+  return ::changePC(pid, loc);
+}
+
+
+bool process::restoreRegisters(void *buffer) {
+   // assumes the process is stopped (ptrace requires it)
+   assert(status_ == stopped);
+
+   // Cycle through all registers, writing each from the
+   // buffer with ptrace(PTRACE_POKEUSR ...
+   int regaddr, regno;
+   int *buf = (int*)buffer;
+
+   for (regno = 0; regno < NUM_REGS; regno++) {
+     regaddr = register_addr (regno);
+     if( P_ptrace (PTRACE_POKEUSR, pid, regaddr, buf[regno] ) ) {
+       perror("process::restoreRegisters PTRACE_POKEUSR");
+       return false;
+     }
+   }
+
+   // Cycle through all 20 words making up the 8 fp registers
+   int baddr = register_addr ( FP0_REGNUM );
+   int eaddr = register_addr ( FP7_REGNUM ) + REGISTER_RAW_SIZE( FP7_REGNUM );
+   int count;
+   for (regaddr=baddr, count=NUM_REGS; regaddr<eaddr; regaddr+= sizeof(int), count++ ) {
+     if( P_ptrace (PTRACE_POKEUSR, pid, regaddr, buf[count] ) ) {
+       perror("process::restoreRegisters PTRACE_POKEUSR fp");
+       return false;
+     }
+   }
+
+   return true;
+}
+
+bool process::getActiveFrame(Address *fp, Address *pc)
+{
+  *fp = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSR, 0 + EBP * INTREGSIZE, 0);
+  if( errno )
+    return false;
+
+  *pc = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSR, 0 + EIP * INTREGSIZE, 0);
+  if( errno )
+    return false;
+
+  return true;
+}
+
+// TODO: implement this
+bool process::needToAddALeafFrame(Frame,Address &){
+    return false;
+}
 
 // already setup on this FD.
 // disconnect from controlling terminal 
 void OS::osDisconnect(void) {
-
+  int ttyfd = open ("/dev/tty", O_RDONLY);
+  ioctl (ttyfd, TIOCNOTTY, NULL);
+  P_close (ttyfd);
 }
 
-bool process::continueWithForwardSignal(int) {
-   return true;
-}
+bool process::stop_() {
+   // formerly OS::osStop()
 
-bool process::dumpImage() {return false;}
-
-
-/* 
-   execResult: return the result of an exec system call - true if succesful.
-   The traced processes will stop on exit of an exec system call, just before
-   returning to user code. At this point the return value (errno) is already
-   written to a register, and we need to check if the return value is zero.
+/* Choose either one of the following methods for stopping a process, but not both. 
+ * The choice must be consistent with that in process::continueProc_ 
+ * and ptraceKludge::continueProcess
  */
-static inline bool execResult(prstatus_t stat) {
-  return 0;
+
+#ifndef PTRACE_ATTACH_DETACH
+	return (P_kill(getPid(), SIGSTOP) != -1); 
+#else
+	return attach_();
+#endif
 }
 
-/*
-   wait for inferior processes to terminate or stop.
-*/
+bool process::continueWithForwardSignal(int sig) {
+   // formerly OS::osForwardSignal
+   return (P_ptrace(PTRACE_CONT, pid, 1, sig) != -1);
+}
+
+void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
+
+process *findProcess(int);  // In process.C
+
+// wait for a process to terminate or stop
+// We only want to catch SIGSTOP and SIGILL
+#ifdef BPATCH_LIBRARY
+int process::waitProcs(int *status, bool block) {
+  int options = 0;
+  if( !block )
+    options |= WNOHANG;
+#else
 int process::waitProcs(int *status) {
-   return 0;
+  int options = WNOHANG;
+#endif
+  int result, sig;
+  bool ignore;
+  do {
+    ignore = false;
+    result = waitpid( -1, status, options );
+
+    // If the process stopped on a signal, and it's not SIGSTOP or SIGILL,
+    // send the signal back and wait for another.
+    if( !WIFSIGNALED(*status) && !WIFEXITED(*status) && WIFSTOPPED(*status) ) {
+		sig = WSTOPSIG(*status);
+		if( sig != SIGSTOP && sig != SIGILL /* && sig != SIGTRAP */ ) {
+			ignore = true;
+//#ifdef notdef
+			signal_cerr << "Signal " << sig << " in " << result << ", resignalling the process" << endl;
+//#endif
+			if( P_ptrace(PTRACE_CONT, result, 1, sig) == -1 ) {
+				if( errno == ESRCH )
+					ignore = false;
+				else
+					cerr << "ERROR -- process::waitProcs forwarding signal " << sig << " -- " << sys_errlist[errno] << endl;
+			}
+//#ifdef notdef
+			else
+				signal_cerr << "Signal " << sig << " in " << result << endl;
+//#endif
+		}
+    }
+	
+  } while ( ignore );
+
+  if( result > 0 ) {
+	  if( WIFSTOPPED(*status) ) {
+#if defined(USES_LIBDYNINSTRT_SO)
+		  process *curr = findProcess( result );
+		  if (!curr->dyninstLibAlreadyLoaded() && curr->wasCreatedViaAttach())
+		  {
+			  // make sure we are stopped in the eyes of paradynd - naim
+			  bool wasRunning = (curr->status() == running);
+			  if (curr->status() != stopped)
+				  curr->Stopped();   
+			  if(curr->isDynamicallyLinked()) {
+				  curr->handleIfDueToSharedObjectMapping();
+			  }
+			  if (curr->trapDueToDyninstLib()) {
+				  // we need to load libdyninstRT.so.1 - naim
+				  curr->handleIfDueToDyninstLib();
+			  }
+			  if (wasRunning) 
+				  if (!curr->continueProc()) assert(0);
+		  }
+#endif
+	  }
+  }// else if( errno )
+    //perror( "process::waitProcs - waitpid" );
+  return result;
 }
 
-
-static char *extract_string_ptr(int procfd, char **ptr) {
-   // we want to return *ptr.
-   return 0;
-
-}
-
-string extract_string(int procfd, const char *inferiorptr) {
-   // assuming inferiorptr points to a null-terminated string in the inferior
-   // process, extract it and return it.
-   return 0;
-}
-
-bool get_ps_stuff(int proc_fd, string &argv0, string &pathenv, string &cwdenv) {
-   // Use ps info to obtain argv[0], PATH, and curr working directory of the
-   // inferior process designated by proc_fd.  Writes to argv0, pathenv, cwdenv.
-   return true;
-}
-
-/*
-   Open the /proc file correspoding to process pid, 
-   set the signals to be caught to be only SIGSTOP and SIGTRAP,
-   and set the kill-on-last-close and inherit-on-fork flags.
-*/
-extern string pd_flavor ;
+// attach to an inferior process.
 bool process::attach() {
+  char procName[128];
+
+  bool running;
+  if( createdViaAttach )
+    running = isRunning_();
+
+  proc_fd = -1;
+
+  // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
+  // to paradynd in all cases?  How about when we are attaching to an
+  // already-running process?  (Seems that in the latter case, no SIGTRAP
+  // is automatically generated)
+
+  // step 1) /proc open: attach to the inferior process memory file
+  sprintf(procName,"/proc/%05d/mem", (int)getPid());
+  int fd = P_open(procName, O_RDWR, 0);
+  if (fd < 0 ) {
+    fprintf(stderr, "attach: open failed on %s: %s\n", procName, sys_errlist[errno]);
+    return false;
+  }
+
+  proc_fd = fd;
+
+  // Only if we are really attaching rather than spawning the inferior
+  // process ourselves do we need to call PTRACE_ATTACH
+  if( createdViaAttach ) {
+    if( -1 == P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
+      { perror( "process::attach - PTRACE_ATTACH" ); return false; }
+
+    // If the process was running, it will need to be restarted, as
+    // PTRACE_ATTACH kills it
+    // Actually, the attach process contructor assumes that the process is
+    // running.  While this is foolish, let's play along for now.
+    if( true /* running */ ) {
+      if( -1 == kill( getPid(), SIGCONT ) )
+	//if( -1 == P_ptrace(PTRACE_CONT, getPid(), 1, 0) )
+	{ perror( "process::attach - SIGCONT" ); return false; }
+    }
+  }
+
   return true;
+}
+
+bool process::attach_() {
+  return false; // (P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) != -1);
 }
 
 #if defined(USES_LIBDYNINSTRT_SO)
 bool process::trapAtEntryPointOfMain()
 {
-
-  return(false);
+  // is the trap instr at main_brk_addr?
+  if( getPC(getPid()) == (Address)main_brk_addr)
+    return(true);
+  else
+    return(false);
 }
 
 bool process::trapDueToDyninstLib()
 {
-  return(false);
+  // is the trap instr at dyninstlib_brk_addr?
+  if( getPC(getPid()) == (Address)dyninstlib_brk_addr)
+    return(true);
+  else
+    return(false);
 }
 
 void process::handleIfDueToDyninstLib() 
 {
+  // rewrite original instructions in the text segment we use for 
+  // the inferiorRPC - naim
+  unsigned count = sizeof(savedCodeBuffer);
+  //Address codeBase = getImage()->codeOffset();
 
+  Address codeBase = 0;
+  int i;
+
+  for( i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
+    function_base *tmpFunc = symbols->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTIONS[i]);
+    if( tmpFunc )
+      codeBase = tmpFunc->getAddress(this);
+    if( codeBase )
+      break;
+  }
+  assert( codeBase );
+
+  writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
+
+  // restore registers
+  restoreRegisters(savedRegs); 
+
+  // restore the stack frame of _start()
+  int *theIntRegs = (int *)savedRegs;
+  Address theEBP = theIntRegs[EBP];
+  assert (theEBP);
+  // this is pretty kludge. if the stack frame of _start is not the right
+  // size, this would break.
+  writeDataSpace ((void*)(theEBP-6*sizeof(int)),6*sizeof(int),savedStackFrame);
+
+  delete[] savedRegs;
+  savedRegs = NULL;
 }
 
 void process::handleTrapAtEntryPointOfMain()
 {
-
+  function_base *f_main = findOneFunction("main");
+  assert(f_main);
+  Address addr = f_main->addr();
+  // restore original instruction 
+  writeDataSpace((void *)addr, 2, (char *)savedCodeBuffer);
 }
 
 void process::insertTrapAtEntryPointOfMain()
 {
+  function_base *f_main = findOneFunction("main");
+  if (!f_main) {
+    // we can't instrument main - naim
+    showErrorCallback(108,"");
+    extern void cleanUpAndExit(int);
+    cleanUpAndExit(-1); 
+    return;
+  }
+  assert(f_main);
+  Address addr = f_main->addr();
 
+  // save original instruction first
+  readDataSpace((void *)addr, 2, savedCodeBuffer, true);
+
+  // and now, insert trap
+  instruction insnTrap;
+  generateBreakPoint(insnTrap);
+
+  // x86. have to use SIGILL instead of SIGTRAP
+  writeDataSpace((void *)addr, 2, insnTrap.ptr());  
+
+  main_brk_addr = addr;
 }
 
 bool process::dlopenDYNINSTlib() {
+/*#ifdef PTRACEDEBUG
+  debug_ptrace = true;
+  #endif*/
   // we will write the following into a buffer and copy it into the
   // application process's address space
   // [....LIBRARY's NAME...|code for DLOPEN]
@@ -216,10 +602,142 @@ bool process::dlopenDYNINSTlib() {
   // attach to a running process.
   //Address codeBase = this->getImage()->codeOffset();
   // ...let's try "_start" instead
+  //  Address codeBase = (this->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTION))->getAddress(this);
+  Address codeBase = (Address)NULL;
+  int i;
+
+  for( i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
+    function_base *tmpFunc = symbols->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTIONS[i]);
+    if( tmpFunc )
+      codeBase = tmpFunc->getAddress(this);
+    if( codeBase )
+      break;
+  }
+
+  if( !codeBase || i >= N_DYNINST_LOAD_HIJACK_FUNCTIONS )
+    return false;
+
+  // Or should this be readText... it seems like they are identical
+  // the remaining stuff is thanks to Marcelo's ideas - this is what 
+  // he does in NT. The major change here is that we use AST's to 
+  // generate code for dlopen.
+
+  // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
+
+  readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
+
+  unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
+  vector<AstNode*> dlopenAstArgs(2);
+
+  unsigned count = 0;
+
+  AstNode *dlopenAst;
+
+  // deadList and deadListSize are defined in inst-sparc.C - naim
+  extern Register deadList[];
+  extern int deadListSize;
+  registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(int), deadList, 0, NULL);
+  dlopenRegSpace->resetSpace();
+
+  // we need to make 1 call to dlopen, to load libdyninst.so.1 - nash
+
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
+  // library name. We use a scratch value first. We will update this parameter
+  // later, once we determine the offset to find the string - naim
+  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
+  dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
+  removeAst(dlopenAstArgs[0]);
+  removeAst(dlopenAstArgs[1]);
+
+  Address dyninst_count = 0;
+  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			  dyninst_count, true, true);
+  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
+  count += dyninst_count;
+
+  instruction insnTrap;
+  generateBreakPoint(insnTrap);
+  writeDataSpace((void *)(codeBase + count), 2, insnTrap.ptr());
+  dyninstlib_brk_addr = codeBase + count;
+  count += 2;
+
+  char libname[256];
+#ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
+  if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+    strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
+  } else {
+    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined, should be set to the pathname of DynintAPI runtime library");
+    showErrorCallback(101, msg);
+    return false;
+  }
+#else
+  if (getenv("PARADYN_LIB") != NULL) {
+    strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
+  } else {
+    string msg = string("PARADYN_LIB has not been defined for ") +
+                 string("process") + string(pid);
+    showErrorCallback(101, msg);
+    return false;
+  }
+#endif
+
+  Address dyninstlib_addr = (Address) (codeBase + count);
+
+  writeDataSpace((void *)(codeBase + count), strlen(libname)+1,
+		 (caddr_t)libname);
+  count += strlen(libname)+1;
+  // we have now written the name of the library after the trap - naim
+
+  assert(count<=BYTES_TO_SAVE);
+
+  count = 0; // reset count
+
+  // at this time, we know the offset for the library name, so we fix the
+  // call to dlopen and we just write the code again! This is probably not
+  // very elegant, but it is easy and it works - naim
+  removeAst(dlopenAst); // to avoid leaking memory
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
+  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
+  dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
+  removeAst(dlopenAstArgs[0]);
+  removeAst(dlopenAstArgs[1]);
+  dyninst_count = 0; // reset count
+  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			  dyninst_count, true, true);
+  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
+  removeAst(dlopenAst);
+
+  // save registers
+  savedRegs = getRegisters();
+  assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
+  // save the stack frame of _start()
+  int *regs = (int*)savedRegs;
+  Address theEBP = regs[EBP];
+  if( theEBP ) {
+  //assert (theEBP);
+  // this is pretty kludge. if the stack frame of _start is not the right
+  // size, this would break.
+  readDataSpace((void*)(theEBP-6*sizeof(int)),6*sizeof(int), savedStackFrame, true);
+  }
+  isLoadingDyninstLib = true;
+
+  if (!changePC(codeBase,savedRegs))
+  {
+    logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+    assert(0);
+  }
+
+/*#ifdef PTRACEDEBUG
+  debug_ptrace = false;
+  #endif*/
+
   return true;
 }
 
-unsigned process::get_dlopen_addr() const {
+Address process::get_dlopen_addr() const {
+  if (dyn != NULL)
+    return(dyn->get_dlopen_addr());
+  else 
     return(0);
 }
 #endif
@@ -228,232 +746,358 @@ bool process::isRunning_() const {
    // determine if a process is running by doing low-level system checks, as
    // opposed to checking the 'status_' member vrble.  May assume that attach()
    // has run, but can't assume anything else.
-      return true;
+
+  char procName[64];
+  char sstat[132];
+  char *token;
+
+  sprintf(procName,"/proc/%d/stat", (int)pid);
+  FILE *sfile = P_fopen(procName, "r");
+  fread( sstat, 128, 1, sfile );
+  fclose( sfile );
+
+  char status;
+  if( !( strtok( sstat, " (" ) && strtok( NULL, " )" ) && ( token = strtok( NULL, " " ) ) ) )
+    assert( false && "Shouldn't happen" );
+  status = token[0];
+
+  if( status == 'T' )
+    return false;
+  else
+    return true;
 }
 
-bool process::attach_() {assert(false);}
-bool process::stop_() {assert(false);}
 
-/* 
-   continue a process that is stopped 
-*/
+// TODO is this safe here ?
 bool process::continueProc_() {
-  return true;
+  int ret;
+
+  if (!checkStatus()) 
+    return false;
+
+  ptraceOps++; ptraceOtherOps++;
+
+/* choose either one of the following ptrace calls, but not both. 
+ * The choice must be consistent with that in stop_ and
+ * ptraceKludge::continueProcess.
+ */
+#ifndef PTRACE_ATTACH_DETACH
+  //#ifdef PTRACEDEBUG
+  //fprintf(stderr,"child (%d), stop paradynd (%d)\n", getPid(), getpid() );
+  //  P_ptrace(PTRACE_DETACH, pid, (char*)1, 0 );
+  //kill( getpid(), SIGSTOP );
+  //#endif
+  if (!ptraceKludge::deliverPtrace(this, PTRACE_CONT, 1, 0))
+    ret = -1;
+  else
+    ret = 0;
+  //ret = P_ptrace(PTRACE_CONT, pid, (char*)1, 0);
+#else
+  ret = P_ptrace(PTRACE_DETACH, pid, (char*)1, SIGCONT);
+#endif
+
+  if (ret == -1)
+     perror("continueProc_()");
+
+  return ret != -1;
 }
 
 #ifdef BPATCH_LIBRARY
-/*
-   terminate execution of a process
- */
 bool process::terminateProc_()
 {
-	return true;
+  if (!checkStatus()) 
+    return false;
+
+  if (P_ptrace(PTRACE_KILL, pid, 0, 0) != 0)
+    return false;
+  else
+    return true;
 }
 #endif
 
-/*
-   pause a process that is running
-*/
+// TODO ??
 bool process::pause_() {
- return 0;
+  if (!checkStatus()) 
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+  bool wasStopped = (status() == stopped);
+  if (status() != neonatal && !wasStopped)
+    return (loopUntilStopped());
+  else
+    return true;
 }
 
-/*
-   close the file descriptor for the file associated with a process
-*/
 bool process::detach_() {
-
-  return true;
+  if (!checkStatus())
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+  close( proc_fd );
+  return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
 }
 
 #ifdef BPATCH_LIBRARY
-/*
-   detach from thr process, continuing its execution if the parameter "cont"
-   is true.
- */
-bool process::API_detach_(const bool cont)
-{
-
-  return true;
+bool process::API_detach_(const bool cont) {
+//  assert(cont);
+  if (!checkStatus())
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+  close( proc_fd );
+  if (!cont) P_kill(pid, SIGSTOP);
+  return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
 }
 #endif
 
-bool process::dumpCore_(const string) {
-  return false;
-}
+bool process::dumpCore_(const string/* coreFile*/) { return false; }
 
 bool process::writeTextWord_(caddr_t inTraced, int data) {
-  return false;
+//  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
+  return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
 }
 
 bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
 //  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced << " len=" << amount << endl; cerr.flush();
-  return false;
+  return writeDataSpace_(inTraced, amount, inSelf);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  return false;
+  return readDataSpace_( inTraced, amount, inSelf );
 }
 #endif
 
 bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  return 0;
+  ptraceOps++; ptraceBytes += amount;
+
+#if defined(PTRACEDEBUG_EXCESSIVE)
+  int check;
+#if !defined(PTRACEDEBUG_ALWAYS)
+  if( debug_ptrace )
+#endif
+    fprintf( stderr, "(linux)writeDataSpace_  amount=%d  %#.8x -> %#.8x data=0x", amount, (int)inSelf, (int)inTraced );
+#elif defined(PTRACEDEBUG)
+#if !defined(PTRACEDEBUG_ALWAYS)
+  if( debug_ptrace )
+#endif
+    fprintf( stderr, "(linux)writeDataSpace_  amount=%d  %#.8x -> %#.8x\n", amount, (int)inSelf, (int)inTraced );
+#endif
+  unsigned char buf[sizeof(int)];
+  int count, off, addr = (int)inTraced, dat = (int)inSelf, tmp;
+
+  off = addr % sizeof(int);
+  if( off != 0 || amount < sizeof(int) ) {
+    addr -= off;
+    // This is what I did originally
+    /*if( -1 == P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, (int)buf ) ) {
+      char errb[150];
+      sprintf( errb, "process::writeDataSpace_, ptrace( PEEKTXT, %d, %#.8x, &tmp )", getPid(), addr );
+      perror( errb );
+      return false;
+      }*/
+    // Unfortunately, PEEKTEXT doesn't work as advertised, it seems to return
+    // the read value rather than putting it in *data.  I'll use /proc instead
+    assert( proc_fd != -1 );
+    if( ((lseek(proc_fd, (off_t)addr, SEEK_SET)) != (off_t)addr) ||
+	read(proc_fd, (char*)buf, sizeof(int)) != sizeof(int) ) {
+      printf("writeDataSpace_: error in read word addr = 0x%x\n",addr);
+      return false;
+    }
+#ifdef PTRACEDEBUG_EXCESSIVE
+#if !defined(PTRACEDEBUG_ALWAYS)
+    if( debug_ptrace )
+#endif
+      fprintf( stderr, "%.8x:0x", *((int*)buf) );
+#endif
+  }
+
+  for( count = 0; count < amount; count++ ) {
+    //int le_off;
+    //le_off = sizeof(int) - off - 1;
+    /*    switch (off) {
+    case 0: le_off = 0; break;
+    case 1: le_off = 1; break;
+    case 2: le_off = 3; break;
+    case 3: le_off = 2; break;
+    default: assert( false );
+    } */
+    buf[off] = *((unsigned char*)(dat+count));
+#ifdef PTRACEDEBUG_EXCESSIVE
+#if !defined(PTRACEDEBUG_ALWAYS)
+    if( debug_ptrace )
+#endif
+      fprintf( stderr, "%.2x", 0x0000 | *((unsigned char*)(dat+count)) );
+#endif
+    off++; off %= sizeof(int);
+    if( !off || (count == amount-1) ) {
+      if( -1 == P_ptrace( PTRACE_POKETEXT, getPid(), addr, *((int*)buf) ) ) {
+	perror( "process::writeDataSpace, ptrace PTRACE_POKETXT" );
+	return false;
+      }
+      off = amount - count - 1;
+#ifdef PTRACEDEBUG_EXCESSIVE
+#if !defined(PTRACEDEBUG_ALWAYS)
+      if( debug_ptrace ) {
+#endif
+	check = P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, 0 );
+	fprintf( stderr, ":%#.8x", check );
+	if( off > 0 )
+	  fprintf( stderr, " | 0x" );
+#if !defined(PTRACEDEBUG_ALWAYS)
+      }
+#endif
+#endif
+      addr += sizeof(int);
+      if( off < sizeof(int) && off > 0 ) {
+	/*if( -1 == P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, (int)buf ) ) {
+	  perror( "process::writeDataSpace, ptrace PTRACE_PEEKTXT" );
+	  return false;
+	  }*/
+	assert( proc_fd != -1 );
+	if( ((lseek(proc_fd, (off_t)addr, SEEK_SET)) != (off_t)addr) ||
+	    read(proc_fd, (char*)buf, sizeof(int)) != sizeof(int) ) {
+	  printf("writeDataSpace_: error in read word addr = 0x%x\n",addr);
+	  return false;
+	}
+
+#ifdef PTRACEDEBUG_EXCESSIVE
+#if !defined(PTRACEDEBUG_ALWAYS)
+	if( debug_ptrace ) {
+#endif
+	  check = P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, 0 );
+	  fprintf( stderr, "%.8x:0x", check );
+#if !defined(PTRACEDEBUG_ALWAYS)
+	}
+#endif
+#endif
+      }
+      off = 0;
+    }
+  }
+
+#ifdef PTRACEDEBUG_EXCESSIVE
+  fprintf( stderr, "\n" );
+#endif
+
+  return true;
 }
 
 bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
-  return 0;
-}
+  ptraceOps++; ptraceBytes += amount;
 
-bool process::loopUntilStopped() {
-  assert(0);
-}
-
-#ifdef notdef
-// TODO -- only call getrusage once per round
-static struct rusage *get_usage_data() {
-  return NULL;
-}
+#ifdef PTRACEDEBUG
+#if !defined(PTRACEDEBUG_ALWAYS)
+  if( debug_ptrace )
+#endif
+    fprintf( stderr, "(linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n", amount, (int)inSelf, (int)inTraced );
 #endif
 
-float OS::compute_rusage_cpu() {
-  return 0;
+  if( proc_fd != -1 ) {
+    while (true) {
+      if((lseek(proc_fd, (off_t)inTraced, SEEK_SET)) != (off_t)inTraced) {
+	fprintf( stderr, "(linux)readDataSpace_: error in lseek addr = 0x%x amount = %d\n",(u_int)inTraced,amount);
+	return false;
+      }
+      int result = read(proc_fd, inSelf, amount);
+      if( result < 0 ) {
+	fprintf( stderr, "(linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n", amount, (int)inSelf, (int)inTraced );
+	perror( "process::readDataSpace_ - read" );
+	return false;
+      } else if( result == 0 ) {
+	if( errno )
+	  perror( "process::readDataSpace_" );
+	fprintf( stderr, "process::readDataSpace_ -- Failed to read( /proc/*/mem ), trying ptrace\n" );
+	break;
+      }
+      assert( result <= amount );
+      if( result == amount )
+	return true;
+      // We weren't able to read atomically, so reseek and reread.
+#ifdef PDYN_DEBUG
+	  fprintf( stderr, "process::readDataSpace_ -- Failed atomic read, reseeking and rereading\n" );
+#endif
+    }
+  }
+
+  // For some reason we couldn't or didn't open /proc/*/mem, so use ptrace
+  // Should I remove this part? - DAN
+
+  // Well, since you sometimes don't seem to be able to read from the fd
+  // maybe we do need to keep this - DAN
+
+  if( amount % sizeof(int) != 0 ||
+      (int)inTraced % sizeof(int) != 0 ||
+      (int)inSelf % sizeof(int) != 0 ) {
+#ifdef PTRACEDEBUG
+    fprintf( stderr, "couldn't do (linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n", amount, (int)inSelf, (int)inTraced );
+#endif
+    return false;
+  }
+
+  int count, result, *dst = (int*)inSelf;
+  const int *addr = (const int*)inTraced;
+
+  for( count = 0; count < amount; count += sizeof(int), addr++, dst++ ) {
+    result = P_ptrace( PTRACE_PEEKTEXT, getPid(), (int)addr, 0 );
+    if( errno ) {
+      perror( "process::writeDataSpace, ptrace PTRACE_POKETXT" );
+      return false;
+    }
+    *dst = result;
+  }
+  
+  return true;
 }
 
-float OS::compute_rusage_sys() {
-  return 0;
-}
-
-float OS::compute_rusage_min() {
-  return 0;
-}
-float OS::compute_rusage_maj() {
-  return 0;
-}
-
-float OS::compute_rusage_swap() {
-  return 0;
-}
-float OS::compute_rusage_io_in() {
-  return 0;
-}
-float OS::compute_rusage_io_out() {
-  return 0;
-}
-float OS::compute_rusage_msg_send() {
-  return 0;
-}
-float OS::compute_rusage_msg_recv() {
-  return 0;
-}
-float OS::compute_rusage_sigs() {
-  return 0;
-}
-float OS::compute_rusage_vol_cs() {
-  return 0;
-}
-float OS::compute_rusage_inv_cs() {
-  return 0;
-}
-
-int getNumberOfCPUs()
-{
-    return(1);
-}  
-
-
-bool process::getActiveFrame(int *fp, int *pc)
-{
-  return 0;
-}
-
-
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost)
-{
- 
-
-
+/*
+bool process::findCallee(instPoint &instr, function_base *&target){
+  fprintf( stderr, "findCallee not implemented\n" );
   return false;
 }
+*/
 
-
-
-#ifdef SHM_SAMPLING
-time64 process::getInferiorProcessCPUtime() {
-   // returns user+sys time from the u or proc area of the inferior process, which in
-   // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
-   // to obtain it (solaris).  It must not stop the inferior process in order
-   // to obtain the result, nor can it assue that the inferior has been stopped.
-   // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
-
-   // We use the PIOCUSAGE /proc ioctl
-
-   // Other /proc ioctls that should work too: PIOCPSINFO
-   // and the lower-level PIOCGETPR and PIOCGETU which return copies of the proc
-   // and u areas, respectively.
-   // PIOCSTATUS does _not_ work because its results are not in sync
-   // with DYNINSTgetCPUtime
-
-   time64 result;
-   return result;
-}
-#endif
-
-void *process::getRegisters() {
-   // Astonishingly, this routine can be shared between solaris/sparc and
-   // solaris/x86.  All hail /proc!!!
-   // assumes the process is stopped (/proc requires it)
-
-   return 0;
-}
-
-bool process::executingSystemCall() {
-   return(false);
-}
-
-bool process::changePC(unsigned addr, const void *savedRegs) {
-   return true;
-}
-
-bool process::changePC(unsigned addr) {
-   return true;
-}
-
-bool process::restoreRegisters(void *buffer) {
-   // The fact that this routine can be shared between solaris/sparc and
-   // solaris/x86 is just really, really cool.  /proc rules!
-
-   return true;
-}
-
-#ifdef i386_unknown_solaris2_5
-
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool )
+bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn, bool )
 {
+  bool readOK=true;
+  struct {
+    int fp;
+    int rtn;
+  } addrs;
+
+  //
+  // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
+  // and the saved return address is in EBP-4.
+  //
+
+  if (readDataSpace((caddr_t) (currentFP),
+                    sizeof(int)*2, (caddr_t) &addrs, true)) {
+    // this is the previous frame pointer
+    *fp = addrs.fp;
+    // return address
+    *rtn = addrs.rtn;
+
+    // if pc==0, then we are in the outermost frame and we should stop. We
+    // do this by making fp=0.
+
+    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
+      readOK=false;
+    }
+  }
+  else {
+    readOK=false;
+  }
+
   return(readOK);
 }
 
-#endif
-
-#ifdef i386_unknown_solaris2_5
-// ******** TODO **********
-bool process::needToAddALeafFrame(Frame , Address &) {
-  return false;
+// You know, /proc/*/exe is a perfectly good link (directly to the inode) to
+// the executable file, who cares where the executable really is, we can open
+// this link. - DAN
+string process::tryToFindExecutable(const string & /* iprogpath */, int pid) {
+  return string("/proc/") + string(pid) + "/exe";
 }
 
-#else
-
-// needToAddALeafFrame: returns true if the between the current frame 
-// and the next frame there is a leaf function (this occurs when the 
-// current frame is the signal handler and the function that was executing
-// when the sighandler was called is a leaf function)
-bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
-
-
-   return false;
-}
-#endif
-
+/*
+ * The old, ugly version that we don't need but can waste space anyhow
+ * /
 string process::tryToFindExecutable(const string &iprogpath, int pid) {
    // returns empty string on failure.
    // Otherwise, returns a full-path-name for the file.  Tries every
@@ -462,34 +1106,461 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
    
    // Remember, we can always return the empty string...no need to
    // go nuts writing the world's most complex algorithm.
+
+   attach_cerr << "welcome to tryToFindExecutable; progpath=" << iprogpath << ", pid=" << pid << endl;
+
+   const string progpath = expand_tilde_pathname(iprogpath);
+
+   // Trivial case: if "progpath" is specified and the file exists then nothing needed
+   if (exists_executable(progpath)) {
+     attach_cerr << "tryToFindExecutable succeeded immediately, returning "
+		 << progpath << endl;
+     return progpath;
+   }
+
+   attach_cerr << "tryToFindExecutable failed on filename " << progpath << endl;
+
+   string argv0, path, cwd;
+
+   char buffer[128];
+   sprintf(buffer, "/proc/%d/environ", pid);
+   int procfd = open(buffer, O_RDONLY, 0);
+   if (procfd == -1) {
+     attach_cerr << "tryToFindExecutable failed since open of /proc/* /environ failed" << endl;
+     return "";
+   }
+   attach_cerr << "tryToFindExecutable: opened /proc/* /environ okay" << endl;
+
+   int strptr = 0;
+   while( true ) {
+     string env_value = extract_string( procfd, (char*)strptr );
+     if( !env_value.length() )
+       break;
+
+     if (env_value.prefixed_by("PWD=") || env_value.prefixed_by("CWD=")) {
+       cwd = env_value.string_of() + 4; // skip past "PWD=" or "CWD="
+       attach_cerr << "get_ps_stuff: using PWD value of: " << cwd << endl;
+       if( path.length() )
+	 break;
+     } else if (env_value.prefixed_by("PATH=")) {
+       path = env_value.string_of() + 5; // skip past the "PATH="
+       attach_cerr << "get_ps_stuff: using PATH value of: " << path << endl;
+       if( cwd.length() )
+	 break;
+     }
+
+     strptr += env_value.length() + 1;
+   }
+
+   close( procfd );
+
+   sprintf(buffer, "/proc/%d/cmdline", pid);
+   procfd = open(buffer, O_RDONLY, 0);
+   if (procfd == -1) {
+     attach_cerr << "tryToFindExecutable failed since open of /proc/* /cmdline failed" << endl;
+     return "";
+   }
+   attach_cerr << "tryToFindExecutable: opened /proc/* /cmdline okay" << endl;
+
+   argv0 = extract_string( procfd, (char*)0 );
+   close( procfd );
+
+   if ( argv0.length() && path.length() && cwd.length() ) {
+     // the following routine is implemented in the util lib.
+     string result;
+     if (executableFromArgv0AndPathAndCwd(result, argv0, path, cwd)) {
+       attach_cerr << "tryToFindExecutable: returning " << result << endl;
+
+       // I feel picky today, let's make certain that /proc agrees that
+       // this is the executable by checking the inode number of
+       // /proc/ * /exe against the inode number of result
+
+       sprintf(buffer, "/proc/%d/exe", pid);
+       struct stat t_stat;
+       int t_inode;
+       if( stat( buffer, &t_stat ) ) {
+	 t_inode = t_stat.st_ino;
+	 if( stat( buffer, &t_stat ) && t_inode != t_stat.st_ino )
+	   cerr << "tryToFindExecutable: WARNING - found executable does not match /proc" << endl;
+       }
+
+       return result;
+     }
+   }
+
+   attach_cerr << "tryToFindExecutable: giving up" << endl;
+
    return "";
+}
+*/
+
+#ifdef SHM_SAMPLING
+time64 process::getInferiorProcessCPUtime() /* const */ {
+  /*
+  rusage usage;
+  time64 now;
+  if( getrusage( RUSAGE_CHILDREN, &usage ) ) {
+    perror( "process::getInferiorProcessCPUtime" );
+    return 0;
+  }
+  now = usage.ru_utime.tv_sec*1000000 + usage.ru_utime.tv_usec + usage.ru_stime.tv_sec*1000000 + usage.ru_stime.tv_usec;
+
+  return now;
+  */
+
+  time64 now = 0;
+  char buf[80], *buf2;
+  int bufsize = 80, utime, stime;
+  static int realHZ = 0;
+  // Determine the number of jiffies/sec by checking the clock idle time in
+  // /proc/uptime against the jiffies idle time in /proc/stat
+  if( realHZ == 0 ) {
+    double uptimeReal;
+    int uptimeJiffies;
+    FILE *tmp = P_fopen( "/proc/uptime", "r" );
+    assert( tmp );
+    assert( 1 == fscanf( tmp, "%*f %lf", &uptimeReal ) );
+    fclose( tmp );
+    tmp = P_fopen( "/proc/stat", "r" );
+    assert( tmp );
+    assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
+    fclose( tmp );
+    realHZ = (int)floor( (double)uptimeJiffies / uptimeReal );
+    printf( "Determined jiffies/sec as %d\n", realHZ );
+  }
+
+  sprintf( buf, "/proc/%d/stat", getPid() );
+
+  int fd;
+
+  // The reason for this complicated method of reading and sseekf-ing is
+  // to ensure that we read enough of the buffer 'atomically' to make sure
+  // the data is consistent.  Is this necessary?  I *think* so. - DAN
+  do {
+    fd = P_open(buf, O_RDONLY, 0);
+    if (fd < 0) {
+      shmsample_cerr << "getInferiorProcessCPUtime: open failed: " << sys_errlist[errno] << endl;
+      return false;
+    }
+
+    buf2 = new char[ bufsize ];
+
+    size_t rsize = P_read( fd, buf2, bufsize-1 );
+
+    if( 2 == sscanf( buf2, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %d %d ", &utime, &stime ) ) {
+      // These numbers are in 'jiffies' or clock ticks.  For now, we
+      // check at the beginning the ratio between the idle seconds in
+      // /proc/uptime and the idle jiffies in /proc/stat, and later we can
+      // use some kind of gethrvptime for the whole thing. - DAN
+      // Oh, and I'm also assuming that process time includes system time
+      now = ( (time64)1000000 * ( (time64)utime + (time64)stime ) ) / (time64)realHZ;
+      break;
+    }
+
+    delete [] buf2;
+    shmsample_cerr << "Inferior CPU time buffer expansion (" << bufsize << ")" << endl;
+    bufsize = bufsize * 2;
+
+    P_close( fd );
+  } while ( true );
+
+  delete [] buf2;
+  P_close(fd);
+
+  return now;
+}
+/*
+user *process::tryToMapChildUarea(int childpid) {
+   // a static member fn
+   // see DYNINSTprobeUarea of rtinst/src/sunos.c
+
+assert(0);
+
+   kvm_t *kvmfd = kvm_open(0, 0, 0, O_RDONLY, 0);
+   if (kvmfd == NULL) {
+      perror("could not map child's uarea because kvm_open failed");
+      return NULL;
+   }
+
+   // kvm_getproc returns a ptr to a _copy_ of the proc structure
+   // in static memory.
+   time64 wall1 = getCurrWallTime();
+   proc *p = kvm_getproc(kvmfd, childpid);
+   if (p == NULL) {
+      perror("could not map child's uarea because kvm_getproc failed");
+      return NULL;
+   }
+   time64 wall2 = getCurrWallTime();
+   time64 difference = wall2-wall1;
+   unsigned long difference_long = difference;
+   cout << "took " << difference_long << " usecs to kvm_getproc" << endl;
+ 
+   // kvm_getu returns a copy to a _copy_ of the process' uarea
+   // in static memory.
+   user *u = kvm_getu(kvmfd, p);
+   if (u == NULL) {
+      perror("could not map child's uarea because kvm_getu failed");
+      return NULL;
+   }
+
+   kvm_close(kvmfd);
+
+   void *uareaPtr = p->p_uarea;
+
+   int kmemfd = open("/dev/kmem", O_RDONLY, 0);
+   if (kmemfd == -1) {
+      perror("could not map child's uarea because could not open /dev/kmem for reading");
+      return NULL;
+   }
+
+   void *result = P_mmap(NULL, sizeof(user), PROT_READ, MAP_SHARED, kmemfd,
+                         (off_t)uareaPtr);
+   if (result == (void *)-1) {
+      perror("could not map child's uarea because could not mmap /dev/kmem");
+      close(kmemfd);
+      return NULL;
+   }
+
+   cout << "mmap of child's uarea succeeded!" << endl;
+
+   return (user *)result;
+} */
+#endif
+
+//time64 process::getInferiorProcessCPUtime() const {
+//   // We get the inferior process's cpu time via a ptrace() of the u-area
+//   // of the inferior process, though it should be possible to mmap()
+//   // the inferior process's uarea into paradynd if we really want to...
+//
+//   // UH OH: this will only work if the inferior process has been stopped!!!
+//
+//   static time64 prevResult = 0;
+//
+//   while (true) {
+//      // assumes child process has been stopped
+//      user childUareaPtr; // just a dummy
+//      unsigned addrOffset = (void *)&childUareaPtr.u_ru.ru_utime - (void *)&childUareaPtr;
+//      unsigned numBytesNeeded = (void *)&childUareaPtr.u_ru.ru_maxrss -
+//                                (void *)&childUareaPtr.u_ru.ru_utime;
+//      assert(numBytesNeeded % 4 == 0);
+//
+//      rusage theUsage; // we'll write into the first few bytes of this structure
+//      void *ptr = &theUsage.ru_utime;
+//
+//      cout << "peeking from uarea for pid " << this->getPid() << endl; cout.flush();
+//      while (numBytesNeeded) {
+//         errno = 0;
+//         unsigned result = P_ptrace(PTRACE_PEEKUSER, this->getPid(),
+//				    (char*)addrOffset, 0, NULL);
+//         if (errno != 0) {
+//            perror("could not getChildCPUtimeViaPtraceOfUarea: ptrace()");
+//            exit(5);
+//         }
+//
+//         memcpy(ptr, &result, 4);
+//         ptr += 4;
+//         addrOffset += 4;
+//         numBytesNeeded -= 4;
+//      }
+//
+//      time64 result = userAndSysTime2uSecs(theUsage.ru_utime, theUsage.ru_stime);
+//      if (result < prevResult) {
+//         cout << "process::getInferiorProcessCPUtime() retrying due to rollback!" << endl;
+//         continue;
+//      }
+//      else {
+//         prevResult = result;
+//         return result;
+//      }
+//   }
+//}
+
+bool process::loopUntilStopped() {
+  /* make sure the process is stopped in the eyes of ptrace */
+  stop_(); // sends SIGSTOP signal to the process
+
+  while (true) {
+    int waitStatus;
+    int ret = P_waitpid(getPid(), &waitStatus, WUNTRACED);
+    if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
+      // the child is gone.
+      handleProcessExit(this, WEXITSTATUS(waitStatus));
+      return(false);
+    } else if (WIFSIGNALED(waitStatus)) {
+      handleProcessExit(this, WTERMSIG(waitStatus));
+      return false;
+    } else if (WIFSTOPPED(waitStatus)) {
+      int sig = WSTOPSIG(waitStatus);
+      if (sig == SIGSTOP) {
+        break; // success
+      } else {
+        extern int handleSigChild(int, int);
+        handleSigChild(pid, waitStatus);
+      }
+    }
+    else {
+      logLine("Problem stopping process\n");
+      abort();
+    }
+  }
+  return true;
+}
+
+#ifndef BPATCH_LIBRARY
+bool process::dumpImage() {return false;}
+#else
+bool process::dumpImage(string imageFileName) 
+{
+    int newFd;
+    image *im;
+    int length;
+    string command;
+
+    im = getImage();
+    string origFile = im->file();
+
+
+    // first copy the entire image file
+    command = "cp ";
+    command += origFile;
+    command += " ";
+    command += imageFileName;
+    system(command.string_of());
+
+    // now open the copy
+    newFd = open(imageFileName.string_of(), O_RDWR, 0);
+    if (newFd < 0) {
+	// log error
+	return false;
+    }
+
+    Elf *elfp = elf_begin(newFd, ELF_C_READ, 0);
+    Elf_Scn *scn = 0;
+    u_int baseAddr;
+    int offset;
+
+    Elf32_Ehdr*	ehdrp;
+    Elf_Scn* shstrscnp  = 0;
+    Elf_Data* shstrdatap = 0;
+    Elf32_Shdr* shdrp;
+
+    assert(ehdrp = elf32_getehdr(elfp));
+    assert(((shstrscnp = elf_getscn(elfp, ehdrp->e_shstrndx)) != 0) &&
+           ((shstrdatap = elf_getdata(shstrscnp, 0)) != 0));
+    const char* shnames = (const char *) shstrdatap->d_buf;
+
+    while ((scn = elf_nextscn(elfp, scn)) != 0) {
+	const char* name;
+
+	shdrp = elf32_getshdr(scn);
+	name = (const char *) &shnames[shdrp->sh_name];
+	if (!strcmp(name, ".text")) {
+	    offset = shdrp->sh_offset;
+	    length = shdrp->sh_size;
+	    baseAddr = shdrp->sh_addr;
+	    break;
+	}
+    }
+
+
+    char tempCode[length];
+
+
+    bool ret = readTextSpace_((void *) baseAddr, length, tempCode);
+    if (!ret) {
+       // log error
+       return false;
+    }
+
+    lseek(newFd, offset, SEEK_SET);
+    write(newFd, tempCode, length);
+    close(newFd);
+
+    return true;
+}
+#endif
+
+#ifndef BPATCH_LIBRARY
+
+float OS::compute_rusage_cpu() { return 0; }
+
+float OS::compute_rusage_sys() { return 0; }
+
+float OS::compute_rusage_min() { return 0; }
+
+float OS::compute_rusage_maj() { return 0; }
+
+float OS::compute_rusage_swap() { return 0; }
+
+float OS::compute_rusage_io_in() { return 0; }
+
+float OS::compute_rusage_io_out() { return 0; }
+
+float OS::compute_rusage_msg_send() { return 0; }
+
+float OS::compute_rusage_msg_recv() { return 0; }
+
+float OS::compute_rusage_sigs() { return 0; }
+
+float OS::compute_rusage_vol_cs() { return 0; }
+
+float OS::compute_rusage_inv_cs() { return 0; }
+
+#endif
+
+int getNumberOfCPUs()
+{
+  return(1);
+}
+
+Address process::read_inferiorRPC_result_register(Register reg) {
+   // On x86, the result is always stashed in %EAX; at least, it is under Solaris
+   // We'll see about Linux -- DAN
+
+   int raddr = EAX * 4;
+   int eaxval = ptraceKludge::deliverPtrace(this, PTRACE_PEEKUSR, raddr, 0);
+   if( errno ) {
+     perror( "process::read_inferiorRPC_result_register; ptrace PEEKUSR" );
+     assert(false);
+   }
+   return eaxval;
 }
 
 bool process::set_breakpoint_for_syscall_completion() {
-   /* Can assume: (1) process is paused and (2) in a system call.
-      We want to set a TRAP for the syscall exit, and do the
-      inferiorRPC at that time.  We'll use /proc PIOCSEXIT.
-      Returns true iff breakpoint was successfully set. */
-   return true;
-}
+  // SUNos can't do this (as far as I know)
 
-unsigned process::read_inferiorRPC_result_register(reg) {
-      return 0; // assert(false)?
+  // I wonder if linux can? -- DAN
+   return false;
 }
 
 
-// hasBeenBound: returns true if the runtime linker has bound the
-// function symbol corresponding to the relocation entry in at the address
-// specified by entry and base_addr.  If it has been bound, then the callee 
-// function is returned in "target_pdf", else it returns false.
-bool process::hasBeenBound(const relocationEntry entry, 
-			   pd_Function *&target_pdf, Address base_addr) {
+void print_read_error_info(const relocationEntry entry, 
+      pd_Function *&target_pdf, Address base_addr) {
 
-  return false;
+    sprintf(errorLine, "  entry      : target_addr 0x%x\n",
+	    entry.target_addr());
+    logLine(errorLine);
+    sprintf(errorLine, "               rel_addr 0x%x\n", entry.rel_addr());
+    logLine(errorLine);
+    sprintf(errorLine, "               name %s\n", (entry.name()).string_of());
+    logLine(errorLine);
 
+    sprintf(errorLine, "  target_pdf : symTabName %s\n",
+	    (target_pdf->symTabName()).string_of());
+    logLine(errorLine);    
+    sprintf(errorLine , "              prettyName %s\n",
+	    (target_pdf->symTabName()).string_of());
+    logLine(errorLine);
+    sprintf(errorLine , "              size %i\n",
+	    target_pdf->size());
+    logLine(errorLine);
+    sprintf(errorLine , "              addr 0x%x\n",
+	    target_pdf->addr());
+    logLine(errorLine);
+
+    sprintf(errorLine, "  base_addr  0x%x\n", base_addr);
+    logLine(errorLine);
 }
-
-
 
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
@@ -511,17 +1582,150 @@ bool process::hasBeenBound(const relocationEntry entry,
 // function foo in libfoo.so.2.  We are currently not handling this case, since
 // it is unlikely to happen in practice.
 bool process::findCallee(instPoint &instr, function_base *&target){
+    
+    if((target = (function_base *)instr.iPgetCallee())) {
+ 	return true; // callee already set
+    }
 
+    // find the corresponding image in this process  
+    const image *owner = instr.iPgetOwner();
+    bool found_image = false;
+    Address base_addr = 0;
+    if(symbols == owner) {  found_image = true; } 
+    else if(shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+            if(owner == ((*shared_objects)[i])->getImage()) {
+		found_image = true;
+		base_addr = ((*shared_objects)[i])->getBaseAddress();
+		break;
+            }
+	}
+    } 
+    if(!found_image) {
+        target = 0;
+        return false; // image not found...this is bad
+    }
+
+    // get the target address of this function
+    Address target_addr = 0;
+//    Address insn_addr = instr.iPgetAddress(); 
+    target_addr = instr.getTargetAddress();
+
+    if(!target_addr) {  
+	// this is either not a call instruction or an indirect call instr
+	// that we can't get the target address
+        target = 0;
+        return false;
+    }
+
+    // see if there is a function in this image at this target address
+    // if so return it
+    pd_Function *pdf = 0;
+    if( (pdf = owner->findFunctionInInstAndUnInst(target_addr,this)) ) {
+        target = pdf;
+        instr.set_callee(pdf);
+	return true; // target found...target is in this image
+    }
+
+    // else, get the relocation information for this image
+    const Object &obj = owner->getObject();
+    const vector<relocationEntry> *fbt;
+    if(!obj.get_func_binding_table_ptr(fbt)) {
+	target = 0;
+	return false; // target cannot be found...it is an indirect call.
+    }
+
+    // find the target address in the list of relocationEntries
+    for(u_int i=0; i < fbt->size(); i++) {
+	if((*fbt)[i].target_addr() == target_addr) {
+	    // check to see if this function has been bound yet...if the
+	    // PLT entry for this function has been modified by the runtime
+	    // linker
+	    pd_Function *target_pdf = 0;
+	    if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
+                target = target_pdf;
+                instr.set_callee(target_pdf);
+	        return true;  // target has been bound
+	    } 
+	    else {
+		// just try to find a function with the same name as entry 
+		target = findOneFunctionFromAll((*fbt)[i].name());
+		if(target){
+	            return true;
+		}
+		else {  
+		    // KLUDGE: this is because we are not keeping more than
+		    // one name for the same function if there is more
+		    // than one.  This occurs when there are weak symbols
+		    // that alias global symbols (ex. libm.so.1: "sin" 
+		    // and "__sin").  In most cases the alias is the same as 
+		    // the global symbol minus one or two leading underscores,
+		    // so here we add one or two leading underscores to search
+		    // for the name to handle the case where this string 
+		    // is the name of the weak symbol...this will not fix 
+		    // every case, since if the weak symbol and global symbol
+		    // differ by more than leading underscores we won't find
+		    // it...when we parse the image we should keep multiple
+		    // names for pd_Functions
+
+		    string s = string("_");
+		    s += (*fbt)[i].name();
+		    target = findOneFunctionFromAll(s);
+		    if(target){
+	                return true;
+		    }
+		    s = string("__");
+		    s += (*fbt)[i].name();
+		    target = findOneFunctionFromAll(s);
+		    if(target){
+	                return true;
+		    }
+		}
+	    }
+	    target = 0;
+	    return false;
+	}
+    }
+    target = 0;
     return false;  
 }
 
 
+// hasBeenBound: returns true if the runtime linker has bound the
+// function symbol corresponding to the relocation entry in at the address
+// specified by entry and base_addr.  If it has been bound, then the callee 
+// function is returned in "target_pdf", else it returns false.
+bool process::hasBeenBound(const relocationEntry entry, 
+			   pd_Function *&target_pdf, Address base_addr) {
 
+    if (status() == exited) return false;
 
+    // if the relocationEntry has not been bound yet, then the value
+    // at rel_addr is the address of the instruction immediately following
+    // the first instruction in the PLT entry (which is at the target_addr) 
+    // The PLT entries are never modified, instead they use an indirrect 
+    // jump to an address stored in the _GLOBAL_OFFSET_TABLE_.  When the 
+    // function symbol is bound by the runtime linker, it changes the address
+    // in the _GLOBAL_OFFSET_TABLE_ corresponding to the PLT entry
 
+    Address got_entry = entry.rel_addr() + base_addr;
+    Address bound_addr = 0;
+    if(!readDataSpace((const void*)got_entry, sizeof(Address), 
+			&bound_addr, true)){
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",got_entry,pid);
+	logLine(errorLine);
+	print_read_error_info(entry, target_pdf, base_addr);
+        return false;
+    }
 
-
-
-
-
-
+    if( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
+        // the callee function has been bound by the runtime linker
+	// find the function and return it
+        target_pdf = findpdFunctionIn(bound_addr);
+	if(!target_pdf){
+            return false;
+	}
+        return true;	
+    }
+    return false;
+}

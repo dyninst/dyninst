@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.2 1998/12/25 22:02:14 wylie Exp $
+// $Id: linux.h,v 1.3 1999/02/08 13:57:33 nash Exp $
 
 #if !defined(i386_unknown_linux2_0)
 #error "invalid architecture-os inclusion"
@@ -49,8 +49,9 @@
 #define LINUX_PD_HDR
 
 #include <sys/param.h>
+#include "util/h/Types.h"
 
-#define EXIT_NAME "_exithandle"
+#define EXIT_NAME "_exit"
 
 #if defined(USES_LIBDYNINSTRT_SO)
 #define BYTES_TO_SAVE 256 // it should be a multiple of sizeof(instruction)
@@ -63,5 +64,7 @@
 #define SIGNAL_HANDLER	 "sigacthandler"
 
 typedef int handleT; // a /proc file descriptor
+
+Address getPC( int );
 
 #endif

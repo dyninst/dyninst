@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.39 1998/12/25 23:21:58 wylie Exp $
+ * $Id: inst-x86.C,v 1.40 1999/02/08 13:57:30 nash Exp $
  */
 
 #include <limits.h>
@@ -991,6 +991,11 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
     //            " address 0x%lx. Using trap\n",
     //            point->func()->prettyName().string_of(),point->address());
     //logLine(errorLine);
+#ifdef INST_TRAP_DEBUG
+	cerr << "Warning: unable to insert jump in function " <<
+		point->func()->prettyName().string_of() << ", address " <<
+		(void*)point->address() << ". Using trap." << endl;
+#endif
 
     if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
       return 0;
@@ -1310,6 +1315,10 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   // return to user code
   currAddr = baseAddr + (insn - code);
   emitJump(location->returnAddr()+imageBaseAddr - (currAddr+JUMP_SZ), insn);
+#ifdef INST_TRAP_DEBUG
+  cerr << "installBaseTramp jump back to " <<
+	  (void*)( location->returnAddr() + imageBaseAddr ) << endl;
+#endif
 
   assert((unsigned)(insn-code) == trampSize);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.59 1998/12/25 23:18:49 wylie Exp $
+// $Id: ast.C,v 1.60 1999/02/08 13:57:29 nash Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -80,7 +80,7 @@ extern bool doNotOverflow(int value);
 registerSpace::registerSpace(const unsigned int deadCount, Register *dead, 
                              const unsigned int liveCount, Register *live)
 {
-#if defined(i386_unknown_solaris2_5)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
   initTramps();
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.161 1999/01/21 20:51:50 wylie Exp $
+// $Id: process.C,v 1.162 1999/02/08 13:57:38 nash Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2802,7 +2802,7 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      Symbol sym;
      Address baseAddr;
      static const string underscore = "_";
-#if defined(USES_LIBDYNINSTRT_SO)
+#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_linux2_0)
      // we use "dlopen" because we took out the leading "_"'s from the name
      if (name==string("dlopen")) {
        // if the function is dlopen, we use the address in ld.so.1 directly
@@ -3598,7 +3598,7 @@ void process::installBootstrapInst() {
    }
 #endif /* BPATCH_LIBRARY */
 
-#if !defined(BPATCH_LIBRARY) && defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
+#if !defined(BPATCH_LIBRARY) && defined(USES_LIBDYNINSTRT_SO) && ( defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) )
    postRPCtoDo(ast, true, NULL, //process::DYNINSTinitCompletionCallback, 
       "viaCreateProcess", -1);
 #else

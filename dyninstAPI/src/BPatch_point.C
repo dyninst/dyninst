@@ -69,7 +69,7 @@ BPatch_function *BPatch_point::getCalledFunction()
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     if (point->ipLoc != ipFuncCallPoint)
 	return NULL;
-#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0)
+#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
     if (!point->insnAtPoint().isCall())
 	return NULL;
 #endif
@@ -131,7 +131,7 @@ int BPatch_point::getDisplacedInstructions(int /*maxSize*/, void* /*insns*/)
  */
 bool BPatch_point::usesTrap_NP()
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
     assert(point);
     assert(proc);
 
