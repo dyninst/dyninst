@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.373 2002/12/05 01:38:39 buck Exp $
+// $Id: process.C,v 1.374 2002/12/14 16:37:42 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -173,11 +173,12 @@ unsigned inferiorMemAvailable=0;
 unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
 string process::programName;
-string process::dyninstName;
+string process::dyninstRT_name;
 string process::pdFlavor;
 vector<string> process::arg_list;
 
 #ifndef BPATCH_LIBRARY
+string process::paradynRT_name;
 extern string osName;
 #endif
 
@@ -2464,183 +2465,166 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   procHandle_(0)
 {
 #ifdef DETACH_ON_THE_FLY
-  haveDetached = 0;
-  juststopped = 0;
-  needsDetach = 0;
-  pendingSig = 0;
+   haveDetached = 0;
+   juststopped = 0;
+   needsDetach = 0;
+   pendingSig = 0;
 #endif /* DETACH_ON_THE_FLY */
 
-    // This is the "fork" ctor
-    isIRPCwaitingForSyscall_= false;
-    runningRPC_ = false;
-    save_exitset_ptr = NULL;
+   // This is the "fork" ctor
+   isIRPCwaitingForSyscall_= false;
+   runningRPC_ = false;
+   save_exitset_ptr = NULL;
 
 
-    hasBootstrapped = true;
+   hasBootstrapped = true;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
-	PARADYNhasBootstrapped = false;
+   PARADYNhasBootstrapped = false;
 #endif
 
-       // The child of fork ("this") has yet to run DYNINSTinit.
+   // The child of fork ("this") has yet to run DYNINSTinit.
 
-    // the next two variables are used only if libdyninstRT is dynamically linked
-    hasLoadedDyninstLib = true; // TODO: is this the right value?
-    isLoadingDyninstLib = false;
+   // the next two variables are used only if libdyninstRT is dynamically linked
+   hasLoadedDyninstLib = true; // TODO: is this the right value?
+   isLoadingDyninstLib = false;
 #if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-	hasLoadedParadynLib = true;
-	isLoadingParadynLib = false;
+   hasLoadedParadynLib = true;
+   isLoadingParadynLib = false;
 #endif
 
-    createdViaAttachToCreated = false;
-        createdViaFork = true;
-    createdViaAttach = parentProc.createdViaAttach;
-    wasRunningWhenAttached = true;
-    needToContinueAfterDYNINSTinit = true;
+   createdViaAttachToCreated = false;
+   createdViaFork = true;
+   createdViaAttach = parentProc.createdViaAttach;
+   wasRunningWhenAttached = true;
+   needToContinueAfterDYNINSTinit = true;
 
-    symbols = parentProc.symbols; //shouldn't a reference count also be bumped?
-    symbols->updateForFork(this, &parentProc);
-    mainFunction = parentProc.mainFunction;
+   symbols = parentProc.symbols; //shouldn't a reference count also be bumped?
+   symbols->updateForFork(this, &parentProc);
+   mainFunction = parentProc.mainFunction;
 
-    traceLink = iTrace_fd;
+   traceLink = iTrace_fd;
 
-    //removed for output redireciton
-    //ioLink = -1; // when does this get set?
+   //removed for output redireciton
+   //ioLink = -1; // when does this get set?
 
-    status_ = neonatal; // is neonatal right?
-    exitCode_ = -1;
-    continueAfterNextStop_ = 0;
+   status_ = neonatal; // is neonatal right?
+   exitCode_ = -1;
+   continueAfterNextStop_ = 0;
 
-    pid = iPid; 
-    copyOverInstInstanceObjects(&installedMiniTramps_beforePt);
-    copyOverInstInstanceObjects(&installedMiniTramps_afterPt);
+   pid = iPid; 
+   copyOverInstInstanceObjects(&installedMiniTramps_beforePt);
+   copyOverInstInstanceObjects(&installedMiniTramps_afterPt);
 
 #ifndef BPATCH_LIBRARY
-    // since the child process inherits the parents instrumentation we'll
-    // need to inherit the parent process's data also
-    theSharedMemMgr = new shmMgr(*parentProc.theSharedMemMgr, theShmKey,
-				 applShmSegPtr, pid);
-    shmMetaData = new sharedMetaData(*(parentProc.shmMetaData), 
-				     *theSharedMemMgr);
-    shMetaOffsetData = new sharedMetaOffsetData(*theSharedMemMgr, 
+   // since the child process inherits the parents instrumentation we'll
+   // need to inherit the parent process's data also
+   theSharedMemMgr = new shmMgr(*parentProc.theSharedMemMgr, theShmKey,
+                                applShmSegPtr, pid);
+   shmMetaData = new sharedMetaData(*(parentProc.shmMetaData), 
+                                    *theSharedMemMgr);
+   shMetaOffsetData = new sharedMetaOffsetData(*theSharedMemMgr, 
 					       *(parentProc.shMetaOffsetData));
-    initCpuTimeMgr();
+   initCpuTimeMgr();
 
-    shmMetaData->adjustToNewBaseAddr(reinterpret_cast<Address>(
-                                   theSharedMemMgr->getBaseAddrInDaemon()));
-    shmMetaData->initializeForkedProc(theSharedMemMgr->cookie, getPid());
+   shmMetaData->adjustToNewBaseAddr(reinterpret_cast<Address>(
+                                                              theSharedMemMgr->getBaseAddrInDaemon()));
+   shmMetaData->initializeForkedProc(theSharedMemMgr->cookie, getPid());
 
-    string buff = string(pid); // + string("_") + getHostName();
-    rid = resource::newResource(machineResource, // parent
-				(void*)this, // handle
-				nullString, // abstraction
-				parentProc.symbols->name(),
-				timeStamp::ts1970(), // creation time
-				buff, // unique name (?)
-				MDL_T_STRING, // mdl type (?)
-				true
-				);
+   string buff = string(pid); // + string("_") + getHostName();
+   rid = resource::newResource(machineResource, // parent
+                               (void*)this, // handle
+                               nullString, // abstraction
+                               parentProc.symbols->name(),
+                               timeStamp::ts1970(), // creation time
+                               buff, // unique name (?)
+                               MDL_T_STRING, // mdl type (?)
+                               true
+                               );
 #endif
 
-    parent = const_cast<process*>(&parentProc);
+   parent = const_cast<process*>(&parentProc);
     
-    bufStart = 0;
-    bufEnd = 0;
+   bufStart = 0;
+   bufEnd = 0;
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    dyninstlib_brk_addr = 0;
+   dyninstlib_brk_addr = 0;
 
-    main_brk_addr = 0;
+   main_brk_addr = 0;
 #endif
 #if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11)   //ccw 2 oct 2002 
-	mainAddr = 0;
+   mainAddr = 0;
 #endif
 
-    reachedFirstBreak = true; // initial TRAP has (long since) been reached
-    reachedVeryFirstTrap = true;
+   reachedFirstBreak = true; // initial TRAP has (long since) been reached
+   reachedVeryFirstTrap = true;
 
-    splitHeaps = parentProc.splitHeaps;
+   splitHeaps = parentProc.splitHeaps;
 
-    heap = inferiorHeap(parentProc.heap);
+   heap = inferiorHeap(parentProc.heap);
 
-    inExec = false;
+   inExec = false;
 
-    cumObsCost = 0;
-    lastObsCostLow = 0;
+   cumObsCost = 0;
+   lastObsCostLow = 0;
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
-    trampTableItems = 0;
-    memset(trampTable, 0, sizeof(trampTable));
+   trampTableItems = 0;
+   memset(trampTable, 0, sizeof(trampTable));
 #endif
 
-    dynamiclinking = parentProc.dynamiclinking;
-    dyn = new dynamic_linking;
-    *dyn = *parentProc.dyn;
-    runtime_lib = parentProc.runtime_lib;
+   dynamiclinking = parentProc.dynamiclinking;
+   dyn = new dynamic_linking;
+   *dyn = *parentProc.dyn;
+   runtime_lib = parentProc.runtime_lib;
 
-    shared_objects = 0;
+   shared_objects = 0;
 
-    // make copy of parent's shared_objects vector
-    if (parentProc.shared_objects) {
+   // make copy of parent's shared_objects vector
+   if (parentProc.shared_objects) {
       shared_objects = new vector<shared_object*>;
       for (unsigned u1 = 0; u1 < parentProc.shared_objects->size(); u1++){
-        (*shared_objects).push_back(
-	    new shared_object(*(*parentProc.shared_objects)[u1]));
+         (*shared_objects).push_back(
+                                     new shared_object(*(*parentProc.shared_objects)[u1]));
       }
-    }
+   }
 
-    all_functions = 0;
-    if (parentProc.all_functions) {
+   all_functions = 0;
+   if (parentProc.all_functions) {
       all_functions = new vector<function_base *>;
       for (unsigned u2 = 0; u2 < parentProc.all_functions->size(); u2++)
-        (*all_functions).push_back((*parentProc.all_functions)[u2]);
-    }
+         (*all_functions).push_back((*parentProc.all_functions)[u2]);
+   }
 
-    all_modules = 0;
-    if (parentProc.all_modules) {
+   all_modules = 0;
+   if (parentProc.all_modules) {
       all_modules = new vector<module *>;
       for (unsigned u3 = 0; u3 < parentProc.all_modules->size(); u3++)
-        (*all_modules).push_back((*parentProc.all_modules)[u3]);
-    }
+         (*all_modules).push_back((*parentProc.all_modules)[u3]);
+   }
 
-    some_modules = 0;
-    if (parentProc.some_modules) {
+   some_modules = 0;
+   if (parentProc.some_modules) {
       some_modules = new vector<module *>;
       for (unsigned u4 = 0; u4 < parentProc.some_modules->size(); u4++)
-        (*some_modules).push_back((*parentProc.some_modules)[u4]);
-    }
+         (*some_modules).push_back((*parentProc.some_modules)[u4]);
+   }
     
-    some_functions = 0;
-    if (parentProc.some_functions) {
+   some_functions = 0;
+   if (parentProc.some_functions) {
       some_functions = new vector<function_base *>;
       for (unsigned u5 = 0; u5 < parentProc.some_functions->size(); u5++)
-        (*some_functions).push_back((*parentProc.some_functions)[u5]);
-    }
-
-    waiting_for_resources = false;
-#if defined(i386_unknown_linux2_0)
-    signal_restore = parentProc.signal_restore;
-#else
-    signal_handler = parentProc.signal_handler;
-#endif
-    execed_ = false;
-
-#if !defined(BPATCH_LIBRARY)
-   // threads... // 6/2/99 zhichen
-   for (unsigned i=0; i<parentProc.threads.size(); i++) {
-     threads += new dyn_thread(this,parentProc.threads[i]);
-#if defined(MT_THREAD)
-     dyn_thread *thr = threads[i] ;
-     string buffer;
-     string pretty_name=string(thr->get_start_func()->prettyName().c_str());
-     buffer = string("thr_")+string(thr->get_tid())+string("{")+pretty_name+string("}");
-     resource *rid;
-     rid = resource::newResource(this->rid, (void *)thr, nullString, buffer, 
-				 timeStamp::ts1970(), "", MDL_T_STRING, true);
-     thr->update_rid(rid);
-#endif
+         (*some_functions).push_back((*parentProc.some_functions)[u5]);
    }
+
+   waiting_for_resources = false;
+#if defined(i386_unknown_linux2_0)
+   signal_restore = parentProc.signal_restore;
+#else
+   signal_handler = parentProc.signal_handler;
 #endif
+   execed_ = false;
 
 #if defined(rs6000_ibm_aix4_1)
    resetForkTrapData();
@@ -2654,17 +2638,35 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
       status_ = exited;
       return;
    }
+#if !defined(BPATCH_LIBRARY)
+   // threads... // 6/2/99 zhichen
+   for (unsigned i=0; i<parentProc.threads.size(); i++) {
+      dyn_thread *from_thr = parentProc.threads[i];
+      dyn_thread *new_thr = new dyn_thread(this, from_thr);
+      threads.push_back(new_thr);
+#if defined(MT_THREAD)
+      dyn_thread *thr = threads[i] ;
+      string buffer;
+      string pretty_name=string(thr->get_start_func()->prettyName().c_str());
+      buffer = string("thr_")+string(thr->get_tid())+string("{")+pretty_name+string("}");
+      resource *rid;
+      rid = resource::newResource(this->rid, (void *)thr, nullString, buffer, 
+                                  timeStamp::ts1970(), "", MDL_T_STRING, true);
+      thr->update_rid(rid);
+#endif
+   }
+#endif
 
    if( isRunning_() )
-           status_ = running;
+      status_ = running;
    else
-           status_ = stopped;
+      status_ = stopped;
    // would neonatal be more appropriate?  Nah, we've reached the first trap
 
 #ifndef BPATCH_LIBRARY
 #ifdef PAPI
    if (isPapiInitialized()) {
-     papi = new papiMgr(this);
+      papi = new papiMgr(this);
    }
 #endif
 #endif
@@ -2687,6 +2689,7 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 Address process::initSharedMetaData() {
    shmMetaData->mallocInShm();
    shmMetaData->initialize(theSharedMemMgr->cookie, getpid(), getPid());
+   assert(shMetaOffsetData == NULL);
    shMetaOffsetData = new sharedMetaOffsetData(*theSharedMemMgr, 
 					       maxNumberOfThreads());
    shmMetaData->saveOffsetsIntoRTstructure(shMetaOffsetData);
@@ -3386,7 +3389,6 @@ void paradyn_handleProcessExit(process *proc, int exitStatus);
 #endif
 
 void handleProcessExit(process *proc, int exitStatus) {
-
   proc->exitCode_ = exitStatus;
 
   if (proc->status() == exited)
@@ -3465,7 +3467,7 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
    /* XXX Not sure if this is the right thing to do. */
    ret->instPointMap = theParent->instPointMap;
 #endif
-   
+
    return ret;
 }
 #endif
@@ -3860,25 +3862,25 @@ bool process::pause() {
 // a dlopen or dlclose event then return true
 bool process::handleIfDueToSharedObjectMapping(){
 
-  if(!dyn) { 
-    return false;
-  }
+   if(!dyn) { 
+      return false;
+   }
 
-  vector<shared_object *> *changed_objects = 0;
-  u_int change_type = 0;
-  bool error_occured = false;
-  bool ok = dyn->handleIfDueToSharedObjectMapping(this,&changed_objects,
-                                                  change_type,error_occured);
+   vector<shared_object *> *changed_objects = 0;
+   u_int change_type = 0;
+   bool error_occured = false;
+   bool ok = dyn->handleIfDueToSharedObjectMapping(this,&changed_objects,
+                                                   change_type,error_occured);
 
-  // if this trap was due to dlopen or dlclose, and if something changed
-  // then figure out how it changed and either add or remove shared objects
-  if(ok && !error_occured && (change_type != SHAREDOBJECT_NOCHANGE)) {
+   // if this trap was due to dlopen or dlclose, and if something changed
+   // then figure out how it changed and either add or remove shared objects
+   if(ok && !error_occured && (change_type != SHAREDOBJECT_NOCHANGE)) {
 
       // if something was added then call process::addASharedObject with
       // each element in the vector of changed_objects
       if((change_type == SHAREDOBJECT_ADDED) && changed_objects) {
 
-          for(u_int i=0; i < changed_objects->size(); i++) {
+         for(u_int i=0; i < changed_objects->size(); i++) {
             // TODO: currently we aren't handling dlopen because  
             // we don't have the code in place to modify existing metrics
             // This is what we really want to do:
@@ -3892,35 +3894,35 @@ bool process::handleIfDueToSharedObjectMapping(){
             string rtlibrary;
 
 	    if (multithread_capable())
-	      rtlibrary = string(getenv("PARADYN_LIB_MT"));
+               rtlibrary = string(getenv("PARADYN_LIB_MT"));
 	    else 
-	      rtlibrary = string(getenv("PARADYN_LIB"));
-		//ccw 22 apr 2002 : SPLIT
+               rtlibrary = string(getenv("PARADYN_LIB"));
+            //ccw 22 apr 2002 : SPLIT
 
-		const char * myChar =  ((*changed_objects)[i])->getName().c_str() ;
-		fflush(stdout);
+            const char * myChar =  ((*changed_objects)[i])->getName().c_str() ;
+            fflush(stdout);
 
             if (((*changed_objects)[i])->getName() == rtlibrary || //ccw 19 apr 2002 : SPLIT
 		((*changed_objects)[i])->getName() == string(getenv("DYNINSTAPI_RT_LIB"))) {
 #endif
-              if(addASharedObject(*((*changed_objects)[i]))){
-                (*shared_objects).push_back((*changed_objects)[i]);
-	        if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
-	          hasLoadedDyninstLib = true;
-	          isLoadingDyninstLib = false;
-	          runtime_lib = ((*changed_objects)[i])->getImage();
-	        }
+               if(addASharedObject(*((*changed_objects)[i]))){
+                  (*shared_objects).push_back((*changed_objects)[i]);
+                  if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
+                     hasLoadedDyninstLib = true;
+                     isLoadingDyninstLib = false;
+                     runtime_lib = ((*changed_objects)[i])->getImage();
+                  }
 #if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-		else if(((*changed_objects)[i])->getImage()->isParadynRTLib()){
-			hasLoadedParadynLib = true;
-			isLoadingParadynLib = false;
-		}
+                  else if(((*changed_objects)[i])->getImage()->isParadynRTLib()){
+                     hasLoadedParadynLib = true;
+                     isLoadingParadynLib = false;
+                  }
 #endif
 
-              } else {
+               } else {
                   //logLine("Error after call to addASharedObject\n");
                   delete (*changed_objects)[i];
-              }
+               }
 
 #if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
 	    } else {
@@ -3928,21 +3930,21 @@ bool process::handleIfDueToSharedObjectMapping(){
                delete (*changed_objects)[i];
 	    }
 #endif
-          }
+         }
 
-          delete changed_objects;
+         delete changed_objects;
 
       } else if((change_type == SHAREDOBJECT_REMOVED) && (changed_objects)) { 
 
-          // TODO: handle this case
-          // if something was removed then call process::removeASharedObject
-          // with each element in the vector of changed_objects
-          // for now, just delete shared_objects to avoid memory leeks
-          for(u_int i=0; i < changed_objects->size(); i++){
-              delete (*changed_objects)[i];
-          }
+         // TODO: handle this case
+         // if something was removed then call process::removeASharedObject
+         // with each element in the vector of changed_objects
+         // for now, just delete shared_objects to avoid memory leeks
+         for(u_int i=0; i < changed_objects->size(); i++){
+            delete (*changed_objects)[i];
+         }
 
-          delete changed_objects;
+         delete changed_objects;
       }
 
       // TODO: add support for adding or removing new code resource once the 
@@ -3950,9 +3952,9 @@ bool process::handleIfDueToSharedObjectMapping(){
       // metrics may have to have aggregate components added or deleted
       // this should be added to process::addASharedObject and 
       // process::removeASharedObject  
-  }
+   }
 
-  return ok;
+   return ok;
 }
 
 
@@ -4257,7 +4259,7 @@ function_base *process::findOneFunction(resource *func, resource *mod){
     const vector<string> &m_names = mod->names();
     string func_name = f_names[f_names.size() -1]; 
     string mod_name = m_names[m_names.size() -1]; 
-    
+
     //cerr << "process::findOneFunction called.  function name = " 
     //   << func_name.c_str() << endl;
     
@@ -4461,7 +4463,7 @@ pd_Function *process::findFuncByName(const string &name){
     
       // first check a.out for function symbol
       pd_Function *pdf = symbols->findFuncByName(func_name);
-      if(pdf) return pdf;
+      if(pdf)  return pdf;
 
       // search any shared libraries for the file name 
       if(dynamiclinking && shared_objects){
@@ -4512,15 +4514,15 @@ bool process::findAllFuncsByName(const string &name, vector<function_base *> &re
     
     // first check a.out for function symbol
     function_base *pdf = static_cast<function_base *>(symbols->findFuncByName(func_name));
-    if (pdf) 
+    if (pdf)
       res.push_back(pdf);
-    
+
     // search any shared libraries for the file name 
     if(dynamiclinking && shared_objects){
       for(u_int j=0; j < shared_objects->size(); j++){
 	pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
 	if(pdf){
-	  res.push_back(pdf);
+           res.push_back(pdf);
 	}
       }
     }
@@ -4550,26 +4552,26 @@ bool process::findAllFuncsByName(const string &name, vector<function_base *> &re
 // Returns the named symbol from the image or a shared object
 bool process::getSymbolInfo( const string &name, Symbol &ret ) 
 {
-        if(!symbols)
-                abort();
+   if(!symbols)
+      abort();
 
-        bool sflag;
-        sflag = symbols->symbol_info( name, ret );
+   bool sflag;
+   sflag = symbols->symbol_info( name, ret );
+   
+   if(sflag)
+      return true;
+   
+   if( dynamiclinking && shared_objects ) {
+      for( u_int j = 0; j < shared_objects->size(); ++j ) {
+         sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
+         if( sflag ) {
+            ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
+            return true;
+         }
+      }
+   }
 
-        if( sflag )
-                return true;
-
-        if( dynamiclinking && shared_objects ) {
-                for( u_int j = 0; j < shared_objects->size(); ++j ) {
-                        sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
-                        if( sflag ) {
-                                ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
-                                return true;
-                        }
-                }
-        }
-
-        return false;
+   return false;
 }
 
 // findFunctionIn: returns the function which contains this address
@@ -4713,7 +4715,8 @@ module *process::findModule(const string &mod_name, bool check_excluded) {
    // check a.out for function symbol
    //  Note that symbols is data member of type image* (comment says
    //  "information related to the process"....
-   return symbols->findModule(mod_name, check_excluded);
+   module *mret = symbols->findModule(mod_name, check_excluded);
+   return mret;
 }
 
 // getSymbolInfo:  get symbol info of symbol associated with name n
@@ -4725,20 +4728,21 @@ module *process::findModule(const string &mod_name, bool check_excluded) {
 bool process::getSymbolInfo(const string &name, Symbol &info, 
                             Address &baseAddr) const 
 {
-    // first check a.out for symbol
-    if(symbols->symbol_info(name,info))
+   // first check a.out for symbol
+   if(symbols->symbol_info(name,info))
       return getBaseAddress(symbols, baseAddr);
 
-    // next check shared objects
-    if(dynamiclinking && shared_objects) {
+   // next check shared objects
+   if(dynamiclinking && shared_objects) {
       for(u_int j=0; j < shared_objects->size(); j++) {
-            if(((*shared_objects)[j])->getSymbolInfo(name,info)) {
-                return getBaseAddress(((*shared_objects)[j])->getImage(), baseAddr); 
-            }
+         if(((*shared_objects)[j])->getSymbolInfo(name,info)) {
+            return getBaseAddress(((*shared_objects)[j])->getImage(), 
+                                  baseAddr); 
+         }
       }
-    }
-
-    return false;
+   }
+    
+   return false;
 }
 
 
@@ -5327,6 +5331,15 @@ void process::handleExec() {
 #endif
    installedMiniTramps_beforePt.clear();
    installedMiniTramps_afterPt.clear();
+
+#ifdef SHM_SAMPLING   
+   // the shared memory segment is unusable after the exec
+   delete shMetaOffsetData;
+   shMetaOffsetData = NULL;
+   delete shmMetaData;          // frees malloced vars in shmMgr
+   shmMetaData = NULL;
+   shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
+#endif
    
    int status = pid;
    fileDescriptor *desc = getExecFileDescriptor(execFilePath,
@@ -5377,8 +5390,18 @@ void process::handleExec() {
     reachedFirstBreak = false;
        // we haven't yet seen initial SIGTRAP for this proc (is this right?)
     reachedVeryFirstTrap = false;
+    
+    //hasLoadedDyninstLib = false;
+    //isLoadingDyninstLib = false;
+#if !defined(BPATCH_LIBRARY)
+    hasLoadedParadynLib = false;
+    isLoadingParadynLib = false;
+#endif
 
     status_ = stopped; // was 'exited'
+#if defined(i386_unknown_linux2_0) && !defined(BPATCH_LIBRARY)
+    needsDetach = false;
+#endif
 
    // TODO: We should remove (code) items from the where axis, if the exec'd process
    // was the only one who had them.
@@ -5594,17 +5617,18 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
    if (!getReadyRPCs(readyRPCs)) {
       return false; // Either no RPCs to run, or RPCs are currently running
    }
-  
+
    if (status_ == exited)
    {
       inferiorrpc_cerr << "Inferior process exited!" << endl;
       return false;
     }
+   
+   if (!pause()) {
+      cerr << "launchRPCifAppropriate failed because pause failed" << endl;
+      return false;
+   }
 
-      if (!pause()) {
-         cerr << "launchRPCifAppropriate failed because pause failed" << endl;
-         return false;
-      }
    for (unsigned i = 0; i < readyRPCs.size(); i++) {
       /////////////////////////////////////////////////////////////////////////
       // Determine if it is safe to run the RPC (ie not in syscall)
@@ -5733,12 +5757,13 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
     
     
       inProgress.firstInstrAddr = RPCImage;
-    
+
       //ccw 20 july 2000 : 29 mar 2001
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11)
       Frame frame = inProgress.lwp->getActiveFrame();
       inProgress.origPC = frame.getPC();
 #endif
+
       if (!inProgress.lwp->changePC(RPCImage, theSavedRegs))
       {
          cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
@@ -5763,7 +5788,6 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
    // thrRunningRPC = true , thrInSyscall = true   : run
    // thrRunningRPC = false, thrInSyscall = false  : ???
    // thrRunningRPC = false, thrInSyscall = true   : wasRunning
-
 
   if (thrRunningRPC) {
       if (!continueProc()) return false;
@@ -6285,20 +6309,26 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
       vector<function_base *>matchingFuncs;
 
       getLibAndFunc(req->func, lib_name, func_name);
-
+      
       if (lib_name != "*") {
 	function_base *func2 = static_cast<function_base *>(findFuncByName(req->func));
- 	matchingFuncs.push_back(func2);
+        if(func2 != NULL)
+           matchingFuncs.push_back(func2);
+        //else
+        //   cerr << "couldn't find initial function " << req->func << "\n";
       }
       else {
 	// Wildcard: grab all functions matching this name
 	findAllFuncsByName(func_name, matchingFuncs);
       }
+
       for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
 	function_base *func = matchingFuncs[funcIter];
 	
-	if (!func)
+	if (!func) {
 	  continue;  // probably should have a flag telling us whether errors
+        }
+
 	// should be silently handled or not
 	AstNode *ast;
 	if ((req->where & FUNC_ARG) && req->args.size()>0) {
@@ -6354,48 +6384,52 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 #ifdef SHM_SAMPLING
 bool process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
 {
-  const string vrbleName = "PARADYN_bootstrap_info";
-  internalSym sym;
-  bool flag = findInternalSymbol(vrbleName, true, sym);
-  assert(flag);
-  Address symAddr = sym.getAddr();
-  // bulk read of bootstrap structure
-  if (!readDataSpace((const void*)symAddr, sizeof(*bs_record), bs_record, true)) {
-    cerr << "extractBootstrapStruct failed because readDataSpace failed" << endl;
-    return false;
-  }
+   const string vrbleName = "PARADYN_bootstrap_info";
+   internalSym sym;
+   bool flag = findInternalSymbol(vrbleName, true, sym);
+   assert(flag);
+   Address symAddr = sym.getAddr();
+   // bulk read of bootstrap structure
 
-  // address-in-memory: re-read pointer field with proper alignment
-  // (see rtinst/h/trace.h)
-  assert(sizeof(int64_t) == 8); // sanity check
-  assert(sizeof(int32_t) == 4); // sanity check
+   if (!readDataSpace((const void*)symAddr, sizeof(*bs_record), bs_record, 
+                      true)) {
+      cerr << "extractBootstrapStruct failed because readDataSpace failed" 
+           << endl;
+      return false;
+   }
 
-  // read pointer size
-  int32_t ptr_size;
-  internalSym sym2;
-  bool ret2;
-  ret2 = findInternalSymbol("PARADYN_attachPtrSize", true, sym2);
-  if (!ret2) return false;
-  ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32_t), &ptr_size, true);
-  if (!ret2) return false;
-  // problem scenario: 64-bit application, 32-bit paradynd
-  assert((size_t)ptr_size <= sizeof(bs_record->appl_attachedAtPtr.ptr));
+   // address-in-memory: re-read pointer field with proper alignment
+   // (see rtinst/h/trace.h)
+   assert(sizeof(int64_t) == 8); // sanity check
+   assert(sizeof(int32_t) == 4); // sanity check
 
-  // re-align pointer if necessary
-  if ((size_t)ptr_size < sizeof(bs_record->appl_attachedAtPtr.ptr)) {
-    // assumption: 32-bit application, 64-bit paradynd
-    printf(" ERROR %d != %d \n", ptr_size, (int) sizeof(int32_t));  //ccw 5 jun 2002 SPLIT
-    assert(ptr_size == sizeof(int32_t));
-    assert(sizeof(bs_record->appl_attachedAtPtr.ptr) == sizeof(int64_t));
-    assert(sizeof(bs_record->appl_attachedAtPtr.words.hi) == sizeof(int32_t));
-    // read 32-bit pointer from high word
-    Address val_a = (unsigned)bs_record->appl_attachedAtPtr.words.hi;
-    void *val_p = (void *)val_a;
-    bs_record->appl_attachedAtPtr.ptr = val_p;
-   fprintf(stderr, "    %p ptr *\n", bs_record->appl_attachedAtPtr.ptr);
-  }
+   // read pointer size
+   int32_t ptr_size;
+   internalSym sym2;
+   bool ret2;
+   ret2 = findInternalSymbol("PARADYN_attachPtrSize", true, sym2);
+   if (!ret2) return false;
+   ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32_t), &ptr_size, 
+                        true);
+   if (!ret2) return false;
+   // problem scenario: 64-bit application, 32-bit paradynd
+   assert((size_t)ptr_size <= sizeof(bs_record->appl_attachedAtPtr.ptr));
+
+   // re-align pointer if necessary
+   if ((size_t)ptr_size < sizeof(bs_record->appl_attachedAtPtr.ptr)) {
+      // assumption: 32-bit application, 64-bit paradynd
+      printf(" ERROR %d != %d \n", ptr_size, (int) sizeof(int32_t));  //ccw 5 jun 2002 SPLIT
+      assert(ptr_size == sizeof(int32_t));
+      assert(sizeof(bs_record->appl_attachedAtPtr.ptr) == sizeof(int64_t));
+      assert(sizeof(bs_record->appl_attachedAtPtr.words.hi) == sizeof(int32_t));
+      // read 32-bit pointer from high word
+      Address val_a = (unsigned)bs_record->appl_attachedAtPtr.words.hi;
+      void *val_p = (void *)val_a;
+      bs_record->appl_attachedAtPtr.ptr = val_p;
+      fprintf(stderr, "    %p ptr *\n", bs_record->appl_attachedAtPtr.ptr);
+   }
   
-  return true;
+   return true;
 }
 #endif /* SHM_SAMPLING */
 
@@ -6415,19 +6449,21 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   return true;
 }
 
+#if !defined(BPATCH_LIBRARY)
 bool process::handleStopDueToExecEntry() {
    // returns true iff we are processing a stop due to the entry point of exec
    // The exec hasn't yet occurred.
 
    assert(status_ == stopped);
+   PARADYN_bootstrapStruct bs_record;
 
-   //printf(" handleStopDueToExecEntry\n");
-   DYNINST_bootstrapStruct bs_record;
    if (!extractBootstrapStruct(&bs_record))
       assert(false);
 
-   if (bs_record.event != 4)
+   if (bs_record.event != 4) {
       return false;
+   }
+
 #ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
    assert(getPid() == bs_record.pid);
 #endif
@@ -6450,6 +6486,7 @@ bool process::handleStopDueToExecEntry() {
 
    return true;
 }
+#endif
 
 int process::procStopFromDYNINSTinit() {
    // possible return values:
@@ -6812,24 +6849,24 @@ int process::procStopFrompDYNINSTinit() {
    const bool calledFromFork   = (bs_record.event == 2);
 
    if(calledFromFork) {
-     handleCompletionOfpDYNINSTinit(false);
+     handleCompletionOfpDYNINSTinit();
      return 1;
    } else if (bs_record.event != 3 || (process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
    {
-      // we don't want to do this stuff (yet) when DYNINSTinit was run via attach...we
-      // want to wait until the inferiorRPC (thru which DYNINSTinit is being run)
-      // completes.
+      // we don't want to do this stuff (yet) when DYNINSTinit was run via
+      // attach...we want to wait until the inferiorRPC (thru which
+      // DYNINSTinit is being run) completes.
 #if defined(i386_unknown_nt4_0) //ccw 5 jun 2002  : SPLIT
-	   handleCompletionOfpDYNINSTinit(false); //ccw 23 apr 2002 
+      handleCompletionOfpDYNINSTinit(); //ccw 23 apr 2002 
 #endif
       return 1;
    }
    else {
 #if defined(i386_unknown_nt4_0) //ccw 5 jun 2002  : SPLIT //ccw 7 jun 2002
-	   //On Win2k we dont have to wait for the RPC to finish because none was 
-	   //started, we use DllMain....
+      //On Win2k we dont have to wait for the RPC to finish because none was 
+      //started, we use DllMain....
 
-	   handleCompletionOfpDYNINSTinit(true); //ccw 23 apr 2002 : SPLIT DO I NEED THIS HERE?
+      handleCompletionOfpDYNINSTinit(); //ccw 23 apr 2002 : SPLIT DO I NEED THIS HERE?
 #endif	   
       if (!continueProc())
          assert(false);
@@ -6851,10 +6888,8 @@ void process::pDYNINSTinitCompletionCallback(process* theProc,
                                             void* /*ret*/ // return value from DYNINSTinit
                                             ) {
    attach_cerr << "Welcome to pDYNINSTinitCompletionCallback" << endl;
-   if (NULL != userData && 0==strcmp((char*)userData, "viaCreateProcess"))
-     theProc->handleCompletionOfpDYNINSTinit(false);
-   else
-     theProc->handleCompletionOfpDYNINSTinit(true);
+   assert(userData == NULL);
+   theProc->handleCompletionOfpDYNINSTinit();   
 }
 
 /*	this function is called by the ast callback after the
@@ -6871,8 +6906,7 @@ void process::pDYNINSTinitCompletionCallback(process* theProc,
 */
 
 
-void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
-
+void process::handleCompletionOfpDYNINSTinit() {
    PARADYNhasBootstrapped = true; // now, shm sampling may safely take place.
 
    // 'event' values: (1) DYNINSTinit was started normally via paradynd
@@ -6887,8 +6921,8 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       assert(false);
 
 
-   if (!fromAttach) // reset to 0 already if attaching, but other fields (attachedAtPtr) ok
-      assert(bs_struct.event == 1 || bs_struct.event == 2 || bs_struct.event==3);
+   assert(bs_struct.event != 0);
+
 #ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
    assert(bs_struct.pid == getPid());
 #endif
@@ -6906,7 +6940,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
    const bool calledFromExec   = (bs_struct.event == 1 && execed_);
 // jkh - why was the above line commented out??
    const bool calledFromFork   = (bs_struct.event == 2);
-   const bool calledFromAttach = fromAttach || bs_struct.event == 3;
+   const bool calledFromAttach = (bs_struct.event == 3);
 
    if (!calledFromFork)
       registerInferiorAttachedSegs(bs_struct.appl_attachedAtPtr.ptr);
@@ -6941,7 +6975,6 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
       forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; about to propagate mi's" << endl;
 
-//#ifndef BPATCH_LIBRARY // we are already inside #if !defined(BPATCH_LIBRARY)
       if (!calledFromExec) {
          // propagate any metric that is already enabled to the new process.
          // For a forked process, this isn't needed because handleFork() has
@@ -6952,12 +6985,9 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 	metricFocusNode::handleNewProcess(this);
       }
       else {
-         // exec propagates in its own, special way that differs from a new
-         // process.  (propagate all mi's that make sense in the new process)
-         metricFocusNode::handleExec(this);
+         extern void pd_execCallback(process *proc);
+         pd_execCallback(this);
       }
-//#endif
-
 
       forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; done propagate mi's" << endl;
    }
@@ -7022,6 +7052,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
    assert(status_ == stopped);
       // though not for long, if 'wasRunning' is true (paradyn will soon continue us)
+   execed_ = false;
    inferiorrpc_cerr << "handleCompletionOfDYNINSTinit...done" << endl;
 }
 
