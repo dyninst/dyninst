@@ -184,6 +184,7 @@ class paradynDaemon: public dynRPCUser {
 	friend class dynRPCUser;
 	friend class component;
 	friend class phaseInfo;
+        friend class dataManager;
 	friend void *DMmain(void* varg);
 	friend void newSampleRate(float rate);
 	friend bool metDoDaemon();
