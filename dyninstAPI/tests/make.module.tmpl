@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.41 2002/07/31 22:06:38 bernat Exp $
+# $Id: make.module.tmpl,v 1.42 2002/08/02 01:16:41 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -200,7 +200,7 @@ else
 	@echo "WARNING: Skipping native C++ compiler mutatees..."
 endif
 ifneq ($(NATIVE_FC),)
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) MUTATEE_FC=$(NATIVE_FC) TARGET2=test1.mutatee_$(NATIVE_FC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) MUTATEE_FC=$(NATIVE_FC) TARGET2=test1.mutatee_$(NATIVE_FC)
 else
 	@echo "WARNING: Skipping Fortran compiler mutatees..."
 endif

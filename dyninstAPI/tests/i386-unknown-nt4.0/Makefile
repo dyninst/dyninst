@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.12 2001/11/05 07:54:37 schendel Exp $
+# $Id: Makefile,v 1.13 2002/08/02 01:16:45 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -19,8 +19,8 @@ LDFLAGS = $(LDFLAGS) /NODEFAULTLIB:LIBC.lib  # ccw 12 july 2001
 
 CFLAGS = /Z7
 #Support for GNU compilers is being dropped since it seems to be rarely used.
-#GNU_CC = gcc
-#GNU_CXX = g++
+#M_GCC = gcc
+#M_GXX = g++
 NATIVE_CC = VC
 NATIVE_CXX = VC++
 
@@ -54,18 +54,18 @@ $(TARGET2): ../src/$(TARGET2:_VC++.exe=.c)
 		-o $(TARGET2) -link $(LDFLAGS)
 !endif
 
-!if ("$(MUTATEE_CC)"=="$(GNU_CC)")
+!if ("$(MUTATEE_CC)"=="$(M_GCC)")
 COMPILER="gcc_version_egcs-2.91.57_19980901_(egcs-1.1 release)"
 MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall -DCOMPILER='$(COMPILER)'
 $(TARGET2): ../src/$(TARGET2:_gcc.exe=.c)
-	$(GNU_CC) -o $(TARGET2) $(MUTATEE_CFLAGS) ../src/$(TARGET2:_gcc.exe=.c)
+	$(M_GCC) -o $(TARGET2) $(MUTATEE_CFLAGS) ../src/$(TARGET2:_gcc.exe=.c)
 !endif
 
-!if ("$(MUTATEE_CC)"=="$(GNU_CXX)")
+!if ("$(MUTATEE_CC)"=="$(M_GXX)")
 COMPILER="gcc_version_egcs-2.91.57_19980901_(egcs-1.1 release)"
 MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall -DCOMPILER='$(COMPILER)'
 $(TARGET2): ../src/$(TARGET2:_g++.exe=.c)
-	$(GNU_CXX) -o $(TARGET2) $(MUTATEE_CFLAGS) ../src/$(TARGET2:_g++.exe=.c)
+	$(M_GXX) -o $(TARGET2) $(MUTATEE_CFLAGS) ../src/$(TARGET2:_g++.exe=.c)
 !endif
 
 !endif TARGET2

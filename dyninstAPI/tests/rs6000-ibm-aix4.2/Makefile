@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.23 2002/07/31 22:06:43 bernat Exp $
+# $Id: Makefile,v 1.24 2002/08/02 01:16:49 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -83,7 +83,6 @@ MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 LDFLAGS += -lbsd
 
 ifeq ($(NATIVE_FC), $(MUTATEE_FC))
-
 # FORTRAN_BASE = test1.mutateeFort, etc.
 FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
 
@@ -115,3 +114,6 @@ libtestA.so: libtestA.o
 	ld -bM:SRE -bnoentry -o libtestA.so libtestA.o -bexpall -berok
 libtestB.so: libtestB.o
 	ld -bM:SRE -bnoentry -o libtestB.so libtestB.o -bexpall -berok
+
+
+

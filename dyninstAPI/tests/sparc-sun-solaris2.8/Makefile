@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.15 2002/07/31 22:06:44 bernat Exp $
+# $Id: Makefile,v 1.16 2002/08/02 01:16:53 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -51,8 +51,8 @@ LIBGCCLOC_ALT ?= /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.
 endif
 MUTATEE_FLINKFLAGS += -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT) -ldl -lgcc
 
-GNU_CC = $(GCC)
-GNU_CXX = $(GXX)
+M_GCC = $(GCC)
+M_GXX = $(GXX)
 
 # define these only if not invoked recursively, otherwise they're set
 ifndef MUTATEE_CC
