@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.43 2003/07/15 22:43:54 schendel Exp $
+ * $Id: Object.h,v 1.44 2003/09/05 16:27:35 schendel Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -177,32 +177,33 @@ public:
 protected:
     virtual ~AObject() {}
     // explicitly protected
-    AObject(const pdstring file , void (*err_func)(const char *)): file_(file), 
-	symbols_(pdstring::hash), code_ptr_(0), code_off_(0), code_len_(0), 
-	data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0), loader_len_(0),
-    deferredParse(false),
-    err_func_(err_func),
-        addressWidth_nbytes(4) { }
+    AObject(const pdstring file , void (*err_func)(const char *)) :
+       file_(file), symbols_(pdstring::hash), code_ptr_(0), code_off_(0),
+       code_len_(0), data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0),
+       loader_len_(0), deferredParse(false), err_func_(err_func),
+       addressWidth_nbytes(4) { }
 
     AObject(const AObject &obj): file_(obj.file_), symbols_(obj.symbols_), 
-        code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
-	code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
-	data_off_(obj.data_off_), data_len_(obj.data_len_), 
-	loader_off_(obj.loader_off_), loader_len_(obj.loader_len_),
-    deferredParse(false),
-	err_func_(obj.err_func_), addressWidth_nbytes(4){ } 
+       code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
+       code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
+       data_off_(obj.data_off_), data_len_(obj.data_len_), 
+       loader_off_(obj.loader_off_), loader_len_(obj.loader_len_),
+       deferredParse(false), err_func_(obj.err_func_), addressWidth_nbytes(4)
+    { } 
 
     AObject&  operator= (const AObject &obj) {   
-
-	 if (this == &obj) { return *this; }
-	 file_      = obj.file_; 	symbols_   = obj.symbols_;
-	 code_ptr_  = obj.code_ptr_; 	code_off_  = obj.code_off_;
-	 code_len_  = obj.code_len_; 	data_ptr_  = obj.data_ptr_;
-	 data_off_  = obj.data_off_; 	data_len_  = obj.data_len_;
-	 err_func_  = obj.err_func_;
-	 loader_off_ = obj.loader_off_; 
-	 loader_len_ = obj.loader_len_;
-	 return *this;
+       if (this == &obj) {
+          return *this;
+       }
+       file_      = obj.file_; 	symbols_   = obj.symbols_;
+       code_ptr_  = obj.code_ptr_; 	code_off_  = obj.code_off_;
+       code_len_  = obj.code_len_; 	data_ptr_  = obj.data_ptr_;
+       data_off_  = obj.data_off_; 	data_len_  = obj.data_len_;
+       err_func_  = obj.err_func_;
+       loader_off_ = obj.loader_off_; 
+       loader_len_ = obj.loader_len_;
+       addressWidth_nbytes = obj.addressWidth_nbytes;
+       return *this;
     }
 
     pdstring                          file_;
