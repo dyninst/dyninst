@@ -4,13 +4,18 @@
 // Implementations of new commands and tk bindings related to the search history graph.
 
 /* $Log: shgTcl.C,v $
-/* Revision 1.7  1996/02/02 18:54:13  tamches
-/* added shgDrawKeyCallback, shgDrawTipsCallback,
-/* shgMiddleClickCallbackCommand is new.
-/* shgAltReleaseCommand shrunk accordingly.
-/* added shgRefineGlobalPhase (temporarily)
-/* fixed code in shgSearchCommand
+/* Revision 1.8  1996/02/07 19:14:28  tamches
+/* made use of new routines in shgPhases which operate on the current
+/* search -- no more getCurrent() usage here.
+/* Some global vars moved to shgPhases
 /*
+ * Revision 1.7  1996/02/02 18:54:13  tamches
+ * added shgDrawKeyCallback, shgDrawTipsCallback,
+ * shgMiddleClickCallbackCommand is new.
+ * shgAltReleaseCommand shrunk accordingly.
+ * added shgRefineGlobalPhase (temporarily)
+ * fixed code in shgSearchCommand
+ *
  * Revision 1.6  1996/02/02 02:03:12  karavan
  * oops!  corrected call to performanceconsultant::newSearch
  *
@@ -44,7 +49,6 @@
 #endif
 
 #ifdef PARADYN
-//#include "../pdMain/paradyn.h"
 #include "performanceConsultant.thread.CLNT.h"
 extern performanceConsultantUser *perfConsult;
 #endif
@@ -52,7 +56,10 @@ extern performanceConsultantUser *perfConsult;
 #include "shgPhases.h"
 #include "shgTcl.h"
 
-// Here is the main shg global variable:
+// Here is the main shg global variable.  Why is it a pointer?  Because
+// we don't want to construct it until the shg window is created.
+// Why?  Because the constructor assumes the shg window and certain
+// subwindows exist.
 shgPhases *theShgPhases;
 
 extern bool haveSeenFirstGoodShgWid; // main.C
@@ -77,8 +84,7 @@ void shgWhenIdleDrawRoutine(ClientData cd) {
    const bool isXsynchOn = xsynchronize; // main.C
 #endif
 
-   if (theShgPhases->existsCurrent())
-      theShgPhases->getCurrent().draw(doubleBuffer, isXsynchOn);
+   theShgPhases->draw(doubleBuffer, isXsynchOn);
 }
 tkInstallIdle shgDrawWhenIdle(&shgWhenIdleDrawRoutine);
 
@@ -90,10 +96,8 @@ int shgResizeCallbackCommand(ClientData, Tcl_Interp *interp, int, char **) {
    if (!tryFirstGoodShgWid(interp, topLevelTkWindow))
       return TCL_ERROR;
 
-   if (theShgPhases->existsCurrent()) {
-      theShgPhases->getCurrent().resize(true); // true --> we are curr shg
+   if (theShgPhases->resize())
       initiateShgRedraw(interp, true); // true-->use double-buffering
-   }
 
    return TCL_OK;
 }
@@ -104,10 +108,9 @@ int shgExposeCallbackCommand(ClientData, Tcl_Interp *interp,
       return TCL_ERROR;
 
    assert(argc == 2);
-
    const int count = atoi(argv[1]); // Xevent count field (we should only redraw if 0)
 
-   if (theShgPhases->existsCurrent() && count==0)
+   if (count==0)
       initiateShgRedraw(interp, true); // true --> double buffer
 
    return TCL_OK;
@@ -120,8 +123,7 @@ int shgSingleClickCallbackCommand(ClientData, Tcl_Interp *, int argc, char **arg
    const int x = atoi(argv[1]);
    const int y = atoi(argv[2]);
 
-   if (theShgPhases->existsCurrent())
-      theShgPhases->getCurrent().processSingleClick(x, y);
+   theShgPhases->processSingleClick(x, y);
 
    return TCL_OK;
 }
@@ -133,8 +135,7 @@ int shgMiddleClickCallbackCommand(ClientData, Tcl_Interp *, int argc, char **arg
    const int x = atoi(argv[1]);
    const int y = atoi(argv[2]);
 
-   if (theShgPhases->existsCurrent())
-      theShgPhases->getCurrent().processMiddleClick(x, y);
+   theShgPhases->processMiddleClick(x, y);
 
    return TCL_OK;
 }
@@ -147,11 +148,8 @@ int shgDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
    const int x = atoi(argv[1]);
    const int y = atoi(argv[2]);
 
-   if (theShgPhases->existsCurrent()) {
-      bool needToRedrawAll=theShgPhases->getCurrent().processDoubleClick(x, y);
-      if (needToRedrawAll)
-         initiateShgRedraw(interp, true); // true--> use double buffer
-   }
+   if (theShgPhases->processDoubleClick(x, y))
+      initiateShgRedraw(interp, true); // true--> use double buffer
 
    return TCL_OK;
 }
@@ -199,21 +197,7 @@ int shgNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
    // 2) scroll [num-units] unit   (num-units is always either -1 or 1)
    // 3) scroll [num-pages] page   (num-pages is always either -1 or 1)
 
-   if (!theShgPhases->existsCurrent())
-      return TCL_OK;
-
-   float newFirst;
-   bool anyChanges = processScrollCallback(interp, argc, argv,
-			   theShgPhases->getVertSBName(),
-			   theShgPhases->getCurrent().getVertSBOffset(),  // <= 0
-			   theShgPhases->getCurrent().getTotalVertPixUsed(),
-			   theShgPhases->getCurrent().getVisibleVertPix(),
-			   newFirst);
-
-   if (anyChanges)
-      anyChanges = theShgPhases->getCurrent().adjustVertSBOffset(newFirst);
-   
-   if (anyChanges)
+   if (theShgPhases->newVertScrollPosition(argc, argv))
       initiateShgRedraw(interp, true);
 
    return TCL_OK;
@@ -228,20 +212,7 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
    // 2) scroll [num-units] unit   (num-units is always either -1 or 1)
    // 3) scroll [num-pages] page   (num-pages is always either -1 or 1)
 
-   if (!theShgPhases->existsCurrent())
-      return TCL_OK;
-
-   float newFirst;
-   bool anyChanges = processScrollCallback(interp, argc, argv,
-			   theShgPhases->getHorizSBName(),
-			   theShgPhases->getCurrent().getHorizSBOffset(), // <= 0
-			   theShgPhases->getCurrent().getTotalHorizPixUsed(),
-			   theShgPhases->getCurrent().getVisibleHorizPix(),
-			   newFirst);
-   if (anyChanges)
-      anyChanges = theShgPhases->getCurrent().adjustHorizSBOffset(newFirst);
-
-   if (anyChanges)
+   if (theShgPhases->newHorizScrollPosition(argc, argv))
       initiateShgRedraw(interp, true); // true --> double buffer
 
    return TCL_OK;
@@ -294,62 +265,17 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 //   return TCL_OK;
 //}
 
-bool currInstalledShgAltMoveHandler = false;
-bool ignoreNextShgAltMove = false;
 
 int shgAltPressCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
-   static int shgAltAnchorX;
-   static int shgAltAnchorY;
-
    if (!haveSeenFirstGoodShgWid)
-      return TCL_OK;
-
-   if (!theShgPhases->existsCurrent())
       return TCL_OK;
 
    assert(argc==3);
    int x = atoi(argv[1]);
    int y = atoi(argv[2]);
 
-   if (currInstalledShgAltMoveHandler) {
-      if (ignoreNextShgAltMove) {
-         ignoreNextShgAltMove = false;
-         return TCL_OK;
-      }
-
-      int deltax = x - shgAltAnchorX;
-      int deltay = y - shgAltAnchorY;
-//      cout << "Scroll (" << deltax << "," << deltay << ")" << endl;
-
-      // add some extra speedup juice as an incentive to use alt-mousemove scrolling
-      deltax *= 4;
-      deltay *= 4;
-
-      theShgPhases->getCurrent().adjustHorizSBOffsetFromDeltaPix(deltax);
-      theShgPhases->getCurrent().adjustVertSBOffsetFromDeltaPix(deltay);
-
+   if (theShgPhases->altPress(x, y))
       initiateShgRedraw(interp, true);
-
-      Tk_Window theTkWindow = theShgPhases->getTkWindow();
-
-      XWarpPointer(Tk_Display(theTkWindow),
-		   Tk_WindowId(theTkWindow),
-		   Tk_WindowId(theTkWindow),
-		   0, 0, 0, 0,
-		   shgAltAnchorX, shgAltAnchorY);
-
-      ignoreNextShgAltMove = true;
-
-      return TCL_OK;
-   }
-   else {
-//      cout << "I detect mouse-motion w/alt pressed at (" << x << ", " << y << ")" << "; installing handler" << endl;
-
-      shgAltAnchorX = x;
-      shgAltAnchorY = y;
-
-      currInstalledShgAltMoveHandler = true;
-   }
 
    return TCL_OK;
 }
@@ -360,11 +286,8 @@ int shgAltReleaseCommand(ClientData, Tcl_Interp *, int, char **) {
 
    if (!haveSeenFirstGoodShgWid)
       return TCL_OK;
-   if (!theShgPhases->existsCurrent())
-      return TCL_OK;
 
-   if (currInstalledShgAltMoveHandler)
-      currInstalledShgAltMoveHandler = false;
+   theShgPhases->altRelease();
 
    return TCL_OK;
 }
@@ -372,57 +295,37 @@ int shgAltReleaseCommand(ClientData, Tcl_Interp *, int, char **) {
 int shgChangePhaseCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
    if (!haveSeenFirstGoodShgWid)
       return TCL_OK;
-   if (!theShgPhases->existsCurrent())
-      return TCL_OK;
 
    assert(argc == 2);
-
    const int phaseId = atoi(argv[1]);
-   if (!theShgPhases->changeByPhaseId(phaseId))
-      // nothing changed
-      return TCL_OK;
 
-   initiateShgRedraw(interp, true);
+   if (theShgPhases->changeByPhaseId(phaseId))
+      initiateShgRedraw(interp, true);
 
    return TCL_OK;
 }
 
-int shgDefineGlobalPhaseCommand(ClientData, Tcl_Interp *interp, int, char **) {
-   // a temporary routine...I think
-
-   theShgPhases->defineNewSearch(0, // the global phase has phase id 0
-				 "Global Phase");
-
-#ifdef PARADYN
-   perfConsult->newSearch(GlobalPhase);
-#endif   
-
-   strcpy(interp->result, "true");
-   return TCL_OK;
-}
+//int shgDefineGlobalPhaseCommand(ClientData, Tcl_Interp *interp, int, char **) {
+//   // a temporary routine...I think
+//
+//   theShgPhases->defineNewSearch(0, // the global phase has phase id 0
+//				 "Global Phase");
+//
+//#ifdef PARADYN
+//   perfConsult->newSearch(GlobalPhase);
+//#endif   
+//
+//   strcpy(interp->result, "true");
+//   return TCL_OK;
+//}
 
 int shgSearchCommand(ClientData, Tcl_Interp *interp, int, char **) {
-   // we basically want to call "paradyn search true <curr-phase-name> -1",
-   // as in "paradyn search true global -1"
-   
-   // But, currently, the phase name we are given doesn't correspond.
-   // For example, we store "Global Search" instead of "global", which is
-   // what the paradyn command expects.  So, we go directly to the igen calls...
-
-   if (!theShgPhases->existsCurrent()) {
-      cerr << "shgSearchCommand: no search has been defined; ignoring..." << endl;
-      strcpy(interp->result, "false");
-      return TCL_OK;
-   }
+   // sets tcl result string to true/false indicating whether the search
+   // was successfully started.
 
 #ifdef PARADYN
    // the shg test program does not "really" do a search
-   int curr_phase_id = theShgPhases->getCurrentId();
-
-   cout << "shgSearchCommand: activating search for phase id " << curr_phase_id << endl;
-   theShgPhases->activateSearch(curr_phase_id);
-
-   strcpy(interp->result, "true");
+   setResultBool(interp, theShgPhases->activateCurrSearch());
 #else
    strcpy(interp->result, "true");
 #endif
@@ -431,24 +334,12 @@ int shgSearchCommand(ClientData, Tcl_Interp *interp, int, char **) {
 }
 
 int shgPauseCommand(ClientData, Tcl_Interp *interp, int, char **) {
-   // we basically want to call "paradyn search pause <curr-phase-name>",
-   // as in "paradyn search pause global"
-   
-   // But, currently, the phase name we are given doesn't correspond.
-   // For example, we store "Global Search" instead of "global", which is
-   // what the paradyn command expects.  So, we go directly to the igen calls...
-
-   if (!theShgPhases->existsCurrent()) {
-      cerr << "shgPauseCommand: no search has been defined; ignoring..." << endl;
-      sprintf(interp->result, "false");
-      return TCL_OK;
-   }
+   // sets tcl result string to true/false indicating whether the search
+   // was successfully paused.
 
 #ifdef PARADYN
    // the shg test program does not "really" do a search
-   int curr_phase_id = theShgPhases->getCurrentId();
-   cout << "shgPauseCommand: about to pause search for phase id " << curr_phase_id << endl;
-   setResultBool(interp, theShgPhases->pauseSearch(curr_phase_id));
+   setResultBool(interp, theShgPhases->pauseCurrSearch());
 #else
    strcpy(interp->result, "true");
 #endif
@@ -457,23 +348,12 @@ int shgPauseCommand(ClientData, Tcl_Interp *interp, int, char **) {
 }
 
 int shgResumeCommand(ClientData, Tcl_Interp *interp, int, char **) {
-   // we basically want to call "paradyn search true <curr-phase-name> -1",
-   // as in "paradyn search true global -1"
-
-   // But, currently, the phase name we are given doesn't correspond.
-   // For example, we store "Global Search" instead of "global", which is
-   // what the paradyn command expects.  So, we go directly to the igen calls...
-
-   if (!theShgPhases->existsCurrent()) {
-      cerr << "shgResumeCommand: no search has been defined; ignoring..." << endl;
-      sprintf(interp->result, "false");
-      return TCL_OK;
-   }
+   // sets tcl result string to true/false indicating whether the search
+   // was successfully resumed.
 
 #ifdef PARADYN
    // the shg test program does not "really" do a search
-   int curr_phase_id = theShgPhases->getCurrentId();
-   setResultBool(interp, theShgPhases->resumeSearch(curr_phase_id));
+   setResultBool(interp, theShgPhases->resumeCurrSearch());
 #else
    strcpy(interp->result, "true");
 #endif
@@ -540,8 +420,8 @@ void installShgCommands(Tcl_Interp *interp) {
 		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgChangePhase", shgChangePhaseCommand,
 		     NULL, shgDeleteDummyProc);
-   Tcl_CreateCommand(interp, "shgDefineGlobalPhaseCommand", shgDefineGlobalPhaseCommand,
-		     NULL, shgDeleteDummyProc);
+//   Tcl_CreateCommand(interp, "shgDefineGlobalPhaseCommand", shgDefineGlobalPhaseCommand,
+//		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgSearchCommand", shgSearchCommand,
 		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgPauseCommand", shgPauseCommand,
@@ -567,7 +447,7 @@ void unInstallShgCommands(Tcl_Interp *interp) {
    Tcl_DeleteCommand(interp, "shgMiddleClickHook");
    Tcl_DeleteCommand(interp, "shgExposeHook");
    Tcl_DeleteCommand(interp, "shgConfigureHook");
-   Tcl_DeleteCommand(interp, "shgDefineGlobalPhaseCommand");
+//   Tcl_DeleteCommand(interp, "shgDefineGlobalPhaseCommand");
    Tcl_DeleteCommand(interp, "shgSearchCommand");
    Tcl_DeleteCommand(interp, "shgPauseCommand");
    Tcl_DeleteCommand(interp, "shgResumeCommand");
