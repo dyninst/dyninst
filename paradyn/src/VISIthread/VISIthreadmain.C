@@ -25,9 +25,13 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.12  1994/06/29 21:46:40  hollings
-/* fixed malloc on default focus case.
+/* Revision 1.13  1994/07/02 01:44:32  markc
+/* Removed aggregation operator from enableDataCollection call.
+/* Remove aggregation operator from enableDataCollection call.
 /*
+ * Revision 1.12  1994/06/29  21:46:40  hollings
+ * fixed malloc on default focus case.
+ *
  * Revision 1.11  1994/06/27  21:25:54  rbi
  * New abstraction parameter for performance streams
  *
@@ -387,7 +391,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
         if((currMetInst = 
 	     ptr->dmp->enableDataCollection(ptr->perStream,
-	     focusChoice,currMetric,Sum)) 
+	     focusChoice,currMetric)) 
 	     != NULL){
 	    PARADYN_DEBUG(("after enable metric/focus\n"));
             ptr->mrlist->add(currMetInst,currMetInst);
@@ -430,7 +434,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
 	  if(!found){ // enable
               if((currMetInst = ptr->dmp->enableDataCollection(ptr->perStream,
-		  focusChoice, currMetric,Sum)) != NULL){
+		  focusChoice, currMetric)) != NULL){
 
                   ptr->mrlist->add(currMetInst,currMetInst);
 	          newEnabled[numEnabled] = currMetInst;
