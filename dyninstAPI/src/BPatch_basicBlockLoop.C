@@ -86,6 +86,29 @@ void BPatch_basicBlockLoop::getLoopBasicBlocks(BPatch_Vector<BPatch_basicBlock*>
 	delete[] elements;
 }
 
+
+// returns the basic blocks in this loop, not those of its inner loops
+void BPatch_basicBlockLoop::getLoopBasicBlocksExclusive(BPatch_Vector<BPatch_basicBlock*>& bbs) {
+    // start with a copy of all this loops basic blocks
+    BPatch_Set<BPatch_basicBlock*> allBlocks(basicBlocks);
+
+    // remove the blocks in each contained loop
+    BPatch_Vector<BPatch_basicBlockLoop*> contLoops;
+    getContainedLoops(contLoops);
+    for (unsigned int i = 0; i < contLoops.size(); i++) {
+	allBlocks -= contLoops[i]->basicBlocks;
+    }
+
+    BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
+    allBlocks.elements(elements);
+
+    for (unsigned int j = 0; j < allBlocks.size(); j++)
+	bbs.push_back(elements[j]);
+
+    delete[] elements;
+}
+
+
 //method that returns the head of the loop. Which is also
 //head of the back edge which defines the natural loop
 BPatch_basicBlock* BPatch_basicBlockLoop::getLoopHead(){

@@ -49,6 +49,10 @@ public:
 	/** returns all basic blocks in the loop */
 	void getLoopBasicBlocks(BPatch_Vector<BPatch_basicBlock*>&);
 
+	/** returns all basic blocks in this loop, exluding the blocks
+	    of its sub loops. */
+	void getLoopBasicBlocksExclusive(BPatch_Vector<BPatch_basicBlock*>&);
+
 	/** returns true if this loop is a descendant of the given loop */
 	bool hasAncestor(BPatch_basicBlockLoop*);
 
