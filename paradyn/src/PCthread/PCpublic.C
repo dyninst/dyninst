@@ -18,7 +18,11 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.15  1994/08/05 16:04:15  hollings
+ * Revision 1.16  1994/09/06 09:26:25  karavan
+ * added back color-coded edges: added int edgeStyle to SearchHistoryNode
+ * class and added estyle argument to constructor and findAndAddSHG
+ *
+ * Revision 1.15  1994/08/05  16:04:15  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.14  1994/07/28  22:34:03  krisna
@@ -110,7 +114,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.15 1994/08/05 16:04:15 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.16 1994/09/06 09:26:25 karavan Exp $";
 #endif
 
 #include <stdio.h>
@@ -174,7 +178,7 @@ searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
     if (!of->why->children) return(ret);
 
     for (hl = *of->why->children; h = *hl; hl++) {
-	newNode = findAndAddSHG(of, h, of->where, of->when);
+	newNode = findAndAddSHG(of, h, of->where, of->when, WHYEDGESTYLE);
 	ret.add(newNode);
 
 	newNode->parents.addUnique(of);
@@ -224,7 +228,7 @@ searchHistoryNodeList BuildWhenRefinements(searchHistoryNode *of)
     if (!of->when->subIntervals) return(ret);
 
     for (il=*of->when->subIntervals; i = *il; il++) {
-	newNode = findAndAddSHG(of, of->why, of->where, i);
+	newNode = findAndAddSHG(of, of->why, of->where, i, WHENEDGESTYLE);
 	ret.add(newNode);
 	newArc = of->children->addUnique(newNode);
 	newNode->parents.addUnique(of);
@@ -306,7 +310,7 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
     (void) (newFoci = of->where->enumerateRefinements());
     for (; *newFoci; newFoci++){
 	f = *newFoci;
-	newNode = findAndAddSHG(of, of->why, f, of->when);
+	newNode = findAndAddSHG(of, of->why, f, of->when, WHEREEDGESTYLE);
 	newNode->shortName = 
 	    makeShortName((char *) of->name, (char *) newNode->name);
 

@@ -1,7 +1,11 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.9  1994/08/05 16:04:17  hollings
+ * Revision 1.10  1994/09/06 09:26:28  karavan
+ * added back color-coded edges: added int edgeStyle to SearchHistoryNode
+ * class and added estyle argument to constructor and findAndAddSHG
+ *
+ * Revision 1.9  1994/08/05  16:04:17  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.8  1994/08/03  19:09:56  hollings
@@ -86,7 +90,7 @@ class hintList: public List<hint*> {
 
 class searchHistoryNode {
     public:
-	searchHistoryNode(hypothesis*, focus*, timeInterval*);
+	searchHistoryNode(hypothesis*, focus*, timeInterval*, int estyle);
 	float cost();
 	void print(int);
 	Boolean print(int parent, FILE *fp);
@@ -122,13 +126,15 @@ class searchHistoryNode {
 	Boolean status;			// true not not true.
 	Boolean beenTrue;		// has it ever been true??
 	int style;			// current color
+	int edgeStyle;                  // which axis is refinement on?
 	Boolean suppressed;		// don't search here
 };
 
 searchHistoryNode *findAndAddSHG(searchHistoryNode *parent,
 				 hypothesis *why, 
 				 focus *where, 
-				 timeInterval *when);
+				 timeInterval *when,
+                                 int axis);
 
 
 class hint {

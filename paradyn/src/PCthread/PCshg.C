@@ -17,7 +17,11 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.17  1994/09/05 20:01:07  jcargill
+ * Revision 1.18  1994/09/06 09:26:27  karavan
+ * added back color-coded edges: added int edgeStyle to SearchHistoryNode
+ * class and added estyle argument to constructor and findAndAddSHG
+ *
+ * Revision 1.17  1994/09/05  20:01:07  jcargill
  * Better control of PC output through tunable constants.
  *
  * Revision 1.16  1994/08/05  16:04:16  hollings
@@ -127,7 +131,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.17 1994/09/05 20:01:07 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.18 1994/09/06 09:26:27 karavan Exp $";
 #endif
 
 #include <stdio.h>
@@ -153,7 +157,8 @@ void hint::print()
 
 stringPool searchHistoryNode::shgNames;
 
-searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t)
+searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t,
+				     int estyle)
 {
     static int nextId;
     char tempName[255];
@@ -161,6 +166,7 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t)
     why = h;
     where = f;
     when = t;
+    edgeStyle = estyle;
     status = FALSE;
     active = FALSE;
     beenActive = FALSE;
@@ -287,7 +293,7 @@ void searchHistoryNode::changeActive(Boolean newact)
 	    uiMgr->DAGaddNode (SHGid, this->nodeId, UNTESTEDNODESTYLE,
 			       this->shortName, (char *) this->name, 0);
 	    uiMgr->DAGaddEdge(SHGid, (*parent)->nodeId, this->nodeId, 
-				WHEREEDGESTYLE);
+				this->edgeStyle);
         }
       }
     // }
@@ -371,12 +377,13 @@ float searchHistoryNode::cost()
 searchHistoryNode *findAndAddSHG(searchHistoryNode *parent,
 				 hypothesis *why,
                                  focus *where,
-                                 timeInterval *when)
+                                 timeInterval *when,
+				 int estyle)
 {
     searchHistoryNode *ret;
     searchHistoryNode *temp;
 
-    temp = new searchHistoryNode(why,where,when);
+    temp = new searchHistoryNode(why,where,when,estyle);
     ret = allSHGNodes.find(temp->name);
     if (ret) {
 	delete temp;
@@ -397,7 +404,8 @@ void shgInit()
 
     currentInterval = &whenAxis;
 
-    SearchHistoryGraph = new searchHistoryNode(&whyAxis,whereAxis,&whenAxis);
+    SearchHistoryGraph = new searchHistoryNode(&whyAxis,whereAxis,&whenAxis,
+					       WHEREEDGESTYLE);
     allSHGNodes.add(SearchHistoryGraph, SearchHistoryGraph->name);
 
     currentSHGNode = SearchHistoryGraph;
