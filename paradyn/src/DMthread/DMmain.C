@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.84  1995/12/18 23:21:24  newhall
+ * Revision 1.85  1995/12/28 23:35:26  zhichen
+ * Commented out sampleDataCallbackFunc; replaced with batchSampleDataCallbackFunc
+ *
+ * Revision 1.84  1995/12/18  23:21:24  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
  *
@@ -595,15 +598,21 @@ void dynRPCUser::cpDataCallbackFunc(int program,
     assert(0 && "Invalid virtual function");
 }
 
-void dynRPCUser::sampleDataCallbackFunc(int program,
-					   int mid,
-					   double startTimeStamp,
-					   double endTimeStamp,
-					   double value)
+//void dynRPCUser::sampleDataCallbackFunc(int program,
+//					   int mid,
+//					   double startTimeStamp,
+//					   double endTimeStamp,
+//					   double value)
+//{
+//    assert(0 && "Invalid virtual function");
+//}
+
+// batch the sample delivery
+void dynRPCUser::batchSampleDataCallbackFunc(int program,
+					    vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer)
 {
     assert(0 && "Invalid virtual function");
 }
-
 
 //
 // When a paradynd is started remotely, ie not by paradyn, this upcall
