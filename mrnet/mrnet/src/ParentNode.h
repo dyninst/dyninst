@@ -14,7 +14,7 @@
 namespace MRN
 {
 
-class ParentNode {
+class ParentNode: public Error {
     friend class Aggregator;
     friend class Synchronizer;
     friend class RemoteNode;
@@ -37,7 +37,7 @@ class ParentNode {
 
  protected:
     enum
-        { MRN_ALLNODESREPORTED };
+        { ALLNODESREPORTED };
     std::list < RemoteNode * >children_nodes;
     std::list < int >backend_descendant_nodes;
     pthread_sync subtreereport_sync;
@@ -53,10 +53,9 @@ class ParentNode {
     virtual int deliverLeafInfoResponse( Packet& pkt ) = NULL;
     virtual int deliverConnectLeavesResponse( Packet& pkt ) = NULL;
 
-    bool isLeaf( void ) const
-        {
-            return isLeaf_;
-        }
+    bool isLeaf( void ) const {
+        return isLeaf_;
+    }
 
  public:
     ParentNode( bool _threaded, std::string, unsigned short );
@@ -77,6 +76,8 @@ class ParentNode {
     int proc_delSubTree( Packet & );
 
     int proc_newSubTreeReport( Packet & );
+    int proc_Event( Packet & );
+    int send_Event( Packet & );
 
     StreamManager *proc_newStream( Packet & );
     int send_newStream( Packet &, StreamManager * );

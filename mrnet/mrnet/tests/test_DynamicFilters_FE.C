@@ -72,7 +72,7 @@ int test_CountFilter( const char * so_file )
     }
 
     Communicator * comm_BC = Communicator::get_BroadcastCommunicator( );
-    Stream * stream = Stream::new_Stream(comm_BC, filter_id, SYNC_WAITFORALL);
+    Stream * stream = Stream::new_Stream(comm_BC, filter_id, SFILTER_WAITFORALL);
 
     if( stream->send(PROT_COUNT, "") == -1 ){
         test->print("stream::send() failure\n", testname);
@@ -104,10 +104,12 @@ int test_CountFilter( const char * so_file )
             sprintf(tmp_buf, "recv_val(%d) != NumEndPoints(%d). Failure.\n",
                     recv_val, stream->get_NumEndPoints( ) );
             test->print(tmp_buf, testname);
+            test->end_SubTest(testname, FAILURE);
             return -1;
         }
     }
 
+    test->end_SubTest(testname, SUCCESS);
     return 0;
 }
 
@@ -128,7 +130,7 @@ int test_CountOddsAndEvensFilter( const char * so_file )
     }
 
     Communicator * comm_BC = Communicator::get_BroadcastCommunicator( );
-    Stream * stream = Stream::new_Stream(comm_BC, filter_id, SYNC_WAITFORALL);
+    Stream * stream = Stream::new_Stream(comm_BC, filter_id, SFILTER_WAITFORALL);
 
     if( stream->send(PROT_COUNTODDSANDEVENS, "") == -1 ){
         test->print("stream::send() failure\n", testname);
@@ -154,6 +156,7 @@ int test_CountOddsAndEvensFilter( const char * so_file )
         //Got data
         if( Stream::unpack( buf, "%d %d", &num_odds, &num_evens ) == -1 ){
             test->print("stream::unpack() failure\n", testname);
+            test->end_SubTest(testname, FAILURE);
             return -1;
         }
         char tmp_buf[256];
@@ -164,13 +167,16 @@ int test_CountOddsAndEvensFilter( const char * so_file )
 
     if(stream->send(PROT_EXIT, "") == -1){
         test->print("stream::send(exit) failure\n");
+        test->end_SubTest(testname, FAILURE);
         return -1;
     }
 
     if(stream->flush() == -1){
         test->print("stream::flush() failure\n");
+        test->end_SubTest(testname, FAILURE);
         return -1;
     }
 
+    test->end_SubTest(testname, SUCCESS);
     return 0;
 }

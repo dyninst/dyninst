@@ -3,6 +3,7 @@
 /*===========================================================*/
 #include <stdio.h>
 #include <algorithm>
+#include <errno.h>
 
 #include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/CommunicatorImpl.h"
@@ -15,39 +16,33 @@ namespace MRN
 {
 int mrnparse( );
 
-std::list < NetworkNode * >*NetworkImpl::hostlist = NULL;
-std::list < NetworkNode * >*NetworkImpl::potential_root = NULL;
 NetworkGraph *NetworkImpl::parsed_graph = NULL;
 
 NetworkImpl::NetworkImpl( const char *_filename,
                           const char *_application )
     : filename( _filename ),
       application( ( _application == NULL ) ? "" : _application ),
-      endpoints( NULL ), front_end( NULL )
+      front_end( NULL )
 {
     // ensure our variables are set for parsing
     parsed_graph = new NetworkGraph;
-    hostlist = new std::list < NetworkNode * >;
-    potential_root = new std::list < NetworkNode * >;
 
-    if( parse_configfile(  ) == -1 ) {
+    if( parse_configfile( ) == -1 ) {
         return;
     }
 
     graph = parsed_graph;
-    if( graph->has_cycle(  ) ) {
-        //not really a cycle, but graph is not at least tree.
-        MRN_errno = MRN_ENETWORK_CYCLE;
-        _fail = true;
+    if( graph->has_cycle( ) ) {
+        //not really a cycle, but graph is at least not tree.
         return;
     }
 
     //TLS: setup thread local storage for frontend
     //I am "FE(hostname:port)"
     char port_str[128];
-    sprintf( port_str, "%d", graph->get_Root(  )->get_Port(  ) );
+    sprintf( port_str, "%d", graph->get_Root( )->get_Port( ) );
     std::string name( "FE(" );
-    name += graph->get_Root(  )->get_HostName(  );
+    name += graph->get_Root( )->get_HostName( );
     name += ":";
     name += port_str;
     name += ")";
@@ -56,35 +51,34 @@ NetworkImpl::NetworkImpl( const char *_filename,
     if( ( status = pthread_key_create( &tsd_key, NULL ) ) != 0 ) {
         mrn_printf( 1, MCFL, stderr, "pthread_key_create(): %s\n",
                     strerror( status ) );
-        assert( 0 );
+        error( ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
+        return;
     }
     tsd_t *local_data = new tsd_t;
-    local_data->thread_id = pthread_self(  );
-    local_data->thread_name = strdup( name.c_str(  ) );
+    local_data->thread_id = pthread_self( );
+    local_data->thread_name = strdup( name.c_str( ) );
     status = pthread_setspecific( tsd_key, ( const void * )local_data );
 
     if( status != 0 ) {
-        mrn_printf( 1, 0, 0, stderr, "pthread_key_create(): %s\n",
-                    strerror( status ) );
-        exit( -1 );
+        error( ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
+        return;
     }
 
-    NetworkImpl::endpoints = graph->get_EndPoints(  );
+    NetworkImpl::endpoints = graph->get_EndPoints( );
     CommunicatorImpl::create_BroadcastCommunicator( NetworkImpl::endpoints );
 
     //Frontend is root of the tree
-    front_end = new FrontEndNode( graph->get_Root(  )->get_HostName(  ),
-                                  graph->get_Root(  )->get_Port(  ) );
+    front_end = new FrontEndNode( graph->get_Root( )->get_HostName( ),
+                                  graph->get_Root( )->get_Port( ) );
     SerialGraph sg = graph->get_SerialGraph(  );
     sg.print(  );
 
     // save the serialized graph string in a variable on the stack,
     // so that we don't build a packet with a pointer into a temporary
     std::string sg_str = sg.get_ByteArray(  );
-    Packet packet( 0, MRN_NEW_SUBTREE_PROT, "%s%s",
+    Packet packet( 0, PROT_NEW_SUBTREE, "%s%s",
                    sg_str.c_str(  ), application.c_str(  ) );
     if( front_end->proc_newSubTree( packet ) == -1 ) {
-        MRN_errno = MRN_ENETWORK_FAILURE;
         _fail = true;
         return;
     }
@@ -97,14 +91,18 @@ int NetworkImpl::parse_configfile(  )
     // mrndebug=1;
     mrnin = fopen( filename.c_str(  ), "r" );
     if( mrnin == NULL ) {
-        MRN_errno = MRN_EBADCONFIG_IO;
-        _fail = true;
+        mrn_printf( 1, MCFL, stderr, "fopen() failed: %s: %s",
+                    filename.c_str(), strerror( errno ) );
+        error( EBADCONFIG, "fopen() failed: %s: %s", filename.c_str(),
+               strerror( errno ) );
         return -1;
     }
 
-    if( mrnparse(  ) != 0 ) {
-        MRN_errno = MRN_EBADCONFIG_FMT;
-        _fail = true;
+    if( mrnparse( ) != 0 ) {
+        mrn_printf( 1, MCFL, stderr, "mrnparse() failed: %s: Parse Error",
+                    filename.c_str() );
+        error( EBADCONFIG, "mrnparse() failed: %s: Parse Error",
+               filename.c_str() );
         return -1;
     }
 
@@ -113,19 +111,17 @@ int NetworkImpl::parse_configfile(  )
 
 NetworkImpl::~NetworkImpl(  ) {
     delete graph;
-    delete endpoints;
     delete front_end;
 }
 
-EndPoint *NetworkImpl::get_EndPoint( const char *_hostname,
+EndPoint * NetworkImpl::get_EndPoint( const char *_hostname,
                                      unsigned short _port )
 {
     unsigned int i;
 
-    for( i = 0; i < NetworkImpl::endpoints->size(  ); i++ ) {
-        if( ( *NetworkImpl::endpoints )[i]->compare( _hostname, _port ) ==
-            true ) {
-            return ( *NetworkImpl::endpoints )[i];
+    for( i = 0; i < NetworkImpl::endpoints.size(  ); i++ ) {
+        if( endpoints[i]->compare( _hostname, _port ) == true ) {
+            return endpoints [i];
         }
     }
 
@@ -189,7 +185,7 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
     assert( nLeaves != NULL );
 
     // request that our leaves give us their leaf info
-    Packet pkt( 0, MRN_GET_LEAF_INFO_PROT, "" );
+    Packet pkt( 0, PROT_GET_LEAF_INFO, "" );
     if( front_end->proc_getLeafInfo( pkt ) != -1 ) {
         // Gather the response from the tree
         //
@@ -293,7 +289,7 @@ int NetworkImpl::connect_Backends( void )
 
     // broadcast message to all leaves that they 
     // should accept their connections
-    Packet pkt( 0, MRN_CONNECT_LEAVES_PROT, "" );
+    Packet pkt( 0, PROT_CONNECT_LEAVES, "" );
     if( front_end->proc_connectLeaves( pkt ) != -1 ) {
 #if READY
         // in an ideal world, we don't have to get a response to this
@@ -311,7 +307,7 @@ int NetworkImpl::connect_Backends( void )
         if( resp != *Packet::NullPacket ) {
             // verify response based on our notion of the 
             // number of leaves we have
-            unsigned int nBackendsExpected = endpoints->size(  );
+            unsigned int nBackendsExpected = endpoints.size(  );
             unsigned int nBackends;
             int nret = resp.ExtractArgList( "%ud", &nBackends );
             if( nret == 0 ) {

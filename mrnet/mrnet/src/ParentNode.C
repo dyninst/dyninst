@@ -22,39 +22,10 @@ ParentNode::ParentNode( bool _threaded, std::string _hostname,
                 "In ParentNode(): Calling bind_to_port(%d)\n", port );
     if( bindPort( &listening_sock_fd, &port ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "bind_to_port() failed\n" );
-        //errno = MRN_ECANNOTBINDPORT;
+        error( ESYSTEM, "bindPort(%d): %s\n", port, strerror(errno) );
         return;
     }
-    subtreereport_sync.register_cond( MRN_ALLNODESREPORTED );
-
-    //hardcoding some aggregator definitions
-    Filter::FilterFuncById[AGGR_NULL] = NULL;
-    Filter::FilterFmtById[AGGR_NULL] = AGGR_NULL_FORMATSTR;
-
-    Filter::FilterFuncById[AGGR_INT_SUM_ID] = ( void * )aggr_Int_Sum;
-    Filter::FilterFmtById[AGGR_INT_SUM_ID] = AGGR_INT_SUM_FORMATSTR;
-
-#if (0)
-    Filter::FilterFuncById[AGGR_FLOAT_AVG_ID] = ( void * )aggr_Float_Avg;
-    Filter::FilterFmtById[AGGR_FLOAT_AVG_ID] = AGGR_FLOAT_AVG_FORMATSTR;
-
-    Filter::FilterFuncById[AGGR_FLOAT_MAX_ID] = ( void * )aggr_Float_Max;
-    Filter::FilterFmtById[AGGR_FLOAT_MAX_ID] = AGGR_FLOAT_MAX_FORMATSTR;
-
-    Filter::FilterFuncById[AGGR_CHARARRAY_CONCAT_ID] =
-        ( void * )aggr_CharArray_Concat;
-    Filter::FilterFmtById[AGGR_CHARARRAY_CONCAT_ID] =
-        AGGR_CHARARRAY_CONCAT_FORMATSTR;
-    
-    Filter::FilterFuncById[AGGR_INT_EQ_CLASS_ID] =
-        ( void * )aggr_IntEqClass;
-    Filter::FilterFmtById[AGGR_INT_EQ_CLASS_ID] =
-        AGGR_INT_EQ_CLASS_FORMATSTR;
-#endif
-
-    Filter::FilterFuncById[SYNC_WAITFORALL] = ( void * )sync_WaitForAll;
-    Filter::FilterFuncById[SYNC_DONTWAIT] = ( void * )NULL;
-    Filter::FilterFuncById[SYNC_TIMEOUT] = ( void * )sync_TimeOut;
+    subtreereport_sync.register_cond( ALLNODESREPORTED );
 
     mrn_printf( 3, MCFL, stderr, "Leaving ParentNode()\n" );
 }
@@ -78,14 +49,14 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
     }
 
     // add the passed set of remote nodes to the poll set
-    pollfd *pfds = new pollfd[rmt_nodes->size(  )];
-    unsigned int npfds = rmt_nodes->size(  );
+    pollfd *pfds = new pollfd[rmt_nodes->size( )];
+    unsigned int npfds = rmt_nodes->size( );
     unsigned int i = 0;
-    for( std::list < RemoteNode * >::iterator iter = rmt_nodes->begin(  );
-         iter != rmt_nodes->end(  ); iter++, i++ ) {
+    for( std::list < RemoteNode * >::iterator iter = rmt_nodes->begin( );
+         iter != rmt_nodes->end( ); iter++, i++ ) {
         RemoteNode *currRemNode = *iter;
         assert( currRemNode != NULL );
-        pfds[i].fd = currRemNode->get_sockfd(  );
+        pfds[i].fd = currRemNode->get_sockfd( );
         pfds[i].events = POLLIN;
         pfds[i].revents = 0;
     }
@@ -108,7 +79,7 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
         // determine the connection on which input exists
         RemoteNode *readyNode = NULL;
         std::list < RemoteNode * >::iterator iter;
-        for( i=0, iter = rmt_nodes->begin(  ); iter != rmt_nodes->end(  );
+        for( i=0, iter = rmt_nodes->begin( ); iter != rmt_nodes->end( );
              iter++, i++ ) {
             if( pfds[i].revents & POLLIN ) {
                 readyNode = ( *iter );
@@ -145,31 +116,31 @@ int ParentNode::send_PacketDownStream( Packet& packet, bool internal_only )
 
     mrn_printf( 3, MCFL, stderr, "In send_PacketDownStream()\n" );
     if( threaded ) {
-        streammanagerbyid_sync.lock(  );
+        streammanagerbyid_sync.lock( );
     }
     mrn_printf( 3, MCFL, stderr, "StreamManager = %p\n",
                 &StreamManagerById );
     mrn_printf( 3, MCFL, stderr, "StreamManagerById[%d] = %p\n",
-                packet.get_StreamId(  ),
-                StreamManagerById[packet.get_StreamId(  )] );
+                packet.get_StreamId( ),
+                StreamManagerById[packet.get_StreamId( )] );
     if( threaded ) {
-        streammanagerbyid_sync.unlock(  );
+        streammanagerbyid_sync.unlock( );
     }
 
     std::list < RemoteNode * >::iterator iter;
     std::list < RemoteNode * >tmp_nodes;
 
-    if( packet.get_StreamId(  ) == 0 ) {   //stream id 0 => broadcast
+    if( packet.get_StreamId( ) == 0 ) {   //stream id 0 => broadcast
         tmp_nodes = children_nodes;
     }
     else {
-        stream_mgr = StreamManagerById[packet.get_StreamId(  )];
+        stream_mgr = StreamManagerById[packet.get_StreamId( )];
         tmp_nodes = stream_mgr->downstream_nodes;
     }
     
-    for( i = 0, iter = tmp_nodes.begin(  ); iter != tmp_nodes.end(  );
+    for( i = 0, iter = tmp_nodes.begin( ); iter != tmp_nodes.end( );
          iter++, i++ ) {
-        if( ( *iter )->is_internal(  ) || !internal_only ) {
+        if( ( *iter )->is_internal( ) || !internal_only ) {
             mrn_printf( 3, MCFL, stderr,
                         "Calling downstream[%d].send() ...\n", i );
             if( ( *iter )->send( packet ) == -1 ) {
@@ -185,7 +156,7 @@ int ParentNode::send_PacketDownStream( Packet& packet, bool internal_only )
     return retval;
 }
 
-int ParentNode::flush_PacketsDownStream(  )
+int ParentNode::flush_PacketsDownStream( )
 {
     unsigned int i;
     int retval = 0;
@@ -193,11 +164,11 @@ int ParentNode::flush_PacketsDownStream(  )
     mrn_printf( 3, MCFL, stderr, "In flush_PacketsDownStream()\n" );
     
     std::list < RemoteNode * >::iterator iter;
-    for( i = 0, iter = children_nodes.begin(  );
-         iter != children_nodes.end(  ); iter++, i++ ) {
+    for( i = 0, iter = children_nodes.begin( );
+         iter != children_nodes.end( ); iter++, i++ ) {
         mrn_printf( 3, MCFL, stderr, "Calling downstream[%d].flush() ...\n",
                         i );
-        if( ( *iter )->flush(  ) == -1 ) {
+        if( ( *iter )->flush( ) == -1 ) {
             mrn_printf( 1, MCFL, stderr, "downstream.flush() failed\n" );
             retval = -1;
         }
@@ -218,19 +189,19 @@ int ParentNode::flush_PacketsDownStream( unsigned int stream_id )
     mrn_printf( 3, MCFL, stderr, "In flush_PacketsDownStream(%d)\n",
                 stream_id );
     if( threaded ) {
-        streammanagerbyid_sync.lock(  );
+        streammanagerbyid_sync.lock( );
     }
     stream_mgr = StreamManagerById[stream_id];
     if( threaded ) {
-        streammanagerbyid_sync.unlock(  );
+        streammanagerbyid_sync.unlock( );
     }
 
     std::list < RemoteNode * >::iterator iter;
-    for( i = 0, iter = stream_mgr->downstream_nodes.begin(  );
-         iter != stream_mgr->downstream_nodes.end(  ); iter++, i++ ) {
+    for( i = 0, iter = stream_mgr->downstream_nodes.begin( );
+         iter != stream_mgr->downstream_nodes.end( ); iter++, i++ ) {
         mrn_printf( 3, MCFL, stderr, "Calling downstream[%d].flush() ...\n",
                     i );
-        if( ( *iter )->flush(  ) == -1 ) {
+        if( ( *iter )->flush( ) == -1 ) {
             mrn_printf( 1, MCFL, stderr, "downstream.flush() failed\n" );
             retval = -1;
         }
@@ -256,29 +227,25 @@ int ParentNode::proc_newSubTree( Packet& packet )
     SerialGraph sg( byte_array );
     std::string application( ( appl == NULL ) ? "" : appl );
 
-    //printf(3, MCFL, stderr, "sg.root:%s:%d, local:%s:%d\n", sg.get_RootName().c_str(),
-    //sg.get_RootPort(), hostname.c_str(), port);
-    //assert(getNetworkName(sg.get_RootName()) == hostname);
-
     SerialGraph *cur_sg;
-    sg.set_ToFirstChild(  );
-    for( cur_sg = sg.get_NextChild(  ); cur_sg;
-         cur_sg = sg.get_NextChild(  ) ) {
+    sg.set_ToFirstChild( );
+    for( cur_sg = sg.get_NextChild( ); cur_sg;
+         cur_sg = sg.get_NextChild( ) ) {
 
-        if( cur_sg->has_children(  ) ) {
+        if( cur_sg->has_children( ) ) {
             if( threaded ) {
-                subtreereport_sync.lock(  );
+                subtreereport_sync.lock( );
             }
             num_descendants++;
             if( threaded ) {
-                subtreereport_sync.unlock(  );
+                subtreereport_sync.unlock( );
             }
 
-            std::string rootname = cur_sg->get_RootName(  );
-            unsigned short rootport = cur_sg->get_RootPort(  );
+            std::string rootname = cur_sg->get_RootName( );
+            unsigned short rootport = cur_sg->get_RootPort( );
             mrn_printf( 3, MCFL, stderr,
                         "cur_child(%s:%d) has children (internal node)\n",
-                        rootname.c_str(  ), rootport );
+                        rootname.c_str( ), rootport );
             //If the cur_child has children launch him
             RemoteNode *cur_node =
                 new RemoteNode( threaded, rootname, rootport );
@@ -286,12 +253,12 @@ int ParentNode::proc_newSubTree( Packet& packet )
             cur_node->new_InternalNode( listening_sock_fd, hostname, port,
                                         config_port, COMMNODE_EXE );
 
-            if( cur_node->good(  ) ) {
-                packet = Packet( 0, MRN_NEW_SUBTREE_PROT, "%s%s",
-                                 cur_sg->get_ByteArray(  ).c_str(  ),
-                                 application.c_str(  ) );
+            if( cur_node->good( ) ) {
+                packet = Packet( 0, PROT_NEW_SUBTREE, "%s%s",
+                                 cur_sg->get_ByteArray( ).c_str( ),
+                                 application.c_str( ) );
                 if( cur_node->send( packet ) == -1 ||
-                    cur_node->flush(  ) == -1 ) {
+                    cur_node->flush( ) == -1 ) {
                     mrn_printf( 1, MCFL, stderr, "send/flush failed\n" );
                     return -1;
                 }
@@ -299,13 +266,13 @@ int ParentNode::proc_newSubTree( Packet& packet )
             }
         }
         else {
-            std::string rootname = cur_sg->get_RootName(  );
-            unsigned short rootport = cur_sg->get_RootPort(  );
-            unsigned short rootid = cur_sg->get_Id(  );
+            std::string rootname = cur_sg->get_RootName( );
+            unsigned short rootport = cur_sg->get_RootPort( );
+            unsigned short rootid = cur_sg->get_Id( );
 
             mrn_printf( 3, MCFL, stderr,
                         "cur_child(%s:%d) is backend[%d]\n",
-                        rootname.c_str(  ), rootport, rootid );
+                        rootname.c_str( ), rootport, rootid );
 
             // since this child is a backend, I'm a leaf
             isLeaf_ = true;
@@ -313,12 +280,11 @@ int ParentNode::proc_newSubTree( Packet& packet )
             RemoteNode *cur_node = new RemoteNode( threaded,
                                                    rootname,
                                                    rootport,
-                                                   cur_sg->get_Id(  ) );
+                                                   rootid );
 
-            if( application.length(  ) > 0 ) {
+            if( application.length( ) > 0 ) {
                 std::vector < std::string > dummy_args;
                 if( cur_node->new_Application( listening_sock_fd,
-                                               rootid,
                                                hostname,
                                                port, config_port,
                                                application,
@@ -330,7 +296,7 @@ int ParentNode::proc_newSubTree( Packet& packet )
             }
 
             if( threaded ) {
-                childnodebybackendid_sync.lock(  );
+                childnodebybackendid_sync.lock( );
             }
             ChildNodeByBackendId[rootid] = cur_node;
             mrn_printf( 3, MCFL, stderr,
@@ -338,7 +304,7 @@ int ParentNode::proc_newSubTree( Packet& packet )
                         cur_node );
             backend_descendant_nodes.push_back( rootid );
             if( threaded ) {
-                childnodebybackendid_sync.unlock(  );
+                childnodebybackendid_sync.unlock( );
             }
             
             children_nodes.push_back( cur_node );
@@ -346,7 +312,7 @@ int ParentNode::proc_newSubTree( Packet& packet )
     }
 
     if( num_descendants > 0 ) {
-        if( wait_for_SubTreeReports(  ) == -1 ) {
+        if( wait_for_SubTreeReports( ) == -1 ) {
             mrn_printf( 1, MCFL, stderr,
                         "wait_for_SubTreeReports() failed!\n" );
             return -1;
@@ -354,7 +320,7 @@ int ParentNode::proc_newSubTree( Packet& packet )
     }
     else {
         mrn_printf( 3, MCFL, stderr, "All my %d children must be BEs\n",
-                    children_nodes.size(  ) );
+                    children_nodes.size( ) );
     }
     
     mrn_printf( 3, MCFL, stderr, "proc_newSubTree() succeeded\n" );
@@ -365,11 +331,11 @@ int ParentNode::wait_for_SubTreeReports( void )
 {
     std::list < Packet >packet_list;
     if( threaded ) {
-        subtreereport_sync.lock(  );
+        subtreereport_sync.lock( );
         while( num_descendants > num_descendants_reported ) {
             mrn_printf( 1, MCFL, stderr,
                         "Waiting for downstream nodes_reported signal ...\n" );
-            subtreereport_sync.wait( MRN_ALLNODESREPORTED );
+            subtreereport_sync.wait( ALLNODESREPORTED );
             mrn_printf( 3, MCFL, stderr,
                         "%d of %d Descendants have checked in.\n",
                         num_descendants_reported, num_descendants );
@@ -405,8 +371,8 @@ int ParentNode::proc_delSubTree( Packet& packet )
     mrn_printf( 3, MCFL, stderr, "In proc_delSubTree()\n" );
 
     std::list < RemoteNode * >::iterator iter;
-    for( i = 0, iter = children_nodes.begin(  );
-         iter != children_nodes.end(  ); iter++, i++ ) {
+    for( i = 0, iter = children_nodes.begin( );
+         iter != children_nodes.end( ); iter++, i++ ) {
         if( ( *iter )->send( packet ) == -1 ) {
             mrn_printf( 1, MCFL, stderr, "downstream.send() failed\n" );
             retval = -1;
@@ -414,7 +380,7 @@ int ParentNode::proc_delSubTree( Packet& packet )
         }
     }
 
-    if( flush_PacketsDownStream(  ) == -1 ) {
+    if( flush_PacketsDownStream( ) == -1 ) {
         mrn_printf( 1, MCFL, stderr,
                     "flush() failed. Now Exiting since delSubtree()\n" );
         exit( -1 );
@@ -441,13 +407,13 @@ int ParentNode::proc_newSubTreeReport( Packet& packet )
     }
 
     if( threaded ) {
-        subtreereport_sync.lock(  );
+        subtreereport_sync.lock( );
     }
     num_descendants_reported++;
     mrn_printf( 3, MCFL, stderr, "%d of %d descendants_reported\n",
                 num_descendants_reported, num_descendants );
     mrn_printf( 3, MCFL, stderr, "Adding %d backends [ ", no_backends );
-    childnodebybackendid_sync.lock(  );
+    childnodebybackendid_sync.lock( );
     for( i = 0; i < no_backends; i++ ) {
         mrn_printf( 3, 0, 0, stderr, "%d(%p), ", backends[i],
                     ChildNodeByBackendId[backends[i]] );
@@ -457,18 +423,40 @@ int ParentNode::proc_newSubTreeReport( Packet& packet )
     mrn_printf( 3, 0, 0, stderr, "]\n" );
     mrn_printf( 3, MCFL, stderr, "map[%d] at %p = %p\n", 0,
                 &ChildNodeByBackendId, ChildNodeByBackendId[0] );
-    childnodebybackendid_sync.unlock(  );
+    childnodebybackendid_sync.unlock( );
     if( threaded ) {
         // TODO always send the signal?
         if( num_descendants == num_descendants ) {
-            subtreereport_sync.signal( MRN_ALLNODESREPORTED );
+            subtreereport_sync.signal( ALLNODESREPORTED );
         }
-        subtreereport_sync.unlock(  );
+        subtreereport_sync.unlock( );
     }
 
     mrn_printf( 3, MCFL, stderr,
                 "Leaving parentnode.proc_newSubTreeReport()\n" );
     return status;
+}
+
+int ParentNode::proc_Event( Packet& packet )
+{
+    char *ehost=NULL, *edesc=NULL;
+    EventType etype;
+    unsigned short eport;
+
+
+    mrn_printf( 3, MCFL, stderr, "In parentnode.proc_Event()\n" );
+    if( packet.ExtractArgList( "%d %s %uhd %s", &etype, &ehost,
+                               &eport, &edesc ) == -1 ) {
+        mrn_printf( 1, MCFL, stderr, "ExtractArgList failed\n" );
+        return -1;
+    }
+
+    Event * event = Event::new_Event( etype, edesc, ehost, eport );
+    Event::add_Event( *event );
+    delete event;
+
+    mrn_printf( 3, MCFL, stderr, "Leaving parentnode.proc_Event()\n" );
+    return 0;
 }
 
 StreamManager *ParentNode::proc_newStream( Packet& packet )
@@ -492,9 +480,9 @@ StreamManager *ParentNode::proc_newStream( Packet& packet )
         return NULL;
     }
 
-    childnodebybackendid_sync.lock(  );
+    childnodebybackendid_sync.lock( );
     mrn_printf( 3, MCFL, stderr, "map size: %d\n",
-                ChildNodeByBackendId.size(  ) );
+                ChildNodeByBackendId.size( ) );
     for( i = 0; i < num_backends; i++ ) {
         mrn_printf( 3, MCFL, stderr, "map[%d] at %p = %p\n", backends[i],
                     &ChildNodeByBackendId,
@@ -504,18 +492,18 @@ StreamManager *ParentNode::proc_newStream( Packet& packet )
                     ChildNodeByBackendId[backends[i]], stream_id );
         node_set.push_back( ChildNodeByBackendId[backends[i]] );
     }
-    childnodebybackendid_sync.unlock(  );
+    childnodebybackendid_sync.unlock( );
 
     //printf(3, MCFL, stderr, "nodeset_size:%d\n", node_set.size());
     //  node_set.sort(lt_RemoteNodePtr);      //sort the set of nodes (by ptr value)
     //printf(3, MCFL, stderr, "nodeset_size:%d\n", node_set.size());
     //  node_set.unique(equal_RemoteNodePtr); //remove duplicates
     //printf(3, MCFL, stderr, "nodeset_size:%d\n", node_set.size());
-    node_set.sort(  );
-    node_set.unique(  );
+    node_set.sort( );
+    node_set.unique( );
 
     std::list < RemoteNode * >::iterator iter, del_iter;
-    for( i = 0, iter = node_set.begin(  ); iter != node_set.end(  ); i++ ) {
+    for( i = 0, iter = node_set.begin( ); iter != node_set.end( ); i++ ) {
         if( ( *iter ) == NULL ) {   //temporary fix for adding unreachable backends
             mrn_printf( 3, MCFL, stderr,
                         "node[%d] in stream %d is temporary fix case\n", i,
@@ -535,11 +523,11 @@ StreamManager *ParentNode::proc_newStream( Packet& packet )
         new StreamManager( stream_id, node_set, sync_id,
                            ds_filter_id, us_filter_id );
     if( threaded ) {
-        streammanagerbyid_sync.lock(  );
+        streammanagerbyid_sync.lock( );
     }
     StreamManagerById[stream_id] = stream_mgr;
     if( threaded ) {
-        streammanagerbyid_sync.unlock(  );
+        streammanagerbyid_sync.unlock( );
     }
 
     mrn_printf( 3, MCFL, stderr, "internal.procNewStream() succeeded\n" );
@@ -553,9 +541,9 @@ int ParentNode::send_newStream( Packet& packet,
     std::list < RemoteNode * >node_set = stream_mgr->downstream_nodes;
     std::list < RemoteNode * >::iterator iter;
 
-    for( i = 0, iter = node_set.begin(  ); iter != node_set.end(  );
+    for( i = 0, iter = node_set.begin( ); iter != node_set.end( );
          iter++, i++ ) {
-        if( ( *iter )->is_internal(  ) ) {  //only pass on to internal nodes
+        if( ( *iter )->is_internal( ) ) {  //only pass on to internal nodes
             //printf(3, MCFL, stderr, "Calling node_set[%d].send() ...\n", i);
             if( ( *iter )->send( packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr, "node_set.send() failed\n" );
@@ -578,19 +566,19 @@ int ParentNode::proc_delStream( Packet& packet )
 
     mrn_printf( 3, MCFL, stderr, "In proc_delStream()\n" );
 
-    streammanagerbyid_sync.lock(  );
-    StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId(  )];
-    streammanagerbyid_sync.unlock(  );
+    streammanagerbyid_sync.lock( );
+    StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId( )];
+    streammanagerbyid_sync.unlock( );
 
     if( packet.ExtractArgList( "%d", &stream_id ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
         return -1;
     }
-    assert( stream_id == packet.get_StreamId(  ) );
+    assert( stream_id == packet.get_StreamId( ) );
 
     std::list < RemoteNode * >::iterator iter;
-    for( i = 0, iter = stream_mgr->downstream_nodes.begin(  );
-         iter != stream_mgr->downstream_nodes.end(  ); iter++, i++ ) {
+    for( i = 0, iter = stream_mgr->downstream_nodes.begin( );
+         iter != stream_mgr->downstream_nodes.end( ); iter++, i++ ) {
         mrn_printf( 3, MCFL, stderr, "Calling node_set[%d].send() ...\n",
                     i );
         if( ( *iter )->send( packet ) == -1 ) {
@@ -601,9 +589,9 @@ int ParentNode::proc_delStream( Packet& packet )
         mrn_printf( 3, MCFL, stderr, "node_set.send() succeeded\n" );
     }
 
-    streammanagerbyid_sync.lock(  );
+    streammanagerbyid_sync.lock( );
     StreamManagerById.erase( stream_id );
-    streammanagerbyid_sync.unlock(  );
+    streammanagerbyid_sync.unlock( );
     mrn_printf( 3, MCFL, stderr, "internal.procDelStream() succeeded\n" );
     return 0;
 }
@@ -622,12 +610,12 @@ int ParentNode::proc_newApplication( Packet& packet )
     }
 
     std::list < RemoteNode * >::iterator iter;
-    for( i = 0, iter = children_nodes.begin(  );
-         iter != children_nodes.end(  ); iter++, i++ ) {
+    for( i = 0, iter = children_nodes.begin( );
+         iter != children_nodes.end( ); iter++, i++ ) {
         mrn_printf( 3, MCFL, stderr, "processing %s child: %s\n",
-                    ( ( *iter )->is_internal(  )? "internal" : "backend" ),
-                    ( *iter )->get_HostName(  ).c_str(  ) );
-        if( ( *iter )->is_internal(  ) ) {
+                    ( ( *iter )->is_internal( )? "internal" : "backend" ),
+                    ( *iter )->get_HostName( ).c_str( ) );
+        if( ( *iter )->is_internal( ) ) {
             mrn_printf( 3, MCFL, stderr,
                         "Calling child_node.send() ...\n" );
             if( ( *iter )->send( packet ) == -1 ) {
@@ -645,7 +633,7 @@ int ParentNode::proc_newApplication( Packet& packet )
                         cmd );
             // TODO get real backend id
             if( ( *iter )->
-                new_Application( listening_sock_fd, 0, hostname, port,
+                new_Application( listening_sock_fd, hostname, port,
                                  config_port, cmd_str,
                                  dummy_args ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
@@ -668,8 +656,8 @@ int ParentNode::proc_delApplication( Packet& packet )
     mrn_printf( 3, MCFL, stderr, "In proc_delApplication()\n" );
 
     std::list < RemoteNode * >::iterator iter;
-    for( i = 0, iter = children_nodes.begin(  );
-         iter != children_nodes.end(  ); iter++, i++ ) {
+    for( i = 0, iter = children_nodes.begin( );
+         iter != children_nodes.end( ); iter++, i++ ) {
         mrn_printf( 3, MCFL, stderr, "Calling downstream[%d].send() ...\n",
                     i );
         if( ( *iter )->send( packet ) == -1 ) {
@@ -680,7 +668,7 @@ int ParentNode::proc_delApplication( Packet& packet )
         mrn_printf( 3, MCFL, stderr, "downstream.send() succeeded\n" );
     }
 
-    if( flush_PacketsDownStream(  ) == -1 ) {
+    if( flush_PacketsDownStream( ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "flush() failed.\n" );
         return -1;
     }
@@ -723,11 +711,11 @@ bool lt_RemoteNodePtr( RemoteNode * p1, RemoteNode * p2 )
 {
     assert( p1 && p2 );
 
-    if( p1->get_HostName(  ) < p2->get_HostName(  ) ) {
+    if( p1->get_HostName( ) < p2->get_HostName( ) ) {
         return true;
     }
-    else if( p1->get_HostName(  ) == p2->get_HostName(  ) ) {
-        return ( p1->get_Port(  ) < p2->get_Port(  ) );
+    else if( p1->get_HostName( ) == p2->get_HostName( ) ) {
+        return ( p1->get_Port( ) < p2->get_Port( ) );
     }
     else {
         return false;
@@ -738,11 +726,11 @@ bool equal_RemoteNodePtr( RemoteNode * p1, RemoteNode * p2 )
 {
     return p1 == p2;        //tmp hack, should be something like below
 
-    if( p1->get_HostName(  ) != p2->get_HostName(  ) ) {
+    if( p1->get_HostName( ) != p2->get_HostName( ) ) {
         return false;
     }
     else {
-        return ( p1->get_Port(  ) == p2->get_Port(  ) );
+        return ( p1->get_Port( ) == p2->get_Port( ) );
     }
 }
 
@@ -760,12 +748,12 @@ int ParentNode::proc_getLeafInfo( Packet& pkt )
     // tree if all of its children are backends.
     //
     // handle the request
-    if( isLeaf(  ) ) {
-        mrn_printf( 3, MCFL, stderr, "leaf at %s:%u\n", hostname.c_str(  ),
+    if( isLeaf( ) ) {
+        mrn_printf( 3, MCFL, stderr, "leaf at %s:%u\n", hostname.c_str( ),
                     port );
 
         // build our leaf connection info arrays
-        unsigned int nBEs = children_nodes.size(  );
+        unsigned int nBEs = children_nodes.size( );
         int *beIds = new int[nBEs];
         const char **beHosts = new const char *[nBEs];
         int *beRanks = new int[nBEs];
@@ -773,27 +761,27 @@ int ParentNode::proc_getLeafInfo( Packet& pkt )
         int *myPorts = new int[nBEs];
         int *myRanks = new int[nBEs];
 
-        assert( ChildNodeByBackendId.size(  ) == nBEs );
+        assert( ChildNodeByBackendId.size( ) == nBEs );
         unsigned int i = 0;
         for( std::map < unsigned int, RemoteNode * >::iterator iter =
-                 ChildNodeByBackendId.begin(  );
-             iter != ChildNodeByBackendId.end(  ); iter++ ) {
+                 ChildNodeByBackendId.begin( );
+             iter != ChildNodeByBackendId.end( ); iter++ ) {
             unsigned int curId = iter->first;
             RemoteNode *curChild = iter->second;
 
             beIds[i] = curId;
-            beHosts[i] = strdup( curChild->get_HostName(  ).c_str(  ) );
-            beRanks[i] = curChild->get_Port(  );
+            beHosts[i] = strdup( curChild->get_HostName( ).c_str( ) );
+            beRanks[i] = curChild->get_Port( );
 
             // my info doesn't change, regardless of the child's info
-            myHosts[i] = strdup( hostname.c_str(  ) );
+            myHosts[i] = strdup( hostname.c_str( ) );
             myPorts[i] = port;
             myRanks[i] = config_port;
 
             i++;
         }
 
-        Packet resp( 0, MRN_GET_LEAF_INFO_PROT,
+        Packet resp( 0, PROT_GET_LEAF_INFO,
                      "%ad %as %ad %as %ad %ad",
                      beIds, nBEs,
                      beHosts, nBEs,
@@ -815,12 +803,12 @@ int ParentNode::proc_getLeafInfo( Packet& pkt )
         // forward the request packet to each of my children
         // TODO am I safe to reuse the same packet here
         for( std::list < RemoteNode * >::iterator childIter =
-                 children_nodes.begin(  );
-             childIter != children_nodes.end(  ); childIter++ ) {
+                 children_nodes.begin( );
+             childIter != children_nodes.end( ); childIter++ ) {
             RemoteNode *child = *childIter;
             assert( child != NULL );
 
-            if( ( child->send( pkt ) == -1 ) || ( child->flush(  ) == -1 ) ) {
+            if( ( child->send( pkt ) == -1 ) || ( child->flush( ) == -1 ) ) {
                 mrn_printf( 1, MCFL, stderr,
                             "failed to deliver getLeafInfo request to all children\n" );
                 ret = -1;
@@ -836,14 +824,14 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
     int ret = 0;
 
     if( threaded ) {
-        childLeafInfoResponsesLock.lock(  );
+        childLeafInfoResponsesLock.lock( );
     }
 
     // add the response to our set of child responses
     childLeafInfoResponses.push_back( pkt );
 
     // check if we've received responses from all of our children
-    if( childLeafInfoResponses.size(  ) == children_nodes.size(  ) ) {
+    if( childLeafInfoResponses.size( ) == children_nodes.size( ) ) {
         // we have received responses from all of our children -
         // aggregate the responses
         //
@@ -861,8 +849,8 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
         std::vector < unsigned int >allParPorts;
         std::vector < unsigned int >allParRanks;
         for( std::vector < Packet >::iterator piter =
-                 childLeafInfoResponses.begin(  );
-             piter != childLeafInfoResponses.end(  ); piter++ ) {
+                 childLeafInfoResponses.begin( );
+             piter != childLeafInfoResponses.end( ); piter++ ) {
             Packet currPkt = *piter;
             assert( currPkt != *Packet::NullPacket );
 
@@ -918,12 +906,12 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
         // to build our packet - yet another copy operation)
         // TODO looks to me like there's no way to get at the underlying array
         //
-        unsigned int nIds = allIds.size(  );
-        unsigned int nHosts = allHosts.size(  );
-        unsigned int nRanks = allRanks.size(  );
-        unsigned int nParHosts = allParHosts.size(  );
-        unsigned int nParPorts = allParPorts.size(  );
-        unsigned int nParRanks = allParRanks.size(  );
+        unsigned int nIds = allIds.size( );
+        unsigned int nHosts = allHosts.size( );
+        unsigned int nRanks = allRanks.size( );
+        unsigned int nParHosts = allParHosts.size( );
+        unsigned int nParPorts = allParPorts.size( );
+        unsigned int nParRanks = allParRanks.size( );
         assert( nIds == nHosts );
         assert( nHosts == nRanks );
         assert( nHosts == nParHosts );
@@ -950,7 +938,7 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
                         parRanksArray[i] );
         }
 
-        Packet resp( 0, MRN_GET_LEAF_INFO_PROT,
+        Packet resp( 0, PROT_GET_LEAF_INFO,
                      "%ad %as %ad %as %ad %ad",
                      idsArray, nIds,
                      hostsArray, nHosts,
@@ -967,15 +955,15 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
 #if READY
         // release our children's responses
         for( std::vector < Packet >::iterator iter =
-                 childLeafInfoResponses.begin(  );
-             iter != childLeafInfoResponses.end(  ); iter++ ) {
+                 childLeafInfoResponses.begin( );
+             iter != childLeafInfoResponses.end( ); iter++ ) {
             delete *iter;
         }
 #endif // READY
-        childLeafInfoResponses.clear(  );
+        childLeafInfoResponses.clear( );
     }
     if( threaded ) {
-        childLeafInfoResponsesLock.unlock(  );
+        childLeafInfoResponsesLock.unlock( );
     }
 
     return ret;
@@ -995,10 +983,10 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
     // tree if all of its children are backends.
     //
     // handle the request
-    if( isLeaf(  ) ) {
+    if( isLeaf( ) ) {
         mrn_printf( 3, MCFL, stderr,
                     "leaf waiting for connections at %s:%u\n",
-                    hostname.c_str(  ), port );
+                    hostname.c_str( ), port );
 
         // accept backend connections for all of our children nodes
         // this is a little tricky because our child RemoteNode objects
@@ -1007,12 +995,13 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
         // We have to accept a connection, determine which back-end connected
         // to us, then pass the connection off to the appropriate RemoteNode
         // object.
-        for( unsigned int i = 0; i < children_nodes.size(  ); i++ ) {
+        for( unsigned int i = 0; i < children_nodes.size( ); i++ ) {
             // accept a connection
             int sock_fd = getSocketConnection( listening_sock_fd );
             if( sock_fd == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "get_socket_connection() failed\n" );
+                error( ESYSTEM, "getSocketConnection(): %s\n", strerror(errno));
                 return -1;
             }
 
@@ -1027,17 +1016,18 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
             if( rret != 4 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "failed to receive id from backend\n" );
+                error( ESYSTEM, "recv(): %s\n", strerror(errno));
                 return -1;
             }
             uint32_t backendId = ntohl( idBuf );
 
             // set this connection as the one for backend id
             if( threaded ) {
-                childnodebybackendid_sync.lock(  );
+                childnodebybackendid_sync.lock( );
             }
             RemoteNode *child = ChildNodeByBackendId[backendId];
             if( threaded ) {
-                childnodebybackendid_sync.unlock(  );
+                childnodebybackendid_sync.unlock( );
             }
             assert( child != NULL );
 
@@ -1049,9 +1039,9 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
 
         if( ret == 0 ) {
             // build a response packet 
-            Packet resp( 0, MRN_CONNECT_LEAVES_PROT,
+            Packet resp( 0, PROT_CONNECT_LEAVES,
                          "%ud",
-                         children_nodes.size(  ) );
+                         children_nodes.size( ) );
 
             // deliver the response 
             // (how it is delivered depends on what type of 
@@ -1067,12 +1057,12 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
         // forward the request packet to each of my children
         // TODO am I safe to reuse the same packet here
         for( std::list < RemoteNode * >::iterator childIter =
-                 children_nodes.begin(  );
-             childIter != children_nodes.end(  ); childIter++ ) {
+                 children_nodes.begin( );
+             childIter != children_nodes.end( ); childIter++ ) {
             RemoteNode *child = *childIter;
             assert( child != NULL );
 
-            if( ( child->send( pkt ) == -1 ) || ( child->flush(  ) == -1 ) ) {
+            if( ( child->send( pkt ) == -1 ) || ( child->flush( ) == -1 ) ) {
                 mrn_printf( 1, MCFL, stderr,
                             "failed to deliver connectLeaves request to all children\n" );
                 ret = -1;
@@ -1088,19 +1078,19 @@ int ParentNode::proc_connectLeavesResponse( Packet& pkt )
     int ret = 0;
 
     if( threaded ) {
-        childConnectedLeafResponsesLock.lock(  );
+        childConnectedLeafResponsesLock.lock( );
     }
     // add the response to our set of child responses
     childConnectedLeafResponses.push_back( pkt );
 
     // check if we've received responses from all of our children
-    if( childConnectedLeafResponses.size(  ) == children_nodes.size(  ) ) {
+    if( childConnectedLeafResponses.size( ) == children_nodes.size( ) ) {
         // we have received responses from all of our children -
         // aggregate the responses
         unsigned int nLeavesConnected = 0;
         for( std::vector < Packet >::iterator iter =
-                 childConnectedLeafResponses.begin(  );
-             iter != childConnectedLeafResponses.end(  ); iter++ ) {
+                 childConnectedLeafResponses.begin( );
+             iter != childConnectedLeafResponses.end( ); iter++ ) {
             Packet currPkt = *iter;
 
             unsigned int currNumLeaves = 0;
@@ -1115,7 +1105,7 @@ int ParentNode::proc_connectLeavesResponse( Packet& pkt )
         }
 
         // build the response packet
-        Packet resp( 0, MRN_CONNECT_LEAVES_PROT, "%ud",
+        Packet resp( 0, PROT_CONNECT_LEAVES, "%ud",
                      nLeavesConnected );
 
 
@@ -1123,10 +1113,10 @@ int ParentNode::proc_connectLeavesResponse( Packet& pkt )
         if( deliverConnectLeavesResponse( resp ) == -1 ) {
             ret = -1;
         }
-        childConnectedLeafResponses.clear(  );
+        childConnectedLeafResponses.clear( );
     }
     if( threaded ) {
-        childConnectedLeafResponsesLock.unlock(  );
+        childConnectedLeafResponsesLock.unlock( );
     }
 
     return ret;
@@ -1137,16 +1127,16 @@ int ParentNode::getConnections( int **conns, unsigned int *nConns )
     int ret = 0;
 
     if( ( conns != NULL ) && ( nConns != NULL ) ) {
-        *nConns = children_nodes.size(  );
+        *nConns = children_nodes.size( );
         *conns = new int[*nConns];
         unsigned int i = 0;
         for( std::list < RemoteNode * >::const_iterator iter
-                 = children_nodes.begin(  );
-             iter != children_nodes.end(  ); iter++ ) {
+                 = children_nodes.begin( );
+             iter != children_nodes.end( ); iter++ ) {
             RemoteNode *curNode = *iter;
             assert( curNode != NULL );
 
-            ( *conns )[i] = curNode->get_sockfd(  );
+            ( *conns )[i] = curNode->get_sockfd( );
             i++;
         }
     }

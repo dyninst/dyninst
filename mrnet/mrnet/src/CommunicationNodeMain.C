@@ -40,9 +40,14 @@ int main(int argc, char **argv)
     unsigned short parent_id = atol(argv[5]);
 
     //TLS: setup thread local storage for internal node
-    //I am "COMM(hostname:port)"
-    std::string name("COMM(");
-    name += getHostName(hostname);
+    //I am "CommNodeMain(hostname:port)"
+    std::string local_hostname;
+
+    //TODO: why are we doing this, don't I know my own hostname?
+    getHostName( local_hostname, hostname );
+
+    std::string name("CommNodeMain(");
+    name += local_hostname;
     name += ":";
     name += argv[2];
     name += ")";

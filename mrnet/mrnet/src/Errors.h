@@ -1,6 +1,10 @@
 #if ! defined(__Error_h)
 #define __Error_h
 
+#include <list>
+#include <errno.h>
+
+#include "mrnet/h/MRNet.h"
 
 namespace MRN
 {
@@ -50,27 +54,24 @@ class Error{
     enum ErrorCodes MRN_errno;
 
  public:
-    Error();
-    bool good();
-    bool fail();
-    void perror(const char *);
+    Error::Error() :MRN_errno(MRN_ENONE) { }
+    virtual Error::~Error() { }
+
+    inline bool Error::good() {
+        return (MRN_errno == MRN_ENONE);
+    }
+
+    inline bool Error::fail() {
+        return (MRN_errno != MRN_ENONE);
+    }
+
+    inline void Error::perror(const char *str) {
+        fprintf(stderr, "%s: %s\n", str, errors[MRN_errno].msg);
+        return;
+    }
+
+    virtual void error( EventType, const char *, ... );
 };
-
-inline bool Error::good()
-{
-    return (MRN_errno == MRN_ENONE);
-}
-
-inline bool Error::fail()
-{
-    return !(MRN_errno == MRN_ENONE);
-}
-
-inline void Error::perror(const char *str)
-{
-    fprintf(stderr, "%s: %s\n", str, errors[MRN_errno].msg);
-    return;
-}
 
 } // namespace MRN
 #endif /* __Error_h */

@@ -10,7 +10,7 @@
 namespace MRN
 {
 
-class BackEndNode: public ChildNode, public CommunicationNode {
+class BackEndNode: public ChildNode, public CommunicationNode{
  private:
     int proc_newStream( Packet & pkt );
 

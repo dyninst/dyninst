@@ -1,4 +1,5 @@
 #include "mrnet/h/MRNet.h"
+#include "mrnet/src/Types.h"
 #include "mrnet/tests/test_basic.h"
 
 using namespace MRN;

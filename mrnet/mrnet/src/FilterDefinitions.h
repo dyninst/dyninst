@@ -1,54 +1,56 @@
 #if !defined( filterdefinitions_h )
 #define filterdefinitions_h 1
 
-#include "mrnet/src/Packet.h"
 #include <list>
+#include <vector>
 
 namespace MRN
 {
 
-#define AGGR_NULL 0
-#define AGGR_NULL_FORMATSTR ""
+class Packet;
+class RemoteNode;
 
-#define AGGR_INT_SUM_ID 2000
-#define AGGR_INT_SUM_FORMATSTR "%d"
-void aggr_Int_Sum( std::vector < Packet >&,
-                   std::vector < Packet >&,
-                   void** );
+extern unsigned short TFILTER_NULL;
+extern const char * TFILTER_NULL_FORMATSTR;
 
-#define AGGR_FLOAT_AVG_ID 2001
-#define AGGR_FLOAT_AVG_FORMATSTR "%f"
-void aggr_Float_Avg( std::vector < Packet >&,
-                     std::vector < Packet >&,
-                     void** );
+extern unsigned short TFILTER_SUM;
+extern const char * TFILTER_SUM_FORMATSTR;
+void tfilter_Sum( std::vector < Packet >&, std::vector < Packet >&, void** );
 
-#define AGGR_FLOAT_MAX_ID 2006
-#define AGGR_FLOAT_MAX_FORMATSTR "%lf"
-void aggr_Float_Max( std::vector < Packet >&,
-                     std::vector < Packet >&,
-                     void** );
+extern unsigned short TFILTER_AVG;
+extern const char * TFILTER_AVG_FORMATSTR;
+void tfilter_Avg( std::vector < Packet >&, std::vector < Packet >&, void** );
 
-#define AGGR_CHARARRAY_CONCAT_ID 2007
-#define AGGR_CHARARRAY_CONCAT_FORMATSTR "%ac"
-void aggr_CharArray_Concat( std::vector < Packet >&,
-                            std::vector < Packet >&,
-                            void** );
+extern unsigned short TFILTER_MIN;
+extern const char * TFILTER_MIN_FORMATSTR;
+void tfilter_Min( std::vector < Packet >&, std::vector < Packet >&, void** );
 
-#define AGGR_INT_EQ_CLASS_ID    2008
-#define AGGR_INT_EQ_CLASS_FORMATSTR "%aud %aud %aud"
-void aggr_IntEqClass( std::vector < Packet >&,
-                      std::vector < Packet >&,
-                      void** );
+extern unsigned short TFILTER_MAX;
+extern const char * TFILTER_MAX_FORMATSTR;
+void tfilter_Max( std::vector < Packet >&, std::vector < Packet >&, void** );
 
-#define SYNC_WAITFORALL 2003
-void sync_WaitForAll( std::vector < Packet >&, std::vector < Packet >&,
+extern unsigned short TFILTER_ARRAY_CONCAT;
+extern const char * TFILTER_ARRAY_CONCAT_FORMATSTR;
+void tfilter_ArrayConcat(std::vector < Packet >&,
+                         std::vector < Packet >&,
+                         void**);
+
+extern unsigned short TFILTER_INT_EQ_CLASS;
+extern const char * TFILTER_INT_EQ_CLASS_FORMATSTR;
+void tfilter_IntEqClass( std::vector < Packet >&,
+                         std::vector < Packet >&,
+                         void** );
+
+
+extern unsigned short SFILTER_DONTWAIT;
+
+extern unsigned short SFILTER_WAITFORALL;
+void sfilter_WaitForAll( std::vector < Packet >&, std::vector < Packet >&,
+                         std::list < RemoteNode * >&, void ** );
+
+extern unsigned short SFILTER_TIMEOUT;
+void sfilter_TimeOut( std::vector < Packet >&, std::vector < Packet >&,
                       std::list < RemoteNode * >&, void ** );
-
-#define SYNC_DONTWAIT 2004
-
-#define SYNC_TIMEOUT 2005
-void sync_TimeOut( std::vector < Packet >&, std::vector < Packet >&,
-                   std::list < RemoteNode * >&, void ** );
 
 } // namespace MRN
 

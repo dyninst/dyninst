@@ -1,20 +1,42 @@
+MRNET_VERSION  = @MRNET_VERSION@
+MRNET_ROOT     = @MRNET_ROOT@
+MRNET_PLATFORM = @host@
 
+@SET_MAKE@
+SHELL = @SHELL@
+
+#############################
+#### INSTALL DIRECTORIES ####
+#############################
+
+BINDIR  = ./bin/$(MRNET_PLATFORM)
+LIBDIR  = ./lib/$(MRNET_PLATFORM)
+OBJDIR  = ./obj/$(MRNET_PLATFORM)
 SRCDIR  = @srcdir@
 PREFIX  = @prefix@
+
+
+##########################
+### AUXILIARY PROGRAMS ###
+##########################
+FLEX    = @FLEX@
+BISON   = @BISON@
+AR      = @AR@
+ARFLAGS = @ARFLAGS@
+RANLIB  = @RANLIB@
 
 #####################
 # General Definitions
 #####################
 
-include ./conf/Makefile.inc
 VPATH   = $(SRCDIR)/src:$(SRCDIR)/tests
 
-CC  = @CC@
 CXX = @CXX@
-CFLAGS      += $(INCDIR) $(WARNFLAGS)
-CXXFLAGS    += $(INCDIR) $(WARNFLAGS)
-SOFLAGS = -fPIC -shared -rdynamic
-C_AS_CPLUSPLUS  = @C_AS_CPLUSPLUS@
+CXXFLAGS = @CXXFLAGS@ $(INCDIR) $(WARNFLAGS)
+LDFLAGS = @LDFLAGS@
+SOFLAGS = @SOFLAGS@
+C_AS_CPLUSPLUS = @C_AS_CPLUSPLUS@
+LIBS = @LIBS@
 
 MAKEDEPENDS = $(SRCDIR)/conf/makedepends.sh
 DEPENDDIR = ./depends
@@ -48,7 +70,7 @@ CFLAGS      += -pthread
 CXXFLAGS    += -pthread
 LDFLAGS     += -pthread
 
-ifeq (solaris,$(findstring solaris,$(PLATFORM)))
+ifeq (solaris,$(findstring solaris,$(MRNET_PLATFORM)))
 WARNFLAGS       += -Wno-unknown-pragmas
 else   # STL on Solaris with cast-align generates a warning with much output
 WARNFLAGS       += -Wcast-align
@@ -68,6 +90,8 @@ TESTS   = $(BINDIR)/microbench_FE \
           $(BINDIR)/microbench_BE \
           $(BINDIR)/test_basic_FE \
           $(BINDIR)/test_basic_BE \
+          $(BINDIR)/test_arrays_FE \
+          $(BINDIR)/test_arrays_BE \
           $(BINDIR)/test_NativeFilters_FE \
           $(BINDIR)/test_NativeFilters_BE \
           $(BINDIR)/test_DynamicFilters_FE \
@@ -79,6 +103,7 @@ TESTS   = $(BINDIR)/microbench_FE \
 LIBMRNET_SRCS = \
 	         $(SRCDIR)/src/utils.C \
 	         $(SRCDIR)/src/pthread_sync.C \
+	         $(SRCDIR)/src/EventImpl.C \
 	         $(SRCDIR)/src/Errors.C \
 	         $(SRCDIR)/src/pdr.c \
 	         $(SRCDIR)/src/pdr_mem.c \
@@ -155,7 +180,7 @@ $(LIBMRNET): $(LIBMRNET_OBJS)
 
 $(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET)
 	echo Linking `basename $@` ...
-	$(CXX) $(CXXFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
 
 $(BINDIR)/config_generator: $(SRCDIR)/tests/config_generator.C
 	echo "Linking `basename $@` ..."
@@ -163,7 +188,7 @@ $(BINDIR)/config_generator: $(SRCDIR)/tests/config_generator.C
 
 $(TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o $(OBJDIR)/test_DynamicFilters.so
 	echo "Linking `basename $*` ..."
-	$(CXX) $(CXXFLAGS) -Wl,-E -o $@ $(OBJDIR)/$*.o $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
 
 $(OBJDIR)/test_DynamicFilters.so: $(SRCDIR)/tests/test_DynamicFilters.C
 	echo "Building `basename $@` ..."
@@ -182,7 +207,7 @@ $(BINDIR)/xdr_test: tests/xdr_test.c
 # Defining Cleaning rules
 #################################
 clean:
-	echo Cleaning $(PLATFORM) platform ...
+	echo Cleaning $(MRNET_PLATFORM) platform ...
 	$(RM) -r $(OBJDIR) $(BINDIR) $(LIBDIR)
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
@@ -203,7 +228,7 @@ distclean: CLEAN
 
 $(OBJDIR)/%.o: %.c $(FRC)
 	echo Compiling `basename $@` ...
-	$(CXX) $(C_AS_CPLUSPLUS) $(CXXFLAGS) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) $(C_AS_CPLUSPLUS) -o $@ -c $<
 
 $(OBJDIR)/%.o: %.C $(FRC)
 	echo Compiling `basename $@` ...

@@ -1,4 +1,5 @@
 #include "mrnet/h/MRNet.h"
+#include "mrnet/src/Types.h"
 #include "test_common.h"
 #include "test_basic.h"
 
@@ -70,9 +71,9 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    Communicator * comm_BC = Communicator::get_BroadcastCommunicator();
+    Communicator * comm_BC = Communicator::get_BroadcastCommunicator( );
 
-    stream_BC = Stream::new_Stream(comm_BC, AGGR_NULL, SYNC_DONTWAIT);
+    stream_BC = Stream::new_Stream(comm_BC, TFILTER_NULL, SFILTER_DONTWAIT);
 
     /* For all the following tests, the 1st bool param indicates *
      * whether the recv() call should be stream-anonymous or not *
@@ -1014,9 +1015,8 @@ int test_ulong(Stream *stream, bool anonymous, bool block)
                 success = false;
             }
             if(send_val != recv_val ){
-                sprintf(tmp_buf, "send_val(%lu) != recv_val(%lu) failure.\n",
-                        (unsigned long int)send_val,
-                        (unsigned long int)recv_val);
+                sprintf(tmp_buf, "send_val(%llu) != recv_val(%llu) failure.\n",
+                        send_val, recv_val);
                 test->print(tmp_buf, testname);
                 success = false;
             }
@@ -1364,7 +1364,7 @@ int test_alltypes(Stream *stream, bool anonymous, bool block)
     char send_char='A', recv_char=0;
     unsigned char send_uchar='B', recv_uchar=0;
     int16_t send_short=-17, recv_short=0;
-    int16_t send_ushort=17, recv_ushort=0;
+    uint16_t send_ushort=17, recv_ushort=0;
     int32_t send_int=-17, recv_int=0;
     int32_t send_uint=17, recv_uint=0;
     int64_t send_long=-17, recv_long=0;

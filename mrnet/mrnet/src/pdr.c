@@ -448,7 +448,7 @@ bool_t pdr_array(PDR *pdrs, char **addrp, uint32_t *sizep, uint32_t maxsize,
     * now we pdr each element of array
     */
      for (i = 0; (i < c) && stat; i++) {
-         stat = (*elproc)(pdrs, target, LASTUNSIGNED);
+         stat = (*elproc)(pdrs, target);
          target += elsize;
      }
 
@@ -480,7 +480,7 @@ bool_t pdr_vector(PDR *pdrs, char *basep, uint32_t nelem, uint32_t elemsize,
 
     elptr = basep;
     for (i = 0; i < nelem; i++) {
-        if (! (*pdr_elem)(pdrs, elptr, LASTUNSIGNED)) {
+        if (! (*pdr_elem)(pdrs, elptr)) {
             return(FALSE);
         }
         elptr += elemsize;

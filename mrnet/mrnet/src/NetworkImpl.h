@@ -68,7 +68,7 @@ class NetworkImpl: public Error {
  private:
     std::string filename;          /* Name of topology configuration file */
     std::string application;       /* Name of application to launch */
-    std::vector <EndPoint *> * endpoints; //BackEnds addressed by communicator
+    std::vector <EndPoint *> endpoints; //BackEnds addressed by communicator
     static BackEndNode * back_end;
     FrontEndNode *front_end;
     
@@ -76,11 +76,9 @@ class NetworkImpl: public Error {
     int parse_configfile();
 
  public:
-    static std::list <NetworkNode *>* hostlist;
-    static std::list <NetworkNode *>* potential_root;
     static NetworkGraph* parsed_graph;
 
-    NetworkGraph * graph;  /* heirarchical DAG of tree nodes */
+    NetworkGraph * graph;  /* hierarchical DAG of tree nodes */
     static void error_str(const char *);
     static int recv( bool blocking=true );
     static int send(Packet &);

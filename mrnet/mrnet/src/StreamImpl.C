@@ -11,10 +11,10 @@ namespace MRN
 {
 
 unsigned int StreamImpl::cur_stream_idx=0;
-std::map <unsigned int, StreamImpl *>* StreamImpl::streams = NULL;
+std::map <unsigned int, StreamImpl *> StreamImpl::streams;
 bool StreamImpl::force_network_recv=false;
 
-StreamImpl::StreamImpl(Communicator *_comm, int _sync_id,
+StreamImpl::StreamImpl(CommunicatorImpl *_comm, int _sync_id,
                         int _ds_filter_id, int _us_filter_id)
   : ds_filter_id(_ds_filter_id),
     us_filter_id(_us_filter_id),
@@ -25,31 +25,28 @@ StreamImpl::StreamImpl(Communicator *_comm, int _sync_id,
 
     stream_id = next_stream_id++;
 
-    if( StreamImpl::streams == NULL ) {
-        StreamImpl::streams = new std::map<unsigned int, StreamImpl*>;
-    }
-    (*StreamImpl::streams)[stream_id] = this;
+    streams[stream_id] = this;
 
     if ( Network::network ){
-        const std::vector <EndPoint*>* endpoints =
-            communicator->get_EndPoints();
-        int * backends = new int[endpoints->size()];
+        const std::vector <EndPoint*> endpoints = communicator->get_EndPoints();
+        int * backends = new int[endpoints.size()];
         unsigned int i;
         
         mrn_printf(4, MCFL, stderr, "Adding backends to stream %d: [ ",
                    stream_id);
-        for(i=0; i<endpoints->size(); i++){
-            mrn_printf(4, 0,0, stderr, "%d, ", (*endpoints)[i]->get_Id() );
-            backends[i] = (*endpoints)[i]->get_Id();
+        for(i=0; i<endpoints.size(); i++){
+            mrn_printf(4, 0,0, stderr, "%d, ", endpoints[i]->get_Id() );
+            backends[i] = endpoints[i]->get_Id();
         }
         mrn_printf(4, 0,0, stderr, "]\n");
 
-        Packet packet(0, MRN_NEW_STREAM_PROT, "%d %ad %d %d %d",
-                      stream_id, backends, endpoints->size(),
+        Packet packet(0, PROT_NEW_STREAM, "%d %ad %d %d %d",
+                      stream_id, backends, endpoints.size(),
                       sync_id, ds_filter_id, us_filter_id);
         StreamManager * stream_mgr;
         stream_mgr = Network::network->front_end->proc_newStream(packet);
         Network::network->front_end->send_newStream(packet, stream_mgr);
+        delete [] backends;
     }
 }
     
@@ -60,7 +57,7 @@ StreamImpl::StreamImpl(int _stream_id, int * backends, int num_backends,
     sync_id(_sync_id),
     stream_id(_stream_id)
 {
-    (*StreamImpl::streams)[stream_id] = this;
+    streams[stream_id] = this;
 }
 
 StreamImpl::~StreamImpl()
@@ -74,7 +71,7 @@ int StreamImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
 
     mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
 
-    if( streams->empty() && NetworkImpl::is_FrontEnd() ){
+    if( streams.empty() && NetworkImpl::is_FrontEnd() ){
       //No streams exist -- bad for FE
       mrn_printf(1, MCFL, stderr, "%s recv in FE when no streams "
          "exist\n", (blocking? "Blocking" : "Non-blocking") );
@@ -83,13 +80,13 @@ int StreamImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
 
     // check streams for input
 get_packet_from_stream_label:
-    if( !streams->empty() ) {
+    if( !streams.empty() ) {
         unsigned int start_idx = cur_stream_idx;
         do{
-            StreamImpl* cur_stream = (*StreamImpl::streams)[cur_stream_idx];
+            StreamImpl* cur_stream = streams[cur_stream_idx];
             if(!cur_stream){
                 cur_stream_idx++;
-                cur_stream_idx %= streams->size();
+                cur_stream_idx %= streams.size();
                 continue;
             }
 
@@ -102,20 +99,20 @@ get_packet_from_stream_label:
                 cur_packet = *( cur_stream->IncomingPacketBuffer.begin() );
                 cur_stream->IncomingPacketBuffer.pop_front();
                 cur_stream_idx++;
-                cur_stream_idx %= streams->size();
+                cur_stream_idx %= streams.size();
 
                 break;
             }
             mrn_printf(3, 0, 0, stderr, "found 0 packets\n");
 
             cur_stream_idx++;
-            cur_stream_idx %= streams->size();
+            cur_stream_idx %= streams.size();
         } while(start_idx != cur_stream_idx);
     }
 
     if( cur_packet != *Packet::NullPacket ) {
         *tag = cur_packet.get_Tag();
-        *stream = (*StreamImpl::streams)[cur_packet.get_StreamId()];
+        *stream = streams[cur_packet.get_StreamId()];
         *ptr = (void *) new Packet(cur_packet);
         mrn_printf(4, MCFL, stderr, "cur_packet tag: %d, fmt: %s\n",
                    cur_packet.get_Tag(), cur_packet.get_FormatString() );
@@ -140,7 +137,7 @@ get_packet_from_stream_label:
     return 0;
 }
 
-int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list )
+int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list ) const
 {
     Packet packet(stream_id, tag, fmt, arg_list);
     if(packet.fail()){
@@ -153,7 +150,7 @@ int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list )
 }
 
 
-int StreamImpl::send(int tag, char const * fmt, ...)
+int StreamImpl::send(int tag, char const * fmt, ...) const
 {
     int status;
     va_list arg_list;
@@ -166,6 +163,7 @@ int StreamImpl::send(int tag, char const * fmt, ...)
 
     mrn_printf(3, MCFL, stderr, "network.send() %s",
                (status==-1 ? "failed\n" : "succeeded\n"));
+
     return status;
 }
 
@@ -204,13 +202,12 @@ int StreamImpl::recv(int *tag, void ** ptr, bool blocking)
 
 StreamImpl * StreamImpl::get_Stream(int stream_id)
 {
-    assert( streams != NULL );
-    StreamImpl *stream = (*streams)[stream_id];
+    StreamImpl *stream = streams[stream_id];
     if(stream){
         return stream;
     }
     else{
-        streams->erase(stream_id);
+        streams.erase(stream_id);
         return NULL;
     }
 }

@@ -1,9 +1,11 @@
+#include <dlfcn.h>
+#include <vector>
+
 #include "mrnet/src/Filter.h"
 #include "mrnet/src/CommunicationNode.h"
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/utils.h"
-
-#include <vector>
+#include "mrnet/h/MRNet.h"
 
 namespace MRN
 {
@@ -11,8 +13,11 @@ namespace MRN
 /*======================================*
  *    Filter Class Definition        *
  *======================================*/
-std::map < unsigned int, void *>Filter::FilterFuncById;
-std::map < unsigned int, std::string > Filter::FilterFmtById;
+std::map < unsigned short, void *>Filter::FilterFuncById;
+std::map < unsigned short, std::string > Filter::FilterFmtById;
+int FilterCounter::count=0;
+static FilterCounter fc;
+
 
 Filter::Filter(unsigned short _filter_id)
   :filter_id(_filter_id), local_storage(NULL)
@@ -36,6 +41,12 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
     so_handle = getSharedObjectHandle( so_file );
     if( so_handle == NULL ) {
         mrn_printf( 1, MCFL, stderr, "getSharedObjectHandle() failed.\n" );
+        char buf[1024];
+        sprintf( buf, "getSharedObjectHandle(\"%s\"): %s\n",
+                 so_file, dlerror() );
+        Event * event = Event::new_Event( ESYSTEM, buf );
+        Event::add_Event( *event );
+        delete event;
         return -1;
     }
 
@@ -43,6 +54,12 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
     if( func_ptr == NULL ) {
         mrn_printf( 1, MCFL, stderr,
                     "getSymbolFromSharedObjectHandle() failed.\n" );
+        char buf[1024];
+        sprintf( buf, "getSharedObjectHandle(\"%s\"): %s\n",
+                 so_file, dlerror() );
+        Event *event = Event::new_Event( ESYSTEM, buf );
+        Event::add_Event( *event );
+        delete event;
         return -1;
     }
 
@@ -52,29 +69,16 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
     if( fmt_str == NULL ) {
         mrn_printf( 1, MCFL, stderr,
                     "getSymbolFromSharedObjectHandle() failed.\n" );
+        char buf[1024];
+        sprintf( buf, "getSharedObjectHandle(\"%s\"): %s\n",
+                 so_file, dlerror() );
+        Event * event = Event::new_Event( ESYSTEM, buf );
+        Event::add_Event( *event );
+        delete event;
         return -1;
     }
 
-    unsigned short fid;
-    if( in_fid == 0 ) {
-        fid = get_NextFilterFuncId(  );
-    }
-    else {
-        fid = in_fid;
-    }
-
-    FilterFuncById[fid] = func_ptr;
-    FilterFmtById[fid] = fmt_str;
-    
-    return ( int )fid;
-}
-
-unsigned short Filter::get_NextFilterFuncId(  )
-{
-    static unsigned short next_filter_func_id = 100;
-
-    next_filter_func_id++;
-    return next_filter_func_id - 1;
+    return (int) register_Filter( (void*)func_ptr, fmt_str );
 }
 
 /*==========================================*
@@ -107,9 +111,12 @@ int TransFilter::push_packets( std::vector < Packet >&packets_in,
         return 0;
     }
 
+    //TODO: put exception block to catch user error
     trans_filter( packets_in, packets_out, &local_storage );
     packets_in.clear(  );
     
+    mrn_printf( 3, MCFL, stderr, "trans_filter() returned %u packets\n",
+                packets_out.size() );
     mrn_printf( 3, MCFL, stderr, "Leaving aggr.push_packets()\n" );
     return 0;
 }
@@ -149,6 +156,7 @@ int SyncFilter::push_packets( std::vector < Packet >&packets_in,
     }
 
     fsync.lock(  );
+    //TODO: put exception block to catch user error
     sync_filter( packets_in, packets_out, downstream_nodes, &local_storage );
     fsync.unlock(  );
     mrn_printf( 3, MCFL, stderr,

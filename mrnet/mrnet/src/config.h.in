@@ -5,6 +5,7 @@
 #define DEFAULT_PORT 7777
 #define MAX_STRING_SIZE (1024*4)
 #define MAX_LINELENGTH 1024
+//#define DEFAULT_RSH_COMMAND rsh
 #define DEFAULT_RSH_COMMAND "/s/std/bin/ssh"
 #define DEFAULT_RUNAUTH_COMMAND "/s/std/bin/runauth"
 #define RSH_COMMAND_ENV "RSH_COMMAND"

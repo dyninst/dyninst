@@ -7,32 +7,10 @@ AC_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(conf)
 
 dnl === COMPILERS AND FLAGS ===
-dnl hacks to allow user to define CC, CFLAGS, etc without using env vars
+dnl hacks to allow user to define CXX, CXXFLAGS, etc without using env vars
 dnl I don't like it -- suggestions?
 
 dnl *** C Compiler and Options ***
-AC_ARG_WITH(cc,
-            [
-===Begin MRNET Compile Options:
-  --with-cc                   Specify C compiler],
-            [CC="${withval}";], CC="gcc")
-
-AC_ARG_WITH(cflags,
-            [  --with-cflags               Set C compiler flags],
-            [CFLAGS="${withval}";], CFLAGS="-O2";)
-
-AC_ARG_WITH(cxx,
-            [  --with-cxx                  Specify C++ compiler],
-            [CXX="${withval}";],CXX="g++";)
-
-AC_ARG_WITH(cxxflags,
-            [  --with-cxxflags             Set C++ compiler flags],
-            [CXXFLAGS="${withval}";], CXXFLAGS="-O2")
-
-AC_ARG_WITH(ldflags,
-            [  --with-ldflags              Set loader flags],
-            [LDFLAGS="${withval}";])
-
 AC_ARG_WITH(libfl,
             [  --with-libfl                Link line for flex library],
             [FLEX_LIB="${withval}";], 
@@ -57,6 +35,10 @@ AC_ARG_WITH(outputlevel,
              fi],
             [OUTPUT_LEVEL=1])
 
+dnl TODO: figure out dlopen()/shared object idiosyncracies when using
+dnl non-GNU compilers
+AC_PROG_CXX(xlC CC g++)
+
 AC_C_BIGENDIAN
 dnl === SETTING MRNET CONFIGURATION DEFAULTS ===
 
@@ -70,8 +52,6 @@ changequote(<<, >>)dnl
 MRNET_ARCH=`echo $host | sed 's/[-|.]/_/g'`
 MRNET_OS=`echo $host_os | sed 's/[-0-9].*//'`
 MRNET_OSVER=`echo $host_os | sed 's/[-|.]/_/g'`
-#MRNET_OS=$host_os
-#echo $MRNET_OS $MRNET_OSVER
 MRNET_ROOT=`pwd`
 MRNET_VERSION='`cat "$(srcdir)"/VERSION`'
 changequote([, ])dnl
@@ -83,7 +63,6 @@ AC_SUBST(MRNET_OS)
 AC_SUBST(MRNET_ROOT)
 AC_SUBST(MRNET_VERSION)
 
-echo here
 case "$host_os" in
   *aix4.2*)
     LIBS="$LIBS -lm -lc -lpthread -ldl"
@@ -126,16 +105,17 @@ case "$host_os" in
 esac
 LIBS="$LIBS $FLEX_LIB"
 AC_SUBST(LIBS)
-AC_SUBST(CLINKER)
-AC_SUBST(CXX_LINKER)
-AC_SUBST(LDFLAGS)
 
-AC_MSG_CHECKING(whether the C compiler works ($CC $CFLAGS).)
-AC_TRY_COMPILE(
-  [#include <stdio.h>],
-  [int x;],
-  [AC_MSG_RESULT(yes)],
-  [AC_MSG_ERROR(no)])
+
+if test "$CXX" = "g++" ; then
+    GXX=yes
+    C_AS_CPLUSPLUS="-x c++"
+    LDFLAGS="-Wl,-E"
+    SOFLAGS=" -fPIC -shared -rdynamic"
+elif test "$CXX" = "xlC" ; then
+    CXXFLAGS="$CXXFLAGS -O2"
+    C_AS_CPLUSPLUS="-+"
+fi
 
 AC_LANG_CPLUSPLUS
 AC_MSG_CHECKING(whether the C++ compiler works ($CXX $CXXFLAGS).)
@@ -144,24 +124,15 @@ AC_TRY_COMPILE(
   [int x;],
   [AC_MSG_RESULT(yes)],
   [AC_MSG_ERROR(no)])
-AC_LANG_C
 
-AC_SUBST(CC)
-AC_SUBST(CFLAGS)
 AC_SUBST(CXX)
 AC_SUBST(CXXFLAGS)
-
-if test "$CXX" = "g++" ; then
-    C_AS_CPLUSPLUS="-x c++"
-elif test "$CXX" = "xlC" ; then
-    C_AS_CPLUSPLUS="-+"
-fi
+AC_SUBST(LDFLAGS)
+AC_SUBST(SOFLAGS)
 AC_SUBST(C_AS_CPLUSPLUS)
 
 ARFLAGS="cr"
 AC_SUBST(ARFLAGS)
-
-AC_LANG_C
 
 dnl Checks for programs.
 AC_PROG_MAKE_SET
@@ -187,5 +158,4 @@ AS_MKDIR_P([lib])
 AS_MKDIR_P([bin])
 AS_MKDIR_P([depends])
 
-AC_OUTPUT(conf/Makefile.$MRNET_ARCH.inc:conf/Makefile.generic-arch.in \
-          conf/Makefile.inc Makefile:conf/Makefile.in)
+AC_OUTPUT( Makefile:conf/Makefile.in )

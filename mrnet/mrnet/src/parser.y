@@ -5,6 +5,9 @@
 #include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/utils.h"
 
+static std::list <MRN::NetworkNode *> hostlist;
+static std::list <MRN::NetworkNode *> potential_root;
+
 int yylex(void);
 
 namespace MRN
@@ -33,73 +36,62 @@ extern int linenum;
 
 %%
 config: line config
-      | line
-          {
-	    if(NetworkImpl::potential_root->size() != 1){
-	      mrn_printf(1, MCFL, stderr, "graph is not connected\n");
-	      YYABORT;
-	    }	   
-            std::list<NetworkNode *>::iterator iter = 
-                NetworkImpl::potential_root->begin();
-	    NetworkImpl::parsed_graph->set_Root(*iter);
-	  }
+| line
+{
+    if(potential_root.size() != 1){
+        mrn_printf(1, MCFL, stderr, "graph is not connected\n");
+	YYABORT;
+    }	   
+    NetworkImpl::parsed_graph->set_Root( *potential_root.begin() );
+}
 ;
 
 line: host ARROW hosts SEMI
-        {
-	  //fprintf(stderr, "%s:%hd's children are:\n",$1->get_HostName().c_str(),
-		     //$1->get_Port() );
-          std::list<NetworkNode *>::iterator iter = 
-            NetworkImpl::hostlist->begin();
-          for(; iter != NetworkImpl::hostlist->end(); iter++){
-	    NetworkNode * cur_node;
-	    cur_node = (*iter);
-	    NetworkImpl::potential_root->remove(cur_node); //node cannot be a root
-	    //fprintf(stderr, " %s:%hd\n", cur_node->get_HostName().c_str(),
-		       //cur_node->get_Port() );
-	    $1->add_Child(cur_node);
-	  }
-	  NetworkImpl::hostlist->clear();
-	}
-    | error {fprintf(stderr, "line parse error on line %d\n", linenum-1);
-             YYABORT; }
+{
+    std::list<NetworkNode *>::iterator iter = hostlist.begin();
+    for(; iter != hostlist.end(); iter++){
+        NetworkNode * cur_node;
+	cur_node = (*iter);
+	potential_root.remove(cur_node); //node cannot be a root
+	$1->add_Child(cur_node);
+    }
+    hostlist.clear();
+}
+| error
+{
+    fprintf(stderr, "line parse error on line %d\n", linenum-1);
+    YYABORT;
+}
 ;
 
 hosts: hosts host
-         {
-	   //fprintf(stderr, "Adding %s:%d to hostlist\n",
-                   //$2->get_HostName().c_str(), $2->get_Port() );
-	   NetworkImpl::hostlist->push_back($2);
-	 }
-     | host
-         {
-	   //fprintf(stderr, "Adding %s:%d to hostlist\n",
-                   //$1->get_HostName().c_str(), $1->get_Port() );
-	   NetworkImpl::hostlist->push_back($1);
-	 }
+{
+    hostlist.push_back($2);
+}
+| host
+{
+    hostlist.push_back($1);
+}
 ;
 
 
 host: HOSTNAME COLON PORT
-        {
-	        // fprintf(stderr, "looking for new node(%s:%d)\n", $1, $3);
-          NetworkNode * cur_node = NetworkImpl::parsed_graph->find_Node($1, $3);
-          if(cur_node == NULL){
-	        // fprintf(stderr, "creating new node(%s:%d)\n", $1, $3);
-            cur_node = new NetworkNode($1, $3);
-            NetworkImpl::parsed_graph->add_Node(cur_node);
-	        NetworkImpl::potential_root->push_back(cur_node);
-          }
-          else
-          {
-	        // fprintf(stderr, "found  node(%s:%d)\n", $1, $3);
-          }
-          $$ = cur_node;
-	  //fprintf(stderr, "Reducing %s:%hd\n", cur_node->get_HostName().c_str(),
-		     //cur_node->get_Port() );
-        }
-    | error {fprintf(stderr, "host parse error on line %d\n", linenum);
-             YYABORT; }
+{
+    NetworkNode * cur_node = NetworkImpl::parsed_graph->find_Node($1, $3);
+    if(cur_node == NULL){
+        cur_node = new NetworkNode($1, $3);
+        free($1);
+        NetworkImpl::parsed_graph->add_Node(cur_node);
+        potential_root.push_back(cur_node);
+    }
+    $$ = cur_node;
+}
+
+| error
+{
+    fprintf(stderr, "host parse error on line %d\n", linenum);
+    YYABORT;
+}
 ;
 
 %%

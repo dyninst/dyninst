@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdarg.h>
 
 
 #include "mrnet/src/Errors.h"
@@ -20,11 +21,24 @@ struct ErrorDefs errors[]= {
     { MRN_ECREATPROCFAILURE, MRN_ERR, MRN_ALERT, "Cannot create process"}, 
     { MRN_ECANNOTBINDPORT, MRN_ERR, MRN_ABORT, "Cannot bind to port"}, 
     { MRN_ESOCKETCONNECT, MRN_ERR, MRN_ABORT, "Cannot connect to socket"}, 
-    { MRN_EPACKING, MRN_CRIT, MRN_ABORT, "PDR encoding/decoding failure"} };
+    { MRN_EPACKING, MRN_CRIT, MRN_ABORT, "PDR encoding/decoding failure"}
+};
 
-Error::Error()
-    :MRN_errno(MRN_ENONE)
+
+void Error::error( EventType t, const char * fmt, ... )
 {
+    static char buf[1024];
+
+    va_list arglist;
+
+    _fail=true;
+    va_start( arglist, fmt );
+    vsprintf( buf, fmt, arglist );
+    va_end( arglist );
+
+    Event * event = Event::new_Event( t, buf );
+    Event::add_Event( *event );
+    delete event;
 }
 
 } // namespace MRN

@@ -17,29 +17,29 @@ class EndPointImpl: public EndPoint{
  public:
     EndPointImpl(int _id, const char * _hostname, unsigned short _port);
     virtual ~EndPointImpl();
-    virtual const char * get_HostName();
-    virtual unsigned short get_Port();
-    virtual unsigned int get_Id();
-    virtual bool compare(const char * _hostname, unsigned short _port);
+    virtual const char * get_HostName()const;
+    virtual unsigned short get_Port()const;
+    virtual unsigned int get_Id()const;
+    virtual bool compare(const char * _hostname, unsigned short _port)const;
 };
 
-inline const char * EndPointImpl::get_HostName()
+inline const char * EndPointImpl::get_HostName() const
 {
     return hostname.c_str();
 }
 
-inline unsigned short EndPointImpl::get_Port()
+inline unsigned short EndPointImpl::get_Port() const
 {
     return port;
 }
 
-inline unsigned int EndPointImpl::get_Id()
+inline unsigned int EndPointImpl::get_Id() const
 {
     return id;
 }
 
 inline bool EndPointImpl::compare(const char * _hostnamestr,
-                                  unsigned short _port)
+                                  unsigned short _port) const
 {
     if( ( port == _port ) &&
         ( hostname == _hostnamestr ) ){

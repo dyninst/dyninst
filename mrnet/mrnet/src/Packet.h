@@ -31,7 +31,7 @@ class PacketData: public Error{
 
     RemoteNode *inlet_node;
 
-    int ArgList2DataElementArray( va_list arg_list );
+    void ArgList2DataElementArray( va_list arg_list );
     void DataElementArray2ArgList( va_list arg_list );
 
  public:

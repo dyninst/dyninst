@@ -24,12 +24,14 @@ FrontEndNode::~FrontEndNode(  )
 
 int FrontEndNode::proc_DataFromDownStream( Packet& packet )
 {
-    mrn_printf( 3, MCFL, stderr, "In frontend.proc_DataFromUpStream()\n" );
+    mrn_printf( 3, MCFL, stderr, "In frontend.proc_DataFromDownStream()\n" );
 
     StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId(  )];
     std::vector < Packet >packets;
 
     stream_mgr->push_packet( packet, packets, true );
+
+    mrn_printf( 3, MCFL, stderr, "frontend.proc_DataFromDownStream(): stream_mgr->push_packet returned %u packets\n", packets.size() );
 
     if( !packets.empty(  ) ) {
         for( unsigned int i = 0; i < packets.size(  ); i++ ) {
@@ -43,14 +45,16 @@ int FrontEndNode::proc_DataFromDownStream( Packet& packet )
                 stream->add_IncomingPacket( cur_packet );
             }
             else {
-                mrn_printf( 1, MCFL, stderr,
-                            "Packet from unknown stream %d\n",
+                mrn_printf( 1, MCFL, stderr, "Packet from unknown stream %d\n",
                             cur_packet.get_StreamId(  ) );
+                error( EPROTOCOL, "Packet with unknown stream id: %d\n",
+                       cur_packet.get_StreamId() );
                 return -1;
             }
         }
     }
 
+    mrn_printf( 3, MCFL, stderr, "Leaving frontend.proc_DataFromDownStream()\n" );
     return 0;
 }
 
@@ -66,7 +70,7 @@ int FrontEndNode::proc_PacketsFromDownStream( std::list < Packet >&
     for( ; iter != packet_list.end(  ); iter++ ) {
         cur_packet = ( *iter );
         switch ( cur_packet.get_Tag(  ) ) {
-        case MRN_RPT_SUBTREE_PROT:
+        case PROT_RPT_SUBTREE:
             //printf(3, MCFL, stderr, "Calling proc_newSubTreeReport()\n");
             if( proc_newSubTreeReport( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
@@ -76,7 +80,7 @@ int FrontEndNode::proc_PacketsFromDownStream( std::list < Packet >&
             //printf(3, MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
             break;
 
-        case MRN_GET_LEAF_INFO_PROT:
+        case PROT_GET_LEAF_INFO:
             if( proc_getLeafInfoResponse( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "proc_getLeafInfoResponse() failed\n" );
@@ -84,7 +88,7 @@ int FrontEndNode::proc_PacketsFromDownStream( std::list < Packet >&
             }
             break;
 
-        case MRN_CONNECT_LEAVES_PROT:
+        case PROT_CONNECT_LEAVES:
             if( proc_connectLeavesResponse( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "proc_connectLeavesResponse() failed\n" );
@@ -92,6 +96,12 @@ int FrontEndNode::proc_PacketsFromDownStream( std::list < Packet >&
             }
             break;
 
+        case PROT_EVENT:
+            if( proc_Event( cur_packet ) == -1 ){
+                mrn_printf( 1, MCFL, stderr, "proc_Event() failed\n" );
+                retval = -1;
+            }
+            break;
         default:
             //Any unrecognized tag is assumed to be data
             if( proc_DataFromDownStream( cur_packet ) == -1 ) {
@@ -115,7 +125,7 @@ int FrontEndNode::recv( bool blocking )
                 "In frontend.recv(). Calling recvfromdownstream()\n" );
 
 
-    if( recv_PacketsFromDownStream( packet_list ) == -1 ) {
+    if( recv_PacketsFromDownStream( packet_list, NULL, blocking ) == -1 ) {
         mrn_printf( 1, MCFL, stderr,
                     "recv_packetsfromdownstream() failed\n" );
         return -1;

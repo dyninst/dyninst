@@ -9,6 +9,7 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
+
 #include "mrnet/h/MRNet.h"
 #include "mrnet/src/utils.h"
 #include "src/config.h"
@@ -17,6 +18,7 @@
 #include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/EndPointImpl.h"
+#include "mrnet/src/EventImpl.h"
 
 #include "mrnet/h/MRNetC.h"
 
@@ -37,7 +39,6 @@ int Network::new_Network( const char *_filename, const char *_application )
         return -1;
     }
 
-    StreamImpl::streams = new std::map < unsigned int, StreamImpl * >;
     StreamImpl::set_ForceNetworkRecv(  );
     return 0;
 }
@@ -127,20 +128,23 @@ int Network::init_Backend( const char *_hostname, unsigned int port,
 
     int status;
     if( ( status = pthread_key_create( &tsd_key, NULL ) ) != 0 ) {
+        //TODO: add event to notify upstream
+        //error(ESYSTEM, "pthread_key_create(): %s\n", strerror( status ) );
         mrn_printf( 1, MCFL, stderr, "pthread_key_create(): %s\n",
                     strerror( status ) );
-        exit( -1 );
+        return -1;
     }
     tsd_t *local_data = new tsd_t;
     local_data->thread_id = pthread_self(  );
     local_data->thread_name = strdup( name.c_str(  ) );
     if( ( status = pthread_setspecific( tsd_key, local_data ) ) != 0 ) {
-        mrn_printf( 1, MCFL, stderr, "pthread_key_create(): %s\n",
+        //TODO: add event to notify upstream
+        //error(ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
+        mrn_printf( 1, MCFL, stderr, "pthread_setspecific(): %s\n",
                     strerror( status ) );
-        exit( -1 );
+        return -1;
     }
 
-    StreamImpl::streams = new std::map < unsigned int, StreamImpl * >;
     Network::back_end = new BackEndNode( host, port, phost, pport, pid );
 
     if( Network::back_end->fail(  ) ) {
@@ -161,7 +165,8 @@ void Network::error_str( const char *s )
 Stream *Stream::new_Stream( Communicator * comm, int us_filter_id,
                             int sync_id, int ds_filter_id )
 {
-    return new StreamImpl( comm, sync_id, ds_filter_id, us_filter_id );
+    return new StreamImpl( (CommunicatorImpl*)comm, sync_id,
+                           ds_filter_id, us_filter_id );
 }
 
 int Stream::recv( int *tag, void **buf, Stream ** stream, bool blocking )
@@ -202,7 +207,7 @@ int Stream::load_FilterFunc( const char *so_file, const char *func,
     }
 
     //Filter registered locally, now propagate to tree
-    Packet packet( 0, MRN_NEW_FILTER_PROT, "%uhd %s %s %c",
+    Packet packet( 0, PROT_NEW_FILTER, "%uhd %s %s %c",
                    fid, so_file, func, is_trans_filter );
     Network::network->front_end->send_PacketDownStream( packet, true );
 
@@ -224,7 +229,7 @@ Communicator *Communicator::new_Communicator(  )
     return new CommunicatorImpl;
 }
 
-Communicator *Communicator::get_BroadcastCommunicator(  )
+Communicator * Communicator::get_BroadcastCommunicator(  )
 {
     return CommunicatorImpl::get_BroadcastCommunicator(  );
 }
@@ -236,6 +241,47 @@ EndPoint *EndPoint::new_EndPoint( int _id, const char *_hostname,
                                   unsigned short _port )
 {
     return new EndPointImpl( _id, _hostname, _port );
+}
+
+Event * Event::new_Event( EventType t, std::string desc,
+                          std::string h, unsigned short p){
+    return new EventImpl( t, desc, h, p );
+}
+
+bool Event::have_Event()
+{
+    return EventImpl::have_Event();
+}
+
+bool Event::have_RemoteEvent()
+{
+    return EventImpl::have_RemoteEvent();
+}
+
+void Event::add_Event( Event & event ){
+    EventImpl::add_Event( (EventImpl&)event );
+}
+
+Event * Event::get_NextEvent()
+{
+    Event * event = new EventImpl( EventImpl::get_NextEvent() );
+    return event;
+}
+
+Event * Event::get_NextRemoteEvent()
+{
+    Event * event = new EventImpl( EventImpl::get_NextRemoteEvent() );
+    return event;
+}
+
+unsigned int Event::get_NumEvents()
+{
+    return EventImpl::get_NumEvents();
+}
+
+unsigned int Event::get_NumRemoteEvents()
+{
+    return EventImpl::get_NumRemoteEvents();
 }
 
 }  // namespace MRN

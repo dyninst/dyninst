@@ -144,14 +144,14 @@ static struct pdr_ops _ops = {
     _destroy
 };
 
-uint32_t pdr_sizeof (pdrproc_t func, void *data)
+uint32_t pdr_sizeof(pdrproc_t func, void *data)
 {
     PDR pdrs;
     bool_t stat;
 
     pdrs.p_op = XDR_ENCODE;
     pdrs.p_ops = &_ops;
-    pdrs.space = 4;  /* 4-byte byte ordering entity */
+    pdrs.space = 1;  /* 1-byte byte ordering entity */
     pdrs.cur = (caddr_t) NULL;
     pdrs.base = (caddr_t) 0;
 

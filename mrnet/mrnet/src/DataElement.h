@@ -22,7 +22,7 @@ typedef union{
 typedef enum {
     UNKNOWN_T, CHAR_T, UCHAR_T,
     CHAR_ARRAY_T, UCHAR_ARRAY_T,
-    STRING_T, STRING_ARRAY_T,
+    STRING_T,
     INT16_T, UINT16_T,
     INT16_ARRAY_T, UINT16_ARRAY_T,
     INT32_T, UINT32_T,

@@ -34,62 +34,59 @@ DataElement::DataElement( const DataElement & de)
     case UCHAR_ARRAY_T:
         if( de.val.p ){
             val.p = malloc( array_len * sizeof(char) );
+            memcpy(val.p, de.val.p, array_len*sizeof(char) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(char) );
         break;
     case INT16_ARRAY_T:
     case UINT16_ARRAY_T:
         if( de.val.p ){
             val.p = malloc( array_len * sizeof(int16_t) );
+            memcpy(val.p, de.val.p, array_len*sizeof(int16_t) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(int16_t) );
         break;
     case INT32_ARRAY_T:
     case UINT32_ARRAY_T:
         if( de.val.p ){
             val.p = malloc( array_len * sizeof(int32_t) );
+            memcpy(val.p, de.val.p, array_len*sizeof(int32_t) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(int32_t) );
         break;
     case INT64_ARRAY_T:
     case UINT64_ARRAY_T:
         if( de.val.p ){
             val.p = malloc( array_len * sizeof(int64_t) );
+            memcpy(val.p, de.val.p, array_len*sizeof(int64_t) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(int64_t) );
         break;
     case FLOAT_ARRAY_T:
         if( de.val.p ){
             val.p = malloc( array_len * sizeof(float) );
+            memcpy(val.p, de.val.p, array_len*sizeof(float) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(float) );
         break;
     case DOUBLE_ARRAY_T:
         if( de.val.p ){
             val.p = malloc( array_len * sizeof(double) );
+            memcpy(val.p, de.val.p, array_len*sizeof(double) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(double) );
-        break;
-    case STRING_ARRAY_T:
-        //TODO
         break;
     case UNKNOWN_T:
         //TODO: error
@@ -135,11 +132,11 @@ DataElement & DataElement::operator=( const DataElement & de)
         }
         if( de.val.p != NULL ){
             val.p = malloc( array_len * sizeof(char) );
+            memcpy(val.p, de.val.p, array_len*sizeof(char) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(char) );
         break;
     case INT16_ARRAY_T:
     case UINT16_ARRAY_T:
@@ -149,11 +146,11 @@ DataElement & DataElement::operator=( const DataElement & de)
         }
         if( de.val.p != NULL ){
             val.p = malloc( array_len * sizeof(int16_t) );
+            memcpy(val.p, de.val.p, array_len*sizeof(int16_t) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(int16_t) );
         break;
     case INT32_ARRAY_T:
     case UINT32_ARRAY_T:
@@ -163,11 +160,11 @@ DataElement & DataElement::operator=( const DataElement & de)
         }
         if( de.val.p != NULL ){
             val.p = malloc( array_len * sizeof(int32_t) );
+            memcpy(val.p, de.val.p, array_len*sizeof(int32_t) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(int32_t) );
         break;
     case INT64_ARRAY_T:
     case UINT64_ARRAY_T:
@@ -177,11 +174,11 @@ DataElement & DataElement::operator=( const DataElement & de)
         }
         if( de.val.p != NULL ){
             val.p = malloc( array_len * sizeof(int64_t) );
+            memcpy(val.p, de.val.p, array_len*sizeof(int64_t) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(int64_t) );
         break;
     case FLOAT_ARRAY_T:
         if( val.p != NULL ){
@@ -190,11 +187,11 @@ DataElement & DataElement::operator=( const DataElement & de)
         }
         if( de.val.p != NULL ){
             val.p = malloc( array_len * sizeof(float) );
+            memcpy(val.p, de.val.p, array_len*sizeof(float) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(float) );
         break;
     case DOUBLE_ARRAY_T:
         if( val.p != NULL ){
@@ -203,14 +200,11 @@ DataElement & DataElement::operator=( const DataElement & de)
         }
         if( de.val.p != NULL ){
             val.p = malloc( array_len * sizeof(double) );
+            memcpy(val.p, de.val.p, array_len*sizeof(double) );
         }
         else{
             val.p = NULL;
         }
-        memcpy(val.p, de.val.p, array_len*sizeof(double) );
-        break;
-    case STRING_ARRAY_T:
-        //TODO
         break;
     case UNKNOWN_T:
         //TODO: error
@@ -263,8 +257,6 @@ DataType Fmt2Type(const char * cur_fmt)
         return DOUBLE_ARRAY_T;
     else if( !strcmp(cur_fmt, "s") )
         return STRING_T;
-    else if( !strcmp(cur_fmt, "as") )
-        return STRING_ARRAY_T;
     else
         return UNKNOWN_T;
 }

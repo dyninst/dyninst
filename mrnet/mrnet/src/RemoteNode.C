@@ -68,26 +68,23 @@ void * RemoteNode::recv_thread_main(void * args)
     local_data->thread_id = pthread_self();
     local_data->thread_name = strdup(name.c_str());
     if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
-        mrn_printf(1, MCFL, stderr, "pthread_key_create(): %s\n", strerror(status)); 
-        exit(-1);
+        mrn_printf(1, MCFL, stderr, "pthread_setspecific(): %s\n",
+                   strerror(status)); 
+        pthread_exit(args);
     }
 
     mrn_printf(3, MCFL, stderr, "In recv_thread_main()\n");
     while(1){
-
-        // TODO this only works if the recv on remote_node is a blocking recv...
+        // TODO this only works if the recv on remote_node is blocking recv...
         // is it?
         int rret = remote_node->recv( packet_list );
-        if( (rret == -1) || ((rret == 0) && (packet_list.size() == 0)) )
-            {
-                if( rret == -1 )
-                    {
-                        mrn_printf(1, MCFL, stderr, 
-                                   "RemoteNode recv failed - recv thread exiting\n");
-
-                    }
-                pthread_exit(args);
+        if( (rret == -1) || ((rret == 0) && (packet_list.size() == 0)) ) {
+            if( rret == -1 ) {
+                mrn_printf(1, MCFL, stderr, 
+                           "RemoteNode recv failed - recv thread exiting\n");
             }
+            pthread_exit(args);
+        }
 
         if( remote_node->is_upstream() ){
             if(local_child_node->proc_PacketsFromUpStream(packet_list) == -1){
@@ -155,8 +152,9 @@ void * RemoteNode::send_thread_main(void * args)
     local_data->thread_id = pthread_self();
     local_data->thread_name = strdup(name.c_str());
     if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
-        mrn_printf(1, 0, 0, stderr, "pthread_key_create(): %s\n", strerror(status)); 
-        exit(-1);
+        mrn_printf(1, 0, 0, stderr, "pthread_setspecific(): %s\n",
+                   strerror(status)); 
+        pthread_exit(args);
     }
 
     while(1){
@@ -203,7 +201,7 @@ int RemoteNode::connect()
                hostname.c_str(), port);
     if(connectHost(&sock_fd, hostname.c_str(), port) == -1){
         mrn_printf(1, MCFL, stderr, "connect_to_host() failed\n");
-        MRN_errno = MRN_ECREATPROCFAILURE;
+        error( ESYSTEM, "connect(): %s\n", strerror(errno) );
         return -1;
     }
     
@@ -219,20 +217,18 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
 {
     int retval = 0;
 
-
-    if( do_connect )
-        {
-            if( (sock_fd = getSocketConnection(lsock_fd)) == -1){
-                mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n");
-                MRN_errno = MRN_ESOCKETCONNECT;
-                return -1;
-            }
+    if( do_connect ) {
+        if( (sock_fd = getSocketConnection(lsock_fd)) == -1){
+            mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n");
+            error( ESYSTEM, "getSocketConnection(): %s\n",
+                   strerror(errno) );
+            return -1;
         }
-    else
-        {
-            // socket is already connected
-            sock_fd = lsock_fd;
-        }
+    }
+    else {
+        // socket is already connected
+        sock_fd = lsock_fd;
+    }
     assert( sock_fd != -1 );
 
     if(threaded){
@@ -240,15 +236,15 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
         retval = pthread_create(&recv_thread_id, NULL,
                                 RemoteNode::recv_thread_main, (void *) this);
         if(retval != 0){
+            error( ESYSTEM, "pthread_create() failed: %s\n", strerror(errno) );
             mrn_printf(1, MCFL, stderr, "Downstream recv thread creation failed...\n");
-            //thread create error
         }
         mrn_printf(3, MCFL, stderr, "Creating Downstream send thread ...\n");
         retval = pthread_create(&send_thread_id, NULL,
                                 RemoteNode::send_thread_main, (void *) this);
         if(retval != 0){
+            error( ESYSTEM, "pthread_create() failed: %s\n", strerror(errno) );
             mrn_printf(1, MCFL, stderr, "Downstream send thread creation failed...\n");
-            //thread create error
         }
     }
     else{
@@ -260,7 +256,8 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
 }
 
 
-int RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_host,
+int RemoteNode::new_InternalNode(int listening_sock_fd,
+                                 std::string parent_host,
                                  unsigned short parent_port,
                                  unsigned short parent_id,
                                  std::string commnode_cmd)
@@ -273,12 +270,12 @@ int RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_host,
     std::vector <std::string> args;
 
     mrn_printf(3, MCFL, stderr, "In new_InternalNode(%s:%d) ...\n",
-               hostname.c_str(), get_Id());
+               hostname.c_str(), port );
 
     _is_internal_node = true;
 
     args.push_back(hostname);
-    sprintf(port_str, "%d", get_Id());
+    sprintf(port_str, "%d", port );
     args.push_back(port_str);
     args.push_back(parent_host);
     sprintf(parent_port_str, "%d", parent_port);
@@ -287,17 +284,21 @@ int RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_host,
     args.push_back(std::string(parent_id_str));
 
     if(createProcess(rsh, hostname, username, commnode_cmd, args) == -1){
-        mrn_printf(1, MCFL, stderr, "createProcess() failed\n"); 
-        MRN_errno = MRN_ECREATPROCFAILURE;
+        error( ESYSTEM, "createProcess(%s %s %s): %s\n",
+               rsh.c_str(), hostname.c_str(), commnode_cmd.c_str(),
+               strerror(errno) );
         return -1;
     }
 
-    return accept_Connection( listening_sock_fd );
+    if( accept_Connection( listening_sock_fd ) == -1 ){
+        error( ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
+        return -1;
+    }
+    return 0;
 }
 
 
 int RemoteNode::new_Application(int listening_sock_fd,
-                                unsigned int backend_id,
                                 std::string parent_host,
                                 unsigned short parent_port,
                                 unsigned short parent_id, std::string &cmd,
@@ -307,10 +308,10 @@ int RemoteNode::new_Application(int listening_sock_fd,
 
     mrn_printf(3, MCFL, stderr, "In new_Application(%s:%d,\n"
                "                   cmd: %s)\n",
-               hostname.c_str(), get_Id(), cmd.c_str());
+               hostname.c_str(), port, cmd.c_str());
   
     char port_str[128];
-    sprintf(port_str, "%d", get_Id());
+    sprintf(port_str, "%d", port );
     char parent_port_str[128];
     sprintf(parent_port_str, "%d", parent_port);
     char parent_id_str[128];
@@ -325,36 +326,36 @@ int RemoteNode::new_Application(int listening_sock_fd,
 
     if(createProcess(rsh, hostname, username, cmd, args) == -1){
         mrn_printf(1, MCFL, stderr, "createProcess() failed\n"); 
-        MRN_errno = MRN_ECREATPROCFAILURE;
+        error( ESYSTEM, "createProcess(%s %s %s): %s\n",
+               rsh.c_str(), hostname.c_str(), cmd.c_str(),
+               strerror(errno) );
         return -1;
     }
 
-    char backend_id_str[32];
-    sprintf(backend_id_str, "%u", backend_id);
-
     // accept the connection
     sock_fd = getSocketConnection( listening_sock_fd );
-    if( sock_fd == -1 )
-        {
-            mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n" );
-            MRN_errno = MRN_ESOCKETCONNECT;
-            return -1;
-        }
-    mrn_printf(3, MCFL, stderr, "get_socket_connection() returned %d\n", sock_fd );
+    if( sock_fd == -1 ) {
+        mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n" );
+        error( ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
+        return -1;
+    }
 
     // consume the backend id sent from the backend
     uint32_t idBuf = 0;
     int rret = ::recv( sock_fd, &idBuf, 4, 0 );
-    if( rret != 4 )
-        {
-            mrn_printf(1, MCFL, stderr, "failed to receive id from backend\n" );
-            MRN_errno = MRN_ESOCKETCONNECT;
-            return -1;
-        }
-    uint32_t backendId = ntohl(idBuf);
-    assert( backendId == get_Id() );
+    if( rret != 4 ) {
+        mrn_printf(1, MCFL, stderr, "failed to receive id from backend\n" );
+        error( ESYSTEM, "recv(): %s\n", strerror(errno) );
+        return -1;
+    }
+    uint32_t backend_port = ntohl(idBuf);
+    assert( backend_port == port );
 
-    return accept_Connection( sock_fd, false );
+    if( accept_Connection( sock_fd, false ) == -1 ){
+        error( ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
+        return -1;
+    }
+    return 0;
 }
 
 int RemoteNode::send(Packet& packet)
@@ -366,10 +367,13 @@ int RemoteNode::send(Packet& packet)
     }
 
     msg_out.add_Packet(packet);
-    if( msg_out.size_Packets() == IOV_MAX ) {
+
+    //TODO: implement flush based on timeout/threshold
+    // for right now, always flush
+    if( msg_out.size_Packets() > 1 ) {
         int sret = msg_out.send( sock_fd );
         if( sret == -1 ) {
-            mrn_printf(1, MCFL, stderr, "RemoteNode.send, flush forced, but failed\n" );
+            mrn_printf(1, MCFL, stderr, "Message.send failed\n" );
         }
     }
 

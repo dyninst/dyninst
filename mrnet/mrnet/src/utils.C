@@ -24,6 +24,9 @@
 namespace MRN
 {
 
+std::string LocalHostName="";
+unsigned short LocalPort=0;
+
 static int get_local_ip_address( std::string & ip_address );
 
 #define SA struct sockaddr
@@ -44,15 +47,13 @@ int createProcess( const std::string & remote_shell,
 
     if( ( hostName == "" ) ||
         ( hostName == "localhost" ) ||
-        ( in_nname == local_nname ) || ( in_naddr == local_naddr ) )
-        {
-            return execCmd( command, arg_list );
-        }
-    else if( remote_shell.length(  ) > 0 )
-        {
-            return remoteCommand( remote_shell, hostName, userName,
-                                  command, arg_list );
-        }
+        ( in_nname == local_nname ) || ( in_naddr == local_naddr ) ) {
+      return execCmd( command, arg_list );
+    }
+    else if( remote_shell.length(  ) > 0 ) {
+      return remoteCommand( remote_shell, hostName, userName,
+			    command, arg_list );
+    }
     else {
         return rshCommand( hostName, userName, command, arg_list );
     }
@@ -87,9 +88,11 @@ int execCmd( const std::string command,
 
         execvp( command.c_str(  ), arglist );
         perror( "exec()" );
+        delete [] arglist;
         exit( -1 );
     }
 
+    delete [] arglist;
     return ( ret == -1 ? -1 : 0 );
 }
 
@@ -416,6 +419,7 @@ int getHostName( std::string & out_hostname, const std::string & in_name )
 
     if( in_name == "" ) {
         local_hostname = out_hostname;
+        LocalHostName = local_hostname;
         first_time = false;
     }
     return 0;
@@ -462,8 +466,7 @@ int getDomainName( std::string & domainname,
 
 // get the fully-qualified network name for given hostname (default=localhost)
 // e.g. "grilled" -> "grilled.cs.wisc.edu"
-int getNetworkName( std::string & network_name,
-                    const std::string & in_hostname )
+int getNetworkName( std::string & network_name, const std::string & in_hostname )
 {
     static std::string local_network_name( "" );
     static bool first_time = true;
@@ -484,6 +487,11 @@ int getNetworkName( std::string & network_name,
     // use to initialize struct in_addr
     // since inet_pton not available on windows
     hp = gethostbyname( ip_address.c_str(  ) );
+    if( hp == NULL ) {
+        mrn_printf( 1, MCFL, stderr, "Host information not found for \"%s\"\n",
+                    ip_address.c_str(  ) );
+        return -1;
+    }
     memcpy( ( void * )( &in.s_addr ), ( void * )( hp->h_addr_list[0] ),
             hp->h_length );
 
@@ -533,19 +541,18 @@ int getNetworkAddr( std::string & ipaddr, const std::string hostname )
         // find this machine's hostname
         if( first_time ) {
             if( get_local_ip_address( local_ipaddr ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "get_local_ip_address() failed\n" );
+                mrn_printf( 1, MCFL, stderr, "get_local_ip_address() failed\n" );
                 return -1;
             }
-            first_time = false;
         }
+	first_time = false;
         ipaddr = local_ipaddr;
         return 0;
     }
 
     hp = gethostbyname( hostname.c_str(  ) );
     if( hp == NULL ) {
-        mrn_printf( 1, MCFL, stderr, "Host information not found for %s\n",
+        mrn_printf( 1, MCFL, stderr, "Host information not found for \"%s\"\n",
                     hostname.c_str(  ) );
         return -1;
     }
@@ -611,10 +618,11 @@ static int get_local_ip_address( std::string & ip_address )
 #else
             if( ioctl( sockfd, CSIOCGIFCONF, &ifc ) < 0 )   //use on aix
 #endif /* aix */
-                {
-                    perror( "Failed ioctl()" );
-                    return -1;
-                }
+            {
+                perror( "Failed ioctl()" );
+                free( buf );
+                return -1;
+            }
             else {
                 //printf("\tComparing %d and lastlen:%d ... \n", ifc.ifc_len, lastlen);
                 if( ifc.ifc_len == lastlen ) {
@@ -655,6 +663,7 @@ static int get_local_ip_address( std::string & ip_address )
         ifrcopy = *ifr;
         if( ioctl( sockfd, SIOCGIFFLAGS, &ifrcopy ) < 0 ) {
             perror( "Failed ioctl()" );
+            free( buf );
             return -1;
         }
         flags = ifrcopy.ifr_flags;
@@ -675,9 +684,11 @@ static int get_local_ip_address( std::string & ip_address )
         if( inet_ntop( AF_INET, ( const void * )&in, ip_address_buf,
                        sizeof( ip_address_buf ) ) == NULL ) {
             perror( "Failed inet_ntop()" );
+            free( buf );
             return -1;
         }
         ip_address = ip_address_buf;
+        free( buf );
         return 0;
     }
 #else /* i386_unknown_nt4_0 */
@@ -705,8 +716,8 @@ static int get_local_ip_address( std::string & ip_address )
     }
 #endif
 
-    fprintf( stderr,
-             "No network interface seems to be enabled. IP unknown!\n" );
+    fprintf( stderr, "No network interface seems to be enabled. IP unknown!\n" );
+    free( buf );
     return -1;
 }
 
@@ -818,7 +829,7 @@ void *getSharedObjectHandle( const char *so_file )
         mrn_printf( 3, MCFL, stderr, "Loading so:%s\n", so_file );
         so_handle = dlopen( so_file, RTLD_LAZY | RTLD_GLOBAL );
         if( so_handle == NULL ) {
-            mrn_printf( 1, MCFL, stderr, "%s\n", dlerror(  ) );
+            mrn_printf( 1, MCFL, stderr, "%s\n", dlerror( ) );
             return NULL;
         }
         else {

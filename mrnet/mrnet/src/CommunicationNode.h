@@ -9,20 +9,21 @@ namespace MRN
 {
 
 enum ProtocolTags {
-    MRN_NEW_SUBTREE_PROT = MRN::FIRST_CTL_TAG,
-    MRN_DEL_SUBTREE_PROT,
-    MRN_RPT_SUBTREE_PROT,
-    MRN_NEW_APPLICATION_PROT,
-    MRN_DEL_APPLICATION_PROT,
-    MRN_NEW_STREAM_PROT,
-    MRN_DEL_STREAM_PROT,
-    MRN_NEW_FILTER_PROT,
-    MRN_DATA_PROT,
-    MRN_GET_LEAF_INFO_PROT,
-    MRN_CONNECT_LEAVES_PROT
+    PROT_NEW_SUBTREE = MRN::FIRST_CTL_TAG,
+    PROT_DEL_SUBTREE,
+    PROT_RPT_SUBTREE,
+    PROT_NEW_APPLICATION,
+    PROT_DEL_APPLICATION,
+    PROT_NEW_STREAM,
+    PROT_DEL_STREAM,
+    PROT_NEW_FILTER,
+    PROT_DATA,
+    PROT_EVENT,
+    PROT_GET_LEAF_INFO,
+    PROT_CONNECT_LEAVES
 };
 
-class CommunicationNode: public Error {
+class CommunicationNode {
  protected:
     std::string hostname;
     unsigned short port;    // MRNet-assigned "port"

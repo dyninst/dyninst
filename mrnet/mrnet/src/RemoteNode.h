@@ -12,7 +12,7 @@ namespace MRN
 
 class ChildNode;
 class ParentNode;
-class RemoteNode:public CommunicationNode{
+class RemoteNode:public CommunicationNode, public Error {
  private:
     enum {MRN_MESSAGEOUT_NONEMPTY};
     bool threaded;
@@ -41,7 +41,6 @@ class RemoteNode:public CommunicationNode{
                          unsigned short parent_port, unsigned short parent_id,
                          std::string commnode);
     int new_Application(int listening_sock_fd,
-                        unsigned int backend_id,
                         std::string parent_hostname,
                         unsigned short parent_port, unsigned short parent_id,
                         std::string &cmd, std::vector <std::string> &args);

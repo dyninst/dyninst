@@ -31,11 +31,10 @@ BackEndNode::BackEndNode(std::string _hostname,
     upstream_node = new RemoteNode(false, _parent_hostname, _parent_port,
                                    _parent_id);
 
-    upstream_node->connect();
     upstream_node->_is_upstream = true;
+    upstream_node->connect();
     if(upstream_node->fail() ){
         mrn_printf(1, MCFL, stderr, "connect() failed\n");
-        MRN_errno = MRN_ECANNOTBINDPORT;
         return;
     }
   
@@ -65,22 +64,22 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
     for(; iter != packets.end(); iter++){
         cur_packet = (*iter);
         switch(cur_packet.get_Tag()){
-        case MRN_DATA_PROT:
-        case MRN_NEW_SUBTREE_PROT:
-        case MRN_DEL_SUBTREE_PROT:
-        case MRN_RPT_SUBTREE_PROT:
-        case MRN_NEW_APPLICATION_PROT:
-        case MRN_DEL_APPLICATION_PROT:
-        case MRN_DEL_STREAM_PROT:
-        case MRN_GET_LEAF_INFO_PROT:
-        case MRN_CONNECT_LEAVES_PROT:
+        case PROT_DATA:
+        case PROT_NEW_SUBTREE:
+        case PROT_DEL_SUBTREE:
+        case PROT_RPT_SUBTREE:
+        case PROT_NEW_APPLICATION:
+        case PROT_DEL_APPLICATION:
+        case PROT_DEL_STREAM:
+        case PROT_GET_LEAF_INFO:
+        case PROT_CONNECT_LEAVES:
             //these protocol tags should never reach backend
             mrn_printf(1, MCFL,stderr,"BackEndNode::proc_DataFromUpStream(): "
                        "poison tag: %d\n", cur_packet.get_Tag());
             assert(0);
             break;
 
-        case MRN_NEW_STREAM_PROT:
+        case PROT_NEW_STREAM:
             if(proc_newStream(cur_packet) == -1){
                 mrn_printf(1, MCFL, stderr, "proc_newStream() failed\n");
                 retval = -1;

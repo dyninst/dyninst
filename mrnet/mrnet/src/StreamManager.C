@@ -54,7 +54,8 @@ int StreamManager::push_packet(Packet& packet,
         }
     }
 
-    mrn_printf(3, MCFL, stderr, "Leaving stream_mgr.push_packet()\n");
+    mrn_printf(3, MCFL, stderr, "Leaving stream_mgr.push_packet(),"
+               " returning %u packets\n", out_packets.size() );
     return 0;
 }
 

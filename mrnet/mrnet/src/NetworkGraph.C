@@ -23,11 +23,9 @@ NetworkNode::NetworkNode(char * _hostname, unsigned short _port)
 
 NetworkGraph::NetworkGraph()
     : root( NULL ),
-      nodes( new std::map<std::string, NetworkNode*> ),
       graph_checked(false),
       visited_nodes(0),
-      _has_cycle(false),
-      endpoints(new std::vector<EndPoint*>)
+      _has_cycle(false)
 {
 }
 
@@ -38,8 +36,7 @@ void NetworkGraph::add_Node(NetworkNode* new_node)
 
     if(new_node){
         std::string key = new_node->get_HostName() + std::string(port_str);
-        assert( nodes != NULL );
-        (*nodes)[key] = new_node;
+        nodes[key] = new_node;
     }
 }
 
@@ -49,9 +46,8 @@ NetworkNode * NetworkGraph::find_Node(char * hostname, unsigned short port)
     sprintf(port_str, "%d", port);
     std::string key = std::string(hostname) + std::string(port_str);
 
-    assert( nodes != NULL );
-    std::map<std::string, NetworkNode*>::iterator iter = nodes->find(key);
-    if( iter == nodes->end() ){
+    std::map<std::string, NetworkNode*>::iterator iter = nodes.find(key);
+    if( iter == nodes.end() ){
         return NULL;
     }
     return (*iter).second;
@@ -69,27 +65,24 @@ bool NetworkGraph::has_cycle(){
 void NetworkGraph::preorder_traversal(NetworkNode * node){
     static int next_leaf_id=0;
 
-    //printf(3, MCFL, stderr, "Preorder_traversing node %s:%d (%p) ...\n",
-    //node->get_HostName().c_str(), node->get_Port(), node );
-
     if( node->visited() == true ){
-        //printf(3, MCFL, stderr, "Node already visited\n");
-        //Should I stop here?
+        error( EBADCONFIG, "%s:%u: Node is own ancestor",
+               node->hostname.c_str(), node->port );
         _has_cycle=true;
+        return;
     }
     else{
-        //printf(3, MCFL, stderr, "Node's 1st visit\n");
         node->visit();
         visited_nodes++;
 
         if(node->children.size() == 0){
-            // Leaf node, just add my name to the serial representation and return
+            // Leaf node, just add my name to serial representation and return
             node->id = next_leaf_id++;
             serial_graph.add_BackEnd(node->get_HostName(), node->get_Port(),
                                      node->id);
-            endpoints->push_back(EndPoint::new_EndPoint( node->id,
-                                                         node->get_HostName().c_str(),
-                                                         node->get_Port()));
+            endpoints.push_back(EndPoint::new_EndPoint( node->id,
+							node->get_HostName().c_str(),
+							node->get_Port()));
             return;
         }
         else{
@@ -114,10 +107,7 @@ bool NetworkGraph::fully_connected()
         graph_checked=true;
     }
 
-    //printf(3, MCFL, stderr, "In fully_connected(). visited %d, exist %d\n",
-    //visited_nodes, nodes.size() );
-    assert( nodes != NULL );
-    return ( visited_nodes == nodes->size() ) ;
+    return ( visited_nodes == nodes.size() ) ;
 }
 
 
@@ -196,7 +186,6 @@ SerialGraph * SerialGraph::get_NextChild()
         retval = new SerialGraph("[ " + byte_array.substr(begin, end) + " ]");
     }
 
-    //printf(MCFL, stderr, "get_nextchild() returning:");  retval->print();
     return retval;
 }
 

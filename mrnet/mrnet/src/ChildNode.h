@@ -9,7 +9,7 @@
 namespace MRN
 {
 
-class ChildNode{
+class ChildNode: public Error{
  protected:
     RemoteNode * upstream_node;
 
@@ -27,11 +27,13 @@ class ChildNode{
     int recv_PacketsFromUpStream(std::list <Packet> &packet_list);
     int send_PacketUpStream(Packet& packet);
     int flush_PacketsUpStream();
+    int send_Events( );
 
     std::string get_HostName();
     unsigned short get_Port();
 
     int getConnections( int** conns, unsigned int* nConns );
+    virtual void error( EventType, const char *, ... );
 };
 
 inline int ChildNode::recv_PacketsFromUpStream(std::list <Packet>

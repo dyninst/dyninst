@@ -62,8 +62,8 @@ main( int argc, char* argv[] )
     BuildNetwork( topology_file, backend_exe );
 
     // get a broadcast communicator
-    Communicator* bcComm = Communicator::get_BroadcastCommunicator();
-    Stream* stream = Stream::new_Stream( bcComm, AGGR_INT_SUM_ID );
+    Communicator * bcComm = Communicator::get_BroadcastCommunicator();
+    Stream* stream = Stream::new_Stream( bcComm, TFILTER_SUM );
     assert( bcComm != NULL );
     assert( stream != NULL );
     unsigned int nBackends = bcComm->size();

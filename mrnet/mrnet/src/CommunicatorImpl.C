@@ -14,25 +14,21 @@ CommunicatorImpl * CommunicatorImpl::comm_Broadcast=NULL;
 
 
 CommunicatorImpl::CommunicatorImpl(void)
-  : endpoints( new std::vector<EndPoint*> )
 {
 }
 
 CommunicatorImpl::CommunicatorImpl( const std::vector<EndPoint*>& eps )
-  : endpoints( new std::vector<EndPoint*> )
+  : endpoints( eps )
 {
-    *endpoints = eps;
 }
 
 CommunicatorImpl::CommunicatorImpl(Communicator &comm)
-  : endpoints( new std::vector<EndPoint*> )
 {
-    *endpoints = *(static_cast<CommunicatorImpl&>(comm).endpoints);
+    endpoints = ((CommunicatorImpl)comm).endpoints;
 }
 
 CommunicatorImpl::~CommunicatorImpl(void)
 {
-    delete endpoints;
 }
 
 int CommunicatorImpl::add_EndPoint(const char * _hostname,
@@ -44,7 +40,7 @@ int CommunicatorImpl::add_EndPoint(const char * _hostname,
         return -1;
     }
 
-    endpoints->push_back(new_endpoint);
+    endpoints.push_back(new_endpoint);
     return 0;
 }
 

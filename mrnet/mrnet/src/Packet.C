@@ -22,12 +22,8 @@ PacketData::PacketData( unsigned short _stream_id, int _tag, const char *fmt,
     getNetworkName( tmp );
     src = strdup( tmp.c_str(  ) );
 
-    if( ArgList2DataElementArray( arg_list ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr,
-                    "ArgList2DataElementArray() failed\n" );
-        MRN_errno = MRN_EPACKING;
-        return;
-    }
+    //TODO: add exception block to catch user arg errors
+    ArgList2DataElementArray( arg_list ); 
 
     buf_len = pdr_sizeof( ( pdrproc_t ) ( PacketData::pdr_packet ), this );
     assert( buf_len );
@@ -37,8 +33,7 @@ PacketData::PacketData( unsigned short _stream_id, int _tag, const char *fmt,
     pdrmem_create( &pdrs, buf, buf_len, PDR_ENCODE );
 
     if( !PacketData::pdr_packet( &pdrs, this ) ) {
-        mrn_printf( 1, MCFL, stderr, "pdr_packet() failed\n" );
-        MRN_errno = MRN_EPACKING;
+        error( EPACKING, "pdr_packet() failed\n" );
         return;
     }
 
@@ -72,7 +67,7 @@ PacketData::PacketData( unsigned int _buf_len, char *_buf )
 
 PacketData::PacketData(const PacketData& p)
     : data_elements(p.data_elements), stream_id(p.stream_id), tag(p.tag),
-      buf_len(p.buf_len)
+      src(NULL), fmt_str(NULL), buf(NULL), buf_len(p.buf_len)
 {
     if( buf_len != 0 ){
         buf = (char *)malloc( buf_len * sizeof(char) );
@@ -101,11 +96,22 @@ PacketData& PacketData::operator=(const PacketData& p)
             buf = (char *)malloc( buf_len * sizeof(char) );
             memcpy(buf, p.buf, buf_len);
         }
+        else{
+            buf = NULL;
+        }
+
         if( p.src != NULL ){
             src = strdup(p.src);
         }
+        else{
+            src = NULL;
+        }
+
         if( p.fmt_str != NULL ){
             fmt_str = strdup(p.fmt_str);
+        }
+        else{
+            fmt_str = NULL;
         }
         data_elements = p.data_elements;
     }
@@ -141,12 +147,12 @@ int PacketData::ExtractVaList( const char *fmt, va_list arg_list )
     mrn_printf( 3, MCFL, stderr, "In ExtractVaList(%p)\n", this );
 
     if( strcmp( fmt_str, fmt ) ) {
-        mrn_printf( 1, MCFL, stderr, "Format string mismatch: %s, %s\n",
-                    fmt_str, fmt );
-        MRN_errno = MRN_EFMTSTR_MISMATCH;
+        error(EFMTSTR, "Extracted (%s), Packet (%s): Format string mismatch\n",
+                fmt, fmt_str);
         return -1;
     }
 
+    //TODO: add exception block here to catch user errors
     DataElementArray2ArgList( arg_list );
 
     mrn_printf( 3, MCFL, stderr, "ExtractVaList(%p) succeeded\n", this );
@@ -273,16 +279,15 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
             if( pdrs->p_op == PDR_DECODE ) {
                 cur_elem.val.p = NULL;
             }
-            retval =
-                pdr_array( pdrs, ( char ** )( &cur_elem.val.p ),
-                           &( cur_elem.array_len ), INT32_MAX,
-                           sizeof( uint64_t ), ( pdrproc_t ) pdr_uint64 );
+            retval = pdr_array( pdrs, ( char ** )( &cur_elem.val.p ),
+                                &( cur_elem.array_len ), INT32_MAX,
+                                sizeof( uint64_t ), ( pdrproc_t ) pdr_uint64 );
             break;
 
         case FLOAT_T:
             retval = pdr_float( pdrs, ( float * )( &( cur_elem.val.f ) ) );
-            mrn_printf( 3, MCFL, stderr, "floats value: %f\n",
-                        cur_elem.val.f );
+            mrn_printf( 3, MCFL, stderr, "floats value: %p: %f\n",
+                       &(cur_elem.val.f), cur_elem.val.f );
             break;
         case DOUBLE_T:
             retval =
@@ -313,18 +318,6 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
             retval =
                 pdr_wrapstring( pdrs, ( char ** )&( cur_elem.val.p ) );
             break;
-
-        case STRING_ARRAY_T:
-            if( pdrs->p_op == PDR_DECODE ) {
-                cur_elem.val.p = NULL;
-            }
-            retval = pdr_array( pdrs, ( char ** )( &cur_elem.val.p ),
-                                &( cur_elem.array_len ),
-                                INT32_MAX,
-                                sizeof( char * ),
-                                ( pdrproc_t ) pdr_wrapstring );
-            break;
-
         }
         if( !retval ) {
             mrn_printf( 1, MCFL, stderr,
@@ -343,7 +336,7 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
     return TRUE;
 }
 
-int PacketData::ArgList2DataElementArray( va_list arg_list )
+void PacketData::ArgList2DataElementArray( va_list arg_list )
 {
     char *cur_fmt, *fmt = strdup( fmt_str ), *buf_ptr;
     DataElement cur_elem;
@@ -394,6 +387,8 @@ int PacketData::ArgList2DataElementArray( va_list arg_list )
 
         case FLOAT_T:
             cur_elem.val.f = ( float )va_arg( arg_list, double );
+            mrn_printf( 3, MCFL, stderr, "floats value: %p: %f\n",
+                       &(cur_elem.val.f), cur_elem.val.f );
             break;
         case DOUBLE_T:
             cur_elem.val.lf = ( double )va_arg( arg_list, double );
@@ -409,7 +404,6 @@ int PacketData::ArgList2DataElementArray( va_list arg_list )
         case UINT64_ARRAY_T:
         case FLOAT_ARRAY_T:
         case DOUBLE_ARRAY_T:
-        case STRING_ARRAY_T:
             cur_elem.val.p = ( void * )va_arg( arg_list, void * );
             cur_elem.array_len =
                 ( uint32_t )va_arg( arg_list, uint32_t );
@@ -429,7 +423,6 @@ int PacketData::ArgList2DataElementArray( va_list arg_list )
     mrn_printf( 3, MCFL, stderr,
                 "ArgList2DataElementArray succeeded, packet(%p)\n", this );
     free(fmt);
-    return 0;
 }
 
 void PacketData::DataElementArray2ArgList( va_list arg_list )
@@ -449,8 +442,6 @@ void PacketData::DataElementArray2ArgList( va_list arg_list )
 
         cur_elem = data_elements[i];
         assert( cur_elem.type == Fmt2Type( cur_fmt ) );
-        //printf(3, MCFL, stderr, "packet[%d], cur_fmt: \"%s\", cur_type: %d\n",
-        //i, cur_fmt, cur_elem.type);
         switch ( cur_elem.type ) {
         case UNKNOWN_T:
             assert( 0 );
@@ -509,7 +500,6 @@ void PacketData::DataElementArray2ArgList( va_list arg_list )
         case UINT64_ARRAY_T:
         case FLOAT_ARRAY_T:
         case DOUBLE_ARRAY_T:
-        case STRING_ARRAY_T:
             tmp_ptr = ( void * )va_arg( arg_list, void ** );
             assert( tmp_ptr != NULL );
             *( ( void ** )tmp_ptr ) = cur_elem.val.p;

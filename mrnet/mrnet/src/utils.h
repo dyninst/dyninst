@@ -14,6 +14,9 @@
 namespace MRN
 {
 
+extern std::string LocalHostName;
+extern unsigned short LocalPort;
+
 int createProcess( const std::string & remote_shell,
                    const std::string & hostName,
                    const std::string & userName,

@@ -42,13 +42,10 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     if( ( retval = read( sock_fd, buf, buf_len ) ) != buf_len ) {
         mrn_printf( 3, MCFL, stderr, "read returned %d\n", retval );
         _perror( "read()" );
+        error( ESYSTEM, "read() %d of %d bytes received: %s",
+               retval, buf_len, strerror(errno) );
         free( buf );
-        if( errno == 0 ) {
-            return 0;
-        }
-        else {
-            return -1;
-        }
+        return -1;
     }
 
 
@@ -58,7 +55,7 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
 
     pdrmem_create( &pdrs, buf, buf_len, op );
     if( !pdr_uint32( &pdrs, &no_packets ) ) {
-        mrn_printf( 1, MCFL, stderr, "pdr_uint32() failed\n" );
+        error( EPACKING, "pdr_uint32() failed\n");
         free( buf );
         return -1;
     }
@@ -79,7 +76,7 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
 
     /* recv an vector of packet_sizes */
     //buf_len's value is hardcode, breaking pdr encapsulation barrier :(
-    buf_len = sizeof( uint32_t ) * no_packets + 4;  // 4 byte pdr overhead
+    buf_len = (sizeof( uint32_t ) * no_packets) + 1;  // 1 byte pdr overhead
     buf = ( char * )malloc( buf_len );
     assert( buf );
 
@@ -98,26 +95,24 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     int readRet = read( sock_fd, buf, buf_len );
     if( readRet != buf_len ) {
         mrn_printf( 1, MCFL, stderr, "read() failed\n" );
+        error( ESYSTEM, "read() %d of %d bytes received: %s",
+               readRet, buf_len, strerror(errno) );
         free( buf );
-        if( errno == 0 ) {
-            return 0;
-        }
-        else {
-            return -1;
-        }
+        free( packet_sizes );
+        return -1;
     }
-
 
     //
     // packets
     //
 
     pdrmem_create( &pdrs, buf, buf_len, op );
-    if( !pdr_vector
-        ( &pdrs, ( char * )( packet_sizes ), no_packets, sizeof( uint32_t ),
-          ( pdrproc_t ) pdr_uint32 ) ) {
+    if( !pdr_vector ( &pdrs, ( char * )( packet_sizes ), no_packets,
+                      sizeof( uint32_t ), ( pdrproc_t ) pdr_uint32 ) ) {
         mrn_printf( 1, MCFL, stderr, "pdr_vector() failed\n" );
+        error( EPACKING, "pdr_uint32() failed\n");
         free( buf );
+        free( packet_sizes );
         return -1;
     }
     free( buf );
@@ -143,9 +138,14 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     }
     mrn_printf( 3, 0, 0, stderr, "]\n" );
 
-    if( readmsg( sock_fd, &msg ) != total_bytes ) {
+    retval = readmsg( sock_fd, &msg );
+    if( retval != total_bytes ) {
         mrn_printf( 1, MCFL, stderr, "%s", "" );
         _perror( "readmsg()" );
+        error( ESYSTEM, "readmsg() %d of %d bytes received: %s",
+               retval, buf_len, strerror(errno) );
+        free(msg.msg_iov);
+        free( packet_sizes );
         return -1;
     }
 
@@ -159,12 +159,16 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
                             iov_base );
         if( new_packet.fail(  ) ) {
             mrn_printf( 1, MCFL, stderr, "packet creation failed\n" );
+            free(msg.msg_iov);
+            free( packet_sizes );
             return -1;
         }
         new_packet.set_InletNode( remote_node );
         packets_in.push_back( new_packet );
     }
 
+    free(msg.msg_iov);
+    free( packet_sizes );
     mrn_printf( 3, MCFL, stderr, "Msg(%p)::recv() succeeded\n", this );
     return 0;
 }
@@ -173,9 +177,9 @@ int Message::send( int sock_fd )
 {
     /* send an array of packet_sizes */
     unsigned int i;
-    uint32_t *packet_sizes, no_packets;
+    uint32_t *packet_sizes=NULL, no_packets;
     struct iovec *iov;
-    char *buf;
+    char *buf=NULL;
     int buf_len;
     PDR pdrs;
     enum pdr_op op = PDR_ENCODE;
@@ -183,11 +187,11 @@ int Message::send( int sock_fd )
 
     mrn_printf( 3, MCFL, stderr, "Sending packets from message %p\n",
                 this );
-    if( packets.size(  ) == 0 ) {   //nothing to do
+    if( packets.size( ) == 0 ) {   //nothing to do
         mrn_printf( 3, MCFL, stderr, "Nothing to send!\n" );
         return 0;
     }
-    no_packets = packets.size(  );
+    no_packets = packets.size( );
 
     /* send packet buffers */
     iov = ( struct iovec * )malloc( sizeof( struct iovec ) * no_packets );
@@ -196,17 +200,17 @@ int Message::send( int sock_fd )
     //Process packets in list to prepare for send()
     packet_sizes = ( uint32_t * ) malloc( sizeof( uint32_t ) * no_packets );
     assert( packet_sizes );
-    std::list < Packet >::iterator iter = packets.begin(  );
+    std::list < Packet >::iterator iter = packets.begin( );
     mrn_printf( 3, MCFL, stderr, "Writing %d packets of size: [ ",
                 no_packets );
     int total_bytes = 0;
-    for( i = 0; iter != packets.end(  ); iter++, i++ ) {
+    for( i = 0; iter != packets.end( ); iter++, i++ ) {
 
         Packet curPacket = *iter;
 
-        iov[i].iov_base = curPacket.get_Buffer(  );
-        iov[i].iov_len = curPacket.get_BufferLen(  );
-        packet_sizes[i] = curPacket.get_BufferLen(  );
+        iov[i].iov_base = curPacket.get_Buffer( );
+        iov[i].iov_len = curPacket.get_BufferLen( );
+        packet_sizes[i] = curPacket.get_BufferLen( );
 
         total_bytes += iov[i].iov_len;
         mrn_printf( 3, 0, 0, stderr, "%d, ", ( int )iov[i].iov_len );
@@ -215,7 +219,7 @@ int Message::send( int sock_fd )
 
     /* put how many packets are going */
 
-    buf_len = pdr_sizeof( ( pdrproc_t ) ( pdr_uint32 ), &no_packets );
+    buf_len = pdr_sizeof( ( pdrproc_t )( pdr_uint32 ), &no_packets );
     assert( buf_len );
     buf = ( char * )malloc( buf_len );
     assert( buf );
@@ -223,24 +227,26 @@ int Message::send( int sock_fd )
 
 
     if( !pdr_uint32( &pdrs, &no_packets ) ) {
-        mrn_printf( 1, MCFL, stderr, "pdr_uint32() failed\n" );
+        error( EPACKING, "pdr_uint32() failed\n" );
         free( buf );
+        free( iov );
         return -1;
     }
-
 
     mrn_printf( 3, MCFL, stderr, "Calling write(%d, %p, %d)\n", sock_fd,
                 buf, buf_len );
-    if( write( sock_fd, buf, buf_len ) != buf_len ) {
+    if( MRN::write( sock_fd, buf, buf_len ) != buf_len ) {
         mrn_printf( 1, MCFL, stderr, "write() failed" );
         _perror( "write()" );
         free( buf );
+        free( iov );
         return -1;
     }
+    mrn_printf( 3, MCFL, stderr, "write() succeeded" );
     free( buf );
 
     /* send a vector of packet_sizes */
-    buf_len = no_packets * sizeof( uint32_t ) + 4;  //4 extra bytes overhead
+    buf_len = (no_packets * sizeof( uint32_t )) + 1;  //1 extra bytes overhead
     buf = ( char * )malloc( buf_len );
     assert( buf );
     pdrmem_create( &pdrs, buf, buf_len, op );
@@ -249,17 +255,20 @@ int Message::send( int sock_fd )
         ( &pdrs, ( char * )( packet_sizes ), no_packets, sizeof( uint32_t ),
           ( pdrproc_t ) pdr_uint32 ) ) {
         mrn_printf( 1, MCFL, stderr, "pdr_vector() failed\n" );
+        error( EPACKING, "pdr_vector() failed\n" );
         free( buf );
+        free( iov );
         return -1;
     }
 
     mrn_printf( 3, MCFL, stderr, "Calling write(%d, %p, %d)\n", sock_fd,
                 buf, buf_len );
-    int mcwret = write( sock_fd, buf, buf_len );
+    int mcwret = MRN::write( sock_fd, buf, buf_len );
     if( mcwret != buf_len ) {
         mrn_printf( 1, MCFL, stderr, "write failed" );
         _perror( "write()" );
         free( buf );
+        free( iov );
         return -1;
     }
     free( buf );
@@ -288,9 +297,6 @@ int Message::send( int sock_fd )
         int ret = writev( sock_fd, currIov, iovlen );
         if( ret != nBytesToSend ) {
             mrn_printf( 3, MCFL, stderr,
-                        "writev() returned %d of %d bytes\n", ret,
-                        nBytesToSend );
-            mrn_printf( 3, MCFL, stderr,
                         "writev() returned %d of %d bytes, errno = %d, iovlen = %d\n",
                         ret, nBytesToSend, errno, iovlen );
             for( i = 0; i < iovlen; i++ ) {
@@ -298,6 +304,9 @@ int Message::send( int sock_fd )
                             i, currIov[i].iov_len );
             }
             _perror( "writev()" );
+            error( ESYSTEM, "writev() returned %d of %d bytes: %s\n",
+                        ret, nBytesToSend, strerror(errno) );
+            free(iov);
             return -1;
         }
 
@@ -309,6 +318,7 @@ int Message::send( int sock_fd )
     packets.clear(  );
 
 
+    free(iov);
     mrn_printf( 3, MCFL, stderr, "msg(%p)::send() succeeded\n", this );
     return 0;
 }
@@ -343,9 +353,6 @@ int read( int fd, void *buf, int count )
                             "premature return from read(). Got %d of %d "
                             " bytes. errno: %d ", bytes_recvd, count,
                             errno );
-                if( errno != 0 ) {
-                    perror( "" );
-                }
                 return -1;
             }
         }
@@ -366,9 +373,6 @@ int read( int fd, void *buf, int count )
                                 "premature return from read(). %d of %d "
                                 " bytes. errno: %d ", bytes_recvd, count,
                                 errno );
-                    if( errno != 0 ) {
-                        perror( "" );
-                    }
                 }
                 return bytes_recvd;
             }

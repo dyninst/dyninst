@@ -9,6 +9,7 @@
 
 #include "mrnet/h/MRNet.h"
 #include "mrnet/src/utils.h"
+#include "mrnet/src/Errors.h"
 
 namespace MRN
 {
@@ -63,23 +64,23 @@ class SerialGraph {
     unsigned int get_NumBackends(  );
 };
 
-class NetworkGraph {
+class NetworkGraph: public Error {
  private:
     NetworkNode * root;
-    std::map < std::string, NetworkNode * >*nodes;
+    std::map < std::string, NetworkNode * > nodes;
     bool graph_checked;
     unsigned int visited_nodes;
     bool _has_cycle;
 
     SerialGraph serial_graph;
-    std::vector < EndPoint * >*endpoints;
+    std::vector < EndPoint * > endpoints;
     
     void preorder_traversal( NetworkNode * );
 
  public:
     NetworkGraph(  );
     void set_Root( NetworkNode * );
-    std::vector < EndPoint * >*get_EndPoints(  );
+    const std::vector < EndPoint * > & get_EndPoints( );
     NetworkNode *get_Root(  );
     NetworkNode *find_Node( char *, unsigned short );
     bool has_cycle(  );
@@ -125,7 +126,7 @@ inline NetworkNode * NetworkGraph::get_Root()
     return root;
 }
 
-inline std::vector <EndPoint *> * NetworkGraph::get_EndPoints()
+inline const std::vector <EndPoint *> & NetworkGraph::get_EndPoints()
 {
     return endpoints;
 }
@@ -137,8 +138,7 @@ inline SerialGraph & NetworkGraph::get_SerialGraph()
 
 inline int NetworkGraph::get_Size()
 {
-    assert( nodes != NULL );
-    return nodes->size();
+    return nodes.size();
 }
 
 inline void SerialGraph::end_SubTree()

@@ -28,30 +28,21 @@ InternalNode::InternalNode( std::string _hostname, unsigned short _port,
     //printf(3, MCFL, stderr, "Calling connect() ...\n");
     upstream_node->connect(  );
     upstream_node->_is_upstream = true;
-    if( upstream_node->fail(  ) )
-        {
-            mrn_printf( 1, MCFL, stderr, "connect() failed\n" );
-            MRN_errno = MRN_ECANNOTBINDPORT;
-            return;
-        }
-
-    //printf(3, MCFL, stderr, "connect() succeeded. Call bind_to_port(%d)...\n", port);
-    //if( bind_to_port(&listening_sock_fd, &(this->CommunicationNode::port) ) == -1){
-    //printf(3, MCFL, stderr, "bind_to_port() failed\n");
-    //errno = ECANNOTBINDPORT;
-    //return;
-    //}
-    //printf(3, MCFL, stderr, "Bound to port %d, via socket: %d\n",
-    //this->CommunicationNode::port, listening_sock_fd);
+    if( upstream_node->fail(  ) ) {
+        mrn_printf( 1, MCFL, stderr, "connect() failed\n" );
+        return;
+    }
 
     mrn_printf( 3, MCFL, stderr, "Creating Upstream recv thread ...\n" );
     retval = pthread_create( &( upstream_node->recv_thread_id ), NULL,
                              RemoteNode::recv_thread_main,
                              ( void * )upstream_node );
     if( retval != 0 ) {
-        mrn_printf( 1, MCFL, stderr,
-                    "Upstream recv thread creation failed\n" );
-        //thread create error
+        //Call childnode's error here, because we want to record event
+        //locally as well as send upstream
+        ChildNode::error( ESYSTEM, "pthread_create() failed: %s\n",
+                          strerror(errno) );
+        mrn_printf( 1, MCFL, stderr, "Upstream recv thread creation failed\n" );
     }
 
     mrn_printf( 3, MCFL, stderr, "Creating Upstream send thread ...\n" );
@@ -59,9 +50,11 @@ InternalNode::InternalNode( std::string _hostname, unsigned short _port,
                              RemoteNode::send_thread_main,
                              ( void * )upstream_node );
     if( retval != 0 ) {
-        mrn_printf( 1, MCFL, stderr,
-                    "Upstream send thread creation failed\n" );
-        //thread create error
+        //Call childnode's error here, because we want to record event
+        //locally as well as send upstream
+        ChildNode::error( ESYSTEM, "pthread_create() failed: %s\n",
+                          strerror(errno) );
+        mrn_printf( 1, MCFL, stderr, "Upstream send thread creation failed\n" );
     }
 
     mrn_printf( 3, MCFL, stderr, "Leaving InternalNode()\n" );
@@ -78,7 +71,7 @@ InternalNode::~InternalNode( void )
     }
 }
 
-void InternalNode::waitLoop(  )
+void InternalNode::waitLoop( )
 {
     // TODO what should we base our termination decision on?
     // * whether we have *any* connections remaining?
@@ -113,7 +106,7 @@ int InternalNode::send_newSubTreeReport( bool status )
     }
     mrn_printf( 3, 0, 0, stderr, "]\n" );
 
-    Packet packet( 0, MRN_RPT_SUBTREE_PROT, "%d %ad", status,
+    Packet packet( 0, PROT_RPT_SUBTREE, "%d %ad", status,
                    backends, backend_descendant_nodes.size(  ) );
     if( packet.good(  ) ) {
         if( upstream_node->send( packet ) == -1 ||
@@ -130,7 +123,6 @@ int InternalNode::send_newSubTreeReport( bool status )
     mrn_printf( 3, MCFL, stderr, "send_newSubTreeReport() succeeded\n" );
     return 0;
 }
-
 
 int InternalNode::proc_DataFromUpStream( Packet& packet )
 {
@@ -217,8 +209,8 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
     for( ; iter != packets.end(  ); iter++ ) {
         cur_packet = ( *iter );
         switch ( cur_packet.get_Tag(  ) ) {
-        case MRN_NEW_SUBTREE_PROT:
-            //printf(3, MCFL, stderr, "Calling proc_newSubTree()\n");
+        case PROT_NEW_SUBTREE:
+            mrn_printf(3, MCFL, stderr, "Processing PROT_NEW_SUBTREE\n");
             if( proc_newSubTree( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr, "proc_newSubTree() failed\n" );
                 retval = -1;
@@ -232,7 +224,7 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
             }
             //printf(3, MCFL, stderr, "proc_newsubtree() succeded\n");
             break;
-        case MRN_DEL_SUBTREE_PROT:
+        case PROT_DEL_SUBTREE:
             //printf(3, MCFL, stderr, "Calling proc_delSubTree()\n");
             if( proc_delSubTree( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr, "proc_delSubTree() failed\n" );
@@ -240,7 +232,7 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
             }
             //printf(3, MCFL, stderr, "proc_delSubTree() succeded\n");
             break;
-        case MRN_NEW_APPLICATION_PROT:
+        case PROT_NEW_APPLICATION:
             //printf(3, MCFL, stderr, "Calling proc_newApplication()\n");
             if( proc_newApplication( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
@@ -249,7 +241,7 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
             }
             //printf(3, MCFL, stderr, "proc_newApplication() succeded\n");
             break;
-        case MRN_DEL_APPLICATION_PROT:
+        case PROT_DEL_APPLICATION:
             //printf(3, MCFL, stderr, "Calling proc_delApplication()\n");
             if( proc_delApplication( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
@@ -258,7 +250,7 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
             }
             //printf(3, MCFL, stderr, "proc_delApplication() succeded\n");
             break;
-        case MRN_NEW_STREAM_PROT:
+        case PROT_NEW_STREAM:
             //printf(3, MCFL, stderr, "Calling proc_newStream()\n");
             stream_mgr = proc_newStream( cur_packet );
             if( stream_mgr == NULL ) {
@@ -273,13 +265,13 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
                 break;
             }
             break;
-        case MRN_NEW_FILTER_PROT:
+        case PROT_NEW_FILTER:
             if( proc_newFilter( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr, "proc_newFilter() failed\n" );
                 retval = -1;
             }
             break;
-        case MRN_DEL_STREAM_PROT:
+        case PROT_DEL_STREAM:
             //printf(3, MCFL, stderr, "Calling proc_delStream()\n");
             if( proc_delStream( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr, "proc_delStream() failed\n" );
@@ -288,7 +280,7 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
             //printf(3, MCFL, stderr, "proc_delStream() succeded\n");
             break;
 
-        case MRN_GET_LEAF_INFO_PROT:
+        case PROT_GET_LEAF_INFO:
             //printf(3, MCFL, stderr, "Calling proc_getLeafInfo()\n");
             if( proc_getLeafInfo( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
@@ -298,7 +290,7 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
             //printf(3, MCFL, stderr, "proc_getLeafInfo() succeded\n");
             break;
 
-        case MRN_CONNECT_LEAVES_PROT:
+        case PROT_CONNECT_LEAVES:
             if( proc_connectLeaves( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "proc_connectLeaves() failed\n" );
@@ -337,17 +329,26 @@ int InternalNode::proc_PacketsFromDownStream( std::list < Packet >&
     for( ; iter != packet_list.end(  ); iter++ ) {
         cur_packet = ( *iter );
         switch ( cur_packet.get_Tag(  ) ) {
-        case MRN_RPT_SUBTREE_PROT:
-            //printf(3, MCFL, stderr, "Calling proc_newSubTreeReport()\n");
+        case PROT_RPT_SUBTREE:
             if( proc_newSubTreeReport( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "proc_newSubTreeReport() failed\n" );
                 retval = -1;
             }
-            //printf(3, MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
             break;
 
-        case MRN_GET_LEAF_INFO_PROT:
+        case PROT_EVENT:
+            if( proc_Event( cur_packet ) == -1 ){
+                mrn_printf( 1, MCFL, stderr, "proc_Event() failed\n" );
+                retval = -1;
+            }
+            if( send_Events( ) == -1 ){
+                mrn_printf( 1, MCFL, stderr, "send_Event() failed\n" );
+                retval = -1;
+            }
+            break;
+
+        case PROT_GET_LEAF_INFO:
             if( proc_getLeafInfoResponse( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "proc_getLeafInfoResponse() failed\n" );
@@ -355,7 +356,7 @@ int InternalNode::proc_PacketsFromDownStream( std::list < Packet >&
             }
             break;
 
-        case MRN_CONNECT_LEAVES_PROT:
+        case PROT_CONNECT_LEAVES:
             if( proc_connectLeavesResponse( cur_packet ) == -1 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "proc_connectLeavesResponse() failed\n" );

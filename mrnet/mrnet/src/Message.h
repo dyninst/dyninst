@@ -7,12 +7,12 @@
 #include <sys/socket.h>
 
 #include "mrnet/src/Packet.h"
+#include "mrnet/src/Errors.h"
 
 namespace MRN
 {
 
-class Message
-{
+class Message: public Error{
     std::list < Packet >packets;
 
  public:
