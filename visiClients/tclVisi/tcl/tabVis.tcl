@@ -2,13 +2,17 @@
 #  tabVis -- A tabular display visualization for Paradyn
 #
 #  $Log: tabVis.tcl,v $
-#  Revision 1.8  1994/11/08 00:23:08  tamches
-#  Major update/rewrite.  blt_table influences are gone.
-#  Main drawing area is a canvas with horizontal and vertical
-#  scrollbars.
-#  Non-printing metric/focus bugs gone with the change.
-#  Still very slow, however, since it uses tcl extensively on each
-#  new data callback.
+#  Revision 1.9  1994/11/10 18:06:56  tamches
+#  Fixed a bug where a shrinkage of window height would resize the
+#  resources axis incorrectly.
+#
+# Revision 1.8  1994/11/08  00:23:08  tamches
+# Major update/rewrite.  blt_table influences are gone.
+# Main drawing area is a canvas with horizontal and vertical
+# scrollbars.
+# Non-printing metric/focus bugs gone with the change.
+# Still very slow, however, since it uses tcl extensively on each
+# new data callback.
 #
 # Revision 1.7  1994/09/05  18:40:25  jcargill
 # Changed title to be more uniform.
@@ -195,7 +199,7 @@ pack  $W.status.label -expand true -side top
 frame $W.scrollBarArea
 pack  $W.scrollBarArea -side bottom -fill x
 
-frame $W.scrollBarArea.bottomLeftPadding
+frame $W.scrollBarArea.bottomLeftPadding -relief groove
 pack  $W.scrollBarArea.bottomLeftPadding -side left
 # we will repack this soon
 
@@ -211,12 +215,13 @@ pack $W.scrollBarArea.scrollbar -side bottom -fill x
 canvas $W.left -relief groove -width 1i
 pack   $W.left -side left -fill y -expand false
 
+canvas $W.left.top -relief groove -height 0.2i -width 1
+#pack  $W.left.top -side top -fill x -expand false
+pack  $W.left.top -side top -expand false
+   # expand is false; if the window is made taller, we don't want the extra height
+
 canvas $W.left.bottom -relief groove
 pack   $W.left.bottom -side bottom -fill y -expand true
-
-frame $W.left.top -relief groove -height 0.2i
-pack  $W.left.top -side top -fill x -expand false
-   # expand is false; if the window is made taller, we don't want the extra height
 
 scrollbar $W.left.bottom.scrollbar -orient vertical -width 16 \
         -foreground gray -activeforeground gray -relief sunken \
@@ -528,14 +533,15 @@ proc redrawResourcesAxisCanvas {} {
          $W.left configure -width [expr 16 + $newWidth]
          pack $W.left -side left -fill y -expand false
 
-         $W.left.top configure -height 0.2i
-         pack $W.left.top -side top -fill x -expand false
-
          pack $W.left.bottom -side bottom -fill y -expand true
 
          pack $W.left.bottom.scrollbar -side left -fill y -expand false
          $W.left.bottom.resourcesAxisCanvas configure -width $newWidth -relief groove
          pack $W.left.bottom.resourcesAxisCanvas -side left -fill both
+
+         $W.left.top configure -height [getWindowHeight $W.right.metricsAxisCanvas]
+#         pack $W.left.top -side top -fill x -expand false
+         pack $W.left.top -side top -expand false
 
          $W.scrollBarArea.bottomLeftPadding configure -width [getWindowWidth $W.left]
          pack $W.scrollBarArea.bottomLeftPadding -side left
@@ -644,7 +650,8 @@ proc SetSignif {{w .signif}} {
   wm geometry $w +300+300
   wm title $w "Signif Digits"
   wm iconname $w "SignifDigits"
-  scale $w.scale -orient horizontal -length 280 -from 0 -to 8 \
+#  scale $w.scale -orient horizontal -length 280 -from 0 -to 8 
+  scale $w.scale -orient horizontal -length 280 -from 0 -to 5 \
     -tickinterval 1 -command "set SignificantDigits " \
     -borderwidth 5 -showvalue false -label "Significant Digits" \
     -font *-New*Century*Schoolbook-Bold-R-*-14-*
@@ -687,7 +694,7 @@ proc NotImpl {} {
 #    we just update the status line and keep on going
 #
 proc DgFoldCallback {} {
-  puts stderr "fold detected..."
+#  puts stderr "fold detected..."
 
   UpdateStatus 
 }
@@ -786,7 +793,7 @@ proc GetValue {m r bucket} {
    } elseif {[string match $DataFormat Sum]} {
       return [Dg sum $m $r]
    } else {
-      puts stderr "GetValue: unknwon data format: $DataFormat"
+      puts stderr "GetValue: unknown data format: $DataFormat"
       return 0
    }
 }
