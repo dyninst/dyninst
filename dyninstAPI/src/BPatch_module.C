@@ -545,6 +545,14 @@ void BPatch_module::parseTypes()
 	      // find the variable for the common block
 	      tsym = (SYMENT *) (((unsigned) syms) + sym->n_value * SYMESZ);
 
+	      // We can't lookup the value by name, because the name might have been
+	      // redefined later on (our lookup would then pick the last one)
+
+	      // Since this whole function is AIX only, we're ok to get this info
+
+	      staticBlockBaseAddr = tsym->n_value + mod->exec()->getObject().data_reloc();
+
+	      /*
 	      if (!tsym->n_zeroes) {
 		  staticName = &stringPool[tsym->n_offset];
 	      } else {
@@ -561,6 +569,8 @@ void BPatch_module::parseTypes()
 	      } else {
 		  staticBlockBaseAddr = (Address) staticBlockVar->getBaseAddr();
 	      }
+	      */
+
 	  } else if (sym->n_sclass == C_ESTAT) {
 	      staticBlockBaseAddr = 0;
 	  }

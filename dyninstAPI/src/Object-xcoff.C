@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.34 2004/03/23 01:11:59 eli Exp $
+// $Id: Object-xcoff.C,v 1.35 2004/03/28 03:37:46 jodom Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -393,7 +393,6 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
 
    // Amounts to relocate symbol addresses
    unsigned text_reloc;
-   unsigned data_reloc;
 
 
    // Creating extra inferior heap space
@@ -537,7 +536,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
 
    // data_reloc = "relocation value" = data_org_ - aout.data_start
    if (data_org_ != (unsigned) -1) {
-       data_reloc = data_org_ - aout.data_start;
+       data_reloc_ = data_org_ - aout.data_start;
        // We're forced to get the data segment through ptrace/proc. While
        // some of the shared libraries are accessible from both the 
        // mutator and mutatee, all of them are not necessarily mapped. 
@@ -570,7 +569,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
 	     (unsigned) data_org_, 
 	     (unsigned) aout.data_start);
      fprintf(stderr, "Data pointer: %x, reloc: %x\n",
-	     (unsigned) data_ptr_, (unsigned) data_reloc);
+	     (unsigned) data_ptr_, (unsigned) data_reloc_);
 #endif
      if (!read_from_mem(pid_, roundup4(data_org_),
                         (Address) data_ptr_, 
@@ -584,11 +583,11 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
 
      if (!is_aout) {
          data_off_ -= baseAddr;
-         data_reloc -= baseAddr;
+         data_reloc_ -= baseAddr;
      }
    }
    else {
-       data_reloc = 0;
+       data_reloc_ = 0;
        data_off_ = 0;
    }
    
@@ -602,7 +601,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
 
 #ifdef DEBUG
    fprintf(stderr, "Data pointer: %x, reloc: %x, offset: %x, length: %x\n",
-	   (unsigned) data_ptr_, (unsigned) data_reloc, 
+	   (unsigned) data_ptr_, (unsigned) data_reloc_, 
 	   (unsigned) data_off_, (unsigned) data_len_);
 #endif
 
@@ -689,7 +688,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
              if (csect->x_csect.x_smclas == XMC_TC0) { 
                  if (toc_offset)
                      logLine("Found more than one XMC_TC0 entry.");
-                 toc_offset = sym->n_value + data_reloc;
+                 toc_offset = sym->n_value + data_reloc_;
                  continue;
              }
              
@@ -700,7 +699,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
                continue;
            }
            type = Symbol::PDST_OBJECT;
-           value = sym->n_value + data_reloc;
+           value = sym->n_value + data_reloc_;
        }
        
        // skip .text entries
