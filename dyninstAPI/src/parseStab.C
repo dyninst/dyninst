@@ -76,7 +76,7 @@ static char *currentRawSymbolName;
 //    the non-terminal parsing function
 //	
 
-void vectorNameMatchKLUDGE(char *demangled_sym, BPatch_Vector<BPatch_function *> &bpfv, pdvector<int> &matches)
+void vectorNameMatchKLUDGE(BPatch_module *mod, char *demangled_sym, BPatch_Vector<BPatch_function *> &bpfv, pdvector<int> &matches)
 {
   int bufsize = 1024;
   // iterate through all matches and demangle names with extra parameters, compare
@@ -84,11 +84,12 @@ void vectorNameMatchKLUDGE(char *demangled_sym, BPatch_Vector<BPatch_function *>
     char l_mangled[bufsize];
     bpfv[i]->getMangledName(l_mangled, bufsize);
     
-      char *l_demangled_raw = cplus_demangle(l_mangled, DMGL_PARAMS | DMGL_ANSI);
+    char l_demangled_raw[100]; 
+    P_cplus_demangle(l_mangled, l_demangled_raw, sizeof(l_demangled_raw), mod->isNativeCompiler());
     if(l_demangled_raw==NULL){
       //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot demangle " << l_mangled << endl;
       //continue;
-      l_demangled_raw = l_mangled;
+      strcpy(l_demangled_raw,l_mangled);
     }
     if (!strcmp(l_demangled_raw, demangled_sym)) {
       //cerr << __FILE__ << __LINE__ << ": " <<"Inferring that " << l_mangled << " matches " 
@@ -127,18 +128,16 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
       }
     }
 
-
-
   // demangle name with extra parameters
-  char *demangled_sym = cplus_demangle(mangled, DMGL_PARAMS | DMGL_ANSI | DMGL_VERBOSE);
-  if(demangled_sym==NULL) {
+  char demangled_sym[1000];
+  if (!P_cplus_demangle(mangled, demangled_sym, sizeof(demangled_sym), mod->isNativeCompiler(), true)) {
     //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot demangle " << mangled << endl;
     //return NULL;
-    demangled_sym = mangled;
+    strcpy(demangled_sym, mangled);
   }
   pdvector<int> matches;
 
-  vectorNameMatchKLUDGE(demangled_sym, bpfv, matches);
+  vectorNameMatchKLUDGE(mod, demangled_sym, bpfv, matches);
 
   BPatch_function *ret = NULL;
 
@@ -154,7 +153,7 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
   else {
     //cerr << __FILE__ << __LINE__ << ":  KLUDE found uninstrumentable " << mangled << endl;
   }
-  vectorNameMatchKLUDGE(demangled_sym, bpfv, matches);
+  vectorNameMatchKLUDGE(mod, demangled_sym, bpfv, matches);
   if (matches.size() == 1) {ret = bpfv[matches[0]]; goto clean_up;}
   if (matches.size() > 1) goto clean_up;
 
@@ -1322,6 +1321,10 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 	// skip <letter>cG
 	if (sunCPlusPlus) cnt += 3;
 
+	if ((stabstr[cnt] == 'u') && (stabstr[cnt+1] == ':') && (!isdigit(stabstr[cnt+2]))) {
+	    cnt += 2;
+	}
+
 	compname = getIdentifier(stabstr, cnt);
 /*
 	if (strlen(compname) == 0) {
@@ -1486,13 +1489,20 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
     int cnt;
     char *name;
     int structsize;
+    bool sunStyle = true;
     bool nestedType = false;
     BPatch_dataClass typdescr;
     BPatch_type * newType = NULL;
 
     assert(stabstr[0] == 'Y');
-
     cnt = 1;
+
+    // size on AIX 
+    if (isdigit(stabstr[cnt])) {
+	structsize = parseSymDesc(stabstr, cnt);
+	sunStyle = false;
+    }
+
     switch(stabstr[cnt]) {
 	case 'C':
 	case 'c':
@@ -1524,9 +1534,14 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
     }
 
     cnt++;		// skip to size
-    structsize = parseSymDesc(stabstr, cnt);
+    if (isdigit(stabstr[cnt])) {
+	structsize = parseSymDesc(stabstr, cnt);
+    }
     
-    if (stabstr[cnt] != ';') {
+    if (stabstr[cnt] == 'V') cnt++;
+    if (stabstr[cnt] == '(') cnt++;
+
+    if (sunStyle && (stabstr[cnt] != ';')) {
 	int len;
 	char *n;
 
@@ -1545,27 +1560,30 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
     //add to type collection
     newType = mod->moduleTypes->addOrUpdateType(newType);
 
-    cnt++;
-    // base class(es) 
-    while (stabstr[cnt] != ';') {
-	// skip visibility flag
+    if (sunStyle) {
 	cnt++;
+	// base class(es) 
+	while (stabstr[cnt] != ';') {
+	    // skip visibility flag
+	    cnt++;
 
-	int offset = parseSymDesc(stabstr, cnt);
+	    int offset = parseSymDesc(stabstr, cnt);
 
-	// Find base class type identifier
-	int baseID = parseSymDesc(stabstr, cnt);
-	addBaseClassToClass(mod, baseID, newType, offset);
+	    // Find base class type identifier
+	    int baseID = parseSymDesc(stabstr, cnt);
+	    addBaseClassToClass(mod, baseID, newType, offset);
+	}
+
+	cnt++;	// skip ;
     }
 
     // parse dataMembers
-    cnt++;	// skip ;
-    stabstr = parseFieldList(mod, newType, &stabstr[cnt], true);
+    stabstr = parseFieldList(mod, newType, &stabstr[cnt], sunStyle);
     cnt = 0;
 
     // parse member functions
     cnt++;
-    while (stabstr[cnt] != ';') {
+    while (stabstr[cnt] && (stabstr[cnt] != ';')) {
 	char *funcName = getIdentifier(stabstr, cnt, true);
 
 	funcName++;	// skip ppp-code

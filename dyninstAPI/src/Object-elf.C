@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.50 2003/06/10 17:45:35 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.51 2003/06/16 18:55:17 hollings Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1996,3 +1996,41 @@ Address Object::getPltSlot(string funcName) const{
 
 }
 
+//
+// parseCompilerType - parse for compiler that was used to generate object
+//
+//
+//
+bool parseCompilerType(Object *objPtr) 
+{
+
+  int stab_nsyms;
+  char *stabstr_nextoffset;
+  const char *stabstrs = 0;
+  struct stab_entry *stabptr = NULL;
+
+  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
+	(void **) &stabstr_nextoffset);
+
+  for(int i=0;i<stab_nsyms;i++){
+    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
+    switch(stabptr[i].type){
+
+    case N_UNDF: /* start of object file */
+      /* value contains offset of the next string table for next module */
+      // assert(stabptr[i].name == 1);
+      stabstrs = stabstr_nextoffset;
+      stabstr_nextoffset = const_cast<char*>(stabstrs) + stabptr[i].val;
+      
+      break;
+    case N_OPT: /* Compiler options */
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)      
+      if (strstr(&stabstrs[stabptr[i].name], "Sun")!=NULL)
+	return true;
+#endif
+      return false;
+    }
+
+  }
+  return false; // Shouldn't happen - maybe N_OPT stripped
+}

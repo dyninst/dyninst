@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.167 2003/05/21 14:52:23 pcroth Exp $
+// $Id: symtab.C,v 1.168 2003/06/16 18:55:18 hollings Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +78,7 @@ extern pdvector<sym_data> syms_to_find;
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
 
-static bool parseCompilerType(Object *);
+extern bool parseCompilerType(Object *);
 
 #if ENABLE_DEBUG_CERR == 1
 #define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
@@ -221,7 +221,7 @@ bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler,
 }
 
 void image::addInstruFunction(pd_Function *func, pdmodule *mod,
-			      const Address addr, bool excluded) {
+			      const Address addr, bool /* excluded */) {
   pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
   pdvector<pd_Function*> *funcsByMangledEntry = NULL;
   
@@ -267,8 +267,9 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 }
 
 // A helper routine for removeInstrumentableFunc -- removes function from specified hash
-void image::removeFuncFromNameHash(pd_Function *func, string &fname,
-				   dictionary_hash<string, pdvector<pd_Function *> > *func_hash)
+void image::removeFuncFromNameHash(pd_Function * /* func */, 
+				   string & /* fname */,
+				   dictionary_hash<string, pdvector<pd_Function *> > * /* func_hash */ )
 {
 #ifdef NOTDEF
   pdvector<pd_Function*> *funcsEntry = NULL;
@@ -331,7 +332,7 @@ void image::removeFuncFromNameHash(pd_Function *func, string &fname,
 // if a function in the "instrumentable" data structs is later determined
 // to be uninstrumentable, this function provides an atomic operation for 
 // removing it from said structs.
-int image::removeFuncFromInstrumentable(pd_Function *func)
+int image::removeFuncFromInstrumentable(pd_Function * /* func */)
 {
 #ifdef NOTDEF
   assert(func);
@@ -805,8 +806,6 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
 pdmodule *image::findModule(const string &name)
 #endif
 {
-  unsigned i;
-
   //cerr << "image::findModule " << name << " , " << find_if_excluded
   //     << " called" << endl;
 
@@ -820,6 +819,8 @@ pdmodule *image::findModule(const string &name)
   }
 
 #ifndef BPATCH_LIBRARY
+  unsigned i;
+
   // if also looking for excluded functions, check through 
   //  excludedFunction list to see if any match function by FullName
   //  or FileName....
@@ -922,7 +923,6 @@ void image::postProcess(const string pifname)
 #endif
 
 void image::defineModules() {
-  unsigned i;
 
   string pds; pdmodule *mod;
   dictionary_hash_iter<string, pdmodule*> mi(modsByFileName);
@@ -932,6 +932,8 @@ void image::defineModules() {
   }
 
 #ifndef BPATCH_LIBRARY
+  unsigned i;
+
   for(i=0;i<excludedMods.size();i++) {
     mod = excludedMods[i];
     mod->define();
@@ -1591,6 +1593,7 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   }
 
   bool beenReplaced = false;
+
 #ifdef rs6000_ibm_aix4_1 
   // On AIX, we might have a "stub" image instead of the
   // actual image we want. So we check to see if we do,
@@ -2163,7 +2166,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
 
 
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(rs6000_ibm_aix4_1)
   // make sure we're using the right demangler
 
   nativeCompiler = parseCompilerType(&linkedFile);
@@ -3055,47 +3058,4 @@ pdmodule *image::findModule(function_base *func) {
 
 bool pdmodule::isShared() const { 
   return !exec_->isAOut();
-}
-
-//
-// parseCompilerType - parse for compiler that was used to generate object
-//
-//
-//
-static bool parseCompilerType(Object *objPtr) {
-
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-
-  int stab_nsyms;
-  char *stabstr_nextoffset;
-  const char *stabstrs = 0;
-  struct stab_entry *stabptr = NULL;
-
-  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
-	(void **) &stabstr_nextoffset);
-
-  for(int i=0;i<stab_nsyms;i++){
-    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
-    switch(stabptr[i].type){
-
-    case N_UNDF: /* start of object file */
-      /* value contains offset of the next string table for next module */
-      // assert(stabptr[i].name == 1);
-      stabstrs = stabstr_nextoffset;
-      stabstr_nextoffset = const_cast<char*>(stabstrs) + stabptr[i].val;
-      
-      break;
-    case N_OPT: /* Compiler options */
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)      
-      if (strstr(&stabstrs[stabptr[i].name], "Sun")!=NULL)
-	return true;
-#endif
-      return false;
-    }
-
-  }
-  return false; // Shouldn't happen - maybe N_OPT stripped
-#else // sparc def'd
-  return false; 
-#endif
 }

@@ -39,7 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.154 2003/06/11 20:05:42 bernat Exp $
+// $Id: aix.C,v 1.155 2003/06/16 18:55:17 hollings Exp $
+
+#include <dlfcn.h>
+#include <sys/types.h>
+#include <sys/ldr.h>
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -57,7 +61,6 @@
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
-
 
 #if defined(AIX_PROC)
 #include <sys/procfs.h>
@@ -102,7 +105,6 @@
 #endif
 
 
-void *(*P_native_demangle)(char *, char **, unsigned long);
 
 #if !defined(BPATCH_LIBRARY)
 /* Getprocs() should be defined in procinfo.h, but it's not */
@@ -1360,18 +1362,62 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 
 #endif
 
-void loadNativeDemangler() {
-  
-  P_native_demangle = NULL;
-  // The following is untested - JMO 03/21/03
-#if 0
-  void *hDemangler = dlopen("libdemangle.a", 0);
-  if (hDemangler != NULL)
-    P_native_demangle = ((void *) (*) (char *, char **, unsigned long)) 
-      dlsym(hDemangler, "demangle");
-#endif
+// should use demangle.h here, but header is badly broken on AIX 5.1
+typedef void *Name;
+typedef enum { RegularNames = 0x1, ClassNames = 0x2, SpecialNames = 0x4,
+               ParameterText = 0x8, QualifierText = 0x10 } DemanglingOptions;
+
+Name *(*P_native_demangle)(char *, char **, unsigned long);
+char *(*P_functionName)(Name *);
+
+void loadNativeDemangler() 
+{
+    char *buffer[1024];
+
+    P_native_demangle = NULL;
+
+    void *hDemangler = dlopen("libdemangle.so.1", RTLD_LAZY|RTLD_MEMBER);
+    if (hDemangler != NULL) {
+        P_native_demangle = (Name*(*)(char*, char**, long unsigned int)) dlsym(hDemangler, "demangle");
+
+	P_functionName = (char*(*)(Name*)) dlsym(hDemangler, "functionName");
+    } else {
+	BPatch_reportError(BPatchSerious,122,"unable to load external demangler libdemangle.so.1\n");
+    }
 }
 
+extern "C" char *cplus_demangle(char *, int);
+extern void dedemangle( const char * demangled, char * dedemangled );
+
+#define DMGL_PARAMS      (1 << 0)       /* Include function args */
+#define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
+
+int P_cplus_demangle(const char *symbol, char *prototype, size_t size, bool nativeCompiler, bool includeTypes) 
+{
+   if( !nativeCompiler || P_native_demangle == NULL) {
+	char *demangled_sym = cplus_demangle(const_cast<char*>(symbol),
+                                        includeTypes ? DMGL_PARAMS|DMGL_ANSI :  0);
+        if(demangled_sym==NULL || strlen(demangled_sym) >= size)
+            return 1;
+        if (!includeTypes)
+            dedemangle( demangled_sym, prototype );
+        else
+            strncpy(prototype, demangled_sym,size);
+        free(demangled_sym);
+        return 0;
+   } else {
+	// use Native demangler
+	Name *name;
+	char *demangled_sym;
+        name = (P_native_demangle)(const_cast<char*>(symbol), (char **) &demangled_sym, RegularNames); 
+	if (name) {
+	    strncpy(prototype, (P_functionName)(name), size);
+	    return 0;
+	} else {
+ 	    return 1;
+	}
+   }
+}
 
 
 //////////////////////////////////////////////////////////
@@ -1412,9 +1458,9 @@ int SYSSET_MAP(int syscall, int pid)
     syscalls = (prsyscall_t *)malloc(sizeof(prsyscall_t)*sysent.pr_nsyscalls);
     if (read(fd, syscalls,
              sizeof(prsyscall_t)*sysent.pr_nsyscalls) !=
-        sizeof(prsyscall_t)*sysent.pr_nsyscalls)
+        (int) sizeof(prsyscall_t)*sysent.pr_nsyscalls)
         perror("AIX syscall_map: read2");
-    for (int j = 0; j < sysent.pr_nsyscalls; j++) {
+    for (unsigned int j = 0; j < sysent.pr_nsyscalls; j++) {
         lseek(fd, syscalls[j].pr_nameoff, SEEK_SET);
         read(fd, syscallname, 256);
 
@@ -1559,13 +1605,9 @@ fileDescriptor *getExecFileDescriptor(string filename, int &status, bool waitFor
     sprintf(tempstr, "/proc/%d/map", pid);
     map_fd = P_open(tempstr, O_RDONLY, 0);
 
-    Address text_org = -1;
-    Address data_org = -1;
-
     prmap_t text_map;
     char text_name[512];
     prmap_t data_map;
-    char data_name[512];
     
     pread(map_fd, &text_map, sizeof(prmap_t), 0);
     pread(map_fd, text_name, 512, text_map.pr_pathoff);
@@ -1590,6 +1632,5 @@ fileDescriptor *getExecFileDescriptor(string filename, int &status, bool waitFor
     return desc;
 }
 
-    
 #endif
 

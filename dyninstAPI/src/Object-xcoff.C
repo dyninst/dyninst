@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.27 2003/06/11 20:05:41 bernat Exp $
+// $Id: Object-xcoff.C,v 1.28 2003/06/16 18:55:17 hollings Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1105,4 +1105,70 @@ Object::~Object()
 Object& Object::operator=(const Object& obj) {
     (void) AObject::operator=(obj);
     return *this;
+}
+
+
+//
+// parseCompilerType - parse for compiler that was used to generate object
+//	return true for "native" compiler
+//
+//      XXX - This really should be done on a per module basis
+//
+bool parseCompilerType(Object *objPtr) 
+{
+
+    SYMENT *syms;
+    int stab_nsyms;
+    char *stringPool;
+    union auxent *aux;
+    char *stabstr_nextoffset;
+    const char *stabstrs = 0;
+    char *stabstr=NULL;
+
+    objPtr->get_stab_info(stabstr, stab_nsyms, ((Address&) syms), stringPool);
+
+    for (int i=0;i<stab_nsyms;i++) {
+        SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
+        char tempName[15];
+        char *compilerName;
+        string name;
+        if (sym->n_sclass == C_FILE) {
+            if (!sym->n_zeroes) {
+                name = string(&stringPool[sym->n_offset]);
+            } else {
+                char tempName[9];
+                memset(tempName, 0, 9);
+                strncpy(tempName, sym->n_name, 8);
+                name = string(tempName);
+            }
+	    if (!strcmp(name.c_str(), ".file")) {
+                int j;
+                /* has aux record with additional information. */
+                for (j=1; j <= sym->n_numaux; j++) {
+		    aux = (union auxent *) ((char *) sym + j * SYMESZ);
+		    if (aux->x_file._x.x_ftype == XFT_CV) {
+                        // this aux record contains the file name.
+                        if (!aux->x_file._x.x_zeroes) {
+                            compilerName = &stringPool[aux->x_file._x.x_offset];
+                        } else {
+                            // x_fname is 14 bytes
+                            memset(tempName, 0, 15);
+                            strncpy(tempName, aux->x_file.x_fname, 14);
+                            compilerName = tempName;
+                        }
+                    }
+	        }
+		//
+		// Use presence of string "IBM VisualAge C++" to confirm
+		//   it's the IBM compiler
+		//
+		if (!strncmp("IBM VisualAge C++", compilerName, strlen("IBM VisualAge C++"))) {
+		    // fprintf(stderr, "compiler is IBM C++\n");
+		    return true;
+		}
+   	   }
+       }
+    }
+    // fprintf(stderr, "compiler is GNU\n");
+    return false;
 }
