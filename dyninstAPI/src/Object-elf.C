@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.25 2001/08/23 14:43:14 schendel Exp $
+ * $Id: Object-elf.C,v 1.26 2001/08/28 15:28:57 hollings Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -128,9 +128,12 @@ const char *pdelf_get_shnames(Elf *elfp, bool is64)
 // for EEL rewritten code, also populate "code_*_" members
 bool Object::loaded_elf(bool& did_elf, Elf*& elfp, 
   Address& txtaddr, Address& bssaddr,
-  Elf_Scn*& symscnp, Elf_Scn*& strscnp, Elf_Scn*& stabscnp, 
-  Elf_Scn*& stabstrscnp, Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
-  Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp, Elf_Scn*& dynstr_scnp, 
+  Elf_Scn*& symscnp, Elf_Scn*& strscnp, 
+  Elf_Scn*& stabscnp, Elf_Scn*& stabstrscnp, 
+  Elf_Scn*& stabs_indxcnp, Elf_Scn*& stabstrs_indxcnp, 
+  Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
+  Elf_Scn*& got_scnp,  
+  Elf_Scn*& dynsym_scnp, Elf_Scn*& dynstr_scnp, 
   bool 
 #if defined(mips_sgi_irix6_4)
   a_out  // variable not used on other platforms
@@ -172,6 +175,8 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   const char* STRTAB_NAME      = ".strtab";
   const char* STAB_NAME        = ".stab";
   const char* STABSTR_NAME     = ".stabstr";
+  const char* STAB_INDX_NAME   = ".stab.index";
+  const char* STABSTR_INDX_NAME= ".stab.indexstr";
   // sections from dynamic executables and shared objects
   const char* PLT_NAME         = ".plt";
   const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
@@ -196,6 +201,9 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   stab_off_ = 0;
   stab_size_ = 0;
   stabstr_off_ = 0;
+  stab_indx_off_ = 0;
+  stab_indx_size_ = 0;
+  stabstr_indx_off_ = 0;
 #if defined(mips_sgi_irix6_4)
   MIPS_stubs_addr_ = 0;
   MIPS_stubs_off_ = 0;
@@ -241,17 +249,21 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     }
     else if (strcmp(name, STRTAB_NAME) == 0) {
       strscnp = scnp;
-    }
-    else if (strcmp(name, STAB_NAME) == 0) {
+    } else if (strcmp(name, STAB_INDX_NAME) == 0) {
+      stabs_indxcnp = scnp;
+      stab_indx_off_ = pd_shdrp->pd_offset;
+      stab_indx_size_ = pd_shdrp->pd_size;
+    } else if (strcmp(name, STABSTR_INDX_NAME) == 0) {
+      stabstrs_indxcnp = scnp;
+      stabstr_indx_off_ = pd_shdrp->pd_offset;
+    } else if (strcmp(name, STAB_NAME) == 0) {
       stabscnp = scnp;
       stab_off_ = pd_shdrp->pd_offset;
       stab_size_ = pd_shdrp->pd_size;
-    }
-    else if (strcmp(name, STABSTR_NAME) == 0) {
+    } else if (strcmp(name, STABSTR_NAME) == 0) {
       stabstrscnp = scnp;
       stabstr_off_ = pd_shdrp->pd_offset;
-    }
-    else if ((strcmp(name, REL_PLT_NAME) == 0) || 
+    } else if ((strcmp(name, REL_PLT_NAME) == 0) || 
 	     (strcmp(name, REL_PLT_NAME2) == 0)) {
       rel_plt_scnp = scnp;
       rel_plt_addr_ = pd_shdrp->pd_addr;
@@ -561,6 +573,8 @@ void Object::load_object()
     Elf_Scn*    strscnp = 0;
     Elf_Scn*    stabscnp = 0;
     Elf_Scn*    stabstrscnp = 0;
+    Elf_Scn*    stabs_indxcnp = 0;
+    Elf_Scn*    stabstrs_indxcnp = 0;
     Address     txtaddr = 0;
     Address     bssaddr = 0;
     Elf_Scn*    rel_plt_scnp = 0;
@@ -580,7 +594,7 @@ void Object::load_object()
     // And attempt to parse the ELF data structures in the file....
     // EEL, added one more parameter
     if (!loaded_elf(did_elf, elfp, txtaddr,
-		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp,
+		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 		    rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,dynstr_scnp,true)) 
     {
       goto cleanup;
@@ -631,12 +645,17 @@ void Object::load_object()
     
     // try to resolve the module names of global symbols
     bool found = false;
+    // Sun compiler stab.index section 
+    fix_global_symbol_modules_static_stab( global_symbols, stabs_indxcnp, stabstrs_indxcnp);
+
     // STABS format (.stab section)
     if (!found) found = fix_global_symbol_modules_static_stab(
 			    global_symbols, stabscnp, stabstrscnp);
+
     // DWARF format (.debug_info section)
     if (!found) found = fix_global_symbol_modules_static_dwarf(
 			    global_symbols, elfp);
+
     // remaining globals are not associated with a module 
     fix_global_symbol_unknowns_static(global_symbols);
     
@@ -676,6 +695,8 @@ void Object::load_shared_object()
     Elf_Scn*    symscnp = 0;
     Elf_Scn*    stabscnp = 0;
     Elf_Scn*    stabstrscnp = 0;
+    Elf_Scn*    stabs_indxcnp = 0;
+    Elf_Scn*    stabstrs_indxcnp = 0;
     Elf_Scn*    strscnp = 0;
     Address     txtaddr = 0;
     Address     bssaddr = 0;
@@ -686,7 +707,7 @@ void Object::load_shared_object()
     Elf_Scn*    dynstr_scnp = 0;
 
     if (!loaded_elf(did_elf, elfp, txtaddr,
-		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp,
+		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 		    rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp)) 
     {
       goto cleanup2;
@@ -1098,6 +1119,7 @@ bool Object::fix_global_symbol_modules_static_stab(
 
     bool is_fortran = false;  // is the current module fortran code?
     for (unsigned i = 0; i < stab_nsyms; i++) {
+	// printf("parsing #%d, %s\n", stabsyms[i].type, &stabstrs[stabstr_offset+stabsyms[i].name]);
         switch(stabsyms[i].type) {
 	case N_UNDF: /* start of object file */
 /*
@@ -1118,7 +1140,7 @@ bool Object::fix_global_symbol_modules_static_stab(
 	    break;
 
 	case N_SO: /* compilation source or file name */
-  	    if (stabsyms[i].desc == N_SO_FORTRAN)
+  	    if ((stabsyms[i].desc == N_SO_FORTRAN) || (stabsyms[i].desc == N_SO_F90))
 	      is_fortran = true;
 
 	    module = string(&stabstrs[stabstr_offset+stabsyms[i].name]);
@@ -1133,14 +1155,19 @@ bool Object::fix_global_symbol_modules_static_stab(
 	    // we must extract the name and descriptor from the string
           {
 	    const char *p = &stabstrs[stabstr_offset+stabsyms[i].name];
+	    // printf("got %d type, str = %s\n", stabsyms[i].type, p);
             if ((stabsyms[i].type==N_FUN) && (strlen(p)==0)) {
                 // GNU CC 2.8 and higher associate a null-named function
                 // entry with the end of a function.  Just skip it.
                 break;
             }
 	    const char *q = strchr(p,':');
-	    assert(q);
-	    unsigned len = q - p;
+	    unsigned len;
+	    if (q) {
+		len = q - p;
+	    } else {
+		len = strlen(p);
+	    }
 	    assert(len > 0);
 	    char *sname = new char[len+1];
 	    strncpy(sname, p, len);
@@ -1152,7 +1179,7 @@ bool Object::fix_global_symbol_modules_static_stab(
 	    // q[1] is the symbol descriptor. We must check the symbol descriptor
 	    // here to skip things we are not interested in, such as local functions
 	    // and prototypes.
-	    if (q[1] == SD_GLOBAL_FUN || q[1] == SD_GLOBAL_VAR || stabsyms[i].type==N_ENTRY) { 
+	    if (q && (q[1] == SD_GLOBAL_FUN || q[1] == SD_GLOBAL_VAR || stabsyms[i].type==N_ENTRY)) { 
 	        bool res = global_symbols.defines(SymName);
 	        if (!res && is_fortran) {
                     // Fortran symbols usually appear with an '_' appended in .symtab,
@@ -1167,10 +1194,11 @@ bool Object::fix_global_symbol_modules_static_stab(
 	        symbols_[SymName] = Symbol(sym.name(), module,
 		    sym.type(), sym.linkage(), sym.addr(),
 		    sym.kludge(), sym.size());
-	    }
-	    else if (symbols_.defines(SymName)) {
-		//Set module info for local symbol
-		symbols_[SymName].setModule(module);
+	    } else if (symbols_.defines(SymName)) {
+		//Set module info for local symbol if not a prototype
+		if (!q || (q[1] != SD_PROTOTYPE)) {
+		    symbols_[SymName].setModule(module);
+		}
 	    }
           }
 	  break;

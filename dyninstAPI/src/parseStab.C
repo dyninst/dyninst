@@ -440,6 +440,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	  case 'V':/* Local Static Variable (common block vars too) */
 	      cnt++; /*move past the 'V'*/
 
+	      // printf("parsing 'v' type of %s\n", stabstr);
 	      /* Get variable type number */
 	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
 	      if (stabstr[cnt]) 
@@ -499,6 +500,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		      printf("Unable to add %s to local variable list in %s\n",
 		          name,current_func_name);
 		  } else {
+		      printf("adding local variable %s at %x\n",
+			name, framePtr);
 		      locVar = new BPatch_localVar(name, BPtype, linenum, 
 			  framePtr, 5, false);
 		      fp->localVariables->addLocalVar( locVar);
@@ -1235,9 +1238,14 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
     }
 
     // should end with a ';'
-    assert(stabstr[cnt] == ';');
-
-    return &stabstr[cnt+1];
+    if (stabstr[cnt] == ';') {
+	return &stabstr[cnt+1];
+    } else if (stabstr[cnt] == '\0') {
+	return &stabstr[cnt];
+    } else {
+	printf("invalid stab record: %s\n", &stabstr[cnt]);
+	abort();
+    }
 }
 
 //

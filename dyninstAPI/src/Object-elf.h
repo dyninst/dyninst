@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.41 2000/11/15 22:56:05 bernat Exp $
+ * $Id: Object-elf.h,v 1.42 2001/08/28 15:28:58 hollings Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -97,6 +97,8 @@ struct stab_entry { // an entry in the stab section
 #define N_ENDM  0x62 /* end module */
 #define N_SO    0x64 /* source directory and file */
 #define N_ENTRY 0xa4 /* fortran alternate subroutine entry point */
+#define N_BCOMM 0xe2 /* start fortran named common block */
+#define N_ECOMM 0xe4 /* start fortran named common block */
 
 // Language code -- the desc field in a N_SO entry is a language code
 #define N_SO_AS      1 /* assembler source */
@@ -105,6 +107,7 @@ struct stab_entry { // an entry in the stab section
 #define N_SO_CC      4 /* C++ source */
 #define N_SO_FORTRAN 5 /* fortran source */
 #define N_SO_PASCAL  6 /* Pascal source */
+#define N_SO_F90     7 /* Fortran90 source */
 
 //line information data
 #define N_SLINE  0x44 /* line number in text segment */
@@ -166,6 +169,11 @@ class Object : public AObject {
   unsigned  stab_size_;          // .stab section
   Address   stabstr_off_;        // .stabstr section
 
+  Address   stab_indx_off_;	 // .stab.index section
+  unsigned  stab_indx_size_;	 // .stab.index section
+  Address   stabstr_indx_off_;	 // .stabstr.index section
+
+
   bool      EEL;                 // true if EEL rewritten
   bool      is_elf64_;           // true if Elf64 file type 
 
@@ -184,8 +192,9 @@ class Object : public AObject {
 		 bool &did_open, bool &did_mmap);
 
   bool loaded_elf(bool &, Elf* &, 
-		  Address &, Address &, Elf_Scn* &, 
-		  Elf_Scn* &, Elf_Scn* &, Elf_Scn* &,
+		  Address &, Address &, Elf_Scn* &, Elf_Scn* &, 
+		  Elf_Scn* &, Elf_Scn* &, 
+		  Elf_Scn* &, Elf_Scn* &,
 		  Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
 		  Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp,
 		  Elf_Scn*& dynstr_scnp, bool a_out=false);

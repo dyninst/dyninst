@@ -79,7 +79,7 @@ class BPATCH_DLL_EXPORT BPatch_sourceObj {
       virtual BPatch_sourceObj *getObjParent() = 0;
 
       BPatch_Vector<BPatch_variableExpr *> *findVariable(const char *name);
-      BPatch_language getLanguage();
+      BPatch_language getLanguage() { return _srcLanguage; }
       BPatch_type *getType(char *name);
       BPatch_Vector<BPatch_variableExpr *> *getVariables();
       BPatch_Vector<char *> *getLoadedFileNames();
@@ -88,6 +88,8 @@ class BPATCH_DLL_EXPORT BPatch_sourceObj {
 
   protected:
       enum BPatch_sourceType _srcType;
+      BPatch_language _srcLanguage;
+      void setLanguage(BPatch_language lang) { _srcLanguage = lang; }
 };
 
 #endif

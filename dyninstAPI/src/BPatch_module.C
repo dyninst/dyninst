@@ -553,8 +553,6 @@ void BPatch_module::parseTypes()
 		  printf("unable to find static block %s\n", staticName);
 		  staticBlockBaseAddr = 0;
 	      } else {
-		  printf("found static block variable %s, at %x\n", staticName,
-		      (unsigned) staticBlockVar->getBaseAddr());
 		  staticBlockBaseAddr = (Address) staticBlockVar->getBaseAddr();
 	      }
 	  } else if (sym->n_sclass == C_ESTAT) {
@@ -581,17 +579,20 @@ void BPatch_module::parseTypes()
 // and variables
 void BPatch_module::parseTypes()
 {
-  char *modName, *ptr;
-  image * imgPtr=NULL;
-  bool parseActive = false;
-  struct stab_entry *stabptr = NULL;
-  int stab_nsyms;
   int i;
+  char *modName;
+  int stab_nsyms;
+  char * temp=NULL;
+  image * imgPtr=NULL;
+  char *commonBlockName;
+  char *ptr, *ptr2, *ptr3;
+  bool parseActive = false;
   char *stabstr_nextoffset;
   const char *stabstrs = 0;
-  char * temp=NULL;
+  struct stab_entry *stabptr = NULL;
+  BPatch_type *commonBlock = NULL;
+  BPatch_variableExpr *commonBlockVar;
   
-
   //Using pdmodule to get the image Object.
   imgPtr = mod->exec();
   
@@ -618,6 +619,8 @@ void BPatch_module::parseTypes()
   
 
   for(i=0;i<stab_nsyms;i++){
+    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
+
     switch(stabptr[i].type){
 
     case N_UNDF: /* start of object file */
@@ -651,6 +654,32 @@ void BPatch_module::parseTypes()
 
 	    if (!strcmp(modName, mod->fileName().string_of())) {
 		parseActive = true;
+		switch (stabptr[i].desc) {
+		    case N_SO_FORTRAN:
+			setLanguage(BPatch_fortran);
+			break;
+
+		    case N_SO_F90:
+			setLanguage(BPatch_fortran90);
+			break;
+
+		    case N_SO_AS:
+			setLanguage(BPatch_assembly);
+			break;
+
+	            case N_SO_ANSI_C:
+		    case N_SO_C:
+			setLanguage(BPatch_c);
+			break;
+
+		    case N_SO_CC:
+			setLanguage(BPatch_cPlusPlus);
+			break;
+
+		    default:
+			setLanguage(BPatch_unknownLanguage);
+			break;
+		}
 	    } else {
 		parseActive = false;
 	    }
@@ -706,8 +735,12 @@ void BPatch_module::parseTypes()
   					*currentSourceFile);
             }
             break;
-		
-    case N_SLINE:
+    }
+
+    if (!parseActive) continue;
+
+    switch(stabptr[i].type){
+        case N_SLINE:
 	    //if the stab information is a line information
 	    //then insert an entry to the line info object
 	    if(!currentFunctionName) break;
@@ -717,87 +750,127 @@ void BPatch_module::parseTypes()
 			stabptr[i].val+currentFunctionBase);
 	    break;
 
-    case 32:    // Global symbols -- N_GYSM 
-    case 36:    // functions and text segments -- N_FUN
-    case 128:   // typedefs and variables -- N_LSYM
-    case 160:   // parameter variable -- N_PSYM 
-      char *ptr, *ptr2, *ptr3;
-      int currentEntry;
-      currentEntry = i;
+        case N_BCOMM:	{
+	    // begin Fortran named common block 
+	    commonBlockName = (char *) &stabstrs[stabptr[i].name];
 
-      //if it is a function stab then we have to insert an entry 
-      //to initialize the entries in the line information object
-      if(stabptr[currentEntry].type == N_FUN){
-	   ptr = new char[1024];
-      	   strcpy(ptr,(char *)&stabstrs[stabptr[currentEntry].name]);
-	   while(ptr[strlen(ptr)-1] == '\\'){
-		ptr[strlen(ptr)-1] = '\0';
-		currentEntry++;
-		strcat(ptr,(char *)&stabstrs[stabptr[currentEntry].name]);
-	   }
+	    // find the variable for the common block
+	    BPatch_image *progam = (BPatch_image *) getObjParent();
+	      
+	    commonBlockVar = progam->findVariable(commonBlockName);
+	    if (!commonBlockVar) {
+		printf("unable to find variable %s\n", commonBlockName);
+	    } else {
+		commonBlock = const_cast<BPatch_type *> (commonBlockVar->getType());
+		if (commonBlock->getDataClass() != BPatch_common) {
+		    // its still the null type, create a new one for it
+		    commonBlock = new BPatch_type(commonBlockName, false);
+		    commonBlockVar->setType(commonBlock);
+		    moduleTypes->addGlobalVariable(commonBlockName, commonBlock);
 
-	   char* colonPtr = NULL;
-	   if(currentFunctionName) delete currentFunctionName;
-	   if(!ptr || !(colonPtr = strchr(ptr,':')))
-		currentFunctionName = NULL;
-	   else{
-		char* tmp = new char[colonPtr-ptr+1];
-		strncpy(tmp,ptr,colonPtr-ptr);
-		tmp[colonPtr-ptr] = '\0';
-		currentFunctionName = new string(tmp);
-
-		currentFunctionBase = 0;
-		Symbol info;
-		if (!proc->getSymbolInfo(*currentFunctionName,info,
-				    currentFunctionBase)) {
-		   string fortranName = *currentFunctionName + string("_");
-		   if (proc->getSymbolInfo(fortranName,info,
-						       currentFunctionBase)) {
-		       delete currentFunctionName;
-		       currentFunctionName = new string(fortranName);
-		   }
+		    commonBlock->setDataClass(BPatch_common);
 		}
+		// reset field list
+		commonBlock->beginCommonBlock();
+	    }
+	    break;
+	}
 
-		currentFunctionBase += info.addr();
+        case N_ECOMM: {
+	    // copy this set of fields
+	    assert(currentFunctionName);
+	    BPatch_function *func = findFunction(currentFunctionName->string_of());
+	    if (!func) {
+		printf("unable to locate current function %s\n", currentFunctionName->string_of());
+	    } else {
+		commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
+	    }
 
-		delete[] tmp;		
-		if(currentSourceFile)
+	    // update size if needed
+	    if (commonBlockVar)
+		commonBlockVar->setSize(commonBlock->getSize());
+	    commonBlockVar = NULL;
+	    commonBlock = NULL;
+	    break;
+	}
+
+        // case C_BINCL: -- what is the elf version of this jkh 8/21/01
+        // case C_EINCL: -- what is the elf version of this jkh 8/21/01
+        case 32:    // Global symbols -- N_GYSM 
+        case N_FUN:
+        case 128:   // typedefs and variables -- N_LSYM
+        case 160:   // parameter variable -- N_PSYM 
+	    int currentEntry;
+	    currentEntry = i;
+
+	    //if it is a function stab then we have to insert an entry 
+            //to initialize the entries in the line information object
+            if(stabptr[currentEntry].type == N_FUN){
+	        ptr = new char[1024];
+      	        strcpy(ptr,(char *)&stabstrs[stabptr[currentEntry].name]);
+	        while(ptr[strlen(ptr)-1] == '\\'){
+		     ptr[strlen(ptr)-1] = '\0';
+		     currentEntry++;
+		     strcat(ptr,(char *)&stabstrs[stabptr[currentEntry].name]);
+	        }
+
+	        char* colonPtr = NULL;
+	        if(currentFunctionName) delete currentFunctionName;
+	        if(!ptr || !(colonPtr = strchr(ptr,':')))
+		     currentFunctionName = NULL;
+	        else {
+		     char* tmp = new char[colonPtr-ptr+1];
+		     strncpy(tmp,ptr,colonPtr-ptr);
+		     tmp[colonPtr-ptr] = '\0';
+		     currentFunctionName = new string(tmp);
+
+		     currentFunctionBase = 0;
+		     Symbol info;
+		     if (!proc->getSymbolInfo(*currentFunctionName,info,
+				    currentFunctionBase)) {
+		        string fortranName = *currentFunctionName + string("_");
+		        if (proc->getSymbolInfo(fortranName,info, currentFunctionBase)) {
+		            delete currentFunctionName;
+		            currentFunctionName = new string(fortranName);
+		        }
+		     }
+
+		     currentFunctionBase += info.addr();
+
+		     delete[] tmp;		
+		     if(currentSourceFile)
 			lineInformation->insertSourceFileName(
 				*currentFunctionName,
 				*currentSourceFile);
-	   }
-	   delete ptr;
-      } 
+	        }
+	        delete ptr;
+             } 
 
-      if (!parseActive) break;
+	     ptr = (char *) &stabstrs[stabptr[i].name];
+             while (ptr[strlen(ptr)-1] == '\\') {
+	        //ptr[strlen(ptr)-1] = '\0';
+	          ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
+	          ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
+	          strcpy(ptr3, ptr);
+	          ptr3[strlen(ptr)-1] = '\0';
+	          strcat(ptr3, ptr2);
+	          
+	          ptr = ptr3;
+	          i++;
+	          // XXX - memory leak on multiple cont. lines
+              }
 
-      ptr = (char *) &stabstrs[stabptr[i].name];
-      while (ptr[strlen(ptr)-1] == '\\') {
-	//ptr[strlen(ptr)-1] = '\0';
-	  ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
-	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
-	  strcpy(ptr3, ptr);
-	  ptr3[strlen(ptr)-1] = '\0';
-	  strcat(ptr3, ptr2);
-	  
-	  ptr = ptr3;
-	  i++;
-	  // XXX - memory leak on multiple cont. lines
-      }
-
-      // printf("stab #%d = %s\n", i, ptr);
-      // may be nothing to parse - XXX  jdd 5/13/99
-      temp = parseStabString(this, stabptr[i].desc, (char *)ptr, 
-	  stabptr[i].val);
-      if (*temp) {
-	  //Error parsing the stabstr, return should be \0
-	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
-	      temp);
-      }
-      break;
-
-    default:
-      break;
+              // printf("stab #%d = %s\n", i, ptr);
+              // may be nothing to parse - XXX  jdd 5/13/99
+              temp = parseStabString(this, stabptr[i].desc, (char *)ptr, stabptr[i].val, commonBlock);
+              if (*temp) {
+	          //Error parsing the stabstr, return should be \0
+	          fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
+	              temp);
+              }
+              break;
+        default:
+              break;
     }       		    
   }
 }
