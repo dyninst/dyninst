@@ -37,12 +37,15 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.2 1997/05/20 01:29:24 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.3 1997/05/20 08:29:19 tung Exp $";
 #endif
 
 /*
  *
  * $Log: graph3d.c,v $
+ * Revision 1.3  1997/05/20 08:29:19  tung
+ * Revised on resizing the maxZ, change the xlabel and zlabel format.
+ *
  * Revision 1.2  1997/05/20 01:29:24  tung
  * put up the paradyn logo.
  *
@@ -89,6 +92,8 @@ static xtick();
 static ytick();
 static ztick();
 
+static int timeAxis = 0;  /* 0 - display as min:sec  */
+			  /* 1 - display as hour:min */
 
 #ifndef max		/* Lattice C has max() in math.h, but shouldn't! */
 #define max(a,b) ((a > b) ? a : b)
@@ -139,6 +144,12 @@ typedef float transform_matrix[16];
 #define map_x3d(x) ((x-x_min3d)*xscale3d-1.0)
 #define map_y3d(y) ((y-y_min3d)*yscale3d-1.0)
 #define map_z3d(z) ((z-z_min3d)*zscale3d-1.0)
+
+void changeXFormat(format)
+int format;
+{
+   timeAxis = format;
+}
 
 static mat_unit(mat)
 transform_matrix mat;
@@ -1468,6 +1479,7 @@ static xtick(place, text, spacing, ticscale, ypos, z_min)
     int x0,y0,x1,y1,x2,y2,x3,y3;
     int ticsize = (int)((t->h_tic) * ticscale);
     float v[2], len;
+    int hour, min, sec;
 
     place = CheckZero(place,spacing); /* to fix rounding error near zero */
 
@@ -1519,7 +1531,30 @@ static xtick(place, text, spacing, ticscale, ypos, z_min)
     if (text == NULL)
 	 text = xformat;
 
-    (void) sprintf(ticlabel, text, CheckLog(log_x, place));
+      sec = (int)place % 60;
+      min = place / 60;
+    
+      if (min > 60)
+      {
+         hour = min / 60;
+         min %= 60;
+      }
+
+
+   
+    if (timeAxis == 0)
+    {
+       (void) sprintf(ticlabel, "%d%s%.2d", min, ":", sec);
+       strcpy(xlabel, "time (min:sec)");
+    }
+    else
+    {
+       (void) sprintf(ticlabel, "%d%s%.2d", hour, ":", min);
+       strcpy(xlabel, "time (hour:min)");
+    }
+       
+   // (void) sprintf(ticlabel, text, CheckLog(log_x, place));
+
     if (apx_eq(v[0], 0.0)) {
     	if ((*t->justify_text)(CENTRE)) {
     	    clip_put_text(x3,y3,ticlabel);

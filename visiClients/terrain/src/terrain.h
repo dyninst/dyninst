@@ -24,6 +24,9 @@
  * terrain.h - header file of terrain.c.
  *
  * $Log: terrain.h,v $
+ * Revision 1.2  1997/05/20 08:29:21  tung
+ * Revised on resizing the maxZ, change the xlabel and zlabel format.
+ *
  * Revision 1.1  1997/05/12 20:15:45  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -88,10 +91,6 @@ extern Widget w_top;
 extern Window win;
 
 extern vchar;			/* Height of the default font */
-
-extern void setNotFt();
-
-#define firstTime 1;
 
 #define X(x) (Dimension) (x * xscale)
 #define Y(y) (Dimension) ((4095-y) * yscale)

@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/colorize.c,v 1.2 1997/05/19 19:43:02 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/colorize.c,v 1.3 1997/05/20 08:29:12 tung Exp $";
 #endif
 
 /*
  * colorize.c - colorize surfaces according to their height.
  *
  * $Log: colorize.c,v $
+ * Revision 1.3  1997/05/20 08:29:12  tung
+ * Revised on resizing the maxZ, change the xlabel and zlabel format.
+ *
  * Revision 1.2  1997/05/19 19:43:02  tung
  * Make the axis appears before the curve surface shows up.
  *
@@ -93,7 +96,8 @@ int pix_map;
    static ticLst_t tics=NULL;
    ticLst_t curTic;
    ptLst_t drawLst, curPt;
-   
+   ticLst_t next;
+
    int i;
    float curZ, ticSize;
 
@@ -102,8 +106,12 @@ int pix_map;
 
    if (remap == -1 && tics != NULL)
    {
-      for (i = 0; tics->next != NULL; tics = tics->next)
-          free(tics);
+      while(tics->next != NULL)
+      {
+           next = tics->next;
+	   free(tics);
+           tics = next;
+      }
 
       free(tics);
       tics = NULL;

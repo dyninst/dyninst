@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.6 1997/05/19 20:51:22 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.7 1997/05/20 08:29:18 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.7  1997/05/20 08:29:18  tung
+ * Revised on resizing the maxZ, change the xlabel and zlabel format.
+ *
  * Revision 1.6  1997/05/19 20:51:22  tung
  * Revised: the max. of Z is 1.5 times of current curves->maxz.
  *
@@ -83,7 +86,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 
 #include "plot.h"
 #include "setshow.h"
-
+#include "graph3d.h"
 #include "misc.h"
 #include "smooth.h"
 #include "command.h"
@@ -239,6 +242,20 @@ float zmax;
   return i;
 
 }
+
+void copyResName(destination, source)
+char *destination;
+char *source;
+{
+  int i = 1;
+
+  while (source[i] != '/')
+        i++;
+
+  strcpy(destination, source + i + 1);
+
+}
+
 
 
 
@@ -407,7 +424,7 @@ Window win;
 
       if (curves->points[startIndex + firstSample + i].z > curves->z_max)
       {   
-         curves->z_max = curves->points[startIndex + firstSample + i].z * 2;
+         curves->z_max = curves->points[startIndex + firstSample + i].z * 1.5;
 	 decimal = checkDecimal(curves->z_max);
 	 if (decimal == -1)
 	    changeDecimal(0);
@@ -421,7 +438,11 @@ Window win;
 	                                               x_interval;
       if (curves->points[startIndex + firstSample + i].x > curves->x_max)
       {
-        curves->x_max *= 1.5;
+        curves->x_max *= 2;
+
+        if (curves->x_max > 3600)
+           changeXFormat(1);
+
         change = 1;
       }
    
@@ -457,7 +478,6 @@ Window win;
                XClearArea(dpy, win, 0, 0, 0, 0, True);
 
                ProcessNewSegments(firstSample + i);
-	       setNotFt();
                change = 0;
             }
 	    else
@@ -556,7 +576,6 @@ int no_curves;
     first_label = (struct text_label*)terrain_alloc(sizeof(struct text_label));
     currentLabel = first_label;
 
-    strcpy(xlabel, "time in seconds");    
     strcpy(zlabel, axis_label);
 
   }
@@ -600,7 +619,7 @@ int no_curves;
   currentLabel->y = y_value;
   currentLabel->z = 0;
   currentLabel->next = 0;
-  strcpy(currentLabel->text, r_name);
+  copyResName(currentLabel->text, r_name);
 
   return curveID;
 

@@ -16,6 +16,9 @@
  * graph3d.h - header file for graph3d.c
  *
  * $Log: graph3d.h,v $
+ * Revision 1.2  1997/05/20 08:29:19  tung
+ * Revised on resizing the maxZ, change the xlabel and zlabel format.
+ *
  * Revision 1.1  1997/05/12 20:15:29  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -24,3 +27,7 @@
  *
  *
  */
+
+
+extern void changeXFormat(int);
+

@@ -21,13 +21,16 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.4 1997/05/20 01:29:25 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.5 1997/05/20 08:29:20 tung Exp $";
 #endif
 
 /*
  * terrain.c - main entry point and x driver.
  *
  * $Log: terrain.c,v $
+ * Revision 1.5  1997/05/20 08:29:20  tung
+ * Revised on resizing the maxZ, change the xlabel and zlabel format.
+ *
  * Revision 1.4  1997/05/20 01:29:25  tung
  * put up the paradyn logo.
  *
@@ -140,8 +143,6 @@ String fallback_resources[] = {
  NULL,
 };
 
-
-static int ft;
 static int numGroups;
 static int phase_displayed;
 static Widget input;
@@ -155,14 +156,6 @@ struct HistData {
     unsigned resource;
     int      groupId;
 };
-
-
-void setNotFt()
-{
-  ft = 0;
-
-}
-
 
 static int get_groupId(const char *axis_label){
 
@@ -382,7 +375,6 @@ main(argc, argv) int argc; char *argv[]; {
    
    phase_displayed = 0;
    numGroups = 0;
-   ft = 1;
 
 /**************************modified section ends ************************************
  ************************************************************************************/
@@ -612,7 +604,6 @@ init_pixmap()
 X11_vector(x,y)
 unsigned int x,y;
 {
-   if (ft == 1)
       XDrawLine(dpy, win, gc, X(cx), Y(cy), X(x), Y(y));
 
    XDrawLine(dpy, pixmap, gc, X(cx), Y(cy), X(x), Y(y));
@@ -656,14 +647,12 @@ char *str;
 
    if (!color_disp) 
    {
-      if (ft == 1)
 	 XDrawString(dpy, win, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
 
       XDrawString(dpy, pixmap, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
    }
    else { 
       XSetForeground(dpy, gc, colors[0]);
-      if (ft == 1)
 	 XDrawString(dpy, win, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
 
       XDrawString(dpy, pixmap, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
