@@ -1242,7 +1242,7 @@ void pd_Function::checkCallPoints()
     
     Address tgt_addr = findTarget(ip);
     if (tgt_addr) {
-      pd_Function *tgt_fn = file_->exec()->findFunction(tgt_addr);
+      pd_Function *tgt_fn = file_->exec()->findFuncByAddr(tgt_addr);
       ip->setCallee(tgt_fn); // possibly NULL
       // NOTE: (target == fnStart) => optimized recursive call
       if (!tgt_fn && tgt_addr > fnStart && tgt_addr < fnStart + size()) {
@@ -4396,7 +4396,7 @@ static function_base *findFunctionLikeRld(process *p, const string &fn_name)
 
   // pass #2: leading underscore (C)
   name = "_" + fn_name;
-  ret = p->findOneFunctionFromAll(name);
+  ret = p->findFuncByName(name);
   if (ret)
     {
       TRACE_E( "findFunctionLikeRld" );
