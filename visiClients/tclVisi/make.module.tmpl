@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.9  1996/02/23 17:50:34  tamches
+# now don't need to have visilib checked out to compile tclVisi
+#
 # Revision 1.8  1996/01/17 18:32:29  newhall
 # changes due to new visiLib
 #
@@ -44,6 +47,12 @@ VPATH 	     += ../../../paradyn/src/UIthread
 
 IFLAGS	     += -I../../../util/h \
 		-I../../../paradyn/src/UIthread
+
+# if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
+# inserted by make.config won't be enough for the compiler to find,
+# say, visi/h/visualization.h.  We don't want to force the user to have
+# "visi" checked out in order to compile tclVisi.
+IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I/p/paradyn/core; fi )
 
 LIBS         += -lvisi -lhist -lpdutil 
 SYSLIBS      += -ltk -ltcl -lX11 -lm
