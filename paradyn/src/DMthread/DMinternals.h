@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.9  1994/03/24 16:41:19  hollings
+ * Revision 1.10  1994/03/25 22:59:31  hollings
+ * Made the data manager tolerate paraynd's dying.
+ *
+ * Revision 1.9  1994/03/24  16:41:19  hollings
  * Added support for multiple paradynd's at once.
  *
  * Revision 1.8  1994/03/22  21:02:54  hollings
@@ -67,6 +70,9 @@ class paradynDaemon: public dynRPCUser {
 
 		allDaemons.add(this);
 	}
+
+	~paradynDaemon();
+	
 	void reportSelf (String m, String p, int pd);
         char *machine;
         char *login;
@@ -117,6 +123,7 @@ class applicationContext {
  	    errorFunc = ef;
 	}
         addDaemon (int new_fd);
+        void removeDaemon(paradynDaemon *d, Boolean informUser);
 	addExecutable(char  *machine,
                       char *login,
                       char *name,
@@ -233,9 +240,7 @@ class metricInstance {
 
 	    if (!data) abort();
 	    ret = data->getValue();
-	    if (met->getStyle() != MetStyleSampledFunction) {
-		ret /= enabledTime;
-	    }
+	    ret /= enabledTime;
 	    return(ret);
 	}
 	int count;		// active users (perfStreams)

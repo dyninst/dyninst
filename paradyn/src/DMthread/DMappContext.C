@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.12  1994/03/24 16:41:18  hollings
+ * Revision 1.13  1994/03/25 22:59:28  hollings
+ * Made the data manager tolerate paraynd's dying.
+ *
+ * Revision 1.12  1994/03/24  16:41:18  hollings
  * Added support for multiple paradynd's at once.
  *
  * Revision 1.11  1994/03/22  21:02:53  hollings
@@ -105,9 +108,43 @@ int applicationContext::addDaemon (int new_fd)
   // The pid is reported later in an upcall
   // paradynDdebug (new_daemon->pid);
 
+  daemons.add(new_daemon);
+
   return (0);
 }
 
+//
+// Dispose of daemon state.
+//    This is called because someone wants to kill a daemon, or the daemon
+//       died and we need to cleanup after it.
+//
+void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
+{
+    executable *e;
+    List<executable*> progs;
+
+    if (informUser) {
+	printf("paradynd (pid %d) had died\n", d->pid);
+    }
+
+    daemons.remove(d);
+
+    //
+    // Delete executables running on the dead paradyn daemon.
+    //
+    for (progs = programs; e = *progs; progs++) {
+       if (e->controlPath == d) {
+	   programs.remove(e);
+	   delete(e);
+       }
+    }
+
+    // tell the thread package to ignore the fd to the daemon.
+    msg_unbind(d->fd);
+
+    delete(d);
+
+}
 
 //
 // add a new executable (binary) to a program.
@@ -153,6 +190,9 @@ int applicationContext::addExecutable(char  *machine,
     programToRun.count = argc;
     programToRun.data = argv;
     pid = daemon->addExecutable(argc, programToRun);
+    if (daemon->callErr == -1) {
+	removeDaemon(daemon, TRUE);
+    }
     // did the application get started ok?
     if (pid > 0) {
 	// TODO
@@ -240,7 +280,11 @@ void applicationContext::printStatus()
 
     for (curr = programs; exec = *curr; curr++) {
 	status = exec->controlPath->getStatus(exec->pid);
-	printf("%s\n", status);
+	if (exec->controlPath->callErr < 0) {
+	    removeDaemon(exec->controlPath, TRUE);
+	} else {
+	    printf("%s\n", status);
+	}
     }
 }
 
@@ -298,12 +342,17 @@ float applicationContext::getPredictedDataCost(resourceList *rl, metric *m)
 {
     double val, max;
     String_Array ra;
+    paradynDaemon *daemon;
     List<paradynDaemon*> curr;
 
     ra = convertResourceList(rl);
     max = 0.0;
     for (curr = daemons; *curr; curr++) {
-	val = (*curr)->getPredictedDataCost(ra, m->getName());
+	daemon = *curr;
+	val = daemon->getPredictedDataCost(ra, m->getName());
+	if (daemon->callErr == -1) {
+	    removeDaemon(daemon, TRUE);
+	}
 	if (val > max) val = max;
     }
     return(max);
@@ -349,6 +398,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     String_Array ra;
     Boolean foundOne;
     metricInstance *mi;
+    paradynDaemon *daemon;
     List<paradynDaemon*> curr;
 
     ra = convertResourceList(rl);
@@ -358,8 +408,11 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     //
     mi = new metricInstance(rl, m);
     foundOne = FALSE;
-    for (curr = daemons; *curr; curr++) {
-	id = (*curr)->enableDataCollection(ra, m->getName());
+    for (curr = daemons; daemon = *curr; curr++) {
+	id = daemon->enableDataCollection(ra, m->getName());
+	if (daemon->callErr == -1) {
+	    removeDaemon(daemon, TRUE);
+	}
 	if (id > 0) {
 	    comp = new component(*curr, id, mi);
 	    mi->components.add(comp, (void *) *curr);

@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.10  1994/03/24 16:41:20  hollings
+ * Revision 1.11  1994/03/25 22:59:33  hollings
+ * Made the data manager tolerate paraynd's dying.
+ *
+ * Revision 1.10  1994/03/24  16:41:20  hollings
  * Added support for multiple paradynd's at once.
  *
  * Revision 1.9  1994/03/21  20:32:48  hollings
@@ -240,6 +243,19 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     if (ret.valid) {
 	mi->enabledTime += ret.end - ret.start;
 	mi->data->addInterval(ret.start, ret.end, ret.value, FALSE);
+    }
+}
+
+paradynDaemon::~paradynDaemon() {
+    metricInstance *mi;
+    HTable<metricInstance*> curr;
+
+    allDaemons.remove(this);
+
+    // remove the metric ID as required.
+    for (curr = activeMids; mi = *curr; curr++) {
+	mi->parts.remove(this);
+	mi->components.remove(this);
     }
 }
 
