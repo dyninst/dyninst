@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.9  1994/11/03 20:23:17  karavan
+# Revision 1.10  1994/11/04 16:30:00  rbi
+# Auto placement of process defn dialog, and radio buttons for daemons.
+#
+# Revision 1.9  1994/11/03  20:23:17  karavan
 # Changes to overall look to fit into paradyn UI.
 #
 # Revision 1.8  1994/11/03  17:59:38  rbi
@@ -30,14 +33,27 @@
 # initial version.
 #
 
+set applicDaemon defd
+
 proc DefineProcess {} {
-global env
+  global env applicDaemon applicUser applicMachine applicCmd 
+
   set W .pDefn
   catch {destroy $W}
   toplevel $W
   wm title $W "Process Defn"
   wm iconname $W "Process Defn"
 
+# force the window to a happy location
+  set baseGeom [wm geometry .]
+  set Xbase 0
+  set Ybase 0
+  set Xoffset 30
+  set Yoffset 30
+  scan $baseGeom "%*dx%*d+%d+%d" Xbase Ybase
+  wm geometry .pDefn [format "+%d+%d" [expr $Xbase + $Xoffset] \
+                                      [expr $Ybase + $Yoffset]]
+ 
 # define all of the main frames
   set T $W.title
   label $T -text "Define A Process" \
@@ -65,18 +81,22 @@ global env
   frame $D.machine -border 2
   label $D.machine.lbl -text "Machine: " -anchor e -width 12
   entry $D.machine.ent -width 50 -textvariable applicMachine -relief sunken
-  bind $D.machine.ent <Tab> "focus $D.daemon.ent"
+  bind $D.machine.ent <Tab> "focus $D.cmd.ent"
   bind $D.machine.ent <Return> "$B.1 invoke"
   pack $D.machine -side top -expand yes -fill x
   pack $D.machine.lbl $D.machine.ent -side left -expand yes -fill x
-
+  
+  set daemons [paradyn daemons]
   frame $D.daemon -border 2
   label $D.daemon.lbl -text "Daemon: " -anchor e -width 12
-  entry $D.daemon.ent -width 50 -textvariable applicDaemon -relief sunken
-  bind $D.daemon.ent <Tab> "focus $D.cmd.ent"
-  bind $D.daemon.ent <Return> "$B.1 invoke"
   pack $D.daemon -side top -expand yes -fill x
-  pack $D.daemon.lbl $D.daemon.ent -side left -expand yes -fill x
+  pack $D.daemon.lbl -side left -expand no -fill x
+  foreach d $daemons {
+    radiobutton $D.daemon.$d -text $d -variable applicDaemon -value $d \
+	-relief flat
+    pack $D.daemon.$d -side left -expand yes -fill x
+  }
+  $D.daemon.$applicDaemon invoke
 
   frame $D.cmd -border 2
   label $D.cmd.lbl -text "Command: " -anchor e -width 12
@@ -119,3 +139,5 @@ proc AcceptNewApplicDefn {user machine daemon cmd} {
   }
   destroy .pDefn
 }
+
+
