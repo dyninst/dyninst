@@ -118,11 +118,11 @@ extern int P_strcasecmp(const char *s1, const char *s2);
 extern int P_strncasecmp (const char *S1, const char *S2, size_t N);
 extern int P_endservent(void);
 
-/* Ugly */
-extern "C" int ptrace(int req, int pid, char *addr, int data, char *addr2);
+/* Ugly - but this is fixed in AIX 4.1 */
+extern "C" int ptrace(int request, int id, int *address, int data, int *buffer);
 
 inline int P_ptrace(int req, int pid, char *addr, int data, char *addr2)
-  { return(ptrace(req, pid, addr, data, addr2));}
+  { return(ptrace(req, pid, (int *) addr, data, (int *) addr2));}
 
 extern int P_rexec(char **ahost, u_short inport, char *user, char *passwd, char *cmd, int *fd2p);
 
