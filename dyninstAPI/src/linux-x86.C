@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.13 2003/01/03 21:57:36 bernat Exp $
+// $Id: linux-x86.C,v 1.14 2003/01/24 22:53:35 zandy Exp $
 
 #include <fstream.h>
 
@@ -211,6 +211,15 @@ bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs */*ignored registers*/
   return true;
 }
 
+bool dyn_lwp::clearOPC() {
+  Address regaddr = ORIG_EAX * INTREGSIZE;
+  if (0 != P_ptrace(PTRACE_POKEUSER, proc_->getPid(), regaddr, -1UL)) {
+    perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
+    return false;
+  }
+  return true;
+}
+
 static bool changeBP(int pid, Address loc) {
   Address regaddr = EBP * INTREGSIZE;
   if (0 != P_ptrace (PTRACE_POKEUSER, pid, regaddr, loc )) {
@@ -245,17 +254,7 @@ void printRegs( void *save ) {
 
 bool dyn_lwp::executingSystemCall() 
 {
-  // From the program strace, it appears that a non-negative number
-  // in the ORIG_EAX register of the inferior process indicates
-  // that it is in a system call, and is the number of the system
-  // call. - nash
-  
-  Address regaddr = ORIG_EAX * INTREGSIZE;
-  int res;
-  res = P_ptrace ( PTRACE_PEEKUSER, proc_->getPid(), regaddr, 0 );
-  if( res < 0 )
-    return false;
-  return true;
+  return false;
 }
 
 bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {

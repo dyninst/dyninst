@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.378 2003/01/21 17:47:17 bernat Exp $
+// $Id: process.C,v 1.379 2003/01/24 22:53:35 zandy Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5732,7 +5732,24 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
          if (wasRunning) continueProc();
          return false;
       }  
-    
+#if defined(i386_unknown_linux2_0)
+      // handle system call interruption:
+      // if we interupted a system call, this clears the state that
+      // would cause the OS to restart the call when we run the rpc.
+      // if we did not, this is a no-op.
+      // after the rpc, an interrupted system call will
+      // be restarted when we restore the original
+      // registers (restore undoes clearOPC)
+      // note that executingSystemCall is always false on this platform.
+      if (!inProgress.lwp->clearOPC())
+      {
+         cerr << "launchRPCifAppropriate failed because clearOPC() failed"
+	      << endl;
+         if (wasRunning) continueProc();
+         return false;
+      }
+#endif
+
       thrRunningRPC = true;
 
       if (inProgress.thr) {

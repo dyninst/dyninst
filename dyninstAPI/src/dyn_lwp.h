@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.8 2003/01/03 21:57:33 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.9 2003/01/24 22:53:35 zandy Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -87,7 +87,9 @@ class dyn_lwp
   // Changes PC to the given address. If regs is non-NULL,
   // sets register values as above (restoreRegisters), then changes PC
   bool changePC(Address addr, struct dyn_saved_regs *regs);
-
+#if defined(i386_unknown_linux2_0)
+  bool clearOPC();
+#endif
   // Partially implemented: will return default iRPC result value
   // on many platforms, ignoring register argument
   Address readRegister(Register reg);
