@@ -46,6 +46,7 @@
 #include <limits.h>
 #include "util/h/headers.h"
 #include "fastInferiorHeap.h"
+#include "rtinst/h/rtinst.h" // for time64
 
 template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::handleExec() {
@@ -357,8 +358,8 @@ void fastInferiorHeap<HK, RAW>::garbageCollect(const vector<unsigned> &PCs) {
 }
 
 template <class HK, class RAW>
-bool fastInferiorHeap<HK, RAW>::doMajorSample(unsigned long long, // wall time
-					      unsigned long long // process time
+bool fastInferiorHeap<HK, RAW>::doMajorSample(time64, // wall time
+					      time64  // process time
 					      ) {
    // return true iff a complete sample was made
    // theWallTime passed in should be in microsecs (since what time?)

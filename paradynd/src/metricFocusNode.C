@@ -872,7 +872,7 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
     allMIComponents[newComponentFlatName] = mi;
 
     // Duplicate the dataReqNodes:
-    for (unsigned u = 0; u < dataRequests.size(); u++) {
+    for (unsigned u1 = 0; u1 < dataRequests.size(); u1++) {
        // must add to midToMiMap[] before dup() to avoid some assert fails
        const int newCounterId = metricDefinitionNode::counterId++;
           // no relation to mi->getMId();
@@ -880,7 +880,7 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
        assert(!midToMiMap.defines(newCounterId));
        midToMiMap[newCounterId] = mi;
        
-       dataReqNode *newNode = dataRequests[u]->dup(child, mi, newCounterId, map);
+       dataReqNode *newNode = dataRequests[u1]->dup(child, mi, newCounterId, map);
          // remember, dup() is a virtual fn, so the right dup() and hence the
          // right fork-ctor is called.
        assert(newNode);
@@ -889,8 +889,8 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
     }
 
     // Duplicate the instReqNodes:
-    for (unsigned u = 0; u < instRequests.size(); u++) {
-      mi->instRequests += instReqNode::forkProcess(instRequests[u], map);
+    for (unsigned u2 = 0; u2 < instRequests.size(); u2++) {
+      mi->instRequests += instReqNode::forkProcess(instRequests[u2], map);
     }
 
     mi->inserted_ = true;
@@ -959,8 +959,8 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
       bool shouldBePropagated = false; // so far
       bool shouldBeUnforkedIfNotPropagated = false; // so far
       assert(comp->aggregators.size() > 0);
-      for (unsigned agglcv=0; agglcv < comp->aggregators.size(); agglcv++) {
-	 metricDefinitionNode *aggMI = comp->aggregators[agglcv];
+      for (unsigned agglcv1=0; agglcv1 < comp->aggregators.size(); agglcv1++) {
+	 metricDefinitionNode *aggMI = comp->aggregators[agglcv1];
 
 	 if (aggMI->focus_[resource::process].size() == 1) {
 	    // wasn't specific to any process
@@ -999,8 +999,8 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
          // initializes.  Basically, copies dataReqNode's and instReqNode's.
 
       bool foundAgg = false;
-      for (unsigned agglcv=0; agglcv < comp->aggregators.size(); agglcv++) {
-	 metricDefinitionNode *aggMI = comp->aggregators[agglcv];
+      for (unsigned agglcv2=0; agglcv2 < comp->aggregators.size(); agglcv2++) {
+	 metricDefinitionNode *aggMI = comp->aggregators[agglcv2];
 	 if (aggMI->focus_[resource::process].size() == 1) {
 	    // this aggregate mi wasn't specific to any process, so it gets the new
 	    // child component.
@@ -1630,7 +1630,7 @@ void processSample(int /* pid */, traceHeader *h, traceSample *s)
 
     unsigned mid = s->id.id; // low-level counterId (see primitives.C)
 
-    static long long firstWall = 0;
+    static time64 firstWall = 0;
 
     static bool firstTime = true;
 
@@ -1862,7 +1862,7 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
    ast = new AstNode("DYNINSTreportCounter", tmp);
    removeAst(tmp);
 
-   instPoint *func_entry = sampleFunction->funcEntry(theProc);
+   instPoint *func_entry = (instPoint *)sampleFunction->funcEntry(theProc);
    sampler = addInstFunc(theProc, func_entry,
 			 ast, callPreInsn, orderLastAtPoint, false);
    removeAst(ast);
@@ -2304,7 +2304,7 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
    ast = new AstNode("DYNINSTreportTimer", tmp);
    removeAst(tmp);
 
-   instPoint *func_entry = sampleFunction->funcEntry(theProc);
+   instPoint *func_entry = (instPoint *)sampleFunction->funcEntry(theProc);
    sampler = addInstFunc(theProc, func_entry, ast,
 			 callPreInsn, orderLastAtPoint, false);
    removeAst(ast);
@@ -2772,7 +2772,7 @@ void reportInternalMetrics(bool force)
 	internalMetric::eachInstance &theInstance = theIMetric->getEnabledInstance(v);
            // not "const" since bumpCumulativeValueBy() may be called
 
-	sampleValue value = 0;
+	sampleValue value = (sampleValue) 0;
         if (theIMetric->name() == "active_processes") {
 	  //value = (end - start) * activeProcesses;
 	  value = (end - start) * theInstance.getValue();

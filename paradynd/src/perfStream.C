@@ -345,307 +345,6 @@ void doDeferredRPCs() {
    }
 }
 
-// TODO -- make this a process method
-int handleSigChild(int pid, int status)
-{
-
-#ifdef rs6000_ibm_aix4_1
-    // On AIX, we get sigtraps on fork and load, and must handle
-    // these cases specially
-    extern bool handleAIXsigTraps(int, int);
-    if (handleAIXsigTraps(pid, status)) {
-      return 0;
-    }
-    /* else check for regular traps and signals */
-#endif
-
-    // ignore signals from unknown processes
-    process *curr = findProcess(pid);
-    if (!curr) {
-       forkexec_cerr << "handleSigChild pid " << pid << " is an unknown process." << endl;
-       forkexec_cerr << "WIFSTOPPED=" << (WIFSTOPPED(status) ? "true" : "false");
-       if (WIFSTOPPED(status)) {
-	  forkexec_cerr << "WSTOPSIG=" << WSTOPSIG(status);
-       }
-       forkexec_cerr << endl << flush;
-       return -1;
-    }
-
-    if (WIFSTOPPED(status)) {
-	int sig = WSTOPSIG(status);
-	switch (sig) {
-
-	    case SIGTSTP:
-		sprintf(errorLine, "process %d got SIGTSTP", pid);
-		statusLine(errorLine);
-		curr->Stopped();
-		break;
-
-	    case SIGTRAP: {
-		// Note that there are now several uses for SIGTRAPs in paradynd.
-		// The original use was to detect when a ptraced process had
-		// started up.  Several have been added.  We must be careful
-		// to make sure that uses of SIGTRAPs do not conflict.
-
-	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid() << " status=" << curr->getStatusAsString() << endl;
-		const bool wasRunning = (curr->status() == running);
-		curr->status_ = stopped; // probably was 'neonatal'
-
-		//If the list is not empty, it means some previous
-		//instrumentation has yet need to be finished.
-		if (instWList.size() != 0) {
-	            // cerr << "instWList is full" << endl;
-		    if(curr -> cleanUpInstrumentation(wasRunning)){
-		        break; // successfully processed the SIGTRAP
-                    }
-		}
-
-		if (curr->handleTrapIfDueToRPC()) {
-		   inferiorrpc_cerr << "processed RPC response in SIGTRAP" << endl;
-		   break;
-		}
-
-		if (curr->inExec) {
-		   // the process has executed a succesful exec, and is now
-		   // stopped at the exit of the exec call.
-
-		   forkexec_cerr << "SIGTRAP: inExec is true, so doing process::handleExec()!" << endl;
-		   string buffer = string("process ") + string(curr->getPid()) +
-		                   " has performed exec() syscall";
-		   statusLine(buffer.string_of());
-
-		   // call handleExec to clean our internal data structures, reparse
-		   // symbol table.  handleExec does not insert instrumentation or do
-		   // any propagation.  Why not?  Because it wouldn't be safe -- the
-		   // process hasn't yet been bootstrapped (run DYNINST, etc.)  Only
-		   // when we get the breakpoint at the end of DYNINSTinit() is it safe
-		   // to insert instrumentation and allocate timers & counters...
-		   curr->handleExec();
-
-		   // need to start resourceBatchMode here because we will call
-		   //  tryToReadAndProcessBootstrapInfo which
-		   // calls tp->resourceBatchMode(false)
-		   tp->resourceBatchMode(true);
-
-		   // set reachedFirstBreak to false here, so we execute
-		   // the code below, and insert the initial instrumentation
-		   // in the new image. (Actually, this is already done by handleExec())
-		   curr->reachedFirstBreak = false;
-
-		   // fall through...
-		}
-
-                // Now we expect that this TRAP is the initial trap sent when a ptrace'd
-		// process completes startup via exec (or when an exec syscall was
-		// executed in an already-running process).
-                // But we must query 'reachedFirstBreak' because on machines where we
-		// attach/detach on pause/continue, a TRAP is generated on each pause!
-
-		if (!curr->reachedFirstBreak) { // vrble should be renamed 'reachedFirstTrap'
-	           // cerr << "!reachedFirstBreak" << endl;
-		   string buffer = string("PID=") + string(pid);
-		   buffer += string(", passed trap at start of program");
-		   statusLine(buffer.string_of());
-
-//		   (void)(curr->findDynamicLinkingInfo()); // SHOULD THIS BE HERE???
-
-		   curr->reachedFirstBreak = true;
-
-		   buffer=string("PID=") + string(pid) + ", installing call to DYNINSTinit()";
-		   statusLine(buffer.string_of());
-
-		   curr->installBootstrapInst();
-			
-		   // now, let main() and then DYNINSTinit() get invoked.  As it
-		   // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
-		   // we read bootstrap information "sent back" (in a global vrble),
-		   // propagate metric instances, do tp->newProgramCallbackFunc(), etc.
-		   if (!curr->continueProc()) {
-		      cerr << "continueProc after installBootstrapInst() failed, so DYNINSTinit() isn't being invoked yet, which it should!" << endl;
-		   }
-		   else {
-		      buffer=string("PID=") + string(pid) + ", running DYNINSTinit()...";
-		      statusLine(buffer.string_of());
-		   }
-		}
-		else {
-		   signal_cerr << "SIGTRAP not handled for pid " << pid << " so just leaving process in stopped state" << endl << flush;
-		}
-
-		break;
-	    }
-
-	    case SIGSTOP:
-	    case SIGINT: {
-	        signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << curr->getPid() << endl;
-
-		const processState prevStatus = curr->status_;
-		// assert(prevStatus != stopped); (bombs on sunos and AIX, when lots of spurious sigstops are delivered)
-
-		curr->status_ = stopped;
-		   // the following routines expect (and assert) this status.
-
-		int result = curr->procStopFromDYNINSTinit();
-		assert(result >=0 && result <= 2);
-		if (result != 0) {
-		   forkexec_cerr << "processed SIGSTOP from DYNINSTinit for pid " << curr->getPid() << endl << flush;
-
-		   if (result == 1)
-		      assert(curr->status_ == stopped);
-		      // DYNINSTinit() after normal startup, after fork, or after exec
-		      // syscall was made by a running program; leave paused
-		      // (tp->newProgramCallback() to paradyn will result in the process
-		      // being continued soon enough, assuming the applic was running,
-		      // which is true in all cases except when an applic is just being
-		      // started up).  Fall through (we want the status line to change)
-		   else {
-		      assert(result == 2);
-		      break; // don't fall through...prog is finishing the inferiorRPC
-		   }
-		}
-		else if (curr->handleTrapIfDueToRPC()) {
-		   inferiorrpc_cerr << "processed RPC response in SIGSTOP" << endl;
-		   break; // don't want to execute ->Stopped() which changes status line
-		}
-		else if (curr->handleStopDueToExecEntry()) {
-		   // grabs data from DYNINST_bootstrap_info
-		   forkexec_cerr << "fork/exec -- handled stop before exec" << endl;
-		   string buffer = string("process ") + string(curr->getPid()) +
-		                   " performing exec() syscall...";
-		   statusLine(buffer.string_of());
-
-		   // note: status will now be 'running', since handleStopDueToExec()
-		   // did a continueProc() to let the exec() syscall go forward.
-		   assert(curr->status_ == running);
-		      // would neonatal be better? or exited?
-
-		   break; // don't want to change status line in conventional way
-		}
-		else {
-		   forkexec_cerr << "unhandled SIGSTOP for pid " << curr->getPid() << " so just leaving process in paused state." << endl << flush;
-		}
-
-		curr->status_ = prevStatus; // so Stopped() below won't be a nop
-		curr->Stopped();
-
-		break;
-	    }
-
-	    case SIGILL:
-	       signal_cerr << "welcome to SIGILL" << endl << flush;
-	       curr->status_ = stopped;
-
-	       if (curr->handleTrapIfDueToRPC()) {
-		  inferiorrpc_cerr << "processed RPC response in SIGILL" << endl; cerr.flush();
-
-		  break; // we don't forward the signal -- on purpose
-	       }
-	       else
-		  // fall through, on purpose
-		  ;
-
-	    case SIGIOT:
-	    case SIGBUS:
-#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
-                // In this way, we will detach from the application and we
-                // will be able to attach again using gdb. We need to send
-                // a kill -ILL pid signal to the application in order to
-                // get here - naim
-                if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) { 
-                  logLine("ptrace error\n");
-                }
-#else
-		signal_cerr << "caught signal, dying...  (sig="
-                            << WSTOPSIG(status) << ")" << endl << flush;
-
-		curr->status_ = stopped;
-		curr->dumpImage();
-		curr->continueWithForwardSignal(WSTOPSIG(status));
-#endif
-		break;
-
-	    case SIGALRM:
-#ifndef SHM_SAMPLING
-		// Due to the DYNINSTin_sample variable, it's safest to launch
-		// inferior-RPCs only when we know that the inferior is not in the
-		// middle of processing an alarm-expire.  Otherwise, code that does
-		// stuff like call DYNINSTstartWallTimer will appear to do nothing
-		// (DYNINSTstartWallTimer will be invoked but will see that
-		//  DYNINSTin_sample is set and so bails out!!!)
-		// Ick.
-		if (curr->existsRPCreadyToLaunch()) {
-		   curr -> status_ = stopped;
-		   (void)curr->launchRPCifAppropriate(true);
-		   break; // sure, we lose the SIGALARM, but so what.
-		}
-		else
-		   ; // no break, on purpose
-#endif
-
-	    case SIGCHLD:
-	    case SIGUSR1:
-	    case SIGUSR2:
-	    case SIGVTALRM:
-	    case SIGCONT:
-	    case SIGSEGV:	// treadmarks needs this signal
-#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
-                // In this way, we will detach from the application and we
-                // will be able to attach again using gdb - naim
-                if (sig==SIGSEGV)
-		{
-                  logLine("==> Detaching paradynd from the application...\n");
-                  if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) 
-                    logLine("ptrace error\n");
-                  break;
-                }
-#endif
-		if (!curr->continueWithForwardSignal(WSTOPSIG(status))) {
-                     logLine("error  in forwarding  signal\n");
-		     showErrorCallback(38, "Error  in forwarding  signal");
-                     //P_abort();
-                }
-
-		break;
-
-#ifdef notdef
-	    // XXXX for debugging
-	    case SIGSEGV:	// treadmarks needs this signal
-		sprintf(errorLine, "DEBUG: forwarding signal (sig=%d, pid=%d)\n"
-			, WSTOPSIG(status), pid);
-		logLine(errorLine);
-#endif
-	    default:
-		if (!curr->continueWithForwardSignal(WSTOPSIG(status))) {
-                     logLine("error  in forwarding  signal\n");
-                     P_abort();
-                }
-		break;
-
-	}
-    } else if (WIFEXITED(status)) {
-#if defined(PARADYND_PVM)
-//        if (pvm_running) {
-//            PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
-//	}
-#endif
-	sprintf(errorLine, "Process %d has terminated\n", curr->getPid());
-	statusLine(errorLine);
-	logLine(errorLine);
-
-	printDyninstStats();
-        handleProcessExit(curr, WEXITSTATUS(status));
-    } else if (WIFSIGNALED(status)) {
-	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->getPid(), WTERMSIG(status));
-	logLine(errorLine);
-	statusLine(errorLine);
-	handleProcessExit(curr, WTERMSIG(status));
-    } else {
-	sprintf(errorLine, "Unknown state %d from process %d\n", status, curr->getPid());
-	logLine(errorLine);
-	showErrorCallback(39,(const char *) errorLine);
-    }
-    return(0);
-}
 
 void ioFunc()
 {
@@ -654,7 +353,7 @@ void ioFunc()
 }
 
 #ifdef SHM_SAMPLING
-static void checkAndDoShmSampling(unsigned long long &pollTimeUSecs) {
+static void checkAndDoShmSampling(time64 &pollTimeUSecs) {
    // We assume that nextShmSampleTime (synched to getCurrWallTime())
    // has already been set.  If the curr time is >= to this, then
    // we should sample immediately, and update nextShmSampleTime to
@@ -665,10 +364,10 @@ static void checkAndDoShmSampling(unsigned long long &pollTimeUSecs) {
    //           in the middle of an inferiorRPC?  For now, the answer is no
    //           to both.
 
-   static unsigned long long nextMajorSampleTime = 0;
-   static unsigned long long nextMinorSampleTime = 0;
+   static time64 nextMajorSampleTime = 0;
+   static time64 nextMinorSampleTime = 0;
 
-   const unsigned long long currWallTime = getCurrWallTimeULL();
+   const time64 currWallTime = getCurrWallTime();
       // checks for rollback
 
    bool doMajorSample = false; // so far...
@@ -755,8 +454,8 @@ static void checkAndDoShmSampling(unsigned long long &pollTimeUSecs) {
    // and multiply by a million to get the # of usecs per sample.
    extern float currSamplingRate; // dynrpc.C
    assert(currSamplingRate > 0);
-   const unsigned long long shmSamplingInterval =
-	      (unsigned long long)((double)currSamplingRate * 1000000.0);
+   const time64 shmSamplingInterval =
+	      (time64)((double)currSamplingRate * 1000000.0);
 
    if (doMajorSample) {
       // If we just did a major sample, then we schedule the next major sample,
@@ -785,30 +484,18 @@ static void checkAndDoShmSampling(unsigned long long &pollTimeUSecs) {
       nextMinorSampleTime = nextMajorSampleTime;
    }
 
-   unsigned long long nextAnyKindOfSampleTime = nextMajorSampleTime;
+   time64 nextAnyKindOfSampleTime = nextMajorSampleTime;
    if (nextMinorSampleTime < nextAnyKindOfSampleTime)
       nextAnyKindOfSampleTime = nextMinorSampleTime;
 
    assert(nextAnyKindOfSampleTime >= currWallTime);
-   const unsigned long long shmSamplingTimeout = nextAnyKindOfSampleTime - currWallTime;
+   const time64 shmSamplingTimeout = nextAnyKindOfSampleTime - currWallTime;
 
    if (shmSamplingTimeout < pollTimeUSecs)
       pollTimeUSecs = shmSamplingTimeout;
 }
 #endif
 
-void doSignals() {
-   /* check for status change on inferior processes, or the arrival of
-      a signal. */
-
-   int wait_status;
-   int wait_pid = process::waitProcs(&wait_status);
-   if (wait_pid > 0) {
-      if (handleSigChild(wait_pid, wait_status) < 0) {
-	 cerr << "handleSigChild failed for pid " << wait_pid << endl;
-      }
-   }
-}
 
 /*
  * Wait for a data from one of the inferiors or a request to come in.
@@ -950,7 +637,7 @@ void controllerMainLoop(bool check_buffer_first)
 	doDeferredRPCs();
 #endif
 
-	unsigned long long pollTimeUSecs = 50000;
+	time64 pollTimeUSecs = 50000;
            // this is the time (rather arbitrarily) chosen fixed time length
            // in which to check for signals, etc.
 
@@ -1076,7 +763,9 @@ void controllerMainLoop(bool check_buffer_first)
 	reportInternalMetrics(false);
 #endif
 
-	doSignals();
+//	doSignals();
+	extern void checkProcStatus(); // check status of inferior processes
+	checkProcStatus();
     }
 }
 

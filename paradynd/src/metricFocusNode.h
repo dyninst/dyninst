@@ -43,6 +43,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.45  1997/02/26 23:46:43  mjrg
+ * First part of WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C file
+ *
  * Revision 1.44  1997/02/24 14:22:58  naim
  * Minor fix to my previous commit - naim
  *
@@ -619,7 +623,7 @@ friend int startCollecting(string&, vector<u_int>&, int id,
 
  private:
    /* unique id for a counter or timer */
-   static int counterId=0;
+   static int counterId;
 
 public:
   // styles are enumerated in util/h/aggregation.h

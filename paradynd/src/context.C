@@ -43,6 +43,10 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.52  1997/02/26 23:46:27  mjrg
+ * First part of WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C file
+ *
  * Revision 1.51  1997/02/21 20:15:37  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -171,10 +175,10 @@ void forkProcess(int pid, int ppid, int trace_fd
       // child process.
 
 #ifdef SHM_SAMPLING
-    process *childProc = process::forkProcess(parentProc, pid, map, trace_fd,
+    process *childProc = process::forkProcess(parentProc, (pid_t)pid, map, trace_fd,
 					      theKey, applAttachedAtPtr);
 #else
-    process *childProc = process::forkProcess(parentProc, pid, map, trace_fd);
+    process *childProc = process::forkProcess(parentProc, (pid_t)pid, map, trace_fd);
 #endif
 
    // For each mi with a component in parentProc, copy it to the child process --- if
@@ -312,6 +316,7 @@ bool pauseAllProcesses()
 void processNewTSConnection(int tracesocket_fd) {
    // either a forked process or one created via attach is trying to get a new
    // tracestream connection.  accept() the new connection, then do some processing.
+   // There is no need to restrict this for forked and attached processes --mjrg
 
    int fd = RPC_getConnect(tracesocket_fd); // accept()
       // will become traceLink of new process
@@ -329,7 +334,6 @@ void processNewTSConnection(int tracesocket_fd) {
 
    calledFromFork   = (cookie == cookie_fork);
    calledFromAttach = (cookie == cookie_attach);
-   assert(calledFromFork || calledFromAttach);
 
    string str;
    if (calledFromFork)
@@ -406,7 +410,7 @@ void processNewTSConnection(int tracesocket_fd) {
 #endif      
    }
 
-   if (calledFromAttach) {
+   else {
       // This routine gets called when the attached process is in
       // the middle of running DYNINSTinit.
       curr = findProcess(pid);

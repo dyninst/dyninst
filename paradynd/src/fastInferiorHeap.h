@@ -217,7 +217,7 @@ class fastInferiorHeap {
       // The parameter is a stack trace in the inferior process, containing PC-register
       // values.
 
-   bool doMajorSample(unsigned long long wallTime, unsigned long long procTime);
+   bool doMajorSample(time64 wallTime, time64 procTime);
       // Reads data values (in the shared memory heap) and processes allocated item
       // by calling HK::perform() on it.
       // Note: doesn't pause the application; instead, reads from shared memory.

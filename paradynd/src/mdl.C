@@ -41,7 +41,6 @@
 
 #include <iostream.h>
 #include <stdio.h>
-#include <strstream.h>
 #include "dyninstRPC.xdr.SRVR.h"
 #include "paradyn/src/met/globals.h"
 #include "paradynd/src/metric.h"
@@ -98,7 +97,7 @@ class list_closure {
 public:
   list_closure(string& i_name, mdl_var& list_v)
     : index_name(i_name), element_type(0), index(0), int_iter(NULL), float_iter(NULL),
-  string_iter(NULL), bool_iter(NULL), func_iter(NULL), mod_iter(NULL), max(0)
+  string_iter(NULL), bool_iter(NULL), func_iter(NULL), mod_iter(NULL), max_index(0)
   {
     bool aflag;
     aflag=list_v.is_list();
@@ -108,28 +107,28 @@ public:
     switch(element_type) {
     case MDL_T_INT:
       aflag=list_v.get(int_iter); assert(aflag);
-      max = int_iter->size(); break;
+      max_index = int_iter->size(); break;
     case MDL_T_FLOAT:
       aflag=list_v.get(float_iter); assert(aflag);
-      max = float_iter->size(); break;
+      max_index = float_iter->size(); break;
     case MDL_T_STRING:
       aflag=list_v.get(string_iter); assert(aflag);
-      max = string_iter->size(); break;
+      max_index = string_iter->size(); break;
     case MDL_T_PROCEDURE_NAME:
       aflag=list_v.get(funcName_iter); assert(aflag);
-      max = funcName_iter->size();
+      max_index = funcName_iter->size();
       break;
     case MDL_T_PROCEDURE:
       aflag=list_v.get(func_iter); assert(aflag);
-      max = func_iter->size();
+      max_index = func_iter->size();
       break;
     case MDL_T_MODULE:
       aflag=list_v.get(mod_iter); assert(aflag);
-      max = mod_iter->size();
+      max_index = mod_iter->size();
       break;
     case MDL_T_POINT:
       aflag=list_v.get(point_iter); assert(aflag);
-      max = point_iter->size();
+      max_index = point_iter->size();
       break;
     default:
       assert(0);
@@ -142,7 +141,7 @@ public:
     float f; int i;
     instPoint *ip;
 
-    if (index >= max) return false;
+    if (index >= max_index) return false;
     switch(element_type) {
     case MDL_T_INT:
       i = (*int_iter)[index++];      return (mdl_env::set(i, index_name));
@@ -157,7 +156,7 @@ public:
       do {
 	functionName *fn = (*funcName_iter)[index++];
 	pdf = global_proc->findOneFunction(fn->get());
-      } while (pdf == NULL && index < max);
+      } while (pdf == NULL && index < max_index);
       if (pdf == NULL)
 	return false;
       return (mdl_env::set(pdf, index_name));
@@ -187,7 +186,7 @@ private:
   vector<functionName*> *funcName_iter;
   vector<module*> *mod_iter;
   vector<instPoint*> *point_iter;
-  unsigned max;
+  unsigned max_index;
 };
 
 T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
@@ -1605,7 +1604,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
     code = new AstNode();
   }
 
-  enum callOrder corder;
+  callOrder corder;
   switch (position_) {
       case MDL_PREPEND: 
 	  corder = orderFirstAtPoint; 
@@ -1616,7 +1615,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
       default: assert(0);
   }
 
-  enum callWhen cwhen;
+  callWhen cwhen;
   switch (where_instr_) {
       case MDL_PRE_INSN: 
 	  cwhen = callPreInsn; 
@@ -1651,7 +1650,8 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 	assert(theVrbleInstPoint == points[0]); // just a sanity check
 
 	mdl_var theVar;
-        aflag=mdl_env::get(theVar, pointsVar.name());
+	string varName = pointsVar.name();
+        aflag=mdl_env::get(theVar, varName);
 	assert(aflag);
 
 	pdFunction *theFunction;
@@ -1900,12 +1900,12 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val,
 	       ((right_val.type() == MDL_T_INT) || (right_val.type() == MDL_T_FLOAT))) {
       float v1, v2;
       if (left_val.type() == MDL_T_INT) {
-	int i1; if (!left_val.get(i1)) return false; v1 = i1;
+	int i1; if (!left_val.get(i1)) return false; v1 = (float)i1;
       } else {
 	if (!left_val.get(v1)) return false;
       }
       if (right_val.type() == MDL_T_INT) {
-	int i1; if (!right_val.get(i1)) return false; v2 = i1;
+	int i1; if (!right_val.get(i1)) return false; v2 = (float)i1;
       } else {
 	if (!right_val.get(v2)) return false;
       }
@@ -1954,12 +1954,12 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val,
 		(right_val.type() == MDL_T_FLOAT))) {
       float v1, v2;
       if (left_val.type() == MDL_T_INT) {
-	int i1; if (!left_val.get(i1)) return false; v1 = i1;
+	int i1; if (!left_val.get(i1)) return false; v1 = (float)i1;
       } else {
 	if (!left_val.get(v1)) return false;
       }
       if (right_val.type() == MDL_T_INT) {
-	int i1; if (!right_val.get(i1)) return false; v2 = i1;
+	int i1; if (!right_val.get(i1)) return false; v2 = (float)i1;
       } else {
 	if (!right_val.get(v2)) return false;
       }
@@ -2101,7 +2101,7 @@ bool mdl_metric_data(const string& met_name, mdl_inst_data& md) {
   for (unsigned u=0; u<size; u++)
     if (mdl_data::all_metrics[u]->name_ == met_name) {
       md.aggregate = mdl_data::all_metrics[u]->agg_op_;
-      md.style = (enum metricStyle) mdl_data::all_metrics[u]->style_;
+      md.style = (metricStyle) mdl_data::all_metrics[u]->style_;
       return true;
     }
   return false;

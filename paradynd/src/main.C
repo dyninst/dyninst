@@ -43,6 +43,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.58  1997/02/26 23:46:35  mjrg
+ * First part of WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C file
+ *
  * Revision 1.57  1997/02/21 20:15:50  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -136,7 +140,6 @@
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/clock.h"
 #include "paradynd/src/mdld.h"
-#include <sys/signal.h>
 
 pdRPC *tp;
 

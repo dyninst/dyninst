@@ -209,9 +209,9 @@ wallTimerHK &wallTimerHK::operator=(const wallTimerHK &src) {
    return *this;
 }
 
-static unsigned long long calcTimeValueToUse(int count, time64 start,
+static time64 calcTimeValueToUse(int count, time64 start,
 					     time64 total,
-					     unsigned long long currentTime) {
+					     time64 currentTime) {
    if (count == 0)
       // inactive timer; the easy case; just report total.
       return total;
@@ -258,7 +258,7 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    const time64 start = theTimer.start;
    const time64 total = theTimer.total;
    const int    count = theTimer.counter;
-   const unsigned long long currWallTime = getCurrWallTime();
+   const time64 currWallTime = getCurrWallTime();
 
    volatile const int prot1 = theTimer.protector1;
 
@@ -268,7 +268,7 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
 
    /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
       this, we call calcTimeValueToUse(), which doesn't use 'theTimer' */
-   unsigned long long timeValueToUse = calcTimeValueToUse(count, start,
+   time64 timeValueToUse = calcTimeValueToUse(count, start,
 							  total, currWallTime);
 
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
@@ -357,7 +357,7 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
                   (count > 0) ? inferiorProc->getInferiorProcessCPUtime() : 0;
       // Also cheating; see below.
       // the fudge factor is needed only if count > 0.
-   const unsigned long long theWallTime = getCurrWallTimeULL();
+   const time64 theWallTime = getCurrWallTime();
       // This is cheating a little; officially, this call should be inside
       // of the two protector vrbles.  But, it was taking too long...
 
@@ -368,7 +368,7 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
 
    /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
       this, we call calcTimeValueToUse() without passing 'theTimer' */
-   unsigned long long timeValueToUse = calcTimeValueToUse(count, start,
+   time64 timeValueToUse = calcTimeValueToUse(count, start,
 							  total, inferiorCPUtime);
 
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)

@@ -133,7 +133,7 @@ class wallTimerHK : public genericHK {
    unsigned lowLevelId;
       // can be made obsolete in the future; we keep it for now to aid assert checking
 
-   unsigned long long lastTimeValueUsed;
+   time64 lastTimeValueUsed;
       // to check for rollbacks; formerly stored in inferior heap
 
    // Since we don't define this, making it private makes sure it isn't used:
@@ -151,7 +151,7 @@ class wallTimerHK : public genericHK {
    }
    wallTimerHK(int iCounterId,
 	       metricDefinitionNode *iMi,
-	       unsigned long long iLastTimeValueUsed) : genericHK(iMi) {
+	       time64 iLastTimeValueUsed) : genericHK(iMi) {
       lowLevelId = iCounterId;
       lastTimeValueUsed = iLastTimeValueUsed;
    }
@@ -176,7 +176,7 @@ class processTimerHK : public genericHK {
    unsigned lowLevelId;
       // can be made obsolete in the future; we keep it for now to aid assert checking
 
-   unsigned long long lastTimeValueUsed;
+   time64 lastTimeValueUsed;
       // to check for rollbacks; formerly stored in inferior heap
 
    // Since we don't define this, making it private makes sure it isn't used:
@@ -194,7 +194,7 @@ class processTimerHK : public genericHK {
    }
    processTimerHK(int iCounterId,
 	          metricDefinitionNode *iMi,
-	          unsigned long long iLastTimeValueUsed) : genericHK(iMi) {
+	          time64 iLastTimeValueUsed) : genericHK(iMi) {
       lowLevelId = iCounterId;
       lastTimeValueUsed = iLastTimeValueUsed;
    }

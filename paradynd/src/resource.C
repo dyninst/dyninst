@@ -43,6 +43,10 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.24  1997/02/26 23:46:48  mjrg
+ * First part of WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C file
+ *
  * Revision 1.23  1997/02/21 20:16:03  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -84,7 +88,6 @@
 #include "paradynd/src/comm.h"
 #include "util/h/String.h"
 #include "util/h/Dictionary.h"
-#include <strstream.h>
 #include "paradynd/src/main.h"
 
 u_int resource::num_outstanding_creates = 0;

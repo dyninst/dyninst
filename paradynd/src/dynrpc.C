@@ -43,6 +43,10 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.63  1997/02/26 23:46:29  mjrg
+ * First part of WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C file
+ *
  * Revision 1.62  1997/02/21 20:15:42  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -459,11 +463,14 @@ bool dynRPC::attach(string progpath, int pid, int afterAttach)
     attach_cerr << "pid=" << pid << endl;
     attach_cerr << "afterAttach=" << afterAttach << endl;
 
+#ifdef notdef
+    // This code is for Unix platforms only, it will not compile on Windows NT.
     char *str = getenv("PARADYND_ATTACH_DEBUG");
     if (str != NULL) {
        cerr << "pausing paradynd pid " << getpid() << " before attachProcess()" << endl;
        kill(getpid(), SIGSTOP);
     }
+#endif
 
     return attachProcess(progpath, pid, afterAttach); // process.C
 }
