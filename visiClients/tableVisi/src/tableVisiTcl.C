@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: tableVisiTcl.C,v 1.14 2000/05/12 23:24:31 wylie Exp $
+// $Id: tableVisiTcl.C,v 1.15 2000/06/29 14:46:13 paradyn Exp $
 
 #include <iostream.h>
 
@@ -447,7 +447,7 @@ int updateNamesCommand(ClientData, Tcl_Interp *interp,
 
    assert(theTableVisi->tryFirst());
 
-   if (theTableVisi->setFocusNameMode(interp, (bool)atoi(argv[1])))
+   if (theTableVisi->setFocusNameMode(interp, (atoi(argv[1])!=0)))
       tableDrawWhenIdle.install(NULL);
 
    return TCL_OK;
@@ -544,9 +544,9 @@ int formatChangedCommand(ClientData, Tcl_Interp *interp,
 
 
 int tableVisiDestroyCommand( ClientData,
-                             Tcl_Interp *interp,
-			                 int argc,
-                             char* argv[])
+                             Tcl_Interp* /*interp*/,
+			                 int /*argc*/,
+                             char* /*argv*/[])
 {
     // release resources that must be
     // gone before we destroy the GUI
