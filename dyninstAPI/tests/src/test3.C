@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.5 1999/06/30 16:11:31 davisj Exp $
+// $Id: test3.C,v 1.6 1999/06/30 23:13:32 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -36,7 +36,7 @@ extern "C" const char V_libdyninstAPI[];
 
 int debugPrint = 0;
 
-const int MAX_TEST = 4;
+const unsigned int MAX_TEST = 4;
 bool passedTest[MAX_TEST+1];
 
 template class BPatch_Vector<BPatch_variableExpr*>;
@@ -392,8 +392,8 @@ int main(unsigned int argc, char *argv[])
 	    unsigned int j;
 	    for (j=0; j <= MAX_TEST; j++) runTest[j] = false;
 	    for (j=i; j < argc; j++) { 
-		int testId;
-		if (testId = atoi(argv[j])) {
+		unsigned int testId;
+		if ((testId = atoi(argv[j]))) {
 		    if ((testId > 0) && (testId <= MAX_TEST)) {
 			runTest[testId] = true;
 		    } else {
@@ -412,19 +412,18 @@ int main(unsigned int argc, char *argv[])
     }
 
     printf("Running Tests: ");
-    for (int j=1; j <= MAX_TEST; j++) {
+    for (unsigned int j=1; j <= MAX_TEST; j++) {
 	if (runTest[j]) printf("%d ", j);
     }
     printf("\n");
 
-    // Create an instance of the bpatch library
+    // Create an instance of the BPatch library
     bpatch = new BPatch;
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.
     bpatch->setTypeChecking(false);
 #endif
-
 
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
