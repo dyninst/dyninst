@@ -118,6 +118,7 @@ void saveSharedLibrary::closeElf(){
 
         elf_update(newElf, ELF_C_WRITE);
         elf_end(newElf);
+	close(newfd);
 	
 }
 

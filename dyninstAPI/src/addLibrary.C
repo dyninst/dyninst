@@ -2,7 +2,7 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.10 2003/09/05 16:28:32 schendel Exp $ */
+/* $Id: addLibrary.C,v 1.11 2004/02/16 16:29:16 chadd Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
@@ -488,6 +488,7 @@ int addLibrary::driver(Elf *elf,  char* newfilename, const char *libname) {
 
 		gapFlag = writeNewElf(newfilename, libname);
 		elf_end(newElf);
+		close(newFd);
 	}else{
 		//error
 	}

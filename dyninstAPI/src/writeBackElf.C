@@ -1,5 +1,5 @@
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.19 2003/10/22 16:01:13 schendel Exp $ */
+/* $Id: writeBackElf.C,v 1.20 2004/02/16 16:29:16 chadd Exp $ */
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
@@ -15,7 +15,6 @@
 // ELF files 
 writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName, 
 									int debugOutputFlag) {
-	int oldfd, newfd;
 
 	if((oldfd = open(oldElfName, O_RDONLY)) == -1){
 		printf(" OLDELF_OPEN_FAIL %s",oldElfName);
@@ -93,6 +92,8 @@ writeBackElf::~writeBackElf(){
 	}
 	elf_end(oldElf);
 	elf_end(newElf);
+	close(newfd);
+	close(oldfd);
 }
 
 

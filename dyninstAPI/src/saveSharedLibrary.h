@@ -6,6 +6,7 @@
 #include  <libelf.h>
 #include  <stdlib.h>
 #include  <string.h>
+#include <unistd.h>
 #include "../../common/h/Types.h"
 
 class sharedLibrary{

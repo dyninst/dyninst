@@ -1,5 +1,5 @@
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.h,v 1.14 2003/11/04 21:09:40 jaw Exp $ */
+/* $Id: writeBackElf.h,v 1.15 2004/02/16 16:29:16 chadd Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -28,6 +28,7 @@ private:
 	Elf* newElf;
 	Elf* oldElf;
 
+	int oldfd, newfd;
 	//important data sections in the
 	//new Elf that need updated
 	Elf_Data *textData;
