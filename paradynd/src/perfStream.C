@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.149 2003/04/16 21:07:34 bernat Exp $
+// $Id: perfStream.C,v 1.150 2003/04/23 23:00:01 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -504,6 +504,22 @@ void processTraceStream(process *dproc)
 
 extern pdvector<int> deferredMetricIDs;
 
+void doDeferredRPCs() {
+    processMgr::procIter itr = getProcMgr().begin();
+    while(itr != getProcMgr().end()) {
+        pd_process *theProc = *itr;
+        itr++;
+        if (!theProc) continue;
+
+        processState status = theProc->status();
+        if (status == exited) continue;
+        if (status == neonatal) continue;
+        
+        theProc->launchRPCs(status == running);
+    }
+}
+
+
 void doDeferredInstrumentation() {
    pdvector<int>::iterator itr = deferredMetricIDs.end();
    while(itr != deferredMetricIDs.begin()) {
@@ -801,6 +817,10 @@ void controllerMainLoop(bool check_buffer_first)
       // "width" is computed but ignored on Windows NT, where sockets 
       // are not represented by nice little file descriptors.
       if (tp->get_sock() > width) width = tp->get_sock();
+
+      // Clean up any inferior RPCs that might still be queued do to a failure
+      // to start them
+      doDeferredRPCs();
 
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
       doDeferredInstrumentation();
