@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.35  1994/11/11 06:59:23  markc
+ * Revision 1.36  1995/01/30 17:34:41  jcargill
+ * SPARC had been used to guard inclusion of sunos files; fixed for solaris
+ *
+ * Revision 1.35  1994/11/11  06:59:23  markc
  * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
  * support remote executition for paradyndPVM.
  * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
@@ -134,7 +137,7 @@ int socketpair(int, int, int, int sv[2]);
 int vfork();
 int accept(int, struct sockaddr *addr, int *); 
 }
-#elif SPARC
+#elif sparc_sun_sunos4_1_3
 #include <sys/socket.h>
 #include <vfork.h>
 extern "C" {
