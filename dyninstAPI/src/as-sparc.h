@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: as-sparc.h,v 1.8 2000/03/22 00:44:49 mihai Exp $ */
+/* $Id: as-sparc.h,v 1.9 2000/08/02 22:00:22 tikir Exp $ */
 
 #ifndef AS_SPARC_H
 #define AS_SPARC_H
@@ -88,5 +88,8 @@
 #define RECURSIVE_GUARD_OFF_PRE_INSN  0x11
 #define RECURSIVE_GUARD_ON_POST_INSN  0x12
 #define RECURSIVE_GUARD_OFF_POST_INSN 0x13
+
+#define CONSERVATIVE_TRAMP_READ_CONDITION 0x14
+#define CONSERVATIVE_TRAMP_WRITE_CONDITION 0x15
 
 #endif

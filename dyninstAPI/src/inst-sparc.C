@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.92 2000/08/01 22:39:51 tikir Exp $
+// $Id: inst-sparc.C,v 1.93 2000/08/02 22:00:23 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -57,12 +57,10 @@ trampTemplate baseTemplate;
 NonRecursiveTrampTemplate nonRecursiveBaseTemplate;
 
 //declaration of conservative base trampoline template
-#if defined(sparcv8plus)
 
 trampTemplate conservativeBaseTemplate;
 NonRecursiveTrampTemplate nonRecursiveConservativeBaseTemplate;
 
-#endif
 
 
 registerSpace *regSpace;
@@ -339,13 +337,15 @@ void initATramp (trampTemplate *thisTemp, Address tramp,
 
     if(!isConservative){
 
-    thisTemp->savePreInsOffset = ((Address)baseTramp_savePreInsn - tramp);
-    thisTemp->restorePreInsOffset = ((Address)baseTramp_restorePreInsn - tramp);
-    thisTemp->savePostInsOffset = ((Address)baseTramp_savePostInsn - tramp);
-    thisTemp->restorePostInsOffset = ((Address)baseTramp_restorePostInsn - tramp);
-    }
-#if defined(sparcv8plus)
-    else{
+    	thisTemp->savePreInsOffset = 
+			((Address)baseTramp_savePreInsn - tramp);
+    	thisTemp->restorePreInsOffset = 
+			((Address)baseTramp_restorePreInsn - tramp);
+    	thisTemp->savePostInsOffset = 
+			((Address)baseTramp_savePostInsn - tramp);
+    	thisTemp->restorePostInsOffset = 
+			((Address)baseTramp_restorePostInsn - tramp);
+    }else{
 	thisTemp->savePreInsOffset =
 		((Address)conservativeBaseTramp_savePreInsn - tramp);
 	thisTemp->restorePreInsOffset =
@@ -355,7 +355,6 @@ void initATramp (trampTemplate *thisTemp, Address tramp,
 	thisTemp->restorePostInsOffset =
 		((Address)conservativeBaseTramp_restorePostInsn - tramp);
     }
-#endif
 
     // TODO - are these offsets always positive?
     thisTemp->trampTemp = (void *) tramp;
@@ -393,6 +392,14 @@ void initATramp (trampTemplate *thisTemp, Address tramp,
             case EMULATE_INSN:
                 thisTemp->emulateInsOffset = offset;
                 break;
+	    case CONSERVATIVE_TRAMP_READ_CONDITION:
+		if(isConservative)
+			temp->raw = 0x83408000; /*read condition codes to g1*/
+		break;
+	    case CONSERVATIVE_TRAMP_WRITE_CONDITION:
+		if(isConservative)
+			temp->raw = 0x85806000; /*write condition codes fromg1*/
+		break;
         }       
     }
 
@@ -465,13 +472,10 @@ void initTramps()
     initATramp(&nonRecursiveBaseTemplate, (Address)baseTramp);
 
 
-#if defined(sparcv8plus)
-
     initATramp(&conservativeBaseTemplate,
 	       (Address)conservativeBaseTramp,true);
     initATramp(&nonRecursiveConservativeBaseTemplate,
 	       (Address)conservativeBaseTramp,true);
-#endif
 
     regSpace = new registerSpace(sizeof(deadList)/sizeof(Register), deadList,
                                          0, NULL);
@@ -1543,8 +1547,6 @@ bool isV8plusISA()
  */
 BPatch_point *createInstructionInstPoint(process *proc, void *address)
 {
-#if defined(sparcv8plus)
-
     unsigned i;
     Address begin_addr,end_addr,curr_addr = (Address)address;
 
@@ -1575,7 +1577,6 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 	   (curr_addr < end_addr)){ 
 	    BPatch_reportError(BPatchSerious, 117,
 			       "instrumentation point conflict");
-	    //cerr << "Conflict 1\n";
 	    return NULL;
 	}
 
@@ -1590,7 +1591,6 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 		(curr_addr < end_addr)){
 		BPatch_reportError(BPatchSerious, 117,
 				   "instrumentation point conflict");
-	        //cerr << "Conflict 2\n";
 		return NULL;
 	    }
 	}
@@ -1606,7 +1606,6 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 		(curr_addr < end_addr)){
 		BPatch_reportError(BPatchSerious, 117,
 				   "instrumentation point conflict");
-	        //cerr << "Conflict 3\n";
 		return NULL;
 	    }
 	}
@@ -1615,11 +1614,9 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     /* Check for conflict with a previously created inst point. */
     if (proc->instPointMap.defines(curr_addr - INSN_SIZE)) {
 	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
-	//cerr << "Conflict 4\n";
 	return NULL;
     } else if (proc->instPointMap.defines(curr_addr + INSN_SIZE)) {
 	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
-	//cerr << "Conflict 5\n";
 	return NULL;
     }
 
@@ -1643,7 +1640,6 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 		delete[] belements;
 		BPatch_reportError(BPatchSerious, 118,
 				   "point uninstrumentable");
-		//cerr << "Conflict 6\n";
 		return NULL;
 	    }
 	}
@@ -1659,7 +1655,6 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 			    &prevInstr.raw);
 	if (IS_DELAYED_INST(prevInstr)){
 	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
-	    //cerr << "Conflict 7777777777777777777777777\n";
 	    return NULL;
 	}
     }
@@ -1672,7 +1667,6 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 			    &nextInstr.raw);
 	if (IS_DELAYED_INST(nextInstr)){
 	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
-	    //cerr << "Conflict 888888888888888888888888888888888888888\n";
 	    return NULL;
 	}
     }
@@ -1690,11 +1684,5 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 
     return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
 
-#else
-    BPatch_reportError(BPatchSerious, 109,
-	"BPatch_image::createInstPointAtAddr unimplemented on this platform");
-    return NULL;
-#endif
 }
-
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-sparc.s,v 1.21 2000/08/01 22:39:52 tikir Exp $ */
+/* $Id: tramp-sparc.s,v 1.22 2000/08/02 22:00:24 tikir Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -245,7 +245,6 @@ _baseTramp_restorePostInsn:
 	.word	END_TRAMP
 
 
-#if defined(sparcv8plus)
 
 /* conservative base trampoline which also saves the condition codes 
    It is used for random instrumentation points in sun-sparc-solaris
@@ -287,7 +286,7 @@ _conservativeBaseTramp_savePreInsn:
 	std  %f26, [ %fp + -144 ]
 	std  %f28, [ %fp + -152 ]
 	std  %f30, [ %fp + -160 ]
-	rd   %ccr, %g1		/* saving the condition codes to [%fp+-36] */
+	.word CONSERVATIVE_TRAMP_READ_CONDITION /* saving the condition codes */
 	st   %g1, [ %fp + -164 ]
 	nop			/* fill this in with instructions to  */
 	nop			/* compute the address of the vector  */
@@ -331,7 +330,7 @@ _conservativeBaseTramp_savePreInsn:
 	nop
 	nop
 	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
-	wr   %g1, 0, %ccr
+	.word CONSERVATIVE_TRAMP_WRITE_CONDITION
 	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
 	ldd   [ %fp + -152 ], %f28
 	ldd   [ %fp + -144 ], %f26
@@ -398,7 +397,7 @@ _conservativeBaseTramp_savePostInsn:
 	std  %f26, [ %fp + -144 ]
 	std  %f28, [ %fp + -152 ]
 	std  %f30, [ %fp + -160 ]
-	rd   %ccr, %g1		/* saving the condition codes to [%fp+-36] */
+	.word CONSERVATIVE_TRAMP_READ_CONDITION /* saving the condition codes */
 	st   %g1, [ %fp + -164 ]
 	nop			/* fill this in with instructions to  */
 	nop			/* compute the address of the vector  */
@@ -442,7 +441,7 @@ _conservativeBaseTramp_savePostInsn:
 	nop
 	nop
 	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
-	wr   %g1, 0, %ccr
+	.word CONSERVATIVE_TRAMP_WRITE_CONDITION
 	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
 	ldd   [ %fp + -152 ], %f28
 	ldd   [ %fp + -144 ], %f26
@@ -472,4 +471,3 @@ _conservativeBaseTramp_restorePostInsn:
 	nop
 	nop
 	.word	END_TRAMP
-#endif

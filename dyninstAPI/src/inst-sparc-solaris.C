@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.68 2000/08/01 22:39:50 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.69 2000/08/02 22:00:22 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -634,19 +634,15 @@ trampTemplate * installBaseTramp( instPoint * & location,
 {
   trampTemplate*  current_template = &nonRecursiveBaseTemplate;
 
-#if defined(sparcv8plus)
   if(location->ipType == otherPoint)
         current_template = &nonRecursiveConservativeBaseTemplate;
-#endif
 
   if( trampRecursiveDesired )
     {
       current_template = &baseTemplate;
 
-#if defined(sparcv8plus)
       if(location->ipType == otherPoint)
                 current_template = &conservativeBaseTemplate;
-#endif
     }
 
     Address ipAddr = 0;
@@ -1073,19 +1069,15 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 {
   trampTemplate* current_template = &nonRecursiveBaseTemplate;
 
-#if defined(sparcv8plus)
   if(location->ipType == otherPoint)
         current_template = &nonRecursiveConservativeBaseTemplate;
-#endif
 
   if( trampRecursiveDesired )
     {
       current_template = &baseTemplate;
 
-#if defined(sparcv8plus)
       if(location->ipType == otherPoint)
                 current_template = &conservativeBaseTemplate;
-#endif
     }
 
   Address currAddr;
@@ -1505,10 +1497,8 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 
     trampTemplate* current_template = &baseTemplate;
 
-#if defined(sparcv8plus)
     if(inst->location->ipType == otherPoint)
         current_template = &conservativeBaseTemplate;
-#endif
 
     totalMiniTramps++;
     insnGenerated += codeSize/sizeof(int);

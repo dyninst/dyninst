@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.44 2000/08/01 22:39:52 tikir Exp $
+// $Id: inst-sparc.h,v 1.45 2000/08/02 22:00:24 tikir Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -166,7 +166,6 @@ extern registerSpace *regSpace;
 extern Register deadList[];
 
 //additional declarations for the conservative base trampoline
-#if defined(sparcv8plus)
 
 extern "C" void conservativeBaseTramp();
 extern "C" void conservativeBaseTramp_savePreInsn();
@@ -175,8 +174,6 @@ extern "C" void conservativeBaseTramp_savePostInsn();
 extern "C" void conservativeBaseTramp_restorePostInsn();
 extern trampTemplate conservativeBaseTemplate;
 extern NonRecursiveTrampTemplate nonRecursiveConservativeBaseTemplate;
-
-#endif
 
 #define NEW_INSTR_ARRAY_LEN 8192
 extern instruction newInstr[NEW_INSTR_ARRAY_LEN];
