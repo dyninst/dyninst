@@ -1,5 +1,5 @@
 //
-// $Id: test_util.C,v 1.15 2003/01/02 19:52:11 schendel Exp $
+// $Id: test_util.C,v 1.16 2003/03/10 23:15:39 bernat Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -34,7 +34,7 @@ void waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
 	exit(-1);
     }
 #if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
-    else if (appThread->stopSignal() != SIGTRAP && appThread->stopSignal() != -1) {
+    else if (appThread->stopSignal() != EXCEPTION_BREAKPOINT && appThread->stopSignal() != -1) {
 	printf("**Failed test #%d (%s)\n", testnum, testname);
 	printf("    process stopped on signal %d, not SIGTRAP\n", 
 		appThread->stopSignal());
