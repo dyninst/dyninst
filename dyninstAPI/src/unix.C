@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.116 2004/03/05 16:51:45 bernat Exp $
+// $Id: unix.C,v 1.117 2004/03/08 23:46:03 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -619,7 +619,7 @@ int handleSigCritical(const procevent &event) {
                << (int) event.what << ")" << endl << std::flush;
 
 #ifdef DEBUG
-   fprintf(stderr, "Process dying on signal %d\n", event.what);
+   fprintf(stderr, "Process %d dying on signal %d\n", proc->getPid(), event.what);
    
    for (unsigned thr_iter = 0; thr_iter <  proc->threads.size(); thr_iter++) {
        dyn_lwp *lwp = proc->threads[thr_iter]->get_lwp();
@@ -652,158 +652,162 @@ int handleSigCritical(const procevent &event) {
    
 #endif
    proc->dumpImage("imagefile");
-
+   
    forwardSigToProcess(event);
-   return 1;
-}
-
-int handleSignal(const procevent &event) {
-   process *proc = event.proc;
-   int ret = 0;
-    
-   switch(event.what) {
-     case SIGTRAP:
-        // Big one's up top. We use traps for most of our process control
-        ret = handleSigTrap(event);
-
-#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
-        //after we have handled a trap on AIX, be sure we reset the
-        //nextTrapIsFork flag. This flag may be reset in handleSigTrap 
-        //on AIX 4.x  It will not be reset in that function on AIX 5.
-        //
-        //This is probably unnecessary.  nextTrapIsFork is only checked
-        //in handleSigTrap as a last resort, if any other SIGTRAP is
-        //expected that will be handled first (correctly).  This only
-        //causes a problem if the mutatee is trying to send itself a 
-        //SIGTRAP. If this flag is still set dyninst will just eat the
-        //trap rather than passing it back to the mutatee.
-        proc->nextTrapIsFork = false; 
-#endif
-        
-        break;
-#if defined(USE_IRIX_FIXES)
-     case SIGEMT:
-#endif
-     case SIGSTOP:
-     case SIGINT:
-        ret = handleSigStopNInt(event);
-     break;
-     case SIGILL: 
-        // x86 uses SIGILL for various purposes
-        if (proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp)) {
-           ret = 1;
-        } else {
-           ret = handleSigCritical(event);
-        }
-        break;
-        
-     case SIGCHLD:
-        // Ignore
-        ret = 1;
-        proc->continueProc();
-        break;
-        // Else fall through
-     case SIGIOT:
-     case SIGBUS:
-     case SIGSEGV:
-        ret = handleSigCritical(event);
-        break;
-     case SIGCONT:
-        // Should inform the mutator/daemon that the process is running
-     case SIGALRM:
-     case SIGUSR1:
-     case SIGUSR2:
-     case SIGVTALRM:
-     default:
-        ret = 0;
-        break;
-   }
-
-   if (!ret) {
-      // Signal was not handled
-      ret = forwardSigToProcess(event);
-   }
-   return ret;
-}
-
-//////////////////////////////////////////////////////////////////
-// Syscall handling
-//////////////////////////////////////////////////////////////////
-
-// Most of our syscall handling code is shared on all platforms.
-// Unfortunately, there's that 5% difference...
-
-int handleForkEntry(const procevent &event) {
-    event.proc->handleForkEntry();
     return 1;
-}
+ }
 
-// On AIX I've seen a long string of calls to exec, basically
-// doing a (for i in $path; do exec $i/<progname>
-// This means that the entry will be called multiple times
-// until the exec call gets the path right.
-int handleExecEntry(const procevent &event) {
-    event.proc->handleExecEntry((char *)event.info);
-    return 1;
-}
-
-int handleSyscallEntry(const procevent &event) {
-   process *proc = event.proc;
-   procSyscall_t syscall = decodeSyscall(proc, event.what);
-   int ret = 0;
-   switch (syscall) {
-     case procSysFork:
-        ret = handleForkEntry(event);
-        break;
-     case procSysExec:
-        ret = handleExecEntry(event);
-        break;
-     case procSysExit:
-        proc->triggerNormalExitCallback(event.info);
-        ret = 1;
-        break;
-     default:
-        // Check process for any other syscall
-        // we may have trapped on entry to?
-        ret = 0;
-        break;
-   }
-   // Continue the process post-handling
-   proc->continueProc();
-   return ret;
-}
-
-/* Only dyninst for now... paradyn should use this soon */
-int handleForkExit(const procevent &event) {
+ int handleSignal(const procevent &event) {
     process *proc = event.proc;
-    proc->nextTrapIsFork = false;
-    // Fork handler time
-    extern pdvector<process*> processVec;
-    int childPid = event.info;
+    int ret = 0;
 
-    if (childPid == getpid()) {
-        // this is a special case where the normal createProcess code
-        // has created this process, but the attach routine runs soon
-        // enough that the child (of the mutator) gets a fork exit
-        // event.  We don't care about this event, so we just continue
-        // the process - jkh 1/31/00
-        return 1;
-    } else if (childPid > 0) {
-        unsigned int i;
-        for (i=0; i < processVec.size(); i++) {
-            if (processVec[i] && 
-                (processVec[i]->getPid() == childPid)) break;
-        }
-        if (i== processVec.size()) {
-            // this is a new child, register it with dyninst
-            process *theChild = new process(*proc, (int)childPid, -1);
-            if (theChild) {
-                processVec.push_back(theChild);
-                activeProcesses++;
-                
-                theChild->set_status(stopped);
+    switch(event.what) {
+      case SIGTRAP:
+         // Big one's up top. We use traps for most of our process control
+         ret = handleSigTrap(event);
 
-                proc->handleForkExit(theChild);
+ #if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
+         //after we have handled a trap on AIX, be sure we reset the
+         //nextTrapIsFork flag. This flag may be reset in handleSigTrap 
+         //on AIX 4.x  It will not be reset in that function on AIX 5.
+         //
+         //This is probably unnecessary.  nextTrapIsFork is only checked
+         //in handleSigTrap as a last resort, if any other SIGTRAP is
+         //expected that will be handled first (correctly).  This only
+         //causes a problem if the mutatee is trying to send itself a 
+         //SIGTRAP. If this flag is still set dyninst will just eat the
+         //trap rather than passing it back to the mutatee.
+         proc->nextTrapIsFork = false; 
+ #endif
+
+         break;
+ #if defined(USE_IRIX_FIXES)
+      case SIGEMT:
+ #endif
+      case SIGSTOP:
+      case SIGINT:
+         ret = handleSigStopNInt(event);
+      break;
+      case SIGILL: 
+         // x86 uses SIGILL for various purposes
+         if (proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp)) {
+            ret = 1;
+         } else {
+            ret = handleSigCritical(event);
+         }
+         break;
+
+      case SIGCHLD:
+         // Ignore
+         ret = 1;
+         proc->continueProc();
+         break;
+         // Else fall through
+      case SIGIOT:
+      case SIGBUS:
+      case SIGSEGV:
+         ret = handleSigCritical(event);
+         break;
+      case SIGCONT:
+         // Should inform the mutator/daemon that the process is running
+      case SIGALRM:
+      case SIGUSR1:
+      case SIGUSR2:
+      case SIGVTALRM:
+      default:
+         ret = 0;
+         break;
+    }
+
+    if (!ret) {
+       // Signal was not handled
+       ret = forwardSigToProcess(event);
+    }
+    return ret;
+ }
+
+ //////////////////////////////////////////////////////////////////
+ // Syscall handling
+ //////////////////////////////////////////////////////////////////
+
+ // Most of our syscall handling code is shared on all platforms.
+ // Unfortunately, there's that 5% difference...
+
+ int handleForkEntry(const procevent &event) {
+     event.proc->handleForkEntry();
+     return 1;
+ }
+
+ // On AIX I've seen a long string of calls to exec, basically
+ // doing a (for i in $path; do exec $i/<progname>
+ // This means that the entry will be called multiple times
+ // until the exec call gets the path right.
+ int handleExecEntry(const procevent &event) {
+     event.proc->handleExecEntry((char *)event.info);
+     return 1;
+ }
+
+ int handleSyscallEntry(const procevent &event) {
+    process *proc = event.proc;
+    procSyscall_t syscall = decodeSyscall(proc, event.what);
+    int ret = 0;
+    switch (syscall) {
+      case procSysFork:
+
+          ret = handleForkEntry(event);
+          break;
+      case procSysExec:
+         ret = handleExecEntry(event);
+         break;
+      case procSysExit:
+          proc->triggerNormalExitCallback(event.info);
+          ret = 1;
+          break;
+      default:
+      // Check process for any other syscall
+      // we may have trapped on entry to?
+      ret = 0;
+      break;
+    }
+    // Continue the process post-handling
+    proc->continueProc();
+    return ret;
+ }
+
+ /* Only dyninst for now... paradyn should use this soon */
+ int handleForkExit(const procevent &event) {
+     process *proc = event.proc;
+     proc->nextTrapIsFork = false;
+     // Fork handler time
+     extern pdvector<process*> processVec;
+     int childPid = event.info;
+
+     if (childPid == getpid()) {
+         // this is a special case where the normal createProcess code
+         // has created this process, but the attach routine runs soon
+         // enough that the child (of the mutator) gets a fork exit
+         // event.  We don't care about this event, so we just continue
+         // the process - jkh 1/31/00
+         return 1;
+     } else if (childPid > 0) {
+         unsigned int i;
+         for (i=0; i < processVec.size(); i++) {
+             if (processVec[i] && 
+                 (processVec[i]->getPid() == childPid)) break;
+         }
+         if (i== processVec.size()) {
+             // this is a new child, register it with dyninst
+             sleep(1);
+             process *theChild = new process(*proc, (int)childPid, -1);
+             if (theChild) {
+                 processVec.push_back(theChild);
+                 activeProcesses++;
+
+                 theChild->set_status(stopped);
+
+                 proc->handleForkExit(theChild);
+                 proc->continueProc();
+                 theChild->continueProc();
             }
             else {
                 // Can happen if we're forking something we can't trace
@@ -949,13 +953,11 @@ int handleSyscallExit(const procevent &event) {
 int signalHandler::handleProcessEvent(const procevent &event) {
    process *proc = event.proc;
    assert(proc);
-
-   /*
+/*
    cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
         << event.why << ", what: " << event.what << ", lwps: "
         << event.lwp->get_lwp_id() << endl;
-   */
-
+*/
    int ret = 0;
    if(proc->hasExited()) {
        return 1;
