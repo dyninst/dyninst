@@ -42,7 +42,7 @@
 // abstractions.C
 // Ariel Tamches
 
-/* $Id: abstractions.C,v 1.12 1999/12/17 16:24:56 pcroth Exp $ */
+/* $Id: abstractions.C,v 1.13 2001/11/01 02:20:24 willb Exp $ */
 
 #include "abstractions.h"
 
@@ -61,14 +61,6 @@ void abstractions::add(whereAxis *theNewAbstraction,
       firstAbstraction = true;
    }
 
-   string commandStr = absMenuName + " add radiobutton -label " +
-                       "\"" + whereAxisName + "\"" +
-                       " -command " + "\"" + "whereAxisChangeAbstraction " +
-		       string(theAbstractions.size()) + "\"" +
-                       " -variable currMenuAbstraction -value " +
-                       string(theAbstractions.size());
-   myTclEval(interp, commandStr);
- 
    // Now let us set the tcl variable "currMenuAbstraction", which
    // should generate a call to "change", below
    if (firstAbstraction) {
