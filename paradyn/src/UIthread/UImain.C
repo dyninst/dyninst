@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.37  1994/11/03 20:25:05  krisna
-/* added status_lines for application name and application status
+/* Revision 1.38  1994/11/03 22:18:42  karavan
+/* eliminated redundancy in status display
 /*
+ * Revision 1.37  1994/11/03  20:25:05  krisna
+ * added status_lines for application name and application status
+ *
  * Revision 1.36  1994/11/03  06:16:14  karavan
  * status display and where axis added to main window and the look cleaned
  * up a little bit.  Added option to ResourceDisplayObj class to specify
@@ -279,13 +282,13 @@ applicStateChanged (performanceStream*, appState state)
       printf ("changeApplicStateERROR: %s\n", interp->result);
     }
 	app_status.state(status_line::NORMAL);
-	app_status.message("application is now RUNNING");
+	app_status.message("RUNNING");
   } else if ((state == appPaused) && (PDapplicState == appRunning)) {
     if (Tcl_VarEval (interp, "changeApplicState 0", 0) == TCL_ERROR) {
       printf ("changeApplicStateERROR: %s\n", interp->result);
     }
 	app_status.state(status_line::URGENT);
-	app_status.message("application is now PAUSED");
+	app_status.message("PAUSED");
   }
     PDapplicState = state;
 }
