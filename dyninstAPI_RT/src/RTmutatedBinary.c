@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary.c,v 1.2 2002/05/09 19:16:28 chadd Exp $ */
+/* $Id: RTmutatedBinary.c,v 1.3 2002/05/14 20:20:51 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -513,15 +513,13 @@ int checkElfFile(){
 					done = 1;
 				}
 			}
-			if( shdr->sh_addr == 0){
+			if( shdr->sh_addr != 0){
 				/* if the addr is zero, then there is 
 					no PLT entry for dlopen.  if there is
 					no entry for dlopen the mutatee must not
 					call it.  -- what about calling it from
 					a shared lib that is statically loaded?
 				*/
-				break;
-			}
 
 			/* WHY IS THERE A POUND DEFINE HERE? 
 				
@@ -627,6 +625,7 @@ int checkElfFile(){
 			/* see comment int hack_ld_linux_plt for explainations */
 			hack_ld_linux_plt(ld_linuxBaseAddr + shdr->sh_addr); 
 #endif
+		}/* shdr->sh_addr != 0 */ 
 		}
 		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPIhighmem_",18)){
 			/*the layout of dyninstAPIhighmem_ is:
@@ -694,7 +693,22 @@ int checkElfFile(){
 
 			}
 		}
+		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_loadLib")){
+			/* ccw 14 may 2002 */
+			/* this section loads shared libraries into the mutated binary
+				that were loaded by BPatch_thread::loadLibrary */
 
+			elfData = elf_getdata(scn, NULL);
+			tmpPtr = elfData->d_buf;
+			while(*tmpPtr) { 
+				dlopen(tmpPtr, RTLD_NOW);
+				tmpPtr += (strlen(tmpPtr) +1);	
+
+			}
+
+
+
+		}
 	}
 
 

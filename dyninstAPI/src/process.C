@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.325 2002/05/14 19:00:32 schendel Exp $
+// $Id: process.C,v 1.326 2002/05/14 20:20:50 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1441,6 +1441,34 @@ void process::saveWorldCreateDataSections(void* ptr){
 		delete [] (char*) dataUpdatesData;
 	}
 
+}
+
+void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002 
+
+	int dataSize=0;
+	char *data, *dataptr;
+	writeBackElf *newElf = (writeBackElf*)ptr;
+
+	int i;
+
+	for(i=0;i<loadLibraryUpdates.size();i++){
+		dataSize += loadLibraryUpdates[i].length() + 1;
+	}
+	dataSize++;
+	data = new char[dataSize];
+	dataptr = data;
+
+	for(i=0;i<loadLibraryUpdates.size();i++){
+		memcpy( dataptr, loadLibraryUpdates[i].c_str(), loadLibraryUpdates[i].length()); 
+		dataptr += loadLibraryUpdates[i].length();
+		*dataptr = '\0';
+		dataptr++; 
+	}
+	dataptr = '\0'; //mark the end
+	if(dataSize > 1){
+		newElf->addSection(0, data, dataSize, "dyninstAPI_loadLib", false);
+	}
+	delete [] data;
 }
 
 #endif

@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.8 2002/03/22 21:55:18 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.9 2002/05/14 20:20:51 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -178,9 +178,10 @@ void writeBackElf::driver(){
 
 	Elf32_Shdr *newsh, *shdr, *dynamicShdr;
 	Elf_Scn *scn, *newScn; 
-        Elf32_Ehdr *ehdr = elf32_getehdr(oldElf);
+        Elf32_Ehdr *ehdr ;//= elf32_getehdr(oldElf);
 	Elf_Data *data, *newdata, *olddata;
 
+	ehdr = elf32_getehdr(oldElf);
         if(!(newEhdr = elf32_newehdr(newElf))){
 		printf("newEhdr failed\n");
 		exit(1);

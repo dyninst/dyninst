@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.116 2002/05/13 19:52:40 mjbrim Exp $
+// $Id: solaris.C,v 1.117 2002/05/14 20:20:51 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -337,6 +337,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 		newElf->addSection(0 ,mutatedSharedObjects, 
 			mutatedSharedObjectsSize, "dyninstAPI_mutatedSO", false);
 	}
+
 	unsigned int k;
 	
 	for( k=0;k<imageUpdates.size();k++){
@@ -359,6 +360,10 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	dyninst_SharedLibrariesSize, "dyninstAPI_SharedLibraries", false);
 
 	delete [] dyninst_SharedLibrariesData;
+
+	//the following reloads any shared libraries loaded into the
+	//mutatee using BPatch_thread::loadLibrary
+	saveWorldAddSharedLibs((void*)newElf); // ccw 14 may 2002 
 
 
 	newElf->createElf();

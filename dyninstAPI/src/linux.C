@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.69 2002/05/13 19:52:26 mjbrim Exp $
+// $Id: linux.C,v 1.70 2002/05/14 20:20:50 chadd Exp $
 
 #include <fstream.h>
 
@@ -1971,6 +1971,10 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	newElf->addSection(dl_debug_statePltEntry, dyninst_SharedLibrariesData, 
 	dyninst_SharedLibrariesSize, "dyninstAPI_SharedLibraries", false);
 	delete [] dyninst_SharedLibrariesData;
+	
+	//the following reloads any shared libraries loaded into the
+	//mutatee using BPatch_thread::loadLibrary
+	saveWorldAddSharedLibs((void*)newElf); // ccw 14 may 2002 
 
         newElf->createElf();
 

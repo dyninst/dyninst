@@ -219,7 +219,12 @@ public:
 			oneTimeCodeInternal(expr);
 		    };
 
-    bool	loadLibrary(char *libname);
+	//the reload argument is used by save the world to determine
+	//if this library should be reloaded by the mutated binary
+	//when it starts up. this is up to the user because loading
+	//an extra shared library could hide access to the 'correct'
+	//function by redefining a function  
+    bool	loadLibrary(char *libname, bool reload = false); 
 
     //method that retrieves the line number and file name corresponding 
     //to an address
