@@ -1,0 +1,25 @@
+#
+# Common makefile template for igen.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1995/01/30 18:09:33  jcargill
+# Major build system reorganization
+#
+#
+
+TARGET	      = igen
+
+SRCS 	     += ../src/main.C \
+		parser.C \
+		scanner.C \
+		../src/typeDefns.C \
+		../src/interfaceSpec.C \
+		../src/globals.C \
+	        ../src/templates.C \
+		../src/classDefns.C
+
+LIBS 	     += -lutil -lfl
+
+all:	$(TARGET)

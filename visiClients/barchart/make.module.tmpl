@@ -1,0 +1,22 @@
+#
+# Common makefile template for barchart.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1995/01/30 18:12:10  jcargill
+# Major build system reorganization
+#
+#
+
+TARGET	      = barChart
+
+SRCS	     += ../barChart.C \
+		../barChartTcl.C \
+		../barChartDriver.C \
+		../dg2.C
+
+LIBS         += -lvisi -lhist -lutil 
+SYSLIBS	     += -ltk -ltcl -lXaw -lXext -lXmu -lXt -lX11 -lm
+
+all:	$(TARGET)

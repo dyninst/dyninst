@@ -1,0 +1,31 @@
+#
+# Common makefile template for util library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1995/01/30 18:11:52  jcargill
+# Major build system reorganization
+#
+#
+
+TARGET	      = libutil.a
+TARGET2	      = libutilPVM.a
+
+SRCS	     += ../src/aggregateSample.C \
+		../src/hist.C \
+		../src/lprintf.C \
+		../src/rpcUtil.C \
+		../src/stringPool.C \
+		../src/tunableConst.C \
+		../src/templates.C
+
+PVMSRCS	     += rpcUtilPVM.C
+
+PVMOBJS	     += rpcUtilPVM.o
+
+all: $(TARGET) $(TARGET2)
+
+libutilPVM.a: $(PVMOBJS)
+	@rm -f libutilPVM.a
+	ar crv libutilPVM.a $(PVMOBJS)

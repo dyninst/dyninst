@@ -1,0 +1,78 @@
+
+# Common makefile template for paradyn.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1995/01/30 18:10:07  jcargill
+# Major build system reorganization
+#
+#
+
+TARGET	      = paradyn
+
+VPATH	     += ../h:$(wildcard ../src/*thread):\
+                ../src/pdMain:../src/met:../../visi/h:
+
+SRCS	     += ../src/DMthread/DMpublic.C \
+		../src/DMthread/DMappContext.C \
+		../src/DMthread/DMmain.C \
+		../src/DMthread/DMresource.C \
+		../src/DMthread/DMabstractions.C \
+		../src/templates.C \
+		../src/pdMain/main.C \
+		../src/PCthread/PCauto.C \
+		../src/PCthread/PCpublic.C \
+		../src/PCthread/PCevalTest.C \
+		../src/PCthread/PCmetric.C \
+		../src/PCthread/PCrules.C \
+		../src/PCthread/PCshg.C \
+		../src/PCthread/PCwhen.C \
+		../src/PCthread/PCwhere.C \
+		../src/PCthread/PCwhy.C \
+		../src/PCthread/PCmain.C \
+		../src/VMthread/VMmain.C \
+		../src/VISIthread/VISIthreadmain.C \
+		../src/VISIthread/VISIthreadpublic.C \
+		../src/UIthread/paradyn.tcl.C \
+		../src/UIthread/tclTunable.C \
+		../src/UIthread/Status.C \
+		../src/UIthread/uimpd.tcl.C \
+		../src/UIthread/UImain.C \
+		../src/UIthread/UIpublic.C \
+		../src/UIthread/UIwhere.C \
+		../src/UIthread/dagCompute.C \
+		../src/UIthread/dag.C \
+		../src/met/metMain.C \
+		metParser.C \
+		metScanner.C \
+		../src/met/metClass.C
+
+IGEN_GEN_SRCS =	dataManager.thread.C \
+		performanceConsultant.thread.C \
+		dyninstRPC.xdr.C \
+		dyninstRPC.xdr.CLNT.C \
+		visi.xdr.CLNT.C \
+		visi.xdr.C \
+		VISIthread.thread.C \
+		UI.thread.C \
+		VM.thread.C 
+
+IGEN_ISRCS    = dataManager.I \
+		performanceConsultant.I \
+		dyninstRPC.I \
+		visi.I \
+		VISIthread.I \
+		UI.I \
+		VM.I
+
+LIBDIR	     += -L/usr/psup/lib
+
+LIBS 	     += -lutil -lthread
+SYSLIBS	     += -ltk -ltcl -lX11 -lm -lresolv -lfl
+
+all:	$(TARGET) metTester
+
+metTester: metParser.o metTester.o metScanner.o metTemplates.o metClass.o
+	$(CC++) $(LIBDIR) -o metTester metTemplates.o metParser.o metTester.o \
+	metScanner.o metClass.o -lfl

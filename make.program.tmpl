@@ -1,0 +1,91 @@
+#
+# This file defines the things that should be common to all "programs"
+# in the paradyn build tree.  It depends on things like SRCS and
+# TARGET being set correctly in the module-specific template and the
+# architecture-specific Makefile.
+# 
+# $Log: make.program.tmpl,v $
+# Revision 1.1  1995/01/30 18:08:21  jcargill
+# Major build system reorganization
+#
+#
+
+OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
+		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
+		$(patsubst %.y, %.o, $(filter %.y,$(notdir $(SRCS)))) \
+		$(patsubst %.l, %.o, $(filter %.l,$(notdir $(SRCS)))) \
+		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
+		$(IGEN_GEN_SRCS:%.C=%.o)
+
+ifndef UNCOMMON_LINK
+$(TARGET): $(OBJS) $(LIBS)
+	$(MODCC) -o $(TARGET) $(MODCFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+endif
+
+ifndef DEST
+DEST		= ../../../bin/$(PLATFORM)
+endif
+
+VPATH		+= ../src:../../../lib/$(PLATFORM):/p/paradyn/lib/$(PLATFORM)
+
+
+echo:
+	echo $(VPATH)
+
+clean:
+	rm -f *.o *.[hC] $(TARGET)
+
+install:  $(DEST)/$(TARGET)
+
+$(DEST)/$(TARGET): $(TARGET)
+	cp $(TARGET) $(DEST)
+
+depend: DEPENDS
+
+# 
+# Define DEPENDS dependencies such that the DEPENDS files depends on
+# the .I files, not the .[Ch] files; otherwise, DEPENDS get rebuilt
+# all the time.  We do need to build the Igen-generated files before
+# updating DEPENDS, however,
+#
+ifdef IGEN_ISRCS
+DEPENDS: $(SRCS) $(IGEN_ISRCS)
+	touch DEPENDS
+	$(MAKE) $(IGEN_GEN_SRCS)
+	$(MODCC) -MM $(MODCFLAGS) $(SRCS) $(IGEN_GEN_SRCS) > DEPENDS
+#	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
+else
+DEPENDS: $(SRCS)
+	touch DEPENDS
+	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+#	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
+endif
+
+pure:
+
+
+# A few pattern rules for simplicity.  The default lex rule is
+# redefined, just for the sake of cleanliness.  More important are the
+# igen rules; they "automatically" pick the correct type of igen to
+# run.  Actually, we can't do this completely "right" unless igen is
+# changed to generate different output files for the various type of
+# interfaces.
+#
+
+%.C: %.y
+	$(YACC) $(YFLAGS) $<
+	mv y.tab.c $@
+
+%.C: %.l
+	$(LEX) -t $(LFLAGS) $< > $@
+
+%.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h: %.I
+	igen -xdr $(ICFLAGS) $<
+
+%.thread.C %.thread.CLNT.h %.thread.SRVR.h %.thread.h: %.I
+	igen -thread $(ICFLAGS) $<
+
+#
+# include the dependencies.
+#
+include DEPENDS

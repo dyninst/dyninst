@@ -1,0 +1,21 @@
+#
+# Common makefile template for tclVisi.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1995/01/30 18:12:20  jcargill
+# Major build system reorganization
+#
+#
+
+TARGET	      = tclVisi
+
+SRCS	     += ../src/tclHack.c \
+		../src/tclVisi.C \
+		../src/DGclient.C
+
+LIBS         += -lvisi -lhist -lutil 
+SYSLIBS	     += -ltk -ltcl -lBLT -lXaw -lXext -lXmu -lXt -lX11 -lm
+
+all:	$(TARGET)

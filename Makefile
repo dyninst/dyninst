@@ -2,6 +2,10 @@
 #
 # First cut at a topLevel makefile for the paradyn system.
 #
+# $Log: Makefile,v $
+# Revision 1.19  1995/01/30 18:08:12  jcargill
+# Major build system reorganization
+#
 #
 
 # Standalone is the list of standalone binaries.  These get built
@@ -23,7 +27,7 @@ subsystems	= bininst paradyn paradynd paradyndSIM paradyndPVM \
 # made by default if make is passed no arguments.  Don't add other
 # target before all!
 
-all clean install:
+all clean install depend:
 	+for subsystem in $(buildfirst) $(subsystems); do 	\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
 	       $(MAKE) -C $$subsystem/$(PLATFORM) $@;		\

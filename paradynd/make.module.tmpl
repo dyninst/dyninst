@@ -1,0 +1,50 @@
+# 
+# Common makefile template for paradynd.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1995/01/30 18:10:31  jcargill
+# Major build system reorganization
+#
+#
+
+TARGET	      = paradynd
+
+VPATH	     += ../../paradynd/src:../../paradyn/h
+
+SRCS	     += ../src/association.C \
+		../src/ast.C \
+		../src/clock.C \
+		../src/comm.C \
+		../src/context.C \
+		../src/debugger.C \
+		../src/dynrpc.C \
+		../src/init.C \
+		../src/inst-sparc.C \
+		../src/inst-sunos.C \
+		../src/inst.C \
+		../src/main.C \
+		../src/metric.C \
+		../src/metricDefs-cm5.C \
+		../src/metricDefs-common.C \
+		../src/perfStream-def.C \
+		../src/perfStream.C \
+		../src/primitives.C \
+		../src/process.C \
+		../src/resource.C \
+		../src/stats.C \
+		../src/symtab.C \
+		../src/templates.C \
+		../src/templates2.C \
+		../src/util.C
+
+
+IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
+		dyninstRPC.xdr.C
+
+IGEN_ISRCS    = dyninstRPC.I
+
+LIBS	     += -lutil -liberty
+
+all:    $(TARGET)
