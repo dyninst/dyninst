@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.40 2001/10/11 23:58:00 schendel Exp $
+// $Id: pdwinnt.C,v 1.41 2001/12/20 22:08:46 pcroth Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -779,7 +779,7 @@ void checkProcStatus() {
 int secondBkpt = 0; //ccw 30 apr 2001 : used to signal that we have seen the first EXCEPTION_DEBUG_EVENT
 int mungeAddr = 0; //ccw 2 may 2001 : used to track where we wrote the LoadLibrary code
 byte savedOpCode[256]; //ccw 2 may 2001 : the op code we overwrite in main()
-byte newOpCode[256]={0x90};// ccw 27 june 2001 : the op code we add in main()
+byte newOpCode[256];    // ccw 27 june 2001 : the op code we add in main()
 //ccw 6 july 2001 the two above arrays are 256 bytes because writing one byte does not always cause the
 //instruction cache to be reloaded. 
 
@@ -869,14 +869,7 @@ int process::waitProcs(int *status) {
 			// put a breakpoint there, we are already
 			// at a state that will allow loadLibrary() to
 			// succeed. 
-			//ccw this is the breakpoint BEFORE main();
-			//i need to insert the 0xcc into main() now.
-			//byte debugOpCode = 0xcc;
-			for(int rr=0;rr<256;rr++){
-				newOpCode[rr]=0x90;
-			}
 	 	    	p->savedRegs = p->getRegisters();
-			newOpCode[0]=0xcc;
 			function_base *mainFunc;
 			//DebugBreak();//ccw 14 may 2001  
 			if (!((mainFunc = p->findOneFunction("main")))){
@@ -891,8 +884,18 @@ int process::waitProcs(int *status) {
 			}
 			mainAddr = mainFunc->addr();
 			//ccw save what we overwrite for later.
-			p->readDataSpace_((void*) (mainAddr), 256, (void*)savedOpCode);
-			p->writeDataSpace((void*) (mainAddr), 256, (void*)newOpCode);
+            p->readDataSpace_((void*) (mainAddr), 256, (void*)savedOpCode );
+
+            // make a copy of the text
+            CopyMemory( newOpCode, savedOpCode, 256 );
+
+            // insert our instruction
+            newOpCode[0] = 0xcc;
+
+            // apply our changes
+            p->writeDataSpace_((void*) (mainAddr), 256, (void*)newOpCode );
+            p->flushInstructionCache_((void*)mainAddr, 256 );
+
 			secondBkpt=1;
 			break;
 		}
@@ -937,10 +940,10 @@ int process::waitProcs(int *status) {
 	 		//ccw 25 june 2001 NEED TO FLUSH ICACHE here
 			p->flushInstructionCache_((void*) ((w32CONTEXT*) p->savedRegs)->Eip,0x100);
 
-
 			if(mainAddr){
 			    // patch main() back to its original form
-			    p->writeDataSpace((void*) (mainAddr),16,(void*) savedOpCode); //ccw 2 may 2001
+                p->writeDataSpace((void*) (mainAddr), 256, (void*)savedOpCode );
+
 			    // reset the IP to run what we just inserted.
 			    ((w32CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
 			}
@@ -950,19 +953,6 @@ int process::waitProcs(int *status) {
 		    p->writeDataSpace((void *)p->getImage()->codeOffset(),
 				      LOAD_DYNINST_BUF_SIZE,
 				      (void *)p->savedData);
-			if(mainAddr){
-				//ccw 25 june 2001 NEED TO FLUSH ICACHE here
-				//p->flushInstructionCache_((void*) ((CONTEXT*) p->savedRegs)->Eip,0x100);
-				p->readDataSpace_((void*)(mainAddr), 256, (void*) newOpCode);
-				p->writeDataSpace((void*) (mainAddr),256,(void*) savedOpCode); //ccw 2 may 2001
-				//technically, we only need to writeDataSpace once, up at the previous
-				// if statement. BUT writing once does not seem to always flush the 
-				// icache, and neither does FlushInsturctionCache()
-				// the readDataSpace_ is completely spurrious but is here for the same
-				// reason, to get the icache updated correctly with the old op code before
-				// we continue. 
-			}
-	
 	
 		}else{
 			break;  //ccw 20 june 2001 this is the DYNINSTinit breakpoint
