@@ -2264,8 +2264,8 @@ function_base *process::findOneFunction(resource *func,resource *mod){
     string func_name = f_names[f_names.size() -1]; 
     string mod_name = m_names[m_names.size() -1]; 
 
-    //cerr << "process::findOneFunction called.  function name = " << func_name.string_of() \
-    //	 << endl;
+    //cerr << "process::findOneFunction called.  function name = " 
+    //	   << func_name.string_of() << endl;
 
     // KLUDGE: first search any shared libraries for the module name 
     //  (there is only one module in each shared library, and that 
@@ -2281,8 +2281,8 @@ function_base *process::findOneFunction(resource *func,resource *mod){
 								   true));
 		} 
 		else { 
-		    //cerr << "function found in module " << mod_name.string() << \
-		    " that module excluded" << endl;
+		    //cerr << "function found in module " << mod_name.string()
+		    //     << " that module excluded" << endl;
 		  return 0;
 		} 
 	    }
@@ -2555,7 +2555,7 @@ vector<module *> *process::getAllModules(){
 // a.out and in the shared objects
 // TODO: what to do about duplicate function names?
 vector<function_base *> *process::getIncludedFunctions(){
-    //cerr << "process " << programName << " :: getIncludedFunctions() called" \
+    //cerr << "process " << programName << " :: getIncludedFunctions() called"
     //	 << endl;
     // if this list has already been created, return it
     if(some_functions) 
@@ -2620,7 +2620,7 @@ vector<module *> *process::getIncludedModules(){
     } } 
 
     //cerr << "some_modules newlyu created, returning it:" << endl;
-    //print_module_vector_by_short_name(string("  "), \
+    //print_module_vector_by_short_name(string("  "),
     //    (vector<pdmodule*>*)some_modules);
     return some_modules;
 }
