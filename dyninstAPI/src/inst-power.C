@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.200 2004/04/20 01:27:54 jaw Exp $
+ * $Id: inst-power.C,v 1.201 2004/04/20 23:33:21 mirg Exp $
  */
 
 #include "common/h/headers.h"
@@ -3338,12 +3338,13 @@ bool pd_Function::findInstPoints(const image *owner)
   //     constructor.  Because Dyninst maintains a mapping from addresses to
   //     instrumentation points, it requires that each point has a unique
   //     address.
-  //     We assign the value (start of function) + (size of function) + 1 
-  //     for the exit point so that we can still do address comparisons
+  //     We use the address of the last instruction in the function
+  //     as the exit point address so that we can still do address comparisons
   instruction retInsn;
   retInsn.raw = 0;
   funcReturns.push_back(new instPoint(this, retInsn, owner,
-                                   adr + get_size() + 1, false, functionExit));
+				      adr + get_size() - sizeof(instruction),
+				      false, functionExit));
 
   // Check whether we're a leaf function (makes no calls, LR never saved)
   // or don't create a stack frame.
