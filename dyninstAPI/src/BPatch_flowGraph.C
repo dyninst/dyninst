@@ -999,6 +999,25 @@ BPatch_flowGraph::createSourceBlocksInt()
    
    for (i = 0; i < appModules->size(); i++) {
       pdmodule* tmp = (pdmodule *)(*appModules)[i];
+
+#if defined(i386_unknown_linux2_0)
+    /*******
+      This is a temporary fix for the bug #482. Currently, due to use of
+      drawf format, we can not divide the line info symbols (maybe others) 
+      into per module basis. Thus, all line information entries are inserted to
+      a insgle lineinformation object. We iterate over modules and find whether
+      the function's line info is in that module (sometimes function's module
+      can not be identified correctly thus we iterate) and if found we create the
+      source blocks, resulting in multiple entries in the source blocks with the same
+      value (same number as the number of modules). This fix only let us use only
+      1 module, which is the function's own module
+    ********/
+
+    if(mod != tmp)
+        continue;
+
+#endif /*i386_unknown_linux2_0*/
+
       LineInformation* lineInfo = tmp->getLineInformation(proc);
  
       //cerr << "module " << tmp->fileName() << endl;
