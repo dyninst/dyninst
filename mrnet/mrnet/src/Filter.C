@@ -50,7 +50,7 @@ int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
   //set of data possibly each downstream_node
   in = new MC_DataElement * [in_count];
   for(i=0,iter = packets_in.begin(); iter != packets_in.end(); iter++, i++){
-    assert(aggr_spec->format_str == (*iter)->get_FormatString());
+      assert( aggr_spec->format_str == (*iter)->get_FormatString() );
 
     //for each "downstream node" a packet contains an array of elements
     in[i] = new MC_DataElement[(*iter)->get_NumElements()] ;
@@ -65,6 +65,7 @@ int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
   for(i=0; i<out_count; i++){
     MC_Packet * cur_packet = new MC_Packet(out[i], aggr_spec->format_str.c_str());
     packets_out.push_back(cur_packet);
+    mc_printf(MCFL, stderr, "filtered packet value: %lf\n", out[i][0].val.lf);
   }
 
   mc_printf(MCFL, stderr, "Leaving aggr.push_packets()\n");
@@ -134,6 +135,28 @@ void aggr_Float_Avg(MC_DataElement **in_elems, unsigned int in_count,
   (*out_elems)[0] = new MC_DataElement;
   (*out_elems)[0][0].val.f = avg;
   (*out_elems)[0][0].type = FLOAT_T;
+}
+
+void aggr_Float_Max(MC_DataElement **in_elems, unsigned int in_count,
+                    MC_DataElement ***out_elems, unsigned int *out_count)
+{
+  double max=0;
+
+  mc_printf(MCFL, stderr, "max'ing: [");
+  for(unsigned int i=0; i<in_count; i++){
+    _fprintf((stderr, "%lf, ", in_elems[i][0].val.lf));
+    if( in_elems[i][0].val.lf > max){
+        max = in_elems[i][0].val.lf;
+    }
+  }
+  _fprintf((stderr, "] => %lf\n", max));
+
+
+  *out_count = 1;
+  (*out_elems) = new MC_DataElement* [1];
+  (*out_elems)[0] = new MC_DataElement;
+  (*out_elems)[0][0].val.lf = max;
+  (*out_elems)[0][0].type = DOUBLE_T;
 }
 
 

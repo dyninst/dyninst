@@ -148,7 +148,6 @@ AC_ARG_WITH(outputlevel,
             [OUTPUT_LEVEL="-DVIEW"])
 AC_SUBST(OUTPUT_LEVEL)
 
-AC_CONFIG_HEADER(src/config.h)
 AC_C_BIGENDIAN
 AC_CHECK_SIZEOF(char)
 AC_CHECK_SIZEOF(short)
@@ -159,3 +158,4 @@ AC_CHECK_SIZEOF(double)
 
 AC_OUTPUT(conf/Makefile.$MRNET_ARCH.inc:conf/Makefile.generic-arch.in \
           conf/Makefile.inc Makefile:conf/Makefile.in)
+AC_CONFIG_HEADER(src/config.h)

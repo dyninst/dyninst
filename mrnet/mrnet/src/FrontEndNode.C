@@ -36,11 +36,11 @@ int MC_FrontEndNode::proc_DataFromDownStream(MC_Packet *packet)
       stream = MC_StreamImpl::get_Stream(cur_packet->get_StreamId());
 
       if( stream ){
-        mc_printf(MCFL, stderr, "Put packet in stream %d\n", packet->get_StreamId());
+        mc_printf(MCFL, stderr, "Put packet in stream %d\n", cur_packet->get_StreamId());
         stream->add_IncomingPacket(packet);
       }
       else{
-        mc_printf(MCFL, stderr, "Packet from unknown stream %d\n", packet->get_StreamId());
+        mc_printf(MCFL, stderr, "Packet from unknown stream %d\n", cur_packet->get_StreamId());
         return -1;
       }
     }

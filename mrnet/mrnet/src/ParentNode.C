@@ -46,6 +46,11 @@ MC_ParentNode::MC_ParentNode(bool _threaded, std::string _hostname,
   AggrSpecById[AGGR_FLOAT_AVG_ID] =tmp;
 
   tmp = new MC_Aggregator::AggregatorSpec;
+  tmp->format_str = AGGR_FLOAT_MAX_FORMATSTR;
+  tmp->filter = aggr_Float_Max;
+  AggrSpecById[AGGR_FLOAT_MAX_ID] =tmp;
+
+  tmp = new MC_Aggregator::AggregatorSpec;
   tmp->format_str = AGGR_CHARARRAY_CONCAT_FORMATSTR;
   tmp->filter = aggr_CharArray_Concat;
   AggrSpecById[AGGR_CHARARRAY_CONCAT_ID] =tmp;

@@ -51,7 +51,8 @@ INCDIR = -I$(MRNET_ROOT)/..
 LIBMC    =$(LIBDIR)/libmcnetwork.a
 COMM_NODE=$(BINDIR)/comm_node 
 TESTS   = $(BINDIR)/test1_FE $(BINDIR)/test1_BE \
-          $(BINDIR)/FloatAvg_FE $(BINDIR)/FloatAvg_BE
+          $(BINDIR)/FloatAvg_FE $(BINDIR)/FloatAvg_BE \
+          $(BINDIR)/microbench_FE $(BINDIR)/microbench_BE $(BINDIR)/config_generator
 
 #TESTS   = $(BINDIR)/test1_FE $(BINDIR)/test1_BE $(BINDIR)/xdr_test $(BINDIR)/pdr_test
 
@@ -142,6 +143,18 @@ $(BINDIR)/FloatAvg_FE: $(LIBMC) $(OBJDIR)/FloatAvg_FE.o
 $(BINDIR)/FloatAvg_BE: $(LIBMC) $(OBJDIR)/FloatAvg_BE.o
 	echo "Linking $@ ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/FloatAvg_BE.o $(LIBMC) $(LIBS)
+
+$(BINDIR)/microbench_FE: $(LIBMC) $(OBJDIR)/microbench_FE.o
+	echo "Linking $@ ..."
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/microbench_FE.o $(LIBMC) $(LIBS)
+
+$(BINDIR)/microbench_BE: $(LIBMC) $(OBJDIR)/microbench_BE.o
+	echo "Linking $@ ..."
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/microbench_BE.o $(LIBMC) $(LIBS)
+
+$(BINDIR)/config_generator: $(MRNET_ROOT)/tests/config_generator.C
+	echo "Linking $@ ..."
+	$(CXX) $(CXXFLAGS) -o $@ $(MRNET_ROOT)/tests/config_generator.C
 
 $(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
 	echo "Linking $@ ..."
