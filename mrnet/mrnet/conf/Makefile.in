@@ -73,7 +73,14 @@ LIBMC_SRCS = \
              $(MRNET_ROOT)/src/MC_Errors.C \
              $(MRNET_ROOT)/src/MC_NetworkGraph.C \
              $(MRNET_ROOT)/src/MC_CommunicationNode.C \
+             $(MRNET_ROOT)/src/MC_RemoteNode.C \
+             $(MRNET_ROOT)/src/MC_ParentNode.C \
+             $(MRNET_ROOT)/src/MC_FrontEndNode.C \
+             $(MRNET_ROOT)/src/MC_ChildNode.C \
+             $(MRNET_ROOT)/src/MC_BackEndNode.C \
+             $(MRNET_ROOT)/src/MC_InternalNode.C \
              $(MRNET_ROOT)/src/utils.C \
+             $(MRNET_ROOT)/src/pthread_sync.C \
              $(MRNET_ROOT)/src/pdr.c \
              $(MRNET_ROOT)/src/pdr_mem.c \
              $(MRNET_ROOT)/src/pdr_sizeof.c \
