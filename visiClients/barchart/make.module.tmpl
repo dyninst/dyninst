@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.5  1995/08/06 22:12:33  tamches
+# Revision 1.6  1995/11/04 05:50:44  tamches
+# removed -lhist (not needed)
+#
+# Revision 1.5  1995/08/06  22:12:33  tamches
 # barChart now uses tcl2c
 #
 # Revision 1.4  1995/06/23  03:15:08  tamches
@@ -36,7 +39,8 @@ TCL_SRCS	= ../barChart.tcl
 # $(wildcard ../*.tcl)
 SRCS		+= $(TCL2C_GEN_SRCS)
 
-LIBS         += -lvisi -lhist -lpdutil 
+#LIBS         += -lvisi -lhist -lpdutil 
+LIBS         += -lvisi -lpdutil 
 SYSLIBS	     += -ltk -ltcl -lX11 -lm
 
 all:	$(TARGET)
