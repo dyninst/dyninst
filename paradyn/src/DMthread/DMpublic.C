@@ -590,9 +590,6 @@ string unslash(char *s)
 void dataManager::getMemoryBounds(perfStreamHandle,
                                   vector<metric_focus_pair> *request)
 {
-//Can be done better
-// Important, i also need to make the unique_name canonical
-// i.e., in the order of Machine, Code, Process, SyncObject, Memory
         dictionary_hash<string, unsigned> upper(string::hash) ;
         dictionary_hash<string, unsigned> lower(string::hash) ;
 
@@ -600,7 +597,17 @@ void dataManager::getMemoryBounds(perfStreamHandle,
         {
                 metricHandle  met =  ((*request)[j]).met ;
                 string unique_name ;
-                unique_name += getMetricName(met) ;
+		char *metric_name = (char* ) getMetricName(met) ;
+		if(!metric_name)
+		{
+			cerr << "something is caught wrong by getMemoryBounds:"
+			     << "metricHandle =" << met 
+			     << "could be greater than metrics.size()"
+			     << " some thing is wrong!"
+			     << endl ;
+			continue ;
+		}
+                unique_name += metric_name ;
 
                 string Machine, Code, Process, SyncObject, Memory ;
 
