@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: true; tab-width: 3 -*- */
+/* -*- Mode: C; indent-tabs-mode: true; tab-width: 4 -*- */
 
 /*
  * Copyright (c) 2003 Barton P. Miller
@@ -303,19 +303,79 @@ void deallocateLocationList( Dwarf_Debug & dbg, Dwarf_Locdesc * locationList, Dw
 	dwarf_dealloc( dbg, locationList, DW_DLA_LOCDESC );
 	} /* end deallocateLocationList() */
 
-void decodeLocationList( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, long int * initialStackValue = NULL, bool * isFrameRelative = NULL ) {
-	assert( listLength > 0 );
+/* An investigative function. */
+void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLength ) {
+	for( int i = 0; i < listLength; i++ ) {
+		Dwarf_Locdesc location = locationList[i];
+		fprintf( stderr, "0x%lx to 0x%lx; ", (Address)location.ld_lopc, (Address)location.ld_hipc );
+		}
+	fprintf( stderr, "\n" );
+	} /* end dumpLocListAddrRanges */
 
-	if( listLength > 1 ) { fprintf( stderr, "Warning: more than one location, ignoring all but first.\n" ); }
+AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength ) {
+	/* Until such time as we see more-complicated location lists, assume single entries
+	   consisting of a register name.  Using an AST for this is massive overkill, but if
+	   we need to handle more complicated frame base calculations later, the infastructure
+	   will be in place. */
+	   
+	/* There is only one location. */
+	assert( listLength == 1 );
+	Dwarf_Locdesc locationDescriptor = locationList[0];
+	
+	/* It is defined by a single operation. */
+	assert( locationDescriptor.ld_cents == 1 );
+	Dwarf_Loc location = locationDescriptor.ld_s[0];
+
+	/* That operation is naming a register. */
+	int registerNumber = 0;	
+	if( DW_OP_reg0 <= location.lr_atom && location.lr_atom <= DW_OP_reg31 ) {
+		registerNumber = location.lr_atom - DW_OP_reg0;
+		}
+	else if( location.lr_atom == DW_OP_regx ) {
+		registerNumber = location.lr_number;
+		}
+	else {
+		assert( 0 );
+		}
+
+	/* We have to make sure no arithmetic is actually done to the frame pointer,
+	   so add zero to it and shove it in some other register. */
+	AstNode * constantZero = new AstNode( AstNode::Constant, (void *)0 );
+	assert( constantZero != NULL );
+	AstNode * framePointer = new AstNode( AstNode::DataReg, (void *)(long unsigned int)registerNumber );
+	assert( framePointer != NULL );
+	AstNode * moveFPtoDestination = new AstNode( orOp, constantZero, framePointer );
+	
+	return moveFPtoDestination;
+	} /* end convertLocListToAST(). */
+
+bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, long int * initialStackValue = NULL, bool * isFrameRelative = NULL ) {
+	/* We make a few heroic assumptions about locations in this decoder.
+	
+	   We assume that all locations are either frame base-relative offsets,
+	   encoded with DW_OP_fbreg, or are absolute addresses.  We assume these
+	   locations are invariant with respect to the PC, which implies that all
+	   location lists have a single entry.  We assume that no location is
+	   calculated at run-time.
+	   
+	   We make these assumptions to match the assumptions of the rest of
+	   Dyninst, which makes no provision for pc-variant or run-time calculated
+	   locations, aside from the frame pointer.  However, it assumes that a frame
+	   pointer is readily available, which, on IA-64, it is not.  For that reason,
+	   when we encounter a function with a DW_AT_frame_base (effectively all of them),
+	   we do NOT use this decoder; we decode the location into an AST, which we
+	   will use to calculate the frame pointer when asked to do frame-relative operations.
+	   (These calculations will be invalid until the frame pointer is established,
+	   which may require some fiddling with the location of the 'entry' instpoint.) */
+	assert( listLength == 1 );
+
+	if( isFrameRelative != NULL ) { * isFrameRelative = false; }
 
 	/* Initialize the stack. */
 	std::stack< long int > opStack = std::stack<long int>();
 	if( initialStackValue != NULL ) { opStack.push( * initialStackValue ); }
 
-	/* Variable can only become frame-relative by using the frame pointer operand. */
-	if( isFrameRelative != NULL ) { * isFrameRelative = false; }
-
-	/* Ignore all but the first location, for now. */
+	/* There is only one location. */
 	Dwarf_Locdesc location = locationList[0];
 	Dwarf_Loc * locations = location.ld_s;
 	for( unsigned int i = 0; i < location.ld_cents; i++ ) {
@@ -324,22 +384,6 @@ void decodeLocationList( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, 
 			// fprintf( stderr, "Pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
 			opStack.push( locations[i].lr_atom - DW_OP_lit0 );
 			continue;
-			}
-
-		if( (DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31) || locations[i].lr_atom == DW_OP_bregx ) {
-			/* Offsets from the specified register.  Since we're not
-			   doing this at runtime, we can't do anything useful here. */
-			// fprintf( stderr, "Warning: location decode requires run-time information, giving up.\n" );
-			* offset = -1;
-			return;
-			}
-
-		if( (DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31) || locations[i].lr_atom == DW_OP_regx ) {
-			/* The variable resides in the particular register.  We can't do anything
-			   useful with this information yet. */
-			// fprintf( stderr, "Warning: location decode indicates register, giving up.\n" );
-			* offset = -1;
-			return;
 			}
 
 		switch( locations[i].lr_atom ) {
@@ -363,10 +407,8 @@ void decodeLocationList( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, 
 				break;
 
 			case DW_OP_fbreg:
-				/* We're only interested in offsets, so don't add the FP. */
-				// fprintf( stderr, "Pushing FP offset %ld\n", (signed long)(locations[i].lr_number) );
-				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
 				if( isFrameRelative != NULL ) { * isFrameRelative = true; }
+				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
 				break;
 
 			case DW_OP_dup:
@@ -376,12 +418,6 @@ void decodeLocationList( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, 
 			case DW_OP_drop:
 				opStack.pop();
 				break;
-
-			case DW_OP_over: {
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second ); opStack.push( first ); opStack.push( second );
-				} break;
 
 			case DW_OP_pick: {
 				/* Duplicate the entry at index locations[i].lr_number. */
@@ -396,6 +432,12 @@ void decodeLocationList( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, 
 				opStack.push( dup );
 				} break;
 
+			case DW_OP_over: {
+				long int first = opStack.top(); opStack.pop();
+				long int second = opStack.top(); opStack.pop();
+				opStack.push( second ); opStack.push( first ); opStack.push( second );
+				} break;
+
 			case DW_OP_swap: {
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
@@ -408,14 +450,6 @@ void decodeLocationList( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, 
 				long int third = opStack.top(); opStack.pop();
 				opStack.push( first ); opStack.push( third ); opStack.push( second );
 				} break;
-
-			case DW_OP_deref:
-			case DW_OP_deref_size:
-			case DW_OP_xderef:
-			case DW_OP_xderef_size:
-				// fprintf( stderr, "Warning: location decode requires run-time information, giving up.\n" );
-				* offset = -1;
-				return;
 
 			case DW_OP_abs: {
 				long int top = opStack.top(); opStack.pop();
@@ -563,22 +597,26 @@ void decodeLocationList( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, 
 
 			case DW_OP_piece:
 				/* For multi-part variables, which we don't handle. */
+				fprintf( stderr, "Warning: dyninst does not handle multi-part variables.\n" );
 				break;
 
 			case DW_OP_nop:
 				break;
 
 			default:
-				fprintf( stderr, "Unrecognized location opcode 0x%x, returning offset -1.\n", locations[i].lr_atom );
-				* offset = -1;
-				return;
+				/* FIXME: register names for formal parameters in libstdc++? */
+				// fprintf( stderr, "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
+				return false;
 			} /* end operand switch */
 		} /* end iteration over Dwarf_Loc entries. */
 
 	/* The top of the stack is the computed location. */
 	// fprintf( stderr, "Location decoded: %ld\n", opStack.top() );
 	* offset = opStack.top();
-	} /* end decodeLocationList() */
+	
+	/* decode successful */
+	return true;
+	} /* end decodeLocationListForStaticOffsetOrAddress() */
 
 void convertFileNoToName( Dwarf_Debug & dbg, Dwarf_Signed fileNo, char ** returnFileName, char ** newFileNames = NULL, Dwarf_Signed newFileNamesCount = 0 ) {
 	static char ** fileNames = NULL;
@@ -676,37 +714,11 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			status = dwarf_hasattr( dieEntry, DW_AT_specification, & hasSpecification, NULL );
 			assert( status == DW_DLV_OK );
 
-			/* Is the function external(ly visible)? */
-			Dwarf_Bool isExternal;
-			status = dwarf_hasattr( dieEntry, DW_AT_external, & isExternal, NULL );
-			assert( status == DW_DLV_OK );
-
-			/* Does the function have a frame base? */
-			Dwarf_Bool hasFrameBase;
-			status = dwarf_hasattr( dieEntry, DW_AT_frame_base, & hasFrameBase, NULL );
-			assert( status == DW_DLV_OK );
-
-			/* Does it have line number info? */
-			Dwarf_Bool hasLineInfo;
-			status = dwarf_hasattr( dieEntry, DW_AT_decl_file, & hasLineInfo, NULL );
-			assert( status == DW_DLV_OK );
-
-			/* Is this entry a declaration? */ 
-			Dwarf_Attribute declAttr;
-			status = dwarf_attr( dieEntry, DW_AT_declaration, & declAttr, NULL );
-			assert( status != DW_DLV_ERROR );
-
-			Dwarf_Bool isDeclaration = false;
-			if( status == DW_DLV_OK ) {
-				status = dwarf_formflag( declAttr, & isDeclaration, NULL );
-				assert( status == DW_DLV_OK );
-
-				dwarf_dealloc( dbg, declAttr, DW_DLA_ATTR );
-				} /* end if this entry has a declaration flag */
-
-			/* Our goal is two-fold: First, we want to set the return type
+			/* Our goal is three-fold: First, we want to set the return type
 			   of the function.  Second, we want to set the newFunction variable
-			   so subsequent entries are handled correctly. */
+			   so subsequent entries are handled correctly.  Third, we want to
+			   record (the location of, or how to calculte) the frame base of 
+			   this function for use by our instrumentation code later. */
 
 			char * functionName = NULL;
 			Dwarf_Die specEntry = dieEntry;
@@ -723,7 +735,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				status = dwarf_global_formref( specAttribute, & specOffset, NULL );
 				assert( status == DW_DLV_OK );
 
-				dwarf_offdie( dbg, specOffset, & specEntry, NULL );
+				status = dwarf_offdie( dbg, specOffset, & specEntry, NULL );
 				assert( status == DW_DLV_OK );
 
 				dwarf_dealloc( dbg, specAttribute, DW_DLA_ATTR );
@@ -787,6 +799,29 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				newFunction = functions[0];
 				} /* end findFunction() cases */
 
+			/* Once we've found the BPatch_function pointer corresponding to this
+			   DIE, record its frame base.  A declaration entry may not have a 
+			   frame base, and some functions do not have frames. */
+			Dwarf_Attribute frameBaseAttribute;
+			status = dwarf_attr( dieEntry, DW_AT_frame_base, & frameBaseAttribute, NULL );
+			assert( status != DW_DLV_ERROR );
+
+			if( status == DW_DLV_OK ) {
+				Dwarf_Locdesc * locationList;
+				Dwarf_Signed listLength;
+				status = dwarf_loclist( frameBaseAttribute, & locationList, & listLength, NULL );
+				assert( status == DW_DLV_OK );
+
+				dwarf_dealloc( dbg, frameBaseAttribute, DW_DLA_ATTR );
+					
+#if defined(ia64_unknown_linux2_4)
+				/* Convert location list to an AST for later code generation. */
+				newFunction->func->framePointerCalculator = convertFrameBaseToAST( locationList, listLength );
+#endif
+				
+				deallocateLocationList( dbg, locationList, listLength );
+				} /* end if this DIE has a frame base attribute */
+			
 			/* Find its return type. */
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );
@@ -854,7 +889,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				commonBlockVar->setType( commonBlockType );
 				module->moduleTypes->addGlobalVariable( commonBlockName, commonBlockType );
 				commonBlockType->setDataClass( BPatch_dataCommon );
-				} /* end if we re-refine the type. */
+				} /* end if we re-define the type. */
 
 			dwarf_dealloc( dbg, commonBlockName, DW_DLA_STRING );
 
@@ -863,137 +898,285 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			newCommonBlock->beginCommonBlock();
 			} break;
 
-		case DW_TAG_variable:
-		case DW_TAG_formal_parameter:
 		case DW_TAG_constant: {
-			char * variableName;
-			status = dwarf_diename( dieEntry, & variableName, NULL );
-			if( status == DW_DLV_NO_ENTRY ) {
-				/* C++ anonymous union. */
-				break;
-				}
+			fprintf( stderr, "Warning: dyninst ignores named constant entries.\n" );
+			} break;
+		
+		/* It's worth noting that a variable may have a constant value.  Since,
+		   AFAIK, Dyninst does nothing with this information, neither will we.
+		   (It will, however, explain why certain variables that otherwise would
+		   don't have locations.) */
+		case DW_TAG_variable: {
+			/* A variable may occur inside a function, as either static or local.
+			   A variable may occur inside a container, as C++ static member.
+			   A variable may not occur in either, as a global. 
+			   
+			   For the first two cases, we need the variable's name, its type,
+			   its line number, and its offset or address in order to tell
+			   Dyninst about it.  Dyninst only needs to know the name and type
+			   of a global.  (Actually, it already knows the names of the globals;
+			   we're really just telling it the types.)
+			   
+			   Variables may have two entries, the second, with a _specification,
+			   being the only one with the location. */
+
+			/* We will begin by determining which kind of variable we think it is,
+			   and the determining if we need to wait for the DIE with a _specification
+			   before telling Dyninst about it. */
+			
+			if( currentFunction == NULL && currentEnclosure == NULL ) {
+				/* Then this variable must be a global.  Acquire its name and type. */
+				char * variableName;
+				status = dwarf_diename( dieEntry, & variableName, NULL );
+				assert( status != DW_DLV_ERROR );
+				
+				if( status == DW_DLV_NO_ENTRY ) { break; }
+				assert( status == DW_DLV_OK );
+				
+				Dwarf_Attribute typeAttribute;
+				status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
+				assert( status != DW_DLV_ERROR );
+				
+				if( status == DW_DLV_NO_ENTRY ) { break; }
+				assert( status == DW_DLV_OK );
+				
+				Dwarf_Off typeOffset;
+				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
+				assert( status == DW_DLV_OK );
+				
+				/* The typeOffset forms a module-unique type identifier,
+				   so the BPatch_type look-ups by it rather than name. */
+				BPatch_type * variableType = module->moduleTypes->findOrCreateType( typeOffset );
+				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
+				
+				/* Tell Dyninst what this global's type is. */
+				module->moduleTypes->addGlobalVariable( variableName, variableType );
+				} /* end if this variable is a global */
+			else {
+				/* We'll start with the location, since that's most likely to
+				   require the _specification. */
+				Dwarf_Attribute locationAttribute;
+				status = dwarf_attr( dieEntry, DW_AT_location, & locationAttribute, NULL );
+				assert( status != DW_DLV_ERROR );
+				
+				if( status == DW_DLV_NO_ENTRY ) { break; }
+				assert( status == DW_DLV_OK );
+				
+				Dwarf_Locdesc * locationList;
+				Dwarf_Signed listLength;
+				status = dwarf_loclist( locationAttribute, & locationList, & listLength, NULL );
+				assert( status == DW_DLV_OK );			
+				
+				dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
+
+				bool isFrameRelative;
+				long int variableOffset;
+				bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & variableOffset, NULL, & isFrameRelative );
+				deallocateLocationList( dbg, locationList, listLength );
+				
+				if( ! decodedAddressOrOffset ) { break; }
+				assert( decodedAddressOrOffset );
+			
+				/* If this DIE has a _specification, use that for the rest of our inquiries. */
+				Dwarf_Die specEntry = dieEntry;
+				
+				Dwarf_Attribute specAttribute;
+				status = dwarf_attr( dieEntry, DW_AT_specification, & specAttribute, NULL );
+				assert( status != DW_DLV_ERROR );
+				
+				if( status == DW_DLV_OK ) {
+					Dwarf_Off specOffset;
+					status = dwarf_global_formref( specAttribute, & specOffset, NULL );
+					assert( status == DW_DLV_OK );
+					
+					status = dwarf_offdie( dbg, specOffset, & specEntry, NULL );
+					assert( status == DW_DLV_OK );
+				
+					dwarf_dealloc( dbg, specAttribute, DW_DLA_ATTR );
+					} /* end if dieEntry has a _specification */
+					
+				/* Acquire the name, type, and line number. */
+				char * variableName;
+				status = dwarf_diename( specEntry, & variableName, NULL );
+				assert( status != DW_DLV_ERROR );
+				
+				/* We can't do anything with an anonymous variable. */
+				if( status == DW_DLV_NO_ENTRY ) { break; }
+				assert( status == DW_DLV_OK );
+
+				/* Acquire the parameter's type. */
+				Dwarf_Attribute typeAttribute;
+				status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );
+				assert( status != DW_DLV_ERROR );
+			
+				if( status == DW_DLV_NO_ENTRY ) { break; }
+				assert( status == DW_DLV_OK );
+			
+				Dwarf_Off typeOffset;
+				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
+				assert( status == DW_DLV_OK );
+			
+				/* The typeOffset forms a module-unique type identifier,
+				   so the BPatch_type look-ups by it rather than name. */
+				BPatch_type * variableType = module->moduleTypes->findOrCreateType( typeOffset );
+
+				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
+			
+				/* Acquire the parameter's lineNo. */
+				Dwarf_Unsigned variableLineNo;
+				bool hasLineNumber = false;
+
+				Dwarf_Attribute lineNoAttribute;
+				status = dwarf_attr( specEntry, DW_AT_decl_line, & lineNoAttribute, NULL );
+				assert( status != DW_DLV_ERROR );
+			
+				/* We don't need to tell Dyninst a line number for C++ static variables,
+				   so it's OK if there isn't one. */
+				if( status == DW_DLV_OK ) {
+					hasLineNumber = true;
+					status = dwarf_formudata( lineNoAttribute, & variableLineNo, NULL );
+					assert( status == DW_DLV_OK );
+					
+					dwarf_dealloc( dbg, lineNoAttribute, DW_DLA_ATTR );			
+					} /* end if there is a line number */
+							
+				/* We now have the variable name, type, offset, and line number.
+				   Tell Dyninst about it. */
+				   
+				if( currentFunction != NULL ) {
+					if( !hasLineNumber ) { break; }
+					assert( hasLineNumber );
+					
+					BPatch_localVar * newVariable = new BPatch_localVar( variableName, variableType, variableLineNo, variableOffset, 5, isFrameRelative );
+					currentFunction->localVariables->addLocalVar( newVariable );
+					} /* end if a local or static variable. */
+				else if( currentEnclosure != NULL ) {
+					assert( ! isFrameRelative );
+					currentEnclosure->addField( variableName, variableType->getDataClass(), variableType, variableOffset, variableType->getSize() );
+					} /* end if a C++ static member. */
+				} /* end if this variable is not global */
+			} break;
+		
+		/* It's probably worth noting that a formal parameter may have a
+		   default value.  Since, AFAIK, Dyninst does nothing with this information,
+		   neither will we. */
+		case DW_TAG_formal_parameter: {
+			/* A formal parameter must occur in the context of a function.
+			   (That is, we can't do anything with a formal parameter to a
+			   function we don't know about.) */
+			if( currentFunction == NULL ) { break; }
+			assert( currentFunction != NULL );
+			
+			/* We need the formal parameter's name, its type, its line number,
+			   and its offset from the frame base in order to tell the 
+			   rest of Dyninst about it.  A single _formal_parameter
+			   DIE may not have all of this information; if it does not,
+			   we will ignore it, hoping to catch it when it is later
+			   referenced as an _abstract_origin from another _formal_parameter
+			   DIE.  If we never find such a DIE, than there is not enough
+			   information to introduce it to Dyninst. */
+			
+			/* We begin with the location, since this is the attribute
+			   most likely to require using the _abstract_origin. */
+			Dwarf_Bool hasLocation = false;
+			status = dwarf_hasattr( dieEntry, DW_AT_location, & hasLocation, NULL );
 			assert( status == DW_DLV_OK );
-
-			Dwarf_Attribute typeAttribute;
-			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
+			
+			if( !hasLocation ) { break; }
+			assert( hasLocation );
+		
+			/* Acquire the location of this formal parameter. */
+			Dwarf_Attribute locationAttribute;
+			status = dwarf_attr( dieEntry, DW_AT_location, & locationAttribute, NULL );
+			assert( status == DW_DLV_OK );
+			
+			Dwarf_Locdesc * locationList;
+			Dwarf_Signed listLength;
+			status = dwarf_loclist( locationAttribute, & locationList, & listLength, NULL );
+			assert( status == DW_DLV_OK );
+			
+			dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
+			
+			bool isFrameRelative;
+			long int parameterOffset;
+			bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & parameterOffset, NULL, & isFrameRelative );
+			deallocateLocationList( dbg, locationList, listLength );
+			
+			if( ! decodedOffset ) { break; }
+			assert( decodedOffset );
+			
+			assert( isFrameRelative );
+		
+			/* If the DIE has an _abstract_origin, we'll use that for the
+			   remainder of our inquiries. */
+			Dwarf_Die originEntry = dieEntry;
+		
+			Dwarf_Attribute originAttribute;
+			status = dwarf_attr( dieEntry, DW_AT_abstract_origin, & originAttribute, NULL );
 			assert( status != DW_DLV_ERROR );
-
-			if( status == DW_DLV_NO_ENTRY ) {
-				/* FIXME: assume typeless constants are useless. */
-				break;
-				}
+			
+			if( status == DW_DLV_OK ) {
+				Dwarf_Off originOffset;
+				status = dwarf_global_formref( originAttribute, & originOffset, NULL );
+				assert( status == DW_DLV_OK );
+				
+				status = dwarf_offdie( dbg, originOffset, & originEntry, NULL );
+				assert( status == DW_DLV_OK );
+				
+				dwarf_dealloc( dbg, originAttribute, DW_DLA_ATTR );
+				} /* end if the DIE has an _abstract_origin */
+			
+			/* Acquire the parameter's name. */
+			char * parameterName;
+			status = dwarf_diename( originEntry, & parameterName, NULL );
+			assert( status != DW_DLV_ERROR );
+			
+			/* We can't do anything with anonymous parameters. */
+			if( status == DW_DLV_NO_ENTRY ) { break; }
+			assert( status == DW_DLV_OK );
+			
+			/* Acquire the parameter's type. */
+			Dwarf_Attribute typeAttribute;
+			status = dwarf_attr( originEntry, DW_AT_type, & typeAttribute, NULL );
+			assert( status != DW_DLV_ERROR );
+			
+			if( status == DW_DLV_NO_ENTRY ) { break; }
+			assert( status == DW_DLV_OK );
 			
 			Dwarf_Off typeOffset;
 			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 			assert( status == DW_DLV_OK );
-
-			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
-
+			
 			/* The typeOffset forms a module-unique type identifier,
 			   so the BPatch_type look-ups by it rather than name. */
-			BPatch_type * variableType = module->moduleTypes->findOrCreateType( typeOffset );
+			BPatch_type * parameterType = module->moduleTypes->findOrCreateType( typeOffset );
+
+			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 			
-			if( currentFunction != NULL ) {
-				Dwarf_Unsigned variableLineNo = 0;
-				long int variableFrameOffset = -1;
-
-				/* Look up the line number. */
-				Dwarf_Attribute lineNoAttr;
-				status = dwarf_attr( dieEntry, DW_AT_decl_line, & lineNoAttr, NULL );
-				assert( status != DW_DLV_ERROR );
-				if( status == DW_DLV_OK ) {
-					status = dwarf_formudata( lineNoAttr, & variableLineNo, NULL );
-					assert( status == DW_DLV_OK );
-
-					dwarf_dealloc( dbg, lineNoAttr, DW_DLA_ATTR );
-					} else {
-					// fprintf( stderr, "Variable '%s' had no line information.\n", variableName );
-					}
-
-				/* Look up the frame offset. */
-				Dwarf_Attribute locationAttr;
-				status = dwarf_attr( dieEntry, DW_AT_location, & locationAttr, NULL );
-				assert( status != DW_DLV_ERROR );
-				bool isFrameRelative = true;
-				if( status == DW_DLV_OK ) {
-					Dwarf_Locdesc * locationList;
-					Dwarf_Signed listLength;
-					status = dwarf_loclist( locationAttr, & locationList, & listLength, NULL );
-					assert( status == DW_DLV_OK );
-
-					dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
-
-					// fprintf( stderr, "Decoding location of variable '%s'\n", variableName );
-					decodeLocationList( locationList, listLength, & variableFrameOffset, NULL, & isFrameRelative );
-					deallocateLocationList( dbg, locationList, listLength );
-					} else {
-					Dwarf_Attribute declAttr;
-					status = dwarf_attr( dieEntry, DW_AT_declaration, & declAttr, NULL );
-					assert( status != DW_DLV_ERROR );
-					if( status == DW_DLV_OK ) {
-						Dwarf_Bool declBool;
-						status = dwarf_formflag( declAttr, & declBool, NULL );
-						assert( status == DW_DLV_OK );
-						if( declBool ) {
-							/* This is almost certainly an extern declaration. */
-							// fprintf( stderr, "Declaration of variable '%s' has no location information, is probably extern.\n", variableName );
-							} else {
-							// fprintf( stderr, "Variable '%s' (not a declaration) has no location information.\n", variableName );
-							}
-
-						dwarf_dealloc( dbg, declAttr, DW_DLA_ATTR );
-						} else {
-						// fprintf( stderr, "Variable '%s' has no location information.\n", variableName );
-						}
-					}
-
-				if( isFrameRelative ) {
-					// fprintf( stderr, "Local variable '%s' at line no %lu, offset %d\n", variableName, (unsigned long)variableLineNo, variableFrameOffset );
-					} else {
-					// fprintf( stderr, "Static local variable '%s' at line no %lu, address 0x%lx\n", variableName, (unsigned long)variableLineNo, variableFrameOffset );
-					}
-
-				BPatch_localVar * newLocal = new BPatch_localVar( variableName, variableType, variableLineNo, variableFrameOffset, 5, isFrameRelative ); // '5' is the magic constant from ../h/BPatch_type.h
-				assert( newLocal != NULL );
-
-				// char fnName[42];
-				// currentFunction->getName( fnName, 41 );
-				// fprintf( stderr, "Adding local (parameter, constant) '%s' to fn '%s'\n", variableName, fnName );
-				switch( dieTag ) {
-					case DW_TAG_constant:
-						/* FIXME: Update above to reflect the fact that 
-						   constants shouldn't have frame locations. */
-						currentFunction->funcParameters->addLocalVar( newLocal );
-						currentFunction->addParam( variableName, variableType, variableLineNo, 0 );
-						break;
-
-					case DW_TAG_formal_parameter:
-						currentFunction->funcParameters->addLocalVar( newLocal );
-						currentFunction->addParam( variableName, variableType, variableLineNo, variableFrameOffset );
-						break;
-	
-					case DW_TAG_variable:
-						currentFunction->localVariables->addLocalVar( newLocal );
-						break;
-
-					default:
-						assert( 0 );
-					} /* end tag switch */
-				}
-			else {
-				/* FIXME: where do our globals live? */
-				int variableAddress = - 1;
-
-				if( currentEnclosure != NULL && variableType->getSize() > 0 ) {
-					/* A C++ static member; nonpositive sizes cause BPatch_type to explode. */
-
-					// fprintf( stderr, "Adding static member '%s' to '%s'\n", variableName, currentEnclosure->getName() );	
-					currentEnclosure->addField( variableName, variableType->getDataClass(), variableType, variableAddress, variableType->getSize() );
-					}
-				// fprintf( stderr, "Adding global variable '%s'\n", variableName );
-				module->moduleTypes->addGlobalVariable( variableName, variableType );
-				}
-			dwarf_dealloc( dbg, variableName, DW_DLA_STRING );
+			/* Acquire the parameter's lineNo. */
+			Dwarf_Attribute lineNoAttribute;
+			status = dwarf_attr( originEntry, DW_AT_decl_line, & lineNoAttribute, NULL );
+			assert( status != DW_DLV_ERROR );
+			
+			if( status == DW_DLV_NO_ENTRY ) { break; }
+			assert( status == DW_DLV_OK );
+			
+			Dwarf_Unsigned parameterLineNo;
+			status = dwarf_formudata( lineNoAttribute, & parameterLineNo, NULL );
+			assert( status == DW_DLV_OK );
+			
+			dwarf_dealloc( dbg, lineNoAttribute, DW_DLA_ATTR );
+			
+			/* We now have the parameter's location, name, type, and line number.
+			   Tell Dyninst about it. */
+			BPatch_localVar * newParameter = new BPatch_localVar( parameterName, parameterType, parameterLineNo, parameterOffset, 5, true );
+			assert( newParameter != NULL );
+			
+			/* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
+			currentFunction->funcParameters->addLocalVar( newParameter );
+			currentFunction->addParam( parameterName, parameterType, parameterLineNo, parameterOffset );
+			
+			// /* DEBUG */ fprintf( stderr, "Added formal parameter '%s' (at FP + %ld) of type %p from line %lu.\n", parameterName, parameterOffset, parameterType, (unsigned long)parameterLineNo );
 			} break;
 
 		case DW_TAG_base_type: {
@@ -1246,22 +1429,26 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			status = dwarf_attr( dieEntry, DW_AT_data_member_location, & locationAttr, NULL );
 			assert( status != DW_DLV_ERROR );
 
-			long int memberOffset = -1;
-			if( status == DW_DLV_OK ) {
-				Dwarf_Locdesc * locationList;
-				Dwarf_Signed listLength;
-				status = dwarf_loclist( locationAttr, & locationList, & listLength, NULL );
-				assert( status == DW_DLV_OK );
+			if( status == DW_DLV_NO_ENTRY ) { break; }
+			assert( status == DW_DLV_OK );
 
-				// fprintf( stderr, "Decoding location of member '%s'\n", memberName );
-				/* The location decoder begins with the base address on the stack.
-				   Since we want offsets, begin at zero. */
-				long int baseAddress = 0;
-				decodeLocationList( locationList, listLength, & memberOffset, & baseAddress, NULL );
-				deallocateLocationList( dbg, locationList, listLength );
+			Dwarf_Locdesc * locationList;
+			Dwarf_Signed listLength;
+			status = dwarf_loclist( locationAttr, & locationList, & listLength, NULL );
+			assert( status == DW_DLV_OK );
 
-				dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
-				}
+			dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
+
+			bool isFrameRelative;
+			long int memberOffset = 0;
+			long int baseAddress = 0;
+			bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & memberOffset, & baseAddress, & isFrameRelative );
+			deallocateLocationList( dbg, locationList, listLength );
+			
+			if( ! decodedAddress ) { break; }
+			assert( decodedAddress );
+			
+			assert( isFrameRelative == false );
 
 			// fprintf( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, memberOffset, memberType->getSize() );
 
@@ -1520,7 +1707,6 @@ void BPatch_module::parseDwarfTypes() {
 	Elf * dwarfElf;
 	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
 	assert( status == DW_DLV_OK );
-	// elf_end( dwarfElf );
 
 	status = dwarf_finish( dbg, NULL );
 	assert( status == DW_DLV_OK );
@@ -1540,7 +1726,7 @@ void BPatch_module::parseDwarfTypes() {
 				bptype->setDataClass( bptype->getConstituentType()->getDataClass() );
 				}
 			else {
-				fprintf( stderr, "Type %d is still a placeholder.\n", bptype->getID() );
+				fprintf( stderr, "Warning: type information may be incomplete (#%d).\n", bptype->getID() );
 				}
 			} /* end if the datatype is unknown. */
 		} /* end iteration over moduleTypes */
