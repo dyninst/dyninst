@@ -45,6 +45,19 @@
 #include <math.h>
 #include <assert.h>
 
+/* define following variables are needed as they are missed in linux
+   platform /usr/include/math.h                                    */
+#if defined (i386_unknown_linux2_0)
+   #define DOMAIN 1
+   struct exception {
+        int type;
+        char *name;
+        double arg1;
+        double arg2;
+        double retval;
+};
+#endif
+
 extern float f_paradyn_nan;
 extern bool nan_created;
 extern bool matherr_flag;

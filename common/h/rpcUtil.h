@@ -44,6 +44,9 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.38  1997/10/15 19:36:54  tung
+ * modified for Linux Platform
+ *
  * Revision 1.37  1997/05/17 20:00:58  lzheng
  * Changes made for nonblocking write
  *
@@ -110,6 +113,14 @@
 #include "util/h/ByteArray.h"
 #include "util/h/Vector.h"
 #include "util/h/vectorSet.h"
+
+
+/* define following variables are needed for linux platform as they are
+   missed in /usr/include/sys/file.h                                     */
+#if defined(i386_unknown_linux2_0)
+  #define FNONBLOCK 0x80
+  #define FSYNC 0x10
+#endif
 
 // Boolean defined for igen -- xdr_bool uses an int, which clashes with gcc
 // typedef bool Boolean;
