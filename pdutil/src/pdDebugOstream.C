@@ -150,32 +150,32 @@ pdDebug_ostream& pdDebug_ostream::operator<<( ostream& (*f)(ostream&) )
     return *this;
 }
 
-pdDebug_ostream& pdDebug_ostream::operator<<(timeUnit &tu) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const timeUnit &tu) {
   if(on)  actual_ostream << tu;
   return *this;
 }
-pdDebug_ostream& pdDebug_ostream::operator<<(timeBase tb) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const timeBase tb) {
   if(on)  actual_ostream << tb;
   return *this;
 }
-pdDebug_ostream& pdDebug_ostream::operator<<(timeLength tl) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const timeLength tl) {
   if(on)  actual_ostream << tl;
   return *this;
 }
-pdDebug_ostream& pdDebug_ostream::operator<<(timeStamp ts) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const timeStamp ts) {
   if(on)  actual_ostream << ts;
   return *this;
 }
 
-pdDebug_ostream& pdDebug_ostream::operator<<(sampleInfo &info) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const sampleInfo &info) {
   if(on)  actual_ostream << info;
   return *this;
 }
-pdDebug_ostream& pdDebug_ostream::operator<<(aggregateSample &sm) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const aggregateSample &sm) {
   if(on)  actual_ostream << sm;
   return *this;
 }
-pdDebug_ostream& pdDebug_ostream::operator<<(pdSample sm) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const pdSample sm) {
   if(on)  actual_ostream << sm;
   return *this;
 }
@@ -183,3 +183,6 @@ pdDebug_ostream& pdDebug_ostream::operator<<(const string &sm) {
   if(on)  actual_ostream << sm;
   return *this;
 }
+
+
+

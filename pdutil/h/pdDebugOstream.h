@@ -55,6 +55,8 @@ class sampleInfo;
 class aggregateSample;
 class pdSample;
 class string;
+template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t> 
+class timeMechanism;
 
 class pdDebug_ostream {
  private:
@@ -88,14 +90,19 @@ class pdDebug_ostream {
 
    pdDebug_ostream& operator<<( ostream& (*f)(ostream&) );
 
-   pdDebug_ostream& operator<<(timeUnit   &tu);
-   pdDebug_ostream& operator<<(timeBase   tb);
-   pdDebug_ostream& operator<<(timeLength tl);
-   pdDebug_ostream& operator<<(timeStamp  ts);
-   pdDebug_ostream& operator<<(sampleInfo &info);
-   pdDebug_ostream& operator<<(aggregateSample &sm);
-   pdDebug_ostream& operator<<(pdSample sm);
-   pdDebug_ostream& operator<<(const string &sm);   
+   pdDebug_ostream& operator<<(const timeUnit   &tu);
+   pdDebug_ostream& operator<<(const timeBase   tb);
+   pdDebug_ostream& operator<<(const timeLength tl);
+   pdDebug_ostream& operator<<(const timeStamp  ts);
+   pdDebug_ostream& operator<<(const sampleInfo &info);
+   pdDebug_ostream& operator<<(const aggregateSample &sm);
+   pdDebug_ostream& operator<<(const pdSample sm);
+   pdDebug_ostream& operator<<(const string &sm);
+   template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t> 
+   pdDebug_ostream& operator<<(const timeMechanism<dmTimeFuncClass_t, dmTimeQyFuncParam_t> &m) {
+     if(on)  actual_ostream << m;
+     return *this;
+   }
 };
 
 
