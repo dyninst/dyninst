@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.38  1994/11/03 22:18:42  karavan
-/* eliminated redundancy in status display
+/* Revision 1.39  1994/11/07 07:26:58  karavan
+/* changed requested main window size.
 /*
+ * Revision 1.38  1994/11/03  22:18:42  karavan
+ * eliminated redundancy in status display
+ *
  * Revision 1.37  1994/11/03  20:25:05  krisna
  * added status_lines for application name and application status
  *
@@ -359,7 +362,7 @@ UImain(void* vargs)
     if (synchronize) {
 	XSynchronize(Tk_Display(mainWindow), True);
     }
-    Tk_GeometryRequest(mainWindow, 600, 600);
+    Tk_GeometryRequest(mainWindow, 725, 475);
 
     Tk_SetClass(mainWindow, "Paradyn");
     
