@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.72 2000/12/04 21:29:55 zandy Exp $
+ * $Id: inst-x86.C,v 1.73 2001/02/02 21:18:01 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -68,8 +68,22 @@
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
 #include "dyninstAPI/src/instP.h" // class returnInstance
 
+// for function relocation
+#include "dyninstAPI/src/func-reloc.h" 
+#include "dyninstAPI/src/LocalAlteration-x86.h"
+
+class ExpandInstruction;
+class InsertNops;
+
+extern bool relocateFunction(process *proc, instPoint *&location);
+extern void modifyInstPoint(instPoint *&location,process *proc);
+
 extern bool isPowerOf2(int value, int &result);
 void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
+
+instruction newInstr[NEW_INSTR_ARRAY_LEN/2];
+unsigned char NEW_CODE[NEW_INSTR_ARRAY_LEN];
+unsigned char OLD_CODE[NEW_INSTR_ARRAY_LEN];
 
 // The general machine registers. 
 // These values are taken from the Pentium manual and CANNOT be changed.
@@ -282,9 +296,9 @@ _usesTrap(const instPoint *pt,
 	  return false;
 
      /* If it can use the extra slot, it doesn't need a trap. */
-     if (_canUseExtraSlot(pt, entry, exits))
+     if (_canUseExtraSlot(pt, entry, exits)) {
 	  return false;
-
+     }
      /* Otherwise it needs a trap. */
      return true;
 }
@@ -398,6 +412,18 @@ bool checkJumpTable(image *im, instruction insn, Address addr,
   return true;
 }
 
+void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
+  const unsigned char *instr = insn.ptr();
+
+  // Check if REG bits of ModR/M byte are 100 or 101 (Possible jump 
+  // to jump table).
+  if (instr[0] == 0xFF && 
+     ( ((instr[1] & 0x38)>>3) == 4 || ((instr[1] & 0x38)>>3) == 5 )) {
+
+    // function should not be relocated
+    canBeRelocated = false;
+  }
+}
 
 /* auxiliary data structures for function findInstPoints */
 enum { EntryPt, CallPt, ReturnPt };
@@ -479,6 +505,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      //calls += p;
      //points[npoints++] = point_(p, numInsns, CallPt);
      //fprintf(stderr,"Function %s, call at entry point\n", prettyName().string_of());
+
      delete [] points;
      delete [] allInstr;
      return false;
@@ -493,6 +520,10 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    // points. For now, we only add one instruction to each point.
    // Additional instructions, for the points that need them, will be added later.
 
+   // checkJumpTable will set canBeRelocated = false if their is a jump to a 
+   // jump table inside this function. 
+   bool canBeRelocated = true;
+
    Address funcEnd = getAddress(0) + size();
    for ( ; adr < funcEnd; instr += insnSize, adr += insnSize) {
      insnSize = insn.getNextInstruction(instr);
@@ -504,6 +535,10 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 
      if (insn.isJumpIndir()) {
        unsigned jumpTableSz;
+
+       // check if function should be allowed to be relocated
+       checkIfRelocatable(insn, canBeRelocated);
+
        // check for jump table. This may update funcEnd
        if (!checkJumpTable(owner, insn, adr, getAddress(0), funcEnd, jumpTableSz)) {
 	 delete points;
@@ -512,6 +547,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	 //          prettyName().string_of(), size());
 	 return false;
        }
+
        // process the jump instruction
        allInstr[numInsns] = insn;
        numInsns++;
@@ -596,6 +632,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      }
 
      lastPointEnd = index;
+
      // add instructions after the point
      if (type == ReturnPt && p->address() == funcEnd-1) {
 
@@ -615,16 +652,18 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	  NT. */
        bonus = 0;
 #endif /* i386_unknown_nt4_0 */
-       p->setBonusBytes(bonus);
+       //p->setBonusBytes(bonus);
        unsigned u1;
        for (u1 = index+1 + bonus; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
 	 if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
-	   p->addInstrAfterPt(allInstr[u1]);
+	   //p->addInstrAfterPt(allInstr[u1]);
+           bonus++;
 	   thisPointEnd = u1;
 	 }
 	 else 
 	   break;
        }
+       p->setBonusBytes(bonus);
      } else if (type == ReturnPt) {
        // normally, we would not add instructions after the return, but the 
        // compilers often add nops after the return, and we can use them if necessary
@@ -653,8 +692,36 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      }
    }
 
+
    for (u = 0; u < npoints; u++)
 	points[u].point->checkInstructions();
+
+   // create and sort vector of instPoints
+   vector<instPoint*> foo;
+   sorted_ips_vector(foo);
+
+   for (unsigned i=0;i<foo.size();i++) {
+
+     if (_usesTrap(foo[i], funcEntry_, funcReturns) && size() >= 5) {
+       relocatable_ = true;
+     }
+   }
+
+   // if the function contains a jump to a jump table, we can't relocate
+   // the function 
+   if ( !canBeRelocated ) {
+
+     // Function would have needed relocation 
+     if (relocatable_ = true) {
+
+#ifdef DEBUG_FUNC_RELOC      
+       cerr << prettyName() << endl;
+       cerr << "Jump Table: Can't relocate function" << endl;
+#endif
+
+       relocatable_ = false;
+     }
+   }
 
    delete [] points;
    delete [] allInstr;
@@ -1011,6 +1078,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
 
 	  instPoint *nonConstEntry = const_cast<instPoint *>(the_entry);
 	  returnInstance *retInstance;
+
 	  trampTemplate *entryBase =
 	      findAndInstallBaseTramp(proc, nonConstEntry,
 				      retInstance, false, false);
@@ -1150,9 +1218,9 @@ trampTemplate *installBaseTramp( const instPoint *location,
 				 bool noCost,
 				 bool trampRecursiveDesired = true
 				 ) 
-{
+{  
    bool aflag;
-
+  
 /*
    The base tramp:
    addr   instruction             cost
@@ -1229,7 +1297,7 @@ trampTemplate *installBaseTramp( const instPoint *location,
 
   if( ! trampRecursiveDesired )
     {
-      trampSize += get_guard_code_size();
+      trampSize += get_guard_code_size();   // NOTE-131 with Relocation
     }
 
   for (u = 0; u < location->insnsBefore(); u++) {
@@ -1590,9 +1658,28 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     trampTemplate *ret;
     retInstance = NULL;
 
+    pd_Function *f = location->func();
+
+    // location may not have been updated since relocation of function
+    if (f->needsRelocation() && f->isInstalled(proc)) {
+      f->modifyInstPoint(location, proc);
+    }
+
     if (!proc->baseMap.defines(location)) {
+
+        // if function needs relocation  
+        if (f->needsRelocation()) {
+	
+          // if function has not already been relocated
+	  if (!f->isInstalled(proc)) {
+            f->relocateFunction(proc, location);
+	  }
+
+	}
+
 	ret = installBaseTramp(location, proc, noCost, trampRecursiveDesired);
 	proc->baseMap[location] = ret;
+
 	// generate branch from instrumentation point to base tramp
 	Address imageBaseAddr;
 	if (!proc->getBaseAddress(location->owner(), imageBaseAddr))
@@ -1600,6 +1687,9 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	unsigned char *insn = new unsigned char[JUMP_REL32_SZ];
 	unsigned size = generateBranchToTramp(proc, location, ret->baseAddr, 
 					      imageBaseAddr, insn);
+	// trampRecursiveDesired added during testing tramp Recursion - Itai
+
+
 	if (size == 0)
 	  return NULL;
 	retInstance = new returnInstance(new instruction(insn, 0, size), size,
@@ -1679,7 +1769,7 @@ inline unsigned char makeModRMbyte(unsigned Mod, unsigned Reg, unsigned RM) {
    base is a register (EAX, ECX, EDX, EBX, EBP, ESI, EDI)
    disp is a displacement
    reg_opcode is either a register or an opcode
- */
+*/
 void emitAddressingMode(Register base, RegValue disp, int reg_opcode, 
                         unsigned char *&insn) {
   assert(base != ESP);
@@ -3101,3 +3191,713 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 }
 
 #endif
+
+/****************************************************************************/
+/****************************************************************************/
+
+/* pd_Function Code for function relocation */
+
+// Check if an instruction is a relative addressed jump instruction
+
+bool pd_Function::isNearBranchInsn(const instruction insn) {
+  if (insn.isJumpDir())
+    return true;
+  return false;
+}
+
+// Check if an instruction is a relative addressed call instruction 
+
+bool pd_Function::isTrueCallInsn(const instruction insn) {
+  if (insn.isCall() && !insn.isCallIndir())
+    return true;
+  return false;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+
+/* x86 */
+
+// Create a buffer of x86 instructon objects. These x86 instructions will
+// contain pointers to the machine code 
+
+bool pd_Function::loadCode(process *proc, instruction *&oldCode, 
+                           unsigned &numberOfInstructions, 
+                           Address &firstAddress) {
+
+  vector<instruction> insnVec;
+  unsigned type, insnSize, totalSize = 0; 
+  instruction *insn = 0;
+
+#ifdef DEBUG_FUNC_RELOC 
+    cerr << "pd_Function::loadCode" << endl;
+#endif
+
+  // copy function to be relocated from application into OLD_CODE
+  proc->readDataSpace((caddr_t)firstAddress, size(), OLD_CODE, true);
+
+  // first address of function
+  unsigned char *p = OLD_CODE;
+
+  // last address of function
+  unsigned end_of_function = (unsigned)(p + size());
+
+  // iterate over all instructions in function
+  while ( (unsigned) p < end_of_function ) {
+
+    // new instruction object 
+    insnSize = get_instruction(p, type);
+    insn = new instruction(p, type, insnSize);   
+    insnVec += *insn;
+
+    // update p so it points to the next machine code instruction
+    p = p + insnSize; 
+    totalSize += insnSize;
+
+    delete insn;
+  }
+
+  // Occasionally a function's size is not calculated correctly for 
+  // pd_Function. In such cases, the last few bytes in the function
+  // are "garbage", and the parsing done in the above while loop
+  // interprets those bytes as an instruction. If the last byte of that 
+  // "garbage" instruction is outside the bounds of the function, 
+  // the sum of the insnSizes of the insn's that were parsed above will be 
+  // greater than the size of the function being relocating. To keep the
+  // sum of the insnSizes equal to the size of the pd_Function, we replace 
+  // the "garbage" bytes with nop instructions, and ignore drop those bytes
+  // that are outside of the function.   
+
+  // # bytes of "garbage" at the end of the function 
+  int garbage = (unsigned)p - end_of_function;
+
+  // if "garbage" bytes are found
+  if (garbage) { 
+  
+    // create a nop machine instruction
+    unsigned char *nop = new unsigned char;
+    emitSimpleInsn(0x90, nop);
+    nop--;
+
+    // create an x86 instruction for a nop
+    insn = new instruction(nop, 0, 1);
+
+    // replace "garbage" x86 instruction with a nop instruction
+    insnVec[insnVec.size() - 1] = *insn;
+
+    // replace all "garbage" bytes up to the end of the function with nops
+    for (int i = 0; i < garbage; i++) {   
+      insnVec += *insn;
+    }  
+  }
+
+  // buffer of x86 instructions
+  oldCode = new instruction[insnVec.size()];
+
+  // if unable to allocate array, dump warn and return false.... 
+  if (oldCode == NULL) {
+    cerr << "WARN : unable to allocate array (" << insnVec.size() << " bytes) to read in " \
+         << "instructions for function" << prettyName().string_of() << " unable to instrument" \
+         << endl;
+    return false;
+  }
+
+  // copy vector of instructions into buffer of instructions
+  for (unsigned i = 0; i < insnVec.size(); i++) {
+    oldCode[i] = insnVec[i];
+  }  
+  numberOfInstructions = insnVec.size();
+
+  return true;
+} 
+
+/****************************************************************************/
+/****************************************************************************/
+
+// Copy machine code from one location (in mutator) to another location
+// (also in the mutator)
+// Also updates the corresponding buffer of x86 instructions 
+
+void pd_Function::copyInstruction(instruction &newInsn, instruction &oldInsn, 
+                                                      unsigned &codeOffset) {
+ 
+  unsigned insnSize = oldInsn.size(); 
+  const unsigned char *oldPtr = oldInsn.ptr();
+  unsigned tmp = codeOffset;
+
+#ifdef DEBUG_FUNC_RELOC 
+      cerr << "pd_Function::copyInstruction" << endl;
+#endif 
+
+  // iterate over each byte of the machine instruction, copying it
+  for (unsigned i = 0; i < insnSize; i++) {     
+    NEW_CODE[codeOffset] = *(oldPtr + i);
+    codeOffset++;
+  }
+
+  // update x86 instruction corresponding to machine code instruction
+  newInsn = *(new instruction(&NEW_CODE[tmp], oldInsn.type(), insnSize));
+}   
+
+/****************************************************************************/
+/****************************************************************************/
+
+// update displacement of expanded instruction
+
+int pd_Function::expandInstructions(LocalAlterationSet &alteration_set, 
+                                    instruction &insn, 
+                                    Address offset,
+                                    instruction &newCodeInsn) {
+
+ 
+  int oldDisp = 0, newDisp = 0, extra_offset = 0;
+  unsigned char *oldInsn = 0, *newInsn = 0;
+ 
+  unsigned insnType = insn.type(); 
+
+  // location (in mutator) instruction was originally located at
+  oldInsn = const_cast<unsigned char *> (insn.ptr());
+
+  // location (in mutator) instruction is being relocated to (temporarily)
+  newInsn = const_cast<unsigned char *> (newCodeInsn.ptr());
+
+  // old displacement from instruction to target
+  oldDisp = get_disp(&insn);
+
+  // change in displacement of target  
+  extra_offset = alteration_set.getShift(offset + oldDisp) - 
+                 alteration_set.getShift(offset);
+
+  if (insnType & REL_B) {
+    /* replace with rel32 instruction, opcode is one byte. */
+    if (*oldInsn == JCXZ) {
+      *newInsn++ = *oldInsn; *newInsn++ = 2; // jcxz 2
+      *newInsn++ = 0xEB; *newInsn++ = 5;        // jmp 5
+      *newInsn++ = 0xE9;                        // jmp rel32
+      *((int *)newInsn) = oldDisp + extra_offset - 7; // change in insn size is 7
+      newInsn += sizeof(int);
+      return true;
+    } else {
+        unsigned newSz=UINT_MAX;
+        if (insnType & IS_JCC) {
+	  /* Change a Jcc rel8 to Jcc rel32. 
+	     Must generate a new opcode: a 0x0F followed by (old opcode + 16) */
+	  unsigned char opcode = *oldInsn++;
+	  *newInsn++ = 0x0F;
+	  *newInsn++ = opcode + 0x10;
+          newDisp = oldDisp + extra_offset - 4;   // change in insn size is 4
+	  newSz = 6;
+        } else {
+            if (insnType & IS_JUMP) {
+	      /* change opcode to 0xE9 */
+	      oldInsn++;
+	      *newInsn++ = 0xE9;
+              newDisp = oldDisp + extra_offset - 3;  // change in insn size is 3
+	      newSz = 5;
+	    }
+            assert(newSz!=UINT_MAX);
+            *((int *)newInsn) = newDisp;
+            newInsn += sizeof(int); 
+            return true;
+	}
+    }
+  } else {
+      if (insnType & REL_W) {
+        assert(insnType & PREFIX_OPR);
+        if (insnType & PREFIX_SEG)
+          *newInsn++ = *oldInsn++;
+	
+           /* opcode is unchanged, just relocate the displacement */
+   
+          if (*oldInsn == (unsigned char)0x0F)
+            *newInsn++ = *oldInsn++;
+          *newInsn++ = *oldInsn++;
+          newDisp = oldDisp + extra_offset - 1;  // change in insn size is 1
+          *((int *)newInsn) = newDisp;
+          newInsn += sizeof(int);
+          return true;
+      } else {
+	  // should never get here
+          assert (insnType & REL_D);
+          assert (0); 
+      }
+  }
+   return false;   
+}
+
+
+/****************************************************************************/
+/****************************************************************************/
+
+// given the Address adr, calculate the offset in the buffer code[], 
+// of the x86 instruction that begins at adr. Return -1 if adr is 
+// a byte in the middle of an instruction and not the first byte of 
+// the instruction
+
+int pd_Function::getArrayOffset(Address adr, instruction code[]) {
+  
+  unsigned i;
+  Address insnAdr = addressOfMachineInsn(&code[0]);  
+
+#ifdef DEBUG_FUNC_RELOC
+      cerr << "pd_Function::getArrayOffset" << endl;
+#endif
+
+  assert(adr >= insnAdr && adr <= insnAdr + size()); 
+
+  // find the instruction that contains the byte at Address adr
+  for (i = 0; insnAdr < adr; i++) {
+    insnAdr += ((instruction)code[i]).size();
+  }
+
+  // if adr is the first byte of the instruction, return the offset in
+  // the buffer of the instruction
+  if (insnAdr == adr) return i;
+  else return -1;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+
+// update the before and after insns of x86 instPoint p
+
+void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[], 
+                                int numBefore, int numAfter, 
+                                unsigned type, int index) {   
+
+  // add instructions before the point
+  unsigned size = (p->insnAtPoint()).size();
+  for (int u1 = index-1; size < JUMP_SZ && u1 >= 0 && 
+                           u1 > (index - 1) - numBefore; u1--) {
+    if (!allInstr[u1].isCall()) {
+       p->addInstrBeforePt(allInstr[u1]);
+       size += allInstr[u1].size();
+    } else {
+       break;
+    }
+  }
+
+  // add instructions after the point
+  if (type == ReturnPt) {
+
+    for (int u1 = index+1; size < JUMP_SZ && u1 < (index + 1) + numAfter; u1++) {
+
+      if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
+	   p->addInstrAfterPt(allInstr[u1]);
+           size += allInstr[u1].size();
+      } else {
+        break;
+      }
+    }
+
+  } else {
+
+      unsigned maxSize = JUMP_SZ;
+      if (type == EntryPt) maxSize = 2*JUMP_SZ;
+      for (int u1 = index+1; size < maxSize && u1 < (index + 1) + numAfter; u1++) {
+        if (!allInstr[u1].isCall()) {
+          p->addInstrAfterPt(allInstr[u1]);
+          size += allInstr[u1].size();
+        } else { 
+          break;
+        }
+      }
+  }
+}
+
+
+/****************************************************************************/
+/****************************************************************************/
+// originalOffset:      offset (in bytes) of the machine insn from the 
+//                      beginning of the original function
+//
+// newOffset:           offset (in bytes) of the machine insn from the 
+//                      beginning of the relocated and expanded function 
+//
+// originalArrayOffset: offset (in # of instructions) of the x86 instruction 
+//                      corresponding to the instPoint, from the beginning of 
+//                      the buffer corresponding to the original function.
+//
+// newArrayOffset:      offset (in # of instructions) of the x86 instruction 
+//                      corresponding to the instPoint, from the beginning of 
+//                      the buffer corresponding to the expanded and relocate
+//                      function.
+//
+// oldJumpOffset:       offset (in bytes) from the beginning of the original
+//                      function, at which the jump to the baseTramp would be
+//                      placed.
+//
+// newJumpOffset:       offset (in bytes) from the beginning of the expanded 
+//                      and relocated function, at which the jump to the 
+//                      baseTramp would be placed.
+//
+// newJumpAddr:         absolute Address of the jump to the baseTramp, 
+//                      in the expanded and relocated function would be placed.
+//
+// newJumpAddr:         absolute Address of the instruction in the expanded 
+//                      and relocated function.
+
+
+#define CALC_OFFSETS(ip)						      \
+     originalOffset = ((ip->iPgetAddress() + imageBaseAddr) - mutatee);	      \
+     originalArrayOffset = getArrayOffset(originalOffset + mutator, oldCode); \
+     if (originalArrayOffset < 0) return false;				      \
+     newOffset = originalOffset + alteration_set.getShift(originalOffset);    \
+     newArrayOffset = originalArrayOffset +				      \
+                      alteration_set.getInstPointShift(originalOffset);	      \
+     oldJumpOffset = (ip->jumpAddr() + imageBaseAddr) - mutatee;	      \
+     newJumpOffset = oldJumpOffset + alteration_set.getShift(oldJumpOffset);  \
+     newJumpAddr = newAdr + newJumpOffset;				      \
+     adr = newAdr + newOffset;
+ 
+/****************************************************************************/
+/****************************************************************************/
+
+// update info about instrumentation points
+
+bool pd_Function::fillInRelocInstPoints(
+                            const image *owner, process *proc,
+                            instPoint *&location, 
+                            relocatedFuncInfo *&reloc_info, Address mutatee, 
+                            Address mutator,instruction oldCode[], 
+                            Address newAdr,instruction newCode[],
+                            LocalAlterationSet &alteration_set) {
+   
+  unsigned retId = 0, callId = 0;
+  int originalOffset, newOffset, originalArrayOffset, newArrayOffset;
+  int oldJumpOffset, newJumpOffset;
+  Address adr, newJumpAddr;
+
+  instPoint *point = 0; 
+
+  assert(newAdr);
+
+#ifdef DEBUG_FUNC_RELOC    
+    cerr << "pd_Function::fillInRelocInstPoints called" <<endl;
+    cerr << " mutator = " << mutator << " mutatee = " << mutatee 
+         << " newAdr = " << hex << newAdr << endl;
+#endif
+
+  Address imageBaseAddr;
+  if (!proc->getBaseAddress(owner, imageBaseAddr))
+        abort();
+
+  alteration_set.Collapse();
+
+  //  Add inst point corresponding to func entry....
+  //   Assumes function has single entry point  
+  if (funcEntry_ != NULL) {
+
+    //  figure out how far entry inst point is from beginning of function..
+    CALC_OFFSETS(funcEntry_)
+
+    point = new instPoint(this, owner, adr-imageBaseAddr, newCode[newArrayOffset]);
+
+#ifdef DEBUG_FUNC_RELOC    
+        cerr << " added entry point at originalOffset " << originalOffset
+	     << " newOffset " << newOffset << endl;
+#endif
+
+    assert(point != NULL);
+
+    point->setRelocated();
+
+    point->setJumpAddr(newJumpAddr-imageBaseAddr);
+
+    instrAroundPt(point, newCode, funcEntry_->insnsBefore(), 
+                  funcEntry_->insnsAfter() + 
+                  alteration_set.numInstrAddedAfter(originalOffset), 
+                  EntryPt, newArrayOffset);  
+
+    if (location == funcEntry_) {
+      location = point;
+    }
+
+    // update reloc_info with new instPoint
+    reloc_info->addFuncEntry(point);
+    assert(reloc_info->funcEntry());
+
+  }
+
+
+    // Add inst points corresponding to func exits....
+  for(retId=0;retId < funcReturns.size(); retId++) {
+
+    CALC_OFFSETS(funcReturns[retId])
+
+    point = new instPoint(this, owner, adr-imageBaseAddr, newCode[newArrayOffset]);
+
+#ifdef DEBUG_FUNC_RELOC
+        cerr << " added return point at originalOffset " << originalOffset
+	     << " newOffset " << newOffset << endl;
+#endif
+
+    assert(point != NULL);
+ 
+    point->setRelocated();
+
+    point->setJumpAddr(newJumpAddr-imageBaseAddr);
+ 
+    instrAroundPt(point, newCode,funcReturns[retId]->insnsBefore(), 
+                  funcReturns[retId]->insnsAfter() + 
+                  alteration_set.numInstrAddedAfter(originalOffset), 
+                  ReturnPt, newArrayOffset);
+
+    if (location == funcReturns[retId]) {
+      location = point;
+    } 
+
+    // update reloc_info with new instPoint
+    reloc_info->addFuncReturn(point);
+
+  } 
+
+  // Add inst points corresponding to func call sites....
+  for(callId=0;callId<calls.size();callId++) {
+
+    CALC_OFFSETS(calls[callId])
+
+    point = new instPoint(this, owner, adr-imageBaseAddr, newCode[newArrayOffset]);
+
+#ifdef DEBUG_FUNC_RELOC
+        cerr << " added call site at originalOffset " << originalOffset
+	     << " newOffset " << newOffset << endl;
+#endif
+
+    assert(point != NULL);
+ 
+    point->setRelocated();
+
+    point->setJumpAddr(newJumpAddr-imageBaseAddr); 
+    instrAroundPt(point, newCode, calls[callId]->insnsBefore(), 
+                  calls[callId]->insnsAfter() + 
+                  alteration_set.numInstrAddedAfter(originalOffset),
+                  CallPt, newArrayOffset);
+
+    if (location == calls[callId]) {
+      location = point;
+    }
+
+    // update reloc_info with new instPoint
+    reloc_info->addFuncCall(point);
+  }
+
+  return true;    
+}
+
+/****************************************************************************/
+/****************************************************************************/
+
+
+/****************************************************************************/
+/****************************************************************************/
+
+// Insert nops after the machine instruction pointed to by oldInstr[oldOffset]
+
+bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr, 
+                                  Address /* newBaseAdr */, Address &newAdr, 
+                                  instruction oldInstr[], 
+                                  instruction newInstr[], 
+                                  int &oldOffset, int &newOffset,  
+                                  int /* newDisp */, unsigned &codeOffset,
+                                  unsigned char *code) {
+
+  unsigned char *insn = 0;
+
+  // copy the instruction we are inserting nops after into NEW_CODE 
+  function->copyInstruction(newInstr[newOffset], oldInstr[oldOffset], codeOffset);
+  newOffset++;  
+
+  // add nops
+  for (int i=0;i<sizeNopRegion;i++) {
+
+    // pointer to the machine code
+    insn = (unsigned char *)(&code[codeOffset]);
+
+    // write nop to buffer of char* (i.e. NEW_CODE)
+    emitSimpleInsn(0x90, insn);
+    // emit simple insn increments insn, so we need to decrement insn
+    insn--;  
+
+    // add instruction corresponding to nop to buffer of instructions
+    newInstr[newOffset] = *(new instruction ((const unsigned char *)insn, 0, 1));
+
+    newOffset++;
+    codeOffset++;
+  }
+  oldAdr += oldInstr[oldOffset].size();
+  newAdr += oldInstr[oldOffset].size() + sizeNopRegion;
+  oldOffset++;
+
+  return true;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+
+// expand and relocate a call or jump instruction that uses relative addressing
+
+
+// oldOffset (offset into old buffer of x6 instructions)
+// newOffset (offset into new buffer of x86 instructions)
+
+bool ExpandInstruction::RewriteFootprint(Address /* oldBaseAdr */, 
+                                         Address &oldAdr, 
+                                         Address /* newBaseAdr */, 
+                                         Address &newAdr, 
+                                         instruction oldInstr[], 
+                                         instruction newInstr[], 
+                                         int &oldOffset, int &newOffset, 
+                                         int newDisp, unsigned &codeOffset,
+                                         unsigned char* code) {
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << "ExpandInstruction::RewriteFootprint" <<endl;
+    cerr << " newDisp = " << newDisp << endl;
+#endif 
+
+ 
+  unsigned char *oldInsn = 0; 
+  unsigned char *newInsn = (unsigned char *)(&code[codeOffset]);
+  const unsigned char *tmpInsn = const_cast<const unsigned char *> (newInsn);  
+
+  instruction insn = oldInstr[oldOffset];
+  unsigned oldInsnType = insn.type();
+  int oldInsnSize = insn.size();
+
+  int sizeChange = 0;
+  bool rtn = false;
+
+  oldInsn = const_cast<unsigned char *> (insn.ptr());
+
+  if (oldInsnType & REL_B) {
+
+    /* replace with rel32 instruction, opcode is one byte. */
+    if (*oldInsn == JCXZ) {
+      *newInsn++ = *oldInsn; *newInsn++ = 2; // jcxz 2
+      *newInsn++ = 0xEB; *newInsn++ = 5;        // jmp 5
+      *newInsn++ = 0xE9;                        // jmp rel32
+
+      *((int *)newInsn) = newDisp;   
+      newInsn+= sizeof(int);  // move pointer to end of insn
+      sizeChange = 7;
+      rtn = true;
+    } else {
+        unsigned newSz=UINT_MAX;
+        if (oldInsnType & IS_JCC) {
+	  /* Change a Jcc rel8 to Jcc rel32. 
+	     Must generate a new opcode: a 0x0F followed by (old opcode + 16) */
+	  unsigned char opcode = *oldInsn++;
+	  *newInsn++ = 0x0F;
+	  *newInsn++ = opcode + 0x10;
+
+          sizeChange = 4;
+	  newSz = 6;
+        } else {
+            if (oldInsnType & IS_JUMP) {
+	      /* change opcode to 0xE9 */
+	      oldInsn++;
+	      *newInsn++ = 0xE9;
+
+	      sizeChange = 3;
+              newSz = 5;
+	    }
+	}     
+        assert(newSz!=UINT_MAX);
+        *((int *)newInsn) = newDisp; 
+        newInsn += sizeof(int);
+        rtn = true;
+    }
+  } else {
+      if (oldInsnType & REL_W) {
+        assert(oldInsnType & PREFIX_OPR);
+        if (oldInsnType & PREFIX_SEG)
+          *newInsn++ = *oldInsn++;
+	
+           /* opcode is unchanged, just relocate the displacement */
+   
+          if (*oldInsn == (unsigned char)0x0F)
+            *newInsn++ = *oldInsn++;
+          *newInsn++ = *oldInsn++;
+
+          *((int *)newInsn) = newDisp;
+          newInsn += sizeof(int);
+          sizeChange = 1;
+          rtn = true;
+      } else {
+	  // should never get here
+          assert (oldInsnType & REL_D);
+          assert (0); 
+      }
+  }
+
+  oldAdr += oldInsnSize;
+  newAdr += (oldInsnSize + sizeChange);
+  oldOffset++;
+  newOffset++;
+  codeOffset += (oldInsnSize + sizeChange);
+ 
+  unsigned newInsnType, newInsnSize;
+  newInsnSize = get_instruction(tmpInsn, newInsnType);
+  newInstr[newOffset - 1] = *(new instruction(tmpInsn, newInsnType, newInsnSize));
+
+  return rtn;   
+}
+  
+/****************************************************************************/
+/****************************************************************************/
+
+bool pd_Function::PA_attachGeneralRewrites(
+                              LocalAlterationSet *temp_alteration_set, 
+                              Address baseAddress, Address firstAddress,
+                              instruction* /* loadedCode */, 
+                              int /* codeSize */) {
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << "pd_Function::PA_attachGeneralRewrites" <<endl;
+    cerr << " baseAddress = " << hex << baseAddress << endl;
+    cerr << " firstAddress = " << hex << firstAddress << endl;
+#endif
+
+    // create and sort vector of instPoints
+    vector<instPoint*> foo;
+    sorted_ips_vector(foo);
+
+    // loop over all consecutive pairs of instPoints
+    for (unsigned i=0;i<foo.size();i++) {
+
+      // check if instPoint has enough space for jump
+      instPoint *ip = foo[i];
+      if (ip->size() < JUMP_REL32_SZ) {
+
+        InsertNops *nops = new InsertNops(this, 
+                                         (ip->iPgetAddress()+baseAddress) - firstAddress, 
+                                          ip->extraBytes()); 
+	temp_alteration_set->AddAlteration(nops);
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << "adding LocalAlteration for inserting nops" << endl;
+    cerr << "ipAddress = " << hex << ip->iPgetAddress() + baseAddress << endl;
+    cerr << "offset = " << (ip->iPgetAddress() + baseAddress) - firstAddress << endl;
+#endif 
+      }
+    }
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

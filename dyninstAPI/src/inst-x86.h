@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.7 1998/12/25 22:02:13 wylie Exp $
+// $Id: inst-x86.h,v 1.8 2001/02/02 21:18:02 gurari Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -49,5 +49,13 @@
 #define REG_MT NUM_VIRTUAL_REGISTERS /* register saved to keep the address */
                                      /* of the current vector of           */
                                      /* counter/timers for each thread     */
+
+#define NEW_INSTR_ARRAY_LEN 16384
+extern instruction newInstr[NEW_INSTR_ARRAY_LEN/2];
+extern unsigned char NEW_CODE[NEW_INSTR_ARRAY_LEN];
+
+//#ifndef DEBUG_FUNC_RELOC
+//#define DEBUG_FUNC_RELOC
+//#endif
 
 #endif
