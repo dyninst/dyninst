@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.107 2003/10/07 19:06:19 schendel Exp $
+// $Id: unix.C,v 1.108 2003/10/22 16:01:00 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -478,7 +478,7 @@ int forwardSigToProcess(process *proc,
         //P_abort();
     } 
     if (what != SIGSTOP) {
-	    proc->status_ = running;
+	    proc->set_status(running);
     }
     return 1;
 }
@@ -611,7 +611,7 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
     // is, we'll hand-check and see whether to ignore a trap.
 #if defined(AIX_PROC)
     lwpstatus_t status;
-    proc->getProcessLWP()->get_status(&status);
+    proc->getRepresentativeLWP()->get_status(&status);
     
     instruction foo;
     proc->readDataSpace((void *)status.pr_reg.__iar, 
@@ -870,7 +870,7 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
                 processVec.push_back(theChild);
                 activeProcesses++;
                 
-                theChild->status_ = stopped;
+                theChild->set_status(stopped);
 
 #if defined(rs6000_ibm_aix4_1)
                 // AIX has interesting fork behavior: the program image is
@@ -960,7 +960,7 @@ int handleExecExit(process *proc, procSignalInfo_t info) {
             // handleSigChild:     unstarted      =>  begun (trap at main)
             // trap at main:       begun          =>  initialized
             proc->inExec = true; 
-            proc->status_ = stopped;
+            proc->set_status(stopped);
             pdvector<heapItem *> emptyHeap;
             proc->heap.bufferPool = emptyHeap;
 #ifndef BPATCH_LIBRARY
@@ -1110,7 +1110,8 @@ void decodeAndHandleProcessEvent (bool block) {
     procSignalWhat_t what;
     procSignalInfo_t info;
     process *proc;
-    proc = decodeProcessEvent(-1, why, what, info, block);
+    dyn_lwp *selectedLWP;
+    proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block, 0);
     if (!proc)
        return;
     
