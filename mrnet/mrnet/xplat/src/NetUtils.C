@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: NetUtils.C,v 1.5 2004/06/01 18:23:52 pcroth Exp $
+// $Id: NetUtils.C,v 1.6 2004/06/02 16:49:08 pcroth Exp $
 #include <sstream>
 #include "xplat/Types.h"
 #include "xplat/NetUtils.h"
@@ -122,10 +122,10 @@ NetUtils::GetNetworkName( void )
 NetUtils::NetworkAddress
 NetUtils::GetNetworkAddress( void )
 {
-    static NetUtils::NetworkAddress cachedLocalAddr( ntohl( INADDR_NONE ) );
+    static NetUtils::NetworkAddress cachedLocalAddr( ntohl( INADDR_ANY ) );
 
     // check if we've already looked up our network address
-    if( cachedLocalAddr.GetInAddr() == ntohl( INADDR_NONE ) ) 
+    if( cachedLocalAddr.GetInAddr() == ntohl( INADDR_ANY ) ) 
     {
         // we didn't have the network address cached - 
         // look it up
@@ -138,7 +138,7 @@ NetUtils::GetNetworkAddress( void )
 NetUtils::NetworkAddress
 NetUtils::GetAddressOfHost( std::string host )
 {
-    NetworkAddress ret( INADDR_NONE );
+    NetworkAddress ret( INADDR_ANY );
 
 
     // look up host
