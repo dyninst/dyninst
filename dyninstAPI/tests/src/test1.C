@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.38 1999/10/18 17:32:18 hollings Exp $
+// $Id: test1.C,v 1.39 1999/10/25 23:24:24 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -2323,7 +2323,7 @@ main(unsigned int argc, char *argv[])
 	    i++;
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
-	    mutateeName = "test1.mutatee_n32";
+	    mutateeName = "test1.mutatee_gcc_n32";
 	    libNameA = "libtestA_n32.so";
 	    libNameB = "libtestB_n32.so";
 #endif
