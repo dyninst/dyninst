@@ -84,6 +84,8 @@ template class  dictionary_hash <unsigned, pdFunction*>;
 template class  dictionary_hash <unsigned, resource *>;
 template class  dictionary_hash <unsigned, unsigned>;
 template class  dictionary_hash <unsigned, vector<mdl_type_desc> >;
+template class  dictionary <metricDefinitionNode*,metricDefinitionNode*>;
+template class  dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>;
 
 template class  dictionary_iter<unsigned int, pdFunction *>;
 template class  dictionary_iter<unsigned int, metricDefinitionNode *>;
