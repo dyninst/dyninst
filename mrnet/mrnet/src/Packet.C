@@ -23,7 +23,7 @@ PacketData::PacketData( unsigned short _stream_id, int _tag, const char *fmt,
       fmt_str( strdup(fmt) ), buf(NULL), destroy_data( false )
 {
     PDR pdrs;
-    mrn_printf( 3, MCFL, stderr, "In Packet(%p) constructor\n", this );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In Packet(%p) constructor\n", this ));
 
     std::string tmp;
     getNetworkName( tmp );
@@ -44,9 +44,9 @@ PacketData::PacketData( unsigned short _stream_id, int _tag, const char *fmt,
         return;
     }
 
-    mrn_printf( 3, MCFL, stderr,
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
                 "Packet(%p) constructor succeeded: src:%s, stream_id:%d "
-                "tag:%d, fmt:%s\n", this, src, stream_id, tag, fmt_str );
+                "tag:%d, fmt:%s\n", this, src, stream_id, tag, fmt_str ));
     return;
 }
 
@@ -55,7 +55,7 @@ PacketData::PacketData( unsigned int _buf_len, char *_buf )
       buf_len( _buf_len ), destroy_data( false )
 {
     PDR pdrs;
-    mrn_printf( 3, MCFL, stderr, "In Packet(%p) constructor\n", this );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In Packet(%p) constructor\n", this ));
 
     if( buf_len == 0 ){  //NullPacket has buf==NULL and buf_len==0
         return;
@@ -64,13 +64,13 @@ PacketData::PacketData( unsigned int _buf_len, char *_buf )
     pdrmem_create( &pdrs, buf, buf_len, PDR_DECODE );
 
     if( !PacketData::pdr_packet( &pdrs, this ) ) {
-        mrn_printf( 1, MCFL, stderr, "pdr_packet() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "pdr_packet() failed\n" ));
         MRN_errno = MRN_EPACKING;
     }
 
-    mrn_printf( 3, MCFL, stderr,
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
                 "Packet(%p) constructor succeeded: src:%s, stream_id:%d "
-                "tag:%d, fmt:%s\n", this, src, stream_id, tag, fmt_str );
+                "tag:%d, fmt:%s\n", this, src, stream_id, tag, fmt_str ));
 }
 
 PacketData::PacketData(const PacketData& p)
@@ -175,20 +175,21 @@ bool PacketData::operator!=(const PacketData& p) const
     return ( this != &p );
 }
 
-int PacketData::ExtractVaList( const char *fmt, va_list arg_list )
+int PacketData::ExtractVaList( const char * /*fmt*/, va_list arg_list )
 {
-    mrn_printf( 3, MCFL, stderr, "In ExtractVaList(%p)\n", this );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In ExtractVaList(%p)\n", this ));
 
-    if( strcmp( fmt_str, fmt ) ) {
-        error(MRN_EFMTSTR, "Extracted (%s), Packet (%s): Format string mismatch\n",
-                fmt, fmt_str);
-        return -1;
-    }
+    //TODO: proper fmt string comparison
+    //if( strcmp( fmt_str, fmt ) ) {
+        //error(MRN_EFMTSTR, "Extracted (%s), Packet (%s): Format string mismatch\n",
+                //fmt, fmt_str);
+        //return -1;
+    //}
 
     //TODO: add exception block here to catch user errors
     DataElementArray2ArgList( arg_list );
 
-    mrn_printf( 3, MCFL, stderr, "ExtractVaList(%p) succeeded\n", this );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "ExtractVaList(%p) succeeded\n", this ));
     return 0;
 }
 
@@ -198,7 +199,7 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
     bool_t retval = 0;
     DataElement * cur_elem=NULL;
 
-    mrn_printf( 3, MCFL, stderr, "In pdr_packet. op: %d\n", pdrs->p_op );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In pdr_packet. op: %d\n", pdrs->p_op ));
 
     /* Process Packet Header into/out of the pdr mem */
     /********************************************************************
@@ -208,25 +209,25 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
     ---------------------------------------------------
     *********************************************************************/
     if( pdr_uint16( pdrs, &( pkt->stream_id ) ) == FALSE ) {
-        mrn_printf( 1, MCFL, stderr, "pdr_uint16() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "pdr_uint16() failed\n" ));
         return FALSE;
     }
     if( pdr_int32( pdrs, &( pkt->tag ) ) == FALSE ) {
-        mrn_printf( 1, MCFL, stderr, "pdr_uint32() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "pdr_uint32() failed\n" ));
         return FALSE;
     }
     if( pdr_wrapstring( pdrs, &( pkt->src ) ) == FALSE ) {
-        mrn_printf( 1, MCFL, stderr, "pdr_wrapstring() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "pdr_wrapstring() failed\n" ));
         return FALSE;
     }
     if( pdr_wrapstring( pdrs, &( pkt->fmt_str ) ) == FALSE ) {
-        mrn_printf( 1, MCFL, stderr, "pdr_wrapstring() failed\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "pdr_wrapstring() failed\n" ));
         return FALSE;
     }
 
     if( !pkt->get_FormatString(  ) ) {
-        mrn_printf( 3, MCFL, stderr,
-                    "No data in message. just header info\n" );
+        mrn_dbg( 3, mrn_printf(FLF, stderr,
+                    "No data in message. just header info\n" ));
         return TRUE;
     }
 
@@ -250,9 +251,9 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
             cur_elem = new DataElement;
             cur_elem->type = Fmt2Type( cur_fmt.c_str() );
         }
-        mrn_printf( 3, MCFL, stderr,
+        mrn_dbg( 3, mrn_printf(FLF, stderr,
                     "Handling packet[%d], cur_fmt: \"%s\", type: %d\n", i,
-                    cur_fmt.c_str(), cur_elem->type );
+                    cur_fmt.c_str(), cur_elem->type ));
 
         switch ( cur_elem->type ) {
         case UNKNOWN_T:
@@ -323,8 +324,8 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
 
         case FLOAT_T:
             retval = pdr_float( pdrs, ( float * )( &( cur_elem->val.f ) ) );
-            mrn_printf( 3, MCFL, stderr, "floats value: %p: %f\n",
-                       &(cur_elem->val.f), cur_elem->val.f );
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "floats value: %p: %f\n",
+                       &(cur_elem->val.f), cur_elem->val.f ));
             break;
         case DOUBLE_T:
             retval =
@@ -366,9 +367,9 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
             break;
         }
         if( !retval ) {
-            mrn_printf( 1, MCFL, stderr,
+            mrn_dbg( 1, mrn_printf(FLF, stderr,
                         "pdr_xxx() failed for elem[%d] of type %d\n", i,
-                        cur_elem->type );
+                        cur_elem->type ));
             return retval;
         }
         if( pdrs->p_op == PDR_DECODE ) {
@@ -379,7 +380,7 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
         i++;
     }
 
-    mrn_printf( 3, MCFL, stderr, "pdr_packet() succeeded\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "pdr_packet() succeeded\n" ));
     return TRUE;
 }
 
@@ -387,8 +388,8 @@ void PacketData::ArgList2DataElementArray( va_list arg_list )
 {
     DataElement * cur_elem=NULL;
 
-    mrn_printf( 3, MCFL, stderr,
-                "In ArgList2DataElementArray, packet(%p)\n", this );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "In ArgList2DataElementArray, packet(%p)\n", this ));
 
 
     std::string fmt = fmt_str;
@@ -404,9 +405,9 @@ void PacketData::ArgList2DataElementArray( va_list arg_list )
 
         cur_elem = new DataElement;
         cur_elem->type = Fmt2Type( cur_fmt.c_str() );
-        mrn_printf( 3, MCFL, stderr,
+        mrn_dbg( 3, mrn_printf(FLF, stderr,
                     "Handling new packet, cur_fmt: \"%s\", type: %d\n",
-                    cur_fmt.c_str(), cur_elem->type );
+                    cur_fmt.c_str(), cur_elem->type ));
         switch ( cur_elem->type ) {
         case UNKNOWN_T:
             assert( 0 );
@@ -440,8 +441,8 @@ void PacketData::ArgList2DataElementArray( va_list arg_list )
 
         case FLOAT_T:
             cur_elem->val.f = ( float )va_arg( arg_list, double );
-            mrn_printf( 3, MCFL, stderr, "floats value: %p: %f\n",
-                       &(cur_elem->val.f), cur_elem->val.f );
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "floats value: %p: %f\n",
+                       &(cur_elem->val.f), cur_elem->val.f ));
             break;
         case DOUBLE_T:
             cur_elem->val.lf = ( double )va_arg( arg_list, double );
@@ -475,8 +476,8 @@ void PacketData::ArgList2DataElementArray( va_list arg_list )
         curPos = tok.GetNextToken( curLen, delim );
     }
 
-    mrn_printf( 3, MCFL, stderr,
-                "ArgList2DataElementArray succeeded, packet(%p)\n", this );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "ArgList2DataElementArray succeeded, packet(%p)\n", this ));
 }
 
 void PacketData::DataElementArray2ArgList( va_list arg_list )
@@ -485,8 +486,8 @@ void PacketData::DataElementArray2ArgList( va_list arg_list )
     DataElement * cur_elem=NULL;
     void *tmp_ptr;
 
-    mrn_printf( 3, MCFL, stderr,
-                "In DataElementArray2ArgList, packet(%p)\n", this );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "In DataElementArray2ArgList, packet(%p)\n", this ));
 
     std::string fmt = fmt_str;
     XPlat::Tokenizer tok( fmt );
@@ -579,8 +580,8 @@ void PacketData::DataElementArray2ArgList( va_list arg_list )
         curPos = tok.GetNextToken( curLen, delim );
     }
 
-    mrn_printf( 3, MCFL, stderr,
-                "DataElementArray2ArgList succeeded, packet(%p)\n", this );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "DataElementArray2ArgList succeeded, packet(%p)\n", this ));
     return;
 }
 
