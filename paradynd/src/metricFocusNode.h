@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.91 2002/05/09 21:43:09 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.92 2002/05/10 18:36:39 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -67,8 +67,6 @@ class instInstance; // enough since we only use instInstance* in this file
 class pdThread; // enough since we only use pdThread* in this file
 #endif
 
-#include "paradynd/src/variableMgr.h"
-
 
 /* ************************************************************************ */
 
@@ -76,7 +74,7 @@ class processMetFocusNode;
 class threadMetFocusNode;
 class instrCodeNode;
 
-class metricDefinitionNode {
+class metricFocusNode {
 friend timeLength guessCost(string& metric_name, vector<u_int>& focus) ;
 
 friend int startCollecting(string&, vector<u_int>&, int id); // called by dynrpc.C
@@ -96,12 +94,12 @@ public:
   // for component (per-process) (non-aggregate, now aggregate) mdn's
   // difference: it now has parts too (become aggregate)
 
-  metricDefinitionNode();
+  metricFocusNode();
 
   // NON_MT_THREAD version:
   // for aggregate (not component) mdn's
 
-  virtual ~metricDefinitionNode() { };
+  virtual ~metricFocusNode() { };
 
   virtual void print() { };
 
@@ -111,7 +109,7 @@ public:
   // processes started via fork or exec, just for those started "normally")
   void propagateToNewProcess(process *p);  
 
-  metricDefinitionNode *forkProcess(process *child,
+  metricFocusNode *forkProcess(process *child,
                                     const dictionary_hash<instInstance*,instInstance*> &map) const;
      // called when it's determined that an mi should be propagated from the
      // parent to the child.  "this" is a component mi, not an aggregator mi.
@@ -141,41 +139,17 @@ public:
      // instrumentation is actually inserted.  For others, the component mi
      // in question is removed from the system.
 
+  static void handleNewThread(pdThread *thr);
+
 protected:
   // Since we don't define these, make sure they're not used:
-  metricDefinitionNode &operator=(const metricDefinitionNode &src);
-  metricDefinitionNode(const metricDefinitionNode &src);
+  metricFocusNode &operator=(const metricFocusNode &src);
+  metricFocusNode(const metricFocusNode &src);
 
  protected:
 
-  // this function checks if we need to do stack walk
-  // if all returnInstance's overwrite only 1 instruction, no stack walk necessary
-
-  // comments only for NON_MT_THREAD version:
-  // for aggregate metrics and component (non-aggregate) metrics
-  // for component metrics: the last is "base", others are all constraints
-  //  aggregator should be consistent with components to some extents
-  //  should be added or removed if necessary;
-  //  also added in AGG_LEV constructor and addPart
-
-#if defined(MT_THREAD)
-                                       //  following 5 memorizing stuff --- for PROC_COMP only
-  // data required to add threads - naim
-  unsigned type_thr;
-  bool dontInsertData_thr;
-  vector<string> temp_ctr_thr;
-  vector<T_dyninstRPC::mdl_constraint*> flag_cons_thr;
-  // could be multiple mdl_constraints
-  T_dyninstRPC::mdl_constraint*  base_use_thr;
-
-                                       //  following 4 --- for PROC_COMP only
-                                       //  should be consistent with PROC_PRIM's components
-#endif
-  
   timeLength originalCost_;
  
-  // called by static void handleExec(process *), for each component mi
-  // returns new component mi if propagation succeeded; NULL if not.
 };
 
 
@@ -216,7 +190,7 @@ class defInst {
 //};
 
 #if defined(MT_THREAD)
-extern dictionary_hash<string, metricDefinitionNode*> allMIinstalled;
+extern dictionary_hash<string, metricFocusNode*> allMIinstalled;
 #endif
 
 // don't access this directly, consider private
