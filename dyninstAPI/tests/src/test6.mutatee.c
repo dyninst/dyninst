@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #define dprintf	if (debugPrint) printf
-int debugPrint = 0;
+int debugPrint = 1;
 
 #define MAX_TEST 6
 
@@ -135,15 +135,15 @@ extern void* getsp();
 {
   int i;
 
-  /* printf("&divarw = %p\n", &divarw); */
-  /* printf("&dfvars = %p\n", &dfvars); */
-  /* printf("&dfvard = %p\n", &dfvard); */
-
   void *toc = gettoc();
   void *sp  = getsp(1,2,3);
 
-  /* printf("toc = %p\n", toc); */
-  /* printf("sp = %p\n", sp); */
+  printf("&divarw = %p\n", &divarw);
+  printf("&dfvars = %p\n", &dfvars);
+  printf("&dfvard = %p\n", &dfvard);
+
+  printf("toc = %p\n", toc);
+  printf("sp = %p\n", sp);
 
   eaExp[0] = toc; /* assuming that TOC entries are not reordered */
 

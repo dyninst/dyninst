@@ -73,6 +73,7 @@ T.dfvard:	.tc	dfvardT[TC], dfvard[RW]
 
 	# Not sure if lwa, lwax, lwaux, ld, ldu, ldx, ldux work on PowerX, X<3.
 
+        li      0,0
 	lwa	5,4(3)		#l18
 	lwax	6,7,0		#l19
 	lwaux	5,7,8		#l20
