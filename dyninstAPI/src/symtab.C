@@ -60,6 +60,7 @@
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/init.h"
+#include "util/h/Dictionary.h"
 #else
 extern vector<sym_data> syms_to_find;
 #endif
@@ -988,41 +989,27 @@ string getFunctionName(string constraint) {
 
 
 #ifndef BPATCH_LIBRARY
+
 // mcheyney, Oct. 6, 1997
-bool module_is_excluded(pdmodule *module) {
-    unsigned i;
-    string constraint_function_name;
-    string constraint_module_name;
-    string module_name = module->fileName();
+static dictionary_hash<string, string> func_constraint_hash(string::hash);
+static bool cache_func_constraint_hash() {
+    static bool func_constraint_hash_loaded = FALSE;
+
     // strings holding exclude constraints....
     vector<string> func_constraints;
-    string empty_string("");
 
-    //cerr << "module_is_excluded " << module_name << " called" << endl;
-
-    // if unble to get list of excluded functions, assume all modules
+    // if unble to get list of excluded functions, assume all functions
     //  are NOT excluded!!!!
     if(mdl_get_lib_constraints(func_constraints) == FALSE) {
-        //cerr << " (module_is_excluded) unable to mdl_get_lib_constrants, returning FALSE" << endl;
-        return FALSE;
+	return FALSE;
     }
+    func_constraint_hash_loaded = TRUE;
 
-    // run through func_constraints, looking for a constraint
-    //  where constraint_module_name == module_name && 
-    //  constraint_function_name == ""....
+    unsigned i;
     for(i=0;i<func_constraints.size();i++) {
-        constraint_module_name = getModuleName(func_constraints[i]);
-	if (constraint_module_name == module_name) {
-	    constraint_function_name = getFunctionName(func_constraints[i]);
-	    if (constraint_function_name == empty_string) {
-	        //cerr << " (module_is_excluded) found matching constraint " << func_constraints[i] << " returning TRUE" << endl;
-	        return TRUE;
-	    }
-	}
+	func_constraint_hash[func_constraints[i]] = func_constraints[i];
     }
-
-    //cerr << " (module_is_excluded) didnt find matching constraint returning FALSE" << endl;
-    return FALSE;
+    return TRUE;
 }
 
 // mcheyney, Oct. 3, 1997
@@ -1030,38 +1017,37 @@ bool module_is_excluded(pdmodule *module) {
 //  be excluded via "exclude module_name/function_name" (but NOT
 //  via "exclude module_name").
 bool function_is_excluded(pd_Function *func, string module_name) {
-    // strings holding exclude constraints....
-    vector<string> func_constraints;
+    static bool func_constraint_hash_loaded = FALSE;
+
     string function_name = func->prettyName();
-    string constraint_function_name;
-    string constraint_module_name;
-    unsigned i;
+    string full_name = module_name + string("/") + function_name;
 
-    //cerr << "function_is_excluded " << function_name << " , " <<
-    //        module_name << " called" << endl;
-
-    // if unble to get list of excluded functions, assume all functions
-    //  are NOT excluded!!!!
-    if(mdl_get_lib_constraints(func_constraints) == FALSE) {
-        //cerr << " (function_is_excluded) unable to mdl_get_lib_constrants, returning FALSE" << endl;
-        return FALSE;
+    if (func_constraint_hash_loaded == FALSE) {
+        if (!cache_func_constraint_hash()) {
+	    return FALSE;
+        }
     }
 
-    // run through func_constraints, looking for a constraint of 
-    //  form module_name/function_name....
-    for(i=0;i<func_constraints.size();i++) {
-        constraint_module_name = getModuleName(func_constraints[i]);
-	if (constraint_module_name == module_name) { 
-	    constraint_function_name = getFunctionName(func_constraints[i]);
-	    // if module/function is excluded....
-	    if (constraint_function_name == function_name) {
-	        //cerr << " (function_is_excluded) found matching FUNCTION constraint " << func_constraints[i] << " returning TRUE" << endl;
-	        return TRUE;
-	    }
-	}
+    if (func_constraint_hash.defines(full_name)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+bool module_is_excluded(pdmodule *module) {
+    static bool func_constraint_hash_loaded = FALSE;
+
+    string full_name = module->fileName();
+
+    if (func_constraint_hash_loaded == FALSE) {
+        if (!cache_func_constraint_hash()) {
+	    return FALSE;
+        }
     }
 
-    //cerr << " (function_is_excluded) didnt find matching constraint, returing FALSE" << endl;
+    if (func_constraint_hash.defines(full_name)) {
+        return TRUE;
+    }
     return FALSE;
 }
 
@@ -1070,7 +1056,8 @@ bool function_is_excluded(pd_Function *func, string module_name) {
 // Take a list of functions (in vector <all_funcs>.  Copy all
 //  of those functions which are not excluded (via "exclude" 
 //  {module==module_name}/{function==function_name) into
-//  <some_functions>.
+//  <some_functions>.  DONT filter out those excluded via
+//  exclude module==module_name...., eh????
 // Returns status of mdl_get_lib_constraints() call.
 //  If this status == FALSE< some_funcs is not modified....
 // We assume that all_funcs is generally longer than the list
@@ -1078,75 +1065,29 @@ bool function_is_excluded(pd_Function *func, string module_name) {
 //  all funcs into some funcs, then runs over excluded funcs
 //  removing any matches, as opposed to doing to checking 
 //  while adding to some_funcs....
+
 bool filter_excluded_functions(vector<pd_Function*> all_funcs,
     vector<pd_Function*>& some_funcs, string module_name) {
+    unsigned i;
 
-    u_int i, j;
-    // strings holding exclude constraints....
-    vector<string> func_constraints;
-    string constraint_module_name, constraint_function_name, empty_string;
-    vector<string> tstrings;
-    bool excluded;
+    string full_name;
+    static bool func_constraint_hash_loaded = FALSE;
 
-    empty_string = string("");
-
-    //cerr << "filter_excluded_functions called : " << endl;
-    //cerr << " module_name = " << module_name << endl;
-    //cerr << " all_funcs (by pretty name ) : " << endl;
-    //for(i=0;i<all_funcs.size();i++) {
-    //    cerr << "  " << all_funcs[i]->prettyName() << endl;
-    //}
-    
-
-    // if you cannot get set of lib constraints, return FALSE w/o
-    // modifying some_funcs....
-    if(mdl_get_lib_constraints(func_constraints) == FALSE) {
-        if (0) {
-	    //cerr << " could not mdl_get_lib_constraints, about to return FALSE"
-	    //     << endl;
+    if (func_constraint_hash_loaded == FALSE) {
+        if (!cache_func_constraint_hash()) {
+	    return FALSE;
         }
-        return FALSE;
     }
 
-    // run through func_constraints, filtering all constraints
-    //  not of form module/function, and all constraints of that
-    //  form where constraint module name != module_name....
-    for(i=0;i<func_constraints.size();i++) {
-        constraint_module_name = getModuleName(func_constraints[i]);
-	//cerr << "constraint = " << func_constraints[i] << endl;
-	//cerr << " constraint_module_name = " << constraint_module_name
-	//     << endl;
-	
-	if (module_name == constraint_module_name) {
-	    constraint_function_name = getFunctionName(func_constraints[i]);
-	    if (constraint_function_name != empty_string) { 
-	        tstrings += getFunctionName(func_constraints[i]);
-	    }
-	}
-    }
-    func_constraints = tstrings;
-    
-    //cerr << "func_constraints = " << endl;
-    //for(i=0;i<func_constraints.size();i++) {
-    //    cerr << "  " << func_constraints[i] << endl;
-    //}
-   
-
-    // run over functions in all_funcs.  If they dont match an excluded 
-    //  function in module_name, then push them onto some_funcs....
+    // run over all_funcs, check if module/function is caught
+    //  by an exclude....
     for(i=0;i<all_funcs.size();i++) {
-        excluded = FALSE;
-	for(j=0;j<func_constraints.size();j++) {
-	    if (all_funcs[i]->prettyName() == func_constraints[j]) {
-	        excluded = TRUE;
-		break;
-	    }
-	}
-	if (excluded == FALSE) {
-	    some_funcs += all_funcs[i]; 
-	}
+        full_name = module_name + string("/") + all_funcs[i]->prettyName();
+	if (!(func_constraint_hash.defines(full_name))) {
+            some_funcs += all_funcs[i];
+        }
     }
-
+    
     //cerr << " looks successful : about to return TRUE" << endl;
     //cerr << " some_funcs (by pretty name) " << endl;
     //for (i=0;i<some_funcs.size();i++) {
@@ -1155,6 +1096,7 @@ bool filter_excluded_functions(vector<pd_Function*> all_funcs,
     
     return TRUE;
 }
+
 #endif /* BPATCH_LIBRARY */
 
 // I commented this out since gcc says it ain't used --ari 10/97
