@@ -4,10 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.5  1996/01/11 23:41:38  tamches
-/* there are now 2 kinds of true nodes; so tests changed accordingly.
-/* Also brought the shg test program back to life
+/* Revision 1.6  1996/01/18 16:24:17  hollings
+/* Added extra {}
 /*
+ * Revision 1.5  1996/01/11  23:41:38  tamches
+ * there are now 2 kinds of true nodes; so tests changed accordingly.
+ * Also brought the shg test program back to life
+ *
  * Revision 1.4  1996/01/09 01:05:34  tamches
  * added thePhaseId member variable
  * added call to perfConsult->getNodeInfo to gather lots of juicy
@@ -700,10 +703,13 @@ bool shg::configNode(unsigned id, shgRootNode::style newStyleId) {
 
    // just a sanity check: ptr should have a parent (will be NULL if ptr is the root)
    assert(hash2.defines(ptr));
-   if (ptr == rootPtr)
+   // added extra { } around this if, the AIX g++ compiler seems to need it
+   //  jkh - 1/18/96
+   if (ptr == rootPtr) {
       assert(hash2[ptr] == NULL);
-   else
+   } else {
       assert(hash2[ptr] != NULL);
+   } 
 
    const shgRootNode::style oldStyleId = ptr->getNodeData().getStyle();
 
