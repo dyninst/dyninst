@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: trampTemplate.h,v 1.5 2005/02/17 02:16:21 rutar Exp $
+// $Id: trampTemplate.h,v 1.6 2005/02/24 20:06:17 tlmiller Exp $
 
 // trampTemplate class definition
 
@@ -154,6 +154,24 @@ class trampTemplate : public codeRange {
 };
 
 extern trampTemplate baseTemplate;
+
+class multitrampTemplate : public codeRange {
+	public:
+		Address get_address() const { return addr; }
+		unsigned get_size() const { return size; }
+		codeRange * copy() const { return new multitrampTemplate( * this ); }
+				
+		multitrampTemplate( Address add, unsigned siz, instPoint * locn ) : addr( add ), size( siz ), location( locn ) { }
+				
+		Address addr;
+		unsigned size;
+		
+		/* For simplicity, we only record the instpoint triggering the 
+		   initial construction of the multitramp.  If we actually use this
+		   data structure for something other than catchup, we might need
+		   to do something smarter. */
+		const instPoint * location;
+	}; /* end class multitrampTemplate */
 
 #endif
 

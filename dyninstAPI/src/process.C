@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.522 2005/02/24 10:16:54 rchen Exp $
+// $Id: process.C,v 1.523 2005/02/24 20:06:15 tlmiller Exp $
 
 #include <ctype.h>
 
@@ -336,9 +336,14 @@ bool process::walkStackFromFrame(Frame startFrame,
       // One thing that makes me feel better: gdb is getting royally
       // confused as well. This sucks for catchup.
       
-      #if defined( ia64_unknown_linux2_4 ) 
-        /* My single-stepper needs to be able to continue past stackwalking errors. */
-		/* DEBUG */ fprintf( stderr, "Terminating stackwalk early because fpOld (0x%lx) > fpNew (0x%lx).\n", fpOld, fpNew );
+      #if defined( ia64_unknown_linux2_4 )
+		/* My single-stepper needs to be able to continue past stackwalking errors. */      
+		// /* DEBUG */ fprintf( stderr, "Not terminating stackwalk early, even though fpOld (0x%lx) > fpNew (0x%lx).\n", fpOld, fpNew );
+		// /* DEBUG */ for( unsigned int i = 0; i < stackWalk.size(); i++ ) {
+		// /* DEBUG */ 	cerr << stackWalk[i] << endl;
+		// /* DEBUG */ 	} 
+		// /* DEBUG */	cerr << currentFrame << endl; 
+		// /* DEBUG */ cerr << endl;
 		break;
       #else
         // We should check to see if this early exit is warranted.
@@ -4564,6 +4569,7 @@ int_function *process::findFuncByAddr(Address addr) {
     trampTemplate *basetramp_ptr = range->is_basetramp();
     miniTrampHandle *minitramp_ptr = range->is_minitramp();
     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
+    multitrampTemplate *multitramp_ptr = range->is_multitramp();
 
     if(func_ptr) {
        return func_ptr;
@@ -4576,6 +4582,9 @@ int_function *process::findFuncByAddr(Address addr) {
     }
     else if (reloc_ptr) {
         return reloc_ptr->func();
+    }
+    else if (multitramp_ptr) {
+        return multitramp_ptr->location->pointFunc();
     }
     else {
         return NULL;
