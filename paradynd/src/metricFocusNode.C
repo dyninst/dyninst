@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.195 2001/08/23 14:44:17 schendel Exp $
+// $Id: metricFocusNode.C,v 1.196 2001/08/28 02:48:39 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -2307,7 +2307,8 @@ const char *typeStr(int i) {
 }
 
 ostream& operator<<(ostream&s, const metricDefinitionNode &m) {
-  s << "mdn: " << &m << ", type: " << typeStr(int(m.getMdnType())) << "\n";
+  s << "mdn: " << &m << ", id: " << m.getMId() << ", type: " 
+    << typeStr(int(m.getMdnType())) << "\n";
   s << "name: " << m.getFullName() << "\n";
   s << "  components -----\n";
   for(unsigned i=0; i<m.components.size(); i++) {
@@ -2352,6 +2353,8 @@ void mdnContinueCallback(timeStamp timeOfCont) {
     //		   << ", type: " << typeStr(mdn->getMdnType()) << "\n";
     if(! mdn->isStartTimeSet()) {
       mdn->setStartTime(timeOfCont);
+    }
+    if(! mdn->isInitialActualValueSet()) {
       mdn->setInitialActualValue(pdSample::Zero());
     }
   }
@@ -2364,13 +2367,21 @@ void mdnContinueCallback(timeStamp timeOfCont) {
 // initial actual values.  All these (non-internal) metrics have zero for an
 // initial actual value.
 void metricDefinitionNode::setInitialActualValue(pdSample s) {
+  mdnInitActualVal = s;
+  sampleVal_cerr << "setInitialActualValue() for mdn " << this << "\n";
   for(unsigned i = 0; i < aggregator.numComponents(); i++) {
     aggComponent *curComp = aggregator.getComponent(i);
+    sampleVal_cerr << "                       for aggComp " << curComp 
+		   << "\n";
     curComp->setInitialActualValue(s);
   }
   for(unsigned j=0; j<components.size(); j++) {
     metricDefinitionNode *compMdn = components[j];
-    compMdn->setInitialActualValue(s);
+    if(! compMdn->isInitialActualValueSet())
+      compMdn->setInitialActualValue(s);
+    else
+      sampleVal_cerr << "not calling setInitialActualVal for mdn " 
+		     << compMdn << "\n";
   }
 }
 
@@ -3674,7 +3685,8 @@ void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
     aggComponent &curComp = *samples[u];
     metricDefinitionNode &curParentMdn = *aggregators[u];
     sampleVal_cerr << "  handling agg#: " << u << ", *: " << &curParentMdn
-		   << ", mdn- " << curParentMdn.getFullName()
+		   << ", id: " << curParentMdn.getMId() << ", mdn- " 
+		   << curParentMdn.getFullName()
 		   << "  mdnStartTime: " << curParentMdn.getStartTime() <<"\n";
 
     // This can happen because even if the sample of the application
@@ -3702,15 +3714,16 @@ void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
     }
 #endif
     sampleVal_cerr <<"  back in updateWithDeltaValue, finished handling agg#: "
-		   << u << ", *: " << &curParentMdn << ", mdn- " 
+		   << u << ", *: " << &curParentMdn << ", id: " 
+		   << curParentMdn.getMId() << ", mdn- " 
 		   << curParentMdn.getFullName() << "\n";
   }
 }
 
 void metricDefinitionNode::tryAggregation() {
     sampleInterval aggSample;
-    sampleVal_cerr << "Calling aggregate for mdn: " << this << ", sampleAgg: "
-		   << &aggregator << "\n";
+    sampleVal_cerr << "Calling aggregate for mdn: " << this << ", id: "
+		   << getMId() << ", sampleAgg: " << &aggregator << "\n";
     while(aggregator.aggregate(&aggSample) == true) {
       if(isTopLevelMDN() && !sentInitialActualValue()) {
 	sendInitialActualValue(aggregator.getInitialActualValue());
