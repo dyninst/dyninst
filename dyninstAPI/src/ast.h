@@ -1,8 +1,22 @@
 
+/*
+ * $Log: ast.h,v $
+ * Revision 1.4  1994/09/22 01:44:51  markc
+ * Made first arg to AstNode constructor const
+ * strdup'd callee in AstNode::AstNode, this is temporary
+ * Made first arg to createPrimitiveCall const
+ *
+ */
+
 //
 // Define a AST class for use in generating primitive and pred calls
 //
 //
+
+extern "C" {
+#include <string.h>
+#include <stdio.h>
+}
 
 class dataReqNode;
 
@@ -13,7 +27,8 @@ typedef enum { Constant, DataValue, DataPtr, Param } operandType;
 // a register.
 typedef int reg;
 
-typedef struct registerSlot {
+class registerSlot {
+ public:
     int number;         // what register is it
     Boolean inUse;      // free or in use.
 };
@@ -32,7 +47,7 @@ class registerSpace {
 
 class AstNode {
     public:
-	AstNode(char *func, AstNode *l, AstNode *r) {
+	AstNode(const char *func, AstNode *l, AstNode *r) {
 	    loperand = l;
 	    roperand = r;
 	    if (!strcmp(func, "setCounter")) {
@@ -55,9 +70,9 @@ class AstNode {
 		    loperand = NULL;
 		} else {
 		    if (r->oValue == 0) {
-			callee = "DYNINSTstartWallTimer";
+			callee = strdup("DYNINSTstartWallTimer");
 		    } else {
-			callee = "DYNINSTstartProcessTimer";
+			callee = strdup("DYNINSTstartProcessTimer");
 		    }
 		    loperand = l;
 		}
@@ -70,14 +85,14 @@ class AstNode {
 		} else {
 		    loperand = l;
 		    if (r->oValue == 0) {
-			callee = "DYNINSTstopWallTimer";
+			callee = strdup("DYNINSTstopWallTimer");
 		    } else {
-			callee = "DYNINSTstopProcessTimer";
+			callee = strdup("DYNINSTstopProcessTimer");
 		    }
 		}
 	    } else {
 		type = callNode;
-		callee = func;
+		callee = strdup(func);
 	    }
 	};
 	AstNode(operandType ot, void *arg) {
@@ -121,5 +136,5 @@ class AstNode {
 	int lastInsn;
 };
 
-AstNode *createPrimitiveCall(char *func, dataReqNode*, int param2);
+AstNode *createPrimitiveCall(const char *func, dataReqNode*, int param2);
 AstNode *createIf(AstNode *expression, AstNode *action);
