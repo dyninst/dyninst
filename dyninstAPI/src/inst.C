@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.3 1994/06/27 18:56:51 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.4 1994/06/29 02:52:30 hollings Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.3  1994/06/27 18:56:51  hollings
+ * Revision 1.4  1994/06/29 02:52:30  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.3  1994/06/27  18:56:51  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -95,6 +102,7 @@ extern int trampBytes;
 extern trampTemplate baseTemplate;
 extern trampTemplate noArgsTemplate;
 extern trampTemplate withArgsTemplate;
+extern internalMetric activeSlots;
 
 int getBaseBranchAddr(process *proc, instInstance *inst)
 {
@@ -167,7 +175,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     // return value is offset of return stmnt.
     //
     count = 0;
-    ret->returnAddr = ast->generateTramp(proc, insn, &count); 
+    ret->returnAddr = ast->generateTramp(proc, insn, (caddr_t *) &count); 
 
     ret->trampBase = inferriorMalloc(proc, count);
     trampBytes += count;
@@ -204,6 +212,9 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
 	generateBranch(proc, fromAddr, ret->trampBase);
 
 	generateBranch(proc, ret->returnAddr, fromAddr+4);
+
+	// just activated this slot.
+	activeSlots.value += 1.0;
     } else if (order == orderLastAtPoint) {
 	/* patch previous tramp to call us rather than return */
 	generateBranch(proc, lastAtPoint->returnAddr, ret->trampBase);
@@ -259,10 +270,8 @@ void deleteInst(instInstance *old)
     }
 
     if (!othersAtPoint) {
-	extern internalMetric activePoints;
-
-	activePoints.value--;
 	clearBaseBranch(old->proc, old);
+	activeSlots.value -= 1.0;
     } else {
 	if (left) {
 	    if (right) {

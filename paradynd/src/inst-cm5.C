@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.6 1994/06/27 18:56:41 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.7 1994/06/29 02:52:25 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.6  1994/06/27 18:56:41  hollings
+ * Revision 1.7  1994/06/29 02:52:25  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.6  1994/06/27  18:56:41  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.

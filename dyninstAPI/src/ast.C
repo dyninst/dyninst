@@ -56,7 +56,7 @@ void registerSpace::resetSpace() {
 
 extern registerSpace *regSpace;
 
-int AstNode::generateTramp(process *proc, char *i, int *count)
+int AstNode::generateTramp(process *proc, char *i, caddr_t *count)
 {
     int ret;
     static AstNode *preamble = new AstNode(trampPreamble, NULL, NULL);
@@ -71,11 +71,14 @@ int AstNode::generateTramp(process *proc, char *i, int *count)
     return(ret);
 }
 
-reg AstNode::generateCode(process *proc,registerSpace *rs,char *insn, int *base)
+reg AstNode::generateCode(process *proc,
+			  registerSpace *rs,
+			  char *insn, 
+			  caddr_t *base)
 {
-    int addr;
-    int fromAddr;
-    int startInsn;
+    caddr_t addr;
+    caddr_t fromAddr;
+    caddr_t startInsn;
     reg src1, src2;
     reg src = -1;
     reg dest = -1;
@@ -94,12 +97,12 @@ reg AstNode::generateCode(process *proc,registerSpace *rs,char *insn, int *base)
 	} else if (op == storeOp) {
 	    src1 = roperand->generateCode(proc, rs, insn, base);
 	    src2 = rs->allocateRegister();
-	    addr = (int) loperand->dValue->getInferriorPtr();
+	    addr = loperand->dValue->getInferriorPtr();
 	    (void) emit(op, src1, src2, (reg) addr, insn, base);
 	    rs->freeRegister(src1);
 	    rs->freeRegister(src2);
 	} else if (op == trampTrailer) {
-	    return(emit(op, 0, 0, 0, insn, base));
+	    return((unsigned) emit(op, 0, 0, 0, insn, base));
 	} else {
 	    if (loperand) 
 		src = loperand->generateCode(proc, rs, insn, base);
@@ -113,10 +116,10 @@ reg AstNode::generateCode(process *proc,registerSpace *rs,char *insn, int *base)
 	if (oType == Constant) {
 	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base);
 	} else if (oType == DataPtr) {
-	    addr = (int) dValue->getInferriorPtr();
+	    addr = dValue->getInferriorPtr();
 	    (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
 	} else if (oType == DataValue) {
-	    addr = (int) dValue->getInferriorPtr();
+	    addr = dValue->getInferriorPtr();
 	    if (dValue->getType() == timer) {
 		(void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
 	    } else {
@@ -130,7 +133,7 @@ reg AstNode::generateCode(process *proc,registerSpace *rs,char *insn, int *base)
 	    }
 	}
     } else if (type == callNode) {
-	int addr;
+	caddr_t addr;
 	// find func addr.
 	addr = findInternalAddress(proc->symbols, callee, False);
 	if (!addr) {
@@ -155,7 +158,7 @@ reg AstNode::generateCode(process *proc,registerSpace *rs,char *insn, int *base)
 	} else {
 	    src2 = -1;
 	}
-	(void) emit(callOp, src1, src2, addr, insn, base);
+	(void) emit(callOp, src1, src2, (int) addr, insn, base);
     } else if (type == sequenceNode) {
 	loperand->generateCode(proc, rs, insn, base);
 	return(roperand->generateCode(proc, rs, insn, base));

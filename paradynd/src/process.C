@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.12 1994/06/27 21:28:18 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.13 1994/06/29 02:52:47 hollings Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.12  1994/06/27 21:28:18  rbi
+ * Revision 1.13  1994/06/29 02:52:47  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.12  1994/06/27  21:28:18  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.11  1994/06/27  18:57:07  hollings
@@ -100,6 +107,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "symtab.h"
 #include "process.h"
 #include "util.h"
+#include "inst.h"
 
 List<process*> processList;
 
@@ -126,19 +134,16 @@ int pvmendtask();
 #endif
 }
 
-#define INFERRIOR_HEAP_BASE	"DYNINSTdata"
-#define GLOBAL_HEAP_BASE	"DYNINSTglobalData"
-
 void initInferiorHeap(process *proc, Boolean globalHeap)
 {
     assert(proc->symbols);
 
     proc->heap = (freeListEntry*) xcalloc(sizeof(freeListEntry), 1);
     if (globalHeap) {
-	proc->heap->addr = 
+	proc->heap->addr = (int)
 	    findInternalAddress(proc->symbols, GLOBAL_HEAP_BASE, True);
     } else {
-	proc->heap->addr = 
+	proc->heap->addr = (int)
 	    findInternalAddress(proc->symbols, INFERRIOR_HEAP_BASE, True);
     }
     proc->heap->length = SYN_INST_BUF_SIZE;
@@ -319,7 +324,12 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 	}
 
 	img = parseImage(file, 0);
-	if (!img) return(NULL);
+	if (!img) {
+	    // destory child process
+	    kill(pid, 9);
+
+	    return(NULL);
+	}
 
 	/* parent */
 	sprintf(name, "%s", img->name);

@@ -19,14 +19,21 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.3 1994/06/27 18:56:47 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.4 1994/06/29 02:52:28 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.3  1994/06/27 18:56:47  hollings
+ * Revision 1.4  1994/06/29 02:52:28  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.3  1994/06/27  18:56:47  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -277,7 +284,6 @@ struct instPointRec {
                            (insn.branch.op2 == 7)))
 
 extern int errno;
-extern internalMetric activePoints;
 extern int totalMiniTramps;
 
 
@@ -316,12 +322,17 @@ inline void generateNOOP(instruction *insn)
 
 inline void generateBranchInsn(instruction *insn, int offset)
 {
+    if (ABS(offset) > MAX_BRANCH) {
+	logLine("a branch too far\n");
+	abort();
+    }
+
     insn->raw = 0;
     insn->branch.op = 0;
     insn->branch.cond = BAcond;
     insn->branch.op2 = BICCop2;
     insn->branch.anneal = TRUE;
-    insn->branch.disp22 = offset;
+    insn->branch.disp22 = offset >> 2;
 
     // logLine("ba,a %x\n", offset);
 }
@@ -354,7 +365,7 @@ inline void genImmInsn(instruction *insn, int op, reg rs1, int immd, reg rd)
 }
 
 inline void genRelOp(instruction *insn, int cond, reg rs1,
-		     reg rs2, reg rd, int *base)
+		     reg rs2, reg rd, caddr_t *base)
 {
     // cmp rs1, rs2
     genSimpleInsn(insn, SUBop3cc, rs1, rs2, 0); insn++;
@@ -408,7 +419,7 @@ void defineInstPoint(function *func, instPoint *point, instruction *code,
 
 void newCallPoint(function *func, instruction *code, int codeIndex, int offset)
 {
-    int addr;
+    caddr_t addr;
     instPoint *point;
 
     if (!func->calls) {
@@ -427,7 +438,7 @@ void newCallPoint(function *func, instruction *code, int codeIndex, int offset)
     /* check to see where we are calling */
     if (isInsn(code[codeIndex], CALLmask, CALLmatch)) {
 	point->callIndirect = 0;
-	addr = point->addr + (code[codeIndex].call.disp30 << 2);
+	addr = (caddr_t) point->addr + (code[codeIndex].call.disp30 << 2);
 	point->callee = findFunctionByAddr(func->file->exec, addr);
 	if (point->callee && !(point->callee->tag & TAG_LIB_FUNC)) {
 	    point->callsUserFunc = 1;
@@ -500,7 +511,7 @@ void locateInstPoints(function *func, void *codeV, int offset, int calls)
     int codeIndex;
     instruction *code = (instruction *) codeV;
 
-    codeIndex = (func->addr-offset)/sizeof(instruction);
+    codeIndex = ((unsigned int) (func->addr-offset))/sizeof(instruction);
     offset /= sizeof(instruction);
     if (!IS_VALID_INSN(code[codeIndex])) {
         func->funcEntry = NULL;
@@ -527,15 +538,34 @@ void locateInstPoints(function *func, void *codeV, int offset, int calls)
     }
 }
 
-void locateAllInstPoints(image *i)
+Boolean locateAllInstPoints(image *i)
 {
+    int curr;
     function *func;
+    int instHeapEnd;
+
+
+    instHeapEnd = (int) findInternalAddress(i, GLOBAL_HEAP_BASE, True) + 
+	SYN_INST_BUF_SIZE;
+    
+    curr = (int) findInternalAddress(i, INFERRIOR_HEAP_BASE, True) +
+	SYN_INST_BUF_SIZE;
+    if (curr > instHeapEnd) instHeapEnd = curr;
+
+    // check that we can get to our heap.
+    if (instHeapEnd > MAX_BRANCH) {
+	logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
+	sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
+	logLine(errorLine);
+	return(FALSE);
+    }
 
     for (func=i->funcs; func; func=func->next) {
 	if (!(func->tag & TAG_LIB_FUNC)) {
 	    locateInstPoints(func, (instruction *) i->code, i->textOffset,TRUE);
 	}
     }
+    return(TRUE);
 }
 
 
@@ -643,7 +673,7 @@ void installBaseTramp(int baseAddr,
 	    }
 	} else if (temp->raw == RETURN_INSN) {
 	    generateBranchInsn(temp, 
-		(location->addr+sizeof(instruction) - currAddr) >> 2);
+		(location->addr+sizeof(instruction) - currAddr));
 	    if (location->isDelayed) {
 		/* skip the delay slot instruction */
 		temp->branch.disp22 += 1;
@@ -698,7 +728,6 @@ void *findAndInstallBaseTramp(process *proc, instPoint *location)
 	installBaseTramp((int) ret, location, globalProc);
 	generateBranch(globalProc, location->addr, (int) ret);
 	globalProc->baseMap.add(ret, location);
-	activePoints.value++;
     }
     return(ret);
 }
@@ -724,9 +753,11 @@ void installTramp(instInstance *inst, char *code, int codeSize)
  */
 void generateBranch(process *proc, int fromAddr, int newAddr)
 {
+    int disp;
     instruction insn;
 
-    generateBranchInsn(&insn, (newAddr-fromAddr)>>2);
+    disp = newAddr-fromAddr;
+    generateBranchInsn(&insn, disp);
 
     errno = 0;
     (void) PCptrace(PTRACE_POKETEXT, proc, (char *) fromAddr, 
@@ -761,10 +792,10 @@ function *getFunction(instPoint *point)
     return(point->callee ? point->callee : point->func);
 }
 
-int emit(opCode op, reg src1, reg src2, reg dest, char *i, int *base)
+caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 {
     int op3;
-    instruction *insn = (instruction *) &i[*base];
+    instruction *insn = (instruction *) &i[(unsigned) *base];
 
     if (op == loadConstOp) {
 	if (ABS(src1) > MAX_IMM) {
@@ -854,7 +885,8 @@ int emit(opCode op, reg src1, reg src2, reg dest, char *i, int *base)
 	generateNOOP(insn);
 	insn++;
 
-	generateBranchInsn(insn, dest);
+	// dest is in words of offset and generateBranchInsn is bytes offset
+	generateBranchInsn(insn, dest << 2);
 
 	*base += sizeof(instruction) * 3;
 	return(*base -  sizeof(instruction));

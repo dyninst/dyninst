@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.17 1994/06/27 21:28:14 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.18 1994/06/29 02:52:45 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.17  1994/06/27 21:28:14  rbi
+ * Revision 1.18  1994/06/29 02:52:45  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.17  1994/06/27  21:28:14  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.16  1994/06/27  18:57:04  hollings
@@ -386,8 +393,8 @@ int handleSigChild(int pid, int status)
 		break;
 
 	    case SIGSTOP:
-		sprintf(errorLine, "CONTROLLER: Breakpoint reached %d\n", pid);
-		logLine(errorLine);
+		// sprintf(errorLine, "CONTROLLER: Breakpoint reached %d\n", pid);
+		// logLine(errorLine);
 #ifdef PARADYND_PVM
 		pvm_perror("CONTROLLER: Breakpoint reached\n");
 #endif
@@ -398,9 +405,6 @@ int handleSigChild(int pid, int status)
 		// received the SIGSTOP...
 		// But we need to pause the rest of the application
 		pauseAllProcesses(); 
-
-		/* force it into the stoped signal handler */
-		// ptrace(PTRACE_CONT, pid, (char*)1, SIGPROF, 0);
 		break;
 
 	    case SIGIOT:

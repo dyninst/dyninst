@@ -2,7 +2,14 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.17  1994/06/27 21:28:11  rbi
+ * Revision 1.18  1994/06/29 02:52:34  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.17  1994/06/27  21:28:11  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.16  1994/06/27  18:56:53  hollings
@@ -253,12 +260,12 @@ void dynRPC::disableDataCollection(int mid)
     extern internalMetric totalPredictedCost;
     extern void printResourceList(resourceList);
 
+    mi = allMIs.find((void *) mid);
+
     sprintf(errorLine, "disable of %s for RL =", getMetricName(mi->met));
     logLine(errorLine);
     printResourceList(mi->resList);
     logLine("\n");
-
-    mi = allMIs.find((void *) mid);
 
     cost = mi->originalCost;
     totalPredictedCost.value -= cost;

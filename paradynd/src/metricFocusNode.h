@@ -7,7 +7,14 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.6  1994/06/27 18:56:58  hollings
+ * Revision 1.7  1994/06/29 02:52:38  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.6  1994/06/27  18:56:58  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -83,7 +90,7 @@ class dataReqNode {
 	void disable();
 
 	// return a pointer in the inferrior address space of this data object.
-	void *getInferriorPtr();
+	caddr_t getInferriorPtr();
 	intCounterHandle *returnCounterInstance() { 
 	    return((intCounterHandle *) instance); 
 	}

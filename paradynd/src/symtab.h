@@ -7,7 +7,14 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.1  1994/01/27 20:31:46  hollings
+ * Revision 1.2  1994/06/29 02:52:52  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.1  1994/01/27  20:31:46  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.4  1993/12/13  19:58:12  hollings
@@ -25,6 +32,8 @@
  *
  *
  */
+#include <sys/types.h>
+
 #include "util/h/stringPool.h"
 #include "util/h/list.h"
 #include "dyninst.h"
@@ -46,7 +55,7 @@ typedef struct imageRec image;
 
 typedef struct {
     int maxLine;		/* max possible line */
-    int *addr;			/* addr[line] is the addr of line */
+    caddr_t *addr;		/* addr[line] is the addr of line */
 } lineTable;
 
 struct moduleRec {
@@ -54,7 +63,7 @@ struct moduleRec {
     char *fileName;		/* short file */
     char *fullName;		/* full path to file */
     supportedLanguages language;
-    int addr;			/* starting address of module */
+    caddr_t addr;		/* starting address of module */
     int funcCount;		/* number of functions in this module */
     function *funcs;		/* functions defined in this module */
     image *exec;		/* what executable it came from */
@@ -76,7 +85,7 @@ struct functionRec {
     char *prettyName;		/* user's view of name (i.e. de-mangled) */
     int line;			/* first line of function */
     module *file;		/* pointer to file that defines func. */
-    int addr;			/* address of the start of the func */
+    caddr_t addr;		/* address of the start of the func */
     instPoint *funcEntry;	/* place to instrument entry (often not addr) */
     instPoint *funcReturn;	/* exit point for function */
     int callLimit;		/* max val of calls array */
@@ -129,7 +138,7 @@ struct imageRec {
  *
  */
 image *parseImage(char *file, int offset);
-module *newModule(image*, char *currDir, char *name, int addr);
+module *newModule(image*, char *currDir, char *name, caddr_t addr);
 function *newFunc(image*, module *, char *name, int addr);
 extern stringPool pool;
 
@@ -154,7 +163,7 @@ typedef List<libraryFunc*> libraryList;
 image *loadSymTable(char *file, int offset, libraryList libraryFunctions, 
     char **iSym);
 
-void locateAllInstPoints(image *i);
+Boolean locateAllInstPoints(image *i);
 
 /*
  * main interface to the symbol table based code.
@@ -171,13 +180,16 @@ image *parseImage(char *file, int offset);
 internalSym *findInternalSymbol(image *, char *name, Boolean warn = True);
 
 /* find the address of the named internal symbol */
-int findInternalAddress(image *, char *name, Boolean warn = True);
+caddr_t findInternalAddress(image *, char *name, Boolean warn = True);
+
+/* find the named module */
+module *findModule(image *, char *name);
 
 /* find the named funcation */
 function *findFunction(image *, char *name);
 
 /* find the function add the passed addr */
-function *findFunctionByAddr(image *, int addr);
+function *findFunctionByAddr(image *, caddr_t addr);
 
 /* look through func for inst points */
 void locateInstPoints(function*, void *, int, int calls);
@@ -186,7 +198,7 @@ void locateInstPoints(function*, void *, int, int calls);
  * upcalls from machine specific code to main symbol table package 
  *
  */
-void processLine(module*, int line, int addr);
+void processLine(module*, int line, caddr_t addr);
 
 /* record line # for each func entry */
 void mapLines(module *);

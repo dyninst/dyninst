@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.1 1994/01/27 20:31:36 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.2 1994/06/29 02:52:46 hollings Exp $";
 #endif
 
 /*
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
- * Revision 1.1  1994/01/27 20:31:36  hollings
+ * Revision 1.2  1994/06/29 02:52:46  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.1  1994/01/27  20:31:36  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.9  1993/10/19  15:27:54  hollings

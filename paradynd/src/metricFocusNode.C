@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.20 1994/06/27 18:56:56 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.21 1994/06/29 02:52:36 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.20  1994/06/27 18:56:56  hollings
+ * Revision 1.21  1994/06/29 02:52:36  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.20  1994/06/27  18:56:56  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -243,19 +250,8 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 
     if (!processList.count()) return(NULL);
 
-    /* HACK - This should be fixed/generalized to handle "internal" metrics */
-    /* check for "special" metrics that are computed directly by paradynd */
-    im = internalMetric::allInternalMetrics.find(m->info.name);
-    if (im) {
-	mn = new metricDefinitionNode(*pl);
-	im->enable(mn);
-	sprintf(errorLine, "enabled internal metric %s\n", (m->info.name));
-	logLine(errorLine);
-	return(mn);
-    }
-
     /* first find the named metric */
-    for (i=0; i < metricCount; i++) {
+    for (i=0; i < globalMetricList->count; i++) {
 	curr = &globalMetricList->elements[i];
 	if (curr == m) {
 	    break;
@@ -272,7 +268,8 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 	    r = l->elements[i];
 
 	    /* test predicate for this resource */
-	    if (!strcmp(pred->namePrefix, r->parent->info.fullName) ||
+	    if (!strncmp(pred->namePrefix, r->parent->info.fullName, 
+			 strlen(pred->namePrefix)) ||
 		!strcmp(pred->namePrefix, r->info.fullName)) {
 		break;
 	    }
@@ -286,6 +283,16 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 	if (pred->type == invalidPredicate) {
 	    return(NULL);
 	}
+    }
+
+    /* check for "special" metrics that are computed directly by paradynd */
+    im = internalMetric::allInternalMetrics.find(m->info.name);
+    if (im) {
+	mn = new metricDefinitionNode(*pl);
+	im->enable(mn);
+	sprintf(errorLine, "enabled internal metric %s\n", (m->info.name));
+	logLine(errorLine);
+	return(mn);
     }
 
     /*
@@ -348,7 +355,8 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 		r = l->elements[i];
 
 		/* test predicate for this resource */
-		if (!strcmp(pred->namePrefix, r->parent->info.fullName) ||
+		if (!strncmp(pred->namePrefix, r->parent->info.fullName, 
+			     strlen(pred->namePrefix)) ||
 		    !strcmp(pred->namePrefix, r->info.fullName)) {
 		    break;
 		}
@@ -366,11 +374,18 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 	    if (pred->type == nullPredicate) {
 		continue;
 	    } else if (pred->type == simplePredicate) {
-		predInstance = pred->creator(mn, r->info.name, predInstance);
+		int i;
+		char *constraint, *temp;
+
+		// make constraint the part after the match in namePrefix
+		//   also skip next /.
+		temp = constraint = strdup(r->info.fullName);
+		for (i=0; i <= strlen(pred->namePrefix); i++) constraint++;
+		predInstance = pred->creator(mn, constraint, predInstance);
+		free(temp);
 	    } else {
 		if (complexPred) {
-		    sprintf(errorLine, "Error two complex predicates in a single metric\n");
-		    logLine(errorLine);
+		    logLine("Error two complex predicates in a single metric\n");
 		    abort();
 		} else {
 		    complexPredResource = r;
@@ -397,8 +412,15 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 	     * complex preds replace base definitions.
 	     *
 	     */
-	    (void) complexPred->creator(mn, 
-		complexPredResource->info.name, predInstance);
+	    int i;
+	    char *constraint, *temp;
+
+	    // make constraint the part after the match in namePrefix
+	    //   also skip next /.
+	    temp = constraint = strdup(complexPredResource->info.fullName);
+	    for (i=0; i <= strlen(complexPred->namePrefix); i++) constraint++;
+
+	    (void) complexPred->creator(mn, constraint, predInstance);
 	} else {
 	    curr->definition.baseFunc(mn, predInstance);
 	}
@@ -810,25 +832,25 @@ float dataReqNode::getMetricValue()
     return(ret);
 }
 
-void *dataReqNode::getInferriorPtr() 
+caddr_t dataReqNode::getInferriorPtr() 
 {
-    void *param;
+    caddr_t param;
     timerHandle *timerInst;
     intCounterHandle *counterInst;
 
     if (type == intCounter) {
 	counterInst = (intCounterHandle *) instance;
 	if (counterInst) {
-	    param = (void *) counterInst->counterPtr;
+	    param = (caddr_t) counterInst->counterPtr;
 	} else {
-	    param = NULL;
+	    param = (caddr_t) NULL;
 	}
     } else if (type == timer) {
 	timerInst = (timerHandle *) instance;
 	if (timerInst) {
-	    param = (void *) timerInst->timerPtr;
+	    param = (caddr_t) timerInst->timerPtr;
 	} else {
-	    param = NULL;
+	    param = (caddr_t) NULL;
 	}
     } else {
 	abort();
@@ -925,6 +947,30 @@ float computePauseTimeMetric()
     }
 }
 
+resourcePredicate defaultInternalPreds[] = {
+  { "/SyncObject", invalidPredicate, (createPredicateFunc) NULL },
+  { "/Machine", nullPredicate, (createPredicateFunc) NULL },
+  { "/Process", invalidPredicate, (createPredicateFunc) NULL },
+  { "/Procedure", invalidPredicate, (createPredicateFunc) NULL },
+  { NULL, nullPredicate, (createPredicateFunc) NULL },
+};
+
+internalMetric::internalMetric(char *n, 
+			       int style, 
+			       int a, 
+		               char *units, 
+  			       sampleValueFunc f) 
+{
+    allInternalMetrics.add(this, n);
+    metRec.info.name = n;
+    metRec.info.style = style;
+    metRec.info.aggregate = a;
+    metRec.info.units = units;
+    metRec.definition.baseFunc = NULL;
+    metRec.definition.predicates = defaultInternalPreds;
+    func = f;
+}
+
 List<internalMetric*>internalMetric::allInternalMetrics;
 List<internalMetric*>internalMetric::activeInternalMetrics;
 
@@ -940,7 +986,7 @@ internalMetric totalPredictedCost("predicted_cost",
 				  "% Time",
 				  NULL);
 
-internalMetric activePoints("active_points", 
+internalMetric activeSlots("active_slots", 
 			    SampledFunction,
 			    opSum,
 			    "NUmber",

@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.2 1994/06/27 18:57:11 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.3 1994/06/29 02:52:49 hollings Exp $";
 #endif
 
 /*
  * sym-bsd.C - parse BSD style a.out files.
  *
  * $Log: sym-bsd.C,v $
- * Revision 1.2  1994/06/27 18:57:11  hollings
+ * Revision 1.3  1994/06/29 02:52:49  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.2  1994/06/27  18:57:11  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -63,6 +70,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <errno.h>
 
 #include "symtab.h"
 #include "util.h"
@@ -217,6 +227,9 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     image *ret;
     char *name;
     int dynamic;
+    int pagemask;
+    int fileOffset;
+    caddr_t mapAddr;
     int stringLength;
     struct exec exec;
     function *currentFunc;
@@ -278,14 +291,31 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     }
 
     ret->textOffset = (unsigned) N_TXTADDR(exec);
+#ifdef notdef
     ret->code = (void *) xmalloc(exec.a_text+exec.a_data);
     lseek(fd, N_TXTOFF(exec)+offset, 0);
     if (read(fd, (char *) ret->code, exec.a_text+exec.a_data) != exec.a_text+exec.a_data) {
+#endif
+
+    // pagemask is the mask to remove page offset bits.
+    pagemask = getpagesize() - 1;
+    fileOffset = (N_TXTOFF(exec)+offset) & pagemask;
+
+    // use mmap to get program into memory.
+    mapAddr = mmap(0, exec.a_text+exec.a_data, PROT_READ, MAP_SHARED, fd, fileOffset);
+
+    // get correct offset into the first mapped page.
+    ret->code = mapAddr + (N_TXTOFF(exec)+offset - fileOffset);
+    if (((int) mapAddr) == -1) {
+	extern char *sys_errlist[];
+
 	free(stabs);
 	free(ret->code);
 	free(strings);
 	free(ret);
-	logLine("Unable to read text segment\n");
+	sprintf(errorLine,"Unable to map text segment: %s\n", 
+	    sys_errlist[errno]);
+	logLine(errorLine);
 	return(NULL);
     }
 
@@ -329,7 +359,8 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 	/* switch on symbol type to call correct routine */
 	switch (stabs[i].n_type & 0xfe) {
 	    case N_SLINE:
-		processLine(currentModule, stabs[i].n_desc, stabs[i].n_value);
+		processLine(currentModule, stabs[i].n_desc, 
+		    (caddr_t) stabs[i].n_value);
 		break;
 
 	    case N_SO:

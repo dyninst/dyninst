@@ -8,16 +8,7 @@ typedef float (*sampleValueFunc)();
 //
 class internalMetric {
   public:
-    internalMetric(char *n, int style, int a, char *units, sampleValueFunc f) {
-	allInternalMetrics.add(this, n);
-	metRec.info.name = n;
-	metRec.info.style = style;
-	metRec.info.aggregate = a;
-	metRec.info.units = units;
-	metRec.definition.baseFunc = NULL;
-	metRec.definition.predicates = NULL;
-	func = f;
-    }
+    internalMetric(char *n, int style, int a, char *units, sampleValueFunc f);
     float getValue() {
 	if (func) {
 	    return((func)());

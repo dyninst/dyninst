@@ -8,7 +8,14 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.1  1994/01/27 20:31:25  hollings
+ * Revision 1.2  1994/06/29 02:52:31  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.1  1994/01/27  20:31:25  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.8  1993/10/19  15:29:19  hollings
@@ -180,10 +187,15 @@ typedef enum { plusOp,
  * Generate an instruction.
  *
  */
-int emit(opCode op, reg src1, reg src2, reg dest, char *insn, int *base);
+caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *insn, caddr_t *base);
 
 /*
  * get the requested parameter into a register.
  *
  */
 reg getParameter(reg dest, int param);
+
+#define INFERRIOR_HEAP_BASE     "DYNINSTdata"
+#define GLOBAL_HEAP_BASE        "DYNINSTglobalData"
+
+

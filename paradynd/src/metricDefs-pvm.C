@@ -7,25 +7,33 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.8 1994/06/27 18:57:02 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.9 1994/06/29 02:52:43 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.8  1994/06/27 18:57:02  hollings
+ * Revision 1.9  1994/06/29 02:52:43  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.8  1994/06/27  18:57:02  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
  *
  * Revision 1.7  1994/05/31  18:06:25  markc
- * Reordered predicate definitions.  Procedure preds must appear before sync object
- * preds to enable conditions to be tested in the correct order.  Now, the condition
- * variable that is set in a focus procedure is used as the trigger for a sync
- * object procedure.  In the past, the order was reversed.  Since all sync object
- * procedures are called from focus procedures, the "if" was always false when
- * a focus consisted of a specific procedure and specific msg tag.
+ * Reordered predicate definitions.  Procedure preds must appear before sync 
+ * object preds to enable conditions to be tested in the correct order.  Now, 
+ * the condition variable that is set in a focus procedure is used as the 
+ * trigger for a sync object procedure.  In the past, the order was reversed.  
+ * Since all sync object procedures are called from focus procedures, the "if" 
+ * was always false when a focus consisted of a specific procedure and 
+ * specific msg tag.
  *
  * Revision 1.6  1994/05/12  22:24:08  markc
  * Fixed instrumentation for createMsgBytesSentMetric.
@@ -97,184 +105,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "metric.h"
 #include "ast.h"
 #include "rtinst/h/trace.h"
-
-AstNode *defaultProcedurePredicate(metricDefinitionNode *mn, char *funcName,
-    AstNode *pred)
-{
-    int i;
-    function *func;
-    dataReqNode *dataPtr;
-    AstNode *enterNode, *leaveNode;
-
-    func = findFunction(mn->proc->symbols, funcName);
-    if (!func) {
-	/* no such function in this process */
-	// 0 predicate if always false.
-	return(new AstNode(Constant, 0));
-    }
-
-    dataPtr = mn->addIntCounter(0, False);
-
-    enterNode = createPrimitiveCall("setCounter", dataPtr, 1);
-    leaveNode = createPrimitiveCall("setCounter", dataPtr, 0);
-
-    if (pred) {
-	enterNode = createIf(pred, enterNode);
-	leaveNode = createIf(pred, leaveNode);
-    }
-
-    for (; func; func=func->sibling) {
-	for (i = 0; i < func->callCount; i++) {
-	    if (callsUserFuncP(func->calls[i])) {
-		mn->addInst(func->calls[i], leaveNode,
-		    callPreInsn, orderLastAtPoint);
-		mn->addInst(func->calls[i], enterNode,
-		    callPostInsn, orderFirstAtPoint);
-	    }
-	}
-	mn->addInst(func->funcEntry, enterNode, callPreInsn, orderLastAtPoint);
-
-	mn->addInst(func->funcReturn, leaveNode, callPreInsn,orderFirstAtPoint);
-    }
-    return(new AstNode(DataValue, dataPtr));
-}
-
-AstNode *defaultProcessPredicate(metricDefinitionNode *mn, char *process,
-    AstNode *pred)
-{
-    abort();
-}
-
-
-void createProcCalls(metricDefinitionNode *mn, AstNode *pred)
-{
-    function *func;
-    AstNode *newCall;
-    dataReqNode *counter;
-
-    counter = mn->addIntCounter(0, True);
-    newCall = createPrimitiveCall("addCounter", counter, 1);
-
-    for (func = mn->proc->symbols->funcs; func; func = func->next) {
-	if (!func->tag & TAG_LIB_FUNC) {
-	    mn->addInst(func->funcEntry, newCall,
-		callPreInsn, orderLastAtPoint);
-	}
-    }
-    return;
-}
-
-void instAllFunctions(metricDefinitionNode *nm,
-		      int tag,		/* bit mask to use */
-		      AstNode *enterAst,
-		      AstNode *leaveAst)
-{
-    function *func;
-
-    for (func = nm->proc->symbols->funcs; func; func=func->next) {
-	if (func->tag & tag) {
-	    if (enterAst) {
-		nm->addInst(func->funcEntry,
-		    enterAst, callPreInsn, orderLastAtPoint);
-	    }
-	    if (leaveAst) {
-		nm->addInst(func->funcReturn,
-		    leaveAst, callPreInsn, orderFirstAtPoint);
-	    }
-	}
-    }
-}
-
-dataReqNode *createCPUTime(metricDefinitionNode *mn, AstNode *pred)
-{
-    function *func;
-    dataReqNode *dataPtr;
-    AstNode *stopNode, *startNode;
-
-
-    dataPtr = mn->addTimer(processTime);
-
-    startNode = new AstNode("DYNINSTstartProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (pred) startNode = createIf(pred, startNode);
-
-    stopNode = new AstNode("DYNINSTstopProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (pred) stopNode = createIf(pred, stopNode);
-
-    instAllFunctions(mn, TAG_CPU_STATE, stopNode, startNode);
-
-    func = findFunction(mn->proc->symbols, "main");
-    mn->addInst(func->funcEntry, startNode,callPreInsn,orderLastAtPoint);
-
-    mn->addInst(func->funcReturn, stopNode,callPreInsn,orderLastAtPoint);
-
-    func = findFunction(mn->proc->symbols, "exit");
-    assert(func);
-
-    mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint);
-
-    return(dataPtr);
-}
-
-void createExecTime(metricDefinitionNode *mn, AstNode *pred)
-{
-    function *func;
-    dataReqNode *dataPtr;
-    AstNode *startNode, *stopNode;
-
-    dataPtr = mn->addTimer(wallTime);
-
-    startNode = createPrimitiveCall("DYNINSTstartWallTimer", dataPtr, 0);
-    if (pred) startNode = createIf(pred, startNode);
-
-    stopNode = createPrimitiveCall("DYNINSTstopWallTimer", dataPtr, 0);
-    if (pred) stopNode = createIf(pred, stopNode);
-
-    func = findFunction(mn->proc->symbols, "main");
-    mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
-
-    mn->addInst(func->funcReturn, stopNode, callPreInsn, orderLastAtPoint);
-
-    func = findFunction(mn->proc->symbols, "exit");
-    assert(func);
-
-    mn->addInst(func->funcEntry, stopNode, callPreInsn, orderLastAtPoint);
-}
-
-void createSyncOps(metricDefinitionNode *mn, AstNode *trigger)
-{
-    AstNode *newSyncOp;
-    dataReqNode *counter;
-    
-    counter = mn->addIntCounter(0, True);
-
-    newSyncOp = createPrimitiveCall("addCounter", counter, 1);
-    if (trigger) newSyncOp = createIf(trigger, newSyncOp);
-
-    instAllFunctions(mn, TAG_CPU_STATE, newSyncOp, NULL);
-}
-
-void createActiveProcesses(metricDefinitionNode *mn, AstNode *trigger)
-{
-    mn->addIntCounter(1, True);
-
-    return;
-}
-
-void createMsgs(metricDefinitionNode *mn, AstNode *trigger)
-{
-    AstNode *newMsgOp;
-    dataReqNode *counter;
-    
-    counter = mn->addIntCounter(0, True);
-
-    newMsgOp = createPrimitiveCall("addCounter", counter, 1);
-    if (trigger) newMsgOp = createIf(trigger, newMsgOp);
-
-    instAllFunctions(mn, TAG_MSG_FUNC, newMsgOp, NULL);
-
-}
+#include "metricDefs-common.h"
 
 extern libraryList msgFilterFunctions;
 extern libraryList msgByteFunctions;
@@ -424,140 +255,10 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     return(new AstNode(DataValue, data));
 }
 
-void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
-{
-    dataReqNode *dataPtr;
-    AstNode *stopNode, *startNode;
-
-    dataPtr = mn->addTimer(wallTime);
-
-    startNode = new AstNode("DYNINSTstartWallTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) startNode = createIf(trigger, startNode);
-
-    stopNode = new AstNode("DYNINSTstopWallTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) stopNode = createIf(trigger, stopNode);
-
-    instAllFunctions(mn, TAG_MSG_FUNC, startNode, stopNode);
-}
-
-
-void perProcedureWallTime(metricDefinitionNode *mn, 
-			  char *funcName, 
-			  AstNode *pred)
-{
-    int i;
-    function *func;
-    dataReqNode *dataPtr;
-    AstNode *startNode, *stopNode;
-
-    dataPtr = mn->addTimer(wallTime);
-
-    /* function does not exhist in this process */
-    func = findFunction(mn->proc->symbols, funcName);
-    if (!func) return;
-
-    startNode = createPrimitiveCall("DYNINSTstartWallTimer", dataPtr, 0);
-    if (pred) startNode = createIf(pred, startNode);
-
-    stopNode = createPrimitiveCall("DYNINSTstopWallTimer", dataPtr, 0);
-    if (pred) stopNode = createIf(pred, stopNode);
-
-    for (; func; func=func->sibling) {
-	for (i = 0; i < func->callCount; i++) {
-	    if (callsUserFuncP(func->calls[i])) {
-		mn->addInst(func->calls[i], stopNode,
-		    callPreInsn, orderLastAtPoint);
-
-		mn->addInst(func->calls[i], startNode,
-		    callPostInsn, orderFirstAtPoint);
-	    }
-	}
-	mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
-	mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
-      }
-}
-
-AstNode *perProcedureCPUTime(metricDefinitionNode *mn, 
-			     char *funcName, 
-			     AstNode *trigger)
-{
-    int i;
-    function *func;
-#ifdef notdef
-    AstNode *newTrigger;
-#endif
-    dataReqNode *dataPtr;
-    AstNode *startNode, *stopNode;
-
-    func = findFunction(mn->proc->symbols, funcName);
-
-    /* function does not exhist in this process */
-    if (!func) return(NULL);
-
-#ifdef notdef
-    // Why did I put this here ???? -- jkh
-    newTrigger = defaultProcedurePredicate(mn, funcName, trigger);
-    dataPtr = createCPUTime(mn, newTrigger);
-#endif
-    dataPtr = mn->addTimer(processTime);
-
-    startNode = new AstNode("DYNINSTstartProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) startNode = createIf(trigger, startNode);
-
-    stopNode = new AstNode("DYNINSTstopProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) stopNode = createIf(trigger, stopNode);
-
-    for (; func; func=func->sibling) {
-	for (i = 0; i < func->callCount; i++) {
-	    if (callsUserFuncP(func->calls[i])) {
-		mn->addInst(func->calls[i], stopNode,
-		    callPreInsn, orderFirstAtPoint);
-		
-		mn->addInst(func->calls[i], startNode,
-		    callPostInsn, orderFirstAtPoint);
-	    }
-	}
-	mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
-
-	mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
-    }
-
-    return(NULL);
-}
-
-AstNode *perProcedureCalls(metricDefinitionNode *mn, 
-			     char *funcName, 
-			     AstNode *trigger)
-{
-    function *func;
-    AstNode *newCall;
-    dataReqNode *counter;
-
-    func = findFunction(mn->proc->symbols, funcName);
-
-    /* function does not exhist in this process */
-    if (!func) return(new AstNode(Constant, 0));
-
-    counter = mn->addIntCounter(0, True);
-    newCall = createPrimitiveCall("addCounter", counter, 1);
-    if (trigger) newCall = createIf(trigger, newCall);
-
-    for (; func; func=func->sibling) {
-	mn->addInst(func->funcEntry, newCall, callPreInsn, orderLastAtPoint);
-    }
-
-    return(new AstNode(DataValue, counter));
-}
-
-
 resourcePredicate cpuTimePredicates[] = {
   { "/Procedure",	
     replaceBase,		
-    (createPredicateFunc) perProcedureCPUTime },
+    (createPredicateFunc) perModuleCPUTime },
   { "/SyncObject/MsgTag",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
@@ -585,7 +286,7 @@ resourcePredicate wallTimePredicates[] = {
     (createPredicateFunc) NULL },
   { "/Procedure",	
     replaceBase,		
-    (createPredicateFunc) perProcedureWallTime },
+    (createPredicateFunc) perModuleWallTime },
   { "/Machine",	
     nullPredicate,		
     (createPredicateFunc) NULL },
@@ -595,7 +296,7 @@ resourcePredicate wallTimePredicates[] = {
 resourcePredicate procCallsPredicates[] = {
   { "/Procedure",	
     replaceBase,		
-    (createPredicateFunc) perProcedureCalls },
+    (createPredicateFunc) perModuleCalls },
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
@@ -611,7 +312,7 @@ resourcePredicate procCallsPredicates[] = {
 resourcePredicate msgPredicates[] = {
  { "/Procedure",
    simplePredicate,	
-   (createPredicateFunc) defaultProcedurePredicate },
+   (createPredicateFunc) defaultModulePredicate },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) defaultMSGTagPredicate },
@@ -630,7 +331,7 @@ resourcePredicate msgPredicates[] = {
 resourcePredicate defaultPredicates[] = {
  { "/Procedure",
    simplePredicate,	
-   (createPredicateFunc) defaultProcedurePredicate },
+   (createPredicateFunc) defaultModulePredicate },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) defaultMSGTagPredicate },
@@ -666,34 +367,34 @@ resourcePredicate globalOnlyPredicates[] = {
 };
 
 struct _metricRec DYNINSTallMetrics[] = {
-    { { "active_processes", averageFunction, "Processes" },
+    { { "active_processes", SampledFunction, opAvg, "Processes" },
       { (createMetricFunc) createActiveProcesses, defaultPredicates },
     },
-    { { "cpu", sumFunction, "# CPUs" },
+    { { "cpu", EventCounter, opAvg, "# CPUs" },
       { (createMetricFunc) createCPUTime, cpuTimePredicates },
     },
-    { { "exec_time", sumFunction, "%Time" },
+    { { "exec_time", EventCounter, opAvg, "%Time" },
       { (createMetricFunc) createExecTime, wallTimePredicates },
     },
-    { { "procedure_calls", sumFunction, "Calls/sec" },
+    { { "procedure_calls", EventCounter, opAvg, "Calls/sec" },
       { (createMetricFunc) createProcCalls, procCallsPredicates },
     },
-    { { "msgs", sumFunction, "Ops/sec" },
+    { { "msgs", EventCounter, opAvg, "Ops/sec" },
       { (createMetricFunc) createMsgs, defaultPredicates },
     },
-    { { "msg_bytes", sumFunction, "Bytes/Sec" },
+    { { "msg_bytes", EventCounter, opAvg, "Bytes/Sec" },
       { (createMetricFunc) createMsgBytesTotal, defaultPredicates },
     },
-    { { "msg_bytes_sent", sumFunction, "Bytes/Sec" },
+    { { "msg_bytes_sent", EventCounter, opAvg, "Bytes/Sec" },
       { (createMetricFunc) createMsgBytesSent, defaultPredicates },
     },
-    { { "msg_bytes_recv", sumFunction, "Bytes/Sec" },
+    { { "msg_bytes_recv", EventCounter, opAvg, "Bytes/Sec" },
       { (createMetricFunc) createMsgBytesRecv, defaultPredicates },
     },
-    { { "sync_ops", sumFunction, "Ops/sec" },
+    { { "sync_ops", EventCounter, opAvg, "Ops/sec" },
       { (createMetricFunc) createSyncOps, msgPredicates },
     },
-    { { "sync_wait", sumFunction, "# Waiting" },
+    { { "sync_wait", EventCounter, opAvg, "# Waiting" },
       { (createMetricFunc) createSyncWait, msgPredicates },
     },
 };

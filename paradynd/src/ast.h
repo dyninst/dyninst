@@ -103,8 +103,9 @@ class AstNode {
 	    loperand = l;
 	    roperand = r;
 	};
-	int generateTramp(process *proc, char *i, int *base);
-	reg generateCode(process *proc, registerSpace *rs, char *i, int *base);
+	int generateTramp(process *proc, char *i, caddr_t *base);
+	reg generateCode(process *proc, registerSpace *rs, char *i, 
+			 caddr_t *base);
 	float cost();
 	void print();
     private:

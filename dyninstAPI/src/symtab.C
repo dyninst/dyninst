@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.4 1994/06/27 21:28:23 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.5 1994/06/29 02:52:51 hollings Exp $";
 #endif
 
 /*
@@ -16,7 +16,14 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.4  1994/06/27 21:28:23  rbi
+ * Revision 1.5  1994/06/29 02:52:51  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ * Revision 1.4  1994/06/27  21:28:23  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.3  1994/06/27  18:57:15  hollings
@@ -76,13 +83,13 @@ stringPool pool;
    library functions we are interested in instrumenting. */
 extern libraryList libraryFunctions;
 
-void processLine(module *mod, int line, int addr)
+void processLine(module *mod, int line, caddr_t addr)
 {
     int increment;
 
     if (line >= mod->lines.maxLine) {
-	mod->lines.addr = (int *) 
-	    xrealloc(mod->lines.addr, sizeof(int)*(line+100));
+	mod->lines.addr = (caddr_t *) 
+	    xrealloc(mod->lines.addr, sizeof(caddr_t)*(line+100));
 	increment = line+100 - mod->lines.maxLine;
 	memset(&mod->lines.addr[mod->lines.maxLine],'\0',sizeof(int)*increment);
 	mod->lines.maxLine = line+100;
@@ -90,7 +97,7 @@ void processLine(module *mod, int line, int addr)
     mod->lines.addr[line] = addr;
 }
 
-module *newModule(image *curr, char *currentDirectory, char *name, int addr)
+module *newModule(image *curr, char *currentDirectory, char *name, caddr_t addr)
 {
     module *ret;
     char fileName[255];
@@ -108,14 +115,14 @@ module *newModule(image *curr, char *currentDirectory, char *name, int addr)
     ret->next = curr->modules;
 
     ret->lines.maxLine = 100;
-    ret->lines.addr = (int *) xcalloc(sizeof(int), 100);
+    ret->lines.addr = (caddr_t *) xcalloc(sizeof(caddr_t), 100);
 
     curr->modules = ret;
     curr->moduleCount++;
     return(ret);
 }
 
-module *moduleFindOrAdd(image *exec, int addr, char *name)
+module *moduleFindOrAdd(image *exec, caddr_t addr, char *name)
 {
     module *curr;
 
@@ -151,7 +158,7 @@ char *buildDemangledName(function *func)
     return(prettyName);
 }
 
-function *funcFindOrAdd(image *exec, module *mod, int addr, char *name)
+function *funcFindOrAdd(image *exec, module *mod, caddr_t addr, char *name)
 {
     function *func;
 
@@ -191,7 +198,7 @@ function *newFunc(image *exec, module *mod, char *name, int addr)
     func->prettyName = buildDemangledName(func);
     func->line = UNKNOWN_LINE;	/* ???? fix this */
     func->file = mod;
-    func->addr = addr;
+    func->addr = (caddr_t) addr;
     func->sibling = findFunction(exec, name);
 
     mod->funcs = func;
@@ -225,11 +232,15 @@ char *internalPrefix[] = {
  */
 image *parseImage(char *file, int offset)
 {
+    int i;
     image *ret;
+    module *mod;
+    Boolean status;
     function *func;
-    int endUserAddr;
-    int startUserAddr;
-    resource procedureRoot;
+    caddr_t endUserAddr;
+    resource moduleRoot;
+    resource modResource;
+    caddr_t startUserAddr;
     internalSym *endUserFunc;
     internalSym *startUserFunc;
     extern findNodeOffset(char *, int);
@@ -269,10 +280,11 @@ image *parseImage(char *file, int offset)
      *
      */
     startUserFunc = findInternalSymbol(ret, "DYNINSTstartUserCode", False);
-    startUserAddr = (startUserFunc) ? startUserFunc->addr : 0x0;
+    startUserAddr = (caddr_t) ((startUserFunc) ? startUserFunc->addr : 0x0);
 
     endUserFunc = findInternalSymbol(ret, "DYNINSTendUserCode", False);
-    endUserAddr = (endUserFunc) ? endUserFunc->addr : 0xffffffff;
+    endUserAddr = (caddr_t) ((endUserFunc && endUserFunc->addr) ? 
+	endUserFunc->addr : 0xffffffff);
 
     if (endUserFunc) {
 	for (func = ret->funcs; func; func=func->next) {
@@ -285,26 +297,37 @@ image *parseImage(char *file, int offset)
     
 
     /*
-     * Now find identify the points in the functions to instrument.
+     * Now identify the points in the functions to instrument.
      *   This is the machine specific routine.
      *
      */
-    locateAllInstPoints(ret);
+    status = locateAllInstPoints(ret);
+    if (status == FALSE) {
+	return(NULL);
+    }
 
-    /*
-     * Define all of the functions in the code resource hierarchy.
-     *
-     */
-    procedureRoot = newResource(rootResource, NULL, NULL, "Procedure", 0.0, 
-				FALSE);
-    for (func = ret->funcs; func; func=func->next) {
-	if ((!func->tag & TAG_LIB_FUNC) && (func->line)) {
-	    (void) newResource(procedureRoot, func, NULL, func->prettyName,0.0,FALSE);
-	} else {
-	    func->tag |= TAG_LIB_FUNC;
+    moduleRoot = newResource(rootResource, NULL, NULL, "Procedure", 0.0, FALSE);
+
+    // define all modules.
+    for (mod = ret->modules; mod; mod=mod->next) {
+	if (mod->funcs && !(mod->funcs->tag & TAG_LIB_FUNC) &&
+			    mod->funcs->line) {
+	    modResource = newResource(moduleRoot, mod, NULL, mod->fileName, 
+		0.0, FALSE);
+
+	    for (func = mod->funcs, i= 0; 
+		 i < mod->funcCount; 
+		 func=func->next, i++) {
+		if ((!func->tag & TAG_LIB_FUNC) && (func->line)) {
+		    (void) newResource(modResource, func, NULL, 
+			func->prettyName,0.0,FALSE);
+		} else {
+		    func->tag |= TAG_LIB_FUNC;
+		}
+	    }
 	}
     }
-    
+
     free(ret->code);
     return(ret);
 }
@@ -329,7 +352,7 @@ internalSym *findInternalSymbol(image *i, char *name, Boolean warn)
     return(NULL);
 }
 
-int findInternalAddress(image *i, char *name, Boolean warn)
+caddr_t findInternalAddress(image *i, char *name, Boolean warn)
 {
     int count;
     char *iName;
@@ -338,12 +361,28 @@ int findInternalAddress(image *i, char *name, Boolean warn)
     iName = pool.findAndAdd(name);
     for (count = 0, curr=i->iSyms; count < i->iSymCount; count++, curr++) {
 	if (curr->name == iName) {
-	    return(curr->addr);
+	    return((caddr_t) curr->addr);
 	}
     }
     if (warn) {
 	printf("unable to find internal symbol %s\n", name);
 	abort();
+    }
+    return(NULL);
+}
+
+module *findModule(image *i, char *name)
+{
+    char *iName;
+    module *mod;
+
+    iName = pool.findAndAdd(name);
+    for (mod = i->modules; mod; mod=mod->next) {
+	if (iName == mod->fileName) {
+	     return(mod);
+	} else if (iName == mod->fullName) {
+	     return(mod);
+	}
     }
     return(NULL);
 }
@@ -364,7 +403,7 @@ function *findFunction(image *i, char *name)
     return(NULL);
 }
 
-function *findFunctionByAddr(image *i, int addr)
+function *findFunctionByAddr(image *i, caddr_t addr)
 {
     function *func;
 
@@ -391,7 +430,7 @@ void mapLines(module *mod)
     qsort(mod->lines.addr, mod->lines.maxLine, sizeof(int), intComp);
     for (i=0, func = mod->funcs; i < mod->funcCount; i++, func=func->next) {
 	for (j=0; j < mod->lines.maxLine; j++) {
-	    if (func->addr <= mod->lines.addr[j]) {
+	    if (func->addr <= (caddr_t) mod->lines.addr[j]) {
 		func->line = j;
 		break;
 	    }
