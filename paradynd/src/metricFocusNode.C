@@ -144,7 +144,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   focus_(foc), component_focus(component_foc),
   flat_name_(component_flat_name),
   aggSample(0),
-  cumulativeValue(0.0),
+  cumulativeValue_float(0.0),
   id_(-1), originalCost_(0.0), proc_(p)
 {
   mdl_inst_data md;
@@ -1628,6 +1628,46 @@ void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
     batchSampleData(id_, start, end, value, weight, internal_met);
 }
 
+void metricDefinitionNode::updateValue(time64 wallTime, int new_cumulative_value) {
+   // This is an alternative to updateValue(time64, sampleValue); this
+   // integer-only version should be faster (fewer int-->float conversions)
+   // and possibly more accurate (since int-->float conversions lose precision)
+   
+   const timeStamp sampleTime = wallTime / 1000000.0;
+      // yuck; fp division is expensive!!!
+   
+   // report only the delta from the last sample
+   assert(new_cumulative_value >= cumulativeValue_float);
+
+   // note: right now, cumulativeValue is a float; we should change it to a union
+   // of {float, int, long, long long, double}
+   const float delta_value = new_cumulative_value - cumulativeValue_float;
+   // note: change delta_value to "int" once we get cumulativeValue_int implemented;
+
+   // updating cumulativeValue_float is much easier than the float version of
+   // updateValue():
+   cumulativeValue_float = new_cumulative_value;
+   
+
+   assert(samples.size() == aggregators.size());
+   for (unsigned lcv=0; lcv < samples.size(); lcv++) {
+      // call sampleInfo::newValue().  sampleInfo is in the util lib
+      // (aggregateSample.h/.C)
+      if (samples[lcv]->firstValueReceived())
+         samples[lcv]->newValue(sampleTime, delta_value);
+      else {
+         assert(new_cumulative_value == delta_value);
+            // this should be true for the 1st sample
+
+         samples[lcv]->firstTimeAndValue(sampleTime, delta_value);
+            // formerly startTime()
+      }
+
+      // call sampleInfo::updateAggregateComponent()
+      aggregators[lcv]->updateAggregateComponent();  // metricDefinitionNode::updateAggregateComponent()
+   }
+}
+
 void metricDefinitionNode::updateValue(time64 wallTime, 
                                        sampleValue value)
 {
@@ -1641,19 +1681,19 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     if (style_ == EventCounter) { 
 
       // only use delta from last sample.
-      if (value < cumulativeValue) {
-        if ((value/cumulativeValue) < 0.99999) {
-            assert((value + 0.0001)  >= cumulativeValue);
+      if (value < cumulativeValue_float) {
+        if ((value/cumulativeValue_float) < 0.99999) {
+            assert((value + 0.0001)  >= cumulativeValue_float);
         } else {
           // floating point rounding error ignore
-          cumulativeValue = value;
+          cumulativeValue_float = value;
         }
       }
 
-      //        if (value + 0.0001 < cumulativeValue)
+      //        if (value + 0.0001 < cumulativeValue_float)
       //           printf ("WARNING:  sample went backwards!!!!!\n");
-      value -= cumulativeValue;
-      cumulativeValue += value;
+      value -= cumulativeValue_float;
+      cumulativeValue_float += value;
     } 
 
     //
@@ -1665,9 +1705,10 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     assert(samples.size() == aggregators.size());
     for (unsigned u = 0; u < samples.size(); u++) {
       if (samples[u]->firstValueReceived())
-	samples[u]->newValue(sampleTime, value);
+         samples[u]->newValue(sampleTime, value);
       else {
-	samples[u]->startTime(sampleTime);
+         samples[u]->firstTimeAndValue(sampleTime, value);
+         //samples[u]->startTime(sampleTime);
       }
       aggregators[u]->updateAggregateComponent();
     }
@@ -1677,6 +1718,9 @@ void metricDefinitionNode::updateAggregateComponent()
 {
     // currently called (only) by the above routine
     sampleInterval ret = aggSample.aggregateValues();
+       // class aggregateSample is in util lib (aggregateSample.h)
+       // warning: method aggregateValues() is complex
+
     if (ret.valid) {
         assert(ret.end > ret.start);
         assert(ret.start + 0.000001 >= (firstRecordTime/MILLION));
@@ -1684,9 +1728,6 @@ void metricDefinitionNode::updateAggregateComponent()
 	batchSampleData(id_, ret.start, ret.end, ret.value,
 			aggSample.numComponents(),false);
     }
-//    else {
-//        metric_cerr << "sorry, ret.valid false so not batching sample data" << endl;
-//    }
 }
 
 //
