@@ -53,30 +53,8 @@ string::string(double d) {
    key_ = hashs (tempBuffer);
 }
 
-string::string(FILE *infile) {
-   assert(1 == fread(&len_, sizeof(len_), 1, infile));
-   char *temp = new char[len_ + 1]; assert(temp);
-   assert(len_ == fread(temp, 1, len_, infile));
-   temp[len_] = '\0';
-
-   str_ = STRDUP(temp);
-   key_ = hashs(temp);
-
-   delete [] temp;
-}
-
 string::~string() {
     delete [] str_; str_ = 0;
-}
-
-int string::save(FILE *outfile) const {
-   if (1 != fwrite(&len_, sizeof(len_), 1, outfile))
-      return -1;
-
-   if (len_ != fwrite(str_, 1, len_, outfile))
-      return -1;
-
-   return 0; // success
 }
 
 string&
@@ -190,9 +168,6 @@ string::hashs(const char* str) {
     return h;
 }
 
-//#define P_strlen strlen
-//#define P_memcpy memcpy
-
 unsigned
 string::STRLEN(const char* str) {
     return ((str)?(P_strlen(str)):(0));
@@ -211,14 +186,10 @@ string::STRDUP(const char* str) {
     return p;
 }
 
-//#define P_strcmp strcmp
-
 bool
 string::STREQ(const char* s1, const char* s2) {
     return ((s1&&s2)?(P_strcmp(s1,s2)==0):(!(s1||s2)));
 }
-
-//#define P_strncmp strncmp
 
 bool
 string::STREQN(const char* s1, const char* s2, unsigned len) {
@@ -253,3 +224,5 @@ string::STRGE(const char* s1, const char* s2) {
 ostream& operator<< (ostream &os, const string &s) {
    return os << s.str_;
 }
+
+

@@ -10,7 +10,6 @@
  * header files.
 ************************************************************************/
 
-#include <stdio.h> // FILE *
 #include <iostream.h>
 #include "util/h/headers.h"
 
@@ -28,10 +27,7 @@ public:
      string (unsigned); // convert unsigned to its string representation
      string (float);    // convert float to its string representation
      string (double);   // convert double to its string representation
-     string (FILE *);   // load from a binary file
     ~string ();
-
-    int save(FILE *outfile) const; // complement of string(FILE *)
 
     string& operator= (const char *);
     string& operator= (const string &);
