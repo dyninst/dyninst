@@ -123,7 +123,9 @@ void checkCost(BPatch_snippet snippet)
     if (cost < 0.0) {
 	printf("*Error*: negative snippet cost\n");
     } else if (cost == 0.0) {
+#if !defined(alpha_dec_osf4_0)
 	printf("*Warning*: zero snippet cost\n");
+#endif
     } else if (cost > 0.01) {
 	printf("*Error*: snippet cost of %f, exceeds max expected of 0.1",
 	    cost);
