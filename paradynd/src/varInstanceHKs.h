@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.3 2002/08/12 04:22:08 schendel Exp $
+// $Id: varInstanceHKs.h,v 1.4 2002/08/31 16:53:41 mikem Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -59,6 +59,8 @@ class Frame;
 class genericHK {
  protected:
    threadMetFocusNode_Val *thrNodeVal;
+
+   HwEvent* hwEvent;
    
    // new vector class wants copy-ctor defined:
    genericHK(const genericHK &src) {
@@ -82,6 +84,10 @@ class genericHK {
      thrNodeVal = thrclient;
    }
    threadMetFocusNode_Val* getThrNodeVal() { return thrNodeVal; }
+
+   void setHwEvent(HwEvent* hw) {
+     hwEvent = hw;
+   }
 };
 
 /* ************************************************************************* */
@@ -198,6 +204,64 @@ class processTimerHK : public genericHK {
   // values, leading to jagged spikes in the histogram (i.e. incorrect
   // samples).  This is too bad; it would be nice to read these times just
   // once per paradynd sample, instead of once per timer per paradynd sample.
+};
+
+class hwTimerHK : public genericHK {
+ private:
+  timeLength lastTimeValueUsed;
+  // to check for rollbacks; formerly stored in inferior heap
+  
+  // The per-thread virtual timer, so that we do not have to
+  // recalulate its address everytime
+  tHwTimer* vTimer; 
+
+ public:
+  typedef tHwTimer rawType;
+  static const tHwTimer initValue;
+
+  hwTimerHK() : genericHK(), lastTimeValueUsed(timeLength::Zero()),
+    vTimer(NULL) {
+  }
+  
+  // new vector class wants copy-ctor defined
+  hwTimerHK(const hwTimerHK&src) : genericHK(src), 
+    lastTimeValueUsed(src.lastTimeValueUsed),
+    vTimer(src.vTimer) // is this right 
+  {
+  }
+  
+  ~hwTimerHK() {}
+  hwTimerHK &operator=(const hwTimerHK &src);
+
+  static void initializeAfterFork(rawType *curElem, rawTime64 curRawTime);
+  
+  tHwTimer* vtimer() const { return vTimer;} 
+  void assertWellDefined() const {
+    assert(thrNodeVal != NULL);
+  }
+
+  bool perform(const tHwTimer *theTimer, process *);
+
+};
+
+class hwCounterHK : public genericHK {
+ public:
+  typedef tHwCounter rawType;
+  static const tHwCounter initValue;
+
+  hwCounterHK() : genericHK() {
+  }
+
+  ~hwCounterHK() {}
+  hwCounterHK &operator=(const hwCounterHK &src);
+
+  static void initializeAfterFork(rawType *curElem, rawTime64 curRawTime) { }
+
+  void assertWellDefined() const {
+    assert(thrNodeVal != NULL);
+  }
+
+  bool perform(const tHwCounter *dataValue, process *);
 };
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.6 2002/08/12 04:22:07 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.7 2002/08/31 16:53:39 mikem Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -527,3 +527,133 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
    converted to nanoseconds.  Therefore, our time limits until
    precision occurs isn't affected by aggregation.  
 */
+
+
+
+hwTimerHK &hwTimerHK::operator=(const hwTimerHK &src) {
+   if (&src == this)
+      return *this; // the usual check for x=x
+
+   lastTimeValueUsed = src.lastTimeValueUsed;
+
+#if defined(MT_THREAD)
+   vTimer = NULL ;
+#endif
+   genericHK::operator=(src);
+
+   return *this;
+}
+
+
+bool hwTimerHK::perform(const tHwTimer *theTimer, process *inferiorProc) {
+
+#ifdef PAPI
+   /* TEMP */
+
+   threadMetFocusNode_Val *thrNval = getThrNodeVal();
+   if(thrNval == NULL) {
+     return true;
+   }
+
+   volatile const int protector2 = theTimer->protector2;
+   MEMORY_BARRIER;   // restricts processor from doing reads out-of-order
+
+   const int    count = theTimer->counter;
+   const rawTime64 total = theTimer->total;
+   const rawTime64 start = theTimer->start;
+   rawTime64 valueToUse;
+
+   MEMORY_BARRIER;
+   volatile const int protector1 = theTimer->protector1;
+   if (protector1 != protector2) {
+      return false;
+   }
+
+   if (count > 0) {
+      int64_t currValue = inferiorProc->papi->getCurrentHwSample(hwEvent->getIndex());
+      //fprintf(stderr, "MRM_DEBUG: catchup HW sample   currValue is %lld, start is %lld, hwCntrIndex is %d\n", currValue, start, hwCntrIndex);
+      valueToUse = (currValue - start) + total;
+
+      if ( (currValue - start) < 0) {
+        fprintf(stderr, "hwTimerHK::perform() rollback\n");
+      }
+   }
+   else {
+      valueToUse = total;
+   }
+
+
+
+   if(! thrNval->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
+     return false;
+   }
+
+   timeStamp currWallTime = getWallTime();
+
+   thrNval->updateValue(currWallTime, pdSample(valueToUse));
+
+   return true;
+#else
+   return false;
+#endif
+}
+
+const tHwTimer hwTimerHK::initValue = { 0, 0, 0,
+                                   #if defined(MT_THREAD)
+					   0, 0, 0,
+                                   #endif
+					   0, 0, 0 };
+
+
+const tHwCounter hwCounterHK::initValue = { 0, 0 };
+
+hwCounterHK &hwCounterHK::operator=(const hwCounterHK &src) {
+   if (&src == this)
+      return *this; // the usual check for x=x
+
+   genericHK::operator=(src);
+
+   return *this;
+}
+
+bool hwCounterHK::perform(const tHwCounter *dataValue, process *inferiorProc) {
+
+#ifdef PAPI
+
+   /* TEMP */
+
+   threadMetFocusNode_Val *thrNval = getThrNodeVal();
+   if(thrNval == NULL) {
+     return true;
+   }
+
+   int64_t val;
+
+   /* ********** MRM fix me for other platforms */
+   __asm__ volatile ("fildq %0"  : : "g" (dataValue->value));
+   __asm__ volatile ("fistpq %0" : "=m" (val)  );
+
+   assert(thrNval->proc() == inferiorProc);
+   if(! thrNval->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
+     return false;
+   }
+
+   timeStamp currWallTime = getWallTime();
+
+   thrNval->updateValue(currWallTime, pdSample(val));
+      // the integer version of updateValue() (no int-->float conversion -- good)
+
+   return true;
+#else
+   return false;
+#endif
+}
+
+void hwTimerHK::initializeAfterFork(rawType *curElem, rawTime64 curRawTime)
+{
+  // if it's an active timer, than reset the start field
+  curElem->start = curRawTime;
+  curElem->total = 0;
+}
