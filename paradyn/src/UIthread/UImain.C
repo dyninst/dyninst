@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.49  1995/08/04 19:13:55  tamches
-/* Added a status line for 'rethinking' after receiving data (whethere batch
-/* mode or not)
+/* Revision 1.50  1995/08/05 17:10:19  krisna
+/* deleted prototype for `strrchr', this file is anyway bogus
 /*
+ * Revision 1.49  1995/08/04 19:13:55  tamches
+ * Added a status line for 'rethinking' after receiving data (whethere batch
+ * mode or not)
+ *
  * Revision 1.48  1995/07/24  21:30:40  tamches
  * added a useful status line for the ui (when it's receiving where axis
  * data)
@@ -267,8 +270,6 @@ static char *geometry = NULL;
  */
 
 extern "C" {
-  char *	strrchr _ANSI_ARGS_((CONST char *string, int c));
-
   /* void		exit _ANSI_ARGS_((int status)); */
   /* char *	strrchr _ANSI_ARGS_((CONST char *string, int c)); */
 
