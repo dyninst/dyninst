@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.108 2004/03/23 19:11:17 eli Exp $ */
+/* $Id: test1.mutatee.c,v 1.109 2004/04/26 21:09:33 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2259,7 +2259,6 @@ int call36_1(int i1, int i2, int i3, int i4, int i5, int i6, int i7,
 
 void func36_1()
 {
-#if ! defined( ia64_unknown_linux2_4 )
    int failure = 0;
 
    int result = call36_1(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -2341,11 +2340,6 @@ void func36_1()
       passedTest[ 36 ] = FALSE;
       printf( "**Failed** test #36 (callsite parameter referencing)\n");
    }
-#else
-	passedTest[ 36 ] = TRUE;
-	printf( "Skipped test #36 (callsite parameter referencing)\n" );
-	printf( "   currently broken on this platform.\n" );
-#endif   
 }
 
 /* Test #37 (loop instrumentation) */

@@ -4347,7 +4347,6 @@ BPatch_arithExpr *makeTest36paramExpr(BPatch_snippet *expr, int paramId)
 //
 void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if ! defined( ia64_unknown_linux2_4 )
    // Find the entry point to the procedure "func13_1"
    BPatch_Vector<BPatch_function *> found_funcs;
    if ((NULL == appImage->findFunction("func36_1", found_funcs)) || !found_funcs.size()) {
@@ -4435,7 +4434,6 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
 
    checkCost(seqExpr);
    appThread->insertSnippet(seqExpr, *point36_1);
-#endif
 }
 
 
