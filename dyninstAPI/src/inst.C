@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.112 2003/10/21 19:14:20 bernat Exp $
+// $Id: inst.C,v 1.113 2004/02/25 04:36:59 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -111,11 +111,11 @@ bool pd_Function::getStaticCallees(process *proc,
 #endif
 
     // possible algorithm : iterate over calls (vector of instPoint *)
-    //   for each elem : use iPgetCallee() to get statically determined
+    //   for each elem : use getCallee() to get statically determined
     //   callee....
     for(u=0;u<calls.size();u++) {
-        //this call to iPgetCallee is platform specific
-        f = const_cast<function_base *>(calls[u]->iPgetCallee());
+        //this call to getCallee is platform specific
+        f = dynamic_cast<function_base *>(calls[u]->getCallee());
         
         if (f == NULL) {
             //cerr << " unkown call destination";
@@ -296,6 +296,9 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
                                                 noCost, deferred);
    if (!mtHandle->baseTramp) 
    {
+       delete mtHandle;
+       mtHandle = NULL;
+
        if(deferred) return deferred_res;
        else         return failure_res;
    }
