@@ -45,6 +45,9 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.10  1997/03/29 02:04:41  sec
+ * Changed the resource handle MsgTags to Messages
+ *
  * Revision 1.9  1996/08/16 21:03:29  tamches
  * updated copyright for release 1.1
  *
@@ -162,7 +165,7 @@ extern resourceHandle Machines;
 extern resourceHandle Locks;
 extern resourceHandle Barriers;
 extern resourceHandle Semaphores;
-extern resourceHandle MsgTags;
+extern resourceHandle Messages;
 
 extern focus topLevelFocus;
 
