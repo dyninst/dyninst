@@ -46,6 +46,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.33  1997/12/18 17:07:38  newhall
+ * add trace perfStreamHandle to disableData calls
+ *
  * Revision 1.32  1997/10/28 20:34:30  tamches
  * dictionary_lite --> dictionary_hash to take advantage of the new
  * and improved dictionary_hash class
@@ -441,7 +444,7 @@ filteredDataServer::unsubscribeAllData()
 {
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
-      dataMgr->disableDataCollection(performanceConsultant::pstream, 
+      dataMgr->disableDataCollection(performanceConsultant::pstream, 0, 
 				     AllDataFilters[i]->getMI(), phType);
     }
   }
@@ -493,10 +496,10 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
       // so we need to send back an explicit cancel request
       if (phType == GlobalPhase)
 	dataMgr->disableDataAndClearPersistentData
-	  (performanceConsultant::pstream, miicurr->mi_id, phType, true, false);
+	  (performanceConsultant::pstream,0,miicurr->mi_id,phType,true,false);
       else
 	dataMgr->disableDataAndClearPersistentData
-	  (performanceConsultant::pstream, miicurr->mi_id, phType, false, true);
+	  (performanceConsultant::pstream,0,miicurr->mi_id,phType,false,true);
 
 #ifdef PCDEBUG
       cout << "PCdisableData: m=" << miicurr->m_id << " f=" << miicurr->r_id 
@@ -638,10 +641,10 @@ filteredDataServer::inActivateFilter (filter *fil)
   // ask dm to disable metric/focus pair 
   if (phType == GlobalPhase)
     dataMgr->disableDataAndClearPersistentData
-      (performanceConsultant::pstream, fil->getMI(), phType, true, false);
+      (performanceConsultant::pstream,0, fil->getMI(), phType, true, false);
   else
     dataMgr->disableDataAndClearPersistentData
-      (performanceConsultant::pstream, fil->getMI(), phType, false, true);
+      (performanceConsultant::pstream,0, fil->getMI(), phType, false, true);
 
   // update server indices
   fil->inactivate();

@@ -47,9 +47,12 @@
 */
 
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.80  1997/06/06 22:02:48  mjrg
-/* Added option for manual daemon start-up
+/* Revision 1.81  1997/12/18 17:07:46  newhall
+/* add trace perfStreamHandle to disableData calls
 /*
+ * Revision 1.80  1997/06/06 22:02:48  mjrg
+ * Added option for manual daemon start-up
+ *
  * Revision 1.79  1997/05/02 04:43:50  karavan
  * added new functionality to support "SAVE" feature.
  *
@@ -586,7 +589,7 @@ int ParadynDisableCmd (ClientData,
   }
   else {
     // TODO: phase type should be entered as a command arg 
-    dataMgr->disableDataCollection (uim_ps_handle, mi->mi_id,GlobalPhase);
+    dataMgr->disableDataCollection (uim_ps_handle, 0, mi->mi_id,GlobalPhase);
     delete met;
   }
   return TCL_OK;
