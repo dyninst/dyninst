@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.17  1995/08/20 03:34:29  newhall
+ * Revision 1.18  1995/10/13 22:05:16  newhall
+ * use BASEBUCKETWIDTH to initialize bucket widths.  Purify fix
+ *
+ * Revision 1.17  1995/08/20  03:34:29  newhall
  * added fold_on_inactive flag
  * fixed scope problems assoc. with for loop variables
  *
@@ -114,8 +117,8 @@ int Histogram::lastGlobalBin = 0;
 
 int Histogram::numBins = 1000;
 int Histogram::lastGlobalBin = 0;
-timeStamp Histogram::baseBucketSize = 0.2;
-timeStamp Histogram::globalBucketSize = 0.2;
+timeStamp Histogram::baseBucketSize = BASEBUCKETWIDTH;
+timeStamp Histogram::globalBucketSize = BASEBUCKETWIDTH;
 vector<Histogram *> Histogram::allHist;
 
 Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c)
@@ -551,8 +554,11 @@ int Histogram::getBuckets(sampleValue *buckets, int numberOfBuckets, int first)
     // make sure its in bin form.
     convertToBins();
 
+    assert(first >= 0);
+    assert(last <= lastBin); 
     for (i=first; i < last; i++) {
-	buckets[i-first] = dataPtr.buckets[i];
+	float temp = dataPtr.buckets[i];
+	buckets[i-first] = temp;
     }
     return(last-first);
 }
