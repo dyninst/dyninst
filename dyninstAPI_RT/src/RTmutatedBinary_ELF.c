@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_ELF.c,v 1.6 2003/11/04 21:09:40 jaw Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.7 2004/03/12 19:37:40 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -10,6 +10,17 @@
 #include <string.h>
 
 #include <libelf.h>
+
+
+
+#if defined(sparc_sun_solaris2_4)
+#include <procfs.h> /* ccw 12 mar 2004*/
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
+
+
+
 #if defined(i386_unknown_linux2_0)
 #define __USE_GNU
 #endif
@@ -18,6 +29,7 @@
 #include <dlfcn.h>
 #include <link.h> /* ccw 23 jan 2002 */
 #if defined(sparc_sun_solaris2_4) 
+
 #include <sys/link.h>
 #include <signal.h>
 #endif
@@ -37,17 +49,21 @@ typedef struct {
       } d_un;
   } __Elf32_Dyn;
 
-
-
 unsigned int checkAddr;
 /*extern int isMutatedExec;
 char *buffer;
 */
-struct link_map* map;
+
+struct link_map* map=NULL;
 unsigned int dl_debug_state_addr;
 
 #if defined(sparc_sun_solaris2_4)
+
+prmap_t *procMemMap=NULL;/* ccw 2 apr 2002 */
+int procMemMapSize=0;
+
 struct r_debug _r_debug; /* ccw 2 apr 2002 */
+int r_debug_is_set = 0; 
 extern unsigned int _dyninst_call_to_dlopen;
 extern unsigned int __dyninst_jump_template__;
 extern unsigned int __dyninst_jump_template__done__;
@@ -232,6 +248,49 @@ void dyninst_jump_template(){
 
 #endif
 
+#if defined (sparc_sun_solaris2_4)
+int checkMap(unsigned int addr){
+	int index=0;
+	
+	while(index < procMemMapSize){
+		if( procMemMap[index].pr_vaddr <= addr && (procMemMap[index].pr_vaddr + procMemMap[index].pr_size) >= addr){
+			return 1;
+		}
+		index++;
+	}
+	return 0;
+}
+
+void findMap(){ /* ccw 12 mar 2004*/
+
+	Dl_info dlip;
+	int me = getpid();
+	char fileName[1024];
+	prmap_t mapEntry;
+	int fd;
+	int index = 0;
+	int offset = 0;
+	struct stat statInfo;
+
+	if( procMemMap ){
+		return;
+	}
+	sprintf(fileName, "/proc/%d/map", me);
+	
+	stat(fileName, &statInfo);
+	procMemMap = (prmap_t*) malloc(statInfo.st_size);
+
+	fd = open(fileName, O_RDONLY);
+
+	while( pread(fd, (void*)& (procMemMap[index]), sizeof(mapEntry), offset) ){
+		offset += sizeof(prmap_t);
+		index++;
+	}
+	procMemMapSize = index;
+
+}
+#endif
+
 #if defined(i386_unknown_linux2_0)
 unsigned int loadAddr;
 void dyninst_dl_debug_state(){
@@ -381,6 +440,7 @@ int checkMutatedFile(){
         scn = elf_getscn(elf, ehdr->e_shstrndx);
         strData = elf_getdata(scn,NULL);
 	pageSize =  getpagesize();
+
    	for(cnt = 0, scn = NULL; !soError &&  (scn = elf_nextscn(elf, scn));cnt++){
                 shdr = elf32_getshdr(scn);
 		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
@@ -409,25 +469,26 @@ int checkMutatedFile(){
 
 			tmpStr ++;
 
-
 #if defined(sparc_sun_solaris2_4)
-			{
+			if( r_debug_is_set == 0 ) { 
 				/* this moved up incase there is no dyninstAPI_### section, map and
 				_r_debug are still set correctly. */
 				/* solaris does not make _r_debug available by
 				default, we have to find it in the _DYNAMIC table */
 
 				__Elf32_Dyn *_dyn = (__Elf32_Dyn*)& _DYNAMIC;	
-	
 				while(_dyn && _dyn->d_tag != 0 && _dyn->d_tag != 21){
 					_dyn ++;
 				}
-
 				if(_dyn && _dyn->d_tag != 0){
 					_r_debug = *(struct r_debug*) _dyn->d_un.d_ptr;
 				}
 				map = _r_debug.r_map;
+				r_debug_is_set = 1;
+			}else{
+				map = _r_debug.r_map;
 			}
+
 
 #endif
 
@@ -512,6 +573,8 @@ int checkMutatedFile(){
 			char *ptr;
 			int foundLib = 0, result;
 			int done = 0;
+
+
 			elfData = elf_getdata(scn, NULL);
 
 			ptr = elfData->d_buf;
@@ -690,22 +753,34 @@ int checkMutatedFile(){
 			oldPageData = (char*) malloc(oldPageDataSize);
 			/*copy old page data */
 
+
+
 			/* probe memory to see if we own it */
-			checkAddr = dladdr((void*)shdr->sh_addr, &dlip); 
+#if defined(sparc_sun_solaris2_4)
+
+			/* dladdr does not work here with all patchlevels of solaris 2.8
+			   so we use the /proc file system to read in the /proc/pid/map file
+			   and determine for our selves if the memory belongs to us yet or not*/
+			findMap();
+			checkAddr = checkMap((void*)shdr->sh_addr);
+#else
+			checkAddr = dladdr((void*)shdr->sh_addr, &dlip);
+#endif
+
 
 			updateSize  = shdr->sh_size-((2*numberUpdates+1)* sizeof(unsigned int));
 			/*fprintf(stderr," updateSize : %d-((2 * %d + 1) * 4))",shdr->sh_size, numberUpdates);*/
-		
+	
 			if(!checkAddr){ 
 				/* we dont own it,mmap it!*/
 
                         	mmapAddr = shdr->sh_offset;
+
                         	mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,oldPageDataSize,
                                 	PROT_READ|PROT_WRITE|PROT_EXEC,MAP_FIXED|MAP_PRIVATE,fd,mmapAddr);
 
 			}else{
 				/*we own it, finish the memcpy */
-				/*fprintf(stderr," calling memcpy %x %x %d\n", (void*) oldPageData,(const void*) shdr->sh_addr,updateSize);*/
 				mmapAddr = (unsigned int) memcpy((void*) oldPageData, 
                                       (const void*) shdr->sh_addr, updateSize);
 
@@ -728,12 +803,14 @@ int checkMutatedFile(){
 			} 
 			if(!checkAddr){
 				mmapAddr = shdr->sh_offset ;
+
 				mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,oldPageDataSize, 
 					PROT_READ|PROT_WRITE|PROT_EXEC, MAP_FIXED| MAP_PRIVATE,fd,mmapAddr);
 
 
 
 			}else{
+
 				memcpy((void*) shdr->sh_addr, oldPageData,oldPageDataSize );
 
 			}
@@ -770,7 +847,12 @@ int checkMutatedFile(){
 
 		}
 	}
+#if defined(sparc_sun_solaris2_4)
 
+	if(procMemMap){
+		free(procMemMap);
+	}
+#endif
 
         elf_end(elf);
         close(fd);

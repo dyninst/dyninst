@@ -1,4 +1,4 @@
-/* $Id: addLibraryLinux.C,v 1.10 2004/03/09 17:44:55 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.11 2004/03/12 19:37:40 chadd Exp $ */
 
 #if defined(i386_unknown_linux2_0)
 
@@ -314,6 +314,7 @@ int addLibrary::writeNewElf(char* filename, char* libname){
  			realShdr->sh_name = 0;
  			realShdr->sh_type = 1;
  			realData->d_size = realShdr->sh_size;
+			memset(realData->d_buf, '\0', realShdr->sh_size);
 		}
 		
 		if( !strcmp(".dynstr", (char *)strTabData->d_buf+realShdr->sh_name) ){
@@ -321,6 +322,9 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 			addStr(realData,newElfFileSec[cnt].sec_data, libname);
 			realShdr->sh_size += libnameLen;
 			foundDynstr = 1;
+		}
+		if( !strcmp(".got", (char *)strTabData->d_buf+realShdr->sh_name) ){
+			memcpy( (void*)realData->d_buf, (void*)&newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr, 4);
 		}
 		if( pastPhdr || realShdr->sh_addr >= newPhdrAddr){
 			realShdr->sh_offset+=_pageSize;

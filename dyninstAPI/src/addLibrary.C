@@ -2,7 +2,7 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.12 2004/03/09 18:03:57 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.13 2004/03/12 19:37:40 chadd Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
@@ -408,6 +408,7 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 			realShdr->sh_name = 0;
 			realShdr->sh_type = 1;
 			realData->d_size = realShdr->sh_size;
+			memset(realData->d_buf, '\0', realShdr->sh_size);
 		}
 
 		
@@ -416,6 +417,9 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 			addStr(realData,newElfFileSec[cnt].sec_data, libname);
 			realShdr->sh_size += libnameLen;
 			foundDynstr = 1;
+		}
+		if( !strcmp(".got", (char *)l_strTabData->d_buf+realShdr->sh_name) ){
+			memcpy( (void*)realData->d_buf, (void*)&newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr, 4);
 		}
 		if( pastPhdr || realShdr->sh_addr >= newPhdrAddr){
 			realShdr->sh_offset+=_pageSize;
