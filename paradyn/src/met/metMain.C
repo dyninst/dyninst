@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.19  1995/08/11 21:50:55  newhall
+ * Revision 1.20  1995/08/18 21:59:07  mjrg
+ * Added calls to metDoDaemon, metDoProcess, metDoTunable.
+ *
+ * Revision 1.19  1995/08/11  21:50:55  newhall
  * removed calls to metDoDaemon,metDoVisi,metDoProcess,metDoTunable from metMain
  * added metVisiSize, and metgetVisi functions
  *
@@ -132,29 +135,40 @@ bool metMain(string &userFile)
   string fname;
 
   mdl_init();
-
+ 
   proot = getenv("PARADYN_ROOT");
   if (proot) {
     fname = string(proot) + "/Paradynrc_NEW";
     yy1 = open_N_parse(fname);
   } else {
-    cwd = getenv("cwd");
+    cwd = getenv("PWD");
     if (cwd) {
       fname = string(cwd) + "/Paradynrc_NEW";
       yy1 = open_N_parse(fname);
-    }
+    } else yy1 = -1;
   }
 
   home = getenv("HOME");
   if (home) {
     fname = string(home) + "/.Paradynrc_NEW";
     yy2 = open_N_parse(fname);
+  } else yy2 = -1;
+
+  if (userFile.length()) {
+    yy3 = open_N_parse(userFile);
+    if (yy3 == -1) {
+      fprintf(stderr,"Error: can't open file '%s'.\n", userFile.string_of());
+    }
+  }
+  else yy3 = -1;
+
+  if (yy1 < 0 && yy2 < 0 && yy3 < 0) {
+    fprintf(stderr,"Error: can't find any configuration files.\n");
+    exit(-1);
   }
 
-  if (userFile.length())
-    yy3 = open_N_parse(userFile);
-
   // take actions based on the parsed configuration files
+
   // metDoDaemon();
   // metDoTunable();
   // metDoProcess();
@@ -169,16 +183,16 @@ bool metDoDaemon()
   static bool been_done=0;
   // the default daemons
   if (!been_done) {
-    paradynDaemon::defineDaemon("paradyndPVM", NULL, NULL, "pvmd", NULL, "pvm");
-    paradynDaemon::defineDaemon("paradynd", NULL, NULL, "defd", NULL, "unix");
+    dataMgr->defineDaemon("paradyndPVM", NULL, NULL, "pvmd", NULL, "pvm");
+    dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, "unix");
     // TODO -- should cm5d be defined
-    paradynDaemon::defineDaemon("paradynd", NULL, NULL, "cm5d", NULL, "cm5");
-    paradynDaemon::defineDaemon("simd", NULL, NULL, "simd", NULL, "unix");
+    dataMgr->defineDaemon("paradynd", NULL, NULL, "cm5d", NULL, "cm5");
+    dataMgr->defineDaemon("simd", NULL, NULL, "simd", NULL, "unix");
     been_done = true;
   }
   unsigned size=daemonMet::allDaemons.size();
   for (unsigned u=0; u<size; u++) {
-    paradynDaemon::defineDaemon(daemonMet::allDaemons[u]->command().string_of(),
+    dataMgr->defineDaemon(daemonMet::allDaemons[u]->command().string_of(),
 			 daemonMet::allDaemons[u]->execDir().string_of(),
 			 daemonMet::allDaemons[u]->user().string_of(),
 			 daemonMet::allDaemons[u]->name().string_of(),
