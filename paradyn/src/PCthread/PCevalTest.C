@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.7  1994/04/13 01:37:06  markc
+ * Revision 1.8  1994/04/20 15:30:17  hollings
+ * Added error numbers.
+ *
+ * Revision 1.7  1994/04/13  01:37:06  markc
  * Added ifdef print statements to see hypothesis checks.
  *
  * Revision 1.6  1994/04/12  15:32:46  hollings
@@ -68,7 +71,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.7 1994/04/13 01:37:06 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.8 1994/04/20 15:30:17 hollings Exp $";
 #endif
 
 
@@ -629,6 +632,7 @@ void performanceConsultant::autoRefine(int limit)
 
     if (autoRefinementLimit != 0) {
 	printf("auto refinement already enabled\n");
+	printf("paradyn Error #7\n");
 	return;
     }
 
