@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.3  1994/01/27 20:36:29  hollings
+ * Revision 1.4  1994/01/28 19:42:30  hollings
+ * Fixed max variable name length.
+ *
+ * Revision 1.3  1994/01/27  20:36:29  hollings
  * changes in include syntax round 2 or 3.
  *
  * Revision 1.2  1994/01/26  06:50:10  hollings
@@ -398,7 +401,7 @@ char *interfaceSpec::genVariable()
     static int count;
     char *ret;
 
-    ret = (char *) malloc(20);
+    ret = (char *) malloc(strlen(name)+10);
     sprintf(ret, "%s__%d", name, count++);
     return(ret);
 }

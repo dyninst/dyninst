@@ -105,7 +105,7 @@ typeName: tIDENT {
 	| tARRAY tIDENT {
 		extern char *findAndAddArrayType(char*);
 
-		if (!types.find($2.cp) && generateTHREAD) {
+		if (!types.find($2.cp) && !generateTHREAD) {
 		    char str[80];
 		    sprintf(str, "unknown type %s", $2.cp);
 		    yyerror(str);
