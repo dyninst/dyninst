@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.103 2003/05/23 07:28:04 pcroth Exp $ */
+/* $Id: dynrpc.C,v 1.104 2003/05/27 21:44:55 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -191,6 +191,9 @@ void dynRPC::getPredictedDataCost(u_int id, u_int req_id, pdvector<u_int> focus,
    }
 }
 
+extern pdvector<int> deferredMetricIDs;
+
+
 void dynRPC::disableDataCollection(int mid)
 {
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
@@ -198,8 +201,11 @@ void dynRPC::disableDataCollection(int mid)
 #endif
 
     machineMetFocusNode *mi = machineMetFocusNode::lookupMachNode(mid);
-    if(mi == NULL)
-       return;
+    
+    if(mi == NULL) {
+        // Already deleted
+        return;
+    }
     
     //cerr << "disable of " << mi->getFullName() << endl; 
     // timeLength cost = mi->originalCost();
@@ -211,6 +217,28 @@ void dynRPC::disableDataCollection(int mid)
         subCurrentPredictedCost(cost);
 
     mi->cancelPendingRPCs();
+    // If this MID is on the deferred list, rip it out
+    
+    pdvector<int>::iterator itr = deferredMetricIDs.end();
+    while (itr != deferredMetricIDs.begin()) {
+        itr--;
+        int defMID = *itr;
+        if (defMID == mid) {
+            deferredMetricIDs.erase(itr);
+        }
+    }
+
+    // This is a good idea -- let the frontend know that instrumentation was
+    // removed and all that. But the frontend logic doesn't understand yet.
+
+#ifdef BROKEN
+    // Let the frontend know this instrumentation "failed"
+    metFocInstResponse *cbi = mi->getMetricFocusResponse();
+    if (cbi) {
+        cbi->updateResponse(mid, inst_insert_failure, "Instrumentation cancelled");
+        cbi->makeCallback();
+    }
+#endif
     delete mi;
 
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
