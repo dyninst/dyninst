@@ -13,9 +13,12 @@
  *            chooseMetricsandResources
  */
 /* $Log: UIpublic.C,v $
-/* Revision 1.4  1994/05/05 19:52:46  karavan
-/* changed chooseMetricsandResources
+/* Revision 1.5  1994/05/07 23:26:30  karavan
+/* added short explanation feature to SHG.
 /*
+ * Revision 1.4  1994/05/05  19:52:46  karavan
+ * changed chooseMetricsandResources
+ *
  * Revision 1.3  1994/04/21  05:18:17  karavan
  * Implemented DAG functions.
  *
@@ -284,9 +287,9 @@ UIM::DAGaddNode(int dagID, int nodeID, int styleID,
   char tcommand[200];
   Tcl_HashEntry *entryPtr;
   Tk_Uid token;
-  dagName = ActiveDags[dagID];
   int added;
-
+  
+  dagName = ActiveDags[dagID];
   if (flags) {
     sprintf (tcommand, "%s addNode %d -root yes -style %d -label \"root\"",
 	     dagName, nodeID, styleID);
@@ -300,7 +303,8 @@ UIM::DAGaddNode(int dagID, int nodeID, int styleID,
     return 0;
   }
      // store pointer to full node pathname and use last piece as label
-  token = Tk_GetUid (interp->result);
+  sprintf (tcommand, "%d", nodeID);
+  token = Tk_GetUid (tcommand);
   entryPtr = Tcl_CreateHashEntry (&shgNamesTbl, token, &added);
   if (added) {
     Tcl_SetHashValue (entryPtr, shgname);

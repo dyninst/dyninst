@@ -1,7 +1,10 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.4  1994/05/05 19:53:28  karavan
-/* added structure defn
+/* Revision 1.5  1994/05/07 23:26:29  karavan
+/* added short explanation feature to SHG.
 /*
+ * Revision 1.4  1994/05/05  19:53:28  karavan
+ * added structure defn
+ *
  * Revision 1.3  1994/05/05  02:13:28  karavan
  * moved CmdTabEntry definition from paradyn.tcl.C to UIglobals.h
  *
@@ -46,7 +49,7 @@ extern performanceStream         *uim_defaultStream;
 extern UIM                       *uim_server;
 extern int UIMMsgTokenID;
 extern Tcl_HashTable UIMMsgReplyTbl;
-
+extern Tcl_HashTable shgNamesTbl;
 extern Tcl_Interp *interp;
 
 #endif
