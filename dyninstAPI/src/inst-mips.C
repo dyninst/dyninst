@@ -5114,3 +5114,15 @@ unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
 {
   return false;
 }
+
+
+bool registerSpace::clobberFPRegister(Register reg)
+{
+  return false;
+}
+
+unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
+					 registerSpace * rs)
+{
+  return 0;
+}

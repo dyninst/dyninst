@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.70 2005/02/09 03:27:44 jaw Exp $
+ * $Id: inst-ia64.C,v 1.71 2005/02/17 02:19:53 rutar Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -3981,6 +3981,19 @@ bool registerSpace::clobberRegister(Register reg)
 unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
 {
 }
+
+
+bool registerSpace::clobberFPRegister(Register reg)
+{
+  return false;
+}
+
+unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
+					 registerSpace * rs)
+{
+  return 0;
+}
+
 
 #if ! defined( BPATCH_LIBRARY )
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.189 2005/02/09 03:27:46 jaw Exp $
+ * $Id: inst-x86.C,v 1.190 2005/02/17 02:19:53 rutar Exp $
  */
 #include <iomanip>
 
@@ -6377,6 +6377,17 @@ bool registerSpace::clobberRegister(Register reg)
 }
 
 unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
+{
+  return 0;
+}
+
+bool registerSpace::clobberFPRegister(Register reg)
+{
+  return false;
+}
+
+unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
+					 registerSpace * rs)
 {
   return 0;
 }

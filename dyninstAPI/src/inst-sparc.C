@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.164 2005/02/09 03:27:46 jaw Exp $
+// $Id: inst-sparc.C,v 1.165 2005/02/17 02:19:53 rutar Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2311,4 +2311,16 @@ bool registerSpace::clobberRegister(Register reg)
 
 unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
 {
+}
+
+
+bool registerSpace::clobberFPRegister(Register reg)
+{
+  return false;
+}
+
+unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
+					 registerSpace * rs)
+{
+  return 0;
 }
