@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.146 2004/11/29 19:07:32 eli Exp $
+// $Id: linux.C,v 1.147 2004/12/03 21:15:05 legendre Exp $
 
 #include <fstream>
 
@@ -1609,15 +1609,39 @@ bool process::readAuxvInfo()
 
 void loadNativeDemangler() {}
 
+const unsigned int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 4;
+const char DYNINST_LOAD_HIJACK_FUNCTIONS[][20] = {
+  "__libc_start_main",
+  "_init",
+  "_start",
+  "main"
+};
 
+/**
+ * Returns an address that we can use to write the code that executes
+ * dlopen on the runtime library.
+ *
+ * Inserting the code into libc is a good thing, since _dl_open
+ * will sometimes check it's caller and return with a 'invalid caller'
+ * error if it's called from the application.
+ **/
+Address findFunctionToHijack(process *p) 
+{
+   Address codeBase;
+   unsigned i;
+   for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
+      bool err;
+      const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
+      codeBase = p->findInternalAddress(func_name, false, err);
+      if (err || !codeBase)
+      {
+         function_base *func = p->findOnlyOneFunction(func_name);
+         codeBase = func ? func->getAddress(NULL) : 0;
+      }
+      if (codeBase)
+         break;
+   }
 
-
-
-
-
-
-
-
-
-
+  return codeBase;
+} /* end findFunctionToHijack() */
 

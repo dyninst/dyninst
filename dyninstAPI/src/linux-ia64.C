@@ -412,41 +412,8 @@ Frame dyn_lwp::getActiveFrame() {
 #define DLOPEN_MODE		(RTLD_NOW | RTLD_GLOBAL)
 #define DLOPEN_CALL_LENGTH	4
 
-const char DYNINST_LOAD_HIJACK_FUNCTIONS[][15] = {
-	/* This will probably be the lowest function in the address space,
-	   since GNU ld prefers to put .init before .text.  Other compilers
-	   may require us to look at all of them and pick the lowest.  (Our
-	   problem is that main() may high enough in the address space that
-	   the 8KB (!) that we need to loadDYNINSTlib() tries to read/write
-	   from an unmapped page.) */
-	"_init",
-	"_start",
-	"main"
-	};
-const int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 3;
-
 /* Defined in process.C; not sure why it isn't in a header. */
 extern unsigned enable_pd_attach_detach_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define attach_cerr if (enable_pd_attach_detach_debug) cerr
-#else
-#define attach_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-Address findFunctionToHijack( image * symbols, process * p ) {
-	for( int i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
-		Symbol s;
-		if( symbols->symbol_info(DYNINST_LOAD_HIJACK_FUNCTIONS[i], s) ) {
-		        attach_cerr << "Inserting dlopen call in " << DYNINST_LOAD_HIJACK_FUNCTIONS[i] << " at " << s.addr() << endl;
-			attach_cerr << "Process at " << (void*)getPC( p->getPid() ) << endl;
-			return s.addr();
-			}
-		} /* end hijacking search loop. */
-
-	attach_cerr << "Couldn't find a point to insert dlopen call" << endl;
-	return 0;
-	} /* end findFunctionToHijack() */
 
 /* DEBUG code */
 void printBinary( unsigned long long word, int start = 0, int end = 63 ) {
@@ -491,7 +458,7 @@ bool process::loadDYNINSTlib() {
 	   This is effectively an inferior RPC with the caveat that we're
 	   overwriting code instead of allocating memory from the RT heap. 
 	   (So 'hijack' doesn't mean quite what you might think.) */
-	Address entry = findFunctionToHijack( symbols, this );	// We can avoid using InsnAddr because we know 
+	Address entry = findFunctionToHijack(this);	// We can avoid using InsnAddr because we know 
 															// that function entry points are aligned.
 	if( !entry ) { return false; }
         
@@ -604,7 +571,7 @@ bool process::loadDYNINSTlib() {
 
 bool process::loadDYNINSTlibCleanup() {
 	/* We function did we hijack? */
-	Address entry = findFunctionToHijack( symbols, this );	// We can avoid using InsnAddr because we know 
+	Address entry = findFunctionToHijack(this);	// We can avoid using InsnAddr because we know 
 															// that function entry points are aligned.
 	if( !entry ) { assert( 0 ); }
 	

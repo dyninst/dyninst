@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.54 2004/08/09 17:50:40 legendre Exp $
+// $Id: linux-x86.C,v 1.55 2004/12/03 21:15:04 legendre Exp $
 
 #include <fstream>
 
@@ -131,14 +131,6 @@ extern unsigned enable_pd_signal_debug;
 
 extern bool isValidAddress(process *proc, Address where);
 extern void generateBreakPoint(instruction &insn);
-
-
-const char DYNINST_LOAD_HIJACK_FUNCTIONS[][15] = {
-  "main",
-  "_init",
-  "_start"
-};
-const int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 3;
 
 const char DL_OPEN_FUNC_NAME[] = "_dl_open";
 
@@ -323,22 +315,9 @@ bool process::loadDYNINSTlibCleanup()
   // rewrite original instructions in the text segment we use for 
   // the inferiorRPC - naim
   unsigned count = sizeof(savedCodeBuffer);
-  //Address codeBase = getImage()->codeOffset();
 
-  Address codeBase = 0;
-  int i;
-
-  for( i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
-	  bool found = false;
-	  Symbol s;
-	  codeBase = 0;
-	  found = symbols->symbol_info(DYNINST_LOAD_HIJACK_FUNCTIONS[i], s);
-	  if( found )
-		  codeBase = s.addr();
-	  if( codeBase )
-		  break;
-  }
-  assert( codeBase );
+  Address codeBase = findFunctionToHijack(this);
+  assert(codeBase);
 
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
 
@@ -1305,31 +1284,16 @@ bool process::loadDYNINSTlib() {
 
   // write to the application at codeOffset. This won't work if we
   // attach to a running process.
-  //Address codeBase = this->getImage()->codeOffset();
-  // ...let's try "_start" instead
-  //  Address codeBase = (this->findFuncByName(DYNINST_LOAD_HIJACK_FUNCTION))->getAddress(this);
-  Address codeBase = 0;
-  int i;
 
-  for( i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
-      bool found = false;
-      Symbol s;
-      codeBase = 0;
-      found = symbols->symbol_info(DYNINST_LOAD_HIJACK_FUNCTIONS[i], s);
-      if( found )
-          codeBase = s.addr();
-      if( codeBase )
-          break;
-  }
+  Address codeBase = findFunctionToHijack(this);
 
-  if( !codeBase || i >= N_DYNINST_LOAD_HIJACK_FUNCTIONS )
+  if(!codeBase)
   {
       attach_cerr << "Couldn't find a point to insert dlopen call" << endl;
       return false;
   }
 
-  attach_cerr << "Inserting dlopen call in " << DYNINST_LOAD_HIJACK_FUNCTIONS[i] << " at "
-      << (void*)codeBase << endl;
+  attach_cerr << "Inserting dlopen call at " << (void*)codeBase << endl;
   attach_cerr << "Process at " << (void*)getPC( getPid() ) << endl;
 
   bool libc_21 = true; /* inferior has glibc 2.1-2.x */

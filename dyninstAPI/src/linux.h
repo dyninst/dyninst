@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.15 2004/03/23 01:12:06 eli Exp $
+// $Id: linux.h,v 1.16 2004/12/03 21:15:06 legendre Exp $
 
 #if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
 #error "invalid architecture-os inclusion"
@@ -73,13 +73,15 @@ typedef int handleT; // a /proc file descriptor
 #error Invalid or unknown architecture-os inclusion
 #endif
 
+class process;
+
 /* For linux.C */
 Address getPC( int );
 bool changePC( int pid, Address loc );
 void generateBreakPoint( instruction & insn );
 void printRegs( void *save );
+Address findFunctionToHijack(process *p);
 
-class process;
 class ptraceKludge {
 private:
   static bool haltProcess(process *p);
