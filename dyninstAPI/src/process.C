@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.518 2005/01/21 23:44:44 bernat Exp $
+// $Id: process.C,v 1.519 2005/02/02 17:27:31 bernat Exp $
 
 #include <ctype.h>
 
@@ -661,7 +661,7 @@ bool process::isInSignalHandler(Address addr)
   if (!signal_handler)
       return false;
 
-  const image *sig_image = (signal_handler->file())->exec();
+  const image *sig_image = (signal_handler->pdmod())->exec();
 
   Address sig_addr;
   if(getBaseAddress(sig_image, sig_addr)){
@@ -4346,43 +4346,6 @@ int_function *process::findOnlyOneFunction(const pdstring &name) const {
     return ret;
 }
 
-// findOneFunction: returns the function associated with func  
-// this routine checks both the a.out image and any shared object
-// images for this resource
-int_function *process::findOnlyOneFunctionFromAll(const pdstring &name) const {
-
-  pdstring func_name;
-  int_function *pdf, *ret = NULL;
-
-  // first check a.out for function symbol
-  if (NULL != (pdf = symbols->findOnlyOneFunctionFromAll(name)))
-    ret = pdf;
-  
-  // search any shared libraries for the file name 
-  if(dynamiclinking && shared_objects){
-    for(u_int j=0; j < shared_objects->size(); j++){
-      pdf = ((*shared_objects)[j])->findOnlyOneFunctionFromAll(name);
-      if(pdf){
-	// fail if we already found a match
-	if (ret) {
-	  char msg[256];
-	  sprintf(msg, "%s[%d]:  ERROR:  findOnlyOneFunction "
-		  " found more than one match for function %s",
-		  __FILE__, __LINE__, name.c_str());
-	  logLine(msg);
-	  return NULL;
-	}
-	ret = pdf;
-      }
-      else {
-	//  do we want to warn here?
-      }
-    }
-  }
-
-  return ret;
-}
-
 bool process::findAllFuncsByName(const pdstring &name, pdvector<int_function *> &res)
 {
    pdstring lib_name;
@@ -4439,20 +4402,19 @@ bool process::findAllFuncsByName(const pdstring &name, pdvector<int_function *> 
       return true; 
 
    //  Last ditch:  maybe the name was a mangled name
-   int_function *pdf;
 
-   if (NULL != (pdf = symbols->findFuncByMangled(func_name))) {
-       res.push_back(pdf);
+   if (NULL != (pdfv = symbols->findFuncVectorByMangled(func_name))) {
+     for (unsigned i = 0; i < pdfv->size(); i++) 
+       res.push_back((*pdfv)[i]);
    }
    
    // search any shared libraries for the file name 
    if(dynamiclinking && shared_objects){
      for(u_int j=0; j < shared_objects->size(); j++){
-       if (NULL != (pdf = (*shared_objects)[j]->findFuncByMangled(func_name))) {
-	 res.push_back(pdf);
-	 
+       if (NULL != (pdfv = (*shared_objects)[j]->findFuncVectorByMangled(func_name))) {
+	 for (unsigned i = 0; i < pdfv->size(); i++) 
+	   res.push_back((*pdfv)[i]);
        }
-       //pdf=static_cast<int_function *>(((*shared_objects)[j])->findFuncByName(func_name));
      }
    }
 
@@ -5617,11 +5579,11 @@ BPatch_function *process::findOrCreateBPFunc(int_function* pdfunc,
    assert(bpatch_thread);
 
    // Find the module that contains the function
-   if (bpmod == NULL && pdfunc->file() != NULL) {
+   if (bpmod == NULL && pdfunc->pdmod() != NULL) {
       BPatch_Vector<BPatch_module *> &mods =
          *(bpatch_thread->getImage()->getModules());
       for (unsigned int i = 0; i < mods.size(); i++) {
-         if (mods[i]->mod == pdfunc->file()) {
+	if (mods[i]->mod == pdfunc->pdmod()) {
             bpmod = mods[i];
             break;
          }

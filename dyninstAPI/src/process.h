@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.309 2005/01/21 23:44:45 bernat Exp $
+/* $Id: process.h,v 1.310 2005/02/02 17:27:32 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -913,7 +913,6 @@ class process {
   // for this function.  It fails if more than one match is found.
   // findOnlyOnefunctionFromAll:  also checks uninstrumentable functions
   int_function *findOnlyOneFunction(const pdstring &func_name) const;
-  int_function *findOnlyOneFunctionFromAll(const pdstring &func_name) const;
 
   // findFuncByName: returns function associated with "func_name"
   // This routine checks both the a.out image and any shared object images 
