@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.52 2002/05/28 02:19:14 bernat Exp $
+// $Id: inst-sparc.h,v 1.53 2002/09/17 20:08:05 bernat Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -94,9 +94,15 @@ public:
 
 #define INSN_SIZE ( sizeof( instruction ) )
 
-#define REG_MT_POS           23   /* register saved to keep the address of */
-                                  /* the current vector of counter/timers  */
-                                  /* for each thread. Reg L7               */
+// some macros for helping code which contains register symbolic names
+#define REG_I(x) (x + 24)
+#define REG_L(x) (x + 16) 
+#define REG_O(x) (x + 8)
+#define REG_G(x) (x)
+
+
+#define REG_MT_POS           REG_G(6)   /* Register which contains the current POS
+					   value (for caching) */
 #define NUM_INSN_MT_PREAMBLE 27   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
 
@@ -123,12 +129,6 @@ inline Address ABS(int x) {
 
 #define REG_SPTR          14
 #define REG_FPTR          30
-
-// some macros for helping code which contains register symbolic names
-#define REG_I(x) (x + 24)
-#define REG_L(x) (x + 16) 
-#define REG_O(x) (x + 8)
-#define REG_G(x) (x)
 
 extern "C" void baseTramp();
 extern "C" void baseTramp_savePreInsn();
@@ -494,8 +494,5 @@ extern bool branchInsideRange(instruction i, Address branchAddress,
       Address firstAddress, Address lastAddress); 
 extern bool trueCallInsideRange(instruction instr, Address callAddress, 
       Address firstAddress, Address lastAddress);
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-extern void generateMTpreamble(char *insn, Address &base, process *proc);
-#endif
 
 #endif
