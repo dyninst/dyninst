@@ -1,8 +1,13 @@
 /* $Log: UImain.C,v $
-/* Revision 1.65  1995/11/09 17:11:35  tamches
-/* deleted some obsolete stuff which had been commented out (e.g. uim_rootRes).
-/* added UIMBUFFSIZE (moved from UIglobals.h)
+/* Revision 1.66  1995/11/20 03:22:38  tamches
+/* added showWhereAxisTips tunable constant, and related code
+/* added tclPrompt tunable constant, and related code
+/* removed set auto_path
 /*
+ * Revision 1.65  1995/11/09 17:11:35  tamches
+ * deleted some obsolete stuff which had been commented out (e.g. uim_rootRes).
+ * added UIMBUFFSIZE (moved from UIglobals.h)
+ *
  * Revision 1.64  1995/11/08 06:24:15  tamches
  * removed some warnings
  *
@@ -335,10 +340,6 @@ extern void resourceAddedCB (perfStreamHandle handle,
  * Forward declarations for procedures defined later in this file:
  */
 
-void             Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
-void             StdinProc _ANSI_ARGS_((ClientData clientData,
-					int mask));
-
 // This callback invoked by dataManager before and after a large 
 // batch of draw requests.
 // I'm not sure what the perfStreamHandle argument is for --ari
@@ -436,6 +437,16 @@ void processPendingTkEventsNoBlock() {
 
 #define UIMBUFFSIZE 256
 
+void Prompt(Tcl_Interp *, int partial);
+void StdinProc(ClientData, int mask);
+
+void whereAxisDrawTipsCallback(bool newValue) {
+   if (newValue)
+      myTclEval(interp, "whereAxisDrawTips");
+   else
+      myTclEval(interp, "whereAxisEraseTips");
+}
+
 void *UImain(void*) {
     tag_t mtag;
     int retVal;
@@ -444,6 +455,19 @@ void *UImain(void*) {
     char UIMbuff[UIMBUFFSIZE];
     controlCallback controlFuncs;
     dataCallback dataFunc;
+
+    tunableBooleanConstantDeclarator tcWaShowTips("showWhereAxisTips",
+						  "If true, the where axis window will be drawn with helpful reminders on shortcuts for expanding, unexpanding, selecting, and scrolling.  A setting of false saves screen real estate.",
+						  true, // initial value
+						  whereAxisDrawTipsCallback,
+						  userConstant);
+						  
+
+    tunableBooleanConstantDeclarator tcHideTcl("tclPrompt",
+					       "Allow access to a command-line prompt accepting arbitrary tcl commands in the Paradyn process",
+					       false, // initial value
+					       NULL, // no cb routine
+					       developerConstant);
 
     // Add internal UIM command to the tcl interpreter.
     Tcl_CreateCommand(interp, "uimpd", 
@@ -455,15 +479,17 @@ void *UImain(void*) {
 		      (Tcl_CmdDeleteProc *) NULL);
 
     /* tell interpreter where the tcl files are */
-    const char *temp;
-    if ((temp = getenv("PARADYNTCL")) != 0) {
-        if (Tcl_VarEval (interp, "set auto_path [linsert $auto_path 0 ",
-		 temp, "]", 0) == TCL_ERROR)
-          printf ("can't set auto_path: %s\n", interp->result);
-    }
-    if (temp == 0) {
-	temp = "/p/paradyn/core/paradyn/tcl";
-    }
+    const char *temp = getenv("PARADYNTCL");
+//    
+//    if ((temp = getenv("PARADYNTCL")) != 0) {
+//        if (Tcl_VarEval (interp, "set auto_path [linsert $auto_path 0 ", // YUCK --ari
+//		 temp, "]", 0) == TCL_ERROR)
+//          printf ("can't set auto_path: %s\n", interp->result);
+//    }
+
+    if (temp == 0)
+	temp = "/p/paradyn/core/paradyn/tcl"; // YUCK --ari
+
     Tcl_SetVar (interp, "PdBitmapDir", temp, 0); // YUCK --ari
 
 /*
@@ -491,8 +517,8 @@ void *UImain(void*) {
 
 
    /* display the paradyn main menu tool bar */
-    if (Tcl_VarEval (interp, "drawToolBar", 0) == TCL_ERROR)
-      printf ("NOTOOLBAR:: %s\n", interp->result);
+   myTclEval(interp, "drawToolBar");
+
      // initialize number of errors read in from error database 
     uim_maxError = atoi(Tcl_GetVar (interp, "numPdErrors", 0));
 
@@ -548,8 +574,6 @@ void *UImain(void*) {
     // New Where Axis: --ari
     installWhereAxisCommands(interp);
     myTclEval(interp, "whereAxisInitialize");
-//    if (TCL_ERROR == Tcl_Eval(interp, "whereAxisInitialize"))
-//       tclpanic(interp, "Could not whereAxisInitialize");
 
     // New Search History Graph: --ari
     installShgCommands(interp);
@@ -573,7 +597,7 @@ void *UImain(void*) {
     ui_status->message("ready");
 
 /*******************************
- *    Main Loop for UIM thread.  
+ *    Main Loop for UIthread.
  ********************************/
 
    while (tk_NumMainWindows > 0) {
@@ -583,12 +607,11 @@ void *UImain(void*) {
       mtag = MSG_TAG_ANY;
       int pollsender = msg_poll (&mtag, 1); // 1-->make this a blocking poll
                                             // i.e., not really a poll at all...
-      // Why don't we do a blocking msg_recv() in all cases?  Probably
-      // because it soaks up the pending message, which may (? my best guess ?)
-      // throw off those mysterious dataMgr->waitLoop() and uim_server->waitLoop()
-      // calls below.
+      // Why don't we do a blocking msg_recv() in all cases?  Because it soaks
+      // up the pending message, throwing off the X file descriptor (tk wants to
+      // dequeue itself).  Plus igen feels that way too.
 
-      processPendingTkEventsNoBlock();
+//      processPendingTkEventsNoBlock();
 
       // check for X events or commands on stdin
       if (mtag == MSG_TAG_FILE) {
@@ -603,7 +626,7 @@ void *UImain(void*) {
             processPendingTkEventsNoBlock();
          else if (pollsender == fileno(stdin))
             // process all pending stdin events
-            StdinProc((ClientData) NULL, 0);
+            StdinProc(NULL, 0);
          else
             cerr << "hmmm...unknown sender of a MSG_TAG_FILE message...ignoring" << endl;
 
@@ -738,13 +761,12 @@ StdinProc(ClientData, int mask)
      */
 
     Tk_CreateFileHandler(0, 0, StdinProc, (ClientData) 0);
-    code = Tcl_RecordAndEval(interp, cmd, 0);
+    code = Tcl_RecordAndEval(interp, cmd, TCL_EVAL_GLOBAL);
     Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
     Tcl_DStringFree(&command);
     if (*interp->result != 0) {
-        if ((code != TCL_OK) || (tty)) {
-            printf("%s\n", interp->result);
-        }
+        if ((code != TCL_OK) || tty)
+            puts(interp->result);
     }
 
     /*
@@ -752,53 +774,20 @@ StdinProc(ClientData, int mask)
      */
 
     prompt:
-    if (tty) {
+    if (tty)
         Prompt(interp, gotPartial);
-    }
+
+    Tcl_ResetResult(interp);
 }
-/*
- *----------------------------------------------------------------------
- *
- * Prompt --
- *
- *      Issue a prompt on standard output, or invoke a script
- *      to issue the prompt.
- *
- * Results:
- *      None.
- *
- * Side effects:
- *      A prompt gets output, and a Tcl script may be evaluated
- *      in interp.
- *
- *----------------------------------------------------------------------
- */
 
-void
-Prompt(Tcl_Interp *interp,   /* Interpreter to use for prompting. */
-       int partial)          /* Non-zero means there already
-                              * exists a partial command, so use
-                              * the secondary prompt. */
+void Prompt(Tcl_Interp *interp,   /* Interpreter to use for prompting. */
+	    int partial)          /* Non-zero means there already
+				   * exists a partial command, so use
+				   * the secondary prompt. */
 {
-    char *promptCmd;
-    int code;
-
-    promptCmd = Tcl_GetVar(interp,
-        partial ? "tcl_prompt2" : "tcl_prompt1", TCL_GLOBAL_ONLY);
-    if (promptCmd == NULL) {
-        defaultPrompt:
-        if (!partial) {
-            fputs("pd> ", stdout);
-        }
-    } else {
-        code = Tcl_Eval(interp, promptCmd);
-        if (code != TCL_OK) {
-            Tcl_AddErrorInfo(interp,
-                    "\n    (script that generates prompt)");
-            fprintf(stderr, "%s\n", interp->result);
-            goto defaultPrompt;
-        }
-    }
-    fflush(stdout);
-  }
-
+   tunableBooleanConstant showTclPrompt = tunableConstantRegistry::findBoolTunableConstant("tclPrompt");
+   if (showTclPrompt.getValue()) {
+      fputs("pd> ", stdout);
+      fflush(stdout);
+   }
+}
