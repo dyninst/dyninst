@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.52 2003/01/31 18:55:41 chadd Exp $
+// $Id: BPatch.C,v 1.53 2003/02/21 20:05:52 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -273,11 +273,6 @@ BPatch::BPatch()
     exitCallback = NULL;
     oneTimeCodeCallback = NULL;
 
-#ifdef DETACH_ON_THE_FLY
-    // Register handler for notification from detached inferiors
-    extern void initDetachOnTheFly();
-    initDetachOnTheFly();
-#endif
 }
 
 
@@ -1236,17 +1231,11 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 		return false;
 	}
 #else
-#ifdef DETACH_ON_THE_FLY
-	else if ((appThread->stopSignal() != SIGSTOP) &&
-		 (appThread->stopSignal() != SIGHUP) &&
-		 (appThread->stopSignal() != SIGILL)) {
-#else
 	else if ((appThread->stopSignal() != SIGSTOP) &&
 #ifdef USE_IRIX_FIXES
 		 (appThread->stopSignal() != SIGEMT) &&
 #endif /* USE_IRIX_FIXES */
 		 (appThread->stopSignal() != SIGHUP)) {
-#endif /* DETACH_ON_THE_FLY */
 		cerr << "ERROR :  process stopped on signal "
 		     << "different than SIGSTOP" << endl;
 		return false;
@@ -1297,7 +1286,7 @@ void BPatch::launchDeferredOneTimeCode()
 	if (proc->status() == exited || proc->status() == neonatal)
 	    continue;
 
-	proc->launchRPCifAppropriate(proc->status() == running);
+	proc->launchRPCs(proc->status() == running);
     
     }
 }

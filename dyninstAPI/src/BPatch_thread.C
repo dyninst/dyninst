@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.72 2003/02/04 14:59:20 bernat Exp $
+// $Id: BPatch_thread.C,v 1.73 2003/02/21 20:05:53 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -256,7 +256,7 @@ BPatch_thread::BPatch_thread(const char *path, int pid)
 
     while (!proc->isBootstrappedYet() && !statusIsTerminated()) {
 	BPatch::bpatch->getThreadEventOnly(false);
-	proc->launchRPCifAppropriate(false);
+	proc->launchRPCs(false);
     }
 
 #if defined(alpha_dec_osf4_0) 
@@ -352,12 +352,7 @@ bool BPatch_thread::stopExecution()
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
 
-#ifdef DETACH_ON_THE_FLY
-    return proc->reattachAndPause();
-#else
     return proc->pause();
-#endif
-
 
     assert(BPatch::bpatch);
 
@@ -380,13 +375,9 @@ bool BPatch_thread::continueExecution()
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
 
-#ifdef DETACH_ON_THE_FLY
-    if (proc->detachAndContinue()) {
-#else
     if (proc->continueProc()) {
-#endif
-	setUnreportedStop(false);
-	return true;
+        setUnreportedStop(false);
+        return true;
     }
 
     return false;
@@ -517,9 +508,6 @@ bool BPatch_thread::statusIsTerminated()
  */
 void BPatch_thread::detach(bool cont)
 {
-#ifdef DETACH_ON_THE_FLY
-    proc->reattachAndPause();
-#endif
     proc->API_detach(cont);
 
     detached = true;
@@ -1241,7 +1229,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
 
     if (synchronous) {
 	do {
-	    proc->launchRPCifAppropriate(false);
+	    proc->launchRPCs(false);
 	    BPatch::bpatch->getThreadEvent(false);
 	} while (!info->isCompleted() && !statusIsTerminated());
 
@@ -1253,7 +1241,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
 
 	return ret;
     } else {
-	proc->launchRPCifAppropriate(proc->status() == running);
+	proc->launchRPCs(proc->status() == running);
 
 	return NULL;
     }
