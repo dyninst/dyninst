@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2000/03/31 01:58:42 wylie Exp $
+# $Id: Makefile,v 1.2 2000/04/07 22:55:27 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,7 +22,7 @@ ifdef USES_LIBDYNINSTRT_SO
 CC              = gcc
 LD              = gcc
 CFLAGS          = -I. -I../.. -Di386_unknown_linux2_0 -g -Dexternal_templates -fpic
-LDFLAGS         = -shared
+LDFLAGS         = -shared -ldl
 endif
 
 SRCS		+= ../src/RTposix.c \
