@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.3 2001/08/30 01:58:50 schendel Exp $
+// $Id: sampleAggregator.C,v 1.4 2001/11/03 06:08:59 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -78,14 +78,10 @@ pdDebug_ostream aggu_cerr(cerr, false);
 // The initial start time needs to be set before values can be aggregated.
 // Samples added through addSamplePt before initial start time set, will be
 // queued.
+
 void aggComponent::setInitialStartTime(timeStamp initialStTime) {
   assert(! isInitialStartTimeSet());
 
-  resetInitialStartTime(initialStTime);
-}
-
-// used when need to adjust start of component to a more convenient time
-void aggComponent::resetInitialStartTime(timeStamp initialStTime) {
   // the addSamplePt function won't work if the lastProcessedSampleTime
   // isn't greater than the start of the interval
   if(startIntvl().isInitialized()) {

@@ -145,10 +145,6 @@ class aggComponent {
   // time needs to be in or after the current interval
   void setInitialStartTime(timeStamp initialStTime);
 
-  // if need to reset the initial start time, call this.  This might be
-  // needed if the original setting of the initial start time needs to
-  // be adjusted for some reason.
-  void resetInitialStartTime(timeStamp initialStTime);
   timeStamp getInitialStartTime() const {
     return lastProcessedSampleTime;
   }
