@@ -229,7 +229,7 @@ inline string agg_to_string(unsigned f) {
 
 #if defined(PARADYN)
 class process { };
-class pdFunction { };
+class function_base { };
 class module { };
 class instPoint { };
 class dataReqNode { };
@@ -239,7 +239,7 @@ class AstNode { };
 // #include "paradynd/src/symtab.h"
 // #include "paradynd/src/ast.h"
 class process;
-class pdFunction;
+class function_base;
 class module;
 class instPoint;
 class dataReqNode;
@@ -268,12 +268,12 @@ public:
   mdl_var(const string& nm, int i, bool is_remote);
   mdl_var(const string& nm, float f, bool is_remote);
   mdl_var(const string& nm, instPoint *p, bool is_remote);
-  mdl_var(const string& nm, pdFunction *pr, bool is_remote);
+  mdl_var(const string& nm, function_base *pr, bool is_remote);
   mdl_var(const string& nm, functionName *pr, bool is_remote);
   mdl_var(const string& nm, module *mod, bool is_remote);
   mdl_var(const string& nm, const string& s, bool is_remote);
   mdl_var(const string& nm, process *pr, bool is_remote);
-  mdl_var(const string& nm, vector<pdFunction*> *vp, bool is_remote);
+  mdl_var(const string& nm, vector<function_base*> *vp, bool is_remote);
   mdl_var(const string& nm, vector<functionName*> *vp, bool is_remote);
   mdl_var(const string& nm, vector<module*> *vm, bool is_remote);
   mdl_var(const string& nm, vector<int> *vi, bool is_remote);
@@ -285,12 +285,12 @@ public:
   bool get(int &i);
   bool get(float &f);
   bool get(instPoint *&p);
-  bool get(pdFunction *&pr);
+  bool get(function_base *&pr);
   bool get(functionName *&fn);
   bool get(module *&mod);
   bool get(string& s);
   bool get(process *&pr);
-  bool get(vector<pdFunction*> *&vp);
+  bool get(vector<function_base*> *&vp);
   bool get(vector<functionName*> *&vp);
   bool get(vector<module*> *&vm);
   bool get(vector<int> *&vi);
@@ -302,12 +302,12 @@ public:
   bool set(int i);
   bool set(float f);
   bool set(instPoint *p);
-  bool set(pdFunction *pr);
+  bool set(function_base *pr);
   bool set(functionName *f);
   bool set(module *mod);
   bool set(const string& s);
   bool set(process *pr);
-  bool set(vector<pdFunction*> *vp);
+  bool set(vector<function_base*> *vp);
   bool set(vector<functionName*> *vp);
   bool set(vector<module*> *vm);
   bool set(vector<int> *vi);
@@ -336,11 +336,11 @@ private:
     int i;
     float f;
     instPoint *point_;
-    pdFunction *pr;
+    function_base *pr;
     functionName *fn;
     process *the_process;
     module *mod;
-    vector<pdFunction*>  *list_pr;
+    vector<function_base*>  *list_pr;
     vector<functionName*> *list_fn;
     vector<int>          *list_int;
     vector<float>        *list_float;
@@ -372,12 +372,12 @@ public:
   static bool set(int i, const string& var_name);
   static bool set(float f, const string& var_name);
   static bool set(instPoint *p, const string& var_name);
-  static bool set(pdFunction *pr, const string& var_name);
+  static bool set(function_base *pr, const string& var_name);
   static bool set(functionName *pr, const string& var_name);
   static bool set(module *mod, const string& var_name);
   static bool set(const string& s, const string& var_name);
   static bool set(process *pr, const string& var_name);
-  static bool set(vector<pdFunction*> *vp, const string& var_name);
+  static bool set(vector<function_base*> *vp, const string& var_name);
   static bool set(vector<functionName*> *vp, const string& var_name);
   static bool set(vector<module*> *vm, const string& var_name);
   static bool set(vector<int> *vi, const string& var_name);
@@ -483,7 +483,7 @@ inline mdl_var::mdl_var(const string& nm, float f, bool is_rem)
 inline mdl_var::mdl_var(const string& nm, instPoint *p, bool is_rem)
 : name_(nm), type_(MDL_T_POINT), remote_(is_rem) { vals.point_ = p;}
 
-inline mdl_var::mdl_var(const string& nm, pdFunction *pr, bool is_rem)
+inline mdl_var::mdl_var(const string& nm, function_base *pr, bool is_rem)
 : name_(nm), type_(MDL_T_PROCEDURE), remote_(is_rem) { vals.pr = pr;}
 
 inline mdl_var::mdl_var(const string& nm, functionName *fn, bool is_rem)
@@ -498,7 +498,7 @@ inline mdl_var::mdl_var(const string& nm, const string& s, bool is_rem)
 inline mdl_var::mdl_var(const string& nm, process *p, bool is_rem) 
 : name_(nm), type_(MDL_T_PROCESS), remote_(is_rem) { vals.the_process = p; }
 
-inline mdl_var::mdl_var(const string& nm, vector<pdFunction*> *vp, bool is_remote) 
+inline mdl_var::mdl_var(const string& nm, vector<function_base*> *vp, bool is_remote) 
 : name_(nm), type_(MDL_T_LIST_PROCEDURE), remote_(is_remote) { vals.list_pr = vp; }
      
 inline mdl_var::mdl_var(const string& nm, vector<functionName*> *vf, bool is_remote) 
@@ -544,7 +544,7 @@ inline bool mdl_var::get(instPoint *&pt) {
   pt = vals.point_;
   return true;
 }
-inline bool mdl_var::get(pdFunction *&pr) {
+inline bool mdl_var::get(function_base *&pr) {
   if (type_ != MDL_T_PROCEDURE) return false;
   pr = vals.pr;
   return true;
@@ -575,7 +575,7 @@ inline bool mdl_var::get(dataReqNode *&drn) {
   return true;
 }
 
-inline bool mdl_var::get(vector<pdFunction*> *&vp) {
+inline bool mdl_var::get(vector<function_base*> *&vp) {
   if (type_ != MDL_T_LIST_PROCEDURE) return false;
   vp = vals.list_pr;
   return true;
@@ -630,7 +630,7 @@ inline bool mdl_var::set(instPoint *pt) {
    vals.point_ = pt;
   return true;
 }
-inline bool mdl_var::set(pdFunction *pr) {
+inline bool mdl_var::set(function_base *pr) {
   destroy();
   type_ = MDL_T_PROCEDURE;
   vals.pr = pr;
@@ -667,7 +667,7 @@ inline bool mdl_var::set(dataReqNode *drn) {
   return true;
 }
 
-inline bool mdl_var::set(vector<pdFunction*> *vp) {
+inline bool mdl_var::set(vector<function_base*> *vp) {
   destroy();
   type_ = MDL_T_LIST_PROCEDURE;
   vals.list_pr = vp;
@@ -785,7 +785,7 @@ inline bool mdl_var::make_list(unsigned element_type) {
   vector<int> *vi;
   vector<float> *vf;
   vector<module*> *vm;
-  vector<pdFunction*> *vp;
+  vector<function_base*> *vp;
   vector<functionName*> *fn;
 
   switch (element_type) {
@@ -802,7 +802,7 @@ inline bool mdl_var::make_list(unsigned element_type) {
     if (!set(vs)) return false;
     break;
   case MDL_T_PROCEDURE:
-    vp = new vector<pdFunction*>;
+    vp = new vector<function_base*>;
     if (!set(vp)) return false;
     break;
   case MDL_T_PROCEDURE_NAME:
@@ -964,7 +964,7 @@ inline bool mdl_env::set(instPoint *p, const string& var_name) {
   return true;
 }
 
-inline bool mdl_env::set(pdFunction *pr, const string& var_name) {
+inline bool mdl_env::set(function_base *pr, const string& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;
@@ -1012,7 +1012,7 @@ inline bool mdl_env::set(dataReqNode *drn, const string& var_name) {
   return true;
 }
 
-inline bool mdl_env::set(vector<pdFunction*> *vp, const string& var_name) {
+inline bool mdl_env::set(vector<function_base*> *vp, const string& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;
