@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.1  1994/02/02 00:42:36  hollings
+ * Revision 1.2  1994/04/18 22:28:34  hollings
+ * Changes to create a canonical form of a resource list.
+ *
+ * Revision 1.1  1994/02/02  00:42:36  hollings
  * Changes to the Data manager to reflect the file naming convention and
  * to support the integration of the Performance Consultant.
  *
@@ -24,7 +27,11 @@ class resource;
 
 class resourceList {
   public:
-      resourceList() { count = 0; elements = NULL; maxItems = 0; }
+      resourceList() { count = 0; 
+			elements = NULL; 
+			maxItems = 0; 
+			fullName = NULL;
+		     }
       resource *getNth(int n) {
 	  if (n < count) {
 	      return(elements[n]);
@@ -43,9 +50,13 @@ class resourceList {
 	}
 	elements[count] = r;
 	count++;
+	if (fullName) {
+	   fullName = NULL;
+	}
 	return;
       }
       resource *find(char *name);
+      char *getCanonicalName();
       int getCount()	{ return(count); }
       void print();
       char **convertToStringList();
@@ -53,6 +64,10 @@ class resourceList {
       int count;
       int maxItems;
       resource **elements;
+      char *fullName;
+
+      // names space of all resource list canonical names
+      static stringPool names;
 };
 
 class resource {

@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.9  1994/04/06 21:26:41  markc
+ * Revision 1.10  1994/04/18 22:28:32  hollings
+ * Changes to create a canonical form of a resource list.
+ *
+ * Revision 1.9  1994/04/06  21:26:41  markc
  * Added "include <assert.h>"
  *
  * Revision 1.8  1994/04/01  20:45:05  hollings
@@ -126,9 +129,11 @@ performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
 						        dataCallback dc,
 						        controlCallback cc)
 {
+    int tid;
     performanceStream *ps;
 
-    ps = new performanceStream(ap, dt, dc, cc, getRequestingThread());
+    tid = getRequestingThread();
+    ps = new performanceStream(ap, dt, dc, cc, tid);
     ap->streams.add(ps);
 
     return(ps);
@@ -208,29 +213,7 @@ void dataManager::addResourceList(resourceList *rl, resource *r)
 
 char *dataManager::getResourceListName(resourceList *rl)
 {
-    int i;
-    int count;
-    int total;
-    char *ret;
-    char **temp;
-    extern int strCompare(char **a, char **b);
-
-    count = rl->getCount();
-    temp = rl->convertToStringList();
-    qsort(temp, count, sizeof(char *), strCompare);
-
-    total = 2;
-    for (i=0; i < count; i++) total += strlen(temp[i])+2;
-
-    ret = new (char[total]);
-    strcpy(ret, "<");
-    for (i=0; i < count; i++) {
-	if (i) strcat(ret, ",");
-	strcat(ret, temp[i]);
-    }
-    strcat(ret, ">");
-
-    return(ret);
+    return(strdup(rl->getCanonicalName()));
 }
 
 metricInstance *dataManager::enableDataCollection(performanceStream *ps,

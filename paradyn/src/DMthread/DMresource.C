@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.2 1994/02/03 23:26:59 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.3 1994/04/18 22:28:33 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.2  1994/02/03 23:26:59  hollings
+ * Revision 1.3  1994/04/18 22:28:33  hollings
+ * Changes to create a canonical form of a resource list.
+ *
+ * Revision 1.2  1994/02/03  23:26:59  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.1  1994/02/02  00:42:35  hollings
@@ -25,6 +28,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "dataManager.h"
 #include "DMresource.h"
@@ -33,6 +37,7 @@ stringPool resource::names;
 resource *resource::rootResource = new resource();
 HTable<resource*> resource::allResources;
 
+stringPool resourceList::names;
 
 //
 // used only to construct root.
@@ -119,3 +124,32 @@ char ** resourceList::convertToStringList()
     return(temp);
 }
 
+char *resourceList::getCanonicalName()
+{
+    int i;
+    int total;
+    char *tempName;
+    char **temp;
+    extern int strCompare(char **a, char **b);
+
+    if (fullName) return(fullName);
+
+    temp = convertToStringList();
+    qsort(temp, count, sizeof(char *), strCompare);
+
+    total = 2;
+    for (i=0; i < count; i++) total += strlen(temp[i])+2;
+
+    tempName = new(char[total]);
+    strcpy(tempName, "<");
+    for (i=0; i < count; i++) {
+	if (i) strcat(tempName, ",");
+	strcat(tempName, temp[i]);
+    }
+    strcat(tempName, ">");
+
+    fullName = names.findAndAdd(tempName);
+    delete(tempName);
+
+    return(fullName);
+}

@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.14  1994/03/31 01:42:19  markc
+ * Revision 1.15  1994/04/18 22:28:30  hollings
+ * Changes to create a canonical form of a resource list.
+ *
+ * Revision 1.14  1994/03/31  01:42:19  markc
  * Added pauseProcess, continueProcess member functions.
  *
  * Revision 1.13  1994/03/25  22:59:28  hollings
@@ -433,6 +436,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 							 metric *m)
 {
     int id;
+    char *name;
     component *comp;
     String_Array ra;
     Boolean foundOne;
@@ -464,7 +468,8 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 				 histDataCallBack, 
 				 histFoldCallBack, 
 				 (void *) mi);
-	m->enabledCombos.add(mi, (void*) rl);
+	name = rl->getCanonicalName();
+	m->enabledCombos.add(mi, (void*) name);
 	return(mi);
     } else {
 	delete(mi);
@@ -478,11 +483,13 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 void applicationContext::disableDataCollection(metricInstance *mi)
 {
     metric *m;
+    char *name;
     component *c;
     List<component*> curr;
 
     m = mi->met;
-    m->enabledCombos.remove(mi->focus);
+    name = mi->focus->getCanonicalName();
+    m->enabledCombos.remove(name);
     for (curr = mi->components; c = *curr; curr++) {
 	delete(c);
     }

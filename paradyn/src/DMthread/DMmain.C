@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.16  1994/04/12 22:33:34  hollings
+ * Revision 1.17  1994/04/18 22:28:31  hollings
+ * Changes to create a canonical form of a resource list.
+ *
+ * Revision 1.16  1994/04/12  22:33:34  hollings
  * Fixed casts back to time64 which were dropping off the fraction of seconds
  * in the timestamps of samples.
  *
@@ -87,11 +90,13 @@ tunableConstant samplingRate(0.5, 0.0, 1000.0, newSampleRate, "samplingRate",
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
 							metric *m)
 {
+    char *name;
     metricInstance *mi;
 
     if (!m || !rl) return(NULL);
 
-    mi = m->enabledCombos.find(rl);
+    name = rl->getCanonicalName();
+    mi = m->enabledCombos.find(name);
     if (mi) {
         mi->count++;
 	mi->users.add(this);
