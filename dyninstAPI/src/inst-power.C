@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.170 2003/05/15 22:12:26 bernat Exp $
+ * $Id: inst-power.C,v 1.171 2003/05/16 21:22:43 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -363,22 +363,22 @@ void pd_Function::checkCallPoints() {
 // because the called function may not have been seen.
 //
 Address pd_Function::newCallPoint(const Address adr, const instruction instr,
-				 const image *owner, bool &err)
+                                  const image *owner, bool &err)
 {
     Address ret=adr;
     instPoint *point;
     err = true;
-
+    
     point = new instPoint(this, instr, owner, adr, false, ipFuncCallPoint);
-
+    
     if (!isCallInsn(instr)) {
-      point->callIndirect = true;
-      point->callee = NULL;
+        point->callIndirect = true;
+        point->callee = NULL;
     } else
-      point->callIndirect = false;
-
+        point->callIndirect = false;
+    
     // point->callAggregate = false;
-
+    
     calls.push_back(point);
     err = false;
     return ret;
@@ -1114,11 +1114,10 @@ unsigned restoreFPRegisters(instruction *&insn, Address &base, Address offset)
 unsigned saveSPRegisters(instruction *&insn, Address &base, Address offset)
 {
   base += saveCR(insn, 10, offset + STK_CR);
-  base += saveSPR(insn, 10, SPR_CTR, offset + STK_CTR);
   base += saveSPR(insn, 10, SPR_XER, offset + STK_XER);
   base += saveSPR(insn, 10, SPR_SPR0, offset + STK_SPR0);
   base += saveFPSCR(insn, 10, offset + STK_FP_CR);
-  return 5;
+  return 4;
 }
 
 /*
@@ -1129,11 +1128,10 @@ unsigned saveSPRegisters(instruction *&insn, Address &base, Address offset)
 unsigned restoreSPRegisters(instruction *&insn, Address &base, Address offset)
 {
   base += restoreCR(insn, 10, offset + STK_CR);
-  base += restoreSPR(insn, 10, SPR_CTR, offset + STK_CTR);
   base += restoreSPR(insn, 10, SPR_XER, offset + STK_XER);
   base += restoreSPR(insn, 10, SPR_SPR0, offset + STK_SPR0);
   base += restoreFPSCR(insn, 10, offset + STK_FP_CR);
-  return 5;
+  return 4;
 }
 
 /*
@@ -1271,9 +1269,12 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   case ipOther:
     //fprintf(stderr, "Base tramp at arbitrary point\n");
     break;
-  default:
-    //fprintf(stderr, "Base tramp at function call\n");
+  case ipFuncCallPoint:
+      //fprintf(stderr, "Base tramp at function call\n");
     break;
+ default:
+     assert(0);
+     break;
   }
 
   /////////////////////////////////////////////////////////////
@@ -1302,6 +1303,13 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     // Save GPR0 here also? 
   }
   
+  // Save the count register if we're at an arbitrary point (ipOther)
+  // or a call site (ipFuncCallPoint)
+  if (location->ipLoc == ipOther ||
+      location->ipLoc == ipFuncCallPoint) {
+      currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+  }
+
   currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
   
   if (proc->multithread_capable()) {
@@ -1391,8 +1399,16 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
 
+  if (location->ipLoc == ipOther ||
+      location->ipLoc == ipFuncCallPoint) {
+      currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+  }
+  
+
   if (location->ipLoc == ipOther)
     restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+      
+
   restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
   restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
   // Pop stack flame, could also be a load indirect R1->R1
@@ -1433,10 +1449,18 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   saveGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
   saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
   if (location->ipLoc == ipOther) {
-    // Save special purpose registers
-    saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
-    // Save GPR0 here also? 
+      // Save special purpose registers
+      saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+      // Save GPR0 here also? 
   }
+
+  // Save the count register if we're at an arbitrary point (ipOther)
+  // or a call site (ipFuncCallPoint)
+  if (location->ipLoc == ipOther ||
+      location->ipLoc == ipFuncCallPoint) {
+      currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+  }
+
   currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
  
   // MT: thread POS calculation. If not, stick a 0 here
@@ -1525,6 +1549,11 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Register restore. 
   theTemplate->restorePostInsOffset = currAddr;
   currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+
+  if (location->ipLoc == ipOther ||
+      location->ipLoc == ipFuncCallPoint) {
+      currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+  }
 
   if (location->ipLoc == ipOther)
     restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
@@ -1654,8 +1683,10 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
-  //fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
-  //baseAddr, baseAddr+theTemplate->size, location->addr, location->func->prettyName().c_str());
+/*
+  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
+          baseAddr, baseAddr+theTemplate->size, location->addr, location->func->prettyName().c_str());
+*/
   if (isReinstall) return NULL;
 
   return theTemplate;
@@ -3269,8 +3300,12 @@ bool pd_Function::findInstPoints(const image *owner)
   instr.raw = owner->get_instruction(adr);
   while(instr.raw != 0x0) {
     if (isCallInsn(instr)) {
-      // Define the call point
-      adr = newCallPoint(adr, instr, owner, err);
+        // Define the call point
+        
+        
+        adr = newCallPoint(adr, instr, owner, err);
+
+
       if (err)   goto set_uninstrumentable;
      }
     else if (isDynamicCall(instr)) {
@@ -3715,23 +3750,12 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
       break;
     case REG_CTR:
       // CTR is saved down the stack
-      /*
-      offset = STKCTR - STKPAD; 
-      // Get address (SP + offset) and stick in register dest.
-      emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
-	      base, noCost);
-      // Load LR into register dest
-      emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
-      */
-      // Actually, for non-dyninst we don't touch the CTR. So move
-      // it from SPR 9 (the CTR) to the appropriate register (dest)
-      insn_ptr->raw = 0;          // zero the instruction
-      insn_ptr->xform.op = 31;    // mfspr
-      insn_ptr->xform.rt = dest ; // target register
-      insn_ptr->xform.ra = 9;     // SPR number (see comment above saveSPR())
-      insn_ptr->xform.rb = 0; 
-      insn_ptr->xform.xo = 339;   // extended opcode
-      base += sizeof(instruction);
+        offset = TRAMP_SPR_OFFSET + STK_CTR;
+        // Get address (SP + offset) and stick in register dest.
+        emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
+                base, noCost);
+        // Load LR into register dest
+        emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
       break;
     default:
       cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
@@ -3753,13 +3777,13 @@ bool process::MonitorCallSite(instPoint *callSite){
   instruction i = callSite->originalInstruction;
   pdvector<AstNode *> the_args(2);
   Register branch_target;
-
   // Is this a branch conditional link register (BCLR)
   // BCLR uses the xlform (6,5,5,5,10,1)
   if(i.xlform.op == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
   {
       if (i.xlform.xo == BCLRxop) // BLR (bclr)
       {
+          //fprintf(stderr, "Branch target is the link register\n");
           branch_target = REG_LR;
       }
       else if (i.xlform.xo == BCCTRxop)
@@ -3768,6 +3792,7 @@ bool process::MonitorCallSite(instPoint *callSite){
           // sites. They're currently registered when the static call
           // graph is built (Paradyn), after all objects have been read
           // and parsed.
+          //fprintf(stderr, "Branch target is the count register\n");
           branch_target = REG_CTR;
       }
       else
