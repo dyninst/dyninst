@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.27  1996/01/30 23:04:01  tamches
-/* removed include to obsolete file shgDisplay.h
+/* Revision 1.28  1996/02/01 01:35:33  tamches
+/* suppressed duplicate of "Whole Program" which was sometimes being generated
 /*
+ * Revision 1.27  1996/01/30 23:04:01  tamches
+ * removed include to obsolete file shgDisplay.h
+ *
  * Revision 1.26  1996/01/23 07:11:25  tamches
  * uim_VisiSelections no longer a ptr
  *
@@ -210,7 +213,7 @@ void printResSelectList (vector<numlist> *v, char *name)
 
 /* parseSelections
  * takes a list with one resourceHandle vector per resource hierarchy; result 
- * is the cross product list of valid focii, represented as vectors of 
+ * is the cross product list of valid foci, represented as vectors of 
  * nodeID vectors; each element on resulting list can be converted into 
  * one focus.
  */
@@ -227,11 +230,22 @@ vector<numlist> parseSelections(vector<numlist> &theHierarchy,
 
    while (!theOdometer.done()) {
       // create a focus using the odometer's current setting
-      numlist theFocus(theHierarchy.size());
-      for (unsigned hier=0; hier < theHierarchy.size(); hier++)
-         theFocus[hier] = theHierarchy[hier][theOdometer[hier]];
+      // Make a note if we have added the equivalent of "Whole Program"
 
-      result += theFocus;
+      numlist theFocus(theHierarchy.size());
+
+      bool addedEquivOfWholeProgram = plusWholeProgram; // so far...
+
+      for (unsigned hier=0; hier < theHierarchy.size(); hier++) {
+         theFocus[hier] = theHierarchy[hier][theOdometer[hier]];
+         if (addedEquivOfWholeProgram)
+	    addedEquivOfWholeProgram = (theFocus[hier] == wholeProgramFocus[hier]);
+      }
+
+      if (!addedEquivalentOfWholeProgram)
+         result += theFocus;
+//      else
+//         cout << "Suppressing duplicate of whole program" << endl;
 
       theOdometer++;
    }
@@ -239,7 +253,8 @@ vector<numlist> parseSelections(vector<numlist> &theHierarchy,
    // There is one final thing to check for: whole-program
    if (plusWholeProgram)
       result += wholeProgramFocus;
-   
+
+//   cout << "parseSelections: returning result of " << result.size() << " foci" << endl;
    return result;
 }
 
