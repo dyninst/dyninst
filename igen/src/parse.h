@@ -2,7 +2,10 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.6  1994/03/07 02:35:18  markc
+ * Revision 1.7  1994/04/01 04:58:10  markc
+ * Added checks in genBundler.
+ *
+ * Revision 1.6  1994/03/07  02:35:18  markc
  * Added code to detect failures for xdr code.  Provides member instance
  * callErr which is set to -1 on failures.
  *
@@ -109,7 +112,7 @@ class field {
       char *getType() { return(type); }
       void genBundler() {
 	  if (generateXDR) {
-	    printf("    xdr_%s(__xdrs__, &(__ptr__->%s));\n", type, name);
+	    printf("    if (!xdr_%s(__xdrs__, &(__ptr__->%s))) return FALSE;\n", type, name);
 	  } else if (generatePVM) {
 	    printf("    IGEN_pvm_%s(__dir__, &(__ptr__->%s));\n", type, name);
 	  }
