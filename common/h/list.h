@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.14  1994/02/25 00:25:57  hollings
+ * Revision 1.15  1994/03/11 21:01:23  hollings
+ * Changed Boolean from int to char to match X11 convention.
+ *
+ * Revision 1.14  1994/02/25  00:25:57  hollings
  * added tunable constants.
  *
  * Revision 1.13  1994/02/24  07:05:28  markc
@@ -67,7 +70,7 @@
 #include <iostream.h>
 #include <stdlib.h>
 
-typedef int Boolean;
+typedef char Boolean;
 
 #ifndef FALSE
 #define FALSE 0

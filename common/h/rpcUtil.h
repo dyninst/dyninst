@@ -2,6 +2,14 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
+/*
+ * $Log: rpcUtil.h,v $
+ * Revision 1.12  1994/03/11 21:01:24  hollings
+ * Changed Boolean from int to char to match X11 convention.
+ *
+ *
+ */
+
 // prevents malloc from being redefined
 #ifdef MIPS
 #define MALLOC_DEFINED_AS_VOID
@@ -48,7 +56,7 @@ int accept(int, struct sockaddr *addr, int *);
 typedef XDR *XDRptr;
 typedef int (*xdrIOFunc)(int handle, char *buf, unsigned int len);
 
-typedef int Boolean;
+typedef char Boolean;
 typedef char *String;
  
 //
