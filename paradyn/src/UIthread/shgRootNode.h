@@ -3,10 +3,13 @@
 // analagous to rootNode.h (for the where axis)
 
 /* $Log: shgRootNode.h,v $
-/* Revision 1.3  1996/01/23 07:09:04  tamches
-/* style split up into evaluationState & active flag
-/* added shadow node features
+/* Revision 1.4  1996/02/15 23:13:19  tamches
+/* added code to properly support why vs. where axis refinement
 /*
+ * Revision 1.3  1996/01/23 07:09:04  tamches
+ * style split up into evaluationState & active flag
+ * added shadow node features
+ *
  * Revision 1.2  1996/01/11 23:42:21  tamches
  * there are now 6 node styles instead of 4
  *
@@ -24,11 +27,13 @@
 #include "util/h/String.h"
 #endif
 
-#include "where4treeConstants.h" // yuck
+#include "tcl.h"
+#include "tk.h"
 
 class shgRootNode {
  public:
    enum evaluationState {es_never, es_unknown, es_true, es_false};
+   enum refinement {ref_why, ref_where, ref_undefined};
 
  private:
    unsigned id;
@@ -40,9 +45,14 @@ class shgRootNode {
    bool highlighted;
 
    // the combination of the following 2 vrbles defines the 7 possible states
-   // (active/never is undefined)
+   // (active/es_never is undefined)
    bool active;
    evaluationState evalState;
+
+   // the following vrble tells whether, in the shg, this node is a why or a where
+   // refinement of its parent node.  Presumably, outside code will use the value
+   // to draw different edge styles between nodes.  Probably undefined for root.
+   refinement theRefinement;
 
    bool shadowNode;
 
@@ -52,8 +62,17 @@ class shgRootNode {
    static int borderPix;
    static int horizPad, vertPad;
 
+   void initialize(unsigned iId, bool iActive, evaluationState iEvalState,
+		   refinement iRefinement,
+		   bool iShadowNode,
+		   const string &iLabel, const string &iFullInfo);
+
  public:
 
+   shgRootNode(unsigned iId, bool iActive, evaluationState iEvalState,
+	       refinement iRefinement,
+	       bool iShadowNode,
+	       const string &iLabel, const string &iFullInfo);
    shgRootNode(unsigned iId, bool iActive, evaluationState iEvalState,
 	       bool iShadowNode,
 	       const string &iLabel, const string &iFullInfo);
@@ -61,7 +80,9 @@ class shgRootNode {
   ~shgRootNode() {}
 
    shgRootNode shadowify(const char *newlabel) const {
-      return shgRootNode(id, active, evalState, true,
+      return shgRootNode(id, active, evalState,
+			 theRefinement,
+			 true, // shadow node
 			 newlabel, fullInfo);
    }
 
@@ -84,14 +105,25 @@ class shgRootNode {
 
    bool isActive() const {return active;}
    evaluationState getEvalState() const {return evalState;}
-//   style getStyle() const {return theStyle;}
 
-//   bool configStyle(style newStyle);
+   refinement getRefinement() const {return theRefinement;}
+   void setRefinement(refinement newRefinement) {theRefinement = newRefinement;}
+
    bool configStyle(bool newActive, evaluationState newEvalState);
       // returns true iff any changes.  Does not redraw.
 
    void drawAsRoot(Tk_Window, int theDrawable,
 		   int centerx, int topy) const;
+
+   static GC getGCforListboxRay(const shgRootNode &parent,
+				const shgRootNode &firstChild);
+      // return GC to be used in an XDrawLine call from "parent" down to the
+      // listbox of its children; "firstChild" is the node data for the first
+      // such child.
+   static GC getGCforNonListboxRay(const shgRootNode &parent,
+				   const shgRootNode &child);
+      // assuming that "parent" is an expanded (explicitly or not) node, return the GC
+      // to be used in an XDrawLine call from it down to "child".
 
    static void prepareForDrawingListboxItems(Tk_Window, XRectangle &listboxBounds);
       // called by "where4tree<shgRootNode>" before it draws listbox items.

@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: shgRootNode.C,v $
-/* Revision 1.3  1996/01/23 19:48:10  tamches
-/* added shadow node features
+/* Revision 1.4  1996/02/15 23:13:20  tamches
+/* added code to properly support why vs. where axis refinement
 /*
+ * Revision 1.3  1996/01/23 19:48:10  tamches
+ * added shadow node features
+ *
  * Revision 1.2  1996/01/11 23:42:40  tamches
  * there are now 6 node styles
  *
@@ -20,17 +23,21 @@ int shgRootNode::borderPix = 3;
 int shgRootNode::horizPad = 3;
 int shgRootNode::vertPad = 2;
 
-shgRootNode::shgRootNode(unsigned iId,
-			 bool iActive, shgRootNode::evaluationState iEvalState,
-			 bool iShadow,
-			 const string &iLabel, const string &iFullInfo) :
-   			    label(iLabel),
-			    fullInfo(iFullInfo) {
+void shgRootNode::initialize(unsigned iId,
+			     bool iActive, shgRootNode::evaluationState iEvalState,
+			     shgRootNode::refinement iRefinement,
+			     bool iShadow,
+			     const string &iLabel, const string &iFullInfo) {
+   label = iLabel;
+   fullInfo = iFullInfo;
+
    id = iId;
    highlighted = false;
 
    active = iActive;
    evalState = iEvalState;
+
+   theRefinement = iRefinement;
 
    shadowNode = iShadow;
 
@@ -51,11 +58,30 @@ shgRootNode::shgRootNode(unsigned iId,
 				      label.string_of(), label.length());
 }
 
-shgRootNode::shgRootNode(const shgRootNode &src) : label(src.label), fullInfo(src.fullInfo) {
+shgRootNode::shgRootNode(unsigned iId,
+			 bool iActive, shgRootNode::evaluationState iEvalState,
+			 shgRootNode::refinement iRefinement,
+			 bool iShadow,
+			 const string &iLabel, const string &iFullInfo) {
+   initialize(iId, iActive, iEvalState, iRefinement,
+	      iShadow, iLabel, iFullInfo);
+}
+
+shgRootNode::shgRootNode(unsigned iId, bool iActive,
+			 shgRootNode::evaluationState iEvalState,
+			 bool iShadow,
+			 const string &iLabel, const string &iFullInfo) {
+   initialize(iId, iActive, iEvalState, ref_undefined,
+	      iShadow, iLabel, iFullInfo);
+}
+
+shgRootNode::shgRootNode(const shgRootNode &src) : label(src.label),
+                                                   fullInfo(src.fullInfo) {
    id = src.id;
    highlighted = src.highlighted;
    active = src.active;
    evalState = src.evalState;
+   theRefinement = src.theRefinement;
    shadowNode = src.shadowNode;
    pixWidthAsRoot = src.pixWidthAsRoot;
    pixHeightAsRoot = src.pixHeightAsRoot;
@@ -112,6 +138,19 @@ void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
 	       shg::getRootItemTextGC(active, shadowNode),
 	       textLeft, textBaseLine,
 	       label.string_of(), label.length());
+}
+
+GC shgRootNode::getGCforListboxRay(const shgRootNode &,
+				   const shgRootNode &firstChild) {
+   // return GC to be used in an XDrawLine call from "parent" down to the
+   // listbox of its children; "firstChild" is the node data for the first
+   // such child.
+   return shg::getGCforListboxRay(firstChild.theRefinement);
+}
+
+GC shgRootNode::getGCforNonListboxRay(const shgRootNode &,
+				      const shgRootNode &child) {
+   return shg::getGCforNonListboxRay(child.theRefinement);
 }
 
 void shgRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
