@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.353 2002/08/31 16:53:12 mikem Exp $
+// $Id: process.C,v 1.354 2002/09/10 17:15:21 mikem Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -86,11 +86,11 @@ int pvmendtask();
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/main.h"
+#include "paradynd/src/init.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/int64iostream.h"
 #endif
 
-#include "paradynd/src/init.h"
 #ifndef BPATCH_LIBRARY
 #ifdef PAPI
 #include "paradynd/src/papiMgr.h"
