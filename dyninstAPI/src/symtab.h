@@ -3,14 +3,15 @@
  *
  */
 
+#ifndef SYMTAB_HDR
+#define SYMTAB_HDR
+
 /*
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.8  1994/10/25 22:20:34  hollings
- * Added code to suppress "functions" that have aninvalid instruction
- * as their first instruction.  These are really read-only data that has
- * been placed in the text segment to protect it from writing.
+ * Revision 1.9  1994/11/02 11:17:46  markc
+ * Added class support for image, module, function.
  *
  * Revision 1.7  1994/09/30  19:47:17  rbi
  * Basic instrumentation for CMFortran
@@ -56,72 +57,102 @@
 extern "C" {
 #include <sys/types.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
 }
 
-#include "util/h/stringPool.h"
+#include "util/h/Pair.h"
+#include "util/h/Vector.h"
+#include "util/h/Dictionary.h"
+#include "util/h/Object.h"
 #include "util/h/list.h"
 #include "dyninst.h"
 #include "arch-sparc.h"
 #include "util.h"
+#include "util/h/String.h"
+#include "resource.h"
+#include "kludges.h"
+#include "util/h/Types.h"
+#include "util/h/Symbol.h"
 
 /*
  * List of supported languages.
  *
  */
-typedef enum { unknown, assembly, C, cPlusPlus, gnuCPlusPlus,
-    fortran, CMFortran } supportedLanguages;
+typedef enum { langUnknown,
+	       langAssembly,
+	       langC,
+	       langCPlusPlus,
+	       langGnuCPlusPlus,
+	       langFortran,
+	       langCMFortran
+	       } supportedLanguages;
 
+/* contents of line number field if line is unknown */
+#define UNKNOWN_LINE	0
+
+#define TAG_LIB_FUNC	0x1
+#define TAG_IO_OUT	0x2
+#define TAG_IO_IN       0x4
+#define TAG_MSG_SEND	0x8
+#define TAG_MSG_RECV    0x10
+#define TAG_SYNC_FUNC	0x20
+#define TAG_CPU_STATE	0x40	/* does the func block waiting for ext. event */
+#define TAG_MSG_FILT    0x80
+
+#define DYN_MODULE "DYN_MODULE"
+#define EXTRA_MODULE "EXTRA_MODULE"
+#define USER_MODULE "USER_MODULE"
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
-#define NO_SYMS_MODULE	"NO_SYMS_MODULE"
 
 class pdFunction;
 class instPoint;
 class module;
 class image;
 class internalSym;
+class lineTable;
 
 class pdFunction {
  public:
-    pdFunction();
-    stringHandle symTabName;		/* name as it appears in the symbol table */
-    stringHandle prettyName;		/* user's view of name (i.e. de-mangled) */
+    pdFunction(const string symbol, const string &pretty, module *f, Address adr,
+	       const unsigned tg, const image *owner, bool &err);
+
+    void checkCallPoints();
+    bool defineInstPoint();
+    Address newCallPoint(const Address adr, const instruction code, const image *owner, 
+		     bool &err);
+    string getSymbol() const { return symTabName;}
+    string getPretty() const { return prettyName;}
+
+    string symTabName;		/* name as it appears in the symbol table */
+    string prettyName;		/* user's view of name (i.e. de-mangled) */
     int line;			/* first line of function */
     module *file;		/* pointer to file that defines func. */
-    caddr_t addr;		/* address of the start of the func */
+    Address addr;		/* address of the start of the func */
     instPoint *funcEntry;	/* place to instrument entry (often not addr) */
     instPoint *funcReturn;	/* exit point for function */
-    int callLimit;		/* max val of calls array */
-    int callCount;		/* number of sub-routine cal points */
-    instPoint **calls;		/* pointer to the calls */
-    int ljmpCount;		/* number of long jumps out of func */
-    instPoint *jmps;		/* long jumps out */
-    int tag;			/* tags to ident special (library) funcs. */
-    pdFunction *next;		/* next function in global function list */
-    pdFunction *sibling;		/* next function with the same name - WARNING
-					we assume name equality so this
-					could either be c++ template functions
-					beging replicated or other non global
-					functions that appear twice.
-				*/
+    vector<instPoint*> calls;		/* pointer to the calls */
+    // TODO -- is this needed ?
+    // int ljmpCount;		/* number of long jumps out of func */
+    // instPoint *jmps;		/* long jumps out */
+    unsigned tag;			/* tags to ident special (library) funcs. */
+
 };
 
 
 class instPoint {
  public:
-    instPoint() {
-      addr = 0; originalInstruction.raw = 0; delaySlotInsn.raw = 0;
-      aggregateInsn.raw =0;
-      inDelaySlot=0; isDelayed = 0; callIndirect=0; callAggregate=0;
-      callee=NULL; func=NULL;
-    }
-    int addr;                   /* address of inst point */
+    instPoint(pdFunction *f, const instruction &instr, const image *owner,
+	      const Address adr, const bool delayOK);
+
+    Address addr;                   /* address of inst point */
     instruction originalInstruction;    /* original instruction */
     instruction delaySlotInsn;  /* original instruction */
     instruction aggregateInsn;  /* aggregate insn */
-    int inDelaySlot;            /* Is the instruction in a dealy slot */
-    int isDelayed;		/* is the instruction a delayed instruction */
-    int callIndirect;		/* is it a call whose target is rt computed ? */
-    int callAggregate;		/* calling a func that returns an aggregate
+    bool inDelaySlot;            /* Is the instruction in a delay slot */
+    bool isDelayed;		/* is the instruction a delayed instruction */
+    bool callIndirect;		/* is it a call whose target is rt computed ? */
+    bool callAggregate;		/* calling a func that returns an aggregate
 				   we need to reolcate three insns in this case
 				 */
     pdFunction *callee;		/* what function is called */
@@ -130,62 +161,72 @@ class instPoint {
 
 
 /* Stores source code to address in text association for modules */
-class lineTable {
- public:
-    lineTable() {
-      maxLine = 100;
-      addr = (caddr_t *) xcalloc(100, sizeof(caddr_t));
-    }
-    ~lineTable() {
-      if (addr)
-	free(addr);
-    }
-    void qsortLines() {
-      qsort(addr, maxLine, sizeof(int), intComp);
-    }
-    int getMaxLine() { return maxLine;}
-    void setLineAddr (int line, caddr_t lineAddr);
-    caddr_t getLineAddr (int line) {
-      if ((line >= 0) && (line < maxLine))
-	return (addr[line]);
-      else
-	return (NULL);
-    }
+class lineDict {
+public:
+  lineDict() : lineMap(uiHash) { }
+  void setLineAddr (const unsigned line, const Address addr) {
+    lineMap[line] = addr; }
 
-  private:
-    int maxLine;		/* max possible line */
-    caddr_t *addr;		/* addr[line] is the addr of line */
+  bool getLineAddr (const unsigned line, Address &adr) const {
+    if (!lineMap.defines(line)) {
+      return false;
+    } else {
+      adr = lineMap[line];
+      return true;
+    }
+  }
+
+private:
+  dictionary_hash<unsigned, Address> lineMap;
 };
 
 class module {
  public:
     module();
-    void setLineAddr(int line, caddr_t addr) {
-      lines.setLineAddr(line, addr);
+    void setLineAddr(const unsigned line, const Address addr) {
+      lines.setLineAddr(line, addr); }
+
+    bool getLineAddr(const unsigned line, Address &addr) const {
+      return (lines.getLineAddr(line, addr)); }
+
+    // defines module to paradyn
+    void define();
+
+    void changeLibFlag(const bool setSuppress) {
+      dictionary_hash_iter<string, pdFunction*> fi(funcMap);
+      string pds; pdFunction *func;
+
+      while (fi.next(pds, func)) {
+	if (setSuppress) {
+	  func->tag |= TAG_LIB_FUNC;
+	} else {
+	  func->tag &= ~TAG_LIB_FUNC;
+	}
+      }
     }
-    caddr_t getLineAddr(int line) {
-      return (lines.getLineAddr(line));
+    
+    pdFunction *findFunction (const string &name) {
+      if (funcMap.defines(name)) 
+	return (funcMap[name]);
+      else
+	return NULL;
     }
+
+    void mapLines() { }   // line number info is not used now
     char *compileInfo;
-    stringHandle fileName;		/* short file */
-    stringHandle fullName;		/* full path to file */
+    string fileName;		/* short file */
+    string fullName;		/* full path to file */
     supportedLanguages language;
-    caddr_t addr;		/* starting address of module */
-    List<pdFunction*> funcs;	/* functions defined in this module */
+    Address addr;		/* starting address of module */
+    dictionary_hash<string, pdFunction*> funcMap;    /* functions.defines in this module */
     image *exec;		/* what executable it came from */
-    lineTable lines;		/* line mapping info */
-    module *next;		/* pointer to next module */
+    void checkAllCallPoints();
+
+  private:
+
+    lineDict lines;
 };
 
-/* contents of line number field if line is unknown */
-#define UNKNOWN_LINE	0
-
-#define TAG_LIB_FUNC	0x01
-#define TAG_IO_FUNC	0x02
-#define TAG_MSG_FUNC	0x04
-#define TAG_SYNC_FUNC	0x08
-#define TAG_CPU_STATE	0x10	/* does the func block waiting for ext. event */
-#define TAG_NON_FUNC	0x20	/* has an invalid instruction at entry point */
 
 /*
  * symbols we need to find from our RTinst library.  This is how we know
@@ -195,32 +236,136 @@ class module {
  *
  */
 class internalSym {
- public:
-    internalSym() { 
-      name = NULL; addr=0;
-    }
-    stringHandle name;		/* name as it appears in the symbol table. */
-    unsigned int addr;		/* absolute address of the symbol */
+public:
+  internalSym(const Address adr, const string &nm) : addr(adr), name(nm) { }
+  Address getAddr() const { return addr;}
+private:
+  string name;            /* name as it appears in the symbol table. */
+  Address addr;      /* absolute address of the symbol */
 };
 
 class image {
- public:
-    image();
-    stringHandle file;		/* image file name */
-    stringHandle name;		/* filename part of file */
-    int moduleCount;		/* number of modules */
-    module *modules;		/* pointer to modules */
-    int funcCount; 		/* number of functions */
-    pdFunction *funcs;		/* pointer to linked list of functions */
-    int iSymCount;		/* # of internal RTinst library symbols */
-    internalSym *iSyms;		/* internal RTinst library symbols */
-    void *code;			/* pointer to code */
-    unsigned int textOffset;	/* base of where code is loaded */
-    int offset;			/* offset of a.out in file */
-    HTable<pdFunction*> funcAddrHash; /* hash table to find functions by address */
-    image *next;		/* next in our list of images */
-    int symbolExists(const char *); /* Does the symbol exist in the image? */
-    void postProcess(const char *);              /* Load .pif file */
+public:
+
+    image(char *file, bool &err);
+    // TODO
+    ~image() { }
+
+    // TODO - a lot of this should be private - mdc
+    bool addInternalSymbol(const string &str, const Address symValue);
+    internalSym *findInternalSymbol(const string name, const bool warn);
+    Address findInternalAddress(const string name, const bool warn, bool &err);
+    bool moveFunction(module *mod, const string &nm, const Address adr,
+		      const unsigned tag, pdFunction *func);
+
+    bool newFunc(module *, const string name, const Address addr,
+		 const unsigned tags, bool &err);
+
+    module *getOrCreateModule (const string &modName, const Address modAddr);
+
+    void findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
+			    const bool startB, const Address startAddr,
+			    const bool endB, const Address endAddr, bool &defErr,
+			    vector<Symbol> &mods);
+
+    bool addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
+			const bool startB, const Address startAddr,
+			const bool endB, const Address endAddr,
+			const Symbol &lookUp);
+
+    void addAllFunctions(vector<Symbol> &mods, vector<Symbol> &almostF,
+			 module *lib, module *dyn,
+			 const bool startB, const Address startAddr,
+			 const bool endB, const Address endAddr);
+
+    // if useLib = true or the functions' tags signify a library function
+    // the function is put in the library module
+    void defineFunction(module *use, const Symbol &sym, const unsigned tags, bool &err);
+    void defineFunction(module *lib, const Symbol &sym, bool &err,
+			const string &modName, const Address modAdr);
+
+    string getFile() const {return file;}
+    string getName() const { return name;}
+
+    /* find the named module */
+    module *findModule(const string &name);
+
+    /* find the named function */
+    bool findFunction(const string &name, vector<pdFunction*> &flist);
+    
+    /* find one of n versions of a function */
+    pdFunction *findOneFunction(const string &name);
+
+    /* find the function add the passed addr */
+    pdFunction *findFunctionByAddr(const Address addr);
+
+    // report modules to paradyn
+    void defineModules();
+
+    module *newModule(const string &name, Address addr);
+
+    string file;		/* image file name */
+    string name;		/* filename part of file */
+
+    bool symbolExists(const string); /* Does the symbol exist in the image? */
+    void postProcess(const string);          /* Load .pif file */
+
+    // TODO make private
+    dictionary_hash <Address, pdFunction*> funcsByAddr; // find functions by address
+    static dictionary_hash <string, image*> allImages;
+    dictionary_hash <string, vector<pdFunction*>*> funcsByPretty;   // find functions by name
+
+    Word get_instruction(Address adr) const {
+      // TODO remove assert
+      assert(isValidAddress(adr));
+
+      if (isCode(adr)) {
+	adr -= codeOffset;
+	adr >>= 2;
+	const Word *inst = linkedFile.code_ptr();
+	return (inst[adr]);
+      } else if (isData(adr)) {
+	adr -= dataOffset;
+	adr >>= 2;
+	const Word *inst = linkedFile.data_ptr();
+	return (inst[adr]);
+      } else {
+	abort();
+	return 0;
+      }
+    }
+
+    Address getCodeOffset() const { return codeOffset;}
+    Address getDataOffset() const { return dataOffset;}
+
+  private:
+
+    void checkAllCallPoints();
+
+    Object linkedFile;
+    // Address must be in code or data range since some code may end up
+    // in the data segment
+    bool isValidAddress(const Address where) const {
+      return (!(where & 0x3) && 
+	      (isCode(where) || isData(where)));
+    }
+    bool isCode(const Address where) const {
+      return ((where >= codeOffset) && (where < (codeOffset+(codeLen<<2))));
+    }
+    bool isData(const Address where) const {
+      return ((where >= dataOffset) && (where < (dataOffset+(dataLen<<2))));
+    }
+
+    // TODO 
+    Address codeOffset;
+    unsigned codeLen;
+    Address dataOffset;
+    unsigned dataLen;
+
+    // dictionary_hash <string, vector<pdFunction*>*> funcsBySymbol; // by symbol
+    dictionary_hash <string, internalSym*> iSymsMap;   // internal RTinst symbols
+    dictionary_hash <string, module *> modsByFileName;
+    dictionary_hash <string, module*> modsByFullName;
 };
 
 
@@ -231,61 +376,26 @@ class image {
  *   named LIBRARY_MODULE. 
  *
  */
-image *parseImage(char *file, int offset);
-module *newModule(image*, const char *currDir, const char *name, caddr_t addr);
-pdFunction *newFunc(image*, module *, const char *name, int addr);
-extern stringPool pool;
+
 
 class libraryFunc {
-    public:
-	libraryFunc(const char *n, int t) {
-	    name = pool.findAndAdd(n);
-	    tags = t;
-	}
-	stringHandle name;
-	int tags;
+public:
+  libraryFunc(const string n, unsigned t) : name(n), tags(t) { }
+  unsigned getTags() const { return tags;}
+
+private:
+  string name;
+  unsigned tags;
 };
 
-/*
- * Functions provided by machine/os/vendor specific files.
- *
- * iSym is the prefix to match on to find the callable inst functions.
- *
- */
-/*
-image *loadSymTable(const char *file, int offset, List<libraryFunc*> libraryFunctions, 
-		    const char **iSym);
-*/
-Boolean locateAllInstPoints(image *i);
 
 /*
  * main interface to the symbol table based code.
  *
  */
-image *parseImage(char *file, int offset);
+image *parseImage(const string file);
 
-/*
- * symbol table access functions.
- *
- */
+extern resource *moduleRoot;
+extern void changeLibFlag(resource*, bool);
 
-/* find the named internal symbol */
-internalSym *findInternalSymbol(image *, const char *name, Boolean warn = True);
-
-/* find the address of the named internal symbol */
-caddr_t findInternalAddress(image *, const char *name, Boolean warn = True);
-
-/* find the named module */
-module *findModule(image *, const char *name);
-
-/* find the named funcation */
-pdFunction *findFunction(image *, const char *name);
-
-/* find the function add the passed addr */
-pdFunction *findFunctionByAddr(image *, caddr_t addr);
-
-/* look through func for inst points */
-void locateInstPoints(pdFunction*, void *, int, int calls);
-
-/* record line # for each func entry */
-void mapLines(module *);
+#endif
