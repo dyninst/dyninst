@@ -428,7 +428,7 @@ BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 //to insert all entry basic blocks to the esrelevant field of the class.
 bool BPatch_flowGraph::createBasicBlocks()
 { 
-    //clean up this mess
+
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0) 
@@ -450,13 +450,7 @@ bool BPatch_flowGraph::createBasicBlocks()
     
     return true;
 
-#else // x86 linux, SPARC solaris, x86 windows
-
-    // TODO Note this "else" code also contains #ifdefs for
-    // the platforms above, like x86 linux.
-    // They are essentially NOPs, until the entire function
-    // can be cleaned up.
-
+#else // x86 linux, x86 solaris, x86 windows
 
    // assign sequential block numbers to basic blocks
    int bno = 0;
@@ -466,11 +460,7 @@ bool BPatch_flowGraph::createBasicBlocks()
    
    Address relativeAddress = (Address) ((void *)func->get_address());
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) 
-   long diffAddress = effectiveAddress;
-#else
    long long diffAddress = effectiveAddress;
-#endif
 
    diffAddress -= relativeAddress;
 
@@ -497,8 +487,6 @@ bool BPatch_flowGraph::createBasicBlocks()
    
    //while there are still instructions to check for in the
    //address space of the function
-   //   instruction inst;
-
 
    while (ah.hasMore()) {
       //get the inctruction and the address
@@ -572,14 +560,7 @@ bool BPatch_flowGraph::createBasicBlocks()
       {
          InstrucIter ah2(ah);
          BPatch_Set<Address> possTargets; 
-
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)
-         ah2.getMultipleJumpTargets(possTargets,ah);
-#else
          ah2.getMultipleJumpTargets(possTargets);
-#endif
          Address* telements = new Address[possTargets.size()];
 
          possTargets.elements(telements);
@@ -601,10 +582,8 @@ bool BPatch_flowGraph::createBasicBlocks()
          if (InstrucIter::delayInstructionSupported())
             ++ah;
       }
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) // Temporary duplication - TLM 
+
+#if defined(ia64_unknown_linux2_4) 
       else if (inst.isAReturnInstruction()) {
          if (InstrucIter::delayInstructionSupported())
             ++ah;
@@ -637,17 +616,7 @@ bool BPatch_flowGraph::createBasicBlocks()
       for (unsigned int i=0; i < leaders.size(); i++) {
          //set the value of address handle to be the value of the leader
          ah.setCurrentAddress(elements[i]);
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
-         // If the position of this leader does not match the start
-         // of an instruction, then the leader must be invalid.
-         // This can happen, for instance, when we parse a section
-         // of data as if it were code, and some part of the data
-         // looks like a branch.  If this happens, don't process
-         // the leader (the associated BPatch_basicBlock will be
-         // removed later when we remove unreachable blocks).
-         if (!ah.isInstruction())
-            continue;
-#endif
+
          BPatch_basicBlock * bb = leaderToBlock[elements[i]];
          bb->startAddress = (Address)(elements[i]+diffAddress);
          
@@ -663,7 +632,7 @@ bool BPatch_flowGraph::createBasicBlocks()
             // the end of the function yet
             if ((i < (leaders.size()-1)) && (pos == elements[i+1])) {
 		// end of current block
-		bb->endAddress = (Address)(ah.prevAddress() + diffAddress);
+		bb->lastInsnAddress = (Address)(ah.prevAddress() + diffAddress);
 
 		// if the previous block has no targets inside the current 
 		// function and is not an exit block and the previous 
@@ -751,13 +720,8 @@ bool BPatch_flowGraph::createBasicBlocks()
             {
                InstrucIter ah2(ah);
                BPatch_Set<Address> possTargets; 
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)
-               ah2.getMultipleJumpTargets(possTargets,ah);
-#else
+
                ah2.getMultipleJumpTargets(possTargets);
-#endif
                Address* telements = new Address[possTargets.size()];
                possTargets.elements(telements);
 
@@ -790,13 +754,15 @@ bool BPatch_flowGraph::createBasicBlocks()
          //end addresss of the basic block to the last instruction's
          //address in the address space.
          if (i == (leaders.size()-1))
-            bb->endAddress = (Address)(ah.prevAddress()+diffAddress);
-            
+         {
+            bb->lastInsnAddress = (Address)(ah.prevAddress()+diffAddress);
+         }         
+   
    }
    delete[] elements;
          
    return true;
-#endif // x86 linux, SPARC solaris, or x86 Windows
+#endif // x86 linux, x86 solaris, or x86 Windows
 }
 
 
@@ -894,7 +860,7 @@ BPatch_flowGraph::createSourceBlocks()
              //in the mapping from address to line number for closest
              while (ah.hasMore()) {
                 Address cAddr = ah++;
-                if (cAddr > bb->endAddress) 
+                if (cAddr > bb->lastInsnAddress) 
                    break;
                 fLineInformation->getLineFromAddr(fName,lineNums,cAddr);
              }
