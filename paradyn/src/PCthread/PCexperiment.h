@@ -40,34 +40,8 @@
  */
 
 /*
- * PCexperiment.h
- *
  * experiment class
- *
- * $Log: PCexperiment.h,v $
- * Revision 1.8  1996/08/16 21:03:23  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.7  1996/08/16 07:07:34  karavan
- * minor code cleanup
- *
- * Revision 1.6  1996/07/22 18:55:39  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.5  1996/05/15 04:35:09  karavan
- * bug fixes: changed pendingCost pendingSearches and numexperiments to
- * break down by phase type, so starting a new current phase updates these
- * totals correctly; fixed error in estimated cost propagation.
- *
- * Revision 1.4  1996/05/08 07:35:09  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- *
- * Revision 1.1  1996/02/02 02:07:25  karavan
- * A baby Performance Consultant is born!
- *
+ * $Id: PCexperiment.h,v 1.9 1998/04/28 22:20:48 wylie Exp $
  */
 
 #ifndef PCEXPER_H
@@ -109,6 +83,9 @@ class experiment : public dataSubscriber
   testResult getCurrentConclusion (){return currentConclusion;}
   timeStamp getTimeTrueFalse () {return timeTrueFalse;}
   sampleValue getCurrentValue () {return currentValue;}
+  sampleValue getAdjustedValue () {return adjustedValue;}
+  sampleValue getLastThreshold () {return lastThreshold;}
+  sampleValue getHysConstant () {return hysConstant;}
   timeStamp getStartTime () {return startTime;}
   timeStamp getEndTime () {return endTime;}
   float getEstimatedCost() {return estimatedCost;}
@@ -151,9 +128,11 @@ class experiment : public dataSubscriber
   // how long has this guess held? (sum of intervals used in guess, not 
   // necessarily consecutive)
   timeStamp timeTrueFalse;      
+  // this is the (unadjusted) value of the PC metric itself
+  sampleValue currentValue;
   // this is value of PC metric minus threshold; only the sign has 
   // meaning, magnitudes mean varying things across different experiments.
-  sampleValue currentValue;
+  sampleValue adjustedValue;
   // always contains the correct hysteresis parameter to use for next 
   // evaluation.  1-hysparam if been true; else 1+hysparam
   float hysConstant;     
