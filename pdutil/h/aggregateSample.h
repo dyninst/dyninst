@@ -49,7 +49,7 @@
 #ifndef UTIL_SAMPLE
 #define UTIL_SAMPLE
 
-#include "util/h/list.h"
+//#include "util/h/list.h"
 #include "util/h/hist.h"
 #include "util/h/Vector.h"
 #include "util/h/aggregation.h"
@@ -75,7 +75,7 @@ class sampleInfo {
 
   public:
  
-    bool firstValueReceived() { return firstSampleReceived; }
+    bool firstValueReceived() const { return firstSampleReceived; }
 
 //    void startTime(timeStamp startTime_);
    void firstTimeAndValue(timeStamp, int firstValue);
@@ -106,6 +106,9 @@ private:
     ~sampleInfo() {};
 
     sampleInfo &operator=(const sampleInfo &src) {
+       if (&src == this)
+          return *this;
+       
        firstSampleReceived = src.firstSampleReceived;
        lastSampleStart = src.lastSampleStart;
        lastSampleEnd = src.lastSampleEnd;
