@@ -196,6 +196,11 @@ public:
    */
   void setCurrentAddress(Address);
 
+#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+  /** does the address point to an instruction */
+  bool isInstruction();
+#endif
+
   /** returns the content of the address  handle */
   Address operator* ();
 

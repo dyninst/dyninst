@@ -28,24 +28,28 @@ const int BPatch_flowGraph::BLACK = 2;
 
 //constructor of the class. It creates the CFG and
 //deletes the unreachable code.
-BPatch_flowGraph::BPatch_flowGraph(BPatch_function *bpf)
+BPatch_flowGraph::BPatch_flowGraph(BPatch_function *bpf, bool &valid)
 	: bpFunction(bpf),loops(NULL),isDominatorInfoReady(false),
 	  isSourceBlockInfoReady(false)
 {
 	//fill the information of the basic blocks after creating
 	//them. The dominator information will also be filled
-	createBasicBlocks();
+	valid = true;
+	if (!createBasicBlocks()) {
+	    valid = false;
+	    return;
+	}
 	findAndDeleteUnreachable();
 }
 
 //contsructor of class. It finds the bpatch function which has the name
 //given as a parameter and calls the other constructor using the bpatch 
 //function value.
-BPatch_flowGraph::BPatch_flowGraph(BPatch_image *bpim,char *functionName){
+BPatch_flowGraph::BPatch_flowGraph(BPatch_image *bpim,char *functionName, bool &valid){
 	BPatch_function *bpf = NULL;
 	bpf = bpim->findBPFunction(functionName);
 	if(bpf)
-		*(this) = *(new BPatch_flowGraph(bpf));
+		*(this) = *(new BPatch_flowGraph(bpf, valid));
 	else{
 		cerr << "ERROR : BPatch_flowGraph::BPatch_flowGraph : ";
 		cerr << functionName <<" does not have BPatch_function object\n" ;
@@ -184,7 +188,7 @@ void BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb){
 //entryBlocks field of the controlflow grpah. If it is possible
 //to enter a function from many points some modification is needed
 //to insert all entry basic blocks to the relevant field of the class.
-void BPatch_flowGraph::createBasicBlocks(){
+bool BPatch_flowGraph::createBasicBlocks(){
 
 	int tbs = 0,i,j;
 
@@ -345,6 +349,23 @@ void BPatch_flowGraph::createBasicBlocks(){
 	Address* elements = new Address[leaders.size()];
 	leaders.elements(elements);
 
+#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+	/*
+	 * On x86, check that all leaders point to actual instructions (not
+	 * into the middle of an instruction).  If not, delete what we've
+	 * built and return an error.
+	 */
+	for(i=0;i<leaders.size();i++){
+		ah.setCurrentAddress(elements[i]);
+		if (!ah.isInstruction()) {
+			delete [] elements;
+			BPatch_reportError(BPatchSerious, 42,
+					   "unable to determine control flow graph");
+			return false;
+		}
+	}
+#endif
+
 	//insert the first leaders corresponding basic block as a entry
 	//block to the control flow graph.
 
@@ -480,6 +501,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 	}
 	delete[] elements;
 
+	return true;
 }
 
 // This function must be called only after basic blocks have been created

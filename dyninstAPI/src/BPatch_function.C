@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.31 2003/03/14 19:02:33 rchen Exp $
+// $Id: BPatch_function.C,v 1.32 2003/03/25 01:49:47 buck Exp $
 
 #define BPATCH_FILE
 
@@ -71,7 +71,7 @@
  */
 BPatch_function::BPatch_function(process *_proc, function_base *_func,
 	BPatch_module *_mod) :
-	proc(_proc), mod(_mod), cfg(NULL), func(_func)
+	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
 {
   // there should be at most one BPatch_func for each function_base per process
   assert(proc->thread && !proc->PDFuncToBPFuncMap[func]);
@@ -100,7 +100,7 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
  */
 BPatch_function::BPatch_function(process *_proc, function_base *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
-	proc(_proc), mod(_mod), cfg(NULL), func(_func)
+	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
 {
   assert(!proc->PDFuncToBPFuncMap[_func]);
 
@@ -601,10 +601,15 @@ bool BPatch_function::getLineAndFile(unsigned int &start,
 }
 
 BPatch_flowGraph* BPatch_function::getCFG(){
-	if(cfg)
-		return cfg;
-
-	cfg = new BPatch_flowGraph((BPatch_function*)this);
+	if(!cfgCreated) {
+	    bool valid;
+	    cfg = new BPatch_flowGraph((BPatch_function*)this, valid);
+	    cfgCreated = true;
+	    if (!valid) {
+		delete cfg;
+		cfg = NULL;
+	    }
+	}
 
 	return cfg;
 }

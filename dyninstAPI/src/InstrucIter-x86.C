@@ -297,6 +297,12 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
 		}
 	}
 	(*this)--;
+
+	if (!hasMore()) {
+	    BPatch_reportError(BPatchWarning, 42, "unable to parse jump table");
+	    return;
+	}
+
 	/* now get the instruction to find the maximum switch value */
 	instruction maxSwitchInsn;
 	while(hasMore()){
@@ -307,6 +313,11 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
 			break;
 		}
 		(*this)--;
+	}
+
+	if (!hasMore()) {
+	    BPatch_reportError(BPatchWarning, 42, "unable to parse jump table");
+	    return;
 	}
 
 	unsigned maxSwitch = 0;
@@ -421,6 +432,13 @@ void InstrucIter::setCurrentAddress(Address addr)
 {
 	currentAddress = addr;
 }
+
+#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+bool InstrucIter::isInstruction()
+{
+	return instructionPointers[currentAddress-baseAddress] != NULL;
+}
+#endif
 
 instruction InstrucIter::getInstruction()
 {
