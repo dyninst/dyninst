@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.90 1999/01/21 20:50:44 wylie Exp $
+// $Id: symtab.C,v 1.91 1999/03/19 18:01:48 csserra Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -652,24 +652,22 @@ pd_Function *image::findFunctionIn(const Address &addr,const process *p) const
   dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
   Address adr;
   while (mi.next(adr, pdf)) {
-      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size()))) 
-	  return pdf;
+    if ((addr>=pdf->getAddress(p))&&(addr<(pdf->getAddress(p)+pdf->size()))) 
+      return pdf;
   }
   
   // next, look in excludedFunctions...
   dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
   string str;
   while (ex.next(str, pdf)) {
-     if ((addr>=pdf->getAddress(p)) &&
-	      (addr<=(pdf->getAddress(p)+pdf->size()))) 
-	  return pdf;
+    if ((addr>=pdf->getAddress(p))&&(addr<(pdf->getAddress(p)+pdf->size()))) 
+      return pdf;
   }
 
   dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
   while (ni.next(str, pdf)) {
-      if ((addr>=pdf->getAddress(p)) &&
-	      (addr<=(pdf->getAddress(p)+pdf->size()))) 
-	  return pdf;
+    if ((addr>=pdf->getAddress(p))&&(addr<(pdf->getAddress(p)+pdf->size()))) 
+      return pdf;
   }
 
   return NULL; 
@@ -1270,7 +1268,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
     mainFuncSymbol = lookUp;
 
   // find the real functions -- those with the correct type in the symbol table
-  for(SymbolIter symIter = linkedFile; symIter;symIter++) {
+  for(SymbolIter symIter(linkedFile); symIter;symIter++) {
     const Symbol &lookUp = symIter.currval();
 
     if (funcsByAddr.defines(lookUp.addr()) ||
@@ -1302,7 +1300,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
 
   // now find the pseudo functions -- this gets ugly
   // kludge has been set if the symbol could be a function
-  for(SymbolIter symIter2 = linkedFile;symIter2;symIter2++) {
+  for(SymbolIter symIter2(linkedFile);symIter2;symIter2++) {
     lookUp = symIter2.currval();
     if (funcsByAddr.defines(lookUp.addr())) {
         // This function has been defined
@@ -1332,7 +1330,7 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 #endif
 
   // find the real functions -- those with the correct type in the symbol table
-  for(SymbolIter symIter3 = linkedFile;symIter3;symIter3++) { 
+  for(SymbolIter symIter3(linkedFile);symIter3;symIter3++) { 
     const Symbol &lookUp = symIter3.currval();
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
@@ -1356,7 +1354,7 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 
   // now find the pseudo functions -- this gets ugly
   // kludge has been set if the symbol could be a function
-  for(SymbolIter symIter4 = linkedFile;symIter4;symIter4++) {
+  for(SymbolIter symIter4(linkedFile);symIter4;symIter4++) {
     const Symbol &lookUp = symIter4.currval();
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
@@ -1380,7 +1378,7 @@ bool image::addAllVariables()
   string mangledName; 
   Symbol symInfo;
 
-  for(SymbolIter symIter = linkedFile; symIter; symIter++) {
+  for(SymbolIter symIter(linkedFile); symIter; symIter++) {
      const string &mangledName = symIter.currkey();
      const Symbol &symInfo = symIter.currval();
 
@@ -1499,8 +1497,7 @@ static bool findEndSymbol(Object &lf, Address &adr) {
       base_addr - curr. used IFF shared_library == 1.
  */
 void image::initialize(const string &fileName, bool &err,
-	bool shared_object, Address) {
-
+		       bool shared_object, Address /*base_addr*/) {
     // initialize (data members) codeOffset_, dataOffset_,
     //  codeLen_, dataLen_.
     codeOffset_ = linkedFile.code_off();
@@ -1586,7 +1583,7 @@ void image::initialize(const string &fileName, bool &err,
     //
     vector <Symbol> tmods;
 
-    for (SymbolIter symIter = linkedFile; symIter; symIter++) {
+    for (SymbolIter symIter(linkedFile); symIter; symIter++) {
         const Symbol &lookUp = symIter.currval();
         if (lookUp.type() == Symbol::PDST_MODULE) {
 
@@ -1662,15 +1659,15 @@ void image::initialize(const string &fileName, bool &err,
     checkAllCallPoints();
 
     // TODO -- remove duplicates -- see earlier note
-    dictionary_hash<unsigned, unsigned> addr_dict(uiHash);
+    dictionary_hash<Address, unsigned> addr_dict(addrHash4);
     vector<pd_Function*> temp_vec;
 
     // question??  Necessary to do same crap to includedFunctions &&
     //  excludedFunctions??
     unsigned f_size = instrumentableFunctions.size(), index;
     for (index=0; index<f_size; index++) {
-        const unsigned the_address = 
-            (unsigned)instrumentableFunctions[index]->getAddress(0);
+        const Address the_address = 
+            instrumentableFunctions[index]->getAddress(0);
         if (!addr_dict.defines(the_address)) {
             addr_dict[the_address] = 1;
             temp_vec += instrumentableFunctions[index];
