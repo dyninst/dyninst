@@ -32,8 +32,15 @@ class BackEndNode: public ChildNode, public CommunicationNode{
     int send(Packet &);
     int flush();
     int recv( bool blocking=true );
+
+    int get_SocketFd() const ;
 };
 
+inline int BackEndNode::get_SocketFd() const
+{
+    assert(upstream_node);
+    return upstream_node->get_SocketFd();
+}
 } // namespace MRN
 
 #endif /* __backendnode_h */
