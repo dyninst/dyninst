@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.73  1995/08/24 15:02:26  hollings
+ * Revision 1.74  1995/08/24 17:23:53  newhall
+ * fixed compile error
+ *
+ * Revision 1.73  1995/08/24  15:02:26  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -550,10 +553,9 @@ void DM_eFunction(int errno, char *message)
 }
 
 
-int dataManager::DM_sequential_init(init_struct* init){
-   // parse PDL file
-   string fname = met_file;
-   return(metMain(fname)); 
+int dataManager::DM_sequential_init(const char* met_file){
+   string mfile = met_file;
+   return(metMain(mfile)); 
 }
 
 int dataManager::DM_post_thread_create_init(int tid) {
