@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.33  1997/01/22 15:44:07  lzheng
+ * Two Bugs Fixing for the code generation (in loadConst and assember_21)
+ *
  * Revision 1.32  1997/01/21 00:24:51  tamches
  * removed uses of DYNINSTglobalData
  *
@@ -228,7 +231,7 @@ string getStrOp(int op)
 */
 
 inline unsigned assemble_21(unsigned offset) {
-    unsigned ret = ((offset&0x100000)>>20)|((offset&0xeef00)>>8)
+    unsigned ret = ((offset&0x100000)>>20)|((offset&0xefe00)>>8)
                    |((offset&0x180)<<7)|((offset&0x7c)<<14)
                    |((offset&0x3)<<12);
     return ret;
@@ -435,7 +438,7 @@ inline void generateLoadConst(instruction *insn, int src1, int dest,
 	insn->mr.ls.b = 0;
 	insn->mr.ls.tr = dest;
 	insn->mr.ls.s = 0;
-	insn->mr.ls.im14 = ((src1&0x1fff)<<1)|((src1&0x0000)>>13);
+	insn->mr.ls.im14 = ((src1&0x1fff)<<1)|((src1&0x2000)>>13);
 
 	base += sizeof(instruction);
       }
@@ -865,7 +868,7 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	    case SKIP_POST_INSN:
                 thisTemp->skipPostInsOffset = ((void*)temp - (void*)tramp);
                 break;
-	    case RETURN_INSN:
+	    case TRAILER_33:    
                 thisTemp->returnInsOffset = ((void*)temp - (void*)tramp);
                 break;
 	    case EMULATE_INSN:
@@ -887,7 +890,7 @@ registerSpace *regSpace;
 
 // return values come via r28, r29; these should be dead at call point
 // Not really, actually.
-int deadRegList[] = { 29, 3, 2, 23, 24, 25, 26 };
+int deadRegList[] = { 3, 2, 23, 24, 25, 26 };
 
 
 // r26, r25, r24, r23 are call arguments (in that order)
