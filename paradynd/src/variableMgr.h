@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.h,v 1.4 2002/06/10 19:25:11 bernat Exp $
+// $Id: variableMgr.h,v 1.5 2002/08/12 04:22:12 schendel Exp $
 // The variableMgr class is the top-level view of the actual
 // shared, sampled counters and timers. The provides a logical way 
 // to reference the counters and timers (called variables) for creation,
@@ -73,9 +73,8 @@ class variableMgr {
   process *applicProcess;
   shmMgr &theShmMgr;
 
-  // since we don't define them, make sure they're not used:
-  variableMgr(const variableMgr &);
-  variableMgr &operator=(const variableMgr &);
+  variableMgr(const variableMgr &);             // disallow this
+  variableMgr &operator=(const variableMgr &);  // disallow this
  public:
   variableMgr(process *proc, shmMgr *shmMgr, 
 	      unsigned i_currMaxNumberOfThreads);
@@ -115,6 +114,7 @@ class variableMgr {
   unsigned getCurrentNumberOfThreads();
 
   void deleteThread(pdThread *thr);
+  void initializeVarsAfterFork();
 };
 
 #endif
