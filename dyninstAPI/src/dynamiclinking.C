@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.6 2005/03/16 22:59:39 bernat Exp $
+// $Id: dynamiclinking.C,v 1.7 2005/03/17 23:27:25 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -48,6 +48,7 @@
 
 dynamic_linking::dynamic_linking(process *p): proc(p), dynlinked(false),
                                               dlopen_addr(0), 
+					      instru_based(false),
                                               force_library_load(false), 
                                               lowestSObaseaddr(0),
                                               dlopenUsed(false) 
@@ -58,6 +59,7 @@ dynamic_linking::dynamic_linking(process *p,
                                  dynamic_linking *d): proc(p),
                                                       dynlinked(d->dynlinked),
                                                       dlopen_addr(d->dlopen_addr),
+						      instru_based(d->instru_based),
                                                       force_library_load(d->force_library_load),
                                                       lowestSObaseaddr(d->lowestSObaseaddr),
                                                       dlopenUsed(d->dlopenUsed)
