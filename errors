@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.4  1994/04/19 18:41:55  hollings
+# Revision 1.5  1994/04/19 18:46:30  hollings
+# created error #4
+#
+# Revision 1.4  1994/04/19  18:41:55  hollings
 # created error #3
 #
 # Revision 1.3  1994/04/19  18:37:43  hollings
@@ -45,4 +48,16 @@ a serious error that indicates a bug in the paradyn/paradynd interface.
 A sample value has arrive for a metric from a paradynd, but the paradyn 
 process was not expecting a value from this process.  This is a serious internal
 consistancy failure of the paradyn/paradynd interface.
+%Y
+
+%N 4
+%E unable to connect to new paradyn daemon process.
+%A paradynd
+%S serious
+%X
+A request had arrived to start a new paradyn daemon process on a remote 
+machine (either from the user or the system based on adding new hosts), and
+the paradyn user process was unable to rendezvous with the paradynd process.
+This could indicate a network failure, the paradynd process not being 
+installed on the remote machine, or a file permission problem.
 %Y
