@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.41 2002/08/31 16:53:23 mikem Exp $
+// $Id: metParser.y,v 1.42 2002/09/05 19:47:26 mikem Exp $
 
 #include "paradyn/src/met/metParse.h"
 #include "paradyn/src/met/mdl.h"
@@ -552,36 +552,38 @@ met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK
 	{
 		$$.base.type = MDL_T_COUNTER;
 		$$.base.m_stmt_v = $5.m_stmt_v;
+                $$.base.hwcntr_str = new string("");
 	}
 	| tBASE tIS tP_TIME tLBLOCK metric_stmts tRBLOCK 
 	{
 		$$.base.type = MDL_T_PROC_TIMER;
 		$$.base.m_stmt_v = $5.m_stmt_v; 
+                $$.base.hwcntr_str = new string("");
 	}
 	| tBASE tIS tW_TIME tLBLOCK metric_stmts tRBLOCK 
 	{
 		$$.base.type = MDL_T_WALL_TIMER;
 		$$.base.m_stmt_v = $5.m_stmt_v; 
+                $$.base.hwcntr_str = new string("");
 	}
         | tBASE tIS tHW_COUNTER tLPAREN tLITERAL tRPAREN tLBLOCK metric_stmts tRBLOCK
         {
 		$$.base.type = MDL_T_HW_COUNTER;
 		$$.base.m_stmt_v = $8.m_stmt_v; 
-                $$.base.hwcntr_str = *$5.sp; 
-                delete $5.sp;
+                $$.base.hwcntr_str = $5.sp; 
         }
         | tBASE tIS tHW_TIME tLPAREN tLITERAL tRPAREN tLBLOCK metric_stmts tRBLOCK
         {
 		$$.base.type = MDL_T_HW_TIMER;
 		$$.base.m_stmt_v = $8.m_stmt_v; 
-                $$.base.hwcntr_str = *$5.sp; 
-                delete $5.sp;
+                $$.base.hwcntr_str = $5.sp; 
         }
 	| tBASE tIS tVOID tLBLOCK metric_stmts tRBLOCK 
 	{
 		// for special un-sampled metrics.
 		$$.base.type = MDL_T_NONE;
 		$$.base.m_stmt_v = $5.m_stmt_v; 
+                $$.base.hwcntr_str = new string("");
 	}
 	;
 
@@ -662,7 +664,8 @@ metric_elem_list: met_name
     $$.mfld = new metricFld;
     $$.mfld->base_type = $1.base.type;
     $$.mfld->base_m_stmt_v = $1.base.m_stmt_v;
-    $$.mfld->base_hwcntr_str = $1.base.hwcntr_str;
+    $$.mfld->base_hwcntr_str = (*($1.base.hwcntr_str));
+    delete $1.base.hwcntr_str;  
     $$.mfld->spec = SET_BASE;
   }
   | met_unittype
