@@ -1,6 +1,6 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.34 1999/03/03 18:21:16 pcroth Exp $
+ * $Id: performanceConsultant.I,v 1.35 1999/05/19 07:52:18 karavan Exp $
  */
 
 #include "dataManager.thread.h"
@@ -64,6 +64,10 @@ $remote performanceConsultant {
     // Get loads of information about a node:
     // client's responsibility to provide valid shg_node_info struct pointer
     $async void requestNodeInfo(unsigned phaseID, int nodeID);
+
+    // Dump out contents of search history graph into a file
+    // valid flag values:  1 = global 2 = phase 3 = all
+    $async void saveSHG(const char *filename, int flag);
 
     $signore
     // these globals hold values updated by tunable constant callbacks
