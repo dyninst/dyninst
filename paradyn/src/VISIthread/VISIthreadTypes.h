@@ -16,11 +16,14 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.21  1996/04/30 18:55:29  newhall
-/* changes to support the asynchrounous enable data calls to the DM
-/* this code contains a kludge to make the VISIthread wait for the DM's
-/* async response
+/* Revision 1.22  1996/05/31 23:50:31  tamches
+/* removed pid member (no longer used)
 /*
+ * Revision 1.21  1996/04/30 18:55:29  newhall
+ * changes to support the asynchrounous enable data calls to the DM
+ * this code contains a kludge to make the VISIthread wait for the DM's
+ * async response
+ *
  * Revision 1.20  1996/04/19  21:25:02  newhall
  * replaced call to msg_poll with msg_poll_preference
  *
@@ -127,7 +130,6 @@ struct VISIGlobalsStruct {
   u_int buffer_next_insert_index; // same as old bufferSize
 
   int fd;
-  int pid;
   int quit;
   double bucketWidth;
   visi_thread_args* args;
