@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.22 2002/03/22 21:55:20 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.23 2002/03/27 22:17:02 chadd Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -410,6 +410,15 @@ int checkElfFile(){
  * data segment
  * UPDATE: now the heap tramps are not loaded by the loader
  * but rather this file so _init is necessary
+ * UPDATE: gcc handles the _init fine, but
+ * cc chokes on it.  There seems to be no compiler
+ * independent way to have my code called correctly
+ * at load time so i have defined _NATIVESO_ in
+ * the sparc Makefile for cc only.  The #pragma
+ * forces the my_init function to be called 
+ * correctly upon load of the library.
+ * Building with gcc is the same as before. 
+ * THIS NEEDS TO BE FIXED 
  * 
  * with linux the trampolines are ALL in the big
  * array at the top of this file and so are not loaded
@@ -417,7 +426,18 @@ int checkElfFile(){
  * needs to be called to map in everything before
  * main() jumps to the big array
  */ 
+
+#if defined(_NATIVESO_)
+
+#pragma init (my_init) 
+void my_init(){
+
+#else 
 void _init(){
+
+#endif
+
+
 /* this buffer is allocated to clear
    the first page on the heap. This is necessary
    because loading the heap tramps uses mmap, which

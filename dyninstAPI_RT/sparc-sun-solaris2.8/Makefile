@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2002/03/22 21:55:20 chadd Exp $
+# $Id: Makefile,v 1.6 2002/03/27 22:16:56 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,8 +24,8 @@ CFLAGS          = -g -I. -I../.. -Dsparc_sun_solaris2_4
 ifdef USES_NATIVE_CC
 CC		= $(NATIVE_CC)
 LD		= $(NATIVE_CC)
-CFLAGS          += -Kpic
-LDFLAGS         = -ldl -lelf -dy -G -z text -nostdlib
+CFLAGS          += -Kpic -D_NATIVESO_
+LDFLAGS         = -ldl -lelf -dy -G -z text
 else
 CC              = gcc
 LD              = gcc
