@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.16  1995/11/30 22:01:10  naim
+ * Revision 1.17  1995/11/30 23:09:03  naim
+ * Changed the units of bucket_width - naim
+ *
+ * Revision 1.16  1995/11/30  22:01:10  naim
  * Minor change to bucket_width metric - naim
  *
  * Revision 1.15  1995/11/30  16:53:50  naim
@@ -133,7 +136,7 @@ bool init() {
   bucket_width = internalMetric::newInternalMetric("bucket_width", 
 						   SampledFunction,
 						   aggMax,
-						   "operations",
+						   "seconds",
 						   NULL,
 						   default_im_preds,
 						   true,
