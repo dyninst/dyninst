@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.51 1999/09/10 14:26:27 nash Exp $
+ * $Id: inst-x86.C,v 1.52 1999/11/09 19:21:26 cain Exp $
  */
 
 #include <limits.h>
@@ -71,13 +71,21 @@ void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 
 // The general machine registers. 
 // These values are taken from the Pentium manual and CANNOT be changed.
+#undef EAX 
 #define EAX (0)
+#undef ECX
 #define ECX (1)
+#undef EDX
 #define EDX (2)
+#undef EBX
 #define EBX (3)
+#undef ESP
 #define ESP (4)
+#undef EBP
 #define EBP (5)
+#undef ESI
 #define ESI (6)
+#undef EDI
 #define EDI (7)
 
 // Size of a jump rel32 instruction
@@ -1991,7 +1999,8 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
       emitMovRMToReg(EAX, EAX, 0, insn);         // mov eax, [eax]
       emitMovRegToRM(EBP, -(dest*4), EAX, insn); // mov -(dest*4)[ebp], eax
 
-    } else if (op ==  storeIndirOp) {
+    } 
+    else if (op ==  storeIndirOp) {
       // same as storeOp, but the address where to store is already in a
       // register
       emitMovRMToReg(EAX, EBP, -(src1*4), insn);   // mov eax, -(src1*4)[ebp]
@@ -2605,6 +2614,26 @@ void emitFuncJump(opCode /*op*/,
      /* Unimplemented on this platform! */
      assert(0);
 }
+
+void emitLoadPreviousStackFrameRegister(Address, Register, char *, Address&,
+					int, bool){
+  assert(0);
+}
+
+
+#ifndef BPATCH_LIBRARY
+bool process::isDynamicCallSite(instPoint *callSite){
+  function_base *temp;
+  if(!findCallee(*(callSite),temp)){
+    return true;
+  }
+  return false;
+}
+
+bool process::MonitorCallSite(instPoint *callSite){
+  return false;
+}
+#endif
 
 #if (defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0))
 #include <sys/signal.h>

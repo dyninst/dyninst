@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.82 1999/10/18 17:32:45 hollings Exp $
+ * $Id: inst-power.C,v 1.83 1999/11/09 19:21:26 cain Exp $
  */
 
 #include "util/h/headers.h"
@@ -3000,3 +3000,23 @@ void emitFuncJump(opCode op,
      /* Unimplemented on this platform! */
      assert(0);
 }
+
+void emitLoadPreviousStackFrameRegister(Address, Register,
+					 char *, Address &, int, bool){
+  assert(0);
+}
+
+#ifndef BPATCH_LIBRARY
+bool process::isDynamicCallSite(instPoint *callSite){
+  function_base *temp;
+  if(!findCallee(*(callSite),temp)){
+    return true;
+  }
+  return false;
+}
+
+bool process::MonitorCallSite(instPoint *callSite){
+  return false;
+}
+#endif
+
