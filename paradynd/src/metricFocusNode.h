@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.14  1994/11/09 18:40:17  rbi
+ * Revision 1.15  1994/11/10 18:58:08  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.14  1994/11/09  18:40:17  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.13  1994/11/02  11:11:24  markc
@@ -165,81 +168,6 @@ class instReqNode {
 	instInstance	*instance;
 };
 
-class metricDefinitionNode {
-    public:
-        // styles are enumerated in util/h/aggregation.h
-	metricDefinitionNode(process *p, int agg_style = aggSum);
-	metricDefinitionNode(metric *m, List<metricDefinitionNode*> parts); 
-	~metricDefinitionNode();
-	void disable();
-	void updateValue(time64, sampleValue);
-	void forwardSimpleValue(timeStamp, timeStamp, sampleValue);
-
-	bool match(resourceListRec *l, metric *m) {
-	    return(resList == l && met == m);
-	}
-	bool nonNull() {
-	    return(!requests.empty() 
-		   || !data.empty());
-	}
-	bool insertInstrumentation();
-	float cost();
-	// used by controller.
-	float getMetricValue();
-	dataReqNode *addIntCounter(int inititalValue, bool report) {
-	    dataReqNode *tp;
-
-	    tp = new dataReqNode(intCounter, proc, inititalValue,
-		report,processTime);
-	    assert(tp);
-	    data.add(tp);
-	    return(tp);
-	};
-	dataReqNode *addTimer(timerType type) {
-	    dataReqNode *tp;
-	    tp = new dataReqNode(timer,proc,0,true,type);
-	    assert(tp);
-	    data.add(tp);
-	    return(tp);
-	};
-	void addInst(instPoint *point,AstNode *ast, callWhen when, callOrder o){
- 	    instReqNode *temp;
-	    if (!point || !ast) return;
-            temp = new instReqNode(proc, point, ast, when, o);
-	    assert(temp);
-	    requests.add(temp);
-        };
-
-	int id;				// unique id for this one 
-	metric *met;			// what type of metric
-	resourceListRec *resList;	// what resource list is this for.
-	float originalCost;
-
-	// is this a final value or a component of a larger metric.
-	bool inform;
-
-	process			*proc;
-    private:
-	void updateAggregateComponent(metricDefinitionNode *,
-				      timeStamp time, 
-				      sampleValue value);
-
-	bool			aggregate;
-	bool			inserted;
-
-	/* for aggregate metrics */
-	List<metricDefinitionNode*>   components;	
-
-	/* for non-aggregate metrics */
-	List<dataReqNode*>	data;
-	List<instReqNode*> 	requests;
-
-	// which metricDefinitionNode depend on this value.
-	List<metricDefinitionNode*>   aggregators;	
-
-	List<sampleInfo*>	valueList;	// actual data for comp.
-	sampleInfo sample;
-};
 
 typedef AstNode *(*createPredicateFunc)(metricDefinitionNode *mn, 
 					char *resource, AstNode *trigger);
@@ -342,8 +270,9 @@ class metric {
     metric() : more(true) { }
 
     void set(const string n, const int s, const int a, const string u,
-	     createMetricFunc f, resourcePredicate *r, const bool mr=true)
-      { info.set(n, s, a, u); definition.set(f, r); more = mr; }
+	     createMetricFunc f, resourcePredicate *r,
+	     const bool mr=true, const bool really=true)
+      { info.set(n, s, a, u); definition.set(f, r); more = mr; reallyIsEventCounter=really;}
 
     metricInfo getMetInfo() { return info.getMetInfo(); }
 
@@ -351,8 +280,84 @@ class metric {
     bool more;
     dynMetricInfo info;
     metricDefinition definition;
+    bool reallyIsEventCounter;
 };
 
+class metricDefinitionNode {
+    public:
+        // styles are enumerated in util/h/aggregation.h
+	metricDefinitionNode(process *p, int agg_style = aggSum);
+	metricDefinitionNode(metric *m, List<metricDefinitionNode*> parts); 
+	~metricDefinitionNode();
+	void disable();
+	void updateValue(time64, sampleValue);
+	void forwardSimpleValue(timeStamp, timeStamp, sampleValue);
+        string getMetName() { return (met->info.name);}
+	bool match(resourceListRec *l, metric *m) {
+	    return(resList == l && met == m);
+	}
+	bool nonNull() {
+	    return(!requests.empty() 
+		   || !data.empty());
+	}
+	bool insertInstrumentation();
+	float cost();
+	// used by controller.
+	float getMetricValue();
+	dataReqNode *addIntCounter(int inititalValue, bool report) {
+	    dataReqNode *tp;
+
+	    tp = new dataReqNode(intCounter, proc, inititalValue,
+		report,processTime);
+	    assert(tp);
+	    data.add(tp);
+	    return(tp);
+	};
+	dataReqNode *addTimer(timerType type) {
+	    dataReqNode *tp;
+	    tp = new dataReqNode(timer,proc,0,true,type);
+	    assert(tp);
+	    data.add(tp);
+	    return(tp);
+	};
+	void addInst(instPoint *point,AstNode *ast, callWhen when, callOrder o){
+ 	    instReqNode *temp;
+	    if (!point || !ast) return;
+            temp = new instReqNode(proc, point, ast, when, o);
+	    assert(temp);
+	    requests.add(temp);
+        };
+
+	int id;				// unique id for this one 
+	metric *met;			// what type of metric
+	resourceListRec *resList;	// what resource list is this for.
+	float originalCost;
+
+	// is this a final value or a component of a larger metric.
+	bool inform;
+
+	process			*proc;
+    private:
+	void updateAggregateComponent(metricDefinitionNode *,
+				      timeStamp time, 
+				      sampleValue value);
+
+	bool			aggregate;
+	bool			inserted;
+
+	/* for aggregate metrics */
+	List<metricDefinitionNode*>   components;	
+
+	/* for non-aggregate metrics */
+	List<dataReqNode*>	data;
+	List<instReqNode*> 	requests;
+
+	// which metricDefinitionNode depend on this value.
+	List<metricDefinitionNode*>   aggregators;	
+
+	List<sampleInfo*>	valueList;	// actual data for comp.
+	sampleInfo sample;
+};
 extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
 
 //

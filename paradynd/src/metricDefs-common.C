@@ -19,12 +19,15 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.10 1994/11/09 18:40:22 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.11 1994/11/10 18:58:11 jcargill Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.10  1994/11/09 18:40:22  rbi
+ * Revision 1.11  1994/11/10 18:58:11  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.10  1994/11/09  18:40:22  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.9  1994/11/02  11:12:52  markc
@@ -363,13 +366,6 @@ void createSyncOps(metricDefinitionNode *mn, AstNode *trigger)
     instAllFunctions(mn, TAG_CPU_STATE, newSyncOp, NULL);
 }
 
-void createActiveProcesses(metricDefinitionNode *mn, AstNode *trigger)
-{
-    mn->addIntCounter(1, true);
-
-    return;
-}
-
 void createMsgs(metricDefinitionNode *mn, AstNode *trigger)
 {
     AstNode *newMsgOp;
@@ -576,6 +572,5 @@ AstNode *perModuleCalls(metricDefinitionNode *mn,
     return NULL;
   }
 }
-
 
 

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.33 1994/11/09 18:40:31 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.34 1994/11/10 18:58:15 jcargill Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.33  1994/11/09 18:40:31  rbi
+ * Revision 1.34  1994/11/10 18:58:15  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.33  1994/11/09  18:40:31  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.32  1994/11/06  18:29:56  rbi
@@ -287,8 +290,8 @@ void processTraceStream(process *curr)
     }
 
     curr->bufEnd += ret;
-
     curr->bufStart = 0;
+
     while (curr->bufStart < curr->bufEnd) {
 	if (curr->bufEnd - curr->bufStart < (sizeof(traceStream) + sizeof(header))) {
 	    break;
@@ -352,6 +355,7 @@ void processTraceStream(process *curr)
 		break;
 
 	    case TR_MULTI_FORK:
+		// logLine("got TR_MULTI_FORK record\n");
 		CMMDhostless = true;
 		forkNodeProcesses(curr, &header, (traceFork *) recordData);
 		statusLine("node daemon started");

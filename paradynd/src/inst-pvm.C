@@ -3,7 +3,10 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.16  1994/11/09 18:40:08  rbi
+ * Revision 1.17  1994/11/10 18:58:01  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.16  1994/11/09  18:40:08  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.15  1994/11/02  11:06:18  markc
@@ -62,7 +65,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.16 1994/11/09 18:40:08 rbi Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.17 1994/11/10 18:58:01 jcargill Exp $";
 
 #include "util/h/kludges.h"
 
@@ -183,8 +186,8 @@ void initLibraryFunctions()
      *   Not sure what the best fix is - jkh 10/4/93
      *
      */
-    tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT | TAG_CPU_STATE;
-    tagDict["read"] =  TAG_LIB_FUNC | TAG_IO_IN | TAG_CPU_STATE;
+    tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT;
+    tagDict["read"] =  TAG_LIB_FUNC | TAG_IO_IN;
     tagDict["DYNINSTsampleValues"] = TAG_LIB_FUNC;
     tagDict[EXIT_NAME] = TAG_LIB_FUNC;
     tagDict["fork"] = TAG_LIB_FUNC;
@@ -195,8 +198,8 @@ void initLibraryFunctions()
     // tagDict["pvm_barrier"] = TAG_LIB_FUNC | TAG_SYNC_FUNC | TAG_CPU_STATE;
     // tagDict["pvm_mcast"] =  TAG_LIB_FUNC | TAG_MSG_FUNC | TAG_CPU_STATE;
 
-    tagDict["pvm_send"] = TAG_LIB_FUNC | TAG_MSG_SEND;
-    tagDict["pvm_recv"] = TAG_LIB_FUNC | TAG_MSG_RECV;
+    tagDict["pvm_send"] = TAG_LIB_FUNC | TAG_MSG_SEND | TAG_CPU_STATE;
+    tagDict["pvm_recv"] = TAG_LIB_FUNC | TAG_MSG_RECV | TAG_CPU_STATE;
 }
 
 void instCleanup()
@@ -211,17 +214,15 @@ void instCleanup()
 float computePauseTimeMetric()
 {
     timeStamp now;
-    timeStamp elapsed;
-    static timeStamp reportedPauseTime = 0;
+    timeStamp elapsed=0.0;
 
     now = getCurrentTime(false);
-    if (firstRecordTime && firstSampleReceived) {
-	elapsed = elapsedPauseTime - reportedPauseTime;
-	if (isApplicationPaused()) {
+    if (firstRecordTime) {
+	elapsed = elapsedPauseTime;
+	if (isApplicationPaused())
 	    elapsed += now - startPause;
-	}
+
 	assert(elapsed >= 0.0); 
-	reportedPauseTime += elapsed;
 	return(elapsed);
     } else {
 	return(0.0);

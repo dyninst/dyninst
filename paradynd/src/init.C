@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.3  1994/11/09 18:40:01  rbi
+ * Revision 1.4  1994/11/10 18:57:57  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.3  1994/11/09  18:40:01  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.1  1994/11/01  16:56:42  markc
@@ -15,6 +18,7 @@
 #include "init.h"
 #include "metricDef.h"
 
+internalMetric *activeProcs = NULL;
 internalMetric *pauseTime = NULL;
 internalMetric *totalPredictedCost= NULL;
 internalMetric *hybridPredictedCost = NULL;
@@ -52,12 +56,20 @@ bool init() {
   defaultIMpreds[3].set("/Procedure", invalidPredicate, NULL);
   defaultIMpreds[4].set((char*)NULL, nullPredicate, NULL, false);
 
+  activeProcs = new internalMetric("active_processes",
+				   EventCounter,
+				   aggSum,
+				   "Processes",
+				   NULL,
+				   observedCostPredicates); 
+
   pauseTime = new internalMetric("pause_time", 
-				 SampledFunction, 
+				 EventCounter,
 				 aggMax, 
 				 "% Time",
 				 computePauseTimeMetric,
-				 defaultIMpreds);
+				 defaultIMpreds,
+				 true);
 
   totalPredictedCost = new internalMetric("predicted_cost", 
 					  EventCounter,

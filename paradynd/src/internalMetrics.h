@@ -13,7 +13,7 @@ typedef float (*sampleValueFunc)();
 class internalMetric {
   public:
     internalMetric(const string n, int style, int a, const string units,
-		   sampleValueFunc f, resourcePredicate *r);
+		   sampleValueFunc f, resourcePredicate *r, bool really=true);
 
     float getValue() {
 	if (func) {
@@ -24,7 +24,7 @@ class internalMetric {
     }
     void enable(metricDefinitionNode *n) {
 	node = n;
-	activeInternalMetrics.add(this, n);
+	activeInternalMetrics[n] = this;
     }
     void disable() {
 	node = NULL;
@@ -36,10 +36,13 @@ class internalMetric {
     float value;
     float cumulativeValue;
     sampleValueFunc func;
-    static dictionary_hash<string, internalMetric*> allInternalMetrics;
-    static List<internalMetric*> activeInternalMetrics;
     metricDefinitionNode *node;
+    static dictionary_hash<string, internalMetric*> allInternalMetrics;
+    static dictionary_hash<metricDefinitionNode*, internalMetric*>
+      activeInternalMetrics;
+
     string getName() const { return name;}
+    bool reallyIsEventCounter;
 
   private:
     string name;

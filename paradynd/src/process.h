@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.13  1994/11/09 18:40:35  rbi
+ * Revision 1.14  1994/11/10 18:58:17  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.13  1994/11/09  18:40:35  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.12  1994/11/02  11:15:38  markc
@@ -177,5 +180,7 @@ void copyInferiorHeap(process *from, process *to);
 
 unsigned inferiorMalloc(process *proc, int size);
 void inferiorFree(process *proc, unsigned pointer);
+
+extern resource *machineResource;
 
 #endif

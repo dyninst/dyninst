@@ -1,7 +1,10 @@
 
 /*
  * $Log: init-pvm.C,v $
- * Revision 1.2  1994/11/09 18:40:00  rbi
+ * Revision 1.3  1994/11/10 18:57:54  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.2  1994/11/09  18:40:00  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.1  1994/11/01  16:55:54  markc
@@ -90,51 +93,47 @@ bool initOS() {
 	  observedCostPredicates
 	  );
 
-  DYNINSTallMetrics = new metric[14];
-  metricCount = 13;
+  DYNINSTallMetrics = new metric[10];
+  metricCount = 10;
 
-  DYNINSTallMetrics[0].set("active_processes", SampledFunction,
-			   aggSum, "Processes", createActiveProcesses,
-			   defaultPredicates);
-
-  DYNINSTallMetrics[1].set("observed_cost", EventCounter,
+  DYNINSTallMetrics[0].set("observed_cost", EventCounter,
 			   aggMax, "# CPUs", createObservedCost,
 			   observedCostPredicates);
 
-  DYNINSTallMetrics[2].set("cpu", EventCounter, aggSum, "# CPUs",
+  DYNINSTallMetrics[1].set("cpu", EventCounter, aggSum, "# CPUs",
 			   createCPUTime, cpuTimePredicates);
 
-  DYNINSTallMetrics[3].set("exec_time", EventCounter, aggSum, "%Time",
+  DYNINSTallMetrics[2].set("exec_time", EventCounter, aggSum, "%Time",
 			   createExecTime, wallTimePredicates);
 
-  DYNINSTallMetrics[4].set("procedure_calls", EventCounter, aggSum, "Calls/sec",
+  DYNINSTallMetrics[3].set("procedure_calls", EventCounter, aggSum, "Calls/sec",
 			   createProcCalls, procCallsPredicates);
 
-  DYNINSTallMetrics[5].set( "msgs", EventCounter, aggSum, "Ops/sec",
+  DYNINSTallMetrics[4].set( "msgs", EventCounter, aggSum, "Ops/sec",
 			   createMsgs, defaultPredicates);
 
-  DYNINSTallMetrics[6].set( "msg_bytes", EventCounter, aggSum, "Bytes/Sec",
+  DYNINSTallMetrics[5].set( "msg_bytes", EventCounter, aggSum, "Bytes/Sec",
 			   createMsgBytesTotal, defaultPredicates);
 
-  DYNINSTallMetrics[7].set("msg_bytes_sent", EventCounter, aggSum, "Bytes/Sec",
+  DYNINSTallMetrics[6].set("msg_bytes_sent", EventCounter, aggSum, "Bytes/Sec",
 			   createMsgBytesSent, defaultPredicates);
 
-  DYNINSTallMetrics[8].set("msg_bytes_recv", EventCounter, aggSum, "Bytes/Sec",
+  DYNINSTallMetrics[7].set("msg_bytes_recv", EventCounter, aggSum, "Bytes/Sec",
 			   createMsgBytesRecv, defaultPredicates);
 
-  DYNINSTallMetrics[9].set("sync_ops", EventCounter, aggSum, "Ops/sec",
+  DYNINSTallMetrics[8].set("sync_ops", EventCounter, aggSum, "Ops/sec",
 			   createSyncOps, msgPredicates);
 
-  DYNINSTallMetrics[10].set("sync_wait", EventCounter, aggSum, "# Waiting",
-			    createSyncWait, msgPredicates);
+  DYNINSTallMetrics[9].set("sync_wait", EventCounter, aggSum, "# Waiting",
+			    createSyncWait, msgPredicates, false);
 
-  DYNINSTallMetrics[11].set("io_wait", EventCounter, aggSum, "# Waiting",
+/*
+  DYNINSTallMetrics[10].set("io_wait", EventCounter, aggSum, "# Waiting",
 			    createIOWait, ioPredicates);
 
-  DYNINSTallMetrics[12].set("io_ops", EventCounter, aggSum, "Ops/sec",
+  DYNINSTallMetrics[11].set("io_ops", EventCounter, aggSum, "Ops/sec",
 			    createIOOps, ioPredicates, false);
 
-  /*
   DYNINSTallMetrics[13].set("io_bytes", EventCounter, aggSum, "Bytes/Sec",
 			    createIOBytesTotal, ioPredicates, false);
 			    */

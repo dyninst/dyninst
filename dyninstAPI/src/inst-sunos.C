@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.18  1994/11/09 18:40:10  rbi
+ * Revision 1.19  1994/11/10 18:58:02  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.18  1994/11/09  18:40:10  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.17  1994/11/02  11:06:19  markc
@@ -72,7 +75,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.18 1994/11/09 18:40:10 rbi Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.19 1994/11/10 18:58:02 jcargill Exp $";
 
 #include "util/h/kludges.h"
 #include "os.h"
@@ -263,17 +266,15 @@ void initLibraryFunctions()
 float computePauseTimeMetric()
 {
     timeStamp now;
-    timeStamp elapsed;
-    static timeStamp reportedPauseTime = 0;
+    timeStamp elapsed=0.0;
 
     now = getCurrentTime(false);
-    if (firstRecordTime && firstSampleReceived) {
-	elapsed = elapsedPauseTime - reportedPauseTime;
-	if (isApplicationPaused()) {
+    if (firstRecordTime) {
+	elapsed = elapsedPauseTime;
+	if (isApplicationPaused())
 	    elapsed += now - startPause;
-	}
+
 	assert(elapsed >= 0.0); 
-	reportedPauseTime += elapsed;
 	return(elapsed);
     } else {
 	return(0.0);

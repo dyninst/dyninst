@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.42 1994/11/09 18:40:14 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.43 1994/11/10 18:58:06 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.42  1994/11/09 18:40:14  rbi
+ * Revision 1.43  1994/11/10 18:58:06  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.42  1994/11/09  18:40:14  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.41  1994/11/02  11:10:59  markc
@@ -255,11 +258,14 @@ double currentHybridValue= 0.0;
 dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap(uiHash);
 metricListRec *globalMetricList= NULL;
 
+unsigned mdnHash(const metricDefinitionNode *&mdn) {
+  return ((unsigned) mdn);
+}
 
 dictionary_hash<unsigned, metricDefinitionNode*> allMIs(uiHash);
-dictionary_hash<string, internalMetric*> 
-              internalMetric::allInternalMetrics(string::hash);
-List<internalMetric*>internalMetric::activeInternalMetrics;
+dictionary_hash<string, internalMetric*> internalMetric::allInternalMetrics(string::hash);
+dictionary_hash<metricDefinitionNode*, internalMetric*>
+internalMetric::activeInternalMetrics(mdnHash);
 
 // used to indicate the mi is no longer used.
 #define DELETED_MI 1
@@ -311,7 +317,11 @@ metricDefinitionNode::metricDefinitionNode(metric *m,
     }
 }
 
-metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m)
+float getProcessCount() {
+  return ((float) processMap.size());
+}
+
+metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m, bool enable=true)
 {
     int i;
     int tid;
@@ -373,6 +383,8 @@ metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m)
 
     /* check for "special" metrics that are computed directly by paradynd */
     if (internalMetric::allInternalMetrics.defines(m->info.name)) {
+      // if a cost of an internal metric is asked for, enable=false
+      if (!enable) return NULL;
       im = internalMetric::allInternalMetrics[m->info.name];
       // TODO why was *pl being used here, when it was always NULL
       mn = new metricDefinitionNode(NULL, m->info.aggregate);
@@ -401,7 +413,7 @@ metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m)
     }
 
     vector<process*> instProcessList;
-    
+
     if (proc) {
 	if (!tid || (proc->thread == tid))
 	    instProcessList += proc;
@@ -568,7 +580,7 @@ metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m)
  *
  */
 
-metricDefinitionNode *createMetricInstance(resourceListRec *l, metric *m)
+metricDefinitionNode *createMetricInstance(resourceListRec *l, metric *m, bool enable=true)
 {
     static int MICount=0;
     metricDefinitionNode *mi= NULL;
@@ -582,7 +594,7 @@ metricDefinitionNode *createMetricInstance(resourceListRec *l, metric *m)
     }
 
     // not found, build it.
-    mi = buildMetricInstRequest(l, m);
+    mi = buildMetricInstRequest(l, m, enable);
     if (!mi) return mi;
     mi->id = ++MICount;
     if (mi)
@@ -628,7 +640,7 @@ float guessCost(resourceListRec *l , metric *m)
     float cost;
     metricDefinitionNode *mi;
 
-    mi = createMetricInstance(l, m);
+    mi = createMetricInstance(l, m, false);
     if (!mi) return(0.0);
 
     cost = mi->cost();
@@ -700,18 +712,19 @@ float metricDefinitionNode::cost()
 
 void metricDefinitionNode::disable()
 {
-    internalMetric *im;
     List<dataReqNode*> dp;
     List<instReqNode*> req;
     metricDefinitionNode *mi;
     List<metricDefinitionNode*> curr;
 
     // check for internal metrics
-    im = internalMetric::activeInternalMetrics.find(this);
-    if (im) {
-	im->disable();
-	logLine("disabled internal metric\n");
-	return;
+
+    const metricDefinitionNode *mdn = this;
+    if (internalMetric::activeInternalMetrics.defines(mdn)) {
+      internalMetric *imp = internalMetric::activeInternalMetrics[mdn];
+      imp->disable();
+      logLine("disabled internal metric\n");
+      return;
     }
 
     if (!inserted) return;
@@ -785,20 +798,27 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 //      logLine(errorLine);
 //    }
 
-    if (met->info.style == EventCounter) {
-	// only use delta from last sample.
-	if (value < sample.value) {
-	    if ((value/sample.value) < 0.99999) {
-		assert(value + 0.0001 >= sample.value);
-	    } else {
-		// floating point rounding error ignore
-		sample.value = value;
+    if (met->info.style == EventCounter) { 
+	if (met->reallyIsEventCounter) {
+	    // only use delta from last sample.
+	    if (value < sample.value) {
+		if ((value/sample.value) < 0.99999) {
+		    assert(value + 0.0001 >= sample.value);
+		} else {
+		    // floating point rounding error ignore
+		    sample.value = value;
+		}
 	    }
-	}
 //	if (value + 0.0001 < sample.value)
 //           printf ("WARNING:  sample went backwards!!!!!\n");
 	value -= sample.value;
 	sample.value += value;
+      } else {
+	// spoof the event counter, since the sampled function data is getting
+	// corrupted in paradyn
+	// don't have to do anything here, except pass the data forward
+	// we wan't the outside world to think that this is an event counter
+      }
     }
 
     ret = sample.newValue(valueList, sampleTime, value);
@@ -1162,9 +1182,10 @@ internalMetric::internalMetric(const string n,
 			       int a, 
 		               const string units, 
   			       sampleValueFunc f,
-			       resourcePredicate *r)
+			       resourcePredicate *r,
+			       bool really)
 : metRec(n, style, a, units, NULL, r), name(n), node(NULL), value(0.0),
-  func(f), cumulativeValue(0.0)
+  func(f), cumulativeValue(0.0), reallyIsEventCounter(really)
 {
     allInternalMetrics[name] = this;
 }
@@ -1195,7 +1216,7 @@ void reportInternalMetrics()
     // see if we have a sample to establish time base.
     if (!firstRecordTime) return;
     if (end==0.0)
-      end = firstRecordTime/MILLION;
+	end = firstRecordTime/MILLION;
 
     now = getCurrentTime(false);
 
@@ -1205,17 +1226,25 @@ void reportInternalMetrics()
 
     start = end;
     end = now;
-    dictionary_hash_iter<string, internalMetric*> imi(internalMetric::allInternalMetrics);
-    string pds; internalMetric *imp;
-    while (imi.next(pds, imp)) {
-      if (imp->enabled()) {
-	value = imp->getValue();
-	if (imp->metRec.info.style == EventCounter) {
-	  assert(value + 0.0001 >= imp->cumulativeValue);
-	  value -= imp->cumulativeValue;
-	  imp->cumulativeValue += value;
+
+    metricDefinitionNode *mdn;
+    internalMetric *imp;
+    dictionary_hash_iter<metricDefinitionNode*, internalMetric*>
+	imi(internalMetric::activeInternalMetrics);
+    while (imi.next(mdn, imp)) { 
+	if (imp->enabled()) {
+	    // KLUDGE - sampledFunc doesn't work - mdc
+	    if (imp->getName() == "active_processes") {
+		value = (end - start) * processMap.size();
+	    } else if (imp->metRec.info.style == EventCounter) {
+		value = imp->getValue();
+		if (imp->reallyIsEventCounter) {
+		    assert(value + 0.0001 >= imp->cumulativeValue);
+		    value -= imp->cumulativeValue;
+		    imp->cumulativeValue += value;
+		}
+	    }
+	    imp->node->forwardSimpleValue(start, end, value);
 	}
-	imp->node->forwardSimpleValue(start, end, value);
-      }
     }
- }
+}

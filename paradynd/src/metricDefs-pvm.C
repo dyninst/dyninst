@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.16 1994/11/09 18:40:27 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.17 1994/11/10 18:58:13 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.16  1994/11/09 18:40:27  rbi
+ * Revision 1.17  1994/11/10 18:58:13  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.16  1994/11/09  18:40:27  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.15  1994/11/02  11:12:50  markc
@@ -151,6 +154,7 @@ static dictionary_hash<int, dataReqNode*> msgFlags(intHash);
 // then the write will be counted as a write.  The flag must be global, since
 // the io functions need to know its location.
 void osDependentInst(process *proc) {
+  return;
   assert(!msgFlags.defines(proc->getPid()));
 
   dataReqNode *msgFlag = new dataReqNode(intCounter, proc, 0, false, processTime);

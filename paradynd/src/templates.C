@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.10  1994/11/09 18:40:42  rbi
+ * Revision 1.11  1994/11/10 18:58:20  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.10  1994/11/09  18:40:42  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.9  1994/11/02  11:18:03  markc
@@ -71,6 +74,11 @@ typedef vector<heapItem*> a4;
 typedef vector<resourcePredicate*> a5;
 typedef vector<Symbol> a6;
 
+typedef dictionary_hash<string, internalMetric*> z1;
+typedef dictionary_hash<metricDefinitionNode*, internalMetric*> z2;
+typedef dictionary_hash<metricDefinitionNode*, kludgeInternalMetric*> z3;
+typedef dictionary_hash<string, kludgeInternalMetric*> z4;
+
 typedef dictionary_hash <int, dataReqNode*> lb;
 typedef dictionary_hash <Address, Symbol*> la;
 typedef dictionary_hash <instPoint*, point*> l0;
@@ -87,6 +95,11 @@ typedef dictionary_hash <string, module *> l10;
 typedef dictionary_hash <unsigned, metricDefinitionNode*> l11;
 typedef dictionary_hash <unsigned, heapItem*> l12;
 typedef dictionary_hash <int, process*> l13;
+
+typedef dictionary_hash_iter<string, internalMetric*> zi1;
+typedef dictionary_hash_iter<metricDefinitionNode*, internalMetric*> zi2;
+typedef dictionary_hash_iter<metricDefinitionNode*, kludgeInternalMetric*> zi3;
+typedef dictionary_hash_iter<string, kludgeInternalMetric*> zi4;
 
 typedef dictionary_hash_iter <Address, Symbol*> ila;
 typedef dictionary_hash_iter <instPoint*, point*> il0;

@@ -22,6 +22,5 @@
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
-typedef List<internalMetric*> o1;
 typedef List<metricDefinitionNode*> o2;
 

@@ -4,7 +4,10 @@
 
 /* 
  * $Log: metricDef.h,v $
- * Revision 1.2  1994/11/09 18:40:18  rbi
+ * Revision 1.3  1994/11/10 18:58:10  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.2  1994/11/09  18:40:18  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.1  1994/11/01  16:58:06  markc
@@ -56,7 +59,6 @@ extern void createObservedCost(metricDefinitionNode *mn, AstNode *pred);
 extern void createCPUTime(metricDefinitionNode *mn, AstNode *pred);
 extern void createExecTime(metricDefinitionNode *mn, AstNode *pred);
 extern void createSyncOps(metricDefinitionNode *mn, AstNode *trigger);
-extern void createActiveProcesses(metricDefinitionNode *mn, AstNode *trigger);
 extern void createMsgs(metricDefinitionNode *mn, AstNode *trigger);
 extern void dummyCreate(metricDefinitionNode *mn, AstNode *trigger);
 

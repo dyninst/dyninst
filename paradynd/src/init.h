@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.2  1994/11/09 18:40:03  rbi
+ * Revision 1.3  1994/11/10 18:57:59  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.2  1994/11/09  18:40:03  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.1  1994/11/01  16:58:02  markc
@@ -30,6 +33,7 @@ extern resourcePredicate *ioPredicates;
 extern metric *DYNINSTallMetrics;
 extern int metricCount;
 
+extern internalMetric *activeProcs;
 extern internalMetric *pauseTime;
 extern internalMetric *totalPredictedCost;
 extern internalMetric *hybridPredictedCost;

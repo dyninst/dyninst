@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.23 1994/11/09 18:39:55 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.24 1994/11/10 18:57:47 jcargill Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.23  1994/11/09 18:39:55  rbi
+ * Revision 1.24  1994/11/10 18:57:47  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.23  1994/11/09  18:39:55  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.22  1994/11/02  11:02:34  markc
@@ -235,7 +238,6 @@ bool startApplication()
     return(false);
 }
 
-timeStamp endPause = 0.0;
 timeStamp startPause = 0.0;
 
 // total processor time the application has been paused.
@@ -269,15 +271,12 @@ bool continueAllProcesses()
       continueProcess(proc);
 
     if (!appPause) return(false);
+
     appPause = false;
 
-    endPause = getCurrentTime(false);
-    if (!firstSampleReceived) {
-	return(false);
-    }
-
-    elapsedPauseTime += (endPause - startPause);
-    // sprintf(errorLine, "continued at %f\n", endPause);
+    if (!firstRecordTime) return (false);
+    elapsedPauseTime += (getCurrentTime(false) - startPause);
+    // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
     // logLine(errorLine);
 
     return(false);

@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.18 1994/11/09 18:40:38 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.19 1994/11/10 18:58:19 jcargill Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.18  1994/11/09 18:40:38  rbi
+ * Revision 1.19  1994/11/10 18:58:19  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.18  1994/11/09  18:40:38  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.17  1994/11/02  11:17:23  markc
@@ -505,7 +508,7 @@ void image::postProcess(const string pifname)
 {
   FILE *Fil;
   string fname;
-  char errorstr[5000], key[5000];
+  char temp[5000], errorstr[5000], key[5000];
   char tmp1[5000], abstraction[500];
   resource *parent;
 
