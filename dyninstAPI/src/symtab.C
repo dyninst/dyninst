@@ -1189,7 +1189,7 @@ bool image::addOneFunction(vector<Symbol> &mods,  \
   
   string progName = name_ + "_module";
 
-#if defined (sparc_sun_solaris2_4) || defined (i386_unknown_solaris2_5) 
+#if defined (sparc_sun_solaris2_4) || defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0) 
   // In solaris there is no address for modules in the symbol table, 
   // so the binary search will not work. The module field in a symbol
   // already has the correct module name for a symbol, if it can be
