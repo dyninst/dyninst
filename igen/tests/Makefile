@@ -1,4 +1,6 @@
 
+USES_PVM = true
+
 include	../../make.config
 
 .SUFFIXES: .c .I .C .o
