@@ -86,13 +86,6 @@ struct pdpair {
   pdpair(const pdpair<T1, T2>& p) : first(p.first), second(p.second) {}
 };
 
-template <class T1, class T2>
-pdpair<T1, T2> make_pdpair(const T1& x, const T2& y)
-{
-  return pdpair<T1, T2>(x, y);
-}
-
-
 // Return a T1 pair containing the min and max elements of a  vector of
 // type T2<T1>. If the vector contains no elements a 0,0 pair is returned.
 template <class T1, class T2>
@@ -100,11 +93,11 @@ pdpair<T1, T1> min_max_pdpair (const T2 & vect)
 {
     if (vect.size() == 0) {
 	T1 def = 0;
-	return make_pdpair(def, def);
+	return pdpair<T1,T1>(def, def);
     }
 
     if (vect.size() == 1) {
-	return make_pdpair(vect[0], vect[0]);
+	return pdpair<T1,T1>(vect[0], vect[0]);
     }
     
     T1 min = vect[0];
@@ -118,7 +111,7 @@ pdpair<T1, T1> min_max_pdpair (const T2 & vect)
 	    max = vect[i];
     }
     
-    return make_pdpair(min, max);
+    return pdpair<T1,T1>(min, max);
 }
 
 //#endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.14 2003/07/15 22:48:04 schendel Exp $
+// $Id: templates.C,v 1.15 2003/10/24 18:25:19 pcroth Exp $
 // for table visi
 
 #include "common/h/Vector.h"
@@ -71,9 +71,6 @@ template int max(const int, const int);
 
 template class pdpair<pdstring, pdLogo *>;
 template class pdpair<pdstring, pdLogo::logoStruct>;
-
-template pdpair<pdstring, pdLogo *> make_pdpair<pdstring, pdLogo *>(const pdstring &, pdLogo * const &);
-template pdpair<pdstring, pdLogo::logoStruct> make_pdpair<pdstring, pdLogo::logoStruct>(const pdstring &, const pdLogo::logoStruct &);
 
 template class pdvector<pdpair<pdstring, pdLogo *> >;
 template class pdvector<pdpair<pdstring, pdLogo::logoStruct> >;

@@ -69,9 +69,6 @@ template class pdvector<pdLogo *>;
 template class pdpair<pdstring, pdLogo *>;
 template class pdpair<pdstring, pdLogo::logoStruct>;
 
-template pdpair<pdstring, pdLogo *> make_pdpair<pdstring, pdLogo *>(const pdstring &, pdLogo * const &);
-template pdpair<pdstring, pdLogo::logoStruct> make_pdpair<pdstring, pdLogo::logoStruct>(const pdstring &, const pdLogo::logoStruct &);
-
 template class pdvector<pdpair<pdstring, pdLogo *> >;
 template class pdvector<pdpair<pdstring, pdLogo::logoStruct> >;
 

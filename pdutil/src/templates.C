@@ -41,7 +41,7 @@
 
 /*
  * Generate code for template classes used by libpdutil
- * $Id: templates.C,v 1.21 2003/06/19 18:46:14 pcroth Exp $
+ * $Id: templates.C,v 1.22 2003/10/24 18:25:19 pcroth Exp $
  */
 
 #include "common/src/Dictionary.C"
@@ -86,7 +86,5 @@ template class pdvector<T_dyninstRPC::mdl_metric*>;
 template class pdvector<mdl_type_desc>;
 template class dictionary_hash<unsigned int, pdvector<mdl_type_desc> >;
 template class pdvector<dictionary_hash<unsigned int, pdvector<mdl_type_desc> >::entry>;
-template pdpair<unsigned int, pdvector<mdl_type_desc> > make_pdpair( const unsigned&, const pdvector<mdl_type_desc>& );
-
 #endif // defined(rs6000_ibm_aix4_1)
 

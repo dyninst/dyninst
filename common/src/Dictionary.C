@@ -351,7 +351,7 @@ dictionary_hash<K,V>::keysAndValues() const {
    
   const_iterator finish = end();
   for (const_iterator iter = begin(); iter != finish; ++iter)
-    result.push_back( make_pdpair(iter.currkey(), iter.currval()) );
+    result.push_back( pdpair<K,V>(iter.currkey(), iter.currval()) );
 
   return result;
 }
@@ -365,7 +365,7 @@ int dictionary_hash<K,V>::linear_filter(pdvector< pdpair<K, V> > &matches,
   const_iterator finish = end();
   for (const_iterator iter = begin(); iter != finish; ++iter) {
     if ((*filt_func)(*iter))
-      matches.push_back(make_pdpair(iter.currkey(),iter.currval()));
+      matches.push_back(pdpair<K,V>(iter.currkey(),iter.currval()));
   }
   return 0;
 }

@@ -45,7 +45,7 @@
 // Explicit instantiation for templates needed by the runtime histogram visi.
 //
 //----------------------------------------------------------------------------
-// $Id: templates.C,v 1.5 2003/07/15 22:47:59 schendel Exp $
+// $Id: templates.C,v 1.6 2003/10/24 18:25:19 pcroth Exp $
 //----------------------------------------------------------------------------
 
 #include "minmax.C"
@@ -65,8 +65,6 @@ template class pdvector<pdstring>;
 template class pdpair<pdstring, pdLogo *>;
 template class pdpair<pdstring, pdLogo::logoStruct>;
 
-template pdpair<pdstring, pdLogo *> make_pdpair<pdstring, pdLogo *>(const pdstring &, pdLogo * const &);
-template pdpair<pdstring, pdLogo::logoStruct> make_pdpair<pdstring, pdLogo::logoStruct>(const pdstring &, const pdLogo::logoStruct &);
 
 template class pdvector<pdpair<pdstring, pdLogo *> >;
 template class pdvector<pdpair<pdstring, pdLogo::logoStruct> >;
@@ -82,6 +80,4 @@ template class pdvector<pdLogo::logoStruct>;
 #include "tk.h"
 template class pdpair<Tk_Window_ *, void *>;
 template class pdvector<pdpair<Tk_Window_ *, void *> >;
-template pdpair<Tk_Window_ *, void *> make_pdpair<Tk_Window_ *, void *>(Tk_Window_ * const &, void * const &);
-
 #endif //!defined(i386_unknown_nt4_0)
