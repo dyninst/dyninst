@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.368 2002/10/18 22:41:12 bernat Exp $
+// $Id: process.C,v 1.369 2002/10/28 04:54:02 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4246,8 +4246,7 @@ bool process::getSharedObjects() {
 // static and dynamically linked objects, this should return NULL
 // if the function being sought is excluded....
 #ifndef BPATCH_LIBRARY
-function_base *process::findOneFunction(resource *func,resource *mod){
-
+function_base *process::findOneFunction(resource *func, resource *mod){
     if((!func) || (!mod)) { return 0; }
     if(func->type() != MDL_T_PROCEDURE) { return 0; }
     if(mod->type() != MDL_T_MODULE) { return 0; }
@@ -4267,6 +4266,7 @@ function_base *process::findOneFunction(resource *func,resource *mod){
         for(u_int j=0; j < shared_objects->size(); j++){
             module *next = 0;
             next = ((*shared_objects)[j])->findModule(mod_name,true);
+
             if(next){
                 if(((*shared_objects)[j])->includeFunctions()){ 
                   //cerr << "function found in module " << mod_name.c_str() << endl;
@@ -4694,25 +4694,24 @@ pd_Function *process::findFuncByAddr(Address adr)
 // images for this resource
 // if check_excluded is true it checks to see if the module is excluded
 // and if it is it returns 0.  If check_excluded is false it doesn't check
-module *process::findModule(const string &mod_name,bool check_excluded){
+module *process::findModule(const string &mod_name, bool check_excluded) {
+   // KLUDGE: first search any shared libraries for the module name 
+   //  (there is only one module in each shared library, and that 
+   //  is the library name)
+   if(dynamiclinking && shared_objects){
+      for(u_int j=0; j < shared_objects->size(); j++){
+         module *next = ((*shared_objects)[j])->findModule(mod_name,
+                                                           check_excluded);
+         if(next) {
+            return(next);
+         }
+      }
+   }
 
-    // KLUDGE: first search any shared libraries for the module name 
-    //  (there is only one module in each shared library, and that 
-    //  is the library name)
-    if(dynamiclinking && shared_objects){
-        for(u_int j=0; j < shared_objects->size(); j++){
-            module *next = ((*shared_objects)[j])->findModule(mod_name,
-                              check_excluded);
-            if(next) {
-                return(next);
-            }
-        }
-    }
-
-    // check a.out for function symbol
-    //  Note that symbols is data member of type image* (comment says
-    //  "information related to the process"....
-    return(symbols->findModule(mod_name));
+   // check a.out for function symbol
+   //  Note that symbols is data member of type image* (comment says
+   //  "information related to the process"....
+   return symbols->findModule(mod_name, check_excluded);
 }
 
 // getSymbolInfo:  get symbol info of symbol associated with name n
@@ -5443,7 +5442,7 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
                           void *userData,
                           int mid, 
                           dyn_thread *thr,
-								  dyn_lwp *lwp,
+                          dyn_lwp *lwp,
                           bool lowmem)
 {
   static int sequence_num = 0;
@@ -5545,216 +5544,216 @@ bool process::rpcSavesRegs()
 //
 bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
-  // Here's an interesting problem I've discovered... when we go to pause the 
-  // process, we might try and handle a trap due to an inferior RPC because
-  // pause() handles signals. ARGH....
+   // Here's an interesting problem I've discovered... when we go to pause the 
+   // process, we might try and handle a trap due to an inferior RPC because
+   // pause() handles signals. ARGH....
 
-  handleDoneinferiorRPC();
-  vectorSet<inferiorRPCtoDo> readyRPCs;
-  vectorSet<inferiorRPCinProgress> runningRPCs;
+   handleDoneinferiorRPC();
+   vectorSet<inferiorRPCtoDo> readyRPCs;
+   vectorSet<inferiorRPCinProgress> runningRPCs;
 
-  bool thrInSyscall = false;
-  bool thrRunningRPC = false;
-  // Must return thread-specific RPCs before non-specific RPCs
-  if (!getReadyRPCs(readyRPCs)) {
-    return false; // Either no RPCs to run, or RPCs are currently running
-  }
+   bool thrInSyscall = false;
+   bool thrRunningRPC = false;
+   // Must return thread-specific RPCs before non-specific RPCs
+   if (!getReadyRPCs(readyRPCs)) {
+      return false; // Either no RPCs to run, or RPCs are currently running
+   }
   
-  if (status_ == exited)
-    {
+   if (status_ == exited)
+   {
       inferiorrpc_cerr << "Inferior process exited!" << endl;
       return false;
     }
 
-  if (!pause()) {
-    cerr << "launchRPCifAppropriate failed because pause failed" << endl;
-    return false;
-  }
-  for (unsigned i = 0; i < readyRPCs.size(); i++) {
-    /////////////////////////////////////////////////////////////////////////
-    // Determine if it is safe to run the RPC (ie not in syscall)
-    /////////////////////////////////////////////////////////////////////////
-    inferiorRPCtoDo todo = readyRPCs[i];
-    bool isFunclet = false; // FIXME
-    if (todo.thr) {
-      dyn_lwp *currLWP = todo.thr->get_lwp();
-      if (!todo.lwp) todo.lwp = currLWP;
-      else if (todo.lwp && (currLWP != todo.lwp)) {
-          cerr << "Warning: original LWP " << todo.lwp << " and current LWP "
-               << currLWP << " are not equal! Using current." << endl;
-          todo.lwp = currLWP;
+      if (!pause()) {
+         cerr << "launchRPCifAppropriate failed because pause failed" << endl;
+         return false;
       }
-    }
+   for (unsigned i = 0; i < readyRPCs.size(); i++) {
+      /////////////////////////////////////////////////////////////////////////
+      // Determine if it is safe to run the RPC (ie not in syscall)
+      /////////////////////////////////////////////////////////////////////////
+      inferiorRPCtoDo todo = readyRPCs[i];
+      bool isFunclet = false; // FIXME
+      if (todo.thr) {
+         dyn_lwp *currLWP = todo.thr->get_lwp();
+         if (!todo.lwp) todo.lwp = currLWP;
+         else if (todo.lwp && (currLWP != todo.lwp)) {
+            cerr << "Warning: original LWP " << todo.lwp << " and current LWP "
+                 << currLWP << " are not equal! Using current." << endl;
+            todo.lwp = currLWP;
+         }
+      }
     
-    // SYSCALL CHECK
-    if (todo.thr) {
-        if (finishingSysCall) {
+      // SYSCALL CHECK
+      if (todo.thr) {
+         if (finishingSysCall) {
             clear_breakpoint_for_syscall_completion();
             todo.thr->clearInSyscall();
-        }
-        if (todo.thr->isInSyscall() && !finishingSysCall) {
+         }
+         if (todo.thr->isInSyscall() && !finishingSysCall) {
             continue;
-        }
+         }
         
-        if (todo.lwp->executingSystemCall()) {
+         if (todo.lwp->executingSystemCall()) {
             // Ah, crud. We're in a system call, so no work is possible.
             if (set_breakpoint_for_syscall_completion()) { // Great when it works, 
-                // Only set inSyscall if we can set a breakpoint at the exit.
-                // Otherwise we have to spin until the syscall is completed.
-                todo.thr->setInSyscall();
+               // Only set inSyscall if we can set a breakpoint at the exit.
+               // Otherwise we have to spin until the syscall is completed.
+               todo.thr->setInSyscall();
             }
             thrInSyscall = true;
             was_running_before_RPC_syscall_complete = wasRunning;
             cerr << "Warning: thread running on LWP " << todo.lwp->get_lwp() 
                  << " is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
             continue;
-        }
-    }
-    else {
-        if (finishingSysCall) {
+         }
+      }
+      else {
+         if (finishingSysCall) {
             clearInSyscall();
             clear_breakpoint_for_syscall_completion();
-        }
-        if (isInSyscall() && !finishingSysCall) {
+         }
+         if (isInSyscall() && !finishingSysCall) {
             continue;
-        }
-        if (getDefaultLWP()->executingSystemCall()) {
+         }
+         if (getDefaultLWP()->executingSystemCall()) {
             if (set_breakpoint_for_syscall_completion()) {
-                setInSyscall();
+               setInSyscall();
             }
             was_running_before_RPC_syscall_complete = wasRunning;
             thrInSyscall = true;
             cerr << "Warning: The program is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
             continue;
-        }
-    }
-    
-    // Is currently running check
-    if (todo.thr) {
-      if (todo.thr->isRunningIRPC())
-	continue;
-    }
-    else
-      if (isRunningIRPC()) {
-	cerr << "Already running an irpc, skipping" << endl;
-	continue;
+         }
       }
-
-    // TODO: this should be done after we (possibly) pick a particular
-    // thread/lwp to run on (MT case)
-    void *theSavedRegs;
-    if (rpcSavesRegs()) {
-      theSavedRegs = todo.lwp->getRegisters();
-      if (theSavedRegs == (void *)-1) {
-	thrInSyscall = true;
-	continue; // Problem somewhere
+    
+      // Is currently running check
+      if (todo.thr) {
+         if (todo.thr->isRunningIRPC())
+            continue;
       }
-    }
-    /////////////////////////////////////////////////////////////////////////
-    // It is safe to run the RPC, so actually do it. 
-    /////////////////////////////////////////////////////////////////////////
-    
-    // Remove the RPC from the appropriate ready list
-    if (todo.thr)
-      todo.thr->popIRPC();
-    else
-      RPCsWaitingToStart.removeOne();
-    
-    inferiorRPCinProgress inProgress;
-    // MT: get a thread to run this RPC on
-    inProgress.thr = todo.thr;
-    inProgress.lwp = todo.lwp;
+      else
+         if (isRunningIRPC()) {
+            cerr << "Already running an irpc, skipping" << endl;
+            continue;
+         }
 
-    if (!inProgress.thr) {
-        for (unsigned i = 0; i < threads.size(); i++)
+      // TODO: this should be done after we (possibly) pick a particular
+      // thread/lwp to run on (MT case)
+      void *theSavedRegs;
+      if (rpcSavesRegs()) {
+         theSavedRegs = todo.lwp->getRegisters();
+         if (theSavedRegs == (void *)-1) {
+            thrInSyscall = true;
+            continue; // Problem somewhere
+         }
+      }
+      /////////////////////////////////////////////////////////////////////////
+      // It is safe to run the RPC, so actually do it. 
+      /////////////////////////////////////////////////////////////////////////
+    
+      // Remove the RPC from the appropriate ready list
+      if (todo.thr)
+         todo.thr->popIRPC();
+      else
+         RPCsWaitingToStart.removeOne();
+    
+      inferiorRPCinProgress inProgress;
+      // MT: get a thread to run this RPC on
+      inProgress.thr = todo.thr;
+      inProgress.lwp = todo.lwp;
+
+      if (!inProgress.thr) {
+         for (unsigned i = 0; i < threads.size(); i++)
             if (!threads[i]->isRunningIRPC()) {
-                inProgress.thr = threads[i];
-                inProgress.lwp = threads[i]->get_lwp();
+               inProgress.thr = threads[i];
+               inProgress.lwp = threads[i]->get_lwp();
             }
-    }
-    // Copy over data
-    inProgress.callbackFunc = todo.callbackFunc;
-    inProgress.userData = todo.userData;
-    inProgress.savedRegs = theSavedRegs;
-    inProgress.seq_num = todo.seq_num;
+      }
+      // Copy over data
+      inProgress.callbackFunc = todo.callbackFunc;
+      inProgress.userData = todo.userData;
+      inProgress.savedRegs = theSavedRegs;
+      inProgress.seq_num = todo.seq_num;
 
 
 
-    if( finishingSysCall ) {
-      inProgress.wasRunning = was_running_before_RPC_syscall_complete;
-    } else {
-      inProgress.wasRunning = wasRunning;
-    }
+      if( finishingSysCall ) {
+         inProgress.wasRunning = was_running_before_RPC_syscall_complete;
+      } else {
+         inProgress.wasRunning = wasRunning;
+      }
     
-    // If finishing up a system call, current state is paused, but we want to
-    // set wasRunning to true so that it'll continue when the inferiorRPC
-    // completes.  Sorry for the kludge.
+      // If finishing up a system call, current state is paused, but we want to
+      // set wasRunning to true so that it'll continue when the inferiorRPC
+      // completes.  Sorry for the kludge.
     
-    // In the threaded daemon, we have two cases to worry about: first, we've
-    // been asked to run an iRPC for a thread that is running, and the case
-    // when the thread isn't running. Case 1 is easy -- we can grab the kernel
-    // thread and run the iRPC. Case 2 is more complicated -- we can't run it
-    // until the thread is rescheduled.
+      // In the threaded daemon, we have two cases to worry about: first, we've
+      // been asked to run an iRPC for a thread that is running, and the case
+      // when the thread isn't running. Case 1 is easy -- we can grab the kernel
+      // thread and run the iRPC. Case 2 is more complicated -- we can't run it
+      // until the thread is rescheduled.
     
-    Address RPCImage = createRPCImage(todo.action,
-				      todo.noCost,
-				      (inProgress.callbackFunc != NULL),
-				      inProgress.breakAddr,
-				      inProgress.stopForResultAddr,
-				      inProgress.justAfter_stopForResultAddr,
-				      inProgress.resultRegister,
-				      todo.lowmem,
-				      todo.thr,
-				      todo.lwp,
-				      isFunclet);
-    if (RPCImage == 0) {
-      cerr << "launchRPCifAppropriate failed because createRPCImage failed"
-	   << endl;
-      if (wasRunning) continueProc();
-      return false;
-    }
+      Address RPCImage = createRPCImage(todo.action,
+                                        todo.noCost,
+                                        (inProgress.callbackFunc != NULL),
+                                        inProgress.breakAddr,
+                                        inProgress.stopForResultAddr,
+                                        inProgress.justAfter_stopForResultAddr,
+                                        inProgress.resultRegister,
+                                        todo.lowmem,
+                                        todo.thr,
+                                        todo.lwp,
+                                        isFunclet);
+      if (RPCImage == 0) {
+         cerr << "launchRPCifAppropriate failed because createRPCImage failed"
+              << endl;
+         if (wasRunning) continueProc();
+         return false;
+      }
     
     
-    inProgress.firstInstrAddr = RPCImage;
+      inProgress.firstInstrAddr = RPCImage;
     
-    //ccw 20 july 2000 : 29 mar 2001
+      //ccw 20 july 2000 : 29 mar 2001
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11)
-    Frame frame = inProgress.lwp->getActiveFrame();
-    inProgress.origPC = frame.getPC();
+      Frame frame = inProgress.lwp->getActiveFrame();
+      inProgress.origPC = frame.getPC();
 #endif
-    if (!inProgress.lwp->changePC(RPCImage, theSavedRegs))
+      if (!inProgress.lwp->changePC(RPCImage, theSavedRegs))
       {
-	cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
-	if (wasRunning) continueProc();
-	return false;
+         cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
+         if (wasRunning) continueProc();
+         return false;
       }  
     
-    thrRunningRPC = true;
+      thrRunningRPC = true;
 
-    if (inProgress.thr) {
-      inProgress.thr->runIRPC(inProgress);
-      inProgress.thr->setRunningIRPC();
-    }
-    else {
-      currRunningIRPC = inProgress;
-      setRunningIRPC();
-    }
-  }
+      if (inProgress.thr) {
+         inProgress.thr->runIRPC(inProgress);
+         inProgress.thr->setRunningIRPC();
+      }
+      else {
+         currRunningIRPC = inProgress;
+         setRunningIRPC();
+      }
+   }
   
-  // Case analysis:
-  // thrRunningRPC = true , thrInSyscall = false  : easy, run
-  // thrRunningRPC = true , thrInSyscall = true   : run
-  // thrRunningRPC = false, thrInSyscall = false  : ???
-  // thrRunningRPC = false, thrInSyscall = true   : wasRunning
+   // Case analysis:
+   // thrRunningRPC = true , thrInSyscall = false  : easy, run
+   // thrRunningRPC = true , thrInSyscall = true   : run
+   // thrRunningRPC = false, thrInSyscall = false  : ???
+   // thrRunningRPC = false, thrInSyscall = true   : wasRunning
 
 
-  if (thrRunningRPC) {
-    if (!continueProc()) return false;
-  }
-  else if (wasRunning || thrInSyscall) {
-    if (!continueProc()) return false;
-  }
-  return true; // success
+   if (thrRunningRPC) {
+      if (!continueProc()) return false;
+   }
+   else if (wasRunning || thrInSyscall) {
+      if (!continueProc()) return false;
+   }
+   return true; // success
 }
 
 void generateMTpreamble(char *, Address &, process *);
@@ -7390,7 +7389,7 @@ void process::FillInCallGraphStatic()
   
   CallGraphAddProgramCallback(symbols->file());
   CallGraphSetEntryFuncCallback(symbols->file(), 
-                                entry_pdf->ResourceFullName());
+                                entry_pdf->ResourceFullName(), 0);
     
   // build call graph for executable
   symbols->FillInCallGraphStatic(this);
