@@ -60,9 +60,6 @@ struct sampleInterval {
     timeStamp	start;
     timeStamp	end;
     pdSample    value;
-  sampleInterval(timeStamp st, timeStamp e, pdSample val) : start(st), 
-    end(e), value(val) {
-  }
 };
 
 // class sampleInfo: define a class for sample values. This class should be used
@@ -92,12 +89,10 @@ class sampleInfo {
 
 private:
 
-    sampleInfo(updateStyle style) : lastSampleStart(timeStamp::ts1970()), 
-      lastSampleEnd(timeStamp::ts1970()), lastSample(0), 
-      valueUpdateStyle(style) {
-        firstSampleReceived = false;
-	weight = 1;
-        numAggregators = 0;
+    sampleInfo(updateStyle style) : valueUpdateStyle(style) {
+      firstSampleReceived = false;
+      weight = 1;
+      numAggregators = 0;
     }
 
     ~sampleInfo() {};
@@ -138,13 +133,12 @@ class aggregateSample {
 
 public:
   aggregateSample(int aggregateOp, bool proportionCalc) : 
-    doProportionCalc(proportionCalc), lastSampleStart(timeStamp::ts1970()), 
-    lastSampleEnd(timeStamp::ts1970()) {
-    assert(aggregateOp == aggSum || aggregateOp == aggAvg || aggregateOp == aggMin
-	   || aggregateOp == aggMax);
+    doProportionCalc(proportionCalc) {
+    assert(aggregateOp == aggSum || aggregateOp == aggAvg || 
+	   aggregateOp == aggMin || aggregateOp == aggMax);
     aggOp = aggregateOp;
   }
-
+  
   ~aggregateSample() {
     unsigned u;
     for (u = 0; u < newParts.size(); u++)

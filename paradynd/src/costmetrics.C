@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.18 2000/10/26 17:03:14 schendel Exp $
+// $Id: costmetrics.C,v 1.19 2001/06/20 20:39:22 schendel Exp $
 
 #include "paradynd/src/costmetrics.h"
 #include "dyninstAPI/src/process.h"
@@ -210,8 +210,7 @@ bool costMetric::removeProcessFromAll(process *p){
 
 sampleInterval costMetricValueUpdate(costMetric *met, process *proc,
 		    pdSample value, timeStamp endTime, timeStamp processTime) {
-    sampleInterval ret(timeStamp::ts1970(), timeStamp::ts1970(),
-		       pdSample::Zero());
+    sampleInterval ret;
     ret.valid = false;
     int proc_num = -1;
     for(unsigned i=0; i < met->components.size(); i++){
@@ -286,6 +285,10 @@ void costMetric::updateValue(process *proc, pdSample value, timeStamp endTime,
 		       << ret.start << "  span_ns: " 
 		       << span_ns << "  rval: " << rval << "\n";
 	if (span_ns - rval > 0) {
+	  // cost = total execution / computation 
+          //      = computation + instr / computation
+	  //      = ratio of program time for instrumented program to
+          //                 program time for uninstrumented program
 	  double adjRatio = static_cast<double>(span_ns) / (span_ns - rval);
 	  ret.value.assign(static_cast<int64_t>(span_ns * adjRatio));
 	  node->forwardSimpleValue(ret.start, ret.end, ret.value, 1, true);
