@@ -5,10 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.37  1995/01/26 17:59:04  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.38  1995/02/07 21:52:54  newhall
+/* changed parameters to VMCreateVisi call
 /*
+ * Revision 1.37  1995/01/26  17:59:04  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.36  1994/12/21  07:39:51  tamches
  * Removed uses of tunableConstant::allConstants, which became a private
  * class variable.
@@ -812,7 +815,7 @@ int ParadynVisiCmd (ClientData clientData,
     int ok, i;
     if (Tcl_GetInt (interp, argv[2], &i) != TCL_OK) 
       return TCL_ERROR;
-    ok = vmMgr->VMCreateVisi(1,0,i,NULL,0); 
+    ok = vmMgr->VMCreateVisi(1,-1,i,NULL,0); 
   } 
   else if (argv[1][0] == 'k') {
     int i;
