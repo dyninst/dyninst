@@ -3,6 +3,9 @@
  * inst-osf.C - osf specifc code for paradynd.
  *
  * $Log: inst-osf.C,v $
+ * Revision 1.2  1998/09/15 20:50:59  buck
+ * Change to not include files from rtinst/h when compiling for Dyninst API.
+ *
  * Revision 1.1  1998/08/25 19:35:07  buck
  * Initial commit of DEC Alpha port.
  *
@@ -14,7 +17,11 @@
 #include "metric.h"
 #endif
 #include "dyninst.h"
+#ifdef BPATCH_LIBRARY
+#include "dyninstAPI_RT/h/trace.h"
+#else
 #include "rtinst/h/trace.h"
+#endif
 #include "symtab.h"
 #include "process.h"
 #include "inst.h"

@@ -1,7 +1,11 @@
 
 #include "util/h/headers.h"
 
+#ifdef BPATCH_LIBRARY
+#include "dyninstAPI_RT/h/rtinst.h"
+#else
 #include "rtinst/h/rtinst.h"
+#endif
 #include "symtab.h"
 #include "process.h"
 #include "inst.h"
