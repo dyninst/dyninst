@@ -18,7 +18,7 @@
  */
 #include <assert.h>
 extern "C" {
-double   quiet_nan(int unused);
+double   quiet_nan();
 #include <malloc.h>
 #include <rpc/types.h>
 #include <rpc/xdr.h>

@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.40  1995/06/02 20:48:27  newhall
+ * Revision 1.41  1995/07/06 01:52:53  newhall
+ * update for new version of Histogram library, removed compiler warnings
+ *
+ * Revision 1.40  1995/06/02  20:48:27  newhall
  * * removed all pointers to datamanager class objects from datamanager
  *    interface functions and from client threads, objects are now
  *    refered to by handles or by passing copies of DM internal data
@@ -722,12 +725,12 @@ resourceHandle dataManager::newResource(resourceHandle parent,
 
 timeStamp dataManager::getCurrentBucketWidth()
 {
-    return(Histogram::bucketSize);
+    return(Histogram::getGlobalBucketWidth());
 }
 
 int dataManager::getMaxBins()
 {
-    return(Histogram::numBins);
+    return(Histogram::getNumBins());
 }
 
 void dataManager::printDaemons()

@@ -35,12 +35,13 @@ phaseInfo::phaseInfo(timeStamp s, timeStamp e, timeStamp b, const string &n){
     dm_phases += p;
 }
 
+#ifdef n_def
 void phaseInfo::startPhase(timeStamp start_Time, const string &name){
     // update the histogram data structs assoc with each MI
     // return a start time for the phase
 
     // create a new phaseInfo object 
-    timeStamp bin_width = (Histogram::bucketSize);
+    timeStamp bin_width = (Histogram::getGlobalBucketWidth());
 
     // **** kludge: the PC search screws up the lastGlobalBin value in
     // the Histogram class, so search all active DM histograms for
@@ -50,7 +51,7 @@ void phaseInfo::startPhase(timeStamp start_Time, const string &name){
     dictionary_hash_iter<metricInstanceHandle,metricInstance *> 
 			allMIs(metricInstance::allMetricInstances);
     metricInstanceHandle mi_h; metricInstance *next = 0;
-    int lastBin = Histogram::numBins;
+    int lastBin = Histogram::getNumBins();
     while(allMIs.next(mi_h,next)){
         if(next->data){
             if(next->data->getCurrBin() < lastBin){
@@ -72,3 +73,23 @@ void phaseInfo::startPhase(timeStamp start_Time, const string &name){
      }
      p = 0;
 }
+#endif
+
+void phaseInfo::startPhase(timeStamp start_Time, const string &name){
+    // update the histogram data structs assoc with each MI
+    // return a start time for the phase
+
+    // create a new phaseInfo object 
+    timeStamp bin_width = (Histogram::getGlobalBucketWidth());
+    timeStamp start_time = Histogram::currentTime();
+    phaseInfo *p = new phaseInfo(start_time, (timeStamp)-1.0, bin_width, name);
+    // invoke newPhaseCallback for all perf. streams
+    dictionary_hash_iter<perfStreamHandle,performanceStream*>
+			allS(performanceStream::allStreams);
+     perfStreamHandle h;
+     performanceStream *ps;
+     while(allS.next(h,ps)){
+         ps->callPhaseFunc(*p);
+     }
+     p = 0;
+}	

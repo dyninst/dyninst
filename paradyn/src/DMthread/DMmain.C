@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.65  1995/06/02 20:48:19  newhall
+ * Revision 1.66  1995/07/06 01:52:49  newhall
+ * update for new version of Histogram library, removed compiler warnings
+ *
+ * Revision 1.65  1995/06/02  20:48:19  newhall
  * * removed all pointers to datamanager class objects from datamanager
  *    interface functions and from client threads, objects are now
  *    refered to by handles or by passing copies of DM internal data
@@ -236,7 +239,7 @@
  */
 #include <assert.h>
 extern "C" {
-double   quiet_nan(int unused);
+double   quiet_nan();
 #include <malloc.h>
 #include <stdio.h>
 }
