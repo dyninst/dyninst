@@ -155,10 +155,14 @@ int MC_Message::send(int sock_fd)
   std::list<MC_Packet *>::iterator iter=packets.begin();
   mc_printf(MCFL, stderr, "Writing %d packets of size: [ ", no_packets);
   int total_bytes =0;
-  for(i=0; iter != packets.end(); iter++, i++){
-    iov[i].iov_base = (*iter)->get_Buffer();
-    iov[i].iov_len = (*iter)->get_BufferLen();
-    packet_sizes[i] = (*iter)->get_BufferLen();
+  for( i=0; iter != packets.end(); iter++, i++){
+
+      MC_Packet* curPacket = *iter;
+
+    iov[i].iov_base = curPacket->get_Buffer();
+    iov[i].iov_len = curPacket->get_BufferLen();
+    packet_sizes[i] = curPacket->get_BufferLen();
+
     total_bytes += iov[i].iov_len;
     _fprintf((stderr, "%d, ", iov[i].iov_len));
   }
@@ -331,7 +335,14 @@ MC_Packet::MC_Packet(unsigned int _buf_len, char * _buf)
                      "tag:%d, fmt:%s\n", this, src, tag, fmt_str);
 }
 
-MC_Packet::MC_Packet(MC_DataElement *_data_elements, const char * _fmt_str){
+MC_Packet::MC_Packet(int _tag,
+                     unsigned short _sid,
+                     MC_DataElement *_data_elements, const char * _fmt_str)
+  : tag(_tag),
+    stream_id(_sid),
+    fmt_str(strdup(_fmt_str)),
+    src(strdup("<agg>"))
+{
   char *cur_fmt, * fmt = strdup(_fmt_str), *buf_ptr;
   int i=0;
   MC_DataElement * cur_elem;
@@ -349,6 +360,21 @@ MC_Packet::MC_Packet(MC_DataElement *_data_elements, const char * _fmt_str){
 
     cur_fmt = strtok_r(NULL, " \t\n%", &buf_ptr);
   }while(cur_fmt != NULL);
+
+  // data_elements copied, now pack the message
+  PDR pdrs;
+  buf_len = pdr_sizeof((pdrproc_t)(MC_Packet::pdr_packet), this);
+  assert(buf_len);
+  buf = (char *) malloc (buf_len); 
+  assert(buf);
+
+  pdrmem_create(&pdrs, buf, buf_len, PDR_ENCODE);
+
+  if(!MC_Packet::pdr_packet(&pdrs, this)){
+    mc_printf(MCFL, stderr, "pdr_packet() failed\n");
+    mc_errno = MC_EPACKING;
+    return;
+  }
 
   mc_printf(MCFL, stderr, "MC_Packet succeeded, packet(%p)\n", this);
   return;
@@ -866,6 +892,12 @@ int MC_read(int fd, void *buf, int count)
           perror("");
           return -1;
       }
+    }
+    else if( (retval == 0) && (errno == EINTR) )
+    {
+        // this situation has been seen to occur on Linux
+        // when the remote endpoint has gone away
+        return -1;
     }
     else{
       bytes_recvd += retval;

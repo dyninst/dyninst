@@ -35,5 +35,5 @@ MC_StreamManager::push_packet(MC_Packet *packet,
   }
 
   mc_printf(MCFL, stderr, "Leaving stream_mgr.push_packet()\n");
-  return -1;
+  return 0;
 }

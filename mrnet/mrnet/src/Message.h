@@ -83,7 +83,9 @@ class MC_Packet: public MC_Error{
   MC_Packet(int _tag, const char * fmt, ...);
   MC_Packet(unsigned short stream_id, int _tag, const char * fmt, va_list);
   MC_Packet(unsigned int _buf_len, char * _buf);
-  MC_Packet(MC_DataElement *, const char * fmt);
+  MC_Packet(int _tag,
+                unsigned short _stream_id,
+                MC_DataElement *, const char * fmt);
 
   int ExtractVaList(const char * fmt, va_list arg_list); 
   int ExtractArgList(const char * fmt, ...); 

@@ -48,9 +48,18 @@ int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
 
   //Allocate an array of dataelements for each packet. This represents a
   //set of data possibly each downstream_node
+  int tag = -1;
+  unsigned short streamId = 0;
   in = new MC_DataElement * [in_count];
   for(i=0,iter = packets_in.begin(); iter != packets_in.end(); iter++, i++){
       assert( aggr_spec->format_str == (*iter)->get_FormatString() );
+
+      // save the tag and stream id for use in the output packets
+      if( i == 0 )
+      {
+            tag = (*iter)->get_Tag();
+            streamId = (*iter)->get_StreamId();
+      }
 
     //for each "downstream node" a packet contains an array of elements
     in[i] = new MC_DataElement[(*iter)->get_NumElements()] ;
@@ -63,7 +72,10 @@ int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
 
   //put out dataelements in packets and push into packets_out list
   for(i=0; i<out_count; i++){
-    MC_Packet * cur_packet = new MC_Packet(out[i], aggr_spec->format_str.c_str());
+    MC_Packet * cur_packet = new MC_Packet(tag,
+                                            streamId,
+                                            out[i],
+                                            aggr_spec->format_str.c_str());
     packets_out.push_back(cur_packet);
     mc_printf(MCFL, stderr, "filtered packet value: %lf\n", out[i][0].val.lf);
   }
