@@ -6,9 +6,12 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.8  1996/01/23 06:59:04  tamches
-/* corrected path to include of String.h
+/* Revision 1.9  1996/04/01 22:29:51  tamches
+/* makeVisibility* functions added
 /*
+ * Revision 1.8  1996/01/23 06:59:04  tamches
+ * corrected path to include of String.h
+ *
  * Revision 1.7  1996/01/11 04:39:34  tamches
  * added whole program kludge for getCurrAbstractionSelections
  *
@@ -153,6 +156,19 @@ class abstractions {
             // false --> don't resort
          theAbstractions[i].theWhereAxis->resize(i==currAbstractionIndex);
       }
+   }
+
+   void makeVisibilityUnobscured() {
+      for (unsigned i=0; i < theAbstractions.size(); i++)
+         theAbstractions[i].theWhereAxis->makeVisibilityUnobscured();
+   }
+   void makeVisibilityPartiallyObscured() {
+      for (unsigned i=0; i < theAbstractions.size(); i++)
+         theAbstractions[i].theWhereAxis->makeVisibilityPartiallyObscured();
+   }
+   void makeVisibilityFullyObscured() {
+      for (unsigned i=0; i < theAbstractions.size(); i++)
+         theAbstractions[i].theWhereAxis->makeVisibilityFullyObscured();
    }
 };
 
