@@ -169,7 +169,7 @@ template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::resourceInfoC
 template class vector<process *>;
 template class vector<pdThread *>;
 template class vector< vector<pdThread *> >;
-template class vector<dataReqNode *>;
+template class vector<const dataReqNode *>;
 template class vector<mdl_var>;
 template class vector<mdl_focus_element>;
 template class vector<mdl_type_desc>;
