@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.7  1994/05/18 00:51:03  hollings
-/* We don't want SIGPIPEs to kill us.
+/* Revision 1.8  1994/07/07 03:26:24  markc
+/* Added calls to parser routines.
 /*
+ * Revision 1.7  1994/05/18  00:51:03  hollings
+ * We don't want SIGPIPEs to kill us.
+ *
  * Revision 1.6  1994/05/10  03:57:54  hollings
  * Changed data upcall to return array of buckets.
  *
@@ -114,6 +117,10 @@ main (int argc, char *argv[])
     paradyn_debug = 0;
   }
 
+// parse the configuration files
+  int parseResult;
+
+  parseResult = metMain();
 
 
 // get tid of parent
@@ -176,6 +183,14 @@ main (int argc, char *argv[])
   msg_recv(&mtag, mbuf, &msgsize);
   msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   vmMgr = new VMUser (VMtid);
+
+// take actions based on the parsed configuration files
+  metDoDaemon();
+  metDoTunable();
+  metDoProcess();
+  metDoVisi();
+  printf("past metric parsing\n");
+
 
 // wait for UIM thread to exit 
 

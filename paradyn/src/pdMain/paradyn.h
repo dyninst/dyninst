@@ -1,8 +1,11 @@
 /* $Log: paradyn.h,v $
-/* Revision 1.5  1994/04/28 22:07:40  newhall
-/* added PARADYN_DEBUG macro: prints debug message if PARADYNDEBUG
-/* environment variable has value >= 1
+/* Revision 1.6  1994/07/07 03:26:25  markc
+/* Added calls to parser routines.
 /*
+ * Revision 1.5  1994/04/28  22:07:40  newhall
+ * added PARADYN_DEBUG macro: prints debug message if PARADYNDEBUG
+ * environment variable has value >= 1
+ *
  * Revision 1.4  1994/04/10  19:16:19  newhall
  * added VM definitions
  *
@@ -26,6 +29,7 @@
 #include "performanceConsultant.CLNT.h"
 #include "UI.CLNT.h"
 #include "VM.CLNT.h"
+#include "paradyn/src/met/metricExt.h"
 
 struct CLargStruct {
   int clargc;
