@@ -408,7 +408,14 @@ bool BPatch_flowGraph::createBasicBlocks()
     }
     
     return true;
-#endif
+
+#else // x86 linux, SPARC solaris, x86 windows
+
+    // TODO Note this "else" code also contains #ifdefs for
+    // the platforms above, like x86 linux.
+    // They are essentially NOPs, until the entire function
+    // can be cleaned up.
+
 
    // assign sequential block numbers to basic blocks
    int bno = 0;
@@ -524,6 +531,7 @@ bool BPatch_flowGraph::createBasicBlocks()
       {
          InstrucIter ah2(ah);
          BPatch_Set<Address> possTargets; 
+
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
@@ -747,6 +755,7 @@ bool BPatch_flowGraph::createBasicBlocks()
    delete[] elements;
          
    return true;
+#endif // x86 linux, SPARC solaris, or x86 Windows
 }
 
 
