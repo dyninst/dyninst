@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.36 1999/11/09 19:26:34 cain Exp $
+ * $Id: PCshg.h,v 1.37 2000/01/06 20:16:36 cain Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -77,7 +77,20 @@ public:
   searchHistoryNode(searchHistoryNode *parent, hypothesis *why, 
 		    focus where, refineType axis, 
 		    bool persist, searchHistoryGraph *mama, 
-		    const char *shortName, unsigned newID, bool amFlag);
+		    const char *shortName, unsigned newID, bool amFlag,
+		    bool alreadyNarrowed);
+  searchHistoryNode(searchHistoryNode *parent,
+		    hypothesis *why, 
+		    focus whereowhere, 
+		    refineType axis,
+		    bool persist,
+		    searchHistoryGraph *mama,
+		    const char *shortName,
+		    unsigned newID,
+		    bool amFlag,
+		    int csp,
+		    vector<bool> as,
+		    bool alreadyNarrowed);
   searchHistoryNode *addChild (hypothesis *why, 
 			       focus whereowhere, 
 			       refineType axis,
@@ -99,6 +112,11 @@ public:
   void changeTruth (testResult newTruth);
   void expand();
   bool expandWhere();
+  bool expandWhereOldPC();
+  bool expandWhereCallGraphSearch();
+  bool expandWhereNarrow();
+  bool expandWhereWide();
+  void expandWhereDownNewPath();
   bool expandWhy();
   void setExpanded () {exStat = expandedAll;}
   expandPolicy getExpandPolicy() {return why->getExpandPolicy();}
@@ -117,12 +135,15 @@ public:
   void retestAllChildren();
   void retest();
   int getGuiToken();
+  bool isFalse(){ return (truthValue == tfalse);}
+  void setOriginalParent(searchHistoryNode* orig) { originalParent = orig; }
 private:
   void percolateUp(testResult newTruth);
   void percolateDown(testResult newTruth);
   void makeTrue();
   void makeFalse();
   void makeUnknown();
+  void notifyParentAboutFalseChild();
   void changeActive(bool live);
   hypothesis *why;
   focus where;
@@ -141,10 +162,30 @@ private:
   int numTrueParents;
   int numTrueChildren;
   bool virtualNode;
+  
+  //originalParent designates the true parent of every node. Many nodes
+  //only have one parent, so in this case originalParent is the same as 
+  //the lone entry in the "parents" vector. In the case of shadow nodes,
+  //which have multiple parents, originalParent refers to the original parent 
+  //of the shadow node.
+  //This variable is necessary for the new PC, where SHG nodes notify 
+  //their original parent when they become false, so that the parent node
+  //may continue its search down a different path of the resource hierarchy
+  //when it no longer has any expanded children.
+  searchHistoryNode* originalParent;
+
   vector<searchHistoryNode*> parents;
   vector<searchHistoryNode*> children;
   searchHistoryGraph *mamaGraph;
+  
   string sname;
+
+  //Index into searchPaths
+  unsigned currentSearchPath;
+  vector<bool> alreadySearched; //one entry for each part of focus
+  bool narrowedSearch;
+  
+  int numExpandedChildren;
 };
 
 ostream& operator <<(ostream &os, searchHistoryNode& shn);

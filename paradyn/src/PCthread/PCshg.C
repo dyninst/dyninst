@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.59 1999/11/09 19:26:34 cain Exp $
+ * $Id: PCshg.C,v 1.60 2000/01/06 20:16:35 cain Exp $
  */
 
 #include "PCintern.h"
@@ -82,18 +82,20 @@ searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
 				     searchHistoryGraph *mama,
 				     const char *shortName,
 				     unsigned newID,
-				     bool amFlag):
+				     bool amFlag,
+				     bool ns):
 why(why), where(whereowhere), 
 persistent(persist), altMetricFlag(amFlag), 
 exp(NULL), active(false), truthValue(tunknown), 
 axis(axis), nodeID(newID), exStat(expandedNone),  
 mamaGraph (mama), sname(shortName)
 {
+  unsigned i;
+  vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
   // full name of node (both why and where)
   name = why->getName();
   name += "::";
   name += dataMgr->getFocusNameFromHandle(where);
-
   // short label for node display
   if (sname == NULL)
     sname = why->getName();
@@ -106,6 +108,53 @@ mamaGraph (mama), sname(shortName)
   // it is some other true node
   numTrueParents = 1;
   numTrueChildren = 0;
+
+  
+  alreadySearched.resize(parentFocus->size());
+  for(i =0; i < parentFocus->size(); i++)
+    alreadySearched[i] = false;
+  currentSearchPath = 0;
+  narrowedSearch = ns;
+  numExpandedChildren = 0;
+}
+
+searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
+				     hypothesis *why, 
+				     focus whereowhere, 
+				     refineType axis,
+				     bool persist,
+				     searchHistoryGraph *mama,
+				     const char *shortName,
+				     unsigned newID,
+				     bool amFlag,
+				     int csp,
+				     vector<bool> as,
+				     bool ns):
+why(why), where(whereowhere), 
+persistent(persist), altMetricFlag(amFlag), 
+exp(NULL), active(false), truthValue(tunknown), 
+axis(axis), nodeID(newID), exStat(expandedNone),  
+mamaGraph (mama), sname(shortName), alreadySearched(as)
+{
+  // full name of node (both why and where)
+  name = why->getName();
+  name += "::";
+  name += dataMgr->getFocusNameFromHandle(where);
+  // short label for node display
+  if (sname == NULL)
+    sname = why->getName();
+
+  if (parent != NULL)
+    parents += parent;
+  virtualNode = why->isVirtual();
+
+  // at this point, we know the parent is either the topLevelHypothesis or 
+  // it is some other true node
+  numTrueParents = 1;
+  numTrueChildren = 0;
+  narrowedSearch = ns;
+  currentSearchPath = csp;
+  numExpandedChildren = 0;
 }
 
 searchHistoryNode*
@@ -118,7 +167,10 @@ searchHistoryNode::addChild (hypothesis *why,
 			     bool amFlag)
 {
   searchHistoryNode *newkid = new searchHistoryNode (this, why, whereowhere, axis, 
-				 persist, mamaGraph, shortName, newID, amFlag);
+				 persist, mamaGraph, shortName, newID, amFlag,
+						     currentSearchPath,
+						     alreadySearched,
+						     narrowedSearch);
   children += newkid;
   return newkid;
 }
@@ -289,7 +341,7 @@ searchHistoryNode *
 searchHistoryNode::addDynamicChild(resourceHandle child){
   bool newNodeFlag;
   vector<resourceHandle> *currFocus;
-
+  
   //create a new focus including the dynamic child
   resourceListHandle *new_where = dataMgr->morespecific(child, where);
   assert(new_where);
@@ -310,6 +362,7 @@ searchHistoryNode::addDynamicChild(resourceHandle child){
 					       &newNodeFlag);
   
   if(newNodeFlag){
+    numExpandedChildren++;
     curr->addNodeToDisplay(); 
     mamaGraph->addUIrequest(nodeID, curr->getNodeId(),  // child ID
 			    (unsigned)refineWhereAxis, // edge style
@@ -326,15 +379,27 @@ searchHistoryNode::addDynamicChild(resourceHandle child){
   return curr;
 }
 
+//ExpandWhere- this function used to be what is now expandWhereOldPC. When
+//I added the new PC, I changed it so that it selectively chooses between 
+//the new way of searching and the old way, depending on the 
+//performanceConsultant::useCallGraphSearch flag.
+bool searchHistoryNode::expandWhere(){
+  if(performanceConsultant::useCallGraphSearch)
+    return expandWhereCallGraphSearch();//Expand the search with the call graph
+  else 
+    return expandWhereOldPC(); //expand the search the old way 
+  
+  return false; //placate gcc warnings
+}
 
-bool
-searchHistoryNode::expandWhere()
-{
+
+//This function is what used to be the expandWhere function. 
+bool searchHistoryNode::expandWhereOldPC(){
+  assert(!performanceConsultant::useCallGraphSearch);
   searchHistoryNode *curr;
   bool newNodeFlag;
   bool altFlag;
   bool expansionPossible = false;
-
   // expand along where axis
   vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
   vector<resourceHandle> *currFocus;
@@ -349,10 +414,7 @@ searchHistoryNode::expandWhere()
     if (!why->isPruned(currHandle)) {
       // prunes limit the resource trees along which we will expand this node
 
-      if(performanceConsultant::useCallGraphSearch)
-	kids = dataMgr->magnify(currHandle, where, CallGraphSearch);
-      else 
-	kids = dataMgr->magnify(currHandle, where, OriginalSearch);
+      kids = dataMgr->magnify(currHandle, where, OriginalSearch, 0);
       
       if ( (kids != NULL) && (kids->size() >= 1)) {
 	// note we don't bother refining if there's only a single child, 
@@ -392,6 +454,247 @@ searchHistoryNode::expandWhere()
 	  }
 	}
 	delete kids;
+      }
+    }
+  }
+  delete parentFocus;
+  return expansionPossible;
+}
+
+
+//expandWhereCallGraphSearch()
+//Search expansions now use the following strategy: once we have chosen 
+//a top level hypothesis, we expandWhereWide once, meaning that we branch
+//off a search in each of the resource hierarchies. Once we have started
+//each of these hiearchy searches, each of those searches expandWhere narrowly,
+//meaning that they stay within the the single hierarchy until that hierarchy
+//has been exhausted. Once the current hierarchy has been exhausted, we move
+//on to the next hierarchy, until we have exhausted all of the hierarchies.
+bool searchHistoryNode::expandWhereCallGraphSearch(){
+  assert(performanceConsultant::useCallGraphSearch);
+  if(narrowedSearch)
+    return expandWhereNarrow();
+  else 
+    return expandWhereWide();
+}
+
+
+//This function is called once we have determined that the current resource
+//hierarchy in which we are searching has been exhausted. We must change
+//our current search path to the next one, if any more exist. If not,
+//we terminate the search.
+void
+searchHistoryNode::expandWhereDownNewPath(){
+  assert(performanceConsultant::useCallGraphSearch);
+  bool searchExhausted = true;
+  unsigned u;
+  vector<resourceHandle> *parentFocus = NULL;//placate g++ warning
+  parentFocus = dataMgr->getResourceHandles(where);
+  
+  //Mark this search path as "already searched"
+  alreadySearched[currentSearchPath] = true;
+
+  //find the next hierarchy in our focus that we would like to search
+  for(u = 0; u < parentFocus->size(); u++)
+    if(alreadySearched[u] == false){
+      searchExhausted = false;
+      break;
+    }
+  
+  //If we have already searched each of these hierarchies, then quit
+  if(searchExhausted)
+    return;
+  
+  //Update currentSearchPath to reflect the new search path
+  currentSearchPath = (currentSearchPath + 1) % parentFocus->size();
+  while(alreadySearched[currentSearchPath] == true)
+    currentSearchPath = (currentSearchPath + 1) % parentFocus->size();
+
+  //Expand this searchHistoryNode along the new search path
+  expandWhereNarrow();
+  mamaGraph->flushUIbuffer();
+}
+
+
+//This form of expansion is used once this search has already started 
+//searching a given hierarchy. 
+bool
+searchHistoryNode::expandWhereNarrow()
+{
+  assert(performanceConsultant::useCallGraphSearch);
+  searchHistoryNode *curr;
+  bool newNodeFlag;
+  bool altFlag;
+  bool expansionPossible = false;
+  bool searchExhausted;
+
+  // expand along where axis
+  vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
+  vector<resourceHandle> *currFocus;
+  resourceHandle currHandle;
+  vector<rlNameId> *kids;
+  do { //I can't believe that I'm using a do while. 
+    searchExhausted = true; 
+    assert(currentSearchPath < alreadySearched.size());
+
+    //If we have not already searched the current search path.
+    if(currentSearchPath < parentFocus->size() && 
+       !alreadySearched[currentSearchPath]){
+      currHandle = (*parentFocus)[currentSearchPath];
+      altFlag = (currHandle == Processes);
+      
+      //shouldn't be here if we are a topLevelFocus
+      if (altFlag && (where == topLevelFocus))
+	return false;	
+
+      if (!why->isPruned(currHandle)) {
+	//If the current resource is pruned, we ignore it and expand the next
+	//one. 
+
+	kids = dataMgr->magnify(currHandle, where, CallGraphSearch, 
+				(*parentFocus)[currentSearchPath]);
+
+	if ( (kids != NULL) && (kids->size() >= 1)) {
+	  // note we don't bother refining if there's only a single child, 
+	  // because the child would trivially test true.
+	  for (unsigned j = 0; j < kids->size(); j++) {
+	    // eliminate all resources explicitly pruned for this hypothesis
+	    currFocus = dataMgr->getResourceHandles((*kids)[j].id);
+	    bool suppressFound = false;;
+	    for (unsigned n = 0; n < currFocus->size(); n++) {
+	      if (why->isSuppressed((*currFocus)[n])) {
+		suppressFound = true;
+		break;
+	      }
+	    }
+	    if (!suppressFound) {
+	      expansionPossible = true;
+	      curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
+					 refineWhereAxis,
+					 false,  
+					 (*kids)[j].res_name,
+					 (altFlag || altMetricFlag),
+					 &newNodeFlag);
+	      if (newNodeFlag) {
+		// a new node was added
+		numExpandedChildren++;
+		curr->addNodeToDisplay(); 
+		mamaGraph->addUIrequest(nodeID,   // parent ID
+					curr->getNodeId(),  // child ID
+					(unsigned)refineWhereAxis,// edge style
+					(char *)NULL);
+	      } 
+	      else { 
+		// shadow node
+		mamaGraph->addUIrequest(nodeID,
+					curr->getNodeId(),
+					(unsigned)refineWhereAxis,
+					(*kids)[j].res_name);
+	      }
+	    }
+	  }
+	  delete kids;
+	}
+	else {
+	  alreadySearched[currentSearchPath] = true;
+	}
+      }
+      else {
+	alreadySearched[currentSearchPath] = true;
+      }
+    }
+    if (!expansionPossible) { 
+      //If we didn't expand anything, then we want to move on to the next
+      //resource hierarchy.
+      unsigned un;
+      searchExhausted = true;
+      currentSearchPath = (currentSearchPath + 1) % parentFocus->size();
+      assert(alreadySearched.size() == parentFocus->size());
+
+      //Check and see if we have run out of remaining resource hierarchies
+      //to search. If so, we break out of the outer do-while loop.
+      //otherwise, we continue the search down the new path.
+      for (un = 0; un < parentFocus->size(); un++)
+	if (alreadySearched[un] == false) {
+	  searchExhausted = false;
+	  break;
+	}
+    }
+  }
+  while(!expansionPossible && !searchExhausted);
+  delete parentFocus;
+  return expansionPossible;
+}
+
+bool searchHistoryNode::expandWhereWide(){
+  searchHistoryNode *curr;
+  bool newNodeFlag;
+  bool altFlag;
+  bool expansionPossible = false;
+  assert(performanceConsultant::useCallGraphSearch);
+  // expand along where axis
+  vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
+  vector<resourceHandle> *currFocus;
+  resourceHandle currHandle;
+  vector<rlNameId> *kids;
+  for (unsigned m = 0; m < parentFocus->size(); m++) {
+    currHandle = (*parentFocus)[m];
+    altFlag = (currHandle == Processes);
+    if (altFlag && (where == topLevelFocus))
+      // it is never useful to refine along process from the top level
+      continue;
+    if (!why->isPruned(currHandle)) {
+      // prunes limit the resource trees along which we will expand this node
+
+      kids = dataMgr->magnify(currHandle, where, CallGraphSearch, 0);
+	
+      if ( (kids != NULL) && (kids->size() >= 1)) {
+        // note we don't bother refining if there's only a single child, 
+        // because the child would trivially test true.
+        for (unsigned j = 0; j < kids->size(); j++) {
+          // eliminate all resources explicitly pruned for this hypothesis
+          currFocus = dataMgr->getResourceHandles((*kids)[j].id);
+          bool suppressFound = false;;
+          for (unsigned n = 0; n < currFocus->size(); n++) {
+            if (why->isSuppressed((*currFocus)[n])) {
+              suppressFound = true;
+              break;
+            }
+          }
+          if (!suppressFound) {
+            expansionPossible = true;
+	    assert(m < alreadySearched.size());
+	    assert(parentFocus->size() == alreadySearched.size());
+	    //	    alreadySearched[m] = true;
+	    currentSearchPath = m;
+	    narrowedSearch = true;
+            curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
+                                       refineWhereAxis,
+                                       false,  
+                                       (*kids)[j].res_name,
+                                       (altFlag || altMetricFlag),
+				       &newNodeFlag);
+	    narrowedSearch = false;
+	    assert(m < alreadySearched.size());
+	    assert(parentFocus->size() == alreadySearched.size());
+	    //alreadySearched[m] = false;
+            if (newNodeFlag) {
+              // a new node was added
+              curr->addNodeToDisplay(); 
+              mamaGraph->addUIrequest(nodeID,   // parent ID
+                                      curr->getNodeId(),  // child ID
+                                      (unsigned)refineWhereAxis, // edge style
+                                      (char *)NULL);
+            } else {
+              // shadow node
+              mamaGraph->addUIrequest(nodeID,
+                                      curr->getNodeId(),
+                                      (unsigned)refineWhereAxis,
+                                      (*kids)[j].res_name);
+            }
+          }
+        }
+        delete kids;
       }
     }
   }
@@ -504,6 +807,20 @@ searchHistoryNode::makeFalse()
   if (!persistent) stopExperiment();
   // change truth value and/or active status on the GUI
   changeDisplay();
+
+  //Notify the originalParent of this node, so that it might continue
+  //its search down a different branch of the resource hierarchy if we
+  //are its final expanded child.
+  originalParent->notifyParentAboutFalseChild();
+}
+
+void searchHistoryNode::notifyParentAboutFalseChild(){
+  if(!performanceConsultant::useCallGraphSearch || !narrowedSearch)
+    return;
+  numExpandedChildren--;
+  assert(numExpandedChildren >= 0);
+  if(numExpandedChildren == 0)
+    expandWhereDownNewPath();
 }
 
 void
@@ -541,9 +858,20 @@ searchHistoryNode::percolateDown(testResult newValue)
     // left, this node is false by definition, we stop the experiment.
     // Eventually the child node would become false on its own, this
     // is just a shortcut.
-    numTrueParents--;
-    if (numTrueParents == 0)
-      changeTruth(tfalse); 
+    if(!performanceConsultant::useCallGraphSearch){
+      numTrueParents--;
+      if (numTrueParents == 0){
+	changeTruth(tfalse); 
+      }
+    }
+    else {//We don't necessarily want to make a child node false if all 
+      //of its parents are true. Think about the scenario where One function
+      //that is a bottleneck is called by many parents, and none of
+      //its parents are above the threshhold. In this case, once all of the
+      //parents have been found to be false, then we don't want to throw 
+      //away this true bottleneck that we have found.
+      numTrueParents--;
+    }
   }
 }
       
@@ -725,7 +1053,7 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
 				topLevelHypothesis,
 				topLevelFocus, refineWhyAxis,
 				true, this, "TopLevelHypothesis", nextID, 
-				false);
+				false, false);
   root->setExpanded();
   Nodes += root;
   NodeIndex[nextID] = root;
@@ -796,6 +1124,7 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
   }
   newkid = parent->addChild (why, whereowhere, axis, persist, 
 			     shortName, nextID++, amFlag);
+  newkid->setOriginalParent(parent);
   *foclist += newkid;
   newkid->setupExperiment();
   Nodes += newkid;
