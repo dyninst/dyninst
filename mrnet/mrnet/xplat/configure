@@ -1370,8 +1370,6 @@ host_os=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 
 
 abs_srcdir=`cd $srcdir && pwd`
-echo "srcdir = \"$srcdir\""
-echo "abs_srcdir = \"$abs_srcdir\""
 
 # Checks for programs.
 ac_ext=cc

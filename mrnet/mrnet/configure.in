@@ -8,6 +8,8 @@ AC_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(conf)
 AC_CONFIG_SUBDIRS(xplat)
 
+abs_srcdir=`cd $srcdir && pwd`
+
 dnl === COMPILERS AND FLAGS ===
 CXXFLAGS="-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
 
