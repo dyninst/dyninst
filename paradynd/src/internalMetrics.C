@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: internalMetrics.C,v 1.13 2002/05/09 21:42:51 schendel Exp $
+// $Id: internalMetrics.C,v 1.14 2002/10/15 17:11:48 schendel Exp $
 
-#include "dyninstAPI/src/process.h" // processVec
+#include "paradynd/src/processMgr.h"
 #include "internalMetrics.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -160,11 +160,9 @@ T_dyninstRPC::metricInfo internalMetric::getInfo() {
     return ret;
 }
 
-extern vector<process*> processVec;
-
 bool internalMetric::legalToInst(const Focus &focus) const {
   // returns true iff this internal metric may be enabled for the given focus.
-  if (processVec.size()==0) {
+  if(getProcMgr().size() == 0) {
     // we don't enable internal metrics if there are no process to run
     return false;
   }
