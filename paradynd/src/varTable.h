@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.h,v 1.5 2002/08/31 16:53:43 mikem Exp $
+// $Id: varTable.h,v 1.6 2002/10/15 17:12:22 schendel Exp $
 
 // The varTable class consists of an array of superVectors. The varTable
 // class is a template class. It has a levelMap vector that keeps track of
@@ -50,12 +50,9 @@
 #ifndef _VAR_TABLE_H_
 #define _VAR_TABLE_H_
 
-
 #include "common/h/Vector.h"
 #include "paradynd/src/variableMgrTypes.h"
 
-
-class process;
 class baseVarInstance;
 class threadMetFocusNode_Val;
 class variableMgr;
