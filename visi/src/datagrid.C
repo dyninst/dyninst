@@ -14,9 +14,12 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.7  1994/06/07 17:48:46  newhall
-/* support for adding metrics and resources to existing visualization
+/* Revision 1.8  1994/06/16 18:24:50  newhall
+/* fix to visualization::Data
 /*
+ * Revision 1.7  1994/06/07  17:48:46  newhall
+ * support for adding metrics and resources to existing visualization
+ *
  * Revision 1.6  1994/05/23  20:56:46  newhall
  * To visi_GridCellHisto class: added deleted flag, SumValue
  * method function, and fixed AggregateValue method function
@@ -183,7 +186,9 @@ visi_GridCellHisto *temp;
        if(values[i].AddNewValues(temp[i].Value(),
 				  temp[i].Size(),
 				  temp[i].LastBucketFilled(),
-				  temp[i].userdata) != OK){
+				  temp[i].userdata,
+				  temp[i].Valid(),
+				  temp[i].Deleted()) != OK){
 	 return(ERROR_CREATEGRID);
        }
        temp[i].userdata = NULL;

@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.8  1994/06/07 17:48:49  newhall
-/* support for adding metrics and resources to existing visualization
+/* Revision 1.9  1994/06/16 18:24:53  newhall
+/* fix to visualization::Data
 /*
+ * Revision 1.8  1994/06/07  17:48:49  newhall
+ * support for adding metrics and resources to existing visualization
+ *
  * Revision 1.7  1994/05/23  20:56:48  newhall
  * To visi_GridCellHisto class: added deleted flag, SumValue
  * method function, and fixed AggregateValue method function
@@ -40,7 +43,9 @@
  *  */ 
 #include "visi/h/visualization.h"
 #include "visi.SRVR.h"
+/*
 #define DEBUG
+*/
 
 visi_DataGrid  dataGrid;
 visi_MRList    metricList;
@@ -183,6 +188,9 @@ int *metricIds, *resourceIds;
 int noMetrics, noResources;
 int i,j,metric,ok;
 int temp,min,max;
+#ifdef DEBUG
+int flag = 0;
+#endif
 
 
   if(!initDone)
@@ -214,9 +222,27 @@ int temp,min,max;
     for(j=0;(j<noResources)&&(data.data[i].resourceId!=resourceIds[j]);j++) ;
 
     if((j<noResources) && (metric < noMetrics)){
+
+#ifdef DEBUG
+       if((!dataGrid[metric][j].Valid()) || (dataGrid[metric][j].Deleted())){
+         fprintf(stderr,"datagrid[%d][%d]: deleted %d valid %d userdata %d\n",
+	    metric,j,dataGrid[metric][j].Deleted(),dataGrid[metric][j].Valid(),
+	    (int)dataGrid[metric][j].userdata);
+	 flag = 1;
+       }
+#endif
        dataGrid.AddValue(metric,j,
 		         data.data[i].bucketNum,
 		         (float)data.data[i].data);
+#ifdef DEBUG
+    if(flag){
+      fprintf(stderr,"datagrid[%d][%d]: deleted %d valid %d userdata %d\n",
+	    metric,j,dataGrid[metric][j].Deleted(),dataGrid[metric][j].Valid(),
+	    (int)dataGrid[metric][j].userdata);
+      flag = 0;
+    }
+#endif
+       
     }
   } 
 
@@ -225,7 +251,7 @@ int temp,min,max;
     for(j=0; j < noResources; j++){
       if(dataGrid.Valid(i,j)){
         temp = dataGrid.LastBucketFilled(i,j);  
-        if((temp >= -1) && (temp < min))
+        if((temp > -1) && (temp < min))
           min = temp; 
       }
     }
