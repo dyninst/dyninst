@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test7.mutatee.c,v 1.4 2004/01/23 22:01:35 tlmiller Exp $ */
+/* $Id: test7.mutatee.c,v 1.5 2004/03/08 23:46:05 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -51,33 +51,6 @@ void dprintf(const char *fmt, ...) {
 #define TRUE    1
 #define FALSE   0
 
-struct  msgSt {
-  long  mtype;     /* message type */
-  char  mtext[1];  /* message text */
-};
-typedef struct msgSt ipcMsg;
-
-int msgid = -1;
-
-void sendDoneMsg() {
-  const long int DONEMSG = 4321;
-  ipcMsg A;
-  A.mtype = DONEMSG;
-  /* fprintf(stderr,"sent done msg\n"); */
-  if(msgsnd(msgid, &A, sizeof(char), 0) == -1) {
-    perror("msgSend: msgsnd failed");
-  }
-}
-
-void setupMessaging() {
-  key_t msgkey = 1234;
-
-  if((msgid = msgget(msgkey, 0666)) == -1) {
-    perror("Couldn't get messaging");
-    exit(1);
-  }
-}
-
 int globalVariable7_1 = 123;
 int globalVariable7_2 = 159;
 int globalVariable7_3 = 246;
@@ -90,7 +63,8 @@ int globalVariable7_9 = 1;
 int dummyVal = 0;
 
 void func7_1() { 
-  dummyVal += 10;
+    dummyVal += 10;
+    
 }
 
 void func7_2() { 
@@ -143,7 +117,6 @@ void mutateeMAIN()
 #endif
   int pid;
   int loopvar;
-  setupMessaging();
   /* fprintf(stderr, "mutatee:  starting fork\n"); */
   pid = fork();
   /* fprintf(stderr, "mutatee:  stopping fork\n"); */
@@ -152,7 +125,6 @@ void mutateeMAIN()
      the postForkCallback */
 
   if (pid == 0) {   /* child */
-    /* fprintf(stderr, "child, done with fork\n"); */
     func7_1();
     func7_2();
     func7_3();
@@ -162,10 +134,7 @@ void mutateeMAIN()
     func7_7();
     func7_8();
     func7_9();
-    /* delay(100);*/
-    sendDoneMsg();
   } else if(pid > 0) {
-    /* fprintf(stderr, "parent, done with fork\n"); */
     func7_1();
     func7_2();
     func7_3();
@@ -179,10 +148,6 @@ void mutateeMAIN()
     fprintf(stderr, "error on fork\n");
     exit(pid);  /* error case */
   }
-  /* On Linux/x86, a SIGCONT after a SIGSTOP will kill the sleep() */
-  for (loopvar = 0; loopvar < NUM_READS; loopvar++)
-    sleep(10);  /* will be killed by mutator */
-  printf("dummyVal: %d\n",dummyVal);  /* so code doesn't get optimized away */
 }
 
 int main(int argc, char *argv[])

@@ -1,4 +1,4 @@
-// $Id: test7.C,v 1.9 2004/01/19 21:54:25 schendel Exp $
+// $Id: test7.C,v 1.10 2004/03/08 23:46:04 bernat Exp $
 //
 
 #include <stdio.h>
@@ -67,6 +67,12 @@ BPatch *bpatch;
 
 typedef enum { Parent_p, Child_p } procType;
 typedef enum { PreFork, PostFork } forkWhen;
+
+bool parentDone = false;
+bool childDone = false;
+
+BPatch_thread *parentThread = NULL;
+BPatch_thread *childThread = NULL;
 
 const char *procName[2] = { "parent", "child" };
 
@@ -154,8 +160,11 @@ int checkForDoneMsg() {
   if((bytesRead = msgrcv(msgid, &A, sizeof(char), DONEMSG,IPC_NOWAIT)) == -1) {
     if(errno == ENOMSG)
       return 0;
-    else
-      perror("msgRecv: msgrcv failed");
+    else {
+        return 1;
+        perror("msgRecv: msgrcv failed");
+    }
+    
   }
   if(A.mtype == DONEMSG)
     ret = 1;
@@ -195,41 +204,41 @@ void setupMessaging() {
 void prepareTestCase1(procType proc_type, BPatch_thread *thread, forkWhen when)
 {
    static BPatchSnippetHandle *parSnippetHandle1;
-
+   
    if(proc_type == Parent_p  &&  when == PreFork) {
-      BPatch_image *parImage = thread->getImage();
-      
-      BPatch_Vector<BPatch_function *> found_funcs;
-      const char *inFunction = "func7_1";
-      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-	fprintf(stderr, "    Unable to find function %s\n",
-		inFunction);
-	exit(1);
-      }
-      
-      if (1 < found_funcs.size()) {
-	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-		__FILE__, __LINE__, found_funcs.size(), inFunction);
-      }
-      
-      BPatch_Vector<BPatch_point *> *point7_1p = found_funcs[0]->findPoint(BPatch_entry);
-
-      if(doError(1, !point7_1p || ((*point7_1p).size() == 0),
-		 "  Unable to find entry point to \"func7_1\".\n")) return;
-
-      BPatch_variableExpr *var7_1p = 
-	 parImage->findVariable("globalVariable7_1");
-      if(doError(1, (var7_1p==NULL),
-		 "  Unable to locate variable globalVariable7_1\n")) return;
-
-      BPatch_arithExpr expr7_1p(BPatch_assign, *var7_1p,BPatch_constExpr(321));
-
-      parSnippetHandle1 =
-	 thread->insertSnippet(expr7_1p, *point7_1p, BPatch_callBefore);
-      if(doError(1, (parSnippetHandle1 == NULL),
-		"  Unable to insert snippet into parent for test 1\n")) return;
+       BPatch_image *parImage = thread->getImage();
+       
+       BPatch_Vector<BPatch_function *> found_funcs;
+       const char *inFunction = "func7_1";
+       if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
+           fprintf(stderr, "    Unable to find function %s\n",
+                   inFunction);
+           exit(1);
+       }
+       
+       if (1 < found_funcs.size()) {
+           fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+                   __FILE__, __LINE__, found_funcs.size(), inFunction);
+       }
+       
+       BPatch_Vector<BPatch_point *> *point7_1p = found_funcs[0]->findPoint(BPatch_entry);
+       
+       if(doError(1, !point7_1p || ((*point7_1p).size() == 0),
+                  "  Unable to find entry point to \"func7_1\".\n")) return;
+       
+       BPatch_variableExpr *var7_1p = 
+       parImage->findVariable("globalVariable7_1");
+       if(doError(1, (var7_1p==NULL),
+                  "  Unable to locate variable globalVariable7_1\n")) return;
+       
+       BPatch_arithExpr expr7_1p(BPatch_assign, *var7_1p,BPatch_constExpr(321));
+       
+       parSnippetHandle1 =
+       thread->insertSnippet(expr7_1p, *point7_1p, BPatch_callBefore);
+       if(doError(1, (parSnippetHandle1 == NULL),
+                  "  Unable to insert snippet into parent for test 1\n")) return;
    } else if(proc_type == Parent_p  &&  when == PostFork) {
-      thread->deleteSnippet(parSnippetHandle1);
+       thread->deleteSnippet(parSnippetHandle1);
    }
 }
 
@@ -674,6 +683,7 @@ void prepareTestCase6(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_arithExpr a_expr7_6p(BPatch_plus, *var7_6p, BPatch_constExpr(5));
       BPatch_arithExpr b_expr7_6p(BPatch_assign, *var7_6p, a_expr7_6p);
       thread->oneTimeCode(b_expr7_6p);
+      
    } else if(proc_type == Child_p  &&  when == PostFork) {
       BPatch_image *childImage = thread->getImage();
 
@@ -890,7 +900,6 @@ void checkTestCase8(procType proc_type, BPatch_thread */*thread*/) {
 
 BPatch_variableExpr *var7_9p;
 BPatch_variableExpr *var7_9c;
-BPatch_thread *parentThread = NULL;
 
 void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen when)
 {
@@ -906,7 +915,6 @@ void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen when)
 				  BPatch_constExpr(10));
       thread->oneTimeCode(a_expr7_9p);
    } else if(proc_type == Parent_p  &&  when == PostFork) {
-      parentThread = thread;
       // can't delete var7_9p here, since then the getInheritedVariable
       // would be operating on a freed variable
    } else if(proc_type == Child_p  &&  when == PostFork) {
@@ -1080,30 +1088,35 @@ void initialPreparation(BPatch_thread *parent)
    prepareTests(Parent_p, parent, PreFork);
 }
 
+/* We make changes at post-fork */
+
 void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
 {
    //fprintf(stderr, "in postForkFunc\n");
-   prepareTests(Parent_p, parent, PostFork);
-   prepareTests(Child_p,  child,  PostFork);
-   
-   /* let the parent and child mutatee processes execute the instrumentation */
-   //cerr << "parent->cont\n";
-   parent->continueExecution();
-   //cerr << "child->cont\n";
-   child->continueExecution();
-   
-   waitForDoneMsg();
-   checkTests(Child_p, child);
-   checkTests(Parent_p, parent);
-
-   child->terminateExecution();
-   parent->terminateExecution();
-
-   showFinalResults();
-   closeMessaging();
-   exit(0);
+    /* For later identification */
+    childThread = child;
+    prepareTests(Parent_p, parent, PostFork);
+    prepareTests(Child_p,  child,  PostFork);
 }
 
+/* And verify them when they exit */
+
+void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
+    if (thread == parentThread) {
+        checkTests(Parent_p, thread);
+        parentDone = true;
+    }
+    else if (thread == childThread) {
+        checkTests(Child_p, thread);
+        childDone = true;
+    }
+    else {
+        fprintf(stderr, "Thread ptr 0x%x, parent 0x%x, child 0x%x\n",
+                thread, parentThread, childThread);
+        assert(0 && "Unexpected BPatch_thread in exitFunc");
+    }
+    return;
+}
 
 void mutatorMAIN(char *pathname)
 {
@@ -1119,6 +1132,7 @@ void mutatorMAIN(char *pathname)
     bpatch->registerErrorCallback(errorFunc);
     //bpatch->registerPreForkCallback(preForkFunc);    
     bpatch->registerPostForkCallback(postForkFunc);
+    bpatch->registerExitCallback(exitFunc);
     for(unsigned i=1; i<=MAX_TEST; i++)  passedTest[i] = true;
 
     int n = 0;
@@ -1136,18 +1150,24 @@ void mutatorMAIN(char *pathname)
     printf("Starting \"%s\"\n", pathname);
     setupMessaging();
 
-    BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv, 
-						     NULL);
-    if(appThread == NULL) {
-	fprintf(stderr, "Unable to run test program.\n");
-	exit(1);
+    parentThread = bpatch->createProcess(pathname, child_argv, 
+                                         NULL);
+    if(parentThread == NULL) {
+        fprintf(stderr, "Unable to run test program.\n");
+        exit(1);
     }
-    initialPreparation(appThread);
+    initialPreparation(parentThread);
     /* ok, do the fork */;
-    appThread->continueExecution();
-
+    parentThread->continueExecution();
+    
     /* the rest of the execution occurs in postForkFunc() */
-    while(1)  bpatch->waitForStatusChange();
+    /* Secondary test: we should not have to manually continue
+       either parent or child at any point */
+    while(!(parentDone && childDone)) {
+        bpatch->waitForStatusChange();
+    }
+    showFinalResults();
+    exit(0);
 }
 
 //
