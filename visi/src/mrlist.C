@@ -1,7 +1,10 @@
 /* $Log: mrlist.C,v $
-/* Revision 1.2  1994/03/14 20:28:49  newhall
-/* changed visi subdirectory structure
-/*  */ 
+/* Revision 1.3  1994/04/13 21:34:52  newhall
+/* added routines: GetMetsRes StopMetRes NamePhase
+/*
+ * Revision 1.2  1994/03/14  20:28:49  newhall
+ * changed visi subdirectory structure
+ *  */ 
 #include "visi/h/mrlist.h" 
 /////////////////// method functions for class visi_MRList
 
@@ -29,7 +32,7 @@ int wch;
       for(k=0;k<wordsize;k++){
 	list[wch].list[k] = '\0';
       }
-      if((strncpy(list[wch].list,&members[j],wordsize-1)) == NULL){
+      if((strncpy(list[wch].list,&members[j],wordsize-1)) == 0){
 	perror("Error in visi_MRList constructor");
       }
       list[wch].size = wordsize -1;
@@ -64,7 +67,7 @@ int i,k,nameLength;
       for(k=0;k<nameLength+1;k++){
 	list[i].list[k] = '\0';
       }
-      if((strncpy(list[i].list,metrics[i].name,nameLength)) == NULL){
+      if((strncpy(list[i].list,metrics[i].name,nameLength)) == 0){
         visi_ErrorHandler(ERROR_STRNCPY,"Error in visi_MRList constructor");
       }
       list[i].list[nameLength] = '\0';
@@ -92,7 +95,7 @@ int i,k,nameLength;
       for(k=0;k<nameLength+1;k++){
 	list[i].list[k] = '\0';
       }
-      if((strncpy(list[i].list,resources[i].name,nameLength)) == NULL){
+      if((strncpy(list[i].list,resources[i].name,nameLength)) == 0){
         visi_ErrorHandler(ERROR_STRNCPY,"Error in visi_MRList constructor");
       }
       list[i].list[nameLength] = '\0';
@@ -156,7 +159,7 @@ if((num > 0) &&(elements != NULL)){
     for(k=0;k<wordsize;k++){
       list[start].list[k] = '\0';
     }
-    if((strncpy(list[start].list,&elements[j],wordsize-1)) == NULL){
+    if((strncpy(list[start].list,&elements[j],wordsize-1)) == 0){
       perror("Error in AddElements");
       visi_ErrorHandler(ERROR_STRNCPY,"visi_MRList::AddElements");
       return(ERROR_STRNCPY);
@@ -224,14 +227,14 @@ int  i,j;
   j=0;
   for(i=0; i < numElements; i++){
     if(j < totalSize)
-      if((strncpy(&((*elements)[j]),list[i].list,list[i].size))==NULL){
+      if((strncpy(&((*elements)[j]),list[i].list,list[i].size))==0){
         perror("error in CreateMRList\n");
         visi_ErrorHandler(ERROR_STRNCPY,"visi_MRList::CreateMRList"); 
         return(ERROR_STRNCPY);
       }
     j += list[i].size;
     if(i < (numElements-1)){
-      if((strncpy(&((*elements)[j]),",",1))==NULL){
+      if((strncpy(&((*elements)[j]),",",1))==0){
         perror("error in CreateMRList\n");
         visi_ErrorHandler(ERROR_STRNCPY,"visi_MRList::CreateMRList"); 
         return(ERROR_STRNCPY);
@@ -240,7 +243,7 @@ int  i,j;
     }
   }
   if((wildCard) && (j<totalSize)){
-    if((strncpy(&((*elements)[j]),",*",2))==NULL){
+    if((strncpy(&((*elements)[j]),",*",2))==0){
         perror("error in CreateMRList\n");
         visi_ErrorHandler(ERROR_STRNCPY,"visi_MRList::CreateMRList"); 
         return(ERROR_STRNCPY);
@@ -248,7 +251,7 @@ int  i,j;
     j +=2;
   }
   if(j<totalSize){
-   if((strncpy(&((*elements)[j]),"\0",1))==NULL){
+   if((strncpy(&((*elements)[j]),"\0",1))==0){
         perror("error in CreateMRList\n");
         visi_ErrorHandler(ERROR_STRNCPY,"visi_MRList::CreateMRList"); 
         return(ERROR_STRNCPY);

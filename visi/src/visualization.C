@@ -1,8 +1,11 @@
 /* $Log: visualization.C,v $
-/* Revision 1.4  1994/03/26 04:19:49  newhall
-/* changed all floats to double
-/* fix problem with null string returned for first resource name
+/* Revision 1.5  1994/04/13 21:34:54  newhall
+/* added routines: GetMetsRes StopMetRes NamePhase
 /*
+ * Revision 1.4  1994/03/26  04:19:49  newhall
+ * changed all floats to double
+ * fix problem with null string returned for first resource name
+ *
  * Revision 1.3  1994/03/17  05:23:09  newhall
  * changed eventCallbacks type, and the constraints on triggering the
  * callback routine associated with the DATAVALUES event
@@ -85,7 +88,26 @@ int RegFileDescriptors(int *fd, int (*callBack)()){
   return(OK);
 }
 
+// invokes upcall to paradyn VISIthread associated with the visualization
+// takes list of current metrics, list of foci, and type of data
+// (0 for histogram, 1 for scalar). 
+// currently, only the NULL string, type 0 case is supported 
+void GetMetsRes(char *metrics,char *resource,int type){
+  vp->GetMetricResource(NULL,NULL,0);
+}
 
+// invokes upcall to paradyn.  Request to stop data for the 
+// metric associated with metricId and resource associated with
+// resourceId
+void StopMetRes(int metricId,int resourceId){
+  vp->StopMetricResource(metricId,resourceId);
+}
+
+// invokes upcall to paradyn, method for visualization to define
+// a phase.  
+void NamePhase(double begin,double end,char *name){
+  vp->PhaseName(begin,end,name);
+}
 
 void visualization::Data(dataValue_Array data){
 
