@@ -404,7 +404,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 		if (_SC_IS_DATA(symbol.sym->sc) || _SC_IS_TLSDATA(symbol.sym->sc)) {
 		    BPatch_type *ptrType = eCoffParseType(mod, symbol);
 		    if (ptrType)
-			mod->moduleTypes->addGlobalVariable(symbol.name.c_str(), ptrType);
+			mod->getModuleTypes()->addGlobalVariable(symbol.name.c_str(), ptrType);
 		}
 		break;
 
@@ -629,7 +629,7 @@ BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
     if (!symbol.aux && symbol.sym->st != stBlock)
 	return NULL;
 
-    newType = mod->moduleTypes->findType(id);
+    newType = mod->getModuleTypes()->findType(id);
     if (newType) {
 	// This type is already inserted.
 
@@ -679,7 +679,7 @@ BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
     }
 
     if (typeDef && newType)
-	mod->moduleTypes->addType(newType);
+	mod->getModuleTypes()->addType(newType);
 
     if (!newType) {
 	bperr( "*** Error processing symbol %s\n", symbol.name.c_str());
@@ -775,48 +775,48 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 
     case btNil: // Regarded as void
     case btVoid:
-       result = mod->moduleTypes->findType("void");
+       result = mod->getModuleTypes()->findType("void");
 	break;
 
     case btChar:
-       result = mod->moduleTypes->findType("char");
+       result = mod->getModuleTypes()->findType("char");
 	break;
 
     case btUChar:
-       result = mod->moduleTypes->findType("unsigned char");
+       result = mod->getModuleTypes()->findType("unsigned char");
 	break;
 
     case btShort:
-       result = mod->moduleTypes->findType("short");
+       result = mod->getModuleTypes()->findType("short");
 	break;
 
     case btUShort:
-       result = mod->moduleTypes->findType("unsigned short");
+       result = mod->getModuleTypes()->findType("unsigned short");
 	break;
 
     case btInt32:
-       result = mod->moduleTypes->findType("int");
+       result = mod->getModuleTypes()->findType("int");
 	break;
 
     case btUInt32:
-       result = mod->moduleTypes->findType("unsigned int");
+       result = mod->getModuleTypes()->findType("unsigned int");
 	break;
 
     case btLong32:
        // Treat 32-bit longs as ints
-       result = mod->moduleTypes->findType("int");
+       result = mod->getModuleTypes()->findType("int");
 	break;
 
     case btULong32:
-       result = mod->moduleTypes->findType("unsigned int");
+       result = mod->getModuleTypes()->findType("unsigned int");
 	break;
 
     case btFloat:
-       result = mod->moduleTypes->findType("float");
+       result = mod->getModuleTypes()->findType("float");
 	break;
 
     case btDouble:
-       result = mod->moduleTypes->findType("double");
+       result = mod->getModuleTypes()->findType("double");
 	break;
 
     case btLong64:
@@ -824,7 +824,7 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
     case btLongLong64:
  // case btLongLong: Same as btLongLong64
     case btInt64:
-       result = mod->moduleTypes->findType("long long");
+       result = mod->getModuleTypes()->findType("long long");
 	break;
 
     case btULong64:
@@ -832,16 +832,16 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
     case btULongLong64:
  // case btULongLong: Same as btULongLong64
     case btUInt64:
-       result = mod->moduleTypes->findType("unsigned long long");
+       result = mod->getModuleTypes()->findType("unsigned long long");
 	break;
 
     case btLDouble:
-       result = mod->moduleTypes->findType("long double");
+       result = mod->getModuleTypes()->findType("long double");
 	break;
 
     case btInt8:
     case btUInt8:
-       result = mod->moduleTypes->findType("integer*1");
+       result = mod->getModuleTypes()->findType("integer*1");
 	break;
 
     default:

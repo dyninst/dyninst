@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.20 2004/07/21 22:46:20 jodom Exp $
+// $Id: CodeView.C,v 1.21 2005/02/17 21:10:51 bernat Exp $
 
 #include <assert.h>
 
@@ -553,7 +553,7 @@ CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb,
 			ptrType = ExploreType(mod, ( (SymRecordData*)curr )->type,
 								pTypeBase, startAddr);
 			if (ptrType)
-				mod->moduleTypes->addGlobalVariable(symName, ptrType);
+				mod->getModuleTypes()->addGlobalVariable(symName, ptrType);
 			break;
 
 		case S_BPREL32:
@@ -597,7 +597,7 @@ CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb,
 			ptrType = ExploreType(mod, ( (SymRecordCons *)curr )->type,
 								pTypeBase, startAddr);
 			if (ptrType)
-				mod->moduleTypes->addGlobalVariable(symName, ptrType);
+				mod->getModuleTypes()->addGlobalVariable(symName, ptrType);
 			break;
 		}
 
@@ -869,7 +869,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 			memberType = ExploreType(mod, ((LFMember *)ptr)->type, 
 								pTypeBase, startAddr);
 			if (memberType == NULL)
-				memberType = mod->moduleTypes->findType("void");
+				memberType = mod->getModuleTypes()->findType("void");
 
 			dynamic_cast<BPatch_fieldListType *>(mainType)->addField(fname, BPatch_scalar, memberType, foffset*8, 
 						memberType->getSize(), 
@@ -920,7 +920,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 			}
 				
 			//Find base class
-			BPatch_type *baseCl = mod->moduleTypes->findType(baseID);
+			BPatch_type *baseCl = mod->getModuleTypes()->findType(baseID);
 			if (baseCl && (baseCl->getDataClass() == BPatch_structure) ) {
 
 				//Get field descriptions of the base type
@@ -962,7 +962,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 								pTypeBase, startAddr);
 
 			if (memberType == NULL)
-				memberType = mod->moduleTypes->findType("void");
+				memberType = mod->getModuleTypes()->findType("void");
 
 			dynamic_cast<BPatch_fieldListType *>(mainType)->addField(fname, BPatch_dataMethod, memberType, 0, 0);
 
@@ -975,7 +975,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 			strncpy(fname, &((LFMethod *)ptr)->name[1],
 						(int)((LFMethod *)ptr)->name[0]);
 			fname[(int)((LFMethod *)ptr)->name[0]] = '\0';
-			memberType = mod->moduleTypes->findType("void");
+			memberType = mod->getModuleTypes()->findType("void");
 			dynamic_cast<BPatch_fieldListType *>(mainType)->addField(fname, BPatch_dataMethod, memberType, 0, 0);
 			ptr = (unsigned char *)((LFMethod *)ptr)->name + 
 						(int)((LFMethod *)ptr)->name[0] + 1;
@@ -1061,7 +1061,7 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 	char typeName[1024];
 
 	//First check whether or not this type was created before
-	newType = mod->moduleTypes->findType(index);
+	newType = mod->getModuleTypes()->findType(index);
 	if (newType)
 		return newType;
 
@@ -1070,7 +1070,7 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 		newType = CreatePrimitiveType(index);
 		//Add type definition
 		if (newType) {
-			mod->moduleTypes->addType(newType);
+			mod->getModuleTypes()->addType(newType);
 		}
 		return newType;
 	}
@@ -1183,7 +1183,7 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 	if (!newType)
 		return NULL;
 
-	mod->moduleTypes->addType(newType);
+	mod->getModuleTypes()->addType(newType);
 	return(newType);
 }
 
