@@ -493,17 +493,22 @@ void generateNoOp(process *proc, int addr)
 
 
 unsigned findAndInstallBaseTramp(process *proc, 
-				 instPoint *location)
+				 instPoint *location,
+				 returnInstance *&retInstance)
 {
     unsigned ret;
     process *globalProc;
+    retInstance = NULL;
 
     globalProc = proc;
     if (!globalProc->baseMap.defines(location)) {
 	ret = inferiorMalloc(globalProc, baseTemplate.size, textHeap);
 	installBaseTramp(ret, location, globalProc);
-	generateBranch(globalProc, location->addr, (int) ret);
+	instruction *insn = new instruction;
+	generateBranchInsn(insn, ret - location->addr);
 	globalProc->baseMap[location] = ret;
+	retInstance = new returnInstance((instruction *)insn, 
+					 sizeof(instruction), ret, sizeof(instruction));
     } else {
         ret = globalProc->baseMap[location];
     }
@@ -1373,4 +1378,21 @@ bool registerSpace::readOnlyRegister(reg reg_number)
         return true;
     }
 }
+
+
+bool returnInstance::checkReturnInstance(const Address adr) {
+    return true;
+}
+ 
+void returnInstance::installReturnInstance(process *proc) {
+    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
+}
+
+void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
+    P_abort();
+}
+
+
+
+
 

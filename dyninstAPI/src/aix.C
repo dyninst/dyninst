@@ -162,7 +162,7 @@ bool process::getActiveFrame(int *fp, int *pc)
 //     (2) the return address of the function for that frame (rtn).
 //     (3) return true if we are able to read the frame.
 //
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost)
 {
     //
     // define the linkage area of an activation record.

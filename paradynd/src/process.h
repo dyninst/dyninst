@@ -46,6 +46,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.41  1996/08/20 19:19:39  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * splitting the instrumentation into two phases
+ *
  * Revision 1.40  1996/08/16 21:19:41  tamches
  * updated copyright for release 1.1
  *
@@ -210,7 +214,7 @@ friend class ptraceKludge;
   // getActiveFrame and readDataFromFrame are platform dependant
   //
   bool getActiveFrame(int *fp, int *pc);
-  bool readDataFromFrame(int currentFP, int *previousFP, int *rtn);
+  bool readDataFromFrame(int currentFP, int *previousFP, int *rtn, bool uppermost);
 
   processState status() const { return status_;}
   inline void Exited();
@@ -273,6 +277,7 @@ friend class ptraceKludge;
   static process *forkProcess(process *parent, pid_t childPid);
 
   void handleExec();
+  void cleanUpInstrumentation(); //XXXX 
   bool inExec;
   string execFilePath;
 
@@ -545,42 +550,50 @@ inline void process::Stopped(void) {
 class Frame {
   public:
     Frame() {
-      frame_=0;
-      pc_=0;
+	frame_=0;
+	pc_=0;
     }
+
     void getActiveStackFrameInfo(process *proc)
     {
-      int fp, pc;
-      if (proc->getActiveFrame(&fp, &pc)) {
-        frame_ = fp;
-        pc_ = pc;
-      }
-      else {
-        frame_ = 0;
-        pc_ = 0;
-      }
+	int fp, pc;
+	if (proc->getActiveFrame(&fp, &pc)) {
+	    frame_ = fp;
+	    pc_ = pc;
+	}
+	else {
+	    frame_ = 0;
+	    pc_ = 0;
+	}
+	uppermostFrame = true;
     }
+
     Frame getPreviousStackFrameInfo(process *proc)
     {
-      int fp;
-      int rtn;
-      Frame frame;
-
-      if (frame_ != 0) {
-        if (proc->readDataFromFrame(frame_, &fp, &rtn))
-        {
-          frame.frame_ = fp;
-          frame.pc_ = rtn;
-        }
-      }
-      return(frame);
+	int fp = frame_;
+	int rtn = pc_;
+	Frame frame;
+	
+	if (frame_ != 0) {
+	    if (proc->readDataFromFrame(frame_, &fp, &rtn, uppermostFrame))
+	    {
+		frame.frame_ = fp;
+		frame.pc_ = rtn;
+	    }
+	    frame.uppermostFrame = false; 
+	}
+	return(frame);
     }
+
     int getPC() { return pc_; }
-    bool isLastFrame() { if (frame_ == 0) return(true);
-                         else return(false); }
+    bool isLastFrame() { 
+	if (frame_ == 0) return(true);
+	else return(false); 
+    }
   private:
     int frame_;
     int pc_;
+    bool uppermostFrame;
 };
 
 #endif

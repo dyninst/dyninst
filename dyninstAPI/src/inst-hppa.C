@@ -43,6 +43,10 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.18  1996/08/20 19:21:09  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * splitting the instrumentation into two phases
+ *
  * Revision 1.17  1996/08/16 21:18:49  tamches
  * updated copyright for release 1.1
  *
@@ -805,6 +809,7 @@ registerSpace *regSpace;
 // Not really, actually.
 int deadRegList[] = { 29, 3, 2, 23, 24, 25, 26 };
 
+
 // r26, r25, r24, r23 are call arguments (in that order)
 int liveRegList[] = { 1, 19, 20, 21, 22, 31, };
     // all are caller save registers
@@ -935,7 +940,8 @@ void generateNoOp(process *proc, int addr)
 
 
 unsigned findAndInstallBaseTramp(process *proc,
-				 instPoint *location)
+				 instPoint *location,
+				 returnInstance *&retInstance)
 {
     unsigned ret;
     process *globalProc;
@@ -944,10 +950,24 @@ unsigned findAndInstallBaseTramp(process *proc,
     if (!globalProc->baseMap.defines(location)) {
 	ret = inferiorMalloc(globalProc, baseTemplate.size, textHeap);
 	installBaseTramp(ret, location, globalProc);
-	generateToBranch(globalProc, location, ret);
+	//generateToBranch(globalProc, location, ret);
+	instruction *insn = new instruction[2];
+	generateToBranchInsn1(insn, ret);
+	generateToBranchInsn2(insn+1, ret);
+	if ((location->ipType == functionEntry)&&(location->isDelayed)) {
+	    generateNOOP(insn+2);
+	    retInstance = new returnInstance((instruction *)insn,
+					     3*sizeof(instruction), location->addr,
+					     3*sizeof(instruction));
+	} else {
+	    retInstance = new returnInstance((instruction *)insn,
+					     2*sizeof(instruction), location->addr, 
+					     2*sizeof(instruction));
+	}
 	globalProc->baseMap[location] = ret;
     } else {
         ret = globalProc->baseMap[location];
+	retInstance = NULL;
     }
 
     return(ret);
@@ -1508,3 +1528,33 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 bool registerSpace::readOnlyRegister(reg reg_number) {
   return false;
 }
+
+
+bool returnInstance::checkReturnInstance(const Address adr) {
+    if ((adr > addr_) && ( adr <= addr_+size_))
+	return false;
+    else 
+	return true;
+}
+ 
+void returnInstance::installReturnInstance(process *proc) {
+    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
+}
+
+void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
+
+    instWaitingList *instW = new instWaitingList; 
+    
+    instW->instructionSeq = instructionSeq;
+    instW->instSeqSize = instSeqSize;
+    instW->addr_ = addr_;
+
+    instW->relocatedInstruction = insn;
+    instW->relocatedInsnAddr = pc;
+
+    instWList.add(instW, (void *)pc);
+}
+
+
+
+

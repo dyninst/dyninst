@@ -47,7 +47,10 @@
 #define SOLARIS_PD_HDR
 
 #include <sys/param.h>
-#define EXIT_NAME "exit"
+
+#define BREAK_POINT_INSN 0x91d02001   /* ta 1 */
+#define EXIT_NAME "_exithandle"
+//#define EXIT_NAME "exit"
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"

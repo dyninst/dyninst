@@ -127,21 +127,44 @@ static char insn[65536];
 
 static dictionary_hash<instPoint*, point*> activePoints(ipHash);
 
+List<instWaitingList *> instWList;
+
+
 instInstance *addInstFunc(process *proc, instPoint *location,
-			  const AstNode &ast,
-			  callWhen when, callOrder order)
+			     AstNode &ast,
+			     callWhen when, callOrder order)
+{
+    returnInstance *retInstance;
+    instInstance *inst;
+
+    inst = addInstFunc(proc, location, ast, when, order, retInstance);
+    if (retInstance) retInstance-> installReturnInstance(proc);
+
+    return inst;
+}
+
+instInstance *addInstFunc(process *proc, instPoint *location,
+			  AstNode &ast,
+			  callWhen when, callOrder order,
+			  returnInstance *&retInstance)
 {
     int trampCost;
     unsigned count;
     unsigned fromAddr;
     point *thePoint;
-    instInstance *ret;
+    instInstance *ret, *next;
     instInstance *lastAtPoint;
     instInstance *firstAtPoint;
 
     assert(proc && location);
 
     initTramps();
+
+    ret = new instInstance;
+    assert(ret);
+    ret->proc = proc;
+    ret->baseAddr = findAndInstallBaseTramp(proc, location, retInstance);
+    if (!ret->baseAddr) return(NULL);
 
     /* check if there are other inst points at this location. for this process
        at the same pre/post mode */
@@ -155,24 +178,24 @@ instInstance *addInstFunc(process *proc, instPoint *location,
       thePoint = activePoints[location];
 
     assert(thePoint);
-    for (ret= thePoint->inst; ret; ret = ret->next) {
-	if ((ret->proc == proc) && (ret->when == when)) {
-	    if (!ret->nextAtPoint) lastAtPoint = ret;
-	    if (!ret->prevAtPoint) firstAtPoint = ret;
+    for (next = thePoint->inst; next; next = next->next) {
+	if ((next->proc == proc) && (next->when == when)) {
+	    if (!next->nextAtPoint) lastAtPoint = next;
+	    if (!next->prevAtPoint) firstAtPoint = next;
 	}
     }
 
-    ret = new instInstance;
-    assert(ret);
-    ret->proc = proc;
+    //ret = new instInstance;
+    //assert(ret);
+    //ret->proc = proc;
 
     // must do this before findAndInstallBaseTramp, puts the tramp in to
     // get the correct cost.
     trampCost = getPointCost(proc, location);
 
     /* make sure the base tramp has been installed for this point */
-    ret->baseAddr = findAndInstallBaseTramp(proc, location);
-    if (!ret->baseAddr) return(NULL);
+    //ret->baseAddr = findAndInstallBaseTramp(proc, location, retInstance);
+    //if (!ret->baseAddr) return(NULL);
 
     // 
     // Generate the code for this tramp.
@@ -184,6 +207,11 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     memset(insn, 0x00, 65536);
 
     count = 0;
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)     
+    ast.sysFlag(location);  
+#endif
+
     ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost); 
 
     ret->trampBase = inferiorMalloc(proc, count, textHeap);

@@ -102,7 +102,7 @@ bool
 frameChainValid(process *proc, int pc)
 {
     pdFunction *funcStart = (proc->symbols)->findOneFunction("_start");
-    
+
     if (funcStart) {
 	if (pc >= funcStart->addr() && pc <= (funcStart->addr() + funcStart->size())) {   
 	    return false;
@@ -110,7 +110,9 @@ frameChainValid(process *proc, int pc)
     }
     
     funcStart = (proc->symbols)->findOneFunction("$START$");
-    
+
+    sprintf(errorLine,"func $start is at %x", funcStart);
+    logLine(errorLine);
     if (funcStart) {
 	if (pc >= funcStart->addr() && pc <= (funcStart->addr() + funcStart->size())) {   
 	    return false;
@@ -123,7 +125,7 @@ frameChainValid(process *proc, int pc)
 
 bool process::getActiveFrame(int *fp, int *pc)
 {
-    struct unwind_table_entry *u;
+    struct unwind_table_entry *unwind;
     char buf[4];
     bool err = true;
     int reg_sp;
@@ -133,8 +135,8 @@ bool process::getActiveFrame(int *fp, int *pc)
     // Get the value of PC from the reg no.33 which is ss_pcoq_head in
     // the structure save_state. </usr/include/machine/save_state.h>   
     if (ptraceKludge::deliverPtrace(this,PT_RUREGS,(char *)132,0, buf)) {
+        buf[3] &= ~0x3;
 	*pc = *(int *)&buf[0];
-	buf[3] &= ~0x3;
 #ifdef DEBUG_STACK
 	sprintf(errorLine, "getAF: PC = %x, ", *pc); 
 	logLine(errorLine);
@@ -145,26 +147,27 @@ bool process::getActiveFrame(int *fp, int *pc)
     // We get the value of frame pointer by finding out the frame size
     // of current frame. Then move the SP down to the head of next
     // frame.
-    u = findUnwindEntry (symbols, *pc);
-    if (!u) {
+    unwind = findUnwindEntry (symbols, *pc);
+    if (!unwind) {
 #ifdef DEBUG_STACK
 	sprintf(errorLine, "Not getting any frame, check that!\n");
 	logLine(errorLine);
 #endif	
 	freeNotOK = true;
 	err = false;
+	return err;
     }
     
     if (ptraceKludge::deliverPtrace(this,PT_RUREGS,(char *)120,0, buf)) {
+        buf[3] &= ~0x3;
 	reg_sp = *(int *)&buf[0];
-	buf[3] &= ~0x3;
 #ifdef DEBUG_STACK
 	sprintf(errorLine, "SP  = %x, ", reg_sp);
 	logLine(errorLine);
 #endif
     }
     
-    if (u -> HP_UX_interrupt_marker) {
+    if (unwind -> HP_UX_interrupt_marker) {
 #ifdef DEBUG_STACK
 	sprintf(errorLine, "Interrupt frame, exit.\n");
 	logLine(errorLine);
@@ -172,7 +175,7 @@ bool process::getActiveFrame(int *fp, int *pc)
 	freeNotOK = true;
 	err = false;
     } else {
-	*fp = reg_sp - ((u->Total_frame_size)<<3);
+	*fp = reg_sp - ((unwind->Total_frame_size)<<3);
 #ifdef DEBUG_STACK
 	sprintf(errorLine, "FP = %x.\n", *fp);
 	logLine(errorLine);
@@ -184,31 +187,53 @@ bool process::getActiveFrame(int *fp, int *pc)
 }
 
 
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost)
 {
 
-    struct unwind_table_entry *u; 
+    struct unwind_table_entry *unwind; 
     bool readOK=true;
     char buf[20];
+
+    pdFunction *func;
+    int pc = *rtn;
+    if (uppermost) {
+	unwind = findUnwindEntry(symbols, pc);
+	if (unwind) {
+	    if (unwind->Total_frame_size == 0) {
+		if (ptraceKludge::deliverPtrace(this, PT_RUREGS, (char *)8, 
+						0, buf)) {
+		    buf[3] &= ~0x3;
+		    *rtn = *(int *)&buf[0];
+#ifdef DEBUG_STACK
+		    sprintf(errorLine, "before leaf: PC = %x.\n", *rtn);
+		    logLine(errorLine);
+#endif		    
+		    return readOK;
+		}    
+	    }
+	} else
+	    return false;
+    }
 
     if (readDataSpace((caddr_t) (currentFP-20),
 		      sizeof(int)*6, buf, true)) {
 	// this is the previous PC
+        buf[3] &= ~0x3;
 	*rtn = *(int *)&buf[0];
 	//  use the infomatino in the unwind table instead.  
 	//  *fp = *(int *)&buf[20];
 	
-	u = findUnwindEntry (symbols, *rtn);
-	if (!u) {
+	unwind = findUnwindEntry (symbols, *rtn);
+	if (!unwind) {
 #ifdef DEBUG_STACK
-	    sprintf(errorLine, "Not getting any frame, check that!\n");
+	    sprintf(errorLine, "Not getting any frame, check that!(pc = %x)\n", *rtn);
 	    logLine(errorLine);
 #endif
 	    freeNotOK = true;
 	    return false;
 	}
 	
-	if (u -> HP_UX_interrupt_marker) {
+	if (unwind -> HP_UX_interrupt_marker) {
 #ifdef DEBUG_STACK
 	    sprintf(errorLine, "Interrupt frame, exit.\n");
 	    logLine(errorLine);
@@ -217,7 +242,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
 	    return false;
 	}
 	
-	*fp = currentFP - ((u->Total_frame_size)<<3);
+	*fp = currentFP - ((unwind->Total_frame_size)<<3);
 
 #ifdef DEBUG_STACK 
 	sprintf(errorLine, "\t return PC = %x, frame pointer = %x.\n", *rtn, *fp);
@@ -388,8 +413,8 @@ bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
     return false;
   ptraceBytes += amount; ptraceOps++;
   return (ptraceKludge::deliverPtrace(this, PT_WRTEXT, inTraced, amount, inSelf));
-  // the amount is number of bytes, so we need to change it to number
-  // of words first!!
+  //the amount is number of bytes, so we need to change it to number
+  //of words first!!
   // assert((amount % sizeof(int))==0);     // Same changes in write..
   // amount = amount / sizeof(int);       // read.. procedures;
   // for (unsigned i = 0; i < amount; ++i) {
@@ -459,7 +484,7 @@ bool process::loopUntilStopped() {
       assert(0);
     }
     int sig = WSTOPSIG(waitStatus);
-    /* printf("signal is %d\n", sig); fflush(stdout); */
+    // printf("signal is %d\n", sig); fflush(stdout); 
     if (sig == SIGSTOP) {
       isStopped = true;
     } else {

@@ -41,6 +41,10 @@
 
 /* 
  * $Log: solaris.C,v $
+ * Revision 1.12  1996/08/20 19:17:40  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * splitting the instrumentation into two phases
+ *
  * Revision 1.11  1996/08/16 21:19:49  tamches
  * updated copyright for release 1.1
  *
@@ -71,6 +75,7 @@
  *
  */
 
+#include "symtab.h"
 #include "util/h/headers.h"
 #include "os.h"
 #include "process.h"
@@ -253,6 +258,7 @@ bool process::attach() {
   sigset_t sigs;
   premptyset(&sigs);
   praddset(&sigs, SIGSTOP);
+  praddset(&sigs, SIGTRAP);
   if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     close(fd);
@@ -433,7 +439,7 @@ bool process::getActiveFrame(int *fp, int *pc)
   return(ok);
 }
 
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost)
 {
   bool readOK=true;
   struct {
@@ -444,6 +450,22 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
 #ifdef FREEDEBUG
   static int fpT=0,rtnT=0;
 #endif
+
+  prgregset_t regs;
+  pdFunction *func;
+  int pc = *rtn;
+
+  if (uppermost) {
+      func = symbols -> findFunctionIn(pc);
+      if (func) {
+	  if (func -> leaf) {
+	      if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
+		  *rtn = regs[R_O7] + 8;
+		  return readOK;
+	      }    
+	  }
+      }
+  }
 
   //
   // For the sparc, register %i7 is the return address - 8 and the fp is

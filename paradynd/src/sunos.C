@@ -41,6 +41,10 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.17  1996/08/20 19:18:02  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * splitting the instrumentation into two phases
+ *
  * Revision 1.16  1996/08/16 21:19:54  tamches
  * updated copyright for release 1.1
  *
@@ -81,6 +85,7 @@
  *
  */
 
+#include "symtab.h"
 #include "util/h/headers.h"
 #include "os.h"
 #include "process.h"
@@ -136,13 +141,30 @@ bool process::getActiveFrame(int *fp, int *pc)
   else return(false);
 }
 
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost)
 {
   bool readOK=true;
   struct {
     int fp;
     int rtn;
   } addrs;
+
+  pdFunction *func;
+  int pc = *rtn;
+  struct regs regs; 
+
+  if (uppermost) {
+      func = symbols -> findFunctionIn(pc);
+      if (func) {
+	  if (func -> leaf) {
+	      if (ptraceKludge::deliverPtrace(this,PTRACE_GETREGS,
+					      (char *)&regs,0,0)) {
+		  *rtn = regs.r_o7 + 8;
+		  return readOK;
+	      }    
+	  }
+      }
+  }
 
   //
   // For the sparc, register %i7 is the return address - 8 and the fp is

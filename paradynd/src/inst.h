@@ -47,6 +47,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.25  1996/08/20 19:13:09  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * splitting the instrumentation into two phases
+ *
  * Revision 1.24  1996/08/16 21:19:07  tamches
  * updated copyright for release 1.1
  *
@@ -115,6 +119,7 @@ class timerHandle {
 };
 
 class AstNode;
+class returnInstance;
 
 /*
  * Insert instrumentation a the specificed codeLocation.
@@ -122,9 +127,16 @@ class AstNode;
  */
 instInstance *addInstFunc(process *proc,
 			  instPoint *location,
-			  const AstNode &ast, 
+			  AstNode &ast, 
 			  callWhen when,
 			  callOrder order);
+
+instInstance *addInstFunc(process *proc,
+			  instPoint *location,
+			  AstNode &ast, 
+			  callWhen when,
+			  callOrder order,
+			  returnInstance *&retInstance);
 
 void copyInstInstances(process *parent, process *child,
 	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping);
@@ -248,6 +260,7 @@ typedef enum { plusOp,
 	       orOp,
 	       andOp,
 	       getParamOp,
+	       getSysParamOp,	   
 	       saveRegOp} opCode;
 
 /*

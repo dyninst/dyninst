@@ -43,6 +43,10 @@
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.60  1996/08/20 19:18:37  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * splitting the instrumentation into two phases
+ *
  * Revision 1.59  1996/08/16 21:19:39  tamches
  * updated copyright for release 1.1
  *
@@ -91,6 +95,7 @@ int pvmendtask();
 #include "process.h"
 #include "util.h"
 #include "inst.h"
+#include "instP.h"
 #include "dyninstP.h"
 #include "os.h"
 #include "showerror.h"
@@ -1055,3 +1060,36 @@ void process::handleExec() {
     status_ = stopped;
 }
 
+
+/* 
+   process::cleanUpInstrumentation called when paradynd catch
+   a SIGTRAP to find out if there's any previous unfinished instrumentation
+   requests 
+*/
+void process::cleanUpInstrumentation() {
+
+    int pc;  
+    Frame frame;
+
+    bool needToCont = false;
+
+    needToCont = status() == running;
+    bool res = pause();
+    if (!res)
+    	return false;
+
+    frame.getActiveStackFrameInfo(this);
+    pc = frame.getPC();
+
+    // Go thru the instWList to find out the ones to be deleted 
+    instWaitingList *instW;
+    if (instW = instWList.find((void *)pc)) {
+	writeTextWord((caddr_t)pc, instW->relocatedInstruction.raw);
+	writeTextSpace((caddr_t)instW->addr_, instW->instSeqSize, 
+			     (caddr_t)instW->instructionSeq);
+	
+	instWList.remove(instW);
+    }
+
+    if (needToCont) continueProc();
+}
