@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.57 2003/10/21 17:22:20 bernat Exp $
+// $Id: osf.C,v 1.58 2003/10/22 16:00:50 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -183,7 +183,8 @@ bool process::installSyscallTracing()
       flags = PR_FORK | PR_ASYNC | PR_RLC;
   }
 
-  if (ioctl (getProcessLWP()->get_fd(), PIOCSET, &flags) < 0) {
+  dyn_lwp *replwp = getRepresentativeLWP();
+  if (ioctl(replwp->get_fd(), PIOCSET, &flags) < 0) {
     fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -191,7 +192,7 @@ bool process::installSyscallTracing()
   // cause a stop on the exit from fork
   sysset_t sysset;
 
-  if (ioctl(getProcessLWP()->get_fd(), PIOCGEXIT, &sysset) < 0) {
+  if (ioctl(replwp->get_fd(), PIOCGEXIT, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -202,13 +203,13 @@ bool process::installSyscallTracing()
       praddset (&sysset, SYS_execve);
   }
   
-  if (ioctl(getProcessLWP()->get_fd(), PIOCSEXIT, &sysset) < 0) {
+  if (ioctl(replwp->get_fd(), PIOCSEXIT, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     return false;
   }
 
   // now worry about entry too
-  if (ioctl(getProcessLWP()->get_fd(), PIOCGENTRY, &sysset) < 0) {
+  if (ioctl(replwp->get_fd(), PIOCGENTRY, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -227,7 +228,7 @@ bool process::installSyscallTracing()
   prdelset (&sysset, SYS_execv);
   prdelset (&sysset, SYS_execve);
   
-  if (ioctl(getProcessLWP()->get_fd(), PIOCSENTRY, &sysset) < 0) {
+  if (ioctl(replwp->get_fd(), PIOCSENTRY, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -257,7 +258,7 @@ int process::waitforRPC(int *status, bool /* block */)
       for (unsigned u = 0; u < processVec.size(); u++) {
 	if (processVec[u]->status() == running || 
 	    processVec[u]->status() == neonatal) {
-	    fds[u].fd = processVec[u]->getProcessLWP()->get_fd();
+	    fds[u].fd = processVec[u]->getRepresentativeLWP()->get_fd();
 	    selected_fds++;
 	} else {
 	  fds[u].fd = -1;
@@ -350,12 +351,13 @@ int decodeProcStatus(process *proc,
 // the queue until there are none left, then re-poll.
 // Return value: 0 if nothing happened, or process pointer
 
-process *decodeProcessEvent(int pid,
-                            procSignalWhy_t &why,
-                            procSignalWhat_t &what,
-                            procSignalInfo_t &info,
-                            bool block) {
+// the pertinantLWP and wait_options are ignored on Solaris, AIX
 
+process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
+                            procSignalWhy_t &why, procSignalWhat_t &what,
+                            procSignalInfo_t &info, bool block,
+                            int wait_options)
+{
     why = procUndefined;
     what = 0;
     info = 0;
@@ -374,9 +376,9 @@ process *decodeProcessEvent(int pid,
             if (processVec[u] && 
                 (processVec[u]->status() == running || 
                  processVec[u]->status() == neonatal)) {
-                if (pid == -1 ||
-                    processVec[u]->getPid() == pid) {
-                    fds[u].fd = processVec[u]->getProcessLWP()->get_fd();
+                if (wait_arg == -1 ||
+                    processVec[u]->getPid() == wait_arg) {
+                    fds[u].fd =processVec[u]->getRepresentativeLWP()->get_fd();
                     // Apparently, exit doesn't cause a poll event. Odd...
                     int status;
                     int retWait = waitpid(processVec[u]->getPid(), &status, WNOHANG|WNOWAIT);
@@ -404,7 +406,8 @@ process *decodeProcessEvent(int pid,
         }
         if (selected_fds <= 0) {
             if (selected_fds < 0) {
-                fprintf(stderr, "decodeProcessEvent: poll failed: %s\n", sys_errlist[errno]);
+                fprintf(stderr, "decodeProcessEvent: poll failed: %s\n",
+                        sys_errlist[errno]);
                 selected_fds = 0;
             }
             return NULL;
@@ -446,9 +449,8 @@ process *decodeProcessEvent(int pid,
         }
     } else {
         // Real return from poll
-        if (ioctl(currProcess->getProcessLWP()->get_fd(), 
-                  PIOCSTATUS, 
-                  &procstatus) != -1) {
+        if (ioctl(currProcess->getRepresentativeLWP()->get_fd(), 
+                  PIOCSTATUS, &procstatus) != -1) {
             // Check if the process is stopped waiting for us
             if (procstatus.pr_flags & PR_STOPPED ||
                 procstatus.pr_flags & PR_ISTOP) {
@@ -464,7 +466,7 @@ process *decodeProcessEvent(int pid,
 
     if (currProcess) {
         currProcess->savePreSignalStatus();
-        currProcess->status_ = stopped;
+        currProcess->set_status(stopped);
     }
     
 
@@ -483,7 +485,7 @@ Frame Frame::getCallerFrame(process *p) const
   if (fp_ == 0) return Frame();
 
   if (uppermost_) {
-      int proc_fd = p->getProcessLWP()->get_fd();
+      int proc_fd = p->getRepresentativeLWP()->get_fd();
       if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
           ret.pc_ = theIntRegs.regs[PC_REGNUM];  
 
@@ -690,7 +692,7 @@ bool process::dumpImage()
 
     baseAddr = (Address) text_start;
     sprintf(errorLine, "seeking to %ld as the offset of the text segment \n",
-	file_ofs);
+            file_ofs);
     logLine(errorLine);
     sprintf(errorLine, " code offset= %ld\n", baseAddr);
     logLine(errorLine);
@@ -698,14 +700,17 @@ bool process::dumpImage()
     /* seek to the text segment */
     lseek(ofd,(off_t)file_ofs, SEEK_SET);
     for (i=0; i < text_size; i+= 1024) {
-        errno = 0;
-        length = ((i + 1024) < text_size) ? 1024 : text_size -i;
-        if (lseek(getProcessLWP()->get_fd(),(off_t)(baseAddr + i), SEEK_SET) != (long)(baseAddr + i)) {
-	    fprintf(stderr,"Error_:%s\n",sys_errlist[errno]);
-	    fprintf(stderr,"[%d] Couldn't lseek to the designated point\n",i);
-	}
-	read(getProcessLWP()->get_fd(),buffer,length);
-	write(ofd, buffer, length);
+       errno = 0;
+       length = ((i + 1024) < text_size) ? 1024 : text_size -i;
+       dyn_lwp *replwp = getRepresentativeLWP();
+       if (lseek(replwp->get_fd(),(off_t)(baseAddr + i), SEEK_SET) !=
+           (long)(baseAddr + i))
+       {
+          fprintf(stderr,"Error_:%s\n",sys_errlist[errno]);
+          fprintf(stderr,"[%d] Couldn't lseek to the designated point\n",i);
+       }
+       read(replwp->get_fd(),buffer,length);
+       write(ofd, buffer, length);
     }
 
     close(ofd);
@@ -720,7 +725,7 @@ bool process::dumpImage()
 bool process::terminateProc_()
 {
     long flags = PRFS_KOLC;
-    if (ioctl (getProcessLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
+    if (ioctl (getRepresentativeLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
         return false;
 
     // just to make sure it is dead
@@ -731,6 +736,12 @@ bool process::terminateProc_()
     return true;
 }
 
+dyn_lwp *process::createRepresentativeLWP() {
+   // don't register the representativeLWP in real_lwps since it's not a true
+   // lwp
+   representativeLWP = createFictionalLWP(0);
+   return representativeLWP;
+}
 
 #if !defined(BPATCH_LIBRARY)
 rawTime64 dyn_lwp::getRawCpuTime_hw()
@@ -792,12 +803,12 @@ fileDescriptor *getExecFileDescriptor(pdstring filename,
   return desc;
 }
 
-bool dyn_lwp::threadLWP_attach_() {
+bool dyn_lwp::realLWP_attach_() {
    assert( false && "threads not yet supported on OSF");
    return false;
 }
 
-bool dyn_lwp::processLWP_attach_() {
+bool dyn_lwp::representativeLWP_attach_() {
    /*
      Open the /proc file correspoding to process pid, 
      set the signals to be caught to be only SIGSTOP,
@@ -866,8 +877,12 @@ bool dyn_lwp::processLWP_attach_() {
    return true;
 }
 
+void dyn_lwp::realLWP_detach_()
+{
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+}
 
-void dyn_lwp::detach_()
+void dyn_lwp::representativeLWP_detach_()
 {
    assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
    if (fd_) close(fd_);
