@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.287 2004/03/08 23:45:58 bernat Exp $
+/* $Id: process.h,v 1.288 2004/03/11 22:20:37 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -130,7 +130,12 @@ class BPatch_function;
 #endif
 
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
-typedef enum { textHeap=0x01, dataHeap=0x02, anyHeap=0x33, lowmemHeap=0x40 }
+// Bit pattern...
+typedef enum { textHeap=0x01,
+               dataHeap=0x02,
+               uncopiedHeap=0x04, // AIX -- not copied on fork
+               anyHeap=0x7, // OR of the previous three
+               lowmemHeap=0x1000 }
         inferiorHeapType;
 typedef pdvector<Address> addrVecType;
 typedef enum { unstarted, begun, initialized, loadingRT, loadedRT, bootstrapped } bootstrapState_t;
@@ -1388,10 +1393,10 @@ private:
    // And the associated deletion of a base tramp
    void deleteBaseTramp(trampTemplate *baseTramp);
 
-Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
+/*Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
                        Address near_=0, bool *err=NULL);
 void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
-
+*/
 // garbage collect instrumentation
    void gcInstrumentation();
    void gcInstrumentation(pdvector<pdvector<Frame> >&stackWalks);
