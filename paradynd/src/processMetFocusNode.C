@@ -67,6 +67,50 @@ processMetFocusNode::processMetFocusNode(process *p,
   allProcNodes.push_back(this);
 }
 
+processMetFocusNode::processMetFocusNode(const processMetFocusNode &par, 
+					 process *childProc) :
+  aggregator(par.aggOp, getCurrSamplingRate()), // start with fresh aggregator
+  // set by recordAsParent(), in propagateToForkedProcess
+  parentNode(NULL), aggInfo(NULL), proc_(childProc),
+  metric_name(par.metric_name), 
+  focus(adjustFocusForPid(par.focus, childProc->getPid()))
+{
+  metricVarCodeNode = instrCodeNode::copyInstrCodeNode(*par.metricVarCodeNode,
+						       childProc);
+  for(unsigned i=0; i<par.constraintCodeNodes.size(); i++) {
+    constraintCodeNodes.push_back(
+     instrCodeNode::copyInstrCodeNode(*par.constraintCodeNodes[i], childProc));
+  }
+
+  // I need to determine which threads are being duplicated in the child
+  // process.  Under pthreads, my understanding is that only the thread
+  // for which the fork call occurs is duplicated in the child.  Under
+  // Solaris threads, my understanding is that all threads are duplicated.
+  for(unsigned j=0; j<par.thrNodes.size(); j++) {
+    assert(par.thrNodes.size() <= childProc->threads.size());
+    pdThread *childThr = childProc->getThread(par.thrNodes[j]->getThreadID());
+    threadMetFocusNode *newThrNode = 
+      threadMetFocusNode::copyThreadMetFocusNode(*par.thrNodes[j], childProc,
+						 childThr);
+    addPart(newThrNode);
+  }
+
+  procStartTime = par.procStartTime;
+
+  aggOp = par.aggOp;
+  procStartTime = par.procStartTime;
+  
+  dontInsertData_ = par.dontInsertData_;
+  catchupNotDoneYet_ = par.catchupNotDoneYet_;
+  currentlyPaused = par.currentlyPaused;
+  
+  catchupASTList = par.catchupASTList;
+  sideEffectFrameList = par.sideEffectFrameList;
+  
+  insertionAttempts = par.insertionAttempts;
+  function_not_inserted = par.function_not_inserted;
+}
+
 void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes)
 {
   for(unsigned i=0; i<allProcNodes.size(); i++) {
@@ -209,6 +253,9 @@ void processMetFocusNode::updateWithDeltaValue(timeStamp startTime,
   
   assert(aggInfo->isReadyToReceiveSamples());
   assert(sampleTime >= aggInfo->getInitialStartTime());
+
+  sampleVal_cerr << "procNode: " << this << ", updateWithDeltaValue, time: "
+		 << sampleTime << ", val: " << valToPass << "\n";
 
   aggInfo->addSamplePt(sampleTime, valToPass);
   
@@ -401,7 +448,6 @@ bool processMetFocusNode::insertInstrumentation() {
    if(instrInserted()) {
       return true;
    }
-
    ++insertionAttempts;
    if(insertionAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
       if(function_not_inserted != NULL)
@@ -538,18 +584,18 @@ void processMetFocusNode::prepareCatchupInstr() {
 
   // Now go through all associated code nodes, and add appropriate bits
   // to the catchup request list.
-
-  for (unsigned constraintIter = 0; constraintIter < constraintCodeNodes.size(); constraintIter++)
-    if (!constraintCodeNodes[constraintIter]->hasBeenCatchuped()) {
-      constraintCodeNodes[constraintIter]->prepareCatchupInstr(catchupStackWalks);
+  for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
+    if (!constraintCodeNodes[cIter]->hasBeenCatchuped()) {
+      constraintCodeNodes[cIter]->prepareCatchupInstr(catchupStackWalks);
     }
+
   // Get the metric code node catchup list
   metricVarCodeNode->prepareCatchupInstr(catchupStackWalks);
 
-  // Note: stacks are delivered to us in bottom-up order (most recent to main()),
-  // and we want to execute from main down. So loop through backwards and add
-  // to the main list. We can go one thread at a time, because multiple threads
-  // will not interfere with each other.
+  // Note: stacks are delivered to us in bottom-up order (most recent to
+  // main()), and we want to execute from main down. So loop through
+  // backwards and add to the main list. We can go one thread at a time,
+  // because multiple threads will not interfere with each other.
 
   // Iterate through all threads
   //  cerr << "Looping through " << catchupStackWalks.size() << " stack walks" << endl;
@@ -562,7 +608,8 @@ void processMetFocusNode::prepareCatchupInstr() {
       if (((catchupStackWalks[i1])[j1]->reqNodes).size()) { // Means we have a catchup request
 	// What we want to do: build a single big AST then
 	// launch it as an RPC. 
-	for (int k1 = 0; k1 < ((catchupStackWalks[i1])[j1]->reqNodes).size(); k1++) {
+	for (unsigned k1 = 0; k1<((catchupStackWalks[i1])[j1]->reqNodes).size();
+	     k1++) {
 	  AstNode *AST = catchupStackWalks[i1][j1]->reqNodes[k1]->Ast();
 	  if (!conglomerate) {
 	    conglomerate = AST;
@@ -598,6 +645,7 @@ void processMetFocusNode::postCatchupRPCs()
     cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
     cerr << "Handing " << sideEffectFrameList.size() << " side effects\n";
   }
+
   for (unsigned i=0; i < catchupASTList.size(); i++) {
     proc_->postRPCtoDo(catchupASTList[i].ast, false,
 		       NULL, NULL,
@@ -811,9 +859,15 @@ void processMetFocusNode::print() {
 
 processMetFocusNode::~processMetFocusNode() {
   isBeingDeleted_ = true;
-  aggInfo->markAsFinished();
+  // NULL possible if processMetFocusNode created for fork and then deleted
+  // right away (ie. unforked) because not needed.  See
+  // machineMetFocusNode::setupProcNodeForForkedProcess.
+  if(aggInfo!=NULL)  
+    aggInfo->markAsFinished();
 
-  // thrNode destruction needs to occur after the destruction of the codeNodes
+  // thrNode destruction needs to occur before the destruction of the
+  // codeNodes, since this will turn off sampling in the data nodes,
+  // which can be deleted when the code nodes are deleted
   for(unsigned i=0; i<thrNodes.size(); i++)
     delete thrNodes[i];
 
@@ -914,5 +968,11 @@ void processMetFocusNode::propagateToNewThread(pdThread *thr)
 void processMetFocusNode::deleteThread(pdThread * /*thr*/)
 {
    // need to implement
+}
+
+void processMetFocusNode::unFork() {
+  delete this;  // will remove instrumentation and data for the procMetFocusNode
+                // (the metFocusNode deletion code deals with code and data
+                //  sharing appropriately)
 }
 
