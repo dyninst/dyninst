@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.h,v 1.13 2002/12/20 07:49:58 jaw Exp $
+// $Id: solarisDL.h,v 1.14 2003/01/03 21:57:43 bernat Exp $
 
 #if !defined(solaris_dl_hdr)
 #define solaris_dl_hdr
@@ -129,8 +129,13 @@ private:
 
    // get_ld_base_addr: This routine returns the base address of ld.so.1
    // it returns true on success, and false on error
-   bool dynamic_linking::get_ld_base_addr(Address &addr, int proc_fd);
+   bool dynamic_linking::get_ld_base_addr(Address &addr, int auxv_fd);
 
+   // get_ld_name: Returns the name (in /proc/pid/object/ format) of
+   // ld.so.1
+   bool dynamic_linking::get_ld_name(char *ld_name, Address ld_base, int map_fd, int pid);
+
+   
    // find_function: this routine finds the symbol table for ld.so.1, and
    // parses it to find the address of f_name
    // fills in f_name_addr with the address of f_name

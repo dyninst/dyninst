@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.26 2002/12/20 07:49:58 jaw Exp $
+// $Id: solarisDL.C,v 1.27 2003/01/03 21:57:42 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -53,43 +53,42 @@ extern debug_ostream sharedobj_cerr;
 #include <link.h>
 #include <libelf.h>
 #include <sys/types.h>
-#include <sys/procfs.h>
+#include <procfs.h>
 #include <sys/auxv.h>
 
 
 // get_ld_base_addr: This routine returns the base address of ld.so.1
 // it returns true on success, and false on error
-bool dynamic_linking::get_ld_base_addr(Address &addr, int proc_fd){
+bool dynamic_linking::get_ld_base_addr(Address &addr, int auxv_fd){
 
-    // get number of auxv_t structs
-    int auxvnum=-1;
-    if(ioctl(proc_fd, PIOCNAUXV, &auxvnum) != 0) { return false;}    
-    if(auxvnum < 1) { return false; }
-
-    // get the array of auxv_t structs
-    auxv_t *auxv_elms = new auxv_t[auxvnum];
-    // auxv_t auxv_elms[auxvnum];
-#ifdef PURE_BUILD
-    // explicitly initialize "auxv_elms" struct (to pacify Purify)
-    // (at least initialize those components which we actually use)
-    for(int i=0; i < auxvnum; i++) {
-        auxv_elms[i].a_type=0;
-        auxv_elms[i].a_un.a_ptr=(void*)0;
+    auxv_t auxv_elm;
+    lseek(auxv_fd, 0, SEEK_SET);
+    while(read(auxv_fd, &auxv_elm, sizeof(auxv_elm)) == sizeof(auxv_elm)) {
+        if (auxv_elm.a_type == AT_BASE) {
+            addr = (Address)auxv_elm.a_un.a_ptr;
+            lseek(auxv_fd, 0, SEEK_SET);
+            return true;
+        }
+        
     }
-#endif
+    return false;
+}
 
-    if(ioctl(proc_fd, PIOCAUXV, auxv_elms) != 0) { return false; }
-
-    // find the base address of ld.so.1
-    for(int i=0; i < auxvnum; i++){
-        if(auxv_elms[i].a_type == AT_BASE) {
-	    addr = (Address)(auxv_elms[i].a_un.a_ptr);
-	    // cout << "ld.so.1 base addr = " << addr << "num " 
-	    // << auxvnum << endl;
-	    delete [] auxv_elms;
-	    return true;
-    } }
-    delete [] auxv_elms;
+// get_ld_name: returns name (in /proc/pid/object/ format) of ld.so.1
+// it returns true on success, and false on error
+bool dynamic_linking::get_ld_name(char *ld_name, Address ld_base, int map_fd, int pid)
+{
+    prmap_t map_elm;
+    lseek(map_fd, 0, SEEK_SET);
+    while(read(map_fd, &map_elm, sizeof(map_elm)) == sizeof(map_elm)) {
+        if (map_elm.pr_vaddr == ld_base) {
+            sprintf(ld_name, "/proc/%d/object/%s", 
+                    pid, map_elm.pr_mapname);
+            lseek(map_fd, 0, SEEK_SET);
+            return true;
+        }
+        
+    }
     return false;
 }
 
@@ -100,6 +99,7 @@ bool dynamic_linking::findFunctionIn_ld_so_1(string f_name, int ld_fd,
 					     Address ld_base_addr, 
 					     Address *f_addr, int st_type){
 
+    lseek(ld_fd, 0, SEEK_SET);
     Elf *elfp = 0;
     if ((elfp = elf_begin(ld_fd, ELF_C_READ, 0)) == 0) {return false;}
     Elf32_Ehdr *phdr = elf32_getehdr(elfp);
@@ -287,7 +287,6 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
         // VG(09/25/01): also ignore if address is 65536 or name is (unknown)
 	if(obj_name != p->getImage()->file() && 
 	   obj_name != p->getImage()->name() &&
-	   obj_name != p->getArgv0() &&
            link_elm.l_addr != 65536 &&
            obj_name != "(unknown)"
            //strncmp(obj_name.c_str(), "(unknown)", 10)
@@ -457,36 +456,36 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     internalSym dyn_sym;
     bool flag = p->findInternalSymbol(dyn_str, true, dyn_sym);
     if(!flag){ return 0;}
-    int proc_fd = p->getDefaultLWP()->get_fd();
-    if(!proc_fd){ return 0;}
 
     // step 2: find the base address and file descriptor of ld.so.1
+    // Three-step process.
+    // 1) Examine aux vector for address of the loader
     Address ld_base = 0;
-    int ld_fd = -1;
-    if(!(this->get_ld_base_addr(ld_base,proc_fd))) { return 0;}
-    if((ld_fd = ioctl(proc_fd, PIOCOPENM, (caddr_t *)&ld_base)) == -1) { 
-	return 0;
+    if(!(this->get_ld_base_addr(ld_base,p->auxv_fd()))) { return 0;}
+    // 2) Examine virtual address map for the name of the object (inode style)
+    char ld_name[128+PRMAPSZ];
+    if(!(this->get_ld_name(ld_name, ld_base, p->map_fd(), p->getPid()))) { return 0;}    
+    // 3) Open that file
+    int ld_fd = -1;    
+    ld_fd = open(ld_name, O_RDONLY, 0);
+    if(ld_fd == -1) {
+        perror("LD.SO");
+        return 0;
     } 
 
     // step 3: get its symbol table and find r_debug
     if (!(this->find_r_debug(ld_fd,ld_base))) { return 0; }
-    close(ld_fd);
 
     // step 4: get link-maps and process them
     pdvector<shared_object *> *result = this->processLinkMaps(p);
 
     // step 5: set brkpoint in r_brk to catch dlopen and dlclose events
     if(!(this->set_r_brk_point(p))){ 
-	// printf("error after step5 in getSharedObjects\n");
+        fprintf(stderr, "error after step5 in getSharedObjects\n");
     }
 
-    // additional step: find dlopen - naim
-    if(!(this->get_ld_base_addr(ld_base,proc_fd))) { return 0;}
-    if((ld_fd = ioctl(proc_fd, PIOCOPENM, (caddr_t *)&ld_base)) == -1) { 
-	return 0;
-    }
     if (!(this->find_dlopen(ld_fd,ld_base))) {
-      logLine("WARNING: we didn't find dlopen in ld.so.1\n");
+        fprintf(stderr, "WARNING: we didn't find dlopen in ld.so.1\n");
     }
     close(ld_fd);
 
@@ -570,13 +569,9 @@ pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
 bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 				pdvector<shared_object*>  **changed_objects,
 				u_int &change_type,
-				bool &error_occured) { 
-   prgregset_t regs;
-#ifdef PURE_BUILD
-   // explicitly initialize "regs" struct (to pacify Purify)
-   // (at least initialize those components which we actually use)
-   for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
-#endif
+				bool &error_occured){ 
+
+    dyn_saved_regs *regs;
 
    error_occured = false;
 
@@ -596,21 +591,20 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
          break;
       }
    }
-
-   if (brk_lwp) {
-      // Get the registers for this lwp
-      ioctl(brk_lwp->get_fd(), PIOCGREG, &regs);
-
+  
+  if (brk_lwp) {
+    // Get the registers for this lwp
+      regs = brk_lwp->getRegisters();
       // find out what has changed in the link map
       // and process it
       r_debug debug_elm;
       if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                               sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-         // printf("read failed r_debug_addr = 0x%x\n",r_debug_addr);
-         error_occured = true;
-         return true;
+          // printf("read failed r_debug_addr = 0x%x\n",r_debug_addr);
+          error_occured = true;
+          return true;
       }
-    
+      
       // if the state of the link maps is consistent then we can read
       // the link maps, otherwise just set the r_state value
       change_type = r_state;   // previous state of link maps 
@@ -654,14 +648,14 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       // missing any instrumentation code by making it look like the
       // retl has already happend
     
-      // first get the value of the stackpointer
-      Address o7reg = regs[R_O7];
-      o7reg += 2*sizeof(instruction);
-      if(!(brk_lwp->changePC(o7reg, NULL))) {
-         // printf("error in changePC handleIfDueToSharedObjectMapping\n");
-         error_occured = true;
-         return true;
-      }
+    // first get the value of the stackpointer
+    Address o7reg = regs->theIntRegs[R_O7];
+    o7reg += 2*sizeof(instruction);
+    if(!(brk_lwp->changePC(o7reg, NULL))) {
+      // printf("error in changePC handleIfDueToSharedObjectMapping\n");
+      error_occured = true;
+      return true;
+    }
 #else //x86
       // set the pc to the "ret" instruction
       Address next_pc = regs[R_PC] + sizeof(instruction);
@@ -669,6 +663,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
          error_occured = true;
 #endif
       return true;
-   }
-   return false;
+  }
+  return false;
 }
+
+

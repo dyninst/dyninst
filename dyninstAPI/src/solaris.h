@@ -45,7 +45,7 @@
 #ifndef SOLARIS_PD_HDR
 #define SOLARIS_PD_HDR
 
-#include <sys/procfs.h>
+#include <procfs.h>
 #include <sys/param.h>
 
 #define EXIT_NAME "_exithandle"
