@@ -2,11 +2,14 @@
 //
 // Process Critical Path data from the various paradyn daemons.
 //
-// $Log: DMcritPath.C,v $
-// Revision 1.3  1996/02/01 19:51:58  hollings
-// Fixing Critical Path to work.
-//
-//
+/* $Log: DMcritPath.C,v $
+/* Revision 1.4  1996/02/02 18:27:06  newhall
+/* fixed compile error
+/*
+ * Revision 1.3  1996/02/01  19:51:58  hollings
+ * Fixing Critical Path to work.
+ *
+ */
 
 #include <assert.h>
 extern "C" {
@@ -35,7 +38,7 @@ class cpContext {
 
 dictionary_hash<metricInstanceHandle,cpContext *> allCPContexts(uiHash);
 
-void paradynDaemon::cpDataCallbackFunc(int program,
+void paradynDaemon::cpDataCallbackFunc(int,
                                        double timeStamp,
                                        int context,
                                        double total,
