@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.7 1994/05/18 00:52:31 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.8 1994/05/31 17:59:05 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.7  1994/05/18 00:52:31  hollings
+ * Revision 1.8  1994/05/31 17:59:05  markc
+ * Closed iopipe fd that had been dup'd if the fd was greater than 2.
+ *
+ * Revision 1.7  1994/05/18  00:52:31  hollings
  * added ability to gather IO from application processes and forward it to
  * the paradyn proces.
  *
@@ -282,7 +285,8 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 	// handle stdio.
 	close(ioPipe[0]);
 	dup2(ioPipe[1], 1);
-	dup2(ioPipe[2], 2);
+	dup2(ioPipe[1], 2);
+	if (ioPipe[1] > 2) close (ioPipe[1]);
 
 	close(tracePipe[0]);
 	if (dup2(tracePipe[1], 3) != 3)
