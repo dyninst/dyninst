@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.29 2003/05/08 23:46:46 bernat Exp $
+// $Id: sol_proc.C,v 1.30 2003/05/13 21:34:30 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -172,9 +172,10 @@ void OS::osTraceMe(void) {
 
 // Continues the LWP without clearing signal
 bool dyn_lwp::continueWithSignal() {
-    long buf[1];
+    long buf[2];
     buf[0] = PCRUN;
-    if (write(ctl_fd(), buf, sizeof(long)) != sizeof(long)) {
+    buf[1] = 0;
+    if (write(ctl_fd(), buf, 2*sizeof(long)) != 2*sizeof(long)) {
         perror("Write: PCRUN with signal");
         return false;
     }
