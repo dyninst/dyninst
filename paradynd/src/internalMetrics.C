@@ -203,6 +203,7 @@ bool internalMetric::legalToInst(const vector< vector<string> >& focus) const {
   case 1: break;
   case 2:
   case 3:
+  case 4:
     switch(pred.sync) {
     case pred_invalid: return false;
     case pred_null: break;
