@@ -5,7 +5,10 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.6  1995/02/16 08:05:27  markc
+ * Revision 1.7  1995/02/26 02:27:51  newhall
+ * added source file DMphase.C
+ *
+ * Revision 1.6  1995/02/16  08:05:27  markc
  * Added missing template instantiation requests.
  * Changed template instantiation requests to the correct form.
  *
@@ -80,6 +83,9 @@ template class HTable<resource*>;
 template class HTable<abstraction*>;
 template class dictionary_hash<unsigned, metricInstance*>;
 template class vector<unsigned>;
+template class vector<phaseInfo *>;
+template class vector<performanceStream *>;
+
 
 /* ********************************
  * PCthread stuff
@@ -166,12 +172,15 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::metricInfo
 template class queue<T_visi::buf_struct*>;
 template class vector<T_visi::dataValue>;
 template class vector<T_visi::visi_matrix>;
+template class vector<T_visi::phase_info>;
 template class vector<float>;
 template bool_t T_visi_P_xdr_stl(XDR*, vector<string>*, bool_t (*)(XDR*, string*), string*);
 template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::dataValue>*, bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
 template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::visi_matrix>*, bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
 template bool_t T_visi_P_xdr_stl(XDR*, vector<float>*, bool_t (*)(XDR*, float*), float*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::phase_info>*, bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
 template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<string>**, bool_t (*)(XDR*, string*), string*);
 template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::dataValue>**, bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
 template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::visi_matrix>**, bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
 template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<float>**, bool_t (*)(XDR*, float*), float*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::phase_info>**, bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
