@@ -44,6 +44,23 @@
  *
  */
 
+/*
+ * This file (and the other templatesXXX.C files) exist for a single purpose:
+ * to explicitly instantiate code for all of the template classes we use.
+ * Although the C++ standard dictates that compilers should automatically
+ * instantiate all templates (and leaves the details to the implementation),
+ * g++ 2.7.2, which we currently use, doesn't do that correctly.  So instead,
+ * we use a special compiler switch (-fno-implicit-templates or 
+ * -fexternal-templates) which tells g++ not to try and automatically
+ * instantiate any templates.  We manually instantiate the templates in this
+ * and the other templatesXXX.C files.  If you are porting Paradyn, and are
+ * using a compiler that correctly and automatically instantiates its 
+ * templates, then you don't need to use any of the templatesXXX.C files (so
+ * remove their entries from the appropriate make.module.tmpl file).
+ *
+ */
+
+
 #pragma implementation "Pair.h"
 #include "util/h/Pair.h"
 
@@ -76,6 +93,7 @@ template class  vector<heapItem*>;
 template class  vector<image*>;
 template class  vector<instMapping*>;
 template class  vector<instPoint *>;
+template class  vector<const instPoint *>;
 template class  vector<int>;
 template class  vector<instruction>;
 #ifndef BPATCH_LIBRARY
