@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.482 2004/03/12 23:18:08 legendre Exp $
+// $Id: process.C,v 1.483 2004/03/13 23:00:19 eli Exp $
 
 #include <ctype.h>
 
@@ -2693,6 +2693,8 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
     delete theProc;
     return NULL;
   }
+
+  theImage->defineModules(theProc);
 
   // Note: it used to be that the attach ctor called pause()...not anymore...so
   // the process is probably running even as we speak.
