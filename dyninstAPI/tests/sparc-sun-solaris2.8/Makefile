@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.17 2002/08/04 17:29:54 gaburici Exp $
+# $Id: Makefile,v 1.18 2002/08/09 20:56:20 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -56,8 +56,7 @@ M_GXX = $(GXX)
 
 # define these only if not invoked recursively, otherwise they're set
 ifndef MUTATEE_CC
-# VG(3/8/2): added -Xc (ANSI conformance)
-export NATIVE_CC = "cc -Xc"
+export NATIVE_CC = cc
 export NATIVE_CXX = CC
 export NATIVE_FC = f90
 
