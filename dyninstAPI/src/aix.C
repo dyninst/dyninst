@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.82 2001/08/20 22:23:46 bernat Exp $
+// $Id: aix.C,v 1.83 2001/08/22 18:26:54 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1042,6 +1042,8 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
  * base/mini tramps, though less often. So we're going to explicitly
  * flush. Ref: PowerPC architecture, "PowerPC virtual environment arch",
  * p344
+ *
+ * Update: there is an OS fix for this.
  */
 bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
   if (!checkStatus()) 
@@ -1849,7 +1851,7 @@ bool checkAllThreadsForBreakpoint(int pid, Address break_addr)
 
   // Now that we have the correct thread ID, ptrace the sucker
   struct ptsprs spr_contents;
-  for ( int i; i < num_thrds; i++ )
+  for ( int i = 0; i < num_thrds; i++ )
     {
       int kernel_thread = thrd_buf[i].ti_tid;
       
