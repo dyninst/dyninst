@@ -1,7 +1,10 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.6  1995/09/11 19:19:26  mjrg
+ * Revision 1.7  1995/09/18 22:42:09  mjrg
+ * Fixed ptrace call.
+ *
+ * Revision 1.6  1995/09/11  19:19:26  mjrg
  * Removed redundant ptrace calls.
  *
  * Revision 1.5  1995/08/24  15:04:34  hollings
@@ -96,7 +99,11 @@ bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, char *addr,
 
 void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
   if ((p->status() != neonatal) && (!wasStopped))
-    if (P_ptrace(PTRACE_CONT, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
+/* Choose either one of the following methods to continue a process.
+ * The choice must be consistent with that in process::continueProc_ and OS::osStop.
+ */
+    if (P_ptrace(PTRACE_DETACH, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
+//    if (P_ptrace(PTRACE_CONT, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
       cerr << "error in continueProcess\n";
       assert(0);
     }
@@ -116,7 +123,8 @@ bool OS::osAttach(pid_t process_id) {
 
 bool OS::osStop(pid_t pid) { 
 /* Choose either one of the following methods for stopping a process, but not both. 
- * The choice must be consistent with that in process::continueProc_
+ * The choice must be consistent with that in process::continueProc_ 
+ * and ptraceKludge::continueProcess
  */
 	return (osAttach(pid));
 //	return (P_kill(pid, SIGSTOP) != -1); 
@@ -143,7 +151,7 @@ bool process::continueProc_() {
     return false;
   ptraceOps++; ptraceOtherOps++;
 /* choose either one of the following ptrace calls, but not both. 
- * The choice must be consistent with that in OS::osStop.
+ * The choice must be consistent with that in OS::osStop and ptraceKludge::continueProcess.
  */
 //  ret = P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL);
   ret = P_ptrace(PTRACE_DETACH, pid, (char*)1, SIGCONT, (char*)NULL);
