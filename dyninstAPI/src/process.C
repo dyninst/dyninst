@@ -108,8 +108,12 @@ Frame::Frame(process *proc) {
 }
 
 Frame Frame::getPreviousStackFrameInfo(process *proc) const {
-   if (frame_ == 0)
-      return *this; // no prev frame exists; not much we can do here
+   if (frame_ == 0){
+      // no prev frame exists; must return frame with 0 pc value otherwise
+      // will never break out of loop in walkStack()
+      Frame fake_frame(0,0,false);
+      return fake_frame; 
+   }
 
    int fp = frame_;
    int rtn = pc_;
@@ -152,6 +156,7 @@ vector<Address> process::walkStack(bool noPause)
     Frame currentFrame(this);
     while (!currentFrame.isLastFrame()) {
       Address next_pc = currentFrame.getPC();
+      // printf("currentFrame pc = %d\n",next_pc);
       pcs += next_pc;
       // is this pc in the signal_handler function?
       if(signal_handler && (next_pc >= sig_addr)

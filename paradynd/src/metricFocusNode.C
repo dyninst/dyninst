@@ -791,6 +791,16 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
             }
         }
 	if(delay_install){
+	    // get rid of pathological cases...caused by threaded applications 
+	    // TODO: this should be fixed to do something smarter
+	    if((max_index > 0) && ((max_index+1) >= pc.size())){
+	       max_index--;
+	       //printf("max_index changed: %d\n",max_index);
+	    }
+	    if((max_index > 0) && (pc[max_index+1] == 0)){
+	       max_index--;
+	       //printf("max_index changed: %d\n",max_index);
+	    }
 	    Address pc2 = pc[max_index+1];
 	    for(u_int i=0; i < rsize; i++){
 		if(delay_elm[i]){

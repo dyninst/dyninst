@@ -64,11 +64,11 @@
 #include "paradynd/src/instP.h"
 
 
-#define REG_L7          23        /* register saved to keep the address of */
-                                  /* the current vector of counter/timers  */
-                                  /* for each thread.                      */
-#define NUM_INSN_MT_PREAMBLE 9    /* number of instructions required for   */
-                                  /* the MT preamble.                      */ 
+#define REG_L7          23        // register saved to keep the address of
+                                  // the current vector of counter/timers
+                                  // for each thread.
+#define NUM_INSN_MT_PREAMBLE 9    // number of instructions required for
+                                  // the MT preamble. 
 
 // NOTE: LOW() and HIGH() can return ugly values if x is negative, because in
 // that case, 2's complement has really changed the bitwise representation!
@@ -111,40 +111,38 @@ public:
 	    Address &oldAddr);
   ~instPoint() {  /* TODO */ }
 
-  // can't set this in the constructor because call points can't be classified until
-  // all functions have been seen -- this might be cleaned up
+  // can't set this in the constructor because call points can't be classified
+  // until all functions have been seen -- this might be cleaned up
   void set_callee(pdFunction *to) { callee = to; }
 
 
-  Address addr;                       /* address of inst point */
-  instruction originalInstruction;    /* original instruction */
-  instruction delaySlotInsn;          /* original instruction */
-  instruction aggregateInsn;          /* aggregate insn */
+  Address addr;                       // address of inst point
+  instruction originalInstruction;    // original instruction
+  instruction delaySlotInsn;          // original instruction
+  instruction aggregateInsn;          // aggregate insn
   instruction otherInstruction;       
   instruction isDelayedInsn;  
   instruction inDelaySlotInsn;
-  instruction extraInsn;   /* if 1st instr is conditional branch this is
-			      previous instruction */
+  instruction extraInsn;   	// if 1st instr is conditional branch this is
+			        // previous instruction 
 
-  bool inDelaySlot;            /* Is the instruction in a delay slot */
-  bool isDelayed;		/* is the instruction a delayed instruction */
-  bool callIndirect;		/* is it a call whose target is rt computed ? */
-  bool callAggregate;		/* calling a func that returns an aggregate
-				   we need to reolcate three insns in this case
-				   */
-  pdFunction *callee;		/* what function is called */
-  pdFunction *func;		/* what function we are inst */
-
-  bool isBranchOut;                /* true if this point is a conditional branch, 
-				   that may branch out of the function */
-  int branchTarget;                /* the original target of the branch */
-  bool leaf;                       /* true if the procedure is a leaf     */
+  bool inDelaySlot;             // Is the instruction in a delay slot
+  bool isDelayed;		// is the instruction a delayed instruction
+  bool callIndirect;		// is it a call whose target is rt computed ?
+  bool callAggregate;		// calling a func that returns an aggregate
+				// we need to reolcate three insns in this case
+  pdFunction *callee;		// what function is called
+  pdFunction *func;		// what function we are inst
+  bool isBranchOut;             // true if this point is a conditional branch, 
+				// that may branch out of the function
+  int branchTarget;             // the original target of the branch
+  bool leaf;                    // true if the procedure is a leaf
   instPointType ipType;
-  int instId;                      /* id of inst in this function */
-  int size;                        /* size of multiple instruction sequences */
+  int instId;                   // id of inst in this function
+  int size;                     // size of multiple instruction sequences
   const image *image_ptr;	// for finding correct image in process
-  bool firstIsConditional;     /* 1st instruction is conditional branch */
-  bool relocated_;	// true if this instPoint is from a relocated func
+  bool firstIsConditional;      // 1st instruction is conditional branch
+  bool relocated_;	        // true if instPoint is from a relocated func
 };
 
 inline unsigned getMaxBranch() { return MAX_BRANCH; }
@@ -392,7 +390,8 @@ extern trampTemplate *findAndInstallBaseTramp(process *proc,
 
 extern void  generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);
 extern void generateCall(process *proc, unsigned fromAddr,unsigned newAddr);
-extern void genImm(process *proc, Address fromAddr,int op, reg rs1, int immd, reg rd);
+extern void genImm(process *proc, Address fromAddr,int op, reg rs1, 
+		   int immd, reg rd);
 extern int callsTrackedFuncP(instPoint *point);
 extern pdFunction *getFunction(instPoint *point);
 extern unsigned emitFuncCall(opCode op, registerSpace *rs, char *i, 
