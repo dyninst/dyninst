@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.107 2002/08/12 04:21:16 schendel Exp $
+// $Id: aix.C,v 1.108 2002/08/20 22:01:13 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -149,9 +149,11 @@ Frame process::getActiveFrame(unsigned lwp)
     struct ptsprs spr_contents;
     bool kernel_mode = false;
     if (P_ptrace(PTT_READ_SPRS, lwp, (int *)&spr_contents, 0, 0) == -1) {
-      perror("----------Error getting IAR in getActiveFrame");
-      fprintf(stderr, "------------Err number %d (EPERM %d)\n", errno, EPERM);
-      if (errno == EPERM) kernel_mode = true; // This is going to be... annoying
+      if (errno != EPERM) { // EPERM == thread in kernel mode, not to worry
+	perror("----------Error getting IAR in getActiveFrame");
+      }
+      else
+	kernel_mode = true; // This is going to be... annoying
     }
     pc = spr_contents.pt_iar;
 

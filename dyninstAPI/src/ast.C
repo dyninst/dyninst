@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.113 2002/08/16 16:01:36 gaburici Exp $
+// $Id: ast.C,v 1.114 2002/08/20 22:01:13 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1962,8 +1962,6 @@ AstNode *getTimerAddress(void *base, unsigned struct_size)
   // Return base + struct_size*POS. Problem is, POS is unknown
   // until we are running the instrumentation
 
-  fprintf(stderr, "Called MT timer with base of 0x%x, structure size %d\n",
-	  (unsigned) base, struct_size);
   AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
   AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
