@@ -46,6 +46,11 @@
 #pragma interface
 #endif
 
+#if defined(i386_unknown_nt4_0)
+//turn off 255 char identifier truncation message
+#pragma warning (disable: 4786)
+#endif
+
 #ifdef USE_STL_VECTOR
 #include <stdlib.h>
 #include <stl.h>
