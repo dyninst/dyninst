@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.64  1996/02/15 22:46:02  tamches
-/* added applicationDefined
+/* Revision 1.65  1996/02/16 20:11:58  tamches
+/* paradynProcessCmd now calls expand_tilde_pathname
 /*
+ * Revision 1.64  1996/02/15 22:46:02  tamches
+ * added applicationDefined
+ *
  * Revision 1.63  1996/02/02 01:01:32  karavan
  * Changes to support the new PC/UI interface
  *
@@ -247,9 +250,10 @@
 #include "whereAxisTcl.h"
 #include "shgPhases.h"
 
+#include "util/h/pathName.h" // expand_tilde_pathname
+
 #include <assert.h>
 #include <stdlib.h>
-#include <pwd.h>
 
 #include "Status.h"
 
@@ -497,7 +501,7 @@ int ParadynProcessCmd(ClientData,
   char *user = NULL;
   char *machine = NULL;
   char *paradynd = NULL;
-  string dir;
+  string idir;
   static bool firstProcess=true;
   
   for (int i=1; i < argc-1; i++) {
@@ -524,7 +528,7 @@ int ParadynProcessCmd(ClientData,
 	processUsage();
 	return TCL_ERROR;
       }
-      dir = argv[++i];
+      idir = argv[++i];
     } else if (argv[i][0] != '-') {
       break;
     } else {
@@ -553,70 +557,12 @@ int ParadynProcessCmd(ClientData,
   // keys is pressed while defining a process, we end in a deadlock - naim
   disablePAUSEandRUN();
 
-  // At this point, we take a look at "dir"; if it starts with ~some_user_name,
-  // then we alter "dir".  In the spirit of Tcl_TildeSubst (tclGlob.c).
+  // At this point, we take a look at "idir"; if it starts with ~some_user_name,
+  // then we alter "idir".  In the spirit of Tcl_TildeSubst (tclGlob.c).
   // The only reason we don't use Tcl_TildeSubst is because it uses Tcl_DStringFree,
-  // etc., where we much prefer to use Krishna's string class  --Ari
+  // etc., where we much prefer to use the string class.
 
-  // for debugging (temporary):
-//  cout << dir << " maps to ";
-
-  if (dir.length() == 0)
-     ; // do nothing; leave "dir" the empty string
-  else {
-     const char *dir_cstr = dir.string_of();
-     if (dir_cstr[0] == '~') {
-        // two possibilities: a tilde by itself e.g. ~/x/y, or tilde followed by a username
-        if (dir_cstr[1] == '/' || dir_cstr[1] == '\0') {
-           // it's the first possibility.  We need to find the environment vrble HOME
-           // and use that result.  If HOME env vrble doesn't exist (it always does)
-           // than I have no idea what to do.  I guess I'll just leave "dir" unchanged
-           // in that case.
-           char *home_dir = getenv("HOME");
-           if (home_dir != NULL) {
-              // Now let dir=home_dir + dir_cstr(starting at [1 or 2])
-              // If home_dir ends in a '/' then we start dir_cstr at 2.  Else, 1
-              if (home_dir[strlen(home_dir)-1] == '/')
-                 dir = string(home_dir) + &dir_cstr[2];
-              else
-                 dir = string(home_dir) + &dir_cstr[1];
-           }
-        } // ~ without a user-name
-        else {
-           // we need to collect the user name.  It starts at dir_cstr[1]
-           // and ends at (but not including) the first '/' or '\0'
-           const char *ptr=strchr(&dir_cstr[1], '/');
-   
-           string user_name;
-           if (ptr != NULL) {
-              char user_name_buffer[200];
-              unsigned user_name_len = ptr - &dir_cstr[1];
-   
-              for (unsigned j=0; j < user_name_len; j++)
-                 user_name_buffer[j] = dir_cstr[1+j];
-              user_name_buffer[user_name_len] = '\0';
-   
-              user_name = user_name_buffer;
-           }
-           else
-              user_name = string(&dir_cstr[1]);
-
-           struct passwd *pwPtr = getpwnam(user_name.string_of());
-           if (pwPtr == NULL) {
-              endpwent();
-              // something better needed...
-              //cerr << "Sorry, user \"" << user_name << "\" doesn't exist" << endl;
-           }
-           else {
-              dir = string(pwPtr->pw_dir) + string(ptr);
-              endpwent();
-           }
-        } // ~user-name
-     } // first char is a squiggle
-  } // "dir" is not the empty string
-
-  // temporary (for debugging):
-//  cout << dir << endl;
+   string dir = expand_tilde_pathname(idir); // idir --> "initial dir"
 
   if (dataMgr->addExecutable(machine, user, paradynd, dir.string_of(),
 			     &av) == false)
