@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.53 2004/04/26 21:34:48 rchen Exp $
+ * $Id: inst-ia64.C,v 1.54 2004/04/28 20:25:29 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -987,8 +987,16 @@ uint64_t signExtend( bool signBit, uint64_t immediate ) {
 /* private refactoring function */
 #define TYPE_20B 0
 #define TYPE_13C 1
-
 void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, unsigned int immediateType, Address allocatedAddress ) {
+	/* We insert a short jump past a long jump to the original target, followed
+	   by the instruction rewritten to branch one bundle backwards.
+	   It's not very elegant, but it's very straightfoward to implement. :) */
+	
+	/* Skip the long branch. */
+	IA64_instruction memoryNOP( NOP_M );
+	IA64_instruction_x skipInsn = generateLongBranchTo( 32 ); // could be short
+	IA64_bundle skipInsnBundle( MLXstop, memoryNOP, skipInsn );
+	insnPtr[offset++] = skipInsnBundle.getMachineCode(); size += 16;
 
 	/* Extract the short immediate. */
 	uint64_t immediate;
@@ -1007,21 +1015,42 @@ void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocatio
 			break;
 
 		default:
-			fprintf( stderr, "Unrecognized immediate type in rewriteShortOffset(), aborting.\n" );
+			fprintf( stderr, "Unrecognized immediate type in rewriteShortImmediate(), aborting.\n" );
 			abort();
 			break;
 		} /* end immediateType switch */
-	uint64_t branchReg = (machineCode & 0x00000000E0000000) >> ( 6 + ALIGN_RIGHT_SHIFT);
 
 	/* The long branch. */
 	Address originalTarget = ( signExtend( signBit, immediate ) << 4 ) + originalLocation;
 	// /* DEBUG */ fprintf( stderr, "originalTarget 0x%lx = 0x%lx + 0x%lx\n", originalTarget, ( signExtend( signBit, immediate ) << 4 ), originalLocation );
-
-	IA64_instruction_x longInsn = ((insnToRewrite.getType() == IA64_instruction::DIRECT_CALL)
-								   ? generateLongCallTo( originalTarget - (allocatedAddress + size), branchReg, insnToRewrite.getPredicate() )
-								   : generateLongBranchTo( originalTarget - (allocatedAddress + size), insnToRewrite.getPredicate() ));
-	IA64_bundle longBranchBundle( MLXstop, IA64_instruction( NOP_M ), longInsn );
+	IA64_instruction_x longBranch = generateLongBranchTo( originalTarget - (allocatedAddress + size) );
+	IA64_bundle longBranchBundle( MLXstop, memoryNOP, longBranch );
 	insnPtr[offset++] = longBranchBundle.getMachineCode(); size += 16;
+
+	/* Rewrite the short immediate. */
+	switch( immediateType ) {
+		case TYPE_20B:
+			machineCode =	( machineCode & IMMEDIATE_MASK ) |
+					( ((uint64_t)1) << (36 + ALIGN_RIGHT_SHIFT) ) |
+					( ((uint64_t)0xFFFFF) << (13 + ALIGN_RIGHT_SHIFT) );
+			break;
+
+		case TYPE_13C:
+			machineCode =	( machineCode & SPEC_CHECK_MASK ) |
+					( ((uint64_t)1) << (36 + ALIGN_RIGHT_SHIFT) ) |
+					( ((uint64_t)0xFFF) >> (20 + ALIGN_RIGHT_SHIFT) ) |
+					( ((uint64_t)0x7F) << (6 + ALIGN_RIGHT_SHIFT) );
+			break;
+
+		default:
+			fprintf( stderr, "Unrecognized immediate type in rewriteShortImmediate(), aborting.\n" );
+			abort();
+			break;
+		} /* end immediateType switch */
+
+	/* Emit the rewritten immediate. */
+	IA64_instruction rewrittenInsn( machineCode, insnToRewrite.getTemplateID(), insnToRewrite.getSlotNumber() );
+	insnPtr[offset++] = generateBundleFor( rewrittenInsn ).getMachineCode(); size += 16;
 	} /* end rewriteShortOffset() */
 
 /* private refactoring function */
@@ -2634,21 +2663,23 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 	return baseTramp;
 	} /* end installBaseTramp() */
 
-/* Expands a single bundle to 4 bundles.  One for each instruction,
-   and the long jump back to continue normal execution.  Aids
-   per-instruction (as opposed to per-bundle) instrumentation. */
+/* Expands a single bundle to 10 bundles.  Three for each instruction,
+ * (the maximum possible emulated size) and one for the long jump back
+ * to continue normal execution.  Aids per-instruction (as opposed to
+ * per-bundle) instrumentation.
+ */
 Address installMultiTramp(instPoint * & location, process *proc)
 {
 	bool allocErr;
 	Address origBundleAddr = location->pointAddr() & ~0xF;
-	Address allocatedAddress = proc->inferiorMalloc( sizeof(struct ia64_bundle_t) * 4,
+	Address allocatedAddress = proc->inferiorMalloc( sizeof(struct ia64_bundle_t) * 10,
 													 anyHeap,
 													 NEAR_ADDRESS,
 													 &allocErr );
 	if( allocErr ) { fprintf( stderr, "Unable to allocate multi tramp, aborting.\n" ); abort(); }
 	allocatedAddress -= allocatedAddress % 16;
 
-    /* Acquire the base address of the object we're instrumenting. */
+    // Acquire the base address of the object we're instrumenting.
     Address baseAddress; assert( proc->getBaseAddress( location->getOwner(), baseAddress ) );
     assert( baseAddress % 16 == 0 );
 
@@ -2660,31 +2691,38 @@ Address installMultiTramp(instPoint * & location, process *proc)
 
 	unsigned int bundleCount = 0;
 	unsigned int dummySize = 0;
-	ia64_bundle_t insnBuffer[4];
+	ia64_bundle_t insnBuffer[10];
+	IA64_bundle nopBundle( MMI, NOP_M, NOP_M, NOP_I);
 
+	// Prepare multi-tramp slot 0
 	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
 				   bundleCount, dummySize, allocatedAddress, 0 );
+	while (bundleCount < 3)
+		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode();
+
+	// Prepare multi-tramp slot 1
 	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
 				   bundleCount, dummySize, allocatedAddress, 1 );
-	if (!bundleToEmulate.hasLongInstruction()) {
+	while (bundleCount < 6)
+		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode();
+
+	// Prepare multi-tramp slot 2 (if needed)
+	if (!bundleToEmulate.hasLongInstruction())
 		emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
 					   bundleCount, dummySize, allocatedAddress, 2 );
-	} else {
-		IA64_bundle nopBundle(MMIstop, NOP_M, NOP_M, NOP_I);
-		insnBuffer[bundleCount++] = nopBundle.getMachineCode();
-	}
+	while (bundleCount < 9)
+		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode();
 
-    Address returnAddress = origBundleAddr + 16;
-    IA64_instruction_x returnFromTrampoline = generateLongBranchTo( returnAddress -
-																	(allocatedAddress + 0x30));
-    IA64_bundle returnBundle( MLXstop, IA64_instruction(NOP_M), returnFromTrampoline );
+    IA64_instruction_x returnToOrig = generateLongBranchTo( (origBundleAddr + 0x10) -
+															(allocatedAddress + 0x90));
+    IA64_bundle returnBundle( MLXstop, IA64_instruction(NOP_M), returnToOrig );
     insnBuffer[bundleCount] = returnBundle.getMachineCode();
 
-	/* Copy the instructions into mutatee. */
+	// Copy the instructions into mutatee.
     InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
-    iAddr.writeBundlesFrom( (unsigned char *)insnBuffer, 4 );
+    iAddr.writeBundlesFrom( (unsigned char *)insnBuffer, 10 );
 
-	/* Replace original bundle */
+	// Replace original bundle
 	IA64_instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - origBundleAddr);
 	IA64_bundle jumpToBaseBundle( MLXstop, IA64_instruction(NOP_M), jumpToBaseInstruction );
 	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( origBundleAddr, proc );
@@ -2708,17 +2746,28 @@ trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
 
 	/* Pre-"install" */
 	Address multiTrampAddress;
-	if( !proc->multiTrampMap.defines( location->pointAddr() & ~0xF )) {
+	if( proc->multiTrampMap.defines( location->pointAddr() & ~0xF )) {
+		multiTrampAddress = proc->multiTrampMap[ location->pointAddr() & ~0xF ];
+	} else {
 		multiTrampAddress = installMultiTramp(location, proc);
 		if (!multiTrampAddress) return NULL;
 		proc->multiTrampMap[ location->pointAddr() & ~0xF ] = multiTrampAddress;
-	} else {
-		multiTrampAddress = proc->multiTrampMap[ location->pointAddr() & ~0xF ];
 	}
+
+	/* Clear the multi-tramp slot (3 bundles) to prepare for basetramp install */
+	ia64_bundle_t emptySlot[3];
+	IA64_bundle nopBundle( MMI, NOP_M, NOP_M, NOP_I);
+	emptySlot[0] = nopBundle.getMachineCode();
+	emptySlot[1] = nopBundle.getMachineCode();
+	emptySlot[2] = nopBundle.getMachineCode();
+
 	int slotNo = (location->pointAddr() % 16);
+	Address installAddr = multiTrampAddress + (slotNo * 0x30);
+	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( installAddr, proc );
+	iAddr.writeBundlesFrom( (unsigned char *)emptySlot, 3 );
 
 	/* "install" */
-	trampTemplate * installedBaseTramp = installBaseTramp( multiTrampAddress + (slotNo * 0x10), location,
+	trampTemplate * installedBaseTramp = installBaseTramp( installAddr, location,
 														   proc, trampRecursiveDesired );
 	/* FIXME */ if( installedBaseTramp == NULL ) { return NULL; }
 	proc->baseMap[location] = installedBaseTramp;
