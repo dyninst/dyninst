@@ -45,8 +45,82 @@
 #include "paradynd/src/sharedMetaData.h"
 #include "paradynd/src/shmMgr.h"
 
+sharedMetaData::~sharedMetaData() {
+  if(malloced) {
+    theShmMgr.free(reinterpret_cast<Address>(cookie));
+    theShmMgr.free(reinterpret_cast<Address>(inferior_pid));
+    theShmMgr.free(reinterpret_cast<Address>(daemon_pid));
+    theShmMgr.free(reinterpret_cast<Address>(observed_cost));
+    theShmMgr.free(reinterpret_cast<Address>(virtualTimers));
+    theShmMgr.free(reinterpret_cast<Address>(posToThread));
+    for(unsigned i = 0; i < maxThreads; i++) {
+      theShmMgr.free(reinterpret_cast<Address>(pendingIRPCs[i]));
+    }
+  }
+  free(pendingIRPCs);  // this is supposed to be the normal free
+}
 
-void sharedMetaData::mallocInShm(shmMgr &theShmMgr) {
+sharedMetaData::sharedMetaData(const sharedMetaData &par, shmMgr &shmMgrToUse)
+   : theShmMgr(shmMgrToUse), maxThreads(par.maxThreads),
+     rpcPtrBufferSize(rpcPtrSize * maxThreads)
+{
+   pendingIRPCs = reinterpret_cast<rpcToDo **>(malloc(rpcPtrBufferSize *
+						      maxThreads));
+   if(par.malloced == false) {
+      malloced = false;
+      return;
+   }
+
+   // cookie
+   Address offset;
+   offset = reinterpret_cast<Address>(par.cookie) -
+            par.theShmMgr.getBaseAddrInDaemon2();
+   cookie = reinterpret_cast<unsigned *>(theShmMgr.getBaseAddrInDaemon2() + 
+					 offset);
+
+   // inferior_pid
+   offset = reinterpret_cast<Address>(par.inferior_pid) -
+            par.theShmMgr.getBaseAddrInDaemon2();
+   inferior_pid = reinterpret_cast<unsigned *>(theShmMgr.getBaseAddrInDaemon2()
+					       + offset);
+
+   // daemon_pid
+   offset = reinterpret_cast<Address>(par.daemon_pid) -
+            par.theShmMgr.getBaseAddrInDaemon2();
+   daemon_pid = reinterpret_cast<unsigned *>(theShmMgr.getBaseAddrInDaemon2()
+					     + offset);   
+
+   // observed_cost
+   offset = reinterpret_cast<Address>(par.observed_cost) - 
+            par.theShmMgr.getBaseAddrInDaemon2();
+   observed_cost = reinterpret_cast<unsigned *>(
+			     theShmMgr.getBaseAddrInDaemon2() + offset);
+
+   // virtualTimers
+   offset = reinterpret_cast<Address>(par.virtualTimers) -
+            par.theShmMgr.getBaseAddrInDaemon2();
+   virtualTimers = reinterpret_cast<tTimer *>(
+			     theShmMgr.getBaseAddrInDaemon2() + offset);
+
+   // posToThread
+   offset = reinterpret_cast<Address>(par.posToThread) -
+            par.theShmMgr.getBaseAddrInDaemon2();
+   posToThread = reinterpret_cast<unsigned *>(
+			     theShmMgr.getBaseAddrInDaemon2() + offset);
+
+   for(unsigned i=0; i<par.maxThreads; i++) {
+      // posToThread
+      offset = reinterpret_cast<Address>(par.pendingIRPCs[i]) -
+	       par.theShmMgr.getBaseAddrInDaemon2();
+      pendingIRPCs[i] = reinterpret_cast<rpcToDo *>(
+			     theShmMgr.getBaseAddrInDaemon2() + offset);
+   }
+   curBaseAddr  = reinterpret_cast<Address>(theShmMgr.getBaseAddrInDaemon());
+   malloced = true;
+}
+
+void sharedMetaData::mallocInShm() {
+  assert(malloced == false);
   cookie = reinterpret_cast<unsigned *>(theShmMgr.malloc(sizeof(unsigned)));
   inferior_pid = reinterpret_cast<unsigned *>(
 				    theShmMgr.malloc(sizeof(unsigned)));
@@ -111,8 +185,12 @@ void sharedMetaData::adjustToNewBaseAddr(Address newBaseAddr) {
   curBaseAddr = newBaseAddr;
 }
 
-void sharedMetaData::saveOffsetsIntoRTstructure(RTsharedData_t *RTdata) {
+void sharedMetaData::saveOffsetsIntoRTstructure(sharedMetaOffsetData 
+						*offsetData) {
   assert(malloced == true);
+  RTsharedData_t *RTdata = 
+    reinterpret_cast<RTsharedData_t*>(offsetData->getAddrInDaemon());
+
   RTdata->cookie = reinterpret_cast<unsigned *>(
 	             reinterpret_cast<Address>(cookie) - curBaseAddr);
   RTdata->inferior_pid = reinterpret_cast<unsigned *>(
@@ -137,6 +215,35 @@ void sharedMetaData::saveOffsetsIntoRTstructure(RTsharedData_t *RTdata) {
 
 }
 
+sharedMetaOffsetData::sharedMetaOffsetData(shmMgr &shmMgrToUse, 
+					   int maxNumThreads)
+  : theShmMgr(shmMgrToUse)
+{
+  rtData = (RTsharedData_t *)theShmMgr.malloc(sizeof(RTsharedData_t));
 
+  rtData->pendingIRPCs = (rpcToDo **)
+    theShmMgr.malloc(sizeof(rpcToDo *) * maxNumThreads);
+}
+
+sharedMetaOffsetData::sharedMetaOffsetData(shmMgr &shmMgrToUse,
+					  sharedMetaOffsetData &parentData) :
+   theShmMgr(shmMgrToUse)
+{
+   Address rtDataOffset = reinterpret_cast<Address>(parentData.rtData) - 
+                          parentData.theShmMgr.getBaseAddrInDaemon2();
+   rtData = reinterpret_cast<RTsharedData_t*>(rtDataOffset + 
+					   shmMgrToUse.getBaseAddrInDaemon2());
+
+   Address irpcsOffset = 
+      reinterpret_cast<Address>(parentData.rtData->pendingIRPCs) -
+      parentData.theShmMgr.getBaseAddrInDaemon2();
+   rtData->pendingIRPCs = reinterpret_cast<rpcToDo**>(irpcsOffset +
+					  shmMgrToUse.getBaseAddrInDaemon2());
+}
+
+sharedMetaOffsetData::~sharedMetaOffsetData() {
+  theShmMgr.free(reinterpret_cast<Address>(rtData->pendingIRPCs));
+  theShmMgr.free(reinterpret_cast<Address>(rtData));
+}
 
 
