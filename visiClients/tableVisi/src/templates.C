@@ -39,39 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// templates.C
+// $Id: templates.C,v 1.10 2000/06/29 14:45:45 paradyn Exp $
 // for table visi
-
-/*
- * $Log: templates.C,v $
- * Revision 1.9  1999/03/13 15:24:06  pcroth
- * Added support for building under Windows NT
- *
- * Revision 1.8  1999/02/08 14:08:15  nash
- * - Fixes for error/warnings in egcs 1.1
- *
- * Revision 1.7  1997/10/28 20:45:43  tamches
- * update for new dictionary class
- *
- * Revision 1.6  1997/04/30 15:37:19  mjrg
- * added template needed for new implementation of string class
- *
- * Revision 1.5  1996/08/16 21:37:02  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1995/12/22 22:37:43  tamches
- * 2 new instantiations
- *
- * Revision 1.3  1995/11/29 00:43:56  tamches
- * added lots of templates needed for new pdLogo stuff
- *
- * Revision 1.2  1995/11/20 20:20:44  tamches
- * a new template to support changes to tableVisi.C
- *
- * Revision 1.1  1995/11/04 00:47:44  tamches
- * First version of new table visi
- *
- */
 
 #include "util/h/Vector.h"
 
@@ -101,16 +70,10 @@ template int max(const int, const int);
 template class dictionary_hash<string, pdLogo *>;
 template class vector<dictionary_hash<string, pdLogo *>::entry>;
 template class vector<pdLogo *>;
-//template class pair<string, pdLogo *>;
-//template class vector<dictionary_lite<string, pdLogo *>::hash_pair>;
-//template class vector< vector<dictionary_lite<string,pdLogo*>::hash_pair> >;
 
 template class dictionary_hash<string, pdLogo::logoStruct>;
 template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
 template class vector<pdLogo::logoStruct>;
-//template class vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair>;
-//template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
-//template class pair<string, pdLogo::logoStruct>;
 
 template class vector<string>;
-template class  refCounter<string_ll>;
+template class refCounter<string_ll>;
