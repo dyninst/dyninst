@@ -12,24 +12,6 @@ typedef void (*instFunc)(void *cdata, int type, char *eventData);
 
 typedef struct intCounterRec intCounter;
 
-struct _parameteters {
-    int	arg1;
-    int	arg2;
-    int	arg3;
-    int	arg4;
-    int	arg5;
-    int	arg6;
-    int	arg7;
-    int	arg8;
-    int	arg9;
-    int	arg10;
-    int	arg11;
-    int	arg12;
-    int	arg13;
-    int	arg14;
-    int	arg15;
-};
-
 /* parameters to a instremented function */
 typedef struct _parameteters parameters;
 typedef enum { processTime, wallTime } timerType;
@@ -45,15 +27,13 @@ typedef struct sampleIdRec sampleId;
 
 
 struct intCounterRec {
-    intCounter *trigger;
-    int value;
+    int value;		/* this field must be first for setValue to work -jkh */
     sampleId id;
 };
 
 
 typedef struct floatCounterRec floatCounter;
 struct floatCounterRec {
-    intCounter *trigger;
     float value;
     sampleId id;
 };
@@ -61,7 +41,6 @@ struct floatCounterRec {
 
 typedef struct tTimerRec tTimer;
 struct tTimerRec {
-    intCounter 	*trigger;
     int 	counter;		/* must be 0 to start/stop */
     time64	total;
     time64	start;
@@ -69,9 +48,11 @@ struct tTimerRec {
     int		normalize;	/* value to divide total by to get seconds */
     timerType 	type;
     sampleId 	id;
-    volatile int mutex;
+    volatile char mutex;
+    volatile char sampled;
 };
 
+typedef (*filterFunc)(void *cdata, parameters *params);
 
 /*
  * standard inst. functions.
@@ -84,42 +65,6 @@ struct tTimerRec {
 void DYNINSTstartTimer(tTimer *timer);
 
 void DYNINSTstopTimer(tTimer *timer);
-
-/*
- * increment the passed counter by one.
- *
- */
-void DYNINSTincremmentCounter(intCounter*);
-
-/*
- * decrement the passed counter by one.
- *
- */
-void DYNINSTdecrementCounter(intCounter*);
-
-/*
- * Special purpose inst functiions that use trace type specific data.
- *
- */
-
-/* add bytes field to passed counter */
-void addBytesCounter(intCounter *data);
-
-typedef struct {
-    void *filterData;           /* data to filter on */
-    instFunc toCall;            /* function to call if it passes filter */
-    void *callData;             /* data to pass to toCall if it is called */
-} filterArgs;
-
-/* check src/dest matched passed arg. */
-void filterSrc(filterArgs, int type, void *eventData);
-void filterDest(filterArgs, int type, void *eventData);
-
-/* check message type field */
-void filterMessageType(filterArgs, int type, void *eventData);
-
-/* parse file name (using fd to fileName mapping as needed) */
-void filterFileName(filterArgs, int type, void *eventData);
 
 typedef traceStream;
 /*
