@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-aix.C,v $
+ * Revision 1.7  1996/10/31 08:42:41  tamches
+ * removed main-->DYNINSTinit() instrumentation in initOS()
+ *
  * Revision 1.6  1996/08/16 21:18:41  tamches
  * updated copyright for release 1.1
  *
@@ -83,12 +86,16 @@
 #include "os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
-static AstNode tagArg(Param, (void *) 1);
-static AstNode argvArg(Param, (void *) 1);
-static AstNode cmdArg(Param, (void *) 4);
-static AstNode tidArg(Param, (void *) 0);
+static AstNode tagArg(AstNode::Param, (void *) 1);
+static AstNode argvArg(AstNode::Param, (void *) 1);
+static AstNode cmdArg(AstNode::Param, (void *) 4);
+static AstNode tidArg(AstNode::Param, (void *) 0);
 
 bool initOS() {
+//  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
+// (obsoleted by installBootstrapInst() --ari)
+
+
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
   initialRequests += new instMapping("fork", "DYNINSTfork", FUNC_EXIT|FUNC_ARG, &tidArg);  initialRequests += new instMapping("execve", "DYNINSTexec", FUNC_ENTRY|FUNC_ARG, &tidArg);
@@ -96,7 +103,6 @@ bool initOS() {
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
-  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY);
   initialRequests += new instMapping("rexec", "DYNINSTrexec",
 			      FUNC_ENTRY|FUNC_ARG, &cmdArg);
