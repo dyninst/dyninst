@@ -41,7 +41,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.18 1999/06/03 07:16:16 nash Exp $
+ * $Id: String.h,v 1.19 2000/03/23 01:28:24 wylie Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -310,6 +310,20 @@ class string {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me.prefixed_by(them));
+   }
+
+   bool suffixed_by(const char *str, unsigned n) const {
+      const string_ll &me = data.getData();
+      return (me.suffixed_by(str, n));
+   }
+   bool suffixed_by(const char *str) const {
+      const string_ll &me = data.getData();
+      return (me.suffixed_by(str));
+   }
+   bool suffixed_by(const string &src) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return (me.suffixed_by(them));
    }
 
    const char *string_of() const {
