@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisiTcl.h,v $
+ * Revision 1.3  1996/04/30 20:17:55  tamches
+ * added Dg2PhaseDataCallback
+ *
  * Revision 1.2  1995/11/08 21:54:35  tamches
  * interface now contains just 2 callbacks: newdata and addmetrics
  *
@@ -21,6 +24,7 @@ int Dg2AddMetricsCallback(int);
 //int Dg2Fold(int);
 //int Dg2InvalidMetricsOrResources(int);
 //int Dg2PhaseNameCallback(int);
+int Dg2PhaseDataCallback(int);
 
 void installTableVisiCommands(Tcl_Interp *);
 void unInstallTableVisiCommands(Tcl_Interp *);
