@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.C,v 1.18 2002/04/18 19:39:46 bernat Exp $
+// $Id: fastInferiorHeap.C,v 1.19 2002/04/23 18:58:38 schendel Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -74,7 +74,7 @@ void fastInferiorHeap<HK, RAW>::initialize_activemap(unsigned mapsize)
   activemap.resize(0);
   activemap.resize(mapsize);
   for (unsigned i=0;i<activemap.size();i++) {
-    activemap[i] = varInactive;
+    activemap[i] = varDontSample;
   }
 }
 
@@ -174,8 +174,7 @@ void fastInferiorHeap<HK, RAW>::forkHasCompleted(
                                              const vector<states> &statemap)
 {
   for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
-    if (statemap[lcv] == varAllocated || 
-	statemap[lcv] == varAllocatedButDoNotSample) {
+    if(statemap[lcv] == varAllocated) {
       const HK &theHK = houseKeeping[lcv];
       theHK.assertWellDefined();
     }
@@ -200,20 +199,21 @@ template <class HK, class RAW>
 bool fastInferiorHeap<HK, RAW>::doMajorSample(const vector<states> &statemap)
 {
    // return true iff a complete sample was made
-   // theWallTime passed in should be in microsecs (since what time?)
-
-   // We used to take in a process (virtual) time as the last param, passing it
-   // on to HK::perform().  But we've found that the process time (when used as
-   // fudge factor when sampling an active process timer) must be taken at the
-   // same time the sample is taken to avoid incorrectly scaled fudge factors,
-   // leading to jagged spikes in the histogram (i.e. incorrect samples).
-   // The same applies to wall-time, so we ignore both params.
+   //cerr << "    FIH::doMajorSample\n";
+   // We used to take in a process (virtual) time as the last param, passing
+   // it on to HK::perform().  But we've found that the process time (when
+   // used as fudge factor when sampling an active process timer) must be
+   // taken at the same time the sample is taken to avoid incorrectly scaled
+   // fudge factors, leading to jagged spikes in the histogram
+   // (i.e. incorrect samples).  The same applies to wall-time, so we ignore
+   // both params.
 
    currentSamplingSet = permanentSamplingSet;
       // not a fast operation; vector::operator=()
 
 #ifdef SHM_SAMPLING_DEBUG
-   // Verify that every item in the sampling set is allocated (i.e. should be sampled)
+   // Verify that every item in the sampling set is allocated (i.e. should be
+   // sampled)
    for (unsigned lcv=0; lcv < currentSamplingSet.size(); lcv++)
       assert(statemap[currentSamplingSet[lcv]] == varAllocated);
 #endif
@@ -232,50 +232,35 @@ bool fastInferiorHeap<HK, RAW>::doMajorSample(const vector<states> &statemap)
    assert(cssIndex == currentSamplingSet.size());
 #endif
 
-   const bool result = doMinorSample(statemap);
-
-   return result;
+   const bool completeSuccessfulSample = doMinorSample(statemap);
+   //cerr << "    FIH::doMajorSample, result = " << completeSuccessfulSample
+   //  	  << "\n";
+   return completeSuccessfulSample;
 }
 
 template <class HK, class RAW>
 bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap) 
 {
-   // samples items in currentSamplingSet[]; returns false if all done successfully
-
-   unsigned numLeftInMinorSample = currentSamplingSet.size();
-   /*
-   fprintf(stderr, "In process %d, current sampling set is %d\n", 
-	   getpid(), numLeftInMinorSample);
-   */
-   unsigned lcv = 0;
-   while (lcv < numLeftInMinorSample) {
-      // try to sample this item
-      const unsigned index = currentSamplingSet[lcv];
-      assert(statemap[index] == varAllocated);
-
-      if (activemap[index] == varActive) {
-      // HK::perform() returns true iff sampling succeeded without having to
-      // wait; false otherwise.  It handles all needed synchronization.
-      if (!houseKeeping[index].perform(*(baseAddrInParadynd + index), // ptr arith
-                                      inferiorProcess)) {
-        // the item remains in "currentSamplingSet[]"; 
-	// move on to the next candidate
-        lcv++;
-	
-      }
-      else {
-        // remove the item from "currentSamplingSet[]"; note that lcv doesn't
-        // change
-         // Note also that the current sampling set, unlike the permanent
-         // sampling set, does not remain sorted.
-        currentSamplingSet[lcv] = currentSamplingSet[--numLeftInMinorSample];
-      }
-      } //if (activemap[index] == varActive)
-   }
-
-   const bool result = (numLeftInMinorSample == 0);
-
-   return result;
+  // returns true if all variables in this FIH that should be sampled 
+  // were sampled;  samples variables as defined in currentSamplingSet
+  //cerr << "    FIH::doMinorSample, samplingSetSize: " 
+  //     << currentSamplingSet.size() << "\n";
+  for(int i=(int)(currentSamplingSet.size()-1); i>=0; i--) {
+    const unsigned varIndex = currentSamplingSet[i];
+    assert(statemap[varIndex] == varAllocated);
+    assert(activemap[varIndex] == varDoSample);
+    
+    RAW *shmVar = baseAddrInParadynd + varIndex;  // ptr arith
+    bool success = houseKeeping[varIndex].perform(*shmVar, inferiorProcess);
+    if(success) {
+      //cerr << "      var " << varIndex << " sampled\n";
+      currentSamplingSet.erase(static_cast<unsigned>(i));
+    }
+  }
+  bool everythingSampledSuccessfully = (currentSamplingSet.size() == 0);
+  //cerr << "    FIH::doMinorSample, everythingSampledSuccessfully: "
+  //     << everythingSampledSuccessfully << "\n";
+  return everythingSampledSuccessfully;
 }
 
 template <class HK, class RAW>
@@ -286,26 +271,17 @@ void fastInferiorHeap<HK, RAW>::reconstructPermanentSamplingSet(
    assert(activemap.size() == statemap.size());
 
    for (unsigned lcv=0; lcv < statemap.size(); lcv++)
-      if (statemap[lcv] == varAllocated && activemap[lcv] == varActive)
+     if (statemap[lcv] == varAllocated && activemap[lcv] == varDoSample) {
          permanentSamplingSet.push_back(lcv);
+     }
 }
 
 template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::makePendingFree(unsigned ndx,
 					   const vector<Address> &trampsUsing) 
 {
-  //cerr << "in fastInferiourHeap::makePendingFree\n";
   houseKeeping[ndx].makePendingFree(trampsUsing, inferiorProcess);
-  activemap[ndx] = varInactive;
-}
-
-template <class HK, class RAW>
-bool fastInferiorHeap<HK, RAW>::checkIfInactive(unsigned ndx)
-{
-  if (activemap[ndx] == varInactive)
-    return true;
-  else
-    return false;
+  activemap[ndx] = varDontSample;
 }
 
 template <class HK, class RAW>
@@ -317,18 +293,33 @@ bool fastInferiorHeap<HK, RAW>::tryGarbageCollect(const vector<Frame> &stackWalk
 }
 
 template <class HK, class RAW>
-void fastInferiorHeap<HK, RAW>::initializeHKAfterFork(unsigned allocatedIndex, 
-						  const HK &iHouseKeepingValue)
+void fastInferiorHeap<HK, RAW>::initializeHKAfterFork(unsigned allocatedIndex,
+					    const HK &/*iHouseKeepingValue*/)
 {
+  // pass in statemap and use that instead of activemap
+  // in order to determine whether the housekeeping should be copied
   assert(activemap.size() == houseKeeping.size());
   assert(allocatedIndex<activemap.size());
-  if(activemap[allocatedIndex] == varActive)
-    houseKeeping[allocatedIndex] = iHouseKeepingValue; // HK::operator=()
+  //  if(activemap[allocatedIndex] == varActive)  --bhs
+  //    houseKeeping[allocatedIndex] = iHouseKeepingValue; // HK::operator=()
 }
 
 template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::addToPermanentSamplingSet(unsigned lcv)
 {     
-  if(activemap[lcv] == varActive)
+  if(activemap[lcv] == varDoSample)
     permanentSamplingSet.push_back(lcv);
 }
+
+template <class HK, class RAW>
+void fastInferiorHeap<HK, RAW>::removeFromCurrentSamplingSet(
+							    unsigned varIndex)
+{  
+  for(int i=(int)currentSamplingSet.size()-1; i>=0; i--) {
+    if(currentSamplingSet[i] == varIndex) {
+      currentSamplingSet.erase(static_cast<unsigned>(i));
+      break;
+    }
+  }
+}
+
