@@ -81,7 +81,7 @@ int debugPrint = 0;
 #define FALSE   0
 
 int runAllTests = TRUE;
-#define MAX_TEST 2
+#define MAX_TEST 3
 int runTest[MAX_TEST+1];
 
 int globalVariable1_1 = 0;
@@ -148,6 +148,30 @@ void func2_1()
 #endif
 }
 
+void func3_4() {
+	;
+	}
+
+void func3_3() {
+	do_dyninst_breakpoint();
+	} /* end func3_3() */
+
+void func3_2() {
+	/* This function will be instrumented to call func3_3, which
+	   stops the mutatee and allows the mutator to walk the stack. */
+	   
+	/* This is to give us a third place to instrument. */
+	func3_4();
+	} /* end func3_2() */
+	
+void func3_1() {
+	/* Stop myself.  The mutator will instrument func3_2() at this point. */
+	do_dyninst_breakpoint();
+	
+	/* This function will be instrumented. */
+	func3_2();	
+	} /* end func3_1() */
+
 int main(int argc, char *argv[])
 {                                       
     int i, j;
@@ -192,7 +216,7 @@ int main(int argc, char *argv[])
 
     if (runTest[1]) func1_1();
     if (runTest[2]) func2_1();
-
+	if (runTest[3]) func3_1();
 	
     fprintf( stderr, "Mutatee %s terminating.\n", argv[0] );
     return 0;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.7 2004/03/23 19:11:38 eli Exp $
+// $Id: test8.C,v 1.8 2004/03/31 20:37:25 tlmiller Exp $
 //
 
 #include <stdio.h>
@@ -62,7 +62,7 @@
 const char *mutateeNameRoot = "test8.mutatee";
 
 int expectError = 112;
-int debugPrint = 0; // internal "mutator" tracing
+int debugPrint = 1; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool forceRelocation = false;  // Force relocation upon instrumentation
@@ -80,7 +80,7 @@ void dprintf(const char *fmt, ...) {
 }
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 2;
+const unsigned int MAX_TEST = 3;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 bool failedTest[MAX_TEST+1];
@@ -139,10 +139,10 @@ const char *frameTypeString(BPatch_frameType frameType)
 
 bool checkStack(BPatch_thread *appThread,
 		const frameInfo_t correct_frame_info[],
-		int num_correct_names,
+		unsigned num_correct_names,
 		int test_num, const char *test_name)
 {
-    int i, j;
+    unsigned i, j;
 
     const int name_max = 256;
     bool failed = false;
@@ -152,7 +152,7 @@ bool checkStack(BPatch_thread *appThread,
 
     if (debugPrint) {
 	printf("Stack in test %d (%s):\n", test_num, test_name);
-	for (int i = 0; i < stack.size(); i++) {
+	for( unsigned i = 0; i < stack.size(); i++) {
 	    char name[name_max];
 	    BPatch_function *func = stack[i].findFunction();
 	    if (func == NULL)
@@ -324,6 +324,134 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 }
 
+#if defined( DEBUG )
+#include <sys/ptrace.h>
+#endif
+void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
+
+#if defined( arch_alpha ) && defined( os_osf )
+	printf("Skipping test #3 (getCallStack through instrumentation)\n");
+	printf("    unwinding through base & minitramps not implemented on this platform\n");
+	passedTest[3] = true;
+#else
+	static const frameInfo_t correct_frame_info[] = {
+	
+#if defined( os_linux ) && defined( arch_x86 )
+		{ false, false, BPatch_frameNormal, NULL },
+		{ true, false, BPatch_frameNormal, "__kill" },
+#elif defined( os_solaris ) && defined( arch_sparc )
+		{ true, false, BPatch_frameNormal, "_kill" },
+#elif defined( os_aix ) && defined( arch_power )
+#elif defined( os_windows ) && defined( arch_x86 )
+		{ false, false, BPatch_frameNormal, NULL },
+#else
+		{ true, false, BPatch_frameNormal, "kill" },	
+#endif
+#if ! defined( os_windows ) && ! defined( arch_x86 )		
+		{ true, false, BPatch_frameNormal, "stop_process_" },
+#endif
+		{ true, false, BPatch_frameNormal, "func3_3" },
+		{ true, false, BPatch_frameTrampoline, NULL },
+		{ true, false, BPatch_frameNormal, "func3_2" },
+		{ true, false, BPatch_frameNormal, "main" }
+		};
+	
+	/* Wait for the mutatee to stop in func3_1(). */
+	waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation" );
+	
+	/* Instrument func3_2() to call func3_3(), which will trip another breakpoint. */
+	BPatch_Vector<BPatch_function *> instrumentedFunctions;	
+	appImage->findFunction( "func3_2", instrumentedFunctions );
+	assert( instrumentedFunctions.size() == 1 );
+	
+	BPatch_Vector<BPatch_point *> * functionEntryPoints = instrumentedFunctions[0]->findPoint( BPatch_entry );
+	assert( functionEntryPoints->size() == 1 );
+	
+	BPatch_Vector<BPatch_function *> calledFunctions;
+	appImage->findFunction( "func3_3", calledFunctions );
+	assert( calledFunctions.size() == 1 );
+	
+	BPatch_Vector<BPatch_snippet *> functionArguments;
+	BPatch_funcCallExpr functionCall( * calledFunctions[0], functionArguments );
+	
+	appThread->insertSnippet( functionCall, functionEntryPoints[0] );
+
+	/* Repeat for all three types of instpoints. */
+	BPatch_Vector<BPatch_point *> * functionCallPoints = instrumentedFunctions[0]->findPoint( BPatch_subroutine );
+	assert( functionCallPoints->size() == 1 );
+	appThread->insertSnippet( functionCall, functionCallPoints[0] );
+	
+	BPatch_Vector<BPatch_point *> * functionExitPoints = instrumentedFunctions[0]->findPoint( BPatch_exit );
+	assert( functionExitPoints->size() == 1 );
+	appThread->insertSnippet( functionCall, functionExitPoints[0] );
+
+#if defined( DEBUG )
+	for( int i = 0; i < 80; i++ ) { ptrace( PTRACE_SINGLESTEP, appThread->getPid(), NULL, NULL ); }
+	
+	for( int i = 80; i < 120; i++ ) {
+		ptrace( PTRACE_SINGLESTEP, appThread->getPid(), NULL, NULL );
+		
+	    BPatch_Vector<BPatch_frame> stack;
+	    appThread->getCallStack( stack );
+		
+		fprintf( stderr, "single-step stack walk, %d instructions after stop for instrumentation.\n", i );
+		for( unsigned i = 0; i < stack.size(); i++ ) {
+			char name[ 40 ];
+			BPatch_function * func = stack[i].findFunction();
+		
+			if( func == NULL ) { strcpy( name, "[UNKNOWN]" ); }
+			else { func->getName( name, 40 ); }
+			
+			fprintf( stderr, "  %10p: %s, fp = %p\n", stack[i].getPC(), name, stack[i].getFP() );
+			} /* end stack walk dumper */
+		fprintf( stderr, "end of stack walk.\n" );
+		} /* end single-step iterator */
+#endif /* defined( DEBUG ) */		
+						
+	/* After inserting the instrumentation, let it be called. */
+	appThread->continueExecution();
+	  
+	/* Wait for the mutatee to stop because of the instrumentation we just inserted. */
+    waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (entry)" );
+
+	passedTest[3] = true;
+    if(	checkStack(	appThread, correct_frame_info,
+					sizeof(correct_frame_info)/sizeof(frameInfo_t),
+					3, "getCallStack through instrumentation (entry)" ) ) {
+		printf("Passed test #3 (unwind through base and mini tramps)\n");
+    	} /* end the stack was right */
+    else { passedTest[3] = false; }
+
+	/* Repeat for other two types of instpoints. */
+    appThread->continueExecution();	
+
+	/* Wait for the mutatee to stop because of the instrumentation we just inserted. */
+    waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (call)" );
+
+    if(	checkStack(	appThread, correct_frame_info,
+					sizeof(correct_frame_info)/sizeof(frameInfo_t),
+					3, "getCallStack through instrumentation (call)" ) ) {
+		printf("Passed test #3 (unwind through base and mini tramps)\n");
+    	} /* end the stack was right */
+    else { passedTest[3] = false; }
+    	
+    appThread->continueExecution();	
+
+	/* Wait for the mutatee to stop because of the instrumentation we just inserted. */
+    waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (exit)" );
+
+    if(	checkStack(	appThread, correct_frame_info,
+					sizeof(correct_frame_info)/sizeof(frameInfo_t),
+					3, "getCallStack through instrumentation (exit)" ) ) {
+		printf("Passed test #3 (unwind through base and mini tramps)\n");
+    	} /* end the stack was right */
+    else { passedTest[3] = false; }
+
+	/* Return the mutatee to its normal state. */
+	appThread->continueExecution();	
+#endif
+	} /* end mutatorTest3() */
+
 int mutatorMAIN(char *pathname)
 {
     BPatch_thread *appThread;
@@ -378,6 +506,7 @@ int mutatorMAIN(char *pathname)
 
     if (runTest[1]) mutatorTest1(appThread, appImage);
     if (runTest[2]) mutatorTest2(appThread, appImage);
+    if (runTest[3]) mutatorTest3(appThread, appImage);
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
