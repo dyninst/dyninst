@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.C,v $
-/* Revision 1.4  1995/11/06 02:42:03  tamches
-/* removed tclpanic(), used the one in tkTools.h
+/* Revision 1.5  1996/04/01 22:33:53  tamches
+/* added listboxCopyAreaGC
 /*
+ * Revision 1.4  1995/11/06 02:42:03  tamches
+ * removed tclpanic(), used the one in tkTools.h
+ *
  * Revision 1.3  1995/10/17 22:16:58  tamches
  * Removed masterwindow and several unused gc's.
  *
@@ -22,12 +25,6 @@
 
 #include "tkTools.h" // tclpanic
 #include "where4treeConstants.h"
-
-//void tclpanic(Tcl_Interp *interp, const char *msg) {
-//   cout << msg << " " << interp->result << endl;
-//   cout.flush();
-//   exit(5);
-//}
 
 where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 					 Tk_Window theWindow) {
@@ -78,6 +75,13 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    erasingGC = XCreateGC(display, Tk_WindowId(theTkWindow),
 			 GCForeground,
 			 &values);
+
+   values.background = None;
+   values.graphics_exposures = false;
+   listboxCopyAreaGC = Tk_GetGC(theTkWindow, GCBackground | GCGraphicsExposures, &values);
+      // graphics exposures is off; we use visibility events as a conservative temporary
+      // kludge since I can't get tk to recognize GraphicsExpose events.
+   
 
    // Root Border
    rootNodeBorder = Tk_Get3DBorder(interp, theWindow, Tk_GetUid("pink"));
@@ -175,6 +179,7 @@ where4TreeConstants::~where4TreeConstants() {
    XFreeFont(display, rootTextFontStruct);
    XFreeFont(display, listboxFontStruct);
 
+   Tk_FreeGC(display, listboxCopyAreaGC);
    XFreeGC(display, erasingGC);
    XFreeGC(display, rootItemTextGC);
 
