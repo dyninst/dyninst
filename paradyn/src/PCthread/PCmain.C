@@ -16,10 +16,13 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.46  1996/02/12 20:00:53  karavan
-/* part one of change to newDataCallback, streamlining here since this is
-/* the critical path for the PC.
+/* Revision 1.47  1996/02/22 18:30:56  karavan
+/* removed some debugging printing
 /*
+ * Revision 1.46  1996/02/12 20:00:53  karavan
+ * part one of change to newDataCallback, streamlining here since this is
+ * the critical path for the PC.
+ *
  * Revision 1.45  1996/02/09 20:57:30  karavan
  * Added performanceConsultant::globalRawDataServer and
  * performanceConsultant::currentRawDataServer to streamline new data
@@ -95,7 +98,8 @@ void PCnewDataCallback(vector<dataValueType> *values,
 {
     if (values->size() < num_values) num_values = values->size();
     dataValueType *curr;
-    cout << "AR: new data CB NUM VALUES = " << num_values << endl;
+//**
+//    cout << "AR: new data CB NUM VALUES = " << num_values << endl;
     for(unsigned i=0; i < num_values;i++){
       curr = &((*values)[i]);
 #ifdef PCDEBUG
