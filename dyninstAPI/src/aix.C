@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.79 2001/06/04 18:42:15 bernat Exp $
+// $Id: aix.C,v 1.80 2001/07/17 22:33:22 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1399,7 +1399,7 @@ fileDescriptor *getExecFileDescriptor(string filename,
     fileDescriptor *desc = 
       (fileDescriptor *) new fileDescriptor_AIX(filename, member,
 						text_org, data_org,
-						pid);
+						pid, true);
 
     return desc;
 }
@@ -1730,7 +1730,7 @@ rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) {
 static const Address branch_range = 0x01fffffc;
 static const Address lowest_addr = 0x10000000;
 static const Address highest_addr = 0xe0000000;
-static const Address data_low_addr = 0x20000000;
+Address data_low_addr;
 static const Address data_hi_addr = 0xcfffff00;
 // Segment 0 is kernel space, and off-limits
 // Segment 1 is text space, and OK

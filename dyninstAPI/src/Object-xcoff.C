@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.8 2001/07/12 21:28:01 shergali Exp $
+// $Id: Object-xcoff.C,v 1.9 2001/07/17 22:33:21 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -269,7 +269,10 @@ int Archive_64::read_mbrhdr()
       goto cleanup; \
       }
 
-void Object::parse_aout(int fd, int offset)
+void DYNINST_lib_text_space_start();
+void DYNINST_lib_text_space_end();
+
+void Object::parse_aout(int fd, int offset, bool is_aout)
 {
    // all these vrble declarations need to be up here due to the gotos,
    // which mustn't cross vrble initializations.  Too bad.
@@ -413,7 +416,7 @@ void Object::parse_aout(int fd, int offset)
 		    (void **) &code_ptr_, aout.tsize, true))
      PARSE_AOUT_DIE("Reading text segment", 49);
 
-#ifdef notdef
+#ifdef DEBUG
    fprintf(stderr, "text_org_ = %x, scnptr = %x, text_start = %x\n",
 	   (unsigned) text_org_, sectHdr[aout.o_sntext-1].s_scnptr, 
 	   (unsigned) aout.text_start);
@@ -439,7 +442,25 @@ void Object::parse_aout(int fd, int offset)
      in_traced = (char *)(roundup4(data_org_));
      // Maximum ptrace block = 1k
 
-#ifdef notdef
+     // Here's a fun one. For the a.out file, we normally have the data in
+     // segment 2 (0x200...). This is not always the case. Programs compiled
+     // with the -bmaxdata flag have the heap in segment 3. In this case, change
+     // the lower bound for the allocation constants in aix.C.
+     extern Address data_low_addr;
+     if (is_aout) {
+       if (data_org_ > 0x30000000)
+	 {
+	   cerr << "Shifting lower address bound for malloc: " << endl;
+	   data_low_addr = 0x30000000;
+	 }
+       else
+	 {
+	   cerr << "Not shifting lower address bound for malloc: " << endl;
+	   data_low_addr = 0x20000000;
+	 }
+     }
+
+#ifdef DEBUG
      fprintf(stderr, "data_org_ = %x, data_start = %x\n",
 	     (unsigned) data_org_, 
 	     (unsigned) aout.data_start);
@@ -621,16 +642,28 @@ void Object::parse_aout(int fd, int offset)
        if (modName == "Global_Linkage")
 	 name += "_linkage";
 
+       // We ran into problems where the io_wait metric wasn't working.
+       // It appears as though we only instrument one function with a 
+       // given name, and there was a different write we were instrumenting.
        if ((name == "write") &&
 	   !(modName.suffixed_by("libc.a"))) {
 	 continue;
        }
+       // HACK. This avoids double-loading various tramp spaces
+       if (name.prefixed_by("DYNINSTstaticHeap") &&
+	   size == 0x18)
+	 continue;
+
        Symbol sym(name, modName, type, linkage, value, false, size);
        
        // If we don't want the function size for some reason, comment out
        // the above and use this:
        // Symbol sym(name, modName, type, linkage, value, false);
-       
+#ifdef DEBUG
+       fprintf(stderr, "Added symbol %s at addr 0x%x, size 0x%x, module %s\n",
+	       name.string_of(), value, size, modName.string_of());
+#endif
+
        symbols_[name] = sym;
        
        if (symbols_.defines(modName)) {
@@ -704,21 +737,23 @@ void Object::parse_aout(int fd, int offset)
    heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
    
    // Get the appropriate length
-   if (code_off_ < 0x20000000) // main application binary
-     heapLen = (8*1024*1024);
+   if (is_aout) // main application binary
+     heapLen = 0x1ffffffc - heapAddr;
    else {
      heapLen = PAGESIZE - (heapAddr % PAGESIZE);
    }
-   name = string("DYNINSTstaticHeap_");
-   name += heapLen;
-   name += "_anyHeap_";
-   name += heapAddr; // a unique identifier. 
+   char name_scratch[256];
+   sprintf(name_scratch, "%s%i%s%x",
+	   "DYNINSTstaticHeap_", (unsigned) heapLen,
+	   "_textHeap_", (unsigned) heapAddr);
+   name = string(name_scratch);
    modName = string("DYNINSTheap");
    heapSym = Symbol(name, modName, Symbol::PDST_OBJECT, 
 		    Symbol::SL_UNKNOWN, heapAddr,
 		    false, (int) heapLen);
    symbols_[name] = heapSym;
 
+   // Set the table of contents offset
    toc_offset_ = toc_offset;
    
  cleanup:
@@ -757,7 +792,7 @@ void Object::parse_aout(int fd, int offset)
       return; \
       }
 
-void Object::load_archive(int fd)
+void Object::load_archive(int fd, bool is_aout)
 {
   Archive *archive;
 
@@ -795,7 +830,7 @@ void Object::load_archive(int fd)
     {
       // At this point, we should be able to read the a.out 
       // file header. 
-      parse_aout(fd, archive->aout_offset);
+      parse_aout(fd, archive->aout_offset, is_aout);
     }
   else
     fprintf(stderr, "Member name %s not found in archive %s!\n",
@@ -808,7 +843,7 @@ void Object::load_archive(int fd)
 // file type (archive or a.out). Assumes that two bytes are
 // enough to identify the file format. 
 
-void Object::load_object()
+void Object::load_object(bool is_aout)
 {
   // Load in an object (archive, object, .so)
   int fd = 0;
@@ -840,13 +875,13 @@ void Object::load_object()
   // or magic number = "<a", actually "<aiaff>"
   if (magic_number[0] == 0x01) {
     if (magic_number[1] == 0xdf)
-      parse_aout(fd, 0);
+      parse_aout(fd, 0, is_aout);
     else 
       //parse_aout_64(fd, 0);
       fprintf(stderr, "Don't handle 64 bit files yet");
   }
   else if (magic_number[0] == '<') // archive of some sort
-    load_archive(fd);
+    load_archive(fd, is_aout);
   else // Fallthrough
     { 
       sprintf(errorLine, "Bad magic number in file %s\n",
@@ -873,7 +908,7 @@ Object::Object(const string file, void (*err_func)(const char *))
   data_org_ = 0;
   member_ = 0;
   pid_ = 0;
-  load_object();
+  load_object(true);
 }
 
 Object::Object(const Object& obj)
@@ -883,7 +918,7 @@ Object::Object(const Object& obj)
   text_org_ = obj.text_org_;
   data_org_ = obj.data_org_;
   pid_ = obj.pid_;
-  load_object();
+  load_object(false);
 }
 
 // For shared object files
@@ -900,7 +935,7 @@ Object::Object(const string file,Address addr,void (*err_func)(const char *))
   data_org_ = 0;
   member_ = 0;
   pid_ = 0;
-  load_object();
+  load_object(false);
 }
 
 // More general object creation mechanism
@@ -912,7 +947,7 @@ Object::Object(fileDescriptor *desc, void (*err_func)(const char *))
   data_org_ = fda->data();
   member_ = fda->member();
   pid_ = fda->pid();
-  load_object();
+  load_object(fda->is_aout());
 }
 
 Object::~Object() 

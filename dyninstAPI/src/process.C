@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.254 2001/07/05 16:53:23 tikir Exp $
+// $Id: process.C,v 1.255 2001/07/17 22:33:23 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1110,6 +1110,12 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
       infHeaps.push_back(heapDescriptor(heapSymbols[j].name(),
 				 heapSymbols[j].addr()+baseAddr,
 				 heap_size, heap_type));
+#ifdef DEBUG
+      fprintf(stderr, "Added heap %s at %x to %x\n",
+	      heapSymbols[j].name().string_of(), 
+	      heapSymbols[j].addr()+baseAddr,
+	      heapSymbols[j].addr()+baseAddr+heap_size);
+#endif DEBUG
       free(temp_str);
     }
   return foundHeap;
@@ -1491,6 +1497,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
   hp->totalFreeMemAvailable -= size;
   inferiorMemAvailable = hp->totalFreeMemAvailable;
   assert(h->addr);
+  fprintf(stderr, "Allocated memory at %x to %x\n", h->addr, h->addr+h->length);
   return(h->addr);
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.10 2001/03/06 15:45:16 pcroth Exp $
+// $Id: pdThread.h,v 1.11 2001/07/17 22:33:23 bernat Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
@@ -66,7 +66,7 @@ class pdThread {
 #ifndef BPATCH_LIBRARY
       previous(0),
 #endif
-      pending_tramp_addr( NULL )
+      pending_tramp_addr( 0 )
     { 
       proc = pproc; 
       ppid = pproc->getPid();
@@ -83,7 +83,7 @@ class pdThread {
 #ifndef BPATCH_LIBRARY
       previous(0),
 #endif
-      pending_tramp_addr( NULL )
+      pending_tramp_addr( 0 )
     {
       proc = proc_;
       ppid = proc_->getPid();
@@ -100,7 +100,7 @@ class pdThread {
 #ifndef BPATCH_LIBRARY
       previous(0),
 #endif
-      pending_tramp_addr( NULL )
+      pending_tramp_addr( 0 )
     {
       assert(pproc);
       proc = pproc;
@@ -121,7 +121,7 @@ class pdThread {
 #ifndef BPATCH_LIBRARY
       previous = 0;
 #endif
-      pending_tramp_addr = NULL;
+      pending_tramp_addr = 0;
     }
     ~pdThread() {
 #if defined(MT_THREAD)

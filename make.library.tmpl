@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.17 2001/06/04 18:42:04 bernat Exp $
+# $Id: make.library.tmpl,v 1.18 2001/07/17 22:33:07 bernat Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -49,10 +49,17 @@ ifdef TARGET3_SO
 XTARGET3= $(basename $(basename $(TARGET3_SO)))
 VOUCHER3= V_$(XTARGET3)
 
+ifdef USES_LIB_TEXT_HEAP_INTERNAL
+$(TARGET3_SO): $(OBJS) $(LIB_TEXT_HEAP_OBJ)
+	@$(RM) $(TARGET3_SO)
+	@$(MAKE) $(VOUCHER3)
+	$(LD) $(LDFLAGS) -o $(TARGET3_SO) $(VOUCHER3).o $(OBJS) $(LIBS)
+else
 $(TARGET3_SO): $(OBJS)
 	@$(RM) $(TARGET3_SO)
 	@$(MAKE) $(VOUCHER3)
 	$(LD) $(LDFLAGS) -o $(TARGET3_SO) $(VOUCHER3).o $(OBJS) $(LIBS)
+endif  # USES_LIB_TEXT_HEAP
 endif  # TARGET3_SO
 endif  # UNCOMMON_LINK
 

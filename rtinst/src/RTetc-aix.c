@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.25 2001/06/04 18:42:48 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.26 2001/07/17 22:33:32 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -61,6 +61,7 @@
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+#include <dlfcn.h>
 
 #include <sys/types.h>
 
@@ -88,7 +89,7 @@
  * OS initialization function---currently null.
  ************************************************************************/
 
-#if USES_PMAPI
+#if 1
 
 #define MAX_EVENTS	2
 #define CMPL_INDEX	0
@@ -139,13 +140,14 @@ pdyn_search_cpi(pm_info_t *myinfo, int evs[],
 
 int pdyn_ld_stall_counter;
 int pdyn_st_stall_counter;
-
+void DYNINSTstaticHeap_1048576_textHeap_libSpace(void);
 void
 PARADYNos_init(int calledByFork, int calledByAttach) {
   
   pm_info_t pinfo;
   int ret;
   pm_prog_t pdyn_pm_prog;
+  void *lib;
   
   /*
   */
@@ -180,12 +182,18 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
   ret = pm_start_mythread();
   if (ret) pm_error("PARADYNos_init: pm_start_mythread", ret);
 
+#ifdef USES_LIB_TEXT_HEAP
+  DYNINSTstaticHeap_1048576_textHeap_libSpace();
+#endif
 }
 
 #else
 PARADYNos_init(int calledByFork, int calledByAttach) {
     hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
     hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+#ifdef USES_LIB_TEXT_HEAP
+  DYNINSTstaticHeap_1048576_textHeap_libSpace();
+#endif
 }
 
 #endif USES_PMAPI

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.10 2001/06/13 19:50:08 hollings Exp $
+// $Id: aixDL.C,v 1.11 2001/07/17 22:33:23 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -149,9 +149,10 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 #endif /* DEBUG */
       // I believe that we need to pass this as a pointer so that
       // subclassing will work
+      // "false" == shared library, not exec file
       fileDescriptor_AIX *fda = new fileDescriptor_AIX(obj_name, member,
 						       text_org, data_org,
-						       pid);
+						       pid, false);
       shared_object *newobj = new shared_object(fda,
 						false,true,true,0);
       (*result).push_back(newobj);      
