@@ -1,7 +1,10 @@
 /* $Log: client1.C,v $
-/* Revision 1.5  1994/04/13 21:21:40  newhall
+/* Revision 1.6  1994/06/08 17:34:31  newhall
 /* *** empty log message ***
 /*
+ * Revision 1.5  1994/04/13  21:21:40  newhall
+ * *** empty log message ***
+ *
  * Revision 1.4  1994/03/26  04:37:01  newhall
  * change all floats to double
  * */
@@ -201,7 +204,6 @@ double bWidth;
 	case 7:
 	    done = 1;
 	    break;
-
       }
 
   }

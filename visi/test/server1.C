@@ -1,13 +1,16 @@
 /* $Log: server1.C,v $
-/* Revision 1.4  1994/03/26 04:37:05  newhall
-/* change all floats to double
-/* */
+/* Revision 1.5  1994/06/08 17:34:43  newhall
+/* *** empty log message ***
+/*
+ * Revision 1.4  1994/03/26  04:37:05  newhall
+ * change all floats to double
+ * */
 #include "../h/visualization.h"
 
 int dv(int dummy){
 
 int i,j,k,noBins,noMetrics,noResources;
-double value;
+float value;
 
   fprintf(stderr,"@@@@call back routine for DATAVALUES\n");
   noMetrics = dataGrid.NumMetrics();
@@ -45,13 +48,13 @@ int amr(int dummy){
 int nmr(int dummy){
   fprintf(stderr,"@@@@call back routine for NEWMETRICSRESOURCES\n");
   fprintf(stderr,"@@@@before upcall: GetMetricResource\n");
-  vp->GetMetricResource("metrics test string","r test string",0);
+  GetMetsRes("metrics test string","r test string",0);
   fprintf(stderr,"@@@@after upcall: GetMetricResource\n");
   fprintf(stderr,"@@@@before upcall: StopMetricResource\n");
-  vp->StopMetricResource(3,2);
+  StopMetRes(3,2);
   fprintf(stderr,"@@@@after upcall: StopMetricResource\n");
   fprintf(stderr,"@@@@before upcall: PhaseName\n");
-  vp->PhaseName(3.0,2.0,"phase test string");
+  NamePhase(3.0,2.0,"phase test string");
   fprintf(stderr,"@@@@after upcall: PhaseName\n");
   return(OK);
 }

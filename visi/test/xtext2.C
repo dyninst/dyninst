@@ -1,7 +1,10 @@
 /* $Log: xtext2.C,v $
-/* Revision 1.5  1994/04/13 21:21:54  newhall
+/* Revision 1.6  1994/06/08 17:34:55  newhall
 /* *** empty log message ***
 /*
+ * Revision 1.5  1994/04/13  21:21:54  newhall
+ * *** empty log message ***
+ *
  * Revision 1.4  1994/03/26  04:37:11  newhall
  * change all floats to double
  * */
@@ -214,6 +217,7 @@ static void GetMetsRes(Widget w,XtAppContext app_con,XtPointer call_data){
 static void StopMetsRes(Widget w,XtAppContext app_con,XtPointer call_data){
 
  fprintf(stderr,"@@@@ in StopMetsRes upcall\n"); 
+  
   StopMetRes(0,0);  
 }
 

@@ -23,19 +23,19 @@ all: 	visi.C client1 server1 xtext xtext2 client2
 
 
 server1:	$(SRVROBJ)
-	$(CC) -static $(CFLAGS) $(LIBDIR) -o server1 $(SRVROBJ) -lm $(LIBDIR) -lutil -lvisi
+	$(CC) -static $(CFLAGS) $(LIBDIR) -o server1 $(SRVROBJ) -lm $(LIBDIR) -lvisi -lutil
 
 client1:	$(CLNTOBJS)
-	$(CC) -static $(CFLAGS) $(LIBDIR) -o client1 $(CLNTOBJS) -lm $(LIBDIR) -lutil -lvisi
+	$(CC) -static $(CFLAGS) $(LIBDIR) -o client1 $(CLNTOBJS) -lm $(LIBDIR) -lvisi -lutil
 
 client2:	$(CLNT2OBJS)
-	$(CC) -static $(CFLAGS) $(LIBDIR) -o client2 $(CLNT2OBJS) -lm $(LIBDIR) -lutil -lvisi
+	$(CC) -static $(CFLAGS) $(LIBDIR) -o client2 $(CLNT2OBJS) -lm $(LIBDIR) -lvisi -lutil
 
 xtext: xtext.o
-	$(CC) xtext.o -o xtext -lXaw -lXmu -lXt -lX11 -lm $(LIBDIR) -lutil -lvisi
+	$(CC) xtext.o -o xtext -lXaw -lXmu -lXt -lX11 -lm $(LIBDIR) -lvisi -lutil
 
 xtext2: xtext2.o
-	$(CC) xtext2.o -o xtext2 -lXaw -lXmu -lXt -lX11 -lm $(LIBDIR) -lutil -lvisi
+	$(CC) xtext2.o -o xtext2 -lXaw -lXmu -lXt -lX11 -lm $(LIBDIR) -lvisi -lutil
 
 
 clean:	
@@ -92,13 +92,8 @@ client1.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h
 server1.o: ../h/visualization.h ../h/datagrid.h /usr/include/string.h
 server1.o: /usr/include/sys/stdtypes.h /usr/include/math.h
 server1.o: /usr/include/floatingpoint.h /usr/include/sys/ieeefp.h
-server1.o: /usr/include/values.h ../h/error.h /usr/include/stdio.h visi.h
-server1.o: ../../util/h/rpcUtil.h /usr/include/unistd.h
-server1.o: /usr/include/sys/types.h /usr/include/sys/sysmacros.h
-server1.o: /usr/include/sys/socket.h /usr/include/rpc/types.h
-server1.o: /usr/include/malloc.h /usr/include/sys/time.h
-server1.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h ../h/mrlist.h
-server1.o: visi.SRVR.h
+server1.o: /usr/include/values.h ../h/visiTypes.h /usr/include/stdio.h
+server1.o: ../h/mrlist.h
 xtext.o: /usr/include/stdio.h /usr/include/X11/Intrinsic.h
 xtext.o: /usr/include/X11/Xlib.h /usr/include/sys/types.h
 xtext.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
@@ -116,12 +111,8 @@ xtext.o: /usr/include/X11/Xaw/Label.h /usr/include/X11/Xaw/Simple.h
 xtext.o: /usr/include/X11/Xmu/Converters.h /usr/include/X11/Xaw/Paned.h
 xtext.o: /usr/include/X11/Xaw/Cardinals.h ../h/visualization.h
 xtext.o: ../h/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
-xtext.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/error.h visi.h
-xtext.o: ../../util/h/rpcUtil.h /usr/include/unistd.h
-xtext.o: /usr/include/sys/socket.h /usr/include/rpc/types.h
-xtext.o: /usr/include/malloc.h /usr/include/sys/time.h
-xtext.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h ../h/mrlist.h
-xtext.o: visi.SRVR.h
+xtext.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/visiTypes.h
+xtext.o: ../h/mrlist.h
 xtext2.o: /usr/include/stdio.h /usr/include/X11/Intrinsic.h
 xtext2.o: /usr/include/X11/Xlib.h /usr/include/sys/types.h
 xtext2.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
@@ -139,12 +130,8 @@ xtext2.o: /usr/include/X11/Xaw/Label.h /usr/include/X11/Xaw/Simple.h
 xtext2.o: /usr/include/X11/Xmu/Converters.h /usr/include/X11/Xaw/Paned.h
 xtext2.o: /usr/include/X11/Xaw/Cardinals.h ../h/visualization.h
 xtext2.o: ../h/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
-xtext2.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/error.h visi.h
-xtext2.o: ../../util/h/rpcUtil.h /usr/include/unistd.h
-xtext2.o: /usr/include/sys/socket.h /usr/include/rpc/types.h
-xtext2.o: /usr/include/malloc.h /usr/include/sys/time.h
-xtext2.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h ../h/mrlist.h
-xtext2.o: visi.SRVR.h
+xtext2.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/visiTypes.h
+xtext2.o: ../h/mrlist.h
 client2.o: /usr/include/stdio.h /usr/include/stdlib.h
 client2.o: /usr/include/sys/stdtypes.h visi.CLNT.h visi.h
 client2.o: ../../util/h/rpcUtil.h /usr/include/unistd.h

@@ -1,13 +1,16 @@
 /* $Log: client2.C,v $
-/* Revision 1.3  1994/04/13 21:21:43  newhall
+/* Revision 1.4  1994/06/08 17:34:38  newhall
 /* *** empty log message ***
 /*
+ * Revision 1.3  1994/04/13  21:21:43  newhall
+ * *** empty log message ***
+ *
  * Revision 1.2  1994/03/26  04:37:03  newhall
  * change all floats to double
  * */
 #include <stdio.h>
 #include <stdlib.h>
-#include "visi.CLNT.h"
+#include "../sparc-sun-sunos4.1.3/visi.CLNT.h"
 
 #define TESTMETRIC	"blah,blah blah,metric 3,metric 4,last metric"
 #define TESTRESOURCE	"resource1/blah1/foo1,resource2/foo2,resource3"
