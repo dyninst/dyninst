@@ -421,35 +421,18 @@ bool processMetFocusNode::catchupInstrNeeded() const {
 //         
 
 void processMetFocusNode::prepareCatchupInstr() {
+  vector< vector<Frame> > allStackWalks;
+
 #if defined(MT_THREAD)
-  vector<vector<Address> > pc_s = proc()->walkAllStack();
-  // WalkAllStack _MUST_ return the list of stacks sorted in the same
-  // order as the list of threads in the process
+  proc()->walkAllStack(allStackWalks);
   
-  for (unsigned stack_i=0; stack_i< pc_s.size(); stack_i++) {
-      metricVarCodeNode->prepareCatchupInstr(pc_s[stack_i], 
-				     proc()->threads[stack_i]->get_tid());
-  }
 #else
-  Frame currentFrame(proc());
-  vector<Address> frame_ps;
-  vector<Address> stack_pcs;
-
-  vector<instrCodeNode *> codeNodes;
-  getAllCodeNodes(&codeNodes);
-
-  proc()->walkStack(currentFrame, stack_pcs, frame_ps);
-  for(unsigned i=0; i<codeNodes.size(); i++) {
-    codeNodes[i]->prepareCatchupInstr(stack_pcs, -1);
-  }
+  vector<Frame> stackWalk;
+  proc()->walkStack(proc()->getActiveFrame(), stackWalk);
+  allStackWalks.push_back(stackWalk);
 #endif
+  metricVarCodeNode->prepareCatchupInstr(allStackWalks);
 }
-
-#if defined(MT_THREAD)
-void processMetFocusNode::prepareCatchupInstr0(int tid) {
-  metricVarCodeNode->prepareCatchupInstr0(tid);
-}
-#endif
 
 void processMetFocusNode::initAggInfoObjects(timeStamp startTime, 
 					     pdSample initValue)
@@ -544,13 +527,13 @@ bool processMetFocusNode::insertJumpsToTramps() {
 
    if (!needToWalkStack()) {
       // NO stack walk necessary
-      vector<Address> pc;  // empty
-      for (unsigned u=0; u<codeNodes.size(); u++) {
-	 instrCodeNode *codeNode = codeNodes[u];
-	 bool result = codeNode->insertJumpsToTramps(pc);
-	 if(result == false)
-	    allInserted = false;
-      }
+     vector<Frame> stackWalk;
+     for (unsigned u=0; u<codeNodes.size(); u++) {
+       instrCodeNode *codeNode = codeNodes[u];
+       bool result = codeNode->insertJumpsToTramps(stackWalk);
+       if(result == false)
+	 allInserted = false;
+     }
    }
    else {
       // stack walk necessary, do stack walk only ONCE for all primitives
@@ -558,17 +541,16 @@ bool processMetFocusNode::insertJumpsToTramps() {
       // that right now... naim 1/28/98
 
       // The curr_lwp parameter is IGNORED on non-AIX platforms.
-      Frame currentFrame(proc());
-      vector<Address> pc;
-      vector<Address> fp;
-      proc()->walkStack(currentFrame, pc, fp);
+      Frame currentFrame = proc()->getActiveFrame();
+      vector<Frame> stackWalk;
+      proc()->walkStack(currentFrame, stackWalk);
 
       // ndx 0 is where the pc is now; ndx 1 is the call site;
       // ndx 2 is the call site's call site, etc...
 	 
       for (unsigned u2=0; u2<codeNodes.size(); u2++) {
 	 instrCodeNode *codeNode = codeNodes[u2];
-	 bool result = codeNode->insertJumpsToTramps(pc);
+	 bool result = codeNode->insertJumpsToTramps(stackWalk);
 	 if(result == false)
 	    allInserted = false;
       }
@@ -816,7 +798,7 @@ void processMetFocusNode::addThread(pdThread *thr)
   //if(! thrNode->hasAggInfoBeenInitialized())
   //thrNode->initAggInfoObjects(getWallTime(), pdSample::Zero());
 
-  prepareCatchupInstr0(tid);
+  // FIXME: want to start catchup here for whole program
 
   if (catchupInstrNeeded()) {
     process *theProc = proc();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.25 2002/04/05 19:39:09 schendel Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.26 2002/04/18 19:39:48 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -101,7 +101,7 @@ void genericHK::makePendingFree(const vector<Address> &iTrampsUsing,
    trampsUsingMe.resize(actualNumTramps);
 }
 
-bool genericHK::tryGarbageCollect(const vector<Address> &PCs) {
+bool genericHK::tryGarbageCollect(const vector<Frame> &stackWalk) {
    // returns true iff GC succeeded.
    // We may of course assume that this routine is only called if the
    // item in question is in pending-free state.
@@ -116,8 +116,8 @@ bool genericHK::tryGarbageCollect(const vector<Address> &PCs) {
       // If any of the PCs of the stack trace are within theTrampRange, then it's unsafe
       // to delete us.
 
-      for (unsigned stacklcv=0; stacklcv < PCs.size(); stacklcv++) {
-         const Address stackPC = PCs[stacklcv];
+      for (unsigned stacklcv=0; stacklcv < stackWalk.size(); stacklcv++) {
+         const Address stackPC = stackWalk[stacklcv].getPC();
 
          // If this PC falls within the range of the trampoline we're currently
          // looking at, then it's unsafe to delete it.

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.104 2002/04/15 21:48:44 chadd Exp $
+ * $Id: inst-x86.C,v 1.105 2002/04/18 19:39:44 bernat Exp $
  */
 
 #include <iomanip.h>
@@ -2842,19 +2842,18 @@ int getPointCost(process *proc, const instPoint *point)
 
 
 
-bool returnInstance::checkReturnInstance(const vector<Address> &stack, u_int &index) {
-	return true;
-
-    // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
-    // index.
-    for (u_int i=0; i < stack.size(); i++) {
-        index = i;
-
-        if (stack[i] >= addr_ && stack[i] < addr_+size_)
-            return false;
-    }
-
-    return true;
+bool returnInstance::checkReturnInstance(const vector<Frame> &stackWalk, u_int &index) 
+{
+  // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
+  // index.
+  for (u_int i=0; i < stackWalk.size(); i++) {
+    index = i;
+    
+    if (stackWalk[i].getPC() >= addr_ && stackWalk[i].getPC() < addr_+size_)
+      return false;
+  }
+  
+  return true;
 }
  
 void returnInstance::installReturnInstance(process *proc) {
@@ -2886,7 +2885,8 @@ void instWaitingList::cleanUp(process *, Address ) {
 
 /* ***************************************************** */
 
-bool process::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes) {
+bool process::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes, bool /*isFunclet*/) 
+{
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
    unsigned char *origInsnPtr = insnPtr;
    insnPtr += baseBytes;
@@ -2915,9 +2915,8 @@ bool process::emitInferiorRPCtrailer(void *void_insnPtr, Address &baseBytes,
 				     bool shouldStopForResult,
 				     unsigned &stopForResultOffset,
 				     unsigned &justAfter_stopForResultOffset,
-                                     int /* thrId */,
-                                     bool /* isMT */) {
-
+				     bool /*isFunclet*/)
+{
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
 
    // unsigned char * is the most natural to work with on x86, since 

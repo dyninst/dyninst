@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.C,v 1.17 2002/04/17 21:18:08 schendel Exp $
+// $Id: fastInferiorHeap.C,v 1.18 2002/04/18 19:39:46 bernat Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -309,11 +309,11 @@ bool fastInferiorHeap<HK, RAW>::checkIfInactive(unsigned ndx)
 }
 
 template <class HK, class RAW>
-bool fastInferiorHeap<HK, RAW>::tryGarbageCollect(const vector<Address> &PCs,
+bool fastInferiorHeap<HK, RAW>::tryGarbageCollect(const vector<Frame> &stackWalk,
 						  unsigned ndx)
 {
   assert(ndx<houseKeeping.size());
-  return houseKeeping[ndx].tryGarbageCollect(PCs);
+  return(houseKeeping[ndx].tryGarbageCollect(stackWalk));    
 }
 
 template <class HK, class RAW>

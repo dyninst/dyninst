@@ -57,7 +57,7 @@ class instrCodeNode_Val {
   vector<instInstance *> miniTrampInstances;
   vector<instrThrDataNode *> dataNodes;  //if MT one for each thread, ST just 1
   vector<processMetFocusNode *> parentNodes;
-  vector<instReqNode *> manuallyTriggerNodes;
+  vector<catchupReq *> manuallyTriggerNodes;
   bool _baseTrampsHookedUp;
   bool instrDeferred_;
   bool instrLoaded_;
@@ -108,11 +108,8 @@ class instrCodeNode {
   int getID() { return reinterpret_cast<int>(&V); }
   instrCodeNode_Val *getInternalData() { return &V; }
   // should make it private
-#if defined(MT_THREAD)
-  void prepareCatchupInstr0(int tid);
-#endif
+  void prepareCatchupInstr(vector<vector<Frame> > &); 
   string getName() { return V.getName(); }
-  void prepareCatchupInstr(vector<Address> stack_pcs, int tid); 
   bool catchupInstrNeeded() const {
     if( V.manuallyTriggerNodes.size() > 0 )  return true;
     else  return false;
@@ -152,7 +149,7 @@ class instrCodeNode {
 
   void addDataNode(instrThrDataNode* part) { V.dataNodes.push_back(part); }
   bool needToWalkStack(); // const;
-  bool insertJumpsToTramps(vector<Address>& pc);
+  bool insertJumpsToTramps(vector<Frame> stackWalk);
   void addInst(instPoint *point, AstNode *, callWhen when, callOrder o);
   timeLength cost() const;
   void oldCatchUp(int tid);

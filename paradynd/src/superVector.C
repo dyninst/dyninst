@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.16 2002/04/17 21:18:05 schendel Exp $
+// $Id: superVector.C,v 1.17 2002/04/18 19:39:56 bernat Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -251,12 +251,10 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
 	 for (unsigned lcv=0; lcv < varStates.size(); lcv++)
 	    assert(varStates[lcv] != varFree);
 	 
-	 Frame currentFrame(inferiorProcess);
-	 vector<Address> PCs;
-	 vector<Address> FPs;
-	 inferiorProcess->walkStack(currentFrame, PCs, FPs); // prob expensive
+	 vector<Frame> stackWalk;
+	 inferiorProcess->walkStack(inferiorProcess->getActiveFrame(), stackWalk);
 	 
-	 garbageCollect(PCs);
+	 garbageCollect(stackWalk);
 	 if (firstFreeIndex == UI32_MAX) {
 	    // oh no; inferior heap is still full!  Garbage collection has
 	    // failed.
@@ -433,13 +431,8 @@ void superVector<HK, RAW>::makePendingFree(unsigned pd_pos,
 }
 
 template <class HK, class RAW>
-void superVector<HK, RAW>::garbageCollect(const vector<Address> &PCs) {
+void superVector<HK, RAW>::garbageCollect(const vector<Frame> &stackWalk) {
    // tries to set some pending-free items to free.
-
-   // PCs represents a stack trace (list of PC-register values) in the
-   // inferior process, presumably obtained by calling process::walkStack()
-   // (which needs to use /proc to obtain lots of information, hence it
-   // pauses then unpauses the process, which is quite slow...~70ms)
 
    // Question: should there be a maximum time limit?  Should there be a time
    // where we are satisfied that we've freed up enough garbage?  How should
@@ -455,7 +448,7 @@ void superVector<HK, RAW>::garbageCollect(const vector<Address> &PCs) {
       bool tryGarbageCollectOK = true;
       for (unsigned i=0; i<fastInferiorHeapBuf.size(); i++) {
 	 tryGarbageCollectOK = tryGarbageCollectOK && 
-	                    fastInferiorHeapBuf[i]->tryGarbageCollect(PCs,ndx);
+	                    fastInferiorHeapBuf[i]->tryGarbageCollect(stackWalk,ndx);
 	 if (!tryGarbageCollectOK) break;
       }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.h,v 1.15 2002/04/17 21:18:09 schendel Exp $
+// $Id: fastInferiorHeap.h,v 1.16 2002/04/18 19:39:47 bernat Exp $
 // Ari Tamches
 // This class is intended to be used only in paradynd.
 // This templated class manages a heap of objects in a UNIX shared-memory segment
@@ -70,6 +70,7 @@
 #include "common/h/Types.h"    // for Address
 
 class process; // avoids need for an expensive #include
+class Frame;
 
 template <class HK, class RAW>
    // where HK is the housekeeping information for something like "counter"
@@ -119,14 +120,14 @@ class fastInferiorHeap {
       // it in.
 
    fastInferiorHeap(fastInferiorHeap<HK, RAW> *parent, // 6/3/99 zhichen
-		    process* newPorc,
+		    process *newProc,
 		    void *paradynd_attachedAt,
 		    void *appl_attachedAt);
-      // this copy-ctor is a fork()/dup()-like routine.  Call after a process
-      // forks.  From the process' point of view after the fork(): the fork()
-      // has attached it to all shm segments of its parent; so, it needs to
-      // unattach() from them and then attach to a new segment.
-
+   // this copy-ctor is a fork()/dup()-like routine.  Call after a process
+   // forks.  From the process' point of view after the fork(): the fork()
+   // has attached it to all shm segments of its parent; so, it needs to
+   // unattach() from them and then attach to a new segment.
+   
   ~fastInferiorHeap();
 
    void set_houseKeeping(unsigned idx, const HK &iHKValue);
@@ -188,7 +189,7 @@ class fastInferiorHeap {
 
    void makePendingFree(unsigned ndx, const vector<Address> &trampsUsing);
    bool checkIfInactive(unsigned ndx);
-   bool tryGarbageCollect(const vector<Address> &PCs, unsigned ndx);
+   bool tryGarbageCollect(const vector<Frame> &stackWalk, unsigned ndx);
    void initializeHKAfterFork(unsigned allocatedIndex, 
                               const HK &iHouseKeepingValue);
    void addToPermanentSamplingSet(unsigned lcv);

@@ -50,7 +50,6 @@
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/instReqNode.h"
 
-
 extern pdDebug_ostream metric_cerr;
 extern pdDebug_ostream sampleVal_cerr;
 
@@ -171,230 +170,59 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
 //
 }
 
-void instrCodeNode::prepareCatchupInstr(vector<Address> stack_pcs, 
-					       int tid)
+void instrCodeNode::prepareCatchupInstr(vector<vector<Frame> > &allStackWalks)
 {
+
   vector<instReqNode> &instRequests = V.getInstRequests();
   vector<instPoint*> instPts;
-  unsigned j, k;
-  pd_Function *stack_func;
-  instPoint *point;
-  Address stack_pc;
-  
-  string prettyName; // not really a good name
-  /* The variable met_ isn't a member of instrCodeNode.  In fact,
-     there can't be "one" met_ since instrCodeNode's can be shared.
-  if (pd_debug_catchup) {
-    prettyName = met_ + string(": <");;
-
-    bool first = true;
-    for (unsigned h=0; h<focus_.size(); h++) {
-      if (focus_[h].size() > 1) {
-	if (!first) prettyName += string(",");
-	first = false;
-	for (unsigned c=0; c< focus_[h].size(); c++) {
-	  prettyName += string("/");
-	  prettyName += focus_[h][c];
+  for (unsigned stackIter = 0; stackIter < allStackWalks.size(); stackIter++) {    
+    const vector<Frame> stackWalk = allStackWalks[stackIter];
+    // Okay, we have a list of stack frames (allStackWalks[stackIter]), 
+    // and a list of instPoints (instRequests). We want to get a list of
+    // the instRequests that are on the stack. So, we loop through the 
+    // instrumentation requests (the instPoints), checking to see if:
+    //   1) the instPoint would have been triggered (triggeredInStackFrame)
+    //   2) the instPoint takes no arguments from the function it is in
+    //      (knowledge that we no longer have)
+    //   3) That the instrumentation was actually put in and not deferred
+    // If these three requirements pass, the instPoint and the associated
+    // frame are stored for later manual triggering.
+    // Note: we repeat this for each stack walk we have (The above for loop)
+    // Loop through the instRequests:
+    for (unsigned instIter = 0; instIter < instRequests.size(); instIter++) {
+      // If the instRequest was not installed, skip...
+      if ( (instRequests[instIter].getRInstance() != NULL) &&
+	   !(instRequests[instIter].getRInstance()->Installed())) {
+	if (pd_debug_catchup) {
+	  cerr << "Skipped, not installed" << endl;
 	}
+	continue; // skip it (case 3 above)
       }
-    }
-    prettyName += string(">");
-  }
-  */
-
-  if( stack_pcs.size() == 0 ) {
-    cerr << "WARNING -- prepareCatchupInstr was handed an empty stack" << endl;
-  }
-  vector<pd_Function *> stack_funcs = proc()->convertPCsToFuncs(stack_pcs);
-  proc()->correctStackFuncsForTramps( stack_pcs, stack_funcs );
-  bool badReturnInst = false;
-
-  unsigned i = stack_funcs.size();
-  //for(i=0;i<stack_funcs.size();i++) {
-  if (i!=0)
-    do {
-      --i;
-      stack_func = stack_funcs[i];
-      stack_pc = stack_pcs[i];
-      if (pd_debug_catchup) {
-	if( stack_func != NULL ) {
-	  instPoint *ip = findInstPointFromAddress(proc(), stack_pc);
-	  if (ip) {// this is an inst point
-	    cerr << i << ": " << stack_func->prettyName() << "@" << (void*) ip->iPgetAddress() << "[iP]"
-		 << "@" << (void*)stack_pc << endl;
-	  } else 
-	    cerr << i << ": " << stack_func->prettyName() << "@" << (void*)stack_pc << endl;
-	} else
-	  cerr << i << ": skipped (unknown function) @" << (void*)stack_pc << endl;
-	cerr << "proc() : " << proc() << "\n";
-      }
-      if (stack_func == NULL) continue;
-      instPts.resize(0);
-      instPts += const_cast<instPoint*>( stack_func->funcEntry(proc()) );
-      instPts += stack_func->funcCalls(proc());
-      instPts += stack_func->funcExits(proc());
-
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-      if (stack_func->isInstalled(proc())) {
-        instPts += const_cast<instPoint*>( stack_func->funcEntry(0) );
-        instPts += stack_func->funcCalls(0);
-        instPts += stack_func->funcExits(0);
-      }
-#endif
-
-#if !(defined(i386_unknown_nt4_0) \
-  || defined(i386_unknown_solaris2_5) \
-  || defined(i386_unknown_linux2_0) \
-  || defined(ia64_unknown_linux2_4) ) /* Temporary duplication - TLM */
-      // If there is a function on the stack with relevant instPoints which we were
-      // not able to install return instances for, we don't want to manually trigger
-      // anything else further on the stack, as it could cause inconsistencies with
-      // metrics which rely on matching pairs of actions. - DAN
-      // **NOTE** we don't do this on x86, because we can always immediately insert
-      // a 'jump' to base tramp via. trap.  In addition, when we use a trap rather
-      // than a branch, the return instance is still NULL, and this code breaks. - DAN
-
-      //
-      // If any instrumentation attempt failed for this function, we shouldn't
-      // be doing catchup instrumentation for this function. - ZHICHEN
-      //
-      for(j=1;j<instPts.size()&&!badReturnInst;j++) {
-	for(k=0;k<instRequests.size();k++) {
-	  if( instPts[j] == instRequests[k].Point() ) {
-	    if( instRequests[k].getRInstance() != NULL
-		&& !(instRequests[k].getRInstance()->Installed()) 
-	      )
-	    {
-	      if (pd_debug_catchup) {
-	        cerr << "AdjustManuallyTrigger -- Bad return instance in "
-		     << stack_func->prettyName()
-		     << ", not manually triggering for this stack frame." << endl;
-	      }
-	      badReturnInst = true;
-	      break;
-	    }
-	  }
+      // If it accesses parameters, skip it...
+      if (instRequests[instIter].Ast()->accessesParam()) {
+	if (pd_debug_catchup) {
+	  cerr << "Skipped, accesses parameters" << endl;
 	}
-      }
-#endif
-      if( badReturnInst )
 	continue;
-      
-      // For all of the inst points in all the functions on the stack...
-
-      for(j=0;j<instPts.size();j++) {
-	point = instPts[j];
-	for(k=0;k<instRequests.size();k++) {
-	  if (point == instRequests[k].Point()) {
-	    // If we have an instrumentation request for that point...
-	    
- 	    if (instRequests[k].Ast()->accessesParam()) {
-	      // and it accesses parameters for the function, break (parameters are unknown)
-	      //cerr << "access parameters for the function so skipping\n";
-	      break;
-	    }
-	    if (instRequests[k].triggeredInStackFrame(stack_func, stack_pc, proc()))
-	      {
-		// Otherwise, add it to the list to be manually triggered
-		if (pd_debug_catchup) {
-		  instReqNode &iRN = instRequests[k];
-		  cerr << "--- catch-up needed for "
-		       << prettyName << " @ " << stack_func->prettyName() 
-		       << " @ " << (void*) stack_pc << endl;
-		  prepareCatchupInstr_debug(iRN);
-		}
-		V.manuallyTriggerNodes += &(instRequests[k]);
-		instRequests[k].friesWithThat(tid);
-	      }
-	  }
-	}
       }
-    } while (i!=0);
-
-#if defined(MT_THREAD)
-
-  oldCatchUp(tid);
-
-#endif  // not OLD_CATCHUP, but MT_THREAD
+      // Finally, test if it is active in any stack frame. Note: we can
+      // get multiple starts this way, which is good. The counter variable
+      // in the timer takes care of that.
+      for (unsigned frameIter = 0; frameIter < stackWalk.size();
+	   frameIter++) {
+	Frame thisFrame = stackWalk[frameIter];
+	if (instRequests[instIter].triggeredInStackFrame(thisFrame, proc())) {
+	  // So we finally get to do something!
+	  V.manuallyTriggerNodes.push_back(new catchupReq(&instRequests[instIter], 
+							  thisFrame));
+	} // if we want to do catchup
+      } // loop through individual stack walk
+    } // Loop through inst requests
+  } // loop through all stack walks
+  // if MTHREAD
+  //oldCatchUp(tid);
+  
 }
-
-void instrCodeNode::oldCatchUp(int tid) {
-  unsigned k;
-
-  assert(proc()); // proc_ should always be correct for non-aggregates
-  const function_base *mainFunc = proc()->getMainFunction();
-  assert(mainFunc); // processes should always have mainFunction defined
-                    // Instead of asserting we could call prepareCatchupInstr0,
-                    // which could handle a pseudo function.
-
-  // The following code is used in the case where the new catchup code is
-  // disabled.  It is replicated in the prepareCatchupInstr0 function and
-  // at some point in the future could be moved into a single separate
-  // function.  This code could also useful in the case where mainFunc is
-  // undefined.
-
-  // This code is a kludge which will catch the case where the WHOLE_PROGRAM
-  // metrics have not been set to manjually trigger by the above code.  Look
-  // at the component_focus for the "Code" element, and see if there is any
-  // constraint.  Then, for each InstReqNode in this MetricDefinitionNode
-  // which is at the entry point of main, and which has not been added to the
-  // manuallyTriggerNodes list, add it to the list.
-
-  /*  Needed to comment out since using component_focus, which isn't 
-      a member of instrCodeNode.  This will need to be reimplemented.
-      Since instrCodeNode's can be shared, I don't see how there can
-      be "one" focus.
-  for( j = 0; j < component_focus.size(); ++j )
-    if( component_focus[j][0] == "Code" && 
-	( component_focus[j].size() == 1 ||
-	  ( component_focus[j].size() == 2 && component_focus[j][1] == "" ) ) )
-  */      
-  vector<instReqNode> &instRequests = V.getInstRequests();
-  for( k = 0; k < instRequests.size(); ++k ) {
-	if( instRequests[ k ].Point()->iPgetFunction() == mainFunc ) {
-	  unsigned dummy;
-	  if( !find( V.manuallyTriggerNodes, &(instRequests[k]), dummy ) ) {
-#if defined(mips_sgi_irix6_4)
-	  if( instRequests[ k ].Point()->type() == IPT_ENTRY )
-#elif defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
-	  if( instRequests[ k ].Point()->ipType == functionEntry )
-#elif defined(rs6000_ibm_aix4_1)
-	  if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
-#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
-      || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
-	    if( instRequests[ k ].Point()->iPgetAddress() == mainFunc->addr() )
-#else
-#error Check for instPoint type == entry not implemented on this platform
-#endif
-	    {
-              if ( pd_debug_catchup ) {
-		metric_cerr << "AdjustManuallyTrigger -- "
-			    << "(WHOLE_PROGRAM kludge) catch-up needed for "
-		  //<< flat_name_   // not a flat_name_ member of instrCodeNode
-			    << " @ " << mainFunc->prettyName() << endl;
-              }
-	      //manuallyTriggerNodes.insert( 0, &(instRequests[k]) );
-	      V.manuallyTriggerNodes.push_back( &(instRequests[k]) );
-	      instRequests[k].friesWithThat(tid);
-	    }
-	  }
-	}
-      }
-}
-
-#if defined(MT_THREAD)
-void instrCodeNode::prepareCatchupInstr0(int tid) {
-  // This code is a kludge which will catch the case where the WHOLE_PROGRAM
-  // metrics have not been set to manjually trigger by the above code.  Look
-  // at the component_focus for the "Code" element, and see if there is any
-  // contraint.  Then, for each InstReqNode in this MetricDefinitionNode
-  // which is at the entry point of main, and which has not been added to the
-  // manuallyTriggerNodes list, add it to the list.
-
-  oldCatchUp(tid);
-}
-#endif // MT_THREAD
-
 
 // Look at the inst point corresponding to *this, and the stack.
 // If inst point corresponds a location which is conceptually "over"
@@ -414,14 +242,15 @@ void instrCodeNode::prepareCatchupInstr0(int tid) {
 //  execution frame.  call site instrumentation is "over" the current
 //  execution frame if   
 
-
 void instrCodeNode::manuallyTrigger(int mid) {
   for ( unsigned i=0; i < V.manuallyTriggerNodes.size(); ++i ) {
-    if (!V.manuallyTriggerNodes[i]->triggerNow(proc(), mid)) {
-      cerr << "manual trigger failed for an inst request" << endl;
-    }
+    instReqNode *triggeredNode =V.manuallyTriggerNodes[i]->reqNode();
+    Frame triggeredFrame = V.manuallyTriggerNodes[i]->frame();
+    if (!triggeredNode->triggerNow(proc(), triggeredFrame, mid))
+      cerr << "Manual trigger failed for " << triggeredNode << endl;
+    delete V.manuallyTriggerNodes[i];
   }
-  V.manuallyTriggerNodes.resize(0);
+  V.manuallyTriggerNodes.resize(0);  
 }
 
 bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
@@ -449,7 +278,6 @@ bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
     // the instrumentation via inferiorRPC.
     returnInstance *retInst=NULL;
     bool deferredFlag = false;
-    instReqNode *instReq = &V.instRequests[u1];
     instInstance *mtInst = V.instRequests[u1].loadInstrIntoApp(proc(), 
 						     retInst, &deferredFlag);
     if (! mtInst) {
@@ -521,7 +349,7 @@ bool instrCodeNode::needToWalkStack() {
    return false;
 }
 
-bool instrCodeNode::insertJumpsToTramps(vector<Address>& pc) {
+bool instrCodeNode::insertJumpsToTramps(vector<Frame> stackWalk) {
    if(baseTrampsHookedUp()) return true;
    
    vector<instInstance *> &miniTrampInstances = V.getMiniTrampInstances();
@@ -547,7 +375,7 @@ bool instrCodeNode::insertJumpsToTramps(vector<Address>& pc) {
       // only overwrite 1 instruction on power arch (2 on mips arch)
       // always safe to instrument without stack walk
       // pc is empty for those didn't do a stack walk, will return safe.
-      bool installSafe = baseTrampInstances[u]->checkReturnInstance(pc,index);
+      bool installSafe = baseTrampInstances[u]->checkReturnInstance(stackWalk,index);
 #endif
       // if unsafe, index will be set to the first unsafe stack walk ndx
       // (0 being top of stack; i.e. the current pc)
@@ -561,25 +389,6 @@ bool instrCodeNode::insertJumpsToTramps(vector<Address>& pc) {
       } else {
 	 delay_install = true;
 	 delay_elm[u] = true;
-      }
-   }
-   
-   if (delay_install) {
-      // get rid of pathological cases...caused by threaded applications 
-      // TODO: this should be fixed to do something smarter
-      if(max_index > 0 && max_index+1 >= pc.size()){
-	 max_index--;
-	 //printf("max_index changed: %d\n",max_index);
-      }
-      if(max_index > 0 && pc[max_index+1] == 0){
-	 max_index--;
-	 //printf("max_index changed: %d\n",max_index);
-      }
-      Address pc2 = pc[max_index+1];
-      for (u_int i=0; i < rsize; i++) {
-	 if (delay_elm[i]) {
-	    baseTrampInstances[i]->addToReturnWaitingList(pc2, proc());
-	 }
       }
    }
    markBaseTrampsAsHookedUp();
@@ -615,6 +424,8 @@ instrThrDataNode *instrCodeNode::getThrDataNode(const string &tname) {
       return V.dataNodes[i];
     } else {
 #if defined(MT_THREAD)
+      cerr << "i is " << i << " and numThrNames " << numThrNames << endl;
+      
       if(i > (numThrNames-1))  break;
       if(V.thr_names[i] == tname) {
 	return V.dataNodes[i];

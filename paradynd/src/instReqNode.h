@@ -45,11 +45,26 @@
 
 #include "common/h/Vector.h"
 #include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/frame.h"
 
 class instPoint;
 class AstNode;
 class instInstance;
 
+class instReqNode;
+class catchupReq {
+
+ public:
+  catchupReq() : reqNode_(NULL), frame_() {};
+  catchupReq(instReqNode *inst, Frame frame) :
+    reqNode_(inst), frame_(frame) {};
+  instReqNode *reqNode() { return reqNode_;}
+  Frame frame() { return frame_;}
+
+ private:
+  instReqNode *reqNode_;
+  Frame        frame_;
+};
 
 class instReqNode {
  public:
@@ -106,19 +121,18 @@ class instReqNode {
   instInstance *getInstance() const { return instance; }
   returnInstance *getRInstance() const { return rinstance; }
   
-  bool triggerNow(process *theProc, int mid);
+  bool triggerNow(process *theProc, Frame &triggeredFrame, int mid);
   static void triggerNowCallbackDispatch(process * /*theProc*/,
 					 void *userData, void *returnValue)
     { ((instReqNode*)userData)->triggerNowCallback( returnValue ); }
   void triggerNowCallback(void *returnValue);
   
-  bool triggeredInStackFrame(pd_Function *stack_fn, Address pc, process *p);
+  bool triggeredInStackFrame(Frame &frame, process *p);
   
   instPoint *Point() {return point;}
   AstNode* Ast()  {return ast;}
   callWhen When() {return when;}
   callOrder Order() { return order; }
-  void friesWithThat(int tid) { fries += tid; }
   
 private:
   instPoint	*point;
@@ -132,11 +146,6 @@ private:
   // node.  This is needed because we may need to manually trigger multiple
   // times for recursive functions.
   int rpcCount;
-#if defined(MT_THREAD)
-  vector<int> manuallyTriggerTIDs;
-#endif
-  // Unused if not in MT_THREAD case
-  vector<int> fries;
 };
 
 

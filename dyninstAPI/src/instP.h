@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.34 2002/04/09 04:19:40 schendel Exp $
+// $Id: instP.h,v 1.35 2002/04/18 19:39:45 bernat Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -128,7 +128,7 @@ class returnInstance {
 		   :insnsOverwritten(insnsOver), instructionSeq(instSeq), instSeqSize(seqSize), 
 		   addr_(addr), size_(size), installed(false) {};
 
-    bool checkReturnInstance(const vector<Address> &adr, u_int &index);
+    bool checkReturnInstance(const vector<Frame> &stackWalk, u_int &index);
     void installReturnInstance(process *proc);
     void addToReturnWaitingList(Address pc, process *proc);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.120 2002/04/09 18:56:37 tikir Exp $
+// $Id: inst-sparc.C,v 1.121 2002/04/18 19:39:43 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1207,7 +1207,8 @@ pd_Function *getFunction(instPoint *point)
 /****************************************************************************/
 /****************************************************************************/
 
-bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
+bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool /*isFunclet*/) 
+{
    instruction *insn = (instruction *)insnPtr;
    Address baseInstruc = baseBytes / sizeof(instruction);
 
@@ -1227,8 +1228,8 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                      bool stopForResult,
                                      unsigned &stopForResultOffset,
 				     unsigned &justAfter_stopForResultOffset,
-                                     int thrId,
-				     bool isSafeRPC) {
+				     bool isFunclet)
+{
 
    // Sequence: restore, trap, illegal
 
@@ -1244,12 +1245,9 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
    }
 
 
-   // Add ret for threaded
-   if (thrId != -1) {
-     if (isSafeRPC) { 
-       //ret instruction
-       genImmInsn(&insn[baseInstruc++], JMPLop3, REG_I(7), 0x08, REG_G(0)) ;
-     }
+   if (isFunclet) { 
+     //ret instruction
+     genImmInsn(&insn[baseInstruc++], JMPLop3, REG_I(7), 0x08, REG_G(0)) ;
    }
 
    genSimpleInsn(&insn[baseInstruc++], RESTOREop3, 0, 0, 0);
@@ -1261,13 +1259,12 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 
 
    // If non-threaded, or if threaded and not safe RPC
-   if ( (thrId != -1) || !isSafeRPC) {
-
+   if (!isFunclet) {
      // Trap instruction:
      genBreakpointTrap(&insn[baseInstruc]); // ta 1
      breakOffset = baseInstruc * sizeof(instruction);
      baseInstruc++;
-
+     
      // And just to make sure that we don't continue from the trap:
      genUnimplementedInsn(&insn[baseInstruc++]); // UNIMP 0
    }
@@ -1695,30 +1692,19 @@ bool registerSpace::readOnlyRegister(Register /*reg_number*/) {
 /****************************************************************************/
 /****************************************************************************/
 
-bool returnInstance::checkReturnInstance(const vector<Address> &stack, u_int &index) {
+bool returnInstance::checkReturnInstance(const vector<Frame> &stackWalk, u_int &index) {
     // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
     // index.
-
-  //    cout << "checkReturnInstance: addr_=" << (void*)addr_ << "; size_=" <<
-  //            (void*)size_ << endl;
-  //    cout << "instruction sequence is:" << endl;
-  //    for (unsigned i=0; i < instSeqSize/4; i ++)
-  //       cout << (void*)instructionSeq[i].raw << endl;
-  //    cout << endl;
-  //    
-  //    for (unsigned i=0; i < stack.size(); i++)
-  //       cout << (void*)stack[i] << endl;
-
-    for (u_int i=0; i < stack.size(); i++) {
-        index = i;
-
-        // Is the following check correct?  Shouldn't the ">" be changed to ">=",
-        // and the "<=" be changed to "<" ??? --ari 6/11/97
-        if (stack[i] > addr_ && stack[i] <= addr_+size_)
-            return false;
-    }
-
-    return true;
+  for (u_int i=0; i < stackWalk.size(); i++) {
+    index = i;
+    
+    // Is the following check correct?  Shouldn't the ">" be changed to ">=",
+    // and the "<=" be changed to "<" ??? --ari 6/11/97
+    if (stackWalk[i].getPC() > addr_ && stackWalk[i].getPC() <= addr_+size_)
+      return false;
+  }
+  
+  return true;
 }
 
 /****************************************************************************/

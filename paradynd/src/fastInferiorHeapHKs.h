@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.h,v 1.14 2002/04/05 19:39:10 schendel Exp $
+// $Id: fastInferiorHeapHKs.h,v 1.15 2002/04/18 19:39:49 bernat Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -53,6 +53,7 @@
 class threadMetFocusNode_Val;
 
 class process;
+class Frame;
 //#include "dyninstAPI/src/process.h" 
 
 // The following should provide a useful building-block for intCounterHK,
@@ -91,7 +92,7 @@ class genericHK {
    void setThrClient(threadMetFocusNode_Val *thrclient) {
      thrNodeVal = thrclient;
    }
-   bool tryGarbageCollect(const vector<Address> &PCs);
+   bool tryGarbageCollect(const vector<Frame> &stackWalk);
       // Given a list of inferior process PC-registers representing a stack trace
       // (i.e. the current inferior process PC, the PC of its caller, then its
       // caller, etc etc.).  GC will succeed iff none of these PC values fall within

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.129 2002/04/09 18:56:37 tikir Exp $
+ * $Id: inst-power.C,v 1.130 2002/04/18 19:39:42 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1625,8 +1625,8 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   fprintf(stderr, "savePre %d, restorePre %d, savePost %d, restorePost %d, guardPre %d, guardPost %d\n",
 	  theTemplate->savePreInsOffset, theTemplate->restorePreInsOffset, theTemplate->savePostInsOffset, theTemplate->restorePostInsOffset, theTemplate->recursiveGuardPreJumpOffset,
 	  theTemplate->recursiveGuardPostJumpOffset);
-  fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
   */
+  //fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
   
@@ -1860,16 +1860,40 @@ int callsTrackedFuncP(instPoint *point)
     }
 }
 
-#if defined(MT_THREAD)
-/*
+void generateBreakPoint(instruction &insn) { // instP.h
+    insn.raw = BREAK_POINT_INSN;
+}
+
+void generateIllegalInsn(instruction &insn) { // instP.h
+   insn.raw = 0; // I think that on power, this is an illegal instruction (someone check this please) --ari
+}
+
+
+bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool isFunclet) 
+{
+  instruction *tmp = (instruction *)insnPtr;
+  // A miracle of casting...
+  instruction *insn = (instruction *) (&tmp[baseBytes/sizeof(instruction)]);
+  
+  // Make a stack frame
+  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
+  insn++; baseBytes += sizeof(instruction);
+  
+  // Save registers
+  saveGPRegisters(insn, baseBytes, TRAMP_GPR_OFFSET, conservativeRegSpace);
+  return true;
+}
+
+
+#if defined(MT_THREAD)/*
  * offset: if the hash value comes back negative, jump forward this
  *         (effectively skipping the RPC, do we want error handling?)
  * tid:    Use this TID
  * pos:    Use this POS
  */
 
-Address generateMTRPCCode(char *insn, Address &base, process *proc, 
-			  int tid, unsigned pos)
+Address process::generateMTRPCCode(void *insnPtr, Address &base,
+				   unsigned tid, unsigned pos)
 {
   AstNode *threadPOSTID;
   vector<AstNode *>param;
@@ -1885,13 +1909,13 @@ Address generateMTRPCCode(char *insn, Address &base, process *proc,
   param += new AstNode(AstNode::Constant, (void *)pos);
   threadPOSTID = new AstNode("DYNINSTthreadPosTID", param);
   for (unsigned i=0; i<param.size(); i++) 
-    removeAst(param[i]) ;
+    removeAst(param[i]);
 
-  src = threadPOSTID->generateCode(proc, regSpace, (char *)insn,
+  src = threadPOSTID->generateCode(this, regSpace, (char *)insnPtr,
 				   base, 
 				   false, // noCost 
 				   true); // root node
-  instruction *tmp_insn = (instruction *) ((void*)&(insn[base]));
+  instruction *tmp_insn = (instruction *) (&(((instruction *)insnPtr)[base/sizeof(instruction)]));
   if ((src) != REG_MT_POS) {
     cerr << "Source reg " << src << " neq " << REG_MT_POS << endl;
     genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
@@ -1911,47 +1935,30 @@ Address generateMTRPCCode(char *insn, Address &base, process *proc,
 
   // Get sizeof (int) and multiply
   emitImm(timesOp, REG_MT_POS, sizeof(int), REG_GUARD_OFFSET, 
-	  insn, base, true);
+	  (char *)insnPtr, base, true);
   
   // Now we leave that be. Build the addr of threadTable in REG_MT_BASE
   // and add REG_MT_POS to it
-  emitVload(loadConstOp, proc->findInternalAddress("DYNINSTthreadTable",true,err),
-	    REG_MT_BASE, REG_MT_BASE, insn, base, false);
+  emitVload(loadConstOp, findInternalAddress("DYNINSTthreadTable",true,err),
+	    REG_MT_BASE, REG_MT_BASE, (char *)insnPtr, base, false);
   emitV(plusOp, REG_GUARD_OFFSET, REG_MT_BASE, REG_MT_BASE, 
-	insn, base, false);
+	(char *)insnPtr, base, false);
 
   return returnVal;
 }
 
 #endif
 
-void generateMTSkipBranch(unsigned char *insn, Address addr, Address offset)
+void generateMTSkipBranch(void *insnPtr, Address addr, Address offset)
 {
-  instruction *tmp_insn = (instruction *) ((void*)&(insn[addr]));
-  generateBranchInsn(tmp_insn, offset-addr);
-}
+  instruction *temp = (instruction *) (&((instruction *)insnPtr)[addr/sizeof(instruction)]);
 
-void generateBreakPoint(instruction &insn) { // instP.h
-    insn.raw = BREAK_POINT_INSN;
-}
-
-void generateIllegalInsn(instruction &insn) { // instP.h
-   insn.raw = 0; // I think that on power, this is an illegal instruction (someone check this please) --ari
-}
-
-
-bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
-  instruction *tmp = (instruction *)insnPtr;
-  // A miracle of casting...
-  instruction *insn = (instruction *) (&tmp[baseBytes/sizeof(instruction)]);
-  
-  // Make a stack frame
-  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
-  insn++; baseBytes += sizeof(instruction);
-  
-  // Save registers
-  saveGPRegisters(insn, baseBytes, TRAMP_GPR_OFFSET, conservativeRegSpace);
-  return true;
+  // Can't just generate, since we need a conditional branch
+  // Set it up by hand
+  temp->raw = 0; temp->bform.op = BCop; // conditional
+  temp->bform.bo = BTRUEcond; // Branch if false
+  temp->bform.bi = EQcond; temp->bform.bd = offset-addr; 
+  temp->bform.aa = 0; temp->bform.lk = 0;  
 }
 
 bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
@@ -1959,8 +1966,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                      bool stopForResult,
                                      unsigned &stopForResultOffset,
                                      unsigned &justAfter_stopForResultOffset,
-                                     int /* thrId */,
-                                     bool isSafeRPC) {
+                                     bool isFunclet) {
 
   // The sequence we want is: (restore), trap, illegal,
   // where (restore) undoes anything done in emitInferiorRPCheader(), above.
@@ -1983,7 +1989,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
   
   
   // Safe RPCs are run as function-lets
-  if (isSafeRPC) // ret instruction?
+  if (isFunclet) // ret instruction?
     {
       insn->raw = BRraw;
     }
@@ -3442,7 +3448,7 @@ bool registerSpace::readOnlyRegister(Register reg_number)
 }
 
 
-bool returnInstance::checkReturnInstance(const vector<Address> &/*adr*/,
+bool returnInstance::checkReturnInstance(const vector<Frame> &/*stackWalk*/,
 					 u_int &/*index*/)
 {
 #ifdef ndef  
@@ -3641,6 +3647,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     {
       // Make sure we're not mistaking a function named
       // *_linkage for global linkage code. 
+      
       if (instr.originalInstruction.raw != 0x4e800420) // BCTR
 	return false;
       Address TOC_addr = (owner->getObject()).getTOCoffset();
@@ -3683,7 +3690,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 	  }
 	  return false;
 	}
-
+      
       // Again, by definition, the function is not in owner. Loop through all 
       // images to find it.
       // It needs the process pointer (this) to determine absolute address
@@ -3696,7 +3703,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 	}
       else
 	fprintf(stderr, "Couldn't find target function for address 0x%x\n",
-		(unsigned) callee_addr);
+	    (unsigned) callee_addr);
     }
   // Todo
   target = 0;

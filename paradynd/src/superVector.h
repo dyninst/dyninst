@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.h,v 1.10 2002/04/17 21:18:06 schendel Exp $
+// $Id: superVector.h,v 1.11 2002/04/18 19:39:57 bernat Exp $
 // The superVector is an array of vectors of counters and timers, or
 // fastInferiorHeap objects. Part of the functionality of the fastInferiorHeap
 // class has been moved to this new class - naim 3/26/97
@@ -56,6 +56,7 @@
 #include "common/h/Types.h"
 #include "fastInferiorHeap.h"
 
+class Frame;
 template <class HK, class RAW>
 class superVector {
   private:
@@ -165,11 +166,12 @@ class superVector {
       // still be written to, except perhaps by a tramp that is itself in the
       // process of being freed up.
 
-   void garbageCollect(const vector<Address> &PCs);
-      // called by alloc() if it needs memory, but it's a good idea to call
-      // this periodically; progressive preemptive garbage collection can
-      // help make allocations requests faster.  The parameter is a stack
-      // trace in the inferior process, containing PC-register values.
+   void garbageCollect(const vector<Frame> &stackWalk);
+      // called by alloc() if it needs memory, but it's a good idea to call this
+      // periodically; progressive preemptive garbage collection can help make
+      // allocations requests faster.
+      // The parameter is a stack trace in the inferior process, containing PC-register
+      // values.
 
   RAW *index2LocalAddr(unsigned position, unsigned allocatedIndex) const;
   RAW *index2InferiorAddr(unsigned position, unsigned allocatedIndex) const;

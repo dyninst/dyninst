@@ -160,88 +160,70 @@ timeLength instReqNode::cost(process *theProc) const
 
 extern void checkProcStatus();
 
-bool instReqNode::triggerNow(process *theProc, int mid) {
-   bool needToCont = theProc->status() == running;
+bool instReqNode::triggerNow(process *theProc, Frame &triggeredFrame, int mid) 
+{
+  
+  bool needToCont = (theProc->status() == running);
 #ifdef DETACH_ON_THE_FLY
-   if ( !theProc->reattachAndPause() )
+  if ( !theProc->reattachAndPause())
 #else
-   if ( !theProc->pause() )
+  if ( !theProc->pause() )
 #endif
-   {
+    {
       cerr << "instReqNode::triggerNow -- pause failed" << endl;
       return false;
-   }
-   
-   // If multithreaded, we need to trigger for each thread necessary
-   for (unsigned i = 0; i < fries.size(); i++) {
-#if defined(MT_THREAD)
-      int thrID = fries[i];
-      /*
-	fprintf(stderr, "Starting instrumentation for thread %d\n", thrID);
-      */
-      // trigger the instrumentation
-      
-      for (unsigned i=0;i<manuallyTriggerTIDs.size();i++) {
-	 if (manuallyTriggerTIDs[i]==thrID) {
-	    continue;
-	 }
-      }
-      // Avoid multiply triggering, since the thread IDs stored in "fries"
-      // may not be unique
-      manuallyTriggerTIDs += thrID;
-      
-#if defined(TEST_DEL_DEBUG)
-      sprintf(errorLine,"***** posting inferiorRPC for mid=%d and tid=%d\n",mid,thrId);
-      logLine(errorLine);
-#endif
-#endif
-      
-      theProc->postRPCtoDo(ast, false, // don't skip cost
-			   instReqNode::triggerNowCallbackDispatch, this,
-#if defined(MT_THREAD)
-			   mid,
-			   thrID,
-			   false
-#else
-			   mid
-#endif
-			   ); //false --> regular RPC, true-->SAFE RPC
-      metric_cerr << "   inferiorRPC has been launched for this thread. " << endl;
-      rpcCount = 0;
-      
-      if (pd_debug_catchup) {
-	 cerr << "launched catchup instrumentation, waiting rpc to finish ..." << endl;
-      }
-      // Launch RPC now since we're playing around with timers and such.
-      // We should really examine the stack to be sure that it's safe, but
-      // for now assume it is.
-      do { 
-	 // Make sure that we are not currently in an RPC to avoid race
-	 // conditions between catchup instrumentation and waitProcs()
-	 // loops
-	 if ( !theProc->isRPCwaitingForSysCallToComplete() ) 
-	    theProc->launchRPCifAppropriate(false, false); 
-	 checkProcStatus(); 
-      } while ( !rpcCount && theProc->status() != exited );
-      if ( pd_debug_catchup ) {
-	 metric_cerr << "catchup instrumentation finished ..." << endl;
-      }
-   }     
-   if( needToCont && (theProc->status() != running)) {
+    }
+  // So we have an instrumentation node (this), and a frame
+  // to trigger it in.
+  theProc->postRPCtoDo(ast, false, // don't skip cost
+		       instReqNode::triggerNowCallbackDispatch,
+		       (void *)this,
+		       mid,
+		       triggeredFrame.getThread(),
+		       triggeredFrame.getLWP(),
+		       false); // normal RPC, not thread-independent
+  if (pd_debug_catchup)
+    cerr << "catchup inferior RPC has been launched for instReqNode"
+	 << (int) this 
+	 << " with frame"
+	 << triggeredFrame << endl;
+  rpcCount = 0;
+
+  // Launch RPC immediately, don't wait for the RPC to get launched
+  // normally. We know our RPC is done when rpcCount increases 
+  // (that's the callback)
+  do {
+    // Make sure that we are not currently in an RPC to avoid race
+    // conditions between catchup instrumentation and waitProcs()
+    // loops
+    if ( !theProc->isRPCwaitingForSysCallToComplete() ) 
+      theProc->launchRPCifAppropriate(false, false);	
+    checkProcStatus();
+    
+  } while ( !rpcCount && theProc->status() != exited );
+  if ( pd_debug_catchup ) 
+    cerr << "Catchup instrumentation is finished." << endl;
+
+  // Run side effects. This can run side effects multiple
+  // times. It assumes that they are idempotent. 
+  theProc->catchupSideEffect(triggeredFrame, this);
+
+  // And we're done!
+  if( needToCont && (theProc->status() != running)) {
 #ifdef DETACH_ON_THE_FLY
-      theProc->detachAndContinue();
+    theProc->detachAndContinue();
 #else
-      theProc->continueProc();
+    theProc->continueProc();
 #endif
-   }
-   else if ( !needToCont && theProc->status()==running ) {
+  }
+  else if ( !needToCont && theProc->status()==running ) {
 #ifdef DETACH_ON_THE_FLY
-      theProc->reattachAndPause();
+    theProc->reattachAndPause();
 #else
-      theProc->pause();
+    theProc->pause();
 #endif
-   }
-   return true;
+  }
+  return true;
 }
 
 void instReqNode::triggerNowCallback(void * /*returnValue*/ ) {
@@ -249,10 +231,9 @@ void instReqNode::triggerNowCallback(void * /*returnValue*/ ) {
 }
 
 
-bool instReqNode::triggeredInStackFrame(pd_Function *stack_fn, Address pc,
-					process *p)
+bool instReqNode::triggeredInStackFrame(Frame &frame, process *p)
 {
-   return p->triggeredInStackFrame(point, stack_fn, pc, when, order);
+   return p->triggeredInStackFrame(point, frame, when, order);
 }
 
 

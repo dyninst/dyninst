@@ -146,9 +146,6 @@ class processMetFocusNode : public metricDefinitionNode {
   bool hasAggInfoBeenInitialized() { return aggInfoInitialized; }
   timeStamp getStartTime() { return procStartTime; }
 
-#if defined(MT_THREAD)
-  void prepareCatchupInstr0(int tid);
-#endif
   void prepareCatchupInstr();
 
 #if defined(MT_THREAD)
