@@ -662,7 +662,8 @@ void metricDefinitionNode::removeThisInstance() {
   unsigned aggr_size = aggregators.size();
   assert(aggr_size > 0);
 
-  for (unsigned u = 0; u < aggr_size; u++) {
+  //for (unsigned u = 0; u < aggr_size; u++) {
+  for (unsigned u = 0; u < aggregators.size() && u < samples.size(); u++) {
     aggregators[u]->aggSample.removeComponent(samples[u]);
     aggregators[u]->removeFromAggregate(this); 
   }
@@ -1320,7 +1321,8 @@ void metricDefinitionNode::disable()
     if (aggregate_) {
         /* disable components of aggregate metrics */
         unsigned c_size = components.size();
-        for (unsigned u=0; u<c_size; u++) {
+        //for (unsigned u=0; u<c_size; u++) {
+	for (unsigned u=0; u<components.size(); u++) {
 	  //components[u]->disable();
 	  metricDefinitionNode *m = components[u];
 	  unsigned aggr_size = m->aggregators.size();
