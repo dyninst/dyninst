@@ -51,12 +51,13 @@
 #include "paradynd/src/pd_image.h"
 
 #include "dyninstAPI/h/BPatch.h"
-
-#include "dyninstAPI/src/instPoint.h" // needed for triggeredInStackFrame()
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/InstrucIter.h"
+#include "dyninstAPI/src/instPoint.h"
 #if defined(i386_unknown_nt4_0)
 #include <Windows.h>
 #endif
-
 
 
 // Set in main.C
@@ -213,6 +214,8 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid) {
        assert(false);
 
     getProcMgr().addProcess(proc);
+
+    llproc->recognize_threads(NULL);
 
     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
     buffer += pdstring(", ready");
@@ -1785,6 +1788,12 @@ bool process::triggeredInStackFrame(Frame &frame,
 
     Address pointAddr = point->absPointAddr(this);
 
+    //ELI
+    // addr in edge tramp then use addr which jumps to edge tramp
+    if (point->addrInFunc != 0)
+	pointAddr = point->addrInFunc;
+
+
     if (collapsedFrameAddr < pointAddr) {
         // Haven't reached the point yet
        if(pd_debug_catchup)
@@ -1792,94 +1801,120 @@ bool process::triggeredInStackFrame(Frame &frame,
        return false;
     }
     else if (collapsedFrameAddr > pointAddr) {
-       // If this instPoint is for function _exit_ and we're after the point, DO NOT
-       // return true -- it is possible for an exit point to be in the middle of the
-       // function
-        if (point->getPointType() == functionExit) {
-            if (pd_debug_catchup) 
-                fprintf(stderr, "        PC past instrumentation, inst for function exit, returning false\n");
-            return false;
-        }
-        else {
-            // Have reached the point
-            if(pd_debug_catchup)
-                fprintf(stderr, "        PC past instrumentation, returning true\n");
-            return true;
-        }
+      // If this instPoint is for function _exit_ and we're after the point, DO NOT
+      // return true -- it is possible for an exit point to be in the middle of the
+      // function
+      if (point->getPointType() == functionExit) {
+	if (pd_debug_catchup) 
+	  fprintf(stderr, "        PC past instrumentation, inst for function exit, returning false\n");
+	return false;
+      }
+      else if( point->getPointType() == callSite && func_ptr ) {
+	/* If we're instrumentating a function call, the return address will be the instruction
+	   _after_ the function call.  If this frame is _not_ the currently-executing function,
+	   the call hasn't actually returned yet, in which case pre-instrumentation should be caught-up
+	   and post-instrumentation should not.
+	    
+	   (Really, though, exclusive metrics don't need catch-up, because we know they'll be zero
+	   until the stack unwinds back to them.  But that's another change for another time.)
+	    
+	   We'll miss arbitrary instPoints by using the point type instead of the type of the instruction
+	   at the point, but exclusive metrics don't work in the general case anyway. */
+	InstrucIter stepToNext( func_ptr, this, func_ptr->file(), false );
+	stepToNext.setCurrentAddress( pointAddr );
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: is 0x%lx == 0x%lx?\n", __FILE__, __LINE__, pointAddr, * stepToNext );
+	++stepToNext;
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: is 0x%lx == 0x%lx?\n", __FILE__, __LINE__, collapsedFrameAddr, * stepToNext );
+	if( stepToNext.delayInstructionSupported() ) { /* The return address will point past the delay slot. */ ++stepToNext; }
+	  
+	Address activePC = 0;
+	if( frame.getThread() != NULL ) { activePC = frame.getThread()->getActiveFrame().getPC(); }
+	else if( frame.getLWP() != NULL ) { activePC = frame.getLWP()->getActiveFrame().getPC(); }
+	else { assert( 0 && "Frame without thread or LWP" ); }
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: activePC 0x%lx\n", __FILE__, __LINE__, activePC );
+	if( collapsedFrameAddr == * stepToNext && when == callPostInsn && collapsedFrameAddr != activePC ) { return false; }
+	else { return true; }
+      }
+      else {
+	// Have reached the point
+	if(pd_debug_catchup)
+	  fprintf(stderr, "        PC past instrumentation, returning true\n");
+	return true;
+      }
     }
     else {
-       if(pd_debug_catchup)
-          fprintf(stderr, "        they're both on the stack\n");
-        // They're both in the same point... break down further
+      if(pd_debug_catchup)
+	fprintf(stderr, "        they're both on the stack\n");
+      // They're both in the same point... break down further
 
-        // First, define a numeric mapping on top of instrumentation
-        // points:
+      // First, define a numeric mapping on top of instrumentation
+      // points:
 
-        // 0: In the jump to base tramp
-        // 1: base tramp between entry and the call to preInsn
-        //    minitramps 
-        // 2: preInsn minitramps 
-        // 3: base tramp between preInsn minitramps and postInsn
-        //    minitramps
-        // 4: postInsn minitramps 
-        // 5: base tramp between postInsn minitramps and the end of
-        //    the base tramp
+      // 0: In the jump to base tramp
+      // 1: base tramp between entry and the call to preInsn
+      //    minitramps 
+      // 2: preInsn minitramps 
+      // 3: base tramp between preInsn minitramps and postInsn
+      //    minitramps
+      // 4: postInsn minitramps 
+      // 5: base tramp between postInsn minitramps and the end of
+      //    the base tramp
 
-        // This simplification works because we only allow adding
-        // minitramps to the beginning or end of the current tramp
-        // chain (between 1 and 2 or 2 and 3... but not within 2)
+      // This simplification works because we only allow adding
+      // minitramps to the beginning or end of the current tramp
+      // chain (between 1 and 2 or 2 and 3... but not within 2)
 
         unsigned locationInPoint = 0;
         
-        if (func_ptr) {
-            // Not in the inst point... 
-            locationInPoint = 0;
-        }
-        else if (basetramp_ptr) {
-            if (frame.getPC() <= (basetramp_ptr->get_address() +
-                                  basetramp_ptr->localPreOffset))
-                locationInPoint = 1;
-            else if (frame.getPC() >= (basetramp_ptr->get_address() +
-                                       basetramp_ptr->localPreReturnOffset) &&
-                     frame.getPC() <= (basetramp_ptr->get_address() +
-                                       basetramp_ptr->localPostOffset))
-                locationInPoint = 3;
-            else if (frame.getPC() >= (basetramp_ptr->get_address() +
-                                       basetramp_ptr->localPostReturnOffset))
-                locationInPoint = 5;
-            else
-                assert(0 && "Unknown address in base tramp");
-        }
-        else if (minitramp_ptr) {
-            if (minitramp_ptr->when == callPreInsn)
-                locationInPoint = 2;
-            else if (minitramp_ptr->when == callPostInsn)
-                locationInPoint = 4;
-            else
-                assert(0 && "Unknown minitramp callWhen");
-        }
-        //fprintf(stderr, "Logical location: %d\n", locationInPoint);
+      if (func_ptr) {
+	// Not in the inst point... 
+	locationInPoint = 0;
+      }
+      else if (basetramp_ptr) {
+	if (frame.getPC() <= (basetramp_ptr->get_address() +
+			      basetramp_ptr->localPreOffset))
+	  locationInPoint = 1;
+	else if (frame.getPC() >= (basetramp_ptr->get_address() +
+				   basetramp_ptr->localPreReturnOffset) &&
+		 frame.getPC() <= (basetramp_ptr->get_address() +
+				   basetramp_ptr->localPostOffset))
+	  locationInPoint = 3;
+	else if (frame.getPC() >= (basetramp_ptr->get_address() +
+				   basetramp_ptr->localPostReturnOffset))
+	  locationInPoint = 5;
+	else
+	  assert(0 && "Unknown address in base tramp");
+      }
+      else if (minitramp_ptr) {
+	if (minitramp_ptr->when == callPreInsn)
+	  locationInPoint = 2;
+	else if (minitramp_ptr->when == callPostInsn)
+	  locationInPoint = 4;
+	else
+	  assert(0 && "Unknown minitramp callWhen");
+      }
+      //fprintf(stderr, "Logical location: %d\n", locationInPoint);
         
-        // And now determine if we're before or after the point
-        if (when == callPreInsn) {
-            if (order == orderFirstAtPoint) {
-                return locationInPoint >= 2;
-            }
-            else {
-                // Last at point
-                return locationInPoint >= 3;
-            }
-        }
-        else {
-            // callPostInsn
-            if (order == orderFirstAtPoint) {
-                return locationInPoint >= 4;
-            }
-            else {
-                // last at point
-                return locationInPoint >= 5;
-            }
-        }
+      // And now determine if we're before or after the point
+      if (when == callPreInsn) {
+	if (order == orderFirstAtPoint) {
+	  return locationInPoint >= 2;
+	}
+	else {
+	  // Last at point
+	  return locationInPoint >= 3;
+	}
+      }
+      else {
+	// callPostInsn
+	if (order == orderFirstAtPoint) {
+	  return locationInPoint >= 4;
+	}
+	else {
+	  // last at point
+	  return locationInPoint >= 5;
+	}
+      }
     }
     // Should never be hit
     assert(0);
@@ -2427,3 +2462,40 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
   return retVal;
 }
 #endif
+
+
+bool pd_process::findAllFuncsByName(resource *func, resource *mod,
+                           BPatch_Vector<BPatch_function *> &res) {
+    //    fprintf(stderr,"ELI pd_process::findAllFuncsByName\n");
+
+     const pdvector<pdstring> &f_names = func->names();
+     const pdvector<pdstring> &m_names = mod->names();
+     pdstring func_name = f_names[f_names.size() -1];
+     pdstring mod_name = m_names[m_names.size() -1];
+     BPatch_Vector<BPatch_module *> *mods = dyninst_process->getImage()->getModules();
+     assert(mods);
+     for (unsigned int i = 0; i < mods->size(); ++i) {
+       char nbuf[512];
+       (*mods)[i]->getName(nbuf, 512);
+       if (!strcmp(nbuf, mod_name.c_str())) {
+         BPatch_module *target_mod = (*mods)[i];
+         BPatch_Vector<BPatch_function *> modfuncs;
+         if (NULL == target_mod->findFunction(func_name.c_str(), res, false)
+            || !res.size()) {
+           //fprintf(stderr, "%s[%d]: function %s not found in module %s\n",
+           //       __FILE__, __LINE__, func_name.c_str(), mod_name.c_str());
+           return false;
+         }
+         return true;
+       }
+     }
+
+     BPatch_image *appImage = dyninst_process->getImage();
+     if (NULL == appImage->findFunction(func_name.c_str(), res, false)
+        || !res.size()) {
+          //fprintf(stderr, "%s[%d]: function %s not found in image\n",
+          //        __FILE__, __LINE__, func_name.c_str());
+       return false;
+     }
+     return true;
+   }

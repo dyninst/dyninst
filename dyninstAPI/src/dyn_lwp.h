@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.33 2004/09/13 21:48:05 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.34 2005/01/11 22:46:33 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -151,6 +151,8 @@ class dyn_lwp
   rawTime64 getRawCpuTime_hw();
   rawTime64 getRawCpuTime_sw();
 #endif
+  int getLastSignal() { return lastSig_; }
+  void setSignal(int sig) { lastSig_ = sig; }
 
   // On Alpha we need to change the PC as part of restarting the
   // process, so changePC just sets this value. continueProc then handles
@@ -188,17 +190,12 @@ class dyn_lwp
 #if defined( os_linux )
   bool deliverPtrace(int req, Address addr, Address data);
   int deliverPtraceReturn(int req, Address addr, Address data);
+
+  bool removeSigStop();  
+  bool isRunning() const;
+  
 #elif defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
   bool deliverPtrace(int request, void *addr, int data, void *addr2);
-#endif
-
-#if defined( os_linux )
-  bool isRunning() const;
-  bool isStopPending() const;
-
-  int numStopsPending() { return sigStopsQueued; }
-  void deqStop() { if (sigStopsQueued > 0) sigStopsQueued--; }
-  void enqStop() { sigStopsQueued++; }
 #endif
 
 #if defined(AIX_PROC)
@@ -347,6 +344,7 @@ class dyn_lwp
   int sigStopsQueued;
 #endif
 
+  int lastSig_;
   // Pointer to the syscall trap data structure
   syscallTrap *trappedSyscall_;
   // Callback to be made when the syscall exits

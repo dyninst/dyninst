@@ -67,6 +67,7 @@
 #include <sys/utsname.h>
 #include <sys/stat.h>
 #include <sys/un.h>
+#include <sys/syscall.h>
 
 #include <rpc/types.h>
 #include <rpc/xdr.h>
@@ -97,6 +98,7 @@ inline FILE * P_fopen (const char *FILENAME, const char *OPENTYPE) {
 inline int P_fstat (int FILEDES, struct stat *BUF) { return (fstat(FILEDES, BUF));}
 inline pid_t P_getpid () { return (getpid());}
 inline int P_kill(pid_t PID, int SIGNUM) { return (kill(PID, SIGNUM));}
+inline int P_tkill(pid_t PID, int SIGNUM) { return (syscall(SYS_tkill, PID, SIGNUM));}
 inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
   return (lseek(FILEDES, OFFSET, WHENCE));}
 inline int P_open(const char *FILENAME, int FLAGS, mode_t MODE) {

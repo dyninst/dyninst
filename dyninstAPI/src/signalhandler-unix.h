@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.11 2004/03/23 01:12:09 eli Exp $
+/* $Id: signalhandler-unix.h,v 1.12 2005/01/11 22:46:37 legendre Exp $
  */
 
 /*
@@ -108,25 +108,25 @@ typedef unsigned int procSignalWhat_t;
 /* On /proc platforms we have predefined system call mappings (SYS_fork, etc).
    Define them here for platforms which don't have them */
 #if !defined(SYS_fork)
-#define SYS_fork 1
+#define SYS_fork 1001
 #endif
 #if !defined(SYS_exec)
-#define SYS_exec 2
+#define SYS_exec 1002
 #endif
 #if !defined(SYS_exit)
-#define SYS_exit 3
+#define SYS_exit 1003
 #endif
 #if !defined(SYS_load)
-#define SYS_load 4
+#define SYS_load 1004
 #endif
 #if !defined(SYS_execve)
-#define SYS_execve 5
+#define SYS_execve 1005
 #endif
 #if !defined(SYS_fork1)
-#define SYS_fork1 6
+#define SYS_fork1 1006
 #endif
 #if !defined(SYS_vfork)
-#define SYS_vfork 7
+#define SYS_vfork 1007
 #endif
 
 /*
@@ -240,6 +240,10 @@ int handleSyscallExit(const procevent &event);
 
 inline bool didProcReceiveSignal(procSignalWhy_t why) {
     return (why == procSignalled); 
+}
+
+inline bool didProcReceiveInstTrap(procSignalWhy_t why) {
+    return (why == procInstPointTrap);
 }
 
 inline bool didProcExit(procSignalWhy_t why) {

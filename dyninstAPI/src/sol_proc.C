@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.54 2004/04/20 01:27:55 jaw Exp $
+// $Id: sol_proc.C,v 1.55 2005/01/11 22:46:38 legendre Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -474,65 +474,9 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
     return true;
 }
 
-#if !defined(BPATCH_LIBRARY)
-struct lwprequest_info {
-public:
-   lwprequest_info() : lwp_id(0), rpc_id(0), 
-                       completed(false), cancelled(false) 
-   { }
-   unsigned lwp_id;
-   unsigned rpc_id;
-   bool completed;
-   bool cancelled;
-};
-
-template class pdvector<lwprequest_info*>;
-
-pdvector<lwprequest_info*> rpcReqBuf;
-
-void doneWithLwp(process *, unsigned rpc_id, void * /*data*/,
-                 void *result_arg) {
-   //int lwp_id = (int)data;
-   int result = (int)result_arg;
-
-   if(result == 1)
-      return;  // successful
-
-   // else, failure, mark as rpc cancelled ...
-   // mark lwp initialization rpc as cancelled if when running, got tid of 0.
-   // these lwps appear to not be the normal ones in the program but some
-   // special lwps used by the thread library;
-   pdvector<lwprequest_info*>::iterator iter = rpcReqBuf.begin();
-   //bool any_active = false;
-
-   while(iter != rpcReqBuf.end()) {
-      lwprequest_info *rpcReq = (*iter);
-      if(rpcReq->rpc_id == rpc_id) {
-         rpcReq->cancelled = true;
-         rpcReq->completed = false;
-      }
-      iter++;
-   }      
-}
-
-// inferior RPC callback function type
-typedef void(*inferiorRPCcallbackFunc)(process *p, unsigned rpcid, void *data,
-                                       void *result);
-
-// returns rpc_id
-unsigned recognize_lwp(process *proc, int lwp_id) {
-   dyn_lwp *lwp = proc->getLWP(lwp_id);
-
-   pdvector<AstNode *> ast_args;
-   AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
-
-   return proc->getRpcMgr()->postRPCtoDo(ast, true, doneWithLwp,
-                                         (void *)lwp_id, false, NULL, lwp);
-}
-
-void determineLWPs(int pid, pdvector<unsigned> *all_lwps) {
+void process::determineLWPs(pdvector<unsigned> *all_lwps) {
    char procdir[128];
-   sprintf(procdir, "/proc/%d/lwp", pid);
+   sprintf(procdir, "/proc/%d/lwp", getPid());
    DIR *dirhandle = opendir(procdir);
    struct dirent *direntry;
    while((direntry= readdir(dirhandle)) != NULL) {
@@ -544,83 +488,6 @@ void determineLWPs(int pid, pdvector<unsigned> *all_lwps) {
    }
    closedir(dirhandle);
 }
-
-bool anyRpcsActive(process *proc, pdvector<lwprequest_info*> *rpcReqBuf) {
-   pdvector<lwprequest_info*>::iterator iter = (*rpcReqBuf).begin();
-   bool any_active = false;
-
-   while(iter != (*rpcReqBuf).end()) {
-      lwprequest_info *rpcReq = (*iter);
-      if(rpcReq->completed || rpcReq->cancelled) {
-         iter++;
-         continue;
-      }      
-
-      int rpc_id = rpcReq->rpc_id;
-      irpcState_t rpc_state = proc->getRpcMgr()->getRPCState(rpc_id);
-      /*
-      cerr << "  req: " << rpcReq->rpc_id << ", lwp: " << rpcReq->lwp_id
-           << ", state: ";
-      if(rpc_state == irpcNotValid) 
-         cerr << "irpcNotValid\n";
-      else if(rpc_state == irpcNotRunning)
-         cerr << "irpcNotRunning\n";
-      else if(rpc_state == irpcRunning)
-         cerr << "irpcRunning\n";
-      else if(rpc_state == irpcWaitingForSignal)
-         cerr << "irpcWaitingForSignal\n";
-      else if(rpc_state == irpcNotReadyForIRPC)
-         cerr << "irpcNotReadyForIRPC\n";
-      */
-
-      if(rpc_state == irpcWaitingForSignal) {
-          proc->getRpcMgr()->cancelRPC(rpc_id);
-          rpcReq->cancelled = true;
-      }
-      else if(rpc_state == irpcNotValid) {   // ie. it's already completed
-          rpcReq->completed = true;
-      }
-      else {
-          any_active = true;
-      }
-      iter++;
-   }
-   return any_active;
-}
-
-void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
-   pdvector<unsigned> found_lwps;
-   determineLWPs(getPid(), &found_lwps);
-
-   rpcReqBuf.clear();
-   for(unsigned i=0; i<found_lwps.size(); i++) {
-      unsigned lwp_id = found_lwps[i];
-      unsigned rpc_id = recognize_lwp(this, lwp_id);
-      lwprequest_info *newReq = new lwprequest_info;
-      newReq->lwp_id = lwp_id;
-      newReq->rpc_id = rpc_id;
-      rpcReqBuf.push_back(newReq);
-   }
-
-   do {
-       getRpcMgr()->launchRPCs(false);
-       if(hasExited())  return;
-       getSH()->checkForAndHandleProcessEvents(false);
-       // Loop until all rpcs are done
-   } while(anyRpcsActive(this, &rpcReqBuf));
-   
-   pdvector<lwprequest_info*>::iterator iter = rpcReqBuf.begin();
-   while(iter != rpcReqBuf.end()) {
-      lwprequest_info *rpcReq = (*iter);
-      if(rpcReq->completed) {
-         (*completed_lwps).push_back(rpcReq->lwp_id);
-      }
-      iter++;
-      delete rpcReq;
-   }
-}
-#endif
-
 
 // Restore registers saved as above.
 bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)

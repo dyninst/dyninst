@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.510 2004/12/09 05:01:06 rchen Exp $
+// $Id: process.C,v 1.511 2005/01/11 22:46:35 legendre Exp $
 
 #include <ctype.h>
 
@@ -1892,8 +1892,9 @@ process::process(int iPid, image *iImage, int iTraceLink) :
    }
 #endif
 #endif
-} // end of normal constructor
 
+} // end of normal constructor
+    
 
 //
 // Process "attach" ctor, for when paradynd is attaching to an already-existing
@@ -2060,6 +2061,7 @@ process::process(int iPid, image *iSymbols,
    // this doesn't leak, since the old theImage was deleted. 
    symbols = theImage;
 #endif
+
    codeRangesByAddr_ = new codeRangeTree;
    addCodeRange(symbols->codeOffset(), symbols);
 
@@ -2077,7 +2079,6 @@ process::process(int iPid, image *iSymbols,
 
    // note: we don't call getSharedObjects() yet; that happens once DYNINSTinit
    //       finishes (initSharedObjects)
-
 
 #ifndef BPATCH_LIBRARY
 #ifdef PAPI
@@ -2274,7 +2275,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
       threads.push_back(new_thr);      
    }
    // the threads for MT programs are added through later, through function
-   // process::recognize_threads
 
    if( isRunning_() )
       set_status(running);
@@ -2596,8 +2596,6 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
     return NULL;
   }
 
-  theImage->defineModules(theProc);
-
   // Note: it used to be that the attach ctor called pause()...not anymore...so
   // the process is probably running even as we speak.
   
@@ -2605,6 +2603,8 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
   activeProcesses++;
 
   theProc->createInitialThread();
+
+  theImage->defineModules(theProc);
 
   // we now need to dynamically load libdyninstRT.so.1 - naim
   if (!theProc->pause()) {
@@ -3622,7 +3622,7 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st) {
 
 void process::clearCachedRegister() {
    pdvector<dyn_thread *>::iterator iter = threads.begin();
-   
+
    dyn_lwp *proclwp = getRepresentativeLWP();
    if(proclwp) proclwp->clearCachedRegister();
    
@@ -3636,40 +3636,23 @@ void process::clearCachedRegister() {
 }
 
 bool process::pause() {
-
-    if (!isAttached()) {
-        bperr( "Warning: pause attempted on non-attached process\n");
-        return false;
-    }
+  bool result;
+  if (!isAttached()) {
+    bperr( "Warning: pause attempted on non-attached process\n");
+    return false;
+  }
       
    // The only remaining combination is: status==running but haven't yet
    // reached first break.  We never want to pause before reaching the first
    // break (trap, actually).  But should we be returning true or false in
    // this case?
-   if(! reachedBootstrapState(initialized)) {
-      return true;
-   }
+  if(! reachedBootstrapState(initialized)) {
+    return true;
+  }
 
 #if defined(sparc_sun_solaris2_4)
    clearProcessEvents();
 #endif
-
-   /*   DEBUGGING
-      pdvector<dyn_thread *>::iterator iterA = threads.begin();
-
-      while(iterA != threads.end()) {
-         dyn_thread *thr = *(iterA);
-         dyn_lwp *lwp = thr->get_lwp();
-         assert(lwp);
-         if(lwp->status() == stopped)
-            cerr << "  lwp " << lwp->get_lwp_id() << " is stopped\n";
-         else if(lwp->status() == running)
-            cerr << "  lwp " << lwp->get_lwp_id() << " is running\n";
-         else if(lwp->status() == neonatal)
-            cerr << "  lwp " << lwp->get_lwp_id() << " is neonatal\n";
-         iterA++;
-      }
-   */
 
    // Let's try having stopped mean all lwps stopped and running mean
    // atleast one lwp running.
@@ -3677,31 +3660,30 @@ bool process::pause() {
    if (status_ == stopped || status_ == neonatal) {
       return true;
    }
-   if(IndependentLwpControl()) {      
-     setSuppressEventConts(true);
-     pdvector<dyn_thread *>::iterator iter = threads.begin();
-     while(iter != threads.end()) {
-       dyn_thread *thr = *(iter);
-       dyn_lwp *lwp = thr->get_lwp();
-       assert(lwp);
-       lwp->pauseLWP(true);
-       iter++;
-     }
-     setSuppressEventConts(false);
-   } else {
-      assert(status_ == running);      
-      bool res = getRepresentativeLWP()->pauseLWP(true);
-      if (!res) {
-         sprintf(errorLine,
-                 "warn : in process::pause, pause_ unable to pause process\n");
-         logLine(errorLine);
-         return false;
-      }
-   }
+
+   result = stop_();
+   if (!result)
+     return false;
 
    status_ = stopped;
    return true;
 }
+
+//process::stop_ is only different on linux
+#if !defined(os_linux)
+bool process::stop_()
+{
+   assert(status_ == running);      
+   bool res = getRepresentativeLWP()->pauseLWP(true);
+   if (!res) {
+      sprintf(errorLine,
+              "warn : in process::pause, pause_ unable to pause process\n");
+      logLine(errorLine);
+      return false;
+   }
+   return true;
+}
+#endif
 
 // handleIfDueToSharedObjectMapping: if a trap instruction was caused by
 // a dlopen or dlclose event then return true
@@ -3728,11 +3710,20 @@ bool process::handleIfDueToSharedObjectMapping(){
              // This is what we really want to do:
              // Paradyn -- don't add new symbols unless it's the runtime
              // library
-             // UGLY.
+             // UGLY.[
+
+             // will pop off list if addASharedObject fails
+	   //ELI
+	   //fprintf(stderr,"dlopen SO %s\n",(*changed_objects)[i]->getShortName().c_str());
+	   
+ 	   if ((*changed_objects)[i]->getShortName().length()==0)
+ 	     continue;
+
+             (*shared_objects).push_back((*changed_objects)[i]);
              if(addASharedObject((*changed_objects)[i],
                                  (*changed_objects)[i]->getBaseAddress()))
              {
-                 (*shared_objects).push_back((*changed_objects)[i]);
+                 //    (*shared_objects).push_back((*changed_objects)[i]);
                  addCodeRange((*changed_objects)[i]->getBaseAddress() +
                               (*changed_objects)[i]->getImage()->codeOffset(),
                               (*changed_objects)[i]);
@@ -3746,6 +3737,7 @@ bool process::handleIfDueToSharedObjectMapping(){
              } // addASharedObject, above
              else {
                  //logLine("Error after call to addASharedObject\n");
+                 (*changed_objects).pop_back();
                  delete (*changed_objects)[i];
              }
          }
@@ -3867,11 +3859,13 @@ check_rtinst(process *proc, shared_object *so)
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
 bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
+    //ELI
+    //fprintf(stderr,"Add SO %s\n",new_obj->getShortName().c_str());
+
     int ret;
     pdstring msg;
 
     if(new_obj->getName().length() == 0) {
-        fprintf(stderr, "Null name on object\n");
         return false;
     }
 
@@ -3883,26 +3877,26 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
         return false;
     }
 
+    new_obj->addImage(img);
     img->defineModules(this);
 
-    new_obj->addImage(img);
+    ///ccw 20 apr 2004 : test4 linux bug hack
 
-        ///ccw 20 apr 2004 : test4 linux bug hack
-        /* what is going on here? If you relocate a function in a shared library,
-           then call exec (WITHOUT CALLING FORK) the function will continue to be
-           marked as relocated BY THE EXEC'ED PROCESS even though the shared 
-           library will have been reloaded.
-
-           So, to fix this, we look to see if each function is marked as relocated 
-	   by the exec'ed process and remove the relocation tag connecting it with 
-	   the said process.  
-
-           The function unrelocatedByProcess was added to pd_Function in symtab.h
-
-           This only effects exec and not fork since fork creates a new process
-           and exec does not.  check to see how pd_Function::hasBeenRelocated()
-           works for more info.
-        */
+    // what is going on here? If you relocate a function in a shared
+    // library, then call exec (WITHOUT CALLING FORK) the function
+    // will continue to be marked as relocated BY THE EXEC'ED PROCESS
+    // even though the shared library will have been reloaded.
+    
+    // So, to fix this, we look to see if each function is marked as
+    // relocated by the exec'ed process and remove the relocation tag
+    // connecting it with the said process.
+    
+    // The function unrelocatedByProcess was added to pd_Function in
+    // symtab.h
+    
+    // This only effects exec and not fork since fork creates a new
+    // process and exec does not.  check to see how
+    // pd_Function::hasBeenRelocated() works for more info.
                    
         const pdvector<pd_Function*> *allFuncs = new_obj->getAllFunctions();
 
@@ -4178,6 +4172,7 @@ bool process::findAllFuncsByName(resource *func, resource *mod,
             }
         }
     }
+
     if (NULL != (pdfv = symbols->findFuncVectorByPretty(func_name))) {
        for (unsigned int i = 0; i < pdfv->size(); ++i) {
           res.push_back((*pdfv)[i]);
@@ -4695,27 +4690,35 @@ pdvector<module *> *process::getAllModules(){
 // image corresponding to which.  It returns true  if image is mapped
 // in processes address space, otherwise it returns 0
 bool process::getBaseAddress(const image *which, Address &baseAddress) const {
+    if ((Address)(symbols) == (Address)(which)){
+        baseAddress = 0; 
+        return true;
+    }
+    else if (shared_objects) {  
+        // find shared object corr. to this image and compute correct address
+        for (unsigned j=0; j < shared_objects->size(); j++) {
+//             if (0==strncmp(which->name().c_str(), "libdyninstAPI_RT.so.1",
+//                            strlen("libdyninstAPI_RT.so.1"))) {
+//                 fprintf(stderr,"%x process::getBaseAddress %u so %s\n",
+//                         this,shared_objects->size(),
+//                         ((*shared_objects)[j])->getName().c_str());
+//             }
+            if (((*shared_objects)[j])->isMapped()) {
+                if (((*shared_objects)[j])->getImage() == which) { 
+                    baseAddress = ((*shared_objects)[j])->getBaseAddress();
+                    return true;
+                }
+            }
+        }
+    }
+    else {
+        bperr( "shared_object not defined\n");
+    }
 
-  if((Address)(symbols) == (Address)(which)){
-      baseAddress = 0; 
-      return true;
-  }
-  else if (shared_objects) {  
-      // find shared object corr. to this image and compute correct address
-      for(unsigned j=0; j < shared_objects->size(); j++){ 
-          if(((*shared_objects)[j])->isMapped()){
-              if(((*shared_objects)[j])->getImage() == which) { 
-                  baseAddress = ((*shared_objects)[j])->getBaseAddress();
-                  return true;
-              }
-          }
-      }
-  }
-  else {
-      bperr( "shared_objects not defined\n");
-  }
+ //    fprintf(stderr,"%x process::getBaseAddress not found which=%s 0x%x\n",
+//             this, which->name().c_str(), which);
   
-  return false;
+    return false;
 }
 
 #if defined(i386_unknown_linux2_0)
@@ -4850,41 +4853,34 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
 }
 
 bool process::continueProc(int signalToContinueWith) {
-    if (!isAttached()) {
-        bpwarn( "Warning: continue attempted on non-attached process\n");
-        return false;
-    }
+  if (!isAttached()) {
+    bpwarn( "Warning: continue attempted on non-attached process\n");
+    return false;
+  }
 
-    if (suppressEventConts())
-    {
-      return false;
-    }
+  if (suppressEventConts())
+    return false;
 
-   if(IndependentLwpControl()) {
-      pdvector<dyn_thread *>::iterator iter = threads.begin();
-      while(iter != threads.end()) {
-         dyn_thread *thr = *(iter);
-         dyn_lwp *lwp = thr->get_lwp();
-         
-          if(lwp && lwp->status() != running)  {// the thread might not be scheduled
-            lwp->continueLWP(signalToContinueWith);
-	       }
+  bool res = continueProc_(signalToContinueWith);
+  if (!res) 
+  {
+    showErrorCallback(38, "System error: can't continue process");
+    return false;
+  }
 
-         iter++;
-      }
-   } else {
-      if (status_ == running)
-	return true;
-      bool res = getRepresentativeLWP()->continueLWP(signalToContinueWith);
-      if (!res) {
-         showErrorCallback(38, "System error: can't continue process");
-         return false;
-      }
-   }
-    
-   status_ = running;
-   return true;
+  status_ = running;
+  return true;
 }
+
+//Only different on Linux
+#if !defined(os_linux)
+bool process::continueProc_(int sig)
+{
+  if (status_ == running)
+    return true;
+  return getRepresentativeLWP()->continueLWP(sig);
+}
+#endif
 
 bool process::detachProcess(const bool leaveRunning) {
     // First, remove all syscall tracing and notifications
@@ -5146,13 +5142,13 @@ void process::handleExecExit() {
     // delete proc->symbols ???  No, the image can be shared by more
     // than one process...images and instPoints can not be deleted...
    if (!symbols->destroy())
-     image::removeImage(symbols);
+       image::removeImage(symbols);
    
-    symbols = img;
-    addCodeRange(symbols->codeOffset(), symbols);
+   symbols = img;
+   addCodeRange(symbols->codeOffset(), symbols);
 
-    // see if new image contains the signal handler function
-    this->findSignalHandler();
+   // see if new image contains the signal handler function
+   this->findSignalHandler();
 
 	// release our info about the heaps that exist in the process
 	// (we will eventually call initInferiorHeap to rebuild the list and
@@ -5825,6 +5821,9 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
   if(real_lwps.find(lwp_id, foundLWP)) {
     return foundLWP;
   }
+  if (representativeLWP && representativeLWP->get_lwp_id() == lwp_id)
+    return representativeLWP;
+
 
   foundLWP = createRealLWP(lwp_id, lwp_id);
 
@@ -5832,6 +5831,11 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
      deleteLWP(foundLWP);
      return NULL;
   }
+
+  //The created lwp is running, so the process is running.
+  if (status_ == stopped)
+    status_ = running;
+
   return foundLWP;
 }
 
@@ -5839,7 +5843,8 @@ dyn_lwp *process::lookupLWP(unsigned lwp_id) {
    dyn_lwp *foundLWP = NULL;
    bool found = real_lwps.find(lwp_id, foundLWP);
    if(! found) {
-      if(lwp_id == getRepresentativeLWP()->get_lwp_id())
+      dyn_lwp *repLWP = getRepresentativeLWP();
+      if(repLWP && lwp_id == repLWP->get_lwp_id())
          foundLWP = getRepresentativeLWP();
    }
    return foundLWP;
@@ -6031,4 +6036,45 @@ void process::setIndexToThread(unsigned index, unsigned value) {
 
 void process::updateThreadIndexAddr(Address addr) {
     threadIndexAddr = addr;
+}
+
+static unsigned rpcs_completed;
+static pdvector<unsigned> *successful_lwps;
+
+static void doneRegistering(process *, unsigned, void *data, void *result_arg) 
+{
+  unsigned lwp_id = (unsigned) data;
+  rpcs_completed++;
+  if ((int) result_arg == 1 && successful_lwps)
+    successful_lwps->push_back(lwp_id);
+}
+
+void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
+   pdvector<unsigned> found_lwps;
+   determineLWPs(&found_lwps);
+
+   if (!multithread_capable())
+     return;
+
+   rpcs_completed = 0;
+   successful_lwps = completed_lwps;
+
+   for (unsigned i = 0; i < found_lwps.size(); i++)
+   {
+     unsigned lwp_id = found_lwps[i];
+     dyn_lwp *lwp = getLWP(lwp_id);
+
+     pdvector<AstNode *> ast_args;
+     AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
+     getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, (void *) lwp_id, 
+			      false, NULL, lwp);          
+   }
+
+   while(rpcs_completed != found_lwps.size()) {
+     getRpcMgr()->launchRPCs(false);
+     if(hasExited())  return;
+     getSH()->checkForAndHandleProcessEvents(false);
+   }
+   
+   return;
 }

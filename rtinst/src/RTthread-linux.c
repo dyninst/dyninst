@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * RTthread-solaris.c: platform dependent runtime instrumentation functions for threads
+ * RTthread-linux.c: platform dependent runtime instrumentation functions for threads
  *
  ************************************************************************/
 
@@ -57,13 +57,15 @@ int DYNINSTthreadIndex ()
 {
   int tid;
   int curr_index = DYNINSTthreadIndexFAST();
+
   if (!DYNINST_initialize_done)
     return 0;
   tid = (int)P_thread_self();
-  if (tid <= 0) {
+  if (tid == -1) {
      /* P_thread_self isn't returning unexpected values at times after a fork
         so return 0 in this case. */
      /* abort(); */
+     fprintf(stderr, "Returning cause less than 0\n");
      return 0;
   }
 
@@ -71,7 +73,9 @@ int DYNINSTthreadIndex ()
   if ((curr_index >= 0) && 
       (curr_index < MAX_NUMBER_OF_THREADS)) {
       if (indexToThreads[curr_index] == tid)
+      {
           return curr_index;
+      }
   }
 
   /* Slow method */
@@ -80,6 +84,7 @@ int DYNINSTthreadIndex ()
     /* Oh, crud. Really slow */
     curr_index = DYNINSTthreadCreate(tid);
   }
+
   return curr_index;
 }
 
@@ -104,6 +109,7 @@ int tc_lock_destroy(tc_lock_t *t)
   return 0;
 }
 
+
 struct thread_struct {
    char ignoreA[72];
    int lwp;           //   72 bytes into thread structure
@@ -115,27 +121,121 @@ struct thread_struct {
    void *stack_addr;  //   576 bytes into thread structure
 };
 
+/**
+ * This structure tells us where to look in pthread's pthread_t for
+ * the lwp, pid, start_func, and stack_addr fields (in that order).
+ **/
+#define GET_POS(buf, type, x, y) *((type *) ((buf)+pos_in_pthreadt[(x)][(y)]))
+#define POS_ENTRIES 3
+#define LWP_POS 0
+#define PID_POS 1
+#define FUNC_POS 2
+#define STCK_POS 3
+static unsigned pos_in_pthreadt[POS_ENTRIES][4] = { { 72, 476, 516, 576 },
+                                                    { 72, 76, 516, 84 },
+                                                    { 72, 476, 516, 80 } };
+
 int DYNINST_ThreadInfo(void** stkbase, int* tidp, long *startpc, int* lwpidp,
-                       void** rs_p) {
-   struct thread_struct *linuxthr = (struct thread_struct *)P_thread_self();
+                       void** rs_p) 
+{
+  static int err_printed = 0;
+  pid_t pid;
+  int i, lwp;
+  char *buffer;
+  pthread_t me;
 
-   if(getpid() != linuxthr->pid) {
-      fprintf(stderr, "thread structure has pid of %d but really in pid %d\n",
-              linuxthr->pid, getpid());
-      return 0;
-   }
+  me = P_thread_self();
+  buffer = (char *) me;
+  pid = getpid();
+  lwp = P_lwp_self();
 
-   if(P_lwp_self() != linuxthr->lwp) {
-      fprintf(stderr, "thread structure has lwp of %d but really in lwp %d\n",
-              linuxthr->lwp, P_lwp_self());
-      return 0;
-   }
+  for (i = 0; i < POS_ENTRIES; i++)
+  {    
+    if (GET_POS(buffer, pid_t, i, PID_POS) == pid &&
+	GET_POS(buffer, int, i, LWP_POS) == lwp)
+    {
+      *stkbase = *rs_p =  GET_POS(buffer, void *, i, STCK_POS);
+      *startpc = GET_POS(buffer, long, i, FUNC_POS);
+      *lwpidp = lwp;
+      *tidp = (int) me;
+      return 1;
+    }
+  }
+  
+  if (!err_printed)
+  {
+    //If you get this error, then the pos_in_pthreadt structure above
+    //needs a new entry filled in.  Running the commented out program
+    //that follows this function can help you collect the necessary data.
+    fprintf(stderr, "[%s:%d] Unable to parse pthread_t structure for this"
+	    " version of pthreads.  Making a best guess effort.\n", 
+	    __FILE__, __LINE__);
+    err_printed = 1;
+  }
    
-   *stkbase = linuxthr->stack_addr;
-   *tidp    = (int)P_thread_self();
-   *startpc = (long)linuxthr->start_func;
-   *lwpidp  = linuxthr->lwp;
-   *rs_p    = linuxthr->stack_addr;
-   return 1;
+  *rs_p = *stkbase = 0x0; //unknown
+  *startpc = 0x0; //unknown
+  *tidp    = me;
+  *lwpidp  = lwp;
+
+  return 1;
 }
 
+
+/*
+//Small program for finding the correct values to fill in pos_in_pthreadt
+// above
+#include <pthread.h>
+#include <stdio.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#define gettid() syscall(SYS_gettid)
+
+pthread_attr_t attr;
+
+void *foo(void *f) {
+  pid_t pid, tid;
+  unsigned stack_addr;
+  unsigned best_stack = 0xffffffff;
+  int best_stack_pos = 0;
+  void *start_func;
+  int *p;
+  int i = 0;
+  pid = getpid();
+  tid = gettid();
+  start_func = foo;
+  //x86 only.  
+  asm("movl %%ebp,%0" : "=r" (stack_addr));
+  p = (int *) pthread_self();
+  while (i < 1000)
+  {
+    if (*p == (unsigned) pid)
+      printf("pid @ %d\n", i);
+    if (*p == (unsigned) tid)
+      printf("lwp @ %d\n", i);
+    if (*p > stack_addr && *p < best_stack)
+    {
+	best_stack = *p;
+	best_stack_pos = i;
+    }
+    if (*p == (unsigned) start_func)
+      printf("func @ %d\n", i);
+    i += sizeof(int);
+    p++;
+  }  
+  printf("stack @ %d\n", best_stack_pos);
+  return NULL;
+}
+
+int main(int argc, char *argv[])
+{
+  pthread_t t;
+  void *result;
+  pthread_attr_init(&attr);
+  pthread_create(&t, &attr, foo, NULL);
+  pthread_join(t, &result);
+  return 0;
+}
+*/

@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.83 2004/09/21 05:33:45 jaw Exp $
+ * $Id: RTinst.c,v 1.84 2005/01/11 22:46:44 legendre Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -235,6 +235,7 @@ timeQueryFuncPtr_t PARADYNgetWalltime = &DYNINSTgetWalltime_sw;
 ************************************************************************/
 void
 DYNINSTstartProcessTimer(tTimer* timer) {
+
    /* For shared-mem sampling only: bump protector1, do work, then bump
       protector2 */
    assert(timer->protector1 == timer->protector2);
@@ -255,6 +256,7 @@ DYNINSTstartProcessTimer(tTimer* timer) {
 ************************************************************************/
 void
 DYNINSTstopProcessTimer(tTimer* timer) {
+
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
   MEMORY_BARRIER;
@@ -264,8 +266,9 @@ DYNINSTstopProcessTimer(tTimer* timer) {
   }
   else {
     if (timer->counter == 1) {
-        const rawTime64 now = DYNINSTgetCPUtime();
+        const rawTime64  now = DYNINSTgetCPUtime();
         timer->total += (now - timer->start);
+
       if (now < timer->start) {
           abort();
       }
@@ -283,11 +286,18 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 
 void
 DYNINSTstartWallTimer(tTimer* timer) {
+
+  //unsigned index = DYNINSTthreadIndexSLOW(P_thread_self());
+  //virtualTimer *vt = &(virtualTimers[index]);
+  //fprintf(stderr, "start wall-timer, lwp is %d\n", vt->lwp);
+
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
   MEMORY_BARRIER;
   if (timer->counter == 0) {
     timer->start = DYNINSTgetWalltime();
+    //XXX
+    //    fprintf(stderr, "timer 0x%x start\n", &(*timer));
   }
   timer->counter++;
   MEMORY_BARRIER;
@@ -301,7 +311,13 @@ DYNINSTstartWallTimer(tTimer* timer) {
 ************************************************************************/
 void
 DYNINSTstopWallTimer(tTimer* timer) {
+
   int i;
+  
+  //unsigned index = DYNINSTthreadIndexSLOW(P_thread_self());
+  //virtualTimer *vt = &(virtualTimers[index]);
+  //fprintf(stderr, "stop wall-timer, lwp is %d\n", vt->lwp);
+
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
   MEMORY_BARRIER;
@@ -311,6 +327,9 @@ DYNINSTstopWallTimer(tTimer* timer) {
     const rawTime64 now = DYNINSTgetWalltime();
     
     timer->total += (now - timer->start);
+
+    //XXX
+    //fprintf(stderr, "timer 0x%x stop [total %u]\n", &(*timer), timer->total);
   }
   MEMORY_BARRIER;
   timer->protector2++; /* ie. timer->protector2 == timer->protector1 */
@@ -656,8 +675,9 @@ void PARADYNinit(int paradyndPid,
 
    /* db_init(db_shmKey, sizeof(db_shmArea_t)); */
 
-   DYNINSTstartWallTimer(&DYNINSTelapsedTime);
-   DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
+   //DYNINSTstartWallTimer(&DYNINSTelapsedTime);
+   //DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
+
    shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
 }
 
@@ -845,8 +865,8 @@ DYNINSTprintCost(void) {
     FILE *fp;
     struct endStatsRec stats;
 
-    DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
-    DYNINSTstopWallTimer(&DYNINSTelapsedTime);
+    //DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
+    //DYNINSTstopWallTimer(&DYNINSTelapsedTime);
 
     stats.instCycles = *RTobserved_cost;
     stats.alarms      = 0;

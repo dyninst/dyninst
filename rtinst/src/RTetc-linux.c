@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.30 2004/04/08 21:15:49 legendre Exp $ */
+/* $Id: RTetc-linux.c,v 1.31 2005/01/11 22:46:43 legendre Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -195,6 +195,7 @@ DYNINSTgetCPUtime_hw(void) {
 
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
+#ifndef MT_THREAD
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
 	      "%lld ticks, using previous value %lld ticks.",
@@ -203,12 +204,13 @@ DYNINSTgetCPUtime_hw(void) {
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
 				 &traceData, 1, 1, 1);
+#endif
     }
     cpuRollbackOccurred++;
     now = cpuPrevious_hw;
   }
   else  cpuPrevious_hw = now;
-  
+
   return now;
 }
 
@@ -227,6 +229,7 @@ DYNINSTgetCPUtime_sw(void) {
   
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
+#ifndef MT_THREAD
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
 	      "%lld jiffies, using previous value %lld jiffies.",
@@ -235,15 +238,14 @@ DYNINSTgetCPUtime_sw(void) {
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
 				 &traceData, 1, 1, 1);
+#endif
     }
     cpuRollbackOccurred++;
     now = cpuPrevious_sw;
   }
   else  cpuPrevious_sw = now;
-  
   return now;
 }
-
 
 /* --- Wall time retrieval functions --- */
 /* Hardware Level ---
@@ -260,6 +262,7 @@ DYNINSTgetWalltime_hw(void) {
 
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {
+#ifndef MT_THREAD
       rtUIMsg traceData;
       sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
 	      "%lld ticks, using previous value %lld ticks.",
@@ -268,11 +271,13 @@ DYNINSTgetWalltime_hw(void) {
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
 			       1, 1, 1);
+#endif
     }
     wallRollbackOccurred++;
     wallPrevious_hw = now;
   }
   else  wallPrevious_hw = now;
+
 
   return now;
 }
@@ -298,6 +303,7 @@ DYNINSTgetWalltime_sw(void) {
 
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {
+#ifndef MT_THREAD
       rtUIMsg traceData;
       sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
 	      "%lld usecs, using previous value %lld usecs.",
@@ -306,6 +312,7 @@ DYNINSTgetWalltime_sw(void) {
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
 			       1, 1, 1);
+#endif
     }
     wallRollbackOccurred++;
     wallPrevious_sw = now;
@@ -359,13 +366,6 @@ DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd)
 
    result = DYNINSTgetCPUtimeMT_sw();
    return result;
-}
-
-
-
-// Need to implement
-int thread_self() {
-  return 0;
 }
 
 #endif

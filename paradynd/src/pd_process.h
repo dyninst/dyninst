@@ -464,47 +464,7 @@ class pd_process {
    }
 
    bool findAllFuncsByName(resource *func, resource *mod,
-                           BPatch_Vector<BPatch_function *> &res) {
-     const pdvector<pdstring> &f_names = func->names();
-     const pdvector<pdstring> &m_names = mod->names();
-     pdstring func_name = f_names[f_names.size() -1];
-     pdstring mod_name = m_names[m_names.size() -1];
-     BPatch_Vector<BPatch_module *> *mods = dyninst_process->getImage()->getModules();
-     assert(mods);
-     for (unsigned int i = 0; i < mods->size(); ++i) {
-       char nbuf[512];
-       (*mods)[i]->getName(nbuf, 512);
-       if (!strcmp(nbuf, mod_name.c_str())) {
-         BPatch_module *target_mod = (*mods)[i];
-         BPatch_Vector<BPatch_function *> modfuncs;
-         if (NULL == target_mod->findFunction(func_name.c_str(), res, false)
-            || !res.size()) {
-           //fprintf(stderr, "%s[%d]: function %s not found in module %s\n",
-           //       __FILE__, __LINE__, func_name.c_str(), mod_name.c_str());
-           return false;
-         }
-         if (res.size() > 1)
-           fprintf(stderr, "%s[%d]:  found %d funcs matching '%s'\n", __FILE__, __LINE__,
-                  func_name.c_str());
-         return true;
-       }
-     }
-
-     BPatch_image *appImage = dyninst_process->getImage();
-     if (NULL == appImage->findFunction(func_name.c_str(), res, false)
-        || !res.size()) {
-          //fprintf(stderr, "%s[%d]: function %s not found in image\n",
-          //        __FILE__, __LINE__, func_name.c_str());
-       return false;
-     }
-     
-     if (res.size() > 1)
-       fprintf(stderr, "%s[%d]:  found %d funcs matching '%s'\n", __FILE__, __LINE__,
-               func_name.c_str());
-
-     return true;
-   }
-
+                           BPatch_Vector<BPatch_function *> &res);
    pd_image *getImage() const { return img; }
 
    BPatch_Vector<BPatch_function *> *getIncludedFunctions(BPatch_module *mod); 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.147 2004/12/03 21:15:05 legendre Exp $
+// $Id: linux.C,v 1.148 2005/01/11 22:46:34 legendre Exp $
 
 #include <fstream>
 
@@ -51,9 +51,12 @@
 #include <asm/ptrace.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <dlfcn.h>
 #include <sys/user.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <sys/resource.h>
 #include <math.h> // for floor()
 #include <unistd.h> // for sysconf()
@@ -130,6 +133,8 @@ extern void generateBreakPoint(instruction &insn);
 #if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
 #endif
+
+static int count = 0;
 
 bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
    bool needToCont = false;
@@ -213,11 +218,6 @@ bool checkForAndHandleProcessEventOnLwp(bool block, dyn_lwp *lwp) {
    return true;
 }
 #endif
-
-bool dyn_lwp::stop_() {
-	enqStop();
-	return ( P_kill( get_lwp_id(), SIGSTOP ) != -1 );
-	} /* end dyn_lwp::stop_() */
 
 void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
 
@@ -330,6 +330,8 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
       // Got a signal, process is stopped.
       if(process::IndependentLwpControl() &&
          pertinentProc->getRepresentativeLWP() == NULL) {
+         if (!pertinentProc->getInitialThread())
+	   return false; //We must be shutting down
          pertinentLWP = pertinentProc->getInitialThread()->get_lwp();
       } else {
          pertinentLWP = pertinentProc->getRepresentativeLWP();
@@ -376,23 +378,20 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
            decodeRTSignal(pertinentProc, why, what, info);
            break;
         case SIGTRAP:
-           // We use int03s (traps) to do instrumentation when there
-           // isn't enough room to insert a branch.
-        { // make switch happy
-            
-            Frame sigframe = pertinentLWP->getActiveFrame();
-            if (pertinentProc->trampTrapMapping.defines(sigframe.getPC())) {
-                why = procInstPointTrap;
-                info = pertinentProc->trampTrapMapping[sigframe.getPC()];
-            }
-            // Also seen traps at PC+1
-            else if (pertinentProc->trampTrapMapping.defines(sigframe.getPC()-1)) {
-                why = procInstPointTrap;
-                info = pertinentProc->trampTrapMapping[sigframe.getPC()-1];
-            }
-        }
-        
+        {
+           Frame sigframe = pertinentLWP->getActiveFrame();
+           if (pertinentProc->trampTrapMapping.defines(sigframe.getPC())) {
+              why = procInstPointTrap;
+              info = pertinentProc->trampTrapMapping[sigframe.getPC()];
+           }
+           // Also seen traps at PC+1
+           else if (pertinentProc->trampTrapMapping.defines(sigframe.getPC()-1)) 
+           {
+              why = procInstPointTrap;
+              info = pertinentProc->trampTrapMapping[sigframe.getPC()-1];
+           }
            break;
+        }
         case SIGCHLD:
            // Linux fork() sends a SIGCHLD once the fork has been created
            why = procForkSigChild;
@@ -567,44 +566,14 @@ bool process::unsetProcessFlags(){
 
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
 
-static bool parse_procstat_pending(char *statfile, unsigned long *shgsigpend) {
-     /* Advance to sigpending int */
-   char *t = strstr(statfile, "ShdPnd:");
-   if(! t)
-      return false;
-
-   char *res = t+8;
-   res[16] = 0;
-   *shgsigpend = strtoul(res, NULL, 8);
-   return true;
+static int lwp_kill(int pid, int sig)
+{
+  int result = P_tkill(pid, sig);
+  if (result == -1 && errno == ENOSYS)
+    result = P_kill(pid, sig);
+  return result;
 }
 
-bool dyn_lwp::isStopPending() const {
-   int fd;
-   char name[32];
-   char buf[400];
-   unsigned long shdsigpend;
-   
-   sprintf(name, "/proc/%d/status", get_lwp_id());
-
-   /* Read current contents of /proc/pid/status */
-   fd = open(name, O_RDONLY);
-   assert(fd >= 0);
-   assert(read(fd, buf, sizeof(buf)) > 0);
-   close(fd);
-   buf[399] = 0;
-   
-   /* Parse status and pending signals */
-   bool couldparse = parse_procstat_pending(buf, &shdsigpend);
-
-   if(couldparse) {
-      if(shdsigpend & 040000) {
-         return true;
-      }
-   }
-
-   return false;
-}
 
 /**
  * Return the state of the process from /proc/pid/stat.
@@ -650,12 +619,124 @@ bool dyn_lwp::isRunning() const {
   return (result != 'T');
 }
 
-// TODO is this safe here ?
+/**
+ * Reads events through a waitpid until a SIGSTOP blocks a LWP.
+ *  p - The process to work with
+ *  pid - If -1, then take a SIGSTOP from any lwp.  If non-zero then 
+ *        only take SIGSTOPs from that pid.
+ *  shouldBlock - Should we block until we get a SIGSTOP?
+ **/
+static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
+{
+  procevent new_event;
+  bool gotevent, suppress_conts;
+  int result;
+  dyn_lwp *stopped_lwp = NULL;
+  pdvector<int> other_sigs;
+  pdvector<int> other_lwps;
+  unsigned i;
+
+  //fprintf(stderr, "doWaitUntilStopped called on %d (shouldBlock = %d) \n", 
+  //	  pid, (int) shouldBlock);
+
+  while (true)
+  {
+    gotevent = checkForEventLinux(&new_event, pid, shouldBlock, __WALL);
+    if (!gotevent)
+    {
+      //fprintf(stderr, "Didn't get an event\n");
+       break;
+    }
+
+    //fprintf(stderr, "\twhy = %d, what = %d, lwp = %d\n",
+    //	    new_event.why, new_event.what, new_event.lwp->get_lwp_id());
+
+    if (didProcReceiveSignal(new_event.why) && (new_event.what != SIGSTOP) 
+	|| didProcReceiveInstTrap(new_event.why))
+    {
+      /**
+       * We caught a non-SIGTOP signal, let's throw it back.
+       **/
+      if (didProcReceiveSignal(new_event.why) && 
+	  new_event.what != SIGILL && new_event.what != SIGTRAP &&
+	  new_event.what != SIGFPE && new_event.what != SIGSEGV &&
+	  new_event.what != SIGBUS)
+      {
+	//We don't actually throw back signals that are caused by 
+	// executing an instruction.  We can just drop these and
+	// let the continueLWP_ re-execute the instruction and cause
+	// it to be rethrown.
+	other_sigs.push_back(new_event.what);
+	other_lwps.push_back(new_event.lwp->get_lwp_id());
+	//fprintf(stderr, "\tpostponing %d\n", new_event.what);
+      }
+      else if (didProcReceiveInstTrap(new_event.why)) {
+	//fprintf(stderr, "Received trap\n");
+	new_event.lwp->changePC(new_event.lwp->getActiveFrame().getPC()-1, 
+				NULL);
+      }
+      else
+      {
+	//fprintf(stderr, "\tdropped %d\n", new_event.what);
+      }
+
+      new_event.lwp->continueLWP_(0);
+      new_event.proc->set_lwp_status(new_event.lwp, running);
+      continue;
+    }
+
+    suppress_conts =  (new_event.proc->getPid() != p->getPid() ||
+		       new_event.why == procSyscallEntry);
+    if (suppress_conts)
+    { 
+      //fprintf(stderr, "\tHandled, no suppression\n");
+      result = getSH()->handleProcessEvent(new_event);
+      continue;
+    }
+    else
+    {
+      p->setSuppressEventConts(true);    
+      result = getSH()->handleProcessEvent(new_event);
+      p->setSuppressEventConts(false);
+      //fprintf(stderr, "\tHandled, with suppression\n");
+    }
+
+    if (p->status() == exited)
+    {
+      //fprintf(stderr, "\tApp exited\n");
+      return NULL;
+    }
+
+    if (didProcReceiveSignal(new_event.why) && (new_event.what == SIGSTOP))
+    {
+      //fprintf(stderr, "\tGot my SIGSTOP\n");
+      stopped_lwp = new_event.lwp;
+      break;
+    }
+  }
+
+  assert(other_sigs.size() == other_lwps.size());
+  for (i = 0; i < other_sigs.size(); i++)
+  {
+    //Throw back the extra signals we caught.
+    //fprintf(stderr, "\tResending %d to %d\n", other_sigs[i], other_lwps[i]);
+    lwp_kill(other_lwps[i], other_sigs[i]);
+  }
+
+  if (stopped_lwp)
+    return stopped_lwp->status() == stopped ? stopped_lwp : NULL;
+  else 
+    return NULL;
+}
+
+bool dyn_lwp::removeSigStop()
+{
+  return (lwp_kill(get_lwp_id(), SIGCONT) == 0);
+}
+
+
 bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    // we don't want to operate on the process in this state
-   ptraceOps++; 
-   ptraceOtherOps++;
-
    int arg3 = 0;
    int arg4 = 0;
    if(signalToContinueWith != dyn_lwp::NoSignal) {
@@ -664,14 +745,134 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    }
 
    if (proc()->suppressEventConts())
+   {
      return false;
-
-   int ret = P_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4);
-   if (ret == -1) {
-      return false;
    }
 
+   ptraceOps++; 
+   ptraceOtherOps++;
+
+   int ret = P_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4);
+   if (ret == 0)
+     return true;
+
+   /**
+    * A stopped ptrace'd process can be in two states on Linux.
+    * If it blocked on a signal, but never received a PTRACE_CONT,
+    * then it should be continued with a PTRACE_CONT.
+    *
+    * If the kernel couldn't find an awake thread to deliver the signal to,
+    * it'll grab anyone (usually the last) and wake them up for long enough
+    * to deliver the signal.  This leaves that thread is a different state
+    * than the others, and it won't actually respond to the PTRACE_CONT.  
+    **/
+
+   ret = P_kill(get_lwp_id(), SIGCONT);
+   if (ret == -1)
+     return false;
    return true;
+}
+
+bool dyn_lwp::waitUntilStopped()
+{
+  if (status() == stopped)
+  {
+    return true;
+  }
+
+  return (doWaitUntilStopped(proc(), get_lwp_id(), true) != NULL);
+}
+
+bool dyn_lwp::stop_() 
+{
+  return (lwp_kill(get_lwp_id(), SIGSTOP) == 0);
+} 
+
+bool process::continueProc_(int sig)
+{
+  bool no_err = true;
+  dyn_lwp *lwp;
+  unsigned index = 0; 
+
+  //Continue all real LWPs
+  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+  while (lwp_iter.next(index, lwp))
+  {
+    if (lwp->status() == running)
+      continue;
+
+    bool result = lwp->continueLWP(sig);
+    if (result)
+      set_lwp_status(lwp, running);
+    else
+      no_err = false;
+  }
+
+  //Continue any representative LWP
+  if (representativeLWP && representativeLWP->status() != running)
+  {
+    bool result = representativeLWP->continueLWP(sig);
+    if (result)
+      set_lwp_status(representativeLWP, running);
+    else
+      no_err = false;
+  }
+
+  return no_err;
+}
+
+bool process::stop_()
+{
+  int result;
+  
+  count++;
+
+  //Stop the main process
+  result = P_kill(getPid(), SIGSTOP);
+  if (result == -1) 
+  {
+    perror("Couldn't send SIGSTOP\n");
+    return false;
+  }
+
+  dyn_lwp *lwp = waitUntilLWPStops();
+  if (!lwp)
+  {
+    return false;
+  }
+  if (status() == exited)
+    return false;
+
+  //Stop all other LWPs
+  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+  unsigned index = 0;
+  
+  while(lwp_iter.next(index, lwp))
+  {
+    lwp->pauseLWP(true);
+  }
+
+  return true;
+}
+
+bool process::waitUntilStopped()
+{
+  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+  dyn_lwp *lwp;
+  unsigned index = 0;
+  bool result = true;
+
+  while(lwp_iter.next(index, lwp))
+  {
+    result &= lwp->waitUntilStopped();
+  }
+
+  return result;
+}
+
+dyn_lwp *process::waitUntilLWPStops()
+{
+  return doWaitUntilStopped(this, -1, true);
 }
 
 bool process::terminateProc_()
@@ -682,108 +883,11 @@ bool process::terminateProc_()
       return true;
 }
 
-bool process::waitUntilStopped() {
-   bool result = true;
-   pdvector<dyn_thread *>::iterator iter = threads.begin();
-
-   while(iter != threads.end()) {
-      dyn_thread *thr = *(iter);
-      dyn_lwp *lwp = thr->get_lwp();
-      assert(lwp);
-
-      if(! lwp->waitUntilStopped()) {
-         result = false;
-      }
-      iter++;
-   }
-
-   return result;
-}
-
-bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
-   /* make sure the process is stopped in the eyes of ptrace */
-   bool haveStopped = false;
-   procevent new_event;
-
-   // Loop handling signals until we receive a sigstop. Handle
-   // anything else.
-   int loopCt = 0;
-   while (!haveStopped) {
-      if(lwp->proc()->hasExited()) {
-         return false;
-      }
-
-      if(loopCt>10) 
-      {
-        lwp->stop_();
-        loopCt = 0;
-      }
-
-      bool gotevent = checkForEventLinux(&new_event, lwp->get_lwp_id(), false,
-                                         options);
-      if(gotevent) {
-        //If we got a SIGSTOP for this lwp we'll drop it, otherwise handle
-        //the event.
-        if(didProcReceiveSignal(new_event.why) && new_event.what == SIGSTOP &&
-           new_event.lwp == lwp)
-        {
-#if defined( os_linux )
-	  lwp->deqStop();
-#endif
-	  haveStopped = true;
-	  continue;
-        }
-        getSH()->handleProcessEvent(new_event);
-      }
-      else if (lwp->status() == stopped)
-      {
-	//We've waited long enough for the stop.  If another event
-	// did the jobs for us, we'll accept it and move on.  Note
-	// that this may result in extra SIGSTOPS.
-	haveStopped = true;
-	continue;
-      }      
-      else
-      {
-	// a slight delay to lesson impact of spinning
-	// *** important for performance ***
-	struct timeval timeout;
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 100000; //.1 seconds
-	select(0, NULL, NULL, NULL, &timeout);
-	loopCt++;
-      }
-   }
-   
-   /**
-    * The thread will not be marked as stopped until it gets scheduled.  
-    * We've got to wait for this
-    **/
-   while (lwp->isRunning())
-   {
-      struct timeval timeout;
-      timeout.tv_sec = 0;
-      timeout.tv_usec = 1;
-      select(0, NULL, NULL, NULL, &timeout);
-   }
-   return true;
-}
-
-bool dyn_lwp::waitUntilStopped() {
-   bool res;
-   if(proc_->getInitialThread()->get_lwp() == this) {
-      res = waitUntilStoppedGeneral(this, 0);
-   } else {
-      res = waitUntilStoppedGeneral(this, __WCLONE);
-   }
-   return res;
-}
-
-
 void dyn_lwp::realLWP_detach_() {
     if(! proc_->isAttached()) {
+      if (! proc_->hasExited())
         cerr << "Detaching, but not attached" << endl;
-        return;
+      return;
     }
     
     cerr <<"Detaching..." << endl;
@@ -983,13 +1087,32 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
 // You know, /proc/*/exe is a perfectly good link (directly to the inode) to
 // the executable file, who cares where the executable really is, we can open
 // this link. - nash
-pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid) {
+pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid)
+{
   return pdstring("/proc/") + pdstring(pid) + "/exe";
 }
 
-void process::recognize_threads(pdvector<unsigned> * /*completed_lwps*/) {
-   // implement when handling forks for linux multi-threaded programs
-}
+
+void process::determineLWPs(pdvector<unsigned> *all_lwps)
+{
+  char procdir[128];
+  struct dirent *direntry;
+  
+  sprintf(procdir, "/proc/%d/task", getPid());
+  DIR *dirhandle = opendir(procdir);
+
+  //Only works on Linux 2.6
+  if (dirhandle)
+  {
+    while((direntry = readdir(dirhandle)) != NULL) {
+      unsigned lwp_id = atoi(direntry->d_name);
+      if (lwp_id) 
+	all_lwps->push_back(lwp_id);
+    }
+    closedir(dirhandle);
+    return;
+  }
+} 
 
 #if !defined(BPATCH_LIBRARY)
 #ifdef PAPI
@@ -1437,10 +1560,8 @@ bool dyn_lwp::realLWP_attach_() {
    char procName[128];
    sprintf(procName, "/proc/%d/mem", get_lwp_id());
    fd_ = P_open(procName, O_RDWR, 0);
-   if (fd_ < 0) {
-      cerr << "  failed to open file " << procName << ", ret false\n";
-      return false;
-   }
+   if (fd_ < 0) 
+     fd_ = INVALID_HANDLE_VALUE;
 
    attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
    if( 0 != P_ptrace(PTRACE_ATTACH, get_lwp_id(), 0, 0) )
@@ -1463,10 +1584,8 @@ bool dyn_lwp::representativeLWP_attach_() {
    char procName[128];
    sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
    fd_ = P_open(procName, O_RDWR, 0);
-   if (fd_ < 0) {
-      cerr << "  failed to open file " << procName << ", ret false\n";
-      return false;
-   }
+   if (fd_ < 0) 
+     fd_ = INVALID_HANDLE_VALUE;
    
    bool running = false;
    if( proc_->wasCreatedViaAttach() )

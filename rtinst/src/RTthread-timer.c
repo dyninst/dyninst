@@ -90,10 +90,10 @@ void _VirtualTimerStart(virtualTimer *timer, int context){
   timer->counter++;
   
   timer->protector2++;
-/*  
-  fprintf(stderr, "vtimer_start at addr 0x%x, lwp is %d\n", timer,
-          timer->lwp);
-*/
+  
+  //fprintf(stderr, "vtimer_start at addr 0x%x, lwp is %d\n", timer,
+  //        timer->lwp);
+
   assert(timer->protector1 == timer->protector2);
 }
 
@@ -116,6 +116,8 @@ void _VirtualTimerStop(virtualTimer* timer) {
   timer->counter--;
   timer->protector2++;
   assert(timer->protector1 == timer->protector2);
+  //fprintf(stderr, "vtimer_stop at addr 0x%x, lwp is %d\n", timer,
+  //        timer->lwp);
 }
 
 
@@ -177,7 +179,7 @@ rawTime64 getThreadCPUTime(unsigned index, int *valid) {
   }
 }
 
-#define PRINTOUT_TIMER(t)   fprintf(stderr, "Timer (%x): total %lld, start %lld, counter %d, index %u, p1 %d, p2 %d\n", (unsigned) t, t->total, t->start, t->counter, t->index, t->protector1, t->protector2);
+#define PRINTOUT_TIMER(l, s, t)   fprintf(stderr, "%d %s Timer (%x): total %lld, start %lld, counter %d, index %u, p1 %d, p2 %d\n", l, s, (unsigned) t, t->total, t->start, t->counter, t->index, t->protector1, t->protector2);
 
 
 /*
@@ -193,7 +195,7 @@ void DYNINSTstartThreadTimer(tTimer* timer)
 #else
    unsigned index = DYNINSTthreadIndexFAST();
 #endif
-   
+
    if (indexToThreads[index] != P_thread_self()) {
        return;
    }
@@ -220,7 +222,10 @@ void DYNINSTstartThreadTimer(tTimer* timer)
    timer->counter++;
    MEMORY_BARRIER;
    timer->protector2++;
-   /* PRINTOUT_TIMER(timer); */
+
+   //   virtualTimer *vt = &(virtualTimers[index]);
+   //   PRINTOUT_TIMER(vt->lwp, "start", timer);
+
    assert(timer->protector1 == timer->protector2);
 }
 
@@ -233,7 +238,7 @@ void DYNINSTstopThreadTimer(tTimer* timer)
 #else
    unsigned index = DYNINSTthreadIndexFAST();
 #endif
-    
+   
     if (indexToThreads[index] != P_thread_self()) {
         return;
     }
@@ -260,8 +265,9 @@ void DYNINSTstopThreadTimer(tTimer* timer)
     if (timer->counter > 0) timer->counter--; 
    MEMORY_BARRIER;
    timer->protector2++;
-   
-   /* PRINTOUT_TIMER(timer); */
+
+   //virtualTimer *vt = &(virtualTimers[index]);
+   //PRINTOUT_TIMER(vt->lwp, "stop", timer);
    assert(timer->protector1 == timer->protector2);
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.172 2004/10/07 00:45:59 jaw Exp $
+// $Id: perfStream.C,v 1.173 2005/01/11 22:46:40 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h" // getCyclesPerSecond
@@ -840,10 +840,10 @@ void controllerMainLoop(bool check_buffer_first)
               // expect to have signals etc. occur outside of the
               // process (object)-layer code
               for (unsigned i = 0; i < events.size(); i++) {
-                  fprintf(stderr, "Unhandled event: (why %d, what %d) on process %d\n",
-                          events[i]->why,
-                          events[i]->what,
-                          events[i]->proc->getPid());
+		//fprintf(stderr, "Unhandled event: (why %d, what %d) on process %d\n",
+                //          events[i]->why,
+                //          events[i]->what,
+                //          events[i]->proc->getPid());
 #if !defined(os_windows)
                   if (events[i]->why == procSignalled)
                       forwardSigToProcess(*(events[i]));

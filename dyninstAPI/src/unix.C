@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.131 2004/12/09 05:01:20 rchen Exp $
+// $Id: unix.C,v 1.132 2005/01/11 22:46:39 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -514,9 +514,7 @@ int handleSigTrap(const procevent &event) {
                 pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
                 buffer += pdstring(", attached to process, stepping to main");       
                 statusLine(buffer.c_str());		
-                if (!proc->continueProc()) {
-                    assert(0);
-                }
+                proc->continueProc();
             } else {
                 // We couldn't insert the trap... so detach from the process
                 // and let it run. 
@@ -575,10 +573,8 @@ int handleSigTrap(const procevent &event) {
     if(proc->isDynamicallyLinked()){
         if(proc->handleIfDueToSharedObjectMapping()){
             signal_cerr << "handle TRAP due to dlopen or dlclose event\n";
-            if (!proc->continueProc()) {
-                assert(0);
-            }
-            return 1;
+            proc->continueProc();
+	    return 1;
         }
     }
 
@@ -629,29 +625,21 @@ int handleSigStopNInt(const procevent &event) {
        retval = 1;
    }
    else {
-#if defined( os_linux )
-     /**
-      * Extra sig stops are possible on Linux.  numStopsPending()
-      * represents the number of stops we sent to the lwp that
-      * we haven't gotten back.  If this stop does seem to be an
-      * extra, we'll simply continue the lwp.  
-      * See waitUntilStoppedGeneral() for the reason we may get extra stops.
-      **/
-     if (event.lwp->numStopsPending() > 0 || proc->multithread_capable())
-     {
-       proc->continueProc();
-       retval = 1;
-     }
-     else
+#if defined(os_linux)
+      // Linux uses SIGSTOPs for process control.  If the SIGSTOP
+      // came during a process::pause (which we would know because
+      // suppressEventConts() is set) then we'll handle the signal.
+      // If it comes at another time we'll assume it came from something
+      // like a Dyninst Breakpoint and not handle it.      
+      proc->set_lwp_status(event.lwp, stopped);
+      retval = proc->suppressEventConts();
+#else
+      signal_cerr << "unhandled SIGSTOP for pid " << proc->getPid() 
+		  << " so just leaving process in paused state.\n" 
+		  << std::flush;
 #endif
-       signal_cerr << "unhandled SIGSTOP for pid " << proc->getPid() 
-                   << " so just leaving process in paused state.\n" 
-                   << std::flush;
    }
 
-#if defined( os_linux )
-   event.lwp->deqStop();
-#endif
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
    // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
@@ -708,7 +696,7 @@ int handleSignal(const procevent &event) {
          // Big one's up top. We use traps for most of our process control
          ret = handleSigTrap(event);
 
- #if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
+#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
          //after we have handled a trap on AIX, be sure we reset the
          //nextTrapIsFork flag. This flag may be reset in handleSigTrap 
          //on AIX 4.x  It will not be reset in that function on AIX 5.
@@ -720,7 +708,7 @@ int handleSignal(const procevent &event) {
          //SIGTRAP. If this flag is still set dyninst will just eat the
          //trap rather than passing it back to the mutatee.
          proc->nextTrapIsFork = false; 
- #endif
+#endif
 
 /////////////////////////////////////////////
 // Trap based instrumentation
@@ -748,20 +736,23 @@ int handleSignal(const procevent &event) {
       case SIGCHLD:
          // Ignore
          ret = 1;
-	 proc->continueProc();
+         proc->continueProc();
          break;
-         // Else fall through
       case SIGIOT:
       case SIGBUS:
       case SIGSEGV:
           // Unhandled 
          break;
       case SIGCONT:
-         // Should inform the mutator/daemon that the process is running
+#if defined(os_linux)
+         ret = 1;
+         break;
+#endif
       case SIGALRM:
       case SIGUSR1:
       case SIGUSR2:
       case SIGVTALRM:
+         proc->set_lwp_status(event.lwp, stopped);
       default:
          ret = 0;
          break;
@@ -1015,7 +1006,7 @@ int signalHandler::handleProcessEvent(const procevent &event) {
         sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
                 proc->getPid(), event.what);
         statusLine(errorLine);
-        logLine(errorLine);
+        //logLine(errorLine);
         // triggerNormalExitCallback function gets called from event
         // triggered by exit() entry
         proc->handleProcessExit();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.306 2004/12/09 05:01:13 rchen Exp $
+/* $Id: process.h,v 1.307 2005/01/11 22:46:36 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -476,6 +476,8 @@ class process {
 
   void installInstrRequests(const pdvector<instMapping*> &requests);
   void recognize_threads(pdvector<unsigned> *completed_lwps);
+  void determineLWPs(pdvector<unsigned> *pids);
+
   int getPid() const { return pid;}
 
   bool heapIsOk(const pdvector<sym_data>&);
@@ -1187,7 +1189,7 @@ private:
   bool flushInstructionCache_(void *baseAddr, size_t size); //ccw 25 june 2001
   void clearProcessEvents();
 
-  bool continueProc_();
+  bool continueProc_(int sig);
   
   bool terminateProc_();
   bool dumpCore_(const pdstring coreFile);
@@ -1197,8 +1199,12 @@ private:
   dyn_lwp *stop_an_lwp(bool *wasRunning);
 
   // stops a process
+  bool stop_();
+  // wait until the process stops
   bool waitUntilStopped();
-
+  // wait until any lwp in a process stops
+  dyn_lwp *waitUntilLWPStops();
+  
  public:
 
   // returns true iff ok to operate on the process (attached)
