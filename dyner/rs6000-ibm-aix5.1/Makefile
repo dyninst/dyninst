@@ -1,7 +1,7 @@
 #
 # Makefile for dyner and test programs on AIX.
 #
-# $Id: Makefile,v 1.1 2003/03/31 17:45:55 buck Exp $
+# $Id: Makefile,v 1.2 2003/04/08 19:41:45 mirg Exp $
 #
 
 USES_TCLTK = true
@@ -11,7 +11,8 @@ USES_TCLTK = true
 
 TO_CORE =       ../..
 NO_OPT_FLAG=true
-NO_IMPLICIT_TEMPLATES=true
+INSTANTIATE_TEMPLATES = true
+# NO_IMPLICIT_TEMPLATES=true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
