@@ -39,30 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * dummy.C
+ * $Id: dummy.C,v 1.4 1999/07/19 22:54:06 wylie Exp $
  *
  * Miscellaneous functions and globals that are defined in paradynd modules
  * which aren't being included in the library.
- *
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 
 int traceSocket = 0;
 int traceSocket_fd = 0;
-char errorLine[1024];
-
-void logLine(char const *line)
-{
-    // error should be displayed by error callback.
-    // fprintf(stderr, line);
-}
-
-void statusLine(char const *)
-{
-    // don't bother with these
-}
 
 void cleanUpAndExit(int status)
 {
