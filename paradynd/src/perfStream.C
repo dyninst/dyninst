@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.176 2005/03/03 18:03:06 bernat Exp $
+// $Id: perfStream.C,v 1.177 2005/03/03 21:55:29 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h" // getCyclesPerSecond
@@ -256,6 +256,10 @@ void logLine(const char *line) {
 }
 
 void statusLineN(const char *line, int n, bool force) {
+  if (frontendExited) {
+    fprintf(stderr, "Skipping status line, frontend exited:\n%s\n", line);
+    return;
+  }
 
 #if defined(THROTTLE_RS)
     bool doit = force;
@@ -572,7 +576,6 @@ void doDeferredRPCs() {
         if (status == exited) continue;
         if (status == neonatal) continue;
 #endif
-        
         theProc->launchRPCs(!theProc->isStopped());
     }
 }
@@ -854,10 +857,12 @@ void controllerMainLoop(bool check_buffer_first)
               // expect to have signals etc. occur outside of the
               // process (object)-layer code
               for (unsigned i = 0; i < events.size(); i++) {
-		//fprintf(stderr, "Unhandled event: (why %d, what %d) on process %d\n",
-                //          events[i]->why,
-                //          events[i]->what,
-                //          events[i]->proc->getPid());
+#if 0
+		fprintf(stderr, "Unhandled event: (why %d, what %d) on process %d\n",
+                          events[i]->why,
+                          events[i]->what,
+                          events[i]->proc->getPid());
+#endif
 #if !defined(os_windows)
                   if (events[i]->why == procSignalled)
                       forwardSigToProcess(*(events[i]));
