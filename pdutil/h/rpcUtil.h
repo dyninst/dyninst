@@ -2,6 +2,11 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
+// prevents malloc from being redefined
+#ifdef MIPS
+#define MALLOC_DEFINED_AS_VOID
+#endif
+
 #include <stdio.h>
 #include <strings.h>
 #include <string.h>
