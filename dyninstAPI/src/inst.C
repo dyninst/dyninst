@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.90 2002/04/11 19:30:36 schendel Exp $
+// $Id: inst.C,v 1.91 2002/04/17 16:37:40 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -228,7 +228,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     instInstance *inst = addInstFunc(proc, location, ast, when, order,
 				     noCost, retInstance, deferred,
                                      trampRecursiveDesired);
-    hookupMiniTramp(inst);
+    if(inst!=NULL)  hookupMiniTramp(inst);
     if (retInstance) {
        // Looking at the code for the other addInstFunc below, it seems that
        // this will always be true...retInstance is never NULL.
