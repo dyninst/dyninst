@@ -38,8 +38,9 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-#include <windows.h>
-#include <imagehlp.h>
+
+// $Id: CodeView.C,v 1.2 1999/07/14 17:33:49 paradyn Exp $
+
 #include <assert.h>
 
 #include <iostream.h>
