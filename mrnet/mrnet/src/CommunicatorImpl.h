@@ -15,6 +15,9 @@ class MC_CommunicatorImpl: public MC_Communicator{
   std::vector <MC_RemoteNode *> downstream_nodes; 
   std::vector <MC_EndPoint *> * endpoints;   //BackEnds addressed by communicator
 
+  // used to construct broadcast communicator
+  MC_CommunicatorImpl( const std::vector<MC_EndPoint*>& eps );
+
  public:
 
   MC_CommunicatorImpl(void);
@@ -23,13 +26,13 @@ class MC_CommunicatorImpl: public MC_Communicator{
   static MC_CommunicatorImpl * get_BroadcastCommunicator(void);
   static void create_BroadcastCommunicator(std::vector <MC_EndPoint *> *);
 
-  std::vector <MC_EndPoint *> * get_EndPoints();
+  const std::vector <MC_EndPoint *> * get_EndPoints() const;
   virtual int add_EndPoint(const char * hostname, unsigned short port);
   virtual int add_EndPoint(MC_EndPoint *);
-  virtual int size();
-  virtual const char * get_HostName(int); 
-  virtual unsigned short get_Port(int);
-  virtual unsigned int get_Id(int);
+  virtual int size() const;
+  virtual const char * get_HostName(int) const; 
+  virtual unsigned short get_Port(int) const;
+  virtual unsigned int get_Id(int) const;
 };
 
 #endif /* __mc_communicator_h */

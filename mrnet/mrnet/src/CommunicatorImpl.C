@@ -17,10 +17,9 @@ MC_CommunicatorImpl * MC_CommunicatorImpl::get_BroadcastCommunicator(void)
 void MC_CommunicatorImpl::create_BroadcastCommunicator(std::vector <MC_EndPoint *> * _endpoints)
 {
   //unsigned int i;
-  comm_Broadcast = new MC_CommunicatorImpl();
+  comm_Broadcast = new MC_CommunicatorImpl( *_endpoints );
 
   //mc_printf(MCFL, stderr, "In create_BroadCastComm(). comm_bc: [ ");
-  comm_Broadcast->endpoints = _endpoints;
   //for(i=0; i<comm_Broadcast->endpoints->size(); i++){
     //_fprintf((stderr, "%s:%d:%d, ",
               //(*comm_Broadcast->endpoints)[i]->get_HostName(),
@@ -35,16 +34,25 @@ void MC_CommunicatorImpl::create_BroadcastCommunicator(std::vector <MC_EndPoint 
 }
 
 MC_CommunicatorImpl::MC_CommunicatorImpl(void)
+  : endpoints( new std::vector<MC_EndPoint*> )
 {}
 
-MC_CommunicatorImpl::MC_CommunicatorImpl(MC_Communicator &comm)
+MC_CommunicatorImpl::MC_CommunicatorImpl( const std::vector<MC_EndPoint*>& eps )
+  : endpoints( new std::vector<MC_EndPoint*> )
 {
-  endpoints = new std::vector <MC_EndPoint *>;
+    *endpoints = eps;
+}
+
+MC_CommunicatorImpl::MC_CommunicatorImpl(MC_Communicator &comm)
+  : endpoints( new std::vector<MC_EndPoint*> )
+{
   *endpoints = *(static_cast<MC_CommunicatorImpl&>(comm).endpoints);
 }
 
 MC_CommunicatorImpl::~MC_CommunicatorImpl(void)
-{}
+{
+    delete endpoints;
+}
 
 int MC_CommunicatorImpl::add_EndPoint(const char * _hostname, unsigned short _port)
 {
@@ -69,35 +77,49 @@ int MC_CommunicatorImpl::add_EndPoint(MC_EndPoint * new_endpoint)
   }
 }
 
-int MC_CommunicatorImpl::size(void){
-  return MC_Network::network->endpoints->size();
-}
-
-const char * MC_CommunicatorImpl::get_HostName(int id)
+int MC_CommunicatorImpl::size(void) const
 {
-  if( (unsigned int)id >= MC_Network::network->endpoints->size() )
-    return NULL;
-
-  return (*MC_Network::network->endpoints)[id]->get_HostName();
+    assert( endpoints != NULL );
+    return endpoints->size();
 }
 
-unsigned short MC_CommunicatorImpl::get_Port(int id)
+const char * MC_CommunicatorImpl::get_HostName(int id) const
 {
-  if( (unsigned int)id >= MC_Network::network->endpoints->size() )
-    return 0;  //Needs better error code
+    const char* ret = NULL;
 
-  return (*MC_Network::network->endpoints)[id]->get_Port();
+    assert( endpoints != NULL );
+    if( (unsigned int)id < endpoints->size() )
+    {
+        ret = (*endpoints)[id]->get_HostName();
+    }
+    return ret;
 }
 
-unsigned int MC_CommunicatorImpl::get_Id(int id)
+unsigned short MC_CommunicatorImpl::get_Port(int id) const
 {
-  if( (unsigned int)id >= MC_Network::network->endpoints->size() )
-    return 0;  //Needs better error code
+    //Needs better error code
+    unsigned short ret = 0;
 
-  return (*MC_Network::network->endpoints)[id]->get_Id();
+    if( (unsigned int)id < endpoints->size() )
+    {
+        ret = (*endpoints)[id]->get_Port();
+    }
+    return ret;
 }
 
-std::vector <MC_EndPoint *> * MC_CommunicatorImpl::get_EndPoints()
+unsigned int MC_CommunicatorImpl::get_Id(int id) const
+{
+    //Needs better error code
+    unsigned int ret = 0;
+
+    if( (unsigned int)id < endpoints->size() )
+    {
+        ret = (*endpoints)[id]->get_Id();
+    }
+    return ret;
+}
+
+const std::vector <MC_EndPoint *> * MC_CommunicatorImpl::get_EndPoints() const
 {
   return endpoints;
 }
