@@ -262,6 +262,14 @@ void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
 bool mutatorTest1()
 {
 
+  if (mutateeXLC) {
+     appThread->continueExecution();
+     SKIP(TESTNO, TESTNAME);
+     fprintf(stderr, "\txlc optimizes out dynamic call sites for this test\n");
+     sleep_ms(100);
+     return true;
+  }
+
   BPatch_function *func1_1 = findFunction("call1_dispatch", TESTNO, TESTNAME);
   BPatch_function *targetFunc = func1_1;
 

@@ -43,6 +43,7 @@ int passedTest[MAX_TEST+1];
 int debugPrint = 1;
 int isAttached = 0;
 int mutateeIdle = 0;
+int mutateeXLC = 0;
 /*
  * Stop the process (in order to wait for the mutator to finish what it's
  * doing and restart us).
@@ -112,6 +113,7 @@ int call1_dispatch(intFuncArg callme, int arg)
 
 void func1_1()
 {
+
   /*  want to trigger a lot of dynamic calls, and then stop the process. */
   /*  to make sure we test possible race in event handling. */
 
@@ -278,6 +280,11 @@ int main(int iargc, char *argv[])
         printf("Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
+
+     /* set xlc flag if appropriate */
+     mutateeXLC = 0;
+     if (strstr(argv[0], "xlc") || strstr(argv[0], "xlC"))
+        mutateeXLC = 1;
 
     /* see if we should wait for the attach */
     if (useAttach) {
