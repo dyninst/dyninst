@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.67 2003/10/22 16:00:40 schendel Exp $
+// $Id: BPatch.C,v 1.68 2003/12/08 19:03:28 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -852,7 +852,7 @@ bool BPatch::getThreadEventOnly(bool block)
    process *proc;
 
    dyn_lwp *selectedLWP;
-   if ( (proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block,0))
+   if ( (proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block))
         != NULL)
    {
        // There's been a change in a child process

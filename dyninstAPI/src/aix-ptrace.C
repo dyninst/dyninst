@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.13 2003/12/04 19:15:03 schendel Exp $
+// $Id: aix-ptrace.C,v 1.14 2003/12/08 19:03:29 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -879,7 +879,7 @@ bool dyn_lwp::waitUntilStopped() {
       procSignalInfo_t info;
       dyn_lwp *selectedLWP;
       process *proc = decodeProcessEvent(&selectedLWP, getPid(), why, what,
-                                         info, false, 0);
+                                         info, false);
       assert(proc == NULL || proc == proc_);
       
       if (proc == NULL) {
@@ -954,7 +954,7 @@ bool process::loopUntilStopped() {
         procSignalInfo_t info;
         dyn_lwp *selectedLWP;
         process *proc = decodeProcessEvent(&selectedLWP, pid, why, what, info,
-                                           false, 0);
+                                           false);
         assert(proc == NULL ||
                proc == this);
 
@@ -1553,8 +1553,7 @@ int decodeRTSignal(process *proc,
 
 process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
                             procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block,
-                            int wait_options)
+                            procSignalInfo_t &info, bool block) 
 {
     int options;
     if (block) options = 0;
@@ -1661,7 +1660,7 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
                           usleep(500);
                           dyn_lwp *selectedLWP;
                           return decodeProcessEvent(&selectedLWP, wait_arg,
-                                                    why, what, info, block, 0);
+                                                    why, what, info, block);
                       }
                       else {
                           recurse_level = 0;

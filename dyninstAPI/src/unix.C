@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.109 2003/11/24 17:37:58 schendel Exp $
+// $Id: unix.C,v 1.110 2003/12/08 19:03:34 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1107,10 +1107,12 @@ void decodeAndHandleProcessEvent (bool block) {
     procSignalInfo_t info;
     process *proc;
     dyn_lwp *selectedLWP;
-    proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block, 0);
-    if (!proc)
+    proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block);
+
+    if (!proc) {
        return;
-    
+    }
+
     if (!handleProcessEvent(proc, why, what, info)) 
         fprintf(stderr, "handleProcessEvent failed!\n");
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.69 2003/12/04 19:15:05 schendel Exp $
+// $Id: irix.C,v 1.70 2003/12/08 19:03:30 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -422,8 +422,7 @@ int decodeProcStatus(process *proc,
 
 process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
                             procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block,
-                            int wait_options)
+                            procSignalInfo_t &info, bool block)
 {
     why = procUndefined;
     what = 0;

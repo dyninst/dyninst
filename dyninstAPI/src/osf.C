@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.58 2003/10/22 16:00:50 schendel Exp $
+// $Id: osf.C,v 1.59 2003/12/08 19:03:31 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -355,8 +355,7 @@ int decodeProcStatus(process *proc,
 
 process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
                             procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block,
-                            int wait_options)
+                            procSignalInfo_t &info, bool block)
 {
     why = procUndefined;
     what = 0;

@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.40 2003/12/04 19:15:09 schendel Exp $
+// $Id: sol_proc.C,v 1.41 2003/12/08 19:03:33 schendel Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1699,8 +1699,7 @@ void findLWPStoppedFromForkExit(process *currProcess) {
 
 process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
                             procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block,
-                            int wait_options)
+                            procSignalInfo_t &info, bool block)
 {
     why = procUndefined;
     what = 0;
