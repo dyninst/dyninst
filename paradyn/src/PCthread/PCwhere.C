@@ -1,7 +1,12 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.4  1994/05/31 19:11:42  hollings
+ * Revision 1.5  1994/06/14 15:33:59  markc
+ * Modified moreSpecific test to check for conflicting magnifications, where
+ * the magnification has the same base as the current focus, but one is not
+ * an ancestor of the other.
+ *
+ * Revision 1.4  1994/05/31  19:11:42  hollings
  * Changes to permit direct access to resources and resourceLists.
  *
  * Revision 1.3  1994/02/09  22:35:49  hollings
@@ -51,7 +56,7 @@
 static volatile char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.4 1994/05/31 19:11:42 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.5 1994/06/14 15:33:59 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -198,17 +203,21 @@ focusList focus::magnify(resource *param)
     resourceList *c;
     focusList *result;
     resourceList *resList;
+    Boolean conflicts;
 
     // see if we have done this one before.
     result = findMagnifyCache(param);
     if (result) return(*result);
     result = new(focusList);
 
-    parent = moreSpecific(param);
+    parent = moreSpecific(param, conflicts);
     // our current focus is more specific.
     if (!parent) {
+      if (!conflicts) {
 	result->add(this, (void *) this);
 	count = 1;
+      }
+      // do nothing if conflicts = TRUE
     } else {
 	// for each known focus cell.
 	c = param->getChildren();
@@ -336,7 +345,7 @@ focus *focus::constrain(resource *param)
 //   (more magnified) than the corresponding resource in the passed focus.
 // If it is return the more specific focus, otherwise return null.
 //
-focus *focus::moreSpecific(resource *parm)
+focus *focus::moreSpecific(resource *parm, Boolean &conflicts)
 {
     int i;
     focus *nf;
@@ -347,14 +356,24 @@ focus *focus::moreSpecific(resource *parm)
     resourceList *newList;
 
     assert(data);
+    conflicts = FALSE;
     limit = data->getCount();
     newList = new resourceList;
     found = FALSE;
     for (i=0; i < limit; i++) {
 	curr = data->getNth(i);
 	if (curr->isDescendent(parm) == TRUE) {
-	    newList->add(parm);
-	    found = TRUE;
+	  newList->add(parm);
+	  found = TRUE;
+	} else if (strcmp(curr->getName(), parm->getName()) &&
+		   (curr->sameRoot(parm) == TRUE)) {
+	  // if the resource and param have the same root, but
+	  // one is not a descendant of the other,
+	  // and they are not the same, then this
+	  // magnification conflicts with the current focus
+	    conflicts = TRUE;
+	    found = FALSE;
+	    break;
 	} else {
 	    newList->add(curr);
 	}
@@ -389,6 +408,7 @@ void initResources()
     Locks = dataMgr->newResource(context, SyncObject, "SpinLock");
     Barriers = dataMgr->newResource(context, SyncObject, "Barrier");
     Semaphores = dataMgr->newResource(context, SyncObject, "Semaphore");
+    MsgTags = dataMgr->newResource(context, SyncObject, "MsgTag");
 
     whereAxis = new focus(dataMgr->getRootResources());
     globalFocus.addUnique(whereAxis);
@@ -415,6 +435,7 @@ resource *Machines;
 resource *Locks;
 resource *Barriers;
 resource *Semaphores;
+resource *MsgTags;
 
 //
 // Looking at the entire global view.
