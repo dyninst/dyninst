@@ -88,16 +88,19 @@ bool pdThread::updateLWP()
     return true;
   }
 
+  if (!proc->hasInitializedMetaData) {
+    lwp = proc->getDefaultLWP();
+    return true;
+  }
+  
   int lwp_id;
   if (lwp) lwp_id = lwp->get_lwp();
   else lwp_id = 0;
   int vt_lwp = proc->shmMetaData->getVirtualTimer(pos).lwp;
-
   if (vt_lwp < 0) {
     lwp = NULL; // Not currently scheduled
     return false;
   }
-  
   if (lwp_id == vt_lwp) return true;
 
   lwp = proc->getLWP(vt_lwp);

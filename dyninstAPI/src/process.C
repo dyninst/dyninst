@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.360 2002/10/08 22:50:07 bernat Exp $
+// $Id: process.C,v 1.361 2002/10/09 22:03:58 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1956,6 +1956,7 @@ process::process(int iPid, image *iImage, int iTraceLink
   instPointMap(hash_address),
 #endif
 #ifndef BPATCH_LIBRARY
+  hasInitializedMetaData(false),
   shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
   savedRegs(NULL),
@@ -2152,6 +2153,7 @@ process::process(int iPid, image *iSymbols,
   instPointMap(hash_address),
 #endif
 #ifndef BPATCH_LIBRARY
+  hasInitializedMetaData(false),
   shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
   savedRegs(NULL),
@@ -2438,6 +2440,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   instPointMap(hash_address),
 #endif
 #ifndef BPATCH_LIBRARY
+  hasInitializedMetaData(false),
   shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
   savedRegs(NULL),
@@ -2670,6 +2673,7 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 // segment) of the offset meta offset data (used to communicate the location
 // of the shared meta data to the RTinst library)
 Address process::initSharedMetaData() {
+  hasInitializedMetaData = true;
    shmMetaData->mallocInShm();
    shmMetaData->initialize(theSharedMemMgr->cookie, getpid(), getPid());
    shMetaOffsetData = new sharedMetaOffsetData(*theSharedMemMgr, 
@@ -7868,6 +7872,8 @@ void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
 }
 
 #if defined(MT_THREAD)
+
+// Called for new threads
 
 pdThread *process::createThread(
   int tid, 
