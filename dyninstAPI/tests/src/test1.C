@@ -44,7 +44,7 @@ int mutateeCplusplus = 0;
 int mutateeFortran = 0;
 int mutateeF77 = 0;
 bool runAllTests = true;
-const unsigned int MAX_TEST = 38;
+const unsigned int MAX_TEST = 39;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 int saveWorld = 0;
@@ -2215,6 +2215,34 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 	 fprintf(stderr,
 	        "  Mutator cannot distinguish two functions from different shlibs\n");
 	 exit(1);
+    }
+
+    //  Now test regex search
+    //  Not meant to be an extensive check of all regex usage, just that
+    //  the basic mechanism that deals with regexes is not broken
+
+    bpmv.clear();
+    //   regex "^cb" should match all functions that begin with "cb"
+    //   We dont use existing "call" functions here since (at least on
+    //   linux, we also find call_gmon_start().  Thus the dummy fns.
+    if (NULL == modB->findFunction("^cb", bpmv) || (bpmv.size() != 2)) {
+
+	 fprintf(stderr, "**Failed test #21 (findFunction in module, regex)\n");
+         fprintf(stderr, "  Expected 2 functions matching ^cb, got %d\n",
+                            bpmv.size());
+         char buf[128];
+         for (unsigned int i = 0; i < bpmv.size(); ++i) 
+            fprintf(stderr, "  matched function: %s\n", 
+                   bpmv[i]->getName(buf, 128));
+         exit(1);
+    }
+
+    bpmv.clear();
+    if (NULL == modB->findFunction("^cbll21", bpmv) || (bpmv.size() != 1)) {
+	 fprintf(stderr, "**Failed test #21 (findFunction in module, regex)\n");
+         fprintf(stderr, "  Expected 1 function matching ^cbll21, got %d\n",
+                            bpmv.size());
+         exit(1);
     }
 #endif
 }
@@ -4569,7 +4597,64 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
     }
 }
 
+//
+//  Test case 39:  verify that regex search is working
+//
 
+void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
+{
+  //  Note:  regex search by module is covered in test 21
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(ia64_unknown_linux2_4) \
+ || defined(mips_sgi_irix6_4) \
+ || defined(rs6000_ibm_aix4_1)
+
+   BPatch_Vector<BPatch_function *> bpmv;
+
+   //  Not meant to be an extensive check of all regex usage, just that
+    //  the basic mechanism that deals with regexes is not broken
+
+    //   regex "^fucn12" should match all functions that begin with "func12"
+    if (NULL == appImage->findFunction("^func12", bpmv) || (bpmv.size() != 2)) {
+
+         fprintf(stderr, "**Failed test #21 (regex function search)\n");
+         fprintf(stderr, "  Expected 2 functions matching ^func12, got %d\n",
+                            bpmv.size());
+        char buf[128];
+         for (unsigned int i = 0; i < bpmv.size(); ++i)
+            fprintf(stderr, "  matched function: %s\n",
+                   bpmv[i]->getName(buf, 128));
+         exit(1);
+    }
+
+    bpmv.clear();
+    if (NULL == appImage->findFunction("^func12_1", bpmv) 
+       || (bpmv.size() != 1)) {
+         fprintf(stderr, "**Failed test #21 (regex function search)\n");
+         fprintf(stderr, "  Expected 1 function matching ^func12_1, got %d\n",
+                            bpmv.size());
+         exit(1);
+    }
+
+    if (mutateeFortran) return;
+
+    //  Now lets look for a pattern that ought to match something
+    //  in libc (can't check number of hits since libc may vary,
+    //  but can check existence)
+    bpmv.clear();
+    const char *libc_regex = "^inet_n";
+    if (NULL == appImage->findFunction(libc_regex, bpmv) 
+       || (!bpmv.size())) {
+         fprintf(stderr, "**Failed test #21 (regex function search)\n");
+         fprintf(stderr, "  Expected function(s) matching %s\n",libc_regex);
+         exit(1);
+    }
+
+#endif
+}
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/

@@ -21,6 +21,22 @@ void call22_5(int x)
      globalVariable22_3 += x;
      globalVariable22_3 += MAGIC22_5B;
 }
+/* function to make regex (test 21)search non-trivial */
+void cbll21_1()
+{
+     printf("This function was not meant to be called!\n");
+}
+/* function to make regex (test 21)search non-trivial */
+void cbll22_1()
+{
+     printf("This function was not meant to be called!\n");
+}
+
+/* function to make regex (test21) search non-trivial */
+void acbll22_1()
+{
+     printf("This function was not meant to be called!\n");
+}
 
 /* Keep this function at the end of this file to kludgily ensure that
    its base address differs from its counterpart in libtestA.c */
@@ -28,3 +44,4 @@ void call21_1()
 {
      printf("This function was not meant to be called!\n");
 }
+

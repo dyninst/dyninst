@@ -2103,3 +2103,11 @@ C	INTRINSIC IEOR, IAND, IOR
 	END
 
 !------------------------------------------------------------------------------
+
+	SUBROUTINE func39_1
+#include "test1_common.h"
+	passedTest (39) = .true.
+	print *, 'Passed test #39 (regex function search)'
+	END
+
+!------------------------------------------------------------------------------

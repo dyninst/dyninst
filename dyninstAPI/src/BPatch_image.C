@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.47 2003/09/05 16:27:32 schendel Exp $
+// $Id: BPatch_image.C,v 1.48 2003/10/09 07:49:45 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -501,7 +501,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
    if( !regex_case_sensitive )
       cflags |= REG_ICASE;
   
-   cerr << "compiling regex: " <<name<<endl;
+   //cerr << "compiling regex: " <<name<<endl;
 
    if (0 != (err = regcomp( &comp_pat, name, cflags ))) {
       char errbuf[80];
@@ -518,14 +518,14 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
    }
    
    findFunctionPatternInImage(&comp_pat, proc->getImage(), &funcs);
-   cerr << "matched regex: " <<name<<"in symbols, results: "<<funcs.size()<<endl;
+   //cerr << "matched regex: " <<name<<"in symbols, results: "<<funcs.size()<<endl;
 
    if (proc->dynamiclinking && proc->shared_objects) {
       for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
          const image *obj_image = ((*proc->shared_objects)[j])->getImage();
          if (obj_image) {
             findFunctionPatternInImage(&comp_pat, (image*)obj_image, &funcs);
-            cerr << "matched regex: " <<name<<"in so, results: "<<funcs.size()<<endl;
+            //cerr << "matched regex: " <<name<<"in so, results: "<<funcs.size()<<endl;
          }
       }
    }

@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.95 2003/09/23 21:01:10 eli Exp $ */
+/* $Id: test1.mutatee.c,v 1.96 2003/10/09 07:49:45 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2468,6 +2468,26 @@ void func38_1() {
 }
 
 
+/* Test #39 (refex function search) */
+void func39_1() {
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(ia64_unknown_linux2_4) \
+ || defined(mips_sgi_irix6_4) \
+ || defined(rs6000_ibm_aix4_1)
+
+    /* The only possible failures occur in the mutator. */
+    passedTest[ 39 ] = TRUE;
+    printf( "Passed test #39 (regex function search)\n" );
+#else
+   /*  no regex for windows */
+   printf("Skipped test #21 (regex function search)\n");
+   printf("\t- not implemented on this platform\n");
+   passedTest[ 39 ] = TRUE;
+#endif
+}
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -2536,11 +2556,11 @@ void runTests()
 
     if (runTest[31]) func31_1();
     if (runTest[32]) func32_1();
-
     if (runTest[33]) func33_1();
     if (runTest[34]) func34_1();
     if (runTest[35]) func35_1();
     if (runTest[36]) func36_1();    
     if (runTest[37]) func37_1();
     if (runTest[38]) func38_1();
+    if (runTest[39]) func39_1();
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.188 2003/09/19 04:29:22 eli Exp $
+// $Id: symtab.C,v 1.189 2003/10/09 07:49:45 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3043,7 +3043,7 @@ int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, regex_t *
   pdstring fname;
   pdvector<pd_Function *> *fmatches;
   while (iter.next(fname, fmatches)) {
-    if ((*regex_filter_func)(iter.currkey().c_str(), comp_pat)) {
+    if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
       result.push_back(fmatches);
     }
   }
@@ -3052,7 +3052,7 @@ int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, regex_t *
   // This is wasteful in general, but hopefully result.size() is small
   // Besides, a more efficient approach would probably require different
   // data structs
-  cerr <<"pretty regex result.size() = " << result.size() <<endl;
+  //cerr <<"pretty regex result.size() = " << result.size() <<endl;
   for (unsigned int i = 0; i < result.size(); ++i) 
     for (unsigned int j = 0; j < result[i]->size(); ++j) 
       found->push_back((*result[i])[j]);
@@ -3071,7 +3071,7 @@ int image::findFuncVectorByMangledRegex(pdvector<pd_Function *> *found, regex_t 
   pdstring fname;
   pdvector<pd_Function *> *fmatches;
   while (iter.next(fname, fmatches)) {
-    if ((*regex_filter_func)(iter.currkey().c_str(), comp_pat)) {
+    if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
       result.push_back(fmatches);
     }
   }

@@ -389,6 +389,9 @@ int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
 	printf("find function <pattern> [in <module>] - Display a list of functions in the image matching <pattern>.  Regex search will be performed if <pattern> contains regex, with some limitations\n");
     }
 
+    LIMIT_TO("verbose") {
+        printf("verbose - toggles verbose mode error reporting\n");
+    }
     LIMIT_TO("whatis") {
 	printf("whatis <variable> [in <function>] - Display detailed information about\n");
 	printf("     variables in the target program. Local variables and parameters are\n");
@@ -1851,7 +1854,7 @@ void PrintTypeInfo(char *var, BPatch_type *type) {
 int findAndShowCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
   BPatch_Vector<BPatch_function *> functions;// = NULL;
-  if ((argc != 3) || (argc!=5)) {
+  if ((argc != 3) && (argc!=5)) {
     printf("Syntax error !\n");
     return TCL_ERROR;
   }
@@ -1925,6 +1928,12 @@ int ShowFunctions(int argc, TCLCONST char *argv[]) {
     return TCL_OK;
 }
 
+int verboseCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
+{
+  verbose = !verbose;
+  printf("verbose mode is %s\n", verbose ? "on" : "off");
+  return TCL_OK;
+}
 static int stringCompare(const void *a, const void *b)
 {
     return strcmp(*(char **) a, *(char **) b);
@@ -2687,6 +2696,7 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "whatis", whatisVar, NULL, NULL);
     Tcl_CreateCommand(interp, "show", showCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "find", findAndShowCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "verbose", verboseCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "count", countCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "replace", replaceCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "trace", traceCommand, NULL, NULL);
