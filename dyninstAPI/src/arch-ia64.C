@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.36 2004/08/18 21:17:34 rchen Exp $
+// $Id: arch-ia64.C,v 1.37 2005/01/14 20:57:48 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -819,9 +819,10 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
 			initBaseTrampStorageMap( regSpace, 8, pdf->usedFPregs );
 
-			/* Tell generateOriginalAllocFor() to generate the largest frame possible. */
-			regSpace->originalLocals = 8;
-			regSpace->originalOutputs = 0;
+			/* If we did not have a frame originally, create one such that wrapper functions
+			   will work correctly. */
+			regSpace->originalLocals = 0;
+			regSpace->originalOutputs = 8;
 			regSpace->originalRotates = 0;
 
 			/* Our static analysis succeeded. */
