@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.6 1998/04/01 02:23:19 wylie Exp $
+# $Id: make.module.tmpl,v 1.7 1998/04/03 02:18:31 wylie Exp $
 #
 
 SUITE_NAME	= DynInst
@@ -43,16 +43,6 @@ SRCS	     +=	../src/BPatch.C \
 		../src/templates0.C \
 		../src/templates05.C \
 		../src/templates1.C
-
-ifdef INCLUDE_PVM_SUPPORT
-SRCS	     +=	../../paradynd/src/pvm_support.C \
-		../../paradynd/src/host_support.C \
-		../../paradynd/src/task_support.C \
-		../../paradynd/src/templatesPVM.C
-
-CXXFLAGS	+= -DPARADYND_PVM
-LIBS		+= $(PVM_LIB)
-endif
 
 ifdef USES_SHM_SAMPLING
 SRCS 		+= ../../paradynd/src/fastInferiorHeap.C \

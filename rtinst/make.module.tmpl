@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.15 1998/04/01 02:33:04 wylie Exp $
+# $Id: make.module.tmpl,v 1.16 1998/04/03 02:20:59 wylie Exp $
 #
 
 ifndef TARGET
@@ -12,13 +12,15 @@ TARGET		= libdyninstRT.o
 else
 TARGET		= libdyninstRT.so.1
 endif
+endif # TARGET
+
 ifdef INCLUDE_CP_PROFILING
 TARGET2		= libdyninstCP.o
 CP_OBJS		= RTpvmPiggy.o RTcriticalPath.o
 endif
+
 ifdef BUILD_CODE_BLOCKS        
 ALT_TARGET	= DYNINSTstartCode.o DYNINSTendCode.o 
-endif
 endif
 
 MODCC         = $(CC)
@@ -46,11 +48,6 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
-
-#ifndef USES_LIBDYNINSTRT_SO
-#$(TARGET): $(OBJS) $(LIBS)
-#	$(LD) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -lgcc
-#endif
 
 #
 # override standard install rule; provide a default DEST if not already set

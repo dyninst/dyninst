@@ -1,10 +1,10 @@
 #
-# $Id: Makefile,v 1.5 1998/04/01 02:33:14 wylie Exp $
+# $Id: Makefile,v 1.6 1998/04/03 02:21:06 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-USES_PVM = true 
+#INCLUDE_CP_PROFILING = true
 #USES_SHM_SAMPLING = true
 
 # Include standard make configuration stuff that applies to everything
