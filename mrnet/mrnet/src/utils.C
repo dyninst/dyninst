@@ -576,11 +576,11 @@ static int get_local_ip_address(std::string &ip_address)
         ifc.ifc_len = len;
         ifc.ifc_buf = buf;
         //printf("\tCalling ioctl w/ len: %d ...\n", len);
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(aix)
         if( ioctl(sockfd, SIOCGIFCONF, &ifc) < 0 )
 #else
         if( ioctl(sockfd, CSIOCGIFCONF, &ifc) < 0 )  //use on aix
-#endif /* rs6000-ibm-aix4.3 */
+#endif /* aix */
         {
             perror("Failed ioctl()");
             return -1;
