@@ -11,7 +11,7 @@ print_usage()
     return 0
 }
 
-if [ $# -gt 3 ]; then
+if [ $# -gt 2 ]; then
   src_file=$1
   obj_file=$2
   dep_file=$3
@@ -24,6 +24,7 @@ shift
 shift
 shift
 
+incdirs="."
 while [ $# -gt 0 ]
 do
   if [ $1 != "-I" ]; then
@@ -37,16 +38,16 @@ grep_output=`grep "#include *\"" $src_file`
 
 for word in $grep_output
 do
-  if [ $word != "#include" ]; then
-    file=`echo $word | tr -d \"`
-    for dir in $incdirs
-    do
-      if [ -f $dir/$file ]; then
-        inc_files="$inc_files $dir/$file"
-        break
-      fi
-    done
-  fi
+    if [ $word != "#include" ]; then
+        file=`echo $word | tr -d \"`
+        for dir in $incdirs
+        do
+            if [ -f "$dir/$file" ]; then
+                inc_files="$inc_files $dir/$file"
+                break
+            fi
+        done
+    fi
 done
 
 $RM -f $dep_file.tmp
