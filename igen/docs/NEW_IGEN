@@ -8,6 +8,7 @@ New features in Igen.
 5) Type checking for xdr code, thread code.
 6) Examples
 7) Recursive data structures
+8) Const types
 
 1) Arrays must be declared before they are used.
     Why:  Try specifying a pointer to an array of pointers
@@ -94,3 +95,9 @@ New features in Igen.
    igen can handle recursive data structures.  However, it igen bundlers
    will currently go into an endless loop if it attempts to bundle a 
    recursive data structure.  If you need this support, let me know.
+
+8) Const types.  
+   igen allows a type name to be modified with "const" (as ANSI C does?).
+   This eliminated a large number of compiler warnings.  Igen generated
+   functions taking "char*" as argument types, were receiving "const char *"
+   as actual argument types.  "const" is can be used with any type name.
