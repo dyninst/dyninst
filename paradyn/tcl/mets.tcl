@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.2  1994/05/07 23:25:43  karavan
+# Revision 1.3  1994/07/15 04:16:25  hollings
+# Made the resource entry a useful size.
+#
+# Revision 1.2  1994/05/07  23:25:43  karavan
 # added msg if no metrics defined
 #
 # Revision 1.1  1994/05/07  18:11:43  karavan
@@ -59,7 +62,7 @@ proc getMetsAndRes {} {
                 -aspect 1000 -font -Adobe-times-medium-r-normal--*-140*
 
         set f [mkEntry $w.mid.file {top expand padx 20 pady 20} -textvar \
-		resList -bg white]
+		resList -bg white -width 80]
 
         mkFrame $w.bot {top fill expand} -relief raised -border 1
 	button $w.bot.b1 -text "Cancel" -command {destroy $w} -bg red
