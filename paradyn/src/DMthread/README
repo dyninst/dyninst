@@ -39,7 +39,7 @@ persistent_collection: if set, data collection is not disabled when the last
 		       if clear, the last disable for an MI disables data 
 		       collection from the daemons.
 
-on a fold:  if persistent_data flag is set, then the current histogram is
+new phase:  if persistent_data flag is set, then the current histogram is
 	    archived (these data values can be accessed by clients by 
 	    specifying the phaseHandle associated with the old histogram)
 
