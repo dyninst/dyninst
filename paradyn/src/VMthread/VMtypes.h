@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMtypes.h,v $
-/* Revision 1.5  1994/07/07 17:28:02  newhall
-/* fixed compile warnings
+/* Revision 1.6  1994/08/13 20:53:49  newhall
+/* added fields to visi_thread_args type
 /*
+ * Revision 1.5  1994/07/07  17:28:02  newhall
+ * fixed compile warnings
+ *
  * Revision 1.4  1994/05/11  17:28:27  newhall
  * test version 3
  *
@@ -38,14 +41,8 @@
 #include "VISIthread.CLNT.h"
 #include "util/h/list.h"
 
-#define VMOK                1 
-#define VMERROR            -1
-#define VMERROR_BASE	   -40
-#define VMERROR_SUBSCRIPT  -41
-#define VMERROR_MALLOC     -42
-#define VMERROR_VISINOTFOUND -43
-#define VMERROR_MAX	   -49
-
+#define VMOK                  1 
+#define VMERROR               0 
 
 extern thread_key_t visiThrd_key;  // for VISIthread local storage
 extern thread_t VM_tid; // visiManager tid 
@@ -71,6 +68,9 @@ struct visi_thread_argsStruct{
   int argc;
   char **argv;
   int  parent_tid;
+  int  remenuFlag;
+  char *resourceList;
+  char *metricList;
 };
 typedef struct visi_thread_argsStruct visi_thread_args;
 
