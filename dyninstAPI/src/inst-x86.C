@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.61 2000/05/31 18:58:33 nick Exp $
+ * $Id: inst-x86.C,v 1.62 2000/06/20 22:38:57 wylie Exp $
  */
 
 #include <iomanip.h>
@@ -437,14 +437,14 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      if (target < getAddress(0) || target >= getAddress(0) + size()) {
        // jump out of function
        // this is an empty function
-       delete points;
-       delete allInstr;
+       delete [] points;
+       delete [] allInstr;
        return false;
      }
    } else if (insn.isReturn()) {
      // this is an empty function
-     delete points;
-     delete allInstr;
+     delete [] points;
+     delete [] allInstr;
      return false;
    } else if (insn.isCall()) {
      // TODO: handle calls at entry point
@@ -453,8 +453,8 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      //calls += p;
      //points[npoints++] = point_(p, numInsns, CallPt);
      //fprintf(stderr,"Function %s, call at entry point\n", prettyName().string_of());
-     delete points;
-     delete allInstr;
+     delete [] points;
+     delete [] allInstr;
      return false;
    }
 
@@ -621,8 +621,8 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    }
 #endif /* DETACH_ON_THE_FLY */
 
-   delete points;
-   delete allInstr;
+   delete [] points;
+   delete [] allInstr;
 
    return true;
 }
