@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.96 2003/10/09 07:49:45 jaw Exp $ */
+/* $Id: test1.mutatee.c,v 1.97 2003/10/15 16:19:25 eli Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2443,7 +2443,7 @@ void call38_1() {
 	funCall38_2();
 
 	for (j = 0; i < 100; i++) {
-	    for (k = 0; k < j / 50 ; i++) {
+	    for (k = 0; k < i ; i++) {
 		funCall38_3();
 	    }
 	}
