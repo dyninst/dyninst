@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.C,v $
-/* Revision 1.2  1995/09/20 01:24:55  tamches
-/* fixed tclpanic to properly print msg
+/* Revision 1.3  1995/10/17 22:16:58  tamches
+/* Removed masterwindow and several unused gc's.
 /*
+ * Revision 1.2  1995/09/20 01:24:55  tamches
+ * fixed tclpanic to properly print msg
+ *
  * Revision 1.1  1995/07/17  04:59:06  tamches
  * First version of the new where axis
  *
@@ -27,14 +30,16 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 
    display = Tk_Display(theWindow);
 
-   this->theTkWindow = theWindow;
-   masterWindow = Tk_WindowId(theWindow);
+   theTkWindow = theWindow;
 
-   offscreenPixmap = XCreatePixmap(display, masterWindow,
+   offscreenPixmap = XCreatePixmap(display, Tk_WindowId(theTkWindow),
 				   1, // dummy width (for now)
 				   1, // dummy height (for now)
 				   Tk_Depth(theWindow));
-            
+
+   listboxBorderPix = 3;
+   listboxScrollBarWidth = 16;
+
    listboxHeightWhereSBappears = Tk_Height(theTkWindow) * 8 / 10; // 80%
 
    rootTextFontStruct = XLoadQueryFont(display, "*-Helvetica-*-r-*-14-*");
@@ -64,7 +69,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 
    // Erasing:
    values.foreground = grayColor->pixel;
-   erasingGC = XCreateGC(display, masterWindow,
+   erasingGC = XCreateGC(display, Tk_WindowId(theTkWindow),
 			 GCForeground,
 			 &values);
 
@@ -78,39 +83,16 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    // Root Text
    values.foreground = blackColor->pixel;
    values.font = rootTextFontStruct->fid;
-   rootItemTextGC = XCreateGC(display, masterWindow,
+   rootItemTextGC = XCreateGC(display, Tk_WindowId(theTkWindow),
 			      GCForeground | GCFont,
 			      &values);
-
-   values.foreground = pinkColor->pixel;
-   values.font = rootTextFontStruct->fid;
-   highlightedRootItemTextGC = XCreateGC(display, masterWindow,
-					 GCForeground | GCFont,
-					 &values);
-
-   // Root Rectangle
-   values.foreground = pinkColor->pixel;
-   values.background = blackColor->pixel;
-   values.line_width = 2;
-   values.join_style = JoinRound;
-   rootItemRectGC = XCreateGC(display, masterWindow,
-			      GCForeground | GCBackground | GCLineWidth | GCJoinStyle,
-			      &values);
-
-   values.foreground = blackColor->pixel;
-   values.background = pinkColor->pixel;
-   values.line_width = 2;
-   values.join_style = JoinRound;
-   highlightedRootItemRectGC = XCreateGC(display, masterWindow,
-					 GCForeground | GCBackground | GCLineWidth | GCJoinStyle,
-					 &values);
 
    // Master listbox Ray
    values.foreground = cornflowerBlueColor->pixel;
    values.background = grayColor->pixel;
    values.line_width = 2;
    values.cap_style = CapButt;
-   listboxRayGC = XCreateGC(display, masterWindow,
+   listboxRayGC = XCreateGC(display, Tk_WindowId(theTkWindow),
 				  GCForeground | GCBackground | GCLineWidth | GCCapStyle,
 				  &values);
 
@@ -120,7 +102,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    values.background = grayColor->pixel;
    values.line_width = 2;
    values.cap_style = CapButt;
-   subchildRayGC = XCreateGC(display, masterWindow,
+   subchildRayGC = XCreateGC(display, Tk_WindowId(theTkWindow),
 			     GCForeground | GCBackground | GCLineWidth | GCCapStyle,
 			     &values);
 
@@ -144,33 +126,11 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
       exit(5);
    }
 
-   listboxScrollbarBorderDragging = Tk_Get3DBorder(interp, theWindow, Tk_GetUid("gray"));
-   if (listboxScrollbarBorderDragging == NULL) {
-      cerr << interp->result << endl;
-      exit(5);
-   }
-
-   // Master listbox Rect
-   values.foreground = blackColor->pixel;
-   values.background = grayColor->pixel;
-   values.line_width = 1;
-   values.join_style = JoinRound;
-   listboxRectangleGC = XCreateGC(display, masterWindow,
-					GCForeground | GCBackground | GCLineWidth | GCJoinStyle,
-					&values);
-
-   // Master listbox Background
-   values.foreground = cornflowerBlueColor->pixel;
-   values.font = listboxFontStruct->fid; // for drawing highlighted listbox items
-   listboxBackgroundGC = XCreateGC(display, masterWindow,
-					 GCForeground | GCFont,
-					 &values);
-
    // Master listbox Text
    values.foreground = blackColor->pixel;
    values.background = pinkColor->pixel;
    values.font = listboxFontStruct->fid;
-   listboxTextGC = XCreateGC(display, masterWindow,
+   listboxTextGC = XCreateGC(display, Tk_WindowId(theTkWindow),
 				   GCForeground | GCBackground | GCFont,
 				   &values);
 
@@ -180,9 +140,9 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    values.join_style = JoinMiter;
    values.fill_style = FillSolid;
 
-   listboxTriangleGC = XCreateGC(display, masterWindow,
-				       GCForeground | GCBackground | GCJoinStyle | GCFillStyle,
-				       &values);
+   listboxTriangleGC = XCreateGC(display, Tk_WindowId(theTkWindow),
+				 GCForeground | GCBackground | GCJoinStyle | GCFillStyle,
+				 &values);
 
    // Other listbox integers
    listboxHorizPadBeforeText = XTextWidth(listboxFontStruct,
@@ -211,17 +171,12 @@ where4TreeConstants::~where4TreeConstants() {
 
    XFreeGC(display, erasingGC);
    XFreeGC(display, rootItemTextGC);
-   XFreeGC(display, highlightedRootItemTextGC);
-   XFreeGC(display, rootItemRectGC);
-   XFreeGC(display, highlightedRootItemRectGC);
 
    XFreeGC(display, listboxRayGC);
    XFreeGC(display, subchildRayGC);
 
-   XFreeGC(display, listboxRectangleGC);
    XFreeGC(display, listboxTextGC);
    XFreeGC(display, listboxTriangleGC);
-   XFreeGC(display, listboxBackgroundGC);
 
    Tk_FreeColor(grayColor);
    Tk_FreeColor(pinkColor);
@@ -232,4 +187,15 @@ where4TreeConstants::~where4TreeConstants() {
    Tk_Free3DBorder(listboxBorder);
 
    XFreePixmap(display, offscreenPixmap);
+}
+
+void where4TreeConstants::resize() {
+   XFreePixmap(display, offscreenPixmap);
+   offscreenPixmap = XCreatePixmap(display, Tk_WindowId(theTkWindow),
+				   Tk_Width(theTkWindow),
+				   Tk_Height(theTkWindow),
+				   Tk_Depth(theTkWindow));
+
+   listboxHeightWhereSBappears = Tk_Height(theTkWindow) * 8 / 10;
+      // 80%
 }
