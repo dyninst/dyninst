@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.h,v 1.19 2001/02/19 15:37:00 wxd Exp $ */
+/* $Id: whereAxis.h,v 1.20 2002/11/25 23:52:39 schendel Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_
@@ -75,8 +75,10 @@ class whereAxis {
 
    static Tk_3DBorder rootItemTk3DBorder;
    static GC rootItemTextGC;
+   static GC rootRetiredItemTextGC;
    static Tk_3DBorder listboxItem3DBorder;
    static GC listboxItemGC;
+   static GC listboxRetiredItemGC;
    static GC listboxRayGC;
    static GC nonListboxRayGC;
 
@@ -212,6 +214,8 @@ class whereAxis {
 		bool rethinkGraphicsNow,
 		bool resortNow);
 
+   void retireItem(resourceHandle uniqueId);
+
    void recursiveDoneAddingChildren(bool resortNow) {
       rootPtr->recursiveDoneAddingChildren(consts, resortNow);
    }
@@ -230,11 +234,17 @@ class whereAxis {
    static GC getRootItemTextGC() {
       return rootItemTextGC;
    }
+   static GC getRootRetiredItemTextGC() {
+      return rootRetiredItemTextGC;
+   }
    static Tk_3DBorder getListboxItem3DBorder() {
       return listboxItem3DBorder;
    }
    static GC getListboxItemGC() {
       return listboxItemGC;
+   }
+   static GC getListboxRetiredItemGC() {
+      return listboxRetiredItemGC;
    }
    static GC getGCforListboxRay() {
       return listboxRayGC;
