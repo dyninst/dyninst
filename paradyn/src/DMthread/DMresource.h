@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.8  1994/08/05 16:04:01  hollings
+ * Revision 1.9  1994/09/22 00:58:02  markc
+ * Added const to const char* for createResource()
+ *
+ * Revision 1.8  1994/08/05  16:04:01  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.7  1994/07/25  14:55:40  hollings
@@ -84,7 +87,7 @@ class resourceList {
 	unlock();
 	return;
       }
-      resource *find(char *name);
+      resource *find(const char *name);
       stringHandle getCanonicalName();
       int getCount()	{ return(count); }
       void print();
@@ -105,7 +108,8 @@ class resourceList {
 };
 
 class resource {
-      friend resource *createResource(resource *parent, char *name, abstractionType at);
+      friend resource *createResource(resource *parent, const char *name,
+				      abstractionType at);
       friend class dataManager;
       friend class performanceStream;
       friend class resourceList;
