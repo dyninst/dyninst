@@ -1,9 +1,13 @@
-
+#
 # Common makefile template for paradyn.  This file is not intended to
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.29  1996/05/12 04:41:20  tamches
+# added templatesUIWASHG.C (split off from templatesUI.C), since our
+# aix 4.1 machines barfed when assembling what was templatesUI.C
+#
 # Revision 1.28  1996/05/02 19:51:39  karavan
 # added new cost server class, two new files, PCcostServer.C and PCcostServer.h
 #
@@ -21,83 +25,6 @@
 #
 # Revision 1.23  1996/02/06 16:27:43  mjrg
 # Invoke tcl2c with perl, to avoid problems on HP.
-#
-# Revision 1.22  1996/02/02 02:22:52  karavan
-#  Its a baby performance consultant!
-#
-# Revision 1.21  1995/12/20 01:11:40  tamches
-# removed TCL2C, TCL2C_GEN_SRCS (now in make.config)
-#
-# Revision 1.20  1995/12/12 22:33:07  newhall
-# divided templates.C into 3 template files
-#
-# Revision 1.19  1995/11/29 00:14:52  tamches
-# added pdLogo.C
-#
-# Revision 1.18  1995/11/08 23:44:21  tamches
-# added TCLFRIENDLYWARNINGS to the flags
-#
-# Revision 1.17  1995/10/18 00:52:32  tamches
-# removed 4 no-longer-used .C files from SRCS
-#
-# Revision 1.16  1995/10/17 20:39:19  tamches
-# Added whereAxis.C, abstractions.C, shg.C, shgRootNode.C,
-# shgPhases.C, shgConsts.C, shgTcl.C
-#
-# Revision 1.15  1995/10/05 04:50:56  karavan
-# added shgDisplay.C
-#
-# Revision 1.14  1995/09/20  01:32:01  tamches
-# Added tkTools.C; added /s/flex/lib (for -fl on instructional solaris machines)
-#
-# Revision 1.13  1995/08/24  15:01:52  hollings
-# AIX/SP-2 port (including option for split instruction/data heaps)
-# Tracing of rexec (correctly spawns a paradynd if needed)
-# Added rtinst function to read getrusage stats (can now be used in metrics)
-# Critical Path
-# Improved Error reporting in MDL sematic checks
-# Fixed MDL Function call statement
-# Fixed bugs in TK usage (strings passed where UID expected)
-#
-# Revision 1.12  1995/07/18  19:14:12  krisna
-# changes to convert Tcl sources to C
-#
-# Revision 1.11  1995/07/17 05:02:52  tamches
-# Additions for new where axis code (actually, certain files, such as
-# where4tree.C, have been left out, since templates.C 'compiles' them
-# just fine)
-#
-# Revision 1.10  1995/06/02  20:59:22  newhall
-# changes for new dataManager interface
-#
-# Revision 1.9  1995/05/18  10:53:47  markc
-# added define to quiet mdl error printing
-#
-# Revision 1.8  1995/05/18  10:50:05  markc
-# Added mdl.C and define for mdl code
-#
-# Revision 1.7  1995/03/15  19:16:15  jcargill
-# Removed -lresolv for all architectures, and added it back for Sunos
-# and Solaris; libresolv.a causes trouble for hppa.
-#
-# Revision 1.6  1995/03/11  06:02:54  krisna
-# libthread, libutil name change
-#
-# Revision 1.5  1995/02/27  18:32:30  tamches
-# Changes to reflect the new TCthread.
-#
-# Revision 1.4  1995/02/26  02:14:39  newhall
-# added source file DMphase.C
-#
-# Revision 1.3  1995/02/16  08:03:56  markc
-# Added rule for templates file.
-#
-# Revision 1.2  1995/01/31  15:16:56  jcargill
-# Fixed minor glitch: CC++ instead of CXX
-#
-# Revision 1.1  1995/01/30  18:10:07  jcargill
-# Major build system reorganization
-#
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
@@ -171,6 +98,7 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/templatesDM.C  \
 		../src/templatesPCV.C  \
 		../src/templatesUI.C  \
+		../src/templatesUIWASHG.C  \
                 ../src/met/mdl.C
 
 IGEN_GEN_SRCS =	dataManager.thread.C \
