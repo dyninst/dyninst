@@ -22,10 +22,13 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.24  1994/08/13 20:52:38  newhall
-/* changed when a visualization process is started
-/* added new file VISIthreadpublic.C
+/* Revision 1.25  1994/09/05 19:10:53  newhall
+/* changed AbbreviatedFocus to produce entire path from root node
 /*
+ * Revision 1.24  1994/08/13  20:52:38  newhall
+ * changed when a visualization process is started
+ * added new file VISIthreadpublic.C
+ *
  * Revision 1.23  1994/08/11  02:19:23  newhall
  * added call to dataManager routine destroyPerformanceStream
  *
@@ -911,6 +914,8 @@ int i,size,num = 0;
 int flag  = 0;
 char *newword;
 int nextFocus = 0;
+int numChars = 0;
+int first = 0;
 
   size = strlen(longName) +1; 
   newword = (char *)malloc(size);
@@ -919,7 +924,12 @@ int nextFocus = 0;
       if(longName[i] == '/'){
 	  if(!nextFocus){
 	     nextFocus = 1;
+	     first = 1;
+	     numChars = 0;
           }
+	  else if (first){
+	    first = 0;
+	  }
 	  else { 
              flag = 1;
 	  }
@@ -927,10 +937,23 @@ int nextFocus = 0;
       else if(longName[i] == ','){
 	  nextFocus = 0;
 	  flag = 0;
+	  if(first){
+	    num -=numChars;
+	    numChars = 0;
+	  }
+	  else {
+	    newword[num] = ',';
+	    num++;
+	  }
       }
-      if(flag){
-	  newword[num] = longName[i]; 
+      if (flag){
+          newword[num] = longName[i]; 
 	  num++;
+      }
+      else if (nextFocus) {
+           newword[num] = longName[i];
+           num++;
+	   numChars++;
       }
   }
   if(num == 0) {
@@ -942,5 +965,4 @@ int nextFocus = 0;
   }
   return(newword);
 }
-
 
