@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.154 2004/03/12 23:18:03 legendre Exp $
+ * $Id: inst-x86.C,v 1.155 2004/03/16 17:50:15 lharris Exp $
  */
 
 #include <iomanip>
@@ -931,20 +931,31 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 allInstructions.push_back( ah.getInstruction() );
                 break;
             } 
-            else if( ah.isACallInstruction() && !ah.isIndir() ) 
+            else if( ah.isACallInstruction() ) 
             {
                 entryblock = false;
                 //validTarget is set to false if the call target is not a 
                 //valid address in the applications process space 
                 bool validTarget = true;
-                window = 0;     
-                
+                 
                 if ( isRealCall( ah.getInstruction(), currAddr, owner, 
                                  validTarget, this ) ) 
                 {
                     Address target = ah.getBranchTarget();
                     p = new instPoint( this, owner, currAddr, callSite, 
                                        ah.getInstruction() );
+                                      
+                    int n = allInstructions.size() - 1;
+                    
+                    for( ; window > 0; window-- )
+                    {
+                        if( p->size() < JUMP_SZ )
+                            p->addInstrBeforePt( allInstructions[ n ] );
+                        else
+                            break;
+                        n--;
+                    }
+                     
                     calls.push_back( p );		    
                     points_.push_back( point_( p, numInsns, CallPt ) );
                     
@@ -965,6 +976,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                     // Force relocation when instrumenting function
                     needs_relocation_ = true;
                 }
+                window == 0;
             }
             else if ( ah.isALeaveInstruction() )
             {
@@ -972,24 +984,21 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             }
             allInstructions.push_back( ah.getInstruction() );
             numInsns++;
-            
             if( !entryblock )
                 window++;
             
             ah++;
-            if( entryblock && ( funcEntry_->size() < JUMP_SZ ) )
+            if( entryblock && ( funcEntry_->size() < 2 * JUMP_SZ ) )
             {
                 //don't add calls to entry point
                 if( ah.isACallInstruction() )
-                {
                     entryblock = false;
-                }
                 else
-                {
                     funcEntry_->addInstrAfterPt( ah.getInstruction() );
-                }   
                 window = 0;
             }
+            else
+                entryblock = false;
         }
         entryblock = false;
     }    
@@ -1032,7 +1041,6 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     
     //check if basic blocks need to be split   
     VECTOR_SORT( (*blockList), basicBlockCompare );
-    
     
     //maybe BPatch_flowGraph.C would be a better home for this bit of code?
     for( unsigned int iii = 0; iii < blockList->size(); iii++ )
