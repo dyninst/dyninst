@@ -9,7 +9,13 @@ AC_DEFUN(PD_COMPILER_TYPE,[
   if test "$CXX" = "g++" ; then
     COMPILER_TYPE="gnu"
     AC_MSG_RESULT([gnu])
+  elif test "$CXX" = "xlC_r" ; then
+    COMPILER_TYPE="aix-native"
+    AC_MSG_RESULT([aix-native])
   elif test "$CXX" = "xlC" ; then
+    COMPILER_TYPE="aix-native"
+    AC_MSG_RESULT([aix-native])
+  elif test "$CXX" = "xlc++" ; then
     COMPILER_TYPE="aix-native"
     AC_MSG_RESULT([aix-native])
   fi

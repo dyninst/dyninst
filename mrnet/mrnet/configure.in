@@ -10,58 +10,34 @@ AC_CONFIG_SUBDIRS(xplat)
 
 abs_srcdir=`cd $srcdir && pwd`
 
-dnl === COMPILERS AND FLAGS ===
-CXXFLAGS="-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
-
-dnl hacks to allow user to define CXX, CXXFLAGS, etc without using env vars
-dnl I don't like it -- suggestions?
-
-dnl *** C Compiler and Options ***
-AC_ARG_WITH(libfl,
-            [  --with-libfl                Link line for flex library],
-            [FLEX_LIB="${withval}";], 
-            [AC_CHECK_LIB(fl, [printf], FLEX_LIB="-lfl", [AC_MSG_ERROR(Can't find flex library libfl. Must specify with --with-libfl)])] )
-
-AC_ARG_WITH(outputlevel,
-            [  --with-outputlevel          output level (0=>off, *1=>error*, 2=>info, 3=>lo-debug, 4=>mid-debug, 5=>hi-debug)],
-            [if test "${withval}" = "0" ; then
-               OUTPUT_LEVEL=0;
-             elif test "${withval}" = "1" ; then
-               OUTPUT_LEVEL=1;
-             elif test "${withval}" = "2" ; then
-               OUTPUT_LEVEL=2;
-             elif test "${withval}" = "3" ; then
-               OUTPUT_LEVEL=3;
-             elif test "${withval}" = "4" ; then
-               OUTPUT_LEVEL=4;
-             elif test "${withval}" = "5" ; then
-               OUTPUT_LEVEL=5;
-             else
-               OUTPUT_LEVEL=1;
-             fi],
-            [OUTPUT_LEVEL=1])
-
-dnl TODO: figure out dlopen()/shared object idiosyncracies when using
-dnl non-GNU compilers
-AC_PROG_CXX(xlC CC g++)
-
-AC_C_BIGENDIAN
+dnl === CONFIGURE OPTIONS
+AC_ARG_WITH(libfldir,
+            [  --with-libfldir         Link line for flex library],
+            [FLEX_LIBDIR="${withval}";] )
 
 AC_ARG_ENABLE(verbosebuild,
-    [  --enable-verbosebuild                Display commands during build (default off)],
+    [  --enable-verbosebuild   Display commands during build (default off)],
     [ VERBOSEMAKE="" ],
     [ VERBOSEMAKE=".SILENT:"] )
 AC_SUBST(VERBOSEMAKE)
 
 AC_ARG_ENABLE(debug,
-    [  --enable-debug                       Enable debug mode options (default off)],
+    [  --enable-debug          Enable debug mode options (default off)],
     [ debug_mode="yes"; CXXFLAGS="$CXXFLAGS -DDEBUG" ],
     [ debug_mode="no" ])
 
-AC_SUBST(VERBOSEMAKE)
+AC_ARG_WITH(purify,
+            [  --with-purify               Use purify for memory debugging],
+            [ if test "${withval}" = yes; then
+                 AC_PATH_PROG(PURIFY, purify)
+              else
+                  PURIFY="${withval}"
+              fi
+            ]
+             )
+AC_SUBST(PURIFY)
 
-
-dnl === SETTING MRNET CONFIGURATION DEFAULTS ===
+dnl === SETTING MRNET PLATFORM VARIABLES ===
 
 dnl MRNET_ARCH is host returned by config.guess with
 dnl all `-` and `.` characters replaced by `_` so that a
@@ -84,6 +60,15 @@ AC_SUBST(MRNET_OS)
 AC_SUBST(MRNET_ROOT)
 AC_SUBST(MRNET_VERSION)
 
+dnl === C++ COMPILERS ===
+
+dnl TODO: figure out dlopen()/shared object idiosyncracies when using
+dnl non-GNU compilers
+AC_PROG_CXX(xlC_r CC g++)
+
+dnl === C++ COMPILER OPTIONS ===
+CXXFLAGS="$CXXFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
+
 case "$host_os" in
   *linux*)
     LIBS="$LIBS $FLEX_LIB -lm -lpthread -ldl"
@@ -102,14 +87,12 @@ case "$host_os" in
     esac
     ;;
   *aix4*)
-    LIBS="$LIBS $FLEX_LIB -lm -lc -lpthread -ldl"
-    CXXFLAGS="$CXXFLAGS -Dos_aix=4 -pthread"
-    LDFLAGS="-pthread"
+    LIBS="$LIBS $FLEX_LIB -lm -ldl"
+    CXXFLAGS="$CXXFLAGS -Dos_aix=4"
     ;;
   *aix5*)
-    LIBS="$LIBS $FLEX_LIB -lm -lc -lpthread -ldl"
-    CXXFLAGS="$CXXFLAGS -Dos_aix=5 -pthread"
-    LDFLAGS="-pthread"
+    LIBS="$LIBS $FLEX_LIB -lm -ldl"
+    CXXFLAGS="$CXXFLAGS -Dos_aix=5"
     ;;
   *solaris2.8*)
     LIBS="$LIBS $FLEX_LIB -lrpcsvc -lsocket -lnsl -lm -lpthread -ldl"
@@ -122,10 +105,6 @@ case "$host_os" in
   *sunos*)
     LIBS="$LIBS $FLEX_LIB -lrpcsvc -lsocket -lnsl -lm -lpthread -ldl"
     CXXFLAGS="$CXXFLAGS -Dos_sunos"
-    ;;
-  *irix*)
-    LIBS="$LIBS $FLEX_LIB -lm -lc -lpthread -ldl"
-    CXXFLAGS="$CXXFLAGS -Dos_irix"
     ;;
   *)
     LIBS="$LIBS $FLEX_LIB -lm -lpthread"
@@ -149,19 +128,29 @@ elif test "$COMPILER_TYPE" = "aix-native" ; then
     C_AS_CPLUSPLUS="-+"
 
     if test "$debug_mode" = "$yes" ; then
-      CXXFLAGS="$CXXFLAGS"
+      CXXFLAGS="$CXXFLAGS -g"
     else
       CXXFLAGS="$CXXFLAGS -O2"
     fi
 fi
 
-AC_LANG_CPLUSPLUS
-AC_MSG_CHECKING(whether the C++ compiler works ($CXX $CXXFLAGS).)
-AC_TRY_COMPILE(
-  [#include <stdio.h>],
-  [int x;],
-  [AC_MSG_RESULT(yes)],
-  [AC_MSG_ERROR(no)])
+dnl *** FLEX LIBRARY ***
+
+AC_LANG(C++)
+
+if test "$FLEX_LIBDIR" = "" ; then
+    AC_CHECK_LIB(fl, [yywrap], [], [AC_MSG_ERROR(Can't find flex library libfl. Must specify with --with-libfl)])
+else
+    LIBS_HOLD=$LIBS
+    LIBS="-L $FLEX_LIBDIR"
+    AC_CHECK_LIB(fl, [yywrap], [LIBS="-L $FLEX_LIBDIR $LIBS_HOLD]", [AC_MSG_ERROR(No/invalid flex library found in ${FLEX_LIBDIR})])
+fi
+
+AC_MSG_CHECKING(whether we can compile/link with \"$CXX $CXXFLAGS $LIBS\".)
+AC_LINK_IFELSE( [AC_LANG_PROGRAM([],[])],
+                [AC_MSG_RESULT(yes)],
+                [AC_MSG_ERROR(no)])
+
 
 AC_SUBST(CXX)
 AC_SUBST(CXXFLAGS)
@@ -185,6 +174,7 @@ AC_PATH_PROG(SHELL, sh)
 AC_SUBST(SHELL)
 AC_PROG_INSTALL
 
+AC_C_BIGENDIAN
 AC_CHECK_SIZEOF(char)
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(int)
