@@ -42,8 +42,11 @@
 // String.C
 
 #include <assert.h>
+#include "util/h/headers.h"
 #include "util/h/String.h"
 
+// Declare a static member vrble:
+string string::nil((const char*)NULL);
 
 string_ll::string_ll()
     : str_(0), len_(0), key_(0) {
@@ -57,14 +60,15 @@ string_ll::string_ll(const char* str)
 string_ll::string_ll(const char *str, unsigned len) {
    // same as above constructor, but copies less than the entire string.
    // You specifiy the # of chars to copy.
-   assert(len <= strlen(str));
+   if (len > strlen(str))
+      // just copy the whole string
+      len = strlen(str);
 
    len_ = len;
    str_ = new char[len+1];
    (void) P_memcpy(str_, str, len);
    str_[len] = '\0';
 
-   //key_ = hashs(str_);
    key_ = 0; // lazy key define
 }
 
@@ -80,7 +84,6 @@ string_ll::string_ll(int i) {
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
 
-//   key_ = hashs (tempBuffer);
    key_ = 0; // lazy key define
 }
 
@@ -91,7 +94,6 @@ string_ll::string_ll(long l) {
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
 
-//   key_ = hashs (tempBuffer);
    key_ = 0; // lazy key define
 }
 
@@ -102,7 +104,6 @@ string_ll::string_ll(unsigned u) {
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
 
-//   key_ = hashs (tempBuffer);
    key_ = 0; // lazy key define
 }
 
@@ -113,7 +114,6 @@ string_ll::string_ll(unsigned long ul) {
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
 
-//   key_ = hashs (tempBuffer);
    key_ = 0; // lazy key define
 }
 
@@ -124,7 +124,6 @@ string_ll::string_ll(float f) {
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
 
-//   key_ = hashs (tempBuffer);
    key_ = 0; // lazy key define
 }
 
@@ -135,7 +134,6 @@ string_ll::string_ll(double d) {
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
 
-   //key_ = hashs (tempBuffer);
    key_ = 0; // lazy key define
 }
 
@@ -154,7 +152,6 @@ string_ll::operator=(const char* str) {
     str_ = STRDUP(str);
     len_ = STRLEN(str);
 
-//    key_ = hashs(str);
     key_ = 0; // lazy key define
 
     return *this;
@@ -189,7 +186,6 @@ string_ll::operator+=(const string_ll& s) {
     str_ = ptr;
     len_ = nlen;
 
-//    key_ = hashs(str_);
     key_ = 0;
 
     return *this;
@@ -213,7 +209,6 @@ string_ll::operator+=(const char *ptr) {
    str_ = new_ptr;
    len_ = nlen;
 
-//   key_ = hashs(str_);
    key_ = 0; // lazy key define
 
    return *this;
@@ -240,10 +235,6 @@ string_ll::operator==(const string_ll& s) const {
    if (key_ != s.key_) return false;
    if (len_ != s.len_) return false;
    return STREQ(str_, s.str_);
-//    return ((&s == this)
-//        || ((key_ == s.key_)
-//        && (len_ == s.len_)
-//        && STREQ(str_, s.str_)));
 }
 
 bool
@@ -251,8 +242,6 @@ string_ll::operator!=(const string_ll& s) const {
    if (&s == this) return false;
    if (len_ != s.len_) return true;
    return STRNE(str_, s.str_);
-//    return ((!(&s == this)) && (len_ != s.len_)
-//        || STRNE(str_, s.str_));
 }
 
 bool
@@ -359,3 +348,13 @@ ostream& operator<< (ostream &os, const string_ll &s) {
 debug_ostream& operator<< (debug_ostream &os, const string_ll &s) {
    return os << s.str_;
 }
+
+string operator+(const char *ptr, const string &str) {
+   // a syntactical convenience.
+   // This fn could probably be optimized quite a bit (pre-allocate exactly
+   // the # of bytes that are needed)
+   string result(ptr);
+   result += str;
+   return result;
+}
+

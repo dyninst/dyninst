@@ -107,6 +107,8 @@ public:
 
     friend ostream& operator<< (ostream &os, const string_ll &s);
     friend debug_ostream& operator<< (debug_ostream &os, const string_ll &s);
+//    friend string_ll operator+(const char *, const string_ll &);
+//       // a syntactical convenience
 
     static unsigned       hash (const string_ll &s) {
        s.updateKeyIfNeeded(); return s.key_;
@@ -131,6 +133,7 @@ private:
 
     char*    str_;
     unsigned len_;
+
     mutable unsigned key_;
 };
 
@@ -141,13 +144,11 @@ class string {
    refCounter<string_ll> data;
 
  public:
-   string() : data(string_ll()) {}
+   static string nil;
 
-//   string(const char *str) : data(string_ll(str)) {}
-   string(const char *str) : data(string_ll()) {
-      string_ll &me = data.getData();
-      me = str;
-   }
+   string() : data(nil.data) {} // should be more efficient than above
+
+   string(const char *str) : data(string_ll(str)) {}
 
    string(const char *str, unsigned n) : data(string_ll(str,n)) {}
 
@@ -173,12 +174,23 @@ class string {
    }
 
    string& operator+=(const string &addme) {
+      // see comment in next routine as to why we don't modify in-place.
       string_ll newstr = data.getData() + addme.data.getData();
       data = newstr;
       return *this;
    }
 
    string& operator+=(const char *str) {
+      // You might wonder why we can't just do:
+      // data.getData() += str; return *this;
+      // The answer is that that would make an in-place modification,
+      // thus messing up any others who might be attached to the same object as us.
+      // There are two alternative solutions: use prepareToModifyInPlace() followed
+      // by the above sequence, or what we use below.  In general, if the in-place
+      // modification doesn't require making an entirely new low-level object
+      // (the below example does require that), then it's better to use prepareToModifyInPlace()
+      // instead of operator=().
+      
       string_ll newstr = data.getData() + str;
       data = newstr;
       return *this;
@@ -192,6 +204,8 @@ class string {
       string result = *this;
       return (result += src);
    }
+   friend string operator+(const char *src, const string &str);
+      // a syntactical convenience
 
    bool operator==(const string &src) const {
       const string_ll &me = data.getData();
