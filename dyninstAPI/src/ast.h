@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.70 2004/03/23 01:12:02 eli Exp $
+// $Id: ast.h,v 1.71 2004/04/09 03:07:13 tlmiller Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -320,7 +320,7 @@ class AstNode {
 	const BPatch_type *getType() { return bptype; };
 	void		  setType(const BPatch_type *t) { 
 				bptype = t; 
-				size = t->getSize(); }
+				if( t != NULL ) { size = t->getSize(); } }
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
 	BPatch_type	  *checkType();
 };
