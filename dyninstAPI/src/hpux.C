@@ -143,6 +143,22 @@ bool OS::osForwardSignal (pid_t pid, int cont_status) {
 
 void OS::osTraceMe(void) { P_ptrace(PT_SETTRC, 0, 0, 0, 0); }
 
+
+// wait for a process to terminate or stop
+int process::waitProcs(int *status) {
+  return waitpid(0, status, WNOHANG);
+}
+
+// attach to an inferior process.
+bool process::attach() {
+  // we only need to attach to a process that is not our direct children.
+  if (parent != 0) {
+    return OS::osAttach(pid);
+  }
+  return true;
+}
+
+
 // TODO is this safe here ?
 bool process::continueProc_() {
   int ret;

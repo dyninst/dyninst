@@ -1,6 +1,11 @@
 
 /*
  * $Log: cm5.C,v $
+ * Revision 1.12  1996/05/08 23:54:36  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.11  1996/04/03 14:27:35  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
@@ -290,6 +295,23 @@ int nodePtrace (enum ptracereq request, process *proc, int scalarPid, int nodeId
     errno = 0;			/* can be hosed by CMMD_poll_for_services() */
     return 0;			/* WHAT SHOULD WE RETURN?  XXX */
 }
+
+
+// wait for a process to terminate or stop
+int process::waitProcs(int *status) {
+  return waitpid(0, status, WNOHANG);
+}
+
+
+// attach to an inferior process.
+bool process::attach() {
+  // we only need to attach to a process that is not our direct children.
+  if (parent != 0) {
+    return OS::osAttach(pid);
+  }
+  return true;
+}
+
 
 // TODO is this safe here ?
 bool process::continueProc_() {

@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.25 1996/04/03 14:27:39 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.26 1996/05/08 23:54:47 mjrg Exp $";
 #endif
 
 
@@ -15,6 +15,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
+ * Revision 1.26  1996/05/08 23:54:47  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.25  1996/04/03 14:27:39  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
@@ -341,6 +346,60 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 }
 
 //
+// copyInstInstances: called when a process we are tracing forks.
+// The child will have a copy of all instrumentation in the parent, so we
+// must duplicate all instInstances of the parent for the child.
+// 
+// On return, for each active instInstance parentInst in the parent
+// instInstanceMapping[parentInst] will be the corresponding instInstance for the
+// child.
+//
+void copyInstInstances(process *parent, process *child, 
+	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping)
+{
+    vector<point*> allPoints = activePoints.values();
+    vector<instInstance*> instsToCopy;
+ 
+    // find all instInstances of the parent process
+    for (unsigned u = 0; u < allPoints.size(); u++) {
+      for (instInstance *inst = allPoints[u]->inst; inst; inst = inst->next) {
+	if (inst->proc == parent)
+	  instsToCopy += inst;
+      }
+    }
+
+    // duplicate the parent instance for the child, and define instMapping
+    vector<instInstance *>newInsts;
+    for (unsigned u = 0; u < instsToCopy.size(); u++) {
+      instInstance *old = instsToCopy[u];
+      instInstance *newInst = new instInstance;
+      newInst->proc = child;
+      newInst->when = old->when;
+      newInst->location = old->location;
+      newInst->trampBase = old->trampBase;
+      newInst->returnAddr = old->returnAddr;
+      newInst->baseAddr = old->baseAddr;
+      newInst->cost = old->cost;
+      instInstanceMapping[old] = newInst;
+      newInsts += newInst;
+    }
+
+    // update nextAtPoint and prevAtPoint
+    for (unsigned u = 0; u < newInsts.size(); u++) {
+      instInstance *newInst = newInsts[u];
+      instInstance *old = instsToCopy[u];
+      newInst->nextAtPoint = instInstanceMapping[old->nextAtPoint];
+      newInst->prevAtPoint = instInstanceMapping[old->prevAtPoint];
+
+      assert(activePoints.defines(newInst->location));
+      point *thePoint = activePoints[newInst->location];
+      newInst->next = thePoint->inst;
+      newInst->prev = NULL;
+      if (thePoint->inst) thePoint->inst->prev = newInst;
+      thePoint->inst = newInst;
+    }
+}
+
 // This procedure assumes that any mini-tramp for an inst request could refer 
 // to any data pointer for that request. A more complex analysis could check 
 // what data pointers each mini-tramp really used, but I don't think it is 
@@ -410,6 +469,7 @@ void deleteInst(instInstance *old, vector<unsigned> pointsToCheck)
 	}
     }
 
+  if (old->proc->status() != exited) {
     if (!othersAtPoint) {
 	clearBaseBranch(old->proc, old);
 	//activeSlots->value -= 1.0;
@@ -439,6 +499,7 @@ void deleteInst(instInstance *old, vector<unsigned> pointsToCheck)
     vector<unsigVecType> tmp;
     tmp += (unsigVecType) pointsToCheck;
     inferiorFree(old->proc, old->trampBase, textHeap, tmp);
+  }
 
     /* remove old from atPoint linked list */
     if (right) right->prevAtPoint = left;

@@ -7,6 +7,11 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.57  1996/05/08 23:54:59  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.56  1996/03/12 20:48:32  mjrg
  * Improved handling of process termination
  * New version of aggregateSample to support adding and removing components
@@ -418,7 +423,7 @@ void processTraceStream(process *curr)
 	//statusLine(P_strdup(buffer.string_of()));
 	//showErrorCallback(11, P_strdup(buffer.string_of()));
 	P_close(curr->traceLink);
-	curr->traceLink = -1;
+  	curr->traceLink = -1;
 	return;
     }
 
@@ -480,7 +485,7 @@ void processTraceStream(process *curr)
 	// header.wall -= curr->firstRecordTime();
 	switch (header.type) {
 	    case TR_FORK:
-		forkProcess(&header, (traceFork *) ((void*)recordData));
+		forkProcess((traceFork *) ((void*)recordData));
 		break;
 
 	    case TR_NEW_RESOURCE:
@@ -517,9 +522,12 @@ void processTraceStream(process *curr)
 		printAppStats((struct endStatsRec *) ((void*)recordData),
 			      cyclesPerSecond);
 		printDyninstStats();
-		P_close(curr->traceLink);
-		curr->traceLink = -1;
-  		//handleProcessExit(curr);
+  		P_close(curr->traceLink);
+  		curr->traceLink = -1;
+		// for processes that are our direct children, we handle exit
+		// when we find that the process exited with waitpid.
+		if (curr->parent)
+		  handleProcessExit(curr, 0);
 		break;
 
 	    case TR_COST_UPDATE:
@@ -529,6 +537,22 @@ void processTraceStream(process *curr)
 	    case TR_CP_SAMPLE:
 		extern void processCP(process *, traceHeader *, cpSample *);
 		processCP(curr, &header, (cpSample *) recordData);
+		break;
+
+	    case TR_EXEC:
+		{ traceExec *execData = (traceExec *) recordData;
+		  process *p = findProcess(execData->pid);
+		  p->inExec = true;
+		  p->execFilePath = string(execData->path);
+		}
+		break;
+
+	    case TR_EXEC_FAILED:
+		{ int pid = *(int *)recordData;
+		  process *p = findProcess(pid);
+		  p->inExec = false;
+		  p->execFilePath = string("");
+		}
 		break;
 
 	    default:
@@ -572,6 +596,14 @@ int handleSigChild(int pid, int status)
 		 *   continue past it.
 		 */
 
+		if (curr->inExec) {
+		  // the process has executed a succesful exec, and is now
+		  // stopped at the exit of the exec call.
+		  curr->handleExec();
+		  curr->inExec = false;
+		  curr->reachedFirstBreak = false;
+		}
+
 		// the process is stopped as a result of the initial SIGTRAP
 		curr->status_ = stopped;
 
@@ -594,20 +626,6 @@ int handleSigChild(int pid, int status)
 		    }
 		    costMetric::addProcessToAll(curr);
 
-#ifdef notdef
-		    if (! curr->stopAtFirstBreak) {
-		      // don't stop here when processes are spawned by other processes
-		      if (!OS::osForwardSignal(pid,0)) {
-			P_abort();
-		      }
-		      curr->status_ = running;
-		      statusLine("application running");
-		    }
-		    else { // process is stopped
-		      curr->status_ = stopped;
-		    }
-#endif
-
                     if (CMMDhostless) {
 		       // This is a cm5 process and we must run it so it can start
 		       // the node daemon.
@@ -626,18 +644,6 @@ int handleSigChild(int pid, int status)
 					       machineResource->part_name());
 
 		}
-#ifdef notdef
-		if (!OS::osForwardSignal(pid, 0)) {
-		  logLine("error  in forwarding  signal\n");
-		  P_abort();
-		}
-
-		// If this is a CM-process, we don't want to label it as
-		// running until the nodes get init'ed.  We need to test
-		// based on magic number, I guess...   XXXXXX
-
-		curr->status_ = running;
-#endif
 		break;
 
 	    case SIGSTOP:
@@ -648,6 +654,16 @@ int handleSigChild(int pid, int status)
 		  // trace record to start the node daemon. It will be re-started
 		  // by paradyn when the node daemon is ready.
 		  // no need to update status here
+		  break;
+		}
+
+		if (curr->reachedFirstBreak == false && curr->status() == neonatal) {
+		  // forked process
+		  curr->reachedFirstBreak = true;
+		  curr->status_ = stopped;
+		  metricDefinitionNode::handleFork(curr->parent, curr);
+		  tp->newProgramCallbackFunc(pid, curr->arg_list,
+					     machineResource->part_name());
 		  break;
 		}
 
@@ -750,6 +766,7 @@ void ioFunc()
      fflush(stdout);
 }
 
+
 /*
  * Wait for a data from one of the inferriors or a request to come in.
  *
@@ -793,6 +810,11 @@ void controllerMainLoop(bool check_buffer_first)
 	    if (processVec[u]->ioLink > width)
 	      width = processVec[u]->ioLink;
 	}
+
+	// add trace 
+	extern int traceSocket_fd;
+	if (traceSocket_fd > 0) FD_SET(traceSocket_fd, &readSet);
+	if (traceSocket_fd > width) width = traceSocket_fd;
 
 	// add connection to paradyn process.
 	FD_SET(tp->get_fd(), &readSet);
@@ -839,6 +861,22 @@ void controllerMainLoop(bool check_buffer_first)
 	ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTime);
 
 	if (ct > 0) {
+
+	    if (traceSocket_fd >= 0 && FD_ISSET(traceSocket_fd, &readSet)) {
+	      // a process forked by a process we are tracing is trying
+	      // to get a connection for the trace stream. 
+	      // Accept the connection.
+	      int fd = RPC_getConnect(traceSocket_fd);
+	      assert(fd >= 0);
+	      int pid;
+	      if (read(fd, &pid, sizeof(pid)) != sizeof(pid))
+		abort();
+	      fprintf(stderr, "Connected to process %d\n", pid);
+	      process *p = findProcess(pid);
+	      assert(p);
+	      p->traceLink = fd;
+	    }
+
             unsigned p_size = processVec.size();
 	    for (unsigned u=0; u<p_size; u++) {
 		if ((processVec[u]->traceLink >= 0) && 
@@ -852,6 +890,9 @@ void controllerMainLoop(bool check_buffer_first)
 		if ((processVec[u]->ioLink >= 0) && 
 		    FD_ISSET(processVec[u]->ioLink, &readSet)) {
 		    processAppIO(processVec[u]);
+		    /* clear it in case another process is sharing it */
+		    if (processVec[u]->ioLink >= 0) 
+			FD_CLR(processVec[u]->ioLink, &readSet);
 		}
 	    }
 	    if (FD_ISSET(tp->get_fd(), &errorSet)) {
@@ -903,7 +944,7 @@ void controllerMainLoop(bool check_buffer_first)
 	reportInternalMetrics();
 
 	/* check for status change on inferrior processes */
-	pid = P_waitpid(0, &status, WNOHANG);
+	pid = process::waitProcs(&status);
 	if (pid > 0) {
 	    handleSigChild(pid, status);
 	}
@@ -951,22 +992,6 @@ void createResource(int pid, traceHeader *header, struct _newresource *r)
 		   string(pid);
       showErrorCallback(36,msg);
     }
-
-#ifdef notdef
-    name = r->name;
-    parent = rootResource;
-    while (name) {
-	tmp = strchr(name, '/');
-	if (tmp) {
-	    *tmp = '\0';
-	    tmp++;
-	}
-	res = resource::newResource(parent, NULL, r->abstraction, name, 
-				    header->wall, "");
-	parent = res;
-	name = tmp;
-    }
-#endif
 
 }
 

@@ -14,6 +14,11 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.94  1996/05/08 23:54:55  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.93  1996/05/08 17:05:30  tamches
  * the bucket_width internal metric is now reported using currSamplingRate
  * instead of the ostensible value in the internalMetric enabled-instance
@@ -386,6 +391,7 @@ void metricDefinitionNode::removeComponent(process *proc) {
     aggSample.removeComponent(components[u]->sample);
 
     // delete component u from metric instance
+    components[u]->disable();
 
     delete components[u];
  
@@ -426,6 +432,47 @@ void removeFromMetricInstances(process *proc) {
     }
     costMetric::removeProcessFromAll(proc);
 }
+
+
+// called when a process forks. this is a metricDefinitionNode of the parent.
+// Duplicate it for the child
+metricDefinitionNode *metricDefinitionNode::forkProcess(process *child) {
+    metricDefinitionNode *mi = new metricDefinitionNode(child, met_, focus_, flat_name_, aggOp);
+
+    for (unsigned u = 0; u < data.size(); u++) {
+      mi->data += dataReqNode::forkProcess(mi, data[u]);
+    }
+    for (unsigned u = 0; u < requests.size(); u++) {
+      mi->requests += instReqNode::forkProcess(requests[u], child);
+    }
+    mi->inserted_ = true;
+
+    return mi;
+}
+
+void metricDefinitionNode::handleFork(process *parent, process *child) {
+    vector<metricDefinitionNode *> MIs = allMIs.values();
+    for (unsigned u = 0; u < MIs.size(); u++) {
+      metricDefinitionNode *mi = MIs[u];
+      for (unsigned v = 0; v < mi->components.size(); v++) {
+	if (mi->components[v]->proc() == parent) {
+	  metricDefinitionNode *childMI = mi->components[v]->forkProcess(child);
+	  if (mi->focus_[resource::process].size()== 1) {
+	    mi->components += childMI;
+	    childMI->aggregators += mi;
+	    childMI->sample = mi->aggSample.newComponent();
+	  }
+	  else {
+	    // this metric is only being computed for selected processes.
+	    for (unsigned w = 0; w < childMI->data.size(); w++)
+		 midToMiMap.undef(childMI->data[w]->getSampleId());
+	  }
+	}
+      }
+    }
+}
+
+
 
 // startCollecting is a friend of metricDefinitionNode; can it be
 // made a member function of metricDefinitionNode instead?
@@ -540,7 +587,7 @@ void metricDefinitionNode::disable()
       internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
       if (theIMetric->disableByMetricDefinitionNode(this)) {
 	// Shouldn't the following line be commented out for the release?
-        logLine("disabled internal metric\n");
+//        logLine("disabled internal metric\n");
         return;
       }
     }
@@ -549,7 +596,7 @@ void metricDefinitionNode::disable()
     for (unsigned i=0; i<costMetric::allCostMetrics.size(); i++){
       if (costMetric::allCostMetrics[i]->node == this) {
         costMetric::allCostMetrics[i]->disable();
-        logLine("disabled cost metric\n");
+//        logLine("disabled cost metric\n");
         return;
     }}
 
@@ -957,6 +1004,7 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
 void processSample(traceHeader *h, traceSample *s)
 {
     unsigned mid = s->id.id;
+
     if (!midToMiMap.defines(mid)) {
 #ifdef ndef
       sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
@@ -966,7 +1014,6 @@ void processSample(traceHeader *h, traceSample *s)
       return;
     }
     metricDefinitionNode *mi = midToMiMap[mid];
-
     //    sprintf(errorLine, "sample id %d at time %8.6f = %f\n", s->id.id, 
     //  ((double) *(int*) &h->wall) + (*(((int*) &h->wall)+1))/1000000.0, s->value);
     //    logLine(errorLine);
@@ -1014,6 +1061,15 @@ instReqNode::instReqNode(process *iProc,
 
     assert(proc && point);
 }
+
+instReqNode instReqNode::forkProcess(const instReqNode &parent, process *child) {
+    instReqNode ret = instReqNode(child, parent.point, parent.ast, parent.when,
+				  parent.order);
+    assert(child->instInstanceMapping.defines(parent.instance));
+    ret.instance = child->instInstanceMapping[parent.instance];
+    return ret;
+}
+
 
 bool instReqNode::insertInstrumentation()
 {
@@ -1156,6 +1212,28 @@ bool dataReqNode::insertInstrumentation(metricDefinitionNode *mi)
         midToMiMap[mid] = mi;
     }
     return true;
+}
+
+dataReqNode *dataReqNode::forkProcess(metricDefinitionNode *childMi, dataReqNode *parent) {
+    dataReqNode *ret = new dataReqNode(parent->type, childMi->proc(), 
+				       parent->initialValue, 
+				       parent->report, parent->tType);
+    if (ret->type == INTCOUNTER) {
+        intCounterHandle *h = dupIntCounter((intCounterHandle *)parent->instance, 
+					    childMi->proc(),
+					    ret->initialValue);
+	ret->instance = (void *) h;
+        ret->id = h->data.id;
+        unsigned mid = ret->id.id;
+        midToMiMap[mid] = childMi;
+    } else {
+        timerHandle *h = dupTimer((timerHandle *)parent->instance, childMi->proc());
+	ret->instance = (void *) h;
+        ret->id = h->data.id;
+        unsigned mid = ret->id.id;
+        midToMiMap[mid] = childMi;
+    }
+    return ret;
 }
 
 void dataReqNode::disable(vector<unsigVecType> pointsToCheck)

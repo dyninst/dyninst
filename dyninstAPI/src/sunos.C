@@ -1,6 +1,11 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.15  1996/05/08 23:55:09  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.14  1996/04/03 14:27:58  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
@@ -233,6 +238,22 @@ bool OS::osForwardSignal (pid_t pid, int stat) {
 
 void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0, 0); }
 
+
+// wait for a process to terminate or stop
+int process::waitProcs(int *status) {
+  return waitpid(0, status, WNOHANG);
+}
+
+// attach to an inferior process.
+bool process::attach() {
+  // we only need to attach to a process that is not our direct children.
+  if (parent != 0) {
+    return OS::osAttach(pid);
+  }
+  return true;
+}
+
+
 // TODO is this safe here ?
 bool process::continueProc_() {
   int ret;
@@ -325,25 +346,25 @@ bool process::loopUntilStopped() {
     int ret = P_waitpid(pid, &waitStatus, WUNTRACED);
     if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
       // the child is gone.
-      //status_ = exited;
       handleProcessExit(this, WEXITSTATUS(waitStatus));
       return(false);
-    }
-    if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
-      logLine("Problem stopping process\n");
-      P__exit(-1);
-    }
-    int sig = WSTOPSIG(waitStatus);
-    if (sig == SIGSTOP) {
-      isStopped = true;
-    } else {
-      if (P_ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(waitStatus), 0) == -1) {
-	logLine("Ptrace error\n");
-        return(false);
+    } else if (WIFSIGNALED(waitStatus)) {
+      handleProcessExit(this, WTERMSIG(waitStatus));
+      return false;
+    } else if (WIFSTOPPED(waitStatus)) {
+      int sig = WSTOPSIG(waitStatus);
+      if (sig == SIGSTOP) {
+	isStopped = true;
+      } else {
+	extern int handleSigChild(int, int);
+	handleSigChild(pid, waitStatus);
       }
     }
+    else {
+      logLine("Problem stopping process\n");
+      abort();
+    }
   }
-
   return true;
 }
 

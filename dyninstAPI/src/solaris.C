@@ -1,6 +1,11 @@
 
 /* 
  * $Log: solaris.C,v $
+ * Revision 1.10  1996/05/08 23:55:07  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.9  1996/04/03 14:27:56  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
@@ -53,8 +58,11 @@
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
-#include <sys/procfs.h>
 #include "showerror.h"
+
+#include <sys/procfs.h>
+#include <poll.h>
+#include <limits.h>
 
 extern "C" {
 extern int ioctl(int, int, ...);
@@ -63,42 +71,40 @@ extern long sysconf(int);
 
 extern bool isValidAddress(process *proc, Address where);
 
-class ptraceKludge {
-public:
-  static bool haltProcess(process *p);
-  static bool deliverPtrace(process *p, int req, int addr, int data);
-  static void continueProcess(process *p, const bool wasStopped);
-};
+/*
+   osTraceMe is called after we fork a child process to set
+   a breakpoint on the exit of the exec system call.
+   When /proc is used, this breakpoint **will not** cause a SIGTRAP to 
+   be sent to the process. The parent should use PIOCWSTOP to wait for 
+   the child.
+*/
+void OS::osTraceMe(void) {
+  sysset_t exitSet;
+  char procName[128];
 
-bool ptraceKludge::haltProcess(process *p) {
-  bool wasStopped = (p->status() == stopped);
-  if (p->status() != neonatal && !wasStopped) {
-    if (!p->loopUntilStopped()) {
-      cerr << "error in loopUntilStopped\n";
-      assert(0);
-    }
+  sprintf(procName,"/proc/%05d", (int)getpid());
+  int fd = P_open(procName, O_RDWR, 0);
+  if (fd < 0) {
+    fprintf(stderr, "osTraceMe: open failed: %s\n", sys_errlist[errno]); 
+    fflush(stderr);
+    P__exit(-1); // must use _exit here.
   }
-  return wasStopped;
+
+  /* set a breakpoint at the exit of exec/execve */
+  premptyset(&exitSet);
+  praddset(&exitSet, SYS_exec);
+  praddset(&exitSet, SYS_execve);
+  if (ioctl(fd, PIOCSEXIT, &exitSet) < 0) {
+    fprintf(stderr, "osTraceMe: PIOCSEXIT failed: %s\n", sys_errlist[errno]); 
+    fflush(stderr);
+    P__exit(-1); // must use _exit here.
+  }
+
+  errno = 0;
+  close(fd);
+  return;
 }
 
-bool ptraceKludge::deliverPtrace(process *p, int req, int addr, int data) {
-  bool halted = haltProcess(p);
-  bool ret;
-  if (P_ptrace(req, p->getPid(), addr, data) == -1)
-    ret = false;
-  else
-    ret = true;
-  continueProcess(p, halted);
-  return ret;
-}
-
-void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
-  if ((p->status() != neonatal) && (!wasStopped))
-    if (P_ptrace(PTRACE_CONT, p->pid, 1, SIGCONT) == -1) {
-      cerr << "error in continueProcess\n";
-      assert(0);
-    }
-}
 
 // already setup on this FD.
 // disconnect from controlling terminal 
@@ -108,313 +114,268 @@ void OS::osDisconnect(void) {
   P_close (ttyfd);
 }
 
-// TODO
-bool OS::osAttach(pid_t pid) {
-  abort();
-  return (P_ptrace(PTRACE_ATTACH, pid, 0, 0) != -1);
+bool OS::osAttach(pid_t) { assert(0); }
+
+bool OS::osStop(pid_t) { assert(0); }
+
+bool OS::osDumpCore(pid_t, const string) { return false; }
+
+bool OS::osForwardSignal (pid_t, int) { assert(0); }
+
+bool OS::osDumpImage(const string &, pid_t , const Address) { return false; }
+
+
+// return the result of an exec system call - true if succesful.
+// On sparc, if an exec is succesful, the C condition code is clear.
+static inline bool execResult(prstatus_t stat) {
+  return ((stat.pr_reg[R_PSR] & 0x100000) == 0);
 }
 
-bool OS::osStop(pid_t pid) { return (P_kill(pid, SIGSTOP) != -1);}
+/*
+   wait for inferior processes to terminate or stop.
+*/
+int process::waitProcs(int *status) {
 
-bool OS::osDumpCore(pid_t pid, const string fileTo) {
-  logLine("dumpcore not yet available");
-  showErrorCallback(47, "");
-  return false;
+   static struct pollfd fds[OPEN_MAX];  // argument for poll
+   static int selected_fds;             // number of selected
+   static int curr;                     // the current element of fds
+
+   /* Each call to poll may return many selected fds. Since we only report the status
+      of one process per each call to waitProcs, we keep the result of the last
+      poll buffered, and simply process an element from the buffer until all of
+      the selected fds in the last poll have been processed.
+   */
+
+   if (selected_fds == 0) {
+     for (unsigned u = 0; u < processVec.size(); u++) {
+       if (processVec[u]->status() == running || processVec[u]->status() == neonatal)
+	 fds[u].fd = processVec[u]->proc_fd;
+       else
+	 fds[u].fd = -1;
+       fds[u].events = POLLPRI;
+       fds[u].revents = 0;
+     }
+
+     selected_fds = poll(fds, processVec.size(), 0);
+     if (selected_fds < 0) {
+       fprintf(stderr, "waitProcs: poll failed: %s\n", sys_errlist[errno]);
+       selected_fds = 0;
+       return 0;
+     }
+
+     curr = 0;
+   }
+   
+   if (selected_fds > 0) {
+     while (fds[curr].revents == 0)
+       ++curr;
+
+     // fds[curr] has an event of interest
+     prstatus_t stat;
+     int ret = 0;
+
+     if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1 
+	 && (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP)) {
+       switch (stat.pr_why) {
+       case PR_SIGNALLED:
+	 // return the signal number
+	 *status = stat.pr_what << 8 | 0177;
+	 ret = processVec[curr]->getPid();
+	 break;
+       case PR_SYSEXIT:
+	 // exit of exec
+	 if (!execResult(stat)) {
+	   // a failed exec. continue the process
+           processVec[curr]->continueProc_();
+           break;
+         }	    
+
+	 *status = SIGTRAP << 8 | 0177;
+	 ret = processVec[curr]->getPid();
+	 break;
+       case PR_REQUESTED:
+       case PR_JOBCONTROL:
+	 assert(0);
+	 break;
+       }	
+      }
+
+     --selected_fds;
+     ++curr;
+
+     if (ret > 0) {
+       return ret;
+     }
+   }
+
+   return waitpid(0, status, WNOHANG);
 }
 
-// TODO -- this should only be called when the process is stopped
-bool OS::osForwardSignal (pid_t pid, int stat) {
-  return (P_ptrace(PTRACE_CONT, pid, 1, stat) != -1);
-}
 
-bool OS::osDumpImage(const string &imageFileName, pid_t pid, const Address off) {
-  logLine("dumpcore not yet available");
-  showErrorCallback(47, "");
-  return false;
-}
+/*
+   Open the /proc file correspoding to process pid, 
+   set the signals to be caught to be only SIGSTOP,
+   and set the kill-on-last-close and inherit-on-fork flags.
+*/
+bool process::attach() {
+  char procName[128];
 
-void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
-
-// TODO I don't need to halt the process, do I?
-bool process::continueProc_() {
-  if (!checkStatus()) return false;
-  ptraceOps++; ptraceOtherOps++;
-  return (P_ptrace(PTRACE_CONT, pid, 1, 0) != -1);
-}
-
-// TODO ??
-bool process::pause_() {
-  if (!checkStatus()) 
+  sprintf(procName,"/proc/%05d", (int)pid);
+  int fd = P_open(procName, O_RDWR, 0);
+  if (fd < 0) {
+    fprintf(stderr, "attach: open failed: %s\n", sys_errlist[errno]);
     return false;
-  ptraceOps++; ptraceOtherOps++;
-  bool wasStopped = (status() == stopped);
-  if (status() != neonatal && !wasStopped)
-    return (loopUntilStopped());
-  else
-    return true;
-}
-
-bool process::detach_() {
-  if (!checkStatus())
-    return false;
-  ptraceOps++; ptraceOtherOps++;
-  // TODO -- does this work for solaris?
-  abort();
-  // return (ptraceKludge::PCptrace(SIGCONT, 1, this, PTRACE_DETACH));
-  return false;
-}
-
-// temporarily unimplemented, PTRACE_DUMPCORE is specific to sunos4.1
-bool process::dumpCore_(const string coreFile) {
-  if (!checkStatus()) 
-    return false;
-  ptraceOps++; ptraceOtherOps++;
-  return false;
-  // TODO -- this is not implemented
-}
-
-static bool writeHelper(int *tracedAddr, int request, int *localAddr,
-			int amount, process *proc) {
-  bool halt = ptraceKludge::haltProcess(proc);
-  amount /= 4;
-  for (unsigned i=0; i<amount; i++) {
-    errno = 0;
-    P_ptrace(request, proc->pid, (int) tracedAddr, *localAddr);
-    assert(errno == 0);
-    localAddr++; tracedAddr++;
   }
-  ptraceKludge::continueProcess(proc, halt);
+
+  /* we don't catch any child signals, except SIGSTOP */
+  sigset_t sigs;
+  premptyset(&sigs);
+  praddset(&sigs, SIGSTOP);
+  if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(fd);
+    return false;
+  }
+
+  /* turn on the kill-on-last-close and inherit-on-fork flags. This will cause
+     the process to be killed when paradynd exits.
+     Also, any child of this process will stop at the exit of an exec call.
+  */
+  long flags = PR_KLC | PR_FORK;
+  if (ioctl (fd, PIOCSET, &flags) < 0) {
+    fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
+    close(fd);
+    return false;
+  }
+
+  proc_fd = fd;
   return true;
+}
+
+/* 
+   continue a process that is stopped 
+*/
+bool process::continueProc_() {
+  ptraceOps++; ptraceOtherOps++;
+  prrun_t flags;
+  prstatus_t stat;
+
+  // a process that receives a stop signal stops twice. We need to run the process
+  // and wait for the second stop.
+  if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
+      && (stat.pr_flags & PR_STOPPED)
+      && (stat.pr_why == PR_SIGNALLED)
+      && (stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT)) {
+    flags.pr_flags = PRSTOP;
+    if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
+      fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
+      return false;
+    }
+    if (ioctl(proc_fd, PIOCWSTOP, 0) == -1) {
+      fprintf(stderr, "continueProc_: PIOCWSTOP failed: %s\n", sys_errlist[errno]);
+      return false;
+    }
+  }
+  flags.pr_flags = PRCSIG; // clear current signal
+  if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
+    fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
+    return false;
+  }
+  return true;
+}
+
+/*
+   pause a process that is running
+*/
+bool process::pause_() {
+  ptraceOps++; ptraceOtherOps++;
+  return (ioctl(proc_fd, PIOCSTOP, 0) != -1);
+}
+
+/*
+   close the file descriptor for the file associated with a process
+*/
+bool process::detach_() {
+  close(proc_fd);
+  return true;
+}
+
+bool process::dumpCore_(const string) {
+  return false;
 }
 
 bool process::writeTextWord_(caddr_t inTraced, int data) {
-  if (!checkStatus()) return false;
-  ptraceBytes += sizeof(int); ptraceOps++;
-  return (ptraceKludge::deliverPtrace(this, PTRACE_POKETEXT, (int) ((void*)inTraced), data));
+  return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
 }
 
 bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
-  if (!checkStatus()) return false;
-  ptraceBytes += amount; ptraceOps++;
-  return (writeHelper((int*)((void*)inTraced), PTRACE_POKETEXT,
-		      (int*)((void*)inSelf), amount, this));
+  return writeDataSpace_(inTraced, amount, inSelf);
 }
 
 bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
-  if (!checkStatus()) return false;
   ptraceOps++; ptraceBytes += amount;
-  return (writeHelper((int*)((void*)inTraced), PTRACE_POKEDATA,
-		      (int*)((void*)inSelf), amount, this));
-}
-
-static bool readHelper(int *tracedAddr, int request, int *localAddr,
-		       int amount, process *proc) {
-  bool halt = ptraceKludge::haltProcess(proc);
-  amount /= 4;
-  for (unsigned i = 0; i < amount; i++) {
-    errno = 0;
-    int retval = P_ptrace(request, proc->pid, (int) tracedAddr, 0);
-    assert(errno == 0);
-    P_memcpy(localAddr, &retval, sizeof retval);
-    localAddr++; tracedAddr++;
-  }
-  ptraceKludge::continueProcess(proc, halt);
-  return true;
+  if (lseek(proc_fd, (off_t)inTraced, SEEK_SET) != (off_t)inTraced)
+    return false;
+  return (write(proc_fd, inSelf, amount) == amount);
 }
 
 bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
-  if (!checkStatus())
-    return false;
   ptraceOps++; ptraceBytes += amount;
-  return (readHelper((int*) ((void*)inTraced), PTRACE_PEEKDATA,
-		     (int*) ((void*)inSelf), amount, this));
+  if (lseek(proc_fd, (off_t)inTraced, SEEK_SET) != (off_t)inTraced) {
+    return false;
+  }
+  return (read(proc_fd, inSelf, amount) == amount);
 }
 
 bool process::loopUntilStopped() {
-  /* make sure the process is stopped in the eyes of ptrace */
-  OS::osStop(pid);
-  bool isStopped = false;
-  int waitStatus;
-  while (!isStopped) {
-    int ret = P_waitpid(pid, &waitStatus, WUNTRACED);
-    if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
-      // the child is gone.
-      //status_ = exited;
-      handleProcessExit(this, WEXITSTATUS(waitStatus));
-      return(false);
-    }
-    if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
-      logLine("Problem stopping process\n");
-      P__exit(-1);
-    }
-    int sig = WSTOPSIG(waitStatus);
-    if (sig == SIGSTOP) {
-      isStopped = true;
-    } else {
-      if (P_ptrace(PTRACE_CONT, pid, 1, WSTOPSIG(waitStatus)) == -1) {
-	logLine("Ptrace error\n");
-	P__exit(-1);
-      }
-    }
-  }
-  return true;
+  assert(0);
 }
 
+#ifdef notdef
 // TODO -- only call getrusage once per round
 static struct rusage *get_usage_data() {
   return NULL;
-#ifdef notdef
-  static bool init = false;
-  static struct rusage *mapped = NULL;
-  static struct rusage other;
-
-  if (!init) {
-    mapped = mapUarea();
-    init = true;
-  }
-  if (!mapped) {
-    mapped = &other;
-    if (!getrusage(RUSAGE_SELF, &other))
-      return mapped;
-    else
-      return NULL;
-  } else
-    return mapped;
-#endif
 }
+#endif
 
 float OS::compute_rusage_cpu() {
   return 0;
-#ifdef notdef
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float)ru->ru_utime.tv_sec + (float)ru->ru_utime.tv_usec / 1000000.0);
-  } else
-    return 0;
-#endif
 }
 
 float OS::compute_rusage_sys() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float)ru->ru_stime.tv_sec + (float)ru->ru_stime.tv_usec / 1000000.0);
-  } else
-    return 0;
-#endif
 }
 
 float OS::compute_rusage_min() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_minflt);
-  } else
-    return 0;
-#endif
 }
 float OS::compute_rusage_maj() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_majflt);
-  } else
-    return 0;
-#endif
 }
+
 float OS::compute_rusage_swap() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_nswap);
-  } else
-    return 0;
-#endif
 }
 float OS::compute_rusage_io_in() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_inblock);
-  } else
-    return 0;
-#endif
 }
 float OS::compute_rusage_io_out() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_oublock);
-  } else
-    return 0;
-#endif
 }
 float OS::compute_rusage_msg_send() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_msgsnd);
-  } else
-    return 0;
-#endif
 }
 float OS::compute_rusage_msg_recv() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_msgrcv);
-  } else
-    return 0;
-#endif
 }
 float OS::compute_rusage_sigs() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_nsignals);
-  } else
-    return 0;
-#endif
 }
 float OS::compute_rusage_vol_cs() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_nvcsw);
-  } else
-    return 0;
-#endif
 }
 float OS::compute_rusage_inv_cs() {
   return 0;
-#ifdef notdef
-
-  struct rusage *ru = get_usage_data();
-  if (ru) {
-    return ((float) ru->ru_nivcsw);
-  } else
-    return 0;
-#endif
 }
 
 int getNumberOfCPUs()
@@ -432,30 +393,21 @@ int getNumberOfCPUs()
 
 bool process::getActiveFrame(int *fp, int *pc)
 {
-  int fd;
   prgregset_t regs;
-  char procName[128];
   bool ok=false;
 
-  sprintf(procName,"/proc/%05d", pid);
-  fd = P_open(procName, O_RDONLY, 0);
-  if (fd < 0) {
-    logLine("Error: P_open failed\n");
-  }
-  else {
-    if (ioctl (fd, PIOCGREG, &regs) != -1) {
+  if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
       *fp=regs[R_O6];
       *pc=regs[R_PC];
       ok=true;
-    }
   }
-
+/*
 #ifdef FREEDEBUG
   if (!ok) 
     logLine("--> TEST <-- getActiveFrame is returning FALSE\n");
 #endif
 
-  P_close(fd);
+*/
   return(ok);
 }
 

@@ -14,6 +14,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/primitives.C,v 
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
+ * Revision 1.12  1996/05/08 23:55:01  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.11  1996/04/03 14:27:50  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
@@ -171,6 +176,26 @@ void freeIntCounter(intCounterHandle *handle,
     free(handle);
 }
 
+// called when a process forks. The counter already exists in the child.
+// We need to assign a new id and reset the initial value.
+intCounterHandle *dupIntCounter(intCounterHandle *parentCounter, process *childProc,
+				int value)
+{
+    intCounterHandle *ret;
+
+    ret = new intCounterHandle;
+    ret->proc = childProc;
+    ret->data.id.aggregate = childProc->aggregate;
+    ret->data.id.id = counterId++;
+    ret->data.value = value;
+    ret->counterPtr = parentCounter->counterPtr;
+    assert(childProc->instInstanceMapping.defines(parentCounter->sampler));
+    ret->sampler = childProc->instInstanceMapping[parentCounter->sampler];
+    childProc->writeDataSpace((caddr_t) ret->counterPtr, sizeof(intCounter),
+			 (caddr_t) &ret->data);
+    return(ret);
+}
+
 timerHandle *createTimer(process *proc, timerType type, bool report)
 {
     timerHandle *ret;
@@ -228,4 +253,26 @@ void freeTimer(timerHandle *handle, vector<unsigVecType> pointsToCheck)
     inferiorFree(handle->proc, (unsigned) handle->timerPtr, dataHeap,
                  pointsToCheck);
     free(handle);
+}
+
+// called when a process forks. The timer already exists in the child,
+// since it was copied on the fork.
+// We need to assign a new id and reset the initial value.
+timerHandle *dupTimer(timerHandle *parentTimer, process *childProc)
+{
+    timerHandle *ret;
+
+    ret = new timerHandle;
+    ret->proc = childProc;
+    ret->timerPtr = parentTimer->timerPtr;
+    P_memset((void*)&ret->data, (int)'\0', sizeof(tTimer));
+    ret->data.id.aggregate = childProc->aggregate;
+    ret->data.id.id = counterId++;
+    ret->data.type = parentTimer->data.type;
+    ret->data.normalize = 1;
+    assert(childProc->instInstanceMapping.defines(parentTimer->sampler));
+    ret->sampler = childProc->instInstanceMapping[parentTimer->sampler];
+    assert(ret->sampler);
+    childProc->writeDataSpace((caddr_t)ret->timerPtr, sizeof(tTimer), (caddr_t)&ret->data);
+    return(ret);
 }

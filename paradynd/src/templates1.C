@@ -19,6 +19,7 @@
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
+template class  dictionary_hash <instInstance *, instInstance *>;
 template class  dictionary_hash <Address, Symbol*>;
 template class  dictionary_hash <instPoint*, point*>;
 template class  dictionary_hash <instPoint*, unsigned>;

@@ -14,6 +14,11 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.51  1996/05/08 23:55:03  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.50  1996/05/08 19:46:44  naim
  * inferiorFreeDefered does not execute on the CM-5 - naim
  *
@@ -550,6 +555,28 @@ void initInferiorHeap(process *proc, bool globalHeap, bool initTextHeap)
     hp->heapFree += np;
 }
 
+// create a new inferior heap that is a copy of src. This is used when a process
+// we are tracing forks.
+inferiorHeap::inferiorHeap(inferiorHeap &src):
+    heapActive(uiHash)
+{
+    for (unsigned u = 0; u < src.heapFree.size(); u++) {
+      heapFree += new heapItem(src.heapFree[u]);
+    }
+
+    vector<heapItem *> items = src.heapActive.values();
+    for (unsigned u = 0; u < items.size(); u++) {
+      heapActive[items[u]->addr] = new heapItem(items[u]);
+    }
+    
+    for (unsigned u = 0; u < src.disabledList.size(); u++) {
+      disabledList += src.disabledList[u];
+    }
+    disabledListTotalMem = src.disabledListTotalMem;
+    totalFreeMemAvailable = src.totalFreeMemAvailable;
+    freed = 0;
+}
+
 unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 {
     inferiorHeap *hp;
@@ -880,7 +907,11 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	ret->ioLink = ioPipe[0];
 	close(tracePipe[1]);
 	close(ioPipe[1]);
+
 	statusLine("ready");
+
+	// attach to the child process
+	ret->attach();
 
 #if defined(rs6000_ibm_aix3_2)
 	// XXXX - this is a hack since establishBaseAddrs needed to wait for
@@ -966,8 +997,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 #ifdef PARADYND_PVM
 	if (pvm_running && envp.size())
 	  for (int ep=envp.size()-1; ep>=0; ep--)
-
-	    pvmputenv(envp[ep].string_of());
+	    pvmputenv((char *)envp[ep].string_of());
 #endif
         // hand off info about how to start a paradynd to the application.
 	//   used to catch rexec calls, and poe events.
@@ -986,6 +1016,13 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	    strcat(paradynInfo, " ");
 	}
 	putenv(paradynInfo);
+
+	/* put the traceSocket address in the environment. This will be used
+	   by forked processes to get a connection with the daemon
+	*/
+	extern int traceSocket;
+	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocket);
+	putenv((char *)paradyndSockInfo.string_of());
 
 	char **args;
 	args = new char*[argv.size()+1];
@@ -1037,10 +1074,82 @@ void handleProcessExit(process *proc, int exitStatus) {
   --activeProcesses;
   if (activeProcesses == 0)
     disableAllInternalMetrics();
+
+  proc->detach(false);
+
 #ifdef PARADYND_PVM
   if (pvm_running) {
     PDYN_reportSIGCHLD(proc->getPid(), exitStatus);
   }
 #endif
+}
+
+
+/*
+   process::forkProcess: called when a process forks, to initialize a new
+   process object for the child.
+*/   
+process *process::forkProcess(process *parent, pid_t childPid) {
+    process *ret = allocateProcess(childPid, parent->symbols->name());
+    ret->symbols = parent->symbols;
+
+    /* initialize the traceLink to zero. The child process will get a 
+       connection later. */
+    ret->traceLink = -1;
+    ret->ioLink = -1;
+    ret->parent = parent;
+  
+    /* attach to child */
+    if (!ret->attach()) {
+      showErrorCallback(69, "Error in forkprocess: cannot attach to child process");
+      return 0;
+    }
+
+    /* initialize the heaps */
+    ret->splitHeaps = parent->splitHeaps;
+    ret->heaps[0] = inferiorHeap(parent->heaps[0]);
+    ret->heaps[1] = inferiorHeap(parent->heaps[1]);
+
+    /* all instrumentation on the parent is active on the child */
+    /* TODO: what about instrumentation inserted near the fork time??? */
+    ret->baseMap = parent->baseMap;
+
+    /* copy all instrumentation instances of the parent to the child */
+    /* this will update instMapping */
+    copyInstInstances(parent, ret, ret->instInstanceMapping);
+
+    /* update process status */
+    ret->reachedFirstBreak = false;
+    ret->status_ = neonatal;
+
+    return ret;
+}
+
+
+/* process::handleExec: called when a process exec.
+   Parse the new image and disable metric instances on the old image.
+*/
+void process::handleExec() {
+
+    // all instrumentation that was inserted in this process is gone.
+    // set exited here so that the disables won't try to write to process
+    status_ = exited; 
+
+    removeFromMetricInstances(this);
+
+    image *img = image::parseImage(execFilePath);
+    if (!img) {
+       string msg = string("Unable to parse image: ") + execFilePath;
+       showErrorCallback(68, msg.string_of());
+       P_kill(pid, 9);
+       return;
+    }
+
+    // delete proc->symbols ???
+    symbols = img;
+
+    /* update process status */
+    reachedFirstBreak = false;
+    status_ = stopped;
 }
 

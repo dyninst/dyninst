@@ -7,6 +7,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.32  1996/05/08 23:54:57  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.31  1996/04/29 03:40:03  tamches
  * added getFocus() member func
  *
@@ -86,6 +91,8 @@ public:
   int getSampleId()	{ return(id.id); }
   dataObjectType getType() { return(type); }
 
+  static dataReqNode *forkProcess(metricDefinitionNode *childMi, dataReqNode *parent);
+
 private:
   timerHandle *createTimerInstance();
   intCounterHandle *createCounterInstance();
@@ -134,6 +141,9 @@ public:
   bool insertInstrumentation();
   void disable(vector<unsigned> pointsToCheck);
   float cost();
+
+  static instReqNode instReqNode::forkProcess(const instReqNode &parent, process *child);
+
   instInstance *getInstance() { return instance; }
 
 private:
@@ -184,6 +194,9 @@ public:
 
   // propagate this metric instance to process p
   void propagateMetricInstance(process *p);  
+
+  metricDefinitionNode *forkProcess(process *child);
+  static void handleFork(process *parent, process *child);
 
   // remove the component associated with process p from this metric instance
   void removeComponent(process *p);

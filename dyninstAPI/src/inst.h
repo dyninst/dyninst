@@ -11,6 +11,11 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.22  1996/05/08 23:54:49  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.21  1996/04/29 03:36:40  tamches
  * declaration of computePauseTimeMetric now has a param
  *
@@ -167,6 +172,10 @@ instInstance *addInstFunc(process *proc,
 			  callWhen when,
 			  callOrder order);
 
+void copyInstInstances(process *parent, process *child,
+	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping);
+
+
 float getPointFrequency(instPoint *point);
 int getPointCost(process *proc, instPoint *point);
 
@@ -176,6 +185,7 @@ intCounterHandle *createIntCounter(process *proc, int value, bool report);
 int getIntCounterValue(intCounterHandle*);
 void freeIntCounter(intCounterHandle*, vector<unsigVecType>);
 void addToIntCounter(intCounterHandle*, int amount);
+intCounterHandle *dupIntCounter(intCounterHandle *parent, process *child, int value);
 
 floatCounter *createFloatCounter(int pid);
 float getCounterValue(floatCounter*);
@@ -206,6 +216,7 @@ float getTimerValue(timerHandle *timer);
  *
  */
 void freeTimer(timerHandle*, vector<unsigVecType>);
+timerHandle *dupTimer(timerHandle *parent, process *child);
 
 /*
  * Test if the inst point is for a call to a tahracked function (as opposed to

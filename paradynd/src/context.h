@@ -4,7 +4,12 @@
 
 /*
  * $Log: context.h,v $
- * Revision 1.3  1994/11/10 18:57:50  jcargill
+ * Revision 1.4  1996/05/08 23:54:39  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
+ * Revision 1.3  1994/11/10  18:57:50  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.2  1994/11/09  18:39:56  rbi
@@ -20,6 +25,6 @@
 
 extern timeStamp startPause;
 extern timeStamp elapsedPauseTime;
-extern void forkProcess(traceHeader *hr, traceFork *fr);
+extern void forkProcess(traceFork *fr);
 
 #endif

@@ -10,6 +10,11 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.33  1996/05/08 23:55:05  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.32  1996/04/18 22:06:10  naim
  * Adding parameters that control and delay (when necessary) the deletion
  * of instrumentation. Also, some minor misspelling fixes - naim
@@ -175,6 +180,8 @@ extern unsigned activeProcesses; // number of active processes
 
 class resource;
 class instPoint;
+class instInstance;
+class baseTrampoline;
 
 // TODO a kludge - to prevent recursive includes
 class image;
@@ -187,7 +194,10 @@ typedef vector<unsigned> unsigVecType;
 class heapItem {
  public:
   heapItem() {
-    addr =0; length = 0; status = HEAPfree; 
+    addr =0; length = 0; status = HEAPfree;
+  }
+  heapItem(const heapItem *h) {
+    addr = h->addr; length = h->length; status = h->status;
   }
   Address addr;
   int length;
@@ -200,6 +210,11 @@ class heapItem {
 class disabledItem {
  public:
   disabledItem() { pointer = 0; }
+  disabledItem(disabledItem &src) {
+    pointer = src.pointer; 
+    whichHeap = src.whichHeap;
+    pointsToCheck = src.pointsToCheck;
+  }
   unsigned pointer;			// address in heap
   inferiorHeapType whichHeap;		// which heap is it in
   vector<unsigVecType> pointsToCheck;	// range of addrs to check
@@ -210,6 +225,8 @@ class inferiorHeap {
   inferiorHeap(): heapActive(uiHash) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
+  inferiorHeap(inferiorHeap &src);  // create a new heap that is a copy of src.
+                                    // used on fork.
   dictionary_hash<unsigned, heapItem*> heapActive; // active part of heap 
   vector<heapItem*> heapFree;  		// free block of data inferior heap 
   vector<disabledItem> disabledList;	// items waiting to be freed.
@@ -228,11 +245,17 @@ static inline unsigned ipHash(instPoint * const &ip) {
   return ((unsigned)ip);
 }
 
+static inline unsigned instInstanceHash(instInstance * const &inst) {
+  return ((unsigned)inst);
+}
+
 class process {
 public:
 friend class ptraceKludge;
 
-  process() : baseMap(ipHash), firstRecordTime(0) {
+  process() : baseMap(ipHash), 
+              instInstanceMapping(instInstanceHash),
+              firstRecordTime(0) {
     symbols = NULL; traceLink = 0; ioLink = 0;
     status_ = neonatal; pid = 0; thread = 0;
     aggregate = false; rid = 0; parent = NULL;
@@ -241,6 +264,8 @@ friend class ptraceKludge;
     stopAtFirstBreak = false;
     splitHeaps = false;
     waitingForNodeDaemon = false;
+    inExec = false;
+    proc_fd = -1;
   }
 
   static string programName;
@@ -299,11 +324,30 @@ friend class ptraceKludge;
   inline bool pause();
   inline bool dumpCore(const string coreFile);
   inline bool detach(const bool paused);
+  bool attach();
   string getProcessStatus() const;
   
   // this is required because of the ugly implementation of PCptrace for the cm5
   // when that is cleaned up, this will go away
   void kludgeStatus(const processState stat) { status_ = stat;}
+
+  // instInstanceMapping is used when a process we are tracing forks a child 
+  // process.
+  // The child will have a copy of all instrumentation in the parent.
+  // instInstanceMapping is a mapping of each instInstance of the parent to the
+  // corresponding instInstance of the child.
+  dictionary_hash<instInstance *, instInstance *>instInstanceMapping;
+
+  // forkProcess: this function should be called when a process we are tracing
+  // forks a child process.
+  // This function returns a new process object associated with the child.
+  static process *forkProcess(process *parent, pid_t childPid);
+
+  void handleExec();
+  bool inExec;
+  string execFilePath;
+
+  static int waitProcs(int *status);
 
 private:
 
@@ -324,6 +368,8 @@ private:
 
   // is it ok to attempt a ptrace operation
   inline bool checkStatus();
+
+  int proc_fd; // file descriptor for platforms that use /proc file system.
 };
 
 extern vector<process*> processVec;
@@ -336,6 +382,9 @@ inline process *findProcess(int pid) {
 }
 
 inline bool process::detach(const bool paused) {
+  if (paused) {
+    logLine("detach: pause not implemented\n");
+  }
   bool res = detach_();
   if (!res) {
     // process may have exited

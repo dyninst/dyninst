@@ -14,6 +14,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/context.C,v 1.3
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.39  1996/05/08 23:54:38  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.38  1996/04/06 21:25:26  hollings
  * Fixed inst free to work on AIX (really any platform with split I/D heaps).
  * Removed the Line class.
@@ -230,38 +235,23 @@ bool applicationDefined()
     }
 }
 
-void forkProcess(traceHeader *hr, traceFork *fr)
+//timeStamp getCurrentTime(bool);
+
+void forkProcess(traceFork *fr)
 {
     process *ret=NULL, *parent;
-
     parent = findProcess(fr->ppid);
-    if (!parent)
-      abort();
-
-    /* attach to the process */
-    if (!OS::osAttach(fr->pid)) {
-      logLine("Error in forkProcess ptrace\n");
-      showErrorCallback(69, "Error in forkProcess ptrace");
+    if (!parent) {
+      logLine("Error in forkProcess: could not find parent process\n");
       return;
     }
 
-    char pid_buffer[20];
-    sprintf(pid_buffer, "%d", fr->pid);
-    string name(parent->symbols->name() + "[" + pid_buffer + "]");
+    // timeStamp forkTime = getCurrentTime(false);
+    ret = process::forkProcess(parent, fr->pid);
 
-    ret = allocateProcess(fr->pid, name);
-
-    ret->symbols = image::parseImage(parent->symbols->file());
-    if (!ret->symbols) {
-      // TODO -- this should back out cleanly
-    }
-    ret->traceLink = parent->traceLink;
-    ret->ioLink = parent->ioLink;
-    ret->parent = parent;
-
-    // copyInferiorHeap(parent, ret);
-    // installDefaultInst(ret, initialRequests);
+    //fprintf(stderr, "Fork process took %f secs\n", getCurrentTime(false)-forkTime);
 }
+
 
 // TODO mdc
 int addProcess(vector<string> &argv, vector<string> &envp, string dir, bool stopAtFirstBrk)
@@ -276,12 +266,14 @@ int addProcess(vector<string> &argv, vector<string> &envp, string dir, bool stop
       return(-1);
 }
 
+#ifdef notdef
 bool addDataSource(char *name, char *machine,
     char *login, char *command, int argc, char *argv[])
 {
     P_abort();
     return(false);
 }
+#endif
 
 bool startApplication()
 {

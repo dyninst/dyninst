@@ -2,6 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.42  1996/05/08 23:54:50  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.41  1996/02/09 22:13:43  mjrg
  * metric inheritance now works in all cases
  * paradynd now always reports to paradyn when a process is ready to run
@@ -204,6 +209,10 @@ extern "C" {
 }
 #endif     
 
+
+int traceSocket;
+int traceSocket_fd;
+
 bool pvm_running = false;
 
 static char machine_name[80];
@@ -403,6 +412,17 @@ int main(int argc, char *argv[])
 
     if (cmdLine.size()) {
 	 addProcess(cmdLine, envp, string(""));
+    }
+
+
+    /* set up a socket to be used to create a trace link
+       by inferior processes that are not forked 
+       directly by this daemon.
+    */
+    traceSocket = RPC_setup_socket(traceSocket_fd, PF_INET, SOCK_STREAM);
+    if (traceSocket < 0) {
+      fprintf(stderr, "Cannot create socket: %s\n", sys_errlist[errno]);
+      cleanUpAndExit(-1);
     }
 
     controllerMainLoop(true);

@@ -5,6 +5,11 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.3  1996/05/08 23:55:11  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.2  1996/04/29 03:43:00  tamches
  * added vector<internalMetric::eachInstance>
  *
@@ -187,6 +192,8 @@ template class  vector<watch_data>;
 template class  vector<costMetric *>;
 template class  vector<sampleValue>;
 template class  vector<double>;
+template class  vector<point *>;
+template class  vector<instInstance *>;
 template class  vector<internalMetric::eachInstance>;
 
 template class  dictionary<unsigned int, vector<mdl_type_desc> >;

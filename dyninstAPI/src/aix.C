@@ -1,6 +1,11 @@
 
 /* 
  * $Log: aix.C,v $
+ * Revision 1.9  1996/05/08 23:54:33  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
  * Revision 1.8  1996/04/06 21:25:24  hollings
  * Fixed inst free to work on AIX (really any platform with split I/D heaps).
  * Removed the Line class.
@@ -243,6 +248,23 @@ bool OS::osForwardSignal (pid_t pid, int stat) {
 }
 
 void OS::osTraceMe(void) { ptrace(PT_TRACE_ME, 0, 0, 0, 0); }
+
+
+// wait for a process to terminate or stop
+int process::waitProcs(int *status) {
+  return waitpid(0, status, WNOHANG);
+}
+
+
+// attach to an inferior process.
+bool process::attach() {
+  // we only need to attach to a process that is not our direct children.
+  if (parent != 0) {
+    return OS::osAttach(pid);
+  }
+  return true;
+}
+
 
 // TODO is this safe here ?
 bool process::continueProc_() {
