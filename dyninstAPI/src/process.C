@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.419 2003/04/26 20:27:09 schendel Exp $
+// $Id: process.C,v 1.420 2003/05/07 19:10:49 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -487,6 +487,11 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
         cerr << "triggeredInStackFrame- " << line << endl;
     }
     if (stack_fn != instPoint_fn) {
+        if (stack_fn && instPoint_fn &&
+            (stack_fn->prettyName() == instPoint_fn->prettyName()))
+            if (pd_debug_catchup)
+                fprintf(stderr, "Equal names, ptr 0x%x != 0x%x\n",
+                        stack_fn, instPoint_fn);
         return false;
     }
   Address pc = frame.getPC();
@@ -1658,7 +1663,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
   // Avoid this with a static bool.
   if (inInferiorMallocDynamic) {
-     return;
+      return;
   }
   inInferiorMallocDynamic = true;
 #endif
@@ -2917,6 +2922,28 @@ process *createProcess(const string File, pdvector<string> argv,
        decodeAndHandleProcessEvent(true);
     }
 
+#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
+    // Pre-emptively allocate a HUGE chunk of memory right below
+    // the shared memory segment -- we need this to instrument 
+    // libraries anyway, so grab it now. This massively simplifies
+    // life. 
+    bool err = false;
+    Address alloc;
+    pdvector<Address> allocations;
+    do {
+        alloc = theProc->inferiorMalloc((unsigned) 1024*1024, 
+                                        (inferiorHeapType) anyHeap, 
+                                        (Address) 0xd0000000, 
+                                        &err);    
+        allocations.push_back(alloc);
+    } while (alloc > (0xd0000000 - 0x02000000));
+    // 0x02... is POWER's branch range. Basically, slurp the memory
+    // below the shared library segment (pre-allocate). 
+    for (unsigned i = 0; i < allocations.size(); i++)
+        if (allocations[i])
+            theProc->inferiorFree(allocations[i]);
+    
+#endif
     return theProc;    
 }
 
@@ -4510,8 +4537,9 @@ bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &
       if(dynamiclinking && shared_objects){
          for(u_int j=0; j < shared_objects->size(); j++){
             if (NULL != (pdfv = (*shared_objects)[j]->findFuncVectorByPretty(func_name))) {
-               for (unsigned int i = 0; i < pdfv->size(); ++i)
-                  res.push_back((*pdfv)[i]);
+                for (unsigned int i = 0; i < pdfv->size(); ++i) {
+                    res.push_back((*pdfv)[i]);
+                }
             }
             //pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
          }
@@ -4519,24 +4547,27 @@ bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &
    } else {
       // Library was specified, search lib for function func_name 
       // Add prefix wildcard to make name matching easy
-      lib_name = "*" + lib_name;             
-
-      if(dynamiclinking && shared_objects) { 
-         for(u_int j=0; j < shared_objects->size(); j++){
-            shared_object *so = (*shared_objects)[j];
-            
-            if(matchLibName(lib_name, so->getName())) {
-               if (NULL != (pdfv = so->findFuncVectorByPretty(func_name))) {
-                  for (unsigned int i = 0; i < pdfv->size(); ++i)
-                     res.push_back((*pdfv)[i]);
-               }
+       if (!lib_name.prefixed_by("*"))
+           lib_name = "*" + lib_name;             
+       
+       if(dynamiclinking && shared_objects) { 
+           for(u_int j=0; j < shared_objects->size(); j++){
+               shared_object *so = (*shared_objects)[j];
                
-               //function_base *fb = static_cast<function_base *>(so->findFuncByName(func_name));
-            }
-         }
-      }
+               if(matchLibName(lib_name, so->getName())) {
+                   if (NULL != (pdfv = so->findFuncVectorByPretty(func_name))) {
+                       for (unsigned int i = 0; i < pdfv->size(); ++i) {
+                           res.push_back((*pdfv)[i]);
+                       }
+                       
+                   }
+                   
+                   //function_base *fb = static_cast<function_base *>(so->findFuncByName(func_name));
+               }
+           }
+       }
    }
-
+   
    if (res.size())
       return true; 
 
