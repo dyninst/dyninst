@@ -81,8 +81,10 @@ inline P_sig_handler P_signal (int SIGNUM, P_sig_handler ACTION) {
   return (signal(SIGNUM, ACTION));}
 inline char * P_strcat (char *TO, const char *FROM) {
   return (strcat(TO, FROM));}
-inline char * P_strchr (const char *STRING, int C) {
-  return (strchr(STRING, C));}
+
+inline const char * P_strchr (const char *STRING, int C) {return (strchr(STRING, C));}
+inline char * P_strchr (char *STRING, int C) {return (strchr(STRING, C));}
+
 inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char * P_strcpy (char *TO, const char *FROM) {
@@ -95,10 +97,13 @@ inline int P_strncmp (const char *S1, const char *S2, size_t SIZE) {
   return (strncmp(S1, S2, SIZE));}
 inline char * P_strncpy (char *TO, const char *FROM, size_t SIZE) {
   return (strncpy(TO, FROM, SIZE));}
-inline char * P_strrchr (const char *STRING, int C) {
-  return (strrchr(STRING, C));}
-inline char * P_strstr (const char *HAYSTACK, const char *NEEDLE) {
-  return (strstr(HAYSTACK, NEEDLE));}
+
+inline const char * P_strrchr (const char *STRING, int C) {return (strrchr(STRING, C));}
+inline char * P_strrchr (char *STRING, int C) {return (strrchr(STRING, C));}
+
+inline const char * P_strstr (const char *HAYSTACK, const char *NEEDLE) {return (strstr(HAYSTACK, NEEDLE));}
+inline char * P_strstr (char *HAYSTACK, const char *NEEDLE) {return (strstr(HAYSTACK, NEEDLE));}
+
 inline double P_strtod (const char *STRING, char **TAILPTR) {
   return (strtod(STRING, TAILPTR));}
 inline char * P_strtok (char *NEWSTRING, const char *DELIMITERS) {
