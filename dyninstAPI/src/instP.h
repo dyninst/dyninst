@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: instP.h,v 1.27 1998/12/25 22:31:58 wylie Exp $
+
 #if !defined(instP_h)
 #define instP_h
 /*
@@ -50,15 +52,15 @@ class trampTemplate {
  public:
     int size;
     void *trampTemp;		/* template of code to execute */
-    unsigned baseAddr;          /* the base address of this tramp */
+    Address baseAddr;           /* the base address of this tramp */
     /* used only in base tramp */
     int globalPreOffset;
     int globalPostOffset;
     int localPreOffset;
     int localPostOffset;
 
-    int localPreReturnOffset;     /* return offset for local pre tramps */
-    int localPostReturnOffset;      /* offset of the return instruction */
+    int localPreReturnOffset;   /* return offset for local pre tramps */
+    int localPostReturnOffset;  /* offset of the return instruction */
 
     int returnInsOffset;
     int skipPreInsOffset;
@@ -67,7 +69,7 @@ class trampTemplate {
     int updateCostOffset;
 
     int cost;			/* cost in cycles for this basetramp. */
-    int costAddr;               /* address of cost in this tramp      */
+    Address costAddr;           /* address of cost in this tramp      */
     bool prevInstru;
     bool postInstru;
     int  prevBaseCost;
@@ -89,8 +91,8 @@ class instInstance {
      process *proc;             /* process this inst is for */
      callWhen when;		/* call before or after instruction */
      instPoint *location;       /* where we put the code */
-     unsigned trampBase;             /* base of code */
-     unsigned returnAddr;            /* address of the return from tramp insn */
+     Address trampBase;         /* base of code */
+     Address returnAddr;        /* address of the return from tramp insn */
      trampTemplate *baseInstance;  /* the base trampoline instance */
      instInstance *next;        /* linked list of installed instances */
      instInstance *prev;        /* linked list of prev. instance */
@@ -153,12 +155,12 @@ extern trampTemplate *findAndInstallBaseTramp(process *proc,
 				 returnInstance *&retInstance,
 				 bool noCost);
 extern void installTramp(instInstance *inst, char *code, int codeSize);
-extern void modifyTrampReturn(process*, Address returnAddr, int newReturnTo);
+extern void modifyTrampReturn(process*, Address returnAddr, Address newReturnTo);
 extern void generateReturn(process *proc, Address currAddr, instPoint *location);
 extern void generateEmulationInsn(process *proc, Address addr, instPoint *location);
 extern void generateNoOp(process *proc, Address addr);
 extern void initTramps();
-extern void generateBranch(process *proc, Address fromAddr,Address newAddr);
+extern void generateBranch(process *proc, Address fromAddr, Address newAddr);
 extern void removeTramp(process *proc, instPoint *location);
 
 extern int flushPtrace();

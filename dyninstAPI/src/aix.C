@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: aix.C,v 1.53 1998/12/25 22:31:59 wylie Exp $
+
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
@@ -108,17 +110,16 @@ bool ptraceKludge::haltProcess(process *p) {
 }
 
 // what is the top most frame.
-static int firstFrame;
+static Address firstFrame;
 
 //
 // returns the current frame pointer (fp) and program counter (pc). 
 // returns true if we are able to read the registers.
 //
-bool process::getActiveFrame(int *fp, int *pc)
+bool process::getActiveFrame(Address *fp, Address *pc)
 {
-    int sp;
-    bool ret;
-    int dummy;
+    Address sp;
+    Address dummy;
 
     errno = 0;
     sp = P_ptrace(PT_READ_GPR, pid, (int *) STKP, 0, 0); // aix 4.1 likes int *
@@ -132,13 +133,13 @@ bool process::getActiveFrame(int *fp, int *pc)
     //   The first frame pointer in in the memory location pointed to be sp
     //   However, there is no pc stored there, its the place to store a pc
     //      if the current function makes a call.
-    ret = readDataFromFrame(sp, fp, &dummy);
+    bool ret = readDataFromFrame(sp, fp, &dummy);
     firstFrame = *fp;
 
     return(ret);
 }
 
-bool process::needToAddALeafFrame(Frame,unsigned int &){
+bool process::needToAddALeafFrame(Frame, Address &){
     return false;
 }
 
@@ -150,7 +151,8 @@ bool process::needToAddALeafFrame(Frame,unsigned int &){
 //     (2) the return address of the function for that frame (rtn).
 //     (3) return true if we are able to read the frame.
 //
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool /*uppermost*/)
+bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn,
+        bool /*uppermost*/)
 {
     //
     // define the linkage area of an activation record.
@@ -189,9 +191,9 @@ void *process::getRegisters() {
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);
 
-   const int num_bytes = 32 * 4 // 32 general purpose integer registers
-                       + 32 * 8 // 32 floating point registers @ 8 bytes each
-		       + 9 * 4; // 9 special registers
+   const u_int num_bytes = 32 * 4 // 32 general purpose integer registers
+                         + 32 * 8 // 32 floating point registers @ 8 bytes each
+                         + 9 * 4; // 9 special registers
    // special registers are:
    // IAR (instruction address register)
    // MSR (machine state register)
@@ -274,7 +276,7 @@ void *process::getRegisters() {
    // (Only reg numbered 0-31 or 128-136 are valid)
    const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
       // see <sys/reg.h>; FPINFO and FPSCRX are out of range, so we can't use them!
-   const int num_special_registers = 9;
+   const u_int num_special_registers = 9;
 
    for (unsigned i=0; i < num_special_registers; i++) {
       errno = 0;
@@ -405,11 +407,11 @@ bool process::executingSystemCall() {
    return false;
 }
 
-bool process::changePC(unsigned loc) {
+bool process::changePC(Address loc) {
    return changePC(loc, NULL);
 }
 
-bool process::changePC(unsigned loc, const void *) {
+bool process::changePC(Address loc, const void *) {
    // compare to write_pc() of gdb (findvar.c)
    // 2d arg (saved regs) of this routine isn't needed for aix, since it
    // has the option to write just 1 register with a ptrace call.
@@ -513,11 +515,11 @@ bool process::restoreRegisters(void *buffer) {
    } 
 
    // Finally, special registers:
-   // Remeber, PT_WRITE_GPR gives an EIO error if the reg num isn't in range 128-136
+   // Remember, PT_WRITE_GPR gives an EIO error if the reg num isn't in range 128-136
    const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
       // I'd like to add on FPINFO and FPSCRX, but their code nums in <sys/reg.h> (138, 148)
       // make PT_WRITE_GPR give an EIO error...
-   const int num_special_registers = 9;
+   const u_int num_special_registers = 9;
 
    for (unsigned i=0; i < num_special_registers; i++) {
       errno = 0;
@@ -536,7 +538,7 @@ bool process::restoreRegisters(void *buffer) {
 bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
    // TODO: write me!
    instruction *insn = (instruction *)insnPtr;
-   unsigned baseInstruc = baseBytes / sizeof(instruction);
+   Address baseInstruc = baseBytes / sizeof(instruction);
 
 //   extern void generateBreakPoint(instruction &);
 //   generateBreakPoint(insn[baseInstruc++]);
@@ -546,7 +548,7 @@ bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
    // MT_AIX: since we don't have a base-trampoline here, we need to save
    // registers before we can continue - naim
    instruction *tmp_insn = (instruction *) (&insn[baseInstruc]);
-   extern void saveAllRegistersThatNeedsSaving(instruction *, unsigned &);
+   extern void saveAllRegistersThatNeedsSaving(instruction *, Address &);
    saveAllRegistersThatNeedsSaving(tmp_insn,baseInstruc);
 
    // Convert back:
@@ -566,7 +568,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
    // where (restore) undoes anything done in emitInferiorRPCheader(), above.
 
    instruction *insn = (instruction *)insnPtr;
-   unsigned baseInstruc = baseBytes / sizeof(instruction);
+   Address baseInstruc = baseBytes / sizeof(instruction);
 
    extern void generateBreakPoint(instruction &);
 
@@ -578,9 +580,9 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
       justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
    }
 
-   // MT_AIX: restoring previosly saved registers - naim
+   // MT_AIX: restoring previously saved registers - naim
    instruction *tmp_insn = (instruction *) (&insn[baseInstruc]);
-   extern void restoreAllRegistersThatNeededSaving(instruction *, unsigned &);
+   extern void restoreAllRegistersThatNeededSaving(instruction *, Address &);
    restoreAllRegistersThatNeededSaving(tmp_insn,baseInstruc);
 
    // Trap instruction (breakpoint):
@@ -600,7 +602,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
 
 bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
 				 int data, void *addr2) {
-  bool halted;
+  bool halted=false;
   bool ret;
   
   if (req != PT_DETACH) halted = haltProcess(p);
@@ -862,17 +864,17 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
   return (ptraceKludge::deliverPtrace(this, PT_WRITE_I, inTraced, data, NULL));
 }
 
-bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
   return writeDataSpace_(inTraced, amount, inSelf);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
-  return readDataSpace_(inTraced, amount, (void *)inSelf);
+bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
+  return readDataSpace_(inTraced, amount, const_cast<void *>(inSelf));
 }
 #endif
 
-bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
   if (!checkStatus()) 
     return false;
 
@@ -881,18 +883,18 @@ bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
   while (amount > 1024) {
     ptraceOps++;
     if (!ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
-				     1024, inSelf)) return false;
+			     1024, const_cast<void*>(inSelf))) return false;
     amount -= 1024;
     inTraced = (char *)inTraced + 1024;
-    inSelf = (char *)inSelf + 1024;
+    inSelf = (char *)const_cast<void*>(inSelf) + 1024;
   }
 
   ptraceOps++;
   return ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
-				     amount, inSelf);
+			     amount, const_cast<void*>(inSelf));
 }
 
-bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
+bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
   if (!checkStatus())
     return false;
 
@@ -900,15 +902,17 @@ bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
 
   while (amount > 1024) {
     ptraceOps++;
-    if (!ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, inTraced,
+    if (!ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, 
+                                     const_cast<void*>(inTraced),
 				     1024, inSelf)) return false;
     amount -= 1024;
-    inTraced = (char *)inTraced + 1024;
+    inTraced = (const char *)inTraced + 1024;
     inSelf = (char *)inSelf + 1024;
   }
 
   ptraceOps++;
-  return (ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, inTraced, amount, inSelf));
+  return (ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, 
+                const_cast<void*>(inTraced), amount, inSelf));
 }
 
 bool process::loopUntilStopped() {
@@ -1027,7 +1031,7 @@ bool process::dumpImage() {
     if (cnt != sizeof(struct filehdr)) {
 	sprintf(errorLine, "Error reading header\n");
 	logLine(errorLine);
-	showErrorCallback(44, "");
+	showErrorCallback(44, (const char *) errorLine);
 	return false;
     }
 
@@ -1069,7 +1073,7 @@ bool process::dumpImage() {
     sprintf(errorLine, "seeking to %ld as the offset of the text segment \n",
 	aout.text_start);
     logLine(errorLine);
-    sprintf(errorLine, "Code offset = %d\n", baseAddr);
+    sprintf(errorLine, "Code offset = 0x%lx\n", baseAddr);
     logLine(errorLine);
 
     /* seek to the text segment */
@@ -1158,7 +1162,7 @@ void Object::load_object()
    int *lengthPtr = &poolLength;
    struct syment *symbols = NULL;
    struct scnhdr *sectHdr = NULL;
-   Symbol::SymbolLinkage linkage;
+   Symbol::SymbolLinkage linkage = Symbol::SL_UNKNOWN;
    unsigned toc_offset = 0;
    string modName;
 
@@ -1677,7 +1681,7 @@ bool handleAIXsigTraps(int pid, int status) {
     return false;
 }
 
-string process::tryToFindExecutable(const string &progpath, int pid) {
+string process::tryToFindExecutable(const string &progpath, int /*pid*/) {
    // returns empty string on failure
 
    if (progpath.length() == 0)
@@ -1689,7 +1693,7 @@ string process::tryToFindExecutable(const string &progpath, int pid) {
    return ""; // failure
 }
 
-unsigned process::read_inferiorRPC_result_register(reg returnValReg) {
+Address process::read_inferiorRPC_result_register(Register returnValReg) {
    return P_ptrace(PT_READ_GPR, pid, (void *)returnValReg, 0, 0);
 }
 
