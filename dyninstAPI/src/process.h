@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.283 2004/02/25 04:36:46 schendel Exp $
+/* $Id: process.h,v 1.284 2004/02/28 00:26:33 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -910,12 +910,9 @@ class process {
   bool addCodeRange(Address addr, relocatedFuncInfo *reloc);
   bool deleteCodeRange(Address addr);
     
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-  // Same as pdvector <pd_Function*>convertPCsToFuncs(pdvector<Address> pcs);
-  // except that NULL is not used if address cannot be resolved to unique 
-  // function. Used in function relocation for x86.
+  // No function is pushed onto return vector if address can't be resolved
+  // to a function
   pdvector<pd_Function *>pcsToFuncs(pdvector<Frame> stackWalk);
-#endif
 
   // findModule: returns the module associated with "mod_name" 
   // this routine checks both the a.out image and any shared object 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.472 2004/02/25 21:10:45 bernat Exp $
+// $Id: process.C,v 1.473 2004/02/28 00:26:32 schendel Exp $
 
 #include <ctype.h>
 
@@ -4560,7 +4560,11 @@ codeRange *process::findCodeRangeByAddress(const Address &addr) {
         const image *img = range->sharedobject_ptr->getImage();
         
         if (!img) {
-            fprintf(stderr, "Warning: shared object has no image pointer!\n");
+           // Looks to be caused by a bug where not deregistering sharedobjs
+           // from the code range data when we call delete on the sharedobj
+           // (for example when an exec occurs).  General bug should be
+           // fixed.
+           return NULL;
         }
         if (inImage > (img->codeOffset() + img->codeLength())) {
 /*
@@ -5921,6 +5925,20 @@ void process::deleteBaseTramp(trampTemplate *baseTramp)
   toBeDeleted->oldMini = NULL;
   toBeDeleted->oldBase = baseTramp;
   pendingGCInstrumentation.push_back(toBeDeleted);
+}
+
+// Function relocation requires a version of process::convertPCsToFuncs 
+// in which null functions are not passed into ret. - Itai 
+pdvector<pd_Function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
+    pdvector <pd_Function *> ret;
+    unsigned i;
+    pd_Function *fn;
+    for(i=0;i<stackWalk.size();i++) {
+        fn = (pd_Function *)findFuncByAddr(stackWalk[i].getPC());
+        // no reason to add a null function to ret
+        if (fn != 0) ret.push_back(fn);
+    }
+    return ret;
 }
 
 // garbage collect instrumentation
