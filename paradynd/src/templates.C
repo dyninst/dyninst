@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.24  1995/12/29 01:35:34  zhichen
+ * Revision 1.25  1996/01/18 16:32:01  hollings
+ * Added a bunch of definitions for Aix.
+ *
+ * Revision 1.24  1995/12/29  01:35:34  zhichen
  * Added an instantiation related to the new paradynd-->paradyn buffering
  *
  * Revision 1.23  1995/12/28 23:44:39  zhichen
@@ -216,6 +219,28 @@ template class  vector<unsigned>;
 template class  vector<vector<string> >;
 template class  vector<watch_data>;
 
+template class  dictionary<unsigned int, vector<mdl_type_desc> >;
+template class  dictionary<unsigned int, _cpSample *>;
+template class  dictionary<string, pdFunction *>;
+template class  dictionary<instPoint *, point *>;
+template class  dictionary<unsigned int, Symbol *>;
+template class  dictionary<unsigned int, metricDefinitionNode *>;
+template class  dictionary<string, unsigned int>;
+template class  dictionary<instPoint *, unsigned int>;
+template class  dictionary<unsigned int, heapItem *>;
+template class  dictionary<string, vector<pdFunction *> *>;
+template class  dictionary<string, internalSym *>;
+template class  dictionary<string, module *>;
+template class  dictionary<unsigned int, pdFunction *>;
+template class  dictionary<unsigned int, unsigned int>;
+template class  dictionary<unsigned int, resource *>;
+template class  dictionary<string, resource *>;
+template class  dictionary_hash_iter<unsigned int, Line>;
+template class  dictionary_iter<unsigned int, Line>;
+template class  dictionary_iter<string, Symbol>;
+template class  dictionary<unsigned int, Line>;
+template class  dictionary<string, Symbol>;
+
 template class  dictionary_hash <Address, Symbol*>;
 template class  dictionary_hash <instPoint*, point*>;
 template class  dictionary_hash <instPoint*, unsigned>;
@@ -234,6 +259,19 @@ template class  dictionary_hash <unsigned, pdFunction*>;
 template class  dictionary_hash <unsigned, resource *>;
 template class  dictionary_hash <unsigned, unsigned>;
 template class  dictionary_hash <unsigned, vector<mdl_type_desc> >;
+
+template class  dictionary_iter<unsigned int, pdFunction *>;
+template class  dictionary_iter<unsigned int, metricDefinitionNode *>;
+template class  dictionary_iter<unsigned int, heapItem *>;
+template class  dictionary_iter<string, vector<pdFunction *> *>;
+template class  dictionary_iter<string, unsigned int>;
+template class  dictionary_iter<string, resource *>;
+template class  dictionary_iter<string, pdFunction *>;
+template class  dictionary_iter<string, module *>;
+template class  dictionary_iter<string, internalSym *>;
+template class  dictionary_iter<instPoint *, unsigned int>;
+template class  dictionary_iter<instPoint *, point *>;
+template class  dictionary_iter<unsigned int, Symbol *>;
 
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <instPoint*, point*>;
