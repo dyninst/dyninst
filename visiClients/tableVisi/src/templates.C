@@ -3,6 +3,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.3  1995/11/29 00:43:56  tamches
+ * added lots of templates needed for new pdLogo stuff
+ *
  * Revision 1.2  1995/11/20 20:20:44  tamches
  * a new template to support changes to tableVisi.C
  *
@@ -30,3 +33,19 @@ template unsigned max(unsigned, unsigned);
 template float max(float, float);
 template bool ipmax(unsigned, unsigned);
 template int ipmin(int, int);
+
+#include "util/src/DictionaryLite.C"
+#include "paradyn/src/UIthread/pdLogo.h"
+template class vector<pdLogo *>;
+template class dictionary_lite<string, pdLogo *>;
+template class pair<string, pdLogo *>;
+template class vector<dictionary_lite<string, pdLogo *>::hash_pair>;
+template class vector< vector<dictionary_lite<string,pdLogo*>::hash_pair> >;
+
+template class dictionary_lite<string, pdLogo::logoStruct>;
+template class vector<pdLogo::logoStruct>;
+template class vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair>;
+template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
+template class pair<string, pdLogo::logoStruct>;
+
+template class vector<string>;
