@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.26 1996/02/13 21:37:08 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.27 1996/02/15 14:56:58 naim Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.26  1996/02/13 21:37:08  naim
+ * Revision 1.27  1996/02/15 14:56:58  naim
+ * Laeving previous values for costs primitives on the CM-5 - naim
+ *
+ * Revision 1.26  1996/02/13  21:37:08  naim
  * Minor change related to the cost model for the CM-5 - naim
  *
  * Revision 1.25  1995/05/18  10:35:21  markc
@@ -317,21 +320,10 @@ void initPrimitiveCost()
     /* Need to add code here to collect values for other machines */
     // cm-5 no assembly numbers.
     // with fixed getProcess time -- jkh 8/26/94
-    //primitiveCosts["DYNINSTstartProcessTimer"] = 69;
-    //primitiveCosts["DYNINSTstopProcessTimer"] = 176;
-    //primitiveCosts["DYNINSTstartWallTimer"] = 43;
-    //primitiveCosts["DYNINSTstopWallTimer"] = 70;
-
-    // New updated values for the CM-5 (monona, 02-13-96) - naim
-
-    // 28.14 usecs * 36.36 Mhz
-    primitiveCosts["DYNINSTstartProcessTimer"] = 1023;
-    // 56.68 usecs * 36.36 Mhz
-    primitiveCosts["DYNINSTstopProcessTimer"] = 2061;
-    // 28.09 * 36.36 Mhz
-    primitiveCosts["DYNINSTstartWallTimer"] = 1021;
-    // 55/83 * 36.36 Mhz
-    primitiveCosts["DYNINSTstopWallTimer"] = 2030;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 69;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 176;
+    primitiveCosts["DYNINSTstartWallTimer"] = 43;
+    primitiveCosts["DYNINSTstopWallTimer"] = 70;
 
 #ifdef notdef
     // -- paper numbers
