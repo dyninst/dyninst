@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetricInst.h,v 1.17 2001/12/12 17:28:50 gurari Exp $
+// $Id: PCmetricInst.h,v 1.18 2002/04/09 18:06:12 mjbrim Exp $
 // The PCmetricInst class and the PCmetricInstServer class.
 
 #ifndef pc_metric_inst_h
@@ -145,6 +145,7 @@ class PCMRec {
 public:
   PCMRec(): pcm(NULL), f(0), pcmi(NULL){;}
   PCMRec (PCMRec &from) : pcm(from.pcm), f(from.f), pcmi(from.pcmi){;}
+  PCMRec (const PCMRec &from) : pcm(from.pcm), f(from.f), pcmi(from.pcmi){;}
 private:
   PCMRec (PCmetric *pp, focus ff, PCmetricInst *ii) : pcm(pp), f(ff), pcmi(ii) {;} 
   PCmetric *pcm;
