@@ -44,12 +44,11 @@
 
 
 #include "common/h/Vector.h"
-#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/frame.h"
 
 class instPoint;
 class AstNode;
-class instInstance;
 
 class instReqNode;
 
@@ -75,21 +74,20 @@ class instReqNode {
   instReqNode(instPoint*, AstNode *, callWhen, callOrder order);
   ~instReqNode();
   
-  instReqNode() {
+  instReqNode() : point(NULL), ast(NULL), loadedIntoApp(false), 
+    trampsHookedUp(false), rinstance(NULL) {
     // needed by Vector class
-    ast = NULL; 
-    point=NULL; 
-    instance = NULL; 
-    rinstance = NULL; 
   }
   
   instReqNode(const instReqNode &src) {
     point = src.point;
     when = src.when;
     order = src.order;
-    instance = src.instance;
     rinstance = src.rinstance;
     ast = assignAst(src.ast);
+    loadedIntoApp = src.loadedIntoApp;
+    mtHandle = src.mtHandle;
+    trampsHookedUp = src.trampsHookedUp;
   }
   instReqNode &operator=(const instReqNode &src) {
     if (this == &src)
@@ -99,30 +97,35 @@ class instReqNode {
     ast = assignAst(src.ast);
     when = src.when;
     order = src.order;
-    instance = src.instance;
     rinstance = src.rinstance;
+    loadedIntoApp = src.loadedIntoApp;
+    mtHandle = src.mtHandle;
+    trampsHookedUp = src.trampsHookedUp;
     
     return *this;
   }
 
-  instInstance* loadInstrIntoApp(process *theProc, 
-				 returnInstance *&retInstance, bool *deferred);
-  
-  void disable();
+  loadMiniTramp_result loadInstrIntoApp(process *theProc, 
+					returnInstance *&retInstance,
+					instInstance **mtInst);
+  void hookupJumps(process *proc);  
+
+  void disable(process *proc);
+
   timeLength cost(process *theProc) const;
   
   static instReqNode forkProcess(const instReqNode &parent,
                          const dictionary_hash<instInstance*,instInstance*> &);
   // should become a copy-ctor...or at least, a non-static member fn.
   
-  bool unFork(dictionary_hash<instInstance*, instInstance*> &map) const;
+  bool unFork(process *proc, 
+	      dictionary_hash<instInstance*, instInstance*> &map) const;
   // The fork syscall duplicates all trampolines from the parent into the
   // child. For those mi's which we don't want to propagate to the child,
   // this creates a problem.  We need to remove instrumentation code from the
   // child.  This routine does that.  "map" maps instInstances of the parent
   // to those in the child.
 
-  instInstance *getInstance() const { return instance; }
   returnInstance *getRInstance() const { return rinstance; }
   
   bool postCatchupRPC(process *theProc, Frame &triggeredFrame, int mid);
@@ -137,13 +140,17 @@ class instReqNode {
   AstNode* Ast()  {return ast;}
   callWhen When() {return when;}
   callOrder Order() { return order; }
-  
+
 private:
   instPoint	*point;
   AstNode	*ast;
   callWhen	when;
   callOrder	order;
-  instInstance	*instance; // undefined until loadInstrIntoApp() calls addInstFunc
+  bool          loadedIntoApp;
+  miniTrampHandle mtHandle;
+
+  bool          trampsHookedUp;
+
   returnInstance *rinstance;
   
   // Counts the number of rpcs which have successfully completed for this
