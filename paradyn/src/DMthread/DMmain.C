@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.74  1995/08/24 17:23:53  newhall
+ * Revision 1.75  1995/09/26 20:22:11  naim
+ * New function defintion: showErrorCallback. This function allows error msgs
+ * from paradynd
+ *
+ * Revision 1.74  1995/08/24  17:23:53  newhall
  * fixed compile error
  *
  * Revision 1.73  1995/08/24  15:02:26  hollings
@@ -445,6 +449,48 @@ char *dynRPCUser::getUniqueResource(int program,
     return((char*)ptr);
 }
 #endif
+
+//
+// Display errors using showError function from the UIM class
+// This function allows to display error messages from paradynd
+// using the "upcall" or "call back" mechanism.
+// Parameters: 	errCode = Error code
+//		errString = Error message
+//		hostName = Host name where the error occur
+// Call: there is a macro defined in "showerror.h". This macro must be
+//       used when calling this function. A typical call is:
+//       showErrorCallback(99, "Erro message test"). This macro will
+//       automatically insert the additional host info required.
+//
+void dynRPCUser::showErrorCallback(int errCode, 
+				   string errString,
+				   string hostName)
+{
+    string msg;
+
+    if (errString.length() > 0) {
+	if (hostName.length() > 0) {
+    	    msg = string("<Msg from daemon on host ") + hostName + 
+	          string("> ") + errString;
+        }
+	else { 
+	    msg = string("<Msg from daemon on host ?> ") + errString; 
+        }
+        uiMgr->showError(errCode, P_strdup(msg.string_of()));
+    }
+    else {
+        uiMgr->showError(errCode, ""); 
+    }
+
+    //
+    // hostName.length() should always be > 0, otherwise
+    // hostName is not defined (i.e. "?" will be used instead).
+    // if errString.length()==0, (i.e. errString.string_of()==""),
+    // then we will use the default error message in errorList.tcl
+    // This message, however, will not include any info about the current
+    // host name.
+    //
+}
 
 //
 // used when a new program gets forked.
