@@ -43,6 +43,13 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.12  1999/08/20 20:38:40  bernat
+ * Enabled shared memory.
+ *
+ * Changed getWallTime to use system library call (more portable)
+ *
+ * Added getProcs() code (DISABLED) to getCPUTime
+ *
  * Revision 1.11  1997/06/02 16:39:40  naim
  * Small change to comment out a warning message - naim
  *
@@ -95,8 +102,21 @@
 
 #include "rtinst/h/rtinst.h"
 
+#include <sys/types.h>
+
+/* For read_real_time */
+#include <sys/systemcfg.h>
+
+
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #include <sys/thread.h>
+#endif
+
+/* See comment below. Uses the same method as paradynd, but causes
+   a SIGILL right now 
+*/
+#ifdef USE_GETPROCS_METHOD
+#include <procinfo.h> /* For getprocs() call */
 #endif
 
 static const double NANO_PER_USEC   = 1.0e3;
@@ -118,12 +138,42 @@ DYNINSTos_init(int calledByFork, int calledByAttach) {
  *
  * return value is in usec units.
 ************************************************************************/
-
 time64 DYNINSTgetCPUtime(void) 
 {
   time64        now;
+
   static time64 prevTime = 0;
+
+  /* I really hate to use an ifdef, but I don't want to toss the code.
+
+     Getprocs: uses the same method as the dyninst library, but causes
+     a SIGILL (illegal instruction) in the bubba program. 
+
+     Rusage: the old (and working) method. Uses much less time than
+     the getprocs method.
+  */
+
+  /*#define USE_GETPROCS_METHOD */
+#ifdef USE_GETPROCS_METHOD
+
+  /* Constant for the number of processes wanted in info */
+  const unsigned int numProcsWanted = 1;
+  struct procsinfo procInfoBuf[numProcsWanted];
+  struct fdsinfo fdsInfoBuf[numProcsWanted];
+  int numProcsReturned;
+  pid_t wantedPid = getpid();
+
+  const int sizeProcInfo = sizeof(struct procsinfo);
+  const int sizeFdsInfo = sizeof(struct fdsinfo);
+  time64 nanoseconds;
+
+#else /* RUSAGE method */
+
   struct rusage ru;
+
+#endif /* USE_GETPROCS_METHOD */
+
+#ifndef USE_GETPROCS_METHOD
 
   do {
     if (!getrusage(RUSAGE_SELF, &ru)) {
@@ -136,13 +186,43 @@ time64 DYNINSTgetCPUtime(void)
     }
   } while(prevTime > now);
 
-  prevTime = now;
-  return(now);
+#else /* Using GETPROCS */
+  
+  numProcsReturned = getprocs(procInfoBuf,
+			      sizeProcInfo,
+			      fdsInfoBuf,
+			      sizeFdsInfo,
+			      &wantedPid,
+			      numProcsWanted);
+
+  if (numProcsReturned == -1) /* Didn't work */
+    perror("Failure in getInferiorCPUtime");
+
+  /* Get the user+sys time from the rusage struct in procsinfo */
+  now = (time64) procInfoBuf[0].pi_ru.ru_utime.tv_sec + // User time
+        (time64) procInfoBuf[0].pi_ru.ru_stime.tv_sec;  // System time
+
+  now *= (time64) 1000000; /* Secs -> millions of microsecs */
+
+  /* Though the docs say microseconds, the usec fields are in nanos */
+  /* Note: resolution is ONLY hundredths of seconds */
+  nanoseconds= (time64) procInfoBuf[0].pi_ru.ru_utime.tv_usec + 
+               (time64) procInfoBuf[0].pi_ru.ru_stime.tv_usec;  
+
+  now += nanoseconds / (time64) 1000; /* Nanos->micros */
+
+#endif
+
+  if (now < prevTime) /* Time ran backwards??? */
+    {
+      //logLine("********* time going backwards in paradynd **********\n");
+      now = prevTime;
+    }
+  else prevTime = now;
+
+  
+  return now;
 }
-
-
-
-
 
 /************************************************************************
  * time64 DYNINSTgetWalltime(void)
@@ -155,30 +235,41 @@ time64 DYNINSTgetWalltime(void)
 {
   static time64 prevTime = 0;
   time64        now;
+  timebasestruct_t timestruct;
 
+  /*
   register unsigned int timeSec asm("5");
   register unsigned int timeNano asm("6");
   register unsigned int timeSec2 asm("7");
+  */
   
-  /* Need to read the first value twice to make sure it doesn't role
+  /* Need to read the first value twice to make sure it doesn't roll
    *   over while we are reading it.
    */
+  /* This code was disabled, since there are library routines that 
+     do the same thing and are safer (in general, I don't like
+     register reads) -- bernat
+  */
+
+#if 0
   do {
     asm("mfspr   5,4");		/* read high into register 5 - timeSec */
     asm("mfspr   6,5");		/* read low into register 6 - timeNano */
     asm("mfspr   7,4");		/* read high into register 7 - timeSec2 */
   } while(timeSec != timeSec2);
-  
+#endif 
+
+  read_real_time(&timestruct, TIMEBASE_SZ);
+  time_base_to_time(&timestruct, TIMEBASE_SZ);
+
   /* convert to correct form. */
-  now = (time64) timeSec;
+  now = (time64) timestruct.tb_high;
   now *= (time64) MILLION;
-  now += (time64) timeNano/ (time64) 1000;
+  now += (time64) timestruct.tb_low;
 
   if(prevTime > now) {
-/*
-    fprintf(stderr, "WARNING:  prevTime (%f) > now (%f)\n", 
+    fprintf(stderr, "WARNING:  prevTime (%f) > now (%f) in (AIX)getWalltime\n", 
 	    (double) prevTime, (double) now);
-*/
     return(prevTime);
   } else {
     prevTime = now;
@@ -223,7 +314,8 @@ int DYNINSTgetRusage(int id)
 	case 4: /* context switches */
 	    value = DYNINSTrusagePtr->ru_nvcsw + DYNINSTrusagePtr->ru_nivcsw;
 	    break;
-	case 5: /* system time - in mili-seconds */
+	case 5: /* system time - in milli-seconds */
+	  /* Umm... why milli-seconds? */
 	    value = 1000 * DYNINSTrusagePtr->ru_stime.tv_sec + 
 	                   DYNINSTrusagePtr->ru_stime.tv_usec/1000;
 	    break;
