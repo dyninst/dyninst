@@ -1,10 +1,19 @@
+#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
+#error "invalid architecture-os inclusion"
+#endif
 
 #ifndef _ARCH_SPARC_H
 #define _ARCH_SPARC_H
 
 /*
  * $Log: arch-sparc.h,v $
- * Revision 1.4  1994/11/02 10:59:12  markc
+ * Revision 1.5  1995/05/30 05:04:49  krisna
+ * upgrade from solaris-2.3 to solaris-2.4.
+ * architecture-os based include protection of header files.
+ * removed architecture-os dependencies in generic sources.
+ * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
+ *
+ * Revision 1.4  1994/11/02  10:59:12  markc
  * Replaced some of the hash-defs with inlines
  *
  * Revision 1.3  1994/09/22  01:31:33  markc

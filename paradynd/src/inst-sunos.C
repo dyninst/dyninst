@@ -3,7 +3,13 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.27  1995/05/18 10:35:25  markc
+ * Revision 1.28  1995/05/30 05:04:58  krisna
+ * upgrade from solaris-2.3 to solaris-2.4.
+ * architecture-os based include protection of header files.
+ * removed architecture-os dependencies in generic sources.
+ * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
+ *
+ * Revision 1.27  1995/05/18  10:35:25  markc
  * Removed tag dictionary
  *
  * Revision 1.26  1995/03/10  19:33:49  hollings
@@ -111,7 +117,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.27 1995/05/18 10:35:25 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.28 1995/05/30 05:04:58 krisna Exp $";
 
 #include "os.h"
 #include "metric.h"
@@ -180,7 +186,7 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTincrementCounter"] = 16;
     // 240 ns
     primitiveCosts["DYNINSTdecrementCounter"] = 16;
-#ifdef sparc_sun_solaris2_3
+#ifdef sparc_sun_solaris2_4
     // Solaris measured 
     // clock == 39.173MHz
     // cost per call DYNINSTstartWallTimer 11.700000 usec 

@@ -1,7 +1,13 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.14  1995/05/18 10:29:19  markc
+ * Revision 1.15  1995/05/30 05:04:55  krisna
+ * upgrade from solaris-2.3 to solaris-2.4.
+ * architecture-os based include protection of header files.
+ * removed architecture-os dependencies in generic sources.
+ * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
+ *
+ * Revision 1.14  1995/05/18  10:29:19  markc
  * Prevent read-only registers from being deallocated.
  * Return register for procedure calls to allow values to be returned
  *
@@ -49,7 +55,13 @@
 #include "metric.h"
 #include "ast.h"
 #include "util.h"
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "inst-sparc.h"
+#else
+#if defined(hppa1_1_hp_hpux)
+#include "inst-hppa.h"
+#endif
+#endif
 
 registerSpace::registerSpace(int count, int *possibles) {
     int i;

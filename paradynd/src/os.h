@@ -11,7 +11,13 @@
 
 /*
  * $Log: os.h,v $
- * Revision 1.5  1995/05/25 16:08:47  markc
+ * Revision 1.6  1995/05/30 05:05:00  krisna
+ * upgrade from solaris-2.3 to solaris-2.4.
+ * architecture-os based include protection of header files.
+ * removed architecture-os dependencies in generic sources.
+ * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
+ *
+ * Revision 1.5  1995/05/25  16:08:47  markc
  * Include files for solaris 2.4
  *
  * Revision 1.4  1995/05/18  10:39:54  markc
@@ -38,12 +44,12 @@
 
 #if defined(sparc_sun_sunos4_1_3)
 #include "sunos.h"
-#elif defined(sparc_sun_solaris2_3)
-#include "solaris.h"
 #elif defined(sparc_sun_solaris2_4)
 #include "solaris.h"
 #elif defined(sparc_tmc_cmost7_3)
 #include "cmost.h"
+#elif defined(hppa1_1_hp_hpux)
+#include "hpux.h"
 #endif
 
 #include "util/h/String.h"
@@ -53,8 +59,8 @@ class OS {
 public:
   static bool osAttach(pid_t process_id);
   static bool osStop(pid_t process_id);
-  static bool osDumpCore(pid_t pid, const string dumpTo);
-  static bool osDumpImage(const string &imageFileName, pid_t pid, const Address a);
+  static bool osDumpCore(pid_t pid, string dumpTo);
+  static bool osDumpImage(const string &, pid_t, Address);
   static bool osForwardSignal(pid_t pid, int status);
   static void osTraceMe(void);
   static void osDisconnect(void);

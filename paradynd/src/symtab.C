@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.25 1995/05/18 10:42:40 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.26 1995/05/30 05:05:05 krisna Exp $";
 #endif
 
 /*
@@ -16,7 +16,13 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.25  1995/05/18 10:42:40  markc
+ * Revision 1.26  1995/05/30 05:05:05  krisna
+ * upgrade from solaris-2.3 to solaris-2.4.
+ * architecture-os based include protection of header files.
+ * removed architecture-os dependencies in generic sources.
+ * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
+ *
+ * Revision 1.25  1995/05/18  10:42:40  markc
  * Added code to build procedure lists for the mdl
  *
  * Revision 1.24  1995/02/21  22:03:32  markc
@@ -139,7 +145,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 // TODO - machine independent instruction functions
 #include "symtab.h"
-#include "arch-sparc.h"
+#include "arch.h"
 #include "util/h/Object.h"
 #include <fstream.h>
 #include "util.h"
@@ -736,7 +742,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
       ;
-    } else if (lookUp.type() == Symbol::ST_FUNCTION) {
+    } else if (lookUp.type() == Symbol::PDST_FUNCTION) {
       if (!isValidAddress(lookUp.addr())) {
 	char msg[100];
 	sprintf(msg, "Function %s has bad address %x", lookUp.name().string_of(),
@@ -766,7 +772,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
       ;
-    } else if ((lookUp.type() == Symbol::ST_OBJECT) && lookUp.kludge()) {
+    } else if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
       pdFunction *pdf;
       if (inLibrary(lookUp.addr(), boundary_start, boundary_end,
 		    startAddr, startB, endAddr, endB)) {
@@ -932,7 +938,7 @@ image::image(const string &fileName, bool &err)
 
   while (symIter.next(symString, lookUp)) {
 
-    if (lookUp.type() == Symbol::ST_MODULE) {
+    if (lookUp.type() == Symbol::PDST_MODULE) {
       const char *str = (lookUp.name()).string_of();
       assert(str);
       int ln = P_strlen(str);

@@ -10,7 +10,13 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.15  1995/05/18 10:42:42  markc
+ * Revision 1.16  1995/05/30 05:05:08  krisna
+ * upgrade from solaris-2.3 to solaris-2.4.
+ * architecture-os based include protection of header files.
+ * removed architecture-os dependencies in generic sources.
+ * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
+ *
+ * Revision 1.15  1995/05/18  10:42:42  markc
  * Added code to build procedure lists for the mdl
  *
  * Revision 1.14  1995/02/24  04:42:01  markc
@@ -94,7 +100,7 @@ extern "C" {
 #include "util/h/Object.h"
 #include "util/h/list.h"
 #include "dyninst.h"
-#include "arch-sparc.h"
+#include "arch.h"
 #include "util.h"
 #include "util/h/String.h"
 #include "resource.h"

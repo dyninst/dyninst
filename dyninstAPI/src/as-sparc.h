@@ -1,10 +1,15 @@
-
 #ifndef AS_SPARC_H
 #define AS_SPARC_H
 
 /*
  * $Log: as-sparc.h,v $
- * Revision 1.1  1994/11/01 16:57:05  markc
+ * Revision 1.2  1995/05/30 05:04:53  krisna
+ * upgrade from solaris-2.3 to solaris-2.4.
+ * architecture-os based include protection of header files.
+ * removed architecture-os dependencies in generic sources.
+ * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
+ *
+ * Revision 1.1  1994/11/01  16:57:05  markc
  * sparc architecture includes
  *
  */
