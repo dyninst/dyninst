@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.31  1995/12/17 20:57:12  zhichen
+ * Revision 1.32  1996/01/15 16:58:13  zhichen
+ * Devided sampleInterval by 2 (bart's information theory)
+ * The other change is in dynrpc.C , search for SAMPLEnodes
+ *
+ * Revision 1.31  1995/12/17  20:57:12  zhichen
  * This time i hope i really fixed the no sample problem
  *
  * Revision 1.30  1995/12/17  05:13:15  zhichen
@@ -535,7 +539,7 @@ void DYNINSTinit()
 #endif
 
     /* set sampling rate to default value in util/sys.h */
-    sampleInterval = BASESAMPLEINTERVAL; 
+    sampleInterval = BASESAMPLEINTERVAL/2.0;  /* bart's information theory */
 
     DYNINSTsamplingRate = ((float) sampleInterval)/ 1000000.0;
 
