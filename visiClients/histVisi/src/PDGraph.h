@@ -47,7 +47,7 @@
 // support the drawing of time-based histograms.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.h,v 1.2 2000/02/09 19:44:18 pcroth Exp $
+// $Id: PDGraph.h,v 1.3 2000/04/07 15:03:08 pcroth Exp $
 //---------------------------------------------------------------------------
 #ifndef PDGRAPH_H
 #define PDGRAPH_H
@@ -538,8 +538,10 @@ private:
         static    const char*    tuSecondsFormat;
         static    const char*    tuMinutesFormat;
         static    const char*    tuHoursFormat;
-        static    const int   tickLen;
-        static    const int   tickPad;
+        static    const int      tickLen;
+        static    const int      tickPad;
+        static    const int      kMaxSeconds;
+        static    const int      kMaxMinutes;
 
         TimeUnits    units;        // units currently in use
         PDGraph*    g;

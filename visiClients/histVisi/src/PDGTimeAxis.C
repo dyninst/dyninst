@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGTimeAxis.C,v 1.1 1999/10/05 22:09:04 pcroth Exp $
+// $Id: PDGTimeAxis.C,v 1.2 2000/04/07 15:03:07 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -107,10 +107,13 @@ const char*    PDGraph::TimeAxisW::secondsLabel    = "Sec";
 const char*    PDGraph::TimeAxisW::minutesLabel    = "Min:Sec";
 const char*    PDGraph::TimeAxisW::hoursLabel    = "Hours:Min";
 const char*    PDGraph::TimeAxisW::tuSecondsFormat    = "%.0f";
-const char*    PDGraph::TimeAxisW::tuMinutesFormat    = "%u.%02u";
+const char*    PDGraph::TimeAxisW::tuMinutesFormat    = "%u:%02u";
 const char*    PDGraph::TimeAxisW::tuHoursFormat    = "%u:%02u";
 const int   PDGraph::TimeAxisW::tickLen        = 4;
 const int   PDGraph::TimeAxisW::tickPad        = 2;
+
+const int   PDGraph::TimeAxisW::kMaxSeconds     = 200;
+const int   PDGraph::TimeAxisW::kMaxMinutes     = 60 * 60;
 
 
 // InstallClassCommand - installs the "pdgraph_timeaxis" command into the 
@@ -304,8 +307,8 @@ PDGraph::TimeAxisW::Draw( void )
         g->GetFont(),
         unitsString,
         unitsStringLen,
-        ((Tk_Width( tkwin ) - unitsStringWidth)/2), Tk_Height( tkwin ) );
-
+        ((Tk_Width( tkwin ) - unitsStringWidth)/2),
+		tickLen + tickPad + 2 * g->GetFontMetrics().linespace );
 
     // draw time axis ticks...
 
@@ -440,6 +443,20 @@ PDGraph::TimeAxisW::UpdateConfiguration( void )
         // there will be too many intervals,
         // so reduce the number
         nIntervals /= 2;
+    }
+
+    // update our label format
+    if( maxValue <= kMaxSeconds )
+    {
+        units = tuSeconds;
+    }
+    else if( maxValue <= kMaxMinutes )
+    {
+        units = tuMinutes;
+    }
+    else
+    {
+        units = tuHours;
     }
 }
 
