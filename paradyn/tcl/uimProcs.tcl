@@ -1,4 +1,4 @@
-# $Id: uimProcs.tcl,v 1.19 1998/03/03 23:20:08 wylie Exp $
+# $Id: uimProcs.tcl,v 1.20 1998/03/11 18:33:13 naim Exp $
 # utilities for UIM tcl functions
 #
 
@@ -268,7 +268,8 @@ proc showError {errorCode errorStr} {
        mkButtonBar $w.out.buttons {} retval {{CONTINUE ""} \
 	    {EXIT PARADYN "destroy ."} }
 
-       $w.out.buttons.2 configure -command "errorExit $w"
+       #$w.out.buttons.2 configure -command "errorExit $w"
+       $w.out.buttons.2 configure -command "procExit"
        $w.out.buttons.1 configure -command "destroy $w"
        pack $w.out.buttons -fill both -padx 5 -expand false
 
