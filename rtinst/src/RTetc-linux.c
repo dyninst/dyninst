@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.23 2002/08/31 16:53:50 mikem Exp $ */
+/* $Id: RTetc-linux.c,v 1.24 2002/09/16 15:48:16 mikem Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -66,6 +66,10 @@
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "rtinst/h/RThwtimer-linux.h"
+
+#ifdef PAPI
+#include "papi.h"
+#endif
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #include <thread.h>
@@ -182,7 +186,7 @@ DYNINSTgetCPUtime_hw(void) {
 #endif
 
 #ifdef PAPI
-  now = PAPI_get_virt_cyc();
+  now = (rawTime64) PAPI_get_virt_cyc();
 #endif
 
   if (now < tmp_cpuPrevious) {
