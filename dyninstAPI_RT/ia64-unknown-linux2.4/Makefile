@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2004/04/28 20:21:00 rchen Exp $
+# $Id: Makefile,v 1.8 2004/05/25 17:13:30 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -14,13 +14,10 @@ USES_UNWIND_LIB = true
 include ../../make.config 
 
 # Set platform-specific variables for this build.
-LD			= $(GCC)
-LDFLAGS			+= -static -nostdlib -Xlinker -r
-
 CC			= $(GCC)
 LD			= $(GCC)
 CFLAGS			+= -I. -I../.. -fpic
-LDFLAGS			= -shared -ldl -Wl,-init,_start \
+LDFLAGS			+= -shared -ldl -Wl,-init,_start \
 				  -L$(LIBUNWINDDIR)/lib \
 				  -Wl,--whole-archive -Wl,-Bstatic -lunwind -Wl,-Bdynamic -Wl,--no-whole-archive
 
