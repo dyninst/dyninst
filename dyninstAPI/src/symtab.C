@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.102 1999/08/09 05:55:14 csserra Exp $
+// $Id: symtab.C,v 1.103 1999/11/05 23:17:44 wylie Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1665,14 +1665,10 @@ void image::initialize(const string &fileName, bool &err,
     codeLen_ = linkedFile.code_len();
     dataLen_ = linkedFile.data_len();
 
-#if defined(hppa1_1_hp_hpux)
-  unwind   = linkedFile.unwind;
-#endif
-
     // if unable to parse object file (somehow??), try to
     //  notify luser/calling process + return....    
     if (!codeLen_ || !linkedFile.code_ptr()) {
-        string msg = string("Unable to open executable file: ") + fileName;
+        string msg = string("Parsing problem with executable file: ") + fileName;
         statusLine(msg.string_of());
         msg += "\n";
         logLine(msg.string_of());
