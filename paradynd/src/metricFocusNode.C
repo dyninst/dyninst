@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.23 1994/07/05 03:26:09 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.24 1994/07/12 20:13:58 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.23  1994/07/05 03:26:09  hollings
+ * Revision 1.24  1994/07/12 20:13:58  jcargill
+ * Fixed logLine for printing out samples w/64 bit time
+ *
+ * Revision 1.23  1994/07/05  03:26:09  hollings
  * observed cost model
  *
  * Revision 1.22  1994/07/02  01:46:41  markc
@@ -669,6 +672,8 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     if (met->info.style == EventCounter) {
 	// only use delta from last sample.
 	assert(value + 0.0001 >= sample.value);
+//	if (value + 0.0001 < sample.value)
+//           printf ("WARNING:  sample went backwards!!!!!\n");
 	value -= sample.value;
 	sample.value += value;
     }
@@ -715,7 +720,9 @@ void processSample(traceHeader *h, traceSample *s)
 	return;
     }
      
-    // logLine("sample id %d at time %f = %f\n", s->id.id, now, s->value);
+//    sprintf(errorLine, "sample id %d at time 0x%x%x = %f\n", s->id.id, 
+//	*(int*) &h->wall, *(((int*) &h->wall)+1), s->value);
+//    logLine(errorLine);
     mi->updateValue(h->wall, s->value);
     samplesDelivered++;
 }
