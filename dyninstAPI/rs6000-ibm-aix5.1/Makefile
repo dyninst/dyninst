@@ -1,6 +1,4 @@
 #
-# $Id: Makefile,v 1.2 2003/06/11 20:05:40 bernat Exp $
-#
 
 # Define any symbols needed to invoke configuration changes in make.config
 
@@ -61,5 +59,7 @@ TARGET3_SO	= libdyninstAPI.a
 # Install rule: install withOUT world-readable permissions
 # 
 install: $(TARGET3_SO)
+	-xlC -bnoobjreorder -bexpall -bnoentry -o libdemangle.so.1 -ldemangle -u functionName -u demangle -lc 
+	-$(CP) libdemangle.so.1 $(DEST)
 	-$(CP) $(TARGET3_SO) $(DEST)
 	-chmod 750 $(DEST)/$(TARGET3_SO)
