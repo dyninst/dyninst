@@ -90,7 +90,11 @@ class TailCallOptimization : public SparcLocalAlteration {
 //  
 class CallRestoreTailCallOptimization : public TailCallOptimization {
  protected:
+     // is the call a "true" call - meaning call to address (really PC + offset)
+     //  or a"jump and link" call - meaning call through a register 
+     //  (really register + offset) 
      bool true_call, jmpl_call;
+
      void SetCallType(instruction callInsn);
  public:
      CallRestoreTailCallOptimization(pd_Function *f, int beginning_offset, \

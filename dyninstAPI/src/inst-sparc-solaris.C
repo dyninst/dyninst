@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.43 1998/09/19 20:56:10 mcheyney Exp $
+// $Id: inst-sparc-solaris.C,v 1.44 1998/10/26 23:03:04 mcheyney Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -181,12 +181,24 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
       } else {
 	  assert(ipType == callSite);
 	  // Usually, a function without a stack frame won't have any call sites
-	  extern debug_ostream metric_cerr;
-	  metric_cerr << "inst-sparc-solaris.C WARNING: found a leaf fn (no stack frame)" << endl;
-	  metric_cerr << "which makes a function call" << endl;
-	  metric_cerr << "This fn is " << func->prettyName() << endl;
-
+	  //cerr << "inst-sparc-solaris.C WARNING: found a leaf fn (no stack frame)" 
+	  //     << "which makes a function call : " << func->prettyName()
+	  //     << " at address " << adr << endl;
 	  //abort();
+	  // Actually - that is incorrect.  It confuses a leaf function
+	  //  (one without a stack frame of its own) with a function which
+	  //  does not make any calls).  It is possible for a function without
+	  //  a stack frae to make calls in the case of e.g. tail-call 
+	  //  optimization (in this case, the function could end with
+	  //  e.g. jmp, nop)....
+	  delaySlotInsn.raw = owner->get_instruction(addr+4);
+	  size += 2*sizeof(instruction);
+
+	  aggregateInsn.raw = owner->get_instruction(addr+8);
+	  if (!IS_VALID_INSN(aggregateInsn) && aggregateInsn.raw != 0) {
+	      callAggregate = true;
+	      size += 1*sizeof(instruction);
+	  }
       }
   }
 
@@ -198,14 +210,39 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
 
 // return the instruction after originalInstruction....
 const instruction instPoint::insnAfterPoint() const {
-    if (!this->hasNoStackFrame()) {
-        if (ipType == functionEntry) {
-	    return delaySlotInsn;
-	} else {
-	    return delaySlotInsn;
-	}
-    } 
-    return otherInstruction;
+    if (this->hasNoStackFrame()) {
+      switch (ipType) {
+      case functionEntry: 
+	return otherInstruction;
+	break;
+      case callSite:
+	return delaySlotInsn;
+	break;
+      case functionExit:
+	return otherInstruction;
+	break;
+      default:
+	assert(false);
+      }
+    } else {
+      switch (ipType) {
+      case functionEntry:
+	return delaySlotInsn;
+	break;
+      case callSite:
+	return delaySlotInsn;
+	break;
+      case functionExit:
+	return delaySlotInsn;
+      default:
+	assert(false);
+      }
+    }
+
+    // should never be reached....
+    assert(false);
+    // prevent warning about lack of return value....
+    return delaySlotInsn;
 }
 
    void AstNode::sysFlag(instPoint *location)
@@ -283,6 +320,13 @@ void pd_Function::checkCallPoints() {
 // TODO we cannot find the called function by address at this point in time
 // because the called function may not have been seen.
 // reloc_info is 0 if the function is not currently being relocated
+// Note that this may be called even when instr is NOT a CAlL inst, e.g.
+//  in the case of a jmp instruction where paradynd/dyninstAPI knows
+//  (really guesses) that control flow will return to the point following
+//  the jmp, or wants
+//  to mark the jmp as a call to preserve its logical structure of 
+//  synchronous call + return (which is violated by tail-call optimization -
+//  including a function (w/o stack frame) which ends w/ jmp, nop....
 Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 				 const image *owner, bool &err, 
 				 int &callId, Address &oldAddr,
@@ -301,11 +345,13 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 #endif
 
     err = true;
+    
     if (isTrap) {
-	point = new instPoint(this, instr, owner, adr, false, callSite, oldAddr);
+        point = new instPoint(this, instr, owner, adr, false, callSite, oldAddr);
     } else {
-	point = new instPoint(this, instr, owner, adr, false, callSite);
+        point = new instPoint(this, instr, owner, adr, false, callSite);
     }
+    //point = new instPoint(this, instr, owner, adr, false, callSite);
 
     if (!isInsnType(instr, CALLmask, CALLmatch)) {
       point->callIndirect = true;
@@ -1612,13 +1658,15 @@ static inline bool JmpNopTC(instruction instr, instruction nexti,
     }
 
     // only looking for jump instructions in which the destination is
-    //  NOT %i7 + 8 or %o7 + 8 (ret and retl synthetic instructions, respectively)
+    //  NOT %i7 + 8/12/16 or %o7 + 8/12/16 (ret and retl synthetic 
+    //  instructions, respectively)
     if (instr.resti.i == 1) {
         if (instr.resti.rs1 == REG_I(7) || instr.resti.rs1 == REG_O(7)) {
 	    // NOTE : some return and retl instructions jump to {io}7 + 12,
-	    //  not + 8, to have some extra space to store the size of a 
+	    //  or (io)7 + 16, not + 8, to have some extra space to store the size of a 
 	    //  return structure....
-            if (instr.resti.simm13 == 0x8 || instr.resti.simm13 == 12) {
+            if (instr.resti.simm13 == 0x8 || instr.resti.simm13 == 12 ||
+		    instr.resti.simm13 == 16) {
 	        return 0;
 	    }
         }
@@ -1643,7 +1691,58 @@ static inline bool JmpNopTC(instruction instr, instruction nexti,
 
     return 1;
 }
-    
+
+/*
+  Is the specified call instruction one whose goal is to set the 07 register
+  (the sequence of execution is as if the call instruction did not change the
+  control flow, and the O7 register is set)?
+
+  here, we define a call whose goal is to set the 07 regsiter
+    as one where the target is the call address + 8, AND where that
+    target is INSIDE the same function (need to make sure to check for that
+    last case also, c.f. function DOW, which ends with):
+     0xef601374 <DOW+56>:    call  0xef60137c <adddays>
+     0xef601378 <DOW+60>:    restore 
+
+  instr - raw instruction....
+  functionSize - size of function (in bytes, NOT # instructions)....
+  instructionOffset - BYTE offset in function at which instr occurs....
+ */        
+static inline bool is_set_O7_call(instruction instr, int functionSize, 
+			      int instructionOffset) {
+    // if the instruction is callm %register, assume that it is NOT a 
+    //  call designed purely to set %O7....
+    if(instr.call.op != CALLop) {
+        return false;
+    }
+    if (((instr.call.disp30 << 2) == 8) && 
+             (instructionOffset < (functionSize - 2 * sizeof(instruction)))) {
+        return true; 
+    }
+    return false; 
+}  
+
+/*
+    Does the specified call instruction call to target inside function
+    or outside - may be indeterminate if insn is call %reg instead of 
+    call <address> (really call PC + offset)
+ */
+enum fuzzyBoolean {eFalse = 0, eTrue = 1, eDontKnow = 2}; 
+static enum fuzzyBoolean is_call_outside_function(instruction instr, Address 
+				      functionStarts, Address instructionAddress, 
+				      int functionSize) {
+    // call %register - don't know if target inside function....
+    if(instr.call.op != CALLop) {
+        return eDontKnow;
+    }
+    Address call_target = instructionAddress + (instr.call.disp30 << 2);
+    if ((call_target >= functionStarts) && 
+       (call_target < (functionStarts + functionSize))) {
+        return eFalse;
+    }
+    return eTrue;
+}
+
 
 /*
  * Find the instPoints of this function.
@@ -1655,11 +1754,13 @@ bool pd_Function::findInstPoints(const image *owner) {
     bool err;
     int dummyId;
 
+    enum fuzzyBoolean is_inst_point;
+
     //cerr << "pd_Function::findInstPoints called " << *this;
    if (size() == 0) {
      //cerr << " size = 0, returning FALSE" << endl;
      return false;
-   }
+   } 
 
    noStackFrame = true;
 
@@ -1748,7 +1849,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
      // check for return insn and as a side affect decide if we are at the
      //   end of the function.
-     if (isReturnInsn(owner, adr, done)) {
+     if (isReturnInsn(owner, adr, done, prettyName())) {
        // define the return point
        funcReturns += new instPoint(this, instr, owner, adr, false,
 				    functionExit);
@@ -1800,10 +1901,26 @@ bool pd_Function::findInstPoints(const image *owner) {
 				      functionExit);
 
        } else {
-	 // define a call point
-	 // this may update address - sparc - aggregate return value
-	 // want to skip instructions
-	 adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
+	   // check if the call is to inside the function - if definately
+	   //  inside function (meaning that thew destination can be determined
+	   //  statically because its a call to an address, not to a register or
+	   //  register + offset) then don't instrument as call site, otherwise
+	   //  (meaning that the call destination is known statically to be outside
+	   //  the function, or is not known statically), then instrument as a
+	   //  call site....
+	   is_inst_point = is_call_outside_function(instr, getAddress(0), adr, size());
+	   if (is_inst_point == eFalse) {
+	       // if this is a call instr to a location within the function, and if 
+               // the offest is not 8 then do not define this function 
+	       if (!is_set_O7_call(instr, size(), adr - getAddress(0))) {
+		   return false;
+	       }
+	   } else {
+	       // define a call point
+	       // this may update address - sparc - aggregate return value
+	       // want to skip instructions
+	       adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
+	   }
        }
      }
      else if (JmpNopTC(instr, nexti, adr, this)) {
@@ -1968,6 +2085,8 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
    instruction second_instr;
    instruction nexti; 
 
+   enum fuzzyBoolean is_inst_point;
+
    bool err;
    instPoint *blah = 0;
 
@@ -2030,7 +2149,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 
      // check for return insn and as a side affect decide if we are at the
      //   end of the function.
-     if (isReturnInsn(owner, adr, done)) {
+     if (isReturnInsn(owner, adr, done, prettyName())) {
        // define the return point
        instPoint *point	= new instPoint(this, instr, owner, newAdr, false, 
 					functionExit, adr);
@@ -2069,7 +2188,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
        //  as inst points, AND that the call site points to the 1st instruction
        //  in the tail-call sequence and the retuirn point points to the 
        //  second....
-       if (CallRestoreTC(instr, nexti) || JmpNopTC(instr, nexti, adr, this)) {
+       if (CallRestoreTC(instr, nexti)) {
 	   // Alert!!!!
 	   adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
 	   if (err) return false;
@@ -2081,23 +2200,25 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
            funcReturns[retId] -> instId = retId++;
 
        } else {
-         // if this is a call instr to a location within the function, and if 
-         // the offest is not 8 then do not define this function 
-         if(instr.call.op == CALLop){ 
-           Address call_target = adr + (instr.call.disp30 << 2);
-           if((call_target >= getAddress(0)) 
-	      && (call_target <= (getAddress(0)+size()))){ 
-	      if((instr.call.disp30 << 2) != 2*sizeof(instruction)) {
-	        return false;
-	      }
-           }
-	 }
-	 // define a call point
-	 // this may update address - sparc - aggregate return value
-	 // want to skip instructions
-	 adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
-	 if (err)
-	   return false;
+	   // check if the call is to inside the function - if definately
+	   //  inside function (meaning that thew destination can be determined
+	   //  statically because its a call to an address, not to a register or
+	   //  register + offset) then don't instrument as call site, otherwise
+	   //  (meaning that the call destination is known statically to be outside
+	   //  the function, or is not known statically), then instrument as a
+	   //  call site....
+	   is_inst_point = is_call_outside_function(instr, getAddress(0), adr, size());
+	   if (is_inst_point == eFalse) {
+	       // if this is a call instr to a location within the function, and if 
+               // the offest is not 8 then do not define this function 
+	       if (!is_set_O7_call(instr, size(), adr - getAddress(0))) {
+		   return false;
+	       }
+	   } else {
+	       adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
+	       if (err)
+		   return false;
+	   }
        }
      }
      else if ((jmp_nop_tc = JmpNopTC(instr, nexti, adr, this)) == 1) {
@@ -2105,7 +2226,8 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
            adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
 	   if (err) return false;
 
-           instPoint *point = new instPoint(this, instr, owner, newAdr, false,
+           instPoint *point = new instPoint(this, instr, owner, newAdr
+				      + sizeof(instruction), false,
 				      functionExit, adr);
            funcReturns += point;
            funcReturns[retId] -> instId = retId++;
@@ -2176,7 +2298,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
     } \
 
 // Called when a function is relocated:
-//  rewrites the function code
+//  rewrites the function code 
 //  assigns new address to inst points in function????
 bool pd_Function::findNewInstPoints(const image *owner, 
 				const instPoint *&location,
@@ -2514,21 +2636,16 @@ bool pd_Function::calcRelocationExpansions(const image *owner,
     returns boolean value indicating whether it was able to figure out
     sequence of LocalAlterations to apply to perform specified rewrites....
  */
-
-/*  heuristically, we define a call whose goial is to set the 07 regsiter
-    as one where the target is the call address + 8, AND where that
-    target is INSIDE the same function (need to make sure to check for that
-    last case also, c.f. function DOW, which ends with:
-     0xef601374 <DOW+56>:    call  0xef60137c <adddays>
-     0xef601378 <DOW+60>:    restore 
-*/
-#define IS_SET_O7_CALL(instr, codeSize, i) \
-    (((instr.call.disp30 << 2) == 8) && (i < (codeSize/sizeof(instruction) - 2))) 
 bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p, 
         Address baseAddress, Address firstAddress, instruction loadedCode[], int codeSize) {
     unsigned i;
     instruction instr, nexti;
     TailCallOptimization *tail_call;
+    // previously referred to calls[i] directly, but gdb seems to be having
+    //  trouble with templated types with the new compiler - making debugging
+    //  difficult - so, directly assign calls[i] to the_call so can use gdb
+    //  to get at info about it....
+    instPoint *the_call;
 
 #ifdef DEBUG_PA_INST
     cerr << "pd_Function::PA_attachGeneralRewrites called" <<endl;
@@ -2553,8 +2670,8 @@ bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p,
     //    Note that if this call insn is a call to address + 8, it will actually
     //     be replaced by a sequence which does NOT include a call, so don't need to
     //     worry about inserting the extra nop....
-    if (isCallInsn(loadedCode[1]) && !IS_SET_O7_CALL(loadedCode[1], \
-						     codeSize, 1)) {
+    if (isCallInsn(loadedCode[1]) && !is_set_O7_call(loadedCode[1], \
+					     codeSize, 1 * sizeof(instruction))) {
         NOPExpansion *nop = new NOPExpansion(this, sizeof(instruction), 
 	        sizeof(instruction), baseAddress, sizeof(instruction));
 	p->AddAlteration(nop);
@@ -2570,7 +2687,7 @@ bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p,
         //  want CALL %address, NOT CALL %register
         if (isTrueCallInsn(loadedCode[i])) {
 	    // figure out destination of call....
-	    if (IS_SET_O7_CALL(loadedCode[i], codeSize, i)) {
+	    if (is_set_O7_call(loadedCode[i], codeSize, i * sizeof(instruction))) {
 	        SetO7 *seto7 = new SetO7(this, i * sizeof(instruction), 
 					 (i+1) * sizeof(instruction), baseAddress);
 		p->AddAlteration(seto7);
@@ -2592,9 +2709,10 @@ bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p,
     for(i=0;i<calls.size();i++) {
         // this should return the offset at which the FIRST instruction which
         //  is ACTUALLY OVEWRITTEN BY INST POINT is located....
-        int offset = (calls[i]->iPgetAddress() - getAddress(0));
-	instr = calls[i]->insnAtPoint();
-	nexti = calls[i]->insnAfterPoint();
+        the_call = calls[i];
+        int offset = (the_call->iPgetAddress() - getAddress(0));
+	instr = the_call->insnAtPoint();
+	nexti = the_call->insnAfterPoint();
 	if (CallRestoreTC(instr, nexti)) {
 	    tail_call = new CallRestoreTailCallOptimization(
 				   this, offset, 
@@ -2606,7 +2724,7 @@ bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p,
 		 << offset << endl;
 #endif
 	}
-	if (JmpNopTC(instr, nexti, calls[i]->iPgetAddress(), this)) {
+	if (JmpNopTC(instr, nexti, the_call->iPgetAddress(), this)) {
 	    tail_call = new JmpNopTailCallOptimization(
 				   this, offset, 
 				   offset + 2 * sizeof(instruction), 
@@ -3072,6 +3190,7 @@ bool pd_Function::fillInRelocInstPoints(const image *owner,
 	//  adr) to set point->delaySlotInsn (and aggregateInsn, 	
 	//  - should that also be set here?).  That's really a design screw-up
 	//  in the inst point constructor - which should take additional
+	//  arguments....
         point-> originalInstruction = newCode[arrayOffset];
         point-> delaySlotInsn = newCode[arrayOffset+1];
 	

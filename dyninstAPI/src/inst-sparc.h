@@ -105,6 +105,7 @@ inline unsigned ABS(int x) {
 // some macros for helping code which contains register symbolic 
 //  names....
 #define REG_I(x) (x + 24)
+#define REG_L(x) (x + 16) 
 #define REG_O(x) (x + 8)
 #define REG_G(x) (x)
 
@@ -433,11 +434,12 @@ extern unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 extern unsigned emitOptReturn(unsigned, reg, char *, unsigned &, bool);
 
 extern int getInsnCost(opCode op);
-extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
-extern bool isReturnInsn(instruction i);
+extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne, 
+			 string name); 
+extern bool isReturnInsn(instruction i, Address adr, string name);
 extern bool isBranchInsn(instruction i);
 extern bool branchInsideRange(instruction i,  Address branchAddress, 
-      Address firstAddress, Address lastAddress);
+      Address firstAddress, Address lastAddress); 
 extern bool trueCallInsideRange(instruction instr, Address callAddress, 
       Address firstAddress, Address lastAddress);
 extern void generateMTpreamble(char *insn, unsigned &base, process *proc);

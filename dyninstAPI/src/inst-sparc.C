@@ -699,7 +699,7 @@ int getInsnCost(opCode op)
     }
 }
 
-bool isReturnInsn(instruction instr) {
+bool isReturnInsn(instruction instr, Address addr, string name) {
     if (isInsnType(instr, RETmask, RETmatch) ||
         isInsnType(instr, RETLmask, RETLmatch)) {
         //  Why 8 or 12?
@@ -713,24 +713,26 @@ bool isReturnInsn(instruction instr) {
         //  So, 8 or 12 here is a heuristic, but doesn't seem to 
         //   absolutely have to be true.
         //  -matt
-        if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12)) {
-	  sprintf(errorLine,"WARNING: unsupported return");
+        if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12) 
+	            && (instr.resti.simm13 != 16)) {
+	  sprintf(errorLine,"WARNING: unsupported return at address 0x%x in function %s - appears to be return to PC + %i", 
+		  addr, name.string_of(), (int)instr.resti.simm13);
 	  showErrorCallback(55, errorLine);
-        } else {
+        } else { 
 	  return true;
 	}
     }
     return false;
 }
 
-bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
+bool isReturnInsn(const image *owner, Address adr, bool &lastOne, string name)
 {
     instruction instr;
 
     instr.raw = owner->get_instruction(adr);
     lastOne = false;
 
-    return isReturnInsn(instr);
+    return isReturnInsn(instr, adr, name);
 }
 
 bool isBranchInsn(instruction instr) {

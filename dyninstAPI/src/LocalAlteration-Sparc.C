@@ -127,8 +127,7 @@ JmpNopTailCallOptimization::JmpNopTailCallOptimization(pd_Function *f,
 bool JmpNopTailCallOptimization::RewriteFootprint(Address &adr, Address newBaseAdr, 
      Address &newAdr, instruction oldInstr[], instruction newInstr[]) {
 
-    int i;
-    instruction instr;
+    int i, oldOffset;
 
     // silence warnings about param being unused....
     assert(oldInstr);
@@ -136,6 +135,10 @@ bool JmpNopTailCallOptimization::RewriteFootprint(Address &adr, Address newBaseA
     // make sure implied offset from beginning of newInstr array is int....
     assert(  (  (newAdr - newBaseAdr) % sizeof(instruction)  ) == 0);
     i = (newAdr - newBaseAdr)/sizeof(instruction);
+
+    // figure out offset of original instruction in oldInstr....
+    assert(beginningOffset % sizeof(instruction) == 0);
+    oldOffset = beginningOffset / sizeof(instruction);
 
     // generate save instruction to free up new stack frame for
     //  inserted call....
@@ -146,7 +149,7 @@ bool JmpNopTailCallOptimization::RewriteFootprint(Address &adr, Address newBaseA
   
     // Generate : mv %reg %g1.
     // On Sparc, mv %1 %2 is synthetic inst. implemented as orI %1, 0, %2....
-    genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
+    genImmInsn(&newInstr[i++], ORop3, oldInstr[oldOffset].rest.rs1, 0, 1);
 
     // generate mov i0 ... i5 ==> O0 ... 05 instructions....
     // as noted above, mv inst %1 %2 is synthetic inst. implemented as
@@ -250,8 +253,9 @@ CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(pd_Function *f,
 //   before:          --->             after
 // ---------------------------------------------------
 //                                    mov %reg %g1
+//                                    add %rs1, reg_or_imm, %rd'
 //   call  %reg                       mov %i0 %o0
-//   restore                          mov %i1 %o1
+//   restore %rs1, reg_or_imm, %rd    mov %i1 %o1
 //                                    mov %i2 %o2
 //                                    mov %i3 %o3
 //                                    mov %i4 %o4
@@ -268,8 +272,9 @@ CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(pd_Function *f,
 //                                    restore
 //   before:          --->             after
 // ---------------------------------------------------
+//                                    add %rs1, reg_or_imm, %rd'
 //   call  PC_REL_ADDR                mov %i0 %o0
-//   restore                          mov %i1 %o1
+//   restore %rs1, reg_or_imm, %rd    mov %i1 %o1
 //                                    mov %i2 %o2
 //                                    mov %i3 %o3
 //                                    mov %i4 %o4
@@ -304,6 +309,70 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
         genImmInsn(&newInstr[newOffset++], ORop3, oldInstr[oldOffset].rest.rs1, 0, 1);
     }
 
+    //
+    // Generate instruction to capture effect of free add from restore op
+    //  (the restore op's "side effect" - see Sparc V9 Arch Manual p. 214)
+    //  In the (fairly common) case where the restore has no side effect 
+    //  (the target of the restore if %g0), this will generate an add
+    //  into %g0 - which is a wasted instruction.  This could be avoided
+    //  (and the resulting rewritten code made 1 insn shorter) with some 
+    //  extra logic in this class, but it doesn't seem worth the extra code
+    //  complexity in this class - may want to add if many many functions 
+    //  end up needing to be relocated.
+    // Note that the semantics of the restore side effect are such that the 
+    //  source operands (of the add) are in the register window BEFORE
+    //  the restore takes effect, but the destination operand is in the 
+    //  register window AFTER the restore takes effect.  Since we are 
+    //  adding an explicit add in the original stack frame, can copy the 
+    //  source operands directly from the original restore operation, but 
+    //  convert the destination operand to account for the fact that it
+    //  is still in the same stack frame....
+    //
+
+    // Adjust destination register :
+    //  o registers -> i registers
+    //  g registers -> stay g registers
+    //  l registers & i registers ->  ???? W
+    //   Would seem to discard the value - return false indicating don't
+    //   know how to handle this case....
+    reg restore_add_side_effect_destination = oldInstr[oldOffset + 1].resti.rd;
+    if (restore_add_side_effect_destination >= REG_O(0) && 
+	  restore_add_side_effect_destination <= REG_O(7)) {
+        restore_add_side_effect_destination = REG_I(0) + 
+	  restore_add_side_effect_destination - REG_O(0);
+    } else if (restore_add_side_effect_destination <= REG_G(0) &&
+		 restore_add_side_effect_destination <= REG_G(7)) {
+        restore_add_side_effect_destination = restore_add_side_effect_destination;
+    } else if ((restore_add_side_effect_destination <= REG_L(0) &&
+		 restore_add_side_effect_destination <= REG_L(7)) ||
+	       ((restore_add_side_effect_destination <= REG_I(0) &&
+		 restore_add_side_effect_destination <= REG_I(7)))
+	       ) {
+        cerr << "WARN : function " << function->prettyName().string_of()
+	     << " unable to unroll tail-call optimization in function,"
+	     << " restore operation found with side effect which is not"
+	     << " preserved across call-restore tail-call optimization "
+	     << " unrolling : writing to i or l register" << endl;
+        return false;
+    } 
+
+    // The dyninstAPI function called to construct the ADD insn is different
+    //  based on whether the instruction uses a register and an immeadiate
+    //  value or 2 registers as source operands - conceptually, either case
+    //  just make an ADD insn with the same source operands as the restore
+    //  and a destination which is "adjusted" as described above....
+    if (oldInstr[oldOffset + 1].resti.i == 1) {
+        genImmInsn(&newInstr[newOffset++], ADDop3, oldInstr[oldOffset + 1].resti.rs1,
+		   oldInstr[oldOffset + 1].resti.simm13, 
+		   restore_add_side_effect_destination);
+    } else {
+        genSimpleInsn(&newInstr[newOffset++], ADDop3, 
+		    oldInstr[oldOffset + 1].rest.rs1,
+		    oldInstr[oldOffset + 1].rest.rs2,
+		    restore_add_side_effect_destination);
+    }
+
+
     // generate mov i0 ... i5 ==> O0 ... 05 instructions....
     // as noted above, mv inst %1 %2 is synthetic inst. implemented as
     //  orI %1, 0, %2  
@@ -324,10 +393,10 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
         // If were dealing with inst points in this code, would stick inst point 
 	//  here on call site....
       
-        // in the case of a jmpl call, 17 instructions are generated
+        // in the case of a jmpl call, 18 instructions are generated
         // and used to replace origional 2 (call, restore), resulting
-        // in a new addition of 15 instructions....
-        newAdr += 17 * sizeof(instruction); 
+        // in a new addition of 16 instructions....
+        newAdr += 18 * sizeof(instruction); 
     } else {
         // if the origional call was a call to an ADDRESS, then want
         //  to copy the origional call.  There is, however, a potential
@@ -340,15 +409,12 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
         newInstr[newOffset].raw = oldInstr[oldOffset].raw;
         relocateInstruction(&newInstr[newOffset++],
 			    adr,
-			    newAdr + 6 * sizeof(instruction), \
+			    newAdr + 7 * sizeof(instruction), \
 			    NULL);
             
-        // in the case of a "true" call, 16 instructions are generated
-        //  + replace origional 2, resulting in addition of 18 instrs.
-        // Addition of 14 total should make newAdr point to
-        //  the retl instruction 2nd to last in unwound tail-call 
-        //  opt. sequence....
-        newAdr += 16 * sizeof(instruction);  
+        // in the case of a "true" call, 17 instructions are generated
+        //  + replace origional 2, resulting in addition of 15 instrs.
+        newAdr += 17 * sizeof(instruction);  
     }
  
     // generate NOP following call instruction (for delay slot)
@@ -390,12 +456,12 @@ void CallRestoreTailCallOptimization::SetCallType(instruction callInsn) {
 bool CallRestoreTailCallOptimization::UpdateExpansions(FunctionExpansionRecord *fer) {
     assert(jmpl_call || true_call);
     if (true_call) {
-        // call ADDR results in 14 extra instructions....
-        fer->AddExpansion(beginningOffset, 14 * sizeof(instruction));
+        // call ADDR results in 15 extra instructions....
+        fer->AddExpansion(beginningOffset, 15 * sizeof(instruction));
     }
     else if (jmpl_call) {
-        // call %reg results in 15 extra instructions....
-        fer->AddExpansion(beginningOffset, 15 * sizeof(instruction));
+        // call %reg results in 16 extra instructions....
+        fer->AddExpansion(beginningOffset, 16 * sizeof(instruction));
     }
     return true;
 }
@@ -408,12 +474,12 @@ bool CallRestoreTailCallOptimization::UpdateExpansions(FunctionExpansionRecord *
 bool CallRestoreTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *ips) {
     assert(jmpl_call || true_call);
     if (true_call) {
-        ips->AddExpansion(beginningOffset, 6 * sizeof(instruction));
+        ips->AddExpansion(beginningOffset, 7 * sizeof(instruction));
 	ips->AddExpansion(beginningOffset + sizeof(instruction), 
 			  7 * sizeof(instruction));
 	ips->AddExpansion(beginningOffset + 2 * sizeof(instruction), sizeof(instruction));
     } else if (jmpl_call) {
-        ips->AddExpansion(beginningOffset, 7 * sizeof(instruction));
+        ips->AddExpansion(beginningOffset, 8 * sizeof(instruction));
         ips->AddExpansion(beginningOffset + sizeof(instruction), 7 * sizeof(instruction));
 	ips->AddExpansion(beginningOffset + 2 * sizeof(instruction), sizeof(instruction));
     } 
