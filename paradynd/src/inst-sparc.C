@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.37 1996/05/08 23:51:41 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.38 1996/07/18 19:37:46 naim Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.37  1996/05/08 23:51:41  mjrg
+ * Revision 1.38  1996/07/18 19:37:46  naim
+ * Changing the "frequency" value from 250 to 100 - naim
+ *
+ * Revision 1.37  1996/05/08  23:51:41  mjrg
  * included instructions to save registers in cost
  *
  * Revision 1.36  1996/04/29 22:18:46  mjrg
@@ -635,7 +638,9 @@ float getPointFrequency(instPoint *point)
       if (func->isLibTag()) {
 	return(100);
       } else {
-	return(250);
+        // Changing this value from 250 to 100 because predictedCost was
+        // too high - naim 07/18/96
+	return(100); 
       }
     } else {
       return (funcFrequencyTable[func->prettyName()]);
