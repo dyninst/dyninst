@@ -5,6 +5,9 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.program.tmpl,v $
+# Revision 1.12  1996/11/14 14:18:34  naim
+# Minor change to make qpt work for paradynd - naim
+#
 # Revision 1.11  1996/08/05 07:08:53  tamches
 # used BACKUP_CORE to remove a /p/paradyn dependency in VPATH
 #
@@ -76,11 +79,11 @@ endif
 
 ifndef UNCOMMON_LINK
 qpt: $(OBJS) $(LIBS)
-	$(MODCC) -static -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	$(MODCC) -Xlinker -Bstatic -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS) -Xlinker -Bdynamic -ldl -Xlinker -Bstatic -lintl
 	# qpt's quick profiling may produce incorrect results in programs
 	# executing interprocedural jumps; this includes setjmp/longjmp.
 	# Hence we must use the -s option for paradyn:
-	qpt2 -s $(TARGET)
+	/unsup/qpt2/bin/qpt2 -s $(TARGET)
 endif
 
 ifndef DEST
