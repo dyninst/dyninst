@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.55 2005/01/11 22:46:38 legendre Exp $
+// $Id: sol_proc.C,v 1.56 2005/01/18 18:34:06 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -919,26 +919,53 @@ bool process::isRunning_() const {
 /*
    terminate execution of a process
  */
-bool process::terminateProc_()
+terminateProcStatus_t process::terminateProc_()
 {
+  // Two kill methods: polite and unpolite. Not sure why we use
+  // polite, but hey...
+
+  // Polite: we're attached, and use a /proc command.
+  // Unpolite: we're not attached, and kill -9
+
+  if (isAttached()) {
     // these next two lines are a hack used to get the poll call initiated
     // by checkForAndHandleProcessEvents() in process::terminateProc to
     // still check process for events if it was previously stopped
     if(status() == stopped)
-       status_ = running;
+      status_ = running;
 
     long command[2];
     command[0] = PCKILL;
     command[1] = SIGKILL;
     dyn_lwp *cntl_lwp = getRepresentativeLWP();
-    if (cntl_lwp) 
-        if (write(cntl_lwp->ctl_fd(), 
-                  command, 2*sizeof(long)) != 2*sizeof(long)) {
-            perror("terminateProc: PCKILL");
-            return false;
-        }
-
-    return true;
+    if (cntl_lwp) {
+      if (write(cntl_lwp->ctl_fd(), 
+		command, 2*sizeof(long)) != 2*sizeof(long)) {
+	perror("terminateProc: PCKILL");
+	// TODO: what gets returned if the process is already dead?
+	// proc man page doesn't say.
+	return terminateFailed;
+      }
+      return terminateSucceeded;
+    }
+    else {
+      // Uh...
+      return terminateFailed;
+    }
+  }
+  else {
+    // We may be detached. Go for it the old-fashioned way.
+    if (kill( getPid(), SIGKILL )) {
+	return terminateFailed;
+    }
+    else {
+      // alreadyTerminated... since we don't want to wait
+      // for a "I'm dead" message.
+      return alreadyTerminated;
+    }
+  }
+  assert(0 && "Unreachable");
+  return terminateFailed;
 }
 
 bool dyn_lwp::waitUntilStopped() {
@@ -1480,7 +1507,7 @@ void fillInPollEvents(struct pollfd fds, process *curProc,
    lwpstatus_t procstatus;
    if(! curProc->getRepresentativeLWP()->get_status(&procstatus))
       return;
-   int lwp_to_use = procstatus.pr_lwpid;
+   unsigned lwp_to_use = (unsigned) procstatus.pr_lwpid;
 
    // copied from old code, must not care about events that don't stop proc
    if(! (procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) )
@@ -1497,10 +1524,10 @@ void fillInPollEvents(struct pollfd fds, process *curProc,
       added_an_event = updateEventsWithLwpStatus(curProc, replwp, events);
    else {
       while (lwp_iter.next(index, cur_lwp)) {
-         if(cur_lwp->get_lwp_id() != lwp_to_use)
-            continue;
-         if(updateEventsWithLwpStatus(curProc, cur_lwp, events))
-            added_an_event = true;
+	if(cur_lwp->get_lwp_id() != lwp_to_use)
+	  continue;
+	if(updateEventsWithLwpStatus(curProc, cur_lwp, events))
+	  added_an_event = true;
       }
    }
 
@@ -1689,8 +1716,26 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
        return false;
 }
 
-pdstring process::tryToFindExecutable(const pdstring &/*iprogpath*/, int pid) {
-    return pdstring("/proc/") + pdstring(pid) + pdstring("/object/a.out");
+pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
+  // This is called by exec, so we might have a valid file path. If so,
+  // use it... otherwise go to /proc. Helps with exec aliasing problems.
+
+  int filedes = open(iprogpath.c_str(), O_RDONLY);
+  if (filedes != -1) {
+    close(filedes);
+    return iprogpath;
+  }
+
+  // We need to dereference the /proc link.
+  // Case 1: multiple copies of the same file opened with multiple
+  // pids will not match (and should)
+  // Case 2: an exec'ed program will have the same /proc path,
+  // but different program paths
+  pdstring procpath = pdstring("/proc/") + pdstring(pid) + pdstring("/object/a.out");
+
+  // Sure would be nice if we could get the original....
+
+  return procpath;
 }
 
 

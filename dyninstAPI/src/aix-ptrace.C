@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.21 2004/05/21 14:14:40 legendre Exp $
+// $Id: aix-ptrace.C,v 1.22 2005/01/18 18:34:01 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -695,17 +695,19 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    return ret;
 }
 
-bool process::terminateProc_()
+terminateProcStatus_t process::terminateProc_()
 {
    if (P_ptrace(PT_KILL, pid, NULL, 0, NULL) != 0) {
       // For some unknown reason, the above ptrace sometimes fails with a "no
       // such process" error, even when there is such a process and the process
       // is runnable.  So, if the above fails, we try killing it another way.
-      if (kill(pid, SIGKILL) != 0)
-         return false;
-   }
-   
-   return true;
+     if (kill(pid, SIGKILL) != 0) {
+       if (errno == ESRCH)
+	 return alreadyTerminated;
+       else
+	 return terminateFailed;
+     }
+     return terminateSucceeded;
 }
 
 void dyn_lwp::realLWP_detach_() {

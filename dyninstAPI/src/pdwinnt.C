@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.127 2005/01/13 23:53:05 legendre Exp $
+// $Id: pdwinnt.C,v 1.128 2005/01/18 18:34:05 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -868,7 +868,8 @@ DWORD handleDllLoad(const procevent &event) {
                                              false,
                                              true,
                                              true,
-                                             0 );
+                                             0, 
+					     proc);
       assert(proc->dyn);
       if (!proc->shared_objects) {
          proc->shared_objects = new pdvector<shared_object *>;
@@ -1140,7 +1141,7 @@ bool process::terminateProc_()
 {
     windows_termination_requested = true;
     OS::osKill(pid);
-    return true;
+    return terminateSucceeded;
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.82 2004/05/13 12:20:18 bernat Exp $
+// $Id: irix.C,v 1.83 2005/01/18 18:34:02 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -855,7 +855,7 @@ dyn_lwp *process::createRepresentativeLWP() {
    return representativeLWP;
 }
 
-bool process::terminateProc_()
+terminateProcStatus_t process::terminateProc_()
 {
    // these next two lines are a hack used to get the poll call initiated
    // by checkForAndHandleProcessEvents() in process::terminateProc to
@@ -863,9 +863,13 @@ bool process::terminateProc_()
    if(status() == stopped)
       status_ = running;
 
-   kill(getPid(), 9);
-
-   return true;
+   if (kill(getPid(), 9)) {
+     if (errno == ESRCH)
+       return alreadyTerminated;
+     else
+       return terminateFailed;
+   }
+   return terminateSucceeded;
 }
 
 pdstring process::tryToFindExecutable(const pdstring &progpath, int /*pid*/)

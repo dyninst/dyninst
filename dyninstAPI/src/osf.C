@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.68 2005/01/12 23:05:37 legendre Exp $
+// $Id: osf.C,v 1.69 2005/01/18 18:34:04 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -785,16 +785,20 @@ bool process::dumpImage()
 /*
    terminate execution of a process
  */
-bool process::terminateProc_()
+terminateProcStatus_t process::terminateProc_()
 {
     long flags = PRFS_KOLC;
     if (ioctl (getRepresentativeLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
-        return false;
+        return terminateFailed;
 
     // just to make sure it is dead
-    kill(getPid(), 9);
-
-    return true;
+    if (kill(getPid(), 9)) {
+      if (errno == ESRCH)
+	return alreadyTerminated;
+      else
+	return terminateFailed;
+    }
+    return terminateSucceeded;
 }
 
 dyn_lwp *process::createRepresentativeLWP() {

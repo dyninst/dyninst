@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.148 2005/01/11 22:46:34 legendre Exp $
+// $Id: linux.C,v 1.149 2005/01/18 18:34:03 bernat Exp $
 
 #include <fstream>
 
@@ -310,7 +310,6 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
    }
 
    result = waitpid( wait_arg, &status, wait_options );
-
    if (result < 0 && errno == ECHILD) {
       return false; /* nothing to wait for */
    } else if (result < 0) {
@@ -875,12 +874,17 @@ dyn_lwp *process::waitUntilLWPStops()
   return doWaitUntilStopped(this, -1, true);
 }
 
-bool process::terminateProc_()
+terminateProcStatus_t process::terminateProc_()
 {
-   if( kill( getPid(), SIGKILL ) != 0 )
-      return false;
-   else
-      return true;
+  if (kill( getPid(), SIGKILL )) {
+    // Kill failed... 
+    if (errno == ESRCH)
+      return alreadyTerminated;
+    else
+      return terminateFailed;
+  }
+  else
+    return terminateSucceeded;
 }
 
 void dyn_lwp::realLWP_detach_() {
@@ -920,8 +924,8 @@ bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
 
 bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
 {
-   //  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced
-   //       << " len=" << amount << endl; cerr.flush();
+  //    cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced
+  //     << " len=" << amount << endl; cerr.flush();
    return writeDataSpace(inTraced, amount, inSelf);
 }
 
@@ -936,6 +940,9 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
    Address w;               /* ptrace I/O buffer */
    unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
    unsigned cnt;
+
+   //cerr << "writeDataSpace pid=" << getPid() << ", @ " << (void *)inTraced
+   //    << " len=" << nbytes << endl; cerr.flush();
 
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
@@ -992,8 +999,17 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
    while (nbytes >= len) {
       assert(0 == ((Address)ap) % len);
       memcpy(&w, dp, len);
-      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w))
+      int retval =  P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w);
+      if (retval < 0)
          return false;
+
+      // Check...
+      /*
+      Address test;
+      fprintf(stderr, "Writing %x... ", w);
+      test = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0);
+      fprintf(stderr, "... got %x, lwp %d\n", test, get_lwp_id());
+      */      
       dp += len;
       ap += len;
       nbytes -= len;
@@ -1080,16 +1096,28 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
 	  for (unsigned i = 0; i < nbytes; i++)
 	       dp[i] = p[i];
      }
-
      return true;
 }
 
 // You know, /proc/*/exe is a perfectly good link (directly to the inode) to
 // the executable file, who cares where the executable really is, we can open
 // this link. - nash
-pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid)
-{
-  return pdstring("/proc/") + pdstring(pid) + "/exe";
+pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid) {
+  // We need to dereference the /proc link.
+  // Case 1: multiple copies of the same file opened with multiple
+  // pids will not match (and should)
+  // Case 2: an exec'ed program will have the same /proc path,
+  // but different program paths
+  pdstring procpath = pdstring("/proc/") + pdstring(pid) + pdstring("/exe");
+  char buf[1024];
+  int chars_read = readlink(procpath.c_str(), buf, 1024);
+  if (chars_read == -1) {
+    // Note: the name could be too long. Not handling yet.
+    perror("Reading file name from /proc entry");
+    return procpath;
+  }
+  buf[chars_read] = 0;
+  return pdstring(buf);
 }
 
 
