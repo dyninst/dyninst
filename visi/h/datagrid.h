@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.9  1994/06/16 18:21:46  newhall
-/* bug fix to AddNewValues
+/* Revision 1.10  1994/07/20 22:17:20  newhall
+/* added FirstValidBucket method function to visi_GridCellHisto class
 /*
+ * Revision 1.9  1994/06/16  18:21:46  newhall
+ * bug fix to AddNewValues
+ *
  * Revision 1.8  1994/06/07  17:47:16  newhall
  * added method functions to support adding metrics
  * and resources to an existing data grid
@@ -100,6 +103,7 @@ class Resource{
 class visi_GridCellHisto {
   private:
      int   valid;
+     int   firstValidBucket;
      int   size;
      int   lastBucketFilled;  // bucket number of last data value added   
      int   deleted;  // set on delete cell element, cleared on add new element
@@ -107,7 +111,8 @@ class visi_GridCellHisto {
   public: 
      void *userdata;  // to allow visi writer to add info to grid cells
      visi_GridCellHisto(){value = NULL; valid = 0; size = 0; 
-			  userdata = NULL; lastBucketFilled = -1; deleted = 0;}
+			  userdata = NULL; lastBucketFilled = -1; deleted = 0;
+			  firstValidBucket = -1;}
      visi_GridCellHisto(int);
      ~visi_GridCellHisto(){delete[] value;}
      int    LastBucketFilled(){return(lastBucketFilled);}
@@ -125,6 +130,7 @@ class visi_GridCellHisto {
      int    Deleted(){return(deleted);}
      void   SetDeleted(){deleted = 1;}
      void   ClearDeleted(){deleted = 0;}
+     int    FirstValidBucket() { return(firstValidBucket); }
      void   Invalidate(){delete[] value; value = NULL; size = 0; 
 			 valid = 0; lastBucketFilled = -1;}
 
@@ -144,7 +150,13 @@ class visi_GridCellHisto {
 	  value = new sampleType[arraySize];
 	  size = arraySize;
 	  for(int i=0;i<size;i++){
-	   value[i] = temp[i]; 
+	    if(!isnan(temp[i])){
+	      value[i] = temp[i]; 
+	      if(firstValidBucket == -1)
+	         firstValidBucket = i;
+            }
+	    else
+	      value[i] = ERROR; 
 	  }
 	}
 	lastBucketFilled = lbf;
@@ -157,13 +169,19 @@ class visi_GridCellHisto {
      void   Fold(int method){
        int i,j;
        if(valid){
+	 firstValidBucket = -1;
          for(i=0,j=0;(i< (lastBucketFilled+1)/2) // new bucket counter
 	     && (j< (lastBucketFilled+1)); // old bucket counter
 	     i++,j+=2){
-	   if((value[j] != ERROR) && (value[j+1] != ERROR))
+	   if((!isnan(value[j])) && (!isnan(value[j+1]))){
              value[i] = value[j] + value[j+1];
-           else
+	     if(firstValidBucket == -1){
+	       firstValidBucket = i;
+             }
+	   }
+           else{
 	     value[i] = ERROR;
+           }
 	   if((value[i] != ERROR))
 	     value[i] = value[i]/2; 
 	 }
@@ -240,6 +258,8 @@ class visi_GridCellHisto {
        value[i] = x;
        if(i > lastBucketFilled)
         lastBucketFilled = i;
+       if(firstValidBucket == -1)
+	 firstValidBucket = i;
        return(OK);
      }
 

@@ -14,9 +14,12 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.9  1994/07/07 22:40:30  newhall
-/* fixed compile warnings
+/* Revision 1.10  1994/07/20 22:17:50  newhall
+/* added FirstValidBucket method function to visi_GridCellHisto class
 /*
+ * Revision 1.9  1994/07/07  22:40:30  newhall
+ * fixed compile warnings
+ *
  * Revision 1.8  1994/06/16  18:24:50  newhall
  * fix to visualization::Data
  *
@@ -122,6 +125,7 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
  deleted = 0;
  size       = numElements;
  lastBucketFilled = -1;
+ firstValidBucket = -1;
 }
 
 ///////////////////////////////////////////
