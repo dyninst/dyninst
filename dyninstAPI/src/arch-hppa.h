@@ -5,6 +5,14 @@
 
 #if !defined(_arch_hppa_h_)
 #define _arch_hppa_h_
+#include "util/h/Types.h"
+
+typedef enum { 
+    noneType,
+    functionEntry,
+    functionExit,
+    callSite
+} instPointType;
 
 
 //
@@ -111,6 +119,11 @@ union instruction {
     long_immediate          li;
     computation_instruction ci;
     generic_instruction     gi;
+};
+
+struct loadr{
+   instruction loadReturn;
+   Address adr;
 };
 
 
