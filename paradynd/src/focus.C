@@ -158,7 +158,6 @@ pdvector<pdstring> codeHierarchy::tokenized() const {
 // handle matches of form /Code /Code/* and /Code/*/*
 bool codeHierarchy::focus_matches(const pdvector<pdstring> &match_path) const
 {
-//    //fprintf(stderr,"ELI code hierarchy focus_matches ");
 //    for (unsigned k =0; k < match_path.size(); k++) {
 //        fprintf(stderr,"%s ",match_path[k].c_str());
 //    }

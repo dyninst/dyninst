@@ -48,7 +48,6 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
 
-// ELI
 // for setting instPoint->addrInFuc
 #include "instPoint.h" 
 

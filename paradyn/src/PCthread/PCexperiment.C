@@ -41,18 +41,13 @@
 
 /*
  * The experiment class methods.
- * $Id: PCexperiment.C,v 1.26 2005/01/11 22:47:17 legendre Exp $
+ * $Id: PCexperiment.C,v 1.27 2005/01/18 00:51:58 eli Exp $
  */
 
 #include "PCintern.h"
 #include "PCexperiment.h"
 #include "PCsearch.h"
 //**
-
-//ELI
-//timeLength experiment::PCminTimeToFalse = timeLength(20, timeUnit::sec());
-//timeLength experiment::PCminTimeToTrue = timeLength(20, timeUnit::sec());
-
 
 ostream& operator <<(ostream &os, experiment& ex)
 {
@@ -142,9 +137,6 @@ experiment::newData(PCmetDataID, pdRate val, relTimeStamp start,
   } // end debug print
 #endif
 
-  //ELI
-  //  cerr << "expr newdata " << dataMgr->getFocusNameFromHandle(where) << ": " << val << endl;
-
   // compare newGuess 
   if (newGuess == true) {
     if ((currentGuess == tfalse) || (currentGuess == tunknown)) {
@@ -226,7 +218,6 @@ lastThreshold(pdRate::Zero())
   // constant.
   hysConstant = 1 + performanceConsultant::hysteresisRange;
 
-  //ELI
   float st = tunableConstantRegistry::findFloatTunableConstant("sufficientTime").getValue();
   PCminTimeToFalse = timeLength(st, timeUnit::sec());
   PCminTimeToTrue = timeLength(st, timeUnit::sec());

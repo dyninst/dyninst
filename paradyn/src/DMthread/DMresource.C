@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.70 2005/01/11 22:47:16 legendre Exp $
+// $Id: DMresource.C,v 1.71 2005/01/18 00:51:57 eli Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -912,7 +912,6 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
 		//path
 		if(currentPath->isDescendant(child_res)){
                     
-                    //ELI
                     if (!useLoops && (MDL_T_LOOP == child_res->getMDLType())) {
                         //fprintf(stderr,"%s\n",child_res->getName());
 

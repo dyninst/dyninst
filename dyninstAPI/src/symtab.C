@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.221 2005/01/11 22:46:58 legendre Exp $
+ // $Id: symtab.C,v 1.222 2005/01/18 00:51:55 eli Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1028,7 +1028,6 @@ void pdmodule::define(process *proc) {
          pdf->SetFuncResource(res);
 
 
-	//ELI
         if (getenv("PARADYN_LOOPS") != NULL) {
             // create a resource for each loop with this func as its parent
             dfsCreateLoopResources(pdf->getLoopTree(proc), res, pdf);

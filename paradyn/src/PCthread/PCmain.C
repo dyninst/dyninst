@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.81 2005/01/11 22:45:01 legendre Exp $ */
+/* $Id: PCmain.C,v 1.82 2005/01/18 00:51:59 eli Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -74,7 +74,7 @@ bool performanceConsultant::printDataTrace = false;
 bool performanceConsultant::collectInstrTimings = false;
 bool performanceConsultant::useIndividualThresholds  = false;
 bool performanceConsultant::useCallGraphSearch = true;
-//ELI
+
 bool performanceConsultant::useLoops = false;
 bool performanceConsultant::searchMachineSync = false;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.512 2005/01/13 23:53:07 legendre Exp $
+// $Id: process.C,v 1.513 2005/01/18 00:51:54 eli Exp $
 
 #include <ctype.h>
 
@@ -3713,8 +3713,6 @@ bool process::handleIfDueToSharedObjectMapping(){
              // UGLY.[
 
              // will pop off list if addASharedObject fails
-	   //ELI
-	   //fprintf(stderr,"dlopen SO %s\n",(*changed_objects)[i]->getShortName().c_str());
 	   
  	   if ((*changed_objects)[i]->getShortName().length()==0)
  	     continue;
@@ -3859,9 +3857,6 @@ check_rtinst(process *proc, shared_object *so)
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
 bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
-    //ELI
-    //fprintf(stderr,"Add SO %s\n",new_obj->getShortName().c_str());
-
     int ret;
     pdstring msg;
 

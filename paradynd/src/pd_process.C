@@ -1788,7 +1788,6 @@ bool process::triggeredInStackFrame(Frame &frame,
 
     Address pointAddr = point->absPointAddr(this);
 
-    //ELI
     // addr in edge tramp then use addr which jumps to edge tramp
     if (point->addrInFunc != 0)
 	pointAddr = point->addrInFunc;
@@ -2466,8 +2465,6 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
 
 bool pd_process::findAllFuncsByName(resource *func, resource *mod,
                            BPatch_Vector<BPatch_function *> &res) {
-    //    fprintf(stderr,"ELI pd_process::findAllFuncsByName\n");
-
      const pdvector<pdstring> &f_names = func->names();
      const pdvector<pdstring> &m_names = mod->names();
      pdstring func_name = f_names[f_names.size() -1];

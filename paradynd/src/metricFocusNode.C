@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.254 2005/01/11 22:47:23 legendre Exp $
+// $Id: metricFocusNode.C,v 1.255 2005/01/18 00:52:03 eli Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -268,13 +268,10 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
    bool errFlag = false;
    Focus &focus = *(new Focus(focusData, &errFlag));
    if(errFlag) {
-       //fprintf(stderr,"ELI create metric instance errFlag\n");
       return NULL;
    }
 
    if (mdl_can_do(metric_name)) {
-       //fprintf(stderr,"ELI can do metric\n");
-
       /* select the processes that should be instrumented. We skip process
          that have exited, and processes that have been created but are not
          completely initialized yet.  If we try to insert instrumentation in
@@ -306,7 +303,6 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
          // there are no processes to instrument
       {	    
          //printf("createMetricInstance failed, no processes to instrument\n");
-       //fprintf(stderr,"ELI no procs to instrument\n");
          return NULL;
       }
 
@@ -322,8 +318,6 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
       }
       return machNode;
    } else {
-       //fprintf(stderr,"ELI can NOT do metric\n");
-
       bool matched;
 
       machineMetFocusNode *machNode = 
@@ -460,8 +454,6 @@ void startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
         temp += (pdstring(" ") + pdstring(focus[i]));
     }
 
-    //fprintf(stderr,"ELI [%s] startCollecting\n",temp.c_str());
-
    assert( cbi != NULL );
 
    // Make the unique ID for this metric/focus visible in MDL.
@@ -469,12 +461,8 @@ void startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
    mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
    mdl_data::cur_mdl_data->env->set(mid, vname);
 
-   //   cerr << "ELI startCollecting createMetricInstance " << metric_name << endl;
-
    machineMetFocusNode *machNode = 
      createMetricInstance(mid, metric_name, focus, true);
-
-   //cerr << "ELI startCollecting createMetricInstance END " << metric_name << endl;
 
    if (!machNode) {
 //       cerr << "startCollecting for " << metric_name 
@@ -491,14 +479,11 @@ void startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
    metResPairsEnabled++;
    
    if (machNode->isInternalMetric()) {
-   //fprintf(stderr,"ELI [%s] internal, add response %u. return.\n",temp.c_str(),inst_insert_success );
       cbi->addResponse( mid, inst_insert_success );
       return;
    }
 
    inst_insert_result_t insert_status =  machNode->insertInstrumentation();
-
-   //fprintf(stderr,"ELI [%s] insert status %u\n",temp.c_str(),insert_status);
 
    if(insert_status == inst_insert_deferred) {
       machNode->setMetricFocusResponse(cbi);
@@ -524,8 +509,6 @@ void startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
    // we have to use zero).  However, it is possible that in the future we'll
    // create a metric where it makes sense to send an initial actual value.
    machNode->initializeForSampling(getWallTime(), pdSample::Zero());
-
-   //fprintf(stderr,"ELI [%s] success %u\n",temp.c_str(),inst_insert_success);
 
    cbi->addResponse( mid, inst_insert_success );
 }

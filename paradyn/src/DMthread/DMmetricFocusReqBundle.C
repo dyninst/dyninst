@@ -224,8 +224,6 @@ void metricFocusReqBundle::readyMetricInstanceForSampling(metricInstance *mi) {
 void metricFocusReqBundle::accumulatePerfStreamMsgs(
                                              const metricInstInfo &new_miInfo)
 {
-    //    fprintf(stderr,"ELI accumulatePerfStreamMsgs %u %s\n", new_miInfo.successfully_enabled,new_miInfo.focus_name.c_str());
-
     metricInstInfoBuf.push_back(new_miInfo);
 }
 

@@ -181,7 +181,6 @@ void pd_module::FillInCallGraphStatic(process *proc) {
       pd_Function *pdf = (pd_Function *) (*mod_funcs)[f]->PDSEP_pdf();
 
       if (!pdf->FuncResourceSet()) {
-	//ELI
           //fprintf(stderr,"Func resource not set for %s\n",pdf->prettyName().c_str());
           continue;
       }

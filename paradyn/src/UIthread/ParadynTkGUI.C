@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.8 2005/01/11 22:45:04 legendre Exp $
+// $Id: ParadynTkGUI.C,v 1.9 2005/01/18 00:52:00 eli Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -161,7 +161,6 @@ ParadynTkGUI::Init( void )
     ShowShgKeyCallback,
     userConstant);
 
-    //ELI
     tunableBooleanConstantDeclarator* tcUseLoops = 
        new tunableBooleanConstantDeclarator("useLoops",
       "If true, the PC will use loops in it search.",
@@ -1247,7 +1246,7 @@ ParadynTkGUI::showWhereAxisTips(bool newValue)
 void
 ParadynTkGUI::useLoops(bool newValue)
 {
-    //ELI
+    
 }
 
 void

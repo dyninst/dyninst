@@ -1533,7 +1533,6 @@ void BPatch_flowGraph::createEdges()
                 (*backEdges) += edge1;
 
             // taken and fall-through edge should not both be back edges
-	    //ELI
 	    //if (targs[0]->dominates(source) && targs[1]->dominates(source)){
 // 		fprintf(stderr,"Both edge targets can not dominate the source.\n");
 // 		edge0->dump();

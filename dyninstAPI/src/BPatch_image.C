@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.64 2005/01/11 22:47:03 legendre Exp $
+// $Id: BPatch_image.C,v 1.65 2005/01/18 00:51:53 eli Exp $
 
 #define BPATCH_FILE
 
@@ -434,8 +434,6 @@ void BPatch_image::findFunctionInImage(
       assert(pdfv->size() > 0);
 
       for (unsigned int i = 0; i < pdfv->size(); i++) {
-          //          fprintf(stderr,"ELI 1 %s\n",(*pdfv)[i]->prettyName().c_str());
-
          BPatch_function * foo = proc->findOrCreateBPFunc((*pdfv)[i]);
          funcs->push_back( foo );
       }
@@ -503,8 +501,6 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 	const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError,
 	bool regex_case_sensitive)
 {
-
-    //        fprintf(stderr,"ELI BPatch_image::findFunction %s\n",name);
 
    if (NULL == strpbrk(name, REGEX_CHARSET)) {
       //  usual case, no regex

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.163 2005/01/11 22:47:22 legendre Exp $
+// $Id: mdl.C,v 1.164 2005/01/18 00:52:02 eli Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -2639,7 +2639,6 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
               pdstring func_name = f_names[f_names.size() -1]; 
               pdstring mod_name = m_names[m_names.size() -1]; 
 
-	      //ELI
 // 	      cerr << "Missing function, " << func_buf->size() << endl;
 // 	      for (int i = 0; i < m_names.size(); i++)
 // 		  cerr << m_names[i] << " ";
@@ -2687,20 +2686,20 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
               return false;
            }
 
-           //fprintf(stderr,"ELI  mod %s\n",mresource->full_name().c_str());
-           //fprintf(stderr,"ELI func %s\n",fresource->full_name().c_str());
+           //fprintf(stderr," mod %s\n",mresource->full_name().c_str());
+           //fprintf(stderr,"func %s\n",fresource->full_name().c_str());
 
            //XXX find all funcs? should we only find a single function
            // and a single loop here, i.e. we don't need a buf
            pdstring loop_name = resPath[resPath.size()-1];
            BPatch_basicBlockLoop *loop = NULL;
 
-           //fprintf(stderr,"ELI loop %s\n",loop_name.c_str());
+           //fprintf(stderr,"loop %s\n",loop_name.c_str());
            for (unsigned j=0; j<(*func_buf).size(); j++) {
                BPatch_function *f = (*func_buf)[j];
                //char tmp[80];
                //f->getName(tmp,80);
-               //fprintf(stderr,"ELI func %s\n",tmp);
+               //fprintf(stderr,"func %s\n",tmp);
                BPatch_flowGraph *fg = f->getCFG();
                loop = fg->findLoop(loop_name.c_str());
                if (loop) break;
@@ -3211,7 +3210,6 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                 case 0: { // .enter
                     pts = fg->findLoopInstPoints(BPatch_locLoopEntry,loop);
 
-		    //ELI
 		    //cerr << (fg->getFunction())->prettyName().c_str() 
 		    // << " loop enter: ";
 		    //for (unsigned i = 0; i < pts->size(); i++)
@@ -3223,7 +3221,6 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                 case 1: {  // .exit
                     pts = fg->findLoopInstPoints(BPatch_locLoopExit,loop);
 
-		    //ELI
 		    //cerr << (fg->getFunction())->prettyName().c_str() 
 		    //			 << " loop exit: ";
 		    //for (unsigned i = 0; i < pts->size(); i++)
@@ -3404,7 +3401,6 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                    assert(entry_pt_hold->size());
                    (*inst_point_buf).push_back((*entry_pt_hold)[0]);
 
-		   //ELI
 		   //cerr << bpf->func->prettyName().c_str() << " entry: ";
 		   //fprintf(stderr,"0x%x ",(*entry_pt_hold)[0]->getAddress());
 		   //cerr << endl;
