@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.36 2002/06/10 19:24:55 bernat Exp $
+// $Id: instP.h,v 1.37 2002/06/26 21:14:08 schendel Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -47,6 +47,11 @@
  * Functions that need to be provided by the inst-arch file.
  *
  */
+
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/arch.h"  // for type, instruction
+#include "dyninstAPI/src/frame.h"
+
 
 class trampTemplate {
  public:
@@ -94,45 +99,41 @@ class trampTemplate {
 
 extern trampTemplate baseTemplate;
 
+class miniTrampHandle {
+ public:
+  instInstance *inst;
+  callWhen when;		/* call before or after instruction */
+  instPoint *location;       /* where we put the code */
+};
+
 // Callback func for deletion of a minitramp
 typedef void (*instInstanceFreeCallback)(void *, instInstance *);
 
 class instInstance {
  public:
-     instInstance() {
-       proc = NULL; location = NULL; trampBase=0;
-       returnAddr = 0; baseInstance = NULL; next = NULL;
-       prev = NULL; nextAtPoint = NULL; prevAtPoint = NULL; cost=0;
-       callback = NULL; callbackData = NULL;
-     }
-     
-     ~instInstance() {
-       if (callback)
-	 (*callback)(callbackData, this);
-     }
+  instInstance() : trampBase(0), returnAddr(0), 
+    baseInstance(NULL), cost(0), callback(NULL), callbackData(NULL) {
+  }
 
-     void registerCallback(instInstanceFreeCallback cb, void *data) {
-       callback = cb;
-       callbackData = data;
-     };
+  void callDeleteCallback() {
+    if (callback)
+      (*callback)(callbackData, this);  
+  }
 
-     process *proc;             /* process this inst is for */
-     callWhen when;		/* call before or after instruction */
-     callOrder order;           /* orderFirstAtPoint, orderLastAtPoint */
-     instPoint *location;       /* where we put the code */
-     Address trampBase;         /* base of code */
-     Address returnAddr;        /* address of the return from tramp insn */
-     trampTemplate *baseInstance;  /* the base trampoline instance */
-     instInstance *next;        /* linked list of installed instances */
-     instInstance *prev;        /* linked list of prev. instance */
-     instInstance *nextAtPoint; /* next in same addr space at point */
-     instInstance *prevAtPoint; /* next in same addr space at point */
-     int cost;			/* cost in cycles of this inst req. */
-     
-     // Material to check when deleting this instInstance
-     instInstanceFreeCallback callback; /* Callback to be made when
-					   instance is deleted */
-     void *callbackData;                /* Associated data */
+  void registerCallback(instInstanceFreeCallback cb, void *data) {
+    callback = cb;
+    callbackData = data;
+  };
+  
+  Address trampBase;         /* base of code */
+  Address returnAddr;        /* address of the return from tramp insn */
+  trampTemplate *baseInstance;  /* the base trampoline instance */
+  int cost;		     /* cost in cycles of this inst req. */
+
+  // Material to check when deleting this instInstance
+  instInstanceFreeCallback callback; /* Callback to be made when
+					instance is deleted */
+  void *callbackData;                /* Associated data */
 };
 
 // class returnInstance: describes how to jmp to the base tramp
@@ -209,7 +210,8 @@ extern trampTemplate *findAndInstallBaseTramp(process *proc,
 				 bool trampRecursiveDesired,
 				 bool noCost,
                                  bool &deferred);
-extern void installTramp(instInstance *inst, char *code, int codeSize);
+extern void installTramp(instInstance *inst, process *proc, char *code, 
+			 int codeSize, instPoint *location, callWhen when);
 extern void modifyTrampReturn(process*, Address returnAddr, Address newReturnTo);
 extern void generateReturn(process *proc, Address currAddr, instPoint *location);
 extern void generateEmulationInsn(process *proc, Address addr, instPoint *location);
