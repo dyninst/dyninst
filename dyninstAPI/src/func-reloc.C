@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.45 2004/02/25 04:36:40 schendel Exp $
+ * $Id: func-reloc.C,v 1.46 2004/02/28 00:26:23 schendel Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -1058,33 +1058,12 @@ bool pd_Function::updateAlterations(LocalAlterationSet *temp_alteration_set,
 /****************************************************************************/
 /****************************************************************************/
 
-// Function relocation requires a version of process::convertPCsToFuncs 
-// in which null functions are not passed into ret. - Itai 
-pdvector<pd_Function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
-    pdvector <pd_Function *> ret;
-    unsigned i;
-    pd_Function *fn;
-    for(i=0;i<stackWalk.size();i++) {
-        fn = (pd_Function *)findFuncByAddr(stackWalk[i].getPC());
-        // no reason to add a null function to ret
-        if (fn != 0) ret.push_back(fn);
-    }
-    return ret;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-
 /* Platform independent */
 
 // Relocate "this" function
 
-bool pd_Function::relocateFunction(process *proc, instPoint *&location,
-                                   bool &deferred) {
+bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
    relocatedFuncInfo *reloc_info = NULL;
-
-   // silence compiler warnings
-   assert(deferred || true);
 
    // how many bytes the function was expanded by
    unsigned size_change;
@@ -1104,7 +1083,6 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location,
    }
 #endif
 
-
    // check if this process already has a relocation record for this 
    // function, meaning that the.function has already been relocated
    for(u_int j=0; j < relocatedByProcess.size(); j++){
@@ -1121,65 +1099,6 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location,
    if(reloc_info)    // already relocated
       return false;
    
-   /* Check if we are currently executing inside the function we want to */ 
-   /* instrument. If so, don't relocate the function.                    */
-   /* this code was copied from metricFocusNode::adjustManuallyTrigger() */
-   /* in metric.C -itai                                                  */
-
-   Address begAddr = getAddress(proc);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-   unsigned i;
-   pd_Function *stack_func;
-    
-   pdvector<pdvector<Frame> > stackWalks;
-   if (!proc->walkStacks(stackWalks)) return false;
-
-   // for every vectors of frame, ie. thread stack walk
-   for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
-      pdvector<pd_Function *> stack_funcs =
-         proc->pcsToFuncs(stackWalks[walk_iter]);
-
-      // for every frame in thread stack walk
-      for(i=0;i<stack_funcs.size();i++) {
-         stack_func = stack_funcs[i];
-         Address pc = stackWalks[walk_iter][i].getPC();
-          
-         if (i == 0 && (pc == this->getEffectiveAddress(proc)))
-         {
-            /* okay if we haven't really entered the function yet */
-            continue;
-         }
-          
-         if( stack_func == this ) {
-#ifdef notdef
-            // Catchup doesn't occur on instPoinst in relocated function when
-            // the original function is on the stack.  This leads to the
-            // timer never being called for timer metrics.  A solution still
-            // needs to be worked out.
-            if(pc >= begAddr && pc <= begAddr+5) {
-               cerr << "      can't relocate since within first five bytes\n";
-            } else {                
-               if(!hasJumpToFirstFiveBytes()) {
-                  cerr << "      func doesn't have jump to or call within "
-                       << "first five bytes, can proceed w/ relocation\n";
-                  continue;
-               }
-            }
-#endif
-
-#ifdef DEBUG_FUNC_RELOC
-            cerr << "pd_Function::relocateFunction" << endl;
-            cerr << "currently in Function " << prettyName() << endl;
-#endif
-             
-            // Defer relocation and instrumentation for Paradyn only
-            deferred = true;
-            return false;
-         }
-      }
-   }
-#endif
-
    /* We are not currently executing in this function, 
       so proceed with the relocation */
     
