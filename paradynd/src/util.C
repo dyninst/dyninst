@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.2 1994/06/22 01:43:19 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.3 1994/07/28 22:40:49 krisna Exp $";
 #endif
 
 /*
  * util.C - support functions.
  *
  * $Log: util.C,v $
- * Revision 1.2  1994/06/22 01:43:19  markc
+ * Revision 1.3  1994/07/28 22:40:49  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.2  1994/06/22  01:43:19  markc
  * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
  * reference to proc->status to use proc->heap->status.
  *
@@ -38,7 +41,7 @@ extern "C" {
   void perror(char *s);
 }
 
-void *xmalloc(int size)
+void *xmalloc(size_t size)
 {
     void *ret;
 
@@ -50,11 +53,11 @@ void *xmalloc(int size)
     return(ret);
 }
 
-void *xcalloc(int size, int count)
+void *xcalloc(size_t nelem, size_t elsize)
 {
     void *ret;
 
-    ret = calloc(size, count);
+    ret = calloc(nelem, elsize);
     if (!ret) {
 	perror("calloc");
 	exit(-1);
@@ -62,7 +65,7 @@ void *xcalloc(int size, int count)
     return(ret);
 }
 
-void *xrealloc(void *ptr, int size)
+void *xrealloc(void *ptr, size_t size)
 {
     void *ret;
 

@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.8 1994/07/22 19:21:10 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.9 1994/07/28 22:40:48 krisna Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.8  1994/07/22 19:21:10  hollings
+ * Revision 1.9  1994/07/28 22:40:48  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.8  1994/07/22  19:21:10  hollings
  * removed mistaken divid by 1Meg for predicted cost.
  *
  * Revision 1.7  1994/07/20  23:23:41  hollings
@@ -111,7 +114,7 @@ module *newModule(image *curr, char *currentDirectory, char *name, caddr_t addr)
     module *ret;
     char fileName[255];
 
-    ret = (module *) xcalloc(sizeof(image),1);
+    ret = (module *) xcalloc(1, sizeof(image));
     sprintf(fileName, "%s%s", currentDirectory, name);
     ret->compileInfo = NULL;
     ret->fullName = pool.findAndAdd(fileName);
@@ -124,7 +127,7 @@ module *newModule(image *curr, char *currentDirectory, char *name, caddr_t addr)
     ret->next = curr->modules;
 
     ret->lines.maxLine = 100;
-    ret->lines.addr = (caddr_t *) xcalloc(sizeof(caddr_t), 100);
+    ret->lines.addr = (caddr_t *) xcalloc(100, sizeof(caddr_t));
 
     curr->modules = ret;
     curr->moduleCount++;
@@ -142,7 +145,7 @@ module *moduleFindOrAdd(image *exec, caddr_t addr, char *name)
     }
     sprintf(errorLine, "warning no symbol table for module %s\n", name);
     logLine(errorLine);
-    curr = (module *) xcalloc(sizeof(module), 1);
+    curr = (module *) xcalloc(1, sizeof(module));
     curr->fileName = pool.findAndAdd(name);
     curr->fullName = NULL;
     curr->language = unknown;
@@ -176,7 +179,7 @@ function *funcFindOrAdd(image *exec, module *mod, caddr_t addr, char *name)
 	    return(func);
 	}
     }
-    func = (function *) xcalloc(sizeof(function), 1);
+    func = (function *) xcalloc(1, sizeof(function));
     func->symTabName = pool.findAndAdd(name);
     func->prettyName = buildDemangledName(func);
     func->line = UNKNOWN_LINE;	
@@ -200,7 +203,7 @@ function *newFunc(image *exec, module *mod, char *name, int addr)
     if (!mod) {
 	logLine("Error function without module\n");
     }
-    func = (function *) xcalloc(sizeof(function),1);
+    func = (function *) xcalloc(1, sizeof(function));
 
     exec->funcAddrHash.add(func, (void *) addr);
 

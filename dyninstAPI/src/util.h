@@ -7,7 +7,10 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
- * Revision 1.2  1994/06/27 18:57:20  hollings
+ * Revision 1.3  1994/07/28 22:40:50  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.2  1994/06/27  18:57:20  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -23,11 +26,13 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-extern "C" void *xmalloc(int size);
+#include <sys/types.h>
 
-extern "C" void *xcalloc(int size, int count);
+extern "C" void *xmalloc(size_t);
 
-extern "C" void *xrealloc(void *ptr, int size);
+extern "C" void *xcalloc(size_t, size_t);
+
+extern "C" void *xrealloc(void *, size_t);
 
 extern void logLine(char *line);
 extern char errorLine[];

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.16 1994/07/22 19:15:19 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.17 1994/07/28 22:40:34 krisna Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.16  1994/07/22 19:15:19  hollings
+ * Revision 1.17  1994/07/28 22:40:34  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.16  1994/07/22  19:15:19  hollings
  * moved computePauseTime to machine specific area.
  *
  * Revision 1.15  1994/07/14  23:30:21  hollings
@@ -233,7 +236,7 @@ void forkProcess(traceHeader *hr, traceFork *fr)
     copyInferriorHeap(parent, ret);
     // installDefaultInst(ret, initialRequests);
 
-    newExec = (struct executableRec *) calloc(sizeof(struct executableRec), 1);
+    newExec = (struct executableRec *) calloc(1, sizeof(struct executableRec));
 
     newExec->name = name;
     newExec->type = selfTermination;
@@ -246,10 +249,10 @@ int addProcess(int argc, char *argv[], int nenv, char *envp[])
     int i;
     struct executableRec *newExec;
 
-    newExec = (struct executableRec *) calloc(sizeof(struct executableRec), 1);
+    newExec = (struct executableRec *) calloc(1, sizeof(struct executableRec));
 
     newExec->argc = argc;
-    newExec->argv = (char **) calloc(sizeof(char *), argc+1);
+    newExec->argv = (char **) calloc(argc+1, sizeof(char *));
     for (i=0; i < argc; i++) {
 	newExec->argv[i] = strdup(argv[i]);
     }

@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.4 1994/07/26 19:56:42 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.5 1994/07/28 22:40:36 krisna Exp $";
 #endif
 
 
@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.4  1994/07/26 19:56:42  hollings
+ * Revision 1.5  1994/07/28 22:40:36  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.4  1994/07/26  19:56:42  hollings
  * commented out print statements.
  *
  * Revision 1.3  1994/07/20  23:22:48  hollings
@@ -113,7 +116,7 @@ metricInfo_Array dynRPC::getAvailableMetrics(void)
 
 	stuff = getMetricList();
 	metInfo.count = stuff->count;
-	metInfo.data = (metricInfo*) calloc(sizeof(metricInfo), metInfo.count);
+	metInfo.data = (metricInfo*) calloc(metInfo.count, sizeof(metricInfo));
 	for (i=0; i < metInfo.count; i++) {
 	    metInfo.data[i] = stuff->elements[i].info;
 	}

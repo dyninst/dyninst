@@ -8,7 +8,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.4  1994/07/20 23:23:38  hollings
+ * Revision 1.5  1994/07/28 22:40:41  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.4  1994/07/20  23:23:38  hollings
  * added insn generated metric.
  *
  * Revision 1.3  1994/07/05  03:26:06  hollings
@@ -212,4 +215,10 @@ struct _pointRec {
     instInstance *inst;
 };
 
+/*
+ * prototype for architecture specific function to restore the
+ * original instructions during a steering-detach.
+ */
+
+extern void restore_original_instructions(process *, instPoint *);
 typedef struct _pointRec pointRec;

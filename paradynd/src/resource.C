@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.7 1994/06/27 21:28:20 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.8 1994/07/28 22:40:45 krisna Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.7  1994/06/27 21:28:20  rbi
+ * Revision 1.8  1994/07/28 22:40:45  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.7  1994/06/27  21:28:20  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.6  1994/06/27  18:57:08  hollings
@@ -115,7 +118,7 @@ resourceList createResourceList()
 {
     resourceList ret;
 
-    ret = (resourceList) xcalloc(sizeof(struct _resourceListRec), 1);
+    ret = (resourceList) xcalloc(1, sizeof(struct _resourceListRec));
     return(ret);
 }
 
@@ -182,7 +185,7 @@ resource newResource(resource parent,
 	}
     } else {
 	parent->children = (resourceList) 
-	    xcalloc(sizeof(struct _resourceListRec), 1);
+	    xcalloc(1, sizeof(struct _resourceListRec));
     }
 
     ret = new(_resourceRec);

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.6 1994/07/22 19:21:09 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.7 1994/07/28 22:40:46 krisna Exp $";
 #endif
 
 /*
  * sym-bsd.C - parse BSD style a.out files.
  *
  * $Log: sym-bsd.C,v $
- * Revision 1.6  1994/07/22 19:21:09  hollings
+ * Revision 1.7  1994/07/28 22:40:46  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.6  1994/07/22  19:21:09  hollings
  * removed mistaken divid by 1Meg for predicted cost.
  *
  * Revision 1.5  1994/07/12  19:38:34  jcargill
@@ -114,7 +117,7 @@ void findInternalSymbols(image *ret, char **iSym)
 	}
     }
 
-    ret->iSyms = (internalSym*) xcalloc(sizeof(internalSym), ret->iSymCount);
+    ret->iSyms = (internalSym*) xcalloc(ret->iSymCount, sizeof(internalSym));
     iCount=0;
     for (curr = iSym; *curr; curr++) {
 	len = strlen(*curr);
@@ -269,7 +272,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     module *currentModule;
     char *currentDirectory;
 
-    ret = (image *) xcalloc(sizeof(image),1);
+    ret = (image *) xcalloc(1, sizeof(image));
     ret->file = pool.findAndAdd(file);
 
     name = strrchr(file, '/');

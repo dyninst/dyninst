@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.3 1994/07/12 19:45:21 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.4 1994/07/28 22:40:44 krisna Exp $";
 #endif
 
 /*
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
- * Revision 1.3  1994/07/12 19:45:21  jcargill
+ * Revision 1.4  1994/07/28 22:40:44  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.3  1994/07/12  19:45:21  jcargill
  * Hardware combine on the CM5 no longer requires a special sampling function.
  *
  * Revision 1.2  1994/06/29  02:52:46  hollings
@@ -84,7 +87,7 @@ intCounterHandle *createIntCounter(process *proc, int value, Boolean report)
     intCounterHandle *ret;
     function *sampleFunction;
 
-    ret = (intCounterHandle*) xcalloc(sizeof(intCounterHandle), 1);
+    ret = (intCounterHandle*) xcalloc(1, sizeof(intCounterHandle));
     ret->proc = proc;
     ret->data.id.aggregate = proc->aggregate;
     ret->data.id.id = counterId++;
@@ -130,7 +133,7 @@ timerHandle *createTimer(process *proc, timerType type, Boolean report)
     timerHandle *ret;
     function *sampleFunction;
 
-    ret = (timerHandle*) xcalloc(sizeof(timerHandle), 1);
+    ret = (timerHandle*) xcalloc(1, sizeof(timerHandle));
     ret->proc = proc;
     ret->timerPtr = (tTimer *) inferriorMalloc(proc, sizeof(tTimer));
 

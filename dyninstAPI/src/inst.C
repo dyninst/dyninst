@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.6 1994/07/20 23:23:36 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.7 1994/07/28 22:40:39 krisna Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.6  1994/07/20 23:23:36  hollings
+ * Revision 1.7  1994/07/28 22:40:39  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.6  1994/07/20  23:23:36  hollings
  * added insn generated metric.
  *
  * Revision 1.5  1994/07/12  19:48:46  jcargill
@@ -164,7 +167,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
 
     point = activePoints.find(location);
     if (!point) {
-	point = (pointRec *) calloc(sizeof(pointRec), 1);
+	point = (pointRec *) calloc(1, sizeof(pointRec));
 	activePoints.add(point, location);
     }
     for (ret= point->inst; ret; ret = ret->next) {
@@ -174,7 +177,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
 	}
     }
 
-    ret = (instInstance*) xcalloc(sizeof(instInstance), 1);
+    ret = (instInstance*) xcalloc(1, sizeof(instInstance));
     ret->proc = proc;
 
     /* make sure the base tramp has been installed for this point */

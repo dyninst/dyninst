@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.32 1994/07/26 19:58:35 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.33 1994/07/28 22:40:42 krisna Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.32  1994/07/26 19:58:35  hollings
+ * Revision 1.33  1994/07/28 22:40:42  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.32  1994/07/26  19:58:35  hollings
  * added CMMDhostless variable.
  *
  * Revision 1.31  1994/07/22  19:20:12  hollings
@@ -353,17 +356,17 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
     }
 
     if (proc) {
-	instProcessList = (process **) xcalloc(sizeof(process *), 2);
+	instProcessList = (process **) xcalloc(2, sizeof(process *));
 	if (!tid || (proc->thread == tid)) {
 	    instProcessList[0] = proc;
 	}
     } else if (nodePseudoProcess) {
-	instProcessList = (process **) xcalloc(sizeof(process *), 3);
+	instProcessList = (process **) xcalloc(3, sizeof(process *));
 	instProcessList[0] = nodePseudoProcess;
 	instProcessList[1] = nodePseudoProcess->parent;
     } else {
 	count = processList.count();
-	instProcessList = (process **) xcalloc(sizeof(process *), count+1);
+	instProcessList = (process **) xcalloc(count+1, sizeof(process *));
 	for (pl = processList,count = 0; proc = *pl; pl++) {
 	    /* HACK for machine for now */
 	    if (!tid || (proc->thread == tid)) {
@@ -822,11 +825,11 @@ metricList getMetricList()
     if (!globalMetricList) {
 	 // merge internal and external metrics into one list.
 	 globalMetricList = (metricList) 
-	     xcalloc(sizeof(struct _metricListRec), 1);
+	     xcalloc(1, sizeof(struct _metricListRec));
 	 globalMetricList->count = 
 	     metricCount + internalMetric::allInternalMetrics.count();
 	 globalMetricList->elements = (struct _metricRec *)
-	     xcalloc(sizeof(struct _metricRec), globalMetricList->count);
+	     xcalloc(globalMetricList->count, sizeof(struct _metricRec));
 	 for (i=0; i < metricCount; i++) {
 	     globalMetricList->elements[i] = DYNINSTallMetrics[i];
 	 }

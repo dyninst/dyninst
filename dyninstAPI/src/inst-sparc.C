@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.12 1994/07/26 19:57:31 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.13 1994/07/28 22:40:38 krisna Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.12  1994/07/26 19:57:31  hollings
+ * Revision 1.13  1994/07/28 22:40:38  krisna
+ * changed definitions/declarations of xalloc functions to conform to alloc.
+ *
+ * Revision 1.12  1994/07/26  19:57:31  hollings
  * moved instruction definitions to seperate header file.
  *
  * Revision 1.11  1994/07/20  23:23:35  hollings
@@ -309,7 +312,7 @@ void newCallPoint(function *func, instruction *code, int codeIndex, int offset)
 	    sizeof(instPoint*)*func->callLimit);
     }
 
-    point = (instPoint*) xcalloc(sizeof(instPoint), 1);
+    point = (instPoint*) xcalloc(1, sizeof(instPoint));
     defineInstPoint(func, point, code, codeIndex, offset, FALSE);
 
     point->callsUserFunc = 0;
@@ -408,14 +411,14 @@ void locateInstPoints(function *func, void *codeV, int offset, int calls)
         func->funcReturn = NULL;
         return;
     }
-    func->funcEntry = (instPoint *) xcalloc(sizeof(instPoint), 1);
+    func->funcEntry = (instPoint *) xcalloc(1, sizeof(instPoint));
     defineInstPoint(func, func->funcEntry, code,codeIndex,offset,TRUE);
     done = 0;
     while (!done) {
 	if (isInsn(code[codeIndex],RETmask, RETmatch) || 
 	    isInsn(code[codeIndex],RETLmask, RETLmatch)) {
 	    done = 1;
-	    func->funcReturn = (instPoint *) xcalloc(sizeof(instPoint), 1);
+	    func->funcReturn = (instPoint *) xcalloc(1, sizeof(instPoint));
 	    defineInstPoint(func, func->funcReturn, code, codeIndex, 
 		offset,FALSE);
 	    if ((code[codeIndex].resti.simm13 != 8) &&
@@ -966,4 +969,33 @@ int getInsnCost(opCode op)
 		break;
 	}
     }
+}
+
+
+
+/************************************************************************
+ * void restore_original_instructions(process* p, instPoint* ip)
+************************************************************************/
+
+void
+restore_original_instructions(process* p, instPoint* ip) {
+    int addr = ip->addr;
+
+    PCptrace(PTRACE_POKETEXT, p, (char *) addr,
+        ip->originalInstruction.raw, 0);
+    addr += sizeof(instruction);
+
+    if (ip->isDelayed) {
+        PCptrace(PTRACE_POKETEXT, p, (char *) addr,
+            ip->delaySlotInsn.raw, 0);
+        addr += sizeof(instruction);
+    }
+
+    if (ip->callAggregate) {
+        PCptrace(PTRACE_POKETEXT, p, (char *) addr,
+            ip->aggregateInsn.raw, 0);
+        addr += sizeof(instruction);
+    }
+
+    return;
 }

@@ -15,7 +15,7 @@ registerSpace::registerSpace(int count, int *possibles) {
 
     numRegisters = count;
     registers = (registerSlot *) 
-	calloc(sizeof(registerSlot), numRegisters);
+	calloc(numRegisters, sizeof(registerSlot));
     for (i=0; i < count; i++) {
 	registers[i].number = possibles[i];
 	registers[i].inUse = False;
