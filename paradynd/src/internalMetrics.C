@@ -41,6 +41,7 @@
 
 // internalMetrics.C
 
+#include "process.h" // processVec
 #include "internalMetrics.h"
 
 internalMetric::eachInstance::eachInstance(sampleValueFunc f, metricDefinitionNode *n) {
@@ -132,6 +133,20 @@ int internalMetric::aggregate() const {
 
 bool internalMetric::isDeveloperMode() const {
    return developermode_;
+}
+
+T_dyninstRPC::metricInfo internalMetric::getInfo() {
+    T_dyninstRPC::metricInfo ret;
+    ret.name = name_;
+    ret.style = style_;
+    ret.aggregate = agg_;
+    ret.units = units_;
+    ret.developerMode = developermode_;
+    ret.unitstype = 0;
+    if(unitstype_ == UnNormalized) ret.unitstype = 0;
+    else if (unitstype_ == Normalized) ret.unitstype = 1; 
+    else if (unitstype_ == Sampled) ret.unitstype = 2; 
+    return ret;
 }
 
 bool internalMetric::legalToInst(const vector< vector<string> >& focus) const {
