@@ -3,7 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.29  1996/05/11 00:29:39  mjrg
+ * Revision 1.30  1996/06/29 19:29:16  newhall
+ * removed call to showErrorCallback that is already handled by the paradyn process
+ *
+ * Revision 1.29  1996/05/11  00:29:39  mjrg
  * Fixed memory leak in mdl_inst_stmt::apply
  *
  * Revision 1.28  1996/05/07 22:39:25  mjrg
@@ -441,17 +444,6 @@ static inline bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag
 	ci++;
       }
       if (!matched && (el_size>1)) {
-	string focus_str;
-	for (unsigned u = 0; u < focus.size(); u++) {
-	  focus_str += string("/") + focus[u][0];
-	  for (unsigned v = 1; v < focus[u].size(); v++) {
-	    focus_str += string(",") + focus[u][v];
-	  }
-	}
-	string msg = string("Metric ") + currentMetric + 
-               string(" has no constraint that matches focus ") + 
-               focus_str;
-	showErrorCallback(93, msg.string_of());
 	return false;
       }
     } else {
