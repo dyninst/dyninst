@@ -238,61 +238,92 @@ inline int P_rexec(char **ahost, u_short inport, char *user,
   return (rexec(ahost, inport, user, passwd, cmd, fd2p));}
 
 #if defined(__GNUC__)
-extern "C" char *cplus_demangle(char *, int);
-#else
-#include <demangle.h>
-#endif
-
-/* symbol: is the mangled name
-   prototype:  the unmangled name is saved in this buffer
-   size: specifies the size of the buffer, prototype
-   native: target was compiled using Sun compiler
-   return 0 for success and non-zero for failure
-*/
-extern void dedemangle( const char * demangled, char * dedemangled );
-inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size, 
-			    bool nativeCompiler, bool includeTypes=false) {
-  char *demangled_sym;
-
-#if defined( __GNUC__ )
 #define DMGL_PARAMS      (1 << 0)       /* Include function args */
 #define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
+
+extern "C" char *cplus_demangle(char *, int);
+
+/* Hack to allow nativeDemanglerBrokenness() to compile under gcc. */
+#define DEMANGLE_ESPACE	-1
+#define DEMANGLE_ENAME	1
+
+#else
+
+#include <demangle.h>
+
+#endif
+
+inline char * nativeDemanglerBrokenness( int (*P_native_demangle)(const char *, char *, size_t),
+					char * symbol ) {
+	int length = 1024;
+	char * demangled = NULL;
+
+	while( true ) {
+		demangled = (char *)malloc( length * sizeof( char ) );
+		if( demangled == NULL ) { return NULL; }
+		
+		int result = (* P_native_demangle)( symbol, demangled, length );
+
+		switch( result ) {
+			case 0:
+				return demangled;
+			case DEMANGLE_ENAME:
+				return NULL;
+			case DEMANGLE_ESPACE:
+				break;
+			default:
+				assert( 0 );
+			} /* end result switch */
+
+		length += 1024;
+		free( demangled );
+		} /* end sizing loop */
+	} /* end nativeCompilerBrokenness() */
+
+extern void dedemangle( const char * demangled, char * dedemangled );
+inline char * P_cplus_demangle( const char *symbol, bool nativeCompiler,
+					bool includeTypes = false ) {
+	char * demangled = NULL;
+
+#if defined( __GNUC__ )
   /* If the native demangler exists, try to demangled with it.
      Otherwise, use the GNU demangler. */
   if( ! nativeCompiler || P_native_demangle == NULL ) {
     /* If we've been compiled with GNU and we're
        demangling a GNU name, use cplus_demangle(). */
-    demangled_sym = cplus_demangle( const_cast<char *>( symbol ), 
+    demangled = cplus_demangle( const_cast<char *>( symbol ), 
                                     includeTypes ? DMGL_PARAMS|DMGL_ANSI  : 0 );
-    if( demangled_sym == NULL || strlen( demangled_sym ) >= size ) {
-      return 1;
-    } /* end if the GNU demangling failed. */
-  } /* end if there's no native demangler */
+    if( demangled == NULL ) { return NULL; }
+    } /* end if there's no native demangler */
   else {
     /* Use the native demangler. */
-    demangled_sym = (char *)malloc( size * sizeof(char) );
-    if( (*P_native_demangle)(symbol, demangled_sym, size) ) {
-      return 1;
-    } /* end if native demangling failed. */
-  } /* end if we're using the native demangler. */
+    demangled = nativeDemanglerBrokenness( P_native_demangle, const_cast< char * >( symbol ) );
+
+    if( demangled == NULL ) { return NULL; }
+    } /* end if we're using the native demangler. */
 
 #else 
 
   /* We were compiled with the native compiler, so use its demangler. */
-  demangled_sym = (char *) malloc(size * sizeof(char));
-  if (cplus_demangle(symbol, demangled_sym, size)) {
-  {
-    free(demangled_sym);
-  } /* end if the native demangling failed */
+  demangled = nativeDemanglerBrokenness( cplus_demangle, (char *)symbol );
+
+  if( demangled == NULL ) { return NULL; }  
 
 #endif
-  if (!includeTypes)
-     dedemangle( demangled_sym, prototype );
-  else
-     strncpy(prototype, demangled_sym, size);
-  free(demangled_sym);
-  return 0;
-}
+
+  if( ! includeTypes ) {
+        /* de-demangling never increases the length */
+        char * dedemangled = strdup( demangled );
+        assert( dedemangled != NULL );
+        dedemangle( demangled, dedemangled );
+        assert( dedemangled != NULL );
+
+        free( demangled );
+        return dedemangled;  
+        }
+
+  return demangled;
+  } /* end P_cplus_demangle() */
 
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
 inline bool_t P_xdr_u_char(XDR *x, u_char *uc) { return (xdr_u_char(x, uc));}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.9 2003/07/18 15:43:34 schendel Exp $
+// $Id: osfHeaders.h,v 1.10 2003/08/11 11:57:46 tlmiller Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
@@ -177,21 +177,10 @@ extern int P_rexec(char **ahost, u_short inport, char *user, char *passwd, char 
 extern int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval *tm);
 
 extern "C" char *cplus_demangle(char *, int);
-/* symbol: is the mangled name
-   prototype:  the unmangled name is saved in this buffer
-   size: specifies the size of the buffer, prototype
-   return 0 for success and non-zero for failure
-*/
-inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
-			    bool /* nativeCompiler */, bool includeTypes=false) {
-   char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
-   if(demangled_sym==NULL || strlen(demangled_sym) >= size)
-      return 1;
-   
-   strcpy(prototype, demangled_sym);
-   free(demangled_sym);
-   return 0;
-}
+
+inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, bool includeTypes = false ) {
+   return cplus_demangle( const_cast<char *>( symbol ), 0);
+   } /* end P_cplus_demangle() */
 
 extern void   P_xdr_destroy(XDR*);
 extern bool_t P_xdr_u_char(XDR*, u_char*);
@@ -207,6 +196,5 @@ extern void P_xdrrec_create(XDR*, const u_int send_sz, const u_int rec_sz,
 extern bool_t P_xdrrec_endofrecord(XDR*, int now);
 extern bool_t P_xdrrec_skiprecord(XDR*);
 inline bool_t P_xdrrec_eof(XDR *x) { return (xdrrec_eof(x)); }
-
 
 #endif

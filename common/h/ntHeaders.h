@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.16 2003/07/18 15:43:33 schendel Exp $
+// $Id: ntHeaders.h,v 1.17 2003/08/11 11:57:45 tlmiller Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -202,22 +202,10 @@ inline int P_recv(int s, void *buf, size_t len, int flags) {
    return (recv(s, (char*)buf, len, flags));
 }
 
-extern char *cplus_demangle(char *, int, bool includeTypes);
-/* symbol: is the mangled name
-   prototype:  the unmangled name is saved in this buffer
-   size: specifies the size of the buffer, prototype
-   return 0 for success and non-zero for failure
-*/
-inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
-			    bool /* nativeCompiler */, bool includeTypes = false) {
-   char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0, includeTypes);
-   if(demangled_sym==NULL || strlen(demangled_sym) >= size)
-      return 1;
-   
-   strcpy(prototype, demangled_sym);
-   free(demangled_sym);
-   return 0;
-}
+extern char *cplus_demangle(char *, int, bool );
+inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, bool includeTypes = false ) {
+   return cplus_demangle( (char *)symbol, 0, includeTypes );
+   } /* end P_cplus_demangle() */
 
 #ifndef BPATCH_LIBRARY
 typedef int (*P_xdrproc_t)(XDR*, ...);

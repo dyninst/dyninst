@@ -255,21 +255,9 @@ struct exception { // CSS
 #endif
 
 extern "C" char *cplus_demangle(char *, int);
-/* symbol: is the mangled name
-   prototype:  the unmangled name is saved in this buffer
-   size: specifies the size of the buffer, prototype
-   return 0 for success and non-zero for failure
-*/
-inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
-			    bool /* nativeCompiler */) {
-   char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
-   if(demangled_sym==NULL || strlen(demangled_sym) >= size)
-      return 1;
-   
-   strcpy(prototype, demangled_sym);
-   free(demangled_sym);
-   return 0;
-}
+inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */ ) {
+   return cplus_demangle( (char *)symbol, 0);
+   } /* end P_cplus_demangle() */
 
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
 inline bool_t P_xdr_u_char(XDR *x, u_char *uc) { return (xdr_u_char(x, uc));}
