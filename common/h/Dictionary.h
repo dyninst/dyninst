@@ -80,17 +80,6 @@
  * 
 ************************************************************************/
 
-//ifdef this to nothing if it bothers old broken compilers
-#define TYPENAME typename
-
-#if ! defined( TYPENAME31 )
-#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
-#define TYPENAME31 typename
-#else
-#define TYPENAME31
-#endif
-#endif
-
 template<class K, class V> class dictionary_hash_iter;
 
 template<class K, class V>
@@ -276,8 +265,8 @@ class dictionary_hash_iter {
  private:
   typedef const V &RET; // RET: type returned by operator*()
   dictionary_hash<K,V> &dict;
-  TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry >::iterator i;
-  TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry >::iterator the_end;
+  TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator i;
+  TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator the_end;
 
   // too bad we need to store the_end (for make_valid_or_end())
    

@@ -229,7 +229,8 @@ void dictionary_hash<K,V>::set(const K &key, const V &val) {
 }
 
 template<class K, class V>
-dictionary_hash<K,V>::iterator dictionary_hash<K,V>::find(const K& key) {
+TYPENAME31 dictionary_hash<K,V>::iterator
+dictionary_hash<K,V>::find(const K& key) {
   const unsigned ndx = locate(key, false); // false -->don't find removed items
   if (ndx == UINT_MAX) {
     return end();
@@ -241,7 +242,8 @@ dictionary_hash<K,V>::iterator dictionary_hash<K,V>::find(const K& key) {
 }
 
 template<class K, class V>
-dictionary_hash<K,V>::const_iterator dictionary_hash<K,V>::find(const K& key) 
+TYPENAME31 dictionary_hash<K,V>::const_iterator
+dictionary_hash<K,V>::find(const K& key) 
      const {
   const unsigned ndx = locate(key, false); // false -->don't find removed items
   if (ndx == UINT_MAX) {

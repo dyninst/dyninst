@@ -49,6 +49,14 @@
 //ifdef this to nothing if it bothers old broken compilers
 #define TYPENAME typename
 
+#if ! defined( TYPENAME31 )
+#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
+#define TYPENAME31 typename
+#else
+#define TYPENAME31
+#endif
+#endif
+
 #if defined(i386_unknown_nt4_0)
 //turn off 255 char identifier truncation message
 #pragma warning (disable: 4786)
