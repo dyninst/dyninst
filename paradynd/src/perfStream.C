@@ -7,6 +7,13 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.52  1996/01/29 22:09:34  mjrg
+ * Added metric propagation when new processes start
+ * Adjust time to account for clock differences between machines
+ * Daemons don't enable internal metrics when they are not running any processes
+ * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
+ * the application stops only after it starts the CM5 daemon)
+ *
  * Revision 1.51  1995/12/28 23:43:56  zhichen
  * processTraceStream() sets BURST_HAS_COMPLETED to true at the end of
  * a batch of data.
@@ -427,7 +434,12 @@ void processTraceStream(process *curr)
 	    /* sprintf(errorLine, "started at %f\n", st);*/
 	    /* logLine(errorLine);*/
 	    // report sample here
-	    tp->firstSampleCallback(curr->getPid(), (double) (header.wall/1000000.0));
+	    
+	    // If we are running a CM5 process, we don't send a first sample.
+	    // The CM5 node daemon will send a sample when it is ready.
+	    if (!CMMDhostless) {
+	      tp->firstSampleCallback(curr->getPid(), (double) (header.wall/1000000.0));
+	    }
 	}
 	// header.wall -= curr->firstRecordTime();
 
@@ -542,7 +554,30 @@ int handleSigChild(int pid, int status)
 		      }
 		      curr->status_ = running;
 		      statusLine("application running");
+
+                      // propagate any metric that is already enabled to the new
+                      // process
+                      vector<metricDefinitionNode *> MIs = allMIs.values();
+                      for (unsigned j = 0; j < MIs.size(); j++) {
+			MIs[j]->propagateMetricInstance(curr);
+		      }
+
 		    }
+
+                    if (CMMDhostless) {
+		       // This is a cm5 process and we must run it so it can start
+		       // the node daemon.
+		       if (!OS::osForwardSignal(pid, 0)) {
+			 assert(0);
+		       }
+                       statusLine("starting node daemon ...");
+		       // The application will stop itself after it starts the 
+		       // node daemon. Setting waitingForNodeDaemon here will
+		       // prevent the application from running again before
+		       // the node daemon is ready.
+		       curr->waitingForNodeDaemon = true;
+		    }
+
 		}
 #ifdef notdef
 		if (!OS::osForwardSignal(pid, 0)) {
@@ -573,9 +608,7 @@ int handleSigChild(int pid, int status)
 		// received the SIGSTOP...
 		// But we need to pause the rest of the application
 		pauseAllProcesses();
-		buffer = string("PID=") + string(pid);
-		buffer += string(" received SIGSTOP/SIGINT. Application stopped.\n");
-		statusLine(P_strdup(buffer.string_of()));
+		statusLine("application paused");
 		break;
 
 	    case SIGIOT:

@@ -14,6 +14,13 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.67  1996/01/29 22:09:30  mjrg
+ * Added metric propagation when new processes start
+ * Adjust time to account for clock differences between machines
+ * Daemons don't enable internal metrics when they are not running any processes
+ * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
+ * the application stops only after it starts the CM5 daemon)
+ *
  * Revision 1.66  1996/01/29 20:16:32  newhall
  * added enum type "daemon_MetUnitsType" for internal metric definition
  * changed bucketWidth internal metric to EventCounter
@@ -487,9 +494,9 @@ metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& f
     // KLUDGE ALERT
     // Catch complex metrics that are currently beyond the mdl's power
     if (metric_name == "observed_cost") {
-      mi = mdl_observed_cost(canon_focus, metric_name, flat_name);
+      mi = mdl_observed_cost(canon_focus, metric_name, flat_name, processVec);
     } else if (mdl_can_do(metric_name)) {
-      mi = mdl_do(canon_focus, metric_name, flat_name);
+      mi = mdl_do(canon_focus, metric_name, flat_name, processVec);
     } else {
       bool matched;
       mi = doInternalMetric(canon_focus, metric_name, flat_name, enable, matched);
@@ -497,6 +504,46 @@ metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& f
     }
     return(mi);
 }
+
+
+// propagate this metric instance to process p.
+// p is a process that started after the metric instance was created.
+void metricDefinitionNode::propagateMetricInstance(process *p) {
+
+  metricDefinitionNode *mi;
+  vector<process *> vp(1,p);
+  bool internal = false;
+
+  if (met_ == "observed_cost") {
+    mi = mdl_observed_cost(focus_, met_, flat_name_, vp);
+  } else if (mdl_can_do(met_)) {
+    mi = mdl_do(focus_, met_, flat_name_, vp);
+  } else {
+    // internal metrics don't need to be propagated
+    mi = NULL;
+  }
+
+  if (mi) {
+    assert(mi->components.size() == 1);
+
+    components += mi->components[0];
+    mi->components[0]->aggregators[0] = this;
+    valueList.add(&mi->components[0]->sample);
+    mi->components[0]->sample.firstSampleReceived = true;
+    mi->components[0]->sample.lastSampleEnd = sample.lastSampleEnd;
+    mi->components[0]->sample.lastSample = 0.0;
+    if (!internal)
+      mi->components[0]->insertInstrumentation();
+
+    // update cost
+    float cost = mi->cost();
+    if (cost > originalCost_) {
+      currentPredictedCost += cost - originalCost_;
+      originalCost_ = cost;
+    }       
+  }
+}
+
 
 int startCollecting(string& metric_name, vector<u_int>& focus, int id) 
 {
@@ -1089,6 +1136,11 @@ dataReqNode::~dataReqNode()
 }
 
 bool internalMetric::legalToInst(vector< vector<string> >& focus) {
+
+  if (!processVec.size()) {
+    // we don't enable internal metrics if there are no process to run
+    return false;
+  }
   switch (focus[resource::machine].size()) {
   case 1: break;
   case 2:
@@ -1232,3 +1284,4 @@ void reportInternalMetrics()
         imp->node->forwardSimpleValue(start, end, value);
       }
 }
+

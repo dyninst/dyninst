@@ -7,6 +7,13 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.23  1996/01/29 22:09:32  mjrg
+ * Added metric propagation when new processes start
+ * Adjust time to account for clock differences between machines
+ * Daemons don't enable internal metrics when they are not running any processes
+ * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
+ * the application stops only after it starts the CM5 daemon)
+ *
  * Revision 1.22  1995/12/15 14:40:57  naim
  * Changing "hybrid_cost" by "smooth_obs_cost" - naim
  *
@@ -228,7 +235,10 @@ public:
   inline dataReqNode *addTimer(timerType type);
   inline void addInst(instPoint *point,AstNode *ast, callWhen when, callOrder o);
   void set_inform(bool new_val) { inform_ = new_val; }
-  
+
+  // propagate this metric instance to process p
+  void propagateMetricInstance(process *p);  
+
 private:
 
   void updateAggregateComponent(metricDefinitionNode *,

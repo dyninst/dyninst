@@ -27,6 +27,13 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.32  1996/01/29 22:09:22  mjrg
+ * Added metric propagation when new processes start
+ * Adjust time to account for clock differences between machines
+ * Daemons don't enable internal metrics when they are not running any processes
+ * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
+ * the application stops only after it starts the CM5 daemon)
+ *
  * Revision 1.31  1996/01/24 15:34:22  zhichen
  * A little bit cleanup
  *
@@ -422,6 +429,15 @@ int dynRPC::addExecutable(vector<string> argv, string dir, bool stopAtFirstBreak
   vector<string> envp;
   return(addProcess(argv, envp, dir, stopAtFirstBreak));
 }
+
+
+//
+// report the current time 
+//
+double dynRPC::getTime() {
+  getCurrentTime(false);
+}
+
 
 //
 // CM5 processes only: continue the process that is stopped waiting for the CM5 node

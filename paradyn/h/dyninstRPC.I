@@ -408,7 +408,7 @@ public:
     return os;
   }
 #endif
-  metricDefinitionNode *apply(vector< vector<string> >&focus, string& flat_name);
+  metricDefinitionNode *apply(vector< vector<string> >&focus, string& flat_name, vector<process *> procs);
 $ignore
 };
 
@@ -435,7 +435,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 27;
+    $version 28;
 
     //
     // Define a program to run. 
@@ -662,4 +662,8 @@ $remote dynRPC {
     $async void send_metrics(vector<mdl_metric*> *);
     $async void send_constraints(vector<mdl_constraint*>*);
     $async void send_stmts(vector<mdl_stmt*> *);
+
+    // get the current wall clock time of the daemon to adjust for clock differences
+    double getTime();
+
 };

@@ -3,6 +3,13 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.17  1996/01/29 22:09:26  mjrg
+ * Added metric propagation when new processes start
+ * Adjust time to account for clock differences between machines
+ * Daemons don't enable internal metrics when they are not running any processes
+ * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
+ * the application stops only after it starts the CM5 daemon)
+ *
  * Revision 1.16  1995/12/26 23:04:16  zhichen
  * Introduced START_NAME macro; usually set to "main", but paradyndCM5_blz
  * sets it to init_blk_acc.
@@ -243,6 +250,7 @@ static inline bool other_machine_specified(vector< vector<string> > &focus,
 }
 
 static inline void add_processes(vector< vector<string> > &focus,
+				 vector<process*> procs,
 				 vector<process*> &ip) {
   assert(focus[resource::process][0] == "Process");
   unsigned pi, ps;
@@ -253,14 +261,14 @@ static inline void add_processes(vector< vector<string> > &focus,
     assert(nodePseudoProcess);
     ip += nodePseudoProcess;
 #else
-    ip = processVec;
+    ip = procs;
 #endif    
     break;
   case 2:
-    ps = processVec.size();
-    for (pi=0; pi<ps; pi++) 
-      if (processVec[pi]->rid->part_name() == focus[resource::process][1]) {
-	ip += processVec[pi];
+    ps = procs.size();
+    for (pi=0; pi<ps; pi++)
+      if (procs[pi]->rid->part_name() == focus[resource::process][1]) {
+	ip += procs[pi];
 	break;
       }
     break;
@@ -520,7 +528,7 @@ static inline bool apply_to_process_list(vector<process*>& instProcess,
 }
 
 metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &focus,
-						      string& flat_name) {
+						      string& flat_name, vector<process *> procs) {
 
   // TODO -- check to see if this is active ?
   // TODO -- create counter or timer
@@ -555,7 +563,8 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   if (other_machine_specified(focus, machine)) return NULL;
   vector<process*> instProcess;
-  add_processes(focus, instProcess);
+  add_processes(focus, procs, instProcess);
+
   if (!instProcess.size()) return NULL;
 
   // build the list of constraints to use
@@ -577,11 +586,15 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   // construct aggregate for the metric instance parts
   metricDefinitionNode *ret = NULL;
-  switch (parts.size()) {
-  case 0: break;
-  case 1: ret = parts[0]; break;
-  default: ret = new metricDefinitionNode(name_, focus, flat_name, parts);
-  }
+
+  //  switch (parts.size()) {
+  //  case 0: break;
+  //  case 1: ret = parts[0]; break;
+  //  default: ret = new metricDefinitionNode(name_, focus, flat_name, parts);
+  //  }
+
+  if (parts.size())
+    ret = new metricDefinitionNode(name_, focus, flat_name, parts);
 
   if (ret) ret->set_inform(true);
 
@@ -1189,11 +1202,11 @@ bool mdl_can_do(string& met_name) {
 }
 
 metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus, string& met_name,
-			     string& flat_name) {
+			     string& flat_name, vector<process *> procs) {
   unsigned size = mdl_data::all_metrics.size();
   for (unsigned u=0; u<size; u++) 
     if (mdl_data::all_metrics[u]->name_ == met_name) {
-      return (mdl_data::all_metrics[u]->apply(canon_focus, flat_name));
+      return (mdl_data::all_metrics[u]->apply(canon_focus, flat_name, procs));
     }
   return NULL;
 }
@@ -1624,7 +1637,7 @@ AstNode *do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& 
 
 metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
 					string& met_name,
-					string& flat_name) {
+					string& flat_name, vector<process *> procs) {
   pdFunction *sampler;
   AstNode *reportNode;
   dataReqNode *dataPtr;
@@ -1638,7 +1651,7 @@ metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
 
   if (other_machine_specified(canon_focus, machine)) return NULL;
   vector<process*> ip;
-  add_processes(canon_focus, ip);
+  add_processes(canon_focus, procs, ip);
   unsigned ip_size, index;
   if (!(ip_size = ip.size())) return NULL;
 
@@ -1671,11 +1684,14 @@ metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
   }
 
   metricDefinitionNode *ret = NULL;
-  switch (parts.size()) {
-  case 0: break;
-  case 1: ret = parts[0]; break;
-  default: ret = new metricDefinitionNode(name, canon_focus, flat_name, parts);
-  }
+  //  switch (parts.size()) {
+  //  case 0: break;
+  //  case 1: ret = parts[0]; break;
+  //  default: ret = new metricDefinitionNode(name, canon_focus, flat_name, parts);
+  //  }
+  if (parts.size())
+    ret = new metricDefinitionNode(name, canon_focus, flat_name, parts);
+
   if (ret) ret->set_inform(true);
   return ret;
 }

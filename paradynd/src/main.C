@@ -2,6 +2,13 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.40  1996/01/29 22:09:23  mjrg
+ * Added metric propagation when new processes start
+ * Adjust time to account for clock differences between machines
+ * Daemons don't enable internal metrics when they are not running any processes
+ * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
+ * the application stops only after it starts the CM5 daemon)
+ *
  * Revision 1.39  1995/12/20 20:19:00  newhall
  * removed matherr.h
  *
@@ -263,6 +270,14 @@ int main(int argc, char *argv[])
 		 cmdLine += argv[i];
 	     }
 	}
+    }
+
+    // If the flavor is cm5, this daemon only function is to insert the initial
+    // instrumentation to fork a CM5 node daemon, and to start/stop the 
+    // application. We set the variable CMMDhostless here to prevent any
+    // metric from being enabled by this daemon.
+    if (pd_flavor == "cm5") {
+      CMMDhostless = true;
     }
 
 #ifdef PARADYND_PVM

@@ -7,13 +7,20 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.35 1995/12/18 14:59:17 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.36 1996/01/29 22:09:19 mjrg Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.36  1996/01/29 22:09:19  mjrg
+ * Added metric propagation when new processes start
+ * Adjust time to account for clock differences between machines
+ * Daemons don't enable internal metrics when they are not running any processes
+ * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
+ * the application stops only after it starts the CM5 daemon)
+ *
  * Revision 1.35  1995/12/18 14:59:17  naim
  * Minor change to status line messages - naim
  *
@@ -310,12 +317,12 @@ bool continueAllProcesses()
 
     appPause = false;
 
+    statusLine("application running");
+
     if (!firstRecordTime) return (false);
     elapsedPauseTime += (getCurrentTime(false) - startPause);
     // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
     // logLine(errorLine);
-
-    statusLine("application running");
 
     return(false);
 }
@@ -351,6 +358,8 @@ void continueProcWaitingForDaemon(void) {
 	statusLine("application running");
 	p->continueProc();
       }
+      else
+	statusLine("application paused");
     }
   }
 }
