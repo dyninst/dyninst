@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.15  1994/07/22 19:24:51  hollings
+ * Revision 1.16  1994/07/26 20:06:12  hollings
+ * fixed clock code.
+ *
+ * Revision 1.15  1994/07/22  19:24:51  hollings
  * added actual paused time for CM-5.
  *
  * Revision 1.14  1994/07/16  03:39:30  hollings
@@ -111,6 +114,7 @@ extern float DYNINSTcyclesToUsec;
 
 time64 getProcessTime();
 time64 DYNINSTgetWallTime();
+extern int DYNINSTtotalSamples;
 extern time64 DYNINSTlastCPUTime;
 extern time64 DYNINSTlastWallTime;
 
@@ -157,6 +161,8 @@ retry:
 
 inline time64 getProcessTime()
 {
+    int high;
+    time64 ret;
     timeParts end;
     time64 ni_end;
 
@@ -166,7 +172,17 @@ retry:
     end.parts.high = timerBuffer.high;
     end.parts.low = *ni;
     if (timerBuffer.sync != 1) goto retry;
-    return(end.value-ni_end);
+
+    /* check for three way race of start/stop & sample & wrap. */
+    if (end.parts.high != timerBuffer.high) goto retry;
+
+    /* three way race with start/stop & sample & scheduler */
+    if (ni_end != timerBuffer.ni_time) goto retry;
+
+    ret = end.value-ni_end;
+    if (ret < 0) goto retry;
+
+    return(ret);
 }
 
 
@@ -266,14 +282,20 @@ retry:
 	timer->sampled = 0;
 	timer->mutex = 0;
 
-#ifdef notdef
 	/* for debugging */
 	if (timer->total < 0) {
-	    timerTemp = *timer;
+	    double st, el, en, to;
+
+	    el = elapsed;
+	    en = end;
+	    st = timer->start;
+	    to = timer->total;
+	    printf("FATAL ERROR NEGATIVE TIME****\n");
+	    printf("el = %f, en = %f, st = %f, to = %f\n", el, en,
+		st, to);
+	    fflush(stdout);
 	    abort();
 	}
-#endif
-
     } else {
 	timer->counter--;
     }
@@ -319,24 +341,21 @@ void DYNINSTreportTimer(tTimer *timer)
 	total = timer->total;
     }
 
-    if (total < 0) {
-	timerTemp = *timer;
-	abort();
-    }
-
     timer->normalize = NI_CLK_USEC * MILLION;
     sample.value = total / (double) timer->normalize;
     sample.id = timer->id;
 
     temp = sample.value;
     if (temp < previous[sample.id.id]) {
-	timerTemp = *timer;
-	temp2 = previous[sample.id.id];
-	abort();
-	while(1);
+	 temp2 = previous[sample.id.id];
+	 printf("FATAL ERROR NEGATIVE TIME****\n");
+	 printf("cur = %f, prev = %f\n", temp, temp2);
+	 fflush(stdout);
+	 abort();
     }
     previous[sample.id.id] = temp;
 
+    DYNINSTtotalSamples++;
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, FALSE);
 }
 
@@ -501,7 +520,6 @@ void must_end_timeslice()
 }
 
 extern int DYNINSTnumReported;
-extern int DYNINSTtotalSamples;
 extern int DYNINSTtotalAlaramExpires;
 extern time64 DYNINSTtotalSampleTime;
 
@@ -537,5 +555,6 @@ void DYNINSTprintCost()
     stats.instTicks = 0;
 
     /* record that we are done -- should be somewhere better. */
+    DYNINSTtotalSamples++;
     DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1);
 }
