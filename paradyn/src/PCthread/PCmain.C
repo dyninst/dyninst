@@ -1,8 +1,11 @@
 
 /* $Log: PCmain.C,v $
-/* Revision 1.6  1994/04/06 21:24:10  markc
-/* First log message.
-/* */
+/* Revision 1.7  1994/04/21 05:00:10  karavan
+/* added global SHGid for visual display.
+/*
+ * Revision 1.6  1994/04/06  21:24:10  markc
+ * First log message.
+ * */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -19,6 +22,7 @@ performanceStream *pcStream;
 extern void initResources();
 extern void shgInit();
 extern thread_t MAINtid;
+int SHGid;             // id needed for Search History Graph uim dag calls
 
 void PCnewData(performanceStream *ps,
 	       metricInstance *mi,
@@ -91,6 +95,7 @@ void PCmain(int arg)
 	PCmetricFunc(pcStream, met);
     }
     shgInit();
+
     while (1) {
 	tag = MSG_TAG_ANY;
 	from = msg_poll(&tag, TRUE);
