@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.16 2001/11/28 05:44:12 gaburici Exp $
+// $Id: instPoint-x86.h,v 1.17 2002/01/29 19:59:57 gurari Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -86,9 +86,10 @@ class instPoint {
   const function_base *iPgetFunction() const { return func();    }
   const function_base *iPgetCallee()   const { return callee();  }
   const image         *iPgetOwner()    const { return owner();   }
-        Address        iPgetAddress()  const { return address(); }
+        Address        iPgetAddress()  const { return addr_; }
 
 
+  Address insnAddress() { return addr_; }
   Address address() const { return addr_; }
   pd_Function *func() const { return func_; }
 
