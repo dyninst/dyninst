@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.8 2000/05/01 17:33:42 mihai Exp $
+// $Id: arch-x86.C,v 1.9 2000/06/15 16:35:10 paradyn Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -349,8 +349,8 @@ static x86_insn twoByteMap[256] = {
   {0,Ill,0,{0,0,0},0},
   { 0, Grp8, true, { Ev, Ib, 0 }, 0 },
   { "btc", twoB, true, { Ev, Gv, 0 }, 0 },
-  { "bsf", twoB, true, { Gv, Ev, 0 } },
-  { "bsr", twoB, true, { Gv, Ev, 0 } },
+  { "bsf", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "bsr", twoB, true, { Gv, Ev, 0 }, 0 },
   { "movsx", twoB, true, { Gv, Eb, 0 }, 0 },
   { "movsx", twoB, true, { Gv, Ew, 0 }, 0 },
   /* C0 */
@@ -361,7 +361,7 @@ static x86_insn twoByteMap[256] = {
   {0,Ill,0,{0,0,0},0},
   {0,Ill,0,{0,0,0},0},
   {0,Ill,0,{0,0,0},0},
-  { 0, Grp9, true, { 0, 0, 0 }, },
+  { 0, Grp9, true, { 0, 0, 0 }, 0 },
   /* C8 */
   { "bswap", twoB, false, { rEAX, 0, 0 }, 0 }, 
   { "bswap", twoB, false, { rECX, 0, 0 }, 0 }, 
@@ -672,7 +672,7 @@ static x86_insn oneByteMap[256] = {
   { "hlt", oneB, false, { 0, 0, 0 }, 0 },
   { "cmc", oneB, false, { 0, 0, 0 }, 0 },
   { 0, Grp3a, true, { Eb, 0, 0 }, 0 },
-  { 0, Grp3b, true, { Ev, 0, 0, }, 0 },
+  { 0, Grp3b, true, { Ev, 0, 0 }, 0 },
   /* F8 */
   { "clc", oneB, false, { 0, 0, 0 }, 0 },
   { "stc", oneB, false, { 0, 0, 0 }, 0 },

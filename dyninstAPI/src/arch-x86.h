@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.7 2000/03/16 22:39:22 cain Exp $
+// $Id: arch-x86.h,v 1.8 2000/06/15 16:35:11 paradyn Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -193,7 +193,7 @@ inline bool isAligned(const Address ) { return true; }
 /* Address bounds of new dynamic heap segments.  On x86 we don't try
 to allocate new segments near base tramps, so heap segments can be
 allocated anywhere (the tramp address "x" is ignored). */
-#define region_lo(x) 0
-#define region_hi(x) 0xf0000000
+inline Address region_lo(const Address /*x*/) { return 0x00000000; }
+inline Address region_hi(const Address /*x*/) { return 0xf0000000; }
 
 #endif
