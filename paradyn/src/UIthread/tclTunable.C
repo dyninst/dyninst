@@ -2,9 +2,12 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.6  1995/07/16 19:01:23  tamches
-/* Changes to be compatible with the new string class
+/* Revision 1.7  1995/12/20 02:27:52  tamches
+/* general cleanup and warning reduction
 /*
+ * Revision 1.6  1995/07/16 19:01:23  tamches
+ * Changes to be compatible with the new string class
+ *
  * Revision 1.5  1995/02/27  18:57:51  tamches
  * Extensive changes, to reflect equally extensive changes which
  * have been made to tunable constants.
@@ -39,12 +42,14 @@ struct cmdTabEntry {
    int   numArgs;
 };
 
-const int GETBOOLALLNAMES     =0; // return an array of names, representing the associative
-                                  // array index values for each boolean tunable constant in
-                                  // the registry.
-const int GETFLOATALLNAMES    =1; // return an array of names, representing the associative
-                                  // array index values for each float tunable constant in
-                                  // the registry.
+const int GETBOOLALLNAMES     =0;
+   // return an array of names, representing the associative
+   // array index values for each boolean tunable constant in
+   // the registry.
+const int GETFLOATALLNAMES    =1;
+   // return an array of names, representing the associative
+   // array index values for each float tunable constant in
+   // the registry.
 const int GETNUMTUNABLES      =2;
 const int GETNUMBOOLTUNABLES  =3;
 const int GETNUMFLOATTUNABLES =4;
@@ -59,14 +64,14 @@ const int CMDERROR            =11;
 struct cmdTabEntry TclTunableCommands[] = {
   {"getboolallnames", GETBOOLALLNAMES, 0}, // return a copy of all boolean tc names
   {"getfloatallnames", GETFLOATALLNAMES, 0}, // return a copy of all float tc names
-  {"getnumtunables", GETNUMTUNABLES, 0},   // size of global tunable lists
+  {"getnumtunables", GETNUMTUNABLES, 0},           // size of global tunable lists
   {"getnumbooltunables", GETNUMBOOLTUNABLES, 0},   // size of global bool tunable list
-  {"getnumfloattunables", GETNUMFLOATTUNABLES, 0},   // size of global float tunable list
+  {"getnumfloattunables", GETNUMFLOATTUNABLES, 0}, // size of global float tunable list
   {"getdescription", GETDESCRIPTION, 1},   // string (name) to string (description)
   {"getvaluebyname", GETVALUEBYNAME, 1},   // string (name) to value
   {"setvaluebyname", SETVALUEBYNAME, 2},   // string (name) x value to NULL
   {"gettypebyname", GETTYPEBYNAME, 1},     // string (name) to tc type (bool, float)
-  {"getusebyname", GETUSEBYNAME, 1},       // string (name) to tunableUse (developerConstant, userConstant)
+  {"getusebyname", GETUSEBYNAME, 1},       // string (name) to tunableUse (developerConstant vs. userConstant)
   {"getfloatrangebyname", GETFLOATRANGEBYNAME, 1}, // string (name) to float range
 
   {NULL, CMDERROR, 0}
@@ -99,14 +104,14 @@ int findCommand(Tcl_Interp *interp, int argc, char **argv) {
 char *getBoolAllNames() {
    // Tcl_Merge takes in an array of strings, and returns a list
    // string, which MUST eventually be free()'d.
-   const int numBoolTunables = tunableConstantRegistry::numBoolTunables();
+   const unsigned numBoolTunables = tunableConstantRegistry::numBoolTunables();
    vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
    assert(allBoolConstants.size() == numBoolTunables);
 
    const char **boolConstantStrings = new const char* [numBoolTunables];
    assert(boolConstantStrings);
 
-   for (int lcv=0; lcv<numBoolTunables; lcv++) {
+   for (unsigned lcv=0; lcv<numBoolTunables; lcv++) {
       const string &theName = allBoolConstants[lcv].getName();
       boolConstantStrings[lcv] = theName.string_of();
    }
@@ -118,14 +123,14 @@ char *getBoolAllNames() {
 char *getFloatAllNames() {
    // Tcl_Merge takes in an array of strings, and returns a list
    // string, which MUST eventually be free()'d.
-   const int numFloatTunables = tunableConstantRegistry::numFloatTunables();
+   const unsigned numFloatTunables = tunableConstantRegistry::numFloatTunables();
    vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
    assert(allFloatConstants.size() == numFloatTunables);
 
    const char **floatConstantStrings = new const char* [numFloatTunables];
    assert(floatConstantStrings);
 
-   for (int lcv=0; lcv<numFloatTunables; lcv++) {
+   for (unsigned lcv=0; lcv<numFloatTunables; lcv++) {
       const string &theName = allFloatConstants[lcv].getName();
       floatConstantStrings[lcv] = theName.string_of();
    }
@@ -134,7 +139,7 @@ char *getFloatAllNames() {
    return resultString;
 }
 
-int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
+int TclTunableCommand(ClientData, Tcl_Interp *interp,
 		      int argc, char **argv) {
    // This is the entrypoint for the TclTunable command.
    // i.e. once installed into tcl, a tcl code call to "TclTunable" enters here...
