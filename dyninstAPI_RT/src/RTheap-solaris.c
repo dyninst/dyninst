@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-solaris.c,v 1.6 2000/08/07 00:57:50 wylie Exp $ */
+/* $Id: RTheap-solaris.c,v 1.7 2000/08/28 20:41:09 zandy Exp $ */
 /* RTheap-solaris.c: Solaris-specific heap components */
 
 #include <stdlib.h>
@@ -91,10 +91,6 @@ void DYNINSTheap_mmapFdClose(int fd)
 }
 
 /* 
-   [NOTE: This is currently not called on x86 because x86 does not yet
-   use dynamic heaps.  When it does, make sure this is called from
-   RTsolaris.c.]
-
    Set the bounds for heap allocations.  Currently we ensure that heap
    space is not allocated ON the stack on x86, or ABOVE the stack on
    SPARC.  */
@@ -112,20 +108,38 @@ void DYNINSTheap_setbounds()
      ret = read(fd, &ps, sizeof(ps));
      if (0 > ret) {
 	  perror("read /proc/self/status");
+	  close(fd);
 	  return;
      }
+     close(fd);
      if (ret != sizeof(ps)) {
 	  fprintf(stderr, "Unexpected structure size in /proc/self/status\n");
 	  return;
      }
-     close(fd);
 
 #if defined(sparc_sun_solaris2_4)
      DYNINSTheap_loAddr = 0;
      DYNINSTheap_hiAddr = (Address)ps.pr_stkbase;
 #elif defined(i386_unknown_solaris2_5)
-     DYNINSTheap_loAddr = (Address)ps.pr_stkbase;
-     DYNINSTheap_hiAddr = (Address)0xdfffffff;
+     /* x86 Solaris memory layout (ca. Solaris 2.6):
+
+     	     -lowest address-
+     	     Stack
+     	     a.out (executable)
+     	     Heap
+     
+     	     Shared libraries
+     
+     	     -highest address-
+
+	 For programs that make heavy use of the heap, we need to keep
+	 away from memory near the 
+     */
+     assert(ps.pr_brkbase > ps.pr_stkbase); /* Expect heap to be above stack */
+     assert(ps.pr_brkbase < 0xd0000000);
+     DYNINSTheap_loAddr = (Address)0xd0000000;
+     DYNINSTheap_hiAddr = (Address)0xdfffffff; /* Userspace limit? */
+     assert(DYNINSTheap_loAddr < DYNINSTheap_hiAddr);
 #else
 /* To date these bounds work on 32-bit x86 and SPARC Solaris through 2.7. */
 #error unknown architecture
