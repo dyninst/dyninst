@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.125 2004/04/09 18:03:02 legendre Exp $
+// $Id: unix.C,v 1.126 2004/04/11 04:52:12 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -591,35 +591,43 @@ int handleSigTrap(const procevent &event) {
 // Needs to be fleshed out
 int handleSigStopNInt(const procevent &event) {
    process *proc = event.proc;
+   int retval = 0;
    signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << proc->getPid() 
                << endl;
 
    if (proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp)) {
        inferiorrpc_cerr << "processed RPC response in SIGSTOP\n";
        // don't want to execute ->Stopped() which changes status line
-       return 1;
+       retval = 1;
    }
    else {
 #if defined(os_linux) && defined(arch_x86)
      /**
-      * Extra sig stops are expected on Linux and silently dropped.
-      * We'll continue the process, if the process insn't supposed
-      * to be continued right now, continueProc() should return an 
-      * error.
-      * See waitUntilStoppedGeneral() for details on why we gotta
-      * do this.
+      * Extra sig stops are possible on Linux.  numStopsPending()
+      * represents the number of stops we sent to the lwp that
+      * we haven't gotten back.  If this stop does seem to be an
+      * extra, we'll simply continue the lwp.  
+      * See waitUntilStoppedGeneral() for the reason we may get extra stops.
       **/
-      proc->continueProc();
-      return 1;
+     if (event.lwp->numStopsPending() > 0 || proc->multithread_capable())
+     {
+       proc->continueProc();
+       retval = 1;
+     }
+     else
 #endif
        signal_cerr << "unhandled SIGSTOP for pid " << proc->getPid() 
                    << " so just leaving process in paused state.\n" 
                    << std::flush;
    }
+
+#if defined(os_linux) && defined(arch_x86)
+   event.lwp->deqStop();
+#endif
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
    // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
-   return 0;
+   return retval;
 }
 
 int handleSigCritical(const procevent &event) {
