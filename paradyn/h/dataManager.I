@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.54  1995/11/21 15:21:07  naim
+ * Revision 1.55  1995/11/28 15:42:08  naim
+ * Adding the boolean parameter "all" to getAvailableMetric. If this value is
+ * true, then all metrics are passed regardless the mode - naim
+ *
+ * Revision 1.54  1995/11/21  15:21:07  naim
  * Adding method getFocusName to dataManager class - naim
  *
  * Revision 1.53  1995/11/17  17:16:26  newhall
@@ -634,13 +638,13 @@ $remote dataManager {
     // returns a vector of metric names 
     // client is responsible for deleting these
     //
-    vector<string> *getAvailableMetrics();
+    vector<string> *getAvailableMetrics(bool all);
 
     //
     // returns a vector of metric name and id pairs
     // client is responsible for deleting these
     //
-    vector<met_name_id> *getAvailableMetInfo();
+    vector<met_name_id> *getAvailableMetInfo(bool all);
 
     //
     // looks for a specifc metric instance
