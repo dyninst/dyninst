@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.5 1994/11/09 18:40:29 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.6 1996/02/08 23:03:43 newhall Exp $";
 #endif
 
 
@@ -29,7 +29,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * still need this after changing to synchronous sampling of the nodes?
  *
  * $Log: perfStream-cm5.C,v $
- * Revision 1.5  1994/11/09 18:40:29  rbi
+ * Revision 1.6  1996/02/08 23:03:43  newhall
+ * fixed Ave. aggregation for CM5 daemons, Max and Min don't work, but are
+ * approximated by ave rather than sum
+ *
+ * Revision 1.5  1994/11/09  18:40:29  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.4  1994/11/02  11:13:46  markc
@@ -64,135 +68,9 @@ void processArchDependentTraceStream()
     extern float SAMPLEnodes;
     extern void sampleNodes();
 
-#ifdef notdef
-    int ret;
-    traceStream sid;
-    char *recordData;
-    traceHeader header;
-    int bufStart;		/* current starting point */
-
-    static char buffer[TRACE_BUF_SIZE];	/* buffer for data */
-    static int bufEnd = 0;	/* last valid data in buffer */
-
-    /* Check for node I/O */
-    while (CMMD_poll_for_services() == 1)
-	;	/* TEMPORARY:    XXXXXX */
-#endif
-
     now = getCurrentTime(false);
     if (now > last + SAMPLEnodes) {
 	sampleNodes();
 	last = now;
     }
-
-#ifdef notdef
-    /*  */
-    while (1) {
-	/* Check whether there's any data that we need to worry about... */
-	/* Otherwise, cut out before CMMD calls block! */
-	if (!CMMD_enabled)
-	    return;
-	if (!CMMD_msg_pending (CMMD_ANY_NODE, CMMD_ANY_TAG))
-	    return;
-
-//	printf ("CMMD Message appears to be pending...\n");
-
-	/* Read the pending CM5 network traffic. */
-	CMMD_receive_block (CMMD_ANY_NODE, CMMD_ANY_TAG, 
-			    &buffer[bufEnd], TRACE_BUF_SIZE); 
-	ret = CMMD_bytes_received();
-
-	/* Process the trace...  */
-//	printf ("Got %d trace bytes from one of the nodes...\n", ret);
-
-	if (ret < 0) {
-	    perror("CMMD_receive_block error");
-	    exit(-2);
-	} else if (ret == 0) {
-	    /* end of file */
-	    printf("got ZERO length message from node\n");
-	    //	curr->traceLink = -1;
-	    //	curr->status = exited;
-	    return;
-	}
-
-	bufEnd += ret;
-
-	bufStart = 0;
-	while (bufStart < bufEnd) {
-	    if (bufEnd - bufStart < (sizeof(traceStream) + sizeof(header))) {
-		break;
-	    }
-
-	    if (bufStart % WORDSIZE != 0) /* Word alignment check */
-		break;		/* this will re-align by shifting */
-
-	    memcpy(&sid, &buffer[bufStart], sizeof(traceStream));
-	    bufStart += sizeof(traceStream);
-
-	    memcpy(&header, &buffer[bufStart], sizeof(header));
-	    bufStart += sizeof(header);
-
-	    if (header.length % WORDSIZE != 0)
-		printf("Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
-	    
-	    if (bufEnd - bufStart < header.length) {
-		/* the whole record isn't here yet */
-		bufStart -= sizeof(traceStream) + sizeof(header);
-		break;
-	    }
-
-	    recordData = &buffer[bufStart];
-	    bufStart +=  header.length;
-
-	    /*
-	     * convert header to time based on first record.
-	     *
-	     */
-	    if (!firstRecordTime) {
-		double st;
-
-		firstRecordTime = header.wall;
-		st = firstRecordTime/1000000.0;
-//		printf("started at %f\n", st);
-	    }
-	    // header.wall -= firstRecordTime;
-
-	    switch (header.type) {
-
-	      case TR_NEW_RESOURCE:
-		createResource(&header, (struct _newresource *) recordData);
-		printf ("New Resource received!\n");
-		break;
-
-	      case TR_SAMPLE:
-		processSample(&header, (traceSample *) recordData);
-		firstSampleReceived = true;
-
-//		printf ("Received sample!\n");
-		break;
-
-	      case TR_EXIT:
-		//  Need to look up curr...
-		    //	    curr->status = exited;
-		break;
-
-	      case TR_NODE_PRINT:
-		logLine((char *) recordData);
-		break;
-
-	      case -1:		/* leavings from non-reporting nodes */
-//		printf ("Aggregation leavings...\n");
-		break;		/* after hardware aggregation on the cm5 */
-
-	      default:
-		printf("got record type %d on sid %d\n", header.type, sid);
-	    }
-	}
-
-	/* copy those bits we have to the base */
-	memcpy(buffer, &buffer[bufStart], bufEnd - bufStart);
-	bufEnd = bufEnd - bufStart;
-    }
-#endif
 }

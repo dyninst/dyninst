@@ -7,7 +7,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.24  1996/01/31 19:49:59  newhall
+ * Revision 1.25  1996/02/08 23:03:41  newhall
+ * fixed Ave. aggregation for CM5 daemons, Max and Min don't work, but are
+ * approximated by ave rather than sum
+ *
+ * Revision 1.24  1996/01/31  19:49:59  newhall
  * changes to do average aggregation correctly
  *
  * Revision 1.23  1996/01/29  22:09:32  mjrg
@@ -220,6 +224,7 @@ public:
   ~metricDefinitionNode();
   void disable();
   void updateValue(time64, sampleValue);
+  void updateCM5AggValue(time64, sampleValue,int,bool);
   void forwardSimpleValue(timeStamp, timeStamp, sampleValue,unsigned,bool);
 
   string getMetName() const { return met_; }

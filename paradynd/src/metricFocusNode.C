@@ -14,7 +14,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.70  1996/02/02 14:31:33  naim
+ * Revision 1.71  1996/02/08 23:03:38  newhall
+ * fixed Ave. aggregation for CM5 daemons, Max and Min don't work, but are
+ * approximated by ave rather than sum
+ *
+ * Revision 1.70  1996/02/02  14:31:33  naim
  * Eliminating old definition for observed cost - naim
  *
  * Revision 1.69  1996/02/01  17:42:30  naim
@@ -809,6 +813,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 //      logLine(errorLine);
 //    }
 
+
     // TODO -- is this ok?
     // TODO -- do sampledFuncs work ?
     if (style_ == EventCounter) { 
@@ -816,7 +821,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
       // only use delta from last sample.
       if (value < sample.value) {
         if ((value/sample.value) < 0.99999) {
-          assert(value + 0.0001 >= sample.value);
+          assert((value + 0.0001)  >= sample.value);
         } else {
           // floating point rounding error ignore
           sample.value = value;
@@ -828,6 +833,9 @@ void metricDefinitionNode::updateValue(time64 wallTime,
       value -= sample.value;
       sample.value += value;
     } 
+      // char buffer[200];
+      // sprintf(buffer, "metricDefinitionNode::updateValue: value = %f aggOp = %d agg.size = %d valueList.size = %d\n", value,sample.aggOp,aggregators.size(),valueList.count());
+      // logLine(buffer);
     //
     // If style==EventCounter then value is changed. Otherwise, it keeps the
     // the current "value" (e.g. SampledFunction case). That's why it is not
@@ -876,6 +884,59 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 //                   diffTime);
 //           logLine(buffer);
 //      }
+    }
+}
+
+void metricDefinitionNode::updateCM5AggValue(time64 wallTime, 
+                                       sampleValue value,
+				       int num_processes,
+				       bool is_agg)
+{
+    sampleInterval ret;
+    timeStamp sampleTime = wallTime / 1000000.0; 
+
+    assert(value >= -0.01);
+    if (style_ == EventCounter) { 
+      // only use delta from last sample.
+      if (value < sample.value) {
+        if ((value/sample.value) < 0.99999) {
+          assert(value  >= sample.value);
+        } else {
+          // floating point rounding error ignore
+          sample.value = value;
+        }
+      }
+      value -= sample.value;
+      sample.value += value;
+
+      // if this is an average aggregated value then get ave. from sum
+      if((is_agg) && (sample.aggOp != aggSum)){
+              value /= num_processes;
+      }
+    } 
+
+    ret = sample.newValue(valueList, sampleTime, value);
+
+    unsigned a_size = aggregators.size();
+    for (unsigned a=0; a<a_size; a++) {
+      aggregators[a]->updateAggregateComponent(this, sampleTime, value);
+    }
+
+    /* 
+     * must do this after all updates are done, because it may turn off this
+     *  metric instance.
+     */
+    if (inform_ && ret.valid) {
+        /* invoke call backs */
+        // assert(ret.start >= 0.0);
+        // I have no idea where negative time comes from but leave it to
+        // the CM-5 to create it on the first sample -- jkh 7/15/94
+        // This has been solved; no sample times will be bad -- zxu
+        if (ret.start < 0.0) ret.start = 0.0;
+        assert(ret.end >= 0.0);
+        assert(ret.end >= ret.start);
+        batchSampleData(0, id_, ret.start, ret.end, ret.value,
+			valueList.count(),false);
     }
 }
 
@@ -961,6 +1022,10 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
         totalPredictedCost->value = processVec[u1]->theCost.totalPredictedCost;
       }
     }
+    // char buffer[200];
+    // sprintf(buffer, "processCosts: processVec.size = %d TPC = %f OC = %f\n",
+    // 	    processVec.size(),totalPredictedCost->value,observed_cost->value);
+    //   logLine(buffer);
 
     return;
 }
@@ -982,6 +1047,26 @@ void processSample(traceHeader *h, traceSample *s)
     mi->updateValue(h->wall, s->value);
     samplesDelivered++;
 }
+
+void processCM5Sample(traceHeader *h, traceSample *s,int num_processes)
+{
+    unsigned mid = s->id.id;
+    if (!midToMiMap.defines(mid)) {
+      sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
+              s->id.id);
+      logLine(errorLine);
+      return;
+    }
+    metricDefinitionNode *mi = midToMiMap[mid];
+    if(s->id.aggregate){
+        mi->updateCM5AggValue(h->wall,s->value,num_processes,true);
+    }
+    else {
+        mi->updateValue(h->wall, s->value);
+    }
+    samplesDelivered++;
+}
+
 
 /*
  * functions to operate on inst request graph.
@@ -1307,8 +1392,7 @@ void reportInternalMetrics()
 	  value = (end - start)*(imp->value);
         } else if (imp->style() == EventCounter) {
           value = imp->getValue();
-          assert(value + 0.0001 >= imp->cumulativeValue);
-          value -= imp->cumulativeValue;
+          // assert((value + 0.0001)  >= imp->cumulativeValue);
           imp->cumulativeValue += value;
         } else if (imp->style() == SampledFunction) {
           value = imp->getValue();
