@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.24 2002/05/14 19:00:45 schendel Exp $
+// $Id: templatesDM.C,v 1.25 2002/06/27 19:01:47 schendel Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -169,8 +169,9 @@ template class vector<perfStreamEntry>;
 template class dictionary_hash<string,unsigned>;
 template class vector<dictionary_hash<string,unsigned>::entry>;
 
+#include <common/src/list.C>
 template class List<aggComponent*>;
-template class ListItem<aggComponent*>;
+template class ListBase<aggComponent*, void*>;
 
 class CallGraph;
 template class dictionary_hash<int,CallGraph*>;

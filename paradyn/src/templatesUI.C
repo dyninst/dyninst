@@ -69,8 +69,9 @@ template class vector<dictionary_hash<string, tunableFloatConstant>::entry>;
  */
 #include "VM.thread.h"
 #include "../src/UIthread/UIglobals.h"
-
-template class List<metricInstInfo *>;
+#include "common/src/list.C"
+template class ListWithKey<metricInstInfo *, metricInstanceHandle>;
+template class ListBase<metricInstInfo *, metricInstanceHandle>;
 template class vector<VM_activeVisiInfo>;
 
 template class dictionary_hash<unsigned, string>;

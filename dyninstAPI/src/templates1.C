@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.44 2002/06/26 21:14:57 schendel Exp $
+//$Id: templates1.C,v 1.45 2002/06/27 19:01:46 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -86,6 +86,7 @@ template class  dictionary_hash_iter <Address, unsigned>;
 
 #include "common/src/list.C"
 template class  List<instInstance*>;
+template class  ListBase<instInstance*, void*>;
 template class  dictionary_hash <const instPoint *, trampTemplate *>;
 template class  vector<dictionary_hash <const instPoint *, trampTemplate *>::entry>;
 template class  dictionary_hash_iter <const instPoint *, trampTemplate *>;
