@@ -4,7 +4,10 @@
 
 /*
  * $Log: ast.h,v $
- * Revision 1.8  1995/03/10 19:29:13  hollings
+ * Revision 1.9  1995/05/18 10:29:58  markc
+ * Added new opcode DataAddr
+ *
+ * Revision 1.8  1995/03/10  19:29:13  hollings
  * Added code to include base tramp cost in first mini-tramp.
  *
  * Revision 1.7  1995/02/16  08:52:55  markc
@@ -37,12 +40,13 @@
 
 #include <stdio.h>
 #include <strstream.h>
+#include "paradynd/src/inst.h"
 
 class dataReqNode;
 
 typedef enum { sequenceNode, opCodeNode, operandNode, callNode } nodeType;
 
-typedef enum { Constant, ConstantPtr, DataValue, DataPtr, Param } operandType;
+typedef enum { Constant, ConstantPtr, DataValue, DataPtr, Param, DataAddr } operandType;
 
 // a register.
 typedef int reg;
@@ -59,11 +63,14 @@ class registerSpace {
 	reg allocateRegister();
 	void freeRegister(int reg);
 	void resetSpace();
+	bool readOnlyRegister(reg reg_number);
     private:
 	registerSlot *registers;
 	int numRegisters;
 	int highWaterRegister;
 };
+
+class AstNode;
 
 class AstNode {
     public:
@@ -71,7 +78,6 @@ class AstNode {
 	    loperand = l;
 	    roperand = r;
 	    if (func == "setCounter") {
-		type = opCodeNode;
 		type = opCodeNode;
 		op = storeOp;
             } else if (func == "addCounter") {
@@ -83,6 +89,8 @@ class AstNode {
 		roperand = new AstNode(minusOp, l, r);
 		op = storeOp;
 	    } else if (func == "startTimer") {
+	      // Just testing to see if this is ever called
+	        assert(0);
 		type = callNode;
 		roperand = NULL;
 		if ((r->type != operandNode) || (r->oType !=  Constant)) {
@@ -99,6 +107,8 @@ class AstNode {
 		    loperand = l;
 		}
 	    } else if (func == "stopTimer") {
+	      // Just testing to see if this is ever called
+	        assert(0);
 		type = callNode;
 		roperand = NULL;
 		if ((r->type != operandNode) || (r->oType !=  Constant)) {
@@ -162,5 +172,6 @@ class AstNode {
 
 AstNode *createPrimitiveCall(const string func, dataReqNode*, int param2);
 AstNode *createIf(AstNode *expression, AstNode *action);
+AstNode *createCall(const string func, dataReqNode *, AstNode *arg);
 
 #endif
