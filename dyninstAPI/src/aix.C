@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.106 2002/07/31 22:07:04 bernat Exp $
+// $Id: aix.C,v 1.107 2002/08/12 04:21:16 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -838,8 +838,9 @@ bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
 				 int data, void *addr2) {
   bool halted=false;
   bool ret;
-  
+
   if (req != PT_DETACH) halted = haltProcess(p);
+
   if (ptrace(req, p->getPid(), (int *)addr, data, (int *)addr2) == -1) // aix 4.1 likes int *
     ret = false;
   else
@@ -914,7 +915,6 @@ void OS::osTraceMe(void)
   assert(ret != -1);
 }
 
-
 // wait for a process to terminate or stop
 #ifdef BPATCH_LIBRARY
 int process::waitProcs(int *status, bool block) {
@@ -937,7 +937,7 @@ int process::waitProcs(int *status) {
       if( result > 0 && WIFSTOPPED(*status) ) {
 	process *p = findProcess( result );
 	sig = WSTOPSIG(*status);
-	if( sig == SIGTRAP && ( !p->reachedVeryFirstTrap || p->inExec ) )
+	if(sig == SIGTRAP && ( !p->reachedVeryFirstTrap || p->inExec ))
 	  ;
 	else if( sig != SIGSTOP && sig != SIGTRAP ) {
 	  ignore = true;
@@ -958,6 +958,9 @@ int process::waitProcs(int *status) {
   if( result > 0 ) {
     if( WIFSTOPPED(*status) ) {
       process *curr = findProcess( result );
+      if(curr == 0) { 
+	return result;
+      }  // was it a forked child process?
       if (!curr->dyninstLibAlreadyLoaded() && curr->wasCreatedViaAttach())
 	{
 	  /* FIXME: Is any of this code ever executed? */
@@ -1621,34 +1624,19 @@ int getNumberOfCPUs()
 
 class instInstance;
 
-// the following MUST become process member vrbles, since paradynd can have
-// more than one process active doing a fork!!!
-static bool seenForkTrapForParent = false;
-static bool seenForkTrapForChild  = false;
-static pid_t pidForParent;
-static pid_t pidForChild;
-
 extern bool completeTheFork(process *, int);
    // in inst-power.C since class instPoint is too
 
-static void process_whenBothForkTrapsReceived() {
-   assert(seenForkTrapForParent);
-   assert(seenForkTrapForChild);
-
+void process_whenBothForkTrapsReceived(process *parent, int childPid) {
    forkexec_cerr << "welcome to: process_whenBothForkTrapsReceived" << endl;
-
-   process *parent = findProcess(pidForParent);
-   assert(parent);
-
-   // complete the fork!
-
    forkexec_cerr << "calling completeTheFork" << endl;
 
-   if (!completeTheFork(parent, pidForChild))
+   if (!completeTheFork(parent, childPid))
       assert(false);
 
-   // let's continue both processes
+   parent->resetForkTrapData();
 
+   // let's continue both processes
    if (!parent->continueProc())
       assert(false);
 
@@ -1656,11 +1644,9 @@ static void process_whenBothForkTrapsReceived() {
    // Is this right?  (I think so)
 
 //   int ret = ptrace(PT_CONTINUE, pidForChild, (int*)1, 0, 0);
-   int ret = ptrace(PT_CONTINUE, pidForChild, (int*)1, SIGCONT, 0);
+   int ret = ptrace(PT_CONTINUE, childPid, (int*)1, SIGCONT, 0);
    if (ret == -1)
       assert(false);
-
-   seenForkTrapForParent = seenForkTrapForChild = false;
 
    forkexec_cerr << "leaving process_whenBothForkTrapsReceived (parent & "
                  << "child running and should execute DYNINSTfork soon)"
@@ -1705,7 +1691,6 @@ bool handleAIXsigTraps(int pid, int status) {
 	// We've loaded a library. Handle it as a dlopen(), basically
 	// Actually, handle it exactly like a dlopen. 
 	curr->handleIfDueToSharedObjectMapping(); 
-
 	curr->continueProc();
       }
       return true;
@@ -1722,46 +1707,52 @@ bool handleAIXsigTraps(int pid, int status) {
       if (curr) {
 	// parent process.  Stay stopped until the child process has completed
 	// calling "completeTheFork()".
-	forkexec_cerr << "AIX: got fork SIGTRAP from parent process " << pid << endl;
+	forkexec_cerr << "AIX: got fork SIGTRAP from parent process " 
+		      << pid << "\n";
 	curr->status_ = stopped;
-
-	seenForkTrapForParent = true;
-	pidForParent = curr->getPid();
-
-	if (seenForkTrapForChild)
-	   process_whenBothForkTrapsReceived();
-
+	curr->receivedForkTrapForParent();
+	
+	int childPid;
+	if(curr->readyToCopyInstrToChild(&childPid))
+	  process_whenBothForkTrapsReceived(curr, childPid);
 	return true;
       } else {
 	// child process
-	forkexec_cerr << "AIX: got SIGTRAP from forked (child) process " << pid << endl;
+	forkexec_cerr << "AIX: got SIGTRAP from forked (child) process " 
+		      << pid << "\n";
 
 	// get process info
 	struct procsinfo psinfo;
-	pid_t process_pid = pid;
-	if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &process_pid, 1) == -1) {
+	pid_t temp_child_pid = pid;
+	pid_t child_pid = pid;
+	if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
+	    == -1) {
 	  assert(false);
 	  return false;
 	}
 
 	assert((pid_t)psinfo.pi_pid == pid);
 
+	int parentPid = psinfo.pi_ppid;
+	process *parent = findProcess(parentPid); // NULL for child of a fork
+
 	//string str = string("Parent of process ") + string(pid) + " is " +
 	//               string(psinfo.pi_ppid) + "\n";
 	//logLine(str.c_str());
 
-	seenForkTrapForChild = true;
-	pidForChild = pid;
-	if (seenForkTrapForParent) {
-	   assert((pid_t) pidForParent == (pid_t) psinfo.pi_ppid);
+	parent->receivedForkTrapForChild((int)child_pid);
 
-	   process_whenBothForkTrapsReceived();
+	int childPid;
+	if(parent->readyToCopyInstrToChild(&childPid)) {
+	  assert(childPid == child_pid);
+	  if(parent->status() == running) {
+	    if(! parent->pause())   assert(false);
+	  }
+	  process_whenBothForkTrapsReceived(parent, childPid);
 	}
-
         return true;
       } // child process
     } //  W_SFWTED (stopped-on-fork)
-
     return false;
 }
 
@@ -1920,11 +1911,15 @@ rawTime64 process::getRawCpuTime_hw(int lwp_id) {
     thr_id = thrd_buf[0].ti_tid;
   }
   // PM counters are only valid when the process is paused. 
-  pause();
+  bool needToCont = (status() == running);
+  if(status() == running) {
+    pause();
+  }
   // For the entire process group
   ret = pm_get_data_thread(pid, thr_id, &data);
   // Continue the process
-  continueProc();
+  if(needToCont)
+    continueProc();
 
   if (ret) pm_error("Process::getRawCputTime: pm_get_data_thread", ret);
   result = data.accu[pdyn_counter_mapping[CYC_INDEX]];
@@ -1975,6 +1970,7 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
     // Whoops, we _really_ don't want to do this. 
     cerr << "Error: calling software timer routine with a valid kernel thread ID" << endl;
   }
+
   numProcsReturned = getprocs(procInfoBuf,
 			      sizeProcInfo,
 			      fdsInfoBuf,
