@@ -2,9 +2,12 @@
 // gives dynamic two-dimensional array capabilities to C++
 
 /* $Log: array2d.h,v $
-/* Revision 1.3  1994/11/06 10:18:41  tamches
-/* more descriptive reporting on assertion failures
+/* Revision 1.4  1995/06/23 03:14:24  tamches
+/* changed to -fno-implicit-templates
 /*
+ * Revision 1.3  1994/11/06  10:18:41  tamches
+ * more descriptive reporting on assertion failures
+ *
  * Revision 1.2  1994/09/29  20:05:29  tamches
  * minor cvs fixes
  *
@@ -24,7 +27,9 @@
 #define _ARRAY2D_H_
 
 // This is for g++:
+#ifdef external_templates
 #pragma interface
+#endif
 
 #include <stdlib.h> // exit()
 #include <iostream.h>
