@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.68 2002/12/14 16:38:02 schendel Exp $
+ * $Id: RTinst.c,v 1.69 2003/02/04 14:59:54 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -86,7 +86,7 @@ extern void makeNewShmSegCopy();
 #if defined(MT_THREAD)
 extern const char V_libparadynMT[];
 #else
-extern const char V_libdyninstRT[];
+extern const char V_libparadynRT[];
 #endif
 
 #ifdef DEBUG_PRINT_RT
@@ -130,16 +130,6 @@ static rawTime64 DYNINSTtotalSampleTime = 0;
 char DYNINSThasInitialized = 0; /* 0 : has not initialized
 				   2 : initialized by Dyninst
 				   3 : initialized by Paradyn */
-
-/* SPLIT ccw 4 jun 2002 
- * These are used by DllMain to call pDYNINSTinit
- */
-int libdyninstRT_DLL_localtheKey=-1;
-int libdyninstRT_DLL_localshmSegNumBytes=-1;
-int libdyninstRT_DLL_localparadynPid=-1;
-int libdyninstRT_DLL_localmaxThreads=-1;
-int libdyninstRT_DLL_localoffset=-1;
-
 
 /************************************************************************/
 
@@ -218,7 +208,7 @@ int hintBestWallTimerLevel = UNASSIGNED_TIMER_LEVEL;
 
 
 
-/* These are used to assign to pDYNINSTgetCPUtime.  On some systems like AIX,
+/* These are used to assign to PARADYNgetCPUtime.  On some systems like AIX,
    a function pointer is actually a pointer to a structure which then points
    to the function.  In the case of AIX, these variables will contain the
    address of the structure (with a member that points to the function).  The
@@ -234,8 +224,8 @@ timeQueryFuncPtr_t hwWallTimeFPtrInfo = &DYNINSTgetWalltime_hw;
 
 /* Set time retrieval functions to the software level.  The daemon
    will reset these to a "better" time querying function if available. */
-timeQueryFuncPtr_t pDYNINSTgetCPUtime  = &DYNINSTgetCPUtime_sw;
-timeQueryFuncPtr_t pDYNINSTgetWalltime = &DYNINSTgetWalltime_sw;
+timeQueryFuncPtr_t PARADYNgetCPUtime  = &DYNINSTgetCPUtime_sw;
+timeQueryFuncPtr_t PARADYNgetWalltime = &DYNINSTgetWalltime_sw;
 
 int paradyn_fork_occurring = 0;
 
@@ -246,7 +236,7 @@ void
 DYNINSTstartProcessTimer(tTimer* timer) {
 /* For shared-mem sampling only: bump protector1, do work, then bump
    protector2 */
-  assert(timer->protector1 == timer->protector2);
+    assert(timer->protector1 == timer->protector2);
   timer->protector1++;
   MEMORY_BARRIER;
   if (timer->counter == 0) {
@@ -273,12 +263,10 @@ DYNINSTstopProcessTimer(tTimer* timer) {
   }
   else {
     if (timer->counter == 1) {
-      const rawTime64 now = DYNINSTgetCPUtime();
-      timer->total += (now - timer->start);
-      
+        const rawTime64 now = DYNINSTgetCPUtime();
+        timer->total += (now - timer->start);
       if (now < timer->start) {
-	fprintf(stderr, "rtinst: cpu timer rollback.\n");
-	abort();
+          abort();
       }
     }
     timer->counter--;
@@ -454,39 +442,33 @@ static void initFPU()
  * attach.
  *
  ************************************************************************/
-void pDYNINSTinit(int paradyndPid, 
-		  int numThreads, 
-		  int theKey, 
-		  unsigned shmSegSize,
-		  unsigned offsetToSharedData)
-{
-   /* If offsetToSharedData is -1 then we're being called from fork */
-   /* If the last 3 parameters are 0, we're not shm sampling (DEPRECATED) */
-   /* If 1st param is negative, then we're called from attach
-      (and we use -paradyndPid as paradynd's pid).  If 1st param
-      is positive, then we're not called from attach (and we use +paradyndPid
-      as paradynd's pid). */
-
-
-   int i;
-   int calledFromAttachToCreated = 0;
-   int calledFromFork = (offsetToSharedData == -1);
-   int calledFromAttach = (paradyndPid < 0);
-   MAX_NUMBER_OF_THREADS = numThreads;
-
-
-   if ((theKey < 0) &&(theKey != -1)){
-      calledFromAttachToCreated = 1;
-      theKey *= -1;
-   }
+void PARADYNinit(int paradyndPid,
+                 int creationMethod,
+                 int numThreads,
+                 int theKey, 
+                 unsigned shmSegSize,
+                 unsigned offsetToSharedData) {
+    /* On many platforms we can't call this function directly, so
+       at initialization we write values into global variables and
+       then call a wrapper function (below) */
+    
+    int i;
+    int calledFromAttachToCreated = (creationMethod == 3);
+    int calledFromFork = (creationMethod == 2);
+    int calledFromAttach = (creationMethod == 1);
+    MAX_NUMBER_OF_THREADS = numThreads;
+    
+    fprintf(stderr, "PARADYNinit(%d, %d, %d, %d, %d, 0x%x)\n",
+            paradyndPid, creationMethod, numThreads,
+            theKey, shmSegSize, offsetToSharedData);
     
 #ifdef SHM_SAMPLING_DEBUG
-   char thehostname[80];
-   extern int gethostname(char*,int);
-  
+    char thehostname[80];
+    extern int gethostname(char*,int);
+    
    (void)gethostname(thehostname, 80);
    thehostname[79] = '\0';
-  
+   
    /*  
        shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
        thehostname, (int)getpid(), theKey, shmSegNumBytes,
@@ -502,8 +484,6 @@ void pDYNINSTinit(int paradyndPid,
    assert(sizeof(int64_t) == 8);
    assert(sizeof(int32_t) == 4);
  
-   if (calledFromAttach)
-      paradyndPid = -paradyndPid;
    DYNINST_mutatorPid = paradyndPid; /* important -- needed in case we fork() */
   
    /* initialize the tag and group info */
@@ -517,8 +497,9 @@ void pDYNINSTinit(int paradyndPid,
       DYNINST_shmSegKey = theKey;
       DYNINST_shmSegNumBytes = shmSegSize;
       DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
-                                                   &DYNINST_shmSegShmId);
+                                                   &DYNINST_shmSegShmId);      
       shmBase = (Address) DYNINST_shmSegAttachedPtr;
+      fprintf(stderr, "RT lib attached at 0x%x\n", (int) shmBase);
       /* Yay, pointer arithmetic */
       RTsharedInShm = (RTsharedData_t *)
          (shmBase + offsetToSharedData);
@@ -569,14 +550,13 @@ void pDYNINSTinit(int paradyndPid,
 #if defined(MT_THREAD)
    RTprintf("%s\n", V_libparadynMT);
 #else
-   RTprintf("%s\n", V_libdyninstRT);
+   RTprintf("%s\n", V_libparadynRT);
 #endif
 
 #ifdef PAPI
    initPapi(); 
 #endif
 
-   /*DYNINSTos_init(calledFromFork, calledFromAttach); ccw 22 apr 2002 : SPLIT */
    PARADYNos_init(calledFromFork, calledFromAttach);
 
 #ifdef USE_PROF
@@ -706,29 +686,21 @@ void pDYNINSTinit(int paradyndPid,
 
    /* db_init(db_shmKey, sizeof(db_shmArea_t)); */
 
-   /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
-      it will read from DYNINST_bootstrap_info */
-   shmsampling_printf("DYNINSTinit (pid=%d) --> about to PARADYNbreakPoint()\n",
-                      (int)getpid());
-   PARADYNbreakPoint();
-  
-   shmsampling_printf("done with breakpoint\n", (int)getpid());  
-   /* The next instruction is necessary to avoid a race condition when we
-      link the thread library. This is just a hack to get the hw counters
-      to work and it should be fixed - naim 4/9/97 */
-   /* usleep(1000000); */
-  
-   /* After the break, we clear DYNINST_bootstrap_info's event field, leaving
-      the others there */
-   /* 0 --> nothing */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
-   /*   Don't clear it because the exec handling wants to know what it's
-        set to after pDYNINSTinit is called */
-   /*   PARADYN_bootstrap_info.event = 0; */
-
    DYNINSTstartWallTimer(&DYNINSTelapsedTime);
    DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
    shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
 }
+
+
+/*
+ * These are used by DllMain/_init to call PARADYNinit
+ */
+int libparadynRT_init_localparadynPid=-1;
+int libparadynRT_init_localcreationMethod=-1;
+int libparadynRT_init_localmaxThreads=-1;
+int libparadynRT_init_localtheKey=-1;
+int libparadynRT_init_localshmSegNumBytes=-1;
+int libparadynRT_init_localoffset=-1;
 
 
 #if defined(i386_unknown_nt4_0)  /*ccw 4 jun 2002*/
@@ -736,11 +708,11 @@ void pDYNINSTinit(int paradyndPid,
 
 /* this function is automatically called when windows loads this dll
  if we are launching a mutatee to instrument, dyninst will place
- the correct values in libdyninstRT_DLL_local* 
+ the correct values in libparadynRT_init_local* 
  and they will be passed to
- pDYNINSTinit to correctly initialize the dll.  this keeps us
+ PARADYNinit to correctly initialize the dll.  this keeps us
  from having to instrument two steps from the mutator (load and then 
- the execution of pDYNINSTinit()
+ the execution of PARADYNinit()
 */
 int pDllMainCalledOnce=0;
 BOOL WINAPI DllMain(
@@ -750,22 +722,54 @@ BOOL WINAPI DllMain(
 ){
 	if(pDllMainCalledOnce){
 	}else{
-		pDllMainCalledOnce++;
-		if(libdyninstRT_DLL_localtheKey != -1 ||  libdyninstRT_DLL_localshmSegNumBytes != -1 ||
-					libdyninstRT_DLL_localparadynPid != -1){
-
-		  pDYNINSTinit(libdyninstRT_DLL_localparadynPid,
-			       libdyninstRT_DLL_localmaxThreads, /* Number of threads */
-			       libdyninstRT_DLL_localtheKey,
-			       libdyninstRT_DLL_localshmSegNumBytes,
-			       libdyninstRT_DLL_localoffset);
+		if(libparadynRT_init_localparadynPid != -1 &&
+           libparadynRT_init_localcreationMethod != -1 &&
+           libparadynRT_init_localtheKey != -1 &&
+           libparadynRT_init_localshmSegNumBytes != -1){
+            pDllMainCalledOnce++;
+            PARADYNinit(libparadynRT_init_localparadynPid,
+                        libparadynRT_init_localcreationMethod,
+                        libparadynRT_init_localmaxThreads, /* Number of threads */
+                        libparadynRT_init_localtheKey,
+                        libparadynRT_init_localshmSegNumBytes,
+                        libparadynRT_init_localoffset);
 		}
 	}
 	return 1; 
 }
  
 
+#else
+
+#ifdef __GNUC
+void libparadynRT_init(void) __attribute__ ((constructor));
 #endif
+
+
+// Unix platforms
+int PARADYNinitCalledOnce=0;
+void libparadynRT_init() {
+    fprintf(stderr, "libparadynRT_init: %d\n", PARADYNinitCalledOnce);
+    if(PARADYNinitCalledOnce) return;
+    else {
+        fprintf(stderr, "Calling paradynINIT\n");
+		if(libparadynRT_init_localparadynPid != -1 &&
+           libparadynRT_init_localcreationMethod != -1 &&
+           libparadynRT_init_localtheKey != -1 &&
+           libparadynRT_init_localshmSegNumBytes != -1){
+            PARADYNinitCalledOnce++;
+            PARADYNinit(libparadynRT_init_localparadynPid,
+                        libparadynRT_init_localcreationMethod,
+                        libparadynRT_init_localmaxThreads, /* Number of threads */
+                        libparadynRT_init_localtheKey,
+                        libparadynRT_init_localshmSegNumBytes,
+                        libparadynRT_init_localoffset);
+		}
+	}
+}
+#endif
+
+
 
 /* bootstrap structure extraction info (see rtinst/h/trace.h) */
 static struct PARADYN_bootstrapStruct _bs_dummy;
@@ -886,7 +890,7 @@ DYNINSTfork(int pid) {
 
         /* Some aspects of initialization need to occur right away (such
            as resetting the PMAPI counters on AIX) because the daemon
-           may use aspects of the process before pDYNINSTinit is called */
+           may use aspects of the process before PARADYNinit is called */
         PARADYN_forkEarlyInit();
 
 	/* Here is where we used to send a TR_FORK trace record.  But we've
@@ -935,8 +939,9 @@ DYNINSTfork(int pid) {
 	forkexec_printf("dyninst-fork child past PARADYNbreakPoint()"
                         " ...calling DYNINSTinit(-1,-1)\n");
 
-	pDYNINSTinit(DYNINST_mutatorPid, MAX_NUMBER_OF_THREADS, -1, -1, -1);
-	   /* -1 params indicate called from DYNINSTfork */
+	PARADYNinit(DYNINST_mutatorPid, 2, MAX_NUMBER_OF_THREADS, -1, -1, -1);
+    /* 2: wasForked */
+    /* -1 params indicate called from DYNINSTfork */
 
 	paradyn_fork_occurring = 0;
 	forkexec_printf("dyninst-fork child done...running freely.\n");
