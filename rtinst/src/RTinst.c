@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.70 2003/02/21 20:06:32 bernat Exp $
+ * $Id: RTinst.c,v 1.71 2003/03/14 23:18:40 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -851,94 +851,94 @@ DYNINSTfork(int pid) {
 
     if (pid > 0) {
        /* We used to send TR_FORK trace record here, in the parent.  
-	  But shm sampling requires the child to do this, so we moved the 
-	  code there... 
-	  See metric.C for an explanation why it's important for the parent to
+          But shm sampling requires the child to do this, so we moved the 
+          code there... 
+          See metric.C for an explanation why it's important for the parent to
           be paused (not just the child) while propagating metric instances.
           Here's the short explanation: to initialize some of the timers and 
-	  counters, the child will copy some fields from the parent, and for
-	  the child to get values from the parent after the fork would be a 
-	  bad thing.  --ari */
-
-       forkexec_printf("DYNINSTfork parent; about to PARADYNbreakPoint\n");
-       paradyn_fork_occurring = 2;
-       breakpoint_for_fork();
-       paradyn_fork_occurring = 0;
-       forkexec_printf("parent is continuing past SIGSTOP\n");
+          counters, the child will copy some fields from the parent, and for
+          the child to get values from the parent after the fork would be a 
+          bad thing.  --ari */
+        
+        forkexec_printf("DYNINSTfork parent; about to PARADYNbreakPoint\n");
+        paradyn_fork_occurring = 2;
+        breakpoint_for_fork();
+        paradyn_fork_occurring = 0;
+        forkexec_printf("parent is continuing past SIGSTOP\n");
     } else if (pid == 0) {
-       /* we are the child process */
-	int pid = getpid();
-	int ppid = getppid();
-	int ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
+        /* we are the child process */
+        int pid = getpid();
+        int ppid = getppid();
+        int ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
         /* char *traceEnv; */
-	sleep(2);
-	paradyn_fork_occurring = 1;
-	forkexec_printf("DYNINSTfork CHILD -- welcome, pid = %d, ppid = %d\n",
-			pid, ppid);
-	fflush(stderr);
-
-	/* Here, we need to detach from the old shm segment, create a new one
-	   (in the same virtual memory location as the old one), and attach 
+        sleep(2);
+        paradyn_fork_occurring = 1;
+        forkexec_printf("DYNINSTfork CHILD -- welcome, pid = %d, ppid = %d\n",
+                        pid, ppid);
+        fflush(stderr);
+        
+        /* Here, we need to detach from the old shm segment, create a new one
+           (in the same virtual memory location as the old one), and attach 
            to it */
-	makeNewShmSegCopy();
-
+        makeNewShmSegCopy();
+        
         /* Some aspects of initialization need to occur right away (such
            as resetting the PMAPI counters on AIX) because the daemon
            may use aspects of the process before PARADYNinit is called */
         PARADYN_forkEarlyInit();
-
-	/* Here is where we used to send a TR_FORK trace record.  But we've
-	   found that sending a trace record followed by a DYNINSTbreakPoint
-	   had unpredictable results -- sometimes the breakPoint would get
-	   delivered to paradynd first.  So idea #2 was to fill in
-	   DYNINST_bootstrapStruct and then do a breakpoint.  But the
-	   breakPoint won't get forwarded to paradynd because paradynd hasn't
-	   yet attached to the child process.  So idea #3 (the current one)
-	   is to just send all that information along the new connection
-	   (whereas we used to just send the pid).
-
-	   NOTE: soon attach will probably be implemented in a similar way -- by
-	         writing to the connection.
-	 */
-
-	/* set up a connection to the daemon for the trace stream.  (The
-	   child proc gets a different connection from the parent proc) */
-	forkexec_printf("dyninst-fork child closing old connections...\n");
-	DYNINSTcloseTrace();
-
-	forkexec_printf("dyninst-fork child opening new connection.\n");
-	assert(DYNINST_mutatorPid > 0);
-	DYNINSTinitTrace(DYNINST_mutatorPid);
-
-	forkexec_printf("dyninst-fork child pid %d opened new connection...now sending pid etc. along it\n", (int)getpid());
-
-	{
-	  unsigned fork_cookie = 0x11111111;
-	  DYNINSTwriteTrace(&fork_cookie, sizeof(fork_cookie));
-	}
-
-	DYNINSTwriteTrace(&pid, sizeof(pid));
-	DYNINSTwriteTrace(&ppid, sizeof(ppid));
-	DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
-	DYNINSTwriteTrace(&ptr_size, sizeof(ptr_size));
-	DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, sizeof(DYNINST_shmSegAttachedPtr));
-	DYNINSTflushTrace();
-
-	forkexec_printf("dyninst-fork child pid %d sent pid;"
+        
+        /* Here is where we used to send a TR_FORK trace record.  But we've
+           found that sending a trace record followed by a DYNINSTbreakPoint
+           had unpredictable results -- sometimes the breakPoint would get
+           delivered to paradynd first.  So idea #2 was to fill in
+           DYNINST_bootstrapStruct and then do a breakpoint.  But the
+           breakPoint won't get forwarded to paradynd because paradynd hasn't
+           yet attached to the child process.  So idea #3 (the current one)
+           is to just send all that information along the new connection
+           (whereas we used to just send the pid).
+           
+           NOTE: soon attach will probably be implemented in a similar way -- by
+           writing to the connection.
+        */
+        
+        /* set up a connection to the daemon for the trace stream.  (The
+           child proc gets a different connection from the parent proc) */
+        forkexec_printf("dyninst-fork child closing old connections...\n");
+        DYNINSTcloseTrace();
+        
+        forkexec_printf("dyninst-fork child opening new connection.\n");
+        assert(DYNINST_mutatorPid > 0);
+        DYNINSTinitTrace(DYNINST_mutatorPid);
+        
+        forkexec_printf("dyninst-fork child pid %d opened new connection...now sending pid etc. along it\n", (int)getpid());
+        
+        {
+            unsigned fork_cookie = 0x11111111;
+            DYNINSTwriteTrace(&fork_cookie, sizeof(fork_cookie));
+        }
+        
+        DYNINSTwriteTrace(&pid, sizeof(pid));
+        DYNINSTwriteTrace(&ppid, sizeof(ppid));
+        DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
+        DYNINSTwriteTrace(&ptr_size, sizeof(ptr_size));
+        DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, sizeof(DYNINST_shmSegAttachedPtr));
+        DYNINSTflushTrace();
+        
+        forkexec_printf("dyninst-fork child pid %d sent pid;"
                         " now doing PARADYNbreakPoint() to wait"
                         " for paradynd to initialize me.\n", (int)getpid());
-
-	breakpoint_for_fork();
-
-	forkexec_printf("dyninst-fork child past PARADYNbreakPoint()"
+        
+        breakpoint_for_fork();
+        
+        forkexec_printf("dyninst-fork child past PARADYNbreakPoint()"
                         " ...calling DYNINSTinit(-1,-1)\n");
-
-	PARADYNinit(DYNINST_mutatorPid, 2, MAX_NUMBER_OF_THREADS, -1, -1, -1);
-    /* 2: wasForked */
-    /* -1 params indicate called from DYNINSTfork */
-
-	paradyn_fork_occurring = 0;
-	forkexec_printf("dyninst-fork child done...running freely.\n");
+        
+        PARADYNinit(DYNINST_mutatorPid, 2, MAX_NUMBER_OF_THREADS, -1, -1, -1);
+        /* 2: wasForked */
+        /* -1 params indicate called from DYNINSTfork */
+        
+        paradyn_fork_occurring = 0;
+        forkexec_printf("dyninst-fork child done...running freely.\n");
     }
 }
 
