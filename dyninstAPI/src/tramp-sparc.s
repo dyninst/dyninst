@@ -61,10 +61,10 @@ _baseTramp:
 	/* should update cost of base tramp here, but we don't have a
 	   register to use!
 	*/
+	save  %sp, -112, %sp	/* saving registers before jumping to */
 	.word   SKIP_PRE_INSN
 	nop			/* delay slot for jump if there is no inst. */
 	.word	GLOBAL_PRE_BRANCH
-	save  %sp, -112, %sp	/* saving registers before jumping to */
 	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
 	std  %g2, [ %fp + -16 ]
 	std  %g4, [ %fp + -24 ]
@@ -84,8 +84,13 @@ _baseTramp:
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
 	ldd  [ %fp + -24 ], %g4
 	ldd  [ %fp + -32 ], %g6
-	restore
+	.word  UPDATE_COST_INSN /* updating the cost for this inst point */ 
 	nop
+	nop
+	nop
+	nop
+	nop
+	restore
 	.word 	EMULATE_INSN
 	nop			/* second instruction if it's leaf */
 	nop			/* delay slot */
@@ -117,8 +122,7 @@ _baseTramp:
 	ldd  [ %fp + -24 ], %g4
 	ldd  [ %fp + -32 ], %g6
 	restore
-	nop
-	/* should update post insn cost of base tramp here */
 	.word	RETURN_INSN
 	nop			/* see if this prevents crash jkh 4/4/95 */
 	.word	END_TRAMP
+
