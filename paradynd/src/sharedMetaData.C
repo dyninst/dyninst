@@ -56,7 +56,7 @@ void sharedMetaData::mallocInShm(shmMgr &theShmMgr) {
 				    theShmMgr.malloc(sizeof(unsigned)));
   /* MT */
   virtualTimers= reinterpret_cast<tTimer *>(
-			    theShmMgr.malloc(sizeof(unsigned) * maxThreads));
+			    theShmMgr.malloc(sizeof(tTimer) * maxThreads));
   posToThread  = reinterpret_cast<unsigned *>(
 			    theShmMgr.malloc(sizeof(unsigned) * maxThreads));
   for(unsigned i = 0; i < maxThreads; i++) {
