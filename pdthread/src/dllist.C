@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "predicate.h"
 #include "pthread_sync.h"
+#include "common/h/language.h"
 
 #define DLLIST_EMPTY 0
 #define DLLIST_FULL 1
@@ -112,7 +113,8 @@ class dllist {
 };
 
 template<class Element, class Sync>
-dllist<Element,Sync>::node* dllist<Element,Sync>::find(Element e) {
+TYPENAME dllist<Element,Sync>::node*
+dllist<Element,Sync>::find(Element e) {
     // NB!  you MUST lock s before entering this function
     node* result = NULL;
     node* current = head;
@@ -132,7 +134,8 @@ dllist<Element,Sync>::node* dllist<Element,Sync>::find(Element e) {
 
 template<class Element, class Sync>
 template<class Predicate>
-dllist<Element,Sync>::node* dllist<Element,Sync>::find(Predicate* pred) {
+TYPENAME dllist<Element,Sync>::node*
+dllist<Element,Sync>::find(Predicate* pred) {
     // NB!  you MUST lock s before entering this function
     node* result = NULL;
     node* current = head;
@@ -191,7 +194,9 @@ inline void dllist<Element,Sync>::add_pool_entry() {
 }
 
 template<class Element, class Sync>
-inline dllist<Element,Sync>::node* dllist<Element,Sync>::new_node() {
+inline 
+TYPENAME dllist<Element,Sync>::node*
+dllist<Element,Sync>::new_node() {
   start:
     if(free_list) {
         node* n = free_list;
