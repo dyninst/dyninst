@@ -90,6 +90,7 @@ class machineHierarchy : public Hierarchy {
 class codeHierarchy : public Hierarchy {
   pdstring module;
   pdstring function;
+  pdstring loop;
  public:
   codeHierarchy(const pdvector<pdstring> &setupInfo);
   pdstring getName() const;  

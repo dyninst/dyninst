@@ -128,9 +128,10 @@ pdvector<pdstring> machineHierarchy::tokenized() const {
 
 codeHierarchy::codeHierarchy(const pdvector<pdstring> &setupInfo) {
    unsigned setupInfo_size = setupInfo.size();
-   assert(setupInfo_size <= 2);
+   assert(setupInfo_size <= 3);
    switch(setupInfo_size) {
       // the breaks for these lines have intentionally been left out
+     case 3: loop = setupInfo[2];
      case 2: function = setupInfo[1];
      case 1: module   = setupInfo[0];
      case 0: break;  // none are set
