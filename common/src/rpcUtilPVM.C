@@ -3,7 +3,10 @@
  * This file defines a set of utility routines for RPC services.
  *
  * $Log: rpcUtilPVM.C,v $
- * Revision 1.2  1994/05/17 00:14:46  hollings
+ * Revision 1.3  1994/06/15 15:09:23  markc
+ * Rename taskinfo to pvmtaskinfo.
+ *
+ * Revision 1.2  1994/05/17  00:14:46  hollings
  * added rcs log entry.
  *
  *
@@ -58,7 +61,7 @@ int
 PVMrpc::readReady()
 {
   int bufid, count;
-  struct taskinfo *tp;
+  struct pvmtaskinfo *tp;
 
   if (pvm_error == -1) return -1;
   if ((bufid = pvm_probe(other_tid, -1)) < 0)
