@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.6  1996/01/18 16:24:17  hollings
-/* Added extra {}
+/* Revision 1.7  1996/01/23 07:02:20  tamches
+/* added shadow node features
 /*
+ * Revision 1.6  1996/01/18 16:24:17  hollings
+ * Added extra {}
+ *
  * Revision 1.5  1996/01/11  23:41:38  tamches
  * there are now 2 kinds of true nodes; so tests changed accordingly.
  * Also brought the shg test program back to life
@@ -40,12 +43,18 @@
 #include "performanceConsultant.thread.CLNT.h" // for class performanceConsultantUser
 #endif
 
-XFontStruct *shg::theRootItemFontStruct=NULL;
-XFontStruct *shg::theListboxItemFontStruct=NULL;
+XFontStruct *shg::theRootItemFontStruct, *shg::theRootItemShadowFontStruct;
+XFontStruct *shg::theListboxItemFontStruct, *shg::theListboxItemShadowFontStruct;
+
 vector<Tk_3DBorder> shg::rootItemTk3DBordersByStyle; // init to empty vector
 vector<Tk_3DBorder> shg::listboxItemTk3DBordersByStyle; // inits to empty vector
-GC shg::rootItemTextGC=NULL;
-GC shg::listboxItemGC=NULL;
+
+GC shg::rootItemInactiveTextGC, shg::rootItemActiveTextGC;
+GC shg::rootItemInactiveShadowTextGC, shg::rootItemActiveShadowTextGC;
+  
+GC shg::listboxInactiveItemGC, shg::listboxActiveItemGC;
+GC shg::listboxInactiveShadowItemGC, shg::listboxActiveShadowItemGC;
+
 int          shg::listboxBorderPix = 3;
 int          shg::listboxScrollBarWidth = 16;
 
@@ -54,17 +63,30 @@ void shg::initializeStaticsIfNeeded() {
       return;
 
    theRootItemFontStruct = consts.rootTextFontStruct;
+   theRootItemShadowFontStruct = theShgConsts.rootItemItalicFontStruct;
+
    theListboxItemFontStruct = consts.listboxFontStruct;
+   theListboxItemShadowFontStruct = theShgConsts.listboxItemItalicFontStruct;
+
    rootItemTk3DBordersByStyle = theShgConsts.rootItemTk3DBordersByStyle;
    listboxItemTk3DBordersByStyle = theShgConsts.listboxItemTk3DBordersByStyle;
-   rootItemTextGC = consts.rootItemTextGC;
-   listboxItemGC = consts.listboxTextGC;
+
+   rootItemInactiveTextGC = theShgConsts.rootItemInactiveTextGC;
+   rootItemActiveTextGC = theShgConsts.rootItemActiveTextGC;
+   rootItemInactiveShadowTextGC = theShgConsts.rootItemInactiveShadowTextGC;
+   rootItemActiveShadowTextGC = theShgConsts.rootItemActiveShadowTextGC;
+
+   listboxInactiveItemGC = theShgConsts.listboxItemInactiveTextGC;
+   listboxActiveItemGC = theShgConsts.listboxItemActiveTextGC;
+   listboxInactiveShadowItemGC = theShgConsts.listboxItemInactiveShadowTextGC;
+   listboxActiveShadowItemGC = theShgConsts.listboxItemActiveShadowTextGC;
 }
 
 shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
 	 const string &iHorizSBName, const string &iVertSBName,
 	 const string &iCurrItemLabelName) :
 	    hash(&hashFunc, 32), hash2(&hashFunc2, 32),
+	    shadowNodeHash(&hashFuncShadow, 32),
 	    consts(iInterp, theTkWindow),
 	    theShgConsts(iInterp, theTkWindow),
 	    thePhaseId(iPhaseId),
@@ -216,7 +238,7 @@ void shg::draw(bool doubleBuffer, bool isXsynchOn) const {
                                                        Tk_WindowId(consts.theTkWindow);
 
    if (doubleBuffer || isXsynchOn)
-      // clear the offscreen pixmap before drawing onto it
+      // clear the destination drawable before drawing onto it
       XFillRectangle(consts.display,
                      theDrawable,
                      consts.erasingGC,
@@ -647,7 +669,7 @@ bool shg::softScrollToEndOfPath(const whereNodePosRawPath &thePath) {
    return false; // placate compiler
 }
 
-void shg::addNode(unsigned id, shgRootNode::style styleid,
+void shg::addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalState,
 		  const string &label, const string &fullInfo,
 		  bool rootNodeFlag) {
    if (rootNodeFlag) {
@@ -659,7 +681,8 @@ void shg::addNode(unsigned id, shgRootNode::style styleid,
       assert(rootPtr != NULL);
    }
 
-   shgRootNode tempNewNode(id, styleid, label, fullInfo);
+   shgRootNode tempNewNode(id, iActive, iEvalState, false, label, fullInfo);
+      // false --> not a shadow node
    where4tree<shgRootNode> *newNode = new where4tree<shgRootNode>(tempNewNode);
    assert(newNode);
 
@@ -689,10 +712,11 @@ void shg::addNode(unsigned id, shgRootNode::style styleid,
       rethink_entire_layout();
 }
 
-bool shg::configNode(unsigned id, shgRootNode::style newStyleId) {
-   // returns true iff any changes.  Does not rerdraw.
-   // Note: a change from "tentatively-true" to (anything
-   // else) will un-expand the node, leading to a massive layout rethinkification.
+bool shg::configNode(unsigned id, bool newActive,
+		     shgRootNode::evaluationState newEvalState) {
+   // returns true iff any changes.  Does not redraw.
+   // Note: a change from "tentatively-true" to (anything else)
+   // will un-expand the node, leading to a massive layout rethinkification.
    // Other changes are more simple -- simply changing the color of a node.
    assert(rootPtr);
 
@@ -711,9 +735,21 @@ bool shg::configNode(unsigned id, shgRootNode::style newStyleId) {
       assert(hash2[ptr] != NULL);
    } 
 
-   const shgRootNode::style oldStyleId = ptr->getNodeData().getStyle();
+   const shgRootNode::evaluationState oldEvalState = ptr->getNodeData().getEvalState();
 
-   const bool anyChanges = ptr->getNodeData().configStyle(newStyleId);
+   bool anyChanges = ptr->getNodeData().configStyle(newActive, newEvalState);
+
+   if (shadowNodeHash.defines(id)) {
+      // shadow nodes exist for this id.  configStyle() them, too.
+      vector< where4tree<shgRootNode>* > &shadowList = shadowNodeHash[id];
+      for (unsigned i=0; i < shadowList.size(); i++) {
+         where4tree<shgRootNode>* shadowNode = shadowList[i];
+         const bool changed = shadowNode->getNodeData().configStyle(newActive,
+								    newEvalState);
+         if (changed) anyChanges = true;
+      }
+   }
+   
    if (!anyChanges)
       return false;
 
@@ -722,7 +758,10 @@ bool shg::configNode(unsigned id, shgRootNode::style newStyleId) {
    // for the hash table "hash2" (a mapping of nodes to their parents).  It's
    // somewhat of a hack; a solution eliminating the need for "hash2" would save memory.
 
-   if (newStyleId == shgRootNode::ActiveTrue || newStyleId == shgRootNode::InactiveTrue) {
+   // Note that we make no effort to alter the expanded-ness of any shadowed nodes.
+
+   if (newEvalState == shgRootNode::es_true) {
+      // if we have changed to true (whether active or not)
       where4tree<shgRootNode> *parentPtr = hash2[ptr];
       if (parentPtr == NULL)
          return false; // either root node or a node which hasn't been addEdge'd in yet
@@ -744,8 +783,8 @@ bool shg::configNode(unsigned id, shgRootNode::style newStyleId) {
       assert(false);
       return true; // placate compiler
    }
-   else if (oldStyleId == shgRootNode::ActiveTrue || oldStyleId == shgRootNode::InactiveTrue) {
-      // It used to be true, but ain't anymore.
+   else if (oldEvalState == shgRootNode::es_true) {
+      // It used to be true (active or not), but ain't anymore.
       where4tree<shgRootNode> *parentPtr = hash2[ptr];
       if (parentPtr == NULL)
          return false; // either root node or a node which hasn't been addEdge'd in yet
@@ -769,9 +808,13 @@ bool shg::configNode(unsigned id, shgRootNode::style newStyleId) {
       return true;
 }
 
-void shg::addEdge(unsigned fromId, unsigned toId, shgRootNode::style theStyle) {
+void shg::addEdge(unsigned fromId, unsigned toId,
+		  shgRootNode::evaluationState theState,
+		  const char *label // only used for shadow nodes; else NULL
+		  ) {
    assert(rootPtr);
 
+   // Obviously, both nodes must already exist.
    assert(hash.defines(fromId));
    assert(hash.defines(toId));
    
@@ -781,11 +824,39 @@ void shg::addEdge(unsigned fromId, unsigned toId, shgRootNode::style theStyle) {
    where4tree<shgRootNode> *childPtr  = hash[toId];
    assert(childPtr);
 
-   if (hash2[childPtr] == NULL)
-      hash2[childPtr] = parentPtr;
-   assert(hash2.defines(childPtr));
+   // If, before this addEdge, childPtr had no parents, then this is a "normal"
+   // addEdge operation in which the child node will finally be made visible on the
+   // screen.
+   // Else, we are adding a shadow node.  More specifically, the new child of
+   // "parentPtr" will just be made a shadow node.  We'll _create_ a separate node
+   // ptr for this shadow node.  "childPtr" will be unused (more specifically, we'll
+   // let it dangle and overwrite it)
 
-   const bool explicitlyExpandedFlag = (theStyle==shgRootNode::ActiveTrue || theStyle==shgRootNode::InactiveTrue);
+   bool addingShadowNode = false;
+   if (hash2[childPtr] == NULL) {
+      hash2[childPtr] = parentPtr;
+      assert(label==NULL);
+   }
+   else {
+      // We are adding a shadow node.
+      assert(label != NULL);
+      addingShadowNode = true;
+
+      // copy all information from the existing "real" node...
+      shgRootNode tempNewNode = childPtr->getNodeData();
+      // ...and make it a shadow node:
+      childPtr = new where4tree<shgRootNode> (tempNewNode.shadowify(label));
+      assert(childPtr);
+
+      vector<where4tree<shgRootNode>*> &theShadowNodes = shadowNodeHash[toId];
+      theShadowNodes += childPtr;
+
+      // Note: we do not add shadow node pointers to hash2[] (is this right?)
+   }
+
+   const bool explicitlyExpandedFlag = (theState==shgRootNode::es_true &&
+					!addingShadowNode);
+      // whether active or not...
    parentPtr->addChild(childPtr,
 		       explicitlyExpandedFlag,
 		       consts,

@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.3  1996/01/09 01:04:01  tamches
-/* added thePhaseId member variable
+/* Revision 1.4  1996/01/23 07:01:03  tamches
+/* added shadow node features
 /*
+ * Revision 1.3  1996/01/09 01:04:01  tamches
+ * added thePhaseId member variable
+ *
  * Revision 1.2  1995/11/06 19:27:47  tamches
  * slider bug fixes
  * dictionary_hash --> dictionary_lite
@@ -34,12 +37,16 @@
 class shg {
  private:
    // these are needed by shgRootNode
-   static XFontStruct *theRootItemFontStruct;
-   static XFontStruct *theListboxItemFontStruct;
-   static vector<Tk_3DBorder> rootItemTk3DBordersByStyle; // array[shgRootNode::style]
-   static vector<Tk_3DBorder> listboxItemTk3DBordersByStyle; // array[shgRootNode::style]
-   static GC rootItemTextGC;
-   static GC listboxItemGC; // for drawing text
+   static XFontStruct *theRootItemFontStruct, *theRootItemShadowFontStruct;
+   static XFontStruct *theListboxItemFontStruct, *theListboxItemShadowFontStruct;
+   static vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
+      // array[shgRootNode::evaluationState]
+   static vector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
+      // array[shgRootNode::evaluationState]
+   static GC rootItemInactiveTextGC, rootItemActiveTextGC,
+             rootItemInactiveShadowTextGC, rootItemActiveShadowTextGC;
+   static GC listboxInactiveItemGC, listboxActiveItemGC,
+             listboxInactiveShadowItemGC, listboxActiveShadowItemGC;
 
    // this appears to be the WRONG class for the following vrbles:
    static int listboxBorderPix; // 3
@@ -72,6 +79,9 @@ class shg {
       // associative array: shg-node-id --> its corresponding data node
    dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *> hash2;
       // associative array: shg-node --> its parent
+   dictionary_lite<unsigned, vector< where4tree<shgRootNode>* > > shadowNodeHash;
+      // associative array: shg-node-id --> list of shadow nodes
+      // An entry exists in this dictionary _only_ if shadow node(s) exist
 
    where4TreeConstants consts; // yuck
    shgConsts theShgConsts;
@@ -125,19 +135,50 @@ class shg {
    static unsigned hashFunc2(where4tree<shgRootNode>* const &id) {
       return id->getNodeData().getId();
    }
+   static unsigned hashFuncShadow(const unsigned &id) {return id;}
 
  public:
 
    // these routines are needed by shgRootNode
-   static XFontStruct *getRootItemFontStruct() {return theRootItemFontStruct;}
-   static XFontStruct *getListboxItemFontStruct() {return theListboxItemFontStruct;}
-   static Tk_3DBorder getRootItemTk3DBorder(shgRootNode::style theStyle) {
-      unsigned styleIndex = theStyle;
-       return rootItemTk3DBordersByStyle[styleIndex];
+   static XFontStruct *getRootItemFontStruct(bool shadow) {
+      if (shadow)
+         return theRootItemShadowFontStruct;
+      else
+         return theRootItemFontStruct;
    }
-   static GC getRootItemTextGC() {return rootItemTextGC;}
-   static GC getListboxItemGC() {return listboxItemGC;}
-   static Tk_3DBorder getListboxItemTk3DBorder(shgRootNode::style theStyle) {
+   static XFontStruct *getListboxItemFontStruct(bool shadow) {
+      if (shadow)
+         return theListboxItemShadowFontStruct;
+      else
+         return theListboxItemFontStruct;
+   }
+   static Tk_3DBorder getRootItemTk3DBorder(shgRootNode::evaluationState theEvalStyle) {
+      unsigned styleIndex = theEvalStyle;
+      return rootItemTk3DBordersByStyle[styleIndex];
+   }
+   static GC getRootItemTextGC(bool active, bool shadow) {
+      if (active)
+         if (shadow)
+            return rootItemActiveShadowTextGC;
+         else
+            return rootItemActiveTextGC;
+      else if (shadow)
+         return rootItemInactiveShadowTextGC;
+      else
+         return rootItemInactiveTextGC;
+   }
+   static GC getListboxItemGC(bool active, bool shadow) {
+      if (active)
+         if (shadow)
+            return listboxActiveShadowItemGC;
+         else
+            return listboxActiveItemGC;
+      else if (shadow)
+         return listboxInactiveShadowItemGC;
+      else
+         return listboxInactiveItemGC;
+   }
+   static Tk_3DBorder getListboxItemTk3DBorder(shgRootNode::evaluationState theStyle) {
       unsigned styleIndex = theStyle;
       return listboxItemTk3DBordersByStyle[styleIndex];
    }
@@ -196,21 +237,24 @@ class shg {
 
    // The following are very high-level routines; they tend to correspond
    // with shg-related igen calls in UI.I:
-   void addNode(unsigned id, shgRootNode::style styleid,
+   void addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalStyle,
 		const string &label, const string &fullInfo,
 		bool rootNodeFlag);
       // unless we are adding the root node, this routine generally doesn't
       // require a redraw, because the new node won't (and shouldn't) show up
       // until a corresponding addEdge() call connects this new node to the rest
       // of the "graph".
-   bool configNode(unsigned id, shgRootNode::style newStyleId);
+   bool configNode(unsigned id, bool active, shgRootNode::evaluationState);
       // returns true iff any changes.  Does not redraw.
       // Note: a change from "tentatively-true" to
       // (anything else) will un-expand the node, leading to a massive layout
       // rethinkification.  Other changes are more simple -- simply changing the color
       // of a node.
-   void addEdge(unsigned fromId, unsigned toId, shgRootNode::style theStyle);
-      // rethinks the entire layout of the shg
+   void addEdge(unsigned fromId, unsigned toId, shgRootNode::evaluationState,
+                const char *label // only used for shadow nodes; else NULL
+                );
+      // The last param is used only to decide whether to explicitly expand
+      // the "to" node.  Rethinks the entire layout of the shg
 
    void addToStatusDisplay(const string &);
 
