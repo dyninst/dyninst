@@ -44,6 +44,8 @@
 
 #include "common/h/headers.h"
 #include "common/h/Vector.h"
+#include <iostream.h>
+
 
 // small class for keeping track of information about shifts in code offsets
 //  (offset from beginning of function) caused when functions are expanded
@@ -63,9 +65,10 @@ class FERNode {
     int Shift() {return shift;}
     void SetShift(int val) {shift = val;}
     FERNode(int toffset = 0, int tshift = 0);
- 
-    ostream &operator<<(ostream &os);
+    friend ostream &operator<<(ostream &os, const FERNode &nd);
 };
+
+ostream &operator<<(ostream &os, const FERNode &nd);
 
 class FunctionExpansionRecord {
     // record of info on how instrumenting or otherwise rewriting a function
@@ -114,9 +117,11 @@ class FunctionExpansionRecord {
     // returns the sum total of the FERNodes shifts 
     int sizeChange();
 
-    // dump state info....
-    ostream& operator<<(ostream &os);
+// dump state info....
+    friend ostream& operator<<(ostream &os, const FunctionExpansionRecord &rc);
 };
+
+ostream& operator<<(ostream &os, const FunctionExpansionRecord &rc);
 
 
 /*  __FUNCTION_EXPANSION_RECORD_H__  */

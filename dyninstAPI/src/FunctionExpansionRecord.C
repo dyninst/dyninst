@@ -101,27 +101,27 @@ void FunctionExpansionRecord::AddExpansion(int original_offset, int shift) {
 
 
 // Dump state info about FunctionExpansionRecord object....
-ostream &FunctionExpansionRecord::operator<<(ostream &os) {
+ostream &operator<<(ostream &os, const FunctionExpansionRecord &rc) {
     unsigned int i;
 
-    os << "FunctionExpansionRecord " << this << " state info :" << endl;
-    os << " index = " << index << endl;
-    os << " expansions : size = " << expansions.size() << endl;
+    os << "FunctionExpansionRecord " << &rc << " state info :" << endl;
+    os << " index = " << rc.index << endl;
+    os << " expansions : size = " << rc.expansions.size() << endl;
 
     // if vector has iterator class, use that instead....
-    for(i=0;i<expansions.size();i++) {
-        expansions[i]->operator<<(os);
+    for(i=0;i<rc.expansions.size();i++) {
+      os << rc.expansions[i];
     }
 
-    for(i=0;i<total_expansions.size();i++) {
-        total_expansions[i].operator<<(os);
+    for(i=0;i<rc.total_expansions.size();i++) {
+      os << rc.total_expansions[i];
     }
     return os;
 } 
 
-ostream &FERNode::operator<<(ostream &os) {
-  os << "original_offset : " << original_offset << " , shift : " \
-     << shift << endl;
+ostream &operator<<(ostream &os, const FERNode &nd) {
+  os << "original_offset : " << nd.original_offset << " , shift : "
+     << nd.shift << endl;
   return os;
 }
 
