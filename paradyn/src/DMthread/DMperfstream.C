@@ -218,6 +218,9 @@ void performanceStream::addCurrentUser(perfStreamHandle p){
     if(ps->my_buffer_size < DM_DATABUF_LIMIT) {
         ps->my_buffer_size++;
     }
+    if(ps->num_curr_mis + ps->num_global_mis){
+	assert(ps->my_buffer_size);
+    }
 }
 
 //  if my_buffer has data values, flush it
@@ -235,6 +238,9 @@ void performanceStream::addGlobalUser(perfStreamHandle p){
     if(ps->my_buffer_size < DM_DATABUF_LIMIT) {
         ps->my_buffer_size++;
     }
+    if(ps->num_curr_mis + ps->num_global_mis){
+	assert(ps->my_buffer_size);
+    }
 }
 
 //
@@ -244,7 +250,6 @@ void performanceStream::removeGlobalUser(perfStreamHandle p){
 
     performanceStream *ps = performanceStream::find(p); 
     if(!ps) return;
-    // assert(ps->my_buffer_size == (ps->num_global_mis + ps->num_curr_mis));
     if(ps->next_buffer_loc && ps->my_buffer){
         ps->flushBuffer();
 	assert(!(ps->my_buffer));
@@ -256,7 +261,9 @@ void performanceStream::removeGlobalUser(perfStreamHandle p){
 	    if(ps->my_buffer_size) ps->my_buffer_size--;
 	}
     }
-    // assert(ps->my_buffer_size == (ps->num_global_mis + ps->num_curr_mis));
+    if(ps->num_curr_mis + ps->num_global_mis){
+	assert(ps->my_buffer_size);
+    }
 }
 
 //
@@ -266,7 +273,6 @@ void performanceStream::removeCurrentUser(perfStreamHandle p){
 
     performanceStream *ps = performanceStream::find(p); 
     if(!ps) return;
-    // assert(ps->my_buffer_size == (ps->num_global_mis + ps->num_curr_mis));
     if(ps->next_buffer_loc && ps->my_buffer){
         ps->flushBuffer();
 	assert(!(ps->my_buffer));
@@ -278,7 +284,9 @@ void performanceStream::removeCurrentUser(perfStreamHandle p){
 	    if(ps->my_buffer_size) ps->my_buffer_size--;
 	}
     }
-    // assert(ps->my_buffer_size == (ps->num_global_mis + ps->num_curr_mis));
+    if(ps->num_curr_mis + ps->num_global_mis){
+	assert(ps->my_buffer_size);
+    }
 }
 
 //
@@ -291,20 +299,19 @@ void performanceStream::removeAllCurrUsers(){
    perfStreamHandle h;
    performanceStream *ps;
    while(allS.next(h,ps)){
-       // assert(ps->my_buffer_size == (ps->num_global_mis + ps->num_curr_mis));
        if(ps->next_buffer_loc && ps->my_buffer){
            ps->flushBuffer();
 	   assert(!(ps->my_buffer));
 	   assert(!(ps->next_buffer_loc));
        }
        if(ps->num_curr_mis && ps->my_buffer_size){
-	   // assert(ps->my_buffer_size >= ps->num_curr_mis);
-	   // ps->my_buffer_size -= ps->num_curr_mis;
            ps->num_curr_mis = 0;
 	   if((ps->num_global_mis) < DM_DATABUF_LIMIT){
 	     ps->my_buffer_size = ps->num_global_mis;
 	   }
        }
-       // assert(ps->my_buffer_size == ps->num_global_mis);
+       if(ps->num_curr_mis + ps->num_global_mis){
+	   assert(ps->my_buffer_size);
+       }
    }
 }
