@@ -1,8 +1,18 @@
+
+#ifndef PTRACE_EMUL
+#define PTRACE_EMUL
+
 /* 
  * ptrace_emul.h:  Header file for ptrace emulation stuff.
  *
  * $Log: ptrace_emul.h,v $
- * Revision 1.3  1994/09/22 02:24:13  markc
+ * Revision 1.5  1994/11/02 11:15:58  markc
+ * Put our "PTRACE" defines here.
+ *
+ * Revision 1.4  1994/10/13  07:24:59  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.3  1994/09/22  02:24:13  markc
  * changed types to agree with ptrace signature
  *
  * Revision 1.2  1994/07/14  14:26:09  jcargill
@@ -16,9 +26,7 @@
  *
  */
 
-
-#include <sys/types.h>
-#include <sys/ptrace.h>
+#include "util/h/kludges.h"
 
 /*
  * Node-Ptrace request forwarding protocol.  We send ptrace requests
@@ -44,7 +52,7 @@
  */
 
 typedef struct _ptraceReqHeader {
-  enum ptracereq request;
+  int request;
   u_int pid;			/* pid of CM process on CP */
   u_int nodeNum;		/* target nodes (0xffffffff = all) */
   char *addr;
@@ -56,5 +64,13 @@ typedef struct _ptraceReqHeader {
 /* Maximum DATA length for a ptrace request */
 #define MAX_PTRACE_LENGTH	1000
 
+/* 
+ * This define really shouldn't be here, but then it really shouldn't
+ * be in instP.h, either.  Where should it go?  XXX 
+ */
+#define PTRACE_INTERRUPT        PTRACE_26
+#define PTRACE_STATUS		PTRACE_27
+#define PTRACE_SNARFBUFFER	PTRACE_28
 
+#endif
 
