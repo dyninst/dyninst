@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.4 1994/03/25 23:00:44 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.5 1994/04/11 23:25:24 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.4  1994/03/25 23:00:44  hollings
+ * Revision 1.5  1994/04/11 23:25:24  hollings
+ * Added pause_time metric.
+ *
+ * Revision 1.4  1994/03/25  23:00:44  hollings
  * Made active_processes a sampledFunction.
  *
  * Revision 1.3  1994/02/03  23:29:44  hollings
@@ -75,6 +78,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "dyninstP.h"
 #include "metric.h"
 #include "ast.h"
+
+extern metricDefinitionNode *pauseTimeNode;
 
 AstNode *defaultProcedurePredicate(metricDefinitionNode *mn, char *funcName,
     AstNode *pred)
@@ -336,6 +341,14 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     return(new AstNode(DataValue, data));
 }
 
+//
+// place holder for pause time metric.
+//
+void createPauseTime(metricDefinitionNode *mn, AstNode *trigger)
+{
+    pauseTimeNode = mn;
+}
+
 void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
 {
     dataReqNode *dataPtr;
@@ -398,7 +411,9 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
 
     int i;
     function *func;
+#ifdef notdef
     AstNode *newTrigger;
+#endif
     dataReqNode *dataPtr;
     AstNode *startNode, *stopNode;
 
@@ -408,7 +423,7 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
     if (!func) return(NULL);
 
 #ifdef notdef
-    // Why did I put this here ????
+    // Why did I put this here ???? -- jkh
     newTrigger = defaultProcedurePredicate(mn, funcName, trigger);
     dataPtr = createCPUTime(mn, newTrigger);
 #endif
@@ -556,6 +571,25 @@ resourcePredicate defaultPredicates[] = {
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
+resourcePredicate globalOnlyPredicates[] = {
+  { "/SyncObject/MsgTag",	
+    simplePredicate,		
+    (createPredicateFunc) NULL },
+  { "/SyncObject",	
+    invalidPredicate,		
+    (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
+  { "/Process",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
+ { "/Procedure",
+   simplePredicate,	
+   (createPredicateFunc) NULL },
+ { NULL, nullPredicate, (createPredicateFunc) NULL },
+};
+
 struct _metricRec DYNINSTallMetrics[] = {
     { { "active_processes", SampledFunction, "Processes" },
       { (createMetricFunc) createActiveProcesses, defaultPredicates },
@@ -586,6 +620,9 @@ struct _metricRec DYNINSTallMetrics[] = {
     },
     { { "sync_wait", EventCounter, "# Waiting" },
       { (createMetricFunc) createSyncWait, defaultPredicates },
+    },
+    { { "pause_time", SampledFunction, "# Paused" },
+      { (createMetricFunc) createPauseTime, globalOnlyPredicates },
     },
 };
 

@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.3  1994/03/26 19:31:37  hollings
+ * Revision 1.4  1994/04/11 23:25:23  hollings
+ * Added pause_time metric.
+ *
+ * Revision 1.3  1994/03/26  19:31:37  hollings
  * Changed sample time to be consistant.
  *
  * Revision 1.2  1994/03/24  16:42:01  hollings
@@ -114,6 +117,7 @@ class metricDefinitionNode {
 	~metricDefinitionNode();
 	void disable();
 	void updateValue(time64, sampleValue);
+	void forwardSimpleValue(timeStamp, timeStamp, sampleValue);
 
 	Boolean match(resourceList l, metric m) {
 	    return(resList == l && met == m);

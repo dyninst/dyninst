@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.5 1994/04/09 18:34:51 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.6 1994/04/11 23:25:21 hollings Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.5  1994/04/09 18:34:51  hollings
+ * Revision 1.6  1994/04/11 23:25:21  hollings
+ * Added pause_time metric.
+ *
+ * Revision 1.5  1994/04/09  18:34:51  hollings
  * Changed {pause,continue}Application to {pause,continue}AllProceses, and
  * made the RPC interfaces use these.  This makes the computation of pause
  * Time correct.
@@ -231,7 +234,8 @@ timeStamp startPause;
 Boolean applicationPaused;
 extern Boolean firstSampleReceived;
 
-// total time the application has been paused.
+// total processor time the application has been paused.
+// so for a multi-processor system this should be processor * time.
 timeStamp elapsedPauseTime;
 
 Boolean markApplicationPaused()
@@ -247,6 +251,7 @@ Boolean markApplicationPaused()
     startPause = tv.tv_sec;
     startPause *= MILLION;
     startPause += tv.tv_usec;
+    printf("paused at %f\n", startPause / 1000000.0);
     
     return(True);
 }
@@ -258,8 +263,10 @@ Boolean isApplicationPaused()
 
 Boolean continueAllProcesses()
 {
+    sampleValue val;
     struct timeval tv;
     struct List<process *> curr;
+    extern void computePauseTimeMetric(time64, time64, sampleValue);
 
     for (curr = processList; *curr; curr++) {
 	continueProcess(*curr);
@@ -268,13 +275,17 @@ Boolean continueAllProcesses()
     if (!applicationPaused) return(False);
     applicationPaused = False;
 
-    if (!firstSampleReceived) return(False);
-
     gettimeofday(&tv, NULL);
     endPause = tv.tv_sec;
     endPause *= MILLION;
     endPause += tv.tv_usec;
+
+    if (!firstSampleReceived) {
+	return(False);
+    }
+
     elapsedPauseTime += (endPause - startPause);
+    printf("continued at %f\n", endPause / 1000000.0);
 
     return(False);
 }

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.8 1994/04/07 00:37:53 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.9 1994/04/11 23:25:22 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.8  1994/04/07 00:37:53  markc
+ * Revision 1.9  1994/04/11 23:25:22  hollings
+ * Added pause_time metric.
+ *
+ * Revision 1.8  1994/04/07  00:37:53  markc
  * Checked for NULL metric instance returned from createMetricInstance.
  *
  * Revision 1.7  1994/04/01  20:06:42  hollings
@@ -126,6 +129,7 @@ extern process *nodePseudoProcess;
 
 // used to indicate the mi is no longer used.
 #define DELETED_MI 1
+#define MILLION	1000000.0
 
 metricDefinitionNode::metricDefinitionNode(process *p)
 {
@@ -523,18 +527,24 @@ metricDefinitionNode::~metricDefinitionNode()
     }
 }
 
+void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
+				       sampleValue value)
+{
+    tp->sampleDataCallbackFunc(0, id, start, end, value);
+}
+
 void metricDefinitionNode::updateValue(time64 wallTime, 
 				       sampleValue value)
 {
     timeStamp sampleTime;
     struct sampleInterval ret;
     List<metricDefinitionNode*> curr;
-    extern timeStamp elapsedPauseTime;
+    // extern timeStamp elapsedPauseTime;
 
-    sampleTime = (wallTime - elapsedPauseTime) / 1000000.0; 
+    // sampleTime = (wallTime - elapsedPauseTime) / 1000000.0; 
     // commented out elapsedPauseTime because we don't currently stop CM-5
     // node processes. (brought it back jkh 11/9/93).
-    // sampleTime = wallTime / 1000000.0; 
+    sampleTime = wallTime / 1000000.0; 
     assert(value >= -0.01);
 
     if (met->info.style == EventCounter) {
@@ -556,6 +566,9 @@ void metricDefinitionNode::updateValue(time64 wallTime,
      */
     if (inform && ret.valid) {
 	/* invoke call backs */
+	assert(ret.start >= 0.0);
+	assert(ret.end >= 0.0);
+	assert(ret.end >= ret.start);
 	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
     }
 }
@@ -794,5 +807,38 @@ void dataReqNode::disable()
 dataReqNode::~dataReqNode()
 {
     instance = NULL;
+}
+
+// used in other modules.
+metricDefinitionNode *pauseTimeNode;
+
+void computePauseTimeMetric()
+{
+    timeStamp now;
+    timeStamp start;
+    timeStamp elapsed;
+    struct timeval tv;
+    static timeStamp end;
+    extern timeStamp startPause;
+    extern time64 firstRecordTime;
+    extern Boolean applicationPaused;
+    extern timeStamp elapsedPauseTime;
+    static timeStamp reportedPauseTime;
+
+    if (pauseTimeNode && firstRecordTime) {
+	gettimeofday(&tv, NULL);
+	now = (tv.tv_sec * MILLION + tv.tv_usec - firstRecordTime)/MILLION;
+	if (now < end + 0.5) 
+	    return;
+
+	start = end;
+	end = now;
+	elapsed = elapsedPauseTime - reportedPauseTime;
+	if (applicationPaused) {
+	    elapsed += tv.tv_sec * MILLION + tv.tv_usec - startPause;
+	}
+	reportedPauseTime += elapsed;
+	pauseTimeNode->forwardSimpleValue(start, end, elapsed/MILLION);
+    }
 }
 

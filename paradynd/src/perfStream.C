@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.7 1994/04/09 18:34:55 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.8 1994/04/11 23:25:25 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.7  1994/04/09 18:34:55  hollings
+ * Revision 1.8  1994/04/11 23:25:25  hollings
+ * Added pause_time metric.
+ *
+ * Revision 1.7  1994/04/09  18:34:55  hollings
  * Changed {pause,continue}Application to {pause,continue}AllProceses, and
  * made the RPC interfaces use these.  This makes the computation of pause
  * Time correct.
@@ -135,6 +138,7 @@ extern void PDYN_reportSIGCHLD (int pid, int status);
 #endif
 
 extern dynRPC *tp;
+extern void computePauseTimeMetric();
 extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);
 extern void processPtraceAck (traceHeader *header, ptraceAck *ackRecord);
 extern void forkProcess(traceHeader *hr, traceFork *fr);
@@ -445,6 +449,9 @@ void controllerMainLoop()
 	      }
 #endif
 	  }
+
+	/* report pause time */
+	computePauseTimeMetric();
 
 	/* check for status change on inferrior processes */
 	pid = wait3(&status, WNOHANG, NULL);
