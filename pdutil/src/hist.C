@@ -40,10 +40,11 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.36 2000/06/14 23:01:53 wylie Exp $
+// $Id: hist.C,v 1.37 2000/07/18 17:13:56 schendel Exp $
 
 #include "util/h/headers.h"
 #include "util/h/hist.h"
+#include "util/h/debugOstream.h"
 #include <math.h>
 
 /* number of intervals at which we switch to regular histograms */
@@ -56,6 +57,12 @@ int Histogram::lastGlobalBin = 0;
 timeStamp Histogram::baseBucketSize = BASEBUCKETWIDTH;
 timeStamp Histogram::globalBucketSize = BASEBUCKETWIDTH;
 vector<Histogram *> Histogram::allHist;
+
+#ifdef HIST_DEBUG
+debug_ostream hist_cerr(cerr, true);
+#else
+debug_ostream hist_cerr(cerr, false);
+#endif
 
 Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c,
 		     bool globalFlag)
@@ -77,6 +84,8 @@ Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c,
     bucketWidth = globalBucketSize; 
     total_time = bucketWidth*numBins;
     startTime = 0.0;
+    curBinFilling = -1;
+    lastBinSent = -1;
 }
 
 /*
@@ -117,7 +126,8 @@ Histogram::Histogram(timeStamp start, metricStyle type, dataCallBack d,
     active = true;
     fold_on_inactive = false;
     startTime = start;
-
+    curBinFilling = -1;
+    lastBinSent = -1;
     // try to find an active histogram with the same start time 
     // and use its bucket width  for "bucketWidth", otherwise, compute
     // a value for "bucketWidth" based on startTime and global time
@@ -182,6 +192,9 @@ Histogram::~Histogram(){
 
 #if !defined(MAX)
 #define MAX(a, b)	((a) > (b) ? (a):(b))
+#endif
+#if !defined(MIN)
+#define MIN(a, b)	((a) < (b) ? (a):(b))
 #endif
 
 /*
@@ -269,6 +282,7 @@ void Histogram::convertToBins()
 
 void Histogram::foldAllHist()
 {
+    hist_cerr << "Histogram::foldAllHist()\n";
     // update global info.
     if(startTime == 0.0){
 	globalBucketSize *= 2.0;
@@ -324,6 +338,19 @@ void Histogram::foldAllHist()
     }
 }
 
+void Histogram::flushUnsentBuckets() {
+  hist_cerr << "Histogram::FlushUnsentBuckets\n";
+  if (dataFunc) {
+    if(curBinFilling > lastBinSent && curBinFilling!=-1) {
+      int firstBinToSend = lastBinSent + 1;
+      hist_cerr << "sending buckets: " << firstBinToSend << ", for count of: " 
+		<< curBinFilling - lastBinSent << "\n";
+      (dataFunc)(&dataPtr.buckets[firstBinToSend], startTime,
+		 curBinFilling - lastBinSent, firstBinToSend,cData,globalData);
+    }
+  }
+}
+
 void Histogram::bucketValue(timeStamp start_clock, 
 			   timeStamp end_clock, 
 			   sampleValue value, 
@@ -336,6 +363,10 @@ void Histogram::bucketValue(timeStamp start_clock,
 
     timeStamp elapsed_clock = end_clock - start_clock;
 
+    hist_cerr << "bucketValue-  start: " << start_clock << "  end: " 
+	      << end_clock << "  val: " << value << "  doSmooth: " 
+	      << doSmooth << "  bktWidth: " << bucketWidth << "\n";
+
     /* set starting and ending bins */
     int first_bin = (int) ((start_clock - startTime )/ bucketWidth);
 
@@ -344,6 +375,7 @@ void Histogram::bucketValue(timeStamp start_clock,
     if (first_bin == numBins)
 	first_bin = numBins-1;
     int last_bin = (int) ((end_clock - startTime) / bucketWidth);
+    curBinFilling = last_bin;
 
     // ignore bad values
     if((last_bin < 0) || (last_bin > numBins)) return;
@@ -354,37 +386,48 @@ void Histogram::bucketValue(timeStamp start_clock,
     timeStamp first_bin_start = bucketWidth * first_bin;
     timeStamp last_bin_start = bucketWidth  * last_bin;
 
+    hist_cerr << "  firstBin: " << first_bin << "  lastBin: " << last_bin
+	      << "  firstBinSt: " << first_bin_start << "  lastBinSt: "
+	      << last_bin_start << "\n";
+
     if (metricType == SampledFunction) {
+      hist_cerr << "SampledFunction-  \n";
 	for (i=first_bin; i <= last_bin; i++) {
+	  hist_cerr << " bucket[" << i << "] = " << value << "\n";
 	    dataPtr.buckets[i] = value;
 	}
     } else {
 	// normalize by bucket size.
 	value /= (sampleValue)bucketWidth;
-	if (last_bin == first_bin) {
-	    if(isnan(dataPtr.buckets[first_bin])){ 
-		dataPtr.buckets[first_bin] = 0.0;
-            }
-	    dataPtr.buckets[first_bin] += value;
-	    if (doSmooth && (dataPtr.buckets[first_bin] > 1.0)) {
-		/* value > 100% */
-		smoothBins(dataPtr.buckets, first_bin, bucketWidth);
-	    }
-	    return;
+	hist_cerr << "EventCounter-  normalized val: " << value << "\n";
+
+	sampleValue first_bin_interval_left  = start_clock - startTime;
+	sampleValue first_bin_interval_right = 
+	  MIN(first_bin_start + bucketWidth, end_clock - startTime);
+	timeStamp time_in_first_bin = first_bin_interval_right - 
+	                              first_bin_interval_left;
+
+	timeStamp time_in_last_bin = 0;
+	if(first_bin != last_bin)
+	  time_in_last_bin = (end_clock- startTime) - last_bin_start;
+	else {
+	  // the interval is contained solely in the first bucket
+	  time_in_last_bin = 0;  
 	}
 
-	/* determine how much of the first & last bins were in this interval */
-	timeStamp time_in_first_bin = 
-			bucketWidth - ((start_clock - startTime)- first_bin_start);
-	timeStamp time_in_last_bin = (end_clock- startTime) - last_bin_start;
 	timeStamp time_in_other_bins = 
 	    MAX(elapsed_clock - (time_in_first_bin + time_in_last_bin), 0);
         // ignore bad values
         if((time_in_first_bin < 0) || 
 	   (time_in_last_bin < 0) || 
-	   (time_in_other_bins < 0)) 
+	   (time_in_other_bins < 0))
 	    return;
 
+	hist_cerr << "H2 elapsed_clock: " << elapsed_clock 
+		  << "  time_in_first_bin: " << time_in_first_bin 
+		  << "  time_in_last_bin: " << time_in_last_bin 
+		  << "  time_in_other_bins: " << time_in_other_bins << "\n";
+	  
 	/* determine how much of value should be in each bin in the interval */
 	sampleValue amt_first_bin = 
                 (sampleValue)(time_in_first_bin / elapsed_clock) * value;
@@ -401,14 +444,25 @@ void Histogram::bucketValue(timeStamp start_clock,
 	if(isnan(dataPtr.buckets[last_bin])) 
 	    dataPtr.buckets[last_bin] = 0.0;
 
+	hist_cerr << " bucket[" << first_bin << "] = " 
+		  << dataPtr.buckets[first_bin] << "   bucket[" << last_bin 
+		  << "] = " << dataPtr.buckets[last_bin] << "\n";
+
 	/* add the appropriate amount of time to each bin */
 	dataPtr.buckets[first_bin] += amt_first_bin;
+	hist_cerr << " bucket[" << first_bin << "] += " << amt_first_bin
+		  << " = " << dataPtr.buckets[first_bin] << "\n";
 	dataPtr.buckets[last_bin]  += amt_last_bin;
+
 	for (i=first_bin+1; i < last_bin; i++){
 	    if(isnan(dataPtr.buckets[i])) 
 	        dataPtr.buckets[i] = 0.0;
 	    dataPtr.buckets[i]  += amt_other_bins;
+	    hist_cerr << " bucket[" << i << "] += " << amt_other_bins
+		      << " = " << dataPtr.buckets[i] << "\n";
         }
+	hist_cerr << " bucket[" << last_bin << "] += " << amt_last_bin
+		  << " = " << dataPtr.buckets[last_bin] << "\n";
     }
 
     /* limit absurd time values - anything over 100% is pushed back into 
@@ -423,7 +477,11 @@ void Histogram::bucketValue(timeStamp start_clock,
     // inform users about the data.
     // make sure they want to hear about it (dataFunc)
     //  && that we have a full bin (last_bin>first_bin)
-    if (dataFunc && (last_bin-first_bin)) {
+
+    if ((dataFunc)  && (last_bin > first_bin)) {
+      hist_cerr << "dataFunc()- firstBin: " << first_bin << ", val(1): " 
+		<< dataPtr.buckets[first_bin] << "\n"; 
+      lastBinSent = first_bin;
 	(dataFunc)(&dataPtr.buckets[first_bin], 
 		   startTime,
 		   last_bin-first_bin, 
@@ -438,7 +496,7 @@ static void smoothBins(Bin *bins, int i, timeStamp bucketSize)
 {
     int j;
     sampleValue extra_time;
-
+    hist_cerr << "smoothBins\n";
     extra_time = (sampleValue)(bins[i] - bucketSize);
     bins[i] = (sampleValue)bucketSize;
     j = i - 1;
@@ -546,18 +604,21 @@ int Histogram::getBuckets(sampleValue *buckets, int numberOfBuckets, int first)
 {
     int i;
     int last;
-
-    last = first + numberOfBuckets;
-    if (lastBin < last) last = lastBin;
+    hist_cerr << "getBuckets - num: " << numberOfBuckets << "  first: " 
+	      << first << "\n";
+    last = first + numberOfBuckets - 1;
+    if (lastBin < last) last = lastBin;  // lastBin is an index
 
     // make sure its in bin form.
     convertToBins();
 
     assert(first >= 0);
     assert(last <= lastBin); 
-    for (i=first; i < last; i++) {
+    for (i=first; i <= last; i++) {
 	float temp = dataPtr.buckets[i];
+	hist_cerr << "   " << i << ": " << temp << "\n";
 	buckets[i-first] = temp;
     }
-    return(last-first);
+    return(last-first+1);
 }
+

@@ -112,6 +112,7 @@ class Histogram {
 	static timeStamp getGlobalBucketWidth(){ return(globalBucketSize); }
 	static timeStamp getMinBucketWidth(){ return(baseBucketSize);}
 	static int getNumBins(){ return(numBins);}
+	void flushUnsentBuckets();
     private:
 	void foldAllHist();
 	void convertToBins();
@@ -136,6 +137,8 @@ class Histogram {
 	// to start at time 0, and thus will contain only values added after
 	// its start time
 	int lastBin;			/* current (for this hist) last bin */
+	int curBinFilling;
+	int lastBinSent;
 	timeStamp bucketWidth;		// bucket width of this histogram 
 	timeStamp startTime;		// not all histograms start at time 0
 	bool active;			// if clear, don't add values 
