@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.10 1994/09/30 19:47:07 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.11 1994/11/02 11:08:28 markc Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.10  1994/09/30 19:47:07  rbi
+ * Revision 1.11  1994/11/02 11:08:28  markc
+ * Moved redundant code to here from inst-< >.C.
+ *
+ * Revision 1.10  1994/09/30  19:47:07  rbi
  * Basic instrumentation for CMFortran
  *
  * Revision 1.9  1994/09/22  02:00:02  markc
@@ -119,12 +122,15 @@ extern "C" {
 #include "ast.h"
 #include "util.h"
 #include "internalMetrics.h"
+#include <strstream.h>
+#include "inst-sparc.h"
+#include "stats.h"
+#include "init.h"
 
-extern int trampBytes;
-extern trampTemplate baseTemplate;
-extern trampTemplate noArgsTemplate;
-extern trampTemplate withArgsTemplate;
-extern internalMetric activeSlots;
+#define NS_TO_SEC	1000000000.0
+dictionary_hash <string, unsigned> primitiveCosts(string::hash);
+dictionary_hash<string, unsigned> tagDict(string::hash);
+process *nodePseudoProcess=NULL;
 
 int getBaseBranchAddr(process *proc, instInstance *inst)
 {
@@ -159,13 +165,17 @@ void clearBaseBranch(process *proc, instInstance *inst)
 // implicit assumption that tramps generate to less than 64K bytes!!!
 static char insn[65536];
 
-static HTable<point*> activePoints;
+static unsigned ipHash(instPoint *&val) {
+  return ((unsigned) val);
+}
+
+static dictionary_hash<instPoint*, point*> activePoints(ipHash);
 
 instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     callWhen when, callOrder order)
 {
-    int count;
-    int fromAddr;
+    unsigned count;
+    unsigned fromAddr;
     point *thePoint;
     instInstance *ret;
     instInstance *lastAtPoint;
@@ -180,11 +190,12 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     firstAtPoint = NULL;
     lastAtPoint = NULL;
 
-    thePoint = activePoints.find(location);
-    if (!thePoint) {
-        thePoint = new point;
-	activePoints.add(thePoint, location);
-    }
+    if (!activePoints.defines(location)) {
+      thePoint = new point;
+      activePoints[location] = thePoint;
+    } else
+      thePoint = activePoints[location];
+
     for (ret= thePoint->inst; ret; ret = ret->next) {
 	if ((ret->proc == proc) && (ret->when == when)) {
 	    if (!ret->nextAtPoint) lastAtPoint = ret;
@@ -204,9 +215,9 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     // return value is offset of return stmnt.
     //
     count = 0;
-    ret->returnAddr = ast->generateTramp(proc, insn, (caddr_t *) &count); 
+    ret->returnAddr = ast->generateTramp(proc, insn, count); 
 
-    ret->trampBase = inferriorMalloc(proc, count);
+    ret->trampBase = inferiorMalloc(proc, count);
     trampBytes += count;
     ret->returnAddr += ret->trampBase;
 
@@ -219,7 +230,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     thePoint->inst = ret;
 
     /* first inst. at this point so install the tramp */
-    fromAddr = (int) ret->baseAddr;
+    fromAddr = ret->baseAddr;
     if (ret->when == callPreInsn) {
 	fromAddr += proc->aggregate ? baseTemplate.globalPreOffset :
 	    baseTemplate.localPreOffset;
@@ -235,7 +246,6 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     installTramp(ret, insn, count);
 
     if (!lastAtPoint) {
-	int fromAddr;
 
 	fromAddr = getBaseBranchAddr(proc, ret);
 	generateBranch(proc, fromAddr, ret->trampBase);
@@ -243,7 +253,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
 	generateBranch(proc, ret->returnAddr, fromAddr+4);
 
 	// just activated this slot.
-	activeSlots.value += 1.0;
+	activeSlots->value += 1.0;
     } else if (order == orderLastAtPoint) {
 	/* patch previous tramp to call us rather than return */
 	generateBranch(proc, lastAtPoint->returnAddr, ret->trampBase);
@@ -287,8 +297,9 @@ void deleteInst(instInstance *old)
     othersAtPoint = NULL;
     left = right = NULL;
 
-    thePoint = activePoints.find(old->location);
-    assert(thePoint);
+    if (!activePoints.defines(old->location))
+      abort();
+    thePoint = activePoints[old->location];
 
     for (lag= thePoint->inst; lag; lag = lag->next) {
 	if ((lag->location == old->location) && 
@@ -305,7 +316,7 @@ void deleteInst(instInstance *old)
 
     if (!othersAtPoint) {
 	clearBaseBranch(old->proc, old);
-	activeSlots.value -= 1.0;
+	activeSlots->value -= 1.0;
     } else {
 	if (left) {
 	    if (right) {
@@ -329,7 +340,7 @@ void deleteInst(instInstance *old)
 	}
     }
 
-    inferriorFree(old->proc, old->trampBase);
+    inferiorFree(old->proc, old->trampBase);
 
     /* remove old from atPoint linked list */
     if (right) right->prevAtPoint = left;
@@ -348,15 +359,16 @@ void deleteInst(instInstance *old)
 }
 
 
-void installDefaultInst(process *proc, instMaping *initialReqs)
+void installDefaultInst(process *proc, instMapping *initialReqs)
 {
     int i;
     AstNode *ast;
     pdFunction *func;
-    instMaping *item;
+    instMapping *item;
 
-    for (item = initialReqs; item->func; item++) {
-	func = findFunction(proc->symbols, item->func);
+    for (item = initialReqs; item->more; item++) {
+      // TODO this assumes only one instance of each function (no siblings)
+        func = (proc->symbols)->findOneFunction(item->func);
 	if (!func) {
 //
 //  it's ok to fail on an initial inst request if the request 
@@ -381,11 +393,13 @@ void installDefaultInst(process *proc, instMaping *initialReqs)
 		callPreInsn, orderLastAtPoint);
 	}
 	if (item->where & FUNC_CALL) {
-	    if (!func->callCount) {
-		sprintf(errorLine, "no function calls in procedure %s\n", (char*)func->prettyName);
+	    if (!func->calls.size()) {
+	        ostrstream os(errorLine, 1024, ios::out);
+		os << "no function calls in procedure " << func->getPretty() <<
+		  endl;
 		logLine(errorLine);
 	    } else {
-		for (i = 0; i < func->callCount; i++) {
+		for (i = 0; i < func->calls.size(); i++) {
 		    (void) addInstFunc(proc, func->calls[i], ast,
 			callPreInsn, orderLastAtPoint);
 		}
@@ -398,7 +412,7 @@ void installDefaultInst(process *proc, instMaping *initialReqs)
 void pauseProcess(process *proc)
 {
     if (proc->status == running && proc->reachedFirstBreak) {
-	(void) PCptrace(PTRACE_INTERRUPT, proc, (void*)1, 0, 0);
+	(void) PCptrace(PTRACE_INTERRUPT, proc, (char*)1, 0, (char*)NULL);
         proc->status = stopped;
     }
 }
@@ -406,26 +420,52 @@ void pauseProcess(process *proc)
 void continueProcess(process *proc)
 {
     if (proc->status == stopped) {
-	(void) PCptrace(PTRACE_CONT, proc, (void*)1, 0, 0);
+	(void) PCptrace(PTRACE_CONT, proc, (char*)1, 0, (char*)NULL);
         proc->status = running;
     }
 }
 
 void dumpCore(process *proc)
 {
-    (void) PCptrace(PTRACE_DUMPCORE, proc, (void*) "core.out", 0, 0);
+    (void) PCptrace(PTRACE_DUMPCORE, proc, (char*) "core.out", 0, (char*)NULL);
 }
 
 /*
  * Copy data from controller process to the named process.
  *
  */
-void copyToProcess(process *proc, void *from, void *to, int size)
+void copyToProcess(process *proc, char *from, char *to, int size)
 {
     (void) PCptrace(PTRACE_WRITEDATA, proc, to, size, from);
 }
 
-void copyFromProcess(process *proc, void *from, void *to, int size)
+void copyFromProcess(process *proc, char *from, char *to, int size)
 {
     (void) PCptrace(PTRACE_READDATA, proc, from, size, to);
+}
+
+/*
+ * return the time required to execute the passed primitive.
+ *
+ */
+unsigned getPrimitiveCost(const string name)
+{
+
+    static bool init=false;
+
+    if (!init) { init = 1; initPrimitiveCost(); }
+
+    if (!primitiveCosts.defines(name)) {
+      return 1000;
+    } else
+      return (primitiveCosts[name]);
+}
+
+
+// find any tags to associate semantic meaning to function
+unsigned findTags(const string funcName) {
+  if (tagDict.defines(funcName))
+    return (tagDict[funcName]);
+  else
+    return 0;
 }
