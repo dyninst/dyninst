@@ -544,6 +544,15 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 		return;
 
 #ifdef OLD_LINE_INFO
+
+	/** this is the maximum of the size of tuples */
+	if(size > (unsigned short)0xfffe){
+		cerr << "WARNING : Up to " << (unsigned short)0xffff
+		     << " lines in a file are recorded for line ifnromation"
+		     << endl;
+		return;
+	}
+
 	lineToAddr = !lineToAddr ? ((tuple**)malloc(sizeof(tuple*))) :
 		     ((tuple**)realloc(lineToAddr,sizeof(tuple*)*(size+1)));
 	addrToLine = !addrToLine ? ((tuple**)malloc(sizeof(tuple*))) :
@@ -555,7 +564,7 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 
 	tuple* newTuple = new tuple(lineNo,codeAddress);
 
-	unsigned short index1; 
+	int index1; 
 	for(index1=size-1;index1>=0;index1--)
 		if(lineToAddr[index1]->lineNo > lineNo){
 			lineToAddr[index1+1] = lineToAddr[index1];
@@ -566,7 +575,7 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 	lineToAddr[index1] = newTuple;
 	lineToAddr[index1]->linePtr = (unsigned)index1; 
 
-	unsigned short index2; 
+	int index2; 
 	for(index2=size-1;index2>=0;index2--)
 		if(addrToLine[index2]->codeAddress > codeAddress){
 			addrToLine[index2+1] = addrToLine[index2];
