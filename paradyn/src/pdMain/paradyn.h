@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.h,v 1.19 2001/06/20 20:37:37 schendel Exp $ */
+/* $Id: paradyn.h,v 1.20 2002/07/25 19:22:47 willb Exp $ */
 
 /* some global definitions for main.C */
 
@@ -48,7 +48,7 @@
 
 #include "dataManager.thread.CLNT.h"  // putting this first fixes a header
                                       // file dependency problem
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "performanceConsultant.thread.CLNT.h"
 #include "UI.thread.CLNT.h"
 #include "VM.thread.CLNT.h"

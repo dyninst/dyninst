@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,11 +41,14 @@
 
 /*
  * Generate code for template classes used by libpdutil
- * $Id: templates.C,v 1.15 2002/04/22 20:52:55 mjbrim Exp $
+ * $Id: templates.C,v 1.16 2002/07/25 19:22:56 willb Exp $
  */
 
 #include "pdutil/src/PriorityQueue.C"
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
+#include "pdutil/h/rpcUtil.h"
 
 template class PriorityQueue<timeStamp, pdSample>;
+template class vector<RPCSockCallbackFunc>;
+

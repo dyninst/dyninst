@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.139 2002/05/13 19:52:55 mjbrim Exp $
+// $Id: DMmain.C,v 1.140 2002/07/25 19:22:27 willb Exp $
 
 #include <assert.h>
 extern "C" {
@@ -48,7 +48,7 @@ extern "C" {
 }
 
 #include "paradyn/src/pdMain/paradyn.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "paradyn/src/TCthread/tunableConst.h"
 #include "dataManager.thread.SRVR.h"
 #include "dyninstRPC.xdr.CLNT.h"

@@ -42,9 +42,17 @@
 #if !defined(_aix_headers_h)
 #define _aix_headers_h
 
+typedef int crid_t;
+typedef unsigned int class_id_t;
+
+#if USE_PTHREADS
+#include <pthread.h>
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif /* defined(__cplusplus) */
+#include <sys/types.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -76,9 +84,10 @@ extern "C" {
 #include <sys/select.h>
 #include <procinfo.h>
 #include <sys/un.h>
-
+#if 0
 #include <strstream.h>
-
+#endif
+    
 extern "C" { 
   void bzero(char *b, int length);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.53 2002/04/09 18:05:19 mjbrim Exp $
+// $Id: main.C,v 1.54 2002/07/25 19:22:23 willb Exp $
 
 #include "parse.h"
 #include "Options.h"
@@ -467,7 +467,7 @@ static void init_ml() {
 					      true,
 					      "XXX_skip",
 					      "msg_recv",
-				      "#include \"thread/h/thread.h\"\n",
+				      "#include \"pdthread/h/thread.h\"\n",
 					      false,
 					      " ",
 					      " ",

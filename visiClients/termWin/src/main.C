@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.5 2002/02/15 18:35:37 pcroth Exp $
+// $Id: main.C,v 1.6 2002/07/25 19:22:57 willb Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -53,7 +53,7 @@
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
 
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "pdutil/h/rpcUtil.h"
 #include "visi/h/visualization.h"
 
@@ -170,6 +170,10 @@ int main(int argc, char **argv) {
    int retVal=-1;
    thread_t stid;
 
+   // ensure that the thread library is aware of available input
+   // on our XDR connections
+   rpcSockCallback += (RPCSockCallbackFunc)clear_ready_sock;
+
 #if !defined(i386_unknown_nt4_0)
    Display *UIMdisplay = Tk_Display (Tk_MainWindow(MainInterp));
    int xfd = XConnectionNumber (UIMdisplay);
@@ -241,7 +245,12 @@ int main(int argc, char **argv) {
          //       now would not dequeue anything, so there's no point in doing it...
 
      if (pollsender == xtid)
+	 {
             processPendingTkEventsNoBlock();
+			// indicate to the thread library we've consumed input
+			// from our X connection
+			clear_ready_sock( thr_socket( xtid ) );
+	 }
          else if (pollsender == stid)
 	 {
 	 	//fprintf(stderr,"accept client request stid=%d\n",stid);
@@ -289,6 +298,8 @@ int main(int argc, char **argv) {
 				doneWithInput = true;
 			}
 		}
+		// indicate to the thread library we've consumed input from stdin
+		clear_ready_sock( thr_socket( stdin_tid ));
 	 }
 	 else {
 	 	int	client_is_sender = 0;
@@ -303,6 +314,11 @@ int main(int argc, char **argv) {
 #else
 				int num=recv(client->sock,buffer,1023,0);
 #endif
+
+				// indicate to the thread library we've consumed
+				// input from this client connection
+				clear_ready_sock( client->sock );
+
 				//printf("num = %d\n",num);
 		
 				if (num <= 0)

@@ -39,10 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: headers.h,v 1.19 2002/04/09 18:04:41 mjbrim Exp $
+// $Id: headers.h,v 1.20 2002/07/25 19:22:20 willb Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
+
+#include <sys/types.h>
 
 /*
  * Kludges to handle broken system includes and such...

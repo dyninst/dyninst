@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.49 2002/04/09 18:06:35 mjbrim Exp $
+// $Id: rpcUtil.h,v 1.50 2002/07/25 19:22:53 willb Exp $
 
 #include "common/h/headers.h"
 #include "pdsocket.h"
@@ -162,11 +162,9 @@ class rpcBuffer {
     int len;
 };
 
-#if defined(i386_unknown_nt4_0)
 // a vector of callback functions for reads and accepts, needed to support
-// correct interation between XDR and our thread library under Windows
-typedef void (*RPCSockCallbackFunc)( SOCKET );
+// correct interation between XDR and our thread library
+typedef void (*RPCSockCallbackFunc)( PDSOCKET );
 extern vector<RPCSockCallbackFunc> rpcSockCallback;
-#endif // defined(i386_unknown_nt4_0)
 
 #endif

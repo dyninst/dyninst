@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.80 2002/04/09 18:06:37 mjbrim Exp $
+// $Id: rpcUtil.C,v 1.81 2002/07/25 19:22:54 willb Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -63,9 +63,7 @@
 const char *DEF_RSH_COMMAND="rsh";
 const char *RSH_COMMAND_ENV="PARADYN_RSH";
 
-#if defined(i386_unknown_nt4_0)
 vector<RPCSockCallbackFunc>    rpcSockCallback;
-#endif // defined(i386_unknown_nt4_0)
 
 //---------------------------------------------------------------------------
 // prototypes of utility functions used in this file
@@ -82,18 +80,17 @@ int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
 
 #if defined(i386_unknown_nt4_0)
     ret = recv( sock, buf, len, 0 );
-
+#else
+    do {
+      ret = P_read(sock, buf, len);
+    } while (ret < 0 && errno == EINTR);
+#endif
     // call any user-defined callbacks
     unsigned int cbi;
     for( cbi = 0; cbi < rpcSockCallback.size(); cbi++ ) {
       assert( rpcSockCallback[cbi] != NULL );
       (*(rpcSockCallback[cbi]))( sock );
     }
-#else
-    do {
-      ret = P_read(sock, buf, len);
-    } while (ret < 0 && errno == EINTR);
-#endif
 
     if( (ret == PDSOCKET_ERROR) || (ret == 0)) {
       return (-1);
@@ -159,19 +156,18 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
 #if defined(i386_unknown_nt4_0)
     ret = recv(fd, buffer+partialMsgs[i]->len,
 	       len + sizeof(int) - partialMsgs[i]->len, 0);
-
-    // call any user-defined callbacks
-    unsigned int cbi;
-    for( cbi = 0; cbi < rpcSockCallback.size(); cbi++ ) {
-      assert( rpcSockCallback[cbi] != NULL );
-      (*(rpcSockCallback[cbi]))( fd );
-    }
 #else
     do {
       ret = P_read(fd, buffer+partialMsgs[i]->len, 
 		   len + sizeof(int) - partialMsgs[i]->len);
     } while (ret < 0 && errno == EINTR);
 #endif
+    // call any user-defined callbacks
+    unsigned int cbi;
+    for( cbi = 0; cbi < rpcSockCallback.size(); cbi++ ) {
+      assert( rpcSockCallback[cbi] != NULL );
+      (*(rpcSockCallback[cbi]))( fd );
+    }
 
     if((ret == PDSOCKET_ERROR) || (ret == 0)) return(-1);
 
@@ -954,13 +950,14 @@ PDSOCKET RPC_getConnect(PDSOCKET sock) {
     return INVALID_PDSOCKET;
   }
   else {
-#if defined(i386_unknown_nt4_0)
     // note that we have consumed the "available data" from
     // the indicated socket
     unsigned int i;
     for( i = 0; i < rpcSockCallback.size(); i++ )
+	{
       (*rpcSockCallback[i])( sock );
-#endif // defined(i386_unknown_nt4_0)
+	}
+
     return new_sock;
   }
 }

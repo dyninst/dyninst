@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2001 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.112 2002/05/13 19:52:52 mjbrim Exp $
+ * $Id: DMdaemon.C,v 1.113 2002/07/25 19:22:26 willb Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -57,7 +57,7 @@ extern "C" {
 #include <ctype.h>
 #include <limits.h>
 
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 
 #include "dataManager.thread.h"
 #include "dyninstRPC.xdr.CLNT.h"
@@ -69,9 +69,6 @@ extern "C" {
 #include "pdutil/h/rpcUtil.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/timing.h"
-
-#include "../UIthread/tkTools.h"
-extern Tcl_Interp *interp;
 
 
 // TEMP this should be part of a class def.
@@ -628,11 +625,7 @@ static bool execPOE(const string /* &machine*/, const string /* &login */,
   int execRetVal = execvp(s[0], s);
 
   // Close Tk X connection to avoid conflicts with parent
-#if !defined(i386_unknown_nt4_0)
-  Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
-  int xfd = XConnectionNumber (UIMdisplay);
-  close(xfd);
-#endif // !defined(i386_unknown_nt4_0)
+  uiMgr->CloseTkConnection();
 
   if ( execRetVal == -1 )
   {
@@ -693,11 +686,7 @@ static bool rshPOE(const string         &machine, const string         &login,
   int execRetVal = execvp(s[0], s);
 
   // Close Tk X connection to avoid conflicts with parent
-#if !defined(i386_unknown_nt4_0)
-  Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
-  int xfd = XConnectionNumber (UIMdisplay);
-  close(xfd);
-#endif // !defined(i386_unknown_nt4_0)
+  uiMgr->CloseTkConnection();
 
   if ( execRetVal == -1 )
   {
@@ -1084,11 +1073,7 @@ static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
   int execRetVal = execvp(s[0], s);
 
   // Close Tk X connection to avoid conflicts with parent
-#if !defined(i386_unknown_nt4_0)
-  Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
-  int xfd = XConnectionNumber (UIMdisplay);
-  close(xfd);
-#endif // !defined(i386_unknown_nt4_0)
+  uiMgr->CloseTkConnection();
 
   if ( execRetVal == -1 )
   {
@@ -1144,11 +1129,7 @@ static bool rshIrixMPI(const string &machine, const string &login,
   int execRetVal = execvp(s[0], s);
 
   // Close Tk X connection to avoid conflicts with parent
-#if !defined(i386_unknown_nt4_0)
-  Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
-  int xfd = XConnectionNumber (UIMdisplay);
-  close(xfd);
-#endif // !defined(i386_unknown_nt4_0)
+  uiMgr->CloseTkConnection();
 
   if ( execRetVal == -1 )
   {
@@ -1676,9 +1657,7 @@ static bool startMPICH(const string &machine, const string &login,
 	}
 
 	// Close Tk X connection to avoid conflicts with parent
-	Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
-	int xfd = XConnectionNumber(UIMdisplay);
-	close(xfd);
+	uiMgr->CloseTkConnection();
 
 	if (execvp(s[0], s) < 0) {
 	        uiMgr->showError(113, "Failed to start MPICH");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMtypes.h,v 1.16 2001/06/20 20:33:43 schendel Exp $ */
+/* $Id: VMtypes.h,v 1.17 2002/07/25 19:22:45 willb Exp $ */
 
 #ifndef VMtypes_H
 #define VMtypes_H
@@ -47,7 +47,7 @@
 #include <malloc.h>
 #include <string.h>
 #include "common/h/Time.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "VISIthread.thread.CLNT.h"
 #include "dyninstRPC.xdr.CLNT.h"
 #include "common/h/Vector.h"

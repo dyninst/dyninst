@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: UIglobals.h,v 1.26 2002/06/27 19:01:50 schendel Exp $ */
+/* $Id: UIglobals.h,v 1.27 2002/07/25 19:22:33 willb Exp $ */
 
 /* UIglobals.h 
      definitions used by UI thread */
@@ -52,7 +52,7 @@
 #include "dataManager.thread.CLNT.h"
 #include "performanceConsultant.thread.CLNT.h"
 #include "UI.thread.SRVR.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 
 #include "tk.h"

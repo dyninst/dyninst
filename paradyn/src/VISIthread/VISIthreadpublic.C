@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -47,7 +47,7 @@
 #include <signal.h>
 #include <math.h>
 #include "../pdMain/paradyn.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "common/h/list.h"
 #include "pdutil/h/rpcUtil.h"
 #include "VM.thread.CLNT.h"

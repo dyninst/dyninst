@@ -1,6 +1,6 @@
 /*
  * input file for igen for User Interface Manager (UIM) interface to Paradyn
- * $Id: UI.I,v 1.40 2002/04/17 16:06:23 willb Exp $
+ * $Id: UI.I,v 1.41 2002/07/25 19:22:24 willb Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -50,7 +50,7 @@ struct uiSHGrequest {
 
 $remote UIM {
 	$base 3000;
-	$version 25;
+	$version 26;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -137,4 +137,8 @@ $remote UIM {
                                             const char *shortName,  
                                             const char *fullName); 
 	$async void CGDoneAddingNodesForNow(int programId);
+
+	// tell the UI thread to close its GUI connection
+	// used in cases when the front-end forks to spawn a new process
+	$async void CloseTkConnection();
 };

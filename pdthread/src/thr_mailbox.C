@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include "mailbox_defs.h"
 
+#include <strings.h>
+
 #if DO_DEBUG_LIBPDTHREAD_THR_MAILBOX == 1
 #define DO_DEBUG_LIBPDTHREAD 1
 #else
@@ -510,7 +512,7 @@ thr_mailbox::clear_msg_avail( void )
 	pollfd pfd;
 
 	pfd.fd = msg_avail_pipe[0];
-	pfd.events = POLLIN | POLLPRI | POLLRDNORM | POLLRDBAND;
+	pfd.events = POLLIN;
 	pfd.revents = 0;
 
 	bool done = false;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -209,9 +209,6 @@ void		thr_perror(const char* msg);
 const char*	thr_strerror(void);
 
 /* state maintenance functions */
-#if defined(i386_unknown_nt4_0)
-void    thr_update_socket_data_state( PDSOCKET sock );
-#endif // defined(i386_unknown_nt4_0)
 void	clear_ready_sock( PDSOCKET sock );
 
 

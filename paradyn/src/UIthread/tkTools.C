@@ -42,13 +42,14 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.15 2002/05/13 19:53:30 mjbrim Exp $ */
+/* $Id: tkTools.C,v 1.16 2002/07/25 19:22:39 willb Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
 #include "minmax.h"
 #include "common/h/headers.h"
 #include "tkTools.h"
+#include <strstream.h>
 
 tkInstallIdle::tkInstallIdle(void (*iUsersRoutine)(ClientData)) {
    currentlyInstalled = false;

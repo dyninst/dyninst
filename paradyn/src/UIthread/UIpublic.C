@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.76 2002/05/13 19:53:17 mjbrim Exp $
+/* $Id: UIpublic.C,v 1.77 2002/07/25 19:22:36 willb Exp $
  */
 
 #include <stdio.h>
@@ -54,7 +54,7 @@
 #include "UI.thread.CLNT.h"
 #include "UI.thread.SRVR.h"
 #include "UI.thread.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
 
@@ -641,3 +641,19 @@ UIM::shgSaved (bool succeeded)
   else
     ui_status->message("Search History Graph Save Request Failed");
 }
+
+void
+UIM::CloseTkConnection( void )
+{
+#if !defined(i386_unknown_nt4_0)
+	Display* disp = Tk_Display( Tk_MainWindow(interp) );
+	int fd = XConnectionNumber( disp );
+	close( fd );
+#else
+	// we don't need to worry about closing the Tk connection
+	// under Windows, because the process created by CreateProcess()
+	// doesn't interfere with our use of Tk
+#endif // defined(i386_unknown_nt4_0)
+}
+
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,13 +42,13 @@
 //
 // Process Critical Path data from the various paradyn daemons.
 //
-/* $Id: DMcritPath.C,v 1.12 2001/08/23 14:43:35 schendel Exp $ */
+/* $Id: DMcritPath.C,v 1.13 2002/07/25 19:22:25 willb Exp $ */
 
 #include <assert.h>
 #include "../pdMain/paradyn.h"
 extern "C" {
 #include <malloc.h>
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include <stdio.h>
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.99 2002/06/27 19:01:51 schendel Exp $
+// $Id: UImain.C,v 1.100 2002/07/25 19:22:34 willb Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -55,7 +55,7 @@
 #include "UIglobals.h" 
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "dataManager.thread.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "../pdMain/paradyn.h"
 
 #include "paradyn/src/TCthread/tunableConst.h"
@@ -100,9 +100,13 @@ static    bool stdinIsTTY = true;
 static    thread_t stdin_tid = THR_TID_UNSPEC;
 
 
-
+//----------------------------------------------------------------------------
+// variables "global" to the UI thread
+//----------------------------------------------------------------------------T
+Tcl_Interp* interp = NULL;
 
 extern abstractions *theAbstractions; // whereAxisTcl.C
+extern bool inDeveloperMode;
 
 
 bool haveSeenFirstGoodWhereAxisWid = false;
@@ -376,6 +380,16 @@ void tcShgHideShadowCallback(bool hide) {
    tcShgHideGeneric(shg::ct_shadow, hide);
 }
 
+void develModeCallback(bool newValue) {
+	inDeveloperMode = newValue;
+
+	// plus any other necessary action...
+	// The shg wants to hear of such changes, so it can resize its
+	// status line (w/in the shg window) appropriately
+	extern void shgDevelModeChange(Tcl_Interp *, bool);
+	shgDevelModeChange(interp, inDeveloperMode);
+}
+
 #if 0
 void tcEnableCallGraphCallback(bool enable){
   if (enable)
@@ -400,6 +414,36 @@ void *UImain(void*) {
 
     PARADYN_DEBUG(("%s\n",V_paradyn));
 
+	// Initialize tcl/tk
+	interp = Tcl_CreateInterp();
+	assert(interp);
+
+	Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
+
+	if( Tcl_Init(interp) == TCL_ERROR)
+		tclpanic(interp, "tcl_init() failed (perhaps TCL_LIBRARY not set?)");
+
+	if( Tk_Init(interp) == TCL_ERROR)
+		tclpanic(interp, "tk_init() failed (perhaps TK_LIBRARY not set?)");
+
+
+	// Here is one tunable constant that is definitely intended to be hard-coded in:
+	tunableBooleanConstantDeclarator tcInDeveloperMode("developerMode",
+		"Allow access to all tunable constants, including those limited to developer mode.  (Use with caution)",
+		false, 	// intial value
+		develModeCallback,
+		userConstant);
+
+	tunableConstantRegistry::createFloatTunableConstant
+		("EnableRequestPacketSize",
+		 "Enable request packet size",
+		 NULL,
+		 developerConstant,
+		 10.0, // initial value
+		 1.0, // min
+		 100.0); // max
+
+	// initialize tunable constants
     tunableBooleanConstantDeclarator tcWaShowTips("showWhereAxisTips",
         "If true, the WhereAxis window will be drawn with helpful reminders"
         " on shortcuts for expanding, unexpanding, selecting, and scrolling."
@@ -659,7 +703,10 @@ void *UImain(void*) {
          //       now would not dequeue anything, so there's no point in doing it...
 
      if (pollsender == xtid)
+	 {
             processPendingTkEventsNoBlock();
+			clear_ready_sock( thr_socket( xtid ) );
+	 }
          else
             cerr << "hmmm...unknown sender of a MSG_TAG_SOCKET message...ignoring" << endl;
 
@@ -714,6 +761,8 @@ void *UImain(void*) {
    unInstallShgCommands(interp);
    unInstallWhereAxisCommands(interp);
    unInstallCallGraphCommands(interp);
+
+   Tcl_DeleteInterp( interp );
 
    /*
     * Exiting this thread will signal the main/parent to exit.  No other

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,6 +43,11 @@
  * tunable constants entry point
  *
  * $Log: TCmain.C,v $
+ * Revision 1.6  2002/07/25 19:22:32  willb
+ * Change default thread lib to libpdthread; threadsafety fixes for FE; gcc-3.1 compliance for AIX
+ *   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ * thread-safety fixes
+ *
  * Revision 1.5  2001/06/20 20:37:34  schendel
  * Change order of including header files to fix dependency error.
  *
@@ -65,7 +70,7 @@
 #include <iostream.h>
 
 #include "../pdMain/paradyn.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 
 #include "tunableConst.h"
 

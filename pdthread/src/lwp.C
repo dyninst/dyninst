@@ -108,7 +108,7 @@ lwp* lwp::get_lwp() {
 
 
 
-lwp* lwp::get_main(thread_t tid=1) {
+lwp* lwp::get_main(thread_t tid) {
     if(lwp::main_thr != NULL) {
         return lwp::main_thr;
     } else {

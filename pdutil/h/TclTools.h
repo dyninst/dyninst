@@ -39,10 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TclTools.h,v 1.1 1999/12/17 16:05:37 pcroth Exp $
+// $Id: TclTools.h,v 1.2 2002/07/25 19:22:51 willb Exp $
 
 #if !defined(pd_tcl_tools_h)
 #define pd_tcl_tools_h
+
+#include <strstream.h>
 
 
 // SetInterpResult - assigns the result of the given Tcl interperter 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2001 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.62 2002/05/13 19:53:42 mjbrim Exp $
+// $Id: main.C,v 1.63 2002/07/25 19:22:46 willb Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -49,10 +49,9 @@
 #include "../TCthread/tunableConst.h"
 #include "common/h/headers.h"
 #include "paradyn.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "dataManager.thread.SRVR.h"
 #include "VM.thread.SRVR.h"
-#include "../UIthread/tkTools.h" // tclpanic
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 
@@ -60,8 +59,6 @@
 #include "termWin.xdr.CLNT.h"
 #endif // !defined(i386_unknown_nt4_0)
 
-#include "tcl.h"
-#include "tk.h"
 
 
 // trace data streams
@@ -144,19 +141,9 @@ extern bool metDoTunable();
 extern bool metDoProcess();
 extern bool metDoDaemon();
 
-Tcl_Interp *interp;
 int         tty;
 
 bool inDeveloperMode = false; // global variable used elsewhere
-void develModeCallback(bool newValue) {
-   inDeveloperMode = newValue;
-
-   // plus any other necessary action...
-   // The shg wants to hear of such changes, so it can resize its
-   // status line (w/in the shg window) appropriately
-   extern void shgDevelModeChange(Tcl_Interp *, bool);
-   shgDevelModeChange(interp, inDeveloperMode);
-}
 
 int
 main (int argc, char **argv)
@@ -167,62 +154,7 @@ main (int argc, char **argv)
   tag_t mtag;
   char *temp=NULL;
 
-  // Initialize tcl/tk
-  interp = Tcl_CreateInterp();
-  assert(interp);
-
   tty = isatty(0);
-  Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
-
-  if (Tcl_Init(interp) == TCL_ERROR)
-     tclpanic(interp, "tcl_init() failed (perhaps TCL_LIBRARY not set?)");
-  if (Tk_Init(interp) == TCL_ERROR)
-     tclpanic(interp, "tk_init() failed (perhaps TK_LIBRARY not set?)");
-//  if (Tix_Init(interp) == TCL_ERROR)
-//     tclpanic(interp, "tix_init() failed (perhaps TIX_LIBRARY not set?");
-
-  // copy command-line arguments into tcl vrbles argc / argv
-  Tcl_Obj* argsObj = Tcl_NewListObj( 0, NULL );
-  for( int i = 0; i < argc - 1; i++ )
-  {
-        int result = Tcl_ListObjAppendElement( interp,
-                                    argsObj,
-                                    Tcl_NewStringObj( argv[i+1], -1 ) );
-        if( result != TCL_OK )
-        {
-            tclpanic( interp, "Failed to build argv list" );
-        }
-  }
-  Tcl_ObjSetVar2(interp,
-                    Tcl_NewStringObj( "argv", -1 ), NULL,
-                    argsObj,
-                    TCL_GLOBAL_ONLY);
-
-  string argcStr = string(argc - 1);
-  Tcl_ObjSetVar2(interp,
-                    Tcl_NewStringObj( "argc", -1 ), NULL,
-                    Tcl_NewStringObj( argcStr.c_str(), -1 ),
-                    TCL_GLOBAL_ONLY);
-  Tcl_ObjSetVar2(interp,
-                    Tcl_NewStringObj( "argv0", -1 ), NULL,
-                    Tcl_NewStringObj( argv[0], -1 ),
-                    TCL_GLOBAL_ONLY);
-
-  // Here is one tunable constant that is definitely intended to be hard-coded in:
-   tunableBooleanConstantDeclarator tcInDeveloperMode("developerMode",
-	 "Allow access to all tunable constants, including those limited to developer mode.  (Use with caution)",
-	 false, // initial value
-	 develModeCallback,
-         userConstant);
-
-    tunableConstantRegistry::createFloatTunableConstant
-    ("EnableRequestPacketSize",
-     "Enable request packet size",
-     NULL,
-     developerConstant,
-     10.0, // initial value
-     1.0,  // min
-     100.0); // max
 
   //
   // We check our own read/write events.
@@ -281,10 +213,8 @@ main (int argc, char **argv)
 // get tid of parent
   MAINtid = thr_self();
 
-#if defined(i386_unknown_nt4_0)
   // enable interaction between thread library and RPC package
-  rpcSockCallback += (RPCSockCallbackFunc)thr_update_socket_data_state;
-#endif // defined(i386_unknown_nt4_0)
+  rpcSockCallback += (RPCSockCallbackFunc)clear_ready_sock;
 
 // Structure used to pass initial arguments to data manager
 //  init_struct init; init.tid = MAINtid; init.met_file = fname;
@@ -382,8 +312,6 @@ main (int argc, char **argv)
 #if !defined(i386_unknown_nt4_0)
   mpichUnlinkWrappers();
 #endif // !defined(i386_unknown_nt4_0)
-
-  Tcl_DeleteInterp(interp);
 
 #if !defined(i386_unknown_nt4_0)
   // notify termWin of our demise

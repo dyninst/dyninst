@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCintern.h,v 1.17 2001/06/20 20:37:05 schendel Exp $
+// $Id: PCintern.h,v 1.18 2002/07/25 19:22:30 willb Exp $
 // Included by PC modules only
 
 #ifndef PC_INTERN_H
@@ -50,7 +50,7 @@
 #include "../pdMain/paradyn.h"
 #include "common/h/list.h"
 #include "pdutil/h/PriorityQueue.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "dataManager.thread.CLNT.h"
 #include "UI.thread.CLNT.h"
 #include "../DMthread/DMinclude.h"

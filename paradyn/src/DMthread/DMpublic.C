@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.129 2002/05/13 19:53:02 mjbrim Exp $
+// $Id: DMpublic.C,v 1.130 2002/07/25 19:22:29 willb Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -244,6 +244,16 @@ void startTermWin()
     PDSOCKET tw_sock = RPCprocessCreate("localhost","","termWin","",*av);
     if( tw_sock != PDSOCKET_ERROR )
     {
+		// bind the termWin connection so that we're given notice of
+		// available data on the termWin connection (like its response
+		// to our initial version number handshake)
+		thread_t tw_sock_tid;
+		msg_bind_socket( tw_sock,	// socket
+							true, 	// we will read data off connection
+							NULL,	// no special will_block function
+							NULL,
+							&tw_sock_tid );	// tid assigned to bound socket
+
 		twUser = new termWinUser( tw_sock, NULL, NULL, 0 );
 		if( twUser->errorConditionFound )
 		{

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.50 2002/05/13 19:53:38 mjbrim Exp $ */
+/* $Id: VMmain.C,v 1.51 2002/07/25 19:22:43 willb Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "VM.thread.SRVR.h"
 #include "UI.thread.CLNT.h"
 #include "performanceConsultant.thread.CLNT.h"

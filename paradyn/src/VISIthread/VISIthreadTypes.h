@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: VISIthreadTypes.h,v 1.30 2001/06/20 20:36:23 schendel Exp $ 
+// $Id: VISIthreadTypes.h,v 1.31 2002/07/25 19:22:41 willb Exp $ 
 
 #ifndef VISI_thread_h
 #define VISI_thread_h 
 
 #include "common/h/Vector.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "VM.thread.CLNT.h"
 #include "UI.thread.CLNT.h"
 #include "dataManager.thread.CLNT.h"

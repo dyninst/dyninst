@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.95 2002/06/27 19:01:53 schendel Exp $
+/* $Id: paradyn.tcl.C,v 1.96 2002/07/25 19:22:37 willb Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -53,7 +53,7 @@
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "../TCthread/tunableConst.h"
 #include "VM.thread.CLNT.h"
-#include "thread/h/thread.h"
+#include "pdthread/h/thread.h"
 #include "../pdMain/paradyn.h"
 #include "abstractions.h"
 #include "whereAxisTcl.h"
