@@ -20,6 +20,9 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.17  1996/07/26 14:29:08  karavan
+ *  oops! removed debugging outputs
+ *
  * Revision 1.16  1996/07/26 07:28:13  karavan
  * bug fix: eliminated race condition from data subscription code.  Changed
  * data structures used as indices in class filteredDataServer.  Obsoleted
@@ -277,8 +280,6 @@ void
 PCmetricInst::enableReply (unsigned token1, unsigned token2, unsigned token3,
 				bool successful)
 {
-  cout << "ENABLE REPLY for mh=" << token1 << " fh=" << token2 << 
-    " mi=" << token3 << endl;
   if (EnableStatus == AllDataReady)
     // this is a duplicate; drop it on the floor
     return;
@@ -308,7 +309,6 @@ PCmetricInst::activate()
 {
   if (active) return;
 
-  cout << " PCMETINST ACTIVATE START" << endl;
   inPort *curr;
   AllDataReady = 0;
   // important!!! AllDataReady must be complete before we enter the 
@@ -336,7 +336,6 @@ PCmetricInst::activate()
     //sendEnableReply (0, 0, 0, false);
     //return; }
   }
-  cout << "PCMETINST ACTIVATE END" << endl;
 }
 
 void
