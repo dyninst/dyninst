@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.12 2003/01/23 17:55:49 tlmiller Exp $
+// $Id: BPatch_init.C,v 1.13 2003/03/29 02:02:08 hollings Exp $
 
 #define BPATCH_FILE
 
@@ -63,8 +63,6 @@ pdvector<sym_data> syms_to_findPARADYN;
 pdvector<sym_data> syms_to_find;
 
 bool dyninstAPI_init() {
-
-  sym_data sd;
 
   numberOfCPUs = getNumberOfCPUs();
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.133 2003/03/24 01:38:27 jodom Exp $
+// $Id: aix.C,v 1.134 2003/03/29 02:02:08 hollings Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -90,9 +90,11 @@
 #include "writeBackXCOFF.h"
 #endif
 
+#if !defined(BPATCH_LIBRARY)
 #ifdef USES_PMAPI
 #include <pmapi.h>
 #include "rtinst/h/rthwctr-aix.h"
+#endif
 #endif
 
 const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
