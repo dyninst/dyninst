@@ -61,8 +61,8 @@ class FERNode {
     //   shifted....
     int shift;
   public:
-    int OriginalOffset() {return original_offset;}
-    int Shift() {return shift;}
+    int OriginalOffset() const {return original_offset;}
+    int Shift() const {return shift;}
     void SetShift(int val) {shift = val;}
     FERNode(int toffset = 0, int tshift = 0);
     friend ostream &operator<<(ostream &os, const FERNode &nd);
@@ -111,6 +111,8 @@ class FunctionExpansionRecord {
     //  records - use BEFORE GetShift()....
     void Collapse();
 
+    // Two versions: const (and inefficient) and nonconst.
+    int GetShift(int original_offset) const;
     int GetShift(int original_offset);
     FunctionExpansionRecord();
 

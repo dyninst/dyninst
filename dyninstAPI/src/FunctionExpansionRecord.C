@@ -91,6 +91,7 @@ void FunctionExpansionRecord::Flush() {
 
 
 // updated for function relocation
+// Non-const version: caches last matching shift index
 int FunctionExpansionRecord::GetShift(int original_offset) {
     int stop;
 
@@ -124,6 +125,46 @@ int FunctionExpansionRecord::GetShift(int original_offset) {
 	index++;
     }
     return total_expansions[index].Shift();
+} 
+
+
+// updated for function relocation
+// const version: doesn't update "last used" index.
+
+int FunctionExpansionRecord::GetShift(int original_offset) const {
+    int stop;
+    int index_must_be_const = 0;
+
+    assert(collapsed);
+
+    // list of expansions empty, shift always 0....
+    if (total_expansions.size() <= 0) {
+	return 0;
+    }
+
+    // original_offset < lowest expansion record offset, offset 0....
+    if (original_offset < total_expansions[0].OriginalOffset()) {
+	return 0;
+    }
+
+    stop = total_expansions.size() - 1;
+    // original_offset >= highest expansion record offset, offset of
+    //  highest expansion record....
+    if (original_offset > total_expansions[stop].OriginalOffset()) {
+	return totalShift;
+    } 
+
+    // index points too far into expansions, reset it to 0...
+    if (original_offset < total_expansions[index_must_be_const].OriginalOffset()) {
+	stop = index;
+	index_must_be_const = 0;
+    }
+
+    while (index_must_be_const < stop && original_offset > \
+	    total_expansions[index_must_be_const].OriginalOffset()) {
+	index_must_be_const++;
+    }
+    return total_expansions[index_must_be_const].Shift();
 } 
 
 // added for function relocation
