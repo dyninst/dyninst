@@ -65,8 +65,7 @@ class instrDataNode {
  public:
   static int incrementCounterId() {  return ++counterId;  }
   // styles are enumerated in aggregation.h
-  instrDataNode(process *proc_, unsigned type, inst_var_index var_index, 
-		bool arg_dontInsertData);
+  instrDataNode(process *proc_, unsigned type, bool arg_dontInsertData);
 
   bool dontInsertData() { return dontInsertData_; }
   Address getInferiorPtr() const;

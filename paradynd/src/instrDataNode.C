@@ -52,9 +52,8 @@ extern pdDebug_ostream metric_cerr;
 
 
 instrDataNode::instrDataNode(process *proc_, unsigned type,
-			     inst_var_index var_index, bool arg_dontInsertData)
-  : proc(proc_), varIndex(var_index), thrNodeClientSet(false), 
-    dontInsertData_(arg_dontInsertData)
+			     bool arg_dontInsertData)
+  : proc(proc_), thrNodeClientSet(false), dontInsertData_(arg_dontInsertData)
 { 
   switch (type) {
     case MDL_T_COUNTER:
@@ -73,6 +72,9 @@ instrDataNode::instrDataNode(process *proc_, unsigned type,
     default:
       assert(0);  break;
   }
+
+  variableMgr &varMgr = proc->getVariableMgr();
+  varIndex = varMgr.allocateForInstVar(varType);
 }
 
 
