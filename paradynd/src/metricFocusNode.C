@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.67  1996/01/29 22:09:30  mjrg
+ * Revision 1.68  1996/01/31 19:49:56  newhall
+ * changes to do average aggregation correctly
+ *
+ * Revision 1.67  1996/01/29  22:09:30  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines
  * Daemons don't enable internal metrics when they are not running any processes
@@ -726,7 +729,8 @@ void flush_batch_buffer(int program) {
 }
 
 void batchSampleData(int program, int mid, double startTimeStamp,
-                     double endTimeStamp, double value) 
+                     double endTimeStamp, double value, unsigned val_weight,
+		     bool internal_metric) 
 {
    // This routine is called where we used to call tp->sampleDataCallbackFunc.
    // We buffer things up and eventually call tp->batchSampleDataCallbackFunc
@@ -752,18 +756,21 @@ void batchSampleData(int program, int mid, double startTimeStamp,
    theEntry.startTimeStamp = startTimeStamp;
    theEntry.endTimeStamp = endTimeStamp;
    theEntry.value = value;
+   theEntry.weight = val_weight;
+   theEntry.internal_met = internal_metric;
    batch_buffer_next++;
 }
 
 void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
-                                       sampleValue value)
+                                       sampleValue value, unsigned weight,
+				       bool internal_met)
 {
   // TODO mdc
     assert(start >= (firstRecordTime/MILLION));
     assert(end >= (firstRecordTime/MILLION));
     assert(end > start);
 
-    batchSampleData(0, id_, start, end, value);
+    batchSampleData(0, id_, start, end, value, weight, internal_met);
 }
 
 void metricDefinitionNode::updateValue(time64 wallTime, 
@@ -842,7 +849,8 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 
 //        double time1 = getCurrentTime(false);
 
-        batchSampleData(0, id_, ret.start, ret.end, ret.value);
+        batchSampleData(0, id_, ret.start, ret.end, ret.value,
+			valueList.count(),false);
 
 //        double diffTime = getCurrentTime(false) - time1;
 //        if (diffTime > 0.2) {
@@ -866,7 +874,8 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
         assert(ret.start >= (firstRecordTime/MILLION));
         assert(ret.end >= (firstRecordTime/MILLION));
 
-        batchSampleData(0, id_, ret.start, ret.end, ret.value);
+        batchSampleData(0, id_, ret.start, ret.end, ret.value,
+			valueList.count(),false);
     }
 }
 
@@ -1281,7 +1290,7 @@ void reportInternalMetrics()
         } else if (imp->style() == SampledFunction) {
           value = imp->getValue();
         }
-        imp->node->forwardSimpleValue(start, end, value);
+        imp->node->forwardSimpleValue(start, end, value,1,true);
       }
 }
 

@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.23  1996/01/29 22:09:32  mjrg
+ * Revision 1.24  1996/01/31 19:49:59  newhall
+ * changes to do average aggregation correctly
+ *
+ * Revision 1.23  1996/01/29  22:09:32  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines
  * Daemons don't enable internal metrics when they are not running any processes
@@ -217,7 +220,7 @@ public:
   ~metricDefinitionNode();
   void disable();
   void updateValue(time64, sampleValue);
-  void forwardSimpleValue(timeStamp, timeStamp, sampleValue);
+  void forwardSimpleValue(timeStamp, timeStamp, sampleValue,unsigned,bool);
 
   string getMetName() const { return met_; }
   string getFullName() const { return flat_name_; }
