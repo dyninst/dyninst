@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.295 2002/02/11 22:02:23 tlmiller Exp $
+// $Id: process.C,v 1.296 2002/02/12 15:42:04 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1703,25 +1703,35 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 	// ccw: 28 oct 2001
 	// create imageUpdate here:
 	// imageUpdate(h->addr,size)
-#ifdef BPATCH_LIBRARY
-#ifdef sparc_sun_solaris2_4 
-	if(h->addr < 0xF0000000){
-		imageUpdate *imagePatch=new imageUpdate; 
-		imagePatch->address = h->addr;
-		imagePatch->size = size;
-		p->imageUpdates.push_back(imagePatch);
-		//printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size); 
-	}else{
-		//printf(" HIGHMEM UPDATE %x %x\n", h->addr, size);
-                imageUpdate *imagePatch=new imageUpdate;
-                imagePatch->address = h->addr;
-                imagePatch->size = size;
-                p->highmemUpdates.push_back(imagePatch);
-                //printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
 
+#ifdef BPATCH_LIBRARY
+#if defined(sparc_sun_solaris2_4 ) || defined(i386_unknown_linux2_0)
+	if(p->collectSaveWorldData){
+
+#if defined(sparc_sun_solaris2_4)
+		if(h->addr < 0xF0000000){
+#elif defined(i386_unknown_linux2_0)
+		if(h->addr < 0x40000000){
+#endif	
+			imageUpdate *imagePatch=new imageUpdate; 
+			imagePatch->address = h->addr;
+			imagePatch->size = size;
+			p->imageUpdates.push_back(imagePatch);
+			//printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size); 
+		}else{
+			//printf(" HIGHMEM UPDATE %x %x\n", h->addr, size);
+                	imageUpdate *imagePatch=new imageUpdate;
+	                imagePatch->address = h->addr;
+        	        imagePatch->size = size;
+                	p->highmemUpdates.push_back(imagePatch);
+	                //printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
+
+		}
+		//fflush(stdout);
 	}
 #endif
 #endif
+	
   return(h->addr);
 }
 

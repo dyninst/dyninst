@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.107 2002/02/05 17:01:38 chadd Exp $
+// $Id: solaris.C,v 1.108 2002/02/12 15:42:05 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -269,15 +269,25 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	newElf->registerProcess(this);
 
 	imageUpdates.sort(imageUpdate::imageUpdateSort);// imageUpdate::mysort ); 
-	newElf->compactSections(imageUpdates,compactedUpdates);
+	newElf->compactLoadableSections(imageUpdates,compactedUpdates);
 
 	highmemUpdates.sort( imageUpdate::imageUpdateSort);
 	newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
 	newElf->alignHighMem(compactedHighmemUpdates);
+//in practice only one dyninstAPI_ section is created
+//because the tramps are so close together in memory. 
+//so we force this to be the case (in theory there could be
+//two or more sections) so that we know that there is
+//no new loadable segment added, and NOTHING is shifted
+//in the file, which simpilifies writeBackElf ALOT!
 
 	//for loop to add sections.....
-	for(unsigned int i=0;i<compactedUpdates.size();i++){
+	//for(unsigned int i=0;i<compactedUpdates.size();i++){
+	if(compactedUpdates.size() > 1){
+		printf(" ERROR! compacted updates contains too many sections\n");
+	}
+	unsigned int i = 0;
 		(char*) data = new char[compactedUpdates[i]->size];
 		readDataSpace((void*) compactedUpdates[i]->address, compactedUpdates[i]->size, 	
 			data, true);	
@@ -296,7 +306,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 		sprintf(name,"dyninstAPI_%08x",i);
 		newElf->addSection(compactedUpdates[i]->address,data ,compactedUpdates[i]->size,name); 
 		delete [] (char*) data;
-	}
+	//}
 
 	unsigned int pageSize = getpagesize();
 	unsigned int startPage, stopPage;
@@ -341,7 +351,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 
 		//fill in address of update
 		//fill in size of update
-		for(unsigned index = startIndex; index<=stopIndex;index++){
+		for(unsigned index = startIndex; index< highmemUpdates.size() && index<=stopIndex;index++){
 			memcpy(dataPtr, &highmemUpdates[index]->address ,sizeof(unsigned int));	
 			dataPtr ++;
 			memcpy(dataPtr, &highmemUpdates[index]->size, sizeof(unsigned int));
@@ -388,6 +398,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 			sizeofDataUpdatesData, "dyninstAPI_data", false);
 		delete [] (char*) dataUpdatesData;
 	}
+
 
 	if(mutatedSharedObjectsSize){
 		newElf->addSection(0 ,mutatedSharedObjects, 

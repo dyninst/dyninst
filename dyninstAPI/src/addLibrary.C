@@ -1,4 +1,4 @@
-/* $Id: addLibrary.C,v 1.2 2002/02/05 17:01:37 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.3 2002/02/12 15:42:03 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 
@@ -100,9 +100,7 @@ void addLibrary::updateRela(Elf_Data* newData,int shift, unsigned int shiftIndex
         }
 
 }
-void addLibrary::updateGOT(Elf_Data* GOTData,unsigned int dynamicAddr){
-        ((Elf32_Rela*) GOTData->d_buf)->r_offset = dynamicAddr;
-}
+
 void addLibrary::updateSymbols(Elf_Data* symtabData, Elf_Data *oldsymData,
                        RelocationData relocData, int maxShndx){
 
@@ -131,7 +129,6 @@ void addLibrary::updateSymbols(Elf_Data* symtabData, Elf_Data *oldsymData,
                                 printf("2: %d: %lx %d --> %lx %d \n",i,oldsymPtr->st_value, oldsymPtr->st_shndx,
                                         symPtr->st_value, symPtr->st_shndx);
                         }
-
                 }else if(i==relocData.newdynamicIndx){
                         oldsymPtr--;
                         memcpy(symPtr,oldsymPtr,sizeof(Elf32_Sym));
@@ -141,7 +138,6 @@ void addLibrary::updateSymbols(Elf_Data* symtabData, Elf_Data *oldsymData,
                                 printf("3: %d: %lx %d --> %lx %d \n",i,oldsymPtr->st_value, oldsymPtr->st_shndx,
                                         symPtr->st_value, symPtr->st_shndx);
                         }
-
                 }else{
                         memcpy(symPtr,oldsymPtr,sizeof(Elf32_Sym));
                         if(symPtr->st_shndx < maxShndx){
@@ -158,7 +154,7 @@ void addLibrary::updateSymbols(Elf_Data* symtabData, Elf_Data *oldsymData,
                                         symPtr->st_value, symPtr->st_shndx);
                         }
                 }
-                if(oldsymPtr->st_shndx==relocData.olddynamicIndx){
+		if(oldsymPtr->st_shndx==relocData.olddynamicIndx){
                         symPtr->st_shndx=relocData.newdynamicIndx;
                 }
                 if(oldsymPtr->st_value == relocData.olddynamicAddr){
@@ -185,8 +181,8 @@ void addLibrary::updateSh_link(Elf32_Word *sh_link,RelocationData relocData){
 
         if(relocData.newdynsymIndx && *sh_link>relocData.newdynsymIndx){
                 (*sh_link)++;
-        }
 
+        }
         if(relocData.newdynamicIndx&& *sh_link>relocData.newdynamicIndx){
                 (*sh_link)++;
         }
@@ -196,32 +192,6 @@ void addLibrary::updateSh_link(Elf32_Word *sh_link,RelocationData relocData){
 
 }
 
-void addLibrary::updateSymTab(Elf_Data* symData, RelocationData relocData, int shift,
-                        int max, Elf_Data*symstrPtr){
-
-
-        Elf32_Sym* symPtr;
-        int  count = symData->d_size / sizeof(Elf32_Sym);
-        symPtr = (Elf32_Sym*) symData->d_buf;
-
-        for(int i = 1; i<count; i++){
-
-                if(symPtr->st_shndx == relocData.olddynsymIndx){
-                        symPtr->st_shndx = relocData.newdynsymIndx;
-                }else if(symPtr->st_shndx == relocData.olddynstrIndx){
-                        symPtr->st_shndx = relocData.newdynstrIndx;
-                }else if(symPtr->st_shndx > relocData.newdynstrIndx-1 && symPtr->st_shndx < max){
-                        symPtr->st_shndx+=shift;
-                }
-
-                if(debugFlag){
-                        printf(" SYMBOL %s\t\t%x\t%d\n", (char*) symstrPtr->d_buf+ symPtr->st_name,
-                                symPtr->st_other, symPtr->st_shndx);
-                }
-                symPtr++;
-        }
-
-}
 void addLibrary::updateSectionHdrs(Elf * newElf){
 Elf_Scn *scn;
 Elf32_Shdr *shdr;
@@ -268,6 +238,7 @@ int fix,newAddr;
                 shdr->sh_addr = newAddr;
         }
 }
+
 void addLibrary::updateProgramHdrs(Elf *newElf,int size, unsigned int gotOffset, Elf32_Word dynamicAddr,
             Elf32_Word dynamicOffset, int bssSize,int dynamicSize, int dynSize){
 
@@ -276,19 +247,9 @@ void addLibrary::updateProgramHdrs(Elf *newElf,int size, unsigned int gotOffset,
 
         phdr= elf32_getphdr(newElf);
 
-        phdr[2].p_filesz+=size;
-        phdr[2].p_memsz+=size;
+        phdr[3/*2*/].p_filesz+=size;
+        phdr[3/*2*/].p_memsz+=size;
 
-        if(gotOffset){
-                phdr[3].p_offset = (gotOffset>dynamicOffset? dynamicOffset: gotOffset);
-                //gotAddr;//dynamicOffset;//gotAddr;
-        }
-        if(dynamicAddr){
-                phdr[4].p_vaddr = dynamicAddr;
-                phdr[4].p_paddr = dynamicAddr;
-                phdr[4].p_offset = dynamicOffset;
-                phdr[4].p_filesz = dynamicSize;
-        }
         if(debugFlag){
                 printf(" updateProgramHdrs %x %x %lx %lx %x %x\n", size, gotOffset, dynamicAddr,
                         dynamicOffset, bssSize,  dynamicSize);
@@ -445,7 +406,7 @@ void addLibrary::driver(){
                 }
                 if( !strcmp((char*)strData->d_buf+shdr->sh_name,".rela.bss")){
                         newShdr->sh_link=relocData.newdynsymIndx;
-                        updateSh_link(&newShdr->sh_info,relocData);
+                        //updateSh_link(&newShdr->sh_info,relocData);
                         updateRela(newData,3,relocData.newdynstrIndx);
                 }
 
@@ -465,7 +426,7 @@ void addLibrary::driver(){
  
 		}
 
-                if( !strcmp((char *)strData->d_buf + shdr->sh_name, ".rodata")){
+                if( !strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_00000000")){//".rodata")){
                         if(dynstrData){
 
                                 newScn = elf_newscn(newElf);
@@ -557,7 +518,6 @@ void addLibrary::driver(){
                 }
                 updateDynamic(dynamicDataNew, relocData.newdynstrAddr, relocData.newdynsymAddr);
         }
-        updateSymTab(symtabData,relocData, 2, newEhdr->e_shnum-2,symstrData);
 	
         elf_update(newElf, ELF_C_NULL);
         for (scn = NULL,cnt=0; (scn = elf_nextscn(newElf, scn)); cnt++) {
@@ -578,7 +538,6 @@ void addLibrary::driver(){
         updateSymbols(dynsymData, olddynsymData,relocData,newEhdr->e_shnum-1);
         updateSymbols(symtabData, oldsymtabData,relocData,newEhdr->e_shnum-1);
         remakeHash(hashData, dynsymData, dynstrData);
-        updateGOT(GOTData,relocData.newdynamicAddr);
 
         elf_update(newElf, ELF_C_NULL);
 
@@ -611,7 +570,7 @@ void addLibrary::parseOldElf(){
                         relocData.olddynsymAddr = shdr->sh_addr;
                 }
 
-                if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".rodata")){
+                if(!strcmp((char *)strData->d_buf + shdr->sh_name,"dyninstAPI_00000000")){ // ".rodata")){
                         relocData.newdynstrIndx = cnt+2;
                         relocData.newdynsymIndx = cnt+3;
 

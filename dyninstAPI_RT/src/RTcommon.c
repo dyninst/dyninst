@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.19 2002/02/05 17:01:40 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.20 2002/02/12 15:42:06 chadd Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -57,16 +57,30 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 
-#if defined(sparc_sun_solaris2_4) /* ccw 19 nov 2001*/
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) /* ccw 19 nov 2001*/
 #include  <fcntl.h>
+
+#if defined(sparc_sun_solaris2_4)
 #include  <libelf.h>
+#elif defined(i386_unknown_linux2_0)
+#include <libelf/libelf.h>
+#define __USE_GNU
+#endif
+
 #include <sys/mman.h>
 #include <dlfcn.h>
 #include <link.h> /* ccw 23 jan 2002 */
+#if defined(sparc_sun_solaris2_4) 
 #include <sys/link.h>
+#endif
 #include <limits.h>
-extern void* _DYNAMIC;
 
+#if defined(sparc_sun_solaris2_4)
+extern void* _DYNAMIC;
+#elif defined(i386_unknown_linux2_0)
+extern ElfW(Dyn) _DYNAMIC[];
+
+#endif
 typedef struct {
       Elf32_Sword d_tag;
       union {
@@ -128,9 +142,10 @@ int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; /*ccw 
 #endif
 
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
 unsigned int checkAddr;
+int isElfFile=0;
 
 int checkSO(char* soName){
 	Elf32_Shdr *shdr;
@@ -193,10 +208,14 @@ int checkElfFile(){
 	int soError = 0; 
 	elf_version(EV_CURRENT);
 
+#if defined(sparc_sun_solaris2_4)
         sprintf(execStr,"/proc/%d/object/a.out",getpid());
-	
+#elif defined(i386_unknown_linux2_0)
+	sprintf(execStr,"/proc/%d/exe",getpid());
+#endif
+
         if((fd = (int) open(execStr, O_RDONLY)) == -1){
-                RTprintf("cannot open : %s\n",execStr);
+                printf("cannot open : %s\n",execStr);
     		fflush(stdout); 
 		return;
         }
@@ -237,7 +256,11 @@ int checkElfFile(){
 			char *soNames;
 			int totallen=0;
 			__Elf32_Dyn *_dyn = (__Elf32_Dyn*)& _DYNAMIC;	
+#if defined(sparc_sun_solaris2_4)
 			Link_map *lmap=0;
+#elif defined(i386_unknown_linux2_0)
+			struct link_map *lmap=0;
+#endif
 			struct r_debug *_r_debug;
 			char *loadedname, *dyninstname;
 
@@ -271,6 +294,7 @@ int checkElfFile(){
 								soError = 1;
 			
 							}
+
 			
 						}
 						lmap = lmap->l_next;
@@ -278,8 +302,9 @@ int checkElfFile(){
 				}
 
 			}
+		}
 
-		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPIhighmem_",18)){
+		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPIhighmem_",18)){
 			/*the layout of dyninstAPIhighmem_ is:
 			pageData
 			address of update
@@ -295,11 +320,15 @@ int checkElfFile(){
 			page, the apply the updates to it, and then
 			write it back.
 			*/
+
+			int oldPageDataSize;
+			retVal = 1; /* just to be sure */
 			elfData = elf_getdata(scn, NULL);
-			numberUpdates = (unsigned int) ( ((char*) elfData->d_buf)[
-				elfData->d_size - sizeof(unsigned int)]);
-			oldPageData = (char*) malloc(shdr->sh_size-((2*numberUpdates+1)*
-				sizeof(unsigned int)) );	
+			numberUpdates = (unsigned int) ( ((unsigned int*) elfData->d_buf)[
+				(elfData->d_size - sizeof(unsigned int))/ sizeof(unsigned int) ]);
+			oldPageDataSize = shdr->sh_size-((2*numberUpdates+1)*
+				sizeof(unsigned int)) ;
+			oldPageData = (char*) malloc(oldPageDataSize);
 			/*copy old page data */
 
 			/* probe memory to see if we own it */
@@ -318,23 +347,26 @@ int checkElfFile(){
 				memcpy(oldPageData, (void*) shdr->sh_addr, updateSize);
 			}
 	
-			dataPtr =(unsigned int*) &(((char*)  elfData->d_buf)[sizeof(oldPageData)]);	
+			dataPtr =(unsigned int*) &(((char*)  elfData->d_buf)[oldPageDataSize]);	
 			/*apply updates*/
-			for(i = 0; i<= numberUpdates; i++){
+			for(i = 0; i< numberUpdates; i++){
 				updateAddress = *dataPtr; 
 				updateSize = *(++dataPtr);
 
 				updateOffset = updateAddress - shdr->sh_addr;
 				/*do update*/	
+				/*printf("i %d  updateAddress 0x%x updateSize 0x%x updateOffset 0x%x totalSize: %x\n",
+						i,updateAddress,updateSize,updateOffset, oldPageDataSize);*/
 				memcpy(&( oldPageData[updateOffset]),
-					&(((char*)elfData->d_buf)[updateOffset]) , updateSize);	
+						&(((char*)elfData->d_buf)[updateOffset]) , updateSize);	
+				dataPtr ++;
 			} 
 			if(!checkAddr){
 				mmapAddr = shdr->sh_offset + pageSize- (shdr->sh_offset % pageSize);
 				mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,sizeof(oldPageData), 
 					PROT_READ|PROT_WRITE|PROT_EXEC, MAP_FIXED| MAP_PRIVATE,fd,mmapAddr);
 			}else{
-				memcpy((void*) shdr->sh_addr, oldPageData, updateSize);
+				memcpy((void*) shdr->sh_addr, oldPageData,oldPageDataSize );
 			}
 		}
 
@@ -352,6 +384,25 @@ int checkElfFile(){
 
 #endif
 
+#if defined(i386_unknown_linux2_0) 
+/* with solaris, the mutatee has a jump from
+ * main() to a trampoline that calls DYNINSTinit() the
+ * trampoline resides in the area that was previously
+ * the heap, this trampoline is loaded as part of the
+ * data segment
+ *
+ * with linux the trampolines are ALL in the big
+ * array at the top of this file and so are not loaded
+ * by the loader as part of the data segment. this
+ * needs to be called to map in everything before
+ * main() jumps to the big array
+ */ 
+void _init(){
+
+	isElfFile =checkElfFile();
+}
+#endif
+
 
 /*
  * The Dyninst API arranges for this function to be called at the entry to
@@ -365,10 +416,14 @@ void DYNINSTinit(int cause, int pid)
     initFPU();
 
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	/* this checks to see if this is a restart or a
 	  	normal attach  ccw 19 nov 2001*/
-	isRestart = checkElfFile();	
+    	if(!isElfFile){ /* on linux, dont check this twice (first in _init() ) */
+		isRestart = checkElfFile();	
+	}else{
+		isRestart = isElfFile;
+	}
 	if(isRestart){
 		fflush(stdout);
 		cause = 9;

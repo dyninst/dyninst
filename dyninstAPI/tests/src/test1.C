@@ -87,7 +87,8 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
         bpatch->formatErrorString(line, sizeof(line), msg, params);
         
         if (num != expectError) {
-            printf("Error #%d (level %d): %s\n", num, level, line);
+		if(num != 112)
+    		printf("Error #%d (level %d): %s\n", num, level, line);
         
             // We consider some errors fatal.
             if (num == 101) {
@@ -3640,7 +3641,8 @@ int mutatorMAIN(char *pathname, bool useAttach)
 	fprintf(stderr, "Unable to run test program.\n");
 	exit(1);
     }
-#if defined(sparc_sun_solaris2_4) /* this is only supported on sparc solaris */
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+    /* this is only supported on sparc solaris  and linux*/
 	/* this call tells the process to collect data for the 
 	save the world functionality
 	*/	
@@ -3756,9 +3758,15 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
 	test case 22 fails on the saved mutatee because it deals with shared
 	libraries.
+
+	On linux test 20 also fails.  On x86, to instrument and arbitrary
+	instruction, we place a 0xcc breakpoint in the mutatee and have
+	the mutator catch it. Obviously with no mutator that will not
+	work.
 */
 
-#ifdef sparc_sun_solaris2_4 /* this is only supported on sparc solaris */
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+    /* this is only supported on sparc solaris and linux*/
 
     	if( saveWorld ) {
         	char *mutatedName = new char[strlen(pathname) + strlen("_mutated") +1];
@@ -3771,6 +3779,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 		}else{
 			printf("Error: No directory name returned\n");
 		}
+		//appThread->detach(false);
 	}
 #endif
     // Start of code to continue the process.  All mutations made
@@ -3834,7 +3843,7 @@ main(unsigned int argc, char *argv[])
         if (strncmp(argv[i], "-v++", 4) == 0)   errorPrint++;
 	if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
-#ifdef sparc_sun_solaris2_4
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	}else if (!strcmp(argv[i], "-saveworld")) {
 		saveWorld = 1;
 #endif
@@ -3902,7 +3911,7 @@ main(unsigned int argc, char *argv[])
 #if defined(mips_sgi_irix6_4)
 		    "[-n32] "
 #endif
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 		    "[-saveworld] "
 #endif 
                     "[-mutatee <test1.mutatee>] "

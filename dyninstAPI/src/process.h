@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.178 2002/02/11 22:02:24 tlmiller Exp $
+/* $Id: process.h,v 1.179 2002/02/12 15:42:04 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -550,7 +550,7 @@ class process {
   bool setProcfsFlags();
   bool dumpImage(string outFile);
 
-#ifdef sparc_sun_solaris2_4
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   char* dumpPatchedImage(string outFile);//ccw 28 oct 2001
 #else
   char* dumpPatchedImage(string outFile) { return NULL; } 
@@ -665,7 +665,7 @@ class process {
 #endif
 
 #ifdef BPATCH_LIBRARY
-#ifdef sparc_sun_solaris2_4
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   vector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
   vector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
   vector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001

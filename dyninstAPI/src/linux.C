@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.56 2002/02/07 20:30:27 cortes Exp $
+// $Id: linux.C,v 1.57 2002/02/12 15:42:04 chadd Exp $
 
 #include <fstream.h>
 
@@ -70,6 +70,13 @@
 #include "common/h/Time.h"
 #include "common/h/timing.h"
 #include "paradynd/src/init.h"
+#endif
+
+#if defined(BPATCH_LIBRARY)
+#include "dyninstAPI/src/addLibraryLinux.h"
+#include "dyninstAPI/src/writeBackElf.h"
+#include "saveSharedLibrary.h" 
+
 #endif
 
 #ifdef HRTIME
@@ -1461,6 +1468,32 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
      unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
      unsigned cnt;
 
+#if defined(BPATCH_LIBRARY)
+#if defined(i386_unknown_linux2_0)
+	if(collectSaveWorldData &&  ((Address) inTraced) > getDyn()->getlowestSObaseaddr() ){
+		shared_object *sh_obj;
+		bool result = false;
+		for(int i = 0; shared_objects && !result && i<shared_objects->size();i++){
+			sh_obj = (*shared_objects)[i];
+			result = sh_obj->isinText((Address) inTraced);
+		}
+		if( result  ){
+			if(strcmp(findFuncByAddr((Address)inTraced)->prettyName().string_of(), 
+						"__libc_sigaction")){
+				//for linux we instrument sigactiont to watch libraries
+				//being loaded. dont consider libc.so mutated because of 
+				//this	
+				/*printf(" write at %lx in %s amount %x insn: %x \n", 
+				(off_t)inTraced, sh_obj->getName().string_of(), nbytes,
+				 *(unsigned int*) inSelf);
+				 */
+				sh_obj->setDirty();	
+			}
+		}
+	}
+#endif
+#endif
+
      ptraceOps++; ptraceBytes += nbytes;
 
      if (0 == nbytes)
@@ -1825,6 +1858,209 @@ bool process::loopUntilStopped() {
      }
      return true;
 }
+
+#ifdef BPATCH_LIBRARY
+
+char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002 
+
+	addLibrary addLibraryElf;
+	void *data;
+	unsigned int errFlag=0;
+	char name[50];
+	vector<imageUpdate*> compactedHighmemUpdates;
+	Address guardFlagAddr= getTrampGuardFlagAddr();
+	unsigned int lastCompactedUpdateAddress;
+	char *mutatedSharedObjects=0;
+	int mutatedSharedObjectsSize = 0, mutatedSharedObjectsIndex=0;
+	int dirNo =0;
+	char *directoryName = 0;
+	char *directoryNameExt = "_dyninstsaved";
+	bool dlopenUsed = false;
+
+	if(!collectSaveWorldData){
+                BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::startSaveWorld() not called.  No mutated binary saved\n");
+                return NULL;
+        }
+        directoryName = new char[strlen(( char*) getImage()->file().string_of()) +
+                        strlen(directoryNameExt) + 3+1+1];
+	sprintf(directoryName,"%s%s%x",(char*)getImage()->file().string_of(), directoryNameExt,dirNo);
+        while(dirNo < 0x1000 && mkdir(directoryName, S_IRWXU) ){
+                 if(errno == EEXIST){
+                         dirNo ++;
+                 }else{
+                         BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
+                         delete [] directoryName;
+                         return NULL;
+                 }
+                 sprintf(directoryName, "%s%s%x",(char*)getImage()->file().string_of(),
+                         directoryNameExt,dirNo);
+        }
+	if(dirNo == 0x1000){
+	         BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
+	         delete [] directoryName;
+	         return NULL;
+	}
+	strcat(directoryName, "/");	
+	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.string_of())+1];
+        strcpy(fullName, directoryName);
+        strcat(fullName, (char*)imageFileName.string_of());
+
+
+	shared_object *sh_obj;
+	for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
+		sh_obj = (*shared_objects)[i];
+		if(sh_obj->isDirty()){
+			if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
+				BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
+				dlopenUsed = true;
+			}			
+			printf(" %s is DIRTY!\n", sh_obj->getName().string_of());
+		
+			Address textAddr, textSize;
+			char *file, *newName = new char[strlen(sh_obj->getName().string_of()) + 
+					strlen(directoryName) + 1];
+			memcpy(newName, directoryName, strlen(directoryName)+1);
+      			file = strrchr( sh_obj->getName().string_of(), '/');
+			strcat(newName,file);
+ 	
+	  		saveSharedLibrary *sharedObj = new saveSharedLibrary(
+				sh_obj->getBaseAddress(), sh_obj->getName().string_of(),
+				newName);
+                	sharedObj->writeLibrary();
+
+                	sharedObj->getTextInfo(textAddr, textSize);
+
+                	char *textSection = new char[textSize];
+                	readDataSpace((void*) (textAddr+ sh_obj->getBaseAddress()),
+				textSize,(void*)textSection, true);
+
+                	sharedObj->saveMutations(textSection);
+                	sharedObj->closeLibrary();
+
+			mutatedSharedObjectsSize += strlen(sh_obj->getName().string_of()) +1 ;
+			delete [] textSection;
+			delete [] newName;
+		}
+	}
+	if(mutatedSharedObjectsSize){
+		mutatedSharedObjects = new char[mutatedSharedObjectsSize ];
+		for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
+			sh_obj = (*shared_objects)[i];
+			if(sh_obj->isDirty()){
+				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
+					sh_obj->getName().string_of(),
+					strlen(sh_obj->getName().string_of())+1);
+				mutatedSharedObjectsIndex += strlen(
+					sh_obj->getName().string_of())+1;
+			}
+		}	
+	}
+
+	
+        writeBackElf *newElf = new writeBackElf(( char*) getImage()->file().string_of(),
+			                "/tmp/dyninstMutatee",errFlag);
+        newElf->registerProcess(this);
+
+
+        highmemUpdates.sort( imageUpdate::imageUpdateSort);
+        newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
+
+        newElf->alignHighMem(compactedHighmemUpdates);
+
+
+	unsigned int trampGuardValue;
+	unsigned int pageSize = getpagesize();
+        unsigned int startPage, stopPage;
+        unsigned int numberUpdates=1;
+        int startIndex, stopIndex;
+	readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),(void*) &trampGuardValue, true);
+
+	writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int),(void*) &numberUpdates);
+
+        for(unsigned int j=0;j<compactedHighmemUpdates.size();j++){
+	  //the layout of dyninstAPIhighmem_%08x is:
+	  //pageData
+	  //address of update
+	  //size of update
+	  // ...
+	  //address of update
+	  //size of update
+	  //number of updates
+
+		startPage =  compactedHighmemUpdates[j]->address - compactedHighmemUpdates[j]->address%pageSize;
+                stopPage = compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size-
+		  (compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size )%pageSize;
+                numberUpdates = 0;
+                startIndex = -1;
+                stopIndex = -1;
+
+			
+                for(unsigned index = 0;index < highmemUpdates.size(); index++){
+		  	if(startPage <= highmemUpdates[index]->address &&
+		     		highmemUpdates[index]->address  < (startPage + compactedHighmemUpdates[j]->size)){
+		    		numberUpdates ++;
+		    		stopIndex = index;
+		    		if(startIndex == -1){
+		      			startIndex = index;
+		    		}
+		  	}
+                }
+                unsigned int dataSize = compactedHighmemUpdates[j]->size + sizeof(unsigned int) +
+		  (2*numberUpdates * sizeof(unsigned int));
+
+                (char*) data = new char[dataSize];
+
+                //fill in pageData
+                readDataSpace((void*) compactedHighmemUpdates[j]->address, compactedHighmemUpdates[j]->size,
+			      data, true);
+
+                unsigned int *dataPtr = (unsigned int*) ( (char*) data + compactedHighmemUpdates[j]->size);
+
+                //fill in address of update
+                //fill in size of update
+                for(unsigned index = startIndex; index<=stopIndex;index++){
+		  	memcpy(dataPtr, &highmemUpdates[index]->address ,sizeof(unsigned int));
+		  	dataPtr ++;
+		  	memcpy(dataPtr, &highmemUpdates[index]->size, sizeof(unsigned int));
+		  	dataPtr++;
+                }
+                //fill in number of updates
+                memcpy(dataPtr, &numberUpdates, sizeof(unsigned int));
+                sprintf(name,"dyninstAPIhighmem_%08x",j);
+
+                newElf->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);
+
+                lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
+                delete [] (char*) data;
+        }
+	writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int), (void*)&trampGuardValue);
+
+	unsigned int k;
+
+        for( k=0;k<imageUpdates.size();k++){
+	  delete imageUpdates[k];
+        }
+
+        for( k=0;k<highmemUpdates.size();k++){
+	  delete highmemUpdates[k];
+        }
+
+        for(  k=0;k<compactedHighmemUpdates.size();k++){
+	  delete compactedHighmemUpdates[k];
+        }
+	if(mutatedSharedObjectsSize){
+		newElf->addSection(0 ,mutatedSharedObjects, 
+			mutatedSharedObjectsSize, "dyninstAPI_mutatedSO", false);
+	}
+
+        newElf->createElf();
+
+       	addLibraryElf.driver(newElf->getElf(),fullName, "libdyninstAPI_RT.so.1");	
+	return directoryName;	
+
+}
+
+#endif
 
 #ifndef BPATCH_LIBRARY
 bool process::dumpImage() {return false;}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.26 2002/02/05 17:01:38 chadd Exp $
+// $Id: sharedobject.h,v 1.27 2002/02/12 15:42:05 chadd Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -117,7 +117,7 @@ public:
     void  setBaseAddress(Address new_ba){ base_addr = new_ba; }
 
 #if defined(BPATCH_LIBRARY)
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	bool isinText(Address addr){ 
 		return objs_image->getObject().isinText(addr, base_addr);
 	}
@@ -253,7 +253,7 @@ public:
     }
 
 #if defined(BPATCH_LIBRARY)
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	void setDirty(){ dirty_=true;}
 	bool isDirty() { return dirty_; }
 	//this marks the shared object as dirty, mutated

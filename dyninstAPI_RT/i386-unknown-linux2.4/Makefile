@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2001/06/04 18:42:36 bernat Exp $
+# $Id: Makefile,v 1.7 2002/02/12 15:42:06 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -13,16 +13,16 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 LD		= gcc
-LDFLAGS         += -static -nostdlib -Xlinker -r
+LDFLAGS         += -static -nostdlib -Xlinker -r -nostdlib
 
 CFLAGS		+= -O2 
 
 # if we want to produce a shared object...
 CC              = gcc
 LD              = gcc
-CFLAGS          = -I. -I../.. -Di386_unknown_linux2_0 -g -fpic
-LDFLAGS         = -shared -ldl
-
+CFLAGS          = -I. -I../.. -Di386_unknown_linux2_0 -g -fpic 
+LDFLAGS         = -shared -nostdlib 
+LIBS 		= -lelf -ldl 
 ASFLAGS         = 
 
 SRCS		+= ../src/RTposix.c \

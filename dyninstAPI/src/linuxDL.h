@@ -55,7 +55,7 @@ class dynamic_linking {
 public:
 
     dynamic_linking(): dynlinked(false),r_debug_addr(0),dlopen_addr(0),
-		       r_brk_addr(0),r_state(0), brkpoint_set(false) {} 
+		       r_brk_addr(0),r_state(0), brkpoint_set(false), lowestSObaseaddr(0), dlopenUsed(false) {} 
     ~dynamic_linking(){}
     
     // getProcessSharedObjects: This routine is called after attaching to
@@ -91,7 +91,7 @@ public:
    //     cleanup routine instead letting it be called directly.
    bool unset_r_brk_point(process *proc);
 #endif
-
+	Address getlowestSObaseaddr(){ return lowestSObaseaddr; } 
 private:
    bool  dynlinked;
    u_int r_debug_addr;
@@ -101,6 +101,16 @@ private:
    u_int r_state;  // either 0 (RT_CONSISTENT), 1 (RT_ADD), or 2 (RT_DELETE)
    bool brkpoint_set; // true if brkpoint set in r_brk
    instPoint *r_brk_instPoint; // used to instrument r_brk
+	Address lowestSObaseaddr; 
+
+	void setlowestSObaseaddr(Address baseaddr){ 
+		if(lowestSObaseaddr ==0 || baseaddr < lowestSObaseaddr){
+			lowestSObaseaddr = baseaddr;
+		}
+	}
+
+	bool dlopenUsed; 
+
 
 #if defined(BPATCH_LIBRARY)
    static const int R_BRK_SAVE_BYTES = 16;

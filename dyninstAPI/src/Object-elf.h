@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.45 2002/02/05 17:01:37 chadd Exp $
+ * $Id: Object-elf.h,v 1.46 2002/02/12 15:42:03 chadd Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -152,6 +152,7 @@ class Object : public AObject {
 	//to determine if a mutation falls in the text section of
 	// a shared library
 	bool isinText(Address addr, Address baseaddr) const { 
+		//printf(" baseaddr %x TESTING %x %x \n", baseaddr, text_addr_ + baseaddr  , text_addr_ + baseaddr + text_size_ );
 		if(addr > text_addr_ + baseaddr     &&
 		   addr < text_addr_ + baseaddr + text_size_ ) {
 			return true;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.20 2002/02/05 17:01:38 chadd Exp $
+// $Id: solarisDL.C,v 1.21 2002/02/12 15:42:05 chadd Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -301,6 +301,12 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
                 shared_object *newobj = new shared_object(obj_name,
 			link_elm.l_addr,false,true,true,0);
 	        (*shared_objects).push_back(newobj);
+#if defined(BPATCH_LIBRARY)
+#if defined(sparc_sun_solaris2_4)
+		setlowestSObaseaddr(link_elm.l_addr);
+#endif
+#endif
+
 	    }
 	}
 	else {
@@ -607,13 +613,14 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 		if(change_type == 1) { // RT_ADD
 			for(int index = 0; index < (*changed_objects)->size(); index++){
 				char *tmpStr = new char[
-					strlen(1+(*(*changed_objects))[index]->getName().string_of())];
+					1+strlen((*(*changed_objects))[index]->getName().string_of())];
 				strcpy(tmpStr,(*(*changed_objects))[index]->getName().string_of());
-				if( !strstr(tmpStr, "libdyninstAPI_RT.so.1") && 
-			    		!strstr(tmpStr, "libelf.so.1")){
+				if( !strstr(tmpStr, "libdyninstAPI_RT.so") && 
+			    		!strstr(tmpStr, "libelf.so")){
 					//printf(" dlopen: %s \n", tmpStr);
 					(*(*changed_objects))[index]->openedWithdlopen();
 				}
+				setlowestSObaseaddr((*(*changed_objects))[index]->getBaseAddress());
 				delete [] tmpStr;	
 			}	
 		}

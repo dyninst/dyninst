@@ -480,6 +480,12 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
                 shared_object *newobj = new shared_object(obj_name,
 			link_elm.l_addr,false,true,true,0);
 	        (*shared_objects).push_back(newobj);
+#if defined(BPATCH_LIBRARY)
+#if defined(i386_unknown_linux2_0)
+		setlowestSObaseaddr(link_elm.l_addr);
+#endif
+#endif
+
 	    }
 	}
 	else {
@@ -817,6 +823,24 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       if( change_type == 0 ) change_type = 1;
       *changed_objects = findChangeToLinkMaps(proc, change_type,
 					      error_occured);
+#if defined(BPATCH_LIBRARY)
+#if defined(i386_unknown_linux2_0)
+		if(change_type == 1) { // RT_ADD
+			for(int index = 0; index < (*changed_objects)->size(); index++){
+				char *tmpStr = new char[ 1+strlen((*(*changed_objects))[index]->getName().string_of())];
+				strcpy(tmpStr,(*(*changed_objects))[index]->getName().string_of());
+				if( !strstr(tmpStr, "libdyninstAPI_RT.so") && 
+			    		!strstr(tmpStr, "libelf.so")){
+					//printf(" dlopen: %s \n", tmpStr);
+					(*(*changed_objects))[index]->openedWithdlopen();
+				}
+				setlowestSObaseaddr((*(*changed_objects))[index]->getBaseAddress());
+				delete [] tmpStr;	
+			}	
+		}
+#endif
+#endif
+
     } 
 
     // Return from the function.  We used to do this by setting the program

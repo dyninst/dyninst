@@ -1,6 +1,7 @@
-/* $Id: writeBackElf.C,v 1.4 2002/02/05 17:01:39 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.5 2002/02/12 15:42:05 chadd Exp $ */
 
-#if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
+#if defined(BPATCH_LIBRARY) 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
 #include "writeBackElf.h"
 #define MALLOC 0 
@@ -9,6 +10,12 @@
 
 unsigned int elf_version(unsigned int);
 
+void writeBackElf::setHeapAddr(unsigned int heapAddr){
+	newHeapAddr = heapAddr;
+        while(newHeapAddr % 0x8){//SPARC alignment
+        	newHeapAddr++;
+        }
+}
 // This constructor opens both the old and new
 // ELF files 
 writeBackElf::writeBackElf(char *oldElfName, char* newElfName, int debugOutputFlag){
@@ -63,8 +70,8 @@ writeBackElf::writeBackElf(char *oldElfName, char* newElfName, int debugOutputFl
         mutateeProcess = NULL;
         mutateeTextSize = 0;
         mutateeTextAddr = 0;
-	firstValidInstruction = 0;
 	elf_fill(0);
+	newHeapAddr = 0;
 	parseOldElf();
 }
 
@@ -133,198 +140,6 @@ int writeBackElf::addSection(unsigned int addr, void *data, unsigned int dataSiz
 	return ++newSectionsSize;
 }
 
-void writeBackElf::fixRela(Elf_Data *relaData){
-        Elf32_Rela *rData;
-        unsigned int rSym, rType;
-
-	if(DEBUG_MSG){	
-		printf(" RELA\n");
-	}
-       	rData = (Elf32_Rela*) (relaData->d_buf);
-       	for(unsigned int i=0;i< relaData->d_size/(sizeof(Elf32_Rela)) ; i++, rData++){
-                rSym = ELF32_R_SYM(rData->r_info);
-                rType = ELF32_R_TYPE(rData->r_info);
-		rData->r_offset +=shiftSize;
-                if(rType > insertPoint){
-                        rType += (shiftSize/SHIFTSIZE);
-			if(DEBUG_MSG){
-	                        printf(" CHANGED: %x\n",shiftSize);
-     			} 
-	        }
-                rData->r_info = ELF32_R_INFO(rSym,rType);
-       }
-}
-
-//This method looks for a
-// SETHI
-// OR
-// CALL/LD 
-// block and patches the address by the shift value
-void writeBackElf::fixMainJmp(Elf_Data *textData){
-//this function currently contains SPARC specific op codes!
-        unsigned int *currInsn;
-        unsigned int mask = 0xc1c00000;
-        unsigned int currAddr=startAddr;
-        unsigned int simm13, disp30;
-        currInsn = (unsigned int*) textData->d_buf;
-	if(DEBUG_MSG){
-	        printf(" fixMainJmp: %x \n", mask);
-	}
-        while(currAddr<=endAddr){
-                if( ((*currInsn & mask) == (0x01000000 /*+ (rodataAddr/0x100)/0x4*/)) ){
-                        if( (*(currInsn+1) & 0x80102000)==0x80102000){
-				if(DEBUG_MSG){
-                                	printf(" FOUND OR %x %x\n",currAddr+4, *(currInsn+1));
-					printf(" RODATA ADDR %x %x\n", rodataAddr, rodataSize);
-				}
-                                simm13 = *(currInsn+1) & 0x00001fff;
-                                unsigned int jumpTO = simm13 +( (0x003fffff & *(currInsn)) * 0x100 * 0x4);
-                                if(1 && (jumpTO>0x10000 /*rodataAddr*/ /*&& jumpTO<rodataAddr+rodataSize*/)) {
-                                        simm13+=shiftSize;
-                                        if(simm13 >= 0x400){
-                                  		unsigned int imm22 = *currInsn & 0x003fffff; 
-					        *currInsn &= 0xffc00000;
-						//fix this such that rodataAddr is
-						//replaced with the value in the instruction
-						
-                                                *currInsn |= imm22 + 0x1;//((rodataAddr)/0x100)/0x4 + 0x1;
-                                                simm13 -= 0x400;
-                                        }
-
-
-                                        *(currInsn+1) = (*(currInsn+1) & (0xffffe000));
-                                        *(currInsn+1) |= simm13;
-                                        if(DEBUG_MSG){
-						printf("%x NEW OR %x -- %x\n",currAddr,  *(currInsn+1), simm13);
-					}
-                                }
-                        }
-
-                }
-		//This checks each CALL instruction and shifts the displacement the
-		//correct amount. Since everything shifts the same amount this should
-		//never be necessary.
-                if(0 &&  (*currInsn & 0x40000000) == 0x40000000 &&
-                    (*currInsn & 0x80000000) == 0x00000000) {
-
-                        disp30 = currAddr + ( (0x3fffffff & *currInsn)*0x4);
-                        if(disp30>rodataAddr+rodataSize){
-				if(DEBUG_MSG){	
-                                	printf("%x: FOUND CALL %x --> %x\n", currAddr,disp30, disp30-shiftSize);
-				}
-                                disp30-=currAddr;
-                                disp30-=shiftSize;
-                                disp30/=0x4;
-                                *currInsn = (0x40000000 | disp30);
-
-                        }
-
-                }
-                currInsn++;
-                currAddr+=4;
-        }
-
-}
-
-
-//This method fixes up the Global Offst Table entries by
-//shifting them all the correct amount.
-void writeBackElf::updateGOTEntries(Elf_Data *gotData){
-        unsigned int *gotEntry;
-        unsigned int cnt;
-        for(cnt=0, gotEntry = (unsigned int*) gotData->d_buf;cnt< gotData->d_size/sizeof(unsigned int);
-                                cnt++, gotEntry++){
-
-                unsigned int newAddr = *gotEntry;
-                if(newAddr > (unsigned int) (firstValidInstruction-0x10000) && newAddr < lastAddr ){
-                        newAddr += shiftSize;
-                        if(DEBUG_MSG){
-                                printf(" GOT ADDING %x %x\n", shiftSize, newAddr-shiftSize );
-                        }
-                 }
-                *gotEntry=newAddr;
-        }
-
-
-
-}
-
-//This method patches the text segment to fix any jumps that
-//leave the text segment
-void writeBackElf::patchMain(Elf_Data*textData){
-//this function contains SPARC specific op codes
-        unsigned int *currInsn;
-        unsigned int currAddr;
-        unsigned int mask = 0x40000000;
-        unsigned int antiMask = ~mask;
-        unsigned int jumpTo;
-
-        currAddr = startAddr;
-        currInsn = (unsigned int*) textData->d_buf;
-        while(currAddr<=endAddr){
-		if(DEBUG_MSG){
-	                printf(" %x  %x  %x \n", *currInsn, ((*currInsn & mask) &mask), ((*currInsn) >> 31) );
-		}
-                if( ((*currInsn & mask) &mask) &&
-                        (((*currInsn) >> 31) ==0) ){
-                        jumpTo = antiMask & *currInsn;
-                        jumpTo *=4;
-                        if((jumpTo + currAddr) > endAddr){
-                                jumpTo -= shiftSize;
-                                jumpTo /= 0x4;
-                                *currInsn = mask | jumpTo;
-                        }
-                }
-                currInsn++;
-                currAddr+=4;
-        }
-}
-
-
-void writeBackElf::remakeHash(){
-//Elf_Data* hashData, Elf_Data* dynsymData, Elf_Data* dynstrData){
-        Elf32_Sym* symPtr=(Elf32_Sym*) dynsymData->d_buf;
-        int nbucket= *((Elf32_Word*) hashData->d_buf), nchain, symSize= dynsymData->d_size/(sizeof(Elf32_Sym)) ;
-        nchain = ((Elf32_Word*) hashData->d_buf)[1];
-        int counter =0;
-        Elf32_Word* bucket, *chain;
-        hashData->d_size = (nbucket+nchain+2) * (sizeof(Elf32_Word));
-        bucket = &(((Elf32_Word*) hashData->d_buf)[2]);
-        chain  = &(((Elf32_Word*) hashData->d_buf)[2+nbucket]);
-        memset(hashData->d_buf, '\0', hashData->d_size);
-        *(Elf32_Word*) hashData->d_buf = nbucket;
-        ((Elf32_Word*) hashData->d_buf)[1]= nchain;
-        while(!symPtr->st_name){
-                symPtr++;
-                counter++;
-        }
-        int oldhashValue, hashValue;
-        char *currentName=NULL;
-        while(counter<symSize){
-                currentName = (char*) dynStrData->d_buf+ symPtr->st_name;
-                hashValue = elf_hash(currentName) % nbucket;
-                if(bucket[hashValue]==0){
-                        /* success, we can put it here*/
-                        bucket[hashValue] = counter;
-                }else{
-                        /* fail, cant put it here */
-                        oldhashValue = hashValue;
-                        hashValue = bucket[oldhashValue];
-                        while(((unsigned int) hashValue) <= ((unsigned int) symSize) && chain[hashValue]){
-                                oldhashValue = hashValue;
-                                hashValue = chain[hashValue];
-
-                        }
-                        if((unsigned int) hashValue > symSize){
-                                hashValue = oldhashValue;
-                        }
-                        chain[hashValue]=counter;
-                }
-                counter++;
-                symPtr++;
-        }
-}
-
 //This method updates the symbol table,
 //it shifts each symbol address as necessary AND
 //sets _end and _END_ to move the heap
@@ -335,16 +150,11 @@ void writeBackElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData){
         for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
 
 
-
-                if(  (unsigned int) symPtr->st_value >= (unsigned int) firstValidInstruction &&
-			 ( symPtr->st_value < lastAddr)){
-                        symPtr->st_value += shiftSize;
-                }
-                if( !(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
+                if( newHeapAddr && !(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
                         symPtr->st_value = newHeapAddr;
                 }
 
-                if( !(strcmp("_END_", (char*) strData->d_buf + symPtr->st_name))){
+                if( newHeapAddr &&  !(strcmp("_END_", (char*) strData->d_buf + symPtr->st_name))){
                         symPtr->st_value = newHeapAddr; 
                 }
 
@@ -380,35 +190,11 @@ void writeBackElf::fixData(Elf_Data* newdata, unsigned int startAddress){
 		startAddress+=sizeof(*tmp);
 		tmp ++;
 	}	
-	(*tmp) +=shiftSize;//this fixes p.3!
+	if(startAddress && tmp){//ccw 8 feb 2002
+		(*tmp) +=shiftSize;//this fixes p.3!
+	}
 }
 
-
-
-//This method updates the addresses of various symbols in the
-//_DYNAMIC array
-void  writeBackElf::updateDynamic(Elf_Data* dynamicData){
-
-        __Elf32_Dyn *dynData;
-
-        for ( dynData = (__Elf32_Dyn*) dynamicData->d_buf;  dynData->d_tag!= DT_NULL;dynData++){
-                switch(dynData->d_tag){
-                        case DT_STRTAB:
-                        case DT_SYMTAB:
-                        case DT_HASH:
-                        case DT_RELA:
-                        case DT_INIT:
-                        case DT_FINI:
-                        case DT_REL:
-                        case DT_VERNEED:
-                        case DT_JMPREL:
-                        case DT_PLTGOT: 
-                        dynData->d_un.d_val+=shiftSize;
-                }
-         }
-
-
-}
 
 //This is the main processing loop, called from outputElf()
 void writeBackElf::driver(){
@@ -468,9 +254,6 @@ void writeBackElf::driver(){
 		        memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
                 }
 
-		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".interp")){
-			firstValidInstruction = shdr->sh_addr;
-		}
                 if(newsh->sh_addr<lastAddr){
                         newsh->sh_addr +=shiftSize;
                 }
@@ -495,32 +278,6 @@ void writeBackElf::driver(){
                 if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".dynsym")){
                         dynsymData = newdata;
                 }
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".dynamic")){
-			dynamicShdr = shdr;
-                        updateDynamic(newdata);
-       			Elf_Data * padData = elf_getdata(scn, olddata);
-			if(padData){
-				newdata = elf_newdata(newScn);
-				memcpy(newdata,padData, sizeof(Elf_Data));
-		                if(padData->d_buf){
-                        		if(MALLOC){
-                                		(char*) newdata->d_buf = (char*) malloc(olddata->d_size);
-                        		}else{
-                                		(char*) newdata->d_buf = new char[olddata->d_size];
-                        		}
-                        		memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-                		}
-				printf("ADDED PADDATA\n"); 
-			}
-	        }
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".hash")){
-                        hashData =newdata;
-                }
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".rodata")){
-			rodataAddr = shdr->sh_addr;
-			rodataSize = shdr->sh_size;
-			rodataSh = newsh;
-                }
                 if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".text")){
                         textData = newdata;
 			if(mutateeProcess){
@@ -532,13 +289,6 @@ void writeBackElf::driver(){
 			endAddr = newsh->sh_addr + newsh->sh_size;
      			textSh = newsh; 
 		}
-                if(!strncmp((char*) data->d_buf + shdr->sh_name,".rela",5)){
-                        fixRela(newdata);
-                }
-
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".got")){
-                        updateGOTEntries(newdata);
-                }
                 if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".bss")){
 			createSections(newsh, newdata);
                 }
@@ -550,23 +300,22 @@ void writeBackElf::driver(){
 			dataData = newdata;
 			dataStartAddress = newsh->sh_addr;
 			elf_update(newElf,ELF_C_NULL);
-			//fixData(newdata, newsh->sh_addr);
 		}
+
         }
 	fixData(dataData, dataStartAddress);
         Elf32_Phdr *tmp;
 
         tmp = elf32_getphdr(oldElf);
-        newEhdr->e_phnum+=shiftSize/SHIFTSIZE;
+        newEhdr->e_phnum= ehdr->e_phnum + shiftSize/SHIFTSIZE; //ccw 8 feb 2002 
+	// is this a diff in libelf? better imple on linux than lsolaris?
         newPhdr=elf32_newphdr(newElf,newEhdr->e_phnum);
 
         memcpy(newPhdr, tmp, (ehdr->e_phnum) * ehdr->e_phentsize);
-        fixMainJmp(textData);
         newEhdr->e_shstrndx+=newSectionsSize;//(shiftSize/SHIFTSIZE);
         newEhdr->e_entry+=shiftSize;
 
 	fixPhdrs((int) ehdr->e_phnum-1);
-        remakeHash();
 
 }
 
@@ -625,21 +374,21 @@ void writeBackElf::parseOldElf(){
 }
 
 bool writeBackElf::createElf(){
-//      parseOldElf();
         unsigned int i;
         for(i=0;i< newSectionsSize && newSections[i].loadable;i++); // find the last loadable section
-        newHeapAddr = newSections[i-1].vaddr +newSections[i-1].dataSize;
-        while(newHeapAddr % 0x8){
-                newHeapAddr++;
-        }
+	if(i){
+        	newHeapAddr = newSections[i-1].vaddr +newSections[i-1].dataSize;
 
+	        while(newHeapAddr % 0x8){
+       	        	newHeapAddr++;
+        	}
+	}
         driver();
         return true;
 }
 
  
 bool writeBackElf::outputElf(){
-//	parseOldElf();
 	return writeOutNewElf();
 }
 
@@ -781,6 +530,101 @@ void writeBackElf::fixPhdrs(int oldPhdrs){
         newPhdr[4].p_vaddr += shiftSize;
 }
 
+
+void writeBackElf::compactLoadableSections(vector <imageUpdate*> imagePatches, vector<imageUpdate*> &newPatches){
+	int startPage, stopPage;
+	imageUpdate *patch;
+	//this function now returns only ONE section that is loadable.
+
+	imageUpdate *curr, *next;
+	bool foundDup=true;
+	unsigned int j;
+	while(foundDup){
+		foundDup = false;
+		j =0;
+	        while(imagePatches[j]->address==0 && j < imagePatches.size()){
+       	        	j++;
+        	}
+		curr = imagePatches[j];
+
+		for(j++;j<imagePatches.size();j++){
+			next = imagePatches[j];		
+			if(curr->address == next->address){
+				//duplicate
+				//find which is bigger and save that one.
+				if(curr->size > next->size){
+					next->address=0;
+				}else{
+					curr->address=0;
+					curr=next;
+				}
+				foundDup =true;
+			}else{
+				curr=next;
+			}
+
+		}
+		VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+	}
+
+
+	for(unsigned int i=0;i<imagePatches.size();i++){
+		if(imagePatches[i]->address!=0){
+			imagePatches[i]->startPage = imagePatches[i]->address- imagePatches[i]->address%pageSize;
+			imagePatches[i]->stopPage = imagePatches[i]->address + imagePatches[i]->size- 
+					(imagePatches[i]->address + imagePatches[i]->size )%pageSize;
+
+		}
+	}
+
+	foundDup = true;
+
+	while(foundDup){
+		foundDup = false;
+                j =0;
+                while(imagePatches[j]->address==0 && j < imagePatches.size()){
+                        j++;
+                }
+		for(;j<imagePatches.size()-1;j++){
+			if(imagePatches[j]->stopPage > imagePatches[j+1]->startPage){
+				foundDup = true;
+				if(imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
+					imagePatches[j+1]->address = 0;	
+				}else{
+
+					imagePatches[j]->size = (imagePatches[j+1]->address + imagePatches[j+1]->size) -
+						imagePatches[j]->address;
+					imagePatches[j+1]->address = 0; 
+					imagePatches[j]->stopPage = imagePatches[j]->address + imagePatches[j]->size-
+                                        	(imagePatches[j]->address + imagePatches[j]->size )%pageSize;		
+				}
+			}  
+		}
+		VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+	}
+
+	unsigned int k=0;
+
+	while(imagePatches[k]->address==0 && k < imagePatches.size()){
+	        k++;
+        }
+
+	startPage = imagePatches[k]->startPage;
+	stopPage = imagePatches[imagePatches.size()-1]->stopPage;
+	int startIndex=k, stopIndex=imagePatches.size()-1;
+	if(DEBUG_MSG){
+		printf("COMPACTING....\n");	
+		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+	}
+	patch = new imageUpdate;
+        patch->address = imagePatches[startIndex]->address;
+        patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
+                                   imagePatches[stopIndex]->size;
+        newPatches.push_back(patch);
+	if(DEBUG_MSG){
+		printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+	}
+}
 
 void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<imageUpdate*> &newPatches){
 
@@ -941,4 +785,5 @@ void writeBackElf::registerProcess(process *proc){
 
 	mutateeProcess = proc;
 }
+#endif
 #endif

@@ -1,19 +1,30 @@
-/* $Id: writeBackElf.h,v 1.1 2001/12/11 20:22:26 chadd Exp $ */
+/* $Id: writeBackElf.h,v 1.2 2002/02/12 15:42:05 chadd Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
 
-#if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
+#if defined(BPATCH_LIBRARY) 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(sparc_sun_solaris2_4)
 #include <libelf.h>
+#include "process.h"
+#elif defined(i386_unknown_linux2_0)
+#include <libelf/libelf.h>
+#include "linux.h"
+#  define INT64_C(c)       c ## LL
+
+#include "dyninstAPI/src/process.h"
+
+#endif
+
 #include "ELF_Section.h"
 #include <unistd.h>
 #include "imageUpdate.h"
-#include "process.h"
 
 class writeBackElf{
 
@@ -60,16 +71,11 @@ private:
         process* mutateeProcess;
         int mutateeTextSize;
         unsigned int mutateeTextAddr;
-	int firstValidInstruction; 
 
-	void fixRela(Elf_Data *relaData); // int shiftedIndex-->insertPoint,int shiftAmount-->shiftSize);
-	void fixMainJmp(Elf_Data *textData);
-	void updateGOTEntries(Elf_Data *gotData);
-	void patchMain(Elf_Data*textData);
-	void remakeHash();
+	void fixData(Elf_Data* newdata, unsigned int startAddress);
+
 	void updateSymbols(Elf_Data* symtabData,Elf_Data* strData);
 	void updateDynamic(Elf_Data* dynamicData);
-	void fixData(Elf_Data* newdata, unsigned int startAddress);
 	void driver(); // main processing loop of outputElf()
 	void createSections(Elf32_Shdr *bssSh, Elf_Data* bssData);
 	void addSectionNames(Elf_Data* newdata, Elf_Data *olddata);
@@ -89,9 +95,12 @@ public:
 	bool outputElf();
 	bool createElf();
         void compactSections(vector <imageUpdate*> imagePatches, vector<imageUpdate*> &newPatches); 
+	void compactLoadableSections(vector <imageUpdate*> imagePatches, vector<imageUpdate*> &newPatches);
 	void alignHighMem(vector<imageUpdate*> imagesPatches);
-	Elf* getElf(){ return newElf; };;
+	Elf* getElf(){ return newElf; };
+	void setHeapAddr(unsigned int heapAddr);
 };
 
+#endif
 #endif
 #endif
