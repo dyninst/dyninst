@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -208,27 +208,31 @@ template<class K, class V>
 unsigned
 dictionary_hash<K,V>::locate(const K& key, bool evenIfRemoved) const {
    // An internal routine used by everyone.
-   const unsigned hashval = hasher(key);
-   const unsigned bin     = hashval % bins.size();
+   unsigned elem_ndx = UINT_MAX;
+
+   if( bins.size() > 0 )
+   {
+       const unsigned hashval = hasher(key);
+       const unsigned bin     = hashval % bins.size();
    
-   unsigned elem_ndx = bins[bin];
-   while (elem_ndx != UINT_MAX) {
-      const entry &elem = all_elems[elem_ndx];
+       elem_ndx = bins[bin];
+       while (elem_ndx != UINT_MAX) {
+          const entry &elem = all_elems[elem_ndx];
 
-      // verify that this elem is in the right bin!
-      assert(elem.key_hashval % bins.size() == bin);
+          // verify that this elem is in the right bin!
+          assert(elem.key_hashval % bins.size() == bin);
       
-      if (elem.key_hashval == hashval && elem.key == key) {
-         // found it...unless it was removed
-         if (elem.removed && !evenIfRemoved)
-            elem_ndx = UINT_MAX;
+          if (elem.key_hashval == hashval && elem.key == key) {
+             // found it...unless it was removed
+             if (elem.removed && !evenIfRemoved)
+                elem_ndx = UINT_MAX;
 
-         break;
-      }
-      else
-         elem_ndx = elem.next;
+             break;
+          }
+          else
+             elem_ndx = elem.next;
+       }
    }
-
    return elem_ndx;
 }
 
