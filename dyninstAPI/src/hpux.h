@@ -6,7 +6,7 @@
 #define HPUX_PD_HDR
 
 #include <sys/param.h>
-#define EXIT_NAME "__exit"
+#define EXIT_NAME "_exitcu"
 //#define EXIT_NAME "_exit"
 
 #endif
