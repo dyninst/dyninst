@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.30 1995/09/11 19:19:28 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.31 1995/09/18 22:41:30 mjrg Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.30  1995/09/11 19:19:28  mjrg
+ * Revision 1.31  1995/09/18 22:41:30  mjrg
+ * added directory command.
+ *
+ * Revision 1.30  1995/09/11  19:19:28  mjrg
  * Removed redundant ptrace calls.
  *
  * Revision 1.29  1995/05/18  10:30:58  markc
@@ -224,9 +227,9 @@ void forkProcess(traceHeader *hr, traceFork *fr)
 }
 
 // TODO mdc
-int addProcess(vector<string> &argv, vector<string> &envp)
+int addProcess(vector<string> &argv, vector<string> &envp, string dir)
 {
-    process *proc = createProcess(argv[0], argv, envp);
+    process *proc = createProcess(argv[0], argv, envp, dir);
 
     if (proc)
       return(proc->pid);
@@ -253,6 +256,7 @@ timeStamp startPause = 0.0;
 // total processor time the application has been paused.
 // so for a multi-processor system this should be processor * time.
 timeStamp elapsedPauseTime = 0.0;
+
 static bool appPause = true;
 
 bool markApplicationPaused()
@@ -287,6 +291,8 @@ bool continueAllProcesses()
     elapsedPauseTime += (getCurrentTime(false) - startPause);
     // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
     // logLine(errorLine);
+
+    statusLine("application running");
 
     return(false);
 }

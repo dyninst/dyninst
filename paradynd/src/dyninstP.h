@@ -14,7 +14,10 @@
  * This file will be empty during the restructuring of the paradyn daemon
  *
  * $Log: dyninstP.h,v $
- * Revision 1.9  1995/05/18 10:31:57  markc
+ * Revision 1.10  1995/09/18 22:41:32  mjrg
+ * added directory command.
+ *
+ * Revision 1.9  1995/05/18  10:31:57  markc
  * Cleaned up declarations of metric functions
  *
  * Revision 1.8  1995/02/26  22:45:09  markc
@@ -88,8 +91,9 @@ typedef int (*errorHandler)(int errno, char *message);
  *
  *   argv - arguments to command
  *   envp - environment args, for pvm
+ *   dir  - the directory where the program will run
  */
-int addProcess(vector<string> &argv, vector<string> &envp);
+int addProcess(vector<string> &argv, vector<string> &envp, string dir);
 
 /*
  * Find out if an application has been.defines yet.

@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.21  1995/09/05 23:11:36  mjrg
+ * Revision 1.22  1995/09/18 22:41:38  mjrg
+ * added directory command.
+ *
+ * Revision 1.21  1995/09/05  23:11:36  mjrg
  * Initialize splitHeaps.
  *
  * Revision 1.20  1995/08/29  21:47:24  mjrg
@@ -340,7 +343,7 @@ bool process::writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf
 }
 
 
-process *createProcess(const string file, vector<string> argv, vector<string> envp);
+process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir);
 process *allocateProcess(int pid, const string name);
 
 void initInferiorHeap(process *proc, bool globalHeap, bool textHeap);

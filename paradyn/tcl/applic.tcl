@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.14  1995/07/19 23:01:16  tamches
+# Revision 1.15  1995/09/18 22:39:49  mjrg
+# added directory command.
+#
+# Revision 1.14  1995/07/19  23:01:16  tamches
 # Commented out TAB-key bindings to move between entries on the
 # start process dialog, because these bindings are provided
 # automagically in tk4.0
@@ -55,6 +58,7 @@
 #  applicUser    -- user name
 #  applicMachine -- machine to use
 #  applicCmd     -- command to run (including arguments)
+#  applicDir     -- directory to chdir
 #
 #  It would be nice if there were a better way to specify defaults
 #  such as these.
@@ -78,7 +82,7 @@ if {[catch {set applicDaemon}]} {
 #  TODO -- use the dialog creation routine in uimpd file
 #
 proc DefineProcess {} {
-  global env applicDaemon applicUser applicMachine applicCmd 
+  global env applicDaemon applicUser applicMachine applicCmd applicDir 
 
   set W .pDefn
   catch {destroy $W}
@@ -125,6 +129,14 @@ proc DefineProcess {} {
   bind $D.machine.ent <Return> "$B.1 invoke"
   pack $D.machine -side top -expand yes -fill x
   pack $D.machine.lbl $D.machine.ent -side left -expand yes -fill x
+
+  frame $D.directory -border 2
+  label $D.directory.lbl -text "Directory: " -anchor e -width 12
+  entry $D.directory.ent -width 50 -textvariable applicDir -relief sunken
+#  bind $D.directory.ent <Tab> "focus $D.cmd.ent"
+  bind $D.directory.ent <Return> "$B.1 invoke"
+  pack $D.directory -side top -expand yes -fill x
+  pack $D.directory.lbl $D.directory.ent -side left -expand yes -fill x
   
   set daemons [paradyn daemons]
   frame $D.daemon -border 2
@@ -148,7 +160,7 @@ proc DefineProcess {} {
 
   mkButtonBar $B {} retVal \
   {{"ACCEPT" {AcceptNewApplicDefn $applicUser $applicMachine \
-	  $applicDaemon $applicCmd}} \
+	  $applicDaemon $applicDir $applicCmd}} \
   {"CANCEL" {destroy .pDefn}}}
 
   focus $D.machine.ent
@@ -167,7 +179,7 @@ proc DefineProcess {} {
 #  TODO: we must have very specific reporting of process startup
 #        failures.  the current error message is useless.
 #
-proc AcceptNewApplicDefn {user machine daemon cmd} {
+proc AcceptNewApplicDefn {user machine daemon directory cmd} {
   set pcmd [list paradyn process]
 
   if {[string length $user] > 0} {
@@ -176,6 +188,10 @@ proc AcceptNewApplicDefn {user machine daemon cmd} {
 
   if {[string length $machine] > 0} {
     lappend pcmd "-machine" $machine
+  }
+
+  if {[string length $directory] > 0} {
+    lappend pcmd "-dir" $directory
   }
 
   if {[string length $daemon] > 0} {

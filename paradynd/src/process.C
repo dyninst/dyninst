@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.27  1995/08/24 15:04:29  hollings
+ * Revision 1.28  1995/09/18 22:41:36  mjrg
+ * added directory command.
+ *
+ * Revision 1.27  1995/08/24  15:04:29  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -370,7 +373,7 @@ process *allocateProcess(int pid, const string name)
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(const string file, vector<string> argv, vector<string> envp)
+process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir)
 {
     int r;
     int fd;
@@ -490,6 +493,7 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 #ifdef PARADYND_PVM
 	pvmendtask(); 
 #endif   
+
 	// handle stdio.
 	close(ioPipe[0]);
 	dup2(ioPipe[1], 1);
@@ -509,6 +513,12 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	/* close if higher */
 	if (tracePipe[1] > 3) close(tracePipe[1]);
 
+	if ((dir.length() > 0) && (P_chdir(dir.string_of()) < 0)) {
+	  sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.string_of(), sys_errlist[errno]);
+	  logLine(errorLine);
+	   P__exit(-1);
+	}
+
 	/* see if I/O needs to be redirected */
 	if (inputFile.length()) {
 	    fd = P_open(inputFile.string_of(), O_RDONLY, 0);
@@ -525,7 +535,7 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	if (outputFile.length()) {
 	    fd = P_open(outputFile.string_of(), O_WRONLY|O_CREAT, 0444);
 	    if (fd < 0) {
-		fprintf(childError, "stdout open of %s failed\n", inputFile.string_of());
+		fprintf(childError, "stdout open of %s failed\n", outputFile.string_of());
 		fflush(childError);
 		P__exit(-1);
 	    } else {

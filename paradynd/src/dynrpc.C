@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.19  1995/08/24 15:03:48  hollings
+ * Revision 1.20  1995/09/18 22:41:33  mjrg
+ * added directory command.
+ *
+ * Revision 1.19  1995/08/24  15:03:48  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -317,8 +320,8 @@ bool dynRPC::attachProgram(int id)
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(vector<string> argv)
+int dynRPC::addExecutable(vector<string> argv, string dir)
 {
   vector<string> envp;
-  return(addProcess(argv, envp));
+  return(addProcess(argv, envp, dir));
 }

@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.34  1995/08/24 15:04:13  hollings
+ * Revision 1.35  1995/09/18 22:41:35  mjrg
+ * added directory command.
+ *
+ * Revision 1.34  1995/08/24  15:04:13  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -339,7 +342,7 @@ int main(int argc, char *argv[])
       abort();
 
     if (cmdLine.size()) {
-	 addProcess(cmdLine, envp);
+	 addProcess(cmdLine, envp, string(""));
     }
 
     controllerMainLoop(true);
