@@ -44,6 +44,9 @@
  * defaults.
  * 
  * $Log: comm.h,v $
+ * Revision 1.9  1997/05/17 19:59:30  lzheng
+ * Changes made for nonblocking write
+ *
  * Revision 1.8  1996/10/31 08:37:14  tamches
  * removed a warning
  *
@@ -87,7 +90,7 @@ class pdRPC : public dynRPC
 {
 public:
   pdRPC(int family, int port, int type, const string host, xdr_rd_func rf,
-	xdr_wr_func wf, bool nblock=false)
+	xdr_wr_func wf, int nblock=0)
     : dynRPC(family, port, type, host, rf, wf, nblock) {
 
      alterSendSocketBufferSize();
@@ -95,7 +98,7 @@ public:
   }
 
 
-  pdRPC(int fdes, xdr_rd_func r, xdr_wr_func w, bool nblock=false)
+  pdRPC(int fdes, xdr_rd_func r, xdr_wr_func w, int nblock=0)
     : dynRPC(fdes, r, w, nblock) {
 
      alterSendSocketBufferSize();

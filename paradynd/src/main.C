@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.64  1997/05/17 19:58:51  lzheng
+ * Changes made for nonblocking write
+ *
  * Revision 1.63  1997/05/13 14:26:04  sec
  * Removed a simple assert
  *
@@ -296,6 +299,10 @@ int main(int argc, char *argv[]) {
 
     struct sigaction act;
 
+    // int i = 1;
+    // while (i) {};
+
+
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
     act.sa_handler = (void (*)(...)) sigtermHandler;
 #else
@@ -377,7 +384,7 @@ int main(int argc, char *argv[]) {
 	cleanUpAndExit(-1);
       }
       tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine,
-		     NULL, NULL, 0);
+		     NULL, NULL, 2);
       assert(tp);
 
       tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
@@ -385,7 +392,7 @@ int main(int argc, char *argv[]) {
       // the executables which are started by poe (for mpi daemon) must report to paradyn
       // the pdRPC is allocated and reportSelf is called
       tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
-		     pd_machine, NULL, NULL, 0);
+		     pd_machine, NULL, NULL, 2);
       assert(tp);
 
       tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
@@ -401,7 +408,7 @@ int main(int argc, char *argv[]) {
 	// or else one of the daemons we start (in PDYN_initForPVM), may get our
 	// connection.
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine,
-		       NULL, NULL, 0);
+		       NULL, NULL, 2);
 	assert(tp);
 	//Tempest, in the case of blizzard_cow, all daemons should report themselves
     	if (pd_flavor == string("cow")) {
@@ -432,7 +439,7 @@ int main(int argc, char *argv[]) {
       // already setup on this FD.
       // disconnect from controlling terminal 
       OS::osDisconnect();
-      tp = new pdRPC(0, NULL, NULL);
+      tp = new pdRPC(0, NULL, NULL, 2);
       assert(tp);
     }
     assert(tp);
@@ -448,7 +455,7 @@ int main(int argc, char *argv[]) {
 	// setup socket
 
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, 
-		       NULL, NULL, false);
+		       NULL, NULL, 2);
 	assert(tp);
 
 	if (cmdLine.size()) {
@@ -463,7 +470,7 @@ int main(int argc, char *argv[]) {
       }
     } else {
       OS::osDisconnect();
-      tp = new pdRPC(0, NULL, NULL);
+      tp = new pdRPC(0, NULL, NULL, 2);
       assert(tp);
 
       // configStdIO(false);

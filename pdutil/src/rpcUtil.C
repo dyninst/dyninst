@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.50  1997/05/17 20:01:30  lzheng
+ * Changes made for nonblocking write
+ *
  * Revision 1.49  1997/04/21 16:57:56  hseom
  * added support for trace data (in a byte array)
  *
@@ -108,6 +111,7 @@
 #endif
 #endif
 
+#include <limits.h>
 #include "util/h/rpcUtil.h"
 
 const char *RSH_COMMAND="rsh";
@@ -125,6 +129,132 @@ int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
     return (ret);
 }
 
+// one counter per file descriptor to record the sequnce no the message
+// to be received
+vector<int> counter_2;
+
+// One partial message record for each file descriptor
+vector<rpcBuffer *> partialMsgs;
+
+int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
+{
+    /* called when paradyn/xdr detects that it needs to read a message
+       from paradynd. */
+    int fd = (int) handle;
+    int header;
+    int ret;
+    int needCopy = 0;
+    char *buffer = buf;
+    u_int internal_len = 0;
+    bool newfd = true;
+    unsigned i;
+
+    for (i = 0; i< partialMsgs.size(); i++) {
+	if (partialMsgs[i] -> fd == fd) {
+	    newfd = false;
+	    break;
+	}
+    }
+    
+    // If new connection, allocate a partial message record
+    if (newfd) {
+	rpcBuffer *partial = new rpcBuffer;
+	partial -> fd  = fd;
+	partial -> len = 0;
+	partial -> buf = NULL;
+	partialMsgs += partial;
+	i = partialMsgs.size() - 1;
+	
+	counter_2 += 0;
+    }
+
+    // There're two situations dealt with here: with partial message
+    // left by previous read, without. The 'len' field is zero if it is
+    // the first case, nonzero if it is the second case    
+    if (partialMsgs[i] -> len) needCopy = 1;
+
+    // Allocate buffer which is four more bytes than RPC buffer for the
+    // convenience of processing message headers.
+    buffer = new char[len + sizeof(int)];
+
+    if (needCopy) {
+	P_memcpy(buffer, partialMsgs[i]->buf , partialMsgs[i]->len); 
+	delete [] partialMsgs[i]->buf;
+	partialMsgs[i]->buf = NULL;
+    }
+
+    do {
+	ret = P_read(fd, buffer+partialMsgs[i]->len, 
+		     len + sizeof(int) -partialMsgs[i]->len);
+    } while (ret < 0 && errno == EINTR);
+
+    if (ret <= 0) { return(-1); }
+
+    ret += partialMsgs[i]->len;
+
+    char *pstart = buffer;
+    
+    // Processing the messages received: remove those message headers;
+    // check on deliminator and sequence no to ensure the correctness;
+    // save the partial message if any
+    char *tail = buffer;
+    int is_left = ret - sizeof(int);
+    while (is_left >= 0) {
+	P_memcpy((char *)&header, buffer, sizeof(int));
+	assert(0xf == ((header >> 12)&0xf));
+
+	short seq_no;
+	P_memcpy((char *)&(seq_no), buffer, sizeof(short));
+
+	header = (0x0fff&header);
+	
+	if (header <= is_left) {
+	    P_memcpy(tail, buffer+sizeof(int), header);
+
+	    counter_2[i] = ((counter_2[i]+1)%SHRT_MAX);
+	    assert(seq_no == counter_2[i]);
+
+	    internal_len += header;
+	    if (internal_len > len) {
+		abort();
+		ret = ret - sizeof(int) - is_left;
+		break;
+	    }
+	    tail += header;
+	    buffer += header + sizeof(int);
+
+	    is_left = is_left - header - sizeof(int);
+	    ret -= sizeof(int);
+	} else {
+	    ret = ret - sizeof(int) - is_left;
+	    break;
+	}
+    }
+
+
+
+    if (is_left >= 0) {
+	
+	partialMsgs[i]->len = is_left + sizeof(int);
+	partialMsgs[i]->buf = new char[partialMsgs[i]->len+1];
+	P_memcpy(partialMsgs[i]->buf, buffer, partialMsgs[i]->len); 
+    } else {
+	partialMsgs[i]->len = 0;
+	assert(is_left == (0-(int)sizeof(int)));
+    }
+
+    // Copy back to internal RPC buffer
+    P_memcpy(buf, pstart, ret);
+
+    if (needCopy) {
+	buffer = pstart;
+	assert(buffer != buf); // make sure we aren't deleting the 2d param
+	delete [] buffer;
+    }
+    
+    return (ret);
+}
+
 int RPCdefaultXDRWrite(const void* handle, const char *buf, const u_int len)
 {
     int fd = (int) handle;
@@ -138,8 +268,120 @@ int RPCdefaultXDRWrite(const void* handle, const char *buf, const u_int len)
     errno = 0;
     if (ret != (int)len)
       return(-1);
-    else
+    else 
       return (ret);
+}
+
+vector<rpcBuffer *> rpcBuffers;
+static short counter = 0;
+
+int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
+{
+    int ret;
+    int index = 0;
+    int header = len;
+
+    rpcBuffer *rb = new rpcBuffer;
+    rb -> fd = (int) handle;
+    rb -> len = len+sizeof(int);
+    rb -> buf = new char[rb -> len];
+
+    counter = ((counter+1)%SHRT_MAX);
+
+    assert(len <= 4040);
+
+    // Adding a header to the messages sent   
+    header = ((counter << 16) | header | 0xf000); 
+    P_memcpy(rb -> buf, (char *)&header, sizeof(int));
+
+    P_memcpy(rb -> buf+sizeof(int), buf, len);
+
+    rpcBuffers += rb;
+
+    // Write the items to the other end if possible with asynchrous write
+    for (int i = 0; (i < (int)rpcBuffers.size()); i++) {
+
+	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
+	    perror("fcntl");
+
+	ret = (int)P_write(rpcBuffers[i]->fd, rpcBuffers[i]->buf,
+			   rpcBuffers[i]->len);
+
+	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FSYNC) == -1)
+	    perror("fcntl");
+
+	if (rpcBuffers[i]->len != ret) {
+
+	    if (ret != -1) {
+		assert(ret < rpcBuffers[i]->len);
+		printf("Warning: a partial message sent!\n");
+		P_memcpy(rpcBuffers[i]->buf, rpcBuffers[i]->buf+ret,
+			 rpcBuffers[i]->len-ret);
+		rpcBuffers[i]->len -= ret;
+	    }
+	    break;
+	}
+	index++;
+	
+    }
+    
+    // Delete the items sent out
+    unsigned j;
+    for (j = 0; j < (unsigned)index; j++) {
+	delete [] rpcBuffers[j]->buf;
+    }    
+    
+    for (j = 0; j < rpcBuffers.size() - index; j++)
+	rpcBuffers[j] = rpcBuffers[j+index];
+    rpcBuffers.resize(rpcBuffers.size() - index);
+
+    return (ret = (int)len);
+}
+
+void
+doDeferedRPCasyncXDRWrite() {
+
+    if (rpcBuffers.size() == 0)
+	return;
+
+    int ret, index = 0;
+
+    // Write the items to the other end if possible 
+    for (int i = 0; (i < (int)rpcBuffers.size()); i++) {
+
+	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
+	    perror("fcntl");
+
+	ret = (int)P_write(rpcBuffers[i]->fd, rpcBuffers[i]->buf,
+			   rpcBuffers[i]->len);
+
+	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FSYNC) == -1)
+	    perror("fcntl");
+	
+	if (rpcBuffers[i]->len != ret) {
+
+	    if (ret != -1) {
+		assert(ret < rpcBuffers[i]->len);
+		printf("Warning: a partial message sent!\n");
+		P_memcpy(rpcBuffers[i]->buf, rpcBuffers[i]->buf+ret,
+			 rpcBuffers[i]->len-ret);
+		rpcBuffers[i]->len -= ret;
+	    }
+	    break;
+	}
+	index++;
+
+    }
+    
+    // Delete the items sent out
+    unsigned j;
+    for (j = 0; j < (unsigned)index; j++) {
+	delete [] rpcBuffers[j]->buf;
+    }    
+
+    for (j = 0; j < rpcBuffers.size() - index; j++)
+	rpcBuffers[j] = rpcBuffers[j+index];
+    rpcBuffers.resize(rpcBuffers.size() - index);
 }
 
 XDRrpc::~XDRrpc()
@@ -161,17 +403,27 @@ XDRrpc::~XDRrpc()
 //
 // prepare for RPC's to be done/received on the passed fd.
 //
-XDRrpc::XDRrpc(const int f, xdr_rd_func readRoutine, xdr_wr_func writeRoutine, const bool nblock)
+XDRrpc::XDRrpc(const int f, xdr_rd_func readRoutine, xdr_wr_func writeRoutine, const int nblock)
 : xdrs(NULL), fd(f)
 {
     assert(fd >= 0);
     xdrs = new XDR;
     assert(xdrs);
-    if (!readRoutine) readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
-    if (!writeRoutine) writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+    if (!readRoutine) {
+	if (nblock == 1) {
+	    readRoutine = (xdr_rd_func) RPCasyncXDRRead;
+	} else { 
+	    readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
+	}
+    }   
+    if (!writeRoutine) {
+	if (nblock == 2) {
+	    writeRoutine = (xdr_wr_func)RPCasyncXDRWrite;
+	} else {    
+	    writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+	}
+    }	
     P_xdrrec_create(xdrs, 0, 0, (char *) fd, readRoutine, writeRoutine);
-    if (nblock)
-      P_fcntl (fd, F_SETFL, FNDELAY);
 }
 
 //
@@ -183,18 +435,28 @@ XDRrpc::XDRrpc(const string &machine,
 	       xdr_rd_func readRoutine, 
 	       xdr_wr_func writeRoutine,
 	       const vector<string> &arg_list,
-	       const bool nblock,
+	       const int nblock,
 	       const int wellKnownPortFd)
 : xdrs(NULL), fd(-1)
 {
     fd = RPCprocessCreate(machine, user, program, arg_list, wellKnownPortFd);
     if (fd >= 0) {
         xdrs = new XDR;
-	if (!readRoutine) readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
-	if (!writeRoutine) writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+	if (!readRoutine) {
+	    if (nblock == 1) {
+		readRoutine = (xdr_rd_func) RPCasyncXDRRead;
+	    } else { 
+		readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
+	    }
+	}
+	if (!writeRoutine) {
+	    if (nblock == 2) {
+		writeRoutine = (xdr_wr_func)RPCasyncXDRWrite;
+	    } else { 
+		writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+	    }
+	}
 	P_xdrrec_create(xdrs, 0, 0, (char *) fd, readRoutine, writeRoutine);
-	if (nblock)
-	  P_fcntl (fd, F_SETFL, FNDELAY);
     }
 }
 
@@ -320,7 +582,7 @@ XDRrpc::XDRrpc(int family,
 	       const string machine, 
 	       xdr_rd_func readRoutine,
 	       xdr_wr_func writeRoutine,
-	       const bool nblock) : xdrs(NULL), fd(-1)
+	       const int nblock) : xdrs(NULL), fd(-1)
      // socket, connect using machine
 {
   struct sockaddr_in serv_addr;
@@ -343,13 +605,22 @@ XDRrpc::XDRrpc(int family,
 
     xdrs = new XDR;
     assert(xdrs);
-    if (!readRoutine) readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
-    if (!writeRoutine) writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+    if (!readRoutine) {
+	if (nblock == 1) {
+	    readRoutine = (xdr_rd_func) RPCasyncXDRRead;
+	} else {  
+	    readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
+	}
+	}
+    if (!writeRoutine) {
+	if (nblock == 2) {
+	    writeRoutine = (xdr_wr_func)RPCasyncXDRWrite;
+	} else { 
+	    writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+	}
+    }
     P_xdrrec_create(xdrs, 0, 0, (char *) fd, readRoutine,writeRoutine);
-    if (nblock)
-      P_fcntl (fd, F_SETFL, FNDELAY);
-
-}
+} 
 
 //
 // These xdr functions are not to be called with XDR_FREE

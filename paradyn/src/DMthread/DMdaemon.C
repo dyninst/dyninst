@@ -1244,7 +1244,7 @@ void paradynDaemon::firstSampleCallback(int, double firstTime) {
 
 paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 			     const string &n, const string &f)
-: dynRPCUser(m, u, c, NULL, NULL, args, false, dataManager::sock_fd),
+: dynRPCUser(m, u, c, NULL, NULL, args, 1, dataManager::sock_fd),
   machine(m), login(u), command(c), name(n), flavor(f), activeMids(uiHash)
 {
   if (!this->errorConditionFound) {
@@ -1273,7 +1273,7 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 
 // machine, name, command, flavor and login are set via a callback
 paradynDaemon::paradynDaemon(int f)
-: dynRPCUser(f, NULL, NULL, false), flavor(0), activeMids(uiHash){
+: dynRPCUser(f, NULL, NULL, 1), flavor(0), activeMids(uiHash){
   if (!this->errorConditionFound) {
     // No problems found in order to create this new daemon process - naim 
     paradynDaemon *pd = this;

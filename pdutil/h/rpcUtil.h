@@ -44,6 +44,9 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.37  1997/05/17 20:00:58  lzheng
+ * Changes made for nonblocking write
+ *
  * Revision 1.36  1997/05/08 00:10:15  mjrg
  * Changes for Windows NT port
  *
@@ -106,6 +109,7 @@
 // trace data streams
 #include "util/h/ByteArray.h"
 #include "util/h/Vector.h"
+#include "util/h/vectorSet.h"
 
 // Boolean defined for igen -- xdr_bool uses an int, which clashes with gcc
 // typedef bool Boolean;
@@ -119,11 +123,11 @@ class XDRrpc {
 public:
   XDRrpc(const string &machine, const string &user, const string &program,
 	 xdr_rd_func r, xdr_wr_func w,
-	 const vector<string> &arg_list, const bool nblock, const int wellKnownPortFd);
+	 const vector<string> &arg_list, const int nblock, const int wellKnownPortFd);
   XDRrpc(const int use_fd, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
-	 const bool nblock);
+	 const int nblock);
   XDRrpc(int family, int port, int type, const string machine,
-	 xdr_rd_func readFunc, xdr_wr_func writeFunc, const bool block);
+	 xdr_rd_func readFunc, xdr_wr_func writeFunc, const int nblock);
   ~XDRrpc();
   // This function does work on Windows NT. Since it is not being used
   // anywhere, I'm commenting it out -- mjrg
@@ -228,5 +232,12 @@ extern double timing_loop(const unsigned TRIES=1,
 			  const unsigned LOOP_LIMIT=100000);
 
 extern string getHostName();
+
+class rpcBuffer {
+  public:
+    int fd;
+    char *buf;
+    int len;
+};
 
 #endif

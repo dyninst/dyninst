@@ -681,6 +681,8 @@ void controllerMainLoop(bool check_buffer_first)
 
 	doDeferredRPCs();
 #endif
+	extern void doDeferedRPCasyncXDRWrite();
+	doDeferedRPCasyncXDRWrite();
 
 #if !defined(i386_unknown_nt4_0)
 	time64 pollTimeUSecs = 50000;

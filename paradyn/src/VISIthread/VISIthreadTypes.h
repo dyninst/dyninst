@@ -105,7 +105,7 @@ class visiUser : public visualizationUser
 {
   public:
     visiUser(int fd) :
-	visualizationUser(fd, NULL, NULL, false) {;};
+	visualizationUser(fd, NULL, NULL, 0) {;};
     virtual void handle_error();
 };
 
