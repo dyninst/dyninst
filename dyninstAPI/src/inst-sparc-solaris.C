@@ -178,8 +178,13 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 void AstNode::sysFlag(instPoint *location)
 {
     // astFlag = location->func->isTrapFunc();
-    if (astFlag == false)
+    if (location -> ipType == functionEntry) {
 	astFlag = (location -> isLongJump)? false:true; 
+    } else if (location -> ipType == functionExit) {
+	astFlag = location -> leaf;
+    } else
+	astFlag = false;
+
     if (loperand)
 	loperand->sysFlag(location);
     if (roperand)
@@ -1193,6 +1198,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	return(24);
 
     } else if (op == getSysRetValOp) {
+
 	return(24);
     } else if (op == saveRegOp) {
 	// should never be called for this platform.
