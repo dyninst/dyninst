@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeFortC.c,v 1.8 2003/06/22 22:40:46 rchen Exp $ */
+/* $Id: test1.mutateeFortC.c,v 1.9 2003/09/11 15:38:08 eli Exp $ */
 
 #include <stdlib.h>
 #include "test1.mutateeCommon.h"
@@ -135,6 +135,7 @@ struct block_ {
 #define func34_1 func34_1_
 #define func35_1 func35_1_
 #define func36_1 func36_1_
+#define func37_1 func37_1_
 #define init_globals init_globals_
 #define globals globals_
 #endif
@@ -178,6 +179,7 @@ extern void func33_1 ();
 extern void func34_1 ();
 extern void func35_1 ();
 extern void func36_1 ();
+extern void func37_1 ();
 
 int mutateeFortran = 1;
 int mutateeCplusplus = 0;
@@ -273,6 +275,7 @@ void runTests()
     if (runTest[34]) func34_1();
     if (runTest[35]) func35_1();
     if (runTest[36]) func36_1();
+    if (runTest[37]) func37_1();
 
     /* Combine fortran passedTest with C passedTest */
     for (i=1; i <= MAX_TEST; i++)

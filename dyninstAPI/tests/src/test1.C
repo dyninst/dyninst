@@ -4353,6 +4353,9 @@ void instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 				 char * call_func,
 				 char * inc_func)
 {
+    // DON'T RUN FOR NOW
+    return;
+
     // get function * for call_func
     BPatch_Vector<BPatch_function *> funcs;
 
@@ -4566,7 +4569,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     if( runTest[ 36 ] ) mutatorTest36( appThread, appImage );
     
-    //if( runTest[ 37 ] ) mutatorTest37( appThread, appImage );
+    if( runTest[ 37 ] ) mutatorTest37( appThread, appImage );
 
     
     /* the following bit of code saves the mutatee in its mutated state to the

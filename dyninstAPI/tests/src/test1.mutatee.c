@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.92 2003/09/10 17:50:55 eli Exp $ */
+/* $Id: test1.mutatee.c,v 1.93 2003/09/11 15:38:06 eli Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2376,6 +2376,11 @@ void call37_3()
 
 
 void func37_1() {
+    printf("Skipped test #37 (instrument loops)\n");
+    printf("\t- work in progress\n");
+    passedTest[37] = TRUE;
+
+    /*
     const int ANSWER37_1 = 17200;
     const int ANSWER37_2 = 42;
     const int ANSWER37_3 = 1650;
@@ -2408,7 +2413,7 @@ void func37_1() {
     if (passedTest[ 37 ]) {
 	printf( "Passed test #37 (instrument loops)\n" );    
     }
-
+    */
 }
 
 
@@ -2485,7 +2490,5 @@ void runTests()
     if (runTest[34]) func34_1();
     if (runTest[35]) func35_1();
     if (runTest[36]) func36_1();    
-
-    passedTest [37] = TRUE; 
-    /*if (runTest[37]) func37_1();   */
+    if (runTest[37]) func37_1();
 }

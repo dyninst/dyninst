@@ -2085,3 +2085,13 @@ C	INTRINSIC IEOR, IAND, IOR
 	END
 
 !------------------------------------------------------------------------------
+
+
+	SUBROUTINE func37_1
+#include "test1_common.h"
+	passedTest (37) = .true.
+	print *, 'Skipped test #37 (instrument loops)'
+	print *, '       - not implemented for Fortran'
+	END
+
+!------------------------------------------------------------------------------
