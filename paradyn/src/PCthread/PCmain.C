@@ -16,20 +16,23 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.50  1996/04/07 21:29:35  karavan
-/* split up search ready queue into two, one global one current, and moved to
-/* round robin queue removal.
+/* Revision 1.51  1996/04/17 21:58:44  karavan
+/* bug fix.
 /*
-/* eliminated startSearch(), combined functionality into activateSearch().  All
-/* search requests are for a specific phase id.
-/*
-/* changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
-/* changes internal to PC to track phaseID, to avoid enable requests being handled
-/* for incorrect current phase.
-/*
-/* added update of display when phase ends, so all nodes changed to inactive display
-/* style.
-/*
+ * Revision 1.50  1996/04/07 21:29:35  karavan
+ * split up search ready queue into two, one global one current, and moved to
+ * round robin queue removal.
+ *
+ * eliminated startSearch(), combined functionality into activateSearch().  All
+ * search requests are for a specific phase id.
+ *
+ * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
+ * changes internal to PC to track phaseID, to avoid enable requests being handled
+ * for incorrect current phase.
+ *
+ * added update of display when phase ends, so all nodes changed to inactive display
+ * style.
+ *
  * Revision 1.49  1996/03/18 07:12:04  karavan
  * Switched over to cost model for controlling extent of search.
  *
@@ -126,7 +129,7 @@ void PCfold(perfStreamHandle,
       rawInput = performanceConsultant::globalRawDataServer;
     else
       rawInput = performanceConsultant::currentRawDataServer;
-    if (rawInput);
+    if (rawInput)
       rawInput-> newBinSize(newWidth);      
   }
 }
