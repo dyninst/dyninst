@@ -22,9 +22,16 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.45  1995/09/26 20:48:43  naim
-/* Minor error messages changes
+/* Revision 1.46  1995/10/12 19:44:29  naim
+/* Adding error recovery when a visi cannot be created. This change
+/* implies that whenever the visiUser constructor is used, it
+/* is the user's responsability to check whether the new object have been
+/* successfully created or not (i.e. by checking the public method
+/* bool errorConditionFound in class visualizationUser) - naim
 /*
+ * Revision 1.45  1995/09/26  20:48:43  naim
+ * Minor error messages changes
+ *
  * Revision 1.44  1995/09/18  18:22:34  newhall
  * changes to avoid for-scope problem
  *
@@ -493,17 +500,22 @@ int VISIthreadStartProcess(){
 				 ptr->args->argv[0], av);
     if (ptr->fd < 0) {
       PARADYN_DEBUG(("Error in process Create: RPCprocessCreate"));
-      ERROR_MSG(14,"Error in VISIthreadStartProcess: RPCprocessCreate");
+      ERROR_MSG(14,"");
       ptr->quit = 1;
       return(0);
     }
 
     ptr->visip = new visiUser(ptr->fd); 
+    if (ptr->visip->errorConditionFound) {
+      ERROR_MSG(14,"");
+      ptr->quit = 1;
+      return(0);
+    }
 
     if(msg_bind_buffered(ptr->fd,0, (int(*)(void*)) xdrrec_eof,ptr->visip->net_obj()) 
        != THR_OKAY) {
       PARADYN_DEBUG(("Error in msg_bind(ptr->fd)"));
-      ERROR_MSG(14,"Error VISIthreadStartProcess: msg_bind_buffered");
+      ERROR_MSG(14,"");
       ptr->quit = 1;
       return(0);
     }
@@ -701,7 +713,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       else{ // if nothing was enabled, and remenuflag is not set quit
 	 ptr->quit = 1;
       }
-      ERROR_MSG(17,"No enabled Metric/focus pairs: VISIthreadchooseMetRes");
+      ERROR_MSG(17,"Cannot select the same metric twice. Please, try again");
   }
   return 1;
 }
