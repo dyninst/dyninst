@@ -61,9 +61,7 @@ int DYNINSTloadLibrary(char *libname)
 {
     void *res = 1;
 
-    fprintf(stderr, "Attempting to load %s\n", libname);
-
-    //res = dlopen( libname, RTLD_NOW | RTLD_GLOBAL );
+    res = dlopen( libname, RTLD_NOW | RTLD_GLOBAL );
 
     if( res == NULL ) {
 	perror( "DYNINSTloadLibrary -- dlopen" );
