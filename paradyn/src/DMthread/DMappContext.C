@@ -2,7 +2,14 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.39  1994/09/05 20:02:59  jcargill
+ * Revision 1.40  1994/09/22 00:52:29  markc
+ * Changed "String" to "char*"
+ * Used access methods for private member functions from igen classes
+ * Removed purify error (new char[len] --> char[len+1] on line 303
+ * Typecast args passed to msg_bind_buffered
+ * Added "const" to applicationContext::defineDaemon(), ::findEntry() args
+ *
+ * Revision 1.39  1994/09/05  20:02:59  jcargill
  * Better control of PC output through tunable constants.
  *
  * Revision 1.38  1994/08/22  15:57:26  markc
@@ -147,12 +154,12 @@
  */
 #include <assert.h>
 extern "C" {
-#include <math.h>
 double   quiet_nan(int unused);
 #include <malloc.h>
 #include "thread/h/thread.h"
 #include <rpc/types.h>
 #include <rpc/xdr.h>
+#include <stdio.h>
 }
 
 #include "dataManager.h"
@@ -184,7 +191,7 @@ String_Array convertResourceList(resourceList *rl)
     String_Array ret;
 
     ret.count = rl->getCount();
-    ret.data = (String *) rl->convertToStringList();
+    ret.data = (char **) rl->convertToStringList();
     return(ret);
 }
 
@@ -213,7 +220,8 @@ Boolean applicationContext::addDaemon (int new_fd)
 
   new_daemon = new paradynDaemon (new_fd, NULL, NULL);
 
-  msg_bind_buffered (new_daemon->fd, TRUE, xdrrec_eof, new_daemon->__xdrs__);
+  msg_bind_buffered (new_daemon->getFd(), TRUE, (int(*)(void*)) xdrrec_eof,
+		     (void*)new_daemon->getXdrs());
 
   // TODO - do I need the pid for this ?
   // The pid is reported later in an upcall
@@ -237,7 +245,7 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
 #endif
 
     if (informUser) {
-	printf("paradynd (pid %d) had died\n", d->pid);
+	printf("paradynd (pid %d) had died\n", d->getPid());
 	printf("paradyn Error #5\n");
     }
 
@@ -258,7 +266,7 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
 #endif
 
     // tell the thread package to ignore the fd to the daemon.
-    msg_unbind(d->fd);
+    msg_unbind(d->getFd());
 }
 
 //
@@ -300,21 +308,22 @@ paradynDaemon *applicationContext::getDaemonHelper (char *machine,
     int len;
     gethostname(hostStr, 79);
     len = strlen(hostStr);
-    machine = new char[len];
+    machine = new char[len+1];
     strcpy(machine, hostStr);
   }
 
-  daemon = new paradynDaemon(machine, login, def->command, def->name,
-			     NULL, NULL, def->flavor);
-  if (daemon->fd < 0) {
-    printf("unable to start paradynd: %s\n", def->command);
+  daemon = new paradynDaemon(machine, login, def->getCommand(), def->getName(),
+			     NULL, NULL, def->getFlavor());
+  if (daemon->getFd() < 0) {
+    printf("unable to start paradynd: %s\n", def->getCommand());
     printf("paradyn Error #6\n");
     return((paradynDaemon*) NULL);
   }
   daemons.add(daemon);
-  msg_bind_buffered (daemon->fd, TRUE, xdrrec_eof, daemon->__xdrs__);
+  msg_bind_buffered (daemon->getFd(), TRUE, (int(*)(void*))xdrrec_eof,
+		     (void*) daemon->getXdrs());
 
-  paradynDdebug(daemon->pid);
+  paradynDdebug(daemon->getPid());
   return daemon;
 }
 
@@ -335,11 +344,11 @@ Boolean applicationContext::getDaemon (char *machine,
     return TRUE;
 }
 
-Boolean applicationContext::defineDaemon (char *command,
-					  char *dir,
-					  char *login,
-					  char *name,
-					  char *machine,
+Boolean applicationContext::defineDaemon (const char *command,
+					  const char *dir,
+					  const char *login,
+					  const char *name,
+					  const char *machine,
 					  int flavor)
 {
   List<daemonEntry*> walk;
@@ -349,7 +358,7 @@ Boolean applicationContext::defineDaemon (char *command,
     return FALSE;
 
   for (walk=allEntries; *walk; walk++)
-    if (!strcmp(name, (*walk)->name)) {
+    if (!strcmp(name, (*walk)->getName())) {
       if ((*walk)->freeAll() && (*walk)->setAll(machine, command, name,
 						login, dir, flavor))
 	return TRUE;
@@ -363,14 +372,14 @@ Boolean applicationContext::defineDaemon (char *command,
   return TRUE;
 }
 
-daemonEntry *applicationContext::findEntry(char *m, char *n)
+daemonEntry *applicationContext::findEntry(const char *m, const char *n)
 {
   List<daemonEntry*> walk;
 
   if (!n)
     return ((daemonEntry*) 0);
   for (walk=allEntries; *walk; walk++) {
-    if (!strcmp(n, (*walk)->name))
+    if (!strcmp(n, (*walk)->getName()))
       return (*walk);
   }
   return ((daemonEntry*) 0);
@@ -546,7 +555,7 @@ Boolean applicationContext::detachApplication(Boolean)
 //
 void applicationContext::printStatus()
 {
-    String status;
+    char *status;
     executable *exec;
     List<executable*> curr;
 
@@ -586,7 +595,7 @@ String_Array applicationContext::getAvailableMetrics()
     HTable<metric*> cm;
 
     names.count = metric::allMetrics.count();
-    names.data = (String *) malloc(sizeof(String) * names.count);
+    names.data = (char **) malloc(sizeof(char*) * names.count);
     for (cm=metric::allMetrics,i=0; *cm; cm++,i++) {
        names.data[i] = (*cm)->getName();
        assert(names.data[i]);
@@ -614,7 +623,7 @@ Boolean applicationContext::setInstSuppress(resource *res, Boolean newValue)
 
     ret = FALSE;
     for (curr = daemons; daemon = *curr; curr++) {
-	ret |= daemon->setTracking(res->getFullName(), newValue);
+	ret |= daemon->setTracking((char*)res->getFullName(), newValue);
     }
     return(ret);
 }
