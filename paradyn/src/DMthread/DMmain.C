@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.145 2003/02/11 17:18:35 schendel Exp $
+// $Id: DMmain.C,v 1.146 2003/02/21 20:06:13 bernat Exp $
 
 #include <assert.h>
 extern "C" {
@@ -706,6 +706,9 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 					bool calledFromExec,
 					bool runMe)
 {
+
+    fprintf(stderr, "New program callback from pid %d, calledFromExec %d, runMe %d\n",
+            pid, calledFromExec, runMe);
     // there better be a paradynd running on this machine!
     paradynDaemon *last_match = 0;
 

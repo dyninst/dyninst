@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.121 2003/02/11 17:18:31 schendel Exp $
+ * $Id: DMdaemon.C,v 1.122 2003/02/21 20:06:11 bernat Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -177,49 +177,58 @@ bool paradynDaemon::addRunningProgram (int pid,
 				       const pdvector<string> &paradynd_argv,
 				       paradynDaemon *daemon,
 				       bool calledFromExec,
-				       bool attached_runMe) {
+				       bool isInitiallyRunning) {
     executable *exec = NULL;
-
+    
     if (calledFromExec) {
-       for (unsigned i=0; i < programs.size(); i++) {
-	  if ((int) programs[i]->pid == pid && programs[i]->controlPath == daemon) {
+        for (unsigned i=0; i < programs.size(); i++) {
+            if ((int) programs[i]->pid == pid && programs[i]->controlPath == daemon) {
 	     exec = programs[i];
 	     break;
-	  }
-       }
-       assert(exec);
-
-       // exec() doesn't change the pid, but paradynd_argv changes (big deal).
-       exec->argv = paradynd_argv;
-
-       // fall through (we probably want to execute the daemon->continueProcess())
+            }
+        }
+        assert(exec);
+        
+        // exec() doesn't change the pid, but paradynd_argv changes (big deal).
+        exec->argv = paradynd_argv;
+        
+        // fall through (we probably want to execute the daemon->continueProcess())
     }
     else {
-       // the non-exec (the normal) case follows:
-       exec = new executable (pid, paradynd_argv, daemon);
-       programs += exec;
-       ++procRunning;
-
-       // the following propagates mi's to the new process IF it's the only
-       // process on the daemon.  Otherwise, the daemon can and does propagate
-       // on its own.  We don't call it in the exec case (above) since we know it
-       // wouldn't do anything.
-       daemon->propagateMetrics();
+        // the non-exec (the normal) case follows:
+        exec = new executable (pid, paradynd_argv, daemon);
+        programs += exec;
+        ++procRunning;
+        
+        // the following propagates mi's to the new process IF it's the only
+        // process on the daemon.  Otherwise, the daemon can and does propagate
+        // on its own.  We don't call it in the exec case (above) since we know it
+        // wouldn't do anything.
+        daemon->propagateMetrics();
     }
-
-    if (applicationState == appRunning || attached_runMe) {
-      //cerr << "paradyn: calling daemon->continueProcess off of addRunningProgram (machine " << daemon->getMachineName() << "; pid=" << pid << ") !" << endl;
-      daemon->continueProcess(pid);
+    
+    // Now... do we run the application or not? First, check what the frontend
+    // thinks is the case
+    if (applicationState == appRunning) {
+        daemon->continueProcess(pid);
+        uiMgr->enablePauseOrRun();
     }
-
-    if (procRunning == 1 && attached_runMe) {
-       // currently, Paradyn believes that the application is paused.
-       // Let's change that to 'running'.
-       if (!continueAll())
-	  cerr << "warning: continueAll failed" << endl;
-       uiMgr->enablePauseOrRun();
+    else {
+        // Daemon is handling pause/run, we just need to update our state
+        switch(daemon->afterAttach_) {
+      case 0:
+          // Leave as is... key off the isInitiallyRunning parameter
+          if (isInitiallyRunning)
+              uiMgr->enablePauseOrRun();
+          break;
+      case 1:
+          break;
+      case 2:
+          // Run
+          uiMgr->enablePauseOrRun();
+          break;
+        }
     }
-
     return true;
 }
 
@@ -1326,20 +1335,27 @@ mpichUnlinkWrappers()
 }
 
 
-bool writeMPICHWrapper(const string& fileName, const string& buffer )
+bool writeMPICHWrapper(int fd, const string& buffer )
 {
-   FILE *f;
-
-   if ((f = fopen (fileName.c_str(), "wt")) == 0 ||
-       fputs (buffer.c_str(), f) < 0 ||
-       fclose (f) < 0 ||
-       chmod (fileName.c_str(), S_IRWXU) < 0) {
-      uiMgr->showError(113, "mpichCreateWrapper: I/O error");
-      return false;
-   }
+    if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
+        perror("Failed to write MPI wrapper (seek)");
+        return false;
+    }
+    if (write(fd, buffer.c_str(), strlen(buffer.c_str())) !=
+        strlen(buffer.c_str())) {
+        perror("Failed to write MPI wrapper (write)");
+        return false;
+    }
+    if (fchmod(fd, S_IRWXU) == -1) {
+        perror("Failed to write MPI wrapper (chmod)");
+        return false;
+    }
+    if (close(fd) == -1) {
+        perror("Failed to write MPI wrapper (close)");
+        return false;
+    }
    return true;
 }
-
 
 
 /*
@@ -1355,43 +1371,46 @@ bool mpichCreateWrapper(const string& machine, bool localMachine,
 			const string& app_name, const pdvector<string> args,
 			daemonEntry *de)
 {
-   const char *preamble = "#!/bin/sh\ncd ";
-   string buffer;
-   unsigned int j;
-   
-   buffer = string(preamble) + string(dir) + 
-      string("\nPWD=") + string(dir) + string("; export PWD\n") + 
-      string(de->getCommand());
-   
-   for (j=0; j < args.size(); j++) {
-      if (!strcmp(args[j].c_str(), "-l1")) {
-	 buffer += " -l0";
-      } else {
-	 buffer += string(" ") + args[j];
-      }
+    const char *preamble = "#!/bin/sh\ncd ";
+    string buffer;
+    unsigned int j;
+    
+    buffer = string(preamble) + string(dir) + 
+    string("\nPWD=") + string(dir) + string("; export PWD\n") + 
+    string(de->getCommand());
+    
+    for (j=0; j < args.size(); j++) {
+        if (!strcmp(args[j].c_str(), "-l1")) {
+            buffer += " -l0";
+        } else {
+            buffer += string(" ") + args[j];
+        }
+    }
+    
+    buffer += string(" -z") + string(de->getFlavor()) + 
+    string(" -runme ") + app_name +
+    string(" $*\n");
+    
+    if(localMachine) {
+        // the file named by script is our wrapper - write the script to the
+        // wrapper file
+        int fd = open(script.c_str(), O_WRONLY | O_CREAT);
+        if( !writeMPICHWrapper(fd, buffer)) {
+            return false;
+        }      
+        paradynDaemon::wrappers += paradynDaemon::MPICHWrapperInfo(script);
+        return true;
    }
    
-   buffer += string(" -z") + string(de->getFlavor()) + 
-      string(" -runme ") + app_name +
-      string(" $*\n");
-   
-   if(localMachine) {
-      // the file named by script is our wrapper - write the script to the
-      // wrapper file
-      if( !writeMPICHWrapper(script, buffer)) {
-	 return false;
-      }      
-      paradynDaemon::wrappers += paradynDaemon::MPICHWrapperInfo(script);
-      return true;
-   }
-
 
    assert(! localMachine);
    // the file named by script is the wrapper's remote name - we write the
    // script to a local temporary file so as to copy it to the remote system
    char templ[40] = "pd.wrapper.XXXXXX";
-   string localWrapper = mktemp(templ);
-   if( !writeMPICHWrapper(localWrapper, buffer)) {
+   int tempfd = mkstemp(templ);
+   // mkstemp also writes the name into temp
+   string localWrapper = templ;   
+   if( !writeMPICHWrapper(tempfd, buffer)) {
       return false;
    }
    
@@ -1404,39 +1423,39 @@ bool mpichCreateWrapper(const string& machine, bool localMachine,
    if(pid > 0) {
       // we are the parent - 
       // wait for our child process (which will do the copy) to complete
-      int copyStatus;
-      if(waitpid( pid, &copyStatus, 0 ) != pid ) {
-	 cerr << "mpichCreateWrapper: Failed to copy temporary local "
-	      << "wrapper " << localWrapper << " to remote system: " 
-	      << strerror(errno) << endl;
-	 copySucceeded = false;
-      }
-      else {
-	 if(copyStatus != 0) {
-	    copySucceeded = false;
-	 }
-      }
+       int copyStatus;
+       if(waitpid( pid, &copyStatus, 0 ) != pid ) {
+           cerr << "mpichCreateWrapper: Failed to copy temporary local "
+                << "wrapper to remote system: " 
+                << strerror(errno) << endl;
+           copySucceeded = false;
+       }
+       else {
+           if(copyStatus != 0) {
+               copySucceeded = false;
+           }
+       }
    } else if(pid == 0) {
-      // we are the child - we exec our copy command...
-      
-      // ...build the command string...
-      string cmd;
-      cmd += de->getRemoteShellString();
-      cmd += " ";
-      cmd += machine;		// name of the remote system
-      cmd += " cat - \">\" ";
-      cmd += script;			// name of wrapper on remote system
-      cmd += " \";\" chmod 755 ";
-      cmd += script;
-      cmd += " < ";
-      cmd += localWrapper;	// name of wrapper on local system
-      
-      // ...exec a shell to execute it
-      execl("/bin/sh", "sh", "-c", cmd.c_str(), NULL);
-      copySucceeded = false;	// if we got here, the exec failed
+       // we are the child - we exec our copy command...
+       
+       // ...build the command string...
+       string cmd;
+       cmd += de->getRemoteShellString();
+       cmd += " ";
+       cmd += machine;		// name of the remote system
+       cmd += " cat - \">\" ";
+       cmd += script;			// name of wrapper on remote system
+       cmd += " \";\" chmod 755 ";
+       cmd += script;
+       cmd += " < ";
+       cmd += localWrapper;	// name of wrapper on local system
+       
+       // ...exec a shell to execute it
+       execl("/bin/sh", "sh", "-c", cmd.c_str(), NULL);
+       copySucceeded = false;	// if we got here, the exec failed
    } else {
-      cerr << "mpichCreateWrapper: fork failed." << strerror(errno) << endl;
-      copySucceeded = false;
+       cerr << "mpichCreateWrapper: fork failed." << strerror(errno) << endl;
+       copySucceeded = false;
    }
    
    // release the local temporary wrapper file
@@ -1800,6 +1819,9 @@ bool paradynDaemon::attachStub(const string &machine,
   paradynDaemon *daemon = getDaemonHelper(machine, userName, daemonName);
   if (daemon == NULL)
       return false;
+
+  daemon->afterAttach_ = afterAttach;
+
 
   char tmp_buf[128];
   sprintf (tmp_buf, "attaching to PID=%d...", the_pid);
@@ -2388,7 +2410,7 @@ void paradynDaemon::setInitialActualValueFE(int mid, double initActVal) {
 paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 			   const string &r, const string &n, const string &f)
 : dynRPCUser(m, u, c, r, NULL, NULL, args, 1, dataManager::sock_desc),
-  machine(m), login(u), command(c), name(n), flavor(f), activeMids(uiHash)
+  machine(m), login(u), command(c), name(n), flavor(f), afterAttach_(0), activeMids(uiHash)
 {
   if (!this->errorConditionFound) {
     // No problems found in order to create this new daemon process - naim
@@ -2440,7 +2462,7 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 
 // machine, name, command, flavor and login are set via a callback
 paradynDaemon::paradynDaemon(PDSOCKET use_sock)
-: dynRPCUser(use_sock, NULL, NULL, 1), flavor(0), activeMids(uiHash) {
+: dynRPCUser(use_sock, NULL, NULL, 1), flavor(0), afterAttach_(0), activeMids(uiHash) {
   if (!this->errorConditionFound) {
     // No problems found in order to create this new daemon process - naim 
     paradynDaemon *pd = this;

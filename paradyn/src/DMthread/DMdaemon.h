@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.56 2003/02/11 17:18:34 schendel Exp $
+// $Id: DMdaemon.h,v 1.57 2003/02/21 20:06:12 bernat Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -328,8 +328,8 @@ class paradynDaemon: public dynRPCUser {
 
    // start a new program; propagate all enabled metrics to it   
    static bool addRunningProgram(int pid, const pdvector<string> &paradynd_argv, 
-				 paradynDaemon *daemon,
-				 bool calledFromExec, bool isInitiallyRunning);
+                                 paradynDaemon *daemon,
+                                 bool calledFromExec, bool isInitiallyRunning);
 
    // launch new process   
    static bool newExecutable(const string &machineArg, 
@@ -406,6 +406,15 @@ class paradynDaemon: public dynRPCUser {
    string name;
    string flavor;
    u_int id;
+
+   // What to do with the process after an attach
+   // 0: leave as is
+   // 1: pause
+   // 2: run
+   // Note: the daemon handles the pause/resuming, we just
+   // want to update the state in the frontend appropriately.
+   int afterAttach_;
+
    thread_t	stid;	// tid assigned to our RPC socket
    
    string status;
