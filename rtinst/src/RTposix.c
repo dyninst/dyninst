@@ -227,18 +227,19 @@ DYNINSTcontinueProcess(void) {
 
 
 /************************************************************************
- * void install_ualarm(unsigned value, unsigned interval)
+ * void DYNINST_install_ualarm(unsigned value, unsigned interval)
  *
  * an implementation of "ualarm" using the "setitimer" syscall.
 ************************************************************************/
 
 static void
-install_ualarm(unsigned value, unsigned interval) {
+DYNINST_install_ualarm(unsigned value, unsigned interval) {
     struct itimerval it;
 
-    it.it_value.tv_sec     = it.it_interval.tv_sec = 0;
-    it.it_value.tv_usec    = value;
-    it.it_interval.tv_usec = interval;
+    it.it_value.tv_sec     = value    / 1000000;
+    it.it_value.tv_usec    = value    % 1000000;
+    it.it_interval.tv_sec  = interval / 1000000;
+    it.it_interval.tv_usec = interval % 1000000;
 
     if (setitimer(ITIMER_REAL, &it, 0) == -1) {
         perror("setitimer");
@@ -586,9 +587,9 @@ DYNINSTinit(int doskip) {
     if (interval) {
         val = atoi(interval);
     }
-    DYNINSTsamplingRate = val/1000000.0;
+    DYNINSTsamplingRate = val/MILLION;
 
-    install_ualarm(val, val);
+    DYNINST_install_ualarm(val, val);
 
     printf("Time at main %g us\n", (double) DYNINSTgetCPUtime());
     if (!doskip) {
