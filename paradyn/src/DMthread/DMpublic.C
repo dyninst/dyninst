@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.109 1999/06/04 16:05:38 cain Exp $
+// $Id: DMpublic.C,v 1.110 1999/06/28 19:13:07 karavan Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -508,10 +508,19 @@ void DMdoEnableData(perfStreamHandle ps_handle,
    assert(enabled->size() == miVec->size());
    assert(enabled->size() == request->size());
 
+   // if the tunable constant "persistentData" is true, it overrides 
+   // individual requests; if false, go by individual request.
+   //
+   tunableBooleanConstant allPersistentData = 
+     tunableConstantRegistry::findBoolTunableConstant ("persistentData");
+   u_int persistenceFeature = persistent_data;
+   if ( allPersistentData.getValue()) persistenceFeature = 1;
+
    DM_enableType *new_entry = new DM_enableType(ps_handle,pt_handle,type,phaseId,
 			    paradynDaemon::next_enable_id++,request_Id,
 			    miVec,done,enabled,paradynDaemon::allDaemons.size(),
-			    persistent_data,persistent_collection,
+			    persistenceFeature,
+			    persistent_collection,
 			    phase_persistent_data);
 
    // if there is an MI that has not been enabled yet make enable 

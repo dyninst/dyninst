@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.122 1999/06/03 07:16:14 nash Exp $
+// $Id: DMmain.C,v 1.123 1999/06/28 19:13:06 karavan Exp $
 
 #include <assert.h>
 extern "C" {
@@ -1010,6 +1010,13 @@ void *DMmain(void* varg)
 	      our_print_sample_arrival, // init val
 	      printSampleArrivalCallback,
 	      developerConstant);
+
+    // Now the same for "PersistentData"
+    tunableBooleanConstantDeclarator persData("persistentData",
+	      "Don't delete internal paradyn data when instrumentation disabled",
+	      false, // init val
+	      NULL,
+	      userConstant);
 
     dataManager::DM_post_thread_create_init(mainTid);
 
