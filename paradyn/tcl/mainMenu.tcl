@@ -1,6 +1,9 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.50  1996/02/08 00:01:44  tamches
+# Dimmed the Help menu, since it's not yet implemented
+#
 # Revision 1.49  1996/02/07 19:16:14  tamches
 # added new phase menu
 #
@@ -164,7 +167,7 @@ proc drawToolBar {} {
     menubutton .parent.menub.left.men.b6 -text "Phase" \
 	    -menu .parent.menub.left.men.b6.m 
 
-    menubutton .parent.menub.left.men.b7 -text "Help" 
+    menubutton .parent.menub.left.men.b7 -text "Help" -state disabled
 
     menu .parent.menub.left.men.b0.m
     .parent.menub.left.men.b0.m add command -label "Exit Paradyn" -command "destroy ."
