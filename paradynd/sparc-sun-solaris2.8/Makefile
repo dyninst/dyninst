@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2003/07/31 19:01:06 schendel Exp $
+# $Id: Makefile,v 1.9 2003/09/05 16:28:15 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,6 +24,7 @@ SRCS =		../../dyninstAPI/src/solaris.C \
 		../../dyninstAPI/src/inst-sparc.C \
 		../../dyninstAPI/src/inst-sparc-solaris.C \
 		../../dyninstAPI/src/inst-sunos.C \
+		../../dyninstAPI/src/parseStab.C \
 		../../dyninstAPI/src/Object-elf.C \
 		../../dyninstAPI/src/tramp-sparc.s \
 		../../dyninstAPI/src/unix.C \
@@ -31,7 +32,10 @@ SRCS =		../../dyninstAPI/src/solaris.C \
 		../../dyninstAPI/src/LocalAlteration.C \
 		../../dyninstAPI/src/func-reloc.C \
 		../../dyninstAPI/src/LocalAlteration-Sparc.C \
-		../../dyninstAPI/src/InstrucIter-sparc.C
+		../../dyninstAPI/src/InstrucIter-sparc.C \
+      ../../dyninstAPI/src/writeBackElf.C \
+      ../../dyninstAPI/src/addLibrary.C \
+      ../../dyninstAPI/src/saveSharedLibrary.C
 
 CXXFLAGS 	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP
 CFLAGS 		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP

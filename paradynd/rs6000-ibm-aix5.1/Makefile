@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2003/07/29 00:32:51 eli Exp $
+# $Id: Makefile,v 1.7 2003/09/05 16:28:14 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -31,11 +31,14 @@ SRCS =		../../dyninstAPI/src/aix.C \
 		../../paradynd/src/init-aix.C \
 		../../paradynd/src/proc-aix.C \
 		../../dyninstAPI/src/inst-power.C \
+		../../dyninstAPI/src/parseStab.C \
 		../../dyninstAPI/src/inst-aix.C \
 		../../dyninstAPI/src/Object-xcoff.C \
 		../../dyninstAPI/src/FunctionExpansionRecord.C \
 		../../dyninstAPI/src/unix.C \
-		../../dyninstAPI/src/InstrucIter-power.C 
+		../../dyninstAPI/src/InstrucIter-power.C \
+      ../../dyninstAPI/src/writeBackXCOFF.C
+
 
 ifdef GCC_2_95
 CXXFLAGS	+= -fno-exceptions

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.18 2003/07/31 19:01:03 schendel Exp $
+# $Id: Makefile,v 1.19 2003/09/05 16:28:13 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,6 +38,8 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/inst-x86.C \
 		../../dyninstAPI/src/arch-x86.C \
 		../../dyninstAPI/src/arch-ia32.C \
+		../../dyninstAPI/src/parseDwarf.C \
+		../../dyninstAPI/src/parseStab.C \
 		../../dyninstAPI/src/Object-elf.C \
 		../../dyninstAPI/src/func-reloc.C \
 	        ../../dyninstAPI/src/LocalAlteration.C \
@@ -45,7 +47,11 @@ SRCS =		../../dyninstAPI/src/linux.C \
 	        ../../dyninstAPI/src/FunctionExpansionRecord.C \
 		../../dyninstAPI/src/unix.C  \
 		../../rtinst/src/RThwtimer-linux.c \
-		../../dyninstAPI/src/InstrucIter-x86.C
+		../../dyninstAPI/src/InstrucIter-x86.C \
+		../../dyninstAPI/src/addLibraryLinux.C \
+		../../dyninstAPI/src/writeBackElf.C \
+		../../dyninstAPI/src/saveSharedLibrary.C
+
 
 MYFLAGS		+= -I/usr/include/libelf
 MYFLAGS		+= -DNO_MDL_PRINT

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.59 2003/08/02 00:30:02 jodom Exp $
+# $Id: make.module.tmpl,v 1.60 2003/09/05 16:28:11 schendel Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -37,6 +37,17 @@ SRCS	     += ../src/association.C \
 		../src/internalMetrics.C \
 		../src/costmetrics.C \
 		../src/metricDefs-critPath.C \
+      		../../dyninstAPI/src/api_showerror.C \
+		../../dyninstAPI/src/BPatch_init.C \
+		../../dyninstAPI/src/BPatch.C \
+		../../dyninstAPI/src/BPatch_type.C \
+		../../dyninstAPI/src/BPatch_thread.C \
+		../../dyninstAPI/src/BPatch_snippet.C \
+		../../dyninstAPI/src/BPatch_function.C \
+		../../dyninstAPI/src/BPatch_point.C \
+		../../dyninstAPI/src/BPatch_image.C \
+		../../dyninstAPI/src/BPatch_module.C \
+		../../dyninstAPI/src/BPatch_collections.C \
 		../../dyninstAPI/src/BPatch_sourceBlock.C \
 		../../dyninstAPI/src/BPatch_basicBlock.C \
 		../../dyninstAPI/src/BPatch_basicBlockLoop.C \
