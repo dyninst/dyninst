@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.41  1996/04/05 21:02:39  naim
-/* Chaging default value for packet size tunable constant - naim
+/* Revision 1.42  1996/05/06 17:13:39  newhall
+/* changed initial value of EnableRequestPacketSize tunable constant from 2 to 10
 /*
+ * Revision 1.41  1996/04/05  21:02:39  naim
+ * Chaging default value for packet size tunable constant - naim
+ *
  * Revision 1.40  1996/03/14  14:22:42  naim
  * Batching enable data requests for better performance - naim
  *
@@ -319,7 +322,7 @@ main (int argc, char **argv)
      "Enable request packet size",
      NULL,
      developerConstant,
-     2.0, // initial value
+     10.0, // initial value
      1.0,  // min
      100.0); // max
 
