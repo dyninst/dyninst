@@ -7,8 +7,6 @@
 #include "rtinst/h/critPath.h"
 #include "piggyback.h"
 
-extern time64 DYNINSTgetCPUtime(void);
-
 /* tags for piggyback messages.  This tag space is independent of PVM tags */
 #define END_PIGGY_MSG    0      /* no more messages */
 #define CP_MSG          10      /* Critical Path message */
@@ -336,7 +334,7 @@ static void DYNINSTCP_Sample(int cpZero, int id)
     }
 
     DYNINSTgenerateTraceRecord(0, TR_CP_SAMPLE, sizeof(cpSample), &sample,
-				wall_time,process_time);
+				0,wall_time,process_time);
 }
 
 /*
