@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.28 2001/02/21 21:04:00 pcroth Exp $
+// $Id: pdwinnt.C,v 1.29 2001/02/23 15:19:23 pcroth Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1377,7 +1377,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
     
     PROCESS_INFORMATION procInfo;
     if (CreateProcess(file.string_of(), (char *)args.string_of(), 
-		      NULL, NULL, false,
+		      NULL, NULL, TRUE,
 		      DEBUG_PROCESS /* | CREATE_NEW_CONSOLE /* | CREATE_SUSPENDED */,
 		      NULL, dir == "" ? NULL : dir.string_of(), 
 		      &stinfo, &procInfo)) {
