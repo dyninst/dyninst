@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.139 2003/05/21 18:18:27 pcroth Exp $
+// $Id: mdl.C,v 1.140 2003/05/22 19:10:16 igor Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -787,13 +787,6 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
    } else {
       //cerr << "  met code node already there, reuse it! " << endl;
    }
-   
-   if(!metCodeNode->nonNull()) {
-      metric_cerr << "metCodeNode->nonNull()" << endl;
-      delete metCodeNode;
-      return false;
-   }
-    
    procNode->setMetricVarCodeNode(metCodeNode);
    return true;
 }
