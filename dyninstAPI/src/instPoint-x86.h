@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.8 2000/09/21 20:14:05 zandy Exp $
+// $Id: instPoint-x86.h,v 1.9 2001/02/02 21:18:26 gurari Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -68,6 +68,7 @@ class instPoint {
     insnBeforePt_ = 0;
     insnAfterPt_  = 0;
     bonusBytes_   = 0;
+    relocated_ = false;    
   };
 
   ~instPoint() {
@@ -113,6 +114,8 @@ class instPoint {
     { if (insnAfterPt_) return (*insnAfterPt_).size(); return 0; }
 
   Address jumpAddr() const { assert(jumpAddr_); return jumpAddr_; }
+  
+  void setJumpAddr(Address jumpAddr) { jumpAddr_ = jumpAddr; }
 
   Address returnAddr() const {
     Address ret = addr_ + insnAtPoint_.size();
@@ -120,6 +123,9 @@ class instPoint {
       ret += (*insnAfterPt_)[u].size();
     return ret;
   }
+
+  bool getRelocated() { return relocated_; }
+  void setRelocated() {relocated_ = true;}
 
   image *owner() const { return func()->file()->exec(); }
 
@@ -133,6 +139,21 @@ class instPoint {
       tSize += (*insnAfterPt_)[u2].size();
     tSize += bonusbytes();
     return tSize;
+  }
+
+    // return the number of bytes that need to be added so that the
+  // instruction will be instrumentable after the function has been relocated
+  int extraBytes() const {
+    assert (jumpAddr_ <= addr_);
+
+    int tSize = (addr_ - jumpAddr_) + insnAtPoint_.size();
+
+    for (unsigned u2 = 0; u2 < insnsAfter(); u2++)
+      tSize += (*insnAfterPt_)[u2].size();
+    if (tSize < 5) 
+      return 5 - tSize;
+    else 
+      return 0;
   }
 
   void setBonusBytes(unsigned num) {
@@ -174,6 +195,13 @@ class instPoint {
     return 0;
   }
 
+  Address firstAddress() {return iPgetAddress();}
+  Address followingAddress() {return iPgetAddress() + insnAtPoint_.size();}
+  unsigned sizeOfInsnAtPoint() {return insnAtPoint_.size();}
+  int sizeOfInstrumentation() {
+    return 5;
+  }
+
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function * to) { callee_ = to;  }
@@ -195,6 +223,10 @@ class instPoint {
   vector<instruction> *insnAfterPt_;  //Additional instructions after the point
   unsigned            bonusBytes_;    //Additional bytes after function for points
                                       //at end of function.
+  bool relocated_;       // true if the function where this instPoint belongs
+                         // has been relocated, and this instPoint has been 
+                         // updated to reflect that relocation. 
+
 };
 
 #endif
