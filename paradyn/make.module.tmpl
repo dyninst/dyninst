@@ -4,6 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.16  1995/10/17 20:39:19  tamches
+# Added whereAxis.C, abstractions.C, shg.C, shgRootNode.C,
+# shgPhases.C, shgConsts.C, shgTcl.C
+#
 # Revision 1.15  1995/10/05 04:50:56  karavan
 # added shgDisplay.C
 #
@@ -98,11 +102,18 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/UIthread/dagCompute.C \
 		../src/UIthread/dag.C \
 		../src/UIthread/paradyn.tcl.C \
+		../src/UIthread/whereAxis.C \
+		../src/UIthread/abstractions.C \
 		../src/UIthread/where4treeConstants.C \
 		../src/UIthread/rootNode.C \
 		../src/UIthread/scrollbar.C \
 		../src/UIthread/whereAxisMisc.C \
 		../src/UIthread/whereAxisTcl.C \
+		../src/UIthread/shg.C \
+		../src/UIthread/shgRootNode.C \
+		../src/UIthread/shgPhases.C \
+		../src/UIthread/shgConsts.C \
+		../src/UIthread/shgTcl.C \
 		../src/UIthread/tkTools.C \
 		../src/TCthread/TCmain.C \
 		../src/TCthread/tunableConst.C \
