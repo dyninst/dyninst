@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.37 2002/11/21 23:41:52 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.38 2002/12/14 16:37:58 schendel Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -150,13 +150,9 @@ int pmapi_setup_bindings(pm_info_t *myinfo, int destination_mapping[]) {
    return 0;
 }
 
-void PARADYNos_init(int calledByFork, int calledByAttach) {
-  int ret;
-  void *lib;
-  hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
-  hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
-
+void PARADYN_initialize_pmapi(int calledByFork) {
   // Zero out the program setup info
+  int ret;
   pdyn_pm_prog.mode.w = 0;
 
 #ifdef PMAPI_GROUPS
@@ -186,12 +182,31 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
   pdyn_pm_prog.mode.b.process = 1;
   pdyn_pm_prog.mode.b.count  = 1;  /* start counting immediately,
                                       precludes the need for pm_start_...() */
-  
+
   /* Prep the sucker for launch */
   /* we need to set up a group because we need to sample the cycle hwctr
      for all of the threads (in addition to, for each thread) */
-  ret = pm_set_program_mygroup(&pdyn_pm_prog);
-  if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
+  if(!calledByFork) {
+     ret = pm_set_program_mygroup(&pdyn_pm_prog);
+     if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
+  } else {
+     fprintf(stderr, "calling pm_delete_program_mythread\n");
+     pm_delete_program_mythread();
+     ret = pm_set_program_mygroup(&pdyn_pm_prog);
+     if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
+  }
+}
+
+void PARADYN_forkEarlyInit() {
+   PARADYN_initialize_pmapi(1);
+}
+
+void PARADYNos_init(int calledByFork, int calledByAttach) {
+  void *lib;
+  hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
+  hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
+
+   PARADYN_initialize_pmapi(0);
 
   /* needs to be reinitialized when fork occurs */
   wallPrevious_hw = 0;
@@ -219,7 +234,7 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
   cpuPrevious = 0;
 }
 
-#endif USES_PMAPI
+#endif /* USES_PMAPI */
 
 
 /* We'll see an occasional small rollback ( ~ 1 usec) that is ignored. */
