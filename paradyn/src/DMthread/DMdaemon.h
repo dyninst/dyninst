@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.59 2003/05/23 07:27:42 pcroth Exp $
+// $Id: DMdaemon.h,v 1.60 2003/05/27 03:30:13 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -63,98 +63,6 @@
 
 class metricInstance;
 class metric;
-
-//
-// used to store info. about an enable request that has not received
-// a response from the daemons yet
-//
-class DM_enableType{
-    friend class paradynDaemon;
-    friend class dynRPCUser;
-    friend class phaseInfo;
-    friend void DMenableResponse(DM_enableType&,pdvector<bool>&);
-    friend void DMenableDeferredResponse(DM_enableType&);
- public: 
-    DM_enableType(perfStreamHandle ph,perfStreamHandle pth,phaseType t,phaseHandle ph_h,
-		  u_int rI,u_int cI,pdvector <metricInstance *> *r,
-		  pdvector <bool> *d,pdvector <bool> *e,u_int h,u_int pd,u_int pc,
-		  u_int ppd) :
-          ps_handle(ph),pt_handle(pth),ph_type(t), ph_handle(ph_h),
-		  request_id(rI), client_id(cI), request(r),done(d),enabled(e),
-		  how_many_daemons(h), persistent_data(pd), persistent_collection(pc),
-		  phase_persistent_data(ppd), not_all_done(0),
-          n_deferred( 0 )
-          { 
-			   for(u_int i=0; i < done->size(); i++){
-			       if(!(*done)[i]) not_all_done++;
-			   }
-                responses = new unsigned int*[request->size()];
-                for( unsigned int j = 0; j < request->size(); j++ )
-                {
-                    responses[j] = new unsigned int[how_many_daemons];
-                    for( unsigned int k = 0; k < how_many_daemons; k++ )
-                    {
-                        responses[j][k] = inst_insert_unknown;
-                    }
-                }
-                emsgs.resize( request->size() );
-    }
-    DM_enableType(){ ps_handle = 0; pt_handle = 0; ph_type = GlobalPhase; ph_handle= 0; 
-		request_id = 0; client_id = 0; request = 0; done = 0; 
-		enabled = 0; how_many_daemons =0; persistent_data = 0; 
-		persistent_collection = 0; phase_persistent_data = 0; 
-        responses = NULL;
-        n_deferred = 0;
-    }
-    ~DM_enableType() {
-        if( request != NULL )
-        {
-            assert( responses != NULL );
-            for( unsigned int i = 0; i < request->size(); i++ )
-            {
-                delete[] responses[i];
-            }
-        }
-        delete[] responses;
-        delete request;
-        delete done;
-        delete enabled;
-    }
-
-    metricInstance *findMI(metricInstanceHandle mh);
-    void setDone( metricInstanceHandle mh );
-
-    void responseReceived( metricInstanceHandle mh,
-                            unsigned int daemonId,
-                            unsigned int status );
-    bool allResponsesReceived( void ) const;
-    bool hasDeferredResponse( void ) const      { return (n_deferred > 0); }
-
-    void updateAny(pdvector<metricInstance *> &completed_mis,
-		   pdvector<bool> successful);
-
-    void setErrorString( metricInstanceHandle mh, string msg );
-    const pdvector<string>& getErrorStrings( void ) const   { return emsgs; }
-
- private:
-    perfStreamHandle ps_handle;  // client thread
-    perfStreamHandle pt_handle;  // client thread for traces
-    phaseType ph_type;           // phase type assoc. with enable request
-    phaseHandle ph_handle;       // phase id, used if request is for curr phase
-    u_int request_id;            // DM assigned enable request identifier
-    u_int client_id;             // enable request id sent by calling thread
-    pdvector <metricInstance *> *request;  // MI's assoc. w/ enable request
-    pdvector <bool> *done;         // which elements are waiting for replies
-    pdvector <bool> *enabled;      // which elements were already enabled
-    unsigned int** responses;
-    u_int how_many_daemons;              // number of daemons 
-    u_int persistent_data;
-    u_int persistent_collection;
-    u_int phase_persistent_data;
-    u_int not_all_done;
-    pdvector<string> emsgs;      // error messages
-    u_int n_deferred;               // total number of deferred responses
-};
 
 
 // hash functions for dictionary members
@@ -330,6 +238,9 @@ class paradynDaemon: public dynRPCUser {
    void setMaxNetworkDelay(timeLength maxNetDelay) {
       maxNetworkDelay = maxNetDelay;
    }
+   u_int get_id() {
+      return id;
+   }
    // calls attemptUpdateAggDelay(timeLength) after querying the
    // network delay
    //void attemptUpdateAggDelay();
@@ -392,10 +303,10 @@ class paradynDaemon: public dynRPCUser {
    //the dynamic call sites in a certain function.
    static bool AllMonitorDynamicCallSites(string name);
    static bool setInstSuppress(resource *, bool);
-   static void enableData(pdvector<metricInstance *> *miVec, pdvector<bool> *done,
-			  pdvector<bool> *enabled, DM_enableType *new_entry,
-			  bool need_to_enable);
-   
+
+   static void getMatchingDaemons(pdvector<metricInstance *> *miVec,
+                                  pdvector<paradynDaemon *> *matching_daemons);
+
    static void tellDaemonsOfResource(u_int parent,
 				     u_int res,const char *name, u_int type);
    // sets the name of the daemon to use
@@ -423,6 +334,11 @@ class paradynDaemon: public dynRPCUser {
    static float currentSmoothObsCost();
    const string &getMachineName() const {return machine;}
    
+   static paradynDaemon *getDaemonById(unsigned id) {
+      assert(id < allDaemons.size());
+      return allDaemons[id];
+   }
+
    // list of all active daemons: one for each unique name/machine pair 
    static pdvector<paradynDaemon*>  allDaemons;
     static dictionary_hash<string, pdvector<paradynDaemon*> > daemonsByHost;
@@ -472,9 +388,6 @@ class paradynDaemon: public dynRPCUser {
    // how many processes are running or ready to run.
    static unsigned procRunning;
 
-   static pdvector<DM_enableType*> outstanding_enables;
-   static u_int next_enable_id;
-   
    // these args are passed to the paradynd when started for paradyndPVM
    // these args contain the info to connect to the "well known" socket for
    // new paradynd's

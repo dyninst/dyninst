@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.100 2003/05/23 14:50:19 pcroth Exp $
+// $Id: VISIthreadmain.C,v 1.101 2003/05/27 03:30:27 schendel Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -700,13 +700,13 @@ bool VISIMakeEnableRequest(){
           msg += string(ptr->args->mi_limit); 
           msg += string("\n");
           uiMgr->showError(97,P_strdup(msg.c_str()));
-	  // clean up state
-	  if(ptr->request) delete ptr->request;
-	  if(ptr->retryList) delete ptr->retryList;
-	  ptr->request = 0;
-	  ptr->retryList = 0;
-	  ptr->next_to_enable = 0;
-	  ptr->first_in_curr_request = 0;
+          // clean up state
+          if(ptr->request) delete ptr->request;
+          if(ptr->retryList) delete ptr->retryList;
+          ptr->request = 0;
+          ptr->retryList = 0;
+          ptr->next_to_enable = 0;
+          ptr->first_in_curr_request = 0;
           return false;
       }
   }
@@ -761,7 +761,7 @@ int VISIthreadchooseMetRes(pdvector<metric_focus_pair> *newMetRes){
 
     if(newMetRes)
        PARADYN_DEBUG(("In VISIthreadchooseMetRes size = %d",newMetRes->size()));
-
+    
     VISIthreadGlobals *ptr;
     if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
         PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
@@ -772,58 +772,60 @@ int VISIthreadchooseMetRes(pdvector<metric_focus_pair> *newMetRes){
     // parse globals->args->matrix, merge into newMetRes
     if (ptr->args->matrix)
     {
-    	if (newMetRes == NULL)
-		newMetRes = new pdvector<metric_focus_pair>;
-	//*newMetRes += *ptr->args->matrix;
-	for (unsigned i=0;i<ptr->args->matrix->size();i++)
-	{
-		metric_focus_pair metfocus=(*ptr->args->matrix)[i];
-		int	found=0;
-		for (unsigned j=0;j<newMetRes->size();j++)
-			if (metfocus.met == (*newMetRes)[j].met && metfocus.res.size() == (*newMetRes)[j].res.size())
-		{
-			unsigned k=0;
-			for (k=0;k<metfocus.res.size();k++)
-				if (metfocus.res[k] != (*newMetRes)[j].res[k])
-					break;
-			if (k == metfocus.res.size())
-			{
-				found = 1;
-				break;
-			}
-		}
-		if (found == 0)
-			*newMetRes += metfocus;
-	}
+       if (newMetRes == NULL)
+          newMetRes = new pdvector<metric_focus_pair>;
+       //*newMetRes += *ptr->args->matrix;
+       for (unsigned i=0;i<ptr->args->matrix->size();i++)
+       {
+          metric_focus_pair metfocus=(*ptr->args->matrix)[i];
+          int	found=0;
+          for (unsigned j=0;j<newMetRes->size();j++)
+             if (metfocus.met == (*newMetRes)[j].met && metfocus.res.size() == (*newMetRes)[j].res.size())
+             {
+                unsigned k=0;
+                for (k=0;k<metfocus.res.size();k++)
+                   if (metfocus.res[k] != (*newMetRes)[j].res[k])
+                      break;
+                if (k == metfocus.res.size())
+                {
+                   found = 1;
+                   break;
+                }
+             }
+          if (found == 0)
+             *newMetRes += metfocus;
+       }
     }
 
     // there is not an enable currently in progress
     if(!(ptr->request)){ 
-        // check for invalid reply ==> user picked "Cancel" menu option
-	if(newMetRes == 0){
-	   if(ptr->start_up){
-	       ptr->quit = 1;
-	   }
-	   return 1;
-	}
-	else {
-            ptr->request = newMetRes;
-	    newMetRes = 0;
-	    ptr->next_to_enable = 0;
-	    ptr->first_in_curr_request = 0;
-	}
-        if(!VISIMakeEnableRequest()){ 
-	    assert(!(ptr->request));
-	    assert(!(ptr->retryList));
-	    assert(!(ptr->next_to_enable));
-	    assert(!(ptr->first_in_curr_request));
-        }
+       // check for invalid reply ==> user picked "Cancel" menu option
+       if(newMetRes == 0){
+          if(ptr->start_up){
+             ptr->quit = 1;
+          }
+          return 1;
+       }
+       else {
+          ptr->request = newMetRes;
+          newMetRes = 0;
+          ptr->next_to_enable = 0;
+          ptr->first_in_curr_request = 0;
+       }
+       if(!VISIMakeEnableRequest()){ 
+          assert(!(ptr->request));
+          assert(!(ptr->retryList));
+          assert(!(ptr->next_to_enable));
+          assert(!(ptr->first_in_curr_request));
+       }
     }
     else { // add new elements to request list
-        // check for invalid reply ==> user picked "Cancel" menu option
-	if(newMetRes == 0){ return 1; }
-        *(ptr->request) += *newMetRes;
-        newMetRes = 0;
+       // check for invalid reply ==> user picked "Cancel" menu option
+       if(newMetRes == 0) {
+          return 1;
+       }
+       *(ptr->request) += *newMetRes;
+       newMetRes = 0;
     }
     return 0;
 }
@@ -834,116 +836,116 @@ int VISIthreadchooseMetRes(pdvector<metric_focus_pair> *newMetRes){
 ///////////////////////////////////////////////////////////////////
 bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 
-      // create a visi_matrix_Array to send to visualization
-      pdvector<T_visi::visi_matrix> pairList;
-      // the newly enabled pairs are the last numEnabled in the list
-      u_int start = ptr->mrlist.size() - numEnabled; 
-      assert((start+numEnabled) == ptr->mrlist.size());
+   // create a visi_matrix_Array to send to visualization
+   pdvector<T_visi::visi_matrix> pairList;
+   // the newly enabled pairs are the last numEnabled in the list
+   u_int start = ptr->mrlist.size() - numEnabled; 
+   assert((start+numEnabled) == ptr->mrlist.size());
 
-      for(unsigned i=start; i < ptr->mrlist.size(); i++){
-	  T_visi::visi_matrix matrix;
-          matrix.met.Id = ptr->mrlist[i].m_id;
-	  matrix.met.name = ptr->mrlist[i].metric_name; 
-	  matrix.met.curr_units = ptr->mrlist[i].metric_units;
-	  matrix.met.tot_units = ""; // let visilib figure out total units
-	  if(ptr->mrlist[i].units_type == UnNormalized){
+   for(unsigned i=start; i < ptr->mrlist.size(); i++){
+      T_visi::visi_matrix matrix;
+      matrix.met.Id = ptr->mrlist[i].m_id;
+      matrix.met.name = ptr->mrlist[i].metric_name; 
+      matrix.met.curr_units = ptr->mrlist[i].metric_units;
+      matrix.met.tot_units = ""; // let visilib figure out total units
+      if(ptr->mrlist[i].units_type == UnNormalized){
 	      matrix.met.unitstype = 0;
-	  }
-	  else if (ptr->mrlist[i].units_type == Normalized){
+      }
+      else if (ptr->mrlist[i].units_type == Normalized){
 	      matrix.met.unitstype = 1;
-	  }
-	  else{
+      }
+      else{
 	      matrix.met.unitstype = 2;
-	  }
-	  matrix.met.aggregate = AVE;
-	  matrix.res.Id = ptr->mrlist[i].r_id;
-	  if((matrix.res.name = 
-	      AbbreviatedFocus(ptr->mrlist[i].focus_name.c_str()))
+      }
+      matrix.met.aggregate = AVE;
+      matrix.res.Id = ptr->mrlist[i].r_id;
+      if((matrix.res.name = 
+          AbbreviatedFocus(ptr->mrlist[i].focus_name.c_str()))
 	      ==0){
 	      ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	      ptr->quit = 1;
 	      return false;
-          }
-          pairList += matrix;
       }
+      pairList += matrix;
+   }
 
 
-      PARADYN_DEBUG(("before call to AddMetricsResources\n"));
-      if(ptr->args->phase_type == GlobalPhase){
-	timeLength bwidth;
-	ptr->dmp->getGlobalBucketWidth(&bwidth);
-	ptr->visip->AddMetricsResources(pairList,
-		 bwidth.getD(timeUnit::sec()),
-		 ptr->dmp->getMaxBins(),
-		 ptr->args->start_time.getD(timeUnit::sec()),
-		 -1);
-      }
-      else {
-	timeLength bwidth;
-	ptr->dmp->getCurrentBucketWidth(&bwidth);
-	ptr->visip->AddMetricsResources(pairList,
-		 bwidth.getD(timeUnit::sec()),
-		 ptr->dmp->getMaxBins(),
-		 ptr->args->start_time.getD(timeUnit::sec()),
-		 ptr->args->my_phaseId);
-      }
-      if(ptr->visip->did_error_occur()){
-          PARADYN_DEBUG(("igen: visip->AddMetsRess(): VISIthreadchooseMetRes"));
-          ptr->quit = 1;
-          return false;
-      }
+   PARADYN_DEBUG(("before call to AddMetricsResources\n"));
+   if(ptr->args->phase_type == GlobalPhase){
+      timeLength bwidth;
+      ptr->dmp->getGlobalBucketWidth(&bwidth);
+      ptr->visip->AddMetricsResources(pairList,
+                                      bwidth.getD(timeUnit::sec()),
+                                      ptr->dmp->getMaxBins(),
+                                      ptr->args->start_time.getD(timeUnit::sec()),
+                                      -1);
+   }
+   else {
+      timeLength bwidth;
+      ptr->dmp->getCurrentBucketWidth(&bwidth);
+      ptr->visip->AddMetricsResources(pairList,
+                                      bwidth.getD(timeUnit::sec()),
+                                      ptr->dmp->getMaxBins(),
+                                      ptr->args->start_time.getD(timeUnit::sec()),
+                                      ptr->args->my_phaseId);
+   }
+   if(ptr->visip->did_error_occur()){
+      PARADYN_DEBUG(("igen: visip->AddMetsRess(): VISIthreadchooseMetRes"));
+      ptr->quit = 1;
+      return false;
+   }
 
-      // get old data bucket values for new metric/resources and
-      // send them to visualization
-      pdSample *buckets = new pdSample[1001];
-      for(unsigned q = start; q < ptr->mrlist.size(); q++){
-          int howmany = ptr->dmp->getSampleValues(ptr->mrlist[q].mi_id,
-					    buckets,1000,0,
-					    ptr->args->phase_type);
-          // send visi all old data bucket values
-	  if(howmany > 0){
+   // get old data bucket values for new metric/resources and
+   // send them to visualization
+   pdSample *buckets = new pdSample[1001];
+   for(unsigned q = start; q < ptr->mrlist.size(); q++){
+      int howmany = ptr->dmp->getSampleValues(ptr->mrlist[q].mi_id,
+                                              buckets,1000,0,
+                                              ptr->args->phase_type);
+      // send visi all old data bucket values
+      if(howmany > 0){
 	      pdvector<float> bulk_data;
 	      for (u_int ve=0; ve< ((u_int)howmany); ve++){
-		// -----------------------------------------------------
-		// delete & cleanup the following after visis/ign are converted
-		int _mi = ptr->mrlist[q].mi_id;
-		metricInstance *minst = metricInstance::getMI(_mi);
-		metric *met = metric::getMetric(minst->getMetricHandle());
-		double divisor = 0.0;
-		if(met->getStyle() == SampledFunction) {
-		  divisor = 1.0;
-		} else {
-		  timeLength bucketWidth = minst->getBucketWidth(
-						    ptr->args->phase_type);
-		  double bwidth_ns = bucketWidth.getD(timeUnit::ns());
-		  sampleVal_cerr << "BDbucket_width: " << bwidth_ns 
-				 << ",  width: " << bucketWidth << "\n";
-		  divisor = bwidth_ns;
-		}
-		double fval;
-		if(buckets[ve].isNaN()) {
-		  fval = make_Nan();
-		} else {
-		  double sample = static_cast<double>(buckets[ve].getValue());
-		  fval = static_cast<float>(sample / divisor);
-		}
-		sampleVal_cerr << "val to visis: " << fval << "\n";
-		bulk_data += fval;
-		//bulk_data += static_cast<float>(buckets[ve].getValue());
-		// -----------------------------------------------------
+            // -----------------------------------------------------
+            // delete & cleanup the following after visis/ign are converted
+            int _mi = ptr->mrlist[q].mi_id;
+            metricInstance *minst = metricInstance::getMI(_mi);
+            metric *met = metric::getMetric(minst->getMetricHandle());
+            double divisor = 0.0;
+            if(met->getStyle() == SampledFunction) {
+               divisor = 1.0;
+            } else {
+               timeLength bucketWidth = minst->getBucketWidth(
+                                                              ptr->args->phase_type);
+               double bwidth_ns = bucketWidth.getD(timeUnit::ns());
+               sampleVal_cerr << "BDbucket_width: " << bwidth_ns 
+                              << ",  width: " << bucketWidth << "\n";
+               divisor = bwidth_ns;
+            }
+            double fval;
+            if(buckets[ve].isNaN()) {
+               fval = make_Nan();
+            } else {
+               double sample = static_cast<double>(buckets[ve].getValue());
+               fval = static_cast<float>(sample / divisor);
+            }
+            sampleVal_cerr << "val to visis: " << fval << "\n";
+            bulk_data += fval;
+            //bulk_data += static_cast<float>(buckets[ve].getValue());
+            // -----------------------------------------------------
 
-              }
-              ptr->visip->BulkDataTransfer(bulk_data, (int)ptr->mrlist[q].m_id,
-		                        (int)ptr->mrlist[q].r_id);
-              if(ptr->visip->did_error_occur()){
-              PARADYN_DEBUG(("igen:vp->BulkDataTransfer():VISIthreadchoose"));
-                  ptr->quit = 1;
-                  return false;
-              }
+         }
+         ptr->visip->BulkDataTransfer(bulk_data, (int)ptr->mrlist[q].m_id,
+                                      (int)ptr->mrlist[q].r_id);
+         if(ptr->visip->did_error_occur()){
+            PARADYN_DEBUG(("igen:vp->BulkDataTransfer():VISIthreadchoose"));
+            ptr->quit = 1;
+            return false;
+         }
 	      bulk_data.resize(0);
-	  }
       }
-      return true;
+   }
+   return true;
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -956,8 +958,8 @@ bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 // VISIMakeEnableRequest is made, otherwise a remenuing call could be made
 // to the UI with all pairs that were requested, but not enabled
 ///////////////////////////////////////////////////////////////////
-void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int){
-
+void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int,
+                              u_int last_cb_for_request) {
     VISIthreadGlobals *ptr;
     if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
         PARADYN_DEBUG(("thr_getspecific in VISIthreadEnableCallback"));
@@ -968,75 +970,84 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int){
     // for each successfully enabled pair, check to see if it is newly enabled
     // if it is not successfully enabled add it to the retry list
     u_int numEnabled = 0; // number enalbed
+
     for(u_int i=0; i < response->size(); i++){
-    if((*response)[i].deferred)
-    {
+       const metricInstInfo &curmsg = (*response)[i];
+
+       // Decided to mark these records as processed instead of deleting
+       // them.  I have in mind the unsafe situation of the dataMgr thread
+       // adding to this array, because an enableDataCallback came in from a
+       // daemon, at the same time that we're deleting an entry from this
+       // array.
+       if(curmsg.deferred)
+       {
 #if READY
-        // show which m/f pair was disabled?
+          // show which m/f pair was disabled?
 #else
-        string statusMsg = "For\n    ";
-        statusMsg += (*response)[i].metric_name;
-        statusMsg += ": ";
-        statusMsg += (*response)[i].focus_name;
-        statusMsg += "\n";
-        uiMgr->showError(128,P_strdup(statusMsg.c_str()));
+          string statusMsg = "For\n    ";
+          statusMsg += curmsg.metric_name;
+          statusMsg += ": ";
+          statusMsg += curmsg.focus_name;
+          statusMsg += "\n";
+          uiMgr->showError(128,P_strdup(statusMsg.c_str()));
 #endif // READY
-        continue;
+          continue;
+       }
+       else if (curmsg.successfully_enabled) {
+          bool found = false;
+          for(u_int j=0; j < ptr->mrlist.size(); j++){
+             if(curmsg.mi_id == ptr->mrlist[j].mi_id){
+                found = true;
+                break;
+             } }
+          if(!found){ // this is a new metric/focus pair
+             ptr->mrlist += curmsg;
+             numEnabled++;
+          }
+       }
+       else { // add it to retry list
+          if(ptr->retryList){
+             *(ptr->retryList) += 
+                (*ptr->request)[i+ptr->first_in_curr_request];
+          }
+          else {
+             ptr->retryList = new pdvector<metric_focus_pair>;
+             *(ptr->retryList) += 
+                (*ptr->request)[i+ptr->first_in_curr_request];
+          }
+       }
     }
-    else if ((*response)[i].successfully_enabled) {
-	    bool found = false;
-	    for(u_int j=0; j < ptr->mrlist.size(); j++){
-                if((*response)[i].mi_id == ptr->mrlist[j].mi_id){
-		    found = true;
-		    break;
-	    } }
-	    if(!found){ // this is a new metric/focus pair
-	        ptr->mrlist += (*response)[i];
-	        numEnabled++;
-	    }
-	}
-	else { // add it to retry list
-	    if(ptr->retryList){
-	        *(ptr->retryList) += 
-		     (*ptr->request)[i+ptr->first_in_curr_request];
-            }
-	    else {
-		ptr->retryList = new pdvector<metric_focus_pair>;
-	        *(ptr->retryList) += 
-		     (*ptr->request)[i+ptr->first_in_curr_request];
-	    }
-	}
-    }
+    delete response;  // all done with response vector
 
     // if something was enabled and if process is not started, then start it
     if(numEnabled > 0){
-        // increase the buffer size
-        flush_buffer_if_nonempty(ptr);
-
-        // trace data streams
-        flush_traceBuffer_if_nonempty(ptr);
-
-        unsigned nbufs = ptr->buffer.size() + numEnabled;
-        unsigned lim = (unsigned)DM_DATABUF_LIMIT;
-        unsigned newMaxBufferSize = (nbufs < lim) ? (nbufs) : (lim);
-        ptr->buffer.resize(newMaxBufferSize); // new
-
-        // trace data streams
-        ptr->traceBuffer.resize(10); // new
-
-        // if this is the first set of enabled values, start visi process
-        if(ptr->start_up){
-            if(!VISIthreadStartProcess()){
-                ptr->quit = 1;
-                return;
-            }
-        }
-        assert(!ptr->start_up);
-
-        // send new set of metric/focus pairs to visi
-	if(!VISISendResultsToVisi(ptr,numEnabled)){
-            cout << "error after call to VISISendResultsToVisi\n";
-	}
+       // increase the buffer size
+       flush_buffer_if_nonempty(ptr);
+       
+       // trace data streams
+       flush_traceBuffer_if_nonempty(ptr);
+       
+       unsigned nbufs = ptr->buffer.size() + numEnabled;
+       unsigned lim = (unsigned)DM_DATABUF_LIMIT;
+       unsigned newMaxBufferSize = (nbufs < lim) ? (nbufs) : (lim);
+       ptr->buffer.resize(newMaxBufferSize); // new
+       
+       // trace data streams
+       ptr->traceBuffer.resize(10); // new
+       
+       // if this is the first set of enabled values, start visi process
+       if(ptr->start_up){
+          if(!VISIthreadStartProcess()){
+             ptr->quit = 1;
+             return;
+          }
+       }
+       assert(!ptr->start_up);
+       
+       // send new set of metric/focus pairs to visi
+       if(!VISISendResultsToVisi(ptr,numEnabled)){
+          cout << "error after call to VISISendResultsToVisi\n";
+       }
     }
 
     // if we have reached the limit display limit msg and clean-up state
@@ -1044,60 +1055,61 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int){
     // else clean up state and if the retryList is non-empty send msgs
     if(ptr->next_to_enable < ptr->request->size()){ // more to enable
        if((ptr->args->mi_limit > 0) &&  // this visi has a limit 
-	  ((int)(ptr->mrlist.size()) >= ptr->args->mi_limit)){ // limit reached 
-            string msg("A visi has enabled the maximum number of metric/");
-            msg += string("focus pairs that it can enable. Some pairs may ");
-            msg += string("not have been enabled.  limit =  ");
-            msg += string(ptr->args->mi_limit); 
-            msg += string("\n");
-            uiMgr->showError(97,P_strdup(msg.c_str()));
-	    // clean up state
-	    if (ptr->request) delete ptr->request;
-	    if (ptr->retryList) delete ptr->retryList;
-	    ptr->next_to_enable = 0;
-	    ptr->first_in_curr_request = 0;
-	    ptr->request = 0;
-	    ptr->retryList = 0;
-        }
-	else { // try to enable more
-            if(!VISIMakeEnableRequest()) 
-	        cout << "error after call to VISIMakeEnableRequest\n";
-        }
-
+          ((int)(ptr->mrlist.size()) >= ptr->args->mi_limit)){ // limit reached 
+          string msg("A visi has enabled the maximum number of metric/");
+          msg += string("focus pairs that it can enable. Some pairs may ");
+          msg += string("not have been enabled.  limit =  ");
+          msg += string(ptr->args->mi_limit); 
+          msg += string("\n");
+          uiMgr->showError(97,P_strdup(msg.c_str()));
+          // clean up state
+          if (ptr->request) delete ptr->request;
+          if (ptr->retryList) delete ptr->retryList;
+          ptr->next_to_enable = 0;
+          ptr->first_in_curr_request = 0;
+          ptr->request = 0;
+          ptr->retryList = 0;
+       }
+       else { // try to enable more
+          if(!VISIMakeEnableRequest()) 
+             cout << "error after call to VISIMakeEnableRequest\n";
+       }       
     }
-    else {  // enable request is complete, send retry list and cleanup
-	// if remenuFlag is set and retry list is not empty: remenu
-	if((ptr->args->remenuFlag)&&ptr->retryList&&(ptr->retryList->size())){
-            // don't free retryList since it is passed to UI
-	    string msg("Cannot enable the following metric/focus pair(s):\n");
-            for (u_int ii=0; ii < ptr->retryList->size(); ii++) {
-	        string *focusName=NULL;
-	        focusName = new 
-		   string(dataMgr->getFocusName(&((*ptr->retryList)[ii].res)));
-                msg +=  
-		   string(dataMgr->getMetricName((*ptr->retryList)[ii].met));
-	        if (focusName) {
-	            msg += string("(");
-	            msg += string(AbbreviatedFocus((*focusName).c_str()));
-	            msg += string(")");
-                }
-	        msg += string(" ");
-	    }
-	    ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,
-						ptr->retryList);
-	    ptr->ump->showError(86,P_strdup(msg.c_str()));
-        }
-	else if (ptr->start_up && (!ptr->mrlist.size())) { 
-	    // if nothing was ever enabled, and remenuflag is not set quit
-            ptr->quit = 1;
-	    if(ptr->retryList) delete ptr->retryList;
-	}
-	// clean up state
-	if(ptr->request) delete ptr->request;
-	ptr->next_to_enable = 0;
-	ptr->first_in_curr_request = 0;
-	ptr->request = 0;
-	ptr->retryList = 0;
+
+    if(last_cb_for_request) {
+       // if remenuFlag is set and retry list is not empty: remenu
+       if((ptr->args->remenuFlag)&&ptr->retryList&&(ptr->retryList->size())){
+          // don't free retryList since it is passed to UI
+          string msg("Cannot enable the following metric/focus pair(s):\n");
+          for (u_int ii=0; ii < ptr->retryList->size(); ii++) {
+             string *focusName=NULL;
+             focusName = new 
+                string(dataMgr->getFocusName(&((*ptr->retryList)[ii].res)));
+             msg +=  
+                string(dataMgr->getMetricName((*ptr->retryList)[ii].met));
+             if (focusName) {
+                msg += string("(");
+                msg += string(AbbreviatedFocus((*focusName).c_str()));
+                msg += string(")");
+             }
+             msg += string(" ");
+          }
+          ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,
+                                              ptr->retryList);
+          ptr->ump->showError(86,P_strdup(msg.c_str()));
+       }
+       else if (ptr->start_up && (!ptr->mrlist.size())) { 
+          // if nothing was ever enabled, and remenuflag is not set quit
+          ptr->quit = 1;
+          if(ptr->retryList) delete ptr->retryList;
+       }
+
+       // clean up state
+       if(ptr->request) delete ptr->request;
+       ptr->next_to_enable = 0;
+       ptr->first_in_curr_request = 0;
+       ptr->request = 0;
+       ptr->retryList = 0;
     }
 }
 
@@ -1124,240 +1136,240 @@ void VISIthreadshowErrorREPLY(int){
 ///////////////////////////////////////////////////////////////////
 void *VISIthreadmain(void *vargs){ 
  
-  //initialize global variables
-  VISIthreadGlobals *globals;
-  globals = new VISIthreadGlobals;
+   //initialize global variables
+   VISIthreadGlobals *globals;
+   globals = new VISIthreadGlobals;
 
-  VISIthread *vtp = new VISIthread(VMtid);
-  globals->ump = uiMgr;
-  globals->vmp = vmMgr;
-  globals->dmp = dataMgr;
-  globals->args = (visi_thread_args *) vargs;
-  globals->visip = NULL;     // assigned value in VISIthreadStartProcess 
-  globals->currPhaseHandle = -1;
+   VISIthread *vtp = new VISIthread(VMtid);
+   globals->ump = uiMgr;
+   globals->vmp = vmMgr;
+   globals->dmp = dataMgr;
+   globals->args = (visi_thread_args *) vargs;
+   globals->visip = NULL;     // assigned value in VISIthreadStartProcess 
+   globals->currPhaseHandle = -1;
 
-  globals->start_up = 1;
-  globals->fd_first = 0;
+   globals->start_up = 1;
+   globals->fd_first = 0;
 
-  // globals->buffer is left a 0-sized array
-  globals->buffer_next_insert_index = 0;
+   // globals->buffer is left a 0-sized array
+   globals->buffer_next_insert_index = 0;
 
-  globals->vtid = THR_TID_UNSPEC;
-  globals->quit = 0;
-  globals->bucketWidth = globals->args->bucketWidth;
+   globals->vtid = THR_TID_UNSPEC;
+   globals->quit = 0;
+   globals->bucketWidth = globals->args->bucketWidth;
 
-  globals->request = 0;
-  globals->retryList = 0;
-  globals->num_Enabled = 0;
-  globals->next_to_enable = 0;
-  globals->first_in_curr_request = 0;
+   globals->request = 0;
+   globals->retryList = 0;
+   globals->num_Enabled = 0;
+   globals->next_to_enable = 0;
+   globals->first_in_curr_request = 0;
 
-  // set control callback routines 
-  controlCallback callbacks;
-  callbacks.mFunc = VISIthreadnewMetricCallback;
-  callbacks.rFunc = VISIthreadnewResourceCallback; 
-  callbacks.retireFunc = 0;
-  callbacks.fFunc = VISIthreadFoldCallback;
-  callbacks.avFunc= VISIthreadInitActualValCallback;
-  callbacks.pFunc = VISIthreadPhaseCallback;
-  callbacks.sFunc = 0;
-  callbacks.bFunc = 0;
-  callbacks.cFunc = 0;
-  callbacks.eFunc = VISIthreadEnableCallback;
-  callbacks.flFunc= VISIthreadForceFlushBufferCallback;
+   // set control callback routines 
+   controlCallback callbacks;
+   callbacks.mFunc = VISIthreadnewMetricCallback;
+   callbacks.rFunc = VISIthreadnewResourceCallback; 
+   callbacks.retireFunc = 0;
+   callbacks.fFunc = VISIthreadFoldCallback;
+   callbacks.avFunc= VISIthreadInitActualValCallback;
+   callbacks.pFunc = VISIthreadPhaseCallback;
+   callbacks.sFunc = 0;
+   callbacks.bFunc = 0;
+   callbacks.cFunc = 0;
+   callbacks.eFunc = VISIthreadEnableCallback;
+   callbacks.flFunc= VISIthreadForceFlushBufferCallback;
 
-  PARADYN_DEBUG(("before create performance stream in visithread"));
+   PARADYN_DEBUG(("before create performance stream in visithread"));
 
-  // create performance stream
-  union dataCallback dataHandlers;
-  dataHandlers.sample = VISIthreadDataCallback;
-  if((globals->ps_handle = globals->dmp->createPerformanceStream(
-		   Sample,dataHandlers,callbacks)) == 0){
+   // create performance stream
+   union dataCallback dataHandlers;
+   dataHandlers.sample = VISIthreadDataCallback;
+   if((globals->ps_handle = globals->dmp->createPerformanceStream(
+                                                                  Sample,dataHandlers,callbacks)) == 0){
       PARADYN_DEBUG(("Error in createPerformanceStream"));
       ERROR_MSG(15,"Error in VISIthreadchooseMetRes: createPerformanceStream");
       globals->quit = 1;
-  }
+   }
 
-  PARADYN_DEBUG(("perf. stream = %d in visithread",(int)globals->ps_handle));
+   PARADYN_DEBUG(("perf. stream = %d in visithread",(int)globals->ps_handle));
 
-  // trace data streams
-  // set control tracecallback routines
-  controlCallback tracecallbacks;
-  tracecallbacks.mFunc = VISIthreadnewMetricCallback;
-  tracecallbacks.rFunc = VISIthreadnewResourceCallback;
-  tracecallbacks.retireFunc = 0;
-  tracecallbacks.fFunc = 0;
-  tracecallbacks.pFunc = 0;
-  tracecallbacks.sFunc = 0;
-  tracecallbacks.bFunc = 0;
-  tracecallbacks.cFunc = 0;
-  tracecallbacks.eFunc = VISIthreadEnableCallback;
-  tracecallbacks.flFunc= 0;
+   // trace data streams
+   // set control tracecallback routines
+   controlCallback tracecallbacks;
+   tracecallbacks.mFunc = VISIthreadnewMetricCallback;
+   tracecallbacks.rFunc = VISIthreadnewResourceCallback;
+   tracecallbacks.retireFunc = 0;
+   tracecallbacks.fFunc = 0;
+   tracecallbacks.pFunc = 0;
+   tracecallbacks.sFunc = 0;
+   tracecallbacks.bFunc = 0;
+   tracecallbacks.cFunc = 0;
+   tracecallbacks.eFunc = VISIthreadEnableCallback;
+   tracecallbacks.flFunc= 0;
 
-  PARADYN_DEBUG(("before create performance stream in visithread"));
+   PARADYN_DEBUG(("before create performance stream in visithread"));
 
-  // create trace performance stream
-  union dataCallback traceDataHandlers;
-  traceDataHandlers.trace = VISIthreadTraceDataCallback;
-  if((globals->pt_handle = globals->dmp->createPerformanceStream(
-                   Trace,traceDataHandlers,tracecallbacks)) == 0){
+   // create trace performance stream
+   union dataCallback traceDataHandlers;
+   traceDataHandlers.trace = VISIthreadTraceDataCallback;
+   if((globals->pt_handle = globals->dmp->createPerformanceStream(
+                                                                  Trace,traceDataHandlers,tracecallbacks)) == 0){
       PARADYN_DEBUG(("Error in createPerformanceStream"));
       ERROR_MSG(15,"Error in VISIthreadchooseMetRes: createPerformanceStream");
       globals->quit = 1;
-  }
+   }
 
-  PARADYN_DEBUG(("perf. stream = %d in visithread",(int)globals->pt_handle));
+   PARADYN_DEBUG(("perf. stream = %d in visithread",(int)globals->pt_handle));
 
 
-  if (thr_setspecific(visiThrd_key, globals) != THR_OKAY) {
+   if (thr_setspecific(visiThrd_key, globals) != THR_OKAY) {
       PARADYN_DEBUG(("Error in thr_setspecific"));
       ERROR_MSG(14,"Error in VISIthreadmain: thr_setspecific");
       globals->quit = 1;
-  }
+   }
 
-  // if forceProcessStart is set, start visi process and skip menuing
-  // and parsing of initial set of metrics and resources
-  if( globals->args->forceProcessStart){
+   // if forceProcessStart is set, start visi process and skip menuing
+   // and parsing of initial set of metrics and resources
+   if( globals->args->forceProcessStart){
 
-    if (globals->args->matrix){
-	if (VISIthreadchooseMetRes(NULL) == 1)
-          globals->quit = 1;
-     // start visi process
-     }else if(!VISIthreadStartProcess()){
-          globals->quit = 1;
-     }
-  }
-  // to determine if menuing needs to be done.  If so, call UIM rouitine
-  // chooseMetricsandResources before entering main loop, if not, call
-  // AddMetricsResources routine with metric and focus pointers (these
-  // need to be created from the metricList and resourceList) 
-  // until parsing routine is in place call chooseMetricsandResources
-  // with NULL metric and resource pointers
-  else{
+      if (globals->args->matrix){
+         if (VISIthreadchooseMetRes(NULL) == 1)
+            globals->quit = 1;
+         // start visi process
+      }else if(!VISIthreadStartProcess()){
+         globals->quit = 1;
+      }
+   }
+   // to determine if menuing needs to be done.  If so, call UIM rouitine
+   // chooseMetricsandResources before entering main loop, if not, call
+   // AddMetricsResources routine with metric and focus pointers (these
+   // need to be created from the metricList and resourceList) 
+   // until parsing routine is in place call chooseMetricsandResources
+   // with NULL metric and resource pointers
+   else{
 
-    // call get metrics and resources with first set
-    globals->ump->chooseMetricsandResources(VISIthreadchooseMetRes, NULL);
-  }
+      // call get metrics and resources with first set
+      globals->ump->chooseMetricsandResources(VISIthreadchooseMetRes, NULL);
+   }
 
  
-  PARADYN_DEBUG(("before enter main loop"));
-  while(!(globals->quit)){
+   PARADYN_DEBUG(("before enter main loop"));
+   while(!(globals->quit)){
       if (globals->visip) {
-	// visip may not have been set yet
-	// see if any async upcalls have been buffered
-	while (globals->visip->buffered_requests()) {
-	  if (globals->visip->process_buffered() == T_visi::error) {
-	    cout << "error on visi\n";
-	    assert(0);
-	  }
-	}
+         // visip may not have been set yet
+         // see if any async upcalls have been buffered
+         while (globals->visip->buffered_requests()) {
+            if (globals->visip->process_buffered() == T_visi::error) {
+               cout << "error on visi\n";
+               assert(0);
+            }
+         }
       }
-	  thread_t from = THR_TID_UNSPEC;
+      thread_t from = THR_TID_UNSPEC;
       tag_t tag = MSG_TAG_ANY;
-	  if( msg_poll_preference(&from, &tag, 1,globals->fd_first) != THR_OKAY )
-	  {
+      if( msg_poll_preference(&from, &tag, 1,globals->fd_first) != THR_OKAY )
+      {
 			// TODO
-		  cerr << "Error in VISIthreadmain.C\n";
-		  assert(0);
-	  }
+         cerr << "Error in VISIthreadmain.C\n";
+         assert(0);
+      }
       globals->fd_first = !globals->fd_first;
 
       if (globals->ump->isValidTag((T_UI::message_tags)tag)) {
-	if (globals->ump->waitLoop(true, (T_UI::message_tags)tag) ==
-	    T_UI::error) {
-	  // TODO
-	  cerr << "Error in VISIthreadmain.C\n";
-	  assert(0);
-	}
+         if (globals->ump->waitLoop(true, (T_UI::message_tags)tag) ==
+             T_UI::error) {
+            // TODO
+            cerr << "Error in VISIthreadmain.C\n";
+            assert(0);
+         }
       } else if (globals->vmp->isValidTag((T_VM::message_tags)tag)) {
-	if (globals->vmp->waitLoop(true, (T_VM::message_tags)tag) ==
-	    T_VM::error) {
-	  // TODO
-	  cerr << "Error in VISIthreadmain.C\n";
-	  assert(0);
-	}
+         if (globals->vmp->waitLoop(true, (T_VM::message_tags)tag) ==
+             T_VM::error) {
+            // TODO
+            cerr << "Error in VISIthreadmain.C\n";
+            assert(0);
+         }
       } else if (globals->dmp->isValidTag((T_dataManager::message_tags)tag)) {
-	if (globals->dmp->waitLoop(true, (T_dataManager::message_tags)tag) ==
-	    T_dataManager::error) {
-	  // TODO
-	  cerr << "Error in VISIthreadmain.C\n";
-	  assert(0);
-	}
+         if (globals->dmp->waitLoop(true, (T_dataManager::message_tags)tag) ==
+             T_dataManager::error) {
+            // TODO
+            cerr << "Error in VISIthreadmain.C\n";
+            assert(0);
+         }
       } else if (tag == MSG_TAG_SOCKET){
-	assert(globals->visip);
-	assert(thr_socket(from) == globals->visip->get_sock());
-	if (globals->visip->waitLoop() == T_visi::error) {
-	  PARADYN_DEBUG(("igen: visip->awaitResponce() in VISIthreadmain"));
-	  globals->quit = 1;
-	}
-	// see if any async upcalls have been buffered
-	while (globals->visip->buffered_requests()) {
-	  if (globals->visip->process_buffered() == T_visi::error) {
-	    cout << "error on visi\n";
-	    assert(0);
-	  }
-	}
+         assert(globals->visip);
+         assert(thr_socket(from) == globals->visip->get_sock());
+         if (globals->visip->waitLoop() == T_visi::error) {
+            PARADYN_DEBUG(("igen: visip->awaitResponce() in VISIthreadmain"));
+            globals->quit = 1;
+         }
+         // see if any async upcalls have been buffered
+         while (globals->visip->buffered_requests()) {
+            if (globals->visip->process_buffered() == T_visi::error) {
+               cout << "error on visi\n";
+               assert(0);
+            }
+         }
       } else if (vtp->isValidTag((T_VISIthread::message_tags)tag)) {
-	if (vtp->waitLoop(true, (T_VISIthread::message_tags)tag) ==
-	    T_VISIthread::error) {
-	  // TODO
-	  cerr << "Error in VISIthreadmain.C\n";
-	  assert(0);
-	}
+         if (vtp->waitLoop(true, (T_VISIthread::message_tags)tag) ==
+             T_VISIthread::error) {
+            // TODO
+            cerr << "Error in VISIthreadmain.C\n";
+            assert(0);
+         }
       } else {
-	cerr << "Unrecognized message in VISIthreadmain.C\n";
-	assert(0);
+         cerr << "Unrecognized message in VISIthreadmain.C\n";
+         assert(0);
       }
-  }
-  PARADYN_DEBUG(("leaving main loop"));
+   }
+   PARADYN_DEBUG(("leaving main loop"));
 
-  // disable all metricInstance data collection
-  for(unsigned i =0; i < globals->mrlist.size(); i++){
-	metricInstanceHandle handle = globals->mrlist[i].mi_id;
-        globals->dmp->disableDataCollection(globals->ps_handle,
-					    globals->pt_handle,
-					    handle,
-					    globals->args->phase_type);
-        // trace data streams
-        globals->dmp->disableDataCollection(globals->ps_handle,
-					    globals->pt_handle,
-					    handle,
-                                            globals->args->phase_type);
+   // disable all metricInstance data collection
+   for(unsigned i =0; i < globals->mrlist.size(); i++){
+      metricInstanceHandle handle = globals->mrlist[i].mi_id;
+      globals->dmp->disableDataCollection(globals->ps_handle,
+                                          globals->pt_handle,
+                                          handle,
+                                          globals->args->phase_type);
+      // trace data streams
+      globals->dmp->disableDataCollection(globals->ps_handle,
+                                          globals->pt_handle,
+                                          handle,
+                                          globals->args->phase_type);
 
-  }
+   }
 
-  PARADYN_DEBUG(("before destroy perfomancestream"));
-  if(!(globals->dmp->destroyPerformanceStream(globals->ps_handle))){
+   PARADYN_DEBUG(("before destroy perfomancestream"));
+   if(!(globals->dmp->destroyPerformanceStream(globals->ps_handle))){
       ERROR_MSG(16,"remove() in VISIthreadmain");
-  }
+   }
 
-  // trace data streams
-  if(!(globals->dmp->destroyPerformanceStream(globals->pt_handle))){
+   // trace data streams
+   if(!(globals->dmp->destroyPerformanceStream(globals->pt_handle))){
       ERROR_MSG(16,"remove() in VISIthreadmain");
-  }
+   }
 
 
-  // notify UIM that VISIthread is dying 
-  globals->ump->threadExiting();
+   // notify UIM that VISIthread is dying 
+   globals->ump->threadExiting();
 
-  // notify VM 
-  PARADYN_DEBUG(("before notify VM of thread died"));
-  globals->vmp->VMVisiDied(thr_self());
-  PARADYN_DEBUG(("after notify VM of thread died"));
+   // notify VM 
+   PARADYN_DEBUG(("before notify VM of thread died"));
+   globals->vmp->VMVisiDied(thr_self());
+   PARADYN_DEBUG(("after notify VM of thread died"));
 
-  // unbind file descriptor associated with visualization
-  if(!globals->start_up){
+   // unbind file descriptor associated with visualization
+   if(!globals->start_up){
       if(msg_unbind(globals->vtid) == THR_ERR){
-          PARADYN_DEBUG(("Error in msg_unbind(globals->vtid)"));
-          ERROR_MSG(14,"Error in VISIthreadmain: msg_unbind");
+         PARADYN_DEBUG(("Error in msg_unbind(globals->vtid)"));
+         ERROR_MSG(14,"Error in VISIthreadmain: msg_unbind");
       }
       delete globals->visip;
-  }
+   }
 
-  PARADYN_DEBUG(("leaving visithread main"));
-  thr_exit((void *)0);
+   PARADYN_DEBUG(("leaving visithread main"));
+   thr_exit((void *)0);
 
-  return((void *)0);
+   return((void *)0);
 }
 
 

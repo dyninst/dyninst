@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.109 2003/05/09 20:12:58 pcroth Exp $
+ * $Id: dataManager.I,v 1.110 2003/05/27 03:30:10 schendel Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -152,7 +152,7 @@ typedef void (*predDataCostCallbackFunc)(u_int clientId,
  *              (passed to DM on enableDataRequest)
  */
 typedef void (*enableDataCallbackFunc)(pdvector<metricInstInfo> *response,
-				       u_int request_id);
+				       u_int request_id, u_int last_cb_for_request);
 
 struct controlCallback {
     metricInfoCallback		mFunc;
@@ -728,7 +728,7 @@ $remote dataManager {
     //
     $upcall $async void enableDataCallback(enableDataCallbackFunc func,
     				           pdvector<metricInstInfo> *response,
-					   u_int request_id);
+   					   u_int request_id, u_int last_cb_for_request);
 
     $upcall $async void forceFlush(forceFlushCallbackFunc func);
 

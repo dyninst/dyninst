@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.h,v 1.25 2002/12/20 07:50:01 jaw Exp $
+// $Id: DMperfstream.h,v 1.26 2003/05/27 03:30:22 schendel Exp $
 
 #ifndef dmperfstream_H
 #define dmperfstream_H
@@ -61,7 +61,6 @@
 class metricInstance;
 class metric;
 class resourceList;
-class DM_enableType; 
 
 struct pred_Cost_Type {
     metricHandle m_handle;
@@ -101,7 +100,7 @@ class performanceStream {
    void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
    void callPredictedCostFuc(metricHandle,resourceListHandle,float,u_int);
    void callDataEnableFunc(pdvector<metricInstInfo> *response,
-                           u_int request_Id);
+                           u_int request_Id, u_int last_cb_for_request);
    perfStreamHandle Handle(){return(handle);}
    void flushBuffer();   // send data to client thread
    void signalToFlush();

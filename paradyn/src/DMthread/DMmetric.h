@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.42 2003/05/23 07:27:43 pcroth Exp $ 
+// $Id: DMmetric.h,v 1.43 2003/05/27 03:30:16 schendel Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -109,8 +109,7 @@ class metric {
     friend class metricInstance;
     friend class paradynDaemon;
     friend void addMetric(T_dyninstRPC::metricInfo &info);
-    friend void DMenableResponse(DM_enableType&,pdvector<bool>&);
-    public:
+ public:
 	metric(T_dyninstRPC::metricInfo i); 
 	const T_dyninstRPC::metricInfo *getInfo() { return(&info); }
 	const char *getName() { return((info.name.c_str()));}
@@ -162,11 +161,12 @@ class metricInstance {
     friend class dataManager;
     friend class metric;
     friend class paradynDaemon;
-    friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,pdvector<metricRLType> *,
-			       u_int,phaseType,phaseHandle,u_int,u_int,u_int);
-    friend void DMenableResponse(DM_enableType&,pdvector<bool>&);
-    friend void DMdisableRoutine(perfStreamHandle,perfStreamHandle,
-				metricInstanceHandle, phaseType);
+    friend class metricFocusReqBundle;
+    friend void DMdoEnableData(perfStreamHandle, perfStreamHandle,
+                               pdvector<metricRLType> *, u_int, phaseType,
+                               phaseHandle, u_int, u_int, u_int);
+    friend void DMdisableRoutine(perfStreamHandle, perfStreamHandle,
+                                 metricInstanceHandle, phaseType);
     // trace data streams
     friend void traceDataCallBack(const void *data, int length, void *arg);
     public:

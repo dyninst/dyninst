@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.30 2003/01/30 15:41:24 pcroth Exp $
+// $Id: templatesDM.C,v 1.31 2003/05/27 03:30:11 schendel Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -133,7 +133,6 @@ template class pdvector<dataValueType>;
 template class BufferPool<dataValueType>;
 
 template class pdvector<predCostType*>;
-template class pdvector<DM_enableType*>;
 template class pdvector<metricRLType>;
 
 // trace data streams
@@ -187,6 +186,19 @@ template class pdvector<dictionary_hash<resource*,pdvector<resource*> >::entry>;
 
 template class dictionary_hash<resource *, int>;
 template class pdvector<dictionary_hash<resource *, int>::entry>;
+
+#include "paradyn/src/DMthread/DMmetricFocusReqBundle.h"
+template class pdvector<metricFocusReqBundle *>;
+template class dictionary_hash<unsigned, metricFocusReq *>;
+
+#include "paradyn/src/DMthread/DMmetricFocusReq.h"
+template class pdvector<metricFocusReq *>;
+
+template class dictionary_hash<unsigned, metricFocusReq_Val*>;
+template class pdvector<dictionary_hash<unsigned, metricFocusReq_Val*>::entry>;
+
+template class dictionary_hash<unsigned, inst_insert_result_t>;
+template class pdvector<dictionary_hash<unsigned,inst_insert_result_t>::entry>;
 
 #if defined(rs6000_ibm_aix4_1)
 #include "common/h/Symbol.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.135 2003/05/09 20:12:58 pcroth Exp $
+// $Id: DMpublic.C,v 1.136 2003/05/27 03:30:24 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -68,6 +68,7 @@ extern "C" {
 #include "paradyn/src/DMthread/DVbufferpool.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "CallGraph.h"
+#include "DMmetricFocusReqBundle.h"
 
 #if !defined(i386_unknown_nt4_0)
 #include "termWin.xdr.CLNT.h"
@@ -490,111 +491,64 @@ resourceHandle *dataManager::getRootResource()
 //
 void DMdoEnableData(perfStreamHandle ps_handle,
                     perfStreamHandle pt_handle,
-		    pdvector<metricRLType> *request,
-		    u_int request_Id,
-	            phaseType type,
-		    phaseHandle phaseId,
-	            u_int persistent_data,
+                    pdvector<metricRLType> *request,
+                    u_int request_Id,
+                    phaseType type,
+                    phaseHandle phaseId,
+                    u_int persistent_data,
                     u_int persistent_collection,
-		    u_int phase_persistent_data){
+                    u_int phase_persistent_data)
+{
+   pdvector<metricInstance *> *miVec = new pdvector<metricInstance *>;
 
-    pdvector<metricInstance *> *miVec = new pdvector<metricInstance *>;
-    pdvector<bool> *enabled = new pdvector<bool>;  // passed to daemons on enable
-    pdvector<bool> *done = new pdvector<bool>;  // used for waiting list
-
-   // for each element in list determine if this metric/focus pair is
-   // already enabled, or is currently being enabled: "enabled" is used to 
-   // indicate whether an enable call needs to be made to the daemon, "done"
-   // indicates if the request needs to wait for a reply from the daemon
-   // "mi" indicates if the metric/focus pair exists
-   //
-   //		not enabled	curr. enabling	error	enabled    
-   //           -----------------------------------------------
-   // done      |  false	   false	true	true
-   // enabled   |  false           true         true    true
-   // mi*	|  &mi		   &mi		  0	&mi
-   //
-   bool need_to_enable = false;
-   bool need_to_wait = false;
    for(u_int i=0; i < request->size(); i++){
-       // does this metric/focus pair already exist?
-       metricInstance *mi = metricInstance::find((*request)[i].met,
-						 (*request)[i].res);
-       if(!mi){ // create new metricInstance 
-           mi = new metricInstance((*request)[i].res,(*request)[i].met,phaseId);
-       }
+      // does this metric/focus pair already exist?
+      metricInstance *mi = metricInstance::find((*request)[i].met,
+                                                (*request)[i].res);
+      if(!mi){ // create new metricInstance 
+         mi = new metricInstance((*request)[i].res,(*request)[i].met,phaseId);
+      }
 
-       *miVec += mi;
-       if(!mi){  // error case, don't try to enable this mi
-	   *enabled += true;
-	   *done += true;
-       }
-       else if(!mi->isEnabled()){  // mi not enabled
-	   if(mi->isCurrentlyEnabling()){
-	       *enabled += true;  // don't try to enable from daemons
-	       *done += false;   // need to wait for result
-	       need_to_wait = true;
-	   }
-	   else{
-	       *enabled += false;
-	       *done += false;  
-	       need_to_enable = true;
-	   }
-       }
-       else{ // mi already is enabled
-	   *enabled += true;
-	   *done += true;
-       }
+      if(mi) {
+         (*miVec).push_back(mi);
+      }
    }
 
-   assert(enabled->size() == done->size());
-   assert(enabled->size() == miVec->size());
-   assert(enabled->size() == request->size());
+   pdvector<paradynDaemon *> *matchingDaemons = new pdvector<paradynDaemon *>;
+
+   // In the case of whole_prog_focus, I'm still copying daemons into
+   // matchingDaemons, in case the number changes within setting up the
+   // metricFocusReqBundle.  Since this is a MT program, we can't be
+   // guaranteed that this won't be changed at any time.
+   paradynDaemon::getMatchingDaemons(miVec, matchingDaemons);
 
    // if the tunable constant "persistentData" is true, it overrides 
    // individual requests; if false, go by individual request.
-   //
    tunableBooleanConstant allPersistentData = 
-     tunableConstantRegistry::findBoolTunableConstant ("persistentData");
+      tunableConstantRegistry::findBoolTunableConstant ("persistentData");
    u_int persistenceFeature = persistent_data;
    if ( allPersistentData.getValue()) persistenceFeature = 1;
 
-   DM_enableType *new_entry = new DM_enableType(ps_handle,pt_handle,type,phaseId,
-			    paradynDaemon::next_enable_id++,request_Id,
-			    miVec,done,enabled,paradynDaemon::allDaemons.size(),
-			    persistenceFeature,
-			    persistent_collection,
-			    phase_persistent_data);
+   metricFocusReqBundle *new_bundle = 
+      metricFocusReqBundle::createMetricFocusReqBundle(
+                                 ps_handle, pt_handle, type, phaseId,
+                                 request_Id, *miVec, matchingDaemons,
+                                 persistenceFeature, persistent_collection,
+                                 phase_persistent_data);
 
-   // if there is an MI that has not been enabled yet make enable 
-   // request to daemons or if there is an MI that is currently being
-   // enabled then put request on the outstanding requests list
-   if(need_to_enable || need_to_wait){
-       // for each MI on the request list set increment the EnablesWaiting
-       // flag for the correct phase.  These flags are decremented before
-       // the response is sent to the client
-       if(type == CurrentPhase){
-           for(u_int k=0; k < miVec->size(); k++){
-	       if((*miVec)[k]) (*miVec)[k]->incrCurrWaiting(); 
-           }
-       } else{
-           for(u_int k=0; k < miVec->size(); k++){
-	       if((*miVec)[k]) (*miVec)[k]->incrGlobalWaiting(); 
-           }
-       }
-       paradynDaemon::enableData(miVec,done,enabled,new_entry,need_to_enable);
-       miVec = 0; enabled = 0;
-       done = 0; new_entry = 0;
+   new_bundle->enableWithDaemons();
+
+#ifdef IS_THIS_NEEDED
+   if(type == CurrentPhase){
+      for(u_int k=0; k < miVec->size(); k++){
+         if((*miVec)[k]) (*miVec)[k]->incrCurrWaiting(); 
+      }
+   } else{
+      for(u_int k=0; k < miVec->size(); k++){
+         if((*miVec)[k]) (*miVec)[k]->incrGlobalWaiting(); 
+      }
    }
-   else {  // else every MI is enabled update state and return result to caller
-       pdvector<bool> successful(miVec->size());
-       for(u_int j=0; j < successful.size(); j++){
-	   if((*miVec)[j]) successful[j] = true;
-	   else successful[j] = false;
-       }
-       DMenableResponse(*new_entry,successful);
-   }
-   delete request;
+#endif
 }
 
 //
@@ -612,97 +566,100 @@ void DMdoEnableData(perfStreamHandle ps_handle,
 //
 void dataManager::enableDataRequest(perfStreamHandle ps_handle,
                                     perfStreamHandle pt_handle,
-				    pdvector<metric_focus_pair> *request,
-				    u_int request_Id,
-			            phaseType type,
-				    phaseHandle phaseId,
-			            u_int persistent_data,
-		                    u_int persistent_collection,
-				    u_int phase_persistent_data){
-  
-    if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
-	// send enable failed response to calling thread
-	pdvector<metricInstInfo> *response = 
-				   new pdvector<metricInstInfo>(request->size());
-        for(u_int i=0; i < response->size();i++){
-            (*response)[i].successfully_enabled = false;	    
-	}
-	// make response call
-        performanceStream::psIter_t allS = 
-           performanceStream::getAllStreamsIter();
-	perfStreamHandle h; performanceStream *ps;
-	while(allS.next(h,ps)){
-	    if(h == (perfStreamHandle)(ps_handle)){
-	        ps->callDataEnableFunc(response,request_Id);
-		break;
-	} }
-        // trace data streams
-        allS.reset();
-        while(allS.next(h,ps)){
-            if(h == (perfStreamHandle)(pt_handle)){
-                ps->callDataEnableFunc(response,request_Id);
-                break;
-        }}
-	delete request;
-	response = 0;
-	return;
-    }
+                                    pdvector<metric_focus_pair> *request,
+                                    u_int request_Id,
+                                    phaseType type,
+                                    phaseHandle phaseId,
+                                    u_int persistent_data,
+                                    u_int persistent_collection,
+                                    u_int phase_persistent_data)
+{
+   if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
+      // send enable failed response to calling thread
+      pdvector<metricInstInfo> *response = 
+         new pdvector<metricInstInfo>(request->size());
+      for(u_int i=0; i < response->size();i++){
+         (*response)[i].successfully_enabled = false;	    
+      }
 
-    // convert request to pdvector of metricRLType
-    pdvector<metricRLType> *pairList = new pdvector<metricRLType>;
-    for(u_int i=0; i < request->size(); i++){
-	metricRLType newPair((*request)[i].met,
-			    resourceList::getResourceList((*request)[i].res)); 
-	*pairList += newPair; 
-    }
-    assert(request->size() == pairList->size());
+      // make response call
+      performanceStream::psIter_t allS = 
+         performanceStream::getAllStreamsIter();
+      perfStreamHandle h; performanceStream *ps;
+      while(allS.next(h,ps)){
+         if(h == (perfStreamHandle)(ps_handle)){
+            ps->callDataEnableFunc(response, request_Id, 1);
+            break;
+         } }
+      // trace data streams
+      allS.reset();
+      while(allS.next(h,ps)){
+         if(h == (perfStreamHandle)(pt_handle)){
+            ps->callDataEnableFunc(response, request_Id, 1);
+            break;
+         }}
+      delete request;
+      response = 0;
+      return;
+   }
 
-    DMdoEnableData(ps_handle,pt_handle,pairList,request_Id,type,phaseId,
-		  persistent_data,persistent_collection,phase_persistent_data);
-    delete request;
-    pairList = 0;
+   // convert request to pdvector of metricRLType
+   pdvector<metricRLType> *pairList = new pdvector<metricRLType>;
+   for(u_int i=0; i < request->size(); i++){
+      metricRLType newPair((*request)[i].met,
+                           resourceList::getResourceList((*request)[i].res)); 
+      *pairList += newPair; 
+   }
+   assert(request->size() == pairList->size());
+   
+   DMdoEnableData(ps_handle,pt_handle,pairList,request_Id,type,phaseId,
+                  persistent_data,persistent_collection,phase_persistent_data);
+
+   delete request;
+   pairList = 0;
 }
 
 //
 // same as enableDataRequest but with diff type for request 
 //
 void dataManager::enableDataRequest2(perfStreamHandle ps,
-				     pdvector<metricRLType> *request,
-				     u_int request_Id,
-			             phaseType type,
-				     phaseHandle phaseId,
-			             u_int persistent_data,
-		                     u_int persistent_collection,
-				     u_int phase_persistent_data){
-
-    // if currphase and phaseId != currentPhaseId then make approp.
-    // response call to client
-    if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
-	// send enable failed response to calling thread
-	pdvector<metricInstInfo> *response = 
-				   new pdvector<metricInstInfo>(request->size());
-        for(u_int i=0; i < response->size();i++){
-            (*response)[i].successfully_enabled = false;	    
-	}
-	// make response call
-        performanceStream::psIter_t allS = 
-           performanceStream::getAllStreamsIter();
-	perfStreamHandle h;
-        performanceStream *ps;
-	while(allS.next(h,ps)){
-	    if(h == (perfStreamHandle)(Address)(ps)){
-	        ps->callDataEnableFunc(response,request_Id);
-		break;
-	} }
-	delete request;
-	response = 0;
-	return;
+                                     pdvector<metricRLType> *request,
+                                     u_int request_Id,
+                                     phaseType type,
+                                     phaseHandle phaseId,
+                                     u_int persistent_data,
+                                     u_int persistent_collection,
+                                     u_int phase_persistent_data)
+{
+   // if currphase and phaseId != currentPhaseId then make approp.
+   // response call to client
+   if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
+      // send enable failed response to calling thread
+      pdvector<metricInstInfo> *response = 
+         new pdvector<metricInstInfo>(request->size());
+      for(u_int i=0; i < response->size();i++){
+         (*response)[i].successfully_enabled = false;	    
       }
-
-    // 0 is used as the second parameter for non-trace use
-    DMdoEnableData(ps,0,request,request_Id,type,phaseId, persistent_data,
-		   persistent_collection,phase_persistent_data);    
-    
+      // make response call
+      performanceStream::psIter_t allS = 
+         performanceStream::getAllStreamsIter();
+      perfStreamHandle h;
+      performanceStream *ps;
+      while(allS.next(h,ps)){
+         if(h == (perfStreamHandle)(Address)(ps)){
+            ps->callDataEnableFunc(response, request_Id, 1);
+            break;
+         }
+      }
+      delete request;
+      response = 0;
+      return;
+   }
+   
+   // 0 is used as the second parameter for non-trace use
+   DMdoEnableData(ps,0,request,request_Id,type,phaseId, persistent_data,
+                  persistent_collection,phase_persistent_data);    
+   
 }
 
 
@@ -1247,10 +1204,10 @@ void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,
 // request_id - identifier passed by client to enableDataRequest
 //
 void dataManagerUser::enableDataCallback(enableDataCallbackFunc func,
-				         pdvector<metricInstInfo> *response,
-			                 u_int request_id)
-{
-    (func)(response, request_id);
+                                         pdvector<metricInstInfo> *response,
+                                         u_int request_id,
+                                         u_int last_cb_for_request) {
+    (func)(response, request_id, last_cb_for_request);
 }
 
 

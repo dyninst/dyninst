@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.130 2003/05/23 22:48:46 igor Exp $
+ * $Id: DMdaemon.C,v 1.131 2003/05/27 03:30:12 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -104,107 +104,6 @@ static void fixArg(char *&argToFix)
 
 
 static appState applicationState = appPaused; // status of the application.
-
-
-metricInstance *DM_enableType::findMI(metricInstanceHandle mh){
-    for(u_int i=0; i < request->size(); i++){
-         if(mh == ((*request)[i])->getHandle()){
-             return ((*request)[i]);
-    } }
-    return 0;
-}
-
-void DM_enableType::setDone(metricInstanceHandle mh){
-    for(u_int i=0; i < request->size(); i++){
-        if(mh == ((*request)[i])->getHandle()){
-	    (*done)[i] = true;
-            return;
-        } 
-    }
-}
-
-void
-DM_enableType::responseReceived( metricInstanceHandle mh,
-                                        unsigned int daemonId,
-                                        unsigned int status )
-{
-    for( unsigned int i = 0; i < request->size(); i++ )
-    {
-        const metricInstance* currMI = (*request)[i];
-        if( mh == currMI->getHandle() )
-        {
-            if( (status == inst_insert_deferred) &&
-                (responses[i][daemonId] != inst_insert_deferred) )
-            {
-                n_deferred++;   
-            }
-            else if( (responses[i][daemonId] == inst_insert_deferred) &&
-                        (status != inst_insert_deferred) )
-            {
-                assert( n_deferred != 0 );
-                n_deferred--;
-            }
-            responses[i][daemonId] = status;
-            break;
-        } 
-    }
-}
-
-
-bool
-DM_enableType::allResponsesReceived( void ) const
-{
-    bool ret = true;
-
-    for( unsigned int i = 0; i < request->size(); i++ )
-    {
-        for( unsigned int j = 0; j < how_many_daemons; j++ )
-        {
-            if( responses[i][j] == inst_insert_unknown )
-            {
-                // we still have an unknown
-                ret = false;
-                break;
-            }
-        }
-    }
-    return ret;
-}
-
-
-
-
-// find any matching completed mids and update the done values 
-// if a matching value is successfully enabled done=true, else done= false
-void DM_enableType::updateAny(pdvector<metricInstance *> &completed_mis,
-			      pdvector<bool> successful){
-
-   for(u_int i=0; i < done->size(); i++){
-       if(!(*done)[i]){  // try to update element
-           assert(not_all_done);
-           metricInstanceHandle mh = ((*request)[i])->getHandle();
-           for(u_int j=0; j < completed_mis.size(); j++){
-	       if(completed_mis[j]){
-                   if(completed_mis[j]->getHandle() == mh){
-                       if(successful[j]) (*done)[i] = true;
-                       not_all_done--;
-               } } 
-	   }
-   } }
-}
-
-
-void
-DM_enableType::setErrorString( metricInstanceHandle mh, string msg )
-{
-    for( unsigned int i = 0; i < request->size(); i++)
-    {
-        if( mh == ((*request)[i]->getHandle()) )
-        {
-            emsgs[i] = msg;
-        }
-    }
-}
 
 
 const string daemonEntry::getRemoteShellString() const {
@@ -2226,99 +2125,52 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
     assert(0);
 }
 
-//
-// make data enable request to paradynds, and add request entry to
-// list of outstanding enable requests
-//
-void paradynDaemon::enableData(pdvector<metricInstance *> *miVec,
-                               pdvector<bool> *done,
-                               pdvector<bool> *enabled,
-                               DM_enableType *new_entry,
-                               bool need_to_enable) {
-   // make enable request, pass only pairs that need to be enabled to daemons
-   if(need_to_enable){  
-      bool whole_prog_focus = false;
-      pdvector<paradynDaemon*> daemon_subset; // which daemons to send request
-      pdvector<T_dyninstRPC::focusStruct> foci; 
-      pdvector<string> metrics; 
-      pdvector<u_int> mi_ids;  
-      
-      for(u_int i=0; i < miVec->size(); i++){
-         if(!(*enabled)[i] && !(*done)[i]){
-            // create foci, metrics, and mi_ids entries for this mi
-            T_dyninstRPC::focusStruct focus;
-            string met_name;
-            bool aflag;
-            aflag=((*miVec)[i]->convertToIDList(focus.focus));
-            assert(aflag);
-            met_name = (*miVec)[i]->getMetricName();
-            foci += focus;
-            metrics += met_name;
-            mi_ids += (*miVec)[i]->getHandle();
-            // set curretly enabling flag on mi 
-            (*miVec)[i]->setCurrentlyEnabling();
-
-            // check to see if this focus is refined on the machine
-            // or process heirarcy, if so then add the approp. daemon
-            // to the daemon_subset, else set whole_prog_focus to true
-            if(!whole_prog_focus){
-               string machine_name;
-               resourceList *rl = (*miVec)[i]->getresourceList(); 
-               assert(rl);
-               // focus is refined on machine or process heirarchy 
-               if(rl->getMachineNameReferredTo(machine_name)){
-                  // get the daemon corr. to this focus and add it
-                  // to the list of daemons
-                  pdvector<paradynDaemon*> vpd = 
-                     paradynDaemon::machineName2Daemon(machine_name);
-                  assert(vpd.size());
-                  for(u_int j=0; j < vpd.size(); j++){
-                     bool found = false;
-                     
-                     for(u_int k=0; k<daemon_subset.size() && !found; k++)
-                        if(vpd[j]->id == daemon_subset[k]->id) 
-                           found = true;    
-                     
-                     if(!found)  // add new daemon to subset list
-                        daemon_subset += vpd[j];
-                  }  
-               }
-               else {  // foucs is not refined on process or machine 
-                  whole_prog_focus = true;
-               }
-            }
+// if whole_prog_focus is false, then the relevant daemons are in daemon_subset
+void paradynDaemon::getMatchingDaemons(pdvector<metricInstance *> *miVec,
+                                  pdvector<paradynDaemon *> *matching_daemons)
+{
+   bool whole_prog_focus = false;
+   pdvector<paradynDaemon*> daemon_subset; // which daemons to send request
+   
+   for(u_int i=0; i < miVec->size(); i++) {
+      // check to see if this focus is refined on the machine
+      // or process heirarcy, if so then add the approp. daemon
+      // to the matching_daemons, else set whole_prog_focus to true
+      if(! whole_prog_focus) {
+         string machine_name;
+         resourceList *rl = (*miVec)[i]->getresourceList(); 
+         assert(rl);
+         // focus is refined on machine or process heirarchy 
+         if(rl->getMachineNameReferredTo(machine_name)){
+            // get the daemon corr. to this focus and add it
+            // to the list of daemons
+            pdvector<paradynDaemon*> vpd = 
+               paradynDaemon::machineName2Daemon(machine_name);
+            assert(vpd.size());
+            for(u_int j=0; j < vpd.size(); j++){
+               bool found = false;
+               
+               for(u_int k=0; k<(*matching_daemons).size() && !found; k++)
+                  if(vpd[j]->id == (*matching_daemons)[k]->id) 
+                     found = true;    
+               
+               if(!found)  // add new daemon to subset list
+                  (*matching_daemons).push_back(vpd[j]);
+            }  
          }
-      }
-      assert(foci.size() == metrics.size());
-      assert(metrics.size() == mi_ids.size());
-      assert(daemon_subset.size() <= paradynDaemon::allDaemons.size());
-      // if there is a whole_prog_focus then make the request to all 
-      // the daemons, else make the request to the daemon subset
-      // make enable requests to all daemons
-      if(whole_prog_focus) {
-         for(u_int j=0; j < paradynDaemon::allDaemons.size(); j++){
-            paradynDaemon *pd = paradynDaemon::allDaemons[j]; 
-            pd->enableDataCollection(foci,metrics,mi_ids,j,
-                                     new_entry->request_id);
-         }
-      }
-      else {  
-         // change the enable number in the entry 
-         new_entry->how_many_daemons = daemon_subset.size();
-         for(u_int j=0; j < daemon_subset.size(); j++){
-            daemon_subset[j]->enableDataCollection(foci,metrics,mi_ids,
-                                                   daemon_subset[j]->id,
-                                                   new_entry->request_id);
+         else {  // focus is not refined on process or machine 
+            whole_prog_focus = true;
          }
       }
    }
 
-   // add entry to outstanding_enables list
-   paradynDaemon::outstanding_enables += new_entry;
-   new_entry = 0; 
-   miVec = 0;
-   done = 0; 
-   enabled = 0;
+   if(whole_prog_focus) {
+      (*matching_daemons).clear();
+      for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++)
+         (*matching_daemons).push_back(paradynDaemon::allDaemons[i]);
+   }
+
+   assert(daemon_subset.size() <= paradynDaemon::allDaemons.size());
 }
 
 

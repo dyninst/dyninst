@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMinclude.h,v 1.21 2003/05/23 07:27:42 pcroth Exp $
+// $Id: DMinclude.h,v 1.22 2003/05/27 03:30:14 schendel Exp $
 
 #ifndef dminclude_H
 #define dminclude_H
@@ -90,23 +90,22 @@ struct metRLType {
 typedef struct metRLType metricRLType;
 
 struct miInfoType{
-    bool successfully_enabled;  // true if this metric/focus pair was enabled
-    metricInstanceHandle mi_id;
-    metricHandle m_id;
-    resourceListHandle r_id;
-    string metric_name;
-    string metric_units;
-    string focus_name;
-    dm_MetUnitsType units_type;
-    bool deferred;
-
-    string emsg;                // error message if not enabled
-
-    miInfoType(){
-        successfully_enabled = false; mi_id = 0; m_id=0; r_id=0; 
-	units_type=Normalized;
-    deferred = false;
-    }
+   bool successfully_enabled;  // true if this metric/focus pair was enabled
+   bool deferred;
+   metricInstanceHandle mi_id;
+   metricHandle m_id;
+   resourceListHandle r_id;
+   string metric_name;
+   string metric_units;
+   string focus_name;
+   dm_MetUnitsType units_type;
+   
+   string emsg;                // error message if not enabled
+   
+   miInfoType() : 
+      successfully_enabled(false), deferred(false), mi_id(0), m_id(0),
+        r_id(0), units_type(Normalized)
+   {  }
 };
 typedef struct miInfoType metricInstInfo;
 
