@@ -89,7 +89,7 @@ class Histogram {
 	       return(dataPtr.buckets[i]);
 	    }
 	    else
-	       return(make_Nan());
+	       return(PARADYN_NaN);
 	}
 	int getBuckets(sampleValue *buckets, int numberOfBuckets, int first);
 	int getCurrBin(){return(lastBin);}
