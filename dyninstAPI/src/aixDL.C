@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.4 2001/03/01 22:43:22 bernat Exp $
+// $Id: aixDL.C,v 1.5 2001/03/30 03:46:35 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -62,10 +62,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   int ret;
   struct ld_info *ptr;
   struct stat ld_stat;
-  // Credit where credit is due: it works in GDB 5.0, so it should
-  // work here. Right? Of course it will. NOT!
-  // alloca() so we don't have to worry about deallocating it. 
-  // hacky.
+  // We hope that we don't get more than 1024 libraries loaded.
   ptr = (struct ld_info *) malloc (1024*sizeof(*ptr));
   pid = p->getPid();
 
@@ -120,8 +117,17 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
       // This can be a problem, since we expect to find symbol table
       // information from the file.
       if (fstat (ptr->ldinfo_fd, &ld_stat) < 0) {
-	cerr << "File " << ptr->ldinfo_filename << " has disappeared!" << endl;
-	perror("getSharedObjects");
+	// We were given a file handle that is invalid. We get this
+	// behavior if there's a library that's been loaded into memory,
+	// but it's disk equivalent is no longer there. Examples:
+	// loaded a library and deleted it, loaded a library and then
+	// copied in a fresh copy of that library, i.e. the nightly build.
+	// Solution: take the pathname we have and construct a new
+	// handle.
+	ptr->ldinfo_fd = open(ptr->ldinfo_filename, O_RDONLY);
+	if (ptr->ldinfo_fd == -1)
+	  // Sucks to be us
+	  fprintf(stderr, "aixDL.C:getSharedObjects: library %s has disappeared!\n", ptr->ldinfo_filename);
       }
 
       string obj_name = string(ptr->ldinfo_filename);
@@ -129,10 +135,10 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 			     (strlen(ptr->ldinfo_filename) + 1));
       Address text_org =(Address) ptr->ldinfo_textorg;
       Address data_org =(Address) ptr->ldinfo_dataorg;
-      
-      //fprintf(stderr, "%s:%s (%x/%x)\n",
-      //      obj_name.string_of(), member.string_of(),
-      //      text_org, data_org);
+
+      fprintf(stderr, "%s:%s (%x/%x)\n",
+	      obj_name.string_of(), member.string_of(),
+	      text_org, data_org);
 
       // I believe that we need to pass this as a pointer so that
       // subclassing will work
