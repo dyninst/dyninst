@@ -592,6 +592,16 @@ void processMetFocusNode::doCatchupInstrumentation() {
 void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
    pdvector<Frame> stackWalk;
    thr->walkStack(stackWalk);
+
+   if (pd_debug_catchup) {
+       fprintf(stderr, "Dumping stack walk for thread %d\n",
+               thr->get_tid());
+       for (unsigned a = 0; a < stackWalk.size(); a++) {
+           cerr << stackWalk[a] << endl;
+       }
+       fprintf(stderr, "End stack dump for thread %d\n", thr->get_tid());
+   }
+   
    
    // Convert the stack walks into a similar list of catchupReq nodes, which
    // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
