@@ -39,59 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: mdld.h,v $
- * Revision 1.11  1999/07/07 16:19:53  zhichen
- * extra parameter to mdl_do
- * changes to add_processes
- *            create_data_object
- *            apply_to_process, ...
- *
- * Revision 1.10  1997/06/07 21:00:22  newhall
- * replaced exclude_func and exclude_lib with exclude_node
- *
- * Revision 1.9  1997/06/05 04:27:07  newhall
- * changed exclude_lib to mean shared object is not instrumentable
- * added exclude_func mdl option to exclude shared object functions
- *
- * Revision 1.8  1997/02/21 20:15:54  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.7  1997/01/15 00:28:31  tamches
- * extra bool param to mdl_do()
- *
- * Revision 1.6  1996/09/26 18:58:48  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.5  1996/08/16 21:19:18  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1996/03/12 20:48:24  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.3  1996/01/29 22:09:28  mjrg
- * Added metric propagation when new processes start
- * Adjust time to account for clock differences between machines
- * Daemons don't enable internal metrics when they are not running any processes
- * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
- * the application stops only after it starts the CM5 daemon)
- *
- * Revision 1.2  1995/08/24  15:04:16  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- *
- */
+// $Id: mdld.h,v 1.12 2001/08/23 14:44:16 schendel Exp $
+
 #if !defined(mdl_daemon_hdr)
 #define mdl_daemon_hdr
 
