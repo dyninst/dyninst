@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.37  1994/07/07 03:30:16  markc
+ * Revision 1.38  1994/07/20 18:59:24  hollings
+ * added resource batch mode.
+ *
+ * Revision 1.37  1994/07/07  03:30:16  markc
  * Changed expected return types for appContext functions from integer to Boolean
  *
  * Revision 1.36  1994/07/05  03:27:17  hollings
@@ -284,6 +287,30 @@ abstractionType parseAbstractionName(String abstraction)
   if (strcmp(abstraction,"BASE") == 0) return BASE;
   printf("DATAMANGER: bad abstraction '%s'\n",abstraction);
   return BASE;
+}
+
+void dynRPCUser::resourceBatchMode(Boolean onNow)
+{
+    int prev;
+    static int count;
+    List<performanceStream*> curr;
+
+    prev = count;
+    if (onNow) {
+	count++;
+    } else {
+	count--;
+    }
+
+    if (count == 0) {
+	for (curr = applicationContext::streams; *curr; curr++) {
+	    (*curr)->callResourceBatchFunc(batchEnd);
+	}
+    } else if (!prev) {
+	for (curr = applicationContext::streams; *curr; curr++) {
+	    (*curr)->callResourceBatchFunc(batchStart);
+	}
+    }
 }
 
 //
