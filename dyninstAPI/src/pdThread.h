@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.6 1998/12/25 22:02:16 wylie Exp $
+// $Id: pdThread.h,v 1.7 1999/07/07 16:08:04 zhichen Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
@@ -54,27 +54,49 @@ class pdThread {
     // We are also assuming that the position in the paradynd super table
     // for this thread is initially 0, until it gets updated with the record
     // sent in DYNINSTinit - naim 4/15/97
-    pdThread(process *pproc) : tid(0), pos(0), pd_pos(0), rid(NULL)
+    pdThread(process *pproc) : 
+      tid(0), 
+      fd(-1), 
+      pos(0),
+      pd_pos(0),
+      stack_addr(0),
+      start_pc(0),
+      start_func(NULL),
+      rid(NULL),
+      previous(0)
     { 
       proc = pproc; 
       ppid = pproc->getPid();
     }
-    pdThread(process *proc_, int tid_, unsigned pos_, resource *rid_ )
-    { 
-      proc = proc_; 
+    pdThread(process *proc_, int tid_, unsigned pos_) :
+      tid(tid_),
+      fd(-1),
+      pos(pos_),
+      pd_pos(0),
+      stack_addr(0),
+      start_pc(0),
+      start_func(NULL),
+      rid(NULL),
+      previous(0)
+    {
+      proc = proc_;
       ppid = proc_->getPid();
-      tid = tid_;
-      pos = pos_;
-      rid = rid_;
     }
-    pdThread(process *pproc, 
-	     int tid_, 
-	     handleT handle_) 
-      : tid(tid_), pos(0), rid(NULL), handle(handle_)
+    pdThread(process *pproc, int tid_, handleT handle_) :
+      tid(tid_),
+      fd(-1),
+      pos(0),
+      pd_pos(0),
+      stack_addr(0),
+      start_pc(0),
+      start_func(NULL),
+      rid(NULL),
+      previous(0)
     {
       assert(pproc);
       proc = pproc;
       ppid = pproc->getPid();
+      handle = handle_ ;
     }
     pdThread(process *parent, pdThread *src) {
       assert(src && parent);
@@ -82,28 +104,59 @@ class pdThread {
       ppid = parent->getPid();
       pos = src->pos;
       pd_pos = src->pd_pos;
+      stack_addr = src->stack_addr;
+      start_pc = src->start_pc;
+      start_func = src->start_func;
       rid = src->rid;
       proc = parent;
+      previous = 0;
     }
-    ~pdThread() {}
-    int get_tid() { return(tid); }
-    unsigned get_pos() { return(pos); }
-    unsigned get_pd_pos() { return(pd_pos); }
-    void update_tid(int id, unsigned p) { tid = id; pos = p; }
-    void update_handle(int id, handleT h) { tid = id; handle = h; }
-    void update_pd_pos(unsigned p) { pd_pos = p; }
-    int get_ppid() { return(ppid); }
-    resource *get_rid() { return(rid); }
-    process *get_proc() { return(proc); }
-    handleT get_handle() { return(handle); }
+    ~pdThread() {
+#if defined(MT_THREAD)
+      proc->threadMap->remove(tid);
+#endif
+      //delete rid; //deletion of resources is not yet implemented! - naim 1/21/98
+      close(fd);
+    }
+    int            get_tid()           { return(tid); }
+    unsigned       get_pos()           { return(pos); }
+    unsigned       get_pd_pos()        { return(pd_pos); }
+    unsigned       get_stack_addr()    { return(stack_addr); }
+    int            get_fd()            { return(fd); }
+    int            get_ppid()          { return(ppid); }
+    resource*      get_rid()           { return(rid); }
+    process*       get_proc()          { return(proc); }
+    handleT        get_handle()        { return(handle); }
+    function_base* get_start_func()    { return(start_func); }
+    unsigned       get_start_pc()      { return(start_pc); }
+    void*          get_resumestate_p() { return resumestate_p; }
+#if defined(MT_THREAD)
+    static time64  getInferiorVtime(tTimer* , process*, bool&);
+#endif
+    void update_tid          (int id, unsigned p)   { tid = id; pos = p; }
+    void update_handle       (int id, handleT h)    { tid = id; handle = h; }
+    void update_rid          (resource *rid_)       { rid = rid_; } 
+    void update_pd_pos       (unsigned p)           { pd_pos = p; }
+    void update_fd           (int fd_)              { fd = fd_; }
+    void update_stack_addr   (unsigned stack_addr_) { stack_addr=stack_addr_; }
+    void update_start_pc     (unsigned start_pc_)   { start_pc=start_pc_; }
+    void update_start_func   (function_base *pdf)   { start_func=pdf; }
+    void update_resumestate_p(void* resumestate_p_) { resumestate_p=resumestate_p_; }
+///
   private:
     int tid;
     int ppid;
+    int fd;
     unsigned pos;
     unsigned pd_pos;
+    unsigned stack_addr;
+    unsigned start_pc ;
+    void*    resumestate_p; //platform specific
+    function_base *start_func ;
     resource *rid;
     process *proc;
     handleT handle; // the thread handle (/proc file descriptor or NT handle)
+    time64 previous;
 };
 
 #endif
