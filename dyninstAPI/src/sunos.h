@@ -47,7 +47,7 @@
 #define SUNOS_PD_HDR
 
 #include <sys/param.h>
-#define EXIT_NAME "_cleanup"
+#define EXIT_NAME "__cleanup"
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"

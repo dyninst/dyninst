@@ -48,11 +48,7 @@
 
 #include <sys/param.h>
 
-#ifdef i386_unknown_solaris2_5
-#define EXIT_NAME "exithandle"
-#else
 #define EXIT_NAME "_exithandle"
-#endif
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
