@@ -20,6 +20,14 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.16  1996/02/22 18:28:43  karavan
+ * changed debug print calls from dataMgr->getFocusName to
+ * dataMgr->getFocusNameFromHandle
+ *
+ * changed GUI node styles from #defines to enum
+ *
+ * added searchHistoryGraph::updateDisplayedStatus()
+ *
  * Revision 1.15  1996/02/09 05:31:43  karavan
  * changes to support multiple per-phase searches
  *
@@ -109,6 +117,17 @@ class searchHistoryGraph {
   friend class searchHistoryNode;
  public:
   searchHistoryGraph(PCsearch *searchPhase, unsigned displayToken);
+
+  // display styles currently in use by GUI
+  enum nodeDisplayStyle {
+    NeverActiveUnknownNodeStyle, 
+    InactiveUnknownNodeStyle,
+    InactiveFalseNodeStyle,
+    ActiveTrueNodeStyle,
+    ActiveUnknownNodeStyle,
+    ActiveFalseNodeStyle,
+    InactiveTrueNodeStyle };
+
   void initPersistentNodes();
   searchHistoryNode *addNode (searchHistoryNode *parent,
 			      hypothesis *why,
@@ -118,6 +137,7 @@ class searchHistoryGraph {
 			      const char *shortName);
   searchHistoryNode *const getNode (unsigned nodeId);
   void setSearchUpdateNeeded ();
+  void updateDisplayedStatus (string &newmsg);
   void finalizeSearch(timeStamp searchEndTime);
  private:
   vector<searchHistoryNode*> Nodes;

@@ -20,6 +20,14 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.33  1996/02/22 18:28:38  karavan
+ * changed debug print calls from dataMgr->getFocusName to
+ * dataMgr->getFocusNameFromHandle
+ *
+ * changed GUI node styles from #defines to enum
+ *
+ * added searchHistoryGraph::updateDisplayedStatus()
+ *
  * Revision 1.32  1996/02/15 23:26:23  tamches
  * WHYEDGESTYLE to (unsigned)axis in refinement parameter when calling
  * uiMgr->DAGaddEdge.
@@ -153,7 +161,8 @@ searchHistoryNode::addToDisplay(unsigned parentID, const char *label,
 				bool edgeOnlyFlag)
 {
   if (!edgeOnlyFlag) {
-    uiMgr->DAGaddNode (mamaGraph->guiToken, nodeID, INACTIVEUNKNOWNNODESTYLE, 
+    uiMgr->DAGaddNode (mamaGraph->guiToken, nodeID, 
+		       searchHistoryGraph::InactiveUnknownNodeStyle, 
 		       sname.string_of(), name.string_of(), 0);
   }
   uiMgr->DAGaddEdge (mamaGraph->guiToken, parentID, nodeID, (unsigned)axis,
@@ -167,30 +176,30 @@ searchHistoryNode::changeDisplay()
     switch (truthValue) {
     case ttrue:
       uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
-			    ACTIVETRUENODESTYLE);
+			    searchHistoryGraph::ActiveTrueNodeStyle);
       break;
     case tfalse:
       uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
-			    ACTIVEFALSENODESTYLE);
+			    searchHistoryGraph::ActiveFalseNodeStyle);
       break;
     case tunknown:
       uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
-			    ACTIVEUNKNOWNNODESTYLE);
+			    searchHistoryGraph::ActiveUnknownNodeStyle);
       break;
     };
   } else {
     switch (truthValue) {
     case ttrue:
       uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
-			    INACTIVETRUENODESTYLE);
+			    searchHistoryGraph::InactiveTrueNodeStyle);
       break;
     case tfalse:
       uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
-			    INACTIVEFALSENODESTYLE);
+			    searchHistoryGraph::InactiveFalseNodeStyle);
       break;
     case tunknown:
       uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
-			    INACTIVEUNKNOWNNODESTYLE);
+			    searchHistoryGraph::InactiveUnknownNodeStyle);
       break;
     };
   }
@@ -200,15 +209,13 @@ void
 searchHistoryNode::expand ()
 {
   assert (children.size() == 0);
-  vector<rlNameId> *kids;
 #ifdef PCDEBUG
   // debug print
   if (performanceConsultant::printSearchChanges) {
-    const vector<resourceHandle> *longname = dataMgr->getResourceHandles(where);
     cout << "EXPAND: why=" << why->getName() << endl
-      << "        foc=<" << dataMgr->getFocusName(longname) << ">" << endl
-	<< "       time=" << exp->getEndTime() << endl;
-    delete longname;
+      << "        foc=<" << dataMgr->getFocusNameFromHandle(where) 
+	<< ">" << endl
+	  << "       time=" << exp->getEndTime() << endl;
   }
 #endif
   expanded = true;
@@ -219,6 +226,7 @@ searchHistoryNode::expand ()
   // prunes limit the resource trees along which we will expand this node
     vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
     resourceHandle currHandle;
+    vector<rlNameId> *kids;
     for (unsigned m = 0; m < parentFocus->size(); m++) {
       currHandle = (*parentFocus)[m];
       if (!why->isPruned(currHandle)) {
@@ -237,6 +245,7 @@ searchHistoryNode::expand ()
 	}
       }
     }
+    delete parentFocus;
   } else {
     // no prunes defined for this hypothesis so we can expand fully
     vector<rlNameId> *kids = dataMgr->magnify2(where);
@@ -281,12 +290,10 @@ searchHistoryNode::makeTrue()
   // some better way, but this will have to do...)
   string status = why->getName();
   status += " tested true for ";
-  vector<resourceHandle>* bigFocusRep = dataMgr->getResourceHandles(where);
-  const char *fname = dataMgr->getFocusName(bigFocusRep);
-  delete bigFocusRep;
+  const char *fname = dataMgr->getFocusNameFromHandle(where);
   status += fname;
   status += "\n";
-  uiMgr->updateStatusDisplay(mamaGraph->guiToken, status.string_of());
+  mamaGraph->updateDisplayedStatus (status);
 }
 
 void
@@ -469,6 +476,12 @@ searchHistoryGraph::setSearchUpdateNeeded()
   srch->setRunQUpdateNeeded();
 }
 
+void 
+searchHistoryGraph::updateDisplayedStatus (string &newmsg)
+{
+  uiMgr->updateStatusDisplay(guiToken, newmsg.string_of());
+}
+  
 //
 // Any cleanup associated with search termination.
 //
@@ -482,7 +495,7 @@ searchHistoryGraph::finalizeSearch(timeStamp searchEndTime)
     + string(performanceConsultant::DMcurrentPhaseToken)
       + string (" ended due to end of phase at time ")
 	+ string (searchEndTime) + string (".\n");
-  uiMgr->updateStatusDisplay(guiToken, status.string_of());
+  updateDisplayedStatus(status);
 }
 
 searchHistoryNode* 
