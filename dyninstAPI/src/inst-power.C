@@ -1,3 +1,5 @@
+
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -573,8 +575,9 @@ void generateNoOp(process *proc, int addr)
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				 instPoint *location,
-				 returnInstance *&retInstance)
+				       instPoint *location,
+				       returnInstance *&retInstance,
+				       bool noCost)
 {
     trampTemplate *ret;
     process *globalProc;
@@ -684,7 +687,7 @@ pdFunction *getFunction(instPoint *point)
 }	\
 
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
-                 unsigned &base)
+                 unsigned &base, bool noCost)
 {
         instruction *insn = (instruction *) ((void*)&i[base]);
         int iop=-1;
@@ -700,15 +703,15 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 		break;
 
 	    case timesOp:
-                if (isPowerOf2(src2,result) && (result<32)) {
+               if (isPowerOf2(src2,result) && (result<32)) {
                   generateLShift(insn, src1, result, dest);           
                   base += sizeof(instruction);
                   return(0);
 	        }
                 else {
-                  reg dest2 = regSpace->allocateRegister(i, base);
-                  (void) emit(loadConstOp, src2, dest2, dest2, i, base);
-                  (void) emit(op, src1, dest2, dest, i, base);
+                  reg dest2 = regSpace->allocateRegister(i, base, noCost);
+                  (void) emit(loadConstOp, src2, dest2, dest2, i, base, noCost);
+                  (void) emit(op, src1, dest2, dest, i, base, noCost);
                   regSpace->freeRegister(dest2);
                   return(0);
 		}
@@ -721,9 +724,9 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
                   return(0);
 	        }
 		else {
-                  reg dest2 = regSpace->allocateRegister(i, base);
-                  (void) emit(loadConstOp, src2, dest2, dest2, i, base);
-                  (void) emit(op, src1, dest2, dest, i, base);
+                  reg dest2 = regSpace->allocateRegister(i, base, noCost);
+                  (void) emit(loadConstOp, src2, dest2, dest2, i, base, noCost);
+                  (void) emit(op, src1, dest2, dest, i, base, noCost);
                   regSpace->freeRegister(dest2);
                   return(0);
 		}
@@ -739,9 +742,9 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 		break;
 
 	    default:
-                reg dest2 = regSpace->allocateRegister(i, base);
-                (void) emit(loadConstOp, src2, dest2, dest2, i, base);
-                (void) emit(op, src1, dest2, dest, i, base);
+                reg dest2 = regSpace->allocateRegister(i, base, noCost);
+                (void) emit(loadConstOp, src2, dest2, dest2, i, base, noCost);
+                (void) emit(op, src1, dest2, dest, i, base, noCost);
                 regSpace->freeRegister(dest2);
                 return(0);
 		break;
@@ -771,16 +774,16 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *iPtr, unsigned &base, 
-		      vector<AstNode> operands, 
-		      string callee, process *proc)
+		      const vector<AstNode> &operands, 
+		      const string &callee, process *proc, bool noCost)
 {
     unsigned dest;
     bool err;
     vector <reg> srcs;
 
-    dest = (proc->symbols)->findInternalAddress(callee, false, err);
+    dest = proc->findInternalAddress(callee, false, err);
     if (err) {
-	pdFunction *func = (proc->symbols)->findOneFunction(callee);
+	pdFunction *func = proc->findOneFunction(callee);
         if (!func) {
 	    ostrstream os(errorLine, 1024, ios::out);
             os << "Internal error: unable to find addr of " << callee << endl;
@@ -792,7 +795,7 @@ unsigned emitFuncCall(opCode op,
     }
 	
     for (unsigned u = 0; u < operands.size(); u++)
-	srcs += operands[u].generateCode(proc, rs, iPtr, base);
+	srcs += operands[u].generateCode(proc, rs, iPtr, base, false);
 
     // TODO cast
     instruction *insn = (instruction *) ((void*)&iPtr[base]);
@@ -915,7 +918,7 @@ unsigned emitFuncCall(opCode op,
     base += sizeof(instruction);
 
     // get a register to keep the return value in.
-    reg retReg = regSpace->allocateRegister(iPtr, base);
+    reg retReg = regSpace->allocateRegister(iPtr, base, noCost);
 
     // This next line is a hack! - jkh 6/27/96
     //   It is required since allocateRegister can generate code.
@@ -941,7 +944,7 @@ unsigned emitFuncCall(opCode op,
 }
  
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn, 
-	      unsigned &base)
+	      unsigned &base, bool noCost)
 {
     // TODO cast
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
@@ -997,7 +1000,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	}
 
 	// temp register to hold base address for store (added 6/26/96 jkh)
-	reg temp = regSpace->allocateRegister(baseInsn, base);
+	reg temp = regSpace->allocateRegister(baseInsn, base, noCost);
 
 	// This next line is a hack! - jkh 6/27/96
 	//   It is required since allocateRegister can generate code.
@@ -1039,54 +1042,56 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
     } else if (op ==  trampPreamble) {
-	// add in the cost to the passed pointer variable.
+        if (!noCost) {
+	   // add in the cost to the passed pointer variable.
 
-	// high order bits of the address of the cummlative cost.
-	reg obsCostAddr = regSpace->allocateRegister(baseInsn, base);
+	   // high order bits of the address of the cummlative cost.
+	   reg obsCostAddr = regSpace->allocateRegister(baseInsn, base, noCost);
 
-	// actual cost.
-	reg obsCostValue = regSpace->allocateRegister(baseInsn, base);
+	   // actual cost.
+	   reg obsCostValue = regSpace->allocateRegister(baseInsn, base, noCost);
 
-	// This next line is a hack! - jkh 6/27/96
-	//   It is required since allocateRegister can generate code.
-	insn = (instruction *) ((void*)&baseInsn[base]);
+	   // This next line is a hack! - jkh 6/27/96
+	   //   It is required since allocateRegister can generate code.
+	   insn = (instruction *) ((void*)&baseInsn[base]);
 
-        int high;
+	   int high;
 
-        // load high half word of address into dest.
-        // really addis 0,dest,HIGH(dest) aka lis dest, HIGH(dest)
-        if (LOW(dest) & 0x8000) {
-            // high bit of low is set so the sign extension of the load
-            // will cause the wrong effective addr to be computed.
-            // so we subtract the sign ext value from HIGH.
-            // sounds odd, but works and saves an instruction - jkh 5/25/95
-            high = HIGH(dest) - 0xffff;
-        } else {
-            high = HIGH(dest);
-        }
-        genImmInsn(insn, ADDISop, obsCostAddr, 0, high);
-        insn++;
+	   // load high half word of address into dest.
+	   // really addis 0,dest,HIGH(dest) aka lis dest, HIGH(dest)
+	   if (LOW(dest) & 0x8000) {
+	      // high bit of low is set so the sign extension of the load
+	      // will cause the wrong effective addr to be computed.
+	      // so we subtract the sign ext value from HIGH.
+	      // sounds odd, but works and saves an instruction - jkh 5/25/95
+	      high = HIGH(dest) - 0xffff;
+	   } else {
+	      high = HIGH(dest);
+	   }
+	   genImmInsn(insn, ADDISop, obsCostAddr, 0, high);
+	   insn++;
 
-        // really load obsCostValue, (obsCostAddr)imm
-        genImmInsn(insn, Lop, obsCostValue, obsCostAddr, LOW(dest));
-	insn++;
+	   // really load obsCostValue, (obsCostAddr)imm
+	   genImmInsn(insn, Lop, obsCostValue, obsCostAddr, LOW(dest));
+	   insn++;
 
-	assert(src1 <= MAX_IMM);
-        genImmInsn(insn, ADDIop, obsCostValue, obsCostValue, LOW(src1));
-        insn++;
+	   assert(src1 <= MAX_IMM);
+	   genImmInsn(insn, ADDIop, obsCostValue, obsCostValue, LOW(src1));
+	   insn++;
 
-	// now store it back.
-	// low == LOW(dest)
-	// generate -- st obsCostValue, obsCostAddr+low(dest)
-	insn->dform.op = STWop;
-	insn->dform.rt = obsCostValue;
-	insn->dform.ra = obsCostAddr;
-	insn->dform.d_or_si = LOW(dest);
-        insn++;
-	base += 4 * sizeof(instruction);
+	   // now store it back.
+	   // low == LOW(dest)
+	   // generate -- st obsCostValue, obsCostAddr+low(dest)
+	   insn->dform.op = STWop;
+	   insn->dform.rt = obsCostValue;
+	   insn->dform.ra = obsCostAddr;
+	   insn->dform.d_or_si = LOW(dest);
+	   insn++;
+	   base += 4 * sizeof(instruction);
 
-	regSpace->freeRegister(obsCostValue);
-	regSpace->freeRegister(obsCostAddr);
+	   regSpace->freeRegister(obsCostValue);
+	   regSpace->freeRegister(obsCostAddr);
+       } // if !noCost
     } else if (op ==  trampTrailer) {
 	// restore the registers we have saved
 	int i;
@@ -1419,7 +1424,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 }
 
 
-bool pdFunction::findInstPoints(image *owner) 
+bool pdFunction::findInstPoints(const image *owner) 
 {  
   Address adr = addr();
   instruction instr;
@@ -1574,8 +1579,12 @@ void returnInstance::addToReturnWaitingList(Address , process * ) {
     P_abort();
 }
 
-void generateBreakPoint(instruction &insn) {
+void generateBreakPoint(instruction &insn) { // instP.h
     insn.raw = BREAK_POINT_INSN;
+}
+
+void generateIllegalInsn(instruction &insn) { // instP.h
+   insn.raw = 0; // I think that on power, this is an illegal instruction (someone check this please) --ari
 }
 
 bool doNotOverflow(int value)
