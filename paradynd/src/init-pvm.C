@@ -1,6 +1,9 @@
 
 /*
  * $Log: init-pvm.C,v $
+ * Revision 1.8  1996/04/08 21:23:08  lzheng
+ * changes to accomodate DYNINSTalarmExpire_hpux
+ *
  * Revision 1.7  1995/08/28 01:48:05  hollings
  * Corrected error with instMapping constructor for critical path.
  *
@@ -54,9 +57,16 @@ bool initOS() {
 
   initialRequests += new instMapping("pvm_recv", "DYNINSTrecordTag",
 				 FUNC_ENTRY|FUNC_ARG, &tagArg);
+
+#if defined(hppa1_1_hp_hpux)
+  initialRequests += new instMapping("main", "DYNINSTalarmExpire_hpux", FUNC_EXIT);
+  initialRequests += new instMapping(EXIT_NAME, "DYNINSTalarmExpire_hpux", FUNC_ENTRY);  
+#else 
   initialRequests += new instMapping("main", "DYNINSTalarmExpire", FUNC_EXIT);
+  initialRequests += new instMapping(EXIT_NAME, "DYNINSTalarmExpire", FUNC_ENTRY);    
+#endif
+
   initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
-  initialRequests += new instMapping(EXIT_NAME, "DYNINSTalarmExpire", FUNC_ENTRY);
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTprintCost", FUNC_ENTRY);
 #ifdef notdef
   // there is no good reason to stop a process at the end.  It was
