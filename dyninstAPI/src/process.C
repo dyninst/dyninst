@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.467 2003/12/18 17:15:38 schendel Exp $
+// $Id: process.C,v 1.468 2004/01/19 21:53:47 schendel Exp $
 
 #include <ctype.h>
 
@@ -1353,10 +1353,11 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
                            true, // But use reserved memory
                            NULL, NULL); // process-wide
   bool wasRunning = (status() == running);
+
   do {
       getRpcMgr()->launchRPCs(wasRunning);
       if(hasExited()) return;
-      decodeAndHandleProcessEvent(false);
+      getSH()->checkForAndHandleProcessEvents(false);
    } while (!ret.ready); // Loop until callback has fired.
 
    switch ((int)(Address)ret.result) {
@@ -1678,6 +1679,12 @@ process::process(int iPid, image *iImage, int iTraceLink
 #if !defined(BPATCH_LIBRARY)
   previous(0),
 #endif
+  locked_continues(false),
+  continue_queued(false),
+  signal_for_queued_cont(NoSignal),
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
+  windows_termination_requested(false),
+#endif
   representativeLWP(NULL),
   real_lwps(CThash)
 {
@@ -1725,7 +1732,6 @@ process::process(int iPid, image *iImage, int iTraceLink
 
    set_status(neonatal);
    previousSignalAddr_ = 0;
-   exitCode_ = (procSignalWhat_t) -1;
    continueAfterNextStop_ = 0;
 
 #ifndef BPATCH_LIBRARY
@@ -1847,6 +1853,12 @@ process::process(int iPid, image *iSymbols,
 #if !defined(BPATCH_LIBRARY)  && defined(i386_unknown_nt4_0)
   previous(0), //ccw 8 jun 2002
 #endif
+  locked_continues(false),
+  continue_queued(false),
+  signal_for_queued_cont(NoSignal),
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
+  windows_termination_requested(false),
+#endif
   representativeLWP(NULL),
   real_lwps(CThash)
 {
@@ -1877,7 +1889,6 @@ process::process(int iPid, image *iSymbols,
     
     set_status(neonatal);
     previousSignalAddr_ = 0;
-    exitCode_ = (procSignalWhat_t) -1;
     continueAfterNextStop_ = 0;
 
     LWPstoppedFromForkExit = 0;
@@ -2037,6 +2048,12 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #ifdef SHM_SAMPLING
   previous(0),
 #endif
+  locked_continues(false),
+  continue_queued(false),
+  signal_for_queued_cont(NoSignal),
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
+  windows_termination_requested(false),
+#endif
   representativeLWP(NULL),
   real_lwps(CThash)
 {
@@ -2068,7 +2085,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 
    set_status(neonatal); // is neonatal right?
    previousSignalAddr_ = 0;
-   exitCode_ = (procSignalWhat_t) -1;
    continueAfterNextStop_ = 0;
 
    pid = iPid; 
@@ -2367,7 +2383,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     }
 
 #endif
-    
+
     if (!forkNewProcess(file, dir, argv, inputFile, outputFile,
                         traceLink, pid, tid, procHandle_temp, thrHandle_temp,
                         stdin_fd, stdout_fd, stderr_fd)) {
@@ -2458,8 +2474,13 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     //    know the base addresses until we get the load info via ptrace.
     //    In general it is even harder, since dynamic libs can be loaded
     //    at any time.
-    handleProcessEvent(theProc, NULL, procSignalled, fileDescSignal, 0);
-    
+    procevent ev;
+    ev.proc = theProc;
+    ev.why  = procSignalled;
+    ev.what = fileDescSignal;
+    ev.info = 0;
+    getSH()->beginEventHandling(1);
+    getSH()->handleProcessEventWithUnlock(ev);    
 #endif
 
     bool res = theProc->loadDyninstLib();
@@ -2476,7 +2497,8 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
        if(theProc->hasExited()) {
           return NULL;
        }
-       decodeAndHandleProcessEvent(true);
+
+       getSH()->checkForAndHandleProcessEvents(true);
     }
 
 #if defined(rs6000_ibm_aix4_1)
@@ -2648,7 +2670,7 @@ bool process::loadDyninstLib() {
        if(hasExited()) {
           return false;
        }
-       decodeAndHandleProcessEvent(true);
+       getSH()->checkForAndHandleProcessEvents(true);
     }
     assert(status_ == stopped);
 
@@ -2701,8 +2723,7 @@ bool process::loadDyninstLib() {
     while (!reachedBootstrapState(loadedRT)) {
        if(hasExited())
           return false;
-       decodeAndHandleProcessEvent(true);
-       
+       getSH()->checkForAndHandleProcessEvents(true);
     }
     // Make sure the library was actually loaded
     if (!runtime_lib) return false;
@@ -2839,7 +2860,7 @@ bool process::iRPCDyninstInit() {
         getRpcMgr()->launchRPCs(false); // false: not running
         if(hasExited())
            return false;
-        decodeAndHandleProcessEvent(true);
+        getSH()->checkForAndHandleProcessEvents(true);
     }
 
     return true;
@@ -3081,7 +3102,13 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
     // know the base addresses until we get the load info via ptrace.
     // In general it is even harder, since dynamic libs can be loaded
     // at any time.
-    handleProcessEvent(ret, NULL, procSignalled, fileDescSignal, 0);    
+    procevent ev;
+    ev.proc = ret;
+    ev.why  = procSignalled;
+    ev.what = fileDescSignal;
+    ev.info = 0;
+    getSH()->beginEventHandling(1);
+    getSH()->handleProcessEventWithUnlock(ev);
 #endif
     
     return(true);
@@ -3145,7 +3172,7 @@ void process::processCost(unsigned obsCostLow,
   observed_cost->updateValue(this, wallTime, sObsCost, processTime);
 }
 #endif
-
+        
 // If true is passed for ignore_if_mt_not_set, then an error won't be
 // initiated if we're unable to determine if the program is multi-threaded.
 // We are unable to determine this if the daemon hasn't yet figured out what
@@ -3239,11 +3266,21 @@ dyn_lwp *process::stop_an_lwp() {
    } else {
       getRepresentativeLWP()->pauseLWP();
       stopped_lwp = getRepresentativeLWP();
-   }   
+   }
 
    return stopped_lwp;
 }
 
+bool process::terminateProc() {
+   if(status() == exited) {
+      return false;
+   }
+   bool retVal = terminateProc_();
+
+   // handle the kill signal on the process, which will dispatch exit callback
+   getSH()->checkForAndHandleProcessEvents(true);
+   return retVal;
+}
 
 /*
  * Copy data from controller process to the named process.
@@ -3460,21 +3497,12 @@ void process::clearProcessEvents() {
    // handle the event.  An example where this happens is if the process is
    // stopped at a trap that signals the end of an rpc.  The loop is because
    // there are actually 2 successive traps at the end of an rpc.
-   bool handledEvent = false;
+   bool gotEvent = false;
    do {
-      procSignalWhy_t why;
-      procSignalWhat_t what;
-      procSignalInfo_t info;
-      dyn_lwp *lwp = NULL;
-      process *proc = decodeProcessEvent(&lwp, getPid(), why, what, info,
-                                         false);
-
-      if(proc) {
-         handleProcessEvent(proc, lwp, why, what, info);
-         handledEvent = true;
-      } else
-         handledEvent = false;
-   } while(handledEvent == true);  // keep checking if we handled an event
+      pdvector<procevent *> foundEvents;
+      gotEvent = getSH()->checkForProcessEvents(&foundEvents, getPid(), false);
+      getSH()->handleProcessEvents(foundEvents);
+   } while(gotEvent == true);  // keep checking if we handled an event
 }
 
 void process::set_status(processState st) {
@@ -5009,14 +5037,40 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
      return 0;
 }
 
+  // unlocks continues, only does one continue if multiple continues have
+  // been queued
+void process::unlock_continues() {
+   assert(! (!locked_continues && continue_queued));  // F , T
 
-bool process::continueProc() {
-   if (status_ == exited) return false;
+   if(locked_continues && continue_queued) {          // T , T
+      locked_continues = false;
+      continueProc(signal_for_queued_cont);
+   } else                                             // T , F or F , F
+      locked_continues = false;
+}
+
+bool process::continueProc(int signalToContinueWith) {
+   if(locked_continues) {
+      continue_queued = true;
+      if(signal_for_queued_cont != NoSignal && 
+         signal_for_queued_cont != signalToContinueWith) {
+         cerr << "  requesting to queue multiple continues with signals"
+              << " with different signals, not supported\n";
+         assert(false);
+      }
+      signal_for_queued_cont = signalToContinueWith;
+      return true;
+   }
+   continue_queued = false;
+
+   if (status_ == exited) {
+      return false;
+   }
 
    if (status_ == running) {
       return true;
    }
-   
+
    if(IndependentLwpControl()) {
       pdvector<dyn_thread *>::iterator iter = threads.begin();
 
@@ -5025,7 +5079,7 @@ bool process::continueProc() {
          dyn_lwp *lwp = thr->get_lwp();
          
          if(lwp)  {// the thread might not be scheduled
-            lwp->continueLWP();
+            lwp->continueLWP(signalToContinueWith);
          }
 
          iter++;
@@ -5034,7 +5088,7 @@ bool process::continueProc() {
       //if (status_ == running)
       //return true;
       
-      bool res = getRepresentativeLWP()->continueLWP();
+      bool res = getRepresentativeLWP()->continueLWP(signalToContinueWith);
       if (!res) {
          showErrorCallback(38, "System error: can't continue process");
          return false;
@@ -5045,7 +5099,7 @@ bool process::continueProc() {
    return true;
 }
 
-bool process::detach(const bool paused) {
+bool process::detach(const bool /*paused*/ ) {
     // paused appears to be ignored...
 
    // On linux, if process found to be MT, there will be no representativeLWP
@@ -5098,6 +5152,7 @@ bool process::handleSyscallExit(procSignalWhat_t)
     // Check to see if the LWP is at a syscall exit trap
     // Check to see if the trap is desired
     // Return the first thread to match the above conditions.
+   bool found_lwp_with_trap_event = false;
     for (unsigned iter = 0; iter < threads.size(); iter++) {
         dyn_thread *thr = threads[iter];
         int match_type = thr->get_lwp()->hasReachedSyscallTrap();
@@ -5110,26 +5165,28 @@ bool process::handleSyscallExit(procSignalWhat_t)
             // and as such should silently disappear. For now, return
             // the thread that hit the trap, and the caller should 
             // determine there is nothing to be done.
-            return true;            
+            //return true;  ... don't return here, need to look through
+            //                  all lwps for match_type of 2
+            found_lwp_with_trap_event = true;
         }
         else {
             thr->get_lwp()->clearSyscallExitTrap();
-            return true;
+            found_lwp_with_trap_event = true;
         }
     }
-    return false;
+    
+    return found_lwp_with_trap_event;
 }
 
-void process::handleProcessExit(int exitCode) {
-   exitCode_ = exitCode;
+void process::triggerNormalExitCallback(int exitCode) {
+   // special case where can't wait to continue process
+   getSH()->continueLockedProcesses();
 
    if (status() == exited) {
       return;
    }
 
-   --activeProcesses;
-   
-   BPatch::bpatch->registerExit(bpatch_thread, exitCode);
+   BPatch::bpatch->registerNormalExit(bpatch_thread, exitCode);
    
    // LINUX: the process is stopped by a self-sent SIGSTOP at the
    // entry to exit(). Continue it past that point
@@ -5144,9 +5201,40 @@ void process::handleProcessExit(int exitCode) {
 #endif
    // Solaris, IRIX, Alpha, NT: no manual intervention is necessary
 
+  // Perhaps these lines can be un-commented out in the future, but since
+  // cleanUpAndExit() does the same thing, and it always gets called
+  // (when paradynd detects that paradyn died), it's not really necessary
+  // here.  -ari
+//  for (unsigned lcv=0; lcv < processVec.size(); lcv++)
+//     if (processVec[lcv] == proc) {
+//        delete proc; // destructor removes shm segments...
+//      processVec[lcv] = NULL;
+//     }
+}
+
+void process::triggerSignalExitCallback(int signalnum) {
+   // special case where can't wait to continue process
+   getSH()->continueLockedProcesses();
+
+   if (status() == exited) {
+      return;
+   }
+
+   BPatch::bpatch->registerSignalExit(bpatch_thread, signalnum);
+}
+
+void process::handleProcessExit() {
+   // special case where can't wait to continue process
+   getSH()->continueLockedProcesses();
+
+   if (status() == exited) {
+      return;
+   }
+
+   --activeProcesses;
+   
    set_status(exited);
    detach(false);
-
   // Perhaps these lines can be un-commented out in the future, but since
   // cleanUpAndExit() does the same thing, and it always gets called
   // (when paradynd detects that paradyn died), it's not really necessary
@@ -6011,7 +6099,7 @@ dyn_lwp *process::createFictionalLWP(unsigned lwp_id) {
    return lwp;
 }
 
-dyn_lwp *process::createRealLWP(unsigned lwp_id, int lwp_index) {
+dyn_lwp *process::createRealLWP(unsigned lwp_id, int /*lwp_index*/) {
    dyn_lwp *lwp = new dyn_lwp(lwp_id, this);
    real_lwps[lwp_id] = lwp;
    theRpcMgr->addLWP(lwp);
@@ -6076,7 +6164,7 @@ void process::init_shared_memory(process *parentProc) {
    do {
        getRpcMgr()->launchRPCs(wasRunning);
        if(hasExited()) return;
-       decodeAndHandleProcessEvent(false);
+       getSH()->checkForAndHandleProcessEvents(false);
        // loop until the rpc has completed
    } while(getRpcMgr()->getRPCState(rpc_id) != irpcNotValid);
 
@@ -6240,13 +6328,5 @@ void process::deleteThread(int tid)
 
 #endif /* MT*/
 
-void process::overrideRepresentativeLWP(dyn_lwp *lwp) {
-    saved_process_lwp = getRepresentativeLWP();
-    representativeLWP = lwp;
-}
-
-void process::restoreRepresentativeLWP() {
-    representativeLWP = saved_process_lwp;
-}
 
 
