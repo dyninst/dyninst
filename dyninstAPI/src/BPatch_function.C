@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.34 2003/07/15 22:43:37 schendel Exp $
+// $Id: BPatch_function.C,v 1.35 2003/07/29 00:32:27 eli Exp $
 
 #define BPATCH_FILE
 
@@ -84,12 +84,6 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
 
   proc->PDFuncToBPFuncMap[_func] = this;
 
-#if defined(i386_unknown_linux2_0) ||\
-     defined(i386_unknown_solaris2_5) ||\
-     defined(i386_unknown_nt4_0) ||\
-     defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-  iptrs = NULL;
-#endif
 };
 
 /*
@@ -110,12 +104,6 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
   retType = _retType;
 
   proc->PDFuncToBPFuncMap[_func] = this;
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-  iptrs = NULL;
-#endif
 };
 
 
@@ -126,13 +114,6 @@ BPatch_function::~BPatch_function()
     if (localVariables) delete localVariables;
     if (funcParameters) delete funcParameters;
     if (cfg) delete cfg;
-
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-    if (iptrs) delete[] iptrs;
-#endif
 }
 
 /* 
@@ -193,11 +174,8 @@ char *BPatch_function::getName(char *s, int len) const
  */
 char *BPatch_function::getMangledName(char *s, int len) const
 {
-    assert(func);
-    pdstring name = func->symTabName();
-    strncpy(s, name.c_str(), len);
-
-    return s;
+  assert(func);
+  return func->getMangledName(s,len);
 }
 
 /*
@@ -400,8 +378,9 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
   //Address relativeAddress = (Address)getBaseAddrRelative();
 
   // Use an instruction iterator
-  InstrucIter ii(this);
-  
+
+  InstrucIter ii(func,proc,mod->getModule());
+
   //instruction inst;
   //int xx = -1;
 
@@ -606,8 +585,14 @@ bool BPatch_function::getLineAndFile(unsigned int &start,
 BPatch_flowGraph* BPatch_function::getCFG(){
 	if(!cfgCreated) {
 	    bool valid;
-	    cfg = new BPatch_flowGraph((BPatch_function*)this, valid);
+
+	    cfg = new BPatch_flowGraph (func, 
+					getProc(), 
+					mod->getModule(),
+					valid);
+
 	    cfgCreated = true;
+
 	    if (!valid) {
 		delete cfg;
 		cfg = NULL;
