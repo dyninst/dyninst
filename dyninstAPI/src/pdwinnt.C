@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.7 1998/09/15 04:16:03 buck Exp $
+// $Id: pdwinnt.C,v 1.8 1998/12/25 22:08:18 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -119,16 +119,16 @@ void dumpMem(process *p, void * addr, unsigned nbytes) {
     assert(buf);
 
     if (f = p->findFunctionIn((Address)addr))
-	printf("Function %s, addr=%x, sz=%d\n", 
+	printf("Function %s, addr=0x%lx, sz=%d\n", 
 	       f->prettyName().string_of(),
 	       f->getAddress(p),
 	       f->size());
     p->readDataSpace((void *)((unsigned)addr-32), nbytes, buf, true);
-    printf("## %x:\n", (unsigned)addr-32);
+    printf("## 0x%lx:\n", (unsigned)addr-32);
     for (unsigned u = 0; u < nbytes; u++)
 	printf(" %x", buf[u]);
     p->readDataSpace(addr, nbytes, buf, true);
-    printf("## %x:\n", addr);
+    printf("## 0x%lx:\n", addr);
     for (unsigned u1 = 0; u1 < nbytes; u1++)
 	printf(" %x", buf[u1]);
 }
@@ -320,10 +320,10 @@ int process::waitProcs(int *status) {
     *status = 0;
 #endif
 
-    // We wait for 1 milisecond here. On the Unix platforms, the wait
+    // We wait for 1 millisecond here. On the Unix platforms, the wait
     // happens on the select in controllerMainLoop. But on NT, because
     // we have to handle traps, we set the timeout on the select as 0,
-    // so that we can check for traps quicly
+    // so that we can check for traps quickly
 #ifdef BPATCH_LIBRARY
     DWORD milliseconds;
     if (block) milliseconds = INFINITE;
@@ -331,6 +331,7 @@ int process::waitProcs(int *status) {
     if (!WaitForDebugEvent(&debugEv, milliseconds))
 	return 0;
 #else
+
        if (!WaitForDebugEvent(&debugEv, 1))
 	return 0;
 #endif
@@ -421,7 +422,7 @@ int process::waitProcs(int *status) {
 	    // is from an instrumentation point.
 
 	    // lookup in tramp table
-	    unsigned trampAddr = 0;
+	    Address trampAddr = 0;
 	    unsigned u; unsigned k;
 	    unsigned key = 
 		(unsigned)debugEv.u.Exception.ExceptionRecord.ExceptionAddress;
@@ -439,7 +440,7 @@ int process::waitProcs(int *status) {
 		// change the PC to the address of the base tramp
 
 		for (unsigned i = 0; i < p->threads.size(); i++) {
-		    if (p->threads[i]->get_tid()==debugEv.dwThreadId) {
+		    if ((unsigned)p->threads[i]->get_tid()==debugEv.dwThreadId) {
 			HANDLE thrH = (HANDLE)p->threads[i]->get_handle();
 			CONTEXT cont;
 			cont.ContextFlags = CONTEXT_FULL;
@@ -546,7 +547,7 @@ int process::waitProcs(int *status) {
 	unsigned nThreads = p->threads.size();
 	// start from one to skip main thread
 	for (unsigned u = 1; u < nThreads; u++) {
-	    if (p->threads[u]->get_tid() == debugEv.dwThreadId) {
+	    if ((unsigned)p->threads[u]->get_tid() == debugEv.dwThreadId) {
 		delete p->threads[u];
 		p->threads[u] = p->threads[nThreads-1];
 		p->threads.resize(nThreads-1);
@@ -795,17 +796,17 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
     return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
 }
 
-bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
     return writeDataSpace_(inTraced, amount, inSelf);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
   return readDataSpace_(inTraced, amount, (void *)inSelf);
 }
 #endif
 
-bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
     DWORD nbytes;
 
     //printf("write %d bytes, %x\n", amount, inTraced);
@@ -818,14 +819,14 @@ bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
 		      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		      buf, 1000, NULL);
 	printf(">>> %d %s\n", GetLastError(), buf);
-	printf("WriteProcessMem: %d bytes, addr = %x, %d\n", 
+	printf("WriteProcessMem: %d bytes, addr = 0x%lx, %d\n", 
 	       amount, inTraced, res);
     }
     return res && (nbytes == amount);
 }
 
 
-bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
+bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     DWORD nbytes;
     bool res = ReadProcessMemory((HANDLE)proc_fd, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
@@ -835,7 +836,7 @@ bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
 		      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		      buf, 1000, NULL);
 	printf(">>> %d %s\n", GetLastError(), buf);
-	printf("ReadProcessMem: %d bytes, addr = %x, %d\n", 
+	printf("ReadProcessMem: %d bytes, addr = 0x%lx, %d\n", 
 	       amount, inTraced, res);
     }
     return res && (nbytes == amount);
@@ -865,7 +866,7 @@ int getNumberOfCPUs() {
 }  
 
 
-bool process::getActiveFrame(int *fp, int *pc) {
+bool process::getActiveFrame(Address *fp, Address *pc) {
     CONTEXT cont;
 
     // we must set ContextFlags to indicate the registers we want returned,
@@ -882,11 +883,12 @@ bool process::getActiveFrame(int *fp, int *pc) {
 }
 
 
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool ) {
+bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn,
+        bool ) {
     bool readOK=true;
     struct {
-	int fp;
-	int rtn;
+	Address fp;
+	Address rtn;
     } addrs;
 
     //
@@ -931,7 +933,7 @@ void *process::getRegisters() {
     return (void *)cont;
 }
 
-bool process::changePC(unsigned addr, const void *savedRegs) {
+bool process::changePC(Address addr, const void *savedRegs) {
     assert(status_ == stopped);
 
     CONTEXT cont = *(CONTEXT *)savedRegs;
@@ -943,7 +945,7 @@ bool process::changePC(unsigned addr, const void *savedRegs) {
     return true;
 }
 
-bool process::changePC(unsigned addr) {
+bool process::changePC(Address addr) {
     assert(status_ == stopped || status_ == neonatal); 
     CONTEXT cont;
     cont.ContextFlags = CONTEXT_FULL;
@@ -989,7 +991,7 @@ bool process::set_breakpoint_for_syscall_completion() {
     return false;
 }
 
-unsigned process::read_inferiorRPC_result_register(reg) {
+Address process::read_inferiorRPC_result_register(Register) {
     CONTEXT *cont = new CONTEXT;
     if (!cont)
 	return NULL;
@@ -1119,7 +1121,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
     PROCESS_INFORMATION procInfo;
     if (CreateProcess(file.string_of(), (char *)args.string_of(), 
 		      NULL, NULL, false,
-		      DEBUG_PROCESS /* | CREATE_SUSPENDED */,
+		      DEBUG_PROCESS /* | CREATE_NEW_CONSOLE /* | CREATE_SUSPENDED */,
 		      NULL, dir == "" ? NULL : dir.string_of(), 
 		      &stinfo, &procInfo)) {
 	procHandle = (Word)procInfo.hProcess;
