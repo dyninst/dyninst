@@ -83,26 +83,26 @@ typedef struct {
         long    g2;
         long    g3;
         long    g4;
-} resumestate_t;
+} resumestruct_t;
 
 typedef struct uthread {
         struct uthread   *dontcare1;  
         char            *thread_stack;       
         unsigned int    thread_stacksize;     
         char            *dontcare2;         
-        resumestate_t   t_resumestate; 
+        resumestruct_t   t_resumestate; 
         long            start_pc;      
         thread_t        thread_id;     
         lwpid_t         lwp_id;        
-        int             opts;      /* usr options, (THR_BOUND, ...) */
+        int             opts;     
 
-} uthread_t ;
+} sparc_thread_t ;
 
 extern void* DYNINST_allthreads_p ;
 void idtot(int tid) {
 /*
   if ( DYNINST_allthreads_p ) {
-    uthread_t *ct = (uthread_t*) DYNINST_idtot(tid, DYNINST_allthreads_p);
+    sparc_thread_t *ct = (sparc_thread_t*) DYNINST_idtot(tid, DYNINST_allthreads_p);
     fprintf(stderr, "stk=0x%x, startpc=0x%x, lwpid=0x%x, resumestate=0x%x",
 	    ct->thread_stack, ct->start_pc, ct->lwp_id, &(ct->t_resumestate));
   }
@@ -116,7 +116,7 @@ void DYNINST_ThreadPInfo(
     long *startpc, 
     int* lwpidp,
     void** resumestate_p) {
-  uthread_t *ptr = (uthread_t *) tls ;
+  sparc_thread_t *ptr = (sparc_thread_t *) tls ;
   *stackbase = (void*) (ptr->thread_stack);
   *tidp = (int) ptr->thread_id ;
   *startpc = ptr->start_pc ;
@@ -130,8 +130,8 @@ int* tidp,
 long *startpc, 
 int* lwpidp,
 void** resumestate_p) {
-  extern uthread_t *DYNINST_curthread(void) ;
-  uthread_t *curthread ;
+  extern sparc_thread_t *DYNINST_curthread(void) ;
+  sparc_thread_t *curthread ;
   if ( (curthread = DYNINST_curthread()) ) {
     DYNINST_ThreadPInfo((void*)curthread,stackbase,tidp,startpc,lwpidp,resumestate_p);
     return 1 ;
