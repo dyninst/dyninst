@@ -1,7 +1,11 @@
 
 /*
  * $Log: debugger.C,v $
- * Revision 1.4  1994/06/27 18:56:40  hollings
+ * Revision 1.5  1994/09/22 01:50:14  markc
+ * cast stringHandle to char*
+ * cast args for ptrace
+ *
+ * Revision 1.4  1994/06/27  18:56:40  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -14,6 +18,8 @@
 //
 // support for debugger style commands and interface.
 //
+
+extern "C" {
 #include <stdio.h>
 #include <sgtty.h>
 #include <stdlib.h>
@@ -24,6 +30,7 @@
 #include <fcntl.h>
 #include <a.out.h>
 #include <sys/stat.h>
+}
 
 #include "symtab.h"
 #include "process.h"
@@ -40,7 +47,7 @@ process *defaultProcess;
 extern "C" {
 int ptrace(enum ptracereq request, 
 		      int pid, 
-		      int *addr, 
+		      char *addr, 
 		      int data, 
 		      char *addr2);
 }
@@ -94,7 +101,7 @@ void dumpProcessImage(process *proc, Boolean stopped)
     int ofd;
     int total;
     int length;
-    struct exec exec;
+    struct exec my_exec;
     char buffer[4096];
     char outFile[256];
     extern int errno;
@@ -106,13 +113,13 @@ void dumpProcessImage(process *proc, Boolean stopped)
 	return;
     }
 
-    ifd = open(proc->symbols->file, O_RDONLY, 0);
+    ifd = open((char*)proc->symbols->file, O_RDONLY, 0);
     if (ifd < 0) {
 	perror("open");
 	exit(-1);
     }
 
-    rd = read(ifd, (char *) &exec, sizeof(struct exec));
+    rd = read(ifd, (char *) &my_exec, sizeof(struct exec));
     if (rd != sizeof(struct exec)) {
 	perror("read");
 	exit(-1);
@@ -124,7 +131,7 @@ void dumpProcessImage(process *proc, Boolean stopped)
 	exit(-1);
     }
     length = statBuf.st_size;
-    sprintf(outFile, "%s.real", proc->symbols->file);
+    sprintf(outFile, "%s.real", (char*)proc->symbols->file);
     sprintf(errorLine, "saving program to %s\n", outFile);
     logLine(errorLine);
 
@@ -137,7 +144,7 @@ void dumpProcessImage(process *proc, Boolean stopped)
     /* now copy the rest */
 
     lseek(ofd, 0, SEEK_SET);
-    write(ofd, (char *) &exec, sizeof(exec));
+    write(ofd, (char *) &my_exec, sizeof(struct exec));
 
     if (!stopped) {
 	// make sure it is stopped.
@@ -145,10 +152,10 @@ void dumpProcessImage(process *proc, Boolean stopped)
 	waitpid(proc->pid, NULL, WUNTRACED);
     }
 
-    lseek(ofd, N_TXTOFF(exec), SEEK_SET);
-    for (i=0; i < exec.a_text; i+= 4096) {
+    lseek(ofd, N_TXTOFF(my_exec), SEEK_SET);
+    for (i=0; i < my_exec.a_text; i+= 4096) {
 	errno = 0;
-	ptrace(PTRACE_READTEXT, proc->pid, (int*) proc->symbols->textOffset+i, 
+	ptrace(PTRACE_READTEXT, proc->pid, (char*) proc->symbols->textOffset+i, 
 	    4096, buffer);
 	if (errno) {
 	     perror("ptrace");
@@ -156,22 +163,22 @@ void dumpProcessImage(process *proc, Boolean stopped)
 	}
 	write(ofd, buffer, 4096);
     }
-    ptrace(PTRACE_CONT, proc->pid, (int *) 1, SIGCONT, 0);
+    ptrace(PTRACE_CONT, proc->pid, (char*) 1, SIGCONT, 0);
 
-    rd = lseek(ofd, N_DATOFF(exec), SEEK_SET);
-    if (rd != N_DATOFF(exec)) {
+    rd = lseek(ofd, N_DATOFF(my_exec), SEEK_SET);
+    if (rd != N_DATOFF(my_exec)) {
         perror("lseek");
         exit(-1);
     }
 
-    rd = lseek(ifd, N_DATOFF(exec), SEEK_SET);
-    if (rd != N_DATOFF(exec)) {
+    rd = lseek(ifd, N_DATOFF(my_exec), SEEK_SET);
+    if (rd != N_DATOFF(my_exec)) {
         perror("lseek");
         exit(-1);
     }
 
-    total = N_DATOFF(exec);
-    for (i=N_DATOFF(exec); i < length; i += 4096) {
+    total = N_DATOFF(my_exec);
+    for (i=N_DATOFF(my_exec); i < length; i += 4096) {
         rd = read(ifd, buffer, 4096);
         write(ofd, buffer, rd);
         total += rd;
