@@ -45,6 +45,9 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.16  1999/05/19 07:50:29  karavan
+ * Added new shg save feature.
+ *
  * Revision 1.15  1997/03/16 23:17:08  lzheng
  * Changes made for the value of observed cost
  *
@@ -103,6 +106,7 @@ class costModule;
 
 class PCsearch {
   friend class performanceConsultant;
+  friend ostream& operator <<(ostream &os, PCsearch& srch);
 public:
   PCsearch(unsigned phase, phaseType phase_type);
   ~PCsearch();
@@ -192,6 +196,8 @@ private:
   static PriorityQueue<SearchQKey, searchHistoryNode*> *q;
 };
 
+ostream& operator <<(ostream &os, PCsearch& srch);
+        
 class costModule : public dataSubscriber 
 {
  public:
