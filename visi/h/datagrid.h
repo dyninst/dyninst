@@ -17,10 +17,13 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.8  1994/06/07 17:47:16  newhall
-/* added method functions to support adding metrics
-/* and resources to an existing data grid
+/* Revision 1.9  1994/06/16 18:21:46  newhall
+/* bug fix to AddNewValues
 /*
+ * Revision 1.8  1994/06/07  17:47:16  newhall
+ * added method functions to support adding metrics
+ * and resources to an existing data grid
+ *
  * Revision 1.7  1994/05/23  20:55:16  newhall
  * To visi_GridCellHisto class: added deleted flag, SumValue
  * method function, and fixed AggregateValue method function
@@ -125,18 +128,29 @@ class visi_GridCellHisto {
      void   Invalidate(){delete[] value; value = NULL; size = 0; 
 			 valid = 0; lastBucketFilled = -1;}
 
-     int    AddNewValues(sampleType *temp,int arraySize,int lbf,void *ud){
+     int    AddNewValues(sampleType *temp,
+			 int arraySize,
+			 int lbf,
+			 void *ud,
+			 int v, 
+			 int d){
         
-	// initialize cell to temp values
-	value = new sampleType[arraySize];
-	size = arraySize;
-	valid = 1;
-	deleted = 0;
-	lastBucketFilled = lbf;
-	for(int i=0;i<size;i++){
-	 value[i] = temp[i]; 
+	if(temp == NULL){
+          value = NULL;
+	  size = 0;
 	}
+	else{
+	  // initialize cell to temp values
+	  value = new sampleType[arraySize];
+	  size = arraySize;
+	  for(int i=0;i<size;i++){
+	   value[i] = temp[i]; 
+	  }
+	}
+	lastBucketFilled = lbf;
 	userdata = ud;
+	valid = v;
+	deleted = d;
 	return(OK);
      }
 
