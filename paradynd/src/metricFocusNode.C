@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.205 2001/11/06 19:20:45 bernat Exp $
+// $Id: metricFocusNode.C,v 1.206 2001/11/08 19:12:36 bernat Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -985,6 +985,9 @@ void metricDefinitionNode::removeThisInstance() {
     allMIComponents.undef(flat_name_);
   }
 
+  if (components.size() != 1 &&
+      components.size() != 0)
+    while (1) ;
   assert(components.size()==1 ||  // ie. the primitive metric, 
 	 components.size()==0);     // in the case of a dummy component
   if(components.size() == 1) {
@@ -1674,8 +1677,9 @@ void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs, int 
     prettyName += string(">");
   }
 
-  if( stack_pcs.size() == 0 )
+  if( stack_pcs.size() == 0 ) {
     cerr << "WARNING -- adjustManuallyTrigger was handed an empty stack" << endl;
+  }
   vector<pd_Function *> stack_funcs = proc_->convertPCsToFuncs(stack_pcs);
   proc_->correctStackFuncsForTramps( stack_pcs, stack_funcs );
   bool badReturnInst = false;
@@ -3950,6 +3954,7 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
      logLine(errorLine);
 #endif
 #endif
+
      theProc->postRPCtoDo(ast, false, // don't skip cost
 			  instReqNode::triggerNowCallbackDispatch, this,
 #if defined(MT_THREAD)
@@ -3964,25 +3969,22 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
      rpcCount = 0;
      
      if (pd_debug_catchup) {
-       metric_cerr << "launched catchup instrumentation, waiting rpc to finish ..." << endl;
        cerr << "launched catchup instrumentation, waiting rpc to finish ..." << endl;
      }
-     // Do we need this? Or can we get away with the regular
-     // RPC triggering mechanism?
-#if 0
-     do {
+     // Launch RPC now since we're playing around with timers and such.
+     // We should really examine the stack to be sure that it's safe, but
+     // for now assume it is.
+     do { 
        // Make sure that we are not currently in an RPC to avoid race
        // conditions between catchup instrumentation and waitProcs()
        // loops
-       if ( !theProc->isRPCwaitingForSysCallToComplete() )
-	 theProc->launchRPCifAppropriate(false, false);
-       checkProcStatus();
+       if ( !theProc->isRPCwaitingForSysCallToComplete() ) 
+	 theProc->launchRPCifAppropriate(false, false); 
+       checkProcStatus(); 
        
      } while ( !rpcCount && theProc->status() != exited );
-#endif     
      if ( pd_debug_catchup ) {
        metric_cerr << "catchup instrumentation finished ..." << endl;
-       cerr << "catchup instrumentation finished ..." << endl;
      }
    }     
    if( needToCont && (theProc->status() != running)) {
