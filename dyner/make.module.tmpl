@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.3 2000/03/22 21:41:10 hollings Exp $
+# $Id: make.module.tmpl,v 1.4 2000/03/22 21:57:44 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -33,12 +33,12 @@ ifeq ($(PLATFORM),rs6000-ibm-aix4.1)
 TCL_LIB	      = tcl7.6
 MUTATEE_CC = gcc
 else
-TCL_LIB	      = tcl
+TCL_LIB	      = tcl8.2
 MUTATEE_CC = $(CXX)
 endif
 
 #SYSLIBS      += -liberty /usr/imports/lib/libtcl8.0.a
-SYSLIBS      += -liberty -L/usr/imports/lib -l$(TCL_LIB)
+SYSLIBS      += -liberty -L$(TCLTK_DIR) -l$(TCL_LIB)
 
 all: $(TARGET) $(TEST_TARGET)
 
@@ -57,10 +57,3 @@ lex.$(TARGET).C: ../src/cmdline.l
 $(TARGET).tab.C: ../src/cmdline.y
 	$(YACC) $(YACCFLAGS) ../src/cmdline.y
 	mv $(TARGET).tab.c $(TARGET).tab.C
-
-UNCOMMON_INSTALL=true
-
-install: all
-	-@$(MKDIR) $(DEST)
-	-$(CP) $(TARGETS) $(DEST)
-
