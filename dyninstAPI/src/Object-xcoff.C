@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.21 2003/05/08 20:35:06 chadd Exp $
+// $Id: Object-xcoff.C,v 1.22 2003/05/15 22:12:20 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -603,94 +603,125 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
      /* do the pointer addition by hand since sizeof(struct syment)
       *   seems to be 20 not 18 as it should be */
      sym = (struct syment *) (((unsigned) symbols) + i * SYMESZ);
-     if (sym->n_sclass & DBXMASK)
-       continue;
 
-     if ((sym->n_sclass == C_HIDEXT) || 
-	 (sym->n_sclass == C_EXT) ||
-	 (sym->n_sclass == C_FILE)) {
-       if (!sym->n_zeroes) {
-	 name = string(&stringPool[sym->n_offset]);
-       } else {
-	 char tempName[9];
-	 memset(tempName, 0, 9);
-	 strncpy(tempName, sym->n_name, 8);
-	 name = string(tempName);
-       }
+
+     if (sym->n_sclass & DBXMASK) {
+         continue;
      }
      
-     if ((sym->n_sclass == C_HIDEXT) || (sym->n_sclass == C_EXT)) {
-       if (sym->n_sclass == C_HIDEXT) {
-	 linkage = Symbol::SL_LOCAL;
-       } else {
-	 linkage = Symbol::SL_GLOBAL;
-       }
-       
-       if (sym->n_scnum == aout.o_sntext) {
-	 type = Symbol::PDST_FUNCTION;
-	 value = sym->n_value + text_reloc;
-       } else {
-	 // bss or data
-	 csect = (union auxent *)
-	   ((char *) sym + sym->n_numaux * SYMESZ);
-	 
-	 if (csect->x_csect.x_smclas == XMC_TC0) { 
-	   if (toc_offset)
-	     logLine("Found more than one XMC_TC0 entry.");
-	   toc_offset = sym->n_value + data_reloc;
-	   continue;
-	 }
-	 
-	 if ((csect->x_csect.x_smclas == XMC_TC) ||
-	     (csect->x_csect.x_smclas == XMC_DS)) {
-	   // table of contents related entry not a real symbol.
-	   //dump << " toc entry -- ignoring" << endl;
-	   continue;
-	 }
-	 type = Symbol::PDST_OBJECT;
-	 value = sym->n_value + data_reloc;
+     if ((sym->n_sclass == C_WEAKEXT) ||
+         (sym->n_sclass == C_HIDEXT) || 
+         (sym->n_sclass == C_EXT) ||
+         (sym->n_sclass == C_FILE)) {
+         if (!sym->n_zeroes) {
+             name = string(&stringPool[sym->n_offset]);
+         } else {
+             char tempName[9];
+             memset(tempName, 0, 9);
+             strncpy(tempName, sym->n_name, 8);
+             name = string(tempName);
+         }
+     }
+     
+     if ((sym->n_sclass == C_WEAKEXT) ||
+         (sym->n_sclass == C_HIDEXT) || 
+         (sym->n_sclass == C_EXT)) {
+         if (sym->n_sclass == C_HIDEXT) {
+             linkage = Symbol::SL_LOCAL;
+         } else {
+             linkage = Symbol::SL_GLOBAL;
+         }
+         
+         if (sym->n_scnum == aout.o_sntext) {
+             type = Symbol::PDST_FUNCTION;
+             value = sym->n_value + text_reloc;
+         } else {
+             // bss or data
+             csect = (union auxent *)
+             ((char *) sym + sym->n_numaux * SYMESZ);
+             
+             if (csect->x_csect.x_smclas == XMC_TC0) { 
+                 if (toc_offset)
+                     logLine("Found more than one XMC_TC0 entry.");
+                 toc_offset = sym->n_value + data_reloc;
+                 continue;
+             }
+             
+           if ((csect->x_csect.x_smclas == XMC_TC) ||
+               (csect->x_csect.x_smclas == XMC_DS)) {
+               // table of contents related entry not a real symbol.
+               //dump << " toc entry -- ignoring" << endl;
+               continue;
+           }
+           type = Symbol::PDST_OBJECT;
+           value = sym->n_value + data_reloc;
        }
        
        // skip .text entries
-       if (name == ".text") continue;
+       if (name == ".text")  {
+           continue;
+       }
+       
        if (name.prefixed_by(".")) {
-	 // XXXX - Hack to make names match assumptions of symtab.C
-	 name = string(name.c_str()+1);
+           // XXXX - Hack to make names match assumptions of symtab.C
+           name = string(name.c_str()+1);
        }
        else if (type == Symbol::PDST_FUNCTION) {
-	 // text segment without a leading . is a toc item
-	 //dump << " (no leading . so assuming toc item & ignoring)" << endl;
-	 continue;
+           // text segment without a leading . is a toc item
+           //dump << " (no leading . so assuming toc item & ignoring)" << endl;
+           continue;
        }
        
        unsigned int size = 0;
        if (type == Symbol::PDST_FUNCTION) {
-	 // Find address of inst relative to code_ptr_, instead of code_off_
-	 Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
-	 // If the instruction we got is a unconditional branch, flag it.
-	 // I've seen that in some MPI functions as a poor man's aliasing
-	 instruction instr;
-	 instr.raw = inst[0];
-	 if ((instr.iform.op == Bop) &&
-	     (instr.iform.lk == 0))
-	   size = 4; // Unconditional branch at the start of the func, no link
-	 else {
-	   while (inst[size] != 0) size++;
-	   size *= sizeof(Word);
-	 }
+           // Find address of inst relative to code_ptr_, instead of code_off_
+           Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
+           // If the instruction we got is a unconditional branch, flag it.
+           // I've seen that in some MPI functions as a poor man's aliasing
+           instruction instr;
+           instr.raw = inst[0];
+           if ((instr.iform.op == Bop) &&
+               (instr.iform.lk == 0))
+               size = 4; // Unconditional branch at the start of the func, no link
+           else {
+               while (inst[size] != 0) size++;
+               size *= sizeof(Word);
+           }
        }
-
+       
        // AIX linkage code appears as a function. Since we don't remove it from
        // the whereaxis yet, I append a _linkage tag to each so that they don't
        // appear as duplicate functions
-       // Module glink.s is renamed to Global_Linkage below
-       if (modName == "Global_Linkage")
-	 name += "_linkage";
+       // Template for linkage functions:
+       // l      r12,<offset>(r2) // address of call into R12
+       // st     r2,20(r1)        // Store old TOC on the stack
+       // l      r0,0(r12)        // Address of callee func
+       // l      r2,4(r12)        // callee TOC
+       // mtctr  0                // We keep the LR static, use the CTR
+       // bctr                    // non-saving branch to CTR
+       
+       if (size == 0x18) {
+           // See if this is linkage code
+           Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
+           instruction lr12, lr0, bctr;
+           lr12.raw = inst[0];
+           lr0.raw = inst[2];
+           bctr.raw = inst[5];
+
+           if ((lr12.dform.op == Lop) && (lr12.dform.rt == 12) && (lr12.dform.ra == 2) &&
+               (lr0.dform.op == Lop) && (lr0.dform.rt == 0) && (lr0.dform.ra == 1) &&
+               (bctr.xlform.op == BCLRop) && (bctr.xlform.xo == BCCTRxop))
+               name += "_linkage";
+       }
+       
+       
 
        // HACK. This avoids double-loading various tramp spaces
        if (name.prefixed_by("DYNINSTstaticHeap") &&
-	   size == 0x18)
-	 continue;
+           size == 0x18) {
+           continue;
+       }
+       
 
        Symbol sym(name, modName, type, linkage, value, false, size);
        
@@ -699,64 +730,63 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
        // Symbol sym(name, modName, type, linkage, value, false);
 #ifdef DEBUG
        fprintf(stderr, "Added symbol %s at addr 0x%x, size 0x%x, module %s\n",
-	       name.c_str(), value, size, modName.c_str());
+               name.c_str(), value, size, modName.c_str());
 #endif
-
-       symbols_[name] = sym;
        
+       symbols_[name] = sym;
        if (symbols_.defines(modName)) {
-	 // Adjust module's address, if necessary, to ensure that it's <= the
-	 // address of this new symbol
-	 Symbol &mod_symbol = symbols_[modName];
-	 if (value < mod_symbol.addr()) {
-	   //cerr << "adjusting addr of module " << modName
-	   //     << " to " << value << endl;
-	   mod_symbol.setAddr(value);
-	 }
+           // Adjust module's address, if necessary, to ensure that it's <= the
+           // address of this new symbol
+           Symbol &mod_symbol = symbols_[modName];
+           if (value < mod_symbol.addr()) {
+               //cerr << "adjusting addr of module " << modName
+               //     << " to " << value << endl;
+               mod_symbol.setAddr(value);
+           }
        }
      } else if (sym->n_sclass == C_FILE) {
-       if (!strcmp(name.c_str(), ".file")) {
-	 int j;
-	 /* has aux record with additional information. */
-	 for (j=1; j <= sym->n_numaux; j++) {
-	   aux = (union auxent *) ((char *) sym + j * SYMESZ);
-	   if (aux->x_file._x.x_ftype == XFT_FN) {
-	     // this aux record contains the file name.
-	     if (!aux->x_file._x.x_zeroes) {
-	       name = 
-		 string(&stringPool[aux->x_file._x.x_offset]);
-	     } else {
-	       // x_fname is 14 bytes
-	       char tempName[15];
-	       memset(tempName, 0, 15);
-	       strncpy(tempName, aux->x_file.x_fname, 14);
-	       name = string(tempName);
-	     }
-	   }
-	 }
-       }
-       //dump << "found module \"" << name << "\"" << endl;
-
-       // Hack time. Break it down
-       // Problem: libc and others show up as file names. So if the
-       // file being loaded is a .a (it's a hack, remember?) use the
-       // .a as the modName instead of the symbol we just found.
-       if (file_.suffixed_by(".a") ||
-	   file_.suffixed_by(".so") ||
-	   file_.suffixed_by(".so.1"))
-	 modName = file_;
-       else if (name == "glink.s")
-	 modName = string("Global_Linkage");
-       else {
-	 modName = name;
-       }
-       const Symbol modSym(modName, modName, 
-			   Symbol::PDST_MODULE, linkage,
-			   UINT_MAX, // dummy address for now!
-			   false);
-       symbols_[modName] = modSym;
-       
-       continue;
+         if (!strcmp(name.c_str(), ".file")) {
+             int j;
+             /* has aux record with additional information. */
+             for (j=1; j <= sym->n_numaux; j++) {
+                 aux = (union auxent *) ((char *) sym + j * SYMESZ);
+                 if (aux->x_file._x.x_ftype == XFT_FN) {
+                     // this aux record contains the file name.
+                     if (!aux->x_file._x.x_zeroes) {
+                         name = 
+                         string(&stringPool[aux->x_file._x.x_offset]);
+                     } else {
+                         // x_fname is 14 bytes
+                         char tempName[15];
+                         memset(tempName, 0, 15);
+                         strncpy(tempName, aux->x_file.x_fname, 14);
+                         name = string(tempName);
+                     }
+                 }
+             }
+         }
+         //dump << "found module \"" << name << "\"" << endl;
+         
+         // Hack time. Break it down
+         // Problem: libc and others show up as file names. So if the
+         // file being loaded is a .a (it's a hack, remember?) use the
+         // .a as the modName instead of the symbol we just found.
+         if (file_.suffixed_by(".a") ||
+             file_.suffixed_by(".so") ||
+             file_.suffixed_by(".so.1"))
+             modName = file_;
+         else if (name == "glink.s")
+             modName = string("Global_Linkage");
+         else {
+             modName = name;
+         }
+         const Symbol modSym(modName, modName, 
+                             Symbol::PDST_MODULE, linkage,
+                             UINT_MAX, // dummy address for now!
+                             false);
+         symbols_[modName] = modSym;
+         
+         continue;
      }
    }
    // We grab the space at the end of the various objects to use as
