@@ -1,0 +1,420 @@
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
+/*
+ * PCmetricInst.C
+ * 
+ * The PCmetricInst class and the PCmetricInstServer methods.
+ * 
+ * $Log: PCmetricInst.C,v $
+ * Revision 1.1  1996/02/02 02:06:42  karavan
+ * A baby Performance Consultant is born!
+ *
+ */
+
+/*
+ ****** important********
+ here we assume that data continues flowing for all enabled metric/focus
+ pairs unless (a) some drastic error renders a met/focus pair uncollectible or
+ (b) a process exits.  In other words, if data is not received for a given 
+ metric instance for some relatively short period of time, we will mark that 
+ PC metric as uncollectible and stop testing the subscribing experiment(s)
+*/
+
+#include "PCintern.h"
+#include "../DMthread/DMinclude.h"
+#include "PCmetric.h"
+#include "PCexperiment.h"
+#include "PCmetricInst.h"
+
+typedef experiment* PCmiSubscriber;
+
+ostream& operator <<(ostream &os, PCmetricInst &pcm)
+{
+  vector<resourceHandle>* bigFocusRep = dataMgr->getResourceHandles(pcm.foc);
+  const char *fname = dataMgr->getFocusName(bigFocusRep);
+  delete bigFocusRep;
+  os << "PCMETRICINST " << pcm.met->getName() << ":" << endl
+    << " focus: " << pcm.foc << " " << fname << endl;
+  os << " start: " << pcm.startTime << " end: " << pcm.endTime 
+    << " DataStatus: " << pcm.DataStatus << " AllDataReady: " << pcm.AllDataReady
+      << "TimesAligned: " << pcm.TimesAligned << endl;
+  inPort *currPort;
+  for (int i = 0; i < pcm.numInPorts; i++) {
+    currPort = pcm.AllData[i];
+    os << " Port# " << currPort->portID << " mih: " << currPort->mih 
+      << " mh: " << currPort->met << " foc: " << currPort->foc 
+	<< " size: " << (currPort->indataQ).getQsize() << endl;
+    (currPort->indataQ).print();
+  }
+  return os;
+}
+
+
+PCmetricInst::PCmetricInst (PCmetric *pcMet, focus f, 
+			    filteredDataServer *db, bool *err):
+foc(f), met(pcMet), currentValue(0.0), startTime(-1), endTime(0.0),
+totalTime (0.0), AllDataReady(0), DataStatus(0), AllCurrentValues(NULL), 
+TimesAligned(0), active(false), db(db)
+{
+  *err = false;
+  assert (pcMet);
+
+  // how many met-foc pairs for this PCmetric?
+  numInPorts = pcMet->DMmetrics->size();
+  if (pcMet->InstWithPause) {
+    // default for PCmetrics is to subscribe to pause time as well
+    numInPorts++;
+  }
+  int pauseOffset = 0;
+  inPort *newRec;
+
+  if (pcMet->InstWithPause) {
+    // create pause_time queue as 0;
+    newRec = new inPort;
+    //** check for needed metrics all at once and handle gracefully.
+    metricHandle *tmpmh = dataMgr->findMetric("pause_time");
+    assert (tmpmh);
+    newRec->met = *tmpmh;
+    newRec->foc = topLevelFocus;
+    AllData += newRec;
+    pauseOffset = 1;
+  } 
+  // create remaining queues
+  PCMetInfo *currInfo;
+  for (int j = 0; j < numInPorts-pauseOffset; j++) {
+    newRec = new inPort;
+    currInfo = (*(pcMet->DMmetrics))[j]; 
+    if (currInfo->fType == tlf)
+      newRec->foc = topLevelFocus;
+    else
+      newRec->foc = f;
+    newRec->met = currInfo->mh;
+    AllData += newRec;
+  }
+
+  if (pcMet->setup != NULL)
+    pcMet->setup(foc);
+}
+
+float 
+PCmetricInst::getEstimatedCost()
+{
+  int i;
+  float retVal = 0.0;
+  if (active) {
+    for (i = 0; i < numInPorts; i++) {
+      retVal += db->getEstimatedCost(AllData[i]->mih);
+    }
+  } else {
+    for (i = 0; i < numInPorts; i++) {
+      retVal += db->getEstimatedCost(AllData[i]->met, AllData[i]->foc);
+    }
+  }
+  return retVal;
+}
+
+bool
+PCmetricInst::activate()
+{
+  if (active)
+    return true;
+
+  inPort *curr;
+  bool err = false;
+  unsigned nextPortId = 0;
+  AllDataReady = 0;
+  int newnumPorts = numInPorts;
+  int i, j;
+  for (i = 0, j = 0; i < numInPorts; i++) {
+    curr = AllData[j];
+    curr->mih = db->addSubscription (this, curr->met, curr->foc, &err); 
+    if (err) {
+      for (int m = 0; m < j; m++) {
+	db->endSubscription (this, AllData[m]->mih);
+      }
+      return false;
+      // ** this must change when metrics using eg "all children" 
+      // ** are implemented, to simply eliminate the single unsubscribable
+      // ** met-focus pair
+      // delete curr;
+      // for (int k = j+1; k < newnumPorts; k++) {
+      // AllData[k-1] = AllData[k];
+      // }
+      // --newnumPorts;
+      // AllData.resize(newnumPorts); 
+    } else {
+      j++;
+      AllDataReady = (AllDataReady << 1) | 1;
+      curr->portID = nextPortId++;
+    }
+  }
+  numInPorts = newnumPorts;
+  if (newnumPorts == 0)
+    return false;
+  if (AllCurrentValues != NULL) 
+    delete AllCurrentValues;
+  AllCurrentValues = new sampleValue[numInPorts];
+  for (int k = 0; k < numInPorts; k++)
+    AllCurrentValues[k] = 0.0;
+  active = true;
+  return true;
+}
+
+void
+PCmetricInst::deactivate()
+{
+  inPort *curr;
+  for (int j = 0; j < numInPorts; j++) {
+    curr = AllData[j];
+    db->endSubscription (this, curr->mih);
+  }
+  active = false;
+}
+
+PCmetricInst::~PCmetricInst()
+{
+  delete AllCurrentValues;
+}  
+
+void
+PCmetricInst::setDataReady (int portnum)
+{
+  unsigned mask = 1 << portnum;
+  DataStatus = DataStatus | mask;
+}
+void 
+PCmetricInst::clearDataReady (int portnum)
+{
+  unsigned mask = 1 << portnum;
+  DataStatus = DataStatus ^ mask;
+}
+
+void
+PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal, 
+		       timeStamp start, timeStamp end, sampleValue)
+{
+  unsigned portNum;
+  // adjust metric start time if this is first data received
+  if (startTime < 0)
+    startTime = start;
+
+  bool found = false;
+  bool queueGrew;
+  // find queue for this metricInstanceHandle
+  for (unsigned k = 0; k < AllData.size(); k++)
+    if (AllData[k]->mih == whichData) {
+      queueGrew = (AllData[k]->indataQ).enqueue(start, end, newVal);
+      if (queueGrew) {
+	cout << "PC::DATA QUEUE OVERFLOW OCCURRED" << endl;
+	cout << "================================" << endl;
+	cout << *this << endl;
+      }
+      portNum = AllData[k]->portID;
+      found = true;
+      break;
+    }
+  assert (found);
+
+  // update data ready
+  this->setDataReady (portNum);
+
+#ifdef PCDEBUG
+    // debug printing
+    tunableBooleanConstant prtc = 
+      tunableConstantRegistry::findBoolTunableConstant("PCprintDataTrace");
+    if (prtc.getValue()) {
+      cout << *this << endl;
+    }
+#endif
+
+  // check all data ready, if so, compute new value
+  if (DataStatus == AllDataReady) {
+
+    // this is where to check for time alignment. 
+    if (!TimesAligned) {
+      TimesAligned = this->alignTimes();
+      if (! TimesAligned)
+	return;
+    }
+    // if we reach this point, then we have new time-aligned piece of 
+    // data for everything
+    sampleValue v;
+    timeStamp s, e;
+    inPort *curr;
+    for (int m = 0; m < numInPorts; m++) {
+      curr = AllData[m];
+      (curr->indataQ).dequeue (&s, &e, &v);
+      // reset DataStatus
+      if ((curr->indataQ).isEmpty()) {
+	clearDataReady(curr->portID);
+      }	     
+      AllCurrentValues[m] = v;
+    }
+    endTime = end;
+    sampleValue newguy;
+    if (met->calc != NULL)
+      newguy = met->calc(foc, AllCurrentValues, numInPorts);
+    else
+      // (if calc == NULL, just return single value)
+      newguy = AllCurrentValues[numInPorts-1];    
+
+    sampleValue pauseNorm = 0.0;
+    if (met->InstWithPause)
+      pauseNorm = AllCurrentValues[0];
+
+    // notify all consumers of this PCmi of the new value
+    sendValue (0, newguy, start, end, pauseNorm);
+  }
+}
+
+// returns true if all in ports have at head of queue data for the 
+// same interval end; false means still waiting for some data.
+// we don't care about interval start; for each DMmetric we are using 
+// the maximum possible data for the most accurate estimate.
+bool
+PCmetricInst::alignTimes()
+{
+  bool allLinedUp = true;
+  bool needSecondPass = false;
+  bool moreData = true;
+  timeStamp intervalEnd, s, e;
+  sampleValue v;
+  (AllData[0]->indataQ).seeNextItem (&s, &intervalEnd, &v);
+  for (int i = 1; i < numInPorts; i++) {
+      moreData = (AllData[i]->indataQ).seeNextItem (&s, &e, &v);
+      if (e > intervalEnd) {
+	// we're changing intervalEnd to later time and we've already
+	// processed some queues, so need a second pass
+	intervalEnd = e;
+	needSecondPass = true;
+      }	
+      while ((e < intervalEnd) && moreData) {
+	// toss old data like smelly garbage
+	moreData = (AllData[i]->indataQ).dequeue (&s, &e, &v);
+      	moreData = (AllData[i]->indataQ).seeNextItem (&s, &e, &v);
+      }
+      if (e < intervalEnd) {
+	// we ran out of data before we got this one aligned; align 
+	// whatever else possible but return false
+	allLinedUp = false;
+	this->clearDataReady(i);
+      }
+    }
+  if (needSecondPass && allLinedUp) 
+    for (int j = 0; j < numInPorts; j++) {
+      moreData = (AllData[j]->indataQ).seeNextItem (&s, &e, &v);
+      while ((e < intervalEnd) && moreData) {
+	// toss old data like smelly garbage
+	moreData = (AllData[j]->indataQ).dequeue (&s, &e, &v);
+      	moreData = (AllData[j]->indataQ).seeNextItem (&s, &e, &v);
+      }
+      if (e < intervalEnd) {
+	// we ran out of data before we got this one aligned; align 
+	// whatever else possible but return false
+	allLinedUp = false;
+	this->clearDataReady(j);
+      }
+    }
+#ifdef PCDEBUG
+  // debug printing
+  tunableBooleanConstant prtc = 
+    tunableConstantRegistry::findBoolTunableConstant("PCprintDataCollection");
+  if (prtc.getValue()) {
+    cout << "alignTimes returns " << allLinedUp << " interval ends at " 
+      << intervalEnd << " DataStatus=" << DataStatus << endl;
+  }
+#endif
+  return allLinedUp;
+}
+
+PCmetricInstServer::PCmetricInstServer (phaseType phase_type) 
+{  
+    datasource = new filteredDataServer(phase_type);
+}
+
+PCmetricInstServer::~PCmetricInstServer ()
+{
+  delete datasource;
+}
+
+PCmetInstHandle 
+PCmetricInstServer::addPersistentMI (PCmetric *pcm,
+				     focus f,
+				     bool *errFlag)
+{
+  PCmetricInst *newsub = NULL;
+  // PCmetric instance may already exist
+  
+  PCMRec *tmpRec = NULL;
+  for (unsigned i = 0; i < AllData.size(); i++) {
+    if (((AllData[i])->f == f) && ((AllData[i])->pcm == pcm)) {
+      newsub = (AllData[i])->pcmi;
+      break;
+    }
+  }
+  if (newsub == NULL) {
+    newsub = new PCmetricInst(pcm, f, datasource, errFlag);
+    tmpRec = new PCMRec;
+    tmpRec->pcm = pcm;
+    tmpRec->f = f;
+    tmpRec->pcmi = newsub;
+    AllData += tmpRec;
+  }
+  return (PCmetInstHandle) newsub;
+}
+
+PCmetInstHandle 
+PCmetricInstServer::addSubscription(PCmetSubscriber sub,
+				    PCmetric *pcm,
+				    focus f,
+				    bool *errFlag)
+{
+  PCmetricInst *newsub = NULL;
+  // PCmetric instance may already exist
+
+  PCMRec *tmpRec = NULL;
+  for (unsigned i = 0; i < AllData.size(); i++) {
+    if (((AllData[i])->f == f) && ((AllData[i])->pcm == pcm)) {
+      newsub = (AllData[i])->pcmi;
+      break;
+    }
+  }
+  if (newsub == NULL) {
+    newsub = new PCmetricInst(pcm, f, datasource, errFlag);
+    if (*errFlag)
+      return 0;
+    tmpRec = new PCMRec;
+    tmpRec->pcm = pcm;
+    tmpRec->f = f;
+    tmpRec->pcmi = newsub;
+    AllData += tmpRec;
+  }
+  newsub->addConsumer(sub);
+  return (PCmetInstHandle) newsub;
+}
+
+void 
+PCmetricInstServer::endSubscription(PCmetSubscriber sub, 
+				    PCmetInstHandle id)
+{
+  int numLeft = id->rmConsumer (sub);
+  if (numLeft == 0) {
+    // leave the PCmetricInst but stop the flow of data to it
+    //** flush queues??
+    id->deactivate();
+  }
+}

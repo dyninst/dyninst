@@ -1,0 +1,533 @@
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
+/*
+ * PCshg.C
+ * 
+ * The searchHistoryNode and searchHistoryGraph class methods.
+ * 
+ * $Log: PCshg.C,v $
+ * Revision 1.29  1996/02/02 02:06:49  karavan
+ * A baby Performance Consultant is born!
+ *
+ */
+
+#include "PCintern.h"
+#include "PCshg.h"
+#include "PCexperiment.h"
+#include "PCsearch.h"
+
+unsigned searchHistoryNode::nextID = 0;
+
+//
+// default explanation functions
+//
+void defaultExplanation(searchHistoryNode *explainee)
+{
+//    ostrstream status;
+
+//    if (explainee && explainee->why) {
+//      status << "hypothesis: "<< explainee->why->name << " true for";
+//    } else {
+//      status << "***** NO HYPOTHESIS *******\n";
+//    }
+//    status << explainee->where << " at time ***" << "\n";
+//    uiMgr->updateStatusDisplay (mamaGraph->guiToken, status.str());
+//    delete (status.str());
+  cout << "defaultExplanation" << endl;
+}
+
+//
+// ****** searchHistoryNode *******
+//
+
+// searchHistoryNodes never die.
+
+searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
+				     hypothesis *why, 
+				     focus whereowhere, 
+				     refineType axis,
+				     bool persist,
+				     searchHistoryGraph *mama,
+				     const char *shortName):
+why(why), where(whereowhere), 
+persistent(persist), exp(NULL), active(false), truthValue(tunknown), 
+axis(axis), expanded(false),  
+mamaGraph (mama), sname(shortName)
+{
+  nodeID = nextID++;
+  if (axis == refineWhyAxis)
+    name = why->getName();
+  else {
+    // **update this
+    name = where;
+  }
+  if (sname == NULL)
+    sname = why->getName();
+  if (parent != NULL)
+    parents += parent;
+  virtualNode = why->isVirtual();
+
+  // at this point, we know the parent is either the topLevelHypothesis or 
+  // it is some other true node
+  numTrueParents = 1;
+  numTrueChildren = 0;
+}
+
+bool 
+searchHistoryNode::setupExperiment()
+{
+  assert (exp == NULL);
+  bool errFlag;
+  if (virtualNode) {
+    //** virtual nodes have no experiments
+    return false;
+  }
+  exp = new experiment (why, where, persistent, this, 
+			mamaGraph->srch, &errFlag);
+  return  (! ((exp == NULL) || errFlag));
+}
+
+bool 
+searchHistoryNode::startExperiment()
+{
+  assert (exp);
+  // check here for true path to root; parent status may have changed
+  // while this node was waiting on the Ready Queue
+  if (numTrueParents < 1)
+    return false;
+  if (exp->start()) {
+    changeActive(true);
+    PCnumActiveExperiments++;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void 
+searchHistoryNode::stopExperiment()
+{
+  assert (exp);
+  exp->halt();
+  changeActive(false);
+  PCnumActiveExperiments--;
+  // may have enough spare cycles to start new experiment(s)
+  mamaGraph->setSearchUpdateNeeded();
+}
+
+void 
+searchHistoryNode::addToDisplay(unsigned parentID, const char *label, 
+				bool edgeOnlyFlag)
+{
+  if (!edgeOnlyFlag) {
+    uiMgr->DAGaddNode (mamaGraph->guiToken, nodeID, INACTIVEUNKNOWNNODESTYLE, 
+		       sname.string_of(), name.string_of(), 0);
+  }
+  uiMgr->DAGaddEdge (mamaGraph->guiToken, parentID, nodeID, WHYEDGESTYLE,
+		     label);
+}
+
+void 
+searchHistoryNode::changeDisplay()
+{
+  if (active) {
+    switch (truthValue) {
+    case ttrue:
+      uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
+			    ACTIVETRUENODESTYLE);
+      break;
+    case tfalse:
+      uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
+			    ACTIVEFALSENODESTYLE);
+      break;
+    case tunknown:
+      uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
+			    ACTIVEUNKNOWNNODESTYLE);
+      break;
+    };
+  } else {
+    switch (truthValue) {
+    case ttrue:
+      uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
+			    INACTIVETRUENODESTYLE);
+      break;
+    case tfalse:
+      uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
+			    INACTIVEFALSENODESTYLE);
+      break;
+    case tunknown:
+      uiMgr->DAGconfigNode (mamaGraph->guiToken, nodeID, 
+			    INACTIVEUNKNOWNNODESTYLE);
+      break;
+    };
+  }
+}
+
+void
+searchHistoryNode::expand ()
+{
+  assert (children.size() == 0);
+  vector<rlNameId> *kids;
+#ifdef PCDEBUG
+  // debug print
+  tunableBooleanConstant prtc = 
+    tunableConstantRegistry::findBoolTunableConstant("PCprintSearchChanges");
+  if (prtc.getValue()) {
+    const vector<resourceHandle> *longname = dataMgr->getResourceHandles(where);
+    cout << "EXPAND: why=" << why->getName() << endl
+      << "        foc=<" << dataMgr->getFocusName(longname) << ">" << endl
+	<< "       time=" << exp->getEndTime() << endl;
+    delete longname;
+  }
+#endif
+  expanded = true;
+  searchHistoryNode *curr;
+
+  // first expand along where axis
+  if (why->prunesDefined()) {
+  // prunes limit the resource trees along which we will expand this node
+    vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
+    resourceHandle currHandle;
+    for (unsigned m = 0; m < parentFocus->size(); m++) {
+      currHandle = (*parentFocus)[m];
+      if (!why->isPruned(currHandle)) {
+	kids = dataMgr->magnify(currHandle, where);
+	if (kids != NULL) {
+	  unsigned childrenOldSize = children.size();
+	  children.resize (childrenOldSize + kids->size());
+	  for (unsigned j = 0; j < kids->size(); j++) {
+	    curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
+				       refineWhereAxis,
+				       false,  
+				       (*kids)[j].res_name.string_of());
+	    children[j+childrenOldSize] = curr;
+	  }
+	  delete kids;
+	}
+      }
+    }
+  } else {
+    // no prunes defined for this hypothesis so we can expand fully
+    vector<rlNameId> *kids = dataMgr->magnify2(where);
+    if (kids != NULL) {
+      children.resize (kids->size());
+      for (unsigned k = 0; k < children.size(); k++) {
+	curr = mamaGraph->addNode (this, why, (*kids)[k].id, 
+				   refineWhereAxis,
+				   false,  
+				   (*kids)[k].res_name.string_of());
+	children[k] = curr;
+      }
+      delete kids;
+    }
+  }
+  // second expand along why axis
+  vector<hypothesis*> *hypokids = why->expand();
+  if (hypokids != NULL) { 
+    for (unsigned i = 0; i < hypokids->size(); i++) {
+      curr = mamaGraph->addNode (this, (*hypokids)[i], where,
+				 refineWhyAxis, 
+				 false,  
+				 (*hypokids)[i]->getName());
+      children += curr;
+    }
+    delete hypokids;
+  }
+  mamaGraph->setSearchUpdateNeeded();
+#ifdef PCDEBUG
+  if (prtc.getValue()) {
+    cout << mamaGraph->srch->SearchQueue << endl;
+  }
+#endif
+}
+
+void
+searchHistoryNode::makeTrue()
+{
+  truthValue = ttrue;
+  changeDisplay();
+  // update Search Display Status Area (eventually this will be printed 
+  // some better way, but this will have to do...)
+  string status = why->getName();
+  status += " tested true for ";
+  vector<resourceHandle>* bigFocusRep = dataMgr->getResourceHandles(where);
+  const char *fname = dataMgr->getFocusName(bigFocusRep);
+  delete bigFocusRep;
+  status += fname;
+  status += "\n";
+  uiMgr->updateStatusDisplay(mamaGraph->guiToken, status.string_of());
+}
+
+void
+searchHistoryNode::makeFalse()
+{
+  truthValue = tfalse;
+  changeDisplay();
+}
+
+void
+searchHistoryNode::makeUnknown()
+{
+  truthValue = tunknown;
+  changeDisplay();
+}
+
+void
+searchHistoryNode::changeActive (bool live)
+{
+  active = live;
+  changeDisplay();
+}
+
+
+void 
+searchHistoryNode::percolateDown(testResult newValue)
+{
+  if (newValue == ttrue) {
+    // one of one or more parents just changed to true
+    numTrueParents++;
+    if (numTrueParents == 1) {
+      if ((exp) && (!active)) {
+	//** get key
+	mamaGraph->srch->SearchQueue.add(10, this);
+      }
+    }
+  } else {
+    // we're percolating a change to false; if no true parents are 
+    // left, we stop the experiment.
+    // this case shouldn't ever happen, IMHO
+    numTrueParents--;
+    if (numTrueParents == 0) {
+      if (exp) {
+	stopExperiment();
+      }
+      for (unsigned k = 0; k < children.size(); k++)
+	children[k]->percolateDown(newValue);
+    }
+  }
+}
+      
+void
+searchHistoryNode::percolateUp(testResult newValue)
+{
+  if (newValue == ttrue) {    
+    numTrueChildren++;
+    if ((virtualNode) && (numTrueChildren == 1)) {
+      // virtual Node represents or, one's enough
+      makeTrue();
+      for (unsigned i = 0; i < parents.size(); i++) {
+	parents[i] -> percolateUp(newValue);
+      }
+    }
+  } else {
+    numTrueChildren--;
+    if ((virtualNode) && (numTrueChildren == 0)) {
+      makeFalse();
+    }
+  }
+}
+
+//
+// experiment reports a change in truth value
+//
+void 
+searchHistoryNode::changeTruth (testResult newTruth)
+{
+  if (truthValue == newTruth) {
+    // oops!  this isn't really a change!
+    return;
+  }
+  if (newTruth == tfalse)  {
+    // status change to false
+    // if this node contains an experiment (ie, its non-virtual) then 
+    // we want to halt the experiment for now
+    if (!persistent) {
+      stopExperiment();
+      //** add to aging queue
+    }
+    if (truthValue == tunknown) {
+      this->makeFalse();
+    } else {
+      // change to false was from true
+      this->makeFalse();
+      for (unsigned i = 0; i < parents.size(); i++) {
+	parents[i] -> percolateUp(tfalse);
+      }
+      for (unsigned k = 0; k < children.size(); k++) {
+	children[k]->percolateDown(tfalse);
+      }
+    }
+  } else if (newTruth == ttrue) {
+    // status change to true
+    this->makeTrue();
+    for (unsigned i = 0; i < parents.size(); i++) {
+      parents[i] -> percolateUp(ttrue);
+    }
+    if (expanded) {
+      for (unsigned k = 0; k < children.size(); k++) {
+	children[k]->percolateDown(ttrue);
+      }
+    } else {
+      expand();
+    }
+  } else {
+    // change to unknown
+    makeUnknown();
+    changeDisplay ();
+  }
+}
+
+float 
+searchHistoryNode::getEstimatedCost()
+{
+  return exp->getEstimatedCost();
+}
+
+void 
+searchHistoryNode::getInfo (shg_node_info *theInfo)
+{
+  if (exp != NULL) {
+    theInfo->currentConclusion = exp->getCurrentConclusion();
+    theInfo->timeTrueFalse = exp->getTimeTrueFalse();
+    theInfo->currentValue = exp->getCurrentValue();
+    theInfo->startTime = exp->getStartTime();
+    theInfo->endTime = exp->getEndTime();
+    theInfo->estimatedCost = exp->getEstimatedCost();
+    theInfo->persistent = persistent;
+  } else {
+    //** this will change with split into virtual nodes
+    theInfo->currentConclusion = tunknown;
+    theInfo->timeTrueFalse = 0;
+    theInfo->currentValue = 0.0;
+    theInfo->startTime = 0;
+    theInfo->endTime = 0;
+    theInfo->estimatedCost = 0.0;
+    theInfo->persistent = true;
+  }
+}
+
+//
+//  ******  searchHistoryGraph ********
+//
+
+// searchHistoryGraphs never die.
+
+searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase, 
+				       unsigned phaseToken):
+				       NodeIndex(searchHistoryGraph::uhash),
+				       NodesByFocus(searchHistoryGraph::uhash),
+				       srch(searchPhase), 
+				       guiToken(phaseToken) 
+{
+  vector<searchHistoryNode*> Nodes;
+  root = new searchHistoryNode ((searchHistoryNode *)NULL,
+				topLevelHypothesis,
+				topLevelFocus, refineWhyAxis,
+				true, this, "TopLevelHypothesis");
+  root->setExpanded();
+  Nodes += root;
+  NodeIndex[0] = root;
+}
+
+void
+searchHistoryGraph::setSearchUpdateNeeded()
+{
+  srch->setRunQUpdateNeeded();
+}
+
+searchHistoryNode* 
+searchHistoryGraph::addNode (searchHistoryNode *parent,
+			     hypothesis *why,
+			     focus whereowhere,
+			     refineType axis,
+			     bool persist,
+			     const char *shortName)
+{
+  // check if node already exists
+  searchHistoryNode *newkid = NULL;
+  vector<searchHistoryNode*> *foclist = NULL;
+  if (NodesByFocus.defines(whereowhere)) {
+    foclist = NodesByFocus[whereowhere];
+    for (unsigned i = 0; i < foclist->size(); i++) {
+      if ((*foclist)[i]->hypoMatches(why)) {
+	newkid = (*foclist)[i];
+	break;
+      }
+    }
+    if (newkid) {
+      newkid->addToDisplay(parent->getNodeId(), shortName, true);
+      return newkid;
+    }
+  }
+  if (foclist == NULL) {
+    foclist = new vector<searchHistoryNode*>;
+    NodesByFocus[whereowhere] = foclist;
+  }
+  newkid = new searchHistoryNode(parent, why, whereowhere, axis, 
+				 persist, this, shortName);
+  *foclist += newkid;
+  newkid->addToDisplay(parent->getNodeId(), (char *)NULL, false);
+  newkid->setupExperiment();
+  //** this will be replaced with more rational priority calculation
+  if (axis == refineWhyAxis)
+    srch->SearchQueue.add(5, newkid);
+  else
+    srch->SearchQueue.add(10, newkid);
+      
+  Nodes += newkid;
+  NodeIndex [(newkid->getNodeId())] = newkid;
+  return newkid;
+}
+  
+searchHistoryNode *const
+searchHistoryGraph::getNode (unsigned nodeId)
+{
+  return NodeIndex [nodeId];
+}
+
+// for each hypothesis on the why axis, create a search node with 
+// that hypothesis at the top level focus.
+//
+void 
+searchHistoryGraph::initPersistentNodes()
+{
+  searchHistoryNode *nodeptr;
+  hypothesis *currhypo;
+  vector<hypothesis*> *topmost = topLevelHypothesis->expand();
+
+  for (unsigned i = 0; i < topmost->size(); i++) {
+    currhypo = (*topmost)[i];
+    nodeptr = addNode (root, currhypo, topLevelFocus, 
+		       refineWhyAxis, true,  
+		       currhypo->getName());
+    // note: at this point no experiment has been started for this search.
+    // addNode puts these on the ready queue, but the ready queue is only 
+    // checked when new data arrives from the data manager, so its a chicken
+    // and egg deal.  We go ahead and start the experiments here; when these
+    // nodes are removed from the queue, there will be an extra call to start
+    // them which will have no effect.  We reset PCnumActiveExperiments to 
+    // 0, when they come off the ready queue PCnumActiveExperiments will be 
+    // bumped back up.
+
+    nodeptr->startExperiment();
+    PCnumActiveExperiments--;
+  }
+  setSearchUpdateNeeded();
+  delete topmost;
+}
+
+
