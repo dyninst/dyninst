@@ -9,20 +9,22 @@ odometer::odometer(vector<unsigned> &iDigitRanges) :
 }
 
 bool odometer::done() const {
-   for (unsigned digitlcv=0; digitlcv < numDigits(); digitlcv++) {
-      assert(currValue[digitlcv] < digitRanges[digitlcv]);
-      if (currValue[digitlcv] != digitRanges[digitlcv]-1)
-         return false;
-   }
-
-   return true;
+   // we are done if we have overflowed
+   // So, all we need to do is check the most-significant-digit for
+   // an overflow
+   unsigned msd_index = numDigits()-1;
+   return currValue[msd_index] >= digitRanges[msd_index];
 }
 
 void odometer::add1() {
    assert(!done());
    currValue[0]++;
 
-   for (unsigned digitlcv=0; digitlcv < numDigits(); digitlcv++) {
+   // now move from the least significant to most significant digit,
+   // checking for overflows and carrying as necessary.
+   // The only exception is the most significant digit, which we keep
+   // in an overflowed state if applicable.
+   for (unsigned digitlcv=0; digitlcv < numDigits()-1; digitlcv++) {
       if (currValue[digitlcv] >= digitRanges[digitlcv]) {
          // we have overflowed this digit...carry some over to the next
          unsigned digitVal = currValue[digitlcv];
