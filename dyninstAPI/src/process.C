@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.514 2005/01/18 18:34:14 bernat Exp $
+// $Id: process.C,v 1.515 2005/01/18 21:40:54 tlmiller Exp $
 
 #include <ctype.h>
 
@@ -229,8 +229,6 @@ void setLibState(libraryState_t &lib, libraryState_t state) {
 }
 
 ostream& operator<<(ostream&s, const Frame &f) {
-   pd_Function *pcfunc = NULL;
-   const char *funcname = "";
    codeRange *range = NULL;
    if(f.thread_) {
       process *proc = f.thread_->get_proc();
@@ -682,28 +680,27 @@ bool process::isInSignalHandler(Address addr)
  * which is used to maintain a list of variables that have
  * been written by the mutator //ccw 26 nov 2001
  */
-#ifdef BPATCH_LIBRARY
-void process::saveWorldData(Address address, int size, const void* src){
-#else
-void process::saveWorldData(Address, int, const void*){
-#endif
-#ifdef BPATCH_LIBRARY
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
-	if(collectSaveWorldData){  //ccw 16 jul 2002 : NEW LINE
+ 
+#if defined( BPATCH_LIBRARY )
+#if defined( sparc_sun_solaris2_4 ) || defined( i386_unknown_linux2_0 ) || defined( rs6000_ibm_aix4_1 )
+
+void process::saveWorldData( Address address, int size, const void * src ) {
+	if( collectSaveWorldData ) {
 		dataUpdate *newData = new dataUpdate;
 		newData->address= address;
 		newData->size = size;
 		newData->value = new char[size];
 		memcpy(newData->value, src, size);
 		dataUpdates.push_back(newData);
-	}
-#else /* Get rid of annoying warnings */
-	Address tempaddr = address;
-	int tempsize = size;
-	const void *bob = src;
+		}
+	} /* end saveWorldData() */
+	
+#else
+
+void process::saveWorldData( Address, int, const void* ) { ; }	  
+
 #endif
 #endif
-}
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix4_1)
 /* || defined(rs6000_ibm_aix4_1)*/
@@ -1358,7 +1355,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   // build AstNode for "DYNINSTos_malloc" call
   pdstring callee = "DYNINSTos_malloc";
   pdvector<AstNode*> args(3);
-  args[0] = new AstNode(AstNode::Constant, (void *)size);
+  args[0] = new AstNode(AstNode::Constant, (void *)(Address)size);
   args[1] = new AstNode(AstNode::Constant, (void *)lo);
   args[2] = new AstNode(AstNode::Constant, (void *)hi);
   AstNode *code = new AstNode(callee, args);
@@ -1739,6 +1736,11 @@ process::~process()
  
     // We require explicit detaching if the process still exists.
     assert(!isAttached());
+
+#if defined( ia64_unknown_linux2_4 )
+	if( unwindProcessArg != NULL ) { _UPT_destroy( unwindProcessArg ); }
+	if( unwindAddressSpace != NULL ) { unw_destroy_addr_space( unwindAddressSpace ); }
+#endif
     
     // Most of the deletion is encapsulated in deleteProcess
     deleteProcess();
@@ -1755,10 +1757,6 @@ process::~process()
     cleanupVsysinfo(getVsyscallData());
 #endif
 
-#if defined( ia64_unknown_linux2_4 )
-     _UPT_destroy( unwindProcessArg );
-     unw_destroy_addr_space( unwindAddressSpace );
-#endif
 }
 
 unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); }
@@ -1798,10 +1796,11 @@ process::process(int iPid, image *iImage, int iTraceLink) :
 #endif
   representativeLWP(NULL),
 #if ! defined( ia64_unknown_linux2_4 )  
-  real_lwps(CThash)  
+  real_lwps(CThash)
 #else
-  multiTrampMap(addrHash16),
-  real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
+  real_lwps(CThash),
+  unwindAddressSpace( NULL ), unwindProcessArg( NULL ),
+  multiTrampMap(addrHash16)
 #endif
 {
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
@@ -1956,10 +1955,11 @@ process::process(int iPid, image *iSymbols,
 #endif
   representativeLWP(NULL),
 #if ! defined( ia64_unknown_linux2_4 )  
-  real_lwps(CThash)  
+  real_lwps(CThash)
 #else
-  multiTrampMap(addrHash16),
-  real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
+  real_lwps(CThash),
+  unwindAddressSpace( NULL ), unwindProcessArg( NULL ),
+  multiTrampMap(addrHash16)
 #endif
 {
     tracedSyscalls_ = NULL;
@@ -2151,8 +2151,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #if ! defined( ia64_unknown_linux2_4 )  
   real_lwps(CThash)  
 #else
-  multiTrampMap(addrHash16),
-  real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
+  real_lwps(CThash),
+  unwindAddressSpace( NULL ), unwindProcessArg( NULL ),
+  multiTrampMap(addrHash16)
 #endif
 {
 
@@ -2919,8 +2920,8 @@ bool process::iRPCDyninstInit() {
         cause = 1;
 
     pdvector<AstNode*> the_args(2);
-    the_args[0] = new AstNode(AstNode::Constant, (void*)cause);
-    the_args[1] = new AstNode(AstNode::Constant, (void*)pid);
+    the_args[0] = new AstNode(AstNode::Constant, (void*)(Address)cause);
+    the_args[1] = new AstNode(AstNode::Constant, (void*)(Address)pid);
     AstNode *dynInit = new AstNode("DYNINSTinit", the_args);
     removeAst(the_args[0]); removeAst(the_args[1]);
     getRpcMgr()->postRPCtoDo(dynInit,
@@ -3280,15 +3281,11 @@ void process::processCost(unsigned obsCostLow,
 // library (eg. libpthreads.a on AIX).  There are cases where we are querying
 // whether the app is multi-threaded, but it can't be determined yet but it
 // also isn't necessary to know.
-#ifdef BPATCH_LIBRARY
-bool process::multithread_capable(bool)
+#if defined( BPATCH_LIBRARY ) || defined( ia64_unknown_linux2_4 )
+bool process::multithread_capable(bool) { return false; }
 #else
 bool process::multithread_capable(bool ignore_if_mt_not_set)
-#endif
 {
-#ifdef BPATCH_LIBRARY
-   return false;
-#else
    if(cached_result != not_cached) {
       if(cached_result == cached_mt_true) {
          return true;
@@ -3316,8 +3313,8 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
       cached_result = cached_mt_false;
       return false;
    }
-#endif
 }
+#endif
 
 dyn_lwp *process::query_for_stopped_lwp() {
    dyn_lwp *foundLWP = NULL;
@@ -5141,7 +5138,7 @@ void process::handleExecEntry(char *arg0) {
         cerr << "Failed to read exec argument!" << endl;
     else
         execPathArg = temp;
-    cerr << "Exec path arg is " << execPathArg << endl;
+    // /* DEBUG */ cerr << "Exec path arg is " << execPathArg << endl;
 }
 
 /* process::handleExecExit: called when a process successfully exec's.
@@ -5175,7 +5172,7 @@ void process::handleExecExit() {
 #if defined(rs6000_ibm_aix4_1) && defined(AIX_PROC)
    getRepresentativeLWP()->reopen_fds();
 #endif
-   cerr << "exec file path is.... " << execFilePath << endl;
+   // /* DEBUG */ cerr << "exec file path is.... " << execFilePath << endl;
    fileDescriptor *desc = getExecFileDescriptor(execFilePath,
                                                 status,
                                                 false);
