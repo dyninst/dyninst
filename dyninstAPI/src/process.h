@@ -413,7 +413,7 @@ class process {
   // of the exec system call. It checks if the a.out is dynamically linked,
   // and if so, it inserts any initial instrumentation that is necessary
   // for collecting run-time linking info.
-  bool findDynamicLinkingInfo();
+  // bool findDynamicLinkingInfo();
 
   // getSharedObjects: This routine is called before main() to get and
   // process all shared objects that have been mapped into the process's
@@ -511,6 +511,14 @@ class process {
   bool cleanUpInstrumentation(bool wasRunning);
   bool inExec;
   string execFilePath;
+
+  int getProcFileDescriptor(){ return proc_fd;}
+
+  // attachToProcess: attach to an already running process, this routine sets
+  // up the connection to the process, creates a shared memory segment, parses
+  // the executable's image, creates a new process object, and processes
+  // shared objects.  It returns 0 on error.
+  static process *attachToProcess(int pid,string file_name);
 
   static int waitProcs(int *status);
   const process *getParent() const {return parent;}

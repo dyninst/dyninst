@@ -855,15 +855,6 @@ process::process(const process &parentProc, int iPid
     hasNewPC = false;
 
     inhandlestart = false;
-/*
-    dynamiclinking = false;
-    dyn = new dynamic_linking;
-    shared_objects = 0;
-    all_functions = 0;
-    all_modules = 0;
-    some_modules = 0;
-    some_functions = 0;
-*/
     dynamiclinking = parentProc.dynamiclinking;
     dyn = new dynamic_linking;
     *dyn = *parentProc.dyn;
@@ -1260,6 +1251,56 @@ tp->resourceBatchMode(true);
 	return(NULL);
     }
 }
+
+
+// attachToProcess: attach to an already running process, this routine sets 
+// up the connection to the process, creates a shared memory segment, parses
+// the executable's image, creates a new process object, and processes
+// shared objects.  It returns 0 on error.
+process *process::attachToProcess(int pid,string file_name){
+
+#ifdef ndef
+    // open /proc/pid
+    int proc_file = open
+
+    // set up socket stuff between process and paradynd
+    int iTraceLink = 0;
+    int iIoLink = 0;
+
+    // parse image file
+    image *img = image::parseImage(file);
+    if(!img){
+	string msg = string("Unable to parse image: ") + file;
+	showErrorCallback(68, msg.string_of());
+        return 0;
+    }
+
+#ifdef SHM_SAMPLING
+    // do shared memory stuff
+    const vector<fastInferiorHeapMgr::oneHeapStats> iShmHeapStat;
+    key_t theShmSegKey;
+
+#endif
+
+    // create process
+    process *p = new process(pid,img, iTraceLink,iIoLink,
+#ifdef SHM_SAMPLING
+			     theShmSegKey,iShmHeapStat, 
+#endif  
+                             );
+
+    // figure out if process has executed main yet or not, if it has then
+    // call getAttachedSharedObjects() and DYNINSTinit(),  otherwise set
+    // breakpoint at entry point of main and do this stuff there
+    // get shared objects
+    p->getAttachedSharedObjects();
+
+#endif
+
+    return 0;
+
+}
+
 
 #ifdef SHM_SAMPLING
 bool process::doMajorShmSample(unsigned long long theWallTime) {
@@ -1662,11 +1703,11 @@ bool process::pause() {
 bool process::handleStartProcess(process *p){
 
     if(!p){
-	//cerr << "in process::handleStartProcess p is 0\n";
+	// cerr << "in process::handleStartProcess p is 0\n";
         return false;
     }
 
-    //cerr << " in handleStartProcess" << endl;
+    // cerr << " in handleStartProcess" << endl;
     // get shared objects, parse them, and define new resources 
     p->getSharedObjects();
 
@@ -1680,10 +1721,10 @@ bool process::handleStartProcess(process *p){
 //  for the run time linker to export dynamic linking information
 //  returns true if the executable is dynamic
 //
-bool process::findDynamicLinkingInfo(){
-    dynamiclinking = dyn->findDynamicLinkingInfo(this);
-    return dynamiclinking;
-}
+// bool process::findDynamicLinkingInfo(){
+//     dynamiclinking = true;
+//     return dynamiclinking;
+// }
 
 // addASharedObject: This routine is called whenever a new shared object
 // has been loaded by the run-time linker
@@ -1763,6 +1804,7 @@ bool process::getSharedObjects() {
 	return true;
     }
     // else this a.out does not have a .dynamic section
+    dynamiclinking = false;
     return false;
 }
 

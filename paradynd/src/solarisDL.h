@@ -49,26 +49,20 @@ class process;
 //
 // All platform specific dynamic linking info. is in this class
 // each version of this class must have the following funcitons:
-// findDynamicLinkingInfo, getSharedObjects, addSharedObject, 
-// isDynamic
+// getSharedObjects, addSharedObject, isDynamic
 //
 class dynamic_linking {
 
 public:
 
-    dynamic_linking(){ link_map_addr = 0; dynlinked = false; } 
+    dynamic_linking(){ dynlinked = false; r_debug_addr = 0;} 
     ~dynamic_linking(){}
     
-    // findDynamicLinkingInfo: This routine is called on exit point of 
-    // of the exec system call. It checks if the a.out is dynamically linked,
-    // and if so, it inserts any initial instrumentation that is necessary
-    // for collecting run-time linking info.
-    bool findDynamicLinkingInfo(process *p);
-
-    // getSharedObjects: This routine is called before main() to get and
-    // process all shared objects that have been mapped into the process's
-    // address space
-    // returns 0 
+    // getProcessSharedObjects: This routine is called after attaching to
+    // an already running process p, or when a process reaches the breakpoint at
+    // the entry point of main().  It gets all shared objects that have been
+    // mapped into the process's address space
+    // returns 0 on error or if there are no shared objects
     vector< shared_object *> *getSharedObjects(process *p);
 
     // addASharedObject: This routine is called whenever a new shared object
@@ -83,8 +77,24 @@ public:
 
 
 private:
-   u_int link_map_addr;  
    bool  dynlinked;
+   u_int r_debug_addr;
+
+   // get_ld_base_addr: This routine returns the base address of ld.so.1
+   // it returns true on success, and false on error
+   bool dynamic_linking::get_ld_base_addr(u_int &addr, int proc_fd);
+
+   // find_r_debug: this routine finds the symbol table for ld.so.1, and
+   // parses it to find the address of symbol r_debug
+   // it returns false on error
+   bool find_r_debug(u_int ld_fd,u_int ld_base_addr);
+
+   // processLinkMaps: This routine is called by getSharedObjects to
+   // process all shared objects that have been mapped into the process's
+   // address space.  This routine reads the link maps from the application
+   // process to find the shared object file base mappings. returns 0 on error
+   vector<shared_object *> *processLinkMaps(process *p);
+
 };
 
 #endif

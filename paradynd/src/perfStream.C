@@ -315,7 +315,6 @@ void processTraceStream(process *curr)
 		    statusLine(buffer.string_of());
 		    curr->clearMysteryTrap();
 
-		    (void)(curr->findDynamicLinkingInfo());
 		    curr->reachedFirstBreak = true;
 		    buffer=string("installing call to DYNINSTinit()");
 		    statusLine(buffer.string_of());
@@ -464,9 +463,6 @@ int handleSigChild(int pid, int status)
 		   buffer += string(", passed trap at start of program");
 		   statusLine(buffer.string_of());
 		   curr->clearMysteryTrap();
-
-		   (void)(curr->findDynamicLinkingInfo());
-
 		   curr->reachedFirstBreak = true;
 
 		   buffer=string("PID=") + string(pid) + ", installing call to DYNINSTinit()";

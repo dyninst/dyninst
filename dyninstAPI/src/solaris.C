@@ -42,7 +42,7 @@
 #include "symtab.h"
 #include "util/h/headers.h"
 #include "os.h"
-#include "process.h"
+#include "paradynd/src/process.h"
 #include "symtab.h"
 #include "stats.h"
 #include "util/h/Types.h"
@@ -369,8 +369,8 @@ bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
 
 bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
-  if (lseek(proc_fd, (off_t)inTraced, SEEK_SET) != (off_t)inTraced) {
-    printf("error in lseek \n");
+  if((lseek(proc_fd, (off_t)inTraced, SEEK_SET)) != (off_t)inTraced) {
+    printf("error in lseek addr = 0x%x amount = %d\n",(u_int)inTraced,amount);
     return false;
   }
   return (read(proc_fd, inSelf, amount) == amount);
