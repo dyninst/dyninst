@@ -39,34 +39,32 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCintern.h,v 1.16 2000/10/17 17:27:50 schendel Exp $
+// $Id: PCintern.h,v 1.17 2001/06/20 20:37:05 schendel Exp $
 // Included by PC modules only
 
 #ifndef PC_INTERN_H
 #define PC_INTERN_H
 
 #include <iostream.h>
-#include "pdutilOld/h/sys.h"
-//sys.h defines the following:
-//  typedef double timeStamp;
-//  typedef float sampleValue;
-//  struct Interval {
-//     timeStamp start;
-//     timeStamp end;
-//      sampleValue value;
-//  };
-#define PCdataQSize 20
-ostream& operator <<(ostream &os, Interval &i);
 
 #include "../pdMain/paradyn.h"
 #include "common/h/list.h"
-#include "pdutilOld/h/PriorityQueue.h"
+#include "pdutil/h/PriorityQueue.h"
 #include "thread/h/thread.h"
 #include "dataManager.thread.CLNT.h"
 #include "UI.thread.CLNT.h"
 #include "../DMthread/DMinclude.h"
 #include "../TCthread/tunableConst.h"
 #include "performanceConsultant.thread.SRVR.h"
+
+struct PCInterval {
+  relTimeStamp start;
+  relTimeStamp end;
+  pdRate value;
+};
+
+#define PCdataQSize 20
+ostream& operator <<(ostream &os, PCInterval &i);
 
 typedef resourceListHandle focus;
 typedef metricInstanceHandle PCmetDataID;
