@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.34 2004/03/05 16:51:05 bernat Exp $
+# $Id: Makefile,v 1.35 2004/05/12 22:37:55 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,6 +7,7 @@ TO_CORE	= 	../../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
+USES_LIBELF = true
 
 DEBUG_FLAG = -g
 
@@ -26,8 +27,8 @@ MUTATEE_FLINKFLAGS += -g -ldl
 MUTATEE_TEST9_LIBS_LIST = libInstMe.so libLoadMe.so
 MUTATEE_TEST9_LIBS = -L. -lInstMe
 
-SYSLIBS += -lelf -ldl
-LIBS = -L$(LIBDWARFDIR)/lib -ldwarf
+SYSLIBS += -ldl
+LIBS = 
 M_GXX = g++
 M_GCC = gcc
 

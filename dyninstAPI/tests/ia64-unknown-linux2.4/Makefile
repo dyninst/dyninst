@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2004/03/31 20:37:24 tlmiller Exp $
+# $Id: Makefile,v 1.10 2004/05/12 22:37:56 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,7 +24,7 @@ CFLAGS += -Wno-deprecated
 MUTATEE_FFLAGS += -Dia64_unknown_linux2_4 -DF77 -fno-second-underscore -g
 MUTATEE_FLINKFLAGS += -g -ldl
 
-SYSLIBS += -L$(LIBDWARFDIR)/lib -ldwarf -lelf -ldl -L$(LIBUNWINDDIR)/lib -lunwind
+SYSLIBS += -ldl
 M_GXX = $(GXX)
 M_GCC = $(GCC)
 

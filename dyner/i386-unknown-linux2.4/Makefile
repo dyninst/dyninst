@@ -19,7 +19,7 @@ include $(TO_CORE)/make.config
 #CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP
 #CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
 
-SYSLIBS   += -lelf -lnsl 
+SYSLIBS   += -lnsl 
 LIBS = -L$(LIBDWARFDIR)/lib -ldwarf
 
 MUTATEE_CFLAGS += -rdynamic -ldl

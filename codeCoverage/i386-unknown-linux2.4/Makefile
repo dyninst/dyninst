@@ -21,7 +21,7 @@ TFLAGS           += $(MYFLAGS)
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS                 += -g
 
-SYSLIBS = -lelf -ldl
+SYSLIBS = -ldl
 
 AS		= /usr/bin/as
 
