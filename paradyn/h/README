@@ -5,3 +5,7 @@ dyninstRPC.I   4000
 performanceConsultant.I 6000
 
 Reserved for paradyndPVM 8000
+
+Reserved for VISIthread.I  9000
+Reserved for visi.I        7000
+Reserved for VM.I          5000
