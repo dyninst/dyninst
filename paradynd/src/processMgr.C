@@ -54,7 +54,7 @@ pd_process *processMgr::find_pd_process(process *dyn_proc) {
    for(unsigned i=0; i<procBuf.size(); i++) {
       pd_process *curProc = procBuf[i];
       if(curProc  &&  curProc->get_dyn_process() == dyn_proc) {
-	 return curProc;
+         return curProc;
       }
    }
    return NULL;
@@ -64,10 +64,17 @@ pd_process *processMgr::find_pd_process(int pid) {
    for(unsigned i=0; i<procBuf.size(); i++) {
       pd_process *curProc = procBuf[i];
       if(curProc  &&  curProc->getPid() == pid) {
-	 return curProc;
+         return curProc;
       }
    }
    return NULL;
 }
 
+bool processMgr::hasProcessExited(int pid) {
+   for(unsigned i=0; i<exitedProcs.size(); i++) {
+      if(exitedProcs[i]->getPid() == pid)
+         return true;
+   }
+   return false;
+}
 

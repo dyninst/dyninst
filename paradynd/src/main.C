@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.120 2003/07/18 20:06:57 schendel Exp $
+// $Id: main.C,v 1.121 2003/07/29 20:12:48 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -135,8 +135,6 @@ void sigtermHandler()
   showErrorCallback(98,"paradynd has been terminated");
 }
 
-pdvector<pd_process *> already_exited_pdprocesses;
-
 // Cleanup for pvm and exit.
 // This function must be called when we exit, to clean up and exit from pvm.
 // Now also cleans up shm segs by deleting all processes  -ari
@@ -153,28 +151,23 @@ void cleanUpAndExit(int status) {
 
    processMetFocusNode::removeProcNodesToDeleteLater();
 
-   // We should really delete the pd_process objects for the processes that
-   // have already exited when the those processes exit.  However, since
-   // we're so close to the release, I don't feel we could flush out bugs
-   // that might be related to doing this so for now, we're going to delete
-   // these processes at the exit of Paradyn.
-   pdvector<pd_process *> pd_processes_to_delete;
-   for(unsigned i=0; i<already_exited_pdprocesses.size(); i++) {
-      pd_process *curProc = already_exited_pdprocesses[i];
-      if(curProc == NULL)  // just in case
-         continue;
-      pd_processes_to_delete.push_back(curProc);
-   }
-
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *theProc = *itr++;
       if (theProc == NULL)
          continue; // process has already been cleaned up
-      pd_processes_to_delete.push_back(theProc);
+      getProcMgr().exitedProcess(theProc);
    }
 
+   // We should really delete the pd_process objects for the processes that
+   // have already exited when the those processes exit.  However, since
+   // we're so close to the release, I don't feel we could flush out bugs
+   // that might be related to doing this so for now, we're going to delete
+   // these processes at the exit of Paradyn.
    pdvector<unsigned> pidToKill;
+   pdvector<pd_process *> pd_processes_to_delete;
+   getProcMgr().getExitedProcs(&pd_processes_to_delete);
+
    for(unsigned j=0; j<pd_processes_to_delete.size(); j++) {
       pd_process *theProc = pd_processes_to_delete[j];
       assert(theProc != NULL);
@@ -190,7 +183,6 @@ void cleanUpAndExit(int status) {
       if(!wasAttachedTo) {
          pidToKill.push_back(pid);
       }
-      getProcMgr().removeProcess(theProc);
       delete theProc; // calls pd_process::~pd_process, which fries the shm seg
    }
 

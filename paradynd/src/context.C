@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.104 2003/07/18 15:44:51 schendel Exp $ */
+/* $Id: context.C,v 1.105 2003/07/29 20:12:47 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -449,7 +449,7 @@ void processNewTSConnection(int tracesocket_fd) {
       assert(false);
    }
 
-   const unsigned cookie_fork   = 0x11111111;
+   //const unsigned cookie_fork   = 0x11111111;
    const unsigned cookie_attach = 0x22222222;
 
    bool calledFromAttach = (cookie == cookie_attach);
@@ -513,14 +513,11 @@ void processNewTSConnection(int tracesocket_fd) {
 // actually exits, as we find out in paradyn_handleProcessExit.  We don't
 // have opportunity so close to the release to flush out any bugs related to
 // this, so that's why we're deleting all pd_processes when Paradyn exits.
-extern pdvector<pd_process *> already_exited_pdprocesses;
-
 void paradyn_handleProcessExit(process *proc, int exitStatus) {
    pd_process *pd_proc = getProcMgr().find_pd_process(proc);
    if(pd_proc) {
       pd_proc->handleExit(exitStatus);
-      getProcMgr().removeProcess(pd_proc);
-      already_exited_pdprocesses.push_back(pd_proc);
+      getProcMgr().exitedProcess(pd_proc);
    }
 }
 
@@ -695,7 +692,7 @@ void MT_lwp_setup(process *parentDynProc, process *childDynProc) {
 }
 
 void paradyn_forkCallback(process *parentDynProc, 
-                          void *parentDynProcData,
+                          void * /*parentDynProcData*/,
                           process *childDynProc) {
    assert(childDynProc->status() == stopped);
 

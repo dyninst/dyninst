@@ -50,6 +50,7 @@ class process;
 
 class processMgr {
    pdvector<pd_process *> procBuf;
+   pdvector<pd_process *> exitedProcs;
    
  public:
    class procIter {
@@ -103,18 +104,24 @@ class processMgr {
    procIter end() { return procIter(procBuf.size(), this); }
    unsigned size() { return procBuf.size(); }
 
+   void getExitedProcs(pdvector<pd_process *> *exited_procs) {
+      for(unsigned i=0; i<exitedProcs.size(); i++) {
+         (*exited_procs).push_back(exitedProcs[i]);
+      }
+   }
 
-   void removeProcess(pd_process *p) {
+   void exitedProcess(pd_process *p) {
       for(unsigned i=0; i<procBuf.size(); i++) {
          if(procBuf[i] == p) {
             procBuf[i] = NULL;
          }
       }
+      exitedProcs.push_back(p);
    }
    
    pd_process *find_pd_process(process *dyn_proc);
    pd_process *find_pd_process(int pid);
-
+   bool hasProcessExited(int pid);
 };
 
 // --- DON'T USE THIS (private of sorts) -----------------
