@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2000/10/17 17:42:29 schendel Exp $
+# $Id: Makefile,v 1.4 2000/11/20 23:14:52 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -10,12 +10,23 @@ USES_PVM = true
 NO_IMPLICIT_TEMPLATES = true
 #DEBUG_FLAG = -ggdb
 
+#If libhrtime is not installed on your computer and you have no interest
+#  in using it, then comment out the following line (with a #), remove
+#  the DEPENDS file in this directory, and recompile with make.
+#If you have libhrtime, but it can't be found, the libhrtime path can 
+#  be adjusted in ../../make.config.  You'll need to remake DEPENDS if
+#  this path is adjusted.
+USES_LIBHRTIME = true
+
+
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
+
+VPATH        += ../../rtinst/h:../../rtinst/src
 
 SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/linuxDL.C \
@@ -24,7 +35,8 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/inst-x86.C \
 		../../dyninstAPI/src/arch-x86.C \
 		../../dyninstAPI/src/Object-elf.C \
-		../../dyninstAPI/src/unix.C
+		../../dyninstAPI/src/unix.C  \
+		../../rtinst/src/RThwtimer-x86.c
 
 MYFLAGS		+= -I/usr/include/libelf
 MYFLAGS		+= -DNO_MDL_PRINT
@@ -47,6 +59,10 @@ AS		= /usr/bin/as
 CFLAGS		+= $(MYFLAGS)
 CXXFLAGS	+= $(MYFLAGS)
 TFLAGS		+= $(MYFLAGS)
+
+ifdef USES_LIBHRTIME
+LIBS	+= $(HRTIME_LIB)
+endif
 
 # no support for elf64_XXX() functions
 CFLAGS		+= -DUSES_ELF32_ONLY
