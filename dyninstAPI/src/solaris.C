@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.151 2003/06/24 19:41:40 schendel Exp $
+// $Id: solaris.C,v 1.152 2003/07/01 20:00:00 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -363,8 +363,13 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	
 	addLibraryElf = new addLibrary();
 	elf_update(newElf->getElf(), ELF_C_WRITE);
-	addLibraryElf->driver(newElf->getElf(), fullName,
-								 "libdyninstAPI_RT.so.1");
+	if(!addLibraryElf->driver(newElf->getElf(), fullName, "libdyninstAPI_RT.so.1")) {
+		//ccw 27 jun 2003
+		BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: addLibraryElf() failed!  No mutated binary saved\n");
+		delete [] directoryName;
+                return NULL;
+
+	}
 	delete [] fullName;
 	if(mutatedSharedObjects){
 		delete [] mutatedSharedObjects;
