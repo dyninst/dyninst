@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.136 2003/09/11 22:00:25 eli Exp $
+// $Id: symtab.h,v 1.137 2003/09/17 17:06:27 eli Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -64,7 +64,6 @@ extern "C" {
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/LineInformation.h"
 #include "dyninstAPI/h/BPatch_Vector.h"
-#include "dyninstAPI/h/BPatch_flowGraph.h"
 #include "common/h/String.h"
 
 #ifndef BPATCH_LIBRARY
@@ -266,7 +265,9 @@ private:
 
 class instPoint;
 class BPatch_basicBlockLoop;
+class BPatch_flowGraph;
 class LoopTreeNode;
+
 
 class pd_Function : public function_base {
  public:
