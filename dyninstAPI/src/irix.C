@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.67 2003/10/22 16:00:45 schendel Exp $
+// $Id: irix.C,v 1.68 2003/10/24 14:29:10 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1173,18 +1173,18 @@ Frame Frame::getCallerFrame(process *p) const
     Address pc_off;
     if (!callee && ip)
         callee = (pd_Function *) ip->iPgetFunction();
-    if (ip) {
-        pc_off = ip->iPgetAddress() - callee->addr();
-    }
-    else {
-        pc_off = pc_ - callee->addr();
-    }
-    
-    
+
     // calculate runtime address of callee fn
     if (!callee) {
         fprintf(stderr, "!!! <0x%016lx:???> unknown callee\n", pc_);
         return Frame(); // zero frame
+    }
+
+    if (ip) {
+        pc_off = ip->iPgetAddress() - callee->getEffectiveAddress(p);
+    }
+    else {
+        pc_off = pc_ - callee->getEffectiveAddress(p);
     }
     
     // frame pointers for native and basetramp frames
@@ -1193,6 +1193,7 @@ Frame Frame::getCallerFrame(process *p) const
         fp_bt += bt_frame_size;
     }
     Address fp_native = fp_bt;
+
     if (!bt) {
         fp_native += callee->frame_size;
     }
@@ -1318,21 +1319,25 @@ Frame Frame::getCallerFrame(process *p) const
   
   // caller frame is invalid if $pc does not resolve to a function
   if (!caller) return Frame(); // zero frame
-  
+
   // return value
-  Frame ret;
-  ret.pc_ = ra;
-  fprintf(stderr, "fp_native == 0x%x\n", fp_native);
-  ret.sp_ = fp_native;
+  Frame ret(0, 0, 0, pid_, thread_, lwp_, false);
+
+  // I've gotten the strangest segfaults doing direct assignment
+  memcpy(&ret.pc_, &ra, sizeof(Address));
+  memcpy(&ret.sp_, &fp_native, sizeof(Address));
+
   if ( caller )
   {
       if ( caller->uses_fp )
-          ret.fp_ = fp2;
-      else
-          ret.fp_ = fp_native + caller->frame_size;
+	memcpy(&ret.fp_, &fp2, sizeof(Address));
+      else {
+	fp_native += caller->frame_size;
+	memcpy(&ret.fp_, &fp_native, sizeof(Address));
+      }
   }
   else 
-      ret.fp_ = sp_;
+    memcpy(&ret.fp_, &fp2, sizeof(Address));
   
   ret.saved_fp = fp2;
   
