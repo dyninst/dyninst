@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.18  1995/07/17 04:29:03  tamches
+ * Revision 1.19  1995/07/24 03:51:29  tamches
+ * The Procedure --> Code commit
+ *
+ * Revision 1.18  1995/07/17  04:29:03  tamches
  * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
  * new UI where axis.
  *
@@ -537,7 +540,10 @@ void initResources()
     resourceHandle handle = *h; 
     resourceHandle temp = dataMgr->newResource(handle, "SyncObject");
     SyncObject = resource::handle_to_resource(temp);
-    temp = dataMgr->newResource(handle, "Procedure");
+
+//    temp = dataMgr->newResource(handle, "Procedure");
+    temp = dataMgr->newResource(handle, "Code");
+
     Procedures = resource::handle_to_resource(temp);
     temp = dataMgr->newResource(handle, "Process");
     Processes = resource::handle_to_resource(temp);
