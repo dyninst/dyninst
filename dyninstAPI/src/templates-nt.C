@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.3 1997/11/05 02:30:57 wylie Exp $
+ * $Id: templates-nt.C,v 1.4 1997/11/28 21:25:27 wylie Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
@@ -72,6 +72,7 @@ template class dictionary_hash<string, unsigned int>;
 template class dictionary_hash<string, Symbol>;
 template class dictionary_hash<string, resource *>;
 template class dictionary_hash<string, pdmodule *>;
+template class dictionary_hash<string, pd_Function *>;
 template class dictionary_hash<string, internalSym *>;
 template class dictionary_hash<string, metricDefinitionNode *>;
 template class dictionary_hash<string, vector<string> *>;
