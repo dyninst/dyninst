@@ -43,6 +43,9 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.25  1997/04/17 19:43:36  sec
+ * Made is so that negative numbers are allowed.
+ *
  * Revision 1.24  1997/04/14 20:03:53  zhichen
  * Added | tIDENT tLSQUARE tUNS tRSQUARE tDOT tIDENT for instr_rand.
  *
@@ -450,6 +453,7 @@ instr_rands: instr_rands tCOMMA instr_rand {
 instr_rand: tIDENT                       { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_COUNTER, *$1.sp); }
           | tAMPERSAND tIDENT            { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_COUNTER_PTR, *$2.sp); }
           | tUNS                         { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_INT, $1.u); }
+          | tMINUS tUNS                  { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_INT, -$1.u); }
           | tARG tLSQUARE tUNS tRSQUARE  { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_ARG, $3.u); }
           | tRETURN                      { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_RETURN); }
           | tREAD_SYMBOL tLPAREN tLITERAL tRPAREN {
