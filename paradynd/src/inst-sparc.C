@@ -43,6 +43,9 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.42  1996/08/23 16:59:23  lzheng
+ * Another minor change related to the undoing of tail-call optimaztion
+ *
  * Revision 1.41  1996/08/23 03:44:57  lzheng
  * Changes made for the previous commit and also minor bug fix for the
  * undoing of tail-call optimaztion
@@ -1612,6 +1615,7 @@ bool pdFunction::findInstPoints(const image *owner) {
 	   return true;
        } 
 
+#if defined(sparc_sun_solaris2_4)
        if (isLibTag()) {
 	   if (isCallInsn(instr)) {
 	       instruction nexti; 
@@ -1628,6 +1632,7 @@ bool pdFunction::findInstPoints(const image *owner) {
 	       }
 	   }   
        }
+#endif
 
        if (isInsnType(instr, SAVEmask, SAVEmatch)) {
 	     
