@@ -63,38 +63,20 @@
 #include "rtinst/h/trace.h"
 #include "util/h/sys.h"
 
-/**********************************************************************
- * Duplicate the function DYNINSTstartProcessTimer, startProcessTimer
- * startWallTimer, stopWallTimer for HPUX.
- * DYNINST*_hpux will be called by standard functions
- * SYNINST* will be called from miniTrampoline  
-***********************************************************************/
-#if defined(hppa1_1_hp_hpux)
-extern DYNINSTstartProcessTimer_hpux(tTimer* );
-extern DYNINSTstartWallTimer_hpux(tTimer* );
-extern DYNINSTstopProcessTimer_hpux(tTimer* );
-extern DYNINSTstopWallTimer_hpux(tTimer* );
-#endif
-
 
 
 /************************************************************************
  * Per module flags
 ************************************************************************/
-#if defined(hppa1_1_hp_hpux)
-int DYNINSTin_sample = 0;
-#else
+
 static int DYNINSTin_sample = 0;
-#endif
 
 /************************************************************************
  * symbolic constants.
 ************************************************************************/
-#if defined(hppa1_1_hp_hpux)
-double MILLION = 1000000.0;
-#else
+
 static const double MILLION = 1000000.0;
-#endif
+
 
 #ifdef USE_PROF
 int DYNINSTbufsiz;
@@ -264,7 +246,7 @@ DYNINSTstartWallTimer(tTimer* timer) {
     time64 startT, endT;
 #endif
 
-    if (DYNINSTin_sample) return;       
+    if (DYNINSTin_sample) return;
 
 #ifdef COSTTEST
     startT=DYNINSTgetCPUtime();
@@ -736,14 +718,11 @@ DYNINSTreportSamples(void) {
 
 /* #define N_FP_REGS 33 */
 
+
 /************************************************************************
  * DYNINSTalarmExpire is changed so that it will restart the sytem call
  * if that called is interrupted on HP
  * Duplicated for the same reason above.
- * But this time, 
- *  DYNINSTalarmExpire is called by standard functions.   
- *  DYNINSTalarmExpire_hpux is called by miniTramolines. 
- * (so that the mdl and paradynd.rc won't need to change)
  ************************************************************************/
 
 
@@ -754,6 +733,10 @@ static int          DYNINSTtotalAlarmExpires = 0;
 #if !defined(hppa1_1_hp_hpux)
 void
 DYNINSTalarmExpire(int signo) {
+#else 
+DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
+#endif
+
 #ifdef notdef
     time64     start_cpu;
     time64     end_cpu;
@@ -796,6 +779,11 @@ DYNINSTalarmExpire(int signo) {
     }
 
     DYNINSTin_sample = 0;
+
+#if defined(hppa1_1_hp_hpux)
+    scp->sc_syscall_action = SIG_RESTART;
+#endif
+
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -803,120 +791,6 @@ DYNINSTalarmExpire(int signo) {
     DYNINSTtestN[4]++;
 #endif 
 }
-
-
-
-#else
-void
-DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
-#ifdef notdef
-    time64     start_cpu;
-    time64     end_cpu;
-    float      fp_context[N_FP_REGS];
-#endif
-
-#ifdef COSTTEST
-    time64 startT, endT;
-#endif
-
-    if (DYNINSTin_sample) {
-        return;
-    }
-    DYNINSTin_sample = 1;
-
-#ifdef COSTTEST
-    startT=DYNINSTgetCPUtime();
-#endif
-
-    DYNINSTtotalAlarmExpires++;
-    if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0) {
-
-      DYNINSTreportSamples();
-#ifdef notdef
-        saveFPUstate(fp_context);
-        start_cpu = DYNINSTgetCPUtime();
-
-        /* to keep observed cost accurate due to 32-cycle rollover */
-        (void) DYNINSTgetObservedCycles(0);
-
-        DYNINSTsampleValues();
-        DYNINSTreportBaseTramps();
-        DYNINSTflushTrace();
-
-        end_cpu = DYNINSTgetCPUtime();
-        DYNINSTtotalSampleTime += (end_cpu - start_cpu);
-        restoreFPUstate(fp_context);
-#endif
-  }
-
-    DYNINSTin_sample = 0;
-
-    /*scp->sc_syscall = SYS_NOTSYSCALL;*/
-    scp->sc_syscall_action = SIG_RESTART;
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[4]+=endT-startT;
-    DYNINSTtestN[4]++;
-#endif
-}
-
-void
-DYNINSTalarmExpire_hpux(int signo, int code, struct sigcontext *scp) {
-#ifdef notdef
-    time64     start_cpu;
-    time64     end_cpu;
-    float      fp_context[N_FP_REGS];
-#endif
-
-#ifdef COSTTEST
-    time64 startT, endT;
-#endif
-
-    if (DYNINSTin_sample) {
-        return;
-    }
-    DYNINSTin_sample = 1;
-
-#ifdef COSTTEST
-    startT=DYNINSTgetCPUtime();
-#endif
-
-    DYNINSTtotalAlarmExpires++;
-    if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0) {
-
-      DYNINSTreportSamples();
-#ifdef notdef
-        saveFPUstate(fp_context);
-        start_cpu = DYNINSTgetCPUtime();
-
-        /* to keep observed cost accurate due to 32-cycle rollover */
-        (void) DYNINSTgetObservedCycles(0);
-
-        DYNINSTsampleValues();
-        DYNINSTreportBaseTramps();
-        DYNINSTflushTrace();
-
-        end_cpu = DYNINSTgetCPUtime();
-        DYNINSTtotalSampleTime += (end_cpu - start_cpu);
-        restoreFPUstate(fp_context);
-#endif
-  }
-
-    DYNINSTin_sample = 0;
-
-    /*scp->sc_syscall = SYS_NOTSYSCALL;*/
-    scp->sc_syscall_action = SIG_RESTART;
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[4]+=endT-startT;
-    DYNINSTtestN[4]++;
-#endif
-}
-
-
-#endif
 
 
 
@@ -1014,13 +888,8 @@ DYNINSTinit(int doskip) {
     }
 #endif
 
-#if defined(hppa1_1_hp_hpux)
-    DYNINSTstartWallTimer_hpux(&DYNINSTelapsedTime);
-    DYNINSTstartProcessTimer_hpux(&DYNINSTelapsedCPUTime);
-#else
     DYNINSTstartWallTimer(&DYNINSTelapsedTime);
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
-#endif
 
     DYNINSTreportSamples();
 
@@ -1179,13 +1048,8 @@ DYNINSTprintCost(void) {
     struct endStatsRec stats;
     time64 wall_time; 
 
-#if defined(hppa1_1_hp_hpux)
-    DYNINSTstopProcessTimer_hpux(&DYNINSTelapsedCPUTime);
-    DYNINSTstopWallTimer_hpux(&DYNINSTelapsedTime);
-#else
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
     DYNINSTstopWallTimer(&DYNINSTelapsedTime);
-#endif
 
     value = DYNINSTgetObservedCycles(0);
     stats.instCycles = value;
@@ -1299,7 +1163,7 @@ DYNINSTrecordTag(int tag) {
     for (i=0; i < DYNINSTtagCount; i++) {
         if (DYNINSTtags[i] == tag) return;
     }
-
+    printf("tag is %d\t",tag); fflush(stdout);
     if (DYNINSTtagCount == DYNINSTtagLimit) return;
     DYNINSTtags[DYNINSTtagCount++] = tag;
 }
