@@ -39,6 +39,7 @@ class Histogram {
 	friend class histDisplay;
 	void newDataFunc(callType type, timeStamp time, void* userData);
     public:
+	~Histogram();
 	Histogram(metricStyle, dataCallBack, foldCallBack, void* );
 	Histogram(Bin *buckets, metricStyle, dataCallBack, foldCallBack, void*);
 	sampleValue getValue();

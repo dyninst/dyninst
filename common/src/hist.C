@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.9  1994/05/10 03:56:47  hollings
+ * Revision 1.10  1994/06/29 02:48:31  hollings
+ * Added destructor to Histogram class.
+ *
+ * Revision 1.9  1994/05/10  03:56:47  hollings
  * Changed hist data upcall to return array of buckets not single value.
  *
  * Revision 1.8  1994/04/30  21:00:03  hollings
@@ -114,6 +117,27 @@ Histogram::Histogram(Bin *buckets,
     storageType = HistBucket;
     dataPtr.buckets = (Bin *) calloc(sizeof(Bin), numBins);
     memcpy(dataPtr.buckets, buckets, sizeof(Bin)*numBins);
+}
+
+Histogram::~Histogram()
+{
+    Histogram *lag;
+    Histogram *curr;
+
+    // remove us from allHist
+    for (curr=allHist, lag=NULL; curr; curr = curr->next) {
+        if (curr == this) {
+	    break;
+	}
+	lag = curr;
+    }
+
+    if (!lag) {
+	allHist = curr->next;
+    } else {
+	lag->next = curr->next;
+    }
+
 }
 
 #define MAX(a, b)	((a) > (b) ? (a):(b))
