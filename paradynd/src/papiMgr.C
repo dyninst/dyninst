@@ -70,7 +70,8 @@ typedef struct {
   void *result;
 } papi_rpc_ret;
 
-void inferiorPapiCallback(process* /*p*/, void* data, void* result)
+void inferiorPapiCallback(process* /*p*/, unsigned /* rpc_id */, void* data,
+                          void* result)
 {
   papi_rpc_ret *ret = (papi_rpc_ret *)data;
   ret->result = result;
@@ -338,7 +339,7 @@ bool papiMgr::inferiorPapiAddEvent(int eventCode)
 
   /* set lowmem to ensure there is space for inferior malloc */
   proc_->postRPCtoDo(code, true, // noCost
-                     &inferiorPapiCallback, &ret, -1,
+                     &inferiorPapiCallback, &ret,
                      true); // But use reserved memory
 
   extern void checkProcStatus();
@@ -381,7 +382,7 @@ bool papiMgr::inferiorPapiRemoveEvent(int eventCode)
 
   /* set lowmem to ensure there is space for inferior malloc */
   proc_->postRPCtoDo(code, true, // noCost
-                     &inferiorPapiCallback, &ret, -1, 
+                     &inferiorPapiCallback, &ret,
                      true); // But use reserved memory
 
   extern void checkProcStatus();
@@ -423,7 +424,7 @@ bool papiMgr::inferiorPapiStart()
 
   /* set lowmem to ensure there is space for inferior malloc */
   proc_->postRPCtoDo(code, true, // noCost
-                     &inferiorPapiCallback, &ret, -1, 
+                     &inferiorPapiCallback, &ret,
                      true); // But use reserved memory
 
   extern void checkProcStatus();
@@ -465,7 +466,7 @@ bool papiMgr::inferiorPapiStop()
 
   /* set lowmem to ensure there is space for inferior malloc */
   proc_->postRPCtoDo(code, true, // noCost
-                     &inferiorPapiCallback, &ret, -1, 
+                     &inferiorPapiCallback, &ret,
                      true); // But use reserved memory
 
   extern void checkProcStatus();
