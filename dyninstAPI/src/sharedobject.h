@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.24 2001/08/30 21:41:00 bernat Exp $
+// $Id: sharedobject.h,v 1.25 2002/01/08 22:16:32 pcroth Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -196,21 +196,45 @@ public:
     }
 
     pd_Function *findFuncByAddr(Address adr, const process *p) {
-      return(objs_image->findFuncByAddr(adr, p));
+        pd_Function* ret = NULL;
+
+        if( objs_image != NULL )
+        {
+            ret = objs_image->findFuncByAddr(adr, p);
+        }
+        return ret;
     }
 
     // Convert the given address into an offset.
     pd_Function *findFuncByEntryAddr(Address adr, const process *p) {
-      Address offset = adr-base_addr;
-      return(objs_image->findFuncByEntryAddr(offset, p));
+        pd_Function* ret = NULL;
+
+        if( objs_image != NULL )
+        {
+            Address offset = adr-base_addr;
+            ret = objs_image->findFuncByEntryAddr(offset, p);
+        }
+        return ret;
     }
 
     pd_Function *findFuncByRelocAddr(Address adr, const process *p) {
-      return(objs_image->findFuncByRelocAddr(adr, p));
+        pd_Function* ret = NULL;
+
+        if( objs_image != NULL )
+        {
+            ret = objs_image->findFuncByRelocAddr(adr, p);
+        }
+        return ret;
     }
 
     pd_Function *findFuncByOrigAddr(Address adr, const process *p) {
-      return(objs_image->findFuncByOrigAddr(adr, p));
+        pd_Function* ret = NULL;
+
+        if( objs_image != NULL )
+        {
+            ret = objs_image->findFuncByOrigAddr(adr, p);
+        }
+        return ret;
     }
 
 

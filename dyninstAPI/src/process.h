@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.171 2001/12/18 19:43:20 bernat Exp $
+/* $Id: process.h,v 1.172 2002/01/08 22:16:32 pcroth Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -396,8 +396,8 @@ class process {
  friend class ptraceKludge;
 #ifdef BPATCH_LIBRARY
  friend class BPatch_image;
- friend Address loadDyninstDll(process *, char Buffer[]);
 #endif
+ friend Address loadDyninstDll(process *, char Buffer[]);
 
   //  
   //  PUBLIC MEMBERS FUNCTIONS

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.10 2001/08/09 15:06:16 chadd Exp $
+// $Id: Object-nt.C,v 1.11 2002/01/08 22:16:29 pcroth Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -52,6 +52,7 @@
 #include "dyninstAPI/src/Object-nt.h"
 
 
+bool pd_debug_export_symbols = false;
 
 //---------------------------------------------------------------------------
 // prototypes of functions used in this file
@@ -81,6 +82,7 @@ void
 Object::ParseDebugInfo( void )
 {
     IMAGE_DEBUG_INFORMATION* pDebugInfo = NULL;
+	bool bHaveSymbols = false;
     
     // access the module's debug information
     pDebugInfo = MapDebugInformation(NULL, (LPTSTR)file_.string_of(), NULL, 0);
@@ -113,12 +115,14 @@ Object::ParseDebugInfo( void )
 			//ccw 28 mar 2001
         {
             // we have CodeView debug information
+			bHaveSymbols = true;
             ParseCodeViewSymbols( pDebugInfo );
         }
 #ifndef mips_unknown_ce2_11 //ccw 20 mar 2001 : 28 mar 2001
        else if( pDebugInfo->CoffSymbols != NULL )
         {
             // we have COFF debug information
+			bHaveSymbols = true;
             ParseCOFFSymbols( pDebugInfo );
         }
 #endif
@@ -153,6 +157,7 @@ Object::ParseDebugInfo( void )
 					if( pDebugInfo->CoffSymbols != NULL )
 					{
 						// we have COFF debug information
+						bHaveSymbols = true;
 						ParseCOFFSymbols( pDebugInfo ); 
 					}else{
 						//cout << " NO DEBUG INFO IN LIB" <<endl;
@@ -169,6 +174,15 @@ Object::ParseDebugInfo( void )
 		}
 		//ccw 19 july 2000 -- end
        }
+
+#ifndef mips_unknown_ce2_11			
+		// if we couldn't find any symbol information, see if we can
+		// get something useful from the export table
+		if( !bHaveSymbols )
+		{
+			ParseExports( pDebugInfo );
+		}
+#endif // mips_unknown_ce2_11
     }
     else
     {
@@ -176,6 +190,240 @@ Object::ParseDebugInfo( void )
         log_perror(err_func_, "MapDebugInformation");
     }
 }
+
+
+#ifndef mips_unknown_ce2_11			
+void
+Object::ParseExports( IMAGE_DEBUG_INFORMATION* pDebugInfo )
+{
+    vector<Symbol> allSymbols;
+
+    // map the object into our address space
+    HANDLE hFile = CreateFile( file_.string_of(),
+                            GENERIC_READ,
+                            FILE_SHARE_READ,
+                            NULL,   // lpSecurityAttributes - default, not inheritable
+                            OPEN_EXISTING,
+                            0,
+                            NULL );
+    if( hFile == INVALID_HANDLE_VALUE )
+    {
+        // we failed to open the file
+	if( pd_debug_export_symbols )
+	{
+        	// report the error to the user
+		cerr << "Object::ParseExports: failed to open file "
+			<< file_.string_of()
+			<< ", error = "
+			<< GetLastError()
+			<< endl;
+	}
+        return;
+    }
+    HANDLE hMapping = CreateFileMapping( hFile,
+                        NULL,   // lpSecurityAttributes - default, not inheritable
+                        PAGE_READONLY | SEC_IMAGE,
+                        0, 0,   // max size of mapping - use size of file
+                        NULL ); // make an unnamed mapping
+    if( hMapping == NULL )
+    {
+        // we failed to create a file mapping
+	if( pd_debug_export_symbols )
+	{
+        	// report the error to the user
+		cerr << "Object::ParseExports: failed to create file mapping for file "
+			<< file_.string_of()
+			<< ", error = "
+			<< GetLastError()
+			<< endl;
+	}
+        CloseHandle( hFile );
+        return;
+    }
+    LPVOID mapBase = MapViewOfFile( hMapping,
+                        FILE_MAP_READ,
+                        0, 0,   // start at beginning of file
+                        0 );    // map whole file
+    if( mapBase == NULL )
+    {
+        // we failed to map the file
+	if( pd_debug_export_symbols )
+	{
+        	// report the error to the user
+		cerr << "Object::ParseExports: failed to map file "
+			<< file_.string_of()
+			<< ", error = "
+			<< GetLastError()
+			<< endl;
+	}
+        CloseHandle( hFile );
+        CloseHandle( hMapping );
+        return;
+    }
+
+    // find the image's Export Directory
+    unsigned long expDirSize;
+    IMAGE_EXPORT_DIRECTORY* expDir = 
+        (IMAGE_EXPORT_DIRECTORY*)ImageDirectoryEntryToData( mapBase,
+                            TRUE,   // MappedAsImage
+                            IMAGE_DIRECTORY_ENTRY_EXPORT,
+                            &expDirSize );
+
+	if( expDir != NULL )
+	{
+        // there is an Export Directory
+        // add symbol items by name if possible, by ordinal if necessary
+        //
+        // Note that we have little indication whether these exports
+        // are functions or data.  We assume any symbol in the .text
+		// section is a function, and all others are data.
+		//
+		// We also don't have an indication of the object's size.
+        //
+
+        // find the name of the object
+        string objName;
+        if( expDir->Name != 0 )
+        {
+            // use the name from the export directory
+            objName = (LPCTSTR)(((char*)mapBase) + expDir->Name);
+        }
+        else
+        {
+            // use the file name
+            objName = file_;
+        }
+
+        // add a symbol for the module
+        allSymbols.push_back( Symbol( objName,
+            "",
+            Symbol::PDST_MODULE,
+            Symbol::SL_GLOBAL,
+            code_off_,
+            false,
+            code_len_ * sizeof(Word) ));
+
+
+        // add symbols for the exports
+        DWORD* expAddressTable = (DWORD*)(((char*)mapBase) + expDir->AddressOfFunctions);
+        if( expDir->NumberOfNames > 0 )
+        {
+            // the object exports items by name - add symbols by name
+            DWORD* namePointerTable = (DWORD*)(((char*)mapBase) + expDir->AddressOfNames);
+            WORD* ordinalTable = (WORD*)(((char*)mapBase) + expDir->AddressOfNameOrdinals);
+            for( unsigned int i = 0; i < expDir->NumberOfNames; i++ )
+            {
+                // obtain the name for this export
+                DWORD symNameRVA = namePointerTable[i];
+                LPCTSTR symName = (LPCTSTR)(((char*)mapBase) + symNameRVA);
+
+                // obtain the address for this export...
+                // ...first, find the ordinal associated with this export...
+                WORD symInternalOrdinal = ordinalTable[i];
+
+                // ...next, find the address associated with that ordinal
+                // note that the address has to be in the inferior process, not
+                // its address as mapped in our process
+                DWORD symRVA = expAddressTable[symInternalOrdinal];
+                Address symAddr = baseAddr + symRVA;
+
+				if( pd_debug_export_symbols )
+				{
+					cout << "Export: " << symName 
+						<< ", ordinal = " << symInternalOrdinal + expDir->Base 
+						<< ", RVA = " << symRVA
+						<< ", addr = " << symAddr
+						<< endl;
+				}
+
+                // add the symbol
+				Symbol::SymbolType symType;
+				if( (symAddr >= code_off_) && 
+					(symAddr <= (code_off_ + (code_len_ * sizeof(Word)))) )
+				{
+					symType = Symbol::PDST_FUNCTION;
+				}
+				else
+				{
+					symType = Symbol::PDST_OBJECT;
+				}
+                allSymbols.push_back(( Symbol( symName,
+                    objName,
+                    symType,
+                    Symbol::SL_GLOBAL,
+                    symAddr,
+                    false,
+                    0 )));      // length is unknown
+            }
+        }
+        else
+        {
+            // the object exports items by ordinal only
+            // add symbols by building a name from the ordinal
+            for( unsigned int i = 0; i < expDir->NumberOfFunctions; i++ )
+            {
+                // construct a name from this export
+                // from its ordinal and image name
+                char ordBuf[16];
+                sprintf( ordBuf, "%d", i + expDir->Base );
+                string symName = objName + "$" + ordBuf;
+
+                // obtain the address for this export
+                DWORD symRVA = expAddressTable[i];
+                Address symAddr = baseAddr + symRVA;
+
+				if( pd_debug_export_symbols )
+				{
+					 cout << "Export: " << symName 
+						<< ", ordinal = " << i + expDir->Base + expDir->Base 
+						<< ", RVA = " << symRVA
+						<< ", addr = " << symAddr
+						<< endl;
+				}
+
+                // add the symbol
+				Symbol::SymbolType symType;
+				if( (symAddr >= code_off_) && 
+					(symAddr <= (code_len_ + (code_len_ * sizeof(Word)))) )
+				{
+					symType = Symbol::PDST_FUNCTION;
+				}
+				else
+				{
+					symType = Symbol::PDST_OBJECT;
+				}
+                allSymbols.push_back(( Symbol( symName,
+                    objName,
+                    symType,
+                    Symbol::SL_GLOBAL,
+                    symAddr,
+                    false,
+                    0 )));      // length is unknown
+            }
+        }
+
+		// The rest of our code doesn't handle symbols with zero size well.
+		// Unless we build a complete CFG and can identify all exit points of
+		// a function, the best approximation we have for the size of the symbol is
+		// the difference between a symbol and its successor.
+        //
+		allSymbols.sort( sym_offset_compare );
+		CVPatchSymbolSizes( allSymbols );
+
+		// now that we've sorted and sized symbols for the exports,
+		// we add them to the global set
+        for( unsigned int i = 0; i < allSymbols.size(); i++ )
+        {
+            symbols_[allSymbols[i].name()] = allSymbols[i];
+        }
+	}
+
+    // release the object
+    UnmapViewOfFile( mapBase );
+    CloseHandle( hMapping );
+    CloseHandle( hFile );
+}
+#endif // mips_unknown_ce2_11
 
 
 void

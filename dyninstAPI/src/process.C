@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2001 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.284 2001/12/20 23:10:36 pcroth Exp $
+// $Id: process.C,v 1.285 2002/01/08 22:16:30 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1153,15 +1153,11 @@ bool process::getInfHeapList(vector<heapDescriptor> &infHeaps)
   if (shared_objects)
     for(u_int j=0; j < shared_objects->size(); j++)
       {
-#ifdef mips_unknown_ce2_11 //ccw 24 apr 2001
 	if(((*shared_objects)[j]->getImage())){
-#endif
 		if (getInfHeapList(((*shared_objects)[j])->getImage(), infHeaps))
 		  foundHeap = true;
 	      }
-#ifdef mips_unknown_ce2_11 //ccw 24 apr 2001
 	}
-#endif
 
   return foundHeap;
 }

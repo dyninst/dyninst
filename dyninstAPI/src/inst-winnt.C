@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.8 2001/08/01 15:39:56 chadd Exp $
+// $Id: inst-winnt.C,v 1.9 2002/01/08 22:16:30 pcroth Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -164,11 +164,113 @@ bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
 
 // findCallee: returns false unless callee is already set in instPoint
 // dynamic linking not implemented on this platform
-bool process::findCallee(instPoint &instr, function_base *&target){
-
-    if((target = (function_base *)instr.iPgetCallee())) {
-       return true;
+bool process::findCallee(instPoint &instr, function_base *&target)
+{
+	// first see whether we've already determined the call site's callee
+	target = (function_base *)instr.iPgetCallee();
+    if( target != NULL )
+	{
+        return true;
     }
-    return false;
+
+	if( instr.insnAtPoint().isCallIndir() )
+	{
+		// An call that uses an indirect call instruction could be one
+		// of three things:
+		//
+		// 1. A call to a function within the same executable or DLL.  In 
+		//    this case, it could be a call through a function pointer in
+		//    memory or a register, or some other type of call.
+		//   
+		// 2. A call to a function in an implicitly-loaded DLL.  These are
+		//    indirect calls through an entry in the object's Import Address 
+		//    Table (IAT). An IAT entry is set to the address of the target 
+		//    when the DLL is loaded at process creation.
+		//
+		// 3. A call to a function in a delay-loaded DLL.  Like calls to 
+		//    implicitly-loaded DLLs, these are calls through an entry in the 
+		//    IAT.  However, for delay-loaded DLLs the IAT entry initially 
+		//    holds the address of a short code sequence that loads the DLL,
+		//    looks up the target function, patches the IAT entry with the 
+		//    address of the target function, and finally executes the target 
+		//    function.  After the first call, the IAT entry has been patched
+		//    and subsequent calls look the same as calls into an
+		//    implicitly-loaded DLL.
+		//
+		// Figure out what type of indirect call instruction this is
+		//
+		Register base_reg;
+		Register index_reg;
+		int displacement;
+		unsigned int scale;
+		unsigned int mod;
+		int instMode = get_instruction_operand( instr.insnAtPoint().ptr(),
+			base_reg,
+			index_reg,
+			displacement,
+			scale,
+			mod );
+
+		if( instMode == DISPLACED )
+		{
+			// it is a call through a function pointer in memory
+			Address funcPtrAddress = (Address)displacement;
+			assert( funcPtrAddress != ADDR_NULL );
+
+			// obtain the target address from memory if it is available
+			Address targetAddr = ADDR_NULL;
+			readDataSpace_( (const void*)funcPtrAddress, sizeof(Address), &targetAddr );
+			if( targetAddr != ADDR_NULL )
+			{
+				// see whether we already know anything about the target
+				// this may be the case with implicitly-loaded and delay-loaded
+				// DLLs, and it is possible with other types of indirect calls
+				target = findFuncByAddr( targetAddr );
+
+				// we need to handle the delay-loaded function case specially,
+				// since we want the actual target function, not the temporary
+				// code sequence that handles delay loading
+				if( (target != NULL) &&
+					(!strncmp( target->prettyName().string_of(), "_imp_load_", 10 )) )
+				{
+					// The target is named like a linker-generated
+					// code sequence for a call into a delay-loaded DLL.
+					//
+					// Try to look up the function based on its name
+					// without the 
+
+#if READY
+					// check if the target is in the same module as the function
+					// containing the instPoint
+					// check whether the function pointer is in the IAT
+					if( (funcPtrAddress >= something.iatBase) &&
+						(funcPtrAddress <= (something.iatBase + something.iatLength)) )
+					{
+						// it is a call through the IAT, to a function in our
+						// own module, so it is a call into a delay-loaded DLL
+						// ??? how to handle this case
+					}
+#else
+					// until we can detect the actual callee for delay-loaded
+					// DLLs, make sure that we don't report the linker-
+					// generated code sequence as the target
+					target = NULL;
+#endif // READY
+
+				}
+			}
+		}
+
+		if( !target )
+		{
+			// We currently do not handle calls through function pointers
+			// in memory or registers within the same executable
+			// to do this, we will need to instrument the call site
+			// and compute the target address at the time of the call.
+			// ??? how to set up the instrumentation?
+		}
+	}
+	
+    return (target != NULL);
 }
 #endif

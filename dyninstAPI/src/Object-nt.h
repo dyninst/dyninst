@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.15 2001/11/05 19:39:41 bernat Exp $
+ * $Id: Object-nt.h,v 1.16 2002/01/08 22:16:30 pcroth Exp $
 ************************************************************************/
 
 
@@ -169,6 +169,10 @@ private:
 	bool	ParseMapSymbols(IMAGE_DEBUG_INFORMATION *pDebugInfo, char *mapFile); //ccw 19 july 2000 : 28 mar 2001
 #endif
 
+
+#ifndef mips_unknown_ce2_11
+	void	ParseExports( IMAGE_DEBUG_INFORMATION* pDebugInfo );
+#endif // mips_unknown_ce2_11
 
     bool	ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
     void    CVPatchSymbolSizes( vector<Symbol>& allSymbols );
