@@ -971,13 +971,17 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   // Now evaluate the constraint statements
   unsigned size = stmts_->size();
   vector<dataReqNode*> flags;
+  bool wasRunning = global_proc->status()==running;
+  global_proc->pause();
   for (unsigned u=0; u<size; u++) {
     if (!(*stmts_)[u]->apply(mn, flags)) { // virtual fn call; several possibilities
       // cout << "apply of constraint " << id_ << " failed\n";
+      if (wasRunning) global_proc->continueProc();
       return(false);
     }
   }
   mdl_env::pop();
+  if (wasRunning) global_proc->continueProc();
   return(true);
 }
 

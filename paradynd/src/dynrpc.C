@@ -43,6 +43,10 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.68  1998/03/12 22:35:57  naim
+ * Changes to reduce the number of unnecessary calls to continueProc, improving
+ * performance both when enabling and disabling metrics - naim
+ *
  * Revision 1.67  1997/07/29 14:35:55  naim
  * Fixing problem with inferiorRPC, non-shared memory sampling and sigalrm - naim
  *
@@ -229,15 +233,23 @@ void dynRPC::disableDataCollection(int mid)
     else 
         currentPredictedCost -= cost;
 
+    vector<process *> procsToCont;
     process *proc;
     for (unsigned i=0; i<processVec.size(); i++) {
       proc = processVec[i];
+      if (proc->status()==running) {
+	proc->pause();
+	procsToCont += proc;
+      }
       if (proc->existsRPCreadyToLaunch()) {
 	proc->cleanRPCreadyToLaunch(mid);
       }
     }
 
     mi->disable();
+    for (unsigned i=0;i<procsToCont.size();i++) {
+      procsToCont[i]->continueProc();
+    }
     allMIs.undef(mid);
     delete(mi);
 
