@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.56 2002/07/03 22:18:45 bernat Exp $
+ * $Id: RTinst.c,v 1.57 2002/07/11 19:45:50 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -94,7 +94,9 @@ int PARADYNdebugPrintRT = 0;
 #endif
 
 /* Pointer to the shared data structure */
-RTsharedData_t *RTsharedData;
+RTsharedData_t RTsharedData;
+/* And max # of threads allowed */
+unsigned MAX_NUMBER_OF_THREADS;
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 extern unsigned DYNINSTtotalTraps;
@@ -457,27 +459,33 @@ static void initFPU()
  * attach.
  *
  ************************************************************************/
-void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) /* ccw 18 apr 2002 : SPLIT */
+void pDYNINSTinit(int paradyndPid, 
+		  int numThreads, 
+		  int theKey, 
+		  unsigned shmSegSize,
+		  unsigned offsetToSharedData)
+     //void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid, unsigned numThreads)
 {
-  /* If first 2 params are -1 then we're being called by DYNINSTfork(). */
-  /* If first 2 params are 0 then it just means we're not shm sampling */
-  /* If first paremeter is < 0, but different than -1 we it means
-     that we are in the unique case called attachToCreated.  */
-  /* If 3d param is negative, then we're called from attach
-     (and we use -paradyndPid as paradynd's pid).  If 3d param
+  /* If offsetToSharedData is -1 then we're being called from fork */
+  /* If the last 3 parameters are 0, we're not shm sampling (DEPRECATED) */
+  /* If 1st param is negative, then we're called from attach
+     (and we use -paradyndPid as paradynd's pid).  If 1st param
      is positive, then we're not called from attach (and we use +paradyndPid
      as paradynd's pid). */
-  
+
+
   int i;
   int calledFromAttachToCreated = 0;
-  int calledFromFork = (theKey == -1);
+  int calledFromFork = (offsetToSharedData == -1);
   int calledFromAttach = (paradyndPid < 0);
+  MAX_NUMBER_OF_THREADS = numThreads;
 
+  /* Not sure if this is ever called
   if ((theKey < 0) &&(theKey != -1)){
     calledFromAttachToCreated = 1;
     theKey *= -1;
   }
-
+  */  
 #ifdef SHM_SAMPLING_DEBUG
   char thehostname[80];
   extern int gethostname(char*,int);
@@ -508,13 +516,50 @@ void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) /* ccw 18 apr
   /* initialize the tag and group info */
   DYNINSTtagGroupInfo_Init();
 
+  fprintf(stderr, "pid: %d\n", paradyndPid);
+  fprintf(stderr, "numThreads: %d\n", numThreads);
+  fprintf(stderr, "theKey: %d\n", theKey);
+  fprintf(stderr, "shmSegSize: %d\n", shmSegSize);
+  fprintf(stderr, "offset: %d\n", offsetToSharedData);
+
   if (!calledFromFork) {
+    RTsharedData_t *RTsharedInShm;
+    char *endOfShared;
+    Address shmBase;
+    unsigned i;
     DYNINST_shmSegKey = theKey;
-    DYNINST_shmSegNumBytes = shmSegNumBytes;
+    DYNINST_shmSegNumBytes = shmSegSize;
     
-    DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegNumBytes, 
+    DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
 						 &DYNINST_shmSegShmId);
-    RTsharedData = (RTsharedData_t *)DYNINST_shmSegAttachedPtr;
+    shmBase = (Address) DYNINST_shmSegAttachedPtr;
+    fprintf(stderr, "RT lib attached at: 0x%x\n", shmBase);
+    /* Yay, pointer arithmetic */
+    RTsharedInShm = (RTsharedData_t *)(DYNINST_shmSegAttachedPtr + offsetToSharedData);
+    fprintf(stderr, "Finding shared data at 0x%x\n", RTsharedInShm);
+    RTsharedData.cookie = (unsigned *)((Address) RTsharedInShm->cookie + shmBase);
+    fprintf(stderr, "Adding 0x%x and 0x%x to get 0x%x\n",
+	    RTsharedInShm->cookie, shmBase, RTsharedData.cookie);
+    fprintf(stderr, "Cookie addr is 0x%x (0x%x)\n", RTsharedData.cookie, RTsharedInShm->cookie);
+    RTsharedData.inferior_pid = (unsigned *)((Address) RTsharedInShm->inferior_pid + shmBase);
+    fprintf(stderr, "Inferior addr is 0x%x\n", RTsharedData.inferior_pid);
+    RTsharedData.daemon_pid = (unsigned *)((Address) RTsharedInShm->daemon_pid + shmBase);
+    fprintf(stderr, "daemon addr is 0x%x\n", RTsharedData.daemon_pid);
+    RTsharedData.observed_cost = (unsigned *) ((Address) RTsharedInShm->observed_cost + shmBase);
+    fprintf(stderr, "Cost addr is 0x%x\n", RTsharedData.observed_cost);
+    RTsharedData.trampGuards = (unsigned *)((Address) RTsharedInShm->trampGuards + shmBase);
+    fprintf(stderr, "trampGuards addr is 0x%x\n", RTsharedData.trampGuards);
+    RTsharedData.virtualTimers = (tTimer *)((Address) RTsharedInShm->virtualTimers + shmBase);
+    fprintf(stderr, "virtualTimer addr is 0x%x\n", RTsharedData.virtualTimers);
+    RTsharedData.posToThread = (unsigned *) ((Address) RTsharedInShm->posToThread + shmBase);
+    fprintf(stderr, "posToThread addr is 0x%x\n", RTsharedData.posToThread);
+    RTsharedData.pendingIRPCs = malloc(sizeof(rpcToDo *)*MAX_NUMBER_OF_THREADS);
+    for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
+      RTsharedData.pendingIRPCs[i] = (rpcToDo *) ((Address) RTsharedInShm->pendingIRPCs[i] + shmBase);
+      fprintf(stderr, "Pending RPC %d addr is 0x%x\n", i, RTsharedData.pendingIRPCs[i]);
+    }
+    /* Serious debugging */
+
   }
   
   /*
@@ -561,7 +606,7 @@ void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) /* ccw 18 apr
     DYNINSTprofile = 1;
   }
 #endif
-    
+
   /* Fill in info for paradynd to receive: */
   
   PARADYN_bootstrap_info.ppid = -1; /* not needed really */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
@@ -662,31 +707,17 @@ void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) /* ccw 18 apr
 /* MT_THREAD */
 #if defined(MT_THREAD)
   {
-    int pos;
-    /*
-    extern void DYNINST_initialize_RPCthread(void);
-    extern void DYNINSTlaunchRPCthread(void) ;
-    */
-    fprintf(stderr, "Calling DYNINSTthread_init...\n");
     /* Note: until this point we are not multithread-safe. */
-    DYNINST_initialize_once((char*) DYNINST_shmSegAttachedPtr) ;
+    DYNINST_initialize_once((char*) DYNINST_shmSegAttachedPtr, numThreads);
 
-    if (!calledFromFork) {
-      fprintf(stderr, "Init once...\n");
-      DYNINST_initialize_once();
-    }
-    fprintf(stderr, "reportThreadUpdate...\n");
-    pos = DYNINST_reportThreadUpdate(calledFromAttach?FLAG_ATTACH:FLAG_INIT) ;
-    fprintf(stderr, "Done, given POS %d\n", pos);
-    /* launch the RPCthread */
-    /*
-    DYNINSTlaunchRPCthread();
-    */
+    DYNINST_reportThreadUpdate(calledFromAttach?FLAG_ATTACH:FLAG_INIT) ;
   }
 #endif
 
+
   /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
      it will read from DYNINST_bootstrap_info */
+
   
   shmsampling_printf("DYNINSTinit (pid=%d) --> about to PARADYNbreakPoint()\n",
 		     (int)getpid());
@@ -729,7 +760,7 @@ BOOL WINAPI DllMain(
 		if(libdyninstRT_DLL_localtheKey != -1 ||  libdyninstRT_DLL_localshmSegNumBytes != -1 ||
 					libdyninstRT_DLL_localparadynPid != -1){
 			pDYNINSTinit(libdyninstRT_DLL_localtheKey, libdyninstRT_DLL_localshmSegNumBytes, 
-					libdyninstRT_DLL_localparadynPid);
+					libdyninstRT_DLL_localparadynPid, 1);
 		}
 	}
 	return 1; 
@@ -895,7 +926,7 @@ DYNINSTfork(int pid) {
 	forkexec_printf("dyninst-fork child past PARADYNbreakPoint()"
                         " ...calling DYNINSTinit(-1,-1)\n");
 
-	pDYNINSTinit(-1, -1, DYNINST_mutatorPid);
+	pDYNINSTinit(DYNINST_mutatorPid, MAX_NUMBER_OF_THREADS, -1, -1, -1);
 	   /* -1 params indicate called from DYNINSTfork */
 
 	forkexec_printf("dyninst-fork child done...running freely.\n");
