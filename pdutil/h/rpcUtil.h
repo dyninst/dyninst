@@ -42,16 +42,12 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.48 2002/02/11 22:02:48 tlmiller Exp $
+// $Id: rpcUtil.h,v 1.49 2002/04/09 18:06:35 mjbrim Exp $
 
 #include "common/h/headers.h"
-#include "pdutil/h/pdsocket.h"
-#include "common/h/String.h"
-// trace data streams
-#include "pdutil/h/ByteArray.h"
-#include "common/h/Vector.h"
-#include "common/h/vectorSet.h"
+#include "pdsocket.h"
 
+#include "xdr_send_recv.h" // P_xdr_send() and P_xdr_recv() routines
 
 /* define following variables are needed for linux platform as they are
    missed in /usr/include/sys/file.h                                     */
@@ -75,7 +71,8 @@ public:
   XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
 	 const int nblock);
   XDRrpc(int family, int port, int type, const string machine,
-	 xdr_rd_func readFunc, xdr_wr_func writeFunc, const int nblock);
+	 xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
+         const int nblock);
   ~XDRrpc();
   // This function does work on Windows NT. Since it is not being used
   // anywhere, I'm commenting it out -- mjrg
@@ -130,30 +127,19 @@ extern int RPC_setup_socket (PDSOCKET &sfd,   // return file descriptor
 extern bool RPC_setup_socket_un(PDSOCKET &sfd, const char *path);
 #endif // !defined(i386_unknown_nt4_0)
 
-extern bool_t xdr_string_pd(XDR*, string*);
-// trace data streams
-extern bool_t xdr_byteArray_pd(XDR *, byteArray *);
-extern bool_t xdr_Boolean(XDR*, bool*);   
-
-inline bool_t P_xdr_string_pd(XDR *x, string *s) {
-  return (xdr_string_pd(x, s));}
-// trace data streams
-inline bool_t P_xdr_byteArray_pd(XDR *x, byteArray *s) {
-  return (xdr_byteArray_pd(x, s));}
-
-inline bool_t P_xdr_Boolean(XDR *x, bool *b) {
-  return (xdr_Boolean(x, b));}
-
 extern PDSOCKET RPCprocessCreate(const string hostName, const string userName,
 			    const string commandLine, const string remote_shell,
 			    const vector<string> &arg_list,
 			    int wellKnownPort = 0);
 
 #if !defined(i386_unknown_nt4_0)
-extern bool RPC_make_arg_list (vector<string> &list, const int port, const int termWin_port, const int flag, const int firstPVM,
+extern bool RPC_make_arg_list (vector<string> &list, const int port, 
+			       const int termWin_port, 
+			       const int flag, const int firstPVM,
 			       const string machineName, const bool useMachine);
-#else 
-extern bool RPC_make_arg_list (vector<string> &list, const int port, const int flag, const int firstPVM,
+#else
+extern bool RPC_make_arg_list (vector<string> &list, const int port, 
+			       const int flag, const int firstPVM,
 			       const string machineName, const bool useMachine);
 #endif
 
@@ -179,9 +165,7 @@ class rpcBuffer {
 #if defined(i386_unknown_nt4_0)
 // a vector of callback functions for reads and accepts, needed to support
 // correct interation between XDR and our thread library under Windows
-//
 typedef void (*RPCSockCallbackFunc)( SOCKET );
-
 extern vector<RPCSockCallbackFunc> rpcSockCallback;
 #endif // defined(i386_unknown_nt4_0)
 

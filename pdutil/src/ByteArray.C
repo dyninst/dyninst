@@ -44,10 +44,6 @@
 #include <assert.h>
 #include "pdutil/h/ByteArray.h"
 
-// trace data streams
-bool_t P_xdr_byteArray(XDR *x, char **c, u_int *sizep, const u_int maxsize) {
-  return (xdr_bytes(x, c, sizep, maxsize));}
-
 byteArray::byteArray()
     : bArray_(0), len_(0) {
 }
