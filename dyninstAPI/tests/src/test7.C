@@ -1,4 +1,4 @@
-// $Id: test7.C,v 1.11 2004/03/09 21:36:43 bernat Exp $
+// $Id: test7.C,v 1.12 2004/03/11 22:20:42 bernat Exp $
 //
 
 #include <stdio.h>
@@ -1175,8 +1175,8 @@ void mutatorMAIN(char *pathname)
         dprintf("Mutator waiting for status change on child\n");
         bpatch->waitForStatusChange();
         /* Clear terminated bits */
-        parentThread->isTerminated();
-        childThread->isTerminated();
+        //parentThread->isTerminated();
+        //childThread->isTerminated();
     }
     showFinalResults();
     exit(0);
