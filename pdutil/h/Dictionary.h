@@ -72,8 +72,6 @@
  * 
 ************************************************************************/
 
-class dictionary_hash_iter;
-
 template<class K, class V>
 class dictionary_hash {
    friend class dictionary_hash_iter<K,V>;
