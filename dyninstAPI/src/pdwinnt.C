@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.9 1999/05/07 15:22:17 nash Exp $
+// $Id: pdwinnt.C,v 1.10 1999/06/17 22:06:52 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -278,11 +278,28 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
     // int3
     *iptr++ = (char)0xcc;
 
-#ifdef BPATCH_LIBRARY
-    strcpy(iptr, "libdyninstAPI_RT.dll");
+    char libname[256];
+    // check for an environment variable
+#ifdef BPATCH_LIBRARY  // dyninstAPI loads a different run-time library
+    strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
 #else
-    strcpy(iptr, "libdyninstRT.dll");
+    strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
 #endif
+
+    if (strlen(libname) == 0) {
+        // if environment variable unset, use the default name/strategy
+#ifdef BPATCH_LIBRARY
+        strcpy((char*)libname, "libdyninstAPI_RT.dll");
+#else
+        strcpy((char*)libname, "libdyninstRT.dll");
+#endif
+    } else {
+        // make sure that directory separators are what LoadLibrary expects
+        for (unsigned int i=0; i<strlen(libname); i++)
+            if (libname[i]=='/') libname[i]='\\';
+    }
+
+    strcpy(iptr, libname);
 
     p->readDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, Buffer, false);
     p->writeDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, ibuf);
@@ -527,7 +544,7 @@ int process::waitProcs(int *status) {
     } break;
 
     case CREATE_PROCESS_DEBUG_EVENT: {
-	CREATE_PROCESS_DEBUG_INFO info = debugEv.u.CreateProcessInfo;
+	//CREATE_PROCESS_DEBUG_INFO info = debugEv.u.CreateProcessInfo;
 	//printf("CREATE_PROCESS event: %d\n", debugEv.dwProcessId);
 	p = findProcess(debugEv.dwProcessId);
 	if (p) {
