@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.75 2005/03/07 21:18:40 bernat Exp $
+// $Id: osf.C,v 1.76 2005/03/17 13:45:30 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -1267,7 +1267,7 @@ bool process::loadDYNINSTlib()
   return true;
 }
 
-void process::determineLWPs(pdvector<unsigned> *all_lwps)
+void process::determineLWPs(pdvector<unsigned> &all_lwps)
 {
   return;
 }

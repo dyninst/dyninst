@@ -985,7 +985,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
 // loads and unloads (symbol lookups and trap setting)
 bool dynamic_linking::installTracing()
 {
-
+  // Need to update for IA64 as well.
+#if defined(arch_x86)
   //Libc >= 2.3.3 has security features that prevent _dl_open from being
   // called from outside libc.  We'll disable those features by finding the
   // function that implements them and writing 'return 0' over the top of
@@ -1008,6 +1009,7 @@ bool dynamic_linking::installTracing()
   Address tmp = sym.getAddr();
   proc->writeDataSpace((void *)tmp, sizeof(Address), (void *)&do_dlopen_addr);
   
+#endif
   
   assert(r_debug_addr);
     

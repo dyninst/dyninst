@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.137 2005/03/14 21:12:00 gquinn Exp $
+// $Id: pdwinnt.C,v 1.138 2005/03/17 13:45:30 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -2588,7 +2588,7 @@ Frame dyn_thread::getActiveFrameMT() {
    return Frame();
 }  // not used until MT supported
 
-void process::determineLWPs(pdvector<unsigned> *all_lwps)
+void process::determineLWPs(pdvector<unsigned> &all_lwps)
 {
    return;
 }
