@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.h,v 1.5 2002/06/03 17:38:40 tlmiller Exp $ */
+/* $Id: writeBackElf.h,v 1.6 2002/06/03 17:56:55 tlmiller Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -17,7 +17,7 @@
 #include <libelf/libelf.h>
 #include "linux.h"
 
-#if defined(ia64_unknown_linux2_4) && defined(INT64_C)
+#if ! defined(ia64_unknown_linux2_4) || (defined(ia64_unknown_linux2_4) && !defined(INT64_C))
 /* Already defined by the system on IA64. */
 #define INT64_C(c)       c ## LL
 #endif
