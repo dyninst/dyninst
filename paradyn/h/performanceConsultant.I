@@ -3,7 +3,10 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.5  1994/05/02 20:36:50  hollings
+ * Revision 1.6  1994/05/06 06:50:45  karavan
+ * added startSHG().
+ *
+ * Revision 1.5  1994/05/02  20:36:50  hollings
  * Added pause and shg get node routines.
  *
  * Revision 1.4  1994/04/27  22:54:52  hollings
@@ -45,6 +48,8 @@ $remote performanceConsultant {
     searchHistoryNode *getCurrentRefinement();
     int getCurrentNodeId();
 
+    // make PC available to user
+    $async void startSHG();
     void printSHGNode(searchHistoryNode *);
     void printSHGList();
 
