@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.125 2005/03/16 20:56:00 legendre Exp $
+// $Id: inst.C,v 1.126 2005/03/17 23:26:39 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -830,8 +830,11 @@ trampTemplate::updateTrampCost(int trampCost) {
 
     char costInsn[40];
     Address csize = 0;
-
-    Address caddr = proc->getObservedCostAddr();   
+    Address caddr = proc->getObservedCostAddr();    
+    if (caddr == 0) {
+      bpwarn("Observed cost address 0, skipping cost calculation");
+      return;
+    }
     emitVupdate(updateCostOp, cost, 0, caddr, costInsn, csize, false);
     proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
 #endif
