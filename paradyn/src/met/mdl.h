@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.27 2001/06/20 20:33:44 schendel Exp $
+// $Id: mdl.h,v 1.28 2001/08/23 14:43:55 schendel Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -51,7 +51,7 @@
 #include "common/h/Dictionary.h"
 #include <iostream.h>
 #include <fstream.h>
-#include "pdutil/h/aggregation.h"
+#include "pdutil/h/aggregationDefines.h"
 
 // Toplevel for code in resource heirarchy....
 #define CODE_RH_NAME "Code"
@@ -61,10 +61,9 @@ const char RH_SEPARATOR = '/';
 #define MDL_FOLD_SUM 0
 #define MDL_FOLD_AVG 1
 
-#define MDL_AGG_SUM aggSum
-#define MDL_AGG_AVG aggAvg
-#define MDL_AGG_MIN aggMin
-#define MDL_AGG_MAX aggMax
+#define MDL_AGG_SUM AGG_SUM
+#define MDL_AGG_MIN AGG_MIN
+#define MDL_AGG_MAX AGG_MAX
 
 // MDL_T_POINT_RETURN is a kludge to check that we do not have 
 // postInsn in a function return point. Once this is checked,
@@ -249,7 +248,6 @@ inline string op_to_string(unsigned op) {
 
 inline string agg_to_string(unsigned f) {
   switch (f) {
-  case MDL_AGG_AVG: return ("avg");
   case MDL_AGG_SUM: return ("sum");
   case MDL_AGG_MAX: return ("max");
   case MDL_AGG_MIN: return ("min");

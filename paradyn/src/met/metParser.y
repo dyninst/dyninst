@@ -41,10 +41,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.37 2001/06/20 20:33:44 schendel Exp $
+// $Id: metParser.y,v 1.38 2001/08/23 14:43:56 schendel Exp $
 
 #include "paradyn/src/met/metParse.h"
-#include "pdutil/h/hist.h"
+#include "paradyn/src/met/mdl.h"
+#include "pdutil/h/metricStyle.h"
 #include <string.h>
 
 #define YYSTYPE struct parseStack
@@ -361,8 +362,7 @@ met_name: tNAME tLITERAL tSEMI { $$.sp = $2.sp; }
 met_units: tUNITS tIDENT tSEMI { $$.sp = $2.sp; }
 	;
 
-agg_val: tAVG { $$.u = MDL_AGG_AVG; }
-      | tSUM { $$.u = MDL_AGG_SUM; }
+agg_val: tSUM { $$.u = MDL_AGG_SUM; }
       | tMIN { $$.u = MDL_AGG_MIN; }
       | tMAX { $$.u = MDL_AGG_MAX; }
 	;
