@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.103 2002/08/05 16:49:43 willb Exp $
+// $Id: UImain.C,v 1.104 2002/11/25 23:52:29 schendel Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -204,6 +204,9 @@ extern void resourceAddedCB (perfStreamHandle handle,
               const char *name,
               const char *abstraction);
 
+extern void resourceRetiredCB(perfStreamHandle handle, resourceHandle uniqueID,
+                              const char *name, const char *abs);
+
 /*
  * Forward declarations for procedures defined later in this file:
  */
@@ -328,6 +331,12 @@ whereAxisShowTipsCallback( bool newVal )
 }
 
 void
+whereAxisHideRetiredResCallback(bool)
+{
+   
+}
+
+void
 shgShowKeyCallback( bool newVal )
 {
 	// ask the UI thread to show or hide the PC key
@@ -446,6 +455,16 @@ void *UImain(void*) {
         "  A setting of false saves screen real estate.",
         true, // default value
         whereAxisShowTipsCallback,
+        userConstant);
+
+	// initialize tunable constants
+    tunableBooleanConstantDeclarator tcHideRetiredRes(
+        "whereAxisHideRetiredRes",
+        "If true, the WhereAxis window will not display resource"
+        " on shortcuts for expanding, unexpanding, selecting, and scrolling."
+        "  A setting of false saves screen real estate.",
+        false, // default value
+        whereAxisHideRetiredResCallback,
         userConstant);
                           
     tunableBooleanConstantDeclarator tcShgShowKey("showShgKey",
@@ -609,6 +628,7 @@ void *UImain(void*) {
     // subscribe to DM new resource notification service
 
     controlFuncs.rFunc = resourceAddedCB;
+    controlFuncs.retireFunc = resourceRetiredCB;
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = NULL;
     controlFuncs.sFunc = applicStateChanged;
