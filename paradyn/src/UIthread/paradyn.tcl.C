@@ -47,9 +47,13 @@
 */
 
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.73  1996/08/16 21:06:59  tamches
-/* updated copyright for release 1.1
+/* Revision 1.74  1996/10/31 08:21:21  tamches
+/* don't call enablePAUSEorRUN anymore in certain places;
+/* instead, the new uiMgr->enablePauseOrRun is called elsewhere.
 /*
+ * Revision 1.73  1996/08/16 21:06:59  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.72  1996/05/06 17:17:59  newhall
  * changed call to enableDataRequest
  *
@@ -68,17 +72,10 @@
  * making the dataMgr igen call.  No bool reentrancy protection flag used
  * anymore.
  *
- * Revision 1.67  1996/02/21 16:10:50  naim
- * Minor warning fix - naim
- *
- * Revision 1.66  1996/02/19  14:41:35  naim
- * Fixing problem when pressing RUN or PAUSE buttons "continously" - naim
- *
- * Revision 1.65  1996/02/16  20:11:58  tamches
- * paradynProcessCmd now calls expand_tilde_pathname
- *
  */
 
+#include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "tcl.h"
@@ -95,9 +92,6 @@
 #include "shgPhases.h"
 
 #include "util/h/pathName.h" // expand_tilde_pathname
-
-#include <assert.h>
-#include <stdlib.h>
 
 #include "Status.h"
 
@@ -161,7 +155,8 @@ int ParadynContCmd(ClientData,
   myTclEval(interp, ".parent.buttons.1 configure -state disabled");
 
   //sleep(1);
-  dataMgr->continueApplication();
+  if (!dataMgr->continueApplication())
+     cerr << "warning: dataMgr->continueApplication() failed" << endl;
 
   myTclEval(interp, ".parent.buttons.2 configure -state normal");
 
@@ -364,7 +359,6 @@ int ParadynProcessCmd(ClientData,
   char *paradynd = NULL;
   string idir;
   int i;
-  static bool firstProcess=true;
   
   for (i=1; i < argc-1; i++) {
     if (!strcmp("-user", argv[i])) {
@@ -429,36 +423,14 @@ int ParadynProcessCmd(ClientData,
   if (dataMgr->addExecutable(machine, user, paradynd, dir.string_of(),
 			     &av) == false)
   {
-    enablePAUSEorRUN();
+//    enablePAUSEorRUN();
     return TCL_ERROR;
   }
   else {
-    // When the very first process is created...
-    // RUN is now enabled. PDapplicState is set to appRunning, because we
-    // need a previous state of appRunning if we want to pause the application
-    if (firstProcess) {
-      firstProcess=false;
-      if (PDapplicState==appRunning) { 
-	// A previous process has been started from a mdl file
-	PDapplicState=appPaused;
-	dataMgr->continueApplication();
-      }
-      else {
-        PDapplicState=appRunning;
-        dataMgr->pauseApplication();
-      }
-    }
-    else {
-      enablePAUSEorRUN();
-      //if (PDapplicState==appRunning) {
-      //  PDapplicState=appPaused;
-      //  dataMgr->continueApplication();
-      //}
-      //else {
-      //  PDapplicState=appRunning;
-      //  dataMgr->pauseApplication();
-      //}
-    }
+    // We used to enable the RUN button here, but now the implementation has
+    // changed (we wait for DYNINSTinit to run).
+
+//    enablePAUSEorRUN();
     return TCL_OK;
   }
 }
@@ -640,6 +612,7 @@ int ParadynSetCmd (ClientData,
 		    int argc,
 		    char *argv[])
 {
+  // args: <tunable-name> <new-val>
   if (argc != 3) {
     sprintf(interp->result,"USAGE: %s <variable> <value>", argv[0]);
     return TCL_ERROR;
