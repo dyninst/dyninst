@@ -51,6 +51,8 @@ class MC_RemoteNode:public MC_CommunicationNode{
   bool is_backend();
   bool is_internal();
   bool is_upstream();
+
+  const pollfd& get_pollfd( void ) const    { return poll_struct; }
 };
 
 #endif /* __mc_remotenode_h  */

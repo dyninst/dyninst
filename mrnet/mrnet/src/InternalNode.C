@@ -63,11 +63,10 @@ MC_InternalNode::MC_InternalNode(std::string _hostname, unsigned short _port,
 MC_InternalNode::~MC_InternalNode(void)
 {
   delete upstream_node;
-  std::list<MC_RemoteNode *>::iterator iter;
+  std::vector<MC_RemoteNode *>::iterator iter;
 
   for(iter = children_nodes.begin(); iter != children_nodes.end(); iter++){
     delete (MC_RemoteNode *)(*iter);
-    children_nodes.erase(iter);
   }
 }
 

@@ -67,29 +67,64 @@ MC_ParentNode::MC_ParentNode(bool _threaded, std::string _hostname,
 MC_ParentNode::~MC_ParentNode(void)
 {}
 
-int MC_ParentNode::recv_PacketsFromDownStream(std::list<MC_Packet *>&packet_list)
+int MC_ParentNode::recv_PacketsFromDownStream(std::list<MC_Packet*>& pkt_list )
 {
-  unsigned int i;
-  int retval=0;
+    int ret = 0;
 
-  mc_printf(MCFL, stderr, "In recv_PacketsFromDownStream()\n");
+    mc_printf( MCFL, stderr, "In recv_PacketsFromDownStream()\n" );
 
-  std::list <MC_RemoteNode *>::iterator iter;
-  for(i=0,iter = children_nodes.begin();
-      iter != children_nodes.end(); iter++, i++){
-    mc_printf(MCFL, stderr, "Calling downstream[%d].recv() ...\n", i);
-    if( (*iter)->recv(packet_list) == -1){
-      mc_printf(MCFL, stderr, "downstream.recv() failed\n");
-      retval = -1;
-      continue;
+
+    // add all downstream remote nodes to the set to poll
+    pollfd* pfds = new pollfd[ children_nodes.size() ];
+    unsigned int npfds = children_nodes.size();
+    unsigned int i = 0;
+    for( std::vector<MC_RemoteNode*>::iterator iter = children_nodes.begin();
+                iter != children_nodes.end();
+                iter++, i++ )
+    {
+        MC_RemoteNode* currRemNode = *iter;
+        assert( currRemNode != NULL );
+        pfds[i] = currRemNode->get_pollfd();
     }
-    mc_printf(MCFL, stderr, "downstream.recv() succeeded\n");
-  }
 
-  mc_printf(MCFL, stderr, "recv_PacketsFromDownStream %s",
-	     retval == 0 ? "succeeded\n" : "failed\n");
-  return retval;
+    // check for input on our downstream connections
+    int pollret = poll( pfds, npfds, 0 );
+    if( pollret > 0 )
+    {
+        // there is input on some connection
+        // determine the connection on which input exists
+        MC_RemoteNode* readyNode = NULL;
+        for( i = 0; i < children_nodes.size(); i++ )
+        {
+            if( pfds[i].revents & POLLIN )
+            {
+                readyNode = children_nodes[i];
+                break;
+            }
+        }
+        assert( readyNode != NULL );
+
+        // receive data from the ready connection
+        if( readyNode->recv( pkt_list ) == -1 )
+        {
+            ret = -1;
+            mc_printf(MCFL, stderr,
+                 "recv_PacketsFromDownStream recv() from ready node failed\n" );
+        }
+    }
+    else if( pollret < 0 )
+    {
+        // an error occurred
+        ret = -1;
+        mc_printf(MCFL, stderr, "recv_PacketsFromDownStream poll failed\n" );
+    }
+    delete[] pfds;
+
+    mc_printf(MCFL, stderr, "recv_PacketsFromDownStream %s\n",
+	     (ret == 0 ? "succeeded" : "failed") );
+    return ret;
 }
+
 
 int MC_ParentNode::send_PacketDownStream(MC_Packet *packet)
 {
@@ -130,7 +165,7 @@ int MC_ParentNode::flush_PacketsDownStream()
 
   mc_printf(MCFL, stderr, "In flush_PacketsDownStream()\n");
 
-  std::list <MC_RemoteNode *>::iterator iter;
+  std::vector<MC_RemoteNode *>::iterator iter;
   for(i=0,iter = children_nodes.begin();
       iter != children_nodes.end(); iter++, i++){
     mc_printf(MCFL, stderr, "Calling downstream[%d].flush() ...\n", i);
@@ -311,7 +346,7 @@ int MC_ParentNode::proc_delSubTree(MC_Packet * packet)
   int retval=0;
   mc_printf(MCFL, stderr, "In proc_delSubTree()\n");
 
-  std::list <MC_RemoteNode *>::iterator iter;
+  std::vector<MC_RemoteNode *>::iterator iter;
   for(i=0,iter = children_nodes.begin();
       iter != children_nodes.end(); iter++, i++){
     if( (*iter)->send(packet) == -1){
@@ -503,7 +538,7 @@ int MC_ParentNode::proc_newApplication(MC_Packet * packet)
     return -1;
   }
 
-  std::list <MC_RemoteNode *>::iterator iter;
+  std::vector<MC_RemoteNode *>::iterator iter;
   for(i=0,iter = children_nodes.begin();
       iter != children_nodes.end(); iter++, i++){
     mc_printf(MCFL, stderr, "processing %s child: %s\n",
@@ -541,7 +576,7 @@ int MC_ParentNode::proc_delApplication(MC_Packet * packet)
   int retval=0;
   mc_printf(MCFL, stderr, "In proc_delApplication()\n");
 
-  std::list <MC_RemoteNode *>::iterator iter;
+  std::vector<MC_RemoteNode *>::iterator iter;
   for(i=0,iter = children_nodes.begin();
       iter != children_nodes.end(); iter++, i++){
     mc_printf(MCFL, stderr, "Calling downstream[%d].send() ...\n", i);
@@ -642,7 +677,7 @@ MC_ParentNode::proc_getLeafInfo( MC_Packet* pkt )
     {
         // forward the request packet to each of my children
         // TODO am I safe to reuse the same packet here
-        for( std::list<MC_RemoteNode*>::iterator childIter = 
+        for( std::vector<MC_RemoteNode*>::iterator childIter = 
                     children_nodes.begin();
                 childIter != children_nodes.end();
                 childIter++ )
@@ -783,7 +818,8 @@ MC_ParentNode::proc_connectLeaves( MC_Packet* pkt )
         mc_printf(MCFL, stderr, "leaf waiting for connections at %s:%u\n", hostname.c_str(), port);
 
         // accept backend connections for all of our children nodes
-        for( std::list<MC_RemoteNode*>::iterator childIter = children_nodes.begin();
+        for( std::vector<MC_RemoteNode*>::iterator childIter = 
+                        children_nodes.begin();
                     childIter != children_nodes.end();
                     childIter++ )
         {
@@ -819,7 +855,7 @@ MC_ParentNode::proc_connectLeaves( MC_Packet* pkt )
     {
         // forward the request packet to each of my children
         // TODO am I safe to reuse the same packet here
-        for( std::list<MC_RemoteNode*>::iterator childIter = 
+        for( std::vector<MC_RemoteNode*>::iterator childIter = 
                     children_nodes.begin();
                 childIter != children_nodes.end();
                 childIter++ )

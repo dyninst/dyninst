@@ -36,7 +36,7 @@ class MC_ParentNode{
 
  protected:
   enum{MC_ALLNODESREPORTED};
-  std::list<MC_RemoteNode *> children_nodes;
+  std::vector<MC_RemoteNode*> children_nodes;
   std::list<int> backend_descendant_nodes;
   pthread_sync subtreereport_sync;
   unsigned int num_descendants, num_descendants_reported;
