@@ -536,8 +536,7 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
                catchup_t catchup;
                catchup.ast = AST;
                catchup.thread = catchupWalk[0]->frame.getThread();
-               // Don't need the AIX hack here
-               catchup.firstaddr = 0;
+               catchup.firstaddr = aixHACKlowestFunc;
                catchupASTList.push_back(catchup);
            }
            sideEffect_t side;
@@ -605,6 +604,7 @@ bool processMetFocusNode::postCatchupRPCs()
          cerr << "metricID: " << getMetricID() << ", posting ast " << i 
               << " on thread: " 
               << catchupASTList[i].thread->get_tid() << endl;
+         cerr << "   firstAddr: " << catchupASTList[i].firstaddr << endl;
          
       }
       catchupPosted = true;
