@@ -43,9 +43,13 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.C,v $
-/* Revision 1.6  1996/08/16 21:07:41  tamches
-/* updated copyright for release 1.1
+/* Revision 1.7  1997/09/24 19:26:56  tamches
+/* XLoadQueryFont --> Tk_GetFont;use of Tk_GetFontMetrics; other changes
+/* for tcl 8.0
 /*
+ * Revision 1.6  1996/08/16 21:07:41  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.5  1996/04/01 22:33:53  tamches
  * added listboxCopyAreaGC
  *
@@ -89,11 +93,8 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 
    listboxHeightWhereSBappears = Tk_Height(theTkWindow) * 8 / 10; // 80%
 
-   rootTextFontStruct = XLoadQueryFont(display, "*-Helvetica-*-r-*-14-*");
-   if (NULL == rootTextFontStruct) {
-      cerr << "Cannot find Helvetica 14 font!" << endl;
-      exit(5);
-   }
+   // should change to use Tk_GetFont(), right?
+   rootTextFontStruct = Tk_GetFont(interp, theWindow, "*-Helvetica-*-r-*-14-*");
 
    grayColor = Tk_GetColor(interp, theWindow, Tk_GetUid("gray"));
    if (grayColor == NULL)
@@ -136,7 +137,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 
    // Root Text
    values.foreground = blackColor->pixel;
-   values.font = rootTextFontStruct->fid;
+   values.font = Tk_FontId(rootTextFontStruct);
    rootItemTextGC = XCreateGC(display, Tk_WindowId(theTkWindow),
 			      GCForeground | GCFont,
 			      &values);
@@ -161,11 +162,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 			     &values);
 
    // Master listbox Font				  
-   listboxFontStruct = XLoadQueryFont(display, "*-Helvetica-*-r-*-12-*");
-   if (NULL == rootTextFontStruct) {
-      cerr << "Cannot find Helvetica 12 font!" << endl;
-      exit(5);
-   }
+   listboxFontStruct = Tk_GetFont(interp, theWindow, "*-Helvetica-*-r-*-12-*");
 
    // Master listbox Borders
    listboxBorder = Tk_Get3DBorder(interp, theWindow, Tk_GetUid("cornflowerBlue"));
@@ -183,7 +180,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    // Master listbox Text
    values.foreground = blackColor->pixel;
    values.background = pinkColor->pixel;
-   values.font = listboxFontStruct->fid;
+   values.font = Tk_FontId(listboxFontStruct);
    listboxTextGC = XCreateGC(display, Tk_WindowId(theTkWindow),
 				   GCForeground | GCBackground | GCFont,
 				   &values);
@@ -199,16 +196,18 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 				 &values);
 
    // Other listbox integers
-   listboxHorizPadBeforeText = XTextWidth(listboxFontStruct,
-						"8", 1);
+   listboxHorizPadBeforeText = Tk_TextWidth(listboxFontStruct, "8", 1);
    listboxHorizPadBeforeTriangle = 3 * listboxHorizPadBeforeText / 4;
    listboxTriangleWidth = listboxHorizPadBeforeText;
-   listboxTriangleHeight = listboxFontStruct->ascent;
+
+   Tk_FontMetrics listboxFontMetrics;
+   Tk_GetFontMetrics(listboxFontStruct, &listboxFontMetrics);
+   listboxTriangleHeight = listboxFontMetrics.ascent;
    listboxHorizPadAfterTriangle = listboxHorizPadBeforeTriangle;
 
-   int thePad = listboxFontStruct->ascent / 4;
-   if (listboxFontStruct->descent + 1 > thePad)
-      thePad = listboxFontStruct->descent + 1;
+   int thePad = listboxFontMetrics.ascent / 4;
+   if (listboxFontMetrics.descent + 1 > thePad)
+      thePad = listboxFontMetrics.descent + 1;
 
    listboxVertPadAboveItem = thePad;
    listboxVertPadAfterItemBaseline = thePad;
@@ -220,8 +219,9 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 }
 
 where4TreeConstants::~where4TreeConstants() {
-   XFreeFont(display, rootTextFontStruct);
-   XFreeFont(display, listboxFontStruct);
+   // should change to use Tk_FreeFont, right?
+   Tk_FreeFont(rootTextFontStruct);
+   Tk_FreeFont(listboxFontStruct);
 
    Tk_FreeGC(display, listboxCopyAreaGC);
    XFreeGC(display, erasingGC);
