@@ -6,10 +6,13 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.6  1995/10/17 20:51:06  tamches
-/* class abstractions is no longer templated.
-/* class whereAxis is no longer templated either.
+/* Revision 1.7  1996/01/11 04:39:34  tamches
+/* added whole program kludge for getCurrAbstractionSelections
 /*
+ * Revision 1.6  1995/10/17 20:51:06  tamches
+ * class abstractions is no longer templated.
+ * class whereAxis is no longer templated either.
+ *
  * Revision 1.5  1995/09/20 01:15:47  tamches
  * minor change; some usages of int --> unsigned
  *
@@ -131,11 +134,11 @@ class abstractions {
       return *result;
    }
 
-   vector< vector<resourceHandle> > getCurrAbstractionSelections() const {
+   vector< vector<resourceHandle> > getCurrAbstractionSelections(bool &wholeProgram, vector<unsigned> &wholeProgramFocus) const {
       // returns a vector[num-hierarchies] of vector of selections.
       // The number of hierarchies is defined as the number of children of the
       // root node.
-      return getCurrent().getSelections();
+      return getCurrent().getSelections(wholeProgram, wholeProgramFocus);
    }
 
    void resizeEverything() {
