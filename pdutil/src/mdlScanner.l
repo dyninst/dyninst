@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: mdlScanner.l,v 1.4 2004/03/23 01:12:41 eli Exp $
+ * $Id: mdlScanner.l,v 1.5 2004/04/16 20:41:15 legendre Exp $
  */
 
 #include <stdio.h>
@@ -212,6 +212,7 @@ COMMENT	{SLASH}{SLASH}
 "preInsn"		{ return(tPRE_INSN); }
 "postInsn"		{ return(tPOST_INSN); }
 \$return		{ return(tRETURN);}
+\$globalId  { return(tGLOBALID);}
 \$arg           { return(tARG);}
 "daemon"		{ return(tDAEMON); }
 "process"		{ return(tPROCESS); }

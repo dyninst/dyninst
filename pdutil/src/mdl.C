@@ -276,12 +276,17 @@ bool T_dyninstRPC::mdl_v_expr::apply( void )
     }
     case MDL_EXPR_VAR:
     {
-      if (var_==pdstring("$cmin")||var_==pdstring("$cmax")||var_==pdstring("$return"))
+      if (var_==pdstring("$cmin") || var_==pdstring("$cmax") || 
+          var_==pdstring("$return") || var_==pdstring("$globalId"))
       {
         ok_ = true; return true;
       }
       mdl_var get_drn;
-      assert (mdl_data::cur_mdl_data->env->get(get_drn, var_));
+      if (!mdl_data::cur_mdl_data->env->get(get_drn, var_))
+      {
+         cerr << "Undefined MDL variable: " << var_ << endl;
+         return false;
+      }
       switch (get_drn.type())
       {
         case MDL_T_INT:
@@ -507,7 +512,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
     }
     case MDL_EXPR_VAR:
     {
-      if (var_==pdstring("$cmin")||var_==pdstring("$cmax")||var_==pdstring("$return"))
+      if (var_==pdstring("$cmin") || var_==pdstring("$cmax") || 
+          var_==pdstring("$return") || var_==pdstring("$globalId"))
         ok_ = true;
       else
         ok_ = mdl_data::cur_mdl_data->env->get (ret, var_);

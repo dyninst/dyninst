@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlParser.y,v 1.4 2004/03/23 01:12:41 eli Exp $
+// $Id: mdlParser.y,v 1.5 2004/04/16 20:41:14 legendre Exp $
 
 #include "pdutil/h/mdlParse.h"
 #include "pdutil/h/metricStyle.h"
@@ -72,7 +72,7 @@ extern void handle_error();
 
 %token tPLUS tMINUS tDIV tMULT tLT tGT tLE tGE tEQ tNE tAND tOR
 %token tRC tLC tASSIGN tPRE_INSN tPOST_INSN
-%token tRETURN tARG
+%token tRETURN tARG tGLOBALID
 %token tVOID tITEMS tLIBRARY
 %right tASSIGN tPLUSASSIGN tMINUSASSIGN
 %left tLT tGT tEQ tNE tLE tGE
@@ -444,6 +444,10 @@ metric_expr: tUNS
   | tRETURN
   {
     $$.m_expr = mdl_data::cur_mdl_data->new_v_expr ("$return", false);
+  }
+  | tGLOBALID
+  {
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr ("$globalId", false);
   }
   | tIDENT
   {
