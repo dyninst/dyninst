@@ -7,11 +7,38 @@
 //constructors
 //internal use only
 
+
 BPatch_basicBlockLoop::BPatch_basicBlockLoop()
-    : parent(NULL) {}
+    : hierarchicalName(NULL), parent(NULL) {}
 
 BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_basicBlock* lh) 
-    : loopHead(lh), parent(NULL) {}
+    : loopHead(lh), hierarchicalName(NULL), parent(NULL) {}
+
+
+void 
+BPatch_basicBlockLoop::setName(const char* name) { 
+    hierarchicalName = new char[strlen(name)+1]; 
+    strcpy(hierarchicalName, name);
+}
+
+const char* BPatch_basicBlockLoop::name() {
+    return (const char *)hierarchicalName; 
+}
+
+bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)
+{
+    BPatch_Vector<BPatch_basicBlock*> blocks;
+    getLoopBasicBlocks(blocks);
+
+    for(unsigned int i = 0; i < blocks.size(); i++) {
+	if (addr >= blocks[i]->getStartAddress() &&
+	    addr <= blocks[i]->getEndAddress()) 
+	    return true;
+    }
+
+    return false;
+}
+
 
 //retrieves the basic blocks which has back edge to the head of the loop
 //meaning tail of back edges which defines the loop

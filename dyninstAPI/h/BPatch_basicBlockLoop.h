@@ -33,9 +33,21 @@ private:
 	/** set of basic blocks having an edge to the head of the loop */
 	BPatch_Set<BPatch_basicBlock*> backEdges;
 
+	/** name which indicates this loop's relative nesting */
+	char* hierarchicalName;
+
 public:
 	/** If loop which directly encloses this loop. NULL if no such loop */
 	BPatch_basicBlockLoop* parent;
+
+	/** Return true if the given address is within the range of
+	    this loop's basicBlocks */
+	bool containsAddress(unsigned long addr);
+
+	/** return loops name */
+	const char* name();
+	
+	void setName(const char* name);
 
 	/** returns tail of back edges to loop head */
 	void getBackEdges(BPatch_Vector<BPatch_basicBlock*>&);
@@ -64,7 +76,7 @@ public:
 	BPatch_Set<BPatch_variableExpr*>* getLoopIterators();
 
 	/** destructor for the class */
-	~BPatch_basicBlockLoop() {}
+	~BPatch_basicBlockLoop() { delete[] hierarchicalName; }
 
 private:
 // internal use only
