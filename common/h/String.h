@@ -41,7 +41,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.20 2000/07/26 23:02:37 hollings Exp $
+ * $Id: String.h,v 1.21 2002/04/09 18:04:33 mjbrim Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -52,11 +52,9 @@
  * header files.
 ************************************************************************/
 
-#include <iostream.h>
 #include "common/h/debugOstream.h"
 #include "common/h/headers.h"
 
-
 /************************************************************************
  * class string
 ************************************************************************/
@@ -70,6 +68,7 @@ public:
      string_ll (const char *);
      string_ll (const char *, unsigned n); // just copy the first n chars
      string_ll (const string_ll &);
+     string_ll (const char); // convert char to its string_ll represention
      string_ll (int);      // convert int to its string_ll representation
      string_ll (long);      // convert int to its string_ll representation
      string_ll (unsigned); // convert unsigned to its string_ll representation
@@ -80,10 +79,13 @@ public:
 
     string_ll& operator= (const char *);
     string_ll& operator= (const string_ll &);
+    string_ll& operator= (const char);
     string_ll& operator+= (const string_ll &);
     string_ll& operator+= (const char *);
+    string_ll& operator+= (const char);
     string_ll  operator+ (const string_ll &) const;
     string_ll  operator+ (const char *) const;
+    string_ll  operator+ (const char) const;
 
 	char operator[] (unsigned pos) const {return str_[pos];}
 
@@ -102,21 +104,25 @@ public:
 
     bool prefix_of (const char *, unsigned) const;
     bool prefix_of (const char *s)          const {return prefix_of(s, STRLEN(s));};
-    bool prefix_of (const string_ll &)         const;
+    bool prefix_of (const string_ll &)      const;
 
     bool prefixed_by (const char *, unsigned) const;
     bool prefixed_by (const char *s)          const {return prefixed_by(s, STRLEN(s));};
-    bool prefixed_by (const string_ll &)         const;
+    bool prefixed_by (const string_ll &)      const;
 
     bool suffix_of (const char *, unsigned) const;
     bool suffix_of (const char *s)          const {return suffix_of(s, STRLEN(s));};
-    bool suffix_of (const string_ll &)         const;
+    bool suffix_of (const string_ll &)      const;
 
     bool suffixed_by (const char *, unsigned) const;
     bool suffixed_by (const char *s)          const {return suffixed_by(s, STRLEN(s));};
-    bool suffixed_by (const string_ll &)         const;
+    bool suffixed_by (const string_ll &)      const;
 
-	string_ll substr (unsigned, unsigned) const;
+    unsigned find (const char *, unsigned) const;
+    unsigned find (const char *s)          const {return find(s, STRLEN(s));};
+    unsigned find (const string_ll &)      const;
+
+    string_ll substr (unsigned, unsigned) const;
 
     bool wildcardEquiv( const string_ll &, bool ) const;
 	bool wildcardEquiv( const char *ptr, bool checkCase ) const {
@@ -192,6 +198,7 @@ class string {
    string(const char *str, unsigned n) : data(string_ll(str,n)) {}
 
    string(const string& src) : data(src.data) {}
+   string(const char c) : data(string_ll(c)) {}
    string(int i) : data(string_ll(i)) {}
    string(long l) : data(string_ll(l)) {}
    string(unsigned u) : data(string_ll(u)) {}
@@ -213,6 +220,14 @@ class string {
    }
    string& operator=(const string &src) {
       data = src.data;
+      return *this;
+   }
+
+   string& operator=(const char c) {
+      string_ll new_str_ll(c);
+      refCounter<string_ll> newRefCtr(new_str_ll);
+
+      data = newRefCtr;
       return *this;
    }
 
@@ -239,6 +254,12 @@ class string {
       return *this;
    }
 
+   string& operator+=(const char c) {
+      string_ll newstr = data.getData() + c;
+      data = newstr;
+      return *this;
+   }
+
    string operator+(const string &src) const {
       string result = *this;
       return (result += src);
@@ -247,6 +268,12 @@ class string {
       string result = *this;
       return (result += src);
    }
+
+   string operator+(const char c) const {
+      string result = *this;
+      return (result += c);
+   }
+
    friend string operator+(const char *src, const string &str);
       // a syntactical convenience
 
@@ -325,8 +352,29 @@ class string {
       const string_ll &them = src.data.getData();
       return (me.suffixed_by(them));
    }
+   
+   unsigned find(const char *str, unsigned n) const {
+     const string_ll &me = data.getData();
+     return (me.find(str, n));
+   }
+   
+   unsigned find(const char *str) const {
+     const string_ll &me = data.getData();
+     return (me.find(str));
+   }
+
+   unsigned find(const string &src) const {
+     const string_ll &me = data.getData();
+     const string_ll &them = src.data.getData();
+     return (me.find(them));
+   }
 
    const char *string_of() const {
+      const string_ll &me = data.getData();
+      return me.string_of();
+   }
+
+   const char *c_str() const {
       const string_ll &me = data.getData();
       return me.string_of();
    }
