@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1996-2003 Barton P. Miller
+# Copyright (c) 1996-2004 Barton P. Miller
 # 
 # We provide the Paradyn Parallel Performance Tools (below
 # described as Paradyn") on an AS IS basis, and do not warrant its
@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile,v 1.2 2003/11/21 17:57:54 pcroth Exp $
+# $Id: Makefile,v 1.3 2004/03/18 15:28:51 pcroth Exp $
 #
 
 !include ..\\..\\nmake.config
@@ -117,9 +117,9 @@ $(MRNET_IINCDIR): $(IINCDIR)
 	-md $@
 	
 
-!ifdef USE_VC7
-!include Makefile.vc7
-!else
+!ifdef USE_VC6
 !include Makefile.vc6
+!else
+!include Makefile.vc7
 !endif
 
