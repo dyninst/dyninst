@@ -230,120 +230,45 @@ bool BPatch_point::isDynamic()
  *
  */
 
-bool BPatch_point::monitorCalls(BPatch_function *user_cb)
-{
-#if !defined(ia64_unknown_linux2_4)
-   if (!isDynamic()) {
-     fprintf(stderr, "%s[%d]:  call site is not dynamic, cannot monitor\n",
-             __FILE__, __LINE__);
-     return false;
-   }
-   if (dynamicMonitoringCall) {
-     // we are already monitoring this site.
-     // we could allow more than 1 function to monitor a site, but
-     // unless someone really needs this behavior, lets just keep it simple
-     //bperr("%s[%d]:  call site already being monitored", __FILE__, __LINE__);
-     fprintf(stderr, "%s[%d]:  call site already being monitored", __FILE__, __LINE__);
-     return false;
-   }
+bool BPatch_point::monitorCalls( BPatch_function * user_cb ) {
+	if( !isDynamic() ) {
+		fprintf(stderr, "%s[%d]:  call site is not dynamic, cannot monitor\n", __FILE__, __LINE__ );
+		return false;
+		}
+	if( dynamicMonitoringCall ) {
+		/* For simplicity, disallow multiple callbacks. */
+    	fprintf( stderr, "%s[%d]:  call site already being monitored", __FILE__, __LINE__ );
+	    return false;
+		}
+	
+	/* The callback takes two arguments: the first is the (address of the) callee,
+	   the second the (address of the) callsite. */
+	pdvector<AstNode *> args;
+	if( (!proc->getDynamicCallSiteArgs( point,args )) || (args.size() != 2) ) {
+		fprintf(stderr,"%s[%d]:  could not get address arguments for dynamic call site\n",  __FILE__, __LINE__);
+		return false;
+		}
 
-#ifdef NOTDEF // PDSEP -- egad, type checking is gonna be tricky
-   //  Make sure user_cb has 2 paramaters, and they are both 'void *'
+	// construct function call and insert
+	function_base * fb = user_cb->func;
 
-   BPatch_Vector<BPatch_localVar *> *params = user_cb->getParams();
-   if ((!params) || !(params->size() == 2)) {
-     char fname[2048];
-     user_cb->getName(fname, 2048);
-     /*
-     bperr("%s[%d]:  wrong number of args (%d != 2) for function %s, %s", 
-           __FILE__, __LINE__, params ? params->size() : 0, fname,
-           "cannot monitor dynamic calls using this function.");
-     */
-     fprintf(stderr,"%s[%d]:  wrong number of args (%d != 2) for function %s, %s",
-           __FILE__, __LINE__, params ? params->size() : 0, fname,
-           "cannot monitor dynamic calls using this function.");
+	// Monitoring function
+	AstNode * func = new AstNode( fb, args );
+	miniTrampHandle * mtHandle = NULL;
+	addInstFunc(	proc, mtHandle, point, func, callPreInsn,
+					orderLastAtPoint,
+					true,						/* noCost flag   */
+					false,						/* trampRecursiveDesired flag */
+					true );						/* allowTrap */
+	dynamicMonitoringCall = mtHandle;
 
-     return false;
-   }
+	if( ! dynamicMonitoringCall ) {
+		fprintf( stderr,"%s[%d]:  insertSnippet failed, cannot monitor call site\n", __FILE__, __LINE__ );
+		return false;
+		}
 
-   BPatch_type *vstype = BPatch::bpatch->stdTypes->findType("void *");
-   if (!vstype) {
-     //bperr("%s[%d]:  cannot find internal type 'void *'.", __FILE__, __LINE__);
-     fprintf(stderr,"%s[%d]:  cannot find internal type 'void *'.", __FILE__, __LINE__);
-     return false;
-   }
-
-   for (unsigned int i = 0; i < params->size(); ++i) {
-     BPatch_type *param_type = (*params)[i]->getType();
-     if (!param_type || !(*param_type == *vstype)) {
-       char fname[2048];
-       user_cb->getName(fname, 2048);
-       /*
-       bperr("%s[%d]: bad type '%s' for param %d of function %s", 
-             __FILE__, __LINE__, 
-             param_type ? "<no param type>" : param_type->getName(),
-             i, fname);
-        */
-       fprintf(stderr,"%s[%d]: bad type '%s' for param %d of function %s",
-             __FILE__, __LINE__,
-             param_type ? "<no param type>" : param_type->getName(),
-             i, fname);
-
-       return false;
-     }
-   }
-#endif
-   // get address arguments to user_cb (platform dep)
-
-   pdvector<AstNode *> args;
-   if ((!proc->getDynamicCallSiteArgs(point,args)) || (args.size() != 2)) {
-
-     //bperr("%s[%d]:  could not get address arguments for dynamic call site",
-      //     __FILE__, __LINE__);
-     fprintf(stderr,"%s[%d]:  could not get address arguments for dynamic call site",
-           __FILE__, __LINE__);
-
-     return false;
-   }
-
-   // construct function call and insert
-   function_base *fb = user_cb->func;
-
-   // Monitoring function
-   AstNode *func = new AstNode(fb, args);
-   miniTrampHandle *mtHandle = NULL;
-   addInstFunc(proc, mtHandle, point, func, callPreInsn,
-               //orderFirstAtPoint,
-               orderLastAtPoint,
-               true,                        /* noCost flag   */
-               false,                       /* trampRecursiveDesired flag */
-               true);                       /* allowTrap */
-   dynamicMonitoringCall = mtHandle;
-
-#ifdef NOTDEF // PDSEP
-
-   BPatch_funcCallExpr *fs = new BPatch_funcCallExpr(*user_cb, args);
-   BPatch_thread *appThread = proc->bpatch_thread;
-   dynamicMonitoringCall = appThread->insertSnippet(*fs, *this, 
-                                                    BPatch_callBefore, 
-                                                    BPatch_lastSnippet);
-#endif
-   if (!dynamicMonitoringCall) {
-    // bperr("%s[%d]:  insertSnippet failed, cannot monitor call site", 
-     //       __FILE__, __LINE__);
-     fprintf(stderr,"%s[%d]:  insertSnippet failed, cannot monitor call site", 
-            __FILE__, __LINE__);
-     return false;
-   }
-
-   return true;
-#else
-    fprintf(stderr, "%s[%d]:  Dynamic Call Sites not implemented for ia64 yet\n",
-            __FILE__, __LINE__);
-    return false;
-#endif
-
-}
+	return true;
+	} /* end monitorCalls() */
 
 bool BPatch_point::stopMonitoring()
 {
