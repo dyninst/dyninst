@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.75 2000/04/26 18:10:55 pcroth Exp $
+// $Id: rpcUtil.C,v 1.76 2000/04/27 19:12:54 bernat Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -638,7 +638,10 @@ XDRrpc::XDRrpc(int family,
   struct hostent *hostptr = 0;
   struct in_addr *inadr = 0;
   if (!(hostptr = P_gethostbyname(machine.string_of())))
-    return;
+    {
+      cerr << "CRITICAL: Failed to find information for host " << machine.string_of() << "." << endl;
+      assert(0);
+    }
 
   inadr = (struct in_addr *) ((void*) hostptr->h_addr_list[0]);
   P_memset ((void*) &serv_addr, 0, sizeof(serv_addr));
