@@ -4,7 +4,10 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.2  1995/02/16 09:21:22  markc
+# Revision 1.3  1995/02/27 18:17:39  tamches
+# Removed tunable constant files from the util-lib
+#
+# Revision 1.2  1995/02/16  09:21:22  markc
 # Added template support
 #
 # Revision 1.1  1995/01/30  18:11:52  jcargill
@@ -17,13 +20,12 @@ TARGET2	      = libutilPVM.a
 
 SRCS	     += ../src/lprintf.C \
 		../src/rpcUtil.C \
-		../src/tunableConst.C \
 		../src/aggregateSample.C \
 		../src/stringPool.C \
 		../src/hist.C \
 		../src/timing.C 
 
-OBJS         += lprintf.o rpcUtil.o tunableConst.o aggregateSample.o \
+OBJS         += lprintf.o rpcUtil.o aggregateSample.o \
  		stringPool.o hist.o timing.o
 
 SRCS2	     += rpcUtilPVM.C
