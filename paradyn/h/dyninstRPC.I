@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.79 1998/07/12 21:07:10 newhall Exp $
+/* $Id: dyninstRPC.I,v 1.80 1999/05/24 17:09:29 cain Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -425,7 +425,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 54;
+    $version 55;
 
     //
     // Define a program to run. 
@@ -543,8 +543,19 @@ $remote dynRPC {
 					     string abstraction, u_int type);
 
     $virtual $upcall $async void severalResourceInfoCallback(vector<resourceInfoCallbackStruct>);
-
-   //
+	
+    //
+    // Handlers that gets called in paradynd when a new call graph relationship
+    //  is defined....
+    // Names post-fixed w/ Callback to preserve convention that functions
+    //  names *Callback represent callbacks from paradynd TO paradyn....
+    //
+    $virtual $upcall $async void AddCallGraphNodeCallback(int program, string resource);
+    $virtual $upcall $async void 
+	AddCallGraphStaticChildrenCallback(int program, string resource, 
+	vector<string> children);
+    $virtual $upcall $async void CallGraphSetEntryFuncCallback(int program, string entry_func);
+    $virtual $upcall $async void CallGraphFillDone(int program);
     // Handler that gets called when a new memory is defined.
     //
     // data_structure   - name of memory chunk, divided into blks

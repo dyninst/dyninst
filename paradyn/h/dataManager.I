@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.89 1999/05/20 21:40:31 pcroth Exp $
+ * $Id: dataManager.I,v 1.90 1999/05/24 17:09:30 cain Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -144,8 +144,8 @@ typedef void (*enableDataCallbackFunc)(vector<metricInstInfo> *response,
 				       u_int request_id);
 
 struct controlCallback {
-    metricInfoCallback 		mFunc;
-    resourceInfoCallback 	rFunc;
+    metricInfoCallback		mFunc;
+    resourceInfoCallback	rFunc;
     resourceBatchModeCallback	bFunc;
     histFoldCallback		fFunc;
     appStateChangeCallback	sFunc;
@@ -159,7 +159,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 52;
+    $version 53;
 
     //
     // Start a paradyn daemon
@@ -230,6 +230,8 @@ $remote dataManager {
     //	- Does a paused application respond to enable/disable commands?
     //
     bool pauseApplication();
+
+    void createCallGraph();
 
     //
     // Pause a process in an application 
