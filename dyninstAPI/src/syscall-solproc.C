@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.4 2004/04/02 06:34:15 jaw Exp $
+// $Id: syscall-solproc.C,v 1.5 2004/05/13 15:32:16 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -68,6 +68,25 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
 
     // We set PR_FORK in the parent, so everything was copied.
     
+#if defined(bug_aix_proc_broken_fork)
+    // Just copying the pointer value isn't a great idea....
+        if (parentSN->postForkInst) {
+            AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
+            postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
+                                           FUNC_EXIT|FUNC_ARG,
+                                           returnVal);
+            postForkInst->dontUseTrampGuard();
+            removeAst(returnVal);
+            for (unsigned iter = 0; iter < parentSN->postForkInst->mtHandles.size(); iter++) {
+                miniTrampHandle *child = NULL;
+                getInheritedMiniTramp(parentSN->postForkInst->mtHandles[iter],
+                                      child,
+                                      proc);
+                postForkInst->mtHandles.push_back(child);
+            }
+    }
+#endif
+
 }
 
 /////////// Prefork instrumentation 
@@ -248,11 +267,12 @@ bool syscallNotification::removePreFork() {
 /////// Remove post-fork instrumentation
 
 bool syscallNotification::removePostFork() {
-#if defined(bug_aix_proc_broken_fork) 
     if (!postForkInst) return false;
 
+#if defined(bug_aix_proc_broken_fork) 
+
     if (!proc->isAttached()) {
-        delete postForkInst;
+        if (postForkInst) delete postForkInst;
         postForkInst = NULL;
         return true;
     }
@@ -264,6 +284,7 @@ bool syscallNotification::removePostFork() {
         bool removed = deleteInst(proc, handle);
         // At some point we should handle a negative return... but I
         // have no idea how.
+        
         assert(removed);
         // The miniTrampHandle is deleted when the miniTramp is freed, so
         // we don't have to.
@@ -272,7 +293,7 @@ bool syscallNotification::removePostFork() {
     postForkInst = NULL;
     return true;
 #else
-    if (!postForkInst) return false;
+
     if (!proc->isAttached()) {
         postForkInst = NULL;
         return true;
