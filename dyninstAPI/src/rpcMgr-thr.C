@@ -254,7 +254,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
 bool rpcThr::deleteThrIRPC(unsigned id) {
     // Can remove a queued or pending thr IRPC
     bool removed = false;
-    
+
     if (pendingRPC_ && pendingRPC_->rpc->id == id) {
        // we don't want to do as we normally do when a exit trap occurs,
        // that is to run the rpc, which gets triggered by this callback
@@ -293,7 +293,6 @@ bool rpcThr::handleCompletedIRPC() {
 
 #if defined(sparc_sun_solaris2_4)    
     if(mgr_->proc()->multithread_capable() && runningRPC_->isProcessRPC) {
-        lwp->proc()->restoreRepresentativeLWP();
         mgr_->processingProcessRPC = false;
     }
 #endif
@@ -349,6 +348,7 @@ bool rpcThr::handleCompletedIRPC() {
             return true;
         }
     }
+       
     return runProcess;
 }
 
