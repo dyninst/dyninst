@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.228 2000/07/27 14:01:18 bernat Exp $
+// $Id: process.C,v 1.229 2000/07/27 14:12:30 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1146,9 +1146,11 @@ void process::initInferiorHeap()
       {
 	hp->bufferPool += new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
 					infHeaps[j].type(), false);
+	/*
 	fprintf(stderr, "new heapItem(%x, %d, %d, false)\n",
 		infHeaps[j].addr(), infHeaps[j].size(),
 		infHeaps[j].type());
+	*/
 	heapAdded = true;
 	if (infHeaps[j].type() == lowmemHeap)
 	  lowmemHeapAdded = true;
@@ -1165,6 +1167,8 @@ void process::initInferiorHeap()
 				       anyHeap, false);
 	hp->bufferPool += new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
 				       LOWMEM_HEAP_SIZE, lowmemHeap, false);
+	heapAdded = true; 
+	lowmemHeapAdded = true;
       }
     if (!lowmemHeapAdded)
       {
