@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.17 1999/07/29 13:58:41 hollings Exp $
+// $Id: BPatch.C,v 1.18 1999/08/18 19:04:48 pcroth Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -67,7 +67,16 @@ BPatch *BPatch::bpatch = NULL;
  * Constructor for BPatch.  Performs one-time initialization needed by the
  * library.
  */
-BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
+BPatch::BPatch()
+  : info(NULL),
+    errorHandler(NULL),
+    dynLibraryCallback(NULL),
+    typeCheckOn(true),
+    lastError(0),
+    builtInTypes(NULL),
+    stdTypes(NULL),
+    type_Error(NULL),
+    type_Untyped(NULL)
 {
     extern bool init();
     extern double cyclesPerSecond;
