@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.37  1995/09/26 20:27:46  naim
-/* Minor changes in error messages
+/* Revision 1.38  1995/10/30 23:07:36  naim
+/* Eliminating warning message - naim
 /*
+ * Revision 1.37  1995/09/26  20:27:46  naim
+ * Minor changes in error messages
+ *
  * Revision 1.36  1995/09/18  18:22:41  newhall
  * changes to avoid for-scope problem
  *
@@ -419,6 +422,7 @@ void VM::VMDestroyVisi(thread_t visiThreadId){
       if(activeVisis[i]->visiThreadId == visiThreadId){
           // remove entry from active visi table
 	  VMactiveVisi *temp = activeVisis[i];
+	  temp->visip->VISIKillVisi();  
 	  activeVisis[i] = activeVisis[activeVisis.size() - 1];
 	  activeVisis.resize(activeVisis.size() - 1);
 	  delete(temp->visip);
@@ -511,6 +515,7 @@ void *VMmain(void* varg) {
   while(1){
       unsigned tag = MSG_TAG_ANY;
       int from = msg_poll(&tag, 1);
+      assert(from != THR_ERR);
       if (uiMgr->isValidTag((T_UI::message_tags)tag)) {
 	if (uiMgr->waitLoop(true, (T_UI::message_tags)tag) == T_UI::error) {
 	  // TODO
