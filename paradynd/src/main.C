@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.3  1994/02/24 04:32:33  markc
+ * Revision 1.4  1994/02/25 13:40:55  markc
+ * Added hooks for pvm support.
+ *
+ * Revision 1.3  1994/02/24  04:32:33  markc
  * Changed header files to reflect igen changes.  main.C does not look at the number of command line arguments now.
  *
  * Revision 1.2  1994/02/01  18:46:52  hollings
@@ -38,18 +41,30 @@ extern void initLibraryFunctions();
 
 main(int argc, char *argv[])
 {
-    int i;
+    int i, family, type, well_known_socket, flag;
+    char *machine;
     metricList stuff;
 
     initLibraryFunctions();
 
-    // TODO, process args
-    //
-    // if (argc != 1) {
-    //    printf("remote start not supported\n");
-    //    exit(-1);
-    // }
+    // process command line args passed in
+    // flag == 1 --> started by paradyn
+    assert (RPC_undo_arg_list (argc, argv, &machine, family, type,
+		       well_known_socket, flag) == 0);
+
+#ifdef PARADYND_PVM
+    extern int PDYN_initForPVM (char **, char *, int, int, int, int);
+    assert (PDYN_initForPVM (argv, machine, family, type, well_known_socket,
+			     flag) == 0);
+
+    // connect to paradyn
+    if (flag == 1)
+      tp = new dynRPC(0, NULL, NULL);
+    else
+      tp = new dynRPC(family, well_known_socket, type, machine, NULL, NULL);
+#else
     tp = new dynRPC(0, NULL, NULL);
+#endif
 
     //
     // tell client about our metrics.
