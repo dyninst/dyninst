@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.10  1994/07/15 20:22:03  hollings
+ * Revision 1.11  1994/07/22 19:16:36  hollings
+ * moved computePauseTimeMetric here, and added lib func calls for cmmd routines.
+ *
+ * Revision 1.10  1994/07/15  20:22:03  hollings
  * fixed 64 bit record to be 32 bits.
  *
  * Revision 1.9  1994/07/14  23:30:26  hollings
@@ -45,7 +48,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.10 1994/07/15 20:22:03 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.11 1994/07/22 19:16:36 hollings Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -335,6 +338,15 @@ void initLibraryFunctions()
     addLibFunc(&libraryFunctions, "DYNINSTsampleValues", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "exit", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "fork", TAG_LIB_FUNC);
+
+    addLibFunc(&libraryFunctions, "cmmd_debug", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "CMMD_send", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "CMMD_receive", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "CMMD_receive_block", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "CMMD_send_block", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "CMMD_send_async", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "CMMD_send_async", TAG_LIB_FUNC);
+
     addLibFunc(&libraryFunctions, "main", 0);
 
     libraryFunctions += fileByteFunctions;
@@ -351,5 +363,29 @@ int findNodeOffset(char *file, int offset)
     return(0);
 }
 
+float computePauseTimeMetric()
+{
+    timeStamp now;
+    timeStamp elapsed;
+    extern timeStamp startPause;
+    extern time64 firstRecordTime;
+    extern Boolean firstSampleReceived;
+    extern Boolean applicationPaused;
+    extern timeStamp elapsedPauseTime;
+    static timeStamp reportedPauseTime = 0;
+    extern timeStamp getCurrentTime(Boolean firstRecordRelative);
 
+    now = getCurrentTime(FALSE);
+    if (firstRecordTime && firstSampleReceived) {
+	elapsed = elapsedPauseTime - reportedPauseTime;
+	if (applicationPaused) {
+	    elapsed += now - startPause;
+	}
+	assert(elapsed >= 0.0); 
+	reportedPauseTime += elapsed;
+	return(elapsed);
+    } else {
+	return(0.0);
+    }
+}
 
