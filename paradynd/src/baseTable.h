@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.h,v 1.9 2002/04/17 21:18:04 schendel Exp $
+// $Id: baseTable.h,v 1.10 2002/04/23 18:58:44 schendel Exp $
 
 // The baseTable class consists of an array of superVectors. The baseTable
 // class is a template class. It has a levelMap vector that keeps track of
@@ -56,6 +56,7 @@
 
 #include "common/h/Vector.h"
 #include "paradynd/src/superVector.h"
+#include "paradynd/src/superTableTypes.h"
 
 class process;
 
@@ -87,29 +88,31 @@ class baseTable {
     void addRows(unsigned level, unsigned nRows,
 		 bool calledFromBaseTableConst=false);
 
-    bool alloc(unsigned thr_pos, const RAW &iRawValue,
-	       const HK &iHouseKeepingValue,
-	       unsigned *allocatedIndex,
-	       unsigned *allocatedLevel,
-	       bool doNotSample=false);
+    inst_var_index allocateForInstVar(unsigned level);
+    
+    void createThrInstVar(unsigned level, inst_var_index varIndex, 
+			  unsigned thrPos, const RAW &iValue, 
+			  const HK &iHKValue);
 
-    void makePendingFree(unsigned pd_pos, unsigned allocatedIndex,
-			 unsigned allocatedLevel, 
-			 const vector<Address> &trampsUsing);
+    void markVarAsSampled(unsigned level, inst_var_index varIndex, 
+			  unsigned thrPos) const;
 
-    RAW *index2LocalAddr(unsigned position,
-			 unsigned allocatedIndex,
-			 unsigned allocatedLevel) const;
+    void markVarAsNotSampled(unsigned level, inst_var_index varIndex,
+			     unsigned thrPos) const;
 
-    RAW *index2InferiorAddr(unsigned position,
-			    unsigned allocatedIndex,
-			    unsigned allocatedLevel) const;
+    void makePendingFree(unsigned level, inst_var_index varIndex,
+			 unsigned thrPos, const vector<Address> &trampsUsing);
 
-    HK *getHouseKeeping(unsigned position, unsigned allocatedIndex,
-			unsigned allocatedLevel);
+    RAW *index2LocalAddr(unsigned level, inst_var_index varIndex,
+			 unsigned thrPos) const;
 
-    void initializeHKAfterFork(unsigned allocatedIndex, 
-			       unsigned allocatedLevel,
+    RAW *index2InferiorAddr(unsigned level, inst_var_index varIndex,
+			    unsigned thrPos) const;
+
+    HK *getHouseKeeping(unsigned level, inst_var_index varIndex,
+			unsigned thrPos);
+
+    void initializeHKAfterFork(unsigned level, inst_var_index varIndex,
 			       const HK &iHouseKeepingValue);
 
     void setBaseAddrInApplic(RAW *addr);
