@@ -19,7 +19,7 @@
 #define LONG_16k LONG_4096 ; LONG_4096 ; LONG_4096 ; LONG_4096
 #define LONG_64k LONG_16k ; LONG_16k ;  LONG_16k ; LONG_16k
 	
-#define STACK_AREA		(112)
+#define STACK_AREA		(120)
 #define CONSERVATIVE_STACK_AREA	(256+31*8)
 
 	.set noat
@@ -34,6 +34,7 @@ DYNINSTcode:
 	.globl DYNINSTsave_temp
 	.ent DYNINSTsave_temp 2	
 DYNINSTsave_temp:
+	stq $30, 112-STACK_AREA($sp) /* save frame pointer */
 	lda $sp, -STACK_AREA($sp)
 	stq $1, 0($sp)
 	stq $2, 8($sp)
