@@ -2,9 +2,13 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.16  1995/10/17 03:00:39  karavan
-/* UIstatDisp.h is obsolete
+/* Revision 1.17  1995/11/08 23:41:36  tamches
+/* removed obsolete igen calls showMsg, msgChoice, showMsgWait,
+/* chooseMenuItem, and chooseMenuItemREPLY
 /*
+ * Revision 1.16  1995/10/17 03:00:39  karavan
+ * UIstatDisp.h is obsolete
+ *
 # Revision 1.15  1995/10/05  04:46:22  karavan
 # changes to support future Performance Consultant: multiple searches, one
 # per phase.  Added PC status window to the interface where it belongs.
@@ -122,41 +126,17 @@ $remote UIM {
 			      vector<metric_focus_pair> *pairList);
 
 	
-	// generic message display; returns index of user choice if applic.
-
-	$async void showMsg (showMsgCBFunc cb,
-			char *displayMsg, 
-			int numChoices, 
-			char **choices);
-
-	$upcall $async void msgChoice (showMsgCBFunc cb, 
-			int userChoice);
-
-	int showMsgWait (char *displayMsg, 
-			int numChoices, 
-			char **choices);
-
 	// message display with "error" visual characteristics
         //  and lookup in error database for explanation
 
 	$async void showError (int errCode, const char *errString);
 
-	// returns index of user's menu choice
-        $async void chooseMenuItem (chooseMenuItemCBFunc cb, 
-			char *menuItems,
-			char *menuTitle,
-			char *options,
-			int numMenuItems,
-			int flags);
-
-	$upcall $async void chooseMenuItemREPLY (chooseMenuItemCBFunc cb, 
-			int userChoice);
-
 	// used to tell UI to source a tcl file after initialization
+        // (but of course the -s option is for us developers only...)
 	$async void readStartupFile(const char *script);
 
 	// 
-        // DAG services 
+        // SHG stuff
         //
 	int initSHG (const char *phasename, int phaseID);
 
