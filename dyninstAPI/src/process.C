@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.327 2002/05/21 17:40:31 chadd Exp $
+// $Id: process.C,v 1.328 2002/06/10 19:24:56 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -250,7 +250,7 @@ Address process::getTOCoffsetInfo(Address /*dest */)
 // Current behavior is to return what we have. 
 
 #if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
-void process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused)
+bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused)
 {
   u_int sig_size   = 0;
   Address sig_addr = 0;
@@ -274,7 +274,7 @@ void process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
 #ifndef BPATCH_LIBRARY
       stopTimingStackwalk();
 #endif
-      return;
+      return false;
   }
 
   if(signal_handler){
@@ -305,6 +305,7 @@ void process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
 
         if (!paused && needToCont && !continueProc()) {
             cerr << "walkStack: continueProc failed" << endl;
+	    return false;
         }
 
 	// AIX:
@@ -315,7 +316,7 @@ void process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
 	// confused as well. This sucks for catchup.
 
 	// We should check to see if this early exit is warranted.
-        return;
+        return false;
       }
       fpOld = fpNew;
 
@@ -347,16 +348,22 @@ void process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
     }
     stackWalk.push_back(currentFrame);
   }
+  else {
+    cerr << "paused failed in walkStack" << endl;
+    return false;
+  }
 
   if (!paused && needToCont) {
      if (!continueProc()){
         cerr << "walkStack: continueProc failed" << endl;
+	return false;
      }
   }  
 
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
+  return true;
 }
 #endif
 
@@ -432,7 +439,7 @@ bool process::init_pthdb_library()
 #endif
 
 
-void process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false)
+bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false)
 {
   vector<Frame> stackWalk;
   bool needToCont = paused ? false : (status() == running);
@@ -453,7 +460,7 @@ void process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = f
   // Should do this in a one-time-initialization place
   init_pthdb_library();
 #endif
-
+  bool retval = true;
   if (pause()) {
     //Walk thread stacks
     // Assume that the frame constructor will tell if the
@@ -462,7 +469,8 @@ void process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = f
     for (unsigned i=0; i<threads.size(); i++) {
       Frame currentFrame = threads[i]->getActiveFrame();
       cerr << "Walking stack of frame " << currentFrame << endl;
-      walkStack(currentFrame, stackWalk, paused);
+      if (!walkStack(currentFrame, stackWalk, paused))
+	retval = false;
       allStackWalks.push_back(stackWalk);
       stackWalk.resize(0);
     }
@@ -477,6 +485,7 @@ void process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = f
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
+  return true;
 }
 #endif //MT_THREAD
 
@@ -876,7 +885,7 @@ int heapItemCmpByAddr(const heapItem **A, const heapItem **B)
   }
 }
 
-void inferiorFreeCompact(inferiorHeap *hp)
+void process::inferiorFreeCompact(inferiorHeap *hp)
 {
   vector<heapItem *> &freeList = hp->heapFree;
   unsigned i, nbuf = freeList.size();
@@ -919,70 +928,6 @@ void inferiorFreeCompact(inferiorHeap *hp)
     }
     freeList.resize(nbuf);
     assert(freeList.size() == nbuf);
-  }
-}
-
-void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
-{
-  // The curr_lwp parameter is IGNORED on non-AIX platforms.
-  Frame currentFrame = proc->getActiveFrame();
-  vector<Frame> stackWalk;
-  proc->walkStack(currentFrame, stackWalk);
-
-  // if walkStack() fails, assume not safe to delete anything
-  if (stackWalk.size() == 0) return;
-
-  // set allowed deletion time
-  timeLength maxDelTime = MaxDeletingTime;
-  if (runOutOfMem) {
-    maxDelTime += MaxDeletingTime; // double allowed deletion time
-    sprintf(errorLine, "Emergency attempt to free memory (pid=%d)\n", proc->getPid());
-    logLine(errorLine);
-  }
-  timeStamp initTime = getCurrentTime();
-
-  vector<disabledItem> &disabled = hp->disabledList;
-  for (unsigned i = 0; i < disabled.size(); i++) {
-    // exit if over allowed deletion time
-    if (getCurrentTime() - initTime >= maxDelTime) {
-      sprintf(errorLine, "inferiorFreeDeferred(): out of time\n");
-      logLine(errorLine);
-      return;
-    }
-
-    disabledItem &item = disabled[i];
-    if (isFreeOK(proc, item, stackWalk)) {
-      heapItem *np = NULL;
-      Address pointer = item.block.addr;
-      if (!hp->heapActive.find(pointer, np)) {
-        showErrorCallback(96,"Internal error: "
-                "attempt to free non-defined heap entry.");
-        return;
-      }
-      assert(np);
-
-      if (np->status != HEAPallocated) {
-        sprintf(errorLine,"Attempt to re-free heap entry 0x%lx\n", pointer);
-        logLine(errorLine);
-        showErrorCallback(67, (const char *)errorLine); 
-        return;
-      }
-
-      // remove from active list
-      hp->heapActive.undef(pointer);
-      // remove from disabled list
-      disabled[i] = disabled[disabled.size()-1];
-      disabled.resize(disabled.size()-1);
-      hp->disabledListTotalMem -= np->length;
-      // add to free list
-      np->status = HEAPfree;      
-      hp->heapFree.push_back(np);
-      hp->totalFreeMemAvailable += np->length;
-      // bookkeeping
-      hp->freed += np->length;
-      inferiorMemAvailable = hp->totalFreeMemAvailable;
-      i--; // move index back to account for resize()
-    }
   }
 }
 
@@ -1397,7 +1342,7 @@ void process::saveWorldCreateHighMemSections(vector<imageUpdate*> &compactedHigh
 
                 //fill in address of update
                 //fill in size of update
-                for(unsigned index = startIndex; index<=stopIndex;index++){ 
+                for(int index = startIndex; index<=stopIndex;index++){ 
 		  	memcpy(dataPtr, &highmemUpdates[index]->address ,sizeof(unsigned int));
 			dataPtr ++;
 		  	memcpy(dataPtr, &highmemUpdates[index]->size, sizeof(unsigned int));
@@ -1464,16 +1409,16 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 
 	int i;
 
-	for(i=0;i<loadLibraryUpdates.size();i++){
+	for(unsigned i=0;i<loadLibraryUpdates.size();i++){
 		dataSize += loadLibraryUpdates[i].length() + 1;
 	}
 	dataSize++;
 	data = new char[dataSize];
 	dataptr = data;
 
-	for(i=0;i<loadLibraryUpdates.size();i++){
-		memcpy( dataptr, loadLibraryUpdates[i].c_str(), loadLibraryUpdates[i].length()); 
-		dataptr += loadLibraryUpdates[i].length();
+	for(unsigned j=0;j<loadLibraryUpdates.size();j++){
+		memcpy( dataptr, loadLibraryUpdates[j].c_str(), loadLibraryUpdates[j].length()); 
+		dataptr += loadLibraryUpdates[j].length();
 		*dataptr = '\0';
 		dataptr++; 
 	}
@@ -1642,9 +1587,9 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
 // This function will return the index corresponding to the next position
 // available in heapFree.
 //
-int findFreeIndex(process *p, unsigned size, int type, Address lo, Address hi)
+int process::findFreeIndex(unsigned size, int type, Address lo, Address hi)
 {
-  vector<heapItem *> &freeList = p->heap.heapFree;
+  vector<heapItem *> &freeList = heap.heapFree;
 
   int best = -1;
   for (unsigned i = 0; i < freeList.size(); i++) {
@@ -1673,12 +1618,14 @@ typedef struct {
   bool ready;
   void *result;
 } imd_rpc_ret;
-void inferiorMallocCallback(process * /*p*/, void *data, void *result)
+
+void process::inferiorMallocCallback(process *proc, void *data, void *result)
 {
   imd_rpc_ret *ret = (imd_rpc_ret *)data;
   ret->result = result;
   ret->ready = true;
 }
+
 void alignUp(int &val, int align)
 {
   assert(val >= 0);
@@ -1689,7 +1636,7 @@ void alignUp(int &val, int align)
   }
 }
 // dynamically allocate a new inferior heap segment using inferiorRPC
-void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
+void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 {
 /* 03/07/2001 - Jeffrey Shergalis
  * TODO: This code was placed to prevent the infinite recursion on the
@@ -1726,23 +1673,23 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   imd_rpc_ret ret = { false, NULL };
 
   /* set lowmem to ensure there is space for inferior malloc */
-  p->postRPCtoDo(code, true, // noCost
-		 &inferiorMallocCallback, 
-		 &ret,
-		 -1, 
-		 NULL, // No thread required 
-		 0,    // No lwp in particular
-		 true); // But use reserved memory
-
+  postRPCtoDo(code, true, // noCost
+	      &inferiorMallocCallback, 
+	      &ret,
+	      -1, 
+	      NULL, // No thread required 
+	      0,    // No lwp in particular
+	      true); // But use reserved memory
+  
   extern void checkProcStatus();
   do {
 #ifdef DETACH_ON_THE_FLY
-    p->launchRPCifAppropriate((p->status()==running || p->juststopped), false);
+    launchRPCifAppropriate((status()==running || juststopped), false);
 #else
-    p->launchRPCifAppropriate((p->status()==running), false);
+    launchRPCifAppropriate((status()==running), false);
 #endif
     checkProcStatus();
-  } while (!ret.ready);
+  } while (!ret.ready); // Loop until callback has fired.
   switch ((int)(Address)ret.result) {
   case 0:
 #ifdef DEBUG
@@ -1758,10 +1705,10 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   default:
     // add new segment to buffer pool
     heapItem *h = new heapItem((Address)ret.result, size, anyHeap, true, HEAPfree);
-    p->heap.bufferPool.push_back(h);
+    heap.bufferPool.push_back(h);
     // add new segment to free list
     heapItem *h2 = new heapItem(h);
-    p->heap.heapFree.push_back(h2);
+    heap.heapFree.push_back(h2);
     break;
   }
 
@@ -1779,10 +1726,10 @@ const Address ADDRESS_LO = ((Address)0);
 const Address ADDRESS_HI = ((Address)~((Address)0));
 //unsigned int totalSizeAlloc = 0;
 
-Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type, 
-                       Address near_, bool *err)
+Address process::inferiorMalloc(unsigned size, inferiorHeapType type, 
+				Address near_, bool *err)
 {
-  inferiorHeap *hp = &p->heap;
+  inferiorHeap *hp = &heap;
   if (err) *err = false;
   assert(size > 0);
 
@@ -1815,15 +1762,14 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
     case 0: // as is
       break;
 #if defined(USES_DYNAMIC_INF_HEAP)
-    case 1: // deferred free, compact free blocks
-      inferiorFreeDeferred(p, hp, false);
+    case 1: // compact free blocks
       inferiorFreeCompact(hp);
       break;
     case 2: // allocate new segment (1MB, constrained)
-      inferiorMallocDynamic(p, HEAP_DYN_BUF_SIZE, lo, hi);
+      inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
       break;
     case 3: // allocate new segment (sized, constrained)
-      inferiorMallocDynamic(p, size, lo, hi);
+      inferiorMallocDynamic(size, lo, hi);
       break;
     case 4: // remove range constraints
       lo = ADDRESS_LO;
@@ -1833,18 +1779,16 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
       }
       break;
     case 5: // allocate new segment (1MB, unconstrained)
-      inferiorMallocDynamic(p, HEAP_DYN_BUF_SIZE, lo, hi);
+      inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
       break;
     case 6: // allocate new segment (sized, unconstrained)
-      inferiorMallocDynamic(p, size, lo, hi);
+      inferiorMallocDynamic(size, lo, hi);
       break;
     case 7: // deferred free, compact free blocks
-      inferiorFreeDeferred(p, hp, true);
       inferiorFreeCompact(hp);
       break;
 #else /* !(USES_DYNAMIC_INF_HEAP) */
     case 1: // deferred free, compact free blocks
-      inferiorFreeDeferred(p, hp, true);
       inferiorFreeCompact(hp);
       break;
 #endif /* USES_DYNAMIC_INF_HEAP */
@@ -1860,7 +1804,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
       P__exit(-1);
 #endif
     }
-    freeIndex = findFreeIndex(p, size, type, lo, hi);
+    freeIndex = findFreeIndex(size, type, lo, hi);
   }
 
   // adjust active and free lists
@@ -1894,7 +1838,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 
 #ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4 ) || defined(i386_unknown_linux2_0)
-	if(p->collectSaveWorldData){
+	if(collectSaveWorldData){
 
 #if defined(sparc_sun_solaris2_4)
 		if(h->addr < 0xF0000000){
@@ -1904,7 +1848,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 			imageUpdate *imagePatch=new imageUpdate; 
 			imagePatch->address = h->addr;
 			imagePatch->size = size;
-			p->imageUpdates.push_back(imagePatch);
+			imageUpdates.push_back(imagePatch);
 			//totalSizeAlloc += size;
 		//	printf(" PUSHBACK %x %x --- %x\n", imagePatch->address, imagePatch->size, totalSizeAlloc); 
 			
@@ -1914,7 +1858,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
                 	imageUpdate *imagePatch=new imageUpdate;
 	                imagePatch->address = h->addr;
         	        imagePatch->size = size;
-                	p->highmemUpdates.push_back(imagePatch);
+                	highmemUpdates.push_back(imagePatch);
 	                //printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
 			
 			
@@ -1927,10 +1871,10 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 
   return(h->addr);
 }
-void inferiorFree(process *p, Address block, 
-                  const vector<addrVecType> &pointsToCheck)
+
+void process::inferiorFree(Address block)
 {
-  inferiorHeap *hp = &p->heap;
+  inferiorHeap *hp = &heap;
 
   // find block on active list
   heapItem *h = NULL;  
@@ -1941,16 +1885,15 @@ void inferiorFree(process *p, Address block,
   }
   assert(h);
 
-  // add block to disabled list
-  hp->disabledList.push_back(disabledItem(h, pointsToCheck));
-  hp->disabledListTotalMem += h->length;
-  
-  // perform deferred freeing if above watermark
-  if (((hp->disabledListTotalMem > FREE_WATERMARK) ||
-       (hp->disabledList.size() > SIZE_WATERMARK)) && waitingPeriodIsOver()) 
-    {
-      inferiorFreeDeferred(p, hp, false);
-    }
+  // Remove from the active list
+  hp->heapActive.undef(block);
+
+  // Add to the free list
+  h->status = HEAPfree;
+  hp->heapFree.push_back(h);
+  hp->totalFreeMemAvailable += h->length;
+  hp->freed += h->length;
+  inferiorMemAvailable = hp->totalFreeMemAvailable;
 }
 
 
@@ -5719,13 +5662,13 @@ Address process::createRPCImage(AstNode *action,
     {
       /* lowmemHeap should always have free space, so this will not
 	 require a recursive inferior RPC. */
-      tempTrampBase = inferiorMalloc(this, count, lowmemHeap);
+      tempTrampBase = inferiorMalloc(count, lowmemHeap);
     }
   else
     {
       /* May cause another inferior RPC to dynamically allocate a new heap
 	 in the inferior. */
-      tempTrampBase = inferiorMalloc(this, count, anyHeap);
+      tempTrampBase = inferiorMalloc(count, anyHeap);
     }
   assert(tempTrampBase);
   
@@ -6013,8 +5956,7 @@ bool process::handleTrapIfDueToRPC() {
    }
 
    // step 2) delete temp tramp
-   vector<addrVecType> pointsToCheck; // empty (safe to delete immediately)
-   inferiorFree(this, theStruct.firstInstrAddr, pointsToCheck);
+   inferiorFree(theStruct.firstInstrAddr);
 
    // step 3) continue process, if appropriate
    if (theStruct.wasRunning) {
@@ -7168,3 +7110,119 @@ BPatch_function *process::findOrCreateBPFunc(pd_Function* pdfunc,
 }
 #endif
 
+// Add it at the bottom...
+void process::deleteInstInstance(instInstance *delInst)
+{
+  // Add to the list and deal with it later.
+  // The question is then, when to GC. I'd suggest
+  // when we try to allocate memory, and leave
+  // it a public member that can be called when
+  // necessary
+  struct instPendingDeletion *toBeDeleted = new instPendingDeletion();
+  toBeDeleted->hot.push_back(delInst->trampBase);
+  toBeDeleted->baseAddr = delInst->trampBase;
+  toBeDeleted->oldMini = delInst;
+  toBeDeleted->oldBase = NULL;
+  pendingGCInstrumentation.push_back(toBeDeleted);
+  // Try to delete now? Why not.
+  gcInstrumentation();
+}
+
+void process::deleteBaseTramp(trampTemplate *baseTramp, instInstance *lastMiniTramp)
+{
+  struct instPendingDeletion *toBeDeleted = new instPendingDeletion();
+  toBeDeleted->hot.push_back(baseTramp->baseAddr);
+  toBeDeleted->hot.push_back(lastMiniTramp->trampBase);
+  toBeDeleted->baseAddr = baseTramp->baseAddr;
+  toBeDeleted->oldMini = NULL;
+  toBeDeleted->oldBase = baseTramp;
+  pendingGCInstrumentation.push_back(toBeDeleted);
+  gcInstrumentation();
+}
+
+void process::gcInstrumentation()
+{
+  // The without-a-passed-in-stackwalk version. Walk the stack
+  // and pass it down.
+  // First, idiot check...
+  if (pendingGCInstrumentation.size() == 0) return;
+
+  // We need to pause the process. Otherwise we could have an incorrect
+  // stack walk, etc. etc. etc. blahblahblah
+
+  bool wasPaused = true;
+  if (status() == running) wasPaused = false;
+
+  if (!wasPaused && !pause())
+    return;
+
+  vector< vector<Frame> > stackWalks;
+#if defined(MT_THREAD)
+  if (!walkAllStack(stackWalks)) return;
+#else
+  vector<Frame> stackWalk;
+  Frame frame = getActiveFrame();
+  if (!walkStack(frame, stackWalk)) return;
+  stackWalks.push_back(stackWalk);
+#endif
+  gcInstrumentation(stackWalks);
+  if (!wasPaused) continueProc();
+}
+
+void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
+{
+  // Go through the list and try to clear out any
+  // instInstances that are freeable.
+  inferiorHeap *hp = &heap;
+
+  if (pendingGCInstrumentation.size() == 0) return;
+
+  for (unsigned i = 0; i < pendingGCInstrumentation.size(); i++) {
+    instPendingDeletion *old = pendingGCInstrumentation[i];
+    bool safeToDelete = true;
+    vector<Address> hotAddrs = old->hot;
+    // Get the heap item associated with the mini
+    for (unsigned hotIter = 0; hotIter < hotAddrs.size(); hotIter++) {
+      // Optimization...
+      if (!safeToDelete) break;
+      heapItem *ptr = NULL;
+      if (!hp->heapActive.find(hotAddrs[hotIter], ptr)) {
+	sprintf(errorLine,"Warning: attempt to free undefined heap entry 0x%p (pid=%d, heapActive.size()=%d)\n", 
+		(void*)hotAddrs[hotIter], getPid(), 
+		hp->heapActive.size());
+	logLine(errorLine);
+	continue;
+      }
+      // We only can delete an item if it is free for all
+      // threads
+      for (unsigned threadIter = 0;
+	   threadIter < stackWalks.size();
+	   threadIter++) {
+	if (!safeToDelete) break;
+	for (unsigned stackIter = 0;
+	     stackIter < stackWalks[threadIter].size();
+	     stackIter++) {
+	  if (!safeToDelete) break;
+	  Address pc = stackWalks[threadIter][stackIter].getPC();
+	  // First check if PC is within the minitramp
+	  if ((pc >= ptr->addr) && (pc <= ptr->addr + ptr->length))
+	    safeToDelete = false;
+	}
+      }
+    }
+    if (safeToDelete) {
+      cerr << "Safe to delete at addr " << (void *)old->baseAddr << endl;
+      inferiorFree(old->baseAddr);
+      // Delete from list of GCs
+      pendingGCInstrumentation[i] = pendingGCInstrumentation[pendingGCInstrumentation.size()-1];
+      pendingGCInstrumentation.resize(pendingGCInstrumentation.size()-1);
+      // Back up iterator to cover the fresh one
+      i--;
+      if (old->oldMini)
+	delete old->oldMini;
+      if (old->oldBase)
+	delete old->oldBase;
+      delete old;
+    }
+  }
+}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.198 2002/05/14 20:20:51 chadd Exp $
+/* $Id: process.h,v 1.199 2002/06/10 19:24:57 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -387,7 +387,7 @@ class process {
      // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 #endif
 
-  void walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused = false);
+  bool walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused = false);
   
   // MT_AIX stuff
   // Keep the current "best guess" of the active kernel thread around
@@ -405,7 +405,7 @@ class process {
 #endif
 
   // Walk threads stacks
-  void walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false);
+  bool walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false);
   //  void walkAStack(Frame, vector<Address>&pcs, vector<Address>&fps);
   bool readDataFromLWPFrame(int lwp_id, 
                          Address currentFP, 
@@ -1502,20 +1502,48 @@ private:
    const string &getPathEnv() const {return pathenv;}
    const string &getCwdEnv() const {return cwdenv;}
 #endif
-};
 
+ private:
+   static void inferiorMallocCallback(process *proc, void *data, void *result);
+   void inferiorMallocDynamic(int size, Address lo, Address hi);
+   void inferiorFreeCompact(inferiorHeap *hp);
+   int findFreeIndex(unsigned size, int type, Address lo, Address hi);
+
+ public:
+   // Handling of inferior memory management
 #if defined(USES_DYNAMIC_INF_HEAP)
-// platform-specific definition of "near" (i.e. close enough for one-insn jump)
-void inferiorMallocConstraints(Address near_, Address &lo, Address &hi, inferiorHeapType type);
-// platform-specific buffer size alignment
-void inferiorMallocAlign(unsigned &size);
+   // platform-specific definition of "near" (i.e. close enough for one-insn jump)
+   void inferiorMallocConstraints(Address near_, Address &lo, Address &hi, inferiorHeapType type);
+   // platform-specific buffer size alignment
+   void inferiorMallocAlign(unsigned &size);
 #endif /* USES_DYNAMIC_INF_HEAP */
+   
+   Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
+			  Address near_=0, bool *err=NULL);
+   void inferiorFree(Address item);
 
-Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
-                       Address near_=0, bool *err=NULL);
-void inferiorFree(process *p, Address item, const vector<addrVecType> &);
+   // Maybe this should be in a different file... instead of crudding up
+   // process.h more
+   struct instPendingDeletion {
+     vector<Address> hot;
+     Address baseAddr;
+     // Stupid duplication...
+     instInstance *oldMini;
+     trampTemplate *oldBase;
+   };
+
+   // Closely related: deletion of minitramps
+   void deleteInstInstance(instInstance *delInst);
+   // And the associated deletion of a base tramp
+   void deleteBaseTramp(trampTemplate *baseTramp, instInstance *lastMiniTramp);
 
 
+   void gcInstrumentation();
+   void gcInstrumentation(vector<vector<Frame> >&stackWalks);
+ private:
+   vector<instPendingDeletion *> pendingGCInstrumentation;
+ 
+};
 
 
 process *createProcess(const string file, vector<string> argv, 
