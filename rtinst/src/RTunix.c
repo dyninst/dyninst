@@ -3,7 +3,11 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.5  1994/02/02 00:46:14  hollings
+ * Revision 1.6  1994/02/16 00:07:24  hollings
+ * Added a default sampling interval of 500msec.  Previous default was not
+ * to collect any data.
+ *
+ * Revision 1.5  1994/02/02  00:46:14  hollings
  * Changes to make it compile with the new tree.
  *
  * Revision 1.4  1993/12/13  19:48:12  hollings
@@ -223,11 +227,14 @@ void DYNINSTinit(int skipBreakpoint)
     alarmVector.sv_flags = 0;
 
 
-    if (interval = (char *) getenv("DYNINSTsampleInterval")) {
-	sigvec(SIGALRM, &alarmVector, NULL);
+    /* default is 500msec */
+    val = 500000;
+    interval = (char *) getenv("DYNINSTsampleInterval");
+    if (interval) {
 	val = atoi(interval);
-	ualarm(val, val);
-    } 
+    }
+    sigvec(SIGALRM, &alarmVector, NULL);
+    ualarm(val, val);
 
     DYNINSTmappedUarea = DYNINSTmapUarea();
 
