@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.29 2003/03/08 01:23:31 bernat Exp $
+// $Id: osfDL.C,v 1.30 2003/03/14 23:18:31 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -232,8 +232,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 
   // dumpMap(proc->getProcFileDescriptor());
   if (pc == dlopenRetAddr) {
-      fprintf(stderr, "PC is at 0x%x\n", pc);
-      
       regs = proc->getDefaultLWP()->getRegisters();
       
       // We overwrote a return instruction to put the trap in.
@@ -268,8 +266,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       // Get return address
       Address retAddr = (regs->theIntRegs).regs[REG_RA];
       proc->getDefaultLWP()->changePC(retAddr, NULL);
-      fprintf(stderr, "Changing PC to 0x%x\n", retAddr);
-      
       return true;
   } else if (pc == dlcloseRetAddr) {
       fprintf(stderr, ">>> dlclose event\n");
