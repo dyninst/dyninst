@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.105 2003/04/17 20:55:53 jaw Exp $
+// $Id: inst.C,v 1.106 2003/06/10 17:45:40 tlmiller Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -215,11 +215,16 @@ void clearBaseBranch(process *proc, const instInstance *inst, callWhen when)
 #endif
 }
 
+#if defined( ia64_unknown_linux2_4 )
+/* __attribute__((aligned)) is a gcc-ism that makes it possible to directly
+   disassemble generated code in the mutator, before installation. */
+static ia64_bundle_t insn[65536/sizeof(ia64_bundle_t)] __attribute__((aligned));
+#else
 // implicit assumption that tramps generate to less than 64K bytes!!!
 static int insn[65536/sizeof(int)]; // Made into array of int so it would be
 				    // aligned correctly on platforms that
 				    // need it to be (like SPARC) - BRB
-
+#endif
 pdvector<instWaitingList *> instWList;
 
 // Shouldn't this be a member fn of class process?
