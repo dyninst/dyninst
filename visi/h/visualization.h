@@ -17,10 +17,13 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.7  1994/09/25 01:58:16  newhall
-/* changed interface definitions to work for new version of igen
-/* changed AddMetricsResources def. to take array of metric/focus pairs
+/* Revision 1.8  1994/10/13 15:38:52  newhall
+/* QuitVisi added
 /*
+ * Revision 1.7  1994/09/25  01:58:16  newhall
+ * changed interface definitions to work for new version of igen
+ * changed AddMetricsResources def. to take array of metric/focus pairs
+ *
  * Revision 1.6  1994/08/13  20:34:07  newhall
  * removed all code associated with class visi_MRList
  *
@@ -140,6 +143,12 @@ extern int  initDone;
 //  entering the mainloop is optional. 
 //
 extern int  StartVisi(int argc,char *argv[]);
+
+//
+// cleans up visi interface data structs
+// Visualizations should call this routine before exiting 
+extern void QuitVisi();
+
 
 //
 // registration callback routine for paradyn events

@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.18  1994/09/30 21:00:51  newhall
-/* use datagrid method functions MetricId and ResourceId
+/* Revision 1.19  1994/10/13 15:39:17  newhall
+/* QuitVisi added
 /*
+ * Revision 1.18  1994/09/30  21:00:51  newhall
+ * use datagrid method functions MetricId and ResourceId
+ *
  * Revision 1.17  1994/09/25  02:00:29  newhall
  * changes to visi interface routines that take list of met/focus pairs:
  * AddMetricsResources, GetMetRes
@@ -137,6 +140,16 @@ int StartVisi(int argc,
   return(OK);
 
 }
+
+///////////////////////////////////////////////////////////
+// cleans up visi interface data structs 
+// Visualizations should call this routine before exiting 
+///////////////////////////////////////////////////////////
+void QuitVisi(){
+    delete vp;
+}
+
+
 
 
 ///////////////////////////////////////////////////////////
