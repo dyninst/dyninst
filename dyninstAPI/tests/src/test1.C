@@ -1633,11 +1633,7 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || \
-    defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5)
+#if !defined(mips_sgi_irix6_4)
 
     //     First verify that we can find a local variable in call23_1
     BPatch_Vector<BPatch_point *> *point23_1 =
@@ -1692,11 +1688,7 @@ void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || \
-    defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5)
+#if !defined(mips_sgi_irix6_4)
 
     //     First verify that we can find function call24_1
     BPatch_function *call24_1func = appImage->findFunction("call24_1");
@@ -1840,7 +1832,8 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
     !defined(rs6000_ibm_aix4_1) && \
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_linux2_0) && \
-    !defined(i386_unknown_solaris2_5)
+    !defined(i386_unknown_solaris2_5) && \
+    !defined(i386_unknown_nt4_0)
 
     // without type info need to inform
     BPatch_type *type = appImage->findType("void *");
@@ -1878,11 +1871,7 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || \
-    defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5)
+#if !defined(mips_sgi_irix6_4)
 
     //     First verify that we can find a local variable in call26_1
     BPatch_Vector<BPatch_point *> *point26_1 =
@@ -1893,7 +1882,8 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_variableExpr *lvar;
     BPatch_variableExpr *gvar[14];
 
-    for (int i=1; i <= 13; i++) {
+    int i;
+    for (i=1; i <= 13; i++) {
 	char name[80];
 
 	sprintf(name, "globalVariable26_%d", i);
@@ -1914,7 +1904,7 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(-1);
     }
 
-    for (int i=0; i < 4; i++) {
+    for (i=0; i < 4; i++) {
 	 char fieldName[80];
 	 sprintf(fieldName, "field%d", i+1);
 	 if (!(*fields)[i]->getName())
@@ -1963,7 +1953,7 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
     //assert(fields && (fields->size() == 4));
     assert(fields);
 
-    for (int i=0; i < 4; i++) {
+    for (i=0; i < 4; i++) {
 	 char fieldName[80];
 	 sprintf(fieldName, "field%d", i+1);
 	 if (strcmp(fieldName, (*fields)[i]->getName())) {
@@ -2010,11 +2000,7 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest27(BPatch_thread *, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || \
-    defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5)
+#if !defined(mips_sgi_irix6_4)
 
     BPatch_type *type27_1 = appImage->findType("type27_1");
     BPatch_type *type27_2 = appImage->findType("type27_2");
@@ -2654,6 +2640,7 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
 //       
 void mutatorTest33(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#if defined(sparc_sun_solaris2_4)
    BPatch_Vector<BPatch_point *> *point33_1 =
       appImage->findProcedurePoint("arg_test::call_cpp", BPatch_subroutine);
 
@@ -2739,6 +2726,7 @@ void mutatorTest33(BPatch_thread *appThread, BPatch_image *appImage)
 
    checkCost(call33Expr);
    appThread->insertSnippet(call33Expr, *point33_2);
+#endif
 }
 
 //
@@ -2746,6 +2734,8 @@ void mutatorTest33(BPatch_thread *appThread, BPatch_image *appImage)
 // 
 void mutatorTest34(BPatch_thread *appThread, BPatch_image *appImage)
 {
+
+#if !defined(i386_unknown_nt4_0)
     BPatch_Vector<BPatch_point *> *point34_1 =
        appImage->findProcedurePoint("overload_func_test::func_cpp", BPatch_subroutine);
     if (!point34_1 || (point34_1->size() < 2)) {
@@ -2845,6 +2835,7 @@ void mutatorTest34(BPatch_thread *appThread, BPatch_image *appImage)
 
     checkCost(call34Expr);
     appThread->insertSnippet(call34Expr, *point34_3);
+#endif
 }
 
 //
@@ -2968,6 +2959,7 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
 // 
 void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#if defined(sparc_sun_solaris2_4)
     BPatch_Vector<BPatch_point *> *point37_1 =
       appImage->findProcedurePoint("namespace_test::func_cpp", BPatch_exit);
 
@@ -3041,6 +3033,7 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
     }
     fprintf(stderr, "**Failed** test #37 (namespace)\n");
     fprintf(stderr, "    Can't find class member variables\n");
+#endif
 }
 
 
@@ -3105,6 +3098,7 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#if defined(sparc_sun_solaris2_4)
    BPatch_Vector<BPatch_point *> *point39_1 =
      appImage->findProcedurePoint("template_test::func_cpp", BPatch_subroutine);
    assert(point39_1);
@@ -3190,6 +3184,7 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
 
    checkCost(call39Expr);
    appThread->insertSnippet(call39Expr, *point39_4);
+#endif
 }
 
 //
@@ -3197,6 +3192,7 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
 //   
 void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#if defined(sparc_sun_solaris2_4)
      // Find the exit point to the procedure "func_cpp"
      BPatch_Vector<BPatch_point *> *point40_1 =
          appImage->findProcedurePoint("decl_test::func_cpp", BPatch_exit);
@@ -3265,6 +3261,7 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
     }
     fprintf(stderr, "**Failed** test #40 (declaration)\n");
     fprintf(stderr, "    Can't find inherited class member variables\n");
+#endif
 }
 
 //
@@ -3272,6 +3269,7 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest41(BPatch_thread *, BPatch_image *appImage)
 {
+#if defined(sparc_sun_solaris2_4)
    bool found = false;
    
    // Find the exit point to the procedure "func_cpp"
@@ -3320,6 +3318,7 @@ void mutatorTest41(BPatch_thread *, BPatch_image *appImage)
      fprintf(stderr, "**Failed** test #41 (derivation)\n");
      fprintf(stderr, "    Can't find inherited class member functions\n");
   }
+#endif
 }
 
 //

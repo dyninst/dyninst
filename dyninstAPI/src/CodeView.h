@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.h,v 1.3 2000/02/21 19:02:56 paradyn Exp $
+// $Id: CodeView.h,v 1.4 2000/08/01 01:00:49 altinel Exp $
 
 //
 // This file contains the declaration of the CodeView class.
@@ -68,8 +68,9 @@
 #ifndef CODEVIEW_H
 #define CODEVIEW_H
 
-
-
+#include "BPatch.h"
+#include "BPatch_module.h"
+#include "BPatch_collections.h"
 
 //
 // LPString
@@ -317,6 +318,24 @@ public:
 		//                      pcode => segment:offset of pcode entry point
 	};
 
+	// Format of constant variables
+	struct SymRecordCons
+	{
+		SymRecord	base;
+		DWORD		type;		// Type of symbol or containing enum
+		WORD		value;		// Numeric leaf containing the value 
+						// of symbol
+		char		name[1];	// Length-prefixed name of symbol
+	};
+
+	// Format of typedefs
+	struct SymRecordTypeDef
+	{
+		SymRecord	base;
+		DWORD		type;		// Type of symbol
+		char		name[1];	// Length-prefixed name of 
+						// the user defined type
+	};
 
     // format of Module subsection
 	struct ModuleSubsection
@@ -381,6 +400,190 @@ public:
                                             // files
 	};
 
+	//
+	// Type record definitions
+	//
+	struct TypesSubSection {
+		char flags[4];
+		DWORD cType; //Number of Types
+		DWORD offType[1]; // Type offsets
+	};
+
+	struct TypeRec {
+		WORD length;
+		WORD leaf;
+	};
+
+	struct ProcTypeRec {
+		TypeRec trec;
+		DWORD rvtype; 		// Return value type
+		char call;		// Calling convention of the procedure
+		char reserved;
+		WORD  parms;		// Number of parameters
+		DWORD arglist;		// Type index of argument list type record
+	};
+
+	struct MFuncTypeRec {
+		TypeRec trec;
+		DWORD rvtype;		// Return value type
+		DWORD classType;	// Type index of the containing class of 
+					// the function
+		DWORD thisType;		// Type index of the this parameter of 
+					// the member function
+		char call;		// Calling convention of the procedure
+		char res;		// Reserved. Must be emitted as zero
+		WORD parms;		// Number of parameters
+		DWORD arglist;		// Type index of argument list type record
+		DWORD thisadjust;	// Logical this adjustor for the method
+	};
+
+	struct LFModifier {
+		TypeRec trec;
+		DWORD index;		// type index of the modified type
+		WORD attribute;	
+	};
+
+	struct LFPointer {
+		TypeRec trec;
+		DWORD type;		// Type index of object pointed to
+		DWORD attribute;	// Ordinal specifying mode of pointer
+	};
+
+	struct LFArray {
+		TypeRec trec;
+		DWORD elemtype;		// Type index of each array element
+		DWORD idxtype;		// Type index of indexing variable 
+		WORD length;		// Length of array in bytes
+		char name[1];
+	};
+
+	struct LFClass {
+		TypeRec trec;
+		WORD count;		// Number of elements in the class or structure
+		WORD property;		// Property bit field
+		DWORD field;		// Type index of the field list for this class
+		DWORD dList;		// Type index of the derivation list
+		DWORD vshape;		// Type index of the virtual function table 
+					// shape descriptor
+		WORD length;		// Numeric leaf specifying size in bytes of 
+					// the structure
+		char name[1];
+	};
+
+	struct LFUnion {
+		TypeRec trec;
+		WORD count;		// Number of fields in the union
+		WORD property;		// Property bit field
+		DWORD field;		// Type index of the field list
+		WORD length;		// Numeric leaf specifying size in bytes of 
+					// the union
+		char name[1];
+	};
+
+	struct LFEnum {
+		TypeRec trec;
+		WORD count;		// Number of fields in the union
+		WORD property;		// Property bit field
+		DWORD type;		// Underlying type of enum
+		DWORD fList;		// Type index of field list
+		char name[1];		// Length-prefixed name of enum
+	};
+
+	struct LFMfunc {
+		TypeRec trec;
+		DWORD rvtype;		// Type index of the value returned by 
+					// the procedure
+		DWORD classidx;		// Type index of the containing class of 
+					// the function
+		DWORD thisidx;		// Type index of the this parameter of 
+					// the member function. 
+		char call;		// Calling convention of the procedure
+		char res;		// Reserved. Must be emitted as zero
+		WORD params;		// Number of parameters
+		DWORD arglist;		// List of parameter specifiers
+		DWORD thisadjust;	// Logical this adjustor for the method
+	};
+
+	struct LFDimArray {
+		TypeRec trec;
+		DWORD utype;		// Underlying type of the array
+		DWORD diminfo;		// Index of the type record containing 
+					// the dimension information
+		char name[1];		// Length-prefixed name of the array
+	};
+
+	struct LFMember {
+		WORD leaf;
+		WORD attribute;		// Member attribute bit field
+		DWORD type;		// Index to type record for field
+		WORD offset;		// Numeric leaf specifying the offset of field 
+					// in the structure
+		char name[1];		// Length-prefixed name of the member field
+	};
+
+	struct LFIndex {
+		WORD leaf;
+		WORD pad0;		// Two bytes of padding for native alignment 
+					// on type index to follow, must be 0
+		DWORD index;		// Type index. 
+	};
+
+	struct LFEnumerate {
+		WORD leaf;
+		WORD attribute;		// Member attribute bit field 
+		WORD value;		// Numeric leaf specifying the value of enumerate
+		char name[1];		// Length-prefixed name of the member field.
+	};
+
+	struct LFMethod {
+		WORD leaf;
+		WORD count;		// Number of occurrences of function within 
+					// the class. 
+		DWORD mlist;		// Type index of method list
+		char name[1];		// Length-prefixed name of method
+	};
+
+	struct LFBclass {
+		WORD leaf;
+		WORD attribute;		// attribute Member attribute bit field
+		DWORD type;		// Index to type record of the class
+		WORD offset;		// Offset of subobject that represents 
+					// the base class within the structure
+	};
+
+	struct LFOnemethod {
+		WORD leaf;
+		WORD attribute;		// Method attribute
+		DWORD type;		// Type index of method
+		char name[1];		// Length prefixed name of method
+	};
+
+	struct LFStmember {
+		WORD leaf;
+		WORD attribute;		// Member attribute bit field
+		DWORD type;		// Index to type record for field
+		char name[1];		// Length-prefixed name of the member field
+	};
+
+	struct LFVbclass {
+		WORD leaf;
+		WORD attribute;		// Member attribute bit field
+		DWORD btype;		// Index to type record of the direct or 
+					// indirect virtual base class
+		DWORD vbtype;		// Type index of the virtual base pointer 
+					// for this base
+		WORD vbpoff;		// Numeric leaf specifying the offset of 
+					// the virtual base pointer from the address 
+					// point of the class for this virtual base
+	};
+
+	struct LFVfunctab {
+		WORD leaf;
+		WORD pad0;		// Two bytes of padding for native alignment 
+					// on type index to follow, must be 0
+		DWORD type;		// Index to the pointer record describing 
+					// the pointer
+	};
 
     // object that encapsulates the various types of symbols
 	class Symbols
@@ -407,6 +610,8 @@ public:
         // operations
 		void	Parse( const char* pSymBase, DWORD cb );
 		Symbols& operator=( const Symbols& syms );
+		void CreateTypeInfo( const char* pSymBase, DWORD cb, 
+					TypesSubSection *pTypeBase, BPatch_module *mod );
 
 	private:
 		vector<SymRecordProc*> gprocs;		// global functions
@@ -417,6 +622,16 @@ public:
 		vector<SymRecordLabel*> labels;	    // labels
 		vector<SymRecordThunk*> thunks;	    // thunks (non-function code)
         vector<SymRecordData*> pubs;        // public (catch-all) symbols
+
+		//Below are used to create DyninstAPI types for the symbols
+
+	// Operations
+		BPatch_type *ExploreType(BPatch_module *, DWORD, 
+						TypesSubSection *, char *);
+		BPatch_type *CreatePrimitiveType(DWORD index);
+		void FindFields(BPatch_module *mod, BPatch_type *mainType, int cnt,
+				DWORD index, TypesSubSection *pTypeBase, char *startAddr);
+
 
         friend class CodeView;
 	};
@@ -464,6 +679,7 @@ public:
 
     // operations
 	bool Parse( void );
+	void CreateTypeInfo( BPatch_module *inpMod );
 
 private:
 	const char* pBase;			// location of CodeView symbols

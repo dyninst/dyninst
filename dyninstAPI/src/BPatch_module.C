@@ -98,11 +98,7 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
     moduleTypes = new BPatch_typeCollection;
 
     // load all of the type information
-#if defined(sparc_sun_solaris2_4) || \
-    defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5)
+#if !defined(mips_sgi_irix6_4)
 
     if (BPatch::bpatch->parseDebugInfo()){ 
 	lineInformation = new LineInformation(mod->fileName());
@@ -115,7 +111,7 @@ BPatch_module::~BPatch_module()
 {
     delete moduleTypes;
 
-    for (unsigned int f = 0; f < BPfuncs->size(); f++) {
+    for (int f = 0; f < BPfuncs->size(); f++) {
 	delete (*BPfuncs)[f];
     }
     delete BPfuncs;
@@ -644,7 +640,8 @@ void BPatch_module::parseTypes()
 // Mehmet
 
 #if defined(alpha_dec_osf4_0)
-extern void parseCoff(BPatch_module *mod, char *exeName, const string& modName,LineInformation* linfo);
+extern void parseCoff(BPatch_module *mod, char *exeName, 
+			const string& modName, LineInformation* linfo);
 
 void BPatch_module::parseTypes()
 {
@@ -663,6 +660,75 @@ void BPatch_module::parseTypes()
 }
 
 #endif
+
+
+
+#if defined(i386_unknown_nt4_0)
+
+// Parsing symbol table for NT platform
+// Mehmet 7/24/00
+
+#include "CodeView.h"
+
+void BPatch_module::parseTypes()
+{
+  
+  image * imgPtr=NULL;
+
+  //Using pdmodule to get the image Object.
+  imgPtr = mod->exec();
+
+  // with BPatch_functions
+  this->BPfuncs = this->getProcedures();
+
+  //The code below is adapted from Object-nt.C
+  IMAGE_DEBUG_INFORMATION* pDebugInfo = NULL;
+
+  // access the module's debug information
+  pDebugInfo = MapDebugInformation(NULL, (LPTSTR)(imgPtr->file()).string_of(), NULL, 0);
+  if( pDebugInfo == NULL )
+  {
+	printf("Unable to get debug information!\n");
+	return;
+  }
+
+  // determine the location of the relevant sections
+  unsigned int i, textSectionId;
+
+  // currently we care only about the .text and .data segments
+  for( i = 0; i < pDebugInfo->NumberOfSections; i++ )
+  {
+	IMAGE_SECTION_HEADER& section = pDebugInfo->Sections[i];
+
+	if( strncmp( (const char*)section.Name, ".text", 5 ) == 0 ) {
+		textSectionId = i + 1; // note that section numbers are one-based
+		break;
+	}
+  }
+
+  //
+  // parse the symbols, if available
+  // (note that we prefer CodeView over COFF)
+  //
+  if( pDebugInfo->CodeViewSymbols != NULL )
+  {
+	// we have CodeView debug information
+	CodeView *cv = new CodeView( (const char*)pDebugInfo->CodeViewSymbols, 
+					textSectionId );
+	cv->CreateTypeInfo(this);
+  }
+  else if( pDebugInfo->CoffSymbols != NULL )
+  {
+	// we have COFF debug information
+	// ParseCOFFSymbols( pDebugInfo );
+  }
+  else
+  {
+	// TODO - what to do when there's no debug information?
+  }
+}
+#endif
+
 
 /** method that finds the corresponding addresses for a source line
   * this methid returns true in sucess, otherwise false.

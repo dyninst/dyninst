@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.53 2000/07/18 19:55:46 bernat Exp $ */
+/* $Id: test1.mutatee.c,v 1.54 2000/08/01 01:00:51 altinel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1524,7 +1524,8 @@ void func23_1()
     !defined(rs6000_ibm_aix4_1) && \
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_linux2_0) && \
-    !defined(i386_unknown_solaris2_5)
+    !defined(i386_unknown_solaris2_5) && \
+    !defined(i386_unknown_nt4_0)
 
     printf("Skipped test #23 (local variables)\n");
     printf("\t- not implemented on this platform\n");
@@ -1598,7 +1599,8 @@ void func24_1()
     !defined(rs6000_ibm_aix4_1) && \
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_linux2_0) && \
-    !defined(i386_unknown_solaris2_5)
+    !defined(i386_unknown_solaris2_5) && \
+    !defined(i386_unknown_nt4_0)
 
     printf("Skipped test #24 (arrary variables)\n");
     printf("\t- not implemented on this platform\n");
@@ -1808,7 +1810,8 @@ void func26_1()
     !defined(rs6000_ibm_aix4_1) && \
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_linux2_0) && \
-    !defined(i386_unknown_solaris2_5)
+    !defined(i386_unknown_solaris2_5) && \
+    !defined(i386_unknown_nt4_0)
 
     printf("Skipped test #26 (struct elements)\n");
     printf("\t- not implemented on this platform\n");
@@ -1891,7 +1894,8 @@ void func27_1()
     !defined(rs6000_ibm_aix4_1) && \
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_linux2_0) && \
-    !defined(i386_unknown_solaris2_5)
+    !defined(i386_unknown_solaris2_5) && \
+    !defined(i386_unknown_nt4_0)
 
     printf("Skipped test #27 (type compatibility)\n");
     printf("\t- not implemented on this platform\n");
@@ -2256,10 +2260,18 @@ void cpp_test_util::call_cpp(int test)
 
 void arg_test::func_cpp()
 {
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #33 (argument)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[33] = TRUE;
+
+#else
+
   int test = 33;
   int arg2 = 33;
 
   call_cpp(test, arg2);
+#endif
 }
 
 void arg_test::arg_pass(int test)
@@ -2296,11 +2308,20 @@ void arg_test::call_cpp(const int arg1, int & arg2, int arg3)
 
 void overload_func_test::func_cpp()
 {
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #34 (function overload)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[34] = TRUE;
+
+#else
+
+
    call_cpp("test overload function");
 
    call_cpp(34);
 
    call_cpp(34, 34.0);
+#endif
 }
 
 
@@ -2375,6 +2396,12 @@ static int local_file_var = 35;
 
 void namespace_test::func_cpp()
 {
+#if !defined(sparc_sun_solaris2_4) 
+    printf("Skipped test #37 (namespace)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[37] = TRUE;
+
+#else
   int local_fn_var = local_file_var;
 
   class_variable = local_fn_var;
@@ -2383,6 +2410,7 @@ void namespace_test::func_cpp()
     cout << "::CPP_DEFLT_ARG init value wrong" <<endl;
   if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
     cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
+#endif
 }
 
 
@@ -2451,6 +2479,13 @@ template <class T> T sample_template <T>::content()
 
 void template_test::func_cpp()
 {
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #39 (template)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[39] = TRUE;
+
+#else
+
   int int39 = 39;
   char char39 = 'c';
   sample_template <int> item39_1(int39);
@@ -2458,6 +2493,7 @@ void template_test::func_cpp()
  
   item39_1.content();
   item39_2.content();
+#endif
 }
 
 void template_test_call_cpp(int test)
@@ -2468,6 +2504,13 @@ void template_test_call_cpp(int test)
 
 void decl_test::func_cpp()
 {
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #40 (decleration)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[40] = TRUE;
+
+#else
+
    int CPP_DEFLT_ARG = 40;
 
    if ( 40 != CPP_DEFLT_ARG )
@@ -2476,6 +2519,7 @@ void decl_test::func_cpp()
      cout <<"::CPP_DEFLT_ARG init value wrong"<<endl;
    if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
      cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
+#endif
 }
 
 void decl_test::call_cpp(int test)

@@ -162,12 +162,14 @@ void FindFields(BPatch_module *mod, BPatch_type *mainType, AuxWrap& auxInfo) {
   if (ldtbread(ldptr, index++, &symbol) != SUCCESS)
 	return;
 
-  //if ( !(symbol.st == stBlock && symbol.sc == scInfo) ) {
+  if ( !(symbol.st == stBlock && symbol.sc == scInfo) ) {
+/*
   if ( symbol.st != stBlock ) {
-	fprintf(stderr, "Invalid block begining-> symbol.st = %d, symbol.sc = %d\n", 
-							symbol.st, symbol.sc);
-	// return; //Invalid symbol is reached
-	index--;
+  fprintf(stderr, "Invalid block begining-> symbol.st = %d, symbol.sc = %d\n", 
+							 symbol.st, symbol.sc);
+*/
+	return; //Invalid symbol is reached
+	// index--;
   }
 
   //Find out all the member types
