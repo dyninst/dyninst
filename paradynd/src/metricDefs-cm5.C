@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.18 1995/02/16 08:53:49 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.19 1995/05/18 10:39:29 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.18  1995/02/16 08:53:49  markc
+ * Revision 1.19  1995/05/18 10:39:29  markc
+ * These are no longer needed
+ *
+ * Revision 1.18  1995/02/16  08:53:49  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.17  1995/02/16  08:33:59  markc
@@ -179,7 +182,7 @@ void createMsgBytesMetric(metricDefinitionNode *mn,
 
     if (trigger) msgBytesAst = createIf(trigger, msgBytesAst);
 
-    dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
+    dictionary_hash_iter<unsigned, pdFunction*> fi((mn->proc())->symbols->funcsByAddr);
     unsigned u;
 
     while (fi.next(u, func)) {
@@ -226,7 +229,7 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     clearNode = createPrimitiveCall("setCounter", data, 0);
     if (trigger) clearNode = createIf(trigger, clearNode);
 
-    dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
+    dictionary_hash_iter<unsigned, pdFunction*> fi((mn->proc())->symbols->funcsByAddr);
     unsigned u;
 
     while (fi.next(u, func)) {
@@ -259,20 +262,20 @@ void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
     assert(stopNode);
     instAllFunctions(mn, TAG_CPU_STATE, stopNode, startNode);
 
-    pdFunction *func = (mn->proc->symbols)->findOneFunction("main");
+    pdFunction *func = ((mn->proc())->symbols)->findOneFunction("main");
     assert(func);
 
     mn->addInst(func->funcEntry(), startNode,callPreInsn,orderLastAtPoint);
 
     mn->addInst(func->funcReturn(), stopNode,callPreInsn,orderLastAtPoint);
 
-    func = (mn->proc->symbols)->findOneFunction(EXIT_NAME);
+    func = ((mn->proc())->symbols)->findOneFunction(EXIT_NAME);
     assert(func);
 
     mn->addInst(func->funcEntry(), stopNode, callPreInsn,orderLastAtPoint);
 
     // TODO - why is this in a common file -> CM is a CM-5 function
-    func = (mn->proc->symbols)->findOneFunction("CMNA_dispatch_idle"); 
+    func = ((mn->proc())->symbols)->findOneFunction("CMNA_dispatch_idle"); 
     if (func) {
       mn->addInst(func->funcReturn(), startNode, callPreInsn,orderLastAtPoint); 
       mn->addInst(func->funcEntry(), stopNode, callPreInsn,orderLastAtPoint); 

@@ -19,12 +19,15 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.13 1995/02/16 08:53:50 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.14 1995/05/18 10:39:31 markc Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.13  1995/02/16 08:53:50  markc
+ * Revision 1.14  1995/05/18 10:39:31  markc
+ * These are no longer needed
+ *
+ * Revision 1.13  1995/02/16  08:53:50  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.12  1995/02/16  08:34:05  markc
@@ -103,9 +106,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "rtinst/h/trace.h"
 #include "metricDef.h"
 #include "os.h"
-
-// this flag is checked on writes to determine how to use the cost
-static dictionary_hash<int, dataReqNode*> msgFlags(intHash);
 
 //
 // input: 
@@ -238,7 +238,7 @@ AstNode *defaultModulePredicate(metricDefinitionNode *mn,
     dataReqNode *dataPtr;
 
 
-    if (!getModuleAndFunction(constraint, mn->proc->symbols, mod, func)) {
+    if (!getModuleAndFunction(constraint, (mn->proc())->symbols, mod, func)) {
       // logLine("In default module predicate, module/function lookup failed\n");
       // assert(0);
       return (new AstNode(Constant, 0));
@@ -251,13 +251,9 @@ AstNode *defaultModulePredicate(metricDefinitionNode *mn,
       // function in a module
       createDefaultFuncPred(mn, func, dataPtr, pred);
     } else {
-      // module only
-      // TODO make this private
-      dictionary_hash_iter<string, pdFunction*> mi(mod->funcMap);
-      string pds; pdFunction *pdf;
-      while (mi.next(pds, pdf))
-	createDefaultFuncPred(mn, pdf, dataPtr, pred);
-
+      unsigned m_count = mod->funcs.size();
+      for (unsigned m=0; m<m_count; m++)
+	createDefaultFuncPred(mn, mod->funcs[m], dataPtr, pred);
     }
     return (new AstNode(DataValue, dataPtr));
 }
@@ -279,7 +275,7 @@ void createProcCalls(metricDefinitionNode *mn, AstNode *pred)
     assert(counter);
     newCall = createPrimitiveCall("addCounter", counter, 1);
     assert(newCall);
-    dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
+    dictionary_hash_iter<unsigned, pdFunction*> fi((mn->proc())->symbols->funcsByAddr);
     unsigned u; pdFunction *pdf;
     while (fi.next(u, pdf)) {
       if (!pdf->isLibTag()) {
@@ -294,7 +290,7 @@ void instAllFunctions(metricDefinitionNode *nm,
 		      AstNode *leaveAst)
 {
   pdFunction *func; unsigned u;
-  dictionary_hash_iter<unsigned, pdFunction*> fi(nm->proc->symbols->funcsByAddr);
+  dictionary_hash_iter<unsigned, pdFunction*> fi((nm->proc())->symbols->funcsByAddr);
     
   while (fi.next(u, func)) {
     if (func->isTagSimilar(tag)) {
@@ -315,7 +311,7 @@ void createObservedCost(metricDefinitionNode *mn, AstNode *pred)
     dataPtr = mn->addIntCounter(0, false);
     assert(dataPtr);
 
-    sampler = (mn->proc->symbols)->findOneFunction("DYNINSTsampleValues");
+    sampler = ((mn->proc())->symbols)->findOneFunction("DYNINSTsampleValues");
     assert(sampler);
     reportNode = new AstNode("DYNINSTreportCost", 
 		 new AstNode(DataPtr, dataPtr), new AstNode(Constant, 0));
@@ -342,13 +338,13 @@ void createExecTime(metricDefinitionNode *mn, AstNode *pred)
     if (pred) stopNode = createIf(pred, stopNode);
     assert(stopNode);
 
-    func = (mn->proc->symbols)->findOneFunction("main");
+    func = ((mn->proc())->symbols)->findOneFunction("main");
     assert(func);
     mn->addInst(func->funcEntry(), startNode, callPreInsn, orderLastAtPoint);
 
     mn->addInst(func->funcReturn(), stopNode, callPreInsn, orderLastAtPoint);
 
-    func = (mn->proc->symbols)->findOneFunction(EXIT_NAME);
+    func = ((mn->proc())->symbols)->findOneFunction(EXIT_NAME);
     assert(func);
 
     mn->addInst(func->funcEntry(), stopNode, callPreInsn, orderLastAtPoint);
@@ -430,7 +426,7 @@ AstNode *perModuleWallTime(metricDefinitionNode *mn,
   pdFunction *func;
   dataReqNode *result;
 
-  if (!getModuleAndFunction(constraint, mn->proc->symbols, mod, func)) {
+  if (!getModuleAndFunction(constraint, (mn->proc())->symbols, mod, func)) {
     // logLine("In default module predicate, module/function lookup failed\n");
     // assert(0);
     return NULL;
@@ -444,11 +440,9 @@ AstNode *perModuleWallTime(metricDefinitionNode *mn,
     perProcedureWallTime(mn, func, trigger, result);
     return NULL;
   } else {
-    // do all the functions in this module
-    dictionary_hash_iter<string, pdFunction*> fi(mod->funcMap);
-    string pds; pdFunction *pdf;
-    while (fi.next(pds, pdf)) 
-      perProcedureWallTime(mn, pdf, trigger, result);
+    unsigned m_count = mod->funcs.size();
+    for (unsigned m=0; m<m_count; m++)
+      perProcedureWallTime(mn, mod->funcs[m], trigger, result);
     return NULL;
   }
 }
@@ -501,7 +495,7 @@ AstNode *perModuleCPUTime(metricDefinitionNode *mn,
   pdFunction *func;
   dataReqNode *result;
 
-  if (!getModuleAndFunction(constraint, mn->proc->symbols, mod, func)) {
+  if (!getModuleAndFunction(constraint, (mn->proc())->symbols, mod, func)) {
     // logLine("In default module predicate, module/function lookup failed\n");
     // assert(0);
     return NULL;
@@ -515,11 +509,9 @@ AstNode *perModuleCPUTime(metricDefinitionNode *mn,
     perProcedureCPUTime(mn, func, trigger, result);
     return NULL;
   } else {
-    // do all the functions in this module
-    dictionary_hash_iter<string, pdFunction*> fi(mod->funcMap);
-    string pds; pdFunction *pdf;
-    while (fi.next(pds, pdf)) 
-      perProcedureCPUTime(mn, pdf, trigger, result);
+    unsigned m_count = mod->funcs.size();
+    for (unsigned m=0; m<m_count; m++)
+      perProcedureCPUTime(mn, mod->funcs[m], trigger, result);
     return NULL;
   }
 }
@@ -553,7 +545,7 @@ AstNode *perModuleCalls(metricDefinitionNode *mn,
   pdFunction *func;
   dataReqNode *counter;
 
-  if (!getModuleAndFunction(constraint, mn->proc->symbols, mod, func)) {
+  if (!getModuleAndFunction(constraint, (mn->proc())->symbols, mod, func)) {
     // logLine("In default module predicate, module/function lookup failed\n");
     // assert(0);
     return NULL;
@@ -567,11 +559,9 @@ AstNode *perModuleCalls(metricDefinitionNode *mn,
     perProcedureCalls(mn, func, trigger, counter);
     return NULL;
   } else {
-    // do all the functions in this module
-    dictionary_hash_iter<string, pdFunction*> fi(mod->funcMap);
-    string pds; pdFunction *pdf;
-    while (fi.next(pds, pdf)) 
-      perProcedureCalls(mn, pdf, trigger, counter);
+    unsigned m_count = mod->funcs.size();
+    for (unsigned m=0; m<m_count; m++)
+      perProcedureCalls(mn, mod->funcs[m], trigger, counter);
     return NULL;
   }
 }
