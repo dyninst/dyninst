@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.53  1996/04/01 22:34:56  tamches
+# Revision 1.54  1996/05/06 16:41:44  naim
+# Adding window to confirm whether the user wants to exit paradyn - naim
+#
+# Revision 1.53  1996/04/01  22:34:56  tamches
 # removed tclSelectionState
 #
 # Revision 1.52  1996/02/12 18:31:35  tamches
@@ -150,7 +153,7 @@ proc drawToolBar {} {
     frame .parent.buttons -relief raised -height 20
     mkButtonBar .parent.buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {SAVE ""} \
-	    {EXIT "paradyn exit"}}
+	    {EXIT "procExit"}}
 
 #   Both RUN and PAUSE buttons are disabled when paradyn starts running
 #   since there is no process to RUN or to PAUSE
@@ -178,7 +181,7 @@ proc drawToolBar {} {
     menubutton .parent.menub.left.men.b7 -text "Help" -state disabled
 
     menu .parent.menub.left.men.b0.m
-    .parent.menub.left.men.b0.m add command -label "Exit Paradyn" -command "destroy ."
+    .parent.menub.left.men.b0.m add command -label "Exit Paradyn" -command "procExit"
        # the -command is the same as the command executed when "EXIT"
        # button (lower right of screen) is clicked on.  If this is not right,
        # then by all means change it.

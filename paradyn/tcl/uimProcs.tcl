@@ -1,6 +1,9 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.15  1996/04/15 16:18:41  naim
+# Revision 1.16  1996/05/06 16:41:47  naim
+# Adding window to confirm whether the user wants to exit paradyn - naim
+#
+# Revision 1.15  1996/04/15  16:18:41  naim
 # Changing from global to local grab - naim
 #
 # Revision 1.14  1996/04/05  21:04:27  naim
@@ -295,6 +298,21 @@ proc errorExit {oldwin} {
     $w.buttons.1 configure -command "paradyn core -1; destroy ."
     $w.buttons.2 configure -command "destroy ."
     destroy $oldwin
+    pack $w.l $w.buttons -side top 
+    focus $w
+}
+
+# Makes sure that the user wants to exit paradyn
+#
+proc procExit {} {
+    set w .exitWindow
+    mkDialogWindowTitle $w "Exit Paradyn"
+    $w configure -bg red
+    label $w.l -text "Are you sure (Y/N)?"
+    frame $w.buttons
+    mkButtonBar $w.buttons {} retval {{YES ""} {NO ""}}
+    $w.buttons.1 configure -command "paradyn exit"
+    $w.buttons.2 configure -command "destroy $w"
     pack $w.l $w.buttons -side top 
     focus $w
 }
