@@ -80,7 +80,7 @@ class metric {
     friend void PCmetricFunc(perfStreamHandle, const char *name,
 			     int style, int aggregate,
 			     const char *units, metricHandle m_handle,
-			     bool normalized);
+			     dm_MetUnitsType units_type);
     friend void PCmain(void* varg);
     friend class PCmetric;
     friend void PCnewData(metricInstanceHandle, int,sampleValue,phaseType);
@@ -90,7 +90,10 @@ class metric {
 	const T_dyninstRPC::metricInfo  *getInfo() { return(&info); }
 	const char *getName() { return((info.name.string_of()));}
 	const char *getUnits() { return((info.units.string_of()));}
-	bool  getNormalized() { return((info.normalized));}
+	dm_MetUnitsType  getUnitsType() { 
+            if(info.unitstype == 0) return(UnNormalized);
+	    else if(info.unitstype == 1) return(Normalized);
+	    else return(Sampled);}
 	metricHandle getHandle() { return(info.handle);}
 	metricStyle  getStyle() { return((metricStyle) info.style); }
         int   getAggregate() { return info.aggregate;}

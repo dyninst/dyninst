@@ -14,10 +14,14 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.18  1995/11/17 17:28:37  newhall
-/* added normalized member to Metric class which specifies units type
-/* added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+/* Revision 1.19  1995/12/18 23:22:03  newhall
+/* changed metric units type so that it can have one of 3 values (normalized,
+/* unnormalized or sampled)
 /*
+ * Revision 1.18  1995/11/17  17:28:37  newhall
+ * added normalized member to Metric class which specifies units type
+ * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+ *
  * Revision 1.17  1995/11/12  23:29:48  newhall
  * removed warnings, removed error.C
  *
@@ -84,7 +88,7 @@ Metric::Metric(string metricUnits,
 	       string metricName,
 	       u_int id,
 	       int foldMethod,
-	       bool normal){
+	       visi_unitsType units_type){
 
   units = metricUnits;
   name = metricName;
@@ -93,15 +97,19 @@ Metric::Metric(string metricUnits,
     aggregate = foldMethod;
   else
     aggregate = SUM;
-  normalized = normal;
-  if(normalized) {
+  unitstype = units_type;
+  if(unitstype == Normalized) {
     label = units;
     total_label = units;
     total_label += P_strdup("_seconds");
   }
-  else {
+  else if (unitstype == UnNormalized) {
     label = units;
     label += P_strdup("/sec");
+    total_label = units; 
+  }
+  else {
+    label = units;
     total_label = units; 
   }
 }
@@ -282,7 +290,7 @@ int i;
   for(i = 0; i < noMetrics; i++){
     metrics[i].Metric(metricList[i].Units(),metricList[i].Name(),
 		      metricList[i].Identifier(),metricList[i].Aggregate(),
-		      metricList[i].Normalized());
+		      metricList[i].UnitsType());
   }
   for(i = 0; i < noResources; i++){
     resources[i].Resource(resourceList[i].Name(),resourceList[i].Identifier());
@@ -321,7 +329,7 @@ int i;
   for(i = 0; i < noMetrics; i++){
     metrics[i].Metric(metricList[i].units,metricList[i].name,
 		      metricList[i].Id,metricList[i].aggregate,
-		      metricList[i].normalized);
+		      metricList[i].unitstype);
   }
   for(i = 0; i < noResources; i++){
     resources[i].Resource(resourceList[i].name,resourceList[i].Id);
@@ -383,8 +391,9 @@ const char *visi_DataGrid::MetricUnits(int i){
 //
 const char *visi_DataGrid::MetricLabel(int i){
 
-  if((i < numMetrics) && (i>=0))
+  if((i < numMetrics) && (i>=0)){
     return(metrics[i].Label());
+  }
   return(0);
 }
 
@@ -393,8 +402,9 @@ const char *visi_DataGrid::MetricLabel(int i){
 //
 const char *visi_DataGrid::MetricAveLabel(int i){
 
-  if((i < numMetrics) && (i>=0))
+  if((i < numMetrics) && (i>=0)) {
     return(metrics[i].AveLabel());
+  }
   return(0);
 }
 
@@ -403,8 +413,9 @@ const char *visi_DataGrid::MetricAveLabel(int i){
 //
 const char *visi_DataGrid::MetricSumLabel(int i){
 
-  if((i < numMetrics) && (i>=0))
+  if((i < numMetrics) && (i>=0)) {
     return(metrics[i].SumLabel());
+  }
   return(0);
 }
 
@@ -539,12 +550,12 @@ int i;
   for(i = 0; i < numMetrics; i++){
     metrics[i].Metric(temp[i].Units(),temp[i].Name(),
 		      temp[i].Identifier(),temp[i].Aggregate(),
-		      temp[i].Normalized());
+		      temp[i].UnitsType());
   }
   for(i = numMetrics; i < (numMetrics + howmany); i++){
     metrics[i].Metric(mlist[i-numMetrics].units, mlist[i-numMetrics].name,
 		       mlist[i-numMetrics].Id, mlist[i-numMetrics].aggregate,
-		       mlist[i-numMetrics].normalized);
+		       mlist[i-numMetrics].unitstype);
   }
 
 

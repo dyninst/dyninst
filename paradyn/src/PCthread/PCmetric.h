@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.17  1995/11/17 17:19:36  newhall
+ * Revision 1.18  1995/12/18 23:21:41  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
+ * Revision 1.17  1995/11/17  17:19:36  newhall
  * changes due to addition of normalized method in metric class
  *
  * Revision 1.16  1995/06/02  20:50:11  newhall
@@ -181,7 +185,7 @@ class PCmetric {
 			   	 int aggregate,
 			         const char *units,
 			         metricHandle m_handle,
-				 bool normalized);
+				 dm_MetUnitsType unitstype);
 	friend void printStats();
 	friend void globalCost();
 	friend ostream& operator <<(ostream &os, PCmetric& );

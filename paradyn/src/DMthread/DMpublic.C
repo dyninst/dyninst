@@ -4,6 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.62  1995/12/18 23:21:31  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.61  1995/12/15 14:40:00  naim
  * Changing "hybrid_cost" by "smooth_obs_cost" - naim
  *
@@ -626,7 +630,7 @@ metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
     temp->metric_name = metricptr->getName();
     temp->metric_units = metricptr->getUnits();
     temp->focus_name = rl_temp->getName();
-    temp->normalized = metricptr->getNormalized();
+    temp->units_type = metricptr->getUnitsType();
     return(temp);
     temp = 0;
 }
@@ -1077,10 +1081,10 @@ void dataManagerUser::newMetricDefined(metricInfoCallback cb,
 				  int aggregate,
 				  const char *units,
 				  metricHandle handle,
-				  bool normalized)
+				  dm_MetUnitsType units_type)
 {
     
-    (cb)(p_handle, name, style, aggregate, units, handle, normalized);
+    (cb)(p_handle, name, style, aggregate, units, handle, units_type);
 }
 
 void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
@@ -1145,7 +1149,7 @@ T_dyninstRPC::metricInfo *dataManager::getMetricInfo(metricHandle m_handle) {
 	copy->name = met->name;
 	copy->aggregate = met->aggregate;
 	copy->handle = met->handle;
-	copy->normalized = met->normalized;
+	copy->unitstype = met->unitstype;
 	return(copy);
     }
     return 0;

@@ -1,6 +1,10 @@
 %{
 /*
  * $Log: metScanner.l,v $
+ * Revision 1.10  1995/12/18 23:22:14  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.9  1995/12/15 22:30:09  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
@@ -160,6 +164,7 @@ i
 "unitsType"	{ return(tUNITTYPE);}
 "normalized"	{ return(tNORMALIZE);}
 "unnormalized"	{ return(tUNNORMALIZE);}
+"sampled"	{ return(tSAMPLED);}
 "base"		{ return(tBASE);}
 "is"		{ return(tIS);}
 "append"	{ return(tAPPEND);}

@@ -367,7 +367,7 @@ class mdl_metric {
   vector<mdl_constraint*> *constraints_;
   vector<string> *temp_ctr_;
   bool developerMode_;
-  bool normalized_;
+  int unitstype_;
 
 $ignore
 public:
@@ -375,7 +375,7 @@ public:
 	     u_int agg, u_int style, u_int type,
 	     vector<mdl_stmt*> *mv, vector<string> *flavs, 
 	     vector<T_dyninstRPC::mdl_constraint*> *cons,
-	     vector<string> *temp_c, bool developerMode,bool normalized);
+	     vector<string> *temp_c, bool developerMode,int unitstype);
   ~mdl_metric();
 #ifdef NO_MDL_PRINT
   friend ostream& operator<< (ostream &os, const T_dyninstRPC::mdl_metric& met) {
@@ -411,7 +411,7 @@ $remote struct metricInfo {
     int aggregate;
     string units;
     bool developerMode;
-    bool normalized;
+    int unitstype;
     u_int handle;  // this is currently ignored by the daemons 
 };
 
@@ -427,7 +427,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 26;
+    $version 27;
 
     //
     // Define a program to run. 

@@ -15,6 +15,7 @@ typedef unsigned metricInstanceHandle;
 typedef unsigned phaseHandle;
 
 typedef enum {GlobalPhase, CurrentPhase} phaseType;
+typedef enum {UnNormalized, Normalized, Sampled} dm_MetUnitsType;
 
 struct metfocusType{
     vector<resourceHandle> res;
@@ -29,7 +30,7 @@ struct miInfoType{
     string metric_name;
     string metric_units;
     string focus_name;
-    bool normalized;
+    dm_MetUnitsType units_type;
 };
 typedef struct miInfoType metricInstInfo;
 

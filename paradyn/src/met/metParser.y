@@ -3,6 +3,10 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.16  1995/12/18 23:22:13  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.15  1995/12/15 22:30:07  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
@@ -98,7 +102,7 @@ extern unsigned hacked_cons_type;
 %token tAPPEND tPREPEND tDERIVED tIF tREPLACE tCONSTRAINT tCONSTRAINED
 %token tTYPE tAT tIN tLSQUARE tRSQUARE tBEFORE tAFTER
 %token tSTYLE tEVENT_COUNTER tSAMPLE_FUNC tMODE tDEVELOPER tNORMAL
-%token tUNITTYPE tNORMALIZE tUNNORMALIZE
+%token tUNITTYPE tNORMALIZE tUNNORMALIZE tSAMPLED
 %token tPLUS tMINUS tDIV tMULT tLT tGT tLE tGE tEQ tNE tAND tOR tNOT
 %token tADD_COUNTER tSET_COUNTER tSUB_COUNTER 
 %token tSTART_PROC_TIMER tSTOP_PROC_TIMER 
@@ -529,10 +533,11 @@ mode_val: tDEVELOPER { $$.b = true; }
 
 met_mode: tMODE mode_val tSEMI { $$.b = $2.b; };
 
-unittype_val: tNORMALIZE { $$.b = true; }
-	| tUNNORMALIZE { $$.b = false; };
+unittype_val: tNORMALIZE { $$.i = 1; }
+	| tUNNORMALIZE { $$.i = 0; }
+	| tSAMPLED { $$.i = 2; };
 
-met_unittype: tUNITTYPE unittype_val tSEMI {$$.b = $2.b;};	
+met_unittype: tUNITTYPE unittype_val tSEMI {$$.i = $2.i;};	
 
 met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK {
   $$.base.type = MDL_T_COUNTER;
@@ -584,7 +589,7 @@ metric_elem_list: met_name {$$.mfld.name = *$1.sp; $$.mfld.spec = SET_MNAME;
                 | met_base {$$.mfld.base_type = $1.base.type;
                             $$.mfld.base_m_stmt_v = $1.base.m_stmt_v;
                             $$.mfld.spec = SET_BASE;}
-		| met_unittype { $$.mfld.unittype = $1.b; 
+		| met_unittype { $$.mfld.unittype = $1.i; 
 				 $$.mfld.spec = SET_UNITTYPE; };
 
 metric_definition: tMETRIC tIDENT metric_struct {

@@ -16,9 +16,13 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.38  1995/12/03 21:32:50  newhall
-/* changes to support new sampleDataCallbackFunc
+/* Revision 1.39  1995/12/18 23:21:40  newhall
+/* changed metric units type so that it can have one of 3 values (normalized,
+/* unnormalized or sampled)
 /*
+ * Revision 1.38  1995/12/03  21:32:50  newhall
+ * changes to support new sampleDataCallbackFunc
+ *
  * Revision 1.37  1995/11/28  15:47:58  naim
  * Adding boolean parameter to getAvailableMetric - naim
  *
@@ -252,7 +256,7 @@ void PCmetricFunc(perfStreamHandle handle,
 		  int aggregate,
 		  const char *units,
 		  metricHandle m_handle,
-		  bool normalized)
+		  dm_MetUnitsType units_type)
 {
     PCmetric *pcMet;
     stringHandle s_name;
@@ -306,7 +310,6 @@ void PCmain(void* varg)
     controlHandlers.mFunc = PCmetricFunc;
     controlHandlers.fFunc = PCfold;
 
-    // dataHandlers.sample = PCnewData;
     dataHandlers.sample = PCnewDataCallback;
     pc_ps_handle = dataMgr->createPerformanceStream(Sample,
 	dataHandlers, controlHandlers);
@@ -326,7 +329,7 @@ void PCmain(void* varg)
 			     met->getAggregate(),
 			     met->getUnits(),
 			     met->getHandle(),
-			     met->getNormalized());
+			     met->getUnitsType());
         }
     }
 

@@ -22,9 +22,13 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.55  1995/12/13 03:19:25  newhall
-/* update for new return values from some DM interface functions
+/* Revision 1.56  1995/12/18 23:21:58  newhall
+/* changed metric units type so that it can have one of 3 values (normalized,
+/* unnormalized or sampled)
 /*
+ * Revision 1.55  1995/12/13 03:19:25  newhall
+ * update for new return values from some DM interface functions
+ *
  * Revision 1.54  1995/12/03 21:33:00  newhall
  * changes to support new sampleDataCallbackFunc
  *
@@ -400,7 +404,7 @@ void VISIthreadnewMetricCallback(perfStreamHandle handle,
 				 int aggregate,
 				 const char *units,
 				 metricHandle m_handle,
-				 bool normalized){
+				 dm_MetUnitsType units_type ){
  VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -735,7 +739,15 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
           matrix.met.Id = newEnabled[l]->m_id;
 	  matrix.met.name = newEnabled[l]->metric_name; 
 	  matrix.met.units = newEnabled[l]->metric_units;
-	  matrix.met.normalized = newEnabled[l]->normalized;
+	  if(newEnabled[l]->units_type == UnNormalized){
+	      matrix.met.unitstype = 0;
+	  }
+	  else if (newEnabled[l]->units_type == Normalized){
+	      matrix.met.unitstype = 1;
+	  }
+	  else{
+	      matrix.met.unitstype = 2;
+	  }
 	  matrix.met.aggregate = AVE;
 	  matrix.res.Id = newEnabled[l]->r_id;
 	  if((matrix.res.name = 

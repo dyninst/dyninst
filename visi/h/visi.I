@@ -16,9 +16,13 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.14  1995/12/15 20:15:11  naim
-/* Adding call back function to display error messages from visis - naim
+/* Revision 1.15  1995/12/18 23:22:31  newhall
+/* changed metric units type so that it can have one of 3 values (normalized,
+/* unnormalized or sampled)
 /*
+ * Revision 1.14  1995/12/15 20:15:11  naim
+ * Adding call back function to display error messages from visis - naim
+ *
 # Revision 1.13  1995/11/17  17:27:56  newhall
 # added normalized member to Metric class which specifies units type
 # added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
@@ -75,7 +79,8 @@ $remote struct metricType {
      string name;     // for y-axis labeling  
      u_int  Id;       // unique metric Id
      int    aggregate;  //either SUM or AVE
-     bool   normalized;  // specifies units type
+     int    unitstype;  // specifies units type 0: unnormalized 1: normalized
+			//                      2: sampled
 };
 
 $remote struct resourceType {
@@ -105,7 +110,7 @@ $remote struct phase_info{
 
 $remote visualization {
   $base  7000;
-  $version  13;
+  $version  14;
 
   // data: list of new data values from Paradyn 
   $async void Data(vector<dataValue> data);  

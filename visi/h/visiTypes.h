@@ -16,10 +16,14 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.15  1995/11/17 17:27:58  newhall
-/* added normalized member to Metric class which specifies units type
-/* added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+/* Revision 1.16  1995/12/18 23:22:32  newhall
+/* changed metric units type so that it can have one of 3 values (normalized,
+/* unnormalized or sampled)
 /*
+ * Revision 1.15  1995/11/17  17:27:58  newhall
+ * added normalized member to Metric class which specifies units type
+ * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+ *
  * Revision 1.14  1995/11/12  23:29:30  newhall
  * removed warnings, removed error.C
  *
@@ -121,13 +125,14 @@ typedef enum {DATAVALUES,INVALIDMETRICSRESOURCES,ADDMETRICSRESOURCES,
 
 typedef float sampleType;
 typedef double timeType;
+typedef enum {UnNormalized, Normalized, Sampled} visi_unitsType;
 
 struct metricStruct {
      string units;    // how units are measured
      string name;     // metric name for graph labeling  
-     u_int   Id;       // unique metric Id
-     int     aggregate;  //either SUM or AVE
-     bool    normalized;  // specifies units type
+     u_int  Id;       // unique metric Id
+     int    aggregate;  //either SUM or AVE
+     visi_unitsType    unitstype;  // specifies units type
 };
 typedef struct metricStruct visi_metricType;
 
@@ -146,5 +151,6 @@ struct dataValueStruct{
      sampleType data;
 };
 typedef struct dataValueStruct visi_dataValue;
+
 
 #endif

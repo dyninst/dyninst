@@ -2,6 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.60  1995/12/18 23:21:07  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.59  1995/12/15 14:38:48  naim
  * Changing "hybrid_cost" by "smooth_obs_cost" - naim
  *
@@ -298,7 +302,7 @@ typedef void (*metricInfoCallback)(perfStreamHandle,
 				   int aggregate,
 				   const char *units,
 				   metricHandle handle,
-				   bool normalized);
+				   dm_MetUnitsType units_type);
 
 /*
  * Handler that gets called when a new resource is defined.
@@ -345,7 +349,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 31;
+    $version 32;
 
     //
     // Start a paradyn daemon
@@ -767,7 +771,7 @@ $remote dataManager {
 				         int aggregate,
 				         const char *units,
 				         metricHandle handle,
-					 bool normalized);
+					 dm_MetUnitsType units_type);
 
     $upcall $async void newResourceDefined(resourceInfoCallback,
 					   perfStreamHandle, 

@@ -17,10 +17,14 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.21  1995/11/17 17:27:54  newhall
-/* added normalized member to Metric class which specifies units type
-/* added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+/* Revision 1.22  1995/12/18 23:22:29  newhall
+/* changed metric units type so that it can have one of 3 values (normalized,
+/* unnormalized or sampled)
 /*
+ * Revision 1.21  1995/11/17  17:27:54  newhall
+ * added normalized member to Metric class which specifies units type
+ * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+ *
  * Revision 1.20  1995/11/12  23:29:24  newhall
  * removed warnings, removed error.C
  *
@@ -106,19 +110,19 @@ class Metric{
      string     name;     // for y-axis labeling  
      u_int      Id;       // unique metric Id
      int        aggregate; //either SUM or AVE, for fold operation 
-     bool	normalized; // specifies units type
+     visi_unitsType unitstype; // specifies units type
      string	label;      // for data values, and ave. aggregate
      string	total_label; // for sum aggregate 
   public:
      Metric(){name = 0; units = 0; Id = 0; aggregate=SUM;
-	      normalized = true; label = 0; total_label = 0;}
-     Metric(string,string,u_int,int,bool); 
+	      unitstype = Normalized; label = 0; total_label = 0;}
+     Metric(string,string,u_int,int,visi_unitsType); 
      ~Metric(); 
      const char *Units(){return(units.string_of());}
      const char *Name(){return(name.string_of());}
      u_int       Identifier(){return(Id);}
      int         Aggregate(){return(aggregate);}
-     bool        Normalized(){return(normalized);}
+     visi_unitsType UnitsType(){return(unitstype);}
      const char *Label(){return(label.string_of());}
      const char *AveLabel(){return(label.string_of());}
      const char *SumLabel(){return(total_label.string_of());}

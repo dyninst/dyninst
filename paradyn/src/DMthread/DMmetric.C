@@ -29,7 +29,7 @@ metric::metric(T_dyninstRPC::metricInfo i){
     info.units = i.units;
     info.name = i.name;
     info.developerMode = i.developerMode;
-    info.normalized = i.normalized;
+    info.unitstype = i.unitstype;
     info.aggregate = i.aggregate;
     info.handle = metrics.size();
     metric *met = this;

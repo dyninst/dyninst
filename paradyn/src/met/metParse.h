@@ -1,6 +1,10 @@
 
 /*
  * $Log: metParse.h,v $
+ * Revision 1.10  1995/12/18 23:22:11  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.9  1995/12/15 22:30:06  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
@@ -64,7 +68,7 @@ typedef struct metricFld {
   unsigned style;
   vector<string> *flavor;
   bool mode;
-  bool unittype;
+  int unittype;
   T_dyninstRPC::mdl_constraint *constraint;
   string temps;
   unsigned base_type;
@@ -80,7 +84,7 @@ public:
   void setFlavor(vector<string> *flavor) {flavor_ = flavor; 
 					  flavor_flag = true;}
   void setMode(bool mode) {mode_ = mode; mode_flag = true;}
-  void setUnittype(bool unittype) {unittype_ = unittype; unittype_flag = true;}
+  void setUnittype(int unittype) {unittype_ = unittype; unittype_flag = true;}
   void setConstraintList(T_dyninstRPC::mdl_constraint *constraint)  
   {
     (*constraint_list_) += constraint;
@@ -170,7 +174,7 @@ public:
       return(false);
   }
   metricDef() : mode_(false),
-		unittype_(true),
+		unittype_(0),
 		base_m_stmt_v_flag(false),
 		base_type_flag(false), 
 		temps_flag(false), 
@@ -194,7 +198,7 @@ private:
   unsigned style_;
   vector<string> *flavor_;
   bool mode_;
-  bool unittype_;
+  int unittype_;
   vector<T_dyninstRPC::mdl_constraint*> *constraint_list_;
   vector<string> *temps_;
   unsigned base_type_; 

@@ -14,10 +14,14 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.36  1995/12/18 17:22:07  naim
-/* Adding function showErrorVisiCallback to display error messages from
-/* visis - naim
+/* Revision 1.37  1995/12/18 23:22:05  newhall
+/* changed metric units type so that it can have one of 3 values (normalized,
+/* unnormalized or sampled)
 /*
+ * Revision 1.36  1995/12/18 17:22:07  naim
+ * Adding function showErrorVisiCallback to display error messages from
+ * visis - naim
+ *
  * Revision 1.35  1995/12/15  20:15:24  naim
  * Adding call back function to display error messages from visis - naim
  *
@@ -454,7 +458,15 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
             else
 	        mets[numMet].units = newElements[i].met.units;
             mets[numMet].Id = newElements[i].met.Id;
-            mets[numMet].normalized = newElements[i].met.normalized;
+	    if(newElements[i].met.unitstype == 0){
+		mets[numMet].unitstype = UnNormalized;
+	    }
+	    else if(newElements[i].met.unitstype == 1){
+		mets[numMet].unitstype = Normalized;
+	    }
+	    else {
+                mets[numMet].unitstype = Sampled;
+	    }
 	    mets[numMet++].aggregate = newElements[i].met.aggregate;
 	}
 	  ok = 0;
@@ -527,7 +539,15 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
               else
 	          mets[numMet].units = newElements[i2].met.units;
             mets[numMet].Id = newElements[i2].met.Id;
-            mets[numMet].normalized = newElements[i2].met.normalized;
+	    if(newElements[i2].met.unitstype == 0){
+		mets[numMet].unitstype = UnNormalized;
+	    }
+	    else if(newElements[i2].met.unitstype == 1){
+		mets[numMet].unitstype = Normalized;
+	    }
+	    else {
+                mets[numMet].unitstype = Sampled;
+	    }
 	    mets[numMet++].aggregate = newElements[i2].met.aggregate;
 	}
     }}

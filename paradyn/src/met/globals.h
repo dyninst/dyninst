@@ -23,7 +23,7 @@ public:
 			 vector<T_dyninstRPC::mdl_constraint*> *cons,
 			 vector<string> *temp_counters,
 			 bool developerMode,
-			 bool normalized);
+			 int normalized);
 
 };
 

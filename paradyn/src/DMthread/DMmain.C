@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.83  1995/12/03 21:31:37  newhall
+ * Revision 1.84  1995/12/18 23:21:24  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
+ * Revision 1.83  1995/12/03  21:31:37  newhall
  * added buffering of data values between DM and client threads based on
  * the number of metric/focus pairs a client thread has enabled
  * DM allocs buffers and the client threads dealloc them
@@ -804,7 +808,7 @@ void addMetric(T_dyninstRPC::metricInfo &info)
 					      met->getAggregate(),
 					      met->getUnits(),
 					      met->getHandle(),
-					      met->getNormalized());
+					      met->getUnitsType());
 	}
     }
 }
