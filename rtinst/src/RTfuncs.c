@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.10  1994/07/22 19:24:53  hollings
+ * Revision 1.11  1994/07/26 20:04:49  hollings
+ * removed slots used variables.
+ *
+ * Revision 1.10  1994/07/22  19:24:53  hollings
  * added actual paused time for CM-5.
  *
  * Revision 1.9  1994/07/14  23:35:34  hollings
@@ -165,9 +168,8 @@ void DYNINSTreportBaseTramps()
     time64 currentWall;
     time64 elapsedWallTime;
     time64 currentPauseTime;
-    register unsigned int count asm("%g6");
 
-    sample.slotsExecuted = count;
+    sample.slotsExecuted = 0;
 
     sample.observedCost = ((double) DYNINSTgetObservedCycles(1)) *
 	(DYNINSTcyclesToUsec / 1000000.0);

@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.14  1994/07/22 19:24:54  hollings
+ * Revision 1.15  1994/07/26 20:04:48  hollings
+ * removed slots used variables.
+ *
+ * Revision 1.14  1994/07/22  19:24:54  hollings
  * added actual paused time for CM-5.
  *
  * Revision 1.13  1994/07/16  03:39:31  hollings
@@ -299,7 +302,6 @@ void DYNINSTinit(int skipBreakpoint)
      * clear global base tramp and cycle counters.
      *
      */
-    asm("mov 0, %g6");
 #ifdef notdef
     asm("mov 0, %g7");
 #endif
