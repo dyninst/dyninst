@@ -271,9 +271,6 @@ Address calculateRSEOffsetFromBySlots( Address addr, int slots ) {
 	return addr;
 	} /* end calculateRSEOffsetFromBySlots() */
 
-/* FIXME: from inst-ia64.C; stash in a common header. */
-#define BIT_0_6		0x000000007F
-
 Address dyn_lwp::readRegister( Register reg ) {
 	/* I can't find anything in the docs saying that ptrace()d
 	   programs will always have a flushrs executed in their
@@ -287,14 +284,11 @@ Address dyn_lwp::readRegister( Register reg ) {
 	assert( ! errno );
 
 	/* Acquire the CFM. */
-	uint64_t currentFrameMarker = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 );
+	reg_tmpl tmpl = { P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 ) };
 	assert( ! errno );
 
-	/* Extract the SOF. */
-	int soFrame = (currentFrameMarker & BIT_0_6 );
-
 	/* Calculate the address of the register. */
-	Address addressOfReg = calculateRSEOffsetFromBySlots( bsp, (-1 * soFrame) + (reg - 32) );
+	Address addressOfReg = calculateRSEOffsetFromBySlots( bsp, (-1 * tmpl.CFM.sof) + (reg - 32) );
 
 	/* Acquire and return the value of the register. */
 	Address value = P_ptrace( PTRACE_PEEKTEXT, proc_->getPid(), addressOfReg, 0 );

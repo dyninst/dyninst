@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.35 2004/08/16 04:33:01 rchen Exp $
+// $Id: arch-ia64.C,v 1.36 2004/08/18 21:17:34 rchen Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -50,58 +50,13 @@
 #include "dyninstAPI/src/arch-ia64.h"
 #include "util.h"
 
-#define TEMPLATE_MASK		0x000000000000001F	/* bits 00 - 04 */
-#define INSTRUCTION0_MASK	0x00003FFFFFFFFFE0	/* bits 05 - 45 */
+#define ALIGN_RIGHT_SHIFT		23
+#define TEMPLATE_MASK			0x000000000000001F	/* bits 00 - 04 */
+#define INSTRUCTION0_MASK		0x00003FFFFFFFFFE0	/* bits 05 - 45 */
 #define INSTRUCTION1_LOW_MASK	0xFFFFC00000000000	/* bits 45 - 63 */
 #define INSTRUCTION1_HIGH_MASK	0x00000000007FFFFF	/* bits 00 - 20 */
-#define INSTRUCTION2_MASK	0xFFFFFFFFFF800000	/* bits 21 - 63 */
-
-#define BITS_30_35		0x07E0000000000000	/* bits 30 - 35 */
-#define BITS_33_35		0x0700000000000000	/* bits 33 - 35 */
-#define BITS_27_32		0x00FC000000000000	/* bits 27 - 32 */
-#define BITS_06_12		0x0000000FE0000000	/* bits 06 - 12 */
-
-#define BIT_36			0x0800000000000000	/* bit 36 */
-#define BIT_27			0x0004000000000000	/* bit 27 */
-
-#define ALLOC_SOR		0x003C000000000000	/* bits 27 - 30 */
-#define ALLOC_SOL		0x0003F80000000000	/* bits 20 - 26 */
-#define ALLOC_SOF		0x000007F000000000	/* bits 13 - 19 */
-#define ALLOC_REGISTER		0x0000000FE0000000	/* bits 06 - 12 */
-
-#define PREDICATE_MASK		0x000000001F800000	/* bits 00 - 05 */
-
-#define ADDL_SIGN		0x0800000000000000	/* bit 36 */
-#define ADDL_IMM9D		0x07FC000000000000	/* bits 27 - 35 */
-#define ADDL_IMM5C		0x0003E00000000000	/* bits 22 - 26 */
-#define ADDL_R3			0x0000180000000000	/* bits 20 - 21 */
-#define ADDL_IMM7B		0x000007F000000000	/* bits 13 - 19 */
-#define ADDL_R1			0x0000000FE0000000	/* bits 06 - 12 */
-
-#define MOVL_I			0x0800000000000000	/* bit 36 */
-#define MOVL_IMM9D		0x07FC000000000000	/* bits 27 - 35 */
-#define MOVL_IMM5C		0x0003E00000000000	/* bits 22 - 26 */
-#define MOVL_IC			0x0000100000000000	/* bit 21 */
-#define MOVL_VC			0x0000080000000000	/* bit 20 */
-#define MOVL_IMM7B		0x000007F000000000	/* bits 13 - 19 */
-#define MOVL_R1			0x0000000FE0000000	/* bits 06 - 12 */
-
-#define IBRANCH_X6		0x00FC000000000000	/* bits 27 - 32 */
-#define IBRANCH_B2		0x0000007000000000	/* bits 13 - 15 */
-#define IBRANCH_BTYPE	0x00000000E0000000	/* bits 06 - 08 */
-
-#define RIGHT_IMM5C		0x00000000001F0000	/* bits 16 - 20 */
-#define RIGHT_IMM9D		0x000000000000FF80	/* bits 07 - 15 */
-#define RIGHT_IMM6D		0x0000000000001F80	/* bits 07 - 12 */
-#define RIGHT_IMM7B		0x000000000000007F	/* bits 00 - 06 */
-#define RIGHT_IMM_I		0x8000000000000000	/* bit 63 */
-#define RIGHT_IMM_IC	0x0000000000200000	/* bit 21 */
-#define RIGHT_IMM8C		0x0000000000007F80	/* bits 07 - 15 */
-#define RIGHT_IMM7A		0x000000000000007F	/* bits 00 - 06 */
-
-#define RIGHT_IMM41		0x7FFFFFFFFFC00000	/* bits 22 - 62 */
-#define RIGHT_IMM20		0x00000000000FFFFF	/* bits 00 - 19 */
-#define RIGHT_IMM39		0x07FFFFFFFFF00000	/* bits 20 - 58 */
+#define INSTRUCTION2_MASK		0xFFFFFFFFFF800000	/* bits 21 - 63 */
+#define SYSCALL_IMM				0x100000
 
 IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3] = { 
 	IA64_instruction::M, IA64_instruction::I, IA64_instruction::I,
@@ -141,7 +96,6 @@ IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3] = {
 	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
 	};
 
-
 /* NOTE: for the IA64_bundle constructor to work, the individual
 	instruction 'halves' should left-aligned as if they were independent instructions. */
 IA64_instruction_x::IA64_instruction_x( uint64_t lowHalf, uint64_t highHalf, uint8_t templ ) {
@@ -161,131 +115,190 @@ const void * IA64_instruction::ptr() const {
 	} /* end ptr() */
 
 uint8_t IA64_instruction::getPredicate() const {
-	return (instruction & PREDICATE_MASK) >> ALIGN_RIGHT_SHIFT;
+	return GET_PREDICATE( (const insn_tmpl *)(&instruction) );
 	} /* end short instruction predication fetch */
-	
+
 uint8_t IA64_instruction_x::getPredicate() const {
-	return (instruction_x & PREDICATE_MASK) >> ALIGN_RIGHT_SHIFT;
-	} /* end long instruciton predication fetch */        
+	return GET_PREDICATE( (const insn_tmpl *)(&instruction_x) );
+	} /* end long instruciton predication fetch */
 
 IA64_instruction::unitType IA64_instruction::getUnitType() const {
 	return INSTRUCTION_TYPE_ARRAY[(templateID * 3) + slotNumber];
 	} /* end getUnitType() */
-	
+
 IA64_instruction::insnType IA64_instruction::getType() const {
 	/* We'll try to be a little smarter, now, and just look up the unit type. */
-	unitType iUnitType = getUnitType();
+	insn_tmpl tmpl = { instruction };
+	uint8_t opCode = GET_OPCODE( &tmpl );
 
-	uint8_t opCode = (instruction & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
-	switch( iUnitType ) {
+	switch( getUnitType() ) {
 		case M: {
 			/* Note that we do NOT recognize advance load instructions (see also isLoadOrStore()),
 			   though this can be added without too much trouble. */
-			uint8_t x6 = (instruction & BITS_30_35) >> (ALIGN_RIGHT_SHIFT + 30);
-			uint8_t x3 = (instruction & BITS_33_35) >> (ALIGN_RIGHT_SHIFT + 33);
-			uint8_t x = (instruction & BIT_27) >> (ALIGN_RIGHT_SHIFT + 27);
-		
+			uint8_t x  = tmpl.M_LD_ST.x;
+			uint8_t m  = tmpl.M_LD_ST.m;
+			uint8_t x6 = tmpl.M_LD_ST.x6;
+			uint8_t x4 = tmpl.M_SYS.x2;
+			uint8_t x3 = tmpl.M_SYS.x3;
+			uint8_t x2 = tmpl.M_SYS.x4;
+
 			switch( opCode ) {
-				case 0x04:
-					if( x == 0x00 && ( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3B ) ) { return INTEGER_STORE; }
-					else if( x == 0x00 && ( ( x6 <= 0x17 ) || x6 == 0x1B || ( x6 >= 0x20 && x6 <= 0x2B ) ) ) { return INTEGER_LOAD; }
-					else { return OTHER; }
+				case 0x0:
+					if( x3 >= 0x4 && x3 <= 0x7 ) return ALAT_CHECK;
+					if( x3 == 0x0 && x4 == 0x0 && x2 == 0x0 )
+						if( GET_M37_IMM( &tmpl ) == SYSCALL_IMM )
+							return SYSCALL;
+						else
+							return BREAK;
+
+					return OTHER;
 					break;
-					
-				case 0x05:
-					if( ( x6 <= 0x17 ) || x6 == 0x1B || ( x6 >= 0x20 && x6 <= 0x2B ) ) { return INTEGER_LOAD; }
-					else if( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3B ) { return INTEGER_STORE; }
+
+				case 0x1:
+					if( x3 == 0x1 || x3 == 0x3 ) return SPEC_CHECK;
+					if( x3 == 0x06 ) return ALLOC;
+
+					return OTHER;
 					break;
-					
-				case 0x06:
-					if ( x == 0x00 && ( ( x6 <= 0x0F ) || x6 == 0x1B || ( x6 >= 0x20 && x6 <= 0x27 ) ) ) { return FP_LOAD; }
-					else if( x == 0x00 && ( ( x6 >= 0x30 && x6 <= 0x32 ) || x6 == 0x3B ) ) { return FP_STORE; }
-					else if( x == 0x01 && ( ( x6 >= 0x01 && x6 <= 0x27 ) && x6 != 0x04 && x6 != 0x08 && x6 != 0x0C && x6 != 0x20 && x6 != 0x24 ) ) { 
-						if( x6 && 0x3 == 0x01 ) { return INTEGER_PAIR_LOAD; } else { return FP_PAIR_LOAD; }
-						}
-					else if( x == 0x00 && ( x6 == 0x2C || x6 == 0x2D || x6 == 0x2E || x6 == 0x2F ) ) { return PREFETCH; }
-					else { return OTHER; }
+
+				case 0x4:
+					if( x == 0x0 ) {
+						if( ( x6 <= 0x17 ) || x6 == 0x1B ||
+							( x6 >= 0x20 && x6 <= 0x2B ) )
+							return INTEGER_LOAD;
+
+						if( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3B )
+							return INTEGER_STORE;
+					}
+
+					if( m == 0x0 && x == 0x1 ) {
+						if( x6 == 0x28 || x6 == 0x2C ) return INTEGER_16_LOAD;
+						if( x6 == 0x30 || x6 == 0x34 ) return INTEGER_16_STORE;
+					}
+
+					return OTHER;
 					break;
-				
-				case 0x07:
-					if ( x6 <= 0x0F || x6 == 0x1B || ( x6 >= 0x20 && x6 <= 0x27 ) ) { return FP_LOAD; }
-					else if( ( x6 >= 0x30 && x6 <= 0x32 ) || x6 == 0x3B ) { return FP_STORE; }
-					else if( x6 == 0x2C || x6 == 0x2D || x6 == 0x2E || x6 == 0x2F ) { return PREFETCH; }
-					else { return OTHER; }
+
+				case 0x5:
+					if( ( x6 <= 0x17 ) || x6 == 0x1B ||
+						( x6 >= 0x20 && x6 <= 0x2B ) )
+						return INTEGER_LOAD;
+
+					if( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3B )
+						return INTEGER_STORE;
+
+					return OTHER;
 					break;
-					
-				case 0x01:
-					if( x3 == 0x01 || x3 == 0x03 ) { return CHECK; }
-					else if( x3 == 0x06 ) { return ALLOC; }
-					else { return OTHER; }
+
+				case 0x6:
+					if( x == 0x0 ) {
+						if( ( x6 <= 0x0F ) || x6 == 0x1B ||
+							( x6 >= 0x20 && x6 <= 0x27 ) )
+							return FP_LOAD;
+
+						if( ( x6 >= 0x30 && x6 <= 0x32 ) || x6 == 0x3B )
+							return FP_STORE;
+
+						if( x6 == 0x2C || x6 == 0x2D || x6 == 0x2E || x6 == 0x2F )
+							return PREFETCH;
+					}
+
+					if( x == 0x1 ) {
+						if( ( x6 >= 0x01 && x6 <= 0x0F ) || ( x6 >= 0x21 && x6 <= 27 ) )
+								 switch ( x6 & 0x3 ) {
+								 	case 0x1: return INTEGER_PAIR_LOAD;
+								 	case 0x2:
+								 	case 0x3: return FP_PAIR_LOAD;
+								 }
+					}
+					return OTHER;
 					break;
-					
-				case 0x00:
-					if( x3 >= 0x04 && x3 <= 0x07 ) { return CHECK; }
-					else { return OTHER; }
+
+				case 0x7:
+					if( ( x6 <= 0x0F ) || x6 == 0x1B ||
+						( x6 >= 0x20 && x6 <= 0x27 ) )
+						return FP_LOAD;
+
+					if( ( x6 >= 0x30 && x6 <= 0x33 ) || x6 == 0x3B )
+						return FP_STORE;
+
+					if( x6 >= 0x2C && x6 <= 0x2F )
+						return PREFETCH;
+
+					return OTHER;
 					break;
-					
+
 				default:
 					return OTHER;
 				} /* end memory-unit opcode switch */
 			} break;
 
 		case I: {
-			uint8_t x6 = (instruction & BITS_27_32) >> (ALIGN_RIGHT_SHIFT + 27);
-			uint8_t x3 = (instruction & BITS_33_35) >> (ALIGN_RIGHT_SHIFT + 27);
-		
-			if( opCode == 0x00 && x6 == 0x30 ) { return MOVE_FROM_IP; }
-			else if( opCode == 0x00 && x3 == 0x01 ) { return CHECK; }
-			else { return OTHER; }
+			uint8_t x6 = tmpl.I_MISC.x6;
+			uint8_t x3 = tmpl.I_MISC.x3;
+
+			if( opCode == 0x0 && x3 == 0x0 && x6 == 0x00 )
+				if( GET_I19_IMM( &tmpl ) == SYSCALL_IMM )
+					return SYSCALL;
+				else
+					return BREAK;
+			if( opCode == 0x0 && x6 == 0x30 ) return MOVE_FROM_IP;
+			if( opCode == 0x0 && x3 == 0x1 ) return SPEC_CHECK;
+
+			return OTHER;
 			} break;
 
 		case B: {
 			switch( opCode ) {
-				case 0x05:
-					return DIRECT_CALL;
-				
-				case 0x01:
-					return INDIRECT_CALL;
-					
-				case 0x04:
-					return DIRECT_BRANCH;
-				
-				case 0x00: {
+				case 0x0: {
 					/* Is it a return or an indirect branch or something else? */
-					uint8_t x6 = (instruction & IBRANCH_X6) >> (ALIGN_RIGHT_SHIFT + 27);
-					uint8_t btype = (instruction & IBRANCH_BTYPE) >> (ALIGN_RIGHT_SHIFT + 6);
-					
-					if( x6 == 0x21 && btype == 0x04 ) { return RETURN; }
-					else if( x6 == 0x20 && btype == 0x00 ) { return INDIRECT_BRANCH; }
-					else if( x6 == 0x20 && btype == 0x01 ) { return BRANCH_IA; }
-					else { return OTHER; }
-					} break;
-				
-				case 0x07:
-					return BRANCH_PREDICT;
-					
-				case 0x02: {
-					uint8_t x6 = (instruction & IBRANCH_X6) >> (ALIGN_RIGHT_SHIFT + 27);
-				
-					if ( x6 == 0x10 || x6 == 0x11 ) { return BRANCH_PREDICT; }
-					else { return OTHER; }
-					} break;
-				
-				default:
+					uint8_t x6 = tmpl.B.x6;
+					uint8_t btype = tmpl.B.btype;
+
+					if( x6 == 0x00 )
+						if( GET_B9_IMM( &tmpl ) == SYSCALL_IMM )
+							return SYSCALL;
+						else
+							return BREAK;
+					if( x6 == 0x21 && btype == 0x4 ) return RETURN;
+					if( x6 == 0x20 && btype == 0x0 ) return INDIRECT_BRANCH;
+					if( x6 == 0x20 && btype == 0x1 ) return BRANCH_IA;
+
 					return OTHER;
+					} break;
+
+				case 0x1: return INDIRECT_CALL;
+				case 0x2: {
+					uint8_t x6 = tmpl.B.x6;
+
+					if ( x6 == 0x10 || x6 == 0x11 ) return BRANCH_PREDICT;
+
+					return OTHER;
+					} break;
+
+				case 0x4: return DIRECT_BRANCH;
+				case 0x5: return DIRECT_CALL;
+				case 0x7: return BRANCH_PREDICT;
+
+				default:  return OTHER;
 				} /* end branch-unit opcode switch */
-			} break; 
+			} break;
 
 		case F:
+			if( opCode == 0x0 && tmpl.F15.x == 0x0 && tmpl.F15.x6 == 0x00 )
+				if( GET_F15_IMM( &tmpl ) == SYSCALL_IMM )
+					return SYSCALL;
+				else
+					return BREAK;
+
 			return OTHER;
 
-		case L: case X:
-			break;
-
-		case RESERVED: default:
-			break;	
+		case X:
+		case L:
+		case RESERVED:
+		default: break;
 		} /* end i-unit type switch */
-	
+
 	return INVALID;
 	} /* end getType() */
 
@@ -295,10 +308,21 @@ IA64_instruction_x::unitType IA64_instruction_x::getUnitType() const {
 
 IA64_instruction::insnType IA64_instruction_x::getType() const {
 	/* We know we're a long instruction, so just check the major opcode to see which one. */
-	uint8_t opcode = (instruction_x & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
-	switch( opcode ) {
-		case 0x0D: return DIRECT_CALL;
-		case 0x0C: return DIRECT_BRANCH;
+	insn_tmpl tmpl = { instruction_x };
+	insn_tmpl imm  = { instruction };
+
+	switch( GET_OPCODE( &tmpl )) {
+		case 0x0:
+			if( tmpl.X1.x3 == 0x0 && tmpl.X1.x6 == 0x00 )
+				if( GET_X1_IMM( &tmpl, &imm ) == SYSCALL_IMM )
+					return SYSCALL;
+				else
+					return BREAK;
+
+			return OTHER;
+
+		case 0xD: return DIRECT_CALL;
+		case 0xC: return DIRECT_BRANCH;
 		default: return OTHER;
 		} /* end opcode switch */
 	} /* end getType() */
@@ -324,11 +348,11 @@ IA64_bundle::IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t in
 	this->instruction1 = IA64_instruction( instruction1, templateID, 1 );
 	this->instruction2 = IA64_instruction( instruction2, templateID, 2 ); 
 
-	myBundle.low =	( templateID & TEMPLATE_MASK ) |
-			( (instruction0 >> (ALIGN_RIGHT_SHIFT - 5)) & INSTRUCTION0_MASK ) |
-			( (instruction1 << 23) & INSTRUCTION1_LOW_MASK );
-	myBundle.high = ( (instruction1 >> (ALIGN_RIGHT_SHIFT + 18)) & INSTRUCTION1_HIGH_MASK ) |
-			( instruction2 & INSTRUCTION2_MASK );
+	myBundle.low  =	(( templateID & TEMPLATE_MASK ) |
+					 ( (instruction0 >> (ALIGN_RIGHT_SHIFT - 5)) & INSTRUCTION0_MASK ) |
+					 ( (instruction1 << 23) & INSTRUCTION1_LOW_MASK ));
+	myBundle.high = (( (instruction1 >> (ALIGN_RIGHT_SHIFT + 18)) & INSTRUCTION1_HIGH_MASK ) |
+					 ( (instruction2 & INSTRUCTION2_MASK )));
 	} /* end IA64_bundle() */
 
 IA64_bundle::IA64_bundle( uint64_t lowHalfBundle, uint64_t highHalfBundle ) {
@@ -336,7 +360,7 @@ IA64_bundle::IA64_bundle( uint64_t lowHalfBundle, uint64_t highHalfBundle ) {
 	templateID = lowHalfBundle & TEMPLATE_MASK;
 	instruction0 = IA64_instruction( (lowHalfBundle & INSTRUCTION0_MASK) << 18, templateID, 0 );
 	instruction1 = IA64_instruction( ((lowHalfBundle & INSTRUCTION1_LOW_MASK) >> 23) +
-						((highHalfBundle & INSTRUCTION1_HIGH_MASK) << 41), templateID, 1 );
+									 ((highHalfBundle & INSTRUCTION1_HIGH_MASK) << 41), templateID, 1 );
 	instruction2 = IA64_instruction( highHalfBundle & INSTRUCTION2_MASK, templateID, 2 );
 
 	myBundle.low = lowHalfBundle;
@@ -364,25 +388,25 @@ IA64_instruction * IA64_bundle::getInstruction( unsigned int slot ) {
 bool IA64_bundle::setInstruction(IA64_instruction &newInst)
 {
     if ( (templateID == 0x04 || templateID == 0x05) && newInst.slotNumber != 0)
-	return false;
+		return false;
 
     switch (newInst.slotNumber) {
-    case 0:
-	instruction0 = IA64_instruction(newInst.instruction, templateID, newInst.slotNumber);
-	myBundle.low &= ~INSTRUCTION0_MASK | (newInst.instruction << (ALIGN_RIGHT_SHIFT - 5));
-	break;
-    case 1:
-	instruction1 = IA64_instruction(newInst.instruction, templateID, newInst.slotNumber);
-	myBundle.low &= ~INSTRUCTION1_LOW_MASK | (newInst.instruction << 23);
-	myBundle.high &= ~INSTRUCTION1_HIGH_MASK | (newInst.instruction >> (ALIGN_RIGHT_SHIFT + 18));
-	break;
-    case 2:
-	instruction2 = IA64_instruction(newInst.instruction, templateID, newInst.slotNumber);
-	myBundle.high &= ~INSTRUCTION2_MASK | newInst.instruction;
-	break;
-    default:
-	return false;
-	break;
+		case 0:
+			instruction0 = IA64_instruction(newInst.instruction, templateID, newInst.slotNumber);
+			myBundle.low &= ~INSTRUCTION0_MASK | (newInst.instruction << (ALIGN_RIGHT_SHIFT - 5));
+			break;
+		case 1:
+			instruction1 = IA64_instruction(newInst.instruction, templateID, newInst.slotNumber);
+			myBundle.low &= ~INSTRUCTION1_LOW_MASK | (newInst.instruction << 23);
+			myBundle.high &= ~INSTRUCTION1_HIGH_MASK | (newInst.instruction >> (ALIGN_RIGHT_SHIFT + 18));
+			break;
+		case 2:
+			instruction2 = IA64_instruction(newInst.instruction, templateID, newInst.slotNumber);
+			myBundle.high &= ~INSTRUCTION2_MASK | newInst.instruction;
+			break;
+		default:
+			return false;
+			break;
     }
     return true;
 } /* end setInstruction() */
@@ -397,8 +421,8 @@ bool IA64_bundle::setInstruction(IA64_instruction_x &newInst)
     instruction2 = IA64_instruction(newInst.instruction_x, templateID, 2);
 
     myBundle.low &= ~INSTRUCTION1_LOW_MASK | (newInst.instruction << 23);
-    myBundle.high = ( ( (newInst.instruction >> (ALIGN_RIGHT_SHIFT + 18)) & INSTRUCTION1_HIGH_MASK ) |
-		      ( newInst.instruction_x & INSTRUCTION2_MASK ) );
+    myBundle.high = ( ((newInst.instruction >> (ALIGN_RIGHT_SHIFT + 18)) & INSTRUCTION1_HIGH_MASK ) |
+					  ( newInst.instruction_x & INSTRUCTION2_MASK ) );
     return true;
 } /* end setInstruction(x) */
 
@@ -407,145 +431,104 @@ bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, u
 	/* Verify that the given instruction is actually, so far as we can tell
 	   (we don't have the template and the offset), an alloc. */
 
-	// GCC didn't seem to want to compile this the right way inline...
-	uint64_t majorOpCode = allocInsn & MAJOR_OPCODE_MASK;
-	uint64_t x3 = allocInsn & BITS_33_35;
-	uint64_t opcodeOne = ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT);
-	uint64_t x3six = ((uint64_t)0x06) << (33 + ALIGN_RIGHT_SHIFT); 
-
-	if( majorOpCode != opcodeOne || x3 != x3six ) {
-		* allocatedLocal = * allocatedOutput = * allocatedRotate = 0;
+	insn_tmpl alloc = { allocInsn };
+	if (alloc.M34.opcode != 0x1 || alloc.M34.x3 != 0x6) {
+		*allocatedLocal = *allocatedOutput = *allocatedRotate = 0;
 		return false;
-		} /* end if not an alloc instruction */
+	} /* end if not an alloc instruction */
 
 	/* Extract the local, output, and rotate sizes. */
-	* allocatedLocal = (allocInsn & ALLOC_SOL) >> (20 + ALIGN_RIGHT_SHIFT);
-	* allocatedOutput = ( (allocInsn & ALLOC_SOF) >> (13 + ALIGN_RIGHT_SHIFT) ) - * allocatedLocal;
-	* allocatedRotate = (allocInsn & ALLOC_SOR) >> (27 + ALIGN_RIGHT_SHIFT + 3); // SOR = r >> 3
+	*allocatedLocal = GET_M34_LOCAL(&alloc);
+	*allocatedOutput = GET_M34_OUTPUT(&alloc);
+	*allocatedRotate = GET_M34_ROTATE(&alloc);
 
 	/* Completed successfully. */
 	return true;
 	} /* end extractAllocatedRegisters() */
 
 IA64_instruction generateAllocInstructionFor( registerSpace * rs, int locals, int outputs, int rotates ) {
+	insn_tmpl alloc = { 0x0 };
 	uint64_t sizeOfLocals = rs->getRegSlot( 0 )->number - 32 + locals;
-	uint64_t sizeOfFrame = sizeOfLocals + outputs;
-	uint64_t sizeOfRotates = rotates >> 3;
-	uint64_t ar_pfs = 32 + rs->originalLocals + rs->originalOutputs;
 
-	if( sizeOfFrame > 96 ) {
-		sizeOfFrame = 96;
-		sizeOfLocals = sizeOfFrame - outputs;
+	if( sizeOfLocals + outputs > 96 ) {
+		// Never allocate a frame larger than 96 registers.
+		sizeOfLocals = 96 - outputs;
 	}
 
-	uint64_t rawInsn = 0x0000000000000000 |
-		    ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
-		    ( ((uint64_t)0x06) << (33 + ALIGN_RIGHT_SHIFT) ) |
-		    ( sizeOfRotates << (27 + ALIGN_RIGHT_SHIFT) ) |
-		    ( sizeOfLocals << (20 + ALIGN_RIGHT_SHIFT) ) | 
-		    ( sizeOfFrame << (13 + ALIGN_RIGHT_SHIFT) ) | 
-		    ( ar_pfs << (6 + ALIGN_RIGHT_SHIFT) );
+	alloc.M34.opcode	= 0x1;
+	alloc.M34.x3		= 0x6;
+	alloc.M34.r1		= rs->getRegSlot( 0 )->number - NUM_PRESERVED;
+	SET_M34_FIELDS(&alloc, sizeOfLocals, outputs, rotates);
 
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( alloc.raw );
 	} /* end generateAllocInstructionFor() */
 
 IA64_instruction generateOriginalAllocFor( registerSpace * rs ) {
+	insn_tmpl alloc = { 0x0 };
+
+	alloc.M34.opcode	= 0x1;
+	alloc.M34.x3		= 0x6;
+	alloc.M34.r1		= rs->originalLocals + rs->originalOutputs + 32;
+
 	/* Allocate a spurious output register so the ar.pfs doesn't overwrite
 	   one of the registers we're trying to save. */
-	uint64_t sizeOfLocals = rs->originalLocals;
-	uint64_t sizeOfOutputs = rs->originalOutputs + 1;
-	uint64_t sizeOfRotates = rs->originalRotates >> 3;
-	uint64_t sizeOfFrame = sizeOfLocals + sizeOfOutputs;
-	uint64_t ar_pfs = 32 + sizeOfFrame - 1;
+	SET_M34_FIELDS(&alloc, rs->originalLocals, rs->originalOutputs + 1, rs->originalRotates);
 
-	uint64_t rawInsn = 0x0000000000000000 |
-		    ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
-		    ( ((uint64_t)0x06) << (33 + ALIGN_RIGHT_SHIFT) ) |
-		    ( sizeOfRotates << (27 + ALIGN_RIGHT_SHIFT) ) |
-		    ( sizeOfLocals << (20 + ALIGN_RIGHT_SHIFT) ) | 
-		    ( sizeOfFrame << (13 + ALIGN_RIGHT_SHIFT) ) | 
-		    ( ar_pfs << (6 + ALIGN_RIGHT_SHIFT) );
-
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( alloc.raw );
 	} /* end generateOriginalAllocFor() */
 
 /* imm22 is assumed to be right-aligned, e.g., an actual value. :) */
 IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 ) {
-	uint64_t sImm22 = (uint64_t)imm22;
-	uint64_t sRegisterN = (uint64_t)registerN;
-	
-	/* addl */
-	uint64_t rawInsn = 0x0000000000000000 | 
-			   ( ((uint64_t)0x09) << (37 + ALIGN_RIGHT_SHIFT)) |
-			   ( ((uint64_t)(imm22 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
-			   ( (sImm22 & RIGHT_IMM7B) << (13 + ALIGN_RIGHT_SHIFT)) |
-			   ( (sImm22 & RIGHT_IMM5C) << (-16 + 22 + ALIGN_RIGHT_SHIFT)) |
-			   ( (sImm22 & RIGHT_IMM9D) << (-7 + 27 + ALIGN_RIGHT_SHIFT)) |
-			   ( (sRegisterN & RIGHT_IMM7B) << (6 + ALIGN_RIGHT_SHIFT) );
+	insn_tmpl addl = { 0x0 };
 
-	return IA64_instruction( rawInsn );
+	addl.A5.opcode	= 0x9;
+	addl.A5.r1		= registerN;
+	SET_A5_IMM(&addl, imm22);
+
+	return IA64_instruction( addl.raw );
 	} /* end generateConstantInRegister( imm22 ) */
 
 IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int immediate ) {
-	uint64_t imm64 = (uint64_t)immediate;
-	uint64_t sRegisterN = (uint64_t)registerN;
-	uint64_t signBit = immediate < 0 ? 1 : 0;
+	insn_tmpl movl = { 0x0 }, imm = { 0x0 };
 
-	/* movl */
-	uint64_t rawInsnHigh = 0x0000000000000000 | 
-			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT)) |
-			   ( (signBit) << (36 + ALIGN_RIGHT_SHIFT)) |
-			   ( (imm64 & RIGHT_IMM9D) << (-7 + 27 + ALIGN_RIGHT_SHIFT)) |
-			   ( (imm64 & RIGHT_IMM5C) << (-16 + 22 + ALIGN_RIGHT_SHIFT)) |
-			   ( (imm64 & RIGHT_IMM_IC) << (-21 + 21 + ALIGN_RIGHT_SHIFT)) |
-			   ( (imm64 & RIGHT_IMM7B) << (13 + ALIGN_RIGHT_SHIFT)) |
-			   ( (sRegisterN & RIGHT_IMM7B) << (6 + ALIGN_RIGHT_SHIFT) );
-	uint64_t rawInsnLow = 0x0000000000000000 |
-			   ( (imm64 & RIGHT_IMM41) << (-22 + ALIGN_RIGHT_SHIFT) );
+	movl.X2.opcode	= 0x6;
+	movl.X2.r1		= registerN;
+	SET_X2_IMM(&movl, &imm, immediate);
 
-	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
+	return IA64_instruction_x( imm.raw, movl.raw );
 	} /* end generateConstantInRegister( imm64 ) */
 
 IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister, Register predicate ) {
-	int64_t displacement60 = displacement64 >> 4;
-	uint64_t sBranchRegister = (uint64_t)branchRegister;
+	insn_tmpl call = { 0x0 }, imm = { 0x0 };
 
-	uint64_t rawInsnHigh = 0x0000000000000000 | 
-			   ( ((uint64_t)0x0D) << (37 + ALIGN_RIGHT_SHIFT)) |
-			   ( ((uint64_t)(predicate & 0x3F)) << (0 + ALIGN_RIGHT_SHIFT)) |
-			   ( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
-			   ( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT)) |
-			   ( (sBranchRegister & 0x07 ) << (6 + ALIGN_RIGHT_SHIFT));
-	uint64_t rawInsnLow = 0x0000000000000000 |
-			   ( (displacement60 & RIGHT_IMM39) << (-20 + 2 + ALIGN_RIGHT_SHIFT) );
+	call.X4.opcode	= 0xD;
+	call.X4.b1		= branchRegister;
+	call.X4.qp		= predicate;
+	SET_X4_TARGET(&call, &imm, displacement64);
 
-	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
+	return IA64_instruction_x( imm.raw, call.raw );
 	} /* end generateLongCallTo( displacement64 ) */
 
 IA64_instruction_x generateLongBranchTo( long long int displacement64, Register predicate ) {
-	int64_t displacement60 = displacement64 >> 4;
+	insn_tmpl brl = { 0x0 }, imm = { 0x0 };
 
-	uint64_t rawInsnHigh = 0x0000000000000000 | 
-			   ( ((uint64_t)0x0C) << (37 + ALIGN_RIGHT_SHIFT)) |
-			   ( ((uint64_t)(predicate & 0x3F)) << (0 + ALIGN_RIGHT_SHIFT)) |
-			   ( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
-			   ( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT));
-	uint64_t rawInsnLow = 0x0000000000000000 |
-			   ( (displacement60 & RIGHT_IMM39) << (-20 + 2 + ALIGN_RIGHT_SHIFT) );
+	brl.X3.opcode	= 0xC;
+	brl.X3.qp		= predicate;
+	SET_X3_TARGET(&brl, &imm, displacement64);
 
-	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
+	return IA64_instruction_x( imm.raw, brl.raw );
 	} /* end generateLongBranchTo( displacement64 ) */
 
 IA64_instruction generateReturnTo( unsigned int branchRegister ) {
-	uint64_t sBranchRegister = (uint64_t)branchRegister;
+	insn_tmpl ret = { 0x0 };
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x21) << (27 + ALIGN_RIGHT_SHIFT ) ) | 
-			   ( ((uint64_t)0x04) << (6 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( ((uint64_t)0x01) << (12 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( (sBranchRegister & 0x7) << (13 + ALIGN_RIGHT_SHIFT) );
+	/* Ret Opcode	= 0x0 */
+	ret.B4.x6		= 0x21;
+	ret.B4.btype	= 0x4;
+	ret.B4.p		= 0x1;
+	ret.B4.b2		= branchRegister;
 
-	return IA64_instruction( rawInsn );	
+	return IA64_instruction( ret.raw );
 	} /* end generateReturnTo */
 
 /* Required by func-reloc.C to calculate relative displacements. */
@@ -553,7 +536,7 @@ int get_disp( instruction * /* insn */ ) {
 	assert( 0 );
 	return 0;
 	} /* end get_disp() */
-                
+
 /* Required by func-reloc.C to correct relative displacements after relocation. */
 int set_disp( bool /* setDisp */, instruction * /* insn */, int /* newOffset */, bool /* outOfFunc */ ) {
 	assert( 0 );
@@ -572,7 +555,7 @@ int addressOfMachineInsn( instruction * /* insn */ ) {
 	} /* end addressOfMachineInsn */
 
 /* Convience method for inst-ia64.C */
-IA64_bundle generateBundleFromLongInstruction( IA64_instruction_x longInstruction ) {	
+IA64_bundle generateBundleFromLongInstruction( IA64_instruction_x longInstruction ) {
 	IA64_instruction memoryNOP( NOP_M );
 	return IA64_bundle( MLXstop, memoryNOP, longInstruction );
 	} /* end generateBundleFromLongInstruction() */
@@ -580,36 +563,36 @@ IA64_bundle generateBundleFromLongInstruction( IA64_instruction_x longInstructio
 /* Required by inst-ia64.C */
 Address IA64_instruction::getTargetAddress() const {
 	insnType myType = getType();
+	insn_tmpl tmpl = { instruction };
+
 	if( myType == DIRECT_CALL || myType == DIRECT_BRANCH ) { /* Kind of pointless to guess at the target of indirect jumps. */
-		uint8_t opcode = (instruction & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
-		switch( opcode ) {
-			case 0x04: case 0x05: {
-				/* ip-relative branch and call, respectively. */
-				uint64_t imm20b = (instruction >> (13 + ALIGN_RIGHT_SHIFT) ) & RIGHT_IMM20;
-				uint64_t signBit = (instruction >> (26 + ALIGN_RIGHT_SHIFT) ) & 0x1;
-				return signExtend( signBit, imm20b ) << 4;
-				} break;
-			case 0x01: case 0x00:
-				/* indirect branch and call, respectively. */
-				assert( 0 );
-				break;
+		switch( GET_OPCODE(&tmpl) ) {
+			case 0x00: /* Indirect call and branch, respectively. */
+			case 0x01: assert( 0 );
+			case 0x04: return GET_B1_TARGET(&tmpl);
+			case 0x05: return GET_B3_TARGET(&tmpl);
 			default:
 				bpfatal( "getTargetAddress(): unrecognized major opcode, aborting.\n" );
 				abort();
 				break;
-			} /* end opcode switch */	
+			} /* end opcode switch */
 		} else {
 		// /* DEBUG */ bperr( "getTargetAddress() returning 0 for indirect branch or call.\n" );
-		return 0;
 		}
+	return 0;
 	} /* end getTargetAddress() */
 
 Address IA64_instruction_x::getTargetAddress() const {
-	if( getType() == DIRECT_CALL || getType() == DIRECT_BRANCH ) {
-		assert( 0 );  // FIXME
-		} else {
-		return 0;
+	insnType myType = getType();
+	insn_tmpl tmpl = { instruction_x }, imm = { instruction };
+
+	if (myType == DIRECT_CALL || myType == DIRECT_BRANCH ) {
+		switch (GET_OPCODE(&tmpl)) {
+			case 0xC: return GET_X3_TARGET(&tmpl, &imm);
+			case 0xD: return GET_X4_TARGET(&tmpl, &imm);
 		}
+	}
+	return 0;
 	} /* end getTargetAddress() */
 
 #include "instPoint-ia64.h"
@@ -909,146 +892,137 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 	} /* end defineBaseTrampRegisterSpace() */
 
 /* For inst-ia64.h */
-IA64_instruction generateIPToRegisterMove( Register destination ) {
-	uint64_t generalRegister = ((uint64_t)destination) & 0x7F;
-	
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x30) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( generalRegister << (6 + ALIGN_RIGHT_SHIFT) );
+IA64_instruction generateRegisterToRegisterMove( Register source, Register destination ) {
+	return generateShortImmediateAdd( destination, 0, source ); }
 
-	return IA64_instruction( rawInsn );
+IA64_instruction generateIPToRegisterMove( Register destination ) {
+	insn_tmpl mov = { 0x0 };
+
+	/* Mov Opcode	= 0x0 */
+	mov.I25.x6		= 0x30;
+	mov.I25.r1		= destination;
+
+	return IA64_instruction( mov.raw );
 	} /* end generateIPToRegisterMove() */
 
 IA64_instruction generateBranchToRegisterMove( Register source, Register destination ) {
-	uint64_t branchRegister = ((uint64_t)source) & 0x07;
-	uint64_t generalRegister = ((uint64_t)destination) & 0x7F;
+	insn_tmpl mov = { 0x0 };
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x31) << (27 + ALIGN_RIGHT_SHIFT)) |
-			   ( branchRegister << (13 + ALIGN_RIGHT_SHIFT)) |
-			   ( generalRegister << (6 + ALIGN_RIGHT_SHIFT));
+	mov.I22.x6 = 0x31;
+	mov.I22.b2 = source;
+	mov.I22.r1 = destination;
 
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( mov.raw );
 	} /* end generateBranchToRegisterMove() */
 
-IA64_instruction generateRegisterToBranchMove( Register source, Register destination ) {
-	uint64_t generalRegister = ((uint64_t)source) & 0x7F;
-	uint64_t branchRegister = ((uint64_t)destination) & 0x07;
+IA64_instruction generateRegisterToBranchMove( Register source, Register destination, int immediate ) {
+	insn_tmpl mov = { 0x0 };
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x07) << (33 + ALIGN_RIGHT_SHIFT)) |
-			   ( generalRegister << (13 + ALIGN_RIGHT_SHIFT)) |
-			   ( branchRegister << (6 + ALIGN_RIGHT_SHIFT));
+	mov.I21.x3		= 0x7;
+	mov.I21.r2		= source;
+	mov.I21.b1		= destination;
+	mov.I21.timm9c	= immediate;
 
-	return IA64_instruction( rawInsn );	
+	return IA64_instruction( mov.raw );	
 	} /* end generateRegisterToBranchMove() */
 
 IA64_instruction generateShortImmediateAdd( Register destination, int immediate, Register source ) {
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
-	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
-	uint64_t immediate14 = (uint64_t)immediate & 0x3FFF;
-	uint64_t signBit = immediate < 0 ? 1 : 0;
+	insn_tmpl add = { 0x0 };
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x08) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x02) << (34 + ALIGN_RIGHT_SHIFT) ) |
-			   ( sourceRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (immediate14 & RIGHT_IMM7B) << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (immediate14 & RIGHT_IMM6D) << (-7 + 27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( signBit << (36 + ALIGN_RIGHT_SHIFT ) );
+	add.A4.opcode	= 0x8;
+	add.A4.x2a		= 0x2;
+	add.A4.r3		= source;
+	add.A4.r1		= destination;
+	SET_A4_IMM(&add, immediate);
 
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( add.raw );
 	} /* end generateShortImmediateAdd() */
 
 IA64_instruction generateArithmetic( opCode op, Register destination, Register lhs, Register rhs ) {
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
-	uint64_t lhsRegister = ((uint64_t)lhs) & 0x7F;
-	uint64_t rhsRegister = ((uint64_t)rhs) & 0x7F;
+	insn_tmpl alu = { 0x0 };
 
-	uint64_t x4, x2b;
+	alu.A1.opcode	= 0x8;
+	alu.A1.r1		= destination;
+	alu.A1.r2		= lhs;
+	alu.A1.r3		= rhs;
 	switch( op ) {
-		case plusOp: x4 = 0; x2b = 0; break;
-		case minusOp: x4 = 1; x2b = 1; break;
-		case andOp: x4 = 3; x2b = 0; break;
-		case orOp: x4 = 3; x2b = 2; break;
+		case plusOp:	alu.A1.x4 = 0; alu.A1.x2b = 0; break;
+		case minusOp:	alu.A1.x4 = 1; alu.A1.x2b = 1; break;
+		case andOp:		alu.A1.x4 = 3; alu.A1.x2b = 0; break;
+		case orOp:		alu.A1.x4 = 3; alu.A1.x2b = 2; break;
 		default:
 			bpfatal( "generateArithmetic() did not recognize opcode %d, aborting.\n", op );
 			abort();
 			break;
 		} /* end op switch */
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x08) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( x4 << (29 + ALIGN_RIGHT_SHIFT) ) |
-			   ( x2b << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) ) |
-			   ( lhsRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( rhsRegister << (20 + ALIGN_RIGHT_SHIFT) );
-			   
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( alu.raw );
 	} /* end generateArithmetic() */
 
 IA64_instruction generateIndirectCallTo( Register indirect, Register rp ) {
-	uint64_t indirectRegister = ((uint64_t)indirect) & 0x7;
-	uint64_t returnRegister = ((uint64_t)rp) & 0x7;
+	insn_tmpl call = { 0x0 };
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x01) << (32 + ALIGN_RIGHT_SHIFT) ) |
-			   ( indirectRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( returnRegister << (6 + ALIGN_RIGHT_SHIFT) );
+	call.B5.opcode	= 0x1;
+	call.B5.wh		= 0x1;
+	call.B5.b2		= indirect;
+	call.B5.b1		= rp;
 
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( call.raw );
 	} /* end generateIndirectCallTo() */
 
 IA64_instruction generatePredicatesToRegisterMove( Register destination ) {
-	uint64_t generalRegister = ((uint64_t)destination) & 0x7F;
-	
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x33) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( generalRegister << (6 + ALIGN_RIGHT_SHIFT) );
+	insn_tmpl mov = { 0x0 };
 
-	return IA64_instruction( rawInsn );
+	/* Mov Opcode	= 0x0 */
+	mov.I25.x6		= 0x33;
+	mov.I25.r1		= destination;
+
+	return IA64_instruction( mov.raw );
 	} /* end generatePredicatesToRegisterMove() */
 
-IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t mask17 ) {
-	uint64_t generalRegister = ((uint64_t)source) & 0x7F;
-	
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( (mask17 & 0x10000) << ( -16 + 36 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( ((uint64_t)0x03) << ( 33 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( ((mask17 >> 0x01) & RIGHT_IMM8C) << ( -7 + 24 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( ((mask17 >> 0x01) & RIGHT_IMM7A) << ( 6 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( generalRegister << ( 13 + ALIGN_RIGHT_SHIFT ) );
-	
-	return IA64_instruction( rawInsn );
+IA64_instruction generateRegisterToPredicatesMove( Register source, int64_t mask64 ) {
+	insn_tmpl mov = { 0x0 };
+
+	/* Mov Opcode	= 0x0 */
+	mov.I23.x3		= 0x3;
+	mov.I23.r2		= source;
+	SET_I23_MASK(&mov, mask64);
+
+	return IA64_instruction( mov.raw );
 	} /* end generateRegisterToPredicatesMove() */
 
-#define BIT_30_35 0xFC0000000
-#define NOT_BIT_30_35 (~ BIT_30_35)
 IA64_instruction generateSpillTo( Register address, Register source, int64_t imm9 ) {
-	IA64_instruction temp = generateRegisterStoreImmediate( address, source, imm9 );
-	uint64_t rawInsn = temp.getMachineCode();
-	rawInsn = rawInsn & (NOT_BIT_30_35 << ALIGN_RIGHT_SHIFT);
-	rawInsn = rawInsn | ( ((uint64_t)0x3B) << (30 + ALIGN_RIGHT_SHIFT) );
-	return IA64_instruction( rawInsn );
+	insn_tmpl spill = { 0x0 };
+
+	spill.M5.opcode	= 0x5;
+	spill.M5.x6		= 0x3B;
+	spill.M5.r2		= source;
+	spill.M5.r3		= address;
+	SET_M5_IMM(&spill, imm9);
+
+	return IA64_instruction( spill.raw );
 	} /* end generateSpillTo() */
 
 IA64_instruction generateFillFrom( Register address, Register destination, int64_t imm9 ) {
-	IA64_instruction temp;
-	if( imm9 == 0x0 )
+	insn_tmpl fill = { 0x0 };
+
+	if( imm9 == 0x0 ) {
 		// Use no update form.
-		temp = generateRegisterLoad( destination, address );
+		fill.M1.opcode	= 0x4;
+		fill.M1.x6		= 0x1B;
+		fill.M1.r3		= address;
+		fill.M1.r1		= destination;
 
-	else
+	} else {
 		// Use base update form.
-		temp = generateRegisterLoadImmediate( destination, address, imm9 );
+		fill.M3.opcode	= 0x5;
+		fill.M3.x6		= 0x1B;
+		fill.M3.r3		= address;
+		fill.M3.r1		= destination;
+		SET_M3_IMM(&fill, imm9);
+	}
 
-	uint64_t rawInsn = temp.getMachineCode();
-	rawInsn = rawInsn & (NOT_BIT_30_35 << ALIGN_RIGHT_SHIFT);
-	rawInsn = rawInsn | ( ((uint64_t)0x1B) << (30 + ALIGN_RIGHT_SHIFT) );
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( fill.raw );
 	} /* end generateFillFrom() */
 
 IA64_instruction generateRegisterStore( Register address, Register source, int size, Register predicate ) {
@@ -1056,171 +1030,133 @@ IA64_instruction generateRegisterStore( Register address, Register source, int s
 	} /* generateRegisterStore() */
 
 IA64_instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size, Register predicate ) {
-	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
-	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
-	uint64_t immediate = ((uint64_t)imm9) & 0x7F;
-	uint64_t signBit = imm9 < 0 ? 1 : 0;
-	uint64_t iBit = (((uint64_t)imm9) & 0x080) >> 7;
+	insn_tmpl store = { 0x0 };
 
-	uint64_t sizeSpec = 0;
-	switch( size ) {
-		case 1: sizeSpec = 0x30; break;
-		case 2: sizeSpec = 0x31; break;
-		case 4: sizeSpec = 0x32; break;
-		case 8: sizeSpec = 0x33; break;
+	store.M5.opcode	= 0x5;
+	store.M5.r2		= source;
+	store.M5.r3		= address;
+	store.M5.qp		= predicate;
+	switch (size) {
+		case 1: store.M5.x6 = 0x30; break;
+		case 2: store.M5.x6 = 0x31; break;
+		case 4: store.M5.x6 = 0x32; break;
+		case 8: store.M5.x6 = 0x33; break;
 		default:
 			bpfatal( "Illegal size %d, aborting.\n", size );
 			assert( 0 );
 			break;
 		} /* end sizeSpec determiner */
+	SET_M5_IMM(&store, imm9);
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x05) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( signBit << (36 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)sizeSpec) << (30 + ALIGN_RIGHT_SHIFT) ) |
-			   ( iBit << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( immediate << (6 + ALIGN_RIGHT_SHIFT) ) |
-			   ( predicate << (0 + ALIGN_RIGHT_SHIFT) );
-
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( store.raw );
 	} /* end generateRegisterStore() */
 
 /* This is the no-update form, which lets the code generator do dumb
    stuff like load from and into the same register. */
 IA64_instruction generateRegisterLoad( Register destination, Register address, int size ) {
-	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
+	insn_tmpl load = { 0x0 };
 
-	uint64_t sizeSpec = 0;
+	load.M1.opcode	= 0x4;
+	load.M1.r3		= address;
+	load.M1.r1		= destination;
 	switch( size ) {
-		case 1: sizeSpec = 0x00; break;
-		case 2: sizeSpec = 0x01; break;
-		case 4: sizeSpec = 0x02; break;
-		case 8: sizeSpec = 0x03; break;
+		case 1: load.M1.x6 = 0x00; break;
+		case 2: load.M1.x6 = 0x01; break;
+		case 4: load.M1.x6 = 0x02; break;
+		case 8: load.M1.x6 = 0x03; break;
 		default:
 			bpfatal( "Illegal size %d, aborting.\n", size );
 			assert( 0 );
 			break;
 		} /* end sizeSpec determiner */
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)sizeSpec) << (30 + ALIGN_RIGHT_SHIFT) ) |
-			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
-
-	return IA64_instruction( rawInsn );	
+	return IA64_instruction( load.raw );	
 	} /* end generateRegisterLoad() */
 
 IA64_instruction generateRegisterLoadImmediate( Register destination, Register address, int imm9, int size ) { 
-	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
-	uint64_t immediate = ((uint64_t)imm9) & 0x7F;
-	uint64_t signBit = imm9 < 0 ? 1 : 0;
-	uint64_t iBit = (((uint64_t)imm9) & 0x080) >> 7;
+	insn_tmpl load = { 0x0 };
 
-	uint64_t sizeSpec = 0;
+	load.M3.opcode	= 0x5;
+	load.M3.r3		= address;
+	load.M3.r1		= destination;
 	switch( size ) {
-		case 1: sizeSpec = 0x00; break;
-		case 2: sizeSpec = 0x01; break;
-		case 4: sizeSpec = 0x02; break;
-		case 8: sizeSpec = 0x03; break;
+		case 1: load.M3.x6 = 0x00; break;
+		case 2: load.M3.x6 = 0x01; break;
+		case 4: load.M3.x6 = 0x02; break;
+		case 8: load.M3.x6 = 0x03; break;
 		default:
 			bpfatal( "Illegal size %d, aborting.\n", size );
 			assert( 0 );
 			break;
 		} /* end sizeSpec determiner */
+	SET_M3_IMM(&load, imm9);
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x05) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( signBit << (36 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)sizeSpec) << (30 + ALIGN_RIGHT_SHIFT) ) |
-			   ( iBit << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( immediate << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
-
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( load.raw );
 	} /* end generateRegisterLoad() */
 
 IA64_instruction generateRegisterToApplicationMove( Register source, Register destination ) {
-	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
-	uint64_t rawInsn;
-
 	/* The lower 48 application registers are only accessible via the M unit.  For simplicity,
 	   divide responsibility at the sixty-fourth application register, with an I unit handling
 	   the upper 64. */
-	if( destination <= 63 ) {
-		rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x2A) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (20 + ALIGN_RIGHT_SHIFT) );		
-	} else {
-		rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x2A) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (20 + ALIGN_RIGHT_SHIFT) );
-		} /* end if using I unit */
+	insn_tmpl mov = { 0x0 };
 
-	return IA64_instruction( rawInsn );
+	if (destination <= 63) {
+		mov.M29.opcode	= 0x1;
+		mov.M29.x6		= 0x2A;
+		mov.M29.r2		= source;
+		mov.M29.ar3		= destination;
+
+	} else {
+		/* Mov Opcode	= 0x0 */
+		mov.I26.x6		= 0x2A;
+		mov.I26.r2 		= source;
+		mov.I26.ar3		= destination;
+	}
+
+	return IA64_instruction( mov.raw );
 	} /* end generateRegisterToApplicationMove() */
 
 IA64_instruction generateApplicationToRegisterMove( Register source, Register destination ) {
-	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
-	uint64_t rawInsn;
-
 	/* The lower 48 application registers are only accessible via the M unit.  For simplicity,
 	   divide responsibility at the sixty-fourth application register, with an I unit handling
 	   the upper 64. */
-	if( source <= 63 ) {
-		rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x22) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( sourceRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
-	} else {
-		rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x32) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( sourceRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
-		} /* end if using I unit */
+	insn_tmpl mov = { 0x0 };
 
-	return IA64_instruction( rawInsn );
+	if (source <= 63) {
+		mov.M31.opcode	= 0x1;
+		mov.M31.x6		= 0x22;
+		mov.M31.ar3		= source;
+		mov.M31.r1		= destination;
+
+	} else {
+		/* Mov Opcode	= 0x0 */
+		mov.I28.x6		= 0x32;
+		mov.I28.ar3		= source;
+		mov.I28.r1		= destination;
+	}
+
+	return IA64_instruction( mov.raw );
 	} /* end generateRegisterToApplicationMove() */
 
-IA64_instruction generateRegisterToRegisterMove( Register source, Register destination ) {
-	return generateShortImmediateAdd( destination, 0, source ); }
-
 IA64_instruction predicateInstruction( Register predicate, IA64_instruction insn ) {
-	uint64_t predicateRegister = ((uint64_t)predicate) & 0x3F;
+	insn_tmpl tmpl = { insn.getMachineCode() };
 
-	uint64_t predicatesMaskedInsn = insn.getMachineCode() & (~(0x3f << ALIGN_RIGHT_SHIFT));
-	uint64_t rawInsn = predicatesMaskedInsn |
-			   predicateRegister << ALIGN_RIGHT_SHIFT;
-
-	return IA64_instruction( rawInsn, insn.getTemplateID(), insn.getSlotNumber() );
+	SET_PREDICATE(&tmpl, predicate);
+	return IA64_instruction( tmpl.raw, insn.getTemplateID(), insn.getSlotNumber() );
 	} /* end predicateInstruction() */
 
-/* This was probably implemented somewhere else already.  Too bad. */
-void swap( uint64_t & lhs, uint64_t & rhs ) {
-	uint64_t temporary = lhs;
-	lhs = rhs;
-	rhs = temporary;
-	} /* end swap() */
+IA64_instruction_x predicateLongInstruction( Register predicate, IA64_instruction_x insn ) {
+	insn_tmpl tmpl = { insn.getMachineCode().high };
 
+	SET_PREDICATE(&tmpl, predicate);
+	return IA64_instruction_x( insn.getMachineCode().low, tmpl.raw, insn.getTemplateID() );
+	} /* end predicateLongInstruction() */
+
+#define SWAP(a, b)	((a) ^= (b), (b) ^= (a), (a) ^= (b))
 IA64_instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs ) {
-	uint64_t truePredicate = ((uint64_t)destination) & 0x3F; 
-	uint64_t falsePredicate = truePredicate + 1;
-	uint64_t lhsRegister = ((uint64_t)lhs) & 0x7F;
-	uint64_t rhsRegister = ((uint64_t)rhs) & 0x7F;
+	insn_tmpl cmp = { 0x0 };
+	Register anti_destination = destination + 1;
 
-	uint64_t machineCodeOp;
-	
 	/* We'll assume that all of our comparisons are signed. */
 	switch( op ) {
 		/* This gets cute.  The IA-64 hardware only implements the eq and lt ops,
@@ -1228,26 +1164,14 @@ IA64_instruction generateComparison( opCode op, Register destination, Register l
 	 	   The idea is to fall through the operations until we get to one that
 		   can be implemented in hardware. */
 	
-		case greaterOp:
-			/* Swap source registers; since we fall through geOp's
-			   predicate register swap, swap them, too. */
-			swap( truePredicate, falsePredicate );
-		case leOp:
-			/* Swap both source and predicate registers. */
-			swap( lhsRegister, rhsRegister );
-		case geOp:
-			/* Swap predicate registers. */
-			swap( truePredicate, falsePredicate );
-		case lessOp:
-			/* Generate a cmp.lt instruction. */
-			machineCodeOp = 0x0C;
+		case greaterOp:	SWAP( destination, anti_destination ); /* Extra SWAP to undo geOp's */
+		case leOp:		SWAP( lhs, rhs );
+		case geOp:		SWAP( destination, anti_destination );
+		case lessOp:	cmp.A6.opcode	= 0xC;
 			break;
 
-		case neOp:
-			swap( truePredicate, falsePredicate );
-		case eqOp:
-			/* Generate a cmp.eq instruction. */
-			machineCodeOp = 0x0E;
+		case neOp:		SWAP( destination, anti_destination );
+		case eqOp:		cmp.A6.opcode	= 0xE;
 			break;
 
 		default:
@@ -1255,138 +1179,91 @@ IA64_instruction generateComparison( opCode op, Register destination, Register l
 			abort();
 		} /* end op switch */
 
-	uint64_t rawInsn = 0x0000000000000000 |
-				( machineCodeOp << (37 + ALIGN_RIGHT_SHIFT) ) |
-				( falsePredicate << (27 + ALIGN_RIGHT_SHIFT) ) |
-				( rhsRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
-				( lhsRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
-				( truePredicate << (6 + ALIGN_RIGHT_SHIFT) );
+	cmp.A6.r2	= lhs;
+	cmp.A6.r3	= rhs;
+	cmp.A6.p1	= destination;
+	cmp.A6.p2	= anti_destination;
 
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( cmp.raw );
 	} /* end generateComparison() */
 
-IA64_instruction_x predicateLongInstruction( Register predicate, IA64_instruction_x insn ) {
-	uint64_t predicateRegister = ((uint64_t)predicate) & 0x3F;
-
-	uint64_t predicatesMaskedInsn = insn.getMachineCode().high & (~(0x3f << ALIGN_RIGHT_SHIFT));
-	uint64_t highInsn = predicatesMaskedInsn |
-			   predicateRegister << ALIGN_RIGHT_SHIFT;
-
-	return IA64_instruction_x( insn.getMachineCode().low, highInsn, insn.getTemplateID() );
-	} /* end predicateLongInstruction() */
-
 IA64_instruction generateFPSpillTo( Register address, Register source, int64_t imm9 ) {
-	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
-	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
-	uint64_t immediate = ((uint64_t)imm9) & 0x7F;
-	uint64_t signBit = imm9 < 0 ? 1 : 0;
-	uint64_t iBit = (((uint64_t)imm9) & 0x080) >> 7;
+	insn_tmpl spill_f = { 0x0 };
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x07) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (signBit) << (36 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x3B) << (30 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (iBit) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (addressRegister) << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (sourceRegister) << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (immediate) << (6 + ALIGN_RIGHT_SHIFT) );
+	spill_f.M10.opcode	= 0x7;
+	spill_f.M10.x6		= 0x3B;
+	spill_f.M10.f2		= source;
+	spill_f.M10.r3		= address;
+	SET_M10_IMM(&spill_f, imm9);
 
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( spill_f.raw );
 	} /* end generateFPSpillTo() */
 
 IA64_instruction generateFPFillFrom( Register address, Register destination, int64_t imm9 ) {
-	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
-	uint64_t immediate = (uint64_t)imm9 & 0x7F;
-	uint64_t signBit = imm9 < 0 ? 1 : 0;
-	uint64_t iBit = ((uint64_t)imm9 & 0x080) >> 7;
+	insn_tmpl fill_f = { 0x0 };
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x07) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (signBit) << (36 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x1B) << (30 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (iBit) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (addressRegister) << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (immediate) << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (destinationRegister) << (6 + ALIGN_RIGHT_SHIFT) );
+	fill_f.M8.opcode	= 0x7;
+	fill_f.M8.x6		= 0x1B;
+	fill_f.M8.r3		= address;
+	fill_f.M8.f1		= destination;
+	SET_M8_IMM(&fill_f, imm9);
 
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( fill_f.raw );
 	} /* end generateFPFillFrom() */
 
 IA64_instruction generateRegisterToFloatMove( Register source, Register destination ) {
-	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
-	
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x1C) << (30 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x01) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
+	insn_tmpl mov_f = { 0x0 };
 
-	return IA64_instruction( rawInsn );
+	mov_f.M18.opcode	= 0x6;
+	mov_f.M18.x6		= 0x1C;
+	mov_f.M18.x			= 0x1;
+	mov_f.M18.r2		= source;
+	mov_f.M18.f1		= destination;
+
+	return IA64_instruction( mov_f.raw );
 	} /* end generateRegisterToFloatMove() */
 
 IA64_instruction generateFloatToRegisterMove( Register source, Register destination ) {
-	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
-	
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x1C) << (30 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x01) << (27 + ALIGN_RIGHT_SHIFT) ) |
-			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
+	insn_tmpl mov_f = { 0x0 };
 
-	return IA64_instruction( rawInsn );
+	mov_f.M19.opcode	= 0x4;
+	mov_f.M19.x6		= 0x1C;
+	mov_f.M19.x			= 0x1;
+	mov_f.M19.f2		= source;
+	mov_f.M19.r1		= destination;
+
+	return IA64_instruction( mov_f.raw );
 	} /* end generateFloatToRegisterMove() */
 
 IA64_instruction generateFixedPointMultiply( Register destination, Register lhs, Register rhs ) {
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
-	uint64_t lhsRegister = ((uint64_t)lhs) & 0x7F;
-	uint64_t rhsRegister = ((uint64_t)rhs) & 0x7F;
+	insn_tmpl xma_l = { 0x0 };
 
 	/* FIXME: We're assuming unsigned, and that the lower 64 bits are more interesting,
 		  but this may well not be the case. */
-	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x0E) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x01) << (36 + ALIGN_RIGHT_SHIFT) ) |
-			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) ) |
-			   ( lhsRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( rhsRegister << (27 + ALIGN_RIGHT_SHIFT) );
+	xma_l.F2.opcode	= 0xE;
+	xma_l.F2.x		= 0x1;
+	xma_l.F2.f3		= lhs;
+	xma_l.F2.f4		= rhs;
+	xma_l.F2.f1		= destination;
 
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( xma_l.raw );
 	} /* end generateFixedPointMultiply() */
 
 void alterLongMoveAtTo( Address target, Address imm64 ) {
-	ia64_bundle_t rawBundle = *( ia64_bundle_t *)target;
+	ia64_bundle_t *rawBundle = (ia64_bundle_t *)target;
+	insn_tmpl movl = { rawBundle->high }, imm = { rawBundle->low };
 
-	uint64_t daRegister = rawBundle.high & 
-				( 0x7F << (6 + ALIGN_RIGHT_SHIFT) );
-	rawBundle.high = daRegister | 
-			( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT)) |
-			( (imm64 & RIGHT_IMM_I) << (-63 + 36 + ALIGN_RIGHT_SHIFT)) |
-			( (imm64 & RIGHT_IMM9D) << (-7 + 27 + ALIGN_RIGHT_SHIFT)) |
-			( (imm64 & RIGHT_IMM5C) << (-16 + 22 + ALIGN_RIGHT_SHIFT)) |
-			( (imm64 & RIGHT_IMM_IC) << (-21 + 21 + ALIGN_RIGHT_SHIFT)) |
-			( (imm64 & RIGHT_IMM7B) << (13 + ALIGN_RIGHT_SHIFT));
-			
-	uint64_t daTemplate = rawBundle.low & 0x3F;
-	rawBundle.low = daTemplate |
-			( (imm64 & RIGHT_IMM41) << (-22 + ALIGN_RIGHT_SHIFT) );
+	SET_X2_IMM( &movl, &imm, imm64 );
 
-	*(ia64_bundle_t *)target = rawBundle;
+	rawBundle->high	= movl.raw;
+	rawBundle->low	= imm.raw;
 	} /* end alterLongMoveAtTo() */
 
 IA64_instruction generateShortImmediateBranch( int64_t target25 ) {
-	uint64_t signBit = target25 < 0 ? 1 : 0;
-	uint64_t immediate = ( ((uint64_t)target25) >> 4 ) & 0xFFFFF;
+	insn_tmpl br_cond = { 0x0 };
 
-	uint64_t rawInsn = 0x0000000000000000 |
-			( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT)) |
-			( signBit << (36 + ALIGN_RIGHT_SHIFT) ) |
-			( immediate << (13 + ALIGN_RIGHT_SHIFT) ) |
-			( ((uint64_t)0x0) << (6 + ALIGN_RIGHT_SHIFT));
+	br_cond.B1.opcode = 0x4;
+	SET_B1_TARGET(&br_cond, target25);
 
-	return IA64_instruction( rawInsn );
+	return IA64_instruction( br_cond.raw );
 	} /* end generateShortImmediateBranch() */

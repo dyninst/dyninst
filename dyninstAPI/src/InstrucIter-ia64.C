@@ -157,55 +157,46 @@ void initOpCodeInfo() {
 	/* I don't need this for anything. */
 	} /* end initOpCodeInfo() */
 
-
-#define MEMORY_X6_MASK      0x07E0000000000000  /* bits 30 - 35 */
-#define MEMORY_ADDR_MASK	0x0003F80000000000	/* bits 20 - 26 */
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
 	IA64_instruction * insn = getInstruction();
 	IA64_instruction::insnType type = insn->getType();
 
 	BPatch_memoryAccess * bpma = NULL;
-	
-	uint64_t instruction = insn->getMachineCode();	
-	unsigned addr = (instruction & MEMORY_ADDR_MASK) >> (ALIGN_RIGHT_SHIFT + 20);
 
-	uint8_t x6 = (instruction & MEMORY_X6_MASK) >> (ALIGN_RIGHT_SHIFT + 30);
-	uint8_t size = x6 & 0x03;
-	switch( size ) { case 0: size = 1; break; case 1: size = 2; break; case 2: size = 4; break; case 3: size = 8; break; }
-	
+	insn_tmpl tmpl = { insn->getMachineCode() };
+	uint8_t size = 0x1 << (tmpl.M1.x6 & 0x3);
+
 	switch( type ) {
-		case IA64_instruction::INTEGER_LOAD: {
-			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), true, false, size, 0, addr, -1 );
-			assert( bpma != NULL );
-			} break;
-		case IA64_instruction::INTEGER_STORE:
-			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), false, true, size, 0, addr, -1 );
-			assert( bpma != NULL );
-			break;
+		case IA64_instruction::INTEGER_16_LOAD:
+			size = 16;
+		case IA64_instruction::INTEGER_LOAD:
 		case IA64_instruction::FP_LOAD:
-			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), true, false, size, 0, addr, -1 );
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), true, false, size, 0, tmpl.M1.r3, -1 );
 			assert( bpma != NULL );
 			break;
+
+		case IA64_instruction::INTEGER_16_STORE:
+			size = 16;
+		case IA64_instruction::INTEGER_STORE:
 		case IA64_instruction::FP_STORE:
-			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), false, true, size, 0, addr, -1 );
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), false, true, size, 0, tmpl.M1.r3, -1 );
 			assert( bpma != NULL );
-			break;											
-		
+			break;
+
 		case IA64_instruction::FP_PAIR_LOAD:
 		case IA64_instruction::INTEGER_PAIR_LOAD:
 			/* The load pair instructions encode sizes a little differently. */
-			switch( x6 & 0x03 ) { case 0x02: size = 8; break; case 0x03: size = 16; break; case 0x01: size = 16; break; }
+			size = (tmpl.M1.x6 & 0x1) ? 16 : 8;
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), true, false, size, 0, tmpl.M1.r3, -1 );
+			assert( bpma != NULL );
+			break;
 
-			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), true, false, size, 0, addr, -1 );
-			assert( bpma != NULL );
-			break;
-			
 		case IA64_instruction::PREFETCH:
-			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction), false, false, 0, addr, -1, 0, 0, -1, -1, 0, -1, false, 0 );
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction), false, false, 0, tmpl.M1.r3, -1, 0, 0, -1, -1, 0, -1, false, 0 );
 			assert( bpma != NULL );
 			break;
-		
+
 		default:
 			return BPatch_memoryAccess::none;
 		}
@@ -228,17 +219,6 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 
   return in;
 }
-
-#define INDIRECT_BRANCH_REGISTER_MASK	0x0000007000000000	/* bits 13 - 15 */
-#define MOVE_TO_BR_DESTINATION_MASK	0x00000000E0000000	/* bits 06 - 08 */
-
-#define A_TYPE_SIGN_BIT			0x0800000000000000	/* bit 36 */
-#define A_TYPE_IMM9D			0x07FC000000000000	/* bits 27 - 35 */
-#define A_TYPE_IMM5C			0x0003E00000000000	/* bits 22 - 26 */
-#define A_TYPE_SOURCE_MASK		0x0000180000000000	/* bits 21 - 20 */
-#define A_TYPE_IMM7B			0x000007F000000000	/* bits 19 - 13 */
-#define I_TYPE_X6			0x00FC000000000000	/* bits 27 - 32 */
-#define I_TYPE_X3			0x0700000000000000	/* bits 33 - 35 */
 
 void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses ) {
 	/* The IA-64 SCRAG defines a pattern similar to the power's.  At some constant offset
@@ -266,30 +246,24 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 		if( unitType != IA64_instruction::I && unitType != IA64_instruction::M ) { continue; }
 
 		/* If so, is it an addl? */
-		uint64_t rawInstruction = insn->getMachineCode();
-		uint64_t majorOpCode = (rawInstruction & MAJOR_OPCODE_MASK ) >> ( 37 + ALIGN_RIGHT_SHIFT );
-		if( majorOpCode != 0x09 ) { continue; }
-		
+		insn_tmpl tmpl = { insn->getMachineCode() };
+		if( GET_OPCODE( &tmpl ) != 0x9 ) { continue; }
+
 		/* If it's an addl, is its destination register r1? */
-		uint64_t destinationRegister = ( rawInstruction & A_TYPE_SOURCE_MASK ) >> ( 20 + ALIGN_RIGHT_SHIFT );
-		if( destinationRegister != 0x01 ) { continue; }
-		
+		if( tmpl.A5.r3 != 0x1 ) { continue; }
+
 		/* Finally, extract the constant jumpTableOffset. */
-		uint64_t signBit = ( rawInstruction & A_TYPE_SIGN_BIT ) >> ( 36 + ALIGN_RIGHT_SHIFT );
-		uint64_t immediate = (( rawInstruction & A_TYPE_IMM5C ) >> ( 22 + ALIGN_RIGHT_SHIFT - 16 ) |
-				      ( rawInstruction & A_TYPE_IMM9D ) >> ( 27 + ALIGN_RIGHT_SHIFT - 7 ) |
-				      ( rawInstruction & A_TYPE_IMM7B ) >> ( 13 + ALIGN_RIGHT_SHIFT ));
-		jumpTableOffset = signExtend( signBit, immediate );
-		
+		jumpTableOffset = GET_A5_IMM( &tmpl );
+
 		/* We've found the jumpTableOffset, stop looking. */
 		// /* DEBUG */ fprintf( stderr, "ip: 0x%lx jumpTableOffset = %ld\n", currentAddress, jumpTableOffset );
 		break;
 	} while( true );
-	
+
 	/* Calculate the jump table's address. */
 	Address jumpTableAddressAddress = gpAddress + jumpTableOffset;
 	// /* DEBUG */ fprintf( stderr, "jumpTableAddressAddress = 0x%lx\n", jumpTableAddressAddress );
-	
+
 	/* Assume that the nearest previous immediate-register compare
 	   is range-checking the jump-table offset.  Extract that
 	   constant, n.  (Otherwise, we're kind of screwed: how big 
@@ -298,7 +272,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 	do {
 		/* Rewind one instruction. */
 		if( ! hasPrev() ) { return; } (*this)--;
-		
+
 		/* Acquire it. */
 		IA64_instruction * insn = getInstruction();
 
@@ -307,18 +281,15 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 		if( unitType != IA64_instruction::I && unitType != IA64_instruction::M ) { continue; }
 
 		/* If so, is it a cmp.ltu? */
-		uint64_t rawInstruction = insn->getMachineCode();
-		uint64_t majorOpCode = (rawInstruction & MAJOR_OPCODE_MASK ) >> ( 37 + ALIGN_RIGHT_SHIFT );
-		if( majorOpCode != 0x0D ) { continue; }
-		
+		insn_tmpl tmpl = { insn->getMachineCode() };
+		if( GET_OPCODE( &tmpl ) != 0xD ) { continue; }
+
 		/* Extract the immediate. */
-		uint64_t signBit = ( rawInstruction & A_TYPE_SIGN_BIT ) >> ( 36 + ALIGN_RIGHT_SHIFT );
-		uint64_t immediate = ( rawInstruction & A_TYPE_IMM7B ) >> ( 13 + ALIGN_RIGHT_SHIFT );
-		maxTableLength = signExtend( signBit, immediate );
+		maxTableLength = GET_A8_COUNT( &tmpl );
 
 		/* We've found a cmp.ltu; stop looking. */
 		// /* DEBUG */ fprintf( stderr, "maxTableLength = %ld\n", maxTableLength );
-		break;		
+		break;
 	} while( true );
 
 	/* Do the indirection. */
@@ -346,11 +317,10 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 		if( unitType != IA64_instruction::I ) { continue; }
 
 		/* If so, is it a mov from ip? */
-		uint64_t rawInstruction = insn->getMachineCode();
-		uint64_t majorOpCode = (rawInstruction & MAJOR_OPCODE_MASK ) >> ( 37 + ALIGN_RIGHT_SHIFT );
-		uint64_t x6 = ( rawInstruction & I_TYPE_X6 ) >> ( 27 + ALIGN_RIGHT_SHIFT );
-		uint64_t x3 = ( rawInstruction & I_TYPE_X3 ) >> ( 33 + ALIGN_RIGHT_SHIFT );
-		if( majorOpCode != 0x0 || x6 != 0x30 || x3 != 0x0 ) { continue; }
+		insn_tmpl tmpl = { insn->getMachineCode() };
+		if( tmpl.I25.opcode != 0x0 ||
+		    tmpl.I25.x6 != 0x30 ||
+		    tmpl.I25.x3 != 0x0 ) continue;
 
 		/* We've found the base jump address; stop looking. */
 		baseJumpAddress = currentAddress & ~0xF;
@@ -365,25 +335,26 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 	assert( jumpTable != NULL );
 
 	if( !addressProc->readTextSpace( (void *)jumpTableAddress, sizeof( uint64_t ) * maxTableLength, jumpTable ) ) {
+	    bperr( "Could not read address of jump table (0x%lx) in mutatee.\n", jumpTableAddress );
 	    assert( 0 );
 	}
 
 	for( unsigned int i = 0; i < maxTableLength; i++ ) {
-		uint64_t finalBaseAddr = baseJumpAddress;
+	    uint64_t finalBaseAddr = baseJumpAddress;
 
-		/* Deviating from the Intel IA64 SCRAG, GCC generated jump
-		   table entries contain offsets from the jump table entry
-		   address.  Not the base of the jump table itself.
-		*/
-		if (isGCC) finalBaseAddr += i * 8;
-		// /* DEBUG */ fprintf( stderr, "Adding target: 0x%lx (0x%lx + 0x%lx)\n", finalBaseAddr + jumpTable[i], finalBaseAddr, jumpTable[i] );
-		targetAddresses.insert( finalBaseAddr + jumpTable[i] );
-		} /* end jump table iteration */
+	    /* Deviating from the Intel IA64 SCRAG, GCC generated jump
+	       table entries contain offsets from the jump table entry
+	       address.  Not the base of the jump table itself.
+	    */
+	    if (isGCC) finalBaseAddr += i * 8;
+	    // /* DEBUG */ fprintf( stderr, "Adding target: 0x%lx (0x%lx + 0x%lx)\n", finalBaseAddr + jumpTable[i], finalBaseAddr, jumpTable[i] );
+	    targetAddresses.insert( finalBaseAddr + jumpTable[i] );
+	} /* end jump table iteration */
 
 	/* Clean up. */
 	free( jumpTable );
 	setCurrentAddress( originalAddress );
-	} /* end getMultipleJumpTargets() */
+} /* end getMultipleJumpTargets() */
 
 bool InstrucIter::delayInstructionSupported()
 {

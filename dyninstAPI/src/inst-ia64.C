@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.60 2004/08/16 04:33:15 rchen Exp $
+ * $Id: inst-ia64.C,v 1.61 2004/08/18 21:17:46 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -107,10 +107,10 @@ Address relocateBaseTrampTemplateTo( Address buffer, Address target ) {
 	static Address offsetOfJumpToInstrumentation = 0;
 	static Address offsetOfJumpToEmulation = 0;
 	static Address offsetOfCallAlloc = 0;
-	static Address offsetOfCallAllocMove = 0;	
+	static Address offsetOfCallAllocMove = 0;
 	static Address offsetOfReturnAlloc = 0;
 	static Address offsetOfReturnAllocMove = 0;
-	
+
 	static Address offsetOfJumpToSpills = 0;
 	static Address offsetOfJumpToFills = 0;
 
@@ -121,7 +121,7 @@ Address relocateBaseTrampTemplateTo( Address buffer, Address target ) {
 		offsetOfCallAllocMove = (Address)&address_of_address_of_call_alloc - addressOfTemplate;
 		offsetOfReturnAlloc = (Address)&address_of_return_alloc - addressOfTemplate;
 		offsetOfReturnAllocMove = (Address)&address_of_address_of_return_alloc - addressOfTemplate;
-		
+
 		offsetOfJumpToSpills = (Address)&address_of_jump_to_spills - addressOfTemplate;
 		offsetOfJumpToFills = (Address)&address_of_jump_to_fills - addressOfTemplate;
 		} /* end offset initialization */
@@ -320,17 +320,7 @@ void emitRegisterToRegisterCopy( Register source, Register destination, char * i
 		fprintf( stderr, "Destination register %d is (was) not free(d), overwriting.\n", destination );
 		} /* end if destination register is not free */
 
-	/* Generate the machine code. (This may need to be refactored out
-	   and migrated to arch-ia64.C, which would move ALIGN_RIGHT_SHIFT down
-	   out of the arch-ia64.h header.) */
-	/* Incidentally, this is 'adds destination = 0, source' */
-	uint64_t rawMoveInsn = 0x0000000000000000 |
-				(((uint64_t)0x08) << (37 + ALIGN_RIGHT_SHIFT)) |
-				(((uint64_t)0x02) << (34 + ALIGN_RIGHT_SHIFT)) |
-				(((uint64_t)source) << (20 + ALIGN_RIGHT_SHIFT )) |
-				(((uint64_t)destination) << (6 + ALIGN_RIGHT_SHIFT ));
-
-	IA64_instruction moveInsn( rawMoveInsn );
+	IA64_instruction moveInsn( generateRegisterToRegisterMove( source, destination ) );
 	IA64_instruction memoryNOP( NOP_M );
 	IA64_bundle r2rBundle( MMIstop, memoryNOP, memoryNOP, moveInsn );
 
@@ -358,7 +348,7 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 /* Required by ast.C */
 Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 					   Address & base, const pdvector<AstNode *> & operands,
-					   process * proc, bool noCost,
+					   process * proc, bool /* noCost */,
 					   Address  callee_addr, 
 					   const pdvector<AstNode *> &ifForks,
 					   const instPoint *location) { 
@@ -522,30 +512,32 @@ bool pd_Function::findInstPoints( const image * i_owner ) {
 	} /* end findInstPoints() */
 
 /* Required by func-reloc.C */
-LocalAlteration *fixOverlappingAlterations( LocalAlteration * alteration, LocalAlteration * tempAlteration ) { assert( 0 ); return NULL; }
+LocalAlteration *fixOverlappingAlterations( LocalAlteration * /*alteration*/, LocalAlteration * /*tempAlteration*/ ) { assert( 0 ); return NULL; }
 
 /* Required by LocalAlteration.C */
 int InsertNops::sizeOfNop() { assert( 0 ); return 0; }
 
 /* Required by func-reloc.C */
-bool InsertNops::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
-				Address newBaseAdr, Address & newAdr,
-				instruction oldInstructions[],
-				instruction newInstructions[],
-				int & oldOffset, int & newOffset,
-				int newDisp, unsigned & codeOffset,
-				unsigned char *code ) { assert( 0 ); return false; }
+bool InsertNops::RewriteFootprint( Address /*oldBaseAdr*/, Address & /*oldAdr*/,
+								   Address /*newBaseAdr*/, Address & /*newAdr*/,
+								   instruction /*oldInstructions*/[],
+								   instruction /*newInstructions*/[],
+								   int & /*oldOffset*/, int & /*newOffset*/,
+								   int /*newDisp*/, unsigned & /*codeOffset*/,
+								   unsigned char */*code*/ ) { assert( 0 ); return false; }
 
 /* Required by func-reloc.C */
-bool ExpandInstruction::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
-		Address newBaseAdr, Address & newAdr,
-		instruction oldInstructions[], instruction newInstructions[],
-		int &oldOffset, int &newOffset, int newDisp,
-		unsigned &codeOffset, unsigned char* code ) { assert( 0 ); return false; }
+bool ExpandInstruction::RewriteFootprint( Address /*oldBaseAdr*/, Address & /*oldAdr*/,
+										  Address /*newBaseAdr*/, Address & /*newAdr*/,
+										  instruction /*oldInstructions*/[],
+										  instruction /*newInstructions*/[],
+										  int &/*oldOffset*/, int &/*newOffset*/,
+										  int /*newDisp*/, unsigned &/*codeOffset*/,
+										  unsigned char* /*code*/ ) { assert( 0 ); return false; }
 
 /* Required by BPatch_function, image.C */
 BPatch_point *createInstructionInstPoint( process * proc, void * address,
-			BPatch_point ** alternative, BPatch_function * bpf ) { 
+										  BPatch_point ** /*alternative*/, BPatch_function * bpf ) { 
 	/* Since IA-64 instpoints never conflict, we can safely ignore 'alternative'.
 	   Simply verify that the given address is valid and do the construction routines. */
 	uint64_t slotNo = ((Address)address) % 0x10;
@@ -585,25 +577,27 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 	} /* end createInstructionInstPoint() */
 	
 /* Required by ast.C; used for memory instrumentation. */
-void emitASload( BPatch_addrSpec_NP as, Register dest, char * ibuf, Address & base, bool noCost ) {
+void emitASload( BPatch_addrSpec_NP as, Register dest, char * ibuf, Address & base, bool /*noCost*/ ) {
 	/* Convert an addrSpec into a value in the destination register. */
 	// /* DEBUG */ fprintf( stderr, "emitASload: as.imm = %d, as.r1 = %d, as.r2 = %d\n", as.getImm(), as.getReg( 0 ), as.getReg( 1 ) );
 	emitRegisterToRegisterCopy( as.getReg( 0 ), dest, ibuf, base, NULL );
 	} /* end emitASload() */
 
 /* Required by func-reloc.C */
-bool PushEIP::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
-		Address newBaseAdr, Address & newAdr,
-		instruction oldInstructions[], instruction newInstructions[],
-		int & oldInsnOffset, int & newInsnOffset,
-		int newDisp, unsigned & codeOffset, unsigned char * code ) { assert( 0 ); return false; }
+bool PushEIP::RewriteFootprint( Address /*oldBaseAdr*/, Address & /*oldAdr*/,
+								Address /*newBaseAdr*/, Address & /*newAdr*/,
+								instruction /*oldInstructions*/[],
+								instruction /*newInstructions*/[],
+								int & /*oldInsnOffset*/, int & /*newInsnOffset*/,
+								int /*newDisp*/, unsigned & /*codeOffset*/,
+								unsigned char * /*code*/ ) { assert( 0 ); return false; }
 
 /* Required by process.C */
-void instWaitingList::cleanUp( process *, Address addr ) { assert( 0 ); }
+void instWaitingList::cleanUp( process *, Address /*addr*/ ) { assert( 0 ); }
 
 /* Required by ast.C */
 Register deadRegisterList[] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF };
-void initTramps(bool is_multithreaded) { 
+void initTramps(bool /*is_multithreaded*/) { 
 	/* Initialize the registerSpace pointer regSpace to the state of the
 	   registers that will exist at the end of the first part of the base
 	   tramp's code.  (That is, for the minitramps.
@@ -636,9 +630,21 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 			/* Unless we can verify that a comparison result is never used
 			   as an operand, we can't do the right thing and treat the
 			   destination as a predicate register.  *Sigh*. */
-			IA64_instruction comparisonInsn = generateComparison( op, dest, src1, src2 );
-			IA64_instruction setTrue = predicateInstruction( dest, generateShortImmediateAdd( dest, 1, 0 ) );
-			IA64_instruction setFalse = predicateInstruction( dest + 1, generateShortImmediateAdd( dest, 0, 0 ));
+
+			/* What's worse, since there is no way to allocate predicate
+			   registers, the variable dest must represent a general register.
+			   To deal with a the range difference between to two types of
+			   registers (General: 0-127, Predicate: 0-63), we simply use
+			   dest % 64.
+
+			   That method is a hack at best, and creates a number of potential
+			   bugs.  But, a correct solution would involve a complete overhaul
+			   of our regSpace class, moving it into architecture specific files.
+			   Perhaps for the next release.
+			*/
+			IA64_instruction comparisonInsn = generateComparison( op, dest % 64, src1, src2 );
+			IA64_instruction setTrue = predicateInstruction( dest % 64, generateShortImmediateAdd( dest, 1, REGISTER_ZERO ) );
+			IA64_instruction setFalse = predicateInstruction( (dest + 1) % 64, generateShortImmediateAdd( dest, 0, REGISTER_ZERO ));
 			IA64_bundle comparisonBundle( MstopMIstop, comparisonInsn, setTrue, setFalse );
 			* rawBundlePointer = comparisonBundle.getMachineCode();
 			base += 16;
@@ -784,7 +790,7 @@ bool deleteBaseTramp( process */*proc*/, trampTemplate *) {
 
 /* Required by ast.C */
 void emitImm( opCode op, Register src1, RegValue src2imm, Register dest,
-		char *ibuf, Address & base, bool noCost ) {
+			  char *ibuf, Address & base, bool /*noCost*/ ) {
 	switch( op ) {
 		case orOp: {
 			/* Apparently, the bit-wise operation. */
@@ -879,8 +885,8 @@ bool process::heapIsOk( const pdvector<sym_data> & find_us ) {
 	} /* end of heapIsOk() */
 
 /* Required by inst.C */
-void emitVupdate( opCode op, RegValue src1, Register src2,
-		Address dest, char * ibuf, Address & base, bool noCost ) {
+void emitVupdate( opCode op, RegValue /*src1*/, Register /*src2*/,
+				  Address /*dest*/, char * /*ibuf*/, Address & /*base*/, bool /*noCost*/ ) {
 	switch( op ) {
 		case updateCostOp:
 			// fprintf( stderr, "FIXME: no-op'ing emitVupdate(updateCostOp)\n" );
@@ -895,7 +901,7 @@ void emitVupdate( opCode op, RegValue src1, Register src2,
 /* Required by ast.C */
 /* FIXME: Need to handle more than just the general registers */
 void emitLoadPreviousStackFrameRegister( Address register_num, Register dest, char * insn,
-										 Address & base, int size, bool noCost )
+										 Address & base, int /*size*/, bool /*noCost*/ )
 {
 	IA64_bundle bundle;
 
@@ -929,7 +935,7 @@ void emitLoadPreviousStackFrameRegister( Address register_num, Register dest, ch
 }
 
 /* Required by func-reloc.C */
-bool pd_Function::isTrueCallInsn( const instruction insn ) { assert( 0 ); }
+bool pd_Function::isTrueCallInsn( const instruction /*insn*/ ) { assert( 0 ); }
 
 /* Required by BPatch_thread.C */
 void returnInstance::installReturnInstance( process * proc ) { 
@@ -953,34 +959,17 @@ void generateBranch( process * proc, Address fromAddr, Address newAddr ) {
 	} /* end generateBranch */
 
 /* Required by func-reloc.C */
-bool pd_Function::PA_attachGeneralRewrites( const image * owner,
-		LocalAlterationSet * temp_alteration_set,
-		Address baseAddress, Address firstAddress,
-		instruction * loadedCode,
-		unsigned numInstructions, int codeSize ) { assert( 0 ); return false; }
+bool pd_Function::PA_attachGeneralRewrites( const image * /*owner*/,
+											LocalAlterationSet * /*temp_alteration_set*/,
+											Address /*baseAddress*/, Address /*firstAddress*/,
+											instruction * /*loadedCode*/,
+											unsigned /*numInstructions*/, int /*codeSize*/ ) { assert( 0 ); return false; }
 
 /* Required by LocalAlteration.C */
 int InsertNops::numInstrAddedAfter() { assert( 0 ); return -1; }
 
 /* in arch-ia64.C */
 extern IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3];
-
-/* left-aligned constants for decoding the PSR */
-#define PSR_RI_MASK	0x0000060000000000
-
-/* left-aligned constants for instruction emulation */
-#define BIT_36		0x0800000000000000	
-#define BIT_13_32	0x00FFFFF000000000
-#define IMMEDIATE_MASK	(~( 0 | BIT_36 | BIT_13_32 ))
-#define BIT_2_40	0xFFFFFFFFF0000000
-#define BIT_20_32	0x00FFF80000000000
-#define BIT_06_12	0x0000000FE0000000
-#define SPEC_CHECK_MASK (~( 0 | BIT_36 | BIT_20_32 | BIT_06_12 ))
-#define X3_MASK		0x0700000000000000
-
-/* right-aligned constants for instruction emulation */
-#define RIGHT_IMM20	0x00000000000FFFFF
-#define RIGHT_IMM39	0x07FFFFFFFFF00000
 
 /* private refactoring function */
 IA64_bundle generateBundleFor( IA64_instruction insnToBundle ) {
@@ -1016,167 +1005,122 @@ IA64_bundle generateBundleFor( IA64_instruction insnToBundle ) {
 
 /* private refactoring function */
 void emulateLongInstruction( IA64_instruction_x insnToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress ) {
+	IA64_instruction::insnType instructionType = insnToEmulate.getType();
+	insn_tmpl tmpl = { insnToEmulate.getMachineCode().high };
+	insn_tmpl imm  = { insnToEmulate.getMachineCode().low };
+	int64_t immediate;
+
 	/* originalLocation is NOT an encoded address */
-	switch( insnToEmulate.getType() ) {
-		case IA64_instruction::DIRECT_BRANCH:
-		case IA64_instruction::DIRECT_CALL: {
-			/* Correct the immediate by the difference between originalLocation and (insnPtr + size). */
-			uint64_t lowWord = insnToEmulate.getMachineCode().low;
-			uint64_t highWord = insnToEmulate.getMachineCode().high;
-
-			uint64_t immediate = 	( 0 |
-			(((highWord & BIT_36) >> (36 + ALIGN_RIGHT_SHIFT)) << 59) |
-			(((lowWord & BIT_2_40) >> (2 + ALIGN_RIGHT_SHIFT)) << 20) |
-			(((highWord & BIT_13_32) >> (13 + ALIGN_RIGHT_SHIFT)))
-						) << 4;
-
-			Address target = immediate + originalLocation;
-			Address source = allocatedAddress + size;
-			long long int displacement64 = target - source;
-			uint64_t displacement60 = displacement64 >> 4;
-
-			highWord =	( highWord & IMMEDIATE_MASK ) |
-					( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |   
-					( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT));
-			lowWord = 0x0000000000000000 |
-					( (displacement60 & RIGHT_IMM39) << (-20 + 2 + ALIGN_RIGHT_SHIFT) );
-
-			IA64_instruction memoryNOP( NOP_M );
-			IA64_instruction_x alteredLong( lowWord, highWord, insnToEmulate.getTemplateID() );
-			IA64_bundle emulationBundle( MLXstop, memoryNOP, alteredLong );
-			insnPtr[offset++] = emulationBundle.getMachineCode(); size += 16;
-			break; } /* end branch handling */
-
+	switch( instructionType ) {
+		case IA64_instruction::DIRECT_BRANCH: immediate = GET_X3_TARGET( &tmpl, &imm ); break;
+		case IA64_instruction::DIRECT_CALL:   immediate = GET_X4_TARGET( &tmpl, &imm ); break;
 		default: {
-			IA64_instruction memoryNOP( NOP_M );
-			insnPtr[offset++] = IA64_bundle( MLXstop, memoryNOP, insnToEmulate ).getMachineCode(); size += 16;
-			break; } /* end default case */
-		} /* end type switch */
+            IA64_instruction memoryNOP( NOP_M );
+            insnPtr[offset++] = IA64_bundle( MLXstop,
+											 memoryNOP,
+											 insnToEmulate ).getMachineCode();
+			size += 16;
+            return;
+		}
+	}
+
+	/* Correct the immediate by the difference between originalLocation and (insnPtr + size). */
+	/* originalLocation is NOT an encoded address */
+	Address target = immediate + originalLocation;
+	Address source = allocatedAddress + size;
+	int64_t displacement = target - source;
+
+    switch( instructionType ) {
+		case IA64_instruction::DIRECT_BRANCH: SET_X3_TARGET( &tmpl, &imm, displacement); break;
+		case IA64_instruction::DIRECT_CALL:   SET_X4_TARGET( &tmpl, &imm, displacement); break;
+		default: break;
+    }
+
+    IA64_instruction_x alteredLong( imm.raw, tmpl.raw, insnToEmulate.getTemplateID() );
+    insnPtr[offset++] = IA64_bundle( MLXstop,
+									 IA64_instruction( NOP_M ),
+									 alteredLong ).getMachineCode();
+    size += 16;
 	} /* end emulateLongInstruction */
 
-uint64_t signExtend( bool signBit, uint64_t immediate ) {
-	if( ! signBit ) { return immediate; }
-	
-	uint64_t highBits = 0x8000000000000000;
-	uint64_t formerHighBits = 0x0;
-	
-	while( (highBits & immediate) == 0x0 ) {
-		formerHighBits = highBits;
-		highBits = 0x8000000000000000 | (highBits >> 1);
-		} /* end bit-shifting loop */
-		
-	return (formerHighBits | immediate);
-	} /* end signExtend() */
-
 /* private refactoring function */
-#define TYPE_20B 0
-#define TYPE_13C 1
-void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, unsigned int immediateType, Address allocatedAddress ) {
+void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress ) {
 	/* We insert a short jump past a long jump to the original target, followed
 	   by the instruction rewritten to branch one bundle backwards.
 	   It's not very elegant, but it's very straightfoward to implement. :) */
-	
+
 	/* Skip the long branch. */
 	IA64_instruction memoryNOP( NOP_M );
 	IA64_instruction_x skipInsn = generateLongBranchTo( 32 ); // could be short
 	IA64_bundle skipInsnBundle( MLXstop, memoryNOP, skipInsn );
 	insnPtr[offset++] = skipInsnBundle.getMachineCode(); size += 16;
 
-	/* Extract the short immediate. */
-	uint64_t immediate;
-	uint64_t machineCode = insnToRewrite.getMachineCode();
-	uint64_t signBit = (machineCode >> (36 + ALIGN_RIGHT_SHIFT) ) & 0x1;
-	switch( immediateType ) {
-		case TYPE_20B:
-			immediate = 	0 |
-					( (machineCode & BIT_13_32) >> (13 + ALIGN_RIGHT_SHIFT) );
-			break;
+	/* Extract the original target. */
+	insn_tmpl tmpl = { insnToRewrite.getMachineCode() };
+	bool isSpecCheck = ( insnToRewrite.getType() == IA64_instruction::SPEC_CHECK );
+	Address originalTarget;
 
-		case TYPE_13C:
-			immediate = 	0 |
-					( (machineCode & BIT_20_32) >> (20 + ALIGN_RIGHT_SHIFT - 7) ) |
-					( (machineCode & BIT_06_12) >> (6 + ALIGN_RIGHT_SHIFT) );
-			break;
-
-		default:
-			fprintf( stderr, "Unrecognized immediate type in rewriteShortImmediate(), aborting.\n" );
-			abort();
-			break;
-		} /* end immediateType switch */
+	if( isSpecCheck )
+		originalTarget = GET_M20_TARGET( &tmpl ) + originalLocation;
+	else {
+		// This is cheating a bit, but all non-SPEC_CHECK instructions
+		// that flow through this function share the same immediate
+		// encoding, so using the M22 template should work.
+		originalTarget = GET_M22_TARGET( &tmpl ) + originalLocation;
+	}
 
 	/* The long branch. */
-	Address originalTarget = ( signExtend( signBit, immediate ) << 4 ) + originalLocation;
 	// /* DEBUG */ fprintf( stderr, "originalTarget 0x%lx = 0x%lx + 0x%lx\n", originalTarget, ( signExtend( signBit, immediate ) << 4 ), originalLocation );
 	IA64_instruction_x longBranch = generateLongBranchTo( originalTarget - (allocatedAddress + size) );
 	IA64_bundle longBranchBundle( MLXstop, memoryNOP, longBranch );
 	insnPtr[offset++] = longBranchBundle.getMachineCode(); size += 16;
 
 	/* Rewrite the short immediate. */
-	switch( immediateType ) {
-		case TYPE_20B:
-			machineCode =	( machineCode & IMMEDIATE_MASK ) |
-					( ((uint64_t)1) << (36 + ALIGN_RIGHT_SHIFT) ) |
-					( ((uint64_t)0xFFFFF) << (13 + ALIGN_RIGHT_SHIFT) );
-			break;
-
-		case TYPE_13C:
-			machineCode =	( machineCode & SPEC_CHECK_MASK ) |
-					( ((uint64_t)1) << (36 + ALIGN_RIGHT_SHIFT) ) |
-					( ((uint64_t)0xFFF) >> (20 + ALIGN_RIGHT_SHIFT) ) |
-					( ((uint64_t)0x7F) << (6 + ALIGN_RIGHT_SHIFT) );
-			break;
-
-		default:
-			fprintf( stderr, "Unrecognized immediate type in rewriteShortImmediate(), aborting.\n" );
-			abort();
-			break;
-		} /* end immediateType switch */
+	if( isSpecCheck )
+		SET_M20_TARGET( &tmpl, -16 );
+	else
+		SET_M22_TARGET( &tmpl, -16 );
 
 	/* Emit the rewritten immediate. */
-	IA64_instruction rewrittenInsn( machineCode, insnToRewrite.getTemplateID(), insnToRewrite.getSlotNumber() );
+	IA64_instruction rewrittenInsn( tmpl.raw, insnToRewrite.getTemplateID(), insnToRewrite.getSlotNumber() );
 	insnPtr[offset++] = generateBundleFor( rewrittenInsn ).getMachineCode(); size += 16;
 	} /* end rewriteShortOffset() */
 
 /* private refactoring function */
 void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress ) {
+	insn_tmpl tmpl = { insnToEmulate.getMachineCode() };
+
 	switch( insnToEmulate.getType() ) {
 		case IA64_instruction::DIRECT_BRANCH:
-		case IA64_instruction::DIRECT_CALL: {
-			rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, TYPE_20B, allocatedAddress);
-			break; } /* end direct jump handling */
+		case IA64_instruction::DIRECT_CALL:
+			rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, allocatedAddress);
+			break; /* end direct jump handling */
 
-		case IA64_instruction::BRANCH_PREDICT: {
+		case IA64_instruction::BRANCH_PREDICT:
 			/* We can suffer the performance loss. :) */
 			insnPtr[offset++] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode(); size += 16;
-			break; } /* end branch predict handling */
+			break; /* end branch predict handling */
 
-		case IA64_instruction::CHECK: {
+		case IA64_instruction::ALAT_CHECK:
+		case IA64_instruction::SPEC_CHECK:
 			/* The advanced load checks can be handled exactly as we 
 			   handle direct branches and calls.  The other three checks
 			   (I&M unit integer speculation, fp speculation) are handled
 			   identically to each other, but their immediates are laid
 			   out a little different, so we can't handle them as we do
 			   the advanced loads. */
+			rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, allocatedAddress );
 
-			uint64_t instruction = insnToEmulate.getMachineCode();
-			uint8_t x3 = (instruction & X3_MASK) >> (ALIGN_RIGHT_SHIFT + 33);
-			if( x3 >= 4 && x3 <= 7 ) { /* advanced load check */
-				rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, TYPE_20B, allocatedAddress );
-				} /* end if M22 or M23 */
-			else if( x3 == 1 || x3 == 3 ) { /* speculation check */
-				rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, TYPE_13C, allocatedAddress );
-				} /* end if I20, M20, or M21. */
-				
 			/* FIXME: the jump back needs to be fixed.  Implies we need to leave the emulated code in-place. */
-			break; } /* end speculation check handling */
+			break; /* end speculation check handling */
 
-		case IA64_instruction::BRANCH_IA: {
+		case IA64_instruction::BRANCH_IA:
 			assert( 0 );
-			break; } /* end branch to x86 handling */
+			break; /* end branch to x86 handling */
 
 		case IA64_instruction::MOVE_FROM_IP: {
 			/* Replace with a movl of the original IP. */
-			unsigned int originalRegister = (insnToEmulate.getMachineCode() & 0x0000000FE0000000) >> 6; // bits 06 - 12
+			unsigned int originalRegister = tmpl.I25.r1;
 			IA64_instruction memoryNOP( NOP_M );
 			IA64_instruction_x emulatedIPMove = generateLongConstantInRegister( originalRegister, originalLocation );
 			IA64_bundle ipMoveBundle( MLXstop, memoryNOP, emulatedIPMove );
@@ -1197,9 +1141,9 @@ void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLo
 		case IA64_instruction::INDIRECT_CALL:
 		case IA64_instruction::INDIRECT_BRANCH:
 			/* Branch registers hold absolute addresses. */
-		default: {
+		default:
 			insnPtr[offset++] = generateBundleFor( insnToEmulate ).getMachineCode(); size += 16;
-			break; } /* end default case */
+			break; /* end default case */
 		} /* end type switch */
 	} /* end emulateShortInstruction() */
 
@@ -1211,7 +1155,7 @@ void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLo
    to emulateBundle() in a given function.  allocatedAddress is where in the remote process the base tramp will be copied. */
 void emulateBundle( IA64_bundle bundleToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress, int slotNo ) {
 	/* We need to alter all IP-relative instructions to do the Right Thing.  In particular:
-	
+
 		mov rX = ip	->	movl rX = <originalLocation>
 		brp.*		->	nop.m	; Is an architectural nop, and we've already destroyed performance by doing the instrumentation.
 		brl.*		->	brl.*	; correct the offset by the difference between originalLocation and (allocatedAddress + size)
@@ -1399,7 +1343,7 @@ bool process::replaceFunctionCall( const instPoint * point, const function_base 
 	} /* end replaceFunctionCall() */
 
 /* Required by func-reloc.C */
-bool pd_Function::isNearBranchInsn( const instruction insn ) { assert( 0 ); return false; }
+bool pd_Function::isNearBranchInsn( const instruction /*insn*/ ) { assert( 0 ); return false; }
 
 /* Private Refactoring Function
 
@@ -1605,7 +1549,7 @@ void generateRegisterStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, u
 	// Restore the predicate registers
 	insn[ 0 ] = IA64_instruction( NOP_M );
 	if( regSpace->storageMap[ BP_PR ] > 0 ) {
-		insn[ 1 ] = generateRegisterToPredicatesMove( regSpace->storageMap[ BP_PR ], 0x1FFFF );
+		insn[ 1 ] = generateRegisterToPredicatesMove( regSpace->storageMap[ BP_PR ], ~0x1 );
 	} else {
 		// This bundle is needed to end the instruction group, regardless.
 		insn[ 1 ] = IA64_instruction( NOP_I );
@@ -1915,14 +1859,6 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 	}
 }
 
-#define BIT_32_37 0x3F00000000
-#define BIT_25_31 0x00FE000000
-#define BIT_18_24 0x0001FC0000
-#define BIT_14_17 0x000003C000
-#define BIT_7_13  0x0000003F80
-#define BIT_0_6   0x000000007F
-#define INVALID_CFM 0x10000000000
-
 /* private refactoring function */
 bool generatePreservationHeader( ia64_bundle_t * insnPtr, Address & count, bool * whichToPreserve, unw_dyn_region_info_t * unwindRegion ) {
 	/* For clarity (in the callers, too), handle NULL unwindRegions here. */
@@ -2107,62 +2043,58 @@ bool generatePreservationTrailer( ia64_bundle_t * insnPtr, Address & count, bool
 
 /* Originally from linux-ia64.C's executingSystemCall(). */
 bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
-	/* This checks if the previous instruction is a break 0x100000. */
-	const uint64_t SYSCALL_MASK = 0x01000000000 >> 5;
-	uint64_t iip, instruction, rawBundle[2];
-	int64_t ipsr_ri, pr;
-	IA64_bundle origBundle;
-	
+	ia64_bundle_t rawBundle;
+	uint64_t iip, ri;
+	int64_t pr;
+
 	// Bad things happen if you use ptrace on a running process.
 	assert( proc->status() == stopped );
 	errno = 0;
-	
+
 	// Find the correct bundle.
 	iip = getPC( proc->getPid() );
-	ipsr_ri = P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 );
-	if( errno && (ipsr_ri == -1) ) {
+	reg_tmpl reg = { P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
+	if( errno && (reg.raw == -1) ) {
 		// Error reading process information.  Should we assert here?
 		assert(0);
 		}
-	ipsr_ri = (ipsr_ri & 0x0000060000000000) >> 41;
-	if (ipsr_ri == 0) iip -= 16;  // Get previous bundle, if necessary.
+	ri = reg.PSR.ri;
+	if (ri == 0) iip -= 16;  // Get previous bundle, if necessary.
 
 	/* As above; if the syscall rewinds the PC, we must as well. */
 	if( pcMayHaveRewound != NULL ) {
-		if( ipsr_ri == 0 ) { * pcMayHaveRewound = true; }
+		if( ri == 0 ) { * pcMayHaveRewound = true; }
 		else { * pcMayHaveRewound = false; }
 		}
-						
+
 	// Read bundle data
-	if( ! proc->readDataSpace( (void *)iip, 16, (void *)rawBundle, true ) ) {
+	if( ! proc->readDataSpace( (void *)iip, 16, (void *)&rawBundle, true ) ) {
 		// Could have gotten here because the mutatee stopped right
 		// after a jump to the beginning of a memory segment (aka,
 		// no previous bundle).  But, that can't happen from a syscall.
 		return false;
 		}
-	
+
 	// Isolate previous instruction.
-	origBundle = IA64_bundle( rawBundle[0], rawBundle[1] );
-	ipsr_ri = (ipsr_ri + 2) % 3;
-	instruction = origBundle.getInstruction(ipsr_ri)->getMachineCode();
-	instruction = instruction >> ALIGN_RIGHT_SHIFT;
-	
+	ri = (ri + 2) % 3;
+	IA64_bundle origBundle( rawBundle );
+	IA64_instruction *insn = origBundle.getInstruction(ri);
+
 	// Determine predicate register and remove it from instruction.
 	pr = P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_PR, 0 );
 	if (errno && pr == -1) assert(0);
-	pr = (pr >> (0x1F & instruction)) & 0x1;
-	instruction = instruction >> 5;
-	
-	return (pr && instruction == SYSCALL_MASK);
+	pr = ( pr >> insn->getPredicate() ) & 0x1;
+
+	return (insn->getType() == IA64_instruction::SYSCALL && !pr);
 	} /* end needToHandleSyscall() */
 
 #include "dlfcn.h"
 bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
 	/* Extract the current slotNo. */
 	errno = 0;
-	uint64_t ipsr = P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 );
+	reg_tmpl reg = { P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
 	assert( ! errno );
-	uint64_t slotNo = (ipsr & PSR_RI_MASK) >> 41;
+	uint64_t slotNo = reg.PSR.ri;
 	assert( slotNo <= 2 );
 
 	// /* DEBUG */ fprintf( stderr, "emitSyscallHeader() thinks slotNo = %ld\n", slotNo );
@@ -2275,24 +2207,6 @@ bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
 	return true;
 	} /* end emitSystemCallHeader() */
 
-#define	F4_MASK		0x01FC000000000000	/* bits 27 - 33 */
-#define	F3_MASK 	0x0003F80000000000	/* bits 20 - 26 */
-#define	F2_MASK 	0x000007F000000000	/* bits 13 - 20 */
-#define	F1_MASK 	0x0000000FE0000000  /* bits 06 - 13 */
-
-#define	BIT_X_MASK	0x0100000000000000	/* bit 33 */
-#define	BIT_Q_MASK	0x0800000000000000	/* bit 36 */
-#define	FP_X6_MASK	0x00FC000000000000	/* bits 27 - 32 */
-
-#define M_X6_MASK	0x07E0000000000000	/* bits 30 - 35 */
-#define M_X4_MASK	0x003C000000000000	/* bits 27 - 30 */
-#define M_X3_MASK	0x0700000000000000	/* bits 33 - 35 */
-#define M_X2_MASK	0x00C0000000000000	/* bits 31 - 32 */
-#define M_M_MASK	0x0800000000000000  /* bit 36 */
-#define M_X_MASK	0x0004000000000000  /* bit 27 */
-
-#define BTYPE_MASK	0x00000000E0000000	/* bits 6 - 8 */
-
 /* private refactoring function */
 bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 	/* Cast away const-ness rather than fix broken function_base::getAddress(). */
@@ -2310,8 +2224,8 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 
 	for( int slotNo = 0; iAddr < lastI; iAddr ++ ) {
 		IA64_instruction * currInsn = * iAddr;
-		uint64_t rawInsn = currInsn->getMachineCode();
-		
+		insn_tmpl tmpl = { currInsn->getMachineCode() };
+
 		bool instructionIsFP = false;
 		bool instructionIsMem = false;
 		uint8_t templateID = currInsn->getTemplateID();
@@ -2359,87 +2273,103 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 				instructionIsFP = (slotNo == 1);
 				instructionIsMem = (slotNo == 0);
 				break;
-				
+
 			case 0x0E:
 			case 0x0F:
 				/* MMF */
 				instructionIsFP = (slotNo == 2);
 				instructionIsMem = (slotNo == 0 || slotNo == 1);
 				break;
-			
+
 			default:
 				break;
 				} /* end switch */
-		
-		/* A floating-point instruction may contain up to four register numbers. */
-		bool f1 = false;
-		bool f2 = false;
-		bool f3 = false;
-		bool f4 = false;
 
 		if( instructionIsMem ) {
 			/* Decide which fields in the instruction actually contain register numbers. */
-            uint64_t opcode = (rawInsn & MAJOR_OPCODE_MASK) >> (37 + ALIGN_RIGHT_SHIFT);
-			switch( opcode ) {
+			switch( GET_OPCODE( &tmpl ) ) {
 				case 0x0: {
-					int x2 = (rawInsn & M_X2_MASK) & (31 + ALIGN_RIGHT_SHIFT);
-					int x3 = (rawInsn & M_X3_MASK) & (33 + ALIGN_RIGHT_SHIFT);
-					int x4 = (rawInsn & M_X4_MASK) & (27 + ALIGN_RIGHT_SHIFT);
+					int8_t x2 = tmpl.M_SYS.x2;
+					int8_t x3 = tmpl.M_SYS.x3;
+					int8_t x4 = tmpl.M_SYS.x4;
 
-					if( x3 == 0x6 || x3 == 0x7 ) f2 = true;
-					if( x3 == 0x0 && x4 == 0x3 && x2 == 0x1 ) f2 = true;
+					/* M23 */ if( x3 == 0x6 || x3 == 0x7 )
+						whichToPreserve[ tmpl.M23.f1 ] = true;
+
+					/* M27 */ if( x3 == 0x0 && x4 == 0x3 && x2 == 0x1 )
+						whichToPreserve[ tmpl.M27.f1 ] = true;
 				} break;
 
 				case 0x1: {
-					int x3 = (rawInsn & M_X3_MASK) & (33 + ALIGN_RIGHT_SHIFT);
+					int8_t x3 = tmpl.M_SYS.x3;
 
-					if( x3 == 0x3 ) f2 = true;
+					/* M21 */ if( x3 == 0x3 )
+						whichToPreserve[ tmpl.M21.f2 ] = true;
 				} break;
 
 				case 0x4: {
-					int m = (rawInsn & M_M_MASK) & (36 + ALIGN_RIGHT_SHIFT);
-					int x = (rawInsn & M_X_MASK) & (27 + ALIGN_RIGHT_SHIFT);
-					int x6 = (rawInsn & M_X6_MASK) & (30 + ALIGN_RIGHT_SHIFT);
+					int8_t m = tmpl.M_LD_ST.m;
+					int8_t x = tmpl.M_LD_ST.x;
+					int8_t x6 = tmpl.M_LD_ST.x6;
 
-					if( m == 0x0 && x == 0x1 && 0x1C <= x6 && x6 <= 0x1F ) f2 = true;
+					/* M19 */ if( m == 0x0 && x == 0x1 && 0x1C <= x6 && x6 <= 0x1F )
+						whichToPreserve[ tmpl.M19.f2 ] = true;
 				} break;
 
 				case 0x6: {
-					int m = (rawInsn & M_M_MASK) & (36 + ALIGN_RIGHT_SHIFT);
-					int x = (rawInsn & M_X_MASK) & (27 + ALIGN_RIGHT_SHIFT);
-					int x6 = (rawInsn & M_X6_MASK) & (30 + ALIGN_RIGHT_SHIFT);
+					int8_t m = tmpl.M_LD_ST.m;
+					int8_t x = tmpl.M_LD_ST.x;
+					int8_t x6 = tmpl.M_LD_ST.x6;
 
 					if( x == 0x0 && m == 0x0 ) {
-						if( (0x00 <= x6 && x6 <= 0x0F) || (0x20 <= x6 && x6 <= 0x27) || x6 == 0x1B ) f1 = true;
-						if( (0x30 <= x6 && x6 <= 0x32) || x6 == 0x3B ) f2 = true;
+						/* M6  */ if( (0x00 <= x6 && x6 <= 0x0F) || (0x20 <= x6 && x6 <= 0x27) || x6 == 0x1B )
+							whichToPreserve[ tmpl.M6.f1 ] = true;
+
+						/* M9  */ if( (0x30 <= x6 && x6 <= 0x32) || x6 == 0x3B )
+							whichToPreserve[ tmpl.M9.f2 ] = true;
 					}
 					if( x == 0x0 && m == 0x1 ) {
-						if( (0x00 <= x6 && x6 <= 0x0F) || (0x20 <= x6 && x6 <= 0x27) || x6 == 0x1B ) f1 = true;
+						/* M7  */ if( (0x00 <= x6 && x6 <= 0x0F) || (0x20 <= x6 && x6 <= 0x27) || x6 == 0x1B )
+							whichToPreserve[ tmpl.M7.f1 ] = true;
+
+						/* M10 */ if( (0x30 <= x6 && x6 <= 0x33) || (x6 == 0x3B) )
+							whichToPreserve[ tmpl.M10.f2 ] = true;
 					}
 					if( x == 0x1 && m == 0x0 ) {
-						if( 0x01 <= x6 && x6 <= 0x0F && x6 != 0x04 && x6 != 0x08 && x6 != 0x0C && x6 != 0x24 ) f1 = f2 = true;
-						if( 0x1C <= x6 && x6 <= 0x1F ) f1 = true;
+						/* M11 */ if( (0x01 <= x6 && x6 <= 0x0F && x6 != 0x04 && x6 != 0x08 && x6 != 0x0C && x6 != 0x24) ||
+									  (0x21 <= x6 && x6 <= 0x27 && x6 != 0x24) ) {
+							whichToPreserve[ tmpl.M11.f1 ] = true;
+							whichToPreserve[ tmpl.M11.f2 ] = true;
+						}
+						/* M18 */ if( 0x1C <= x6 && x6 <= 0x1F )
+							whichToPreserve[ tmpl.M18.f1 ] = true;
 					}
 					if( x == 0x1 && m == 0x1 ) {
-						if( 0x01 <= x6 && x6 <= 0x0F && x6 != 0x04 && x6 != 0x08 && x6 != 0x0C && x6 != 0x24 ) f1 = f2 = true;
+						/* M12 */ if( (0x01 <= x6 && x6 <= 0x0F && x6 != 0x04 && x6 != 0x08 && x6 != 0x0C && x6 != 0x24) ||
+									  (0x21 <= x6 && x6 <= 0x27 && x6 != 0x24) ) {
+							whichToPreserve[ tmpl.M12.f1 ] = true;
+							whichToPreserve[ tmpl.M12.f2 ] = true;
+						}
 					}
 				} break;
 
 				case 0x7: {
-					int x6 = (rawInsn & M_X6_MASK) & (30 + ALIGN_RIGHT_SHIFT);
+					int8_t x6 = tmpl.M_LD_ST.x6;
 
-					if( (0x00 <= x6 && x6 <= 0x0F) || (0x20 <= x6 && x6 <= 0x27) || x6 == 0x1B ) f1 = true;
-					if( (0x30 <= x6 && x6 <= 0x32) || x6 == 0x3B ) f2 = true;
+					/* M8  */ if( (0x00 <= x6 && x6 <= 0x0F) || (0x20 <= x6 && x6 <= 0x27) || x6 == 0x1B )
+						whichToPreserve[ tmpl.M8.f1 ] = true;
+
+					/* M10 */ if( (0x30 <= x6 && x6 <= 0x32) || x6 == 0x3B )
+						whichToPreserve[ tmpl.M10.f2 ] = true;
 				} break;
 			}
 		}
 
 		if( instructionIsFP ) {
 			// /* DEBUG */ fprintf( stderr, "Instruction at mutator address 0x%lx uses an FPU.\n", iAddr.getEncodedAddress() );
-		
+
 			/* Decide which fields in the instruction actually contain register numbers. */
-			uint64_t opcode = (rawInsn & MAJOR_OPCODE_MASK) >> (37 + ALIGN_RIGHT_SHIFT);
-			switch( opcode ) {
+			switch( GET_OPCODE( &tmpl ) ) {
 				case 0x8:
 				case 0x9:
 				case 0xA:
@@ -2448,57 +2378,81 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 				case 0xD:
 				case 0xE:
 					/* F1, F2, F3 */
-					f4 = f3 = f2 = f1 = true;
+					whichToPreserve[ tmpl.F1.f1 ] = true;
+					whichToPreserve[ tmpl.F1.f2 ] = true;
+					whichToPreserve[ tmpl.F1.f3 ] = true;
+					whichToPreserve[ tmpl.F1.f4 ] = true;
+					fpUsed = true;
 					break;
 					
 				case 0x4:
 					/* F4 */
-					f3 = f2 = true;
+					whichToPreserve[ tmpl.F4.f2 ] = true;
+					whichToPreserve[ tmpl.F4.f3 ] = true;
+					fpUsed = true;
 					break;				
 					
 				case 0x5:
 					/* F5 */
-					f2 = true;
+					whichToPreserve[ tmpl.F5.f2 ] = true;
+					fpUsed = true;
 					break;
 					
 				case 0x0:
 				case 0x1: {
 					/* F6, F7, F8, F9, F10, F11 */
-					uint64_t bitX = ( rawInsn & BIT_X_MASK ) >> ( ALIGN_RIGHT_SHIFT + 33 );
-					uint64_t bitQ = ( rawInsn & BIT_Q_MASK ) >> ( ALIGN_RIGHT_SHIFT + 36 );
-					
-					if( bitX == 0x1 && bitQ == 0x0 ) { /* F6 */ f3 = f2 = true; }
-					if( bitX == 0x1 && bitQ == 0x1 ) { /* F7 */ f3 = true; }
+					uint64_t bitX = tmpl.F6.x;
+					uint64_t bitQ = tmpl.F6.q;
+
+					if( bitX == 0x1 && bitQ == 0x0 ) {
+						/* F6 */
+						whichToPreserve[ tmpl.F6.f2 ] = true;
+						whichToPreserve[ tmpl.F6.f3 ] = true;
+						fpUsed = true;
+						}
+					if( bitX == 0x1 && bitQ == 0x1 ) {
+						/* F7 */
+						whichToPreserve[ tmpl.F7.f3 ] = true;
+						fpUsed = true;
+						}
 					if( bitX == 0x0 ) {
-						uint64_t x6 = ( rawInsn & FP_X6_MASK ) >> ( ALIGN_RIGHT_SHIFT + 27 );
-						
-						/* F8 */ if( ( 0x14 <= x6 && x6 <= 0x17 ) || ( 0x30 <= x6 && x6 <= 0x37 ) ) { f3 = f2 = f1 = true; }
-						/* F9 */ if( ( 0x10 <= x6 && x6 <= 0x12 ) || ( 0x2C <= x6 && x6 <= 0x2F ) || 
-							x6 == 0x28 || ( 0x34 <= x6 && x6 <= 0x36 ) ||
-							( 0x39 <= x6 && x6 <= 0x3D ) ) { f3 = f2 = f1 = true; }
-						/* F10 */ if( 0x18 <= x6 && x6 <= 0x1B ) { f2 = f1 = true; }
-						/* F11 */ if( 0x1C == x6 ) { f2 = f1 = true; }
+						uint64_t x6 = tmpl.F8.x6;
+
+						if( ( 0x14 <= x6 && x6 <= 0x17 ) || ( 0x30 <= x6 && x6 <= 0x37 ) ) {
+							/* F8 */
+							whichToPreserve[ tmpl.F8.f1 ] = true;
+							whichToPreserve[ tmpl.F8.f2 ] = true;
+							whichToPreserve[ tmpl.F8.f3 ] = true;
+							fpUsed = true;
+							}
+						if( ( 0x10 <= x6 && x6 <= 0x12 ) || ( 0x2C <= x6 && x6 <= 0x2F ) || 
+							( 0x34 <= x6 && x6 <= 0x36 ) || ( 0x39 <= x6 && x6 <= 0x3D ) || x6 == 0x28 ) {
+							/* F9 */
+							whichToPreserve[ tmpl.F9.f1 ] = true;
+							whichToPreserve[ tmpl.F9.f2 ] = true;
+							whichToPreserve[ tmpl.F9.f3 ] = true;
+							fpUsed = true;
+							}
+						if( 0x18 <= x6 && x6 <= 0x1B ) {
+							/* F10 */
+							whichToPreserve[ tmpl.F10.f1 ] = true;
+							whichToPreserve[ tmpl.F10.f2 ] = true;
+							fpUsed = true;
+							}
+						if( 0x1C == x6 ) {
+							/* F11 */
+							whichToPreserve[ tmpl.F11.f1 ] = true;
+							whichToPreserve[ tmpl.F11.f2 ] = true;
+							fpUsed = true;
+							}
 						} /* end if bitX is 0 .*/
 					} break;
-					
+
 				default:
 					/* F12, F13, F14, and F15 are actually in case 0, but they don't use FP registers. */
 					break;
 				} /* end opcode switch */
-
-		} /* end if instructionIsFP */
-
-		/* Acquire the register numbers. */
-		uint64_t f4reg = ( rawInsn & F4_MASK ) >> ( 27 + ALIGN_RIGHT_SHIFT );
-		uint64_t f3reg = ( rawInsn & F3_MASK ) >> ( 20 + ALIGN_RIGHT_SHIFT );
-		uint64_t f2reg = ( rawInsn & F2_MASK ) >> ( 13 + ALIGN_RIGHT_SHIFT );
-		uint64_t f1reg = ( rawInsn & F1_MASK ) >> ( 06 + ALIGN_RIGHT_SHIFT );
-
-		/* Once we wish to preserve a register, we never change our mind. */
-		if( f4 ) { fpUsed = true; whichToPreserve[ f4reg ] = true; }
-		if( f3 ) { fpUsed = true; whichToPreserve[ f3reg ] = true; }
-		if( f2 ) { fpUsed = true; whichToPreserve[ f2reg ] = true; }
-		if( f1 ) { fpUsed = true; whichToPreserve[ f1reg ] = true; }
+			} /* end if instructionIsFP */
 
 		/* For simplicity's sake, look for the register-rotating loops separately. */
 		switch( templateID ) {
@@ -2518,9 +2472,8 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 			case 0x1D: {
 				/* MFB */
 				if( slotNo == 2 ) {
-					uint64_t opcode = (rawInsn & MAJOR_OPCODE_MASK) >> (37 + ALIGN_RIGHT_SHIFT);
-					if( opcode == 0x04 ) {			
-						uint64_t btype = (rawInsn & BTYPE_MASK) >> (06 + ALIGN_RIGHT_SHIFT);
+					if( GET_OPCODE( &tmpl ) == 0x4 ) {
+						uint64_t btype = tmpl.B1.btype;
 						if( btype == 0x02 || btype == 0x03 || btype == 0x06 || btype == 0x07 ) {
 							// /* DEBUG */ fprintf( stderr, "Instruction at mutator address 0x%lx rotates registers.\n", iAddr.getEncodedAddress() );
 							registersRotated = true;
@@ -2572,37 +2525,30 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 	return whichToPreserve;
  	} /* end doFloatingPointStaticAnalysis() */ 
 
+#define INVALID_CFM 0x10000000000
 extern void initBaseTrampStorageMap( registerSpace *, int, bool * );
 
 /* Required by process.C */
 bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 	/* Extract the CFM. */
 	errno = 0;
-	uint64_t currentFrameMarker = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 );
+	reg_tmpl reg = { P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 ) };
 	assert( ! errno );
 
-	/* Construct the corresponding registerSpace. */
-	int rrb_pr = (currentFrameMarker & BIT_32_37 ) >> 32;
-	int rrb_fr = (currentFrameMarker & BIT_25_31 ) >> 25;
-	int rrb_gr = (currentFrameMarker & BIT_18_24 ) >> 18;
-	int soRotating = (currentFrameMarker & BIT_14_17 ) >> 14;
-	int soLocals = (currentFrameMarker & BIT_7_13 ) >> 7;
-	int soFrame = (currentFrameMarker & BIT_0_6 ) >> 0;
-	int soOutputs = soFrame - soLocals;
-
-	/* FIXME: */ if( ! ( 0 == rrb_pr == rrb_fr == rrb_gr ) ) { assert( 0 ); }
-	/* FIXME: */ if( currentFrameMarker == INVALID_CFM ) { assert( 0 ); }
+	/* FIXME: */ if( ! ( 0 == reg.CFM.rrb_pr == reg.CFM.rrb_fr == reg.CFM.rrb_gr ) ) { assert( 0 ); }
+	/* FIXME: */ if( reg.raw == INVALID_CFM ) { assert( 0 ); }
 
 	/* Set regSpace for the code generator. */
 	Register deadRegisterList[NUM_LOCALS + NUM_OUTPUT];
 	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-		deadRegisterList[i] = 32 + soFrame + i + NUM_PRESERVED;
+		deadRegisterList[i] = 32 + reg.CFM.sof + i + NUM_PRESERVED;
 		} /* end deadRegisterList population */
 	registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
-	initBaseTrampStorageMap( &rs, soFrame, NULL );
-	rs.originalLocals = soLocals;
-	rs.originalOutputs = soOutputs;
-	rs.originalRotates = soRotating;
+
+	initBaseTrampStorageMap( &rs, reg.CFM.sof, NULL );
+	rs.originalLocals = reg.CFM.sol;
+	rs.originalOutputs = reg.CFM.sof - reg.CFM.sol;
+	rs.originalRotates = reg.CFM.sor;
 
 	/* The code generator needs to know about the register space
 	   as well, so just take advantage of the existing globals. */
@@ -2764,9 +2710,9 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 	   corresponding to ipsr.ri so that the mutatee resumes in the correct
 	   location after the daemon adjusts its PC. */
 	errno = 0;
-	uint64_t ipsr = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0 );
+	reg_tmpl reg = { P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0 ) };
 	assert( ! errno );
-	uint64_t slotNo = (ipsr & PSR_RI_MASK) >> 41;
+	uint64_t slotNo = reg.PSR.ri;
 	assert( slotNo <= 2 );
 
 	if( needToHandleSyscall( proc_ ) ) {
@@ -3271,9 +3217,9 @@ Address installMultiTramp(instPoint * & location, process *proc)
 
 /* Required by inst.C */
 trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
-					returnInstance * & retInstance,
-					bool trampRecursiveDesired,
-					bool noCost, bool & deferred, bool /*allowTrap*/ ) {
+										returnInstance * & retInstance,
+										bool trampRecursiveDesired,
+										bool /*noCost*/, bool & /*deferred*/, bool /*allowTrap*/ ) {
 	/* TODO: handle if trampRecursiveDesired; handle if noCast, handle if deferred. */
  
 	/* proc->baseMap is in the relevant variable here; check to see if the given
@@ -3443,9 +3389,9 @@ void emitFuncJump(opCode op, char *buf, Address &base, const function_base *call
 }
 
 /* Required by ast.C */
-Register emitR( opCode op, Register src1, Register src2, Register dest,
-					 char * ibuf, Address & base, bool noCost,
-					 const instPoint *location, bool for_multithreaded) {
+Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
+				char * ibuf, Address & base, bool /*noCost*/,
+				const instPoint *location, bool /*for_multithreaded*/) {
 	/* FIXME: handle noCost */
 	switch( op ) {
 		case getParamOp: {
@@ -3503,16 +3449,15 @@ Register emitR( opCode op, Register src1, Register src2, Register dest,
 	} /* end emitR() */
 
 /* Required by func-reloc.C */
-bool pd_Function::loadCode(const image * owner, process * proc,
-		instruction * & oldCode, unsigned & numberOfInstructions,
-		Address & firstAddress) { assert( 0 ); return false; }
+bool pd_Function::loadCode(const image * /*owner*/, process * /*proc*/,
+						   instruction * & /*oldCode*/, unsigned & /*numberOfInstructions*/,
+						   Address & /*firstAddress*/) { assert( 0 ); return false; }
 
 /* Required by func-reloc.C */
-bool pd_Function::PA_attachBranchOverlaps(
-		LocalAlterationSet * temp_alteration_set,
-		Address baseAddress, Address firstAddress,
-		instruction loadedCode[], unsigned numberOfInstructions,
-		int codeSize )  { assert( 0 ); return false; }
+bool pd_Function::PA_attachBranchOverlaps(LocalAlterationSet * /*temp_alteration_set*/,
+										  Address /*baseAddress*/, Address /*firstAddress*/,
+										  instruction /*loadedCode*/[], unsigned /*numberOfInstructions*/,
+										  int /*codeSize*/ )  { assert( 0 ); return false; }
 
 /* Required by BPatch_init.C */
 void initDefaultPointFrequencyTable() {
@@ -3521,8 +3466,8 @@ void initDefaultPointFrequencyTable() {
 	} /* end initDefaultPointFrequencyTable() */
 
 /* Required by inst.C, ast.C */
-Address emitA( opCode op, Register src1, Register src2, Register dest,
-		char * ibuf, Address & base, bool noCost ) {  // FIXME: cost?
+Address emitA( opCode op, Register src1, Register /*src2*/, Register dest,
+			   char * ibuf, Address & base, bool /*noCost*/ ) {  // FIXME: cost?
 	/* Emit the given opcode, returning its relative offset.  For
 	   multi-bundle opcodes, return the offset of the branch itself;
 	   the code generator will insert the fall-through case directly
@@ -3540,14 +3485,16 @@ Address emitA( opCode op, Register src1, Register src2, Register dest,
 
 		case ifOp: {
 			/* Branch by offset dest if src1 is zero. */
-			IA64_instruction compareInsn = generateComparison( eqOp, src1, src1, REGISTER_ZERO );
-			IA64_instruction_x branchInsn = predicateLongInstruction( src1, generateLongBranchTo( dest ) );
+
+			/* See note in eqOp case of emitV() about predicate registers */
+			IA64_instruction compareInsn = generateComparison( eqOp, src1 % 64, src1, REGISTER_ZERO );
+			IA64_instruction_x branchInsn = predicateLongInstruction( src1 % 64, generateLongBranchTo( dest ) );
 			IA64_bundle compareBundle( MIIstop, compareInsn, NOP_I, NOP_I );
 			IA64_instruction memoryNOP( NOP_M );
 			IA64_bundle branchBundle( MLXstop, memoryNOP, branchInsn );
 			rawBundlePointer[0] = compareBundle.getMachineCode();
 			rawBundlePointer[1] = branchBundle.getMachineCode();
-			
+
 			base += 32;
 			return (base - 16);
 			break; }
@@ -3570,17 +3517,17 @@ Address emitA( opCode op, Register src1, Register src2, Register dest,
 	} /* end emitA() */
 
 /* Required by ast.C */
-bool doNotOverflow( int value ) { 
+bool doNotOverflow( int /*value*/ ) { 
 	/* To be on the safe side, we'll say it always overflows,
 	   since it's not clear to me which immediate size(s) are going to be used. */
 	return false;
 	} /* end doNotOverflow() */
 
 /* Required by func-reloc.C */
-bool pd_Function::PA_attachOverlappingInstPoints(
-		LocalAlterationSet * temp_alteration_set,
-		Address baseAddress, Address firstAddress,
-		instruction * loadedCode , int codeSize ) { assert( 0 ); return false; }
+bool pd_Function::PA_attachOverlappingInstPoints(LocalAlterationSet * /*temp_alteration_set*/,
+												 Address /*baseAddress*/, Address /*firstAddress*/,
+												 instruction * /*loadedCode*/ ,
+												 int /*codeSize*/ ) { assert( 0 ); return false; }
 
 /* Required by inst.C; install a single mini-tramp */
 void installTramp( miniTrampHandle *mtHandle,
@@ -3667,20 +3614,21 @@ void installTramp( miniTrampHandle *mtHandle,
 } /* end installTramp() */
 
 /* Required by func-reloc.C */
-void pd_Function::copyInstruction( instruction & newInsn,
-	instruction & oldInsn, unsigned & codeOffset) { assert( 0 ); }
+void pd_Function::copyInstruction( instruction & /*newInsn*/,
+								   instruction & /*oldInsn*/,
+								   unsigned & /*codeOffset*/) { assert( 0 ); }
 
 /* Required by func-reloc.C */
-bool pd_Function::fillInRelocInstPoints(
-		const image * owner, process * proc,   
-		instPoint * & location, relocatedFuncInfo *reloc_info,
-		Address mutatee, Address mutator, instruction oldCode[],
-		Address newAdr, instruction newCode[],
-		LocalAlterationSet & alteration_set ) { assert( 0 ); return false; }
+bool pd_Function::fillInRelocInstPoints(const image * /*owner*/, process * /*proc*/,   
+										instPoint * & /*location*/, relocatedFuncInfo */*reloc_info*/,
+										Address /*mutatee*/, Address /*mutator*/, instruction /*oldCode*/[],
+										Address /*newAdr*/, instruction /*newCode*/[],
+										LocalAlterationSet & /*alteration_set*/ ) { assert( 0 ); return false; }
 
 /* Required by ast.C */
 void emitVstore( opCode op, Register src1, Register src2, Address dest,
-		char * ibuf, Address & base, bool noCost, int size, const instPoint * location, process * proc, registerSpace * rs ) {
+				 char * ibuf, Address & base, bool /*noCost*/, int size,
+				 const instPoint * location, process * proc, registerSpace * rs ) {
 	assert( (((Address)ibuf + base) % 16) == 0 );
 	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 
@@ -3735,7 +3683,7 @@ void emitVstore( opCode op, Register src1, Register src2, Address dest,
 	} /* end emitVstore() */
 
 /* Required by ast.C */
-void emitJmpMC( int condition, int offset, char * baseInsn, Address & base ) { assert( 0 ); }
+void emitJmpMC( int /*condition*/, int /*offset*/, char * /*baseInsn*/, Address & /*base*/ ) { assert( 0 ); }
 
 /* Required by inst.C */
 void generateNoOp( process * proc, Address addr ) { 
@@ -3744,13 +3692,13 @@ void generateNoOp( process * proc, Address addr ) {
 	} /* end generateNoOp */
 
 /* Required by func-reloc.C */
-bool PushEIPmov::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
-				Address newBaseAdr, Address & newAdr,
-				instruction oldInstructions[],
-				instruction newInstructions[],
-				int & oldInsnOffset, int & newInsnOffset,
-				int newDisp, unsigned & codeOffset,
-				unsigned char * code) { assert( 0 ); return false; }
+bool PushEIPmov::RewriteFootprint( Address /*oldBaseAdr*/, Address & /*oldAdr*/,
+								   Address /*newBaseAdr*/, Address & /*newAdr*/,
+								   instruction /*oldInstructions*/[],
+								   instruction /*newInstructions*/[],
+								   int & /*oldInsnOffset*/, int & /*newInsnOffset*/,
+								   int /*newDisp*/, unsigned & /*codeOffset*/,
+								   unsigned char * /*code*/) { assert( 0 ); return false; }
 
 /* -------- implementation of InsnAddr -------- */
 
