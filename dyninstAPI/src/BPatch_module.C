@@ -1130,6 +1130,11 @@ bool BPatch_module::isSharedLib() const {
   return mod->isShared();
 }
 
+size_t BPatch_module::getAddressWidth()
+{
+  return mod->exec()->getObject().getAddressWidth();
+}
+
 void BPatch_module::setDefaultNamespacePrefix(char *name) 
 { 
     img->setDefaultNamespacePrefix(name); 

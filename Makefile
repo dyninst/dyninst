@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.66 2004/07/15 21:24:03 jaw Exp $
+# $Id: Makefile,v 1.67 2004/07/28 07:24:45 jaw Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -143,8 +143,6 @@ world: intro
 
 Paradyn ParadynD ParadynFE ParadynVC DyninstAPI basicComps subSystems threadComps: 
 	$(MAKE) $($@)
-	@sleep 5
-	@echo "boo 1"
 	@echo "Build of $@ complete."
 	@date
 

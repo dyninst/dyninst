@@ -45,20 +45,29 @@
 #define __PD_MODULE__
 
 #include "common/h/String.h"
+#include "dyninstAPI/h/BPatch_module.h"
 
 class pdmodule;  // pdmodule is actually a dynisnt module, despite the name
 class process;
 
 class pd_module {
-   pdmodule *dyn_module;
+   BPatch_module *dyn_module;
+   BPatch_Vector< BPatch_function * > some_funcs; // included functions
+   BPatch_Vector< BPatch_function * > *all_funcs; // inc + excluded functions
 
+   pdstring _name;
+   bool is_excluded;
  public:
 
-   pd_module(pdmodule *dmod) : dyn_module(dmod) { }
-   pdmodule *get_dyn_module() const { return dyn_module; }
+   pd_module(BPatch_module *dmod);
+   ~pd_module();
 
-   pdstring fileName() const;
+   BPatch_module *get_dyn_module() const { return dyn_module; }
+
+   pdstring fileName() const {return _name;}
    void FillInCallGraphStatic(process *proc);
+   BPatch_Vector<BPatch_function *> *getIncludedFunctions() { return &some_funcs;}
+   bool isExcluded() {return is_excluded;}
 };
 
 

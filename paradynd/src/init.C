@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.81 2004/03/23 01:12:34 eli Exp $
+// $Id: init.C,v 1.82 2004/07/28 07:24:47 jaw Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -70,7 +70,7 @@ extern pdRPC *tp;
 extern int getNumberOfCPUs();
 
 extern unsigned enable_pd_samplevalue_debug;
-
+extern void addLibraryCallback(BPatch_thread *, BPatch_module *, bool);
 #if ENABLE_DEBUG_CERR == 1
 #define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
 #else
@@ -249,6 +249,7 @@ bool paradyn_init() {
   initPapi();
   initProcMgr();
   initBPatch();
+  //__bpatch->registerDynLibraryCallback((BPatchDynLibraryCallback) (addLibraryCallback));
 
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      pdstring("Machine"), timeStamp::ts1970(), 

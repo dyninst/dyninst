@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.59 2004/07/21 22:46:20 jodom Exp $
+// $Id: BPatch_snippet.C,v 1.60 2004/07/28 07:24:46 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -113,12 +113,12 @@ float BPatch_snippet::getCost()
  * BPatch_snippet::~BPatch_snippet
  *
  * Destructor for BPatch_snippet.  Deallocates memory allocated by the
- * snippet.
+ * snippet.  Well, decrements a reference count.
  */
 BPatch_snippet::~BPatch_snippet()
 {
-    // if (ast != NULL)
-        // removeAst(ast);
+   //  if (ast != NULL)
+    //     removeAst(ast);
 }
 
 

@@ -48,44 +48,84 @@
 
 
 pdvector<pd_image *> pd_image::all_pd_images;
+extern bool mdl_get_lib_constraints(pdvector<pdstring> &);
+static dictionary_hash<pdstring, pdstring> func_constraint_hash(pdstring::hash);
+static bool func_constraint_hash_loaded = false;
+bool cache_func_constraint_hash();
+bool function_is_excluded(BPatch_function *f, pdstring modname);
+bool module_is_excluded(BPatch_module *m);
 
 // this function doesn't get called much right now
 // if it's use becomes more frequest, we can make it faster by using
 // a dictionary
-pd_image *pd_image::get_pd_image(image *dyn_img) {
+pd_image *pd_image::get_pd_image(BPatch_module *dyn_mod) {
    for(unsigned i=0; i<all_pd_images.size(); i++) {
       pd_image *pd_img = all_pd_images[i];
-      if(pd_img->get_dyn_image() == dyn_img)
+      if(pd_img->hasModule(dyn_mod))
          return pd_img;
    }
    return NULL;
 }
+pd_module *pd_image::get_pd_module(BPatch_module *dyn_mod) {
+   for(unsigned i=0; i<all_mods.size(); i++) {
+      pd_module *pd_mod = all_mods[i];
+      if(pd_mod->get_dyn_module() == dyn_mod)
+         return pd_mod;
+   }
+   return NULL;
+}
 
-pd_image::pd_image(image *d_image, pd_process *p_proc) :
-   dyn_image(d_image), parent_proc(p_proc)
+pd_image::pd_image(BPatch_image *d_image, pd_process *p_proc) :
+   appImage(d_image), parent_proc(p_proc)
 {
    all_pd_images.push_back(this);
-   pdvector<module *> *mods = parent_proc->getAllModules();
-  
+   BPatch_Vector<BPatch_module *> *mods = parent_proc->getAllModules();
+
    for (unsigned int m = 0; m < mods->size(); m++) {
-      pdmodule *curr = (pdmodule *) (*mods)[m];
-      pd_module *pd_mod = new pd_module(curr);
-      pd_modules.push_back(pd_mod);
+      BPatch_module *curr = (BPatch_module *) (*mods)[m];
+      addModule(curr);
+   }
+
+   char namebuf[512];
+   d_image->getProgramName(namebuf, 512);
+   _name = pdstring(namebuf);
+   d_image->getProgramFileName(namebuf, 512);
+   _fname = pdstring(namebuf);
+   //fprintf(stderr, "%s[%d]:  new pd_image: '%s'/'%s'\n", 
+   //        __FILE__, __LINE__, _name.c_str(), _fname.c_str());
+}
+
+
+pd_image::~pd_image() {
+   for(unsigned i=0; i<all_mods.size(); i++) {
+      delete all_mods[i];
    }
 }
 
-pd_image::~pd_image() {
-   for(unsigned i=0; i<pd_modules.size(); i++) {
-      delete pd_modules[i];
-   }
+bool pd_image::addModule(BPatch_module *mod)
+{
+   pd_module *pd_mod = new pd_module(mod);
+   all_mods.push_back(pd_mod);
+     if (!pd_mod->isExcluded())
+       some_mods.push_back(pd_mod);
+
+  return true;
+}
+
+bool pd_image::hasModule(BPatch_module *mod)
+{
+  for (unsigned int m = 0; m < all_mods.size(); m++)
+    if (mod == all_mods[m]->get_dyn_module()) return true;
+
+  return false;
 }
 
 void pd_image::FillInCallGraphStatic(pd_process *proc) {
    pdstring pds;
    pdstring buffer;
 
-   for(unsigned i=0; i<pd_modules.size(); i++) {
-      pd_module *curmod = pd_modules[i];
+   for(unsigned i=0; i<all_mods.size(); i++) {
+      pd_module *curmod = all_mods[i];
       buffer = "building call graph module: " + curmod->fileName();
       statusLine(buffer.c_str());
 
@@ -95,10 +135,105 @@ void pd_image::FillInCallGraphStatic(pd_process *proc) {
 }
 
 int pd_image::getAddressWidth() {
-   return dyn_image->getObject().getAddressWidth();
+   if (!all_mods.size()) return -1;
+   return all_mods[0]->get_dyn_module()->getAddressWidth();
 }
 
 pdstring pd_image::get_file() const {
-   return dyn_image->file();
+   return _fname;
+}
+
+BPatch_Vector<BPatch_function *> *pd_image::getIncludedFunctions()
+{
+  BPatch_Vector<BPatch_function *> *ret = new BPatch_Vector<BPatch_function *>();
+  for (unsigned int i = 0; i < some_mods.size(); ++i) {
+    BPatch_Vector<BPatch_function *> *temp;
+    temp = getIncludedFunctions(some_mods[i]->get_dyn_module());
+    if (NULL == temp) continue;
+    (*ret) += (*temp);
+  }
+  return ret;
+}
+
+BPatch_Vector<BPatch_function *> *
+pd_image::getIncludedFunctions(BPatch_module *mod)
+{
+  pd_module *pdm = get_pd_module(mod);
+  if (NULL == pdm) return NULL;
+  return pdm->getIncludedFunctions();
+}
+
+pdvector<BPatch_module *> *pd_image::getIncludedModules(pdvector<BPatch_module *> *buf)
+{
+  for (unsigned int i = 0; i < some_mods.size(); ++i) {
+    buf->push_back(some_mods[i]->get_dyn_module());
+  }
+  return buf;
+}
+
+BPatch_module *pd_image::findModule(const pdstring &mod_name, bool check_excluded)
+{
+  pdvector<pd_module *> &modlist = check_excluded ? some_mods : all_mods;
+  for (unsigned int i = 0; i < modlist.size(); ++i) {
+     char buf[512];
+     modlist[i]->get_dyn_module()->getName(buf, 512);
+     if (!strcmp(buf, mod_name.c_str())) 
+       return modlist[i]->get_dyn_module();
+  }
+  return NULL;
+}
+
+
+bool function_is_excluded(BPatch_function *f, pdstring module_name)
+{
+  char fnamebuf[2048];
+  f->getName(fnamebuf, 2048);
+  pdstring full_name = module_name + pdstring("/") + pdstring(fnamebuf);
+
+  if (!func_constraint_hash_loaded) {
+      if (!cache_func_constraint_hash()) {
+          return FALSE;
+      }
+  }
+
+  if (func_constraint_hash.defines(full_name)) {
+      return TRUE;
+  }
+  return FALSE;
+}
+
+bool module_is_excluded(BPatch_module *m)
+{
+  char mnamebuf[512];
+  m->getName(mnamebuf, 512);
+
+  if (!func_constraint_hash_loaded) {
+      if (!cache_func_constraint_hash()) {
+          return FALSE;
+      }
+  }
+
+  if (func_constraint_hash.defines(mnamebuf)) {
+      return TRUE;
+  }
+  return FALSE;
+}
+
+bool cache_func_constraint_hash() {
+
+    // strings holding exclude constraints....
+    pdvector<pdstring> func_constraints;
+    // if unble to get list of excluded functions, assume all functions
+    //  are NOT excluded!!!!
+    if(mdl_get_lib_constraints(func_constraints) == FALSE) {
+        return FALSE;
+    }
+    func_constraint_hash_loaded = TRUE;
+
+    unsigned i;
+    for(i=0;i<func_constraints.size();i++) {
+        func_constraint_hash[func_constraints[i]] = func_constraints[i];
+    }
+    return TRUE;
 }
 

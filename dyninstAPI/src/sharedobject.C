@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.23 2004/03/23 01:12:09 eli Exp $
+// $Id: sharedobject.C,v 1.24 2004/07/28 07:24:46 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -52,10 +52,6 @@ shared_object::shared_object():
   base_addr(0),
   processed(false),
   mapped(false),
-#ifndef BPATCH_LIBRARY
-  include_funcs(true), 
-  included_funcs(0),
-#endif
   objs_image(0),
   dlopenUsed(false)
 {
@@ -65,10 +61,6 @@ shared_object::shared_object(pdstring &n, Address b, bool p,bool m, bool i, imag
   base_addr(b),
   processed(p),
   mapped(m),
-#ifndef BPATCH_LIBRARY
-  include_funcs(i), 
-  included_funcs(0),
-#endif
   objs_image(d),
   dlopenUsed(false) // ccw 8 mar 2004
 
@@ -86,10 +78,6 @@ shared_object::shared_object(fileDescriptor *f,
         base_addr(f->addr()),
         processed(p),
         mapped(m),
-#ifndef BPATCH_LIBRARY
-        include_funcs(i), 
-        included_funcs(0),
-#endif
         objs_image(d),
         dlopenUsed(false)
 { 
@@ -127,7 +115,6 @@ char *shared_object::getModulePart(pdstring &full_path_name) {
     return 0;
 }
 
-#ifdef BPATCH_LIBRARY
 pdmodule *shared_object::findModule(pdstring m_name)
 {
    if(objs_image) {
@@ -135,19 +122,6 @@ pdmodule *shared_object::findModule(pdstring m_name)
    }
    return 0;
 }
-#else
-pdmodule *shared_object::findModule(pdstring m_name, bool check_excluded) 
-{
-   if(objs_image) {
-      if(check_excluded==false && !include_funcs){
-         return 0;
-      }
-      return (objs_image->findModule(m_name, check_excluded));
-   }
-   return 0;
-}
-
-#endif
 
 // fill in "short_name" data member.  Use last component of "name" data
 // member with FS_FIELD_SEPERATOR ("/") as field seperator....
@@ -205,51 +179,6 @@ const pdvector<pd_Function *> *shared_object::getAllFunctions(){
   }
   return 0;
 }
-#ifndef BPATCH_LIBRARY
-
-
-// returns all the functions not excluded by exclude_lib or exclude_func
-// mdl option
-pdvector<pd_Function *> *shared_object::getIncludedFunctions(){
-
-    //cerr << "shared_object::getSomeFunctions called for shared object "
-    //	 << short_name << endl;
-
-    if(objs_image) {
-
-        if(included_funcs) {
-	    //cerr << " (shared_object::getSomeFunctions) included_funcs already created"
-	    //     << " about to return : " << endl;
-	    //print_func_vector_by_pretty_name(pdstring("  "), (pdvector<function_base *>*)included_funcs);
-	    return included_funcs;
-	}
-
-        // return (&(objs_image->mdlNormal));
-        // check to see if this module occurs in the list of modules from
-        // exclude_funcs mdl option...if it does then we need to check
-        // function by function
-        included_funcs = new pdvector<pd_Function *>;
-
-        pdvector<pd_Function *> temp = *(getAllFunctions());
-
-        if (filter_excluded_functions(temp, *included_funcs, short_name) == FALSE) {
-	    // WRONG!!!!  Leads to memory leak!!!!
-            //  included_funcs = 0;
-            // correct :
-            delete included_funcs;
-            included_funcs = NULL;
-            return NULL;
-        }
-        
-        //cerr << " (shared_object::getSomeFunctions) included_funcs newly created"
-	//	 << " about to return : " << endl;
-	//print_func_vector_by_pretty_name(pdstring("  "), (pdvector<function_base *>*)included_funcs);
-        return included_funcs;
-    }
-    return NULL;    
-} 
-#endif /* BPATCH_LIBRARY */
-
 
 
 

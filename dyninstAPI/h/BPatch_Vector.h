@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.16 2004/03/23 01:11:55 eli Exp $
+// $Id: BPatch_Vector.h,v 1.17 2004/07/28 07:24:45 jaw Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -86,11 +86,13 @@ public:
     ~BPatch_Vector();
 
     BPatch_Vector<T>& operator=(const BPatch_Vector<T> &);
+    BPatch_Vector<T>& operator+=(const BPatch_Vector<T> &);
 
     unsigned int size() const { return len; }
     void	push_back(const T& x);
     void	push_front(const T& x);
     void        clear();
+    void        resize(int sz);
 
     T&		operator[](int n) const;
 };
@@ -173,6 +175,19 @@ BPatch_Vector<T>& BPatch_Vector<T>::operator=(const BPatch_Vector<T> &src)
     return *this;
 }
 
+// Append operator.  Keep data and append the
+// contents of the other vector into it.
+template<class T>
+BPatch_Vector<T>& BPatch_Vector<T>::operator+=(const BPatch_Vector<T> &src)
+{
+    reserve(len + src.size());
+    for (unsigned int i = 0; i < src.size(); ++i) {
+      data[i+len] = src[i];
+    }
+    len = len + src.size();
+    return *this;
+}
+
 // Add an element to the end of the vector.
 template<class T>
 void BPatch_Vector<T>::push_back(const T& x)
@@ -192,6 +207,17 @@ void BPatch_Vector<T>::push_front(const T& x)
     for (i=len; i > 0; i--) data[i] = data[i-1];
     data[0] = x;
     len++;
+}
+
+// Resize vector (pare elements from the end)
+// This is skeletal and doesn't do much but adjust indices
+// If vector needs to grow, it will do so automatically on insert
+template<class T>
+void BPatch_Vector<T>::resize(int sz)
+{
+    if (sz >= len) return;
+    if (sz < 0) return;
+    len = sz;
 }
 
 // Clear vector 

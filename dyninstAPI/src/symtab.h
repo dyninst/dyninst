@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.158 2004/07/19 22:29:30 eli Exp $
+// $Id: symtab.h,v 1.159 2004/07/28 07:24:46 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -758,10 +758,6 @@ class module {
    virtual void define(process *proc) = 0;    // defines module to paradyn
    virtual pdvector<function_base *> *getFunctions() = 0;
 
-#ifndef BPATCH_LIBRARY
-   virtual pdvector<function_base *> *getIncludedFunctions() = 0;
-#endif
-
  private:
    pdstring fileName_;                   // short file 
    pdstring fullName_;                   // full path to file 
@@ -787,9 +783,6 @@ class pdmodule: public module {
       allUninstrumentableFunctionsByPrettyName( pdstring::hash ),
       allUninstrumentableFunctionsByMangledName( pdstring::hash )  
       {
-#ifndef BPATCH_LIBRARY
-         some_funcs_inited = FALSE;
-#endif
       }
 
    ~pdmodule();
@@ -813,9 +806,6 @@ class pdmodule: public module {
    pdvector<function_base *> * getFunctions();
    const pdvector<pd_Function *> * getPD_Functions();
 
-#ifndef BPATCH_LIBRARY
-   pdvector<function_base *> *getIncludedFunctions();
-#endif
    pdvector<function_base *> *findFunction (const pdstring &name, 
                                             pdvector<function_base *> *found);
  
@@ -867,13 +857,6 @@ class pdmodule: public module {
    // pdvector<pd_Function*> funcs;
    // pdvector<pd_Function*> notInstruFuncs;
 
-   // added as part of exclude support for statically linked objects.
-   //  mcheyny, 970928
-   //  list of non-excluded found functions in module....
-#ifndef BPATCH_LIBRARY
-   pdvector<pd_Function*> some_funcs;
-   bool some_funcs_inited;
-#endif
    //bool shared_;                      // if image it belongs to is shared lib
 
  public:
@@ -901,15 +884,6 @@ void print_module_vector_by_short_name(pdstring prefix,
                                        pdvector<pdmodule*> *mods);
 pdstring getModuleName(pdstring constraint);
 pdstring getFunctionName(pdstring constraint);
-
-#ifndef BPATCH_LIBRARY
-extern bool mdl_get_lib_constraints(pdvector<pdstring> &);
-//used by both sharedobject and pdmodule class....
-bool filter_excluded_functions(pdvector<pd_Function*> all_funcs,
-                               pdvector<pd_Function*>& some_funcs, pdstring module_name);
-bool function_is_excluded(pd_Function *func, pdstring module_name);
-bool module_is_excluded(pdmodule *module);
-#endif
 
 /*
  * symbols we need to find from our RTinst library.  This is how we know
@@ -999,11 +973,7 @@ class image : public codeRange {
    void updateForFork(process *childProcess, const process *parentProcess);
 
    // find the named module  
-#ifdef BPATCH_LIBRARY
    pdmodule *findModule(const pdstring &name);
-#else
-   pdmodule *findModule(const pdstring &name, bool find_if_excluded = FALSE);
-#endif
    pdmodule *findModule(function_base *func);
 
    // Note to self later: find is a const operation, [] isn't, for
@@ -1027,10 +997,6 @@ class image : public codeRange {
    pd_Function *findFuncByMangled(const pdstring &name);
    // Look for the function in the non instrumentable list
    pd_Function *findNonInstruFunc(const pdstring &name);
-   // Look for the function in the excluded list
-#ifndef BPATCH_LIBRARY
-   pd_Function *findExcludedFunc(const pdstring &name);
-#endif
 
    // Looks for the name in all lists (inc. excluded and non-instrumentable)
    pd_Function *findOnlyOneFunctionFromAll(const pdstring &name);
@@ -1132,13 +1098,7 @@ class image : public codeRange {
    bool hasSymbolAtPoint(Address point) const;
 
 #ifndef BPATCH_LIBRARY
-   // origionally return mdlNormal;....
-   // Note that (unlike name), this returns ONLY functions for which
-   // necessary instrumentation info could be found)!!!!
 
-   const pdvector<pd_Function*> &getIncludedFunctions();
-   const pdvector<pdmodule *> &getIncludedModules();
-   const pdvector<pdmodule *> &getExcludedModules();
    // get all modules, including excluded ones....
    const pdvector<pdmodule *> &getAllModules();
 
@@ -1146,9 +1106,9 @@ class image : public codeRange {
    static void watch_functions(pdstring& name, pdvector<pdstring> *vs, bool is_lib,
                                pdvector<pd_Function*> *updateDict);
 #else
-   const pdvector<pdmodule*> &getModules();
 
 #endif 
+   const pdvector<pdmodule*> &getModules();
 
    //
    //  ****  PUBLIC DATA MEMBERS  ****
@@ -1164,7 +1124,7 @@ class image : public codeRange {
    // if (excluded) excludedFunctions
    // else includedFunctions
    void addInstruFunction(pd_Function *func, pdmodule *mod,
-                          const Address addr, bool excluded);
+                          const Address addr);
 
    // Remove a function from the lists of instrumentable functions, once already inserted.
    int removeFuncFromInstrumentable(pd_Function *func);
@@ -1258,30 +1218,7 @@ class image : public codeRange {
    // This is a subset of the addresses that are actually targets of jumps.
    dictionary_hash<Address, Address> knownJumpTargets;
 
-#ifndef BPATCH_LIBRARY
-   // list of all functions for which necessary instrumentation data
-   //  could be found which are NOT excluded....
-   pdvector<pd_Function*> includedFunctions;
-   // hash table of all functions for which necessary instrumentation data
-   //  could be found which ARE excluded....
-   dictionary_hash <pdstring, pd_Function*> excludedFunctions;
-
-   // list of modules which have not been excluded.
-   pdvector<pdmodule *> includedMods;
-   // list of excluded module.  includedMods && excludedMods
-   //  should be disjoint!!!!
-   pdvector<pdmodule *> excludedMods;
-   // list of all modules, should = includedMods + excludedMods;
-   // Not actually created until getAllModules called....
-   pdvector<pdmodule *> allMods;
-   // includedFunctions + excludedFunctions (but not notInstruFunctions)....
-
-#else
-   // a replacement for paradyn's allMods (= included + excluded) that does not retain
-   // the notion of inclusion + exclusion -- for dyninstAPI, anal retentively your's, JAW
    pdvector<pdmodule *> _mods;
-
-#endif
    pdvector<pd_Function*> instrumentableFunctions;
 
    // The dictionary of all symbol addresses in the image. We use it as a hack

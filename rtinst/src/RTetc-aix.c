@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.42 2004/03/23 01:12:43 eli Exp $
+ * $Id: RTetc-aix.c,v 1.43 2004/07/28 07:24:48 jaw Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -159,7 +159,34 @@ void PARADYN_initialize_pmapi(int calledByFork) {
   if (pginfo.maxgroups) {
       // We have groups, set it up that way
       // ...
+#ifdef NOTDEF // PDSEP -- (not really, just related)
+      //  Leaving this in because I still have to figure out what's wrong
+      // with PMAPI on playclub
       fprintf(stderr, "Using PMAPI groups is not supported yet. Please contact paradyn@cs.wisc.edu.\n");
+      fprintf(stderr, "Beginning group info dump:\n");
+      int i, j;
+      for (i = 0; i < pginfo.maxgroups; i++) {
+          fprintf(stderr, "ID %d, short %s, description %s\n",
+                  pginfo.event_groups[i].group_id,
+                  pginfo.event_groups[i].short_name,
+                  pginfo.event_groups[i].description);
+          fprintf(stderr, "     ");
+          for (j = 0; j < pinfo.maxpmcs; j++) {
+              fprintf(stderr, "%d: %d, ",
+                      j,
+                      pginfo.event_groups[i].events[j]);
+          }
+          fprintf(stderr, "\n");
+
+      }
+      for (i = 0; i < pinfo.maxpmcs; i++) {
+          for (j = 0; j < pinfo.maxevents[i]; j++) {
+              fprintf(stderr, "%d/%d: %s\n",
+                      i, j, pinfo.list_events[i][j].short_name);
+          }
+      }
+#endif
+
       using_groups = 1;
       pdyn_pm_prog.mode.b.is_group = 1;
   }
@@ -216,6 +243,10 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
 }
 
 #else
+void PARADYN_forkEarlyInit() {
+  // keep the compiler happy if we turn off PMAPI
+}
+
 PARADYNos_init(int calledByFork, int calledByAttach) {
     hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
     hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;

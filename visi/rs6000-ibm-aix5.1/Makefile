@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/03/31 17:45:59 buck Exp $
+# $Id: Makefile,v 1.2 2004/07/28 07:24:48 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,4 +38,3 @@ include ../../make.library.tmpl
 
 templates-X.o: ../src/templates-X.C
 	$(CXX) $(TFLAGS) -c ../src/templates-X.C
-

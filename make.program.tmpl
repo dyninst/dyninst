@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.24 2004/07/15 21:24:03 jaw Exp $
+# $Id: make.program.tmpl,v 1.25 2004/07/28 07:24:45 jaw Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -160,7 +160,7 @@ endif
 %.thread.C %.thread.CLNT.h %.thread.CLNT.C %.thread.SRVR.h %.thread.SRVR.C %.thread.h: %.I
 	$(IGEN) -thread $(ICFLAGS) $<
 
-%.thread.CLNT.C: %.thread.CLNT.h
+%.thread.CLNT.C: %.thread.CLNT.h 
 %.thread.SRVR.C: %.thread.SRVR.h
 #
 # include the dependencies.

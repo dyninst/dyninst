@@ -148,6 +148,7 @@ class BPATCH_DLL_EXPORT BPatch_point {
 		 BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma = NULL);
 public:
     //~BPatch_point() { delete memacc; };
+    instPoint * PDSEP_instPoint() {return point;}
 
     const BPatch_procedureLocation getPointType() { return pointType; }
     const BPatch_function *getFunction() { return func; }

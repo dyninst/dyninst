@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.2 2004/03/05 16:51:12 bernat Exp $
+# $Id: Makefile,v 1.3 2004/07/28 07:24:46 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -44,12 +44,12 @@ MUTATEE_FFLAGS += -Dsparc_sun_solaris2_4 $(NATIVE_DEBUG_FLAG)
 
 #the _ALT PATH is in case the gcc library can't be found in the first path
 ifdef GCC_2_95
-LIBGCCLOC = /p/paradyn/packages/gcc-2.95.3/lib/gcc-lib/PLATFORM/2.95.3
+LIBGCCLOC ?= /p/paradyn/packages/gcc-2.95.3/lib/gcc-lib/PLATFORM/2.95.3
 # Allowing _ALT path to be changed in make.config.local
 # The default _ALT path is for UMD Solaris 8 machines.
 LIBGCCLOC_ALT ?= /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.3
 else
-LIBGCCLOC = /s/gcc-3.2.2/lib/gcc-lib/sparc-sun-solaris2.8/3.2.2
+LIBGCCLOC ?= /s/gcc-3.2.2/lib/gcc-lib/sparc-sun-solaris2.8/3.2.2
 LIBGCCLOC_ALT ?= /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.3
 endif
 MUTATEE_FLINKFLAGS += -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT) -ldl -lgcc

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.41 2004/03/23 01:12:09 eli Exp $
+// $Id: sharedobject.h,v 1.42 2004/07/28 07:24:46 jaw Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -83,14 +83,7 @@ public:
     bool  isMapped() { return(mapped); }
     const image  *getImage() const { return(objs_image); }
 
-#ifndef BPATCH_LIBRARY
-    bool includeFunctions(){ return(include_funcs); }
-    void changeIncludeFuncs(bool flag){ include_funcs = flag; } 
-    pdmodule *findModule(pdstring m_name, bool check_excluded);
- 
-#else
     pdmodule *findModule(pdstring m_name);
-#endif
 
     const pdvector<pd_Function *> *getAllFunctions();
     void  unMapped(){ mapped = false; }
@@ -116,21 +109,10 @@ public:
     // part removed.  return 0 on error
     char *getModulePart(pdstring &full_path_name) ;
 
-#ifndef BPATCH_LIBRARY
-    // get only the functions not excluded by the mdl options exclude_lib
-    // or exclude_funcs
-    //    pdvector<pd_Function *> *getSomeFunctions();
-    pdvector<pd_Function *> *getIncludedFunctions();
-#endif
-
     // Get list of ALL modules, not just included ones.
     const pdvector<pdmodule *> *getModules() {
        if(objs_image) {
-#ifndef BPATCH_LIBRARY
-          return (&(objs_image->getAllModules()));
-#else
           return (&(objs_image->getModules()));
-#endif
        }
        return 0;
     }
@@ -199,16 +181,6 @@ private:
     bool dirty_; // marks the shared object as dirty 
 	bool dirtyCalled_;//see comment for setDirtyCalled
   
-
-#ifndef BPATCH_LIBRARY
-    bool include_funcs; // if true include the the functions from this shared
-			// object in the set of all instrumentable functions
-			// (this is for foci not refined on the Code heirarchy)
-			// - Conceptually assumes that shared object has 1
-			// and only 1 module.
-    pdvector<pd_Function *> *included_funcs; // all functions not excluded by 
-				       // exclude_func option
-#endif
     image  *objs_image; // pointer to image if processed is true 
     bool dlopenUsed; //mark this shared object as opened by dlopen
 

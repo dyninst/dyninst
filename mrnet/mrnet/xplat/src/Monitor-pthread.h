@@ -3,10 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Monitor-pthread.h,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: Monitor-pthread.h,v 1.3 2004/07/28 07:24:47 jaw Exp $
 #ifndef XPLAT_PTHREADMONITOR_H
 #define XPLAT_PTHREADMONITOR_H
-
 #include <pthread.h>
 #include <map>
 #include "xplat/Monitor.h"

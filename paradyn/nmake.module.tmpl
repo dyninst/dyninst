@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.13 2004/07/14 18:23:56 eli Exp $
+# $Id: nmake.module.tmpl,v 1.14 2004/07/28 07:24:47 jaw Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -11,6 +11,9 @@ CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
 CXXFLAGS	= $(CXXFLAGS) $(TCLFRIENDLYWARNINGS) 
 TFLAGS		= $(TFLAGS) $(TCLFRIENDLYWARNINGS)
 
+CFLAGS		= $(CFLAGS) -I../../dyninstAPI/h
+CXXFLAGS	= $(CXXFLAGS) -I../../dyninstAPI/h
+TFLAGS		= $(TFLAGS) -I../../dyninstAPI/h
 TARGET	      = paradyn.exe
 
 DMSRCS	= ../src/DMthread/DMpublic.C \

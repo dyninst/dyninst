@@ -3,14 +3,14 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.23 2003/10/28 17:39:47 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.24 2004/07/28 07:24:47 jaw Exp $
 #
 
 TARGET	      = libpdutil.lib
 
-CFLAGS       = $(CFLAGS) -DNEW_TIME_TYPES
-CXXFLAGS     = $(CXXFLAGS) -DNEW_TIME_TYPES
-TFLAGS       = $(TFLAGS) -DNEW_TIME_TYPES
+CFLAGS       = $(CFLAGS) -DNEW_TIME_TYPES -I../../dyninstAPI/h
+CXXFLAGS     = $(CXXFLAGS) -DNEW_TIME_TYPES -I../../dyninstAPI/h
+TFLAGS       = $(TFLAGS) -DNEW_TIME_TYPES -I../../dyninstAPI/h
 
 YFLAGS       = $(YFLAGS) -p mdl
 LFLAGS       = $(LFLAGS) -Pmdl

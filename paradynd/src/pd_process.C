@@ -74,6 +74,60 @@ const pdstring nullString("");
 
 extern resource *machineResource;
 
+void addLibraryCallback(BPatch_thread *thr,
+                        BPatch_module *mod,
+                        bool load)
+{
+  fprintf(stderr, "%s[%d]:  inside addLibraryCallback\n", __FILE__, __LINE__);
+  if (!mod) {
+    fprintf(stderr, "%s[%d]:  addModuleCallback called w/out module!\n",
+            __FILE__, __LINE__);
+    return;
+  }
+
+  BPatch_thread *appThread = NULL;
+  pd_process *parent_proc = NULL;
+  for (unsigned int i = 0; i < pd_image::all_pd_images.size(); ++i) {
+    parent_proc = pd_image::all_pd_images[i]->getParentProc();
+    appThread = parent_proc->get_dyn_process();
+    if (appThread  == thr) {
+      break; 
+    }
+    parent_proc = NULL;
+  }
+
+  if (!parent_proc) {
+    fprintf(stderr, "%s[%d]:  Could not find parent process for new module\n",
+            __FILE__, __LINE__);
+    return;
+   }
+
+  pd_image *img = parent_proc->getImage();
+
+  if (!img) {
+       fprintf(stderr, "%s[%d]:  this should never happen!\n", __FILE__, __LINE__);
+       return;
+  }
+
+  if (load) {
+
+    if (img->hasModule(mod)) {
+      fprintf(stderr, "%s[%d]:  WARN:  addModule ignoring duplicate!\n",
+              __FILE__, __LINE__);
+    }
+    else {
+      img->addModule(mod);
+      return;
+    }
+  }
+  else {
+    fprintf(stderr, "%s[%d]:  Non-load call of BPatchDynLibraryCallback!\n",
+            __FILE__, __LINE__);
+    fprintf(stderr, "%s[%d]:  Not anticipated, not fatal, but FIXME.\n",
+            __FILE__, __LINE__);
+  }
+}
+
 // Global "create a new pd_process object" functions
 
 pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
@@ -110,12 +164,15 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
     }
 
     // Load the paradyn runtime lib
-    proc->getSharedMemMgr()->initialize();
+    if (!proc->getSharedMemMgr()->initialize()) {
+      fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
+	tp->resourceBatchMode(false);
+      return NULL;
+    }
     proc->loadParadynLib(pd_process::create_load);
     
     // Run necessary initialization
     proc->init();
-    
     // Lower batch mode
     tp->resourceBatchMode(false); 
     
@@ -140,7 +197,12 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid) {
 
     if (!proc || !proc->get_dyn_process()) return NULL;
 
-    proc->getSharedMemMgr()->initialize();
+    if (!proc->getSharedMemMgr()->initialize()) {
+      fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
+	tp->resourceBatchMode(false);
+      return NULL;
+    }
+
     proc->loadParadynLib(pd_process::attach_load);
     proc->init();
 
@@ -237,8 +299,13 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
     delete []argv_array;
     delete path;
 
-    process *llproc = dyninst_process->lowlevel_process();
-    img = new pd_image(llproc->getImage(), this);
+    img = new pd_image(dyninst_process->getImage(), this);
+
+    pdstring img_name = img->name();
+    if (img_name == (char *) NULL) {
+      //  this will cause an assertion failure in newResource()
+      fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
+    }
 
     pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
@@ -288,8 +355,13 @@ pd_process::pd_process(const pdstring &progpath, int pid)
     getBPatch().setTypeChecking(false);
     dyninst_process = getBPatch().attachProcess(progpath.c_str(), pid);
     
-    process *llproc = dyninst_process->lowlevel_process();
-    img = new pd_image(llproc->getImage(), this);
+    img = new pd_image(dyninst_process->getImage(), this);
+
+    pdstring img_name = img->name();
+    if (img_name == (char *) NULL) {
+      //  this will cause an assertion failure in newResource()
+      fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
+    }
 
     pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
@@ -323,6 +395,7 @@ pd_process::pd_process(const pdstring &progpath, int pid)
     // Set the paradyn RT lib name
     if (!getParadynRTname())
         assert(0 && "Need to do cleanup");
+
 }
 
 extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid);
@@ -338,8 +411,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
         paradynRTState(libLoaded), inExec(false),
         paradynRTname(parent.paradynRTname)
 {
-   process *llproc = dyninst_process->lowlevel_process();
-   img = new pd_image(llproc->getImage(), this);
+   img = new pd_image(dyninst_process->getImage(), this);
 
    // Call fork initialization code
    BPatch_Vector<BPatch_snippet *>fork_init_args;
@@ -356,6 +428,12 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
    if (dyninst_process->oneTimeCode(fork_init_expr) != (void *)123)
        fprintf(stderr, "Error running forked child init function\n");
    
+   pdstring img_name = img->name();
+   if (img_name == (char *) NULL) {
+     //  this will cause an assertion failure in newResource()
+     fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
+   }
+
    pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
    rid = resource::newResource(machineResource, // parent
                                (void*)this, // handle
@@ -369,6 +447,8 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
                                );
 
    setLibState(paradynRTState, libReady);
+
+   process *llproc = dyninst_process->lowlevel_process();
    for(unsigned i=0; i<llproc->threads.size(); i++) {
       pd_thread *pd_thr = new pd_thread(llproc->threads[i], this);
       thr_mgr.addThread(pd_thr);
@@ -411,6 +491,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
    theVariableMgr = new variableMgr(*parent.theVariableMgr, this,
                                     getSharedMemMgr());
    theVariableMgr->initializeVarsAfterFork();
+
 }
 
 pd_process::~pd_process() {
@@ -632,8 +713,7 @@ void pd_process::execHandler() {
 
     // create a new pd_image because there is a new dyninst image
     delete img;
-    process *llproc = dyninst_process->lowlevel_process();
-    img = new pd_image(llproc->getImage(), this);
+    img = new pd_image(dyninst_process->getImage(), this);
 
     // The shared segment is gone... so delete and remake
     delete shmMetaData;
@@ -651,21 +731,74 @@ void pd_process::execHandler() {
     shmMetaData = new sharedMetaData(sharedMemManager, MAX_NUMBER_OF_THREADS);
 
     // Initialize shared memory before we re-load the paradyn lib
-    sharedMemManager->initialize();
+    if (sharedMemManager->initialize()) {
+      fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
+      return;
+    }
+
     loadParadynLib(exec_load);
 }
 
 /********************************************************************
  **** Paradyn runtime library code                               ****    
  ********************************************************************/
-
+#ifdef NOTDEF //PDSEP
 typedef struct {
    pd_process *proc;
    pd_process::load_cause_t load_cause;
 } loadLibCallbackInfo_t;
+#endif
 
 // Load and initialize the paradyn runtime library.
+bool pd_process::loadParadynLib(load_cause_t ldcause) 
+{
+#if defined(sparc_sun_solaris2_4)
+    // Sparc requires libsocket to be loaded before the paradyn lib can be :/
+    loadAuxiliaryLibrary("libsocket.so");
+#endif
 
+    process *llproc = dyninst_process->lowlevel_process();
+    assert(status() == stopped);
+
+    pdstring buffer = pdstring("PID=") + pdstring(getPid());
+    buffer += pdstring(", loading Paradyn RT lib via iRPC");
+    statusLine(buffer.c_str());
+
+    setLibState(paradynRTState, libLoading);
+
+    if (!dyninst_process->loadLibrary(paradynRTname.c_str())) {
+      fprintf(stderr, "%s[%d]:  failed to load %s, fatal...\n",
+              __FILE__, __LINE__, paradynRTname.c_str());
+      return false;
+    }
+
+    if (!setParadynLibParams(ldcause)) {
+      fprintf(stderr, "%s[%d]:  failed set lib params for %s, fatal...\n",
+              __FILE__, __LINE__, paradynRTname.c_str());
+      return false;
+    }
+
+    setLibState(paradynRTState, libLoaded);
+
+    buffer = pdstring("PID=") + pdstring(getPid());
+    buffer += pdstring(", finalizing Paradyn RT lib");
+    statusLine(buffer.c_str());
+
+    // Now call finalizeParadynLib which will handle any initialization
+    if (!finalizeParadynLib()) {
+        buffer = pdstring("PID=") + pdstring(getPid());
+        buffer += pdstring(", finalizing Paradyn RT lib via iRPC");
+        statusLine(buffer.c_str());
+        // Paradyn init probably hasn't run, so trigger it with an
+        // inferior RPC
+        iRPCParadynInit();
+    }
+    assert(reachedLibState(paradynRTState, libReady));
+    return true;
+
+}
+
+#ifdef NOTDEF // PDSEP   
 bool pd_process::loadParadynLib(load_cause_t ldcause) {
     // Force a load of the paradyn runtime library. We use
     // the dyninst runtime DYNINSTloadLibrary call, as in
@@ -745,9 +878,9 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
         iRPCParadynInit();
     }
     assert(reachedLibState(paradynRTState, libReady));
-
     return true;
 }
+#endif
 
 void pd_process::paradynLibLoadCallback(process * /*p*/, unsigned /* rpc_id */,
                                         void *data, void * /*ret*/)
@@ -822,7 +955,7 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
 
     return true;
 }
-
+#ifdef NOTDEF
 // Callback from dyninst's loadLibrary callbacks
 void pd_process::setParadynLibParamsCallback(process* /*ignored*/,
                                              pdstring /*ignored*/,
@@ -834,7 +967,7 @@ void pd_process::setParadynLibParamsCallback(process* /*ignored*/,
    p->setParadynLibParams(ldcause);
    delete info;
 }
-
+#endif
 bool pd_process::finalizeParadynLib() {
     // Check to see if paradyn init has been run, and if
     // not run it manually via inferior RPC
@@ -1409,7 +1542,16 @@ void pd_process::FillInCallGraphStatic()
   //  that call graph PC searches will NOT catch time spent in the
   //  environment specific setup of _start.
 
-  pd_Function *entry_pdf = (pd_Function *)findOnlyOneFunction("main");
+  BPatch_Vector<BPatch_function *> entry_bpfs;
+  BPatch_function *entry_bpf;
+  if ((!img->get_dyn_image()->findFunction("main", entry_bpfs))
+      || !entry_bpfs.size()) abort();
+  if (entry_bpfs.size() > 1) {
+    //  maybe we should warn here?
+  }
+  entry_bpf = entry_bpfs[0];
+  pd_Function *entry_pdf = (pd_Function *)entry_bpf->PDSEP_pdf();
+
   assert(entry_pdf);
   
   CallGraphAddProgramCallback(img->get_file());
@@ -1427,6 +1569,7 @@ void pd_process::FillInCallGraphStatic()
      thr = 1;
   }
 
+
   CallGraphSetEntryFuncCallback(img->get_file(), 
                                 entry_pdf->ResourceFullName(), thr);
     
@@ -1434,18 +1577,20 @@ void pd_process::FillInCallGraphStatic()
   img->FillInCallGraphStatic(this);
   // build call graph for module containing entry point
   // ("main" is not always defined in the executable)
-  image *main_img = entry_pdf->file()->exec();
-  pd_image *pd_main_img = pd_image::get_pd_image(main_img);
-  if (pd_main_img != img) 
+
+  pd_image *pd_main_img = pd_image::get_pd_image(entry_bpf->getModule());
+  if (pd_main_img != img)
      pd_main_img->FillInCallGraphStatic(this);
 
   // TODO: build call graph for all shared objects?
+
+
   CallGraphFillDone(img->get_file());
 }
 
 void pd_process::MonitorDynamicCallSites(pdstring function_name) {
    resource *r, *p;
-   pdmodule *mod;
+   BPatch_module *mod;
    r = resource::findResource(function_name);
    assert(r);
    p = r->parent();
@@ -1454,17 +1599,22 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
    mod = findModule(p->name(), true);
    if(!mod) {
       //Must be the weird case where main() isn't in the executable
-      pd_Function *entry_pdf = (pd_Function *)findOnlyOneFunction("main");
-      assert(entry_pdf);
-      image *main_img = entry_pdf->file()->exec();
-      assert(main_img);
-      mod = main_img->findModule(p->name());
+
+      BPatch_Vector<BPatch_function *> entry_bpfs;
+      BPatch_function *entry_bpf;
+      if ((!img->get_dyn_image()->findFunction("main", entry_bpfs))
+        || !entry_bpfs.size()) abort();
+      if (entry_bpfs.size() > 1) {
+        //  maybe we should warn here?
+      }
+      entry_bpf = entry_bpfs[0];
+      mod = entry_bpf->getModule();
    }
    assert(mod);
   
-   function_base *func, *temp;
-   pdvector<function_base *> fbv;
-   if (NULL == mod->findFunction(r->name(), &fbv) || !fbv.size()) {
+   BPatch_function *func;
+   BPatch_Vector<BPatch_function *> fbv;
+   if (NULL == mod->findFunction(r->name().c_str(), fbv) || !fbv.size()) {
       fprintf(stderr, "%s[%d]: Cannot find %s, currently fatal\n", __FILE__,
               __LINE__, r->name().c_str());
       abort();
@@ -1477,13 +1627,12 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
 
    //Should I just be using a resource::handle here instead of going through
    //all of this crap to find a pointer to the function???
-   pdstring exe_name = getImage()->get_file();
-   pdvector<instPoint*> callPoints;
-   process *llproc = get_dyn_process()->lowlevel_process();
-   callPoints = func->funcCalls(llproc);
+
+   BPatch_Vector<BPatch_point*> *callPoints;
+   callPoints = func->findPoint(BPatch_subroutine);
 
    bool needToCont = false;  
-   if(status() == running && callPoints.size() > 0) {
+   if(status() == running && callPoints->size() > 0) {
       // going to insert instrumentation, pause it from up here.
       // pausing at lower levels can cause performance problems, particularly
       // on ptrace systems, where pauses are slow
@@ -1491,11 +1640,14 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
          needToCont = true;
    }
   
-   for(unsigned i = 0; i < callPoints.size(); i++) {
-      if(!findCallee(*(callPoints[i]), temp)) {
+   for(unsigned i = 0; i < callPoints->size(); i++) {
 
-         if(! llproc->MonitorCallSite(callPoints[i])) {
-            fprintf(stderr, 
+      BPatch_function *called_func;
+      if (NULL == (called_func = (*callPoints)[i]->getCalledFunction())){
+
+         process *llproc = get_dyn_process()->lowlevel_process();
+         if(! llproc->MonitorCallSite((*callPoints)[i]->PDSEP_instPoint())) {
+            fprintf(stderr,
               "ERROR in daemon, unable to monitorCallSite for function :%s\n",
                     function_name.c_str());
          }
@@ -1733,6 +1885,32 @@ bool process::triggeredInStackFrame(Frame &frame,
     // Should never be hit
     assert(0);
     return false;
+}
+
+BPatch_Vector<BPatch_function *> *pd_process::getIncludedFunctions(BPatch_module *mod)
+{
+    if (!img) return NULL;
+    return img->getIncludedFunctions(mod);
+}
+
+
+BPatch_Vector<BPatch_function *> *pd_process::getIncludedFunctions()
+{
+   if (!img) return NULL;
+   return img->getIncludedFunctions();
+}
+
+pdvector<BPatch_module *> *pd_process::getIncludedModules(pdvector<BPatch_module *> *buf)
+{
+   if (!img) return buf;
+   return img->getIncludedModules(buf);
+}
+
+BPatch_module *pd_process::findModule(const pdstring &mod_name,bool check_excluded)
+{
+   if (!img) return NULL;
+   return img->findModule(mod_name, check_excluded);
+
 }
 
 

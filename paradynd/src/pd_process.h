@@ -340,20 +340,57 @@ class pd_process {
       return llproc->findOnlyOneFunction(func_name);
    }
 
-   pdvector<module *> *getAllModules() {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getAllModules();
+   BPatch_Vector<BPatch_module *> *getAllModules() {
+      return dyninst_process->getImage()->getModules();
    }
 
    bool findAllFuncsByName(const pdstring &func_name,
-                           pdvector<function_base *> &res) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->findAllFuncsByName(func_name, res);
+                           BPatch_Vector<BPatch_function *> &res) {
+     //process *llproc = dyninst_process->lowlevel_process();
+     BPatch_image *appImage = dyninst_process->getImage();
+
+     if (NULL == appImage->findFunction(func_name.c_str(), res, false)
+        || !res.size()) {
+          //fprintf(stderr, "%s[%d]: function %s not found in image\n",
+          //        __FILE__, __LINE__, func_name.c_str());
+       return false;
+     } 
+     return true;
+
    }
+
    bool findAllFuncsByName(resource *func, resource *mod,
-                           pdvector<function_base *> &res) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->findAllFuncsByName(func, mod, res);
+                           BPatch_Vector<BPatch_function *> &res) {
+     const pdvector<pdstring> &f_names = func->names();
+     const pdvector<pdstring> &m_names = mod->names();
+     pdstring func_name = f_names[f_names.size() -1];
+     pdstring mod_name = m_names[m_names.size() -1];
+     BPatch_Vector<BPatch_module *> *mods = dyninst_process->getImage()->getModules();
+     assert(mods);
+     for (unsigned int i = 0; i < mods->size(); ++i) {
+       char nbuf[512];
+       (*mods)[i]->getName(nbuf, 512);
+       if (!strcmp(nbuf, mod_name.c_str())) {
+         BPatch_module *target_mod = (*mods)[i];
+         BPatch_Vector<BPatch_function *> modfuncs;
+         if (NULL == target_mod->findFunction(func_name.c_str(), res, false)
+            || !res.size()) {
+           //fprintf(stderr, "%s[%d]: function %s not found in module %s\n",
+           //       __FILE__, __LINE__, func_name.c_str(), mod_name.c_str());
+           return false;
+         }
+         return true;
+       }
+     }
+
+     BPatch_image *appImage = dyninst_process->getImage();
+     if (NULL == appImage->findFunction(func_name.c_str(), res, false)
+        || !res.size()) {
+          //fprintf(stderr, "%s[%d]: function %s not found in image\n",
+          //        __FILE__, __LINE__, func_name.c_str());
+       return false;
+     }
+     return true;
    }
 
    bool getSymbolInfo(const pdstring &n, Symbol &info,
@@ -371,25 +408,13 @@ class pd_process {
       return llproc->findCallee(instr, target);
    }
 
-   pdvector<function_base *> *getIncludedFunctions(module *mod) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getIncludedFunctions(mod);
-   }
+   BPatch_Vector<BPatch_function *> *getIncludedFunctions(BPatch_module *mod); 
 
-   pdvector<function_base *> *getIncludedFunctions() {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getIncludedFunctions();
-   }
+   BPatch_Vector<BPatch_function *> *getIncludedFunctions(); 
 
-   pdvector<module *> *getIncludedModules() {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getIncludedModules();
-   }
+   pdvector<BPatch_module *> *getIncludedModules(pdvector<BPatch_module *> *buf); 
 
-   pdmodule *findModule(const pdstring &mod_name,bool check_excluded) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->findModule(mod_name, check_excluded);
-   }
+   BPatch_module *findModule(const pdstring &mod_name,bool check_excluded); 
 
    bool isDynamicallyLinked() { 
       process *llproc = dyninst_process->lowlevel_process();
@@ -406,9 +431,16 @@ class pd_process {
       return llproc->maxNumberOfThreads();
    }
 
-   function_base *getMainFunction() const {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getMainFunction();
+   BPatch_function *getMainFunction() const {
+      BPatch_Vector<BPatch_function *> bpfv;
+      if (!dyninst_process->getImage()->findFunction("main", bpfv) || !bpfv.size()) {
+        bperr("%s[%d]:  findFunction(main... ) failed\n", __FILE__, __LINE__);
+        return NULL;
+      }
+      if (bpfv.size() > 1) {
+        bpwarn("%s[%d]:  findFunction(main... ) got %d matches\n", __FILE__, __LINE__, bpfv.size());
+      }
+      return bpfv[0];
    }
 
    bool dumpCore(const pdstring coreFile) {

@@ -48,11 +48,41 @@
 #include "dyninstAPI/src/process.h"
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
-
+extern bool module_is_excluded(BPatch_module *m);
+extern bool function_is_excluded(BPatch_function *f, pdstring modname);
 extern pdRPC *tp;
 
-pdstring pd_module::fileName() const {
-   return get_dyn_module()->fileName();
+pd_module::pd_module(BPatch_module *dmod) : dyn_module(dmod) 
+{ 
+  char buf[512];
+  dmod->getName(buf, 512);
+  _name = pdstring(buf);
+
+  is_excluded = module_is_excluded(dmod);
+
+  //  need to get included functions filled in here
+  all_funcs = dmod->getProcedures();
+  if (!all_funcs || !all_funcs->size()) {
+    // ok to just get rid of printout if this happens a lot:
+    fprintf(stderr, "%s[%d]:  WARNING:  module %s has no functions\n", 
+           __FILE__, __LINE__, buf);
+    return;
+  }
+
+  for (unsigned int i = 0; i < all_funcs->size(); ++i) {
+    BPatch_function *f = (*all_funcs)[i];
+    if (!function_is_excluded(f, _name))
+      some_funcs.push_back(f);
+  }
+  
+  //fprintf(stderr, "%s[%d]:  new pd_module %s: %s, contains %d/%d funcs\n", 
+  //        __FILE__, __LINE__,
+  //        buf, is_excluded ? "excluded" : "included", all_funcs->size(),
+  //        some_funcs.size());
+}
+
+pd_module::~pd_module()
+{
 }
 
 // send message to data manager to specify the entry function for the
@@ -136,13 +166,13 @@ void FillInCallGraphNodeNested(pdstring exe_name,
 void pd_module::FillInCallGraphStatic(process *proc) {
    pdvector<pd_Function *> callees;
    pdvector<pdstring>        callees_as_strings;
-   const pdvector<pd_Function *> *mod_funcs = get_dyn_module()->getPD_Functions();
+   const BPatch_Vector<BPatch_function *> *mod_funcs = get_dyn_module()->getProcedures();
   
    // for each INSTRUMENTABLE function in the module (including excluded 
    //  functions, but NOT uninstrumentable ones)....
   
    for(unsigned f=0; f<(*mod_funcs).size(); f++) {
-      pd_Function *pdf = (*mod_funcs)[f];
+      pd_Function *pdf = (pd_Function *) (*mod_funcs)[f]->PDSEP_pdf();
 
       callees_as_strings.resize(0);
     
@@ -190,7 +220,7 @@ void pd_module::FillInCallGraphStatic(process *proc) {
       // add nested loops and function calls
       //if (resource_full_name == "/Code/mtee.C/main") {
       char *mname = getenv("PARADYN_LOOPS");
-      if (mname && (0 == strcmp(mname, dyn_module->fileName().c_str()))) {
+      if (mname && (0 == strcmp(mname, _name.c_str()))) {
 	  BPatch_loopTreeNode *root = pdf->getLoopTree(proc);
 	  FillInCallGraphNodeNested(exe_name, resource_full_name,
                                     resource_full_name, root);

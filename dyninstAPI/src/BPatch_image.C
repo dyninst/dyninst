@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.58 2004/06/21 22:08:52 tlmiller Exp $
+// $Id: BPatch_image.C,v 1.59 2004/07/28 07:24:45 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -442,9 +442,6 @@ void BPatch_image::findFunctionInImage(
    if ((pdf = img->findNonInstruFunc(name)) != NULL)
       funcs->push_back(proc->findOrCreateBPFunc(pdf));
 
-
-   // Note: there used to be a call to findExcludedFunction here, which
-   // properly does not belong in the dyninstAPI -- removed by JAW 02-03
 }
 
 /*
@@ -882,16 +879,32 @@ bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
 	return true;
 }
 
-#ifdef IBM_BPATCH_COMPAT
-char *BPatch_image::programName(char *name, unsigned int len) { 
-    return getProgramName(name, len); 
+
+char *BPatch_image::getProgramName(char *name, unsigned int len) 
+{
+  const char *imname =  proc->getImage()->name().c_str();
+  if (NULL == imname) imname = "<unnamed image>";
+
+  strncpy(name, imname, len);
+  return name;
 }
 
-char *BPatch_image::getProgramName(char *name, unsigned int len) {
-  len < strlen("<unknown") ?   
-    strncpy(name, "<unknown>", len) : strcpy(name, "<unknown>");
-    return name;
+  
+char *BPatch_image::getProgramFileName(char *name, unsigned int len)
+{
+  const char *imname =  proc->getImage()->file().c_str();
+  if (NULL == imname) imname = "<unnamed image file>";
+
+  strncpy(name, imname, len);
+  return name;
 }
+
+#ifdef IBM_BPATCH_COMPAT
+char *BPatch_image::programName(char *name, unsigned int len) {
+    return getProgramName(name, len);
+}
+
+
 
 int  BPatch_image::lpType() 
 {

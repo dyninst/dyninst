@@ -99,6 +99,7 @@ public:
   
     char *getName(char *buffer, int length);
     char *getFullName(char *buffer, int length);
+    size_t getAddressWidth();
 
     BPatch_Vector<BPatch_function *> *getProcedures();
     BPatch_Vector<BPatch_function *> *findFunction(const char *name,

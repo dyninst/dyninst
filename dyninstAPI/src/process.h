@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.298 2004/05/11 19:01:44 bernat Exp $
+/* $Id: process.h,v 1.299 2004/07/28 07:24:46 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -881,13 +881,6 @@ class process {
   bool findAllFuncsByName(resource *func, resource *mod, pdvector<function_base *> &res);
 #endif
 
-#ifndef BPATCH_LIBRARY
-  // returns all the functions in the module "mod" that are not excluded by
-  // exclude_lib or exclude_func
-  // return 0 on error.
-  pdvector<function_base *> *getIncludedFunctions(module *mod); 
-#endif
-
  private:
   enum mt_cache_result { not_cached, cached_mt_true, cached_mt_false };
   enum mt_cache_result cached_result;
@@ -969,11 +962,7 @@ class process {
   // if check_excluded is true it checks to see if the module is excluded
   // and if it is it returns 0.  If check_excluded is false it doesn't check
 
-#ifndef BPATCH_LIBRARY
-  pdmodule *findModule(const pdstring &mod_name,bool check_excluded);
-#else
   pdmodule *findModule(const pdstring &mod_name);
-#endif
   // getSymbolInfo:  get symbol info of symbol associated with name n
   // this routine starts looking a.out for symbol and then in shared objects
   // baseAddr is set to the base address of the object containing the symbol
@@ -986,16 +975,6 @@ class process {
   // getAllModules: returns a vector of all modules defined in the
   // a.out and in the shared objects
   pdvector<module *> *getAllModules();
-
-#ifndef BPATCH_LIBRARY
-  // getIncludedFunctions: returns a vector of all functions defined in the
-  // a.out and in shared objects that are not excluded by an mdl option 
-  pdvector<function_base *> *getIncludedFunctions();
-
-  // getIncludedModules: returns a vector of all functions defined in the
-  // a.out and in shared objects that are  not excluded by an mdl option
-  pdvector<module *> *getIncludedModules();
-#endif
 
   void triggerNormalExitCallback(int exitCode);
   void triggerSignalExitCallback(int signalnum);  

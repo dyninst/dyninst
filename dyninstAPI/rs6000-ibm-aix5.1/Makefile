@@ -87,8 +87,8 @@ endif
 #
 # Install rule: install withOUT world-readable permissions
 # 
-install: $(TARGET3_INSTALL)
+install: $(TARGET_INSTALL)
 	-xlC -bnoobjreorder -bexpall -bnoentry -o libdemangle.so.1 -ldemangle -u functionName -u demangle -u kind -u varName -u text -lc 
 	-$(CP) libdemangle.so.1 $(DEST)
-	-$(CP) $(TARGET3_INSTALL) $(DEST)
-	-chmod 750 $(DEST)/$(TARGET3_INSTALL)
+	-$(CP) $(TARGET_INSTALL) $(DEST)
+	-chmod 750 $(DEST)/$(TARGET_INSTALL)

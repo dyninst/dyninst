@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.11 2004/07/15 21:24:03 jaw Exp $
+# $Id: make.module.tmpl,v 1.12 2004/07/28 07:24:48 jaw Exp $
 #
 
 TARGET	      = libvisi.a 
@@ -25,5 +25,5 @@ PREREQUISITES = $(IGEN_GEN_SRCS)
 
 all: $(TARGET)
 
-templates.o: ../src/templates.C
+templates.o: $(PREREQUISITES) ../src/templates.C
 	$(CXX) $(TFLAGS) -c ../src/templates.C

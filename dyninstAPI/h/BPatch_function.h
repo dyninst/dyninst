@@ -83,6 +83,7 @@ public:
 
 // The following are for  internal use by the library only:
     function_base *func;
+    function_base *PDSEP_pdf() { return func;}
     process *getProc() const { return proc; }
 
 // No longer inline but defined in .C file

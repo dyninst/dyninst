@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.13 2004/07/15 21:24:03 jaw Exp $
+# $Id: make.module.tmpl,v 1.14 2004/07/28 07:24:46 jaw Exp $
 #
 
 USES_FLEX = true
@@ -47,3 +47,4 @@ templates.o: ../src/templates.C
 
 y.tab.h:    scanner.C
 
+#SYSLIBS	     += -lstdc++

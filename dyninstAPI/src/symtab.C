@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.214 2004/07/23 20:39:01 tlmiller Exp $
+// $Id: symtab.C,v 1.215 2004/07/28 07:24:46 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -161,16 +161,9 @@ pdmodule *image::newModule(const pdstring &name, const Address addr, supportedLa
     pdmodule *ret = NULL;
     // modules can be defined several times in C++ due to templates and
     //   in-line member functions.
-#ifndef BPATCH_LIBRARY
-    if ((ret = findModule(name, TRUE))) {
-      return(ret);
-    }
-#else
-    // seperate out references to excluded modules .. a bit pedantic, but here we go...
     if ((ret = findModule(name))) {
       return(ret);
     }
-#endif
     pdstring fullNm, fileNm;
     char *out = P_strdup(name.c_str());
     char *sl = P_strrchr(out, '/');
@@ -185,22 +178,9 @@ pdmodule *image::newModule(const pdstring &name, const Address addr, supportedLa
     free(out);
 
     ret = new pdmodule(lang, addr, fullNm, fileNm, this);
-
-#ifndef BPATCH_LIBRARY
-    // if module was excluded,stuff it into excludedMods (and dont
-    //  index it in modeByFileName && modsByFullName.
-    if (module_is_excluded(ret)) {
-       excludedMods += ret;
-    } else {
-      modsByFileName[ret->fileName()] = ret;
-      modsByFullName[ret->fullName()] = ret;
-      includedMods.push_back(ret);
-    }
-#else
     modsByFileName[ret->fileName()] = ret;
     modsByFullName[ret->fullName()] = ret;
     _mods.push_back(ret);
-#endif /* BPATCH_LIBRARY */
 
     return(ret);
 }
@@ -277,13 +257,8 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
   } /* end buildDemangledName() */
 
 void image::addInstruFunction(pd_Function *func, pdmodule *mod,
-			      const Address addr,
-#ifdef BPATCH_LIBRARY
-                  bool /* excluded */
-#else
-                  bool excluded
-#endif // BPATCH_LIBRARY
-                  ) {
+			      const Address addr)
+{
   pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
   pdvector<pd_Function*> *funcsByMangledEntry = NULL;
   
@@ -291,14 +266,6 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
   //  get added to instrumentableFunctions, and mod->funcs.
   instrumentableFunctions.push_back(func); 
   mod->addInstrumentableFunction( func );
-
-#ifndef BPATCH_LIBRARY
-  if (excluded) {
-    excludedFunctions[func->prettyName()] = func;
-    return;
-    } 
-  includedFunctions.push_back(func);
-#endif
 
   Address addrcopy = addr;
   funcsByRange.insert(addrcopy, func);
@@ -422,26 +389,6 @@ int image::removeFuncFromInstrumentable(pd_Function * /* func */)
     cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
 	 << "  function without module found while making un-instrumentable:    " << prettyName << endl;
   }
-
-#ifndef BPATCH_LIBRARY
-  if (excludedFunctions.defines(prettyName)) {
-    excludedFunctions.undef(prettyName);
-    // if function was excluded, it won't be in any of the other structs (right???)
-    // so we are done
-    return 0;
-  }
-  else {
-    if (includedFunctions.defines(prettyName)) 
-      includedFunctions.undef(prettyName);
-    else {
-      // not sure if a warning is needed here, but if the function was not in
-      // excludedFunctions, in should be in includedFunctions -- I think
-      cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
-	   << "  not-excluded function was not in included list:  " << prettyName << endl;
-    }
-  }
-#endif
-
 
   removeFuncFromNameHash(func, prettyName, &funcsByPretty);
   removeFuncFromNameHash(func, mangledName, &funcsByMangled);
@@ -878,11 +825,7 @@ bool image::findInternalByPrefix(const pdstring &prefix,
   //}
   return flag;
 }
-#ifndef BPATCH_LIBRARY
-pdmodule *image::findModule(const pdstring &name, bool find_if_excluded)
-#else
 pdmodule *image::findModule(const pdstring &name)
-#endif
 {
   //cerr << "image::findModule " << name << " , " << find_if_excluded
   //     << " called" << endl;
@@ -896,22 +839,6 @@ pdmodule *image::findModule(const pdstring &name)
     return (modsByFullName[name]);
   }
 
-#ifndef BPATCH_LIBRARY
-  unsigned i;
-
-  // if also looking for excluded functions, check through 
-  //  excludedFunction list to see if any match function by FullName
-  //  or FileName....
-  if (find_if_excluded) {
-      for(i=0;i<excludedMods.size();i++) {
-         if ((excludedMods[i]->fileName() == name) ||
-             (excludedMods[i]->fullName() == name)) {
-	  //cerr << " (image::findModule) found module in excludedMods" << endl;
-	  return excludedMods[i];
-	}
-      }
-  }
-#endif
   //cerr << " (image::findModule) did not find module, returning NULL" << endl;
   return NULL;
 }
@@ -1015,28 +942,11 @@ void image::defineModules(process *proc) {
   }
 
 #ifndef BPATCH_LIBRARY
-  unsigned i;
-
-  for(i=0;i<excludedMods.size();i++) {
-    mod = excludedMods[i];
-    mod->define(proc);
-  }
-
-
 #ifdef DEBUG_MDL
   std::ostringstream osb(std::ios::out);
   osb << "IMAGE_" << name() << "__" << getpid() << std::ends;
   ofstream of(osb, std::ios::app);
-
-  of << "INCLUDED FUNCTIONS\n";
-  for (unsigned ni=0; ni<includedFunctions.size(); ni++) {
-    of << includedFunctions[ni]->prettyName() << "\t\t" 
-       << includedFunctions[ni]->addr() << "\t\t" << endl;
-  }
-  
 #endif
-
-  
 #endif
 }
 
@@ -1158,74 +1068,6 @@ void pdmodule::define(process *proc) {
 #endif
 }
 
-#ifndef BPATCH_LIBRARY
-// as per getAllFunctions, but filters out those excluded with 
-// e.g. mdl "exclude" command....
-// to clarify a function should NOT be returned from here if its 
-//  module is excluded (with exclude "/Code/module") or if it
-//  is excluded (with exclude "/Code/module/function"). 
-const pdvector<pd_Function*> &image::getIncludedFunctions() {
-    unsigned int i;    
-    includedFunctions.resize(0);
-    pdvector<function_base *> *temp;
-    pdvector<pd_Function *> *temp2;
-
-    //cerr << "image::getIncludedFunctions called, name = " << name () << endl;
-    //cerr << " includedMods = " << endl;
-    //print_module_vector_by_short_name(pdstring("  "), &includedMods);
-    for (i=0;i<includedMods.size();i++) {
-         temp = includedMods[i]->getIncludedFunctions();
-         temp2 = (pdvector<pd_Function *> *) temp;
-         includedFunctions += *temp2;
-    }
-
-    //cerr << " (image::getIncludedFunctions) returning : " << endl;
-    //print_func_vector_by_pretty_name(pdstring("  "),
-    //		 (vector<function_base*>*)&includedFunctions);
-
-    // what about shared objects????
-    return includedFunctions;
-}
-
-
-
-// get all functions in module which are not "excluded" (e.g.
-//  with mdl "exclude" command.  
-// Assed to provide support for mdl "exclude" on functions in
-//  statically linked objects.
-//  mcheyney 970727
-
-pdvector<function_base *> *pdmodule::getIncludedFunctions() {
-    // laxy construction of some_funcs, as per sharedobject class....
-    // cerr << "pdmodule " << fileName() << " :: getIncludedFunctions called "
-    //      << endl;
-    if (some_funcs_inited == TRUE) {
-        //cerr << "  about to return : " << endl;
-        //print_func_vector_by_pretty_name(pdstring("  "), (pdvector<function_base *>*)&some_funcs);
-        return (pdvector<function_base *>*)&some_funcs;
-    }
-#ifdef BPATCH_LIBRARY  //BPatch Library doesn't know about excluded funcs 
-    some_funcs = funcs;
-#else
-    some_funcs.resize(0);
-    
-    /* Rather than rewrite filter_excluded_functions(), acquire a vector
-       from the mangledName hashtable. */
-    pdvector< pd_Function * > allFunctions = allInstrumentableFunctionsByMangledName.values();
-    
-    if( filter_excluded_functions( allFunctions, some_funcs, fileName()) == FALSE ) {
-        //cerr << "  about to return NULL";
-	return NULL;
-    }
-#endif
-    some_funcs_inited = TRUE;
-    
-    //cerr << "  about to return : " << endl;
-    //print_func_vector_by_pretty_name(pdstring("  "),(pdvector<function_base *>*) &some_funcs);
-    return (pdvector<function_base *>*)&some_funcs;
-}
-#endif
-
 // Tests if a symbol starts at a given point
 bool image::hasSymbolAtPoint(Address point) const
 {
@@ -1237,52 +1079,10 @@ const pdvector<pd_Function*> &image::getAllFunctions()
     return instrumentableFunctions;
 }
 
-#ifdef BPATCH_LIBRARY
 const pdvector <pdmodule*> &image::getModules() 
 {
   return _mods;
 }
-#else
-
-
-
-const pdvector <pdmodule*> &image::getAllModules() 
-{
-    // reinit all modules to empty vector....
-    allMods.resize(0);
-
-    // and add includedModules && excludedModules to it....
-    VECTOR_APPEND(allMods, includedMods);
-    VECTOR_APPEND(allMods, excludedMods);
-
-    //cerr << "image::getAllModules called" << endl;
-    //cerr << " about to return sum of includedMods and excludedMods" << endl;
-    //cerr << " includedMods : " << endl;
-    //print_module_vector_by_short_name(pdstring("  "), &includedMods);
-    //cerr << " excludedMods : " << endl;
-    //print_module_vector_by_short_name(pdstring("  "), &excludedMods);
-    
-    return allMods;
-}
-
-
-
-const pdvector <pdmodule*> &image::getIncludedModules() {
-    //cerr << "image::getIncludedModules called" << endl;
-    //cerr << " about to return includedMods = " << endl;
-    //print_module_vector_by_short_name(pdstring("  "), &includedMods);
-
-    return includedMods;
-}
-
-const pdvector <pdmodule*> &image::getExcludedModules() {
-    //cerr << "image::getIncludedModules called" << endl;
-    //cerr << " about to return includedMods = " << endl;
-    //print_module_vector_by_short_name(pdstring("  "), &includedMods);
-
-   return excludedMods;
-}
-#endif
 
 void print_module_vector_by_short_name(pdstring prefix ,
 				       pdvector<pdmodule*> *mods) {
@@ -1925,11 +1725,7 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
   //  this case will arise on non-stabs platforms until language parsing can be introduced at this level
   pdvector<pdmodule *> *modlist;
   pdmodule *currmod = NULL;
-#ifdef BPATCH_LIBRARY
   modlist = &_mods;
-#else
-  modlist = &allMods;
-#endif
   //int dump = 0;
 
   for (unsigned int i = 0;  i < modlist->size(); ++i) {
@@ -1997,12 +1793,7 @@ bool image::parseFunction( pd_Function* pdf, pdvector< Address >& callTargets,
     {
         // then build up the maps & vectors as appropriate
         
-#ifdef BPATCH_LIBRARY
-        addInstruFunction( pdf, mod, pdf->get_address(), false );
-#else
-        addInstruFunction(pdf, mod, pdf->get_address(),
-                          function_is_excluded(pdf, mod->fileName()));
-#endif
+        addInstruFunction( pdf, mod, pdf->get_address());
     }
     return true;
 }
@@ -2225,14 +2016,15 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    linkedFile(desc, newBaseAddr,pd_log_perror),//ccw jun 2002
    knownJumpTargets(int_addrHash, 8192),
 #ifndef BPATCH_LIBRARY
+#ifdef NOTDEF
    includedFunctions(0),
    excludedFunctions(pdstring::hash),
    includedMods(0),
    excludedMods(0),
    allMods(0),
-#else
-   _mods(0),
 #endif
+#endif
+   _mods(0),
    instrumentableFunctions(0),
    knownSymAddrs(addrHash4),
    funcsByEntryAddr(addrHash4),
@@ -2443,11 +2235,6 @@ void pdmodule::updateForFork(process *childProcess,
 	(*niter)->updateForFork( childProcess, parentProcess );
 	}
   
-#ifndef BPATCH_LIBRARY
-  for(unsigned k=0; k<some_funcs.size(); k++) {
-    some_funcs[k]->updateForFork(childProcess, parentProcess);
-  }
-#endif
 }
 
 #ifdef CHECK_ALL_CALL_POINTS
@@ -2682,16 +2469,6 @@ bool pdmodule::removeInstruFunc( pd_Function * pdf )
       }
     }
     
-#ifndef BPATCH_LIBRARY
-  for( unsigned int i = 0; i < some_funcs.size(); ++i ) {
-    if (some_funcs[i] == pdf) {
-      /* I'm not sure this does what the author intends... */
-      some_funcs[i] = some_funcs[some_funcs.size() - 1];
-      some_funcs.pop_back();
-      break;
-    }
-  }
-#endif
   return didRemove;
 }
 #ifdef CHECK_ALL_CALL_POINTS
@@ -3038,15 +2815,6 @@ pd_Function *image::findFuncByMangled(const pdstring &name)
   return NULL;
 }
 
-#ifndef BPATCH_LIBRARY
-pd_Function *image::findExcludedFunc(const pdstring &name)
-{
-  if (excludedFunctions.defines(name))
-    return excludedFunctions[name];
-  return NULL;
-}
-#endif
-
 pd_Function *image::findNonInstruFunc(const pdstring &name)
 {
   if (notInstruFunctions.defines(name)) 
@@ -3093,14 +2861,6 @@ pd_Function *image::findOnlyOneFunctionFromAll(const pdstring &name) {
       ret = found;
     }
 
-#ifndef BPATCH_LIBRARY
-    if (NULL != (found = findExcludedFunc(name))) {
-      // fail if we already found a match
-      if (ret) return NULL;
-      ret = found;
-    }
-#endif
-
     return ret;
 }
 
@@ -3136,18 +2896,9 @@ pd_Function *image::findOnlyOneFunction(const pdstring &name) {
 
 void image::updateForFork(process *childProcess, const process *parentProcess)
 {
-#ifdef BPATCH_LIBRARY
   for(unsigned i=0; i<_mods.size(); i++) {
     _mods[i]->updateForFork(childProcess, parentProcess);
   }
-#else
-  for(unsigned i=0; i<includedMods.size(); i++) {
-    includedMods[i]->updateForFork(childProcess, parentProcess);
-  }
-  for(unsigned j=0; j<excludedMods.size(); j++) {
-    excludedMods[j]->updateForFork(childProcess, parentProcess);
-  }
-#endif
 }
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
@@ -3339,21 +3090,14 @@ int image::findFuncVectorByMangledRegex(pdvector<pd_Function *> *found, regex_t 
 }
 #endif // !windows
 
-pdmodule *image::findModule(function_base *func) {
-#ifndef BPATCH_LIBRARY
-  for(unsigned i=0; i<includedMods.size(); i++) {
-    pdmodule *curMod = includedMods[i];
-    pdvector<function_base *> bpfv;
-    if (NULL != curMod->findFunction(func->prettyName(), &bpfv) && bpfv.size()) 
-      return curMod;
-  }
-#else
+pdmodule *image::findModule(function_base *func) 
+{
   for(unsigned i=0; i<_mods.size(); i++) {
     pdvector<function_base *> bpfv;
-    if (NULL != _mods[i]->findFunction(func->prettyName(), &bpfv) && bpfv.size()) 
-      return _mods[i];
+    if (NULL != _mods[i]->findFunction(func->prettyName(), &bpfv) && bpfv.size())
+     return _mods[i];
   }
-#endif
+
   return NULL;
 }
 

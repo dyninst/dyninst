@@ -784,7 +784,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply( pdvector<const instrDataNode*>& )
 
   if (temp.get_type() != MDL_T_POINT)
     return false;
-  instPoint *p;
+  BPatch_point *p;
   if (!temp.get(p))
     return false;
   unsigned size = icode_reqs_->size();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.6 2004/03/23 01:12:40 eli Exp $
+// $Id: mdl.h,v 1.7 2004/07/28 07:24:47 jaw Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -52,6 +52,12 @@
 #include <iostream>
 #include <fstream>
 #include "pdutil/h/aggregationDefines.h"
+
+#include "dyninstAPI/h/BPatch_Vector.h"
+#include "dyninstAPI/h/BPatch_function.h"
+#include "dyninstAPI/h/BPatch_image.h"
+#include "dyninstAPI/h/BPatch_module.h"
+#include "dyninstAPI/h/BPatch_point.h"
 
 // Toplevel for code in resource heirarchy....
 #define CODE_RH_NAME "Code"
@@ -252,54 +258,54 @@ public:
 
   mdl_var(const pdstring& nm, int i, bool is_remote);
   mdl_var(const pdstring& nm, float f, bool is_remote);
-  mdl_var(const pdstring& nm, instPoint *p, bool is_remote);
-  mdl_var(const pdstring& nm, function_base *pr, bool is_remote);
+  mdl_var(const pdstring& nm, BPatch_point *p, bool is_remote);
+  mdl_var(const pdstring& nm, BPatch_function *pr, bool is_remote);
   mdl_var(const pdstring& nm, functionName *pr, bool is_remote);
-  mdl_var(const pdstring& nm, module *mod, bool is_remote);
+  mdl_var(const pdstring& nm, BPatch_module *mod, bool is_remote);
   mdl_var(const pdstring& nm, const pdstring& s, bool is_remote);
-  mdl_var(const pdstring& nm, process *pr, bool is_remote);
-  mdl_var(const pdstring& nm, pdvector<function_base*> *vp, bool is_remote);
+  mdl_var(const pdstring& nm, BPatch_thread *th, bool is_remote);
+  mdl_var(const pdstring& nm, BPatch_Vector<BPatch_function*> *vp, bool is_remote);
   mdl_var(const pdstring& nm, pdvector<functionName*> *vp, bool is_remote);
-  mdl_var(const pdstring& nm, pdvector<module*> *vm, bool is_remote);
+  mdl_var(const pdstring& nm, pdvector<BPatch_module*> *vm, bool is_remote);
   mdl_var(const pdstring& nm, pdvector<int> *vi, bool is_remote);
   mdl_var(const pdstring& nm, pdvector<float> *vf, bool is_remote);
   mdl_var(const pdstring& nm, pdvector<pdstring> *vs, bool is_remote);
   mdl_var(const pdstring& nm, instrDataNode *dn, bool is_remote);
-  mdl_var(const pdstring& nm, pdvector<instPoint*> *ipl, bool is_remote);
+  mdl_var(const pdstring& nm, pdvector<BPatch_point*> *ipl, bool is_remote);
 
   bool get(int &i);
   bool get(float &f);
-  bool get(instPoint *&p);
-  bool get(function_base *&pr);
+  bool get(BPatch_point *&p);
+  bool get(BPatch_function *&pr);
   bool get(functionName *&fn);
-  bool get(module *&mod);
+  bool get(BPatch_module *&mod);
   bool get(pdstring& s);
-  bool get(process *&pr);
-  bool get(pdvector<function_base*> *&vp);
+  bool get(BPatch_thread *&pr);
+  bool get(BPatch_Vector<BPatch_function*> *&vp);
   bool get(pdvector<functionName*> *&vp);
-  bool get(pdvector<module*> *&vm);
+  bool get(pdvector<BPatch_module*> *&vm);
   bool get(pdvector<int> *&vi);
   bool get(pdvector<float> *&vf);
   bool get(pdvector<pdstring> *&vs);
   bool get(instrDataNode *&dn);
-  bool get(pdvector<instPoint*> *&vip);
+  bool get(pdvector<BPatch_point*> *&vip);
 
   bool set(int i);
   bool set(float f);
-  bool set(instPoint *p);
-  bool set(function_base *pr);
+  bool set(BPatch_point *p);
+  bool set(BPatch_function *pr);
   bool set(functionName *f);
-  bool set(module *mod);
+  bool set(BPatch_module *mod);
   bool set(const pdstring& s);
-  bool set(process *pr);
-  bool set(pdvector<function_base*> *vp);
+  bool set(BPatch_thread *pr);
+  bool set(BPatch_Vector<BPatch_function*> *vp);
   bool set(pdvector<functionName*> *vp);
-  bool set(pdvector<module*> *vm);
+  bool set(pdvector<BPatch_module*> *vm);
   bool set(pdvector<int> *vi);
   bool set(pdvector<float> *vf);
   bool set(pdvector<pdstring> *vs);
   bool set(instrDataNode *dn);
-  bool set(pdvector<instPoint*> *ipl);
+  bool set(pdvector<BPatch_point*> *ipl);
 
   void set_type(unsigned type);
   bool is_list() const;
@@ -319,18 +325,18 @@ private:
   union mdl_types {
     int i;
     float f;
-    instPoint *point_;
-    function_base *pr;
+    BPatch_point *point_;
+    BPatch_function *pr;
     functionName *fn;
-    process *the_process;
-    module *mod;
-    pdvector<function_base*>  *list_pr;
+    BPatch_thread *the_process;
+    BPatch_module *mod;
+    BPatch_Vector<BPatch_function*>  *list_pr;
     pdvector<functionName*> *list_fn;
     pdvector<int>          *list_int;
     pdvector<float>        *list_float;
     pdvector<pdstring>       *list_string;
-    pdvector<module*>      *list_module;
-    pdvector<instPoint*>   *list_pts;
+    pdvector<BPatch_module*>      *list_module;
+    pdvector<BPatch_point*>   *list_pts;
     instrDataNode        *dn;
     void *ptr;
   };
@@ -356,19 +362,19 @@ public:
 
   bool set(int i, const pdstring& var_name);
   bool set(float f, const pdstring& var_name);
-  bool set(instPoint *p, const pdstring& var_name);
-  bool set(function_base *pr, const pdstring& var_name);
+  bool set(BPatch_point *p, const pdstring& var_name);
+  bool set(BPatch_function *pr, const pdstring& var_name);
   bool set(functionName *pr, const pdstring& var_name);
-  bool set(module *mod, const pdstring& var_name);
+  bool set(BPatch_module *mod, const pdstring& var_name);
   bool set(const pdstring& s, const pdstring& var_name);
-  bool set(process *pr, const pdstring& var_name);
-  bool set(pdvector<function_base*> *vp, const pdstring& var_name);
+  bool set(BPatch_thread *pr, const pdstring& var_name);
+  bool set(BPatch_Vector<BPatch_function*> *vp, const pdstring& var_name);
   bool set(pdvector<functionName*> *vp, const pdstring& var_name);
-  bool set(pdvector<module*> *vm, const pdstring& var_name);
+  bool set(pdvector<BPatch_module*> *vm, const pdstring& var_name);
   bool set(pdvector<int> *vi, const pdstring& var_name);
   bool set(pdvector<float> *vf, const pdstring& var_name);
   bool set(pdvector<pdstring> *vs, const pdstring& var_name);
-  bool set(pdvector<instPoint*> *vip, const pdstring& var_name);
+  bool set(pdvector<BPatch_point*> *vip, const pdstring& var_name);
   bool set(instrDataNode *dn, const pdstring& var_name);
 
   //unsigned get_type(pdstring var_name) ;
@@ -488,11 +494,11 @@ inline mdl_var::mdl_var(const pdstring& nm, float f, bool is_remote)
 : name_(nm), type_(MDL_T_FLOAT), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.f = f; }
 
-inline mdl_var::mdl_var(const pdstring& nm, instPoint *p, bool is_remote)
+inline mdl_var::mdl_var(const pdstring& nm, BPatch_point *p, bool is_remote)
 : name_(nm), type_(MDL_T_POINT), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.point_ = p; }
 
-inline mdl_var::mdl_var(const pdstring& nm, function_base *pr, bool is_remote)
+inline mdl_var::mdl_var(const pdstring& nm, BPatch_function *pr, bool is_remote)
 : name_(nm), type_(MDL_T_PROCEDURE), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.pr = pr; }
 
@@ -500,7 +506,7 @@ inline mdl_var::mdl_var(const pdstring& nm, functionName *fn, bool is_remote)
 : name_(nm), type_(MDL_T_PROCEDURE_NAME), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.fn = fn; }
 
-inline mdl_var::mdl_var(const pdstring& nm, module *md, bool is_remote)
+inline mdl_var::mdl_var(const pdstring& nm, BPatch_module *md, bool is_remote)
 : name_(nm), type_(MDL_T_MODULE), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.mod = md; }
 
@@ -508,11 +514,11 @@ inline mdl_var::mdl_var(const pdstring& nm, const pdstring& s, bool is_remote)
 : name_(nm), type_(MDL_T_STRING), remote_(is_remote), string_val_(s)
 { PURE_INIT(&vals_); vals_.ptr = NULL; }
 
-inline mdl_var::mdl_var(const pdstring& nm, process *p, bool is_remote) 
+inline mdl_var::mdl_var(const pdstring& nm, BPatch_thread *p, bool is_remote) 
 : name_(nm), type_(MDL_T_PROCESS), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.the_process = p; }
 
-inline mdl_var::mdl_var(const pdstring& nm, pdvector<function_base*> *vp, bool is_remote) 
+inline mdl_var::mdl_var(const pdstring& nm, BPatch_Vector<BPatch_function*> *vp, bool is_remote) 
 : name_(nm), type_(MDL_T_LIST_PROCEDURE), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.list_pr = vp; }
      
@@ -520,7 +526,7 @@ inline mdl_var::mdl_var(const pdstring& nm, pdvector<functionName*> *vf, bool is
 : name_(nm), type_(MDL_T_LIST_PROCEDURE_NAME), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.list_fn = vf; }
 
-inline mdl_var::mdl_var(const pdstring& nm, pdvector<module*> *vm, bool is_remote) 
+inline mdl_var::mdl_var(const pdstring& nm, pdvector<BPatch_module*> *vm, bool is_remote) 
 : name_(nm), type_(MDL_T_LIST_MODULE), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.list_module = vm; }
 
@@ -536,7 +542,7 @@ inline mdl_var::mdl_var(const pdstring& nm, pdvector<pdstring> *vs, bool is_remo
 : name_(nm), type_(MDL_T_LIST_STRING), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.list_string = vs; }
 
-inline mdl_var::mdl_var(const pdstring& nm, pdvector<instPoint*> *vip, bool is_remote)
+inline mdl_var::mdl_var(const pdstring& nm, pdvector<BPatch_point*> *vip, bool is_remote)
 : name_(nm), type_(MDL_T_LIST_POINT), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.list_pts = vip; }
 
@@ -555,12 +561,12 @@ inline bool mdl_var::get(float &f) {
   return true;
 }
 
-inline bool mdl_var::get(instPoint *&pt) {
+inline bool mdl_var::get(BPatch_point *&pt) {
   if (type_ != MDL_T_POINT) return false;
   pt = vals_.point_;
   return true;
 }
-inline bool mdl_var::get(function_base *&pr) {
+inline bool mdl_var::get(BPatch_function *&pr) {
   if (type_ != MDL_T_PROCEDURE) return false;
   pr = vals_.pr;
   return true;
@@ -570,7 +576,7 @@ inline bool mdl_var::get(functionName *&fn) {
   fn = vals_.fn;
   return true;
 }
-inline bool mdl_var::get(module *&md) {
+inline bool mdl_var::get(BPatch_module *&md) {
   if (type_ != MDL_T_MODULE) return false;
   md = vals_.mod;
   return true;
@@ -580,7 +586,7 @@ inline bool mdl_var::get(pdstring& s) {
   s = string_val_;
   return true;
 }
-inline bool mdl_var::get(process *&pr) {
+inline bool mdl_var::get(BPatch_thread *&pr) {
   if (type_ != MDL_T_PROCESS) return false;
   pr = vals_.the_process;
   return true;
@@ -591,7 +597,7 @@ inline bool mdl_var::get(instrDataNode *&dn) {
   return true;
 }
 
-inline bool mdl_var::get(pdvector<function_base*> *&vp) {
+inline bool mdl_var::get(BPatch_Vector<BPatch_function*> *&vp) {
   if (type_ != MDL_T_LIST_PROCEDURE) return false;
   vp = vals_.list_pr;
   return true;
@@ -601,7 +607,7 @@ inline bool mdl_var::get(pdvector<functionName*> *&vp) {
   vp = vals_.list_fn;
   return true;
 }
-inline bool mdl_var::get(pdvector<module*> *&vm) {
+inline bool mdl_var::get(pdvector<BPatch_module*> *&vm) {
   if (type_ != MDL_T_LIST_MODULE) return false;
   vm = vals_.list_module;
   return true;
@@ -621,7 +627,7 @@ inline bool mdl_var::get(pdvector<pdstring> *&vs) {
   vs = vals_.list_string;
   return true;
 }
-inline bool mdl_var::get(pdvector<instPoint*> *&vip) {
+inline bool mdl_var::get(pdvector<BPatch_point*> *&vip) {
   if (type_ != MDL_T_LIST_POINT) return false;
   vip = vals_.list_pts;
   return true;
@@ -639,13 +645,13 @@ inline bool mdl_var::set(float f) {
   return true;
 }
 
-inline bool mdl_var::set(instPoint *pt) {
+inline bool mdl_var::set(BPatch_point *pt) {
   reset();
   type_ = MDL_T_POINT;
   vals_.point_ = pt;
   return true;
 }
-inline bool mdl_var::set(function_base *pr) {
+inline bool mdl_var::set(BPatch_function *pr) {
   reset();
   type_ = MDL_T_PROCEDURE;
   vals_.pr = pr;
@@ -657,7 +663,7 @@ inline bool mdl_var::set(functionName *fn) {
   vals_.fn = fn;
   return true;
 }
-inline bool mdl_var::set(module *md) {
+inline bool mdl_var::set(BPatch_module *md) {
   reset();
   type_ = MDL_T_MODULE;
   vals_.mod = md;
@@ -669,7 +675,7 @@ inline bool mdl_var::set(const pdstring& s) {
   string_val_ = s;
   return true;
 }
-inline bool mdl_var::set(process *pr) {
+inline bool mdl_var::set(BPatch_thread *pr) {
   reset();
   type_ = MDL_T_PROCESS;
   vals_.the_process = pr;
@@ -682,7 +688,7 @@ inline bool mdl_var::set(instrDataNode *dn) {
   return true;
 }
 
-inline bool mdl_var::set(pdvector<function_base*> *vp) {
+inline bool mdl_var::set(BPatch_Vector<BPatch_function*> *vp) {
   reset();
   type_ = MDL_T_LIST_PROCEDURE;
   vals_.list_pr = vp;
@@ -694,7 +700,7 @@ inline bool mdl_var::set(pdvector<functionName*> *vp) {
   vals_.list_fn = vp;
   return true;
 }
-inline bool mdl_var::set(pdvector<module*> *vm) {
+inline bool mdl_var::set(pdvector<BPatch_module*> *vm) {
   reset();
   type_ = MDL_T_LIST_MODULE;
   vals_.list_module = vm;
@@ -718,7 +724,7 @@ inline bool mdl_var::set(pdvector<pdstring> *vs) {
   vals_.list_string = vs;
   return true;
 }
-inline bool mdl_var::set(pdvector<instPoint*> *vip) {
+inline bool mdl_var::set(pdvector<BPatch_point*> *vip) {
   reset();
   type_ = MDL_T_LIST_POINT;
   vals_.list_pts = vip;
@@ -799,8 +805,8 @@ inline bool mdl_var::make_list(unsigned element_type) {
   pdvector<pdstring> *vs;
   pdvector<int> *vi;
   pdvector<float> *vf;
-  pdvector<module*> *vm;
-  pdvector<function_base*> *vp;
+  pdvector<BPatch_module*> *vm;
+  BPatch_Vector<BPatch_function*> *vp;
   pdvector<functionName*> *fn;
 
   switch (element_type) {
@@ -817,7 +823,7 @@ inline bool mdl_var::make_list(unsigned element_type) {
     if (!set(vs)) return false;
     break;
   case MDL_T_PROCEDURE:
-    vp = new pdvector<function_base*>;
+    vp = new BPatch_Vector<BPatch_function*>;
     if (!set(vp)) return false;
     break;
   case MDL_T_PROCEDURE_NAME:
@@ -825,7 +831,7 @@ inline bool mdl_var::make_list(unsigned element_type) {
     if (!set(fn)) return false;
     break;
   case MDL_T_MODULE:
-    vm = new pdvector<module*>;
+    vm = new pdvector<BPatch_module*>;
     if (!set(vm)) return false;
     break;
   default:
@@ -967,14 +973,14 @@ inline bool mdl_env::set(float f, const pdstring& var_name) {
   return mdl_env::all_vars[index].set(f);
 }
 
-inline bool mdl_env::set(instPoint *p, const pdstring& var_name) {
+inline bool mdl_env::set(BPatch_point *p, const pdstring& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;
   return mdl_env::all_vars[index].set(p);
 }
 
-inline bool mdl_env::set(function_base *pr, const pdstring& var_name) {
+inline bool mdl_env::set(BPatch_function *pr, const pdstring& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;
@@ -988,7 +994,7 @@ inline bool mdl_env::set(functionName *fn, const pdstring& var_name) {
   return mdl_env::all_vars[index].set(fn);
 }
 
-inline bool mdl_env::set(module *mod, const pdstring& var_name) {
+inline bool mdl_env::set(BPatch_module *mod, const pdstring& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;
@@ -1002,7 +1008,7 @@ inline bool mdl_env::set(const pdstring& s, const pdstring& var_name) {
   return mdl_env::all_vars[index].set(s);
 }
 
-inline bool mdl_env::set(process *pr, const pdstring& var_name) {
+inline bool mdl_env::set(BPatch_thread *pr, const pdstring& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;
@@ -1016,7 +1022,7 @@ inline bool mdl_env::set(instrDataNode *dn, const pdstring& var_name) {
   return mdl_env::all_vars[index].set(dn);
 }
 
-inline bool mdl_env::set(pdvector<function_base*> *vp, const pdstring& var_name) {
+inline bool mdl_env::set(BPatch_Vector<BPatch_function*> *vp, const pdstring& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;
@@ -1028,7 +1034,7 @@ inline bool mdl_env::set(pdvector<functionName*> *vp, const pdstring& var_name) 
     return false;
   return mdl_env::all_vars[index].set(vp);
 }
-inline bool mdl_env::set(pdvector<module*> *vm, const pdstring& var_name) {
+inline bool mdl_env::set(pdvector<BPatch_module*> *vm, const pdstring& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;
@@ -1052,7 +1058,7 @@ inline bool mdl_env::set(pdvector<pdstring> *vs, const pdstring& var_name) {
     return false;
   return mdl_env::all_vars[index].set(vs);
 }
-inline bool mdl_env::set(pdvector<instPoint*> *vip, const pdstring& var_name) {
+inline bool mdl_env::set(pdvector<BPatch_point*> *vip, const pdstring& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.159 2004/04/09 18:03:03 legendre Exp $
+// $Id: mdl.C,v 1.160 2004/07/28 07:24:47 jaw Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -227,11 +227,11 @@ public:
    bool next() 
    {
       pdstring s;
-      function_base *pdf; module *m;
-      pdvector<function_base *> fbv;
+      BPatch_function *bpf; BPatch_module *m;
+      BPatch_Vector<BPatch_function *> bpfv;
       
       float f; int i;
-      instPoint *ip;
+      BPatch_point *ip;
       
       if (index >= max_index) return false;
       switch(element_type) 
@@ -249,40 +249,40 @@ public:
            // lookup-up the functions defined in resource lists
            // the function may not exist in the image, in which case we get the
            // next one
-           pdf = NULL;
+           bpf = NULL;
            do 
            {
               functionName *fn = (*funcName_list)[index++];
-              if (!global_proc->findAllFuncsByName(fn->get(), fbv)) {
+              if (!global_proc->findAllFuncsByName(fn->get(), bpfv)) {
                  //string msg = pdstring("unable to find procedure '") + 
                  //             fn->get() + pdstring("'");
                  //showErrorCallback(95, msg);
                  continue;
               }
-              else if (fbv.size() > 1) {
+              else if (bpfv.size() > 1) {
 #ifdef FIXME_AFTER_4
-                 pdstring msg = pdstring("WARNING:  found ") + pdstring(fbv.size()) +
+                 pdstring msg = pdstring("WARNING:  found ") + pdstring(bpfv.size()) +
                               pdstring(" records of function '") + fn->get() +
                               pdstring("'") + pdstring(".  Using the first.(1)");
                  //showErrorCallback(95, msg);
                  cerr << msg << endl;
 #endif
               }
-              pdf = fbv[0];
-           } while (pdf == NULL && index < max_index);
+              bpf = bpfv[0];
+           } while (bpf == NULL && index < max_index);
            
-           if (pdf == NULL) 
+           if (bpf == NULL) 
               return false;
            
-           pdvector<function_base *> *func_buf = new pdvector<function_base*>;
-           (*func_buf).push_back(pdf);
+           BPatch_Vector<BPatch_function *> *func_buf = new BPatch_Vector<BPatch_function*>;
+           (*func_buf).push_back(bpf);
            return (mdl_data::cur_mdl_data->env->set(func_buf, index_name));
         }
         case MDL_T_PROCEDURE: {
-           pdf = (*func_list)[index++];
-           pdvector<function_base *> *func_buf = new pdvector<function_base*>;
-           (*func_buf).push_back(pdf);
-           assert(pdf);
+           bpf = (*func_list)[index++];
+           BPatch_Vector<BPatch_function *> *func_buf = new BPatch_Vector<BPatch_function*>;
+           (*func_buf).push_back(bpf);
+           assert(bpf);
            return (mdl_data::cur_mdl_data->env->set(func_buf, index_name));
         }
         case MDL_T_MODULE: 
@@ -307,10 +307,10 @@ private:
   pdvector<float> *float_list;
   pdvector<pdstring> *string_list;
   pdvector<bool> *bool_list;
-  pdvector<function_base*> *func_list;
+  BPatch_Vector<BPatch_function*> *func_list;
   pdvector<functionName*> *funcName_list;
-  pdvector<module*> *mod_list;
-  pdvector<instPoint*> *point_list;
+  pdvector<BPatch_module*> *mod_list;
+  pdvector<BPatch_point*> *point_list;
   unsigned max_index;
 };
 
@@ -797,27 +797,27 @@ mdld_v_expr::apply_be(AstNode*& ast)
                  removeAst(tmparg);
               }
 
-              pdvector<function_base *> fbv;
-              function_base *pdf = NULL;
+              BPatch_Vector<BPatch_function *> bpfv;
+              BPatch_function *bpf = NULL;
 
-              if (!global_proc->findAllFuncsByName(var_, fbv)) {
+              if (!global_proc->findAllFuncsByName(var_, bpfv)) {
                  pdstring msg = pdstring("In metric '") + currentMetric + pdstring("': ")
                     + pdstring("unable to find procedure '") + var_ + pdstring("'");
                  mdl_data::cur_mdl_data->env->appendErrorString( msg );
                  return false;
               }
               else {
-                 if (fbv.size() > 1) {
+                 if (bpfv.size() > 1) {
                     pdstring msg = 
-                       pdstring("WARNING:  found ") + pdstring(fbv.size()) +
+                       pdstring("WARNING:  found ") + pdstring(bpfv.size()) +
                        pdstring(" records of function '") + var_ + pdstring("'") +
                        pdstring(".  Using the first.(3)");
                  mdl_data::cur_mdl_data->env->appendErrorString( msg );
                  }
-                 pdf = fbv[0];
+                 bpf = bpfv[0];
               }
 
-              if (!pdf) 
+              if (!bpf) 
               {
                  pdstring msg = pdstring("In metric '") + currentMetric + pdstring("': ")
                     + pdstring("unable to find procedure '") + var_ + pdstring("'");
@@ -1061,10 +1061,10 @@ mdld_v_expr::apply_be(mdl_var& ret)
            if (global_proc)
            {
               // TODO -- what if the function is not found ?
-              pdvector<function_base *> fbv;
-              function_base *pdf;
+              BPatch_Vector<BPatch_function *> bpfv;
+              BPatch_function *bpf;
               
-              if (!global_proc->findAllFuncsByName(func_name, fbv)) {
+              if (!global_proc->findAllFuncsByName(func_name, bpfv)) {
                  pdstring msg = pdstring("In metric '") + currentMetric +
                               pdstring("': ") + 
                               pdstring("unable to find procedure '") +
@@ -1073,16 +1073,16 @@ mdld_v_expr::apply_be(mdl_var& ret)
                  assert(0);
               }
               else {
-                 if (fbv.size() > 1) {
-                    pdstring msg = pdstring("WARNING:  found ") +pdstring(fbv.size())
+                 if (bpfv.size() > 1) {
+                    pdstring msg = pdstring("WARNING:  found ") +pdstring(bpfv.size())
                                + pdstring(" records of function '") + func_name +
                                  pdstring("'") + pdstring(".  Using the first.");
                      mdl_data::cur_mdl_data->env->appendErrorString( msg );
                  }
-                 pdf = fbv[0];
+                 bpf = bpfv[0];
               }
-              if (!pdf) { assert(0); return false; }
-              return (ret.set(pdf));
+              if (!bpf) { assert(0); return false; }
+              return (ret.set(bpf));
            }
            else { assert(0); return false; }
         }
@@ -1504,13 +1504,13 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
     return false;
   }
 
-  pdvector<instPoint *> points;
+  pdvector<BPatch_point *> points;
   if (pointsVar.type() == MDL_T_LIST_POINT) {
-    pdvector<instPoint *> *pts;
+    pdvector<BPatch_point *> *pts;
     if (!pointsVar.get(pts)) return false;
     points = *pts;
   } else if (pointsVar.type() == MDL_T_POINT) {
-    instPoint *p;
+    BPatch_point *p;
     if (!pointsVar.get(p)) return false; // where the point is located...
     points += p;
   } else {
@@ -1589,7 +1589,7 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
 
   // for all of the inst points, insert the predicates and the code itself.
   for (unsigned i = 0; i < points.size(); i++) {
-     mn->addInst(points[i], code, cwhen, corder);
+     mn->addInst(points[i]->PDSEP_instPoint(), code, cwhen, corder);
      // appends an instReqNode to mn's instRequests; actual 
      // instrumentation only
      // takes place when mn->loadInstrIntoApp() is later called.
@@ -1934,10 +1934,10 @@ static bool pick_out_matched_constraints(
 
 // put $start in the environment
 bool update_environment_start_point(instrCodeNode *codeNode) {
-   pdvector<function_base *> *start_func_buf = new pdvector<function_base*>;
+   BPatch_Vector<BPatch_function *> *start_func_buf = new BPatch_Vector<BPatch_function*>;
    pd_process *proc = codeNode->proc();
-   function_base *pdf = NULL;
-   pdvector<function_base *> fbv;
+   BPatch_function *bpf = NULL;
+   BPatch_Vector<BPatch_function *> bpfv;
 
    pdvector<pdstring> start_funcs;
 #if defined(rs6000_ibm_aix4_1)
@@ -1953,10 +1953,10 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
        for (unsigned start_iter = 0; 
             start_iter < start_funcs.size();
             start_iter++) {
-           if (fbv.size()) fbv.clear();
-           proc->findAllFuncsByName(start_funcs[start_iter], fbv);
-           for (unsigned i = 0; i < fbv.size(); i++) {
-               (*start_func_buf).push_back(fbv[i]);
+           if (bpfv.size()) bpfv.clear();
+           proc->findAllFuncsByName(start_funcs[start_iter], bpfv);
+           for (unsigned i = 0; i < bpfv.size(); i++) {
+               (*start_func_buf).push_back(bpfv[i]);
            }
        }
        if ((*start_func_buf).size() == 0) {
@@ -1964,8 +1964,9 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
                 << ", some data may be missed." << endl;
        }       
    }   
-   if (NULL != (pdf = proc->getMainFunction())) {
-       (*start_func_buf).push_back(pdf);      
+
+   if (NULL != (bpf = proc->getMainFunction())) {
+       (*start_func_buf).push_back(bpf);      
    }
    else {
        cerr << __FILE__ << __LINE__ << "getMainFunction() returned NULL!"<<endl;
@@ -1985,11 +1986,11 @@ static bool update_environment(pd_process *proc) {
    // for cases when libc is dynamically linked, the exit symbol is not
    // correct
    pdstring vname = "$exit";
-   pdvector<function_base *> *exit_func_buf = new pdvector<function_base*>;
-   pdvector<function_base *> fbv;
-   function_base *pdf = NULL;
+   BPatch_Vector<BPatch_function *> *exit_func_buf = new BPatch_Vector<BPatch_function*>;
+   BPatch_Vector<BPatch_function *> bpfv;
+   BPatch_function *bpf = NULL;
    
-   proc->findAllFuncsByName(pdstring(EXIT_NAME), *exit_func_buf); // JAW 04-03
+   proc->findAllFuncsByName(pdstring(EXIT_NAME), *exit_func_buf); 
    if (exit_func_buf->size() > 1) {
 #ifdef FIXME_AFTER_4
       pdstring msg = pdstring("WARNING:  found ") + pdstring(exit_func_buf->size()) +
@@ -2000,37 +2001,37 @@ static bool update_environment(pd_process *proc) {
 #endif
       
       // findAllFuncs found more than one function, clear all but one
-      pdf = (*exit_func_buf)[0];
+      bpf = (*exit_func_buf)[0];
       exit_func_buf->clear();
-      exit_func_buf->push_back(pdf);
+      exit_func_buf->push_back(bpf);
    }
    
-   pdf = NULL;
+   bpf = NULL;
 #if !defined(i386_unknown_nt4_0)
-   if (!proc->findAllFuncsByName("pthread_exit", fbv)) {
+   if (!proc->findAllFuncsByName("pthread_exit", bpfv)) {
        // Not an error... what about ST programs :)
        //string msg = pdstring("unable to find procedure '") + 
        //pdstring("pthread_exit") + pdstring("'");
        //showErrorCallback(95, msg);
    }
    else {
-      if (fbv.size() > 1) {
+      if (bpfv.size() > 1) {
 #ifdef FIXME_AFTER_4
-         pdstring msg = pdstring("WARNING:  found ") + pdstring(fbv.size()) +
+         pdstring msg = pdstring("WARNING:  found ") + pdstring(bpfv.size()) +
                       pdstring(" records of function '") +pdstring("pthread_exit")+
                       pdstring("'") + pdstring(".  Using the first.");
          //showErrorCallback(95, msg);
          cerr << msg << endl;;      
 #endif
       }
-      pdf = fbv[0];
+      bpf = bpfv[0];
    }
    
-   if(pdf)  (*exit_func_buf).push_back(pdf);
-   fbv.clear();
-   pdf = NULL;
+   if(bpf)  (*exit_func_buf).push_back(bpf);
+   bpfv.clear();
+   bpf = NULL;
    
-   if (!proc->findAllFuncsByName("thr_exit", fbv)) {
+   if (!proc->findAllFuncsByName("thr_exit", bpfv)) {
 #ifdef FIXME_AFTER_4
       pdstring msg = pdstring("unable to find procedure '") + pdstring("thr_exit") +
                    pdstring("'");
@@ -2039,47 +2040,47 @@ static bool update_environment(pd_process *proc) {
 #endif
    }
    else {
-      if (fbv.size() > 1) {
+      if (bpfv.size() > 1) {
 #ifdef FIXME_AFTER_4
-         pdstring msg = pdstring("WARNING:  found ") + pdstring(fbv.size()) +
+         pdstring msg = pdstring("WARNING:  found ") + pdstring(bpfv.size()) +
                       pdstring(" records of function '") + pdstring("thr_exit") +
                       pdstring("'") + pdstring(".  Using the first.");
          //showErrorCallback(95, msg);
          cerr << msg << endl;      
 #endif
       }
-      pdf = fbv[0];
+      bpf = bpfv[0];
    }
    
-   if(pdf) (*exit_func_buf).push_back(pdf);
+   if(bpf) (*exit_func_buf).push_back(bpf);
 #else
     // findAllFuncsByName works on pretty names, but EXIT_NAME is 
     // mangled on Windows
     proc->findAllFuncsByName( "exit", *exit_func_buf);
     if (exit_func_buf->size() > 1) {
       // findAllFuncs found more than one function, clear all but one
-      pdf = (*exit_func_buf)[0];
+      bpf = (*exit_func_buf)[0];
       exit_func_buf->clear();
-      exit_func_buf->push_back(pdf);
+      exit_func_buf->push_back(bpf);
     }
 
     proc->findAllFuncsByName( "ExitProcess", *exit_func_buf);
     if (exit_func_buf->size() > 1) {
       // findAllFuncs found more than one function, clear all but one
-      pdf = (*exit_func_buf)[0];
+      bpf = (*exit_func_buf)[0];
       exit_func_buf->clear();
-      exit_func_buf->push_back(pdf);
+      exit_func_buf->push_back(bpf);
     }
 
     proc->findAllFuncsByName( "ExitThread", *exit_func_buf);
     if (exit_func_buf->size() > 1) {
       // findAllFuncs found more than one function, clear all but one
-      pdf = (*exit_func_buf)[0];
+      bpf = (*exit_func_buf)[0];
       exit_func_buf->clear();
-      exit_func_buf->push_back(pdf);
+      exit_func_buf->push_back(bpf);
     }
 
-    pdf = NULL;
+    bpf = NULL;
 #endif // !defined(i386_unknown_nt4_0)
 
    if ((*exit_func_buf).size() > 0) { 
@@ -2096,7 +2097,8 @@ static bool update_environment(pd_process *proc) {
    vname = "$modules";
    mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_LIST_MODULE);
    // only get functions that are not excluded by exclude_lib or exclude_func
-   mdl_data::cur_mdl_data->env->set(proc->getIncludedModules(), vname);
+   pdvector<BPatch_module *> incmods;
+   mdl_data::cur_mdl_data->env->set(proc->getIncludedModules(&incmods), vname);
 
   return true;
 }
@@ -2427,7 +2429,7 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
               return(false);
            }
            
-           pdvector<function_base *> *func_buf = new pdvector<function_base*>;
+           BPatch_Vector<BPatch_function *> *func_buf = new BPatch_Vector<BPatch_function*>;
            if ( !proc->findAllFuncsByName(r, m_resource, *func_buf) ) {
               const pdvector<pdstring> &f_names = r->names();
               const pdvector<pdstring> &m_names = m_resource->names();
@@ -2446,7 +2448,7 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
            break;
         }
         case MDL_T_MODULE: {
-           module *mod = proc->findModule(trailingRes, true);
+           BPatch_module *mod = proc->findModule(trailingRes, true);
            if (!mod) {
               pdstring msg = pdstring("For requested metric-focus, ") + 
                  pdstring("unable to find module ") + trailingRes;
@@ -2902,17 +2904,20 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
       {
         case MDL_T_PROCEDURE_NAME:
         case MDL_T_PROCEDURE: {
-           pdvector<function_base *> *func_buf_ptr;
+           BPatch_Vector<BPatch_function *> *func_buf_ptr;
            if (!ret.get(func_buf_ptr)) return false;
-           pdvector<instPoint *> *inst_point_buf = new pdvector<instPoint*>;
+           pdvector<BPatch_point *> *inst_point_buf = new pdvector<BPatch_point*>;
                           
            switch (next_field) {
              case 0:  // .name
              {
                 pdvector<pdstring> *nameBuf = new pdvector<pdstring>;
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
-                   pdstring prettyName = (*func_buf_ptr)[i]->prettyName();
-                   (*nameBuf).push_back(prettyName);
+                   BPatch_function *f = (*func_buf_ptr)[i];
+                   char fn[2048];
+                   f->getName(fn, 2048);
+                   pdstring *prettyName = new pdstring(fn); /// mem leak? sssssssss
+                   (*nameBuf).push_back(*prettyName);
                 }
                 if (!ret.set(nameBuf)) return false;
                 break;
@@ -2925,11 +2930,9 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                 //
                 // ARI -- This is probably the spot!
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
-                   function_base *pdf = (*func_buf_ptr)[i];
-                   
-                   process *llproc =
-                      global_proc->get_dyn_process()->lowlevel_process();
-                   pdvector<instPoint*> calls = pdf->funcCalls(llproc);
+                   BPatch_function *bpf = (*func_buf_ptr)[i];
+                   BPatch_Vector<BPatch_point*> *calls = bpf->findPoint(BPatch_locSubroutine);
+
                    // makes a copy of the return value (on purpose), since we 
                    // may delete some items that shouldn't be a call site for 
                    // this metric.
@@ -2942,41 +2945,26 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                    // << endl;
                                                  
                    unsigned oldSize;
-                   for (unsigned u = 0; u < (oldSize = calls.size());
-                        (oldSize == calls.size()) ? u++ : u) 
-                   {  // calls.size() can change!
+                   for (unsigned u = 0; u < (oldSize = calls->size());
+                        (oldSize == calls->size()) ? u++ : u) 
+                   {  // calls->size() can change!
                       // metric_cerr << u << ") ";
                                                          
-                      instPoint *point = calls[u];
-                      function_base *callee =
-                         dynamic_cast<function_base*>(point->getCallee());
+                      BPatch_point *point = (*calls)[u];
+                      BPatch_function *callee = point->getCalledFunction();
+                         //dynamic_cast<function_base*>(point->getCallee());
                                                          
                       const char *callee_name=NULL;
-                                                         
+                      char fnamebuf[2048];                                   
                       if (callee == NULL) 
                       {
-                         // call Tia's new process::findCallee() to fill in point->callee
-                         if (!global_proc->findCallee(*point, callee)) 
-                         {
-                            // an unanalyzable function call; sorry.
-                            callee_name = NULL;
-                            // metric_cerr << "-unanalyzable-" << endl;
-                         }
-                         else 
-                         {
-                            // success -- either (a) the call has been bound
-                            // already, in which case the instPoint is updated
-                            // _and_ callee is set, or (b) the call hasn't yet
-                            // been bound, in which case the instPoint isn't
-                            // updated but callee *is* updated.
-                            callee_name = callee->prettyName().c_str();
-                            // metric_cerr << "(successful findCallee() was required) "
-                            // << callee_name << endl;
-                         }
+                         // an unanalyzable function call; sorry.
+                         callee_name = NULL;
+                         // metric_cerr << "-unanalyzable-" << endl;
                       }
                       else 
                       {
-                         callee_name = callee->prettyName().c_str();
+                         callee_name = callee->getName(fnamebuf, 2048);
                          // metric_cerr << "(easy case) " << callee->prettyName() << endl;
                       }
                       
@@ -2995,9 +2983,9 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                                
                                // remove calls[u] from calls.  To do this, swap
                                // calls[u] with calls[maxndx], and resize-1.
-                               const unsigned maxndx = calls.size()-1;
-                               calls[u] = calls[maxndx];
-                               calls.resize(maxndx);
+                               const unsigned maxndx = calls->size()-1;
+                               (*calls)[u] = (*calls)[maxndx];
+                               calls->resize(maxndx);
                                
                                // metric_cerr << "removed something! -- " << callee_name << endl;
                                
@@ -3009,17 +2997,15 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                    if (!anythingRemoved) 
                    {
                       // metric_cerr << "nothing was removed -- doing set() now" << endl;
-                      process *llproc =
-                         global_proc->get_dyn_process()->lowlevel_process();
-                      const pdvector<instPoint*> *pt_hold = 
-                         &(pdf->funcCalls(llproc));
+                      const BPatch_Vector<BPatch_point*> *pt_hold = 
+                         bpf->findPoint(BPatch_subroutine);
                       for(unsigned i=0; i<(*pt_hold).size(); i++)
                          (*inst_point_buf).push_back((*pt_hold)[i]);
                    }
                    else 
                    {
                       // metric_cerr << "something was removed! -- doing set() now" << endl;
-                      pdvector<instPoint*> pt_hold(calls);
+                      BPatch_Vector<BPatch_point*> pt_hold(*calls);
                       for(unsigned i=0; i<pt_hold.size(); i++)
                          (*inst_point_buf).push_back(pt_hold[i]);
                       
@@ -3036,12 +3022,11 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
              case 2:  // .entry  (eg. $start.entry or $exit.entry)
              {
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
-                   function_base *pdf = (*func_buf_ptr)[i];
-                   instPoint *entryPt;
-                   process *llproc =
-                      global_proc->get_dyn_process()->lowlevel_process();
-                   entryPt = const_cast<instPoint *>(pdf->funcEntry(llproc));
-                   (*inst_point_buf).push_back(entryPt);
+                   BPatch_function *bpf = (*func_buf_ptr)[i];
+                   const BPatch_Vector<BPatch_point*> *entry_pt_hold =
+                       bpf->findPoint(BPatch_entry);
+                   assert(entry_pt_hold->size());
+                   (*inst_point_buf).push_back((*entry_pt_hold)[0]);
                 }
                 if(! ret.set(inst_point_buf))
                    return false;
@@ -3050,15 +3035,13 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
              case 3:   // .return
              {
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
-                   function_base *pdf = (*func_buf_ptr)[i];
-                   process *llproc =
-                      global_proc->get_dyn_process()->lowlevel_process();
-                   const pdvector<instPoint *> func_exit_pts = 
-                      pdf->funcExits(llproc);
-                   for(unsigned j=0; j<func_exit_pts.size(); j++)
-                      (*inst_point_buf).push_back(func_exit_pts[j]);
+                   BPatch_function *bpf = (*func_buf_ptr)[i];
+                   const BPatch_Vector<BPatch_point *> *func_exit_pts = 
+                     bpf->findPoint(BPatch_exit);
+                   for(unsigned j=0; j<func_exit_pts->size(); j++)
+                      (*inst_point_buf).push_back((*func_exit_pts)[j]);
                 }
-                if(! ret.set(const_cast<pdvector<instPoint*>*>(inst_point_buf)))
+                if(! ret.set(const_cast<pdvector<BPatch_point*>*>(inst_point_buf)))
                    return false;
                 break;
              }
@@ -3070,13 +3053,14 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
         }
         case MDL_T_MODULE:
         {
-           module *mod;
+           BPatch_module *mod;
            if (!ret.get(mod)) return false;
            switch (next_field) 
            {
              case 0: 
              {
-                pdstring fileName = mod->fileName();
+                char modname[512];
+                pdstring fileName = pdstring(mod->getName(modname, 512));
                 if (!ret.set(fileName)) return false; 
              } break;
              case 1: 
@@ -3094,7 +3078,7 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                    // if there is not a global_proc, then just get all
                    // functions associtated with this module....under what
                    // circumstances would global_proc == 0 ???
-                   if (!ret.set(mod->getFunctions())) return false; 
+                   if (!ret.set(mod->getProcedures())) return false; 
                 }
                 break;
              }

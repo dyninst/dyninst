@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.22 2004/07/21 21:27:32 pcroth Exp $
+/* $Id: shmMgr.C,v 1.23 2004/07/28 07:24:47 jaw Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -48,8 +48,10 @@
 #include "common/h/std_namesp.h"
 #include "shmMgr.h"
 #include "shmSegment.h"
+#include "paradynd/src/pd_process.h"
 #include "dyninstAPI/h/BPatch_thread.h"
-
+#include "paradynd/src/init.h"
+extern void addLibraryCallback(BPatch_thread *, BPatch_module *, bool);
 
 shmMgr::shmMgr()
 {
@@ -68,12 +70,27 @@ bool shmMgr::initialize() {
     if (!shm_lib_name)
 	shm_lib_name = SHARED_MUTATEE_LIB;
 
+    //getBPatch().registerDynLibraryCallback((BPatchDynLibraryCallback) (addLibraryCallback));
     // Load the shared memory library via Dyninst's loadLibrary
     if (!app_thread->loadLibrary(shm_lib_name, true)) {
         fprintf(stderr, "Failed to load shared memory library\n");
         return false;
     }
-    
+    fprintf(stderr, "%s[%d]: Loaded library %s\n", __FILE__, __LINE__, shm_lib_name); 
+    BPatch_Vector<BPatch_module *> * mods = app_thread->getImage()->getModules();
+    static char mnamebuf[512];
+    BPatch_module *shm_mod = NULL;
+    for (unsigned int i = 0; i < mods->size(); ++i) {
+      (*mods)[i]->getName(mnamebuf, 512);
+      if (!strcmp(mnamebuf, shm_lib_name)) {
+        shm_mod = (*mods)[i];
+        break;
+      }
+    }
+    if (!shm_mod) {
+      fprintf(stderr, "%s[%d}:  Could not find module %s\n", __FILE__, __LINE__, shm_lib_name);
+    } 
+
     // Proactively make the first segment
     ShmSegment *new_seg = ShmSegment::Create(nextKeyToTry, shmSegSize, freeWhenDeleted);
     if (new_seg == NULL) {

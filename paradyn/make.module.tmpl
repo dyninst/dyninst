@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.50 2004/07/15 21:24:03 jaw Exp $
+# $Id: make.module.tmpl,v 1.51 2004/07/28 07:24:47 jaw Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -150,6 +150,10 @@ CFLAGS       += -DNO_MDL_PRINT
 CXXFLAGS     += -DNO_MDL_PRINT
 TFLAGS       += -DNO_MDL_PRINT
 
+CFLAGS       += -I../../dyninstAPI/h
+CXXFLAGS       += -I../../dyninstAPI/h
+TFLAGS       += -I../../dyninstAPI/h
+
 all:	$(TARGET) 
 
 templatesIGENMDL.o: ../src/templatesIGENMDL.C
@@ -165,5 +169,3 @@ templatesUIWASHG.o: ../src/templatesUIWASHG.C
 
 $(TCL2C_GEN_SRCS):	$(TCL_SRCS)
 	$(PERL) $(TCL2C) $^ > $@
-
-

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.40 2004/07/15 21:24:03 jaw Exp $
+# $Id: make.module.tmpl,v 1.41 2004/07/28 07:24:47 jaw Exp $
 #
 
 USES_FLEX       = true
@@ -17,6 +17,10 @@ LFLAGS          += -Pmdl
 CFLAGS		     += -DNEW_TIME_TYPES
 CXXFLAGS	     += -DNEW_TIME_TYPES
 TFLAGS		     += -DNEW_TIME_TYPES
+
+CFLAGS		     += -I../../dyninstAPI/h
+CXXFLAGS	     += -I../../dyninstAPI/h
+TFLAGS		     += -I../../dyninstAPI/h
 
 ifdef USES_LIBDYNINST_SO
 CXXFLAGS      += -fPIC
@@ -61,6 +65,7 @@ SRCS	     += ../../common/src/String.C \
  
 IGEN_ISRCS      = dyninstRPC.I
 IGEN_GEN_SRCS   = dyninstRPC.xdr.h
+
 PREREQUISITES = $(IGEN_GEN_SRCS)
 PREREQUISITES += mdlParser.C mdlScanner.C
 

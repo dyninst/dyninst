@@ -52,26 +52,46 @@ class pd_process;
 class pd_module;
 
 class pd_image {
+   friend void addLibraryCallback(BPatch_thread *, BPatch_module *, bool);
    static pdvector<pd_image *> all_pd_images;
-   image *dyn_image;
-   pd_process *parent_proc;
-   pdvector<pd_module *> pd_modules;
 
  public:
 
-   static pd_image *get_pd_image(image *dyn_image);
+   static pd_image *get_pd_image(BPatch_module *dyn_module);
+   pd_module *get_pd_module(BPatch_module *dyn_module);
 
-   pd_image(image *d_image, pd_process *p_proc);
+   pd_image(BPatch_image *d_image, pd_process *p_proc);
    ~pd_image();
 
-   image *get_dyn_image() {  return dyn_image; }
-   pdstring name() const { return dyn_image->name(); }
+   BPatch_image *get_dyn_image() {  return appImage; }
+   pd_process *getParentProc() {return parent_proc;}
+   pdstring name() const { return _name; }
 
    // report statically determinable caller-callee relationship to paradyn....
    void FillInCallGraphStatic(pd_process *proc);
 
    pdstring get_file() const;
    int getAddressWidth();
+
+
+   BPatch_Vector<BPatch_function *> *getIncludedFunctions();
+   BPatch_Vector<BPatch_function *> *getIncludedFunctions(BPatch_module *mod);
+   pdvector<BPatch_module *> *getIncludedModules(pdvector<BPatch_module *>*buf);
+   BPatch_module *findModule(const pdstring &mod_name, bool check_excluded);
+   bool hasModule(BPatch_module *mod);
+
+ private:
+
+   bool addModule(BPatch_module *mod);
+
+   BPatch_image *appImage;
+   pd_process *parent_proc;
+   BPatch_Vector<BPatch_function *> *some_funcs; // included functions
+   pdvector <pd_module *> some_mods; // included modules
+   pdvector <pd_module *> all_mods;
+
+   pdstring _name;
+   pdstring _fname;
 };
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.112 2004/05/11 19:01:51 bernat Exp $ */
+/* $Id: context.C,v 1.113 2004/07/28 07:24:47 jaw Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -192,7 +192,7 @@ void createThread(traceThread *fr) {
 
    pd_image *im = proc->getImage();
    pdstring fl = im->get_file();
-
+   
    CallGraphSetEntryFuncCallback(fl, res_string, thr->get_tid());
 }
 

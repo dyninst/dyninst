@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.504 2004/07/15 16:36:17 gquinn Exp $
+// $Id: process.C,v 1.505 2004/07/28 07:24:46 jaw Exp $
 
 #include <ctype.h>
 
@@ -3266,9 +3266,9 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
       return false;
    }
 
-   if(findModule("libthread.so.1", true) ||  // Solaris
-      findModule("libpthreads.a", true)  ||  // AIX
-      findModule("libpthread.so.0", true))   // Linux
+   if(findModule("libthread.so.1") ||  // Solaris
+      findModule("libpthreads.a")  ||  // AIX
+      findModule("libpthread.so.0"))   // Linux
    {
       cached_result = cached_mt_true;
       return true;
@@ -3906,7 +3906,7 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
                    
         const pdvector<pd_Function*> *allFuncs = new_obj->getAllFunctions();
 
-        for(int funcIndex=0; execed_ && funcIndex<allFuncs->size();funcIndex++){
+        for(unsigned int funcIndex=0; execed_ && funcIndex<allFuncs->size();funcIndex++){
                 if( (*allFuncs)[funcIndex]->hasBeenRelocated(this) ){
                         (*allFuncs)[funcIndex]->unrelocatedByProcess(this);
                 }
@@ -4002,43 +4002,6 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     }
 #endif // sparc-mips
 #endif // !linux
-
-    // clear the include_funcs flag if this shared object should not be
-    // included in the some_functions and some_modules lists
-#ifndef BPATCH_LIBRARY
-    pdvector<pdstring> lib_constraints;
-    if(mdl_get_lib_constraints(lib_constraints)){
-        for(u_int j=0; j < lib_constraints.size(); j++){
-           char *where = 0; 
-           // if the lib constraint is not of the form "module/function" and
-           // if it is contained in the name of this object, then exclude
-           // this shared object
-           char *obj_name = P_strdup(new_obj->getName().c_str());
-           char *lib_name = P_strdup(lib_constraints[j].c_str());
-           if(obj_name && lib_name && (where=P_strstr(obj_name, lib_name))){
-              new_obj->changeIncludeFuncs(false); 
-           }
-           if(lib_name) free(lib_name);
-           if(obj_name) free(obj_name);
-        }
-    }
-
-    // This looks a bit wierd at first glance, but apparently is ok -
-    //  A shared object has 1 module.  If that module is excluded,
-    //  then new_obj->includeFunctions() should return FALSE.  As such,
-    //  the some_modules += new_obj->getModules() is OK as long as
-    //  shared objects have ONLY 1 module.
-    if(new_obj->includeFunctions()){
-        if(some_modules) {
-            *some_modules += *((const pdvector<module *> *)(new_obj->getModules()));
-        }
-        if(some_functions) {
-            // gets only functions not excluded by mdl "exclude_node" option
-            *some_functions += 
-                *((pdvector<function_base *> *)(new_obj->getIncludedFunctions()));
-        }
-    }
-#endif /* BPATCH_LIBRARY */
 
     assert(BPatch::bpatch);
     const pdvector<pdmodule *> *modlist = new_obj->getModules();
@@ -4170,19 +4133,10 @@ function_base *process::findOnlyOneFunction(pdstring func_name,
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
             module *next = 0;
-            next = ((*shared_objects)[j])->findModule(mod_name,true);
+            next = ((*shared_objects)[j])->findModule(mod_name);
 
             if(next){
-                if(((*shared_objects)[j])->includeFunctions()){ 
-                  //cerr << "function found in module " << mod_name.c_str() << endl;
-		  //return(((*shared_objects)[j])->findFuncByName(func_name));
 		  return (*shared_objects)[j]->findOnlyOneFunction(func_name);
-		} 
-                else { 
-                  //cerr << "function found in module " << mod_name.c_str()
-                  //    << " that module excluded" << endl;
-                  return 0;
-                } 
             }
         }
     }
@@ -4212,23 +4166,15 @@ bool process::findAllFuncsByName(resource *func, resource *mod,
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
             module *next = 0;
-            next = ((*shared_objects)[j])->findModule(mod_name,true);
+            next = ((*shared_objects)[j])->findModule(mod_name);
 
             if(next){
-                if(((*shared_objects)[j])->includeFunctions()){ 
-                  //cerr << "function found in module " << mod_name.c_str() << endl;
-                   if (NULL != (pdfv = ((*shared_objects)[j])->findFuncVectorByPretty(func_name))) {
-                      for (unsigned int i = 0; i < pdfv->size(); ++i) {
-                         res.push_back((*pdfv)[i]);
-                      }
-                      return true;
-                   }
-                }
-                else { 
-                  //cerr << "function found in module " << mod_name.c_str()
-                  //    << " that module excluded" << endl;
-                  return false;
-                } 
+               if (NULL != (pdfv = ((*shared_objects)[j])->findFuncVectorByPretty(func_name))) {
+                 for (unsigned int i = 0; i < pdfv->size(); ++i) {
+                    res.push_back((*pdfv)[i]);
+                 }
+                 return true;
+               }
             }
         }
     }
@@ -4242,45 +4188,6 @@ bool process::findAllFuncsByName(resource *func, resource *mod,
 }
 
 #endif /* BPATCH_LIBRARY */
-
-#ifndef BPATCH_LIBRARY
-// returns all the functions in the module "mod" that are not excluded by
-// exclude_lib or exclude_func
-// return 0 on error.
-pdvector<function_base *> *process::getIncludedFunctions(module *mod) {
-
-    if((!mod)) { return 0; }
-
-    //cerr << "process::getIncludedFunctions(" << mod->fileName() << ") called" << endl;
-
-    // KLUDGE: first search any shared libraries for the module name 
-    //  (there is only one module in each shared library, and that 
-    //  is the library name)
-    if(dynamiclinking && shared_objects){
-        for(u_int j=0; j < shared_objects->size(); j++){
-            module *next = 0;
-            next = ((*shared_objects)[j])->findModule(mod->fileName(), true);
-            if(next){
-                if(((*shared_objects)[j])->includeFunctions()){ 
-                    return((pdvector<function_base *> *)
-                           ((*shared_objects)[j])->getIncludedFunctions());
-                } 
-                else { return 0;} 
-            }
-        }
-    }
-
-    // this must be an a.out module so just return the list associated
-    // with the module.
-    // Now that exclude should work for both static and dynamically
-    // linked executables, probably need to either filter excluded
-    // files here, or let the module do it and pass the information not
-    // to include excluded functions along with this proc call....
-    // mcheyney 970927
-    return(mod->getIncludedFunctions());
-}
-#endif /* BPATCH_LIBRARY */
-
 
 // Parse name into library name and function name. If no library is specified,
 // lib gets the empty string "". 
@@ -4683,30 +4590,6 @@ bool process::deleteCodeRange(Address addr) {
 // findModule: returns the module associated with mod_name 
 // this routine checks both the a.out image and any shared object
 // images for this resource
-// if check_excluded is true it checks to see if the module is excluded
-// and if it is it returns 0.  If check_excluded is false it doesn't check
-#ifndef BPATCH_LIBRARY
-pdmodule *process::findModule(const pdstring &mod_name, bool check_excluded) {
-   // KLUDGE: first search any shared libraries for the module name 
-   //  (there is only one module in each shared library, and that 
-   //  is the library name)
-   if(dynamiclinking && shared_objects){
-      for(u_int j=0; j < shared_objects->size(); j++){
-         pdmodule *next = ((*shared_objects)[j])->findModule(mod_name,
-                                                           check_excluded);
-         if(next) {
-            return(next);
-         }
-      }
-   }
-
-   // check a.out for function symbol
-   //  Note that symbols is data member of type image* (comment says
-   //  "information related to the process"....
-   pdmodule *mret = symbols->findModule(mod_name, check_excluded);
-   return mret;
-}
-#else
 pdmodule *process::findModule(const pdstring &mod_name)
 {
    // KLUDGE: first search any shared libraries for the module name 
@@ -4727,7 +4610,6 @@ pdmodule *process::findModule(const pdstring &mod_name)
    pdmodule *mret = symbols->findModule(mod_name);
    return mret;
 }
-#endif
 
 // getSymbolInfo:  get symbol info of symbol associated with name n
 // this routine starts looking a.out for symbol and then in shared objects
@@ -4796,11 +4678,8 @@ pdvector<module *> *process::getAllModules(){
 
     // else create the list of all modules
     all_modules = new pdvector<module *>;
-#ifdef BPATCH_LIBRARY
     VECTOR_APPEND(*all_modules,*((const pdvector<module *> *)(&(symbols->getModules()))));
-#else
-    VECTOR_APPEND(*all_modules,*((const pdvector<module *> *)(&(symbols->getAllModules()))));
-#endif
+
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
            const pdvector<module *> *mods = (const pdvector<module *> *)
@@ -4811,82 +4690,6 @@ pdvector<module *> *process::getAllModules(){
     } } 
     return all_modules;
 }
-
-#ifndef BPATCH_LIBRARY
-// getIncludedFunctions: returns a vector of all functions defined in the
-// a.out and in the shared objects
-// TODO: what to do about duplicate function names?
-pdvector<function_base *> *process::getIncludedFunctions(){
-    //cerr << "process " << programName << " :: getIncludedFunctions() called"
-    //   << endl;
-    // if this list has already been created, return it
-    if(some_functions) 
-        return some_functions;
-
-    // else create the list of all functions
-    some_functions = new pdvector<function_base *>;
-    const pdvector<function_base *> &incl_funcs = 
-        (pdvector<function_base *> &)(symbols->getIncludedFunctions());
-        *some_functions += incl_funcs;
-
-    //cerr << " (process::getIncludedFunctions), about to add incl_funcs to some_functions, incl_funcs = " << endl;
-    //print_func_vector_by_pretty_name(pdstring(">>>"), &incl_funcs);
-
-    if(dynamiclinking && shared_objects){
-        for(u_int j=0; j < shared_objects->size(); j++){
-            if(((*shared_objects)[j])->includeFunctions()){
-                // kludge: can't assign a vector<derived_class *> to 
-                // a vector<base_class *> so recast
-                pdvector<function_base *> *funcs = (pdvector<function_base *> *)
-                        (((*shared_objects)[j])->getIncludedFunctions());
-                if(funcs) { 
-                    *some_functions += (*funcs); 
-                } 
-            } 
-    } } 
-
-    //cerr << " (process::getIncludedFunctions()) about to return fucntion list : ";
-    //print_func_vector_by_pretty_name(pdstring("  "), some_functions);
-
-    return some_functions;
-}
-
-// getIncludedModules: returns a vector of all modules defined in the
-// a.out and in the shared objects that are included as specified in
-// the mdl
-
-pdvector<module *> *process::getIncludedModules(){
-
-    //cerr << "process::getIncludedModules called" << endl;
-
-    // if the list of all modules has already been created, the return it
-    if(some_modules) {
-        //cerr << "some_modules already created, returning it:" << endl;
-        //print_module_vector_by_short_name(pdstring("  "), (vector<pdmodule*>*)some_modules);
-        return some_modules;
-    }
-
-    // else create the list of all modules
-    some_modules = new pdvector<module *>;
-    *some_modules += *((const pdvector<module *> *)(&(symbols->getIncludedModules())));
-
-    if(dynamiclinking && shared_objects){
-        for(u_int j=0; j < shared_objects->size(); j++){
-            if(((*shared_objects)[j])->includeFunctions()){
-               const pdvector<module *> *mods = (const pdvector<module *> *) 
-                        (((*shared_objects)[j])->getModules());
-               if(mods) {
-                   *some_modules += *mods; 
-               }
-           }
-    } } 
-
-    //cerr << "some_modules newly created, returning it:" << endl;
-    //print_module_vector_by_short_name(pdstring("  "),
-    //    (vector<pdmodule*>*)some_modules);
-    return some_modules;
-}
-#endif /* BPATCH_LIBRARY */
 
 // getBaseAddress: sets baseAddress to the base address of the 
 // image corresponding to which.  It returns true  if image is mapped

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2004/07/15 21:24:03 jaw Exp $
+# $Id: Makefile,v 1.5 2004/07/28 07:24:46 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -65,12 +65,16 @@ include ../../make.library.tmpl
 
 libDyninstAPI_RT.so.1: libDyninstText.a
 libDyninstText.a: space.o
-	rm -f libSpace.o
-	rm -f libDyninstText.a
-	ar crv libDyninstText.a space.o
+	rm -f libSpace.o 
+	rm -f libDyninstText.a 
+	ar crv libDyninstText.a space.o 
 	-$(CP) libDyninstText.a $(DEST)
 	-chmod 755 $(DEST)/libDyninstText.a
 	rm -f space.o
+libSpace.o:
+	$(CC) -c -o libSpace.o ../src/libSpace.s
+space.o: libSpace.o
+	ld -o space.o -bexpall -bnoentry -bM:SRE libSpace.o 
 
 libSpace.o:
 	$(CC) -c -o libSpace.o ../src/libSpace.s

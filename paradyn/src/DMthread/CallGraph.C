@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.20 2004/06/21 19:37:10 pcroth Exp $
+// $Id: CallGraph.C,v 1.21 2004/07/28 07:24:47 jaw Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -101,6 +101,7 @@ int CallGraph::name2id(pdstring exe_name){
     if(directory[u]->getExeAndPathName() == exe_name)
       return directory[u]->getId();
   }
+
   return -1;
 }
 
@@ -313,8 +314,10 @@ bool CallGraph::isStartFunction(resourceHandle rh) {
 
 CallGraph *CallGraph::FindCallGraph(pdstring exe_name) {
   int pid = name2id(exe_name);
-  if(pid == -1)
+
+  if(pid == -1) 
     return NULL;
+  
   if (directory.defines(pid)) {
     return directory[pid];
   }
