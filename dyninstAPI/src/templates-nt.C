@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.6 1998/03/06 21:33:09 buck Exp $
+ * $Id: templates-nt.C,v 1.7 1998/04/07 21:42:01 buck Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
@@ -55,7 +55,9 @@
 #include "util/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
+#ifndef BPATCH_LIBRARY
 #include "paradyn/src/met/mdl.h"
+#endif
 
 template class vectorSet<process::inferiorRPCtoDo>;
 template class vectorSet<process::inferiorRPCinProgress>;
@@ -65,8 +67,10 @@ template class dictionary_hash<unsigned int, resource *>;
 template class dictionary_hash<unsigned int, heapItem *>;
 template class dictionary_hash<unsigned int, _cpSample *>;
 template class dictionary_hash<unsigned int, pd_Function *>;
+#ifndef BPATCH_LIBRARY
 template class dictionary_hash<unsigned int, metricDefinitionNode *>;
 template class dictionary_hash<unsigned int, vector<mdl_type_desc> >;
+#endif
 
 template class dictionary_hash<string, unsigned int>;
 template class dictionary_hash<string, string>;
@@ -75,7 +79,9 @@ template class dictionary_hash<string, resource *>;
 template class dictionary_hash<string, pdmodule *>;
 template class dictionary_hash<string, pd_Function *>;
 template class dictionary_hash<string, internalSym *>;
+#ifndef BPATCH_LIBRARY
 template class dictionary_hash<string, metricDefinitionNode *>;
+#endif
 template class dictionary_hash<string, vector<string> *>;
 template class dictionary_hash<string, vector<pd_Function *> *>;
 
