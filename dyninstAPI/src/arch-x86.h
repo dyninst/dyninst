@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.18 2004/04/01 00:48:19 lharris Exp $
+// $Id: arch-x86.h,v 1.19 2004/04/08 21:14:08 lharris Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -227,5 +227,5 @@ inline Address region_hi(const Address /*x*/) { return 0xf0000000; }
 bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
 bool insn_hasDisp8(unsigned ModRM);
 bool insn_hasDisp32(unsigned ModRM);
-
+bool isStackFramePreamble( instruction& insn );
 #endif

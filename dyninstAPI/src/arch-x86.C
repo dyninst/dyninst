@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.22 2004/04/02 06:34:12 jaw Exp $
+// $Id: arch-x86.C,v 1.23 2004/04/08 21:14:07 lharris Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1417,3 +1417,39 @@ bool insn_hasDisp32(unsigned ModRMbyte){
     unsigned RM = ModRMbyte & 0x07;
     return (Mod == 0 && RM == 5) || (Mod == 2);
 }
+
+bool isStackFramePreamble( instruction& insn1 )
+{
+    //look for the following sequences in the gaps
+    //1.
+    //55      push  %ebp
+    //89 35   mov   %esp, %ebp
+    
+    //2.
+    //55      push  %ebp
+    //xx xx   xxx   xxxx, xxxx  (can be any instruction)
+    //89 35   mov   %esp, %ebp               
+    
+    instruction insn2, insn3;
+    insn2.getNextInstruction( insn1.ptr() + insn1.size() );       
+    insn3.getNextInstruction( insn2.ptr() + insn2.size() );
+
+    const unsigned char* p = insn1.ptr();
+    const unsigned char* q = insn2.ptr();
+    const unsigned char* r = insn3.ptr();
+
+    if( insn1.size() != 1 )
+        return false;
+    
+    if( p[ 0 ] != PUSHEBP )
+        return false;
+       
+    if( insn2.size() == 2 && q[0] == 0x89 && q[1] == 0xe5 )
+        return true;
+
+    if( insn3.size() == 2 && r[0] == 0x89 && r[1] == 0xe5 )
+        return true;
+    
+    return false;
+}
+
