@@ -1,9 +1,17 @@
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.9  1995/09/22 19:24:03  tamches
-/* removed warnings under g++ 2.7.0
+/* Revision 1.10  1996/01/10 02:33:23  tamches
+/* changed uses of dynamic1dArray/2d to the vector class
+/* removed theWindowName
+/* added a tkInstallIdle
+/* int --> unsigned for many index variables
+/* constructor now takes an array of color names
+/* added getMetricColorName
 /*
+ * Revision 1.9  1995/09/22 19:24:03  tamches
+ * removed warnings under g++ 2.7.0
+ *
  * Revision 1.8  1994/11/06  10:26:20  tamches
  * removed fullResourceHeight as a member vrble
  *
@@ -40,84 +48,79 @@
 #ifndef _BARCHART_H_
 #define _BARCHART_H_
 
-#include <array2d.h>
+// Note: we should make an effort to keep this class as tk-independent as possible.
 
-typedef dynamic1dArray<bool>   dynamic1dArrayBool;
-typedef dynamic1dArray<int>    dynamic1dArrayInt;
-typedef dynamic1dArray<double> dynamic1dArrayDouble;
-typedef dynamic1dArray<XColor *> dynamic1dArrayXColor;
-
-typedef dynamic2dArray<bool>   dynamic2dArrayBool;
-typedef dynamic2dArray<int>    dynamic2dArrayInt;
-typedef dynamic2dArray<double> dynamic2dArrayDouble;
+#include "Vector.h"
+#include "String.h"
+#include "tcl.h"
+#include "tk.h"
+#include "tkTools.h"
 
 class BarChart {
  private:
-   static bool currentlyInstalledLowLevelDrawBars;
-
- private:
-   char *theWindowName; // in tk-style; e.g. ".a.b.c"
    Tk_Window theWindow;
+   tkInstallIdle drawWhenIdle;
 
    bool HaveSeenFirstGoodWid;
-      // set when wid becomes non-zero (which is unfortunately not
-      // until the tk packer is run on theWindow)
-   Window  wid; // low-level window id used in Xlib drawing calls
+      // set when wid becomes non-zero (usually 1st resize event)
    int     borderPix; // in pixels
-   int     currScrollOffset; // in pixels
+   int     currScrollOffset; // in pixels (always <= 0?)
    int     width, height;
    Display *display; // low-level display structure used in Xlib drawing calls
 
    XColor *greyColor; // for the background
-   dynamic1dArrayXColor metricColors;
-      // each metric has its own color-code in which its bars are drawn
+   vector<string> metricColorNames; // needed for call by tcl
+   vector<XColor *> metricColors;
+      // an arbitrary-sized array (not necessarily equal to # metrics)
+      // (note: this is a new characteristic!!!)
 
    GC myGC; // we change colors here very frequently with XSetForeground/
             // XSetBackground before actual drawing; hence, we could not use
             // Tk_GetGC
 
+  public:
    enum DataFormats {Current, Average, Total};
+  private:
    DataFormats DataFormat;
 
    Pixmap doubleBufferPixmap;
       // set with XCreatePixmap; you should reset with XFreePixmap and another call
       // to XCreatePixmap whenever the window size changes.  Delete with
       // XFreePixmap when done.
+   void changeDoubleBuffering();
 
-   int numMetrics, numResources;
-   int numValidMetrics, numValidResources; // how many are enabled by visi lib (as opposed to deleted)
+   unsigned numMetrics, numResources;
+   unsigned numValidMetrics, numValidResources;
+      // how many are enabled by visi lib (as opposed to deleted)
 
-   dynamic1dArrayInt indirectResources;
-   dynamic1dArrayBool validMetrics, validResources;
+   vector<unsigned> indirectResources;
+   vector<bool> validMetrics, validResources;
       // which metrics and resources are valid and should be drawn?
 
    int totalResourceHeight; // same as tcl vrble "currResourceHeight"
    int individualResourceHeight; // fullResourceHeight / numMetrics, but pinned to a max value (maxIndividualColorHeight tcl vrble)
    int resourceBorderHeight; // vertical padding due to "90%" rule, above.
 
-   dynamic2dArrayInt barWidths;
+   vector< vector<double> > values;
+      // array [metric][rsrc] of numerical (not pixel) bar values
+      // the basis for barPixWidths[][]
+   vector< vector<int> > barPixWidths;
       // array [metric][rsrc] of pixel widths for each bar.  This
       // changes quite often (every time new data arrives) and
       // needs to be saved for the case of expose events...
-   dynamic2dArrayDouble barValues;
-      // array [metric][rsrc] of numerical (not pixel) bar values
-      // the basis for barWidths[][]
-   dynamic1dArrayDouble metricCurrMaxVals;
+   vector<double> metricCurrMaxVals;
       // array [metric] of the current y-axis high value for each metric.
       // When new data comes in that is higher than this, I give the command
       // to rethink the metrics axis.
 
-   void changeDoubleBuffering();
-
    bool TryFirstGoodWid();
       // if wid is still zero, try a fresh Tk_WindowId() to try and change that...
 
-   void lowLevelDrawBars();
-      // sets up lowestLevelDrawBars() to be called the next time tk is idle.
    void lowestLevelDrawBarsDoubleBuffer();
+      // called by the below routine
 
-   static void lowestLevelDrawBars(ClientData ignore);
-      // assuming the barWidths[][] have changed, redraw bars
+   static void lowestLevelDrawBars(ClientData pthis);
+      // assuming the barPixWidths[][] have changed, redraw bars
       // with a call to XFillRectanges() or Tk_Fill3DRectangle()'s.
       // the "static" ensures that "this" isn't required to
       // call this routine, which is absolutely necessary since
@@ -130,23 +133,34 @@ class BarChart {
       
    void RethinkBarLayouts();
       // assuming a resize (but not added/deleted metrics), fill in barXoffsets,
-      // barWidths, resourceCurrMaxY, etc, 
+      // barPixWidths, resourceCurrMaxY, etc, 
 
-   void RethinkBarWidths();
+   void rethinkBarPixWidths();
       // assuming given new bar values and/or new metric max values and/or change
       // in window width, recalculate barWidths[][].
 
-   void rethinkBarValues();
+   void rethinkValues();
+      // reallocates values[][], assuming a major config change
+
    void rethinkMetricMaxValues();
-   void setMetricNewMax(const int metricindex, const double newmaxval);
-   double nicelyRoundedMetricNewMaxValue(const int metricindex, const double newmaxval);
+   void setMetricNewMax(unsigned metricindex, double newmaxval);
+   double nicelyRoundedMetricNewMaxValue(unsigned metricindex, double newmaxval);
 
   public:
-   BarChart(char *tkWindowName, const int iNumMetrics, const int iNumResources);
+
+   BarChart(char *tkWindowName, unsigned iNumMetrics, unsigned iNumResources,
+	    const vector<string> &colorNames);
   ~BarChart();
 
+   unsigned getNumMetrics() const {
+      return numMetrics;
+   }
+   unsigned getNumFoci() const {
+      return numResources;
+   }
+
    void processFirstGoodWid();
-   void processResizeWindow(const int newWidth, const int newHeight);
+   void processResizeWindow(int newWidth, int newHeight);
    void processExposeWindow();
 
    void RethinkMetricsAndResources();
@@ -157,13 +171,18 @@ class BarChart {
       // When done, redraws.
    void rethinkIndirectResources(); // needed to implement sorting
 
-   void processNewData(const int newBucketIndex);
+   void processNewData(int newBucketIndex);
       // assuming new data has arrived at the given bucket index for all
       // metric/rsrc pairs, read the new information from dataGrid[][],
       // update barWidths[][] accordingly, and call lowLevelDrawBars()
 
-   void processNewScrollPosition(const int newPos);
-   void rethinkDataFormat();
+   void processNewScrollPosition(int newPos);
+   void rethinkDataFormat(DataFormats);
+
+   const string &getMetricColorName(unsigned index) const {
+      index %= metricColorNames.size();
+      return metricColorNames[index];
+   }
 };
 
 extern BarChart *theBarChart;
