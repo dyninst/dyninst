@@ -14,7 +14,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.3  1994/08/03 19:11:07  hollings
+ * Revision 1.4  1994/08/04 21:50:41  newhall
+ * changed value of hlen in metMain() to fix array bounds write error
+ *
+ * Revision 1.3  1994/08/03  19:11:07  hollings
  * split tunable constants into two parts: boolean and float.
  *
  * Revision 1.2  1994/07/07  13:10:41  markc
@@ -123,7 +126,7 @@ int metMain()
   if (home)
     {
       hlen = strlen(home);
-      hlen += (1 + strlen(CONFIG_NAME));  
+      hlen += (1 + strlen(CONFIG_SLASH));  
       homecat = new char[hlen];
       strcpy(homecat, home);
       strcat(homecat, CONFIG_SLASH);
