@@ -63,14 +63,8 @@ class threadMgr {
    thrIter end() { return thrBuf.end(); }
    unsigned size() const { return thrBuf.size(); }
 
-   void removeThread(pd_thread *p) {
-      for(unsigned i=0; i<thrBuf.size(); i++) {
-	 if(thrBuf[i] == p) {
-	    thrBuf[i] = NULL;
-	 }
-      }
-   }
    void removeThread(unsigned tid);
+   void removeThread(pd_thread *p);
 
    pd_thread *find_pd_thread(dyn_thread *dyn_thr);
    pd_thread *find_pd_thread(int tid);
