@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.22  1995/12/10 16:35:52  zhichen
+ * Revision 1.23  1995/12/17 20:58:10  zhichen
+ * Hopefully, the samples will arrive
+ *
+ * Revision 1.22  1995/12/10  16:35:52  zhichen
  * Minor clean up
  *
  * Revision 1.21  1995/10/27  01:04:40  zhichen
@@ -130,7 +133,7 @@ void DYNINSTreportCounter(intCounter *counter)
 {
     traceSample sample;
 
-/*  printf("DYNINSTreportCounter ...\n") ; */
+    /* printf("DYNINSTreportCounter ...\n") ;  */
     sample.value = counter->value;
     sample.id = counter->id;
     DYNINSTtotalSamples++;
@@ -174,7 +177,7 @@ volatile int DYNINSTsampleMultiple = 1;
  */
 void DYNINSTsampleValues()
 {
-/*     printf ("DYNINSTsampleValues called...\n"); */
+/*    printf ("DYNINSTsampleValues called...\n"); */
 /* 
  * There is alarm that will go off periodically. Each time the alaram expires. A routine
  * called DYNINSTalarmExpires (which is a handler for the alarm) will be executed.
@@ -295,18 +298,21 @@ void DYNINSTalarmExpire()
     float fp_context[33];	/* space to store fp context */
 
 
-     /* printf ("DYNINSTalarmExpired\n");        */
+    /* printf ("DYNINSTalarmExpired\n");       */
     /* should use atomic test and set for this */
     if (DYNINSTin_sample) return;
-
     DYNINSTin_sample = 1;
 
     /* only sample every DYNINSTsampleMultiple calls */
     DYNINSTtotalAlaramExpires++;
-    if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0)  {
+    /*
+    printf("DYNINSTnumSampled = %d, DYNINSTsampleMultiple=%d\n",
+  	    DYNINSTnumSampled, DYNINSTsampleMultiple) ;
+    */
+    if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0)  
+      {
 
 	saveFPUstate(fp_context);
-
 	start = DYNINSTgetCPUtime();
 
 	/* make sure we call this enough to keep observed cost accurate due to
