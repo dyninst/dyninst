@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.212 2004/04/13 04:11:41 legendre Exp $
+// $Id: symtab.C,v 1.213 2004/04/19 21:31:10 mirg Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2980,7 +2980,7 @@ pd_Function *image::findFuncByOffset(const Address &offset) const {
     assert(func->get_address() <= offset);
 
     // See if our offset is in the range of the function
-    if (func->get_address() + func->get_size() >= offset) {
+    if (func->get_address() + func->get_size() > offset) {
         return func;
     }
     else {
