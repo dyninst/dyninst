@@ -1,5 +1,8 @@
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.6  1996/02/11 21:23:45  tamches
+# TCL2C invoked via perl
+#
 # Revision 1.5  1995/12/27 08:29:59  tamches
 # added TCLFRIENDLYWARNINGS to compile flags (used to reside in system-specific
 # makefile for no good reason)
@@ -41,14 +44,21 @@ TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 IFLAGS 		+= -I../../../util/h \
 		   -I../../../paradyn/src/UIthread
 
+# if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
+# inserted by make.config won't be enough for the compiler to find,
+# say, visi/h/visualization.h.  We don't want to force the user to have
+# "visi" checked out in order to compile tableVisi.
+IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I/p/paradyn/core; fi )
+
 TCL_SRCS	= $(wildcard ../tcl/*.tcl)
 #TCL_SRCS	= 
 SRCS		+= $(TCL2C_GEN_SRCS)
 
+#LIBDIR		+= -L/s/X11/lib
 LIBS         += -lvisi -lpdutil 
 SYSLIBS	     += -ltk -ltcl -lX11 -lm
 
 all:	$(TARGET)
 
 $(TCL2C_GEN_SRCS): $(TCL_SRCS)
-	$(TCL2C) $^ > $@
+	perl $(TCL2C) $^ > $@
