@@ -987,7 +987,7 @@ unsigned emitFuncCall(opCode /* ocode */,
 	
     // If this code tries to save registers, it might save them in the
     // wrong area; there was a conflict with where the base trampoline saved
-    // registers and the function, so now the function is save the registers
+    // registers and the function, so now the function is saving the registers
     // above the location where the base trampoline did
     for (unsigned u = 0; u < operands.size(); u++) {
       srcs += operands[u]->generateCode(proc, rs, iPtr, base, false);
@@ -1007,9 +1007,11 @@ unsigned emitFuncCall(opCode /* ocode */,
     saveRegister(insn,base,0,4+(32*4));
     savedRegs += 0;
 
+#if defined(MT_THREAD)
     // save REG_MT
     saveRegister(insn,base,REG_MT,4+(32*4));
     savedRegs += REG_MT;
+#endif
 
     // see what others we need to save.
     for (i = 0; i < regSpace->getRegisterCount(); i++) {
@@ -1020,7 +1022,7 @@ unsigned emitFuncCall(opCode /* ocode */,
 	    //     rather than delay it to the end of the tramp due to:
 	    //        (1) we could be in a conditional & the restores would
 	    //            be unconditional (i.e. restore bad data)
-	    //        (2) $arg[n] code depeneds on paramters being in registers
+	    //        (2) $arg[n] code depends on paramters being in registers
 	    //
             // MT_AIX: we are not saving registers on demand on the power
             // architecture anymore - naim
