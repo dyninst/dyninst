@@ -4,9 +4,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.10  1996/02/15 23:14:53  tamches
-/* added code relating to the new line-GC indirection feature of where4tree
+/* Revision 1.11  1996/04/01 22:34:14  tamches
+/* added makeVisibility* member functions
 /*
+ * Revision 1.10  1996/02/15 23:14:53  tamches
+ * added code relating to the new line-GC indirection feature of where4tree
+ *
  * Revision 1.9  1996/01/11 04:43:45  tamches
  * added necessary Whole Program kludge for getSelections
  *
@@ -114,6 +117,12 @@ class whereAxis {
 
    Tcl_Interp *interp;
 
+   bool obscured;
+      // true if the underlying window is partially or fully obscured.
+      // Currently, used to know when to properly redraw after scrolling
+      // a listbox, since I'm having trouble getting tk to recognize
+      // GraphicsExpose events...sigh
+
    int nominal_centerx; // actual centerx = nominal_centerx + horizScrollBarOffset
    int horizScrollBarOffset; // always <= 0
 
@@ -219,6 +228,10 @@ class whereAxis {
 
    void resize(bool rethinkScrollbars);
       // should be true only if we are the currently displayed abstraction
+
+   void makeVisibilityUnobscured() {consts.makeVisibilityUnobscured();}
+   void makeVisibilityPartiallyObscured() {consts.makeVisibilityPartiallyObscured();}
+   void makeVisibilityFullyObscured() {consts.makeVisibilityFullyObscured();}
 
    void processSingleClick(int x, int y);
    bool processDoubleClick(int x, int y);
