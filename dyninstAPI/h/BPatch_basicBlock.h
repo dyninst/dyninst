@@ -58,7 +58,7 @@ private:
 	BPatch_Set<BPatch_basicBlock*> targets;
 
 	/** the source block(source lines) that basic block corresponds*/
-	BPatch_sourceBlock* sourceBlock;
+	BPatch_Vector<BPatch_sourceBlock*>* sourceBlocks;
 
 public:
 	/** method that returns the predecessors of the basic block */
@@ -82,7 +82,7 @@ public:
 	void getAllDominates(BPatch_Set<BPatch_basicBlock*>&);
 	
 	/** returns the source block corresponding to the basic block */
-	BPatch_sourceBlock* getSourceBlock();
+	void getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>&);
 
 	/** returns the block id */
 	int getBlockNumber();

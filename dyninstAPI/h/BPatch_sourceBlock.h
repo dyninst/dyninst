@@ -22,12 +22,19 @@ class BPATCH_DLL_EXPORT BPatch_sourceBlock{
 	friend ostream& operator<<(ostream&,BPatch_sourceBlock&);
 
 private:
-	/** set of source line numbers derived from debug info*/
-	BPatch_Set<unsigned short> sourceLines;
+	const char* sourceFile;
+	BPatch_Set<unsigned short>* sourceLines;
 
 public:
-	/** method to return vector of lines in the source block */
-	void getLines(BPatch_Vector<unsigned short>&);
+
+	/** method to return source file name 
+	  * @param i the number of source file requested */
+	const char* getSourceFile();
+
+	/** method to return source lines in the
+	  * corresponding source file 
+	  * @param i the number of source file requested */
+	void getSourceLines(BPatch_Vector<unsigned short>&);
 
 	/** destructor for the sourceBlock class */
 	~BPatch_sourceBlock() {}
@@ -35,9 +42,7 @@ public:
 private:
 	/** constructor of the class */
 	BPatch_sourceBlock();
-
-	/** constructor of the class */
-	BPatch_sourceBlock(BPatch_Set<unsigned short>& sln); 
+	BPatch_sourceBlock(const char*,BPatch_Set<unsigned short>&);
 };
 
 #endif /* _BPatch_sourceBlock_h_ */
