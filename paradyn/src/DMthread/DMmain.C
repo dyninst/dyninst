@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.140 2002/07/25 19:22:27 willb Exp $
+// $Id: DMmain.C,v 1.141 2002/10/28 04:54:13 schendel Exp $
 
 #include <assert.h>
 extern "C" {
@@ -169,7 +169,7 @@ void dynRPCUser::CallGraphAddProgramCallback(string exe_name){
 //This function is called with a previously unseen program ID to create a new
 // call graph.
 void dynRPCUser::CallGraphSetEntryFuncCallback(string exe_name, 
-					       string entry_func) {
+					       string entry_func, int tid) {
     CallGraph *cg;
     resource *r;
 
@@ -181,7 +181,7 @@ void dynRPCUser::CallGraphSetEntryFuncCallback(string exe_name,
     //  registered w/ data manager....
     assert(r = resource::string_to_resource(entry_func));
 
-    cg->SetEntryFunc(r);
+    cg->SetEntryFunc(r, tid);
 }
 
 // upcall from paradynd to register new function resource with call graph....
