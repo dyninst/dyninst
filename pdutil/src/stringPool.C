@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: stringPool.C,v $
- * Revision 1.1  1994/01/25 20:50:27  hollings
+ * Revision 1.2  1994/01/26 04:53:43  hollings
+ * Change to using <module>/h/*.h
+ *
+ * Revision 1.1  1994/01/25  20:50:27  hollings
  * First real version of utility library.
  *
  * Revision 1.4  1993/08/05  18:58:08  hollings
@@ -21,8 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util/list.h"
-#include "util/stringPool.h"
+#include "util/h/list.h"
+#include "util/h/stringPool.h"
 
 /*
  * Hash Function from Aho, Sethi, Ulman _Compilers_ (Second Edition)

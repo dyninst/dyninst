@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.1  1994/01/25 20:50:25  hollings
+ * Revision 1.2  1994/01/26 04:53:42  hollings
+ * Change to using <module>/h/*.h
+ *
+ * Revision 1.1  1994/01/25  20:50:25  hollings
  * First real version of utility library.
  *
  * Revision 1.4  1993/12/15  21:06:23  hollings
@@ -39,7 +42,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "util/hist.h"
+#include "util/h/hist.h"
 
 /* number of intervals at which we switch to regular histograms */
 #define MAX_INTERVALS	15

@@ -14,7 +14,7 @@ extern "C" {
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 }
-#include "util/rpcUtil.h"
+#include "util/h/rpcUtil.h"
 
 int RPCdefaultXDRRead(int handle, char *buf, u_int len)
 {

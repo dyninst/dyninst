@@ -1,8 +1,8 @@
 #ifndef HIST
 #define HIST
 
-#include "util/list.h"
-#include "rtinst/trace.h"
+#include "util/h/list.h"
+#include "rtinst/h/trace.h"
 
 #ifndef False
 #define False	0
