@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.18 2002/12/20 07:50:09 jaw Exp $
+// $Id: PDGraph.C,v 1.19 2003/03/10 19:01:48 mikem Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -2230,7 +2230,7 @@ PDGraph::Curve::SetData( unsigned int startIdx,
     // smooth data if desired
     if( isSmoothed )
     {
-        ComputeSmoothedData( 0, nPoints, smoothingWindowSize );
+        ComputeSmoothedData( 0, nPoints - 1, smoothingWindowSize );
     }
 
     // check for a new maximum value in the active data
@@ -2587,7 +2587,7 @@ PDGraph::Curve::Smooth( void )
         isSmoothed = true;
 
         // ensure we have up-to-date smoothed data
-        ComputeSmoothedData( 0, nPoints, smoothingWindowSize );
+        ComputeSmoothedData( 0, nPoints - 1, smoothingWindowSize );
 
         // reset the max value of the active data
         maxActiveValue = DBL_MIN;
