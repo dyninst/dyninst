@@ -2,7 +2,10 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.7  1994/04/01 04:58:10  markc
+ * Revision 1.8  1994/06/02 23:34:27  markc
+ * New igen features: error checking, synchronous upcalls.
+ *
+ * Revision 1.7  1994/04/01  04:58:10  markc
  * Added checks in genBundler.
  *
  * Revision 1.6  1994/03/07  02:35:18  markc
@@ -34,9 +37,21 @@
 #include "util/h/list.h"
 #include "util/h/stringPool.h"
 
+#include <iostream.h>
+#include <fstream.h>
+
+// the files to write the generated code to
+ofstream dot_h;
+ofstream dot_c;
+ofstream srvr_dot_c;
+ofstream srvr_dot_h;
+ofstream clnt_dot_c;
+ofstream clnt_dot_h;
+
 class typeDefn;		// forward decl
 class remoteFunc;
 
+extern void dump_to_dot_h(char *);
 extern stringPool pool;
 extern List<typeDefn*> types;
 extern typeDefn *foundType;
@@ -57,7 +72,8 @@ class interfaceSpec {
     }
     void newMethod(remoteFunc*f) { methods.add(f); }
     void genClass();
-    void generateStubs();
+    void generateStubs(ofstream &ofile);
+    void genErrHandler(ofstream &ofile, Boolean client);
     void generateClientCode();
     void generateThreadLoop();
     void generateXDRLoop();
@@ -67,7 +83,9 @@ class interfaceSpec {
     void genProtoVerify();
     void genProtoVerifyPVM();
     void generateBundlers();
-    void genIncludes();
+    void genIncludes(ofstream &output);
+    void genXDRServerVerifyProtocol();
+    void genXDRLookForVerify();
     int getNextTag();
     char *genVariable();
     char *getName() { return(name); }
@@ -110,15 +128,15 @@ class field {
       }
       char *getName() { return(name); }
       char *getType() { return(type); }
-      void genBundler() {
+      void genBundler(ofstream &ofile) {
 	  if (generateXDR) {
-	    printf("    if (!xdr_%s(__xdrs__, &(__ptr__->%s))) return FALSE;\n", type, name);
+	    ofile << "    if (!xdr_" << type << "(__xdrs__, &(__ptr__->" << name << "))) return FALSE;\n";
 	  } else if (generatePVM) {
-	    printf("    IGEN_pvm_%s(__dir__, &(__ptr__->%s));\n", type, name);
+	    ofile << "    IGEN_pvm_" << type << "(__dir__, &(__ptr__->" << name << "));\n";
 	  }
       }
-      void genHeader() {
-	  printf("    %s %s;\n", type, name);
+      void genHeader(ofstream &ofile) {
+	  ofile << "    " << type << " " << name << ";\n";
       }
   private: 
       char *type;
@@ -156,7 +174,12 @@ class typeDefn {
        void genBundler();
 };
 
-enum upCallType { notUpcall, syncUpcall, asyncUpcall, notUpcallAsync };
+
+enum upCallType { syncUpcall,       // from server to client, sync (not allowed)
+		  asyncUpcall,      // from server to client, async
+		  syncCall,         // from client to server, sync
+		  asyncCall         // from client to server, async
+		  };
 
 class interfaceSpec;
 
@@ -208,13 +231,13 @@ class remoteFunc {
 	  retStructs = rs;
 	  virtual_f = v_f;
       }
-      void genSwitch(Boolean, char*);
-      void genStub(char *interfaceName, Boolean forUpcalls);
-      void genXDRStub(char *);
-      void genPVMStub(char *);
-      void genThreadStub(char *);
+      void genSwitch(Boolean, char*, ofstream &);
+      void genStub(char *interfaceName, Boolean forUpcalls, ofstream &ofile);
+      void genXDRStub(char *, ofstream &ofile);
+      void genPVMStub(char *, ofstream &ofile);
+      void genThreadStub(char *, ofstream &outfile);
       void genHeader();
-      void genMethodHeader(char *className, int in_client);
+      void genMethodHeader(char *className, int in_client, ofstream &output);
       char *name;
       char *retType;
       char *structName;

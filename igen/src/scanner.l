@@ -7,7 +7,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.5 1994/02/24 05:14:35 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.6 1994/06/02 23:34:29 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -85,7 +85,7 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 		    if (!strncmp(yytext, "$remote", strlen("$remote"))) {
 			REJECT;
 		    } else {
-			if (emitHeader) ECHO; 
+			if (emitHeader) dump_to_dot_h(yytext);
 		    }
 	          } else {
 		    REJECT;

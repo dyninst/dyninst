@@ -28,7 +28,7 @@ parsableUnitList:
 		| parsableUnit { extern int parsing; parsing = 0; }parsableUnitList;
 
 parsableUnit: interfaceSpec 
-	    | typeSpec;
+            | typeSpec;
 
 interfacePreamble: interfaceName tLBLOCK interfaceBase interfaceVersion {
     interfaceSpec *is;
@@ -51,14 +51,15 @@ definitionList:
 	      | definitionList definition
 	      ;
 
-optUpcall:	   	 { $$.fd.uc = notUpcall; $$.fd.virtual_f = 0; }
-	 | tVIRTUAL { $$.fd.uc = notUpcallAsync; $$.fd.virtual_f = 1;}
-	 | tASYNC 	 { $$.fd.uc = notUpcallAsync; $$.fd.virtual_f = 0;}
-	 | tVIRTUAL tASYNC { $$.fd.uc = notUpcallAsync; $$.fd.virtual_f = 1;}
-         | tUPCALL       { $$.fd.uc = syncUpcall; $$.fd.virtual_f = 0;}
-         | tVIRTUAL tUPCALL {$$.fd.uc = syncUpcall; $$.fd.virtual_f = 1; }
-         | tUPCALL tASYNC { $$.fd.uc = asyncUpcall; $$.fd.virtual_f = 0;}
-         | tVIRTUAL tUPCALL tASYNC { $$.fd.uc = asyncUpcall; $$.fd.virtual_f = 1;}
+optUpcall:
+                        { $$.fd.uc = syncCall; $$.fd.virtual_f = 0; }
+             | tVIRTUAL { $$.fd.uc = asyncCall; $$.fd.virtual_f = 1;}
+             | tASYNC 	 { $$.fd.uc = asyncCall; $$.fd.virtual_f = 0;}
+             | tVIRTUAL tASYNC { $$.fd.uc = asyncCall; $$.fd.virtual_f = 1;}
+             | tUPCALL { $$.fd.uc = syncUpcall; $$.fd.virtual_f = 0; }
+             | tVIRTUAL tUPCALL {$$.fd.uc = syncUpcall; $$.fd.virtual_f = 1; }
+             | tUPCALL tASYNC { $$.fd.uc = asyncUpcall; $$.fd.virtual_f = 0;}
+             | tVIRTUAL tUPCALL tASYNC { $$.fd.uc = asyncUpcall; $$.fd.virtual_f = 1;}
 
 definition: optUpcall typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
 	char *retType;
@@ -89,6 +90,7 @@ definition: optUpcall typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
 	   addCMember ($2.cp, $4.cp, $3.cl); }
          |  tSMEMBER typeName pointers tIDENT tSEMI {
 	   addSMember ($2.cp, $4.cp, $3.cl);}
+
 
 typeSpec: tTYPEDEF tSTRUCT tLBLOCK fieldDeclList tRBLOCK tIDENT tSEMI {
 	   typeDefn *s;
