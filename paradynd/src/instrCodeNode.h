@@ -54,6 +54,7 @@ class instrCodeNode;
 class processMetFocusNode;
 class threadMetFocusNode;
 class threadMetFocusNode_Val;
+class HwEvent;
 
 
 class instrCodeNode_Val {
@@ -79,6 +80,8 @@ class instrCodeNode_Val {
   vector<string> thr_names;  
 #endif
 
+  HwEvent* hwEvent;
+
  public:
   static string construct_key_name(const string &metricStr, 
 				   const string &focusStr) {
@@ -86,11 +89,11 @@ class instrCodeNode_Val {
   }
 
   instrCodeNode_Val(const string &name_, const Focus &f, process *p,
-		    bool dontInsertData) : 
+		    bool dontInsertData, HwEvent* hw) : 
     sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
     _trampsHookedUp(false), instrDeferred_(false), instrLoaded_(false), 
     hasBeenCatchuped_(false), proc_(p), dontInsertData_(dontInsertData),
-    referenceCount(0)
+    referenceCount(0), hwEvent(hw)
   { }
 
   instrCodeNode_Val(const instrCodeNode_Val &par, process *childProc);
@@ -125,7 +128,8 @@ class instrCodeNode {
 
  public:
   static instrCodeNode *newInstrCodeNode(string name_, const Focus &f,
-				       process *proc, bool arg_dontInsertData);
+				       process *proc, bool arg_dontInsertData, 
+                                       string hw_cntr_str = "");
   static instrCodeNode *copyInstrCodeNode(const instrCodeNode &par,
 					  process *childProc);
 
@@ -197,6 +201,7 @@ class instrCodeNode {
   void addThrName(string thr_name) {  V.thr_names += thr_name;  }
   vector<string> getThrNames() {  return V.thr_names;  }
 #endif
+  HwEvent* getHwEvent() { return V.hwEvent; }
 
 };
 

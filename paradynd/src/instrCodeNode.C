@@ -61,7 +61,8 @@ dictionary_hash<string, instrCodeNode_Val*>
 
 
 instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
-				        process *proc, bool arg_dontInsertData)
+				        process *proc, bool arg_dontInsertData, 
+                                        string hw_cntr_str = "")
 {
   instrCodeNode_Val *nodeVal;
   // it's fine to use a code node with data inserted for a code node
@@ -71,8 +72,27 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
   //if(foundIt) cerr << "found instrCodeNode " << key_name << " (" << nodeVal
   //		   << "), using it, , arg_proc=" << (void*)proc << "\n";
 
+
+
   if(! foundIt) {
-    nodeVal = new instrCodeNode_Val(name_, f, proc, arg_dontInsertData);
+
+    HwEvent* hw = NULL;
+#ifdef PAPI
+    /* if PAPI isn't available, hw_cntr_str should always be "" */
+    if (hw_cntr_str != "") {
+      papiMgr* papi;
+      papi = proc->getPapiMgr();
+      assert(papi);
+      hw = papi->createHwEvent(hw_cntr_str);
+      if (hw == NULL) {
+        string msg = string("unable to add PAPI hardware event: " + hw_cntr_str);
+        showErrorCallback(125,msg.c_str());
+        return NULL;
+      }
+    }
+#endif
+
+    nodeVal = new instrCodeNode_Val(name_, f, proc, arg_dontInsertData, hw);
     //cerr << "instrCodeNode " << key_name << " (" << nodeVal 
     //     << ") doesn't exist, creating one (proc=" << (void*)proc << ")\n";
     registerCodeNodeVal(nodeVal);
@@ -116,7 +136,7 @@ instrCodeNode::instrCodeNode(const instrCodeNode &par, process *childProc) :
 
 instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 				     process *childProc) :
-  name(par.name), focus(adjustFocusForPid(par.focus, childProc->getPid()))
+  name(par.name), focus(adjustFocusForPid(par.focus, childProc->getPid())), hwEvent(par.hwEvent)
 {
   if(par.sampledDataNode)
     sampledDataNode = new instrDataNode(*par.sampledDataNode, childProc);
@@ -193,6 +213,11 @@ instrCodeNode::~instrCodeNode() {
   V.decrementRefCount();
 
   if(V.getRefCount() == 0) {
+#ifdef PAPI
+    if (V.hwEvent != NULL) {
+      delete V.hwEvent;
+    }
+#endif    
     allInstrCodeNodeVals.undef(V.getKeyName());
     delete &V;
   }
@@ -396,6 +421,13 @@ void instrCodeNode::prepareForSampling(
     V.sampledDataNode->prepareForSampling(curThrNode->getThreadPos(), 
 					  curThrNode->getValuePtr());
   }
+
+#ifdef PAPI
+  if (V.hwEvent != NULL) {
+    V.hwEvent->enable();
+  }
+#endif
+
 }
 
 void instrCodeNode::prepareForSampling(threadMetFocusNode *thrNode) {
