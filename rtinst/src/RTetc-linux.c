@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.18 2000/10/17 17:42:51 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.19 2000/11/20 23:17:07 schendel Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -65,6 +65,7 @@
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+#include "rtinst/h/RThwtimer-x86.h"
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #include <thread.h>
@@ -78,11 +79,24 @@ extern void perror(const char *);
 ************************************************************************/
 
 static int procfd = -1;
+#ifdef HRTIME
+struct hrtime_struct *hr_cpu_map = NULL;
+#endif
 
 /* PARADYNos_init formerly "void DYNINSTgetCPUtimeInitialize(void)" */
 void PARADYNos_init(int calledByFork, int calledByAttach) {
- hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
- hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+#ifdef HRTIME
+  if(isLibhrtimeAvail(&hr_cpu_map, (int)getpid()))
+    hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
+  else
+#endif
+    hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
+  if(isTSCAvail()) {
+    hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;   
+  }
+  else {
+    hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+  }
 
 #ifdef notdef   /* Has this ever been active on this platform? */
    /* This must be done once for each process (including forked) children */
@@ -133,11 +147,39 @@ static unsigned long long mulMillion(unsigned long long in) {
 /*static int MaxRollbackReport = 1; /* only report 1st rollback */
 static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 
+
 /* --- CPU time retrieval functions --- */
-/* Hardware Level --- */
+/* Hardware Level ---
+   method:      libhrtime get_hrvtime()
+   return unit: ticks
+*/
 rawTime64 
 DYNINSTgetCPUtime_hw(void) {
-  return 0;
+  static rawTime64 cpuPrevious=0;
+  static int cpuRollbackOccurred=0;
+  rawTime64 now=0, tmp_cpuPrevious=cpuPrevious;
+
+#ifdef HRTIME  
+  now = hrtimeGetVtime(hr_cpu_map);
+#endif
+
+  if (now < tmp_cpuPrevious) {
+    if (cpuRollbackOccurred < MaxRollbackReport) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
+	      "%lld ticks, using previous value %lld ticks.",
+	      tmp_cpuPrevious-now, now, tmp_cpuPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
+				 &traceData, 1, 1, 1);
+    }
+    cpuRollbackOccurred++;
+    now = cpuPrevious;
+  }
+  else  cpuPrevious = now;
+  
+  return now;
 }
 
 /* Software Level --- 
@@ -173,11 +215,38 @@ DYNINSTgetCPUtime_sw(void) {
   return now;
 }
 
+
 /* --- Wall time retrieval functions --- */
-/* Hardware Level --- */
+/* Hardware Level ---
+   method:      direct read of TSC (ie. time stamp counter) register
+   return unit: ticks
+*/
 rawTime64
 DYNINSTgetWalltime_hw(void) {
-  return 0;
+  static rawTime64 wallPrevious=0;
+  static int wallRollbackOccurred=0;
+  rawTime64 now, tmp_wallPrevious=wallPrevious;
+  struct timeval tv;
+
+  now = getTSC();
+
+  if (now < tmp_wallPrevious) {
+    if (wallRollbackOccurred < MaxRollbackReport) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
+	      "%lld ticks, using previous value %lld ticks.",
+                tmp_wallPrevious-now, now, tmp_wallPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
+			       1, 1, 1);
+    }
+    wallRollbackOccurred++;
+    wallPrevious = now;
+  }
+  else  wallPrevious = now;
+
+  return now;
 }
 
 /* Software Level --- 
