@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.10 2000/02/15 23:56:21 hollings Exp $
+# $Id: nmake.module.tmpl,v 1.11 2000/02/22 23:03:57 pcroth Exp $
 #
 
 TARGET	      = libpdutil.lib
@@ -16,6 +16,7 @@ SRCS	     = $(SRCS) \
 		../src/Dictionary.C \
 		../src/hist.C \
 		../src/Ident.C \
+		../src/int64iostream.C \
 		../src/lprintf.C \
 		../src/makenan.C \
 		../src/odometer.C \
@@ -37,6 +38,7 @@ OBJS         = $(OBJS) \
 		Dictionary.obj \
 		hist.obj \
 		Ident.obj \
+		int64iostream.obj \
 		lprintf.obj \
 		makenan.obj \
 		odometer.obj \
