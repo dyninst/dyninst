@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.26 1999/07/07 17:39:49 zhichen Exp $ */
+/* $Id: init-sunos.C,v 1.27 1999/12/01 14:41:45 zhichen Exp $ */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -56,17 +56,17 @@ bool initOS() {
 // (obsoleted by installBootstrapInst() --ari)
 
 
+  AstNode *retVal;
+
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
-  if(process::pdFlavor != string("cow"))
-  {
 #if defined(i386_unknown_solaris2_5) || defined(sparc_sun_sunos4_1_3)
-	AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+	retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
   	initialRequests += new instMapping("_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
 #else
-	AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+	retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
   	initialRequests += new instMapping("fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
 /*
@@ -74,10 +74,9 @@ bool initOS() {
       	initialRequests += new instMapping("_libc_fork", "DYNINSTfork", 
 		FUNC_EXIT|FUNC_ARG, retVal);*/
 #endif
-  }
 #if defined(MT_THREAD)
   //libthread _fork
-  AstNode* retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
   initialRequests += new instMapping("_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
   
@@ -133,8 +132,6 @@ bool initOS() {
   				     arg0);
 #endif
 
-  if(process::pdFlavor != string("cow"))
-  {
     //initialRequests += new instMapping("execve", "DYNINSTexec",
     //			     FUNC_ENTRY|FUNC_ARG, tidArg);
     //initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
@@ -142,19 +139,15 @@ bool initOS() {
     initialRequests += new instMapping("_execve", "DYNINSTexec",
 				     FUNC_ENTRY|FUNC_ARG, tidArg);
     initialRequests += new instMapping("_execve", "DYNINSTexecFailed", FUNC_EXIT);
-  }
 
 #ifndef SHM_SAMPLING
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
 				 FUNC_ENTRY);
 #endif
 
-  if(process::pdFlavor != string("cow"))
-  {
         AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
   	initialRequests += new instMapping("rexec", "DYNINSTrexec",
 				 FUNC_ENTRY|FUNC_ARG, cmdArg);
-  }
 //   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
 
 

@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.93 1999/08/09 05:39:04 csserra Exp $
+ * $Id: dataManager.I,v 1.94 1999/12/01 14:41:18 zhichen Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -93,13 +93,6 @@ typedef void (*resourceInfoCallback)(perfStreamHandle handle,
 				     resourceHandle newResource, 
 				     const char *name,
 				     const char *abstraction);
-typedef void (*memoryInfoCallback)(perfStreamHandle handle,
-                                const char *data_structure,
-                                int virtual_address,
-                                u_int memory_size,
-                                u_int blk_size,
-                                resourceHandle parent,
-                                vector<resourceHandle> *newResources) ;
 
 typedef enum { batchStart, batchEnd } batchMode;
 
@@ -152,7 +145,6 @@ struct controlCallback {
     newPhaseCallback	        pFunc;
     predDataCostCallbackFunc    cFunc;
     enableDataCallbackFunc	eFunc;
-    memoryInfoCallback          xFunc;
 };
 
 typedef struct controlCallback controlCallback;
@@ -312,10 +304,6 @@ $remote dataManager {
 				  u_int persistent_data,
 				  u_int persistent_collection,
 				  u_int phase_persistent_data);
-   // getMemoryBounds: get the bounds of shared-memory for
-    // tempest
-    $async void getMemoryBounds(perfStreamHandle ps_handle,
-                                vector<metric_focus_pair> *request) ;
 
     //
     // same as enableDataRequest, but with diff type request
@@ -672,15 +660,6 @@ $remote dataManager {
 				         const char *units,
 				         metricHandle handle,
 					 dm_MetUnitsType units_type);
-
-    $upcall $async void newMemoryDefined(memoryInfoCallback,
-                                           perfStreamHandle,
-                                           const char *vname,
-                                           int va,
-                                           u_int mem_size,
-                                           u_int blk_size,
-                                           resourceHandle p_handle,
-                                           vector<resourceHandle> *handles) ;
 
     $upcall $async void newResourceDefined(resourceInfoCallback,
 					   perfStreamHandle, 

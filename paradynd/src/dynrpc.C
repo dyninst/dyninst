@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.72 1999/11/09 19:18:45 cain Exp $ */
+/* $Id: dynrpc.C,v 1.73 1999/12/01 14:41:45 zhichen Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -216,76 +216,6 @@ void dynRPC::resourceInfoResponse(vector<u_int> temporaryIds,
       res->set_id(resourceIds[u]);
     }
 }
-
-
-// in response to memoryInfoCallback, pass the handles back
-//
-memory *theMemory = new memory;
-
-void dynRPC::memoryRangeSelected(string flat, int min, int max)
-{
-        theMemory->setCurrentBounds(flat, min, max) ;
-}
-
-
-void dynRPC::memoryInfoResponse(string 		data_structure_name,
-                                int 		virtual_address,
-                                u_int 		memory_size,
-                                u_int 		cache_blk_size,
-                                vector<u_int> 	resource_ids)
-{
-        //Obtain the highest and lowest memory addresses
-        static int cache_blk_size_has_been_set= 0 ;
-        theMemory->updateGlobalBounds(virtual_address, memory_size) ;
-        if(!cache_blk_size_has_been_set)
-	{
-                theMemory->setBlkSize(cache_blk_size) ;
-                cache_blk_size_has_been_set = 1 ;
-        }
-
-        //buildup the memory resource
-        int i = 0 ;
-        int vend = virtual_address + memory_size ;
-        vector<string> parent_name ;
-        vector<string> resource_name ;
-
-        resource *parent = NULL ;
-        resource *res ;
-        const char *name = data_structure_name.string_of() ;
-        char temp[255] ;
-
-        parent_name += "Memory" ;
-        resource_name += "Memory" ;
-
-        sprintf(temp, "%s", name) ;
-        if ((parent = resource::findResource(parent_name)))
-        {
-                // record the boundry of the variable
-                memory::bounds b ;
-                b.lower = virtual_address ;
-                b.upper = virtual_address + memory_size -1 ;
-                theMemory->setVariableBounds(string(name), b) ;
-
-                resource_name += name ;
-                res = resource::newResource_ncb(parent, NULL, "BASE", temp, 0.0, "", MDL_T_VARIABLE);
-                if (res) res->set_id(resource_ids[i]);
-                i++ ;
-                parent_name += name ;
-        }
-        if((parent = resource::findResource(parent_name)) )
-        {
-          
-                while(virtual_address < vend)
-                {
-                        sprintf(temp, "%d", (int) virtual_address) ;
-                        res = resource::newResource_ncb(parent, NULL, "BASE", temp, 0.0, "", MDL_T_INT);
-                        if (res) res->set_id(resource_ids[i]);
-                        i++ ;
-                        virtual_address += cache_blk_size ;
-                }
-        }
-}
-
 
 
 // TODO -- startCollecting  Returns -1 on failure ?

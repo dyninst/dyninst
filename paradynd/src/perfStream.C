@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.106 1999/11/11 15:37:04 wylie Exp $
+// $Id: perfStream.C,v 1.107 1999/12/01 14:41:45 zhichen Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -91,8 +91,6 @@ int traceConnectInfo;
 int traceSocketPort;
 
 static void createResource(int pid, traceHeader *header, struct _newresource *r);
-static void reportMemory(int pid, traceHeader *header, struct _traceMemory *r) ;
-
 bool firstSampleReceived = false;
 
 double cyclesPerSecond = 0;
@@ -284,10 +282,6 @@ void processTraceStream(process *curr)
 		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
 		   // createResource() is in this file, below
 		break;
-
-            case TR_NEW_MEMORY:
-                reportMemory(curr->getPid(), &header, (struct _traceMemory *) ((void*)recordData));
-                break;
 
 	    case TR_NEW_ASSOCIATION:
 		a = (struct _association *) ((void*)recordData);
@@ -972,34 +966,4 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
       showErrorCallback(36,msg);
     }
 
-}
-
-//
-// Blizzard
-// report a piece of shared-memory
-// After the paradyn received the piece of memory, it will
-// generate ids for them and broadcast it to all the daemons
-// via memoryInfoResponse in paradynd/dynrpc.C
-// memoryInfoCallback is defined in paradyn/DMthread/DMmain.C
-// it calls createResource_ncb which actually generate those ids
-//
-//     Paradynd                              Paradyn
-// ------------------------------------------------------------
-//   reportMemory                     
-//        memoryInfoCallback  ........... memoryInforCallback
-//                                         createResource_ncb
-//   memoryInfoResponse ................. memoryInfoResponse  
-//       newResource_ncb
-//
-//
-static void reportMemory(int /*pid*/, traceHeader *, struct _traceMemory *r)
-{
-    char        *name   = r->name;
-    int         va = r->va ;
-    unsigned    memSize = r->memSize ;
-    unsigned    blkSize = r->blkSize ;
-
-    tp->resourceBatchMode(true);
-    tp->memoryInfoCallback(0, name, va, memSize, blkSize) ;
-    tp->resourceBatchMode(false);
 }

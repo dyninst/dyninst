@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.126 1999/11/09 19:24:47 cain Exp $
+// $Id: DMmain.C,v 1.127 1999/12/01 14:41:42 zhichen Exp $
 
 #include <assert.h>
 extern "C" {
@@ -314,84 +314,6 @@ printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 void dynRPCUser::severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct>) {
 printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
 }
-
-void dynRPCUser::memoryInfoCallback(int,
-                                    string vname,
-                                    int va,
-                                    u_int mem_size,
-                                    u_int blk_size)
-{//TO DO
-   string       abstr = "BASE";
-   u_int        type = MDL_T_INT;
-   int          end =  va + mem_size ;
-   int          start = va ;
-   vector<resourceHandle> handles, whereHandles ;
-   resourceHandle         p_handle, r_handle ;
-   int                    num_blks = 0 ;
-
-   printf("Paradyn received: (var:%s, va:%d, mem_size:%d, blk_size:%d)\n",
-              vname.string_of(), va, mem_size, blk_size) ;
-
-   vector<string> res_name;
-   res_name += "Memory" ; res_name += vname ;
-   bool exist = false ;
-   r_handle = createResource_ncb(res_name, abstr, MDL_T_VARIABLE, p_handle, exist);
-   handles += r_handle ;
-
-   /* inform others about it if they need to know */
-   if(!exist)
-   {
-    char temp[255] ;
-    sprintf(temp, "Memory/%s", vname.string_of()) ;
-    const char *name = strdup(temp) ;
-    const char *abs  = strdup(abstr.string_of()) ;
-    dictionary_hash_iter<perfStreamHandle,performanceStream*>
-                        allS(performanceStream::allStreams);
-    perfStreamHandle h;
-    performanceStream *ps;
-    while(allS.next(h,ps)){
-        ps->callResourceFunc(p_handle,r_handle,name,abs);
-    }
-   }
-
-   while (va < end)
-   {
-        char temp[255] ;
-        vector<string> res_name;
-        res_name += "Memory" ; res_name += vname ;
-
-        sprintf(temp, "%d", (int) va) ;
-        res_name += temp ;
-        exist = true; /* we do not want to search to duplication */
-        r_handle = createResource_ncb(res_name, abstr, type, p_handle, exist);
-        handles += r_handle ;
-        whereHandles += r_handle ;
-
-        va += blk_size ;
-        num_blks ++ ;
-   }
-   /* inform the daemon of the things it needs to know */
-   /* should send this to all daemons, not just one  */
-   {
-    for(u_int j=0; j < paradynDaemon::allDaemons.size(); j++){
-                paradynDaemon *pd = paradynDaemon::allDaemons[j];
-                pd->memoryInfoResponse(vname, start, mem_size, blk_size, 
-				       handles);
-    }
-   }
-
-   /* inform others about it if they need to know */
-   {
-    dictionary_hash_iter<perfStreamHandle,performanceStream*>
-                        allS(performanceStream::allStreams);
-    perfStreamHandle h;
-    performanceStream *ps;
-    while(allS.next(h,ps)){
-        ps->callMemoryFunc(vname, start, mem_size, blk_size, p_handle, whereHandles);
-    }
-   }
-}
-
 
 void dynRPCUser::mappingInfoCallback(int,
 				     string abstraction, 

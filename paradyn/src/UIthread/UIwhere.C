@@ -44,7 +44,7 @@
  * code related to displaying the where axes lives here
  */
 
-/* $Id: UIwhere.C,v 1.23 1999/04/27 16:03:44 nash Exp $ */
+/* $Id: UIwhere.C,v 1.24 1999/12/01 14:41:43 zhichen Exp $ */
 
 #include "UIglobals.h" // UIM_BatchMode
 #include "dataManager.thread.h"
@@ -112,45 +112,3 @@ void resourceAddedCB (perfStreamHandle,
      ui_status->message("ready");
   }
 }
-void memoryAddedCB (perfStreamHandle,
-                    const char*, // vname
-                    int start,
-                    unsigned mem_size,
-                    unsigned blk_size,
-                    resourceHandle parent,
-                    vector<resourceHandle> *handles)
-{
-        char *abs = "BASE" ;
-        extern abstractions *theAbstractions;
-        assert(theAbstractions);
-
-        abstractions &theAbs = *theAbstractions;
-        string theAbstractionName = abs;
-        whereAxis &theWhereAxis = theAbs[theAbstractionName];
-
-        resourceHandle newResource ;
-        int end = start + mem_size ;
-        unsigned h = 0 ;
-        ui_status->message("receiving where axis item [memory]");
-        while (start < end)
-        {
-                numResourceAddedCBSoFar++;
-
-                char nameLastPart[255] ;
-                sprintf(nameLastPart, "%d", start) ;
-
-                assert(h<(*handles).size()) ;
-                newResource = (*handles)[h] ;
-
-                theWhereAxis.addItem(nameLastPart, parent, newResource,
-                        false, // don't rethink graphics
-                        false // don't resort (if not in batch mode, code below
-                             // will do that, so don't worry
-                        ) ;
-
-                start += blk_size ;
-                h++;
-        } // while
-        ui_status->message("ready [memory]");
-}
-

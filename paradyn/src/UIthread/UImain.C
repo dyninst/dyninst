@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.89 1999/05/24 16:59:31 cain Exp $
+// $Id: UImain.C,v 1.90 1999/12/01 14:41:43 zhichen Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -187,14 +187,6 @@ extern void resourceAddedCB (perfStreamHandle handle,
 		      resourceHandle newResource, 
 		      const char *name,
 		      const char *abstraction);
-extern void memoryAddedCB (perfStreamHandle handle,
-                      const char *vname,
-                      int start,
-                      unsigned mem_size,
-                      unsigned blk_size,
-                      resourceHandle parent,
-                      vector<resourceHandle> *newResources ) ;
-
 
 /*
  * Forward declarations for procedures defined later in this file:
@@ -553,7 +545,6 @@ void *UImain(void*) {
     controlFuncs.bFunc = resourceBatchChanged;
     controlFuncs.pFunc = NULL;
     controlFuncs.eFunc = UIenableDataResponse;
-    controlFuncs.xFunc = memoryAddedCB;
     dataFunc.sample = NULL;
 
     uim_ps_handle = dataMgr->createPerformanceStream

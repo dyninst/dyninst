@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.84 1999/08/09 05:41:19 csserra Exp $
+// $Id: VISIthreadmain.C,v 1.85 1999/12/01 14:41:44 zhichen Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -625,9 +625,6 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadchooseMetRes");
         return 1;
     }
-
-    // for Blizzard, get the memory bounds
-    ptr->dmp->getMemoryBounds(ptr->ps_handle, newMetRes) ;
 
     // there is not an enable currently in progress
     if(!(ptr->request)){ 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.77 1999/08/03 20:30:57 nash Exp $
+// $Id: mdl.C,v 1.78 1999/12/01 14:41:45 zhichen Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -56,7 +56,6 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "util/h/debugOstream.h"
-#include "paradynd/src/blizzard_memory.h"
 #include "dyninstAPI/src/instPoint.h" // new...for class instPoint
 
 // The following vrbles were defined in process.C:
@@ -507,25 +506,6 @@ static bool update_environment(process *proc) {
   mdl_env::add(vname, false, MDL_T_LIST_MODULE);
   // only get functions that are not excluded by exclude_lib or exclude_func
   mdl_env::set(proc->getIncludedModules(), vname);
-
-  //Blizzard
-
-    vname = "$gmin";
-    mdl_env::add(vname, false, MDL_T_INT);
-    mdl_env::set(theMemory->getGlobalMin(), vname);
-
-    vname = "$gmax";
-    mdl_env::add(vname, false, MDL_T_INT);
-    mdl_env::set(theMemory->getGlobalMax(), vname);
-
-    vname = "$cmin";
-    mdl_env::add(vname, false, MDL_T_INT);
-    mdl_env::set(theMemory->getCurrentMin(), vname);
-
-    vname = "$cmax";
-    mdl_env::add(vname, false, MDL_T_INT);
-    mdl_env::set(theMemory->getCurrentMax(), vname);
-  //
 
   return true;
 }
@@ -1327,13 +1307,6 @@ static bool do_trailing_resources(vector<string>& resource_,
     }
     case MDL_T_MEMORY:
       break ;
-    case MDL_T_VARIABLE: {
-        //bounds is defined in metric.h
-        memory::bounds b = theMemory->getVariableBounds(trailingRes) ;
-        mdl_env::add(caStr, false, MDL_T_VARIABLE) ;
-        mdl_env::set(b, caStr) ;
-    }
-    break ;
     default:
       assert(0);
       break;
@@ -1876,20 +1849,6 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         fflush(stderr);
         return false;
       }
-      if (dot_var.get_type() != MDL_T_VARIABLE)
-      {
-        fprintf (stderr, "Invalid expression type on the left of DOT.\n");
-        fflush(stderr);
-        return false;
-      }
-      memory::bounds b ;
-      if (!dot_var.get(b)) return false;
-      int value;
-      if(!strncmp(fields_[0].string_of(), "upper", 5))
-        value = (int)b.upper ;
-      else
-        value = (int)b.lower;
-      ast = new AstNode(AstNode::Constant, (void*)value);
       return true;
     }
     case MDL_EXPR_ASSIGN:
@@ -2577,11 +2536,6 @@ bool mdl_init(string& flavor) {
   desc.name = "name"; desc.type = MDL_T_STRING; field_list += desc;
   desc.name = "funcs"; desc.type = MDL_T_LIST_PROCEDURE; field_list += desc;
   mdl_data::fields[MDL_T_MODULE] = field_list;
-  field_list.resize(0);
-
-  desc.name = "upper"; desc.type = MDL_T_INT; field_list += desc;
-  desc.name = "lower"; desc.type = MDL_T_INT; field_list += desc;
-  mdl_data::fields[MDL_T_VARIABLE] = field_list;
   field_list.resize(0);
 
   return true;

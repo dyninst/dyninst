@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-irix.C,v $
+ * Revision 1.2  1999/12/01 14:41:45  zhichen
+ * Remove obsolete Blizzard related code
+ *
  * Revision 1.1  1999/06/16 19:28:55  csserra
  * initial mips-sgi-irix6.4 paradynd commit
  *
@@ -64,26 +67,22 @@ bool initOS() {
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
-  if(process::pdFlavor != string("cow"))
-  {
-    AstNode *retVal;
+  AstNode *retVal;
     // TODO: use "___tp_fork_XXX" hooks?
 
-    retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-    initialRequests += new instMapping("fork", "DYNINSTfork", 
+  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+  initialRequests += new instMapping("fork", "DYNINSTfork", 
 				       FUNC_EXIT|FUNC_ARG, retVal);
 
-    retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-    initialRequests += new instMapping("_fork", "DYNINSTfork", 
+  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+  initialRequests += new instMapping("_fork", "DYNINSTfork", 
 				       FUNC_EXIT|FUNC_ARG, retVal);
-  }
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
   initialRequests += new instMapping("pthread_create", "DYNINSTthreadCreate", 
                                      FUNC_EXIT|FUNC_ARG, THRidArg);
 #endif
 
-  if(process::pdFlavor != string("cow"))
   {
     //initialRequests += new instMapping("execve", "DYNINSTexec",
     //			     FUNC_ENTRY|FUNC_ARG, tidArg);
@@ -99,12 +98,9 @@ bool initOS() {
 				 FUNC_ENTRY);
 #endif
 
-  if(process::pdFlavor != string("cow"))
-  {
-        AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
-  	initialRequests += new instMapping("_rexec", "DYNINSTrexec",
+  AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
+  initialRequests += new instMapping("_rexec", "DYNINSTrexec",
 				 FUNC_ENTRY|FUNC_ARG, cmdArg);
-  }
 //   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.C,v 1.25 1998/03/04 19:56:12 wylie Exp $
+// $Id: DMperfstream.C,v 1.26 1999/12/01 14:41:43 zhichen Exp $
 
 #include <assert.h>
 #include <limits.h>     // UINT_MAX
@@ -211,34 +211,6 @@ void performanceStream::callResourceFunc(resourceHandle parent,
 	dataManager::dm->newResourceDefined(controlFunc.rFunc,handle,
 			 parent,child,name,abstr);
     }
-}
-void performanceStream::callMemoryFunc(string vname,
-                    int start, unsigned mem_size,
-                    unsigned blk_size, resourceHandle p_handle,
-                    vector<resourceHandle> handles)
-{
-    const char *vn = strdup(vname.string_of()) ;
-    unsigned Psize = handles.size() ;
-    vector<resourceHandle> *children = new vector<resourceHandle> (Psize);
-    //printf("in callMemoryFunc, size = %d (%d)\n", Psize, children->size()) ;
-    //printf("(*children)[%d]=%d\n", k, (*children)[k]) ;
-    // The loop can be saved, if i alloc the vector in DMmain.C
-    for(unsigned k=0; k<Psize; k++) {
-         (*children)[k] = handles[k] ;
-    }
-
-    if (controlFunc.xFunc) {
-        dataManager::dm->setTid(threadId);
-        dataManager::dm->newMemoryDefined(controlFunc.xFunc,
-                                          handle,       //perfStream handle
-                                          vn,
-                                          start,
-                                          mem_size,
-                                          blk_size,
-                                          p_handle,
-                                          children) ;
-    }
-    //if(children) delete children ;
 }
 
 void performanceStream::callResourceBatchFunc(batchMode mode)

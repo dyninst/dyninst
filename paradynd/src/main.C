@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.78 1999/07/26 21:51:23 cain Exp $
+// $Id: main.C,v 1.79 1999/12/01 14:41:45 zhichen Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -355,13 +355,6 @@ int main(unsigned argc, char *argv[]) {
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine,
 		       NULL, NULL, 2);
 	assert(tp);
-	//Tempest, in the case of blizzard_cow, all daemons should report themselves
-    	if (pd_flavor == string("cow")) {
-		cerr << "rsh, rexec, reportSelf " 
-		     << machine_name.string_of() 
-		     << argv[0] << endl ;
-		tp->reportSelf (machine_name, argv[0], getpid(), "cow");
-	}
       
 
 	if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1)) {

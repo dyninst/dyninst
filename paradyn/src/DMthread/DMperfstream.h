@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.h,v 1.17 1998/03/04 19:56:13 wylie Exp $
+// $Id: DMperfstream.h,v 1.18 1999/12/01 14:41:43 zhichen Exp $
 
 #ifndef dmperfstream_H
 #define dmperfstream_H
@@ -101,9 +101,6 @@ class performanceStream {
 			    sampleValue*, int, int, phaseType);
 	void callResourceFunc(resourceHandle parent, resourceHandle child, 
 			      const char *name, const char *abstr);
-	void callMemoryFunc(string data_structure, int start, unsigned mem_size,
-			    unsigned blk_size, resourceHandle p_handle,
-			    vector<resourceHandle> handles);
 	void callResourceBatchFunc(batchMode mode);
 	void callFoldFunc(timeStamp width,phaseType phase_type);
 	void callStateFunc(appState state);
