@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.4 2003/09/11 18:21:12 chadd Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.5 2004/03/09 21:36:58 bernat Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -15,6 +15,10 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <xcoff.h>
+
+/* Copied from RTheap-aix.c */
+Address DYNINSTheap_loAddr = 0x30000000;
+Address DYNINSTheap_hiAddr = 0xcfffffff;
 
 
 unsigned int checkAddr;
@@ -265,18 +269,31 @@ int checkMutatedFile(){
 			checkAddr = 1;//dladdr((void*)currScnhdr->s_vaddr, &dlip); 
 
 			updateSize  = dataSize-((2*numberUpdates+1)* sizeof(unsigned int));
-		
+
+            /* Actually have a checkAddr... */
+            if (currScnhdr->s_vaddr >= DYNINSTheap_loAddr &&
+                currScnhdr->s_vaddr <= DYNINSTheap_hiAddr)
+                checkAddr = 0;
+            
 			if(!checkAddr){ 
 				/* we dont own it,mmap it!*/
-				mmapAddr = currScnhdr->s_scnptr;
-
-                        	mmapAddr =(unsigned int) mmap((void*) currScnhdr->s_vaddr,oldPageDataSize,
-                                	PROT_READ|PROT_WRITE|PROT_EXEC,MAP_FIXED|MAP_PRIVATE,fd,mmapAddr);
+                int fdzero = open("/dev/zero", O_RDWR);
+                mmapAddr = 0;
+                mmapAddr =(unsigned int) mmap((void*) currScnhdr->s_vaddr,
+                                              oldPageDataSize,
+                                              PROT_READ|PROT_WRITE|PROT_EXEC,
+                                              MAP_FIXED|MAP_PRIVATE,
+                                              fdzero,
+                                              0);
+                close(fdzero);
+				mmapAddr = memcpy(oldPageData,
+                                  (void*)currScnhdr->s_vaddr ,
+                                  updateSize);
+                checkAddr = 1;
 			}else{
 				/*we own it, finish the memcpy */
 				mmapAddr = memcpy(oldPageData, (void*)currScnhdr->s_vaddr , updateSize);
 				checkAddr = 1; 
-
 			}
 	
 			dataPtr =(unsigned int*) &(data[oldPageDataSize]);	
@@ -298,11 +315,6 @@ int checkMutatedFile(){
 
 			}else{
 				if( currScnhdr->s_vaddr < 0xd0000000){
-
-
-
-				
-
 				/*mmapAddr = currScnhdr->s_vaddr - (currScnhdr->s_vaddr %pageSize);
 
 				mmapAddr = mmap(mmapAddr,currScnhdr->s_vaddr - mmapAddr + oldPageDataSize, 
