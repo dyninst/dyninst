@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.29  1994/06/02 23:25:19  markc
+ * Revision 1.30  1994/06/14 15:22:46  markc
+ * Added arg to enableDataCollection call to support aggregation.
+ *
+ * Revision 1.29  1994/06/02  23:25:19  markc
  * Added virtual function 'handle_error' to pardynDaemon class which uses the
  * error handling features that igen provides.
  *
@@ -127,7 +130,8 @@ tunableConstant samplingRate(0.5, 0.0, 1000.0, newSampleRate, "samplingRate",
    "how often to sample intermediate performance data (in seconds)");
 
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
-							metric *m)
+							metric *m,
+							aggregation aggOp)
 {
     char *name;
     metricInstance *mi;
@@ -140,7 +144,7 @@ metricInstance *performanceStream::enableDataCollection(resourceList *rl,
         mi->count++;
 	mi->users.add(this);
     } else {
-	mi = appl->enableDataCollection(rl, m);
+	mi = appl->enableDataCollection(rl, m, aggOp);
 	if (mi) mi->users.add(this);
     }
     return(mi);
