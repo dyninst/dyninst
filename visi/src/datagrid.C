@@ -259,8 +259,11 @@ int i;
   }
 
   data_values = new visi_GridHistoArray[noMetrics];
-  for (i = 0; i < noMetrics; i++)
-    data_values[i] = visi_GridHistoArray(noResources);
+  for (i = 0; i < noMetrics; i++){
+      visi_GridHistoArray *temp = new visi_GridHistoArray(noResources);
+      data_values[i] = *temp;
+      delete temp;
+  }
   numBins  = noBins;
   binWidth = width;
   start_time = startTime;
@@ -297,8 +300,11 @@ int i;
     resources[i] = Resource(resourceList[i].name,resourceList[i].Id);
   }
   data_values = new visi_GridHistoArray[noMetrics];
-  for (i = 0; i < noMetrics; i++)
-    data_values[i] = visi_GridHistoArray(noResources);
+  for (i = 0; i < noMetrics; i++){
+      visi_GridHistoArray *temp = new visi_GridHistoArray(noResources);
+      data_values[i] = *temp;
+      delete temp;
+  }
   numBins  = noBins;
   binWidth = width;
   start_time = startTime;
@@ -533,7 +539,9 @@ int i;
   }
 
   for(i=numMetrics; i < (numMetrics + howmany); i++){
-    data_values[i] = visi_GridHistoArray(numResources);
+      visi_GridHistoArray *temp = new visi_GridHistoArray(numResources);
+      data_values[i] = *temp;
+      delete temp;
   }
 
   numMetrics += howmany;

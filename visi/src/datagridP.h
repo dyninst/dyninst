@@ -43,9 +43,12 @@
 #define _datagrid_h
 
 /* $Log: datagridP.h,v $
-/* Revision 1.4  1996/12/10 16:20:47  newhall
-/* added visi_PrintDataBuckets, changed the way data grid constructors are called
+/* Revision 1.5  1996/12/11 19:08:46  newhall
+/* fixed compile error with visi_GridHistoArray operator=
 /*
+ * Revision 1.4  1996/12/10 16:20:47  newhall
+ * added visi_PrintDataBuckets, changed the way data grid constructors are called
+ *
  * Revision 1.3  1996/08/16 21:33:51  tamches
  * updated copyright for release 1.1
  *
@@ -366,7 +369,10 @@ class  visi_GridHistoArray {
       }
 
       visi_GridHistoArray& operator= (visi_GridHistoArray &new_elm){
-          this = &new_elm; 
+	  values = new_elm.values;
+	  size = new_elm.size;
+	  new_elm.values = 0;
+	  new_elm.size = 0;
 	  return *this;
       }
 
