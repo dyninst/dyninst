@@ -376,15 +376,11 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
    // may have processed at function entry points and pre-instruction call
    // sites which have already executed.
    // Note: this must run IMMEDIATELY after inserting the jumps to tramps
-
    doCatchupInstrumentation(stackWalks);
-
    // Changes for MT: process will be continued by inferior RPCs
    // This is because the inferior RPCs may complete after the instrumentation
    // path, and so they must leave the process in a paused state.
-   
    instrInserted_ = true;
-   continueProcess();
    return inst_insert_success;
 }
 
@@ -457,8 +453,9 @@ void processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
     bool catchupPosted = postCatchupRPCs();
 
     if (!catchupPosted) {
-        if (currentlyPaused) continueProcess();
-        return;
+
+      if (currentlyPaused) continueProcess();
+      return;
     }
     
     // Get them all cleared out
@@ -469,6 +466,10 @@ void processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
     // 3) Waiting for a system call, no trap. Nothing we can do but
     //    wait and pick it up somewhere else.
     proc_->launchRPCs(currentlyPaused);
+    // currentlyPaused now becomes the state to leave the process in when we're
+    // done with catchup. For a little while, we'll be out of sync with the 
+    // actual process. This is annoying, but necessary, since we can't effectively
+    // do synchronous catchup RPCs.
 }
 
 //
@@ -609,11 +610,8 @@ bool processMetFocusNode::postCatchupRPCs()
 {
    // Assume the list of catchup requests is 
    // sorted
-   bool catchupPosted = false;
-    
    if (catchupASTList.size() == 0) {
-       catchupPosted = true;
-       return true;
+       return false;
    }
 
    if (pd_debug_catchup) {
@@ -627,7 +625,6 @@ bool processMetFocusNode::postCatchupRPCs()
               << catchupASTList[i].thread->get_tid() << endl;
          
       }
-      catchupPosted = true;
 
       unsigned rpc_id =
          proc_->postRPCtoDo(catchupASTList[i].ast, false, 
@@ -639,7 +636,7 @@ bool processMetFocusNode::postCatchupRPCs()
    
    catchupASTList.resize(0);
 
-   return catchupPosted;
+   return true;
 }
 
 void processMetFocusNode::initializeForSampling(timeStamp startTime, 
