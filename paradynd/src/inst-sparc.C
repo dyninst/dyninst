@@ -19,13 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.34 1996/03/25 22:58:05 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.35 1996/04/26 20:43:07 lzheng Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.35  1996/04/26 20:43:07  lzheng
+ * Changes to the procedure emitFuncCall. (move all the code dealing with
+ * function Call in the miniTrampoline here)
+ *
  * Revision 1.34  1996/03/25 22:58:05  hollings
  * Support functions that have multiple exit points.
  *
@@ -798,8 +802,33 @@ pdFunction *getFunction(instPoint *point)
     return(point->callee ? point->callee : point->func);
 }
 
-unsigned emitFuncCall(opCode op, vector<reg> srcs, reg dest, char *i, unsigned &base)
+
+unsigned emitFuncCall(opCode op, 
+		      registerSpace *rs,
+		      char *i, unsigned &base, 
+		      vector<AstNode> operands, 
+		      string callee, process *proc)
 {
+        unsigned addr;
+	bool err;
+	vector <reg> srcs;
+
+        addr = (proc->symbols)->findInternalAddress(callee, false, err);
+        if (err) {
+	    pdFunction *func = (proc->symbols)->findOneFunction(callee);
+	    if (!func) {
+		ostrstream os(errorLine, 1024, ios::out);
+		os << "Internal error: unable to find addr of " << callee << endl;
+		logLine(errorLine);
+		showErrorCallback(80, (const char *) errorLine);
+		P_abort();
+	    }
+	    addr = func->addr();
+	}
+	
+	for (unsigned u = 0; u < operands.size(); u++)
+	    srcs += operands[u].generateCode(proc, rs, i, base);
+        
 	// TODO cast
 	instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -814,8 +843,8 @@ unsigned emitFuncCall(opCode op, vector<reg> srcs, reg dest, char *i, unsigned &
             base += sizeof(instruction);
         }
 
-        generateSetHi(insn, dest, 13); insn++;
-        genImmInsn(insn, JMPLop3, 13, LOW(dest), 15); insn++;
+        generateSetHi(insn, addr, 13); insn++;
+        genImmInsn(insn, JMPLop3, 13, LOW(addr), 15); insn++;
         generateNOOP(insn);
 
         base += 3 * sizeof(instruction);
