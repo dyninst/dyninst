@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Thread-pthread.C,v 1.2 2003/11/24 17:38:35 schendel Exp $
+// $Id: Thread-pthread.C,v 1.3 2003/11/24 22:47:04 schendel Exp $
 #include <pthread.h>
 #include "xplat/Thread.h"
 
@@ -21,14 +21,14 @@ Thread::Create( Func func, void* data, Id* id )
 Thread::Id
 Thread::GetId( void )
 {
-    return reinterpret_cast<Thread::Id>( pthread_self());
+    return (Thread::Id) pthread_self();
 }
 
 
 int
 Thread::Join( Thread::Id joinWith, void** exitValue )
 {
-    pthread_t jwith = reinterpret_cast<pthread_t>(joinWith);
+    pthread_t jwith = (pthread_t) joinWith;
     return pthread_join( jwith, exitValue );
 }
 
