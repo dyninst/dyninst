@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.19 2004/11/30 21:06:50 tlmiller Exp $
+# $Id: Makefile,v 1.20 2005/01/21 23:45:06 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,10 +30,6 @@ SRCS =	../src/linux.C \
 		../src/Object-elf.C \
 		../src/unix.C \
 		../src/parseStab.C \
-		../src/func-reloc.C \
-		../src/LocalAlteration.C \
-		../src/LocalAlteration-ia64.C \
-		../src/FunctionExpansionRecord.C \
 		../src/addLibraryLinux.C \
 		../src/InstrucIter-ia64.C \
 		../src/parseDwarf.C \

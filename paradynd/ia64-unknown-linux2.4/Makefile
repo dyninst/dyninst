@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2004/11/30 21:10:53 tlmiller Exp $
+# $Id: Makefile,v 1.8 2005/01/21 23:45:07 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -9,6 +9,7 @@ USES_LIBELF = true
 USES_UNWIND_LIB = true
 USES_SHM_SAMPLING = true
 NO_IMPLICIT_TEMPLATES = true
+USES_DWARF_DEBUG = true
 
 DEBUG_FLAG = -g
 NO_OPT_FLAG = true
@@ -37,7 +38,6 @@ SRCS 	= \
 		../../dyninstAPI/src/parseStab.C \
 		../../dyninstAPI/src/parseDwarf.C \
 		../../dyninstAPI/src/dynamiclinking.C \
-		../../dyninstAPI/src/FunctionExpansionRecord.C \
 		../../dyninstAPI/src/inst-ia64.C \
 		../../dyninstAPI/src/arch-ia64.C \
 		../../dyninstAPI/src/InstrucIter-ia64.C \
