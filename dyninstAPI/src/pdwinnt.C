@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2001 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.41 2001/12/20 22:08:46 pcroth Exp $
+// $Id: pdwinnt.C,v 1.42 2002/01/08 19:59:30 pcroth Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -779,7 +779,7 @@ void checkProcStatus() {
 int secondBkpt = 0; //ccw 30 apr 2001 : used to signal that we have seen the first EXCEPTION_DEBUG_EVENT
 int mungeAddr = 0; //ccw 2 may 2001 : used to track where we wrote the LoadLibrary code
 byte savedOpCode[256]; //ccw 2 may 2001 : the op code we overwrite in main()
-byte newOpCode[256];    // ccw 27 june 2001 : the op code we add in main()
+byte newOpCode[256];   // ccw 27 june 2001 : the op code we add in main()
 //ccw 6 july 2001 the two above arrays are 256 bytes because writing one byte does not always cause the
 //instruction cache to be reloaded. 
 
@@ -869,6 +869,9 @@ int process::waitProcs(int *status) {
 			// put a breakpoint there, we are already
 			// at a state that will allow loadLibrary() to
 			// succeed. 
+			//ccw this is the breakpoint BEFORE main();
+			//i need to insert the 0xcc into main() now.
+			//byte debugOpCode = 0xcc;
 	 	    	p->savedRegs = p->getRegisters();
 			function_base *mainFunc;
 			//DebugBreak();//ccw 14 may 2001  
@@ -884,17 +887,15 @@ int process::waitProcs(int *status) {
 			}
 			mainAddr = mainFunc->addr();
 			//ccw save what we overwrite for later.
-            p->readDataSpace_((void*) (mainAddr), 256, (void*)savedOpCode );
+			p->readDataSpace_((void*) (mainAddr), 256, (void*)savedOpCode);
 
-            // make a copy of the text
-            CopyMemory( newOpCode, savedOpCode, 256 );
+			// insert the breakpoint into the code we just read
+			CopyMemory( newOpCode, savedOpCode, 256 );
+			newOpCode[0] = 0xcc;
 
-            // insert our instruction
-            newOpCode[0] = 0xcc;
-
-            // apply our changes
-            p->writeDataSpace_((void*) (mainAddr), 256, (void*)newOpCode );
-            p->flushInstructionCache_((void*)mainAddr, 256 );
+			// write the modified code sequence back
+			p->writeDataSpace((void*) (mainAddr), 256, (void*)newOpCode);
+			p->flushInstructionCache_( (void*)mainAddr, 256 );
 
 			secondBkpt=1;
 			break;
@@ -940,10 +941,10 @@ int process::waitProcs(int *status) {
 	 		//ccw 25 june 2001 NEED TO FLUSH ICACHE here
 			p->flushInstructionCache_((void*) ((w32CONTEXT*) p->savedRegs)->Eip,0x100);
 
+
 			if(mainAddr){
 			    // patch main() back to its original form
-                p->writeDataSpace((void*) (mainAddr), 256, (void*)savedOpCode );
-
+			    p->writeDataSpace((void*) (mainAddr),16,(void*) savedOpCode); //ccw 2 may 2001
 			    // reset the IP to run what we just inserted.
 			    ((w32CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
 			}
@@ -953,6 +954,19 @@ int process::waitProcs(int *status) {
 		    p->writeDataSpace((void *)p->getImage()->codeOffset(),
 				      LOAD_DYNINST_BUF_SIZE,
 				      (void *)p->savedData);
+			if(mainAddr){
+				//ccw 25 june 2001 NEED TO FLUSH ICACHE here
+				//p->flushInstructionCache_((void*) ((CONTEXT*) p->savedRegs)->Eip,0x100);
+				p->readDataSpace_((void*)(mainAddr), 256, (void*) newOpCode);
+				p->writeDataSpace((void*) (mainAddr),256,(void*) savedOpCode); //ccw 2 may 2001
+				//technically, we only need to writeDataSpace once, up at the previous
+				// if statement. BUT writing once does not seem to always flush the 
+				// icache, and neither does FlushInsturctionCache()
+				// the readDataSpace_ is completely spurrious but is here for the same
+				// reason, to get the icache updated correctly with the old op code before
+				// we continue. 
+			}
+	
 	
 		}else{
 			break;  //ccw 20 june 2001 this is the DYNINSTinit breakpoint
@@ -2184,16 +2198,6 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
     bool res = WriteProcessMemory((HANDLE)proc_fd, (LPVOID)inTraced, 
 				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #endif
-
-    if (!res) {
-	char buf[1000];
-	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 
-		      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		      buf, 1000, NULL);
-	printf(">>> %d %s\n", GetLastError(), buf);
-	printf("WriteProcessMem: %d bytes, addr = 0x%lx, %d\n", 
-	       amount, inTraced, (int)res);
-    }
     return res && (nbytes == amount);
 }
 
@@ -2207,15 +2211,6 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     bool res = ReadProcessMemory((HANDLE)proc_fd, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #endif
-    if (!res) {
-	char buf[1000];
-	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 
-		      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		      buf, 1000, NULL);
-	printf(">>> %d %s\n", GetLastError(), buf);
-	printf("ReadProcessMem: %d bytes, addr = 0x%lx, %d\n", 
-	       amount, inTraced, (int)res);
-    }
     return res && (nbytes == amount);
 }
 
