@@ -37,6 +37,7 @@ extern int dynerdebug;
 int debugPrint = 0;
 BPatch_point *targetPoint;
 bool errorLoggingOff = false;
+bool verbose = false;
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
@@ -236,55 +237,121 @@ IPListElem *findIP(int n)
     return NULL;
 }
 
-int help(ClientData, Tcl_Interp *, int, char **)
+#define LIMIT_TO(name) if (argc < 2 || !strncmp(argv[1], name, strlen(name)))
+
+int help(ClientData, Tcl_Interp *, int argc, char **argv)
 {
 
-    printf("at <function> [entry|exit|preCall|postCall] <statement> - insert statement\n");
-    printf("at termination <statement> - Execute <statement> at program exit callback\n");
-    printf("attach <pid> <program> - attach dyner to a running program\n");
-    printf("declare <type> <variable> - create a new variable of type <type>\n");
-    printf("deletebreak <breakpoint number ...> - delete breakpoint(s)\n");
-    printf("deleteinst <instpoint number ...> - delete intrumentation point(s)\n");
-    printf("break <function> [entry|exit|preCall|postCall] [<condition>] - set a (conditional)\n");
-    printf("     break point at specified points of <function>\n");
-    printf("break <file name:line number> [<condition>] - set an arbitrary (conditional) break\n");
-    printf("     point at <line number> of <file name>\n");
-    printf("debugparse [enable | disable] - Turn on/off debug parsing of the mutatee programs\n");
-    printf("execute <statement> - Execute <statement> at the current point\n");
-    printf("listbreak - list break points\n");
-    printf("listinst - list intrumentation points\n");
-    printf("load <program> [arguments] [< filename] [> filename] - load a program\n");
-    printf("load library <lib name> - load a dynamically linked library\n");
-    printf("load source <C++ file name> - Create a dynamically linked library from a \n");
-    printf("     C++ source file and load it to address space. All the functions and variables \n");
-    printf("     in the source file will be available for instrumentation\n");
-    printf("run - run or continue the loaded program\n");
-    printf("show [modules|functions|variables] - display module names, global functions\n");
-    printf("      and variables\n");
-    printf("show functions in <module> - display function names declared in <module>\n");
-    printf("show [parameters|variables] in <function> - display local variables or parameters of\n");
-    printf("     <function>\n");
-    printf("count <function> - At the end of execution display how many times <function> is called\n");
-    printf("replace function <function1> with <function2> - Replace all calls to <function1> with\n");
-    printf("     calls to <function2>\n");
-    printf("replace call <function1>[:n] with <function2> - All the calls or the nth function call \n");
-    printf("     in <function1> are/is changed to the function <function2>\n");
-    printf("trace function <function> - Print a message at the entry and exit of <function>\n");
-    printf("trace functions in <module> - Print a message at the entry and exit of all functions\n");
-    printf("     declared in <module>\n");
-    printf("untrace function <function> - Undo the effects of trace command for <function>\n");
-    printf("untrace functions in <module> - Undo the effects of trace command for all functions\n");
-    printf("     declared in <module>\n");
-    printf("mutations [enable|disable] - Enable or disable the execution of snippets\n");
-    printf("removecall <function>[:n] - Remove all the calls or n'th call in <function>\n");
-    //printf("dump <file name> - Write the in-memory version of the program to the specified file\n");
-    printf("detach - remove all the code inserted into target program\n");
-    printf("source <file name> - Execute dyner commands stored in the file <file name>\n");
-    printf("kill - Terminate the execution of target program\n");
-    printf("print <Variable> - Display the data type and value of dyner variable\n");
-    printf("whatis <variable> [in <function>] - Display detailed information about\n");
-    printf("     variables in the target program. Local variables and parameters are\n");
-    printf("     searched in the <function>.\n");
+    LIMIT_TO("at") {
+	printf("at <function> [entry|exit|preCall|postCall] <statement> - insert statement\n");
+	printf("at termination <statement> - Execute <statement> at program exit callback\n");
+    }
+
+    LIMIT_TO("attach") {
+	printf("attach <pid> <program> - attach dyner to a running program\n");
+    }
+
+    LIMIT_TO("declare") {
+	printf("declare <type> <variable> - create a new variable of type <type>\n");
+    }
+
+    LIMIT_TO("delete") {
+	printf("deletebreak <breakpoint number ...> - delete breakpoint(s)\n");
+	printf("deleteinst <instpoint number ...> - delete intrumentation point(s)\n");
+    }
+
+    LIMIT_TO("break") {
+	printf("break <function> [entry|exit|preCall|postCall] [<condition>] - set a (conditional)\n");
+	printf("     break point at specified points of <function>\n");
+	printf("break <file name:line number> [<condition>] - set an arbitrary (conditional) break\n");
+	printf("     point at <line number> of <file name>\n");
+    }
+
+    LIMIT_TO("debugparse") {
+	printf("debugparse [enable | disable] - Turn on/off debug parsing of the mutatee programs\n");
+    }
+
+    LIMIT_TO("execute") {
+	printf("execute <statement> - Execute <statement> at the current point\n");
+    }
+
+    LIMIT_TO("list") {
+	printf("listbreak - list break points\n");
+	printf("listinst - list intrumentation points\n");
+    }
+	
+    LIMIT_TO("load") {
+	printf("load <program> [arguments] [< filename] [> filename] - load a program\n");
+	printf("load library <lib name> - load a dynamically linked library\n");
+	printf("load source <C++ file name> - Create a dynamically linked library from a \n");
+	printf("     C++ source file and load it to address space. All the functions and variables \n");
+	printf("     in the source file will be available for instrumentation\n");
+    }
+
+    LIMIT_TO("run") {
+	printf("run - run or continue the loaded program\n");
+    }
+
+    LIMIT_TO("show") {
+	printf("show [modules|functions|variables] - display module names, global functions\n");
+	printf("      and variables\n");
+	printf("show functions in <module> - display function names declared in <module>\n");
+	printf("show [parameters|variables] in <function> - display local variables or parameters of\n");
+	printf("     <function>\n");
+    }
+
+    LIMIT_TO("count") {
+	printf("count <function> - At the end of execution display how many times <function> is called\n");
+    }
+
+    LIMIT_TO("replace") {
+	printf("replace function <function1> with <function2> - Replace all calls to <function1> with\n");
+	printf("     calls to <function2>\n");
+	printf("replace call <function1>[:n] with <function2> - All the calls or the nth function call \n");
+	printf("     in <function1> are/is changed to the function <function2>\n");
+    }
+
+    LIMIT_TO("trace") {
+	printf("trace function <function> - Print a message at the entry and exit of <function>\n");
+	printf("trace functions in <module> - Print a message at the entry and exit of all functions\n");
+	printf("     declared in <module>\n");
+    }
+
+    LIMIT_TO("untrace") {
+	printf("untrace function <function> - Undo the effects of trace command for <function>\n");
+	printf("untrace functions in <module> - Undo the effects of trace command for all functions\n");
+	printf("     declared in <module>\n");
+    }
+
+    LIMIT_TO("mutations") {
+	printf("mutations [enable|disable] - Enable or disable the execution of snippets\n");
+    }
+
+    LIMIT_TO("removecall") {
+	printf("removecall <function>[:n] - Remove all the calls or n'th call in <function>\n");
+    }
+
+    LIMIT_TO("detach") {
+	printf("detach - remove all the code inserted into target program\n");
+    }
+
+    LIMIT_TO("source") {
+	printf("source <file name> - Execute dyner commands stored in the file <file name>\n");
+    }
+
+    LIMIT_TO("kill") {
+	printf("kill - Terminate the execution of target program\n");
+    }
+
+    LIMIT_TO("pint") {
+	printf("print <Variable> - Display the data type and value of dyner variable\n");
+    }
+
+    LIMIT_TO("whatis") {
+	printf("whatis <variable> [in <function>] - Display detailed information about\n");
+	printf("     variables in the target program. Local variables and parameters are\n");
+	printf("     searched in the <function>.\n");
+    }
     return TCL_OK;
 }
 
@@ -1125,7 +1192,7 @@ int newVar(ClientData, Tcl_Interp *, int argc, char *argv[])
     return TCL_OK;
 }
 
-BPatch_variableExpr *findVariable(char *name)
+BPatch_variableExpr *findVariable(char *name, bool printError)
 {
     BPatch_variableExpr *var;
     DynerList<runtimeVar *>::iterator i;
@@ -1151,7 +1218,7 @@ BPatch_variableExpr *findVariable(char *name)
 
     if (var) return var;
 
-    printf("Unable to locate variable %s\n", name);
+    if (printError) printf("Unable to locate variable %s\n", name);
     return NULL;
 }
 
@@ -1281,56 +1348,60 @@ int whatisFunc(ClientData, Tcl_Interp *, int, char *argv[])
       printf("%s is not defined\n", argv[1]);
       return TCL_ERROR;
     }
-    printf("    Function %s ", argv[1]);
     BPatch_type * retType = func->getReturnType();
     if(retType)
       switch(retType->getDataClass()){
       case BPatch_scalar:
       case BPatch_built_inType:
       case BPatchSymTypeRange:
-	printf("  with return type %s\n",retType->getName() );
+	printf("%s",retType->getName() );
 	break;
       case BPatch_array:
-	printf("  with return type ");
 	printArray( retType );
-	printf("\n");
 	break;
 	  
       case BPatch_pointer:
-	printf("  with return type ");
 	printPtr( retType );
-	printf("\n");
 	break;
 	
       default:
-	printf("    %s has unknown return type %s %d\n",argv[1],
+	printf("*unknown return type %s %d*\n",
 	       retType->getName(), retType->getID());
 	break;
       }
     else
-      printf("   unknown return type for %s\n", argv[1]);
+      printf("*unknown*");
+    printf(" %s(", argv[1]);
     BPatch_Vector<BPatch_localVar *> *params = func->getParams();
-    if( params->size())
-      printf("        Parameters: \n");
     for (int i=0; i < params->size(); i++) {
       BPatch_localVar *localVar = (*params)[i];
       BPatch_type *lType = (BPatch_type *) localVar->getType();
       if (lType){
 	if( (lType->getDataClass())  == BPatch_pointer){
 	  printPtr(lType);
-	  printf(" \t %s\n", localVar->getName());
-	}
-	else if( (lType->getDataClass()) == BPatch_array){
+	  printf("%s", localVar->getName());
+	} else if( (lType->getDataClass()) == BPatch_array){
 	  printArray( lType );
+	} else {
+	  printf("%s %s",lType->getName(), localVar->getName());
 	}
-	else
-	  printf("        %s %s\n",lType->getName(), localVar->getName());
-	
+      } else {
+	printf("unknown type %s", localVar->getName());
       }
-      else{
-	printf("   unknown type %s\n", localVar->getName());
-      }
+      if (i < params->size()-1) printf(", ");
     }    
+    printf(") \n");
+    if (func->getBaseAddr()) {
+	short unsigned int firstLine, lastLine;
+	char file[1024];
+	printf("   starts at 0x%lx", (long)func->getBaseAddr());
+	unsigned int size = sizeof(file);
+	if (func->getLineAndFile(firstLine, lastLine, file, size)) {
+	    printf(" defined at %s:%d-%d\n", file, firstLine, lastLine);
+	} else {
+	    printf("\n");
+	}
+    }
     return TCL_OK;
 }
 
@@ -1489,7 +1560,7 @@ int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
       }
     }
 
-    BPatch_variableExpr *var = findVariable(argv[1]);
+    BPatch_variableExpr *var = findVariable(argv[1], false);
     if (!var) {
 	int ret = whatisType(cd, interp, argc, argv);
 	return ret;
@@ -1586,7 +1657,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
 
     if ((num == 0) && ((level == BPatchWarning) || (level == BPatchInfo))) {
 	 // these are old warnings/status info from paradyn
-	 return;
+	 if (!verbose) return;
     }
 
     const char *msg = bpatch->getEnglishErrorString(num);
@@ -2302,6 +2373,7 @@ int main(int argc, char *argv[])
     if (argc >= 2 && !strcmp(argv[1], "-debug")) {
 	printf("parser debug enabled\n");
 	dynerdebug = 1;
+	verbose = true;
     }
 
 #if !defined(i386_unknown_nt4_0)
