@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.12  1994/07/14 23:35:08  hollings
+ * Revision 1.13  1994/07/15 04:19:47  hollings
+ * added code to report stats at the end.
+ *
+ * Revision 1.12  1994/07/14  23:35:08  hollings
  * Added extra arg to generateTrace, ifdefs out DYNINST{start,top}* to use
  * assembly versions.
  *
@@ -98,22 +101,9 @@ char *TRACELIBfreePtr;		/* pointer to next free byte in buffer */
 char *TRACELIBendPtr;		/* last byte in trace buffer */
 char *TRACELIBtraceBuffer;	/* beginning of trace buffer */
 int TRACELIBmustRetry;		/* signal variable from consumer -> producer */
+extern float DYNINSTcyclesToUsec;
 
-#ifdef notdef
-time64 inline getProcessTime()
-{
-    time64 end;
-    time64 ni_end;
-    time64 ni2;
-
-retry:
-    CMOS_get_NI_time(&ni_end);
-    CMOS_get_time((CM_TIME) &end);
-    CMOS_get_NI_time(&ni2);
-    if (ni_end != ni2) goto retry;
-    return(end-ni_end);
-}
-#endif
+time64 getProcessTime();
 
 struct timer_buf {
     unsigned int high;
@@ -138,16 +128,21 @@ typedef union {
 static volatile unsigned int *ni;
 volatile struct timer_buf timerBuffer;
 
-time64 DYNINSTgetCPUtime()
+#ifdef notdef
+inline time64 getProcessTime()
 {
-     time64 now;
+    time64 end;
+    time64 ni_end;
+    time64 ni2;
 
-     now = getProcessTime();
-     now /= NI_CLK_USEC * MILLION;
-
-     return(now);
+retry:
+    CMOS_get_NI_time(&ni_end);
+    CMOS_get_time(&end);
+    CMOS_get_NI_time(&ni2);
+    if (ni_end != ni2) goto retry;
+    return(end-ni_end);
 }
-
+#endif
 
 inline time64 getProcessTime()
 {
@@ -162,6 +157,18 @@ retry:
     if (timerBuffer.sync != 1) goto retry;
     return(end.value-ni_end);
 }
+
+
+time64 DYNINSTgetCPUtime()
+{
+     time64 now;
+
+     now = getProcessTime();
+     now /= NI_CLK_USEC;
+
+     return(now);
+}
+
 
 #ifdef notdef
 inline time64 getWallTime()
@@ -319,6 +326,10 @@ void DYNINSTreportTimer(tTimer *timer)
 static time64 startWall;
 int DYNINSTnoHandlers;
 static int DYNINSTinitDone;
+tTimer DYNINSTelapsedTime;
+tTimer DYNINSTelapsedCPUTime;
+
+extern double DYNINSTsamplingRate;
 
 #define NI_BASE       (0x20000000)
 #define NI_TIME_A     	      (NI_BASE + 0x0070)
@@ -377,11 +388,18 @@ void DYNINSTinit()
     if (interval) {
 	sampleInterval = atoi(interval);
     }
+    DYNINSTsamplingRate = ((float) sampleInterval)/ 1000000.0;
+
     CMOS_signal (CM_SIGALRM, DYNINSTalarmExpire, ~0);
     timeInterval.it_interval.tv_sec = ((int) (sampleInterval) / 1000000);
     timeInterval.it_interval.tv_usec = sampleInterval % 1000000;
     CMOS_setitimer (1, &timeInterval, NULL);
     CMOS_ualarm (sampleInterval);
+
+    DYNINSTcyclesToUsec = NI_CLK_USEC;
+
+    DYNINSTstartWallTimer(&DYNINSTelapsedTime);
+    DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
 
     DYNINSTinitDone = 1;
 }
@@ -399,10 +417,8 @@ void DYNINSTexit()
 void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     void *eventData, int flush)
 {
-    int ret;
     int count;
     time64 pTime;
-    double newVal;
     char buffer[1024];
     traceHeader header;
 
@@ -427,6 +443,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     memcpy(&buffer[count], &header, sizeof(header));
     count += sizeof(header);
 
+    count = ALIGN_TO_WORDSIZE(count);
     memcpy(&buffer[count], eventData, length);
     count += length;
 
@@ -457,4 +474,42 @@ void must_end_timeslice()
    * 2.  Implement a way for a node to trigger a context switch and
    * surrender the rest of a timeslice.
    */
+}
+
+extern int DYNINSTnumReported;
+extern int DYNINSTtotalSamples;
+extern int DYNINSTtotalAlaramExpires;
+extern double DYNINSTtotalSampleTime;
+
+void DYNINSTprintCost()
+{
+    int64 value;
+    struct endStatsRec stats;
+    extern int64 DYNINSTgetObservedCycles(Boolean);
+
+    DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
+    DYNINSTstopWallTimer(&DYNINSTelapsedTime);
+
+    value = DYNINSTgetObservedCycles(0);
+    stats.instCycles = value;
+
+    value *= DYNINSTcyclesToUsec;
+
+    stats.alarms = DYNINSTtotalAlaramExpires;
+    stats.numReported = DYNINSTnumReported;
+    stats.instTime = ((double) value)/1000000.0;
+    stats.handlerCost = ((double) DYNINSTtotalSampleTime)/1000000.0;
+
+    stats.totalCpuTime = ((double) DYNINSTelapsedCPUTime.total)/
+	(MILLION * NI_CLK_USEC);
+    stats.totalWallTime = ((double) DYNINSTelapsedTime.total)/ NI_CLK_USEC;
+
+    stats.samplesReported = DYNINSTtotalSamples;
+    stats.samplingRate = DYNINSTsamplingRate;
+
+    stats.userTicks = 0;
+    stats.instTicks = 0;
+
+    /* record that we are done -- should be somewhere better. */
+    DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1);
 }
