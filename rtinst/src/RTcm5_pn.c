@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.29  1995/12/10 16:35:21  zhichen
+ * Revision 1.30  1995/12/17 05:13:15  zhichen
+ * Hopefully, i have fixed the sample not reporting problem
+ *
+ * Revision 1.29  1995/12/10  16:35:21  zhichen
  * Minor cleanup
  *
  * Revision 1.28  1995/11/05  00:03:51  zhichen
@@ -398,7 +401,6 @@ void DYNINSTreportTimer(tTimer *timer)
     /* tTimer timerTemp; --commented out since unused -ZXU */
     traceSample sample;
 
-
     if (timer->mutex) {
 	total = timer->snapShot;
 	timer->sampled = 1;
@@ -408,10 +410,9 @@ void DYNINSTreportTimer(tTimer *timer)
 	    now = getProcessTime();
 	    total = now - timer->start;
 	} else {
-           /* why not call "getWallTime();" to be consistent with   DYNINSTstartWallTimer? */
-           /* i comeented this line and added the following line    CMOS_get_time(&now);   */
-	   now = getWallTime();
-	    total = (now - timer->start);
+           /* why not call "getWallTime();" to be consistent with DYNINSTstartWallTimer? */
+	   CMOS_get_time(&now);   
+	   total = (now - timer->start);
 	}
 	total += timer->total;
     } else {
@@ -474,6 +475,7 @@ void DYNINSTinit()
     time64 startNItime;
     extern void DYNINSTalarmExpire();
     extern int DYNINSTsampleMultiple;
+printf("DYNINSTinit is called ...\n") ;
     /* temporary correction until we can make the CM-5 aggregation code
        perform a max operation in addition to sum - jk 10/19/94 */
     DYNINSTnprocs = 32;
