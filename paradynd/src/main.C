@@ -2,7 +2,12 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.5  1994/02/28 05:09:42  markc
+ * Revision 1.6  1994/03/20 01:53:09  markc
+ * Added a buffer to each process structure to allow for multiple writers on the
+ * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
+ * int.
+ *
+ * Revision 1.5  1994/02/28  05:09:42  markc
  * Added pvm hooks and ifdefs.
  *
  * Revision 1.4  1994/02/25  13:40:55  markc
@@ -42,7 +47,10 @@ dynRPC *tp;
 extern void controllerMainLoop();
 extern void initLibraryFunctions();
 
-static dynRPC *init_pvm_code();
+#ifdef PARADYND_PVM
+static dynRPC *init_pvm_code(char *argv[], char *machine, int family,
+			     int type, int well_known_socket, int flag);
+#endif     
 
 main(int argc, char *argv[])
 {
@@ -58,7 +66,7 @@ main(int argc, char *argv[])
 		       well_known_socket, flag) == 0);
 
 #ifdef PARADYND_PVM
-    tp = init_pvm_code();
+    tp = init_pvm_code(argv, machine, family, type, well_known_socket, flag);
 #else
     tp = new dynRPC(0, NULL, NULL);
 #endif
@@ -95,9 +103,16 @@ String dynRPC::getStatus(int pid)
 {
     process *proc;
     extern char *getProcessStatus(process *proc);
+    char ret[50];
 
     proc = processList.find((void *) pid);
-    return(getProcessStatus(proc));
+
+    if (!proc) {
+	sprintf (ret, "PID:%d not found for getStatus\n", pid);
+	return (ret);
+    }
+    else
+	return(getProcessStatus(proc));
 }
 
 //
@@ -218,25 +233,26 @@ int dynRPC::addExecutable(int argc,String_Array argv)
 
 #ifdef PARADYND_PVM
 dynRPC *
-init_pvm_code()
+init_pvm_code(char *argv[], char *machine, int family,
+	      int type, int well_known_socket, int flag)
 {
   dynRPC *temp;
 
   extern int PDYN_initForPVM (char **, char *, int, int, int, int);
-  extern int PDYN_initFds (dynRPC*);
 
-  assert (PDYN_initForPVM (argv, machine, family, type, well_known_socket,
-			   flag) == 0);
+  assert(PDYN_initForPVM (argv, machine, family, type, well_known_socket,
+			 flag) == 0);
 
   // connect to paradyn
   if (flag == 1)
-    tp = new dynRPC(0, NULL, NULL);
+    temp = new dynRPC(0, NULL, NULL);
   else
     {
-      tp = new dynRPC(family, well_known_socket, type, machine, NULL, NULL);
-      tp->reportSelf (machine, argv[0], getpid());
-      }
-PDYN_initFds(tp);
+      temp = new dynRPC(family, well_known_socket, type, machine, NULL, NULL);
+      temp->reportSelf (machine, argv[0], getpid());
+    }
+
+    return temp;
 }
 #endif
 

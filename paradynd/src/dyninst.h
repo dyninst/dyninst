@@ -7,7 +7,12 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.2  1994/02/01 18:46:50  hollings
+ * Revision 1.3  1994/03/20 01:53:04  markc
+ * Added a buffer to each process structure to allow for multiple writers on the
+ * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
+ * int.
+ *
+ * Revision 1.2  1994/02/01  18:46:50  hollings
  * Changes for adding perfConsult thread.
  *
  * Revision 1.1  1994/01/27  20:31:17  hollings
@@ -76,7 +81,7 @@ typedef (*errorHandler)(int errno, char *message);
  *
  *   argv - arguments to command
  */
-Boolean addProcess(int argc, char*argv[]);
+int addProcess(int argc, char*argv[]);
 
 /*
  * Find out if an application has been defined yet.

@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.1 1994/01/27 20:31:24 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.2 1994/03/20 01:53:08 markc Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.1  1994/01/27 20:31:24  hollings
+ * Revision 1.2  1994/03/20 01:53:08  markc
+ * Added a buffer to each process structure to allow for multiple writers on the
+ * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
+ * int.
+ *
+ * Revision 1.1  1994/01/27  20:31:24  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.13  1993/12/15  21:02:42  hollings
@@ -337,7 +342,6 @@ void pauseProcess(process *proc)
     if (proc->status == running) {
 	(void) PCptrace(PTRACE_INTERRUPT, proc, (int*)1, 0, 0);
         proc->status = stopped;
-        // printf("process %d stopped\n", proc->pid);
     }
 }
 
@@ -346,7 +350,7 @@ void continueProcess(process *proc)
     if (proc->status == stopped) {
 	(void) PCptrace(PTRACE_CONT, proc, (int*)1, 0, 0);
         proc->status = running;
-        // printf("process %d continued\n", proc->pid);
+        fprintf(stderr, "process %d continued\n", proc->pid);
     }
 }
 

@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.2 1994/02/05 23:09:56 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.3 1994/03/20 01:53:11 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.2  1994/02/05 23:09:56  hollings
+ * Revision 1.3  1994/03/20 01:53:11  markc
+ * Added a buffer to each process structure to allow for multiple writers on the
+ * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
+ * int.
+ *
+ * Revision 1.2  1994/02/05  23:09:56  hollings
  * Added extern for sys_errlist[] (g++ version 2.5.7).
  *
  * Revision 1.1  1994/01/27  20:31:38  hollings
@@ -184,6 +189,8 @@ process *allocateProcess(int pid, char *name)
 	processResource = newResource(rootResource, NULL, "Process", 0.0);
     }
     ret->rid = newResource(processResource, ret, name, 0.0);
+
+    ret->bufEnd = 0;
     return(ret);
 }
 
@@ -234,14 +241,25 @@ process *createProcess(char *file, char *argv[])
 	return(ret);
     } else if (pid == 0) {
 	close(tracePipe[0]);
-	if (dup2(tracePipe[1], 3) != 3) abort();
+	if (dup2(tracePipe[1], 3) != 3)
+	  {
+	    fprintf (stderr, "dup2 failed\n");
+	    abort();
+	  }
 
 	/* close if higher */
 	if (tracePipe[1] > 3) close(tracePipe[1]);
 
 	/* indicate our desire to be trace */
+	errno = 0;
 	ptrace(0, 0, 0, 0);
+	if (errno != 0)
+	  perror("ptrace error\n");
+#ifdef PARADYND_PVM
+	pvmendtask();
+#endif       
 	execv(file, argv);
+	perror("exev\n");
 	_exit(-1);
     } else {
 	perror("vfork");

@@ -10,7 +10,12 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.1  1994/01/27 20:31:39  hollings
+ * Revision 1.2  1994/03/20 01:53:11  markc
+ * Added a buffer to each process structure to allow for multiple writers on the
+ * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
+ * int.
+ *
+ * Revision 1.1  1994/01/27  20:31:39  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.6  1993/08/11  01:46:24  hollings
@@ -67,6 +72,9 @@ struct processRec {
     resource rid;		/* handle to resource for this process */
     process *parent;		/* parent of this proces */
     List<void *> baseMap;	/* map and inst point to its base tramp */
+    char buffer[2048];
+    int bufStart;
+    int bufEnd;
 };
 
 extern List<process*> processList;

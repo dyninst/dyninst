@@ -3,13 +3,18 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.1  1994/02/07 17:38:48  hollings
+ * Revision 1.2  1994/03/20 01:53:07  markc
+ * Added a buffer to each process structure to allow for multiple writers on the
+ * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
+ * int.
+ *
+ * Revision 1.1  1994/02/07  17:38:48  hollings
  * Added inst-sunos to split cm-5 code from standard sunos code.
  *
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.1 1994/02/07 17:38:48 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.2 1994/03/20 01:53:07 markc Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,6 +129,7 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     errno = 0;
     ret = ptrace(request, proc->pid,(char*) addr, data, (char*) addr2);
     assert(errno == 0);
+
     if ((proc->status != neonatal) && (request != PTRACE_CONT)) {
 	(void) ptrace(PTRACE_CONT, proc->pid,(char*) 1, SIGCONT, (char*) 0);
     }
@@ -194,3 +200,6 @@ int findNodeOffset(char *file, int offset)
 {
     return(0);
 }
+
+
+

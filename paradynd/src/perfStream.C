@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.3 1994/02/28 05:09:43 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.4 1994/03/20 01:53:10 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.3  1994/02/28 05:09:43  markc
+ * Revision 1.4  1994/03/20 01:53:10  markc
+ * Added a buffer to each process structure to allow for multiple writers on the
+ * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
+ * int.
+ *
+ * Revision 1.3  1994/02/28  05:09:43  markc
  * Added pvm hooks and ifdefs.
  *
  * Revision 1.2  1994/02/24  04:32:35  markc
@@ -86,6 +91,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <sys/ptrace.h>
 #include <string.h>
 
+
 // this is missing from ptrace.h
 extern "C" {
     int ptrace(enum ptracereq request,	
@@ -109,6 +115,12 @@ extern "C" {
 #include "util.h"
 #include "dyninstRPC.SRVR.h"
 
+#ifdef PARADYND_PVM
+#include "pvm3.h"
+extern int PDYN_handle_pvmd_message();
+extern void PDYN_reportSIGCHLD (int pid, int status);
+#endif
+
 extern dynRPC *tp;
 extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);
 extern void processPtraceAck (traceHeader *header, ptraceAck *ackRecord);
@@ -129,12 +141,14 @@ void processTraceStream(process *curr)
     traceStream sid;
     char *recordData;
     traceHeader header;
-    int bufStart;		/* current starting point */
 
-    static char buffer[2048];	/* buffer for data */
-    static int bufEnd = 0;	/* last valid data in buffer */
+    // each process has its own buffer
+    // int bufStart;		/* current starting point */
 
-    ret = read(curr->traceLink, &buffer[bufEnd], sizeof(buffer)-bufEnd);
+    // static char buffer[2048];	/* buffer for data */
+    // static int bufEnd = 0;	/* last valid data in buffer */
+
+    ret = read(curr->traceLink, &(curr->buffer[curr->bufEnd]), sizeof(curr->buffer)-curr->bufEnd);
     if (ret < 0) {
 	perror("read error");
 	exit(-2);
@@ -146,34 +160,34 @@ void processTraceStream(process *curr)
 	return;
     }
 
-    bufEnd += ret;
+    curr->bufEnd += ret;
 
-    bufStart = 0;
-    while (bufStart < bufEnd) {
-	if (bufEnd - bufStart < (sizeof(traceStream) + sizeof(header))) {
+    curr->bufStart = 0;
+    while (curr->bufStart < curr->bufEnd) {
+	if (curr->bufEnd - curr->bufStart < (sizeof(traceStream) + sizeof(header))) {
 	    break;
 	}
 
-	if (bufStart % WORDSIZE != 0)	/* Word alignment check */
+	if (curr->bufStart % WORDSIZE != 0)	/* Word alignment check */
 	    break;		        /* this will re-align by shifting */
 
-	memcpy(&sid, &buffer[bufStart], sizeof(traceStream));
-	bufStart += sizeof(traceStream);
+	memcpy(&sid, &(curr->buffer[curr->bufStart]), sizeof(traceStream));
+	curr->bufStart += sizeof(traceStream);
 
-	memcpy(&header, &buffer[bufStart], sizeof(header));
-	bufStart += sizeof(header);
+	memcpy(&header, &(curr->buffer[curr->bufStart]), sizeof(header));
+	curr->bufStart += sizeof(header);
 
 	if (header.length % WORDSIZE != 0)
 	    printf("Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
 	    
-	if (bufEnd - bufStart < header.length) {
+	if (curr->bufEnd - curr->bufStart < header.length) {
 	    /* the whole record isn't here yet */
-	    bufStart -= sizeof(traceStream) + sizeof(header);
+	    curr->bufStart -= sizeof(traceStream) + sizeof(header);
 	    break;
 	}
 
-	recordData = &buffer[bufStart];
-	bufStart +=  header.length;
+	recordData = &(curr->buffer[curr->bufStart]);
+	curr->bufStart +=  header.length;
 
 	/*
 	 * convert header to time based on first record.
@@ -224,8 +238,8 @@ void processTraceStream(process *curr)
     }
 
     /* copy those bits we have to the base */
-    memcpy(buffer, &buffer[bufStart], bufEnd - bufStart);
-    bufEnd = bufEnd - bufStart;
+    memcpy(curr->buffer, &(curr->buffer[curr->bufStart]), curr->bufEnd - curr->bufStart);
+    curr->bufEnd = curr->bufEnd - curr->bufStart;
 }
 
 extern void dumpProcessImage(process *, Boolean stopped);
@@ -266,7 +280,7 @@ int handleSigChild(int pid, int status)
 		/* force it into the stoped signal handler */
 		ptrace(PTRACE_CONT, pid, (char*)1, SIGPROF, 0);
 		/* pause the rest of the application */
-		pauseApplication();
+		pauseApplication(); 
 		break;
 
 	    case SIGIOT:
@@ -279,11 +293,15 @@ int handleSigChild(int pid, int status)
 		abort();
 		break;
 
+	    case SIGCHLD:
+#ifdef PARADYND_PVM
+		PDYN_reportSIGCHLD (pid, status);
+		break;
+#endif
 	    case SIGUSR1:
 	    case SIGUSR2:
 	    case SIGALRM:
 	    case SIGCONT:
-	    case SIGCHLD:
 	    default:
 		ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(status), 0);
 		break;
@@ -316,6 +334,11 @@ void controllerMainLoop()
     List<process*> pl;
     struct timeval pollTime;
 
+#ifdef PARADYND_PVM
+    int fd_num, *fd_ptr, i;
+    fd_num = pvm_getfds(&fd_ptr);
+#endif
+    
     while (1) {
 	FD_ZERO(&readSet);
 	width = 0;
@@ -329,16 +352,12 @@ void controllerMainLoop()
 	if (tp->fd > width) width = tp->fd;
 
 #ifdef PARADYND_PVM
-	#include "pvm3.h"
-	int fd_num, *fd_ptr, i;
-	fd_num = pvm_getfds(&fd_ptr);
-	for (i=0; i < num; i++)
+	for (i=0; i < fd_num; i++)
 	  {
 	    FD_SET(fd_ptr[i], &readSet);
 	    if (fd_ptr[i] > width)
 	      width = fd_ptr[i];
 	  }
-	// TODO - do I need to free fd_ptr
 #endif
 	pollTime.tv_sec = 0;
 	pollTime.tv_usec = 50000;
@@ -361,16 +380,16 @@ void controllerMainLoop()
 	      }
 #ifdef PARADYND_PVM
 	    // message on pvmd channel
-	    extern int PDYN_handle_pvmd_message();
 	    int msg_there = 0;
 	    int res;
-	    for (i=0; (i < num) && !msg_there; i++)
+            fd_num = pvm_getfds(&fd_ptr);
+	    for (i=0; (i < fd_num) && !msg_there; i++)
 	      {
 		if (FD_ISSET(fd_ptr[i], &readSet))
 		  {
 		    msg_there = 1;
 		    // res == -1 --> error
-		    res = handle_pvmd_message();
+		    res = PDYN_handle_pvmd_message();
 		    // handle pvm message
 		  }
 	      }
