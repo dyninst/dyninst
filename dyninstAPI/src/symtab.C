@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.179 2003/08/11 15:55:35 tlmiller Exp $
+// $Id: symtab.C,v 1.180 2003/08/11 16:03:49 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1046,7 +1046,7 @@ void pdmodule::define() {
         if( prettyWithTypes != NULL ) {
           useTyped = true;
           exec()->addTypedPrettyName(pdf, prettyWithTypes);
-          pdf->addPrettyName(string(prettyWithTypes));
+          pdf->addPrettyName(pdstring(prettyWithTypes));
           } else {
           prettyWithTypes = strdup( pdf->prettyName );
           assert( prettyWithTypes != NULL );
