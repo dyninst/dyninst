@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.19 2000/10/17 17:42:19 schendel Exp $
+// $Id: irix.C,v 1.20 2000/10/25 17:34:35 willb Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -68,7 +68,6 @@
 #include <stdlib.h>       // getenv()
 #include <termio.h>       // TIOCNOTTY
 #include <sys/timers.h>   // PTIMER macros
-
 
 extern debug_ostream inferiorrpc_cerr;
 extern char *Bool[];
@@ -409,6 +408,12 @@ bool process::attach()
   (void)praddset(&sigs, SIGSTOP);
   (void)praddset(&sigs, SIGTRAP);
   (void)praddset(&sigs, SIGILL);
+#ifdef USE_IRIX_FIXES
+  // we need to use SIGEMT for breakpoints in IRIX due to a bug with
+  // tracing SIGSTOP in a process and then waitpid()ing for it
+  // --wcb 10/4/2000
+  (void)praddset(&sigs, SIGEMT);
+#endif
   if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
     perror("process::attach(PIOCSTRACE)");
     close(fd);
@@ -516,6 +521,13 @@ int process::waitProcs(int *status)
 	  fds[i].fd = processVec[i]->proc_fd;
 	else
 	  fds[i].fd = -1;
+	// IRIX note:  Dave Anderson at SGI seems to think that it is
+	// "ill-defined" what band signals show up in.  He suggests
+	// that we do something like
+	//    fds[i].events = POLLPRI | POLLRDBAND;
+	// This seems to turn up a bunch of "false positives" in
+	// polling, though, which is why we're not doing it.
+	//  -- willb, 10/25/2000
 	fds[i].events = POLLPRI;
 	fds[i].revents = 0;
       }
@@ -812,10 +824,10 @@ int process::waitProcs(int *status)
 
 	  case PR_REQUESTED:
 	    // TODO: this has been reached
-	    fprintf(stderr, ">>> process::waitProcs(fd %i): PR_REQUESTED\n", curr);
+	    //fprintf(stderr, ">>> process::waitProcs(fd %i): PR_REQUESTED\n", curr);
 	    assert(0);
 	  case PR_JOBCONTROL:
-	    fprintf(stderr, ">>> process::waitProcs(fd %i): PR_JOBCONTROL\n", curr);
+	    //fprintf(stderr, ">>> process::waitProcs(fd %i): PR_JOBCONTROL\n", curr);
 	    assert(0);
 	    break;
 	  }        
@@ -823,7 +835,7 @@ int process::waitProcs(int *status)
 	else
 	{
 	  perror("waitProcs:");
-	  cerr << "proc failed in waitProcs!" << endl;
+	  cerr << "proc failed in waitProcs!" <<  endl;
 	}
       
       --selected_fds;
@@ -1266,6 +1278,23 @@ bool process::setProcfsFlags()
   
   if (ioctl(proc_fd, PIOCSENTRY, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  sigset_t sigs;
+  premptyset(&sigs);
+  (void)praddset(&sigs, SIGSTOP);
+  (void)praddset(&sigs, SIGTRAP);
+  (void)praddset(&sigs, SIGILL);
+#ifdef USE_IRIX_FIXES
+  // we need to use SIGEMT for breakpoints in IRIX due to a bug with
+  // tracing SIGSTOP in a process and then waitpid()ing for it
+  // --wcb 10/4/2000
+  (void)praddset(&sigs, SIGEMT);
+#endif
+  if (ioctl(proc_fd, PIOCSTRACE, &sigs) < 0) {
+    perror("process::attach(PIOCSTRACE)");
     close(proc_fd);
     return false;
   }

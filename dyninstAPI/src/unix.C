@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.49 2000/10/17 17:42:24 schendel Exp $
+// $Id: unix.C,v 1.50 2000/10/25 17:34:35 willb Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -822,6 +822,9 @@ int handleSigChild(int pid, int status)
 		break;
 	    }
 
+#ifdef USE_IRIX_FIXES
+            case SIGEMT:
+#endif
 	    case SIGSTOP:
 	    case SIGINT: {
 	        signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << curr->getPid() << endl;
