@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.57 2003/07/15 22:44:13 schendel Exp $
+// $Id: inst-sparc.h,v 1.58 2003/10/21 17:22:06 bernat Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -64,29 +64,6 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/as-sparc.h"
 #include "dyninstAPI/src/instP.h"
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-class NonRecursiveTrampTemplate : public trampTemplate
-{
-
-public:
-
-  int guardOnPre_beginOffset;
-  int guardOnPre_endOffset;
-
-  int guardOffPre_beginOffset;
-  int guardOffPre_endOffset;
-
-  int guardOnPost_beginOffset;
-  int guardOnPost_endOffset;
-
-  int guardOffPost_beginOffset;
-  int guardOffPost_endOffset;
-
-};
 
 /****************************************************************************/
 /****************************************************************************/
@@ -136,7 +113,6 @@ extern "C" void baseTramp_restorePreInsn();
 extern "C" void baseTramp_savePostInsn();
 extern "C" void baseTramp_restorePostInsn();
 extern trampTemplate baseTemplate;
-extern NonRecursiveTrampTemplate nonRecursiveBaseTemplate;
 extern registerSpace *regSpace;
 extern Register deadList[];
 
@@ -148,7 +124,6 @@ extern "C" void conservativeBaseTramp_restorePreInsn();
 extern "C" void conservativeBaseTramp_savePostInsn();
 extern "C" void conservativeBaseTramp_restorePostInsn();
 extern trampTemplate conservativeBaseTemplate;
-extern NonRecursiveTrampTemplate nonRecursiveConservativeBaseTemplate;
 
 // amount of expansion for relocated functions....
 #define RELOCATED_FUNC_EXTRA_SPACE 36
