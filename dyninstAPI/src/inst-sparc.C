@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.28 1995/09/26 20:34:42 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.29 1995/10/19 22:30:54 mjrg Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.28  1995/09/26 20:34:42  naim
+ * Revision 1.29  1995/10/19 22:30:54  mjrg
+ * Fixed code generation for constants in the range 1024 to 4096.
+ *
+ * Revision 1.28  1995/09/26  20:34:42  naim
  * Minor fix: change all msg char[100] by string msg everywhere, since this can
  * cause serious troubles. Adding some error messages too.
  *
@@ -202,7 +205,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
 
 #define ABS(x)		((x) > 0 ? x : -x)
 #define MAX_BRANCH	0x1<<23
-#define MAX_IMM		0x1<<12		/* 11 plus shign == 12 bits */
+//#define MAX_IMM		0x1<<12		/* 11 plus shign == 12 bits */
+#define MAX_IMM13       (4095)
+#define MIN_IMM13       (-4096)
 
 unsigned getMaxBranch() {
   return MAX_BRANCH;
@@ -783,7 +788,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 
     if (op == loadConstOp) {
       // dest = src1:imm    TODO
-	if (ABS(src1) > MAX_IMM) {
+      if (src1 > MAX_IMM13 || src1 < MIN_IMM13) {
 	    generateSetHi(insn, src1, dest);
 	    base += sizeof(instruction);
 	    insn++;
@@ -793,10 +798,11 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	    base += sizeof(instruction);
 	} else {
 	    // really or %g0,imm,regd
-	    genImmInsn(insn, ORop3, 0, LOW(src1), dest);
+	    genImmInsn(insn, ORop3, 0, src1, dest);
+
 	    base += sizeof(instruction);
 	}
-      } else if (op ==  loadOp) {
+    } else if (op ==  loadOp) {
 	// dest = [src1]   TODO
 	generateSetHi(insn, src1, dest);
 	insn++;
@@ -874,7 +880,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
         insn++;
   
         // update value
-	if (src1 < MAX_IMM) {
+	if (src1 <= MAX_IMM13) {
 	    genImmInsn(insn, ADDop3, REG_L1, src1, REG_L1);
 	    base += sizeof(instruction);
 	    insn++;
