@@ -1,5 +1,3 @@
-
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -88,6 +86,14 @@
 #include "stats.h"
 #include "os.h"
 #include "showerror.h"
+#include "util/h/debugOstream.h"
+
+// The following vrbles were defined in process.C:
+extern debug_ostream attach_cerr;
+extern debug_ostream inferiorrpc_cerr;
+extern debug_ostream shmsample_cerr;
+extern debug_ostream forkexec_cerr;
+extern debug_ostream metric_cerr;
 
 #define perror(a) P_abort();
 
@@ -108,14 +114,17 @@ public:
   Address addr;                   /* address of inst point */
   instruction originalInstruction;    /* original instruction */
 
-  instruction delaySlotInsn;  /* original instruction */
-  instruction aggregateInsn;  /* aggregate insn */
-  bool inDelaySlot;            /* Is the instruction in a delay slot */
-  bool isDelayed;		/* is the instruction a delayed instruction */
+//  instruction delaySlotInsn;  /* original instruction */
+//  instruction aggregateInsn;  /* aggregate insn */
+//  bool inDelaySlot;            /* Is the instruction in a delay slot */
+//  bool isDelayed;		/* is the instruction a delayed instruction */
+
   bool callIndirect;		/* is it a call whose target is rt computed ? */
-  bool callAggregate;		/* calling a func that returns an aggregate
-				   we need to reolcate three insns in this case
-				   */
+
+//  bool callAggregate;		/* calling a func that returns an aggregate
+//				   we need to reolcate three insns in this case
+//				   */
+
   pdFunction *callee;		/* what function is called */
   pdFunction *func;		/* what function we are inst */
 };
@@ -262,9 +271,12 @@ inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
 instPoint::instPoint(pdFunction *f, const instruction &instr, 
 		     const image *owner, Address adr,
 		     bool delayOK)
-: addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
-  callIndirect(false), callAggregate(false), callee(NULL), func(f)
+: addr(adr), originalInstruction(instr), 
+  callIndirect(false), callee(NULL), func(f)
 {
+   // inDelaySlot = false;
+   // isDelayed = false;
+   // callAggregate = false;
 }
 
 // Determine if the called function is a "library" function or a "user" function
@@ -321,7 +333,7 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
     } else
       point->callIndirect = false;
 
-    point->callAggregate = false;
+    // point->callAggregate = false;
 
     calls += point;
     err = false;
@@ -1663,3 +1675,102 @@ void instWaitingList::cleanUp(process * , Address ) {
     P_abort();
 }
 
+bool completeTheFork(process *parentProc, int childpid) {
+   // no "process" structure yet exists for the child.
+   // a fork syscall has just happened.  On AIX, this means that
+   // the text segment of the child has been reset instead of copied
+   // from the parent process.  This routine "completes" the fork so that
+   // it behaves like a normal UNIX fork.
+
+   // First, we copy everything from the parent's inferior text heap
+   // to the child.  To do this, we loop thru every allocated item in
+
+   forkexec_cerr << "WELCOME to completeTheFork parent pid is " << parentProc->getPid()
+                 << ", child pid is " << childpid << endl;
+
+   vector<heapItem*> srcAllocatedBlocks = parentProc->heaps[textHeap].heapActive.values();
+
+   char buffer[2048];
+   const unsigned max_read = 1024;
+
+   for (unsigned lcv=0; lcv < srcAllocatedBlocks.size(); lcv++) {
+      const heapItem &srcItem = *srcAllocatedBlocks[lcv];
+
+      assert(srcItem.status == HEAPallocated);
+      unsigned addr = srcItem.addr;
+      int      len  = srcItem.length;
+      const unsigned last_addr = addr + len - 1;
+
+      unsigned start_addr = addr;
+      while (start_addr <= last_addr) {
+	 unsigned this_time_len = len;
+	 if (this_time_len > max_read)
+	    this_time_len = max_read;
+
+	 if (!parentProc->readDataSpace((const void*)addr, this_time_len, buffer, true))
+	    assert(false);
+
+	 // now write "this_time_len" bytes from "buffer" into the inferior process,
+	 // starting at "addr".
+	 if (-1 == ptrace(PT_WRITE_BLOCK, childpid, (int*)addr, this_time_len,
+			  (int*)buffer))
+	    assert(false);
+
+	 start_addr += this_time_len;
+      }
+   }
+
+   // Okay that completes the first part; the inferior text heap contents have
+   // been copied.  In other words, the base and mini tramps have been copied.
+   // But now we need to update parts where the code that jumped to the base tramps.
+
+   // How do we do this?  We loop thru all instInstance's of the parent process.
+   // Fields of interest are:
+   // 1) location (type instPoint*) -- where the code was put
+   // 2) trampBase (type unsigned)  -- base of code.
+   // 3) baseInstance (type trampTemplate*) -- base trampoline instance
+
+   // We can use "location" as the index into dictionary "baseMap"
+   // of the parent process to get a "trampTemplate".
+
+   vector<instInstance*> allParentInstInstances;
+   getAllInstInstancesForProcess(parentProc, allParentInstInstances);
+
+   for (unsigned lcv=0; lcv < allParentInstInstances.size(); lcv++) {
+      instInstance *inst = allParentInstInstances[lcv];
+
+      instPoint *theLocation = inst->location;
+      unsigned   theTrampBase = inst->trampBase;
+      trampTemplate *theBaseInstance = inst->baseInstance;
+      assert(theBaseInstance->baseAddr = theTrampBase);
+
+      // Now all we need is a "returnInstance", which contains
+      // "instructionSeq", a sequence of instructions to be installed,
+      // and "addr_", an address to write to.
+
+      // But for now, since we always relocate exactly ONE
+      // instruction on AIX, we can hack our way around without
+      // the returnInstance.
+
+      // So, we need to copy one word.  The word to copy can be found
+      // at address "theLocation->addr" for AIX.  The original instruction
+      // can be found at "theLocation->originalInstruction", but we don't
+      // need it.  So, we ptrace-read 1 word @ theLocation->addr from
+      // the parent process, and then ptrace-write it to the same location
+      // in the child process.
+
+      unsigned data; // big enough to hold 1 instr
+
+      errno = 0;
+      data = ptrace(PT_READ_I, parentProc->getPid(), (int*)theLocation->addr, 0, 0);
+      if (data == -1 && errno != 0)
+	 assert(false);
+
+      errno = 0;
+      if (-1 == ptrace(PT_WRITE_I, childpid, (int*)theLocation->addr, data, 0) &&
+	  errno != 0)
+	 assert(false);
+   }
+
+   return true;
+}
