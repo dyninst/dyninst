@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.12 2002/08/04 17:29:52 gaburici Exp $
+// $Id: arch-x86.h,v 1.13 2003/04/14 21:25:28 jodom Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -187,6 +187,7 @@ class instruction {
   bool isNop() const { return *ptr_ == 0x90; }
   bool isIndir() const { return type_ & INDIR; }
   bool isIllegal() const { return type_ & ILLEGAL; }
+  bool isLeave() const { return *ptr_ == 0xC9; }
 
  private:
   unsigned type_;   // type of the instruction (e.g. IS_CALL | INDIR)
