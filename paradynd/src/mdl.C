@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.132 2003/04/24 19:43:43 zandy Exp $
+// $Id: mdl.C,v 1.133 2003/04/24 19:56:26 zandy Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -262,11 +262,13 @@ public:
                  continue;
               }
               else if (fbv.size() > 1) {
+#ifdef FIXME_AFTER_4
                  string msg = string("WARNING:  found ") + string(fbv.size()) +
                               string(" records of function '") + fn->get() +
                               string("'") + string(".  Using the first.(1)");
                  //showErrorCallback(95, msg);
                  cerr << msg << endl;
+#endif
               }
               pdf = fbv[0];
            } while (pdf == NULL && index < max_index);
