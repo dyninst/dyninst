@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.42 2003/01/06 19:27:26 bernat Exp $
+ * $Id: RTetc-solaris.c,v 1.43 2003/01/07 21:36:26 bernat Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -113,7 +113,7 @@ void PARADYN_forkEarlyInit() {
 unsigned PARADYNgetFD(unsigned lwp)
 {
     char lwpPath[256];
-    sprintf(lwpPath, "/proc/self/lwp/%d", lwp);
+    sprintf(lwpPath, "/proc/self/lwp/%d/lwpusage", lwp);
     return open(lwpPath, O_RDONLY, 0);
 }
 
@@ -135,23 +135,22 @@ DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
   rawTime64 now = 0;
   prusage_t theUsage;
   int needs_close = 0;
-
   if (lwp_id > 0) {
-    if (!fd) {
+      if (!fd) {
         char lwpPath[256];
         sprintf(lwpPath, "/proc/self/lwp/%d/lwpusage", lwp_id);
         fd = open(lwpPath, O_RDONLY, 0);
         needs_close = 1;
-    }
-
-    if (fd != -1) {
-        if (pread(fd, &theUsage, sizeof(prusage_t), 0) !=
-            sizeof(prusage_t)) {
-            assert(0);
-        }
-        now = (theUsage.pr_utime.tv_sec) * I64_C(1000000000); /* sec to nsec */
-        now += theUsage.pr_utime.tv_nsec;
-    }
+      }
+      if (fd != -1) {
+          if (pread(fd, &theUsage, sizeof(prusage_t), 0) !=
+              sizeof(prusage_t)) {
+              perror("Failure to get LWP cpu time");
+              return 0;
+          }
+          now = (theUsage.pr_utime.tv_sec) * I64_C(1000000000); /* sec to nsec */
+          now += theUsage.pr_utime.tv_nsec;
+      }
   } else {
       lwpTime = gethrvtime();
       now = lwpTime;
