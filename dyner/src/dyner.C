@@ -99,7 +99,7 @@ static int ipCtr = 1;
 static DynerList<BPListElem *> bplist;
 static DynerList<IPListElem *> iplist;
 static DynerList<runtimeVar *> varList;
-
+int whereAmINow = -1;/*ccw 10 mar 2004 : this holds the index of the current stackframe for where, up, down*/
 
 #if !defined(i386_unknown_nt4_0)
 
@@ -381,7 +381,7 @@ int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
 	printf("kill - Terminate the execution of target program\n");
     }
 
-    LIMIT_TO("pint") {
+    LIMIT_TO("print") {
 	printf("print <Variable> - Display the data type and value of dyner variable\n");
     }
 
@@ -397,7 +397,16 @@ int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
 	printf("     variables in the target program. Local variables and parameters are\n");
 	printf("     searched in the <function>.\n");
     }
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) 
+    LIMIT_TO("where") {
+	printf("where - Print stack trace.\n");
+    }
+    LIMIT_TO("up"){
+	printf("up - Move up the stack trace\n");
+    }
+    LIMIT_TO("down"){
+	printf("down - Move down the stack trace\n");
+    }
 
 	LIMIT_TO("saveStart"){
 		printf("saveStart - Call saveStart before 'save' to begin marking instrumentation\n");
@@ -692,6 +701,16 @@ int deleteInstrument(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     return ret;
 }
 
+void setWhereAmINow(){
+	BPatch_Vector<BPatch_frame> callStack;
+
+	appThread->getCallStack(callStack);
+
+	whereAmINow = callStack.size()-1;
+
+}
+
+
 int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 {
     if (!haveApp()) return TCL_ERROR;
@@ -704,6 +723,8 @@ int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
     // Start of code to continue the process.
     dprintf("starting program execution.\n");
     appThread->continueExecution();
+	
+	whereAmINow = -1 ; //ccw 10 mar 2004 : i dont know where i will be when i stop
 
     while (!appThread->isStopped() && !appThread->isTerminated() && !stopFlag)
 #if defined(i386_unknown_nt4_0)
@@ -715,6 +736,7 @@ int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
     if (stopFlag) {
 	stopFlag = false;
 	appThread->stopExecution();
+	setWhereAmINow(); //ccw 10 mar 2004 : find myself
     }
 
     int bp = -1;
@@ -723,16 +745,16 @@ int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
     if (appThread->isTerminated()) {
 	printf("\nApplication exited.\n");
     } else if (appThread->isStopped() && bp > 0) {
-	printf("\nStopped at break point %d.\n", bp);
-	ListElem *i = findBP(bp);
-	if (i != NULL) {
-	    BPListElem *curr = (BPListElem *) i;
-	    curr->Print();
-	}
+		printf("\nStopped at break point %d.\n", bp);
+		ListElem *i = findBP(bp);
+		if (i != NULL) {
+	    	BPListElem *curr = (BPListElem *) i;
+		    curr->Print();
+		}
     } else {
 	printf("\nStopped.\n");
     }
-
+	
     return TCL_OK;
 }
 
@@ -1244,11 +1266,16 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
 {
     int iVal;
     int pVal;
+    char cVal;
     float fVal;
 
     BPatch_dataClass dc;
     BPatch_type *type = (BPatch_type *) var->getType();
 
+	if( !var ){
+		fprintf(stderr," var is NULL\n");
+		return;
+	}
     dc = type->getDataClass();
     if (!strcmp(type->getName(), "int")) {
 	/* print out the integer */
@@ -1258,6 +1285,11 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
 	/* print out the float */
 	var->readValue((void *) &fVal);
 	printf("%f\n", fVal);
+    }else if(!strcmp(type->getName(), "char")) {
+	/* print out the char*/
+	var->readValue((void *) &cVal);
+	printf("%c\n", cVal);
+
     } else if (dc == BPatch_pointer) {
 	/* print out the float */
 	var->readValue((void *) &pVal);
@@ -1277,24 +1309,243 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
     } else if (dc == BPatch_array) {
 	printf("<arrays not yet implemented>\n");
     } else {
-	printf("<unknown type>\n");
+	printf("<unknown type>\n" );
     }
 }
+
+#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
+void printStackFrame(int index, BPatch_Vector<BPatch_frame> &callStack, char *funcName){
+
+	printf("#%d: (0x%x)\t%s (fp: 0x%x)\n", index,callStack[index].getPC(),funcName ,callStack[index].getFP());
+
+}
+
+int whereUp(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
+{
+	BPatch_Vector<BPatch_frame> callStack;
+	char funcName [1024];
+	int index=0;
+
+
+	appThread->getCallStack(callStack);
+
+	if(whereAmINow < (callStack.size()-1) ){
+		whereAmINow++;
+	}
+
+	printf("     ");
+
+	if(callStack[whereAmINow].findFunction()){
+
+		BPatch_Vector<BPatch_point *> *points = callStack[index].findFunction()->findPoint(BPatch_subroutine);
+
+		if ( points  && points->size() > 0){  //linux gets weird here
+				
+			targetPoint = (*points)[0];
+		}
+		callStack[whereAmINow].findFunction()->getName(funcName, 1024);
+
+		printStackFrame(whereAmINow, callStack, funcName);
+
+
+	}else{
+		printStackFrame(whereAmINow, callStack, "<<FAILED TO FIND FUNCTION>>");
+	}
+	return TCL_OK;
+}
+
+int whereDown(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
+{
+	BPatch_Vector<BPatch_frame> callStack;
+	char funcName [1024];
+	int index=0;
+
+	if( whereAmINow > 1) {
+		whereAmINow-- ;
+	}
+
+
+	appThread->getCallStack(callStack);
+	printf("     ");
+
+	if(callStack[whereAmINow].findFunction()){
+
+		BPatch_Vector<BPatch_point *> *points = callStack[index].findFunction()->findPoint(BPatch_subroutine);
+
+		if ( points  && points->size() > 0){  //linux gets weird here
+			
+			targetPoint = (*points)[0];
+		}
+
+		callStack[whereAmINow].findFunction()->getName(funcName, 1024);
+
+		printStackFrame(whereAmINow, callStack, funcName);
+
+
+	}else{
+		printStackFrame(whereAmINow, callStack, "<<FAILED TO FIND FUNCTION>>");
+	}
+	return TCL_OK;
+}
+
+int where(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
+{
+	BPatch_Vector<BPatch_frame> callStack;
+	char funcName [1024];
+	int index=0;
+
+	appThread->getCallStack(callStack);
+	index = 1; 
+	while(index < callStack.size() -1){
+
+		if( (whereAmINow == -1 && index == 1) || ( whereAmINow == index ) ){
+			printf(" --> ");
+			whereAmINow = index;
+		}else{
+			printf("     ");
+		}
+
+		if(callStack[index].findFunction()){
+			BPatch_Vector<BPatch_point *> *points = callStack[index].findFunction()->findPoint(BPatch_subroutine);
+
+			if ( points  && points->size() > 0){  //linux gets weird here
+				
+				targetPoint = (*points)[0];
+			}
+
+
+			callStack[index].findFunction()->getName(funcName, 1024);
+
+			printStackFrame(index, callStack, funcName);
+
+
+		}else{
+			
+			printStackFrame(index, callStack, "<<FAILED TO FIND FUNCTION>>");
+		}
+		index ++;
+	}
+	return TCL_OK;
+}
+#endif
+
+#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)   
+
+BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
+{
+	BPatch_variableExpr *var=NULL;
+#ifdef mips_sgi_irix6_4
+	/* mips_sgi_irix6_4 does not support local vars but if it does we are ready! */
+	long index;
+#define CASTOFFSET long
+
+#else
+	int index;
+#define CASTOFFSET int
+
+#endif
+	int offset;
+
+	/* if we have a local context, use that. otherwise use the top of the call stack */
+	if( whereAmINow == -1 ){
+
+		index = 1;
+	}else{
+		index = whereAmINow;
+	}
+
+	BPatch_Vector<BPatch_frame> callStack;
+	char funcName [1024];
+	BPatch_variableExpr *tmpVar;
+
+	appThread->getCallStack(callStack);
+
+	if(	callStack[index].findFunction()){
+
+		BPatch_Vector<BPatch_point *> *points = callStack[index].findFunction()->findPoint(BPatch_entry);//ccw 10 mar 2004 was subroutine
+
+		if ( points  && points->size() > 0){ 
+				
+			targetPoint = (*points)[0];
+
+			callStack[index].findFunction()->getName(funcName, 1024);
+
+			tmpVar = appImage->findVariable(*targetPoint, name);
+			targetPoint = NULL;
+
+
+			if (tmpVar && 
+#ifdef rs6000_ibm_aix4_1
+				(((int)tmpVar->getBaseAddr()) < 0x1000) ) {
+
+#else
+				( ((CASTOFFSET) (tmpVar->getBaseAddr())) < 0) ) {
+
+#endif
+				offset = (CASTOFFSET) (tmpVar->getBaseAddr());
+
+
+
+#ifdef sparc_sun_solaris2_4
+				index ++; /* ccw 9 mar 2004 WHY DO I NEED TO DO THIS ?*/
+#endif
+			
+				/* WARNING: the function BPatch_thread::lowlevel_process() is risky, it should go away
+				   But i need to build a variable that points to a specific address, and I can not find
+				   a better way to do it right now
+				 */	
+				var = new BPatch_variableExpr(tmpVar->getName(), appThread->lowlevel_process(),
+					(void*) ( ((CASTOFFSET) (callStack[index].getFP())) +offset), tmpVar->getType() );	
+
+#ifdef sparc_sun_solaris2_4 
+				index --;  
+#endif
+				whereAmINow = index; /* set local context just in case */
+
+				return var;
+			}
+			
+		}
+
+		
+	}
+
+    	if (printError) printf("Unable to locate local variable %s\n", name);
+	return NULL;
+}
+#endif
 
 int printVar(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 {
     //if (!haveApp()) return TCL_ERROR;
+	bool found = false;
+    	BPatch_variableExpr *var; 
+#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
 
-    BPatch_variableExpr *var = findVariable(argv[1]);
-    if (!var) {
-	printf("%s is not defined\n", argv[1]);
-	return TCL_ERROR;
-    }
+   	var = findLocalVariable(argv[1],false);
 
-    printf("    %s = ", argv[1]);
-    printVarRecursive(var, 1);
+	if( var) {
+	
+		printf("Local  Variable:\t%s = ", argv[1]);
+		printVarRecursive(var, 1);
+		found = true;
+	}
 
-    return TCL_OK;
+#endif
+
+	var = findVariable(argv[1],false);
+	if( var ) {
+		printf("Global Variable:\t%s = ", argv[1]);
+		printVarRecursive(var, 1);
+		found = true;
+	}
+
+	if( ! found  ){
+		printf("%s is not defined\n", argv[1]);
+		return TCL_ERROR;
+	}
+    
+    	return TCL_OK;
 }
 
 /*
@@ -1326,6 +1577,7 @@ int newVar(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     return TCL_OK;
 }
 
+
 BPatch_variableExpr *findVariable(const char *name, bool printError)
 {
     BPatch_variableExpr *var;
@@ -1339,10 +1591,11 @@ BPatch_variableExpr *findVariable(const char *name, bool printError)
 	}
     }
 
-    // Now check the function locals
-    if (targetPoint) {
+    if(targetPoint){
 	var = appImage->findVariable(*targetPoint, name);
-	if (var) return var;
+	if(var) {
+		return var;
+	}
     }
 
     // Check global vars in the mutatee
@@ -1819,7 +2072,15 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
     bpatch->formatErrorString(line, sizeof(line), msg, params);
 
     if (num != DYNINST_NO_ERROR) {
-        printf("Error #%d (level %d): %s\n", num, level, line);
+
+	/*error call back 100 seems to be a variable not found error
+	  OR Dyninst assert(0) right after it is thrown, so in either case
+	  we dont need to tell the user from here, they will get a message
+	  elsewhere
+	*/
+	if(num != 100 ){ //ccw 9 mar 2004
+	        printf("Error #%d (level %d): %s\n", num, level, line);
+	}
 
         // We consider some errors fatal.
         if (num == 101) {
@@ -2709,10 +2970,15 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "listinst", (Tcl_CmdProc*)listInstrument, NULL, NULL);
     Tcl_CreateCommand(interp, "deleteinst", (Tcl_CmdProc*)deleteInstrument, NULL, NULL);
     Tcl_CreateCommand(interp, "debugparse", (Tcl_CmdProc*)debugParse, NULL, NULL);
+#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+    Tcl_CreateCommand(interp, "where", (Tcl_CmdProc*)where, NULL, NULL);
+    Tcl_CreateCommand(interp, "up", (Tcl_CmdProc*)whereUp, NULL, NULL);
+    Tcl_CreateCommand(interp, "down", (Tcl_CmdProc*)whereDown, NULL, NULL);
+
     Tcl_CreateCommand(interp, "save", (Tcl_CmdProc*)saveWorld, NULL, NULL);
     Tcl_CreateCommand(interp, "saveStart", (Tcl_CmdProc*)saveStart, NULL, NULL);
+
 #endif
 
     Tcl_AllowExceptions(interp);
