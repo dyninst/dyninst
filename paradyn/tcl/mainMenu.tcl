@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.26  1994/11/03 22:13:37  tamches
+# Revision 1.27  1994/11/03 22:15:19  tamches
+# change "Start Perf Consultant" to "Performance Consultant"
+#
+# Revision 1.26  1994/11/03  22:13:37  tamches
 # changed "Exit" to "Exit Paradyn"
 #
 # Revision 1.25  1994/11/03  22:08:03  tamches
@@ -205,7 +208,7 @@ proc drawToolBar {} {
     menu .menub.left.men.b1.m 
     .menub.left.men.b1.m add command -label "Define A Process" \
 	    -command DefineProcess
-    .menub.left.men.b1.m add command -label "Start Perf Consultant" \
+    .menub.left.men.b1.m add command -label "Performance Consultant" \
 	    -command {paradyn shg start}
     .menub.left.men.b1.m add command -label "Tunable Constants Control" \
             -command {tunableEntryPoint}
