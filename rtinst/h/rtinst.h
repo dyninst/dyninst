@@ -69,7 +69,7 @@ struct tTimerRec {
     volatile char sampled;
 };
 
-typedef (*filterFunc)(void *cdata, parameters *params);
+typedef int (*filterFunc)(void *cdata, parameters *params);
 
 /*
  * standard inst. functions.
@@ -91,7 +91,7 @@ void DYNINSTstartTimer(tTimer *timer);
 
 void DYNINSTstopTimer(tTimer *timer);
 
-typedef traceStream;
+typedef int traceStream;
 /*
  * timestamp and write the passed trace type, and event data to the passed
  *   trace stream.
