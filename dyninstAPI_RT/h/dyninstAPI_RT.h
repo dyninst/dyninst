@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.11 2002/02/11 22:02:43 tlmiller Exp $
+ * $Id: dyninstAPI_RT.h,v 1.12 2002/06/10 20:20:33 jaw Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -63,6 +63,10 @@
 
 #include <stdio.h>
 #include "common/h/Types.h"
+
+#if defined(i386_unknown_linux2_0) 
+#include "dyninstAPI/src/linux.h"  // jaw 06-02 -- source definition of SIG_REATTACH
+#endif
 
 /* If we must make up a boolean type, we should make it unique */
 typedef unsigned char RT_Boolean;

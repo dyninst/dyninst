@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.14 2001/10/10 20:43:08 buck Exp $
+ * $Id: RTlinux.c,v 1.15 2002/06/10 20:20:33 jaw Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -134,7 +134,7 @@ static void DYNINSTillHandler(int sig, struct sigcontext uap)
 	  fprintf(stderr, "Invalid process id for daemon or mutator\n");
 	  assert(0);
      }
-     if (0 > kill(daemon_or_dyninst_pid(), 33)) {
+     if (0 > kill(daemon_or_dyninst_pid(), SIG_REATTACH)) {
 	  perror("RTinst kill");
 	  assert(0);
      }

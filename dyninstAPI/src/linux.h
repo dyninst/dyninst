@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.6 2002/02/11 22:02:20 tlmiller Exp $
+// $Id: linux.h,v 1.7 2002/06/10 20:20:33 jaw Exp $
 
 #if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
 #error "invalid architecture-os inclusion"
@@ -60,6 +60,13 @@
 #define START_PROC_TIMER "DYNINSTstartProcessTimer"
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER	 "sigacthandler"
+
+/* SIG_REATTACH may be arbitrarily selected so long as it is in between the range
+defined by (SIGRTMIN, SIGRTMAX).  At this writing, SIGRTMIN is 33.  Some system libs,
+notably libpthread, like to use the first several real time signals, so we use an
+arbitrarily larger one, which also happens to be the answer to the question of the
+meaning of life. */
+#define SIG_REATTACH 42
 
 typedef int handleT; // a /proc file descriptor
 

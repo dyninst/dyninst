@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.71 2002/06/10 19:24:50 bernat Exp $
+// $Id: linux.C,v 1.72 2002/06/10 20:20:33 jaw Exp $
 
 #include <fstream.h>
 
@@ -522,7 +522,7 @@ parse_procstat(char *p, char *status, unsigned long *sigpend)
 
 
 /* The purpose of this is to synchronize with the sigill handler in
-   the inferior.  In this handler, the inferior signals us (SIG33),
+   the inferior.  In this handler, the inferior signals us (SIG_REATTACH),
    and then it stops itself.  This routine does not return until the
    inferior stop has occurred.  In some contexts, the inferior may be
    acquire a pending SIGSTOP as or after it stops.  We clear the
@@ -575,7 +575,7 @@ waitForInferiorSigillStop(int pid)
 
 /* When a detached mutatee needs us to reattach and handle an event,
    it sends itself a SIGILL.  Its SIGILL handler in turn sends us
-   SIG33, which brings us here.  Here we reattach to the process and
+   SIG_REATTACH, which brings us here.  Here we reattach to the process and
    then help it re-execute the code that caused its SIGILL.  Having
    reattached, we receive the new SIGILL event and dispatch it as
    usual (in handleSigChild). */
@@ -585,7 +585,7 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 
      unused = 0; /* Suppress compiler warning of unused parameter */
 
-     assert(sig == 33);
+     assert(sig == SIG_REATTACH);
      /* Determine the process that sent the signal.  On Linux (at
 	least upto 2.2), we can only obtain this with the real-time
 	signals, those numbered 33 or higher. */
@@ -630,8 +630,8 @@ void initDetachOnTheFly()
 	although it will let you register a siginfo handler for them.
 	There are apparently no predefined names for the realtime
 	signals so we just use their integer value. */
-     if (0 > sigaction(33, &act, NULL)) {
-	  perror("SIG33 sigaction");
+     if (0 > sigaction(SIG_REATTACH, &act, NULL)) {
+	  perror("SIG_REATTACH sigaction");
 	  assert(0);
      }
 }
@@ -651,7 +651,7 @@ bool haveDetachedFromProcess(int pid)
 }
 
 
-/* The following two routines block SIG33 to prevent themselves from
+/* The following two routines block SIG_REATTACH to prevent themselves from
    being reentered. */
 int process::detach()
 {
@@ -660,7 +660,7 @@ int process::detach()
 
      ret = 0;
      sigemptyset(&tmp);
-     sigaddset(&tmp, 33);
+     sigaddset(&tmp, SIG_REATTACH);
      sigprocmask(SIG_BLOCK, &tmp, &old);
 
 #if 0
@@ -701,7 +701,7 @@ int process::reattach()
 
      ret = 0;
      sigemptyset(&tmp);
-     sigaddset(&tmp, 33);
+     sigaddset(&tmp, SIG_REATTACH);
      sigprocmask(SIG_BLOCK, &tmp, &old);
 
 #if 0
