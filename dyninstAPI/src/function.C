@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.3 2005/02/02 17:27:16 bernat Exp $
+// $Id: function.C,v 1.4 2005/02/03 23:45:27 bernat Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
@@ -126,6 +126,14 @@ bool int_function::match(int_function *fb)
 	    (line_       == fb->line_) &&
 	    (offset_     == fb->offset_) &&
 	    (size_       == fb->size_));
+}
+
+void int_function::changeModule(pdmodule *mod) {
+  // Called from buildFunctionLists, so we aren't entered in any 
+  // module-level data structures. If this changes, UPDATE THE
+  // FUNCTION.
+
+  mod_ = mod;
 }
 
 #ifdef DEBUG

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.3 2005/02/02 17:27:17 bernat Exp $
+// $Id: function.h,v 1.4 2005/02/03 23:45:27 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -115,6 +115,7 @@ class int_function : public codeRange {
    ostream & operator<<(ostream &s) const;
    friend ostream &operator<<(ostream &os, int_function &f);
    pdmodule *pdmod() const { return mod_;}
+   void changeModule(pdmodule *mod);
 
    ////////////////////////////////////////////////
    // CFG and other function body methods
@@ -150,9 +151,6 @@ class int_function : public codeRange {
    bool isTrapFunc() {return isTrap;}
    bool isInstrumentable() { return isInstrumentable_; }
 
-   // Hacky way around parsing things -- we can stick things known to be 
-   // unparseable in here.
-   bool isInstrumentableByFunctionName();
 
 #if defined(arch_x86)
    //Replaces the function with a 'return val' statement.
@@ -491,6 +489,10 @@ class int_function : public codeRange {
    instruction *instructions;     // instructions that correspond to the 
    // original function 
 
+
+   // Hacky way around parsing things -- we can stick things known to be 
+   // unparseable in here.
+   bool isInstrumentableByFunctionName();
 
    // Misc
 
