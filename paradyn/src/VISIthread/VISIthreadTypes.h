@@ -16,10 +16,13 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.15  1995/06/02 20:54:32  newhall
-/* made code compatable with new DM interface
-/* replaced List templates  with STL templates
+/* Revision 1.16  1995/10/12 19:44:45  naim
+/* Adding some comments about error recovery to the visiUser class - naim
 /*
+ * Revision 1.15  1995/06/02  20:54:32  newhall
+ * made code compatable with new DM interface
+ * replaced List templates  with STL templates
+ *
  * Revision 1.14  1995/02/26  02:08:32  newhall
  * added some of the support for the phase interface
  * fix so that the vector of data values are being
@@ -115,6 +118,13 @@ struct VISIGlobalsStruct {
 };
 typedef struct VISIGlobalsStruct VISIthreadGlobals;
 
+// IMPORTANT NOTE: whenever the visiUser constructor is used, it
+// is the user's responsability to check whether the new object have been
+// successfully created or not (i.e. by checking the public variable
+// "bool errorConditionFound" in class visualizationUser). In this way, we 
+// allow the user to take the appropriate error recovery actions instead of
+// executing an "assert(0)" - naim
+//
 class visiUser : public visualizationUser
 {
   public:
