@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.37 2001/08/20 19:59:10 bernat Exp $
+// $Id: pdwinnt.C,v 1.38 2001/08/23 14:43:20 schendel Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -259,7 +259,7 @@ process::walkStack( bool noPause )
     vector<Address> pcs;
 
 #ifndef BPATCH_LIBRARY
-    BEGIN_STACKWALK;
+    startTimingStackwalk();
 #endif
 
 #ifdef DEBUG_STACKWALK
@@ -273,7 +273,7 @@ process::walkStack( bool noPause )
         cerr << "walkStack: pause failed" << endl;
 
 #ifndef BPATCH_LIBRARY
-        END_STACKWALK;
+	stopTimingStackwalk();
 #endif
         return pcs;
     }
@@ -288,7 +288,7 @@ process::walkStack( bool noPause )
         cerr << "walkStack: GetThreadContext failed:" << GetLastError() << endl;
 
 #ifndef BPATCH_LIBRARY
-        END_STACKWALK;
+	stopTimingStackwalk();
 #endif
         return pcs;
     }
@@ -479,7 +479,7 @@ process::walkStack( bool noPause )
     }
 
 #ifndef BPATCH_LIBRARY
-        END_STACKWALK;
+        stopTimingStackwalk();
 #endif
 	return pcs;
 }
