@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -43,6 +44,12 @@
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.65  1996/11/05 20:40:23  tamches
+ * some OS:: methods changed to process:: methods
+ * process ctor now takes traceLink, ioLink params
+ * continueProcessIfWaiting removed (no longer needed)
+ * improved error reporting for shm segs
+ *
  * Revision 1.64  1996/10/31 09:31:56  tamches
  * major change: the shm-sampling commit
  * inferiorRPC
@@ -180,20 +187,26 @@ static bool garbageCollect1ShmSeg(key_t theKey, int size) {
    // cookie matches.  Next 2 words are as follows: applic pid, paradynd pid.
    // If neither process exists, then garbage collect; else, forget it.
    const int applicPid = *((int *)shmAddr + 1);
-   const int paradyndPid = *((int *)shmAddr + 1);
+   const int paradyndPid = *((int *)shmAddr + 2);
    if (P_kill(applicPid, 0) == -1 && errno == ESRCH)
       if (P_kill(paradyndPid, 0) == -1 && errno == ESRCH) {
          // neither process exists.  Garbage collect!
 
-	 //cout << "paradynd trying to garbage collect shm seg with key " << theKey << endl;
+	 //cerr << "paradynd trying to garbage collect shm seg, key=" << theKey << endl;
 	 if (P_shmdt(shmAddr) == 0 && P_shmctl(shmid, IPC_RMID, NULL) == 0) {
-            //cout << "paradynd successfully garbage collected" << endl;
+            //cerr << "paradynd successfully gc'd shm seg, key=" << theKey << endl;
 	    return true;
 	 }
-	 //cout << "paradynd could not garbage collect" << endl;
-	 return false;
+	 else {
+	    perror("shmdt or shmctl");
+	    cerr << "paradynd note: couldn't gc shm seg, key=" << theKey << endl;
+	    return false;
+         }
       }
 
+   // We couldn't garbage collect because at least one of the processes exists
+   // But let's at least clean up as much as we can; i.e. undo our shmat() that we
+   // had to do in order to check cookie & pids.
    (void)P_shmdt(shmAddr);
    (void)P_shmctl(shmid, IPC_RMID, NULL);
 
@@ -245,9 +258,13 @@ static key_t pickShmSegKey() {
 
    while (true) {
       if (!shmSegExists(shmSegKey, size0) && !shmSegExists(shmSegKey+1, size1) &&
-	  !shmSegExists(shmSegKey+2, size2))
+	  !shmSegExists(shmSegKey+2, size2)) {
 	 // we found 3 consecutive unused keys, so we're done.
+	 // TODO: We should also do some garbage collecting of higher-numbered keys
+
+	 //cerr << "paradynd found 3 consecutive unused segments starting at key " << shmSegKey << endl;
 	 return shmSegKey;
+      }
 
       // at least one of the 3 segs we tried above already exists.
       // let's try to garbage collect it.
@@ -818,7 +835,7 @@ t3=t1;
 #endif
 }
 
-process::process(int iPid, image *iImage
+process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
 		 , key_t theShmKey,
 		 unsigned iicNumElems,
@@ -842,8 +859,6 @@ process::process(int iPid, image *iImage
     // to via a fork().
     symbols = iImage;
 
-    traceLink = -1; ioLink = -1;
-
     status_ = neonatal;
     thread = 0;
 
@@ -863,7 +878,6 @@ process::process(int iPid, image *iImage
     bufStart = 0;
     bufEnd = 0;
     reachedFirstBreak = false; // process won't be paused until this is set
-    splitHeaps = false;
     inExec = false;
 
     cumObsCost = 0;
@@ -899,6 +913,22 @@ process::process(int iPid, image *iImage
 #endif
 #endif
 
+   initInferiorHeap(false);
+   splitHeaps = false;
+
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+	// XXXX - move this to a machine dependant place.
+
+	// create a seperate text heap.
+	initInferiorHeap(true);
+	splitHeaps = true;
+#endif
+
+   traceLink = iTraceLink;
+   ioLink = iIoLink;
+
+   // attach to the child process (machine-specific implementation)
+   attach();
 }
 
 // This is the "fork" constructor:
@@ -993,8 +1023,7 @@ process::process(const process &parentProc, int iPid
 void process::registerInferiorAttachedSegs(intCounter *inferiorIntCounterPtr,
 					   tTimer *inferiorWallTimerPtr,
 					   tTimer *inferiorProcTimerPtr) {
-cout << "welcome to register with intCounterPtr=" << inferiorIntCounterPtr << ", wallTimerPtr=" << inferiorWallTimerPtr << ", procTimerPtr=" << inferiorProcTimerPtr << endl;
-cout.flush();
+cerr << "process pid " << getPid() << ": welcome to register with intCounterPtr=" << inferiorIntCounterPtr << ", wallTimerPtr=" << inferiorWallTimerPtr << ", procTimerPtr=" << inferiorProcTimerPtr << endl;
 
    inferiorIntCounters.setBaseAddrInApplic(inferiorIntCounterPtr);
    inferiorWallTimers.setBaseAddrInApplic(inferiorWallTimerPtr);
@@ -1126,7 +1155,9 @@ tp->resourceBatchMode(true);
 //	kill(getpid(), SIGSTOP);
 //	cerr << "doing new process with key=" << childShmKeyToUse << endl; cerr.flush();
 
-	process *ret = new process(pid, img
+	process *ret = new process(pid, img,
+				   tracePipe[0], // trace link
+				   ioPipe[0] // io link
 #ifdef SHM_SAMPLING
 				   , ::childShmKeyToUse,
 				   numIntCounters,
@@ -1141,19 +1172,19 @@ tp->resourceBatchMode(true);
 	if (!costMetric::addProcessToAll(ret))
 	   assert(false);
 
-	ret->initInferiorHeap(false);
-	ret->splitHeaps = false;
+//	ret->initInferiorHeap(false);
+//	ret->splitHeaps = false;
+//
+//#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+//	// XXXX - move this to a machine dependant place.
+//
+//	// create a seperate text heap.
+//	ret->initInferiorHeap(true);
+//	ret->splitHeaps = true;
+//#endif
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-	// XXXX - move this to a machine dependant place.
-
-	// create a seperate text heap.
-	ret->initInferiorHeap(true);
-	ret->splitHeaps = true;
-#endif
-
-	ret->traceLink = tracePipe[0];
-	ret->ioLink = ioPipe[0];
+//	ret->traceLink = tracePipe[0];
+//	ret->ioLink = ioPipe[0];
 	close(tracePipe[1]);
 	close(ioPipe[1]);
            // parent closes write end of io pipe; child closes its read end.
@@ -1162,10 +1193,10 @@ tp->resourceBatchMode(true);
            // its stdout/stderr, it gets sent to the pipe which in turn sends it to
            // the parent's ret->ioLink fd for reading.
 
-	statusLine("ready");
+//	statusLine("ready"); // this shouldn't be here, right? (cuz we're not ready)
 
-	// attach to the child process
-	ret->attach();
+//	// attach to the child process
+//	ret->attach();
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	// XXXX - this is a hack since establishBaseAddrs needed to wait for
@@ -1196,11 +1227,8 @@ tp->resourceBatchMode(true);
            // assigns fd 1 (stdout) to be a copy of ioPipe[1].  (Since stdout is already
            // in use, dup2 will first close it then reopen it with the characteristics)
 	   // of ioPipe[1].
-           // In short, stdout gets redirected towards the pipe.  Which brings up the
-           // question of who receives such data.  The answer is the read end of the
-           // pipe, which is attached to the parent process; we (the child of fork())
-           // don't use it.
-
+           // In short, stdout gets redirected towards the write end of the pipe.
+           // The read end of the pipe is read by the parent (paradynd), not us.
 
 	dup2(ioPipe[1], 2); // redirect fd 2 (stderr) to the pipe, like above.
 
@@ -1411,7 +1439,7 @@ void handleProcessExit(process *proc, int exitStatus) {
 /*
    process::forkProcess: called when a process forks, to initialize a new
    process object for the child.
-*/   
+*/
 process *process::forkProcess(const process *theParent, pid_t childPid
 #ifdef SHM_SAMPLING
 			      ,key_t theShmSegBaseKey,
@@ -1420,7 +1448,6 @@ process *process::forkProcess(const process *theParent, pid_t childPid
 			      void *applShmSegProcTimerPtr
 #endif
 			      ) {
-    //process *ret = allocateProcess(childPid, theParent->symbols->name());
 
     process *ret = new process(*theParent, childPid
 #ifdef SHM_SAMPLING
@@ -1833,7 +1860,7 @@ bool process::getSharedObjects() {
 	        logLine("Error after call to addASharedObject\n");
 	    }
 	}
-	statusLine("ready");
+//	statusLine("ready");  // should this be here?  Are we really ready?
 
 	tp->resourceBatchMode(false);
 	return true;
@@ -2428,7 +2455,9 @@ tp->resourceBatchMode(false);
       MIs[j]->propagateMetricInstance(this);
    }
 
-   costMetric::addProcessToAll(this);
+// The following is already done in createProcess, so it doesn't need to be
+// here, right?
+//   costMetric::addProcessToAll(this);
 
    hasBootstrapped = true;
 
@@ -2459,12 +2488,4 @@ tp->resourceBatchMode(false);
    statusLine(str.string_of());
 
    return true;
-}
-
-void process::continueProcessIfWaiting(){ // called by dynrpc.C ::resourceInfoResponse
-   if(waiting_for_resources){
-      //continueProc(); (obsolete, hence waiting_for_resources may be obsolete)
-   }
-   
-   waiting_for_resources = false;
 }
