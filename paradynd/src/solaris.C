@@ -1,7 +1,12 @@
 
 /* 
  * $Log: solaris.C,v $
- * Revision 1.6  1996/02/09 23:53:46  naim
+ * Revision 1.7  1996/02/12 16:46:18  naim
+ * Updating the way we compute number_of_cpus. On solaris we will return the
+ * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
+ * which should be equal to the number of cpus - naim
+ *
+ * Revision 1.6  1996/02/09  23:53:46  naim
  * Adding new internal metric number_of_nodes - naim
  *
  * Revision 1.5  1995/09/26  20:17:52  naim
@@ -38,10 +43,12 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <sys/termios.h>
+#include <unistd.h>
 #include "showerror.h"
 
 extern "C" {
 extern int ioctl(int, int, ...);
+extern long sysconf(int);
 };
 
 class ptraceKludge {
@@ -397,8 +404,16 @@ float OS::compute_rusage_inv_cs() {
 #endif
 }
 
-int getNumberOfNodes()
+int getNumberOfCPUs()
 {
-  return(1);
+  // _SC_NPROCESSORS_CONF is the number of processors configured in the
+  // system and _SC_NPROCESSORS_ONLN is the number of those processors that
+  // are online.
+  int numberOfCPUs;
+  numberOfCPUs = (int) sysconf(_SC_NPROCESSORS_ONLN);
+  if (numberOfCPUs) 
+    return(numberOfCPUs);
+  else 
+    return(1);
 }  
 

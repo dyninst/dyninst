@@ -14,7 +14,12 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.75  1996/02/10 21:01:47  naim
+ * Revision 1.76  1996/02/12 16:46:15  naim
+ * Updating the way we compute number_of_cpus. On solaris we will return the
+ * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
+ * which should be equal to the number of cpus - naim
+ *
+ * Revision 1.75  1996/02/10  21:01:47  naim
  * Changing name of metric number_of_nodes by number_of_cpus - naim
  *
  * Revision 1.74  1996/02/09  23:53:43  naim
@@ -379,8 +384,6 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
 #include "util/h/Timer.h"
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
-
-extern int getNumberOfNodes();
 
 double currentPredictedCost = 0.0;
 double currentSmoothObsValue= 0.0;
@@ -1431,7 +1434,7 @@ void reportInternalMetrics()
         } else if (imp->name() == "bucket_width") {
 	  value = (end - start)*(imp->value);
         } else if (imp->name() == "number_of_cpus") {
-          value = (end - start)* getNumberOfNodes();
+          value = (end - start)* numberOfCPUs;
         } else if (imp->style() == EventCounter) {
           value = imp->getValue();
           // assert((value + 0.0001)  >= imp->cumulativeValue);

@@ -247,7 +247,7 @@ float OS::compute_rusage_vol_cs() { return(0.0); }
 float OS::compute_rusage_inv_cs() { return(0.0); }
 float OS::compute_rusage_msg_recv() { return(0.0); }
 
-int getNumberOfNodes()
+int getNumberOfCPUs()
 {
   return(1);
 }

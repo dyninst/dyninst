@@ -1,7 +1,12 @@
 
 /* 
  * $Log: aix.C,v $
- * Revision 1.4  1996/02/09 23:53:35  naim
+ * Revision 1.5  1996/02/12 16:46:06  naim
+ * Updating the way we compute number_of_cpus. On solaris we will return the
+ * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
+ * which should be equal to the number of cpus - naim
+ *
+ * Revision 1.4  1996/02/09  23:53:35  naim
  * Adding new internal metric number_of_nodes - naim
  *
  * Revision 1.3  1995/12/20  16:38:46  naim
@@ -697,7 +702,7 @@ float OS::compute_rusage_vol_cs() { return(0.0); }
 float OS::compute_rusage_inv_cs() { return(0.0); }
 float OS::compute_rusage_msg_recv() { return(0.0); }
 
-int getNumberOfNodes()
+int getNumberOfCPUs()
 {
   return(1);
 }

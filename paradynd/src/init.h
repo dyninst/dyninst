@@ -4,7 +4,12 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.15  1996/02/10 21:01:44  naim
+ * Revision 1.16  1996/02/12 16:46:12  naim
+ * Updating the way we compute number_of_cpus. On solaris we will return the
+ * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
+ * which should be equal to the number of cpus - naim
+ *
+ * Revision 1.15  1996/02/10  21:01:44  naim
  * Changing name of metric number_of_nodes by number_of_cpus - naim
  *
  * Revision 1.14  1996/02/09  23:53:40  naim
@@ -79,6 +84,7 @@ extern vector<instMapping*> initialRequests;
 extern vector<metric*> globalMetricVec;
 
 extern vector<sym_data> syms_to_find;
+extern int numberOfCPUs;
 
 #endif
 

@@ -1,7 +1,12 @@
 
 /*
  * $Log: cm5.C,v $
- * Revision 1.7  1996/02/09 23:53:37  naim
+ * Revision 1.8  1996/02/12 16:46:08  naim
+ * Updating the way we compute number_of_cpus. On solaris we will return the
+ * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
+ * which should be equal to the number of cpus - naim
+ *
+ * Revision 1.7  1996/02/09  23:53:37  naim
  * Adding new internal metric number_of_nodes - naim
  *
  * Revision 1.6  1995/09/26  20:17:40  naim
@@ -441,8 +446,17 @@ float OS::compute_rusage_inv_cs() {
     return 0;
 }
 
-int getNumberOfNodes()
-{
-  return(1);
+int getNumberOfCPUs()
+{ 
+  //
+  // We are assuming that for the CM-5 the number of processes is equal to 
+  // the number of processors - naim
+  //
+  int numberOfCPUs;
+  numberOfCPUs = processVec.size();
+  if (numberOfCPUs)
+    return(numberOfCPUs);
+  else
+    return(1);
 }
 
