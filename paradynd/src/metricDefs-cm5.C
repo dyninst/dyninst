@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.15 1994/11/09 18:40:20 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.16 1994/11/11 05:12:31 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.15  1994/11/09 18:40:20  rbi
+ * Revision 1.16  1994/11/11 05:12:31  markc
+ * Turned off writing to cout when message metrics are considered.  This is
+ * not a good thing to do if the underlying file descriptor is not there.
+ *
+ * Revision 1.15  1994/11/09  18:40:20  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.14  1994/11/02  11:11:47  markc
@@ -171,11 +175,8 @@ void createMsgBytesMetric(metricDefinitionNode *mn,
     unsigned u;
 
     while (fi.next(u, func)) {
-      cout << "createMsgBytesMetric: considering " << func->prettyName << endl;
-      if (func->tag & matchTag)  {
+      if (func->tag & matchTag)
 	mn->addInst(func->funcEntry, msgBytesAst, callPreInsn, orderLastAtPoint);
-	cout << "createMsgBytesMetric: ********** " << func->prettyName << endl;
-      }
     }
 }
 
