@@ -111,8 +111,6 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 				dwarf_dealloc( dbg, boundName, DW_DLA_STRING );
 				return true;
 				}
-			if (boundName != NULL)
-			   dwarf_dealloc( dbg, boundName, DW_DLA_STRING );
 
 			/* Does it describe a nameless constant? */
 			Dwarf_Attribute constBoundAttribute;
@@ -688,6 +686,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			BPatch_function * currentFunction = NULL,
 			BPatch_type * currentCommonBlock = NULL,
 			BPatch_type * currentEnclosure = NULL ) {
+			
 	Dwarf_Half dieTag;
 	int status = dwarf_tag( dieEntry, & dieTag, NULL );
 	assert( status == DW_DLV_OK );
@@ -695,7 +694,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	Dwarf_Off dieOffset;
 	status = dwarf_dieoffset( dieEntry, & dieOffset, NULL );
 	assert( status == DW_DLV_OK );
-	// bperr( "Considering DIE at %lu with tag 0x%x\n", (unsigned long)dieOffset, dieTag );
+	// /* DEBUG */ fprintf( stderr, "Considering DIE at %lu with tag 0x%x\n", (unsigned long)dieOffset, dieTag );
 
 	/* If this entry is a function, common block, or structure (class),
 	   its children will be in its scope, rather than its
@@ -1432,7 +1431,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			char * memberName = NULL;
 			status = dwarf_diename( dieEntry, & memberName, NULL );
 			assert( status != DW_DLV_ERROR );
-
+			
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
 			assert( status == DW_DLV_OK );
@@ -1470,8 +1469,6 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			assert( isFrameRelative == false );
 
-			// bperr( "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, memberOffset, memberType->getSize() );
-
 			/* DWARF stores offsets in bytes unless the member is a bit field.
 			   Correct memberOffset as indicated.  Also, memberSize is in bytes
 			   from the underlying type, not the # of bits used from it, so
@@ -1508,10 +1505,14 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				memberSize *= 8;
 				} /* end if not a bit field member. */
 
-			// bperr( "Adding member '%s' to enclosure '%s'\n", memberName, currentEnclosure->getName() );
-			currentEnclosure->addField( memberName, memberType->getDataClass(), memberType, memberOffset, memberSize );
-
-			dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
+			if( memberName != NULL ) {
+				// /* DEBUG */ fprint( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, memberOffset, memberType->getSize() );
+				currentEnclosure->addField( memberName, memberType->getDataClass(), memberType, memberOffset, memberSize );
+				dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
+				} else {
+				/* An anonymous union [in a struct]. */
+				currentEnclosure->addField( "[anonymous union]", memberType->getDataClass(), memberType, memberOffset, memberSize );				
+				}
 			} break;
 
 		case DW_TAG_const_type:
@@ -1746,10 +1747,10 @@ void BPatch_module::parseDwarfTypes() {
 				bptype->setDataClass( bptype->getConstituentType()->getDataClass() );
 				}
 			else {
-				bperr("Warning: type information may be incomplete (#%d).\n", bptype->getID() );
+				fprintf( stderr, "Warning: type information may be incomplete (#%d).\n", bptype->getID() );
 				}
 			} /* end if the datatype is unknown. */
-		} /* end iteration over moduleTypes */
+		} /* end iteration over moduleTypes */		
 	} /* end parseDwarfTypes() */
 
 

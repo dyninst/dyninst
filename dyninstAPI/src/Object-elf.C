@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.67 2004/04/09 17:23:24 mjbrim Exp $
+ * $Id: Object-elf.C,v 1.68 2004/05/20 20:35:40 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1625,7 +1625,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 						status = dwarf_formudata( fileNoAttribute, & fileNo, NULL );
 						assert( status == DW_DLV_OK );
 
-						useModuleName = declFileNoToName[ fileNo - 1];
+						useModuleName = declFileNoToName[ fileNo - 1 ];
 						// bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
 						} /* end if we have declaration file listed */
 					else {
@@ -1728,9 +1728,9 @@ void fixSymbolsInModuleByRange(pdstring &moduleName,
     Symbol sym;
     dictionary_hash_iter<pdstring, Symbol> iter(*symbols_);
     while (iter.next(symName, sym)) {
-	if (sym.addr() >= modLowPC && sym.addr() < modHighPC) {
-	    (*symbols_)[symName].setModule(moduleName);
-	}
+		if (sym.addr() >= modLowPC && sym.addr() < modHighPC) {
+		    (*symbols_)[symName].setModule(moduleName);
+		}
     }
 }
 
@@ -1771,25 +1771,15 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf *elfp)
 		moduleName = extract_pathname_tail( dwarfModuleName );
 		}
 
-	/* Acquire declFileNoToName. */
-	status = dwarf_srcfiles( moduleDIE, & declFileNoToName, & declFileNo, NULL );
-	assert( status != DW_DLV_ERROR );
-	
-	if( status == DW_DLV_NO_ENTRY ) {
-		bperr( "Unable to determine modules (%s): no source file information available.\n", moduleName.c_str() );
-		}
-
 	Dwarf_Addr modLowPC = 0;
 	Dwarf_Addr modHighPC = (Dwarf_Addr)(-1);
 	Dwarf_Bool hasLowPC;
 	Dwarf_Bool hasHighPC;
 	
-	if ((status = dwarf_hasattr(moduleDIE, DW_AT_low_pc, &hasLowPC,
-				    NULL)) == DW_DLV_OK &&
-	    hasLowPC &&
-	    (status = dwarf_hasattr(moduleDIE, DW_AT_high_pc, &hasHighPC,
-				    NULL)) == DW_DLV_OK &&
-	    hasHighPC) {
+	if( (status = dwarf_hasattr(moduleDIE, DW_AT_low_pc, &hasLowPC, NULL)) == DW_DLV_OK &&
+		hasLowPC &&
+	    (status = dwarf_hasattr(moduleDIE, DW_AT_high_pc, &hasHighPC, NULL)) == DW_DLV_OK && 
+		hasHighPC ) {
 	    // Get PC boundaries for the module, if present
 	    status = dwarf_lowpc(moduleDIE, &modLowPC, NULL);
 	    assert(status == DW_DLV_OK);
@@ -1799,19 +1789,27 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf *elfp)
 	    // Set module names for all symbols that belong to the range
 	    fixSymbolsInModuleByRange(moduleName, modLowPC, modHighPC,
 				      &symbols_);
-	}
+		}
 	else {
-	    /* Walk the tree. */
-	    fixSymbolsInModule( dbg, moduleName, moduleDIE, symbols_, symbolNamesByAddr );
-	}
-
-	/* Deallocate declFileNoToName. */
-	if( status != DW_DLV_OK ) {
-		for( Dwarf_Signed i = 0; i < declFileNo; i++ ) {
-			dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
-			}
-		dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
-		} /* end if no source file information available. */
+		/* Acquire declFileNoToName. */
+		status = dwarf_srcfiles( moduleDIE, & declFileNoToName, & declFileNo, NULL );
+		assert( status != DW_DLV_ERROR );
+	
+		if( status == DW_DLV_OK ) {
+		    /* Walk the tree. */
+		    fixSymbolsInModule( dbg, moduleName, moduleDIE, symbols_, symbolNamesByAddr );
+	    
+			/* Deallocate declFileNoToName. */
+			for( Dwarf_Signed i = 0; i < declFileNo; i++ ) {
+				dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
+				}
+			dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
+			} /* end if the srcfile information was available */
+		else {
+			bperr( "Unable to determine modules (%s): no code range or source file information available.\n", moduleName.c_str() );
+			} /* end if no source file information available */
+		} /* end if code range information unavailable */
+		
 	} /* end scan over CU headers. */
 
   /* Clean up. */
