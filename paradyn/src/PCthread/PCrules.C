@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.11  1994/06/14 15:32:42  markc
+ * Revision 1.12  1994/06/14 17:18:59  markc
+ * Modified highVariation test.  Changed threshold.
+ *
+ * Revision 1.11  1994/06/14  15:32:42  markc
  * Changed spelling of excessive.
  * Changed and renamed highVariationLock test to highVariation and made it more
  * generic, it now works across all sync objects.
@@ -72,7 +75,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.11 1994/06/14 15:32:42 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.12 1994/06/14 17:18:59 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -294,21 +297,19 @@ void criticalSectionTooLarge_TEST(testValue *result, float normalize)
 //
 Boolean highVariation_ENABLE(collectMode newMode)
 {
-    Boolean status = FALSE;
+    Boolean status = TRUE;
     focusList newFoci;
     focus *i;
 
-    status = activeProcesses.changeCollection(whereAxis, newMode) && status;
-
     newFoci = currentFocus->magnify(SyncObject);
     for (; i = *newFoci; newFoci++)
-      status = SyncTime.changeCollection(i, newMode);
+      status = SyncTime.changeCollection(i, newMode) && status;
 
     return status;
 }
 
 //
-// Test if one lock is more than highSyncThreshold % of the sync time.
+// Test if one sync object is responsible for too much sync time
 //
 /* ARGSUSED */
 void highVariation_TEST(testValue *result, float normalize)
@@ -326,7 +327,7 @@ void highVariation_TEST(testValue *result, float normalize)
     {
       if (!SyncTime.enabled(i)) continue;
       share = SyncTime.value(i) / total;
-      if (share > highSyncThreshold * normalize)
+      if (share > .8 * normalize)
 	{
 	  result->status = TRUE;
 	  // define a hint to refine on the selected sync
