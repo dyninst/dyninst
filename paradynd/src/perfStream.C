@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.108 2000/01/10 15:37:45 zhichen Exp $
+// $Id: perfStream.C,v 1.109 2000/03/16 22:41:11 cain Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -347,7 +347,8 @@ void processTraceStream(process *curr)
 		 image *symbols;
 		 callercalleeStruct *c = (struct callercalleeStruct *) 
 		   ((void*)recordData);
-		 //		 cerr << "DYNAMIC trace record received!!, caller = " << hex 
+
+		 //cerr << "DYNAMIC trace record received!!, caller = " << hex 
 		 //   << c->caller << " callee = " << c->callee << dec << endl;
 		 symbols = curr->getImage();
 		 assert(symbols);	
@@ -356,8 +357,14 @@ void processTraceStream(process *curr)
 		 assert(caller);
 		 callee = symbols->findPossiblyRelocatedFunctionIn(c->callee, 
 								   curr);
-		 assert(callee);
 
+		 if(!callee){
+		   cerr << "callee for addr " << hex << c->callee <<dec
+			<< " not found, caller = " <<
+		     caller->ResourceFullName() << endl;
+		   break;
+		 }
+		 
 		 /*If the callee's FuncResource isn't set, then
 		   the callee must be uninstrumentable, so we don't
 		   notify the front end.*/
