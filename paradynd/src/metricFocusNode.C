@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.36 1994/08/17 16:43:32 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.37 1994/09/05 20:33:34 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.36  1994/08/17 16:43:32  markc
+ * Revision 1.37  1994/09/05 20:33:34  jcargill
+ * Bug fix:  enabling certain metrics could cause no instrumentation to be
+ * inserted, but still return a mid; this hosed the PC
+ *
+ * Revision 1.36  1994/08/17  16:43:32  markc
  * Removed early return from metricDefinitionNode::insertInstrumentation which
  * prevented instrumentation from being inserted if the application was
  * running when the request was made.
@@ -480,10 +484,14 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 	} else {
 	    curr->definition.baseFunc(mn, predInstance);
 	}
-	if (mn) {
+	if (mn && mn->nonNull()) {
 	    mn->met = m;
 	    // currMi->proc = proc;
 	    parts.add(mn, mn);
+	}
+	else {
+	  delete mn;
+	  mn = NULL;
 	}
     }
 

@@ -7,7 +7,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.10  1994/07/21 01:34:20  hollings
+ * Revision 1.11  1994/09/05 20:33:43  jcargill
+ * Bug fix:  enabling certain metrics could cause no instrumentation to be
+ * inserted, but still return a mid; this hosed the PC
+ *
+ * Revision 1.10  1994/07/21  01:34:20  hollings
  * Fixed to skip over null point and ast nodes for addInst calls.
  *
  * Revision 1.9  1994/07/05  03:26:11  hollings
@@ -151,6 +155,10 @@ class metricDefinitionNode {
 
 	Boolean match(resourceList l, metric m) {
 	    return(resList == l && met == m);
+	}
+	Boolean nonNull() {
+	    return(!requests.empty() 
+		   || !data.empty());
 	}
 	Boolean insertInstrumentation();
 	float cost();
