@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.24 1994/07/12 20:13:58 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.25 1994/07/14 14:39:17 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.24  1994/07/12 20:13:58  jcargill
+ * Revision 1.25  1994/07/14 14:39:17  jcargill
+ * Removed call to flushPtrace
+ *
+ * Revision 1.24  1994/07/12  20:13:58  jcargill
  * Fixed logLine for printing out samples w/64 bit time
  *
  * Revision 1.23  1994/07/05  03:26:09  hollings
@@ -521,7 +524,6 @@ int startCollecting(resourceList l, metric m)
     logLine(errorLine);
 
     mi->insertInstrumentation();
-    flushPtrace();
 
     sprintf(errorLine, "enable of %s for RL =", getMetricName(m));
     logLine(errorLine);
