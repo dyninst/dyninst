@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.134 2002/09/07 16:15:27 schendel Exp $
+// $Id: perfStream.C,v 1.135 2002/09/17 20:08:11 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -844,7 +844,7 @@ void controllerMainLoop(bool check_buffer_first)
 	    if (processVec[u1] == NULL)
 	       continue; // process structure has been deallocated
 	    
-	    if (processVec[u1]->isInSyscall() &&
+	    if ((processVec[u1]->isInSyscall() || processVec[u1]->thrInSyscall()) &&
 		processVec[u1]->status() == running) {
 	       delayIGENrequests=true;
 	       break;
