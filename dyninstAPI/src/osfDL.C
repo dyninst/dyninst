@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.10 2000/06/14 23:03:23 wylie Exp $
+// $Id: osfDL.C,v 1.11 2000/06/15 17:45:47 paradyn Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -344,7 +344,7 @@ void process::handleIfDueToDyninstLib()
 
   restoreRegisters(savedRegs);
 
-  delete [] savedRegs;
+  delete [] (char*)savedRegs;
   savedRegs = NULL;
 
   (void) findInternalAddress("DYNINSTbreakPoint", false, err);
@@ -366,10 +366,15 @@ void process::handleIfDueToDyninstLib()
 
   if (dyninstName.length()) {
     // use the library name specified on the start-up command-line
+    sprintf(errorLine,"Pre-specified library %s\n", dyninstName.string_of());
+    logLine(errorLine);
   } else {
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
       dyninstName = getenv(DyninstEnvVar);
+      sprintf(errorLine,"Environment variable %s=%s\n", DyninstEnvVar,
+              dyninstName.string_of());
+      logLine(errorLine);
     } else {
       string msg = string("Environment variable " + string(DyninstEnvVar)
                    + " has not been defined for process ") + string(pid);
@@ -389,7 +394,7 @@ void process::handleIfDueToDyninstLib()
 
   // get the address of the new shared objects
   for (unsigned int i=0; i < new_shared_objs->size(); i++) {
-      if (((*new_shared_objs)[i])->getName() != dyninstName) {
+      if (((*new_shared_objs)[i])->getName() == dyninstName) {
 	  if (addASharedObject(*((*new_shared_objs)[i]))) {
 	      *shared_objects += ((*new_shared_objs)[i]);
 	  }
