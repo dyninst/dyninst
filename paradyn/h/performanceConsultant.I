@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.20  1996/02/09 18:01:28  karavan
+ * Changes to support phase-level searching
+ *
  * Revision 1.19  1996/02/08 20:09:49  karavan
  * added PC-global variables to store current TC values.
  *
@@ -102,7 +105,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 9;
+    $version 10;
 
     // all initialization for new search; checks first if search already
     // active for specified phase, to enforce 1 search/phase rule
@@ -133,5 +136,8 @@ $remote performanceConsultant {
     static bool printSearchChanges;
     static bool printDataCollection;
     static bool useIndividualThresholds;
-    $signore
+    // other PC-globals
+    static unsigned DMcurrentPhaseToken;
+    static unsigned currentPhase;
+    $signore    
 };
