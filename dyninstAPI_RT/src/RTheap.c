@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.7 2000/05/31 17:59:18 nick Exp $ */
+/* $Id: RTheap.c,v 1.8 2000/07/18 19:56:44 bernat Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -119,21 +119,29 @@ static Address heap_alignDown(Address addr, int align)
 static Address
 trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 {
-     Address try;
-     try = beg;
-     while (try + len <= end) {
-	  /* We assume MAP_FIXED is set in mmapFlags. */
-#if 0
-	  fprintf(stderr, "Calling mmap(addr = 0x%x, len = 0x%x, prot = 0x%x, flags = 0x%x)\n",
-		  try, len, PROT_READ|PROT_WRITE|PROT_EXEC, DYNINSTheap_mmapFlags);
-#endif
-	  if (MAP_FAILED != mmap((void*)try, len, PROT_READ|PROT_WRITE|PROT_EXEC,
-				 DYNINSTheap_mmapFlags, fd, 0))
-	       return try;
-	  perror("mmap");
-	  try += inc;
-     }
-     return 0;
+  void *result;
+  void *try;
+  try = (void *)beg;
+  while ((unsigned)try + len <= end) {
+    /*
+    fprintf(stderr, "Calling mmap(addr = 0x%x, len = 0x%x, prot = 0x%x, flags = 0x%x)\n",
+	    try, len, PROT_READ|PROT_WRITE|PROT_EXEC, DYNINSTheap_mmapFlags);
+    */
+    result = mmap(try, len, 
+		  PROT_READ|PROT_WRITE|PROT_EXEC,
+		  DYNINSTheap_mmapFlags, 
+		  fd, 
+		  0);
+    if (result != MAP_FAILED)
+      {
+	return (Address)result;
+      }
+    
+    perror("mmap");
+    /* Ugly. Can someone fix this? */
+    try = (void *)((unsigned)try + inc);
+  }
+  return 0;
 }
 
 /* Attempt to mmap a region of memory of size LEN bytes somewhere
@@ -159,7 +167,8 @@ constrained_mmap(size_t len, Address lo, Address hi,
 	  len += psize;
 	  len = len & ~(psize-1);
      }
-     assert(lo < hi);     
+
+     assert(lo < hi);
 
      /* Find lowest (mlo) and highest (mhi) segments between lo and
 	hi.  If either lo or hi occurs within a segment, they are
@@ -179,6 +188,7 @@ constrained_mmap(size_t len, Address lo, Address hi,
 
 	  ++mlo;
      }
+	     
      while (mhi >= mlo) {
 	  beg = BEG(mhi);
 	  end = END(mhi);
@@ -245,12 +255,10 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   void *heap;
   size_t size = nbytes;
   heapList_t *node = (heapList_t *)malloc(sizeof(heapList_t));
-
   /*
-  fprintf(stderr, "*** DYNINSTos_malloc(%iB, 0x%016p, 0x%016p)\n", 
+  fprintf(stderr, "*** DYNINSTos_malloc(%iB, 0x%016x, 0x%016x)\n", 
 	  nbytes, lo_addr, hi_addr);
   */
-
   /* initialize page size */
   if (psize == -1) psize = getpagesize();
 
@@ -262,7 +270,6 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 
     Address ret_heap;
     int size_heap = size + DYNINSTheap_align;
-
     heap = malloc(size_heap);
     if (heap == NULL) {
       free(node);
@@ -283,6 +290,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     node->heap.addr = heap;
     node->heap.len = size_heap;
     node->heap.type = HEAP_TYPE_MALLOC;
+
 
   } else { /* use mmap() for allocation */
     Address lo = (Address) lo_addr;
@@ -328,6 +336,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   node->next = Heaps;
   if (Heaps) Heaps->prev = node;
   Heaps = node;
+  
   return node->heap.ret_addr;
 }
 
@@ -335,8 +344,9 @@ int DYNINSTos_free(void *buf)
 {
   int ret = 0;
   heapList_t *t;
+  /*
   fprintf(stderr, "*** DYNINSTos_free(0x%08x)\n", buf);
-
+  */
   for (t = Heaps; t != NULL; t = t->next) {
     /* lookup heap by (returned) address */
     heap_t *heap = &t->heap;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.h,v 1.3 2000/03/04 01:29:22 zandy Exp $ */
+/* $Id: RTheap.h,v 1.4 2000/07/18 19:56:45 bernat Exp $ */
 
 #ifndef _RT_HEAP_H
 #define _RT_HEAP_H
@@ -61,6 +61,14 @@ typedef prmap_t dyninstmm_t;
 typedef struct {
      Address pr_vaddr;
      unsigned long pr_size;
+} dyninstmm_t;
+
+#elif defined(rs6000_ibm_aix4_1)
+
+/* No actual /proc on AIX, we fake it with pre-built data */
+typedef struct {
+  Address pr_vaddr;
+  unsigned long pr_size;
 } dyninstmm_t;
 
 #else

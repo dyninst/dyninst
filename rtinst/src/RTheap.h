@@ -39,14 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.h,v 1.2 2000/03/04 01:30:26 zandy Exp $ */
+/* $Id: RTheap.h,v 1.3 2000/07/18 19:57:23 bernat Exp $ */
 
 #ifndef _RT_HEAP_H
 #define _RT_HEAP_H
 
 
 #include <sys/types.h>
+#ifndef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
+#endif
 #include "rtinst/h/rtinst.h"        /* RT_Boolean, Address */
 
 #if defined(sparc_sun_solaris2_4)    \
@@ -64,6 +66,13 @@ typedef prmap_t dyninstmm_t;
 typedef struct {
      Address pr_vaddr;
      unsigned long pr_size;
+} dyninstmm_t;
+
+#elif defined(rs6000_ibm_aix4_1)
+/* AIX, so define & fudge the memory mapping */
+typedef struct {
+  Address pr_vaddr;
+  unsigned long pr_size;
 } dyninstmm_t;
 
 #else

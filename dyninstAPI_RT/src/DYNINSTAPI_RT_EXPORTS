@@ -7,3 +7,9 @@ DYNINSTglobalData
 DYNINSTinit
 DYNINSTos_init
 pcAtLastIRPC
+DYNINSTos_malloc
+DYNINSTos_free
+DYNINSTheap_useMalloc
+DYNINSTheap_mmapFdOpen
+DYNINSTheap_mmapFdClose
+DYNINSTgetMemoryMap

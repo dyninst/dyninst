@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.4 2000/05/31 17:59:20 nick Exp $ */
+/* $Id: RTheap.c,v 1.5 2000/07/18 19:57:23 bernat Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -120,17 +120,29 @@ static Address heap_alignDown(Address addr, int align)
 static Address
 trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 {
-     Address try;
-     try = beg;
-     while (try + len <= end) {
-	  /* We assume MAP_FIXED is set in mmapFlags. */
-	  if (MAP_FAILED != mmap((void*)try, len, PROT_READ|PROT_WRITE|PROT_EXEC,
-				 DYNINSTheap_mmapFlags, fd, 0))
-	       return try;
-	  perror("mmap");
-	  try += inc;
-     }
-     return 0;
+  void *result;
+  void *try;
+  try = (void *)beg;
+  while ((unsigned)try + len <= end) {
+    /*
+    fprintf(stderr, "Calling mmap(addr = 0x%x, len = 0x%x, prot = 0x%x, flags = 0x%x)\n",
+	    try, len, PROT_READ|PROT_WRITE|PROT_EXEC, DYNINSTheap_mmapFlags);
+    */
+    result = mmap(try, len, 
+		  PROT_READ|PROT_WRITE|PROT_EXEC,
+		  DYNINSTheap_mmapFlags, 
+		  fd, 
+		  0);
+    if (result != MAP_FAILED)
+      {
+	return (Address)result;
+      }
+    
+    perror("mmap");
+    try = (unsigned)try + inc;
+  }
+  return 0;
+
 }
 
 /* Attempt to mmap a region of memory of size LEN bytes somewhere
