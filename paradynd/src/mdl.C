@@ -3,6 +3,12 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.14  1995/12/15 22:26:54  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Changed syntax of MDL resource lists
+ *
  * Revision 1.13  1995/11/30 16:54:11  naim
  * Minor fix - naim
  *
@@ -313,7 +319,7 @@ static inline bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag
 	  // this is an external constraint, apply if applicable
 	  T_dyninstRPC::mdl_constraint *mc;
 	  bool is_default;
-	  if (mc = flag_matches(focus[fi], (*cons)[ci], is_default)) {
+	  if ((mc = flag_matches(focus[fi], (*cons)[ci], is_default))) {
 	    matched = true;
 	    if (!is_default) {
 	      flag_cons += mc; flag_dex += fi;
@@ -688,21 +694,7 @@ T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type, string obj_name)
 T_dyninstRPC::mdl_instr_req::mdl_instr_req() : type_(0) { }
 T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 
-bool T_dyninstRPC::mdl_instr_req::apply(unsigned where, instPoint *p, unsigned where_instr,
-					metricDefinitionNode *mn, AstNode *pred,
-					vector<dataReqNode*>& flags) {
-  enum callWhen cwhen; enum callOrder corder;
-  switch (where) {
-  case MDL_PREPEND: corder = orderFirstAtPoint; break;
-  case MDL_APPEND: corder = orderLastAtPoint; break;
-  default: assert(0);
-  }
-  switch (where_instr) {
-  case MDL_PRE_INSN: cwhen = callPreInsn; break;
-  case MDL_POST_INSN: cwhen = callPostInsn; break;
-  default: assert(0);
-  }
-
+bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred) {
   AstNode *ast_arg = NULL;
   // TODO -- args to calls
   switch (type_) {
@@ -769,14 +761,10 @@ bool T_dyninstRPC::mdl_instr_req::apply(unsigned where, instPoint *p, unsigned w
 
   if (pred) code = createIf(pred, code);
 
-  // Instantiate all constraints (flags) here
-  unsigned fsize = flags.size();
-  for (int fi=fsize-1; fi>=0; fi--) {
-    AstNode *temp = new AstNode(DataValue, flags[fi]);
-    code = createIf(temp, code);
-  }
-
-  mn->addInst(p, code, cwhen, corder);
+  if (mn)
+    mn = new AstNode(mn, code);
+  else
+    mn = code;
   return true;
 }
 
@@ -839,9 +827,7 @@ static inline AstNode *do_rel_op(opCode op, u_int& if_op, u_int& if_val,
   return rel_ast;
 }
 
-bool T_dyninstRPC::mdl_icode::apply(u_int position, instPoint *p, u_int where_instr,
-				    metricDefinitionNode *mn,
-				    vector<dataReqNode*>& flags) {
+bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn) {
   // TODO -- handle the if case here
   // TODO -- call req_->apply() after building if
   AstNode *ast1, *pred = NULL;
@@ -880,7 +866,7 @@ bool T_dyninstRPC::mdl_icode::apply(u_int position, instPoint *p, u_int where_in
     default: return false;
     }
   }
-  return (req_->apply(position, p, where_instr, mn, pred, flags));
+  return (req_->apply(mn, pred));
 }
 
 T_dyninstRPC::mdl_expr::mdl_expr() { }
@@ -1058,14 +1044,21 @@ bool T_dyninstRPC::mdl_seq_stmt::apply(metricDefinitionNode *mn,
 
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 					   vector<string> *elems,
-					   bool is_lib, string flavor) 
+					   bool is_lib, vector<string>* flavor) 
 : type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) { }
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
 
 bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode *mn,
 					vector<dataReqNode*>& flags) {
-  if (flavor_ != daemon_flavor) return false;
+  bool found = false;
+  for (unsigned u0 = 0; u0 < flavor_->size(); u0++) {
+    if ((*flavor_)[u0] == daemon_flavor) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) return false;
   if (!elements_) return false;
   mdl_var expr_var;
   mdl_var list_var(id_, false);
@@ -1129,7 +1122,6 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
        // we are constrained so use the flags (boolean constraint variables
        flags = inFlags;
    }
- 
   mdl_var temp(false);
   if (!icode_reqs_)
     return false;
@@ -1142,9 +1134,32 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
     return false;
   unsigned size = icode_reqs_->size();
 
+  AstNode *code = NULL;
   for (unsigned u=0; u<size; u++)
-    if (!(*icode_reqs_)[u]->apply(position_, p, where_instr_, mn, flags))
+    if (!(*icode_reqs_)[u]->apply(code))
       return false;
+
+  enum callWhen cwhen; enum callOrder corder;
+  switch (position_) {
+  case MDL_PREPEND: corder = orderFirstAtPoint; break;
+  case MDL_APPEND: corder = orderLastAtPoint; break;
+  default: assert(0);
+  }
+  switch (where_instr_) {
+  case MDL_PRE_INSN: cwhen = callPreInsn; break;
+  case MDL_POST_INSN: cwhen = callPostInsn; break;
+  default: assert(0);
+  }
+
+  // Instantiate all constraints (flags) here
+  unsigned fsize = flags.size();
+  for (int fi=fsize-1; fi>=0; fi--) {
+    AstNode *temp = new AstNode(DataValue, flags[fi]);
+    code = createIf(temp, code);
+  }
+
+  mn->addInst(p, code, cwhen, corder);
+
   return true;
 }
 

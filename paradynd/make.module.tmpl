@@ -46,8 +46,19 @@ SRCS	     += ../src/association.C \
 		../src/templates.C \
 		../src/util.C \
  		../src/mdl.C
-# ../src/metricDefs-common.C
 
+
+
+ifdef USES_PVM
+SRCS	     +=	../src/pvm_support.C \
+		../src/host_support.C \
+		../src/task_support.C \
+		../src/templatesPVM.C
+
+CXXFLAGS     +=	-DPARADYND_PVM
+LIBS	     +=	-lpvm3
+
+endif
 
 IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
 		dyninstRPC.xdr.C

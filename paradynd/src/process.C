@@ -14,6 +14,12 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.32  1995/12/15 22:26:57  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Changed syntax of MDL resource lists
+ *
  * Revision 1.31  1995/11/28 15:56:56  naim
  * Minor fix. Changing char[number] by string - naim
  *
@@ -468,6 +474,8 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 
 	img = image::parseImage(file);
 	if (!img) {
+	    string msg = string("Unable to parse image: ") + file;
+	    showErrorCallback(68, msg.string_of());
 	    // destroy child process
 	    P_kill(pid, 9);
 
@@ -513,7 +521,8 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	return(ret);
     } else if (pid == 0) {
 #ifdef PARADYND_PVM
-	pvmendtask(); 
+	if (pvm_running)
+	  pvmendtask(); 
 #endif   
 
 	// handle stdio.
@@ -529,7 +538,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	if (P_dup2(tracePipe[1], 3) != 3) {
 	    fprintf(childError, "dup2 failed\n");
 	    fflush(childError);
-	    _exit(-1);
+	    P__exit(-1);
 	}
 
 	/* close if higher */
@@ -578,7 +587,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	  P__exit(-1);   // double underscores are correct
 	}
 #ifdef PARADYND_PVM
-	if (envp.size())
+	if (pvm_running && envp.size())
 	  for (int ep=envp.size()-1; ep>=0; ep--)
 	    pvmputenv(envp[ep].string_of());
 #endif

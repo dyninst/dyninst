@@ -7,6 +7,12 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.49  1995/12/15 22:26:56  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Changed syntax of MDL resource lists
+ *
  * Revision 1.48  1995/11/28 15:56:54  naim
  * Minor fix. Changing char[number] by string - naim
  *
@@ -250,7 +256,7 @@
 extern "C" {
 #include "pvm3.h"
 }
-#include "paradyndPVM/h/pvm_support.h"
+#include "pvm_support.h"
 #endif
 
 #include "util/h/headers.h"
@@ -788,7 +794,9 @@ void controllerMainLoop(bool check_buffer_first)
 	// poll for messages from the pvm daemon, and handle the message if 
 	// there is one.
 	// See comments above on the problems with pvm_getfds.
-	PDYN_handle_pvmd_message();
+	if (pvm_running) {
+	  PDYN_handle_pvmd_message();
+	}
 #endif
 	processArchDependentTraceStream();
 

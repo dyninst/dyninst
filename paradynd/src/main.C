@@ -2,6 +2,12 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.38  1995/12/15 22:26:50  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Changed syntax of MDL resource lists
+ *
  * Revision 1.37  1995/11/30 15:13:41  krisna
  * added call to matherr in main.C
  * added code templates for callOp in inst-hppa.C
@@ -177,11 +183,13 @@
 pdRPC *tp;
 
 #ifdef PARADYND_PVM
-#include "paradyndPVM/h/pvm_support.h"
+#include "pvm_support.h"
 extern "C" {
 #include "pvm3.h"
 }
 #endif     
+
+bool pvm_running = false;
 
 static char machine_name[80];
 
@@ -223,6 +231,8 @@ int main(int argc, char *argv[])
     // for debugging
     // { int i= 1; while (i); }
 
+//    {volatile int i = 1; while (i);}
+
     process::programName = argv[0];
 
     // process command line args passed in
@@ -259,19 +269,26 @@ int main(int argc, char *argv[])
     //     started by exec --> use pipe
     
     // int pvm_id = pvm_mytid();
-    int pvmParent;
+    int pvmParent = PvmSysErr;
 
-    pvmParent = pvm_parent();
-    if (pvmParent == PvmSysErr) {
-	fprintf(stdout, "Unable to connect to PVM daemon, is PVM running?\n");
-	fflush(stdout);
-	cleanUpAndExit(-1);
+    if (pd_flavor == string("pvm")) {
+       pvmParent = pvm_parent();
+
+       if (pvmParent == PvmSysErr) {
+	  fprintf(stdout, "Unable to connect to PVM daemon, is PVM running?\n");
+ 	  fflush(stdout);
+  	  cleanUpAndExit(-1);
+	}
+       else
+	  pvm_running = true;
     }
-    if (pvmParent != PvmNoParent) {
+
+    if (pvm_running && pvmParent != PvmNoParent) {
       // started by pvm_spawn
       // TODO -- report error here
-      if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket, 0))
+      if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket, 0)) {
 	cleanUpAndExit(-1);
+      }
 
       tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, NULL, NULL, 0);
       tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
@@ -288,9 +305,9 @@ int main(int argc, char *argv[])
 	// or else one of the daemons we start (in PDYN_initForPVM), may get our
 	// connection.
 	tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, NULL, NULL, 0);
-
-	if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket, 1))
-	  cleanUpAndExit(-1);
+	if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket, 1)) {
+	    cleanUpAndExit(-1);
+	}
 
       } else if (pid > 0) {
 	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
@@ -307,8 +324,9 @@ int main(int argc, char *argv[])
      } else {
        // started via exec   --> use pipe
        // TODO -- report error here
-      if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket, 1))
-	cleanUpAndExit(-1);
+      if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket, 1)) {
+	  cleanUpAndExit(-1);
+      }
       // already setup on this FD.
       // disconnect from controlling terminal 
       OS::osDisconnect();

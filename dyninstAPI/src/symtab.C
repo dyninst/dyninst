@@ -16,6 +16,12 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.34  1995/12/15 22:27:04  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Changed syntax of MDL resource lists
+ *
  * Revision 1.33  1995/11/28 15:56:59  naim
  * Minor fix. Changing char[number] by string - naim
  *
@@ -743,8 +749,19 @@ bool image::addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
   Address modAddr = 0;
   
   string progName = name_ + "_module";
-  
+
+#ifdef sparc_sun_solaris2_4
+  // In solaris there is no address for modules in the symbol table, 
+  // so the binary search will not work. The module field in a symbol
+  // already has the correct module name for a symbol, if it can be
+  // obtained from the symbol table, otherwise the module is an empty
+  // string.
+  if (modName == "")
+    modName = progName;
+#else
   binSearch(lookUp, mods, modName, modAddr, progName);
+#endif
+
   return (defineFunction(lib, lookUp, modName, modAddr, retFunc));
 }
 

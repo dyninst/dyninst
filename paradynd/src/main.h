@@ -4,6 +4,12 @@
 
 /* 
  * $Log: main.h,v $
+ * Revision 1.5  1995/12/15 22:26:51  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Changed syntax of MDL resource lists
+ *
  * Revision 1.4  1995/11/22 00:02:30  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
@@ -34,14 +40,17 @@
 extern pdRPC *tp;
 
 #ifdef PARADYND_PVM
-#include "paradyndPVM/h/pvm_support.h"
+#include "pvm_support.h"
+
+extern bool pvm_running;
 #endif
 
 // Cleanup for pvm and exit.
 // This function must be called when we exit, to clean up and exit from pvm.
 inline void cleanUpAndExit(int status) {
 #ifdef PARADYND_PVM
-  PDYN_exit_pvm();
+  if (pvm_running)
+    PDYN_exit_pvm();
 #endif
   P_exit(status);
 }
