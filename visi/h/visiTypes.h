@@ -16,7 +16,6 @@
  *
  */
 #include <stdio.h>
-#include <math.h>
 
 // 
 // note: add new event types before FOLD (ie. FOLD is always last type)
