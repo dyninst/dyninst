@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.18  1994/08/02 18:18:52  hollings
+ * Revision 1.19  1994/10/04 18:52:54  jcargill
+ * Got rid of "previous" array; now uses the per-timer lastValue instead
+ *
+ * Revision 1.18  1994/08/02  18:18:52  hollings
  * added code to save/restore FP state on entry/exit to signal handle
  * (really jcargill, but commited by hollings).
  *
@@ -171,7 +174,7 @@ retry:
 
 inline time64 getProcessTime()
 {
-    int high;
+/*    int high; */
     time64 ret;
     timeParts end;
     time64 ni_end;
@@ -260,6 +263,7 @@ void DYNINSTstartProcessTimer(tTimer *timer)
 {
     if (timer->counter == 0) {
 	 timer->start = getProcessTime();
+	 timer->normalize = NI_CLK_USEC * MILLION;
     }
     /* this must be last to prevent race conditions with the sampler */
     timer->counter++;
@@ -351,19 +355,32 @@ void DYNINSTreportTimer(tTimer *timer)
 	total = timer->total;
     }
 
-    timer->normalize = NI_CLK_USEC * MILLION;
+    if (total < timer->lastValue) {
+	 if (timer->type == processTime) {
+	     printf("process ");
+	 } else {
+	     printf("wall ");
+	 }
+	 printf("time regressed timer %d, total = %f, last = %f\n",
+	     timer->id.id, (float) total, (float) timer->lastValue);
+	if (timer->counter) {
+	    printf("timer was active\n");
+	} else {
+	    printf("timer was inactive\n");
+	}
+        printf("mutex=%d, counter=%d, sampled=%d, snapShot=%f\n\n",
+	       (int)timer->mutex, (int)timer->counter, (int)timer->sampled,
+	       (double) timer->snapShot);
+	printf("now = %f\n start = %f\n total = %f\n",
+	       (double) now, (double) timer->start, (double) timer->total);
+	fflush(stdout);
+	abort();
+    }
+    timer->lastValue = total;
+
+/*    timer->normalize = NI_CLK_USEC * MILLION; */
     sample.value = total / (double) timer->normalize;
     sample.id = timer->id;
-
-    if (total < previous[sample.id.id]) {
-	 temp = total;
-	 temp2 = previous[sample.id.id];
-	 printf("FATAL ERROR NEGATIVE TIME****\n");
-	 printf("cur = %f, prev = %f\n", temp, temp2);
-	 fflush(stdout);
-	 abort();
-    }
-    previous[sample.id.id] = total;
 
     DYNINSTtotalSamples++;
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, FALSE);
