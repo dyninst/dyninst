@@ -112,8 +112,6 @@ template class dictionary_iter<unsigned, metricInstance *>;
 
 template class List<sampleInfo*>;
 template class ListItem<sampleInfo*>;
-template class stack<T_dyninstRPC::buf_struct *>;
-template class stack<T_visi::buf_struct *>;
 
 /* ********************************
  * PCthread stuff
