@@ -11,7 +11,7 @@ interface_spec.obj: ../src/interface_spec.C ../src/parse.h \
  ../../util/h/String.h ../../util/h/headers.h \
  ../../util/h/solarisHeaders.h ../../util/h/Vector.h \
  ../../util/h/Dictionary.h ../../util/h/Pair.h
-templates.obj: ../src/templates.C ../../util/h/headers.h \
+templates-nt.obj: ../src/templates-nt.C ../../util/h/headers.h \
  ../../util/h/solarisHeaders.h ../../util/h/Vector.h \
  ../../util/h/Dictionary.h ../../util/h/Pair.h ../src/parse.h \
  ../../util/h/String.h
