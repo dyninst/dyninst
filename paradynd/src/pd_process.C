@@ -43,6 +43,7 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/metricFocusNode.h"
 
 
 void pd_process::init() {
@@ -78,26 +79,34 @@ bool pd_process::doMajorShmSample() {
    if( !isBootstrappedYet() || !isPARADYNBootstrappedYet()) { //SPLIT ccw 4 jun 2002
       return false;
    }
-   
+
    bool result = true; // will be set to false if any processAll() doesn't complete
                        // successfully.
    process *dyn_proc = get_dyn_process();
+
    if(! getVariableMgr().doMajorSample())
       result = false;
+   
+   if(status() == exited) {
+      return false;
+   }
+
    // inferiorProcessTimers used to take in a non-dummy process time as the
    // 2d arg, but it looks like that we need to re-read the process time for
    // each proc timer, at the time of sampling the timer's value, to avoid
    // ugly jagged spikes in histogram (i.e. to avoid incorrect sampled 
    // values).  Come to think of it: the same may have to be done for the 
    // wall time too!!!
-   
+
    const timeStamp theProcTime = dyn_proc->getCpuTime(0);
    const timeStamp curWallTime = getWallTime();
    // Now sample the observed cost.
+
    unsigned *costAddr = (unsigned *)dyn_proc->getObsCostLowAddrInParadyndSpace();
    const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
+
    dyn_proc->processCost(theCost, curWallTime, theProcTime);
-   
+
    return result;
 }
 
@@ -108,7 +117,46 @@ bool pd_process::doMinorShmSample() {
    
    if(! getVariableMgr().doMinorSample())
       result = false;
-   
+
    return result;
 }
+
+extern pdRPC *tp;
+
+void pd_process::handleExit(int exitStatus) {
+   // don't do a final sample for terminated processes
+   // this is because there could still be active process timers
+   // we can't get a current process time since the process no longer
+   // exists, so can't sample these active process timers   
+   if(exitStatus == 0) {
+      doMajorShmSample();
+   }
+
+   reportInternalMetrics(true);
+
+   // close down the trace stream:
+   if(getTraceLink() >= 0) {
+      //processTraceStream(proc); // can't do since it's a blocking read 
+                                  // (deadlock)
+      P_close(getTraceLink());      
+      setTraceLink(-1);
+   }
+   metricFocusNode::handleDeletedProcess(this);
+
+   if(multithread_ready()) {
+      // retire any thread resources which haven't been retired yet
+      threadMgr::thrIter itr = beginThr();
+      while(itr != endThrMark()) {
+         pd_thread *thr = *itr;
+         itr++;
+         assert(thr->get_dyn_thread()->get_rid() != NULL);
+         tp->retiredResource(thr->get_dyn_thread()->get_rid()->full_name());
+      }
+   }
+
+   assert(get_rid() != NULL);
+   tp->retiredResource(get_rid()->full_name());
+   tp->processStatus(getPid(), procExited);
+}
+
 
