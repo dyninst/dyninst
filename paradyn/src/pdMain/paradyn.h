@@ -1,7 +1,10 @@
 /* $Log: paradyn.h,v $
-/* Revision 1.10  1995/05/18 11:00:46  markc
-/* added mdl hooks
+/* Revision 1.11  1995/06/02 20:56:00  newhall
+/* made code compatable with new DM interface
 /*
+ * Revision 1.10  1995/05/18  11:00:46  markc
+ * added mdl hooks
+ *
  * Revision 1.9  1995/02/27  19:12:23  tamches
  * added TCtid for the new tunable constants thread
  *
@@ -67,7 +70,7 @@ extern thread_t PCtid;
 extern thread_t DMtid;
 extern thread_t VMtid;
 extern thread_t TCtid; // tunable constant
-extern applicationContext *context;
+// extern applicationContext *context;
 
 extern dataManagerUser *dataMgr;
 extern performanceConsultantUser *perfConsult;

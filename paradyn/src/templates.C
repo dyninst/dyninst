@@ -5,7 +5,10 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.11  1995/05/18 10:47:41  markc
+ * Revision 1.12  1995/06/02 20:55:51  newhall
+ * made code compatable with new DM interface
+ *
+ * Revision 1.11  1995/05/18  10:47:41  markc
  * Removed duplicate template definitions
  *
  * Revision 1.10  1995/03/24  04:49:46  krisna
@@ -80,28 +83,41 @@
 
 #include "dataManager.thread.h"
 #include "dyninstRPC.xdr.CLNT.h"
-#include "paradyn/src/DMthread/DMinternals.h"
-class uniqueName;
+#include "paradyn/src/DMthread/DMdaemon.h"
+#include "paradyn/src/DMthread/DMmetric.h"
+#include "paradyn/src/DMthread/DMresource.h"
+#include "paradyn/src/DMthread/DMperfstream.h"
+#include "paradyn/src/DMthread/DMinclude.h"
+#include "paradyn/src/DMthread/DMabstractions.h"
 
-//template class List<tunableConstant*>; --AT 2/95
 
-template class List<uniqueName*>;
-template class List<executable *>;
-template class List<paradynDaemon *>;
-template class List<performanceStream *>;
-template class List<daemonEntry*>;
-template class List<component*>;
-template class HTable<metric*>;
-template class List<metric*>;
-template class List<sampleInfo*>;
-template class HTable<resource*>;
-template class List<resource*>;
-template class HTable<abstraction*>;
-template class List<abstraction*>;
-template class dictionary_hash<unsigned, metricInstance*>;
 template class vector<unsigned>;
+template class vector<int>;
+template class vector< vector<string> >;
 template class vector<phaseInfo *>;
+template class vector<daemonEntry*>;
+template class vector<paradynDaemon*>;
+template class vector<executable*>;
+template class vector<component*>;
+template class vector<sampleInfo*>;
+template class vector<bool>;
+template class vector<metric_focus_pair>;
+template class vector<met_name_id>;
+template class vector<metric*>;
+template class vector<resource*>;
+template class vector<resourceList*>;
+template class vector<abstraction*>;
 template class vector<performanceStream *>;
+template class vector<metricInstance*>;
+template class dictionary_hash<string,metric*>;
+template class dictionary_hash<string, resource*>;
+template class dictionary_hash<string, resourceList*>;
+template class dictionary_hash<string, abstraction*>;
+template class dictionary_hash<perfStreamHandle,performanceStream*>;
+template class dictionary_hash_iter<perfStreamHandle,performanceStream*>;
+template class dictionary_hash<metricInstanceHandle,metricInstance*>;
+template class dictionary_hash_iter<metricInstanceHandle,metricInstance*>;
+template class List<sampleInfo*>;
 
 
 /* ********************************
@@ -135,16 +151,17 @@ template class List<timeInterval *>;
 /* ******************************
  * TCthread stuff
  */
+template class vector<tunableBooleanConstant>;
+template class vector<tunableFloatConstant>;
 template class dictionary_hash<string, tunableBooleanConstant>;
 template class dictionary_hash<string, tunableFloatConstant>;
-template class vector<tunableFloatConstant>;
-template class vector<tunableBooleanConstant>;
 
 
 /* *************************************
  * UIthread stuff
  */
-#include "paradyn/src/VMthread/metrespair.h"
+// #include "paradyn/src/VMthread/metrespair.h"
+#include "VM.thread.h"
 #include "../src/UIthread/UIglobals.h"
 class resourceList;
 class pRec;
@@ -152,24 +169,34 @@ class pRec;
 template class HTable<pRec *>;
 template class List<resourceDisplayObj *>;
 template class List<resourceList *>;
-template class List<metrespair *>;
+template class List<metricInstInfo *>;
 template class List<tokenRec *>;
 template class List<stringHandle>;
 template class List<dag *>;
 template class List<resource **>;
+template class vector<numlist>;
+template class vector<VM_activeVisiInfo>;
 
 /* ************************************
  * VMthread stuff
  */
 #include "paradyn/src/VMthread/VMtypes.h"
+#include "VM.thread.h"
 
-template class List<VMactiveStruct *>;
-template class List<VMvisisStruct *>;
+template class vector<VMactiveStruct *>;
+template class vector<VMvisisStruct *>;
+template class vector<VM_visiInfo>;
+
+/* ******************************
+ * VISIthread stuff
+ */
+template class vector<metricInstInfo *>;
 
 /* ***********************************
  * met stuff
  */
 #include "paradyn/src/met/metParse.h" 
+#include "paradyn/src/met/mdl.h" 
 
 class stringList;
 class daemonMet;
@@ -177,90 +204,144 @@ class processMet;
 class visiMet;
 class tunableMet;
 
-template class List<stringList*>;
-template class List<daemonMet*>;
-template class List<processMet*>;
-template class List<visiMet*>;
-template class List<tunableMet*>;
-template class List<char*>;
+template class vector<processMet *>;
+template class vector<daemonMet*>;
+template class vector<visiMet*>;
+template class vector<tunableMet*>;
+template class vector<string_list*>;
+template class vector<pdFunction*>;
+template class vector<module*>;
+template class vector<instPoint*>;
 
 // Igen - dyninstRPC stuff
 
+template class vector<T_dyninstRPC::buf_struct*>;
 template class queue<T_dyninstRPC::buf_struct*>;
 template class vector<string>;
-template class vector<T_dyninstRPC::metricInfo>;
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*,
-				       bool_t (*)(XDR*, string*), string*);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**,
-				       bool_t (*)(XDR*, string*), string*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::metricInfo*),
-				       T_dyninstRPC::metricInfo*);
-
-// MDL stuff 
-
 template class vector<T_dyninstRPC::mdl_expr*>;
 template class vector<T_dyninstRPC::mdl_stmt*>;
 template class vector<T_dyninstRPC::mdl_icode*>;
 template class vector<T_dyninstRPC::mdl_constraint*>;
+template class vector<T_dyninstRPC::metricInfo>;
 template class vector<T_dyninstRPC::mdl_metric*>;
-template class vector<string_list*>;
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*, 
+	bool_t (*)(XDR*, string*), string*);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
+	bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**), T_dyninstRPC::mdl_expr**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*, 
+	bool_t (*)(XDR*, u_int*), u_int*);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_stmt*>*,
+	bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**), T_dyninstRPC::mdl_stmt**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_icode*>*,
+	bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**), T_dyninstRPC::mdl_icode**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, 
+	vector<T_dyninstRPC::mdl_constraint*>*, 
+	bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**), 
+	T_dyninstRPC::mdl_constraint**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*,
+	bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
+ 	bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**), 
+	T_dyninstRPC::mdl_metric**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**, 
+	bool_t (*)(XDR*, string*), string*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
+	vector<T_dyninstRPC::mdl_expr*>**, 
+	bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**), T_dyninstRPC::mdl_expr**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
+	vector<u_int>**, bool_t (*)(XDR*, u_int*), u_int*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
+	vector<T_dyninstRPC::mdl_stmt*>**, 
+	bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**), 
+	T_dyninstRPC::mdl_stmt**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
+	vector<T_dyninstRPC::mdl_icode*>**, 
+	bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**), 
+	T_dyninstRPC::mdl_icode**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
+	vector<T_dyninstRPC::mdl_constraint*>**, 
+	bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**), 
+	T_dyninstRPC::mdl_constraint**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
+	vector<T_dyninstRPC::metricInfo>**, 
+	bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), 
+	T_dyninstRPC::metricInfo*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
+	vector<T_dyninstRPC::mdl_metric*>**, 
+	bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**), 
+	T_dyninstRPC::mdl_metric**);
 
-template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
+
+// MDL stuff 
+
+template class vector<dataReqNode *>;
+template class vector<mdl_var>;
 template class vector<mdl_focus_element>;
+template class vector<mdl_type_desc>;
+template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
 
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
-				       bool_t (*)(XDR*, u_int*), u_int*);
+			       bool_t (*)(XDR*, u_int*), u_int*);
 
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
+			       bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
 				       T_dyninstRPC::mdl_expr**);
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_stmt*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
+			       bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
 				       T_dyninstRPC::mdl_stmt**);
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_icode*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
-				       T_dyninstRPC::mdl_icode**);
+			       bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
+			       T_dyninstRPC::mdl_icode**);
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_constraint*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
-				       T_dyninstRPC::mdl_constraint**);
+			       bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
+			       T_dyninstRPC::mdl_constraint**);
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
-				       T_dyninstRPC::mdl_metric**);
+			       bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
+			       T_dyninstRPC::mdl_metric**);
 
 
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_expr*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
-					   T_dyninstRPC::mdl_expr**);
+			   bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
+			   T_dyninstRPC::mdl_expr**);
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_stmt*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
-					   T_dyninstRPC::mdl_stmt**);
+				   bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
+				   T_dyninstRPC::mdl_stmt**);
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_icode*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
-					   T_dyninstRPC::mdl_icode**);
+				   bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
+				   T_dyninstRPC::mdl_icode**);
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_constraint*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
-					   T_dyninstRPC::mdl_constraint**);
+			   bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
+			   T_dyninstRPC::mdl_constraint**);
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
-					   T_dyninstRPC::mdl_metric**);
+				   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
+				   T_dyninstRPC::mdl_metric**);
 
 // Igen - visi stuff
 
+template class vector<T_visi::buf_struct*>;
 template class queue<T_visi::buf_struct*>;
 template class vector<T_visi::dataValue>;
 template class vector<T_visi::visi_matrix>;
 template class vector<T_visi::phase_info>;
 template class vector<float>;
-template bool_t T_visi_P_xdr_stl(XDR*, vector<string>*, bool_t (*)(XDR*, string*), string*);
-template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::dataValue>*, bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
-template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::visi_matrix>*, bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
-template bool_t T_visi_P_xdr_stl(XDR*, vector<float>*, bool_t (*)(XDR*, float*), float*);
-template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::phase_info>*, bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<string>**, bool_t (*)(XDR*, string*), string*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::dataValue>**, bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::visi_matrix>**, bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<float>**, bool_t (*)(XDR*, float*), float*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::phase_info>**, bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<string>*, 
+	bool_t (*)(XDR*, string*), string*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::dataValue>*, 
+	bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::visi_matrix>*,
+	bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::phase_info>*, 
+	bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<float>*, 
+	bool_t (*)(XDR*, float*), float*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<string>**, 
+	bool_t (*)(XDR*, string*), string*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::dataValue>**, 
+	bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::visi_matrix>**,
+	bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::phase_info>**, 
+	bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<float>**, 
+	bool_t (*)(XDR*, float*), float*);
+

@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.17  1995/05/18 11:00:31  markc
-/* added mdl hooks
+/* Revision 1.18  1995/06/02 20:55:58  newhall
+/* made code compatable with new DM interface
 /*
+ * Revision 1.17  1995/05/18  11:00:31  markc
+ * added mdl hooks
+ *
  * Revision 1.16  1995/02/27  19:13:49  tamches
  * Many changes to reflect changes in tunable constants.
  * First change: TCthread is launched
@@ -87,7 +90,7 @@ thread_t TCtid; // tunable constants
 
 char UIStack[32768];
 
-applicationContext *context;
+// applicationContext *context;
 dataManagerUser *dataMgr;
 performanceConsultantUser *perfConsult;
 UIMUser *uiMgr;
@@ -267,7 +270,7 @@ main (int argc, char *argv[])
   msg_recv(&mtag, mbuf, &msgsize);
   msg_send (DMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   dataMgr = new dataManagerUser (DMtid);
-  context = dataMgr->createApplicationContext(eFunction);
+  // context = dataMgr->createApplicationContext(eFunction);
 
 // initialize UIM 
  
