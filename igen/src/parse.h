@@ -1,15 +1,17 @@
-//
-// parse.h - define the classes that are used in parsing an interface.
-//
-// $Log: parse.h,v $
-// Revision 1.1  1994/01/25 20:48:44  hollings
-// New utility for interfaces.
-// new utility for interfaces.
-//
-//
+/*
+ * parse.h - define the classes that are used in parsing an interface.
+ *
+ * $Log: parse.h,v $
+ * Revision 1.2  1994/01/26 06:50:11  hollings
+ * made the output of igen pass through g++ -Wall.
+ *
+ * Revision 1.1  1994/01/25  20:48:44  hollings
+ * new utility for interfaces.
+ *
+*/
 
-#include "util/list.h"
-#include "util/stringPool.h"
+#include "util/h/list.h"
+#include "util/h/stringPool.h"
 
 class typeDefn;		// forward decl
 class remoteFunc;

@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.1  1994/01/25 20:48:43  hollings
+ * Revision 1.2  1994/01/26 06:50:10  hollings
+ * made the output of igen pass through g++ -Wall.
+ *
+ * Revision 1.1  1994/01/25  20:48:43  hollings
  * New utility for interfaces.
  * new utility for interfaces.
  *
@@ -14,8 +17,8 @@
 #include <string.h>
 #include <sys/file.h>
 
-#include <util/list.h>
-#include <util/stringPool.h>
+#include "util/h/list.h"
+#include "util/h/stringPool.h"
 
 #include "parse.h"
 
@@ -56,18 +59,18 @@ void interfaceSpec::generateThreadLoop()
     printf("int %s::mainLoop(void)\n", name);
     printf("{\n");
     printf("  unsigned int __len__;\n");
-    printf("  unsigned int __msgTag__;\n");
+    printf("  unsigned int __tag__;\n");
     printf("  union %s __recvBuffer__;\n", unionName);
     printf("\n");
-    printf("  __msgTag__ = MSG_TAG_ANY;\n");
+    printf("  __tag__ = MSG_TAG_ANY;\n");
     printf("  __len__ = sizeof(__recvBuffer__);\n");
-    printf("  requestingThread = msg_recv(&__msgTag__, &__recvBuffer__, &__len__);\n");
-    printf("  switch (__msgTag__) {\n");
+    printf("  requestingThread = msg_recv(&__tag__, &__recvBuffer__, &__len__);\n");
+    printf("  switch (__tag__) {\n");
     for (cf = methods; *cf; cf++) {
 	(*cf)->genSwitch(FALSE);
     }
     printf("    default:\n");
-    printf("	    return(__msgTag__);\n");
+    printf("	    return(__tag__);\n");
     printf("  }\n");
     printf("  return(0);\n");
     printf("}\n");
@@ -79,12 +82,12 @@ void interfaceSpec::generateXDRLoop()
 
     printf("int %s::mainLoop(void)\n", name);
     printf("{\n");
-    printf("    unsigned int __msgTag__, __status__;\n");
+    printf("    unsigned int __tag__, __status__;\n");
     printf("    __xdrs__->x_op = XDR_DECODE;\n");
     printf("    xdrrec_skiprecord(__xdrs__);\n");
-    printf("    __status__ = xdr_int(__xdrs__, &__msgTag__);\n");
+    printf("    __status__ = xdr_int(__xdrs__, &__tag__);\n");
     printf("	if (!__status__) return(-1);\n");
-    printf("    switch (__msgTag__) {\n");
+    printf("    switch (__tag__) {\n");
 
     // generate the zero RPC that returns interface name & version.
     printf("        case 0:\n");
@@ -103,7 +106,7 @@ void interfaceSpec::generateXDRLoop()
 	(*cf)->genSwitch(FALSE);
     }
     printf("    default:\n");
-    printf("	    return(__msgTag__);\n");
+    printf("	    return(__tag__);\n");
     printf("  }\n");
     printf("  return(0);\n");
     printf("}\n");
@@ -118,7 +121,7 @@ void interfaceSpec::genIncludes()
     printf("#include <assert.h>\n");
     if (generateTHREAD) {
 	printf("extern \"C\" {\n");
-	printf("#include \"thread/thread.h\"\n");
+	printf("#include \"thread/h/thread.h\"\n");
 	printf("}\n");
     }
     if (generateXDR) {
@@ -354,7 +357,7 @@ int main(int argc, char *argv[])
     if (emitHeader) {
 	of = fopen(headerFile, "w");
 	dup2(of->_file, 1);
-	printf("#include \"util/rpcUtil.h\"\n");
+	printf("#include \"util/h/rpcUtil.h\"\n");
     }
 
     yyparse();
@@ -430,16 +433,19 @@ void remoteFunc::genSwitch(Boolean forUpcalls)
 
     printf("        case %s_%s_REQ: {\n", spec->getName(), name);
     printf("            ");
-    printf("	    int __val__;\n");
+    if (generateTHREAD && (upcall != asyncUpcall)) 
+	printf("	    int __val__;\n");
     if (strcmp(retType, "void")) {
 	printf("	    %s __ret__;\n", retType);
     }
     if (generateXDR) {
 	printf("	    extern xdr_%s(XDR*, %s*);\n", retType, retType);
-	printf("            %s __recvBuffer__;\n", structName);
-	for (ca = args; *ca; ca++) {
-	    printf("            xdr_%s(__xdrs__, &__recvBuffer__.%s);\n", 
-		(*ca)->type, (*ca)->name);
+	if (args.count()) {
+	    printf("            %s __recvBuffer__;\n", structName);
+		for (ca = args; *ca; ca++) {
+		printf("            xdr_%s(__xdrs__, &__recvBuffer__.%s);\n", 
+		    (*ca)->type, (*ca)->name);
+	    }
 	}
     }
     if (strcmp(retType, "void")) {
@@ -467,8 +473,8 @@ void remoteFunc::genSwitch(Boolean forUpcalls)
 	printf("	    assert(__val__ == THR_OKAY);\n");
     } else if (generateXDR && (upcall != asyncUpcall)) {
 	printf("	    __xdrs__->x_op = XDR_ENCODE;\n");
-	printf("            __val__ = %s_%s_RESP;\n", spec->getName(), name);
-	printf("            xdr_int(__xdrs__, &__val__);\n");
+	printf("            __tag__ = %s_%s_RESP;\n", spec->getName(), name);
+	printf("            xdr_int(__xdrs__, &__tag__);\n");
 	if (strcmp(retType, "void")) {
 	    printf("            xdr_%s(__xdrs__,&__ret__);\n", retType);
 	}
@@ -487,9 +493,9 @@ void remoteFunc::genThreadStub(char *className)
     genMethodHeader(className);
     printf(" {\n");
 
-    printf("    struct %s %s;\n", structName, structUseName);
-    printf("    unsigned int __tag__;\n");
-    printf("    unsigned int __len__;\n");
+    if (*args) printf("    struct %s %s;\n", structName, structUseName);
+    if (upcall != asyncUpcall) printf("    unsigned int __tag__;\n");
+    if (strcmp(retType, "void")) printf("    unsigned int __len__;\n");
     printf("    int __val__;\n");
     if (strcmp(retType, "void")) {
 	printf("    %s %s;\n", retType, retVar);
@@ -530,9 +536,7 @@ void remoteFunc::genXDRStub(char *className)
     printf(" {\n");
 
     printf("    unsigned int __tag__;\n");
-    printf("    int __val__;\n");
     if (strcmp(retType, "void")) {
-	printf("    unsigned int __len__;\n");
 	printf("    %s %s;\n", retType, retVar);
     }
     printf("    __tag__ = %s_%s_REQ;\n", spec->getName(), name);
