@@ -4,10 +4,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.18  1996/04/24 21:58:07  tamches
-/* We now do a yview -pickplace end on the "status window" area when changing
-/* phases.
+/* Revision 1.19  1996/05/01 14:08:01  naim
+/* Multiples changes in UI to make call to requestNodeInfoCallback async.
+/* (UI<->PC) - naim
 /*
+ * Revision 1.18  1996/04/24  21:58:07  tamches
+ * We now do a yview -pickplace end on the "status window" area when changing
+ * phases.
+ *
  * Revision 1.17  1996/04/16 18:37:36  karavan
  * fine-tunification of UI-PC batching code, plus addification of some
  * Ari-like verbification commentification.
@@ -672,3 +676,11 @@ void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
       myTclEval(interp, commandStr);
    }
 }
+
+void shgPhases::nodeInformation(int phaseId, int nodeId,
+				const shg_node_info &theNodeInfo) {
+   // in response to a middle-mouse-click...
+   shg &theShg = getByID(phaseId);
+   theShg.nodeInformation(nodeId, theNodeInfo);
+}
+

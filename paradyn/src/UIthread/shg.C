@@ -4,10 +4,14 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.21  1996/04/29 21:29:58  tamches
-/* fixed a bug in configNode which could fail to properly hide the root node
-/* when set to false with hideFalseNodes.
+/* Revision 1.22  1996/05/01 14:07:57  naim
+/* Multiples changes in UI to make call to requestNodeInfoCallback async.
+/* (UI<->PC) - naim
 /*
+ * Revision 1.21  1996/04/29  21:29:58  tamches
+ * fixed a bug in configNode which could fail to properly hide the root node
+ * when set to false with hideFalseNodes.
+ *
  * Revision 1.20  1996/04/18 23:26:31  tamches
  * fixed an assert failure that was happening when hideFalseNodes was on
  * and when a node changed from true to false
@@ -111,6 +115,8 @@ GC shg::listboxRayGC;
 
 int shg::listboxBorderPix = 3;
 int shg::listboxScrollBarWidth = 16;
+
+extern performanceConsultantUser *perfConsult;
 
 void shg::initializeStaticsIfNeeded() {
    if (rootItemTk3DBordersByStyle.size() > 0)
@@ -652,53 +658,10 @@ void shg::processMiddleClick(int x, int y) {
       default: break;
    }
 
-   string commandStr = currItemLabelName + " config -state normal";
-   myTclEval(interp, commandStr);
-
-   commandStr = currItemLabelName + " delete @0,0 end";
-   myTclEval(interp, commandStr);
-
-   // Note that we write different stuff if we are in devel mode, so
-   // we need to check the tunable const:
+   // Middle-mouse-click on a node:
+   // Make an async request (to the PC) for information about this node
    const shgRootNode &theNode = thePath.getLastPathNode(rootPtr)->getNodeData();
-
-   string dataString;
-         
-#ifdef PARADYN
-   // the shg test program doesn't have a developer mode
-   extern bool inDeveloperMode;
-   if (inDeveloperMode)
-      dataString += string(theNode.getId()) + " ";
-#endif
-
-   dataString += theNode.getLongName();
-
-#ifdef PARADYN
-   // the igen call isn't implemented in the shg axis test program
-   if (inDeveloperMode) {
-      dataString += "\n";
-      // make an igen call to the performance consultant to get more information
-      // about this node:
-      extern performanceConsultantUser *perfConsult;
-      shg_node_info theNodeInfo;
-      assert(perfConsult->getNodeInfo(thePhaseId, theNode.getId(), &theNodeInfo));
-      dataString += "curr concl: ";
-      dataString += theNodeInfo.currentConclusion ? "true" : "false";
-      dataString += " made at time ";
-      dataString += string(theNodeInfo.timeTrueFalse) + "\n";
-      dataString += string("curr value: ") + string(theNodeInfo.currentValue);
-      dataString += string(" estim cost: ") + string(theNodeInfo.estimatedCost) + "\n";
-      dataString += string("time from ") + string(theNodeInfo.startTime) + " to " +
-	                                 string(theNodeInfo.endTime) + "\n";
-      dataString += string("persistent: ") + (theNodeInfo.persistent ? "true" : "false");
-   }
-#endif
-
-   commandStr = currItemLabelName + " insert end " + "\"" + dataString + "\"";
-   myTclEval(interp, commandStr);
-
-   commandStr = currItemLabelName + " config -state disabled";
-   myTclEval(interp, commandStr);
+   perfConsult->requestNodeInfo(thePhaseId, theNode.getId());
 }
 
 bool shg::processDoubleClick(int x, int y) {
@@ -1239,4 +1202,53 @@ void shg::addEdge(unsigned fromId, unsigned toId,
 
    // rethink layout of entire shg (slow...):
    if (rethinkFlag) rethink_entire_layout(isCurrShg);
+}
+
+void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
+   // In response to a middle-mouse-click...
+
+   // First, delete what was in the curr-item-description widget
+   string commandStr = currItemLabelName + " config -state normal";
+   myTclEval(interp, commandStr);
+
+   commandStr = currItemLabelName + " delete @0,0 end";
+   myTclEval(interp, commandStr);
+
+   // Second, fill in the multi-line description string...
+   // (Note that we do extra stuff in developer mode...)
+
+   string dataString;
+   assert(hash.defines(nodeId));
+   const shgRootNode &theNode = hash[nodeId]->getNodeData();
+
+#ifdef PARADYN
+   // shg test program doesn't have a devel mode
+   extern bool inDeveloperMode;
+   if (inDeveloperMode)
+      dataString += string(theNode.getId()) + " ";
+#endif
+
+   dataString += theNode.getLongName();
+
+#ifdef PARADYN
+   // The igen call isn't implemented in shg test program
+   if (inDeveloperMode) {
+      dataString += "\n";
+      dataString += "curr concl: ";
+      dataString += theNodeInfo.currentConclusion ? "true" : "false";
+      dataString += " made at time ";
+      dataString += string(theNodeInfo.timeTrueFalse) + "\n";
+      dataString += string("curr value: ") + string(theNodeInfo.currentValue);
+      dataString += string(" estim cost: ") + string(theNodeInfo.estimatedCost) + "\n";
+      dataString += string("time from ") + string(theNodeInfo.startTime) + " to " +
+	                                   string(theNodeInfo.endTime) + "\n";
+      dataString += string("persistent: ") + (theNodeInfo.persistent ? "true" : "false");
+   }
+#endif
+
+   commandStr = currItemLabelName + " insert end " + "\"" + dataString + "\"";
+   myTclEval(interp, commandStr);
+
+   commandStr = currItemLabelName + " config -state disabled";
+   myTclEval(interp, commandStr);
 }

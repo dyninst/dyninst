@@ -21,10 +21,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.54  1996/04/19 18:28:17  naim
-/* Adding a procedure that will be called when we want to add a new process,
-/* as it is done using the "paradyn process" command - naim
+/* Revision 1.55  1996/05/01 14:07:54  naim
+/* Multiples changes in UI to make call to requestNodeInfoCallback async.
+/* (UI<->PC) - naim
 /*
+ * Revision 1.54  1996/04/19  18:28:17  naim
+ * Adding a procedure that will be called when we want to add a new process,
+ * as it is done using the "paradyn process" command - naim
+ *
  * Revision 1.53  1996/04/18  20:46:35  tamches
  * new DAGaddBatchOfEdges to correspond with PCthread/PCshg.C changes
  *
@@ -491,6 +495,15 @@ UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
       initiateShgRedraw(interp, true); // interp --> double buffer
 
    return 1;
+}
+
+void UIM::requestNodeInfoCallback(unsigned phaseID, int nodeID, 
+                                  shg_node_info *theInfo, bool ok)
+{
+  if (ok) {
+    theShgPhases->nodeInformation(phaseID,nodeID,*theInfo);
+    delete theInfo;
+  }
 }
 
 //

@@ -4,10 +4,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.13  1996/04/16 18:37:38  karavan
-/* fine-tunification of UI-PC batching code, plus addification of some
-/* Ari-like verbification commentification.
+/* Revision 1.14  1996/05/01 14:08:03  naim
+/* Multiples changes in UI to make call to requestNodeInfoCallback async.
+/* (UI<->PC) - naim
 /*
+ * Revision 1.13  1996/04/16 18:37:38  karavan
+ * fine-tunification of UI-PC batching code, plus addification of some
+ * Ari-like verbification commentification.
+ *
  * Revision 1.12  1996/04/13 04:39:44  karavan
  * better implementation of batching for edge requests
  *
@@ -259,6 +263,9 @@ class shgPhases {
 
    void addToStatusDisplay(int phaseId, const string &msg);
       // currently, we do not append the newline character for you
+
+   void nodeInformation(int phaseId, int nodeId, const shg_node_info &theNodeInfo);
+      // in response to a middle-mouse-click...
 };
 
 #endif

@@ -4,10 +4,14 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.13  1996/04/16 18:37:33  karavan
-/* fine-tunification of UI-PC batching code, plus addification of some
-/* Ari-like verbification commentification.
+/* Revision 1.14  1996/05/01 14:07:59  naim
+/* Multiples changes in UI to make call to requestNodeInfoCallback async.
+/* (UI<->PC) - naim
 /*
+ * Revision 1.13  1996/04/16 18:37:33  karavan
+ * fine-tunification of UI-PC batching code, plus addification of some
+ * Ari-like verbification commentification.
+ *
  * Revision 1.12  1996/04/13 04:39:49  karavan
  * better implementation of batching for edge requests
  *
@@ -58,6 +62,8 @@
 #else
 #include "util/h/DictionaryLite.h"
 #endif
+
+#include "performanceConsultant.thread.h" // for struct shg_node_info
 
 #include "where4tree.h"
 #include "graphicalPath.h"
@@ -157,6 +163,7 @@ class shg {
    static void sliderButtonRelease(ClientData cd, XEvent *eventPtr);
  
    void rethink_entire_layout(bool isCurrShg) {
+      // slow...
       assert(rootPtr);
       rootPtr->recursiveDoneAddingChildren(consts, false); // false --> don't resort
       rethink_nominal_centerx();
@@ -337,6 +344,9 @@ class shg {
 		bool rethinkFlag); // if false, avoids rethinkification
       // The evaluationState param decides whether to explicitly expand
       // the "to" node.  Rethinks the entire layout of the shg
+ 
+   void nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo);
+      // In response to a middle-mouse-click...
 };
 
 #endif
