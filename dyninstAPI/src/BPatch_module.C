@@ -63,6 +63,12 @@ int max_addr_per_line =0;
 int max_line_per_addr =0;
 #endif
 
+#if defined(USES_DWARF_DEBUG)
+#include "elf.h"
+#include "dwarf.h"
+#include "libdwarf.h"
+#endif
+
 char * current_func_name = NULL;
 char * current_mangled_func_name = NULL;
 
@@ -219,7 +225,7 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
  */
 
 BPatch_Vector<BPatch_function *> *
-BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &funcs,
+BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> & funcs,
 			    bool notify_on_failure, bool regex_case_sensitive)
 {
   pdvector<function_base *> pdfuncs;
@@ -230,8 +236,10 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &
   }
   if (NULL == mod->findFunctionFromAll(string(name), &pdfuncs, regex_case_sensitive) 
       || !pdfuncs.size()) {
-    string msg = string("Module: Unable to find function: ") + string(name);
-    if (notify_on_failure) BPatch_reportError(BPatchSerious, 100, msg.c_str());
+    if( notify_on_failure ) {
+      string msg = string("Module: Unable to find function: ") + string(name);
+      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      }
     return NULL;
   } 
 
@@ -244,12 +252,12 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &
     }
   }
 
-  return &funcs;
+  return & funcs;
 }
 
 BPatch_Vector<BPatch_function *> *
 BPatch_module::findUninstrumentableFunction(const char *name, 
-					    BPatch_Vector<BPatch_function *> &funcs)
+					    BPatch_Vector<BPatch_function *> & funcs)
 {
   pdvector<function_base *> pdfuncs;
 
@@ -476,7 +484,6 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
 		}
       }
 }
-
 
 // Gets the stab and stabstring section and parses it for types
 // and variables
@@ -707,12 +714,27 @@ void BPatch_module::parseTypes()
 #if defined(sparc_sun_solaris2_4) || \
     defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || \
-    defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */
+    defined(ia64_unknown_linux2_4)
+
+void BPatch_module::parseTypes() {
+	/* Get the Object object. */
+	image * moduleImage = mod->exec();
+	assert( moduleImage != NULL );
+	const Object & moduleObject = moduleImage->getObject();	
+
+	/* Does if have STABS information? */
+	if( moduleObject.hasStabInfo() ) { parseStabTypes(); }
+	
+#if defined( USES_DWARF_DEBUG )
+	/* Does if have DWARF information? */
+	if( moduleObject.hasDwarfInfo() ) { parseDwarfTypes(); }
+#endif
+	} /* end parseTypes() */
 
 #ifndef PARSE_ALL_AT_ONCE
 // parseTypes:  parses type and variable info, does some init
 //              does NOT parse file-line info anymore, this is done later, upon request.
-void BPatch_module::parseTypes() 
+void BPatch_module::parseStabTypes() 
 {
   int stab_nsyms;
   char *stabstr_nextoffset;
@@ -1330,7 +1352,7 @@ void BPatch_module::parseFileLineInfo()
 #ifdef PARSE_ALL_AT_ONCE
 // Gets the stab and stabstring section and parses it for types
 // and variables
-void BPatch_module::parseTypes()
+void BPatch_module::parseStabTypes()
 {
  
   int i;
