@@ -11,27 +11,31 @@ class function_base;
 class process;
 class pdmodule;
 
-// Class for contstruction of trees of nested loops and functions
-// used to create the call graph
-class LoopTreeNode {
-public:
+
+// A class to represent the tree of nested loops and 
+// functions (callees) in the flow graph
+class BPATCH_DLL_EXPORT LoopTreeNode {
+    friend class BPatch_flowGraph;
+
+ public:
+    BPatch_basicBlockLoop * loop;
+
+    BPatch_Vector<LoopTreeNode *> children;
+
+    BPatch_Vector<function_base *> callees;
+
+
     LoopTreeNode(BPatch_basicBlockLoop * l): loop(l) {}
 
-    BPatch_basicBlockLoop * loop;
-    BPatch_Vector<LoopTreeNode *> children;
-    BPatch_Vector<function_base *> funcs;
+    ~LoopTreeNode();
 
-    bool containsAddress(unsigned long addr) { 
-	return loop->containsAddress(addr);
-    }
+    bool containsAddress(unsigned long addr);
 
-    ~LoopTreeNode() {
-	delete loop;
-	for (unsigned int i = 0; i < children.size(); i++)
-	    delete children[i];
-	// don't delete funcs!
-    }
+    const char * getFuncName(unsigned int i);
+    
+    unsigned int numCallees() { return callees.size(); }
 };
+
 
 
 /** class which represents the control flow graph of a function
@@ -86,14 +90,14 @@ public:
    */
   void fillPostDominatorInfo();
 
-  /** insert func into the loop hierarchy */
-  void insertCalleeIntoLoopHierarchy(function_base * func, unsigned long addr);
-    
   /** return root of loop hierarchy  */
-  LoopTreeNode * getLoopHierarchy() { return loopRoot; }
+  LoopTreeNode * getLoopHierarchy();
 
   /** print the loops in this FG to stderr  */
   void printLoops();
+
+  /** create the tree of loops/callees for this flow graph */
+  void createLoopHierarchy();
 
  private:
 
@@ -149,7 +153,7 @@ public:
   void getLoopsByNestingLevel(BPatch_Vector<BPatch_basicBlockLoop*>&, 
 			      bool outerMostOnly);
 
-  void createLoopHierarchy();
+  void insertCalleeIntoLoopHierarchy(function_base * func, unsigned long addr);
 
 };
 

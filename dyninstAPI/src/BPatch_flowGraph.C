@@ -22,6 +22,27 @@
 
 #include "BPatch_flowGraph.h"
 
+
+const char * LoopTreeNode::getFuncName(unsigned int i) 
+{
+    assert(i < callees.size());
+    assert(callees[i] != NULL);
+    return callees[i]->prettyName().c_str();
+}
+
+bool LoopTreeNode::containsAddress(unsigned long addr) { 
+    assert(loop != NULL);
+    return loop->containsAddress(addr);
+}
+
+LoopTreeNode::~LoopTreeNode() {
+    delete loop;
+    for (unsigned int i = 0; i < children.size(); i++)
+	delete children[i];
+    // don't delete callees!
+}
+
+
 class TarjanDominator;
 
 const int BPatch_flowGraph::WHITE = 0;
@@ -1390,12 +1411,52 @@ getLoopMinMaxSourceLines(BPatch_basicBlockLoop * loop)
 
 
 
+
+// try to insert func into the appropriate spot in the loop tree based on
+// address ranges. if succesful return true, return false otherwise.
+bool dfsInsertCalleeIntoLoopHierarchy(LoopTreeNode *node, 
+				      function_base *func,
+				      unsigned long addr)
+{
+    // if this node contains func then insert it
+    if ((node->loop != NULL) && node->containsAddress(addr)) {
+	node->callees.push_back(func);
+	return true;
+    }
+
+    // otherwise recur with each of node's children
+    bool success = false;
+
+    for (unsigned int i = 0; i < node->children.size(); i++) 
+	success = success || 
+	    dfsInsertCalleeIntoLoopHierarchy(node->children[i], func, addr);
+    
+    return success;
+}
+
+
+void 
+BPatch_flowGraph::insertCalleeIntoLoopHierarchy(function_base * func,
+						unsigned long addr)
+{
+    assert(loopRoot != NULL);
+
+    // try to insert func into the loop hierarchy
+    bool success = dfsInsertCalleeIntoLoopHierarchy(loopRoot, func, addr);
+
+    // if its not in a loop make it a child of the root
+    if (!success) {
+	loopRoot->callees.push_back(func);
+    }
+}
+
+
 void 
 dfsCreateLoopHierarchy(LoopTreeNode * parent,
 		       BPatch_Vector<BPatch_basicBlockLoop *> &loops, 
 		       pdstring level)
 {
-    for (u_int i = 0; i < loops.size (); i++) {
+    for (unsigned int i = 0; i < loops.size (); i++) {
 	// loop name is hierarchical level
 	pdstring clevel = (level != "") 
 	    ? level + "." + pdstring(i+1)
@@ -1422,59 +1483,37 @@ BPatch_flowGraph::createLoopHierarchy()
     BPatch_Vector<BPatch_basicBlockLoop *> loops;
     getOuterLoops(loops);
     dfsCreateLoopHierarchy(loopRoot, loops, "");
-}
 
+    const pdvector<instPoint*> & instPs = func->funcCalls(proc);
 
-// return true if any of node's children contain addr. does not need to check
-// recursively since a parent's address ranges includes those of its children.
-bool childrenContainAddress(LoopTreeNode *node, unsigned long addr) 
-{ 
-    for (u_int i = 0; i < node->children.size(); i++) {
-	cerr << "check child " << node->children[i]->loop->name() << endl;
-	if (node->children[i]->loop->containsAddress(addr)) 
-	    return true;
-    }
-    return false;
-}
+    for (unsigned int i = 0; i < instPs.size(); i++) {
+	function_base *f;
 
-void
-dfsInsertCalleeIntoLoopHierarchy(LoopTreeNode *node, 
-				 function_base *func,
-				 unsigned long addr)
-{
-    pdstring name = node->loop == NULL ? "root node" : node->loop->name();
+	bool found = proc->findCallee(*(instPs[i]), f);
 
-    // If a child contains addr then insert func at that child
-    if (childrenContainAddress(node, addr)) {
-	for (u_int i = 0; i < node->children.size(); i++) {
-	    if (node->children[i]->containsAddress(addr)) {
-		// recurse
-		dfsInsertCalleeIntoLoopHierarchy(node->children[i], 
-						 func, 
-						 addr);
-		// no need to check other children, only 1 child can
-		// contain func
-		break;
-	    }
+	if (f != NULL) {
+	    insertCalleeIntoLoopHierarchy( f, instPs[i]->iPgetAddress() );
+	}
+	else {
+	    fprintf( stderr, "BPatch_flowGraph::createLoopHierarchy "
+		     "couldn't find callee by inst point.\n");
 	}
     }
-    else {
-	// No children contain addr, func must be at this level
-	node->funcs.push_back(func);
-    }
 }
 
-void 
-BPatch_flowGraph::insertCalleeIntoLoopHierarchy(function_base * func,
-						unsigned long addr)
-{
-    dfsInsertCalleeIntoLoopHierarchy(loopRoot, func, addr);
+
+LoopTreeNode * BPatch_flowGraph::getLoopHierarchy() 
+{ 
+    assert(loopRoot != NULL); 
+    return loopRoot; 
 }
 
 
 void 
 BPatch_flowGraph::printLoops()
-{
+{    
+    assert(loopRoot != NULL);
+
     BPatch_Vector<BPatch_basicBlockLoop *> loops;
     getLoops(loops);
 
@@ -1485,3 +1524,4 @@ BPatch_flowGraph::printLoops()
 		 loops[i]->name(), mm.first, mm.second);
     }
 }
+
