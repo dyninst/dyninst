@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.33 2002/06/10 19:24:49 bernat Exp $
+// $Id: irix.C,v 1.34 2002/06/14 19:39:05 tlmiller Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -48,13 +48,16 @@
 #include <sys/procfs.h>   // procfs
 #include <unistd.h>       // getpid()
 #include <sys/ucontext.h> // gregset_t
-#include "dyninstAPI/src/frame.h"
+
+// #include "common/h/Types.h"
+
 #include "dyninstAPI/src/arch-mips.h"
 #include "dyninstAPI/src/inst-mips.h"
 #include "dyninstAPI/src/symtab.h" // pd_Function
 #include "dyninstAPI/src/instPoint-mips.h"
-#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/frame.h"
+#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/stats.h" // ptrace{Ops,Bytes}
 #include "common/h/pathName.h" // expand_tilde_pathname, exists_executable
 #include "common/h/irixKludges.h" // PDYN_XXX
@@ -229,6 +232,12 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf)
   return readDataSpace_(inTraced, amount, (void *)inSelf);
 }
 #endif
+
+/* Stolen from solaris.C; I sure hope we can ignore LWPs on Irix. :) */
+void *process::getRegisters(unsigned /*lwp*/)
+{
+  return getRegisters();
+}
 
 void *process::getRegisters() 
 {
@@ -1334,7 +1343,8 @@ Frame process::getActiveFrame(unsigned int /*ignored*/)
   instPoint     *ip = NULL;
   trampTemplate *bt = NULL;
   instInstance  *mt = NULL;
-  pd_Function *currFunc = findAddressInFuncsAndTramps(p, pc, ip, bt, mt);
+  pd_Function *currFunc = findAddressInFuncsAndTramps(this, pc, ip, bt,
+mt);
 
   if ( currFunc )
   {
@@ -1345,7 +1355,7 @@ Frame process::getActiveFrame(unsigned int /*ignored*/)
     // adjust $pc for active instrumentation 
     Address pc_adj = adjustedPC(pc, fn_addr, ip, bt, mt);
     Address pc_off = pc_adj - fn_addr;
-    bool nativeFrameActive = nativFrameActive(ip, pc_off, currFunc, p);
+    bool nativeFrameActive = nativFrameActive(ip, pc_off, currFunc, this);
     bool basetrampFrameActive = instrFrameActive(pc, ip, bt, mt);
 
     if ( currFunc->uses_fp )
@@ -1355,7 +1365,7 @@ Frame process::getActiveFrame(unsigned int /*ignored*/)
         Address fp_bt = sp;
         fp_bt += bt_frame_size;
         Address fp_addr = fp_bt + bt_fp_slot;
-        fp = readAddressInMemory(p, fp_addr, true);
+        fp = readAddressInMemory(this, fp_addr, true);
       }
       else if ( nativeFrameActive )
         fp = saved_fp;
