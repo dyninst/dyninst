@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.15 2003/11/13 22:49:02 schendel Exp $
+ * $Id: dyn_lwp.C,v 1.16 2003/11/24 17:37:48 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -142,10 +142,6 @@ bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
    // running.  If we can find this, then we can set the lwp status to
    // running also.
    if(status_ == stopped) {
-      return true;
-   }
-
-   if(proc_->status() == neonatal || proc_->status() == stopped) {      
       return true;
    }
 
