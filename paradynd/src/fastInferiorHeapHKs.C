@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.19 2001/10/12 20:47:20 schendel Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.20 2001/11/01 17:22:23 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -188,21 +188,21 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
    // To avoid race condition, don't use 'dataValue' after this point!
 
 //#ifdef SHM_SAMPLING_DEBUG
-   const unsigned id    = dataValue.id.id;
+   const unsigned drnId    = dataValue.id.id;
       // okay to read dataValue.id since there's no race condition with it.
-   assert(id == this->lowLevelId); // verify our new code is working right
-      // eventually, id field can be removed from dataValue, saving space
+   assert(drnId == this->lowLevelId); // verify our new code is working right
+      // eventually, drnId field can be removed from dataValue, saving space
 
-   extern dictionary_hash<unsigned, metricDefinitionNode*> midToMiMap;
+   extern dictionary_hash<unsigned, metricDefinitionNode*> drnIdToMdnMap;
    metricDefinitionNode *theMi;
-   if (!midToMiMap.find(id, theMi)) { // fills in "theMi" if found
+   if (!drnIdToMdnMap.find(drnId, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
       // (But perhaps in the new scheme this can be made an assert failure?)
       cerr << "intCounter sample not for valid metric instance, so dropping" << endl;
       return true; // is this right?
    }
    if(! theMi->inserted()) {
-     sampleVal_cerr << "perform on data id: " << id << " is tied to mdn "
+     sampleVal_cerr << "perform on data id: " << drnId << " is tied to mdn "
 		    << "which isn't inserted yet, isdeferred: " 
 		    << theMi->hasDeferredInstr() << "\n";
      return false;
@@ -330,19 +330,19 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
 
 #ifdef SHM_SAMPLING_DEBUG
    // It's okay to use theTimer.id because it's not susceptible to race conditions
-   const unsigned id    = theTimer.id.id;
-   assert(id == this->lowLevelId); // verify our new code is working right
+   const unsigned drnId    = theTimer.id.id;
+   assert(drnId == this->lowLevelId); // verify our new code is working right
 
-   extern dictionary_hash<unsigned, metricDefinitionNode*> midToMiMap;
+   extern dictionary_hash<unsigned, metricDefinitionNode*> drnIdToMdnMap;
    metricDefinitionNode *theMi;
-   if (!midToMiMap.find(id, theMi)) { // fills in "theMi" if found
+   if (!drnIdToMdnMap.find(drnId, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
       cout << "NOTE: dropping sample unknown wallTimer id " << id << endl;
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
    if(! theMi->inserted()) {
-     sampleVal_cerr << "perform on data id: " << id << " is tied to mdn "
+     sampleVal_cerr << "perform on data id: " << drnId << " is tied to mdn "
 		    << "which isn't inserted yet, isdeferred: " 
 		    << theMi->hasDeferredInstr() << "\n";
      return false;
@@ -479,16 +479,16 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
       lastTimeValueUsed = timeValueToUse;
 
 //#ifdef SHM_SAMPLING_DEBUG
-   const unsigned id    = theTimer.id.id;
+   const unsigned drnId    = theTimer.id.id;
 
-   assert(id == this->lowLevelId); // verify our new code is working right
+   assert(drnId == this->lowLevelId); // verify our new code is working right
 
-   extern dictionary_hash<unsigned, metricDefinitionNode*> midToMiMap;
+   extern dictionary_hash<unsigned, metricDefinitionNode*> drnIdToMdnMap;
    metricDefinitionNode *theMi;
-   if (!midToMiMap.find(id, theMi)) { // fills in "theMi" if found
+   if (!drnIdToMdnMap.find(drnId, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
-      cerr << "procTimer id " << id 
-	   << " not found in midToMiMap so dropping sample of val " 
+      cerr << "procTimer id " << drnId 
+	   << " not found in drnIdToMdnMap so dropping sample of val " 
 	   << timeValueToUse << " for mi " 
 	   << (void*)mi << " proc pid " << inferiorProc->getPid() << endl;
       assert(0);
@@ -496,7 +496,7 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    }
    assert(theMi == this->mi); // verify our new code is working right
    if(! theMi->inserted()) {
-     sampleVal_cerr << "perform on data id: " << id << " is tied to mdn "
+     sampleVal_cerr << "perform on data id: " << drnId << " is tied to mdn "
 		    << "which isn't inserted yet, isdeferred: " 
 		    << theMi->hasDeferredInstr() << "\n";
      return false;
