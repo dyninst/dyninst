@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.56  1997/02/18 21:25:15  sec
+ * Added poe support
+ *
  * Revision 1.55  1997/01/21 20:07:47  mjrg
  * Changed to unix domain socket for trace stream
  * Replaced calls to uname by calls to libutil function getHostName
@@ -173,7 +176,8 @@ void configStdIO(bool closeStdIn)
     if (nullfd > 2) close(nullfd);
 }
 
-void sigtermHandler(int ) {
+void sigtermHandler()
+{
   showErrorCallback(98,"paradynd has been terminated");
 }
 
@@ -263,6 +267,7 @@ int main(int argc, char *argv[]) {
 //    for (unsigned lcv=0; lcv < argc; lcv++) {
 //       cerr << argv[lcv] << endl;
 //    }
+//    cerr.flush();
 
     struct sigaction act;
 
@@ -286,7 +291,6 @@ int main(int argc, char *argv[]) {
     }
 
     process::programName = argv[0];
-
     // process command line args passed in
     // pd_flag == 1 --> started by paradyn
     int pvm_first;
@@ -346,11 +350,21 @@ int main(int argc, char *argv[]) {
       if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 0)) {
 	cleanUpAndExit(-1);
       }
-
-      tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, NULL, NULL, 0);
+      tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine,
+		     NULL, NULL, 0);
       assert(tp);
 
       tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
+    } else if(pd_flavor == string("poe")) {
+      // the executables which are started by poe must report to paradyn
+      // the pdRPC is allocated and reportSelf is called
+      assert(pd_flag == 0);
+
+      tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
+		     pd_machine, NULL, NULL, 0);
+      assert(tp);
+
+      tp->reportSelf(machine_name, argv[0], getpid(), "poe");
     } else if (!pd_flag) {
       // not started by pvm_spawn; rather, started via rsh/rexec --> use socket
       int pid = fork();
@@ -362,7 +376,8 @@ int main(int argc, char *argv[]) {
 	// We must get a connection with paradyn before starting any other daemons,
 	// or else one of the daemons we start (in PDYN_initForPVM), may get our
 	// connection.
-	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, NULL, NULL, 0);
+	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine,
+		       NULL, NULL, 0);
 	assert(tp);
 
 	if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1)) {
@@ -391,7 +406,10 @@ int main(int argc, char *argv[]) {
     assert(tp);
 #else
 
-    if (!pd_flag) {
+    if(pd_flavor == string("poe")) {
+      // not put here, only up above since PARADYND_PVM is always set
+      assert(0);
+    } else if (!pd_flag) {
       int pid = fork();
       if (pid == 0) {
 	// configStdIO(true);
@@ -443,6 +461,4 @@ int main(int argc, char *argv[]) {
 
 
     controllerMainLoop(true);
-
 }
-
