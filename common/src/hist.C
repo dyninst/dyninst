@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.23  1996/05/03 20:34:45  tamches
+ * Revision 1.24  1996/05/06 17:14:54  newhall
+ * initialize top half of buckets to PARADYN_NaN on a fold
+ *
+ * Revision 1.23  1996/05/03  20:34:45  tamches
  * sped up addInterval()
  *
  * Revision 1.22  1996/02/12 19:54:19  karavan
@@ -316,8 +319,7 @@ void Histogram::convertToBins()
     if (storageType == HistBucket) return;
 
     intervals = dataPtr.intervals;
-    // dataPtr.buckets = (Bin *) calloc(sizeof(Bin), numBins);
-    // memset(dataPtr.buckets, '\0', sizeof(Bin)*numBins);
+    dataPtr.intervals = 0;
     dataPtr.buckets = new Bin[numBins];
     for(i = 0; i < numBins; i++){
         dataPtr.buckets[i] = PARADYN_NaN; 
@@ -355,7 +357,9 @@ void Histogram::foldAllHist()
                     bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0;
 		}
 	        (allHist[i])->lastBin = j - 1; 
-		memset(&bins[j], '\0', (numBins - j) * sizeof(Bin));
+		for(int k=numBins/2; k<numBins; k++){
+		    bins[j] = PARADYN_NaN;
+		}
 	    }
 	    (allHist[i])->total_time = startTime + 
 				       numBins*(allHist[i])->bucketWidth;
