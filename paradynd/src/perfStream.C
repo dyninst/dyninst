@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.139 2002/10/29 22:56:10 bernat Exp $
+// $Id: perfStream.C,v 1.140 2002/11/25 23:53:02 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -548,7 +548,9 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
 
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
-      pd_process *theProc = *itr++;
+      pd_process *theProc = *itr;
+      itr++;
+
       if (theProc == NULL)
 	 continue; // proc died & had its structures cleaned up
 
@@ -576,7 +578,6 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
 	    // The major sample didn't complete all of its work, so we
 	    // schedule a minor sample for sometime in the near future
 	    // (before the next major sample)
-
 	    shmsample_cerr << "a minor sample will be needed" << endl;
 
 	    forNextTimeDoMinorSample = true;
@@ -589,7 +590,6 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
 	    // The minor sample didn't complete all of its work, so
 	    // schedule another one.
 	    forNextTimeDoMinorSample = true;
-
 	    shmsample_cerr << "it failed" << endl; cerr.flush();
 	 }
 	 else {
@@ -748,7 +748,7 @@ void controllerMainLoop(bool check_buffer_first)
       // add our igen connection with the paradyn process.
       FD_SET(tp->get_sock(), &readSet);
       FD_SET(tp->get_sock(), &errorSet);
-      
+
       // "width" is computed but ignored on Windows NT, where sockets 
       // are not represented by nice little file descriptors.
       if (tp->get_sock() > width) width = tp->get_sock();
