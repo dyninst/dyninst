@@ -444,9 +444,9 @@ void registerAsDeferred(int metricID) {
    deferredMetricIDs.push_back(metricID);
 }
 
-bool processMetFocusNode::insertInstrumentation() {
+instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    if(instrInserted()) {
-      return true;
+      return insert_success;
    }
    ++insertionAttempts;
    if(insertionAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
@@ -456,22 +456,27 @@ bool processMetFocusNode::insertInstrumentation() {
 
    pauseProcess();
 
-   bool inserted = loadInstrIntoApp(&function_not_inserted);
+   instr_insert_result_t insert_status = 
+      loadInstrIntoApp(&function_not_inserted);
    
    // Instrumentation insertion may have failed. We should handle this case
    // better than an assert. Currently we handle the case where (on x86) we
    // couldn't insert the instrumentation due to relocation failure (deferred
    // instrumentation). If it's deferred, come back later.
   
-   if(inserted == false) {
+   if(insert_status == insert_deferred) {
       continueProcess();
       if(hasDeferredInstr()) {
 	 registerAsDeferred(getMetricID());
-	 return false;
+	 return insert_deferred;
       }
-      else {
-	 return false;  //failed for unknown reason.
-      }
+   } else if(insert_status == insert_failure) {
+      continueProcess();
+      string msg = string("Unable to load instrumentation for metric focus ")
+			  + getFullName() + " into process with pid " 
+			  + string(proc()->getPid());
+      showErrorCallback(126, msg);
+      return insert_failure;
    }
 
    insertJumpsToTramps();
@@ -483,7 +488,7 @@ bool processMetFocusNode::insertInstrumentation() {
    doCatchupInstrumentation();
 
    continueProcess();
-   return true;
+   return insert_success;
 }
 
 //
@@ -695,9 +700,10 @@ void processMetFocusNode::initAggInfoObjects(timeStamp startTime,
   }
 }
 
-bool processMetFocusNode::loadInstrIntoApp(pd_Function **func) {
+instr_insert_result_t processMetFocusNode::loadInstrIntoApp(pd_Function **func)
+{
    if(instrLoaded()) {
-      return true;
+      return insert_success;
    }
 
    vector<instrCodeNode *> codeNodes;
@@ -705,23 +711,17 @@ bool processMetFocusNode::loadInstrIntoApp(pd_Function **func) {
 
    // mark remaining prim. components as deferred if we come upon
    // one deferred component
-   bool aCompWasDeferred = false;
    for (unsigned j=0; j<codeNodes.size(); j++) {
       instrCodeNode *codeNode = codeNodes[j];
-      if (!codeNode->loadInstrIntoApp(func)) {
-	 if(codeNode->hasDeferredInstr()) {
-	    aCompWasDeferred = true;
-	    codeNode->markAsDeferred();
-	    break;
-	 }
+      instr_insert_result_t status = codeNode->loadInstrIntoApp(func);
+      if(status != insert_success) {
+	 return status;
       }
    }
-   if(aCompWasDeferred) {
-      return false;
-   }
-   
+
    catchupNotDoneYet_ = true;
-   return true;
+   
+   return insert_success;
 }
 
 void processMetFocusNode::prepareForSampling() {
