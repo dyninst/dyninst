@@ -95,15 +95,22 @@ AddressHandle::AddressHandle(process* fProcess,
 	  addressImage(fImage),baseAddress(bAddress),
 	  range(fSize),currentAddress(bAddress),instructionPointers(NULL)
 {
+	unsigned i,t,j;
 	instructionPointers = new const unsigned char*[range];
 	const unsigned char* ptr = addressImage->getPtrToInstruction(baseAddress);
-	for(unsigned i=0,t=0;i<range;t++){
+	for(i=0,t;i<range;t++){
 		instructionPointers[i++] = ptr;
 		unsigned instructionType;
 		unsigned instructionSize = get_instruction(ptr,instructionType);
-		unsigned j;
-		for(j=1;(j<instructionSize) && (i<range);j++)
-			instructionPointers[i++] = NULL;
+		for(j=1;j<instructionSize;j++){
+			if(i < range)
+				instructionPointers[i++] = NULL;
+			else{
+				range -= j;
+				instructionSize = 0;
+				break;
+			}
+		}
 		ptr += instructionSize;
 	}	
 }

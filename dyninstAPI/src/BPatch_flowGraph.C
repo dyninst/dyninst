@@ -317,6 +317,22 @@ void BPatch_flowGraph::createBasicBlocks(){
 				++ah;
 			
 		}
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0)
+		else if(isAReturnInstruction(inst)){
+			if(AddressHandle::delayInstructionSupported())
+				++ah;
+			taddr = *ah;
+			if((baddr <= taddr) && (taddr < maddr) && 
+			   !leaders.contains(taddr)) {
+				leaders += taddr;
+				leaderToBlock[taddr] =
+				    new BPatch_basicBlock(this, tbs++);
+				allBlocks += leaderToBlock[taddr];
+			}
+		}
+#endif
 	}
 
 
