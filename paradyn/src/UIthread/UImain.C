@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.5  1994/04/13 01:33:04  markc
-/* Changed pointer to .tcl file.
+/* Revision 1.6  1994/04/21 19:17:59  karavan
+/* Added initialization of tcl dag command.
 /*
+ * Revision 1.5  1994/04/13  01:33:04  markc
+ * Changed pointer to .tcl file.
+ *
  * Revision 1.4  1994/04/06  22:39:57  markc
  * Added code to provide local paradynd with a machine name via
  * addExecutable.
@@ -130,7 +133,10 @@ extern "C" {
   void		exit _ANSI_ARGS_((int status));
   int		read _ANSI_ARGS_((int fd, char *buf, size_t size));
   char *	strrchr _ANSI_ARGS_((CONST char *string, int c));
+  int Tk_DagCmd _ANSI_ARGS_((ClientData clientData,
+        Tcl_Interp *interp, int argc, char **argv));
 }
+
 
 extern void initParadynCmd(Tcl_Interp *interp);
 
@@ -218,12 +224,15 @@ UImain(CLargStruct *clargs)
     Display *UIMdisplay;
     tag_t mtag;
     int retVal;
+    Boolean dmret;
     unsigned msgSize;
     char UIMbuff[UIMBUFFSIZE];
     controlCallback controlFuncs;
     dataCallback dataFunc;
     char *uimInitTclProcs = 
-      "/var/home/paradyn/core/paradyn/src/UIthread/uimProcs.tcl";
+      "/usr/home/paradyn/core/paradyn/src/UIthread/uimProcs.tcl";
+    char machine_name[50];
+    char updatecmd[] = "update";
 
     printf ("starting mainUI\n");
 
@@ -295,16 +304,6 @@ UImain(CLargStruct *clargs)
     tty = isatty(0);
     Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
 
-/**
-     * Add a few application-specific commands to the application's
-     * interpreter.
-     
-
-    Tcl_CreateCommand(interp, "dag", Tk_DagCmd, (ClientData) mainWindow,
-	    (void (*)()) NULL);
-*/
-
-    
     if (Tcl_Init(interp) == TCL_ERROR) {
       fprintf(stderr, "%s\n", interp->result);
     }
@@ -316,9 +315,12 @@ UImain(CLargStruct *clargs)
 
     printf ("tk initialized.\n");
 
-    /*
-     * Read in uim tcl procedures (temporary)
-     */
+     // Add the dag command to the tcl interpreter.
+
+    Tcl_CreateCommand(interp, "dag", Tk_DagCmd, (ClientData) mainWindow,
+	    (Tcl_CmdDeleteProc *) NULL);
+
+     // Read in uim tcl procedures (temporary)
 
     if (Tcl_EvalFile(interp, uimInitTclProcs) == TCL_ERROR) {
       printf ("%s\n", interp->result);
@@ -408,8 +410,11 @@ UImain(CLargStruct *clargs)
     // Give the local paradynd a name
     char machine_name[50];
     assert(!gethostname(machine_name, 49));
-    dataMgr->addExecutable(context, machine_name, NULL, uiargv[1], uiargc-2, &uiargv[2]);
-    printf ("executable %s added\n", uiargv[1]);
+    dmret = dataMgr->addExecutable(context, machine_name, NULL, uiargv[1], uiargc-2, &uiargv[2]);
+    if (dmret) 
+      printf ("executable %s added\n", uiargv[1]);
+    else 
+      printf ("UI: ERROR ADDING EXECUTABLE\n");
 
 /********************************
  *    Main Loop for UIM thread.  
@@ -433,17 +438,20 @@ UImain(CLargStruct *clargs)
 	    ;
 	} else 
 	  StdinProc((ClientData) NULL, 0);
-      } else {
+      } else 
 
 // check for upcalls
 
 	if (dataMgr->isValidUpCall(mtag)) {
 	  dataMgr->awaitResponce(-1);
-	} else 
+	  Tcl_Eval (interp, updatecmd);
+	} 
+	else { 
          
 // check for incoming client requests
 	  uim_server->mainLoop();
-      }
+	  Tcl_Eval (interp, updatecmd);
+	}
     }
 
     /*
