@@ -47,9 +47,12 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.10  1996/08/16 21:06:52  tamches
-/* updated copyright for release 1.1
+/* Revision 1.11  1996/10/16 16:11:13  tamches
+/* resizeEverything() now takes a sort flag
 /*
+ * Revision 1.10  1996/08/16 21:06:52  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.9  1996/04/01 22:29:51  tamches
  * makeVisibility* functions added
  *
@@ -191,13 +194,12 @@ class abstractions {
       return getCurrent().getSelections(wholeProgram, wholeProgramFocus);
    }
 
-   void resizeEverything() {
+   void resizeEverything(bool resort) {
       if (!existsCurrent())
          return;
 
       for (unsigned i=0; i < theAbstractions.size(); i++) {
-         theAbstractions[i].theWhereAxis->recursiveDoneAddingChildren(false);
-            // false --> don't resort
+         theAbstractions[i].theWhereAxis->recursiveDoneAddingChildren(resort);
          theAbstractions[i].theWhereAxis->resize(i==currAbstractionIndex);
       }
    }
