@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.51 1995/03/10 19:33:54 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.52 1995/05/18 10:38:42 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.51  1995/03/10 19:33:54  hollings
+ * Revision 1.52  1995/05/18 10:38:42  markc
+ * Removed class metric
+ *
+ * Revision 1.51  1995/03/10  19:33:54  hollings
  * Fixed several aspects realted to the cost model:
  *     track the cost of the base tramp not just mini-tramps
  *     correctly handle inst cost greater than an imm format on sparc
@@ -260,6 +263,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "util/h/headers.h"
 #include <assert.h>
 
+#include "metric.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "util/h/aggregateSample.h"
@@ -268,7 +272,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "inst.h"
 #include "instP.h"
 #include "dyninstP.h"
-#include "metric.h"
 #include "ast.h"
 #include "util.h"
 #include "comm.h"
@@ -280,327 +283,115 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "main.h"
 #include "stats.h"
 #include "dynrpc.h"
+#include "paradynd/src/mdld.h"
+#include "util/h/Timer.h"
+#include "paradynd/src/mdld.h"
 
 double currentPredictedCost = 0.0;
 double currentHybridValue= 0.0;
 
 dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap(uiHash);
-metricListRec *globalMetricList= NULL;
 
 unsigned mdnHash(const metricDefinitionNode *&mdn) {
   return ((unsigned) mdn);
 }
 
 dictionary_hash<unsigned, metricDefinitionNode*> allMIs(uiHash);
-dictionary_hash<string, internalMetric*> internalMetric::allInternalMetrics(string::hash);
-dictionary_hash<metricDefinitionNode*, internalMetric*>
-internalMetric::activeInternalMetrics(mdnHash);
+vector<internalMetric*> internalMetric::allInternalMetrics;
 
 // used to indicate the mi is no longer used.
 #define DELETED_MI 1
 #define MILLION	1000000.0
 
-metricDefinitionNode::metricDefinitionNode(process *p, int agg_style) : sample(agg_style)
+bool mdl_internal_metric_data(string& metric_name, mdl_inst_data& result) {
+  unsigned size = internalMetric::allInternalMetrics.size();
+  for (unsigned u=0; u<size; u++) 
+    if (internalMetric::allInternalMetrics[u]->name() == metric_name) {
+      result.aggregate = internalMetric::allInternalMetrics[u]->aggregate();
+      result.style = internalMetric::allInternalMetrics[u]->style();
+      return true;
+    }
+  return (mdl_metric_data(metric_name, result));
+}
+
+metricDefinitionNode::metricDefinitionNode(process *p, string& met_name, 
+					   vector< vector<string> >& foc,
+					   string& cat_name, int agg_style)
+: aggregate_(false), inserted_(false), met_(met_name), focus_(foc), flat_name_(cat_name),
+  sample(agg_style), id_(-1), originalCost_(0.0), inform_(false), proc_(p)
 {
-    met = NULL;
-    originalCost = 0.0;
-    resList = NULL;
-    id = -1;
-    proc = p;
-    inform=false;
-    aggregate = false;
-    inserted=false;
+  mdl_inst_data md;
+  assert(mdl_internal_metric_data(met_name, md));
+  style_ = md.style;
 }
 
 float metricDefinitionNode::getMetricValue()
 {
     float total;
-    List<metricDefinitionNode*> curr;
 
-    if (aggregate) {
+    if (aggregate_) {
 	total = 0.0;
-	for (curr = components; *curr; curr++) {
-	    total += (*curr)->getMetricValue();
-	}
+	unsigned c_size = components.size();
+	for (unsigned u=0; u<c_size; u++)
+	  total += components[u]->getMetricValue();
 	return(0.0);
     }
-    return((*data)->getMetricValue());
+    return (data[0]->getMetricValue());
 }
 
-metricDefinitionNode::metricDefinitionNode(metric *m, 
-					   List<metricDefinitionNode*> parts) :
-					   met(m), components(parts),
-					   sample(m->info.aggregate)
+metricDefinitionNode::metricDefinitionNode(string& metric_name,
+					   vector< vector<string> >& foc,
+					   string& cat_name, 
+					   vector<metricDefinitionNode*>& parts)
+: aggregate_(true), inserted_(false), met_(metric_name), focus_(foc),
+  flat_name_(cat_name), components(parts),
+  id_(-1), originalCost_(0.0), inform_(false), proc_(NULL)
 {
-    originalCost = 0.0;
-    resList = NULL;
-    id = -1;
-    proc = NULL;
-    inform=false;
-    inserted=false;
-    aggregate = true;
-
-    for (; *parts; parts++) {
-	(*parts)->aggregators.add(this);
-	valueList.add(&(*parts)->sample);
-    }
+  // TODO -- does this work 
+  mdl_inst_data md;
+  assert(mdl_metric_data(metric_name, md));
+  style_ = md.style;
+  sample = md.aggregate;
+  unsigned p_size = parts.size();
+  for (unsigned u=0; u<p_size; u++) {
+    metricDefinitionNode *mi = parts[u];
+    const metricDefinitionNode *t = this;
+    mi->aggregators += t;
+    // parts[u]->aggregators += this;
+    valueList.add(&parts[u]->sample);
+  }
 }
 
-float getProcessCount() {
-  return ((float) processMap.size());
-}
+float getProcessCount() {  return ((float) processVec.size()); }
 
-metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m, bool enable=true)
+// check for "special" metrics that are computed directly by paradynd 
+// if a cost of an internal metric is asked for, enable=false
+
+metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
+				       string& metric_name, string& flat_name,
+				       bool enable, bool& matched)
 {
-    int i;
-    int tid;
-    int count;
-    resource *r=NULL;
-    int covered;
-
-    metricDefinitionNode *ret;
-    internalMetric *im = NULL;
-    process *proc = NULL;
-    resourcePredicate *pred;
-    metric *curr = NULL;
-    resource *complexPredResource = NULL;
-    resourcePredicate *complexPred = NULL;
-    List<metricDefinitionNode*> parts;
-    metricDefinitionNode *mn = NULL;
-    AstNode *predInstance = NULL;
-
-    if (!processMap.size()) return(NULL);
-
-    /* first find the named metric */
-    for (i=0; i < globalMetricList->count; i++) {
-	curr = &globalMetricList->elements[i];
-	if (curr == m) {
-	    break;
-	}
-    }
-
-    if (curr != m) return(NULL);
-
-    // 
-    // check that the predicates are valid.
-    //
-    // TODO - use pred->more to signal NULL for now
-    for (pred = curr->definition.predicates; pred->more; pred++) {
-	for (i=0; i < l->count; i++) {
-	    r = l->elements[i];
-
-	    if (r->suppressed) {
-		// should not collect info about this.
-		return(NULL);
-	    }
-
-	    /* test predicate for this resource */
-	    if (r->parent->info.fullName.prefixed_by(pred->namePrefix) ||
-		(pred->namePrefix == r->info.fullName))
-	      break;
-	  }
-	if (i== l->count) continue;
-
-	// null refinement skip it .
-    	if (pred->namePrefix == r->info.fullName)
-	    continue;
-
-	if (pred->type == invalidPredicate) {
-	    return(NULL);
-	}
-    }
-
-    /* check for "special" metrics that are computed directly by paradynd */
-    if (internalMetric::allInternalMetrics.defines(m->info.name)) {
-      // if a cost of an internal metric is asked for, enable=false
+  matched = false;
+  unsigned im_size = internalMetric::allInternalMetrics.size();
+  for (unsigned im_index=0; im_index<im_size; im_index++)
+    if (internalMetric::allInternalMetrics[im_index]->name() == metric_name) {
+      matched = true;
       if (!enable) return NULL;
-      im = internalMetric::allInternalMetrics[m->info.name];
-      // TODO why was *pl being used here, when it was always NULL
-      mn = new metricDefinitionNode(NULL, m->info.aggregate);
+      internalMetric *im = internalMetric::allInternalMetrics[im_index];
+      if (!im->legalToInst(canon_focus)) return NULL;
+      metricDefinitionNode *mn = new metricDefinitionNode(NULL, metric_name,
+							  canon_focus, 
+							  flat_name, im->aggregate());
       im->enable(mn);
-      // ostrstream os(errorLine, 1024, ios::out);
-      // os <<  "enabled internal metric " << m->info.name << "\n";
-      // logLine(errorLine);
       return(mn);
     }
-
-    /*
-     * Identify if one or all processes should be inst.
-     *
-     */
-    tid = 0;
-    for (i=0; i < l->count; i++) {
-	r = l->elements[i];
-	/* HACK for process for now */
-	if (r->parent->info.fullName == "/Process") {
-	  proc = (process *) r->handle;
-	}
-	/* HACK for machine for now */
-	if (r->parent->info.fullName == "/Machine") {
-	  tid = (int) r->handle;
-	}
-    }
-
-    vector<process*> instProcessList;
-
-    if (proc) {
-	if (!tid || (proc->thread == tid))
-	    instProcessList += proc;
-    } else if (nodePseudoProcess) {
-	instProcessList += nodePseudoProcess;
-	// TODO - jon nodePseudoProcess->parent is never set.
-	if (nodePseudoProcess->parent)
-	  instProcessList += nodePseudoProcess->parent;
-    } else {
-        int i; process *proc;
-	dictionary_hash_iter<int, process*> pi(processMap);
-	while (pi.next(i, proc)) {
-	  /* HACK for machine for now */
-	  if (!tid || (proc->thread == tid)) {
-	    instProcessList += proc;
-	  }
-	}
-    }
-
-    for (count=0; count < instProcessList.size(); count++) {
-        proc = instProcessList[count];
-	assert(proc);
-	mn = new metricDefinitionNode(proc, m->info.aggregate);
-	complexPred = NULL;
-	predInstance = NULL;
-	/*
-	 * iterate through possible predicates.
-	 *   Predicates must be the outer loop so predicates are
-	 *     created in the correct order.
-	 *
-	 */
-	covered = 0;
-	// TODO this is a kludgey way to iterate
-	for (pred = curr->definition.predicates; pred->more; pred++) {
-	    for (i=0; i < l->count; i++) {
-		r = l->elements[i];
-
-		/* test predicate for this resource */
-		if (r->parent->info.fullName.prefixed_by(pred->namePrefix) ||
-		    pred->namePrefix == r->info.fullName) {
-		  break;
-		}
-	    }
-	    if (i== l->count) continue;
-	    ostrstream os, os1;
-	    covered++;
-	    if (pred->namePrefix == r->info.fullName)
-	      continue;           // null refinement skip it .
-
-	    switch (pred->type) {
-	    case invalidPredicate:
-	      assert(0);  break;
-
-	    case nullPredicate:
-	      break; 
-	      
-	    case simplePredicate:
-	      int i; char *constraint, *temp, *t2;
-
-	      // make constraint the part after the match in namePrefix
-	      //   also skip next /.
-
-	      os << r->info.fullName << ends; os1 << pred->namePrefix << ends;
-	      constraint = temp = os.str(); t2 = os1.str(); 
-	      int slen = strlen(t2);
-	      delete t2;
-	      
-	      // TODO why not just increment in one bunch ?
-	      for (i=0; i <= slen; i++) constraint++;
-	      predInstance = pred->creator(mn, constraint, predInstance);
-	      assert(predInstance);
-	      free(temp);
-	      break;
-
-	    case replaceBase:
-	      if (complexPred) {
-		logLine("Error two complex predicates in a single metric\n");
-		abort();
-	      } else {
-		complexPredResource = r;
-		if (predInstance) {
-		  logLine("Error predicate before complex in list\n");
-		  abort();
-		}
-		complexPred = pred;
-		predInstance = NULL;
-	      }
-	      break;
-	    default:
-	      assert(0);
-	    }
-	  }
-
-	if (covered < l->count) {
-	    logLine("unable to find a predicate\n");
-	    abort();
-	}
-
-	/*
-	 * now the base metric with the built-up trigger.
-	 *
-	 */
-	if (complexPred) {
-	    /* 
-	     * complex preds replace base definitions.
-	     *
-	     */
-	    int i; char *constraint, *temp; ostrstream os, os1;
-	    // make constraint the part after the match in namePrefix
-	    //   also skip next /.
-	    os << complexPredResource->info.fullName << ends;
-	    os1 << complexPred->namePrefix << ends;
-	    temp = constraint = os.str();
-	    char *t2 = os1.str();
-	    int slen = strlen(t2);
-	    // TODO why not increment at once ?
-	    for (i=0; i <= slen; i++) constraint++;
-	    assert(complexPred->type == replaceBase);
-	    // TODO - this is replacing a metric, and better return void, mdc
-	    // It is not returning a counter to evaluate a conditional
-	    assert(!complexPred->creator(mn, constraint, predInstance));
-	} else {
-	  metricDefinition di;
-	  di = curr->definition;
-	    curr->definition.baseFunc(mn, predInstance);
-	}
-	if (mn && mn->nonNull()) {
-	    mn->met = m;
-	    // currMi->proc = proc;
-	    parts.add(mn, mn);
-	}
-
-	else {
-	  delete mn;
-	  mn = NULL;
-	}
-    }
-
-    if (parts.count() > 1) {
-	ret = new metricDefinitionNode(m, parts);
-    } else {
-	ret = *parts;
-    }
-
-    if (ret) {
-	ret->inform = true;
-	ret->resList = l;
-    }
-
-    return(ret);
+  return NULL;
 }
-
-
 
 /*
  * See if we can find the requested metric instance.
  *   Currently this is only used to cache structs built for cost requests 
- *   which are then instantuadted.  This could be used as a general system
+ *   which are then instantiated.  This could be used as a general system
  *   to request find sub-metrics that are already.defines and use them to
  *   reduce cost.  This would require adding the componenets of an aggregate
  *   into the allMIs list since searching tends to be top down, not bottom
@@ -609,67 +400,75 @@ metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m, bool
  *
  */
 
-metricDefinitionNode *createMetricInstance(resourceListRec *l, metric *m, bool enable=true)
+metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& focus,
+					   bool enable, bool& internal)
 {
-    static int MICount=0;
     metricDefinitionNode *mi= NULL;
 
-    // first see if it already.defines.
+    // first see if it is already defined.
     dictionary_hash_iter<unsigned, metricDefinitionNode*> mdi(allMIs);
     unsigned u;
-    while (mdi.next(u, mi)) {
-      if (mi->match(l, m))
-	return mi;
+
+    vector< vector<string> > string_foc;
+    if (!resource::foc_to_strings(string_foc, focus)) return NULL;
+    vector< vector<string> > canon_focus;
+    resource::make_canonical(string_foc, canon_focus);
+    string flat_name(metric_name);
+
+    unsigned cf_size = canon_focus.size();
+    for (u=0; u<cf_size; u++) {
+      unsigned v_size = canon_focus[u].size();
+      for (unsigned v=0; v<v_size; v++) 
+	flat_name += canon_focus[u][v];
     }
 
-    // not found, build it.
-    mi = buildMetricInstRequest(l, m, enable);
-    if (!mi) return mi;
-    mi->id = ++MICount;
-    if (mi)
-      allMIs[mi->id] = mi;
+    // TODO -- a dictionary search here will be much faster
+    while (mdi.next(u, mi))
+      if (mi->getFullName() == flat_name)
+	return mi;
+
+    // KLUDGE ALERT
+    // Catch complex metrics that are currently beyond the mdl's power
+    if (metric_name == "observed_cost") {
+      mi = mdl_observed_cost(canon_focus, metric_name, flat_name);
+    } else if (mdl_can_do(metric_name)) {
+      mi = mdl_do(canon_focus, metric_name, flat_name);
+    } else {
+      bool matched;
+      mi = doInternalMetric(canon_focus, metric_name, flat_name, enable, matched);
+      internal = true;
+    }
     return(mi);
 }
 
-int startCollecting(resourceListRec *l, metric *m)
-{
-    float cost;
-    metricDefinitionNode *mi;
-
+int startCollecting(string& metric_name, vector<u_int>& focus) {
+    // TODO -- why is this here?
     if (CMMDhostless == true) return(-1);
 
-    mi = createMetricInstance(l, m);
+    static int MICount=0;
+    bool internal = false;
+    metricDefinitionNode *mi = createMetricInstance(metric_name, focus,
+						    true, internal);
+    
     if (!mi) return(-1);
+    mi->id_ = ++MICount;
+    allMIs[mi->id_] = mi;
 
-    cost = mi->cost();
-    mi->originalCost = cost;
+    float cost = mi->cost();
+    mi->originalCost_ = cost;
 
     currentPredictedCost += cost;
-    // sprintf(errorLine, "*** metric cost = %f\n", cost);
-    // logLine(errorLine);
-
-    mi->insertInstrumentation();
-
-    // sprintf(errorLine, "enable of %s for RL =", getMetricName(m));
-    // logLine(errorLine);
-    // printResourceList(l);
-    // logLine("\n");
-
-    // collect some stats.
+    if (!internal) mi->insertInstrumentation();
     metResPairsEnabled++;
-    // commented out since these were never accessed
-    // fociUsed.addUnique(l, (void *) l);
-    // metricsUsed.addUnique(m, (void *) m);
-
-    return(mi->id);
+    return(mi->id_);
 }
 
-float guessCost(resourceListRec *l , metric *m)
+float guessCost(string& metric_name, vector<u_int>& focus)
 {
     float cost;
     metricDefinitionNode *mi;
-
-    mi = createMetricInstance(l, m, false);
+    bool internal;
+    mi = createMetricInstance(metric_name, focus, false, internal);
     if (!mi) return(0.0);
 
     cost = mi->cost();
@@ -678,12 +477,9 @@ float guessCost(resourceListRec *l , metric *m)
 
 bool metricDefinitionNode::insertInstrumentation()
 {
-    List<instReqNode*> req;
-    List<dataReqNode*> dp;
     bool needToCont = false;
-    List<metricDefinitionNode*> curr;
 
-    if (inserted) return(true);
+    if (inserted_) return(true);
 
     /* check all proceses are in an ok state */
 
@@ -692,18 +488,18 @@ bool metricDefinitionNode::insertInstrumentation()
 	needToCont = true;
     }
 
-    inserted = true;
-    if (aggregate) {
-	for (curr = components; *curr; curr++) {
-	     (*curr)->insertInstrumentation();
-	}
+    inserted_ = true;
+    if (aggregate_) {
+        unsigned c_size = components.size();
+	for (unsigned u=0; u<c_size; u++)
+	  components[u]->insertInstrumentation();
     } else {
-	for (dp = data; *dp; dp++) {
-	    (*dp)->insertInstrumentation(this);
-	}
-	for (req = requests; *req; req++) {
-	    (*req)->insertInstrumentation();
-	}
+      unsigned size = data.size();
+      for (unsigned u=0; u<size; u++)
+	data[u]->insertInstrumentation(this);
+      size = requests.size();
+      for (u=0; u<size; u++)
+	requests[u]->insertInstrumentation();
     }
     if (needToCont) continueAllProcesses();
     return(true);
@@ -713,77 +509,67 @@ float metricDefinitionNode::cost()
 {
     float ret;
     float nc;
-    List<instReqNode*> req;
-    List<metricDefinitionNode*> curr;
 
     ret = 0.0;
-    if (aggregate) {
-	for (curr = components; *curr; curr++) {
-	     nc = (*curr)->cost();
-	     if (nc > ret) ret = nc;
+    if (aggregate_) {
+        unsigned c_size = components.size();
+	for (unsigned u=0; u<c_size; u++) {
+	  nc = components[u]->cost();
+	  if (nc > ret) ret = nc;
 	}
     } else {
-	for (req = requests; *req; req++) {
-	    ret += (*req)->cost();
-	}
+      unsigned size = requests.size();
+      for (unsigned u=0; u<size; u++)
+	ret += requests[u]->cost();
     }
     return(ret);
 }
 
 void metricDefinitionNode::disable()
 {
-    List<dataReqNode*> dp;
-    List<instReqNode*> req;
-    metricDefinitionNode *mi;
-    List<metricDefinitionNode*> curr;
-
     // check for internal metrics
 
-    const metricDefinitionNode *mdn = this;
-    if (internalMetric::activeInternalMetrics.defines(mdn)) {
-      internalMetric *imp = internalMetric::activeInternalMetrics[mdn];
-      imp->disable();
-      logLine("disabled internal metric\n");
-      return;
-    }
+    unsigned ai_size = internalMetric::allInternalMetrics.size();
+    for (unsigned u=0; u<ai_size; u++)
+      if (internalMetric::allInternalMetrics[u]->node == this) {
+	internalMetric::allInternalMetrics[u]->disable();
+	logLine("disabled internal metric\n");
+	return;
+      }
 
-    if (!inserted) return;
+    if (!inserted_) return;
 
-    inserted = false;
-    if (aggregate) {
+    inserted_ = false;
+    if (aggregate_) {
 	/* disable components of aggregate metrics */
-	for (curr = components; mi = *curr; curr++) {
-	    mi->disable();
-	}
+        unsigned c_size = components.size();
+	for (unsigned u=0; u<c_size; u++)
+	  components[u]->disable();
     } else {
-	for (dp = data; *dp; dp++) {
-	    (*dp)->disable();
-	}
-	for (req = requests; *req; req++) {
-	    (*req)->disable();
-	}
+      unsigned size = data.size();
+      for (unsigned u=0; u<size; u++)
+	data[u]->disable();
+      size = requests.size();
+      for (u=0; u<size; u++)
+	requests[u]->disable();
     }
 }
 
 metricDefinitionNode::~metricDefinitionNode()
 {
-    List<instReqNode*> req;
-    List<dataReqNode*> dp;
-    metricDefinitionNode *mi;
-    List<metricDefinitionNode*> curr;
-
-    if (aggregate) {
+    if (aggregate_) {
 	/* delete components of aggregate metrics */
-	for (curr = components; mi = *curr; curr++) {
-	    delete(mi);
-	}
+        unsigned c_size = components.size();
+	for (unsigned u=0; u<c_size; u++)
+	  delete components[u];
+	components.resize(0);
     } else {
-	for (dp = data; *dp; dp++) {
-	    delete(*dp);
-	}
-	for (req = requests; *req; req++) {
-	    delete(*req);
-	}
+      unsigned size = data.size();
+      for (unsigned u=0; u<size; u++)
+	delete data[u];
+      size = requests.size();
+      for (u=0; u<size; u++)
+	delete requests[u];
     }
 }
 
@@ -794,7 +580,7 @@ void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
     assert(start >= (firstRecordTime/MILLION));
     assert(end >= (firstRecordTime/MILLION));
     assert(end > start);
-    tp->sampleDataCallbackFunc(0, id, start, end, value);
+    tp->sampleDataCallbackFunc(0, id_, start, end, value);
 }
 
 void metricDefinitionNode::updateValue(time64 wallTime, 
@@ -802,7 +588,6 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 {
     timeStamp sampleTime;
     sampleInterval ret;
-    List<metricDefinitionNode*> curr;
     // extern timeStamp elapsedPauseTime;
 
     // sampleTime = wallTime/ 1000000.0 - elapsedPauseTime;
@@ -818,46 +603,43 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 //      logLine(errorLine);
 //    }
 
-    if (met->info.style == EventCounter) { 
-	if (met->reallyIsEventCounter) {
-	    // only use delta from last sample.
-	    if (value < sample.value) {
-		if ((value/sample.value) < 0.99999) {
-		    assert(value + 0.0001 >= sample.value);
-		} else {
-		    // floating point rounding error ignore
-		    sample.value = value;
-		}
-	    }
-//	if (value + 0.0001 < sample.value)
-//           printf ("WARNING:  sample went backwards!!!!!\n");
-	value -= sample.value;
-	sample.value += value;
-      } else {
-	// spoof the event counter, since the sampled function data is getting
-	// corrupted in paradyn
-	// don't have to do anything here, except pass the data forward
-	// we wan't the outside world to think that this is an event counter
+    // TODO -- is this ok?
+    // TODO -- do sampledFuncs work ?
+    if (style_ == EventCounter) { 
+
+      // only use delta from last sample.
+      if (value < sample.value) {
+	if ((value/sample.value) < 0.99999) {
+	  assert(value + 0.0001 >= sample.value);
+	} else {
+	  // floating point rounding error ignore
+	  sample.value = value;
+	}
       }
+
+      //	if (value + 0.0001 < sample.value)
+      //           printf ("WARNING:  sample went backwards!!!!!\n");
+      value -= sample.value;
+      sample.value += value;
     }
 
     ret = sample.newValue(valueList, sampleTime, value);
-//    if (!ret.valid && inform) {
+//    if (!ret.valid && inform_) {
 //       sprintf(errorLine, "Invalid for %s:%d at %f, val=%f, inform=%d\n",
-//	      met->info.name.string_of(), id, sampleTime-(firstRecordTime/MILLION),
+//	      met->info.name.string_of(), id_, sampleTime-(firstRecordTime/MILLION),
 //	      value, inform);
 //      logLine(errorLine);
 //    }
 
-    for (curr = aggregators; *curr; curr++) {
-	(*curr)->updateAggregateComponent(this, sampleTime, value);
-    }
+    unsigned a_size = aggregators.size();
+    for (unsigned a=0; a<a_size; a++) 
+      aggregators[a]->updateAggregateComponent(this, sampleTime, value);
 
     /* 
      * must do this after all updates are done, because it may turn off this
      *  metric instance.
      */
-    if (inform && ret.valid) {
+    if (inform_ && ret.valid) {
 	/* invoke call backs */
 	// assert(ret.start >= 0.0);
 	// I have no idea where negative time comes from but leave it to
@@ -869,7 +651,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 	// TODO mdc
 //	assert(ret.start >= (firstRecordTime/ MILLION));
 //	assert(ret.end >= (firstRecordTime/MILLION));
-	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
+	tp->sampleDataCallbackFunc(0, id_, ret.start, ret.end, ret.value);
     }
 }
 
@@ -884,7 +666,7 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
         assert(ret.end > ret.start);
 	assert(ret.start >= (firstRecordTime/MILLION));
 	assert(ret.end >= (firstRecordTime/MILLION));
-	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
+	tp->sampleDataCallbackFunc(0, id_, ret.start, ret.end, ret.value);
     }
 }
 
@@ -892,7 +674,6 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
 {
     int i;
     double unInstTime;
-    process *p;
 
     if (proc->theCost.wallTimeLastTrampSample) {
 	proc->pauseTime = s->pauseTime;
@@ -930,11 +711,11 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     proc->theCost.lastObservedCost = s->observedCost;
 
     currentHybridValue = 0.0;
-    dictionary_hash_iter<int, process*> pi(processMap);
 
-    while (pi.next(i, p)) {
-      if (p->theCost.hybrid > currentHybridValue) {
-	currentHybridValue = p->theCost.hybrid;
+    unsigned size = processVec.size();
+    for (unsigned u=0; u<size; u++) {
+      if (processVec[u]->theCost.hybrid > currentHybridValue) {
+	currentHybridValue = processVec[u]->theCost.hybrid;
       }
     }
     hybridPredictedCost->value = currentHybridValue;
@@ -943,10 +724,9 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     // update total predicted cost.
     //
     totalPredictedCost->value = 0.0;
-    pi.reset();
-    while (pi.next(i, p)) {
-      if (p->theCost.totalPredictedCost > totalPredictedCost->value) {
-	totalPredictedCost->value = p->theCost.totalPredictedCost;
+    for (u=0; u<size; u++) {
+      if (processVec[u]->theCost.totalPredictedCost > totalPredictedCost->value) {
+	totalPredictedCost->value = processVec[u]->theCost.totalPredictedCost;
       }
     }
 
@@ -972,60 +752,6 @@ void processSample(traceHeader *h, traceSample *s)
     //    logLine(errorLine);
     mi->updateValue(h->wall, s->value);
     samplesDelivered++;
-}
-
-// TODO data structures
-metricListRec *getMetricList()
-{
-    int i;
-
-    if (!globalMetricList) {
-	 // merge internal and external metrics into one list.
-	 globalMetricList =  new metricListRec;
-	 globalMetricList->count = 
-	     metricCount + internalMetric::allInternalMetrics.size();
-	 globalMetricList->elements = new metric[globalMetricList->count];
-	 for (i=0; i < metricCount; i++) {
-	     globalMetricList->elements[i] = DYNINSTallMetrics[i];
-	 }
-	 dictionary_hash_iter<string, internalMetric*> imi(internalMetric::allInternalMetrics);
-	 string pds; internalMetric *im;
-	 i = metricCount;
-	 while (imi.next(pds, im)) {
-	   globalMetricList->elements[i] = im->metRec;
-	   i++;
-	 }
-    }
-    return(globalMetricList);
-}
-
-metric *findMetric(const string name)
-{
-  int i;
-  metric *met;
-  metricListRec *metrics;
-
-  metrics = getMetricList();
-  for (i=0, met = metrics->elements; i < metrics->count; i++, met++) {
-    if (name == met->info.name)
-      return(met);
-  }
-  return(NULL);
-}
-
-string getMetricName(metric *m)
-{
-    return(m->info.name);
-}
-
-dynMetricInfo *getMetricInfo(metric *m)
-{
-    return(&m->info);
-}
-
-metric *getMetric(metricDefinitionNode *mi)
-{
-    return(mi->met);
 }
 
 /*
@@ -1209,18 +935,68 @@ dataReqNode::~dataReqNode()
     instance = NULL;
 }
 
-// TODO reallyIsEventCounter
-internalMetric::internalMetric(const string n,
-			       int style,
-			       int a, 
-		               const string units, 
-  			       sampleValueFunc f,
-			       resourcePredicate *r,
-			       bool really)
-: metRec(n, style, a, units, NULL, r), value(0.0), cumulativeValue(0.0), func(f),
-  node(NULL), reallyIsEventCounter(really), name(n)
-{
-    allInternalMetrics[name] = this;
+bool internalMetric::legalToInst(vector< vector<string> >& focus) {
+  switch (focus[resource::machine].size()) {
+  case 1: break;
+  case 2:
+    switch(pred.machine) {
+    case pred_invalid: return false;
+    case pred_null: break;
+    default: return false;
+    }
+  default: return false;
+  }
+  switch (focus[resource::procedure].size()) {
+  case 1: break;
+  case 2:
+  case 3:
+    switch(pred.procedure) {
+    case pred_invalid: return false;
+    case pred_null: break;
+    default: return false;
+    }
+  default: return false;
+  }
+  switch (focus[resource::process].size()) {
+  case 1: break;
+  case 2:
+    switch(pred.process) {
+    case pred_invalid: return false;
+    case pred_null: break;
+    default: return false;
+    }
+  default: return false;
+  }
+  switch (focus[resource::sync_object].size()) {
+  case 1: break;
+  case 2:
+  case 3:
+    switch(pred.sync) {
+    case pred_invalid: return false;
+    case pred_null: break;
+    default: return false;
+    }
+  default: return false;
+  }
+  return true;
+}
+
+internalMetric *internalMetric::newInternalMetric(const string n,
+						  metricStyle style,
+						  int a, 
+						  const string units, 
+						  sampleValueFunc f,
+						  im_pred_struct& im_pred) {
+  internalMetric *im = new internalMetric(n, style, a, units, f, im_pred);
+  assert(im);
+  unsigned size = allInternalMetrics.size();
+  for (unsigned u=0; u<size; u++)
+    if (allInternalMetrics[u]->name() == n) {
+      allInternalMetrics[u] = im;
+      return im;
+    }
+  allInternalMetrics += im;
+  return im;
 }
 
 timeStamp getCurrentTime(bool firstRecordRelative)
@@ -1261,24 +1037,23 @@ void reportInternalMetrics()
     start = end;
     end = now;
 
-    metricDefinitionNode *mdn;
-    internalMetric *imp;
-    dictionary_hash_iter<metricDefinitionNode*, internalMetric*>
-	imi(internalMetric::activeInternalMetrics);
-    while (imi.next(mdn, imp)) { 
-	if (imp->enabled()) {
-	    // KLUDGE - sampledFunc doesn't work - mdc
-	    if (imp->getName() == "active_processes") {
-		value = (end - start) * processMap.size();
-	    } else if (imp->metRec.info.style == EventCounter) {
-		value = imp->getValue();
-		if (imp->reallyIsEventCounter) {
-		    assert(value + 0.0001 >= imp->cumulativeValue);
-		    value -= imp->cumulativeValue;
-		    imp->cumulativeValue += value;
-		}
-	    }
-	    imp->node->forwardSimpleValue(start, end, value);
+    // TODO -- clean me up, please
+    unsigned ai_size = internalMetric::allInternalMetrics.size();
+    for (unsigned u=0; u<ai_size; u++)
+      if (internalMetric::allInternalMetrics[u]->enabled()) {
+	internalMetric *imp = internalMetric::allInternalMetrics[u];
+
+	// KLUDGE - sampledFunc doesn't work - mdc
+	// TODO -- what about sampledFuncs ?
+
+	if (imp->name() == "active_processes") {
+	  value = (end - start) * processVec.size();
+	} else if (imp->style() == EventCounter) {
+	  value = imp->getValue();
+	  assert(value + 0.0001 >= imp->cumulativeValue);
+	  value -= imp->cumulativeValue;
+	  imp->cumulativeValue += value;
 	}
-    }
+	imp->node->forwardSimpleValue(start, end, value);
+      }
 }

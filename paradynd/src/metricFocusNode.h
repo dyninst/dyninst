@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.18  1995/02/16 08:53:44  markc
+ * Revision 1.19  1995/05/18 10:38:57  markc
+ * Removed class metric
+ *
+ * Revision 1.18  1995/02/16  08:53:44  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.17  1995/02/16  08:33:51  markc
@@ -110,12 +113,16 @@
 #ifndef METRIC_H
 #define METRIC_H
 
-#include "comm.h"
+#include "util/h/String.h"
+#include "util/h/Vector.h"
+#include "util/h/Dictionary.h"
 #include "util/h/aggregateSample.h"
 #include "process.h"
 #include "dyninstP.h"
 #include <strstream.h>
 #include "inst.h"
+#include "paradynd/src/process.h"
+#include "dyninstRPC.xdr.h"
 
 /*
  * internal representation of an inst. request.
@@ -127,239 +134,146 @@ class AstNode;
 class metricDefinitionNode;
 class metric;
 
-class metricListRec {
-    public:
-	metric *elements;	/* actual data in list */
-	int count;		/* number of items in the list */
-	int maxItems;	/* limit of current array */
-};
-
 class dataReqNode {
-    public:
-	dataReqNode(dataObjectType, process*, int, bool iReport, timerType);
-	~dataReqNode();
-	float getMetricValue();
-	float cost();
-	void insertGlobal();    // allow a global "variable" to be inserted
-	void insertInstrumentation(metricDefinitionNode *mi);
-	void disable();
+public:
+  dataReqNode(dataObjectType, process*, int, bool iReport, timerType);
+  ~dataReqNode();
+  float getMetricValue();
+  float cost();
+  void insertGlobal();    // allow a global "variable" to be inserted
+  void insertInstrumentation(metricDefinitionNode *mi);
+  void disable();
 
-	// return a pointer in the inferior address space of this data object.
-	unsigned getInferiorPtr();
-	intCounterHandle *returnCounterInstance() { 
-	    return((intCounterHandle *) instance); 
-	}
-	int getSampleId()	{ return(id.id); }
-	dataObjectType getType() { return(type); }
+  // return a pointer in the inferior address space of this data object.
+  unsigned getInferiorPtr();
+  intCounterHandle *returnCounterInstance() { return((intCounterHandle *) instance); }
+  int getSampleId()	{ return(id.id); }
+  dataObjectType getType() { return(type); }
 
-    private:
-	timerHandle *createTimerInstance();
-	intCounterHandle *createCounterInstance();
+private:
+  timerHandle *createTimerInstance();
+  intCounterHandle *createCounterInstance();
 
-	dataObjectType	type;
-	process		*proc;
-	int		initialValue;
-	bool		report;
-	timerType	tType;
-	sampleId	id;	// unique id for this sample
+  dataObjectType	type;
+  process		*proc;
+  int		initialValue;
+  bool		report;
+  timerType	tType;
+  sampleId	id;	// unique id for this sample
 
-	void		*instance;
+  void		*instance;
 };
 
 class instReqNode {
-    public:
-	instReqNode(process*, instPoint*, AstNode*, callWhen, callOrder order);
-	~instReqNode();
+public:
+  instReqNode(process*, instPoint*, AstNode*, callWhen, callOrder order);
+  ~instReqNode();
 
-	bool insertInstrumentation();
-	void disable();
-	float cost();
+  bool insertInstrumentation();
+  void disable();
+  float cost();
 
-    private:
-	process		*proc;
-	instPoint	*point;
-	AstNode		*ast;
-	callWhen	when;
-	callOrder	order;
-	instInstance	*instance;
+private:
+  process		*proc;
+  instPoint	*point;
+  AstNode		*ast;
+  callWhen	when;
+  callOrder	order;
+  instInstance	*instance;
 };
 
-
-typedef AstNode *(*createPredicateFunc)(metricDefinitionNode *mn, 
-					char *resource, AstNode *trigger);
-
-typedef void (*createMetricFunc)(metricDefinitionNode*, AstNode *trigger);
-
-typedef struct {
-    createPredicateFunc	creator;
-} predicateDefinition;
-
-typedef enum { invalidPredicate, 
-	       nullPredicate, 
-	       simplePredicate, 
-	       replaceBase } predicateType;
-
-class resourcePredicate {
- public:
-    resourcePredicate() : type(invalidPredicate), creator(NULL), more(true) { }
-    resourcePredicate(const string np,
-		      const predicateType pt,
-		      createPredicateFunc creat,
-		      const bool mr=true) 
-      : namePrefix(np), type(pt), creator(creat), more(mr) { }
-
-    void set(const string nm,
-	     const predicateType pt,
-	     createPredicateFunc c,
-	     const bool mr=true)
-      {namePrefix = nm; type = pt; creator = c; more = mr;}
-
-    string namePrefix;		/* leading part of resource path */
-    predicateType	type;		
-    createPredicateFunc creator;	/* create a metric */
-    bool more;
-}; 
-
-// TODO - this is a hack
-extern resourcePredicate *getDefaultResPred();
-
-class metricDefinition {
- public:
-    metricDefinition(createMetricFunc c, resourcePredicate *r) {
-      baseFunc = c; predicates = r; }
-
-    metricDefinition() { baseFunc = NULL; predicates=NULL; }
-
-    void set(createMetricFunc c, resourcePredicate *r) {
-      baseFunc = c; predicates = r;}
-
-    createMetricFunc baseFunc;		/* base definition */
-    resourcePredicate *predicates;	/* how to handle where refinements */
-};
-
-class dynMetricInfo {
- public:
-  dynMetricInfo(const string &mName, const int s, const int ag,	const string &uName)
-    : name(mName), style(s), aggregate(ag), units(uName) { }
-
-  dynMetricInfo() : style(0), aggregate(0) { }
-
-  void set(const string &mName, const int s, const int ag, const string &uName) {
-    name = mName; aggregate = ag; style = s; units = uName; }
-
-  T_dyninstRPC::metricInfo getMetInfo() {
-    T_dyninstRPC::metricInfo ret;
-    ret.name = name;
-    ret.units = units;
-    ret.style = style;
-    ret.aggregate = aggregate;
-    return ret;
-  }
-
-  string name;
-  int style;
-  int aggregate;
-  string units;
-};
-
-// TODO set more
-class metric {
- public:
-    metric(const string n, const int s, const int a, const string u,
-	   createMetricFunc f, resourcePredicate *r)
-      : info(n, s, a, u), definition(f, r) { }
-
-    metric() : more(true) { }
-
-    void set(const string n, const int s, const int a, const string u,
-	     createMetricFunc f, resourcePredicate *r,
-	     const bool mr=true, const bool really=true)
-      { info.set(n, s, a, u); definition.set(f, r); more = mr; reallyIsEventCounter=really;}
-
-    T_dyninstRPC::metricInfo getMetInfo() { return info.getMetInfo(); }
-
-    // TODO kludge for iteration
-    bool more;
-    dynMetricInfo info;
-    metricDefinition definition;
-    bool reallyIsEventCounter;
-};
 
 class metricDefinitionNode {
-    public:
-        // styles are enumerated in util/h/aggregation.h
-	metricDefinitionNode(process *p, int agg_style = aggSum);
-	metricDefinitionNode(metric *m, List<metricDefinitionNode*> parts); 
-	~metricDefinitionNode();
-	void disable();
-	void updateValue(time64, sampleValue);
-	void forwardSimpleValue(timeStamp, timeStamp, sampleValue);
-        string getMetName() { return (met->info.name);}
-	bool match(resourceListRec *l, metric *m) {
-	    return(resList == l && met == m);
-	}
-	bool nonNull() {
-	    return(!requests.empty() 
-		   || !data.empty());
-	}
-	bool insertInstrumentation();
-	float cost();
-	// used by controller.
-	float getMetricValue();
-	dataReqNode *addIntCounter(int inititalValue, bool report) {
-	    dataReqNode *tp;
+friend int startCollecting(string&, vector<u_int>&);
 
-	    tp = new dataReqNode(INTCOUNTER, proc, inititalValue,
-		report,processTime);
-	    assert(tp);
-	    data.add(tp);
-	    return(tp);
-	};
-	dataReqNode *addTimer(timerType type) {
-	    dataReqNode *tp;
-	    tp = new dataReqNode(TIMER,proc,0,true,type);
-	    assert(tp);
-	    data.add(tp);
-	    return(tp);
-	};
-	void addInst(instPoint *point,AstNode *ast, callWhen when, callOrder o){
- 	    instReqNode *temp;
-	    if (!point || !ast) return;
-            temp = new instReqNode(proc, point, ast, when, o);
-	    assert(temp);
-	    requests.add(temp);
-        };
+public:
+  // styles are enumerated in util/h/aggregation.h
+  metricDefinitionNode(process *p, string& metric_name, vector< vector<string> >& foc,
+		       string& cat_name, int agg_style = aggSum);
+  metricDefinitionNode(string& metric_name, vector< vector<string> >& foc,
+		       string& cat_name, vector<metricDefinitionNode*>& parts); 
+  ~metricDefinitionNode();
+  void disable();
+  void updateValue(time64, sampleValue);
+  void forwardSimpleValue(timeStamp, timeStamp, sampleValue);
 
-	int id;				// unique id for this one 
-	metric *met;			// what type of metric
-	resourceListRec *resList;	// what resource list is this for.
-	float originalCost;
+  string getMetName() const { return met_; }
+  string getFullName() const { return flat_name_; }
+  process *proc() const { return proc_; }
 
-	// is this a final value or a component of a larger metric.
-	bool inform;
+  bool nonNull() { return (requests.size() || data.size()); }
+  bool insertInstrumentation();
+  float cost();
+  float originalCost() const { return originalCost_; }
 
-	process			*proc;
-    private:
-	void updateAggregateComponent(metricDefinitionNode *,
-				      timeStamp time, 
-				      sampleValue value);
+  // used by controller.
+  float getMetricValue();
 
-	bool			aggregate;
-	bool			inserted;
+  inline dataReqNode *addIntCounter(int inititalValue, bool report);
+  inline dataReqNode *addTimer(timerType type);
+  inline void addInst(instPoint *point,AstNode *ast, callWhen when, callOrder o);
+  void set_inform(bool new_val) { inform_ = new_val; }
+  
+private:
 
-	/* for aggregate metrics */
-	List<metricDefinitionNode*>   components;	
+  void updateAggregateComponent(metricDefinitionNode *,
+				timeStamp time, 
+				sampleValue value);
 
-	/* for non-aggregate metrics */
-	List<dataReqNode*>	data;
-	List<instReqNode*> 	requests;
+  bool			aggregate_;
+  bool			inserted_;
+  string met_;			// what type of metric
+  vector< vector<string> > focus_;
+  string flat_name_;
 
-	// which metricDefinitionNode depend on this value.
-	List<metricDefinitionNode*>   aggregators;	
+  /* for aggregate metrics */
+  vector<metricDefinitionNode*>   components;	
 
-	List<sampleInfo*>	valueList;	// actual data for comp.
-	sampleInfo sample;
+  /* for non-aggregate metrics */
+  vector<dataReqNode*>	data;
+  vector<instReqNode*> 	requests;
+
+  // which metricDefinitionNode depend on this value.
+  vector<metricDefinitionNode*>   aggregators;	
+
+  List<sampleInfo*>	valueList;	// actual data for comp.
+  sampleInfo sample;
+  int id_;				// unique id for this one 
+  float originalCost_;
+
+  // is this a final value or a component of a larger metric.
+  bool inform_;
+  process *proc_;
+
+  string metric_name_;
+  metricStyle style_; 
 };
+
+dataReqNode *metricDefinitionNode::addIntCounter(int inititalValue, bool report) {
+  dataReqNode *tp;
+  tp = new dataReqNode(INTCOUNTER, proc_, inititalValue, report, processTime);
+  assert(tp);
+  data += tp;
+  return(tp);
+};
+
+dataReqNode *metricDefinitionNode::addTimer(timerType type) {
+  dataReqNode *tp;
+  tp = new dataReqNode(TIMER, proc_, 0, true, type);
+  assert(tp);
+  data += tp;
+  return(tp);
+};
+
+void metricDefinitionNode::addInst(instPoint *point, AstNode *ast, callWhen when,
+				   callOrder o) {
+  instReqNode *temp;
+  if (!point || !ast) return;
+  temp = new instReqNode(proc_, point, ast, when, o);
+  assert(temp);
+  requests += temp;
+};
+
 extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
 
 //
@@ -374,5 +288,20 @@ extern double currentHybridValue;
 extern double currentPredictedCost;
 extern void processCost(process *proc, traceHeader *h, costUpdate *s);
 extern void reportInternalMetrics();
+
+/*
+ * Routines to control data collection.
+ *
+ * focus		- a list of resources
+ * metricName		- what metric to collect data for
+ */
+int startCollecting(string& metricName, vector<u_int>& focus); 
+
+/*
+ * Return the expected cost of collecting performance data for a single
+ *    metric at a given focus.  The value returned is the fraction of
+ *    perturbation expected (i.e. 0.10 == 10% slow down expected).
+ */
+float guessCost(string& metric_name, vector<u_int>& focus);
 
 #endif
