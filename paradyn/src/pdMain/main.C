@@ -1,7 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.25  1995/08/20 03:42:02  newhall
-/* changed arguments to DM_sequential_init
+/* Revision 1.26  1995/08/23 21:03:21  mjrg
+/* moved call to readStartUpFile() to after commands in configuration
+/* file are executed.
 /*
+ * Revision 1.25  1995/08/20  03:42:02  newhall
+ * changed arguments to DM_sequential_init
+ *
  * Revision 1.24  1995/08/18  22:00:16  mjrg
  * Added calls to metDoProcess, metDoDaemon, metDoTunable.
  *
@@ -410,17 +414,17 @@ main (int argc, char **argv)
   msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   vmMgr = new VMUser (VMtid);
 
+  // execute the commands in the configuration files
+  metDoTunable();
+  metDoDaemon();
+  metDoProcess();
+
   // keep this here to prevent UI from starting up till everything's 
   // been initialized properly!!
   //  -OR-
   // move this elsewhere to create a race condition
   if (sname)
     uiMgr->readStartupFile (sname);
-
-  // execute the commands in the configuration files
-  metDoTunable();
-  metDoDaemon();
-  metDoProcess();
 
 // wait for UIM thread to exit 
 
