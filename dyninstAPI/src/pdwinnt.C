@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.133 2005/02/25 07:04:46 jaw Exp $
+// $Id: pdwinnt.C,v 1.134 2005/02/28 01:47:23 jaw Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1037,7 +1037,9 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
 #endif    
    {
       DWORD err = GetLastError();
-      if (WAIT_TIMEOUT == err)
+      if ((WAIT_TIMEOUT == err) || (ERROR_SEM_TIMEOUT == err))
+        //  apparently INFINITE milliseconds returns with SEM_TIMEOUT
+        //  This may be a problem, but it doesn't seem to break anything.
         timeout = 0;
       else {
         fprintf(stderr, "%s[%d]:  Unexpected error from WaitForDebugEvent: %d\n",

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.159 2005/02/25 07:04:46 jaw Exp $
+// $Id: linux.C,v 1.160 2005/02/28 01:47:23 jaw Exp $
 
 #include <fstream>
 
@@ -256,6 +256,7 @@ int decodeRTSignal(process *proc,
 
    if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
                             &status, true)) {
+       bperr("%s[%d]:  readDataSpace, status = %d\n", __FILE__, __LINE__,  status);
       return 0;
    }
 
@@ -380,7 +381,14 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
 
       switch(what) {
         case SIGSTOP:
-           decodeRTSignal(pertinentProc, why, what, info);
+           errno = 0;
+           if (!decodeRTSignal(pertinentProc, why, what, info)) {
+              if (ESRCH == errno) {
+                bperr("%s[%d]:  decodeRTSignal, errno = %d: %s\n", __FILE__, __LINE__,errno, strerror(errno));
+                //why = procExitedViaSignal;
+                why = procExitedNormally;
+              }
+           }
            break;
         case SIGTRAP:
         {
@@ -502,9 +510,21 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
          // points (seems to occur frequently in test1).
          // *** important for performance ***
 
-         struct timespec slp, rem;
          int wait_time = timeout;
          if (timeout == -1) wait_time = 1; /*ms*/
+
+         struct timeval slp;
+         if (wait_time > 1000) {
+           slp.tv_sec = wait_time / 1000;
+           slp.tv_usec = (wait_time % 1000) /*ms*/ * 1000 /*us*/ ;
+         }
+         else {
+           slp.tv_sec = 0;
+           slp.tv_usec = wait_time /*ms*/ * 1000 /*us*/ ;
+         }
+         select(0,NULL,NULL,NULL, &slp);
+#ifdef NOTDEF
+         struct timespec slp, rem;
          if (wait_time > 1000) {
            slp.tv_sec = wait_time / 1000;
            slp.tv_nsec = (wait_time % 1000) /*ms*/ * 1000 /*us*/ * 1000 /*ns*/;
@@ -513,11 +533,12 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
            slp.tv_sec = 0;
            slp.tv_nsec = wait_time /*ms*/ * 1000 /*us*/ * 1000 /*ns*/;
          }
+          //fprintf(stderr, "%s[%d]:  before nanosleep\n", __FILE__, __LINE__);
          if (-1 == nanosleep(&slp, &rem)) {
            fprintf(stderr, "%s[%d]:  nanosleep: %d:%s\n", __FILE__, __LINE__,
                   errno, strerror(errno));
          }
-
+#endif
          //  can check remaining time to see if we have _really_ timed out
          //  (but do we really care?)
 
@@ -670,6 +691,8 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
   pdvector<int> other_lwps;
   unsigned i;
 
+   fprintf(stderr, "%s[%d]:  doWiatUntilStopped, pid = %d, block = %s\n",
+           __FILE__, __LINE__, pid, shouldBlock ? "true" : "false");
   pcout << "doWaitUntilStopped called on " << pid 
         << " (shouldBlock = " << shouldBlock << ")\n"; 
 

@@ -2201,11 +2201,13 @@ void readyTest21or22(BPatch_thread *appThread)
 	     fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameA);
 	     exit(1);
 	}
+        fprintf(stderr, "%s[%d]:  loaded libA\n", __FILE__, __LINE__);
 	if (! appThread->loadLibrary(libB)) {
 	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	     fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameB);
 	     exit(1);
 	}
+        fprintf(stderr, "%s[%d]:  loaded libB\n", __FILE__, __LINE__);
     }
 #endif
 }
@@ -2249,6 +2251,12 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     if (! modA || ! modB) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	 fprintf(stderr, "  Mutator couldn't find shlib in mutatee\n");
+         for (unsigned int j = 0; j < mods->size(); ++j) {
+            char buf2[1024];
+            BPatch_module *m = (*mods)[j];
+            m->getName(buf2, 1024);
+            fprintf(stderr, "%s[%d]:  module: %s\n", __FILE__, __LINE__, buf2);
+         }
 	 fflush(stdout);
 	 exit(1);
     }

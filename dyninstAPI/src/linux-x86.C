@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.61 2005/02/24 10:16:33 rchen Exp $
+// $Id: linux-x86.C,v 1.62 2005/02/28 01:47:22 jaw Exp $
 
 #include <fstream>
 
@@ -396,8 +396,10 @@ bool process::insertTrapAtEntryPointOfMain()
     Address addr = f_main->get_address();
     
     // save original instruction first
-    if (!readDataSpace((void *)addr, 2, savedCodeBuffer, true))
+    if (!readDataSpace((void *)addr, 2, savedCodeBuffer, true)) {
+        fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
         return false;
+    }
     
     // and now, insert trap
     instruction insnTrap;
@@ -1165,7 +1167,8 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         trappedSyscall = new syscallTrap;
         trappedSyscall->refcount = 1;
         trappedSyscall->syscall_id = syscall;
-        readDataSpace( (void*)syscall, 2, trappedSyscall->saved_insn, true);
+        if (!readDataSpace( (void*)syscall, 2, trappedSyscall->saved_insn, true))
+          fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 
         instruction insnTrap;
         generateBreakPoint(insnTrap);
@@ -1367,7 +1370,8 @@ bool process::loadDYNINSTlib() {
   if (getSymbolInfo(libc_version_symname, libc_vers)) {
       char libc_version[ sizeof(int)*libc_vers.size() + 1 ];
       libc_version[ sizeof(int)*libc_vers.size() ] = '\0';
-      readDataSpace( (void *)libc_vers.addr(), libc_vers.size(), libc_version, true );
+      if (!readDataSpace( (void *)libc_vers.addr(), libc_vers.size(), libc_version, true ))
+         fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
       if (!strncmp(libc_version, "2.0", 3))
 	      libc_21 = false;
   }
@@ -1378,7 +1382,8 @@ bool process::loadDYNINSTlib() {
 
   // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
 
-  readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
+  if (!readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true))
+         fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
   pdvector<AstNode*> dlopenAstArgs( 2 );

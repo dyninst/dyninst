@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.192 2005/02/24 10:16:05 rchen Exp $
+ * $Id: inst-x86.C,v 1.193 2005/02/28 01:47:22 jaw Exp $
  */
 #include <iomanip>
 
@@ -5099,7 +5099,8 @@ bool int_function::loadCode(const image* /* owner */, process *proc,
    originalCode = new unsigned char[get_size()];
 
    // copy function to be relocated from application into instructions
-   proc->readDataSpace((caddr_t)firstAddress, get_size(), originalCode, true);
+   if (!proc->readDataSpace((caddr_t)firstAddress, get_size(), originalCode, true))
+                fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 
    // first address of function
    unsigned char *p = originalCode;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.88 2005/02/25 07:04:46 jaw Exp $
+// $Id: BPatch.C,v 1.89 2005/02/28 01:47:22 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1003,7 +1003,7 @@ bool BPatch::getThreadEventOnly(bool block)
      int timeout;
      do {
        __LOCK;
-       timeout = block ? 2 : 0/*ms*/;
+       timeout = block ? 1 : 0/*ms*/;
        result = getSH()->checkForProcessEvents(&events, -1, timeout);
        //  checkForProcessEvents sets timeout to zero if poll times out.
        __UNLOCK;

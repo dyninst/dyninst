@@ -385,27 +385,24 @@ inline THREAD_RETURN  asyncHandlerWrapper(void *h)
 
 bool BPatch_asyncEventHandler::connectToProcess(BPatch_thread *p)
 {
-  //fprintf(stderr, "%s[%d]:  enter ConnectToProcess\n", __FILE__, __LINE__);
+  //fprintf(stderr, "%s[%d]:  enter ConnectToProcess %d\n", __FILE__, __LINE__,p->getPid());
   //  All we do here is add the process to the list of connected processes
   //  with a fd equal to -1, indicating the not-yet-connected state.
   //
   //  Then remotely execute code in the mutatee to initiate the connection.
   
   //  make sure that this process is not already known
-  for (unsigned int i = 0; i < process_fds.size(); ++i) {
-    if (p == process_fds[i].process) {
-      bperr("%s[%d]:  duplicate request to connect to process %d\n",
-            __FILE__, __LINE__, p->getPid());
-      return false;
-    }
-    if (!process_fds[i].process) {
-      fprintf(stderr, "%s[%d]:  Warning, invalid process entry\n", __FILE__, __LINE__);
-      continue;
-    }
-    if (p->getPid() == process_fds[i].process->getPid()) {
-      bperr("%s[%d]:  duplicate request to connect to process %d\n",
-            __FILE__, __LINE__, p->getPid());
-      return false;
+  for (int i = (int) process_fds.size() -1 ; i >= 0; i--) {
+    if ((p == process_fds[i].process) || (p->getPid() == process_fds[i].process->getPid())){
+      //  If it is, delete the old record to prepare for the new one.
+      //  This case can be encountered in the case of multiple process management
+      //  when processes are created and terminated rapidly.
+      //fprintf(stderr,"%s[%d]:  duplicate request to connect to process %d\n",
+      //      __FILE__, __LINE__, p->getPid());
+      ThreadLibrary *tlib = process_fds[i].threadlib;
+      if (tlib) delete tlib;
+      process_fds.erase(i,i);
+      //return false;
     }
   } 
 
@@ -501,7 +498,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_thread *p)
   }
 #endif
   
-  //fprintf(stderr, "%s[%d]:  leaveConnectToProcess\n", __FILE__, __LINE__);
+  //fprintf(stderr, "%s[%d]:  leaveConnectToProcess %d\n", __FILE__, __LINE__,p->getPid());
   return true;
 }
 
@@ -514,18 +511,19 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_thread *p)
   ThreadLibrary *threadlib = NULL;
   for (unsigned int i = 0; i < process_fds.size(); ++i) {
     if (process_fds[i].process == p) {
+      //fprintf(stderr, "%s[%d]:  removing process %d\n", __FILE__, __LINE__, p->getPid());
       targetfd  = process_fds[i].fd;
       threadlib = process_fds[i].threadlib;
-      if (threadlib) delete threadlib;
       process_fds.erase(i,i);
       break;
     }
   } 
 
   if (targetfd == -2) {
-    bperr("%s[%d]:  detachFromProcess(%d) could not find process record\n",
-          __FILE__, __LINE__, p->getPid());
-    return false;
+    //  if we have no record of this process. must already be detached
+    //bperr("%s[%d]:  detachFromProcess(%d) could not find process record\n",
+    //      __FILE__, __LINE__, p->getPid());
+    return true;
   }
 
   //  remove thread instrumentation, if exists
@@ -553,14 +551,16 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_thread *p)
   //  get the mutatee to close the comms file desc.
 
   if (!mutateeDetach(p)) {
-    bperr("%s[%d]:  detachFromProcess(%d) could not clean up mutatee\n",
-          __FILE__, __LINE__, p->getPid());
+    //bperr("%s[%d]:  detachFromProcess(%d) could not clean up mutatee\n",
+    //      __FILE__, __LINE__, p->getPid());
   }
+
+  if (threadlib) delete threadlib;
 
   //  close our own file desc for this process.
   close(targetfd);
 
-  return false; // true
+  return true; // true
 }
 
 void *BPatch_asyncEventHandler::registerDynamicCallCallback(BPatchDynamicCallSiteCallback cb,
@@ -1005,7 +1005,7 @@ bool BPatch_asyncEventHandler::initialize()
   // set socket to listen for connections  
   // (we will explicitly accept in the main event loop)
 
-  if (PDSOCKET_ERROR == listen(sock, 1)) {  //  should not need a backlog here
+  if (PDSOCKET_ERROR == listen(sock, 32)) {  //  this is the number of simultaneous connects we can handle
     bperr("%s[%d]:  listen to %s failed\n", __FILE__, __LINE__, path);
     return false;
   }
@@ -1430,13 +1430,14 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
        //  this connection.
        BPatch_asyncEventRecord pid_ev;
        if (! readEvent(new_fd, pid_ev)) {
-         fprintf(stderr,"%s[%d]:  readEvent failed due to process termination\n", __FILE__, __LINE__);
-         bperr("%s[%d]:  readEvent failed\n", __FILE__, __LINE__);
+         //fprintf(stderr,"%s[%d]:  readEvent failed due to process termination\n", __FILE__, __LINE__);
+         //bperr("%s[%d]:  readEvent failed\n", __FILE__, __LINE__);
          return false;
        }
        else {
          assert(pid_ev.type == BPatch_newConnectionEvent);
          ev = pid_ev;
+         //fprintf(stderr, "%s[%d]:  new connection to %d\n", __FILE__, __LINE__, ev.pid);
          ev.event_fd = new_fd;
        }
      }
@@ -1536,8 +1537,14 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
 
    if (!appThread) {
      if (ev.type == BPatch_nullEvent) return true; 
-     fprintf(stderr, "%s[%d]:  ERROR:  Got event for pid %d, but no proc\n",
-           __FILE__, __LINE__, ev.pid);
+     //fprintf(stderr, "%s[%d]:  ERROR:  Got event %s for pid %d, but no proc, out of %d procs\n",
+      //     __FILE__, __LINE__, asyncEventType2Str(ev.type), ev.pid,process_fds.size());
+     //for (unsigned int k = 0; k < process_fds.size(); ++k) {
+     //  fprintf(stderr, "\thave process %d\n", process_fds[k].process->getPid());
+    // }
+     //  This can happen if the process has died and has already been cleaned out by
+     //  cleanUpTerminatedProcs -- might want to keep a list of terminated procs (removed)
+     //  to do more comprehensive error checking here.
      return false;
    }
 
@@ -1864,6 +1871,7 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
   //  iterate from end of vector in case we need to use erase()
   for (int i = (int) process_fds.size() -1; i >= 0; i--) {
     if (process_fds[i].process->isTerminated()) {
+    //  fprintf(stderr, "%s[%d]:  Process %d has terminated, cleaning up\n", __FILE__, __LINE__, process_fds[i].process->getPid());
       delete (process_fds[i].threadlib);
       pdvector<thread_event_cb_record> *cbs = getCBsForType(BPatch_threadCreateEvent);
       for (j = 0; j < cbs->size(); ++j) {

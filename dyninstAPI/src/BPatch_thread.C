@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.123 2005/02/25 07:04:46 jaw Exp $
+// $Id: BPatch_thread.C,v 1.124 2005/02/28 01:47:22 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -334,13 +334,13 @@ void BPatch_thread::BPatch_thread_dtor()
 {
 #if !defined (os_osf) && !defined (os_windows) && !defined (os_irix) && !defined (arch_ia64)
     if (  (!detached) )
-      if ( proc && !proc->hasExited()) {
-        fprintf(stderr, "%s[%d]:  before detachFromProcess\n", __FILE__, __LINE__);
+     // if ( proc && !proc->hasExited()) {
+        //fprintf(stderr, "%s[%d]:  before detachFromProcess\n", __FILE__, __LINE__);
         if (!BPatch::bpatch->eventHandler->detachFromProcess(this)) {
           bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
                __FILE__, __LINE__, getPid());
       }
-    }
+   // }
 #endif
     if (image) delete image;
 

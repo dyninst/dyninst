@@ -128,6 +128,7 @@ public:
 	for (unsigned int i = 0; i < sizeof(link_name); ++i) {
 	    if (!proc->readDataSpace((caddr_t)((Address)link_elm.l_name + i),
 				     sizeof(char), (caddr_t)(link_name + i), true)) {
+                fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 		valid = false;
 		link_name[0] = '\0';
 		return link_name;
@@ -173,6 +174,7 @@ public:
 	for (unsigned int i = 0; i < sizeof(link_name); ++i) {
 	    if (!proc->readDataSpace((caddr_t)((Address)link_elm.l_name + i),
 				     sizeof(char), ((caddr_t)link_name + i), true)) {
+                fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 		valid = false;
 		link_name[0] = '\0';
 		return link_name;
@@ -509,8 +511,9 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
 
     // Before putting in the breakpoint, save what is currently at the
     // location that will be overwritten.
-    proc_->readDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE,
-                         (void *)saved_, true);
+    if (!proc_->readDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE,
+                         (void *)saved_, true))
+                fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 
     instruction trap_insn = generateTrapInstruction();
     
@@ -928,6 +931,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
 	    if(!proc->readDataSpace((caddr_t)sp, sizeof(Address),
 				    (caddr_t)&ret_addr, true)) {
 		// bperr("read failed sp = 0x%x\n", sp);
+                fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 		error_occured = true;
 		return true;
 	    }
