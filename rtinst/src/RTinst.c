@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.41 2000/10/17 17:42:52 schendel Exp $
+ * $Id: RTinst.c,v 1.42 2000/12/04 21:30:49 zandy Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -752,6 +752,17 @@ static void shmsampling_printf(const char *fmt, ...) {
 #endif
 }
 
+double DYNINSTdummydouble = 4321.71; /* Global so the compiler won't
+					optimize away FP code in initFPU */
+static void initFPU()
+{
+       /* Init the FPU.  We've seen bugs with Linux (e.g., Redhat 6.2
+	  stock kernel on PIIIs) where processes started by Paradyn
+	  started with FPU uninitialized. */
+       double x = 17.1234;
+       DYNINSTdummydouble *= x;
+}
+
 /************************************************************************
  * void DYNINSTinit()
  *
@@ -772,7 +783,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   int calledFromFork = (theKey == -1);
   int calledFromAttach = (paradyndPid < 0);
 
-  
 #ifndef SHM_SAMPLING
   unsigned         val;
 #endif
@@ -791,6 +801,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 		     paradyndPid);
 #endif
 
+  initFPU();
   DYNINSThasInitialized = 3;
 
   /* sanity check */
