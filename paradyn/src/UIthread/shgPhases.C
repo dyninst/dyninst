@@ -4,15 +4,20 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.6  1996/02/02 18:50:27  tamches
-/* better multiple phase support
-/* currSearching, everSearched flags are new
-/* shgStruct constructor is new
-/* new cleaner pc->ui igen-corresponding routines: defineNewSearch,
-/* activateSearch, pauseSearch, resumeSearch, addNode, addEdge,
-/* configNode, addToStatusDisplay
-/* removed add()
+/* Revision 1.7  1996/02/07 19:12:23  tamches
+/* added draw(), resize, single/middle/doubleClick, scroll-position,
+/* and altPress/release routines.
+/* activateSearch --> activateCurrSearch(); similar for pause/resume
 /*
+ * Revision 1.6  1996/02/02 18:50:27  tamches
+ * better multiple phase support
+ * currSearching, everSearched flags are new
+ * shgStruct constructor is new
+ * new cleaner pc->ui igen-corresponding routines: defineNewSearch,
+ * activateSearch, pauseSearch, resumeSearch, addNode, addEdge,
+ * configNode, addToStatusDisplay
+ * removed add()
+ *
  * Revision 1.5  1996/01/23 07:06:46  tamches
  * clarified interface to change()
  *
@@ -51,6 +56,9 @@ shgPhases::shgPhases(const string &iMenuName,
 
    interp = iInterp;
    theTkWindow = iTkWindow;
+
+   currInstalledAltMoveHandler=false;
+   ignoreNextShgAltMove=false;
 }
 
 shgPhases::~shgPhases() {
@@ -151,8 +159,8 @@ bool shgPhases::changeLL(unsigned newIndex) {
    }
 
    // This should update the menu:
-   commandStr = string("set currShgPhase ") + string(newIndex);
-   myTclEval(interp, commandStr);
+   Tcl_SetVar(interp, "currShgPhase",
+	      string(theNewShgStruct.getPhaseId()).string_of(), TCL_GLOBAL_ONLY);
 
    // Update the label containing the current phase name:
    commandStr = string(".shg.nontop.currphasearea.label2 config -text ") +
@@ -222,6 +230,119 @@ void shgPhases::resizeEverything() {
 
 /* ************************************************************ */
 
+void shgPhases::draw(bool doubleBuffer, bool isXsynchOn) const {
+   if (existsCurrent())
+      getCurrent().draw(doubleBuffer, isXsynchOn);
+}
+
+bool shgPhases::resize() {
+   // returns true if a redraw is called for
+   const bool ec = existsCurrent();
+   if (ec)
+      getCurrent().resize(true); // true --> we are curr shg
+   return ec;
+}
+
+void shgPhases::processSingleClick(int x, int y) {
+   if (existsCurrent())
+      getCurrent().processSingleClick(x, y);
+}
+
+void shgPhases::processMiddleClick(int x, int y) {
+   if (existsCurrent())
+      getCurrent().processMiddleClick(x, y);
+}
+
+bool shgPhases::processDoubleClick(int x, int y) {
+   // returns true if a redraw is called for
+   const bool ec = existsCurrent();
+   if (ec)
+      getCurrent().processDoubleClick(x, y);
+   return ec;
+}
+
+bool shgPhases::newVertScrollPosition(int argc, char **argv) {
+   if (!existsCurrent())
+      return false;
+
+   float newFirst;
+   bool anyChanges = processScrollCallback(interp, argc, argv,
+					   getVertSBName(),
+					   getCurrent().getVertSBOffset(), // <= 0
+					   getCurrent().getTotalVertPixUsed(),
+					   getCurrent().getVisibleVertPix(),
+					   newFirst);
+   if (anyChanges)
+      anyChanges = getCurrent().adjustVertSBOffset(newFirst);
+
+   return anyChanges;
+}
+
+bool shgPhases::newHorizScrollPosition(int argc, char **argv) {
+   if (!existsCurrent())
+      return false;
+
+   float newFirst;
+   bool anyChanges = processScrollCallback(interp, argc, argv,
+					   getHorizSBName(),
+					   getCurrent().getHorizSBOffset(), // <= 0
+					   getCurrent().getTotalHorizPixUsed(),
+					   getCurrent().getVisibleHorizPix(),
+					   newFirst);
+   if (anyChanges)
+      anyChanges = getCurrent().adjustHorizSBOffset(newFirst);
+
+   return anyChanges;
+}
+
+bool shgPhases::altPress(int x, int y) {
+   // returns true if a redraw is called for (in which case a scroll
+   // is done as well as an XWarpPointer)
+   if (!existsCurrent())
+      return false;
+
+   if (currInstalledAltMoveHandler) {
+      if (ignoreNextShgAltMove) {
+         ignoreNextShgAltMove = false;
+         return false;
+      }
+
+      int deltax = x - shgAltAnchorX;
+      int deltay = y - shgAltAnchorY;
+
+      // add some extra speedup juice as an incentive to use alt-mousemove scrolling
+      deltax *= 4;
+      deltay *= 4;
+
+      getCurrent().adjustHorizSBOffsetFromDeltaPix(deltax);
+      getCurrent().adjustVertSBOffsetFromDeltaPix(deltay);
+
+      XWarpPointer(Tk_Display(theTkWindow),
+		   Tk_WindowId(theTkWindow),
+		   Tk_WindowId(theTkWindow),
+		   0, 0, 0, 0,
+		   shgAltAnchorX, shgAltAnchorY);
+
+      ignoreNextShgAltMove = true;
+         
+      return true;
+   }
+   else {
+      shgAltAnchorX = x;
+      shgAltAnchorY = y;
+
+      currInstalledAltMoveHandler = true;
+      return false;
+   }
+}
+
+void shgPhases::altRelease() {
+   if (currInstalledAltMoveHandler)
+      currInstalledAltMoveHandler = false;
+}
+
+/* ************************************************************ */
+
 void shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
    assert(!existsById(phaseId));
 
@@ -260,8 +381,12 @@ void shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
       change(phaseName);
 }
 
-bool shgPhases::activateSearch(int phaseId) {
+bool shgPhases::activateCurrSearch() {
    // returns true iff successfully activated
+   if (!existsCurrent())
+      return false;
+
+   int phaseId = getCurrentId();
    shgStruct &theStruct = getByIDLL(phaseId); // slow...
 
    assert(!theStruct.currSearching);
@@ -277,8 +402,12 @@ bool shgPhases::activateSearch(int phaseId) {
    return true;
 }
 
-bool shgPhases::pauseSearch(int phaseId) {
+bool shgPhases::pauseCurrSearch() {
    // returns true iff successfully paused
+   if (!existsCurrent())
+      return false;
+
+   int phaseId = getCurrentId();
    shgStruct &theStruct = getByIDLL(phaseId); // slow...
 
    assert(theStruct.everSearched);
@@ -294,8 +423,12 @@ bool shgPhases::pauseSearch(int phaseId) {
    return true;
 }
 
-bool shgPhases::resumeSearch(int phaseId) {
+bool shgPhases::resumeCurrSearch() {
    // returns true iff successfully resumed
+   if (!existsCurrent())
+      return false;
+
+   int phaseId = getCurrentId();
    shgStruct &theStruct = getByIDLL(phaseId); // slow...
 
    assert(theStruct.everSearched);
@@ -318,9 +451,9 @@ bool shgPhases::addNode(int phaseId, unsigned nodeId,
 			bool rootNodeFlag) {
    // returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
-   theShg.addNode(nodeId, active, es, label, fullInfo, rootNodeFlag);
-
    const bool isCurrShg = (getCurrentId() == phaseId);
+   theShg.addNode(nodeId, active, es, label, fullInfo, rootNodeFlag, isCurrShg);
+
    return isCurrShg;
 }
 
@@ -332,9 +465,9 @@ bool shgPhases::addEdge(int phaseId, unsigned fromId, unsigned toId,
    // the "to" node.  Rethinks the entire layout of the shg
    // Returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
-   theShg.addEdge(fromId, toId, es, label);
-
    const bool isCurrShg = (getCurrentId() == phaseId);
+   theShg.addEdge(fromId, toId, es, label, isCurrShg);
+
    return isCurrShg;
 }
 
@@ -342,9 +475,9 @@ bool shgPhases::configNode(int phaseId, unsigned nodeId,
 			   bool active, shgRootNode::evaluationState es) {
    // returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
-   theShg.configNode(nodeId, active, es);
-
    const bool isCurrShg = (getCurrentId() == phaseId);
+   theShg.configNode(nodeId, active, es, isCurrShg);
+
    return isCurrShg;
 }
 
