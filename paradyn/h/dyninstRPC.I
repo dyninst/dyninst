@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.98 2002/05/09 21:42:43 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.99 2002/05/14 19:00:34 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -367,10 +367,10 @@ public:
     return os;
   }
 #endif
-  machineMetFocusNode *apply(int mid, const Focus &focus, 
-			     vector<process *> procs,
-	                     bool replace_components_if_present,
-			     bool dontInsertData);
+
+  bool apply(vector<processMetFocusNode *> *createdProcNodes,
+             const Focus &focus, vector<process *> procs,
+	     bool replace_components_if_present, bool dontInsertData);
 $ignore
 };
 
