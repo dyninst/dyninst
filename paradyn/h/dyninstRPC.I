@@ -16,7 +16,11 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.25  1995/02/16 08:01:42  markc
+ * Revision 1.26  1995/05/18 10:51:49  markc
+ * added mdl classes
+ * modified resource specifications in interfaces to use ids
+ *
+ * Revision 1.25  1995/02/16  08:01:42  markc
  * Modified interfaces:
  *   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
  *   2) No sync upcalls are allowed by the server in xdr interfaces
@@ -75,7 +79,312 @@
 #define MetStyleEventCounter	0
 #define MetStyleSampledFunction	1
 
+#include "util/h/Types.h"
 #include "util/h/aggregation.h"
+#include "paradyn/src/met/mdl.h"
+
+$remote
+abstract class mdl_expr {
+$ignore
+public:
+  virtual ~mdl_expr();
+  virtual bool apply(mdl_var &ret) = 0;
+#ifdef NO_MDL_PRINT
+  virtual void print(ostream& os) = 0;
+#endif
+$ignore
+};
+
+$remote
+class mdl_v_expr : mdl_expr {
+  string var_;
+  vector<string> fields_;
+  vector<mdl_expr*> *args_;
+  int literal_;
+  u_int arg_;
+  mdl_expr *left_;
+  mdl_expr *right_;
+  u_int type_;
+  vector<u_int> type_walk;
+  bool do_type_walk_;
+  bool ok_;
+  u_int res_type_;
+
+$ignore
+public:
+  mdl_v_expr(string var, vector<string> fields);
+  mdl_v_expr(string func_name, vector<T_dyninstRPC::mdl_expr*> *args);
+  mdl_v_expr(int int_literal);
+  mdl_v_expr(string string_lit);
+  mdl_v_expr(u_int bin_op, T_dyninstRPC::mdl_expr *left, T_dyninstRPC::mdl_expr *right);
+  mdl_v_expr(string var, u_int array_index);
+  ~mdl_v_expr();
+  bool apply(mdl_var &ret);
+#ifdef NO_MDL_PRINT
+  virtual void print(ostream& os) {
+    os << "MDL_V_EXPR: var=" << var_ << " res_type=" << res_type_ << " do_type_walk="
+      << do_type_walk_;
+    unsigned size = fields_.size(), index;
+    if (size) {
+      os << "Fields: ";
+      for (index=0; index<size; index++) {
+	os << fields_[index] << " ";
+      }
+      os << endl;
+    }
+  }
+#endif
+
+$ignore
+};
+
+$remote
+class mdl_instr_req {
+  u_int arg_type_;
+  u_int arg_val_;
+  string arg_name_;
+  string arg_name_2_;
+  u_int type_;
+  string timer_counter_name_;
+
+$ignore
+public:
+  // start and stop timers, read symbol
+  mdl_instr_req(u_int type, string name);
+
+  // for counters, call_func
+  mdl_instr_req(u_int arg_type, u_int arg_val, string arg_name, string arg_name_2,
+		u_int type, string obj_name);
+
+  ~mdl_instr_req();
+  bool apply(u_int pos, instPoint *p, u_int where_instr, metricDefinitionNode *m,
+	     AstNode *pred, vector<dataReqNode*>& flags);
+$ignore
+};
+
+$remote
+class mdl_icode {
+  u_int if_op1_;
+  u_int if_val1_;
+  string if_str1_;
+
+  u_int if_op2_;
+  u_int if_val2_;
+  string if_str2_;
+
+  u_int bin_op_;
+  bool use_if_;
+  mdl_instr_req *req_;
+
+$ignore
+public:
+  mdl_icode(u_int iop1, u_int ival1, string str1,
+	    u_int iop2, u_int ival2, string str2,
+	    u_int bop, bool use, T_dyninstRPC::mdl_instr_req *r);
+  ~mdl_icode();
+  bool apply(u_int position, instPoint *p, u_int where_instr,
+	     metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+$ignore
+};
+
+$remote
+abstract class mdl_stmt {
+$ignore
+public:
+  virtual ~mdl_stmt() { }
+  virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags) = 0;
+#ifdef NO_MDL_PRINT
+  virtual void print(ostream& os) = 0;
+#endif
+$ignore
+};
+
+$remote
+class mdl_list_stmt : mdl_stmt {
+  u_int type_;
+  string id_;
+  vector<string> *elements_;
+  bool is_lib_;
+  string flavor_;
+
+$ignore
+public:
+  mdl_list_stmt(u_int type, string ident, vector<string> *elems,
+		bool is_lib, string flavor);
+  virtual ~mdl_list_stmt();
+  virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+#ifdef NO_MDL_PRINT
+  virtual void print(ostream& os) { }
+#endif
+
+$ignore
+};
+
+$remote
+class mdl_for_stmt : mdl_stmt {
+  mdl_stmt *for_body_;
+  string index_name_;
+  mdl_expr *list_expr_;
+
+$ignore
+public:
+  mdl_for_stmt(string index_name, T_dyninstRPC::mdl_expr *list_exp, mdl_stmt *body);
+  virtual ~mdl_for_stmt();
+  virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+#ifdef NO_MDL_PRINT
+  virtual void print(ostream& os) { }
+#endif
+
+$ignore
+};
+
+$remote
+class mdl_if_stmt : mdl_stmt {
+  mdl_expr *expr_;
+  mdl_stmt *body_;
+
+$ignore
+public:
+  mdl_if_stmt(mdl_expr *expr, mdl_stmt *body);
+  virtual ~mdl_if_stmt();
+  virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+#ifdef NO_MDL_PRINT
+  virtual void print(ostream& os) { }
+#endif
+
+$ignore
+};
+
+$remote
+class mdl_seq_stmt : mdl_stmt {
+  vector<mdl_stmt*> *stmts_;
+
+$ignore
+public:
+  mdl_seq_stmt(vector<mdl_stmt*> *stmts);
+  virtual ~mdl_seq_stmt();
+  virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+#ifdef NO_MDL_PRINT
+  virtual void print(ostream& os) { }
+#endif
+
+$ignore
+};
+
+$remote
+class mdl_instr_stmt : mdl_stmt {
+  u_int position_;
+  mdl_expr *point_expr_;
+  vector<mdl_icode*> *icode_reqs_;
+  u_int where_instr_;
+  bool constrained_;
+
+$ignore
+public:
+  mdl_instr_stmt(u_int pos, mdl_expr *point_expr, vector<mdl_icode*> *i_reqs,
+		 unsigned where_instr, bool constrained);
+  virtual ~mdl_instr_stmt();
+  virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+#ifdef NO_MDL_PRINT
+  virtual void print(ostream& os) {
+    os << "MDL_INSTR_STMT: constrained=" << constrained_ << " ";
+    point_expr_->print(os);
+  }
+#endif
+
+$ignore
+};
+
+$remote 
+class mdl_constraint {
+  string id_;
+  vector<string> *match_path_;
+  vector<mdl_stmt*> *stmts_;
+  bool replace_;
+  u_int data_type_;
+  u_int hierarchy_;
+  u_int type_;
+
+$ignore
+public:
+  mdl_constraint(string id, vector<string> *match_path,
+		 vector<T_dyninstRPC::mdl_stmt*> *stmts, bool replace, u_int d_type,
+		 bool& error);
+  ~mdl_constraint();
+  bool apply(metricDefinitionNode *mn, dataReqNode *&flag,
+	     vector<string>& resource, process *proc);
+
+#ifdef NO_MDL_PRINT
+   friend ostream& operator<< (ostream& os, const T_dyninstRPC::mdl_constraint& cons) {
+     os << "\nConstraint: " << cons.id_ << " ";
+     unsigned size, index;
+     if (cons.match_path_) {
+       size = cons.match_path_->size();
+       for (index=0; index<size; index++) os << (*cons.match_path_)[index] << "/";
+       os << endl;
+     }
+     os << "Replace=" << cons.replace_ << " Data_type=" << cons.data_type_ << " Hierarchy=" 
+       << cons.hierarchy_ << " Type=" << cons.type_ << endl;
+    if (cons.stmts_) {
+      size = cons.stmts_->size();
+      os << "Statements\n";
+      for (index=0; index<size; index++) {
+	(*cons.stmts_)[index]->print(os);
+	os << " ";
+      }
+    }
+   }
+#endif
+
+$ignore
+};
+
+$remote
+class mdl_metric {
+  string id_;
+  string name_;
+  string units_;
+  u_int fold_op_;
+  u_int agg_op_;
+  u_int style_;
+  u_int type_;
+  vector<mdl_stmt*> *stmts_;
+  vector<string> *flavors_;
+  vector<mdl_constraint*> *constraints_;
+  vector<string> *temp_ctr_;
+
+$ignore
+public:
+  mdl_metric(string id, string name, string units,
+	     u_int fold, u_int agg, u_int style, u_int type,
+	     vector<mdl_stmt*> *mv, vector<string> *flavs, vector<T_dyninstRPC::mdl_constraint*> *cons,
+	     vector<string> *temp_c);
+  ~mdl_metric();
+#ifdef NO_MDL_PRINT
+  friend ostream& operator<< (ostream &os, const T_dyninstRPC::mdl_metric& met) {
+    os << "\nMetric: " << met.id_ << " " << met.name_ << " agg_op=" << met.agg_op_ << " style=" 
+      << met.style_ << " type=" << met.type_ << endl;
+    unsigned size, index;
+    if (met.stmts_) {
+      size = met.stmts_->size();
+      os << "Statements\n";
+      for (index=0; index<size; index++) {
+	(*met.stmts_)[index]->print(os);
+	 os << " ";
+      }
+    }
+    if (met.constraints_) {
+      size = met.constraints_->size();
+      os << "Constraints\n";
+      for (index=0; index<size; index++) {
+	os << *((*met.constraints_)[index]) << " ";
+      }
+    }
+  }
+#endif
+  metricDefinitionNode *apply(vector< vector<string> >&focus, string& flat_name);
+$ignore
+};
 
 /* descriptive information about a metric */
 $remote struct metricInfo { 
@@ -174,16 +483,15 @@ $remote dynRPC {
     //
     // Handler that gets called when a new resource is defined.
     //
-    // parent		- parent of new resource
-    // newResource	- new resource being created (full name)
-    // name		- short name of the new resource
+    // resource_name    - name of resource, divided into parts
     // abstraction      - abstraction to which it belongs     
     //
     $upcall $async void resourceInfoCallback(int program, 
-					     string parent, 
-					     string newResource, 
-					     string name,
+					     vector<string> resource_name,
 					     string abstraction);
+
+    // The id that will be used to represent this resource
+    $async void resourceInfoResponse(vector<string> resource_name, u_int resource_id);
 
     $upcall $async void resourceBatchMode(bool);
 
@@ -208,7 +516,7 @@ $remote dynRPC {
     //    False - suppress
     //    True - enable
     //
-    bool setTracking(string resource, bool);
+    bool setTracking(u_int resource_id, bool);
 
     //
     // Routines to control data collection on a performanceStream.
@@ -216,7 +524,7 @@ $remote dynRPC {
     // resourceList	- a list of resources
     // metric	- what metric to collect data for
     //
-    int enableDataCollection(vector<string> resourceList, string metric);
+    int enableDataCollection(vector<u_int> focus, string metric);
 
     //
     // stop collecting data for the named mi.
@@ -229,7 +537,7 @@ $remote dynRPC {
     //    metric at a given focus.  The value returned is the fraction of
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
-    double getPredictedDataCost(vector<string> resourceList, string metric);
+    double getPredictedDataCost(vector<u_int> focus, string metric);
 
     //
     // Current best guess about the cost of instrumentation.
@@ -244,7 +552,7 @@ $remote dynRPC {
     //
     // Create a new resource.
     //
-    void addResource(string parent, string name);
+    void addResource(u_int parent, u_int id, string name);
 
     //
     // stdio or stderr from an application.
@@ -266,14 +574,19 @@ $remote dynRPC {
     //
     // For paradynd's that may get started, but not by paradyn
     // This allows them to report system information
-    // flavor = programming environment {metPVM, metCM5}
+    // flavor = programming environment {"pvm", "cm5", ... }
     $virtual $upcall $async void reportSelf(string machine, 
 					    string program, 
 					    int pid,
-					    int flavor);
+					    string flavor);
 
     //
     // For timing and other measurements of paradynd
     //
     void printStats();
+
+    // MDL methods
+    $async void send_metrics(vector<mdl_metric*> *);
+    $async void send_constraints(vector<mdl_constraint*>*);
+    $async void send_stmts(vector<mdl_stmt*> *);
 };
