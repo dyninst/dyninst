@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.40 2003/10/21 17:22:32 bernat Exp $
+// $Id: templates0.C,v 1.41 2004/03/05 16:51:44 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -86,6 +86,8 @@
 #if defined(rs6000_ibm_aix4_1)
 #include "LineInformation.h"
 #endif
+
+#include "dyninstAPI/src/dynamiclinking.h"
 
 template class  pdvector<dyn_thread *>;
 template class  pdvector< pdvector<dyn_thread *> >;
@@ -145,6 +147,7 @@ template class  pdvector<const miniTrampHandle *>;
 template class  pdvector<returnInstance *>;             //XXX
 template class  pdvector<relocatedFuncInfo *>; 
 template class  pdvector<relocationEntry>;
+template class  pdvector<sharedLibHook *>;
 template class pdvector<LocalAlteration*>;
 template class pdvector<FERNode>;
 template class pdvector<FERNode*>;
