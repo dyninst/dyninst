@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.11 2001/01/04 19:06:49 tikir Exp $
+// $Id: arch-x86.C,v 1.12 2001/02/02 21:17:18 gurari Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1014,12 +1014,25 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType) {
   return (nextb - addr);
 }
 
+/* CODE ADDED FOR FUNCTION RELOCATION */
+
+/*************************************************************************/
+/*************************************************************************/
 
 // find the target of a jump or call
+
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
-        Address addr) {
-  int disp=0;
-  Address target;
+                                                              Address addr) {
+  int disp = displacement(instr, type);
+  return (Address)(addr + size + disp);
+}
+
+
+// get the displacement of a jump or call
+
+int displacement(const unsigned char *instr, unsigned type) {
+
+  int disp = 0;
 
   if (type & IS_JUMP) {
     if (type & REL_B) {
@@ -1044,9 +1057,134 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
       disp = *(const int *)(instr+1);
     }
   }
-  target = (Address)(addr + size + disp);
-  return target;
+  
+  return disp;
 }
+
+
+// get the displacement of a relative jump or call
+
+int get_disp(instruction *insn) {
+  return displacement(insn->ptr(), insn->type());
+}
+
+
+// if setDisp is true set the target of a relative jump or call insn
+// otherwise, return the number of bytes needed to expand the present 
+// instruction so that its target is in the range of its displacement. 
+// In cases where we have a short near jump out of the function, we always 
+// want to expand it to a 4 byte jump
+
+int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc) {
+
+  unsigned char *instr = (const_cast<unsigned char *> (insn->ptr()));
+  unsigned type = insn->type();
+
+  if (!((type & IS_JUMP) || (type & IS_JCC) || (type & IS_CALL))) return 0; 
+  
+  if (type & IS_CALL) {
+    if (type & REL_W) {
+      if (outOfFunc) {
+        return 2;  // go from 3 to 5 bytes;
+      } else { 
+          if (setDisp) {
+            instr++;
+            *((short *) instr) = (short) newOffset;
+          }
+          else return 0;
+      }
+    } else { 
+        if (type & REL_D) {
+          if (setDisp) {
+            instr++;
+            *((int *) instr) = (int) newOffset;
+          }
+          else return 0;
+	}
+    }
+    return 0;
+  }
+ 
+  // assert((type & IS_JUMP) || (type & IS_JCC));
+
+  if (type & REL_B) {
+    if (*instr == JCXZ) {
+      if (newOffset > 127 || newOffset < -128 || outOfFunc) {
+	return 7;  // go from 2 to 9 bytes
+      } else {
+          if (setDisp) { 
+            instr++;
+            *((char *) instr) = (char) newOffset;
+	  }
+          else return 0;
+      }
+    } else {
+        if (type & IS_JCC) {
+          if (newOffset > 127 || newOffset < -128 || outOfFunc) {
+ 	    return 4;  // go from 2 to 6 bytes
+          } else {
+              if (setDisp) {
+                instr++; 
+                instr++;
+                *((char *) instr) = (char) newOffset;
+	      }
+              else return 0;
+	  }
+	} else {
+            if (type & IS_JUMP) {
+              if (newOffset > 127 || newOffset < -128 || outOfFunc) {
+	        return 3;  // go from 2 to 5 bytes
+              } else {
+		  if (setDisp) {
+                    instr++;
+                    *((char *) instr) = (char) newOffset;
+	          }
+                  else return 0;
+	      }
+	    }
+	} 
+    }   
+  } else {
+      if (type & REL_W) {
+        if (newOffset > 32767 || newOffset < -32768 || outOfFunc) {
+          return 1;  // drop the PREFIX_OPR, add 2 bytes for disp
+	} else {
+	    if (setDisp) {
+              if (type & PREFIX_OPR)
+                instr++;
+              if (type & PREFIX_SEG)
+                instr++;
+              instr++; 
+              *((short *) instr) = (short) newOffset;
+ 	    } else return 0;
+	}
+      } else {
+	  if (setDisp) {
+            if (type & REL_D) {
+              if (type & PREFIX_SEG)
+                instr++;
+              if (*instr == 0x0F)
+                instr++;
+              instr++; 
+              *((int *) instr) = (int) newOffset;
+	    } 
+          } else return 0;               
+      }
+  }
+  return 0;
+}
+
+int addressOfMachineInsn(instruction *insn) {
+  return (int)insn->ptr();
+}
+
+int sizeOfMachineInsn(instruction *insn) {
+  return insn->size();
+}
+
+/*********************************************************************/
+/*********************************************************************/
+
 
 
 //This function decodes the addressing modes used for call instructions
