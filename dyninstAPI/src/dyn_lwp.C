@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.2 2002/10/14 21:02:10 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.3 2002/10/21 22:42:37 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -54,9 +54,10 @@ dyn_lwp::dyn_lwp() :
   lwp_(0),
   fd_(0),
   hw_previous_(0),
-  sw_previous_(0)
+  sw_previous_(0),
+  stoppedInSyscall_(false),
+  postsyscallpc_(0)
 {
-
 };
 
 dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
@@ -65,7 +66,10 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   lwp_(lwp),
   fd_(0),
   hw_previous_(0),
-  sw_previous_(0)
+  sw_previous_(0),
+  stoppedInSyscall_(false),
+  postsyscallpc_(0)
+
 {
 }
 
@@ -75,7 +79,10 @@ dyn_lwp::dyn_lwp(unsigned lwp, handleT fd, process *proc) :
   lwp_(lwp),
   fd_(fd),
   hw_previous_(0),
-  sw_previous_(0)
+  sw_previous_(0),
+  stoppedInSyscall_(false),
+  postsyscallpc_(0)
+
 {
 }
 
@@ -85,7 +92,10 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   lwp_(l.lwp_),
   fd_(0),
   hw_previous_(0),
-  sw_previous_(0)
+  sw_previous_(0),
+  stoppedInSyscall_(false),
+  postsyscallpc_(0)
+
 {
 }
 

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.3 2002/10/18 22:41:12 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.4 2002/10/21 22:42:37 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -150,13 +150,13 @@ class dyn_lwp
   // restart the system call.  (This var is defined on all platforms
   // to avoid platform-dependent initialization in process ctor.)
   bool stoppedInSyscall_;  
+  Address postsyscallpc_;  // PC after the syscall is interrupted
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
   // These variables are meaningful only when `stoppedInSyscall' is true.
   int stoppedSyscall_;     // The number of the interrupted syscall
   prgregset_t syscallreg_; // Registers during sleeping syscall
                           // (note we do not save FP registers)
   sigset_t sighold_;       // Blocked signals during sleeping syscall
-  Address postsyscallpc_;  // PC after the syscall is interrupted
 #endif
   
 };
