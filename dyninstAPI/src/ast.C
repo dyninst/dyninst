@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.86 2001/11/28 05:44:10 gaburici Exp $
+// $Id: ast.C,v 1.87 2001/12/06 20:57:45 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -851,7 +851,7 @@ void terminateAst(AstNode *&ast) {
 // VG(11/06/01): Added location, needed by effective address AST node
 Address AstNode::generateTramp(process *proc, const instPoint *location,
 			       char *i, Address &count,
-			       int &trampCost, bool noCost) {
+			       int *trampCost, bool noCost) {
     static AstNode *trailer=NULL;
     if (!trailer) trailer = new AstNode(trampTrailer); // private constructor
                                                        // used to estimate cost
@@ -863,8 +863,13 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
     }
     // private constructor; assumes NULL for right child
     
-    trampCost = preambleTemplate->cost() + cost() + trailer->cost();
-    int cycles = trampCost;
+    // we only want to use the cost of the minimum statements that will
+    // be executed.  Statements, such as the body of an if statement,
+    // will have their costs added to the observed cost global variable
+    // only if they are indeed called.  The code to do this in the minitramp
+    // right after the body of the if.
+    *trampCost = preambleTemplate->maxCost() + minCost() + trailer->maxCost();
+    int cycles = *trampCost;
 
     AstNode *preamble, *tmp2;
     tmp2 = new AstNode(Constant, (void *) cycles);
@@ -1507,32 +1512,46 @@ string getOpString(opCode op)
 }
 #endif
 
-int AstNode::cost() const {
+#undef MIN
+#define MIN(x,y) ((x)>(y) ? (y) : (x))
+#undef MAX
+#define MAX(x,y) ((x)>(y) ? (x) : (y))
+#undef AVG
+#define AVG(x,y) (((x)+(y))/2)
+
+int AstNode::costHelper(enum CostStyleType costStyle) const {
     int total = 0;
     int getInsnCost(opCode t);
 
     if (type == opCodeNode) {
         if (op == ifOp) {
-	    if (loperand) total += loperand->cost();
+	    // loperand is the conditional expression
+	    if (loperand) total += loperand->costHelper(costStyle);
 	    total += getInsnCost(op);
 	    int rcost = 0, ecost = 0;
 	    if (roperand) {
-		rcost = roperand->cost();
+		rcost = roperand->costHelper(costStyle);
 		if (eoperand)
 		    rcost += getInsnCost(branchOp);
 	    }
 	    if (eoperand)
-		ecost = eoperand->cost();
-	    if (rcost > ecost)	    
-		total += rcost;
-	    else
-		total += ecost;
+		ecost = eoperand->costHelper(costStyle);
+	    if(ecost == 0) { // ie. there's only the if body
+	      if(costStyle      == Min)  total += 0;
+	                                  //guess half time body not executed
+	      else if(costStyle == Avg)  total += rcost / 2;
+	      else if(costStyle == Max)  total += rcost;
+	    } else {  // ie. there's an else block also, for the statements
+	      if(costStyle      == Min)  total += MIN(rcost, ecost);
+	      else if(costStyle == Avg)  total += AVG(rcost, ecost);
+	      else if(costStyle == Max)  total += MAX(rcost, ecost);
+	    }
 	} else if (op == storeOp) {
-	    if (roperand) total += roperand->cost();
+	    if (roperand) total += roperand->costHelper(costStyle);
 	    total += getInsnCost(op);
 	} else if (op == storeIndirOp) {
-            if (loperand) total += loperand->cost();
-	    if (roperand) total += roperand->cost();
+            if (loperand) total += loperand->costHelper(costStyle);
+	    if (roperand) total += roperand->costHelper(costStyle);
 	    total += getInsnCost(op);
 	} else if (op == trampTrailer) {
 	    total = getInsnCost(op);
@@ -1540,9 +1559,9 @@ int AstNode::cost() const {
 	    total = getInsnCost(op);
 	} else {
 	    if (loperand) 
-		total += loperand->cost();
+		total += loperand->costHelper(costStyle);
 	    if (roperand) 
-		total += roperand->cost();
+		total += roperand->costHelper(costStyle);
 	    total += getInsnCost(op);
 	}
     } else if (type == operandNode) {
@@ -1560,7 +1579,7 @@ int AstNode::cost() const {
 	    total = getInsnCost(loadConstOp);
 	} else if (oType == DataIndir) {
 	    total = getInsnCost(loadIndirOp);
-            total += loperand->cost();
+            total += loperand->costHelper(costStyle);
 	} else if (oType == DataAddr) {
 	    total = getInsnCost(loadOp);
 	} else if (oType == DataReg) {
@@ -1571,10 +1590,10 @@ int AstNode::cost() const {
     } else if (type == callNode) {
 	total = getPrimitiveCost(callee);
 	for (unsigned u = 0; u < operands.size(); u++)
-	  if (operands[u]) total += operands[u]->cost();
+	  if (operands[u]) total += operands[u]->costHelper(costStyle);
     } else if (type == sequenceNode) {
-	if (loperand) total += loperand->cost();
-	if (roperand) total += roperand->cost();
+	if (loperand) total += loperand->costHelper(costStyle);
+	if (roperand) total += roperand->costHelper(costStyle);
     }
     return(total);
 }
@@ -1655,10 +1674,48 @@ void AstNode::print() const {
 }
 #endif
 
-AstNode *createIf(AstNode *expression, AstNode *action) 
+// If a process is passed, the returned Ast code will also update the
+// observed cost of the process according to the cost of the if-body when the
+// if-body is executed.  However, it won't add the the update code if it's
+// considered that the if-body code isn't significant.  We consider an
+// if-body not worth updating if (cost-if-body < 5*cost-of-update).  proc ==
+// NULL (the default argument) will mean to not add to the AST's the code
+// which adds this observed cost update code.
+AstNode *createIf(AstNode *expression, AstNode *action, process *proc) 
 {
-  AstNode *t;
-  t = new AstNode(ifOp, expression, action);
+  if(proc != NULL) {
+#ifndef BPATCH_LIBRARY
+    // add code to the AST to update the global observed cost variable
+    // we want to add the minimum cost of the body.  Observe the following 
+    // example
+    //    if(condA) { if(condB) { STMT-Z; } }
+    // This will generate the following code:
+    //    if(condA) { if(condB) { STMT-Z; <ADD-COSTOF:STMT-Z>; }
+    //               <ADD-COSTOF:if(condB)>;  
+    //              }   
+    // the <ADD-COSTOF: > is what's returned by minCost, which is what
+    // we want.
+    // Each if statement will be constructed by createIf().    
+    int costOfIfBody = action->minCost();
+    void *globalObsCostVar = proc->getObsCostLowAddrInApplicSpace();
+    AstNode *globCostVar = new AstNode(AstNode::DataAddr, globalObsCostVar);
+    AstNode *addCostConst = new AstNode(AstNode::Constant, 
+					(void *)costOfIfBody);
+    AstNode *addCode = new AstNode(plusOp, globCostVar, addCostConst);
+    AstNode *updateCode = new AstNode(storeOp, globCostVar, addCode);
+    int updateCost = updateCode->minCost();
+    addCostConst->setOValue(reinterpret_cast<void*>(costOfIfBody+updateCost));
+    AstNode *newAction = new AstNode(action);
+    // eg. if costUpdate=10 cycles, won't do update if bodyCost=40 cycles
+    //                               will do update if bodyCost=60 cycles
+    const int updateThreshFactor = 5;
+    if(costOfIfBody > updateThreshFactor * updateCost)
+      action = new AstNode(newAction, updateCode);
+#endif
+  }
+
+  AstNode *t = new AstNode(ifOp, expression, action);
+
   return(t);
 }
 
