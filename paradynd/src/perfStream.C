@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.109 2000/03/16 22:41:11 cain Exp $
+// $Id: perfStream.C,v 1.110 2000/03/23 01:40:36 wylie Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -779,6 +779,12 @@ void controllerMainLoop(bool check_buffer_first)
            // does shm sampling of each process, as appropriate.
            // may update pollTimeUSecs.
 #endif 
+
+#if defined(i386_unknown_linux2_0)
+        pollTimeUSecs = 0; // hack for fairer trap servicing on Linux
+        // Linux select has a granularity of 100Hz, i.e., 10000usecs
+        // meaning that it can at best service 100 traps/second
+#endif
 
 	pollTime.tv_sec  = pollTimeUSecs / 1000000;
 	pollTime.tv_usec = pollTimeUSecs % 1000000;
