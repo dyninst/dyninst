@@ -2,7 +2,7 @@
 
 #include "../h/thread.h"
 #include "rwlock.h"
-#include "xplat/h/Monitor.h"
+#include "xplat/Monitor.h"
 
 using namespace pdthr;
 

@@ -41,12 +41,12 @@
 /************************************************************************
  * rwlock.c: implementation of reader-writer lock classes.
  *
- * $Id: rwlock.C,v 1.2 2003/10/28 18:30:03 pcroth Exp $
+ * $Id: rwlock.C,v 1.3 2003/11/14 20:38:16 pcroth Exp $
 ************************************************************************/
 #include <stdlib.h>
 #include <assert.h>
 #include "rwlock.h"
-#include "xplat/h/Monitor.h"
+#include "xplat/Monitor.h"
 
 namespace pdthr
 {

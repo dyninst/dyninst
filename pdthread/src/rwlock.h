@@ -55,12 +55,12 @@
  * NB!  This code does not check to see whether you have a lock before 
  * you release it.  Be smart.
  *
- * $Id: rwlock.h,v 1.2 2003/10/28 18:30:03 pcroth Exp $
+ * $Id: rwlock.h,v 1.3 2003/11/14 20:38:16 pcroth Exp $
 ************************************************************************/
 #ifndef _thread_src_rwlock_h_
 #define _thread_src_rwlock_h_
 
-#include "xplat/h/Monitor.h"
+#include "xplat/Monitor.h"
 
 namespace pdthr
 {

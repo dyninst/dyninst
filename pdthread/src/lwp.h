@@ -5,9 +5,9 @@
 #error You should not include this file directly
 #endif
 
-#include "xplat/h/Thread.h"
-#include "xplat/h/TLSKey.h"
-#include "xplat/h/Once.h"
+#include "xplat/Thread.h"
+#include "xplat/TLSKey.h"
+#include "xplat/Once.h"
 
 namespace pdthr
 {

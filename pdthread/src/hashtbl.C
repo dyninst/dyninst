@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #include "hash.h"
-#include "xplat/h/Mutex.h"
+#include "xplat/Mutex.h"
 
 namespace pdthr
 {

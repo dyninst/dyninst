@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "predicate.h"
-#include "xplat/h/Monitor.h"
+#include "xplat/Monitor.h"
 #include "common/h/language.h"
 
 namespace pdthr

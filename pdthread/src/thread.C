@@ -5,9 +5,9 @@
 #include "thrtab.h"
 #include <assert.h>
 
-#include "xplat/h/TLSKey.h"
-#include "xplat/h/Thread.h"
-#include "xplat/h/Monitor.h"
+#include "xplat/TLSKey.h"
+#include "xplat/Thread.h"
+#include "xplat/Monitor.h"
 
 #if !defined(i386_unknown_nt4_0)
 #include <sys/time.h>

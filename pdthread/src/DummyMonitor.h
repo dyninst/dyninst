@@ -1,7 +1,7 @@
 #ifndef PDTHR_DUMMYMONITOR_H
 #define PDTHR_DUMMYMONITOR_H
 
-#include "xplat/h/Monitor.h"
+#include "xplat/Monitor.h"
 
 namespace pdthr
 {

@@ -1,1 +1,1 @@
-DEPENDS V_libpdthread.c
+*.d V_libpdthread.c

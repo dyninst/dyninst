@@ -3,7 +3,7 @@
 #include "thrtab.h"
 #include "thrtab_entries.h"
 #include "lwp.h"
-#include "xplat/h/TLSKey.h"
+#include "xplat/TLSKey.h"
 
 namespace pdthr
 {

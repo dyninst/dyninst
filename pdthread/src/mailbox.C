@@ -7,7 +7,7 @@
 #include "mailbox_defs.h"
 #include "thrtab.h"
 #include "thrtab_entries.h"
-#include "xplat/h/Mutex.h"
+#include "xplat/Mutex.h"
 
 #if !defined(i386_unknown_nt4_0)
 #include <unistd.h>

@@ -8,7 +8,7 @@
 #include "predicate.h"
 #include "message_predicates.h"
 #include "mailbox_defs.h"
-#include "xplat/h/Mutex.h"
+#include "xplat/Mutex.h"
 #include "WaitSet.h"
 
 #if DO_DEBUG_LIBPDTHREAD_THR_MAILBOX == 1

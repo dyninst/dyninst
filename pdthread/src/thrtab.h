@@ -7,7 +7,7 @@
 #include "rwlock.h"
 #include "thrtab_entries.h"
 #include "hashtbl.C"
-#include "xplat/h/Monitor.h"
+#include "xplat/Monitor.h"
 
 namespace pdthr
 {

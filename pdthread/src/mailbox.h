@@ -5,7 +5,7 @@
 #include "dllist.C"
 #include "predicate.h"
 #include "../h/thread.h"
-#include "xplat/h/Mutex.h"
+#include "xplat/Mutex.h"
 
 
 namespace pdthr
