@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.114 2002/10/08 22:50:16 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.115 2002/10/15 15:26:41 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -228,14 +228,17 @@ void pd_Function::addCallPoint(const instruction instr,
 void relocateInstruction(instruction*& insn, Address origAddr, 
                          Address& targetAddr, process *proc)
 {
-    int newOffset;
+    long long newLongOffset = 0;
 
     // If the instruction is a CALL instruction, calculate the new
     // offset
     if (isInsnType(*insn, CALLmask, CALLmatch)) {
     
-      newOffset = origAddr  - targetAddr + (insn->call.disp30 << 2);
-      insn->call.disp30 = newOffset >> 2;
+      newLongOffset = origAddr;
+      newLongOffset -= targetAddr;
+      newLongOffset += (insn->call.disp30 << 2);
+
+      insn->call.disp30 = (int)(newLongOffset >> 2);
     
     } else if (isInsnType(*insn, BRNCHmask, BRNCHmatch)||
 	       isInsnType(*insn, FBRNCHmask, FBRNCHmatch)) {
@@ -247,19 +250,40 @@ void relocateInstruction(instruction*& insn, Address origAddr,
 	//    b  address  ......    address: save
 	//                                   call new_offset             
 	//                                   restore 
-	newOffset = origAddr - targetAddr + (insn->branch.disp22 << 2);
+	newLongOffset = origAddr;
+	newLongOffset -= targetAddr;
+	newLongOffset +=  (insn->branch.disp22 << 2);
 
 	// if the branch is too far, then allocate more space in inferior
 	// heap for a call instruction to branch target.  The base tramp 
 	// will branch to this new inferior heap code, which will call the
 	// target of the branch
-	if (!offsetWithinRangeOfBranchInsn(newOffset)) {
-//	if (ABS(newOffset) > getMaxBranch1Insn()) {
-	    int ret = proc->inferiorMalloc(3*sizeof(instruction), textHeap,
+
+	if ((newLongOffset < (long long)(-0x7fffffff-1)) ||
+	    (newLongOffset > (long long)0x7fffffff) ||
+	    !offsetWithinRangeOfBranchInsn((int)newLongOffset)){
+
+	    /** we need to check whether the new allocated space is **/
+	    /** in the range of 1 branch instruction from reloacted inst **/
+
+	    unsigned ret = proc->inferiorMalloc(3*sizeof(instruction), textHeap,
 					   targetAddr);
 	    assert(ret);
-	    u_int old_offset = insn->branch.disp22 << 2;
-	    insn->branch.disp22  = (ret - targetAddr)>>2;
+
+	    int old_offset = insn->branch.disp22 << 2;
+
+	    long long assertCheck = ret;
+	    assertCheck -= targetAddr;
+	    assertCheck = assertCheck >> 2;
+
+	    /** will it really fit to branch offset **/
+	    if ((assertCheck < (long long)(-0x1FFFFF-1)) ||
+		(assertCheck > (long long)0x1FFFFF))
+			assert( 0 && "We could not create nearby space");
+
+
+	    insn->branch.disp22  = (int)(assertCheck);
+
 	    instruction insnPlus[3];
 	    genImmInsn(insnPlus, SAVEop3, REG_SPTR, -112, REG_SPTR);
 	    generateCallInsn(insnPlus+1, ret+sizeof(instruction), 
@@ -268,7 +292,7 @@ void relocateInstruction(instruction*& insn, Address origAddr,
 	    proc->writeDataSpace((caddr_t)ret, sizeof(insnPlus), 
 			 (caddr_t) insnPlus);
 	} else {
-	    insn->branch.disp22 = newOffset >> 2;
+	    insn->branch.disp22 = (int)(newLongOffset >> 2);
 	}
     } else if (isInsnType(*insn, TRAPmask, TRAPmatch)) {
 	// There should be no probelm for moving trap instruction
@@ -834,11 +858,6 @@ trampTemplate * installBaseTramp( instPoint * & location,
 	}
 	break;
       case RETURN_INSN:
-	retAddress =  baseAddress + 
-	  location->iPgetAddress() + 
-	  location->Size();
-	
-	
 	
 	if ( offsetWithinRangeOfBranchInsn((ipAddr + 
 					    numInsnsCopied*sizeof(instruction)) - 
@@ -852,14 +871,12 @@ trampTemplate * installBaseTramp( instPoint * & location,
 	  
 	  retAddress =  baseAddress + 
 	    location->iPgetAddress() + 
-	    location->Size();
+	    numInsnsCopied*sizeof(instruction);
 	  
-	  if (location->ipType == otherPoint) {
-	    generateCallInsn(temp, currAddr, retAddress);
-	  } else {
-	    
-	    if (location->func->hasNoStackFrame()) {
-	      
+	  if (location->func->hasNoStackFrame() ||
+	      ((location->ipType == otherPoint) &&
+	       location->func->is_o7_live())){
+		
 	      /* to save value of live o7 register we save and call*/
 	      genImmInsn(temp, SAVEop3, REG_SPTR, -120, REG_SPTR);
 	      generateCallInsn(temp + 1, 
@@ -867,9 +884,8 @@ trampTemplate * installBaseTramp( instPoint * & location,
 			       retAddress);
 	      genImmInsn(temp+2, RESTOREop3, 0, 0, 0);
 	      
-	    } else {
+	  } else {
 	      generateCallInsn(temp, currAddr, retAddress);
-	    }
 	  }
 	}
 	break;
@@ -2374,6 +2390,7 @@ bool pd_Function::findInstPoints(const image *owner) {
   }
 #endif
 
+  o7_live = false;
 
   /* CREATE ENTRY INSTPOINT */
   instr.raw = owner->get_instruction(entry);
