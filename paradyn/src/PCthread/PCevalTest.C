@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.40  1995/11/09 02:07:55  tamches
+ * Revision 1.41  1995/11/28 15:48:36  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
+ * Revision 1.40  1995/11/09  02:07:55  tamches
  * removed #include of uistatdisp.h, an obsolete file
  *
  * Revision 1.39  1995/10/05 04:38:43  karavan
@@ -898,13 +901,14 @@ void PCevaluateWorld()
 	    } else if ((PCshortestEnableTime > sufficientTime.getValue()) &&
 		       (samplesSinceLastChange > sufficientTime.getValue())) {
 		// we have waited sufficient observation time move on.
-	      char buffer[500];
-	      sprintf(buffer, "autorefinement timelimit reached at %f\nsamplesSinceLastChange = %d\nshortest enable time = %f\n",
-		      PCcurrentTime, 
-		      samplesSinceLastChange, 
-		      PCshortestEnableTime);
-
-	      uiMgr->updateStatusDisplay (SHGid, buffer);	     
+              string buffer("autorefinement timelimit reached at ");
+	      buffer += string((float) PCcurrentTime);
+	      buffer += string("\nsamplesSinceLastChange = ");
+	      buffer += string(samplesSinceLastChange);
+	      buffer += string("\nshortest enable time = ");
+	      buffer += string((float) PCshortestEnableTime);
+	      buffer += string("\n");
+	      uiMgr->updateStatusDisplay (SHGid,P_strdup(buffer.string_of())); 
 	      autoTimeLimitExpired();
 	    }
 	} else if (changed) {
@@ -928,9 +932,10 @@ void performanceConsultant::search(bool stopOnChange, int limit, int phaseID)
     PClastTestChangeTime = PCcurrentTime;
     PCstartTransTime = PCcurrentTime;
     samplesSinceLastChange = 0;
-    char buffer[100];
-    sprintf(buffer, "Setting PC start search time to %f\n", PCstartTransTime);
-    uiMgr->updateStatusDisplay(SHGid, buffer);
+    string buffer("Setting PC start search time to ");
+    buffer += string((float) PCstartTransTime);
+    buffer += string("\n");
+    uiMgr->updateStatusDisplay(SHGid, P_strdup(buffer.string_of()));
     if (!dataMgr->applicationDefined()) {
       uiMgr->updateStatusDisplay(SHGid,
 				 "must specify application to run first\n");
@@ -947,8 +952,8 @@ void performanceConsultant::search(bool stopOnChange, int limit, int phaseID)
     }
 
     // refine one step now and then let it go.
-    sprintf(buffer, "setting limit to %d\n", limit);
-    uiMgr->updateStatusDisplay (SHGid, buffer);
+    buffer = string("setting limit to ") + string(limit) + string("\n");
+    uiMgr->updateStatusDisplay (SHGid, P_strdup(buffer.string_of()));
     PCsearchPaused = false;
     PCautoRefinementLimit = limit;
     autoSelectRefinements();

@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.30  1995/10/19 22:36:44  mjrg
+ * Revision 1.31  1995/11/28 15:56:56  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
+ * Revision 1.30  1995/10/19  22:36:44  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
  * Removed breakpoints from CM5 applications.
@@ -369,12 +372,12 @@ process *allocateProcess(int pid, const string name)
 
     ret->pid = pid;
 
-    char buffer[80];
+    string buffer;
     struct utsname un;
     P_uname(&un);
-    sprintf(buffer, "%d_%s", pid, un.nodename);
+    buffer = string(pid) + string("_") + string(un.nodename);
     ret->rid = resource::newResource(processResource, (void*)ret, nullString, name,
-				     0.0, buffer);
+				     0.0, P_strdup(buffer.string_of()));
     ret->bufEnd = 0;
 
     // this process won't be paused until this flag is set

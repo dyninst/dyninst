@@ -7,7 +7,10 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.47  1995/11/22 00:02:20  mjrg
+ * Revision 1.48  1995/11/28 15:56:54  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
+ * Revision 1.47  1995/11/22  00:02:20  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
  * Removed -f and -t arguments to paradyn
@@ -336,7 +339,6 @@ void processTraceStream(process *curr)
     char *recordData;
     traceHeader header;
     struct _association *a;
-    char buffer[100];
 
     ret = read(curr->traceLink, &(curr->buffer[curr->bufEnd]), 
 	       sizeof(curr->buffer)-curr->bufEnd);
@@ -349,9 +351,10 @@ void processTraceStream(process *curr)
 	/* end of file */
         if (curr->status() != exited) {
 	  // process exited unexpectedly
-	  sprintf(buffer, "Process %d has exited unexpectedly", curr->pid);
-	  statusLine(buffer);
-	  showErrorCallback(11, buffer);
+	  string buffer = string("Process ") + string(curr->pid);
+	  buffer += string(" has exited unexpectedly");
+	  statusLine(P_strdup(buffer.string_of()));
+	  showErrorCallback(11, P_strdup(buffer.string_of()));
 	  curr->Exited();
 	}
 	curr->traceLink = -1;
@@ -479,7 +482,7 @@ void processTraceStream(process *curr)
 int handleSigChild(int pid, int status)
 {
     int sig;
-    char buffer[100];
+    string buffer;
 
     // ignore signals from unknown processes
     process *curr = findProcess(pid);
@@ -490,7 +493,7 @@ int handleSigChild(int pid, int status)
 	switch (sig) {
 
 	    case SIGTSTP:
-		sprintf(buffer, "process %d got SIGTSTP", pid);
+		sprintf(errorLine, "process %d got SIGTSTP", pid);
 		statusLine(errorLine);
 		curr->Stopped();
 		break;
@@ -508,8 +511,9 @@ int handleSigChild(int pid, int status)
 		//   where we use ptrace detach, a TRAP is generated on a pause.
 		//   - jkh 7/7/95
 		if (!curr->reachedFirstBreak) {
-		    sprintf(buffer, "PID=%d, passed trap at start of program", pid);
-		    statusLine(buffer);
+		    buffer = string("PID=") + string(pid);
+		    buffer += string(", passed trap at start of program");
+		    statusLine(P_strdup(buffer.string_of()));
 		    installDefaultInst(curr, initialRequests);
 		    curr->reachedFirstBreak = 1;
 		    if (! curr->stopAtFirstBreak) {
@@ -549,9 +553,10 @@ int handleSigChild(int pid, int status)
 		// since it's blocked on ptrace and we didn't forward
 		// received the SIGSTOP...
 		// But we need to pause the rest of the application
-		pauseAllProcesses(); 
-		sprintf(buffer, "PID=%d received SIGSTOP/SIGINT. Application stopped.\n", pid);
-		statusLine(buffer);
+		pauseAllProcesses();
+		buffer = string("PID=") + string(pid);
+		buffer += string(" received SIGSTOP/SIGINT. Application stopped.\n");
+		statusLine(P_strdup(buffer.string_of()));
 		break;
 
 	    case SIGIOT:
@@ -614,13 +619,12 @@ int handleSigChild(int pid, int status)
 #ifdef PARADYND_PVM
 		PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
 #endif
-	sprintf(errorLine, "process %d has terminated\n", curr->pid);
+	sprintf(errorLine, "Process %d has terminated\n", curr->pid);
 	logLine(errorLine);
 
 	printDyninstStats();
 	curr->Exited();
-        sprintf(buffer,"Process %d has terminated\n", curr->pid);
-	statusLine(buffer);
+	statusLine(errorLine);
     } else if (WIFSIGNALED(status)) {
 	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->pid,
 	    WTERMSIG(status));

@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: tkTools.C,v $
-/* Revision 1.2  1995/11/06 02:29:18  tamches
-/* added tclpanic and resizeScrollbar
+/* Revision 1.3  1995/11/28 15:50:04  naim
+/* Minor fix. Changing char[number] by string - naim
 /*
+ * Revision 1.2  1995/11/06  02:29:18  tamches
+ * added tclpanic and resizeScrollbar
+ *
  */
 
 #include <assert.h>
@@ -102,8 +105,9 @@ float moveScrollBar(Tcl_Interp *interp, const string &scrollBarName,
    assert(newLast <= 1.0);
    assert(newFirst >= 0.0);
 
-   char buffer[100];
-   sprintf(buffer, "%f %f", newFirst, newLast);
+   string buffer;
+   buffer = string(newFirst) + string(" ");
+   buffer += string(newLast);
 
    string commandStr = scrollBarName + " set " + buffer;
    myTclEval(interp, commandStr.string_of());

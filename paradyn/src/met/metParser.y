@@ -3,7 +3,10 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.13  1995/11/21 21:07:11  naim
+ * Revision 1.14  1995/11/28 15:52:57  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
+ * Revision 1.13  1995/11/21  21:07:11  naim
  * Fixing unitsType definition for MDL grammar - naim
  *
  * Revision 1.12  1995/11/21  15:15:37  naim
@@ -316,14 +319,15 @@ instr_op: tLT       { $$.u = MDL_LT; }
 // It could be known, but I am delaying the processing until apply is called
 instr_rand: tIDENT                       {
                                            if (*$1.sp == "$constraint") {
-					     char msg[100];
+					     string msg;
 					     if (!hack_in_cons) {
-					       sprintf(msg, "Error: using $constraint as a variable outside of constraint definition\n");
-					       yyerror(msg);
+					       msg = string("Error: using $constraint as a variable outside of constraint definition\n");  
+					       yyerror(P_strdup(msg.string_of()));
 					       exit(-1);
 					     } else if (hacked_cons_type != MDL_T_INT) {
-					       sprintf(msg, "Error: using $constraint with non-integer type in instrumentation expression\n");
-					       yyerror(msg);
+					       string msg;
+					       msg = string("Error: using $constraint with non-integer type in instrumentation expression\n");
+					       yyerror(P_strdup(msg.string_of()));
 					       exit(-1);
 					     }
 					     $$.rand.type = MDL_T_INT;
@@ -567,9 +571,8 @@ def_constraint_definition: tCONSTRAINT tIDENT match_path tIS tDEFAULT tSEMI {
   T_dyninstRPC::mdl_constraint *c = mdl_data::new_constraint(*$2.sp, $3.vs, NULL, false,
 							     MDL_T_NONE);
   if (!c) {
-    char msg[100];
-    sprintf(msg, "Error, did not new mdl_constraint\n");
-    yyerror(msg);
+    string msg = string("Error, did not new mdl_constraint\n");
+    yyerror(P_strdup(msg.string_of()));
     exit(-1);
   } else
     mdl_data::all_constraints += c;
@@ -584,9 +587,7 @@ ext_constraint_definition: tCONSTRAINT tIDENT match_path tIS tCOUNTER tLBLOCK me
     delete $2.sp; 
 
   if (!c) {
-    char msg[100];
-    sprintf(msg, "Error, did not new mdl_constraint\n");
-    yyerror(msg);
+    yyerror("Error, did not new mdl_constraint\n");
     exit(-1);
   } else
     mdl_data::all_constraints += c;
@@ -599,9 +600,8 @@ cons_type: tCOUNTER  { $$.u = MDL_T_COUNTER; }
 int_constraint_definition: tCONSTRAINT tIDENT match_path tIS tREPLACE cons_type tLBLOCK metric_stmts tRBLOCK {
   $$.constraint = mdl_data::new_constraint(*$2.sp, $3.vs, $8.m_stmt_v, true, $6.u);
   if (!$$.constraint) {
-    char msg[100];
-    sprintf(msg, "Error, did not new mdl_constraint\n");
-    yyerror(msg);
+    string msg = string("Error, did not new mdl_constraint\n");
+    yyerror(P_strdup(msg.string_of()));
     exit(-1);
   }
   delete $2.sp; 

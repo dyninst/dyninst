@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.20  1995/08/01 02:18:23  newhall
+ * Revision 1.21  1995/11/28 15:48:40  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
+ * Revision 1.20  1995/08/01  02:18:23  newhall
  * changes to support phase interface
  *
  * Revision 1.19  1995/07/24 03:51:29  tamches
@@ -186,10 +189,10 @@ void focus::updateName()
     int i;
     int limit;
     resource *res;
-    char temp[256];
+    string temp;
     stringHandle *names;
 
-    strcpy(temp, "<");
+    temp = string("<");
     if (data) {
 	limit = data->getCount();
 	names = (stringHandle *) malloc(sizeof(stringHandle) * limit);
@@ -206,13 +209,13 @@ void focus::updateName()
 	/* make sure we get a canocial form by sorting the name */
 	qsort((char *) names, limit, sizeof(char *), stringCompare);
 	for (i=0; i < limit; i++) {
-	    strcat(temp, (char *) names[i]);
-	    if (i != limit - 1) strcat(temp, ",");
+	    temp += string((const char *) names[i]);
+	    if (i != limit - 1) temp += string(",");
 	}
 	free(names);
     }
-    strcat(temp, ">");
-    name = strSpace.findAndAdd(temp);
+    temp += string(">");
+    name = strSpace.findAndAdd(P_strdup(temp.string_of()));
 }
 
 /*

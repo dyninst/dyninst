@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.24  1995/10/17 04:31:56  karavan
+ * Revision 1.25  1995/11/28 15:48:38  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
+ * Revision 1.24  1995/10/17  04:31:56  karavan
  * corrected call to updateStatusDisplay() in printStats().
  *
  * Revision 1.23  1995/10/17  03:16:16  karavan
@@ -478,9 +481,9 @@ void printStats()
 	    if (d->used) count++;
 	}
     }
-    char buffer[100];
-    sprintf(buffer, "%d metric/focus pairs used\n", count);
-    uiMgr->updateStatusDisplay(SHGid, buffer);
+    string buffer(count);
+    buffer += string(" metric/focus pairs used\n");
+    uiMgr->updateStatusDisplay(SHGid,P_strdup(buffer.string_of()));
 }
 
 

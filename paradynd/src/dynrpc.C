@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.23  1995/11/03 00:06:05  newhall
+ * Revision 1.24  1995/11/28 15:56:52  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
+ * Revision 1.23  1995/11/03  00:06:05  newhall
  * changes to support changing the sampling rate: dynRPC::setSampleRate changes
  *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
  * fix so that SIGKILL is not being forwarded to CM5 applications.
@@ -168,11 +171,11 @@ void dynRPC::coreProcess(int id)
 
 string dynRPC::getStatus(int id)
 {
-  char ret[50];
   process *proc = findProcess(id);
   if (!proc) {
-    sprintf (ret, "PID:%d not found for getStatus\n", id);
-    return (ret);
+    string ret = string("PID: ") + string(id);
+    ret += string(" not found for getStatus\n");
+    return (P_strdup(ret.string_of()));
   } else 
     return (proc->getProcessStatus());
 }

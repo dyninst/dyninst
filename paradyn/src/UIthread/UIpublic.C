@@ -21,9 +21,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.33  1995/11/21 15:17:50  naim
-/* Using string instead of char[300] in showError routine - naim
+/* Revision 1.34  1995/11/28 15:50:02  naim
+/* Minor fix. Changing char[number] by string - naim
 /*
+ * Revision 1.33  1995/11/21  15:17:50  naim
+ * Using string instead of char[300] in showError routine - naim
+ *
  * Revision 1.32  1995/11/09  02:11:30  tamches
  * removed some obsolete references (some which had been up till now commented out),
  * such as initSHGStyles, UIMUser::chooseMenuItemREPLY, etc.
@@ -177,10 +180,11 @@ UIMUser::chosenMetricsandResources
 void 
 UIM::readStartupFile(const char *script)
 {
-  char tcommand[300];
+  string tcommand;
   if (script != NULL) {   // script specified on paradyn command line
-    sprintf (tcommand, "source \"%s\"", script);
-    if (Tcl_Eval (interp, tcommand) == TCL_ERROR) {
+    tcommand = string("source \"") + string(script);
+    tcommand += string("\"");
+    if (Tcl_Eval (interp, P_strdup(tcommand.string_of())) == TCL_ERROR) {
       uiMgr->showError(24, "Error reading tcl startup script");
     }
   }
@@ -234,7 +238,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   }
 
      // initialize metric menu 
-  vector<met_name_id> *amets = dataMgr->getAvailableMetInfo();
+  vector<met_name_id> *amets = dataMgr->getAvailableMetInfo(false);
   uim_AvailMetsSize = amets->size();
   uim_AvailMets = new (char *) [uim_AvailMetsSize];
   for (int j = 0; j < uim_AvailMetsSize; j++) 
@@ -251,11 +255,13 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 
   // set global tcl variable to list of currently defined where axes
 
-  char tcommand[300];
-  sprintf (tcommand,  "getMetsAndRes %d %d", UIMMsgTokenID,
-	   0); // the last parameter (an Rdo token) is obsolete...0 is just a filler
+  string tcommand("getMetsAndRes ");
+  tcommand += string(UIMMsgTokenID);
+  tcommand += string(" ");
+  tcommand += string(0);
+  // the last parameter (an Rdo token) is obsolete...0 is just a filler
 
-  int retVal = Tcl_VarEval (interp, tcommand, 0);
+  int retVal = Tcl_VarEval (interp, P_strdup(tcommand.string_of()), 0);
   if (retVal == TCL_ERROR)  {
     uiMgr->showError (22, "Tcl command failure");
     printf ("%s\n", interp->result);
