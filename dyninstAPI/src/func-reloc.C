@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.38 2002/12/20 07:49:56 jaw Exp $
+ * $Id: func-reloc.C,v 1.39 2003/01/02 19:51:50 schendel Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -498,7 +498,7 @@ bool pd_Function::expandInstPoints(const image *owner,
                                LocalAlterationSet &normalized_alteration_set, 
                                Address baseAddress, Address mutator,
                                Address mutatee, instruction oldInstructions[], 
-                               unsigned numInstructions) {
+                               unsigned num_instructions) {
 
   bool combined1, combined2, combined3, combined4;
   bool attach1 = true, attach2 = true, attach3 = true, attach4 = true;
@@ -508,7 +508,7 @@ bool pd_Function::expandInstPoints(const image *owner,
     cerr << " baseAddress = " << hex << baseAddress << endl;
     cerr << " mutator = " << hex << mutator << endl;
     cerr << " mutatee = " << hex << mutatee << endl;
-    cerr << " numberOfInstructions = " << numInstructions << endl;
+    cerr << " numberOfInstructions = " << num_instructions << endl;
 #endif
 
   LocalAlterationSet tmp_alt_set1(this);
@@ -518,11 +518,11 @@ bool pd_Function::expandInstPoints(const image *owner,
   // Perform three passes looking for instPoints that need expansion
 
   attach1 = PA_attachGeneralRewrites(owner, temp_alteration_set, baseAddress, 
-                           mutatee, oldInstructions, numInstructions, size());
+                           mutatee, oldInstructions, num_instructions, size());
   attach2 = PA_attachOverlappingInstPoints(&tmp_alt_set1, baseAddress, 
                            mutatee, oldInstructions, size());
   attach3 = PA_attachBranchOverlaps(&tmp_alt_set2, baseAddress, mutator, 
-                           oldInstructions, numInstructions, size());
+                           oldInstructions, num_instructions, size());
 #if defined (sparc_sun_solaris2_4)
   attach4 = PA_attachTailCalls(&tmp_alt_set3);
 #endif

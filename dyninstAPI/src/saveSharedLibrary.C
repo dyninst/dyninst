@@ -69,7 +69,7 @@ void saveSharedLibrary::copyElf(){
 
                	//copy data buffer from oldElf 
 		if(olddata->d_buf){
-			(char*) newdata->d_buf = new char[olddata->d_size];
+			newdata->d_buf = new char[olddata->d_size];
 		        memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
                 }
 
@@ -82,7 +82,7 @@ void saveSharedLibrary::copyElf(){
 		}
 
 		if(!strcmp( (char*) strdata->d_buf + shdr->sh_name, ".shstrtab")){
-			char *secname =".dyninst_mutated\0";
+			const char *secname =".dyninst_mutated\0";
 			shstrtabData.d_size = olddata->d_size+strlen(secname)+1;
 			shstrtabData.d_buf = new  char[shstrtabData.d_size];
 			memcpy(	shstrtabData.d_buf,  olddata->d_buf, olddata->d_size); 

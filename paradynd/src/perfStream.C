@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.141 2002/12/20 07:50:07 jaw Exp $
+// $Id: perfStream.C,v 1.142 2003/01/02 19:52:19 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -197,252 +197,255 @@ extern bool TRACE_BURST_HAS_COMPLETED;
 unsigned mid_hash(const unsigned &mid) {return mid;}
 dictionary_hash<unsigned, unsigned> traceOn(mid_hash);
 
-// Read trace data from process curr.
-void processTraceStream(process *curr)
+// Read trace data from process proc.
+void processTraceStream(pd_process *proc)
 {
     int ret;
     traceStream sid;
     char *recordData;
     traceHeader header;
     struct _association *a;
+    process *dproc = proc->get_dyn_process();
 
-    ret = read(curr->traceLink, &(curr->buffer[curr->bufEnd]), 
-	       sizeof(curr->buffer)-curr->bufEnd);
+    ret = read(dproc->traceLink, &(proc->buffer[proc->bufEnd]), 
+	       sizeof(proc->buffer) - proc->bufEnd);
 
     if (ret < 0) {
         //statusLine("read error, exiting");
         //showErrorCallback(23, "Read error");
-	//curr->traceLink = -1;
+	//proc->traceLink = -1;
 	//cleanUpAndExit(-2);
         string msg = string("Read error on trace stream from PID=") +
-	             string(curr->getPid()) + string(": ") +
+	             string(proc->getPid()) + string(": ") +
 		     string(sys_errlist[errno]) + 
 		     string("\nNo more data will be received from this process");
 	showErrorCallback(23, msg);
-	P_close(curr->traceLink);
-	curr->traceLink = -1;
+	P_close(dproc->traceLink);
+	dproc->traceLink = -1;
 	return;
     } else if (ret == 0) {
 	/* end of file */
 	// process exited unexpectedly
-	//string buffer = string("Process ") + string(curr->pid);
+	//string buffer = string("Process ") + string(proc->pid);
 	//buffer += string(" has exited unexpectedly");
 	//statusLine(P_strdup(buffer.c_str()));
 	//showErrorCallback(11, P_strdup(buffer.c_str()));
-	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
+	string msg = string("Process ") + string(proc->getPid()) + 
+                     string(" exited");
 	statusLine(msg.c_str());
-	P_close(curr->traceLink);
-  	curr->traceLink = -1;
-	handleProcessExit(curr,0);
+	P_close(dproc->traceLink);
+  	dproc->traceLink = -1;
+	handleProcessExit(dproc, 0);
 	return;
     }
 
-    curr->bufEnd += ret;
-    curr->bufStart = 0;
+    proc->bufEnd += ret;
+    proc->bufStart = 0;
 
-    while (curr->bufStart < curr->bufEnd) {
-	if (curr->bufEnd - curr->bufStart < (sizeof(traceStream) + sizeof(header))) {
-	    break;
-	}
+    while(proc->bufStart < proc->bufEnd) {
+       if(proc->bufEnd - proc->bufStart < 
+          (sizeof(traceStream) + sizeof(header))) {
+          break;
+       }
+       
+       if(proc->bufStart % WORDSIZE != 0)     /* Word alignment check */
+          break;		        /* this will re-align by shifting */
+       
+       unsigned curr_bufStart = proc->bufStart;
+       memcpy(&sid, &(proc->buffer[proc->bufStart]), sizeof(traceStream));
+       proc->bufStart += sizeof(traceStream);
+       
+       memcpy(&header, &(proc->buffer[proc->bufStart]), sizeof(header));
+       proc->bufStart += sizeof(header);
 
-	if (curr->bufStart % WORDSIZE != 0)     /* Word alignment check */
-	    break;		        /* this will re-align by shifting */
-
-        unsigned curr_bufStart = curr->bufStart;
-	memcpy(&sid, &(curr->buffer[curr->bufStart]), sizeof(traceStream));
-	curr->bufStart += sizeof(traceStream);
-
-	memcpy(&header, &(curr->buffer[curr->bufStart]), sizeof(header));
-	curr->bufStart += sizeof(header);
-
-	curr->bufStart = ALIGN_TO_WORDSIZE(curr->bufStart);
-	if (header.length % WORDSIZE != 0) {
+       proc->bufStart = ALIGN_TO_WORDSIZE(proc->bufStart);
+       if (header.length % WORDSIZE != 0) {
 	  sprintf(errorLine, "Warning: non-aligned length (%d) received"
-                " on traceStream.  Type=%d\n", header.length, header.type);
+                  " on traceStream.  Type=%d\n", header.length, header.type);
 	  logLine(errorLine);
 	  showErrorCallback(36,(const char *) errorLine);
-	}
-	    
-	if (curr->bufEnd - curr->bufStart < (unsigned)header.length) {
-	    /* the whole record isn't here yet */
-	    // curr->bufStart -= sizeof(traceStream) + sizeof(header);
-            curr->bufStart = curr_bufStart;
-	    break;
-	}
+       }
+       
+       if(proc->bufEnd - proc->bufStart < (unsigned)header.length) {
+          /* the whole record isn't here yet */
+          // proc->bufStart -= sizeof(traceStream) + sizeof(header);
+          proc->bufStart = curr_bufStart;
+          break;
+       }
+       
+       recordData = &(proc->buffer[proc->bufStart]);
+       proc->bufStart +=  header.length;
 
-	recordData = &(curr->buffer[curr->bufStart]);
-	curr->bufStart +=  header.length;
-
-	switch (header.type) {
+       switch (header.type) {
 #if defined(MT_THREAD)
-	    case TR_THR_CREATE:
-		// sprintf(errorLine, "paradynd received TR_THR_CREATE, curr=0x%x", curr) ;
-		// cerr << errorLine <<endl ;
-	        createThread((traceThread *) ((void*)recordData));
-                break;
-	    case TR_THR_SELF:
-		// sprintf(errorLine, "paradynd received TR_THR_SELF, curr=0x%x", curr) ;
-		// cerr << errorLine <<endl ;
-	        updateThreadId((traceThread *) ((void*)recordData));
-                break;
-	    case TR_THR_DELETE:
-	        deleteThread((traceThread *) ((void*)recordData));
-	        break;
+         case TR_THR_CREATE:
+            // sprintf(errorLine, "paradynd received TR_THR_CREATE, proc=0x%x", proc) ;
+            // cerr << errorLine <<endl ;
+            createThread((traceThread *) ((void*)recordData));
+            break;
+         case TR_THR_SELF:
+            // sprintf(errorLine, "paradynd received TR_THR_SELF, proc=0x%x", proc) ;
+            // cerr << errorLine <<endl ;
+            updateThreadId((traceThread *) ((void*)recordData));
+            break;
+         case TR_THR_DELETE:
+            deleteThread((traceThread *) ((void*)recordData));
+            break;
 #endif
-	    case TR_NEW_RESOURCE:
-	      //cerr << "paradynd: received a new resource from pid " 
-              //     << curr->getPid() << "; processing now" << endl;
-		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
-		   // createResource() is in this file, below
-		break;
+         case TR_NEW_RESOURCE:
+            //cerr << "paradynd: received a new resource from pid " 
+            //     << proc->getPid() << "; processing now" << endl;
+            createResource(proc->getPid(), &header, 
+                           (struct _newresource *) ((void*)recordData));
+            // createResource() is in this file, below
+            break;
 
-	    case TR_NEW_ASSOCIATION:
-		a = (struct _association *) ((void*)recordData);
-		newAssoc(curr, a->abstraction, a->type, a->key, a->value);
-		break;
- 
-	    case TR_EXIT:
+         case TR_NEW_ASSOCIATION:
+            a = (struct _association *) ((void*)recordData);
+            newAssoc(proc, a->abstraction, a->type, a->key, a->value);
+            break;
+            
+         case TR_EXIT:
             {
-		/* 03/09/2001 - Jeffrey Shergalis
-		 * Under Optimization level 3 on SPARC this portion of
-		 * code was breaking due to an unalligned address issue
-		 * to fix this, we create an endStatsRec struct and memcopy
-		 * all of the data into it, then pass the address of that
-		 * struct to the printAppStats call
-		 */
-                struct endStatsRec r;
-                sprintf(errorLine, "process %d exited\n", curr->getPid());
-                logLine(errorLine);
-                memcpy(&r, recordData, sizeof(r));
-                printAppStats(&r);
-                printDyninstStats();
-                P_close(curr->traceLink);
-                curr->traceLink = -1;
-                handleProcessExit(curr, 0);
-                break;
+               /* 03/09/2001 - Jeffrey Shergalis
+                * Under Optimization level 3 on SPARC this portion of
+                * code was breaking due to an unalligned address issue
+                * to fix this, we create an endStatsRec struct and memcopy
+                * all of the data into it, then pass the address of that
+                * struct to the printAppStats call
+                */
+               struct endStatsRec r;
+               sprintf(errorLine, "process %d exited\n", proc->getPid());
+               logLine(errorLine);
+               memcpy(&r, recordData, sizeof(r));
+               printAppStats(&r);
+               printDyninstStats();
+               P_close(dproc->traceLink);
+               dproc->traceLink = -1;
+               handleProcessExit(dproc, 0);
+               break;
             }
 
-	    case TR_CP_SAMPLE:
-		// critical path sample
-		extern void processCP(process *, traceHeader *, cpSample *);
-		processCP(curr, &header, (cpSample *) recordData);
-		break;
+         case TR_CP_SAMPLE:
+            // critical path sample
+            extern void processCP(pd_process *, traceHeader *, cpSample *);
+            processCP(proc, &header, (cpSample *) recordData);
+            break;
 
-	    case TR_EXEC_FAILED:
-	        { int pid = *(int *)recordData;
-	          pd_process *p = getProcMgr().find_pd_process(pid);
-		  p->get_dyn_process()->inExec = false;
-		  p->get_dyn_process()->execFilePath = string("");
-		}
-		break;
-
-	     case TR_DYNAMIC_CALLEE_FOUND:
-	       {
-		 pd_Function *caller, *callee;
-		 resource *caller_res, *callee_res;
-		 pdvector<shared_object *> *sh_objs = NULL;
-		 image *symbols = curr->getImage();
-		 callercalleeStruct *c = (struct callercalleeStruct *) 
-		   ((void*)recordData);
-
-		 //cerr << "DYNAMIC trace record received!!, caller = " << hex 
-		 //   << c->caller << " callee = " << c->callee << dec << endl;
-		 assert(symbols);	
-		 if (curr->isDynamicallyLinked())
-		   sh_objs  = curr->sharedObjects();
-		 // Have to look in main image and (possibly) in shared objects
-		 caller = symbols->findFuncByAddr(c->caller, curr);
-		 if (!caller && sh_objs)
-		   {
-		     for(u_int j=0; j < sh_objs->size(); j++)
-		       {
-			 caller = ((*sh_objs)[j])->getImage()->findFuncByAddr(c->caller, curr);
-			 if (caller) break;
-		       }
-		   }
-
-		 callee = symbols->findFuncByAddr(c->callee, curr);
-		 if (!callee && sh_objs)
-		   {
-		     for(u_int j=0; j < sh_objs->size(); j++)
-		       {
-			 callee = ((*sh_objs)[j])->getImage()->findFuncByAddr(c->callee, curr);
-			 if (callee) break;
-		       }
-		   }
-		 if(!callee || !caller){
-		   cerr << "callee for addr " << ostream::hex << c->callee 
-			<< ostream::dec << " not found, caller = " <<
+         case TR_EXEC_FAILED: 
+            { 
+               int pid = *(int *)recordData;
+               pd_process *p = getProcMgr().find_pd_process(pid);
+               p->get_dyn_process()->inExec = false;
+               p->get_dyn_process()->execFilePath = string("");
+            }
+            break;
+            
+         case TR_DYNAMIC_CALLEE_FOUND:
+            {
+               pd_Function *caller, *callee;
+               resource *caller_res, *callee_res;
+               pdvector<shared_object *> *sh_objs = NULL;
+               image *symbols = proc->getImage();
+               callercalleeStruct *c = (struct callercalleeStruct *) 
+                  ((void*)recordData);
+               
+               //cerr << "DYNAMIC trace record received!!, caller = " << hex 
+               //   << c->caller << " callee = " << c->callee << dec << endl;
+               assert(symbols);	
+               if (proc->isDynamicallyLinked())
+                  sh_objs  = proc->sharedObjects();
+               // Have to look in main image and (possibly) in shared objects
+               caller = symbols->findFuncByAddr(c->caller, dproc);
+               if (!caller && sh_objs)
+               {
+                  for(u_int j=0; j < sh_objs->size(); j++)
+                  {
+                     caller = ((*sh_objs)[j])->getImage()->findFuncByAddr(c->caller, dproc);
+                     if (caller) break;
+                  }
+               }
+               
+               callee = symbols->findFuncByAddr(c->callee, dproc);
+               if (!callee && sh_objs) {
+                  for(u_int j=0; j < sh_objs->size(); j++) {
+                     callee = ((*sh_objs)[j])->getImage()->findFuncByAddr(c->callee, dproc);
+                     if (callee) break;
+                  }
+               }
+               if(!callee || !caller){
+                  cerr << "callee for addr " << ostream::hex << c->callee 
+                       << ostream::dec << " not found, caller = " <<
 		     caller->ResourceFullName() << endl;
-		   break;
-		 }
+                  break;
+               }
 		 
-		 /*If the callee's FuncResource isn't set, then
-		   the callee must be uninstrumentable, so we don't
-		   notify the front end.*/
-		 if(callee->FuncResourceSet() && caller->FuncResourceSet()){
-		   callee_res =  
+               /*If the callee's FuncResource isn't set, then
+                 the callee must be uninstrumentable, so we don't
+                 notify the front end.*/
+               if(callee->FuncResourceSet() && caller->FuncResourceSet()){
+                  callee_res =  
 		     resource::findResource(callee->ResourceFullName());
-		   caller_res =
+                  caller_res =
 		     resource::findResource(caller->ResourceFullName());
-		   assert(callee_res);
-		   assert(caller_res);
-		   tp->AddCallGraphDynamicChildCallback(symbols->file(),
-						      caller_res->full_name(), 
-						      callee_res->full_name());
-		 }
-		 break;
-	       }
-            case TR_DATA:
-                extern void batchTraceData(int, int, int, char *);
-                batchTraceData(0, sid, header.length, recordData);
-                traceOn[sid] = 1;
-                break;
- 	    case TR_ERROR: // also used for warnings
-	        { 
-
-		  rtUIMsg *rtMsgPtr;
-		  rtMsgPtr = (rtUIMsg *) recordData;
-		  showErrorCallback(rtMsgPtr->errorNum, rtMsgPtr->msgString);
-		  if(rtMsgPtr->msgType == rtError) {
-		    // if need this, might want to add code
-		    // to shut down paradyn and/or app
-		  }
-	        }
-		break;
-	    case TR_SYNC:
-		// to eliminate a race condition, --Zhichen
-		break ;
-	    default:
-		sprintf(errorLine, "Got unknown record type %d on sid %d\n", 
+                  assert(callee_res);
+                  assert(caller_res);
+                  tp->AddCallGraphDynamicChildCallback(symbols->file(),
+                                                       caller_res->full_name(),
+                                                      callee_res->full_name());
+               }
+               break;
+            }
+         case TR_DATA:
+            extern void batchTraceData(int, int, int, char *);
+            batchTraceData(0, sid, header.length, recordData);
+            traceOn[sid] = 1;
+            break;
+         case TR_ERROR: // also used for warnings
+            {
+               rtUIMsg *rtMsgPtr;
+               rtMsgPtr = (rtUIMsg *) recordData;
+               showErrorCallback(rtMsgPtr->errorNum, rtMsgPtr->msgString);
+               if(rtMsgPtr->msgType == rtError) {
+                  // if need this, might want to add code
+                  // to shut down paradyn and/or app
+               }
+            }
+            break;
+         case TR_SYNC:
+            // to eliminate a race condition, --Zhichen
+            break ;
+         default:
+            sprintf(errorLine, "Got unknown record type %d on sid %d\n", 
 		    header.type, sid);
-		logLine(errorLine);
-		sprintf(errorLine, "Received bad trace data from process %d.", curr->getPid());
-		showErrorCallback(37,(const char *) errorLine);
-	}
+            logLine(errorLine);
+            sprintf(errorLine, "Received bad trace data from process %d.", 
+                    proc->getPid());
+            showErrorCallback(37,(const char *) errorLine);
+       }
     }
     BURST_HAS_COMPLETED = true; // will force a batch-flush very soon
-
+    
     // trace data streams
     for (dictionary_hash_iter<unsigned,unsigned> iter=traceOn; iter; iter++) {
        const unsigned key = iter.currkey();
        unsigned val = iter.currval();
        
        if (val) {
-             extern void batchTraceData(int, int, int, char *);
-	     TRACE_BURST_HAS_COMPLETED = true;
-	     // will force a trace-batch-flush very soon
-             batchTraceData(0, key, 0, (char *)NULL);
-             traceOn[key] = 0;
-             //sprintf(errorLine, "$$$Tag burst with mid %d\n", k);
-             //logLine(errorLine);
-        }
+          extern void batchTraceData(int, int, int, char *);
+          TRACE_BURST_HAS_COMPLETED = true;
+          // will force a trace-batch-flush very soon
+          batchTraceData(0, key, 0, (char *)NULL);
+          traceOn[key] = 0;
+          //sprintf(errorLine, "$$$Tag burst with mid %d\n", k);
+          //logLine(errorLine);
+       }
     }
 
     /* copy those bits we have to the base */
-    memcpy(curr->buffer, &(curr->buffer[curr->bufStart]), 
-	curr->bufEnd - curr->bufStart);
-    curr->bufEnd = curr->bufEnd - curr->bufStart;
+    memcpy(proc->buffer, &(proc->buffer[proc->bufStart]), 
+	proc->bufEnd - proc->bufStart);
+    proc->bufEnd = proc->bufEnd - proc->bufStart;
 }
 
 extern pdvector<int> deferredMetricIDs;
@@ -813,7 +816,7 @@ void controllerMainLoop(bool check_buffer_first)
 	    
 	    if(curProc && curProc->getTraceLink() >= 0 && 
 	       FD_ISSET(curProc->getTraceLink(), &readSet)) {
-	       processTraceStream(curProc->get_dyn_process());	       
+	       processTraceStream(curProc);
 	       /* in the meantime, the process may have died, setting
 		  curProc to NULL */
 	       

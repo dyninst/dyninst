@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.131 2002/12/20 07:49:57 jaw Exp $
+// $Id: inst-sparc.C,v 1.132 2003/01/02 19:51:51 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -80,7 +80,7 @@ int deadListSize = sizeof(deadList);
 
 // Constructor for the instPoint class. 
 instPoint::instPoint(pd_Function *f, const image *owner, Address &adr, 
-                     bool delayOK, instPointType pointType, bool noCall)
+                     const bool delayOK, instPointType pointType, bool noCall)
 : insnAddr(adr), addr(adr), 
   firstPriorIsDCTI(false), 
   secondPriorIsDCTI(false),

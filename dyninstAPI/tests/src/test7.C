@@ -1,4 +1,4 @@
-// $Id: test7.C,v 1.2 2002/12/21 03:16:43 jaw Exp $
+// $Id: test7.C,v 1.3 2003/01/02 19:52:09 schendel Exp $
 //
 
 #include <stdio.h>
@@ -21,7 +21,7 @@
 #include "test_util.h"
 
 
-char *mutateeNameRoot = "test4a.mutatee";
+const char *mutateeNameRoot = "test4a.mutatee";
 
 int inTest;		// current test #
 int expectError;
@@ -42,15 +42,15 @@ BPatch *bpatch;
 typedef enum { Parent_p, Child_p } procType;
 typedef enum { PreFork, PostFork } forkWhen;
 
-char *procName[2] = { "parent", "child" };
+const char *procName[2] = { "parent", "child" };
 
 /*
  * Given a string variable name and an expected value, lookup the varaible
  *    in the process, and verify that the value matches.
  *
  */
-bool verifyProcMemory(BPatch_thread *appThread, char *name, int expectedVal,
-		      procType proc_type)
+bool verifyProcMemory(BPatch_thread *appThread, const char *name,
+                      int expectedVal, procType proc_type)
 {
    BPatch_image *appImage = appThread->getImage();
 
@@ -84,8 +84,8 @@ bool verifyProcMemory(BPatch_thread *appThread, char *name, int expectedVal,
  *    in the process, and verify that the value matches.
  *
  */
-bool verifyProcMemory(char *name, BPatch_variableExpr *var, int expectedVal,
-		      procType proc_type)
+bool verifyProcMemory(const char *name, BPatch_variableExpr *var,
+                      int expectedVal, procType proc_type)
 {
    int actualVal;
    var->readValue(&actualVal);
@@ -102,7 +102,7 @@ bool verifyProcMemory(char *name, BPatch_variableExpr *var, int expectedVal,
 }
 
 
-bool doError(int testNum, bool cond, char *str) {
+bool doError(int testNum, bool cond, const char *str) {
    if(cond == true) {
       fprintf(stderr, str);
       passedTest[testNum] = false;
@@ -174,7 +174,7 @@ void prepareTestCase1(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *parImage = thread->getImage();
       
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_1";
+      const char *inFunction = "func7_1";
       if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -238,7 +238,7 @@ void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *parImage = thread->getImage();
       
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_2";
+      const char *inFunction = "func7_2";
       if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -269,7 +269,7 @@ void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *childImage = thread->getImage();      
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_2";
+      const char *inFunction = "func7_2";
       if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -336,7 +336,7 @@ void prepareTestCase3(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *parImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_3";
+      const char *inFunction = "func7_3";
       if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -374,7 +374,7 @@ void prepareTestCase3(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *childImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_3";
+      const char *inFunction = "func7_3";
       if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -441,7 +441,7 @@ void prepareTestCase4(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *childImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_4";
+      const char *inFunction = "func7_4";
       if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -506,7 +506,7 @@ void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *parImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_5";
+      const char *inFunction = "func7_5";
       if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -537,7 +537,7 @@ void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *parImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_5";
+      const char *inFunction = "func7_5";
       if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -574,7 +574,7 @@ void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *childImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_5";
+      const char *inFunction = "func7_5";
       if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -708,7 +708,7 @@ void prepareTestCase7(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *parImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_7";
+      const char *inFunction = "func7_7";
       if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -735,7 +735,7 @@ void prepareTestCase7(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *childImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_7";
+      const char *inFunction = "func7_7";
       if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -808,7 +808,7 @@ void prepareTestCase8(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *parImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_8";
+      const char *inFunction = "func7_8";
       if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -890,7 +890,7 @@ void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_image *childImage = thread->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
-      char *inFunction="func7_9";
+      const char *inFunction = "func7_9";
       if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
@@ -1102,7 +1102,7 @@ void mutatorMAIN(char *pathname)
 
     inTest = 1;
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
     child_argv[n] = NULL;
 

@@ -46,6 +46,11 @@
 
 /* 
  * $Log: templatesPVM.C,v $
+ * Revision 1.5  2003/01/02 19:52:21  schendel
+ * updates so dyninstAPI and the dyninstAPI tests can be built with the
+ * Solaris native compiler  - - - - - - - - - - - - - - - - - - - - - - - -
+ * fixed warnings when compiling with Solaris native compiler;
+ *
  * Revision 1.4  2000/07/27 15:24:47  hollings
  * Missed Commit of changes in include file location.
  *
@@ -72,9 +77,9 @@
  *
  *
  */
-#pragma implementation  "list.h"
+#pragma implementation  "List.h"
 
-#include "common/h/list.h"
+#include "common/h/List.h"
 
 typedef struct task;
 

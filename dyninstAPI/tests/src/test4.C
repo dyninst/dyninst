@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.14 2002/12/21 03:16:43 jaw Exp $
+// $Id: test4.C,v 1.15 2003/01/02 19:52:05 schendel Exp $
 //
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 #include "test_util.h"
 
 
-char *mutateeNameRoot = "test4a.mutatee";
+const char *mutateeNameRoot = "test4a.mutatee";
 
 int inTest;		// current test #
 int expectError;
@@ -45,7 +45,7 @@ BPatch *bpatch;
  *
  */
 bool verifyChildMemory(BPatch_thread *appThread, 
-			      char *name, int expectedVal)
+                       const char *name, int expectedVal)
 {
      BPatch_image *appImage = appThread->getImage();
 
@@ -105,7 +105,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        BPatch_funcCallExpr callExpr2(*func2_3, nullArgs);
  
        BPatch_Vector<BPatch_function *> found_funcs;
-       char *inFunction="func2_2";
+       const char *inFunction = "func2_2";
        if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	 fprintf(stderr, "    Unable to find function %s\n",
 		 inFunction);
@@ -146,7 +146,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        BPatch_funcCallExpr callExpr2(*func4_3, nullArgs);
 
        BPatch_Vector<BPatch_function *> found_funcs;
-       char *inFunction="func4_2";
+       const char *inFunction = "func4_2";
        if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	 fprintf(stderr, "    Unable to find function %s\n",
 		 inFunction);
@@ -273,7 +273,7 @@ void execFunc(BPatch_thread *thread)
         BPatch_funcCallExpr callExpr(*func3_2, nullArgs);
 
        BPatch_Vector<BPatch_function *> found_funcs;
-       char *inFunction="func3_1";
+       const char *inFunction = "func3_1";
        if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	 fprintf(stderr, "    Unable to find function %s\n",
 		 inFunction);
@@ -302,7 +302,7 @@ void execFunc(BPatch_thread *thread)
         BPatch_funcCallExpr callExpr1(*func4_4, nullArgs);
 
        BPatch_Vector<BPatch_function *> found_funcs;
-       char *inFunction="func4_2";
+       const char *inFunction = "func4_2";
        if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
 	 fprintf(stderr, "    Unable to find function %s\n",
 		 inFunction);
@@ -395,10 +395,10 @@ void mutatorTest1(char *pathname)
 
     inTest = 1;
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
-    child_argv[n++] = "-run";
-    child_argv[n++] = "1";
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("1");
     child_argv[n] = NULL;
 
     // Start the mutatee
@@ -433,10 +433,10 @@ void mutatorTest2(char *pathname)
 
     inTest = 2;
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
-    child_argv[n++] = "-run";
-    child_argv[n++] = "2";
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("2");
     child_argv[n] = NULL;
 
     // Start the mutatee
@@ -469,10 +469,10 @@ void mutatorTest3(char *pathname)
 
     inTest = 3;
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
-    child_argv[n++] = "-run";
-    child_argv[n++] = "3";
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("3");
     child_argv[n] = NULL;
 
     // Start the mutatee
@@ -507,10 +507,10 @@ void mutatorTest4(char *pathname)
 
     inTest = 4;
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
-    child_argv[n++] = "-run";
-    child_argv[n++] = "4";
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("4");
     child_argv[n] = NULL;
 
     // Start the mutatee

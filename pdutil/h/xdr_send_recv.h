@@ -137,8 +137,10 @@ bool P_xdr_send_common(XDR *xdr, const pdvector<T, A> &vec,
    if (nelems == 0)
       return true;
    
-   TYPENAME31 pdvector<T, A>::const_iterator finish = vec.end();
-   for (TYPENAME31 pdvector<T, A>::const_iterator iter = vec.begin(); iter != finish; ++iter) {
+   TYPENAME pdvector<T, A>::const_iterator finish = vec.end();
+   for (TYPENAME pdvector<T, A>::const_iterator iter = vec.begin();
+        iter != finish; ++iter)
+   {
       const T item = *iter;
 
       if (!writerfn(xdr, item))
@@ -177,8 +179,10 @@ bool P_xdr_send_pointers(XDR *xdr, const pdvector<T*, A> &vec) {
    if (nelems == 0)
       return true;
    
-   TYPENAME31 pdvector<T*, A>::const_iterator finish = vec.end();
-   for (TYPENAME31 pdvector<T*, A>::const_iterator iter = vec.begin(); iter != finish; ++iter) {
+   TYPENAME pdvector<T*, A>::const_iterator finish = vec.end();
+   for (TYPENAME pdvector<T*, A>::const_iterator iter = vec.begin(); 
+        iter != finish; ++iter)
+   {
       const T *item = *iter;
       if (!P_xdr_send(xdr, *item))
          return false;
@@ -213,8 +217,9 @@ bool P_xdr_recv(XDR *xdr, pdvector<T, A> &vec) {
       // don't call reserve_for_inplace_construction() with an argument of zero.
       return true;
    
-   TYPENAME31 pdvector<T, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
-   TYPENAME31 pdvector<T, A>::iterator finish = vec.end();
+   TYPENAME pdvector<T, A>::iterator iter = 
+      vec.reserve_for_inplace_construction(nelems);
+   TYPENAME pdvector<T, A>::iterator finish = vec.end();
 
    // Reminder: Upon failure, we must still expect the dtor for vector<T, A> to
    // get called, so leave the object in a valid state no matter what.
@@ -252,8 +257,8 @@ bool P_xdr_recv_ctor(XDR *xdr, pdvector<T, A> &vec) {
       // don't call reserve_for_inplace_construction() with an argument of zero.
       return true;
    
-   TYPENAME31 pdvector<T, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
-   TYPENAME31 pdvector<T, A>::iterator finish = vec.end();
+   TYPENAME pdvector<T, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
+   TYPENAME pdvector<T, A>::iterator finish = vec.end();
 
    // Reminder: Upon failure, we must still expect the dtor for vector<T, A> to
    // get called, so leave the object in a valid state no matter what.
@@ -292,8 +297,9 @@ bool P_xdr_recv_pointers(XDR *xdr, pdvector<T*, A> &vec) {
 
    // No need to be too clever with reserve_for_inplace_construction() here; since
    // the vector is of pointers, element copying will be cheap, etc.
-   TYPENAME31 pdvector<T*, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
-   TYPENAME31 pdvector<T*, A>::iterator finish = vec.end();
+   TYPENAME pdvector<T*, A>::iterator iter = 
+      vec.reserve_for_inplace_construction(nelems);
+   TYPENAME pdvector<T*, A>::iterator finish = vec.end();
 
    // Reminder: Upon failure, we must still expect the dtor for vector<T, A> to
    // get called, so leave the object in a valid state no matter what.

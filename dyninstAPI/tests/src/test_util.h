@@ -13,8 +13,8 @@
 #endif
 
 void waitUntilStopped(BPatch *, BPatch_thread *appThread, 
-	int testnum, char *testname);
+                      int testnum, const char *testname);
 void signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
-int startNewProcessForAttach(char *pathname, char *argv[]);
+int startNewProcessForAttach(const char *pathname, char *argv[]);
 
 #endif

@@ -42,7 +42,7 @@
 /*
  * association.C - Manage mapping information (associations)
  *
- * $Id: association.C,v 1.12 2000/07/28 17:22:10 pcroth Exp $
+ * $Id: association.C,v 1.13 2003/01/02 19:52:14 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -56,7 +56,7 @@
 #include <assert.h>
 
 // TODO -- clean me up
-void newAssoc(process *, char *abstraction, char *type, char *key, 
+void newAssoc(pd_process *, char *abstraction, char *type, char *key, 
 	      char *value)
 {
 

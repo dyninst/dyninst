@@ -176,10 +176,10 @@ class BPATCH_DLL_EXPORT BPatch_thread {
 
 protected:
     // for creating a process
-    BPatch_thread(char *path, char *argv[], char *envp[] = NULL, int stdin_fd = 0,
-	int stdout_fd = 1, int stderr_fd = 2);
+    BPatch_thread(const char *path, char *argv[], char *envp[] = NULL, 
+                  int stdin_fd = 0, int stdout_fd = 1, int stderr_fd = 2);
     // for attaching
-    BPatch_thread(char *path, int pid);	
+    BPatch_thread(const char *path, int pid);	
 
     // for forking
     BPatch_thread(int childPid, process *proc);
@@ -260,7 +260,7 @@ public:
 	//when it starts up. this is up to the user because loading
 	//an extra shared library could hide access to the 'correct'
 	//function by redefining a function  
-    bool	loadLibrary(char *libname, bool reload = false); 
+    bool loadLibrary(const char *libname, bool reload = false); 
 
     //method that retrieves the line number and file name corresponding 
     //to an address

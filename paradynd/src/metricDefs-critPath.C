@@ -44,6 +44,11 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
+ * Revision 1.8  2003/01/02 19:52:16  schendel
+ * updates so dyninstAPI and the dyninstAPI tests can be built with the
+ * Solaris native compiler  - - - - - - - - - - - - - - - - - - - - - - - -
+ * fixed warnings when compiling with Solaris native compiler;
+ *
  * Revision 1.7  2002/05/10 18:37:33  schendel
  * add ability in daemon to adjust existing metric-focuses for thread creation
  *   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -117,7 +122,7 @@
 
 dictionary_hash<unsigned, cpSample*> contextToSample(uiHash);
 
-void processCP(process *, traceHeader *hdr, cpSample *sample)
+void processCP(pd_process *, traceHeader *hdr, cpSample *sample)
 {
     cpSample *item;
 

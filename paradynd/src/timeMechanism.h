@@ -44,6 +44,7 @@
 #define TIMEMECHANISM_H
 
 #include "common/h/Time.h"
+#include "common/h/language.h"
 #include "common/h/String.h"
 #include "rtinst/h/rtinst.h"
 

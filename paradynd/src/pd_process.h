@@ -63,10 +63,15 @@ class pd_process {
    unsigned numOfActProcTimers_is;
    unsigned numOfActWallTimers_is;
 
+  // the following 3 are used in perfStream.C
+  char buffer[2048];
+  unsigned bufStart;
+  unsigned bufEnd;
+
  public:
    pd_process(process *p) : dyninst_process(p),
       numOfActCounters_is(0), numOfActProcTimers_is(0),
-      numOfActWallTimers_is(0)
+      numOfActWallTimers_is(0), bufStart(0), bufEnd(0)
    {
       init();
    }
@@ -229,6 +234,14 @@ class pd_process {
 
    module *findModule(const string &mod_name,bool check_excluded) {
       return dyninst_process->findModule(mod_name, check_excluded);
+   }
+
+   bool isDynamicallyLinked() { 
+      return dyninst_process->isDynamicallyLinked();
+   }
+
+   pdvector<shared_object *> *sharedObjects() {
+      return dyninst_process->sharedObjects();
    }
 
    unsigned maxNumberOfThreads() {

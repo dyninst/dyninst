@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.50 2002/12/21 03:16:43 jaw Exp $
+// $Id: test2.C,v 1.51 2003/01/02 19:52:02 schendel Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -40,7 +40,7 @@
 #define F_OK 0
 #endif
 
-BPatch_thread *mutatorMAIN(char *path);
+BPatch_thread *mutatorMAIN(const char *path);
 void errorFunc(BPatchErrorLevel level, int num, const char **params);
 bool useAttach = false;
 int debugPrint = 0; // internal "mutator" tracing
@@ -56,7 +56,7 @@ bool passedTest[MAX_TEST+1];
 
 BPatch *bpatch;
 
-static char *mutateeNameRoot = "test2.mutatee";
+static const char *mutateeNameRoot = "test2.mutatee";
 char mutateeName[128];
 
 // control debug printf statements
@@ -627,7 +627,7 @@ void test14(BPatch_thread *thread)
 }
 
 
-BPatch_thread *mutatorMAIN(char *pathname)
+BPatch_thread *mutatorMAIN(const char *pathname)
 {
     BPatch_thread *appThread;
 
@@ -637,10 +637,10 @@ BPatch_thread *mutatorMAIN(char *pathname)
     char *child_argv[MAX_TEST+4];
    
     int n = 0;
-    child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
+    child_argv[n++] = const_cast<char*>(pathname);
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
-    child_argv[n++] = "-run";
+    child_argv[n++] = const_cast<char*>("-run");
     for (unsigned int j=0; j <= MAX_TEST; j++) {
         if (runTest[j]) {
             char str[5];

@@ -196,9 +196,9 @@ public:
     void setTrampRecursive(bool x) { trampRecursiveOn = x; }
     void setForcedRelocation_NP(bool x) { forceRelocation_NP = x; }
 
-    BPatch_thread *createProcess(char *path, char *argv[], 
+    BPatch_thread *createProcess(const char *path, char *argv[], 
 	char *envp[] = NULL, int stdin_fd=0, int stdout_fd=1, int stderr_fd=2);
-    BPatch_thread *attachProcess(char *path, int pid);
+    BPatch_thread *attachProcess(const char *path, int pid);
 
     // Create Enum types. 
     BPatch_type * createEnum(const char * name, 

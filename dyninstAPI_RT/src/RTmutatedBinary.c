@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary.c,v 1.3 2002/05/14 20:20:51 chadd Exp $ */
+/* $Id: RTmutatedBinary.c,v 1.4 2003/01/02 19:52:13 schendel Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -8,9 +8,10 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include <unistd.h>
 #include  <fcntl.h>
+#include <string.h>
 
 #if defined(sparc_sun_solaris2_4)
-#include  <libelf.h>
+#include <libelf.h>
 #elif defined(i386_unknown_linux2_0)
 #include <libelf/libelf.h>
 #define __USE_GNU
@@ -393,6 +394,7 @@ int checkElfFile(){
 
 		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_",11)){
 			char *tmpStr;
+         const char *strstart;
 #if defined(sparc_sun_solaris2_4)
 			/* solaris does not make _r_debug available by
 				default, we have to find it in the 
@@ -410,14 +412,16 @@ int checkElfFile(){
 
 #endif
 			retVal = 1; /* this is a restored run */
-			tmpStr = strchr((char *)strData->d_buf + shdr->sh_name,'_'); 
-			tmpStr ++;
+                        strstart = ((const char *)strData->d_buf) + 
+                                   shdr->sh_name;  
+			tmpStr = strchr(strstart, (int)'_'); 
+			tmpStr++;
 			if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
 				/* this is a heap tramp section */
 				if( sawFirstHeapTrampSection ){
-					result = mmap((void*) shdr->sh_addr, shdr->sh_size, 
-					PROT_READ|PROT_WRITE|PROT_EXEC,
-					MAP_FIXED|MAP_PRIVATE,fd,shdr->sh_offset);
+					result = (int) mmap((void*) shdr->sh_addr, shdr->sh_size, 
+                                   PROT_READ|PROT_WRITE|PROT_EXEC,
+                                   MAP_FIXED|MAP_PRIVATE,fd,shdr->sh_offset);
 				}else{
 					elfData = elf_getdata(scn, NULL);
 					memcpy((void*)shdr->sh_addr, elfData->d_buf, shdr->sh_size);
@@ -449,7 +453,7 @@ int checkElfFile(){
 				lmap = _r_debug.r_map;
 				while(lmap){
 					loadedname = strrchr(lmap->l_name,'/');
-					dyninstname =  strrchr(soNames,'/');
+					dyninstname =  strrchr((const char *)soNames,(int)'/');
 					if(loadedname == 0){
 						loadedname = lmap->l_name;
 					}
@@ -563,7 +567,8 @@ int checkElfFile(){
 			baseAddr = ((unsigned int) dyninst_jump_templatePtr)  -
 				( ((unsigned int) dyninst_jump_templatePtr)% getpagesize());
 			size =  (unsigned int) dyninst_jump_templatePtr  - baseAddr + 80;
-			result = mprotect(baseAddr , size, PROT_READ|PROT_WRITE|PROT_EXEC);
+			result = mprotect((void*)baseAddr , size, 
+                           PROT_READ|PROT_WRITE|PROT_EXEC);
 
 			/* build sethi hi(register_o7), %g1 */
 			*dyninst_jump_templatePtr = 0x03000000;
@@ -589,7 +594,7 @@ int checkElfFile(){
 
 
 			/* advance past call to pseudoSigHandler */
-			dyninst_jump_templatePtr = (unsigned int) &__dyninst_jump_template__done__ ;
+			dyninst_jump_templatePtr = (unsigned int*) &__dyninst_jump_template__done__ ;
 	
 			/* build sethi hi(register_o7), %g1 */
 			*dyninst_jump_templatePtr = 0x03000000;
@@ -607,7 +612,8 @@ int checkElfFile(){
 			baseAddr = ((unsigned int) pltEntry)  -
 				( ((unsigned int) pltEntry)% getpagesize());
 			size =  (unsigned int) pltEntry  - baseAddr + 8;
-			result = mprotect(baseAddr , size, PROT_READ|PROT_WRITE|PROT_EXEC);
+			result = mprotect((void*)baseAddr , size,
+                           PROT_READ|PROT_WRITE|PROT_EXEC);
 
 			/* build sethi hi(&__dyninst_jump_template__), %g1 */
 			pltEntry --;
@@ -667,8 +673,8 @@ int checkElfFile(){
                                 	PROT_READ|PROT_WRITE|PROT_EXEC,MAP_FIXED|MAP_PRIVATE,fd,mmapAddr);
 			}else{
 				/*we own it, finish the memcpy */
-				mmapAddr = memcpy(oldPageData, (void*) shdr->sh_addr, updateSize);
-
+				mmapAddr = (unsigned int) memcpy((void*) oldPageData, 
+                                      (const void*) shdr->sh_addr, updateSize);
 			}
 	
 			dataPtr =(unsigned int*) &(((char*)  elfData->d_buf)[oldPageDataSize]);	

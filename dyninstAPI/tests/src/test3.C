@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.26 2002/12/21 03:16:43 jaw Exp $
+// $Id: test3.C,v 1.27 2003/01/02 19:52:04 schendel Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -49,7 +49,7 @@ template class BPatch_Vector<BPatch_variableExpr*>;
 
 BPatch *bpatch;
 
-static char *mutateeNameRoot = "test3.mutatee";
+static const char *mutateeNameRoot = "test3.mutatee";
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
@@ -96,7 +96,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
 //
 // Return a pointer to a string identifying a BPatch_procedureLocation
 //
-char *locationName(BPatch_procedureLocation l)
+const char *locationName(BPatch_procedureLocation l)
 {
     switch(l) {
       case BPatch_entry:
@@ -233,9 +233,9 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
     unsigned int n=0;
     char *child_argv[5];
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
-    child_argv[n++] = "-run";
-    child_argv[n++] = "1";		// run test1 in mutatee
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("1");       // run test1 in mutatee
     child_argv[n++] = NULL;
 
     BPatch_thread *appThread[MAX_MUTATEES];
@@ -289,9 +289,9 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
     unsigned int n=0;
     char *child_argv[5];
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
-    child_argv[n++] = "-run";
-    child_argv[n++] = "2";		// run test2 in mutatee
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("2");	    // run test2 in mutatee
     child_argv[n++] = NULL;
 
     BPatch_thread *appThread[MAX_MUTATEES];
@@ -371,9 +371,9 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
     unsigned int n=0;
     char *child_argv[5];
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
-    child_argv[n++] = "-run";
-    child_argv[n++] = "3";		// run test3 in mutatee
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("3");	    // run test3 in mutatee
     child_argv[n++] = NULL;
 
     int pid[MAX_MUTATEES];
@@ -514,9 +514,9 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
     unsigned int n=0;
     char *child_argv[5];
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
-    child_argv[n++] = "-run";
-    child_argv[n++] = "2";		// run test2 in mutatee
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("2");     	// run test2 in mutatee
     child_argv[n++] = NULL;
 
     BPatch_thread *appThread;
@@ -557,9 +557,9 @@ void mutatorTest5(char *pathname, BPatch *bpatch)
     unsigned int n=0;
     char *child_argv[5];
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
-    child_argv[n++] = "-run";
-    child_argv[n++] = "5";		// run test5 in mutatee
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("5");	  // run test5 in mutatee
     child_argv[n++] = NULL;
 
     BPatch_thread *appThread;

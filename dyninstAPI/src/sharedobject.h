@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.31 2002/12/20 07:49:58 jaw Exp $
+// $Id: sharedobject.h,v 1.32 2003/01/02 19:51:54 schendel Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -176,14 +176,13 @@ public:
 	return NULL;
     }
 
-    pd_Function *findFuncByName(const string &name)
-      {
-	if (name.c_str() == 0) return NULL;
-        if(objs_image) {
-	  return (objs_image->findFuncByName(name));
-	}
-	return NULL;
-      }
+    pd_Function *findFuncByName(const string &funcname) {
+       if (funcname.c_str() == 0) return NULL;
+       if(objs_image) {
+	  return (objs_image->findFuncByName(funcname));
+       }
+       return NULL;
+    }
     
 
     pdmodule *findModule(string m_name, bool check_excluded);

@@ -718,7 +718,7 @@ void BPatch_type::endCommonBlock(BPatch_function *func, void *baseAddr)
 //     Each equivelence class is given a unique number.
 //
 struct intrensicTypes_ {
-    char *name;
+    const char *name;
     int tid;
 };
 

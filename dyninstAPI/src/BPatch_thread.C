@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.68 2002/12/21 03:16:43 jaw Exp $
+// $Id: BPatch_thread.C,v 1.69 2003/01/02 19:51:47 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -151,7 +151,7 @@ static void insertVForkInst(BPatch_thread *thread)
  *              NULL pointer.  If envp is NULL, the parent's environment is
  *              copied and passed to the child.
  */
-BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[],
+BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
 			     int stdin_fd, int stdout_fd, int stderr_fd)
   : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
     createdViaAttach(false), detached(false),
@@ -224,7 +224,7 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[],
  * path		Pathname of the executable file for the process.
  * pid		Process ID of the target process.
  */
-BPatch_thread::BPatch_thread(char *path, int pid)
+BPatch_thread::BPatch_thread(const char *path, int pid)
   : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
     createdViaAttach(true), detached(false),
     unreportedStop(false), unreportedTermination(false)
@@ -1259,7 +1259,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
  *
  * libname	The name of the library to load.
  */
-bool BPatch_thread::loadLibrary(char *libname, bool reload)
+bool BPatch_thread::loadLibrary(const char *libname, bool reload)
 {
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
@@ -1434,7 +1434,7 @@ bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadad
 	  "using loadLibrary(char* = %s)\n",
 	  __FILE__, __LINE__, name, loadaddr, name);
 
-  return loadLibrary((char *)name);
+  return loadLibrary(name);
 }
 
 #endif

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.44 2002/12/20 07:49:56 jaw Exp $
+ * $Id: Object-elf.C,v 1.45 2003/01/02 19:51:49 schendel Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -131,14 +131,15 @@ const char *pdelf_get_shnames(Elf *elfp, bool is64)
 // 
 // Compare function for use with the Vector<T> sort method.
 //
-static
-int
+extern "C" {
+static int
 SectionHeaderSortFunction( const void* v1, const void* v2 )
 {
 	const pdElfShdr* hdr1 = *(const pdElfShdr* const*)v1;
 	const pdElfShdr* hdr2 = *(const pdElfShdr* const*)v2;
 
 	return hdr1->pd_addr - hdr2->pd_addr;
+}
 }
 
 // loaded_elf(): populate elf section pointers

@@ -54,9 +54,9 @@ template class BPatch_Set<int>;
 
 BPatch *bpatch;
 
-static char *mutateeNameRoot = "test1.mutatee";
-static char *libNameAroot = "libtestA";
-static char *libNameBroot = "libtestB";
+static const char *mutateeNameRoot = "test1.mutatee";
+static const char *libNameAroot = "libtestA";
+static const char *libNameBroot = "libtestB";
 char libNameA[64], libNameB[64];
 
 // control debug printf statements
@@ -133,7 +133,7 @@ void checkCost(BPatch_snippet snippet)
     }
 }
 
-int functionNameMatch(char *gotName, char *targetName) 
+int functionNameMatch(const char *gotName, const char *targetName) 
 {
     if (!strcmp(gotName, targetName)) return 0;
 
@@ -153,9 +153,9 @@ int functionNameMatch(char *gotName, char *targetName)
 // Returns the number of replacements that were performed.
 //
 int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
-			 char *inFunction, char *callTo, char *replacement,
-			 int testNo, char *testName,
-			 int callsExpected = -1)
+                         const char *inFunction, const char *callTo, 
+                         const char *replacement, int testNo, 
+                         const char *testName, int callsExpected = -1)
 {
     int numReplaced = 0;
 
@@ -229,7 +229,7 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 //
 // Return a pointer to a string identifying a BPatch_procedureLocation
 //
-char *locationName(BPatch_procedureLocation l)
+const char *locationName(BPatch_procedureLocation l)
 {
     switch(l) {
       case BPatch_entry:
@@ -253,8 +253,10 @@ char *locationName(BPatch_procedureLocation l)
 // Returns the value returned by BPatch_thread::insertSnippet.
 //
 BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
-	BPatch_image *appImage, char *inFunction, BPatch_procedureLocation loc,
-	BPatch_snippet &snippet, int testNo, char *testName)
+                               BPatch_image *appImage, const char *inFunction, 
+                               BPatch_procedureLocation loc, 
+                               BPatch_snippet &snippet,
+                               int testNo, const char *testName)
 {
     // Find the point(s) we'll be instrumenting
 
@@ -287,8 +289,8 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
 //
 // Create a snippet that calls the function "funcName" with no arguments
 //
-BPatch_snippet *makeCallSnippet(BPatch_image *appImage, char *funcName,
-				int testNo, char *testName)
+BPatch_snippet *makeCallSnippet(BPatch_image *appImage, const char *funcName,
+                                int testNo, const char *testName)
 {
     BPatch_function *call_func = appImage->findFunction(funcName);
     if (call_func == NULL) {
@@ -314,11 +316,12 @@ BPatch_snippet *makeCallSnippet(BPatch_image *appImage, char *funcName,
 // procedure "inFunction" at the points given by "loc."
 //
 BPatchSnippetHandle *insertCallSnippetAt(BPatch_thread *appThread,
-	BPatch_image *appImage, char *inFunction, BPatch_procedureLocation loc,
-	char *funcName, int testNo, char *testName)
+                            BPatch_image *appImage, const char *inFunction,
+                            BPatch_procedureLocation loc, const char *funcName,
+                            int testNo, const char *testName)
 {
     BPatch_snippet *call_expr =
-	makeCallSnippet(appImage, funcName, testNo, testName);
+       makeCallSnippet(appImage, funcName, testNo, testName);
 
     BPatchSnippetHandle *ret = insertSnippetAt(appThread, appImage,
 					       inFunction, loc, *call_expr,
@@ -337,8 +340,8 @@ BPatchSnippetHandle *insertCallSnippetAt(BPatch_thread *appThread,
 
 // Wrapper function to find variables
 // For Fortran, will look for lowercase variable, if mixed case not found
-BPatch_variableExpr *findVariable (BPatch_image *appImage,
-     char* var, BPatch_Vector <BPatch_point *> *point = NULL)
+BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
+                                  BPatch_Vector <BPatch_point *> *point = NULL)
 {
   //BPatch_variableExpr *FortVar = NULL;
     BPatch_variableExpr *ret = NULL;
@@ -905,8 +908,8 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->insertSnippet( BPatch_sequence(vect6_1), *point6_1);
 }
 
-void genRelTest(BPatch_image *appImage,BPatch_Vector<BPatch_snippet*> &vect7_1, 
-		BPatch_relOp op, int r1, int r2, char *var1)
+void genRelTest(BPatch_image *appImage,BPatch_Vector<BPatch_snippet*> &vect7_1,
+                BPatch_relOp op, int r1, int r2, const char *var1)
 {
 
    BPatch_Vector<BPatch_function *> found_funcs;
@@ -942,9 +945,9 @@ void genRelTest(BPatch_image *appImage,BPatch_Vector<BPatch_snippet*> &vect7_1,
 }
 
 void genVRelTest(BPatch_image *appImage,
-		 BPatch_Vector<BPatch_snippet*> &vect7_1, 
-		 BPatch_relOp op, BPatch_variableExpr *r1, 
-		 BPatch_variableExpr *r2, char *var1)
+                 BPatch_Vector<BPatch_snippet*> &vect7_1, 
+                 BPatch_relOp op, BPatch_variableExpr *r1, 
+                 BPatch_variableExpr *r2, const char *var1)
 {
 
    BPatch_Vector<BPatch_function *> found_funcs;
@@ -2856,16 +2859,16 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
 	return;
     }
 
-    names.push_back("field1");
-    names.push_back("field2");
+    names.push_back(const_cast<char*>("field1"));
+    names.push_back(const_cast<char*>("field2"));
     types.push_back(intType);
     types.push_back(intType);
 
     //	struct28_1 { int field1, int field 2; }
     BPatch_type *struct28_1 = bpatch->createStruct("struct28_1", names, types);
 
-    names.push_back("field3");
-    names.push_back("field4");
+    names.push_back(const_cast<char*>("field3"));
+    names.push_back(const_cast<char*>("field4"));
     BPatch_type *intArray = bpatch->createArray("intArray", intType, 0, 9);
     types.push_back(intArray);
     types.push_back(struct28_1);
@@ -3305,67 +3308,67 @@ void instrument_exit_points( BPatch_thread * app_thread,
 //
 void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
 {
-    char * foo_name = "func31_2";
-    char * bar_name = "func31_3";
-    char * baz_name = "func31_4";
+   const char * foo_name = "func31_2";
+   const char * bar_name = "func31_3";
+   const char * baz_name = "func31_4";
 
-  BPatch_image * app_image = appImage;
-  BPatch_thread * app_thread = appThread;
-
-  BPatch_function *foo_function;
-  foo_function = app_image->findFunction(foo_name);
-
-  if( foo_function == 0 )
-    {
+   BPatch_image * app_image = appImage;
+   BPatch_thread * app_thread = appThread;
+  
+   BPatch_function *foo_function;
+   foo_function = app_image->findFunction(foo_name);
+   
+   if( foo_function == 0 )
+   {
       fprintf( stderr, "Cannot find \"%s\" function.",
 	       foo_name );
       exit( -1 );
-    }
-
-  BPatch_function *bar_function;
-  bar_function = app_image->findFunction(bar_name);
-
-  if( bar_function == 0 )
-    {
+   }
+   
+   BPatch_function *bar_function;
+   bar_function = app_image->findFunction(bar_name);
+   
+   if( bar_function == 0 )
+   {
       fprintf( stderr, "Cannot find \"%s\" function.",
 	       bar_name );
       exit( -1 );
-    }
-
-  BPatch_function *baz_function;
-  baz_function = app_image->findFunction(baz_name);
-
-  if( baz_function == 0 )
-    {
+   }
+   
+   BPatch_function *baz_function;
+   baz_function = app_image->findFunction(baz_name);
+   
+   if( baz_function == 0 )
+   {
       fprintf( stderr, "Cannot find \"%s\" function.",
 	       baz_name );
       exit( -1 );
     }
+   
+   bool old_value = BPatch::bpatch->isTrampRecursive();
+   BPatch::bpatch->setTrampRecursive( false );
+   
+   BPatch_Vector<BPatch_snippet *> foo_args;
+   BPatch_snippet * foo_snippet =
+      new BPatch_funcCallExpr( * bar_function,
+                               foo_args );
+   instrument_entry_points( app_thread, app_image, foo_function, foo_snippet );
+   
+   BPatch_Vector<BPatch_snippet *> bar_args_1;
+   bar_args_1.push_back( new BPatch_constExpr( 1 ) );
+   BPatch_snippet * bar_snippet_1 =
+      new BPatch_funcCallExpr( * baz_function,
+                               bar_args_1 );
+   instrument_entry_points(app_thread, app_image, bar_function, bar_snippet_1);
 
-  bool old_value = BPatch::bpatch->isTrampRecursive();
-  BPatch::bpatch->setTrampRecursive( false );
-
-  BPatch_Vector<BPatch_snippet *> foo_args;
-  BPatch_snippet * foo_snippet =
-    new BPatch_funcCallExpr( * bar_function,
-			     foo_args );
-  instrument_entry_points( app_thread, app_image, foo_function, foo_snippet );
-
-  BPatch_Vector<BPatch_snippet *> bar_args_1;
-  bar_args_1.push_back( new BPatch_constExpr( 1 ) );
-  BPatch_snippet * bar_snippet_1 =
-    new BPatch_funcCallExpr( * baz_function,
-			     bar_args_1 );
-  instrument_entry_points( app_thread, app_image, bar_function, bar_snippet_1 );
-
-  BPatch_Vector<BPatch_snippet *> bar_args_2;
-  bar_args_2.push_back( new BPatch_constExpr( 2 ) );
-  BPatch_snippet * bar_snippet_2 =
-    new BPatch_funcCallExpr( * baz_function,
-			     bar_args_2 );
-  instrument_exit_points( app_thread, app_image, bar_function, bar_snippet_2 );
-
-  BPatch::bpatch->setTrampRecursive( old_value );
+   BPatch_Vector<BPatch_snippet *> bar_args_2;
+   bar_args_2.push_back( new BPatch_constExpr( 2 ) );
+   BPatch_snippet * bar_snippet_2 =
+      new BPatch_funcCallExpr( * baz_function,
+                               bar_args_2 );
+   instrument_exit_points(app_thread, app_image, bar_function, bar_snippet_2);
+   
+   BPatch::bpatch->setTrampRecursive( old_value );
 }
 
 /*******************************************************************************/
@@ -3377,9 +3380,9 @@ void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
 //
 void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
 {
-  char * foo_name = "func32_2";
-  char * bar_name = "func32_3";
-  char * baz_name = "func32_4";
+  const char * foo_name = "func32_2";
+  const char * bar_name = "func32_3";
+  const char * baz_name = "func32_4";
 
   BPatch_image * app_image = appImage;
   BPatch_thread * app_thread = appThread;
@@ -3923,7 +3926,7 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 {
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
 
-    char * foo_name = "call35_1";
+    const char * foo_name = "call35_1";
 
     if (mutateeFortran)
 	return;
@@ -4014,12 +4017,12 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     int n = 0;
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
     if (runAllTests) {
-        child_argv[n++] = "-runall"; // signifies all tests
+        child_argv[n++] = const_cast<char*>("-runall"); // signifies all tests
     } else {
-        child_argv[n++] = "-run";
+        child_argv[n++] = const_cast<char*>("-run");
         for (unsigned int j=1; j <= MAX_TEST; j++) {
             if (runTest[j]) {
         	char str[5];

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.49 2002/10/29 22:56:08 bernat Exp $
+// $Id: BPatch.C,v 1.50 2003/01/02 19:51:42 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -751,7 +751,7 @@ void BPatch::unRegisterThread(int pid)
  * stderr_fd	file descriptor to use for stderr for the application
 
  */
-BPatch_thread *BPatch::createProcess(char *path, char *argv[], 
+BPatch_thread *BPatch::createProcess(const char *path, char *argv[], 
 	char *envp[], int stdin_fd, int stdout_fd, int stderr_fd)
 {
     clearError();
@@ -782,7 +782,7 @@ BPatch_thread *BPatch::createProcess(char *path, char *argv[],
  * path		The pathname of the executable for the process.
  * pid		The id of the process to attach to.
  */
-BPatch_thread *BPatch::attachProcess(char *path, int pid)
+BPatch_thread *BPatch::attachProcess(const char *path, int pid)
 {
     clearError();
 

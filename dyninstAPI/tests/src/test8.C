@@ -1,4 +1,4 @@
-// $Id: test8.C,v 1.1 2002/12/05 01:38:40 buck Exp $
+// $Id: test8.C,v 1.2 2003/01/02 19:52:10 schendel Exp $
 //
 
 #include <stdio.h>
@@ -17,7 +17,7 @@
 #include "BPatch_snippet.h"
 #include "test_util.h"
 
-char *mutateeNameRoot = "test8.mutatee";
+const char *mutateeNameRoot = "test8.mutatee";
 
 int expectError = 112;
 int debugPrint = 0; // internal "mutator" tracing
@@ -38,7 +38,7 @@ BPatch *bpatch;
 typedef struct {
     bool             valid;
     BPatch_frameType type;
-    char             *function_name;
+    const char      *function_name;
 } frameInfo_t;
 
 void errorFunc(BPatchErrorLevel level, int num, const char **params)
@@ -87,7 +87,7 @@ const char *frameTypeString(BPatch_frameType frameType)
 bool checkStack(BPatch_thread *appThread,
 		const frameInfo_t correct_frame_info[],
 		int num_correct_names,
-		int test_num, char *test_name)
+		int test_num, const char *test_name)
 {
     int i;
 
@@ -282,12 +282,12 @@ int mutatorMAIN(char *pathname)
 
     int n = 0;
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
     if (runAllTests) {
-        child_argv[n++] = "-runall"; // signifies all tests
+        child_argv[n++] = const_cast<char*>("-runall"); // signifies all tests
     } else {
-        child_argv[n++] = "-run";
+        child_argv[n++] = const_cast<char*>("-run");
         for (unsigned int j=1; j <= MAX_TEST; j++) {
             if (runTest[j]) {
         	char str[5];

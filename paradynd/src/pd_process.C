@@ -47,10 +47,10 @@
 
 
 void pd_process::init() {
-	for(unsigned i=0; i<dyninst_process->threads.size(); i++) {
-		pd_thread *thr = new pd_thread(dyninst_process->threads[i]);
-		addThread(thr);
-	}
+   for(unsigned i=0; i<dyninst_process->threads.size(); i++) {
+      pd_thread *thr = new pd_thread(dyninst_process->threads[i]);
+      addThread(thr);
+   }
 
    theVariableMgr = new variableMgr(this, getSharedMemMgr(),
 				    maxNumberOfThreads());
@@ -58,7 +58,7 @@ void pd_process::init() {
 
 // fork constructor
 pd_process::pd_process(const pd_process &parent, process *childDynProc) :
-   dyninst_process(childDynProc)
+   dyninst_process(childDynProc), bufStart(0), bufEnd(0)
 {
    for(unsigned i=0; i<childDynProc->threads.size(); i++) {
       pd_thread *thr = new pd_thread(childDynProc->threads[i]);

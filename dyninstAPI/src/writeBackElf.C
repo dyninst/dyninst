@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.12 2002/12/20 07:49:59 jaw Exp $ */
+/* $Id: writeBackElf.C,v 1.13 2003/01/02 19:51:56 schendel Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -17,10 +17,9 @@ void writeBackElf::setHeapAddr(unsigned int heapAddr){
 }
 // This constructor opens both the old and new
 // ELF files 
-writeBackElf::writeBackElf(char *oldElfName, char* newElfName, int debugOutputFlag){
-
+writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName, 
+									int debugOutputFlag) {
 	int oldfd, newfd;
-
 
 	if((oldfd = open(oldElfName, O_RDONLY)) == -1){
 		printf(" OLDELF_OPEN_FAIL %s",oldElfName);
@@ -96,7 +95,9 @@ writeBackElf::~writeBackElf(){
 }
 
 
-int writeBackElf::addSection(unsigned int addr, void *data, unsigned int dataSize, char* name,bool loadable){
+int writeBackElf::addSection(unsigned int addr, void *data, 
+									  unsigned int dataSize, const char* name,
+									  bool loadable) {
 	ELF_Section *tmp;
 	ELF_Section *newSection;
 	if(DYNAMIC){
@@ -122,7 +123,7 @@ int writeBackElf::addSection(unsigned int addr, void *data, unsigned int dataSiz
 	if(MALLOC){
 		newSection->data =  malloc(dataSize);
 	}else{
-		(char*)newSection->data = new char[dataSize];
+		newSection->data = new char[dataSize];
 	} 
 	memcpy(newSection->data, data,dataSize);
 	newSection->dataSize = dataSize;
@@ -223,9 +224,9 @@ void writeBackElf::driver(){
                	//copy data buffer from oldElf 
 		if(olddata->d_buf){
 			if(MALLOC){
-				(char*) newdata->d_buf = (char*) malloc(olddata->d_size);
-           		}else{
-				(char*) newdata->d_buf = new char[olddata->d_size];
+				newdata->d_buf = (char*) malloc(olddata->d_size);
+			}else{
+				newdata->d_buf = new char[olddata->d_size];
 			} 
 		        memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
                 }
@@ -425,9 +426,9 @@ void writeBackElf::createSections(Elf32_Shdr *bssSh, Elf_Data* bssData){
 			newsh->sh_type = SHT_PROGBITS; //SHT_NOTE
 		}
 		if(MALLOC){
-			(char*) newdata->d_buf = (char*)malloc(newSections[i].dataSize);
+			newdata->d_buf = (char*)malloc(newSections[i].dataSize);
 		}else{
-			(char*) newdata->d_buf = new char[newSections[i].dataSize];
+			newdata->d_buf = new char[newSections[i].dataSize];
 		}
 	        newdata->d_size = newSections[i].dataSize;
 		memcpy((char*) newdata->d_buf, (char*) newSections[i].data, newdata->d_size);
@@ -453,9 +454,9 @@ void writeBackElf::addSectionNames(Elf_Data *newdata, Elf_Data*olddata){
 		delete [](char*) newdata->d_buf;
 	}
 	if(MALLOC){
-		(char*)newdata->d_buf = (char*) malloc(totalSize);
+		newdata->d_buf = (char*) malloc(totalSize);
 	}else{
-		(char*)newdata->d_buf =new char[totalSize];
+		newdata->d_buf =new char[totalSize];
 	}
         memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
 
@@ -491,7 +492,7 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 	bool foundDup=true;
 	unsigned int j;
 
-	VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+	VECTOR_SORT(imagePatches, imageUpdateSort);
 
 	while(foundDup){
 		foundDup = false;
@@ -518,7 +519,7 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 			}
 
 		}
-		VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+		VECTOR_SORT(imagePatches, imageUpdateSort);
 	}
 
 
@@ -556,7 +557,7 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 				}
 			}  
 		}
-		VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+		VECTOR_SORT(imagePatches, imageUpdateSort);
 	}
 
 	unsigned int k=0;
@@ -650,7 +651,7 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 	bool foundDup=true;
 	unsigned int j;
 
-	VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+	VECTOR_SORT(imagePatches, imageUpdateSort);
 
 	while(foundDup){
 		foundDup = false;
@@ -677,7 +678,7 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 			}
 
 		}
-		VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+		VECTOR_SORT(imagePatches, imageUpdateSort);
 	}
 	if(DEBUG_MSG){
 		printf(" SORT 1\n");
@@ -688,13 +689,13 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 		fflush(stdout);
 	}
 
-	unsigned int endAddr;
+	unsigned int end_addr;
 	for(unsigned int i=0;i<imagePatches.size();i++){
 		if(imagePatches[i]->address!=0){
 			imagePatches[i]->startPage = imagePatches[i]->address- (imagePatches[i]->address%pageSize);
 				
-			endAddr = imagePatches[i]->address + imagePatches[i]->size;
-			imagePatches[i]->stopPage =  endAddr - (endAddr % pageSize);
+			end_addr = imagePatches[i]->address + imagePatches[i]->size;
+			imagePatches[i]->stopPage =  end_addr - (end_addr % pageSize);
 
 			if(DEBUG_MSG){
 				printf(" address %x end addr %x : start page %x stop page %x \n",
@@ -723,12 +724,12 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 					imagePatches[j]->size = (imagePatches[j+1]->address + imagePatches[j+1]->size) -
 						imagePatches[j]->address;
 					imagePatches[j+1]->address = 0; 
-					endAddr = imagePatches[j]->address + imagePatches[j]->size;
-					imagePatches[j]->stopPage =  endAddr - (endAddr % pageSize);
+					end_addr = imagePatches[j]->address + imagePatches[j]->size;
+					imagePatches[j]->stopPage =  end_addr - (end_addr % pageSize);
 				}
 			}  
 		}
-		VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+		VECTOR_SORT(imagePatches, imageUpdateSort);
 	}
 
 	unsigned int k=0;

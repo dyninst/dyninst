@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.3 2002/12/05 01:38:40 buck Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.4 2003/01/02 19:52:00 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -75,7 +75,8 @@ int checkIfAttached()
  * Verify that a scalar value of a variable is what is expected
  *
  */
-void verifyScalarValue(char *name, int a, int value, int testNum, char *testName)
+void verifyScalarValue(const char *name, int a, int value, int testNum, 
+                       const char *testName)
 {
     if (a != value) {
 	if (passedTest[testNum])
@@ -89,7 +90,8 @@ void verifyScalarValue(char *name, int a, int value, int testNum, char *testName
  * Verify that a passed array has the correct value in the passed element.
  *
  */
-void verifyValue(char *name, int *a, int index, int value, int tst, char *tn)
+void verifyValue(const char *name, int *a, int index, int value, int tst,
+                 const char *tn)
 {
     if (a[index] != value) {
 	if (passedTest[tst]) printf("**Failed** test #%d (%s)\n", tst, tn);

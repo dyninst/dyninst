@@ -1,5 +1,5 @@
 //
-// $Id: test_util.C,v 1.14 2001/08/01 15:39:59 chadd Exp $
+// $Id: test_util.C,v 1.15 2003/01/02 19:52:11 schendel Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -22,8 +22,8 @@
 //
 // Wait for the mutatee to stop.
 //
-void waitUntilStopped(BPatch *bpatch,
-	BPatch_thread *appThread, int testnum, char *testname)
+void waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
+                      const char *testname)
 {
     while (!appThread->isStopped() && !appThread->isTerminated())
 	bpatch->waitForStatusChange();
@@ -86,7 +86,7 @@ void signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
 // Create a new process and return its process id.  If process creation 
 // fails, this function returns -1.
 //
-int startNewProcessForAttach(char *pathname, char *argv[])
+int startNewProcessForAttach(const char *pathname, char *argv[])
 {
 #if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
     char child_args[1024];
@@ -136,7 +136,7 @@ int startNewProcessForAttach(char *pathname, char *argv[])
 
     for (i = 0; argv[i] != NULL; i++)
 	attach_argv[i] = argv[i];
-    attach_argv[i++] = "-attach";
+    attach_argv[i++] = const_cast<char*>("-attach");
     attach_argv[i++] = fdstr;
     attach_argv[i++] = NULL;
 

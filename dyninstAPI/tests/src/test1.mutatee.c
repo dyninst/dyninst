@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.81 2002/12/05 01:38:40 buck Exp $ */
+/* $Id: test1.mutatee.c,v 1.82 2003/01/02 19:51:59 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -617,7 +617,7 @@ void func6_2() { dprintf("func6_2 () called\n"); }
  *	in both the true and false forms.
  */
 
-void fail7Print(int tCase, int fCase, char *op)
+void fail7Print(int tCase, int fCase, const char *op)
 {
     if (tCase != 72)
 	printf(" operator %s was not true when it should be - const expr\n",
@@ -627,7 +627,7 @@ void fail7Print(int tCase, int fCase, char *op)
 	    op);
 }
 
-void fail7aPrint(int tCase, int fCase, char *op)
+void fail7aPrint(int tCase, int fCase, const char *op)
 {
     if (tCase != 74)
 	printf(" operator %s was not true when it should be - var expr\n", op);
@@ -868,8 +868,8 @@ void func14_1()
 /*
  * Test #15 - setMutationsActive
  */
-void check15result(char *varname, int value, int expected,
-		   char *errstr, int *failed)
+void check15result(const char *varname, int value, int expected,
+                   const char *errstr, int *failed)
 {
     if (value != expected) {
 	if (!*failed)
@@ -1297,7 +1297,7 @@ int globalShadowVariable23_1 = (int)0xdeadbeef;
 int globalShadowVariable23_2 = (int)0xdeadbeef;
 int globalVariable23_1 = 2300000;
 
-void verifyScalarValue23(char *name, int a, int value)
+void verifyScalarValue23(const char *name, int a, int value)
 {
     verifyScalarValue(name, a, value, 23, "local variables");
 }
@@ -1386,12 +1386,12 @@ int globalVariable24_7;
 int globalVariable24_8[10][15];
 int globalVariable24_9;
 
-void verifyValue24(char *name, int *a, int index, int value)
+void verifyValue24(const char *name, int *a, int index, int value)
 {
     verifyValue(name, a, index, value, 24, "array variables");
 }
 
-void verifyScalarValue24(char *name, int a, int value)
+void verifyScalarValue24(const char *name, int a, int value)
 {
     verifyScalarValue(name, a, value, 24, "array variables");
 }
@@ -1594,7 +1594,7 @@ int globalVariable26_11 = 26000000;
 int globalVariable26_12 = 26000000;
 int globalVariable26_13 = 26000000;
 
-void verifyScalarValue26(char *name, int a, int value)
+void verifyScalarValue26(const char *name, int a, int value)
 {
     verifyScalarValue(name, a, value, 26, "field operators");
 }
@@ -1750,7 +1750,7 @@ int globalVariable28_5 = 28000000;
 int globalVariable28_6 = 28000000;
 int globalVariable28_7 = 28000000;
 
-void verifyScalarValue28(char *name, int a, int value)
+void verifyScalarValue28(const char *name, int a, int value)
 {
     verifyScalarValue(name, a, value, 28, "user defined fields");
 }

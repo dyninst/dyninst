@@ -55,7 +55,7 @@
  *
  */
 
-// $Id: task_support.C,v 1.10 2002/12/20 07:50:07 jaw Exp $
+// $Id: task_support.C,v 1.11 2003/01/02 19:52:20 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -75,7 +75,7 @@ extern int pvmputenv(char*);
 #include <pvmsdpro.h>
 #include "dyninstAPI/src/dyninst.h"
 #include <assert.h>
-#include "common/h/list.h"
+#include "common/h/List.h"
 
 //#define PDYN_DEBUG
 

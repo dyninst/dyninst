@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.130 2002/12/20 07:49:58 jaw Exp $
+// $Id: solaris.C,v 1.131 2003/01/02 19:51:55 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -232,11 +232,11 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 		"/tmp/dyninstMutatee",errFlag);
 	newElf->registerProcess(this);
 
-	imageUpdates.sort(imageUpdate::imageUpdateSort);// imageUpdate::mysort ); 
+	imageUpdates.sort(imageUpdateSort);// imageUpdate::mysort ); 
 
 	newElf->compactLoadableSections(imageUpdates,compactedUpdates);
 
-	highmemUpdates.sort( imageUpdate::imageUpdateSort);
+	highmemUpdates.sort(imageUpdateSort);
 
 	newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
@@ -250,11 +250,10 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	//This adds the LOADABLE HEAP TRAMP sections
 	//if new platforms require this it will be moved
 	//to process.C proper. Right now, only solaris uses it
-	for(unsigned int i=0;i<compactedUpdates.size();i++){
-
-		(char*) data = new char[compactedUpdates[i]->size];
-		readDataSpace((void*) compactedUpdates[i]->address, compactedUpdates[i]->size, 	
-			data, true);	
+	for(unsigned int i=0;i<compactedUpdates.size();i++) {
+		data = new char[compactedUpdates[i]->size];
+		readDataSpace((void*) compactedUpdates[i]->address, 
+						  compactedUpdates[i]->size, data, true);
 
 		//the TrampGuardFlag must be set to 1 to get the
 		//tramps to run. it is not necessary set to 1 yet so
@@ -325,8 +324,8 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	saveWorldCreateDataSections((void*)newElf);
 
 	if(mutatedSharedObjectsSize){
-		newElf->addSection(0 ,mutatedSharedObjects, 
-			mutatedSharedObjectsSize, "dyninstAPI_mutatedSO", false);
+		newElf->addSection(0, mutatedSharedObjects, mutatedSharedObjectsSize,
+								 "dyninstAPI_mutatedSO", false);
 	}
 
 	unsigned int k;
@@ -364,7 +363,8 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	
 	addLibraryElf = new addLibrary();
 	elf_update(newElf->getElf(), ELF_C_WRITE);
-	addLibraryElf->driver(newElf->getElf(),fullName,"libdyninstAPI_RT.so.1");
+	addLibraryElf->driver(newElf->getElf(), fullName,
+								 "libdyninstAPI_RT.so.1");
 	delete [] fullName;
 	if(mutatedSharedObjects){
 		delete [] mutatedSharedObjects;
@@ -430,7 +430,7 @@ bool process::dumpImage(string imageFileName)
     }
 
 
-    char tempCode[length];
+    char *tempCode = new char[length];
 
 
     bool ret = readTextSpace_((void *) baseAddr, length, tempCode);
@@ -441,6 +441,7 @@ bool process::dumpImage(string imageFileName)
 
     lseek(newFd, offset, SEEK_SET);
     write(newFd, tempCode, length);
+    delete[] tempCode;
     close(newFd);
 
     return true;

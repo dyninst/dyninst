@@ -45,6 +45,11 @@
 
 /*
  * $Log: association.h,v $
+ * Revision 1.3  2003/01/02 19:52:15  schendel
+ * updates so dyninstAPI and the dyninstAPI tests can be built with the
+ * Solaris native compiler  - - - - - - - - - - - - - - - - - - - - - - - -
+ * fixed warnings when compiling with Solaris native compiler;
+ *
  * Revision 1.2  1996/08/16 21:18:12  tamches
  * updated copyright for release 1.1
  *
@@ -53,6 +58,6 @@
  *
  */
 
-extern void newAssoc(process *proc, char *abstraction, char *type, char *key, 
-		     char *value);
+extern void newAssoc(pd_process *proc, char *abstraction, char *type,
+                     char *key, char *value);
 #endif

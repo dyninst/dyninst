@@ -653,29 +653,30 @@ private:
 		}
 	}
 public:
-	TarjanDominator(int size,BPatch_basicBlock* root,BPatch_basicBlock** blocks) 
-		: n(size),r(bbToint(root)) 
+	TarjanDominator(int arg_size, BPatch_basicBlock* root,
+                        BPatch_basicBlock** blocks) 
+           : n(arg_size),r(bbToint(root)) 
 	{
 		int i;
 
-		size++;
-		numberToBlock = new BPatch_basicBlock*[size];
+		arg_size++;
+		numberToBlock = new BPatch_basicBlock*[arg_size];
 		numberToBlock[0] = NULL;
 		for(i=0;i<n;i++)
 			numberToBlock[bbToint(blocks[i])] = blocks[i];	
 
-		dom = new int[size];
+		dom = new int[arg_size];
 
-		parent = new int[size];
-		ancestor = new int[size];
-		child = new int[size];
-		vertex = new int[size];
-		label = new int[size];
-		semi = new int[size];
-		this->size = new int[size];
-		bucket = new BPatch_Set<int>*[size];
+		parent = new int[arg_size];
+		ancestor = new int[arg_size];
+		child = new int[arg_size];
+		vertex = new int[arg_size];
+		label = new int[arg_size];
+		semi = new int[arg_size];
+		this->size = new int[arg_size];
+		bucket = new BPatch_Set<int>*[arg_size];
 
-		for(i=0;i<size;i++){
+		for(i=0;i<arg_size;i++){
 			bucket[i] = new BPatch_Set<int>;
 			semi[i] = 0;	
 		}
@@ -1011,15 +1012,17 @@ typedef struct SortTuple{
 	Address address;
 	BPatch_basicBlock* bb;
 }SortTuple;
-int tupleSort(const void* arg1,const void* arg2){
-	if(((const SortTuple*)arg1)->address >
-	   ((const SortTuple*)arg2)->address)
-		return 1;
-	if(((const SortTuple*)arg1)->address <
-	   ((const SortTuple*)arg2)->address)
-		return -1;
-	return 0;
+
+extern "C" int tupleSort(const void* arg1,const void* arg2){
+   if(((const SortTuple*)arg1)->address > ((const SortTuple*)arg2)->address)
+      return 1;
+
+   if(((const SortTuple*)arg1)->address < ((const SortTuple*)arg2)->address)
+      return -1;
+
+   return 0;
 }
+
 void BPatch_flowGraph::findAndDeleteUnreachable()
 {
 
@@ -1083,7 +1086,7 @@ void BPatch_flowGraph::findAndDeleteUnreachable()
 		orderArray[i].bb = elements[i];
 		orderArray[i].address = elements[i]->startAddress;
         }
-        qsort((void*)orderArray,orderArraySize,sizeof(SortTuple),tupleSort);
+        qsort((void*)orderArray, orderArraySize, sizeof(SortTuple), tupleSort);
         for(i=0;i<orderArraySize;i++)
                 orderArray[i].bb->setBlockNumber(i);
         delete[] orderArray;

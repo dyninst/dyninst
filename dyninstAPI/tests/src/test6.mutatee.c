@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.18 2002/09/26 21:12:34 gaburici Exp $ */
+/* $Id: test6.mutatee.c,v 1.19 2003/01/02 19:52:08 schendel Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +21,8 @@ int passedTest[MAX_TEST+1];
  * Verify that a scalar value of a variable is what is expected
  *
  */
-void verifyScalarValue(char *name, int a, int value, int testNum, char *testName)
+void verifyScalarValue(const char *name, int a, int value, int testNum, 
+                       const char *testName)
 {
     if (a != value) {
 	if (passedTest[testNum])

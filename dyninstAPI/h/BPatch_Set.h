@@ -1,9 +1,6 @@
 #ifndef _BPatch_Set_h_
 #define _BPatch_Set_h_
 
-//ifdef this to nothing if it bothers old broken compilers
-#define TYPENAME typename
-
 #if defined(external_templates)
 #pragma interface
 #endif
@@ -14,6 +11,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "common/h/language.h"
 #include "BPatch_dll.h"
 
 #if !defined(DO_INLINE_P)
@@ -53,29 +51,15 @@ struct comparison {
   * structure has to overload () for comparison of two elements as explained above
   */
 
-#if defined i386_unknown_nt4_0 || defined mips_unknown_ce2_11 //ccw 6 apr 2001
-
-static const bool RED = true;
-static const bool BLACK = false;
-
-#endif
+typedef enum { RED, BLACK } bpatch_entry_color_type;
 
 template<class T,class Compare = comparison<T> >
 class BPATCH_DLL_EXPORT BPatch_Set {
-private:
-
-#if ! (defined i386_unknown_nt4_0 || defined mips_unknown_ce2_11) //ccw 6 apr 2001
-	/** color variable used for red-black tree */
-	static const bool RED = true;
-
-	/** color variable used for red-black tree */
-	static const bool BLACK = false;
-#endif
 
 	/** tree implementation structure. Used to implement the RB tree */
 	typedef struct entry {
 		T data; 	/* data  element */
-		bool color;	/* color of the node true=red,false=blue*/
+           bpatch_entry_color_type color;	/* color of the node */
 		struct entry* left; /* left child */
 		struct entry* right; /* right child */
 		struct entry* parent; /* parent of the node */

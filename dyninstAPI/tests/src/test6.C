@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.12 2002/12/21 03:16:43 jaw Exp $
+// $Id: test6.C,v 1.13 2003/01/02 19:52:07 schendel Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -18,7 +18,7 @@
 
 #include "test_util.h"
 
-char *mutateeNameRoot = "test6.mutatee";
+const char *mutateeNameRoot = "test6.mutatee";
 
 int inTest;		// current test #
 #define DYNINST_NO_ERROR -1
@@ -669,7 +669,7 @@ static inline void dumpxpct(BPatch_memoryAccess* exp[], unsigned int size, const
 
 
 static inline bool validate(BPatch_Vector<BPatch_point*>* res,
-                            BPatch_memoryAccess* acc[], char* msg)
+                            BPatch_memoryAccess* acc[], const char* msg)
 {
   bool ok = true;
 
@@ -688,7 +688,8 @@ static inline bool validate(BPatch_Vector<BPatch_point*>* res,
 
 // Find and instrument loads with a simple function call snippet
 void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
-                  int testnum = 1, char* testdesc = "load instrumentation")
+                  int testnum = 1, 
+                  const char* testdesc = "load instrumentation")
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
@@ -697,7 +698,7 @@ void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
   loads.insert(BPatch_opLoad);
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  char *inFunction="loadsnstores";
+  const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
@@ -729,7 +730,8 @@ void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
 
 // Find and instrument stores with a simple function call snippet
 void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
-                  int testnum = 2, char* testdesc = "store instrumentation")
+                  int testnum = 2,
+                  const char* testdesc = "store instrumentation")
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
@@ -738,7 +740,7 @@ void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
   stores.insert(BPatch_opStore);
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  char *inFunction="loadsnstores";
+  const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
@@ -769,7 +771,8 @@ void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
 
 // Find and instrument prefetches with a simple function call snippet
 void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
-                  int testnum = 3, char* testdesc = "prefetch instrumentation")
+                  int testnum = 3, 
+                  const char* testdesc = "prefetch instrumentation")
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
@@ -778,7 +781,7 @@ void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
   prefes.insert(BPatch_opPrefetch);
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  char *inFunction="loadsnstores";
+  const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
@@ -811,7 +814,8 @@ void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
 
 // Find and instrument all accesses with a simple function call snippet
 void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
-                  int testnum = 4, char* testdesc = "access instrumentation")
+                  int testnum = 4,
+                  const char* testdesc = "access instrumentation")
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
@@ -822,7 +826,7 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
   axs.insert(BPatch_opPrefetch);
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  char *inFunction="loadsnstores";
+  const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
@@ -857,7 +861,8 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
 
 // Instrument all accesses with an effective address snippet
 void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
-                  int testnum = 5, char* testdesc = "instrumentation w/effective address snippet")
+                  int testnum = 5,
+                  const char* testdesc = "instrumentation w/effective address snippet")
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
@@ -869,7 +874,7 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
 
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  char *inFunction="loadsnstores";
+  const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
@@ -894,7 +899,8 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
 
 // Instrument all accesses with a byte count snippet
 void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
-                  int testnum = 6, char* testdesc = "instrumentation w/byte count snippet")
+                  int testnum = 6,
+                  const char* testdesc ="instrumentation w/byte count snippet")
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
@@ -905,7 +911,7 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
   axs.insert(BPatch_opPrefetch);
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  char *inFunction="loadsnstores";
+  const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
@@ -932,7 +938,7 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
 }
 
 void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
-                  char* testdesc = "conditional instrumentation w/effective address snippet")
+                  const char* testdesc = "conditional instrumentation w/effective address snippet")
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
@@ -943,7 +949,7 @@ void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
   axs.insert(BPatch_opPrefetch);
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  char *inFunction="loadsnstores";
+  const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
@@ -968,7 +974,7 @@ void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
 
 // Instrument all accesses with a byte count snippet
 void mutatorTest8(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 8,
-                  char* testdesc = "conditional instrumentation w/byte count snippet")
+                  const char* testdesc = "conditional instrumentation w/byte count snippet")
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
@@ -979,7 +985,7 @@ void mutatorTest8(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 8,
   axs.insert(BPatch_opPrefetch);
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  char *inFunction="loadsnstores";
+  const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
@@ -1031,12 +1037,12 @@ void mutatorMAIN(char *pathname)
 
   int n = 0;
   child_argv[n++] = pathname;
-  if (debugPrint) child_argv[n++] = "-verbose";
+  if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
   if (runAllTests) {
-    child_argv[n++] = "-runall"; // signifies all tests
+    child_argv[n++] = const_cast<char*>("-runall"); // signifies all tests
   } else {
-    child_argv[n++] = "-run";
+    child_argv[n++] = const_cast<char*>("-run");
     for (unsigned int j=1; j <= MAX_TEST; j++) {
       if (runTest[j]) {
         char str[5];

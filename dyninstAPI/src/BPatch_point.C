@@ -89,12 +89,12 @@ BPatch_function *BPatch_point::getCalledFunction()
 	return NULL;
 #endif
 
-    function_base *func;
-    if (!proc->findCallee(*point, func))
+    function_base *_func;
+    if (!proc->findCallee(*point, _func))
     	return NULL;
 
-    if (func != NULL)
-	ret = proc->PDFuncToBPFuncMap[func];
+    if (_func != NULL)
+	ret = proc->PDFuncToBPFuncMap[_func];
     else
 	ret = NULL;
     

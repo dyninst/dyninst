@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.11 2002/12/20 07:49:57 jaw Exp $
+// $Id: linux-x86.C,v 1.12 2003/01/02 19:51:52 schendel Exp $
 
 #include <fstream.h>
 
@@ -637,7 +637,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 			                "/tmp/dyninstMutatee",errFlag);
         newElf->registerProcess(this);
 
-        highmemUpdates.sort( imageUpdate::imageUpdateSort);
+        highmemUpdates.sort(imageUpdateSort);
 
         newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 

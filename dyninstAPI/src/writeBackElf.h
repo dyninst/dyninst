@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.h,v 1.8 2002/12/20 07:49:59 jaw Exp $ */
+/* $Id: writeBackElf.h,v 1.9 2003/01/02 19:51:57 schendel Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -82,12 +82,14 @@ private:
 	unsigned int findAddressOf(char *objName);
 public:
 
-	writeBackElf(char* oldElfName, char* newElfName,int debugOutputFlag=0);
+	writeBackElf(const char* oldElfName, const char* newElfName,
+					 int debugOutputFlag=0);
 	~writeBackElf();
 
 	void registerProcess(process *proc);
 	
-	int addSection(unsigned int addr, void *data, unsigned int dataSize, char* name, bool loadable=true);
+	int addSection(unsigned int addr, void *data, unsigned int dataSize,
+						const char* name, bool loadable=true);
 
 	bool outputElf();
 	bool createElf();
