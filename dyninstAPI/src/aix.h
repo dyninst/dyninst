@@ -39,14 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.14 2002/11/14 20:26:25 bernat Exp $
+// $Id: aix.h,v 1.15 2003/06/11 20:05:43 bernat Exp $
 
-#if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
 #error "invalid architecture-os inclusion"
 #endif
 
 #ifndef AIX_PD_HDR
 #define AIX_PD_HDR
+
+#if defined(AIX_PROC)
+#include <sys/procfs.h>
+#endif
 
 #include <sys/param.h>
 #define EXIT_NAME "exit"
@@ -77,11 +81,26 @@ typedef int handleT; // defined for compatibility with other platforms
                      // not currently used on the AIX platform
 
 #define num_special_registers 9
+#if defined(AIX_PROC)
+// Register storage structure
+struct dyn_saved_regs
+{
+    prgregset_t theIntRegs;
+    prfpregset_t theFpRegs;
+};
+
+// AIX /proc doesn't define some things that Solaris' does
+#define PR_PCINVAL PR_STOPPED
+
+#else
 struct dyn_saved_regs
 {
     int gprs[32];
     double fprs[32];
     int sprs[num_special_registers];
 };
+#endif
+
+#define NUM_SYSCALLS 512
 
 #endif
