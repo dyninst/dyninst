@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.111 2002/05/13 19:53:49 mjbrim Exp $
+// $Id: mdl.C,v 1.112 2002/05/14 19:00:27 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -695,7 +695,7 @@ apply_to_process(process *proc,
 }
 
 static bool apply_to_process_list(vector<process*>& instProcess,
-				  vector<processMetFocusNode*>& procParts,
+				  vector<processMetFocusNode*> *procParts,
 				  string& id, string& name,
 				  const Focus& focus,
 				  unsigned& agg_op,
@@ -708,76 +708,34 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 				  const vector<string> &temp_ctr,
 				  bool replace_components_if_present,
 				  bool dontInsertData) {
+   for(unsigned p=0; p<instProcess.size(); p++) {
+      process *proc = instProcess[p];
+      assert(proc);
+      global_proc = proc;     // TODO -- global
+      
+      // skip neonatal and exited processes.
+      if (proc->status() == exited || proc->status() == neonatal) continue;
+      
+      processMetFocusNode *procRetNode = 
+	 apply_to_process(proc, id, name, focus, agg_op, type, flag_cons, 
+			  repl_cons, stmts, flags_focus_data, repl_focus_data,
+			  temp_ctr, replace_components_if_present,
+			  dontInsertData);
 
-  metric_cerr << "apply_to_process_list()" << endl;
-
-#ifdef DEBUG_MDL
-  timer loadTimer, totalTimer;
-  static ofstream *of=NULL;
-  if (!of) {
-    char buffer[100];
-    ostrstream osb(buffer, 100, ios::out);
-    osb << "mdl_" << "__" << getpid() << ends;
-    of = new ofstream(buffer, ios::app);
-  }
-
-  (*of) << "Instrumenting for " << name << " " 
-        << instProcess.size() << " processes\n";
-#endif
-  unsigned psize = instProcess.size();
-#ifdef DEBUG_MDL
-  totalTimer.clear(); totalTimer.start();
-#endif
-  for (unsigned p=0; p<psize; p++) {
-#ifdef DEBUG_MDL
-    loadTimer.clear(); loadTimer.start();  // TIMER
-#endif
-    process *proc = instProcess[p]; assert(proc);
-    global_proc = proc;     // TODO -- global
-
-    // skip neonatal and exited processes.
-    if (proc->status() == exited || proc->status() == neonatal) continue;
-
-
-    processMetFocusNode *procRetNode = 
-                  apply_to_process(proc, id, name, focus, agg_op,
-				   type, flag_cons, repl_cons, stmts, 
-				   flags_focus_data, repl_focus_data, temp_ctr,
-				   replace_components_if_present,
-				   dontInsertData);
-    if(procRetNode)  procParts += procRetNode;
-#ifdef DEBUG_MDL
-    loadTimer.stop();
-    char timeMsg[500];
-    sprintf(timeMsg, "%f::%f  ", (float) loadTimer.usecs(), (float) loadTimer.wsecs());
-    /*should be removed for output redirection
-    tp->applicationIO(10, strlen(timeMsg), timeMsg);
-    */
-    (*of) << name << ":" << timeMsg << endl;
-#endif
-
-  }
-#ifdef DEBUG_MDL
-  totalTimer.stop();
-  char timeMsg[500];
-  sprintf(timeMsg, "\nTotal:  %f:user\t%f:wall\n", (float) totalTimer.usecs(),
-	  (float) totalTimer.wsecs());
-  /*should be removed for output redirection
-  tp->applicationIO(10, strlen(timeMsg), timeMsg);
-  */
-  (*of) << name << ":" << timeMsg << endl;
-#endif
-
-  if(procParts.size() == 0) return false;  // no components
-  return true;
+      if(procRetNode)  (*procParts).push_back(procRetNode);
+   }
+   
+   if((*procParts).size() == 0) return false;  // no components
+   return true;
 }
 
 ///////////////////////////
 vector<string>global_excluded_funcs;
 
 
-machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int mid,
-                            const Focus &focus, vector<process *> procs, 
+bool T_dyninstRPC::mdl_metric::apply(
+			    vector<processMetFocusNode *> *createdProcNodes,
+			    const Focus &focus, vector<process *> procs, 
 	                    bool replace_components_if_present, bool enable) {
   // TODO -- check to see if this is active ?
   // TODO -- create counter or timer
@@ -807,13 +765,14 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int mid,
 
   // if another machine was specified, return NULL
   if(! (focus.allMachines() || focus.get_machine() == machine)) {
-    return NULL;
+    return false;
   }
 
   vector<process*> instProcess;
   filter_processes(focus, procs, &instProcess);
 
-  if (!instProcess.size()) { return NULL; }
+  if (!instProcess.size())
+    return false;
 
   // build the list of constraints to use
   vector<T_dyninstRPC::mdl_constraint*> flag_cons;
@@ -826,7 +785,7 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int mid,
   vector<const Hierarchy *> flags_focus_data;
   if (! pick_out_matched_constraints(*constraints_, focus, &flag_cons,
 				 &repl_cons, &flags_focus_data, &repl_focus)) {
-    return NULL;
+    return false;
   }
 
   //////////
@@ -866,30 +825,20 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int mid,
   vector<processMetFocusNode*> procParts; // one per process
 
   if (!apply_to_process_list(instProcess, 
-                             procParts, id_, name_,
+                             createdProcNodes, id_, name_,
 			     focus, agg_op_, 
 			     type_, flag_cons, repl_cons,
 			     stmts_, flags_focus_data, *repl_focus, *temp_ctr_,
 			     replace_components_if_present,
 			     dontInsertData)) {
-    return NULL;
+    return false;
   }
 
-  // construct aggregate for the metric instance parts
-  machineMetFocusNode *ret = NULL;
-
-  if (procParts.size()) {
-     // create aggregate mi, containing the process components "parts"
-     ret = new machineMetFocusNode(mid, name_, focus, procParts,  
-				   aggregateOp(agg_op_), enable);
-  }
-
-  metric_cerr << " apply of " << name_ << " ok" << endl;
   mdl_env::pop();
 
   ////////////////////
   global_excluded_funcs.resize(0);
-  return ret;
+  return true;
 }
 
 T_dyninstRPC::mdl_constraint::mdl_constraint()
@@ -2083,7 +2032,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
   return true;
 }
 
-bool mdl_can_do(string& met_name) {
+bool mdl_can_do(const string &met_name) {
   // NOTE: We can do better if there's a dictionary of <metric-name> to <anything>
   unsigned size = mdl_data::all_metrics.size();
   for (unsigned u=0; u<size; u++)
@@ -2100,23 +2049,60 @@ bool mdl_can_do(string& met_name) {
   return false;
 }
 
-machineMetFocusNode *mdl_do(int mid, const Focus& focus, string& met_name, 
-			    vector<process *> procs,
-			    bool replace_components_if_present, bool enable) {
+bool mdl_do(vector<processMetFocusNode *> *createdProcNodes, 
+	    const Focus& focus, const string &met_name,
+	    const vector<process *> &procs,
+	    bool replace_components_if_present, bool enable, 
+	    aggregateOp *aggOpToUse) {
   currentMetric = met_name;
   unsigned size = mdl_data::all_metrics.size();
-  // NOTE: We can do better if there's a dictionary of <metric-name> to <metric>!
+  // NOTE: We can do better if there's a dictionary of <metric-name> to
+  // <metric>!
+
   for (unsigned u=0; u<size; u++) {
      T_dyninstRPC::mdl_metric *curMetric = mdl_data::all_metrics[u];
      if (curMetric->name_ == met_name) {
-      machineMetFocusNode *machNode =
-	 curMetric->apply(mid, focus, procs, replace_components_if_present, 
-			  enable);
-      return machNode;
-      // calls mdl_metric::apply()
+	// calls mdl_metric::apply()
+        bool ret = curMetric->apply(createdProcNodes, focus, procs,
+				    replace_components_if_present, enable);
+	(*aggOpToUse) = aggregateOp(curMetric->agg_op_);
+	return ret;
     }
   }
-  return NULL;
+  return false;
+}
+
+machineMetFocusNode *makeMachineMetFocusNode(int mid, const Focus& focus, 
+			    const string &met_name, 
+			    vector<process *> procs,
+			    bool replace_components_if_present, bool enable) {
+  vector<processMetFocusNode *> createdProcNodes;
+  aggregateOp aggOp;
+  bool result = mdl_do(&createdProcNodes, focus, met_name, procs, 
+		       replace_components_if_present, enable, &aggOp);
+
+  machineMetFocusNode *retNode = NULL; 
+  if(result == true && createdProcNodes.size()>0) {
+    retNode = new machineMetFocusNode(mid, met_name, focus, createdProcNodes,
+				      aggOp, enable);
+  }
+  return retNode;
+}
+
+processMetFocusNode *makeProcessMetFocusNode(const Focus& focus, 
+			    const string &met_name, process * proc,
+			    bool replace_components_if_present, bool enable) {
+  vector<processMetFocusNode *> createdProcNodes;
+  aggregateOp aggOp;
+  vector<process *> procs;
+  procs.push_back(proc);
+  bool result = mdl_do(&createdProcNodes, focus, met_name, procs, 
+		       replace_components_if_present, enable, &aggOp);
+  processMetFocusNode *retNode = NULL; 
+  if(result == true && createdProcNodes.size()>0) {
+    retNode = createdProcNodes[0];
+  }
+  return retNode;
 }
 
 bool mdl_init(string& flavor) { 
