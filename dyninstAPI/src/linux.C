@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.76 2002/08/23 01:56:03 tlmiller Exp $
+// $Id: linux.C,v 1.77 2002/08/31 16:53:11 mikem Exp $
 
 #include <fstream.h>
 
@@ -79,6 +79,10 @@
 
 #ifdef HRTIME
 #include "rtinst/h/RThwtimer-linux.h"
+#endif
+
+#ifdef PAPI
+#include "papi.h"
 #endif
 
 // The following were defined in process.C
@@ -1199,6 +1203,10 @@ rawTime64 process::getRawCpuTime_hw(int /*lwp_id*/) {
 #ifdef HRTIME
   val = hrtimeGetVtime(hr_cpu_link);
 #endif
+
+#ifdef PAPI
+  val = papi->getCurrentVirtCycles();
+#endif
   return val;
 }
 
@@ -1586,6 +1594,11 @@ bool process::isLibhrtimeAvail() {
 #endif
 }
 
+bool process::isPapiAvail() {
+  return isPapiInitialized();
+}
+
+
 void process::free_hrtime_link() {
 #ifdef HRTIME
   int error = free_hrtime_struct(hr_cpu_link);
@@ -1597,10 +1610,20 @@ void process::free_hrtime_link() {
 }
 
 void process::initCpuTimeMgrPlt() {
+#ifdef HRTIME
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isLibhrtimeAvail,
 			   getCyclesPerSecond(), timeBase::bNone(), 
 			   &process::getRawCpuTime_hw, "hwCpuTimeFPtrInfo",
 			   &process::free_hrtime_link);
+#endif
+
+#ifdef PAPI
+  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isPapiAvail,
+			   getCyclesPerSecond(), timeBase::bNone(), 
+			   &process::getRawCpuTime_hw, "hwCpuTimeFPtrInfo");
+
+#endif
+
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
 			   calcJiffyUnit(), timeBase::bNone(), 
 			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
