@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.18  1994/06/14 15:23:17  markc
+ * Revision 1.19  1994/06/17 22:08:00  hollings
+ * Added code to provide upcall for resource batch mode when a large number
+ * of resources is about to be added.
+ *
+ * Revision 1.18  1994/06/14  15:23:17  markc
  * Added support for aggregation.
  *
  * Revision 1.17  1994/06/02  16:08:16  hollings
@@ -279,6 +283,13 @@ void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
 					 char *name)
 {
     (cb)(ps, parent, newResource, name);
+}
+
+void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,
+					 performanceStream *ps,
+					 batchMode mode)
+{
+    (cb)(ps, mode);
 }
 
 void dataManagerUser::histFold(histFoldCallback cb,

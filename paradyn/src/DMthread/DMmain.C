@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.30  1994/06/14 15:22:46  markc
+ * Revision 1.31  1994/06/17 22:07:59  hollings
+ * Added code to provide upcall for resource batch mode when a large number
+ * of resources is about to be added.
+ *
+ * Revision 1.30  1994/06/14  15:22:46  markc
  * Added arg to enableDataCollection call to support aggregation.
  *
  * Revision 1.29  1994/06/02  23:25:19  markc
@@ -195,6 +199,14 @@ void performanceStream::callResourceFunc(resource *p,
     }
 }
 
+
+void performanceStream::callResourceBatchFunc(batchMode mode)
+{
+    if (controlFunc.bFunc) {
+	dm->setTid(threadId);
+	dm->changeResourceBatchMode(controlFunc.bFunc, this, mode);
+    }
+}
 
 void performanceStream::callFoldFunc(timeStamp width)
 {

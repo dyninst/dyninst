@@ -1,8 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.17  1994/06/12 22:37:11  karavan
-/* implemented status change for run/pause buttons.
-/* bug fix:  node labels may now contain tcl special characters, eg [].
+/* Revision 1.18  1994/06/17 22:08:07  hollings
+/* Added code to provide upcall for resource batch mode when a large number
+/* of resources is about to be added.
 /*
+ * Revision 1.17  1994/06/12  22:37:11  karavan
+ * implemented status change for run/pause buttons.
+ * bug fix:  node labels may now contain tcl special characters, eg [].
+ *
  * Revision 1.16  1994/05/31  19:11:47  hollings
  * Changes to permit direct access to resources and resourceLists.
  *
@@ -144,7 +148,6 @@ static Tcl_DString command;	/* Used to assemble lines of terminal input
 static int tty;			/* Non-zero means standard input is a
 				 * terminal-like device.  Zero means it's
 				 * a file. */
-static char errorExitCmd[] = "exit 1";
 
 resource                  *uim_rootRes;
 int                       uim_eid;
@@ -266,6 +269,15 @@ void controlFunc (performanceStream *ps ,
     }
   
   }
+}
+
+void resourceBatchChanged(performanceStream *ps, batchMode mode)
+{
+    if (mode == batchStart) {
+	printf("start resource batch mode\n");
+    } else {
+	printf("end resource batch mode\n");
+    }
 }
 
 void
@@ -479,6 +491,7 @@ UImain(CLargStruct *clargs)
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = NULL;
     controlFuncs.sFunc = applicStateChanged;
+    controlFuncs.bFunc = resourceBatchChanged;
     dataFunc.sample = NULL;
     uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, 
         dataFunc, controlFuncs);

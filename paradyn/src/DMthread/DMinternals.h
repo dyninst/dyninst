@@ -3,7 +3,11 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.16  1994/06/14 15:22:19  markc
+ * Revision 1.17  1994/06/17 22:07:58  hollings
+ * Added code to provide upcall for resource batch mode when a large number
+ * of resources is about to be added.
+ *
+ * Revision 1.16  1994/06/14  15:22:19  markc
  * Added support for aggregation.
  *
  * Revision 1.15  1994/06/02  23:25:18  markc
@@ -142,6 +146,10 @@ class applicationContext {
 		(*curr)->addResource(parent, name);
 	    }
 	}
+
+	void startResourceBatchMode();
+	void endResourceBatchMode();
+
 	applicationContext(errorHandler ef)	{
  	    errorFunc = ef;
 	}
@@ -206,6 +214,7 @@ class performanceStream {
 	void disableResourceCreationNotification(resource*);
 	void callSampleFunc(metricInstance *, sampleValue*, int, int);
 	void callResourceFunc(resource *p, resource *c, char *name);
+	void callResourceBatchFunc(batchMode mode);
 	void callFoldFunc(timeStamp width);
 	void callStateFunc(appState state);
     private:

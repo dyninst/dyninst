@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.16  1994/06/14 15:17:25  markc
+ * Revision 1.17  1994/06/17 22:08:11  hollings
+ * Added code to provide upcall for resource batch mode when a large number
+ * of resources is about to be added.
+ *
+ * Revision 1.16  1994/06/14  15:17:25  markc
  * Added new argument (aggregationOperator) to enableDataCollection.  This
  * tells the data manager how to aggregate a metric (sum, max, min, avg).
  *
@@ -163,6 +167,10 @@ typedef void (*metricInfoCallback)(performanceStream*, metric*);
 typedef void (*resourceInfoCallback)(performanceStream*, resource *parent, 
     resource *newResource, char *name);
 
+typedef enum batchMode { batchStart, batchEnd };
+
+typedef void (*resourceBatchModeCallback)(performanceStream*, batchMode mode); 
+
 typedef void (*histFoldCallback)(performanceStream*, timeStamp width);
 
 typedef enum appState { appRunning, appPaused };
@@ -172,6 +180,7 @@ typedef void (*appStateChangeCallback)(performanceStream*, appState state);
 struct controlCallback {
     metricInfoCallback 		mFunc;
     resourceInfoCallback 	rFunc;
+    resourceBatchModeCallback	bFunc;
     histFoldCallback		fFunc;
     appStateChangeCallback	sFunc;
 };
@@ -396,6 +405,10 @@ $remote dataManager {
 					   resource *parent,
 					   resource *newResource, 
 					   char *name);
+
+    $upcall $async void changeResourceBatchMode(resourceBatchModeCallback,
+					        performanceStream *ps, 
+						batchMode mode);
 
     $upcall $async void newPerfData(sampleDataCallbackFunc, 
 				    performanceStream *ps,

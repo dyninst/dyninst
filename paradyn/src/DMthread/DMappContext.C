@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.24  1994/06/14 15:21:34  markc
+ * Revision 1.25  1994/06/17 22:07:57  hollings
+ * Added code to provide upcall for resource batch mode when a large number
+ * of resources is about to be added.
+ *
+ * Revision 1.24  1994/06/14  15:21:34  markc
  * Set the aggOp field in metricInstance so the metric can choose from one of
  * four types of aggregation (max, min, sum, avg).  The aggregation is done in
  * aggregateSample.C
@@ -235,7 +239,10 @@ int applicationContext::addExecutable(char  *machine,
 
     programToRun.count = argc;
     programToRun.data = argv;
+
+    startResourceBatchMode();
     pid = daemon->addExecutable(argc, programToRun);
+    endResourceBatchMode();
 
     // did the application get started ok?
     if (pid > 0 && !daemon->did_error_occur()) {
@@ -542,3 +549,20 @@ void applicationContext::disableDataCollection(metricInstance *mi)
     }
     delete(mi);
 }
+
+void applicationContext::startResourceBatchMode() 
+{
+    List<performanceStream*> curr;
+    for (curr = streams; *curr; curr++) {
+	(*curr)->callResourceBatchFunc(batchStart);
+    }
+}
+
+void applicationContext::endResourceBatchMode() 
+{
+    List<performanceStream*> curr;
+    for (curr = streams; *curr; curr++) {
+	(*curr)->callResourceBatchFunc(batchEnd);
+    }
+}
+
