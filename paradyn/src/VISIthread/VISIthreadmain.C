@@ -25,9 +25,12 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.11  1994/06/27 21:25:54  rbi
-/* New abstraction parameter for performance streams
+/* Revision 1.12  1994/06/29 21:46:40  hollings
+/* fixed malloc on default focus case.
 /*
+ * Revision 1.11  1994/06/27  21:25:54  rbi
+ * New abstraction parameter for performance streams
+ *
  * Revision 1.10  1994/06/17  18:15:25  newhall
  * removed debug stmts
  *
@@ -909,12 +912,14 @@ int nextFocus = 0;
 	  num++;
       }
   }
-  if(num == 0)
+  if(num == 0) {
+     free(newword);
+     newword = (char *) malloc(strlen(VISI_DEFAULT_FOCUS)+1);
      strcpy(newword,VISI_DEFAULT_FOCUS);
-  else
+  } else {
      newword[num] = '\0';
+  }
   return(newword);
-
 }
 
 
