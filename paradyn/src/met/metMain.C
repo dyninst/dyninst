@@ -50,6 +50,9 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.35  1997/06/03 13:50:57  naim
+ * Removing cm5d from source code - naim
+ *
  * Revision 1.34  1997/05/23 23:04:08  mjrg
  * Windows NT port
  *
@@ -215,9 +218,6 @@ bool metDoDaemon()
   if (!been_done) {
     dataMgr->defineDaemon("paradynd", NULL, NULL, "pvmd", NULL, "pvm");
     dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, "unix");
-    // TODO -- should cm5d be defined
-    dataMgr->defineDaemon("paradynd", NULL, NULL, "cm5d", NULL, "cm5");
-    //dataMgr->defineDaemon("simd", NULL, NULL, "simd", NULL, "unix");
     dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL, "winnt");
     been_done = true;
   }
