@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.58 2003/07/18 20:06:51 schendel Exp $
+# $Id: Makefile,v 1.59 2003/10/28 17:42:38 pcroth Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -19,10 +19,9 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 #
 # "DyninstAPI" is the list of additional API components (optional).
 
-basicComps	= igen pdutil mdl
+basicComps	= igen xplat pdutil mdl
 ParadynD	= rtinst paradynd dyninstAPI_RT
-OldParadynFE    = thread paradyn
-NewParadynFE	= pdthread paradyn
+ParadynFE	= pdthread paradyn
 ParadynVC	= visi \
 		visiClients/tclVisi visiClients/barchart \
 		visiClients/tableVisi visiClients/phaseTable \
@@ -35,12 +34,6 @@ threadComps	= rtinst/multi-thread-aware
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
-ifdef USE_PTHREADS
-ParadynFE = $(NewParadynFE)
-else
-ParadynFE = $(OldParadynFE)
-endif
-
 ifndef DONT_BUILD_PARADYN
 fullSystem	+= $(basicComps)
 Build_list	+= basicComps
