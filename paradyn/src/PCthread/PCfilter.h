@@ -21,6 +21,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.8  1996/07/22 18:55:41  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.7  1996/05/08 07:35:13  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -134,14 +137,17 @@ class filter : public dataProvider
   metricInstanceHandle getMI () {return mi;}
   metricHandle getMetric() {return metric;}
   focus getFocus() {return foc;}
-  // active just means has at least one consumer; may not be 
-  // instrumented i.e. if PC is paused
+  // true means we want to disable this as part of a PC pause event
   bool pausable() {return (numConsumers > 0 && !costFlag);}
   void setcostFlag() {costFlag = true;}
+  // activate filter by enabling met/focus pair
+  void wakeUp();
  protected:  
   // these used in newData() to figure out intervals 
   void updateNextSendTime(timeStamp startTime);
   void getInitialSendTime(timeStamp startTime);
+  // (re)enable data for an existing filter
+  void activate();
   // current length of a single interval
   timeStamp intervalLength;
   // when does the interval currently being collected end?
@@ -241,9 +247,11 @@ public:
 			    filterType ft,
 			    bool costFlag);
   void endSubscription(fdsSubscriber sub, fdsDataID subID);
+  // cancel pending enable request for this met/foc pair
+  void cancelSubRequest (fdsSubscriber sub, metricHandle met, focus foc);
   void unsubscribeAllData();
   void resubscribeAllData();
-  void makeEnableDataRequest (metricHandle met, focus foc);
+  void makeEnableDataRequest (metricHandle met, focus foc, filter *sub);
 
   // interface to raw data source (consumer role)
   void newBinSize(timeStamp newSize);
@@ -268,9 +276,14 @@ public:
   unsigned dmPhaseID;
   // starting interval size we never go below this
   timeStamp minGranularity;
+  // miIndex, DataFilters, and AllDataFilters contain all filters which are now 
+  // or have been in the past, successfully enabled.  
   dictionary_lite<fdsDataID, filter*>DataFilters;
   vector<ff> miIndex [NumMetrics];
   vector<filter*> AllDataFilters;
+  // Pendings contains pending records for all filters with pending enable 
+  // requests.   These filters may or may not also be listed in miIndex DataFilters and 
+  // AllDataFilters, depending on if they have or have not been enabled in the past.
   vector<fmf> Pendings;
 };
 

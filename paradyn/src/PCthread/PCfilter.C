@@ -21,6 +21,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.26  1996/07/22 18:55:40  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.25  1996/05/15 04:42:02  karavan
  * oops! removed debugging print!
  *
@@ -230,6 +233,11 @@ void filter::getInitialSendTime(timeStamp startTime)
     nextSendTime += intervalLength;
 }
 
+void filter::wakeUp()
+{
+  server->makeEnableDataRequest (metric, foc, this);
+}
+  
 void
 avgFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
 {
@@ -474,11 +482,11 @@ filteredDataServer::resubscribeAllData()
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
       makeEnableDataRequest (AllDataFilters[i]->getMetric(),
-			     AllDataFilters[i]->getFocus());
+			     AllDataFilters[i]->getFocus(),
+			     AllDataFilters[i]);
     }
   }
 }
-
 
 //
 // stop all data flow to PC for a PC-pause
@@ -528,7 +536,8 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
   for (unsigned i = 0; i < newlyEnabled->size(); i++) {
     miicurr = &((*newlyEnabled)[i]);
 #ifdef PCDEBUG
-    cout << "enable REPLY for m=" << miicurr->m_id << " f=" << miicurr->r_id << endl;
+    cout << "enable REPLY for m=" << miicurr->m_id << " f=" << miicurr->r_id 
+      << " mi=" << miicurr->mi_id << endl;
 #endif
     bool beenEnabled = DataFilters.find(miicurr->mi_id, curr);
     if (beenEnabled) {
@@ -538,9 +547,11 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
 			    miicurr->successfully_enabled);
     } else {
       // first time this met/foc pair enabled by the PC
+      bool pendingRecFound = false;
       for (unsigned j = 0; j < Pendings.size(); j++) {
 	if ((Pendings[j].mh == miicurr->m_id) && (Pendings[j].f == miicurr->r_id)
 	    && Pendings[j].fil) {
+	  pendingRecFound = true;
 	  curr = Pendings[j].fil;
 	  // clear out this record for reuse
 	  Pendings[j].fil = NULL;
@@ -562,18 +573,51 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
 	  }
 	  break;
 	}
-      }  // for j < Pendings.size()
+      } // for j < Pendings.size()
+      if (!pendingRecFound) {
+	// this enable request was cancelled while it was being handled by the dm
+	// so we need to send back an explicit cancel request
+	if (phType == GlobalPhase)
+	  dataMgr->disableDataAndClearPersistentData
+	    (performanceConsultant::pstream, miicurr->mi_id, phType, true, false);
+	else
+	  dataMgr->disableDataAndClearPersistentData
+	    (performanceConsultant::pstream, miicurr->mi_id, phType, false, true);
+#ifdef PCDEBUG
+	cout << "PCdisableData: m=" << miicurr->m_id << " f=" << miicurr->r_id 
+	  << " mi=" << miicurr->mi_id << endl;
+#endif
+      }
     }
   }
 #ifdef PCDEBUG
-  printPendings();
+  if (performanceConsultant::printDataCollection) 
+    printPendings();
 #endif
 }
 	
 void 
 filteredDataServer::makeEnableDataRequest (metricHandle met,
-					   focus foc)
+					   focus foc, filter *subfilter)
 {
+  // record the dm enable request
+  bool roomAtTheInn = false;
+  fmf newPending (met, foc, subfilter);
+  for (unsigned j = 0; j < Pendings.size(); j++) {
+    if (Pendings[j].fil == NULL) {
+      Pendings[j] = newPending;
+      roomAtTheInn = true;
+      break;
+    }
+  }
+  if (!roomAtTheInn) {
+    Pendings += newPending;
+  }
+#ifdef PCDEBUG
+  if (performanceConsultant::printDataCollection)
+    printPendings();
+#endif
+
   vector<metricRLType> *request = new vector<metricRLType>;
   metricRLType request_entry(met, foc);
   *request += request_entry;
@@ -587,6 +631,14 @@ filteredDataServer::makeEnableDataRequest (metricHandle met,
   else
     dataMgr->enableDataRequest2(performanceConsultant::pstream, request, 
 				myPhaseID, phType, dmPhaseID, 0, 0, 1);
+#ifdef PCDEBUG
+  // ---------------------  debug printing ----------------------------
+  if (performanceConsultant::printDataCollection) {
+    cout << "FDS: subscribed to "  
+      << " methandle=" << met 
+	<< " foc= " << "fochandle=" << foc << endl;
+  }
+#endif
 }
 
 void
@@ -605,7 +657,6 @@ filteredDataServer::printPendings()
   }
 }
 
-
 void
 filteredDataServer::addSubscription(fdsSubscriber sub,
 				    metricHandle mh,
@@ -616,7 +667,6 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   filter *subfilter;
   fdsDataID index;
   bool found = false;
-  bool roomAtTheInn = false;
   unsigned sz = (miIndex[mh]).size();
 
   // is there already a filter for this met/focus pair?
@@ -631,13 +681,15 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   }
   if (found) {
     // add subscriber to filter, which already exists
-    //** check if active!!!
-    subfilter->addConsumer (sub);
-    subfilter->sendEnableReply(mh, f, index, true); 
+    if ( (subfilter->addConsumer (sub)) > 1)
+      // filter is already active
+      subfilter->sendEnableReply(mh, f, index, true);
+    else
+      subfilter->wakeUp();
     return;
-  } 
+  }
 
-  // is there already a pending request for this filter?
+  // is there already a pending enable request for this met/focus pair?
   for (unsigned k = 0; k < Pendings.size(); k++) {
     if ((Pendings[k].mh == mh) && (Pendings[k].f == f) && Pendings[k].fil) {
       subfilter = Pendings[k].fil;
@@ -646,39 +698,36 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
     }
   }
  
-  // construct filter for this met focus pair
+  // this is first request received for this met focus pair; construct new filter
   if (ft == nonfiltering)
     subfilter = new valFilter (this, mh, f, flag);
   else
     subfilter = new avgFilter (this, mh, f, flag);
   subfilter->addConsumer(sub);
+  subfilter->wakeUp();
+}
 
-  // record the dm enable request
-  fmf newPending (mh, f, subfilter);
-  for (unsigned j = 0; j < Pendings.size(); j++) {
-    if (Pendings[j].fil == NULL) {
-      Pendings[j] = newPending;
-      roomAtTheInn = true;
+void 
+filteredDataServer::cancelSubRequest (fdsSubscriber sub, metricHandle met, focus foc)
+{
+  // find the pending enable request for this met/focus pair
+  for (unsigned k = 0; k < Pendings.size(); k++) {
+    if ((Pendings[k].mh == met) && (Pendings[k].f == foc) && Pendings[k].fil) {
+      filter *subfilter = Pendings[k].fil;
+      if (subfilter->numConsumers == 1) {
+	// this was the only pending request; delete it
+	// clear out this record for reuse
+	Pendings[k].fil = NULL;
+	Pendings[k].mh = 0;
+	Pendings[k].f = 0;
+      }
+      subfilter->rmConsumer(sub);
       break;
     }
   }
-  if (!roomAtTheInn) {
-    Pendings += newPending;
-  }
-#ifdef PCDEBUG
-  printPendings();
-#endif
-
-  makeEnableDataRequest (mh, f);
-#ifdef PCDEBUG
-  // ---------------------  debug printing ----------------------------
-  if (performanceConsultant::printDataCollection) {
-    cout << "FDS: " << sub << " subscribed to " << index << " met= " 
-      << " methandle=" << mh << endl
-	<< "foc= " << "fochandle=" << f << endl;
-  }
-#endif
 }
+ 
+  
 
 // all filters live until end of Search, although no subscribers may remain
 // if subscriber count goes to 0, disable raw data
@@ -706,6 +755,12 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
       dataMgr->disableDataAndClearPersistentData
 	(performanceConsultant::pstream, subID, phType, false, true);
     //dataMgr->disableDataCollection ();
+
+#ifdef PCDEBUG
+    cout << "PCdisableData: m=" << curr->getMetric() << " f=" << curr->getFocus() 
+      << " mi=" << subID << endl;
+#endif
+
 #ifdef MYPCDEBUG
     t2=TESTgetTime();
     if (performanceConsultant::collectInstrTimings) {
@@ -713,6 +768,7 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
         printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1);
     } 
 #endif
+
   }
 #ifdef PCDEBUG
   // debug printing

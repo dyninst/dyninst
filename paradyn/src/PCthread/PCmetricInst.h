@@ -20,6 +20,9 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.10  1996/07/22 18:55:44  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.9  1996/05/15 04:35:15  karavan
  * bug fixes: changed pendingCost pendingSearches and numexperiments to
  * break down by phase type, so starting a new current phase updates these
@@ -121,8 +124,11 @@ private:
   metricHandle met;
   focus foc;
   filterType ft;
+  // set true when enable reply received from the filter 
+  // changed to false again when disable request is made
+  bool active;
   dataQ indataQ;
-};
+ };
 
 class PCmetricInst;
 
@@ -139,7 +145,7 @@ public:
   sampleValue getCurrentValue () {return currentValue;}
   // this asynchronous call makes a request for cost data; cost server returns
   // result via a call to updateEstimatedCost() 
-  void getEstimatedCost();
+  float getEstimatedCost(dataSubscriber *sub);
 
   // at the current time, we simply try to subscribe to all data
   // future work: separate essential from nonessential metrics and t/f based on that.
@@ -153,18 +159,14 @@ public:
   // these are called by filtered data source and cost server -- subscriber role
   void newData(PCmetDataID whichData, sampleValue newVal, 
 	       timeStamp start, timeStamp end, sampleValue);
-  void updateEstimatedCost(float costDiff) 
-    {
-      costEstimate += costDiff;
-      numCostEstimates++;
-      if (numCostEstimates == numInPorts)
-	sendUpdatedEstimatedCost(costEstimate);
-    }
+  void updateEstimatedCost(float costDiff);
   void enableReply (unsigned token1, unsigned token2, unsigned token3,
 		    bool successful);
   void addSubscription(dataSubscriber *sub) 
-    { addConsumer(sub); }
+    { addConsumer(sub); activate(); }
+  void endSubscription(dataSubscriber *sub); 
 private:
+  void sendInitialCostEstimate (float costEstimate);
   bool alignTimes();
   void setDataReady(int portNum);
   void clearDataReady (int portNum);
@@ -190,6 +192,7 @@ private:
   bool active;            // is data collection active for this PCmetInst?
   bool costFlag;          // if true, data collection continues during pause
   filteredDataServer *db; // source of all raw data
+  vector<dataSubscriber *> costWaitList; // waiting for initial cost estimate
 };
 
 ostream& operator <<(ostream &os, PCmetricInst &pcm);
@@ -211,12 +214,9 @@ class PCmetricInstServer {
   PCmetricInstServer(unsigned phaseID);
   ~PCmetricInstServer();
   // interface to subscribers
-  PCmetInstHandle addSubscription(dataSubscriber *sub,
-				  PCmetric *pcm,
-				  focus f,
-				  bool *errFlag);
-
-  void endSubscription(dataSubscriber *sub, PCmetInstHandle id);
+  PCmetInstHandle createPcmi(PCmetric *pcm,
+			     focus f,
+			     bool *errFlag);
   // data
   void unsubscribeAllRawData()
     { datasource->unsubscribeAllData(); }

@@ -20,6 +20,9 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.11  1996/07/22 18:55:45  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.10  1996/05/15 04:35:19  karavan
  * bug fixes: changed pendingCost pendingSearches and numexperiments to
  * break down by phase type, so starting a new current phase updates these
@@ -182,9 +185,6 @@ class costModule : public dataSubscriber
   void newData (PCmetDataID, sampleValue newVal, timeStamp, timeStamp, 
 	   sampleValue)
     {
-#ifdef PCDEBUG
-      cout << "cost module returns: " << newVal << endl;
-#endif
       if (newVal < performanceConsultant::predictedCostLimit)
 	// check search queue and expand search if possible
 	PCsearch::expandSearch(newVal);

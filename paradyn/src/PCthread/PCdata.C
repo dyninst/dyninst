@@ -20,6 +20,9 @@
  * dataSubscriber and dataProvider base classes
  *
  * $Log: PCdata.C,v $
+ * Revision 1.6  1996/07/22 18:55:36  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.5  1996/05/08 07:35:01  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -113,7 +116,7 @@ dataProvider::sendEnableReply (unsigned token1, unsigned token2, unsigned token3
   }
 }
   
-void 
+int
 dataProvider::addConsumer(dataSubscriber *consumer) 
 {  
   bool added = false;
@@ -133,6 +136,7 @@ dataProvider::addConsumer(dataSubscriber *consumer)
     allConsumers += consumer;
   }
   numConsumers++;
+  return numConsumers;
 }
 
 int

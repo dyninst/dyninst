@@ -20,6 +20,9 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.49  1996/07/22 18:55:46  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.48  1996/05/16 06:58:40  karavan
  * increased max num experiments and also min time to conclusion.
  *
@@ -510,22 +513,21 @@ searchHistoryNode::percolateDown(testResult newValue)
     numTrueParents++;
     if (numTrueParents == 1) {
       if ((exp) && (!active)) {
-	//** get key
-	PCsearch::addToQueue(10, this, getPhase());
+	//** this will be replaced with more rational priority calculation
+	if (axis == refineWhyAxis)
+	  PCsearch::addToQueue(5, this, getPhase());
+	else
+	  PCsearch::addToQueue(10, this, getPhase());
       }
     }
   } else {
     // we're percolating a change to false; if no true parents are 
-    // left, we stop the experiment.
-    // this case shouldn't ever happen, IMHO - klk
+    // left, this node is false by definition, we stop the experiment.
+    // Eventually the child node would become false on its own, this
+    // is just a shortcut.
     numTrueParents--;
-    if (numTrueParents == 0) {
-      if (exp) {
-	stopExperiment();
-      }
-      for (unsigned k = 0; k < children.size(); k++)
-	children[k]->percolateDown(newValue);
-    }
+    if (numTrueParents == 0)
+      changeTruth(tfalse); 
   }
 }
       
@@ -544,7 +546,7 @@ searchHistoryNode::percolateUp(testResult newValue)
   } else {
     numTrueChildren--;
     if ((virtualNode) && (numTrueChildren == 0)) {
-      makeFalse();
+      changeTruth(tfalse);
     }
   }
 }
@@ -555,6 +557,7 @@ searchHistoryNode::percolateUp(testResult newValue)
 void 
 searchHistoryNode::changeTruth (testResult newTruth)
 {
+  testResult oldValue = truthValue;
   if (truthValue == newTruth) {
     // oops!  this isn't really a change!
     return;
@@ -567,11 +570,9 @@ searchHistoryNode::changeTruth (testResult newTruth)
       stopExperiment();
       //** add to aging queue
     }
-    if (truthValue == tunknown) {
-      this->makeFalse();
-    } else {
+    this->makeFalse();
+    if (oldValue != tunknown) {
       // change to false was from true
-      this->makeFalse();
       for (unsigned i = 0; i < parents.size(); i++) {
 	parents[i] -> percolateUp(tfalse);
       }
@@ -599,6 +600,31 @@ searchHistoryNode::changeTruth (testResult newTruth)
   }
 }
 
+//
+// move a node which has been tested back onto the ready q
+//
+void 
+searchHistoryNode::retest()
+{
+  if ((exp) && (!active)) {
+    //** this will be replaced with more rational priority calculation
+    if (axis == refineWhyAxis)
+      PCsearch::addToQueue(5, this, getPhase());
+    else
+      PCsearch::addToQueue(10, this, getPhase());
+  }
+}
+
+void
+searchHistoryNode::retestAllChildren()
+{
+  if (expanded) {
+    for (unsigned k = 0; k < children.size(); k++) {
+      children[k]->retest();
+    }
+  }
+}
+  
 float 
 searchHistoryNode::getEstimatedCost()
 {
@@ -641,13 +667,21 @@ searchHistoryNode::estimatedCostNotification()
   cout << " in phase " << mamaGraph->guiToken << " is " << 
     exp->getEstimatedCost() << endl;
 #endif
-  if (!active) {
+  if (!active && numTrueParents >= 1) {
+    // check numTrueParents here because parent may have become false
+    // while cost request was pending
     //** this will be replaced with more rational priority calculation
     if (axis == refineWhyAxis)
       PCsearch::addToQueue(5, this, getPhase());
     else
       PCsearch::addToQueue(10, this, getPhase());
   }
+}
+
+int 
+searchHistoryNode::getGuiToken() 
+{
+  return mamaGraph->guiToken;
 }
   
 //

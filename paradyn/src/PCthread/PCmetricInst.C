@@ -20,6 +20,9 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.13  1996/07/22 18:55:43  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.12  1996/05/15 04:35:13  karavan
  * bug fixes: changed pendingCost pendingSearches and numexperiments to
  * break down by phase type, so starting a new current phase updates these
@@ -182,6 +185,7 @@ TimesAligned(0), active(false), costFlag(*err), db(db)
   int pauseOffset = 0;
   inPort newRec;
   newRec.mih = 0;
+  newRec.active = false;
   newRec.ft = averaging;
   if (pcMet->InstWithPause) {
     // create pause_time queue as 0;
@@ -209,14 +213,47 @@ TimesAligned(0), active(false), costFlag(*err), db(db)
 //    pcMet->setup(foc);
 }
 
-void
-PCmetricInst::getEstimatedCost()
+float
+PCmetricInst::getEstimatedCost(dataSubscriber *sub)
 {
-  unsigned sz = AllData.size();
-  for (unsigned i = 0; i < sz; i++) {
-    costServer::getPredictedCost(AllData[i].met, AllData[i].foc, this);
+  if (numCostEstimates == numInPorts) {
+    // cost has already been calculated for this pcmi
+    return costEstimate;
+  } else {
+    unsigned sz = AllData.size();
+    for (unsigned i = 0; i < sz; i++) {
+      costServer::getPredictedCost(AllData[i].met, AllData[i].foc, this);
+    }
+    costWaitList += sub;
+    return -1;
   }
 }
+
+void
+PCmetricInst::sendInitialCostEstimate (float costEstimate)
+{
+  unsigned sz = costWaitList.size();
+  for (unsigned i = 0; i < sz; i++)
+    costWaitList[i]-> updateEstimatedCost (costEstimate);
+  costWaitList.resize(0);
+}
+
+void 
+PCmetricInst::updateEstimatedCost(float costDiff)
+{
+#ifdef PCDEBUG
+  cout << "$$ EstimatedCostData received: " << costDiff << " for met:"
+    << met->getName() << foc << " foc: " << endl;
+  cout << "                      new tot: " << costEstimate+costDiff << endl;
+#endif
+  costEstimate += costDiff;
+  numCostEstimates++;
+  if (numCostEstimates == numInPorts)
+    sendInitialCostEstimate (costEstimate);
+  else if (numCostEstimates > numInPorts)
+    sendUpdatedEstimatedCost(costEstimate);
+}
+
 void 
 PCmetricInst::enableReply (unsigned token1, unsigned token2, unsigned token3,
 				bool successful)
@@ -231,6 +268,7 @@ PCmetricInst::enableReply (unsigned token1, unsigned token2, unsigned token3,
 	  (AllData[i].foc == (focus)token2)) {
 	setEnableReady(i);
 	AllData[i].mih = (metricInstanceHandle)token3;
+	AllData[i].active = true;
 	break;
       }
     }
@@ -250,7 +288,6 @@ PCmetricInst::activate()
   if (active) return;
 
   inPort *curr;
-  unsigned nextPortId = 0;
   AllDataReady = 0;
   // important!!! AllDataReady must be complete before we enter the 
   // second for loop.  Why?  it may be tested as part of call to 
@@ -260,7 +297,6 @@ PCmetricInst::activate()
   }
   for (int i = 0; i < numInPorts; i++) {
     curr = &(AllData[i]);
-    curr->portID = nextPortId++;
     db->addSubscription (this, curr->met, curr->foc, curr->ft, 
 				    costFlag); 
     // ** this must change when metrics using eg "all children" 
@@ -276,15 +312,26 @@ PCmetricInst::activate()
   for (int k = 0; k < numInPorts; k++) {
     AllCurrentValues[k] = 0.0;
   }
+  //**
+  cout << "%% PCmetric Filter Activated %%" << endl;
+  cout << *this << endl;
 }
 
 void
 PCmetricInst::deactivate()
 {
   for (int j = 0; j < numInPorts; j++) {
-    db->endSubscription (this, AllData[j].mih);
+    if (AllData[j].active) {
+      db->endSubscription (this, AllData[j].mih);
+      AllData[j].active = false;
+    } else {
+      // data requested but confirmation not yet received
+      db->cancelSubRequest (this, AllData[j].met, AllData[j].foc);
+    }
   }
   active = false;
+  cout << "?? PCmetric Filter Deactivated ??" << endl;
+  cout << *this << endl;
 }
 
 PCmetricInst::~PCmetricInst()
@@ -342,9 +389,6 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
       found = true;
       break;
     }
-  if (!found) {
-    bool notfound = true;
-  }
   assert (found);
 
   // update data ready
@@ -389,15 +433,19 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
     TimesAligned = 0;
     endTime = end;
     sampleValue newguy;
-    if (met->calc != NULL)
-      newguy = met->calc(foc, AllCurrentValues, numInPorts);
-    else
-      // (if calc == NULL, just return single value)
-      newguy = AllCurrentValues[numInPorts-1];    
-
     sampleValue pauseNorm = 0.0;
-    if (met->InstWithPause)
+    int numPs = numInPorts;
+    sampleValue *allvalues = AllCurrentValues;
+    if (met->InstWithPause) {
       pauseNorm = AllCurrentValues[0];
+      allvalues++;
+      numPs--;
+    }
+    if (met->calc != NULL)
+      newguy = met->calc(foc, allvalues, numPs);
+    else
+      // ** (if calc == NULL, just return single value)
+      newguy = AllCurrentValues[numInPorts-1];    
 
     // notify all consumers of this PCmi of the new value
 #ifdef MYPCDEBUG
@@ -479,6 +527,17 @@ PCmetricInst::alignTimes()
   return allLinedUp;
 }
 
+void 
+PCmetricInst::endSubscription(dataSubscriber *sub)
+{
+  int numLeft = rmConsumer (sub);
+  if (numLeft == 0) {
+    // leave the PCmetricInst but stop the flow of data to it
+    //** flush queues??
+    deactivate();
+  }
+}
+
 PCmetricInstServer::PCmetricInstServer (unsigned phaseID) 
 {  
     datasource = new filteredDataServer(phaseID);
@@ -492,38 +551,25 @@ PCmetricInstServer::~PCmetricInstServer ()
 }
 
 PCmetInstHandle
-PCmetricInstServer::addSubscription(dataSubscriber *sub,
-				    PCmetric *pcm,
-				    focus f,
-				    bool *errFlag)
+PCmetricInstServer::createPcmi(PCmetric *pcm,
+			       focus f,
+			       bool *errFlag)
 {
-  PCmetricInst *newsub = NULL;
+  PCmetricInst *newpcmi = NULL;
   // PCmetric instance may already exist
 
   unsigned sz = AllData.size();
   for (unsigned i = 0; i < sz; i++) {
     if (((AllData[i]).f == f) && ((AllData[i]).pcm == pcm)) {
-      newsub = (AllData[i]).pcmi;
+      newpcmi = (AllData[i]).pcmi;
       break;
     }
   }
-  if (newsub == NULL) {
-    newsub = new PCmetricInst(pcm, f, datasource, errFlag);
-    PCMRec tmpRec (pcm, f, newsub);
+  if (newpcmi == NULL) {
+    newpcmi = new PCmetricInst(pcm, f, datasource, errFlag);
+    PCMRec tmpRec (pcm, f, newpcmi);
     AllData += tmpRec;
   }
-  newsub->addConsumer(sub);
-  return (PCmetInstHandle) newsub;
+  return (PCmetInstHandle) newpcmi;
 }
 
-void 
-PCmetricInstServer::endSubscription(dataSubscriber *sub, 
-				    PCmetInstHandle id)
-{
-  int numLeft = id->rmConsumer (sub);
-  if (numLeft == 0) {
-    // leave the PCmetricInst but stop the flow of data to it
-    //** flush queues??
-    id->deactivate();
-  }
-}

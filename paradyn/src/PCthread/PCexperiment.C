@@ -20,6 +20,9 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.12  1996/07/22 18:55:38  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.11  1996/05/15 04:35:07  karavan
  * bug fixes: changed pendingCost pendingSearches and numexperiments to
  * break down by phase type, so starting a new current phase updates these
@@ -117,8 +120,8 @@
 #include "PCexperiment.h"
 #include "PCsearch.h"
 //**
-#define PCminTimeToFalse 15
-#define PCminTimeToTrue 10
+#define PCminTimeToFalse 20
+#define PCminTimeToTrue 20
 
 
 ostream& operator <<(ostream &os, experiment& ex)
@@ -149,9 +152,6 @@ void
 experiment::updateEstimatedCost(float costDiff) 
 {
   estimatedCost += costDiff;
-#ifdef PCDEBUG
-  cout << "experiment cost: " << estimatedCost << endl;
-#endif
   papaNode->estimatedCostNotification();
 }
 
@@ -201,7 +201,9 @@ experiment::newData(PCmetDataID, float val, double start, double end,
     << "            focus = <" 
       << dataMgr->getFocusNameFromHandle(where) << ">" 
       << endl
-      << "            time = " << endTime << endl;
+      << "            time = " << endTime << "  pauseNorm = " 
+	<< timeNormalizer << "  thresh = " << thresh << "  hys = " 
+	  << hysConstant << endl;
     if (why->compOp == gt) {
       cout << "             " << val << " >? " 
 	<< (thresh*timeNormalizer * hysConstant)
@@ -226,6 +228,14 @@ experiment::newData(PCmetDataID, float val, double start, double end,
       // this test result same as previous, so add interval to previous
       // total.  
       timeTrueFalse += end - start;
+      if ((thresh < lastThreshold) && (currentConclusion == currentGuess)) {
+	// threshold has been changed so reevaluate existing false children
+	papaNode->retestAllChildren();
+      }
+    }
+    if ((thresh != lastThreshold) && (currentConclusion == currentGuess)) {
+      // threshold has been changed so reevaluate existing false children
+      papaNode->retestAllChildren();
     }
     if ((timeTrueFalse >= PCminTimeToTrue) 
 	&& (currentConclusion != currentGuess)) {
@@ -249,6 +259,7 @@ experiment::newData(PCmetDataID, float val, double start, double end,
       drawConclusion(tfalse);
     }
   }
+  lastThreshold = thresh;
 }
 
 //
@@ -261,7 +272,8 @@ experiment::experiment(hypothesis *whyowhy, focus whereowhere,
 why(whyowhy), where(whereowhere), persistent(persist), mamaSearch(srch),
 papaNode(papa),  estimatedCost(0.0), status(false), 
 currentConclusion(tunknown), currentGuess(tunknown), timeTrueFalse(0), 
-currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false)
+currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false),
+lastThreshold(0.0)
 
 {
   PCmetricInstServer *db = mamaSearch->getDatabase();
@@ -270,7 +282,7 @@ currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false)
   // **here, need to check if pause_time if so, set flag to true instead
   PCmetric *mymet = why->getPcMet(amFlag);
   assert (mymet);
-  pcmih = db->addSubscription ((PCmetSubscriber)this, mymet, where, &errf);
+  pcmih = db->createPcmi (mymet, where, &errf);
   // error here if pcmetric couldn't be enabled 
   *err = ((pcmih == NULL) || errf);
   if (*err) return;
@@ -295,7 +307,9 @@ currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false)
 void
 experiment::findOutCost()
 {
-  pcmih->getEstimatedCost();
+  sampleValue currEstimate = pcmih->getEstimatedCost(this);
+  if (currEstimate >= 0) 
+    updateEstimatedCost(currEstimate);
 }
 
 experiment::~experiment()
@@ -312,8 +326,8 @@ experiment::start()
 {
   if (status) return true;
   assert(pcmih);
-  pcmih->activate();
-  papaNode->addActiveSearch();
+  pcmih->addSubscription((PCmetSubscriber)this);
+  papaNode->addActiveSearch();   // update active search count
   status = true;
   //** need to distinguish here if PCmetricInst already running!!
   return false;
@@ -325,7 +339,7 @@ experiment::halt ()
   if (status) {
     PCsearch::decrNumActiveExperiments();
     // to stop experiment, just turn off flow of data at the source
-    (mamaSearch->getDatabase())->endSubscription ((PCmetSubscriber)this, pcmih);
+    pcmih->endSubscription ((PCmetSubscriber)this);
     status = false;
   }
 }

@@ -20,6 +20,9 @@
  * dataSubscriber and dataProvider base classes
  *
  * $Log: PCdata.h,v $
+ * Revision 1.3  1996/07/22 18:55:37  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.2  1996/05/08 07:35:05  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -62,7 +65,8 @@ public:
   dataProvider();
   virtual ~dataProvider();
   float getEstimatedCost () {return estimatedCost;}
-  void addConsumer(dataSubscriber*);
+  // returns new number of subscribers, including new request
+  int addConsumer(dataSubscriber*);
   // returns remaining number of subscribers after deletion
   int rmConsumer(dataSubscriber*);
   void sendValue(PCmetDataID, sampleValue, timeStamp, timeStamp, sampleValue);

@@ -20,6 +20,9 @@
  * experiment class
  *
  * $Log: PCexperiment.h,v $
+ * Revision 1.6  1996/07/22 18:55:39  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.5  1996/05/15 04:35:09  karavan
  * bug fixes: changed pendingCost pendingSearches and numexperiments to
  * break down by phase type, so starting a new current phase updates these
@@ -156,6 +159,8 @@ class experiment : public dataSubscriber
   timeStamp endTime;        
   // true if minObs time has passed
   bool minObservationFlag;  
+  // use this to flag user changes to thresholds during a search
+  sampleValue lastThreshold;
 };
 
 ostream& operator <<(ostream &os, experiment& ex);

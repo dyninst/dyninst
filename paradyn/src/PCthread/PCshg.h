@@ -20,6 +20,9 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.28  1996/07/22 18:55:47  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.27  1996/05/15 04:35:25  karavan
  * bug fixes: changed pendingCost pendingSearches and numexperiments to
  * break down by phase type, so starting a new current phase updates these
@@ -184,6 +187,9 @@ public:
   void estimatedCostNotification(); 
   void enableReply (bool);
   void addActiveSearch();
+  void retestAllChildren();
+  void retest();
+  int getGuiToken();
 private:
   void percolateUp(testResult newTruth);
   void percolateDown(testResult newTruth);

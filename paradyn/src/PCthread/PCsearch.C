@@ -20,6 +20,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.18  1996/07/22 18:55:44  karavan
+ * part one of two-part commit for new PC functionality of restarting searches.
+ *
  * Revision 1.17  1996/05/16 06:58:37  karavan
  * increased max num experiments and also min time to conclusion.
  *
@@ -183,12 +186,8 @@ PCsearch::expandSearch (sampleValue estimatedCost)
 
 #ifdef PCDEBUG
   cout << "START OF EXPAND" << endl;
-  cout << "total observed cost: " << estimatedCost << endl;
-  cout << "cost limit: " << performanceConsultant::predictedCostLimit << endl;
-  cout << "numActiveExperiments: " << PCsearch::getNumActiveExperiments() << endl;
-  cout << "pendingEnables: " << PCsearch::getNumPendingSearches() << endl;
-  cout << "limit: " << (1-costFudge)*performanceConsultant::predictedCostLimit << endl;
-  cout << "pendingCost = " << PCsearch::getPendingCost() << endl;
+  cout << "Global Qsize: " << GlobalSearchQueue.size() << 
+    " Current Qsize: " << CurrentSearchQueue.size() << endl;
 #endif
 
   // alternate between two queues for fairness
@@ -214,9 +213,29 @@ PCsearch::expandSearch (sampleValue estimatedCost)
     }
     curr = q->peek_first_data();
     candidateCost = curr->getEstimatedCost();
-    //cout << "considering node with cost: " << candidateCost << endl;
-    if ((estimatedCost + candidateCost + PCsearch::getPendingCost()) > 
-	(1-costFudge)*performanceConsultant::predictedCostLimit) {
+#ifdef PCDEBUG
+    cout << " considering node with cost: " << candidateCost << endl;
+#endif
+    sampleValue predMax = (1-costFudge)*performanceConsultant::predictedCostLimit;
+    if (candidateCost > predMax) {
+#ifdef NDEF
+      // move this to the lowest priority; cost exceeds entire cost allowance
+      //**
+      if (q == &CurrentSearchQueue)
+	PCsearch::addToQueue(20, curr, performanceConsultant::currentPhase);
+      else
+	PCsearch::addToQueue(20, curr, 0);
+#endif
+      // **for now just get it out of the way
+      int dispToken = curr->getGuiToken();
+      q->delete_first();
+      string *ds = new string 
+	("WARNING:  Predicted Node Search Code exceeds limit.  Skipped Node:\n\t");
+      *ds += curr->getShortName();
+      *ds += "\n";
+      uiMgr->updateStatusDisplay(dispToken, ds);
+    } else if ((estimatedCost + candidateCost + PCsearch::getPendingCost()) 
+	       > predMax) {
       costLimitReached = true;
     } else {
       curr->startExperiment();
@@ -232,11 +251,11 @@ PCsearch::expandSearch (sampleValue estimatedCost)
   }
 #ifdef PCDEBUG
   cout << "END OF EXPAND" << endl;
-  cout << "total observed cost: " << estimatedCost << endl;
   cout << "cost limit: " << performanceConsultant::predictedCostLimit << endl;
+  cout << "total observed cost: " << estimatedCost << 
+    "/" << (1-costFudge)*performanceConsultant::predictedCostLimit << endl;
   cout << "numActiveExperiments: " << PCsearch::getNumActiveExperiments() << endl;
   cout << "pendingEnables: " << PCsearch::getNumPendingSearches() << endl;
-  cout << "limit: " << (1-costFudge)*performanceConsultant::predictedCostLimit << endl;
   cout << "pendingCost = " << PCsearch::getPendingCost() << endl;
 #endif
 }
@@ -268,9 +287,9 @@ PCsearch::initCostTracker ()
   PCsearch::costTracker = new costModule;
   PCmetricInstServer *miserve = new PCmetricInstServer (GlobalPhase);
   costTracker->costFilter = 
-    miserve->addSubscription(costTracker, pcm, topLevelFocus, &err);
+    miserve->createPcmi(pcm, topLevelFocus, &err);
   assert(costTracker->costFilter);
-  costTracker->costFilter->activate();
+  costTracker->costFilter->addSubscription(costTracker);
 }
 
 bool
