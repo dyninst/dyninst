@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.76 2002/05/13 19:53:43 mjbrim Exp $ */
+/* $Id: context.C,v 1.77 2002/07/03 22:18:41 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -57,7 +57,6 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
-#include "paradynd/src/hashTable.h"
 #include "paradynd/src/init.h"
 
 // The following were defined in process.C
