@@ -10,7 +10,7 @@ LIBDIR += -R/usr/openwin/lib -L/usr/openwin/lib
 CFLAGS = -O -g $(IFLAGS) 
 
 
-LIBS = $(LIBDIR) -lvisi -lpdutil -lstdc++ -lXaw -lXext -lXmu -lXt
+LIBS = $(LIBDIR) -lvisi -lpdutilOld -lstdc++ -lXaw -lXpm -lXext -lXmu -lXt
 LIBS += -lX11 -lm -lsocket -lnsl
 
 SRCS = ../src/xtext.C
