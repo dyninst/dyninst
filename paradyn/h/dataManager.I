@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.20  1994/07/02 01:45:22  markc
+ * Revision 1.21  1994/07/07 03:22:28  markc
+ * Added addDaemon function to start daemon prior to start process.
+ *
+ * Revision 1.20  1994/07/02  01:45:22  markc
  * Removed aggregation operator from enableDataCollection call.
  * Remove aggregation operator definitions, which are provided by
  * util/h/aggregation.H
@@ -202,13 +205,20 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 10;
+    $version 11;
 
     //
     // Create an applicationContext (an application to be studied)
     //
     applicationContext *createApplicationContext(errorHandler foo);
 
+    //
+    // Start a paradyn daemon
+    //
+    Boolean addDaemon (applicationContext *app,
+	               char *machine,
+		       char *login,
+		       char *name);
     //
     // Define a program to run. 
     //
