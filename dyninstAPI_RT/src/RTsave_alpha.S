@@ -28,8 +28,7 @@
 	.globl DYNINSTcode
 	.ent DYNINSTcode 2	
 DYNINSTcode:
-	LONG_64k		; 
-	LONG_16k		;
+	LONG_1024		;
 	.end DYNINSTcode
 	
 	.globl DYNINSTsave_temp

@@ -1,6 +1,7 @@
 /*
  * create an array to use as a heap for new instructions.
  *
+ * .space	SYN_INST_BUF_SIZES 
  */
 #include "../h/rtinst.h"
 
@@ -10,5 +11,5 @@
 	.globl _DYNINSTtext
 	.ent _DYNINSTtext 2
 _DYNINSTtext:
-	.space	SYN_INST_BUF_SIZE
+	.space	1024 
 	.end _DYNINSTtext
