@@ -1,9 +1,12 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.14  1996/05/15 18:03:15  tamches
-/* added newMetricMaxValCallbackCommand
+/* Revision 1.15  1996/08/05 07:09:14  tamches
+/* update for tcl7.5
 /*
+ * Revision 1.14  1996/05/15 18:03:15  tamches
+ * added newMetricMaxValCallbackCommand
+ *
  * Revision 1.13  1996/01/11 01:52:53  tamches
  * added command long2shortFocusName
  *
@@ -98,12 +101,6 @@ int main(int argc, char **argv) {
    MainInterp = Tcl_CreateInterp();
    assert(MainInterp);
 
-   Tk_Window mainTkWindow = Tk_CreateMainWindow(MainInterp, NULL,
-						"barChart",
-						"BarChart");
-   if (mainTkWindow == NULL)
-      tclpanic(MainInterp, "Could not Tk_CreateMainWindow()");
-
    if (TCL_OK != Tcl_Init(MainInterp))
       tclpanic(MainInterp, "Could not Tcl_Init()");
 
@@ -175,7 +172,7 @@ int main(int argc, char **argv) {
    pdLogo::install_fixed_logo("paradynLogo", logo_bits, logo_width, logo_height);
    tcl_cmd_installer createPdLogo(MainInterp, "makeLogo",
 				  pdLogo::makeLogoCommand,
-				  (ClientData)mainTkWindow);
+				  (ClientData)Tk_MainWindow(MainInterp));
 
    myTclEval(MainInterp, "init_barchart_window");
    myTclEval(MainInterp, "Initialize");
