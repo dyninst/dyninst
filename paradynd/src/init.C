@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.58 2000/11/21 21:14:26 schendel Exp $
+// $Id: init.C,v 1.59 2001/08/23 14:44:08 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -53,6 +53,10 @@
 #include "common/h/timing.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/perfStream.h"
+#include "paradynd/src/context.h"    // elapsedPauseTime, startPause
+#include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
+#include "paradynd/src/dynrpc.h"
+#include "pdutil/h/aggregationDefines.h"
 
 extern pdRPC *tp;
 extern int getNumberOfCPUs();
@@ -60,7 +64,7 @@ extern int getNumberOfCPUs();
 extern pdDebug_ostream sampleVal_cerr;
 
 internalMetric *activeProcs = NULL;
-internalMetric *bucket_width = NULL;
+internalMetric *sampling_rate = NULL;
 
 internalMetric *pauseTime = NULL;
 costMetric *totalPredictedCost= NULL;
@@ -82,7 +86,19 @@ int numberOfCPUs;
 vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
 
-pdSample activeProcessesProc(const metricDefinitionNode *node) {
+pdSample computeSamplingRate(const metricDefinitionNode *) {
+  // we'll transfer bucket width as milliseconds, instead of seconds because
+  // we can't represent fractional second bucket widths (eg. .2 seconds). Now
+  // that our sample value type (pdSample) is an int64_t when it used to be a
+  // double
+  return pdSample(getCurrSamplingRate().getI(timeUnit::ms()));
+}
+
+pdSample computeNumOfCPUs(const metricDefinitionNode *) {
+  return pdSample(numberOfCPUs);
+}
+
+pdSample computeActiveProcessesProc(const metricDefinitionNode *node) {
    const vector< vector<string> > &theFocus = node->getFocus();
 
    // Now let's take a look at the /Machine hierarchy of the focus.
@@ -104,6 +120,95 @@ pdSample activeProcessesProc(const metricDefinitionNode *node) {
    return pdSample(activeProcesses * 1);
 }
 
+pdSample computePauseTimeMetric(const metricDefinitionNode *) {
+    // we don't need to use the metricDefinitionNode
+
+    timeStamp now = getWallTime();
+    if (isInitFirstRecordTime()) {
+	timeLength elapsed = elapsedPauseTime;
+	if (isApplicationPaused())
+	    elapsed += now - startPause;
+
+	assert(elapsed >= timeLength::Zero()); 
+	return pdSample(elapsed);
+    } else {
+	return pdSample(timeLength::Zero());
+    }
+}
+
+pdSample computeNumOfActCounters(const metricDefinitionNode *) {
+  unsigned max = 0;
+  for (unsigned i = 0; i < processVec.size(); i++) {
+    if (processVec[i]->numOfActCounters_is > max)
+      max = processVec[i]->numOfActCounters_is;
+  }
+  return pdSample(max);
+}
+
+pdSample computeNumOfActProcTimers(const metricDefinitionNode *) {
+  unsigned max = 0;
+  for (unsigned i = 0; i < processVec.size(); i++) {
+    if (processVec[i]->numOfActProcTimers_is > max)
+      max = processVec[i]->numOfActProcTimers_is;
+  }
+  return pdSample(max);
+}
+
+pdSample computeNumOfActWallTimers(const metricDefinitionNode *) {
+  unsigned max = 0;
+  for (unsigned i = 0; i < processVec.size(); i++) {
+    if (processVec[i]->numOfActWallTimers_is > max)
+      max = processVec[i]->numOfActWallTimers_is;
+  }
+  return pdSample(max);
+}
+
+timeStamp  startStackwalk;
+timeLength elapsedStackwalkTime = timeLength::Zero();
+bool       stackwalking = false;
+
+pdSample computeStackwalkTimeMetric(const metricDefinitionNode *) {
+    // we don't need to use the metricDefinitionNode
+    if (isInitFirstRecordTime()) {
+        timeLength elapsed = elapsedStackwalkTime;
+        if (stackwalking) {
+          timeStamp now = getWallTime();
+          elapsed += now - startStackwalk;
+        }
+        assert(elapsed >= timeLength::Zero());
+        return pdSample(elapsed);
+    } else {
+        return pdSample(timeLength::Zero());
+    }
+}
+
+#if defined(MT_THREAD)
+pdSample computeNumOfCurrentLevels(const metricDefinitionNode *) {
+  unsigned max = 0;
+  for (unsigned i = 0; i < processVec.size(); i++) {
+    if (processVec[i]->numOfCurrentLevels_is > max)
+      max = processVec[i]->numOfCurrentLevels_is;
+  }
+  return pdSample(max);
+}
+
+pdSample computeNumOfCurrentThreads(const metricDefinitionNode *) {
+  unsigned max = 0;
+  for (unsigned i = 0; i < processVec.size(); i++) {
+    if (processVec[i]->numOfCurrentThreads_is > max)
+      max = processVec[i]->numOfCurrentThreads_is;
+  }
+  return pdSample(max);
+}
+
+pdSample computeNumOfActiveThreads(const metricDefinitionNode *) {
+  unsigned numOfActiveThreads = 0;
+  for (unsigned i = 0; i < processVec.size(); i++) {
+    numOfActiveThreads += processVec[i]->numOfCurrentThreads_is ;
+  }
+  return pdSample(numOfActiveThreads);
+}
+#endif
 
 
 bool init() {
@@ -173,23 +278,26 @@ bool init() {
   active_procs_preds.process = pred_null;
   active_procs_preds.sync = pred_null;
 
-  bucket_width = internalMetric::newInternalMetric("bucket_width", 
-						   SampledFunction,
-						   aggMax,
-						   "milliseconds",
-						   NULL,
-						   default_im_preds,
-						   true,
-						   Sampled);
+  // The internal metrics used to be of style EventCounter but have been
+  // switched to SampledFunction.  In the front end, eventCounter metric
+  // values are normalized by the time delta whereas the SampledFunction
+  // style metric values are left unnormalized.  When the internal metrics
+  // were EventCounter style, the value was multiplied in this function by
+  // the time delta to offset the normalization being done in the front end.
+  // This is not only redundant but also led to difficulties representing
+  // resultant fractional sample values with our now integral sample value
+  // type.  eg. previously: (end-start) * sampleValue -> (.2sec) * 1 = .2
 
-  number_of_cpus = internalMetric::newInternalMetric("number_of_cpus", 
-						   SampledFunction,
-						   aggSum,
-						   "CPUs",
-						   NULL,
-						   default_im_preds,
-						   false,
-						   Sampled);
+  sampling_rate = internalMetric::newInternalMetric(
+       "sampling_rate", aggMax, "milliseconds", computeSamplingRate, 
+       default_im_preds, true, Sampled, 
+       internalMetric::firstSample_ForInitActualValue);
+  sampling_rate->setStyle(SampledFunction);
+
+  number_of_cpus = internalMetric::newInternalMetric(
+       "number_of_cpus", aggSum, "CPUs", computeNumOfCPUs, default_im_preds, 
+       false, Sampled, internalMetric::firstSample_ForInitActualValue);
+  number_of_cpus->setStyle(SampledFunction);
 
   // Allow stackwalk_time for whole program (only)
   im_pred_struct default_proc_preds;
@@ -198,124 +306,74 @@ bool init() {
   default_proc_preds.process = pred_invalid;
   default_proc_preds.sync = pred_invalid;
 
-  stackwalkTime = internalMetric::newInternalMetric("stackwalk_time",
-					       EventCounter,
-					       aggMax,
-					       "CPUs",
-					       computeStackwalkTimeMetric,
-					       default_proc_preds,
-					       true,
-					       Normalized);
+  stackwalkTime = internalMetric::newInternalMetric(
+       "stackwalk_time", aggMax, "CPUs", computeStackwalkTimeMetric, 
+       default_proc_preds, true, Normalized,
+       internalMetric::zero_ForInitActualValue);
+  stackwalkTime->setStyle(EventCounter);
 
 #if defined(MT_THREAD)
   numOfCurrentLevels = internalMetric::newInternalMetric(
-                                                "numOfCurrentLevels", 
-						SampledFunction,
-						aggMax,
-						"ops",//operations
-						NULL,
-						default_im_preds,
-						true,
-						Sampled);
+       "numOfCurrentLevels", aggMax, "ops", // operations 
+       computeNumOfCurrentLevels, default_im_preds, true, Sampled,
+       internalMetric::firstSample_ForInitActualValue);
+  numOfCurrentLevels->setStyle(SampledFunction);
 
   numOfCurrentThreads = internalMetric::newInternalMetric(
-                                                "numOfCurrentThreads", 
-						SampledFunction,
-						aggMax,
-						"ops",//operations
-						NULL,
-						default_im_preds,
-						true,
-						Sampled);
+       "numOfCurrentThreads", aggMax, "ops", // operations
+       computeNumOfCurrentThreads, default_im_preds, true, Sampled,
+       internalMetric::firstSample_ForInitActualValue);
+  numOfCurrentThreads->setStyle(SampledFunction);
 
   active_threads = internalMetric::newInternalMetric(
-                                                "active_threads", 
-					        SampledFunction,
-						aggMax,
-						"THREADs",
-						NULL,
-						default_im_preds,
-						false,
-						Sampled);
+       "active_threads", aggMax, "THREADs", computeNumOfActiveThreads,
+       default_im_preds, false, Sampled,
+       internalMetric::firstSample_ForInitActualValue);
+  active_threads->setStyle(SampledFunction);
 #endif
 
   numOfActCounters = internalMetric::newInternalMetric(
-                                                "numOfActCounters", 
-						SampledFunction,
-						aggMax,
-						"ops",//operations
-						NULL,
-						default_im_preds,
-						true,
-						Sampled);
+       "numOfActCounters", aggMax, "ops", // operations 
+       computeNumOfActCounters, default_im_preds, true, Sampled,
+       internalMetric::firstSample_ForInitActualValue);
+  numOfActCounters->setStyle(SampledFunction);
 
   numOfActProcTimers = internalMetric::newInternalMetric(
-                                                "numOfActProcTimers", 
-						SampledFunction,
-						aggMax,
-						"ops",//operations
-						NULL,
-						default_im_preds,
-						true,
-						Sampled);
+       "numOfActProcTimers", aggMax, "ops", // operations
+       computeNumOfActProcTimers, default_im_preds, true, Sampled,
+       internalMetric::firstSample_ForInitActualValue);
+  numOfActProcTimers->setStyle(SampledFunction);
 
   numOfActWallTimers = internalMetric::newInternalMetric(
-                                                "numOfActWallTimers", 
-						SampledFunction,
-						aggMax,
-						"ops",//operations
-						NULL,
-						default_im_preds,
-						true,
-						Sampled);
+       "numOfActWallTimers", aggMax, "ops",//operations
+       computeNumOfActWallTimers, default_im_preds, true, Sampled,
+       internalMetric::firstSample_ForInitActualValue);
+  numOfActWallTimers->setStyle(SampledFunction);
+
 #ifdef ndef
   infHeapMemAvailable = internalMetric::newInternalMetric(
-                                                "infHeapMemAvailable", 
-						SampledFunction,
-						aggMax,
-						"bytes",
-						NULL,
-						default_im_preds,
-						true,
-						Sampled);
+       "infHeapMemAvailable", aggMax, "bytes", NULL, default_im_preds, true, 
+       Sampled, internalMetric::firstSample_ForInitActualValue);
 #endif
 
-  totalPredictedCost = costMetric::newCostMetric("predicted_cost",
-						 EventCounter,
-					         aggSum,	
-						 "CPUs",
-						 default_im_preds,
-						 false, 
-						 Normalized,
-						 aggSum);
+  totalPredictedCost = costMetric::newCostMetric(
+       "predicted_cost", aggSum, "CPUs", default_im_preds, false, 
+       Normalized, aggSum);
 
-  observed_cost = costMetric::newCostMetric("observed_cost",
-					   EventCounter,
-					   aggSum,
-					   "CPUs",
-					   obs_cost_preds,
-					   false,
-					   Normalized,
-					   aggSum);
+  observed_cost = costMetric::newCostMetric(
+       "observed_cost", aggSum, "CPUs", obs_cost_preds, false, 
+       Normalized, aggSum);
 
-  pauseTime = internalMetric::newInternalMetric("pause_time",
-					       EventCounter,
-					       aggMax,
-					       "CPUs",
-					       computePauseTimeMetric,
-					       default_im_preds,
-					       false,
-					       Normalized);
-
-
-  activeProcs = internalMetric::newInternalMetric("active_processes",
-						  SampledFunction,
-						  aggSum,
-						  "ops",//operations
-						  activeProcessesProc,
-						  active_procs_preds,
-						  false,
-						  Sampled);
+  pauseTime = internalMetric::newInternalMetric(
+       "pause_time", aggMax, "CPUs", computePauseTimeMetric, default_im_preds,
+       false, Normalized, internalMetric::zero_ForInitActualValue);
+  pauseTime->setStyle(EventCounter);
+  
+  activeProcs = internalMetric::newInternalMetric(
+       "active_processes", aggSum, "ops", // operations
+       computeActiveProcessesProc, active_procs_preds, false, Sampled,
+       internalMetric::firstSample_ForInitActualValue);
+  activeProcs->setStyle(SampledFunction);
 
   sym_data sd;
 
