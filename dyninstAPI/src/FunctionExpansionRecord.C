@@ -14,7 +14,7 @@ FunctionExpansionRecord::FunctionExpansionRecord() {
 }
 
 FunctionExpansionRecord::~FunctionExpansionRecord() {
-    int i;
+    unsigned int i;
     for(i=0;i<expansions.size();i++) {
         delete expansions[i];
     }
@@ -96,11 +96,13 @@ ostream &FERNode::operator<<(ostream &os) {
 
 // function used to sort array of fer nodes....
 int sort_fernode_by_offset(const void *a, const void *b) {
-    FERNode *f1 = (FERNode*)a;
-    FERNode *f2 = (FERNode*)b;
-    if (f1->OrigionalOffset() > f2->OrigionalOffset()) {
+    FERNode *f1 = *(FERNode**)a;            // 6/1/99 zhichen
+    FERNode *f2 = *(FERNode**)b;
+    int offset1 = f1->OrigionalOffset();
+    int offset2 = f2->OrigionalOffset();
+    if (offset1 > offset2) {
         return 1;
-    } else if (f1->OrigionalOffset() < f2->OrigionalOffset()) {
+    } else if (offset1 < offset2) {
         return -1;
     }
     return 0;
