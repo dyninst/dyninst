@@ -729,6 +729,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     // to via a fork().  (What about when a process is started via exec()?)
 
     hasBootstrapped = false;
+    reachedFirstBreak = false; // haven't yet seen first trap
 
     symbols = iImage;
 
@@ -1182,10 +1183,6 @@ tp->resourceBatchMode(true);
 	/* parent */
 	statusLine("initializing process data structures");
 
-//	cerr << "welcome to new process, pid=" << getpid() << endl; cerr.flush();
-//	kill(getpid(), SIGSTOP);
-//	cerr << "doing new process " << endl; cerr.flush();
-
 #ifdef SHM_SAMPLING
 	vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
 	theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
@@ -1241,6 +1238,7 @@ tp->resourceBatchMode(true);
 
 	(void) handleSigChild(pid, status);
 #endif
+
 	return(ret);
     } else if (pid == 0) {
 #ifdef PARADYND_PVM
