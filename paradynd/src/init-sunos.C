@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.29 2000/04/28 22:43:04 mirg Exp $ */
+/* $Id: init-sunos.C,v 1.30 2000/08/08 15:36:09 wylie Exp $ */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -178,6 +178,23 @@ bool initOS() {
       initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
                            FUNC_ENTRY|FUNC_ARG, tidArg);
   }
+#endif
+
+#if defined(i386_unknown_solaris2_5)
+      // Protect our signal handler by overriding any which the application
+      // may already have or subsequently install.
+      // Note that this is currently replicated in dyninstAPI_init until
+      // dyninst is updated to refer to this (or a similar) initialization.
+      const char *sigactionF="_libc_sigaction";
+      vector<AstNode*> argList(3);
+      static AstNode  sigArg(AstNode::Param, (void*) 0); argList[0] = &sigArg;
+      static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
+      static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;
+      
+      initialRequests += new instMapping(sigactionF, "DYNINSTdeferSigHandler",
+                                         FUNC_ENTRY|FUNC_ARG, argList);
+      initialRequests += new instMapping(sigactionF, "DYNINSTresetSigHandler",
+                                         FUNC_EXIT|FUNC_ARG, argList);
 #endif
 
   return true;
