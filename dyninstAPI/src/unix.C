@@ -401,8 +401,13 @@ int handleSigChild(int pid, int status)
 						    )) {
 		      inferiorrpc_cerr << "syscall completion: rpc launched ok, as expected " << endl;
 		   }
-		   else
+		   else {
 		     inferiorrpc_cerr << "syscall completion: failed to launch rpc" << endl;
+		     if (!curr->continueProc()) {
+		       sprintf(errorLine,"WARNING: failed to continue process with pid=%d\n",curr->getPid());
+		       logLine(errorLine);
+		     }
+		   }
 		   break;
 		}
 

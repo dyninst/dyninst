@@ -782,7 +782,8 @@ void controllerMainLoop(bool check_buffer_first)
 	      if (processVec[u1] == NULL)
 	        continue; // process structure has been deallocated
  
-              if (processVec[u1]->isRPCwaitingForSysCallToComplete()) {
+              if (processVec[u1]->isRPCwaitingForSysCallToComplete() &&
+		  processVec[u1]->status() == running) {
 		delayIGENrequests=true;
 		break;
 	      }
