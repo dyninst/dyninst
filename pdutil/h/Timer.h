@@ -214,7 +214,7 @@ timer::print(ostream& os) {
 
 
 
-#if defined(sparc_sun_solaris2_3)
+#if defined(sparc_sun_solaris2_4)
 #if !defined(HAVE_GET_CURRENT_DEFINITION)
 #define HAVE_GET_CURRENT_DEFINITION
 
@@ -238,7 +238,7 @@ timer::get_current(double& u, double& s, double& w) {
 }
 
 #endif /* !defined(HAVE_GET_CURRENT_DEFINITION) */
-#endif /* defined(sparc_sun_solaris2_3) */
+#endif /* defined(sparc_sun_solaris2_4) */
 
 
 

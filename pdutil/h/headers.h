@@ -29,7 +29,7 @@ typedef int (*xdr_wr_func)(const void *, const char *, const int);
 #if defined(sparc_sun_sunos4_1_3)
 #include "util/h/sunosHeaders.h"
 
-#elif defined(sparc_sun_solaris2_3)
+#elif defined(sparc_sun_solaris2_4)
 #include "util/h/solarisHeaders.h"
 
 #elif defined(i386_unknown_netbsd1_0)
