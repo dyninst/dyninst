@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.19 1999/06/30 21:51:27 hollings Exp $
+// $Id: BPatch_snippet.C,v 1.20 1999/07/02 03:59:34 davisj Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -613,7 +613,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
     BPatch_Vector<BPatch_field *> *fields;
     BPatch_Vector<BPatch_variableExpr *> *retList;
 
-    type = getType();
+    type = (BPatch_type *)getType();
     if ((type->type() != BPatch_structure) && (type->type() != BPatch_union)) {
 	return NULL;
     }

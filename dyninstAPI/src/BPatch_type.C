@@ -345,6 +345,7 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
     else return false;
 }
 
+
 /*
  * void BPatch_type::addField
  * Creates field object and adds it to the list of fields for this

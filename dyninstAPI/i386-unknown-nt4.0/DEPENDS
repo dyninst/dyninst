@@ -16,6 +16,7 @@ BPatch.obj: ../src/BPatch.C ../h/BPatch.h ../h/BPatch_Vector.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h \
+../../dyninstAPI/src/BPatch_collections.h \
  ../../dyninstAPI/src/ntDL.h
 BPatch_image.obj: ../src/BPatch_image.C ../src/process.h \
  ../../dyninstAPI_RT/h/rtinst.h ../../dyninstAPI/src/util.h \
@@ -33,6 +34,7 @@ BPatch_image.obj: ../src/BPatch_image.C ../src/process.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../src/symtab.h ../h/BPatch.h \
+../../dyninstAPI/src/BPatch_collections.h \
  ../h/BPatch_Vector.h ../h/BPatch_thread.h ../h/BPatch_image.h \
  ../h/BPatch_point.h ../h/BPatch_snippet.h ../h/BPatch_module.h \
  ../h/BPatch_type.h
@@ -48,6 +50,7 @@ BPatch_snippet.obj: ../src/BPatch_snippet.C ../src/ast.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../h/BPatch.h ../h/BPatch_Vector.h \
  ../h/BPatch_thread.h ../h/BPatch_image.h ../h/BPatch_point.h \
+../../dyninstAPI/src/BPatch_collections.h \
  ../h/BPatch_snippet.h ../h/BPatch_module.h ../h/BPatch_type.h
 BPatch_templates.obj: ../src/BPatch_templates.C ../h/BPatch_Vector.h \
  ../../util/h/refCounter.h ../../util/h/String.h \
@@ -91,6 +94,7 @@ BPatch_module.obj: ../src/BPatch_module.C ../src/symtab.h \
  ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
+../../dyninstAPI/src/BPatch_collections.h \
  ../../dyninstAPI/src/ast.h ../h/BPatch_module.h ../h/BPatch_snippet.h
 BPatch_point.obj: ../src/BPatch_point.C ../h/BPatch_point.h \
  ../h/BPatch_snippet.h ../h/BPatch_Vector.h ../src/process.h \
@@ -110,6 +114,14 @@ BPatch_point.obj: ../src/BPatch_point.C ../h/BPatch_point.h \
  ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../src/symtab.h ../src/instPoint.h \
  ../src/instPoint-sparc.h ../src/arch-sparc.h
+BPatch_collections.obj: ../src/BPatch_collections.C ../src/util.h \
+ ../../util/h/headers.h ../../util/h/ntHeaders.h \
+ ../../util/h/Types.h ../../dyninstAPI_RT/h/rtinst.h \
+ ../../util/h/String.h ../../util/h/debugOstream.h \
+ ../../util/h/refCounter.h ../src/BPatch_collections.h \
+ ../h/BPatch_type.h ../h/BPatch_Vector.h ../src/../../util/h/String.h \
+ ../src/../../util/h/Dictionary.h ../../util/h/Vector.h \
+ ../src/../../util/h/list.h
 dummy.obj: ../src/dummy.C ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../util/h/refCounter.h \

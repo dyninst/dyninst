@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.15 1999/06/30 16:11:28 davisj Exp $
+// $Id: BPatch.C,v 1.16 1999/07/02 03:59:34 davisj Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -398,7 +398,7 @@ BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
 	return info->threadsByPid[pid];
     } else {
 	if (exists) *exists = false;
-    	return NULL;
+	return NULL;
     }
 }
 
