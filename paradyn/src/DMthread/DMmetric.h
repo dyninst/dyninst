@@ -83,8 +83,7 @@ class metric {
 			     bool normalized);
     friend void PCmain(void* varg);
     friend class PCmetric;
-    friend void PCnewData(perfStreamHandle,metricInstanceHandle,
-			  int,sampleValue,phaseType);
+    friend void PCnewData(metricInstanceHandle, int,sampleValue,phaseType);
     // ********************************************************
     public:
 	metric(T_dyninstRPC::metricInfo i); 
@@ -129,8 +128,7 @@ class metricInstance {
 					resourceListHandle,phaseType,
 					unsigned, unsigned);
     // TODO: remove these when PC is re-written ***************
-    friend void PCnewData(perfStreamHandle,metricInstanceHandle,
-			  int,sampleValue,phaseType);
+    friend void PCnewData(metricInstanceHandle,int,sampleValue,phaseType);
     friend class datum;
     friend class PCmetric;
     // ********************************************************

@@ -2,7 +2,12 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.82  1995/11/22 00:07:30  mjrg
+ * Revision 1.83  1995/12/03 21:31:37  newhall
+ * added buffering of data values between DM and client threads based on
+ * the number of metric/focus pairs a client thread has enabled
+ * DM allocs buffers and the client threads dealloc them
+ *
+ * Revision 1.82  1995/11/22  00:07:30  mjrg
  * Removed -f and -t arguments to paradyn
  *
  * Revision 1.81  1995/11/17 17:18:02  newhall
@@ -568,8 +573,6 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 
 void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
 {
-    cout << "IN DM: dynRPCUser::newMetricCallback called " 
-	 << " metric " << info.name.string_of() << endl;
     addMetric(info);
 }
 

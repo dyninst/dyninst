@@ -741,6 +741,9 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 					   double endTimeStamp,
 					   double value)
 {
+   metricInstance *mi = 0;
+   component *part = 0;
+
    // TAKE NOTE: This routine is _the_ critical path in the paradyn process.
    //            Be quick!
 
@@ -787,13 +790,13 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
       }
     }
 
-    metricInstance *mi = activeMids[(unsigned)mid];
+    mi = activeMids[(unsigned)mid];
     assert(mi);
 
     struct sampleInterval ret;
     if(mi->components.size()){
         // find the right component.
-	component *part = NULL;
+	part = 0;
         for(unsigned i=0; i < mi->components.size(); i++){
 	    if((unsigned)mi->components[i]->daemon == (unsigned)this)
 		part = mi->components[i];

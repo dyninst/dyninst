@@ -4,6 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.57  1995/12/03 21:31:48  newhall
+ * added buffering of data values between DM and client threads based on
+ * the number of metric/focus pairs a client thread has enabled
+ * DM allocs buffers and the client threads dealloc them
+ *
  * Revision 1.56  1995/11/30 21:59:16  naim
  * Minor change to bucket_width metric - naim
  *
@@ -227,6 +232,7 @@ extern "C" {
 #include "DMperfstream.h"
 #include "DMphase.h"
 #include "DMinclude.h"
+#include "paradyn/src/DMthread/DVbufferpool.h"
 
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
@@ -739,7 +745,7 @@ vector<resourceListHandle> *dataManager::magnify(resourceHandle rh,
 vector<resourceListHandle> *dataManager::magnify2(resourceListHandle rlh){
     resourceList *rl = resourceList::getFocus(rlh);
     if(rl){
-	(rl->magnify());
+	return (rl->magnify());
     }
     return 0;
 }
@@ -871,16 +877,6 @@ sampleValue dataManager::getTotValue(metricInstanceHandle mh)
     float ret = PARADYN_NaN;
     return(ret);
 }
-
-// TODO: this should be removed...it doesn't have any effect on smapling rate 
-void dataManager::setSampleRate(perfStreamHandle handle, timeStamp rate)
-{
-    performanceStream *ps = performanceStream::find(handle);
-    if(ps)
-      ps->setSampleRate(rate);
-}
-
-
 
 //
 // converts from a vector of resourceHandles to a resourceListHandle
@@ -1109,6 +1105,7 @@ void dataManagerUser::changeState(appStateChangeCallback cb,
     (cb)(handle, state);
 }
 
+#ifdef ndef
 void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
                              perfStreamHandle handle,
                              metricInstanceHandle mi,
@@ -1118,6 +1115,15 @@ void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
 {
     (func)(handle, mi, bucketNum, value, type);
 }
+#endif
+
+void dataManagerUser::newPerfData(sampleDataCallbackFunc func, 
+				  vector<dataValueType> *data,
+				  u_int num_data_values){
+
+    (func)(data, num_data_values);
+}
+
 
 void dataManagerUser::newPhaseInfo(newPhaseCallback cb,
 				   perfStreamHandle handle,

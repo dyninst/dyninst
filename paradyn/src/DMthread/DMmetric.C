@@ -236,6 +236,8 @@ void metricInstance::removeCurrUser(perfStreamHandle ps){
 	    users[i] = users[size-1];
 	    users.resize(size-1);
 	    assert(users.size() < size);
+	    // decrease ps's data buffer size
+	    performanceStream::removeCurrentUser(ps);
 	    return;
     } }
 }
@@ -249,6 +251,8 @@ void metricInstance::removeGlobalUser(perfStreamHandle ps){
 	    global_users[i] = global_users[size-1];
 	    global_users.resize(size-1);
 	    assert(global_users.size() < size);
+	    // decrease ps's data buffer size
+	    performanceStream::removeGlobalUser(ps);
 	    return;
     } }
 }
@@ -358,6 +362,9 @@ void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
 				      histFoldCallBack);
 	}
     }
+    // reduce each performance stream's buffer size by the number
+    // of current MI's it will no longer be receiving data for
+    performanceStream::removeAllCurrUsers();
 }
 
 
@@ -368,6 +375,8 @@ void metricInstance::addCurrentUser(perfStreamHandle p) {
     }
     users += p;
     assert(users.size());
+    // update buffersize for perfStream
+    performanceStream::addCurrentUser(p);
 }
 
 void metricInstance::addGlobalUser(perfStreamHandle p) {
@@ -377,6 +386,8 @@ void metricInstance::addGlobalUser(perfStreamHandle p) {
     }
     global_users += p;
     assert(global_users.size());
+    // update buffersize for perfStream
+    performanceStream::addGlobalUser(p);
 }
 
 void metricInstance::newGlobalDataCollection(metricStyle style, 

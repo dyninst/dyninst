@@ -24,8 +24,10 @@
 #include <stdlib.h>
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
+#include "paradyn/src/DMthread/BufferPool.h"
 #include "DMphase.h"
 #include "DMinclude.h"
+#include "paradyn/src/DMthread/DVbufferpool.h"
 
 
 class metricInstance;
@@ -43,9 +45,6 @@ class performanceStream {
 	performanceStream(dataType t, dataCallback dc,
 			  controlCallback cc, int tid); 
 	~performanceStream();
-
-	void setSampleRate(timeStamp rate) { sampleRate = rate; }
-
 	void callSampleFunc(metricInstanceHandle,
 			    sampleValue*, int, int, phaseType);
 	void callResourceFunc(resourceHandle parent, resourceHandle child, 
@@ -55,10 +54,22 @@ class performanceStream {
 	void callStateFunc(appState state);
 	void callPhaseFunc(phaseInfo& phase);
 	perfStreamHandle Handle(){return(handle);}
+	void flushBuffer();   // send data to client thread
 	static void notifyAllChange(appState state);
 	static void ResourceBatchMode(batchMode mode);
 	static void foldAll(timeStamp width, phaseType phase_type); 
 	static performanceStream *find(perfStreamHandle psh);
+
+	// these routines change the size of my_buffer 
+	static void addCurrentUser(perfStreamHandle psh);
+	static void addGlobalUser(perfStreamHandle psh);
+	static void removeCurrentUser(perfStreamHandle psh);
+	static void removeGlobalUser(perfStreamHandle psh);
+	static void removeAllCurrUsers();
+
+	// send data to client thread
+	// static flushBuffer(perfStreamHandle psh);
+
 	static unsigned pshash(const perfStreamHandle &val) {
 		    return((unsigned)val);
 	}
@@ -68,9 +79,14 @@ class performanceStream {
 	controlCallback         controlFunc;
 	int 			threadId;
 	perfStreamHandle	handle;
+	u_int 			num_global_mis;  // num MI's for global phase
+	u_int 			num_curr_mis;    // num MI's for curr phase
+	u_int			my_buffer_size;  // total number of MI's enabled
+ 	u_int			next_buffer_loc;  // next buffer loc. to fill
+	vector<dataValueType>	*my_buffer;	// buffer of dataValues
 	static vector<bool>     nextId;
 	// dictionary rather than vector since perfStreams can be destroyed
 	static dictionary_hash<perfStreamHandle,performanceStream*> allStreams;
-	timeStamp               sampleRate;     /* sample sampleRate usec */
+	bool			reallocBuffer();
 };
 #endif
