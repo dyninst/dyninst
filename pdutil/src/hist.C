@@ -16,6 +16,9 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.20  1995/12/12 04:34:52  newhall
+ * bug fix
+ *
  * Revision 1.19  1995/12/11 02:20:47  newhall
  * initialize bucket values to NaN rather than to zero
  *
@@ -361,19 +364,18 @@ void Histogram::bucketValue(timeStamp start_clock,
 
     /* set starting and ending bins */
     int first_bin = (int) ((start_clock - startTime )/ bucketWidth);
+
     // ignore bad values
     if((first_bin < 0) || (first_bin > numBins)) return;
-    //assert(first_bin >= 0);
-    //assert(first_bin <= numBins);
     if (first_bin == numBins)
 	first_bin = numBins-1;
     int last_bin = (int) ((end_clock - startTime) / bucketWidth);
+
     // ignore bad values
     if((last_bin < 0) || (last_bin > numBins)) return;
-    // assert(last_bin >= 0);
-    // assert(last_bin <= numBins);
     if (last_bin == numBins)
 	last_bin = numBins-1;
+
     /* set starting times for first & last bins */
     timeStamp first_bin_start = bucketWidth * first_bin;
     timeStamp last_bin_start = bucketWidth  * last_bin;
@@ -386,8 +388,9 @@ void Histogram::bucketValue(timeStamp start_clock,
 	// normalize by bucket size.
 	value /= bucketWidth;
 	if (last_bin == first_bin) {
-	    if(isnan(dataPtr.buckets[first_bin])) 
+	    if(isnan(dataPtr.buckets[first_bin])){ 
 		dataPtr.buckets[first_bin] = 0.0;
+            }
 	    dataPtr.buckets[first_bin] += value;
 	    if (smooth && (dataPtr.buckets[first_bin] > 1.0)) {
 		/* value > 100% */
@@ -425,10 +428,11 @@ void Histogram::bucketValue(timeStamp start_clock,
 	/* add the appropriate amount of time to each bin */
 	dataPtr.buckets[first_bin] += amt_first_bin;
 	dataPtr.buckets[last_bin]  += amt_last_bin;
-	for (i=first_bin+1; i < last_bin; i++)
+	for (i=first_bin+1; i < last_bin; i++){
 	    if(isnan(dataPtr.buckets[i])) 
 	        dataPtr.buckets[i] = 0.0;
 	    dataPtr.buckets[i]  += amt_other_bins;
+        }
     }
 
     /* limit absurd time values - anything over 100% is pushed back into 
