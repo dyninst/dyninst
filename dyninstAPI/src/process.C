@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.328 2002/06/10 19:24:56 bernat Exp $
+// $Id: process.C,v 1.329 2002/06/10 19:45:15 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -7211,7 +7211,6 @@ void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
       }
     }
     if (safeToDelete) {
-      cerr << "Safe to delete at addr " << (void *)old->baseAddr << endl;
       inferiorFree(old->baseAddr);
       // Delete from list of GCs
       pendingGCInstrumentation[i] = pendingGCInstrumentation[pendingGCInstrumentation.size()-1];
