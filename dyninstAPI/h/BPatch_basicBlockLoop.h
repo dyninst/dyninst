@@ -34,14 +34,23 @@ private:
 	BPatch_Set<BPatch_basicBlock*> backEdges;
 
 public:
+	/** If loop which directly encloses this loop. NULL if no such loop */
+	BPatch_basicBlockLoop* parent;
+
 	/** returns tail of back edges to loop head */
 	void getBackEdges(BPatch_Vector<BPatch_basicBlock*>&);
 
 	/** returns vector of contained loops */
 	void getContainedLoops(BPatch_Vector<BPatch_basicBlockLoop*>&);	
 
+	/** returns vector of outer contained loops */
+	void getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>&);	
+
 	/** returns all basic blocks in the loop */
 	void getLoopBasicBlocks(BPatch_Vector<BPatch_basicBlock*>&);
+
+	/** returns true if this loop is a descendant of the given loop */
+	bool hasAncestor(BPatch_basicBlockLoop*);
 
 	/** returns the head basic block of the loop */
 	BPatch_basicBlock* getLoopHead();
@@ -60,6 +69,10 @@ private:
 
 	/** constructor of the class */
 	BPatch_basicBlockLoop(BPatch_basicBlock*);
+
+	/** get either contained or outer loops, determined by outerMostOnly */
+	void getLoops(BPatch_Vector<BPatch_basicBlockLoop*>&, 
+		      bool outerMostOnly);
 };
 
 #endif /*_BPatch_basicBlockLoop_h_*/
