@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.h,v 1.9 2002/04/09 18:06:23 mjbrim Exp $
+// $Id: superVector.h,v 1.10 2002/04/17 21:18:06 schendel Exp $
 // The superVector is an array of vectors of counters and timers, or
 // fastInferiorHeap objects. Part of the functionality of the fastInferiorHeap
 // class has been moved to this new class - naim 3/26/97
@@ -58,23 +58,18 @@
 
 template <class HK, class RAW>
 class superVector {
-
   private:
    process *inferiorProcess;
       // ptr instead of ref due to include file problems (if this file is
       // included w/in class process then class process isn't fully defined
       // when we reach this point so it won't let us use a ref).
 
-   vector<states> statemap; // one entry per value (allocated or not) in the appl.
-#if !defined(MT_THREAD)
-   vector<HK> houseKeeping; // one entry per value (allocated or not) in the appl.
-#endif
-  
+   vector<states> varStates; // one entry per value (allocated or not) in the appl.
    unsigned firstFreeIndex;
       // makes allocation quick; UI32_MAX --> no free elems in heap (but
       // there could be pending-free items)
 
-   vector < fastInferiorHeap<HK,RAW> *> theSuperVector;
+   vector < fastInferiorHeap<HK,RAW> *> fastInferiorHeapBuf;
       // the index here is the thread id (after it's been mapped)
 
    // since we don't define them, make sure they're not used:
@@ -84,19 +79,12 @@ class superVector {
 
   public: 
 
-#if defined(MT_THREAD)
    superVector(process *iInferiorProcess,
 	       unsigned heapNumElems,
                unsigned level,
 	       unsigned subHeapIndex,
                unsigned numberOfColumns,
                bool calledFromBaseTableConst=false);
-#else
-    superVector(process *iInferiorProcess,
-		unsigned heapNumElems,
-		unsigned subHeapIndex,
-		unsigned numberOfColumns);
-#endif
       // Note that the ctor has no way to pass in the baseAddrInApplic
       // because the applic hasn't yet attached to the segment.  When the
       // applic attaches and tells us where it attached, we can call
@@ -113,10 +101,7 @@ class superVector {
   ~superVector();
 
    void setBaseAddrInApplic(RAW *addr, unsigned level);
-
-#if defined(MT_THREAD)
    void updateThreadTable(RAW *shmAddr, unsigned pos, unsigned level);
-#endif
 
    void handleExec();
       // call after the exec syscall has executed. Basically we need to redo
@@ -137,14 +122,8 @@ class superVector {
       // item since you can write the raw item easily enough by just writing
       // directly to shared memory...see baseAddrInParadynd.)
 
-   bool alloc(                            
-#if defined(MT_THREAD)
-              unsigned thr_pos, const RAW &iRawValue, 
-#else
-              const RAW &iRawValue,
-#endif
-              const HK &iHouseKeepingValue,
-	      unsigned &allocatedIndex,
+   bool alloc(unsigned thr_pos, const RAW &iRawValue, 
+              const HK &iHouseKeepingValue, unsigned *allocatedIndex,
 	      bool doNotSample);
       // Allocate an entry in the inferior heap and initialize its raw value
       // with "iRawValue" and its housekeeping value with
@@ -173,17 +152,15 @@ class superVector {
       // and only then patch up some function to call our base tramp (the
       // last step using a pause; /proc write; unpause sequence).
 
-#if defined(MT_THREAD)
-   void makePendingFree(unsigned pd_pos, unsigned ndx, const vector<Address> &trampsUsing);
-#else
-   void makePendingFree(unsigned ndx, const vector<Address> &trampsUsing);
-#endif
+   void makePendingFree(unsigned pd_pos, unsigned ndx, 
+			const vector<Address> &trampsUsing);
+
       // "free" an item in the shared-memory heap.  More specifically, change
-      // its statemap type from allocated to pending-free. A later call to
+      // its varStates type from allocated to pending-free. A later call to
       // garbageCollect() is the only way to truly free the item.  An item in
       // pending-free state will no longer be processed by processAll().
       // Note that we don't touch the shared-memory heap; we just play around
-      // with statemap meta-data stuff.  Of course that doesn't mean that
+      // with varStates meta-data stuff.  Of course that doesn't mean that
       // it's okay to call this with the expectation that the raw item will
       // still be written to, except perhaps by a tramp that is itself in the
       // process of being freed up.
@@ -200,11 +177,12 @@ class superVector {
 
   bool doMajorSample();
   bool doMinorSample();
-#if defined(MT_THREAD)
+
   void addColumns(unsigned from, unsigned to, unsigned subHeapIndex, unsigned level);
   void addThread(unsigned pos, unsigned pd_pos, unsigned subHeapIndex, unsigned level);
   void deleteThread(unsigned pos, unsigned pd_pos, unsigned level);
-#endif
 };
+
+
 
 #endif
