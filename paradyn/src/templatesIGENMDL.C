@@ -43,7 +43,6 @@
 // Igen and MDL templates
 //
 
-
 #include "common/h/String.h"
 
 #pragma implementation "Vector.h"
@@ -62,6 +61,7 @@
 #include "termWin.xdr.h"
 #endif // !defined(i386_unknown_nt4_0)
 
+template class vector< vector<string> >;
 template class refCounter<string_ll>;
 
 /* ***********************************
@@ -86,17 +86,17 @@ template class vector<function_base*>;
 template class vector<module*>;
 template class vector<instPoint*>;
 
-
 // MDL stuff 
 
 template class vector<process *>;
-template class vector<pdThread *>;
 template class vector< vector<pdThread *> >;
 template class vector<const dataReqNode *>;
 template class vector<mdl_var>;
 template class vector<mdl_focus_element>;
+
 template class vector<mdl_type_desc>;
 template class vector< vector< mdl_type_desc > >;
+
 template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
 template class vector<dictionary_hash<unsigned, vector<mdl_type_desc> >::entry>;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesUIWASHG.C,v 1.8 2002/04/09 18:06:10 mjbrim Exp $
+// $Id: templatesUIWASHG.C,v 1.9 2002/04/22 20:52:51 mjbrim Exp $
 
 // templatesUIWASHG.C
 // templates in the UIthread related to the where axis and search history graph
@@ -61,14 +61,10 @@
 template class where4tree<whereAxisRootNode>;
 template class vector<const whereAxisRootNode *>;
 template class vector<where4tree<whereAxisRootNode>::childstruct>;
-template class pair<unsigned, where4tree<whereAxisRootNode> *>;
-template class vector<pair<unsigned, where4tree<whereAxisRootNode> *> >;
 
 template class dictionary_hash< resourceHandle, where4tree<whereAxisRootNode> * >;
 template class vector<dictionary_hash< resourceHandle, where4tree<whereAxisRootNode> * >::entry>;
 template class vector<where4tree<whereAxisRootNode> *>;
-
-template pair<unsigned, where4tree<whereAxisRootNode> *> make_pair<unsigned, where4tree<whereAxisRootNode> *>(const unsigned &, where4tree<whereAxisRootNode> * const &);
 
 #include "paradyn/src/UIthread/graphicalPath.C"
 template class whereNodeGraphicalPath<whereAxisRootNode>;
@@ -85,6 +81,7 @@ template class vector<abstractions::whereAxisStruct>;
 
 #include "paradyn/src/UIthread/shgRootNode.h"
 template class where4tree<shgRootNode>;
+template class vector<where4tree<shgRootNode> *>;
 template class vector<where4tree<shgRootNode>::childstruct>;
 template class whereNodeGraphicalPath<shgRootNode>;
 template class vector<const shgRootNode *>;
@@ -94,18 +91,6 @@ template class vector<shgPhases::shgStruct>;
 
 template class dictionary_hash<unsigned, where4tree<shgRootNode> *>;
 template class vector<dictionary_hash<unsigned, where4tree<shgRootNode> *>::entry>;
-template class vector<where4tree<shgRootNode> *>;
-template class pair<unsigned, where4tree<shgRootNode> *>;
-template class vector<pair<unsigned, where4tree<shgRootNode> *> >;
-template class pair<unsigned, vector<where4tree<shgRootNode> *> >;
-template class vector<pair<unsigned, vector<where4tree<shgRootNode> *> > >;
-template class pair<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
-template class vector<pair<where4tree<shgRootNode> *, where4tree<shgRootNode> *> >;
-
-template pair<unsigned, where4tree<shgRootNode> *> make_pair<unsigned, where4tree<shgRootNode> *>(const unsigned &, where4tree<shgRootNode> * const &);
-template pair<unsigned, vector<where4tree<shgRootNode> *> > make_pair<unsigned, vector<where4tree<shgRootNode> *> >(const unsigned &, const vector<where4tree<shgRootNode> *> &);
-template pair<unsigned, vector<pair<unsigned, vector<where4tree<shgRootNode> *> > > > make_pair<unsigned, vector<pair<unsigned, vector<where4tree<shgRootNode> *> > > >(const unsigned &, const vector<pair<unsigned, vector<where4tree<shgRootNode> *> > > &);
-template pair<where4tree<shgRootNode> *, where4tree<shgRootNode> *> make_pair<where4tree<shgRootNode> *, where4tree<shgRootNode> *>(where4tree<shgRootNode> * const &, where4tree<shgRootNode> * const &);
 
 template class dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
 template class vector<dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::entry>;
@@ -124,12 +109,6 @@ template class where4tree<callGraphRootNode>;
 template class vector<where4tree<callGraphRootNode>::childstruct>;
 template class whereNodeGraphicalPath<callGraphRootNode>;
 template class vector<const callGraphRootNode *>;
-template class pair<where4tree<callGraphRootNode> *, where4tree<callGraphRootNode> *>;
-template class vector<pair<where4tree<callGraphRootNode> *, where4tree<callGraphRootNode> *> >;
-template class pair<unsigned, where4tree<callGraphRootNode> *>;
-template class vector<pair<unsigned, where4tree<callGraphRootNode> *> >;
-
-template pair<unsigned, where4tree<callGraphRootNode> *> make_pair<unsigned, where4tree<callGraphRootNode> *>(const unsigned &, where4tree<callGraphRootNode> * const &);
 
 #include "paradyn/src/UIthread/callGraphs.h"
 template class vector<callGraphs::callGraphStruct>;
@@ -137,11 +116,6 @@ template class vector<callGraphs::callGraphStruct>;
 template class dictionary_hash<unsigned, where4tree<callGraphRootNode> *>;
 template class vector<dictionary_hash<unsigned, where4tree<callGraphRootNode> *>::entry>;
 template class vector<where4tree<callGraphRootNode> *>;
-template class pair<unsigned, vector<where4tree<callGraphRootNode> *> >;
-template class vector<pair<unsigned, vector<where4tree<callGraphRootNode> *> > >;
-
-template pair<unsigned, vector<where4tree<callGraphRootNode> *> > make_pair<unsigned, vector<where4tree<callGraphRootNode> *> >(const unsigned &, const vector<where4tree<callGraphRootNode> *> &);
-template pair<where4tree<callGraphRootNode> *, where4tree<callGraphRootNode> *> make_pair<where4tree<callGraphRootNode> *, where4tree<callGraphRootNode> *>(where4tree<callGraphRootNode> * const &, where4tree<callGraphRootNode> * const&);
 
 template class dictionary_hash<where4tree<callGraphRootNode> *, where4tree<callGraphRootNode> *>;
 template class vector<dictionary_hash<where4tree<callGraphRootNode> *, where4tree<callGraphRootNode> *>::entry>;

@@ -43,14 +43,12 @@
 // UI and tunable constant templates
 //
 
-
 #include "common/h/list.h"
-
 #include "common/h/String.h"
-
 #include "common/h/Vector.h"
-
 #include "common/src/Dictionary.C"
+
+template class vector< vector<unsigned> >;
 
 /* ******************************
  * TCthread stuff
@@ -59,14 +57,12 @@
 
 template class vector<tunableBooleanConstant>;
 template class vector<tunableFloatConstant>;
+
 template class dictionary_hash<string, tunableBooleanConstant>;
 template class vector<dictionary_hash<string, tunableBooleanConstant>::entry>;
-template class dictionary_hash_iter<string, tunableBooleanConstant>;
 
 template class dictionary_hash<string, tunableFloatConstant>;
 template class vector<dictionary_hash<string, tunableFloatConstant>::entry>;
-template class dictionary_hash_iter<string, tunableFloatConstant>;
-
 
 /* *************************************
  * UIthread stuff

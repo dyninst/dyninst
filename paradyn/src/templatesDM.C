@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.22 2002/04/09 18:06:09 mjbrim Exp $
+// $Id: templatesDM.C,v 1.23 2002/04/22 20:52:46 mjbrim Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -90,6 +90,9 @@ template class vector<PriorityQueue<>::pair>;
 
 */
 
+template class vector<bool>;
+template class vector< vector<string> >;
+
 /* *********************************   
  * DMthread stuff
  */
@@ -105,19 +108,12 @@ class cpContext;
 #include "paradyn/src/DMthread/DMabstractions.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 
-
-template class vector<unsigned>;
-template class vector< vector<unsigned> >;
-template class vector<int>;
-template class vector< vector<string> >;
 template class vector<phaseInfo *>;
 template class vector<daemonEntry*>;
 template class vector<paradynDaemon*>;
 template class vector<executable*>;
 template class vector<component*>;
 template class vector<aggComponent*>;
-template class vector<bool>;
-template class vector< vector<bool> >;
 template class vector<metric_focus_pair>;
 template class vector<metricInstInfo>;
 template class vector<met_name_id>;
@@ -132,10 +128,9 @@ template class vector<rlNameIdType>;
 template class dictionary_hash<string,metric*>;
 template class vector<dictionary_hash<string,metric*>::entry>;
 
-template class pair<string, metric*>;
-
 template class vector<dataValueType>;
 template class BufferPool<dataValueType>;
+
 template class vector<predCostType*>;
 template class vector<DM_enableType*>;
 template class vector<metricRLType>;
@@ -144,7 +139,6 @@ template class vector<metricRLType>;
 template class vector<traceDataValueType>;
 template class BufferPool<traceDataValueType>;
 
-
 template class dictionary_hash<string, resource*>;
 template class vector<dictionary_hash<string, resource*>::entry>;
 
@@ -152,10 +146,8 @@ template class dictionary_hash<unsigned, resource*>;
 template class vector<dictionary_hash<unsigned, resource*>::entry>;
 template class dictionary_hash_iter<unsigned, resource*>;
 
-
 template class dictionary_hash<unsigned int, cpContext*>;
 template class vector<dictionary_hash<unsigned int, cpContext*>::entry>;
-
 template class vector<cpContext *>;
 
 template class dictionary_hash<string, resourceList*>;
@@ -164,41 +156,29 @@ template class vector<dictionary_hash<string, resourceList*>::entry>;
 template class dictionary_hash<string, abstraction*>;
 template class vector<dictionary_hash<string, abstraction*>::entry>;
 
-template class vector<performanceStream *>;
 template class dictionary_hash<perfStreamHandle,performanceStream*>;
 template class vector<dictionary_hash<perfStreamHandle,performanceStream*>::entry>;
-template class dictionary_hash_iter<perfStreamHandle,performanceStream*>;
 
 template class dictionary_hash<metricInstanceHandle,metricInstance*>;
 template class vector<dictionary_hash<metricInstanceHandle,metricInstance*>::entry>;
-template class dictionary_hash_iter<metricInstanceHandle,metricInstance*>;
 
 template class vector<perfStreamEntry>;
 
 //Blizzard
 template class dictionary_hash<string,unsigned>;
 template class vector<dictionary_hash<string,unsigned>::entry>;
-template class dictionary_hash_iter<string,unsigned>;
-//
 
 template class List<aggComponent*>;
 template class ListItem<aggComponent*>;
 
-template class vector<T_dyninstRPC::batch_buffer_entry>;
-
-// trace data streams
-template class vector<T_dyninstRPC::trace_batch_buffer_entry>;
-
-template class vector<T_dyninstRPC::resourceInfoCallbackStruct>;
-
 class CallGraph;
-template class dictionary_hash<int, CallGraph *>;
-template class vector<CallGraph *>;
-template class vector<dictionary_hash<int, CallGraph*>::entry>;
+template class dictionary_hash<int,CallGraph*>;
+template class vector<CallGraph*>;
+template class vector<dictionary_hash<int,CallGraph*>::entry>;
 
-template class dictionary_hash <resource *, vector<resource *> >;
-template class vector< vector<resource *> >;
-template class vector<dictionary_hash<resource *, vector<resource*> >::entry>;
+template class dictionary_hash<resource*,vector<resource*> >;
+template class vector<vector<resource*> >;
+template class vector<dictionary_hash<resource*,vector<resource*> >::entry>;
 
 template class dictionary_hash<resource *, int>;
 template class vector<dictionary_hash<resource *, int>::entry>;
