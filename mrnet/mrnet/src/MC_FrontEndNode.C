@@ -8,7 +8,9 @@
 
 MC_FrontEndNode::MC_FrontEndNode(std::string _hostname, unsigned short _port)
  :MC_ParentNode(false, _hostname, _port),
-  MC_CommunicationNode(_hostname, _port)
+  MC_CommunicationNode(_hostname, _port),
+  leafInfoPacket( NULL ),
+  leavesConnectedPacket( NULL )
 {
   MC_RemoteNode::local_parent_node = this;
 }
@@ -66,6 +68,23 @@ int MC_FrontEndNode::proc_PacketsFromDownStream(std::list <MC_Packet *> &packet_
       }
       //mc_printf(MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
       break;
+
+    case MC_GET_LEAF_INFO_PROT:
+        if( proc_getLeafInfoResponse( cur_packet ) == -1 )
+        {
+            mc_printf( MCFL, stderr, "proc_getLeafInfoResponse() failed\n");
+            retval = -1;
+        }
+        break;
+
+    case MC_CONNECT_LEAVES_PROT:
+        if( proc_connectLeavesResponse( cur_packet ) == -1 )
+        {
+            mc_printf( MCFL, stderr, "proc_connectLeavesResponse() failed\n");
+            retval = -1;
+        }
+        break;
+
     default:
       //Any unrecognized tag is assumed to be data
       //mc_printf(MCFL, stderr, "Calling proc_DataFromDownStream(). Tag: %d\n",
@@ -122,254 +141,94 @@ int MC_FrontEndNode::recv()
   return 1;
 }
 
-/*
-int MC_FrontEndNode::send_newSubTree(MC_SerialGraph &sg)
+
+int
+MC_FrontEndNode::deliverConnectLeavesResponse( MC_Packet* pkt )
 {
-  int num_descendants_to_report=0;
-  std::list <MC_Packet *> packet_list;
-  MC_Packet * packet;
-  std::vector <std::string> arglist_commnode;
-  std::string rootname(sg.get_RootName());
-  unsigned short rootport(sg.get_RootPort());
+    //
+    // stash the aggregated response for subsequent retrieval
+    // (It is assumed that our NetworkImpl is polling us till
+    // we have received and stashed this packet.)
+    //
+    // Note that, if we are the front end *and* the leaf,
+    // the packet we're given is the packet that we constructed ourself.
+    // The packets we construct ourself have data elements that
+    //
+    //
+    if( this->isLeaf() )
+    {
+        // we constructed the packet ourself -
+        // the packet's data element array contains pointers
+        // to data that may no longer be valid
+        // 
+        // we have to build a new packet that uses the
+        // marshalled data in this packet's buffer
+        //
+        // or we have to have a way to reset the packet to say that
+        // it should use the arg list to decode the packet
 
-  mc_printf(MCFL, stderr, "In frontend.sendnewsubtree()\n");
+        // painful - having to marshal/unmarshal the data within
+        // the same process.  But if we're pointing to data on the
+        // stack, we don't have the original data anymore anyway.
+        //
+        leavesConnectedPacket = new MC_Packet( pkt->get_BufferLen(),
+                                        pkt->get_Buffer() );
 
-  MC_RemoteNode *cur_node = new MC_RemoteNode(rootname, rootport, false);
-
-  cur_node->new_InternalNode(listening_sock_fd, hostname, port, commnode);
-
-  if(cur_node->good() ){
-    packet = new MC_Packet(MC_NEW_SUBTREE_PROT, "%s", sg.get_ByteArray().c_str());
-
-    if( packet->good() ){
-      if( cur_node->send(packet) == -1 ||
-          cur_node->flush() == -1){
-        mc_printf(MCFL, stderr, "send_newsubtree():send/flush failed\n");
-        return -1;
-      }
+        // release the given packet
+        // TODO (is this safe?)
+        delete pkt;
     }
-    else{
-      mc_printf(MCFL, stderr, "new packet() failed\n");
-      return -1;
+    else
+    {
+        // we can use the packet as it is
+        leavesConnectedPacket = pkt;
     }
-    num_descendants_to_report++;
-    children_nodes.push_back(cur_node);
-  }
-  else{
-    mc_printf(MCFL, stderr, "new remotenode() failed\n");
-    return -1;
-  }
 
-  while( num_descendants_to_report > num_descendants_reported){
-    mc_printf(MCFL, stderr, "%d of %d Descendants have checked in.\n",
-	       num_descendants_reported, num_descendants_to_report);
-    if( recv() == -1 ){
-      mc_printf(MCFL, stderr, "recv() failed\n");
-      return -1;
-    }
-  }
-
-  mc_printf(MCFL, stderr, "send_newsubtree() completed\n");
-  return 0;
+    return 0;
 }
 
-int MC_FrontEndNode::send_delSubTree()
+int
+MC_FrontEndNode::deliverLeafInfoResponse( MC_Packet* pkt )
 {
-  unsigned int i;
-  int retval;
-  MC_Packet *packet;
+    //
+    // stash the aggregated response for subsequent retrieval
+    // (It is assumed that our NetworkImpl is polling us till
+    // we have received and stashed this packet.)
+    //
+    // Note that, if we are the front end *and* the leaf,
+    // the packet we're given is the packet that we constructed ourself.
+    // The packets we construct ourself have data elements that
+    //
+    //
+    if( this->isLeaf() )
+    {
+        // we constructed the packet ourself -
+        // the packet's data element array contains pointers
+        // to data that may no longer be valid
+        // 
+        // we have to build a new packet that uses the
+        // marshalled data in this packet's buffer
+        //
+        // or we have to have a way to reset the packet to say that
+        // it should use the arg list to decode the packet
 
-  mc_printf(MCFL, stderr, "In frontend.sendDelSubTree()\n");
+        // painful - having to marshal/unmarshal the data within
+        // the same process.  But if we're pointing to data on the
+        // stack, we don't have the original data anymore anyway.
+        //
+        leafInfoPacket = new MC_Packet( pkt->get_BufferLen(),
+                                        pkt->get_Buffer() );
 
-  packet = new MC_Packet(MC_DEL_SUBTREE_PROT, "");
-  if(packet->good()){
-
-    std::list <MC_RemoteNode *>::iterator iter;
-    for(i=0,iter = children_nodes.begin();
-        iter != children_nodes.end(); iter++, i++){
-      mc_printf(MCFL, stderr, "Calling downstream[%d].send() ...\n", i);
-      if( (*iter)->send(packet) == -1){
-        mc_printf(MCFL, stderr, "downstream.send() failed\n");
-        retval = -1;
-	continue;
-      }
-
-      mc_printf(MCFL, stderr, "downstream.send() succeeded\n");
-      if( (*iter)->flush() == -1){
-        mc_printf(MCFL, stderr, "downstream.flush() failed\n");
-        retval = -1;
-	continue;
-      }
+        // release the given packet
+        // TODO (is this safe?)
+        delete pkt;
     }
-  }
-  else{
-    mc_printf(MCFL, stderr, "new packet() failed\n");
-    return -1;
-  }
-
-  mc_printf(MCFL, stderr, "Frontend.sendDelSubTree() succeeded\n");
-  return 0;
-}
-
-int MC_FrontEndNode::send_newStream(int stream_id, int filter_id)
-{
-  unsigned int i;
-  int retval;
-  std::vector <MC_EndPoint *> * endpoints = MC_StreamImpl::get_Stream(stream_id)->
-                                       get_EndPoints();
-  MC_Packet *packet;
-
-  mc_printf(MCFL, stderr, "In frontend.sendnewStream(%d)\n", stream_id);
-  int * backends = (int *) malloc (sizeof(int) * endpoints->size();
-  assert(backends);
-
-  mc_printf(MCFL, stderr, "Adding backends to stream %d: [ \n", stream_id);
-  for(i=0; i<endpoints->size(); i++){
-    _fprintf((stderr, "%d, ", (*endpoints)[i]->get_Id()));
-    backends[i] = (*endpoints)[i]->get_Id();
-  }
-  _fprintf((stderr, "\n"));
-
-
-  MC_StreamManager * stream_mgr = new MC_StreamManager(stream_id, filter_id,
-					       upstream_node, children_nodes);
-  StreamManagerById[stream_id] = stream_mgr;
-  mc_printf(MCFL, stderr, "StreamManagerById[%d] = %p\n", stream_id,
-	     StreamManagerById[stream_id]);
-
-  packet = new MC_Packet(MC_NEW_STREAM_PROT, "%d %ad %d", stream_id, backends,
-                         endpoints->size(), filter_id);
-  if(packet->good()){
-
-    std::list <MC_RemoteNode *>::iterator iter;
-    for(i=0,iter = children_nodes.begin();
-        iter != children_nodes.end(); iter++, i++){
-      mc_printf(MCFL, stderr, "Calling children_nodes[%d].send() ...\n", i);
-      if( (*iter)->send(packet) == -1){
-        mc_printf(MCFL, stderr, "children_nodes.send() failed\n");
-        retval = -1;
-	continue;
-      }
-      mc_printf(MCFL, stderr, "children_nodes.send() succeeded\n");
+    else
+    {
+        // we can use the packet as it is
+        leafInfoPacket = pkt;
     }
-  }
-  else{
-    mc_printf(MCFL, stderr, "new packet() failed\n");
-    return -1;
-  }
 
-  mc_printf(MCFL, stderr, "Frontend.sendNewStream() succeeded\n");
-  return 0;
+    return 0;
 }
 
-int MC_FrontEndNode::send_delStream(int stream_id)
-{
-  MC_Packet *packet;
-  int retval;
-  unsigned int i;
-
-  mc_printf(MCFL, stderr, "In frontend.sendDelStream()\n");
-
-  MC_StreamManager * stream_mgr = StreamManagerById[stream_id];
-
-  packet = new MC_Packet(MC_DEL_STREAM_PROT, "%d", stream_id);
-  if(packet->good()){
-
-    std::list <MC_RemoteNode *>::iterator iter;
-    for(i=0,iter = stream_mgr->downstream_nodes.begin();
-        iter != stream_mgr->downstream_nodes.end();
-        iter++, i++){
-      mc_printf(MCFL, stderr, "Calling node_set[%d].send() ...\n", i);
-      if( (*iter)->send(packet) == -1){
-        mc_printf(MCFL, stderr, "node_set.send() failed\n");
-        retval = -1;
-	continue;
-      }
-      mc_printf(MCFL, stderr, "node_set.send() succeeded\n");
-    }
-  }
-  else{
-    mc_printf(MCFL, stderr, "new packet() failed\n");
-    return -1;
-  }
-
-  mc_printf(MCFL, stderr, "Frontend.sendDelStream() succeeded\n");
-  return 0;
-}
-
-int MC_FrontEndNode::send_newApplication(std::string cmd, std::vector<std::string> args)
-{
-  MC_Packet *packet;
-  unsigned int i;
-  int retval;
-
-  mc_printf(MCFL, stderr, "In frontend.sendnewApplication()\n");
-
-  packet = new MC_Packet(MC_NEW_APPLICATION_PROT, "%s", cmd.c_str());
-  if(packet->good()){
-
-    std::list <MC_RemoteNode *>::iterator iter;
-    for(i=0,iter = children_nodes.begin();
-        iter != children_nodes.end(); iter++, i++){
-      mc_printf(MCFL, stderr, "Calling downstream[%d].send() ...\n", i);
-      if( (*iter)->send(packet) == -1){
-        mc_printf(MCFL, stderr, "downstream.send() failed\n");
-        retval = -1;
-	continue;
-      }
-      if( (*iter)->flush() == -1){
-        mc_printf(MCFL, stderr, "downstream.flush() failed\n");
-        retval = -1;
-	continue;
-      }
-      mc_printf(MCFL, stderr, "downstream.send()/flush() succeeded\n");
-    }
-  }
-  else{
-    mc_printf(MCFL, stderr, "new packet() failed\n");
-    return -1;
-  }
-
-  mc_printf(MCFL, stderr, "Frontend.sendnewApplication() succeeded\n");
-  return 0;
-}
-
-int MC_FrontEndNode::send_delApplication()
-{
-  MC_Packet *packet;
-  unsigned int i;
-  int retval;
-
-  mc_printf(MCFL, stderr, "In frontend.sendDelApplication()\n");
-
-  packet = new MC_Packet(MC_DEL_APPLICATION_PROT, "");
-  if(packet->good()){
-
-    std::list <MC_RemoteNode *>::iterator iter;
-    for(i=0,iter = children_nodes.begin();
-        iter != children_nodes.end(); iter++, i++){
-      mc_printf(MCFL, stderr, "Calling downstream[%d].send() ...\n", i);
-      if( (*iter)->send(packet) == -1){
-        mc_printf(MCFL, stderr, "downstream.send() failed\n");
-        retval = -1;
-	continue;
-      }
-      mc_printf(MCFL, stderr, "downstream.send() succeeded\n");
-    }
-  }
-  else{
-    mc_printf(MCFL, stderr, "new packet() failed\n");
-    return -1;
-  }
-
-  mc_printf(MCFL, stderr, "Frontend.sendDelApplication() succeeded\n");
-  return 0;
-}
-
-int MC_FrontEndNode::send_DataDownStream(MC_Packet *)
-{
-  return 0;
-}
-
-
-*/
