@@ -45,36 +45,27 @@
 #include "common/h/timing.h"
 #include "paradynd/src/pd_process.h"
 #include "pdutil/h/pdDebugOstream.h"
+#include "dyninstAPI/src/instPoint.h"
 
 extern pdDebug_ostream metric_cerr;
 
+const int MAX_INSERTION_ATTEMPTS_USING_RELOCATION = 1000;
 
 /*
  * functions to operate on inst request graph.
  *
  */
-instReqNode::instReqNode(instPoint *iPoint, AstNode *iAst, callWhen iWhen,
-                         callOrder o) : loadedIntoApp(false), 
-  trampsHookedUp(false), rinstance(NULL) {
-  point = iPoint;
-  when = iWhen;
-  order = o;
-  ast = assignAst(iAst);
-  rpcCount = 0;
-  mtHandle.location = iPoint;
-  mtHandle.when = iWhen;
-  assert(point);
-}
 
 // special copy constructor used for fork handling
 instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) : 
    point(par.point), ast(assignAst(par.ast)), when(par.when), 
-   order(par.order), loadedIntoApp(par.loadedIntoApp), 
-   trampsHookedUp(par.trampsHookedUp), rinstance(par.rinstance), 
-   rpcCount(par.rpcCount)
+   order(par.order), loadedIntoApp_(par.loadedIntoApp_), 
+   trampsHookedUp_(par.trampsHookedUp_), 
+   hasBeenCatchuped_(par.hasBeenCatchuped_), rinstance(par.rinstance), 
+   rpcCount(par.rpcCount), loadInstAttempts(par.loadInstAttempts)
 {
 	bool res = getInheritedMiniTramp(&par.mtHandle, &mtHandle, 
-												childProc->get_dyn_process());
+                                         childProc->get_dyn_process());
 	assert(res == true);
 }
 
@@ -82,56 +73,68 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
 // returns false if instr insert was deferred
 loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
 					      returnInstance *&retInstance) {
-  if(loadedIntoApp) return success_res;
+   if(loadedIntoApp_) return success_res;
+     pd_Function *function_not_inserted = 
+	         dynamic_cast<pd_Function *>(const_cast<function_base *>(
+				                     point->iPgetFunction()));
+   ++loadInstAttempts;
+   if(loadInstAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
+      pd_Function *function_not_inserted = 
+	         dynamic_cast<pd_Function *>(const_cast<function_base *>(
+				                     point->iPgetFunction()));
+      if(function_not_inserted != NULL)
+	 function_not_inserted->setRelocatable(false);
+   }
+   
+   // NEW: We may manually trigger the instrumentation, via a call to
+   // postRPCtoDo()
+   
+   // addInstFunc() is one of the key routines in all paradynd.  It installs a
+   // base tramp at the point (if needed), generates code for the tramp, calls
+   // inferiorMalloc() in the text heap to get space for it, and actually
+   // inserts the instrumentation.
+   instInstance *instI = new instInstance;
+   loadMiniTramp_result res = 
+      loadMiniTramp(instI, theProc->get_dyn_process(), point, ast, when, order,
+		    false, // false --> don't exclude cost
+		    retInstance,
+		    false // false --> do not allow recursion
+		    );
+   rinstance = retInstance;
+   
+   if(res == success_res) {
+      loadedIntoApp_ = true;
+      mtHandle.inst = instI;
+      mtHandle.when = when;
+      mtHandle.location = point;
+   } else {
+      delete instI;
+   }
 
-  // NEW: We may manually trigger the instrumentation, via a call to
-  // postRPCtoDo()
-  
-  // addInstFunc() is one of the key routines in all paradynd.  It installs a
-  // base tramp at the point (if needed), generates code for the tramp, calls
-  // inferiorMalloc() in the text heap to get space for it, and actually
-  // inserts the instrumentation.
-  instInstance *instI = new instInstance;
-  loadMiniTramp_result res = 
-    loadMiniTramp(instI, theProc->get_dyn_process(), point, ast, when, order,
-		  false, // false --> don't exclude cost
-		  retInstance,
-		  false // false --> do not allow recursion
-		  );
-  rinstance = retInstance;
-  
-  if(res == success_res) {
-    loadedIntoApp = true;
-    mtHandle.inst = instI;
-    mtHandle.when = when;
-    mtHandle.location = point;
-  } else {
-    delete instI;
-  }
-
-  return res;
+   return res;
 }
 
 void instReqNode::hookupJumps(pd_process *proc) {
-  assert(trampsHookedUp == false);
-  hookupMiniTramp(proc->get_dyn_process(), mtHandle, order);
-  // since we've used it for it's only stated purpose, get rid of it
-  trampsHookedUp = true;
+   if(trampsHookedUp()) 
+      return;
+   hookupMiniTramp(proc->get_dyn_process(), mtHandle, order);
+   // since we've used it for it's only stated purpose, get rid of it
+   trampsHookedUp_ = true;
 }
 
 void instReqNode::setAffectedDataNodes(instInstanceFreeCallback cb, 
 				   vector<instrDataNode *> *affectedNodes) {
-  assert(loadedIntoApp == true);
+  assert(loadedIntoApp_ == true);
   mtHandle.inst->registerCallback(cb, (void *)affectedNodes);
 }
 
 void instReqNode::disable(pd_process *proc)
 {
   //cerr << "in instReqNode (" << this << ")::disable  loadedIntoApp = "
-  //     << loadedIntoApp << ", hookedUp: " << trampsHookedUp
+  //     << loadedIntoApp << ", hookedUp: " << trampsHookedUp_
   //     << ", deleting inst: " << mtHandle.inst << "\n";
   //     << " points to check\n";
-  if(loadedIntoApp == true && trampsHookedUp == true)
+  if(loadedIntoApp_ == true && trampsHookedUp_ == true)
     deleteInst(proc->get_dyn_process(), mtHandle);
 }
 
@@ -154,30 +157,6 @@ timeLength instReqNode::cost(pd_process *theProc) const
   float frequency = getPointFrequency(point);
   timeLength value = unitCost * frequency;
   return(value);
-}
-
-bool instReqNode::postCatchupRPC(pd_process *theProc,
-				 Frame &triggeredFrame,
-				 int mid) 
-{
-  // So we have an instrumentation node (this), and a frame
-  // to trigger it in.
-  theProc->postRPCtoDo(ast, false, // don't skip cost
-		       NULL,
-		       (void *)this,
-		       mid,
-		       triggeredFrame.getThread(),
-		       triggeredFrame.getLWP(),
-		       false); // normal RPC, not thread-independent
-  if (pd_debug_catchup)
-    cerr << "catchup inferior RPC has been launched for instReqNode"
-	 << (int) this 
-	 << " with frame"
-	 << triggeredFrame << endl;
-
-  // Don't launch the RPC immediately. We'll launch them all
-  // at one time.
-  return true;
 }
 
 void instReqNode::catchupRPCCallback(void * /*returnValue*/ ) {
