@@ -3,6 +3,12 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.25  1996/03/26 21:02:00  tamches
+ * fixed a compile problem w/ previous commit
+ * fixed a problem w/ prev commit by adding the line
+ *       mn->addInst(p, code, cwhen, corder);
+ * back in.
+ *
  * Revision 1.24  1996/03/25 22:58:10  hollings
  * Support functions that have multiple exit points.
  *
@@ -1441,10 +1447,10 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   // for all of the inst points, insert the predicates and the code itself.
   for (int i = 0; i < points->size(); i++) {
       instPoint *p = (*points)[i];
-      AstNode *code = NULL;
+      AstNode code;
 
       for (unsigned u=0; u<size; u++)
-	if (!(*icode_reqs_)[u]->apply(code))
+	if (!(*icode_reqs_)[u]->apply(code, u > 0)) // code is initialized when u > 0
 	  return false;
 
       // Instantiate all constraints (flags) here
@@ -1453,6 +1459,8 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
         AstNode temp(DataValue, flags[fi]);
         code = createIf(temp, code);
       }
+
+      mn->addInst(p, code, cwhen, corder);
   }
 
   return true;
