@@ -1124,7 +1124,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
                                                     true, internal);
        // calls mdl_do()
     if (!mi) {
-       cerr << "startCollecting for " << metric_name << " failed because createMetricInstance failed" << endl;
+       //cerr << "startCollecting for " << metric_name << " failed because createMetricInstance failed" << endl;
        return(-1);
     }
 
