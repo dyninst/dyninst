@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.10 2000/07/27 19:39:56 hollings Exp $ */
+/* $Id: RTheap.c,v 1.11 2001/02/26 21:36:59 bernat Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -157,6 +157,10 @@ constrained_mmap(size_t len, Address lo, Address hi,
 {
      const dyninstmm_t *mlo, *mhi, *p;
      Address beg, end, try;
+     // Interesting question -- what if the low address is
+     // above the high address? Hrm... right now we die
+     // in the assert below.
+     if (lo > DYNINSTheap_hiAddr) return 0;
 
      if (lo < DYNINSTheap_loAddr) lo = DYNINSTheap_loAddr;
      if (hi > DYNINSTheap_hiAddr) hi = DYNINSTheap_hiAddr;

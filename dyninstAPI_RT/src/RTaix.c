@@ -43,6 +43,9 @@
  * RTaix.c: mutatee-side library function specific to AIX
 ************************************************************************/
 
+#include <dlfcn.h> // dlopen constants
+#include <stdio.h>
+
 /************************************************************************
  * void DYNINSTos_init(void)
  *
@@ -52,4 +55,18 @@
 void
 DYNINSTos_init(int calledByFork, int calledByAttach)
 {
+}
+
+int DYNINSTloadLibrary(char *libname)
+{
+    void *res;
+
+    res = dlopen( libname, RTLD_NOW | RTLD_GLOBAL );
+
+    if( res == NULL ) {
+	perror( "DYNINSTloadLibrary -- dlopen" );
+	return 0;  // An error has occurred
+    } else
+	return 1;
+
 }
