@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.112 2002/06/27 19:01:42 schendel Exp $
+// $Id: symtab.h,v 1.113 2002/10/28 04:54:08 schendel Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -659,6 +659,9 @@ public:
   vector<function_base *> *getIncludedFunctions();
   function_base *findFunction (const string &name);
   function_base *findFunctionFromAll(const string &name);
+#ifndef BPATCH_LIBRARY
+  resource *getResource() { return modResource; }
+#endif
 
 private:
 #ifndef BPATCH_LIBRARY
@@ -764,6 +767,7 @@ public:
 
   // find the named module  
   pdmodule *findModule(const string &name, bool find_if_excluded = FALSE);
+  pdmodule *findModule(function_base *func);
 
   // Note to self later: find is a const operation, [] isn't, for
   // dictionary access. If we need to make the findFuncBy* methods
@@ -865,6 +869,7 @@ public:
 #ifndef BPATCH_LIBRARY
   const vector<pd_Function*> &getIncludedFunctions();
   const vector<pdmodule *> &getIncludedModules();
+  const vector<pdmodule *> &getExcludedModules();
 #endif 
 
   //
@@ -1029,7 +1034,7 @@ public:
 
 #ifndef BPATCH_LIBRARY
 // forward declarations....
-void CallGraphSetEntryFuncCallback(string exe_name, string r);
+void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid);
 void CallGraphFillDone(string exe_name);
 void CallGraphAddProgramCallback(string exe_name);
 #endif
