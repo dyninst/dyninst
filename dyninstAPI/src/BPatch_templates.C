@@ -39,24 +39,36 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.31 2005/01/21 23:43:58 bernat Exp $
+// $Id: BPatch_templates.C,v 1.32 2005/04/05 16:43:00 jodom Exp $
 
 #include <sys/types.h>
 
 #define BPATCH_FILE
 
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if defined(__XLC__) || defined(__xlC__)
+#pragma implementation("BPatch_Vector.h")
+#else
 #pragma implementation "BPatch_Vector.h"
+#endif
 #endif
 #include "BPatch_Vector.h"
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if defined(__XLC__) || defined(__xlC__)
+#pragma implementation("BPatch_Set.h")
+#else
 #pragma implementation "BPatch_Set.h"
+#endif
 #endif
 #include "BPatch_Set.h"
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if defined(__XLC__) || defined(__xlC__)
+#pragma implementation("refCounter.h")
+#else
 #pragma implementation "refCounter.h"
+#endif
 #endif
 #include "common/h/refCounter.h"
 #include "common/h/String.h"

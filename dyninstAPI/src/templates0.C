@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.48 2005/03/02 19:44:49 bernat Exp $
+// $Id: templates0.C,v 1.49 2005/04/05 16:43:00 jodom Exp $
 // Generate all the templates in one file.
 
 /*
@@ -58,10 +58,18 @@
  *
  */
 
+#if defined(__XLC__) || defined(__xlC__)
+#pragma implementation("Vector.h")
+#else
 #pragma implementation "Vector.h"
+#endif
 #include "common/h/Vector.h"
 
+#if defined(__XLC__) || defined(__xlC__)
+#pragma implementation("Symbol.h")
+#else
 #pragma implementation "Symbol.h"
+#endif
 #include "common/h/Symbol.h"
 
 #include "common/h/String.h"
