@@ -184,7 +184,7 @@ class process {
 
  public:
 
-  process(int iPid, image *iImage
+  process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
 	  , key_t theShmSegKey,
 	  unsigned iicNumElems, // stuff related to inferior int counters
@@ -246,9 +246,8 @@ class process {
      return symbols->findInternalAddress(name, warn, err);
   }
 
-  void osDumpImage() {
-     OS::osDumpImage(symbols->file(), getPid(), symbols->codeOffset());
-  }
+  bool dumpImage();
+
   bool symbol_info(const string &name, Symbol &ret) {
      assert(symbols);
      return symbols->symbol_info(name, ret);
@@ -473,12 +472,10 @@ class process {
      // resource::num_outstanding_creates,
      // and process::handleStartProcess, also if there are any
      // resource::num_outstanding_creates.
-//  void clearWaitingForResources(){ waiting_for_resources = false; }
-//  bool isWaitingForResources(){ return(waiting_for_resources); }
 
-  // continueProcessIfWaiting: if the waiting_for_resources flag
-  // is set then continue the process
-  void continueProcessIfWaiting(); // called by dynrpc.C ::resourceInfoResponse
+//  // continueProcessIfWaiting: if the waiting_for_resources flag
+//  // is set then continue the process
+//  void continueProcessIfWaiting(); // called by dynrpc.C ::resourceInfoResponse
 
   void handleExec();
   bool cleanUpInstrumentation(bool wasRunning);
@@ -608,6 +605,8 @@ private:
   bool continueProc_();
   bool dumpCore_(const string coreFile);
   bool detach_();
+  bool attach_(); // low-level attach; called by attach() (formerly OS::osAttach())
+  bool stop_(); // formerly OS::osStop
 
   // stops a process
   bool loopUntilStopped();
