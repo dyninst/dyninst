@@ -48,6 +48,7 @@
 #include "BPatch_type.h"
 #include "BPatch_module.h"
 #include "BPatch_flowGraph.h"
+#include "BPatch_memoryAccess_NP.h"
 
 class function_base;
 class process;
@@ -67,13 +68,14 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
     BPatch_flowGraph* cfg;
 
     void         *getBaseAddrRelative();
+    BPatch_point* createMemInstPoint(void *addr, BPatch_memoryAccess* ma);
 
 public:
     virtual	~BPatch_function();
 
 // The following are for  internal use by the library only:
     function_base *func;
-    process *getProc() { return proc; }
+    process *getProc() const { return proc; }
 
 // No longer inline but defined in .C file
     BPatch_function(process *_proc, function_base *_func, BPatch_module *mod = NULL);
@@ -88,10 +90,10 @@ public:
       retType = _retType;}
     
 // For users of the library:
-    char	 *getName(char *s, int len);
-    char	 *getMangledName(char *s, int len);
+    char	 *getName(char *s, int len) const;
+    char	 *getMangledName(char *s, int len) const;
     void	 *getBaseAddr();
-    unsigned int getSize();
+    unsigned int getSize() const;
     BPatch_type * getReturnType(){ return retType; }
     BPatch_module *getModule()	{ return mod; }
     void addParam(char * _name, BPatch_type *_type, int _linenum,

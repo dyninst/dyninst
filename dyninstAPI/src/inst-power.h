@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.16 2002/02/21 21:47:47 bernat Exp $
+ * $Id: inst-power.h,v 1.17 2002/03/21 22:35:18 gaburici Exp $
  */
 
 #ifndef INST_POWER_H
@@ -49,6 +49,10 @@
 
 
 #include "dyninstAPI/src/ast.h"
+
+#ifdef BPATCH_LIBRARY
+#include "BPatch_function.h"
+#endif
 
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
  *   to patch up.   This must be invalid instructions (any instruction with
@@ -111,5 +115,11 @@ enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint, ipOther };
 
 bool isCallInsn(const instruction);
 bool isReturnInsn(const image *, Address);
+
+#ifdef BPATCH_LIBRARY
+BPatch_point* createArbitraryPoint(const BPatch_function* bpfunc,
+                                   void *address);
+#endif
+
 
 #endif

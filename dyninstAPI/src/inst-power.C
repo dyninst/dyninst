@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.126 2002/03/15 21:05:13 gaburici Exp $
+ * $Id: inst-power.C,v 1.127 2002/03/21 22:35:18 gaburici Exp $
  */
 
 #include "common/h/headers.h"
@@ -3911,6 +3911,37 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 
     return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
 }
+
+#ifdef BPATCH_LIBRARY
+BPatch_point *createArbitraryPoint(const BPatch_function* bpfunc,
+                                   void *address)
+{
+  if (!isAligned((Address)address))
+    return NULL;
+
+  process *proc = bpfunc->getProc();
+  pd_Function* pointFunction = (pd_Function*)bpfunc->func;
+  instruction instr;
+
+  proc->readTextSpace(address, sizeof(instruction), &instr.raw);
+
+  Address pointImageBase = 0;
+  image* pointImage = pointFunction->file()->exec();
+  proc->getBaseAddress((const image*)pointImage,pointImageBase);
+
+  instPoint *newpt = new instPoint(pointFunction,
+                                   instr,
+                                   NULL, // image *owner - this is ignored
+                                   (Address)((Address)address-pointImageBase),
+                                   false, // bool delayOk - this is ignored
+                                   ipOther);
+
+  pointFunction->addArbitraryPoint(newpt,NULL);
+
+  return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
+}
+#endif
+
 
 /*
  * BPatch_point::getDisplacedInstructions

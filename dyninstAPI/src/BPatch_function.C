@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.22 2002/03/12 18:40:02 jaw Exp $
+// $Id: BPatch_function.C,v 1.23 2002/03/21 22:35:18 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -154,7 +154,7 @@ BPatch_sourceObj *BPatch_function::getObjParent()
  * s            The buffer into which the name will be copied.
  * len          The size of the buffer.
  */
-char *BPatch_function::getName(char *s, int len)
+char *BPatch_function::getName(char *s, int len) const
 {
     assert(func);
     string name = func->prettyName();
@@ -173,7 +173,7 @@ char *BPatch_function::getName(char *s, int len)
  * s            The buffer into which the name will be copied.
  * len          The size of the buffer.
  */
-char *BPatch_function::getMangledName(char *s, int len)
+char *BPatch_function::getMangledName(char *s, int len) const
 {
     assert(func);
     string name = func->symTabName();
@@ -209,7 +209,7 @@ void *BPatch_function::getBaseAddrRelative()
  *
  * Returns the size of the function in bytes.
  */
-unsigned int BPatch_function::getSize()
+unsigned int BPatch_function::getSize() const
 {
   return func->size();
 }
@@ -304,6 +304,27 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
     return result;
 }
 
+// VG(03/01/02): Temporary speed fix - use the new function on AIX
+#ifdef rs6000_ibm_aix4_1
+
+// VG(03/01/02): There can be NO alternative point for a mem inst point
+BPatch_point* BPatch_function::createMemInstPoint(void *addr,
+                                                  BPatch_memoryAccess* ma)
+{
+  BPatch_point *p = createArbitraryPoint(this, (void*)addr);
+  if(p)
+    p->memacc = ma;
+  return p;
+}
+
+#else
+
+BPatch_point* BPatch_function::createMemInstPoint(void *addr,
+                                                  BPatch_memoryAccess* ma)
+{
+  return NULL;
+}
+
 // VG(09/17/01): created this 'cause didn't want to add more 
 // platform independent code to inst-XXX.C
 BPatch_point* createInstPointForMemAccess(process *proc,
@@ -317,9 +338,9 @@ BPatch_point* createInstPointForMemAccess(process *proc,
   BPatch_point *p = createInstructionInstPoint(proc, (void*) addr, alternative);
   if(p)
     p->memacc = ma;
-
   return p;
 }
+#endif
 
 /*
  * BPatch_function::findPoint (VG 09/05/01)
@@ -388,8 +409,13 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
       //fprintf(stderr, "LD[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
       // XXX this leaks...
+#ifdef rs6000_ibm_aix4_1
+      BPatch_point* p = createMemInstPoint((void *)addr,
+                                           new BPatch_memoryAccess(ma));
+#else
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
 						    new BPatch_memoryAccess(ma));
+#endif
       if(p)
         result->push_back(p);
       skip = true;
@@ -399,8 +425,13 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
       //fprintf(stderr, "ST[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
       // XXX this leaks...
+#ifdef rs6000_ibm_aix4_1
+      BPatch_point* p = createMemInstPoint((void *)addr,
+                                           new BPatch_memoryAccess(ma));
+#else
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
 						    new BPatch_memoryAccess(ma));
+#endif
       if(p)
         result->push_back(p);
       skip = true;
@@ -410,8 +441,13 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
       //fprintf(stderr, "PF[%d]: [%x -> %x], %d(%d)(%d) #%d %%%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt, fcn);
       // XXX this leaks...
+#ifdef rs6000_ibm_aix4_1
+      BPatch_point* p = createMemInstPoint((void *)addr,
+                                           new BPatch_memoryAccess(ma));
+#else
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
 						    new BPatch_memoryAccess(ma));
+#endif
       if(p)
         result->push_back(p);
       skip = true;

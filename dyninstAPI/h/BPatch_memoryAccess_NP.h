@@ -102,10 +102,10 @@ public:
 
   BPatch_addrSpec_NP getStartAddr_NP() const { return start; }
   BPatch_countSpec_NP getByteCount_NP() const { return count; }
-  bool isALoad_NP() { return isLoad; }
-  bool isAStore_NP() { return isStore; }
-  bool isAPrefetch_NP() { return isPrefetch; }
-  short prefetchType_NP() { return preFcn; }
+  bool isALoad_NP() const { return isLoad; }
+  bool isAStore_NP() const { return isStore; }
+  bool isAPrefetch_NP() const { return isPrefetch; }
+  short prefetchType_NP() const { return preFcn; }
 
 };
 #endif
