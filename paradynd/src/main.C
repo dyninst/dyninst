@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.125 2004/04/07 20:20:34 bernat Exp $
+// $Id: main.C,v 1.126 2004/05/11 19:01:52 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -89,6 +89,8 @@ int ready;
 #ifdef mips_sgi_irix6_4
 extern bool execIrixMPIProcess(pdvector<pdstring> &argv);
 #endif
+
+unsigned SHARED_SEGMENT_SIZE = 2097152;
 
 /*
  * These variables are global so that we can easily find out what
