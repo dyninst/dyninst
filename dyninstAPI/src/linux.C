@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.14 1999/05/28 01:49:40 nash Exp $
+// $Id: linux.C,v 1.15 1999/07/07 16:07:35 zhichen Exp $
 
 #include <fstream.h>
 
@@ -1379,7 +1379,7 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 */
 
 #ifdef SHM_SAMPLING
-time64 process::getInferiorProcessCPUtime() /* const */ {
+time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) /* const */ {
   /*
   rusage usage;
   time64 now;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.6 1999/06/21 22:31:45 csserra Exp $
+// $Id: irix.C,v 1.7 1999/07/07 16:07:35 zhichen Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1044,7 +1044,7 @@ void OS::osDisconnect(void) {
 // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
 #define HW_CTR_NUM (0) // must be consistent with RTirix.c
 // TODO: "#ifdef PURE_BUILD" support
-time64 process::getInferiorProcessCPUtime() {
+time64 process::getInferiorProcessCPUtime(int ) {
   //fprintf(stderr, ">>> getInferiorProcessCPUtime()\n");
   time64 ret;
   static time64 ret_prev = 0;
