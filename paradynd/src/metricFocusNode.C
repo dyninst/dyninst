@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.212 2001/12/06 20:57:57 schendel Exp $
+// $Id: metricFocusNode.C,v 1.213 2001/12/15 02:44:20 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -947,10 +947,11 @@ void metricDefinitionNode::removeThisInstance() {
   
   unsigned aggr_size = aggregators.size();
   assert(aggr_size == samples.size());
-
+  
   // remove aggregators first
   for (unsigned u=0; u<aggr_size; u++) {
-    samples[u]->requestRemove();
+    samples[u]->markAsFinished();
+
     metric_cerr << "   removeThisInstance: " << u 
 		<< "th aggregator calls removeFromAggregate " << endl;
     aggregators[u]->removeFromAggregate(this, false);
@@ -1001,10 +1002,15 @@ void metricDefinitionNode::removeThisInstance() {
 
   assert(aggregators.size() == samples.size());
 
-  for (unsigned u=0; u<samples.size(); u++) {
-    samples[u]->requestRemove();
-  }
+  // This call to tryAggregation needs to come here because the
+  // tryAggregation call will flush samples out of the PRIM<->COMP
+  // aggComponents and get them passed up through any corresponding
+  // COMP<->AGG aggComponents before they get marked as finished, and hence
+  // unable to have samples added to them.
   tryAggregation();
+  for (unsigned u=0; u<samples.size(); u++) {
+    samples[u]->markAsFinished();
+  }
 
   for (unsigned i=0; i<aggregators.size(); i++) {
     aggregators[i]->removeFromAggregate(this, false);
