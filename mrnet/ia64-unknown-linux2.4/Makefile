@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile,v 1.1 2004/11/30 21:10:52 tlmiller Exp $
+# $Id: Makefile,v 1.2 2005/03/07 21:19:58 legendre Exp $
 #
 
 USES_FLEX   = true
@@ -64,7 +64,7 @@ install:    all
 configure-build:
 	if test ! -f ./build/Makefile ; \
 	then \
-	    cd ./build; CC="$(CC)" CXX="$(CXX)" RANLIB=$(RANLIB) AS=$(AS) CFLAGS=${MRNET_CFLAGS} CXXFLAGS=${MRNET_CXXFLAGS} sh ../../mrnet/configure --prefix=`pwd`/${TO_CORE}/../../${PLATFORM} --with-libfl=${FLEX_DIR}/libfl.a --enable-verbosebuild ; \
+	    cd ./build; CC="$(CC)" CXX="$(CXX)" RANLIB=$(RANLIB) AS=$(AS) CFLAGS=${MRNET_CFLAGS} CXXFLAGS=${MRNET_CXXFLAGS} sh ../../mrnet/configure --prefix=`pwd`/${TO_CORE}/../../${PLATFORM} ${WITHLIBFL} --enable-verbosebuild ; \
 	fi
 
 clean distclean:
