@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.28 2001/11/05 18:47:20 zandy Exp $
+ * $Id: Object-elf.C,v 1.29 2001/11/30 17:58:06 gurari Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -410,7 +410,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     }
   }
 #ifndef BPATCH_LIBRARY /* Some objects really don't have all sections. */
-  if (!txtaddr || !bssaddr || !symscnp || !strscnp) {
+  if (!bssaddr || !symscnp || !strscnp) {
     log_elferror(err_func_, "no text/bss/symbol/string section");
     return false;
   }
