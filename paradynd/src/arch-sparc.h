@@ -48,6 +48,9 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.13  1996/10/04 16:38:31  naim
+ * Changes to use immediate operations on the sparc - naim
+ *
  * Revision 1.12  1996/09/26 18:58:23  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -128,6 +131,17 @@ struct fmt3 {
     unsigned rs2:5;
 };
 
+struct fmt3ix {
+    unsigned op:2;
+    unsigned rd:5;
+    unsigned op3:6;
+    unsigned rs1:5;
+    unsigned i:1;
+    unsigned x:1;
+    unsigned unused:7;
+    unsigned rs2:5;
+};
+
 struct fmt3i {
     unsigned op:2;
     unsigned rd:5;
@@ -143,6 +157,7 @@ union instructUnion {
     struct fmt2a sethi;
     struct fmt3 rest;
     struct fmt3i resti;
+    struct fmt3ix restix;
     unsigned int raw;
 };
 
@@ -165,6 +180,11 @@ typedef union instructUnion instruction;
 #define SAVEop3		60
 #define RESTOREop3	61
 #define JMPLop3		56
+
+#define SLLop3          37
+#define SLLop           2
+#define SRLop3          38
+#define SRLop           2
 
 #define FP_OP3_LOW	0x20
 #define LDFop3		0x20
