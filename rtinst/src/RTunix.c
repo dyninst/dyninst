@@ -3,7 +3,12 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.18  1994/08/22 16:05:37  markc
+ * Revision 1.19  1994/09/20 18:26:51  hollings
+ * added DYNINSTcyclesPerSecond to get cost values no matter the clock speed.
+ *
+ * removed a race condition in DYNINSTcyclesPerSecond.
+ *
+ * Revision 1.18  1994/08/22  16:05:37  markc
  * Removed lastValue array.
  * Added lastValue variable to timer structure.
  * Added error messages for timer regression.
@@ -76,6 +81,7 @@
  *
  */
 #include <stdio.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/param.h>
@@ -213,7 +219,9 @@ void DYNINSTstopProcessTimer(tTimer *timer)
 	timer->snapShot = now - timer->start + timer->total;
 	timer->mutex = 1;
 	timer->counter = 0;
-	timer->total = timer->snapShot;
+	/* This next line can have the race condition. */
+	/* timer->total = timer->snapShot; */
+	timer->total = DYNINSTgetUserTime() - timer->start + timer->total;
 	timer->mutex = 0;
 	if (now < timer->start) {
 	     getrusage(RUSAGE_SELF, &ru);
@@ -300,7 +308,7 @@ void DYNINSTpauseProcess()
     while (!DYNINSTpauseDone) {
 #ifdef notdef
        sigpause(mask);
-       // temporary busy wait until we figure out what the TSD is up to. 
+       /* temporary busy wait until we figure out what the TSD is up to.  */
        printf("out of sigpuase\n");
 #endif
     }
@@ -313,7 +321,7 @@ void DYNINSTinit(int skipBreakpoint)
     char *interval;
     struct sigvec alarmVector;
     extern int DYNINSTmapUarea();
-    extern float DYNINSTgetClock();
+    extern float DYNINSTcyclesPerSecond();
     extern void DYNINSTalarmExpire();
 
     startWall = 0;
@@ -327,6 +335,7 @@ void DYNINSTinit(int skipBreakpoint)
 #endif
 
     /* init these before the first alarm can expire */
+    DYNINSTcyclesToUsec = DYNINSTcyclesPerSecond() * 1000000;
     DYNINSTlastCPUTime = DYNINSTgetCPUtime();
     DYNINSTlastWallTime = DYNINSTgetWallTime();
 
@@ -625,3 +634,39 @@ void restoreFPUstate(float *base)
 }
 
 
+/*
+ * If we can't read it, try to guess it.
+ */
+static float guessClock()
+{
+    return(0.0);
+}
+
+#define PATTERN	"\tclock-frequency:"
+/*
+ * find the number of cycles per second on this machine.
+ */
+float DYNINSTcyclesPerSecond()
+{
+    FILE *fp;
+    char *ptr;
+    int speed;
+    char line[80];
+
+    fp = popen("/usr/etc/devinfo -vp", "r");
+    if (!fp) {
+	/* can't run command so guess the clock rate. */
+    } else {
+	while (fgets(line, sizeof(line), fp)) {
+	    if (!strncmp(PATTERN, line, strlen(PATTERN))) {
+		ptr = strchr(line, ' ');
+		if (!ptr) return(guessClock());
+		speed = strtol(ptr, NULL, 16);
+		break;
+	    }
+	}
+    }
+    pclose(fp);
+    printf(line, "Clock = %d\n", speed);
+    return(speed);
+}
