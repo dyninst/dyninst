@@ -3,6 +3,9 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
+ * Revision 1.22  1996/04/29 03:36:22  tamches
+ * computePauseTimeMetric now takes in a metric (but doesn't use it)
+ *
  * Revision 1.21  1995/08/24 15:03:59  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -224,8 +227,8 @@ void instCleanup()
 // 
 // this has been copied from inst-sunos.C
 //
-float computePauseTimeMetric()
-{
+float computePauseTimeMetric(const metricDefinitionNode *) {
+    // we don't need to use the metricDefinitionNode
     timeStamp now;
     timeStamp elapsed=0.0;
 
