@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.52 2003/04/18 22:35:25 tlmiller Exp $
+ * $Id: Object-elf.h,v 1.53 2003/05/14 18:32:31 tlmiller Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -224,6 +224,10 @@ class Object : public AObject {
   // all section headers, sorted by address
   // we use these to do a better job of finding the end of symbols
   pdvector<pdElfShdr*> allSectionHdrs;
+
+  // It doesn't look like image's equivalent hashtable is built by
+  // the time we need it, and it's hard to get to anyway.
+  dictionary_hash< Address, string > symbolNamesByAddr;
 
   // populates: file_fd_, file_size_, file_ptr_
   bool mmap_file(const char *file, 
