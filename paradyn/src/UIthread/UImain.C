@@ -1,8 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.60  1995/10/30 23:06:32  naim
-/* Minor fix: eliminating error message "Error not handle, exiting" at the end
-/* of paradyn by destroying all visi processes before exiting - naim
+/* Revision 1.61  1995/11/01 20:39:39  naim
+/* We should not need to kill visi processes from here. Eliminating the code
+/* we have added previously for this and re-doing things more properly - naim
 /*
+ * Revision 1.60  1995/10/30  23:06:32  naim
+ * Minor fix: eliminating error message "Error not handle, exiting" at the end
+ * of paradyn by destroying all visi processes before exiting - naim
+ *
  * Revision 1.59  1995/10/19  22:41:05  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
@@ -623,16 +627,6 @@ UImain(void* vargs)
 
    unInstallShgCommands(interp);
    unInstallWhereAxisCommands(interp);
-
-   //
-   // Destroy visi processes before exit to avoid error messages
-   //
-   vector<VM_activeVisiInfo> *visi_info;
-   visi_info = vmMgr->VMActiveVisis();
-   for(int i=0; i < visi_info->size(); i++){
-     vmMgr->VMDestroyVisi((*visi_info)[i].visiNum);
-     vmMgr->VMVisiDied((*visi_info)[i].visiNum);
-   }
 
    /*
     * Exiting this thread will signal the main/parent to exit.  No other
