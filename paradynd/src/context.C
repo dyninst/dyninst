@@ -43,6 +43,9 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.48  1997/01/16 22:00:29  tamches
+ * added processNewTSConnection().
+ *
  * Revision 1.47  1997/01/15 00:19:36  tamches
  * improvided handling of fork and exec
  *
@@ -99,14 +102,12 @@ unsigned instInstancePtrHash(instInstance * const &ptr) {
    return addrHash16(addr); // util.h
 }
 
-void forkProcess(int pid, int ppid,
+void forkProcess(int pid, int ppid, int trace_fd
 #ifdef SHM_SAMPLING
-		 key_t theKey,
-		 void *applAttachedAtPtr,
+		 ,key_t theKey,
+		 void *applAttachedAtPtr
 #endif
-		 bool childHasInstr
-) {
-
+		 ) {
    process *parentProc = findProcess(ppid);
    if (!parentProc) {
       logLine("Error in forkProcess: could not find parent process\n");
@@ -123,11 +124,10 @@ void forkProcess(int pid, int ppid,
       // child process.
 
 #ifdef SHM_SAMPLING
-    process *childProc = process::forkProcess(parentProc, pid, map,
-					      theKey, applAttachedAtPtr,
-					      childHasInstr);
+    process *childProc = process::forkProcess(parentProc, pid, map, trace_fd,
+					      theKey, applAttachedAtPtr);
 #else
-    process *childProc = process::forkProcess(parentProc, pid, map, childHasInstr);
+    process *childProc = process::forkProcess(parentProc, pid, map, trace_fd);
 #endif
 
    // For each mi with a component in parentProc, copy it to the child process --- if
@@ -169,8 +169,7 @@ void forkProcess(int pid, int ppid,
 //         assert(false);
 }
 
-int addProcess(vector<string> &argv, vector<string> &envp, string dir)
-{
+int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
     process *proc = createProcess(argv[0], argv, envp, dir);
 
     if (proc)
@@ -262,4 +261,112 @@ bool pauseAllProcesses()
     if (changed)
       statusLine("application paused");
     return(changed);
+}
+
+void processNewTSConnection(int tracesocket_fd) {
+   // either a forked process or one created via attach is trying to get a new
+   // tracestream connection.  accept() the new connection, then do some processing.
+
+   int fd = RPC_getConnect(tracesocket_fd); // accept();
+      // will become traceLink of new process
+   assert(fd >= 0);
+
+   unsigned cookie;
+   if (sizeof(cookie) != read(fd, &cookie, sizeof(cookie)))
+      assert(false);
+
+   bool calledFromFork = false;
+   bool calledFromAttach = false;
+
+   const unsigned cookie_fork   = 0x11111111;
+   const unsigned cookie_attach = 0x22222222;
+
+   calledFromFork   = (cookie == cookie_fork);
+   calledFromAttach = (cookie == cookie_attach);
+   assert(calledFromFork || calledFromAttach);
+
+   string str;
+   if (calledFromFork)
+      str = string("getting new connection from forked process");
+   else
+      str = string("getting new connection from attached process");
+   statusLine(str.string_of());
+
+   int pid;
+   if (sizeof(pid) != read(fd, &pid, sizeof(pid)))
+      assert(false);
+
+   int ppid;
+   if (sizeof(ppid) != read(fd, &ppid, sizeof(ppid)))
+      assert(false);
+
+#ifdef SHM_SAMPLING
+   key_t theKey;
+   if (sizeof(theKey) != read(fd, &theKey, sizeof(theKey)))
+      assert(false);
+
+   void *applAttachedAtPtr;
+   if (sizeof(applAttachedAtPtr) != read(fd, &applAttachedAtPtr, sizeof(applAttachedAtPtr)))
+      assert(false);
+#endif
+
+   process *curr = NULL;
+
+   if (calledFromFork) {
+      // the following will (1) call fork ctor (2) call metricDefinitionNode::handleFork
+      // (3) continue the parent process, who has been waiting to avoid race conditions.
+#ifdef SHM_SAMPLING
+      forkProcess(pid, ppid, fd, theKey, applAttachedAtPtr);
+#else
+      forkProcess(pid, ppid, fd);
+#endif
+
+      curr = findProcess(pid);
+      assert(curr);
+
+      // continue process...the next thing the process will do is call
+      // DYNINSTinit(-1, -1, -1, -1)
+      string str = string("running DYNINSTinit() for fork child pid ") + string(pid);
+      statusLine(str.string_of());
+
+      if (!curr->continueProc())
+	 assert(false);
+
+#ifdef rs6000_ibm_aix4_1
+      // HACK to compensate for AIX goofiness: as soon as we call continueProc() above
+      // (and not before!), a SIGTRAP appears to materialize out of thin air, stopping
+      // the child process.  Thus, DYNINSTinit() won't run unless we issue an explicit
+      // continue.  (Actually, there may be a semi-legit explanation.  It seems that on
+      // non-solaris platforms, including sunos and aix, if a sigstop is sent and not
+      // handled -- i.e. if we just leave the application in a paused state, without
+      // continuing -- then the sigstop will be sent over and over again, nonstop, until
+      // the application is continued.  So perhaps the sigtrap we see now was present all
+      // along, but we never knew it because waitpid in the main loop kept returning
+      // sigstops.  --ari)
+
+      int wait_status;
+      int wait_result = waitpid(curr->getPid(), &wait_status, WNOHANG);
+      if (wait_result > 0) {
+	 bool was_stopped = WIFSTOPPED(wait_status);
+	 if (was_stopped) {
+	    int sig = WSTOPSIG(wait_status);
+	    if (sig == 5)  { // sigtrap
+	       curr->status_ = stopped;
+	       if (!curr->continueProc())
+		  assert(false);
+	    }
+	 }
+      }
+#endif      
+   }
+
+   if (calledFromAttach) {
+      // nothing needed...this routine gets called when the attached process is in
+      // the middle of running DYNINSTinit.
+      curr = findProcess(pid);
+      assert(curr);
+
+      curr->traceLink = fd;
+   }
+
 }
