@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.6 1999/08/30 16:02:33 zhichen Exp $
+// $Id: superVector.C,v 1.7 2000/02/22 23:12:14 pcroth Exp $
 
 #include <sys/types.h>
 #include <limits.h>
 #include "util/h/headers.h"
 #include "paradynd/src/superVector.h"
+#include "paradynd/src/shmSegment.h"
 #include "paradynd/src/fastInferiorHeapMgr.h"
 #include "paradynd/src/fastInferiorHeap.h"
 #include "rtinst/h/rtinst.h" // for time64
@@ -94,6 +95,9 @@ superVector<HK, RAW>::superVector(const superVector<HK, RAW> *parent,
 			     statemap(parent->statemap), // copy statemap
 			     houseKeeping(parent->houseKeeping.size()) // just size it
 {
+	unsigned lcv;
+
+
    // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
 
    for (unsigned i=0; i<parent->theSuperVector.size(); i++) {
@@ -135,14 +139,14 @@ superVector<HK, RAW>::superVector(const superVector<HK, RAW> *parent,
        // turn the item back to allocated.  A bit ugly, n'est-ce pas?.  --ari
    }
 
-   for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
+   for (lcv=0; lcv < statemap.size(); lcv++) {
       if (statemap[lcv] == FIHallocated)
 	 statemap[lcv] = FIHmaybeAllocatedByFork;
       if (statemap[lcv] == FIHallocatedButDoNotSample)
 	 statemap[lcv] = FIHmaybeAllocatedByForkButDoNotSample;
    }
 
-   for (unsigned lcv=0; lcv < houseKeeping.size(); lcv++) {
+   for (lcv=0; lcv < houseKeeping.size(); lcv++) {
       // If we wanted, we could do this only for allocated items...but doing it for
       // every item should be safe (if unnecessary).
       const HK undefinedHK; // default ctor should leave things undefined
@@ -236,6 +240,7 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
 				 unsigned &allocatedIndex,
 				 bool doNotSample) {
    // See the .h file for extensive documentation on this routine...
+   unsigned i;
 
    if (firstFreeIndex == UINT_MAX) {
       // heap is full!  Garbage collect and try a second time.
@@ -270,7 +275,7 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
    // this just-allocated memory.  (Mem should be allocated: data first, then initialize
    // tramps, then actually insert tramps)
 
-   for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
+   for (i=0; i<inferiorProcess->threads.size(); i++) {
        unsigned idx;
        idx = inferiorProcess->threads[i]->get_pd_pos();
        assert(idx < theSuperVector.size());
@@ -307,7 +312,7 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
    //       deallocation & garbage collection), we reconstruct the set from scratch;
    //       it's the only easy way to maintain our invariant that the permanent
    //       sampling set is sorted.
-   for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
+   for (i=0; i<inferiorProcess->threads.size(); i++) {
        unsigned idx;
        idx = inferiorProcess->threads[i]->get_pd_pos();
        assert(idx < theSuperVector.size());

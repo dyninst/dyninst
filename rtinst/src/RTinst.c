@@ -41,10 +41,11 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.24 2000/02/18 21:03:12 bernat Exp $
+ * $Id: RTinst.c,v 1.25 2000/02/22 23:12:58 pcroth Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
+
 
 #include <assert.h>
 #include <errno.h>
@@ -57,7 +58,7 @@
 #include <math.h>
 #include <sys/types.h>
 
-#ifdef SHM_SAMPLING
+#if defined(SHM_SAMPLING) && !defined(i386_unknown_nt4_0)
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif
@@ -216,6 +217,7 @@ static int          DYNINSTnumSampled        = 0;
 static int          DYNINSTtotalAlarmExpires = 0;
 #endif
 
+
 /************************************************************************
  * void DYNINSTstartProcessTimer(tTimer* timer)
 ************************************************************************/
@@ -235,6 +237,7 @@ DYNINSTstartProcessTimer(tTimer* timer) {
 
 /* For shared-mem sampling only: bump protector1, do work, then bump protector2 */
 #ifdef SHM_SAMPLING
+
     assert(timer->protector1 == timer->protector2);
     timer->protector1++;
     /* How about some kind of inline asm that flushes writes when the architecture
@@ -280,8 +283,9 @@ DYNINSTstopProcessTimer(tTimer* timer) {
     assert(timer->protector1 == timer->protector2);
     timer->protector1++;
 
-    if (timer->counter == 0)
-	   ; /* a strange condition; shouldn't happen.  Should we make it an assert fail? */
+    if (timer->counter == 0) {
+	   /* a strange condition; shouldn't happen.  Should we make it an assert fail? */
+    }
     else {
 		if (timer->counter == 1) {
 			const time64 now = DYNINSTgetCPUtime();
@@ -459,7 +463,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
    system call */
 static float
 DYNINSTcyclesPerSecond(void) {
-    int            i;
+    unsigned       i;
     time64         start_cpu;
     time64         end_cpu;
     double         elapsed;
@@ -969,10 +973,18 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
       int cookie = 0;
       int pid = getpid();
       int ppid = paradyndPid;
+	  int32_t ptr_size;
+
       DYNINSTinitTrace(paradyndPid);
       DYNINSTwriteTrace(&cookie, sizeof(cookie));
       DYNINSTwriteTrace(&pid, sizeof(pid));
       DYNINSTwriteTrace(&ppid, sizeof(ppid));
+#ifdef SHM_SAMPLING
+      DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
+	  ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
+	  DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
+	  DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
+#endif /* SHM_SAMPLING */
 #endif
   }
   else

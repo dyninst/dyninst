@@ -1,11 +1,12 @@
 #
-# $Id: Makefile,v 1.3 2000/02/15 23:54:22 hollings Exp $
+# $Id: Makefile,v 1.4 2000/02/22 23:11:20 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_LIBERTY = true
 #USES_PVM = true
+USES_SHM_SAMPLING = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.

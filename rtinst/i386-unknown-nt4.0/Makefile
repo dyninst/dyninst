@@ -1,11 +1,11 @@
 #
-# $Id: Makefile,v 1.9 1999/08/02 22:51:21 pcroth Exp $
+# $Id: Makefile,v 1.10 2000/02/22 23:12:56 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #INCLUDE_CP_PROFILING = true
-#USES_SHM_SAMPLING = true
+USES_SHM_SAMPLING = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -23,7 +23,7 @@ OPT_FLAG	= $(OPT_FLAG) -Oy-
 !endif
 
 LD		= link
-LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x60000000
+LDFLAGS		= -DLL -debug -debugtype:cv -PDB:NONE -base:0x60000000
 
 #TARGET2		= libdyninstCP.a
 

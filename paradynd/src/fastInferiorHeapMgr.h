@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapMgr.h,v 1.5 1999/08/09 05:42:11 csserra Exp $
+// $Id: fastInferiorHeapMgr.h,v 1.6 2000/02/22 23:12:14 pcroth Exp $
 // A class that manages several fastInferiorHeaps (fastInferiorHeap.h/.C)
 // Formerly, each fastInferiorHeap would create its own shm-segment.
 // But this created too many segments.  This class creates a single shm segment,
@@ -60,17 +60,15 @@ class fastInferiorHeapMgr {
       unsigned maxNumElems;
    };
 
+   static const unsigned cookie;
+
  private:
    enum space {paradynd, applic};
 
    vector<oneHeapStats> theHeapStats;
 
-   static unsigned cookie;
-
    // And now for the actual low-level shm segment:
-   key_t theShmKey;
-   int theShmId; // result of our shmget()
-   void *paradyndAttachedAt; // result of our (paradynd's) shmat()
+   ShmSegment* theShm;
    void *applicAttachedAt;   // result of applic's (DYNINSTinit's) shmat()
 
    // since we don't define them, make sure they're not used:
@@ -80,12 +78,10 @@ class fastInferiorHeapMgr {
    unsigned getSubHeapOffset(unsigned subHeapIndex) const;
    void *getSubHeapInSpace(unsigned subHeapIndex, space) const;
 
-   enum gcResult {noNeed, gcHappened, gcDidntHappen};
-   static gcResult tryToGarbageCollectShmSeg(key_t keyToTry, unsigned size);
 
  public:
    // normal constructor:
-   fastInferiorHeapMgr(key_t firstKeyToTry, const vector<oneHeapStats> &iHeapStats,
+     fastInferiorHeapMgr(key_t firstKeyToTry, const vector<oneHeapStats> &iHeapStats,
                        pid_t inferiorPid);
 
    // fork constructor:
@@ -94,7 +90,7 @@ class fastInferiorHeapMgr {
                        const vector<oneHeapStats> &iHeapStats,
                        pid_t inferiorPid);
 
-  ~fastInferiorHeapMgr();
+   ~fastInferiorHeapMgr( void );
 
    void handleExec();
       // detach from old segment (and delete it); create new segment & attach
@@ -106,7 +102,7 @@ class fastInferiorHeapMgr {
       applicAttachedAt = iApplicAttachedAt;
    }
 
-   key_t getShmKey() const { return theShmKey; }
+   key_t getShmKey() const { return (theShm != NULL)? theShm->GetKey() : (key_t)-1; }
    unsigned getHeapTotalNumBytes() const;
 
 #if defined(MT_THREAD)
@@ -120,12 +116,12 @@ class fastInferiorHeapMgr {
    }
 
    void *getRTsharedDataInParadyndSpace(){
-      if (paradyndAttachedAt == NULL) {
+      if (theShm == NULL) {
          assert(false);
          return NULL;
       }
 
-      return (void *)((char*)paradyndAttachedAt + 16);
+      return (void *)((char*)theShm->GetMappedAddress() + 16);
    }
 #endif
    void *getObsCostAddrInApplicSpace() {
@@ -138,12 +134,12 @@ class fastInferiorHeapMgr {
    }
 
    void *getObsCostAddrInParadyndSpace() {
-      if (paradyndAttachedAt == NULL) {
+      if (theShm == NULL) {
          assert(false);
          return NULL;
       }
 
-      return (void *)((char*)paradyndAttachedAt + 12);
+      return (void *)((char*)theShm->GetMappedAddress() + 12);
    }
 
    void *getSubHeapInParadynd(unsigned subHeapIndex) const;

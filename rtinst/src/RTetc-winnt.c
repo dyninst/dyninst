@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -78,17 +78,16 @@ DYNINSTbreakPoint(void) {
   DebugBreak();
 }
 
-
 unsigned DYNINSTgetCurrentThreadId() {
   return GetCurrentThreadId();
 }
 
+#ifndef SHM_SAMPLING
 void CALLBACK DYNINSTalarmExpireCallback(UINT id, UINT msg, 
 				 DWORD usr, DWORD w1, DWORD w2) {
   void DYNINSTalarmExpire();
   DYNINSTalarmExpire();
 }
-
 
 /************************************************************************
  * void DYNINST_install_ualarm(unsigned interval)
@@ -104,6 +103,7 @@ void DYNINST_install_ualarm(unsigned interval) {
   }
 
 }
+#endif /* SHM_SAMPLING */
 
 
 #define FILETIME2time64(FT) \
@@ -235,8 +235,6 @@ DYNINSTwriteTrace(void *buffer, unsigned count) {
  * does: socket(), connect()
 ************************************************************************/
 
-extern char *sys_errlist[];
-
 static int connectToDaemon(int daemonPort) {
   struct sockaddr_in sadr;
   struct in_addr *inadr;
@@ -251,13 +249,13 @@ static int connectToDaemon(int daemonPort) {
   sadr.sin_addr = *inadr;
 
   sock_fd = socket(PF_INET, SOCK_STREAM, 0);
-  if (sock_fd < 0) {
-    fprintf(stderr, "DYNINST: socket failed: %s\n", sys_errlist[errno]);
+  if (sock_fd == INVALID_SOCKET) {
+    fprintf(stderr, "DYNINST: socket failed: %d\n", WSAGetLastError());
     abort();
   }
 
-  if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
-    fprintf(stderr, "DYNINST: connect failed: %s\n", sys_errlist[errno]);
+  if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) == SOCKET_ERROR) {
+    fprintf(stderr, "DYNINST: connect failed: %d\n", WSAGetLastError());
     abort();
   }
   return sock_fd;
@@ -308,4 +306,109 @@ void DYNINSTos_init(int calledFromFork, int calledFromAttach, int paradyndAddr) 
   DYNINSTprocHandle = GetCurrentProcess();
 
 }
+
+
+/**********************************************************************
+ * Shared memory sampling functions 
+***********************************************************************/
+#ifdef SHM_SAMPLING
+
+static
+HANDLE
+shm_create_existing(int theKey, int theSize)
+{
+    HANDLE hMap;
+    TCHAR strName[128];
+
+
+    /* attach to shared memory segment - 
+     * note we assume it has been created by the daemon
+     */
+    sprintf( strName, "ParadynD_%d_%d", theKey, theSize );
+    hMap = OpenFileMapping( FILE_MAP_ALL_ACCESS,
+                                    TRUE,
+                                    strName );
+    if( hMap == NULL )
+    {
+        fprintf( stderr, "OpenFileMapping failed: %d\n", GetLastError() );
+    }
+
+    return hMap;
+}
+
+
+void*
+shm_attach(HANDLE hMapping)
+{
+    void* result = MapViewOfFile( hMapping,
+                                    FILE_MAP_ALL_ACCESS,
+                                    0, 0,
+                                    0 );
+    if( result == NULL )
+    {
+        fprintf( stderr, "MapViewOfFile failed: %d\n", GetLastError() );
+    }
+    return result;
+}
+
+
+void
+shm_detach( HANDLE hMapping, void* shmSegPtr )
+{
+    UnmapViewOfFile( shmSegPtr );
+    CloseHandle( hMapping );
+}
+
+
+void*
+DYNINST_shm_init(int theKey, int shmSegNumBytes, int *the_id)
+{
+  HANDLE the_shmSegShmHandle;
+  void* the_shmSegAttachedPtr;
+
+  /* note: error checking needs to be beefed up here: */
+   
+  the_shmSegShmHandle = shm_create_existing(theKey, shmSegNumBytes);
+  if (the_shmSegShmHandle == NULL) {
+     /* note: in theory, when we get a shm error on startup, it would be nice
+              to automatically "downshift" into the SIGALRM non-shm-sampling
+              code.  Not yet implemented. */
+     fprintf(stderr, "DYNINSTinit failed because shm_create_existing failed.\n");
+     fprintf(stderr, "DYNINST program startup failed...exiting program now.\n");
+     abort();
+  }
+
+  the_shmSegAttachedPtr = shm_attach(the_shmSegShmHandle); /* NULL on error */
+  if (the_shmSegAttachedPtr == NULL) {
+     /* see above note... */
+     fprintf(stderr, "DYNINSTinit failed because shm_attach failed.\n");
+     fprintf(stderr, "DYNINST program startup failed...exiting program now.\n");
+     abort();
+  }
+  *the_id = (int)the_shmSegShmHandle;
+
+  return the_shmSegAttachedPtr;
+
+}
+
+extern int DYNINST_shmSegKey;
+extern int DYNINST_shmSegNumBytes;
+extern int DYNINST_shmSegShmId;
+extern void *DYNINST_shmSegAttachedPtr;
+
+void shmsampling_printf(const char *fmt, ...) {
+#ifdef SHM_SAMPLING_DEBUG
+   va_list args;
+   va_start(args, fmt);
+
+   vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+#endif
+}
+
+#endif /* SHM_SAMPLING */
+
 
