@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.7  1994/06/12 22:38:27  karavan
-/* implemented status display service.
+/* Revision 1.8  1994/07/07 05:58:05  karavan
+/* added UI error service function
 /*
+ * Revision 1.7  1994/06/12  22:38:27  karavan
+ * implemented status display service.
+ *
  * Revision 1.6  1994/05/12  23:34:15  hollings
  * made path to paradyn.h relative.
  *
@@ -114,6 +117,10 @@ UIM::chooseMenuItem(chooseMenuItemCBFunc cb,
 
 }
 
+// ****************************************************************
+// Display Objects 
+// ****************************************************************
+
 statusDisplayObj::statusDisplayObj (int type)
 {
   if (type == PCSTATUSOBJECT)
@@ -177,21 +184,49 @@ UIM::initStatusDisplay (int type)
   return token;
 }
 
-void 
-UIM::showError(char *displayMsg)
+// ****************************************************************
+// Batch Mode 
+// ****************************************************************
+
+void
+UIM::startBatchMode ()
 {
-  Tcl_VarEval (interp, "showError", displayMsg, (char *) NULL); 
+  UIM_BatchMode++;
 }
 
-int UIM::showErrorWait (char *displayMsg, int numChoices,
-				char **choices)
+void 
+UIM::endBatchMode ()
 {
-  int retVal;
-  Tcl_VarEval (interp, "showError", displayMsg, (char *) NULL); 
-  Tcl_GetInt (interp, interp->result, &retVal);  
-  return retVal;
+  UIM_BatchMode--;
+  if (UIM_BatchMode < 0)
+    UIM_BatchMode = 0;
 }
-  
+
+// ****************************************************************
+// Error Message Display Service 
+// ****************************************************************
+
+int
+UIM::showError(int errCode, char *errString)
+{
+  char errNum[10];
+  int maxError;
+  sprintf (errNum, "%d", errCode);
+  if (errCode > uim_maxError)
+    return -1;
+
+  // custom error info string to be printed
+  if (Tcl_VarEval (interp, "showError ", errNum, " \{",errString, 
+		   "\}", (char *) NULL) == TCL_ERROR)
+    printf ("newShowError: Tcl call to showError fails, %s\n", 
+	    interp->result);
+  return 0;
+}
+
+// ****************************************************************
+//  Standard Message Display Service Routines
+// ****************************************************************
+
 /* 
  * showMsg
  * This is an asynchronous UIM call.  A message is displayed with 
@@ -301,6 +336,10 @@ UIM::showMsgWait(char *displayMsg,
   return retVal;
 }
 
+// ****************************************************************
+// Metrics and Resources 
+// ****************************************************************
+
 void 
 UIM::chooseMetricsandResources(chooseMandRCBFunc cb)
 {
@@ -341,6 +380,10 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb)
     printf ("%s\n", interp->result);
   }
 }
+// ****************************************************************
+//  DAG/SHG Display Service Routines
+// ****************************************************************
+
 
 int 
 UIM::initSHG() 
