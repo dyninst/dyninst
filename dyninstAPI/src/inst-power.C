@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.69 1998/08/25 19:35:09 buck Exp $
+ * $Id: inst-power.C,v 1.70 1998/08/26 20:58:03 zhichen Exp $
  */
 
 #include "util/h/headers.h"
@@ -720,7 +720,7 @@ void generateMTpreamble(char *insn, unsigned &base, process *proc)
   t3 = new AstNode(plusOp, t2, t5);
   removeAst(t2);
   removeAst(t5);
-  src = t3->generateCode(proc, regSpace, insn, base, false);
+  src = t3->generateCode(proc, regSpace, insn, base, false, true);
   removeAst(t3);
   instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
   genImmInsn(tmp_insn, ORILop, src, REG_MT, 0);  
@@ -1266,7 +1266,7 @@ unsigned emitFuncCall(opCode /* ocode */,
   // registers and the function, so now the function is saving the registers
   // above the location where the base trampoline did
   for (unsigned u = 0; u < operands.size(); u++) {
-    srcs += operands[u]->generateCode(proc, rs, iPtr, base, false);
+    srcs += operands[u]->generateCode(proc, rs, iPtr, base, false, false);
   }
   
   // TODO cast
