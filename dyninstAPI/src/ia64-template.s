@@ -2,6 +2,11 @@
 .text
 .align 16
 
+##
+#  Code template for dynamically creating a canonical set
+#  of free registers.
+##
+
 # This function just stashes the PFS away in r4 for us.
 .global fetch_ar_pfs#
 .proc fetch_ar_pfs#
@@ -439,6 +444,8 @@ ia64_tramp_half#:
 	# spill them (rather than store them) to avoid NaT consumption faults,
 	# but we don't actually care about their NaT bits; we _want_
 	# to get garbage, rather than faults, if the instrumentation looks at them.
+	# (That is, the st8 instruction can cause NaT consumption faults.  See below
+	# for why we bother with this at all.)
 	mov r16 = ar.unat;;
 	st8 [r12]= r16, -8;;
 
@@ -752,10 +759,14 @@ ia64_tramp_half#:
 	# so allocate all of them as inputs.  We do this
 	# by altering the alloc at address_of_call_alloc#.
 
-	# FIXME? -- if we do this, why do we spill all the
-	# registers we spill up above?  Especially since we
-	# don't ever ld8 from them!
-	
+	# The reason we save all those registers above
+	# and never load them is so that the instrumentation
+	# can look at the input and output registers if it
+	# ever has to.  Normal (construction-time) preservation
+	# routines Just Know where the i/o registers are,
+	# so they don't need this hack.  (Hack may be involved
+	# in getting code generator to recognize the difference, but...)
+		
 	add r16 = r14, r15;;
 	shl r16 = r16, 22;; # shift past the templateID, too (shifted 3 already)
 
@@ -843,3 +854,75 @@ address_of_return_alloc#:
 address_of_jump_to_emulation#:
 	.mii { nop.m 0x00; nop.i 0x00; nop.i 0x00;; }
 .endp ia64_tramp_half#
+
+##
+#  Code template for handling iRPCs "during" system calls.
+##
+
+.global syscallPrefix#
+.proc syscallPrefix#
+syscallPrefix#:
+	# This bundle will be replaced according to the generation-time
+	# value of ipsr.ri.
+	.bbb { nop.b 0x0; nop.b 0x0; nop.b 0x0 };;
+
+.global prefixNotInSyscall#
+prefixNotInSyscall#:
+	adds sp = -16,sp;;
+	stf.spill [sp] = f6, -16;;
+	setf.sig f6 = r2;;
+	# This is the only place where the prefices differ.
+	mov r2 = 0;;
+	st8 [sp] = r2;;
+	getf.sig r2 = f6;;
+	adds sp = 16,sp;;
+	ldf.fill f6 = [sp];;
+	adds sp = -16,sp;;
+	br.cond.sptk prefixCommon#;;
+
+.global prefixInSyscall#
+prefixInSyscall#:
+	adds sp = -16,sp;;
+	stf.spill [sp] = f6, -16;;
+	setf.sig f6 = r2;;
+	# This is the only place where the prefices differ.
+	mov r2 = 1;;
+	st8 [sp] = r2;;
+	getf.sig r2 = f6;;
+	adds sp = 16,sp;;
+	ldf.fill f6 = [sp];;
+	adds sp = -16,sp;;
+	br.cond.sptk prefixCommon#;;
+
+.global prefixCommon#
+prefixCommon#:
+	# This bundle will not be copied by the installation
+	# routine; it's just here to ensure spacing.
+	.bbb { nop.b 0x0; nop.b 0x0; nop.b 0x0 };;
+
+.endp syscallPrefix#
+
+.global syscallSuffix#
+.proc syscallSuffix#
+syscallSuffix#:
+	adds sp = 16,sp;;
+	stf.spill [sp] = f6, -32;;
+	setf.sig f6 = r2;;
+	mov r2 = pr;;
+	st8 [sp] = r2, 16;;
+	ld8 r2 = [sp];;
+	cmp.eq p1,p2 = 0, r2;;
+	
+	adds sp = -16,sp;;
+	ld8 r2 = [sp],;;
+	mov pr = r2, 0x1FFFF;;
+	getf.sig r2 = f6;;
+	adds sp = 32,sp;;
+	ldf.fill f6 = [sp], 16;;
+
+.global suffixExitPoint#
+suffixExitPoint#:
+	# This bundle will be overwritten by a bundle
+	# with predicated SIGILLS in the right places.
+	.mmi { nop.m 0x0; nop.m 0x0; nop.i 0x0 };;
+
