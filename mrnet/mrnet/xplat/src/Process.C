@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Process.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: Process.C,v 1.3 2004/07/19 18:42:15 pcroth Exp $
 #include <assert.h>
 #include "xplat/Process.h"
 
@@ -27,10 +27,23 @@ Process::CreateRemote( const std::string& host,
         rshCmd = varval;
     }
 
+    // determine whether the remote command must be run by some other
+    // remote utility command (e.g., so that it has AFS tokens)
+    std::string remCmd = "";
+    varval = getenv( "XPLAT_REMCOMMAND" );
+    if( varval != NULL )
+    {
+        remCmd = varval;
+    }
+
     // build the arguments for the remote process
     std::vector<std::string> rshArgs;
     rshArgs.push_back( rshCmd );
     rshArgs.push_back( host );
+    if( remCmd.length() > 0 )
+    {
+        rshArgs.push_back( remCmd );
+    }
     for( std::vector<std::string>::const_iterator aiter = args.begin();
             aiter != args.end();
             aiter++ )
