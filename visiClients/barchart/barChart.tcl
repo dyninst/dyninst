@@ -2,11 +2,16 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.7  1994/10/11 22:04:18  tamches
-#  Fixed bug whereupon a resize while paused would erase the bars
-#  until you continued.  Flickers too much on resize now, however...
+#  Revision 1.8  1994/10/13 00:51:39  tamches
+#  Fixed deletion of resources.
+#  Implemented sorting of resources.
+#  Reorganized menus to be more standars-ish
 #
-#  Delete resources should now work
+# Revision 1.7  1994/10/11  22:04:18  tamches
+# Fixed bug whereupon a resize while paused would erase the bars
+# until you continued.  Flickers too much on resize now, however...
+#
+# Delete resources should now work
 #
 # Revision 1.6  1994/10/10  23:08:41  tamches
 # preliminary changes on the way to swapping the x and y axes
@@ -62,10 +67,8 @@
 # ######################################################
 # TO DO LIST:
 # 0) too much flickering on resize
-# 1) resources: make deletion work
-# 2) option to sort resources (will be difficult--would need to map resourceid
-#    as given by visi to our new ordering)
-# 3) swap axes
+# 1) sort after delete or delete after sort doesn't work -- both axes
+# 2) swap axes
 # 3) multiple metrics: put a "key" on screen
 # 4) multiple metrics: make them show on y axis
 # 5) multiple metrics: allow deletion
@@ -146,58 +149,53 @@ menubutton $Wmbar.file -text File -menu $Wmbar.file.m
 menu $Wmbar.file.m
 $Wmbar.file.m add command -label "Close Bar chart" -command exit
 
-# #################### Metrics menu ###################
+# #################### Actions Menu ###################
 
-menubutton $Wmbar.metrics -text Metrics -menu $Wmbar.metrics.m
-menu $Wmbar.metrics.m
-$Wmbar.metrics.m add command -label "Add Metric..." -command AddMetricDialog
-$Wmbar.metrics.m add command -label "Remove Selected Metric" -state disabled
+menubutton $Wmbar.actions -text Actions -menu $Wmbar.actions.m
+menu $Wmbar.actions.m
+$Wmbar.actions.m add command -label "Add Bars..." -command AddMetricDialog
+$Wmbar.actions.m add separator
+$Wmbar.actions.m add command -label "Remove Selected Metric" -state disabled
+$Wmbar.actions.m add command -label "Remove Selected Resource" -state disabled
 
-# #################### Resources menu #################
+# #################### View menu ###################
 
-menubutton $Wmbar.resources -text Resources -menu $Wmbar.resources.m
-menu $Wmbar.resources.m
-$Wmbar.resources.m add command -label "Add Resource..." -command AddResourceDialog
-$Wmbar.resources.m add command -label "Remove Selected Resource" -state disabled
-$Wmbar.resources.m add separator
-$Wmbar.resources.m add radio -label "Order by Name (ascending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByName -state disabled
-$Wmbar.resources.m add radio -label "Order by Name (descending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByNameDescending -state disabled
-$Wmbar.resources.m add radio -label "Order as Inserted by User" -variable SortPrefs -command ProcessNewSortPrefs -value NoParticular -state disabled
+menubutton $Wmbar.view -text View -menu $Wmbar.view.m
+menu $Wmbar.view.m
+$Wmbar.view.m add radio -label "Order Resources by Name (ascending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByName
+$Wmbar.view.m add radio -label "Order Resources by Name (descending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByNameDescending
+$Wmbar.view.m add radio -label "Order Resources as Inserted by User" -variable SortPrefs -command ProcessNewSortPrefs -value NoParticular
 
-# #################### Display menu #################
+$Wmbar.view.m add separator
 
-menubutton $Wmbar.opts -text "Display" -menu $Wmbar.opts.m
-menu $Wmbar.opts.m
-$Wmbar.opts.m add radio -label "Current Value" \
+$Wmbar.view.m add radio -label "Current Values" \
    -variable DataFormat -command {rethinkDataFormat} \
    -value Instantaneous
-$Wmbar.opts.m add radio -label "Average Value" \
+$Wmbar.view.m add radio -label "Average Values" \
    -variable DataFormat -command {rethinkDataFormat} \
    -value Average
-$Wmbar.opts.m add radio -label "Total Value" \
+$Wmbar.view.m add radio -label "Total Values" \
    -variable DataFormat -command {rethinkDataFormat} \
    -value Sum
 
 # #################### Help menu #################
 
-menubutton $Wmbar.help -text Help \
-          -menu $Wmbar.help.m
-menu $Wmbar.help.m 
-$Wmbar.help.m add command -label "General" -command "NotImpl" -state disabled
-$Wmbar.help.m add command -label "Context" -command "NotImpl" -state disabled
+#menubutton $Wmbar.help -text Help \
+#          -menu $Wmbar.help.m
+#menu $Wmbar.help.m 
+#$Wmbar.help.m add command -label "General" -command "NotImpl" -state disabled
+#$Wmbar.help.m add command -label "Context" -command "NotImpl" -state disabled
 
 
 # #################### Build the menu bar and add to display #################
 
-pack $Wmbar.file $Wmbar.metrics \
-     $Wmbar.resources $Wmbar.opts \
-     -side left -padx 4
-pack $Wmbar.help -side right
+pack $Wmbar.file $Wmbar.actions $Wmbar.view -side left -padx 4
+#pack $Wmbar.help -side right
 
 # #################### Organize all menu buttons into a menubar #################
 
-tk_menuBar $Wmbar $Wmbar.file $Wmbar.metrics \
-   $Wmbar.resources $Wmbar.opts $Wmbar.help
+tk_menuBar $Wmbar $Wmbar.file $Wmbar.actions \
+   $Wmbar.view
 
 # ####################  Barchart Title ("Metric: xxxxxxxx") #################
 
@@ -321,6 +319,7 @@ proc getWindowHeight {wName} {
 }
 
 # isMetricValid -- true iff at least one metric/focus pair for this metric is enabled
+#                  pas a true metric index, not a sorted one
 proc isMetricValid {mindex} {
    global numResources
 
@@ -336,6 +335,7 @@ proc isMetricValid {mindex} {
 }
 
 # isResourceValid -- true iff at least one metric/focus pair for this resource is enabled
+#                  pas a true resource index, not a sorted one
 proc isResourceValid {rindex} {
    global numMetrics
 
@@ -371,6 +371,7 @@ proc Initialize {} {
 
    global numResources
    global resourceNames
+   global indirectResources
 
    global currResourceWidth
    global minResourceWidth
@@ -395,7 +396,9 @@ proc Initialize {} {
    set numResourcesDrawn 0
 
    set DataFormat Instantaneous
+
    set numMetrics [Dg nummetrics]
+   set numResources [Dg numresources]
 
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
       set metricNames($metriclcv) [Dg metricname  $metriclcv]
@@ -405,9 +408,9 @@ proc Initialize {} {
       set metricMaxValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 2]
    }
 
-   set numResources [Dg numresources]
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
       set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
+      set indirectResources($resourcelcv) $resourcelcv
   }
 
    set minResourceWidth 45
@@ -450,46 +453,34 @@ proc Initialize {} {
 }
 
 # ############################################################################
-# ####################### important procedures ###############################
+# ################################ procedures ################################
 # ############################################################################
 #
-# LOW-LEVEL PROCEDURES:
-# processEnterResource - given a widget name, let the user know that clicking
-#                        on it will enable the "delete" item under the resource
-#                        menu. Called when the mouse enters the widget.
-# processClickResource - Bound to buttonpress in resource widgets; just
-#                        calls selectResource
-# processExitResource - Bound to when the mouse leaves a resource message widget.
-#                       depending on whether the user clicked, we do something
-#                       appropriate user-interface-speaking.
-#
-# drawResourcesAxis - Completely rethinks the layout of the resource axis and its
-#             scrollbar, and redraws them.  Call at the beginning of the program,
-#             after the window is resized, and when resources (or metrics) are added
-#             or deleted.
-#
-# drawMetricsAxis - analagous to drawResourcesAxis...
-#
-# drawTitle - rethinks and redraws the chart title (just below the menubar).
-#             Call at the beginning of the program and when metrics are
-#             added or deleted (since they comprise the title)
-#
-# myConfigureEventHandler - called whenever the window configuration has changed
-#
-# HIGH-LEVEL PROCEDURES:
-# selectResource - given a widget name, select it and enable the "delete resource"
-#                  menu item.
-# unSelectResource - un-select the widget and disable the "delete resource" menu item.
-# addResource - given a new resource name, adds it (calling drawResourcesAxis, etc.
-#               automatically).
-#
-# delResource - given an index (0 thru numResources-1), deletes it (calling
-#               drawResourcesAxis, etc. automatically)
-# 
-# addMetric - given a new metric name (and its units), adds it (calling drawResourcesAxis,
-#             drawMetricsAxis, drawTitle, etc. automatically)
-#
-# delMetric - analagous to delResource...
+# selectResource
+# unSelectResource
+# processEnterResource
+# processExitResource
+# rethinkResourceWidths
+# drawResourceAxis
+# processNewMetricMax
+# drawMetricAxis
+# drawTitle
+# myConfigureEventHandler
+# myExposeEventHandler
+# delResource
+# delResourceByName
+# getMetricHints
+# addMetric
+# delMetric
+# processNewScrollPosition
+# myXScroll
+# DgFoldCallback
+# DgConfigCallback
+# AddMetricDialog
+# AddResourceDialog
+# ProcessNewSortPrefs
+# rethinkIndirectResources
+# rethinkDataFormat
 #
 # ############################################################################
 
@@ -511,8 +502,8 @@ proc selectResource {widgetName} {
 
    # update "delete resource xxx" menu item s.t. delResourceByName is called automatically
    # on menu choice selection
-   $Wmbar.resources.m entryconfigure 1 -state normal \
-           -label "Remove \"$clickedOnResourceText\"" \
+   $Wmbar.actions.m entryconfigure 4 -state normal \
+           -label "Remove Resource \"$clickedOnResourceText\"" \
 	   -command {delResourceByName $clickedOnResourceText}
 }
 
@@ -525,7 +516,7 @@ proc unSelectResource {widgetName} {
    set clickedOnResource ""
    set clickedOnResourceText ""
    $widgetName configure -relief flat
-   $Wmbar.resources.m entryconfigure 1 -state disabled \
+   $Wmbar.actions.m entryconfigure 4 -state disabled \
 	   -label "Remove Selected Resource" \
            -command {puts "ignoring unexpected deletion..."}
 }
@@ -541,11 +532,6 @@ proc processEnterResource {widgetName} {
    }
 
    $widgetName configure -relief groove
-}
-
-# processClickResource -- routine to handle clicking on a resource name
-proc processClickResource {widgetName} {
-   selectResource $widgetName
 }
 
 # processExitResource -- routine to handle mouse leaving resource name area
@@ -605,6 +591,7 @@ proc drawResourcesAxis {resourcesAxisWidth} {
    global numResources
    global numResourcesDrawn
    global resourceNames
+   global indirectResources
 
    global clickedOnResource
    global clickedOnResourceText
@@ -621,17 +608,21 @@ proc drawResourcesAxis {resourcesAxisWidth} {
    set tickHeight 5
    set resourceNameFont -adobe-courier-medium-r-normal-*-12-120-*-*-*-*-iso8859-1
 
-   # ###### delete leftover stuff
+   # ###### delete leftover stuff.  First the canvas items in 1 step, then the message widgets manually
+   #        (impossible to delete the message widgets in 1 step since they are not canvas items)
    $WresourcesCanvas delete resourcesAxisItemTag
+
+   # loop through the message widgets in sorted order   
    for {set rindex 0} {$rindex < $numResourcesDrawn} {incr rindex} {
-      if {[isResourceValid $rindex]} {
+      set actualResource $indirectResources($rindex)
+      if {[isResourceValid $actualResource]} {
          destroy $WresourcesCanvas.message$rindex
       }
    }
 
-   # next, several tick marks extending down a few pixels from the resources axis (one per resource),
-   # plus (while we're at it) the text of the given resources (centered at their respective
-   # tick marks)
+   # next, several tick marks extending down a few pixels from the resources axis
+   # (one per resource), plus (while we're at it) the text of the given resources
+   # (centered at their respective tick marks)
 
    # yet to implement: STAGGERED TEXT
    #         needed  : a way to detect when two message widgets have collided.
@@ -639,8 +630,11 @@ proc drawResourcesAxis {resourcesAxisWidth} {
 
    set left 0
    set right 0
+   # loop through resources in sorted order
    for {set rindex 0} {$rindex < $numResources} {incr rindex} {
-       if {[isResourceValid $rindex]} {
+      set actualResource $indirectResources($rindex)
+
+      if {[isResourceValid $actualResource]} {
          set right [expr $left + $currResourceWidth - 1]
          set middle [expr ($left + $right) / 2]
    
@@ -649,8 +643,10 @@ proc drawResourcesAxis {resourcesAxisWidth} {
    
          # create a message widget, bind some commands to it, and attach it to the
          # canvas via "create window"
+
+         set theName $resourceNames($actualResource)
    
-         message $WresourcesCanvas.message$rindex -text $resourceNames($rindex) \
+         message $WresourcesCanvas.message$rindex -text $theName \
 		 -justify center -width $currResourceWidth \
 		 -font $resourceNameFont
 
@@ -659,7 +655,7 @@ proc drawResourcesAxis {resourcesAxisWidth} {
          bind $WresourcesCanvas.message$rindex <Leave> \
                              {processExitResource %W}
          bind $WresourcesCanvas.message$rindex <ButtonPress> \
-                             {processClickResource %W}
+		             {selectResource %W}
 
          $WresourcesCanvas create window $middle [expr $top+$tickHeight] \
 		 -anchor n -tag resourcesAxisItemTag \
@@ -868,12 +864,14 @@ proc myExposeEventHandler {} {
 #   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
 #}
 
-# delResource -- delete a resource, given the resource's index number
-# should match the resource we have clicked on
+# delResource -- delete a resource, given the resource's true (not sorted)
+#                index number.
+#                Should match the resource we have clicked on.
 proc delResource {delindex} {
    global numMetrics
    global numResources
    global resourceNames
+   global indirectResources
    global clickedOnResource
    global clickedOnResourceText
    global Wmbar
@@ -890,10 +888,12 @@ proc delResource {delindex} {
       return
    }
 
+   puts stderr "Welcome to delResource--delindex=$delindex"
+
    # we should be deleting the resource that was clicked on
    if {$clickedOnResourceText == $resourceNames($delindex)} {
       set clickedOnResource ""
-      $Wmbar.resources.m entryconfigure 1 -state disabled \
+      $Wmbar.actions.m entryconfigure 4 -state disabled \
               -label "Remove Selected Resource" \
               -command {puts stderr "ignoring unexpected deletion..."}
    } else {
@@ -916,7 +916,7 @@ proc delResource {delindex} {
 
    # note that this resource is now invalid
    if {[isResourceValid $delindex]} {
-      puts stderr "delResource -- curious that validResources(delindex) wasn't changed to false after the deletion"
+      puts stderr "delResource -- curious that valid flag wasn't changed to false after the deletion"
       flush stderr
    }
 
@@ -924,10 +924,10 @@ proc delResource {delindex} {
    #           since the visi won't lower that value; instead, it will only clear
    #           the appropriate valid bits
 
-   # callback to barChart.C
-   resourcesAxisHasChanged [getWindowWidth $W.bottom.resourcesAxisCanvas]
+   rethinkIndirectResources
 
-   drawResourcesAxis       [getWindowWidth $W.bottom.resourcesAxisCanvas]
+   # simulate a resize to rethink bar, bar label, and resource axis layouts
+   myConfigureEventHandler [getWindowWidth $W.body] [getWindowHeight $W.body]
 }
 
 # proc delResourceByName -- user clicked on a resource name and then
@@ -936,6 +936,7 @@ proc delResource {delindex} {
 proc delResourceByName {rName} {
    global numResources
    global resourceNames
+   global indirectResources
 
    # find the appropriate index and call delResource...
    for {set rindex 0} {$rindex < $numResources} {incr rindex} {
@@ -944,6 +945,8 @@ proc delResourceByName {rName} {
             puts stderr "delResourceByName -- ignoring request to delete invalid (already-deleted?) resource $rName"
             return
          }
+
+         # note that the number being sent is the true index, not the sorted one
          delResource $rindex
          return
       }
@@ -1140,7 +1143,7 @@ proc DgConfigCallback {} {
    global numResources
    global numResourcesDrawn
    global resourceNames
-#   global validResources
+   global indirectResources
 
    set numMetrics [Dg nummetrics]
    set numResources [Dg numresources]
@@ -1159,6 +1162,9 @@ proc DgConfigCallback {} {
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
       set resourceNames($resourcelcv) [file tail [Dg resourcename $resourcelcv]]
    }
+
+   # rethink the sorting order
+   rethinkIndirectResources
 
    # rethink the layout of the axes
    rethinkResourceWidths [getWindowWidth $W.bottom.resourcesAxisCanvas]
@@ -1183,14 +1189,64 @@ proc AddResourceDialog {} {
    Dg start "*" "*"
 }
 
+# A menu item was chosen to change the sorting options
 proc ProcessNewSortPrefs {} {
    global SortPrefs
+   global W
+
+   # change the order...
+   rethinkIndirectResources
 
    # redraw the resources axis
    drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
 
    # redraw the bars (callback to our C++ code)
    resourcesAxisHasChanged [getWindowWidth $W.bottom.resourcesAxisCanvas]
+}
+
+proc sortCmd {x y} {
+   set str1 [string toupper [lindex $x 1]]
+   set str2 [string toupper [lindex $y 1]]
+
+   return [string compare $str1 $str2]
+}
+
+proc rethinkIndirectResources {} {
+   # sorting order has changed; rethink indirectResources array
+   global indirectResources
+   global SortPrefs
+   global numResources
+   global resourceNames
+
+   # sorting works as follows: create a temporary list of {index,name} pairs;
+   # sort the list; extract the indexes in sequence; delete temporary list
+   set templist {}
+
+   for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
+      lappend templist [list $resourcelcv $resourceNames($resourcelcv)]
+   }
+
+   # puts stderr "rethinkIndirectResources: templist is $templist"
+
+   if {$SortPrefs == "ByName"} {
+      set templist [lsort -ascii -increasing -command sortCmd $templist]
+   } elseif {$SortPrefs == "ByNameDescending"} {
+      set templist [lsort -ascii -decreasing -command sortCmd $templist]
+   }
+
+   # puts stderr "rethinkIndirectResources: sorted templist is $templist"
+
+   for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
+      set indirectResources($resourcelcv) [lindex [lindex $templist $resourcelcv] 0]
+   }
+
+#   puts stderr "rethinkIndirectResources: leaving with indirectResources="
+#   for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
+#      puts stderr $indirectResources($resourcelcv)
+#   }
+
+   # inform our C++ code of the changes...
+   rethinkIndirectResourcesCallback
 }
 
 proc rethinkDataFormat {} {
