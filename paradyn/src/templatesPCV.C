@@ -32,7 +32,9 @@
 #include "paradyn/src/PCthread/PCwhy.h"
 #include "paradyn/src/PCthread/PCshg.h"
 #include "paradyn/src/PCthread/PCdata.h"
+#include "UI.thread.h"
 
+template class vector<uiSHGrequest>;
 template class vector<dataSubscriber*>;
 template class vector<PCsearch*>;
 template class vector<filter*>;
