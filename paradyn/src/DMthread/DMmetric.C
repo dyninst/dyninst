@@ -20,7 +20,7 @@ extern "C" {
 #include "DMmetric.h"
 
 extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
-extern void histFoldCallBack(timeStamp, void*, timeStamp);
+extern void histFoldCallBack(timeStamp, void*, bool);
 
 metric::metric(T_dyninstRPC::metricInfo i){
 

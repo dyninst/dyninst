@@ -4,6 +4,9 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.69  1996/02/12 19:55:30  karavan
+ * Bug fix: changed arguments to histFoldCallBack
+ *
  * Revision 1.68  1996/02/12 08:05:59  karavan
  * Added new parameter, bool globalFlag, to histogram constructor and
  * to histDataCallback.  This fixes bug resulting in duplicate values being
@@ -327,30 +330,19 @@ void histDataCallBack(sampleValue *buckets,
 //
 // start_time specifies the phaseType (globalType starts at 0.0) 
 //
-void histFoldCallBack(timeStamp width, void *,timeStamp start_time)
+void histFoldCallBack(timeStamp width, void *, bool globalFlag)
 {
 
     // need to check if current phase also starts at 0.0
     // if it does, then fold applies to both global and curr phase
-    if(start_time == 0.0){
-        timeStamp curr_start =  phaseInfo::GetLastPhaseStart(); 
-        if(curr_start == 0.0){
-	    if(metricInstance::GetCurrWidth() != width) {
-	        metricInstance::SetCurrWidth(width);
-	        performanceStream::foldAll(width,CurrentPhase);
-	        if(metricInstance::numCurrHists()){  // change sampling rate
-		    newSampleRate(width);
-		}
-	    }
-	    phaseInfo::setCurrentBucketWidth(width);
-        }
-	if(metricInstance::GetGlobalWidth() != width) {
-	    metricInstance::SetGlobalWidth(width);
-	    performanceStream::foldAll(width,GlobalPhase);
-	    if(!metricInstance::numCurrHists()){  // change the sampling rate
-		newSampleRate(width);
-	    }
+    if(globalFlag){
+      if(metricInstance::GetGlobalWidth() != width) {
+	metricInstance::SetGlobalWidth(width);
+	performanceStream::foldAll(width,GlobalPhase);
+	if(!metricInstance::numCurrHists()){  // change the sampling rate
+	  newSampleRate(width);
 	}
+      }
     }
     else {  // fold applies to current phase
 	if(metricInstance::GetCurrWidth() != width) {
@@ -359,7 +351,7 @@ void histFoldCallBack(timeStamp width, void *,timeStamp start_time)
 	    newSampleRate(width); // change sampling rate
 	}
 	phaseInfo::setCurrentBucketWidth(width);
-    }
+      }
 }
 
 
