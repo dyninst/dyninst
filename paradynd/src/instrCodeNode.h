@@ -46,16 +46,20 @@
 #include "common/h/Dictionary.h"
 #include "paradynd/src/metric.h"
 #include "paradynd/src/instReqNode.h"
+#include "paradynd/src/focus.h"
 
 class instrDataNode;
+class Focus;
 
 class instrCodeNode_Val {
- public:
+  friend instrCodeNode;
+
   instrDataNode *sampledDataNode;
   instrDataNode *constraintDataNode;
   vector<instrDataNode*> tempCtrDataNodes;
 
-  string name;
+  const string name;  // could be either a metric name or a constraint name
+  const Focus focus;
   vector<instReqNode> instRequests;
   vector<returnInstance *> baseTrampInstances;
   vector<instInstance *> miniTrampInstances;
@@ -72,12 +76,20 @@ class instrCodeNode_Val {
   vector<string> thr_names;  
 #endif
 
-  instrCodeNode_Val(string name_, process *p) : sampledDataNode(NULL),
-    constraintDataNode(NULL), name(name_), 
+ public:
+  static string construct_key_name(const string &metricStr, 
+				   const string &focusStr) {
+    return (metricStr + "-" + focusStr);
+  }
+
+  instrCodeNode_Val(const string &name_, const Focus &f, process *p) : 
+    sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
     _baseTrampsHookedUp(false), instrDeferred_(false), instrLoaded_(false), 
     proc_(p), referenceCount(0)
   { }
   ~instrCodeNode_Val();
+
+  string getKeyName();
   vector<instReqNode> &getInstRequests() { return instRequests; }
   vector<returnInstance *> &getBaseTrampInstances() { 
     return baseTrampInstances;
@@ -101,8 +113,8 @@ class instrCodeNode {
  private:
   instrCodeNode(instrCodeNode_Val *val) : V(*val) { }
  public:
-  static instrCodeNode *newInstrCodeNode(string name_, process *proc,
-					 bool arg_dontInsertData);
+  static instrCodeNode *newInstrCodeNode(string name_, const Focus &f,
+				       process *proc, bool arg_dontInsertData);
   ~instrCodeNode();
   //bool condMatch(instrCodeNode *mn, vector<dataReqNode*> &data_tuple1,
   //               vector<dataReqNode*> &data_tuple2);
@@ -163,7 +175,6 @@ class instrCodeNode {
   bool instrLoaded() { return V.instrLoaded_; }
   bool baseTrampsHookedUp() { return V._baseTrampsHookedUp; }
 
-  inst_var_index allocateInstVarForThreads(inst_var_type varType);
   bool needToWalkStack(); // const;
   bool insertJumpsToTramps(vector<Frame> stackWalk);
   void addInst(instPoint *point, AstNode *, callWhen when, callOrder o);
