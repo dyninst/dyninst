@@ -3,6 +3,9 @@
 # First cut at a topLevel makefile for the paradyn system.
 #
 # $Log: Makefile,v $
+# Revision 1.22  1995/12/20 00:16:41  tamches
+# removed paradyndPVM, a now-obsolete directory, from the nightly build
+#
 # Revision 1.21  1995/12/15 22:45:39  tamches
 # removed reference to "dag", an obsolete directory.
 # Added visiClients/phaseTable
@@ -24,7 +27,7 @@
 buildfirst	= util igen thread visi hist
 subsystems	= bininst paradyn \
 		  rtinst rthist \
-		  paradynd paradyndSIM paradyndPVM \
+		  paradynd paradyndSIM \
 		  visiClients/tclVisi visiClients/barchart visiClients/tableVisi visiClients/phaseTable
 
 # This rule makes most of the normal recursive stuff.  Just about any
