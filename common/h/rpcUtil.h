@@ -4,6 +4,9 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.30  1996/05/31 23:41:08  tamches
+ * removed pid from XDRrpc
+ *
  * Revision 1.29  1995/11/22 00:05:54  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
@@ -87,7 +90,8 @@ extern bool RPC_readReady (int fd, int timeout=0);
 //
 class XDRrpc {
 public:
-  XDRrpc(const string m, const string u, const string p, xdr_rd_func r, xdr_wr_func w,
+  XDRrpc(const string &machine, const string &user, const string &program,
+	 xdr_rd_func r, xdr_wr_func w,
 	 const vector<string> &arg_list, const bool nblock, const wellKnownPortFd);
   XDRrpc(const int use_fd, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
 	 const bool nblock);
@@ -98,18 +102,19 @@ public:
   void closeConnect() {if (fd >= 0) close(fd); fd = -1; }
   int get_fd() const { return fd; }
   int readReady(const int timeout=0) { return RPC_readReady (fd, timeout); }
-  int getPid() const { return pid; }
-  void setPid(const int to) { pid = to;  }
+
   void setDirEncode() {xdrs->x_op = XDR_ENCODE;}
   void setDirDecode() {xdrs->x_op = XDR_DECODE;}
   XDR *net_obj() { return xdrs;}
   bool opened() const { return (xdrs && (fd >= 0));}
 
  private:
-  //XDR *getXdrs() { return xdrs; }
+  // Since we haven't defined these, private makes sure they're not used. -ari
+  XDRrpc(const XDRrpc &);
+  XDRrpc &operator=(const XDRrpc &);
+
   XDR *xdrs;
   int fd;
-  int pid;		// pid of child;
 };
 
 //
@@ -127,6 +132,10 @@ public:
   void set_err_state(const int s) { err_state = s;}
 
  private:
+  // Since we haven't defined these, private makes sure they're not used. -ari
+  RPCBase(const RPCBase &);
+  RPCBase &operator=(const RPCBase &);
+
   bool versionVerifyDone;
   int err_state;
 };
@@ -163,7 +172,7 @@ inline bool_t P_xdr_string_pd(XDR *x, string *s) {
 inline bool_t P_xdr_Boolean(XDR *x, bool *b) {
   return (xdr_Boolean(x, b));}
 
-extern int RPCprocessCreate(int &pid, const string hostName, const string userName,
+extern int RPCprocessCreate(const string hostName, const string userName,
 			    const string commandLine,
 			    const vector<string> &arg_list,
 			    int wellKnownPort = 0,
