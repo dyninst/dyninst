@@ -14,11 +14,15 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.7  1995/02/16 08:22:32  markc
-/* Changed Boolean to bool
-/* Changed wait loop code for igen messages - check for buffered messages
-/* Changed char*/igen-array code to use strings/vectors for igen functions
+/* Revision 1.8  1995/02/16 19:10:59  markc
+/* Removed start slash from comments
+/* Removed start slash from comments
 /*
+ * Revision 1.7  1995/02/16  08:22:32  markc
+ * Changed Boolean to bool
+ * Changed wait loop code for igen messages - check for buffered messages
+ * Changed char igen-array code to use strings/vectors for igen functions
+ *
  * Revision 1.6  1995/01/26  17:59:14  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.

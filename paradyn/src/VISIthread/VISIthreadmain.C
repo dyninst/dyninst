@@ -22,11 +22,15 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.36  1995/02/16 08:22:29  markc
-/* Changed Boolean to bool
-/* Changed wait loop code for igen messages - check for buffered messages
-/* Changed char*/igen-array code to use strings/vectors for igen functions
+/* Revision 1.37  1995/02/16 19:10:56  markc
+/* Removed start slash from comments
+/* Removed start slash from comments
 /*
+ * Revision 1.36  1995/02/16  08:22:29  markc
+ * Changed Boolean to bool
+ * Changed wait loop code for igen messages - check for buffered messages
+ * Changed char igen-array code to use strings/vectors for igen functions
+ *
  * Revision 1.35  1995/01/26  17:59:12  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
