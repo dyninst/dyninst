@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.39 2002/05/13 19:51:52 mjbrim Exp $
+ * $Id: Object-elf.C,v 1.40 2002/06/03 17:31:45 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -309,7 +309,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
       plt_scnp = scnp;
       plt_addr_ = pd_shdrp->pd_addr;
       plt_size_ = pd_shdrp->pd_size;
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0)
       //
       // On x86, the GNU linker purposefully sets the PLT
 	  // table entry size to an incorrect value to be
@@ -367,6 +367,28 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     else if (strcmp(name, RO_DATA_NAME) == 0) {
       if (!bssaddr) bssaddr = pd_shdrp->pd_addr;	  
     }
+#if defined( ia64_unknown_linux2_4 ) 
+    else if (strcmp(name, ".dynamic") == 0) {
+
+	Elf_Data *datap = elf_getdata(scnp, 0);
+	Elf64_Dyn *dyns = (Elf64_Dyn *)datap->d_buf;
+	unsigned ndyns = datap->d_size / sizeof(Elf64_Dyn);
+	for (unsigned i = 0; i < ndyns; i++) {
+	  Elf64_Dyn *dyn = &dyns[i];
+	  switch(dyn->d_tag) {
+
+		case DT_PLTGOT:
+			this->gp = dyn->d_un.d_ptr;
+			break;
+
+		default:
+			break;
+		} // switch
+	} // for
+}// .dynamic
+
+#endif /* ia64_unknown_linux2_4 */
+
 #if defined(mips_sgi_irix6_4)
     else if (strcmp(name, ".MIPS.stubs") == 0) {
       MIPS_stubs_addr_ = pd_shdrp->pd_addr;
@@ -421,6 +443,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 	for (unsigned i = 0; i < ndyns; i++) {
 	  Elf64_Dyn *dyn = &dyns[i];
 	  switch(dyn->d_tag) {
+
 	  case DT_MIPS_RLD_TEXT_RESOLVE_ADDR:
 	    // "__rld_text_resolve" address
 	    rbrk_addr = dyn->d_un.d_ptr;

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.47 2002/04/15 21:48:43 chadd Exp $
+ * $Id: Object-elf.h,v 1.48 2002/06/03 17:31:45 tlmiller Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -146,6 +146,10 @@ class Object : public AObject {
   bool get_func_binding_table(vector<relocationEntry> &fbt) const;
   bool get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const;
 
+#if defined(ia64_unknown_linux2_4)
+  Address getTOCoffset() const { return gp; }
+#endif
+
   const ostream &dump_state_info(ostream &s);
   bool isEEL() { return EEL; }
 
@@ -193,6 +197,9 @@ class Object : public AObject {
   unsigned  stab_indx_size_;	 // .stab.index section
   Address   stabstr_indx_off_;	 // .stabstr.index section
 
+#if defined(ia64_unknown_linux2_4)
+  Address   gp;			 // The gp for this object.
+#endif
 
   bool      EEL;                 // true if EEL rewritten
   bool      is_elf64_;           // true if Elf64 file type 
