@@ -2,7 +2,10 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.7  1995/02/26 02:02:02  newhall
+ * Revision 1.8  1995/11/12 23:30:49  newhall
+ * added Dg_Exited
+ *
+ * Revision 1.7  1995/02/26  02:02:02  newhall
  * added callback functions for new visiLib phase info.
  *
  * Revision 1.6  1994/11/08  00:20:26  tamches
@@ -105,6 +108,16 @@ int Dg_PhaseData(int dummy) {
    const int retval=Tcl_Eval(MainInterp, "DgPhaseDataCallback");
    if (retval == TCL_ERROR)
       cerr << MainInterp->result << endl;
+
+  return retval;
+}
+
+int Dg_Exited(int dummy) {
+   const int retval=Tcl_Eval(MainInterp, "DgParadynExitedCallback");
+   if (retval == TCL_ERROR){
+      // cerr << MainInterp->result << endl;
+      exit(-1);
+   }
 
   return retval;
 }
@@ -338,6 +351,7 @@ int Dg_Init(Tcl_Interp *interp) {
   (void) RegistrationCallback(PHASESTART,Dg_PhaseStart);
   (void) RegistrationCallback(PHASEEND,Dg_PhaseEnd);
   (void) RegistrationCallback(PHASEDATA,Dg_PhaseData);
+  (void) RegistrationCallback(PARADYNEXITED,Dg_Exited);
 
   Tcl_CreateCommand(interp, "Dg", Dg_TclCommand, 
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);
