@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.34 2002/02/05 17:01:35 chadd Exp $
+# $Id: make.module.tmpl,v 1.35 2002/04/22 20:52:40 mjbrim Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -89,7 +89,6 @@ SRCS	     +=	../src/BPatch.C \
 ifndef AUTO_TEMPLATES
 SRCS         += ../src/BPatch_templates.C \
 		../src/templates0.C \
-		../src/templates05.C \
 		../src/templates1.C \
 		../src/templates2.C \
 
@@ -118,9 +117,6 @@ BPatch_templates.o: ../src/BPatch_templates.C
 
 templates0.o: ../src/templates0.C
 	$(CXX) $(TFLAGS) -c ../src/templates0.C
-
-templates05.o: ../src/templates05.C
-	$(CXX) $(TFLAGS) -c ../src/templates05.C
 
 templates1.o: ../src/templates1.C
 	$(CXX) $(TFLAGS) -c ../src/templates1.C

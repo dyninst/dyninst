@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.39 2002/04/09 18:05:40 mjbrim Exp $
+# $Id: make.module.tmpl,v 1.40 2002/04/22 20:52:42 mjbrim Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -51,7 +51,6 @@ SRCS	     += ../src/association.C \
  		../src/mdl.C \
 		../src/showerror.C \
 		../../dyninstAPI/src/templates0.C \
-		../../dyninstAPI/src/templates05.C \
 		../../dyninstAPI/src/templates1.C \
 		../../dyninstAPI/src/templates2.C \
 		../src/templatesPD.C \
@@ -99,11 +98,11 @@ all:    $(TARGET)
 templates0.o: ../../dyninstAPI/src/templates0.C
 	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates0.C
 
-templates05.o: ../../dyninstAPI/src/templates05.C
-	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates05.C
-
 templates1.o: ../../dyninstAPI/src/templates1.C
 	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates1.C
+
+templates2.o: ../../dyninstAPI/src/templates2.C
+	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates2.C
 
 templatesPD.o: ../src/templatesPD.C
 	$(CXX) $(TFLAGS) -c ../src/templatesPD.C
