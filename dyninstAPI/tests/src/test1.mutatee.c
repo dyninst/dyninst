@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.82 2003/01/02 19:51:59 schendel Exp $ */
+/* $Id: test1.mutatee.c,v 1.83 2003/01/23 17:09:18 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -26,8 +26,7 @@
 #if defined(sparc_sun_solaris2_4) || \
     defined(alpha_dec_osf4_0) || \
     defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+    defined(i386_unknown_solaris2_5)
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -2122,7 +2121,7 @@ void func34_1()
     printf( "Passed test #34 (loop information)\n" );
 }
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
 #ifndef Fortran
 #ifdef __cplusplus
 extern "C" int call35_1();
@@ -2134,7 +2133,7 @@ extern int call35_1();
 
 void func35_1()
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
 #if !defined Fortran
 
     int value;
