@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.77 2004/08/09 17:50:38 legendre Exp $
+ * $Id: Object-elf.C,v 1.78 2004/08/16 04:34:49 rchen Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1336,10 +1336,7 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 		//  end and this symbol.
 		// 
       if (allsymbols[u].type() == Symbol::PDST_FUNCTION
-#if ! defined(ia64_unknown_linux2_4)
-          && (isEEL || allsymbols[u].size() == 0)
-#endif
-          )
+          && (isEEL || allsymbols[u].size() == 0) )
       {
 			// find the section to which allsymbols[u] belongs
 			// (most likely, it is the section to which allsymbols[u-1] 
