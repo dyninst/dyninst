@@ -16,9 +16,13 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.6  1994/08/17 18:21:09  markc
-/* Incremented the version number because a new version of igen is in place.
+/* Revision 1.7  1994/09/22 03:12:24  markc
+/* declared arrays at start
+/* incremented version number
 /*
+# Revision 1.6  1994/08/17  18:21:09  markc
+# Incremented the version number because a new version of igen is in place.
+#
 # Revision 1.5  1994/08/03  20:47:28  newhall
 # removed interface routines Enabled and NewMetricsResources
 #
@@ -41,47 +45,53 @@
 # changed visi subdirectory structure
 #  */ 
 
+$remote array float float_Array;
+
 $remote typedef struct {
-     String  units;    // how units are measured  i.e. "ms" 
-     String  name;     // for y-axis labeling  
+     char *units;    // how units are measured  i.e. "ms" 
+     char *name;     // for y-axis labeling  
      int     Id;       // unique metric Id
      int     aggregate;  //either SUM or AVE
-}metricType;
+} metricType;
 
+$remote array metricType metricType_Array;
 
 $remote typedef struct{
-     String name;     // obj. name for graph labeling
+     char *name;     // obj. name for graph labeling
      int    Id;       // unique resource id
-}resourceType;
+} resourceType;
+
+$remote array resourceType resourceType_Array;
 
 $remote typedef struct{
   int 	metricId;
   int 	resourceId;
   int 	bucketNum;
   float data;
-}dataValue;
+} dataValue;
 
+$remote array dataValue dataValue_Array;
 
 $remote visualization {
   $base  7000;
-  $version  4;
-  $async void Data($array dataValue data);  
+  $version  5;
+  $async void Data(dataValue_Array data);  
   $async void Fold(double newBucketWidth);
   $async void InvalidMR(int m,int r);
-  $async void AddMetricsResources($array metricType,
-				$array resourceType,
-				double,int);
+  $async void AddMetricsResources(metricType_Array,
+				  resourceType_Array,
+				  double,int);
 
   $async void Phase(double begin,
 		    double end,
-		    String name);
+		    char *name);
 
-  $async void BulkDataTransfer($array float values,
+  $async void BulkDataTransfer(float_Array values,
 			       int metricId,
 			       int resourceId);
 
-  $upcall $async void GetMetricResource(String metric,
-					String resource,
+  $upcall $async void GetMetricResource(char *metric,
+					char *resource,
 					int type);
 
   $upcall $async void StopMetricResource(int metricId,
@@ -89,5 +99,5 @@ $remote visualization {
 
   $upcall $async void PhaseName(double begin,
 				double end,
-				String name);
+				char *name);
 };
