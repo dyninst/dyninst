@@ -76,6 +76,8 @@ public:
 
 	string getFileName() { return sourceFileName; }
 
+	const char* getFileNamePtr() { return sourceFileName.c_str(); }
+
 	/** destructor */
 	~FileLineInformation();
 
@@ -94,6 +96,9 @@ public:
 
 	/** method that cleans the record for the given function */
 	void deleteFunction(string functionName);
+
+	/** method that cleans function entries that do not have any line info records */
+	void cleanEmptyFunctions();
 
 	/** method that updates the info for a function */
 	FunctionInfo* insertFunction(string functionName,Address beginAddr,
@@ -212,28 +217,6 @@ public:
 	void insertLineAddress(string functionName,string fileName,
 			       unsigned short lineNo,Address codeAddress);
 
-	/** method that finds the line number corresponding to a given
-	  * address. In case line number is not found it returns 
-	  * false, otherwise true. This function searches in two scopes.
-	  * if isFile, then the line number info is searched in file level,
-	  * otherwise in function level. If there are more than 1 line info 
-	  * for the address then the maximum is taken
-	  * @param name name of the function/file
-	  * @param lineNo line number to return
-	  * @param codeAddress address given to search
-	  * @param isFile flag that defines the scope of search
-	  * @param isExactMatch flag defining whether exact match is searched
-	  */
-	bool getLineFromAddr(string name,unsigned short& lineNo,
-			     Address codeAddress,bool isFile=false,
-			     bool isExactMatch=true);
-
-	/** the same as previous except it returns all corresponding 
-	  * lines for the given address */
-	bool getLineFromAddr(string name,BPatch_Set<unsigned short>& lines,
-			     Address codeAddress,bool isFile=false,
-			     bool isExactMatch=true);
-
 	/** method that returns set of addresses for a given line number
 	  * the search can be done in file level or in function level 
   	  * if the address is found in the map it return true
@@ -244,10 +227,6 @@ public:
 	  * @param isFile flag that defines the scope of search
 	  * @param isExactMatch flag defining whether exact match is searched
 	  */
-	bool getAddrFromLine(string name,BPatch_Set<Address>& codeAddress,
-			     unsigned short lineNo,bool isFile=false,
-			     bool isExactMatch=true);
-
 	/** method that returns set of addresses corresponding to a line number
 	  * for the file which is name of the module
 	  * In failure it returns false
@@ -266,12 +245,17 @@ public:
 	  * @param functionName name of the function being looked for
 	  */
 	FileLineInformation* getFunctionLineInformation(string functionName);
+	bool getFunctionLineInformation(string functionName,
+					FileLineInformation* possibleFiles[],int capacity);
 
 	/** method that checks the existence of a function in the line info object */
 	bool findFunction(string functionName);
 
 	/** method that cleans the record for the given function */
 	void deleteFunction(string functionName);
+
+	/** method that cleans function entries that do not have any line info records */
+	void cleanEmptyFunctions();
 
 	/** method that updates the info for a function */
 	void insertFunction(string functionName,Address beginAddr,

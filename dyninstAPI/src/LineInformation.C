@@ -177,6 +177,38 @@ bool FileLineInformation::findFunction(string functionName){
 	return (check >= 0);
 }
 
+void FileLineInformation::cleanEmptyFunctions(){
+
+	int maxFunctionCount = functionCount;
+	int shift = 0;
+
+	for(int i=0;i<maxFunctionCount;i++){
+		FunctionInfo* funcinfo = lineInformationList[i];
+		if(!funcinfo->validInfo){
+			delete functionNameList[i];
+			delete lineInformationList[i];
+			functionCount--;
+			shift++;
+		}else if(shift > 0){
+			functionNameList[i-shift] = functionNameList[i];
+			lineInformationList[i-shift] = lineInformationList[i];
+		}
+	}
+	if(!functionCount){
+		free(functionNameList);
+		free(lineInformationList);
+		functionNameList = NULL;
+		lineInformationList = NULL;
+		return;
+	}
+
+	functionNameList =
+		(string**)realloc(functionNameList,functionCount*sizeof(string*));
+	lineInformationList =
+		(FunctionInfo**)realloc(lineInformationList,functionCount*sizeof(FunctionInfo*));
+
+}
+
 //delete the records for function
 void FileLineInformation::deleteFunction(string functionName){
 	int i = binarySearch(functionName);
@@ -564,66 +596,9 @@ void LineInformation::insertLineAddress(string functionName,
 	fInfo->insertLineAddress(functionName,lineNo,codeAddress);
 }
 
-//returns line number corresponding to the the given address
-//if isFile is set the search is file level otherwsie function level.
-bool LineInformation::getLineFromAddr(string name,
-			    	      unsigned short& lineNo,
-				      Address codeAddress,
-				      bool isFile,
-				      bool isExactMatch)
-{
-	FileLineInformation* fInfo = NULL;
-	if(isFile) 
-		fInfo = getFileLineInformation(name);
-	else
-		fInfo = getFunctionLineInformation(name);
-		
-	if(!fInfo) return false;
-	
-	return fInfo->getLineFromAddr(name,lineNo,codeAddress,isFile,isExactMatch);
-}
-
-//returns line number corresponding to the the given address
-//if isFile is set the search is file level otherwsie function level.
-bool LineInformation::getLineFromAddr(string name,
-			    	      BPatch_Set<unsigned short>& lines,
-				      Address codeAddress,
-				      bool isFile,
-				      bool isExactMatch)
-{
-	FileLineInformation* fInfo = NULL;
-	if(isFile) 
-		fInfo = getFileLineInformation(name);
-	else
-		fInfo = getFunctionLineInformation(name);
-		
-	if(!fInfo) return false;
-	
-	return fInfo->getLineFromAddr(name,lines,codeAddress,isFile,isExactMatch);
-}
-
-//returns address corresponding to the the given line 
-//if isFile is set the search is file level otherwsie function level.
-bool LineInformation::getAddrFromLine(string name,
-			    	      BPatch_Set<Address>& codeAddress,
-				      unsigned short lineNo,
-				      bool isFile,
-				      bool isExactMatch)
-{
-	FileLineInformation* fInfo = NULL;
-	if(isFile) 
-		fInfo = getFileLineInformation(name);
-	else
-		fInfo = getFunctionLineInformation(name);
-		
-	if(!fInfo) return false;
-
-	return fInfo->getAddrFromLine(name,codeAddress,lineNo,isFile,isExactMatch);
-}
-
 bool LineInformation::getAddrFromLine(BPatch_Set<Address>& codeAddress,
-				      unsigned short lineNo,
-				      bool isExactMatch)
+				unsigned short lineNo,
+				bool isExactMatch)
 {
 	FileLineInformation* fInfo = getFileLineInformation(moduleName);
 	if(!fInfo){ 
@@ -689,6 +664,39 @@ LineInformation::getFunctionLineInformation(string functionName){
 	return NULL;
 } 
 
+//method that fills the possible file array with the linenumber objects
+//where the function code resides
+//return false if error occurs. It fills the array with entries 
+//as long as the capacity allows and puts a NULL pointer at the end
+//of the array
+bool
+LineInformation::getFunctionLineInformation(string functionName,
+					FileLineInformation* possibleFiles[],int capacity)
+{
+	capacity--;
+
+	if(!possibleFiles || (capacity <= 0))
+		return false;
+
+	possibleFiles[capacity] = NULL;
+
+	int entryCount = 0;
+	for(int i=0;i<sourceFileCount;i++)
+		if(lineInformationList[i]->findFunction(functionName)){
+			if(entryCount >= capacity)
+				return true;
+			possibleFiles[entryCount] = lineInformationList[i];
+			entryCount++;
+		}
+
+	possibleFiles[entryCount] = NULL;
+
+	if(!entryCount)
+		return false;
+
+	return true;
+}
+
 //method that returns true if function belongs to this object
 //false otherwise
 bool LineInformation::findFunction(string functionName){
@@ -702,6 +710,12 @@ bool LineInformation::findFunction(string functionName){
 void LineInformation::deleteFunction(string functionName){
 	for(int i=0;i<sourceFileCount;i++)
 		lineInformationList[i]->deleteFunction(functionName);
+}
+
+//delete the records for function
+void LineInformation::cleanEmptyFunctions(){
+	for(int i=0;i<sourceFileCount;i++)
+		lineInformationList[i]->cleanEmptyFunctions();
 }
 
 //updates records for a function
@@ -766,3 +780,44 @@ ostream& operator<<(ostream& os,LineInformation& linfo){
 	return os;
 }
 
+/*
+ostream& operator<<(ostream& os,FileLineInformation& linfo){
+	cerr << "\tLINE TO ADDRESS \t\t ADDRESS TO LINE:\n";
+	for(int j=0;j<linfo.size;j++){
+		os << dec << j << "\t";
+		os << linfo.lineToAddr[j]->lineNo << " ----> ";
+		os << hex << linfo.lineToAddr[j]->codeAddress 
+		   << "\t\t";
+		os << hex << linfo.addrToLine[j]->codeAddress  
+		   << " ----> ";
+		os << dec << linfo.addrToLine[j]->lineNo << "\n";
+	}
+	for(int i=0;i<linfo.functionCount;i++){
+		FunctionInfo* funcinfo = linfo.lineInformationList[i];
+		os << "FUNCTION LINE : " << *(linfo.functionNameList[i]) << " : " ;
+		if(!funcinfo->validInfo){
+			os << "INVALID LINE INFO" << endl;
+			continue;
+		}
+		os << dec << funcinfo->startLinePtr->lineNo 
+		   << " --- ";
+		os << funcinfo->endLinePtr->lineNo << "\t\t";
+		os << hex << funcinfo->startAddrPtr->codeAddress 
+		   << " --- ";
+		os << hex << funcinfo->endAddrPtr->codeAddress 
+		   << dec << "\n";
+	}
+	return os;
+}
+
+ostream& operator<<(ostream& os,LineInformation& linfo){
+	os << "**********************************************\n";
+	os << "MODULE : " << linfo.moduleName << "\n";  
+	os << "**********************************************\n";
+	for(int i=0;i<linfo.sourceFileCount;i++){
+		os << "FILE : " << *(linfo.sourceFileList[i]) << "\n";
+		os << *(linfo.lineInformationList[i]);
+	}
+	return os;
+}
+*/

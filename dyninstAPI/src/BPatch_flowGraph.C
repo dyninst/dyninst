@@ -488,6 +488,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 // and ending line numbers in the source block for the basic block.
 void BPatch_flowGraph::createSourceBlocks(){
 
+	bool lineInformationAnalyzed = false;
+
 	if (isSourceBlockInfoReady)
 		return;
 	isSourceBlockInfoReady = true;
@@ -497,85 +499,101 @@ void BPatch_flowGraph::createSourceBlocks(){
 	char functionName[1024];
 	bpFunction->getMangledName(functionName, sizeof(functionName));
 	string fName(functionName);
-	unsigned int i;
+	unsigned int i,j,possibleFileIndex;
 
 	//get the line information object which contains the information for 
 	//this function
 
 	LineInformation* lineInformation;
 	FileLineInformation* fLineInformation = NULL; 
+	FileLineInformation* possibleFiles[1024];
 
 	BPatch_Vector<BPatch_module*>* appModules =  bpImage->getModules();
 	for(i=0;i<appModules->size();i++){
+
 		lineInformation = (*appModules)[i]->lineInformation;
 		if(!lineInformation)
 			continue;
-		fLineInformation = lineInformation->getFunctionLineInformation(fName);
-		if(fLineInformation)
-			break;
+
+		if(!lineInformation->getFunctionLineInformation(fName,possibleFiles,1024))
+			continue;
+
+		for(possibleFileIndex=0;possibleFiles[possibleFileIndex];possibleFileIndex++){
+
+
+			fLineInformation = possibleFiles[possibleFileIndex];
+
+			lineInformationAnalyzed = true;
+
+			const char* fileToBeProcessed = fLineInformation->getFileNamePtr();
+
+			//now it is time to look the starting and ending line addresses
+			//of the basic blocks in the control flow graph. To define
+			//the line numbers we will use the beginAddress and endAddress
+			//fields of the basic blocks in the control flow graph
+			//and find the closest lines to these addresses.
+			//get the address handle for the region
+
+			// FIXME FIXME FIXME This address crap...
+			InstrucIter ah(bpFunction, false); 
+	
+			//for every basic block in the control flow graph
+	
+			BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
+			allBlocks.elements(elements);
+			for(j=0;j<(unsigned)allBlocks.size();j++){
+				BPatch_basicBlock *bb = elements[j];
+	
+				//set the address handle to the start address
+				ah.setCurrentAddress(bb->startAddress);
+	
+				//create the set of unsigned integers for line numbers
+				//in the basic block
+				BPatch_Set<unsigned short> lSet;
+	
+				Address cAddr;
+				//while the address is valid  go backwards and find the
+				//entry in the mapping from address to line number for closest
+				//if the address is coming after a line number information
+				while(ah.hasMore()){
+					cAddr = ah--;
+					if(fLineInformation->getLineFromAddr(fName,lSet,cAddr))
+						break;
+				}
+	
+				//set the address handle to the start address
+				ah.setCurrentAddress(bb->startAddress);
+	
+				//while the address is valid go forward and find the entry
+				//in the mapping from address to line number for closest
+				while(ah.hasMore()){
+					cAddr = ah++;
+					if(cAddr > bb->endAddress) 
+						break;
+					fLineInformation->getLineFromAddr(fName,lSet,cAddr);
+				}
+			
+				if(lSet.size() != 0){
+					//create the source block for the above address set
+					//and assign it to the basic block field
+
+					if(!bb->sourceBlocks)
+						bb->sourceBlocks = new BPatch_Vector<BPatch_sourceBlock*>();
+
+					BPatch_sourceBlock* sb = new BPatch_sourceBlock(fileToBeProcessed,lSet);
+					bb->sourceBlocks->push_back(sb);
+				}
+			}
+			delete[] elements; 
+		}
 	}
 
-	if(!fLineInformation){
+	if(!lineInformationAnalyzed){
 		cerr << "WARNING : Line information is missing >> Function : " ;
 		cerr << fName  << "\n";
 		return;
 	}
 
-	//Address effectiveAddress = (Address) (bpFunction->getBaseAddr());
-
-
-	//now it is time to look the starting and ending line addresses
-	//of the basic blocks in the control flow graph. To define
-	//the line numbers we will use the beginAddress and endAddress
-	//fields of the basic blocks in the control flow graph
-	//and find the closest lines to these addresses.
-
-// FIXME FIXME FIXME This address crap...
-
-	//get the address handle for the region
-	InstrucIter ah(bpFunction, false); 
-
-	//for every basic block in the control flow graph
-
-	BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
-	allBlocks.elements(elements);
-	for(i=0;i<(unsigned)allBlocks.size();i++){
-		BPatch_basicBlock *bb = elements[i];
-
-		//set the address handle to the start address
-		ah.setCurrentAddress(bb->startAddress);
-
-		//create the set of unsigned integers for line numbers
-		//in the basic block
-		BPatch_Set<unsigned short> lSet;
-
-		Address cAddr;
-		//while the address is valid  go backwards and find the
-		//entry in the mapping from address to line number for closest
-		//if the address is coming after a line number information
-		while(ah.hasMore()){
-			cAddr = ah--;
-			if(fLineInformation->getLineFromAddr(fName,lSet,cAddr))
-				break;
-		}
-
-		//set the address handle to the start address
-		ah.setCurrentAddress(bb->startAddress);
-
-		//while the address is valid go forward and find the entry
-		//in the mapping from address to line number for closest
-		while(ah.hasMore()){
-			cAddr = ah++;
-			if(cAddr > bb->endAddress) 
-				break;
-			fLineInformation->getLineFromAddr(fName,lSet,cAddr);
-		}
-		
-		//create the source block for the above address set
-		//and assign it to the basic block field
-		bb->sourceBlock = new BPatch_sourceBlock(lSet);
-	}
-	delete[] elements; 
 }
 
 /* class that calculates the dominators of a flow graph using

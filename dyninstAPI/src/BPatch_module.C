@@ -122,7 +122,8 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
     if (BPatch::bpatch->parseDebugInfo()){ 
 	lineInformation = new LineInformation(mod->fileName());
 	parseTypes();
-    }
+	lineInformation->cleanEmptyFunctions();
+	}
 #endif
 }
 

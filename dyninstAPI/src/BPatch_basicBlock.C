@@ -16,7 +16,7 @@ BPatch_basicBlock::BPatch_basicBlock() :
 		isExitBasicBlock(false),
 		immediateDominates(NULL),
 		immediateDominator(NULL),
-		sourceBlock(NULL) {}
+		sourceBlocks(NULL) {}
 
 //The argument is a block number.
 //there is no limitation that two blocks can have 
@@ -31,15 +31,15 @@ BPatch_basicBlock::BPatch_basicBlock(BPatch_flowGraph* fg, int bno) :
 		isExitBasicBlock(false),
 		immediateDominates(NULL),
 		immediateDominator(NULL),
-		sourceBlock(NULL) {}
+		sourceBlocks(NULL) {}
 
 
 //destructor of the class BPatch_basicBlock
 BPatch_basicBlock::~BPatch_basicBlock(){
 	if (immediateDominates)
 		delete immediateDominates;
-	if (sourceBlock)
-		delete sourceBlock;
+	if (sourceBlocks)
+		delete sourceBlocks;
 }
 
 //returns the predecessors of the basic block in aset 
@@ -122,10 +122,14 @@ bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
 
 //returns the source block corresponding to the basic block
 //which is created looking at the machine code.
-BPatch_sourceBlock *BPatch_basicBlock::getSourceBlock(){
-	flowGraph->createSourceBlocks();
+void
+BPatch_basicBlock::getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>& sBlocks){
 
-	return sourceBlock;
+	flowGraph->createSourceBlocks();
+	if(!sourceBlocks)
+		return;
+	for(int i=0;i<sourceBlocks->size();i++)
+		sBlocks.push_back((*sourceBlocks)[i]);
 }
 
 //returns the block number of the basic block
@@ -196,8 +200,10 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 		os << bb.immediateDominator->blockNumber << "\n";
 
 	os << "Source Block:\n";
-	if(bb.sourceBlock)
-		os << *(bb.sourceBlock);
+	if(bb.sourceBlocks){
+		for(i=0;i<bb.sourceBlocks->size();i++)
+			os << *((*(bb.sourceBlocks))[i]);
+	}
 
 	os << "\n";
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
