@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/03/31 17:45:56 buck Exp $
+# $Id: Makefile,v 1.2 2003/05/02 19:27:50 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -86,7 +86,7 @@ $(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
 	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
 
 $(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
-	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
+	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(FORTRAN_BASE)C.c
 else
 $(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
