@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.40 2002/12/20 07:50:01 jaw Exp $ 
+// $Id: DMmetric.h,v 1.41 2003/05/09 20:14:17 pcroth Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -292,6 +292,8 @@ class metricInstance {
 	static void incrNumCurrHists(){ num_curr_hists++; }
 	static void decrNumCurrHists(){ if(num_curr_hists) num_curr_hists--; }
 	static void decrNumGlobalHists(){ if(num_global_hists) num_global_hists--; }
+
+    bool hasData( void ) const          { return (data != NULL); }
 
     private:
 	metricHandle met;
