@@ -1,0 +1,21 @@
+/* UIThread/README */
+/* $Log: README,v $
+/* Revision 1.1  1994/04/05 04:42:33  karavan
+/* initial version of UI thread code and tcl paradyn command
+/* */
+
+The file paradyn.tcl.C implements a "paradyn" command for tcl.  The valid 
+commands are as follows:
+
+  pause 
+  cont
+  status
+  list
+  detach
+  enable <metric name> <resource list>
+  print [ metric <ivalue> | shg | refine ]
+  set <variable> <fvalue>
+  core
+  refine [ auto | auto <ivalue> ]
+  search
+  visi   [ kill <ivalue> | create <ivalue> | info | active ]
