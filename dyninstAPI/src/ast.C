@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.127 2003/06/20 22:07:36 schendel Exp $
+// $Id: ast.C,v 1.128 2003/06/27 20:58:00 tlmiller Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -906,7 +906,7 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
     int cycles = *trampCost;
 
     AstNode *preamble, *tmp2;
-    tmp2 = new AstNode(Constant, (void *) cycles);
+    tmp2 = new AstNode(Constant, (void *)(Address)cycles);
     preamble = new AstNode(trampPreamble, tmp2); 
     removeAst(tmp2);
     // private constructor; assumes NULL for right child
@@ -919,7 +919,8 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
     regSpace->resetSpace();
 
 #if defined( ia64_unknown_linux2_4 )
-	defineBaseTrampRegisterSpaceFor( location, regSpace );	
+	extern Register deadRegisterList[];
+	defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList );
 #endif
 
     Address ret=0;

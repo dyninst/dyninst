@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: true -*- */
+/* -*- Mode: C; indent-tabs-mode: true; tab-width: 4 -*- */
 
 /*
  * Copyright (c) 1996 Barton P. Miller
@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.17 2003/06/10 17:45:36 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.18 2003/06/27 20:57:58 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -542,83 +542,85 @@ Address IA64_instruction_x::getTargetAddress() {
 		}
 	} /* end getTargetAddress() */
 
-/* We don't know which registers we'll be freeing (killing) until we can look
-   at the relevant alloc instruction. */
 #include "instPoint-ia64.h"
-bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace ) {
+bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList ) {
+	/* Handy for the second two cases. */
 	Address fnEntryOffset = location->iPgetFunction()->addr();
 	Address fnEntryAddress = (Address)location->iPgetOwner()->getPtrToInstruction( fnEntryOffset );
 	assert( fnEntryAddress % 16 == 0 );
 	const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;
 
-	/* Iterate over the flagged alloc statements, verifying that their
-	   input/local sizes remain constant, and recording the largest
-	   number of output registers.  (Since the rotated registers fit
-	   inside the locals, which we won't be using anyway, we won't
-	   worry about them. */
-	unsigned int numLocals = 256;		/* Larger than the largest possible valid. */
-	unsigned int numRotate = 256;		/* Larger than the largest possible valid. */
-	unsigned largestFrame = 0;
+	/* Zero and one alloc intstruction are easily handled.  Save the
+	   nasty static analysis code for later. */
+	pdvector< Address > allocs = location->iPgetFunction()->allocs;
+	switch( allocs.size() ) {
+		case 0: {
+			/* Since there's no existing frame, create ours at the bottom. */
+			for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
+				deadRegisterList[i] = 32 + i;
+				}
 
-fprintf( stderr, "We found %d allocs in '%s'...\n",  location->iPgetFunction()->allocs.size(), location->iPgetFunction()->prettyName().c_str() );
-	for( unsigned int i = 0; i < location->iPgetFunction()->allocs.size(); i++ ) {
-		/* Extract the alloc instruction. */
-		Address encodedAddress = (location->iPgetFunction()->allocs)[i];
-	        unsigned short slotNumber = encodedAddress % 16;
-        	Address alignedOffset = encodedAddress - slotNumber;
-		IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];
+			/* Construct the registerSpace reflecting the desired frame. */
+			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
 
-fprintf( stderr, "Consider alloc #%d, insn %d at 0x%lx\n", i, slotNumber, alignedOffset );
-		
-		/* Extract the allocated sizes. */
-		uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
-		if( ! extractAllocatedRegisters( allocBundle.getInstruction( slotNumber )->getMachineCode(), & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
-fprintf( stderr, "Unable to extract allocated registers...\n" );
-			/* return the empty registerSpace; we can't do anything useful. */
-			registerSpace rs( 0, NULL, 0, NULL );
-			* regSpace = rs;
-			return false;
-			} /* end if extraction failed */
-fprintf( stderr, "Considering alloc %ld %ld %ld...\n", allocatedLocal, allocatedOutput, allocatedRotate );
-		if( numLocals == 256 ) { numLocals = allocatedLocal; }
-		if( numLocals != allocatedLocal ) {
-fprintf( stderr, "Differing number of locals (%d vs %ld), unable to use alloc method.\n", numLocals, allocatedLocal );
-			/* return the empty registerSpace; we can't do anything useful. */
-			registerSpace rs( 0, NULL, 0, NULL );
-			* regSpace = rs;
-			return false;
-			} /* end if locals are of dissimilar size */
-		if( numRotate == 256 ) { numRotate = allocatedRotate; }
-		if( numRotate != allocatedRotate ) {
-fprintf( stderr, "Differing number of rotating registers (%d vs %ld), unable to use alloc method.\n", numRotate, allocatedRotate );
-			/* return the empty registerSpace; we can't do anything useful. */
-			registerSpace rs( 0, NULL, 0, NULL );
-			* regSpace = rs;
-			return false;
-			} /* end rotating registers are of dissimilar size. */
-		if( allocatedOutput + allocatedLocal > largestFrame ) {
-			largestFrame = allocatedOutput + allocatedLocal;
-			} /* end largest-frame tracking */
-		} /* end alloc iteration */
+			/* Tell generateOriginalAllocFor() to generate an empty frame. */
+			regSpace->originalLocals = 0;
+			regSpace->originalOutputs = 0;
+			regSpace->originalRotates = 0;
 
-	if( numLocals == 256 || numRotate == 256 ) { 
-		/* We didn't find _any_ allocs, so we need to make this
-		   numbers valid for generateOriginalAlloc().  0 also
-		   happens to be logically correc/consistent. :) */
-		numLocals = 0;
-		numRotate = 0;
-		} /* end if we found no allocs. */
+			/* Our static analysis succeeded. */
+			} return true;
 
-	/* Adjust regSpace to reflect the size of the function's frame. */
-	Register deadRegisterList[NUM_LOCALS + NUM_OUTPUT];
-	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-		deadRegisterList[i] = 32 + largestFrame + i;
-		} /* end deadRegisterList calculation */
-	registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
-	rs.originalLocals = numLocals;
-	rs.originalOutputs = largestFrame - numLocals;
-	rs.originalRotates = numRotate;
-	* regSpace = rs;
+		case 1: {
+			/* Where is our alloc instruction?  We need to have a look at it... */
+	                Address encodedAddress = (location->iPgetFunction()->allocs)[0];
+        	        unsigned short slotNumber = encodedAddress % 16;
+        	        Address alignedOffset = encodedAddress - slotNumber;
+	                IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];
+
+			/* ... so we find out what the frame it generates looks like... */
+			uint64_t allocatedLocals, allocatedOutputs, allocatedRotates;
+			extractAllocatedRegisters( allocBundle.getInstruction( slotNumber )->getMachineCode(),
+					& allocatedLocals, & allocatedOutputs, & allocatedRotates );
+			uint64_t sizeOfFrame = allocatedLocals + allocatedOutputs;
+
+			/* ... and construct a deadRegisterList and regSpace above the
+			   registers the application's using. */
+			for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
+				deadRegisterList[i] = 32 + sizeOfFrame + i;
+				}
+
+			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
+
+			/* Note that we assume that having extra registers can't be harmful;
+			   that is, that 'restoring' the alloc instruction's frame before
+			   it executes does not change the semantics of the program.  AFAIK,
+			   this will be true for all correct programs. */
+			regSpace->originalLocals = allocatedLocals;
+			regSpace->originalOutputs = allocatedOutputs;
+			regSpace->originalRotates = allocatedRotates;
+
+			/* Our static analysis succeeded. */
+			} return true;
+
+		default:
+			/* Do the static analysis below. */
+			break;
+		} /* end #-of-allocs switch. */
+
+	/* FIXME: Generate the CFG and calculate reaching allocs. */
+
+	/* If no alloc reaches the instrumenation point, handle as case 0 above and return true.
+	   (FIXME: In fact, go ahead and factor it out, e.g. replace it with:
+	   handleCaseZero( regSpace, deadRegisterList ); return true;.) */
+
+	/* If exactly one alloc reaches the instrumentation point, handle as case 1 above and return true.
+	   (FIXME: In fact, factor out the stuff below the slotNo/address determination above. */
+
+	/* If more than one alloc reaches the instrumentation point, return false.  The
+	   basetramp will have to determine the frame at run-time. */
+
+	assert( 0 );
 	return true;
 	} /* end dBTRSF() */
 
@@ -774,6 +776,21 @@ IA64_instruction generateRegisterStore( Register address, Register source, int i
 
 	return IA64_instruction( rawInsn );
 	} /* end generateRegisterStore() */
+
+/* This is the no-update form, which lets the code generator do dumb
+   stuff like load from and into the same register. */
+IA64_instruction generateRegisterLoad( Register destination, Register address ) {
+	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
+
+	uint64_t rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x03) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
+			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );	
+	} /* end generateRegisterLoad() */
 
 IA64_instruction generateRegisterLoad ( Register destination, Register address, int imm9 ) { 
 	uint64_t addressRegister = ((uint64_t)address) & 0x7F;

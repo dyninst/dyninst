@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: true -*- */
+/* -*- Mode: C; indent-tabs-mode: true; tab-width: 4 -*- */
 
 /*
  * Copyright (c) 1996 Barton P. Miller
@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.15 2003/06/10 17:45:37 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.16 2003/06/27 20:57:59 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -222,7 +222,8 @@ IA64_instruction generateIndirectCallTo( Register indirect, Register rp );
 IA64_instruction generatePredicatesToRegisterMove( Register destination );
 IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t imm17 );
 IA64_instruction generateRegisterStore( Register address, Register source, int imm9 = 0 );
-IA64_instruction generateRegisterLoad( Register destination, Register address, int imm9 = 0 );
+IA64_instruction generateRegisterLoad( Register destination, Register address );
+IA64_instruction generateRegisterLoad( Register destination, Register address, int imm9 );
 IA64_instruction generateRegisterToApplicationMove( Register source, Register destination );
 IA64_instruction generateApplicationToRegisterMove( Register source, Register destination );
 
@@ -246,7 +247,7 @@ class instPoint;
 class registerSpace;
 #define NUM_LOCALS 8
 #define NUM_OUTPUT 8
-bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace );
+bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList );
 
 /* Constants for code generation. */
 #define ALIGN_RIGHT_SHIFT 23
