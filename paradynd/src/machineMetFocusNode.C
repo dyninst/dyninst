@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "paradynd/src/metric.h"
+#include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/dynrpc.h"
@@ -59,7 +59,7 @@ dictionary_hash<unsigned, machineMetFocusNode*>
 machineMetFocusNode::machineMetFocusNode(int metricID, 
      const string& metric_name, const Focus &foc,
      vector<processMetFocusNode*>& parts, aggregateOp agg_op, bool enable_)
-   : metricDefinitionNode(), aggregator(agg_op, getCurrSamplingRate()), 
+   : metricFocusNode(), aggregator(agg_op, getCurrSamplingRate()), 
      id_(metricID), aggOp(agg_op), aggInfoInitialized(false),
      _sentInitialActualValue(false), met_(metric_name), focus_(foc), 
      enable(enable_)
@@ -147,7 +147,7 @@ void machineMetFocusNode::endOfDataCollection() {
 //  in this case, the manuallyTrigger flag is set based on the 
 //  program stack (the call sequence implied by the sequence of PCs
 //  in the program stack), and the types of the set of inst points 
-//  which the metricDefinitionNode corresponds to, as opposed to
+//  which the metricFocusNode corresponds to, as opposed to
 //  a hacked interpretation of the original MDL statement syntax.
 // The basic algorithm is as follows:
 //  1. Construct function call sequence leading to the current 
@@ -165,12 +165,19 @@ void machineMetFocusNode::doCatchupInstrumentation() {
   }
 }
 
-// if a thread or process is added to the parent metFocusNode,
-// the addThread or "addProcess" function will handle initializing
-// these nodes aggInfoObjects
 
 void machineMetFocusNode::initializeForSampling(timeStamp startTime, 
 						pdSample initValue)
+{
+  initAggInfoObjects(startTime, initValue);
+  prepareForSampling();  
+}
+
+// if a thread or process is added to the parent metFocusNode,
+// the addThread or "addProcess" function will handle initializing
+// these nodes aggInfoObjects
+void machineMetFocusNode::initAggInfoObjects(timeStamp startTime, 
+					     pdSample initValue)
 {
   if(hasAggInfoBeenInitialized())
     return;
@@ -250,7 +257,7 @@ void handleDeferredInstr(machineMetFocusNode *machnode, pd_Function *func)
 	instrToDo.push_back(di);
   }
       
-  // Don't delete the metricDefinitionNode because we want to
+  // Don't delete the metricFocusNode because we want to
   // reuse it later. 
 }
 
@@ -303,7 +310,6 @@ bool machineMetFocusNode::insertInstrumentation() {
       }
    }
 
-   mapSampledDRNs2ThrNodes();
    insertJumpsToTramps();
 
    // Now that the timers and counters have been allocated on the heap, and
@@ -349,9 +355,9 @@ bool machineMetFocusNode::instrLoaded() {
 }
 
 
-void machineMetFocusNode::mapSampledDRNs2ThrNodes() {
+void machineMetFocusNode::prepareForSampling() {
   for(unsigned i=0; i<procNodes.size(); i++) {
-    procNodes[i]->mapSampledDRNs2ThrNodes();
+    procNodes[i]->prepareForSampling();
   }
 }
 
