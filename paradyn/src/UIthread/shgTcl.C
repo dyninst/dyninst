@@ -4,9 +4,16 @@
 // Implementations of new commands and tk bindings related to the search history graph.
 
 /* $Log: shgTcl.C,v $
-/* Revision 1.6  1996/02/02 02:03:12  karavan
-/* oops!  corrected call to performanceconsultant::newSearch
+/* Revision 1.7  1996/02/02 18:54:13  tamches
+/* added shgDrawKeyCallback, shgDrawTipsCallback,
+/* shgMiddleClickCallbackCommand is new.
+/* shgAltReleaseCommand shrunk accordingly.
+/* added shgRefineGlobalPhase (temporarily)
+/* fixed code in shgSearchCommand
 /*
+ * Revision 1.6  1996/02/02 02:03:12  karavan
+ * oops!  corrected call to performanceconsultant::newSearch
+ *
  * Revision 1.5  1996/02/02 01:01:34  karavan
  * Changes to support the new PC/UI interface
  *
@@ -115,6 +122,19 @@ int shgSingleClickCallbackCommand(ClientData, Tcl_Interp *, int argc, char **arg
 
    if (theShgPhases->existsCurrent())
       theShgPhases->getCurrent().processSingleClick(x, y);
+
+   return TCL_OK;
+}
+
+int shgMiddleClickCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+   assert(haveSeenFirstGoodShgWid);
+
+   assert(argc == 3);
+   const int x = atoi(argv[1]);
+   const int y = atoi(argv[2]);
+
+   if (theShgPhases->existsCurrent())
+      theShgPhases->getCurrent().processMiddleClick(x, y);
 
    return TCL_OK;
 }
@@ -334,40 +354,17 @@ int shgAltPressCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
    return TCL_OK;
 }
 
-int shgAltReleaseCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
-   // This routine now serves two purposes:
-   // (1) the alt-release, turning off alt-scrolling (obvious)
-   // (2) moving the mouse over a shg item will display its contents & some related
-   //     information in a label widget
+int shgAltReleaseCommand(ClientData, Tcl_Interp *, int, char **) {
+   // Un-install the mouse-move event handler that may have been
+   // installed by the above routine.
 
    if (!haveSeenFirstGoodShgWid)
       return TCL_OK;
    if (!theShgPhases->existsCurrent())
       return TCL_OK;
 
-   assert(argc==3); // x and y coords
-   
-   // Now un-install the mouse-move event handler that may have been
-   // installed by the above routine.
-
    if (currInstalledShgAltMoveHandler)
       currInstalledShgAltMoveHandler = false;
-   else {
-      // Here is where we handle case (2)
-      shg &currShg = theShgPhases->getCurrent();
-
-      int x = atoi(argv[1]);
-      int y = atoi(argv[2]);
-
-      // NOTE! Marcelo noticed, in some cases, when the mouse is moved
-      // rapidly downwards to the edge of the screen, that y can be
-      // negative.  This makes no sense to me.  More importantly, it will
-      // lead to an assertion error.  So, let's nip this one in the bud:
-      if (x < 0 || y < 0)
-         ;
-      else
-         currShg.possibleMouseMoveIntoItem(x, y);
-   }
 
    return TCL_OK;
 }
@@ -385,20 +382,26 @@ int shgChangePhaseCommand(ClientData, Tcl_Interp *interp, int argc, char **argv)
       // nothing changed
       return TCL_OK;
 
-   // Update the label widget
-   string commandStr = string(".shg.nontop.currphasearea.label2 config -text ") +
-                       "\"" + theShgPhases->id2name(phaseId) + "\"";
-   myTclEval(interp, commandStr);
-   
-   // we must assume a resize, since newly displayed shg was set aside. (?)
-   theShgPhases->getCurrent().resize(true);
-
    initiateShgRedraw(interp, true);
 
    return TCL_OK;
 }
 
-int shgSearchCommand(ClientData, Tcl_Interp *, int, char **) {
+int shgDefineGlobalPhaseCommand(ClientData, Tcl_Interp *interp, int, char **) {
+   // a temporary routine...I think
+
+   theShgPhases->defineNewSearch(0, // the global phase has phase id 0
+				 "Global Phase");
+
+#ifdef PARADYN
+   perfConsult->newSearch(GlobalPhase);
+#endif   
+
+   strcpy(interp->result, "true");
+   return TCL_OK;
+}
+
+int shgSearchCommand(ClientData, Tcl_Interp *interp, int, char **) {
    // we basically want to call "paradyn search true <curr-phase-name> -1",
    // as in "paradyn search true global -1"
    
@@ -408,21 +411,26 @@ int shgSearchCommand(ClientData, Tcl_Interp *, int, char **) {
 
    if (!theShgPhases->existsCurrent()) {
       cerr << "shgSearchCommand: no search has been defined; ignoring..." << endl;
+      strcpy(interp->result, "false");
       return TCL_OK;
    }
 
 #ifdef PARADYN
    // the shg test program does not "really" do a search
    int curr_phase_id = theShgPhases->getCurrentId();
-   //** wow!  major kludge!! klk
-   perfConsult->newSearch(GlobalPhase);
-   perfConsult->activateSearch(curr_phase_id);
+
+   cout << "shgSearchCommand: activating search for phase id " << curr_phase_id << endl;
+   theShgPhases->activateSearch(curr_phase_id);
+
+   strcpy(interp->result, "true");
+#else
+   strcpy(interp->result, "true");
 #endif
 
    return TCL_OK;
 }
 
-int shgPauseCommand(ClientData, Tcl_Interp *, int, char **) {
+int shgPauseCommand(ClientData, Tcl_Interp *interp, int, char **) {
    // we basically want to call "paradyn search pause <curr-phase-name>",
    // as in "paradyn search pause global"
    
@@ -431,40 +439,66 @@ int shgPauseCommand(ClientData, Tcl_Interp *, int, char **) {
    // what the paradyn command expects.  So, we go directly to the igen calls...
 
    if (!theShgPhases->existsCurrent()) {
-      cerr << "shgSearchCommand: no search has been defined; ignoring..." << endl;
+      cerr << "shgPauseCommand: no search has been defined; ignoring..." << endl;
+      sprintf(interp->result, "false");
       return TCL_OK;
    }
 
 #ifdef PARADYN
    // the shg test program does not "really" do a search
    int curr_phase_id = theShgPhases->getCurrentId();
-   perfConsult->pauseSearch(curr_phase_id);
+   cout << "shgPauseCommand: about to pause search for phase id " << curr_phase_id << endl;
+   setResultBool(interp, theShgPhases->pauseSearch(curr_phase_id));
+#else
+   strcpy(interp->result, "true");
 #endif
 
    return TCL_OK;
 }
 
-//int shgResumeCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
-//   // we basically want to call "paradyn search true <curr-phase-name> -1",
-//   // as in "paradyn search true global -1"
-//
-//   // But, currently, the phase name we are given doesn't correspond.
-//   // For example, we store "Global Search" instead of "global", which is
-//   // what the paradyn command expects.  So, we go directly to the igen calls...
-//
-//   if (!theShgPhases->existsCurrent()) {
-//      cerr << "shgSearchCommand: no search has been defined; ignoring..." << endl;
-//      return TCL_OK;
-//   }
-//
-//#ifdef PARADYN
-//   // the shg test program does not "really" do a search
-//   int curr_phase_id = theShgPhases->getCurrentId();
-//   perfConsult->search(curr_phase_id);
-//#endif
-//
-//   return TCL_OK;
-//}
+int shgResumeCommand(ClientData, Tcl_Interp *interp, int, char **) {
+   // we basically want to call "paradyn search true <curr-phase-name> -1",
+   // as in "paradyn search true global -1"
+
+   // But, currently, the phase name we are given doesn't correspond.
+   // For example, we store "Global Search" instead of "global", which is
+   // what the paradyn command expects.  So, we go directly to the igen calls...
+
+   if (!theShgPhases->existsCurrent()) {
+      cerr << "shgResumeCommand: no search has been defined; ignoring..." << endl;
+      sprintf(interp->result, "false");
+      return TCL_OK;
+   }
+
+#ifdef PARADYN
+   // the shg test program does not "really" do a search
+   int curr_phase_id = theShgPhases->getCurrentId();
+   setResultBool(interp, theShgPhases->resumeSearch(curr_phase_id));
+#else
+   strcpy(interp->result, "true");
+#endif
+
+   return TCL_OK;
+}
+
+/* ******************************************************************** */
+
+#ifdef PARADYN
+void shgDrawKeyCallback(bool newValue) {
+   extern Tcl_Interp *interp;
+   if (newValue)
+      myTclEval(interp, "redrawKeyAndTipsAreas on nc");
+   else
+      myTclEval(interp, "redrawKeyAndTipsAreas off nc");
+}
+void shgDrawTipsCallback(bool newValue) {
+   extern Tcl_Interp *interp;
+   if (newValue)
+      myTclEval(interp, "redrawKeyAndTipsAreas nc on");
+   else
+      myTclEval(interp, "redrawKeyAndTipsAreas nc off");
+}
+#endif
 
 /* ******************************************************************** */
 
@@ -476,6 +510,8 @@ void installShgCommands(Tcl_Interp *interp) {
    Tcl_CreateCommand(interp, "shgExposeHook", shgExposeCallbackCommand,
 		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgSingleClickHook", shgSingleClickCallbackCommand,
+		     NULL, shgDeleteDummyProc);
+   Tcl_CreateCommand(interp, "shgMiddleClickHook", shgMiddleClickCallbackCommand,
 		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgDoubleClickHook", shgDoubleClickCallbackCommand,
 		     NULL, shgDeleteDummyProc);
@@ -504,12 +540,14 @@ void installShgCommands(Tcl_Interp *interp) {
 		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgChangePhase", shgChangePhaseCommand,
 		     NULL, shgDeleteDummyProc);
+   Tcl_CreateCommand(interp, "shgDefineGlobalPhaseCommand", shgDefineGlobalPhaseCommand,
+		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgSearchCommand", shgSearchCommand,
 		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgPauseCommand", shgPauseCommand,
 		     NULL, shgDeleteDummyProc);
-//   Tcl_CreateCommand(interp, "shgResumeCommand", shgResumeCommand,
-//		     NULL, shgDeleteDummyProc);
+   Tcl_CreateCommand(interp, "shgResumeCommand", shgResumeCommand,
+		     NULL, shgDeleteDummyProc);
 }
 
 void unInstallShgCommands(Tcl_Interp *interp) {
@@ -526,11 +564,13 @@ void unInstallShgCommands(Tcl_Interp *interp) {
 //   Tcl_DeleteCommand(interp, "shgShiftDoubleClickHook");
    Tcl_DeleteCommand(interp, "shgDoubleClickHook");
    Tcl_DeleteCommand(interp, "shgSingleClickHook");
+   Tcl_DeleteCommand(interp, "shgMiddleClickHook");
    Tcl_DeleteCommand(interp, "shgExposeHook");
    Tcl_DeleteCommand(interp, "shgConfigureHook");
+   Tcl_DeleteCommand(interp, "shgDefineGlobalPhaseCommand");
    Tcl_DeleteCommand(interp, "shgSearchCommand");
    Tcl_DeleteCommand(interp, "shgPauseCommand");
-//   Tcl_DeleteCommand(interp, "shgResumeCommand");
+   Tcl_DeleteCommand(interp, "shgResumeCommand");
 }
 
 void shgDevelModeChange(Tcl_Interp *interp, bool inDevelMode) {
