@@ -2,6 +2,9 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.31  1996/04/30 20:44:18  tamches
+#  added label for the phase name
+#
 #  Revision 1.30  1996/01/19 20:56:02  newhall
 #  changes due to visiLib interface changes
 #
@@ -26,35 +29,6 @@
 #  bar colors are no longer hard-coded here.
 #  removed getMetricHints
 #
-#  Revision 1.25  1995/12/15 22:34:30  tamches
-#  fixed bug where Wmbar wasn't being made a global vrble
-#
-#  Revision 1.24  1995/11/29 00:37:56  tamches
-#  grouped window initialization into routine init_barchart_window.
-#  We now use the makeLogo cmd
-#  We no longer call Initialize in this file
-#
-#  Revision 1.23  1995/11/17 17:32:20  newhall
-#  changed Dg start command to take no arguments, replaced call to MetricUnits
-#  with call to MetricLabel
-#
-# Revision 1.22  1995/11/08  02:15:31  tamches
-# Changed logo and title bar background from slategray to indianred
-#
-# Revision 1.21  1995/08/24  15:15:08  hollings
-# AIX/SP-2 port (including option for split instruction/data heaps)
-# Tracing of rexec (correctly spawns a paradynd if needed)
-# Added rtinst function to read getrusage stats (can now be used in metrics)
-# Critical Path
-# Improved Error reporting in MDL sematic checks
-# Fixed MDL Function call statement
-# Fixed bugs in TK usage (strings passed where UID expected)
-#
-# Revision 1.20  1995/08/06  22:10:17  tamches
-# Procedure calls metric default changed to 100
-#
-# Revision 1.19  1995/07/06  18:54:59  tamches
-# Update for tk4.0
 
 # ######################################################
 # TO DO LIST:
@@ -198,6 +172,11 @@ proc init_barchart_window {} {
    
    pack $Wmbar.file $Wmbar.actions $Wmbar.view -side left -padx 4
    #pack $Wmbar.help -side right
+
+   # #################### Phase Name Label
+
+   label $W.phaseName -font  *-Helvetica-*-r-*-12-* -relief groove
+   pack  $W.phaseName -side top -fill x -expand false
    
    # #######################  Scrollbar ######################
    
