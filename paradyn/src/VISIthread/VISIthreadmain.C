@@ -22,9 +22,14 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.25  1994/09/05 19:10:53  newhall
-/* changed AbbreviatedFocus to produce entire path from root node
+/* Revision 1.26  1994/09/22 01:19:43  markc
+/* RPCprocessCreate takes &int, not int*, changed args to call
+/* typecast args for msg_bind_buffered
+/* access igen class members using methods
 /*
+ * Revision 1.25  1994/09/05  19:10:53  newhall
+ * changed AbbreviatedFocus to produce entire path from root node
+ *
  * Revision 1.24  1994/08/13  20:52:38  newhall
  * changed when a visualization process is started
  * added new file VISIthreadpublic.C
@@ -341,7 +346,7 @@ int VISIthreadStartProcess(){
   // start the visualization process
   if(ptr->start_up){
     PARADYN_DEBUG(("start_up in VISIthreadStartProcess"));
-    ptr->fd = RPCprocessCreate(&ptr->pid, "localhost", "",
+    ptr->fd = RPCprocessCreate(ptr->pid, "localhost", "",
 				 ptr->args->argv[0],ptr->args->argv);
     if (ptr->fd < 0) {
       PARADYN_DEBUG(("Error in process Create"));
@@ -352,7 +357,7 @@ int VISIthreadStartProcess(){
 
     ptr->visip = new visiUser(ptr->fd,NULL,NULL); 
 
-    if(msg_bind_buffered(ptr->fd,0,xdrrec_eof,ptr->visip->__xdrs__) 
+    if(msg_bind_buffered(ptr->fd,0, (int(*)(void*)) xdrrec_eof,ptr->visip->getXdrs()) 
        != THR_OKAY) {
       PARADYN_DEBUG(("Error in msg_bind(ptr->fd)"));
       ERROR_MSG(14,"Error VISIthreadStartProcess: msg_bind_buffered");
@@ -868,7 +873,7 @@ void visiUser::handle_error()
    }
 
   // err_state is set by the event that caused the error
-  switch (err_state) {
+  switch (get_err_state()) {
     case igen_no_err:
          fprintf(stderr,"Handle error called for igen_no_err tid = %d\n",
 		 thr_self());
@@ -901,7 +906,7 @@ void visiUser::handle_error()
     case igen_read_err:
     default:
          fprintf(stderr, "VISIthread: Error: err_state = %d tid = %d\n", 
-		 err_state,thr_self());
+		 get_err_state(),thr_self());
          ERROR_MSG(16,"IGEN ERROR igen_(send,read)_err"); 
          ptr->quit = 1;
          break;
