@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "."
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I ".." /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /D "os_windows" /FD /TP /c
+# ADD CPP /nologo /W3 /GX /O2 /I ".." /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /D "os_windows" /D "_DEBUG" /FD /TP /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
@@ -163,6 +163,59 @@ SOURCE=..\..\mrnet\src\ParentNode.C
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\mrnet\src\parser.y
+
+!IF  "$(CFG)" == "libmrnet - Win32 Release"
+
+# Begin Custom Build
+InputPath=..\..\mrnet\src\parser.y
+
+BuildCmds= \
+	bison -p mrn -d -y $(InputPath) \
+	perl ..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
+	del y.tab.c \
+	move y.tab.h parser.tab.h \
+	cl /nologo /GX /TP /DWIN32 /Dos_windows /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /MTd /W3 /Gm /ZI /Od /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /Fo"./" /Fd"./" /FD /GZ /c parser.C \
+	
+
+"parser.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.tab.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "libmrnet - Win32 Debug"
+
+# Begin Custom Build
+InputPath=..\..\mrnet\src\parser.y
+
+BuildCmds= \
+	bison -p mrn -d -y $(InputPath) \
+	perl ..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
+	del y.tab.c \
+	move y.tab.h parser.tab.h \
+	cl /nologo /GX /TP /DWIN32 /Dos_windows /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /MTd /W3 /Gm /ZI /Od /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /Fo"./" /Fd"./" /FD /GZ /c parser.C \
+	
+
+"parser.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.tab.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"parser.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\mrnet\src\pdr.c
 # End Source File
 # Begin Source File
@@ -176,6 +229,51 @@ SOURCE=..\..\mrnet\src\pdr_sizeof.c
 # Begin Source File
 
 SOURCE=..\..\mrnet\src\RemoteNode.C
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\mrnet\src\scanner.l
+
+!IF  "$(CFG)" == "libmrnet - Win32 Release"
+
+# Begin Custom Build
+InputPath=..\..\mrnet\src\scanner.l
+
+BuildCmds= \
+	flex  -Pmrn ..\..\mrnet\src\scanner.l \
+	perl ..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
+	del lex.mrn.c \
+	cl /nologo /GX /TP /DWIN32 /Dos_windows /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /MTd /W3 /Gm /ZI /Od /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /Fo"./" /Fd"./" /FD /GZ /c scanner.C \
+	
+
+"scanner.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"scanner.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "libmrnet - Win32 Debug"
+
+# Begin Custom Build
+InputPath=..\..\mrnet\src\scanner.l
+
+BuildCmds= \
+	flex  -Pmrn ..\..\mrnet\src\scanner.l \
+	perl ..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
+	del lex.mrn.c \
+	cl /nologo /GX /TP /DWIN32 /Dos_windows /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /MTd /W3 /Gm /ZI /Od /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /Fo"./" /Fd"./" /FD /GZ /c scanner.C \
+	
+
+"scanner.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"scanner.C" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

@@ -40,10 +40,10 @@ RSC=rc.exe
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "."
 # PROP Intermediate_Dir "."
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "os_windows" /FD /c
-# SUBTRACT CPP /YX
+# ADD CPP /nologo /W3 /GX /O2 /I "../../mrnet/h" /I "../.." /I "../../mrnet/xplat/include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "os_windows" /FD /c /Tp
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib Iphlpapi.lib shlwapi.lib Ws2_32.lib libmrnet.lib libxplat.lib /nologo /subsystem:windows /machine:I386 /libpath:"../libmrnet" /libpath:"../xplat"
 
 !ELSEIF  "$(CFG)" == "mrnet_commnode - Win32 Debug"
 
@@ -89,8 +89,23 @@ LINK32=link.exe
 # Name "mrnet_commnode - Win32 Debug"
 # Begin Group "Source Files"
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=..\..\mrnet\src\CommunicationNodeMain.C
+
+!IF  "$(CFG)" == "mrnet_commnode - Win32 Release"
+
+# ADD CPP /Ze /W3 /O2
+# SUBTRACT CPP /X
+
+!ELSEIF  "$(CFG)" == "mrnet_commnode - Win32 Debug"
+
+!ENDIF 
+
+# End Source File
 # End Group
+# End Target
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
@@ -99,5 +114,4 @@ LINK32=link.exe
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # End Group
-# End Target
 # End Project

@@ -62,9 +62,10 @@ LINK32=link.exe
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "."
 # PROP Intermediate_Dir "."
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D _WIN32_WINNT=0x0500 /D "os_windows" /FD /GZ /TP /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "../../mrnet/tests" /I "../../.." /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D _WIN32_WINNT=0x0500 /D "os_windows" /D "i386_unknown_nt4_0" /D "BPATCH_LIBRARY" /FD /GZ /TP /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -86,6 +87,55 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=..\..\mrnet\tests\config_generator.C
+
+!IF  "$(CFG)" == "topgen - Win32 Release"
+
+# ADD CPP /I "../../mrnet/tests" /I "../../.." /D "_DEBUG" /D "i386_unknown_nt4_0" /D "BPATCH_LIBRARY"
+
+!ELSEIF  "$(CFG)" == "topgen - Win32 Debug"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\common\src\ntKludges.C
+
+!IF  "$(CFG)" == "topgen - Win32 Release"
+
+# ADD CPP /I "../../mrnet/tests" /I "../../.." /D "_DEBUG" /D "i386_unknown_nt4_0" /D "BPATCH_LIBRARY"
+# SUBTRACT CPP /D "NDEBUG"
+
+!ELSEIF  "$(CFG)" == "topgen - Win32 Debug"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\mrnet\tests\Topology.C
+
+!IF  "$(CFG)" == "topgen - Win32 Release"
+
+# ADD CPP /I "../../mrnet/tests" /I "../../.."
+
+!ELSEIF  "$(CFG)" == "topgen - Win32 Debug"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\mrnet\tests\Tree.C
+
+!IF  "$(CFG)" == "topgen - Win32 Release"
+
+# ADD CPP /I "../../mrnet/tests" /I "../../.."
+
+!ELSEIF  "$(CFG)" == "topgen - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # End Group
 # Begin Group "Header Files"

@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile.vc7,v 1.2 2004/03/23 01:12:18 eli Exp $
+# $Id: Makefile.vc7,v 1.3 2005/03/24 05:05:57 darnold Exp $
 #
 
 
@@ -54,6 +54,9 @@ $(MRNET_LIB):
 $(TOPGEN_EXE):
 	devenv MRNet.sln /build $(PROJCFG) /project topgen $(BUILDFLAGS)
 
+$(MRNET_COMMNODE_EXE):
+	devenv MRNet.sln /build $(PROJCFG) /project mrnet_commnode $(BUILDFLAGS)
+
 
 #
 # cleaning targets
@@ -61,4 +64,3 @@ $(TOPGEN_EXE):
 
 clean:
 	devenv MRNet.sln /CLEAN $(PROJCFG)
-

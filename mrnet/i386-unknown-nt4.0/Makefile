@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile,v 1.7 2004/06/01 18:22:21 pcroth Exp $
+# $Id: Makefile,v 1.8 2005/03/24 05:05:55 darnold Exp $
 #
 
 !include ..\\..\\nmake.config
@@ -50,7 +50,7 @@ PROJCFG    = Debug
 PROJCFG    = Release
 !endif
 
-BUILDFLAGS  = /USEENV
+#BUILDFLAGS  = /USEENV
 
 
 XPLAT_LIB       = xplat\\libxplat.lib
@@ -58,6 +58,7 @@ XPLAT_INCDIR    = ..\\mrnet\\xplat\\include\\xplat
 MRNET_LIB       = libmrnet\\libmrnet.lib
 MRNET_INCDIR    = ..\\mrnet\\h\\mrnet
 TOPGEN_EXE      = topgen\\topgen.exe
+MRNET_COMMNODE_EXE = mrnet_commnode\\mrnet_commnode.exe
 
 INSTDIR = ..\\..\\..\\$(PLATFORM)
 IBINDIR = $(INSTDIR)\\bin
@@ -68,8 +69,8 @@ MRNET_IINCDIR = $(INSTDIR)\\include\\mrnet
 
 
 
-all: $(XPLAT_LIB) $(MRNET_LIB) $(TOPGEN_EXE)
-
+#all: $(XPLAT_LIB) $(MRNET_LIB) $(TOPGEN_EXE) $(MRNET_COMMNODE_EXE)
+all:  $(MRNET_LIB) $(TOPGEN_EXE) $(MRNET_COMMNODE_EXE)
 
 
 #
@@ -80,7 +81,7 @@ all: $(XPLAT_LIB) $(MRNET_LIB) $(TOPGEN_EXE)
 # different ability to handle forward vs. backslashes).
 #
 
-install:    xplat-install libmrnet-install topgen-install
+install:    xplat-install libmrnet-install mrnet_commnode-install topgen-install
 
 xplat-install:  $(XPLAT_LIB) $(ILIBDIR) $(XPLAT_IINCDIR)
 	copy $(XPLAT_LIB) $(ILIBDIR)\\
@@ -92,6 +93,9 @@ libmrnet-install: $(MRNET_LIB) $(ILIBDIR) $(MRNET_IINCDIR)
 
 topgen-install: $(TOPGEN_EXE) $(IBINDIR)
 	copy $(TOPGEN_EXE) $(IBINDIR)\\
+
+mrnet_commnode-install: $(MRNET_COMMNODE_EXE) $(IBINDIR)
+	copy $(MRNET_COMMNODE_EXE) $(IBINDIR)\\
 
 
 #
@@ -115,7 +119,6 @@ $(XPLAT_IINCDIR): $(IINCDIR)
 
 $(MRNET_IINCDIR): $(IINCDIR)
 	-md $@
-	
 
 !ifdef USE_VC6
 !include Makefile.vc6

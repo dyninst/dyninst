@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile.vc6,v 1.2 2004/03/23 01:12:17 eli Exp $
+# $Id: Makefile.vc6,v 1.3 2005/03/24 05:05:56 darnold Exp $
 #
 
 
@@ -50,10 +50,13 @@ $(XPLAT_LIB):
 	msdev xplat\\xplat.dsp /MAKE "xplat - Win32 $(PROJCFG)" $(BUILDFLAGS)
 
 $(MRNET_LIB):
-	msdev libmrnet\\libmrnet.dsp /MAKE "libmrnet - Win32 $(PROJCFG)" $(BUILDFLAGS)
+	msdev libmrnet\\libmrnet.dsw /MAKE "libmrnet - Win32 $(PROJCFG)" $(BUILDFLAGS)
 
 $(TOPGEN_EXE):
-	msdev topgen\\topgen.dsp /MAKE "topgen - Win32 $(PROJCFG)" $(BUILDFLAGS)
+	msdev topgen\\topgen.dsw /MAKE "topgen - Win32 $(PROJCFG)" $(BUILDFLAGS)
+
+$(MRNET_COMMNODE_EXE):
+	msdev mrnet_commnode\\mrnet_commnode.dsw /MAKE "mrnet_commnode - Win32 $(PROJCFG)" $(BUILDFLAGS)
 
 
 #
@@ -61,14 +64,17 @@ $(TOPGEN_EXE):
 #
 
 
-clean: xplat-clean libmrnet-clean topgen-clean
+clean: xplat-clean libmrnet-clean topgen-clean mrnet_commnode-clean
 
 xplat-clean:
 	msdev xplat\\xplat.dsp /MAKE "xplat - Win32 $(PROJCFG)" /CLEAN
 
 libmrnet-clean:
-	msdev libmrnet\\libmrnet.dsp /MAKE "libmrnet - Win32 $(PROJCFG)" /CLEAN
+	msdev libmrnet\\libmrnet.dsw /MAKE "libmrnet - Win32 $(PROJCFG)" /CLEAN
 
 topgen-clean:
-	msdev topgen\\topgen.dsp /MAKE "topgen - Win32 $(PROJCFG)" /CLEAN
+	msdev topgen\\topgen.dsw /MAKE "topgen - Win32 $(PROJCFG)" /CLEAN
+
+mrnet_commnode-clean:
+	msdev mrnet_commnode\\mrnet_commnode.dsw /MAKE "mrnet_commnode - Win32 $(PROJCFG)" /CLEAN
 
