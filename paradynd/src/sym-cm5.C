@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-cm5.C,v 1.3 1994/06/29 02:52:50 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-cm5.C,v 1.4 1994/07/12 19:30:58 jcargill Exp $";
 #endif
 
 /*
  * sym-cm5.C - hanle CM5 binaries (two programs in one file).
  *
  * $Log: sym-cm5.C,v $
- * Revision 1.3  1994/06/29 02:52:50  hollings
+ * Revision 1.4  1994/07/12 19:30:58  jcargill
+ * Included util.h for errorLine defn
+ *
+ * Revision 1.3  1994/06/29  02:52:50  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -44,6 +47,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <unistd.h>
 #include <assert.h>
 #include <fcntl.h>
+
+#include "util.h"
 
 /*
  * Code to find the offset of the node executable in the joined executable.
