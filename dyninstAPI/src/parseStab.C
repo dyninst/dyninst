@@ -899,23 +899,53 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
     BPatch_visibility _vis = BPatch_visUnknown;
     BPatch_dataClass typedescr;
 
-    while (stabstr[cnt] && (stabstr[cnt] != ';')) {
+    if (stabstr[cnt] == '!') {
+	//Inheritance definition, Add base class field list to the current one
+	//according to visibility rules.
+
+	cnt++; //Skip '!'
+
+	//Get # of base classes
+	int baseClNum = atoi(getIdentifier(stabstr, cnt));
+	cnt++; //Skip ','
+
+	//Skip information for each base class
+	for(int i=0; i<baseClNum; ++i) {
+		//Skip virtual inheritance flag, base visibility flag and base offset
+		getIdentifier(stabstr, cnt);
+		cnt++; //Skip ','
+
+		//Find base class type identifier
+		int baseID = parseSymDesc(stabstr, cnt);
+
+		cnt++; //Skip ';'
+
+		//Find base class
+		BPatch_type *baseCl = mod->moduleTypes->findType(baseID);
+		if (!baseCl || (baseCl->getDataClass() != BPatch_structure) ) 
+			continue;
+
+		//Get field descriptions of the base type
+		BPatch_Vector<BPatch_field *> *baseClFields = baseCl->getComponents();
+		for(int fieldNum=0; fieldNum < baseClFields->size(); fieldNum++) {
+			BPatch_field *field = (*baseClFields)[fieldNum];
+
+			if (field->getVisibility() == BPatch_private)
+				continue; //Can not add this member
+
+			newType->addField(field->getName(), 
+					  field->getTypeDesc(),
+					  field->getType(),
+					  field->getOffset(),
+					  field->getVisibility());
+		}
+	}
+     }
+
+     while (stabstr[cnt] && (stabstr[cnt] != ';')) {
 	typedescr = BPatch_scalar;
 
-	if (stabstr[cnt] == '!') {
-		//Inheritance definition, simply skip it!
-		cnt++;
-		//Get # of base classes
-		int baseClNum = atoi(getIdentifier(stabstr, cnt));
-		//Skip information for each base class
-		for(int i=0; i<baseClNum; ++i) {
-			while(stabstr[cnt] != ';')
-				cnt++;
-			cnt++; //Skip ';'
-		}
-		continue;
-	}
-	else if (stabstr[cnt] == '~') {
+	if (stabstr[cnt] == '~') {
 		//End of virtual class
 		while(stabstr[cnt] != ';') cnt++;
 		break; //End of class is reached
