@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-coff.h,v 1.4 1999/05/13 23:02:50 hollings Exp $
+ * $Id: Object-coff.h,v 1.5 1999/08/17 21:52:14 hollings Exp $
  * COFF object files.
  * Note - this is DEC OSF/1 coff which probably isn't the real thing
  *
@@ -111,6 +111,7 @@ public:
 
 private:
     void    load_object (bool sharedLib);
+    void	get_relocation_entries(LDFILE *ldptr, int num);
     bool	dynamicallyLinked;
 };
 

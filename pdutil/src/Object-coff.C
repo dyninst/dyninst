@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.2 1999/05/13 23:02:51 hollings Exp $
+// $Id: Object-coff.C,v 1.3 1999/08/17 21:52:15 hollings Exp $
 
 #include "util/h/Object.h"
 #include "util/h/Object-coff.h"
@@ -187,6 +187,7 @@ void Object::load_object(bool sharedLibrary) {
 	  if (ldshread(ldptr, sectindex, &secthead) == SUCCESS) {
 	    // cout << "Section: " << secthead.s_name << "\tStart: " << secthead.s_vaddr 
 	    // << "\tEnd: " << secthead.s_vaddr + secthead.s_size << endl;
+
 	    if (!P_strcmp(secthead.s_name, ".text")) {
 	      code_len_ = Word(secthead.s_size >> LOG_WORD);
 	      Word *buffer = new Word[code_len_+1];
@@ -258,7 +259,7 @@ void Object::load_object(bool sharedLibrary) {
 		all_dex[K_L8_INDEX] = true;
 		all_disk[K_L8_INDEX] = secthead.s_scnptr;
 	      }
-	    } else if (!P_strcmp(secthead.s_name, ".dynamic")) {
+	    } else if (!P_strncmp(secthead.s_name, ".dynamic", 8)) {
 	      // a section .dynamic implies the program is dynamically linked
 	      dynamicallyLinked = true; 
 	    }
@@ -270,7 +271,6 @@ void Object::load_object(bool sharedLibrary) {
 	  sectindex++;
 	}
 
-	// if (!text_read || !all_disk[K_D_INDEX]) {
 	if (!text_read) { 
 	  success = false;
 	  printf("failed text region\n");
@@ -438,6 +438,7 @@ cleanup: {
     }
     free(file);
 }
+
 
 Object::Object(const string file, void (*err_func)(const char *))
     : AObject(file, err_func) {
