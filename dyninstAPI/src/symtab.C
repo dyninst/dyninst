@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.229 2005/02/04 22:07:42 bernat Exp $
+ // $Id: symtab.C,v 1.230 2005/02/15 17:43:47 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -717,6 +717,10 @@ void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
 }
 #endif
 
+#ifndef BPATCH_LIBRARY
+extern bool should_report_loops;
+#endif
+
 //  Comments on what this does would be nice....
 //  Appears to run over a pdmodule, after all code in it has been processed
 //   and parsed into functions, and define a resource for the module + a 
@@ -725,7 +729,6 @@ void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
 //  Can't directly register call graph relationships here as resources
 //   are being defined, because need all resources defined to 
 //   do that....
-
 void pdmodule::define(process *proc) {
 #ifdef DEBUG_MODS
    std::ostringstream osb(std::ios::out);
@@ -734,76 +737,81 @@ void pdmodule::define(process *proc) {
 #endif
 
 #ifndef BPATCH_LIBRARY
-   for(unsigned i = 0; 
-       i < allUniqueFunctions.size();
-       i++) {
+   for(unsigned i = 0; i < allUniqueFunctions.size(); i++) 
+   {
       int_function * pdf = allUniqueFunctions[i]; 
+      if (!pdf->isInstrumentable() || !pdf->get_size())
+         continue;
 #ifdef DEBUG_MODS
       of << fileName << ":  " << pdf->prettyName() <<  "  "
          << pdf->addr() << endl;
 #endif
       // ignore line numbers for now 
       
-      //if (!(pdf->isLibTag())) {
-      if (1) {
-         // see if we have created module yet.
-         if (!modResource) {
-            modResource = resource::newResource(moduleRoot, this,
-                                                nullString, // abstraction
-                                                fileName(), // name
-                                         timeStamp::ts1970(), // creation time
-                                                pdstring(), // unique-ifier
-                                                ModuleResourceType,
-                                                MDL_T_MODULE,
-                                                false);
-         }
-         
-         //check if the function is overloaded, and store types with the name
-         //in the case that it is.  This way, we can differentiate
-         //between overloaded functions in the paradyn front-end.
-         bool useTyped = false;
-         pdvector<int_function *> *pdfv =
-	   allFunctionsByPrettyName[pdf->prettyName()];
+      // see if we have created module yet.
+      if (!modResource) {
+         modResource = resource::newResource(moduleRoot, this,
+                                             nullString, // abstraction
+                                             fileName(), // name
+                                             timeStamp::ts1970(), // creation time
+                                             pdstring(), // unique-ifier
+                                             ModuleResourceType,
+                                             MDL_T_MODULE,
+                                             false);
+      }
+      //check if the function is overloaded, and store types with the name
+      //in the case that it is.  This way, we can differentiate
+      //between overloaded functions in the paradyn front-end.
+      bool useTyped = false;
+      pdvector<int_function *> *pdfv =
+         allFunctionsByPrettyName[pdf->prettyName()];
 	   //exec()->findFuncVectorByPretty(pdf->prettyName());
-         char * prettyWithTypes = NULL;
-
-         if(pdfv != NULL && pdfv->size() > 1) {
-            prettyWithTypes = P_cplus_demangle(pdf->symTabName().c_str(), 
-                                             exec()->isNativeCompiler(), true);
-            if( prettyWithTypes != NULL ) {
-	      
-               useTyped = true;
-	       // Add to image...
-               exec()->addTypedPrettyName(pdf, prettyWithTypes);
-	       // And module...
-	       addTypedPrettyName(pdf, prettyWithTypes);
-	       // And function
-               pdf->addPrettyName(pdstring(prettyWithTypes));
-            } else {
-               prettyWithTypes = strdup( pdf->prettyName().c_str() );
-               assert( prettyWithTypes != NULL );
-            }
+      char * prettyWithTypes = NULL;
+      
+      if(pdfv != NULL && pdfv->size() > 1) {
+         prettyWithTypes = P_cplus_demangle(pdf->symTabName().c_str(), 
+                                            exec()->isNativeCompiler(), true);
+         if( prettyWithTypes != NULL ) {
+            
+            useTyped = true;
+            // Add to image...
+            exec()->addTypedPrettyName(pdf, prettyWithTypes);
+            // And module...
+            addTypedPrettyName(pdf, prettyWithTypes);
+            // And function
+            pdf->addPrettyName(pdstring(prettyWithTypes));
+         } else {
+            prettyWithTypes = strdup( pdf->prettyName().c_str() );
+            assert( prettyWithTypes != NULL );
          }
+      }
 
+      if (pdf->isInstrumentable())
+      {
          resource *res =
             resource::newResource(modResource, pdf,
                                   nullString, // abstraction
-                               useTyped ? prettyWithTypes : pdf->prettyName(), 
+                                  useTyped ? prettyWithTypes : pdf->prettyName(), 
                                   timeStamp::ts1970(),
                                   nullString, // uniquifier
                                   FunctionResourceType,
                                   MDL_T_PROCEDURE,
                                   false );
          pdf->SetFuncResource(res);
+      
 
-
-        if (getenv("PARADYN_LOOPS") != NULL) {
+         /**
+          * The 'should_report_loops' global variable is a bad hack that should go
+          * away once the Paradyn/Dyninst seperation is complete, and this function
+          * take a pd_process* instead of a process* (it should start using 
+          * 'use_loops', which is a pd_process private variable).
+          **/
+         if (should_report_loops) {
             // create a resource for each loop with this func as its parent
             dfsCreateLoopResources(pdf->getLoopTree(proc), res, pdf);
-        }
-
-         if( prettyWithTypes != NULL ) { free(prettyWithTypes); }
+         }
       }
+      if( prettyWithTypes != NULL ) { free(prettyWithTypes); }
    }
    
    resource::send_now();
@@ -2198,9 +2206,11 @@ void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionList
 pdvector<int_function *> *
 pdmodule::findFunctionFromAll(const pdstring &name,
 			      pdvector<int_function *> *found, 
-			      bool regex_case_sensitive) {	    
+			      bool regex_case_sensitive,
+               bool dont_use_regex) 
+{	    
   /* Are we doing a regex search? */
-  if( NULL == strpbrk( name.c_str(), REGEX_CHARSET ) ) {
+  if( dont_use_regex || NULL == strpbrk( name.c_str(), REGEX_CHARSET )) {
     /* Checks pretty and mangled instrumentable function names. */
     if( NULL != findFunction( name, found ) && found->size() != 0 ) {
       exec()->analyzeIfNeeded();

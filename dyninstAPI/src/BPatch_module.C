@@ -276,9 +276,10 @@ BPatch_module::getProceduresInt(bool incUninstrumentable)
  */
 
 BPatch_Vector<BPatch_function *> *
-BPatch_module::findFunctionInt(const char *name, BPatch_Vector<BPatch_function *> & funcs,
-			    bool notify_on_failure, bool regex_case_sensitive,
-			    bool incUninstrumentable)
+BPatch_module::findFunctionInt(const char *name, 
+        BPatch_Vector<BPatch_function *> & funcs,
+        bool notify_on_failure, bool regex_case_sensitive,
+        bool incUninstrumentable, bool dont_use_regex)
 {
   pdvector<int_function *> pdfuncs;
 
@@ -286,26 +287,28 @@ BPatch_module::findFunctionInt(const char *name, BPatch_Vector<BPatch_function *
     cerr << __FILE__ << __LINE__ << ":  findFunction(NULL), failing "<<endl; 
     return NULL;
   }
-  if (NULL == mod->findFunctionFromAll(pdstring(name), &pdfuncs, regex_case_sensitive) 
-      || !pdfuncs.size()) {
-    if( notify_on_failure ) {
-      pdstring msg = pdstring("Module: Unable to find function: ") + pdstring(name);
-      //BPatch_reportError(BPatchSerious, 100, msg.c_str());
-      BPatch_reportError(BPatchSerious, 0, msg.c_str());
-      }
-    return NULL;
+  if ((mod->findFunctionFromAll(pdstring(name), &pdfuncs, 
+             regex_case_sensitive, dont_use_regex) == NULL) || 
+      !pdfuncs.size())
+  {
+     if(notify_on_failure) {
+        pdstring msg = pdstring("Module: Unable to find function: ") + 
+           pdstring(name);
+        BPatch_reportError(BPatchSerious, 100, msg.c_str());
+     }
+     return NULL;
   } 
 
   // found function(s), translate to BPatch_functions  
   for (unsigned int i = 0; i < pdfuncs.size(); ++i) {
-    if (incUninstrumentable ||
-	pdfuncs[i]->isInstrumentable()) {
-      BPatch_function * bpfunc = proc->findOrCreateBPFunc(pdfuncs[i], this);
-      funcs.push_back(bpfunc);
-      if (!proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) {
-	this->BPfuncs->push_back(bpfunc);
-      }
-    }
+     if (incUninstrumentable || pdfuncs[i]->isInstrumentable()) 
+     {
+        BPatch_function * bpfunc = proc->findOrCreateBPFunc(pdfuncs[i], this);
+        funcs.push_back(bpfunc);
+        if (!proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) {
+           this->BPfuncs->push_back(bpfunc);
+        }
+     }
   }
 
   return & funcs;

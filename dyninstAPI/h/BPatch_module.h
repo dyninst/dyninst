@@ -135,19 +135,16 @@ public:
 
     // BPatch_module::findFunction
     // Returns a vector of BPatch_function *, matching specified <name>
-    API_EXPORT(Int, (name, funcs, notify_on_failure,regex_case_sensitive,incUninstrumentable),
+    API_EXPORT(Int, (name, funcs, notify_on_failure,regex_case_sensitive,incUninstrumentable,dont_use_regex),
 
     BPatch_Vector<BPatch_function *> *,findFunction,(const char *name,
-                                                     BPatch_Vector<BPatch_function *> &funcs,
-                                                     bool notify_on_failure =true,
-                                                     bool regex_case_sensitive =true,
-						     bool incUninstrumentable =false));
-                                                   
-  
-    // BPatch_module::findFunctionByAddress
-    // Returns a vector of functions that contain the specified address (ideally).
-    // FIXME: This (undocumented) method only works for function entry addresses.
+                          BPatch_Vector<BPatch_function *> &funcs,
+                          bool notify_on_failure =true,
+                          bool regex_case_sensitive =true,
+                          bool incUninstrumentable =false,
+                          bool dont_use_regex = false));
 
+    // FIXME: This (undocumented) method only works for function entry addresses.
     API_EXPORT(Int, (addr, funcs, notify_on_failure, incUninstrumentable),
 
     BPatch_Vector<BPatch_function *> *,

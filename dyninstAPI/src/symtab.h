@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.171 2005/02/03 23:46:53 bernat Exp $
+// $Id: symtab.h,v 1.172 2005/02/15 17:43:48 legendre Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -205,7 +205,7 @@ class pdmodule: public module {
 
    ~pdmodule();
 
-void cleanProcessSpecific(process *p);
+   void cleanProcessSpecific(process *p);
 
    void setLineAddr(unsigned line, Address addr) {
       lines_.setLineAddr(line, addr);}
@@ -229,8 +229,9 @@ void cleanProcessSpecific(process *p);
                                             pdvector<int_function *> *found);
  
    pdvector<int_function *> *findFunctionFromAll(const pdstring &name, 
-                                                  pdvector<int_function *> *found, 
-                                                  bool regex_case_sensitive=true);
+                  pdvector<int_function *> *found, 
+                  bool regex_case_sensitive=true,
+                  bool dont_use_regex=false);
 
    // Only one -- otherwise you can't distinguish between them at link time.
    int_function *findFunctionByMangled(const pdstring &name);
