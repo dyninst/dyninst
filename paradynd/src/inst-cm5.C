@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.14 1994/07/22 19:16:01 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.15 1994/08/02 18:21:28 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.14  1994/07/22 19:16:01  hollings
+ * Revision 1.15  1994/08/02 18:21:28  hollings
+ * changed costs to reflect new retries for race conditions in timers.
+ *
+ * Revision 1.14  1994/07/22  19:16:01  hollings
  * update cost data, move pausetime in here.
  *
  * Revision 1.13  1994/07/21  01:34:48  hollings
@@ -502,13 +505,13 @@ void initPrimitiveCost()
 
     /* based on measured values for the CM-5. */
     /* Need to add code here to collect values for other machines */
-#ifdef notdef
     // cm-5 no assembly numbers.
-    primitiveCosts.add(48, (void *) "DYNINSTstartProcessTimer");
-    primitiveCosts.add(85, (void *) "DYNINSTstopProcessTimer");
+    // with fixed getProcess time -- jkh 8/26/94
+    primitiveCosts.add(69, (void *) "DYNINSTstartProcessTimer");
+    primitiveCosts.add(176, (void *) "DYNINSTstopProcessTimer");
     primitiveCosts.add(43, (void *) "DYNINSTstartWallTimer");
     primitiveCosts.add(70, (void *) "DYNINSTstopWallTimer");
-#else
+#ifdef notdef
     // -- paper numbers
     primitiveCosts.add(37, (void *) "DYNINSTstartProcessTimer");
     primitiveCosts.add(71, (void *) "DYNINSTstopProcessTimer");
