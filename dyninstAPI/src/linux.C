@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.24 1999/11/07 00:10:03 wylie Exp $
+// $Id: linux.C,v 1.25 2000/03/03 22:06:23 mirg Exp $
 
 #include <fstream.h>
 
@@ -1207,50 +1207,52 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 }
 
 bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
-  ptraceOps++; ptraceBytes += amount;
+        ptraceOps++; ptraceBytes += amount;
 
 #ifdef PTRACEDEBUG
 #if !defined(PTRACEDEBUG_ALWAYS)
-  if( debug_ptrace )
+        if( debug_ptrace )
 #endif
-    fprintf( stderr, "(linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n", amount, (int)inSelf, (int)inTraced );
+                fprintf( stderr, 
+                         "(linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n",
+                         amount, (int)inSelf, (int)inTraced );
 #endif
 
-  int tries = 5;
+        if (proc_fd != -1) {
+                int tries = 5;
+                int res = 0, amt = amount;
+                char *dest = (char *)inSelf;
+                const char *src = (const char *)inTraced;
 
-  if( proc_fd != -1 ) {
-    while (true) {
-      if((lseek(proc_fd, (off_t)inTraced, SEEK_SET)) != (off_t)inTraced) {
-	fprintf( stderr, "(linux)readDataSpace_: error in lseek addr = 0x%x amount = %d\n",(u_int)inTraced,amount);
-	return false;
-      }
-      int result = read(proc_fd, inSelf, amount);
-      if( result < 0 ) {
-	fprintf( stderr, "(linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n", amount, (int)inSelf, (int)inTraced );
-	//perror( "process::readDataSpace_ - read" );
-	return false;
-      } else if( result == 0 ) {
-		  //if( errno )
-		//perror( "process::readDataSpace_" );
-		  if( tries-- == 0 )
-		  {
+                if((lseek(proc_fd, (off_t)inTraced, 
+                          SEEK_SET)) != (off_t)inTraced) {
+                        fprintf (stderr, 
+                                 "(linux)readDataSpace_: error in lseek "
+                                 "addr = 0x%x amount = %d\n",
+                                 (u_int)inTraced,amount);
+                        return false;
+                }
+                while (amt > 0 && tries > 0) {
+                        if ((res = read(proc_fd, dest, amt)) < 0) {
+                                fprintf (stderr, "(linux)readDataSpace_"
+                                         "amount=%d  %#.8x <- %#.8x\n", 
+                                         amt, (int)dest, (int)src);
+                                return false;
+                        } 
+                        assert (res <= amt);
+                        src += res;
+                        dest += res;
+                        amt -= res;
+                        tries--;
+                }
+                if (amt == 0) {
+                        return true;
+                }
 #if defined(PDYN_DEBUG) || defined(PTRACEDEBUG)
-			  fprintf( stderr, "process::readDataSpace_ -- Failed to read( /proc/*/mem ), trying ptrace\n" );
+                fprintf( stderr, "process::readDataSpace_ -- Failed to "
+                         "read( /proc/*/mem ), trying ptrace\n" );
 #endif
-			  break;
-		  }
-      }
-	  u_int res = result;
-      assert( res <= amount );
-      if( res == amount )
-	return true;
-      // We weren't able to read atomically, so reseek and reread.
-#if defined(PDYN_DEBUG) || defined(PTRACEDEBUG)
-	  fprintf( stderr, "process::readDataSpace_ -- Failed atomic read, reseeking and rereading\n" );
-#endif
-    }
-  }
-
+        }
   // For some reason we couldn't or didn't open /proc/*/mem, so use ptrace
   // Should I remove this part? - nash
 
@@ -1302,6 +1304,7 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 	  return true;
   }
 }
+
 
 /*
 bool process::findCallee(instPoint &instr, function_base *&target){
