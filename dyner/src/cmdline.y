@@ -33,6 +33,8 @@ parse_ret parse_type;
 
 %token <sval> IDENTIFIER STRING
 %token <ival> NUMBER
+%token ERROR IF ELSE
+%token PLUSPLUS MINUSMINUS
 
 %left DOT
 %left OR
@@ -46,12 +48,11 @@ parse_ret parse_type;
 %left START_BLOCK END_BLOCK
 
 %type <boolExpr> bool_expression 
-%type <snippet> arith_expression variable_expr statement
+%type <snippet> arith_expression variable_expr statement inc_decr_expr
 %type <snippet> param
 %type <snippetList> param_list statement_list
 %type <funcCall> func_call
 
-%token ERROR IF ELSE
 
 %%
 
@@ -105,23 +106,25 @@ func_call: IDENTIFIER '(' param_list ')'
 
 	free($1);
 	$$ = new BPatch_funcCallExpr(*func, *$3); 
-	delete func;
-	delete $3;
     }
 
-param_list:
-    param { $$ = new BPatch_Vector<BPatch_snippet *>; 
-	    $$->push_back($1);
+param_list: param 
+    { 
+	$$ = new BPatch_Vector<BPatch_snippet *>; 
+	$$->push_back($1);
     }
     | param_list COMMA param
-	{ $1->push_back($3); 
-	  $$ = $1;
-	}
+    { 
+	$1->push_back($3); 
+	$$ = $1;
+    }
     ;
 
-param:
-    arith_expression
-    |  STRING     { $$ = new BPatch_constExpr($1); }
+param: arith_expression
+    |  STRING
+    { 
+	$$ = new BPatch_constExpr($1); 
+    }
     ;
     
 
@@ -248,8 +251,28 @@ arith_expression:
     |		 '(' arith_expression ')' {
 	$$ = $2;
     }
+    |  inc_decr_expr {
+	$$ = $1;
+    }
     ;
 
+inc_decr_expr:
+    variable_expr PLUSPLUS {
+	$$ = new BPatch_arithExpr(BPatch_assign, *$1, BPatch_arithExpr(BPatch_plus, 
+			*$1, BPatch_constExpr(1)));
+    }
+    | PLUSPLUS variable_expr {
+	$$ = new BPatch_arithExpr(BPatch_assign, *$2, BPatch_arithExpr(BPatch_plus, 
+			*$2, BPatch_constExpr(1)));
+    }
+    | variable_expr MINUSMINUS {
+	$$ = new BPatch_arithExpr(BPatch_assign, *$1, BPatch_arithExpr(BPatch_minus, 
+			*$1, BPatch_constExpr(1)));
+    }
+    | MINUSMINUS variable_expr {
+	$$ = new BPatch_arithExpr(BPatch_assign, *$2, BPatch_arithExpr(BPatch_minus, 
+			*$2, BPatch_constExpr(1)));
+    }
 %%
 
 

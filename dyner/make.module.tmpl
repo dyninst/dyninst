@@ -1,0 +1,59 @@
+# 
+# Common makefile template for dyninst Tests.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 2000/03/14 00:26:54 altinel Exp $
+#
+
+SUITE_NAME	= Dyninst
+RELEASE_NUM	= 2.0beta
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
+
+TARGET		= dyner
+TEST_TARGET	= testDyner
+
+SRCS	     += ../src/$(TARGET).C lex.$(TARGET).C $(TARGET).tab.C
+TEST_SRC      = ../tests/$(TEST_TARGET).C
+
+IFLAGS	     += -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dyninstAPI/src \
+		-I$(TO_CORE)/util/h 
+
+CXXFLAGS     += $(BASICWARNINGS)
+CFLAGS       += $(BASICWARNINGS)
+
+LIBS         += -ldyninstAPI 
+
+ifndef USES_LIBDYNINST_SO
+LIBS         += -lpdutil
+endif
+
+SYSLIBS      += -liberty /usr/imports/lib/libtcl8.0.a
+
+all: $(TARGET) $(TEST_TARGET)
+
+MUTATEE_CC = g++
+MUTATEE_CFLAGS += $(MODCFLAGS) -g
+
+$(TEST_TARGET): $(TEST_SRC)
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -o $(TEST_TARGET) $(TEST_SRC)
+
+LEXFLAGS += -P$(TARGET)
+YACCFLAGS += -d -b $(TARGET) -p $(TARGET)
+
+lex.$(TARGET).C: ../src/cmdline.l
+	$(LEX) $(LEXFLAGS) ../src/cmdline.l
+	mv lex.$(TARGET).c lex.$(TARGET).C
+
+$(TARGET).tab.C: ../src/cmdline.y
+	$(YACC) $(YACCFLAGS) ../src/cmdline.y
+	mv $(TARGET).tab.c $(TARGET).tab.C
+
+UNCOMMON_INSTALL=true
+
+install: all
+	-@$(MKDIR) $(DEST)
+	-$(CP) $(TARGETS) $(DEST)
+

@@ -2,7 +2,7 @@
 %{
 #include <string.h>
 #include "BPatch_snippet.h"
-#include "y.tab.h"
+#include "dyner.tab.h"
 
 extern "C" {
 void set_lex_input(char *);
@@ -46,7 +46,7 @@ static int doubleQuote()
                 } else {
                     yyleng--;
                     yytext[count] = '\0';
-		    yylval.sval = strdup(yytext);
+		    dynerlval.sval = strdup(yytext);
                     return(STRING);
                 }
                 break;
@@ -86,9 +86,9 @@ if			{ return IF; }
 
 else			{ return ELSE; }
 
-[0-9]+			{ yylval.ival = atoi(yytext); return NUMBER; }
+[0-9]+			{ dynerlval.ival = atoi(yytext); return NUMBER; }
 
-[A-za-z][A-Za-z0-9_]*	{ yylval.sval = strdup(yytext); return IDENTIFIER; }
+[A-za-z][A-Za-z0-9_]*	{ dynerlval.sval = strdup(yytext); return IDENTIFIER; }
 
 \<=			{ return LESS_EQ; }
 
@@ -122,6 +122,10 @@ else			{ return ELSE; }
 			  ret = doubleQuote();
 			  return(ret);
 			}
+
+"++"			{ return PLUSPLUS; }
+
+"--"			{ return MINUSMINUS; }
 
 .			{ return ERROR; }
 
