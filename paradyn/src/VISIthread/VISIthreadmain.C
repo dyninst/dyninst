@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.72  1996/05/06 17:13:11  newhall
-/* changed arguments to enableDataRequest
+/* Revision 1.73  1996/05/07 18:05:22  newhall
+/* added call to UI routine threadExiting before exiting VISIthread
 /*
+ * Revision 1.72  1996/05/06  17:13:11  newhall
+ * changed arguments to enableDataRequest
+ *
  * Revision 1.71  1996/05/01  18:56:03  newhall
  * bug fix: check size of partPair after call to VISIthreadWaitForEnableResponse
  *
@@ -1035,7 +1038,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   // or if the number of new pairs + num already enabled is less than 
   // the limit, then try to enable all of them
   if((ptr->args->mi_limit <= 0) 
-      || ((newMetRes->size() + ptr->mrlist.size()) <= ptr->args->mi_limit)) {
+    ||((newMetRes->size() + ptr->mrlist.size()) <= (u_int)ptr->args->mi_limit)){
       if(!TryToEnableAll(newMetRes,newEnabled,retryList,numEnabled,ptr)){
           ptr->quit = 1;
 	  delete newMetRes;
@@ -1397,6 +1400,9 @@ void *VISIthreadmain(void *vargs){
   if(!(globals->dmp->destroyPerformanceStream(globals->ps_handle))){
       ERROR_MSG(16,"remove() in VISIthreadmain");
   }
+
+  // notify UIM that VISIthread is dying 
+  globals->ump->threadExiting();
 
   // notify VM 
   PARADYN_DEBUG(("before notify VM of thread died"));
