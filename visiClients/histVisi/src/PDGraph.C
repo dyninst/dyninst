@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.3 1999/10/12 20:49:35 pcroth Exp $
+// $Id: PDGraph.C,v 1.4 1999/10/13 16:15:56 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -1624,6 +1624,8 @@ PDGraph::UpdateHistogramInfo(double startTimestamp,
 
     // redraw all curves to reflect new histogram characteristics
     RequestRedraw();
+    timeAxis->RequestRedraw();
+    dataw->RequestRedraw();
 }
 
 
