@@ -102,6 +102,8 @@ IFLAGS       = $(IFLAGS) -I../$(PLATFORM)
 
 all:    $(IGEN_GEN_SRCS) $(TARGET)
 
+$(TARGET):	$(IGEN_GEN_SRCS)
+
 dyninstRPC.xdr.SRVR.C: ..\..\paradyn\h\dyninstRPC.I
 	igen -xdr ../../paradyn/h/dyninstRPC.I
 
