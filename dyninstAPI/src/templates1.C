@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.41 2002/04/05 19:38:49 schendel Exp $
+//$Id: templates1.C,v 1.42 2002/04/22 20:52:39 mjbrim Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -57,6 +57,12 @@
 #include "dyninstAPI/src/sharedobject.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+
+//begin from templates05
+template class vector<instWaitingList *>;
+template class refCounter<string_ll>;
+template class vector<heapDescriptor>;
+//end from templates05
 
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch_Set.h"

@@ -39,27 +39,34 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates05.C,v 1.11 2000/07/27 17:42:36 pcroth Exp $
+// $Id: templates05.C,v 1.12 2002/04/22 20:52:38 mjbrim Exp $
 
-#pragma implementation "Dictionary.h"
-#include "common/src/Dictionary.C"
+//  #pragma implementation "Dictionary.h"
+//  #include "common/src/Dictionary.C"
 
-#pragma implementation "list.h"
-#include "common/h/list.h"
+//  #pragma implementation "list.h"
+//  #include "common/h/list.h"
 
-#include "common/h/String.h"
+//  #include "common/h/String.h"
 
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/Object.h"
+//  #include "dyninstAPI/src/symtab.h"
+//  #include "dyninstAPI/src/process.h"
+//  #include "dyninstAPI/src/inst.h"
+//  #include "dyninstAPI/src/instP.h"
+//  #include "dyninstAPI/src/dyninstP.h"
+//  #include "dyninstAPI/src/ast.h"
+//  #include "dyninstAPI/src/util.h"
+//  #include "dyninstAPI/src/Object.h"
 
-template class vector<instWaitingList *>;
+//  template class vector<instWaitingList *>;
 
-template class refCounter<string_ll>;
+//  template class refCounter<string_ll>;
 
-template class vector<heapDescriptor>;
+//  template class vector<heapDescriptor>;
+
+
+
+
+
+
+
