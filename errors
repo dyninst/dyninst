@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.15  1994/07/08 21:23:43  jcargill
+# Revision 1.16  1994/07/08 21:27:11  jcargill
+# Deleted 3 bogus test errors
+#
+# Revision 1.15  1994/07/08  21:23:43  jcargill
 # created error #13
 #
 # Revision 1.14  1994/07/08  21:19:18  jcargill
@@ -159,29 +162,4 @@ Attempt to call malloc returned an error within a data manager function.
 %S fatal
 %X
 Call to malloc failed within a data manager function.
-%Y
-
-%N 11
-%E testerror
-%A paradynd
-%S fatal
-%X
-bogus test error message
-%Y
-
-%N 12
-%E anothertest
-%A ui
-%S information
-%X
-testing
-%Y
-
-%N 13
-%E testing
-%A dm
-%S serious
-%X
-foo
-again
 %Y
