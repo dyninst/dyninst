@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.454 2003/10/21 17:22:24 bernat Exp $
+// $Id: process.C,v 1.455 2003/10/21 19:14:20 bernat Exp $
 
 #include <ctype.h>
 
@@ -1969,6 +1969,7 @@ process::process(int iPid, image *iSymbols,
    // this doesn't leak, since the old theImage was deleted. 
    symbols = theImage;
 #endif
+   addCodeRange(symbols->codeOffset(), symbols);
 
    // Record what the process was doing when we attached, for possible
    // use later.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.190 2003/10/21 17:22:29 bernat Exp $
+// $Id: symtab.C,v 1.191 2003/10/21 19:14:21 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -612,8 +612,6 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
       linkedFile.get_symbol(symString="_wWinMain", lookUp)
 #endif
       ) {
-      fprintf(stderr, "Found main symbol\n");
-      
       mainFuncSymbol = lookUp;
       is_a_out = true;
       
@@ -633,8 +631,6 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
           pd_Function *main_pdf = makeOneFunction(mods, lookUp);
           assert(main_pdf);
           raw_funcs->push_back(main_pdf);
-          fprintf(stderr, "Added main to raw_funcs!\n");
-          
       }
       else {
           fprintf(stderr, "Type not function!\n");
@@ -1502,8 +1498,6 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   bool err=false;
   
   // TODO -- kill process here
-  fprintf(stderr, "Creating new image with base 0x%x\n", newBaseAddr);
-  
   image *ret = new image(desc, err, newBaseAddr); 
 
   if (err || !ret) {
@@ -2014,9 +2008,6 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   refCount(1)
 {
   err = false;
-  cerr << "image::image for file name="
-       << desc->file() << endl;
-
   name_ = extract_pathname_tail(desc->file());
 
   pathname_ = desc->file();
@@ -2028,11 +2019,8 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   if( linkedFile.have_deferred_parsing() )
   {
     // nothing else to do here
-      fprintf(stderr, "Deferred\n");
     return;
   }
-  fprintf(stderr, "Parsing for real\n");
-  
   // initialize (data members) codeOffset_, dataOffset_,
   //  codeLen_, dataLen_.
   codeOffset_ = linkedFile.code_off();
@@ -2148,8 +2136,6 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   pdvector<pd_Function *> raw_funcs; 
 
   // define all of the functions, this also defines all of the moldules
-  fprintf(stderr, "Adding funcs\n");
-  
   if (!addAllFunctions(uniq, &raw_funcs)) {
     err = true;
     return;
@@ -2167,8 +2153,6 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   // Once languages are assigned, we can build demangled names (in the wider sense of demangling
   // which includes stripping _'s from fortran names -- this is why language information must
   // be determined before this step).
-  fprintf(stderr, "CAlling buildFunctionMaps\n");
-  
   if (!buildFunctionMaps(&raw_funcs)) {
     err = true;
     return;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.113 2003/10/21 17:22:18 bernat Exp $
+// $Id: linux.C,v 1.114 2003/10/21 19:14:20 bernat Exp $
 
 #include <fstream>
 
@@ -1173,9 +1173,6 @@ bool process::findCallee(instPoint &instr, function_base *&target){
    // see if there is a function in this image at this target address
    // if so return it
    pd_Function *pdf = 0;
-   fprintf(stderr, "this = 0x%x, looking up 0x%x\n",
-           this, target_addr);
-   
    if( (pdf = this->findFuncByAddr(target_addr))) {
        target = pdf;
        instr.set_callee(pdf);

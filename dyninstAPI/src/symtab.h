@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.140 2003/10/21 17:22:30 bernat Exp $
+// $Id: symtab.h,v 1.141 2003/10/21 19:14:21 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -1344,17 +1344,6 @@ inline const unsigned char *image::getPtrToInstruction(Address adr) const {
 // Address must be in code or data range since some code may end up
 // in the data segment
 inline bool image::isValidAddress(const Address &where) const{
-    bool isAligned_ = isAligned(where);
-    bool isCode_ = isCode(where);
-    bool isData_ = isData(where);
-    if (isAligned_) {
-        if (!isCode_ &&
-            !isData_)
-            fprintf(stderr, "addr 0x%x not code (0x%x to 0x%x) or data (0x%x to 0x%x)\n",
-                    where, codeOffset_, codeOffset_+(codeLen_<<2),
-                    dataOffset_, dataOffset_+(dataLen_<<2));
-    }
-    
     return (isAligned(where) && (isCode(where) || isData(where)));
 }
 

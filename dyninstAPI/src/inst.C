@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.111 2003/10/21 17:22:05 bernat Exp $
+// $Id: inst.C,v 1.112 2003/10/21 19:14:20 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -179,7 +179,6 @@ void clearBaseBranch(const miniTrampHandle *mini)
 #if defined(rs6000_ibm_aix4_1)
     resetBRL(proc, branchAddr, 0);
 #else
-    fprintf(stderr, "Generating noop at 0x%x\n", branchAddr);
     generateNoOp(proc, branchAddr);
 #endif
     
@@ -596,8 +595,6 @@ bool deleteInst(process *proc, miniTrampHandle *&mtHandle)
 {
     callWhen when = mtHandle->when;
     miniTramps_list *mtList = mtHandle->baseTramp->getMiniTrampList(when);
-    fprintf(stderr, "Deleting handle 0x%x\n", mtHandle);
-    
    if(mtList == NULL) {
       //cerr << "in inst.C: location is NOT defined" << endl;
       return false;
@@ -638,8 +635,6 @@ bool deleteInst(process *proc, miniTrampHandle *&mtHandle)
    if(proc->status() != exited) {
       bool noOtherMTsAtPoint = (prevMT==NULL && nextMT==NULL);
       if(noOtherMTsAtPoint) {
-          fprintf(stderr, "No other minitramps at point\n");
-          
           clearBaseBranch(thisMT);
           //activeSlots->value -= 1.0;
       } else {
