@@ -14,6 +14,12 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.84  1996/03/12 20:48:26  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.83  1996/03/06 20:09:47  naim
  * Yet another minor change - naim
  *
@@ -407,6 +413,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
 #include "showerror.h"
 #include "costmetrics.h"
 
+void flush_batch_buffer(int);
+void batchSampleData(int program, int mid, double startTimeStamp,
+                     double endTimeStamp, double value, unsigned val_weight,
+		     bool internal_metric);
+
 #ifdef sparc_tmc_cmost7_3
 extern int getNumberOfCPUs();
 #endif
@@ -443,11 +454,16 @@ bool mdl_internal_metric_data(string& metric_name, mdl_inst_data& result) {
   return (mdl_metric_data(metric_name, result));
 }
 
+// for non-aggregate metrics
 metricDefinitionNode::metricDefinitionNode(process *p, string& met_name, 
                                            vector< vector<string> >& foc,
                                            string& cat_name, int agg_style)
-: aggregate_(false), inserted_(false), met_(met_name), focus_(foc), flat_name_(cat_name),
-  sample(agg_style), id_(-1), originalCost_(0.0), inform_(false), proc_(p)
+: aggregate_(false), 
+  aggOp(agg_style), // CM5 metrics need aggOp to be set
+  inserted_(false), met_(met_name), focus_(foc), flat_name_(cat_name),
+  aggSample(0),
+  sample(0), cumulativeValue(0.0),
+  id_(-1), originalCost_(0.0), inform_(false), proc_(p)
 {
   mdl_inst_data md;
   assert(mdl_internal_metric_data(met_name, md));
@@ -468,27 +484,35 @@ float metricDefinitionNode::getMetricValue()
     return (data[0]->getMetricValue());
 }
 
+// for aggregate metrics
 metricDefinitionNode::metricDefinitionNode(string& metric_name,
                                            vector< vector<string> >& foc,
                                            string& cat_name, 
-                                           vector<metricDefinitionNode*>& parts)
-: aggregate_(true), inserted_(false), met_(metric_name), focus_(foc),
+                                           vector<metricDefinitionNode*>& parts,
+					   int agg_op)
+: aggregate_(true), aggOp(agg_op), inserted_(false), met_(metric_name), focus_(foc),
   flat_name_(cat_name), components(parts),
+  aggSample(agg_op),
   id_(-1), originalCost_(0.0), inform_(false), proc_(NULL)
 {
   // TODO -- does this work 
-  mdl_inst_data md;
-  assert(mdl_metric_data(metric_name, md));
-  style_ = md.style;
-  sample = md.aggregate;
+  //mdl_inst_data md;
+  //assert(mdl_metric_data(metric_name, md));
+  //style_ = md.style;
+  //sample = md.aggregate;
+  //aggOp = md.aggregate;
   unsigned p_size = parts.size();
   for (unsigned u=0; u<p_size; u++) {
     metricDefinitionNode *mi = parts[u];
     metricDefinitionNode *t = (metricDefinitionNode *) this;
     mi->aggregators += t;
+    if (parts[u]->sample)
+      aggSample.addComponent(parts[u]->sample);
+    else
+      parts[u]->sample = aggSample.newComponent();
     // parts[u]->aggregators += this;
     //valueList.add(&parts[u]->sample);
-    valueList += &parts[u]->sample;
+    //valueList += &parts[u]->sample;
   }
 }
 
@@ -596,9 +620,12 @@ metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& f
 // p is a process that started after the metric instance was created.
 void metricDefinitionNode::propagateMetricInstance(process *p) {
 
-  metricDefinitionNode *mi;
+  metricDefinitionNode *mi = NULL;
   vector<process *> vp(1,p);
   bool internal = false;
+
+  if (components.size() == 0)
+    return;
 
   //
   // Old definition of observed_cost
@@ -619,8 +646,12 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
 
     components += mi->components[0];
     mi->components[0]->aggregators[0] = this;
+    if (mi->components[0]->sample)
+      aggSample.addComponent(mi->components[0]->sample);
+    else
+      mi->components[0]->sample = aggSample.newComponent();
     //valueList.add(&mi->components[0]->sample);
-    valueList += &mi->components[0]->sample;
+    //valueList += &mi->components[0]->sample;
 
     if (!internal)
       mi->components[0]->insertInstrumentation();
@@ -630,8 +661,70 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
     if (cost > originalCost_) {
       currentPredictedCost += cost - originalCost_;
       originalCost_ = cost;
-    }       
+    }
   }
+}
+
+// remove process proc from this metric instance. This function should be 
+// called whenever a process exits.
+void metricDefinitionNode::removeComponent(process *proc) {
+    unsigned u;
+    unsigned components_size = components.size();
+
+    bool found = false;
+    for (u = 0; u < components_size; u++) {
+      if (components[u]->proc_ == proc) {
+	found = true;
+	break;
+      }
+    }
+    if (!found) {
+      // the process is not a component of this metric instance.
+      return;
+    }    
+
+    aggSample.removeComponent(components[u]->sample);
+
+    // delete component u from metric instance
+
+    delete components[u];
+ 
+
+    if ((components_size - 1) > u) {
+      components[u] = components[components_size-1];
+    }
+    components.resize(components_size-1);
+
+    if (components.size() == 0) {
+      // end data collection for this metric
+
+      // flush aggregateSamples
+      sampleInterval ret = aggSample.aggregateValues();
+
+      while (ret.valid) {
+        assert(ret.end > ret.start);
+        assert(ret.start >= (firstRecordTime/MILLION));
+        assert(ret.end >= (firstRecordTime/MILLION));
+
+	batchSampleData(0, id_, ret.start, ret.end, ret.value,
+			aggSample.numComponents(),false);
+	ret = aggSample.aggregateValues();
+      }
+
+      flush_batch_buffer(0);
+      tp->endOfDataCollection(id_);
+    }
+}
+
+// Called when a process exits to remove the component associated to proc 
+// from all metric instances
+// Remove the metric instances that don't have any components left
+void removeFromMetricInstances(process *proc) {
+    vector<metricDefinitionNode *> MIs = allMIs.values();
+    for (unsigned j = 0; j < MIs.size(); j++) {
+      MIs[j]->removeComponent(proc);
+    }
+    costMetric::removeProcessFromAll(proc);
 }
 
 
@@ -684,28 +777,33 @@ bool metricDefinitionNode::insertInstrumentation()
     if (inserted_) return(true);
 
     /* check all proceses are in an ok state */
-
+#ifdef notdef
     if (!isApplicationPaused()) {
         pauseAllProcesses();
         needToCont = true;
     }
-
+#endif
     inserted_ = true;
     if (aggregate_) {
         unsigned c_size = components.size();
         for (unsigned u=0; u<c_size; u++)
           components[u]->insertInstrumentation();
     } else {
-      if (proc_->status() == exited)
+      needToCont = proc_->status() == running;
+      bool res = proc_->pause();
+      if (!res)
 	return false;
+      //if (proc_->status() == exited)
+      //  return false;
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
         data[u]->insertInstrumentation(this);
       size = requests.size();
       for (unsigned u1=0; u1<size; u1++)
         requests[u1]->insertInstrumentation();
+      if (needToCont) proc_->continueProc();
     }
-    if (needToCont) continueAllProcesses();
+    //if (needToCont) continueAllProcesses();
     return(true);
 }
 
@@ -811,7 +909,7 @@ void flush_batch_buffer(int program) {
    // vector.  This solution has the downside of calling new but is not too bad
    // and is clean.
    vector<T_dyninstRPC::batch_buffer_entry> copyBatchBuffer(batch_buffer_next);
-   for (int i=0; i< batch_buffer_next; i++)
+   for (unsigned i=0; i< batch_buffer_next; i++)
       copyBatchBuffer[i] = theBatchBuffer[i];
 
   //char myLogBuffer[120] ;
@@ -833,8 +931,8 @@ void batchSampleData(int program, int mid, double startTimeStamp,
    // This routine is called where we used to call tp->sampleDataCallbackFunc.
    // We buffer things up and eventually call tp->batchSampleDataCallbackFunc
 
-   char myLogBuffer[120] ;
 #ifdef notdef
+   char myLogBuffer[120] ;
    sprintf(myLogBuffer, "mid %d, value %g\n", mid, value) ;
    logLine(myLogBuffer) ;
 #endif
@@ -874,7 +972,7 @@ void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
 void metricDefinitionNode::updateValue(time64 wallTime, 
                                        sampleValue value)
 {
-    sampleInterval ret;
+    // sampleInterval ret;
     // extern timeStamp elapsedPauseTime;
 
     // sampleTime = wallTime/ 1000000.0 - elapsedPauseTime;
@@ -896,19 +994,19 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     if (style_ == EventCounter) { 
 
       // only use delta from last sample.
-      if (value < sample.value) {
-        if ((value/sample.value) < 0.99999) {
-          assert((value + 0.0001)  >= sample.value);
+      if (value < cumulativeValue) {
+        if ((value/cumulativeValue) < 0.99999) {
+          assert((value + 0.0001)  >= cumulativeValue);
         } else {
           // floating point rounding error ignore
-          sample.value = value;
+          cumulativeValue = value;
         }
       }
 
-      //        if (value + 0.0001 < sample.value)
+      //        if (value + 0.0001 < cumulativeValue)
       //           printf ("WARNING:  sample went backwards!!!!!\n");
-      value -= sample.value;
-      sample.value += value;
+      value -= cumulativeValue;
+      cumulativeValue += value;
     } 
       // char buffer[200];
       // sprintf(buffer, "metricDefinitionNode::updateValue: value = %f aggOp = %d agg.size = %d valueList.size = %d\n", value,sample.aggOp,aggregators.size(),valueList.count());
@@ -919,6 +1017,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     // necessary to have an special case for SampledFunction.
     //
 
+#ifdef notdef
     assert(valueList.size() == 0);
     // ret = sample.newValue(valueList, sampleTime, value);
     if (sample.firstValueReceived()) {
@@ -928,8 +1027,17 @@ void metricDefinitionNode::updateValue(time64 wallTime,
       // this is the first sample. Since we don't have the start time for this
       // sample, we have to loose it, but we set the start time here. 
       ret = sample.startTime(sampleTime);
-      sample.value = value;
+      cumulativeValue = value;
     }
+#endif
+
+    if (sample->firstValueReceived())
+      sample->newValue(sampleTime, value);
+    else {
+      sample->startTime(sampleTime);
+      cumulativeValue = value;
+    }
+
 //    if (!ret.valid && inform_) {
 //       sprintf(errorLine, "Invalid for %s:%d at %f, val=%f, inform=%d\n",
 //            met->info.name.string_of(), id_, sampleTime-(firstRecordTime/MILLION),
@@ -939,8 +1047,12 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 
     unsigned a_size = aggregators.size();
     for (unsigned a=0; a<a_size; a++) 
-      aggregators[a]->updateAggregateComponent(this, sampleTime, value);
+      //aggregators[a]->updateAggregateComponent(this, sampleTime, value);
+      aggregators[a]->updateAggregateComponent();
 
+    // we should not need to report any values, since this should not be an aggregate
+    assert(!inform_);
+#ifdef notdef
     /* 
      * must do this after all updates are done, because it may turn off this
      *  metric instance.
@@ -972,6 +1084,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 //           logLine(buffer);
 //      }
     }
+#endif
 }
 
 void metricDefinitionNode::updateCM5AggValue(time64 wallTime, 
@@ -979,29 +1092,31 @@ void metricDefinitionNode::updateCM5AggValue(time64 wallTime,
 				       int num_processes,
 				       bool is_agg)
 {
-    sampleInterval ret;
+    // sampleInterval ret;
     timeStamp sampleTime = wallTime / 1000000.0; 
 
     assert(value >= -0.01);
     if (style_ == EventCounter) { 
       // only use delta from last sample.
-      if (value < sample.value) {
-        if ((value/sample.value) < 0.99999) {
-          assert(value  >= sample.value);
+      if (value < cumulativeValue) {
+        if ((value/cumulativeValue) < 0.99999) {
+          assert(value  >= cumulativeValue);
         } else {
           // floating point rounding error ignore
-          sample.value = value;
+          cumulativeValue = value;
         }
       }
-      value -= sample.value;
-      sample.value += value;
+      value -= cumulativeValue;
+      cumulativeValue += value;
 
       // if this is an average aggregated value then get ave. from sum
-      if((is_agg) && (sample.aggOp != aggSum)){
+      //if((is_agg) && (sample.aggOp != aggSum)){
+      if((is_agg) && (aggOp != aggSum)){
               value /= num_processes;
       }
-    } 
+    }
 
+#ifdef notdef
     // ret = sample.newValue(valueList, sampleTime, value);
     assert(valueList.size() == 0);
     if (sample.firstValueReceived()) {
@@ -1011,14 +1126,28 @@ void metricDefinitionNode::updateCM5AggValue(time64 wallTime,
       // this is the first sample. Since we don't have the start time for this
       // sample, we have to loose it, but we set the start time here. 
       ret = sample.startTime(sampleTime);
-      sample.value = value;
+      cumulativeValue = value;
     }
+#endif
+
+    if (sample->firstValueReceived())
+      sample->newValue(sampleTime, value);
+    else {
+      sample->startTime(sampleTime);
+      cumulativeValue = value;
+    }
+
 
     unsigned a_size = aggregators.size();
     for (unsigned a=0; a<a_size; a++) {
-      aggregators[a]->updateAggregateComponent(this, sampleTime, value);
+      //aggregators[a]->updateAggregateComponent(this, sampleTime, value);
+      aggregators[a]->updateAggregateComponent();
     }
 
+
+    // we should not need to report any values, since this should not be an aggregate
+    assert(!inform_);
+#ifdef notdef
     /* 
      * must do this after all updates are done, because it may turn off this
      *  metric instance.
@@ -1035,22 +1164,29 @@ void metricDefinitionNode::updateCM5AggValue(time64 wallTime,
         batchSampleData(0, id_, ret.start, ret.end, ret.value,
 			valueList.size(),false);
     }
+#endif
 }
 
-void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
-                                                    timeStamp sampleTime, 
-                                                    sampleValue value)
+//void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
+//                                                    timeStamp sampleTime, 
+//                                                    sampleValue value)
+void metricDefinitionNode::updateAggregateComponent()
 {
     sampleInterval ret;
 
-    ret = sample.newValue(valueList, sampleTime, value);
+    // ret = sample.newValue(valueList, sampleTime, value);
+    ret = aggSample.aggregateValues();
+
     if (ret.valid) {
         assert(ret.end > ret.start);
         assert(ret.start >= (firstRecordTime/MILLION));
         assert(ret.end >= (firstRecordTime/MILLION));
 
-        batchSampleData(0, id_, ret.start, ret.end, ret.value,
-			valueList.size(),false);
+	// batchSampleData(0, id_, ret.start, ret.end, ret.value,
+	//		valueList.size(),false);
+	batchSampleData(0, id_, ret.start, ret.end, ret.value,
+			aggSample.numComponents(),false);
+
     }
 }
 
@@ -1391,6 +1527,7 @@ internalMetric *internalMetric::newInternalMetric(const string n,
   return im;
 }
 
+#ifdef notdef
 timeStamp xgetCurrentTime(bool firstRecordRelative)
 {
     time64 now;
@@ -1406,6 +1543,7 @@ timeStamp xgetCurrentTime(bool firstRecordRelative)
 
     return(ret);
 }
+#endif
 
 timeStamp getCurrentTime(bool firstRecordRelative)
 {
@@ -1454,7 +1592,7 @@ void reportInternalMetrics()
         internalMetric *imp = internalMetric::allInternalMetrics[u];
 
         if (imp->name() == "active_processes") {
-          value = (end - start) * processVec.size();
+	  value = (end - start) * activeProcesses;
         } else if (imp->name() == "bucket_width") {
 	  value = (end - start)*(imp->value);
         } else if (imp->name() == "number_of_cpus") {
@@ -1475,3 +1613,11 @@ void reportInternalMetrics()
       }
 }
 
+void disableAllInternalMetrics() {
+    for (unsigned u=0; u < internalMetric::allInternalMetrics.size(); u++) {
+      if (internalMetric::allInternalMetrics[u]->enabled()) {
+	tp->endOfDataCollection(internalMetric::allInternalMetrics[u]->node->getMId());
+        internalMetric::allInternalMetrics[u]->disable();
+      }
+    }  
+}

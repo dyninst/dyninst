@@ -10,8 +10,9 @@ costMetric::costMetric(const string n,
 		     im_pred_struct& preds,
 		     bool developerMode,
 		     daemon_MetUnitsType unitstype,
-		     int combiner_op){
-
+		     int combiner_op): 
+   aggSample((combiner_op != -1) ? combiner_op : a)
+{
 
    name_ = n; style_ = style; agg_ = a; units_ = units; pred = preds; 
    developermode_ = developerMode; unitstype_ = unitstype;
@@ -24,17 +25,22 @@ costMetric::costMetric(const string n,
        past[i].value = -1.0;
        past[i].len = 0.0;
    }
+
    for(unsigned i2 = 0; i2 < processVec.size(); i2++){
        components += processVec[i2];
-       sampleInfo *s = new sampleInfo;
+       //sampleInfo *s = new sampleInfo;
+#ifdef notdef
        if(combiner_op != -1)
            s->aggOp = combiner_op;
        else
            s->aggOp = agg_;
+#endif
+       sampleInfo *s = aggSample.newComponent();
        parts += s;
        lastProcessTime += 0.0; 
        cumulative_values += 0.0;
    }
+#ifdef notdef
    // how the deamons combine values from diff processes
    // this may be different from the agg_ param. which tells paradyn
    // how to combine the values from different daemons processes
@@ -42,7 +48,7 @@ costMetric::costMetric(const string n,
        sample.aggOp = combiner_op;
    else
        sample.aggOp = agg_;
-
+#endif
 }
 
 
@@ -121,7 +127,7 @@ bool costMetric::addProcess(process *p){
 	 return false;
     }
     components += p;
-    sampleInfo *s = new sampleInfo;
+    sampleInfo *s = aggSample.newComponent();
     parts += s;
     lastProcessTime += 0.0;
     cumulative_values += 0.0;
@@ -132,7 +138,8 @@ bool costMetric::removeProcess(process *p){
     unsigned size = components.size();
     for(unsigned i = 0; i < size; i++){
        if(p == components[i]){
-	   sampleInfo *olddata = parts[i];
+	   //sampleInfo *olddata = parts[i];
+	   aggSample.removeComponent(parts[i]);
 	   for(unsigned j = i; j < size-1; j++){
 	       components[j] = components[j+1];
 	       parts[j] = parts[j+1];
@@ -143,7 +150,7 @@ bool costMetric::removeProcess(process *p){
 	   parts.resize(size -1);
 	   lastProcessTime.resize(size -1);
 	   cumulative_values.resize(size -1);
-	   delete olddata;
+	   // delete olddata;
 	   assert(components.size() == parts.size());
 	   assert(lastProcessTime.size() == parts.size());
 	   assert(cumulative_values.size() == parts.size());
@@ -214,17 +221,21 @@ sampleInterval costMetricValueUpdate(costMetric *met,
 
     // update the sample value associated with the process proc
     if((met->parts[proc_num])->firstValueReceived()){
-        ret = (met->parts[proc_num])->newValue(endTime,value);
+        // ret = (met->parts[proc_num])->newValue(endTime,value);
+        (met->parts[proc_num])->newValue(endTime,value);
     }
     else {
         // this is the first sample. Since we don't have the start time for this
         // sample, we have to loose it, but we set the start time here.
-        ret = (met->parts[proc_num])->startTime(endTime);
-	(met->parts[proc_num])->value = value;
+        // ret = (met->parts[proc_num])->startTime(endTime);
+        // (met->parts[proc_num])->value = value;
+        (met->parts[proc_num])->startTime(endTime);
     }
     // update value if we have a new value from each part
-    ret = met->sample.newValue(met->parts, endTime, value);
-    if(ret.valid) met->sample.value = ret.value;
+    // ret = met->sample.newValue(met->parts, endTime, value);
+    // if(ret.valid) met->sample.value = ret.value;
+    ret = met->aggSample.aggregateValues();
+    if(ret.valid) met->cumulativeValue = ret.value;
     return ret;
 }
 
@@ -275,7 +286,8 @@ void costMetric::updateSmoothValue(process *proc,
 	    if(past_head >= PAST_LIMIT) past_head = 0;
 	    // compute value for the appropriate time interval
 	    smooth_sample *= length;
-	    sample.value = smooth_sample;
+	    //sample.value = smooth_sample;
+	    cumulativeValue = smooth_sample;
 	}
 	if(node){  // actually send the value
 	    // kludge to fix negative time from CM5 

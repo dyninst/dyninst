@@ -7,6 +7,12 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.56  1996/03/12 20:48:32  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.55  1996/03/05 16:14:05  naim
  * Making enableDataCollection asynchronous in order to improve performance - naim
  *
@@ -321,6 +327,7 @@ bool firstSampleReceived = false;
 double cyclesPerSecond = 0;
 time64 firstRecordTime = 0;
 
+// Read output data from process curr. 
 void processAppIO(process *curr)
 {
     int ret;
@@ -328,11 +335,20 @@ void processAppIO(process *curr)
 
     ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
     if (ret < 0) {
-        statusLine("read error");
-	showErrorCallback(23, "Read error");
-	cleanUpAndExit(-2);
+        //statusLine("read error");
+	//showErrorCallback(23, "Read error");
+	//cleanUpAndExit(-2);
+        string msg = string("Read error on IO stream from PID=") +
+	             string(curr->getPid()) + string(": ") +
+		     string(sys_errlist[errno]) + 
+		     string("\nNo more data will be received from this process.");
+	showErrorCallback(23, msg);
+	P_close(curr->ioLink);
+	curr->ioLink = -1;
+	return;
     } else if (ret == 0) {
 	/* end of file */
+        P_close(curr->ioLink);
 	curr->ioLink = -1;
 	return;
     }
@@ -369,6 +385,7 @@ void statusLine(const char *line)
 // only when the buffer was full, hurting response time.
 extern bool BURST_HAS_COMPLETED;
 
+// Read trace data from process curr.
 void processTraceStream(process *curr)
 {
     int ret;
@@ -381,19 +398,26 @@ void processTraceStream(process *curr)
 	       sizeof(curr->buffer)-curr->bufEnd);
 
     if (ret < 0) {
-        statusLine("read error, exiting");
-	showErrorCallback(23, "Read error");
-	cleanUpAndExit(-2);
+        //statusLine("read error, exiting");
+        //showErrorCallback(23, "Read error");
+	//curr->traceLink = -1;
+	//cleanUpAndExit(-2);
+        string msg = string("Read error on trace stream from PID=") +
+	             string(curr->getPid()) + string(": ") +
+		     string(sys_errlist[errno]) + 
+		     string("\nNo more data will be received from this process");
+	showErrorCallback(23, msg);
+	P_close(curr->traceLink);
+	curr->traceLink = -1;
+	return;
     } else if (ret == 0) {
 	/* end of file */
-        if (curr->status() != exited) {
-	  // process exited unexpectedly
-	  string buffer = string("Process ") + string(curr->pid);
-	  buffer += string(" has exited unexpectedly");
-	  statusLine(P_strdup(buffer.string_of()));
-	  showErrorCallback(11, P_strdup(buffer.string_of()));
-	  handleProcessExit(curr);
-	}
+	// process exited unexpectedly
+	//string buffer = string("Process ") + string(curr->pid);
+	//buffer += string(" has exited unexpectedly");
+	//statusLine(P_strdup(buffer.string_of()));
+	//showErrorCallback(11, P_strdup(buffer.string_of()));
+	P_close(curr->traceLink);
 	curr->traceLink = -1;
 	return;
     }
@@ -422,7 +446,7 @@ void processTraceStream(process *curr)
 	    showErrorCallback(36,(const char *) errorLine);
 	}
 	    
-	if (curr->bufEnd - curr->bufStart < header.length) {
+	if (curr->bufEnd - curr->bufStart < (unsigned)header.length) {
 	    /* the whole record isn't here yet */
 	    curr->bufStart -= sizeof(traceStream) + sizeof(header);
 	    break;
@@ -493,7 +517,9 @@ void processTraceStream(process *curr)
 		printAppStats((struct endStatsRec *) ((void*)recordData),
 			      cyclesPerSecond);
 		printDyninstStats();
-  		handleProcessExit(curr);
+		P_close(curr->traceLink);
+		curr->traceLink = -1;
+  		//handleProcessExit(curr);
 		break;
 
 	    case TR_COST_UPDATE:
@@ -632,8 +658,8 @@ int handleSigChild(int pid, int status)
 		// since it's blocked on ptrace and we didn't forward
 		// received the SIGSTOP...
 		// But we need to pause the rest of the application
-		pauseAllProcesses();
-		statusLine("application paused");
+		//pauseAllProcesses();
+		//statusLine("application paused");
 		break;
 
 	    case SIGIOT:
@@ -642,8 +668,7 @@ int handleSigChild(int pid, int status)
 		curr->status_ = stopped;
 		dumpProcessImage(curr, true);
 		OS::osDumpCore(pid, "core.real");
-                assert(0); //TEST
-		handleProcessExit(curr);
+		//handleProcessExit(curr);
 		// ???
 		// should really log this to the error reporting system.
 		// jkh - 6/25/96
@@ -663,7 +688,7 @@ int handleSigChild(int pid, int status)
 		if (!OS::osForwardSignal(pid, WSTOPSIG(status))) {
                      logLine("error  in forwarding  signal\n");
 		     showErrorCallback(38, "Error  in forwarding  signal");
-                     P_abort();
+                     //P_abort();
                 }
 		break;
 
@@ -695,22 +720,22 @@ int handleSigChild(int pid, int status)
 	}
     } else if (WIFEXITED(status)) {
 #ifdef PARADYND_PVM
-      if (pvm_running) {
-	        PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
-	}
+        //  if (pvm_running) {
+        //         PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
+	//}
 #endif
 	sprintf(errorLine, "Process %d has terminated\n", curr->pid);
+	statusLine(errorLine);
 	logLine(errorLine);
 
 	printDyninstStats();
-        handleProcessExit(curr);
-	statusLine(errorLine);
+        handleProcessExit(curr, WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
 	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->pid,
 	    WTERMSIG(status));
 	logLine(errorLine);
-	handleProcessExit(curr);
 	statusLine(errorLine);
+	handleProcessExit(curr, WTERMSIG(status));
     } else {
 	sprintf(errorLine, "Unknown state %d from process %d\n", status, curr->pid);
 	logLine(errorLine);

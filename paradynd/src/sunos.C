@@ -1,6 +1,12 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.13  1996/03/12 20:48:40  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.12  1996/02/12 16:46:19  naim
  * Updating the way we compute number_of_cpus. On solaris we will return the
  * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
@@ -223,8 +229,9 @@ bool process::dumpCore_(const string coreFile) {
   else
     ret = P_ptrace(PTRACE_DUMPCORE, pid, (char *) NULL, 0 , (char *) NULL);
   // int ret = 0;
-  assert(errno == 0);
-  return ret;
+  //assert(errno == 0);
+  //return ret;
+  return (ret != -1);
 }
 
 bool process::writeTextWord_(caddr_t inTraced, int data) {
@@ -264,7 +271,8 @@ bool process::loopUntilStopped() {
     int ret = P_waitpid(pid, &waitStatus, WUNTRACED);
     if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
       // the child is gone.
-      status_ = exited;
+      //status_ = exited;
+      handleProcessExit(this, WEXITSTATUS(waitStatus));
       return(false);
     }
     if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
@@ -302,20 +310,33 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
 
   ifd = P_open(imageFileName.string_of(), O_RDONLY, 0);
   if (ifd < 0) {
-    P_perror("open");
-    cleanUpAndExit(-1);
+    string msg = string("Dump core failed: unable to open file '") + imageFileName 
+                 + string("': ") + string(sys_errlist[errno]);
+    showErrorCallback(47, msg);
+    return false;
+    //P_perror("open");
+    //cleanUpAndExit(-1);
   }
 
   rd = P_read(ifd, (void *) &my_exec, sizeof(struct exec));
   if (rd != sizeof(struct exec)) {
-    P_perror("read");
-    cleanUpAndExit(-1);
+    string msg = string("Dump core failed: read failed '") + imageFileName 
+                 + string("': ") + string(sys_errlist[errno]);
+    showErrorCallback(47, msg);
+    P_close(ifd);
+    return false;
+    //P_perror("read");
+    //cleanUpAndExit(-1);
   }
 
   rd = P_fstat(ifd, &statBuf);
   if (rd != 0) {
-    P_perror("fstat");
-    cleanUpAndExit(-1);
+    string msg = string("Dump core failed: fstat failed: ") + string(sys_errlist[errno]);
+    showErrorCallback(47, msg);
+    P_close(ifd);
+    return false;
+    //P_perror("fstat");
+    //cleanUpAndExit(-1);
   }
   length = statBuf.st_size;
   sprintf(outFile, "%s.real", imageFileName.string_of());
@@ -324,8 +345,13 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
 
   ofd = P_open(outFile, O_WRONLY|O_CREAT, 0777);
   if (ofd < 0) {
-    P_perror("open");
-    cleanUpAndExit(-1);
+    string msg = string("Dump core failed: unable to open file '") + string(outFile) 
+                 + string("': ") + string(sys_errlist[errno]);
+    showErrorCallback(47, msg);
+    P_close(ifd);
+    return false;
+    //P_perror("open");
+    //cleanUpAndExit(-1);
   }
   /* now copy the rest */
 
@@ -343,8 +369,13 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     errno = 0;
     P_ptrace(PTRACE_READTEXT, pid, (char*) (codeOff + i), 4096, buffer);
     if (errno) {
-      P_perror("ptrace");
-      assert(0);
+      string msg = string("Dump core failed: ptrace failed: ") 
+	           + string(sys_errlist[errno]);
+      showErrorCallback(47, msg);
+      P_close(ofd); P_close(ifd);
+      return false;
+      //P_perror("ptrace");
+      //assert(0);
     }
     P_write(ofd, buffer, 4096);
   }
@@ -353,14 +384,24 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
 
   rd = P_lseek(ofd, N_DATOFF(my_exec), SEEK_SET);
   if (rd != N_DATOFF(my_exec)) {
-    P_perror("lseek");
-    cleanUpAndExit(-1);
+    string msg = string("Dump core failed: lseek failed: ") 
+	           + string(sys_errlist[errno]);
+    showErrorCallback(47, msg);
+    P_close(ofd); P_close(ifd);
+    return false;
+    //P_perror("lseek");
+    //cleanUpAndExit(-1);
   }
 
   rd = P_lseek(ifd, N_DATOFF(my_exec), SEEK_SET);
   if (rd != N_DATOFF(my_exec)) {
-    P_perror("lseek");
-    cleanUpAndExit(-1);
+    string msg = string("Dump core failed: lseek failed: ") 
+	           + string(sys_errlist[errno]);
+    showErrorCallback(47, msg);
+    P_close(ofd); P_close(ifd);
+    return false;
+    //P_perror("lseek");
+    //cleanUpAndExit(-1);
   }
 
   total = N_DATOFF(my_exec);
@@ -370,10 +411,15 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     total += rd;
   }
   if (total != length) {
-    sprintf(errorLine, "Tried to write %d bytes, only %d written\n",
-	    length, total);
-    logLine(errorLine);
-    showErrorCallback(57, (const char *) errorLine);
+    string msg = string("Dump core failed: tried to write ") + string(length) +
+                 string(" bytes, only ") + string(total) + string("written");
+    showErrorCallback(47, msg);
+    P_close(ofd); P_close(ifd);
+    return false;
+    //sprintf(errorLine, "Tried to write %d bytes, only %d written\n",
+    //	    length, total);
+    //logLine(errorLine);
+    //showErrorCallback(57, (const char *) errorLine);
   }
 
   P_close(ofd);

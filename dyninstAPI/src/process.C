@@ -14,6 +14,12 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.36  1996/03/12 20:48:36  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.35  1996/03/05 18:53:22  mjrg
  * Replaced socketpair with pipe.
  * Removed compiler warning.
@@ -197,7 +203,9 @@ int pvmendtask();
 #include "os.h"
 #include "showerror.h"
 #include "costmetrics.h"
+#include "perfStream.h"
 
+unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
 string process::programName;
 vector<string> process::arg_list;
@@ -322,7 +330,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 	/* now split curr */
 	np->length = size;
     } else {
-      i = heapFree->size();
+      unsigned i = heapFree->size();
       // copy the last element over this element
       if (foundIndex < (i-1)) {
 	(*heapFree)[foundIndex] = (*heapFree)[i-1];
@@ -387,6 +395,7 @@ process *allocateProcess(int pid, const string name)
 
     ret = new process;
     processVec += ret;
+    ++activeProcesses;
     if(!costMetric::addProcessToAll(ret)) assert(0);
 
     ret->pid = pid;
@@ -450,14 +459,20 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
     r = P_pipe(tracePipe);
     if (r) {
-	P_perror("socketpair");
+	// P_perror("socketpair");
+        string msg = string("Unable to create trace pipe for program '") + File +
+	               string("': ") + string(sys_errlist[errno]);
+	showErrorCallback(68, msg);
 	return(NULL);
     }
 
     // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
     r = P_pipe(ioPipe);
     if (r) {
-	P_perror("socketpair");
+	// P_perror("socketpair");
+        string msg = string("Unable to create IO pipe for program '") + File +
+	               string("': ") + string(sys_errlist[errno]);
+	showErrorCallback(68, msg);
 	return(NULL);
     }
     //
@@ -552,6 +567,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	childError = P_fdopen(2, "w");
 
 	P_close(tracePipe[0]);
+
 	if (P_dup2(tracePipe[1], 3) != 3) {
 	    fprintf(childError, "dup2 failed\n");
 	    fflush(childError);
@@ -655,9 +671,32 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     }
 }
 
-void handleProcessExit(process *proc) {
-  if (proc->status() != exited) {
-    proc->Exited();
+extern void removeFromMetricInstances(process *);
+extern void disableAllInternalMetrics();
+
+void handleProcessExit(process *proc, int exitStatus) {
+  if (proc->status() == exited)
+    return;
+
+  proc->Exited();
+  removeFromMetricInstances(proc);
+  if (proc->traceLink >= 0) {
+    processTraceStream(proc);
+    P_close(proc->traceLink);
+    proc->traceLink = -1;
   }
+  if (proc->ioLink >= 0) {
+    processAppIO(proc);
+    P_close(proc->ioLink);
+    proc->ioLink = -1;
+  }
+  --activeProcesses;
+  if (activeProcesses == 0)
+    disableAllInternalMetrics();
+#ifdef PARADYND_PVM
+  if (pvm_running) {
+    PDYN_reportSIGCHLD(proc->getPid(), exitStatus);
+  }
+#endif
 }
 

@@ -10,6 +10,12 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.29  1996/03/12 20:48:37  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.28  1996/03/01 22:37:20  mjrg
  * Added a type to resources.
  * Added function handleProcessExit to handle exiting processes.
@@ -150,6 +156,9 @@
 #include "main.h"
 #include "dyninstRPC.xdr.h"
 #include <stdio.h>
+#include "showerror.h"
+
+extern unsigned activeProcesses; // number of active processes
 
 class resource;
 class instPoint;
@@ -221,8 +230,8 @@ friend class ptraceKludge;
   process *parent;		/* parent of this proces */
   dictionary_hash<instPoint*, unsigned> baseMap;	/* map and inst point to its base tramp */
   char buffer[2048];
-  int bufStart;
-  int bufEnd;
+  unsigned bufStart;
+  unsigned bufEnd;
   time64 wallTimeLastTrampSample;
   time64 timeLastTrampSample;
   float pauseTime;		/* only used on the CM-5 version for now 
@@ -286,9 +295,12 @@ inline process *findProcess(int pid) {
 }
 
 inline bool process::detach(const bool paused) {
-  bool res;
-  assert (res = detach_());
-  return res;
+  bool res = detach_();
+  if (!res) {
+    // process may have exited
+    return false;
+  }
+  return true;
 }
 
 inline bool process::checkStatus() {
@@ -301,70 +313,181 @@ inline bool process::checkStatus() {
 }
 
 inline bool process::pause() {
-  if (waitingForNodeDaemon)
+  if (waitingForNodeDaemon) return true; // CM5 kludge
+
+  if (status_ == stopped || status_ == neonatal)
     return true;
-  if (status_ == running && reachedFirstBreak) {
-    bool res;
-    assert (res = pause_());
-    // (void) PCptrace(PTRACE_INTERRUPT, proc, (char*)1, 0, (char*)NULL);
+  else if (status_ == running && reachedFirstBreak) {
+    bool res = pause_();
+    if (!res) {
+      return false;
+    }
     status_ = stopped;
-    return res;
-  }
+  } else if (status_ == exited)
+    return false;
   return true;
 }
 
 inline bool process::continueProc() {
-  if (waitingForNodeDaemon)
-    return true;
-  if (status_ == stopped) {
-    bool res;
-    assert (res = continueProc_());
-    // (void) PCptrace(PTRACE_CONT, proc, (char*)1, 0, (char*)NULL);
-    status_ = running;
-    return res;
+  if (waitingForNodeDaemon) return true; // CM5 kludge
+
+  if (status_ != stopped && status_ != neonatal) {
+    showErrorCallback(38, "Internal paradynd error in process::continueProc");
+    return false;
   }
+
+  bool res = continueProc_();
+  if (!res) {
+    showErrorCallback(38, "System error: can't continue process");
+    return false;
+  }
+  status_ = running;
   return true;
 }
 
-
-
 inline bool process::dumpCore(const string fileOut) {
-  bool res;
-  assert (res = dumpCore_(fileOut));
-  return res;
+  bool res = dumpCore_(fileOut);
+  if (!res) {
+    return false;
+  }
+  return true;
 }
 
 /*
  * Copy data from controller process to the named process.
  */
 inline bool process::writeDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
-  bool res;
-  assert (res = writeDataSpace_(inTracedProcess, size, inSelf));
-  return res;
+  bool needToCont = false;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running) {
+    needToCont = true;
+    if (! pause())
+      return false;
+  }
+
+  if (status_ != stopped && status_ != neonatal) {
+    showErrorCallback(38, "Internal paradynd error in process::writeDataSpace");
+    return false;
+  }
+
+  bool res = writeDataSpace_(inTracedProcess, size, inSelf);
+  if (!res) {
+    string msg = string("System error: unable to write to process data space:")
+	           + string(sys_errlist[errno]);
+    showErrorCallback(38, msg);
+    return false;
+  }
+
+  if (needToCont)
+    return this->continueProc();
+  return true;
 }
 
 inline bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
-  bool res;
-  assert (res = readDataSpace_(inTracedProcess, size, inSelf));
-  return res;
+  bool needToCont = false;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running) {
+    needToCont = true;
+    if (! pause())
+      return false;
+  }
+
+  if (status_ != stopped && status_ != neonatal) {
+    showErrorCallback(38, "Internal paradynd error in process::readDataSpace");
+    return false;
+  }
+
+  bool res = readDataSpace_(inTracedProcess, size, inSelf);
+  if (!res) {
+    string msg = string("System error: unable to write to process data space:")
+	           + string(sys_errlist[errno]);
+    showErrorCallback(38, msg);
+    return false;
+  }
+
+  if (needToCont)
+    return this->continueProc();
+  return true;
+
 }
 
 inline bool process::writeTextWord(caddr_t inTracedProcess, int data) {
-  bool res;
-  assert (res = writeTextWord_(inTracedProcess, data));
-  return res;
+  bool needToCont = false;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running) {
+    needToCont = true;
+    if (! pause())
+      return false;
+  }
+
+  if (status_ != stopped && status_ != neonatal) {
+    string msg = string("Internal paradynd error in process::writeTextWord")
+               + string((int)status_);
+    showErrorCallback(38, msg);
+    //showErrorCallback(38, "Internal paradynd error in process::writeTextWord");
+    return false;
+  }
+
+  bool res = writeTextWord_(inTracedProcess, data);
+  if (!res) {
+    string msg = string("System error: unable to write to process data space:")
+	           + string(sys_errlist[errno]);
+    showErrorCallback(38, msg);
+    return false;
+  }
+
+  if (needToCont)
+    return this->continueProc();
+  return true;
+
 }
 
 inline bool process::writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf) {
-  bool res;
-  assert (res = writeTextSpace_(inTracedProcess, amount, inSelf));
-  return res;
+  bool needToCont = false;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running) {
+    needToCont = true;
+    if (! pause())
+      return false;
+  }
+
+  if (status_ != stopped && status_ != neonatal) {
+    string msg = string("Internal paradynd error in process::writeTextSpace")
+               + string((int)status_);
+    showErrorCallback(38, msg);
+    //showErrorCallback(38, "Internal paradynd error in process::writeTextSpace");
+    return false;
+  }
+
+  bool res = writeTextSpace_(inTracedProcess, amount, inSelf);
+  if (!res) {
+    string msg = string("System error: unable to write to process data space:")
+	           + string(sys_errlist[errno]);
+    showErrorCallback(38, msg);
+    return false;
+  }
+
+  if (needToCont)
+    return this->continueProc();
+  return true;
 }
 
 
 process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir);
 process *allocateProcess(int pid, const string name);
-void handleProcessExit(process *p);
+void handleProcessExit(process *p, int exitStatus);
 
 void initInferiorHeap(process *proc, bool globalHeap, bool textHeap);
 void copyInferiorHeap(process *from, process *to);

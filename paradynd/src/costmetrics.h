@@ -38,7 +38,8 @@ class costMetric {
   string name() const { return name_;}
   const char *getName() const { return name_.string_of();}
   int aggregate() const { return agg_; }
-  sampleValue getValue() { return (sample.value); }
+  //sampleValue getValue() { return (sample.value); }
+  sampleValue getValue() { return cumulativeValue; }
   static costMetric *newCostMetric(const string n, 
 			       metricStyle style, 
 			       int a,   // how paradyn combines values
@@ -74,7 +75,8 @@ class costMetric {
   timeStamp getLastSampleTime(process *proc){
       for(unsigned i=0; i < components.size(); i++){
 	  if(proc == components[i]){
-              return(parts[i]->lastSampleEnd);
+	        //return(parts[i]->lastSampleEnd);
+                return(parts[i]->lastSampleTime());
       } }
       return 0.0;
   }
@@ -108,6 +110,8 @@ private:
   // list of processes and values contributing to metric value
   vector<process *> components;
   vector<sampleInfo *> parts;
+  aggregateSample aggSample;
+
   vector<sampleValue> cumulative_values;
 
   // process times associated with each component wall times are contained
@@ -119,7 +123,8 @@ private:
   pd_pastValues past[PAST_LIMIT];
   int  past_head;
   sampleValue smooth_sample;
-  sampleInfo sample;
+  // sampleInfo sample;
+  sampleValue cumulativeValue;
 
   string name_;
   int agg_;

@@ -202,7 +202,8 @@ bool process::loopUntilStopped() {
     int ret = P_waitpid(pid, &waitStatus, WUNTRACED);
     if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
       // the child is gone.
-      status_ = exited;
+      //status_ = exited;
+      handleProcessExit(this, WEXITSTATUS(waitStatus));
       return(false);
     }
     if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {

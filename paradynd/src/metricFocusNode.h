@@ -7,6 +7,12 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.28  1996/03/12 20:48:29  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.27  1996/02/22 23:41:45  newhall
  * removed getCurrentSmoothObsCost, and fix to costMetric::updateSmoothValue
  *
@@ -228,13 +234,15 @@ public:
   metricDefinitionNode(process *p, string& metric_name, vector< vector<string> >& foc,
 		       string& cat_name, int agg_style = aggSum);
   metricDefinitionNode(string& metric_name, vector< vector<string> >& foc,
-		       string& cat_name, vector<metricDefinitionNode*>& parts); 
+		       string& cat_name, vector<metricDefinitionNode*>& parts,
+		       int agg_op);
   ~metricDefinitionNode();
   void disable();
   void updateValue(time64, sampleValue);
   void updateCM5AggValue(time64, sampleValue,int,bool);
   void forwardSimpleValue(timeStamp, timeStamp, sampleValue,unsigned,bool);
 
+  int getMId() const { return id_; }
   string getMetName() const { return met_; }
   string getFullName() const { return flat_name_; }
   process *proc() const { return proc_; }
@@ -255,13 +263,18 @@ public:
   // propagate this metric instance to process p
   void propagateMetricInstance(process *p);  
 
+  // remove the component associated with process p from this metric instance
+  void removeComponent(process *p);
+
 private:
 
-  void updateAggregateComponent(metricDefinitionNode *,
-				timeStamp time, 
-				sampleValue value);
+  //void updateAggregateComponent(metricDefinitionNode *,
+  //				timeStamp time, 
+  // 				sampleValue value);
+  void updateAggregateComponent();
 
   bool			aggregate_;
+  int aggOp; // the aggregate operator
   bool			inserted_;
   string met_;			// what type of metric
   vector< vector<string> > focus_;
@@ -269,16 +282,19 @@ private:
 
   /* for aggregate metrics */
   vector<metricDefinitionNode*>   components;	
+  aggregateSample aggSample;    // current aggregate value
 
   /* for non-aggregate metrics */
   vector<dataReqNode*>	data;
   vector<instReqNode*> 	requests;
+  sampleInfo *sample;          // current sample for this metric
+  sampleValue cumulativeValue; // cumulative value for this metric
 
   // which metricDefinitionNode depend on this value.
   vector<metricDefinitionNode*>   aggregators;	
 
-  vector<sampleInfo*>	valueList;	// actual data for comp.
-  sampleInfo sample;
+  //  vector<sampleInfo*>	valueList;	// actual data for comp.
+  //  sampleInfo sample;
   int id_;				// unique id for this one 
   float originalCost_;
 
@@ -288,6 +304,7 @@ private:
 
   string metric_name_;
   metricStyle style_; 
+
 };
 
 inline dataReqNode *metricDefinitionNode::addIntCounter(int inititalValue, bool report) {

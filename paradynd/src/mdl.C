@@ -3,6 +3,12 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.21  1996/03/12 20:48:22  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.20  1996/03/01 22:35:56  mjrg
  * Added a type to resources.
  * Changes to the MDL to handle the resource hierarchy better.
@@ -645,7 +651,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   //  }
 
   if (parts.size())
-    ret = new metricDefinitionNode(name_, focus, flat_name, parts);
+    ret = new metricDefinitionNode(name_, focus, flat_name, parts, agg_op_);
 
   if (ret) ret->set_inform(true);
 
@@ -1765,6 +1771,8 @@ AstNode *do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& 
   return ret;
 }
 
+// Old definition of observed cost, this is no longer being used
+#ifdef notdef
 metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
 					string& met_name,
 					string& flat_name, vector<process *> procs) {
@@ -1825,6 +1833,7 @@ metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
   if (ret) ret->set_inform(true);
   return ret;
 }
+#endif
 
 bool mdl_get_initial(string flavor, pdRPC *connection) {
   mdl_init(flavor);

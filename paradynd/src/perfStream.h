@@ -5,7 +5,13 @@
 
 /*
  * $Log: perfStream.h,v $
- * Revision 1.4  1995/05/18 10:43:26  markc
+ * Revision 1.5  1996/03/12 20:48:34  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
+ * Revision 1.4  1995/05/18  10:43:26  markc
  * Removed declarations for unused functions
  *
  * Revision 1.3  1995/02/16  08:53:56  markc
@@ -36,5 +42,7 @@ extern double cyclesPerSecond;
 extern time64 firstRecordTime;
 extern void createResource(traceHeader *header, struct _newresource *r);
 extern void processArchDependentTraceStream();
+extern void processAppIO(process *p);
+extern void processTraceStream(process *p);
 
 #endif

@@ -1,6 +1,12 @@
 
 /* 
  * $Log: aix.C,v $
+ * Revision 1.7  1996/03/12 20:48:16  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.6  1996/02/13 16:23:22  hollings
  * Move Object class constructors to this file.
  *
@@ -247,7 +253,8 @@ bool process::loopUntilStopped() {
     if ((ret == -1) && (errno == EINTR)) continue;
     if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
       // the child is gone.
-      status_ = exited;
+      //status_ = exited;
+      handleProcessExit(this, WEXITSTATUS(waitStatus));
       return(false);
     }
     if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {

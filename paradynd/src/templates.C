@@ -5,6 +5,12 @@
 
 /* 
  * $Log: templates.C,v $
+ * Revision 1.28  1996/03/12 20:48:42  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.27  1996/02/13 06:17:37  newhall
  * changes to how cost metrics are computed. added a new costMetric class.
  *
@@ -195,6 +201,7 @@ template class vector<T_dyninstRPC::batch_buffer_entry>;
 
 //template class  List<sampleInfo*>;
 template class vector<sampleInfo*>;
+template class vector<bool>;
 
 //template class  queue<T_dyninstRPC::buf_struct*>;
 

@@ -1,6 +1,12 @@
 
 /* 
  * $Log: solaris.C,v $
+ * Revision 1.8  1996/03/12 20:48:39  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.7  1996/02/12 16:46:18  naim
  * Updating the way we compute number_of_cpus. On solaris we will return the
  * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
@@ -227,7 +233,8 @@ bool process::loopUntilStopped() {
     int ret = P_waitpid(pid, &waitStatus, WUNTRACED);
     if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
       // the child is gone.
-      status_ = exited;
+      //status_ = exited;
+      handleProcessExit(this, WEXITSTATUS(waitStatus));
       return(false);
     }
     if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {

@@ -1,6 +1,12 @@
 
 /*
  * $Log: mdld.h,v $
+ * Revision 1.4  1996/03/12 20:48:24  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
  * Revision 1.3  1996/01/29 22:09:28  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines
@@ -38,10 +44,10 @@ extern metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus,
 				    vector<process *> procs);
 extern bool mdl_can_do(string& metric_name);
 
-extern metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
-					       string& met_name,
-					       string& flat_name,
-					       vector<process *> procs);
+//extern metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
+//					       string& met_name,
+//					       string& flat_name,
+//					       vector<process *> procs);
 
 // Get the initial mdl info (metrics, constraints, statements)
 extern bool mdl_get_initial(string flavor, pdRPC*);
