@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.95 1999/06/08 07:10:30 csserra Exp $
+// $Id: symtab.C,v 1.96 1999/06/17 06:14:15 csserra Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1287,7 +1287,9 @@ bool image::addOneFunction(vector<Symbol> &mods,
   // find module name
   Address modAddr = 0;
   string modName = lookUp.module();
-  if (modName == "DEFAULT_MODULE") {
+  if (modName == "") {
+    modName = name_ + "_module";
+  } else if (modName == "DEFAULT_MODULE") {
       string modName_3 = modName;
       findModByAddr(lookUp, mods, modName, modAddr, modName_3);
   }
