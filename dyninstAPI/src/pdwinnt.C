@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.136 2005/03/07 22:22:22 bernat Exp $
+// $Id: pdwinnt.C,v 1.137 2005/03/14 21:12:00 gquinn Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -775,10 +775,7 @@ DWORD handleProcessCreate(const procevent &event) {
       // reparse the image with the updated descriptor
       image* img = image::parseImage( desc );
       img->defineModules(proc);
-      proc->setImage( img );
-      // We had originally inserted it at 0 -- move it over
-      proc->deleteCodeRange(0);
-      proc->addCodeRange(img->codeOffset(), img);
+      proc->overwriteImage( img );
       
    }
 

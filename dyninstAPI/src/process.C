@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.528 2005/03/07 21:18:41 bernat Exp $
+// $Id: process.C,v 1.529 2005/03/14 21:12:01 gquinn Exp $
 
 #include <ctype.h>
 
@@ -4451,16 +4451,18 @@ bool process::getSymbolInfo( const pdstring &name, Symbol &ret )
 // the offset. 
 
 codeRange *process::findCodeRangeByAddress(Address addr) {
-   codeRange *range = NULL;
-   if (!codeRangesByAddr_->precessor(addr, range))
-      return NULL;
 
+   codeRange *range = NULL;
+   if (!codeRangesByAddr_->precessor(addr, range)) {
+      return NULL;
+   }
+   
    assert(range);
 
    bool in_range = (addr >= range->get_address() &&
                     addr <= (range->get_address() + range->get_size()));
    if(! in_range) {
-      range = NULL;
+       return NULL;
    }
 
    shared_object *sharedobject_ptr = range->is_shared_object();
@@ -4500,11 +4502,15 @@ codeRange *process::findCodeRangeByAddress(Address addr) {
       // Assumes the base addr of the image is 0!
       // Fill in the function part as well for complete info
       int_function *function_ptr = image_ptr->findFuncByOffset(addr);
-      range = function_ptr;
+      if (function_ptr) {
+	  range = function_ptr;
+      }
    }
    else if (sharedobject_ptr) {
        int_function *function_ptr = sharedobject_ptr->findFuncByAddress(addr);
-       range = function_ptr;
+       if (function_ptr) {
+	   range = function_ptr;
+       }
     }
     
    return range;

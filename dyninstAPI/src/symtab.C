@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.237 2005/03/13 23:44:11 legendre Exp $
+ // $Id: symtab.C,v 1.238 2005/03/14 21:12:04 gquinn Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1604,6 +1604,7 @@ void image::enterFunctionInTables(int_function *func, pdmodule *mod) {
 
   // Address tree is straightforward: one func per address
   Address addrcopy = func->getOffset();
+
   funcsByRange.insert(addrcopy, func);
   
   // Possibly multiple demangled (pretty) names...
@@ -1764,8 +1765,8 @@ bool image::analyzeImage()
     return true;
   }
   
-  pdvector<int_function *> new_functions;
-  
+  pdvector<int_function *> new_functions;  
+
   for (unsigned i = 0; i < everyUniqueFunction.size(); i++) {
     
     pdf = everyUniqueFunction[i];
@@ -1796,6 +1797,10 @@ bool image::analyzeImage()
       if( !funcsByEntryAddr.defines( new_functions[j]->get_address() ) )
           everyUniqueFunction.push_back(new_functions[j]);
   }
+
+  // nothing to do, exit
+  if (everyUniqueFunction.size() == 0)
+      return true;
     
   VECTOR_SORT(everyUniqueFunction, addrfunccmp);
   
@@ -2359,11 +2364,11 @@ pdmodule *image::getOrCreateModule(const pdstring &modName,
 // IMAGE, and does not consider relocated functions. Those must be searched
 // for on the process level (as relocated functions are per-process)
 int_function *image::findFuncByOffset(const Address &offset)  {
-
-  codeRange *range;
+    codeRange *range;
     bool found = funcsByRange.precessor(offset, range);
-    if (!found)
+    if (!found) {
         return NULL;
+    }
     int_function *func = range->is_function();
     assert(func != NULL);
     assert(func->get_address() <= offset);

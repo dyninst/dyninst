@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.18 2005/01/21 23:44:28 bernat Exp $
+// $Id: inst-winnt.C,v 1.19 2005/03/14 21:11:58 gquinn Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -189,10 +189,40 @@ bool process::findCallee(instPoint &instr, int_function *&target)
 		// get the target address of the call
 		Address callTarget = instr.insnAtPoint().getTarget(instr.pointAddr());
 
-		// get the instruction at the target address
+		// find code range that contains the target address
+		// TODO: optimize by checking callsite image first?
+		codeRange* cr = findCodeRangeByAddress(callTarget);
+		if (cr == NULL) {
+		    cr = NULL;
+		    return false;
+		} else {
+		    // if target address is a known function, return it
+		    int_function* func = cr->is_function();
+		    if (func != NULL) {
+			fprintf(stderr, "FOUND FUNC: %s\n", func->prettyName().c_str());
+			target = func;
+			instr.setCallee(func);
+			return true;
+		    }
+		}
+		const image* img = cr->is_image();
+		if (img == NULL) {
+		    shared_object* so = cr->is_shared_object();
+		    if (so == NULL) {
+			// target address not in image or shared object
+			return false;
+		    }
+		    img = so->getImage();
+		}
+		
+		// get a "local" pointer to the call target instruction
+		Address tmp;
+		bool ok = getBaseAddress(img, tmp);
+		assert(ok);
+		const unsigned char* insnLocalAddr =
+		    img->getPtrToInstruction(callTarget - tmp);
+
 		unsigned int itype = 0;
-		Address offset = callTarget - instr.pointAddr();
-		const unsigned char* insnLocalAddr = instr.insnAtPoint().ptr() + offset;
 		unsigned int isize = get_instruction( insnLocalAddr, itype );
 		instruction callTargetInst( insnLocalAddr, itype, isize );
 
