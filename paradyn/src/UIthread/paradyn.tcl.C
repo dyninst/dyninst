@@ -47,9 +47,12 @@
 */
 
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.76  1997/01/16 21:57:56  tamches
-/* extra params to attach for dir + prog-name
+/* Revision 1.77  1997/01/30 18:07:21  tamches
+/* attach no longer takes in a dir
 /*
+ * Revision 1.76  1997/01/16 21:57:56  tamches
+ * extra params to attach for dir + prog-name
+ *
  * Revision 1.75  1997/01/15 00:13:17  tamches
  * added attach command
  *
@@ -156,14 +159,16 @@ int ParadynContCmd(ClientData,
   // Called by mainMenu.tcl when the RUN button is clicked on.
 
   // First, we disable the RUN button so it can't be clicked on again.
-  // Note that we don't enable the PAUSE button just yet...we wait until
-  // the continue has been processed.
+
   myTclEval(interp, ".parent.buttons.1 configure -state disabled");
 
-  //sleep(1);
+  // NOTE: we don't enable the PAUSE button just yet...we wait until
+  // the (synchronous) igen call has completed, to avoid a race condition.
+
   if (!dataMgr->continueApplication())
      cerr << "warning: dataMgr->continueApplication() failed" << endl;
 
+  // Okay, now it's safe to enable the PAUSE button.
   myTclEval(interp, ".parent.buttons.2 configure -state normal");
 
   return TCL_OK;
@@ -365,10 +370,9 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
    char *user = NULL;
    char *machine = NULL;
    char *paradynd = NULL;
+   int afterattach = 0; // 0 --> as is, 1 --> pause, 2 --> run
 
-   // dir + cmd give the path to the executable...used only to read
-   // the symbol table.
-   char *dir = NULL;
+   // cmd gives the path to the executable...used only to read the symbol table.
    char *cmd = NULL; // program name
 
    char *pidstr = NULL;
@@ -383,14 +387,21 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
       else if (0==strcmp("-daemon", argv[i]) && i+1 < argc) {
 	 paradynd = argv[++i];
       }
-      else if (0==strcmp("-dir", argv[i]) && i+1 < argc) {
-	 dir = argv[++i];
-      }
       else if (0==strcmp("-command", argv[i]) && i+1 < argc) {
 	 cmd = argv[++i];
       }
       else if (0==strcmp("-pid", argv[i]) && i+1 < argc) {
 	 pidstr = argv[++i];
+      }
+      else if (0==strcmp("-afterattach", argv[i]) && i+1 < argc) {
+	 const char *afterattachstr = argv[++i];
+	 afterattach = atoi(afterattachstr);
+	 if (afterattach < 0 || afterattach > 2) {
+	    Tcl_SetResult(interp, "paradyn attach: bad -afterattach value: ", TCL_STATIC);
+	    Tcl_AppendResult(interp, afterattachstr, NULL);
+	    cerr << interp->result << endl;
+	    return TCL_ERROR;
+	 }
       }
       else {
 	 Tcl_SetResult(interp, "paradyn attach: unrecognized option, or option missing required argument: ", TCL_STATIC);
@@ -400,14 +411,8 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
       }
    }
 
-   if (pidstr == NULL) {
-      Tcl_SetResult(interp, "paradyn attach: the -pid option is required", TCL_STATIC);
-      cerr << interp->result << endl;
-      return TCL_ERROR;
-   }
-
-   if (cmd == NULL) {
-      Tcl_SetResult(interp, "paradyn attach: the -command option is required", TCL_STATIC);
+   if (pidstr == NULL && cmd == NULL) {
+      Tcl_SetResult(interp, "paradyn attach: at least one of the -pid and -command options are required", TCL_STATIC);
       cerr << interp->result << endl;
       return TCL_ERROR;
    }
@@ -415,19 +420,26 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
    if (!app_name)
       app_name = new status_line("Application name");
 
-   char buffer[512];
-   sprintf(buffer, "program: %s, machine: %s, user: %s, daemon: %s",
-	   cmd, // how to get the program name from an attach?
-	   machine ? machine : "(local)",
-	   user ? user : "(self)",
-	   paradynd ? paradynd : "(defd)");
-   app_name->message(buffer);
+   string theMessage;
+   if (cmd)
+      theMessage += string("program: ") + cmd + " ";
+
+   if (machine)
+      theMessage += string("machine: ") + machine + " ";
+   
+   if (user)
+      theMessage += string("user: ") + user + " ";
+
+   if (paradynd)
+      theMessage += string("daemon: ") + paradynd + " ";
+
+   app_name->message(theMessage.string_of());
 
    // Disabling PAUSE and RUN during attach can help avoid deadlocks.
    disablePAUSEandRUN();
 
    // Note: the following is not an igen call to paradynd...just to the DM thread
-   if (!dataMgr->attach(machine, user, dir, cmd, pidstr, paradynd)) {
+   if (!dataMgr->attach(machine, user, cmd, pidstr, paradynd, afterattach)) {
       Tcl_SetResult(interp, "", TCL_STATIC);
       return TCL_ERROR;
    }
