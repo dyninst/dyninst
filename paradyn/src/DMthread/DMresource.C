@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.18 1995/01/26 17:58:24 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.19 1995/02/16 08:17:30 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.18  1995/01/26 17:58:24  jcargill
+ * Revision 1.19  1995/02/16 08:17:30  markc
+ * Changed Boolean to bool
+ * Added function to convert char* lists to vector<string>
+ *
+ * Revision 1.18  1995/01/26  17:58:24  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -149,7 +153,7 @@ void resource::print()
  * Convinence function.
  *
  */
-Boolean resource::isDescendent(resource *child)
+bool resource::isDescendent(resource *child)
 {
     while (child) {
         if (child == this) {
@@ -167,7 +171,7 @@ Boolean resource::isDescendent(resource *child)
  * the test for a common base checks the node below the
  * common root.
  */
-Boolean resource::sameRoot(resource *other)
+bool resource::sameRoot(resource *other)
 {
   resource *myBase=0, *otherBase=0, *temp;
 
@@ -220,6 +224,14 @@ resource *resourceList::find(const char *name)
     }
     unlock();
     return(ret);
+}
+
+bool resourceList::convertToStringList(vector<string> &vs) {
+    lock();
+    for (unsigned i=0; i < count; i++)
+      vs += (char *)elements[i]->fullName;
+    unlock();
+    return true;
 }
 
 char **resourceList::convertToStringList() 
