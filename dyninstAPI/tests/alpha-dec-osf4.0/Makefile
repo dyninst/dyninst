@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.8 2000/04/24 03:18:48 wylie Exp $
+# $Id: Makefile,v 1.9 2000/05/01 21:19:14 paradyn Exp $
 #
 # Makefile for dyninstAPI test programs on Compaq Alpha
 #
@@ -34,7 +34,7 @@ ifeq ($(MUTATEE_CC),$(NATIVE_CC))
 MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
-MUTATEE_CFLAGS = $(ARCH_DEF) -g
+MUTATEE_CFLAGS = -x cxx $(ARCH_DEF) -g
 endif
 
 ifdef GCC_2_95
