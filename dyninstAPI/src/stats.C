@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.26 2001/08/01 15:39:57 chadd Exp $
+ * $Id: stats.C,v 1.27 2001/08/23 14:43:28 schendel Exp $
  */
 
 #if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11) //ccw 6 apr 2001
@@ -86,30 +86,12 @@ timer totalInstTime;
 
 void printDyninstStats()
 {
-#ifndef BPATCH_LIBRARY
-    sprintf(errorLine, "    totalPredictedCost = %lld\n", 
-	    totalPredictedCost->getValue().getValue());
-    logLine(errorLine);
-#endif
-
     sprintf(errorLine, "    %d total points used\n", pointsUsed);
     logLine(errorLine);
     sprintf(errorLine, "    %d mini-tramps used\n", totalMiniTramps);
     logLine(errorLine);
-#ifndef BPATCH_LIBRARY
-    sprintf(errorLine, "    %d metric/resource pairs enabled\n",metResPairsEnabled);
-    logLine(errorLine);
-    sprintf(errorLine, "    %d metrics used\n", metricsUsed);
-    logLine(errorLine);
-    sprintf(errorLine, "    %d foci used\n", fociUsed);
-    logLine(errorLine);
-#endif
     sprintf(errorLine, "    %d tramp bytes\n", trampBytes);
     logLine(errorLine);
-#ifndef BPATCH_LIBRARY
-    sprintf(errorLine, "    %d samples delivered\n", samplesDelivered);
-    logLine(errorLine);
-#endif
     sprintf(errorLine, "    %d ptrace other calls\n", ptraceOtherOps);
     logLine(errorLine);
     sprintf(errorLine, "    %d ptrace write calls\n", ptraceOps-ptraceOtherOps);
@@ -155,6 +137,14 @@ void printAppStats(struct endStatsRec *stats)
 #if defined(i386_unknown_linux2_0)
     logStream <<  "    Total traps hit: " << stats->totalTraps << "\n";
 #endif
+    sprintf(errorLine, "    %d metric/resource pairs enabled\n",metResPairsEnabled);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d metrics used\n", metricsUsed);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d foci used\n", fociUsed);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d samples delivered\n", samplesDelivered);
+    logLine(errorLine);
   }
 }
 #endif
