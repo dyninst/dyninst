@@ -2,15 +2,6 @@
  * UIpublic.C : exported services of the User Interface Manager thread 
  *              of Paradyn
  *
- * This file contains working versions of the following:
- *      UIMUser::
- *               showErrorREPLY
- *               showMsgREPLY
- *               chooseMetricsandResourcesREPLY
- *
- *      UIM:: showError
- *            showMsg
- *            chooseMetricsandResources
  */
 
 /*
@@ -30,9 +21,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.30  1995/11/08 06:25:03  tamches
-/* removed some warnings by including tclclean.h and tkclean.h
+/* Revision 1.31  1995/11/08 23:43:21  tamches
+/* removed code for obsolete ui igen calls chooseMenuItemREPLY,
+/* msgChoice, chooseMenuItem, showMsg, uimMsgReplyCmd, showMsgWait
 /*
+ * Revision 1.30  1995/11/08 06:25:03  tamches
+ * removed some warnings by including tclclean.h and tkclean.h
+ *
  * Revision 1.29  1995/11/08 05:10:26  tamches
  * removed reference to obsolete file dag.h
  *
@@ -156,7 +151,7 @@
 #include "shgPhases.h"
 #include "shgTcl.h"
 
-extern void initSHGStyles();
+//extern void initSHGStyles();
 
  /* globals for metric resource selection */
 vector<metric_focus_pair> *uim_VisiSelections;
@@ -164,17 +159,17 @@ char **uim_AvailMets;
 int uim_AvailMetsSize;
 metricHandle *uim_AvailMetHandles;
 
-void 
-UIMUser::chooseMenuItemREPLY(chooseMenuItemCBFunc cb, int userChoice)
-{
-  (cb) (userChoice);
-}
+//void 
+//UIMUser::chooseMenuItemREPLY(chooseMenuItemCBFunc cb, int userChoice)
+//{
+//  (cb) (userChoice);
+//}
 
-void 
-UIMUser::msgChoice(showMsgCBFunc cb, int userChoice)
-{
-  (cb) (userChoice);
-}
+//void 
+//UIMUser::msgChoice(showMsgCBFunc cb, int userChoice)
+//{
+//  (cb) (userChoice);
+//}
 
 void
 UIMUser::chosenMetricsandResources
@@ -184,17 +179,17 @@ UIMUser::chosenMetricsandResources
   (cb) (pairList);
 }
 	
-void 
-UIM::chooseMenuItem(chooseMenuItemCBFunc cb,
-	       char *menuItems,
-	       char *menuTitle,
-	       char *options,
-	       int numMenuItems,
-	       int flags)
-{
-  fprintf (stderr, "chooseMenuItem called\n");
-
-}
+//void 
+//UIM::chooseMenuItem(chooseMenuItemCBFunc cb,
+//	       char *menuItems,
+//	       char *menuTitle,
+//	       char *options,
+//	       int numMenuItems,
+//	       int flags)
+//{
+//  fprintf (stderr, "chooseMenuItem called\n");
+//
+//}
 
 // 
 // Startup File
@@ -240,105 +235,105 @@ UIM::showError(int errCode, const char *errString)
  * function.  If an error occurs during the message display, -1 is 
  * returned.
  */
-void 
-UIM::showMsg(showMsgCBFunc cb,
-	char *displayMsg,
-	int numChoices,
-	char **choices)
-{
-  char *clist;
-  int retVal;
-  UIMReplyRec *reply;
-  Tcl_HashEntry *entryPtr;
-  char token[16];
-  int newptr;
+//void 
+//UIM::showMsg(showMsgCBFunc cb,
+//	char *displayMsg,
+//	int numChoices,
+//	char **choices)
+//{
+//  char *clist;
+//  int retVal;
+//  UIMReplyRec *reply;
+//  Tcl_HashEntry *entryPtr;
+//  char token[16];
+//  int newptr;
+//
+///*** get token*****/
+//  UIMMsgTokenID++;
+//  entryPtr = Tcl_CreateHashEntry (&UIMMsgReplyTbl, (char *)UIMMsgTokenID, 
+//				  &newptr);
+//  if (newptr) {
+//    reply = new UIMReplyRec;
+//      /* grab thread id of requesting thread */
+//    reply->tid = getRequestingThread();
+//    reply->cb = cb;
+//    Tcl_SetHashValue (entryPtr, reply);
+//  }
+//
+//  clist = Tcl_Merge (numChoices, choices);
+//  Tcl_SetVar (interp, "choices", clist, 0);
+//  Tcl_SetVar (interp, "msg", displayMsg, 0);
+//  sprintf (token, "%d", UIMMsgTokenID);
+//  Tcl_SetVar (interp, "id", token, 0);
+//  retVal = Tcl_EvalFile (interp, "msg.tcl");
+//  if (retVal == TCL_ERROR) {
+//    printf ("error showing Message:\n");
+//    printf ("%s\n", interp->result);
+//  }
+//}
 
-/*** get token*****/
-  UIMMsgTokenID++;
-  entryPtr = Tcl_CreateHashEntry (&UIMMsgReplyTbl, (char *)UIMMsgTokenID, 
-				  &newptr);
-  if (newptr) {
-    reply = new UIMReplyRec;
-      /* grab thread id of requesting thread */
-    reply->tid = getRequestingThread();
-    reply->cb = cb;
-    Tcl_SetHashValue (entryPtr, reply);
-  }
-
-  clist = Tcl_Merge (numChoices, choices);
-  Tcl_SetVar (interp, "choices", clist, 0);
-  Tcl_SetVar (interp, "msg", displayMsg, 0);
-  sprintf (token, "%d", UIMMsgTokenID);
-  Tcl_SetVar (interp, "id", token, 0);
-  retVal = Tcl_EvalFile (interp, "msg.tcl");
-  if (retVal == TCL_ERROR) {
-    printf ("error showing Message:\n");
-    printf ("%s\n", interp->result);
-  }
-}
-
-int uimMsgReplyCmd(ClientData clientData, 
-		Tcl_Interp *interp, 
-		int argc, 
-		char *argv[])
-{
-  Tcl_HashEntry *entry;
-  UIMReplyRec *msgRec;
-  int retVal;
-  showMsgCBFunc mcb;
-  int msgID;
-
-  if (argc < 3) {
-    Tcl_AppendResult(interp, "Usage: uimMsgReply msg# choice\n", 
-		     (char *) NULL);
-    return TCL_ERROR;
-  }
-  printf ("in uimMsgReplyCmd w/ id = %s; ret = %s\n", argv[1], argv[2]);
-  // get callback and thread id for this msg
-  Tcl_GetInt (interp, argv[1], &msgID);
-  if (!(entry = Tcl_FindHashEntry (&UIMMsgReplyTbl, (char *) msgID))) {
-    Tcl_AppendResult (interp, "invalid message ID!", (char *) NULL);
-    return TCL_ERROR;
-  }
-  
-  msgRec = (UIMReplyRec *) Tcl_GetHashValue(entry);
-  Tcl_GetInt (interp, argv[2], &retVal);
-
-     /* set thread id for return */
-  uim_server->setTid(msgRec->tid);
-  mcb = (showMsgCBFunc) msgRec->cb;
-  Tcl_DeleteHashEntry (entry);   // cleanup hash table record
-
-     /* send reply */
-  uim_server->msgChoice (mcb, retVal);
-  return TCL_OK;
-}
+//int uimMsgReplyCmd(ClientData clientData, 
+//		Tcl_Interp *interp, 
+//		int argc, 
+//		char *argv[])
+//{
+//  Tcl_HashEntry *entry;
+//  UIMReplyRec *msgRec;
+//  int retVal;
+//  showMsgCBFunc mcb;
+//  int msgID;
+//
+//  if (argc < 3) {
+//    Tcl_AppendResult(interp, "Usage: uimMsgReply msg# choice\n", 
+//		     (char *) NULL);
+//    return TCL_ERROR;
+//  }
+//  printf ("in uimMsgReplyCmd w/ id = %s; ret = %s\n", argv[1], argv[2]);
+//  // get callback and thread id for this msg
+//  Tcl_GetInt (interp, argv[1], &msgID);
+//  if (!(entry = Tcl_FindHashEntry (&UIMMsgReplyTbl, (char *) msgID))) {
+//    Tcl_AppendResult (interp, "invalid message ID!", (char *) NULL);
+//    return TCL_ERROR;
+//  }
+//  
+//  msgRec = (UIMReplyRec *) Tcl_GetHashValue(entry);
+//  Tcl_GetInt (interp, argv[2], &retVal);
+//
+//     /* set thread id for return */
+//  uim_server->setTid(msgRec->tid);
+//  mcb = (showMsgCBFunc) msgRec->cb;
+//  Tcl_DeleteHashEntry (entry);   // cleanup hash table record
+//
+//     /* send reply */
+//  uim_server->msgChoice (mcb, retVal);
+//  return TCL_OK;
+//}
 
 /*
  *  showMsgWait
  *  This is a synchronous version of showMsg; the index of the user 
  *  menu choice is returned directly to the calling thread.  
  */
-int 
-UIM::showMsgWait(char *displayMsg,
-	int numChoices,
-	char **choices)
-{
-  char *clist;
-  int retVal;
-
-  clist = Tcl_Merge (numChoices, choices);
-  Tcl_SetVar (interp, "choices", clist, 0);
-  Tcl_SetVar (interp, "msg", displayMsg, 0);
-  retVal = Tcl_EvalFile (interp, "msg.tcl");
-  if (retVal == TCL_ERROR) {
-    printf ("error showing Message\n");
-    return -1;
-  }
-     /* send reply */
-  Tcl_GetInt (interp, interp->result, &retVal);
-  return retVal;
-}
+//int 
+//UIM::showMsgWait(char *displayMsg,
+//	int numChoices,
+//	char **choices)
+//{
+//  char *clist;
+//  int retVal;
+//
+//  clist = Tcl_Merge (numChoices, choices);
+//  Tcl_SetVar (interp, "choices", clist, 0);
+//  Tcl_SetVar (interp, "msg", displayMsg, 0);
+//  retVal = Tcl_EvalFile (interp, "msg.tcl");
+//  if (retVal == TCL_ERROR) {
+//    printf ("error showing Message\n");
+//    return -1;
+//  }
+//     /* send reply */
+//  Tcl_GetInt (interp, interp->result, &retVal);
+//  return retVal;
+//}
 
 // ****************************************************************
 // Metrics and Resources 
@@ -355,7 +350,6 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   Tcl_HashEntry *entryPtr;
   int newptr;
   char tcommand[300];
-//  List<resourceDisplayObj *>tmp;
 
       // store record with unique id and callback function
   UIMMsgTokenID++;
@@ -405,21 +399,11 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 //  DAG/SHG Display Service Routines
 // ****************************************************************
 
-//nodeIdType
-//StrToNodeIdType (char *instring) 
-//{
-//  nodeIdType retval;
-//  if ((sscanf (instring, "%u", &retval)) <= 0)
-//    abort(); 
-//  return retval;
-//}
-
 extern shgPhases *theShgPhases;
 
 void
 UIM::updateStatusDisplay (int shgToken, const char *info)
 {
-//  shgDisplay::AllSearchDisplays[(unsigned)shgToken]->updateStatus(info);
    if (theShgPhases->existsCurrent())
       theShgPhases->getByID(shgToken).addToStatusDisplay(info);
 
@@ -471,7 +455,6 @@ UIM::initSHG(const char *phaseName, int phaseID)
 {
    assert(theShgPhases);
 
-//   extern Tk_Window mainWindow; // UImain.C
    shg *theNewShg = new shg(interp,
 			    theShgPhases->getTkWindow(), // _not_ the main window!
 			    theShgPhases->getHorizSBName(),
@@ -485,12 +468,6 @@ UIM::initSHG(const char *phaseName, int phaseID)
    theShgPhases->getCurrent().resize(theShgPhases->getCurrentId()==phaseID);
 
    initiateShgRedraw(interp, true); // true --> double buffer
-
-//  // create display object
-//  shgDisplay *displ = new shgDisplay(phaseName, phaseID);
-//  if (displ->initDisplay() == -1) 
-//    return -1;
-//  return displ->getToken();
 
    return phaseID;
 }
@@ -523,7 +500,6 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
    const bool isRootNode = (flags == 1);
    shgRootNode::style theStyle = int2style(styleID);
 
-//   theShg.addNode(nodeID, theStyle, label, shgname, isRootNode);
    // A temporary hack for the mysterious "1" that appears for the root node:
    theShg.addNode(nodeID, theStyle, isRootNode ? "Whole Program" : label,
 		  shgname, isRootNode);
@@ -535,9 +511,6 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
       initiateShgRedraw(interp, true);
 
    return 1;
-
-//  retVal = shgDisplay::AllSearchDisplays[dagID]->addNode 
-//    (nodeID, styleID, label, shgname, flags);
 }
 
 int 
@@ -554,9 +527,6 @@ UIM::DAGaddEdge (int dagID, unsigned srcID,
    initiateShgRedraw(interp, true); // true --> double buffer
 
    return 1;
-
-//  return (shgDisplay::AllSearchDisplays[dagID])->
-//      addEdge (srcID, dstID, styleID);
 }
 
   
@@ -570,7 +540,4 @@ UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
       initiateShgRedraw(interp, true); // interp --> double buffer
 
    return 1;
-
-//  return shgDisplay::AllSearchDisplays[dagID]->
-//    configureNode (nodeID, NULL, styleID);
 }
