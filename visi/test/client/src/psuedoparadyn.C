@@ -1,7 +1,10 @@
 /* $Log: psuedoparadyn.C,v $
-/* Revision 1.1  1995/09/18 18:26:48  newhall
-/* updated test subdirectory, added visilib routine GetMetRes()
-/* */ 
+/* Revision 1.2  1995/09/27 16:30:15  newhall
+/* added option for sending user specified data values to a visi
+/*
+ * Revision 1.1  1995/09/18  18:26:48  newhall
+ * updated test subdirectory, added visilib routine GetMetRes()
+ * */ 
 #include <stdio.h>
 #include <stream.h>
 #include "util/h/String.h"
@@ -105,16 +108,20 @@ main(int argc, char *argv[]){
         }}
 	else {
             int wch = -1;
- 	    while((wch < 0) || (wch > 8)){
+ 	    while((wch < 0) || (wch > 9)){
 		cerr << endl << "----------------------------------" << endl;
 		cerr << "Enter number of operation to perform:" << endl;
-		cerr << "    0: add random data values	1: add NULL data values"
+		cerr << "    0: add random data values (between 0 and 100)" 
 		     << endl;
-		cerr << "    2: send ZERO data values   3: fold" << endl;
-		cerr << "    4: start a new phase       5: and new Met/res" 
-		     << endl;
-		cerr << "    6: print all active metrics and resources" << endl;
-		cerr << "    7: continue (do nothing)   8: quit" << endl;
+		cerr << "    1: add NULL data values" << endl;
+		cerr << "    2: send ZERO data values   " << endl;
+		cerr << "    3: send user specified data Values"  << endl;    
+		cerr << "    4: fold" << endl;
+		cerr << "    5: start a new phase" << endl;
+		cerr << "    6: add new Met/Res" << endl;
+		cerr << "    7: print all active metrics and resources" << endl;
+		cerr << "    8: continue (do nothing)"   << endl;
+		cerr << "    9: quit" << endl;
 		cerr << endl << "----------------------------------" << endl;
 		scanf("%d",&wch);
 	    }
@@ -134,18 +141,22 @@ main(int argc, char *argv[]){
 		    scanf("%d",&wch);
 		    SendData(wch,2,lastBucketFilled,bucketWidth);
 		    break;
-		    break;
                 case 3:
-		    Fold(bucketWidth,lastBucketFilled);
+		    cerr << "enter number of buckets to send" << endl;
+		    scanf("%d",&wch);
+		    SendData(wch,3,lastBucketFilled,bucketWidth);
 		    break;
                 case 4:
+		    Fold(bucketWidth,lastBucketFilled);
+		    break;
+                case 5:
                     NewPhase(currPhaseId,bucketWidth,
 			     lastBucketFilled,minbucketWidth);
 		    break;
-                case 5:
+                case 6:
 		    NewMR();
 		    break;
-                case 6:
+                case 7:
 		    {
 			cerr << "LIST OF ENABLED METRIC/FOCUS PAIRS" << endl;
                         for(unsigned i=0; i < mrlist.size(); i++){
@@ -156,9 +167,9 @@ main(int argc, char *argv[]){
 			}
 		    }
 		    break;
-                case 7:
-		    break;
                 case 8:
+		    break;
+                case 9:
 		    done = true;
 		    break;
                 default:
@@ -175,6 +186,12 @@ void SendData(u_int howmany,
 	      double &bucketWidth){
 
     if(howmany == 0) return;
+
+    float user_selected_value = 0.0;
+    if(type_values == 3){
+        cerr << "enter data value as a float" << endl;
+        scanf("%f",&user_selected_value);
+    }
     vector <T_visi::dataValue> tempData;
     for(unsigned i=0; i < howmany; i++){
         for(unsigned j=0; j < mrlist.size(); j++){
@@ -189,6 +206,9 @@ void SendData(u_int howmany,
 	    else if(type_values == 0){
 	        newValue.data = 0.1*(rand() % 1000);
             }
+	    else if(type_values == 3){
+                newValue.data = user_selected_value;
+	    }
 	    tempData += newValue;
 	}
 	lastBucketCollected++;
